@@ -8,7 +8,7 @@ Current documents:
 - `Veyra_World_Bible_v0.3.md`
 - `Veyra_Battleground_Bible_v0.7.md`
 - `Veyra_Item_Bible_v0.3.md`
-- `Veyra_Combat_Bible_v0.1.md`
+- `Veyra_Combat_Bible_v0.2.md`
 
 The original Word documents include richer layout and concept-art presentation. These Markdown exports prioritize searchable design content and may omit embedded images.
 
