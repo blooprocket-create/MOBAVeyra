@@ -1,0 +1,50 @@
+# Architecture Decision Records
+
+This directory records major technical choices that should not be casually reversed by future contributors or coding agents.
+
+## When to create an ADR
+
+Create an ADR when a decision materially affects multiple systems, establishes a long-lived dependency, chooses an engine/plugin/infrastructure strategy, or changes an architecture rule.
+
+Examples:
+
+- Unreal Engine version policy;
+- Gameplay Ability System adoption strategy;
+- dedicated-server authority implementation;
+- item/Vanguard data definition format;
+- gameplay messaging/event system;
+- persistence/backend boundaries;
+- replay/determinism strategy;
+- asset/LFS/source-control policy.
+
+## Format
+
+Use sequential names such as:
+
+```text
+ADR-001-unreal-version-policy.md
+ADR-002-gameplay-ability-system.md
+```
+
+Suggested template:
+
+```markdown
+# ADR-###: Decision title
+
+**Status:** Proposed | Accepted | Superseded
+**Date:** YYYY-MM-DD
+
+## Context
+What problem or constraint requires a decision?
+
+## Decision
+What are we choosing?
+
+## Consequences
+What becomes easier, harder, required, or prohibited?
+
+## Alternatives considered
+What other reasonable options were considered and why were they not selected?
+```
+
+Keep ADRs concise. Their job is to preserve *why* a major choice exists.
