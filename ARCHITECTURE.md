@@ -145,7 +145,7 @@ Presentation may observe lower layers. Lower layers do not know presentation exi
 
 `VeyraDeveloper`-style test/debug tooling may depend on gameplay modules; production gameplay modules must never depend on developer tooling.
 
-Exact Unreal module names remain provisional until the project is scaffolded. `PROJECT_STRUCTURE.md` records the current intended split.
+Veyra targets **Unreal Engine 5.8** under [`ADR-001`](Docs/ADR/ADR-001-unreal-version-policy.md) and adopts Unreal's **Gameplay Ability System (GAS)** under [`ADR-002`](Docs/ADR/ADR-002-gameplay-ability-system.md). Exact Veyra module names remain provisional until the project is scaffolded. `PROJECT_STRUCTURE.md` records the current intended split.
 
 ## 3. State ownership
 
@@ -262,11 +262,10 @@ ADRs should record the context, decision, consequences, and alternatives conside
 
 ## 11. Deliberately open decisions
 
-The following are **not** locked merely by this document:
+The engine and ability-framework choices are now locked by ADR: **Unreal Engine 5.8** and **GAS adoption**. The following implementation details remain open:
 
-- exact Unreal Engine version;
 - exact final module names/count;
-- final Gameplay Ability System usage strategy;
+- exact GAS Ability System Component placement and Attribute Set decomposition;
 - exact prediction model for each ability category;
 - backend/database/matchmaking vendor choices;
 - final build farm and CI provider;
