@@ -4,9 +4,9 @@ This directory contains repository-native Markdown exports of the current Veyra 
 
 Current documents:
 
-- `Veyra_Initial_Roster_Character_Bible_v0.3.md`
-- `Veyra_World_Bible_v0.2.md`
-- `Veyra_Battleground_Bible_v0.4.md`
+- `Veyra_Initial_Roster_Character_Bible_v0.4.md`
+- `Veyra_World_Bible_v0.3.md`
+- `Veyra_Battleground_Bible_v0.5.md`
 - `Veyra_Item_Bible_v0.3.md`
 
 The original Word documents include richer layout and concept-art presentation. These Markdown exports prioritize searchable design content and may omit embedded images.
