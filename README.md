@@ -26,10 +26,12 @@ The project is currently in pre-production. The repository is being established 
 
 Repository-native Markdown exports of the current working design documents live in [`Docs/Design/`](Docs/Design/):
 
-- Initial Roster Character Bible v0.3
-- World Bible v0.2
-- Battleground Bible v0.4
+- Initial Roster Character Bible v0.4
+- World Bible v0.3
+- Battleground Bible v0.5
 - Item Bible v0.3
+
+The current prototype roster contains **17 Vanguards**, which is sufficient for the current Ranked draft format of six total bans followed by ten globally unique picks.
 
 These documents describe working game design, not immutable implementation contracts. When an implementation decision conflicts with a design document, do not silently choose one: raise the mismatch and resolve it deliberately.
 
