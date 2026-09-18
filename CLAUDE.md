@@ -33,7 +33,7 @@ Do not:
 - add `if Raska`, `if ItemX`, or equivalent named-content branches to reusable core systems;
 - silently change architecture or design to get a task over the line;
 - create god classes or permanent `Misc`/`Helpers` dumping grounds;
-- invent unresolved project-level decisions such as final GAS strategy or backend vendor during unrelated work.
+- bypass the accepted GAS strategy in `ADR-002` or invent unresolved project-level decisions such as backend vendor during unrelated work.
 
 ## When blocked
 
