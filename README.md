@@ -28,7 +28,7 @@ Repository-native Markdown exports of the current working design documents live 
 
 - Initial Roster Character Bible v0.3
 - World Bible v0.2
-- Battleground Bible v0.1
+- Battleground Bible v0.2
 - Item Bible v0.3
 
 These documents describe working game design, not immutable implementation contracts. When an implementation decision conflicts with a design document, do not silently choose one: raise the mismatch and resolve it deliberately.
