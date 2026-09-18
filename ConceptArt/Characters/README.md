@@ -6,17 +6,17 @@ These sheets are **visual development references**, not final production assets.
 
 ## Current sheet set
 
-The current archive contains 19 sheets covering the 17 designed Vanguards, with alternate iterations retained for Raska and Moro:
+The current directory contains 17 character sheets covering all 17 designed Vanguards:
 
 - Angeru — The Housebreaker
 - Kade — Dead Reckoning
 - Korruk — The Splinterbeast
 - Marek — The Black Accord (+ Nix)
-- Moro — The Wildspark (two iterations)
+- Moro — The Wildspark
 - Neris — The Tidebound
 - Patch — The Last Hug
 - Qazharr — The Harbor Wolf
-- Raska — The Redline (two iterations)
+- Raska — The Redline
 - Relay — The Last Conductor
 - Silt
 - Sylra — The Mistwarden
@@ -33,12 +33,10 @@ Angeru_The_Housebreaker_Character_Sheet.png
 Kade_Dead_Reckoning_Character_Sheet.png
 Korruk_The_Splinterbeast_Character_Sheet.png
 Marek_The_Black_Accord_Character_Sheet.png
-Moro_The_Wildspark_Character_Sheet_v1.png
 Moro_The_Wildspark_Character_Sheet_v2.png
 Neris_The_Tidebound_Character_Sheet.png
 Patch_The_Last_Hug_Character_Sheet.png
 Qazharr_The_Harbor_Wolf_Character_Sheet.png
-Raska_The_Redline_Character_Sheet_v1.png
 Raska_The_Redline_Character_Sheet_v2.png
 Relay_The_Last_Conductor_Character_Sheet.png
 Silt_Character_Sheet.png
