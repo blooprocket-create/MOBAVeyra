@@ -101,6 +101,8 @@ Depends on combat/abilities/economy through approved contracts. It does not own 
 - Fluxborn-strength progression inputs;
 - notifications when thresholds change.
 
+Flux Spell unlocks are validated against **permanent Team Flux only**; temporary Flux must not contribute to spell-slot unlock state. Under current prototype tuning, the first Flux Spell slot unlocks at **25 permanent Team Flux** and the second at **75 permanent Team Flux**. These values remain data-driven.
+
 A Flux Spell cast does not consume shared Flux under the current game design. Swapping Flux Spells at the shop costs gold and should use the economy transaction API rather than mutating gold in the Flux module.
 
 ### VeyraWorld
