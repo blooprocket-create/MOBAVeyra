@@ -2,6 +2,11 @@
 
 This directory records major technical choices that should not be casually reversed by future contributors or coding agents.
 
+## Accepted decisions
+
+- [`ADR-001-unreal-version-policy.md`](ADR-001-unreal-version-policy.md) — Unreal Engine 5.8; deliberate version-pinned upgrades.
+- [`ADR-002-gameplay-ability-system.md`](ADR-002-gameplay-ability-system.md) — Adopt GAS behind Veyra-owned C++ integration and combat semantics.
+
 ## When to create an ADR
 
 Create an ADR when a decision materially affects multiple systems, establishes a long-lived dependency, chooses an engine/plugin/infrastructure strategy, or changes an architecture rule.
