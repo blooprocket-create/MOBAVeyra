@@ -1,6 +1,8 @@
 # Veyra Project Structure
 
 **Status:** Provisional structure; architecture direction is locked, exact module names may evolve.  
+**Engine target:** Unreal Engine 5.8  
+**Ability framework:** Unreal Gameplay Ability System (GAS), per `ADR-002`  
 **Read first:** [`ARCHITECTURE.md`](ARCHITECTURE.md)
 
 The purpose of this document is to make ownership and dependency direction obvious before the Unreal project becomes large. It is not permission to create every listed module immediately. Start with the smallest useful set and split modules when boundaries become valuable.
@@ -56,7 +58,7 @@ Must never special-case named Vanguards or items.
 
 ### VeyraAbilities
 
-Owns reusable ability execution behavior and, if adopted, Veyra's integration layer around Unreal Gameplay Ability System.
+Owns reusable ability execution behavior and Veyra's C++ integration layer around Unreal Gameplay Ability System (GAS).
 
 - activation validation;
 - cooldown/cost primitives;
