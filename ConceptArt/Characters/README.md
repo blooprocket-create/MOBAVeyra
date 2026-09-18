@@ -42,12 +42,12 @@ Raska_The_Redline_Character_Sheet_v1.png
 Raska_The_Redline_Character_Sheet_v2.png
 Relay_The_Last_Conductor_Character_Sheet.png
 Silt_Character_Sheet.png
-Sylra_The_Mistwarden_Character_Sheet.jpg
+Sylra_The_Mistwarden_Character_Sheet.png
 Tavi_The_Playmate_Character_Sheet.png
 Torr_The_Unreturned_Character_Sheet.png
 Varkesh_The_Forgeheart_Character_Sheet.png
 Vera_The_Last_Volley_Character_Sheet.png
-Mavra_The_Spillwright_Character_Sheet.jpg
+Mavra_The_Spillwright_Character_Sheet.png
 ```
 
 ## Public-repository note
