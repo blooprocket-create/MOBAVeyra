@@ -33,6 +33,10 @@ Repository-native Markdown exports of the current working design documents live 
 
 These documents describe working game design, not immutable implementation contracts. When an implementation decision conflicts with a design document, do not silently choose one: raise the mismatch and resolve it deliberately.
 
+### Concept art
+
+Character-sheet visual development belongs under [`ConceptArt/Characters/`](ConceptArt/Characters/). The directory index tracks the current Vanguard sheet set and intended filenames.
+
 ## Status
 
 The Unreal project has not yet established all implementation details. In particular, exact Unreal Engine version, final module boundaries, final Gameplay Ability System adoption strategy, backend services, and detailed client prediction rules remain open decisions. Do not invent those decisions merely to finish a task; record major choices through an ADR.
