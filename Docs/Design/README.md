@@ -1,14 +1,16 @@
 # Veyra Design Bibles
 
-This directory contains repository-native Markdown exports of the current Veyra design bibles so contributors and coding agents can search and reference the game design directly in Git.
+This directory contains the **current working canon** for Veyra's game design. Contributors and coding agents should use these files as the default design references.
 
-Current documents:
+## Current documents
 
 - `Veyra_Initial_Roster_Character_Bible_v0.4.md`
 - `Veyra_World_Bible_v0.3.md`
 - `Veyra_Battleground_Bible_v0.7.md`
 - `Veyra_Item_Bible_v0.3.md`
 - `Veyra_Combat_Bible_v0.2.md`
+
+Older superseded versions are preserved under [`Archives/`](Archives/). They exist for design history and comparison only and must not be treated as current implementation requirements.
 
 The original Word documents include richer layout and concept-art presentation. These Markdown exports prioritize searchable design content and may omit embedded images.
 
