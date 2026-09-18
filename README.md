@@ -42,7 +42,7 @@ Character-sheet visual development belongs under [`ConceptArt/Characters/`](Conc
 
 ## Status
 
-The Unreal project has not yet established all implementation details. In particular, exact Unreal Engine version, final module boundaries, final Gameplay Ability System adoption strategy, backend services, and detailed client prediction rules remain open decisions. Do not invent those decisions merely to finish a task; record major choices through an ADR.
+Veyra targets **Unreal Engine 5.8** and has formally adopted Unreal's **Gameplay Ability System (GAS)** as its ability-framework foundation. Final module boundaries, detailed GAS ownership/prediction policy, backend services, and other unresolved infrastructure choices remain deliberate architecture decisions. Do not invent unresolved choices merely to finish a task; record major choices through an ADR.
 
 ## License
 
