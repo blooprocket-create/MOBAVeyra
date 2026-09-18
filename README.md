@@ -26,8 +26,8 @@ The project is currently in pre-production. The repository is being established 
 
 Repository-native Markdown exports of the current working design documents live in [`Docs/Design/`](Docs/Design/):
 
-- Initial Roster Character Bible v0.2
-- World Bible v0.1
+- Initial Roster Character Bible v0.3
+- World Bible v0.2
 - Battleground Bible v0.1
 - Item Bible v0.3
 
