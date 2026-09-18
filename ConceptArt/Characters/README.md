@@ -6,7 +6,7 @@ These sheets are **visual development references**, not final production assets.
 
 ## Current sheet set
 
-The current archive contains 17 sheets covering the 15 designed Vanguards, with alternate iterations retained for Raska and Moro:
+The current archive contains 19 sheets covering the 17 designed Vanguards, with alternate iterations retained for Raska and Moro:
 
 - Angeru — The Housebreaker
 - Kade — Dead Reckoning
@@ -19,10 +19,12 @@ The current archive contains 17 sheets covering the 15 designed Vanguards, with 
 - Raska — The Redline (two iterations)
 - Relay — The Last Conductor
 - Silt
+- Sylra — The Mistwarden
 - Tavi — The Playmate
 - Torr — The Unreturned
 - Varkesh — The Forgeheart
 - Vera — The Last Volley
+- Mavra — The Spillwright
 
 ## Intended filenames
 
@@ -40,10 +42,12 @@ Raska_The_Redline_Character_Sheet_v1.png
 Raska_The_Redline_Character_Sheet_v2.png
 Relay_The_Last_Conductor_Character_Sheet.png
 Silt_Character_Sheet.png
+Sylra_The_Mistwarden_Character_Sheet.jpg
 Tavi_The_Playmate_Character_Sheet.png
 Torr_The_Unreturned_Character_Sheet.png
 Varkesh_The_Forgeheart_Character_Sheet.png
 Vera_The_Last_Volley_Character_Sheet.png
+Mavra_The_Spillwright_Character_Sheet.jpg
 ```
 
 ## Public-repository note
