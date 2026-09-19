@@ -29,11 +29,19 @@ Reusable gameplay behavior belongs in C++ modules and well-defined engine-facing
 
 Champion-specific code should express what makes a Vanguard unique by composing reusable primitives. It should not reimplement the foundations those primitives already provide.
 
-### 1.3 Data owns tuning and content configuration
+### 1.3 No hardcoded gameplay tuning or magic numbers
 
-Data Assets, Data Tables, configuration assets, and other data-driven definitions should own values that designers need to tune without rewriting code: base stats, ratios, cooldowns, costs, item recipes, Flux thresholds, jungle values, objective timings, and similar content parameters.
+**Project-wide rule: no hardcoded gameplay tuning values and no unexplained numeric literals in gameplay logic.** Designers must be able to tune the game's values without changing or recompiling C++ or modifying Blueprint logic.
 
-Do not hardcode tunable balance values in unrelated C++ logic when they can be expressed safely as validated data.
+- Data Assets, Data Tables, validated configuration assets, and other data-driven definitions own all gameplay and balance parameters: base stats, ratios, cooldowns, Gold/XP rewards, inventory limits where configurable, costs, item recipes, Flux thresholds, jungle values, objective and wave timings, respawn/buyback rules, AI/AFK timings, distances, radii, speeds, caps, and similar settings.
+- Match-flow schedules must be explicit data, including **first wave spawn time, phase boundaries, per-phase spawn intervals, lane offsets if any, and any later cadence changes**. Never bury a proposed schedule inside a timer callback or branch with literal elapsed-time checks.
+- Veyra has its **own map geometry and travel times**. Values borrowed from another MOBA are provisional data entries to validate against Veyra playtests, not engine-level assumptions.
+- Systems load and validate tunable data once through the owning domain, expose it through a clear typed contract, and derive dependent behavior from that data. Avoid copying the same value into unrelated classes, assets, clients, test fixtures, or widgets.
+- Never replace literals with meaningless local constants that remain just as hard to tune, or use a default that silently disguises missing/invalid tuning data. Validate ranges, required fields, and compatibility on startup/build, with explicit failures for missing required configuration.
+- Fixed mathematical identities, array indices, protocol/schema version markers, and genuinely invariant algorithmic constants are not gameplay tuning. They may remain code constants when **named or self-evident**, documented when non-obvious, and tested. Do not interpret this rule as outlawing the literal `0` or `1` in arithmetic.
+- Any gameplay literal added to C++/Blueprint requires justification that it is truly invariant; otherwise it must move into editable data. Temporary prototype numbers belong in data too.
+
+**No magic numbers** means code should describe what a number represents and obtain all configurable values from their authoritative data source; adding a named constant in C++ does not make a gameplay balance value data-driven.
 
 ### 1.4 Blueprints stay thin
 
@@ -178,7 +186,7 @@ If ownership is ambiguous, resolve it before adding code. Do not create a second
 
 ## 5. Data-driven content rules
 
-- Balance values should be data-driven unless there is a strong reason otherwise.
+- Gameplay tuning values **must be data-driven**, not hardcoded, including prototype numbers and wave schedules. A rare genuinely invariant algorithmic constant must be justified and named/documented as needed.
 - Data definitions must be validated on load/build where practical.
 - Stable IDs should be used for content references that must survive renames or serialization.
 - Code should not depend on display names.
@@ -237,7 +245,7 @@ Every substantial gameplay PR must check:
 - [ ] Did gameplay logic leak into UI, animation, or Blueprint presentation?
 - [ ] Did any core system gain champion/item-specific branching?
 - [ ] Is server authority preserved?
-- [ ] Are tunable values data-driven where practical?
+- [ ] Are **all** gameplay tuning values, thresholds, timing phases, and range/cost/cooldown numbers editable in validated data instead of C++/Blueprint magic numbers?
 - [ ] Are relevant tests present and passing?
 - [ ] Did any class gain responsibilities outside its domain?
 - [ ] Does this decision deserve an ADR?
