@@ -9,6 +9,9 @@ This directory contains the **current working canon** for Veyra's game design. C
 - `Veyra_Battleground_Bible_v0.7.md`
 - `Veyra_Item_Bible_v0.3.md`
 - `Veyra_Combat_Bible_v0.2.md`
+- `Veyra_Vision_Bible_v0.1.md`
+
+The Vision Bible is the current reference for vision tools and detailed Dense Fog detection interactions; the Battleground Bible still defines the map and its fog volumes.
 
 Older superseded versions are preserved under [`Archives/`](Archives/). They exist for design history and comparison only and must not be treated as current implementation requirements.
 
