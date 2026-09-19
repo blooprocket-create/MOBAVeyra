@@ -6,10 +6,11 @@
 
 **Implementation rule:** All timings, percentages, thresholds, and penalties stated here are **initial tuning data**, never hardcoded C++/Blueprint literals. The Match system owns authoritative phase changes, voting, outcome adjudication, and orchestration. Combat/World/Economy own their respective underlying gameplay state. This document does not choose a matchmaking/rating provider, punishment escalation policy, or backend architecture.
 
-**Related documents:** The [Modes & Access Bible v0.1](Veyra_Modes_Access_Bible_v0.1.md) owns mode access and Co-op vs AI composition; the [Client & Platform Bible v0.1](Veyra_Client_Platform_Bible_v0.1.md) owns launcher/pre-game/in-game handoff and reconnect UX. The Battleground Bible owns map structures, wave/camp schedules, and the Prime Well win condition. The Combat Bible owns damage, actual death, and control/target validity. The Economy & Progression Bible owns Gold, XP, and buyback. The Vision Bible owns vision and ward tools.
+**Related documents:** The [Modes & Access Bible v0.1](Veyra_Modes_Access_Bible_v0.1.md) owns mode access and Co-op vs AI composition; the [Parties & Social Bible v0.1](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) owns pre-select acceptance, parties and queue restrictions; the [Client & Platform Bible v0.1](Veyra_Client_Platform_Bible_v0.1.md) owns launcher/pre-game/in-game handoff and reconnect UX; the [Replay Bible v0.1](Veyra_Replay_Spectator_Bible_v0.1.md) owns match replay coverage and spectator delay. The Battleground Bible owns map structures, wave/camp schedules, and the Prime Well win condition. The Combat Bible owns damage, actual death, and control/target validity. The Economy & Progression Bible owns Gold, XP, and buyback. The Vision Bible owns vision and ward tools.
 
 ## 1. Full match lifecycle
 
+0. **Matchmaking and match-found confirmation (pre-select):** The party leader queues an eligible Ready party; **all required human participants must accept the match** before champion select. In PvP, all ten humans accept; in Co-op vs AI, all five humans accept. A decline/timeout aborts the proposed match **before select**, with **no launch decline/miss penalty**, under the Parties & Social Bible.
 1. **Champion select:** Players select/lock and may trade Vanguards under the Battleground Bible's mode-specific draft rules. They choose up to two initial Flux Spells free of charge before the match.
 2. **Loading:** Wait for all **required human player connections** up to a **configurable loading timeout** (ten for PvP; five human teammates for Co-op vs AI, with five server-controlled enemy AI Vanguards).
 3. **Fountain preparation:** Players enter a synchronized **15–20-second prototype preparation period**. They can move **within their own fountain**, buy opening items, and allocate starting skill points, but **cannot leave the fountain**. This preparation countdown happens before the match clock starts.
@@ -23,7 +24,8 @@ A match has **no mandatory time limit or sudden-death winner**. The 20–45-minu
 
 - If anyone **disconnects during champion select**, cancel that selection session and return the other players to the queue; no match starts and no remake vote is needed.
 - If someone **deliberately leaves champion select**, cancel the session and return others to the queue, but give the leaving player a **separate configurable queue-dodge penalty**. This is **not a match loss**, since no match began.
-- Champion select's current casual/draft/ranked pick, ban, hover, lock-in, and trade rules remain governed by the Battleground Bible. This section does not add a new draft format or invent a dodge-penalty schedule.
+- **Queue-dodge penalty is personal:** teammates do not receive it merely for being in the dodger's party. However, if they choose to queue **with** the restricted dodger, that party cannot queue until the dodger's restriction expires. They may queue without that player. After cancellation the existing party remains intact unless members leave and must Ready up again, under the Parties & Social Bible.
+- The player-facing Ranked queue is **deferred from initial launch**, though the documented Ranked draft remains a future target. Champion select's current casual/draft/ranked pick, ban, hover, lock-in, and trade rules remain governed by the Battleground Bible. This section does not add a new draft format or invent a dodge-penalty schedule.
 
 ## 3. Loading, preparation, and no-show players
 
@@ -141,7 +143,13 @@ The exact behind-turret retreat destination, fallback path if no safe allied tur
 - Personal loss applies to its penalized player, **not automatically to their four teammates**. A successful team win may remove that player's personal loss **only** by satisfying the specific cumulative-absence and comeback-participation conditions in §6.
 - A revival-style combat save is **not** a match respawn. Buyback and ordinary respawn obey Economy/Combat Bible rules and never reset an absence penalty.
 
-## 12. Tuning, tests, and deliberately open questions
+## 12. Replays and spectator authority (cross-reference)
+
+- **Every match produces a gameplay replay**, including games that end in remake; an invalidated/no-contest match has a replay but still awards no account XP under the Account Bible.
+- Live friend spectating reads an **authoritatively delayed three-minute recording frontier** through Unreal Spectator Mode; it does not create an extra player slot, bypass the match's fog-of-war data permissions or affect match results. Full replay format, retention, saved-slot and moderator-evidence design lives in the Replay Bible.
+- Match chat is visible in live gameplay according to live communication rules; **public replay/spectator playback cannot expose archived chat**, which belongs to restricted moderator evidence under Moderation Bible.
+
+## 13. Tuning, tests, and deliberately open questions
 
 **Every number in this document is a data-driven prototype setting**, including fountain countdown, loading timeout, first/second autopilot stage, inactivity threshold, warning grace, disconnect penalty threshold, remake/surrender/pause unlocks, vote timeouts, failed-vote cooldowns, intermission duration, and the forgiveness percentage.
 
