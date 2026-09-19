@@ -1,9 +1,9 @@
 # Veyra Modes, Access & Weekly Rotation Bible
 
-**Version:** 0.1 — Captured queue, roster-access and Co-op vs AI decisions; further discussion required  
+**Version:** 0.2 — Captured queue, roster access, Co-op vs AI and deferred Ranked launch scope; further discussion required  
 **Status:** Working design canon for rules explicitly marked *Locked*; not an implementation-ready matchmaking specification  
 **Scope:** Matchmade modes, Ranked entry/selection access, weekly free-rotation selection, and Co-op vs AI.  
-**Companion documents:** [Battleground Bible v0.9](Veyra_Battleground_Bible_v0.9.md) owns the map and standard PvP champion-select ban/pick/trade structure; [Match Flow Bible v0.1](Veyra_Match_Flow_Bible_v0.1.md) owns live-match results, votes, penalties and remakes; [Account, Collection & Mastery Bible](Veyra_Account_Collection_Mastery_Bible_v0.1.md) owns persistent account rewards/ownership; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns queue-facing client handoffs.
+**Companion documents:** [Battleground Bible v0.9](Veyra_Battleground_Bible_v0.9.md) owns the map and PvP champion-select ban/pick/trade structure; [Match Flow Bible v0.1](Veyra_Match_Flow_Bible_v0.1.md) owns live-match results, votes, penalties and remakes; [Account, Collection & Mastery Bible](Veyra_Account_Collection_Mastery_Bible_v0.1.md) owns persistent account rewards/ownership and Flux/Refined Flux; [Parties, Social & Matchmaking Bible](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) owns parties, queue readiness/acceptance, party-rank rules and absolute block restrictions; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns client handoffs.
 
 > **Implementation rule:** Queue eligibility, rotation snapshots, Vanguard ownership, pick/trade legality and results must be validated by their trusted authoritative services; UI is a view of this state, not the authority. Thresholds, rotation policies, timing and all mode-specific settings belong in editable, validated data.
 
@@ -13,7 +13,7 @@
 |---|---|---|---|
 | **Casual Select (non-Ranked PvP)** | 5 humans vs 5 humans | Owned Vanguards **plus current weekly free rotation** | Battleground Bible's Casual Select; globally unique picks across both teams. |
 | **Draft Pick (non-Ranked PvP)** | 5 humans vs 5 humans | Owned Vanguards **plus current weekly free rotation** | Battleground Bible's bans/draft; globally unique picks across both teams. |
-| **Ranked** | 5 humans vs 5 humans | **Only permanently owned Vanguards** | Draft Pick ban/pick structure and entry gates in §2; weekly rotation cannot be used. |
+| **Ranked — deferred beyond initial launch** | 5 humans vs 5 humans | **Only permanently owned Vanguards** | Future target: Draft Pick ban/pick structure, entry gates and party-rank restrictions in §2 and Parties Bible; weekly rotation cannot be used. |
 | **Co-op vs AI — Beginner** | 5 humans vs 5 enemy AI Vanguards | Owned Vanguards **plus current weekly free rotation** | Full standard battleground/match rules; Beginner enemy AI behavior. |
 | **Co-op vs AI — Intermediate** | 5 humans vs 5 enemy AI Vanguards | Owned Vanguards **plus current weekly free rotation** | Same battleground and rules; Intermediate enemy AI behavior. |
 | **Custom/private** | Rules and setup TBD | No account XP or Vanguard Mastery | Other setup and invitation rules not yet decided; cannot claim additional exceptions. |
@@ -22,16 +22,18 @@
 - **Only Co-op vs AI permits the same Vanguard on opposing teams (cross-team mirror pick).** In PvP all ten picks are globally unique, including Casual Select, Draft Pick and Ranked.
 - All persistent XP/mastery exclusions and personal-loss handling are defined in the Account and Match Flow bibles. The fact that a match can be played does not automatically mean it yields each kind of reward.
 - Co-op uses the same standard match timeline, objectives, combat rules and surrender vote rule (**available after 15:00; three of five human teammates must vote yes**) as the main battleground, except for explicitly documented human-versus-AI composition and pick/mirror access.
+- **Parties of 1–5 players** can enter each available matchmaking queue; empty allied slots are filled with other human players. All required human participants accept a found match before select (**ten** for PvP, **five** for Co-op vs AI); there is **no launch penalty for declining/missing the acceptance prompt**. Matchmaking must **never** assemble two accounts into the same match when either has blocked the other, regardless of queue-time impact. See Parties & Social Bible.
 
 ## 2. Locked — Ranked access
 
-- Ranked requires **both Account Level 30 or higher and 20 permanently owned Vanguards**.
+- **Ranked is not an initial-launch requirement.** When introduced, Ranked requires **both Account Level 30 or higher and 20 permanently owned Vanguards**.
 - The permanently unlocked tutorial starter **counts** toward the 20 owned; **weekly rotation does not count**.
 - **Ranked selection and any teammate trade must leave each human player assigned a Vanguard they permanently own**. A free-rotation-only Vanguard may not be played in Ranked even when currently free.
 - Ranked uses the Battleground Bible's existing 3-bans-per-team and 10 globally unique picks format; this bible does not redefine bans or pick sequence.
 - The owned-roster threshold provides selection resilience in a ten-pick/six-ban draft. It does **not** guarantee every individual player has all 20 picks available at any moment or define how the draft handles unusual selection/lock failures.
 - **Readiness correction to Battleground v0.9:** A roster of 17 satisfies the *global mathematical minimum* of 16 distinct Vanguards to fit six unique bans plus ten unique picks, but **does not satisfy the new 20-owned-Vanguard Ranked access gate**. Ranked must not be treated as player-accessible while the entire released roster contains fewer than 20 ownable Vanguards. The 17-Vanguard passage in the older Battleground Bible is superseded on this narrow readiness point.
-- Ranked rating, placements, divisions, matchmaking, seasons, party eligibility, penalties and rewards remain **open design**; do not invent them.
+- **Ranked party size target is 1–5 players**, all meeting the owned/level gates and all ranks **within one rank step across the entire party**. No middle-ranked player may bridge members more than one rank apart. Exact tiers/divisions and edge-case eligibility remain open; see Parties & Social Bible.
+- Ranked rating, placements, divisions, matchmaking, seasons, penalties and rewards remain **open design**; do not invent them or make Ranked a launch blocker.
 
 ## 3. Locked — 12-slot weekly free Vanguard rotation
 
@@ -60,8 +62,8 @@
 
 ## 5. Open design work
 
-- Ranked rating/divisions, placements, season cadence, party-size limits and exact matchmaking policies.
-- Queue acceptance/invitations, parties, wait times, decline/dodge penalties and champion-select eligibility failure handling.
+- Future Ranked rating/divisions, placements, season cadence, adjacent-rank validation details and exact matchmaking policies; **initial launch proceeds without Ranked**.
+- Core acceptance/party/decline/dodge policy is in the Parties Bible. Exact matchmaking/queue restoration algorithms, invitation lifetime, reconnect edge cases and champion-select eligibility failure handling remain open.
 - Free-rotation weekly boundary/snapshot behavior and configuration for fair random selection.
 - Custom/private match rules, bot participation, rewards other than the confirmed exclusions, and mirror restrictions (cross-team mirrors remain exclusive to Co-op unless deliberately revisited).
 - Initial released roster must reach at least 20 permanently ownable Vanguards before Ranked can satisfy the access gate, and 12 release-eligible distinct Vanguards before the full weekly rotation can operate.
