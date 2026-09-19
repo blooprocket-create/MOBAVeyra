@@ -24,7 +24,7 @@ If a task conflicts with those documents, do not silently choose a side. Surface
 - Do not add hard references between unrelated systems when an interface/event/message/orchestrator is appropriate.
 - Do not add champion- or item-name special cases to core systems.
 - Do not expand a convenient class into a god object.
-- Do not hardcode balance values that should be designer-editable data.
+- **Never hardcode gameplay tuning values or leave magic numbers in gameplay C++/Blueprints.** Every prototype and final balance/timing/cost/range/cap value must come from validated, designer-editable data; a named C++ constant is not a substitute. Treat other games' numbers as provisional data, especially map-dependent wave and objective timings. Allow only justified true algorithmic invariants (e.g. mathematical identities), not concealed balance literals.
 - Do not bypass architecture merely to make a task compile.
 
 ## Task workflow
@@ -70,7 +70,7 @@ For substantial PRs, include:
 - scope/intent;
 - authoritative owner(s) touched;
 - new dependencies introduced;
-- data/schema changes;
+- data/schema changes and confirmation that every changed gameplay tuning value is editable data (no magic numbers);
 - networking/replication implications;
 - tests/builds run;
 - architecture checklist result;
