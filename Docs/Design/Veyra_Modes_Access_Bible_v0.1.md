@@ -1,0 +1,69 @@
+# Veyra Modes, Access & Weekly Rotation Bible
+
+**Version:** 0.1 — Captured queue, roster-access and Co-op vs AI decisions; further discussion required  
+**Status:** Working design canon for rules explicitly marked *Locked*; not an implementation-ready matchmaking specification  
+**Scope:** Matchmade modes, Ranked entry/selection access, weekly free-rotation selection, and Co-op vs AI.  
+**Companion documents:** [Battleground Bible v0.9](Veyra_Battleground_Bible_v0.9.md) owns the map and standard PvP champion-select ban/pick/trade structure; [Match Flow Bible v0.1](Veyra_Match_Flow_Bible_v0.1.md) owns live-match results, votes, penalties and remakes; [Account, Collection & Mastery Bible](Veyra_Account_Collection_Mastery_Bible_v0.1.md) owns persistent account rewards/ownership; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns queue-facing client handoffs.
+
+> **Implementation rule:** Queue eligibility, rotation snapshots, Vanguard ownership, pick/trade legality and results must be validated by their trusted authoritative services; UI is a view of this state, not the authority. Thresholds, rotation policies, timing and all mode-specific settings belong in editable, validated data.
+
+## 1. Locked — mode roster and baseline rules
+
+| Mode | Teams | Vanguard access for human player | Other rules |
+|---|---|---|---|
+| **Casual Select (non-Ranked PvP)** | 5 humans vs 5 humans | Owned Vanguards **plus current weekly free rotation** | Battleground Bible's Casual Select; globally unique picks across both teams. |
+| **Draft Pick (non-Ranked PvP)** | 5 humans vs 5 humans | Owned Vanguards **plus current weekly free rotation** | Battleground Bible's bans/draft; globally unique picks across both teams. |
+| **Ranked** | 5 humans vs 5 humans | **Only permanently owned Vanguards** | Draft Pick ban/pick structure and entry gates in §2; weekly rotation cannot be used. |
+| **Co-op vs AI — Beginner** | 5 humans vs 5 enemy AI Vanguards | Owned Vanguards **plus current weekly free rotation** | Full standard battleground/match rules; Beginner enemy AI behavior. |
+| **Co-op vs AI — Intermediate** | 5 humans vs 5 enemy AI Vanguards | Owned Vanguards **plus current weekly free rotation** | Same battleground and rules; Intermediate enemy AI behavior. |
+| **Custom/private** | Rules and setup TBD | No account XP or Vanguard Mastery | Other setup and invitation rules not yet decided; cannot claim additional exceptions. |
+
+- No role or lane assignment is enforced in the battleground.
+- **Only Co-op vs AI permits the same Vanguard on opposing teams (cross-team mirror pick).** In PvP all ten picks are globally unique, including Casual Select, Draft Pick and Ranked.
+- All persistent XP/mastery exclusions and personal-loss handling are defined in the Account and Match Flow bibles. The fact that a match can be played does not automatically mean it yields each kind of reward.
+- Co-op uses the same standard match timeline, objectives, combat rules and surrender vote rule (**available after 15:00; three of five human teammates must vote yes**) as the main battleground, except for explicitly documented human-versus-AI composition and pick/mirror access.
+
+## 2. Locked — Ranked access
+
+- Ranked requires **both Account Level 30 or higher and 20 permanently owned Vanguards**.
+- The permanently unlocked tutorial starter **counts** toward the 20 owned; **weekly rotation does not count**.
+- **Ranked selection and any teammate trade must leave each human player assigned a Vanguard they permanently own**. A free-rotation-only Vanguard may not be played in Ranked even when currently free.
+- Ranked uses the Battleground Bible's existing 3-bans-per-team and 10 globally unique picks format; this bible does not redefine bans or pick sequence.
+- The owned-roster threshold provides selection resilience in a ten-pick/six-ban draft. It does **not** guarantee every individual player has all 20 picks available at any moment or define how the draft handles unusual selection/lock failures.
+- **Readiness correction to Battleground v0.9:** A roster of 17 satisfies the *global mathematical minimum* of 16 distinct Vanguards to fit six unique bans plus ten unique picks, but **does not satisfy the new 20-owned-Vanguard Ranked access gate**. Ranked must not be treated as player-accessible while the entire released roster contains fewer than 20 ownable Vanguards. The 17-Vanguard passage in the older Battleground Bible is superseded on this narrow readiness point.
+- Ranked rating, placements, divisions, matchmaking, seasons, party eligibility, penalties and rewards remain **open design**; do not invent them.
+
+## 3. Locked — 12-slot weekly free Vanguard rotation
+
+- Each weekly rotation features **12 distinct Vanguards**, made playable without permanent ownership in **non-Ranked PvP and Co-op vs AI only**.
+- Vanguards are **randomly selected by a trusted system under configurable roster rules** that support a spread of mechanical accessibility and playstyles. No duplicate Vanguard may occupy two slots in the same weekly rotation.
+- A newly released Vanguard first becomes **eligible for rotation one week after release**. It remains available for immediate permanent purchase with either currency from launch.
+- Ordinarily, a Vanguard included in this week's rotation **must sit out the following week's rotation**. After that break, it returns to the eligible selection pool.
+- **Fallback when avoiding repeats would leave fewer than 12 distinct choices:** Relax the **one-week no-repeat restriction first**, for as many Vanguards as needed to fill the 12 distinct slots. **Never** relax the one-week new-release waiting period to fill slots.
+- Previously earned mastery on a free-rotation Vanguard belongs permanently to the player even when that Vanguard leaves rotation. Every Vanguard remains visible in the Collection regardless of weekly access.
+
+### Rotation population math and validation
+
+- Guaranteeing *zero consecutive-week repeats* for 12 slots requires **at least 24 release-eligible distinct Vanguards**. The planned 25–30 roster can support that after excluding new-release waiting periods; the **current 17-Vanguard prototype cannot**, so back-to-back repeats are normal under the agreed fallback until there are enough eligible choices.
+- To provide 12 **distinct** slots at all, the release-eligible selection pool must contain **at least 12 Vanguards**. If it does not, neither relaxing consecutive-week repeat restrictions nor duplicating a slot can legally fill the rotation. This is an unresolved **launch/content configuration precondition**, not permission to insert duplicate slots or waive the new-release delay.
+- Actual week-boundary timing/time zone, rotation activation with matches/champion select already underway, and specific category mix/randomness policy remain to be specified; selection must be reproducible/auditable, and clients must not choose rotation contents.
+
+## 4. Locked — Co-op vs AI
+
+- Both Co-op queues match **five real human teammates** against **five AI-controlled enemy Vanguards**. **Never fill vacant allied slots with friendly AI**; matchmaking waits for five humans rather than substituting bots.
+- Provide **two distinct matchmaking queues**, **Beginner** and **Intermediate**. Difficulty changes **enemy AI behavior only**; it does **not** change the map, combat, economy, victory, surrender, progression or other gameplay rules.
+- The five opposing AI Vanguards are **randomly drawn from the current weekly free-rotation roster**. Enemy AI team picks remain distinct from one another. A human may pick a Vanguard also played by an enemy AI—**the sole cross-team mirror exception**.
+- Human players may select permanently owned or current free-rotation Vanguards; AI picks do not confer ownership or Ranked eligibility.
+- **Account XP is earned only below Account Level 10**; Co-op remains open beyond that level without account XP. **Vanguard Mastery remains earnable in Co-op at all account levels.** Custom/private games grant neither reward.
+- AFK/disconnect, remake, surrender, outcome adjudication, and pause behavior should follow the ordinary Match Flow Bible wherever defined for human participants; detailed AI voting/disconnect semantics and AI tuning remain to be designed, not guessed.
+- Queue matchmaking criteria, AI logic and anti-abuse criteria remain separate, open design questions.
+
+## 5. Open design work
+
+- Ranked rating/divisions, placements, season cadence, party-size limits and exact matchmaking policies.
+- Queue acceptance/invitations, parties, wait times, decline/dodge penalties and champion-select eligibility failure handling.
+- Free-rotation weekly boundary/snapshot behavior and configuration for fair random selection.
+- Custom/private match rules, bot participation, rewards other than the confirmed exclusions, and mirror restrictions (cross-team mirrors remain exclusive to Co-op unless deliberately revisited).
+- Initial released roster must reach at least 20 permanently ownable Vanguards before Ranked can satisfy the access gate, and 12 release-eligible distinct Vanguards before the full weekly rotation can operate.
+
+**This bible records the decisions reached so far; it is not a directive to implement unfinished matchmaking, Ranked or service architecture.**
