@@ -513,6 +513,8 @@ Flux Spells should create strategic adaptation without turning shared Flux into 
 
 The prototype supports standard 5v5 champion-select flows built around **hidden hovers, visible lock-ins, permanent roster commitment, and teammate trades**.
 
+**Cross-reference:** [Modes & Access Bible v0.1](Veyra_Modes_Access_Bible_v0.1.md) now owns Ranked account/ownership gates, weekly free rotation, and separate Co-op vs AI queues. The champion-select rules below apply to PvP unless a mode is explicitly distinguished there. **Only Co-op vs AI permits cross-team mirror Vanguard selections; PvP remains globally unique.**
+
 ### Shared lock-in rules
 
 These rules apply anywhere champion selection is used:
@@ -598,7 +600,7 @@ Ranked uses the **Draft Pick** champion-select structure:
 
 With global unique picks and six total distinct bans, a roster of **16 Vanguards is the mathematical minimum** required to leave ten unique playable picks after the ban phase.
 
-The current prototype roster contains **17 Vanguards**, so the roster-size requirement for Ranked is now satisfied and Ranked is included in the intended prototype mode set.
+The current prototype roster contains **17 Vanguards**, which meets this **draft-wide distinct-pick minimum only**. Under the later [Modes & Access Bible v0.1](Veyra_Modes_Access_Bible_v0.1.md), individual Ranked entry additionally requires **Account Level 30 and 20 permanently owned Vanguards**, and weekly rotation cannot be used in Ranked. Therefore, a released roster of only 17 ownable Vanguards does **not** yet make Ranked player-accessible; the intended Ranked format is a future target pending sufficient released roster and further Ranked design.
 
 Exact rating, placement, matchmaking, season, queue-penalty, and progression systems remain separate implementation/design decisions.
 
