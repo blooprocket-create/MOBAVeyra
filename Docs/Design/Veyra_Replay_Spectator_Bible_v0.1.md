@@ -38,7 +38,7 @@
 - **Save Replay persists the gameplay recording on Veyra servers**, not a rendered video and not automatically a download to the player's computer. A later optional local-export feature remains undecided.
 - Multiple accounts saving the same match must reference **one shared underlying replay recording**. The save consumes **one slot per account**, not one physical replay recording per saver.
 - Deleting a saved replay removes **only that account's save reference** and frees one of their slots. It cannot remove another account's save, truncate an active moderator evidence hold or remove an ordinary-eligible replay.
-- The underlying recording and public link remain available if **any** account still has it saved, ordinary retention still applies, or the viewer is an authorized moderator within the moderator-only access window/hold. **Moderator-only retention alone does not make an expired link publicly available.**
+- The underlying recording is retained while **any** account still has it saved, ordinary retention applies, or authorized moderator retention/evidence hold applies. **The public replay link works only while ordinary or saved-replay eligibility remains**; moderator-only retention does not make an expired public link viewable.
 - Save/delete and quota allocation must be atomic and authorized; concurrent saves/un-saves cannot create duplicate recordings or delete an object that another saver/hold still references.
 - Behavior for a saved replay becoming unplayable after a major compatibility update, quota migration, account deletion and abuse/illegal content removal remains open.
 
