@@ -1,10 +1,10 @@
-> Repository Markdown edition: the original 17-Vanguard roster originated in the v0.4 Word bible; additional concept Vanguards are documented below. Embedded concept art is omitted.
+> Repository Markdown edition: the roster began with 17 Vanguards in the v0.4 Word bible and has grown to 20 in this version. Embedded concept art is omitted.
 
 # Veyra Initial Roster Character Bible
 
 **Version:** 0.5  
-**Documented Vanguard concepts:** 20 (original 17-character first-playable target + 3 additional concepts)  
-**Status:** Working character canon; inclusion in this bible does not change the 17-Vanguard first-playable scope.
+**Current roster target:** 20 Vanguards (and growing as new designs are added)  
+**Status:** Working character canon for the planned first-playable roster. All 20 listed Vanguards belong to the current roster target.
 
 ## Roster principles
 
@@ -1395,7 +1395,7 @@ The entity inside Patch should remain mysterious. Do not rush to explain it as F
 
 # First-playable roster goal
 
-The first 17 should collectively demonstrate that Veyra supports:
+The current 20-Vanguard roster should collectively demonstrate that Veyra supports:
 
 - humans;
 - elementals;
@@ -1413,9 +1413,9 @@ The roster should make the setting feel larger than any one explanation and shou
 
 ---
 
-# Additional documented Vanguard concepts
+# Vanguards 18–20
 
-The following Vanguards extend the **documented concept roster to 20**. Their inclusion here does **not** automatically revise the established 17-Vanguard first-playable target. They follow the same open-composition rules as the original roster. Exact values, cooldowns, ratios, ranges, durations, and progression curves remain prototype-tuning decisions.
+Cairn, Tavra, and Vitra are part of the **current 20-Vanguard roster target**, not a separate post-launch or optional group. This target can continue growing as additional Vanguards are designed. They follow the same open-composition rules as the rest of the roster. Exact values, cooldowns, ratios, ranges, durations, and progression curves remain prototype-tuning decisions.
 
 # 18. Cairn, The River's Grasp
 

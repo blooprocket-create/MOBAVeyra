@@ -6,7 +6,7 @@ These sheets are **visual development references**, not final production assets.
 
 ## Current sheet set
 
-The current directory contains 17 character sheets covering all 17 designed Vanguards:
+The current directory contains 17 character-sheet files for the original 17 designs, while the current roster target is **20 Vanguards**. Cairn, Tavra, and Vitra have been designed, but their character-sheet images have not yet been added to this repository directory:
 
 - Angeru — The Housebreaker
 - Kade — Dead Reckoning

@@ -2,8 +2,8 @@
 
 # Veyra World Bible
 
-**Version:** 0.4 — 17-Vanguard first-playable target, 20 documented concepts  
-**Status:** Working canon. Exact geography remains intentionally provisional. The additional concepts do not revise first-playable scope.
+**Version:** 0.4 — 20-Vanguard current roster target  
+**Status:** Working canon. Exact geography remains intentionally provisional. All 20 designed Vanguards belong to the current roster target, which can continue growing.
 
 ## 1. World identity
 

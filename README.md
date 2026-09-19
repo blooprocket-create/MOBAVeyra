@@ -26,8 +26,8 @@ The project is currently in pre-production. The repository is being established 
 
 Repository-native Markdown exports of the current working design documents live in [`Docs/Design/`](Docs/Design/):
 
-- Initial Roster Character Bible v0.4
-- World Bible v0.3
+- Initial Roster Character Bible v0.5
+- World Bible v0.4
 - Battleground Bible v0.9
 - Item Bible v0.3
 - Combat Bible v0.4
@@ -42,7 +42,7 @@ Repository-native Markdown exports of the current working design documents live 
 - Moderation, Reporting & Telemetry Bible v0.1
 - Replay, Saved Matches & Live Spectating Bible v0.1
 
-The current prototype roster contains **17 Vanguards**. This supports the draft's arithmetic minimum of six bans plus ten globally unique picks, **but does not yet support Ranked player eligibility**, which additionally requires Account Level 30 and **20 permanently owned Vanguards**. **Ranked is intentionally deferred from initial launch**. The account, mode, client, party, profile, moderation and replay bibles are working design checkpoints; matchmaking implementation, account security, commerce, telemetry/replay architecture and other backend details remain to be decided before implementation.
+The current planned roster contains **20 designed Vanguards**, including Cairn, Tavra, and Vitra. This is the current first-playable roster target, not a fixed cap; it can grow as more Vanguards are designed. Twenty designs exceed the draft's arithmetic minimum of 16 distinct Vanguards for six bans plus ten globally unique picks. **Ranked is intentionally deferred from initial launch** and still requires Account Level 30, **20 permanently owned, released Vanguards** per eligible player, and further Ranked-system design; having 20 character concepts does not make Ranked immediately playable. The account, mode, client, party, profile, moderation and replay bibles are working design checkpoints; matchmaking implementation, account security, commerce, telemetry/replay architecture and other backend details remain to be decided before implementation.
 
 Persistent account currencies are **Flux** (earned; Vanguard unlocks and paid display-name changes) and **Refined Flux** (premium; Vanguards, skins and paid display-name changes). Both are **separate from in-match Team Flux**. Replay design targets a non-video authoritative gameplay recording for every match, ten server-saved matches per account and delayed live friend spectating; those are product requirements, not an approved recording/storage implementation.
 
