@@ -37,8 +37,14 @@ Repository-native Markdown exports of the current working design documents live 
 - Account, Collection & Mastery Bible v0.1
 - Modes & Access Bible v0.1
 - Launcher, Pre-Game Client & Platform Bible v0.1
+- Parties, Social & Matchmaking Bible v0.1
+- Player Profiles, Identity & Website Bible v0.1
+- Moderation, Reporting & Telemetry Bible v0.1
+- Replay, Saved Matches & Live Spectating Bible v0.1
 
-The current prototype roster contains **17 Vanguards**. This supports the draft's arithmetic minimum of six bans plus ten globally unique picks, **but does not yet support Ranked player eligibility**, which additionally requires Account Level 30 and **20 permanently owned Vanguards**. The new account/mode/client bibles are working design checkpoints; major progression, matchmaking, commerce and backend details remain to be decided before implementation.
+The current prototype roster contains **17 Vanguards**. This supports the draft's arithmetic minimum of six bans plus ten globally unique picks, **but does not yet support Ranked player eligibility**, which additionally requires Account Level 30 and **20 permanently owned Vanguards**. **Ranked is intentionally deferred from initial launch**. The account, mode, client, party, profile, moderation and replay bibles are working design checkpoints; matchmaking implementation, account security, commerce, telemetry/replay architecture and other backend details remain to be decided before implementation.
+
+Persistent account currencies are **Flux** (earned; Vanguard unlocks and paid display-name changes) and **Refined Flux** (premium; Vanguards, skins and paid display-name changes). Both are **separate from in-match Team Flux**. Replay design targets a non-video authoritative gameplay recording for every match, ten server-saved matches per account and delayed live friend spectating; those are product requirements, not an approved recording/storage implementation.
 
 These documents describe working game design, not immutable implementation contracts. When an implementation decision conflicts with a design document, do not silently choose one: raise the mismatch and resolve it deliberately.
 
