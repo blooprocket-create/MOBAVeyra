@@ -34,8 +34,11 @@ Repository-native Markdown exports of the current working design documents live 
 - Vision & Reconnaissance Bible v0.1
 - Economy & Progression Bible v0.1
 - Match Flow Bible v0.1
+- Account, Collection & Mastery Bible v0.1
+- Modes & Access Bible v0.1
+- Launcher, Pre-Game Client & Platform Bible v0.1
 
-The current prototype roster contains **17 Vanguards**, which is sufficient for the current Ranked draft format of six total bans followed by ten globally unique picks.
+The current prototype roster contains **17 Vanguards**. This supports the draft's arithmetic minimum of six bans plus ten globally unique picks, **but does not yet support Ranked player eligibility**, which additionally requires Account Level 30 and **20 permanently owned Vanguards**. The new account/mode/client bibles are working design checkpoints; major progression, matchmaking, commerce and backend details remain to be decided before implementation.
 
 These documents describe working game design, not immutable implementation contracts. When an implementation decision conflicts with a design document, do not silently choose one: raise the mismatch and resolve it deliberately.
 
