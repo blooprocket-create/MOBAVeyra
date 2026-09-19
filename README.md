@@ -28,11 +28,12 @@ Repository-native Markdown exports of the current working design documents live 
 
 - Initial Roster Character Bible v0.4
 - World Bible v0.3
-- Battleground Bible v0.8
+- Battleground Bible v0.9
 - Item Bible v0.3
-- Combat Bible v0.3
+- Combat Bible v0.4
 - Vision & Reconnaissance Bible v0.1
 - Economy & Progression Bible v0.1
+- Match Flow Bible v0.1
 
 The current prototype roster contains **17 Vanguards**, which is sufficient for the current Ranked draft format of six total bans followed by ten globally unique picks.
 

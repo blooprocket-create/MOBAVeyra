@@ -10,6 +10,7 @@ Current design bibles live one level up in `Docs/Design/`.
 
 - `Battleground/` — superseded Battleground Bible versions
 - `Combat/` — superseded Combat Bible versions
+- `MatchFlow/` — superseded Match Flow Bible versions (once a successor exists)
 - `InitialRoster/` — superseded Initial Roster Character Bible versions
 - `World/` — superseded World Bible versions
 
