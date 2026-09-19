@@ -6,12 +6,12 @@
 
 **Implementation rule:** All timings, percentages, thresholds, and penalties stated here are **initial tuning data**, never hardcoded C++/Blueprint literals. The Match system owns authoritative phase changes, voting, outcome adjudication, and orchestration. Combat/World/Economy own their respective underlying gameplay state. This document does not choose a matchmaking/rating provider, punishment escalation policy, or backend architecture.
 
-**Related documents:** The Battleground Bible owns map structures, wave/camp schedules, and the Prime Well win condition. The Combat Bible owns damage, actual death, and control/target validity. The Economy & Progression Bible owns Gold, XP, and buyback. The Vision Bible owns vision and ward tools.
+**Related documents:** The [Modes & Access Bible v0.1](Veyra_Modes_Access_Bible_v0.1.md) owns mode access and Co-op vs AI composition; the [Client & Platform Bible v0.1](Veyra_Client_Platform_Bible_v0.1.md) owns launcher/pre-game/in-game handoff and reconnect UX. The Battleground Bible owns map structures, wave/camp schedules, and the Prime Well win condition. The Combat Bible owns damage, actual death, and control/target validity. The Economy & Progression Bible owns Gold, XP, and buyback. The Vision Bible owns vision and ward tools.
 
 ## 1. Full match lifecycle
 
 1. **Champion select:** Players select/lock and may trade Vanguards under the Battleground Bible's mode-specific draft rules. They choose up to two initial Flux Spells free of charge before the match.
-2. **Loading:** Wait for all ten connections up to a **configurable loading timeout**.
+2. **Loading:** Wait for all **required human player connections** up to a **configurable loading timeout** (ten for PvP; five human teammates for Co-op vs AI, with five server-controlled enemy AI Vanguards).
 3. **Fountain preparation:** Players enter a synchronized **15–20-second prototype preparation period**. They can move **within their own fountain**, buy opening items, and allocate starting skill points, but **cannot leave the fountain**. This preparation countdown happens before the match clock starts.
 4. **Live match:** When preparation ends, the fountain exits open simultaneously and the match clock begins at **0:00**. Waves, wildlife, objective openings, remake/surrender unlocks, and buyback use the authoritative elapsed match clock and their own editable timing schedules.
 5. **Paused intermission:** Gameplay freezes only after an approved pause vote; the 10-minute real-time intermission countdown still runs.
@@ -27,7 +27,7 @@ A match has **no mandatory time limit or sudden-death winner**. The 20–45-minu
 
 ## 3. Loading, preparation, and no-show players
 
-- The loading screen waits for all ten up to a **tunable timeout** rather than waiting indefinitely.
+- The loading screen waits for all **required human players** up to a **tunable timeout** rather than waiting indefinitely; Co-op vs AI does not require network connections from enemy AI-controlled Vanguards.
 - If someone never connects by that timeout, the match **still proceeds** through the defined start flow. That Vanguard is treated as disconnected at live-match start and follows the ordinary retreat/reconnect rules; its team may start a remake vote immediately at 0:00.
 - The no-show player's team is not required to wait for a personal-loss penalty before initiating remake.
 - During the pre-0:00 fountain preparation, players may move inside the fountain but **may not leave** until the shared preparation countdown ends.
