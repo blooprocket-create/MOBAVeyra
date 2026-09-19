@@ -600,9 +600,9 @@ Ranked uses the **Draft Pick** champion-select structure:
 
 With global unique picks and six total distinct bans, a roster of **16 Vanguards is the mathematical minimum** required to leave ten unique playable picks after the ban phase.
 
-The current prototype roster contains **17 Vanguards**, which meets this **draft-wide distinct-pick minimum only**. Under the later [Modes & Access Bible v0.1](Veyra_Modes_Access_Bible_v0.1.md), individual Ranked entry additionally requires **Account Level 30 and 20 permanently owned Vanguards**, and weekly rotation cannot be used in Ranked. Therefore, a released roster of only 17 ownable Vanguards does **not** yet make Ranked player-accessible; the intended Ranked format is a future target pending sufficient released roster and further Ranked design.
+**Ranked is deliberately deferred from initial launch** while its rating, seasons, matchmaking and player-experience systems are designed. The current prototype roster contains **17 Vanguards**, which meets this **draft-wide distinct-pick minimum only**. Under the later [Modes & Access Bible v0.1](Veyra_Modes_Access_Bible_v0.1.md), individual Ranked entry additionally requires **Account Level 30 and 20 permanently owned Vanguards**, and weekly rotation cannot be used in Ranked. Therefore, a released roster of only 17 ownable Vanguards does **not** yet make Ranked player-accessible; the intended Ranked format is a future target pending sufficient released roster and further Ranked design.
 
-Exact rating, placement, matchmaking, season, queue-penalty, and progression systems remain separate implementation/design decisions.
+The [Parties, Social & Matchmaking Bible v0.1](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) describes launch party/queue rules and the future Ranked target of parties of up to five with no more than one rank step between any two members. Exact rating, placement, matchmaking, season, queue-penalty, and progression systems remain separate implementation/design decisions.
 
 <table>
 <colgroup>
