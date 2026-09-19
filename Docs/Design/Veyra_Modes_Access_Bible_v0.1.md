@@ -1,6 +1,6 @@
 # Veyra Modes, Access & Weekly Rotation Bible
 
-**Version:** 0.2 — Captured queue, roster access, Co-op vs AI and deferred Ranked launch scope; further discussion required  
+**Version:** 0.1 (expanded checkpoint) — Captured queue, roster access, Co-op vs AI and deferred Ranked launch scope; further discussion required  
 **Status:** Working design canon for rules explicitly marked *Locked*; not an implementation-ready matchmaking specification  
 **Scope:** Matchmade modes, Ranked entry/selection access, weekly free-rotation selection, and Co-op vs AI.  
 **Companion documents:** [Battleground Bible v0.9](Veyra_Battleground_Bible_v0.9.md) owns the map and PvP champion-select ban/pick/trade structure; [Match Flow Bible v0.1](Veyra_Match_Flow_Bible_v0.1.md) owns live-match results, votes, penalties and remakes; [Account, Collection & Mastery Bible](Veyra_Account_Collection_Mastery_Bible_v0.1.md) owns persistent account rewards/ownership and Flux/Refined Flux; [Parties, Social & Matchmaking Bible](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) owns parties, queue readiness/acceptance, party-rank rules and absolute block restrictions; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns client handoffs.
