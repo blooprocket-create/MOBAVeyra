@@ -2,8 +2,8 @@
 
 **Version:** 0.1 — Captured pre-production decisions; further design discussion required  
 **Status:** Working design canon for the rules explicitly marked *Locked*; not an implementation-ready specification  
-**Scope:** Persistent account progression, tutorial rewards, Vanguard ownership/collection, account currencies, storefront principles, and Vanguard Mastery.  
-**Companion documents:** [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) for launcher/pregame/in-game responsibilities and [Modes & Access Bible](Veyra_Modes_Access_Bible_v0.1.md) for queue access, weekly rotation, Ranked eligibility, and Co-op vs AI. [Economy & Progression Bible](Veyra_Economy_Progression_Bible_v0.1.md) owns **in-match** Gold, XP, levels and purchasing; those resources are separate from persistent account progression.
+**Scope:** Persistent account progression, tutorial rewards, Vanguard ownership/collection, named account currencies, storefront principles, and Vanguard Mastery.  
+**Companion documents:** [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) for launcher/pregame/in-game responsibilities; [Modes & Access Bible](Veyra_Modes_Access_Bible_v0.1.md) for queue access, weekly rotation, future Ranked eligibility, and Co-op vs AI; [Profiles & Identity Bible](Veyra_Profiles_Identity_Bible_v0.1.md) for public profile customization, globally unique display names and name changes. [Economy & Progression Bible](Veyra_Economy_Progression_Bible_v0.1.md) owns **in-match** Gold, XP, levels and purchasing; those resources are separate from persistent account progression.
 
 > **Design ownership:** The trusted account/progression and commerce backend, not the pre-game UI, owns durable account levels, balances, entitlements, ownership, mastery and reward awards. Match results and contributions must originate from verified authoritative match records. Service/provider architecture remains undecided. All tuning, prices, thresholds, progression curves, reward rates and milestone tables must be editable, validated data—not C++ or Blueprint magic numbers.
 
@@ -34,17 +34,18 @@
 
 | Persistent resource | Earned/spent | Restrictions |
 |---|---|---|
-| **Earned Vanguard-unlock currency** | Awarded at **every account level-up**; buys permanent Vanguards. | Does **not** purchase skins. Never conflate with in-match Gold. |
-| **Premium currency** | Purchased with real money **or** earned at major account milestones (agreed examples: **Levels 30, 50, 75, 100, etc.**); buys Vanguards and cosmetic skins. | Its source does not change its purchasing power. Never conflate with Team Flux or a Flux Spell. |
+| **Flux — earned account currency** | Awarded at **every account level-up**; buys permanent Vanguards or **paid voluntary display-name changes after the first free change**. | Does **not** purchase skins. Separate from shared in-match **Team Flux**, in-match Gold and Flux Spells. |
+| **Refined Flux — premium account currency** | Purchased with real money **or** earned at major account milestones (agreed examples: **Levels 30, 50, 75, 100, etc.**); buys Vanguards, cosmetic skins, or **paid voluntary display-name changes after the first free change**. | Its source does not change its purchasing power. Separate from Team Flux, in-match Gold and Flux Spells. |
 | **Permanent Vanguard entitlement** | Starter choice, or purchase using either currency. | Owns the Vanguard permanently and includes its **default skin**. |
 | **Skin entitlement** | Cosmetic skin purchased using premium currency. | Skins confer **no gameplay advantages** and must preserve competitive clarity/readability. |
 
-- **Every Vanguard can be purchased with either currency immediately upon release.** There is no premium-only new-release window.
-- At release, an **optional premium bundle** may pair the Vanguard with a skin for less than their separate premium prices. Standalone Vanguard purchase remains available with either currency, and standalone skin purchase with premium currency.
+- **Every Vanguard can be purchased with Flux or Refined Flux immediately upon release.** There is no premium-only new-release window.
+- At release, an **optional Refined Flux bundle** may pair the Vanguard with a skin for less than their separate Refined Flux prices. Standalone Vanguard purchase remains available with either currency, and standalone skin purchase with **Refined Flux only**.
 - Vanguard purchase prices are **individual**, informed by beginner accessibility, mechanical complexity and content/engineering complexity; simple starter-friendly Vanguards are generally cheaper than highly complex ones. Both currency prices are editable storefront data.
-- **Each season, the studio selects 15 Vanguards for a permanent price reduction in both earned and premium currencies**; no price rebounds in later seasons. A Vanguard already at its configurable minimum is excluded. A previously reduced Vanguard may be selected again in a later season if above minimum.
+- **Each season, the studio selects 15 Vanguards for a permanent price reduction in both Flux and Refined Flux**; no price rebounds in later seasons. A Vanguard already at its configurable minimum is excluded. A previously reduced Vanguard may be selected again in a later season if above minimum.
 - Exact season timing, reduction amounts, minimum prices, and what to do if fewer than 15 Vanguards remain above the minimum have **not** been settled. Do not invent an automatic pricing algorithm or silently break the minimum-price rule.
 - Payment provider, refunds/chargebacks, receipts, gifting, ownership-independent skin purchases, fraud controls and regional pricing need separate commerce design before implementation.
+- **First voluntary display-name change is free**; subsequent changes may be paid in **Flux or Refined Flux** with **24 hours between voluntary changes**. Both prices remain **TBD**. Forced replacement after someone claims a name from an inactive account is free and does not consume the one free voluntary name change. The [Profiles & Identity Bible](Veyra_Profiles_Identity_Bible_v0.1.md) owns all name rules.
 
 ## 4. Locked — always-visible Vanguard Collection
 
@@ -83,6 +84,7 @@
 - All progression grants and purchases must be **server-validated, idempotent and durable**, including retries after disconnects, client crashes or duplicate match-result delivery. The client must never mint XP, earned currency, premium currency or mastery by reporting its own match outcomes/performance.
 - A match's result, mode, selected Vanguard, valid participation, duration, and individual penalty/forgiveness state must arrive through a trusted adjudicated result. The Match Flow Bible defines the **personal loss and forgiveness** rules; this document owns eligibility for **persistent** account XP/mastery rewards.
 - Reward grant, balance change and entitlement change must be reconcilable without awarding twice. Persistence model, service boundaries and payment-specific technical decisions require an approved architecture decision before implementation.
+- **The earned account currency is named Flux; the premium account currency is Refined Flux.** These persistent currencies are **not** in-match Team Flux, Gold or any Flux Spell resource. Backend models, UI labels and docs must distinguish them explicitly.
 - All proposed numbers in this bible are design defaults/data, not implementation constants.
 
 ## 7. Deliberately open — return to these when design discussion resumes
@@ -91,7 +93,7 @@
 2. Final account XP rates, Level 10 gate snapshot, level curve and milestone-premium-currency award table beyond the agreed milestone examples (**30, 50, 75, 100, etc.**).
 3. Mastery award formula, point-to-level curve, milestone visuals and handling of AFK penalties/remakes for mastery.
 4. Store prices/floors and seasonal reduction schedule/insufficient eligible candidates.
-5. Commerce/refund/chargeback policy, skin entitlement prerequisites and account/service architecture.
-6. Account profile/privacy, other social/pregame systems, Ranked rating/season rewards and other client policies.
+5. Commerce/refund/chargeback policy, skin entitlement prerequisites, Flux/Refined Flux name-change costs and account/service architecture.
+6. Profile catalog, social/matchmaking policy, website authentication, replay/spectator architecture, moderation, and future Ranked rating/season rewards are continued in their own companion bibles.
 
 **Do not treat this v0.1 document as a signal that the broader account/client design is finished or that implementation should begin.**
