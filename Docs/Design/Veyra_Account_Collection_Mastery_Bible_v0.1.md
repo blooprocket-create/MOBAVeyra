@@ -35,7 +35,7 @@
 | Persistent resource | Earned/spent | Restrictions |
 |---|---|---|
 | **Earned Vanguard-unlock currency** | Awarded at **every account level-up**; buys permanent Vanguards. | Does **not** purchase skins. Never conflate with in-match Gold. |
-| **Premium currency** | Purchased with real money **or** earned at account milestones; buys Vanguards and cosmetic skins. | Its source does not change its purchasing power. Never conflate with Team Flux or a Flux Spell. |
+| **Premium currency** | Purchased with real money **or** earned at major account milestones (agreed examples: **Levels 30, 50, 75, 100, etc.**); buys Vanguards and cosmetic skins. | Its source does not change its purchasing power. Never conflate with Team Flux or a Flux Spell. |
 | **Permanent Vanguard entitlement** | Starter choice, or purchase using either currency. | Owns the Vanguard permanently and includes its **default skin**. |
 | **Skin entitlement** | Cosmetic skin purchased using premium currency. | Skins confer **no gameplay advantages** and must preserve competitive clarity/readability. |
 
