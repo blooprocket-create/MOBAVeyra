@@ -50,7 +50,7 @@ These documents describe working game design, not immutable implementation contr
 
 ### Concept art
 
-Character-sheet visual development belongs under [`ConceptArt/Characters/`](ConceptArt/Characters/). The directory index tracks the current Vanguard sheet set and intended filenames.
+Character-sheet visual development belongs under [`ConceptArt/Characters/`](ConceptArt/Characters/). All **20 currently designed Vanguards** have character sheets in that directory; its [character-sheet index](ConceptArt/Characters/README.md) links to the individual images and lists their filenames.
 
 ## Status
 
