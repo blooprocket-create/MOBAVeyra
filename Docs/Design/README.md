@@ -34,6 +34,12 @@ Raska's Hound was the only feature in the roster with no supporting rules in any
 
 All 25 Vanguards remain in the first-playable roster. Raska needs none of ADR-003's three primitives and is now fully specified.
 
+## Antagonist pass — 2026-09-20
+
+Four Vanguards are now genuine antagonists: **Angeru**, **Marek**, **Gorraveth** and **Tavi**. In each case the change was removing an explicit moral safety rail rather than writing a new backstory — origins, kits, roles, regions and the roster count are untouched.
+
+None of them is cruel, and none should be written as sadistic. Angeru is methodical, Marek is curious, Gorraveth is indifferent, and Tavi is affectionate. Each data file records the removed rail with an instruction not to reinstate it.
+
 ## Canon rulings — 2026-09-20
 
 **Renames.** Two Vanguards were renamed to resolve name collisions that would have been expensive to fix after voice-over and localisation:
@@ -56,6 +62,14 @@ Full context and the art-correction checklist are in [`Sheet_Canon_Discrepancy_R
 [`Vanguards/`](Vanguards/) holds one structural data file per Vanguard, derived from the Character Bible, plus a validator that checks them against the Combat Bible's crowd-control vocabulary and the roster table, and rejects any gameplay tuning that leaks into the layer. Run `python3 Docs/Design/Vanguards/validate.py`.
 
 The bible remains the authority on intent, fiction and nuance. These files are the subset a script can verify, and the reason sheet drift is now detectable rather than discovered late.
+
+## Making new sheets
+
+[`Art_Direction_v0.1.md`](Art_Direction_v0.1.md) carries the house art style, the signature colours and the pipeline.
+
+The prompts themselves are **generated**, not written down: `render_sheet.py --prompts <id>` emits one per image slot with that Vanguard's appearance, colour and antagonist direction already injected from canon, so a rename or rewrite updates them automatically. `--missing` lists outstanding art as a work order.
+
+Text is never baked into the artwork — [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) composes it from canon at render time.
 
 ## Concept art is not canon
 

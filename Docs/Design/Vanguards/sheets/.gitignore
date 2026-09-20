@@ -1,0 +1,7 @@
+# Rendered sheets are build output, not source.
+# Regenerate with: python3 Docs/Design/Vanguards/render_sheet.py --all
+#
+# One sheet is committed as a worked example so the pipeline can be reviewed
+# without running it. Everything else is ignored.
+*.html
+!19-bryn.html

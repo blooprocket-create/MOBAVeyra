@@ -61,6 +61,10 @@ guards:
     re-target lockout.
   - Extreme difficulty is intentional; power budget should reward execution rather than raw button count.
   - Both house names and the Reed Provinces regional name remain provisional.
+  - 'ANTAGONIST (2026-09-20). He no longer distinguishes the institutions from the people who carry them:
+    masters, students, pensioners, and anyone who took house money and asked nothing. He keeps a list
+    and it grows. Methodical rather than indiscriminate, and takes no pleasure in it. The old line that
+    he does not hate every warrior of either house is REMOVED and must not be restored.'
 sheet:
   file: null
   status: withdrawn

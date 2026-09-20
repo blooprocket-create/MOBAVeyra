@@ -70,6 +70,12 @@ Remaining work, in order:
 - Kade — Dead Reckoning
 - Raska — The Redline
 
+## Making new sheets
+
+The house art style and pipeline live in [`Docs/Design/Art_Direction_v0.1.md`](../../Docs/Design/Art_Direction_v0.1.md). Prompts are generated per Vanguard by `render_sheet.py --prompts <id>`; new artwork goes in `ConceptArt/Vanguards/<id>/`.
+
+**House style, adopted 2026-09-20:** painterly realism with one saturated signature hue per sheet driving the key light, icon glows and palette — Patch's rendering with Tavi's colour discipline.
+
 ## Sheet template
 
 Three layout generations are currently in circulation. The most recent — used by Mimzi, Celandrine, Gorraveth, Aurelisse and Eudora Blackbridge — is the **standard template for new and regenerated sheets**. It is the only generation carrying a species/region taxonomy, an explicit weaknesses list, in-game view mockups and a colour palette.
