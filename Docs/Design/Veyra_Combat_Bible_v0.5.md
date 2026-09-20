@@ -2,7 +2,7 @@
 
 **Version:** 0.5  
 **Status:** Working combat canon for the first playable prototype.  
-**Changes since 0.4:** adds §56 Ride states, a generic movement-mode primitive covering entry, set Movement Speed, rate-limited facing, the replacement ability set, crowd-control interaction, exits, and the separated vehicle as a projectile. Former §56 and §57 renumber to §57 and §58. No existing rule changed.  
+**Changes since 0.4:** adds §56 Ride states, a generic movement-mode primitive covering entry, set Movement Speed, rate-limited facing, the replacement ability set, crowd-control interaction, exits, and the separated vehicle as a projectile. Former §56 and §57 renumber to §57 and §58. No existing rule changed, and §56 declares no exception to §9, §26 or any other section.  
 **Scope:** Vanguard combat rules, damage resolution, targeting, control, movement interactions, statuses, timing, and structure combat.  
 **Tuning rule:** Numerical values identified as prototype placeholders must remain data-driven.
 
@@ -1624,7 +1624,7 @@ Every ride state explicitly defines its entry, its movement behavior, its replac
 
 A ride state is entered by an ability with a declared cast class under §26.
 
-An entry interrupted before Commit pays no resource cost and does not spend the entry ability's cooldown.
+An entry interrupted before Commit follows §26 without exception: the effect fails, no resource is spent, and the entry ability enters cooldown at 20% of its normal cooldown.
 
 The vehicle is spawned by the entry cast. It does not exist in the world before that cast, and ceases to exist when the ride state and any separated-vehicle phase have ended.
 
@@ -1682,7 +1682,9 @@ Hard CC reduces the rider's effective movement to 0 under §23. The set Movement
 
 A ride state may explicitly grant **Unstoppable** (§9). Where it does, §8's rule that Suppression is unaffected by ordinary CC immunity continues to apply.
 
-Forced movement is executed within the angular constraint. The constraint governs how the rider travels, never whether the effect lands.
+The angular constraint applies only to the rider's own locomotion. **Forced displacement is unaffected by it**: under §9 displacement owns the target's movement outright, so a Knockback, Knockup or Pull moves a rider exactly as it would move any other Vanguard, along its own path and without curving.
+
+Locomotion-controlling CC — Fear, Taunt, Charm — leaves the rider moving under their own power toward or away from a source, and that movement does obey the angular constraint. The constraint governs how such a rider travels, never whether the effect lands.
 
 ### Leaving
 

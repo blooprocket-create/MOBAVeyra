@@ -127,7 +127,9 @@ The rate per unit distance is a tuning value and belongs in data.
 
 **Q9. What cast class is Kickstart?** — **ANSWERED 2026-09-20**
 
-> **Cast-Time, interruptible.** A short readable wind-up as Hound arrives. Per §26, an interrupted pre-Commit Cast-Time ability pays no resource cost — and the cooldown is likewise not spent if it is interrupted before Commit.
+> **Cast-Time, interruptible.** A short readable wind-up as Hound arrives.
+>
+> **Corrected 2026-09-20 (Codex review).** This originally said an interrupted entry spends no cooldown, and claimed that followed §26. It does not. §26 states that a Cast-Time ability interrupted before Commit "enters cooldown at **20% of its normal cooldown**". Ride entry now follows §26 without exception: the effect fails, no resource is spent, and the entry ability takes the 20% failed-cast cooldown. The original wording would have been an undeclared override sitting in two places at once.
 
 The wind-up is the window in which the mount itself can be answered, which matters now that the resulting state is Unstoppable under R (Q13). Without it, the only counterplay to NO BRAKES would be pre-positioning and Suppression.
 
@@ -344,7 +346,7 @@ It also keeps the ultimate readable: the centre is a knockup, the line is a knoc
 
 Per Q1 this becomes a **generic** Combat Bible section — "a Vanguard in a ride state", never "Hound" — so a future second ride user costs nothing. Condensed:
 
-**The state.** Entered by a Cast-Time, interruptible ability; no cooldown or resource is spent if interrupted before Commit (§26). Movement Speed is **set** to a data-driven value, not added, so §23's soft caps do not apply. The rider is **Ghosted** (§24: unit collision only, never terrain) and cannot cross any terrain an unmounted Vanguard could not. Gameplay hitbox is **larger** while mounted, as one combined volume (§13). Vision is **unchanged**. The rider **cannot basic-attack**; attack-move collapses to move. Flux Spells remain available; recall and shopping require leaving the state.
+**The state.** Entered by a Cast-Time, interruptible ability; an interruption before Commit follows §26 exactly — no resource spent and a 20% failed-cast cooldown. Movement Speed is **set** to a data-driven value, not added, so §23's soft caps do not apply. The rider is **Ghosted** (§24: unit collision only, never terrain) and cannot cross any terrain an unmounted Vanguard could not. Gameplay hitbox is **larger** while mounted, as one combined volume (§13). Vision is **unchanged**. The rider **cannot basic-attack**; attack-move collapses to move. Flux Spells remain available; recall and shopping require leaving the state.
 
 **Movement.** An ordinary pathing agent with a **rate-limited facing**. The constraint is server-owned, client-mirrored. Turn rate does not scale with speed. A destination behind the rider produces a **wide U-turn at speed**, not a slow-and-pivot.
 
@@ -356,11 +358,11 @@ Per Q1 this becomes a **generic** Combat Bible section — "a Vanguard in a ride
 
 **The vehicle after separation.** A **projectile** (§13), not an owned entity — no Health, not destructible, **interceptable** by Spell Shields (§19) and projectile interception (§20). It **pierces everything** for its full travel, applying one Knockback per enemy per cast. Terrain stops it. It may be flagged **structure-enabled** under §33's second exception, which requires its own defined structure ratio; tower aggression follows the ordinary owner-in-range condition with **no exception**. On death it releases along the rider's heading at the moment of death; attribution traces to the rider under §32, including posthumous kills.
 
-**Raska-specific detail that stays in the Character Bible, not here:** Momentum accrues by **distance travelled**, so "especially from riding" falls out of the arithmetic and needs no separate multiplier. Last Exit auto-fires at expiry; an enemy caught by both the landing and the vehicle takes both damage payloads but is displaced **once**, by the knockup.
+**Raska-specific detail, now recorded in the Character Bible §1** (added 2026-09-20 after Codex review found it was stated here but present in no authoritative document): Momentum accrues by **distance travelled**, so "especially from riding" falls out of the arithmetic and must not be double-counted with a riding multiplier; NO BRAKES grants Unstoppable with the window ending at Last Exit; Last Exit **auto-fires at expiry**; an enemy caught by both the landing and the vehicle takes both damage payloads but is displaced **once**, by the knockup.
 
 ## Status of the implementation gate
 
-Raska needs **none of ADR-003's three primitives** (Q2), and §56 now exists. **She is fully specified and implementable.**
+Raska needs **none of ADR-003's three primitives** (Q2). The generic rules are **Combat Bible §56**; her specific ones are **Character Bible §1**. With both in place she is fully specified and implementable.
 
 Every numeric value referenced above — turn rate, set speed, hitbox size, Momentum per distance, structure ratio, durations, cooldowns — is tuning and belongs in validated designer-editable data per `ARCHITECTURE.md` §1.3, not in the Combat Bible section.
 

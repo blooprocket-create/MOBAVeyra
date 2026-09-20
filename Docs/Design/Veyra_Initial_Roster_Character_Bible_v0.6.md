@@ -4,6 +4,7 @@
 
 **Version:** 0.6  
 **Kit consistency clarification (2026-09-20):** Cairn's passive/R shield attribution and displacement mitigation; Bryn's single empowered Breach explosion and Attack Speed overflow interaction; Oriel's valid-target-only homing fragment. No character lore, role or roster count changed.  
+**Ride-state rulings (2026-09-20):** Raska's Momentum basis, Last Exit expiry behavior, and Last Exit overlap resolution recorded below. The generic ride-state rules they sit on live in **Combat Bible §56**; only the Raska-specific parts are here. No character lore, role or roster count changed.  
 **Current roster target:** 25 Vanguards (and growing as new designs are added)  
 **Status:** Working character canon for the planned first-playable roster. All 25 Vanguards below belong to this design target; the number designed is not the number implemented/released.
 
@@ -70,9 +71,11 @@ Raska should begin relatively weak and become a monstrous late-game threat throu
 
 Raska builds **Momentum** through movement, attacks, abilities, and especially high-speed riding on Hound.
 
-At maximum Momentum, her next basic ability becomes **Redlined** and consumes the meter.
+At maximum Momentum, her next basic ability becomes **Redlined** and consumes the meter. Mounted actions are basic abilities for this purpose.
 
-After consuming maximum Momentum, her next basic attack against an enemy Vanguard becomes **Roadhouse**: a lunging strike with bonus physical damage based partly on the target's missing Health and potentially bonus-Health scaling.
+After consuming maximum Momentum, her next basic attack against an enemy Vanguard becomes **Roadhouse**: a lunging strike with bonus physical damage based partly on the target's missing Health and potentially bonus-Health scaling. She cannot basic-attack while mounted (Combat Bible §56), so Roadhouse is retained and spent after she leaves the ride state.
+
+**Momentum accrues by distance travelled**, mounted or on foot, with attacks and abilities contributing separately. A stationary Raska builds none, including while mounted. Because ride Movement Speed is set rather than added (§56), she covers far more ground per second while riding and therefore builds Momentum proportionally faster — "especially high-speed riding" follows from the distance basis and must **not** be double-counted with an additional riding multiplier.
 
 ## Q — Breakneck
 
@@ -109,7 +112,13 @@ Raska enters an extreme Redline ride state.
 
 Momentum remains full and her speed becomes enormous.
 
+NO BRAKES grants **Unstoppable** for its duration under Combat Bible §9, Slows included; per §8, Suppression is unaffected by that immunity and remains the ordinary answer to it. The Unstoppable window ends when Last Exit fires.
+
 Recast: **Last Exit** launches Raska and Hound separately. Raska crashes down with AoE knockup while Hound continues as a huge impact/knockback threat.
+
+**The recast window is the full duration, and Last Exit fires automatically at expiry if she has not cast it.** The payoff is guaranteed; only its timing is hers to choose. Death before either pre-empts it: the ride ends and Hound separates per §56, but Raska's landing does not occur.
+
+**An enemy caught by both halves takes both damage payloads but is displaced only once, by Raska's knockup.** Hound's knockback is suppressed against any target already caught centrally, so no target experiences both displacements and §9's displacement-replacement ordering never arises. Enemies struck by Hound but outside the central landing are knocked back normally.
 
 **Identity guardrail:** Raska should feel like repeated high-speed passes and controlled recklessness, not "generic puncher with motorcycle skin."
 
