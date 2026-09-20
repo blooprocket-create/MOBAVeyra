@@ -54,7 +54,7 @@ Use a text-to-image model for the hero and a reference-driven model for everythi
 
 | Stem | Aspect | Purpose |
 |---|---|---|
-| `hero` | 3:4 | Full-figure illustration, signature key light, region behind the subject |
+| `hero` | 16:9 | Full-figure illustration, signature key light, region behind the subject |
 | `front` `back` `side` | 1:2 | Orthographic A-pose turnaround, flat even light, plain background — modelling reference, not illustration |
 | `scale` | 1:2 | Flat silhouette beside a 1.8 m human silhouette |
 | `idle` `move` `cast` `ult` | 1:1 | Three-quarter top-down gameplay camera, silhouette readability first |
