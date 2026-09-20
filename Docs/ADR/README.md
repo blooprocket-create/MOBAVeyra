@@ -7,6 +7,12 @@ This directory records major technical choices that should not be casually rever
 - [`ADR-001-unreal-version-policy.md`](ADR-001-unreal-version-policy.md) — Unreal Engine 5.8; deliberate version-pinned upgrades.
 - [`ADR-002-gameplay-ability-system.md`](ADR-002-gameplay-ability-system.md) — Adopt GAS behind Veyra-owned C++ integration and combat semantics.
 
+## Proposed decisions — awaiting a call
+
+These are written up but **not accepted**. They do not authorise implementation.
+
+- [`ADR-003-owned-field-entities.md`](ADR-003-owned-field-entities.md) — how many primitives back the roster's companions, deployables, decoys, world volumes and ride states; and whether Raska's ride state is in scope for the first playable.
+
 ## When to create an ADR
 
 Create an ADR when a decision materially affects multiple systems, establishes a long-lived dependency, chooses an engine/plugin/infrastructure strategy, or changes an architecture rule.

@@ -26,6 +26,12 @@ Mimzi uses normal Camouflage and her homing ultimate bolts cannot acquire hidden
 
 The account, modes, client, parties, profiles/identity, moderation/telemetry, and replay/spectator bibles capture **decisions reached so far**, not a finished design or permission to begin implementation. **Ranked is intentionally deferred from initial launch**; its documented selection, Account Level 30/20-owned entry gates, 1–5-person parties and adjacent-rank party restrictions are future targets. The new persistent earned account currency is **Flux** and the premium account currency is **Refined Flux**; these are distinct from in-match **Team Flux** and Gold. The current roster target is **25 designed Vanguards**, satisfying the draft's global 16-distinct-Vanguard minimum on paper. Ranked remains deferred: the separate **20 permanently owned Vanguards per eligible player** entry gate requires at least 20 **released and ownable** Vanguards plus completion of the other Ranked systems. Designing 25 does not itself establish release or launch Ranked. Superseded 17-roster readiness statements in archived versions are historical. The Match Flow Bible's shorthand for ten human loading connections applies to PvP; Co-op vs AI requires five human connections and five server-controlled enemies.
 
+## Concept art is not canon
+
+Character sheets under [`ConceptArt/Characters/`](../../ConceptArt/Characters/) are **visual reference only**. Where a sheet and a bible disagree, the bible wins. Several sheets currently contradict canon on ability names, Dense Fog behaviour, displacement rules, passives and character origins, and three contain third-party branding that must be removed from a public repository.
+
+Every known conflict, plus the required corrections for the next art pass, is catalogued in [`Sheet_Canon_Discrepancy_Register_v0.1.md`](Sheet_Canon_Discrepancy_Register_v0.1.md). Consult it before treating any sheet as input to implementation.
+
 Older superseded versions are preserved under [`Archives/`](Archives/). They exist for design history and comparison only and must not be treated as current implementation requirements.
 
 The original Word documents include richer layout and concept-art presentation. These Markdown exports prioritize searchable design content and may omit embedded images.
