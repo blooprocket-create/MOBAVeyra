@@ -280,14 +280,17 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
   <div>
     <h1>{html.escape(d['name'])}</h1>
     {f'<div class="title">{html.escape(title)}</div>' if title else ''}
-    <div style="margin-top:18px">{S('hero')}</div>
   </div>
-  <div class="grid" style="gap:16px">
-    <div class="panel"><div class="meta">
-      <div><b>Role</b><span>{html.escape(' / '.join(t.replace('_',' ').title() for t in d['role_tags']))}</span></div>
-      <div><b>Nature</b><span>{html.escape(d['nature'].replace('_',' ').title())}</span></div>
-      <div><b>Region</b><span>{html.escape(d['origin_region'])}</span></div>
-    </div></div>
+  <div class="panel"><div class="meta">
+    <div><b>Role</b><span>{html.escape(' / '.join(t.replace('_',' ').title() for t in d['role_tags']))}</span></div>
+    <div><b>Nature</b><span>{html.escape(d['nature'].replace('_',' ').title())}</span></div>
+    <div><b>Region</b><span>{html.escape(d['origin_region'])}</span></div>
+  </div></div>
+</div>
+
+<div style="margin-top:16px">{S('hero')}</div>
+
+<div class="grid mid" style="margin-top:16px">
     <div class="panel lore"><div class="label">Lore</div>
       {''.join(f'<p>{md(p)}</p>' for p in lore)}
     </div>
@@ -295,7 +298,6 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
       <div class="turn">{''.join(S(k) for k in ('front','back','side','scale'))}</div>
       {f'<p style="color:var(--dim);font-size:12.5px;margin:13px 0 0">{md(visual)}</p>' if visual else ''}
     </div>
-  </div>
 </div>
 
 <div class="grid mid" style="margin-top:16px">
