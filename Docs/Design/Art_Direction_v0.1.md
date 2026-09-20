@@ -321,6 +321,14 @@ sentence went to the constraint block and took the equipment list with it. Silt'
 living riverbed in motion and never resolves into a face"* lost his best line the same way.
 Both are reworded.
 
+**`neither X nor Y` is deliberately unmatched**, for the same reason as *rather than*.
+Aurelisse's species guard was written that way and `--audit` could not see it, which looked
+like a hole in the regex until it was measured: the phrase appears three times across the
+roster and only once as a constraint. The other two are affirmative — Angeru *"belongs to
+neither"* house is the line his whole design turns on — so matching it would route his best
+sentence into the constraint block to catch one guard that was sitting in the wrong field
+anyway. The guard moved instead of the regex.
+
 The check is advisory: a long head can be lost description or simply the subject of a
 constraint. Oriel's *"Fragment arrangements and limbs should never appear like ordinary
 human skin"* is the second kind and correctly belongs in the constraint whole, so it stays
