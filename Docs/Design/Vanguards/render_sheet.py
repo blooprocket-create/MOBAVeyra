@@ -538,8 +538,9 @@ ANTAGONIST = {
               "is doing.",
     "marek": "Delighted, curious, entirely unbothered. Whatever is behind or beside him should read "
              "as worse than he does.",
-    "gorraveth": "Indifferent rather than enraged. He is not hunting the viewer; the viewer is simply "
-                 "inside the contract area.",
+    "gorraveth": "Vicious and impatient in the moment, and indifferent about who is standing "
+                 "nearby. He is working a contract; the armour is mining armour and the "
+                 "cleavers are repurposed tools.",
     "tavi": "Bright, warm, genuinely happy. Nothing in the lighting or framing signals danger. "
             "That is the point — do not make her sinister.",
 }
