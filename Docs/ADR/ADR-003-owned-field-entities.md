@@ -83,7 +83,9 @@ Nine Vanguards place no persistent entity at all: **Kade, Patch, Vera, Qazharr, 
 
 A reasonable first four: **Cairn** (tank, control, shielding), **Qazharr** (melee fighter, sustained pressure), **Oriel** (ranged mage, poke and scaling) and **Bryn** (ranged physical carry, attack-interval floor and the Dense Fog presence rule). They cover four archetypes and between them exercise shields, displacement, the Attack Speed overflow reference and the Vision Bible's fog rules.
 
-The remaining sixteen follow as their primitive lands: placed marker first (five Vanguards, simplest), then combat entity (three), then world volume per owning system (nine), then the ride state. **Raska is not deferred out of the roster** — she is last in the build queue because her ride state is the only feature in the roster with no supporting canon in any bible, and that canon has to be written before she can be implemented at all.
+The remaining sixteen follow as their primitive lands: placed marker first (five Vanguards, simplest), then combat entity (three), then world volume per owning system (nine).
+
+**Raska is not deferred out of the roster**, and she is no longer last. Two rulings on 2026-09-20 moved her: her ride state is a turn-rate-capped ordinary pathing agent rather than a bespoke movement system, and Hound after Bail Out is a **projectile** under Combat Bible §13/§20 rather than an owned entity. She therefore requires **none of the three primitives** above. She is gated only on the ride-state section being written into the Combat Bible, and can be implemented as soon as it is. See [`Ride_State_Open_Questions_v0.1.md`](../Design/Ride_State_Open_Questions_v0.1.md).
 
 ### Consequent obligations
 
