@@ -1,6 +1,28 @@
 # Runbook: purge third-party concept sheets from Git history
 
-**Status:** **executed 2026-09-20.** Steps 1–5 complete and verified against the live remote. **Step 6 outstanding** — two GitHub-owned refs still hold the content and only GitHub can remove them.
+**Status:** **executed 2026-09-20.** Steps 1–5 complete and verified against the live remote. **Step 6 outstanding, and it is no longer about this repository.**
+
+> **Where the exposure now lives (2026-09-20).** The project moved to
+> `blooprocket-create/MOBAVeyra`, which was created fresh and carries only clean history — 201
+> commits, none of the three blobs reachable, verified from an independent clone. **This repository
+> is clean and always was after step 5; nothing here is exposed.**
+>
+> The exposure is entirely in the **legacy repository, `blooprocket-create/veyraMOBA`**, whose
+> `refs/pull/1/head` is frozen at a pre-rewrite commit. **Migrating did not close it.** Two things
+> close it, and only these two:
+>
+> 1. **Delete the legacy repository.** That destroys all of its `refs/pull/*` outright and makes
+>    the Support request unnecessary. It also destroys that repository's pull requests — whose
+>    review findings are preserved in [`../Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md)
+>    precisely so that deleting it costs nothing.
+> 2. **File the Support request below** against the legacy repository, and leave it standing.
+>
+> Making the legacy repository **private** closes public reachability immediately and reversibly,
+> and is worth doing while either of the above is pending.
+>
+> Until one of these happens, the content stays reachable to anyone who fetches that one ref on
+> the legacy repository. The steps below are kept because their two findings generalise, and
+> because the request text is ready to send if that is the route taken.
 **Date:** 2026-09-20 (revised twice: after a dry run found the procedure incomplete, and after execution proved where the content survives)
 
 Removes three concept-sheet blobs carrying third-party branding and artwork from the entire history of a **public** repository. See [`Sheet_Canon_Discrepancy_Register_v0.1.md`](../Design/Sheet_Canon_Discrepancy_Register_v0.1.md) §A for what each contains.
@@ -168,9 +190,71 @@ The force-push does not garbage-collect GitHub's side, and it cannot touch `refs
 
 Open a request at <https://support.github.com/contact>, name the repository, state that history was rewritten to remove content that must not remain public, and ask them to garbage-collect unreachable objects **and** drop the stale pull-request refs.
 
+**The form's required fields, so this does not stall at the first one.**
+
+*Subject* (80 characters maximum):
+
+```
+Purge cached views and refs/pull/1/head after history rewrite
+```
+
+61 characters. Naming the ref in the subject is deliberate: it is the one thing only GitHub can
+act on, and it saves a round trip asking which ref is meant.
+
+*What can we help you with?* — **do NOT choose "Deletes".** Tried on 2026-09-20 and it is not
+what the name suggests: it opens the **whole-repository deletion** flow, asking *"What is the URL
+of the repository you would like to delete?"* and ending in a **Delete / Don't Delete**
+confirmation under the warning *"Once the repository is purged, it cannot be restored."*
+Completing it would destroy the repository, not the stale ref.
+
+None of the listed repository categories covers "garbage-collect unreachable objects and drop a
+pull-request ref". Back out to the top-level category picker and take the most general route
+available — an "other"/"something else" option, or <https://support.github.com/request> for a
+plain free-text ticket — and let the subject and body below say what is needed.
+
+**Read where a category actually leads before completing it.** The label is not the workflow, and
+on this form one of them is irreversible.
+
+*Please describe your repository issue* — the text below.
+
 Quote the specifics so they can confirm without a round trip:
 
-**Re-verify the ref list immediately before sending.** It shrinks as pull requests resolve. As of the last check only one ref survives:
+**Re-verify the ref list immediately before sending.** It shrinks as pull requests resolve.
+
+**Re-verified 2026-09-20, with four pull requests now existing.** The result is unchanged: exactly
+one ref still reaches the content. How to repeat the check without trusting this file — fetch every
+PR ref into a scratch clone and ask which commits reach the blobs, rather than inspecting paths:
+
+```bash
+git ls-remote origin 'refs/pull/*'                       # what refs exist right now
+for n in $(git ls-remote origin 'refs/pull/*/head' | sed 's|.*refs/pull/\(.*\)/head|\1|'); do
+  git fetch -q origin "refs/pull/$n/head:refs/tmp-pr-$n"
+  echo "refs/pull/$n/head : $(git rev-list --objects refs/tmp-pr-$n \
+    | grep -cE '551b67089fce51fd20b528e870e6370c5cb702a2|d4129fbd1604bf7c41208c7a3ce8f0a577d1cb0e|943d0ab144b301e957fdca81b09fe32c3dbe68ef') of 3 blobs reachable"
+done
+```
+
+| Ref | Blobs reachable |
+|---|---|
+| `refs/heads/main` | **0 of 3** |
+| `refs/pull/1/head` | **3 of 3** — merged PR, frozen at its pre-rewrite commit |
+| `refs/pull/2/head` | 0 of 3 |
+| `refs/pull/3/head` | 0 of 3 |
+| `refs/pull/4/head` | 0 of 3 — follows the force-updated branch |
+
+No `*/merge` refs exist on the remote any more; they cleared as their pull requests resolved, as
+predicted above.
+
+**Clean up afterwards.** That check pulls the blobs into whatever clone you run it in. Delete the
+scratch refs and prune, or the machine you verified from now holds the content you are asking
+GitHub to drop:
+
+```bash
+for n in 1 2 3 4; do git update-ref -d "refs/tmp-pr-$n"; done
+git reflog expire --expire=now --all && git gc --prune=now
+```
+
+The text to send:
 
 ```
 Repository: blooprocket-create/veyraMOBA
