@@ -26,6 +26,12 @@ Mimzi uses normal Camouflage and her homing ultimate bolts cannot acquire hidden
 
 The account, modes, client, parties, profiles/identity, moderation/telemetry, and replay/spectator bibles capture **decisions reached so far**, not a finished design or permission to begin implementation. **Ranked is intentionally deferred from initial launch**; its documented selection, Account Level 30/20-owned entry gates, 1–5-person parties and adjacent-rank party restrictions are future targets. The new persistent earned account currency is **Flux** and the premium account currency is **Refined Flux**; these are distinct from in-match **Team Flux** and Gold. The current roster target is **25 designed Vanguards**, satisfying the draft's global 16-distinct-Vanguard minimum on paper. Ranked remains deferred: the separate **20 permanently owned Vanguards per eligible player** entry gate requires at least 20 **released and ownable** Vanguards plus completion of the other Ranked systems. Designing 25 does not itself establish release or launch Ranked. Superseded 17-roster readiness statements in archived versions are historical. The Match Flow Bible's shorthand for ten human loading connections applies to PvP; Co-op vs AI requires five human connections and five server-controlled enemies.
 
+## Known canon gap — the ride state
+
+Raska's Hound is the only feature in the roster with no supporting rules in any bible: there is no mount, vehicle or ride-state section in the Combat, Battleground or Vision Bibles. [`Ride_State_Open_Questions_v0.1.md`](Ride_State_Open_Questions_v0.1.md) sets out the 26 questions that canon must answer before she can be implemented, and flags the three that existing rules already cover.
+
+All 25 Vanguards remain in the first-playable roster. Raska is last in the implementation queue because this canon has to exist first, not because she is deferred from it.
+
 ## Canon rulings — 2026-09-20
 
 **Renames.** Two Vanguards were renamed to resolve name collisions that would have been expensive to fix after voice-over and localisation:

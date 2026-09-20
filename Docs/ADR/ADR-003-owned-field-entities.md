@@ -142,3 +142,4 @@ Options B and D are compatible and can be taken together. **This is what was acc
 - `Docs/Design/Veyra_Vision_Bible_v0.1.md` (runtime-spawned Dense Fog volumes — currently unaddressed)
 - `Docs/Design/Veyra_Battleground_Bible_v0.9.md` (runtime navigation modification — currently unaddressed)
 - `Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md` (Raska ride state has no supporting canon)
+- [`Docs/Design/Ride_State_Open_Questions_v0.1.md`](../Design/Ride_State_Open_Questions_v0.1.md) — the 26 questions that canon must answer before Raska can be implemented
