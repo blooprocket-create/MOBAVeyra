@@ -2,9 +2,9 @@
 
 **Version:** 0.1
 **Date:** 2026-09-20
-**Status:** answers being recorded as they are given. Answered items are marked **ANSWERED** with the date; everything else is still an open question and not canon.
+**Status: complete.** All 26 questions answered on 2026-09-20, plus the two follow-ups Q13b and Q16b that the answers raised.
 
-**Progress:** 11 of 26 answered (Q4, Q1, Q2, Q12, Q13, Q6, Q8, Q19, Q20, Q18, Q14).
+**These rulings are decisions, but they are not yet canon.** Canon is the Combat Bible section they are to be written into, per Q1. Until that section exists this document is the record of what was decided, not the rule anyone implements against. A condensed specification for that section is at the end.
 
 Raska's Hound is the only feature in the 25-Vanguard roster whose core mechanic has no supporting rules in any bible. [ADR-003](../ADR/ADR-003-owned-field-entities.md) scoped it as a separate locomotion feature rather than an owned field entity, and left it needing canon of its own before she can be implemented.
 
@@ -50,8 +50,11 @@ Three things read as novel but are already covered. Confirm the mapping, then mo
 
 It also leaves ADR-003's `combat_unit` category at exactly three members, and confirms the category boundaries hold: a thing that travels and hits is a projectile, not a unit.
 
-**Q3. Does Hound exist when not summoned?**
-Spawned per cast, or a persistent world object that travels to her? This changes whether it can be seen, targeted or intercepted before Kickstart resolves.
+**Q3. Does Hound exist when not summoned?** — **ANSWERED 2026-09-20**
+
+> **Spawned per cast.** Hound materialises with Kickstart and ceases to exist when the ride ends or its projectile phase finishes. It cannot be seen, targeted or intercepted beforehand, and it is not parked anywhere between rides.
+
+This keeps the Q9 cast-time wind-up as the single pre-mount window, rather than adding a second interceptable object with its own rules.
 
 ---
 
@@ -74,14 +77,15 @@ This is the question that decides whether the feature is a week or a quarter, an
 
 The turn rate itself is a tuning value and belongs in data per `ARCHITECTURE.md` §1.3, not in this document.
 
-**Q5. What happens when the move destination is behind her?** *(reduced by Q4 — the input model stays click-to-move)*
-The turn-rate cap creates one case ordinary pathing does not have an answer for. Options:
+**Q5. What happens when the move destination is behind her?** — **ANSWERED 2026-09-20**
 
-- **wide U-turn** — she arcs around at speed, travelling a long way before she is heading back. Most committal, most readable, best fits "controlled recklessness".
-- **slow and pivot** — she sheds speed until the turn is within her rate, then accelerates again. Forgiving, and quietly removes most of the drawback.
-- **brake and reverse** — a distinct reversing state. Fiddly, and probably a different fantasy.
+> **A wide U-turn at speed.** She arcs around without shedding velocity, travelling a considerable distance before she is heading back. The turn rate does not scale with speed; it is a single constant.
 
-This also needs a rule for whether the turn rate scales with current speed, which is what would make high-speed commitment feel different from low-speed manoeuvring.
+This is the behaviour that makes Q4's turn-rate cap a real mechanic rather than a decoration. The rejected alternative — slowing until the turn is within her rate — would have been more forgiving and would have quietly removed most of the drawback the cap was chosen to impose.
+
+The practical consequence is that **committing to a direction is genuinely committing**. Overshooting a target is not a small correction; it is a long arc during which she is travelling away from the fight. That is the cost that pays for the speed, and it is what makes a "pass" a pass.
+
+The turn rate itself is a tuning value for data.
 
 **Q6. Does ride mode bypass the Movement Speed soft caps?** — **ANSWERED 2026-09-20**
 
@@ -97,8 +101,13 @@ This also needs a rule for whether the turn rate scales with current speed, whic
 - **Inside R** she is Unstoppable per Q13, so slows do not land at all.
 - The set value itself, and whether NO BRAKES uses a higher one than Kickstart, are tuning values and belong in data per `ARCHITECTURE.md` §1.3.
 
-**Q7. How is ride movement predicted client-side?** *(largely settled by Q4)*
-With a turn-rate cap on an ordinary pathing agent, ride movement predicts like any other unit and ADR-002's server authority is unaffected. What remains: confirm the angular constraint is owned and applied server-side with the client mirroring it, rather than each simulating independently, since a diverged *heading* compounds into a much larger positional error than a diverged position does.
+**Q7. How is ride movement predicted client-side?** — **ANSWERED 2026-09-20**
+
+> **The server owns and applies the angular constraint; the client mirrors it** for display and local prediction but never decides it. Ride movement otherwise predicts exactly like any other unit.
+
+Q4 did most of the work here — a turn-rate-capped ordinary pathing agent raises no novel prediction problem, and ADR-002's prohibition on prediction granting the client final authority is untouched.
+
+The reason to state the ownership explicitly rather than leave it implied: the two plausible implementations look identical until they diverge, and a diverged **heading** compounds into far greater positional error than a diverged position does. Server-owned with a mirroring client means a correction adjusts something the client was only ever echoing.
 
 **Q8. Does Momentum accrue by distance or by time while mounted?** — **ANSWERED 2026-09-20**
 
@@ -114,14 +123,35 @@ The rate per unit distance is a tuning value and belongs in data.
 
 ## C. Entering and leaving
 
-**Q9. What cast class is Kickstart?**
-§26 requires every ability to declare Instant / Cast-Time / Channel / Charged. Can mounting be interrupted, and if interrupted mid-mount, is the cooldown spent?
+**Q9. What cast class is Kickstart?** — **ANSWERED 2026-09-20**
 
-**Q10. How does the ride state end?**
-Enumerate every exit: Bail Out, duration expiry, Last Exit, death, and any CC that forces a dismount (Q12). For each: what happens to Hound, and does Raska keep residual speed or stop dead?
+> **Cast-Time, interruptible.** A short readable wind-up as Hound arrives. Per §26, an interrupted pre-Commit Cast-Time ability pays no resource cost — and the cooldown is likewise not spent if it is interrupted before Commit.
 
-**Q11. Can she recall, shop, or use Flux Spells while mounted?**
-Ordinary state questions, but they need an answer before the ability bar is built.
+The wind-up is the window in which the mount itself can be answered, which matters now that the resulting state is Unstoppable under R (Q13). Without it, the only counterplay to NO BRAKES would be pre-positioning and Suppression.
+
+**Q10. How does the ride state end?** — **ANSWERED 2026-09-20**
+
+> **Four exits**, and no CC is among them — Q12 settled that crowd control never forces a dismount:
+>
+> | Exit | Hound |
+> |---|---|
+> | **Bail Out** (E while mounted) | continues as a piercing projectile (Q2, Q14) |
+> | **Duration expiry** | ends; no projectile phase |
+> | **Last Exit** (R recast) | continues as a piercing projectile |
+> | **Death** | ends; see Q24 |
+>
+> **She carries momentum off the bike and decays to her normal Movement Speed over a short window** rather than stopping dead. Dismounting reads as leaving at speed, not hitting a wall.
+
+**This closes the "stop dead or decelerate" thread left open by Q4 and Q12 — and it needs no new rule.** The two cases are different and Veyra already handles both:
+
+- **Dismounting** decays, as ruled here.
+- **Hard CC** does stop her outright, and §23 already says so: "Explicit hard CC such as Root/Stun may reduce effective movement to 0." No exception is required. The concern that a rooted motorcycle stopping instantly looks wrong is a presentation problem for animation and VFX to solve, not a rules problem — and inventing a rules exception for it would have weakened Root against exactly the character it most needs to work on.
+
+**Q11. Can she recall, shop, or use Flux Spells while mounted?** — **ANSWERED 2026-09-20**
+
+> **Flux Spells: yes.** They are universal and stay available while mounted.
+> **Recall: no.** It is a channel requiring stillness and is incompatible with the ride state; using it forces a dismount first.
+> **Shopping: no**, which follows anyway since it requires the fountain.
 
 ---
 
@@ -177,18 +207,48 @@ One upside worth recording: the literal reading is the simplest possible rule to
 
 Its counterplay is that it is a readable straight line she must line up while already committed, not that something can body-block it.
 
-**Q15. Can Hound be interacted with?**
-Does it have Health, can it be damaged, destroyed, intercepted by a Spell Shield (§19) or projectile interception (§20)? Is it a projectile, a summon, or something else? This is the concrete form of Q2.
+**Q15. Can Hound be interacted with?** — **ANSWERED 2026-09-20**
 
-**Q16. Does Hound collide with terrain and structures?**
-Ghosting is unit collision only (§24), so terrain should stop it — confirm. Does it collide with towers and the Prime Well, and does it draw tower aggression per Combat Bible §32's owner-attribution rule?
+> **No Health, cannot be damaged or destroyed** — settled by Q2, since it is a projectile rather than a unit. **It is interceptable**: both Spell Shields (§19) and projectile interception (§20) apply to it exactly as they would to any projectile. No exception is written either way.
+
+Given Q14 makes it pierce everything, interception is the **only** in-flight answer to it. That is deliberate: the recast should have some counterplay, and reusing the two mechanisms that already exist is better than inventing a bespoke one.
+
+**Q16. Does Hound collide with terrain and structures?** — **ANSWERED 2026-09-20**
+
+> **Terrain stops it.** Confirmed against §24: Ghosted means ignoring unit collision, never terrain. A wall-ignoring bike would be a bug, not a feature.
+>
+> **It damages structures and draws tower aggression.** Bail Out near a defended structure is meant to be a genuine mistake.
+
+**This requires an explicit exception, which must be written deliberately.** §33 states that "normal abilities do not damage structures", with only two exceptions: empowered-basic-attack abilities, and abilities **explicitly flagged as able to damage structures**. Bail Out is an ability and not an empowered basic attack (Q18), so it must be flagged structure-enabled under the second exception, and §33 requires such an ability to "explicitly define whether it uses standard Structure Effectiveness or its own structure ratio". That ratio is a tuning value for data.
+
+**A nuance that may defeat the intent, and needs deciding — see Q16b.** Tower aggression under the Battleground Bible is drawn when an enemy Vanguard damages a *defending Vanguard* inside the tower's range, and for owned entities it "draws tower priority to their owning Vanguard **if that owner is in range**". Read literally, Raska can bail out from *outside* tower range, send Hound in, and draw no aggression at all — which is precisely the sloppy dive this ruling meant to punish.
+
+**Q16b. Is the owner-in-range condition waived for Hound?** — **ANSWERED 2026-09-20**
+
+> **No. The condition stands.** Raska draws tower aggression from Hound's damage only when she herself is within the structure's range, exactly as every other owned entity in the roster does. No exception is written.
+
+The practical effect: bailing out from **outside** tower range and sending Hound in is a legitimate play that draws no aggression. It is also a lower-reward one — she is not present to follow up on the knockback — so it reads as a real tactical choice rather than a loophole. The punishment lands when she commits personally, which is the dive the ruling was aimed at.
 
 ---
 
 ## F. Combat interactions
 
-**Q17. Can she basic-attack while mounted?**
-If not, say so. If so: does Roadhouse — a basic attack — proc from horseback, and how does the attack timer behave at speed?
+**Q17. Can she basic-attack while mounted?** — **ANSWERED 2026-09-20**
+
+> **No. She cannot basic-attack while mounted, and Roadhouse cannot fire from the bike.** The ride state is mobility and three abilities; it is not a damage stance.
+
+**This creates the character's core loop**, which the passive implies but only works if attacking is off the table:
+
+**ride to build Momentum (Q8, by distance) → spend it on a Redlined mounted action (Q20) → dismount → cash Roadhouse on foot.**
+
+The bike sets up; her feet finish. Riding becomes a commitment with an opportunity cost rather than a strictly better state.
+
+**Follow-on effects:**
+
+- **Sideswipe is her only mounted damage**, which raises its importance in her kit considerably.
+- **She cannot attack structures while mounted** — §33 structure damage comes from basic attacks, so Hound's flagged structure damage (Q16) is her only mounted structure interaction.
+- **Attack-move orders while mounted collapse to move orders.** Worth stating explicitly so the input behaviour is not surprising.
+- The awkward question of how an attack timer behaves at the game's highest Movement Speed does not arise.
 
 **Q18. Are the mounted actions abilities?** — **ANSWERED 2026-09-20**
 
@@ -216,40 +276,88 @@ Sideswipe is the one that could have gone either way, being described as an "off
 
 That is a large multiplier, chosen deliberately, and it is the other half of the power budget noted under Q13. With an ultimate that is Unstoppable, unslowable, at the game's highest speed, *and* continuously Redlined, its cost must be carried by cast time, cooldown, wind-up readability and her vulnerability on landing — not by raw per-hit output.
 
-**Q21. Does her gameplay hitbox change while mounted?**
-§13 makes gameplay hitboxes authoritative and requires visuals to match. A bike is visually larger; if the hitbox grows, that is real counterplay, and if it does not, the visual fidelity rule needs a note.
+**Q21. Does her gameplay hitbox change while mounted?** — **ANSWERED 2026-09-20**
+
+> **Yes. Her gameplay hitbox is larger while mounted**, as a single combined volume — Raska and Hound are not separately targetable.
+
+This follows §13 rather than making an exception to it: gameplay hitboxes are authoritative and "the visible danger area must closely match the actual gameplay collision area". She is visibly a person on a motorcycle, so a person-sized hitbox would have required a written exception and would have left skillshots visibly clipping the bike without connecting.
+
+It is also the clearest thing she pays for the ride with. She is harder to stop — Unstoppable under R, unslowable, at a set high speed — and correspondingly easier to hit. The exact size is a tuning value for data.
 
 ---
 
 ## G. Vision, terrain, match flow
 
-**Q22. Does the ride state affect vision?**
-Does Hound grant vision, does riding change her vision radius, and does a bailed-out Hound scout? Any answer that grants remote sight needs the Vision Bible's agreement, which the roster otherwise caps at presence information.
+**Q22. Does the ride state affect vision?** — **ANSWERED 2026-09-20**
 
-**Q23. Can Hound or the ride state cross terrain Raska cannot?**
-Gaps, walls, the river. Gorraveth's Ravine Bound already establishes "short designated traversable gaps, not arbitrary walls" as a pattern worth reusing.
+> **No change of any kind.** Normal vision radius while mounted, and riderless Hound grants no vision, no reveal and no scouting.
 
-**Q24. What happens on death while mounted, and on respawn?**
-Does Hound vanish, persist, or continue? Does she respawn mounted, and is the ride cooldown affected by death?
+This holds the roster-wide line. Sylra and Bryn are the deliberate information specialists and both are capped at **presence** rather than position; Kade's Sightline was ruled no-reveal on the same grounds. A physical bruiser with a travelling scout would have exceeded both dedicated information characters, which is the inversion that ruling exists to prevent.
+
+**Q23. Can Hound or the ride state cross terrain Raska cannot?** — **ANSWERED 2026-09-20**
+
+> **No. Terrain blocks her entirely while mounted**, and blocks riderless Hound too (Q16). Ghosted is unit collision only per §24, and that is the whole of the ride state's traversal privilege.
+
+Her mobility identity is **speed, not traversal**. Gorraveth keeps the roster's designated-gap crossing to himself, and Raska gets no wall-hopping at any point, including under NO BRAKES.
+
+**Q24. What happens on death while mounted, and on respawn?** — **ANSWERED 2026-09-20**
+
+> **Hound continues as a piercing projectile**, exactly as on Bail Out. Dying at speed releases the bike rather than deleting it — a runaway motorcycle does not stop because its rider did. She respawns on foot, and death does not alter the Kickstart cooldown beyond its normal progression.
+
+**Two details this requires, both settled by existing rules rather than new ones:**
+
+- **Direction.** On Bail Out she chooses her heading by riding; on death she does not. The released Hound travels along her **heading at the moment of death**, with no player input.
+- **Attribution.** Under §32 its damage and kills still trace to Raska, so a posthumous kill credits her. This is consistent with how Veyra already treats damage-over-time that outlives its caster, and needs no exception.
+
+**Recorded as a deliberate choice:** this does mean a mid-commit death still produces teamfight control she did not survive to earn. It fits the fiction and it keeps a failed engage from being a total loss — but it is a small consolation prize on every death while mounted, and it should be remembered as a tuning lever if her engage proves too cheap.
 
 ---
 
 ## H. NO BRAKES and Last Exit
 
-**Q25. Does Last Exit produce two simultaneous displacement sources?**
-Raska crashes down with an AoE knockup while Hound continues as a separate threat. Under §9, a second valid displacement replaces the remaining movement of the first. If an enemy is caught by both, what resolves, in what order, and does the enemy take both payloads?
+**Q25. Does Last Exit produce two simultaneous displacement sources?** — **ANSWERED 2026-09-20**
 
-**Q26. Is Last Exit optional, and what happens if it is never cast?**
-Does NO BRAKES expire into an ordinary dismount, and is the recast window the whole duration?
+> **An enemy caught by both takes both damage payloads but is displaced only once, by Raska's knockup.** Hound's knockback is suppressed against any target already caught centrally by the landing.
+
+This deliberately avoids the §9 displacement-replacement race. Left to the general rule — "the newer displacement replaces the remaining movement of the previous" — the outcome would depend on resolution order and would look inconsistent to players hit by the same ability twice in the same instant.
+
+It also keeps the ultimate readable: the centre is a knockup, the line is a knockback, and nobody experiences both. Enemies caught by Hound but *not* by the central landing are knocked back normally.
+
+**Q26. Is Last Exit optional, and what happens if it is never cast?** — **ANSWERED 2026-09-20**
+
+> **The recast window is the whole duration, and Last Exit fires automatically at expiry if she never casts it.** The payoff is guaranteed; only its timing is hers to choose.
+
+**What this changes.** The recast becomes a **when** decision rather than a **whether** decision. She cannot waste the ultimate by mistiming it or dying to the clock without the finisher, which removes a genuine feel-bad — at the cost of removing the choice to hold the bike and simply ride. NO BRAKES is guaranteed value once cast.
+
+**Two interactions, both already consistent:**
+
+- **Unstoppable (Q13b)** ends when Last Exit fires, whether cast manually or automatically. The window therefore covers the whole duration either way, with no special case.
+- **Death during R (Q24)** pre-empts the auto-fire: the ride ends, Hound continues as a projectile along her heading at death, but Raska's landing knockup does not occur, because she is not there to land.
 
 ---
 
-## Suggested order
+## Specification to write into the Combat Bible
 
-1. ~~**Q4** (the movement model)~~ — **answered**. A turn-rate cap, which reduced Q5 and Q7 and made Q12 tractable.
-2. ~~**Q1** (where the canon lives)~~ — **answered**. A generic Combat Bible section. **Q2** (is Hound an owned entity) remains, because it decides whether Raska needs an ADR-003 primitive at all.
-3. ~~**Q2**~~ — **answered**. A projectile, so Raska needs no ADR-003 primitive.
-4. ~~Section D (crowd control)~~ — **Q12 answered**; Q13 now scopes the Unstoppable window it granted.
-5. Everything else.
+Per Q1 this becomes a **generic** Combat Bible section — "a Vanguard in a ride state", never "Hound" — so a future second ride user costs nothing. Condensed:
 
-Q4's answer should still be validated in a grey-box prototype before the turn rate is tuned. Deciding the *model* on paper is sound; deciding how wide the turn feels is not.
+**The state.** Entered by a Cast-Time, interruptible ability; no cooldown or resource is spent if interrupted before Commit (§26). Movement Speed is **set** to a data-driven value, not added, so §23's soft caps do not apply. The rider is **Ghosted** (§24: unit collision only, never terrain) and cannot cross any terrain an unmounted Vanguard could not. Gameplay hitbox is **larger** while mounted, as one combined volume (§13). Vision is **unchanged**. The rider **cannot basic-attack**; attack-move collapses to move. Flux Spells remain available; recall and shopping require leaving the state.
+
+**Movement.** An ordinary pathing agent with a **rate-limited facing**. The constraint is server-owned, client-mirrored. Turn rate does not scale with speed. A destination behind the rider produces a **wide U-turn at speed**, not a slow-and-pivot.
+
+**Abilities.** The mounted set replaces the basic abilities in their slots with **completely independent cooldowns**, and both sets tick normally — matching Angeru's stance precedent. Mounted actions are **abilities** for damage tags (§2), On Ability Hit (§16) and Ability Haste (§21); none is a basic attack, so none triggers On-Hit or item procs. They are eligible for the rider's own empowerment mechanics.
+
+**Crowd control.** Applies by ordinary rules; the state **persists through all of it** and no CC forces an exit. Hard CC reduces movement to 0 per §23, with no exception — readability at speed is an animation problem, not a rules one. A ride state may additionally grant **Unstoppable** (§9), in which case §8's rule that Suppression is unaffected by CC immunity still stands.
+
+**Leaving.** Exits are the dismount ability, duration expiry, any recast that separates rider from vehicle, and death. The rider **carries momentum out and decays** to normal speed rather than stopping dead.
+
+**The vehicle after separation.** A **projectile** (§13), not an owned entity — no Health, not destructible, **interceptable** by Spell Shields (§19) and projectile interception (§20). It **pierces everything** for its full travel, applying one Knockback per enemy per cast. Terrain stops it. It may be flagged **structure-enabled** under §33's second exception, which requires its own defined structure ratio; tower aggression follows the ordinary owner-in-range condition with **no exception**. On death it releases along the rider's heading at the moment of death; attribution traces to the rider under §32, including posthumous kills.
+
+**Raska-specific detail that stays in the Character Bible, not here:** Momentum accrues by **distance travelled**, so "especially from riding" falls out of the arithmetic and needs no separate multiplier. Last Exit auto-fires at expiry; an enemy caught by both the landing and the vehicle takes both damage payloads but is displaced **once**, by the knockup.
+
+## Status of the implementation gate
+
+Raska needs **none of ADR-003's three primitives** (Q2). With these rulings she is gated only on this Combat Bible section being written. Once it exists she is fully specified and implementable.
+
+Every numeric value referenced above — turn rate, set speed, hitbox size, Momentum per distance, structure ratio, durations, cooldowns — is tuning and belongs in validated designer-editable data per `ARCHITECTURE.md` §1.3, not in the Combat Bible section.
+
+One thing still warrants a grey-box prototype before tuning begins: how wide the U-turn actually feels. Deciding the model on paper was sound; deciding the numbers is not.

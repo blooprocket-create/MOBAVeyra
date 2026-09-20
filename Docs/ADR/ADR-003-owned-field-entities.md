@@ -85,7 +85,7 @@ A reasonable first four: **Cairn** (tank, control, shielding), **Qazharr** (mele
 
 The remaining sixteen follow as their primitive lands: placed marker first (five Vanguards, simplest), then combat entity (three), then world volume per owning system (nine).
 
-**Raska is not deferred out of the roster**, and she is no longer last. Two rulings on 2026-09-20 moved her: her ride state is a turn-rate-capped ordinary pathing agent rather than a bespoke movement system, and Hound after Bail Out is a **projectile** under Combat Bible §13/§20 rather than an owned entity. She therefore requires **none of the three primitives** above. She is gated only on the ride-state section being written into the Combat Bible, and can be implemented as soon as it is. See [`Ride_State_Open_Questions_v0.1.md`](../Design/Ride_State_Open_Questions_v0.1.md).
+**Raska is not deferred out of the roster**, and she is no longer last. Two rulings on 2026-09-20 moved her: her ride state is a turn-rate-capped ordinary pathing agent rather than a bespoke movement system, and Hound after Bail Out is a **projectile** under Combat Bible §13/§20 rather than an owned entity. She therefore requires **none of the three primitives** above. She is gated only on the ride-state section being written into the Combat Bible, and can be implemented as soon as it is. **All 26 ride-state questions were answered on 2026-09-20**, so that section has a complete specification waiting to be transcribed. See [`Ride_State_Open_Questions_v0.1.md`](../Design/Ride_State_Open_Questions_v0.1.md).
 
 ### Consequent obligations
 

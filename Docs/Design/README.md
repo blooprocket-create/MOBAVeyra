@@ -28,9 +28,11 @@ The account, modes, client, parties, profiles/identity, moderation/telemetry, an
 
 ## Known canon gap — the ride state
 
-Raska's Hound is the only feature in the roster with no supporting rules in any bible: there is no mount, vehicle or ride-state section in the Combat, Battleground or Vision Bibles. [`Ride_State_Open_Questions_v0.1.md`](Ride_State_Open_Questions_v0.1.md) sets out the 26 questions that canon must answer before she can be implemented, and flags the three that existing rules already cover.
+Raska's Hound was the only feature in the roster with no supporting rules in any bible. **All 26 ride-state questions were answered on 2026-09-20** and are recorded in [`Ride_State_Open_Questions_v0.1.md`](Ride_State_Open_Questions_v0.1.md), which now carries a condensed specification ready to be written into the Combat Bible.
 
-All 25 Vanguards remain in the first-playable roster. Raska is last in the implementation queue because this canon has to exist first, not because she is deferred from it.
+**Those rulings are decisions, not yet canon.** Canon is the Combat Bible section itself, which does not exist yet. It must be written **generically** — "a Vanguard in a ride state", never "Hound" — because `CLAUDE.md`'s prohibition on named-content branches applies to canon as much as to code.
+
+All 25 Vanguards remain in the first-playable roster, and Raska needs none of ADR-003's three primitives. Once that Combat Bible section exists she is fully specified and implementable.
 
 ## Canon rulings — 2026-09-20
 
