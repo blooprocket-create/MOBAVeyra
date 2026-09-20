@@ -220,7 +220,13 @@ def render(vid: str) -> pathlib.Path:
     hue = HUE_BY_ID.get(vid) or HUE.get(d["origin_region"], "#9aa4ad")
     title = d.get("title")
 
+    # Most entries tell their story in free prose. The later ones (Mimzi, Celandrine,
+    # Aurelisse, Eudora) are written as bolded fields instead, including a **Lore:** field,
+    # and the prose filter below found nothing in them — so four sheets rendered an empty
+    # lore column while claiming to be rendered from canon. Fall back to the field.
     lore = [p for p in sec["prose"] if not re.match(r"^\*\*[A-Z][^:*]{2,40}:\*\*", p)][:4]
+    if not lore and sec["fields"].get("Lore"):
+        lore = [sec["fields"]["Lore"]]
     visual = sec["fields"].get("Visual language") or sec["fields"].get("Visual") or ""
     # Physical size, where a Vanguard has one recorded. Optional: most are human-scaled
     # and say nothing. It renders beside the lore rather than as a meta chip because the

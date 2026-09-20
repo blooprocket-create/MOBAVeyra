@@ -158,6 +158,13 @@ blue, violet, and jewel-colored refractions"* — which is in real tension with 
 signature hue per character. Merrin's rose stays as a defensible accent for a figure that
 has no single colour of its own.
 
+**Mimzi is the second, and blocked in both directions.** Bramblehollow's yellow-green at 87°
+appears nowhere on her — she is cream fur, a teal hood and gold-and-blue rings. Both
+candidates her art suggests are taken: a warm tan lands on Buried Riverlands `#c19a4b` at
+dE 12–13, and a teal lands on Drowned Cantons `#2e8b9e` at dE 7–25. She keeps the region
+hue because there is nowhere for her to go, which is worth recording as its own outcome
+rather than as agreement with the table.
+
 Four exist:
 
 | Vanguard | Region default | Override | Why |
