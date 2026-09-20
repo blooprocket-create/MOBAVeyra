@@ -3,7 +3,7 @@
 **Version:** 0.1 — Pre-game party, social, presence and queue decisions checkpoint  
 **Status:** Locked rules where stated; additional matchmaking and social design remains open  
 **Scope:** Parties, invitations, readiness, queue lifecycle, match-found acceptance, block restrictions, presence and friend requests.  
-**Related:** [Client & Platform](Veyra_Client_Platform_Bible_v0.1.md) owns the application handoff; [Modes & Access](Veyra_Modes_Access_Bible_v0.1.md) owns mode eligibility and Vanguard selection; [Match Flow](Veyra_Match_Flow_Bible_v0.1.md) owns champion-select dodge and live-match departure; [Moderation](Veyra_Moderation_Telemetry_Bible_v0.1.md) owns reports and sanctions.
+**Related:** [Client & Platform](Veyra_Client_Platform_Bible_v0.1.md) owns the application handoff; [Modes & Access](Veyra_Modes_Access_Bible_v0.1.md) owns mode eligibility and Vanguard selection; [Match Flow](Veyra_Match_Flow_Bible_v0.1.md) owns champion-select dodge and live-match departure; [Moderation](Veyra_Moderation_Telemetry_Bible_v0.1.md) owns reports and sanctions. [Chat & Communication](Veyra_Chat_Communication_Bible_v0.1.md) owns continuing Party Chat, friend DMs and user-level All Chat/mute behavior.
 
 > Persistent party/friend/block/queue state belongs to trusted services, not client widgets. Privacy and block checks must be authoritative on **both** matchmaking teams. All capacity, timers, rank thresholds and queue settings must be editable, validated data; the startup policy below records initial agreed values. This document does not select a backend vendor or matchmaking algorithm.
 
@@ -50,6 +50,7 @@
 - Activating Appear Offline **does not remove a player from their existing party**. That party's members can see the player is present; outsiders see the player as offline. The setting stays enabled on return from a match until changed by the player.
 - There is **no global switch to disable incoming friend requests**. Players accept/decline requests individually; blocking a sender prevents further requests from them.
 - **Friend requests sent while the recipient is in a match wait in the pre-game client** for later acceptance/decline. Party invitations cannot target a player currently in a match.
+- **Friend direct messages are permitted during a live match**, with reply via the in-game client and conversation continuity on return to pre-game. **Party Chat also follows existing party members across all pre-game/in-game/post-match transitions.** These are text-only chat features, not party-management permissions or exceptions to blocks; see Chat & Communication Bible.
 - The pre-game client keeps a **Recent Players list** covering people the user played with or against. Players can send a friend request or block from that list. Reporting is tied to a verified match the reporter participated in; see Moderation Bible.
 
 ## 6. Locked — comprehensive block enforcement
