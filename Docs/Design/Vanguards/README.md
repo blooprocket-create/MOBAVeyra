@@ -71,6 +71,21 @@ Beyond pass/fail it prints a roster summary derived from the data, which is the 
 
 These numbers are descriptive, not verdicts. They are here so the trade-offs are visible when the roster changes, rather than discovered during balance.
 
+## Rendering a sheet
+
+```
+python3 Docs/Design/Vanguards/render_sheet.py bryn     # one
+python3 Docs/Design/Vanguards/render_sheet.py --all    # all 25
+```
+
+`render_sheet.py` builds a self-contained HTML character sheet by reading the Character Bible and the Vanguard's YAML **at render time**. Nothing is typed by hand and nothing is copied into a third location, so there is no place for the text to drift from canon.
+
+**Artwork is deliberately not part of the output.** Each image region renders as a labelled slot naming what belongs there and at what aspect, so the sheet doubles as the brief for the art that fills it. That separation is the point: text baked into a generated image cannot be corrected, validated or version-controlled, and that is how every render defect in `ConceptArt/` arrived — `CADNCE`, `a Heated meemy`, `substantail`, `Vangaurd` — along with half the canon drift in the discrepancy register. Here a canon change is picked up by re-running the renderer, and the expensive layer never moves.
+
+The parser handles all three heading generations in the bible, including Angeru's stance layout, which yields eight ability entries rather than five.
+
+`sheets/19-bryn.html` is committed as a worked example; the rest are build output and ignored. Bryn is the useful demonstration because her sheet is wrong in `ConceptArt/` — the PNG shows "Harbor Flare" reducing Dense Fog, and the rendered sheet shows "Sounding Flare" with presence-only behaviour, because it reads §19 rather than a year-old render.
+
 ## Changing a Vanguard
 
 1. Update the Character Bible first. It remains the authority.

@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Bryn — Vanguard sheet</title>
+<style>
+:root { --hue: #2e8b9e; --bg:#0c0d10; --panel:#141619; --line:#24272c;
+         --ink:#e8e6e3; --dim:#9aa0a8; --faint:#6a7078; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink);
+        font:15px/1.55 "Inter","Helvetica Neue",Arial,sans-serif; }
+.sheet { max-width:1220px; margin:0 auto; padding:34px; }
+h1,h2,h3,h4 { font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+               margin:0; font-weight:600; }
+h1 { font-size:58px; letter-spacing:.5px; line-height:1; }
+.title { color:var(--hue); font-size:19px; letter-spacing:3.5px;
+          text-transform:uppercase; margin-top:9px; }
+.grid { display:grid; gap:16px; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:18px 20px; }
+.label { font-size:10px; letter-spacing:2.4px; text-transform:uppercase;
+          color:var(--faint); margin-bottom:11px; }
+.top { grid-template-columns:1.08fr 1fr; align-items:start; }
+.meta { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
+.meta div { padding:0 14px; border-left:1px solid var(--line); }
+.meta div:first-child { padding-left:0; border-left:0; }
+.meta b { display:block; font-size:10px; letter-spacing:2px; color:var(--faint);
+           text-transform:uppercase; margin-bottom:5px; }
+.meta span { font-family:Georgia,serif; font-size:17px; }
+.slot { border:1px dashed #333840; border-radius:3px; display:flex; flex-direction:column;
+         align-items:center; justify-content:center; text-align:center; gap:5px;
+         color:var(--faint); background:
+           repeating-linear-gradient(135deg,transparent,transparent 9px,#121418 9px,#121418 18px); }
+.slot-label { font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:#79808a; }
+.slot-note { font-size:11px; color:#565c65; max-width:88%; line-height:1.4; }
+.hero { aspect-ratio:3/4; }
+.turn { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.turn .slot { aspect-ratio:1/2; }
+.views, .details { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.views .slot, .details .slot { aspect-ratio:1/1; }
+.mid { grid-template-columns:1.5fr 1fr; }
+.abilities { display:grid; gap:13px; }
+.ability { border-left:2px solid var(--hue); padding-left:13px; }
+.ability-head { display:flex; align-items:baseline; gap:9px; margin-bottom:5px; }
+.key { background:var(--hue); color:#0b0c0e; font-size:11px; font-weight:700;
+        padding:2px 7px; border-radius:2px; letter-spacing:1px; }
+.ability h4 { font-size:17px; }
+.ability p { margin:5px 0; color:var(--dim); font-size:13.5px; }
+.chip { display:inline-block; background:#1c1f24; border:1px solid var(--line);
+         color:var(--dim); font-size:11.5px; padding:3px 9px; border-radius:2px;
+         margin:0 5px 5px 0; letter-spacing:.3px; }
+.profile dt { font-size:10px; letter-spacing:2px; text-transform:uppercase;
+               color:var(--faint); margin-top:13px; }
+.profile dt:first-child { margin-top:0; }
+.profile dd { margin:5px 0 0; }
+ul { margin:0; padding-left:17px; }
+li { margin:6px 0; color:var(--dim); font-size:13px; }
+.none { color:#4e545c; font-style:italic; }
+blockquote { margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
+              font-style:italic; color:var(--dim); border-left:2px solid var(--hue); padding-left:16px; }
+.lore p { color:var(--dim); font-size:13.5px; margin:0 0 10px; }
+.prov { margin-top:22px; padding-top:14px; border-top:1px solid var(--line);
+         color:#565c65; font-size:11.5px; line-height:1.7; }
+.prov strong { color:#79808a; font-weight:600; }
+.warn { border-left:2px solid var(--hue); padding-left:12px; color:#9aa0a8; font-size:12.5px; }
+</style></head><body><div class="sheet">
+
+<div class="grid top">
+  <div>
+    <h1>Bryn</h1>
+    <div class="title">The Harbor Gun</div>
+    <div style="margin-top:18px"><div class='slot hero'><span class='slot-label'>Hero illustration</span><span class='slot-note'>Full figure, signature key light, region background held behind the subject. 3:4.</span></div></div>
+  </div>
+  <div class="grid" style="gap:16px">
+    <div class="panel"><div class="meta">
+      <div><b>Role</b><span>Ranged Carry / Artillery</span></div>
+      <div><b>Nature</b><span>Human</span></div>
+      <div><b>Region</b><span>Drowned Cantons</span></div>
+    </div></div>
+    <div class="panel lore"><div class="label">Lore</div>
+      <p>Bryn was Qazharr&#x27;s <strong>first mate and master gunner</strong> during his pirating years. When he abandoned piracy to make a home among the Drowned Cantons, the rest of the crew went their own ways; Bryn was the <strong>only crewmate who stayed</strong>. She chose the people of the Cantons as much as she chose her old captain, then rebuilt Mournwake with local engineering to defend the harbor. She is a practical, weathered veteran who challenges Qazharr&#x27;s impulsiveness while trusting him completely. Neither Vanguard needs an exclusive duo bonus.</p>
+    </div>
+    <div class="panel"><div class="label">Visual exploration</div>
+      <div class="turn"><div class='slot '><span class='slot-label'>Front</span></div><div class='slot '><span class='slot-label'>Back</span></div><div class='slot '><span class='slot-label'>Side</span></div><div class='slot '><span class='slot-label'>Scale</span></div></div>
+      <p style="color:var(--dim);font-size:12.5px;margin:13px 0 0">A compact, visibly veteran gunner with short salt-and-pepper hair, a weathered/scarred face, a worn dark-teal naval coat, functional reinforcement gear, ammunition pouches, and a giant <strong>asymmetrically carried</strong> brass-and-iron cannon. Exposed blue-lit Flux chambers, stabilizing braces, and mechanical recoil hardware make the cannon immediately recognizable in silhouette and at in-game scale. She is a fighter with a giant engineered gun, <strong>not</strong> a fast-firing minigun operator.</p>
+    </div>
+  </div>
+</div>
+
+<div class="grid mid" style="margin-top:16px">
+  <div class="panel"><div class="label">Ability kit</div><div class="abilities"><article class="ability">
+              <div class="ability-head"><span class="key">Passive</span>
+              <h4>Every Shot Counts</h4></div>
+              <p>Mournwake has a deliberately <strong>slow firing cadence</strong> and heavy individual basic-attack damage. Attack Speed helps chamber the next round but cannot reduce her attack interval below a defined data-driven floor. <strong>Her personal attack-interval floor does not create a second Attack Speed overflow threshold:</strong> ordinary Combat Bible overflow basic-attack damage applies only when her underlying uncapped Attack Speed exceeds the game&#x27;s normal <strong>2.5 attacks-per-second reference</strong>, not merely when she reaches Mournwake&#x27;s slower firing floor. Consecutive basic attacks on the <strong>same enemy Vanguard</strong> build Breach. The <strong>third</strong> hit consumes Breach for additional physical damage and <strong>one</strong> small explosive impact <strong>behind that target</strong>; changing targets resets the previous target&#x27;s Breach. A Breach-consuming Q <strong>upgrades/replaces</strong> this explosion rather than adding a second one. Basic attacks remain Bryn&#x27;s main damage source and interact with applicable item effects. Breach must not become an uncapped ramp or cause inappropriate recursive item/proc triggers.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">Q</span>
+              <h4>Breach Round</h4></div>
+              <p>Load a specialized armor-piercing shell to <strong>empower the next basic attack</strong>. It deals bonus physical damage, applies configurable percentage Armor Penetration under the Combat Bible&#x27;s normal mitigation order, and creates <strong>one</strong> narrow explosion behind the target. <strong>If this attack is the third consecutive hit and consumes Breach, its enhanced Q explosion replaces the passive&#x27;s normal behind-target explosion</strong>: one impact, one secondary explosion, with the Breach bonus to the direct hit applied once. This is <strong>not two overlapping explosions</strong>, and neither explosion recursively triggers Breach or basic-attack On-Hit effects. The enhanced explosion becomes wider and stronger. The ability may reset the chambering <strong>animation</strong> for responsiveness, but <strong>never resets the actual attack cooldown or bypasses her minimum interval between attacks</strong>.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">W</span>
+              <h4>Sounding Flare</h4></div>
+              <p>Fire an illumination shell into a target area. The initial burst briefly slows enemies it validly hits, while the flare provides temporary ordinary area vision where the <strong>normal vision rules</strong> permit it. When its scan overlaps <strong>Dense Fog</strong>, it may report that an enemy Vanguard is <strong>present in that fog zone</strong>—not the enemy&#x27;s model, outline, exact coordinates, or direct targetability to outside observers. It does <strong>not</strong> thin, remove, or convert Dense Fog; grant remote targeted acquisition; bypass terrain or stealth rules; or create brush (Veyra has no traditional brush). A Vanguard must personally enter the <strong>same fog volume</strong> for normal direct confirmation and targeted acquisition, subject to other visibility states. Non-targeted shots aimed into fog can still collide and hit under the existing Combat/Vision rules. Sounding Flare is a champion ability, <strong>not</strong> an extra ward or a replacement for the dedicated vision-tool slot. The Vision Bible remains authoritative.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">E</span>
+              <h4>Kickback</h4></div>
+              <p>Fire a compressed Flux charge forward to propel Bryn a short distance <strong>backward</strong>, opposite the blast. The blast deals minor physical damage and briefly slows enemies in front of her. The recoil does not cross walls or reset her basic-attack timer. It can create distance from divers or allow directional repositioning, but it must not erase her vulnerability to close-range commitment.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">R</span>
+              <h4>Last Broadside</h4></div>
+              <p>Plant Mournwake&#x27;s braces and channel a large Flux charge while stationary. After a pronounced, visible charge, launch <strong>one</strong> long-range artillery shell into a chosen area. Its delayed detonation deals massive physical damage centrally and less damage toward the outer edge; central enemies take additional damage based on missing Health. The marked impact area and delayed arrival permit escape. The ultimate goes on cooldown once fired even if it misses. It is an artillery payoff, not a permanent extension of Bryn&#x27;s basic-attack range.</p>
+            </article></div></div>
+  <div class="grid" style="gap:16px">
+    <div class="panel"><div class="label">Profile</div><dl class="profile">
+      <dt>Damage</dt><dd><span class='chip'>physical</span></dd>
+      <dt>Basic attack</dt><dd><span class='chip'>physical</span><span class='chip'>ranged</span></dd>
+      <dt>Resource</dt><dd><span class='chip'>standard</span></dd>
+      <dt>Crowd control</dt><dd><span class='chip'>slow</span></dd>
+      <dt>Mobility</dt><dd><span class='chip'>dash</span></dd>
+      <dt>Grants</dt><dd><span class='chip'>armor penetration</span></dd>
+      <dt>Stealth</dt><dd><span class="none">none</span></dd>
+    </dl></div>
+    <div class="panel"><div class="label">Owned field entities</div><ul><li class='none'>none</li></ul></div>
+    <div class="panel"><div class="label">Vision interaction</div><ul><li><strong>W</strong> — reports that an enemy Vanguard is PRESENT in an overlapped Dense Fog zone</li></ul></div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1fr 1fr; margin-top:16px">
+  <div class="panel"><div class="label">In-game views</div><div class="views">
+    <div class='slot '><span class='slot-label'>Idle</span></div><div class='slot '><span class='slot-label'>Move</span></div><div class='slot '><span class='slot-label'>Cast</span></div><div class='slot '><span class='slot-label'>Ultimate</span></div></div></div>
+  <div class="panel"><div class="label">Details</div><div class="details">
+    <div class='slot '><span class='slot-label'>Portrait</span></div><div class='slot '><span class='slot-label'>Weapon / focus</span></div><div class='slot '><span class='slot-label'>Material detail</span></div><div class='slot '><span class='slot-label'>Signature element</span></div></div></div>
+</div>
+
+<div class="panel" style="margin-top:16px"><div class="label">Implementation guards — must survive to code</div><ul><li>Her personal attack-interval floor does NOT create a second Attack Speed overflow threshold; overflow still uses the normal 2.5 attacks-per-second reference.</li><li>A Breach-consuming Q UPGRADES/REPLACES the passive explosion. One impact, one secondary explosion -- never two.</li><li>Neither explosion recursively triggers Breach or basic-attack On-Hit effects.</li><li>Q may reset the chambering ANIMATION for responsiveness but never the attack cooldown or the minimum interval.</li><li>Breach must not become an uncapped ramp; changing targets resets the previous target&#x27;s Breach.</li><li>W is a champion ability, not an extra ward or a replacement for the dedicated vision-tool slot.</li><li>Renamed from Tavra (2026-09-20) to resolve the Tavi/Tavra collision. Archived bible versions retain the former name.</li></ul></div>
+
+<div class="prov">
+  <strong>Rendered from canon.</strong>
+  Structure: <code>Docs/Design/Vanguards/19-bryn.yaml</code>.
+  Narrative and abilities: <code>Veyra_Initial_Roster_Character_Bible_v0.6.md</code> §19.
+  Generated 2026-09-20 by <code>render_sheet.py</code>.<br>
+  No text on this sheet was typed by hand or copied into a third location, and no
+  tuning value appears on it — the data layer rejects both. Re-run the renderer after a
+  canon change; the artwork that fills the slots is unaffected.
+</div>
+</div></body></html>
