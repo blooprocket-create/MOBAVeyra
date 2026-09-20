@@ -25,6 +25,7 @@ DESIGN = HERE.parent
 ROOT = DESIGN.parent.parent
 BIBLE = DESIGN / "Veyra_Initial_Roster_Character_Bible_v0.6.md"
 COMBAT = DESIGN / "Veyra_Combat_Bible_v0.4.md"
+REGISTER = DESIGN / "Sheet_Canon_Discrepancy_Register_v0.1.md"
 SHEETS = ROOT / "ConceptArt" / "Characters"
 
 EXPECTED_COUNT = 25
@@ -51,7 +52,17 @@ DAMAGE = {"physical", "magic", "true", "utility"}
 RANGE_CLASS = {"melee", "ranged"}
 RESOURCE = {"standard", "focus", "charge", "none"}
 MOBILITY = {"dash", "blink", "leap", "ride"}
-STEALTH = {"camouflage", "invisibility", "unseen"}
+STEALTH = {"camouflage", "invisibility"}
+
+# Validated because the roster summary derives its sustain conclusions from
+# these values: a typo would silently drop a Vanguard from the totals.
+GRANTS = {"shield", "ally_shield", "ally_fluxborn_shield", "temporary_health",
+          "self_heal", "ally_heal", "ally_regeneration",
+          "movement_speed", "ally_movement_speed", "attack_speed", "ally_attack_speed",
+          "ally_cooldown_reduction", "tenacity", "slow_resistance",
+          "displacement_resistance", "ally_displacement_resistance",
+          "displacement_immunity", "displacement_reduction",
+          "ally_damage_reduction", "ally_damage_mitigation", "armor_penetration"}
 TERRAIN = {"jungle", "river", "base"}
 LAYOUT = {"standard", "stance", "stance_modal"}
 
@@ -69,8 +80,17 @@ VISION_STATUS = {"canon", "unresolved", "needs_classification"}
 
 TUNING_KEY = re.compile(
     r"cooldown|duration|ratio|radius|scaling|seconds|percent|amount|"
-    r"\bdamage\b|\bspeed\b|\bcost\b|\bcap\b|\bthreshold\b|\bstacks?\b", re.I)
+    r"\bdamage\b|\bspeed\b|\bcost\b|\bcap\b|\bthreshold\b|\bstacks?\b|\brange\b",
+    re.I)
+# `range_class` is structural, not tuning: \brange\b does not match it because
+# `_` is a word character, so no boundary follows "range".
+
 PROSE_KEYS = {"guards", "note", "notes"}
+
+# A scalar that is entirely a number, optionally with a unit, is tuning however
+# it is typed. Catches the string form ("1200", "10 metres", "50%") that a bare
+# numeric check misses. Descriptive text is unaffected -- it never matches whole.
+TUNING_STRING = re.compile(r"^[-+]?\d+(?:\.\d+)?\s*[A-Za-z%°/]*$")
 
 
 def walk(node, path, errors):
@@ -86,6 +106,8 @@ def walk(node, path, errors):
     elif isinstance(node, (int, float)) and not isinstance(node, bool):
         if not path.endswith("roster_number"):
             errors.append(f"{path}: numeric value {node!r} -- tuning belongs in engine data, not here")
+    elif isinstance(node, str) and TUNING_STRING.match(node.strip()):
+        errors.append(f"{path}: {node!r} is a quantity -- tuning belongs in engine data, not here")
 
 
 def require(cond, msg, errors):
@@ -110,16 +132,31 @@ def combat_bible_cc() -> set[str]:
     return {t.lower() for t in re.findall(r"^- \*\*(\w+)\*\*", m.group(1), re.M)}
 
 
-def bible_roster() -> dict[int, str]:
-    """Parse the roster overview table from the Character Bible."""
+def bible_roster() -> dict[int, tuple[str, str | None]]:
+    """Parse the roster overview table from the Character Bible into (name, title).
+
+    Rows read `| 7 | **Vera, The Last Volley** | ...`, so the cell splits on its
+    first comma. A trailing companion suffix is normalised away: the table lists
+    Marek as "The Black Accord + Nix" while his title is "The Black Accord".
+    """
     if not BIBLE.exists():
         return {}
     out = {}
     for line in BIBLE.read_text(encoding="utf-8").splitlines():
-        m = re.match(r"\|\s*(\d+)\s*\|\s*\*\*([^*|,]+)", line)
-        if m:
-            out[int(m.group(1))] = m.group(2).strip()
+        m = re.match(r"\|\s*(\d+)\s*\|\s*\*\*([^*|]+)\*\*", line)
+        if not m:
+            continue
+        name, _, title = m.group(2).partition(",")
+        title = re.sub(r"\s*\+\s*\w+$", "", title.strip()) or None
+        out[int(m.group(1))] = (name.strip(), title)
     return out
+
+
+def register_sections() -> set[str]:
+    """Section ids in the discrepancy register, so `register_refs` cannot rot."""
+    if not REGISTER.exists():
+        return set()
+    return set(re.findall(r"^#{2,3}\s+([A-G]\d*)\.", REGISTER.read_text(encoding="utf-8"), re.M))
 
 
 def main() -> int:
@@ -139,6 +176,12 @@ def main() -> int:
     roster = bible_roster()
     if not roster:
         warnings.append("could not parse the Character Bible roster table; names unchecked")
+
+    sections = register_sections()
+    if sections:
+        print(f"  discrepancy-register sections: {len(sections)}")
+    else:
+        warnings.append("could not parse the discrepancy register; register_refs unchecked")
 
     seen_ids, seen_numbers, records = {}, {}, []
 
@@ -182,6 +225,7 @@ def main() -> int:
         subset(d.get("damage_profile"), DAMAGE, "damage type", where, errors)
         subset(d.get("mobility"), MOBILITY, "mobility type", where, errors)
         subset(d.get("stealth"), STEALTH, "stealth type", where, errors)
+        subset(d.get("grants"), GRANTS, "grant", where, errors)
         subset(d.get("terrain_affinity"), TERRAIN, "terrain", where, errors)
         require(d.get("resource") in RESOURCE, f"{where}: unknown resource {d.get('resource')!r}", errors)
         require(d.get("ability_layout", "standard") in LAYOUT,
@@ -209,20 +253,42 @@ def main() -> int:
                                 f"{vt.get('status')} -- needs a Vision Bible ruling")
 
         sheet = d.get("sheet") or {}
-        require(sheet.get("status") in SHEET_STATUS,
-                f"{where}: sheet.status {sheet.get('status')!r} unknown", errors)
-        if sheet.get("status") == "withdrawn":
+        status = sheet.get("status")
+        require(status in SHEET_STATUS, f"{where}: sheet.status {status!r} unknown", errors)
+
+        # withdrawn/missing mean there is no usable sheet; every other status
+        # asserts one exists, so it must be named AND present on disk.
+        if status in ("withdrawn", "missing"):
             require(sheet.get("file") is None,
-                    f"{where}: withdrawn sheets must have file: null", errors)
-        elif sheet.get("file"):
-            require((SHEETS / sheet["file"]).exists(),
-                    f"{where}: sheet file {sheet['file']!r} not found in ConceptArt/Characters/", errors)
+                    f"{where}: sheet.status {status!r} must have file: null", errors)
+        elif status in SHEET_STATUS:
+            if not sheet.get("file"):
+                errors.append(f"{where}: sheet.status {status!r} claims a sheet exists but "
+                              f"file is empty -- use 'missing' or name the file")
+            else:
+                require((SHEETS / sheet["file"]).exists(),
+                        f"{where}: sheet file {sheet['file']!r} not found in "
+                        f"ConceptArt/Characters/", errors)
+
+        refs = sheet.get("register_refs") or []
+        if sections:
+            for ref in refs:
+                require(ref in sections,
+                        f"{where}: register_ref {ref!r} is not a section of the discrepancy "
+                        f"register (have: {', '.join(sorted(sections))})", errors)
+        if status and status != "current":
+            require(bool(refs),
+                    f"{where}: sheet.status {status!r} requires at least one register_ref "
+                    f"so the problem is documented", errors)
 
         if roster and num in roster:
-            expected = roster[num]
-            require(expected.lower().startswith(d["name"].split()[0].lower()),
+            exp_name, exp_title = roster[num]
+            require(d["name"] == exp_name,
                     f"{where}: name {d['name']!r} does not match Character Bible roster "
-                    f"entry {expected!r} at #{num}", errors)
+                    f"entry {exp_name!r} at #{num}", errors)
+            require(d.get("title") == exp_title,
+                    f"{where}: title {d.get('title')!r} does not match Character Bible roster "
+                    f"entry {exp_title!r} at #{num}", errors)
 
         require(bool(d.get("guards")), f"{where}: no guards recorded", errors)
 

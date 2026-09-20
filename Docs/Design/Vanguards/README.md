@@ -24,7 +24,9 @@ The bible stays the authority on intent, fiction and nuance. These files are the
 
 **No gameplay tuning.** No cooldowns, durations, ratios, damage values, ranges, radii, speeds, costs, caps or thresholds. `ARCHITECTURE.md` §1.3 requires all of that to live in validated, designer-editable engine data, and a YAML file in `Docs/` is not that.
 
-The validator enforces this rather than trusting it: any numeric value outside `roster_number` fails the run, as does any tuning-shaped key name. Explanatory prose in `guards` and `note` is exempt, because it describes rules rather than configuring them.
+The validator enforces this rather than trusting it, in three ways: any numeric value outside `roster_number` fails the run; so does any scalar that is entirely a quantity however it is typed, including the string form (`"1200"`, `"10 metres"`, `"50%"`); and so does any tuning-shaped key name, `range` among them. `range_class` is unaffected, being structural rather than a quantity.
+
+Explanatory prose in `guards` and `note` is exempt, because it describes rules rather than configuring them.
 
 Structural counts that canon fixes as *mechanics* rather than balance — Mimzi's two-stack preparatory cap, Oriel's three stacks, Bryn's third-hit Breach — are recorded in prose inside `guards`, not as numeric fields.
 
@@ -46,11 +48,12 @@ There is no Unreal project in this repository yet. When there is, Vanguard Data 
 | `abilities` | slot → canonical ability name |
 | `marks` | named marks, stacks or meters the kit applies |
 | `cc` | **validated against the Combat Bible's "Core CC types" list**, parsed at run time so it cannot drift |
-| `mobility`, `grants`, `stealth` | controlled lists |
+| `mobility`, `stealth` | controlled lists |
 | `owned_entities` | `id`, `category` (ADR-003), `destructible`, `note` |
 | `vision_touchpoints` | `ability`, `effect`, `status` (`canon` / `unresolved` / `needs_classification`), `note`. Non-canon statuses raise a warning |
 | `guards` | free prose. The rules that must survive implementation |
-| `sheet` | `file`, `status`, `register_refs` into the discrepancy register |
+| `grants` | validated — the roster summary derives its sustain conclusions from these, so a typo would silently change the reported totals |
+| `sheet` | `file`, `status`, `register_refs`. A status other than `withdrawn`/`missing` must name a file that exists on disk; a status other than `current` must carry at least one `register_refs` entry, and every entry is checked against the register's actual section ids |
 
 ## What the validator reports
 
@@ -72,5 +75,5 @@ These numbers are descriptive, not verdicts. They are here so the trade-offs are
 
 1. Update the Character Bible first. It remains the authority.
 2. Update the YAML file to match.
-3. Run the validator.
+3. Run the validator. It cross-checks the name **and** title against the bible's roster table, so renaming in one place and not the other fails the run.
 4. If a concept sheet is now wrong, record it in the discrepancy register and set `sheet.status`.
