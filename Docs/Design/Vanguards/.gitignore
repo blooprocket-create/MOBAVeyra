@@ -1,0 +1,3 @@
+# Interpreter build output, not source. One .pyc was committed by accident in
+# 42c1be6 and rode along in every commit that touched the renderer since.
+__pycache__/

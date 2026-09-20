@@ -1,7 +1,10 @@
-# Rendered sheets are build output, not source.
-# Regenerate with: python3 Docs/Design/Vanguards/render_sheet.py --all
+# All 25 rendered sheets are committed. They are the deliverable — the thing a
+# reader opens — so they belong in the repository rather than behind a build step.
 #
-# One sheet is committed as a worked example so the pipeline can be reviewed
-# without running it. Everything else is ignored.
-*.html
-!19-bryn.html
+# They are still generated, so they can go stale against canon. That is visible
+# rather than silent: re-run the renderer and any drift shows up as a diff.
+#
+#   python3 Docs/Design/Vanguards/render_sheet.py --all
+#   git diff Docs/Design/Vanguards/sheets/       # empty means the sheets match canon
+#
+# Re-render after any change to the Character Bible or the Vanguard YAML.

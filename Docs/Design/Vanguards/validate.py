@@ -23,7 +23,10 @@ except ImportError:
 HERE = pathlib.Path(__file__).resolve().parent
 DESIGN = HERE.parent
 ROOT = DESIGN.parent.parent
-SHEETS = ROOT / "ConceptArt" / "Characters"
+# The superseded baked-text sheets. They moved out of ConceptArt/ proper on
+# 2026-09-21 so the path says which artwork is current; sheet.file still stores
+# the bare filename, so only this constant tracks the location.
+SHEETS = ROOT / "ConceptArt" / "Archives" / "Characters"
 
 
 def newest(stem: str) -> pathlib.Path:
@@ -287,7 +290,7 @@ def main() -> int:
             else:
                 require((SHEETS / sheet["file"]).exists(),
                         f"{where}: sheet file {sheet['file']!r} not found in "
-                        f"ConceptArt/Characters/", errors)
+                        f"{SHEETS.relative_to(ROOT).as_posix()}/", errors)
 
         refs = sheet.get("register_refs") or []
         if sections:

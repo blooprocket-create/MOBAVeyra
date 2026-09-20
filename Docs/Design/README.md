@@ -67,13 +67,17 @@ The bible remains the authority on intent, fiction and nuance. These files are t
 
 [`Art_Direction_v0.1.md`](Art_Direction_v0.1.md) carries the house art style, the signature colours and the pipeline.
 
-The prompts themselves are **generated**, not written down: `render_sheet.py --prompts <id>` emits one per image slot with that Vanguard's appearance, colour and antagonist direction already injected from canon, so a rename or rewrite updates them automatically. `--missing` lists outstanding art as a work order.
+Artwork is authored outside this repository and the finished file is dropped into `ConceptArt/Vanguards/<id>/`; `render_sheet.py --all` then re-renders the sheets and `--missing` lists which slots still have no art. Prompts are written by hand from the Character Bible paragraph, the signature-colour table and the model notes in the Art Direction document — the emitter that used to build them was removed once the roster was complete.
+
+All 25 rendered sheets are committed under [`Vanguards/sheets/`](Vanguards/sheets/). They are generated, so they can drift: re-run `render_sheet.py --all` after any change to the Character Bible or the Vanguard YAML, and `git diff` on that directory shows whether the sheets still match canon.
 
 Text is never baked into the artwork — [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) composes it from canon at render time.
 
 ## Concept art is not canon
 
-Character sheets under [`ConceptArt/Characters/`](../../ConceptArt/Characters/) are **visual reference only**. Where a sheet and a bible disagree, the bible wins. Several sheets currently contradict canon on ability names, Dense Fog behaviour, displacement rules, passives and character origins, and three contain third-party branding that must be removed from a public repository.
+Current artwork lives under [`ConceptArt/Vanguards/`](../../ConceptArt/Vanguards/) and is reconciled against these bibles character by character. **Approved artwork supplied by the author is canon**: where an appearance paragraph and approved art disagree, the art wins and the text is corrected to match, including its anti-drift guardrails. Everything an image cannot carry — what a design is *not*, the figures gameplay needs, and the reasons behind a choice — stays with the text. The rule and its limits are recorded in the Character Bible header and in [`Art_Direction_v0.1.md`](Art_Direction_v0.1.md).
+
+The older baked-text sheets under [`ConceptArt/Archives/Characters/`](../../ConceptArt/Archives/Characters/) are **superseded historical reference**, not current input. Three contained third-party branding; they were withdrawn and removed from Git history, with one server-side step still outstanding — see [`../Runbooks/purge-third-party-sheets.md`](../Runbooks/purge-third-party-sheets.md).
 
 Every known conflict, plus the required corrections for the next art pass, is catalogued in [`Sheet_Canon_Discrepancy_Register_v0.1.md`](Sheet_Canon_Discrepancy_Register_v0.1.md). Consult it before treating any sheet as input to implementation.
 
