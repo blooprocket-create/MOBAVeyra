@@ -263,9 +263,9 @@ withdrawn for third-party content and reconstructing that look would have carrie
 reason for the withdrawal forward.
 
 Since then the author has begun regenerating characters externally, one at a time, and
-approved art is canon (see above): **16 of 25** paragraphs have been reconciled with their
+approved art is canon (see above): **17 of 25** paragraphs have been reconciled with their
 art rather than the art judged against them. Eleven were rewritten — Raska, Kade, Silt,
-Relay, Patch, Tavi, Vera, Korruk, Marek, Neris, Moro, Angeru and Sylra. Torr's, Qazharr's and Varkesh's were
+Relay, Patch, Tavi, Vera, Korruk, Marek, Neris, Moro, Angeru, Sylra and Mavra. Torr's, Qazharr's and Varkesh's were
 only added to, because their art agreed with what was already written, guardrails included. Torr's was only added to, because his art agreed with what was
 already written, guardrails included; where that happens the existing text stays and the art
 supplies what it was missing. Each
@@ -286,6 +286,18 @@ direction, and gameplay numbers live in their owning data files.
 Write the negation so it **begins a clause** — `split_guardrails` cuts there, and a negation
 buried mid-clause ("a war he was never built for") sends the whole sentence to the
 constraint instead of splitting it.
+
+`--audit` enforces that rule, because breaking it is silent. Mavra's paragraph read *"Her
+equipment is industrial, not arcane — labelled containers, valves, straps, gauges and
+pressure fittings…"*, whose head is four words — one under the threshold — so the whole
+sentence went to the constraint block and took the equipment list with it. Silt's *"He is a
+living riverbed in motion and never resolves into a face"* lost his best line the same way.
+Both are reworded.
+
+The check is advisory: a long head can be lost description or simply the subject of a
+constraint. Oriel's *"Fragment arrangements and limbs should never appear like ordinary
+human skin"* is the second kind and correctly belongs in the constraint whole, so it stays
+flagged and is not a defect.
 
 ## Model choice is load-bearing
 

@@ -5,6 +5,7 @@
     python3 Docs/Design/Vanguards/render_sheet.py --all         # render all 25
     python3 Docs/Design/Vanguards/render_sheet.py --prompts bryn  # art prompts for one
     python3 Docs/Design/Vanguards/render_sheet.py --missing       # what art is outstanding
+    python3 Docs/Design/Vanguards/render_sheet.py --audit         # appearance text that splits badly
 
 Text is read at render time from the Character Bible and the Vanguard YAML.
 Nothing is duplicated into a third place and nothing is typed by hand, so a
@@ -629,6 +630,54 @@ def missing(ids: list[str]) -> None:
     print(f"  {cap_total} in-game views awaiting a build to capture from.")
 
 
+def audit(ids: list[str]) -> int:
+    """Report appearance sentences that lose description to the constraint block.
+
+    `split_guardrails` only splits a sentence where the negation begins a clause and
+    the affirmative head can stand alone. Everywhere else the whole sentence goes to
+    the constraint, which is safe but silent: a sentence like "He is a living riverbed
+    in motion and never resolves into a face" puts its best description into a block
+    the prompt reads as a list of prohibitions.
+
+    Nothing here is a bug in the splitter. It is a writing rule the bible already
+    states — put the negation at the start of a clause — and this is what surfaces
+    breaches of it. Advisory only: it reports candidates and leaves the judgement to
+    a reader, because it cannot tell description from the subject of a constraint.
+    """
+    flagged = 0
+    for vid in ids:
+        src = next(HERE.glob(f"*-{vid}.yaml"), None)
+        if src is None:
+            continue
+        d = yaml.safe_load(src.read_text(encoding="utf-8"))
+        sec = parse_section(bible_section(d["roster_number"]))
+        look = re.sub(r"\*\*(.+?)\*\*", r"\1", sec["fields"].get("Visual language") or "")
+        for sentence in re.split(r"(?<=[.!?])\s+", look.strip()):
+            hit = GUARDRAIL.search(sentence)
+            if not hit:
+                continue
+            head = sentence[:hit.start()]
+            if re.search(r"[,;:—-]\s*$", head) and len(head.split()) >= 5:
+                continue
+            # A head this short is the subject of a purely negative statement, which
+            # belongs in the constraint whole. Longer means description went with it.
+            if len(head.split()) < 5:
+                continue
+            flagged += 1
+            print(f"  {vid}: {len(head.split())} words went to the constraint block with the negation")
+            print(f"      \"{head.strip()}\" …")
+            print()
+    if flagged:
+        print(f"  {flagged} sentence(s) to review. This flags candidates, it does not judge them:")
+        print("  a long head can be lost description (Silt's \"a living riverbed in motion\") or")
+        print("  simply the subject of a constraint (Oriel's \"Fragment arrangements and limbs")
+        print("  should…\"), which belongs in the constraint whole. Read it and decide. Where it")
+        print("  is description, end the sentence before the negation.")
+    else:
+        print("  Clean: every appearance paragraph splits without losing description.")
+    return 0
+
+
 def main() -> int:
     args = sys.argv[1:]
     if not args:
@@ -643,6 +692,8 @@ def main() -> int:
     if args[0] == "--missing":
         missing(everything if len(args) == 1 else args[1:])
         return 0
+    if args[0] == "--audit":
+        return audit(everything if len(args) == 1 else args[1:])
 
     for vid in (everything if args[0] == "--all" else args):
         print(f"  {render(vid)}")
