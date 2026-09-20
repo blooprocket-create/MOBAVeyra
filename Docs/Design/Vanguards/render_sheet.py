@@ -210,6 +210,14 @@ def render(vid: str) -> pathlib.Path:
 
     lore = [p for p in sec["prose"] if not re.match(r"^\*\*[A-Z][^:*]{2,40}:\*\*", p)][:4]
     visual = sec["fields"].get("Visual language") or sec["fields"].get("Visual") or ""
+    # Physical size, where a Vanguard has one recorded. Optional: most are human-scaled
+    # and say nothing. It renders beside the lore rather than as a meta chip because the
+    # field carries its caveats with it, and a size still owed is worth as much to read
+    # as one already settled.
+    scale = sec["fields"].get("Scale") or ""
+    scale_block = (f'\n      <div class="label" style="margin-top:20px">Scale</div>'
+                   f'<p>{md(scale)}</p>') if scale else ""
+
 
     abil = "".join(
         f"""<article class="ability">
@@ -327,7 +335,7 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
 
 <div class="grid mid" style="margin-top:16px">
     <div class="panel lore"><div class="label">Lore</div>
-      {''.join(f'<p>{md(p)}</p>' for p in lore)}
+      {''.join(f'<p>{md(p)}</p>' for p in lore)}{scale_block}
     </div>
     <div class="panel"><div class="label">Visual exploration</div>
       <div class="turn">{''.join(S(k) for k in ('front','back','side','scale'))}</div>

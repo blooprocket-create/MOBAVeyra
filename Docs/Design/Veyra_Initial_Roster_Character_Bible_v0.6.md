@@ -560,6 +560,7 @@ The final pressure wave detonates Fractured targets.
 # 9. Torr, The Unreturned
 
 **Origin:** Ancient Fluxborn system  
+**Scale:** Colossal — the approved art places a human figure in the same frame for comparison and he stands roughly ten times their height, though a low wide-angle hero shot cannot be trusted for a figure. **An exact value is still to be set** for hitbox and camera-readability work, and it needs to be **two** values: R (Overcapacity) enlarges his collision and body size on top of whatever the base is.  
 **Role identity:** Mega tank / warden  
 **Core fantasy:** A lane construct that became a person and refused to return.
 
@@ -571,7 +572,7 @@ When later destroyed, his Flux did not return to the network. It reconstructed h
 
 Torr has a curious, newborn intelligence rather than a generic robot-revolution personality.
 
-**Visual language:** A mass of rune-carved stone plates held in orbit around a blue-violet crystalline core by visible blue Flux light. He has **no fixed skeleton**: the plates separate, rotate and reassemble as he moves and strikes, and the gaps between them are the design, not a flaw in it. Moss and mineral staining mark the plates that spent the longest in the ground. However far his fragments scatter, they always return to him. He is held together by Flux, **not** welded or bolted — never draw him as a solid statue, a suit of armour, or a seamless rock body.
+**Visual language:** A mass of rune-carved stone plates held in orbit around a blue-violet crystalline core by visible blue Flux light. The core sits deep in his chest and throws a web of Flux filaments out to every plate, and the carved runes take the same light, so the whole body is lit from inside its own gaps. A broken ring of stone rides above his shoulders like a halo, the one part of him that holds still. He has **no fixed skeleton**: the plates separate, rotate and reassemble as he moves and strikes, and the gaps between them are the design, not a flaw in it. Moss and mineral staining mark the plates that spent the longest in the ground. However far his fragments scatter, they always return to him. He is held together by Flux, **not** welded or bolted — never draw him as a solid statue, a suit of armour, or a seamless rock body.
 
 ## Passive — Unreturned
 

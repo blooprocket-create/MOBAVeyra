@@ -89,6 +89,13 @@ network itself; Torr began as a Fluxborn unit and stopped being one. They would
 otherwise collide in a draft grid, which is the single thing this table exists to
 prevent, so Fluxborn sits one step violet of the network blue.
 
+**The art confirms the split (2026-09-20).** Torr's approved hero measures a dominant
+saturated hue of **220°**, against Fluxborn `#5e7fd4` at 223° and network blue `#4a8fd4`
+at 210°. It landed on the violet side without being asked to — the prompt carries the hex
+but a generator is under no obligation to honour it — so the distinction is one the design
+actually carries rather than a bookkeeping convenience. This is the first measurement that
+has confirmed the table instead of challenging it.
+
 ## Workflow
 
 **Generate `hero` first, approve one variation, then use that image as a reference for the other eight.** This is the whole trick to consistency. Without a reference the eight slots produce eight different people wearing similar clothes. (Eight, not twelve: the four in-game views are captured, not generated — see below.)
@@ -153,9 +160,11 @@ withdrawn for third-party content and reconstructing that look would have carrie
 reason for the withdrawal forward.
 
 Since then the author has begun regenerating characters externally, one at a time, and
-approved art is canon (see above): **8 of 25** paragraphs — Raska, Kade, Silt, Relay, Patch,
-Tavi, Vera and Korruk — have been rewritten from the art rather than the art judged against
-them. Each
+approved art is canon (see above): **9 of 25** paragraphs have been reconciled with their
+art rather than the art judged against them. Eight were rewritten — Raska, Kade, Silt, Relay,
+Patch, Tavi, Vera and Korruk. Torr's was only added to, because his art agreed with what was
+already written, guardrails included; where that happens the existing text stays and the art
+supplies what it was missing. Each
 rewrite replaces the guardrails as well as the description. The machine pass each one
 replaces is kept beside it as `superseded_gen1_*.webp`, so what was rejected stays
 inspectable instead of being silently overwritten.
