@@ -88,6 +88,32 @@ on his plating, which is his canonical designation and belongs on a machine. The
 against baking data and interface into pixels, not against a unit having its serial number
 painted on it.
 
+### Neris and Sylra collide, and hue cannot fix it
+
+Measured 2026-09-21, after Sylra's hero landed. Side by side they are close to the same
+character: dark hooded headwear, long layered grey-blue robes ribboned at the hem, a **lit
+blue-white lantern held out on chains in the right hand**, a **ship's-wheel charm** at the
+hip, white mist around them, and a night harbour with ruined terraces and waterfalls
+behind. The reliable difference is hair colour, which is worth nothing at thumbnail size.
+
+This is the failure the house style's silhouette rule and the whole hue table exist to
+prevent, and **the hue table cannot reach it**: both are Drowned Cantons, and both measure
+205–215° — inside the no-override band, so neither qualifies for a separated colour even
+under the rule that moved Patch, Korruk, Marek and Moro.
+
+**The overlap is partly canon's, not just the generator's.** Both paragraphs specified a lit
+lantern before any of this art existed — Neris's *"a chained coat hung with working gear
+including a lit lantern"*, Sylra's *"a large lit lantern carried at the hip"*. The
+ship's-wheel charm then arrived in both from their art, and was written into Neris's
+paragraph from hers. Two Drowned Cantons women with hoods and lanterns was always going to
+converge; the art made it visible.
+
+**Fixing it is a design call, not an art-direction one**, so nothing is changed here beyond
+recording the requirement in Sylra's paragraph so it reaches every prompt she generates.
+The cheap levers, in rough order of how little they disturb canon: give one of them a
+different light source or carry position; lean Neris's silhouette back toward the wave her
+kit is built on; or separate their headwear shapes decisively.
+
 ### The style block is split by slot
 
 `HOUSE_CORE` carries the idiom and goes to every prompt. `HOUSE_LIT` carries the dramatic
@@ -237,9 +263,9 @@ withdrawn for third-party content and reconstructing that look would have carrie
 reason for the withdrawal forward.
 
 Since then the author has begun regenerating characters externally, one at a time, and
-approved art is canon (see above): **15 of 25** paragraphs have been reconciled with their
+approved art is canon (see above): **16 of 25** paragraphs have been reconciled with their
 art rather than the art judged against them. Eleven were rewritten — Raska, Kade, Silt,
-Relay, Patch, Tavi, Vera, Korruk, Marek, Neris, Moro and Angeru. Torr's, Qazharr's and Varkesh's were
+Relay, Patch, Tavi, Vera, Korruk, Marek, Neris, Moro, Angeru and Sylra. Torr's, Qazharr's and Varkesh's were
 only added to, because their art agreed with what was already written, guardrails included. Torr's was only added to, because his art agreed with what was
 already written, guardrails included; where that happens the existing text stays and the art
 supplies what it was missing. Each
