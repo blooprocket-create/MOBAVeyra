@@ -1,0 +1,65 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: silt
+roster_number: 3
+name: Silt
+title: The Living Mire
+canon_section: §3
+origin_region: Buried Riverlands
+origin_locality: null
+nature: living_landscape
+role_tags:
+  - control_mage
+terrain_affinity: []
+damage_profile:
+  - magic
+basic_attack:
+  damage_type: magic
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Reclaim
+  q: Scattershot
+  w: Sink
+  e: Sandstorm
+  r: Buried Alive
+marks:
+  - sandy
+cc:
+  - stun
+  - slow
+  - blind
+  - knockup
+mobility: []
+grants:
+  - self_heal
+stealth: []
+owned_entities:
+  - id: sandstorm
+    category: world_volume
+    destructible: false
+    note: Persistent blinding area.
+  - id: buried_alive
+    category: world_volume
+    destructible: false
+    note: Churning zone; hardens and erupts at end.
+vision_touchpoints: []
+guards:
+  - Q's three projectiles must not produce triple healing from a single target.
+  - Sandy reapplication after consumption is governed by an internal timing rule.
+  - Canonical pronouns are he/him (register §B8); the sheet uses they/them and is wrong.
+  - 'Title ruling (2026-09-20): ''The Living Mire'', adopted from the concept sheet. He was previously
+    the only Vanguard without a title.'
+sheet:
+  file: Silt_Character_Sheet.png
+  status: contradicts_canon
+  register_refs:
+    - B8

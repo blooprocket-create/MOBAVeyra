@@ -3,7 +3,7 @@
 # Veyra Initial Roster Character Bible
 
 **Version:** 0.6  
-**Kit consistency clarification (2026-09-20):** Cairn's passive/R shield attribution and displacement mitigation; Tavra's single empowered Breach explosion and Attack Speed overflow interaction; Vitra's valid-target-only homing fragment. No character lore, role or roster count changed.  
+**Kit consistency clarification (2026-09-20):** Cairn's passive/R shield attribution and displacement mitigation; Bryn's single empowered Breach explosion and Attack Speed overflow interaction; Oriel's valid-target-only homing fragment. No character lore, role or roster count changed.  
 **Current roster target:** 25 Vanguards (and growing as new designs are added)  
 **Status:** Working character canon for the planned first-playable roster. All 25 Vanguards below belong to this design target; the number designed is not the number implemented/released.
 
@@ -30,7 +30,7 @@ The game supplies a three-lane battlefield, an encompassing jungle, Flux Wells, 
 |---|---|---|---|---|---|
 | 1 | **Raska, The Redline** | Bruiser / Skirmisher | Physical | Iron March | Momentum fighter + Hound motorcycle |
 | 2 | **Kade, Dead Reckoning** | Marksman / Utility Carry | Physical | Iron March | Geometry, prediction, allied displacement |
-| 3 | **Silt** | Control Mage | Magic | Buried Riverlands | Sandy marks, reclamation, anti-auto zones |
+| 3 | **Silt, The Living Mire** | Control Mage | Magic | Buried Riverlands | Sandy marks, reclamation, anti-auto zones |
 | 4 | **Relay, The Last Conductor** | Utility Vanguard | Utility | Ancient Flux Network | Stores and redistributes Charge |
 | 5 | **Patch, The Last Hug** | Tank / Disruptor | Magic / Utility | Unknown | Possessed teddy that punishes enemies for ignoring him |
 | 6 | **Tavi, The Playmate** | Assassin | Magic | Merrin | Tag, catch, hide-and-seek turned lethal |
@@ -46,8 +46,8 @@ The game supplies a three-lane battlefield, an encompassing jungle, Flux Wells, 
 | 16 | **Sylra, The Mistwarden** | Utility / Controller | Magic | Drowned Cantons | Dense Fog control, presence information, regenerative Waymarks |
 | 17 | **Mavra, The Spillwright** | Control Mage / DoT Mage | Magic | Iron March, Calder's Run | Contamination, persistent hazards, hard CC reactions |
 | 18 | **Cairn, The River's Grasp** | Tank / Catcher / Warden | Physical / Utility | Buried Riverlands | Asymmetrical riverstone guardian; hook, stuns, max-Health shielding |
-| 19 | **Tavra, The Harbor Gun** | Ranged Carry / Artillery Marksman | Physical | Drowned Cantons, adopted home | Slow heavy Flux-cannon attacks, Breach, non-targeting fog scout |
-| 20 | **Vitra, The Last Light** | Poke / Burst Mage | Magic | Merrin | Stained-glass Echo; simple poke and exceptional late-game scaling |
+| 19 | **Bryn, The Harbor Gun** | Ranged Carry / Artillery Marksman | Physical | Drowned Cantons, adopted home | Slow heavy Flux-cannon attacks, Breach, non-targeting fog scout |
+| 20 | **Oriel, The Waiting Light** | Poke / Burst Mage | Magic | Merrin | Stained-glass Echo; simple poke and exceptional late-game scaling |
 | 21 | **Mimzi, The Pocket Hex** | Stealth / Ranged Proc Mage | Magic incl. basic attacks | Bramblehollow | Fennec Bramblekin; Hex procs and Camouflage |
 | 22 | **Celandrine, The Wayrunner** | Mobile Ranged Carry / Kiter | Physical | Bramblehollow | Hare Bramblekin; attack while moving |
 | 23 | **Gorraveth, The Slagmaw** | Fast-clear Melee Skirmisher | Physical | Ember Basin | Scarred reptilian hunter; camp momentum |
@@ -144,11 +144,15 @@ Long precision/piercing shot used to establish or exploit firing geometry.
 
 Creates a firing corridor.
 
-Possible effects include:
+Effects:
 
-- reveal/vision along the corridor;
+- ordinary area vision along the corridor, where the normal vision rules already permit it;
 - attack-speed benefit for Kade;
 - movement utility for allies using the route.
+
+**Vision ruling (2026-09-20): Sightline grants no reveal.** It does not see into Dense Fog, does not expose Camouflaged or Invisible Vanguards, and does not grant remote targeted acquisition. The corridor's value is geometry and positioning, not information.
+
+Sylra and Bryn are the roster's deliberate information specialists and both are capped at **presence** rather than position. A physical damage carry must not exceed them. The Vision Bible remains authoritative.
 
 ## E — Reposition
 
@@ -164,7 +168,7 @@ Allied displacement of tracked targets can refresh or amplify his opportunities.
 
 ---
 
-# 3. Silt
+# 3. Silt, The Living Mire
 
 **Origin:** Buried Riverlands, working regional name  
 **Role identity:** Magic control mage  
@@ -375,11 +379,17 @@ If it hits It, the ball can return. Catching the return reduces cooldown.
 
 ## W — Hide!
 
-Briefly vanish/become unseen and leave an illusion.
+Tavi briefly enters **Invisibility** and leaves an illusion behind.
 
 Recast or reveal creates burst behavior.
 
 If It attacks the illusion, the illusion bursts and slows.
+
+**Vision ruling (2026-09-20): this is Invisibility, not Camouflage, and the duration is deliberately short.** Under Camouflage an enemy at assassin range would see the real Tavi regardless, so the illusion would never function as the misdirection it exists to be.
+
+Ordinary counterplay is unchanged: Sweeper and True Sight reveal her per the Vision Bible, attacking or casting an offensive ability breaks the stealth, stealth does not confer Untargetability, and targeted projectiles already in flight still connect.
+
+This also separates her from **Mimzi**, whose Camouflage is a longer repositioning tool rather than a burst setup. The roster now carries both stealth grades intentionally, one each.
 
 ## E — Tag!
 
@@ -768,7 +778,7 @@ Deals repeated magic damage and grants movement speed.
 **Role identity:** Simple sustained physical fighter/duelist  
 **Core fantasy:** Get into the fight, stay there, and become harder to shake off.
 
-Qazharr was once a pirate captain. He arrived in the Cantons intending a short stay, fell in love with the ports, people, food, drinking culture, and everyday life, and abandoned piracy to remain. Of his former crew, only his first mate and master gunner Tavra stayed with him; she later rebuilt her cannon to defend their adopted harbor.
+Qazharr was once a pirate captain. He arrived in the Cantons intending a short stay, fell in love with the ports, people, food, drinking culture, and everyday life, and abandoned piracy to remain. Of his former crew, only his first mate and master gunner Bryn stayed with him; she later rebuilt her cannon to defend their adopted harbor.
 
 He is foreign-born but locally rooted by choice.
 
@@ -1364,7 +1374,7 @@ Raska, Kade, and Mavra all come from the Iron March. Raska and Mavra specificall
 
 ## Drowned Cantons
 
-Marek, Neris, Qazharr, Sylra, and Tavra connect to the Cantons from different cultural angles. Sylra adds the Cantons' harbor-pilot and fog-guidance tradition without reducing regional magic to Pactcraft or Wakebound power. Tavra was Qazharr's first mate and the only crewmate to stay when he left piracy; her defensive harbor artillery is Flux engineering, distinct from Sylra's Bellcraft.
+Marek, Neris, Qazharr, Sylra, and Bryn connect to the Cantons from different cultural angles. Sylra adds the Cantons' harbor-pilot and fog-guidance tradition without reducing regional magic to Pactcraft or Wakebound power. Bryn was Qazharr's first mate and the only crewmate to stay when he left piracy; her defensive harbor artillery is Flux engineering, distinct from Sylra's Bellcraft.
 
 ## Merrin
 
@@ -1372,7 +1382,7 @@ Tavi and Vera are both Echoes, but their identities emerge from different repeat
 
 - Tavi = Merrin remembering how it lived.
 - Vera = Merrin remembering how it died.
-- Vitra = Merrin remembering the light of homecoming: the everyday hope that someone will return.
+- Oriel = Merrin remembering the light of homecoming: the everyday hope that someone will return.
 
 ## Silt + Cairn
 
@@ -1424,7 +1434,7 @@ The roster should make the setting feel larger than any one explanation and shou
 
 # Vanguards 18–20
 
-Cairn, Tavra, and Vitra remain full roster members alongside Vanguards 21–25. The current first-playable design target is **25 Vanguards** and can continue growing. None is an automatically post-launch tier or mandatory role. Exact numbers remain prototype tuning values.
+Cairn, Bryn, and Oriel remain full roster members alongside Vanguards 21–25. The current first-playable design target is **25 Vanguards** and can continue growing. None is an automatically post-launch tier or mandatory role. Exact numbers remain prototype tuning values.
 
 # 18. Cairn, The River's Grasp
 
@@ -1466,20 +1476,20 @@ Cairn anchors in place and drives his arms into the ground. After a clearly indi
 
 ---
 
-# 19. Tavra, The Harbor Gun
+# 19. Bryn, The Harbor Gun
 
 **Origin:** Born beyond the Cantons on a distant, still-unnamed coast; adopted home: Drowned Cantons  
 **Role identity:** Slow-firing, heavy-damage physical ranged carry / artillery marksman  
 **Weapon:** Mournwake, a custom Flux cannon rebuilt from salvaged naval artillery  
 **Core fantasy:** One shot counts. Position carefully, choose a target, and punish it with enormous individual hits.
 
-Tavra was Qazharr's **first mate and master gunner** during his pirating years. When he abandoned piracy to make a home among the Drowned Cantons, the rest of the crew went their own ways; Tavra was the **only crewmate who stayed**. She chose the people of the Cantons as much as she chose her old captain, then rebuilt Mournwake with local engineering to defend the harbor. She is a practical, weathered veteran who challenges Qazharr's impulsiveness while trusting him completely. Neither Vanguard needs an exclusive duo bonus.
+Bryn was Qazharr's **first mate and master gunner** during his pirating years. When he abandoned piracy to make a home among the Drowned Cantons, the rest of the crew went their own ways; Bryn was the **only crewmate who stayed**. She chose the people of the Cantons as much as she chose her old captain, then rebuilt Mournwake with local engineering to defend the harbor. She is a practical, weathered veteran who challenges Qazharr's impulsiveness while trusting him completely. Neither Vanguard needs an exclusive duo bonus.
 
 **Visual language:** A compact, visibly veteran gunner with short salt-and-pepper hair, a weathered/scarred face, a worn dark-teal naval coat, functional reinforcement gear, ammunition pouches, and a giant **asymmetrically carried** brass-and-iron cannon. Exposed blue-lit Flux chambers, stabilizing braces, and mechanical recoil hardware make the cannon immediately recognizable in silhouette and at in-game scale. She is a fighter with a giant engineered gun, **not** a fast-firing minigun operator.
 
 ## Passive — Every Shot Counts
 
-Mournwake has a deliberately **slow firing cadence** and heavy individual basic-attack damage. Attack Speed helps chamber the next round but cannot reduce her attack interval below a defined data-driven floor. **Her personal attack-interval floor does not create a second Attack Speed overflow threshold:** ordinary Combat Bible overflow basic-attack damage applies only when her underlying uncapped Attack Speed exceeds the game's normal **2.5 attacks-per-second reference**, not merely when she reaches Mournwake's slower firing floor. Consecutive basic attacks on the **same enemy Vanguard** build Breach. The **third** hit consumes Breach for additional physical damage and **one** small explosive impact **behind that target**; changing targets resets the previous target's Breach. A Breach-consuming Q **upgrades/replaces** this explosion rather than adding a second one. Basic attacks remain Tavra's main damage source and interact with applicable item effects. Breach must not become an uncapped ramp or cause inappropriate recursive item/proc triggers.
+Mournwake has a deliberately **slow firing cadence** and heavy individual basic-attack damage. Attack Speed helps chamber the next round but cannot reduce her attack interval below a defined data-driven floor. **Her personal attack-interval floor does not create a second Attack Speed overflow threshold:** ordinary Combat Bible overflow basic-attack damage applies only when her underlying uncapped Attack Speed exceeds the game's normal **2.5 attacks-per-second reference**, not merely when she reaches Mournwake's slower firing floor. Consecutive basic attacks on the **same enemy Vanguard** build Breach. The **third** hit consumes Breach for additional physical damage and **one** small explosive impact **behind that target**; changing targets resets the previous target's Breach. A Breach-consuming Q **upgrades/replaces** this explosion rather than adding a second one. Basic attacks remain Bryn's main damage source and interact with applicable item effects. Breach must not become an uncapped ramp or cause inappropriate recursive item/proc triggers.
 
 ## Q — Breach Round
 
@@ -1491,19 +1501,19 @@ Fire an illumination shell into a target area. The initial burst briefly slows e
 
 ## E — Kickback
 
-Fire a compressed Flux charge forward to propel Tavra a short distance **backward**, opposite the blast. The blast deals minor physical damage and briefly slows enemies in front of her. The recoil does not cross walls or reset her basic-attack timer. It can create distance from divers or allow directional repositioning, but it must not erase her vulnerability to close-range commitment.
+Fire a compressed Flux charge forward to propel Bryn a short distance **backward**, opposite the blast. The blast deals minor physical damage and briefly slows enemies in front of her. The recoil does not cross walls or reset her basic-attack timer. It can create distance from divers or allow directional repositioning, but it must not erase her vulnerability to close-range commitment.
 
 ## R — Last Broadside
 
-Plant Mournwake's braces and channel a large Flux charge while stationary. After a pronounced, visible charge, launch **one** long-range artillery shell into a chosen area. Its delayed detonation deals massive physical damage centrally and less damage toward the outer edge; central enemies take additional damage based on missing Health. The marked impact area and delayed arrival permit escape. The ultimate goes on cooldown once fired even if it misses. It is an artillery payoff, not a permanent extension of Tavra's basic-attack range.
+Plant Mournwake's braces and channel a large Flux charge while stationary. After a pronounced, visible charge, launch **one** long-range artillery shell into a chosen area. Its delayed detonation deals massive physical damage centrally and less damage toward the outer edge; central enemies take additional damage based on missing Health. The marked impact area and delayed arrival permit escape. The ultimate goes on cooldown once fired even if it misses. It is an artillery payoff, not a permanent extension of Bryn's basic-attack range.
 
 **Play pattern:** Deliberately land basic attacks on one target, leverage the third-hit Breach and Q, scout or slow with W, use E sparingly against divers, and place R on groups trapped by team control. She has high individual shot and burst damage, useful artillery reach, low survivability, low mobility, and a long downtime between missed shots. Her sustained output against tanks remains viable through deliberate hits and item scaling; never compensate for slow attacks by letting W bypass Dense Fog or letting Q fire without the attack-interval floor.
 
-**Relationships:** Qazharr is her former captain and long-time friend; he creates close-range chaos while she supplies disciplined supporting fire. Sylra's fog-guidance tradition and Tavra's non-targeting presence scan have complementary uses without turning Dense Fog into shared remote sight. Her cannon uses Flux engineering, not Bellcraft, Pactcraft, or Wakebound magic.
+**Relationships:** Qazharr is her former captain and long-time friend; he creates close-range chaos while she supplies disciplined supporting fire. Sylra's fog-guidance tradition and Bryn's non-targeting presence scan have complementary uses without turning Dense Fog into shared remote sight. Her cannon uses Flux engineering, not Bellcraft, Pactcraft, or Wakebound magic.
 
 ---
 
-# 20. Vitra, The Last Light
+# 20. Oriel, The Waiting Light
 
 **Origin:** Merrin  
 **Nature:** Memory-born stained-glass elemental / Echo; not a ghost, ordinary human, Fluxborn, or Flux-powered construct  
@@ -1511,17 +1521,17 @@ Plant Mournwake's braces and channel a large Flux charge while stationary. After
 **Damage:** Magic  
 **Core fantasy:** Broken windows remember the warmth of home. Poke, scale, and illuminate.
 
-Vitra emerged when Merrin's lingering, repeated memories of homecoming and lit windows resonated through the city's shattered glass and twisted window frames. She remembers **the promise of returning home**, not the life of one specific dead resident. When she awakened, she gathered the city's fragments into a living body and eventually left Merrin to help protect the everyday lives that other cities still have. This is a distinct strand of Merrin's memory alongside Tavi's childhood/play and Vera's siege/war; it does not overwrite their personalities or explain all elemental life through Flux.
+Oriel emerged when Merrin's lingering, repeated memories of homecoming and lit windows resonated through the city's shattered glass and twisted window frames. She remembers **the promise of returning home**, not the life of one specific dead resident. When she awakened, she gathered the city's fragments into a living body and eventually left Merrin to help protect the everyday lives that other cities still have. This is a distinct strand of Merrin's memory alongside Tavi's childhood/play and Vera's siege/war; it does not overwrite their personalities or explain all elemental life through Flux.
 
 **Visual language:** An elegant but unmistakably **nonhuman, asymmetrical** figure built from irregular stained-glass panes, fractured lead/metal framing, floating shards, and a warm luminous core. Fragment arrangements and limbs should never appear like ordinary human skin under glass armor. Gold, pale blue, violet, and jewel-colored refractions intensify visibly with spellcasting. She hovers slightly above the ground, reading as fragile, ancient, and powerful rather than heavily armored.
 
 ## Passive — Gathering Light
 
-Each **damaging ability cast that hits an enemy Vanguard** adds **one** Gathering Light stack, irrespective of number of enemies hit. At three stacks, the passive is primed: the **next damaging ability that hits at least one enemy Vanguard Vitra can legally acquire as a target at fragment launch** consumes the stacks and sends an extra homing glass fragment toward **one such validly acquired enemy Vanguard struck by that ability**, dealing bonus **Magic-Power-scaling magic damage**. **A blind, non-targeted Q/W/R hit into Dense Fog may deal its normal damage but cannot use that hit to remotely acquire a hidden enemy for the fragment.** If a cast hits only enemies she cannot legally acquire (including enemies inside Dense Fog while she is outside), the primed passive **remains primed**; it generates no fragment and does not rebuild an extra stack from that cast. If several enemies were hit, a legally acquirable struck enemy may be chosen without targeting the hidden ones. The fragment grants **no vision or reveal** and follows ordinary targeted-projectile rules *after* a valid launch; it never creates an exception to the Vision Bible's Dense Fog, stealth or targetability rules. The consuming cast does not immediately rebuild another stack. The passive is automatic: no stance, extra resource bar, or target-mark bookkeeping for the player.
+Each **damaging ability cast that hits an enemy Vanguard** adds **one** Gathering Light stack, irrespective of number of enemies hit. At three stacks, the passive is primed: the **next damaging ability that hits at least one enemy Vanguard Oriel can legally acquire as a target at fragment launch** consumes the stacks and sends an extra homing glass fragment toward **one such validly acquired enemy Vanguard struck by that ability**, dealing bonus **Magic-Power-scaling magic damage**. **A blind, non-targeted Q/W/R hit into Dense Fog may deal its normal damage but cannot use that hit to remotely acquire a hidden enemy for the fragment.** If a cast hits only enemies she cannot legally acquire (including enemies inside Dense Fog while she is outside), the primed passive **remains primed**; it generates no fragment and does not rebuild an extra stack from that cast. If several enemies were hit, a legally acquirable struck enemy may be chosen without targeting the hidden ones. The fragment grants **no vision or reveal** and follows ordinary targeted-projectile rules *after* a valid launch; it never creates an exception to the Vision Bible's Dense Fog, stealth or targetability rules. The consuming cast does not immediately rebuild another stack. The passive is automatic: no stance, extra resource bar, or target-mark bookkeeping for the player.
 
 ## Q — Splinter Lance
 
-Launch one razor-sharp glass shard in a straight line. It damages the **first enemy hit**, shattering on impact. This is Vitra's primary repeatable poke spell, with a cooldown that improves through ability ranks and a high Magic Power ratio. A miss produces neither a passive stack nor passive damage.
+Launch one razor-sharp glass shard in a straight line. It damages the **first enemy hit**, shattering on impact. This is Oriel's primary repeatable poke spell, with a cooldown that improves through ability ranks and a high Magic Power ratio. A miss produces neither a passive stack nor passive damage.
 
 ## W — Shattered Sky
 
@@ -1529,13 +1539,13 @@ Summon fragments over a target area; after a clearly visible delay they fall, de
 
 ## E — Mirror Veil
 
-Surround Vitra in rotating glass panels to gain a temporary **Magic-Power-scaling self-shield** and a brief Movement Speed burst. It deals no damage and adds no hard crowd control, dash, terrain bypass, or remote vision. This is a simple timing-and-positioning survival button rather than a reliable escape from committed divers.
+Surround Oriel in rotating glass panels to gain a temporary **Magic-Power-scaling self-shield** and a brief Movement Speed burst. It deals no damage and adds no hard crowd control, dash, terrain bypass, or remote vision. This is a simple timing-and-positioning survival button rather than a reliable escape from committed divers.
 
 ## R — Final Radiance
 
-Gather floating shards into an overhead prism, then channel a huge, **telegraphed straight-line beam** of refracted light. Vitra remains stationary for the channel; all valid enemies in its path take massive magic damage with a particularly high Magic Power ratio. The beam has **no** built-in stun, execute, displacement, reset, or extra debuff. Its payoff is positioning and damage, not an unavoidable crowd-control chain. Ordinary line of sight, Dense Fog target-acquisition limits, and non-targeted spell hit validation continue to apply as defined by the Combat/Vision Bibles.
+Gather floating shards into an overhead prism, then channel a huge, **telegraphed straight-line beam** of refracted light. Oriel remains stationary for the channel; all valid enemies in its path take massive magic damage with a particularly high Magic Power ratio. The beam has **no** built-in stun, execute, displacement, reset, or extra debuff. Its payoff is positioning and damage, not an unavoidable crowd-control chain. Ordinary line of sight, Dense Fog target-acquisition limits, and non-targeted spell hit validation continue to apply as defined by the Combat/Vision Bibles.
 
-**Play pattern and scaling:** Q frequently for lane poke; W to pressure groups and waves; E to stay alive; R when opponents group or allies have set up a clear shot. Vitra scales sharply through ability ranks, Magic Power, and cooldown access, **not** through infinite passive stacks or additional range/defensive tools. Her simple kit rewards accuracy, cooldown discipline, and position. She has strong late-game damage and area poke but remains fragile, slow to escape, and punishable when Q or R misses.
+**Play pattern and scaling:** Q frequently for lane poke; W to pressure groups and waves; E to stay alive; R when opponents group or allies have set up a clear shot. Oriel scales sharply through ability ranks, Magic Power, and cooldown access, **not** through infinite passive stacks or additional range/defensive tools. Her simple kit rewards accuracy, cooldown discipline, and position. She has strong late-game damage and area poke but remains fragile, slow to escape, and punishable when Q or R misses.
 
 **Roster interactions and guardrails:** Cairn can set up Final Radiance with his control, but no forced lane or duo buff. Tavi and Vera are fellow Merrin Echoes with distinct formative memories: play, war, and the light of homecoming. Glass/light magic and Echo consciousness are not in-match Team Flux; do not introduce automatic personal stat bonuses from accumulating Team Flux.
 
@@ -1606,7 +1616,7 @@ A single short directional leap for dodging, chasing, or retreating. **One charg
 
 For a short duration, gain Movement Speed and remove Never Break Stride's windup movement penalty, allowing attacks while moving at full allowed speed. Basic attacks pierce a short, narrow line behind their **legally acquired primary target**, dealing reduced **physical** damage to secondary collisions. Secondary impacts do not independently trigger Crit, On-Hit, item procs, or extra basic attacks. The effect grants no vision or direct target acquisition across Dense Fog.
 
-**Play/counterplay:** Keep firing and moving rather than standing in a firing stance; sustained physical damage and spacing are her strengths. Limited individual shot impact and range, one dodge, and vulnerability to hard CC distinguish her from Kade, Vera, Tavra, and Mimzi.
+**Play/counterplay:** Keep firing and moving rather than standing in a firing stance; sustained physical damage and spacing are her strengths. Limited individual shot impact and range, one dodge, and vulnerability to hard CC distinguish her from Kade, Vera, Bryn, and Mimzi.
 
 ---
 
@@ -1670,7 +1680,7 @@ Shield **Aurelisse or one allied Vanguard**, granting that recipient a short Mov
 
 Target herself or a **nearby ally**; a circular gust pushes nearby valid enemies **outward once**. For a short period, a wind field follows that ally, granting allies inside a modest limited shield and a Movement Speed bonus **when moving outward from the field's center**. It neither repeatedly pushes nor prevents enemy re-entry or grants invulnerability. Timing and positioning matter; it may accidentally push away a target allies were finishing.
 
-**Play/counterplay:** Protect Vera, Tavra, or Vitra during committed attacks and support Celandrine's kiting. Q's qualifying displacement can create Kade's Tracked targets. Her limited damage, angle-dependent control, and lack of a large direct heal distinguish her from Neris, Sylra, and Cairn.
+**Play/counterplay:** Protect Vera, Bryn, or Oriel during committed attacks and support Celandrine's kiting. Q's qualifying displacement can create Kade's Tracked targets. Her limited damage, angle-dependent control, and lack of a large direct heal distinguish her from Neris, Sylra, and Cairn.
 
 ---
 
@@ -1702,7 +1712,7 @@ Switch the **existing** Picket into Bulwark mode, stopping the gun and raising a
 
 Unanchor the **existing operational Picket** and order it to follow a nearby selected allied Vanguard at limited speed for a short time. While mobile it provides **reduced gunfire plus reduced frontal directional protection**, facing the direction chosen at cast time; nearby allied Fluxborn gain a small temporary shield while moving with it. When the effect ends, Picket anchors at a valid location and returns to its preceding stationary mode; if destroyed the ultimate ends immediately. No second machine, permanent objective-control point, bonus Team Flux, or remote Dense Fog vision.
 
-**Play/counterplay:** Coordinate around one protected position, switch between firepower and cover, and use R to advance a lane wave or contest a spawned objective. Flanks, destroying Picket, and rapid chases counter her. Eudora complements Relay's Fluxborn enhancements, Cairn/Aurelisse's protection, and stationary Vera/Tavra damage without exclusive named-pair bonuses.
+**Play/counterplay:** Coordinate around one protected position, switch between firepower and cover, and use R to advance a lane wave or contest a spawned objective. Flanks, destroying Picket, and rapid chases counter her. Eudora complements Relay's Fluxborn enhancements, Cairn/Aurelisse's protection, and stationary Vera/Bryn damage without exclusive named-pair bonuses.
 
 ---
 

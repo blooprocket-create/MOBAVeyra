@@ -1,0 +1,73 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: mavra
+roster_number: 17
+name: Mavra
+title: The Spillwright
+canon_section: §17
+origin_region: Iron March
+origin_locality: Calder's Run
+nature: human
+role_tags:
+  - control_mage
+  - dot_mage
+terrain_affinity: []
+damage_profile:
+  - magic
+basic_attack:
+  damage_type: magic
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Hazard Exposure
+  q: Caustic Line
+  w: Flash Cure
+  e: Pressure Leak
+  r: CODE BLACK
+marks:
+  - contaminated
+  - exposure
+  - unstable
+cc:
+  - root
+  - stun
+  - slow
+  - knockup
+  - pull
+mobility: []
+grants: []
+stealth: []
+owned_entities:
+  - id: caustic_residue
+    category: world_volume
+    destructible: false
+    note: Hazardous residue left by Q; refreshes Contaminated.
+  - id: pressure_leak_cloud
+    category: world_volume
+    destructible: false
+    note: Persistent vapour; ruptures upward at the end for a knockup.
+  - id: code_black_zone
+    category: world_volume
+    destructible: false
+    note: Large disaster area with sequential vessel ruptures; collapses inward at the end.
+vision_touchpoints: []
+guards:
+  - Triggering an Unstable interaction does NOT remove Contaminated; the damage-over-time continues.
+  - W's root becomes a stun only against an Unstable target.
+  - The impending Pressure Leak rupture must be readable -- the enemy knows it is coming.
+  - CODE BLACK's terminal 'concussive knockdown' has no equivalent in the Combat Bible CC vocabulary and
+    must resolve to a defined type.
+  - R is not a giant instant burst spell; it creates a place the enemy should have left.
+sheet:
+  file: Mavra_The_Spillwright_Character_Sheet.png
+  status: current
+  register_refs:
+    - F

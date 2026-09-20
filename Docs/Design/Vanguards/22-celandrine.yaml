@@ -1,0 +1,67 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: celandrine
+roster_number: 22
+name: Celandrine
+title: The Wayrunner
+canon_section: §22
+origin_region: Bramblehollow
+origin_locality: Thistlewick courier routes
+nature: bramblekin
+role_tags:
+  - ranged_carry
+  - kiter
+terrain_affinity: []
+damage_profile:
+  - physical
+basic_attack:
+  damage_type: physical
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Never Break Stride
+  q: Doubletime
+  w: Briar Scatter
+  e: Sidebound
+  r: OPEN ROAD!
+marks: []
+cc:
+  - slow
+mobility:
+  - leap
+grants:
+  - movement_speed
+stealth: []
+owned_entities:
+  - id: briar_patch
+    category: world_volume
+    destructible: false
+    note: Short-lived slowing patch. Does not create brush or Dense Fog and does not immobilise.
+vision_touchpoints:
+  - ability: r
+    effect: piercing line behind the primary target
+    status: canon
+    note: Grants no vision or direct target acquisition across Dense Fog.
+guards:
+  - Moves during her basic-attack windup at reduced Movement Speed instead of stopping -- requires attack-windup
+    locomotion support.
+  - Passive movement speed comes only from primary attacks on enemy Vanguards; wildlife, Fluxborn, structures
+    and deployables give none.
+  - Q grants no extra attack events, attack-timer bypass, cloned proc events, or altered Attack Speed
+    cap.
+  - E has one charge, no attacking during the leap, no attack-timer reset, and cannot cross impassable
+    terrain.
+  - R's secondary impacts do not independently trigger Crit, On-Hit, item procs or extra basic attacks.
+sheet:
+  file: Celandrine_The_Wayrunner_Character_Sheet.png
+  status: current
+  register_refs:
+    - E

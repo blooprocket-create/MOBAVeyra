@@ -1,0 +1,62 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: kade
+roster_number: 2
+name: Kade
+title: Dead Reckoning
+canon_section: §2
+origin_region: Iron March
+origin_locality: null
+nature: human
+role_tags:
+  - marksman
+  - utility_carry
+terrain_affinity: []
+damage_profile:
+  - physical
+basic_attack:
+  damage_type: physical
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Moving Target
+  q: Throughline
+  w: Sightline
+  e: Reposition
+  r: Kill Corridor
+marks:
+  - tracked
+cc: []
+mobility:
+  - dash
+grants:
+  - attack_speed
+  - movement_speed
+stealth: []
+owned_entities: []
+vision_touchpoints:
+  - ability: w
+    effect: ordinary area vision along the corridor where normal vision rules permit
+    status: canon
+    note: 'Ruling 2026-09-20: NO reveal. Sightline never sees into Dense Fog, never reveals stealthed
+      Vanguards, and never grants remote targeted acquisition. Sylra and Bryn are the roster''s information
+      specialists and both are capped at presence-only; a damage carry must not exceed them.'
+guards:
+  - Tracked is applied by displacement from Kade OR HIS ALLIES -- requires cross-Vanguard displacement
+    attribution, not a local effect.
+  - R is 'a limited series' of piercing shots; the count is not fixed by canon.
+  - Sightline grants no reveal (ruling 2026-09-20). The Vision Bible remains authoritative.
+sheet:
+  file: null
+  status: withdrawn
+  register_refs:
+    - A
+    - B6

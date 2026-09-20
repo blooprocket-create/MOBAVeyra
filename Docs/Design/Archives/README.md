@@ -15,3 +15,14 @@ Current design bibles live one level up in `Docs/Design/`.
 - `World/` — superseded World Bible versions
 
 When a new bible version becomes current, keep the newest version in `Docs/Design/` and move the replaced version into the appropriate archive folder.
+
+## Former Vanguard names
+
+Two Vanguards were renamed in current canon on 2026-09-20 to resolve name collisions. Archived versions deliberately retain the former names and are **not** retro-edited — they are a historical record, not a current reference.
+
+| Archived as | Current canon |
+|---|---|
+| Tavra, The Harbor Gun | **Bryn**, The Harbor Gun |
+| Vitra, The Last Light | **Oriel**, The Waiting Light |
+
+Silt was untitled in archived versions and is titled **The Living Mire** in current canon.

@@ -1,0 +1,72 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: eudora
+roster_number: 25
+name: Eudora Blackbridge
+title: The Fieldwright
+canon_section: §25
+origin_region: Iron March
+origin_locality: Freight and repair routes; specific hometown NOT established
+nature: human
+role_tags:
+  - engineer
+  - siege
+  - deployable_specialist
+terrain_affinity: []
+damage_profile:
+  - physical
+  - utility
+basic_attack:
+  damage_type: physical
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: All Hands
+  q: Drive Rivet
+  w: Set the Picket
+  e: Raise the Bulwark
+  r: MOVE THE LINE!
+marks:
+  - work
+  - designated
+cc: []
+mobility: []
+grants:
+  - ally_damage_mitigation
+  - ally_fluxborn_shield
+stealth: []
+owned_entities:
+  - id: picket
+    category: combat_unit
+    destructible: true
+    note: 'One at a time. Finite Health, lifetime and attack range. Two exclusive modes: Gun Platform
+      OR Bulwark, never both at full strength. Under R it unanchors and follows a chosen ally with reduced
+      fire and reduced frontal protection, then re-anchors.'
+vision_touchpoints:
+  - ability: q
+    effect: Designated prompts Picket to prioritise a target
+    status: canon
+    note: Grants no reveal, through-wall range, or remote Dense Fog target acquisition; Picket's shot
+      must be otherwise legal.
+guards:
+  - Only ONE Picket may be active; Eudora cannot place a second while one lives.
+  - Work has a per-contributor internal cooldown so multi-hit spells, DoT ticks and recursive procs cannot
+    farm it.
+  - The passive repairs Picket only, up to its maximum. It does NOT heal allies. No Picket, no Work.
+  - Bulwark protection is partial and capacity-limited; attacks from uncovered angles, melee attacks and
+    ground effects bypass it.
+  - Never full gunfire and full defence simultaneously.
+  - The server owns Picket's targeting and damage; it has no independent magical vision or fog exception.
+  - Do NOT silently assign her Calder's Run as a birthplace.
+sheet:
+  file: Eudora_Blackbridge_The_Fieldwright_Character_Sheet.png
+  status: current
+  register_refs: []

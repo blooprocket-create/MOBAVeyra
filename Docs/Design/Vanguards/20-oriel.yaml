@@ -1,0 +1,68 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: oriel
+roster_number: 20
+name: Oriel
+title: The Waiting Light
+canon_section: §20
+origin_region: Merrin
+origin_locality: null
+nature: echo
+role_tags:
+  - poke_mage
+  - burst_caster
+terrain_affinity: []
+damage_profile:
+  - magic
+basic_attack:
+  damage_type: magic
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Gathering Light
+  q: Splinter Lance
+  w: Shattered Sky
+  e: Mirror Veil
+  r: Final Radiance
+marks:
+  - gathering_light
+cc:
+  - slow
+mobility: []
+grants:
+  - shield
+  - movement_speed
+stealth: []
+owned_entities: []
+vision_touchpoints:
+  - ability: passive
+    effect: homing fragment requires a legally acquirable target at launch
+    status: canon
+    note: A blind hit into Dense Fog deals normal damage but cannot remotely acquire a hidden enemy. The
+      primed passive STAYS primed and does not rebuild a stack from that cast.
+guards:
+  - One stack per damaging ability cast that hits an enemy Vanguard, irrespective of how many enemies
+    are hit.
+  - If a cast hits only enemies she cannot legally acquire, the primed passive remains primed and generates
+    no fragment.
+  - The fragment grants NO vision or reveal and never creates an exception to Dense Fog, stealth or targetability
+    rules.
+  - R has no built-in stun, execute, displacement, reset or extra debuff.
+  - Scaling comes from ability ranks, Magic Power and cooldown access -- not infinite passive stacks or
+    extra range.
+  - Renamed from Vitra (2026-09-20) to resolve the Vera/Vitra collision, and retitled from 'The Last Light'
+    to reduce the roster's four 'The Last --' titles to three. Archived bible versions retain the former
+    name and title.
+sheet:
+  file: Vitra_The_Last_Light_Character_Sheet.png
+  status: incomplete
+  register_refs:
+    - C

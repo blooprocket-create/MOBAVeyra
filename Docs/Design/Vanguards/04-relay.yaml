@@ -1,0 +1,62 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: relay
+roster_number: 4
+name: Relay
+title: The Last Conductor
+canon_section: §4
+origin_region: Ancient Flux Network
+origin_locality: null
+nature: ancient_machine
+role_tags:
+  - utility
+terrain_affinity: []
+damage_profile:
+  - utility
+basic_attack:
+  damage_type: physical
+  range_class: ranged
+resource: charge
+ability_layout: standard
+abilities:
+  passive: Charger
+  q: Rapid Discharge
+  w: Overcharge
+  e: Magnetic Field
+  r: Full Grid
+marks:
+  - charge
+cc: []
+mobility: []
+grants:
+  - ally_attack_speed
+  - ally_movement_speed
+  - slow_resistance
+  - ally_cooldown_reduction
+stealth: []
+owned_entities:
+  - id: magnetic_field
+    category: world_volume
+    destructible: false
+    note: Bends or drags enemy dashes toward its centre -- movement manipulation, not a slow.
+  - id: full_grid
+    category: world_volume
+    destructible: false
+    note: Anchored power network; drains Charge while active.
+vision_touchpoints: []
+guards:
+  - Jungle wildlife does NOT generate Charge; only Fluxborn deaths do.
+  - Magnetic Field is movement manipulation, not another generic slow.
+  - Maximum Charge scales with champion level.
+sheet:
+  file: Relay_The_Last_Conductor_Character_Sheet.png
+  status: current
+  register_refs:
+    - D

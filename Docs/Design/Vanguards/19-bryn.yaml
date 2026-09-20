@@ -1,0 +1,69 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: bryn
+roster_number: 19
+name: Bryn
+title: The Harbor Gun
+canon_section: §19
+origin_region: Drowned Cantons
+origin_locality: Adopted home; born on a distant unnamed coast
+nature: human
+role_tags:
+  - ranged_carry
+  - artillery
+terrain_affinity: []
+damage_profile:
+  - physical
+basic_attack:
+  damage_type: physical
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Every Shot Counts
+  q: Breach Round
+  w: Sounding Flare
+  e: Kickback
+  r: Last Broadside
+marks:
+  - breach
+cc:
+  - slow
+mobility:
+  - dash
+grants:
+  - armor_penetration
+stealth: []
+owned_entities: []
+vision_touchpoints:
+  - ability: w
+    effect: reports that an enemy Vanguard is PRESENT in an overlapped Dense Fog zone
+    status: canon
+    note: Does NOT thin, remove or convert Dense Fog, grant remote targeted acquisition, bypass terrain
+      or stealth rules, or create brush. The sheet shows a fog-reducing reveal and is wrong (register
+      §B2).
+guards:
+  - Her personal attack-interval floor does NOT create a second Attack Speed overflow threshold; overflow
+    still uses the normal 2.5 attacks-per-second reference.
+  - A Breach-consuming Q UPGRADES/REPLACES the passive explosion. One impact, one secondary explosion
+    -- never two.
+  - Neither explosion recursively triggers Breach or basic-attack On-Hit effects.
+  - Q may reset the chambering ANIMATION for responsiveness but never the attack cooldown or the minimum
+    interval.
+  - Breach must not become an uncapped ramp; changing targets resets the previous target's Breach.
+  - W is a champion ability, not an extra ward or a replacement for the dedicated vision-tool slot.
+  - Renamed from Tavra (2026-09-20) to resolve the Tavi/Tavra collision. Archived bible versions retain
+    the former name.
+sheet:
+  file: Tavra_The_Harbor_Gun_Character_Sheet.png
+  status: contradicts_canon
+  register_refs:
+    - B2
+    - C
