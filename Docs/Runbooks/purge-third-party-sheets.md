@@ -1,6 +1,28 @@
 # Runbook: purge third-party concept sheets from Git history
 
-**Status:** **executed 2026-09-20.** Steps 1–5 complete and verified against the live remote. **Step 6 outstanding** — one GitHub-owned ref, `refs/pull/1/head`, still holds the content, and only GitHub can remove it. Re-verified 2026-09-20 against all four pull-request refs then in existence.
+**Status:** **executed 2026-09-20.** Steps 1–5 complete and verified against the live remote. **Step 6 outstanding, and it is no longer about this repository.**
+
+> **Where the exposure now lives (2026-09-20).** The project moved to
+> `blooprocket-create/MOBAVeyra`, which was created fresh and carries only clean history — 201
+> commits, none of the three blobs reachable, verified from an independent clone. **This repository
+> is clean and always was after step 5; nothing here is exposed.**
+>
+> The exposure is entirely in the **legacy repository, `blooprocket-create/veyraMOBA`**, whose
+> `refs/pull/1/head` is frozen at a pre-rewrite commit. **Migrating did not close it.** Two things
+> close it, and only these two:
+>
+> 1. **Delete the legacy repository.** That destroys all of its `refs/pull/*` outright and makes
+>    the Support request unnecessary. It also destroys that repository's pull requests — whose
+>    review findings are preserved in [`../Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md)
+>    precisely so that deleting it costs nothing.
+> 2. **File the Support request below** against the legacy repository, and leave it standing.
+>
+> Making the legacy repository **private** closes public reachability immediately and reversibly,
+> and is worth doing while either of the above is pending.
+>
+> Until one of these happens, the content stays reachable to anyone who fetches that one ref on
+> the legacy repository. The steps below are kept because their two findings generalise, and
+> because the request text is ready to send if that is the route taken.
 **Date:** 2026-09-20 (revised twice: after a dry run found the procedure incomplete, and after execution proved where the content survives)
 
 Removes three concept-sheet blobs carrying third-party branding and artwork from the entire history of a **public** repository. See [`Sheet_Canon_Discrepancy_Register_v0.1.md`](../Design/Sheet_Canon_Discrepancy_Register_v0.1.md) §A for what each contains.
