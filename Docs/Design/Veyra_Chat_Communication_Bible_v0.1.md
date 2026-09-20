@@ -1,7 +1,7 @@
 # Veyra Chat & Communication Bible
 
 **Version:** 0.1 — Text-only communication decisions checkpoint  
-**Status:** Working design canon for locked communication channels and All Chat preference; detailed messaging UI, backend and Settings taxonomy are still open  
+**Status:** Working design canon for locked communication channels and All Chat preference; detailed messaging UI and backend remain open; approved personal chat presentation and persistence preferences are in the Settings & Accessibility Bible  
 **Scope:** No built-in voice chat; in-match Team/All Chat, persistent Party Chat, friend direct messages, optional post-match chat, mute/report integration, spectator privacy and player settings.  
 **Related:** [Client & Platform](Veyra_Client_Platform_Bible_v0.1.md) owns pre-game/Unreal handoffs; [Parties & Social](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) owns friendship, party membership, blocks and Appear Offline; [Moderation & Telemetry](Veyra_Moderation_Telemetry_Bible_v0.1.md) owns report eligibility, sanctions and restricted evidence; [Replay & Spectator](Veyra_Replay_Spectator_Bible_v0.1.md) owns public playback/chat separation; [Match Flow](Veyra_Match_Flow_Bible_v0.1.md) owns post-match lifecycle and live-match phases.
 
@@ -49,7 +49,7 @@
 
 ## 7. Deliberately open — later Chat UX and Settings Bible
 
-- Comprehensive player Settings catalog is a **separate, substantial design area**. Current locked preference: **All Chat defaults on and can be switched entirely off while Team/Party Chat remain usable.** Setting persistence across sessions/devices, toggling mid-match, chat sizing/font/accessibility, notification/mute settings and profile-level defaults are yet to be specified.
+- The [Settings & Accessibility Bible v0.1](Veyra_Settings_Accessibility_Bible_v0.1.md) now owns approved personal Settings, including chat background opacity, message fade duration, timestamps, incoming-message sounds, chat size, in-match changes and cross-device preference persistence. **All Chat still defaults On and can be switched entirely Off without disabling Team/Party Chat** under this bible's recipient and channel rules. Detailed messaging UI, channel-specific notification/mute behavior not explicitly approved, and backend policies remain open.
 - Whether the in-match chat composer defaults to Team or All, channel shortcuts, message length, rate limits, spam prevention, text filtering, translation/localization, quick-chat and full ping system; individual mute scope/duration and how party-chat mute/DM muting should interact with blocks.
 - Post-match chat departure/expiration and exact interaction with All Chat being disabled; do **not** override a player's disabled All Chat preference by silently funneling opponent messages through another channel.
 - DM storage, offline delivery/reply status, friend removal, Appear Offline interplay and whether non-friend messaging or requests should ever exist.
