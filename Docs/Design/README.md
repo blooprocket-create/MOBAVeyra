@@ -73,7 +73,9 @@ Text is never baked into the artwork — [`Vanguards/render_sheet.py`](Vanguards
 
 ## Concept art is not canon
 
-Character sheets under [`ConceptArt/Characters/`](../../ConceptArt/Characters/) are **visual reference only**. Where a sheet and a bible disagree, the bible wins. Several sheets currently contradict canon on ability names, Dense Fog behaviour, displacement rules, passives and character origins, and three contain third-party branding that must be removed from a public repository.
+Current artwork lives under [`ConceptArt/Vanguards/`](../../ConceptArt/Vanguards/) and is reconciled against these bibles character by character. **Approved artwork supplied by the author is canon**: where an appearance paragraph and approved art disagree, the art wins and the text is corrected to match, including its anti-drift guardrails. Everything an image cannot carry — what a design is *not*, the figures gameplay needs, and the reasons behind a choice — stays with the text. The rule and its limits are recorded in the Character Bible header and in [`Art_Direction_v0.1.md`](Art_Direction_v0.1.md).
+
+The older baked-text sheets under [`ConceptArt/Characters/`](../../ConceptArt/Characters/) are **superseded historical reference**, not current input. Three contained third-party branding; they were withdrawn and removed from Git history, with one server-side step still outstanding — see [`../Runbooks/purge-third-party-sheets.md`](../Runbooks/purge-third-party-sheets.md).
 
 Every known conflict, plus the required corrections for the next art pass, is catalogued in [`Sheet_Canon_Discrepancy_Register_v0.1.md`](Sheet_Canon_Discrepancy_Register_v0.1.md). Consult it before treating any sheet as input to implementation.
 
