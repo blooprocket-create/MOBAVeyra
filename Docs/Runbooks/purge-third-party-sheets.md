@@ -1,6 +1,6 @@
 # Runbook: purge third-party concept sheets from Git history
 
-**Status:** **executed 2026-09-20.** Steps 1–5 complete and verified against the live remote. **Step 6 outstanding** — two GitHub-owned refs still hold the content and only GitHub can remove them.
+**Status:** **executed 2026-09-20.** Steps 1–5 complete and verified against the live remote. **Step 6 outstanding** — one GitHub-owned ref, `refs/pull/1/head`, still holds the content, and only GitHub can remove it. Re-verified 2026-09-20 against all four pull-request refs then in existence.
 **Date:** 2026-09-20 (revised twice: after a dry run found the procedure incomplete, and after execution proved where the content survives)
 
 Removes three concept-sheet blobs carrying third-party branding and artwork from the entire history of a **public** repository. See [`Sheet_Canon_Discrepancy_Register_v0.1.md`](../Design/Sheet_Canon_Discrepancy_Register_v0.1.md) §A for what each contains.
@@ -170,7 +170,42 @@ Open a request at <https://support.github.com/contact>, name the repository, sta
 
 Quote the specifics so they can confirm without a round trip:
 
-**Re-verify the ref list immediately before sending.** It shrinks as pull requests resolve. As of the last check only one ref survives:
+**Re-verify the ref list immediately before sending.** It shrinks as pull requests resolve.
+
+**Re-verified 2026-09-20, with four pull requests now existing.** The result is unchanged: exactly
+one ref still reaches the content. How to repeat the check without trusting this file — fetch every
+PR ref into a scratch clone and ask which commits reach the blobs, rather than inspecting paths:
+
+```bash
+git ls-remote origin 'refs/pull/*'                       # what refs exist right now
+for n in $(git ls-remote origin 'refs/pull/*/head' | sed 's|.*refs/pull/\(.*\)/head|\1|'); do
+  git fetch -q origin "refs/pull/$n/head:refs/tmp-pr-$n"
+  echo "refs/pull/$n/head : $(git rev-list --objects refs/tmp-pr-$n \
+    | grep -cE '551b67089fce51fd20b528e870e6370c5cb702a2|d4129fbd1604bf7c41208c7a3ce8f0a577d1cb0e|943d0ab144b301e957fdca81b09fe32c3dbe68ef') of 3 blobs reachable"
+done
+```
+
+| Ref | Blobs reachable |
+|---|---|
+| `refs/heads/main` | **0 of 3** |
+| `refs/pull/1/head` | **3 of 3** — merged PR, frozen at its pre-rewrite commit |
+| `refs/pull/2/head` | 0 of 3 |
+| `refs/pull/3/head` | 0 of 3 |
+| `refs/pull/4/head` | 0 of 3 — follows the force-updated branch |
+
+No `*/merge` refs exist on the remote any more; they cleared as their pull requests resolved, as
+predicted above.
+
+**Clean up afterwards.** That check pulls the blobs into whatever clone you run it in. Delete the
+scratch refs and prune, or the machine you verified from now holds the content you are asking
+GitHub to drop:
+
+```bash
+for n in 1 2 3 4; do git update-ref -d "refs/tmp-pr-$n"; done
+git reflog expire --expire=now --all && git gc --prune=now
+```
+
+The text to send:
 
 ```
 Repository: blooprocket-create/veyraMOBA
