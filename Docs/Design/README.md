@@ -65,9 +65,11 @@ The bible remains the authority on intent, fiction and nuance. These files are t
 
 ## Making new sheets
 
-[`Sheet_Generation_Prompt_v0.1.md`](Sheet_Generation_Prompt_v0.1.md) carries the house art style, the layout template, and a ready-to-use generation prompt with its data block.
+[`Art_Direction_v0.1.md`](Art_Direction_v0.1.md) carries the house art style, the signature colours and the pipeline.
 
-Read its opening section first. It recommends generating the **art** and composing the **text** separately, because text baked into an image cannot be corrected, validated or version-controlled — which is how every render defect and half the canon drift in the register got there.
+The prompts themselves are **generated**, not written down: `render_sheet.py --prompts <id>` emits one per image slot with that Vanguard's appearance, colour and antagonist direction already injected from canon, so a rename or rewrite updates them automatically. `--missing` lists outstanding art as a work order.
+
+Text is never baked into the artwork — [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) composes it from canon at render time.
 
 ## Concept art is not canon
 

@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Render a Vanguard character sheet as HTML from canon.
 
-    python3 Docs/Design/Vanguards/render_sheet.py bryn
-    python3 Docs/Design/Vanguards/render_sheet.py --all
+    python3 Docs/Design/Vanguards/render_sheet.py bryn          # render one sheet
+    python3 Docs/Design/Vanguards/render_sheet.py --all         # render all 25
+    python3 Docs/Design/Vanguards/render_sheet.py --prompts bryn  # art prompts for one
+    python3 Docs/Design/Vanguards/render_sheet.py --missing       # what art is outstanding
 
 Text is read at render time from the Character Bible and the Vanguard YAML.
 Nothing is duplicated into a third place and nothing is typed by hand, so a
@@ -16,6 +18,7 @@ doubles as the brief for the art that fills it.
 from __future__ import annotations
 
 import html
+import os
 import re
 import sys
 import pathlib
@@ -29,6 +32,7 @@ except ImportError:
 HERE = pathlib.Path(__file__).resolve().parent
 DESIGN = HERE.parent
 OUT = HERE / "sheets"
+ART = DESIGN.parent.parent / "ConceptArt" / "Vanguards"
 
 
 def newest(stem: str) -> pathlib.Path:
@@ -58,16 +62,45 @@ HUE = {
     "Unknown": "#8a6bbf",
 }
 
+# Every image the sheet can hold: file stem, label, aspect, and what it must show.
+# The renderer fills a slot when ConceptArt/Vanguards/<id>/<stem>.png exists and
+# renders a labelled placeholder when it does not, so the sheet doubles as the
+# art work order. `--prompts` emits a ready-to-run prompt per slot.
 SLOTS = [
-    ("hero", "Hero illustration", "3:4", "Full-figure character art, signature key light, atmospheric region background held well behind the subject."),
-    ("front", "Turnaround — front", "1:2", None),
-    ("back", "Turnaround — back", "1:2", None),
-    ("side", "Turnaround — side", "1:2", None),
-    ("scale", "Scale silhouette", "1:2", None),
+    ("hero",    "Hero illustration", "3:4", "hero",
+     "Full-figure hero illustration. The character occupies the frame, lit by the signature "
+     "key light with an opposing rim. Region environment present but held well behind them and "
+     "never competing with the silhouette."),
+    ("front",   "Turnaround — front", "1:2", "turn",
+     "Full-body orthographic front view, neutral A-pose, even flat lighting, plain mid-grey "
+     "background, no environment, no dramatic shadow. This is a modelling reference, not an illustration."),
+    ("back",    "Turnaround — back", "1:2", "turn",
+     "Full-body orthographic back view, neutral A-pose, even flat lighting, plain mid-grey background. "
+     "Show how equipment, hair, cloth and any carried weapon sit from behind."),
+    ("side",    "Turnaround — side", "1:2", "turn",
+     "Full-body orthographic side profile, neutral A-pose, even flat lighting, plain mid-grey background."),
+    ("scale",   "Scale silhouette", "1:2", "turn",
+     "Flat black silhouette of the character beside a flat grey 1.8m human silhouette for scale, "
+     "plain light background, no detail inside either shape."),
+    ("idle",    "In-game — idle", "1:1", "view",
+     "Three-quarter top-down gameplay camera, as seen in a MOBA. Character standing idle on "
+     "battlefield ground. Small in frame. Readable silhouette is the priority."),
+    ("move",    "In-game — move", "1:1", "view",
+     "Three-quarter top-down gameplay camera. Character moving, mid-stride or mid-traversal."),
+    ("cast",    "In-game — cast", "1:1", "view",
+     "Three-quarter top-down gameplay camera. Character casting a basic ability, effect visible "
+     "in the signature colour. The ability's real shape and area must be readable."),
+    ("ult",     "In-game — ultimate", "1:1", "view",
+     "Three-quarter top-down gameplay camera. Character using their ultimate, at full effect scale."),
+    ("portrait", "Detail — portrait", "1:1", "detail",
+     "Tight head-and-shoulders crop. Face or head structure clearly readable."),
+    ("weapon",  "Detail — weapon / focus", "1:1", "detail",
+     "Close crop of the weapon or focus object alone, three-quarter view, on a neutral background."),
+    ("material", "Detail — material", "1:1", "detail",
+     "Extreme close crop of the character's defining surface material, filling the frame."),
+    ("signature", "Detail — signature element", "1:1", "detail",
+     "Close crop of the single element that identifies this character at a glance."),
 ]
-
-DETAIL_SLOTS = ["Portrait", "Weapon / focus", "Material detail", "Signature element"]
-VIEW_SLOTS = ["Idle", "Move", "Cast", "Ultimate"]
 
 
 def bible_section(number: int) -> str:
@@ -122,9 +155,17 @@ def bullets(items: list[str]) -> str:
     return "".join(f"<span class='chip'>{html.escape(i.replace('_', ' '))}</span>" for i in items)
 
 
-def slot(label: str, note: str | None, cls: str) -> str:
+def slot(vid: str, stem: str, label: str, note: str | None, cls: str) -> str:
+    """An image when the art exists, a labelled work order when it does not."""
+    for ext in (".png", ".jpg", ".jpeg", ".webp"):
+        f = ART / vid / f"{stem}{ext}"
+        if f.exists():
+            rel = os.path.relpath(f, OUT)
+            return (f"<div class='slot filled {cls}'>"
+                    f"<img src='{html.escape(rel)}' alt='{html.escape(label)}'></div>")
     sub = f"<span class='slot-note'>{html.escape(note)}</span>" if note else ""
-    return f"<div class='slot {cls}'><span class='slot-label'>{html.escape(label)}</span>{sub}</div>"
+    return (f"<div class='slot {cls}'><span class='slot-label'>{html.escape(label)}</span>{sub}"
+            f"<span class='slot-file'>{html.escape(stem)}.png</span></div>")
 
 
 def render(vid: str) -> pathlib.Path:
@@ -148,6 +189,12 @@ def render(vid: str) -> pathlib.Path:
             </article>"""
         for a in sec["abilities"]
     )
+
+    byslot = {k: (k, lab, asp, grp, desc) for k, lab, asp, grp, desc in SLOTS}
+
+    def S(stem: str) -> str:
+        k, lab, asp, grp, desc = byslot[stem]
+        return slot(vid, k, lab, desc if grp == "hero" else None, grp)
 
     ents = d.get("owned_entities") or []
     ent_html = "".join(
@@ -192,6 +239,9 @@ h1 {{ font-size:58px; letter-spacing:.5px; line-height:1; }}
          color:var(--faint); background:
            repeating-linear-gradient(135deg,transparent,transparent 9px,#121418 9px,#121418 18px); }}
 .slot-label {{ font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:#79808a; }}
+.slot-file {{ font-size:10px; color:#41464d; font-family:ui-monospace,Menlo,monospace; }}
+.slot.filled {{ border:1px solid var(--line); background:#0f1114; overflow:hidden; padding:0; }}
+.slot.filled img {{ width:100%; height:100%; object-fit:cover; display:block; }}
 .slot-note {{ font-size:11px; color:#565c65; max-width:88%; line-height:1.4; }}
 .hero {{ aspect-ratio:3/4; }}
 .turn {{ display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }}
@@ -229,7 +279,7 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
   <div>
     <h1>{html.escape(d['name'])}</h1>
     {f'<div class="title">{html.escape(title)}</div>' if title else ''}
-    <div style="margin-top:18px">{slot(*SLOTS[0][1:3], 'hero') if False else slot('Hero illustration','Full figure, signature key light, region background held behind the subject. 3:4.','hero')}</div>
+    <div style="margin-top:18px">{S('hero')}</div>
   </div>
   <div class="grid" style="gap:16px">
     <div class="panel"><div class="meta">
@@ -241,7 +291,7 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
       {''.join(f'<p>{md(p)}</p>' for p in lore)}
     </div>
     <div class="panel"><div class="label">Visual exploration</div>
-      <div class="turn">{slot('Front',None,'')}{slot('Back',None,'')}{slot('Side',None,'')}{slot('Scale',None,'')}</div>
+      <div class="turn">{''.join(S(k) for k in ('front','back','side','scale'))}</div>
       {f'<p style="color:var(--dim);font-size:12.5px;margin:13px 0 0">{md(visual)}</p>' if visual else ''}
     </div>
   </div>
@@ -266,9 +316,9 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
 
 <div class="grid" style="grid-template-columns:1fr 1fr; margin-top:16px">
   <div class="panel"><div class="label">In-game views</div><div class="views">
-    {''.join(slot(v,None,'') for v in VIEW_SLOTS)}</div></div>
+    {''.join(S(k) for k in ('idle','move','cast','ult'))}</div></div>
   <div class="panel"><div class="label">Details</div><div class="details">
-    {''.join(slot(v,None,'') for v in DETAIL_SLOTS)}</div></div>
+    {''.join(S(k) for k in ('portrait','weapon','material','signature'))}</div></div>
 </div>
 
 <div class="panel" style="margin-top:16px"><div class="label">Implementation guards — must survive to code</div><ul>{guards}</ul></div>
@@ -290,14 +340,88 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
     return dest
 
 
+HOUSE = (
+    "Painterly realism, heavily rendered, visible brushwork. Not photoreal, not flat cel, "
+    "not anime. Materials read physically. Built around ONE saturated signature colour, given "
+    "below, which drives the key light and the accents; everything else is desaturated so that "
+    "hue carries the image. Strong directional key in the signature colour plus an opposing "
+    "cool or warm rim. Deep shadows, high contrast, mid-to-dark value key. Silhouette must stay "
+    "readable at thumbnail size. No text, no lettering, no logo, no UI, no watermark, no "
+    "signature, no lens flare, no stat bars, no numbers."
+)
+
+# Art direction for the four antagonists. The note is the point: none of them is
+# cruel, and lighting them like a villain would misread the writing.
+ANTAGONIST = {
+    "angeru": "Composed, methodical, unhurried. Not snarling and not posed as a threat. The menace "
+              "is that he is calm and will explain himself.",
+    "marek": "Delighted, curious, entirely unbothered. Whatever is behind or beside him should read "
+             "as worse than he does.",
+    "gorraveth": "Indifferent rather than enraged. He is not hunting the viewer; the viewer is simply "
+                 "inside the contract area.",
+    "tavi": "Bright, warm, genuinely happy. Nothing in the lighting or framing signals danger. "
+            "That is the point — do not make her sinister.",
+}
+
+
+def prompts(vid: str) -> None:
+    """Emit a ready-to-run art prompt per slot, with this Vanguard's canon injected."""
+    src = next(HERE.glob(f"*-{vid}.yaml"), None)
+    if src is None:
+        sys.exit(f"no Vanguard data file for {vid!r}")
+    d = yaml.safe_load(src.read_text(encoding="utf-8"))
+    sec = parse_section(bible_section(d["roster_number"]))
+    look = (sec["fields"].get("Visual language") or sec["fields"].get("Visual")
+            or "No appearance paragraph in the bible — write one before generating art.")
+    look = re.sub(r"\*\*(.+?)\*\*", r"\1", look)
+    hue = HUE.get(d["origin_region"], "#9aa4ad")
+    who = f"{d['name']}" + (f", {d['title']}" if d.get("title") else "")
+
+    print(f"# Art prompts — {who}")
+    print(f"# Region {d['origin_region']} · signature colour {hue} · nature {d['nature']}")
+    print(f"# Save each result to ConceptArt/Vanguards/{vid}/<stem>.png, then re-render the sheet.\n")
+    print("# WORKFLOW: generate `hero` first and choose one of its variations. Feed that image")
+    print("# back as a reference for all twelve remaining slots — that is what holds the")
+    print("# character consistent. Without it you get twelve different people.")
+    print("# Models: text-to-image for hero; a reference-driven model for the rest.\n")
+    if vid in ANTAGONIST:
+        print(f"# ANTAGONIST DIRECTION: {ANTAGONIST[vid]}\n")
+
+    for stem, label, asp, grp, desc in SLOTS:
+        ref = "" if stem == "hero" else "  Use the approved hero image as a character reference.\n"
+        print(f"--- {stem}.png  ({label}, {asp}) " + "-" * max(0, 46 - len(stem) - len(label)))
+        print(f"{desc}\n{ref}  SUBJECT: {who}. {look}\n"
+              f"  SIGNATURE COLOUR: {hue}\n  STYLE: {HOUSE}\n  ASPECT: {asp}\n")
+
+
+def missing(ids: list[str]) -> None:
+    """List the art each Vanguard still needs, as a work order."""
+    total = 0
+    for vid in ids:
+        gaps = [stem for stem, *_ in SLOTS
+                if not any((ART / vid / f"{stem}{e}").exists() for e in (".png", ".jpg", ".jpeg", ".webp"))]
+        total += len(gaps)
+        state = "complete" if not gaps else f"{len(gaps)}/{len(SLOTS)} missing: " + " ".join(gaps)
+        print(f"  {vid:<12} {state}")
+    print(f"\n  {total} images outstanding across {len(ids)} Vanguards.")
+
+
 def main() -> int:
     args = sys.argv[1:]
     if not args:
         print(__doc__)
         return 1
-    ids = ([p.stem.split("-", 1)[1] for p in sorted(HERE.glob("*.yaml"))]
-           if args[0] == "--all" else args)
-    for vid in ids:
+    everything = [p.stem.split("-", 1)[1] for p in sorted(HERE.glob("*.yaml"))]
+
+    if args[0] == "--prompts":
+        for vid in (everything if args[1:2] == ["--all"] else args[1:]):
+            prompts(vid)
+        return 0
+    if args[0] == "--missing":
+        missing(everything if len(args) == 1 else args[1:])
+        return 0
+
+    for vid in (everything if args[0] == "--all" else args):
         print(f"  {render(vid)}")
     return 0
 

@@ -72,7 +72,7 @@ Remaining work, in order:
 
 ## Making new sheets
 
-The house art style, layout template and generation prompt live in [`Docs/Design/Sheet_Generation_Prompt_v0.1.md`](../../Docs/Design/Sheet_Generation_Prompt_v0.1.md).
+The house art style and pipeline live in [`Docs/Design/Art_Direction_v0.1.md`](../../Docs/Design/Art_Direction_v0.1.md). Prompts are generated per Vanguard by `render_sheet.py --prompts <id>`; new artwork goes in `ConceptArt/Vanguards/<id>/`.
 
 **House style, adopted 2026-09-20:** painterly realism with one saturated signature hue per sheet driving the key light, icon glows and palette — Patch's rendering with Tavi's colour discipline.
 
