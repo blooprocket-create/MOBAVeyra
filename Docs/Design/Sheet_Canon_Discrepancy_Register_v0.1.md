@@ -51,6 +51,10 @@ Each row states what the sheet shows, what canon says, and which document owns t
 - **Canon** (Character Bible §8): Origin **Shatterdeep**. Nature: **native biological fauna**. Explicitly: "He is **not** an Echo, Flux mutation, construct, hidden god, or secretly humanoid intelligence."
 - **Impact:** total origin conflict — wrong region, wrong species category, wrong environment art. This is the largest single discrepancy in the set.
 - **On regeneration:** Shatterdeep environments; biological predator framing; confirm the silhouette reads as the canonical **six-legged** body plan.
+- **Regeneration checked (2026-09-20)** against the authored hero art now installed at `ConceptArt/Vanguards/korruk/hero.webp`:
+  - *Biological predator framing* — **met.** He reads as a mineralised animal: low, horizontal, load-bearing, head carried forward. No construct or humanoid reading.
+  - *Six-legged body plan* — **unconfirmed.** The pose is a low three-quarter front view and the far-side limbs are occluded, so the count cannot be read off this image either way. The `side` and `scale` turnaround slots are what settle it, and they are specified flat and orthographic precisely for this.
+  - *Shatterdeep environment* — **still open.** The backdrop is generic ruined stone with red heraldic banners, carrying no Shatterdeep-specific reading. It also hangs the **same white cross-and-sword device** as Vera's hero art (§7, Merrin). That device is not yet assigned to a faction in canon, so this is flagged rather than called a repeat of the original error — but if it turns out to be Merrin's, this entry's core discrepancy has come back.
 
 ### B2. Bryn — W ability name and Dense Fog behaviour
 

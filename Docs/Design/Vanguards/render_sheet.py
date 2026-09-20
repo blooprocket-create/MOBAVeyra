@@ -71,6 +71,12 @@ HUE_BY_ID = {
     # so he takes one that stays clear of Reed Provinces and Iron March: measured
     # CIE76 distance 27 from #c0392b and 38 from #c4552b.
     "patch": "#ff2d55",
+    # Korruk keys off Shatterdeep (cyan). Cyan appears nowhere in his design and
+    # his own canon already says crimson is his default spine colour, so here the
+    # text and the art agree against the region map. #ff1a1a is the best-separated
+    # usable red left in a crowded band: measured CIE76 distance 29 from Patch
+    # #ff2d55 and 34 from Reed Provinces #c0392b.
+    "korruk": "#ff1a1a",
 }
 
 

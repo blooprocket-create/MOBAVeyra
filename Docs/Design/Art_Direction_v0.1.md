@@ -57,14 +57,32 @@ Assigned by region so no two sheets collide in a draft grid. Held in `HUE` in `r
 | Shatterdeep | `#6fc3d4` | | Ancient Flux Network | `#4a8fd4` |
 | Unknown / unplaced | `#8a6bbf` | | Ancient Fluxborn system | `#5e7fd4` |
 
-**Patch is the one override (2026-09-20).** He keys off the region `Unknown` and so
-resolved to violet `#8a6bbf`, but his approved hero art is emphatically **crimson** — the
-spectral bear behind him carries the whole frame. Art is canon, so the hue moved to the
-art: `#ff2d55`, hotter and more luminous than the two reds it has to stay clear of.
-Measured CIE76 distance **27** from Reed Provinces `#c0392b` (Angeru) and **38** from Iron
-March `#c4552b`, both past the ~20 where two swatches stop reading as the same colour at
-thumbnail size. Overrides live in `HUE_BY_ID`, keyed by Vanguard id; the region map stays
-the default for everyone without one.
+#### Per-Vanguard overrides
+
+A Vanguard whose approved art diverges from their regional hue takes an override in
+`HUE_BY_ID`, keyed by id; the region map stays the default for everyone without one.
+Two exist:
+
+| Vanguard | Region default | Override | Why |
+|---|---|---|---|
+| Patch | `#8a6bbf` (Unknown) | `#ff2d55` | His art is crimson — the spectral bear carries the whole frame |
+| Korruk | `#6fc3d4` (Shatterdeep) | `#ff1a1a` | Cyan appears nowhere in his design, and his own canon already names crimson his default spine colour |
+
+Korruk is the clearer of the two. His appearance paragraph said *"crimson is the canon
+default"* before any art existed, so the region map was already contradicting the bible
+and the art only made that visible.
+
+Measured separation, CIE76, against the nearest neighbours in a crowded band: `#ff2d55`
+sits **27** from Reed Provinces `#c0392b` and **38** from Iron March `#c4552b`; `#ff1a1a`
+sits **29** from `#ff2d55` and **34** from `#c0392b`. Both clear the ~20 where two
+swatches stop reading as the same colour at thumbnail size.
+
+**The table has a pre-existing collision (measured 2026-09-20).** Reed Provinces `#c0392b`
+and Iron March `#c4552b` are **dE 13.4** apart — under the threshold, and so already the
+exact failure this table exists to prevent. It puts Angeru in the same apparent colour as
+Raska, Kade, Mavra and Eudora in a draft grid. Neither hue is moved here: five Vanguards'
+sheets change colour whichever one gives way, which is a deliberate call rather than a
+cleanup to fold into an art commit.
 
 The two Flux origins are deliberately **not** the same hue. Relay came out of the
 network itself; Torr began as a Fluxborn unit and stopped being one. They would
@@ -135,8 +153,9 @@ withdrawn for third-party content and reconstructing that look would have carrie
 reason for the withdrawal forward.
 
 Since then the author has begun regenerating characters externally, one at a time, and
-approved art is canon (see above): **6 of 25** paragraphs — Raska, Kade, Silt, Relay, Patch
-and Tavi — have been rewritten from the art rather than the art judged against them. Each
+approved art is canon (see above): **8 of 25** paragraphs — Raska, Kade, Silt, Relay, Patch,
+Tavi, Vera and Korruk — have been rewritten from the art rather than the art judged against
+them. Each
 rewrite replaces the guardrails as well as the description. The machine pass each one
 replaces is kept beside it as `superseded_gen1_*.webp`, so what was rejected stays
 inspectable instead of being silently overwritten.
