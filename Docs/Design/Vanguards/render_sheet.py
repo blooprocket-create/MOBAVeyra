@@ -385,6 +385,13 @@ HOUSE = (
 # curated version leaked "not background decoration" (Vera), "does not confer"
 # (Mimzi) and "not another miniature mage" (Celandrine) for precisely that reason.
 # So match the negation itself and let the object of it be anything.
+# Deliberately NOT matched: "rather than" and "instead of". They read as mild
+# comparatives that both model families handle inline, and in these paragraphs they
+# almost always sit mid-sentence after the description that matters — "carried like
+# a service weapon rather than a hunting bow", "She rides a living wave rather than
+# standing on the ground". Routing them would drag Vera's whole physical
+# description and Neris's defining wave into the constraint block. Measured across
+# the roster: 7 sentences would move, and every one is a net loss.
 GUARDRAIL = re.compile(
     r"\bnot\b"          # covers is/are/does not, and bare "not X" appositives
     r"|\bnever\b"
@@ -441,9 +448,16 @@ def split_guardrails(look: str) -> tuple[str, str]:
         # what the guardrail forbids, so the cut is made AT the first negation and
         # the whole tail goes with it.
         head, tail = sentence[:hit.start()], sentence[hit.start():]
+        # Cut only where the negation begins a clause. A negation buried inside
+        # one is doing descriptive work ("survived a war he was never built
+        # for"), and splitting there leaves a mangled fragment on both sides —
+        # that exact sentence put "survived a war he was." into Relay's prompt.
+        # Where the cut is unsafe the whole sentence goes to the constraint:
+        # affirmative content may move, but nothing is ever severed mid-clause.
+        at_clause_start = re.search(r"[,;:—-]\s*$", head) is not None
         # A head too short to stand alone ("His own face" before "never becomes
         # frightening") is part of the constraint, not a description of its own.
-        if len(head.split()) >= 5:
+        if at_clause_start and len(head.split()) >= 5:
             body.append(_tidy(head))
             rails.append(_tidy(tail))
         else:

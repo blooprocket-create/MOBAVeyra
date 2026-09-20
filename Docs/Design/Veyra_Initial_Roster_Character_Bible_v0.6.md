@@ -245,7 +245,7 @@ The end of the effect hardens/erupts for a final knockup and Sandy application.
 # 4. Relay, The Last Conductor
 
 **Origin:** Ancient Flux Network  
-**Scale:** Roughly 3.8m machine  
+**Scale:** Roughly 3.8m machine — **under review (2026-09-20):** the approved hero art reads far larger, towering over the surrounding ruins. Art and this field disagree; the figure is a hitbox and readability decision and has not been changed here.  
 **Role identity:** Utility/support-style Vanguard with open-role usage  
 **Core fantasy:** An ancient mobile power station learning the modern world.
 
@@ -255,7 +255,7 @@ Buried during the First Fracture, Relay was eventually uncovered and reactivated
 
 Relay is intelligent, literal, and nurturing rather than a dumb comedy robot.
 
-**Visual language:** A roughly 3.8m machine of rounded bone-white plating over exposed dark mechanism, lit from within by a warm amber core. The stencilled unit marking **R-01** is still legible on his chassis. Moss has taken hold on his shoulders and joints from the time he spent buried, and a faded red expedition banner — left by whoever uncovered him — is still tied to him; he has not removed it. He moves heavily and without hurry, top-heavy and deliberate, and his plating is smooth and unarmoured. He is a maintenance and power machine that survived a war it was never built for, **not** a war robot: no weapon mounts, no military silhouette, and no menace in his design.
+**Visual language:** A colossal machine of blocky bone-white slab plating over dark exposed mechanism, top-heavy and forward-leaning, **towering over the ruins around him**. The stencilled unit marking **R-01** is still legible on his shoulder plate. A single large ringed **amber optic** is set into his head, with smaller amber points at the chest and hand. His arms are enormous segmented manipulators ending in heavy articulated hands built for lifting and carrying, and a slender antenna mast rises from his back. **Moss and green growth have colonised him** — shoulders, joint housings, forearms and thighs — and a faded crimson expedition banner bearing a pale sigil is still tied to him; someone else left it there and he kept it. He is a maintenance and power machine that outlived the war around him, and the growth on him is old. The hands are manipulators and the mast is an antenna, **never** weapons; he carries no armament of any kind, and the moss is colonisation, not battle damage.
 
 ## Passive — Charger
 
