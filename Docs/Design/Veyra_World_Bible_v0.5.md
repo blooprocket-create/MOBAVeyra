@@ -119,7 +119,7 @@ Forgehearts arise here. They are not transformed humans, constructs, or Fluxborn
 
 **Known Vanguards:** Varkesh, the Forgeheart, and Gorraveth, the Slagmaw.
 
-The Basin also has biological reptilian inhabitants distinct from its molten-metal Forgehearts. Gorraveth is a scarred reptilian hunter and mine-retrieval survivor, carrying burned work armor and viscous industrial slag after surviving an unsafe excavation collapse. Renewed old-network disturbances threaten the Basin's deep tunnels and displace wildlife. “Drakari” is a **provisional visual-sheet lineage name**, not a settled classification of all Basin peoples. Varkesh knows Gorraveth by reputation but finds his manners exhausting.
+The Basin also has biological reptilian inhabitants distinct from its molten-metal Forgehearts. Gorraveth is a scarred reptilian hunter and mine-retrieval survivor, carrying burned work armor and viscous industrial slag after surviving an unsafe excavation collapse. Renewed old-network disturbances threaten the Basin's deep tunnels and displace wildlife. “Drakari” is a **provisional visual-sheet lineage name**, not a settled classification of all Basin peoples. Varkesh knows Gorraveth by reputation, respects what he survived, and is quietly appalled at what walked back out of that vent. Gorraveth works for payment and does not pretend otherwise.
 
 ### Relationships
 
@@ -151,7 +151,7 @@ Merrin is a ruined city where repeated human experiences became embedded strongl
 
 Echoes are not ghosts of specific dead people. They are personhood formed from repeated memory.
 
-**Tavi** is Merrin remembering how it lived: play, games, chasing, hiding, childhood patterns.
+**Tavi** is Merrin remembering how it lived: play, games, chasing, hiding, childhood patterns — preserved perfectly, including the part where the game does not end. She was taught a rule about who counts as playing. She no longer applies it.
 
 **Vera** is Merrin remembering how it died: firing lines, siege commands, volleys, repetition, war.
 
@@ -264,6 +264,8 @@ The Veil House knew of the gang but withheld intervention because acting would e
 The gang later destroyed the village and killed Angeru's family.
 
 Angeru's grievance is therefore not simply that the houses were weak or malicious. It is that **both were powerful enough to help and possessed institutional logic that made non-intervention acceptable**.
+
+He has since stopped distinguishing the logic from the people who carry it. His targets began as leadership and now extend to masters, students, pensioners and anyone who took house money and asked nothing — on the reasoning that an institution is only ever the sum of small permissions. He is methodical rather than indiscriminate, which does not make the list shorter.
 
 He later learned both houses' martial traditions and now uses those traditions against the institutions themselves.
 

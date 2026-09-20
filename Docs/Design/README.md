@@ -34,6 +34,12 @@ Raska's Hound was the only feature in the roster with no supporting rules in any
 
 All 25 Vanguards remain in the first-playable roster. Raska needs none of ADR-003's three primitives and is now fully specified.
 
+## Antagonist pass — 2026-09-20
+
+Four Vanguards are now genuine antagonists: **Angeru**, **Marek**, **Gorraveth** and **Tavi**. In each case the change was removing an explicit moral safety rail rather than writing a new backstory — origins, kits, roles, regions and the roster count are untouched.
+
+None of them is cruel, and none should be written as sadistic. Angeru is methodical, Marek is curious, Gorraveth is indifferent, and Tavi is affectionate. Each data file records the removed rail with an instruction not to reinstate it.
+
 ## Canon rulings — 2026-09-20
 
 **Renames.** Two Vanguards were renamed to resolve name collisions that would have been expensive to fix after voice-over and localisation:
@@ -56,6 +62,12 @@ Full context and the art-correction checklist are in [`Sheet_Canon_Discrepancy_R
 [`Vanguards/`](Vanguards/) holds one structural data file per Vanguard, derived from the Character Bible, plus a validator that checks them against the Combat Bible's crowd-control vocabulary and the roster table, and rejects any gameplay tuning that leaks into the layer. Run `python3 Docs/Design/Vanguards/validate.py`.
 
 The bible remains the authority on intent, fiction and nuance. These files are the subset a script can verify, and the reason sheet drift is now detectable rather than discovered late.
+
+## Making new sheets
+
+[`Sheet_Generation_Prompt_v0.1.md`](Sheet_Generation_Prompt_v0.1.md) carries the house art style, the layout template, and a ready-to-use generation prompt with its data block.
+
+Read its opening section first. It recommends generating the **art** and composing the **text** separately, because text baked into an image cannot be corrected, validated or version-controlled — which is how every render defect and half the canon drift in the register got there.
 
 ## Concept art is not canon
 

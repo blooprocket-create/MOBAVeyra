@@ -57,6 +57,10 @@ guards:
   - A kill can transfer the It mark to a nearby enemy Vanguard.
   - R permits one reduced-damage additional cast only on a successful kill.
   - Tavi keeps her name; the former Tavra was renamed Bryn to resolve the collision (register §G).
+  - ANTAGONIST (2026-09-20). She was taught 'only play with people who are playing back' and no longer
+    applies it -- she treats everyone as playing and does not recognise surrender as a move. She is not
+    cruel and not malicious; the horror is that she is affectionate about it. Do not write her as sadistic,
+    and do not restore the rule as an active constraint.
 sheet:
   file: Tavi_The_Playmate_Character_Sheet.png
   status: current

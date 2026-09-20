@@ -4,6 +4,7 @@
 
 **Version:** 0.6  
 **Kit consistency clarification (2026-09-20):** Cairn's passive/R shield attribution and displacement mitigation; Bryn's single empowered Breach explosion and Attack Speed overflow interaction; Oriel's valid-target-only homing fragment. No character lore, role or roster count changed.  
+**Antagonist pass (2026-09-20):** Angeru, Marek, Gorraveth and Tavi rewritten as genuine antagonists. Origins, kits, roles, regions and roster count unchanged; in each case the change is the removal of an explicit moral safety rail rather than a new backstory.  
 **Ride-state rulings (2026-09-20):** Raska's Momentum basis, Last Exit expiry behavior, and Last Exit overlap resolution recorded below. The generic ride-state rules they sit on live in **Combat Bible §56**; only the Raska-specific parts are here. No character lore, role or roster count changed.  
 **Current roster target:** 25 Vanguards (and growing as new designs are added)  
 **Status:** Working character canon for the planned first-playable roster. All 25 Vanguards below belong to this design target; the number designed is not the number implemented/released.
@@ -364,11 +365,15 @@ The manifestation eventually collapses back into the toy.
 
 Tavi formed from generations of repeated children's games in Merrin.
 
-She is not stupid and is not simply malicious; she struggles to emotionally distinguish "play" and violence. One of the moral rules taught to her is:
+She is not stupid, and she is not cruel. That is what makes her dangerous. Somewhere in the memories she formed from, a child was taught a rule, and Tavi learned it with everything else:
 
 > Only play with people who are playing back.
 
-Civilians and surrendering people are not playing. Armed Vanguards are.
+**She no longer applies it.** Not because she rejected it — she has simply concluded that everyone is playing, they just have not realised yet. Running is a move. Hiding is a move. Begging is a move she has not seen often enough to recognise, so she treats it as part of the game and waits, delighted, for the next one.
+
+Surrender is not a move. It cannot be, because the game does not have an ending where someone asks to stop.
+
+She has never understood why some people do not get up afterwards. She is not indifferent to it; it upsets her, in the way a rule change upsets a child. Then she finds someone else, because the alternative is that the game is over, and the game has never been over.
 
 ## Passive — You're It!
 
@@ -614,6 +619,14 @@ Nix bit him.
 That was yes.
 
 Their pact is mutual: Marek anchors Nix in Veyra, while Nix grants Marek access to Elsewhere magic.
+
+**Nix was the first circle he opened. It was not the last.**
+
+The Drowned Cantons' pactcraft tradition is built on binding — careful, conservative, generations deep — because a binding circle is not a prison for something dangerous so much as an agreement about where it may stand. Marek opens them to find out what is inside. Most of what he finds cannot be bargained with, and he does not always close what he opens.
+
+He is not cruel and he does not kill people himself. He simply works, and in the places he has worked afterwards there are fewer people than before, and the Cantons' pactbinders arrive too late with the wrong charts. He regards this as the cost of learning something nobody else was willing to learn, and he regards the pactbinders as cowards for not having learned it first.
+
+His affection for Nix is genuine. It has never once extended to anyone standing nearby.
 
 Nix is a non-speaking skull-masked shadow creature with its own Health and battlefield presence. Nix can be killed/banished and later reform.
 
@@ -931,9 +944,17 @@ Angeru proved otherwise.
 
 When both houses discovered what he had done, he rejected them completely. He now uses their own teachings against the institutions themselves, seeking to dismantle their leadership, political influence, monopoly on martial knowledge, and the social order that allowed his village to disappear between their obligations.
 
-He does **not** automatically hate every warrior associated with either house. His enemy is the institution and the system it protects.
+He began by targeting leadership. That is no longer where he stops.
+
+Angeru has concluded that an institution has no existence apart from the people who carry it: the masters who teach the doctrine, the students who will inherit it, the retired swordsmen on house pensions, the families who took house money and asked no questions, and everyone who was told what was happening in his region and decided it was not their territory. There was no council that voted to let his village die. There was a thousand small permissions, and he is collecting them.
+
+He keeps a list. The list grows, because anyone who shelters a name on it has demonstrated which side of the question they are on.
+
+He is not indiscriminate and he takes no pleasure in it. He is **methodical**, which is worse, and he will explain his reasoning to anyone who asks — including the person he has come for, who is usually still trying to argue when he finishes.
 
 > **"A technique does not know which house invented it."**
+
+He says it as a principle of swordsmanship. He means it as a statement about guilt.
 
 ## Passive — No Master
 
@@ -1383,13 +1404,13 @@ Raska, Kade, and Mavra all come from the Iron March. Raska and Mavra specificall
 
 ## Drowned Cantons
 
-Marek, Neris, Qazharr, Sylra, and Bryn connect to the Cantons from different cultural angles. Sylra adds the Cantons' harbor-pilot and fog-guidance tradition without reducing regional magic to Pactcraft or Wakebound power. Bryn was Qazharr's first mate and the only crewmate to stay when he left piracy; her defensive harbor artillery is Flux engineering, distinct from Sylra's Bellcraft.
+Marek, Neris, Qazharr, Sylra, and Bryn connect to the Cantons from different cultural angles. Marek is the only one the Cantons would now describe as a problem of their own making: the tradition trained him, and he is using it to undo the thing it exists to do. Sylra adds the Cantons' harbor-pilot and fog-guidance tradition without reducing regional magic to Pactcraft or Wakebound power. Bryn was Qazharr's first mate and the only crewmate to stay when he left piracy; her defensive harbor artillery is Flux engineering, distinct from Sylra's Bellcraft.
 
 ## Merrin
 
 Tavi and Vera are both Echoes, but their identities emerge from different repeated experiences:
 
-- Tavi = Merrin remembering how it lived.
+- Tavi = Merrin remembering how it lived — and never learning that it stopped.
 - Vera = Merrin remembering how it died.
 - Oriel = Merrin remembering the light of homecoming: the everyday hope that someone will return.
 
@@ -1410,7 +1431,7 @@ Their interaction should eventually explore what an ancient maintenance machine 
 
 The **Blade House** and **Veil House** are rival martial institutions whose political and cultural influence reaches beyond simple combat schools.
 
-Angeru mastered both disciplines and now seeks to break the institutions themselves rather than indiscriminately kill everyone associated with them.
+Angeru mastered both disciplines and now works to destroy the houses — which he no longer distinguishes from the people who make them up. He is not indiscriminate; he is methodical, and his list keeps growing. Future characters from either house should be able to present a credible opposing case, and the strongest version of that case is someone on his list who genuinely did nothing.
 
 The regional name **Reed Provinces** and both house names remain provisional until the wider culture and geography are developed further.
 
@@ -1633,9 +1654,13 @@ For a short duration, gain Movement Speed and remove Never Break Stride's windup
 
 **Origin:** Ember Basin. **Nature:** Native biological reptilian humanoid, **not** a Forgeheart, Fluxborn, or transformed human; “Drakari” is a provisional lineage name used on visual exploration. **Identity:** Mobile melee physical skirmisher; rapid jungle-camp clear and early map rotations. **Weapons:** Two oversized hooked slag cleavers repurposed from mining tools.
 
-**Visual:** Huge scarred, hunched reptilian silhouette with powerful digitigrade legs, muscular arms, a heavy tail, a chipped horn and broken horn stump, one clouded eye, torn frill, badly scarred snarl, and mismatched scorched mining armor. Thick **viscous black industrial slag** clings to the cleavers and armor gaps. Flesh and injuries remain visibly biological. Rude, vicious, impatient, and terrifying; he despises officials who knowingly send workers into lethal conditions.
+**Visual:** Huge scarred, hunched reptilian silhouette with powerful digitigrade legs, muscular arms, a heavy tail, a chipped horn and broken horn stump, one clouded eye, torn frill, badly scarred snarl, and mismatched scorched mining armor. Thick **viscous black industrial slag** clings to the cleavers and armor gaps. Flesh and injuries remain visibly biological. Rude, vicious, impatient, and terrifying. He still despises officials who knowingly send workers into lethal conditions — but that contempt stopped translating into protecting anyone a long time ago.
 
-**Lore:** As a tracker and retrieval specialist, Gorraveth was sent with a crew into a supposedly safe Ember Basin mine to recover valuable machinery. A second collapse trapped them by molten industrial waste. He dragged the others toward safety but was sealed below. Weeks after he was declared dead, he emerged through an old vent badly burned and missing a horn. He brought the salvaged equipment to the official who had signed the false safety report, insulted him spectacularly, and left. He now independently hunts dangerous wildlife, clears hazardous routes, and occasionally helps settlements that cannot pay him. Renewed ancient Flux infrastructure has displaced dangerous creatures beneath the Basin; he tracked the disturbances toward the Crucible. Varkesh respects his hard-won survival skills but disapproves of his manners.
+**Lore:** As a tracker and retrieval specialist, Gorraveth was sent with a crew into a supposedly safe Ember Basin mine to recover valuable machinery. A second collapse trapped them by molten industrial waste. He dragged the others toward safety but was sealed below. Weeks after he was declared dead, he emerged through an old vent badly burned and missing a horn. He brought the salvaged equipment to the official who had signed the false safety report. The official did not survive the conversation, and Gorraveth made no particular effort to be elsewhere afterwards.
+
+He came out of that mine without illusions. He had dragged four people toward an exit and been sealed under the Basin for his trouble, and nothing above ground had come looking. Since then he takes contracts, delivers exactly what was agreed, and does not care what is standing nearby when he does it. He does not lie, he does not renege, and he does not help anyone who is not paying — a settlement that cannot meet his price is simply a settlement he walks past, and he will tell them so to their faces.
+
+Renewed ancient Flux infrastructure has displaced dangerous creatures beneath the Basin; he tracked the disturbances toward the Crucible because whatever is waking down there is going to be worth a great deal to someone. Varkesh respects his hard-won survival skills and is quietly appalled at what came back out of that vent.
 
 ### Passive — No Time to Bleed
 
@@ -1728,7 +1753,7 @@ Unanchor the **existing operational Picket** and order it to follow a nearby sel
 ## New roster relationship and system anchors
 
 - **Bramblehollow:** Mimzi and Celandrine are distinct adult fox- and hare-lineage Bramblekin. Their people are independent biological descendants of early living-subject Flux experiments, not summoned Fluxborn or universally magical beings. Thistlewick is their living settlement and the Root Vaults are abandoned labs beneath the valley.
-- **Ember Basin:** Gorraveth is a living reptilian native with severe mine injuries, **not** another Forgeheart like Varkesh. No automatic duo effect.
+- **Ember Basin:** Gorraveth is a living reptilian native with severe mine injuries, **not** another Forgeheart like Varkesh. No automatic duo effect. Varkesh's disapproval is no longer about manners.
 - **Shatterdeep:** Aurelisse's naturally formed wind consciousness and cliff-rescue tradition differ from Korruk's evolved predatory fauna and from the Bramblekin's experimental history.
 - **Iron March:** Eudora knows Raska, Kade, and Mavra through engineering, but her hometown is not fixed. She treats Relay and Torr as conscious beings.
 - **Team synergies:** Qualifying allied displacement from Aurelisse can activate Kade's existing Tracked passive; Aurelisse and Eudora provide opportunities for stationary carries to attack safely; Celandrine can exploit teammate-created space; Mimzi and Gorraveth add alternate approach angles. These are natural kit interactions, **not mandatory lanes or named duo buffs**.
