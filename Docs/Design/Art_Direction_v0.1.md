@@ -263,15 +263,23 @@ withdrawn for third-party content and reconstructing that look would have carrie
 reason for the withdrawal forward.
 
 Since then the author has begun regenerating characters externally, one at a time, and
-approved art is canon (see above): **17 of 25** paragraphs have been reconciled with their
-art rather than the art judged against them. Eleven were rewritten — Raska, Kade, Silt,
-Relay, Patch, Tavi, Vera, Korruk, Marek, Neris, Moro, Angeru, Sylra and Mavra. Torr's, Qazharr's and Varkesh's were
-only added to, because their art agreed with what was already written, guardrails included. Torr's was only added to, because his art agreed with what was
-already written, guardrails included; where that happens the existing text stays and the art
-supplies what it was missing. Each
-rewrite replaces the guardrails as well as the description. The machine pass each one
-replaces is kept beside it as `superseded_gen1_*.webp`, so what was rejected stays
-inspectable instead of being silently overwritten.
+approved art is canon (see above). Each replacement's appearance paragraph is reconciled
+with its art in one of two ways:
+
+- **Rewritten**, where the art contradicted the text. The guardrails are replaced along
+  with the description, because a guardrail written for a superseded design is the line
+  the prompt obeys hardest.
+- **Added to**, where the art agreed with what was already written, guardrails included.
+  The existing text stays and the art supplies what it was missing.
+
+**The list of which is which lives in the files, not here.** `--missing` prints it, derived
+from the `superseded_gen1_*.webp` each replacement leaves behind. It was previously a count
+and a list maintained by hand in this paragraph, and it drifted twice in a day — a doc that
+opens by explaining why the prompts are generated rather than pasted should not keep a
+hand-updated roster in its own body.
+
+The machine pass each replacement supersedes is kept beside it rather than overwritten, so
+what was rejected stays inspectable.
 
 Each paragraph follows the same three-part shape, and new ones should:
 

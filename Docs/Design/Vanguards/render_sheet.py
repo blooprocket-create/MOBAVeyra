@@ -629,6 +629,16 @@ def missing(ids: list[str]) -> None:
         print(f"  {gen_total - held} can be commissioned today.")
     print(f"  {cap_total} in-game views awaiting a build to capture from.")
 
+    # Which heroes are the author's rather than the machine's. Derived from the files
+    # rather than kept as a list in prose: the same count was maintained by hand in
+    # Art_Direction_v0.1.md and drifted twice in a day, which is the exact failure that
+    # document tells everyone else to avoid.
+    authored = sorted(v for v in ids if (ART / v / "superseded_gen1_a.webp").exists())
+    if authored:
+        print(f"\n  {len(authored)}/{len(ids)} heroes are authored replacements, their appearance "
+              f"paragraphs reconciled with the art:")
+        print("    " + " ".join(authored))
+
 
 def audit(ids: list[str]) -> int:
     """Report appearance sentences that lose description to the constraint block.
