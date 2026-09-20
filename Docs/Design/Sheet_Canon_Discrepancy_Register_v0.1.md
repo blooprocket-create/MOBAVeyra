@@ -59,7 +59,7 @@ Each row states what the sheet shows, what canon says, and which document owns t
     repeating the original Merrin placement. Surveying every hero art installed settles it: the banners
     carry a small stock set of devices reused with **no regional logic at all**.
     - *Compass rose / ship's wheel* — Neris and Marek (both Drowned Cantons) **and Torr** (Ancient Fluxborn system).
-    - *Cross-and-sword* — Vera (Merrin) **and Korruk** (Shatterdeep).
+    - *Cross-and-sword* — Vera (Merrin), Korruk (Shatterdeep) **and Angeru** (Reed Provinces): three unrelated regions.
     - *Four-pointed star* — Relay. *Skull* — Patch. *None* — Raska, Silt.
 
     A device spanning Merrin and Shatterdeep, and another spanning Drowned Cantons and the Fluxborn

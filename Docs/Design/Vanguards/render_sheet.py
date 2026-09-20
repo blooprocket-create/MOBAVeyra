@@ -527,8 +527,8 @@ def split_guardrails(look: str) -> tuple[str, str]:
 # Art direction for the four antagonists. The note is the point: none of them is
 # cruel, and lighting them like a villain would misread the writing.
 ANTAGONIST = {
-    "angeru": "Composed, methodical, unhurried. Not snarling and not posed as a threat. The menace "
-              "is that he is calm and will explain himself.",
+    "angeru": "Composed, methodical, unhurried; his expression stays flat whatever his body "
+              "is doing.",
     "marek": "Delighted, curious, entirely unbothered. Whatever is behind or beside him should read "
              "as worse than he does.",
     "gorraveth": "Indifferent rather than enraged. He is not hunting the viewer; the viewer is simply "

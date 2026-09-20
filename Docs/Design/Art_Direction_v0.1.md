@@ -237,9 +237,9 @@ withdrawn for third-party content and reconstructing that look would have carrie
 reason for the withdrawal forward.
 
 Since then the author has begun regenerating characters externally, one at a time, and
-approved art is canon (see above): **14 of 25** paragraphs have been reconciled with their
+approved art is canon (see above): **15 of 25** paragraphs have been reconciled with their
 art rather than the art judged against them. Eleven were rewritten — Raska, Kade, Silt,
-Relay, Patch, Tavi, Vera, Korruk, Marek, Neris and Moro. Torr's, Qazharr's and Varkesh's were
+Relay, Patch, Tavi, Vera, Korruk, Marek, Neris, Moro and Angeru. Torr's, Qazharr's and Varkesh's were
 only added to, because their art agreed with what was already written, guardrails included. Torr's was only added to, because his art agreed with what was
 already written, guardrails included; where that happens the existing text stays and the art
 supplies what it was missing. Each
