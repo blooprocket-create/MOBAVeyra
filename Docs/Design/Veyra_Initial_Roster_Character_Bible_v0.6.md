@@ -7,6 +7,7 @@
 **Antagonist pass (2026-09-20):** Angeru, Marek, Gorraveth and Tavi rewritten as genuine antagonists. Origins, kits, roles, regions and roster count unchanged; in each case the change is the removal of an explicit moral safety rail rather than a new backstory.  
 **Ride-state rulings (2026-09-20):** Raska's Momentum basis, Last Exit expiry behavior, and Last Exit overlap resolution recorded below. The generic ride-state rules they sit on live in **Combat Bible §56**; only the Raska-specific parts are here. No character lore, role or roster count changed.  
 **Appearance pass (2026-09-20):** `**Visual language:**` paragraphs written for the fourteen Vanguards that had a surviving character sheet but no appearance description in canon (Silt, Relay, Patch, Tavi, Vera, Korruk, Torr, Marek, Neris, Moro, Qazharr, Varkesh, Sylra, Mavra), read off that existing art so the design survives regeneration. Raska, Kade and Angeru are deliberately excluded and still need a clean redesign; Vanguards 21–25 have no art yet. No kit, lore, role, region or roster count changed.  
+**Clean redesign (2026-09-20):** Raska, Kade and Angeru now carry `**Visual language:**` paragraphs, completing appearance coverage for all 25 Vanguards. These three are **new designs built from written canon alone** — role, region, kit, lore and personality — because their earlier sheets were withdrawn for third-party content and reconstructing that look would carry the reason for the withdrawal forward. Nothing was taken from the withdrawn art, and it must not be reintroduced. No kit, lore, role, region or roster count changed.  
 **Current roster target:** 25 Vanguards (and growing as new designs are added)  
 **Status:** Working character canon for the planned first-playable roster. All 25 Vanguards below belong to this design target; the number designed is not the number implemented/released.
 
@@ -68,6 +69,8 @@ The game supplies a three-lane battlefield, an encompassing jungle, Flux Wells, 
 Raska is a mechanic, fighter, courier, smuggler, and local folk hero whose motorcycle **Hound** is integral to her fighting style. She and Kade built Hound together: Raska handled the engine/chassis/Flux drive while Kade contributed stabilization, navigation, and inertial-control work.
 
 Raska should begin relatively weak and become a monstrous late-game threat through items and Health scaling rather than having an oppressive natural early-game damage profile.
+
+**Visual language:** A working mechanic's build rather than an athletic one — broad through the shoulders and forearms from hauling engine parts, dressed in heavy road gear that has plainly been crashed in. Reinforced jacket with armoured shoulders, elbows and spine, scuffed through to the padding in places and restitched by hand; gloves worn open at the palms; boots scarred down to the steel. Engine grease is worked permanently into her hands and under her nails. Her hair is cut or bound short and out of the way. A Flux coupling on her forearm brace keys her to **Hound**, and as Momentum builds, the Flux lines through her gear and Hound's drive climb from dull ember to white. **Hound is the other half of the silhouette** and must read as *built*, not bought: a heavy, ugly, salvage-welded machine with an exposed engine, mismatched panels, a brutal front mass and a glowing Flux drive — a Calder's Run garage made it out of what the March had lying around. She is a mechanic and courier who fights with a machine she built herself, **not** a biker-gang archetype, and Hound is **not** a clean factory sportbike. Neither of them should ever read as a generic brawler with a motorcycle attached as a prop.
 
 ## Passive — Redline
 
@@ -136,6 +139,8 @@ Recast: **Last Exit** launches Raska and Hound separately. Raska crashes down wi
 Kade is a former trajectory surveyor/engineer and precision shooter. He is calm, analytical, and comfortable with Raska rather than written as a melodramatic opposite.
 
 He uses a long-barreled coil/precision rifle and turns displacement and positioning into damage opportunities.
+
+**Visual language:** A surveyor first and a shooter second, and the gear should say so before the weapon does. Calm, lean, unhurried, in layered Iron March field kit — a practical work coat, reinforced knees from kneeling to take a sighting, a satchel of route charts and a chalk line at his hip. Instruments outnumber weapons on his body: a range-finder, an angle gauge, marking chalk, small surveyor's flags. His rifle is a long-barrelled coil weapon with **visible coil stages stepping down the barrel**, a heavy brace or monopod, and an oversized optic — an instrument that happens to shoot, assembled to surveying tolerances. His expression is attentive and unbothered: a man reading the ground and working out where everything will be in two seconds. He is an engineer who shoots, **not** a military sniper and **not** a brooding lone gunman; his face stays calm and open rather than grim, and the rifle must never read as a conventional firearm.
 
 ## Passive — Moving Target
 
@@ -980,6 +985,8 @@ He is not indiscriminate and he takes no pleasure in it. He is **methodical**, w
 > **"A technique does not know which house invented it."**
 
 He says it as a principle of swordsmanship. He means it as a statement about guilt.
+
+**Visual language:** He wears the equipment of both houses at once, mixed and deliberately stripped of its marks. From the **Blade House**, structured formal pieces — a fitted layered cuirass, disciplined lines, the long single-edged sword carried correctly at the hip. From the **Veil House**, soft dark wrapping — forearm and shin bindings, a hood down around his shoulders, cloth cut to move silently, and the thin throwing needles of Shadow Needle. **Every house insignia has been cut out of the cloth, leaving clean empty patches where the marks were**, and that detail is the character: he took both disciplines and belongs to neither. His face is uncovered — concealment is a tool he uses, not an identity he keeps, and he intends to be recognised. When **False Body** is active, a featureless dark double stands apart from him holding the same posture. His bearing is composed, unhurried and almost courteous. Keep him calmly and evenly lit, standing straight, looking directly at whoever he has come for — he is **not** snarling, **not** crouched, **not** posed as a threat, and **not** a masked operative. The menace is that he is perfectly calm and will explain his reasoning while he works.
 
 ## Passive — No Master
 
