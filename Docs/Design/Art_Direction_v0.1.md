@@ -39,6 +39,8 @@ Assigned by region so no two sheets collide in a draft grid. Held in `HUE` in `r
 | Shatterdeep | `#6fc3d4` | | Ancient Flux Network | `#4a8fd4` |
 | Unknown / unplaced | `#8a6bbf` | | Ancient Fluxborn system | `#5e7fd4` |
 
+**Patch's hue is under review (2026-09-20).** His entry keys off the region `Unknown` and so resolves to violet `#8a6bbf`, but his approved hero art is emphatically **crimson** — the spectral bear behind him carries the whole frame. Matching the art would put him beside Reed Provinces `#c0392b` (Angeru) and Iron March `#c4552b`, which is the collision this table exists to prevent; his is a hotter, more luminous red and could be separated, but that is a call to make deliberately. Left as violet until then, so `--prompts` and the sheet stay consistent with each other.
+
 The two Flux origins are deliberately **not** the same hue. Relay came out of the
 network itself; Torr began as a Fluxborn unit and stopped being one. They would
 otherwise collide in a draft grid, which is the single thing this table exists to
@@ -90,22 +92,28 @@ That leaves **nine generated slots per Vanguard**, not thirteen.
 | Generated | 9 | 225 | 198 |
 | Captured in engine | 4 | 100 | 88 |
 
-With the 22 heroes done, **176 generated images remain** for the Vanguards that can
-be generated at all. If that is too much at once, the tiering that keeps the sheets
-useful is: `hero` alone makes a sheet presentable; `hero` + turnaround makes it
-buildable; the detail crops are the first thing to cut.
+With all 25 heroes done, **200 generated images remain** — eight apiece. If that is
+too much at once, the tiering that keeps the sheets useful is: `hero` alone makes a
+sheet presentable; `hero` + turnaround makes it buildable; the detail crops are the
+first thing to cut.
 
-## Before generating anything — a blocker
+## Appearance coverage — resolved
 
-**Resolved on 2026-09-20 for 22 of 25 Vanguards; three remain.**
+**All 25 Vanguards carry a `**Visual language:**` paragraph.** The original blocker was that
+only 8 did, so for the other seventeen the sole record of how the character looked was the
+concept sheet itself — the same failure as text baked into an image, in a more expensive
+form: the design existed only as pixels, and nothing could validate, diff or correct it.
 
-The original blocker was that only 8 of 25 Vanguards carried an appearance paragraph in the Character Bible, so for the other seventeen the only record of how the character looked was the concept sheet itself. That is the same failure as text baked into an image, in a more expensive form: **the design exists only as pixels, and nothing can validate, diff or correct it.**
+Fourteen were written up by reading their surviving art before it was regenerated. Raska,
+Kade and Angeru were designed clean from written canon, because their sheets had been
+withdrawn for third-party content and reconstructing that look would have carried the
+reason for the withdrawal forward.
 
-**Fourteen of those seventeen have now been written up** — Silt, Relay, Patch, Tavi, Vera, Korruk, Torr, Marek, Neris, Moro, Qazharr, Varkesh, Sylra and Mavra each carry a `**Visual language:**` paragraph in the Character Bible, read off their surviving sheet before regeneration so the design survives the art it came from. Their prompts now emit a real subject description.
-
-**Three do not, by decision: Raska, Kade and Angeru.** Their sheets were withdrawn for third-party content, so reconstructing the old look would carry forward designs developed against third-party reference material — the reason the sheets were withdrawn in the first place. A clean redesign is the safer path and the honest one. Their appearance is currently recorded nowhere, and `--prompts` says so rather than inventing a look.
-
-So: **22 Vanguards are ready to generate. Raska, Kade and Angeru need a design decision first**, not a prompt.
+Since then the author has begun regenerating characters externally, one at a time, and
+**where the art and the paragraph disagree the art wins**: the paragraphs for Raska, Kade,
+Silt, Relay and Patch have been rewritten from their approved art. Each rewrite also
+replaces the guardrails, because a guardrail written for a superseded design actively
+steers the remaining eight slots wrong.
 
 Each paragraph follows the same three-part shape, and new ones should:
 
@@ -113,7 +121,13 @@ Each paragraph follows the same three-part shape, and new ones should:
 2. **A readability note** — what has to stay legible at gameplay camera distance, and which visual states the character carries.
 3. **An anti-drift guardrail**, phrased as *is X, **not** Y* — the specific wrong reading a generator or a new artist will reach for. This is the part that does the work; without it the prompt drifts toward the nearest genre cliché.
 
-Guardrails record what the design is **not**, which is the half no image can express. They are also why the paragraphs must never carry tuning values: an appearance paragraph is art direction, and gameplay numbers live in their owning data files.
+Guardrails record what the design is **not**, which is the half no image can express. They
+are also why the paragraphs must never carry tuning values: an appearance paragraph is art
+direction, and gameplay numbers live in their owning data files.
+
+Write the negation so it **begins a clause** — `split_guardrails` cuts there, and a negation
+buried mid-clause ("a war he was never built for") sends the whole sentence to the
+constraint instead of splitting it.
 
 ## Model choice is load-bearing
 
