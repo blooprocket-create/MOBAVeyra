@@ -3,7 +3,9 @@
 **Status:** Accepted
 **Date:** 2026-09-20
 
-Accepted as **Option B together with Option D**: three primitives with the ride state scoped separately, and the first playable slice built from Vanguards that need no owned entity at all.
+Accepted as **Option B together with Option D**: three primitives with the ride state scoped separately, and the primitive work sequenced behind an early prototype built from Vanguards that need no owned entity.
+
+> **Roster scope is not in question here.** All **25** Vanguards belong to the first-playable roster, per the Character Bible: *"All 25 Vanguards below belong to this design target"* and *"None is an automatically post-launch tier or mandatory role."* This ADR decides **implementation order and architecture**, not which Vanguards ship. Nothing in it removes a Vanguard from the roster.
 
 ## Context
 
@@ -41,11 +43,11 @@ What does not exist anywhere in `Docs/` is the **architectural** answer: how man
 
 - Building it per champion produces up to sixteen private implementations of ownership, replication, lifetime, death cleanup and attribution — directly contrary to `ARCHITECTURE.md` §1.3's reusable-primitive posture and to ADR-002's rule that champion abilities compose shared primitives rather than owning private copies.
 - Categories 3 and 4 are not ability features. A runtime-spawned Dense Fog volume is a **Vision system** capability; a wall that blocks both teams is a **Battleground/navigation** capability; a ride state with a replacement ability set is a **locomotion and input** capability. Deciding them inside a champion's ability class puts core rules in the wrong module.
-- Whichever way this goes, it changes which Vanguards are cheap to build first, and therefore what a first playable slice should contain.
+- Whichever way this goes, it changes which Vanguards are cheapest to implement first, and therefore the order in which the roster gets built. All 25 still ship; only the sequence is at stake.
 
 ## The question
 
-**What is the smallest set of owned-field-entity primitives Veyra will support, which module owns each, and is Raska's ride state in scope for the first playable?**
+**What is the smallest set of owned-field-entity primitives Veyra will support, which module owns each, and where does Raska's ride state sit relative to them?**
 
 Two sub-questions must be answered at the same time, because they are the ones that leak outside the ability system:
 
@@ -54,7 +56,7 @@ Two sub-questions must be answered at the same time, because they are the ones t
 
 ## Decision
 
-**Three primitives, ride state scoped separately, and the first slice built from Vanguards that need none of them.**
+**Three primitives, ride state scoped separately, and the primitive work sequenced behind an early prototype built from Vanguards that need none of them.**
 
 ### The three primitives
 
@@ -73,11 +75,15 @@ Ownership, lifetime and damage attribution factor into a small common base share
 
 This is the part that decides the ADR, and the data settles it. World volumes are the largest category by a wide margin — **18 volumes across 9 Vanguards**, more than the other three combined — and their members do not share an owner. A fog bank is a Vision construct, a wall is a navigation construct, a corrosive field is a Combat construct. A single generic type spanning all three would have to reach into every one of those systems, which is precisely the god class `CLAUDE.md` prohibits and the dependency shape `ARCHITECTURE.md` forbids. Splitting by owning system keeps each rule in the document and module that already owns it.
 
-### First playable slice
+### Implementation order
 
-Nine Vanguards place no persistent entity at all: **Kade, Patch, Vera, Qazharr, Cairn, Bryn, Oriel, Mimzi, Gorraveth**. The slice is drawn from these, so core combat is proven before any of the three primitives is built.
+**All 25 Vanguards ship in the first-playable roster.** What follows is build sequence only — which ones are implemented first while the three primitives are still being designed.
 
-The recommended four are **Cairn** (tank, control, shielding), **Qazharr** (melee fighter, sustained pressure), **Oriel** (ranged mage, poke and scaling) and **Bryn** (ranged physical carry, attack-interval floor and the Dense Fog presence rule). They cover four archetypes, need no entity work, and between them exercise shields, displacement, the Attack Speed overflow reference and the Vision Bible's fog rules.
+Nine Vanguards place no persistent entity at all: **Kade, Patch, Vera, Qazharr, Cairn, Bryn, Oriel, Mimzi, Gorraveth**. Implementing from these first means core combat — damage, shields, control, targeting, vision — is proven in engine before any primitive is built on top of it, so the primitives are designed against working code rather than against this document.
+
+A reasonable first four: **Cairn** (tank, control, shielding), **Qazharr** (melee fighter, sustained pressure), **Oriel** (ranged mage, poke and scaling) and **Bryn** (ranged physical carry, attack-interval floor and the Dense Fog presence rule). They cover four archetypes and between them exercise shields, displacement, the Attack Speed overflow reference and the Vision Bible's fog rules.
+
+The remaining sixteen follow as their primitive lands: placed marker first (five Vanguards, simplest), then combat entity (three), then world volume per owning system (nine), then the ride state. **Raska is not deferred out of the roster** — she is last in the build queue because her ride state is the only feature in the roster with no supporting canon in any bible, and that canon has to be written before she can be implemented at all.
 
 ### Consequent obligations
 
@@ -103,7 +109,7 @@ A single `OwnedFieldEntity` abstraction with composable modules (health, autonom
 
 Raska's ride state is treated as a **separate locomotion feature** with its own decision, not as an owned entity.
 
-- **For:** each primitive has one coherent job and an obvious owning module. Category 3 lands in the systems that already own those rules, which is where `ARCHITECTURE.md` wants it. Isolates the single most expensive feature so it can be scheduled or cut on its own merits.
+- **For:** each primitive has one coherent job and an obvious owning module. Category 3 lands in the systems that already own those rules, which is where `ARCHITECTURE.md` wants it. Isolates the single most expensive feature so it can be scheduled and canonised on its own merits.
 - **Against:** three primitives plus a locomotion feature is more surface than one. Some sharing (ownership, attribution) must be factored into a small common base to avoid triplication.
 
 ### Option C — Compose per champion from GAS primitives, no Veyra abstraction
@@ -111,20 +117,20 @@ Raska's ride state is treated as a **separate locomotion feature** with its own 
 Each entity is a bespoke actor assembled from Gameplay Abilities, Gameplay Effects and Ability Tasks.
 
 - **For:** no speculative abstraction; fastest path to a single working champion.
-- **Against:** the roster has thirteen of these. By the fourth, ownership and attribution logic is copy-pasted, which is the exact outcome ADR-002 and §1.3 forbid. Not recommended, recorded for completeness.
+- **Against:** the roster has sixteen of these. By the fourth, ownership and attribution logic is copy-pasted, which is the exact outcome ADR-002 and §1.3 forbid. Not recommended, recorded for completeness.
 
-### Option D — Defer, and cut entity-heavy Vanguards from the first playable
+### Option D — Sequence the primitive work behind an early prototype
 
-Take the decision later; build the first playable from Vanguards needing no owned entity — for example Oriel, Moro, Qazharr and Cairn — and revisit once core combat is proven in engine.
+Design the primitives after a prototype exists rather than before; implement first from the Vanguards needing no owned entity, and revisit once core combat is proven in engine. **This is a build-order choice, not a roster change** — all 25 Vanguards remain in the first-playable roster either way.
 
-- **For:** the honest sequencing answer. A grey-box slice would answer several of these questions empirically rather than on paper, and costs nothing that is not already needed.
-- **Against:** leaves Raska, the lead character, unbuildable and unestimated for longer. Does not remove the decision, only postpones it — and the roster keeps growing in the meantime.
+- **For:** the honest sequencing answer. A grey-box prototype would settle several of these questions empirically rather than on paper, and costs nothing that is not already needed.
+- **Against:** leaves Raska, the lead character, unimplemented and unestimated for longer. Does not remove the decision, only postpones it — and the roster keeps growing in the meantime.
 
 Options B and D are compatible and can be taken together. **This is what was accepted.**
 
 ## Consequences
 
-- The first-playable roster selection becomes a deliberate, costed choice rather than an inherited one.
+- Build order becomes a deliberate, costed sequence rather than an arbitrary one. Roster scope is unchanged: all 25 Vanguards ship in the first-playable roster.
 - Categories 3 and 4 acquire explicit owning documents. The Vision Bible gains a ruling on runtime fog volumes; the Battleground Bible gains a ruling on runtime navigation modification; ride states gain a Combat Bible section or an ADR of their own.
 - Whichever option is taken, `Docs/Design/Veyra_Combat_Bible_v0.4.md` §32 remains the semantic authority — this ADR governs structure, not rules.
 

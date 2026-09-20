@@ -6,7 +6,7 @@ This directory records major technical choices that should not be casually rever
 
 - [`ADR-001-unreal-version-policy.md`](ADR-001-unreal-version-policy.md) — Unreal Engine 5.8; deliberate version-pinned upgrades.
 - [`ADR-002-gameplay-ability-system.md`](ADR-002-gameplay-ability-system.md) — Adopt GAS behind Veyra-owned C++ integration and combat semantics.
-- [`ADR-003-owned-field-entities.md`](ADR-003-owned-field-entities.md) — Three owned-entity primitives (combat entity, placed marker, world volume owned by its ruling system); Raska's ride state scoped separately; first playable built from the nine Vanguards needing no entity.
+- [`ADR-003-owned-field-entities.md`](ADR-003-owned-field-entities.md) — Three owned-entity primitives (combat entity, placed marker, world volume owned by its ruling system); Raska's ride state scoped separately; implementation sequenced from the nine Vanguards needing no entity. Build order only — all 25 Vanguards remain in the first-playable roster.
 
 ## When to create an ADR
 

@@ -175,7 +175,7 @@ Not errors, but they prevent the set reading as one product.
 | "The Last —" repetition | Reduced from four to three. Oriel is retitled **The Waiting Light**; Patch, Vera and Relay keep theirs. |
 | Kade's Sightline | **No reveal.** Ordinary corridor vision only; never into Dense Fog, never exposing stealth, never remote acquisition. Character Bible §2. |
 | Tavi's Hide! | **Brief Invisibility**, not Camouflage. Character Bible §6. |
-| Owned field entities | **ADR-003 accepted** — three primitives, ride state scoped separately, first slice from the nine zero-entity Vanguards. |
+| Owned field entities | **ADR-003 accepted** — three primitives, ride state scoped separately, implementation sequenced from the nine zero-entity Vanguards. Build order only; all 25 remain in the first-playable roster. |
 | Machine-readable Vanguard data | **Built.** See [`Vanguards/`](Vanguards/) and its validator. |
 
 Renames apply to **current canon only**. Archived bible versions under [`Archives/`](Archives/) retain the former names and are not retro-edited; see the archive index.
