@@ -6,14 +6,19 @@ These sheets are **visual development references**, not final production assets.
 
 ## Current sheet set
 
-This GitHub directory currently contains **20 uploaded character-sheet PNGs** for the first 20 Vanguards; the **current design roster is 25**. The five newest sheets were generated during character design but **have not yet been uploaded to this GitHub folder**; the linked files below are only those actually present.
+This directory contains **25 uploaded character-sheet PNGs**, one for each Vanguard in the current **25-Vanguard design roster**. All five newest sheets—Mimzi, Celandrine, Gorraveth, Aurelisse, and Eudora Blackbridge—are included below with descriptive filenames and working image links.
 
 - [Angeru — The Housebreaker](./Angeru_The_Housebreaker_Character_Sheet.png)
+- [Aurelisse — The Open Sky](./Aurelisse_The_Open_Sky_Character_Sheet.png)
 - [Cairn — The River's Grasp](./Cairn_The_Rivers_Grasp_Character_Sheet.png)
+- [Celandrine — The Wayrunner](./Celandrine_The_Wayrunner_Character_Sheet.png)
+- [Eudora Blackbridge — The Fieldwright](./Eudora_Blackbridge_The_Fieldwright_Character_Sheet.png)
+- [Gorraveth — The Slagmaw](./Gorraveth_The_Slagmaw_Character_Sheet.png)
 - [Kade — Dead Reckoning](./Kade_Dead_Reckoning_Character_Sheet.png)
 - [Korruk — The Splinterbeast](./Korruk_The_Splinterbeast_Character_Sheet.png)
 - [Marek — The Black Accord (+ Nix)](./Marek_The_Black_Accord_Character_Sheet.png)
 - [Mavra — The Spillwright](./Mavra_The_Spillwright_Character_Sheet.png)
+- [Mimzi — The Pocket Hex](./Mimzi_The_Pocket_Hex_Character_Sheet.png)
 - [Moro — The Wildspark](./Moro_The_Wildspark_Character_Sheet_v2.png)
 - [Neris — The Tidebound](./Neris_The_Tidebound_Character_Sheet.png)
 - [Patch — The Last Hug](./Patch_The_Last_Hug_Character_Sheet.png)
@@ -29,25 +34,20 @@ This GitHub directory currently contains **20 uploaded character-sheet PNGs** fo
 - [Vera — The Last Volley](./Vera_The_Last_Volley_Character_Sheet.png)
 - [Vitra — The Last Light](./Vitra_The_Last_Light_Character_Sheet.png)
 
-## Pending character-sheet uploads (Vanguards 21–25)
-
-These are **proposed names for files not yet present in this GitHub folder**. Once uploaded, confirm the character shown in each image, rename consistently, then add a working image link to the roster above.
-
-- Mimzi — The Pocket Hex: `Mimzi_The_Pocket_Hex_Character_Sheet.png`
-- Celandrine — The Wayrunner: `Celandrine_The_Wayrunner_Character_Sheet.png`
-- Gorraveth — The Slagmaw: `Gorraveth_The_Slagmaw_Character_Sheet.png`
-- Aurelisse — The Open Sky: `Aurelisse_The_Open_Sky_Character_Sheet.png`
-- Eudora Blackbridge — The Fieldwright: `Eudora_Blackbridge_The_Fieldwright_Character_Sheet.png`
-
 ## Uploaded character-sheet filenames
 
 ```text
 Angeru_The_Housebreaker_Character_Sheet.png
+Aurelisse_The_Open_Sky_Character_Sheet.png
 Cairn_The_Rivers_Grasp_Character_Sheet.png
+Celandrine_The_Wayrunner_Character_Sheet.png
+Eudora_Blackbridge_The_Fieldwright_Character_Sheet.png
+Gorraveth_The_Slagmaw_Character_Sheet.png
 Kade_Dead_Reckoning_Character_Sheet.png
 Korruk_The_Splinterbeast_Character_Sheet.png
 Marek_The_Black_Accord_Character_Sheet.png
 Mavra_The_Spillwright_Character_Sheet.png
+Mimzi_The_Pocket_Hex_Character_Sheet.png
 Moro_The_Wildspark_Character_Sheet_v2.png
 Neris_The_Tidebound_Character_Sheet.png
 Patch_The_Last_Hug_Character_Sheet.png

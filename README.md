@@ -56,7 +56,7 @@ These documents describe working game design, not immutable implementation contr
 
 ### Concept art
 
-Character-sheet visual development belongs under [`ConceptArt/Characters/`](ConceptArt/Characters/). The repository currently contains **20 uploaded character-sheet images**; the five newest Vanguards have visual sheets from design, but those image files have **not yet been uploaded into this GitHub directory**. The [character-sheet index](ConceptArt/Characters/README.md) links to existing images and identifies pending uploads.
+Character-sheet visual development belongs under [`ConceptArt/Characters/`](ConceptArt/Characters/). All **25 currently designed Vanguards** have uploaded character-sheet images under [`ConceptArt/Characters/`](ConceptArt/Characters/). The [character-sheet index](ConceptArt/Characters/README.md) links to every sheet and lists its descriptive filename.
 
 ## Status
 
