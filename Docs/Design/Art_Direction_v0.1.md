@@ -67,6 +67,7 @@ Two exist:
 |---|---|---|---|
 | Patch | `#8a6bbf` (Unknown) | `#ff2d55` | His art is crimson — the spectral bear carries the whole frame |
 | Korruk | `#6fc3d4` (Shatterdeep) | `#ff1a1a` | Cyan appears nowhere in his design, and his own canon already names crimson his default spine colour |
+| Marek | `#2e8b9e` (Drowned Cantons) | `#9b4dd6` | Violet end to end in the art, and his canon already names violet eyes, a violet coat and violet behind Nix's mask |
 
 Korruk is the clearer of the two. His appearance paragraph said *"crimson is the canon
 default"* before any art existed, so the region map was already contradicting the bible
@@ -83,6 +84,12 @@ exact failure this table exists to prevent. It puts Angeru in the same apparent 
 Raska, Kade, Mavra and Eudora in a draft grid. Neither hue is moved here: five Vanguards'
 sheets change colour whichever one gives way, which is a deliberate call rather than a
 cleanup to fold into an art commit.
+
+A **second** pair sits just under the line: `Unknown / unplaced` `#8a6bbf` and Ancient
+Fluxborn `#5e7fd4` measure **dE 18.8**. Nobody collides on it today — region `Unknown`
+holds only Patch, who has an override — but it is why Marek took a separated violet
+rather than the vacant `#8a6bbf`: squatting on a region hue would have made the next
+unplaced Vanguard a collision instead of an assignment.
 
 The two Flux origins are deliberately **not** the same hue. Relay came out of the
 network itself; Torr began as a Fluxborn unit and stopped being one. They would
@@ -160,9 +167,9 @@ withdrawn for third-party content and reconstructing that look would have carrie
 reason for the withdrawal forward.
 
 Since then the author has begun regenerating characters externally, one at a time, and
-approved art is canon (see above): **9 of 25** paragraphs have been reconciled with their
-art rather than the art judged against them. Eight were rewritten — Raska, Kade, Silt, Relay,
-Patch, Tavi, Vera and Korruk. Torr's was only added to, because his art agreed with what was
+approved art is canon (see above): **10 of 25** paragraphs have been reconciled with their
+art rather than the art judged against them. Nine were rewritten — Raska, Kade, Silt, Relay,
+Patch, Tavi, Vera, Korruk and Marek. Torr's was only added to, because his art agreed with what was
 already written, guardrails included; where that happens the existing text stays and the art
 supplies what it was missing. Each
 rewrite replaces the guardrails as well as the description. The machine pass each one

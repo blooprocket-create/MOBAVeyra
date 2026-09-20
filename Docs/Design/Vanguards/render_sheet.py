@@ -77,6 +77,12 @@ HUE_BY_ID = {
     # usable red left in a crowded band: measured CIE76 distance 29 from Patch
     # #ff2d55 and 34 from Reed Provinces #c0392b.
     "korruk": "#ff1a1a",
+    # Marek keys off Drowned Cantons (teal, hue 190). His art is violet end to end and
+    # his own canon already says violet eyes, a violet coat and violet behind Nix's mask.
+    # The palette's violet #8a6bbf belongs to region "Unknown", so he takes a separated
+    # one instead of squatting on it: measured CIE76 distance 32 from #8a6bbf and 45 from
+    # Fluxborn #5e7fd4.
+    "marek": "#9b4dd6",
 }
 
 

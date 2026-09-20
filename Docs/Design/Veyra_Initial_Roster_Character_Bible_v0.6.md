@@ -654,7 +654,7 @@ His affection for Nix is genuine. It has never once extended to anyone standing 
 
 Nix is a non-speaking skull-masked shadow creature with its own Health and battlefield presence. Nix can be killed/banished and later reform.
 
-**Visual language:** Marek is a lean young man with dark curly hair and violet eyes, in a tattered black-and-violet coat, with green-black witchfire gathering in his hands. **Nix** is a quadrupedal shadow creature wearing a bone-white skull mask with violet eyes burning behind it, and has a larger horned true form it assumes when fully manifested. Marek's expression is delighted, curious and entirely unbothered — **not** snarling, not menacing, not posed as a villain. Whatever stands behind or beside him should read as far worse than he does; his calm interest in it is what makes the pair frightening.
+**Visual language:** Marek is a lean young man with dark curly hair and violet eyes, in a tattered black-and-violet coat hung with buckled straps and loops of heavy iron chain. **Violet-black witchfire** gathers in his hands and runs along the chain links, and more chain lies coiled over the ground around him — the pact made physical, and the same chain his kit throws, swaps along and leashes Nix with. **Nix** is a quadrupedal shadow creature wearing a bone-white skull mask with violet eyes burning behind it, its body smoke rather than flesh, and it has a larger horned true form it assumes when fully manifested. The bone mask is the only pale thing either of them carries, so it is what makes Nix readable at a glance. Behind them the Drowned Cantons: a flooded harbour at night, ships at anchor, bridges over black water. Marek's expression is delighted, curious and entirely unbothered — **not** snarling, not menacing, not posed as a villain. Whatever stands behind or beside him should read as far worse than he does; his calm interest in it is what makes the pair frightening.
 
 ## Passive — Bound Together
 
@@ -664,7 +664,7 @@ Per-target cooldown.
 
 ## Q — Witchfire
 
-Fire a black-green magical bolt.
+Fire a violet-black magical bolt.
 
 If the target was recently damaged by Nix, trigger Accord and an enhanced/explosive interaction.
 
