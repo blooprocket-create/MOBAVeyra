@@ -6,6 +6,7 @@
 **Kit consistency clarification (2026-09-20):** Cairn's passive/R shield attribution and displacement mitigation; Bryn's single empowered Breach explosion and Attack Speed overflow interaction; Oriel's valid-target-only homing fragment. No character lore, role or roster count changed.  
 **Antagonist pass (2026-09-20):** Angeru, Marek, Gorraveth and Tavi rewritten as genuine antagonists. Origins, kits, roles, regions and roster count unchanged; in each case the change is the removal of an explicit moral safety rail rather than a new backstory.  
 **Ride-state rulings (2026-09-20):** Raska's Momentum basis, Last Exit expiry behavior, and Last Exit overlap resolution recorded below. The generic ride-state rules they sit on live in **Combat Bible §56**; only the Raska-specific parts are here. No character lore, role or roster count changed.  
+**Appearance pass (2026-09-20):** `**Visual language:**` paragraphs written for the fourteen Vanguards that had a surviving character sheet but no appearance description in canon (Silt, Relay, Patch, Tavi, Vera, Korruk, Torr, Marek, Neris, Moro, Qazharr, Varkesh, Sylra, Mavra), read off that existing art so the design survives regeneration. Raska, Kade and Angeru are deliberately excluded and still need a clean redesign; Vanguards 21–25 have no art yet. No kit, lore, role, region or roster count changed.  
 **Current roster target:** 25 Vanguards (and growing as new designs are added)  
 **Status:** Working character canon for the planned first-playable roster. All 25 Vanguards below belong to this design target; the number designed is not the number implemented/released.
 
@@ -187,6 +188,8 @@ Allied displacement of tracked targets can refresh or amplify his opportunities.
 
 Silt formed from an ancient buried river system containing water, sand, clay, ash, ruins, remains, and accumulated memory. He is not a Fluxborn construct.
 
+**Visual language:** A roughly 3.5m mass of wet river sediment, clay, ash and embedded riverbed debris, with long clawed arms that reach the ground and a heavy, low-slung stance. A flaking ochre crust covers a darker saturated interior, and sand streams continuously off him wherever he moves. **He has no face** — no eyes, no mouth, no skull shape; everything he expresses has to read from posture, arm position and the flow of falling material. He carries two visible states: **depleted** after spending sediment (thinner limbs, cracked-open crust, exposed internal structure) and **repaired** after Reclaim (bulked out, crust sealed, material flowing again). He is a living riverbed, **not** a mud golem with a skull for a head, and **not** a variant of Cairn's dry stone.
+
 ## Passive — Reclaim
 
 Damaging abilities coat enemy Vanguards in **Sandy**.
@@ -246,6 +249,8 @@ Buried during the First Fracture, Relay was eventually uncovered and reactivated
 
 Relay is intelligent, literal, and nurturing rather than a dumb comedy robot.
 
+**Visual language:** A roughly 3.8m machine of rounded bone-white plating over exposed dark mechanism, lit from within by a warm amber core. The stencilled unit marking **R-01** is still legible on his chassis. Moss has taken hold on his shoulders and joints from the time he spent buried, and a faded red expedition banner — left by whoever uncovered him — is still tied to him; he has not removed it. He moves heavily and without hurry, top-heavy and deliberate, and his plating is smooth and unarmoured. He is a maintenance and power machine that survived a war it was never built for, **not** a war robot: no weapon mounts, no military silhouette, and no menace in his design.
+
 ## Passive — Charger
 
 Nearby allied or enemy Fluxborn deaths generate **Charge**.
@@ -300,6 +305,8 @@ Patch was once an ordinary child's toy near a disaster involving unstable/corrup
 His first known word: **"Safe?"**
 
 The thing inside Patch remains mysterious. Patch is not written as evil; his supernatural violence is driven by an intensely protective attachment.
+
+**Visual language:** A stitched fabric teddy bear roughly 0.7m tall beside a ~1.8m human, with felted worn fur, exposed seams, mismatched button eyes sewn slightly crooked, a red child's stitch across the chest, a red scarf, and a small backpack with a working lantern. Everything about his construction should read as a loved, repaired, handmade object. **His own face never becomes frightening** — no claws, no fangs, no glowing eyes, no snarl. The horror is always the enormous spectral bear manifesting behind and around him, and the contrast between the two is the entire design. He is a toy that is still a toy, **not** a monster shaped like a toy.
 
 ## Passive — Haunted Attachment
 
@@ -375,6 +382,8 @@ Surrender is not a move. It cannot be, because the game does not have an ending 
 
 She has never understood why some people do not get up afterwards. She is not indifferent to it; it upsets her, in the way a rule change upsets a child. Then she finds someone else, because the alternative is that the game is over, and the game has never been over.
 
+**Visual language:** A roughly 1.55m figure with cream-pink twin tails, pink cross-shaped pupils, and rabbit motifs worked through her outfit — a plush bunny backpack, and a pink ball weapon with a bunny face on it. Her palette is bright, saturated and storybook, and it stays that way against whatever ruin she is standing in. Her default expression is genuine, warm delight. **Nothing in the lighting, framing or expression signals danger — that is the point.** Do not shadow her face, sharpen her teeth, redden her eyes, or pose her as a threat; she is not sinister, she is having a wonderful time. The horror belongs entirely to what is happening around her.
+
 ## Passive — You're It!
 
 Abilities mark a target as **It**.
@@ -435,6 +444,8 @@ Where Tavi embodies repeated childhood play, Vera embodies Merrin's final war: f
 She understands death clearly and is emotionally detached rather than naive.
 
 Her weapon identity is an ancient repeating warbow/arc-crossbow supported by spectral firing ranks.
+
+**Visual language:** A disciplined military figure with white-silver hair tied back with a red ribbon, a dark layered Merrin officer's coat with red lining, and an ornate repeating arc-crossbow carried like a service weapon rather than a hunting bow. Her Echo nature shows at her edges, which thin and lose colour rather than staying solid. Behind and beside her stand **spectral blue Merrin soldiers in firing ranks** — they are part of her silhouette, not background decoration, and she reads as their commander. She is the memory of a war's last organised volley, **not** a lone ranger, hunter or duellist.
 
 ## Passive — Cadence
 
@@ -498,6 +509,8 @@ He is **not** an Echo, Flux mutation, construct, hidden god, or secretly humanoi
 
 Hunters/miners began harvesting his species' mineralized spines. Korruk tracks stolen material and destroys the industrial storage surrounding it.
 
+**Visual language:** A low six-legged predator roughly 1.6m long, built close to the ground and clearly load-bearing on all six limbs. Pale bone-coloured mineral plating armours his back and flanks; **crimson crystalline spines** run along his spine and are visibly hollow — they read as something that can be fired and left in a target. His anatomy must work as a real animal's: no spider silhouette, no upright stance, no humanoid proportions. He is native Shatterdeep fauna and nothing else — **not** an Echo, a Flux mutation, a construct, or a hidden intelligence in a beast's body. Other spine colours are cosmetic variants of the same animal; crimson is the canon default.
+
 ## Passive — Embedded
 
 Damaging abilities embed **Splinters** in enemy Vanguards.
@@ -549,6 +562,8 @@ A catastrophic Flux Well eruption flooded his core. His body expanded, routines 
 When later destroyed, his Flux did not return to the network. It reconstructed him instead.
 
 Torr has a curious, newborn intelligence rather than a generic robot-revolution personality.
+
+**Visual language:** A mass of rune-carved stone plates held in orbit around a blue-violet crystalline core by visible blue Flux light. He has **no fixed skeleton**: the plates separate, rotate and reassemble as he moves and strikes, and the gaps between them are the design, not a flaw in it. Moss and mineral staining mark the plates that spent the longest in the ground. However far his fragments scatter, they always return to him. He is held together by Flux, **not** welded or bolted — never draw him as a solid statue, a suit of armour, or a seamless rock body.
 
 ## Passive — Unreturned
 
@@ -630,6 +645,8 @@ His affection for Nix is genuine. It has never once extended to anyone standing 
 
 Nix is a non-speaking skull-masked shadow creature with its own Health and battlefield presence. Nix can be killed/banished and later reform.
 
+**Visual language:** Marek is a lean young man with dark curly hair and violet eyes, in a tattered black-and-violet coat, with green-black witchfire gathering in his hands. **Nix** is a quadrupedal shadow creature wearing a bone-white skull mask with violet eyes burning behind it, and has a larger horned true form it assumes when fully manifested. Marek's expression is delighted, curious and entirely unbothered — **not** snarling, not menacing, not posed as a villain. Whatever stands behind or beside him should read as far worse than he does; his calm interest in it is what makes the pair frightening.
+
 ## Passive — Bound Together
 
 If Marek and Nix both damage the same enemy within a short window, trigger **Accord** for bonus magic damage.
@@ -686,6 +703,8 @@ If Nix is killed, the ultimate ends.
 Neris was a rescue rider who drowned while saving a ship and returned changed, riding a living storm surge.
 
 Her kit shifts between two sea states.
+
+**Visual language:** A rescue rider with pale blue-white hair, a dark wide-brimmed hat, and a chained coat hung with working gear including a lit lantern. **She rides a living wave rather than standing on the ground**, and the water beneath her is always in motion. Her two sea states are visually distinct: **Calm** is a low steady swell, soft light and an open silhouette; **Storm** raises the water under her, lifts her higher, darkens the palette and turns the surge aggressive. She is a rescuer who drowned and came back still working, **not** a sea witch or a drowned ghost — the water is her mount and her tool, **not** a monster she commands.
 
 ## Passive — Sea State
 
@@ -748,6 +767,8 @@ The cast locks the current Sea State and leaves a corresponding trail:
 
 Moro is genuinely animal, not a speaking humanoid hidden inside a beast design.
 
+**Visual language:** A large quadruped jungle predator with a dark bark-and-fur body, branching antlers grown through with living wood, and gold-green **Wildlight** markings that run along his limbs and flanks and brighten visibly as he channels. His eyes are a steady yellow-gold. He is genuinely an animal: no armour, no saddle, no harness, no handler, no speaking humanoid hidden inside the beast design. He is intelligent and territorial, and that has to read through posture, attention and stillness rather than through anything worn or carried.
+
 ## Passive — Wild Dominion
 
 While in **jungle terrain**, Moro gains increased percentage damage and Attack Speed.
@@ -806,6 +827,8 @@ He is foreign-born but locally rooted by choice.
 
 He carries a large foreign boarding blade / oversized naval cleaver.
 
+**Visual language:** A big, broad, weathered sailor with long dark curly hair, a full beard, and heavy tattoo work across his arms and chest, wearing a layered salvaged coat open over the chest and hung with everyday harbour hardware — rope, rings, earrings, buckles, working knots. He carries an oversized single-edged **boarding blade** over one shoulder. His default expression is a laugh. He should read as a harbour local who used to be a pirate, **not** as a pirate captain in costume: no tricorn, no pirate-flag iconography, no coat of office, nothing theatrical.
+
 ## Passive — Sea Dog
 
 Consecutive basic attacks against the same enemy Vanguard progressively increase Attack Speed.
@@ -861,6 +884,8 @@ Varkesh is not a transformed human, a construct, or a Fluxborn.
 Forgehearts form through centuries of repeated molten alloy, heat, pressure, smelting, and forging until elemental consciousness emerges.
 
 Varkesh is old and respected and has worked with Iron March engineers for decades.
+
+**Visual language:** A roughly 3m figure — close to twice a person's height — built from dark interlocking iron plates over a molten interior, with a bright orange-white core spiral set into the chest. The seams between plates glow, and movement sheds sparks and molten fragments. A heavy cloth drape hangs at the waist. **The metal is his body, not armour worn over something else**: never draw a person, pilot, or face inside the shell. He is a Forgeheart — an elemental consciousness that formed in the Ember Basin crucibles — **not** a golem, a construct, a Fluxborn, or a transformed human.
 
 ## Passive — Stress Temper
 
@@ -1129,6 +1154,8 @@ The renewed activation of ancient Flux infrastructure has recently begun produci
 
 She wants to know whether the ancient network merely learned to reproduce a natural phenomenon the Cantons understand well — or whether the Cantons have been living beside remnants of something older than they realize.
 
+**Visual language:** A hooded harbour pilot in layered grey-blue storm cloth, with dark markings across the eyes and a heavy chained coat hung with working navigational gear — tuned bells, sea-glass, keys, small weights — and a large lit lantern carried at the hip. Her silhouette is deliberately soft-edged and wrapped, difficult to resolve cleanly at distance; that ambiguity is the character, not a readability failure, and her lantern is what fixes her position for allies. She is a pilot and a guide, **not** a mystic or a cultist: every object on her is functional wayfinding equipment, **not** occult ornament.
+
 ## Passive — Follow the Bell
 
 When Sylra enters Dense Fog, she leaves behind a short-lived **Mist Trail** that is readable to her allies.
@@ -1303,6 +1330,8 @@ It is the largest functioning hazardous-material site she has ever been allowed 
 Her reason for attuning was straightforward:
 
 > **Someone should probably know what the hell is leaking.**
+
+**Visual language:** An Iron March salvage chemist with dark red-brown hair pushed back under a red band, goggles worn at the throat, and a heavy layered coat with red lining marked with a hazard sigil. Belts of canisters, sealed bottles and reagent hardware cross her body, and she carries a large pressurised dispenser rig that glows orange at its seams. Her hands and coat carry grime, burn marks and chemical staining from actual work. Her equipment is **industrial**, not arcane — labelled containers, valves, straps, gauges and pressure fittings, **not** a witch's potion belt — and she should read as someone who fixes hazardous sites for a living, **not** as an alchemist or a poisoner.
 
 ## Passive — Hazard Exposure
 

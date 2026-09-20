@@ -58,13 +58,20 @@ Use a text-to-image model for the hero and a reference-driven model for everythi
 
 ## Before generating anything — a blocker
 
-**Only 8 of 25 Vanguards have an appearance paragraph in canon.** Cairn, Bryn, Oriel, Mimzi, Celandrine, Gorraveth, Aurelisse and Eudora carry a `Visual` or `Visual language` field in the Character Bible. The other **seventeen do not**, and for them the prompt says so rather than inventing a look.
+**Resolved on 2026-09-20 for 22 of 25 Vanguards; three remain.**
 
-For those seventeen, the only record of how the character looks is the concept sheet itself. That is the same failure as text baked into an image, in a more expensive form: **the design exists only as pixels, and nothing can validate, diff or correct it.**
+The original blocker was that only 8 of 25 Vanguards carried an appearance paragraph in the Character Bible, so for the other seventeen the only record of how the character looked was the concept sheet itself. That is the same failure as text baked into an image, in a more expensive form: **the design exists only as pixels, and nothing can validate, diff or correct it.**
 
-Three of them — **Raska, Kade and Angeru** — have no surviving sheet either, since those were withdrawn for third-party content. Their appearance is currently recorded nowhere at all.
+**Fourteen of those seventeen have now been written up** — Silt, Relay, Patch, Tavi, Vera, Korruk, Torr, Marek, Neris, Moro, Qazharr, Varkesh, Sylra and Mavra each carry a `**Visual language:**` paragraph in the Character Bible, read off their surviving sheet before regeneration so the design survives the art it came from. Their prompts now emit a real subject description.
 
-Two consequences worth deciding deliberately:
+**Three do not, by decision: Raska, Kade and Angeru.** Their sheets were withdrawn for third-party content, so reconstructing the old look would carry forward designs developed against third-party reference material — the reason the sheets were withdrawn in the first place. A clean redesign is the safer path and the honest one. Their appearance is currently recorded nowhere, and `--prompts` says so rather than inventing a look.
 
-1. **For the fourteen with surviving sheets**, write the appearance paragraph into the Character Bible *before* regenerating, reading it off the existing art. That captures the design into text while the art still exists to read it from.
-2. **For Raska, Kade and Angeru**, reconstructing the old look would carry forward designs developed against third-party reference material — the reason those sheets were withdrawn. A clean redesign is the safer path, and it is also the honest one.
+So: **22 Vanguards are ready to generate. Raska, Kade and Angeru need a design decision first**, not a prompt.
+
+Each paragraph follows the same three-part shape, and new ones should:
+
+1. **Physical description** — build, materials, palette, silhouette-defining gear, and the scale if it is unusual.
+2. **A readability note** — what has to stay legible at gameplay camera distance, and which visual states the character carries.
+3. **An anti-drift guardrail**, phrased as *is X, **not** Y* — the specific wrong reading a generator or a new artist will reach for. This is the part that does the work; without it the prompt drifts toward the nearest genre cliché.
+
+Guardrails record what the design is **not**, which is the half no image can express. They are also why the paragraphs must never carry tuning values: an appearance paragraph is art direction, and gameplay numbers live in their owning data files.
