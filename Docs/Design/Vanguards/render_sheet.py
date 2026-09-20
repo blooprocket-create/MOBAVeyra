@@ -67,7 +67,7 @@ HUE = {
 # renders a labelled placeholder when it does not, so the sheet doubles as the
 # art work order. `--prompts` emits a ready-to-run prompt per slot.
 SLOTS = [
-    ("hero",    "Hero illustration", "3:4", "hero",
+    ("hero",    "Hero illustration", "16:9", "hero",
      "Full-figure hero illustration. The character occupies the frame, lit by the signature "
      "key light with an opposing rim. Region environment present but held well behind them and "
      "never competing with the silhouette."),
@@ -241,9 +241,10 @@ h1 {{ font-size:58px; letter-spacing:.5px; line-height:1; }}
 .slot-label {{ font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:#79808a; }}
 .slot-file {{ font-size:10px; color:#41464d; font-family:ui-monospace,Menlo,monospace; }}
 .slot.filled {{ border:1px solid var(--line); background:#0f1114; overflow:hidden; padding:0; }}
-.slot.filled img {{ width:100%; height:100%; object-fit:cover; display:block; }}
+.slot.filled img {{ width:100%; height:100%; object-fit:contain; display:block;
+                    background:#0b0c0e; }}
 .slot-note {{ font-size:11px; color:#565c65; max-width:88%; line-height:1.4; }}
-.hero {{ aspect-ratio:3/4; }}
+.hero {{ aspect-ratio:16/9; }}
 .turn {{ display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }}
 .turn .slot {{ aspect-ratio:1/2; }}
 .views, .details {{ display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }}
@@ -359,12 +360,20 @@ HOUSE = (
 # of the prompt, and the guardrail sentences are collected into one short trailing
 # constraint. A single delimited constraint is what the guides tolerate; a prompt that is
 # one-fifth negation scattered throughout is what they warn about.
+# Detecting negation by listing the words that follow it does not work: the list is
+# never finished, and a miss is silent — the sentence stays in the affirmative body
+# and reaches the model in exactly the form the split exists to prevent. An earlier
+# curated version leaked "not background decoration" (Vera), "does not confer"
+# (Mimzi) and "not another miniature mage" (Celandrine) for precisely that reason.
+# So match the negation itself and let the object of it be anything.
 GUARDRAIL = re.compile(
-    r"\b(?:is|are|reads?|stays?|becomes?|carries|has|have)\s+not\b"
-    r"|\bnot\b\s+(?:a|an|the|as|from|by|in|drawn|written|posed|shadowed)\b"
-    r"|\bnever\b|\bno\s+(?:claws|fangs|glowing|snarl|armour|armor|saddle|harness|handler"
-    r"|tricorn|pirate|weapon|coat\s+of|spider|upright|humanoid|occult|face|pilot)\b"
-    r"|\bdo\s+not\b|\bavoid\b",
+    r"\bnot\b"          # covers is/are/does not, and bare "not X" appositives
+    r"|\bnever\b"
+    r"|\bn't\b"
+    r"|\bno\s+\w"       # "no claws", "no skin and no flesh"
+    r"|\bnothing\b"
+    r"|\bavoid\b"
+    r"|\bwithout\b",
     re.I,
 )
 
@@ -376,16 +385,51 @@ NO_FURNITURE = (
 )
 
 
+
+
+def _tidy(fragment: str) -> str:
+    """Make a rejoined run of clauses read as a sentence again."""
+    s = re.sub(r"^(?:and|but|or)\s+", "", fragment.strip(), flags=re.I)
+    s = re.sub(r"[\s,;:—-]+$", "", s)
+    if not s:
+        return ""
+    return s[0].upper() + s[1:] + ("" if s[-1] in ".!?" else ".")
+
+
 def split_guardrails(look: str) -> tuple[str, str]:
     """Separate an appearance paragraph into affirmative description and guardrails.
 
-    The bible writes each paragraph as description first, guardrail last, so this is a
-    sentence-level partition rather than an attempt to rewrite anyone's prose.
+    Partitioning whole sentences loses too much: the bible often states a
+    character's defining feature and the guardrail against misreading it in one
+    breath, so routing the sentence by its negation took Vera's spectral firing
+    ranks, Torr's floating gaps and Relay's banner out of the description
+    entirely. Clauses are the right unit — the affirmative half stays in the
+    subject, the negative half moves to the constraint, and neither is lost.
     """
-    parts = re.split(r"(?<=[.!?])\s+", look.strip())
-    keep = [s for s in parts if not GUARDRAIL.search(s)]
-    rails = [s for s in parts if GUARDRAIL.search(s)]
-    return " ".join(keep), " ".join(rails)
+    body: list[str] = []
+    rails: list[str] = []
+    for sentence in re.split(r"(?<=[.!?])\s+", look.strip()):
+        if not sentence:
+            continue
+        hit = GUARDRAIL.search(sentence)
+        if not hit:
+            body.append(sentence)
+            continue
+        # A negation governs everything after it, across commas: "not welded or
+        # bolted — never draw him as a solid statue, a suit of armour, or a
+        # seamless rock body" is one constraint, not a constraint followed by two
+        # descriptions. Routing those trailing items separately asserted exactly
+        # what the guardrail forbids, so the cut is made AT the first negation and
+        # the whole tail goes with it.
+        head, tail = sentence[:hit.start()], sentence[hit.start():]
+        # A head too short to stand alone ("His own face" before "never becomes
+        # frightening") is part of the constraint, not a description of its own.
+        if len(head.split()) >= 5:
+            body.append(_tidy(head))
+            rails.append(_tidy(tail))
+        else:
+            rails.append(sentence)
+    return " ".join(filter(None, body)), " ".join(filter(None, rails))
 
 # Art direction for the four antagonists. The note is the point: none of them is
 # cruel, and lighting them like a villain would misread the writing.

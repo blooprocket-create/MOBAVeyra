@@ -36,7 +36,13 @@ Assigned by region so no two sheets collide in a draft grid. Held in `HUE` in `r
 | Drowned Cantons | `#2e8b9e` | | Bramblehollow | `#7fa650` |
 | Merrin | `#c8536f` | | Wildwood | `#a8c64a` |
 | Buried Riverlands | `#c19a4b` | | Reed Provinces | `#c0392b` |
-| Shatterdeep | `#6fc3d4` | | Flux Network / Fluxborn | `#4a8fd4` |
+| Shatterdeep | `#6fc3d4` | | Ancient Flux Network | `#4a8fd4` |
+| Unknown / unplaced | `#8a6bbf` | | Ancient Fluxborn system | `#5e7fd4` |
+
+The two Flux origins are deliberately **not** the same hue. Relay came out of the
+network itself; Torr began as a Fluxborn unit and stopped being one. They would
+otherwise collide in a draft grid, which is the single thing this table exists to
+prevent, so Fluxborn sits one step violet of the network blue.
 
 ## Workflow
 
@@ -53,6 +59,20 @@ Use a text-to-image model for the hero and a reference-driven model for everythi
 | `scale` | 1:2 | Flat silhouette beside a 1.8 m human silhouette |
 | `idle` `move` `cast` `ult` | 1:1 | Three-quarter top-down gameplay camera, silhouette readability first |
 | `portrait` `weapon` `material` `signature` | 1:1 | Close crops |
+
+### The hero slot is 16:9, not portrait
+
+It was specified 3:4 and the generator produced 16:9, because **aspect ratio does
+not come from the prompt** (see below). The slot has been changed to match the art
+rather than the art regenerated to match the slot: a landscape hero banner is what
+the original concept sheets used, 3:4 was an arbitrary choice, and regenerating 66
+images to satisfy it would cost more credits than a month's plan holds.
+
+The mismatch was not visible while it existed, which is the part worth recording.
+`.slot.filled img` used `object-fit: cover`, so a 16:9 image in a 3:4 slot rendered
+at **42% of its width** with the rest silently cropped — Bryn lost most of her
+cannon. Slots now use `object-fit: contain`, so any future mismatch shows up as
+letterboxing instead of as a missing weapon.
 
 **That is 325 images for the full roster.** If that is too much, the tiering that keeps the sheets useful is: `hero` alone makes a sheet presentable; `hero` + turnaround makes it buildable; the in-game views matter most for characters whose readability is in question; the detail crops are the first thing to cut.
 

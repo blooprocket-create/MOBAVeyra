@@ -31,9 +31,10 @@ h1 { font-size:58px; letter-spacing:.5px; line-height:1; }
 .slot-label { font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:#79808a; }
 .slot-file { font-size:10px; color:#41464d; font-family:ui-monospace,Menlo,monospace; }
 .slot.filled { border:1px solid var(--line); background:#0f1114; overflow:hidden; padding:0; }
-.slot.filled img { width:100%; height:100%; object-fit:cover; display:block; }
+.slot.filled img { width:100%; height:100%; object-fit:contain; display:block;
+                    background:#0b0c0e; }
 .slot-note { font-size:11px; color:#565c65; max-width:88%; line-height:1.4; }
-.hero { aspect-ratio:3/4; }
+.hero { aspect-ratio:16/9; }
 .turn { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
 .turn .slot { aspect-ratio:1/2; }
 .views, .details { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
