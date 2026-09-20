@@ -62,7 +62,7 @@ Current Vanguard artwork lives under [`ConceptArt/Vanguards/`](ConceptArt/Vangua
 
 Sheets are **generated from canon** rather than drawn with their text baked in: [`Docs/Design/Vanguards/render_sheet.py`](Docs/Design/Vanguards/render_sheet.py) composes each sheet's text at render time (`--all`), fills each image slot from whatever artwork is present, and reports which slots are still empty (`--missing`). It never generates artwork — the hero images are authored separately and dropped in. The house style and the reasoning behind it are in [`Docs/Design/Art_Direction_v0.1.md`](Docs/Design/Art_Direction_v0.1.md).
 
-The earlier baked-text sheets are retained as historical reference under [`ConceptArt/Characters/`](ConceptArt/Characters/) and are **no longer current**; see that directory's README before using any of them.
+The earlier baked-text sheets are retained as historical reference under [`ConceptArt/Archives/Characters/`](ConceptArt/Archives/Characters/) and are **no longer current**; see that directory's README before using any of them. They were moved out of `ConceptArt/` proper so that the path itself says which artwork is current — a README could not do that job while the two directories sat side by side.
 
 ## Status
 

@@ -8,7 +8,7 @@ reconciled against it.
 **This directory holds artwork only.** The rendered sheets that use it live in [`Docs/Design/Vanguards/sheets/`](../../Docs/Design/Vanguards/sheets/), all 25 committed. No text is baked into these images. Sheets are composed from
 canon at render time by [`render_sheet.py`](../../Docs/Design/Vanguards/render_sheet.py), so a
 rename or a rewrite in the bible reaches the sheet on the next render and artwork can never carry a
-stale ability name or a tuning value. The superseded sheets in [`../Characters/`](../Characters/)
+stale ability name or a tuning value. The superseded sheets in [`../Archives/Characters/`](../Archives/Characters/)
 are what happens without that separation.
 
 ## File names

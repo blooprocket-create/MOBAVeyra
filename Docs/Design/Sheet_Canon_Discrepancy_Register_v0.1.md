@@ -2,7 +2,7 @@
 
 **Version:** 0.1
 **Date:** 2026-09-20
-**Scope:** Every known conflict between a character sheet in [`ConceptArt/Characters/`](../../ConceptArt/Characters/) and the current design canon in `Docs/Design/`.
+**Scope:** Every known conflict between a character sheet in [`ConceptArt/Archives/Characters/`](../../ConceptArt/Archives/Characters/) and the current design canon in `Docs/Design/`. Those sheets were at `ConceptArt/Characters/` when this register was written and were moved into the archive on 2026-09-21; the filenames are unchanged.
 
 ## Why this file exists
 
