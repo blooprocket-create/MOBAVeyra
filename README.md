@@ -21,6 +21,7 @@ The project is currently in pre-production. The repository is being established 
 - [`AGENTS.md`](AGENTS.md) - mandatory instructions for Codex and other coding agents.
 - [`CLAUDE.md`](CLAUDE.md) - Claude Code entrypoint and repository working rules.
 - [`Docs/ADR/`](Docs/ADR/) - Architecture Decision Records for major technical choices.
+- [`Docs/Pull_Request_Record_v0.1.md`](Docs/Pull_Request_Record_v0.1.md) - the review findings from every pull request, kept in the repository rather than only on the forge.
 
 ### Design bibles
 
