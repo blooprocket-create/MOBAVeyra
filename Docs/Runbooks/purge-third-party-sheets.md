@@ -29,11 +29,15 @@ Execution on 2026-09-20 established exactly which refs survive, and the pattern 
 | `refs/heads/<feature branch>` | **clean** |
 | `refs/pull/2/head` | **clean** — an *open* PR's head ref follows its branch when that branch is force-updated |
 | `refs/pull/1/head` | **still holds the content** — a *merged* PR's head ref is frozen at its original pre-merge commit and never moves again |
-| `refs/pull/2/merge` | **still holds the content** — GitHub's computed merge ref is stale and is not recomputed by a force-push |
+| `refs/pull/2/merge` | held the content immediately after the push, then **cleared when PR #2 merged** |
 
-So the survivors are the refs of **already-merged PRs**, plus any stale `*/merge` ref. Both are exactly the ones a client cannot touch.
+Re-checked after PR #2 merged: **only `refs/pull/1/head` still holds the content.** A stale `*/merge` ref is recomputed or dropped when its pull request merges or closes, so it is self-clearing — the force-push does not fix it, but resolving the PR does.
 
-**An ordinary clone is clean.** `git clone` does not fetch `refs/pull/*`, so a normal clone gets 139 commits, 22 sheets, and none of the stripped blobs. The residual exposure is reachable only by deliberately fetching the PR refs or by requesting a known commit SHA on github.com — real, but narrower than "anyone who clones gets them".
+That leaves one durable survivor class: **the head ref of an already-merged pull request**, frozen at its original pre-merge commit and never updated again. That is the only one a client genuinely cannot reach.
+
+**Practical consequence:** if open pull requests exist at rewrite time, merging or closing them afterwards removes their `*/merge` refs from the exposure without any further action. Re-verify before filing step 6 rather than quoting this table, because the answer changes as pull requests resolve.
+
+**An ordinary clone is clean.** `git clone` does not fetch `refs/pull/*`, so a normal clone gets none of the stripped blobs. Confirmed twice: immediately after the push, and again after PR #2 merged. The residual exposure is reachable only by deliberately fetching the PR refs or by requesting a known commit SHA on github.com — real, but narrower than "anyone who clones gets them".
 
 For the same reason, do **not** `git push --mirror`: it tries to push `refs/pull/*`, which GitHub rejects. Push the branches explicitly.
 
@@ -157,14 +161,16 @@ Open a request at <https://support.github.com/contact>, name the repository, sta
 
 Quote the specifics so they can confirm without a round trip:
 
+**Re-verify the ref list immediately before sending.** It shrinks as pull requests resolve. As of the last check only one ref survives:
+
 ```
 Repository: blooprocket-create/veyraMOBA
 History was rewritten on 2026-09-20 to remove three files. main and all
-branches are clean. The following refs still reach the removed content and
-cannot be modified from a client:
+branches are clean, and an ordinary clone no longer contains the removed
+content. The following ref still reaches it and cannot be modified from a
+client:
 
   refs/pull/1/head
-  refs/pull/2/merge
 
 Removed blob ids:
   551b67089fce51fd20b528e870e6370c5cb702a2
@@ -172,7 +178,7 @@ Removed blob ids:
   943d0ab144b301e957fdca81b09fe32c3dbe68ef
 
 Please garbage-collect unreachable objects and drop the stale pull-request
-refs so these are no longer retrievable.
+ref so these are no longer retrievable.
 ```
 
 Treat the job as unfinished until they confirm.
