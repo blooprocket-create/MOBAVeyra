@@ -62,8 +62,8 @@ guards:
   - Renamed from Tavra (2026-09-20) to resolve the Tavi/Tavra collision. Archived bible versions retain
     the former name.
 sheet:
-  file: Tavra_The_Harbor_Gun_Character_Sheet.png
-  status: contradicts_canon
+  file: null
+  status: superseded
   register_refs:
     - B2
     - C

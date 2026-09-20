@@ -54,7 +54,7 @@ guards:
   - The entity inside Patch stays deliberately unexplained; do not resolve it to Flux, Echo or Elsewhere
     for taxonomy convenience.
 sheet:
-  file: Patch_The_Last_Hug_Character_Sheet.png
-  status: contradicts_canon
+  file: null
+  status: superseded
   register_refs:
     - B4

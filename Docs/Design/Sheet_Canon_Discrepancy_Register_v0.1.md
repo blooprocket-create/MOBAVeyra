@@ -2,7 +2,9 @@
 
 **Version:** 0.1
 **Date:** 2026-09-20
-**Scope:** Every known conflict between a character sheet in [`ConceptArt/Archives/Characters/`](../../ConceptArt/Archives/Characters/) and the current design canon in `Docs/Design/`. Those sheets were at `ConceptArt/Characters/` when this register was written and were moved into the archive on 2026-09-21; the filenames are unchanged.
+**Scope:** Every known conflict between a superseded character sheet and the current design canon in `Docs/Design/`.
+
+**The sheets themselves no longer exist.** They were at `ConceptArt/Characters/` when this register was written, archived on 2026-09-21 and deleted the same day, once every conflict below had been resolved against authored art. This register is therefore the description of record: each Vanguard's YAML still carries the `register_refs` pointing here, so which sheet raised which conflict remains traceable even though the image is gone. Filenames are retained below as identifiers, not as paths.
 
 ## Why this file exists
 

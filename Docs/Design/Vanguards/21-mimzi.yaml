@@ -64,7 +64,7 @@ guards:
   - Her tiny visual silhouette confers no hidden hitbox advantage.
   - Secondary R bolts cannot apply Hex, generate further bolts, or recursively trigger Pocket Hex.
 sheet:
-  file: Mimzi_The_Pocket_Hex_Character_Sheet.png
-  status: incomplete
+  file: null
+  status: superseded
   register_refs:
     - C

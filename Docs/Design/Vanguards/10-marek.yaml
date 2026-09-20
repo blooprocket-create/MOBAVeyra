@@ -57,7 +57,7 @@ guards:
     own hand. His affection for Nix is genuine and extends to nobody else. Do not write him as sadistic
     -- he is curious, and the curiosity has a body count.
 sheet:
-  file: Marek_The_Black_Accord_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs:
     - F

@@ -60,7 +60,7 @@ guards:
   - Canonical pronouns are she/her (register §B9); the sheet uses they/them and is wrong.
   - The Calm/Storm modal kit effectively doubles ability variants -- eight, plus a modal companion.
 sheet:
-  file: Neris_The_Tidebound_Character_Sheet.png
-  status: contradicts_canon
+  file: null
+  status: superseded
   register_refs:
     - B9

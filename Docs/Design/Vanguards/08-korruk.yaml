@@ -53,7 +53,7 @@ guards:
   - Canonical body plan is a six-legged predator.
   - E has low base damage on its own; its payoff is consuming Splinters/Fractured.
 sheet:
-  file: Korruk_The_Splinterbeast_Character_Sheet.png
-  status: contradicts_canon
+  file: null
+  status: superseded
   register_refs:
     - B1

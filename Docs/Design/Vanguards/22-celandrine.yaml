@@ -61,7 +61,7 @@ guards:
     terrain.
   - R's secondary impacts do not independently trigger Crit, On-Hit, item procs or extra basic attacks.
 sheet:
-  file: Celandrine_The_Wayrunner_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs:
     - E

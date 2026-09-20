@@ -59,7 +59,7 @@ guards:
   - 'Title ruling (2026-09-20): ''The Living Mire'', adopted from the concept sheet. He was previously
     the only Vanguard without a title.'
 sheet:
-  file: Silt_Character_Sheet.png
-  status: contradicts_canon
+  file: null
+  status: superseded
   register_refs:
     - B8

@@ -56,7 +56,7 @@ guards:
   - Magnetic Field is movement manipulation, not another generic slow.
   - Maximum Charge scales with champion level.
 sheet:
-  file: Relay_The_Last_Conductor_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs:
     - D

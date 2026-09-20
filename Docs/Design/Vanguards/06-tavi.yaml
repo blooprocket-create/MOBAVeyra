@@ -62,7 +62,7 @@ guards:
     cruel and not malicious; the horror is that she is affectionate about it. Do not write her as sadistic,
     and do not restore the rule as an active constraint.
 sheet:
-  file: Tavi_The_Playmate_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs:
     - F
