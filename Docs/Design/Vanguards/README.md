@@ -56,7 +56,7 @@ There is no Unreal project in this repository yet. When there is, Vanguard Data 
 
 Beyond pass/fail it prints a roster summary derived from the data, which is the point — these are the questions that are tedious to answer from prose and trivial to answer from data:
 
-**Owned field entities**, the ADR-003 inventory. Currently 3 combat units, 5 placed markers, 1 ride state, and **18 world volumes** across 8 Vanguards. World volumes are by a wide margin the largest category, and two of them are engine capabilities rather than ability features: Varkesh's Iron Wall modifies pathing for both teams, and Sylra creates true Dense Fog at runtime. Neither has a ruling in any bible.
+**Owned field entities**, the ADR-003 inventory. Currently 3 combat units, 5 placed markers, 1 ride state, and **18 world volumes** across 9 Vanguards. World volumes are by a wide margin the largest category, and two of them are engine capabilities rather than ability features: Varkesh's Iron Wall modifies pathing for both teams, and Sylra creates true Dense Fog at runtime. Neither has a ruling in any bible.
 
 **Crowd control coverage.** 6 Vanguards apply no CC at all; 13 apply no hard CC. Combined with open composition, a legal team can field none.
 

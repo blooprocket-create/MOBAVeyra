@@ -7,7 +7,7 @@
 
 ## Context
 
-Thirteen of the twenty-five designed Vanguards place something on the battlefield that outlives the cast and is owned by the caster. They are described in the Character Bible as if they were similar to one another. They are not.
+Sixteen of the twenty-five designed Vanguards place something on the battlefield that outlives the cast and is owned by the caster. They are described in the Character Bible as if they were similar to one another. They are not.
 
 Sorting them by what the engine actually has to do:
 
@@ -19,13 +19,15 @@ Sorting them by what the engine actually has to do:
 
 **2. Placed objects, beacons and decoys with no autonomous combat behaviour**
 
-- **Waymark** (Sylra), **False Body** (Angeru), Tavi's **Hide!** illusion, **Anchor** (Torr), **Pressure Mine** (Korruk), Relay's **Magnetic Field** node.
+- **Waymark** (Sylra), **False Body** (Angeru), Tavi's **Hide!** illusion, **Anchor** (Torr), **Pressure Mine** (Korruk).
 
 **3. Persistent world volumes that modify the battlefield itself**
 
 - **Molten Ground** and the cooled **Iron Wall** (Varkesh) — the wall "blocks both teams", i.e. runtime pathing modification.
 - **Lay the Mist** and **Through the White** (Sylra) — create *true Dense Fog* obeying "the battleground's normal Dense Fog rules", i.e. runtime-spawned vision volumes.
-- **Caustic Line** residue and **CODE BLACK** (Mavra), **Buried Alive** (Silt), **Full Grid** (Relay).
+- **Caustic Line** residue and **CODE BLACK** (Mavra), **Buried Alive** and **Sandstorm** (Silt), **Magnetic Field** and **Full Grid** (Relay), **Wildstorm** (Moro), **Briar Scatter** (Celandrine), Aurelisse's three currents, Neris's **Tidebreaker** trail.
+
+This is the largest category: **18 volumes across 9 Vanguards**, more than the other three categories combined.
 
 **4. A player-piloted ride state**
 
@@ -37,7 +39,7 @@ What does not exist anywhere in `Docs/` is the **architectural** answer: how man
 
 ### Why this cannot be deferred to implementation time
 
-- Building it per champion produces five to thirteen private implementations of ownership, replication, lifetime, death cleanup and attribution — directly contrary to `ARCHITECTURE.md` §1.3's reusable-primitive posture and to ADR-002's rule that champion abilities compose shared primitives rather than owning private copies.
+- Building it per champion produces up to sixteen private implementations of ownership, replication, lifetime, death cleanup and attribution — directly contrary to `ARCHITECTURE.md` §1.3's reusable-primitive posture and to ADR-002's rule that champion abilities compose shared primitives rather than owning private copies.
 - Categories 3 and 4 are not ability features. A runtime-spawned Dense Fog volume is a **Vision system** capability; a wall that blocks both teams is a **Battleground/navigation** capability; a ride state with a replacement ability set is a **locomotion and input** capability. Deciding them inside a champion's ability class puts core rules in the wrong module.
 - Whichever way this goes, it changes which Vanguards are cheap to build first, and therefore what a first playable slice should contain.
 
