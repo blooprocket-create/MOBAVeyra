@@ -26,3 +26,7 @@ Two Vanguards were renamed in current canon on 2026-09-20 to resolve name collis
 | Vitra, The Last Light | **Oriel**, The Waiting Light |
 
 Silt was untitled in archived versions and is titled **The Living Mire** in current canon.
+
+## Superseded 2026-09-20
+
+`Combat/Veyra_Combat_Bible_v0.4.md` — superseded by v0.5, which adds §56 Ride states and renumbers the two closing sections to §57 and §58. No existing rule was changed.

@@ -4,7 +4,9 @@
 **Date:** 2026-09-20
 **Status: complete.** All 26 questions answered on 2026-09-20, plus the two follow-ups Q13b and Q16b that the answers raised.
 
-**These rulings are decisions, but they are not yet canon.** Canon is the Combat Bible section they are to be written into, per Q1. Until that section exists this document is the record of what was decided, not the rule anyone implements against. A condensed specification for that section is at the end.
+**These rulings are now canon, as Combat Bible §56 (Ride states), added in v0.5.** Implement against §56, not against this document.
+
+This document is retained as the **decision record**: what was asked, what was chosen, what was rejected and why. §56 states the rules; this explains them. Where the two ever disagree, §56 wins and this file is stale.
 
 Raska's Hound is the only feature in the 25-Vanguard roster whose core mechanic has no supporting rules in any bible. [ADR-003](../ADR/ADR-003-owned-field-entities.md) scoped it as a separate locomotion feature rather than an owned field entity, and left it needing canon of its own before she can be implemented.
 
@@ -336,7 +338,9 @@ It also keeps the ultimate readable: the centre is a knockup, the line is a knoc
 
 ---
 
-## Specification to write into the Combat Bible
+## Specification as written into the Combat Bible
+
+*Transcribed as §56 in Combat Bible v0.5 on 2026-09-20. Retained here for traceability.*
 
 Per Q1 this becomes a **generic** Combat Bible section — "a Vanguard in a ride state", never "Hound" — so a future second ride user costs nothing. Condensed:
 
@@ -356,7 +360,7 @@ Per Q1 this becomes a **generic** Combat Bible section — "a Vanguard in a ride
 
 ## Status of the implementation gate
 
-Raska needs **none of ADR-003's three primitives** (Q2). With these rulings she is gated only on this Combat Bible section being written. Once it exists she is fully specified and implementable.
+Raska needs **none of ADR-003's three primitives** (Q2), and §56 now exists. **She is fully specified and implementable.**
 
 Every numeric value referenced above — turn rate, set speed, hitbox size, Momentum per distance, structure ratio, durations, cooldowns — is tuning and belongs in validated designer-editable data per `ARCHITECTURE.md` §1.3, not in the Combat Bible section.
 
