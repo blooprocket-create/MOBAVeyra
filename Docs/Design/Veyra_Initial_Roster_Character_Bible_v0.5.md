@@ -3,6 +3,7 @@
 # Veyra Initial Roster Character Bible
 
 **Version:** 0.5  
+**Kit consistency clarification (2026-09-20):** Cairn's passive/R shield attribution and displacement mitigation; Tavra's single empowered Breach explosion and Attack Speed overflow interaction; Vitra's valid-target-only homing fragment. No character lore, role or roster count changed.  
 **Current roster target:** 20 Vanguards (and growing as new designs are added)  
 **Status:** Working character canon for the planned first-playable roster. All 20 listed Vanguards belong to the current roster target.
 
@@ -1433,11 +1434,11 @@ Cairn emerged from the compacted riverbed, fallen bridge foundations, buried sto
 
 ## Passive — Deep Foundation
 
-Cairn has increased maximum Health. When he immobilizes an enemy Vanguard, he gains a temporary shield based on his maximum Health. Repeated immobilizations of the **same** Vanguard within a short per-target lockout do not grant another shield. Shield generation is bounded and should not allow indefinite sustain through repeated multi-target control.
+Cairn has increased maximum Health. When he **successfully immobilizes** an enemy Vanguard (including by a **Pull** or **Stun**), he gains a temporary **Deep Foundation** shield based on his maximum Health. **Iron Grasp (Q) triggers this shield when its pull lands**, even though the hook does not stun. Slows alone do not trigger it. Repeated immobilizations of the **same** Vanguard within a short per-target lockout do not grant another passive shield; simultaneous control types on one target count as a single passive trigger, not separate payouts. Deep Foundation shield contributions from different eligible enemies are combined into one bounded shield, not uncapped independent shields. The passive shield and the R shield can coexist, but their **combined Cairn-generated shielding cannot exceed a configurable cap**; the Combat Bible's shield absorption and reapplication rules still apply.
 
 ## Q — Iron Grasp
 
-Extend the giant hooked arm on its embedded chain in a telegraphed straight-line skillshot. Catch and pull the first enemy Vanguard struck toward Cairn, dealing **minor physical damage**. The hook itself does **not** stun. The windup, travel, collision, terrain blocking, range, and miss recovery should give opponents a meaningful chance to evade or intercept the engage.
+Extend the giant hooked arm on its embedded chain in a telegraphed straight-line skillshot. Catch and pull the first enemy Vanguard struck toward Cairn, dealing **minor physical damage**. The hook itself does **not** stun; **its successful Pull does count as one Deep Foundation immobilization**, subject to that target's passive lockout. The windup, travel, collision, terrain blocking, range, and miss recovery should give opponents a meaningful chance to evade or intercept the engage.
 
 ## W — Crushing Hold
 
@@ -1445,11 +1446,11 @@ Briefly raise both arms, then slam the ground in a frontal area. Enemy Vanguards
 
 ## E — Immovable
 
-Plant both feet and reinforce Cairn's body with layers of riverstone for a short duration. He gains substantial damage reduction and resists **pulls, pushes, and knockbacks** while nearby allied Vanguards receive a smaller damage-reduction benefit. Cairn moves markedly slower during the effect and can end it early. He remains susceptible to other valid crowd control, damage, and normal targeting; this is **not** blanket crowd-control immunity or Untargetability.
+Plant both feet and reinforce Cairn's body with layers of riverstone for a short duration. He gains substantial damage reduction and **reduces the distance he is forcibly moved by valid pulls, pushes, and knockbacks by a configurable amount** while nearby allied Vanguards receive a smaller damage-reduction benefit. This changes **displacement distance**, not whether the displacement/control lands: he is **not immune** to Pull or Knockback, does not gain Unstoppable, and can still be interrupted or affected by other valid crowd control under ordinary Combat rules. Terrain and legal-position checks still apply. Cairn moves markedly slower during the effect and can end it early. He remains susceptible to damage and normal targeting; this is **not** blanket crowd-control immunity or Untargetability.
 
 ## R — Burden of the Depths
 
-Cairn anchors in place and drives his arms into the ground. After a clearly indicated delay, stone and buried iron erupt in an area around him. Enemies in the central zone are **stunned and pulled a short distance inward**; enemies in the outer zone are slowed. He gains a temporary max-Health-scaling shield for each enemy Vanguard caught centrally, **up to a cap**. Cairn cannot move during the initial channel, and enemies have time to escape the central area before it erupts.
+Cairn anchors in place and drives his arms into the ground. After a clearly indicated delay, stone and buried iron erupt in an area around him. Enemies in the central zone are **stunned and pulled a short distance inward**; enemies in the outer zone are slowed. He gains **one R-shield contribution per distinct enemy Vanguard caught centrally**, based on his maximum Health, **up to an R-specific cap**. A centrally caught target's stun and pull are **one control event for passive purposes**, and **R does not grant an additional Deep Foundation passive shield for that same central target on this cast**; its R-shield contribution is the payout instead. A previous Q/W passive shield can coexist with the R shield, subject to their **shared configurable total Cairn-generated shielding cap**. Outer-zone slows do not trigger Deep Foundation. Cairn cannot move during the initial channel, and enemies have time to escape the central area before it erupts.
 
 **Play pattern:** Land a deliberate Q, step into W range, brace with E as teammates follow, and use R to punish enemy groups during Flux Well fights. Very high Health, reliable close-area control, and ally protection are offset by low damage, very low mobility, telegraphed actions, and dependence on landing the hook. Sustained damage, percentage-Health damage, kiting, and coordinated disengagement remain counterplay.
 
@@ -1470,11 +1471,11 @@ Tavra was Qazharr's **first mate and master gunner** during his pirating years. 
 
 ## Passive — Every Shot Counts
 
-Mournwake has a deliberately **slow firing cadence** and heavy individual basic-attack damage. Attack Speed helps chamber the next round but cannot reduce her attack interval below a defined data-driven floor. Consecutive basic attacks on the **same enemy Vanguard** build Breach. The **third** hit consumes Breach for additional physical damage and a small explosive impact **behind that target**; changing targets resets the previous target's Breach. Basic attacks remain Tavra's main damage source and interact with applicable item effects. Breach must not become an uncapped ramp or cause inappropriate recursive item/proc triggers.
+Mournwake has a deliberately **slow firing cadence** and heavy individual basic-attack damage. Attack Speed helps chamber the next round but cannot reduce her attack interval below a defined data-driven floor. **Her personal attack-interval floor does not create a second Attack Speed overflow threshold:** ordinary Combat Bible overflow basic-attack damage applies only when her underlying uncapped Attack Speed exceeds the game's normal **2.5 attacks-per-second reference**, not merely when she reaches Mournwake's slower firing floor. Consecutive basic attacks on the **same enemy Vanguard** build Breach. The **third** hit consumes Breach for additional physical damage and **one** small explosive impact **behind that target**; changing targets resets the previous target's Breach. A Breach-consuming Q **upgrades/replaces** this explosion rather than adding a second one. Basic attacks remain Tavra's main damage source and interact with applicable item effects. Breach must not become an uncapped ramp or cause inappropriate recursive item/proc triggers.
 
 ## Q — Breach Round
 
-Load a specialized armor-piercing shell to **empower the next basic attack**. It deals bonus physical damage, ignores a tunable portion of the target's Armor, and creates a narrow explosion behind the target. If this attack consumes full Breach, its secondary explosion grows wider and stronger. The ability can reset the chambering **animation** for responsiveness, but does **not** bypass the passive's minimum time between attacks.
+Load a specialized armor-piercing shell to **empower the next basic attack**. It deals bonus physical damage, applies configurable percentage Armor Penetration under the Combat Bible's normal mitigation order, and creates **one** narrow explosion behind the target. **If this attack is the third consecutive hit and consumes Breach, its enhanced Q explosion replaces the passive's normal behind-target explosion**: one impact, one secondary explosion, with the Breach bonus to the direct hit applied once. This is **not two overlapping explosions**, and neither explosion recursively triggers Breach or basic-attack On-Hit effects. The enhanced explosion becomes wider and stronger. The ability may reset the chambering **animation** for responsiveness, but **never resets the actual attack cooldown or bypasses her minimum interval between attacks**.
 
 ## W — Sounding Flare
 
@@ -1508,7 +1509,7 @@ Vitra emerged when Merrin's lingering, repeated memories of homecoming and lit w
 
 ## Passive — Gathering Light
 
-Each **damaging ability cast that hits an enemy Vanguard** adds **one** Gathering Light stack, irrespective of number of enemies hit. At three stacks, her **next damaging ability that hits an enemy Vanguard** consumes the stacks to send an extra homing glass fragment toward one enemy Vanguard that ability struck, dealing bonus **Magic-Power-scaling magic damage**. The consuming cast does not immediately rebuild another stack. The passive is automatic: no stance, extra resource bar, or target-mark bookkeeping for the player.
+Each **damaging ability cast that hits an enemy Vanguard** adds **one** Gathering Light stack, irrespective of number of enemies hit. At three stacks, the passive is primed: the **next damaging ability that hits at least one enemy Vanguard Vitra can legally acquire as a target at fragment launch** consumes the stacks and sends an extra homing glass fragment toward **one such validly acquired enemy Vanguard struck by that ability**, dealing bonus **Magic-Power-scaling magic damage**. **A blind, non-targeted Q/W/R hit into Dense Fog may deal its normal damage but cannot use that hit to remotely acquire a hidden enemy for the fragment.** If a cast hits only enemies she cannot legally acquire (including enemies inside Dense Fog while she is outside), the primed passive **remains primed**; it generates no fragment and does not rebuild an extra stack from that cast. If several enemies were hit, a legally acquirable struck enemy may be chosen without targeting the hidden ones. The fragment grants **no vision or reveal** and follows ordinary targeted-projectile rules *after* a valid launch; it never creates an exception to the Vision Bible's Dense Fog, stealth or targetability rules. The consuming cast does not immediately rebuild another stack. The passive is automatic: no stance, extra resource bar, or target-mark bookkeeping for the player.
 
 ## Q — Splinter Lance
 
