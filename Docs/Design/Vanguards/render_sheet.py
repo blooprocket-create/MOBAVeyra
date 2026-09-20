@@ -98,8 +98,8 @@ HUE_BY_ID = {
 SLOTS = [
     ("hero",    "Hero illustration", "16:9", "hero",
      "Full-figure hero illustration. The character occupies the frame, lit by the signature "
-     "key light with an opposing rim. Region environment present but held well behind them and "
-     "never competing with the silhouette."),
+     "key light with an opposing rim. Region environment built out in depth behind them — a real "
+     "place, not a backdrop — while the character stays the clear focal subject."),
     ("front",   "Turnaround — front", "1:2", "turn",
      "Full-body orthographic front view, neutral A-pose, even flat lighting, plain mid-grey "
      "background, no environment, no dramatic shadow. This is a modelling reference, not an illustration."),
@@ -397,13 +397,24 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
     return dest
 
 
-HOUSE = (
-    "Painterly realism, heavily rendered, with visible brushwork and physically believable "
+# The house style, split by what each slot can actually use. HOUSE_CORE is the idiom and
+# holds everywhere. HOUSE_LIT is dramatic lighting and a full environment, which suits an
+# illustration and directly contradicts a turnaround — those ask for flat even light on a
+# plain background, and emitting both at once told the model to do two opposite things.
+HOUSE_CORE = (
+    "Anime-idiom character rendering with painterly realism for everything else: human faces, "
+    "hair and expression read as high-end anime illustration, while creatures, machines, "
+    "armour, cloth, stone, water and foliage are heavily rendered with physically believable "
     "materials. The whole image is built around one saturated signature colour, which drives "
-    "the key light and the accents while everything else stays desaturated so that single hue "
-    "carries the picture. Strong directional key in the signature colour with an opposing rim "
-    "light, deep shadows, high contrast, a mid-to-dark value key, and a silhouette that stays "
-    "readable at thumbnail size."
+    "the light and the accents while everything else stays desaturated so that single hue "
+    "carries the picture, and the silhouette stays readable at thumbnail size."
+)
+HOUSE_LIT = (
+    " Strong directional key in the signature colour with an opposing rim light, deep shadows "
+    "and high contrast. The value key follows the character rather than a fixed rule: bright "
+    "open daylight for some, deep night for others. The environment is a full, detailed scene "
+    "held in depth behind the subject, so it enriches the frame while the silhouette still "
+    "reads first."
 )
 
 # Both model families we target warn against negative phrasing — FLUX rejects it outright
@@ -443,8 +454,9 @@ GUARDRAIL = re.compile(
 # Rendering constraints that apply to every slot. Kept separate from the character's own
 # guardrails so a sheet never picks up UI furniture, and so the two can be read apart.
 NO_FURNITURE = (
-    "The image contains artwork only, with no text, lettering, logo, UI, watermark, "
-    "signature, stat bars or numbers anywhere in the frame."
+    "The image carries no UI, watermark, artist signature, stat bar, health bar, ability icon "
+    "or tuning number anywhere in the frame. Lettering exists only where it is part of the "
+    "object itself, such as a unit designation stencilled on a machine's plating."
 )
 
 
@@ -569,7 +581,8 @@ def prompts(vid: str) -> None:
         # the order both model guides ask for, and the reason the style block is no
         # longer a trailing keyword dump receiving the least attention weight.
         print(f"{who}. {described}\n\n{shot}\n\n"
-              f"Style: {HOUSE} The signature colour is hex {hue}.\n\n"
+              f"Style: {HOUSE_CORE}{'' if grp == 'turn' else HOUSE_LIT} "
+              f"The signature colour is hex {hue}.\n\n"
               f"Critically: {rails} {NO_FURNITURE}\n\nAspect ratio {asp}.\n")
 
 

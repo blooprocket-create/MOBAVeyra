@@ -38,11 +38,47 @@ the old figure as superseded and the exact one as still owed.
 
 ## House style
 
-**Painterly realism with one saturated signature hue** — the rendering of Patch's sheet with the colour discipline of Tavi's.
+**Anime-idiom characters, painterly-realistic everything else, one saturated signature hue.**
+Rewritten 2026-09-20 from the twelve authored heroes rather than from intent — the author
+has confirmed the art is what they want, so the art defines the style and this section
+describes it.
 
-Painterly and heavily rendered; not photoreal, not flat cel, not anime. Materials read physically. Every image for a Vanguard is built around **one saturated signature colour** that drives the key light and the accents, with everything else desaturated so that hue carries the frame. Strong directional key plus an opposing rim, deep shadows, high contrast, mid-to-dark value key. Silhouette readable at thumbnail size — this is a MOBA, and the shape identifies the character before the detail does.
+Human faces, hair and expression read as high-end anime illustration. Creatures, machines,
+armour, cloth, stone, water and foliage are heavily rendered with physically believable
+materials. The two sit together in the same frame: Marek's face is anime, the chains and
+Nix beside him are not; Moro and Korruk are painterly throughout because neither has a
+human face in the picture at all.
 
-Never in the artwork: text, lettering, logos, UI, watermarks, signatures, lens flare, stat bars, or numbers of any kind. Tuning belongs in data per `ARCHITECTURE.md` §1.3, and sheets that printed `Tracked for 4 seconds` into their pixels are why this is written down.
+Every image is built around **one saturated signature colour** that drives the light and
+the accents, with everything else desaturated so that hue carries the frame. This is the
+rule the art keeps most consistently, and it is what makes the roster read as one game
+despite the range.
+
+Strong directional key with an opposing rim, deep shadows, high contrast. **The value key
+follows the character, not a fixed rule** — Raska, Korruk, Torr and Moro are bright open
+daylight; Patch, Vera, Marek and Neris are deep night. The earlier "mid-to-dark value key"
+was a blanket requirement half the roster does not meet and was never meant to.
+
+Environments are **full, detailed scenes held in depth** — ruined cathedrals, drowned
+harbours, overgrown canyons — rather than the plain fall-off backdrops originally
+specified. The silhouette still has to read first at thumbnail size; this is a MOBA and the
+shape identifies the character before the detail does.
+
+Never in the artwork: UI, watermarks, artist signatures, stat bars, health bars, ability
+icons, or tuning numbers of any kind. Tuning belongs in data per `ARCHITECTURE.md` §1.3,
+and sheets that printed `Tracked for 4 seconds` into their pixels are why this is written
+down. **Lettering that is part of the object is fine** — Relay's art has `R-01` stencilled
+on his plating, which is his canonical designation and belongs on a machine. The rule is
+against baking data and interface into pixels, not against a unit having its serial number
+painted on it.
+
+### The style block is split by slot
+
+`HOUSE_CORE` carries the idiom and goes to every prompt. `HOUSE_LIT` carries the dramatic
+lighting and the full environment and goes to every slot **except the turnarounds**, which
+ask for flat even light on a plain mid-grey background. Emitting both at once told the
+model to do two opposite things in the same prompt — a defect that had been live since the
+emitter was written, and would have cost 100 turnaround and scale images.
 
 ### Signature colours
 
