@@ -17,9 +17,12 @@
 >    precisely so that deleting it costs nothing.
 > 2. **File the Support request below** against the legacy repository, and leave it standing.
 >
-> **Author's decision, 2026-09-20: the legacy repository is made PRIVATE, not deleted.** That
-> closes the public exposure — `refs/pull/1/head` returns 404 to anyone without access to the
-> repository — and it is reversible, which deletion is not. The Support request was never filed.
+> **Done and verified, 2026-09-20 18:11 UTC: the legacy repository is PRIVATE, not deleted.**
+> Confirmed against the GitHub API rather than assumed — `blooprocket-create/veyraMOBA` reports
+> `"private": true`, `"visibility": "private"`, `forks_count: 0`. The public exposure is closed:
+> `refs/pull/1/head` now returns 404 to anyone without access to the repository. The decision was
+> privacy rather than deletion because it is reversible, which deletion is not. **The Support
+> request was never filed, and is not needed while the repository stays private.**
 >
 > ### ⚠ The standing condition this creates
 >
@@ -296,9 +299,11 @@ ref so these are no longer retrievable.
 
 Treat the job as unfinished until they confirm.
 
-**As of 2026-09-20 this request has not been filed.** The exposure is held closed by the legacy
-repository's **private** visibility instead — see the status note at the top of this document,
-including the condition that attaches to ever reversing it.
+**This request was never filed, and is not needed while the legacy repository stays private.**
+The exposure is held closed by that repository's **private** visibility instead, verified against
+the API on 2026-09-20 — see the status note at the top of this document, including the condition
+that attaches to ever reversing it. If that repository is ever made public again, this request
+becomes necessary before it happens, not after.
 
 ### 7. Everyone re-clones
 
