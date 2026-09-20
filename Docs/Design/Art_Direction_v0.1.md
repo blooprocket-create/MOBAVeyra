@@ -18,6 +18,24 @@ Each prompt is emitted with that Vanguard's appearance paragraph, signature colo
 
 `--missing` lists the art each Vanguard still needs, as a work order.
 
+## Approved art is canon
+
+**Artwork approved by the author outranks any text that disagrees with it.** Where a
+`**Visual language:**` paragraph, a header field, or an entry in the hue table below
+contradicts approved art, the art wins and the text is corrected to match. The same rule
+is recorded in the Character Bible header, because that is where the corrected paragraphs
+actually live.
+
+Correcting a paragraph means correcting **its guardrails too**. A guardrail written for a
+superseded design is worse than no guardrail: it is the line of the prompt a model is told
+to obey hardest, so it steers all eight remaining slots toward a character who no longer
+exists.
+
+Text keeps what an image cannot carry — what the design is **not**, the figures gameplay
+needs, and the reason behind a choice. Relay's scale is the worked example: the art
+withdraws "roughly 3.8 m" but cannot supply the number replacing it, so the bible records
+the old figure as superseded and the exact one as still owed.
+
 ## House style
 
 **Painterly realism with one saturated signature hue** — the rendering of Patch's sheet with the colour discipline of Tavi's.
@@ -28,7 +46,7 @@ Never in the artwork: text, lettering, logos, UI, watermarks, signatures, lens f
 
 ### Signature colours
 
-Assigned by region so no two sheets collide in a draft grid. Held in `HUE` in `render_sheet.py` and injected into every prompt.
+Assigned by region so no two sheets collide in a draft grid. Held in `HUE` in `render_sheet.py`, overridden per Vanguard in `HUE_BY_ID`, and injected into every prompt.
 
 | Region | Hue | | Region | Hue |
 |---|---|---|---|---|
@@ -39,7 +57,14 @@ Assigned by region so no two sheets collide in a draft grid. Held in `HUE` in `r
 | Shatterdeep | `#6fc3d4` | | Ancient Flux Network | `#4a8fd4` |
 | Unknown / unplaced | `#8a6bbf` | | Ancient Fluxborn system | `#5e7fd4` |
 
-**Patch's hue is under review (2026-09-20).** His entry keys off the region `Unknown` and so resolves to violet `#8a6bbf`, but his approved hero art is emphatically **crimson** — the spectral bear behind him carries the whole frame. Matching the art would put him beside Reed Provinces `#c0392b` (Angeru) and Iron March `#c4552b`, which is the collision this table exists to prevent; his is a hotter, more luminous red and could be separated, but that is a call to make deliberately. Left as violet until then, so `--prompts` and the sheet stay consistent with each other.
+**Patch is the one override (2026-09-20).** He keys off the region `Unknown` and so
+resolved to violet `#8a6bbf`, but his approved hero art is emphatically **crimson** — the
+spectral bear behind him carries the whole frame. Art is canon, so the hue moved to the
+art: `#ff2d55`, hotter and more luminous than the two reds it has to stay clear of.
+Measured CIE76 distance **27** from Reed Provinces `#c0392b` (Angeru) and **38** from Iron
+March `#c4552b`, both past the ~20 where two swatches stop reading as the same colour at
+thumbnail size. Overrides live in `HUE_BY_ID`, keyed by Vanguard id; the region map stays
+the default for everyone without one.
 
 The two Flux origins are deliberately **not** the same hue. Relay came out of the
 network itself; Torr began as a Fluxborn unit and stopped being one. They would
@@ -110,10 +135,11 @@ withdrawn for third-party content and reconstructing that look would have carrie
 reason for the withdrawal forward.
 
 Since then the author has begun regenerating characters externally, one at a time, and
-**where the art and the paragraph disagree the art wins**: the paragraphs for Raska, Kade,
-Silt, Relay and Patch have been rewritten from their approved art. Each rewrite also
-replaces the guardrails, because a guardrail written for a superseded design actively
-steers the remaining eight slots wrong.
+approved art is canon (see above): **6 of 25** paragraphs — Raska, Kade, Silt, Relay, Patch
+and Tavi — have been rewritten from the art rather than the art judged against them. Each
+rewrite replaces the guardrails as well as the description. The machine pass each one
+replaces is kept beside it as `superseded_gen1_*.webp`, so what was rejected stays
+inspectable instead of being silently overwritten.
 
 Each paragraph follows the same three-part shape, and new ones should:
 

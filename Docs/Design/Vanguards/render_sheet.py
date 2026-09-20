@@ -62,6 +62,18 @@ HUE = {
     "Unknown": "#8a6bbf",
 }
 
+# A Vanguard whose approved art diverges from their regional hue overrides it here.
+# Approved art is canon (see Art_Direction_v0.1.md), so the region map is the default
+# rather than the last word. Keep overrides visually separable from their neighbours
+# — that separation is the only thing the hue table is for.
+HUE_BY_ID = {
+    # Patch keys off region "Unknown" (violet). His art is a hot luminous crimson,
+    # so he takes one that stays clear of Reed Provinces and Iron March: measured
+    # CIE76 distance 27 from #c0392b and 38 from #c4552b.
+    "patch": "#ff2d55",
+}
+
+
 # Every image the sheet can hold: file stem, label, aspect, and what it must show.
 # The renderer fills a slot when ConceptArt/Vanguards/<id>/<stem>.webp exists and
 # renders a labelled placeholder when it does not, so the sheet doubles as the
@@ -187,7 +199,7 @@ def render(vid: str) -> pathlib.Path:
     d = yaml.safe_load(src.read_text(encoding="utf-8"))
 
     sec = parse_section(bible_section(d["roster_number"]))
-    hue = HUE.get(d["origin_region"], "#9aa4ad")
+    hue = HUE_BY_ID.get(vid) or HUE.get(d["origin_region"], "#9aa4ad")
     title = d.get("title")
 
     lore = [p for p in sec["prose"] if not re.match(r"^\*\*[A-Z][^:*]{2,40}:\*\*", p)][:4]
@@ -488,7 +500,7 @@ def prompts(vid: str) -> None:
     look = (sec["fields"].get("Visual language") or sec["fields"].get("Visual")
             or "No appearance paragraph in the bible — write one before generating art.")
     look = re.sub(r"\*\*(.+?)\*\*", r"\1", look)
-    hue = HUE.get(d["origin_region"], "#9aa4ad")
+    hue = HUE_BY_ID.get(vid) or HUE.get(d["origin_region"], "#9aa4ad")
     who = f"{d['name']}" + (f", {d['title']}" if d.get("title") else "")
 
     print(f"# Art prompts — {who}")
