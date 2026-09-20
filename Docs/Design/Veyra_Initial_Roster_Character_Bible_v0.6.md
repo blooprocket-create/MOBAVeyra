@@ -838,7 +838,7 @@ He is foreign-born but locally rooted by choice.
 
 He carries a large foreign boarding blade / oversized naval cleaver.
 
-**Visual language:** A big, broad, weathered sailor with long dark curly hair, a full beard, and heavy tattoo work across his arms and chest, wearing a layered salvaged coat open over the chest and hung with everyday harbour hardware — rope, rings, earrings, buckles, working knots. He carries an oversized single-edged **boarding blade** over one shoulder. His default expression is a laugh. He should read as a harbour local who used to be a pirate, **not** as a pirate captain in costume: no tricorn, no pirate-flag iconography, no coat of office, nothing theatrical.
+**Visual language:** A big, broad, weathered sailor — genuinely heavy through the chest and shoulders, built by work rather than by training — with long dark curly hair, a full beard, and heavy **blue-black nautical tattoo work** in waves and coils across his arms and chest. He wears a layered salvaged coat open over the chest, hung with everyday harbour hardware: coiled rope over one shoulder, rings, an earring, buckles, working knots, an anchor cast into his belt plate. He carries an oversized single-edged **boarding blade** over one shoulder, and the back of it is an **anchor fluke** — harbour salvage reforged into a weapon, which is the whole man in one object. His default expression is a laugh. Behind him his adopted home: tall ships at their moorings, rigging and pilings, the Cantons climbing the cliff in tiers with waterfalls coming off them. He should read as a harbour local who used to be a pirate, **not** as a pirate captain in costume: no tricorn, no pirate-flag iconography, no coat of office, nothing theatrical.
 
 ## Passive — Sea Dog
 

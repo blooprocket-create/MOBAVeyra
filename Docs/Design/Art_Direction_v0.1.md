@@ -43,11 +43,25 @@ Rewritten 2026-09-20 from the twelve authored heroes rather than from intent —
 has confirmed the art is what they want, so the art defines the style and this section
 describes it.
 
-Human faces, hair and expression read as high-end anime illustration. Creatures, machines,
-armour, cloth, stone, water and foliage are heavily rendered with physically believable
-materials. The two sit together in the same frame: Marek's face is anime, the chains and
-Nix beside him are not; Moro and Korruk are painterly throughout because neither has a
-human face in the picture at all.
+Everything that is not a human face is painterly-realistic: creatures, machines, armour,
+cloth, stone, water and foliage, heavily rendered with physically believable materials.
+
+**Human rendering spans a range, and the range is the rule.** Kade, Tavi, Vera, Marek and
+Neris are drawn as high-end anime illustration. Raska and Qazharr are painterly-realistic —
+realistic proportions, weathered skin, no anime eye. The two idioms sit in the same frame
+without friction: Marek's face is anime and the chains and Nix beside him are not.
+
+*Corrected 2026-09-21.* The first version of this section said human faces read as anime,
+full stop. That was a generalisation from twelve heroes, none of which happened to be
+Qazharr; his art showed it was wrong for two of the seven human faces in the set. Which end
+a Vanguard sits at is held per character in `RENDER_BY_ID` in `render_sheet.py`, beside the
+hue overrides, because it is a production choice rather than a fact about the character —
+the bible says who they are, that table says how they are drawn. Anime is the majority, so
+only the painterly ones are listed.
+
+The observed tendency is that younger, lighter characters land anime and older, heavier,
+more weathered ones land realistic. That is seven data points and is recorded as a tendency,
+not a rule.
 
 Every image is built around **one saturated signature colour** that drives the light and
 the accents, with everything else desaturated so that hue carries the frame. This is the
@@ -221,9 +235,10 @@ withdrawn for third-party content and reconstructing that look would have carrie
 reason for the withdrawal forward.
 
 Since then the author has begun regenerating characters externally, one at a time, and
-approved art is canon (see above): **12 of 25** paragraphs have been reconciled with their
+approved art is canon (see above): **13 of 25** paragraphs have been reconciled with their
 art rather than the art judged against them. Eleven were rewritten — Raska, Kade, Silt,
-Relay, Patch, Tavi, Vera, Korruk, Marek, Neris and Moro. Torr's was only added to, because his art agreed with what was
+Relay, Patch, Tavi, Vera, Korruk, Marek, Neris and Moro. Torr's and Qazharr's were only
+added to, because their art agreed with what was already written, guardrails included. Torr's was only added to, because his art agreed with what was
 already written, guardrails included; where that happens the existing text stays and the art
 supplies what it was missing. Each
 rewrite replaces the guardrails as well as the description. The machine pass each one

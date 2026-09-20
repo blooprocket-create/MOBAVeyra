@@ -402,13 +402,27 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
 # illustration and directly contradicts a turnaround — those ask for flat even light on a
 # plain background, and emitting both at once told the model to do two opposite things.
 HOUSE_CORE = (
-    "Anime-idiom character rendering with painterly realism for everything else: human faces, "
-    "hair and expression read as high-end anime illustration, while creatures, machines, "
-    "armour, cloth, stone, water and foliage are heavily rendered with physically believable "
-    "materials. The whole image is built around one saturated signature colour, which drives "
+    "Heavily rendered illustration with physically believable materials: creatures, machines, "
+    "armour, cloth, stone, water and foliage all read physically. Human characters range from "
+    "high-end anime rendering to painterly realism depending on who they are. The whole image is "
+    "built around one saturated signature colour, which drives "
     "the light and the accents while everything else stays desaturated so that single hue "
     "carries the picture, and the silhouette stays readable at thumbnail size."
 )
+
+# Which end of that range a given Vanguard sits at. Held here rather than in the appearance
+# paragraph because it is a production choice, not a fact about the character — the bible
+# says who they are, this says how they are drawn. Without it the hero sets the idiom and
+# the other eight slots drift back toward the roster average, which is the one thing the
+# hero-first workflow exists to prevent.
+#
+# Anime is the observed majority (Kade, Tavi, Vera, Marek, Neris), so only the painterly
+# ones are listed. Tendency, measured 2026-09-20: the younger and lighter a character, the
+# more anime the rendering; the older, heavier and more weathered, the more realistic.
+RENDER_BY_ID = {
+    "raska":   " This character is rendered in painterly realism: realistic proportions and weathered skin.",
+    "qazharr": " This character is rendered in painterly realism: realistic proportions and weathered skin.",
+}
 HOUSE_LIT = (
     " Strong directional key in the signature colour with an opposing rim light, deep shadows "
     "and high contrast. The value key follows the character rather than a fixed rule: bright "
@@ -581,7 +595,8 @@ def prompts(vid: str) -> None:
         # the order both model guides ask for, and the reason the style block is no
         # longer a trailing keyword dump receiving the least attention weight.
         print(f"{who}. {described}\n\n{shot}\n\n"
-              f"Style: {HOUSE_CORE}{'' if grp == 'turn' else HOUSE_LIT} "
+              f"Style: {HOUSE_CORE}{RENDER_BY_ID.get(vid, '')}"
+              f"{'' if grp == 'turn' else HOUSE_LIT} "
               f"The signature colour is hex {hue}.\n\n"
               f"Critically: {rails} {NO_FURNITURE}\n\nAspect ratio {asp}.\n")
 
