@@ -83,7 +83,12 @@ shape identifies the character before the detail does.
 Never in the artwork: UI, watermarks, artist signatures, stat bars, health bars, ability
 icons, or tuning numbers of any kind. Tuning belongs in data per `ARCHITECTURE.md` §1.3,
 and sheets that printed `Tracked for 4 seconds` into their pixels are why this is written
-down. **Lettering that is part of the object is fine** — Relay's art has `R-01` stencilled
+down. **Lettering that is part of the object is fine, including slogans (ruled 2026-09-21).**
+Gorraveth's site banner reads *"SCARS BUILD STRONGER THINGS"* and Aurelisse's reads *"SAFER
+PATHS BRIGHTER HORIZONS"* — both in plain English, both approved. The rule is against baking
+interface and data into pixels, not against a world that writes on things. Note for whoever
+handles localisation: this text is painted into the artwork and cannot be swapped per
+language. Relay's art has `R-01` stencilled
 on his plating, which is his canonical designation and belongs on a machine. The rule is
 against baking data and interface into pixels, not against a unit having its serial number
 painted on it.
