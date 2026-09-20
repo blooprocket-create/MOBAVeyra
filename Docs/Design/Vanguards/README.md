@@ -53,7 +53,29 @@ There is no Unreal project in this repository yet. When there is, Vanguard Data 
 | `vision_touchpoints` | `ability`, `effect`, `status` (`canon` / `unresolved` / `needs_classification`), `note`. Non-canon statuses raise a warning |
 | `guards` | free prose. The rules that must survive implementation |
 | `grants` | validated — the roster summary derives its sustain conclusions from these, so a typo would silently change the reported totals |
-| `sheet` | `file`, `status`, `register_refs`. A status other than `withdrawn`/`missing` must name a file that exists on disk; a status other than `current` must carry at least one `register_refs` entry, and every entry is checked against the register's actual section ids |
+| `sheet` | `file`, `status`, `register_refs`. See the status table below — `withdrawn`, `superseded` and `missing` mean there is no sheet and require `file: null`; every other status must name a file that exists on disk. A status that asserts a *problem* must carry at least one `register_refs` entry, and every entry is checked against the register's actual section ids |
+
+### `sheet.status`
+
+The 22 baked-text sheets were deleted on 2026-09-21, so no entry names a file today. The
+vocabulary is kept because **why** a sheet is absent is the part that matters.
+
+| Status | Means | `file` | Needs a `register_ref` |
+|---|---|---|---|
+| `current` | The sheet is usable as-is | a real file | no |
+| `contradicts_canon` | The sheet exists but disagrees with canon | a real file | **yes** |
+| `incomplete` | The sheet exists but omits something load-bearing | a real file | **yes** |
+| `withdrawn` | Pulled for third-party content, and stripped from Git history | `null` | **yes** |
+| `superseded` | Retired because authored art replaced it, then deleted | `null` | no |
+| `missing` | There never was a sheet | `null` | **yes** |
+
+`superseded` is exempt from the register-ref rule because that rule exists to make a *problem*
+point at its documentation, and being replaced by better art is not a problem. Five entries —
+Torr, Qazharr, Gorraveth, Aurelisse and Eudora — never carried a conflict to cite, and requiring
+one would have meant inventing it.
+
+`withdrawn` and `superseded` both end at `file: null` and are deliberately **not** merged: one
+records a legal problem, the other records housekeeping.
 
 ## What the validator reports
 
