@@ -4,19 +4,30 @@
 **Date:** 2026-09-20
 **Supersedes:** `Sheet_Generation_Prompt_v0.1.md`, which prompted for a whole sheet with its text baked in. [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) now owns the text, so only the artwork needs generating.
 
-## Where the prompts are
+## The pipeline, as it now stands
 
-**Not in this file.** They are generated, so they cannot go stale:
+Artwork is **authored outside this repository** and the finished file is dropped in:
 
 ```
-python3 Docs/Design/Vanguards/render_sheet.py --prompts bryn
-python3 Docs/Design/Vanguards/render_sheet.py --prompts --all
-python3 Docs/Design/Vanguards/render_sheet.py --missing
+ConceptArt/Vanguards/<id>/hero.webp
+python3 Docs/Design/Vanguards/render_sheet.py --all       # re-render every sheet
+python3 Docs/Design/Vanguards/render_sheet.py --missing   # which slots have no art yet
 ```
 
-Each prompt is emitted with that Vanguard's appearance paragraph, signature colour, region and antagonist direction already injected from the Character Bible and their YAML. A rename or a rewrite changes the prompts automatically. A prompt pasted into a document would not.
+`render_sheet.py` composes the sheet's **text** from canon at render time and fills each
+image slot from whatever file is present. It does not generate artwork and does not write
+prompts. The emitter that used to build a prompt per slot was removed on 2026-09-21, once
+all 25 heroes had been authored by hand and the author confirmed no further art would be
+generated from this repository.
 
-`--missing` lists the art each Vanguard still needs, as a work order.
+What that emitter existed to guarantee still holds, because it was never the emitter's
+property: **text is never baked into an image.** The bible owns the words, the sheet
+renders them, and a canon change is picked up by re-running the renderer.
+
+Whoever writes the next prompt writes it by hand, from the Character Bible paragraph, the
+signature colour below, and the model notes at the end of this document. The house style,
+the hues and the guardrail shape are all still canon — only the machine that assembled
+them into prompt text is gone.
 
 ## Approved art is canon
 
@@ -123,13 +134,17 @@ The cheap levers, in rough order of how little they disturb canon: give one of t
 different light source or carry position; lean Neris's silhouette back toward the wave her
 kit is built on; or separate their headwear shapes decisively.
 
-### The style block is split by slot
+### Lighting and environment are per-slot, not global
 
-`HOUSE_CORE` carries the idiom and goes to every prompt. `HOUSE_LIT` carries the dramatic
-lighting and the full environment and goes to every slot **except the turnarounds**, which
-ask for flat even light on a plain mid-grey background. Emitting both at once told the
-model to do two opposite things in the same prompt — a defect that had been live since the
-emitter was written, and would have cost 100 turnaround and scale images.
+A hero illustration wants a dramatic key light and a full environment built out in depth.
+A turnaround wants neither: flat even light, plain mid-grey background, no scene. A detail
+crop wants the hero's lighting on a bare background — one of the two, not both.
+
+Asking for both at once is the mistake to avoid, and it is easy to make: the removed
+emitter shipped that contradiction twice, telling the turnarounds to be flatly lit *and*
+dramatically lit, and telling the weapon crop to sit "alone on a neutral background" *and*
+carry "a full, detailed scene" behind it. Each slot's brief in the table below states which
+combination it wants; the sheet prints that brief in every empty slot.
 
 ### Signature colours
 
@@ -263,8 +278,8 @@ letterboxing instead of as a missing weapon.
 there is a build to take them from. A generated picture of a gameplay camera is a
 guess about a build that does not exist, and the one question these slots exist to
 answer — does the silhouette actually read at gameplay distance? — is precisely the
-question a guess cannot answer. `--prompts` refuses to emit prompts for them and
-`--missing` counts them apart from the art that is genuinely outstanding.
+question a guess cannot answer. `--missing` counts them apart from the art that could
+be made today, so the outstanding figure is not inflated by work nobody can start.
 
 That leaves **nine generated slots per Vanguard**, not thirteen.
 
@@ -319,29 +334,19 @@ Guardrails record what the design is **not**, which is the half no image can exp
 are also why the paragraphs must never carry tuning values: an appearance paragraph is art
 direction, and gameplay numbers live in their owning data files.
 
-Write the negation so it **begins a clause** — `split_guardrails` cuts there, and a negation
-buried mid-clause ("a war he was never built for") sends the whole sentence to the
-constraint instead of splitting it.
+Write the negation so it **begins a clause**, and keep the description that precedes it in
+its own clause. This was a machine rule while the emitter existed — it split each paragraph
+into affirmative description and a trailing constraint block, and cut at the negation — but
+it survives the emitter because it is the same rule a human reader needs. Mavra's paragraph
+once read *"Her equipment is industrial, not arcane — labelled containers, valves, straps,
+gauges and pressure fittings…"*, which buries a whole equipment list downstream of a
+negation; Silt's *"He is a living riverbed in motion and never resolves into a face"* buries
+his best line the same way. Both are reworded, and both read better for it.
 
-`--audit` enforces that rule, because breaking it is silent. Mavra's paragraph read *"Her
-equipment is industrial, not arcane — labelled containers, valves, straps, gauges and
-pressure fittings…"*, whose head is four words — one under the threshold — so the whole
-sentence went to the constraint block and took the equipment list with it. Silt's *"He is a
-living riverbed in motion and never resolves into a face"* lost his best line the same way.
-Both are reworded.
-
-**`neither X nor Y` is deliberately unmatched**, for the same reason as *rather than*.
-Aurelisse's species guard was written that way and `--audit` could not see it, which looked
-like a hole in the regex until it was measured: the phrase appears three times across the
-roster and only once as a constraint. The other two are affirmative — Angeru *"belongs to
-neither"* house is the line his whole design turns on — so matching it would route his best
-sentence into the constraint block to catch one guard that was sitting in the wrong field
-anyway. The guard moved instead of the regex.
-
-The check is advisory: a long head can be lost description or simply the subject of a
-constraint. Oriel's *"Fragment arrangements and limbs should never appear like ordinary
-human skin"* is the second kind and correctly belongs in the constraint whole, so it stays
-flagged and is not a defect.
+The guards that carry a Vanguard's **species or nature** belong in the `**Visual language:**`
+field, not in a neighbouring header field. Five of them — Gorraveth's, Cairn's, Oriel's,
+Aurelisse's and Picket's — were sitting elsewhere and so reached nothing that read the
+appearance paragraph. They have been moved.
 
 ## Model choice is load-bearing
 
@@ -365,11 +370,14 @@ negation the guardrails are built on, it rewards the long narrative prompts we a
 generate, and it is the model built for *holding a character consistent across shots* —
 which is the entire premise of the hero-first workflow.
 
-The canon does not bend to suit a model. `render_sheet.py` does the conversion instead:
-it splits each appearance paragraph into affirmative description and guardrails, leads
-with the description, and collects the guardrails into one short delimited `Critically:`
-clause at the end. A single delimited constraint is what the guides tolerate; negation
-scattered through the prompt is what they warn about.
+**The canon does not bend to suit a model, and never should.** The conversion happens in
+the prompt layer: lead with the affirmative description, and collect the guardrails into
+one short delimited clause at the end — `Critically: …`. A single delimited constraint is
+what the guides tolerate; negation scattered through the prompt is what they warn about.
+
+`render_sheet.py` used to perform that conversion automatically. It no longer does, so it
+is now done by hand when a prompt is written. The rule is unchanged; only its enforcement
+moved from a script to a person.
 
 ### Aspect ratio does not come from the prompt
 
@@ -379,16 +387,17 @@ parameter**, not prose: read the model's schema with `creative_get_model_schema`
 it with `creative_update_node`. This matters most for the turnaround slots, which are
 specified `1:2` and will otherwise silently come back as landscape.
 
-### Cost, measured
+### Cost and throughput — measured on the abandoned in-repo run
 
-`gemini-3-pro-image` at 1K resolution bills about **12¢ per image**, so a four-variation
-slot is roughly **49¢**. That puts the 22 ready Vanguards at about **$11 for hero images**
-and roughly **$140 for all 13 slots** at four variations each. Dropping the non-hero slots
-to a single variation brings the full roster to around **$45**.
+Kept as a reference figure, not as current practice: the heroes were ultimately authored
+externally, one at a time, and no batch run ever happened from this repository.
 
-### Account limits gate the run
+`gemini-3-pro-image` at 1K resolution billed about **12¢ per image**, so a four-variation
+slot was roughly **49¢** — on the order of **$140 for all 13 slots** across the roster at
+four variations each, or around **$45** with the non-hero slots at a single variation.
 
-The first run stopped after three images: the ElevenLabs account is on the **free plan**,
-which has a daily image cap well below a 22-character batch. Generating the roster needs a
-paid plan. The cap is on image count per day, not on credits, so it cannot be worked
-around by reducing variations — only by spreading the run across days.
+The run that was attempted stopped after three images, on a **free-plan daily image cap**.
+The cap counted images per day rather than credits, so it could not be worked around by
+reducing variations — only by spreading the run across days. That is the practical reason
+a batch pipeline was worth less here than it looks on paper, and part of why the emitter
+was eventually removed rather than fixed.

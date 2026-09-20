@@ -67,7 +67,7 @@ The bible remains the authority on intent, fiction and nuance. These files are t
 
 [`Art_Direction_v0.1.md`](Art_Direction_v0.1.md) carries the house art style, the signature colours and the pipeline.
 
-The prompts themselves are **generated**, not written down: `render_sheet.py --prompts <id>` emits one per image slot with that Vanguard's appearance, colour and antagonist direction already injected from canon, so a rename or rewrite updates them automatically. `--missing` lists outstanding art as a work order.
+Artwork is authored outside this repository and the finished file is dropped into `ConceptArt/Vanguards/<id>/`; `render_sheet.py --all` then re-renders the sheets and `--missing` lists which slots still have no art. Prompts are written by hand from the Character Bible paragraph, the signature-colour table and the model notes in the Art Direction document — the emitter that used to build them was removed once the roster was complete.
 
 Text is never baked into the artwork — [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) composes it from canon at render time.
 

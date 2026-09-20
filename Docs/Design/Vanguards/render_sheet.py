@@ -3,18 +3,22 @@
 
     python3 Docs/Design/Vanguards/render_sheet.py bryn          # render one sheet
     python3 Docs/Design/Vanguards/render_sheet.py --all         # render all 25
-    python3 Docs/Design/Vanguards/render_sheet.py --prompts bryn  # art prompts for one
-    python3 Docs/Design/Vanguards/render_sheet.py --missing       # what art is outstanding
-    python3 Docs/Design/Vanguards/render_sheet.py --audit         # appearance text that splits badly
+    python3 Docs/Design/Vanguards/render_sheet.py --missing      # which slots have no art yet
 
 Text is read at render time from the Character Bible and the Vanguard YAML.
 Nothing is duplicated into a third place and nothing is typed by hand, so a
 canon change is picked up by re-running this rather than by re-rendering
 artwork and re-proofreading it.
 
-Artwork is deliberately NOT part of the output. Each image region renders as a
-labelled slot naming what belongs there and at what aspect, so the sheet
-doubles as the brief for the art that fills it.
+Artwork is authored elsewhere and dropped into ConceptArt/Vanguards/<id>/. A
+slot with a file shows it; a slot without one renders as a labelled placeholder
+naming what belongs there and at what aspect, so the sheet doubles as the brief
+for the art that will fill it.
+
+This tool never bakes text into an image and never generates one. Both halves
+matter: text baked into artwork cannot be diffed, validated or corrected, which
+is exactly how the superseded sheets under ConceptArt/Characters/ drifted from
+canon.
 """
 from __future__ import annotations
 
@@ -95,7 +99,7 @@ HUE_BY_ID = {
 # Every image the sheet can hold: file stem, label, aspect, and what it must show.
 # The renderer fills a slot when ConceptArt/Vanguards/<id>/<stem>.webp exists and
 # renders a labelled placeholder when it does not, so the sheet doubles as the
-# art work order. `--prompts` emits a ready-to-run prompt per slot.
+# art work order: each empty slot states on the sheet what belongs in it.
 SLOTS = [
     ("hero",    "Hero illustration", "16:9", "hero",
      "Full-figure hero illustration. The character occupies the frame, lit by the signature "
@@ -137,9 +141,8 @@ SLOTS = [
 # artwork. A generated picture of a gameplay camera is a guess about a build that
 # does not exist yet, and the one thing these slots are for — whether the
 # silhouette actually reads at gameplay distance — is the one thing such a guess
-# cannot answer. They stay empty until there is a build to capture from, so
-# `--prompts` will not emit a prompt for them and `--missing` counts them apart
-# from the art that is genuinely outstanding.
+# cannot answer. They stay empty until there is a build to capture from, which is
+# why `--missing` counts them apart from art that could be made today.
 CAPTURED = {"idle", "move", "cast", "ult"}
 
 
@@ -404,230 +407,12 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
     return dest
 
 
-# The house style, split by what each slot can actually use. HOUSE_CORE is the idiom and
-# holds everywhere. HOUSE_LIT is dramatic lighting and a full environment, which suits an
-# illustration and directly contradicts a turnaround — those ask for flat even light on a
-# plain background, and emitting both at once told the model to do two opposite things.
-HOUSE_CORE = (
-    "Heavily rendered illustration with physically believable materials: creatures, machines, "
-    "armour, cloth, stone, water and foliage all read physically. Human characters range from "
-    "painterly realism to high-end anime rendering depending on who they are. The whole image is "
-    "built around one saturated signature colour, which drives "
-    "the light and the accents while everything else stays desaturated so that single hue "
-    "carries the picture, and the silhouette stays readable at thumbnail size."
-)
-
-# Which end of that range each human-faced Vanguard sits at.
-#
-# Held here rather than in the appearance paragraph because it is a production choice, not
-# a fact about the character: the bible says who they are, this says how they are drawn.
-# Without it the hero sets the idiom and the other eight slots drift toward the roster
-# average, which is the one thing the hero-first workflow exists to prevent.
-#
-# Author's ruling 2026-09-21: the heroes that came out leaning anime stay that way, so the
-# range is the rule rather than a temporary state. An earlier version of this table was
-# removed when painterly realism looked like a uniform target; that premise is gone and the
-# table is back.
-#
-# Classified by cropping all twelve human faces and comparing them side by side, after
-# Sylra turned out to sit with Mavra rather than with Vera on a direct three-way look.
-# Vanguards with no human face take neither clause: the materials line already covers them.
-ANIME = " This character is rendered as high-end anime illustration: large expressive eyes, smooth shading, stylised proportions."
-PAINTERLY = " This character is rendered in painterly realism: realistic proportions, weathered skin, no anime eye."
-RENDER_BY_ID = {
-    "kade": ANIME, "tavi": ANIME, "vera": ANIME, "marek": ANIME,
-    # Neris moved here when her regenerated hero came back painterly: realistic
-    # proportions, weathered skin, no anime eye. Classified from the new art, not
-    # carried over from the old one.
-    "raska": PAINTERLY, "qazharr": PAINTERLY, "angeru": PAINTERLY, "mavra": PAINTERLY,
-    "sylra": PAINTERLY, "bryn": PAINTERLY, "eudora": PAINTERLY, "neris": PAINTERLY,
-}
-
-
-HOUSE_LIT = (
-    " Strong directional key in the signature colour with an opposing rim light, deep shadows "
-    "and high contrast. The value key follows the character rather than a fixed rule: bright "
-    "open daylight for some, deep night for others. The environment is a full, detailed scene "
-    "held in depth behind the subject, so it enriches the frame while the silhouette still "
-    "reads first."
-)
-
-# Both model families we target warn against negative phrasing — FLUX rejects it outright
-# and inverts it in practice, and the Nano Banana guide lists "heavy use of negative
-# phrasing" under what to avoid. The bible's guardrails are deliberately written as
-# "is X, not Y" because that is the right form for a human art director, so the prompt
-# layer has to do the conversion rather than the canon bending to suit a model.
-#
-# We split the appearance paragraph on that boundary: affirmative sentences become the bulk
-# of the prompt, and the guardrail sentences are collected into one short trailing
-# constraint. A single delimited constraint is what the guides tolerate; a prompt that is
-# one-fifth negation scattered throughout is what they warn about.
-# Detecting negation by listing the words that follow it does not work: the list is
-# never finished, and a miss is silent — the sentence stays in the affirmative body
-# and reaches the model in exactly the form the split exists to prevent. An earlier
-# curated version leaked "not background decoration" (Vera), "does not confer"
-# (Mimzi) and "not another miniature mage" (Celandrine) for precisely that reason.
-# So match the negation itself and let the object of it be anything.
-# Deliberately NOT matched: "rather than" and "instead of". They read as mild
-# comparatives that both model families handle inline, and in these paragraphs they
-# almost always sit mid-sentence after the description that matters — "carried like
-# a service weapon rather than a hunting bow", "She rides a living wave rather than
-# standing on the ground". Routing them would drag Vera's whole physical
-# description and Neris's defining wave into the constraint block. Measured across
-# the roster: 7 sentences would move, and every one is a net loss.
-GUARDRAIL = re.compile(
-    r"\bnot\b"          # covers is/are/does not, and bare "not X" appositives
-    r"|\bnever\b"
-    r"|\bn't\b"
-    r"|\bno\s+\w"       # "no claws", "no skin and no flesh"
-    r"|\bnothing\b"
-    r"|\bavoid\b"
-    r"|\bwithout\b",
-    re.I,
-)
-
-# Rendering constraints that apply to every slot. Kept separate from the character's own
-# guardrails so a sheet never picks up UI furniture, and so the two can be read apart.
-NO_FURNITURE = (
-    "The image carries no UI, watermark, artist signature, stat bar, health bar, ability icon "
-    "or tuning number anywhere in the frame. Lettering exists only where it is part of the "
-    "object itself, such as a unit designation stencilled on a machine's plating."
-)
-
-
-
-
-def _tidy(fragment: str) -> str:
-    """Make a rejoined run of clauses read as a sentence again."""
-    s = re.sub(r"^(?:and|but|or)\s+", "", fragment.strip(), flags=re.I)
-    s = re.sub(r"[\s,;:—-]+$", "", s)
-    if not s:
-        return ""
-    return s[0].upper() + s[1:] + ("" if s[-1] in ".!?" else ".")
-
-
-def split_guardrails(look: str) -> tuple[str, str]:
-    """Separate an appearance paragraph into affirmative description and guardrails.
-
-    Partitioning whole sentences loses too much: the bible often states a
-    character's defining feature and the guardrail against misreading it in one
-    breath, so routing the sentence by its negation took Vera's spectral firing
-    ranks, Torr's floating gaps and Relay's banner out of the description
-    entirely. Clauses are the right unit — the affirmative half stays in the
-    subject, the negative half moves to the constraint, and neither is lost.
-    """
-    body: list[str] = []
-    rails: list[str] = []
-    for sentence in re.split(r"(?<=[.!?])\s+", look.strip()):
-        if not sentence:
-            continue
-        hit = GUARDRAIL.search(sentence)
-        if not hit:
-            body.append(sentence)
-            continue
-        # A negation governs everything after it, across commas: "not welded or
-        # bolted — never draw him as a solid statue, a suit of armour, or a
-        # seamless rock body" is one constraint, not a constraint followed by two
-        # descriptions. Routing those trailing items separately asserted exactly
-        # what the guardrail forbids, so the cut is made AT the first negation and
-        # the whole tail goes with it.
-        head, tail = sentence[:hit.start()], sentence[hit.start():]
-        # Cut only where the negation begins a clause. A negation buried inside
-        # one is doing descriptive work ("survived a war he was never built
-        # for"), and splitting there leaves a mangled fragment on both sides —
-        # that exact sentence put "survived a war he was." into Relay's prompt.
-        # Where the cut is unsafe the whole sentence goes to the constraint:
-        # affirmative content may move, but nothing is ever severed mid-clause.
-        at_clause_start = re.search(r"[,;:—-]\s*$", head) is not None
-        # A head too short to stand alone ("His own face" before "never becomes
-        # frightening") is part of the constraint, not a description of its own.
-        if at_clause_start and len(head.split()) >= 5:
-            body.append(_tidy(head))
-            rails.append(_tidy(tail))
-        else:
-            rails.append(sentence)
-    return " ".join(filter(None, body)), " ".join(filter(None, rails))
-
-# Art direction for the four antagonists. The note is the point: none of them is
-# cruel, and lighting them like a villain would misread the writing.
-ANTAGONIST = {
-    "angeru": "Composed, methodical, unhurried; his expression stays flat whatever his body "
-              "is doing.",
-    "marek": "Delighted, curious, entirely unbothered. Whatever is behind or beside him should read "
-             "as worse than he does.",
-    "gorraveth": "Vicious and impatient in the moment, and indifferent about who is standing "
-                 "nearby. He is working a contract; the armour is mining armour and the "
-                 "cleavers are repurposed tools.",
-    "tavi": "Bright, warm, genuinely happy. Nothing in the lighting or framing signals danger. "
-            "That is the point — do not make her sinister.",
-}
-
-
-def prompts(vid: str) -> None:
-    """Emit a ready-to-run art prompt per slot, with this Vanguard's canon injected."""
-    src = next(HERE.glob(f"*-{vid}.yaml"), None)
-    if src is None:
-        sys.exit(f"no Vanguard data file for {vid!r}")
-    d = yaml.safe_load(src.read_text(encoding="utf-8"))
-    sec = parse_section(bible_section(d["roster_number"]))
-    look = (sec["fields"].get("Visual language") or sec["fields"].get("Visual")
-            or "No appearance paragraph in the bible — write one before generating art.")
-    look = re.sub(r"\*\*(.+?)\*\*", r"\1", look)
-    hue = HUE_BY_ID.get(vid) or HUE.get(d["origin_region"], "#9aa4ad")
-    who = f"{d['name']}" + (f", {d['title']}" if d.get("title") else "")
-
-    print(f"# Art prompts — {who}")
-    print(f"# Region {d['origin_region']} · signature colour {hue} · nature {d['nature']}")
-    print(f"# Save each result to ConceptArt/Vanguards/{vid}/<stem>.webp, then re-render the sheet.\n")
-    print("# WORKFLOW: generate `hero` first and choose one of its variations. Feed that image")
-    print("# back as a reference for the eight generated slots below — that is what holds")
-    print("# the character consistent. Without it you get eight different people.")
-    print("# The four in-game views are captured from the running game, not generated.")
-    print("# Models: text-to-image for hero; a reference-driven model for the rest.\n")
-    if vid in ANTAGONIST:
-        print(f"# ANTAGONIST DIRECTION: {ANTAGONIST[vid]}\n")
-
-    described, rails = split_guardrails(look)
-    if vid in ANTAGONIST:
-        a_keep, a_rails = split_guardrails(ANTAGONIST[vid])
-        described = f"{described} {a_keep}".strip()
-        rails = f"{rails} {a_rails}".strip()
-
-    for stem, label, asp, grp, desc in SLOTS:
-        print(f"--- {stem}.png  ({label}, {asp}) " + "-" * max(0, 46 - len(stem) - len(label)))
-        if stem in CAPTURED:
-            print("CAPTURED IN ENGINE — no prompt. This view is a screenshot of the running")
-            print("game, taken once there is a build to take it from. Generating a picture of")
-            print("a gameplay camera would answer the one question this slot exists to ask")
-            print("(does the silhouette read at that distance?) with a guess.\n")
-            continue
-        if stem != "hero":
-            print("Reference 1 is the approved hero image, and provides this character's identity,")
-            print("proportions, materials, palette and equipment. Preserve all of those exactly.")
-        # "Region environment" is meaningless to a model that has never heard of Veyra,
-        # so the region and locality are substituted in rather than referred to.
-        region, local = d["origin_region"], d.get("origin_locality")
-        # A few Vanguards have a deliberately unplaced origin; naming it twice reads as
-        # a bug in the prompt rather than as canon.
-        where = local if region.lower() == "unknown" and local else region
-        if local and where != local:
-            where = f"{local}, {region}"
-        shot = desc.replace("Region environment", f"The {where} environment is")
-        # Subject first, then the shot, then style, then one delimited constraint —
-        # the order both model guides ask for, and the reason the style block is no
-        # longer a trailing keyword dump receiving the least attention weight.
-        print(f"{who}. {described}\n\n{shot}\n\n"
-              f"Style: {HOUSE_CORE}{RENDER_BY_ID.get(vid, '')}"
-              f"{'' if grp == 'turn' else HOUSE_LIT} "
-              f"The signature colour is hex {hue}.\n\n"
-              f"Critically: {rails} {NO_FURNITURE}\n\nAspect ratio {asp}.\n")
-
-
 def missing(ids: list[str]) -> None:
-    """List the art each Vanguard still needs, as a work order.
+    """List which sheet slots each Vanguard still has no art for.
 
-    Generated artwork and in-engine captures are counted separately: only the
-    former is a commission anyone can act on today.
+    Authored artwork and in-engine captures are counted separately: the second
+    group cannot be filled at all until there is a build to capture from, so
+    counting them together would overstate what is outstanding today.
     """
     gen_total = cap_total = 0
     generate_n = len([s for s, *_ in SLOTS if s not in CAPTURED])
@@ -638,14 +423,14 @@ def missing(ids: list[str]) -> None:
         cap = [s for s in gaps if s in CAPTURED]
         gen_total += len(gen)
         cap_total += len(cap)
-        state = "art complete" if not gen else f"{len(gen)}/{generate_n} to generate: " + " ".join(gen)
+        state = "art complete" if not gen else f"{len(gen)}/{generate_n} outstanding: " + " ".join(gen)
         if cap:
             state += f"   (+{len(cap)} awaiting capture)"
         print(f"  {vid:<12} {state}")
-    print(f"\n  {gen_total} images to generate across {len(ids)} Vanguards.")
+    print(f"\n  {gen_total} images outstanding across {len(ids)} Vanguards.")
     print(f"  {cap_total} in-game views awaiting a build to capture from.")
 
-    # Which heroes are the author's rather than the machine's. Derived from the files
+    # Which heroes carry authored replacement art. Derived from the files
     # rather than kept as a list in prose: the same count was maintained by hand in
     # Art_Direction_v0.1.md and drifted twice in a day, which is the exact failure that
     # document tells everyone else to avoid.
@@ -656,53 +441,6 @@ def missing(ids: list[str]) -> None:
         print("    " + " ".join(authored))
 
 
-def audit(ids: list[str]) -> int:
-    """Report appearance sentences that lose description to the constraint block.
-
-    `split_guardrails` only splits a sentence where the negation begins a clause and
-    the affirmative head can stand alone. Everywhere else the whole sentence goes to
-    the constraint, which is safe but silent: a sentence like "He is a living riverbed
-    in motion and never resolves into a face" puts its best description into a block
-    the prompt reads as a list of prohibitions.
-
-    Nothing here is a bug in the splitter. It is a writing rule the bible already
-    states — put the negation at the start of a clause — and this is what surfaces
-    breaches of it. Advisory only: it reports candidates and leaves the judgement to
-    a reader, because it cannot tell description from the subject of a constraint.
-    """
-    flagged = 0
-    for vid in ids:
-        src = next(HERE.glob(f"*-{vid}.yaml"), None)
-        if src is None:
-            continue
-        d = yaml.safe_load(src.read_text(encoding="utf-8"))
-        sec = parse_section(bible_section(d["roster_number"]))
-        look = re.sub(r"\*\*(.+?)\*\*", r"\1", sec["fields"].get("Visual language") or "")
-        for sentence in re.split(r"(?<=[.!?])\s+", look.strip()):
-            hit = GUARDRAIL.search(sentence)
-            if not hit:
-                continue
-            head = sentence[:hit.start()]
-            if re.search(r"[,;:—-]\s*$", head) and len(head.split()) >= 5:
-                continue
-            # A head this short is the subject of a purely negative statement, which
-            # belongs in the constraint whole. Longer means description went with it.
-            if len(head.split()) < 5:
-                continue
-            flagged += 1
-            print(f"  {vid}: {len(head.split())} words went to the constraint block with the negation")
-            print(f"      \"{head.strip()}\" …")
-            print()
-    if flagged:
-        print(f"  {flagged} sentence(s) to review. This flags candidates, it does not judge them:")
-        print("  a long head can be description that was lost, or simply the subject of a")
-        print("  constraint, which belongs in the constraint whole. Read it and decide. Where")
-        print("  it is description, end the sentence before the negation.")
-    else:
-        print("  Clean: every appearance paragraph splits without losing description.")
-    return 0
-
-
 def main() -> int:
     args = sys.argv[1:]
     if not args:
@@ -710,15 +448,9 @@ def main() -> int:
         return 1
     everything = [p.stem.split("-", 1)[1] for p in sorted(HERE.glob("*.yaml"))]
 
-    if args[0] == "--prompts":
-        for vid in (everything if args[1:2] == ["--all"] else args[1:]):
-            prompts(vid)
-        return 0
     if args[0] == "--missing":
         missing(everything if len(args) == 1 else args[1:])
         return 0
-    if args[0] == "--audit":
-        return audit(everything if len(args) == 1 else args[1:])
 
     for vid in (everything if args[0] == "--all" else args):
         print(f"  {render(vid)}")

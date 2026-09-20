@@ -58,7 +58,7 @@ These documents describe working game design, not immutable implementation contr
 
 Current Vanguard artwork lives under [`ConceptArt/Vanguards/`](ConceptArt/Vanguards/), one directory per Vanguard. All **25 currently designed Vanguards** have an authored hero image, and each one's appearance paragraph in the Character Bible has been reconciled with it.
 
-Sheets themselves are **generated from canon** rather than drawn with their text baked in: [`Docs/Design/Vanguards/render_sheet.py`](Docs/Design/Vanguards/render_sheet.py) composes each sheet at render time, emits the per-slot art prompts (`--prompts <id>`), reports outstanding artwork (`--missing`), and checks that appearance text splits cleanly into description and constraints (`--audit`). The house style and the reasoning behind the pipeline are in [`Docs/Design/Art_Direction_v0.1.md`](Docs/Design/Art_Direction_v0.1.md).
+Sheets themselves are **generated from canon** rather than drawn with their text baked in: [`Docs/Design/Vanguards/render_sheet.py`](Docs/Design/Vanguards/render_sheet.py) composes each sheet's text at render time (`--all`), fills each image slot from whatever artwork is present, and reports which slots are still empty (`--missing`). It never generates artwork — the hero images are authored separately and dropped in. The house style and the reasoning behind it are in [`Docs/Design/Art_Direction_v0.1.md`](Docs/Design/Art_Direction_v0.1.md).
 
 The earlier baked-text sheets are retained as historical reference under [`ConceptArt/Characters/`](ConceptArt/Characters/) and are **no longer current**; see that directory's README before using any of them.
 

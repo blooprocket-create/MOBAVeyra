@@ -20,8 +20,8 @@ quietly becomes the spec. Text that cannot be diffed, validated or corrected wil
 and several of these did.
 
 [`Vanguards/render_sheet.py`](../../Docs/Design/Vanguards/render_sheet.py) now composes every sheet
-from canon at render time and generates the art prompts, so only the artwork is generated and the
-text can never go stale against the bible.
+from canon at render time and fills each image slot from a file, so the artwork and the text are
+produced separately and the text can never go stale against the bible.
 
 Two of the filenames here also carry **superseded character names** — `Tavra_The_Harbor_Gun` is
 Bryn, and `Vitra_The_Last_Light` is Oriel. They are left as-is rather than renamed, because the

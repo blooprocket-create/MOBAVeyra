@@ -6,10 +6,10 @@ authored hero image, and each one's `**Visual language:**` paragraph in the Char
 reconciled against it.
 
 **This directory holds artwork only.** No text is baked into these images. Sheets are composed from
-canon at render time by [`render_sheet.py`](../../Docs/Design/Vanguards/render_sheet.py), which also
-generates the art prompts — so a rename or a rewrite in the bible updates the brief automatically
-and artwork can never carry a stale ability name or a tuning value. The superseded sheets in
-[`../Characters/`](../Characters/) are what happens without that separation.
+canon at render time by [`render_sheet.py`](../../Docs/Design/Vanguards/render_sheet.py), so a
+rename or a rewrite in the bible reaches the sheet on the next render and artwork can never carry a
+stale ability name or a tuning value. The superseded sheets in [`../Characters/`](../Characters/)
+are what happens without that separation.
 
 ## File names
 
@@ -55,10 +55,12 @@ views awaiting a build to capture from.
 trick to consistency; without a reference the eight slots produce eight different people wearing
 similar clothes.
 
-Prompts come from canon, not from this file:
+Prompts are written by hand, outside this repository. Nothing here generates them: the renderer
+owns the sheet's text and fills a slot from whatever image file is present.
 
 ```
-python3 Docs/Design/Vanguards/render_sheet.py --prompts <id>
+python3 Docs/Design/Vanguards/render_sheet.py --all       # re-render the sheets
+python3 Docs/Design/Vanguards/render_sheet.py --missing    # which slots have no art yet
 ```
 
 House style, the signature-colour table, the per-character rendering idiom and the measured
