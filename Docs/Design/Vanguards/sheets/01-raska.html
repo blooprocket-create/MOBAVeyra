@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Raska — Vanguard sheet</title>
+<style>
+:root { --hue: #c4552b; --bg:#0c0d10; --panel:#141619; --line:#24272c;
+         --ink:#e8e6e3; --dim:#9aa0a8; --faint:#6a7078; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink);
+        font:15px/1.55 "Inter","Helvetica Neue",Arial,sans-serif; }
+.sheet { max-width:1220px; margin:0 auto; padding:34px; }
+h1,h2,h3,h4 { font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+               margin:0; font-weight:600; }
+h1 { font-size:58px; letter-spacing:.5px; line-height:1; }
+.title { color:var(--hue); font-size:19px; letter-spacing:3.5px;
+          text-transform:uppercase; margin-top:9px; }
+.grid { display:grid; gap:16px; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:18px 20px; }
+.label { font-size:10px; letter-spacing:2.4px; text-transform:uppercase;
+          color:var(--faint); margin-bottom:11px; }
+.top { grid-template-columns:1.08fr 1fr; align-items:start; }
+.meta { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
+.meta div { padding:0 14px; border-left:1px solid var(--line); }
+.meta div:first-child { padding-left:0; border-left:0; }
+.meta b { display:block; font-size:10px; letter-spacing:2px; color:var(--faint);
+           text-transform:uppercase; margin-bottom:5px; }
+.meta span { font-family:Georgia,serif; font-size:17px; }
+.slot { border:1px dashed #333840; border-radius:3px; display:flex; flex-direction:column;
+         align-items:center; justify-content:center; text-align:center; gap:5px;
+         color:var(--faint); background:
+           repeating-linear-gradient(135deg,transparent,transparent 9px,#121418 9px,#121418 18px); }
+.slot-label { font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:#79808a; }
+.slot-file { font-size:10px; color:#41464d; font-family:ui-monospace,Menlo,monospace; }
+.slot.filled { border:1px solid var(--line); background:#0f1114; overflow:hidden; padding:0; }
+.slot.filled img { width:100%; height:100%; object-fit:contain; display:block;
+                    background:#0b0c0e; }
+.slot-note { font-size:11px; color:#565c65; max-width:88%; line-height:1.4; }
+.hero { aspect-ratio:16/9; }
+/* An EMPTY hero keeps a shape so the work order has somewhere to sit. A FILLED
+   one takes its aspect from the image instead: generators do not reliably honour
+   a requested ratio, and forcing one either crops the art or letterboxes it. */
+.hero.filled { aspect-ratio:auto; }
+.hero.filled img { height:auto; }
+.turn { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.turn .slot { aspect-ratio:1/2; }
+.views, .details { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.views .slot, .details .slot { aspect-ratio:1/1; }
+.mid { grid-template-columns:1.5fr 1fr; }
+.abilities { display:grid; gap:13px; }
+.ability { border-left:2px solid var(--hue); padding-left:13px; }
+.ability-head { display:flex; align-items:baseline; gap:9px; margin-bottom:5px; }
+.key { background:var(--hue); color:#0b0c0e; font-size:11px; font-weight:700;
+        padding:2px 7px; border-radius:2px; letter-spacing:1px; }
+.ability h4 { font-size:17px; }
+.ability p { margin:5px 0; color:var(--dim); font-size:13.5px; }
+.chip { display:inline-block; background:#1c1f24; border:1px solid var(--line);
+         color:var(--dim); font-size:11.5px; padding:3px 9px; border-radius:2px;
+         margin:0 5px 5px 0; letter-spacing:.3px; }
+.profile dt { font-size:10px; letter-spacing:2px; text-transform:uppercase;
+               color:var(--faint); margin-top:13px; }
+.profile dt:first-child { margin-top:0; }
+.profile dd { margin:5px 0 0; }
+ul { margin:0; padding-left:17px; }
+li { margin:6px 0; color:var(--dim); font-size:13px; }
+.none { color:#4e545c; font-style:italic; }
+blockquote { margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
+              font-style:italic; color:var(--dim); border-left:2px solid var(--hue); padding-left:16px; }
+.lore p { color:var(--dim); font-size:13.5px; margin:0 0 10px; }
+.prov { margin-top:22px; padding-top:14px; border-top:1px solid var(--line);
+         color:#565c65; font-size:11.5px; line-height:1.7; }
+.prov strong { color:#79808a; font-weight:600; }
+.warn { border-left:2px solid var(--hue); padding-left:12px; color:#9aa0a8; font-size:12.5px; }
+</style></head><body><div class="sheet">
+
+<div class="grid top">
+  <div>
+    <h1>Raska</h1>
+    <div class="title">The Redline</div>
+  </div>
+  <div class="panel"><div class="meta">
+    <div><b>Role</b><span>Bruiser / Skirmisher</span></div>
+    <div><b>Nature</b><span>Human</span></div>
+    <div><b>Region</b><span>Iron March</span></div>
+  </div></div>
+</div>
+
+<div style="margin-top:16px"><div class='slot filled hero'><img src='../../../../ConceptArt/Vanguards/raska/hero.webp' alt='Hero illustration'></div></div>
+
+<div class="grid mid" style="margin-top:16px">
+    <div class="panel lore"><div class="label">Lore</div>
+      <p>Raska is a mechanic, fighter, courier, smuggler, and local folk hero whose motorcycle <strong>Hound</strong> is integral to her fighting style. She and Kade built Hound together: Raska handled the engine/chassis/Flux drive while Kade contributed stabilization, navigation, and inertial-control work.</p><p>Raska should begin relatively weak and become a monstrous late-game threat through items and Health scaling rather than having an oppressive natural early-game damage profile.</p>
+    </div>
+    <div class="panel"><div class="label">Visual exploration</div>
+      <div class="turn"><div class='slot turn'><span class='slot-label'>Turnaround — front</span><span class='slot-file'>front.png</span></div><div class='slot turn'><span class='slot-label'>Turnaround — back</span><span class='slot-file'>back.png</span></div><div class='slot turn'><span class='slot-label'>Turnaround — side</span><span class='slot-file'>side.png</span></div><div class='slot turn'><span class='slot-label'>Scale silhouette</span><span class='slot-file'>scale.png</span></div></div>
+      <p style="color:var(--dim);font-size:12.5px;margin:13px 0 0">Lean and hard-worked rather than bulky, with long windblown dark auburn hair streaked through with red. She wears a black crop top under an open red-and-oxblood riding jacket carrying a heavy armour plate over one shoulder, dark trousers layered with buckle straps and plated thigh and knee guards, and heavy buckled boots. One forearm is sheathed in a segmented mechanical bracer with an <strong>orange Flux core burning at the wrist</strong> — the coupling that keys her to Hound. Fingerless plated gloves, tattoo work across one upper arm, a pendant at the throat, and grease and road dust worked into her skin. <strong>Hound is the other half of the silhouette</strong>: a massive armoured machine in rust-red and gunmetal, plated bodywork over exposed pipework and cabling, enormous knobbled tyres, and orange Flux light running through its headlight grille, wheel hubs and engine channels. As Momentum builds, that orange climbs through both the bike and her bracer toward white. She and Hound both read as heavy, filthy and hard-used, <strong>never</strong> clean or showroom-fresh, and Hound is a brawler&#x27;s machine built to hit things and keep going rather than a slim racing bike.</p>
+    </div>
+</div>
+
+<div class="grid mid" style="margin-top:16px">
+  <div class="panel"><div class="label">Ability kit</div><div class="abilities"><article class="ability">
+              <div class="ability-head"><span class="key">Passive</span>
+              <h4>Redline</h4></div>
+              <p>Raska builds <strong>Momentum</strong> through movement, attacks, abilities, and especially high-speed riding on Hound.</p><p>At maximum Momentum, her next basic ability becomes <strong>Redlined</strong> and consumes the meter. Mounted actions are basic abilities for this purpose.</p><p>After consuming maximum Momentum, her next basic attack against an enemy Vanguard becomes <strong>Roadhouse</strong>: a lunging strike with bonus physical damage based partly on the target&#x27;s missing Health and potentially bonus-Health scaling. She cannot basic-attack while mounted (Combat Bible §56), so Roadhouse is retained and spent after she leaves the ride state.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">Q</span>
+              <h4>Breakneck</h4></div>
+              <p>Short aggressive lunge/hook interaction.</p><p>A second movement through the target creates a more violent follow-through. Redlined behavior emphasizes heavy impact, armor cracking, and/or knock behavior.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">W</span>
+              <h4>Countersteer</h4></div>
+              <p>Directional defensive brace.</p><p>A successful block/mitigation window creates a counter opportunity. Redlined behavior upgrades the retaliation into stronger control, such as a stun.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">E</span>
+              <h4>Kickstart</h4></div>
+              <p>Hound arrives and Raska enters ride mode.</p><p>While mounted:</p><p>- very high movement speed;
+- ghosting/less unit obstruction;
+- wide turning behavior at high speed;
+- strong Momentum generation.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">R</span>
+              <h4>NO BRAKES</h4></div>
+              <p>Raska enters an extreme Redline ride state.</p><p>Momentum remains full and her speed becomes enormous.</p><p>NO BRAKES grants <strong>Unstoppable</strong> for its duration under Combat Bible §9, Slows included; per §8, Suppression is unaffected by that immunity and remains the ordinary answer to it. The Unstoppable window ends when Last Exit fires.</p>
+            </article></div></div>
+  <div class="grid" style="gap:16px">
+    <div class="panel"><div class="label">Profile</div><dl class="profile">
+      <dt>Damage</dt><dd><span class='chip'>physical</span></dd>
+      <dt>Basic attack</dt><dd><span class='chip'>physical</span><span class='chip'>melee</span></dd>
+      <dt>Resource</dt><dd><span class='chip'>standard</span></dd>
+      <dt>Crowd control</dt><dd><span class='chip'>stun</span><span class='chip'>knockup</span><span class='chip'>knockback</span></dd>
+      <dt>Mobility</dt><dd><span class='chip'>dash</span><span class='chip'>ride</span></dd>
+      <dt>Grants</dt><dd><span class='chip'>movement speed</span></dd>
+      <dt>Stealth</dt><dd><span class="none">none</span></dd>
+    </dl></div>
+    <div class="panel"><div class="label">Owned field entities</div><ul><li><strong>hound</strong> — ride state</li></ul></div>
+    <div class="panel"><div class="label">Vision interaction</div><ul><li class='none'>no vision interaction</li></ul></div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1fr 1fr; margin-top:16px">
+  <div class="panel"><div class="label">In-game views</div><div class="views">
+    <div class='slot view'><span class='slot-label'>In-game — idle</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>idle.png</span></div><div class='slot view'><span class='slot-label'>In-game — move</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>move.png</span></div><div class='slot view'><span class='slot-label'>In-game — cast</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>cast.png</span></div><div class='slot view'><span class='slot-label'>In-game — ultimate</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>ult.png</span></div></div></div>
+  <div class="panel"><div class="label">Details</div><div class="details">
+    <div class='slot detail'><span class='slot-label'>Detail — portrait</span><span class='slot-file'>portrait.png</span></div><div class='slot detail'><span class='slot-label'>Detail — weapon / focus</span><span class='slot-file'>weapon.png</span></div><div class='slot detail'><span class='slot-label'>Detail — material</span><span class='slot-file'>material.png</span></div><div class='slot detail'><span class='slot-label'>Detail — signature element</span><span class='slot-file'>signature.png</span></div></div></div>
+</div>
+
+<div class="panel" style="margin-top:16px"><div class="label">Implementation guards — must survive to code</div><ul><li>Ride mode grants unit ghosting and wide turning behaviour at speed; no mount/vehicle rules exist in any bible (see ADR-003).</li><li>Should start relatively weak and scale late through items and Health, not an oppressive early damage profile.</li><li>Identity guardrail: repeated high-speed passes and controlled recklessness, not a generic puncher with a motorcycle skin.</li></ul></div>
+
+<div class="prov">
+  <strong>Rendered from canon.</strong>
+  Structure: <code>Docs/Design/Vanguards/01-raska.yaml</code>.
+  Narrative and abilities: <code>Veyra_Initial_Roster_Character_Bible_v0.6.md</code> §1.
+  Generated 2026-09-20 by <code>render_sheet.py</code>.<br>
+  No text on this sheet was typed by hand or copied into a third location, and no
+  tuning value appears on it — the data layer rejects both. Re-run the renderer after a
+  canon change; the artwork that fills the slots is unaffected.
+</div>
+</div></body></html>

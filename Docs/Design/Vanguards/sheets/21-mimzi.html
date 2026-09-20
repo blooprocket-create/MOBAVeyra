@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Mimzi — Vanguard sheet</title>
+<style>
+:root { --hue: #7fa650; --bg:#0c0d10; --panel:#141619; --line:#24272c;
+         --ink:#e8e6e3; --dim:#9aa0a8; --faint:#6a7078; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink);
+        font:15px/1.55 "Inter","Helvetica Neue",Arial,sans-serif; }
+.sheet { max-width:1220px; margin:0 auto; padding:34px; }
+h1,h2,h3,h4 { font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+               margin:0; font-weight:600; }
+h1 { font-size:58px; letter-spacing:.5px; line-height:1; }
+.title { color:var(--hue); font-size:19px; letter-spacing:3.5px;
+          text-transform:uppercase; margin-top:9px; }
+.grid { display:grid; gap:16px; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:18px 20px; }
+.label { font-size:10px; letter-spacing:2.4px; text-transform:uppercase;
+          color:var(--faint); margin-bottom:11px; }
+.top { grid-template-columns:1.08fr 1fr; align-items:start; }
+.meta { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
+.meta div { padding:0 14px; border-left:1px solid var(--line); }
+.meta div:first-child { padding-left:0; border-left:0; }
+.meta b { display:block; font-size:10px; letter-spacing:2px; color:var(--faint);
+           text-transform:uppercase; margin-bottom:5px; }
+.meta span { font-family:Georgia,serif; font-size:17px; }
+.slot { border:1px dashed #333840; border-radius:3px; display:flex; flex-direction:column;
+         align-items:center; justify-content:center; text-align:center; gap:5px;
+         color:var(--faint); background:
+           repeating-linear-gradient(135deg,transparent,transparent 9px,#121418 9px,#121418 18px); }
+.slot-label { font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:#79808a; }
+.slot-file { font-size:10px; color:#41464d; font-family:ui-monospace,Menlo,monospace; }
+.slot.filled { border:1px solid var(--line); background:#0f1114; overflow:hidden; padding:0; }
+.slot.filled img { width:100%; height:100%; object-fit:contain; display:block;
+                    background:#0b0c0e; }
+.slot-note { font-size:11px; color:#565c65; max-width:88%; line-height:1.4; }
+.hero { aspect-ratio:16/9; }
+/* An EMPTY hero keeps a shape so the work order has somewhere to sit. A FILLED
+   one takes its aspect from the image instead: generators do not reliably honour
+   a requested ratio, and forcing one either crops the art or letterboxes it. */
+.hero.filled { aspect-ratio:auto; }
+.hero.filled img { height:auto; }
+.turn { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.turn .slot { aspect-ratio:1/2; }
+.views, .details { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.views .slot, .details .slot { aspect-ratio:1/1; }
+.mid { grid-template-columns:1.5fr 1fr; }
+.abilities { display:grid; gap:13px; }
+.ability { border-left:2px solid var(--hue); padding-left:13px; }
+.ability-head { display:flex; align-items:baseline; gap:9px; margin-bottom:5px; }
+.key { background:var(--hue); color:#0b0c0e; font-size:11px; font-weight:700;
+        padding:2px 7px; border-radius:2px; letter-spacing:1px; }
+.ability h4 { font-size:17px; }
+.ability p { margin:5px 0; color:var(--dim); font-size:13.5px; }
+.chip { display:inline-block; background:#1c1f24; border:1px solid var(--line);
+         color:var(--dim); font-size:11.5px; padding:3px 9px; border-radius:2px;
+         margin:0 5px 5px 0; letter-spacing:.3px; }
+.profile dt { font-size:10px; letter-spacing:2px; text-transform:uppercase;
+               color:var(--faint); margin-top:13px; }
+.profile dt:first-child { margin-top:0; }
+.profile dd { margin:5px 0 0; }
+ul { margin:0; padding-left:17px; }
+li { margin:6px 0; color:var(--dim); font-size:13px; }
+.none { color:#4e545c; font-style:italic; }
+blockquote { margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
+              font-style:italic; color:var(--dim); border-left:2px solid var(--hue); padding-left:16px; }
+.lore p { color:var(--dim); font-size:13.5px; margin:0 0 10px; }
+.prov { margin-top:22px; padding-top:14px; border-top:1px solid var(--line);
+         color:#565c65; font-size:11.5px; line-height:1.7; }
+.prov strong { color:#79808a; font-weight:600; }
+.warn { border-left:2px solid var(--hue); padding-left:12px; color:#9aa0a8; font-size:12.5px; }
+</style></head><body><div class="sheet">
+
+<div class="grid top">
+  <div>
+    <h1>Mimzi</h1>
+    <div class="title">The Pocket Hex</div>
+  </div>
+  <div class="panel"><div class="meta">
+    <div><b>Role</b><span>Proc Mage / Ranged Carry / Stealth</span></div>
+    <div><b>Nature</b><span>Bramblekin</span></div>
+    <div><b>Region</b><span>Bramblehollow</span></div>
+  </div></div>
+</div>
+
+<div style="margin-top:16px"><div class='slot filled hero'><img src='../../../../ConceptArt/Vanguards/mimzi/hero.webp' alt='Hero illustration'></div></div>
+
+<div class="grid mid" style="margin-top:16px">
+    <div class="panel lore"><div class="label">Lore</div>
+      <p>Mimzi was raised in a Flux-device repair family in Thistlewick and grew into a brilliant, mischievous trinket-maker. The Tinkertwins started as remote retrieval devices for her parents&#x27; high shelves. Exploring the ancient <strong>Root Vaults</strong> beneath Bramblehollow, she found surviving records that reduced her people&#x27;s ancestors to experimental subject numbers. An attempt to reactivate a sealed machine almost brought the chamber down, but she escaped with salvaged components and an obsession with understanding lost Flux engineering. She left the valley to search for other old machines. Mimzi is an adult who uses technology she personally built; Bramblekin as a whole are not inherently magical or Fluxborn.</p>
+    </div>
+    <div class="panel"><div class="label">Visual exploration</div>
+      <div class="turn"><div class='slot turn'><span class='slot-label'>Turnaround — front</span><span class='slot-file'>front.png</span></div><div class='slot turn'><span class='slot-label'>Turnaround — back</span><span class='slot-file'>back.png</span></div><div class='slot turn'><span class='slot-label'>Turnaround — side</span><span class='slot-file'>side.png</span></div><div class='slot turn'><span class='slot-label'>Scale silhouette</span><span class='slot-file'>scale.png</span></div></div>
+      <p style="color:var(--dim);font-size:12.5px;margin:13px 0 0">Oversized ears, fluffy tail, short muzzle, paw-like hands with opposable thumbs, digitigrade feet, enormous teal hood, long scarf, trinket satchel, and small floating gold-and-blue rings firing star-like bolts. The <strong>Tinkertwins</strong> orbit her hands rather than being held: brass rings set with cut blue crystal, each turning inside a ring of its own light and trailing star-sparks. The hood sits over a teal coat with a brown working harness across it — buckled straps, belt pouches, fingerless gloves, heavy boots — and a long red scarf that is the one hot colour on her. Behind her Bramblehollow: a village built up through a tree canopy on rope bridges and platforms, lanterns strung between them, waterfalls beyond, other Bramblekin going about their day. She is small in frame, which is a readability fact rather than a hitbox advantage — the gameplay rule is held in her implementation guards. Her whole anatomy must read as animal-like, <strong>not</strong> a human with fox ears.</p>
+    </div>
+</div>
+
+<div class="grid mid" style="margin-top:16px">
+  <div class="panel"><div class="label">Ability kit</div><div class="abilities"><article class="ability">
+              <div class="ability-head"><span class="key">Passive</span>
+              <h4>Pocket Hex</h4></div>
+              <p>Basic attacks deal <strong>magic damage</strong>, scaling primarily with Magic Power. A successful basic attack against an enemy Vanguard normally applies <strong>one Hex stack</strong>; a damaging basic ability applies <strong>two</strong>, to a two-stack preparatory cap. Hitting a target that <strong>already has two Hex stacks</strong> with a basic attack consumes them for extra Magic-Power-scaling magic damage. That attack does not also reapply a stack; proc damage does not recursively trigger Hex or stack it. Stacks expire after a short lapse. Three ordinary basic attacks can trigger the proc without spells.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">Q</span>
+              <h4>Twinklebolt</h4></div>
+              <p>Fire one straight-line magic projectile, damaging the first enemy hit. A Vanguard hit gains two Hex stacks, priming the next basic attack.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">W</span>
+              <h4>Winkbomb</h4></div>
+              <p>Toss a miniature trinket into a target area. After a visible delay it explodes for magic area damage and a brief <strong>slow</strong>, applying two Hex stacks to enemy Vanguards hit. Handles wave clear and short-lived area control. It does not create brush or change Dense Fog.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">E</span>
+              <h4>Now You See Me!</h4></div>
+              <p>Enter <strong>Camouflage</strong> for a short duration and gain Movement Speed. Normal close-proximity detection, Sweeper, and other valid reveals still work; starting an attack or offensive cast breaks Camouflage. The <strong>first basic attack after emerging</strong> deals bonus magic damage and applies two Hex stacks instead of one <strong>only if the target was not already primed</strong>; on an already primed target, it consumes the existing two stacks for one normal proc without simultaneously re-priming. E is not Invisibility, Untargetability, a dash, or immunity to launched projectiles. It never overrides Dense Fog acquisition rules.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">R</span>
+              <h4>Grand Prank!</h4></div>
+              <p>Throw both rings into a chosen area for a readable magic explosion and two Hex stacks on each enemy Vanguard hit. For a short empowered window, each <strong>actual Pocket Hex proc from Mimzi&#x27;s basic attack</strong> sends one lower-damage magic bolt to a <strong>nearby legally acquirable enemy Vanguard</strong>. Secondary bolts cannot apply Hex, generate further bolts, recursively trigger Pocket Hex, acquire unseen Vanguards from outside Dense Fog, or grant vision. Damage depends on following up with successful attacks.</p>
+            </article></div></div>
+  <div class="grid" style="gap:16px">
+    <div class="panel"><div class="label">Profile</div><dl class="profile">
+      <dt>Damage</dt><dd><span class='chip'>magic</span></dd>
+      <dt>Basic attack</dt><dd><span class='chip'>magic</span><span class='chip'>ranged</span></dd>
+      <dt>Resource</dt><dd><span class='chip'>standard</span></dd>
+      <dt>Crowd control</dt><dd><span class='chip'>slow</span></dd>
+      <dt>Mobility</dt><dd><span class="none">none</span></dd>
+      <dt>Grants</dt><dd><span class='chip'>movement speed</span></dd>
+      <dt>Stealth</dt><dd><span class='chip'>camouflage</span></dd>
+    </dl></div>
+    <div class="panel"><div class="label">Owned field entities</div><ul><li class='none'>none</li></ul></div>
+    <div class="panel"><div class="label">Vision interaction</div><ul><li><strong>E</strong> — Camouflage</li><li><strong>R</strong> — secondary bolts seek a nearby legally acquirable enemy Vanguard</li></ul></div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1fr 1fr; margin-top:16px">
+  <div class="panel"><div class="label">In-game views</div><div class="views">
+    <div class='slot view'><span class='slot-label'>In-game — idle</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>idle.png</span></div><div class='slot view'><span class='slot-label'>In-game — move</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>move.png</span></div><div class='slot view'><span class='slot-label'>In-game — cast</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>cast.png</span></div><div class='slot view'><span class='slot-label'>In-game — ultimate</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>ult.png</span></div></div></div>
+  <div class="panel"><div class="label">Details</div><div class="details">
+    <div class='slot detail'><span class='slot-label'>Detail — portrait</span><span class='slot-file'>portrait.png</span></div><div class='slot detail'><span class='slot-label'>Detail — weapon / focus</span><span class='slot-file'>weapon.png</span></div><div class='slot detail'><span class='slot-label'>Detail — material</span><span class='slot-file'>material.png</span></div><div class='slot detail'><span class='slot-label'>Detail — signature element</span><span class='slot-file'>signature.png</span></div></div></div>
+</div>
+
+<div class="panel" style="margin-top:16px"><div class="label">Implementation guards — must survive to code</div><ul><li>Basic attacks deal MAGIC damage scaling primarily with Magic Power -- unusual for a ranged carry.</li><li>Basic attack applies one Hex stack; a damaging basic ability applies two, to a two-stack preparatory cap.</li><li>Consuming the proc does not also reapply a stack; proc damage does not recursively trigger or stack Hex.</li><li>The post-Camouflage attack applies two stacks ONLY if the target was not already primed; on a primed target it consumes the existing stacks for one normal proc without re-priming.</li><li>Her tiny visual silhouette confers no hidden hitbox advantage.</li><li>Secondary R bolts cannot apply Hex, generate further bolts, or recursively trigger Pocket Hex.</li></ul></div>
+
+<div class="prov">
+  <strong>Rendered from canon.</strong>
+  Structure: <code>Docs/Design/Vanguards/21-mimzi.yaml</code>.
+  Narrative and abilities: <code>Veyra_Initial_Roster_Character_Bible_v0.6.md</code> §21.
+  Generated 2026-09-20 by <code>render_sheet.py</code>.<br>
+  No text on this sheet was typed by hand or copied into a third location, and no
+  tuning value appears on it — the data layer rejects both. Re-run the renderer after a
+  canon change; the artwork that fills the slots is unaffected.
+</div>
+</div></body></html>

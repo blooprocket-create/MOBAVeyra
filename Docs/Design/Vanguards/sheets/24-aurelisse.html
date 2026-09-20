@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Aurelisse — Vanguard sheet</title>
+<style>
+:root { --hue: #6fc3d4; --bg:#0c0d10; --panel:#141619; --line:#24272c;
+         --ink:#e8e6e3; --dim:#9aa0a8; --faint:#6a7078; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink);
+        font:15px/1.55 "Inter","Helvetica Neue",Arial,sans-serif; }
+.sheet { max-width:1220px; margin:0 auto; padding:34px; }
+h1,h2,h3,h4 { font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+               margin:0; font-weight:600; }
+h1 { font-size:58px; letter-spacing:.5px; line-height:1; }
+.title { color:var(--hue); font-size:19px; letter-spacing:3.5px;
+          text-transform:uppercase; margin-top:9px; }
+.grid { display:grid; gap:16px; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:18px 20px; }
+.label { font-size:10px; letter-spacing:2.4px; text-transform:uppercase;
+          color:var(--faint); margin-bottom:11px; }
+.top { grid-template-columns:1.08fr 1fr; align-items:start; }
+.meta { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
+.meta div { padding:0 14px; border-left:1px solid var(--line); }
+.meta div:first-child { padding-left:0; border-left:0; }
+.meta b { display:block; font-size:10px; letter-spacing:2px; color:var(--faint);
+           text-transform:uppercase; margin-bottom:5px; }
+.meta span { font-family:Georgia,serif; font-size:17px; }
+.slot { border:1px dashed #333840; border-radius:3px; display:flex; flex-direction:column;
+         align-items:center; justify-content:center; text-align:center; gap:5px;
+         color:var(--faint); background:
+           repeating-linear-gradient(135deg,transparent,transparent 9px,#121418 9px,#121418 18px); }
+.slot-label { font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:#79808a; }
+.slot-file { font-size:10px; color:#41464d; font-family:ui-monospace,Menlo,monospace; }
+.slot.filled { border:1px solid var(--line); background:#0f1114; overflow:hidden; padding:0; }
+.slot.filled img { width:100%; height:100%; object-fit:contain; display:block;
+                    background:#0b0c0e; }
+.slot-note { font-size:11px; color:#565c65; max-width:88%; line-height:1.4; }
+.hero { aspect-ratio:16/9; }
+/* An EMPTY hero keeps a shape so the work order has somewhere to sit. A FILLED
+   one takes its aspect from the image instead: generators do not reliably honour
+   a requested ratio, and forcing one either crops the art or letterboxes it. */
+.hero.filled { aspect-ratio:auto; }
+.hero.filled img { height:auto; }
+.turn { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.turn .slot { aspect-ratio:1/2; }
+.views, .details { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.views .slot, .details .slot { aspect-ratio:1/1; }
+.mid { grid-template-columns:1.5fr 1fr; }
+.abilities { display:grid; gap:13px; }
+.ability { border-left:2px solid var(--hue); padding-left:13px; }
+.ability-head { display:flex; align-items:baseline; gap:9px; margin-bottom:5px; }
+.key { background:var(--hue); color:#0b0c0e; font-size:11px; font-weight:700;
+        padding:2px 7px; border-radius:2px; letter-spacing:1px; }
+.ability h4 { font-size:17px; }
+.ability p { margin:5px 0; color:var(--dim); font-size:13.5px; }
+.chip { display:inline-block; background:#1c1f24; border:1px solid var(--line);
+         color:var(--dim); font-size:11.5px; padding:3px 9px; border-radius:2px;
+         margin:0 5px 5px 0; letter-spacing:.3px; }
+.profile dt { font-size:10px; letter-spacing:2px; text-transform:uppercase;
+               color:var(--faint); margin-top:13px; }
+.profile dt:first-child { margin-top:0; }
+.profile dd { margin:5px 0 0; }
+ul { margin:0; padding-left:17px; }
+li { margin:6px 0; color:var(--dim); font-size:13px; }
+.none { color:#4e545c; font-style:italic; }
+blockquote { margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
+              font-style:italic; color:var(--dim); border-left:2px solid var(--hue); padding-left:16px; }
+.lore p { color:var(--dim); font-size:13.5px; margin:0 0 10px; }
+.prov { margin-top:22px; padding-top:14px; border-top:1px solid var(--line);
+         color:#565c65; font-size:11.5px; line-height:1.7; }
+.prov strong { color:#79808a; font-weight:600; }
+.warn { border-left:2px solid var(--hue); padding-left:12px; color:#9aa0a8; font-size:12.5px; }
+</style></head><body><div class="sheet">
+
+<div class="grid top">
+  <div>
+    <h1>Aurelisse</h1>
+    <div class="title">The Open Sky</div>
+  </div>
+  <div class="panel"><div class="meta">
+    <div><b>Role</b><span>Enchanter / Protector</span></div>
+    <div><b>Nature</b><span>Elemental</span></div>
+    <div><b>Region</b><span>Shatterdeep</span></div>
+  </div></div>
+</div>
+
+<div style="margin-top:16px"><div class='slot filled hero'><img src='../../../../ConceptArt/Vanguards/aurelisse/hero.webp' alt='Hero illustration'></div></div>
+
+<div class="grid mid" style="margin-top:16px">
+    <div class="panel lore"><div class="label">Lore</div>
+      <p>Centuries of wind moving through resonant minerals in Shatterdeep&#x27;s steep canyons produced Aurelisse&#x27;s consciousness. Travelers in storms began hearing chimes just before a passable route opened; local communities hung their own chimes along bridges and cliff paths, and she learned to take a recognizable form to guide people directly. New Flux-related disturbances have begun damaging crossings and changing storm patterns. She followed their source toward the Meridian Crucible to protect travelers. Her natural elemental origin is unrelated to Merrin&#x27;s Echoes or Bramblehollow&#x27;s biological experiments.</p>
+    </div>
+    <div class="panel"><div class="label">Visual exploration</div>
+      <div class="turn"><div class='slot turn'><span class='slot-label'>Turnaround — front</span><span class='slot-file'>front.png</span></div><div class='slot turn'><span class='slot-label'>Turnaround — back</span><span class='slot-file'>back.png</span></div><div class='slot turn'><span class='slot-label'>Turnaround — side</span><span class='slot-file'>side.png</span></div><div class='slot turn'><span class='slot-label'>Scale silhouette</span><span class='slot-file'>scale.png</span></div></div>
+      <p style="color:var(--dim);font-size:12.5px;margin:13px 0 0">A tall, unmistakably nonhuman figure made of shifting translucent air, pale mineral dust, drifting crystals, and flowing cloth; eyes glimmer through a face only suggested by currents. Chimes ring as she casts, and her form may loosen into a compact cyclone. <strong>Brass tube chimes and small blue crystal pendants</strong> hang from her on fine chains, and long white and teal cloth streams away in currents that keep moving after she stops, so her silhouette is horizontal and soft-edged, all ribbon and air. She floats, with the canyon crossings below her: bridges and terraces over cloud, waterfalls falling past floating stone, travellers small on the paths. She is soft cloth and cool air rather than faceted glass in warm gold, which is what keeps her separable from Oriel at distance. She is emergent weather with a mind: <strong>never</strong> a Fluxborn construct, and <strong>never</strong> a Merrin Echo. Gentle, attentive, quietly stubborn, and suddenly forceful when travelers are endangered.</p>
+    </div>
+</div>
+
+<div class="grid mid" style="margin-top:16px">
+  <div class="panel"><div class="label">Ability kit</div><div class="abilities"><article class="ability">
+              <div class="ability-head"><span class="key">Passive</span>
+              <h4>Slipstream</h4></div>
+              <p>When Aurelisse casts an <strong>ally-targeted ability</strong> on an allied Vanguard, create a short-lived, narrow visible current between her and that ally. Allied Vanguards moving <strong>along it toward the protected ally</strong> gain a small Movement Speed benefit. Limited width, duration, and distance; no automatic escape, global speed, or extra vision.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">Q</span>
+              <h4>Crosswind</h4></div>
+              <p>Send a broad directional gust that deals <strong>minor magic damage</strong> and pushes affected enemies a short distance <strong>sideways relative to the gust&#x27;s path</strong>. Angling it correctly peels a diver; angling it poorly pushes enemies out of allied attacks. Normal legal displacement and control mitigation apply.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">W</span>
+              <h4>Rising Current</h4></div>
+              <p>Create a visibly marked updraft at a target position. After a short warning it briefly <strong>knocks up</strong> enemies caught inside, then leaves a short-lived current that gives allies passing through a Movement Speed bonus. An avoidable interruption, not a long lockdown.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">E</span>
+              <h4>Windward</h4></div>
+              <p>Shield <strong>Aurelisse or one allied Vanguard</strong>, granting that recipient a short Movement Speed burst. If the shield absorbs a meaningful amount of damage before expiry, the recipient gets <strong>one additional brief speed burst</strong>, not another shield. An allied target creates Slipstream.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">R</span>
+              <h4>ROOM TO BREATHE</h4></div>
+              <p>Target herself or a <strong>nearby ally</strong>; a circular gust pushes nearby valid enemies <strong>outward once</strong>. For a short period, a wind field follows that ally, granting allies inside a modest limited shield and a Movement Speed bonus <strong>when moving outward from the field&#x27;s center</strong>. It neither repeatedly pushes nor prevents enemy re-entry or grants invulnerability. Timing and positioning matter; it may accidentally push away a target allies were finishing.</p>
+            </article></div></div>
+  <div class="grid" style="gap:16px">
+    <div class="panel"><div class="label">Profile</div><dl class="profile">
+      <dt>Damage</dt><dd><span class='chip'>magic</span><span class='chip'>utility</span></dd>
+      <dt>Basic attack</dt><dd><span class='chip'>magic</span><span class='chip'>ranged</span></dd>
+      <dt>Resource</dt><dd><span class='chip'>standard</span></dd>
+      <dt>Crowd control</dt><dd><span class='chip'>knockup</span><span class='chip'>knockback</span></dd>
+      <dt>Mobility</dt><dd><span class="none">none</span></dd>
+      <dt>Grants</dt><dd><span class='chip'>ally shield</span><span class='chip'>ally movement speed</span><span class='chip'>shield</span><span class='chip'>movement speed</span></dd>
+      <dt>Stealth</dt><dd><span class="none">none</span></dd>
+    </dl></div>
+    <div class="panel"><div class="label">Owned field entities</div><ul><li><strong>slipstream current</strong> — world volume</li><li><strong>rising current</strong> — world volume</li><li><strong>room to breathe field</strong> — world volume</li></ul></div>
+    <div class="panel"><div class="label">Vision interaction</div><ul><li class='none'>no vision interaction</li></ul></div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1fr 1fr; margin-top:16px">
+  <div class="panel"><div class="label">In-game views</div><div class="views">
+    <div class='slot view'><span class='slot-label'>In-game — idle</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>idle.png</span></div><div class='slot view'><span class='slot-label'>In-game — move</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>move.png</span></div><div class='slot view'><span class='slot-label'>In-game — cast</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>cast.png</span></div><div class='slot view'><span class='slot-label'>In-game — ultimate</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>ult.png</span></div></div></div>
+  <div class="panel"><div class="label">Details</div><div class="details">
+    <div class='slot detail'><span class='slot-label'>Detail — portrait</span><span class='slot-file'>portrait.png</span></div><div class='slot detail'><span class='slot-label'>Detail — weapon / focus</span><span class='slot-file'>weapon.png</span></div><div class='slot detail'><span class='slot-label'>Detail — material</span><span class='slot-file'>material.png</span></div><div class='slot detail'><span class='slot-label'>Detail — signature element</span><span class='slot-file'>signature.png</span></div></div></div>
+</div>
+
+<div class="panel" style="margin-top:16px"><div class="label">Implementation guards — must survive to code</div><ul><li>Q pushes enemies SIDEWAYS relative to the gust path; angling it poorly pushes enemies out of allied attacks.</li><li>E&#x27;s repeat reward is ONE additional brief speed burst, NOT a second shield.</li><li>R pushes outward ONCE. It does not repeatedly push, prevent re-entry, or grant invulnerability.</li><li>Q&#x27;s qualifying displacement can activate Kade&#x27;s Tracked passive -- a natural cross-kit interaction, not a named duo bonus.</li><li>Her natural elemental origin is unrelated to Merrin&#x27;s Echoes or Bramblehollow&#x27;s biological experiments.</li></ul></div>
+
+<div class="prov">
+  <strong>Rendered from canon.</strong>
+  Structure: <code>Docs/Design/Vanguards/24-aurelisse.yaml</code>.
+  Narrative and abilities: <code>Veyra_Initial_Roster_Character_Bible_v0.6.md</code> §24.
+  Generated 2026-09-20 by <code>render_sheet.py</code>.<br>
+  No text on this sheet was typed by hand or copied into a third location, and no
+  tuning value appears on it — the data layer rejects both. Re-run the renderer after a
+  canon change; the artwork that fills the slots is unaffected.
+</div>
+</div></body></html>

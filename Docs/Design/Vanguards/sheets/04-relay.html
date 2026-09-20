@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Relay — Vanguard sheet</title>
+<style>
+:root { --hue: #4a8fd4; --bg:#0c0d10; --panel:#141619; --line:#24272c;
+         --ink:#e8e6e3; --dim:#9aa0a8; --faint:#6a7078; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink);
+        font:15px/1.55 "Inter","Helvetica Neue",Arial,sans-serif; }
+.sheet { max-width:1220px; margin:0 auto; padding:34px; }
+h1,h2,h3,h4 { font-family:"Iowan Old Style","Palatino Linotype",Georgia,serif;
+               margin:0; font-weight:600; }
+h1 { font-size:58px; letter-spacing:.5px; line-height:1; }
+.title { color:var(--hue); font-size:19px; letter-spacing:3.5px;
+          text-transform:uppercase; margin-top:9px; }
+.grid { display:grid; gap:16px; }
+.panel { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:18px 20px; }
+.label { font-size:10px; letter-spacing:2.4px; text-transform:uppercase;
+          color:var(--faint); margin-bottom:11px; }
+.top { grid-template-columns:1.08fr 1fr; align-items:start; }
+.meta { display:grid; grid-template-columns:repeat(3,1fr); gap:0; }
+.meta div { padding:0 14px; border-left:1px solid var(--line); }
+.meta div:first-child { padding-left:0; border-left:0; }
+.meta b { display:block; font-size:10px; letter-spacing:2px; color:var(--faint);
+           text-transform:uppercase; margin-bottom:5px; }
+.meta span { font-family:Georgia,serif; font-size:17px; }
+.slot { border:1px dashed #333840; border-radius:3px; display:flex; flex-direction:column;
+         align-items:center; justify-content:center; text-align:center; gap:5px;
+         color:var(--faint); background:
+           repeating-linear-gradient(135deg,transparent,transparent 9px,#121418 9px,#121418 18px); }
+.slot-label { font-size:11px; letter-spacing:1.6px; text-transform:uppercase; color:#79808a; }
+.slot-file { font-size:10px; color:#41464d; font-family:ui-monospace,Menlo,monospace; }
+.slot.filled { border:1px solid var(--line); background:#0f1114; overflow:hidden; padding:0; }
+.slot.filled img { width:100%; height:100%; object-fit:contain; display:block;
+                    background:#0b0c0e; }
+.slot-note { font-size:11px; color:#565c65; max-width:88%; line-height:1.4; }
+.hero { aspect-ratio:16/9; }
+/* An EMPTY hero keeps a shape so the work order has somewhere to sit. A FILLED
+   one takes its aspect from the image instead: generators do not reliably honour
+   a requested ratio, and forcing one either crops the art or letterboxes it. */
+.hero.filled { aspect-ratio:auto; }
+.hero.filled img { height:auto; }
+.turn { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.turn .slot { aspect-ratio:1/2; }
+.views, .details { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
+.views .slot, .details .slot { aspect-ratio:1/1; }
+.mid { grid-template-columns:1.5fr 1fr; }
+.abilities { display:grid; gap:13px; }
+.ability { border-left:2px solid var(--hue); padding-left:13px; }
+.ability-head { display:flex; align-items:baseline; gap:9px; margin-bottom:5px; }
+.key { background:var(--hue); color:#0b0c0e; font-size:11px; font-weight:700;
+        padding:2px 7px; border-radius:2px; letter-spacing:1px; }
+.ability h4 { font-size:17px; }
+.ability p { margin:5px 0; color:var(--dim); font-size:13.5px; }
+.chip { display:inline-block; background:#1c1f24; border:1px solid var(--line);
+         color:var(--dim); font-size:11.5px; padding:3px 9px; border-radius:2px;
+         margin:0 5px 5px 0; letter-spacing:.3px; }
+.profile dt { font-size:10px; letter-spacing:2px; text-transform:uppercase;
+               color:var(--faint); margin-top:13px; }
+.profile dt:first-child { margin-top:0; }
+.profile dd { margin:5px 0 0; }
+ul { margin:0; padding-left:17px; }
+li { margin:6px 0; color:var(--dim); font-size:13px; }
+.none { color:#4e545c; font-style:italic; }
+blockquote { margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
+              font-style:italic; color:var(--dim); border-left:2px solid var(--hue); padding-left:16px; }
+.lore p { color:var(--dim); font-size:13.5px; margin:0 0 10px; }
+.prov { margin-top:22px; padding-top:14px; border-top:1px solid var(--line);
+         color:#565c65; font-size:11.5px; line-height:1.7; }
+.prov strong { color:#79808a; font-weight:600; }
+.warn { border-left:2px solid var(--hue); padding-left:12px; color:#9aa0a8; font-size:12.5px; }
+</style></head><body><div class="sheet">
+
+<div class="grid top">
+  <div>
+    <h1>Relay</h1>
+    <div class="title">The Last Conductor</div>
+  </div>
+  <div class="panel"><div class="meta">
+    <div><b>Role</b><span>Utility</span></div>
+    <div><b>Nature</b><span>Ancient Machine</span></div>
+    <div><b>Region</b><span>Ancient Flux Network</span></div>
+  </div></div>
+</div>
+
+<div style="margin-top:16px"><div class='slot filled hero'><img src='../../../../ConceptArt/Vanguards/relay/hero.webp' alt='Hero illustration'></div></div>
+
+<div class="grid mid" style="margin-top:16px">
+    <div class="panel lore"><div class="label">Lore</div>
+      <p>Relay was not built for war. R-01 was an ancient <strong>Conductor</strong>, a mobile power/maintenance machine used during the network-construction era.</p><p>Buried during the First Fracture, Relay was eventually uncovered and reactivated. His surviving directive is effectively: <strong>restore network</strong>.</p><p>Relay is intelligent, literal, and nurturing rather than a dumb comedy robot.</p>
+      <div class="label" style="margin-top:20px">Scale</div><p><strong>Large</strong> — machine-scale, well above human height, standing among ruins of roughly his own size. The earlier “roughly 3.8m” stays withdrawn: the art shows something clearly bigger. <strong>Corrected 2026-09-21:</strong> my replacement wording, “he towers over the ruins around him”, was also an over-read — the arches beside him reach his head and the towers behind him are taller. His art carries <strong>no reliable scale reference</strong> at all: no figure, no doorway, no standard object, and foreground flowers that are close to the lens rather than large. “Large” is as far as this image can be read, and that is enough (see <strong>Scale is not the bible&#x27;s to fix</strong> below).</p>
+    </div>
+    <div class="panel"><div class="label">Visual exploration</div>
+      <div class="turn"><div class='slot turn'><span class='slot-label'>Turnaround — front</span><span class='slot-file'>front.png</span></div><div class='slot turn'><span class='slot-label'>Turnaround — back</span><span class='slot-file'>back.png</span></div><div class='slot turn'><span class='slot-label'>Turnaround — side</span><span class='slot-file'>side.png</span></div><div class='slot turn'><span class='slot-label'>Scale silhouette</span><span class='slot-file'>scale.png</span></div></div>
+      <p style="color:var(--dim);font-size:12.5px;margin:13px 0 0">A colossal machine of blocky bone-white slab plating over dark exposed mechanism, top-heavy and forward-leaning, <strong>towering over the ruins around him</strong>. The stencilled unit marking <strong>R-01</strong> is still legible on his shoulder plate. A single large ringed <strong>amber optic</strong> is set into his head, with smaller amber points at the chest and hand. His arms are enormous segmented manipulators ending in heavy articulated hands built for lifting and carrying, and a slender antenna mast rises from his back. <strong>Moss and green growth have colonised him</strong> — shoulders, joint housings, forearms and thighs — and a faded crimson expedition banner bearing a pale sigil is still tied to him; someone else left it there and he kept it. He is a maintenance and power machine that outlived the war around him, and the growth on him is old. The hands are manipulators and the mast is an antenna, <strong>never</strong> weapons; he carries no armament of any kind, and the moss is colonisation, not battle damage.</p>
+    </div>
+</div>
+
+<div class="grid mid" style="margin-top:16px">
+  <div class="panel"><div class="label">Ability kit</div><div class="abilities"><article class="ability">
+              <div class="ability-head"><span class="key">Passive</span>
+              <h4>Charger</h4></div>
+              <p>Nearby allied or enemy Fluxborn deaths generate <strong>Charge</strong>.</p><p>Maximum Charge scales with champion level.</p><p>Jungle wildlife does <strong>not</strong> generate Charge.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">Q</span>
+              <h4>Rapid Discharge</h4></div>
+              <p>Target self or ally.</p><p>Spend a percentage of current Charge to grant a finite number of <strong>Overclocked Attacks</strong>, increasing attack speed until the empowered attacks are consumed.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">W</span>
+              <h4>Overcharge</h4></div>
+              <p>For a short duration, Fluxborn deaths generate increased Charge.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">E</span>
+              <h4>Magnetic Field</h4></div>
+              <p>Deploy a field.</p><p>Allies inside gain slow resistance.</p><p>Enemy dashes/displacements inside the field bend or drag slightly toward its center.</p>
+            </article><article class="ability">
+              <div class="ability-head"><span class="key">R</span>
+              <h4>Full Grid</h4></div>
+              <p>Relay anchors and creates a temporary power network while current Charge drains.</p><p>Connected allies gain combat utility; allied basic attacks can reduce the cooldown of their next basic ability slightly.</p><p>Allied Fluxborn inside the network are overclocked with movement/attack-speed benefits.</p>
+            </article></div></div>
+  <div class="grid" style="gap:16px">
+    <div class="panel"><div class="label">Profile</div><dl class="profile">
+      <dt>Damage</dt><dd><span class='chip'>utility</span></dd>
+      <dt>Basic attack</dt><dd><span class='chip'>physical</span><span class='chip'>ranged</span></dd>
+      <dt>Resource</dt><dd><span class='chip'>charge</span></dd>
+      <dt>Crowd control</dt><dd><span class="none">none</span></dd>
+      <dt>Mobility</dt><dd><span class="none">none</span></dd>
+      <dt>Grants</dt><dd><span class='chip'>ally attack speed</span><span class='chip'>ally movement speed</span><span class='chip'>slow resistance</span><span class='chip'>ally cooldown reduction</span></dd>
+      <dt>Stealth</dt><dd><span class="none">none</span></dd>
+    </dl></div>
+    <div class="panel"><div class="label">Owned field entities</div><ul><li><strong>magnetic field</strong> — world volume</li><li><strong>full grid</strong> — world volume</li></ul></div>
+    <div class="panel"><div class="label">Vision interaction</div><ul><li class='none'>no vision interaction</li></ul></div>
+  </div>
+</div>
+
+<div class="grid" style="grid-template-columns:1fr 1fr; margin-top:16px">
+  <div class="panel"><div class="label">In-game views</div><div class="views">
+    <div class='slot view'><span class='slot-label'>In-game — idle</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>idle.png</span></div><div class='slot view'><span class='slot-label'>In-game — move</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>move.png</span></div><div class='slot view'><span class='slot-label'>In-game — cast</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>cast.png</span></div><div class='slot view'><span class='slot-label'>In-game — ultimate</span><span class='slot-note'>Captured in engine, not generated.</span><span class='slot-file'>ult.png</span></div></div></div>
+  <div class="panel"><div class="label">Details</div><div class="details">
+    <div class='slot detail'><span class='slot-label'>Detail — portrait</span><span class='slot-file'>portrait.png</span></div><div class='slot detail'><span class='slot-label'>Detail — weapon / focus</span><span class='slot-file'>weapon.png</span></div><div class='slot detail'><span class='slot-label'>Detail — material</span><span class='slot-file'>material.png</span></div><div class='slot detail'><span class='slot-label'>Detail — signature element</span><span class='slot-file'>signature.png</span></div></div></div>
+</div>
+
+<div class="panel" style="margin-top:16px"><div class="label">Implementation guards — must survive to code</div><ul><li>Jungle wildlife does NOT generate Charge; only Fluxborn deaths do.</li><li>Magnetic Field is movement manipulation, not another generic slow.</li><li>Maximum Charge scales with champion level.</li></ul></div>
+
+<div class="prov">
+  <strong>Rendered from canon.</strong>
+  Structure: <code>Docs/Design/Vanguards/04-relay.yaml</code>.
+  Narrative and abilities: <code>Veyra_Initial_Roster_Character_Bible_v0.6.md</code> §4.
+  Generated 2026-09-20 by <code>render_sheet.py</code>.<br>
+  No text on this sheet was typed by hand or copied into a third location, and no
+  tuning value appears on it — the data layer rejects both. Re-run the renderer after a
+  canon change; the artwork that fills the slots is unaffected.
+</div>
+</div></body></html>

@@ -69,6 +69,8 @@ The bible remains the authority on intent, fiction and nuance. These files are t
 
 Artwork is authored outside this repository and the finished file is dropped into `ConceptArt/Vanguards/<id>/`; `render_sheet.py --all` then re-renders the sheets and `--missing` lists which slots still have no art. Prompts are written by hand from the Character Bible paragraph, the signature-colour table and the model notes in the Art Direction document — the emitter that used to build them was removed once the roster was complete.
 
+All 25 rendered sheets are committed under [`Vanguards/sheets/`](Vanguards/sheets/). They are generated, so they can drift: re-run `render_sheet.py --all` after any change to the Character Bible or the Vanguard YAML, and `git diff` on that directory shows whether the sheets still match canon.
+
 Text is never baked into the artwork — [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) composes it from canon at render time.
 
 ## Concept art is not canon
