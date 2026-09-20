@@ -46,18 +46,18 @@ prevent, so Fluxborn sits one step violet of the network blue.
 
 ## Workflow
 
-**Generate `hero` first, approve one variation, then use that image as a reference for the other twelve.** This is the whole trick to consistency. Without a reference the twelve slots produce twelve different people wearing similar clothes.
+**Generate `hero` first, approve one variation, then use that image as a reference for the other eight.** This is the whole trick to consistency. Without a reference the eight slots produce eight different people wearing similar clothes. (Eight, not twelve: the four in-game views are captured, not generated — see below.)
 
-Use a text-to-image model for the hero and a reference-driven model for everything after it. Save results to `ConceptArt/Vanguards/<id>/<stem>.png` and re-render the sheet; slots fill automatically when the file appears, and show a labelled work order when it does not.
+Use a text-to-image model for the hero and a reference-driven model for everything after it. Save results to `ConceptArt/Vanguards/<id>/<stem>.webp` and re-render the sheet; slots fill automatically when the file appears, and show a labelled work order when they do not. `.png`, `.jpg` and `.webp` all resolve, but WebP is what the repository stores — the heroes were 152 MB as PNG and are 14 MB as WebP.
 
-## The thirteen slots
+## The thirteen slots — nine generated, four captured
 
 | Stem | Aspect | Purpose |
 |---|---|---|
 | `hero` | 16:9 | Full-figure illustration, signature key light, region behind the subject |
 | `front` `back` `side` | 1:2 | Orthographic A-pose turnaround, flat even light, plain background — modelling reference, not illustration |
 | `scale` | 1:2 | Flat silhouette beside a 1.8 m human silhouette |
-| `idle` `move` `cast` `ult` | 1:1 | Three-quarter top-down gameplay camera, silhouette readability first |
+| `idle` `move` `cast` `ult` | 1:1 | Three-quarter top-down gameplay camera, silhouette readability first — **captured in engine, never generated** |
 | `portrait` `weapon` `material` `signature` | 1:1 | Close crops |
 
 ### The hero slot is 16:9, not portrait
@@ -74,7 +74,26 @@ at **42% of its width** with the rest silently cropped — Bryn lost most of her
 cannon. Slots now use `object-fit: contain`, so any future mismatch shows up as
 letterboxing instead of as a missing weapon.
 
-**That is 325 images for the full roster.** If that is too much, the tiering that keeps the sheets useful is: `hero` alone makes a sheet presentable; `hero` + turnaround makes it buildable; the in-game views matter most for characters whose readability is in question; the detail crops are the first thing to cut.
+### The in-game views are captured, not generated
+
+`idle` `move` `cast` `ult` are **screen captures of the running game**, taken once
+there is a build to take them from. A generated picture of a gameplay camera is a
+guess about a build that does not exist, and the one question these slots exist to
+answer — does the silhouette actually read at gameplay distance? — is precisely the
+question a guess cannot answer. `--prompts` refuses to emit prompts for them and
+`--missing` counts them apart from the art that is genuinely outstanding.
+
+That leaves **nine generated slots per Vanguard**, not thirteen.
+
+| | Per Vanguard | Roster of 25 | The 22 with an appearance |
+|---|---|---|---|
+| Generated | 9 | 225 | 198 |
+| Captured in engine | 4 | 100 | 88 |
+
+With the 22 heroes done, **176 generated images remain** for the Vanguards that can
+be generated at all. If that is too much at once, the tiering that keeps the sheets
+useful is: `hero` alone makes a sheet presentable; `hero` + turnaround makes it
+buildable; the detail crops are the first thing to cut.
 
 ## Before generating anything — a blocker
 

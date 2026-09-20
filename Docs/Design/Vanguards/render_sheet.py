@@ -63,7 +63,7 @@ HUE = {
 }
 
 # Every image the sheet can hold: file stem, label, aspect, and what it must show.
-# The renderer fills a slot when ConceptArt/Vanguards/<id>/<stem>.png exists and
+# The renderer fills a slot when ConceptArt/Vanguards/<id>/<stem>.webp exists and
 # renders a labelled placeholder when it does not, so the sheet doubles as the
 # art work order. `--prompts` emits a ready-to-run prompt per slot.
 SLOTS = [
@@ -101,6 +101,16 @@ SLOTS = [
     ("signature", "Detail — signature element", "1:1", "detail",
      "Close crop of the single element that identifies this character at a glance."),
 ]
+
+
+# The four in-game views are screen captures from the running game, not generated
+# artwork. A generated picture of a gameplay camera is a guess about a build that
+# does not exist yet, and the one thing these slots are for — whether the
+# silhouette actually reads at gameplay distance — is the one thing such a guess
+# cannot answer. They stay empty until there is a build to capture from, so
+# `--prompts` will not emit a prompt for them and `--missing` counts them apart
+# from the art that is genuinely outstanding.
+CAPTURED = {"idle", "move", "cast", "ult"}
 
 
 def bible_section(number: int) -> str:
@@ -164,6 +174,8 @@ def slot(vid: str, stem: str, label: str, note: str | None, cls: str) -> str:
             return (f"<div class='slot filled {cls}'>"
                     f"<img src='{html.escape(rel)}' alt='{html.escape(label)}'></div>")
     sub = f"<span class='slot-note'>{html.escape(note)}</span>" if note else ""
+    if stem in CAPTURED:
+        sub += "<span class='slot-note'>Captured in engine, not generated.</span>"
     return (f"<div class='slot {cls}'><span class='slot-label'>{html.escape(label)}</span>{sub}"
             f"<span class='slot-file'>{html.escape(stem)}.png</span></div>")
 
@@ -462,10 +474,11 @@ def prompts(vid: str) -> None:
 
     print(f"# Art prompts — {who}")
     print(f"# Region {d['origin_region']} · signature colour {hue} · nature {d['nature']}")
-    print(f"# Save each result to ConceptArt/Vanguards/{vid}/<stem>.png, then re-render the sheet.\n")
+    print(f"# Save each result to ConceptArt/Vanguards/{vid}/<stem>.webp, then re-render the sheet.\n")
     print("# WORKFLOW: generate `hero` first and choose one of its variations. Feed that image")
-    print("# back as a reference for all twelve remaining slots — that is what holds the")
-    print("# character consistent. Without it you get twelve different people.")
+    print("# back as a reference for the eight generated slots below — that is what holds")
+    print("# the character consistent. Without it you get eight different people.")
+    print("# The four in-game views are captured from the running game, not generated.")
     print("# Models: text-to-image for hero; a reference-driven model for the rest.\n")
     if vid in ANTAGONIST:
         print(f"# ANTAGONIST DIRECTION: {ANTAGONIST[vid]}\n")
@@ -478,6 +491,12 @@ def prompts(vid: str) -> None:
 
     for stem, label, asp, grp, desc in SLOTS:
         print(f"--- {stem}.png  ({label}, {asp}) " + "-" * max(0, 46 - len(stem) - len(label)))
+        if stem in CAPTURED:
+            print("CAPTURED IN ENGINE — no prompt. This view is a screenshot of the running")
+            print("game, taken once there is a build to take it from. Generating a picture of")
+            print("a gameplay camera would answer the one question this slot exists to ask")
+            print("(does the silhouette read at that distance?) with a guess.\n")
+            continue
         if stem != "hero":
             print("Reference 1 is the approved hero image, and provides this character's identity,")
             print("proportions, materials, palette and equipment. Preserve all of those exactly.")
@@ -499,15 +518,26 @@ def prompts(vid: str) -> None:
 
 
 def missing(ids: list[str]) -> None:
-    """List the art each Vanguard still needs, as a work order."""
-    total = 0
+    """List the art each Vanguard still needs, as a work order.
+
+    Generated artwork and in-engine captures are counted separately: only the
+    former is a commission anyone can act on today.
+    """
+    gen_total = cap_total = 0
+    generate_n = len([s for s, *_ in SLOTS if s not in CAPTURED])
     for vid in ids:
         gaps = [stem for stem, *_ in SLOTS
                 if not any((ART / vid / f"{stem}{e}").exists() for e in (".png", ".jpg", ".jpeg", ".webp"))]
-        total += len(gaps)
-        state = "complete" if not gaps else f"{len(gaps)}/{len(SLOTS)} missing: " + " ".join(gaps)
+        gen = [s for s in gaps if s not in CAPTURED]
+        cap = [s for s in gaps if s in CAPTURED]
+        gen_total += len(gen)
+        cap_total += len(cap)
+        state = "art complete" if not gen else f"{len(gen)}/{generate_n} to generate: " + " ".join(gen)
+        if cap:
+            state += f"   (+{len(cap)} awaiting capture)"
         print(f"  {vid:<12} {state}")
-    print(f"\n  {total} images outstanding across {len(ids)} Vanguards.")
+    print(f"\n  {gen_total} images to generate across {len(ids)} Vanguards.")
+    print(f"  {cap_total} in-game views awaiting a build to capture from.")
 
 
 def main() -> int:
