@@ -83,7 +83,7 @@ guards:
   - Follow the Bell improves allied movement without granting additional direct vision.
   - Her Bellcraft tradition is neither Pactcraft nor Wakebound and does not rely on Flux.
 sheet:
-  file: Sylra_The_Mistwarden_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs:
     - F

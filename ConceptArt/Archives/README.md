@@ -9,32 +9,39 @@ or balance work.
 
 Current Vanguard artwork lives one level up in [`../Vanguards/`](../Vanguards/), one directory per
 Vanguard. The rendered sheets that use it live in
-[`../../Docs/Design/Vanguards/sheets/`](../../Docs/Design/Vanguards/sheets/).
+[`../../Docs/Design/Vanguards/sheets/`](../../Docs/Design/Vanguards/sheets/), all 25 committed.
 
 This mirrors [`Docs/Design/Archives/`](../../Docs/Design/Archives/), which does the same job for
 superseded design bibles.
 
 ## Contents
 
-- [`Characters/`](Characters/) — the 22 baked-text character sheets that preceded the current
-  pipeline. Their README explains why they were retired and lists the conflicts each one carried.
+**Empty, deliberately.** The 22 baked-text character sheets that preceded the current pipeline were
+deleted on 2026-09-21, at the author's instruction, once every Vanguard carried authored hero art
+and every conflict the sheets raised had been resolved against it.
 
-## Why they were moved here rather than deleted
+This directory is kept rather than removed because the convention is worth keeping: superseded
+concept art belongs here, beside [`Docs/Design/Archives/`](../../Docs/Design/Archives/) for
+superseded bibles, and not next to current work.
 
-Two reasons, and the second is the important one.
+## What happened to them, and what survives
 
-They are the design's visual history, and the
-[discrepancy register](../../Docs/Design/Sheet_Canon_Discrepancy_Register_v0.1.md) still catalogues
-them entry by entry, so deleting them would strand every reference in it.
+Each Vanguard's YAML records `sheet.status: superseded` with `sheet.file: null`, and keeps its
+`register_refs`. So the record of which sheet carried which conflict is intact even though the
+image is not — the
+[discrepancy register](../../Docs/Design/Sheet_Canon_Discrepancy_Register_v0.1.md) still describes
+every one of them, section by section.
 
-More practically: removing them from the repository does not remove them from it. Git keeps every
-blob any commit ever referenced, so a deletion commit reclaims nothing — only a history rewrite
-does, and one was already performed on this repository to remove genuine third-party material. A
-second rewrite for material Veyra owns outright would invalidate every clone again to save space
-that a shallow clone does not pay for anyway.
+`superseded` is a distinct status from `withdrawn` on purpose. **Withdrawn** is the three sheets
+pulled for third-party content — Raska, Kade and Angeru — which were also stripped from Git
+history. **Superseded** is these twenty-two, retired because better art replaced them. Both end
+with `file: null`, and collapsing them into one label would lose why the file is absent.
 
-**What moving them does achieve** is the thing a README could not. `Characters/` used to sit
-directly beside `Vanguards/`, two sibling directories with no way to tell which was current without
-opening a file. That is the same failure these sheets were retired for: a finished-looking artifact
-is more persuasive than a paragraph of Markdown, so the wrong one gets used. The path now says
-which is which.
+## Deleting them did not reclaim the space, and that is expected
+
+Git keeps every blob any commit referenced, so the roughly 55 MB stays in the pack. Only a history
+rewrite reclaims it, and one is not justified here: the first rewrite existed to remove genuine
+third-party material, and a second one for material Veyra owns outright would invalidate every
+clone to save space that costs nothing to carry.
+
+What the deletion achieves is a working tree that contains only current work.

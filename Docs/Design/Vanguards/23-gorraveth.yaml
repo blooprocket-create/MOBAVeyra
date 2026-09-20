@@ -62,6 +62,6 @@ guards:
     who is not paying and says so to their faces. The old line about helping settlements that cannot pay
     him is REMOVED and must not be restored. He is honest and indifferent, not treacherous.
 sheet:
-  file: Gorraveth_The_Slagmaw_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs: []

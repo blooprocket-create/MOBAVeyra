@@ -54,7 +54,7 @@ Removes three concept-sheet blobs carrying third-party branding and artwork from
 
 > **The paths below are historical and are deliberately not updated.** The surviving sheets moved
 > from `ConceptArt/Characters/` to `ConceptArt/Archives/Characters/` on 2026-09-21, after this purge
-> ran. Every path in this runbook names where content lived *in the history being rewritten*, which
+> ran, and were deleted outright later the same day. Every path in this runbook names where content lived *in the history being rewritten*, which
 > is what the blob-ID derivation and the path check were run against. Rewriting them to the new
 > location would make the commands look right and check nothing.
 
@@ -181,10 +181,10 @@ done
 Confirm nothing else was lost:
 
 ```bash
-# Counts the surviving sheets wherever they now live, so a later move does not
-# turn a clean verification into a false alarm. They were under
-# ConceptArt/Characters/ at rewrite time and are under ConceptArt/Archives/Characters/ now.
-git ls-tree -r HEAD --name-only | grep -c '_Character_Sheet.*\.png'         # expect 22
+# Counted the surviving sheets at rewrite time, wherever they lived. NOTE: those 22
+# sheets were themselves deleted on 2026-09-21, long after this purge, so on the
+# current tree this returns 0. Run it against the rewrite commit, not against HEAD.
+git ls-tree -r HEAD --name-only | grep -c '_Character_Sheet.*\.png'         # expected 22 at the time
 diff <(git -C ../veyra-backup.git ls-tree -r HEAD --name-only) \
      <(git ls-tree -r HEAD --name-only)                                     # expect no output
 ```

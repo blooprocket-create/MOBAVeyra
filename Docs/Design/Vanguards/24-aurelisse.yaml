@@ -67,6 +67,6 @@ guards:
     not a named duo bonus.
   - Her natural elemental origin is unrelated to Merrin's Echoes or Bramblehollow's biological experiments.
 sheet:
-  file: Aurelisse_The_Open_Sky_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs: []

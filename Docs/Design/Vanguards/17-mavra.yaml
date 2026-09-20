@@ -67,7 +67,7 @@ guards:
     must resolve to a defined type.
   - R is not a giant instant burst spell; it creates a place the enemy should have left.
 sheet:
-  file: Mavra_The_Spillwright_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs:
     - F

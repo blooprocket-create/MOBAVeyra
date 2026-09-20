@@ -58,8 +58,8 @@ guards:
     the payout instead.
   - Do not grant Health-to-damage scaling merely because he stacks Health.
 sheet:
-  file: Cairn_The_Rivers_Grasp_Character_Sheet.png
-  status: contradicts_canon
+  file: null
+  status: superseded
   register_refs:
     - B3
     - C

@@ -67,6 +67,6 @@ guards:
   - The server owns Picket's targeting and damage; it has no independent magical vision or fog exception.
   - Do NOT silently assign her Calder's Run as a birthplace.
 sheet:
-  file: Eudora_Blackbridge_The_Fieldwright_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs: []

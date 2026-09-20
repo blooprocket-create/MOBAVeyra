@@ -51,7 +51,7 @@ guards:
   - Cadence stacks decay one at a time after she stops attacking.
   - Name collides with Vitra (register §G).
 sheet:
-  file: Vera_The_Last_Volley_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs:
     - E

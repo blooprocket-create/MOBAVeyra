@@ -62,7 +62,7 @@ guards:
     to reduce the roster's four 'The Last --' titles to three. Archived bible versions retain the former
     name and title.
 sheet:
-  file: Vitra_The_Last_Light_Character_Sheet.png
-  status: incomplete
+  file: null
+  status: superseded
   register_refs:
     - C

@@ -61,7 +61,7 @@ guards:
     a per-target cooldown.
   - 'Shatterforge must remain a real either/or: keep terrain control, or destroy it for immediate impact.'
 sheet:
-  file: Varkesh_The_Forgeheart_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs:
     - E

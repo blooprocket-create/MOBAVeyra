@@ -60,6 +60,6 @@ guards:
   - R enlarges collision/body size and enables physical blocking -- requires a collision-scaling primitive.
   - Passive regeneration requires remaining out of Vanguard combat.
 sheet:
-  file: Torr_The_Unreturned_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs: []

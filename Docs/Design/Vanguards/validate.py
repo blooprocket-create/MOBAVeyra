@@ -89,7 +89,12 @@ LAYOUT = {"standard", "stance", "stance_modal"}
 # Categories established by ADR-003 (Proposed).
 ENTITY_CATEGORY = {"combat_unit", "placed_marker", "world_volume", "ride_state"}
 
-SHEET_STATUS = {"current", "contradicts_canon", "incomplete", "withdrawn", "missing"}
+# `withdrawn` and `superseded` both mean the sheet is gone, for different reasons, and
+# the difference is worth keeping: `withdrawn` is the three pulled for third-party
+# content, `superseded` is the twenty-two retired once authored art replaced them and
+# deleted on 2026-09-21. Collapsing them would lose why a file is absent.
+SHEET_STATUS = {"current", "contradicts_canon", "incomplete", "withdrawn", "superseded", "missing"}
+NO_SHEET = {"withdrawn", "superseded", "missing"}
 VISION_STATUS = {"canon", "unresolved", "needs_classification"}
 
 # --- tuning guard ------------------------------------------------------------
@@ -278,9 +283,9 @@ def main() -> int:
         status = sheet.get("status")
         require(status in SHEET_STATUS, f"{where}: sheet.status {status!r} unknown", errors)
 
-        # withdrawn/missing mean there is no usable sheet; every other status
-        # asserts one exists, so it must be named AND present on disk.
-        if status in ("withdrawn", "missing"):
+        # These mean there is no sheet to look at; every other status asserts one
+        # exists, so it must be named AND present on disk.
+        if status in NO_SHEET:
             require(sheet.get("file") is None,
                     f"{where}: sheet.status {status!r} must have file: null", errors)
         elif status in SHEET_STATUS:
@@ -298,7 +303,11 @@ def main() -> int:
                 require(ref in sections,
                         f"{where}: register_ref {ref!r} is not a section of the discrepancy "
                         f"register (have: {', '.join(sorted(sections))})", errors)
-        if status and status != "current":
+        # A status that asserts a PROBLEM must point at the register section documenting
+        # it. `superseded` asserts no problem -- it means authored art replaced the sheet --
+        # so it is exempt. Five sheets (Torr, Qazharr, Gorraveth, Aurelisse, Eudora) never
+        # had a conflict to record, and requiring a ref would mean inventing one.
+        if status and status not in ("current", "superseded"):
             require(bool(refs),
                     f"{where}: sheet.status {status!r} requires at least one register_ref "
                     f"so the problem is documented", errors)

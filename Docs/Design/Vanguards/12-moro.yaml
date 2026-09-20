@@ -57,7 +57,7 @@ guards:
     principle that the game enforces no role slots. Recorded here as terrain_affinity instead.
   - Intended to be the roster's beginner-friendly kit, though every ability is a skillshot.
 sheet:
-  file: Moro_The_Wildspark_Character_Sheet_v2.png
-  status: incomplete
+  file: null
+  status: superseded
   register_refs:
     - B5

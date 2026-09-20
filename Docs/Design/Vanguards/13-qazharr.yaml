@@ -53,6 +53,6 @@ guards:
   - E is primarily a way in, not a free escape.
   - R's state only triggers on hitting an enemy Vanguard; takedowns extend it up to a cap.
 sheet:
-  file: Qazharr_The_Harbor_Wolf_Character_Sheet.png
-  status: current
+  file: null
+  status: superseded
   register_refs: []
