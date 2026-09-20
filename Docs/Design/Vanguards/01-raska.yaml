@@ -1,0 +1,67 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: raska
+roster_number: 1
+name: Raska
+title: The Redline
+canon_section: §1
+origin_region: Iron March
+origin_locality: Calder's Run
+nature: human
+role_tags:
+  - bruiser
+  - skirmisher
+terrain_affinity: []
+damage_profile:
+  - physical
+basic_attack:
+  damage_type: physical
+  range_class: melee
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Redline
+  q: Breakneck
+  w: Countersteer
+  e: Kickstart
+  r: NO BRAKES
+marks:
+  - momentum
+  - roadhouse
+cc:
+  - stun
+  - knockup
+  - knockback
+mobility:
+  - dash
+  - ride
+grants:
+  - movement_speed
+stealth: []
+owned_entities:
+  - id: hound
+    category: ride_state
+    destructible: false
+    note: Replacement mounted ability set (Sideswipe, Powerslide, Bail Out); after Bail Out or Last Exit,
+      Hound continues independently and collides with enemies.
+vision_touchpoints: []
+guards:
+  - Ride mode grants unit ghosting and wide turning behaviour at speed; no mount/vehicle rules exist in
+    any bible (see ADR-003).
+  - Should start relatively weak and scale late through items and Health, not an oppressive early damage
+    profile.
+  - 'Identity guardrail: repeated high-speed passes and controlled recklessness, not a generic puncher
+    with a motorcycle skin.'
+sheet:
+  file: null
+  status: withdrawn
+  register_refs:
+    - A
+    - B7

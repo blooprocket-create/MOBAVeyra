@@ -1,0 +1,65 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: torr
+roster_number: 9
+name: Torr
+title: The Unreturned
+canon_section: §9
+origin_region: Ancient Fluxborn system
+origin_locality: null
+nature: fluxborn
+role_tags:
+  - tank
+  - warden
+terrain_affinity: []
+damage_profile:
+  - magic
+  - utility
+basic_attack:
+  damage_type: magic
+  range_class: melee
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Unreturned
+  q: Battering Mass
+  w: Fortify
+  e: Anchor
+  r: Overcapacity
+marks: []
+cc:
+  - stun
+  - slow
+  - knockup
+  - knockback
+mobility: []
+grants:
+  - temporary_health
+  - tenacity
+  - movement_speed
+  - ally_displacement_resistance
+  - displacement_immunity
+stealth: []
+owned_entities:
+  - id: anchor
+    category: placed_marker
+    destructible: false
+    note: Shortens or disrupts enemy movement abilities crossing its field; recast rips it free for a
+      knockup.
+vision_touchpoints: []
+guards:
+  - Q's stun is conditional on collision with terrain, a Spire, or another Vanguard.
+  - Displacement immunity is scoped to R and to proximity to the Anchor -- it is not a baseline property.
+  - R enlarges collision/body size and enables physical blocking -- requires a collision-scaling primitive.
+  - Passive regeneration requires remaining out of Vanguard combat.
+sheet:
+  file: Torr_The_Unreturned_Character_Sheet.png
+  status: current
+  register_refs: []

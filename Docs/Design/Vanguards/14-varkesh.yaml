@@ -1,0 +1,67 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: varkesh
+roster_number: 14
+name: Varkesh
+title: The Forgeheart
+canon_section: §14
+origin_region: Ember Basin
+origin_locality: null
+nature: elemental
+role_tags:
+  - battlemage
+  - warden
+terrain_affinity: []
+damage_profile:
+  - magic
+basic_attack:
+  damage_type: magic
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Stress Temper
+  q: Slagshot
+  w: Tempered Shell
+  e: Molten Ground
+  r: Forge Divide
+marks:
+  - heated_metal
+cc:
+  - root
+  - slow
+  - knockback
+mobility: []
+grants:
+  - shield
+  - slow_resistance
+stealth: []
+owned_entities:
+  - id: molten_ground
+    category: world_volume
+    destructible: false
+    note: Medium-range strip of molten terrain; slows and applies Heated Metal.
+  - id: iron_wall
+    category: world_volume
+    destructible: true
+    note: Forge Divide cools at maximum distance into a temporary solid wall that BLOCKS BOTH TEAMS; Shatterforge
+      recast detonates it.
+vision_touchpoints: []
+guards:
+  - The Iron Wall blocks both teams -- this is runtime navigation modification, which no bible currently
+    rules on (see ADR-003).
+  - Stress Temper punishes dashes and blinks by cooling at the ENDPOINT; the coating is consumed and uses
+    a per-target cooldown.
+  - 'Shatterforge must remain a real either/or: keep terrain control, or destroy it for immediate impact.'
+sheet:
+  file: Varkesh_The_Forgeheart_Character_Sheet.png
+  status: current
+  register_refs:
+    - E

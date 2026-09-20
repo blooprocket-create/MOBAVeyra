@@ -33,7 +33,9 @@ Three sheets carry visible third-party branding, third-party character/item art,
 | `Kade_Dead_Reckoning_Character_Sheet.png` | League of Legends wordmark and logo; "A Zaunite surveyor"; League champion portrait rows; a "Recommended Build" panel of League item icons (Kraken Slayer, Infinity Edge, Rapid Firecannon, Lord Dominik's Regards, Guardian Angel, Berserker's Greaves) |
 | `Angeru_The_Housebreaker_Character_Sheet.png` | An "Inspiration" panel reproducing League champion splash art and naming Zed, Katarina, Yasuo and Kayn against specific mechanics |
 
-**Required action:** regenerate all three with Veyra-owned visual material only, then remove the originals from Git history (not merely from the working tree — a deletion commit leaves the files retrievable in every clone and fork of a public repository).
+**Status:** deleted from the working tree and withdrawn from the sheet index.
+
+**Remaining action:** remove the originals **from Git history**. A deletion commit is not sufficient — the files stay retrievable in every existing clone and fork, and remain reachable by commit SHA on a public repository, until history is rewritten (for example with `git-filter-repo`) and force-pushed. Regenerate all three with Veyra-owned visual material only, on the current sheet template.
 
 These are Vanguards **#1, #2 and #15**. Raska and Kade are the roster's lead pair, so these are the first sheets an outside reader encounters.
 
@@ -93,13 +95,14 @@ Each row states what the sheet shows, what canon says, and which document owns t
 
 - **Sheet:** uses **they/them** ("They are a convergence"; "They do not speak often"). Titled "**The Living Mire**".
 - **Canon** (Character Bible §3): uses **he/him** ("heals **him**"; "**His** body visibly repairs"). The roster table lists Silt with **no title at all** — the only Vanguard without one.
-- **Status:** **needs a ruling.** Two separate open questions: (a) which pronoun set is canonical for Silt, and (b) whether "The Living Mire" becomes canon or Silt stays deliberately untitled. This register does not decide either.
+- **Ruling (2026-09-20): the bible wins.** Silt is **he/him**. The sheet is wrong and is corrected on re-render.
+- **Still open:** whether "The Living Mire" becomes canon or Silt remains deliberately untitled. Silt is currently the only Vanguard in the roster table without a title.
 
 ### B9. Neris — pronouns
 
 - **Sheet:** uses **they/them** ("Neris gave **their** life"; "**They** can calm the sea").
 - **Canon** (Character Bible §11): uses **she/her** ("**Her** kit shifts between two sea states").
-- **Status:** **needs a ruling.** Pick one and apply it to both the bible and the next sheet render.
+- **Ruling (2026-09-20): the bible wins.** Neris is **she/her**. The sheet is wrong and is corrected on re-render.
 
 ---
 
@@ -163,8 +166,7 @@ Not errors, but they prevent the set reading as one product.
 
 These are design decisions, recorded here so they are not lost:
 
-1. **Silt's pronouns**, and whether Silt receives a title (§B8).
-2. **Neris's pronouns** (§B9).
-3. **Name collisions.** *Tavi* / *Tavra* and *Vera* / *Vitra* each differ by two characters. With four M-names (Marek, Moro, Mavra, Mimzi), three T-names and three V-names, draft-screen and voice-comms ambiguity is likely. Renaming is cheap now and expensive after voice-over, localisation and community wiki adoption.
-4. **Title repetition.** Four Vanguards are titled "The Last —" (Patch, Vera, Relay, Vitra).
-5. Whether a **machine-readable per-Vanguard data file** becomes the authority that both bible and sheets are validated against, per `ARCHITECTURE.md` §1.3.
+1. ~~Silt's and Neris's pronouns~~ — **resolved 2026-09-20: the bible wins for both.** Silt is he/him, Neris is she/her (§B8, §B9). Whether Silt receives a title remains open.
+2. **Name collisions.** *Tavi* / *Tavra* and *Vera* / *Vitra* each differ by two characters. With four M-names (Marek, Moro, Mavra, Mimzi), three T-names and three V-names, draft-screen and voice-comms ambiguity is likely. Renaming is cheap now and expensive after voice-over, localisation and community wiki adoption.
+3. **Title repetition.** Four Vanguards are titled "The Last —" (Patch, Vera, Relay, Vitra).
+4. Whether a **machine-readable per-Vanguard data file** becomes the authority that both bible and sheets are validated against, per `ARCHITECTURE.md` §1.3.

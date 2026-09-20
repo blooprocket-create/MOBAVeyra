@@ -30,14 +30,12 @@ Three sheets in this directory contain third-party branding and third-party char
 - `Kade_Dead_Reckoning_Character_Sheet.png`
 - `Angeru_The_Housebreaker_Character_Sheet.png`
 
-These are **withdrawn from the index below** and must not be used as reference, published, or presented as Veyra material in their current form. Details of exactly what each contains are in section A of the discrepancy register.
+All three have been **deleted from the working tree** and withdrawn from the index below. They must not be used as reference, published, or presented as Veyra material in their current form. Details of exactly what each contains are in section A of the discrepancy register.
 
-Required, in order:
+Remaining work, in order:
 
-1. Regenerate all three using Veyra-owned visual material only.
-2. Remove the originals **from Git history**, not just from the working tree. Deleting a file in a new commit leaves it retrievable in every existing clone and fork of a public repository; history rewriting (for example `git-filter-repo`) plus a coordinated force-push is required.
-
-Until step 2 completes, the files remain publicly retrievable regardless of what the working tree contains.
+1. **Remove the originals from Git history.** Deleting a file in a new commit does not make it unretrievable — it remains in every existing clone and fork, and stays reachable by commit SHA on a public repository. History rewriting (for example `git-filter-repo`) plus a coordinated force-push is required. **Until this happens, the files are still publicly accessible**, regardless of what the working tree contains.
+2. Regenerate all three using Veyra-owned visual material only, on the current sheet template.
 
 ## Current sheet set
 

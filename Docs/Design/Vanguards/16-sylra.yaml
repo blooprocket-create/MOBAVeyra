@@ -1,0 +1,89 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: sylra
+roster_number: 16
+name: Sylra
+title: The Mistwarden
+canon_section: §16
+origin_region: Drowned Cantons
+origin_locality: null
+nature: human
+role_tags:
+  - utility
+  - controller
+terrain_affinity: []
+damage_profile:
+  - magic
+basic_attack:
+  damage_type: magic
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Follow the Bell
+  q: Harbor Bell
+  w: Lay the Mist
+  e: Waymark
+  r: Through the White
+marks:
+  - sounded
+cc: []
+mobility: []
+grants:
+  - ally_shield
+  - ally_movement_speed
+stealth: []
+owned_entities:
+  - id: mist_trail
+    category: world_volume
+    destructible: false
+    note: Short-lived trail readable to allies; grants movement speed and a shield on following into the
+      same fog.
+  - id: lay_the_mist
+    category: world_volume
+    destructible: false
+    note: Creates TRUE Dense Fog following the battleground's normal fog rules.
+  - id: waymark
+    category: placed_marker
+    destructible: false
+    note: Ward-style vision outside fog; presence pings inside fog; grants a regenerative shield to nearby
+      allies.
+  - id: through_the_white
+    category: world_volume
+    destructible: false
+    note: Large corridor or advancing zone of Dense Fog.
+vision_touchpoints:
+  - ability: q
+    effect: Sounded target inside Dense Fog emits a periodic presence ping to Sylra's team
+    status: canon
+    note: Presence only. Never reveals exact position, model, or targetability to observers outside the
+      fog.
+  - ability: w
+    effect: creates true Dense Fog
+    status: canon
+    note: Requires runtime-spawnable fog volumes -- an engine capability the Vision Bible does not currently
+      address (see ADR-003).
+  - ability: e
+    effect: ward-style vision outside fog; presence ping inside fog
+    status: canon
+  - ability: r
+    effect: battlefield-scale Dense Fog
+    status: canon
+    note: Not team invisibility.
+guards:
+  - Sounded does NOT reveal the target.
+  - Created fog obeys ALL normal Dense Fog rules; it is uncertainty, not invisibility.
+  - Follow the Bell improves allied movement without granting additional direct vision.
+  - Her Bellcraft tradition is neither Pactcraft nor Wakebound and does not rely on Flux.
+sheet:
+  file: Sylra_The_Mistwarden_Character_Sheet.png
+  status: current
+  register_refs:
+    - F

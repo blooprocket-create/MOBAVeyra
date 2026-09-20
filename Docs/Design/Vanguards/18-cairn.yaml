@@ -1,0 +1,66 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: cairn
+roster_number: 18
+name: Cairn
+title: The River's Grasp
+canon_section: §18
+origin_region: Buried Riverlands
+origin_locality: Regional name provisional
+nature: elemental
+role_tags:
+  - tank
+  - catcher
+  - warden
+terrain_affinity: []
+damage_profile:
+  - physical
+  - utility
+basic_attack:
+  damage_type: physical
+  range_class: melee
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Deep Foundation
+  q: Iron Grasp
+  w: Crushing Hold
+  e: Immovable
+  r: Burden of the Depths
+marks: []
+cc:
+  - pull
+  - stun
+  - slow
+mobility: []
+grants:
+  - shield
+  - ally_damage_reduction
+  - displacement_reduction
+stealth: []
+owned_entities: []
+vision_touchpoints: []
+guards:
+  - E reduces displacement DISTANCE. Cairn is NOT immune to Pull or Knockback, does not gain Unstoppable,
+    and remains interruptible. The sheet contradicts this (register §B3).
+  - Q's pull triggers Deep Foundation even though the hook does not stun; slows alone never trigger it.
+  - Repeated immobilisation of the SAME Vanguard within a per-target lockout grants no second passive
+    shield.
+  - Passive and R shields may coexist but share ONE configurable total cap on Cairn-generated shielding.
+  - R's central stun and pull are ONE control event for passive purposes; the R-shield contribution is
+    the payout instead.
+  - Do not grant Health-to-damage scaling merely because he stacks Health.
+sheet:
+  file: Cairn_The_Rivers_Grasp_Character_Sheet.png
+  status: contradicts_canon
+  register_refs:
+    - B3
+    - C
+    - E

@@ -1,0 +1,57 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: vera
+roster_number: 7
+name: Vera
+title: The Last Volley
+canon_section: §7
+origin_region: Merrin
+origin_locality: null
+nature: echo
+role_tags:
+  - hypercarry
+  - ranged_carry
+terrain_affinity: []
+damage_profile:
+  - magic
+basic_attack:
+  damage_type: magic
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Cadence
+  q: Range Found
+  w: Dig In
+  e: Break the Line
+  r: The Last Volley
+marks:
+  - cadence
+  - ranged
+cc:
+  - knockback
+mobility: []
+grants:
+  - attack_speed
+  - slow_resistance
+  - displacement_resistance
+stealth: []
+owned_entities: []
+vision_touchpoints: []
+guards:
+  - W is a stationary firing stance -- Vera cannot move while active.
+  - E consumes Cadence, creating a real defensive tradeoff.
+  - Cadence stacks decay one at a time after she stops attacking.
+  - Name collides with Vitra (register §G).
+sheet:
+  file: Vera_The_Last_Volley_Character_Sheet.png
+  status: current
+  register_refs:
+    - E

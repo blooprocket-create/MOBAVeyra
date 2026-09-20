@@ -1,0 +1,59 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: korruk
+roster_number: 8
+name: Korruk
+title: The Splinterbeast
+canon_section: §8
+origin_region: Shatterdeep
+origin_locality: null
+nature: native_fauna
+role_tags:
+  - burst_caster
+  - artillery
+terrain_affinity: []
+damage_profile:
+  - physical
+basic_attack:
+  damage_type: physical
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Embedded
+  q: Spineburst
+  w: Pressure Mine
+  e: Rupture
+  r: Shatterfield
+marks:
+  - splinters
+  - fractured
+cc:
+  - slow
+  - knockup
+mobility: []
+grants: []
+stealth: []
+owned_entities:
+  - id: pressure_mine
+    category: placed_marker
+    destructible: false
+    note: Delay or proximity trigger.
+vision_touchpoints: []
+guards:
+  - Korruk is native Shatterdeep biological fauna -- explicitly NOT an Echo, Flux mutation, construct,
+    hidden god, or secretly humanoid intelligence. The sheet contradicts this (register §B1).
+  - Canonical body plan is a six-legged predator.
+  - E has low base damage on its own; its payoff is consuming Splinters/Fractured.
+sheet:
+  file: Korruk_The_Splinterbeast_Character_Sheet.png
+  status: contradicts_canon
+  register_refs:
+    - B1

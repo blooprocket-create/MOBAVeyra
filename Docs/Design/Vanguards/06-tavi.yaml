@@ -1,0 +1,63 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: tavi
+roster_number: 6
+name: Tavi
+title: The Playmate
+canon_section: §6
+origin_region: Merrin
+origin_locality: null
+nature: echo
+role_tags:
+  - assassin
+terrain_affinity: []
+damage_profile:
+  - magic
+basic_attack:
+  damage_type: magic
+  range_class: melee
+resource: standard
+ability_layout: standard
+abilities:
+  passive: You're It!
+  q: Catch!
+  w: Hide!
+  e: Tag!
+  r: Ready or Not!
+marks:
+  - it
+cc:
+  - slow
+mobility:
+  - dash
+grants:
+  - movement_speed
+stealth:
+  - unseen
+owned_entities:
+  - id: hide_illusion
+    category: placed_marker
+    destructible: true
+    note: Decoy; bursts and slows if the enemy marked It attacks it.
+vision_touchpoints:
+  - ability: w
+    effect: briefly vanish / become unseen
+    status: needs_classification
+    note: Canon says 'unseen'. Combat Bible distinguishes Camouflage from Invisibility; which applies
+      is unstated.
+guards:
+  - A kill can transfer the It mark to a nearby enemy Vanguard.
+  - R permits one reduced-damage additional cast only on a successful kill.
+  - Name collides with Tavra (register §G).
+sheet:
+  file: Tavi_The_Playmate_Character_Sheet.png
+  status: current
+  register_refs:
+    - F

@@ -1,0 +1,63 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: moro
+roster_number: 12
+name: Moro
+title: The Wildspark
+canon_section: §12
+origin_region: Wildwood
+origin_locality: Verdant Depths
+nature: native_fauna
+role_tags:
+  - sorcerer
+  - burst_caster
+terrain_affinity:
+  - jungle
+damage_profile:
+  - magic
+basic_attack:
+  damage_type: magic
+  range_class: melee
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Wild Dominion
+  q: Arc Bolt
+  w: Bursting Ground
+  e: Pounce
+  r: Wildstorm
+marks: []
+cc:
+  - slow
+mobility:
+  - leap
+grants:
+  - self_heal
+  - movement_speed
+  - attack_speed
+stealth: []
+owned_entities:
+  - id: wildstorm
+    category: world_volume
+    destructible: false
+    note: Storm centred on Moro for several seconds.
+vision_touchpoints: []
+guards:
+  - 'Passive is terrain-conditional: increased percentage damage AND Attack Speed while in jungle terrain,
+    plus healing from damaging wildlife. The sheet keeps only the healing (register §B5).'
+  - No stacks and no evolving jungle state are required.
+  - The bible's role_identity label 'Jungler / Sorcerer' is positional and sits in tension with the roster
+    principle that the game enforces no role slots. Recorded here as terrain_affinity instead.
+  - Intended to be the roster's beginner-friendly kit, though every ability is a skillshot.
+sheet:
+  file: Moro_The_Wildspark_Character_Sheet_v2.png
+  status: incomplete
+  register_refs:
+    - B5

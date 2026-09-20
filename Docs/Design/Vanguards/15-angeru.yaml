@@ -1,0 +1,68 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: angeru
+roster_number: 15
+name: Angeru
+title: The Housebreaker
+canon_section: §15
+origin_region: Reed Provinces
+origin_locality: Regional name provisional
+nature: human
+role_tags:
+  - assassin
+  - skirmisher
+terrain_affinity: []
+damage_profile:
+  - physical
+basic_attack:
+  damage_type: physical
+  range_class: melee
+resource: focus
+ability_layout: stance
+abilities:
+  passive: No Master
+  veil_q: Shadow Needle
+  veil_w: False Body
+  veil_e: Black Step
+  blade_q: Flowing Cut
+  blade_w: Severing Arc
+  blade_e: Passing Step
+  r: Forsake the Schools
+marks:
+  - veiled
+  - drawn
+cc: []
+mobility:
+  - dash
+  - blink
+grants:
+  - movement_speed
+  - armor_penetration
+stealth: []
+owned_entities:
+  - id: false_body
+    category: placed_marker
+    destructible: false
+    note: Shadow that mimics Shadow Needle; persists through stance changes; swap recast available only
+      in Veil Stance.
+vision_touchpoints: []
+guards:
+  - SIX basic abilities across two stances, with COMPLETELY INDEPENDENT cooldown sets. Focus is shared
+    between stances.
+  - R is the stance switch, not a traditional ultimate, and is available from the beginning of the match.
+  - Passing Step may target enemy Vanguards, Fluxborn and jungle wildlife; each target has an individual
+    re-target lockout.
+  - Extreme difficulty is intentional; power budget should reward execution rather than raw button count.
+  - Both house names and the Reed Provinces regional name remain provisional.
+sheet:
+  file: null
+  status: withdrawn
+  register_refs:
+    - A

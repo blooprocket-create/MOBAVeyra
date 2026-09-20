@@ -1,0 +1,58 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: qazharr
+roster_number: 13
+name: Qazharr
+title: The Harbor Wolf
+canon_section: §13
+origin_region: Drowned Cantons
+origin_locality: Adopted home; born on a distant unnamed coast
+nature: human
+role_tags:
+  - fighter
+  - duelist
+terrain_affinity: []
+damage_profile:
+  - physical
+basic_attack:
+  damage_type: physical
+  range_class: melee
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Sea Dog
+  q: Heavy Hand
+  w: Weather It
+  e: Boarding Rush
+  r: NO QUARTER
+marks:
+  - sea_dog
+cc:
+  - slow
+  - knockback
+mobility:
+  - dash
+grants:
+  - shield
+  - tenacity
+  - attack_speed
+  - movement_speed
+stealth: []
+owned_entities: []
+vision_touchpoints: []
+guards:
+  - Sea Dog requires consecutive attacks on the SAME enemy Vanguard; switching targets or leaving combat
+    drops the benefit.
+  - E is primarily a way in, not a free escape.
+  - R's state only triggers on hitting an enemy Vanguard; takedowns extend it up to a cap.
+sheet:
+  file: Qazharr_The_Harbor_Wolf_Character_Sheet.png
+  status: current
+  register_refs: []

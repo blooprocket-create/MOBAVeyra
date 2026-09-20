@@ -1,0 +1,63 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: gorraveth
+roster_number: 23
+name: Gorraveth
+title: The Slagmaw
+canon_section: §23
+origin_region: Ember Basin
+origin_locality: null
+nature: drakari
+role_tags:
+  - skirmisher
+  - fighter
+terrain_affinity:
+  - jungle
+damage_profile:
+  - physical
+basic_attack:
+  damage_type: physical
+  range_class: melee
+resource: standard
+ability_layout: standard
+abilities:
+  passive: No Time to Bleed
+  q: Rip Through
+  w: Furnace Rake
+  e: Ravine Bound
+  r: TEAR THEM APART
+marks: []
+cc: []
+mobility:
+  - dash
+  - leap
+grants:
+  - self_heal
+  - movement_speed
+stealth: []
+owned_entities: []
+vision_touchpoints:
+  - ability: e
+    effect: leap to a valid visible landing location
+    status: canon
+    note: Provides neither hidden-target detection nor remote Dense Fog acquisition.
+guards:
+  - Passive fires ONCE PER CLEARED CAMP -- not per individual creature and not per last hit.
+  - W's wildlife healing is capped per cast, not unlimited per creature.
+  - E crosses only short designated traversable terrain gaps, not arbitrary walls.
+  - R takedowns extend duration up to a cap; they do NOT reset E or grant unstoppable, invulnerability
+    or an execute.
+  - '''Drakari'' is a provisional lineage name. He is NOT a Forgeheart like Varkesh.'
+  - No camp evolution, no extra Team Flux, and no requirement to occupy a designated jungle role.
+  - Has no reliable hard crowd control -- the only Vanguard where canon states this explicitly.
+sheet:
+  file: Gorraveth_The_Slagmaw_Character_Sheet.png
+  status: current
+  register_refs: []

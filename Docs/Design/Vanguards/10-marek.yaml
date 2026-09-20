@@ -1,0 +1,59 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: marek
+roster_number: 10
+name: Marek
+title: The Black Accord
+canon_section: §10
+origin_region: Drowned Cantons
+origin_locality: The Elsewhere
+nature: human
+role_tags:
+  - warlock
+  - burst_caster
+terrain_affinity: []
+damage_profile:
+  - magic
+basic_attack:
+  damage_type: magic
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Bound Together
+  q: Witchfire
+  w: Hunt
+  e: Cross the Chain
+  r: Hell on a Leash
+marks:
+  - accord
+cc:
+  - slow
+mobility:
+  - blink
+grants:
+  - movement_speed
+stealth: []
+owned_entities:
+  - id: nix
+    category: combat_unit
+    destructible: true
+    note: Own Health and battlefield presence; attacks independently; can be killed or banished and later
+      reforms; swaps position with Marek; assumes a larger form under R.
+vision_touchpoints: []
+guards:
+  - Accord uses a per-target cooldown.
+  - R's visible chain damages enemies crossing it, subject to a per-enemy internal cooldown.
+  - If Nix is killed, R ends immediately.
+sheet:
+  file: Marek_The_Black_Accord_Character_Sheet.png
+  status: current
+  register_refs:
+    - F

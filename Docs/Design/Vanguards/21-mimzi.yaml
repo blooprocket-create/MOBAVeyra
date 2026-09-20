@@ -1,0 +1,70 @@
+# Veyra Vanguard -- structural design data
+#
+# Derived from Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md.
+# STRUCTURAL FACTS ONLY. No tuning values: no cooldowns, durations, ratios,
+# damage numbers, ranges, radii or speeds. Those belong in validated
+# designer-editable data per ARCHITECTURE.md 1.3, never here.
+#
+# Validate with: python3 Docs/Design/Vanguards/validate.py
+
+id: mimzi
+roster_number: 21
+name: Mimzi
+title: The Pocket Hex
+canon_section: §21
+origin_region: Bramblehollow
+origin_locality: Thistlewick
+nature: bramblekin
+role_tags:
+  - proc_mage
+  - ranged_carry
+  - stealth
+terrain_affinity: []
+damage_profile:
+  - magic
+basic_attack:
+  damage_type: magic
+  range_class: ranged
+resource: standard
+ability_layout: standard
+abilities:
+  passive: Pocket Hex
+  q: Twinklebolt
+  w: Winkbomb
+  e: Now You See Me!
+  r: Grand Prank!
+marks:
+  - hex
+cc:
+  - slow
+mobility: []
+grants:
+  - movement_speed
+stealth:
+  - camouflage
+owned_entities: []
+vision_touchpoints:
+  - ability: e
+    effect: Camouflage
+    status: canon
+    note: Normal close-proximity detection, Sweeper and other valid reveals still work. NOT Invisibility,
+      Untargetability, a dash, or immunity to launched projectiles.
+  - ability: r
+    effect: secondary bolts seek a nearby legally acquirable enemy Vanguard
+    status: canon
+    note: Cannot acquire unseen Vanguards from outside Dense Fog or grant vision.
+guards:
+  - Basic attacks deal MAGIC damage scaling primarily with Magic Power -- unusual for a ranged carry.
+  - Basic attack applies one Hex stack; a damaging basic ability applies two, to a two-stack preparatory
+    cap.
+  - Consuming the proc does not also reapply a stack; proc damage does not recursively trigger or stack
+    Hex.
+  - The post-Camouflage attack applies two stacks ONLY if the target was not already primed; on a primed
+    target it consumes the existing stacks for one normal proc without re-priming.
+  - Her tiny visual silhouette confers no hidden hitbox advantage.
+  - Secondary R bolts cannot apply Hex, generate further bolts, or recursively trigger Pocket Hex.
+sheet:
+  file: Mimzi_The_Pocket_Hex_Character_Sheet.png
+  status: incomplete
+  register_refs:
+    - C
