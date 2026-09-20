@@ -168,6 +168,24 @@ The force-push does not garbage-collect GitHub's side, and it cannot touch `refs
 
 Open a request at <https://support.github.com/contact>, name the repository, state that history was rewritten to remove content that must not remain public, and ask them to garbage-collect unreachable objects **and** drop the stale pull-request refs.
 
+**The form's required fields, so this does not stall at the first one.**
+
+*Subject* (80 characters maximum):
+
+```
+Purge cached views and refs/pull/1/head after history rewrite
+```
+
+61 characters. Naming the ref in the subject is deliberate: it is the one thing only GitHub can
+act on, and it saves a round trip asking which ref is meant.
+
+*What can we help you with?* — choose the option covering **deletion of repository content**
+(currently listed as **Deletes**). If the list offers something naming sensitive data, cached
+views or unreachable objects, prefer that: it routes to the team that runs the collection. The
+categories change, so read the list rather than trusting this line.
+
+*Please describe your repository issue* — the text below.
+
 Quote the specifics so they can confirm without a round trip:
 
 **Re-verify the ref list immediately before sending.** It shrinks as pull requests resolve.
