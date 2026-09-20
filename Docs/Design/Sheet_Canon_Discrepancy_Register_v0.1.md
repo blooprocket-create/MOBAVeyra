@@ -54,7 +54,21 @@ Each row states what the sheet shows, what canon says, and which document owns t
 - **Regeneration checked (2026-09-20)** against the authored hero art now installed at `ConceptArt/Vanguards/korruk/hero.webp`:
   - *Biological predator framing* — **met.** He reads as a mineralised animal: low, horizontal, load-bearing, head carried forward. No construct or humanoid reading.
   - *Six-legged body plan* — **unconfirmed.** The pose is a low three-quarter front view and the far-side limbs are occluded, so the count cannot be read off this image either way. The `side` and `scale` turnaround slots are what settle it, and they are specified flat and orthographic precisely for this.
-  - *Shatterdeep environment* — **still open.** The backdrop is generic ruined stone with red heraldic banners, carrying no Shatterdeep-specific reading. It also hangs the **same white cross-and-sword device** as Vera's hero art (§7, Merrin). That device is not yet assigned to a faction in canon, so this is flagged rather than called a repeat of the original error — but if it turns out to be Merrin's, this entry's core discrepancy has come back. **Revised after Marek's art (2026-09-20).** An earlier note here argued the device could not be generator furniture, because Patch's differs, Raska's banners are blank and Torr's hangs a compass-rose. Marek's art hangs a star-in-ring too — a barbed, occult variant of Torr's clean navigational one — so the devices **repeat in pairs** rather than varying per image. That makes coincidence the likelier reading of Vera and Korruk sharing one, and weakens the case that this is a Merrin placement error returning. It still wants a ruling, because a motif that recurs across images is equally a candidate to be **made** canon: two pairs, two devices, no owner assigned to either.
+  - *Shatterdeep environment* — **still open.** The backdrop is generic ruined stone with red heraldic banners, carrying no Shatterdeep-specific reading. It also hangs the **same white cross-and-sword device** as Vera's hero art (§7, Merrin). That device is not yet assigned to a faction in canon, so this is flagged rather than called a repeat of the original error — but if it turns out to be Merrin's, this entry's core discrepancy has come back. **Resolved after surveying all ten installed heroes (2026-09-20).** This entry twice recorded a
+    worry that Korruk's art hangs the same heraldic banner as Vera's (§7, Merrin) and might therefore be
+    repeating the original Merrin placement. Surveying every hero art installed settles it: the banners
+    carry a small stock set of devices reused with **no regional logic at all**.
+    - *Compass rose / ship's wheel* — Neris and Marek (both Drowned Cantons) **and Torr** (Ancient Fluxborn system).
+    - *Cross-and-sword* — Vera (Merrin) **and Korruk** (Shatterdeep).
+    - *Four-pointed star* — Relay. *Skull* — Patch. *None* — Raska, Silt.
+
+    A device spanning Merrin and Shatterdeep, and another spanning Drowned Cantons and the Fluxborn
+    system, cannot be a regional marker. They are backdrop furniture and carry no canon meaning, so the
+    banner is **no evidence of region** and this entry's concern does not stand. Two earlier readings
+    here were wrong in both directions — first that the device was Merrin's, then that devices varied per
+    image — because each was drawn from one or three images instead of all of them. Assign a heraldic
+    device deliberately if the Cantons or Merrin should have one; until then, ignore what the generator
+    hangs on a wall.
 
 ### B2. Bryn — W ability name and Dense Fog behaviour
 

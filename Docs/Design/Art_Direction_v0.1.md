@@ -61,7 +61,14 @@ Assigned by region so no two sheets collide in a draft grid. Held in `HUE` in `r
 
 A Vanguard whose approved art diverges from their regional hue takes an override in
 `HUE_BY_ID`, keyed by id; the region map stays the default for everyone without one.
-Two exist:
+
+An override needs a measured gap, not an impression. The three that exist sit **75–90°**
+of hue from their region colour — far enough that the sheet's accent fought the art. Neris
+is the counter-example and was left alone: her art measures 205–215° against Drowned
+Cantons at 190°, a 15–25° gap that reads as the same sea colour seen at night, and any
+move would have landed her on top of the two Flux blues at 210° and 223°.
+
+Three exist:
 
 | Vanguard | Region default | Override | Why |
 |---|---|---|---|
@@ -69,14 +76,17 @@ Two exist:
 | Korruk | `#6fc3d4` (Shatterdeep) | `#ff1a1a` | Cyan appears nowhere in his design, and his own canon already names crimson his default spine colour |
 | Marek | `#2e8b9e` (Drowned Cantons) | `#9b4dd6` | Violet end to end in the art, and his canon already names violet eyes, a violet coat and violet behind Nix's mask |
 
-Korruk is the clearer of the two. His appearance paragraph said *"crimson is the canon
-default"* before any art existed, so the region map was already contradicting the bible
-and the art only made that visible.
+Korruk and Marek are the clearest cases, because in both the **bible already disagreed
+with the region map** before any art existed: Korruk's paragraph said *"crimson is the
+canon default"* and Marek's named violet eyes, a violet coat and violet behind Nix's mask.
+The art did not overrule the text there — it made a contradiction visible that was already
+sitting in the canon.
 
-Measured separation, CIE76, against the nearest neighbours in a crowded band: `#ff2d55`
-sits **27** from Reed Provinces `#c0392b` and **38** from Iron March `#c4552b`; `#ff1a1a`
-sits **29** from `#ff2d55` and **34** from `#c0392b`. Both clear the ~20 where two
-swatches stop reading as the same colour at thumbnail size.
+Measured separation, CIE76, against the nearest neighbours: `#ff2d55` sits **27** from
+Reed Provinces `#c0392b` and **38** from Iron March `#c4552b`; `#ff1a1a` sits **29** from
+`#ff2d55` and **34** from `#c0392b`; `#9b4dd6` sits **32** from `#8a6bbf` and **45** from
+Fluxborn `#5e7fd4`. All clear the ~20 where two swatches stop reading as distinct at
+thumbnail size.
 
 **The table has a pre-existing collision (measured 2026-09-20).** Reed Provinces `#c0392b`
 and Iron March `#c4552b` are **dE 13.4** apart — under the threshold, and so already the
@@ -167,9 +177,9 @@ withdrawn for third-party content and reconstructing that look would have carrie
 reason for the withdrawal forward.
 
 Since then the author has begun regenerating characters externally, one at a time, and
-approved art is canon (see above): **10 of 25** paragraphs have been reconciled with their
-art rather than the art judged against them. Nine were rewritten — Raska, Kade, Silt, Relay,
-Patch, Tavi, Vera, Korruk and Marek. Torr's was only added to, because his art agreed with what was
+approved art is canon (see above): **11 of 25** paragraphs have been reconciled with their
+art rather than the art judged against them. Ten were rewritten — Raska, Kade, Silt, Relay,
+Patch, Tavi, Vera, Korruk, Marek and Neris. Torr's was only added to, because his art agreed with what was
 already written, guardrails included; where that happens the existing text stays and the art
 supplies what it was missing. Each
 rewrite replaces the guardrails as well as the description. The machine pass each one
