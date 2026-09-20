@@ -75,3 +75,53 @@ Each paragraph follows the same three-part shape, and new ones should:
 3. **An anti-drift guardrail**, phrased as *is X, **not** Y* — the specific wrong reading a generator or a new artist will reach for. This is the part that does the work; without it the prompt drifts toward the nearest genre cliché.
 
 Guardrails record what the design is **not**, which is the half no image can express. They are also why the paragraphs must never carry tuning values: an appearance paragraph is art direction, and gameplay numbers live in their owning data files.
+
+## Model choice is load-bearing
+
+Established by the first generation run, 2026-09-20.
+
+**The guardrails are the part a model is most likely to invert.** Both candidate
+families say so in their own prompting guides:
+
+- **FLUX** (`flux-2-pro`): *"No negative prompts. FLUX does not support them."* Its sweet
+  spot is 30–80 words, and later tokens receive less attention weight.
+- **Nano Banana** (`gemini-3-pro-image`): lists *"heavy use of negative phrasing"* under
+  what to avoid, but handles a narrative paragraph well — *"a narrative paragraph always
+  outperforms disconnected tags."*
+
+Our appearance paragraphs run 180–270 words and end in an *is X, **not** Y* guardrail.
+That form is correct for a human art director and wrong for FLUX, which would read
+"not a mud golem with a skull for a head" as a request for one.
+
+**So `gemini-3-pro-image` is the house model**, for three reasons: it tolerates the
+negation the guardrails are built on, it rewards the long narrative prompts we already
+generate, and it is the model built for *holding a character consistent across shots* —
+which is the entire premise of the hero-first workflow.
+
+The canon does not bend to suit a model. `render_sheet.py` does the conversion instead:
+it splits each appearance paragraph into affirmative description and guardrails, leads
+with the description, and collects the guardrails into one short delimited `Critically:`
+clause at the end. A single delimited constraint is what the guides tolerate; negation
+scattered through the prompt is what they warn about.
+
+### Aspect ratio does not come from the prompt
+
+Asking for `3:4` in prompt text produced `16:9`. The Nano Banana guide is explicit that
+*"aspect ratios can be unreliable through prompting alone."* Aspect is a **node
+parameter**, not prose: read the model's schema with `creative_get_model_schema`, then set
+it with `creative_update_node`. This matters most for the turnaround slots, which are
+specified `1:2` and will otherwise silently come back as landscape.
+
+### Cost, measured
+
+`gemini-3-pro-image` at 1K resolution bills about **12¢ per image**, so a four-variation
+slot is roughly **49¢**. That puts the 22 ready Vanguards at about **$11 for hero images**
+and roughly **$140 for all 13 slots** at four variations each. Dropping the non-hero slots
+to a single variation brings the full roster to around **$45**.
+
+### Account limits gate the run
+
+The first run stopped after three images: the ElevenLabs account is on the **free plan**,
+which has a daily image cap well below a 22-character batch. Generating the roster needs a
+paid plan. The cap is on image count per day, not on credits, so it cannot be worked
+around by reducing variations — only by spreading the run across days.

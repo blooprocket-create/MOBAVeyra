@@ -341,14 +341,51 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
 
 
 HOUSE = (
-    "Painterly realism, heavily rendered, visible brushwork. Not photoreal, not flat cel, "
-    "not anime. Materials read physically. Built around ONE saturated signature colour, given "
-    "below, which drives the key light and the accents; everything else is desaturated so that "
-    "hue carries the image. Strong directional key in the signature colour plus an opposing "
-    "cool or warm rim. Deep shadows, high contrast, mid-to-dark value key. Silhouette must stay "
-    "readable at thumbnail size. No text, no lettering, no logo, no UI, no watermark, no "
-    "signature, no lens flare, no stat bars, no numbers."
+    "Painterly realism, heavily rendered, with visible brushwork and physically believable "
+    "materials. The whole image is built around one saturated signature colour, which drives "
+    "the key light and the accents while everything else stays desaturated so that single hue "
+    "carries the picture. Strong directional key in the signature colour with an opposing rim "
+    "light, deep shadows, high contrast, a mid-to-dark value key, and a silhouette that stays "
+    "readable at thumbnail size."
 )
+
+# Both model families we target warn against negative phrasing — FLUX rejects it outright
+# and inverts it in practice, and the Nano Banana guide lists "heavy use of negative
+# phrasing" under what to avoid. The bible's guardrails are deliberately written as
+# "is X, not Y" because that is the right form for a human art director, so the prompt
+# layer has to do the conversion rather than the canon bending to suit a model.
+#
+# We split the appearance paragraph on that boundary: affirmative sentences become the bulk
+# of the prompt, and the guardrail sentences are collected into one short trailing
+# constraint. A single delimited constraint is what the guides tolerate; a prompt that is
+# one-fifth negation scattered throughout is what they warn about.
+GUARDRAIL = re.compile(
+    r"\b(?:is|are|reads?|stays?|becomes?|carries|has|have)\s+not\b"
+    r"|\bnot\b\s+(?:a|an|the|as|from|by|in|drawn|written|posed|shadowed)\b"
+    r"|\bnever\b|\bno\s+(?:claws|fangs|glowing|snarl|armour|armor|saddle|harness|handler"
+    r"|tricorn|pirate|weapon|coat\s+of|spider|upright|humanoid|occult|face|pilot)\b"
+    r"|\bdo\s+not\b|\bavoid\b",
+    re.I,
+)
+
+# Rendering constraints that apply to every slot. Kept separate from the character's own
+# guardrails so a sheet never picks up UI furniture, and so the two can be read apart.
+NO_FURNITURE = (
+    "The image contains artwork only, with no text, lettering, logo, UI, watermark, "
+    "signature, stat bars or numbers anywhere in the frame."
+)
+
+
+def split_guardrails(look: str) -> tuple[str, str]:
+    """Separate an appearance paragraph into affirmative description and guardrails.
+
+    The bible writes each paragraph as description first, guardrail last, so this is a
+    sentence-level partition rather than an attempt to rewrite anyone's prose.
+    """
+    parts = re.split(r"(?<=[.!?])\s+", look.strip())
+    keep = [s for s in parts if not GUARDRAIL.search(s)]
+    rails = [s for s in parts if GUARDRAIL.search(s)]
+    return " ".join(keep), " ".join(rails)
 
 # Art direction for the four antagonists. The note is the point: none of them is
 # cruel, and lighting them like a villain would misread the writing.
@@ -387,11 +424,32 @@ def prompts(vid: str) -> None:
     if vid in ANTAGONIST:
         print(f"# ANTAGONIST DIRECTION: {ANTAGONIST[vid]}\n")
 
+    described, rails = split_guardrails(look)
+    if vid in ANTAGONIST:
+        a_keep, a_rails = split_guardrails(ANTAGONIST[vid])
+        described = f"{described} {a_keep}".strip()
+        rails = f"{rails} {a_rails}".strip()
+
     for stem, label, asp, grp, desc in SLOTS:
-        ref = "" if stem == "hero" else "  Use the approved hero image as a character reference.\n"
         print(f"--- {stem}.png  ({label}, {asp}) " + "-" * max(0, 46 - len(stem) - len(label)))
-        print(f"{desc}\n{ref}  SUBJECT: {who}. {look}\n"
-              f"  SIGNATURE COLOUR: {hue}\n  STYLE: {HOUSE}\n  ASPECT: {asp}\n")
+        if stem != "hero":
+            print("Reference 1 is the approved hero image, and provides this character's identity,")
+            print("proportions, materials, palette and equipment. Preserve all of those exactly.")
+        # "Region environment" is meaningless to a model that has never heard of Veyra,
+        # so the region and locality are substituted in rather than referred to.
+        region, local = d["origin_region"], d.get("origin_locality")
+        # A few Vanguards have a deliberately unplaced origin; naming it twice reads as
+        # a bug in the prompt rather than as canon.
+        where = local if region.lower() == "unknown" and local else region
+        if local and where != local:
+            where = f"{local}, {region}"
+        shot = desc.replace("Region environment", f"The {where} environment is")
+        # Subject first, then the shot, then style, then one delimited constraint —
+        # the order both model guides ask for, and the reason the style block is no
+        # longer a trailing keyword dump receiving the least attention weight.
+        print(f"{who}. {described}\n\n{shot}\n\n"
+              f"Style: {HOUSE} The signature colour is hex {hue}.\n\n"
+              f"Critically: {rails} {NO_FURNITURE}\n\nAspect ratio {asp}.\n")
 
 
 def missing(ids: list[str]) -> None:
