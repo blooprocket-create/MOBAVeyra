@@ -711,4 +711,9 @@ def main() -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except BrokenPipeError:
+        # Piping to head/less closes stdout early. Without this the tool prints a
+        # traceback over the output the reader actually wanted.
+        os._exit(0)
