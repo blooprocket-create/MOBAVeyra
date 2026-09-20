@@ -38,37 +38,37 @@ the old figure as superseded and the exact one as still owed.
 
 ## House style
 
-**Anime-idiom characters, painterly-realistic everything else, one saturated signature hue.**
-Rewritten 2026-09-20 from the twelve authored heroes rather than from intent — the author
-has confirmed the art is what they want, so the art defines the style and this section
-describes it.
+**A range of human rendering, painterly-realistic everything else, one saturated signature
+hue.** Written from the art rather than from intent — the author has confirmed the art is
+what they want, so the art defines the style and this section describes it.
 
-Everything is painterly-realistic: human characters with realistic proportions and
-weathered skin, and creatures, machines, armour, cloth, stone, water and foliage heavily
-rendered with physically believable materials.
+Everything that is not a human face is painterly-realistic: creatures, machines, armour,
+cloth, stone, water and foliage, heavily rendered with physically believable materials.
 
-**Five heroes are currently anime and are being replaced.** Kade, Tavi, Vera, Marek and
-Neris came back in an anime idiom rather than the painterly realism Raska, Qazharr and the
-creatures use. The author is regenerating them once the first pass of 25 is complete, so
-the target style is uniform and the current split is a temporary state of the art, not a
-rule about it.
+**Human rendering spans a range, and the range is the rule** (ruled 2026-09-21: *"the ones
+that came out leaning towards anime are gonna stay that way"*).
 
-*Superseded 2026-09-21.* An earlier version of this section called the range itself the
-rule and held each character's idiom in a `RENDER_BY_ID` table. That described the interim
-accurately and the intent wrongly. The table is removed and `HOUSE_CORE` simply asks for
-painterly realism.
+| Idiom | Vanguards |
+|---|---|
+| High-end anime | Kade, Tavi, Vera, Marek, Neris |
+| Painterly realism | Raska, Qazharr, Angeru, Mavra, Sylra, Bryn, Eudora |
 
-**The five are held in the work order, not in canon.** Their appearance paragraphs are
-already reconciled with the art that exists and stay that way — the art is still what the
-character looks like. What waits is their **other eight slots**, because every one of those
-is generated *from* the hero as reference, so producing them now would build eight images
-against a reference about to be replaced. `--missing` counts them separately:
+Which end each sits at is held per character in `RENDER_BY_ID` in `render_sheet.py`, beside
+the hue overrides, because it is a production choice rather than a fact about the character
+— the bible says who they are, that table says how they are drawn. It reaches all nine
+generated slots per Vanguard; characters with no human face take neither clause, since the
+materials line already covers them.
 
-```
-200 images to generate across 25 Vanguards.
-Of those, 40 are on hold behind a hero that is being replaced (kade, marek, neris, tavi, vera).
-160 can be commissioned today.
-```
+**Classified by cropping all twelve human faces and comparing them side by side**, not by
+recollection. Sylra was the borderline case and decided the size of the list: put next to a
+known anime face (Vera) and a known painterly one (Mavra), she sits with Mavra — realistic
+nose and lip structure, adult proportions, no anime eye.
+
+*This section has now been wrong in both directions.* It first said human faces read as
+anime full stop, which was a generalisation from twelve heroes that happened to exclude
+Qazharr. It then said painterly realism was the uniform target, which was true only while
+the anime heroes were expected to be replaced. Neither the idiom nor the roster was ever
+uniform; the table is.
 
 Strong directional key with an opposing rim, deep shadows, high contrast. **The value key
 follows the character, not a fixed rule** — Raska, Korruk, Torr and Moro are bright open

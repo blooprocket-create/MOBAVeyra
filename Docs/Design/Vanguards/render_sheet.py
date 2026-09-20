@@ -410,22 +410,36 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
 # plain background, and emitting both at once told the model to do two opposite things.
 HOUSE_CORE = (
     "Heavily rendered illustration with physically believable materials: creatures, machines, "
-    "armour, cloth, stone, water and foliage all read physically. Human characters are painterly-"
-    "realistic: realistic proportions and weathered skin. The whole image is "
+    "armour, cloth, stone, water and foliage all read physically. Human characters range from "
+    "painterly realism to high-end anime rendering depending on who they are. The whole image is "
     "built around one saturated signature colour, which drives "
     "the light and the accents while everything else stays desaturated so that single hue "
     "carries the picture, and the silhouette stays readable at thumbnail size."
 )
 
-# Heroes the author has flagged for replacement. These five came back in an anime idiom
-# rather than the painterly realism the rest of the roster uses, and are being regenerated
-# once the first pass of 25 is complete.
+# Which end of that range each human-faced Vanguard sits at.
 #
-# This is a work-order fact, not a canon one. Their appearance paragraphs are already
-# reconciled with the art that exists and stay that way; what waits is the other eight
-# slots, because every one of those is generated FROM the hero as reference. Producing
-# them now would build eight images against a reference that is about to be replaced.
-PROVISIONAL_HERO = {"kade", "tavi", "vera", "marek", "neris"}
+# Held here rather than in the appearance paragraph because it is a production choice, not
+# a fact about the character: the bible says who they are, this says how they are drawn.
+# Without it the hero sets the idiom and the other eight slots drift toward the roster
+# average, which is the one thing the hero-first workflow exists to prevent.
+#
+# Author's ruling 2026-09-21: the heroes that came out leaning anime stay that way, so the
+# range is the rule rather than a temporary state. An earlier version of this table was
+# removed when painterly realism looked like a uniform target; that premise is gone and the
+# table is back.
+#
+# Classified by cropping all twelve human faces and comparing them side by side, after
+# Sylra turned out to sit with Mavra rather than with Vera on a direct three-way look.
+# Vanguards with no human face take neither clause: the materials line already covers them.
+ANIME = " This character is rendered as high-end anime illustration: large expressive eyes, smooth shading, stylised proportions."
+PAINTERLY = " This character is rendered in painterly realism: realistic proportions, weathered skin, no anime eye."
+RENDER_BY_ID = {
+    "kade": ANIME, "tavi": ANIME, "vera": ANIME, "marek": ANIME, "neris": ANIME,
+    "raska": PAINTERLY, "qazharr": PAINTERLY, "angeru": PAINTERLY, "mavra": PAINTERLY,
+    "sylra": PAINTERLY, "bryn": PAINTERLY, "eudora": PAINTERLY,
+}
+
 
 HOUSE_LIT = (
     " Strong directional key in the signature colour with an opposing rim light, deep shadows "
@@ -600,7 +614,8 @@ def prompts(vid: str) -> None:
         # the order both model guides ask for, and the reason the style block is no
         # longer a trailing keyword dump receiving the least attention weight.
         print(f"{who}. {described}\n\n{shot}\n\n"
-              f"Style: {HOUSE_CORE}{'' if grp == 'turn' else HOUSE_LIT} "
+              f"Style: {HOUSE_CORE}{RENDER_BY_ID.get(vid, '')}"
+              f"{'' if grp == 'turn' else HOUSE_LIT} "
               f"The signature colour is hex {hue}.\n\n"
               f"Critically: {rails} {NO_FURNITURE}\n\nAspect ratio {asp}.\n")
 
@@ -609,11 +624,9 @@ def missing(ids: list[str]) -> None:
     """List the art each Vanguard still needs, as a work order.
 
     Generated artwork and in-engine captures are counted separately: only the
-    former is a commission anyone can act on today. Vanguards whose hero is being
-    replaced are held apart again, because every other slot is generated FROM the
-    hero and would be built against a reference that is about to change.
+    former is a commission anyone can act on today.
     """
-    gen_total = cap_total = held = 0
+    gen_total = cap_total = 0
     generate_n = len([s for s, *_ in SLOTS if s not in CAPTURED])
     for vid in ids:
         gaps = [stem for stem, *_ in SLOTS
@@ -625,15 +638,8 @@ def missing(ids: list[str]) -> None:
         state = "art complete" if not gen else f"{len(gen)}/{generate_n} to generate: " + " ".join(gen)
         if cap:
             state += f"   (+{len(cap)} awaiting capture)"
-        if vid in PROVISIONAL_HERO:
-            held += len(gen)
-            state += "   [HOLD — hero is being replaced]"
         print(f"  {vid:<12} {state}")
     print(f"\n  {gen_total} images to generate across {len(ids)} Vanguards.")
-    if held:
-        print(f"  Of those, {held} are on hold behind a hero that is being replaced "
-              f"({', '.join(sorted(PROVISIONAL_HERO))}).")
-        print(f"  {gen_total - held} can be commissioned today.")
     print(f"  {cap_total} in-game views awaiting a build to capture from.")
 
     # Which heroes are the author's rather than the machine's. Derived from the files
