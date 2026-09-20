@@ -6,7 +6,7 @@ These sheets are **visual development references**, not final production assets.
 
 ## Current sheet set
 
-This directory contains **20 character sheets**, one for every Vanguard in the current **20-Vanguard roster target**. The three newest sheets—Cairn, Tavra, and Vitra—are included below, and the directory uses descriptive, consistent filenames:
+This GitHub directory currently contains **20 uploaded character-sheet PNGs** for the first 20 Vanguards; the **current design roster is 25**. The five newest sheets were generated during character design but **have not yet been uploaded to this GitHub folder**; the linked files below are only those actually present.
 
 - [Angeru — The Housebreaker](./Angeru_The_Housebreaker_Character_Sheet.png)
 - [Cairn — The River's Grasp](./Cairn_The_Rivers_Grasp_Character_Sheet.png)
@@ -29,7 +29,17 @@ This directory contains **20 character sheets**, one for every Vanguard in the c
 - [Vera — The Last Volley](./Vera_The_Last_Volley_Character_Sheet.png)
 - [Vitra — The Last Light](./Vitra_The_Last_Light_Character_Sheet.png)
 
-## Character-sheet filenames
+## Pending character-sheet uploads (Vanguards 21–25)
+
+These are **proposed names for files not yet present in this GitHub folder**. Once uploaded, confirm the character shown in each image, rename consistently, then add a working image link to the roster above.
+
+- Mimzi — The Pocket Hex: `Mimzi_The_Pocket_Hex_Character_Sheet.png`
+- Celandrine — The Wayrunner: `Celandrine_The_Wayrunner_Character_Sheet.png`
+- Gorraveth — The Slagmaw: `Gorraveth_The_Slagmaw_Character_Sheet.png`
+- Aurelisse — The Open Sky: `Aurelisse_The_Open_Sky_Character_Sheet.png`
+- Eudora Blackbridge — The Fieldwright: `Eudora_Blackbridge_The_Fieldwright_Character_Sheet.png`
+
+## Uploaded character-sheet filenames
 
 ```text
 Angeru_The_Housebreaker_Character_Sheet.png

@@ -26,8 +26,8 @@ The project is currently in pre-production. The repository is being established 
 
 Repository-native Markdown exports of the current working design documents live in [`Docs/Design/`](Docs/Design/):
 
-- Initial Roster Character Bible v0.5
-- World Bible v0.4
+- Initial Roster Character Bible v0.6
+- World Bible v0.5
 - Battleground Bible v0.9
 - Item Bible v0.3
 - Combat Bible v0.4
@@ -46,7 +46,7 @@ Repository-native Markdown exports of the current working design documents live 
 
 Invite-only custom matches support host-adjustable gameplay settings, human and individually configured AI on either team, and fewer than ten Vanguards—even one human practicing alone. Human Vanguard selection still requires ownership or weekly rotation; custom games grant no Account XP or Mastery. See the [Custom Matches Bible](Docs/Design/Veyra_Custom_Matches_Bible_v0.1.md).
 
-The current planned roster contains **20 designed Vanguards**, including Cairn, Tavra, and Vitra. This is the current first-playable roster target, not a fixed cap; it can grow as more Vanguards are designed. Twenty designs exceed the draft's arithmetic minimum of 16 distinct Vanguards for six bans plus ten globally unique picks. **Ranked is intentionally deferred from initial launch** and still requires Account Level 30, **20 permanently owned, released Vanguards** per eligible player, and further Ranked-system design; having 20 character concepts does not make Ranked immediately playable. The account, mode, client, party, profile, moderation and replay bibles are working design checkpoints; matchmaking implementation, account security, commerce, telemetry/replay architecture and other backend details remain to be decided before implementation.
+The current planned roster contains **25 designed Vanguards**, including Mimzi, Celandrine, Gorraveth, Aurelisse, and Eudora Blackbridge. This is the current first-playable design target, not a fixed cap; it can grow as more Vanguards are designed. Twenty-five designs exceed the draft's arithmetic minimum of 16 distinct Vanguards for six bans plus ten globally unique picks. **Ranked is intentionally deferred from initial launch** and still requires Account Level 30, **20 permanently owned, released Vanguards** per eligible player, and further Ranked-system design; having 25 character concepts does not make Ranked immediately playable. The account, mode, client, party, profile, moderation and replay bibles are working design checkpoints; matchmaking implementation, account security, commerce, telemetry/replay architecture and other backend details remain to be decided before implementation.
 
 Veyra has **no built-in voice chat**. Live text supports Team and default-on All Chat (which players may disable in Settings), continuous Party Chat and friend DMs while in a match; both teams may optionally use post-match chat without delaying requeue. See the [Chat & Communication Bible](Docs/Design/Veyra_Chat_Communication_Bible_v0.1.md). The broader Settings catalog is an upcoming design task.
 
@@ -56,7 +56,7 @@ These documents describe working game design, not immutable implementation contr
 
 ### Concept art
 
-Character-sheet visual development belongs under [`ConceptArt/Characters/`](ConceptArt/Characters/). All **20 currently designed Vanguards** have character sheets in that directory; its [character-sheet index](ConceptArt/Characters/README.md) links to the individual images and lists their filenames.
+Character-sheet visual development belongs under [`ConceptArt/Characters/`](ConceptArt/Characters/). The repository currently contains **20 uploaded character-sheet images**; the five newest Vanguards have visual sheets from design, but those image files have **not yet been uploaded into this GitHub directory**. The [character-sheet index](ConceptArt/Characters/README.md) links to existing images and identifies pending uploads.
 
 ## Status
 

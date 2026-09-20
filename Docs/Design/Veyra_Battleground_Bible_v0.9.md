@@ -8,7 +8,7 @@
 | *Structured battlefield. Unstructured strategy. The map gives players three Fluxways and a jungle - never a job assignment.* |
 |------------------------------------------------------------------------------------------------------------------------------|
 
-| **VERSION**       | 0.9 - Wave/Structure Rules and Match Flow / 20-Vanguard Design Roster |
+| **VERSION**       | 0.9 - Wave/Structure Rules and Match Flow / 25-Vanguard Design Roster |
 |-------------------|--------------------------------|
 | **MATCH FORMAT**  | 5v5 objective MOBA             |
 | **WIN CONDITION** | Destroy the enemy Prime Well   |
@@ -600,7 +600,7 @@ Ranked uses the **Draft Pick** champion-select structure:
 
 With global unique picks and six total distinct bans, a roster of **16 Vanguards is the mathematical minimum** required to leave ten unique playable picks after the ban phase.
 
-**Ranked is deliberately deferred from initial launch** while its rating, seasons, matchmaking and player-experience systems are designed. The current roster target contains **20 designed Vanguards**, including Cairn, Tavra, and Vitra. This satisfies the **draft-wide distinct-pick minimum on paper** but does not itself mean that all 20 Vanguards are released or ownable. Under the [Modes & Access Bible v0.1](Veyra_Modes_Access_Bible_v0.1.md), individual Ranked entry requires **Account Level 30 and 20 permanently owned, released Vanguards**, and weekly rotation cannot be used in Ranked. The intended Ranked format remains a future target pending actual released roster availability and completion of the other Ranked systems.
+**Ranked is deliberately deferred from initial launch** while its rating, seasons, matchmaking and player-experience systems are designed. The current roster target contains **25 designed Vanguards**, including Mimzi, Celandrine, Gorraveth, Aurelisse, and Eudora Blackbridge. This satisfies the **draft-wide distinct-pick minimum on paper** but does not itself mean that all 25 Vanguards are released or ownable. Under the [Modes & Access Bible v0.1](Veyra_Modes_Access_Bible_v0.1.md), individual Ranked entry requires **Account Level 30 and 20 permanently owned, released Vanguards**, and weekly rotation cannot be used in Ranked. The intended Ranked format remains a future target pending actual released roster availability and completion of the other Ranked systems.
 
 The [Parties, Social & Matchmaking Bible v0.1](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) describes launch party/queue rules and the future Ranked target of parties of up to five with no more than one rank step between any two members. Exact rating, placement, matchmaking, season, queue-penalty, and progression systems remain separate implementation/design decisions.
 
