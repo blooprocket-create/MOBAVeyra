@@ -35,6 +35,11 @@ h1 { font-size:58px; letter-spacing:.5px; line-height:1; }
                     background:#0b0c0e; }
 .slot-note { font-size:11px; color:#565c65; max-width:88%; line-height:1.4; }
 .hero { aspect-ratio:16/9; }
+/* An EMPTY hero keeps a shape so the work order has somewhere to sit. A FILLED
+   one takes its aspect from the image instead: generators do not reliably honour
+   a requested ratio, and forcing one either crops the art or letterboxes it. */
+.hero.filled { aspect-ratio:auto; }
+.hero.filled img { height:auto; }
 .turn { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
 .turn .slot { aspect-ratio:1/2; }
 .views, .details { display:grid; grid-template-columns:repeat(4,1fr); gap:9px; }
