@@ -403,26 +403,23 @@ blockquote {{ margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
 # plain background, and emitting both at once told the model to do two opposite things.
 HOUSE_CORE = (
     "Heavily rendered illustration with physically believable materials: creatures, machines, "
-    "armour, cloth, stone, water and foliage all read physically. Human characters range from "
-    "high-end anime rendering to painterly realism depending on who they are. The whole image is "
+    "armour, cloth, stone, water and foliage all read physically. Human characters are painterly-"
+    "realistic: realistic proportions and weathered skin. The whole image is "
     "built around one saturated signature colour, which drives "
     "the light and the accents while everything else stays desaturated so that single hue "
     "carries the picture, and the silhouette stays readable at thumbnail size."
 )
 
-# Which end of that range a given Vanguard sits at. Held here rather than in the appearance
-# paragraph because it is a production choice, not a fact about the character — the bible
-# says who they are, this says how they are drawn. Without it the hero sets the idiom and
-# the other eight slots drift back toward the roster average, which is the one thing the
-# hero-first workflow exists to prevent.
+# Heroes the author has flagged for replacement. These five came back in an anime idiom
+# rather than the painterly realism the rest of the roster uses, and are being regenerated
+# once the first pass of 25 is complete.
 #
-# Anime is the observed majority (Kade, Tavi, Vera, Marek, Neris), so only the painterly
-# ones are listed. Tendency, measured 2026-09-20: the younger and lighter a character, the
-# more anime the rendering; the older, heavier and more weathered, the more realistic.
-RENDER_BY_ID = {
-    "raska":   " This character is rendered in painterly realism: realistic proportions and weathered skin.",
-    "qazharr": " This character is rendered in painterly realism: realistic proportions and weathered skin.",
-}
+# This is a work-order fact, not a canon one. Their appearance paragraphs are already
+# reconciled with the art that exists and stay that way; what waits is the other eight
+# slots, because every one of those is generated FROM the hero as reference. Producing
+# them now would build eight images against a reference that is about to be replaced.
+PROVISIONAL_HERO = {"kade", "tavi", "vera", "marek", "neris"}
+
 HOUSE_LIT = (
     " Strong directional key in the signature colour with an opposing rim light, deep shadows "
     "and high contrast. The value key follows the character rather than a fixed rule: bright "
@@ -595,8 +592,7 @@ def prompts(vid: str) -> None:
         # the order both model guides ask for, and the reason the style block is no
         # longer a trailing keyword dump receiving the least attention weight.
         print(f"{who}. {described}\n\n{shot}\n\n"
-              f"Style: {HOUSE_CORE}{RENDER_BY_ID.get(vid, '')}"
-              f"{'' if grp == 'turn' else HOUSE_LIT} "
+              f"Style: {HOUSE_CORE}{'' if grp == 'turn' else HOUSE_LIT} "
               f"The signature colour is hex {hue}.\n\n"
               f"Critically: {rails} {NO_FURNITURE}\n\nAspect ratio {asp}.\n")
 
@@ -605,9 +601,11 @@ def missing(ids: list[str]) -> None:
     """List the art each Vanguard still needs, as a work order.
 
     Generated artwork and in-engine captures are counted separately: only the
-    former is a commission anyone can act on today.
+    former is a commission anyone can act on today. Vanguards whose hero is being
+    replaced are held apart again, because every other slot is generated FROM the
+    hero and would be built against a reference that is about to change.
     """
-    gen_total = cap_total = 0
+    gen_total = cap_total = held = 0
     generate_n = len([s for s, *_ in SLOTS if s not in CAPTURED])
     for vid in ids:
         gaps = [stem for stem, *_ in SLOTS
@@ -619,8 +617,15 @@ def missing(ids: list[str]) -> None:
         state = "art complete" if not gen else f"{len(gen)}/{generate_n} to generate: " + " ".join(gen)
         if cap:
             state += f"   (+{len(cap)} awaiting capture)"
+        if vid in PROVISIONAL_HERO:
+            held += len(gen)
+            state += "   [HOLD — hero is being replaced]"
         print(f"  {vid:<12} {state}")
     print(f"\n  {gen_total} images to generate across {len(ids)} Vanguards.")
+    if held:
+        print(f"  Of those, {held} are on hold behind a hero that is being replaced "
+              f"({', '.join(sorted(PROVISIONAL_HERO))}).")
+        print(f"  {gen_total - held} can be commissioned today.")
     print(f"  {cap_total} in-game views awaiting a build to capture from.")
 
 

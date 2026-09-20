@@ -43,30 +43,32 @@ Rewritten 2026-09-20 from the twelve authored heroes rather than from intent —
 has confirmed the art is what they want, so the art defines the style and this section
 describes it.
 
-Everything that is not a human face is painterly-realistic: creatures, machines, armour,
-cloth, stone, water and foliage, heavily rendered with physically believable materials.
+Everything is painterly-realistic: human characters with realistic proportions and
+weathered skin, and creatures, machines, armour, cloth, stone, water and foliage heavily
+rendered with physically believable materials.
 
-**Human rendering spans a range, and the range is the rule.** Kade, Tavi, Vera, Marek and
-Neris are drawn as high-end anime illustration. Raska and Qazharr are painterly-realistic —
-realistic proportions, weathered skin, no anime eye. The two idioms sit in the same frame
-without friction: Marek's face is anime and the chains and Nix beside him are not.
+**Five heroes are currently anime and are being replaced.** Kade, Tavi, Vera, Marek and
+Neris came back in an anime idiom rather than the painterly realism Raska, Qazharr and the
+creatures use. The author is regenerating them once the first pass of 25 is complete, so
+the target style is uniform and the current split is a temporary state of the art, not a
+rule about it.
 
-*Corrected 2026-09-21.* The first version of this section said human faces read as anime,
-full stop. That was a generalisation from twelve heroes, none of which happened to be
-Qazharr; his art showed it was wrong for two of the seven human faces in the set. Which end
-a Vanguard sits at is held per character in `RENDER_BY_ID` in `render_sheet.py`, beside the
-hue overrides, because it is a production choice rather than a fact about the character —
-the bible says who they are, that table says how they are drawn. Anime is the majority, so
-only the painterly ones are listed.
+*Superseded 2026-09-21.* An earlier version of this section called the range itself the
+rule and held each character's idiom in a `RENDER_BY_ID` table. That described the interim
+accurately and the intent wrongly. The table is removed and `HOUSE_CORE` simply asks for
+painterly realism.
 
-The observed tendency is that younger, lighter characters land anime and older, heavier,
-more weathered ones land realistic. That is seven data points and is recorded as a tendency,
-not a rule.
+**The five are held in the work order, not in canon.** Their appearance paragraphs are
+already reconciled with the art that exists and stay that way — the art is still what the
+character looks like. What waits is their **other eight slots**, because every one of those
+is generated *from* the hero as reference, so producing them now would build eight images
+against a reference about to be replaced. `--missing` counts them separately:
 
-Every image is built around **one saturated signature colour** that drives the light and
-the accents, with everything else desaturated so that hue carries the frame. This is the
-rule the art keeps most consistently, and it is what makes the roster read as one game
-despite the range.
+```
+200 images to generate across 25 Vanguards.
+Of those, 40 are on hold behind a hero that is being replaced (kade, marek, neris, tavi, vera).
+160 can be commissioned today.
+```
 
 Strong directional key with an opposing rim, deep shadows, high contrast. **The value key
 follows the character, not a fixed rule** — Raska, Korruk, Torr and Moro are bright open
