@@ -679,10 +679,9 @@ def audit(ids: list[str]) -> int:
             print()
     if flagged:
         print(f"  {flagged} sentence(s) to review. This flags candidates, it does not judge them:")
-        print("  a long head can be lost description (Silt's \"a living riverbed in motion\") or")
-        print("  simply the subject of a constraint (Oriel's \"Fragment arrangements and limbs")
-        print("  should…\"), which belongs in the constraint whole. Read it and decide. Where it")
-        print("  is description, end the sentence before the negation.")
+        print("  a long head can be description that was lost, or simply the subject of a")
+        print("  constraint, which belongs in the constraint whole. Read it and decide. Where")
+        print("  it is description, end the sentence before the negation.")
     else:
         print("  Clean: every appearance paragraph splits without losing description.")
     return 0

@@ -146,6 +146,18 @@ is the counter-example and was left alone: her art measures 205–215° against 
 Cantons at 190°, a 15–25° gap that reads as the same sea colour seen at night, and any
 move would have landed her on top of the two Flux blues at 210° and 223°.
 
+**An override can also be declined because the destination is occupied.** Oriel measures
+20–30° against Merrin at 346° — a 44° gap, wider than the band Neris and Qazharr sit in and
+narrower than the four below. She was left alone anyway, because every usable gold in that
+band lands on Buried Riverlands `#c19a4b`: measured dE 13–25, with the best candidate a pale
+cream that works poorly as an accent. Moving her would have created the exact collision this
+table exists to prevent, with Silt and Cairn.
+
+She is also the one Vanguard whose canon palette is explicitly **polychrome** — *"gold, pale
+blue, violet, and jewel-colored refractions"* — which is in real tension with one saturated
+signature hue per character. Merrin's rose stays as a defensible accent for a figure that
+has no single colour of its own.
+
 Four exist:
 
 | Vanguard | Region default | Override | Why |
