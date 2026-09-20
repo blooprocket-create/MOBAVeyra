@@ -179,10 +179,19 @@ Purge cached views and refs/pull/1/head after history rewrite
 61 characters. Naming the ref in the subject is deliberate: it is the one thing only GitHub can
 act on, and it saves a round trip asking which ref is meant.
 
-*What can we help you with?* — choose the option covering **deletion of repository content**
-(currently listed as **Deletes**). If the list offers something naming sensitive data, cached
-views or unreachable objects, prefer that: it routes to the team that runs the collection. The
-categories change, so read the list rather than trusting this line.
+*What can we help you with?* — **do NOT choose "Deletes".** Tried on 2026-09-20 and it is not
+what the name suggests: it opens the **whole-repository deletion** flow, asking *"What is the URL
+of the repository you would like to delete?"* and ending in a **Delete / Don't Delete**
+confirmation under the warning *"Once the repository is purged, it cannot be restored."*
+Completing it would destroy the repository, not the stale ref.
+
+None of the listed repository categories covers "garbage-collect unreachable objects and drop a
+pull-request ref". Back out to the top-level category picker and take the most general route
+available — an "other"/"something else" option, or <https://support.github.com/request> for a
+plain free-text ticket — and let the subject and body below say what is needed.
+
+**Read where a category actually leads before completing it.** The label is not the workflow, and
+on this form one of them is irreversible.
 
 *Please describe your repository issue* — the text below.
 
