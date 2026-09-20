@@ -83,6 +83,11 @@ HUE_BY_ID = {
     # one instead of squatting on it: measured CIE76 distance 32 from #8a6bbf and 45 from
     # Fluxborn #5e7fd4.
     "marek": "#9b4dd6",
+    # Moro keys off Wildwood (yellow-green, hue 75) and his art measures 240 — a 165
+    # degree gap, the largest in the set and twice the threshold the other overrides sit
+    # at. #4040e0 is the best-separated indigo in that band: measured CIE76 distance 26
+    # from Marek #9b4dd6, 48 from Unknown #8a6bbf and 53 from Fluxborn #5e7fd4.
+    "moro": "#4040e0",
 }
 
 
