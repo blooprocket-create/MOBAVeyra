@@ -1,9 +1,9 @@
 # ADR-003: Owned field entities (companions, deployables, decoys, world volumes, ride states)
 
-**Status:** Proposed
+**Status:** Accepted
 **Date:** 2026-09-20
 
-> This ADR is **not accepted**. It exists because the current 25-Vanguard roster cannot be implemented without a decision here, and because making that decision implicitly — one champion at a time — is the failure mode `ARCHITECTURE.md` and `CLAUDE.md` exist to prevent. It states the problem, the smallest decision required, and the options. It does not choose one.
+Accepted as **Option B together with Option D**: three primitives with the ride state scoped separately, and the first playable slice built from Vanguards that need no owned entity at all.
 
 ## Context
 
@@ -43,7 +43,7 @@ What does not exist anywhere in `Docs/` is the **architectural** answer: how man
 - Categories 3 and 4 are not ability features. A runtime-spawned Dense Fog volume is a **Vision system** capability; a wall that blocks both teams is a **Battleground/navigation** capability; a ride state with a replacement ability set is a **locomotion and input** capability. Deciding them inside a champion's ability class puts core rules in the wrong module.
 - Whichever way this goes, it changes which Vanguards are cheap to build first, and therefore what a first playable slice should contain.
 
-## Decision required
+## The question
 
 **What is the smallest set of owned-field-entity primitives Veyra will support, which module owns each, and is Raska's ride state in scope for the first playable?**
 
@@ -52,7 +52,41 @@ Two sub-questions must be answered at the same time, because they are the ones t
 - **Vision:** are ability-created Dense Fog volumes the *same* construct as authored map fog volumes, spawnable at runtime? The Character Bible says Sylra creates "true Dense Fog" following normal rules, which strongly implies yes — but the Vision Bible does not currently say fog volumes are runtime-spawnable, and that is an engine requirement, not a design flourish.
 - **Navigation:** may an ability modify pathing for both teams at runtime (Varkesh's Iron Wall)? If yes, dynamic navmesh modification becomes a shipping requirement with its own performance and determinism cost.
 
-## Options
+## Decision
+
+**Three primitives, ride state scoped separately, and the first slice built from Vanguards that need none of them.**
+
+### The three primitives
+
+1. **Combat entity** — Health, autonomous behaviour, destructible. Serves **Nix** (Marek), **Picket** (Eudora), **Waterling** (Neris).
+2. **Placed marker** — no autonomous combat, optional trigger, optional vision contribution. Serves **Waymark** (Sylra), **False Body** (Angeru), Tavi's **Hide!** illusion, **Anchor** (Torr), **Pressure Mine** (Korruk).
+3. **World volume** — owned by the system whose rules it modifies, **not** by a single shared type:
+   - **Vision** owns fog volumes (Sylra's Lay the Mist and Through the White);
+   - **Battleground/navigation** owns pathing-affecting terrain (Varkesh's Iron Wall);
+   - **Combat** owns damage, status and movement fields (Mavra's hazards, Silt's zones, Relay's Magnetic Field and Full Grid, Moro's Wildstorm, Celandrine's Briar Scatter, Aurelisse's currents, Neris's Tidebreaker trail).
+
+Ownership, lifetime and damage attribution factor into a small common base shared by all three, so that Combat Bible §32's attribution rules are implemented once. Everything above that base is specific to the primitive.
+
+**Raska's ride state is not an owned entity.** It is a separate locomotion feature with its own decision, its own canon (which does not yet exist in any bible) and its own schedule.
+
+### Why the world volume is split rather than unified
+
+This is the part that decides the ADR, and the data settles it. World volumes are the largest category by a wide margin — **18 volumes across 9 Vanguards**, more than the other three combined — and their members do not share an owner. A fog bank is a Vision construct, a wall is a navigation construct, a corrosive field is a Combat construct. A single generic type spanning all three would have to reach into every one of those systems, which is precisely the god class `CLAUDE.md` prohibits and the dependency shape `ARCHITECTURE.md` forbids. Splitting by owning system keeps each rule in the document and module that already owns it.
+
+### First playable slice
+
+Nine Vanguards place no persistent entity at all: **Kade, Patch, Vera, Qazharr, Cairn, Bryn, Oriel, Mimzi, Gorraveth**. The slice is drawn from these, so core combat is proven before any of the three primitives is built.
+
+The recommended four are **Cairn** (tank, control, shielding), **Qazharr** (melee fighter, sustained pressure), **Oriel** (ranged mage, poke and scaling) and **Bryn** (ranged physical carry, attack-interval floor and the Dense Fog presence rule). They cover four archetypes, need no entity work, and between them exercise shields, displacement, the Attack Speed overflow reference and the Vision Bible's fog rules.
+
+### Consequent obligations
+
+Two rulings this decision defers to the owning bibles, both now required before the corresponding Vanguard is built:
+
+- the **Vision Bible** must state whether fog volumes are runtime-spawnable, which Sylra's kit assumes;
+- the **Battleground Bible** must state whether an ability may modify pathing for both teams at runtime, which Varkesh's Iron Wall assumes.
+
+## Options considered
 
 ### Option A — One generic owned-entity primitive
 
@@ -81,14 +115,14 @@ Each entity is a bespoke actor assembled from Gameplay Abilities, Gameplay Effec
 
 ### Option D — Defer, and cut entity-heavy Vanguards from the first playable
 
-Take the decision later; build the first playable from Vanguards needing no owned entity — for example Vitra, Moro, Qazharr and Cairn — and revisit once core combat is proven in engine.
+Take the decision later; build the first playable from Vanguards needing no owned entity — for example Oriel, Moro, Qazharr and Cairn — and revisit once core combat is proven in engine.
 
 - **For:** the honest sequencing answer. A grey-box slice would answer several of these questions empirically rather than on paper, and costs nothing that is not already needed.
 - **Against:** leaves Raska, the lead character, unbuildable and unestimated for longer. Does not remove the decision, only postpones it — and the roster keeps growing in the meantime.
 
-Options B and D are compatible and can be taken together.
+Options B and D are compatible and can be taken together. **This is what was accepted.**
 
-## Consequences (of deciding at all)
+## Consequences
 
 - The first-playable roster selection becomes a deliberate, costed choice rather than an inherited one.
 - Categories 3 and 4 acquire explicit owning documents. The Vision Bible gains a ruling on runtime fog volumes; the Battleground Bible gains a ruling on runtime navigation modification; ride states gain a Combat Bible section or an ADR of their own.

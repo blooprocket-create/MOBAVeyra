@@ -7,9 +7,9 @@
 #
 # Validate with: python3 Docs/Design/Vanguards/validate.py
 
-id: tavra
+id: bryn
 roster_number: 19
-name: Tavra
+name: Bryn
 title: The Harbor Gun
 canon_section: §19
 origin_region: Drowned Cantons
@@ -59,7 +59,8 @@ guards:
     interval.
   - Breach must not become an uncapped ramp; changing targets resets the previous target's Breach.
   - W is a champion ability, not an extra ward or a replacement for the dedicated vision-tool slot.
-  - Name collides with Tavi (register §G).
+  - Renamed from Tavra (2026-09-20) to resolve the Tavi/Tavra collision. Archived bible versions retain
+    the former name.
 sheet:
   file: Tavra_The_Harbor_Gun_Character_Sheet.png
   status: contradicts_canon

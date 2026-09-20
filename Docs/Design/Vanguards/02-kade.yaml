@@ -44,14 +44,16 @@ stealth: []
 owned_entities: []
 vision_touchpoints:
   - ability: w
-    effect: possible reveal/vision along the corridor
-    status: unresolved
-    note: Canon lists this among possible effects, not settled. The Vision Bible must rule before art
-      or implementation asserts a reveal.
+    effect: ordinary area vision along the corridor where normal vision rules permit
+    status: canon
+    note: 'Ruling 2026-09-20: NO reveal. Sightline never sees into Dense Fog, never reveals stealthed
+      Vanguards, and never grants remote targeted acquisition. Sylra and Bryn are the roster''s information
+      specialists and both are capped at presence-only; a damage carry must not exceed them.'
 guards:
   - Tracked is applied by displacement from Kade OR HIS ALLIES -- requires cross-Vanguard displacement
     attribution, not a local effect.
   - R is 'a limited series' of piercing shots; the count is not fixed by canon.
+  - Sightline grants no reveal (ruling 2026-09-20). The Vision Bible remains authoritative.
 sheet:
   file: null
   status: withdrawn

@@ -7,10 +7,10 @@
 #
 # Validate with: python3 Docs/Design/Vanguards/validate.py
 
-id: vitra
+id: oriel
 roster_number: 20
-name: Vitra
-title: The Last Light
+name: Oriel
+title: The Waiting Light
 canon_section: §20
 origin_region: Merrin
 origin_locality: null
@@ -58,7 +58,9 @@ guards:
   - R has no built-in stun, execute, displacement, reset or extra debuff.
   - Scaling comes from ability ranks, Magic Power and cooldown access -- not infinite passive stacks or
     extra range.
-  - Name collides with Vera (register §G).
+  - Renamed from Vitra (2026-09-20) to resolve the Vera/Vitra collision, and retitled from 'The Last Light'
+    to reduce the roster's four 'The Last --' titles to three. Archived bible versions retain the former
+    name and title.
 sheet:
   file: Vitra_The_Last_Light_Character_Sheet.png
   status: incomplete

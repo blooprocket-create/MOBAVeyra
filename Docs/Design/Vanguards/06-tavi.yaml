@@ -40,7 +40,7 @@ mobility:
 grants:
   - movement_speed
 stealth:
-  - unseen
+  - invisibility
 owned_entities:
   - id: hide_illusion
     category: placed_marker
@@ -48,14 +48,15 @@ owned_entities:
     note: Decoy; bursts and slows if the enemy marked It attacks it.
 vision_touchpoints:
   - ability: w
-    effect: briefly vanish / become unseen
-    status: needs_classification
-    note: Canon says 'unseen'. Combat Bible distinguishes Camouflage from Invisibility; which applies
-      is unstated.
+    effect: brief Invisibility
+    status: canon
+    note: 'Ruling 2026-09-20: brief Invisibility, not Camouflage. Under Camouflage an enemy at assassin
+      range sees the real Tavi anyway, so the illusion would not function as misdirection. Sweeper and
+      True Sight still counter it per the Vision Bible, and offensive casts still break stealth.'
 guards:
   - A kill can transfer the It mark to a nearby enemy Vanguard.
   - R permits one reduced-damage additional cast only on a successful kill.
-  - Name collides with Tavra (register §G).
+  - Tavi keeps her name; the former Tavra was renamed Bryn to resolve the collision (register §G).
 sheet:
   file: Tavi_The_Playmate_Character_Sheet.png
   status: current

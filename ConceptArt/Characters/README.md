@@ -55,14 +55,14 @@ Remaining work, in order:
 - [Patch — The Last Hug](./Patch_The_Last_Hug_Character_Sheet.png) — *passive contradicts canon, see register §B4*
 - [Qazharr — The Harbor Wolf](./Qazharr_The_Harbor_Wolf_Character_Sheet.png)
 - [Relay — The Last Conductor](./Relay_The_Last_Conductor_Character_Sheet.png)
-- [Silt](./Silt_Character_Sheet.png)
+- [Silt — The Living Mire](./Silt_Character_Sheet.png) — *pronouns contradict canon, see register §B8*
 - [Sylra — The Mistwarden](./Sylra_The_Mistwarden_Character_Sheet.png)
 - [Tavi — The Playmate](./Tavi_The_Playmate_Character_Sheet.png)
-- [Tavra — The Harbor Gun](./Tavra_The_Harbor_Gun_Character_Sheet.png) — *Dense Fog behaviour contradicts canon, see register §B2*
+- [Bryn — The Harbor Gun](./Tavra_The_Harbor_Gun_Character_Sheet.png) — *Dense Fog behaviour contradicts canon (register §B2); sheet also shows the former name Tavra and needs re-render*
 - [Torr — The Unreturned](./Torr_The_Unreturned_Character_Sheet.png)
 - [Varkesh — The Forgeheart](./Varkesh_The_Forgeheart_Character_Sheet.png)
 - [Vera — The Last Volley](./Vera_The_Last_Volley_Character_Sheet.png)
-- [Vitra — The Last Light](./Vitra_The_Last_Light_Character_Sheet.png)
+- [Oriel — The Waiting Light](./Vitra_The_Last_Light_Character_Sheet.png) — *sheet shows the former name and title (Vitra, The Last Light); needs re-render. See register §C.*
 
 ### Withdrawn pending clean regeneration
 

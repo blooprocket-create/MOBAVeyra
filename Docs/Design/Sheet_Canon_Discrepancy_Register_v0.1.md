@@ -52,7 +52,7 @@ Each row states what the sheet shows, what canon says, and which document owns t
 - **Impact:** total origin conflict — wrong region, wrong species category, wrong environment art. This is the largest single discrepancy in the set.
 - **On regeneration:** Shatterdeep environments; biological predator framing; confirm the silhouette reads as the canonical **six-legged** body plan.
 
-### B2. Tavra — W ability name and Dense Fog behaviour
+### B2. Bryn — W ability name and Dense Fog behaviour
 
 - **Sheet:** ability named "**Harbor Flare**"; text reads "*reducing local Dense Fog in the area, revealing enemies within the radius*". Weakness list: "Requires line of sight (Dense Fog blocks vision)".
 - **Canon** (Character Bible §19; Vision Bible; Design README): ability is "**Sounding Flare**". It reports that an enemy Vanguard is **present in a fog volume** — not their model, outline, coordinates or targetability. It does **not** "thin, remove, or convert Dense Fog", does not grant remote targeted acquisition, and does not bypass stealth or terrain rules.
@@ -95,8 +95,8 @@ Each row states what the sheet shows, what canon says, and which document owns t
 
 - **Sheet:** uses **they/them** ("They are a convergence"; "They do not speak often"). Titled "**The Living Mire**".
 - **Canon** (Character Bible §3): uses **he/him** ("heals **him**"; "**His** body visibly repairs"). The roster table lists Silt with **no title at all** — the only Vanguard without one.
-- **Ruling (2026-09-20): the bible wins.** Silt is **he/him**. The sheet is wrong and is corrected on re-render.
-- **Still open:** whether "The Living Mire" becomes canon or Silt remains deliberately untitled. Silt is currently the only Vanguard in the roster table without a title.
+- **Ruling (2026-09-20): the bible wins on pronouns.** Silt is **he/him**. The sheet is wrong and is corrected on re-render.
+- **Ruling (2026-09-20): the sheet wins on the title.** Silt is now **Silt, The Living Mire** in canon, adopting the title the sheet already carries. He was previously the only Vanguard without one. This element of the sheet needs no correction.
 
 ### B9. Neris — pronouns
 
@@ -112,9 +112,9 @@ These do not contradict canon; they silently omit a guard that exists specifical
 
 | Vanguard | Omitted guard | Source |
 |---|---|---|
-| **Vitra** | Gathering Light's fragment may only home onto an enemy Vitra can **legally acquire at fragment launch**; a blind hit into Dense Fog deals normal damage but generates no fragment, and the passive **stays primed** | Character Bible §20; Design README |
+| **Oriel** | Gathering Light's fragment may only home onto an enemy Oriel can **legally acquire at fragment launch**; a blind hit into Dense Fog deals normal damage but generates no fragment, and the passive **stays primed** | Character Bible §20; Design README |
 | **Mimzi** | The post-Camouflage attack applies two Hex stacks **only if the target was not already primed**; on a primed target it consumes the existing stacks for one normal proc without re-priming | Character Bible §21 |
-| **Tavra** | Q's Breach-consuming explosion **replaces** the passive's explosion — one impact, one secondary explosion, and neither explosion recursively triggers Breach or On-Hit effects | Character Bible §19; Design README |
+| **Bryn** | Q's Breach-consuming explosion **replaces** the passive's explosion — one impact, one secondary explosion, and neither explosion recursively triggers Breach or On-Hit effects | Character Bible §19; Design README |
 | **Cairn** | Passive and R shields share a **single configurable total cap** on Cairn-generated shielding; repeated immobilisation of the same target within a per-target lockout grants no second shield | Character Bible §18; Design README |
 
 ---
@@ -127,7 +127,7 @@ These do not contradict canon; they silently omit a guard that exists specifical
 - **Relay:** "Consumes **25%** of your current Charge"
 - Various stack ceilings and durations across the older sheet generations
 
-**Rule for regeneration:** sheets must describe behaviour qualitatively ("a short duration", "a portion of current Charge") and print no tuning values. Where a count is genuinely structural rather than balance — Mimzi's two-stack preparatory cap, Vitra's three stacks, Celandrine's three empowered attacks, Tavra's third-hit Breach — it may appear, because canon fixes it as a mechanic rather than a tuning knob.
+**Rule for regeneration:** sheets must describe behaviour qualitatively ("a short duration", "a portion of current Charge") and print no tuning values. Where a count is genuinely structural rather than balance — Mimzi's two-stack preparatory cap, Oriel's three stacks, Celandrine's three empowered attacks, Bryn's third-hit Breach — it may appear, because canon fixes it as a mechanic rather than a tuning knob.
 
 ---
 
@@ -162,11 +162,29 @@ Not errors, but they prevent the set reading as one product.
 
 ---
 
-## G. Open questions this register does not decide
+## G. Resolved and remaining
 
-These are design decisions, recorded here so they are not lost:
+### Resolved 2026-09-20
 
-1. ~~Silt's and Neris's pronouns~~ — **resolved 2026-09-20: the bible wins for both.** Silt is he/him, Neris is she/her (§B8, §B9). Whether Silt receives a title remains open.
-2. **Name collisions.** *Tavi* / *Tavra* and *Vera* / *Vitra* each differ by two characters. With four M-names (Marek, Moro, Mavra, Mimzi), three T-names and three V-names, draft-screen and voice-comms ambiguity is likely. Renaming is cheap now and expensive after voice-over, localisation and community wiki adoption.
-3. **Title repetition.** Four Vanguards are titled "The Last —" (Patch, Vera, Relay, Vitra).
-4. Whether a **machine-readable per-Vanguard data file** becomes the authority that both bible and sheets are validated against, per `ARCHITECTURE.md` §1.3.
+| Question | Ruling |
+|---|---|
+| Silt's and Neris's pronouns | **The bible wins for both.** Silt is he/him, Neris is she/her (§B8, §B9). Sheets corrected on re-render. |
+| Silt's title | **Adopted from the sheet:** Silt, **The Living Mire**. |
+| *Tavi* / *Tavra* collision | **Tavra renamed to Bryn.** Tavi keeps her name — its softness serves the childlike Echo, and Bryn's identity sits in "The Harbor Gun" and Mournwake rather than the name. |
+| *Vera* / *Vitra* collision | **Vitra renamed to Oriel.** An oriel is a projecting bay window, which carries her origin in Merrin's shattered glass exactly. Vera, the earlier design, keeps hers. |
+| "The Last —" repetition | Reduced from four to three. Oriel is retitled **The Waiting Light**; Patch, Vera and Relay keep theirs. |
+| Kade's Sightline | **No reveal.** Ordinary corridor vision only; never into Dense Fog, never exposing stealth, never remote acquisition. Character Bible §2. |
+| Tavi's Hide! | **Brief Invisibility**, not Camouflage. Character Bible §6. |
+| Owned field entities | **ADR-003 accepted** — three primitives, ride state scoped separately, first slice from the nine zero-entity Vanguards. |
+| Machine-readable Vanguard data | **Built.** See [`Vanguards/`](Vanguards/) and its validator. |
+
+Renames apply to **current canon only**. Archived bible versions under [`Archives/`](Archives/) retain the former names and are not retro-edited; see the archive index.
+
+### Remaining
+
+1. **Two sheets now also carry a former name.** Bryn's sheet renders "Tavra" and Oriel's renders "Vitra, The Last Light". Both need re-render regardless — Bryn's for the Dense Fog error (§B2) — so this adds no new work, but the filenames still use the old names until then.
+2. **Initial clustering.** Four M-names (Marek, Moro, Mavra, Mimzi), three T-names, three V-names remain. B, D, F, H, I, J, L, O, U, W, X, Y and Z were unused before these renames; O and B are now taken. Worth drawing from the remainder for future additions.
+3. **Two bible rulings ADR-003 defers**, both required before the corresponding Vanguard is built:
+   - the **Vision Bible** must state whether Dense Fog volumes are runtime-spawnable (Sylra's Lay the Mist and Through the White assume yes);
+   - the **Battleground Bible** must state whether an ability may modify pathing for both teams at runtime (Varkesh's Iron Wall assumes yes).
+4. **Third-party material still in Git history** (§A). Deleted from the working tree; removal from history is outstanding.

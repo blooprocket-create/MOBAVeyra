@@ -57,7 +57,7 @@ Dormant systems are activating again. Wells erupt, corrupted nodes awaken, old r
 |---|---|
 | **Flux** | Natural energy/network phenomenon harnessed through ancient and modern engineering. |
 | **Fluxborn** | Temporary constructs generated through the network. Torr is a unique persistent self-aware exception. |
-| **Echoes** | Memory made self-sustaining through repetition. Tavi, Vera, and Vitra are not ghosts. Vitra's consciousness formed through Merrin's repeated memories resonating with shattered stained glass. |
+| **Echoes** | Memory made self-sustaining through repetition. Tavi, Vera, and Oriel are not ghosts. Oriel's consciousness formed through Merrin's repeated memories resonating with shattered stained glass. |
 | **Pactcraft** | A Drowned Cantons tradition of entering agreements with beings from the Elsewhere. |
 | **The Elsewhere** | An adjacent existence, not normal geography on Veyra. Nix originates there. |
 | **Wakebound** | Rare people returned by the sea changed. Neris is a known Wakebound. |
@@ -133,13 +133,13 @@ Basalt island chains, cliff cities, rope bridges, hanging markets, huge harbors,
 
 The Cantons are cosmopolitan ports where an outsider can become local through participation rather than bloodline.
 
-**Known Vanguards:** Marek + Nix, Neris, Qazharr, Sylra, Tavra.
+**Known Vanguards:** Marek + Nix, Neris, Qazharr, Sylra, Bryn.
 
 ### Cultural anchors
 
 - Pactcraft is agreement and obligation, not conventional demon summoning.
 - Rescue culture and seafaring shape the region.
-- Qazharr was born on a distant coast but considers the Cantons home. He left piracy to settle there; Tavra, his former first mate and master gunner, was the only crewmate who stayed. She rebuilt her heavy Flux cannon Mournwake to protect the harbor. Neither character's original distant homeland is named.
+- Qazharr was born on a distant coast but considers the Cantons home. He left piracy to settle there; Bryn, his former first mate and master gunner, was the only crewmate who stayed. She rebuilt her heavy Flux cannon Mournwake to protect the harbor. Neither character's original distant homeland is named.
 - His original homeland remains deliberately unnamed until the world needs it.
 - **Bellcraft / fog-guidance traditions** are practiced by harbor pilots, rescuers, and chartkeepers. They use tuned bells, sea-glass, resonance, moisture, waymarks, and controlled mist to navigate conditions where direct sight is unreliable.
 - Bellcraft is distinct from Pactcraft, Wakebound magic, and Flux engineering.
@@ -155,7 +155,7 @@ Echoes are not ghosts of specific dead people. They are personhood formed from r
 
 **Vera** is Merrin remembering how it died: firing lines, siege commands, volleys, repetition, war.
 
-**Vitra** is Merrin remembering the light of homecoming: shattered stained-glass windows and the repeated memory of ordinary people waiting for someone to return gave rise to a glass-bodied Echo. She is not a ghost of a named person, not a Fluxborn construct, and is distinct in origin and outlook from Tavi's play and Vera's war.
+**Oriel** is Merrin remembering the light of homecoming: shattered stained-glass windows and the repeated memory of ordinary people waiting for someone to return gave rise to a glass-bodied Echo. She is not a ghost of a named person, not a Fluxborn construct, and is distinct in origin and outlook from Tavi's play and Vera's war.
 
 Merrin should remain a source of strange memory-born life without turning every Echo into the same personality or power set.
 
@@ -337,8 +337,8 @@ Character lore tells who these people are. A match shows what could happen if th
 |---|---|
 | Iron March | Raska, Kade, Mavra, Eudora Blackbridge |
 | Ember Basin | Varkesh, Gorraveth |
-| Drowned Cantons | Marek + Nix, Neris, Qazharr, Sylra, Tavra |
-| Merrin | Tavi, Vera, Vitra |
+| Drowned Cantons | Marek + Nix, Neris, Qazharr, Sylra, Bryn |
+| Merrin | Tavi, Vera, Oriel |
 | Shatterdeep | Korruk, Aurelisse |
 | Wildwood | Moro |
 | Buried Riverlands | Silt, Cairn |

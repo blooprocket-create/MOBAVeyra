@@ -10,7 +10,7 @@
 id: silt
 roster_number: 3
 name: Silt
-title: null
+title: The Living Mire
 canon_section: §3
 origin_region: Buried Riverlands
 origin_locality: null
@@ -56,8 +56,8 @@ guards:
   - Q's three projectiles must not produce triple healing from a single target.
   - Sandy reapplication after consumption is governed by an internal timing rule.
   - Canonical pronouns are he/him (register §B8); the sheet uses they/them and is wrong.
-  - Silt is the only Vanguard with no title in the roster table; 'The Living Mire' on the sheet is not
-    canon.
+  - 'Title ruling (2026-09-20): ''The Living Mire'', adopted from the concept sheet. He was previously
+    the only Vanguard without a title.'
 sheet:
   file: Silt_Character_Sheet.png
   status: contradicts_canon

@@ -26,7 +26,7 @@ The bible stays the authority on intent, fiction and nuance. These files are the
 
 The validator enforces this rather than trusting it: any numeric value outside `roster_number` fails the run, as does any tuning-shaped key name. Explanatory prose in `guards` and `note` is exempt, because it describes rules rather than configuring them.
 
-Structural counts that canon fixes as *mechanics* rather than balance — Mimzi's two-stack preparatory cap, Vitra's three stacks, Tavra's third-hit Breach — are recorded in prose inside `guards`, not as numeric fields.
+Structural counts that canon fixes as *mechanics* rather than balance — Mimzi's two-stack preparatory cap, Oriel's three stacks, Bryn's third-hit Breach — are recorded in prose inside `guards`, not as numeric fields.
 
 ## Relationship to the engine
 
