@@ -17,12 +17,32 @@
 >    precisely so that deleting it costs nothing.
 > 2. **File the Support request below** against the legacy repository, and leave it standing.
 >
-> Making the legacy repository **private** closes public reachability immediately and reversibly,
-> and is worth doing while either of the above is pending.
+> **Author's decision, 2026-09-20: the legacy repository is made PRIVATE, not deleted.** That
+> closes the public exposure — `refs/pull/1/head` returns 404 to anyone without access to the
+> repository — and it is reversible, which deletion is not. The Support request was never filed.
 >
-> Until one of these happens, the content stays reachable to anyone who fetches that one ref on
-> the legacy repository. The steps below are kept because their two findings generalise, and
-> because the request text is ready to send if that is the route taken.
+> ### ⚠ The standing condition this creates
+>
+> **Private is a latch, not a removal.** The three blobs are still in that repository, still
+> reachable by anyone who can read it. Nothing has been deleted and nothing has been
+> garbage-collected.
+>
+> **Making `blooprocket-create/veyraMOBA` public again re-exposes the content immediately and
+> silently.** There is no warning, no check, and nothing in the repository's own interface that
+> records why it is private. That is the failure mode this note exists to prevent, because the
+> reason will not be obvious to anyone — including its owner — six months from now.
+>
+> **Before that repository is ever made public again, one of these must happen first:**
+>
+> 1. **File the request below** against `blooprocket-create/veyraMOBA` and wait for GitHub to
+>    confirm they have dropped the ref and collected the objects; or
+> 2. **Delete the repository.** Its history is fully migrated to `blooprocket-create/MOBAVeyra`
+>    and its pull-request review findings are preserved in
+>    [`../Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md), so deleting it now loses
+>    nothing that is not recorded elsewhere.
+>
+> The steps below are kept for exactly that purpose, and because their two findings generalise
+> beyond this incident.
 **Date:** 2026-09-20 (revised twice: after a dry run found the procedure incomplete, and after execution proved where the content survives)
 
 Removes three concept-sheet blobs carrying third-party branding and artwork from the entire history of a **public** repository. See [`Sheet_Canon_Discrepancy_Register_v0.1.md`](../Design/Sheet_Canon_Discrepancy_Register_v0.1.md) §A for what each contains.
@@ -275,6 +295,10 @@ ref so these are no longer retrievable.
 ```
 
 Treat the job as unfinished until they confirm.
+
+**As of 2026-09-20 this request has not been filed.** The exposure is held closed by the legacy
+repository's **private** visibility instead — see the status note at the top of this document,
+including the condition that attaches to ever reversing it.
 
 ### 7. Everyone re-clones
 
