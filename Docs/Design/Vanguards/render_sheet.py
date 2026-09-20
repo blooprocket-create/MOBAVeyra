@@ -3,7 +3,7 @@
 
     python3 Docs/Design/Vanguards/render_sheet.py bryn          # render one sheet
     python3 Docs/Design/Vanguards/render_sheet.py --all         # render all 25
-    python3 Docs/Design/Vanguards/render_sheet.py --missing      # which slots have no art yet
+    python3 Docs/Design/Vanguards/render_sheet.py --missing     # which slots have no art yet
 
 Text is read at render time from the Character Bible and the Vanguard YAML.
 Nothing is duplicated into a third place and nothing is typed by hand, so a
