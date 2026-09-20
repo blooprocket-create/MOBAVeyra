@@ -30,7 +30,7 @@ Repository-native Markdown exports of the current working design documents live 
 - World Bible v0.5
 - Battleground Bible v0.9
 - Item Bible v0.3
-- Combat Bible v0.4
+- Combat Bible v0.5
 - Vision & Reconnaissance Bible v0.1
 - Economy & Progression Bible v0.1
 - Match Flow Bible v0.1

@@ -83,7 +83,9 @@ Nine Vanguards place no persistent entity at all: **Kade, Patch, Vera, Qazharr, 
 
 A reasonable first four: **Cairn** (tank, control, shielding), **Qazharr** (melee fighter, sustained pressure), **Oriel** (ranged mage, poke and scaling) and **Bryn** (ranged physical carry, attack-interval floor and the Dense Fog presence rule). They cover four archetypes and between them exercise shields, displacement, the Attack Speed overflow reference and the Vision Bible's fog rules.
 
-The remaining sixteen follow as their primitive lands: placed marker first (five Vanguards, simplest), then combat entity (three), then world volume per owning system (nine), then the ride state. **Raska is not deferred out of the roster** — she is last in the build queue because her ride state is the only feature in the roster with no supporting canon in any bible, and that canon has to be written before she can be implemented at all.
+The remaining sixteen follow as their primitive lands: placed marker first (five Vanguards, simplest), then combat entity (three), then world volume per owning system (nine).
+
+**Raska is not deferred out of the roster**, and she is no longer last. Two rulings on 2026-09-20 moved her: her ride state is a turn-rate-capped ordinary pathing agent rather than a bespoke movement system, and Hound after Bail Out is a **projectile** under Combat Bible §13/§20 rather than an owned entity. She therefore requires **none of the three primitives** above. She is gated only on the ride-state section being written into the Combat Bible, and can be implemented as soon as it is. **All 26 ride-state questions were answered on 2026-09-20 and written into the Combat Bible as §56 Ride states (v0.5).** That gate is now cleared: she is fully specified and implementable. See [`Ride_State_Open_Questions_v0.1.md`](../Design/Ride_State_Open_Questions_v0.1.md).
 
 ### Consequent obligations
 
@@ -132,13 +134,14 @@ Options B and D are compatible and can be taken together. **This is what was acc
 
 - Build order becomes a deliberate, costed sequence rather than an arbitrary one. Roster scope is unchanged: all 25 Vanguards ship in the first-playable roster.
 - Categories 3 and 4 acquire explicit owning documents. The Vision Bible gains a ruling on runtime fog volumes; the Battleground Bible gains a ruling on runtime navigation modification; ride states gain a Combat Bible section or an ADR of their own.
-- Whichever option is taken, `Docs/Design/Veyra_Combat_Bible_v0.4.md` §32 remains the semantic authority — this ADR governs structure, not rules.
+- Whichever option is taken, `Docs/Design/Veyra_Combat_Bible_v0.5.md` §32 remains the semantic authority — this ADR governs structure, not rules.
 
 ## Affected documents
 
 - `ARCHITECTURE.md` §1.3 (reusable primitives, data-driven configuration), §1.4 (thin Blueprints)
 - `Docs/ADR/ADR-002-gameplay-ability-system.md` (abilities compose shared primitives)
-- `Docs/Design/Veyra_Combat_Bible_v0.4.md` §32 (summons, companions, clones, decoys)
+- `Docs/Design/Veyra_Combat_Bible_v0.5.md` §32 (summons, companions, clones, decoys)
 - `Docs/Design/Veyra_Vision_Bible_v0.1.md` (runtime-spawned Dense Fog volumes — currently unaddressed)
 - `Docs/Design/Veyra_Battleground_Bible_v0.9.md` (runtime navigation modification — currently unaddressed)
 - `Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md` (Raska ride state has no supporting canon)
+- [`Docs/Design/Ride_State_Open_Questions_v0.1.md`](../Design/Ride_State_Open_Questions_v0.1.md) — the 26 questions that canon must answer before Raska can be implemented

@@ -23,10 +23,27 @@ except ImportError:
 HERE = pathlib.Path(__file__).resolve().parent
 DESIGN = HERE.parent
 ROOT = DESIGN.parent.parent
-BIBLE = DESIGN / "Veyra_Initial_Roster_Character_Bible_v0.6.md"
-COMBAT = DESIGN / "Veyra_Combat_Bible_v0.4.md"
-REGISTER = DESIGN / "Sheet_Canon_Discrepancy_Register_v0.1.md"
 SHEETS = ROOT / "ConceptArt" / "Characters"
+
+
+def newest(stem: str) -> pathlib.Path:
+    """The highest-versioned `<stem>_vX.Y.md` in Docs/Design.
+
+    Resolved at run time rather than hardcoded: the bibles are versioned by
+    filename and superseded ones move to Archives/, so pinning a version here
+    means the next bump silently breaks every check that reads it.
+    """
+    def version(path: pathlib.Path) -> tuple[int, int]:
+        m = re.search(r"_v(\d+)\.(\d+)\.md$", path.name)
+        return (int(m.group(1)), int(m.group(2))) if m else (-1, -1)
+
+    found = sorted(DESIGN.glob(f"{stem}_v*.md"), key=version)
+    return found[-1] if found else DESIGN / f"{stem}_MISSING.md"
+
+
+BIBLE = newest("Veyra_Initial_Roster_Character_Bible")
+COMBAT = newest("Veyra_Combat_Bible")
+REGISTER = newest("Sheet_Canon_Discrepancy_Register")
 
 EXPECTED_COUNT = 25
 
@@ -166,6 +183,8 @@ def main() -> int:
     files = sorted(HERE.glob("*.yaml"))
     require(len(files) == EXPECTED_COUNT,
             f"expected {EXPECTED_COUNT} Vanguard files, found {len(files)}", errors)
+
+    print(f"  reading {BIBLE.name}, {COMBAT.name}, {REGISTER.name}")
 
     cc_vocab = combat_bible_cc()
     if cc_vocab:

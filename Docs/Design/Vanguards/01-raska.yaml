@@ -49,8 +49,10 @@ owned_entities:
   - id: hound
     category: ride_state
     destructible: false
-    note: Replacement mounted ability set (Sideswipe, Powerslide, Bail Out); after Bail Out or Last Exit,
-      Hound continues independently and collides with enemies.
+    note: Replacement mounted ability set (Sideswipe, Powerslide, Bail Out). Turn-rate-capped ordinary
+      pathing agent, not a bespoke movement system (ruling 2026-09-20). After Bail Out or Last Exit, Hound
+      continues as a PROJECTILE under Combat Bible 13/20, not an owned entity, so Raska needs none of
+      ADR-003's three primitives.
 vision_touchpoints: []
 guards:
   - Ride mode grants unit ghosting and wide turning behaviour at speed; no mount/vehicle rules exist in
