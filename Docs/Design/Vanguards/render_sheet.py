@@ -435,9 +435,12 @@ HOUSE_CORE = (
 ANIME = " This character is rendered as high-end anime illustration: large expressive eyes, smooth shading, stylised proportions."
 PAINTERLY = " This character is rendered in painterly realism: realistic proportions, weathered skin, no anime eye."
 RENDER_BY_ID = {
-    "kade": ANIME, "tavi": ANIME, "vera": ANIME, "marek": ANIME, "neris": ANIME,
+    "kade": ANIME, "tavi": ANIME, "vera": ANIME, "marek": ANIME,
+    # Neris moved here when her regenerated hero came back painterly: realistic
+    # proportions, weathered skin, no anime eye. Classified from the new art, not
+    # carried over from the old one.
     "raska": PAINTERLY, "qazharr": PAINTERLY, "angeru": PAINTERLY, "mavra": PAINTERLY,
-    "sylra": PAINTERLY, "bryn": PAINTERLY, "eudora": PAINTERLY,
+    "sylra": PAINTERLY, "bryn": PAINTERLY, "eudora": PAINTERLY, "neris": PAINTERLY,
 }
 
 

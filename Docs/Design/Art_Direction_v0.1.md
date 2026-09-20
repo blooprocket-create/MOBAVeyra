@@ -50,8 +50,12 @@ that came out leaning towards anime are gonna stay that way"*).
 
 | Idiom | Vanguards |
 |---|---|
-| High-end anime | Kade, Tavi, Vera, Marek, Neris |
-| Painterly realism | Raska, Qazharr, Angeru, Mavra, Sylra, Bryn, Eudora |
+| High-end anime | Kade, Tavi, Vera, Marek |
+| Painterly realism | Raska, Qazharr, Angeru, Mavra, Sylra, Bryn, Eudora, Neris |
+
+Neris moved from the first row to the second when her regenerated hero came back painterly.
+The table is classified from the art that exists, so a regeneration can move a character
+across it — check the new face rather than carrying the old entry forward.
 
 Which end each sits at is held per character in `RENDER_BY_ID` in `render_sheet.py`, beside
 the hue overrides, because it is a production choice rather than a fact about the character
