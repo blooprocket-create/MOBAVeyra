@@ -64,3 +64,12 @@
 The Settings & Accessibility Bible now records **Standard/Large/Extra Large independent chat text** (Proposal 66), **Transparent/Standard default/High Contrast in-match chat backdrop** (Proposal 67), and **optional ping-type text labels** (Proposal 68). These are player-local presentation choices; chat authorization, recipient scopes, permitted ping information and delivery are unchanged.
 
 **No built-in voice chat** remains the explicit rule (Proposal 72 rejected); push-to-talk/microphone/voice-channel settings must not be introduced. Proposal 73 rejected a separate All Messages/DM Only/Off chat-sound classification feature; the earlier, general incoming-chat-message sound toggle (Proposal 23) still exists. Proposal 51 rejected an additional configurable Do Not Disturb During Matches mode; friend DMs must nonetheless remain non-obtrusive during combat per §4.
+
+
+## Pre-game client UX checkpoint — proposals 1–17
+
+The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) owns the presentation of the social sidebar. During ordinary pre-game browsing, friends, Party Chat and permitted DMs remain available in an independently collapsible sidebar. On entering champion select, that sidebar automatically minimizes; authorized selection-safe chat may be reopened without leaving champion select or covering essential selection controls.
+
+If Unreal has closed while a match is still live, the pre-game client presents a dedicated **Reconnect-only** view. Reconnect is its **only available action**: the pre-game client offers no sidebar, Party Chat, DMs, notification center or normal page navigation in that recovery state. Existing party and conversation state remains preserved, and permitted chat in the **reconnected Unreal in-match client** remains available under the rules above. Normal pre-game social UI returns after the match has ended. This is a UI availability rule, not a change to chat permissions, recipients or message retention.
+
+The pre-game client design discussion is **paused after Proposal 17** until the author says “continue”.
