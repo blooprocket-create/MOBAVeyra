@@ -16,6 +16,7 @@ This directory contains the **current working canon** for Veyra's game design. C
 - `Veyra_Modes_Access_Bible_v0.1.md` (queues, Ranked entry, free weekly rotation, Co-op vs AI)
 - `Veyra_Custom_Matches_Bible_v0.1.md` (invite-only sandbox, adjustable rules, open-ended host-ended solo/team practice, selectable AI and invited spectator-only seats with host-selected three-minute or zero-delay viewing)
 - `Veyra_Client_Platform_Bible_v0.1.md` (launcher, pre-game client, Unreal match client and reconnect handoff)
+- [`Veyra_Pre_Game_Client_UX_Bible_v0.1.md`](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) (approved pre-game client Proposals 1–17: persistent Home/Play/party/social shell, notifications, matchmaking overlay and queue estimates, full-screen champion select, post-match results and strict Reconnect-only screen; **paused at 17 until author says “continue”**)
 - `Veyra_Parties_Social_Matchmaking_Bible_v0.1.md` (parties, queue readiness/acceptance, friends/presence, strict blocks, future Ranked party target)
 - `Veyra_Chat_Communication_Bible_v0.1.md` (text-only Team/All/Party/DM/post-match channels; All Chat default-on with per-player Settings off switch; muting and replay privacy)
 - `Veyra_Profiles_Identity_Bible_v0.1.md` (public profiles, customization, account creation, unique names and name claims)
@@ -87,3 +88,6 @@ Older superseded versions are preserved under [`Archives/`](Archives/). They exi
 The original Word documents include richer layout and concept-art presentation. These Markdown exports prioritize searchable design content and may omit embedded images.
 
 Design bibles are working canon and may evolve. Architecture rules live separately in the repository root and are not overridden by incidental implementation suggestions inside a design document.
+
+
+**Pre-game client design checkpoint (2026-09-22):** The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) owns the approved visual/navigation behavior through Proposal 17, including **Reconnect as the sole pre-game client action while an assigned match is still live and Unreal is closed**. Core authority remains with Client & Platform, Parties & Social, Chat, Match Flow and the other owning bibles. **Discussion is paused; only resume at Proposal 18 if the author says “continue”.**
