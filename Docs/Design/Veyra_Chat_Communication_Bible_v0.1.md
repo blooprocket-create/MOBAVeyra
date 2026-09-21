@@ -49,7 +49,7 @@
 
 ## 7. Deliberately open — later Chat UX and Settings Bible
 
-- The [Settings & Accessibility Bible v0.1](Veyra_Settings_Accessibility_Bible_v0.1.md) now owns approved personal Settings, including chat background opacity, message fade duration, timestamps, incoming-message sounds, chat size, in-match changes and cross-device preference persistence. **All Chat still defaults On and can be switched entirely Off without disabling Team/Party Chat** under this bible's recipient and channel rules. Detailed messaging UI, channel-specific notification/mute behavior not explicitly approved, and backend policies remain open.
+- The [Settings & Accessibility Bible v0.1](Veyra_Settings_Accessibility_Bible_v0.1.md) now owns approved personal Settings, including chat background mode (Transparent/Standard/High Contrast), message fade duration, timestamps, the approved general incoming-message-sound toggle (not per-channel audio categories), separate chat text sizes, in-match changes and cross-device preference persistence. **All Chat still defaults On and can be switched entirely Off without disabling Team/Party Chat** under this bible's recipient and channel rules. Detailed messaging UI, channel-specific notification/mute behavior not explicitly approved, and backend policies remain open.
 - Whether the in-match chat composer defaults to Team or All, channel shortcuts, message length, rate limits, spam prevention, text filtering, translation/localization, quick-chat and full ping system; individual mute scope/duration and how party-chat mute/DM muting should interact with blocks.
 - Post-match chat departure/expiration and exact interaction with All Chat being disabled; do **not** override a player's disabled All Chat preference by silently funneling opponent messages through another channel.
 - DM storage, offline delivery/reply status, friend removal, Appear Offline interplay and whether non-friend messaging or requests should ever exist.
@@ -57,3 +57,10 @@
 - Channel-level authorization, chat-restriction enforcement, participant/report evidence association and case-based restricted staff access. Avoid sharing private chat with third parties or replay clients by convenience.
 
 **This bible locks the communication choices reached so far; it does not authorize inventing chat backend architecture, retention policies, moderation thresholds, Settings options, or ping controls.**
+
+
+## Settings checkpoint — chat presentation and voice boundary (2026-09-21)
+
+The Settings & Accessibility Bible now records **Standard/Large/Extra Large independent chat text** (Proposal 66), **Transparent/Standard default/High Contrast in-match chat backdrop** (Proposal 67), and **optional ping-type text labels** (Proposal 68). These are player-local presentation choices; chat authorization, recipient scopes, permitted ping information and delivery are unchanged.
+
+**No built-in voice chat** remains the explicit rule (Proposal 72 rejected); push-to-talk/microphone/voice-channel settings must not be introduced. Proposal 73 rejected a separate All Messages/DM Only/Off chat-sound classification feature; the earlier, general incoming-chat-message sound toggle (Proposal 23) still exists. Proposal 51 rejected an additional configurable Do Not Disturb During Matches mode; friend DMs must nonetheless remain non-obtrusive during combat per §4.
