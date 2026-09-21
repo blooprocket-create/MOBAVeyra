@@ -73,3 +73,16 @@
 - Tutorial technical implementation, exact matchmaking thresholds/AI logic, replay/spectator recording architecture, detailed moderation/telemetry staff tooling and publishing pipeline.
 
 **This v0.1 is a checkpoint for further discussion, not approval to build unchosen infrastructure or start gameplay implementation.**
+
+
+## Settings & accessibility checkpoint — Proposals 46–120 (2026-09-21)
+
+The [Settings & Accessibility Bible](Veyra_Settings_Accessibility_Bible_v0.1.md) is authoritative for player preferences; the client implements these UX decisions without changing matchmaking, match-flow or authority rules.
+
+- **Match-found notifications (Proposal 50, modified/approved):** A backgrounded pre-game client requests a privacy-conscious desktop notification/taskbar attention where supported. The notification offers explicit **Accept** and **Decline** actions directly where the OS supports them; they must respect the normal acceptance deadline. Otherwise selecting the notification opens the client. Never auto-accept, bypass OS permissions or expose party/player/DM content.
+- **Audio/background (Proposals 49, 70, 71, 104):** Background Full Audio/Mute Nonessential/Mute All only changes output, never match state. Device fallback is player-selectable Automatically Switch (default) or Wait for Selected Device; a local output test and separate match-ready sound toggle do not change routing/acceptance. **Do not add voice chat** (Chat Bible and rejected Proposal 72).
+- **Loading-screen UX (Proposals 111–120):** Required graphics-preparation progress, completion/failure and retry appear **on the match loading screen**; the client must not enter the live match before required preparation completes, while existing loading timeout/no-show/connection rules prevent indefinite waits. Show accessible, plain-language stage labels; do not invent percentages/time estimates for indeterminate stages. Respect existing visual accessibility settings and preserve readable errors. No separate completion/error audio cue or mandatory new error-dialog focus behavior (rejected Proposals 113/115).
+- **Optional loading content (Proposals 116–120):** Show canon-consistent gameplay tips and lore fun facts; category choice **Both default / Gameplay Tips Only / Lore Facts Only / Off**. When enabled, accessible Previous/Next permits manual selection and stops auto-rotation for that loading screen. Automatic rotation avoids repeats until eligible entries appear and varies the starting entry. Minimum display **8 seconds**, longer for longer entries, **never delays match entry** or obscures error/status UI. This must not become a new mandatory onboarding step.
+- **Display/reliability (Proposals 92, 106–110):** Disruptive resolution/mode/monitor changes confirm or revert after **15 seconds**; diagnostics/recommendations are player initiated and do not silently override accessibility preferences. Background FPS limit is render-only and live-match state still advances normally.
+
+Exact platform-specific notification API, graphics-preparation mechanics, loading timing and other engineering details remain governed by their existing owners and must not be fabricated from these presentation decisions.
