@@ -39,6 +39,7 @@ Repository-native Markdown exports of the current working design documents live 
 - Modes & Access Bible v0.1
 - Custom Matches & Private Lobbies Bible v0.1
 - Launcher, Pre-Game Client & Platform Bible v0.1
+- [Pre-Game Client UX Bible v0.1](Docs/Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) — approved Proposals 1–17, covering persistent party/social shell, Play and matchmaking, committed champion select, results and Reconnect-only recovery; paused at 17 until “continue”
 - Parties, Social & Matchmaking Bible v0.1
 - Chat & Communication Bible v0.1
 - Player Profiles, Identity & Website Bible v0.1
@@ -73,3 +74,6 @@ Veyra targets **Unreal Engine 5.8** and has formally adopted Unreal's **Gameplay
 ## License
 
 Source is publicly viewable but is **not open source**. See [`LICENSE.md`](LICENSE.md).
+
+
+The [Pre-Game Client UX Bible](Docs/Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) records the current approved client design checkpoint through **Proposal 17**: ordinary pages share persistent collapsible party and social panels, while Match Found and champion select take priority. If Unreal is closed during a **still-live match**, the pre-game client offers **Reconnect only**—no shopping, social, Settings or queue navigation—until the match ends. The author paused further pre-game UX proposals; resume at **Proposal 18** only after “continue”.
