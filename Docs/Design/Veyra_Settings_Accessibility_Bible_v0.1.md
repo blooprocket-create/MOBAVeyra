@@ -1,7 +1,7 @@
 # Veyra Settings & Accessibility Bible
 
-**Version:** 0.1 — Approved player-facing decisions, Proposals 1–120 (2026-09-21)  
-**Status:** Working design canon for the approved choices below; this bible is not a complete implementation specification. Discussion paused after Proposal 120; resume at Proposal 121 only when the author says “continue”.  
+**Version:** 0.1 — Consolidated approved/rejected decisions, Proposals 1–168 (2026-09-21)  
+**Status:** Working design canon and player-facing menu consolidation. Proposal 168 approved ending routine one-feature-at-a-time expansion; implementation details and identified open questions remain separate design work.  
 **Scope:** Personal controls, casting, camera, interface, accessibility, audio, graphics, language, settings persistence and in-match access.  
 **Related:** [Combat Bible](Veyra_Combat_Bible_v0.5.md) owns actual attack, ability, targeting and status rules; [Vision Bible](Veyra_Vision_Bible_v0.1.md) owns permitted information; [Chat & Communication Bible](Veyra_Chat_Communication_Bible_v0.1.md) owns recipients, All Chat, mute and communication permissions; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns application handoffs; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) owns match phases and outcomes. [Architecture](../../ARCHITECTURE.md) still governs implementation.
 
@@ -155,7 +155,7 @@ Settings never establish combat truth, server authority, hidden information, cha
 
 ## 10. Resume point
 
-**Proposal 120 is approved as modified and documented: 8 seconds minimum for automatically rotating loading tips and lore facts, with longer entries receiving more time; manual navigation and match entry are unaffected. Discussion is paused here at the author's request.** On the author's next **“continue”**, resume the one-proposal-at-a-time Yes / No / Modify discussion at **Proposal 121**. Do not re-propose an accepted/rejected item or imply that Proposal 121 has been approved.
+**Proposals 1–168 have been discussed; Proposal 168 approved closing routine feature-by-feature proposals in favor of a practical consolidated menu.** §§12–14 record post-120 decisions and the menu blueprint. Do not continue numbering proposals by default; address genuine open questions only when the author asks.
 
 
 ## 11. Approved decisions and explicit rejections — Proposals 46–120
@@ -259,4 +259,100 @@ This checkpoint supersedes any earlier shorthand in §§1–9 where a later prop
 
 Rejections are enumerated above to distinguish a rejected optional feature from ordinary usability/accessibility requirements that still apply. In particular: **no built-in voice chat**, no automatic or custom live-combat screen-reader narration, no implicit approval of full shop/HUD layouts, no additive setting based on an unapproved gameplay mechanic, and no change to server-authoritative or vision/communication boundaries.
 
-All prior approved decisions from Proposals 1–45 remain in force except where a later approved proposal explicitly refines them. The design is **paused after Proposal 120** by author request; resume at **Proposal 121** only after “continue”.
+All prior approved decisions from Proposals 1–45 remain in force except where a later approved proposal explicitly refines them. Proposals 121–168 and the consolidated menu structure are recorded below; the automatic feature-proposal phase ended at 168.
+
+
+## 12. Post-checkpoint decisions — Proposals 121–168
+
+This section records the decisions made after the previous Proposal 120 checkpoint. It **does not** transform rejected proposals into implicit implementation requirements. Exact numeric controls, final launch localization and unapproved content remain open unless explicitly approved elsewhere.
+
+### 12.1 Account preference ownership, settings import/export and safeguards
+
+- **121 — Per-Account Settings Isolation, approved:** A shared device never makes another signed-in account inherit the prior player's personal/accessibility preferences, bindings or named presets. Signing out does not erase them. Hardware preferences stay device-local; unavailable account choices use appropriate defaults, not somebody else's account data.
+- **122 — Settings File Import/Export, approved:** Optional local export/import for **account-level personal settings and named presets only**; exclude account secrets, messages and device-specific graphics/display/audio-output choices. Import shows a preview and requires Apply/Cancel; apply normal validation and binding-conflict handling without changing another account's preferences.
+- **123 — Invalid Import Recovery, approved:** Unreadable/invalid files leave current preferences and presets unchanged; supported values in a readable older file may be previewed while unsupported entries are explicitly skipped; confirm Apply Supported Settings/Cancel. No silent substitute values.
+- **124 — In-Match Import, approved restriction:** File **imports are allowed outside live matches only**. Individual eligible setting edits and normal account preference loading remain available during matches.
+- **125 — In-Match Export, rejected:** File **exports are also outside live matches only**. Do not infer import is restricted but export allowed.
+- **126 — Pending Restart Values, approved:** Clearly distinguish selected **Pending Restart** values from effective currently active values; player may cancel pending change or retain for next launch. Never force restart or disconnect live player; immediate settings and 15-second disruptive-display recovery retain their own behavior.
+- **127 — Pending-Value Export Notice, approved:** If account-level settings pending restart are included in an out-of-match export, explain that the **selected pending values** (not yet active) will be included and offer Export/Cancel. Do not restart/apply merely because of export.
+- **128 — Apply Failure Feedback, approved:** Show plain-language error and currently active working value when an attempted setting cannot apply. Do not misrepresent failed selection as active/saved; provide accessible, non-color-only feedback without overriding display reversion or pending-restart mechanisms.
+
+### 12.2 Vanguard control profiles and pre-match safety
+
+- **129 — Reset One Vanguard Profile, approved:** Confirmed action removes only selected Vanguard's custom control overrides; it then inherits the general profile. Preserve general and other Vanguard profiles.
+- **130 — Copy Vanguard Profile, approved:** **Outside live matches** choose source/destination, preview compatible control overrides and confirm replacement; identify incompatible options as not copied. Source/general/unrelated profiles remain intact; no changed ability mechanics.
+- **131 — Effective Binding and Inheritance, approved:** Show each profile entry's actual effective input and **Custom / Inherited** origin; remove one override to restore its inherited general value without resetting other overrides.
+- **132 — Control Input Test Panel, rejected:** No out-of-match testing/highlight panel.
+- **133 — Essential Unbound Warning, approved:** Label effectively unbound essential actions and show **nonblocking pre-match warning**, offering **Open Controls / Continue**; never silently repair, block match or extend selection deadlines. Define exact essential-action list with the finalized control scheme.
+- **134 — Restore Default in Warning, approved:** Confirmed per-action Restore Default from the warning, preview intended binding and use existing conflict dialog. Player may instead open Controls or continue unbound.
+- **135 — Editing Controls During Champion Select, rejected:** No controls/profile editing during champion select. **Present Proposal 133 warning at a moment when Open Controls can genuinely be used**, not as a champion-select editing gate.
+- **136 — Confirm Last Essential Unbind, approved:** Before intentionally clearing the final **effective** binding of an essential action, offer Clear Binding/Cancel and identify action. No prompt when removing an override safely restores a valid inherited binding. Explicitly chosen unbound actions remain allowed.
+- **137 — Separate Profile-Difference Summary, rejected:** No dedicated read-only comparison summary; approved effective binding and Custom/Inherited labels remain.
+- **138 — Reset Count in Confirmation, approved:** Reset Vanguard Profile confirmation identifies Vanguard, count of custom overrides removed, new inheritance from general profile and Reset Profile/Cancel; no separate comparison screen.
+- **139 — Search Vanguard Controls, approved:** Existing Settings search returns matching general and Vanguard-specific control entries with clear profile labels and navigation; no side effects, no champion-select edit.
+- **140 — Profile Search Filter, rejected:** No additional All/General/individual-Vanguard filter for search results.
+- **141 — Undo Profile Reset, approved:** Brief **Undo Reset** restores just-reset Vanguard's custom overrides to immediately previous state; expires after another control-profile edit or leaving Controls settings. Not permanent history.
+- **142 — Destination-Only Overrides on Copy, approved:** Compatible source overrides replace corresponding destination overrides. Incompatible source options are not copied; destination-only overrides without compatible source counterpart remain unchanged. Preview added/replaced/unchanged.
+- **143 — Selectively Copy Individual Overrides, rejected:** Copy all compatible source overrides in a single confirmed action; do not add per-override checkboxes.
+- **144 — Undo Profile Copy, approved:** Brief **Undo Copy** restores destination Vanguard's entire pre-copy profile; expires after another profile edit or leaving Controls. Source/general/other profiles unchanged.
+- **145 — Profile-Copy Conflict Preview, approved:** Before committing a copy, inspect resulting destination **effective** bindings including inherited general controls. Identify affected actions/inputs and require resolution before **atomic** apply; no silent clearing or partial profile copy. Existing individual-binding conflict choice remains.
+- **146 — Identify Profile Being Edited, approved:** Always show general/Vanguard profile identity; during match distinguish viewed/edited profile from effective current Vanguard profile. Merely browsing a profile never switches current gameplay controls.
+- **147 — Immediate Current-Vanguard Impact, approved:** In live Controls settings, identify whether an edit affects the current Vanguard immediately, including general-profile settings it inherits, versus future/other Vanguard changes. Does not add delay or confirmation.
+- **148 — Contextual Undo Last Control Change, rejected:** No duplicate shortcut; existing general one-step Undo remains.
+- **149 — Practical Settings Principle, approved:** Prefer options materially affecting control, sight/readability, sound or access; avoid proliferating duplicate toggles, shortcuts and micro-confirmations. This principle **does not silently revoke** any earlier approved feature.
+
+### 12.3 Camera, targeting, visual readability, audio and display
+
+- **150 — Camera Speed Names, approved:** Existing **Camera Movement Speed** for keys, **Edge-Scroll Speed** for pointer edge, **Camera Drag Sensitivity** for configured drag. Labels clarify existing choices; **do not add three new controls**.
+- **151 — Screen-Reader In-Match Scoreboard, rejected:** No dedicated keyboard/screen-reader scoreboard navigation/narration feature. Client menu and in-match shop accessibility remain.
+- **152 — Reduced Background Detail, approved:** Optional **Off by default**; tone down nonessential environmental motion and clutter without removing gameplay-important map/brush/vision/objective/projectile/ability cues or changing collision/targeting. Independent of graphics quality and other visual comfort options.
+- **153 — Master Volume, approved:** **0–100%, default 100%**, overall Veyra audio scalar retaining category slider values; respect device, OS and background routing/volume.
+- **154 — Separate Alt-Tab Mute, approved consolidation:** Keep the existing **Background Audio** Full Audio (default)/Mute Nonessential/Mute All in Audio; **no duplicate Mute When Alt-Tabbed toggle**.
+- **155 — Manual Camera Zoom, approved:** Rebindable manual zoom within same game-wide range for all players; persists as camera preference and can reset to standard zoom. No extra vision, targeting or automatic cinematic zoom. **Exact limits remain to test.**
+- **156 — Return Camera on Respawn, approved:** **On by default** returns camera to Vanguard at respawn; **Off** retains position **subject to selected camera mode**. Never changes mode, vision or respawn time.
+- **157 — Free Camera While Dead, approved:** **On by default** allows free panning while dead for Locked/Semi-Locked users; Off preserves mode's ordinary control behavior. Resume selected mode at respawn and honor §12.3 Proposal 156. No change to vision/respawn.
+- **158 — Mouse Wheel Manual Zoom, approved:** Rebindable **mouse wheel over battlefield** is default manual zoom input. Wheel over scrollable UI scrolls that UI instead of camera zoom.
+- **159 — Camera Lock Toggle, rejected:** No separate Free↔following camera toggle; original camera mode selection and Hold to Center remain.
+- **160 — Minimap Size Consolidation, approved:** Use already approved **independent minimap HUD scale** and separate minimap icon scale; no duplicate Minimap Size slider.
+- **161 — Show Movement Path, rejected:** No optional persistent path line; ordinary movement-click feedback remains.
+- **162 — Show Attack Range, approved:** Rebindable **hold-to-preview** own current basic-attack range, updating with real range changes. Player-only visual guide; no automatic attack, target acquisition, hit guarantee or altered mechanics.
+- **163 — Attack Range Appearance, approved:** Inherit existing Standard/Thick targeting boundary and applicable high-contrast outline; maintain visible accurately sized boundary without separate appearance sliders.
+- **164 — Mouse-Driven Camera Suppression While Shop Open, rejected:** No additional shop-hover-specific rule for disabling mouse-driven camera movement. Proposal 158's **scrollable UI consumes wheel rather than zooming camera** and Proposal 58's shop-search typing protection still apply. The blanket suspension rejected in Proposal 89 remains rejected.
+- **165 — Rendering Resolution vs UI Scaling, approved:** Changes to scene-render resolution do not silently alter interface text size or individual HUD scales. Display-resolution/layout changes keep essential controls and information in usable bounds. No duplicate global scale slider; 15-second risky-display recovery remains.
+- **166 — Display Modes, approved:** Existing Display Mode setting offers **Windowed / Borderless Fullscreen / Fullscreen** where supported. Disruptive changes follow 15-second Keep/Revert; preserve other camera/HUD/audio preferences.
+- **167 — Monitor Selector, approved:** Where multiple monitors are connected, offer device-local selected display; use 15-second Keep/Revert for disruptive changes; on launch with saved display unavailable, fall back to an available monitor.
+
+### 12.4 End of feature-proposal phase
+
+- **168 — Consolidation and scope review, approved:** End routine one-feature-at-a-time additions. Assemble the **actual player-facing settings** into a practical menu, merge duplicate presentation, and place non-configurable behavior in implementation/design rules rather than presenting it as toggles. Report genuine open questions/conflicts for review; **do not silently delete or change an approved option**.
+
+## 13. Consolidated player-facing Settings menu blueprint (Proposal 168)
+
+This is information architecture, **not** a new exhaustive list of options or final UI layout. Every approved control still exists, including individual cast modes, individual HUD scales, combat-text sub-toggles and keybindings that are summarized here rather than enumerated as 100+ separate rows. Search indexes general and Vanguard-specific controls without an extra search-profile filter (139 approved, 140 rejected).
+
+| Main category | Grouped player-facing controls |
+|---|---|
+| **Controls** | General/Vanguard-specific bindings, eligible casting modes, attack move and its target preference, Target Vanguards Only Hold/Toggle, self-cast and eligible hold/toggle, safe mouse rebinding and raw mouse input, Show Cast Range and Show Attack Range bindings, scoreboard Hold/Toggle, shop-search shortcut; profile copy/reset and their existing previews/confirmations/limited Undo. |
+| **Camera** | Free/Locked/Semi-Locked modes, Hold to Center, camera key speed, edge scroll On/Off/speed/zone/delay, camera drag and smoothing, manual zoom and default wheel binding, Return on Respawn and Free Camera While Dead. No extra Camera Lock Toggle or cinematic zoom. |
+| **Interface** | Independently scaled anchored HUD components (including minimap) with two-axis safe area, minimap icon scale and click/movement preferences, cursor and targeting appearance, Fluxborn/jungle health bars, combat-text categories/density, cooldown/status appearance, chat panel dimensions, Reduce HUD Motion, Auto-Hide Nonessential HUD, FPS/ping/warnings and ping presentation. The team-status panel's exact contents remain open (55). |
+| **Accessibility** | Interface text size and keyboard-focus enhancement, screen-reader support in **client and in-match shop only** as approved, color-vision palettes and indicator color adjustments, Reduce Flashing, Screen Shake, nonessential particles, Reduce Ambient UI Animation, Reduce Interface Transparency, Reduced Background Detail, subtitles/visual audio cues and relevant legibility controls; approved first-launch accessible setup reuses these values. |
+| **Audio** | Master and individual music/ambience/dialogue/effects/UI/announcer/ping volumes, output device/fallback/test, Mono, L/R balance, Standard/Night Mode, one Background Audio setting, match-ready sound. No multiplayer voice-chat panel. |
+| **Graphics & Display** | Presets and individual quality controls, device-local resolution/render scale/Windowed-Borderless-Fullscreen/monitor/VSync/foreground FPS cap, background FPS cap, sustained low-FPS warning, player-initiated recommended settings and benchmark/comparison. Disruptive changes use the approved 15-second recovery. |
+| **Communication** | **All Chat On by default** (without disabling Team/Party), regular incoming chat sound, chat message background and text size/timestamps/fade, player muting through appropriate conversation UI, minimap/world ping label/volume/visibility options in their relevant Interface/Audio sections. No voice chat or per-channel sound taxonomy. |
+| **Language & Account** | Text language vs available Vanguard/announcer voice language, up to three named *account-level* preference presets, settings search/reset/one-step Undo, account/device preference separation, player-initiated account-settings import/export **outside live matches**, Loading Tips & Lore category, skippable first-launch accessibility setup. Keep sensitive account data out of exported settings. |
+
+**Presentation principles:** show common controls first, reveal detailed per-action and per-HUD controls in nested sections; descriptive labels clarify purpose, not new duplicate controls. Existing preferences autosave; no unapproved Save All/Apply All gate. The HTML mockup is a representative **visualization**, not itself a source of canon for defaults, supported locales, slider limits, HUD element counts, device names or technical implementation.
+
+## 14. Behavior rules kept OUT of the Settings menu; open questions
+
+**Non-configurable behavior (no new menu controls):** inaccessible/failed settings apply feedback, current vs pending-restart state, safe binding-conflict and essential-unbound confirmations, pre-match essential-binding warning with Open Controls/Continue, display-change automatic reversion, screen-reader shop announcement priority/item reading order, match loading graphics preparation/error/retry and readable stage labels, loading-screen accessibility, tip/fact rotation/navigation/8-second minimum, standard interactive search and per-account isolation. Each stays in its relevant UI/system implementation, not as an independently exposed settings toggle.
+
+**Documented integration questions for later UX/engineering resolution (not new proposals):**
+1. **Pre-match binding warning vs champion-select restriction:** show the nonblocking Open Controls/Continue warning **before champion select becomes time-critical** or another permissible pre-match point, never promising access to editing inside champion select (133–135).
+2. **Camera Return Off with following modes:** Locked/Semi-Locked inherently follow the Vanguard on ordinary gameplay; “retain previous position” applies only insofar as current mode permits. Specify the exact respawn frame/transition during camera implementation (156–157); do not invent a special locked-mode exception.
+3. **Profile copy validation:** combine all-compatible copy, destination-only preservation, and conflict-free **atomic** apply (130, 142, 145); do not turn rejected per-control selective-copy checkboxes into conflict resolution. Existing individual binding change dialog may be used in the Controls editor before retry.
+4. **Settings-file and account-sync semantics:** device-specific preferences never leak between accounts through file import; importing selected pending-restart values preserves their pending status. Define safe file format/version handling and sync conflict behavior during implementation, not as another player-facing toggle.
+5. **Potential UI duplication to avoid:** Proposal 10's minimap HUD scale and 160's minimap-size clarification are one control; Proposal 49's Background Audio and 154's Alt-Tab mute clarification are one control; 15/36 targeting appearance also governs 162/163 attack-range preview. Screen-reader scoreboard (151), mouse-driven shop camera suppression (164), and camera lock toggle (159) remain rejected.
+6. **Mockup-only examples:** Until the final design pass, don't treat sample slider bounds, example languages, monitor labels, camera default zoom, brand styling or chosen default display mode in visual mockups as approved canon.
+
+**No new feature proposal is pending after Proposal 168.** Reopen specific decisions only when a real product/design gap is identified and the author wishes to do so.
