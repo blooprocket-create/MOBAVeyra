@@ -1,7 +1,7 @@
 # Veyra Settings & Accessibility Bible
 
-**Version:** 0.1 — Approved player-facing decisions, Proposals 1–45 (2026-09-21)  
-**Status:** Working design canon for the approved choices below; this bible is not a complete implementation specification. Discussion paused after Proposal 45.  
+**Version:** 0.1 — Approved player-facing decisions, Proposals 1–120 (2026-09-21)  
+**Status:** Working design canon for the approved choices below; this bible is not a complete implementation specification. Discussion paused after Proposal 120; resume at Proposal 121 only when the author says “continue”.  
 **Scope:** Personal controls, casting, camera, interface, accessibility, audio, graphics, language, settings persistence and in-match access.  
 **Related:** [Combat Bible](Veyra_Combat_Bible_v0.5.md) owns actual attack, ability, targeting and status rules; [Vision Bible](Veyra_Vision_Bible_v0.1.md) owns permitted information; [Chat & Communication Bible](Veyra_Chat_Communication_Bible_v0.1.md) owns recipients, All Chat, mute and communication permissions; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns application handoffs; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) owns match phases and outcomes. [Architecture](../../ARCHITECTURE.md) still governs implementation.
 
@@ -106,7 +106,7 @@
 
 ### 5.1 Audio presentation (Proposals 24, 31 and 40 — approved)
 - Independently control teammate-ping volume and game-generated announcement volume; preview ping sounds. Visual notifications remain independent of audio sliders.
-- Select audio output device or **System Default** in-game, including during a live match. If the device disconnects, fall back to System Default. Save device choice **locally**, not across computers.
+- Select audio output device or **System Default** in-game, including during a live match. When the selected device becomes unavailable, apply the fallback preference approved in Proposal 70 (§11.3), rather than unconditionally redirecting sound. Save device choice **locally**, not across computers.
 - **Audio Dynamic Range:** **Standard** default; optional **Night Mode** reduces loud peaks and makes softer events audible at lower overall volume. Same permitted audible events in both modes.
 
 ### 5.2 Chat appearance (Proposal 23 — approved)
@@ -155,4 +155,108 @@ Settings never establish combat truth, server authority, hidden information, cha
 
 ## 10. Resume point
 
-**Proposal 45 is approved and documented. Pause here.** On the author's next **“continue”**, resume the one-proposal-at-a-time Yes / No / Modify discussion at **Proposal 46**, without re-proposing any accepted/rejected feature or adding unapproved decisions. No Proposal 46 has been accepted yet.
+**Proposal 120 is approved as modified and documented: 8 seconds minimum for automatically rotating loading tips and lore facts, with longer entries receiving more time; manual navigation and match entry are unaffected. Discussion is paused here at the author's request.** On the author's next **“continue”**, resume the one-proposal-at-a-time Yes / No / Modify discussion at **Proposal 121**. Do not re-propose an accepted/rejected item or imply that Proposal 121 has been approved.
+
+
+## 11. Approved decisions and explicit rejections — Proposals 46–120
+
+This checkpoint supersedes any earlier shorthand in §§1–9 where a later proposal adds specificity (particularly audio-device fallback, chat text/background, display change recovery, and camera edge scrolling). Decisions are product rules, not unreviewed implementation details. A proposal marked rejected must not be reintroduced as an implicit prerequisite of another accepted feature.
+
+### 11.1 Controls, shop interaction, camera and HUD
+
+- **46 — Mono Audio, approved:** Optional, **Off by default**; combine left and right content without losing audible events. Compatible with normal volume and Night Mode.
+- **47 — Left/Right Audio Balance, approved:** Centered by default and device-local. Mono combines original channels *before* applying output balance; moving the balance never suppresses a source channel. Adjustable during matches.
+- **48 — Tooltip Hover Delay, rejected:** No Instant/Short/Long hover-delay preference. Keyboard and screen-reader descriptions remain accessible through their approved behavior.
+- **52 — Damage Number Appearance, approved:** **Color-Coded default** distinguishes physical, magic and true damage. **Uniform** is available; optional high-contrast non-color labels/symbols identify damage types. Healing/shielding retain their own presentation. Respects combat-text visibility (Proposal 39), vision, and actual damage calculations.
+- **53 — Own-HUD Status-Effect Sorting, approved:** **By Category default**, **By Remaining Duration**, or **By Application Order**; keep beneficial and harmful effects in separate groups, with CC distinct within the harmful group for category sorting. Only rearranges permitted own-HUD information.
+- **54 — Purchase Confirmation, rejected:** No optional extra confirmation for ordinary in-match Gold item purchases. This does not set account-purchase confirmation rules.
+- **55 — Team Status Panel, modified/approved in principle:** Team-panel customization is accepted, but **Expanded/Compact modes, exact contents, placement within panel, and visibility rules are NOT approved** and must be discussed in future HUD/UI work. Retain its designed anchor and previously approved independent scaling.
+- **56 — Scoreboard Open Mode, approved:** Rebindable **Hold default** or **Toggle**; Escape closes. Scoreboard layout and contents remain for UI/UX design.
+- **57 — Enhanced Enemy Selection Feedback, rejected:** No additional selectable high-contrast enemy outline or health-bar marker setting; keep standard selection and approved general indicator options.
+- **58 — Focus Shop Search, approved:** Rebindable shortcut opens in-match shop and focuses search. Typed characters cannot trigger gameplay. Escape first exits search, then closes shop on a second press.
+- **59 — Hold/Toggle Open Shop, rejected:** No separate Hold vs Toggle preference for the ordinary Open Shop action; Focus Shop Search is unchanged.
+- **61 — Expanded Minimap, rejected:** No expanded minimap view or its Hold/Toggle controls; keep existing fixed minimap and approved controls.
+- **63 — Tooltip Pinning, rejected:** No player-pinnable ability, item or Flux Spell tooltips.
+- **64 — Controller Menu Navigation, rejected:** No controller-navigation feature for pre-game client/settings; approved keyboard/mouse access remains.
+- **69 — Scroll to Adjust Settings, rejected:** No option for scroll wheel to adjust hovered settings sliders/dropdowns; wheel scrolls the settings page.
+- **76 — Confirm Leave Match, approved:** **On by default**, optional Off. Choosing Leave Match opens Stay in Match / Leave Match confirmation with Stay initially keyboard-focused. Does not pause live match or change leave/rejoin rules.
+- **81 — Binding Conflict Warning, approved:** On same-context assignment conflict identify both actions; **Replace Existing Binding** clears old assignment and makes new one, **Cancel** preserves both. Safe reuse in separate input contexts is allowed.
+- **82 — Reset One Keybinding, approved:** Restore only one action's default; apply Proposal 81 conflict handling; preserve other bindings and Vanguard-specific profiles.
+- **83 — Confine Cursor to Game Window, approved:** **On by default** in focused live matches, Off optional. Automatically release on loss of focus, restore when focused. Cursor boundary only, not camera/targeting or background gameplay.
+- **84 — Window Focus Indicator, rejected:** No optional “Veyra Not in Focus” in-window label.
+- **85 — Edge Scrolling, approved:** **On by default** in Free/Semi-Locked camera, Off optional; retain camera drag and centering; no effect on Locked camera.
+- **86 — Edge-Scroll Activation Zone, approved:** **Narrow / Standard default / Wide** cursor-edge threshold, active only with edge scrolling enabled in Free/Semi-Locked; does not change speed.
+- **87 — Edge-Scroll Delay, approved:** **Immediate default / Short Delay / Long Delay** for cursor dwelling in zone before camera starts moving; leaving zone cancels pending scroll. Same Free/Semi-Locked and On-only scope.
+- **88 — Minimap Camera Click, approved:** **Direct Click default** or rebindable **Modifier + Click** to move camera via minimap. In modifier mode ordinary click does not move camera. Does not change minimap info or movement command rules.
+- **89 — Suspend Camera While Typing, rejected:** No optional camera/edge-scroll suspension setting tied to text focus. Proposal 58's prohibition on typing triggering gameplay remains; whether edge scrolling continues during text focus is not fixed by this rejection and must be resolved during UI/input implementation.
+- **90 — Hold to Pan Semi-Locked Camera, rejected:** No separate temporary free-drag binding for Semi-Locked.
+- **91 — Accessibility Summary Page, rejected:** No read-only summary page; previously approved settings search remains.
+- **98 — Screen Reader Shop Section-Jump Shortcuts, rejected:** No dedicated shortcuts for jumping among shop regions.
+- **99 — Screen Reader Shop Announcement History, rejected:** No announcement-history panel; approved Repeat Last Announcement remains.
+- **101 — Screen Reader Pause/Resume Shop Announcement, rejected:** No dedicated in-game pause/resume shortcut; external accessibility controls unaffected.
+- **103 — Keyboard Label Style, rejected:** No player-selectable Physical Key vs Keyboard Layout label style; rebindable input remains.
+
+### 11.2 Text, visuals, UI accessibility and settings navigation
+
+- **62 — Interface Text Size, approved:** **Standard default / Large / Extra Large** for pre-game client, settings, shop and informational tooltips; reflow without clipping. Separate from individual HUD scaling and combat numbers; fixed HUD anchors remain.
+- **65 — Reduce Ambient UI Animation, approved:** Optional **Off by default** for pre-game client and in-match menus. Static alternatives for decorative motion; preserve essential feedback and all gameplay animations/effects. Distinct from Reduce HUD Motion.
+- **66 — Chat Text Size, approved:** Independent **Standard default / Large / Extra Large** for pre-game and in-match chat including entry fields; wrap, retain all messages, permit scrolling, keep designed chat-panel position.
+- **67 — Chat Message Background, approved:** In-match backdrop **Transparent / Standard default / High Contrast**; chat content, position and panel footprint unchanged. This specifies the chat-opacity option in Proposal 23.
+- **68 — Ping Text Labels, approved:** Optional **Off by default** short type labels on visible map/world-space pings, supplementing icon/color/sound. Preserve allowed information and ping lifespan; avoid illegible overlap or hiding essential gameplay.
+- **74 — Enhanced Keyboard Focus Indicator, approved:** **Standard default / Enhanced** (thicker, high-contrast, distinct from hover/selection/disabled) in pre-game client, settings and in-match shop; no change to navigation or targeting.
+- **75 — Reduce Interface Transparency, approved:** Optional **Off by default**; increase opacity of pre-game, settings and in-match shop panels without changing their size/position. In-match chat backdrop remains separate under Proposal 67.
+- **77 — Visual Settings Live Preview, approved:** Where useful, settings menu shows immediate sample-content preview of current visual preference; does not pause gameplay, add confirmation, or replace Undo.
+- **79 — Named Settings Presets, approved:** Up to **three** player-managed named presets for **account-level preferences only**, with save/rename/overwrite/delete. Loading applies saved preferences with one-step Undo; excludes local resolution, device output, hardware graphics, etc.; obeys ordinary setting restrictions.
+- **80 — Preset Modified Label, approved:** When current account-level preferences differ from loaded named preset, show **Modified**; clear when values match/reload/overwrite. Normal current-setting autosave continues and never auto-overwrites preset.
+- **92 — Disruptive Display Change Recovery, approved:** For resolution, display mode or monitor choice that could impair visibility, show **Keep Changes / Revert** with **15-second countdown**; Revert/timeout restores last working display configuration. Non-disruptive settings need no prompt; no live-match pause. This is separate from one-step Undo.
+- **100 — Photosensitivity Preview Safeguard, approved:** Visual accessibility previews **static by default**; animated demonstrations need explicit Play Preview, immediately stoppable, respecting Reduce Flashing. No animation is required to configure preferences.
+- **102 — Settings Search Keywords, approved:** Match common alternative and supported localized terms, show actual setting name and navigate to its existing control; no duplicate settings.
+- **96 — Screen Reader Speech Rate, rejected:** No Veyra-specific speech-rate option; rely on system/screen-reader preferences.
+
+### 11.3 Audio, chat and pre-game notifications
+
+- **49 — Background Audio, approved:** **Full Audio default / Mute Nonessential Audio / Mute All Audio** while minimized/unfocused. Nonessential mode mutes music and ambience but preserves ordinary gameplay sounds, pings and announcements; Mute All silences game output. Does not pause live matches or change connection state.
+- **50 — Background Match-Ready Notification, modified/approved:** **On by default**, privacy-conscious desktop notification and supported taskbar attention when matchmaking finds a match while pre-game client is in background. Offer **Accept / Decline directly in OS notification where supported**; actions require explicit player click and must arrive before normal acceptance deadline. Clicking notification otherwise focuses client; platform/OS permissions and support are respected. Never auto-accept or disclose party/player/DM information. Visual notification independent of background audio, including Mute All.
+- **51 — Do Not Disturb During Matches, rejected:** No separate optional social-notification suppression setting. Existing non-obtrusive DM rules still apply.
+- **60 — UI Sound Volume, approved:** Independent **0–100%, default 100%** for ordinary menu and shop UI sounds in and out of match. Gameplay-critical sounds, pings, combat and announcements remain with their own audio categories.
+- **70 — Audio Device Fallback, approved:** **Automatically Switch default** to OS current default output when selected device unavailable, or **Wait for Selected Device** (no automatic redirect; resume on return/manual selection). Audio-routing only; compatible with background audio, volume, gameplay.
+- **71 — Match-Ready Sound, approved:** Separate **On by default** toggle for matchmaking-found alert in pre-game client. Turning it Off retains visual prompt and Proposal 50 notification; background Mute All silences it regardless.
+- **72 — Push-to-Talk Release Tone, rejected:** **Veyra has NO built-in voice chat.** No push-to-talk, microphone-transmission UI or voice-chat settings; companion Chat Bible owns text-only channels. Spoken screen-reader output and localized Vanguard/announcer audio are *not* multiplayer voice chat.
+- **73 — Per-Message-Category Chat Sound, rejected:** No All Messages/DM Only/Off classification setting. Proposal 23's general incoming-message sound toggle remains; no recipient or delivery changes.
+- **78 — Audio Settings Test Buttons, approved:** Local short category samples (e.g. UI/pings/match ready) through chosen output under volume, balance, Mono and device preferences. No transmitted pings or map markers; no match pause or setting changes.
+- **104 — Audio Output Connection Test, approved:** Test Output plays brief sample via selected output; report whether sound was successfully **sent** (not whether user physically heard it). On unavailable device show reason and shortcut to output selector. Respect active routing/volume/balance/Mono and Proposal 70 fallback; do not silently change preferences.
+- **105 — Automatic Output Switch Visual Notification, rejected:** No separate setting or extra on-screen notification for automatic audio-device fallback; device status remains inspectable in audio settings.
+
+### 11.4 In-match shop screen readers
+
+- **93 — In-Match Shop Screen Reader, approved:** Extend client screen-reader accessibility into live-match shop: keyboard-navigable categories, search, results and Buy controls; local accessible names, item cost/stats/effects/purchase availability and result/error feedback. Do not automate purchases, narrate combat, reveal hidden info or add voice chat.
+- **94 — Announcement Priority, approved:** Purchase results and errors take priority over routine focused-shop descriptions; superseded descriptions are replaced rather than queued without bound.
+- **95 — Repeat Last Announcement, approved:** Rebindable shortcut repeats most recent **completed** shop screen-reader announcement; repeating “purchase succeeded” never repeats the purchase. Honor binding conflicts under Proposal 81.
+- **97 — Item Reading Order, approved:** **Name → Gold cost → purchase availability (and existing reason if unavailable) → stats → effects**; omit inapplicable sections, start new item at its name. No new item data or purchase mechanics.
+
+### 11.5 Graphics, rendering and diagnostics
+
+- **106 — Detect Recommended Graphics, approved:** Player-initiated hardware-dependent recommendation with proposed changes shown before **Apply / Cancel**. Cancel preserves current settings; Apply never overwrites accessibility preferences or adjusts graphics automatically mid-match. Normal Undo available.
+- **107 — Graphics Benchmark, approved:** Player-initiated **outside live matches** in dedicated representative scene; show average FPS, minimum observed FPS and tested configuration. No automatic settings change; results are estimates, not guarantees of in-match FPS.
+- **108 — Benchmark Comparison, approved:** Compare two latest runs side by side (average/minimum observed FPS, configurations and numerical differences); keep locally, permit clear, replace older run on next test. No automatic recommendation/application or match guarantee.
+- **109 — Background FPS Limit, approved:** **30 FPS default / 15 FPS / Use Foreground Limit** when minimized/unfocused; restore normal cap on focus. Affects rendering only, never server-authoritative live gameplay, match connection, audio preferences or match-ready notifications.
+- **110 — Low-Performance Warning, approved:** Optional **On by default**, small nonblocking/nonflashing/inaudible warning for sustained foreground FPS substantially below chosen cap; clears on recovery and links to graphics settings. No automatic adjustment or network diagnosis; do not trigger from deliberate background FPS cap alone.
+
+### 11.6 Loading screen, progress, accessibility and optional content
+
+- **111 — Graphics Preparation Progress, modified/approved:** Show required shader/graphics preparation status **on the match loading screen**, not in a new dedicated pre-game screen: Preparing/Complete/Failed and readable error plus Retry on failure. Player cannot enter live match before their required preparation finishes. Existing loading timeouts and match-start/connection handling prevent holding all other players indefinitely. Keyboard/screen-reader accessibility retained.
+- **112 — Loading Screen Accessibility, approved:** Honor applicable Reduce Flashing, Reduce Ambient UI Animation, Interface Text Size and Reduce Interface Transparency; essential progress/status/errors remain legible without color or motion alone. No extra toggle, no changes to load/match timing.
+- **113 — Loading Completion/Error Audio Cues, rejected:** No separate additional audio cues for these loading events; visual status/error feedback remains.
+- **114 — Loading Stage Labels, approved:** Plain-language stage alongside progress where known (Loading Match/Preparing Graphics/Waiting for Players). For stages with no reliable progress measure show status/activity **without fabricated percentage or time estimate**. Do not reveal other players' device/connectivity details.
+- **115 — Loading Error Automatic Focus Rule, rejected:** Do not require proposed automatic focus movement/restoration; existing keyboard/screen-reader accessibility and visible retry actions remain.
+- **116 — Loading Tips & Lore, modified/approved:** Optional loading-screen content includes **both gameplay tips and lore fun facts** from established mechanics, controls, world, regions and Vanguard canon. No hidden information, reading gate, interference with essential status/errors or added loading delay. Original simple On/Off selection is superseded by Proposal 118.
+- **117 — Manual Tip/Fact Navigation, approved:** Keyboard-accessible Previous/Next when content enabled; any manual navigation pauses automatic rotation for remainder of loading screen. Never delay match start or steal focus from actionable loading errors.
+- **118 — Content Categories, approved:** **Both default / Gameplay Tips Only / Lore Facts Only / Off** replaces Proposal 116's On/Off; Previous/Next browses enabled categories only. Essential loading information remains in all modes.
+- **119 — Non-Repeating Automatic Rotation, approved:** Show each eligible entry once before automatic repetition when enough are available, vary starting entry across matches, allow manual revisit, respect categories. Do not demand tracking lifetime read history.
+- **120 — Minimum Tip/Fact Display Time, modified/approved:** **8 seconds** minimum per automatically displayed entry (not 10); longer entries receive additional time. Manual Previous/Next is immediate and suspends rotation under Proposal 117. Never keep completed loading screen open for a fact; loading status/errors take priority.
+
+### 11.7 Explicitly rejected settings and implementation guardrails
+
+Rejections are enumerated above to distinguish a rejected optional feature from ordinary usability/accessibility requirements that still apply. In particular: **no built-in voice chat**, no automatic or custom live-combat screen-reader narration, no implicit approval of full shop/HUD layouts, no additive setting based on an unapproved gameplay mechanic, and no change to server-authoritative or vision/communication boundaries.
+
+All prior approved decisions from Proposals 1–45 remain in force except where a later approved proposal explicitly refines them. The design is **paused after Proposal 120** by author request; resume at **Proposal 121** only after “continue”.
