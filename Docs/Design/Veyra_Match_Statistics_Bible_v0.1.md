@@ -1,7 +1,7 @@
 # Veyra Match Statistics Bible
 
-**Version:** 0.1 — Approved Pre-Game Client Proposals 41–49 (2026-09-23)  
-**Status:** Working canon for **what completed matches record**, not an approved final scoreboard layout. Author paused proposals **after 49**; do not introduce 50 until they say “continue”.  
+**Version:** 0.1 — Post-match statistics plus UX Proposals 41–67 (2026-09-23)  
+**Status:** Working canon for completed-match recording and approved scoreboard/detailed-statistics layout. The earlier Proposal 49 pause is historical; **current pre-game UX pause: after Proposal 92, pending author “continue” for 93**.  
 **Related:** [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) §§5–6 governs player-facing selection/results presentation; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) adjudicates team results, remake and personal-loss overrides; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) governs verified results transitions. Gameplay economy, combat, Flux and inventory remain authoritative under their owning systems.
 
 ## 1. Recording and display boundaries
@@ -61,8 +61,25 @@ On authoritative completion record each player's **final** occupied and empty no
 
 ## 9. Still open; do not infer approval
 
-- The exact **end-of-match page structure**, which metrics appear in the primary scoreboard versus detailed views, sorting and layout (Proposal 41 deliberately deferred).
+- **The primary Scoreboard and category-based Detailed Statistics layout was approved in Proposal 50**; remaining exact visual sizing, detailed-statistic placement, sorting and visual chart treatment are implementation/presentation details. All-ten-player per-stat comparison (Proposal 54) remains explicitly **deferred**, not approved.
 - The **Vision Score computation**, and any vision-object or ward mechanics not independently approved.
 - Detailed crowd-control taxonomy, multi-provider attribution edge cases, reconciliation/test definitions and data persistence schema.
 - Full item/spell transaction timeline, purchase history, new gameplay stats or a weighted objective score.
-- **Checkpoint:** Author approved Proposal 49 then paused; the next sequential proposal is **50, only when requested to continue**.
+- **Current checkpoint:** Author approved Proposal 92 and paused; do not propose 93 until requested to continue.
+
+
+## 10. Results and saved Match History — approved UX Proposals 50–67 (2026-09-23)
+
+- **50 — results layout approved:** On authoritative completion open a **two-team Scoreboard** displaying confirmed outcome, mode, duration and each player's Vanguard, K/D/A, final level, total gold earned, separate minion/jungle last hits, final items and inspectable final two Flux Spell slots. **Detailed Statistics** displays the already approved Combat, Objectives, Economy and Vision measures by category, with unit-appropriate values and truthful Pending states. No auto-assigned roles, performance grade or build ranking. Vision Score only after separate formula approval.
+- **51 — Match History approved:** Player's accessible completed matches newest first; list date/mode/duration/Vanguard and actual personally adjudicated outcome. Open each record into saved Scoreboard and Detailed Statistics with final equipment. Never present incomplete matches as completed.
+- **52 — Match Timeline rejected:** Do not add a timestamped kill/objective/event Timeline view. Team-level objective capture records approved in 46 remain available in the underlying data without implying a Timeline UI.
+- **53 — team summary approved:** Per team, sum Vanguard kills and players' earned gold; count secured Flux Wells **once per team capture**, not by adding individual participation credits. Does not incorporate rejected tower/Fluxborn aggregation.
+- **54 — all-ten-player metric comparison deferred:** No additional selected-stat bar/chart/table interface until separately approved.
+- **55 — Progression & Rewards approved:** Results show confirmed account progression, Vanguard Mastery progression and actual awards under the owning account rules, with Pending for unprocessed fields. No forced claim or requeue.
+- **56–58 — participant actions:** Report others from results through existing moderation rules; contextual permitted profile/friend/party/report actions on results and saved history; **one optional general commendation to one other teammate from immediate results only**, with no auto-award, MVP grade, honor/reputation system or matchmaking effect.
+- **59–60 — post-match chat:** Optional, **inactive until player sends their first message**; do not receive/display prior messages. Opted-in conversation ends when player leaves immediate results or enters another committed match; not available in saved history/public replay and no bypass of All Chat Off, mute or block.
+- **61 — Home View Last Match shortcut rejected. 62 — Play Again approved:** Only expands the existing retained-party panel and shows readiness/mode; never auto-readies, starts queue or changes mode.
+- **63 — Watch Replay approved:** Eligible history entry opens existing Replay Mode **in the same Unreal application** after UX 91–92, returning to same history entry on exit; no change to Replay Bible retention/privacy or party readiness.
+- **64 — History Vanguard/mode/personal outcome filters approved; 65 — participant-name search rejected; 66 — date-range filtering rejected; 67 — newest-first batch loading with Load More approved.** Filters query entire accessible saved history, not merely loaded entries; no retention extension.
+
+Detailed UX and client-state restrictions live in the [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) §§7–9; match-result and individual AFK-loss adjudication remains with the Match Flow Bible. **Current pause is after Proposal 92.**
