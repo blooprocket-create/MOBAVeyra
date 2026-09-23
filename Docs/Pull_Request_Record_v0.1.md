@@ -3,6 +3,14 @@
 **Version:** 0.1
 **Date:** 2026-09-20
 
+> **Which repository these PRs belong to (note added 2026-09-23).** The five pull requests recorded
+> below, and all sixteen review findings, were in the **legacy repository,
+> `blooprocket-create/veyraMOBA`** (see `Runbooks/purge-third-party-sheets.md`), not in this
+> repository, `blooprocket-create/MOBAVeyra`. Their PR numbers do not correspond to this
+> repository's PR numbers. "This repository" in the historical text below means the legacy one.
+> This repository's own pull requests are listed separately under
+> [This repository's pull requests](#this-repositorys-pull-requests).
+
 ## Why this document exists
 
 Five pull requests carried this repository from a sheet review to its current state. Their
@@ -29,6 +37,22 @@ the answer, this document says so rather than editing the record.
 | 3 | Antagonist pass; sheets rendered from canon; appearance written into canon; hero art | 2026-09-20 10:24 | The four antagonist entries and their removed-rail notes, 14 new `**Visual language:**` paragraphs, `render_sheet.py`, `Art_Direction_v0.1.md` |
 | 4 | Authored hero replacements, and approved art made canon | 2026-09-20 17:27 | The art-precedence rule in the Character Bible header and `Art_Direction_v0.1.md`, the hue override table, the rendering-idiom table, 25 hero images, 25 rendered sheets |
 | 5 | Re-verify the purge exposure before the Support request is filed | open | `Runbooks/purge-third-party-sheets.md` step 6 |
+
+## This repository's pull requests
+
+Pull requests in `blooprocket-create/MOBAVeyra`, listed for orientation only. Their descriptions
+and any review threads are **not reproduced here**, and no review findings for them are recorded
+in this document.
+
+| # | Title | Merged |
+|---|---|---|
+| 1 | docs: close out the purge, and keep the review record in the repository | 2026-09-20 |
+| 2 | docs: record that the legacy repository's exposure is latched, not removed | 2026-09-20 |
+| 3 | docs: the legacy repository is private, verified against the API | 2026-09-20 |
+| 4 | docs: delete the superseded character sheets | 2026-09-20 |
+| 5 | Index six Living Paint and Neon Circuit Vanguard skin concepts | 2026-09-23 |
+| 6 | Make Veyra docs task-routable for coding agents | 2026-09-23 |
+| 7 | Renumber unified-client ADR to ADR-004 and archive superseded hero art | open |
 
 ## Review findings
 

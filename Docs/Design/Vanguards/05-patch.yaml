@@ -49,7 +49,7 @@ vision_touchpoints: []
 guards:
   - Passive punishes damaging Patch's ALLIES, not damaging Patch. Per-enemy individual cooldown.
   - Q's recast produces a slight opposite-direction stumble, NOT a stun.
-  - Taunt is not part of Patch's canonical kit despite appearing on the sheet.
+  - Taunt is not part of Patch's canonical kit despite having appeared on the deleted concept sheet.
   - R enlarges collision/body presence and enables physical blocking -- requires a collision-scaling primitive.
   - The entity inside Patch stays deliberately unexplained; do not resolve it to Flux, Echo or Elsewhere
     for taxonomy convenience.

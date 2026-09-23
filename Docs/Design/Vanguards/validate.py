@@ -23,9 +23,12 @@ except ImportError:
 HERE = pathlib.Path(__file__).resolve().parent
 DESIGN = HERE.parent
 ROOT = DESIGN.parent.parent
-# The superseded baked-text sheets. They moved out of ConceptArt/ proper on
-# 2026-09-21 so the path says which artwork is current; sheet.file still stores
-# the bare filename, so only this constant tracks the location.
+# Where a concept sheet named by `sheet.file` is looked up. The baked-text sheets that
+# once lived here were deleted on 2026-09-21 (not archived), so the directory does not
+# exist today and every entry is `file: null`. The check stays so that any status
+# asserting a sheet (`current`, `contradicts_canon`, `incomplete`) fails until that
+# file is actually committed here. sheet.file stores the bare filename, so only this
+# constant tracks the location.
 SHEETS = ROOT / "ConceptArt" / "Archives" / "Characters"
 
 
@@ -364,9 +367,16 @@ def main() -> int:
         stacky = sorted(d["id"] for d in records if d.get("marks"))
         print(f"\napplies named marks or meters ({len(stacky)}/{len(records)}): {', '.join(stacky)}")
 
-        sheets_bad = sorted(d["id"] for d in records
-                            if (d.get("sheet") or {}).get("status") != "current")
-        print(f"\nsheets not usable as-is ({len(sheets_bad)}): {', '.join(sheets_bad)}")
+        # Counted by status rather than as one "not usable" bucket: `superseded` and
+        # `withdrawn` are the expected end state of the deleted sheets, not a problem.
+        by_status: dict[str, list[str]] = {}
+        for d in records:
+            st = (d.get("sheet") or {}).get("status") or "?"
+            by_status.setdefault(st, []).append(d["id"])
+        print("\nconcept sheet status (rendered sheets are built by render_sheet.py):")
+        for st in sorted(by_status):
+            ids = sorted(by_status[st])
+            print(f"  {st:<18} {len(ids):>2}  {', '.join(ids)}")
 
     print()
     if errors:

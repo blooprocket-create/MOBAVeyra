@@ -37,7 +37,9 @@ Three sheets carry visible third-party branding, third-party character/item art,
 
 **Status:** deleted from the working tree and withdrawn from the sheet index.
 
-**Remaining action:** remove the originals **from Git history**. A deletion commit is not sufficient — the files stay retrievable in every existing clone and fork, and remain reachable by commit SHA on a public repository, until history is rewritten (for example with `git-filter-repo`) and force-pushed. Regenerate all three with Veyra-owned visual material only, on the current sheet template.
+**Remaining action (as recorded 2026-09-20):** remove the originals **from Git history**. A deletion commit is not sufficient — the files stay retrievable in every existing clone and fork, and remain reachable by commit SHA on a public repository, until history is rewritten (for example with `git-filter-repo`) and force-pushed. Regenerate all three with Veyra-owned visual material only, on the current sheet template.
+
+**Done.** History was rewritten and force-pushed on 2026-09-20 per [`../Runbooks/purge-third-party-sheets.md`](../Runbooks/purge-third-party-sheets.md); the project now lives in `blooprocket-create/MOBAVeyra`, which carries only clean history. The one residual copy is in the legacy repository `blooprocket-create/veyraMOBA`, held closed by its **private** visibility — the runbook records the standing condition on ever making it public again. All three Vanguards carry authored hero art built from written canon. The "current sheet template" referred to here is itself superseded: sheets are now rendered from canon by [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py).
 
 These are Vanguards **#1, #2 and #15**. Raska and Kade are the roster's lead pair, so these are the first sheets an outside reader encounters.
 
@@ -103,6 +105,7 @@ Each row states what the sheet shows, what canon says, and which document owns t
 - **Sheet:** `Role: ADC`; W "*Enemies inside are **revealed***"; R "*up to **three** massive piercing shots*"; title rendered "THE Dead Reckoning".
 - **Canon:** the roster principles open with "Veyra's first playable roster is intentionally **not** organized around mandatory top/jungle/mid/carry/support slots" — "ADC" is a foreign role taxonomy. W's canonical effects are listed as *possible* ("reveal/vision along the corridor" among options), not settled. R is "a **limited series** of powerful piercing shots", count unfixed. Roster table title is "**Kade, Dead Reckoning**" with no leading article.
 - **Impact:** any reveal effect is Vision-Bible-governed and must be specified there before art asserts it.
+- **Resolved 2026-09-20: Sightline grants no reveal** (Character Bible §2, *Vision ruling*; §G below). The "possible reveal" reading above is historical.
 
 ### B7. Raska — origin
 
@@ -153,6 +156,8 @@ These do not contradict canon; they silently omit a guard that exists specifical
 
 ## E. Render defects to correct
 
+*Resolved (2026-09-21): the sheets carrying these defects were deleted, and sheets are now rendered from canon by [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) with no text baked into artwork. The list below is kept as the record.*
+
 Text baked into the artwork, so each requires a re-render:
 
 | Sheet | Defect |
@@ -173,6 +178,8 @@ Not errors, but they prevent the set reading as one product.
 1. **Third-party-templated** — Raska, Kade, Angeru. Withdrawn under section A.
 2. **"A World in Motion" generation** — Silt, Patch, Moro, Relay, Tavi, Vera, Korruk, Torr, Marek, Neris, and others. Hero art, role block, 1–5 stat bars, difficulty pips, concept sketches, scale comparison, ability strip, personality/key traits, environment explorations.
 3. **Current generation** — Mimzi, Celandrine, Gorraveth, Aurelisse, Eudora Blackbridge. Role/species/region header, weapon card, lore, turnaround with silhouette and scale, tagged ability kit, playstyle with strengths/weaknesses, in-game views, detail crops, region strip, colour palette, key traits.
+
+*Superseded (2026-09-21): all three generations were deleted, and sheets are now rendered from canon by [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py), which fixes one layout for every Vanguard. The recommendation below is kept as the record of what that layout was chosen to carry.*
 
 **Generation 3 should be adopted as the standard sheet template.** It is the only generation that carries a species/region taxonomy, an explicit weaknesses list, in-game view mockups and a colour palette — the four things a modeller, a VFX artist and a balance designer respectively need. The older sheets should be retrofitted to it as art budget allows.
 
@@ -202,9 +209,9 @@ Renames apply to **current canon only**. Archived bible versions under [`Archive
 
 ### Remaining
 
-1. **Two sheets now also carry a former name.** Bryn's sheet renders "Tavra" and Oriel's renders "Vitra, The Last Light". Both need re-render regardless — Bryn's for the Dense Fog error (§B2) — so this adds no new work, but the filenames still use the old names until then.
-2. **Initial clustering.** Four M-names (Marek, Moro, Mavra, Mimzi), three T-names, three V-names remain. B, D, F, H, I, J, L, O, U, W, X, Y and Z were unused before these renames; O and B are now taken. Worth drawing from the remainder for future additions.
+1. ~~**Two sheets now also carry a former name.** Bryn's sheet renders "Tavra" and Oriel's renders "Vitra, The Last Light". Both need re-render regardless — Bryn's for the Dense Fog error (§B2) — so this adds no new work, but the filenames still use the old names until then.~~ **Resolved 2026-09-21:** both baked-text sheets were deleted; the rendered sheets read current canon and carry the current names.
+2. **Initial clustering.** Four M-names (Marek, Moro, Mavra, Mimzi), two T-names (Tavi, Torr) and two V-names (Vera, Varkesh) remain. B, D, F, H, I, J, L, O, U, W, X, Y and Z were unused before these renames; O and B are now taken. Worth drawing from the remainder for future additions.
 3. **Two bible rulings ADR-003 defers**, both required before the corresponding Vanguard is built:
    - the **Vision Bible** must state whether Dense Fog volumes are runtime-spawnable (Sylra's Lay the Mist and Through the White assume yes);
    - the **Battleground Bible** must state whether an ability may modify pathing for both teams at runtime (Varkesh's Iron Wall assumes yes).
-4. **Third-party material still in Git history** (§A). Deleted from the working tree; removal from history is outstanding.
+4. ~~**Third-party material still in Git history** (§A). Deleted from the working tree; removal from history is outstanding.~~ **Done 2026-09-20** — see §A and the runbook. Only the private legacy repository still holds the blobs, under the condition the runbook records.

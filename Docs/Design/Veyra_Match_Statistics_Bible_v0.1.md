@@ -2,14 +2,15 @@
 
 **Version:** 0.1 — Post-match statistics plus UX Proposals 41–67 (2026-09-23)  
 **Status:** Working canon for completed-match recording and approved scoreboard/detailed-statistics layout. The earlier Proposal 49 pause is historical; **current pre-game UX pause: after Proposal 92, pending author “continue” for 93**.  
-**Related:** [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) §§5–6 governs player-facing selection/results presentation; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) adjudicates team results, remake and personal-loss overrides; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) governs verified results transitions. Gameplay economy, combat, Flux and inventory remain authoritative under their owning systems.
+**Scope:** Server-recorded per-player and team statistics for completed matches (Proposals 41–49): core fields, effective damage/shielding/healing definitions, crowd control, vision and Vision Score, neutral Flux Well objectives, gold by source and the final equipment snapshot; plus the approved results Scoreboard, Detailed Statistics, team summary and saved Match History presentation (UX Proposals 50–67).  
+**Related:** [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) §5 (selection, Proposals 18–40), §6 (recorded statistics, Proposals 41–49) and §7 (results layout and Match History, Proposals 50–67) govern player-facing presentation; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) adjudicates team results, remake and personal-loss overrides; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) governs verified results transitions. Gameplay economy, combat, Flux and inventory remain authoritative under their owning systems.
 
 ## 1. Recording and display boundaries
 
 - Trusted match/gameplay systems author the underlying events, damage categories, target categories, attribution and final equipment. The pre-game client **does not calculate or fabricate** match statistics or turn speculative client events into approved server facts. Expose and reconcile event-derived totals through one responsible gameplay/statistics service rather than duplicating core calculations.
 - Record stats for the **actual completed match**. The result field distinguishes team result from any individual AFK/disconnect personal-loss override and respects no-contest remakes and other Match Flow outcomes. Results UI must mark unavailable/pending values as pending without making up zeros or final rankings.
 - An eligible statistic does **not** itself grant game rewards, force lane roles, define a Vanguard class, change Flux Well mechanics or approve final UI positioning. Never display a source category for a mechanic that does not exist.
-- Proposal **41 was modified:** the final results overview, tabs and full visual layout are **deferred** until recording decisions have been made. Approved post-match baseline: verified completion permits results, normal eligible party/social browsing returns, pending reward/stat data is labeled, and players are never automatically readied or requeued.
+- Proposal **41 was modified:** the final results overview, tabs and full visual layout were **deferred** until recording decisions had been made; **the Scoreboard + Detailed Statistics layout was later approved in UX Proposal 50** (see §9 and Pre-Game Client UX Bible §7). Approved post-match baseline: verified completion permits results, normal eligible party/social browsing returns, pending reward/stat data is labeled, and players are never automatically readied or requeued.
 
 ## 2. Core per-player fields (Proposal 42 — approved with additions)
 
@@ -59,16 +60,8 @@ Per player, record gold earned from enemy-Vanguard kills and assists; minion kil
 
 On authoritative completion record each player's **final** occupied and empty normal inventory slots, exact equipped item IDs/tiers and any applicable Attunement; separately record both **final equipped Flux Spell slots**, including empty slots. The final Flux Spells may differ from the starting champion-select loadout; do not overwrite per-Vanguard remembered *starting* loadout with in-match shop changes. The final snapshot does **not** include replaced purchases or spells as if they are still equipped, and does not imply a full item acquisition/upgrade history, build rating or role assignment.
 
-## 9. Still open; do not infer approval
 
-- **The primary Scoreboard and category-based Detailed Statistics layout was approved in Proposal 50**; remaining exact visual sizing, detailed-statistic placement, sorting and visual chart treatment are implementation/presentation details. All-ten-player per-stat comparison (Proposal 54) remains explicitly **deferred**, not approved.
-- The **Vision Score computation**, and any vision-object or ward mechanics not independently approved.
-- Detailed crowd-control taxonomy, multi-provider attribution edge cases, reconciliation/test definitions and data persistence schema.
-- Full item/spell transaction timeline, purchase history, new gameplay stats or a weighted objective score.
-- **Current checkpoint:** Author approved Proposal 92 and paused; do not propose 93 until requested to continue.
-
-
-## 10. Results and saved Match History — approved UX Proposals 50–67 (2026-09-23)
+## 9. Results and saved Match History — approved UX Proposals 50–67 (2026-09-23)
 
 - **50 — results layout approved:** On authoritative completion open a **two-team Scoreboard** displaying confirmed outcome, mode, duration and each player's Vanguard, K/D/A, final level, total gold earned, separate minion/jungle last hits, final items and inspectable final two Flux Spell slots. **Detailed Statistics** displays the already approved Combat, Objectives, Economy and Vision measures by category, with unit-appropriate values and truthful Pending states. No auto-assigned roles, performance grade or build ranking. Vision Score only after separate formula approval.
 - **51 — Match History approved:** Player's accessible completed matches newest first; list date/mode/duration/Vanguard and actual personally adjudicated outcome. Open each record into saved Scoreboard and Detailed Statistics with final equipment. Never present incomplete matches as completed.
@@ -82,4 +75,13 @@ On authoritative completion record each player's **final** occupied and empty no
 - **63 — Watch Replay approved:** Eligible history entry opens existing Replay Mode **in the same Unreal application** after UX 91–92, returning to same history entry on exit; no change to Replay Bible retention/privacy or party readiness.
 - **64 — History Vanguard/mode/personal outcome filters approved; 65 — participant-name search rejected; 66 — date-range filtering rejected; 67 — newest-first batch loading with Load More approved.** Filters query entire accessible saved history, not merely loaded entries; no retention extension.
 
-Detailed UX and client-state restrictions live in the [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) §§7–9; match-result and individual AFK-loss adjudication remains with the Match Flow Bible. **Current pause is after Proposal 92.**
+Detailed UX and client-state restrictions live in the [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) §7 (client-state priorities in §3 and §9); match-result and individual AFK-loss adjudication remains with the Match Flow Bible. **Current pause is after Proposal 92.**
+
+
+## 10. Still open; do not infer approval
+
+- **The primary Scoreboard and category-based Detailed Statistics layout was approved in Proposal 50**; remaining exact visual sizing, detailed-statistic placement, sorting and visual chart treatment are implementation/presentation details. All-ten-player per-stat comparison (Proposal 54) remains explicitly **deferred**, not approved.
+- The **Vision Score computation**, and any vision-object or ward mechanics not independently approved.
+- Detailed crowd-control taxonomy, multi-provider attribution edge cases, reconciliation/test definitions and data persistence schema.
+- Full item/spell transaction timeline, purchase history, new gameplay stats or a weighted objective score.
+- **Current checkpoint:** Author approved Proposal 92 and paused; do not propose 93 until requested to continue.

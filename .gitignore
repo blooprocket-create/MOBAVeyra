@@ -1,0 +1,21 @@
+# Python bytecode caches (Docs tooling, scripts, tests).
+__pycache__/
+*.py[cod]
+
+# OS and editor junk.
+.DS_Store
+Thumbs.db
+
+# Unreal Engine generated output (regenerable; never source).
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+.vs/
+*.sln
+*.VC.db
+
+# Unreal source-asset / Git LFS policy (.gitattributes) is intentionally NOT set
+# here: "final asset-management/LFS policy" is still listed under ARCHITECTURE.md
+# "Deliberately open decisions". Decide it deliberately (ADR if architectural)
+# before adding asset rules.

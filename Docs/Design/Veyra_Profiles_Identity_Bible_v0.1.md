@@ -3,7 +3,7 @@
 **Version:** 0.1 — Player-facing profile, identity and website decisions checkpoint  
 **Status:** Locked rules where stated; final UI, identity security and backend details remain open  
 **Scope:** Public player profiles, cosmetics, account display names, account creation, email verification, name reclaiming and website access.  
-**Related:** [Account, Collection & Mastery](Veyra_Account_Collection_Mastery_Bible_v0.1.md) owns entitlements and progression; [Parties & Social](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) owns blocks and visibility; [Client & Platform](Veyra_Client_Platform_Bible_v0.1.md) owns launcher/login and pre-game handoffs; [Moderation](Veyra_Moderation_Telemetry_Bible_v0.1.md) owns bans and appeals; [Replay & Spectating](Veyra_Replay_Spectator_Bible_v0.1.md) owns replay visibility/retention.
+**Related:** [Account, Collection & Mastery](Veyra_Account_Collection_Mastery_Bible_v0.1.md) owns entitlements and progression; [Parties & Social](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) owns blocks and visibility; [Client & Platform](Veyra_Client_Platform_Bible_v0.1.md) owns launcher/login handoff and client-state transitions; [Moderation](Veyra_Moderation_Telemetry_Bible_v0.1.md) owns bans and appeals; [Replay & Spectating](Veyra_Replay_Spectator_Bible_v0.1.md) owns replay visibility/retention.
 
 > Public profile content and name changes must resolve through stable internal **account IDs**, not the mutable display name. Entitlements, account-currency payments and names are server-validated authoritative persistent records. Profile appearance does not alter match/gameplay stats.
 
@@ -50,7 +50,17 @@
 - One year is the agreed initial **working threshold**, explicitly open to revisiting during backend/identity design. Its configuration and edge-case handling must not be hardcoded.
 - Account creation vs rename vs forced-rename claim flows must enforce the same global uniqueness atomically. Name claiming is not account deletion, ban evasion, entitlement transfer, or a mechanism to change someone's account ID.
 
-## 6. Open work and validation
+
+## 6. Pre-game Client profile/privacy checkpoint — Proposals 68–75 (2026-09-23)
+
+The player's **own** ordinary Vanguard roster/detail pages show confirmed Mastery level/progress/reward requirements even on unowned Vanguards (68–69); **expanded reward inspection was rejected** (70). Public profile showcases **one chosen permanently owned Vanguard** using base artwork and own confirmed Mastery level (71, 74), or a neutral no-featured-Vanguard state if unset. No automated most-played/highest-mastery featured selection. The **public browsable Mastery collection was rejected** (73), notwithstanding older generic “per-Vanguard Mastery” wording in profile concepts.
+
+**Full match history/stats/builds are private by default through the profile** (72); the owner may explicitly enable or disable “Show Match History on My Profile”. Independent match participants retain access to their own copy of shared match results, and Replay Bible links/permissions remain separate. Owner may preview and choose an available official profile icon and background; a default background is always available (75). No skin is equipped by changing profile cosmetics, and the profile hero uses base artwork under 71/74. These decisions supersede older conflicting profile defaults; see [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) §8.
+
+**Architecture:** Profile display is an ordinary state in **one Unreal application**, not a separate standalone pre-game executable; website identity/launcher authentication and trusted account records keep their current boundaries under [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md). **Current client design pause: after Proposal 92.**
+
+
+## 7. Open work and validation
 
 - Account settings, recovery, website account management and moderation access after permanent bans.
 - Profile customization catalog, unlock events, Ranked/event border awards, profile visual/accessible presentation and skin thumbnail policy.
@@ -60,12 +70,3 @@
 - Tests must cover atomic duplicate-name competition, forced rename without charging/free-token consumption, 24-hour voluntary cooldown, immediate release of relinquished name, immutable ownership history across renames, and player-block profile restrictions.
 
 **Design remains in progress; authentication/database implementation requires a dedicated backend discussion.**
-
-
-## Pre-game Client profile/privacy checkpoint — Proposals 68–75 (2026-09-23)
-
-The player's **own** ordinary Vanguard roster/detail pages show confirmed Mastery level/progress/reward requirements even on unowned Vanguards (68–69); **expanded reward inspection was rejected** (70). Public profile showcases **one chosen permanently owned Vanguard** using base artwork and own confirmed Mastery level (71, 74), or a neutral no-featured-Vanguard state if unset. No automated most-played/highest-mastery featured selection. The **public browsable Mastery collection was rejected** (73), notwithstanding older generic “per-Vanguard Mastery” wording in profile concepts.
-
-**Full match history/stats/builds are private by default through the profile** (72); the owner may explicitly enable or disable “Show Match History on My Profile”. Independent match participants retain access to their own copy of shared match results, and Replay Bible links/permissions remain separate. Owner may preview and choose an available official profile icon and background; a default background is always available (75). No skin is equipped by changing profile cosmetics, and the profile hero uses base artwork under 71/74. These decisions supersede older conflicting profile defaults; see [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) §8.
-
-**Architecture:** Profile display is an ordinary state in **one Unreal application**, not a separate standalone pre-game executable; website identity/launcher authentication and trusted account records keep their current boundaries under [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md). **Current client design pause: after Proposal 92.**

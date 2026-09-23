@@ -14,19 +14,9 @@
 | **WIN CONDITION** | Destroy the enemy Prime Well   |
 | **ROLE RULES**    | No enforced lanes or positions |
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>1. WHY THE CRUCIBLE EXISTS</strong></p>
-<p><strong>A REAL PLACE; MATCHES ARE NOT LITERAL HISTORICAL CANON</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 1. WHY THE CRUCIBLE EXISTS
+
+**A REAL PLACE; MATCHES ARE NOT LITERAL HISTORICAL CANON**
 
 The Meridian Crucible is an ancient paired-Prime-Well installation built to stress-test Flux infrastructure: Fluxways, defensive Spires, emergency Wells, Fluxborn production, and large-scale network behavior. It survived the First Fracture in damaged but functional form and was rediscovered in the modern age.
 
@@ -34,49 +24,26 @@ The Meridian Crucible is an ancient paired-Prime-Well installation built to stre
 
 A Vanguard who attunes to one of the Crucible's Prime Wells can project a temporary, fully tangible Resonant Form into the battlefield. The form carries the Vanguard's fighting instincts, abilities, equipment pattern, and consciousness during the contest. If destroyed, it collapses into Flux and can be reconstructed by its Prime Well.
 
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>WHAT THIS SOLVES</strong></p>
-<ul>
-<li><p>Respawning has an in-world explanation without making Vanguards immortal outside the Crucible.</p></li>
-<li><p>Raska can fight Kade, siblings can fight, allies can oppose each other, and enemies can cooperate without rewriting lore relationships.</p></li>
-<li><p>A match can explore "what if these ten Vanguards fought?" without becoming a permanent historical event.</p></li>
-<li><p>The battlefield is canon even when the exact team composition is not.</p></li>
-</ul></th>
-<th><p><strong>HARD LIMITS</strong></p>
-<ul>
-<li><p>Resonant Forms cannot leave the Meridian Crucible.</p></li>
-<li><p>Deaths in a match do not kill the real Vanguard.</p></li>
-<li><p>The Crucible does not erase personality, memory, or relationships.</p></li>
-<li><p>No future story should rely on one random player match having "really happened."</p></li>
-</ul></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+**WHAT THIS SOLVES**
+
+- Respawning has an in-world explanation without making Vanguards immortal outside the Crucible.
+- Raska can fight Kade, siblings can fight, allies can oppose each other, and enemies can cooperate without rewriting lore relationships.
+- A match can explore "what if these ten Vanguards fought?" without becoming a permanent historical event.
+- The battlefield is canon even when the exact team composition is not.
+
+**HARD LIMITS**
+
+- Resonant Forms cannot leave the Meridian Crucible.
+- Deaths in a match do not kill the real Vanguard.
+- The Crucible does not erase personality, memory, or relationships.
+- No future story should rely on one random player match having "really happened."
 
 | *Champion lore tells you who these people are. A match tells you what could happen if the Crucible placed them on opposite sides.* |
 |------------------------------------------------------------------------------------------------------------------------------------|
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>2. MAP TOPOLOGY</strong></p>
-<p><strong>FAMILIAR THREE-LANE LANGUAGE; DIFFERENT SPATIAL LOGIC</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 2. MAP TOPOLOGY
+
+**FAMILIAR THREE-LANE LANGUAGE; DIFFERENT SPATIAL LOGIC**
 
 
 **LOCKED TOPOLOGY PRINCIPLES**
@@ -92,19 +59,9 @@ A Vanguard who attunes to one of the Crucible's Prime Wells can project a tempor
 
 A veteran MOBA player should understand the macro map quickly, but should not be able to overlay another game's wall, brush, river, or gank geometry and instantly know every route.
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>3. PRIME WELLS &amp; MATCH VICTORY</strong></p>
-<p><strong>THE NETWORK ANCHORS</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 3. PRIME WELLS & MATCH VICTORY
+
+**THE NETWORK ANCHORS**
 
 | **PRIME WELL**    | A massive stabilized Flux source that anchors one side of the Crucible and produces that side's Fluxborn.                                       |
 |-------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -116,19 +73,9 @@ A veteran MOBA player should understand the macro map quickly, but should not be
 | *The Prime Well is not a renamed crystal. It is the system that makes the entire battlefield function.* |
 |---------------------------------------------------------------------------------------------------------|
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>4. FLUXWAYS, FLUXBORN, AND LANE PRESSURE</strong></p>
-<p><strong>THE LANES ARE ENERGY ROUTES, NOT ARBITRARY ROADS</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 4. FLUXWAYS, FLUXBORN, AND LANE PRESSURE
+
+**THE LANES ARE ENERGY ROUTES, NOT ARBITRARY ROADS**
 
 Fluxways are ancient high-efficiency routes connecting the two Prime Wells. Fluxborn naturally follow them because the underlying network is easiest to traverse there. This is the lore reason the battlefield forms three lanes.
 
@@ -154,19 +101,9 @@ Fluxways are ancient high-efficiency routes connecting the two Prime Wells. Flux
 | *Gold makes the Vanguard stronger. Flux makes the side of the map stronger.* |
 |------------------------------------------------------------------------------|
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>5. CORRUPTED SPIRES</strong></p>
-<p><strong>WHY TOWERS ATTACK</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 5. CORRUPTED SPIRES
+
+**WHY TOWERS ATTACK**
 
 What players casually call towers are corrupted Flux Wells / network Spires. Their corruption causes them to identify hostile Attunement signatures and discharge concentrated Flux at approaching enemies.
 
@@ -181,19 +118,9 @@ What players casually call towers are corrupted Flux Wells / network Spires. The
 
 A destroyed Spire should visibly crack open, vent corruption, and release energy back into the battlefield network. Structure destruction should feel like the map itself changed state.
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>6. NORTH &amp; SOUTH FLUX WELLS</strong></p>
-<p><strong>THE MACRO OBJECTIVES</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 6. NORTH & SOUTH FLUX WELLS
+
+**THE MACRO OBJECTIVES**
 
 The Crucible has two major neutral Well sites: one near the top-side macro space and one near the bot-side macro space. They replace giant neutral boss objectives. The Wells themselves are the objective.
 
@@ -204,53 +131,30 @@ The Crucible has two major neutral Well sites: one near the top-side macro space
 - A secured Well enters a **5-minute respawn cycle** before becoming available again.
 - These values are prototype tuning and must remain data-driven.
 
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>LOCKED RULES</strong></p>
-<ul>
-<li><p>Flux Wells are spawn-based neutral objectives, not permanent control points.</p></li>
-<li><p>North and South create competing rotations and cross-map trades.</p></li>
-<li><p>Securing a Well grants temporary Team Flux, strengthening all allied lane Fluxborn while the reward remains active.</p></li>
-<li><p>A Well is <strong>solo-capturable</strong>, but multiple allied Vanguards accelerate the stabilization/capture process.</p></li>
-<li><p>Additional capture contribution is capped or diminished so a five-player dogpile is not automatically required. The exact curve is tunable.</p></li>
-<li><p>When both teams contest the site, control pressure determines progress. Equal control stalls; superior control can continue progress at a reduced rate.</p></li>
-<li><p>A jungler is naturally well-positioned to contest Wells, but ownership is a team problem rather than a role-locked mechanic.</p></li>
-<li><p>There is no Dragon/Baron-style monster health bar and no last-hit secure mechanic at the center of the objective.</p></li>
-</ul></th>
-<th><p><strong>STILL TO PROTOTYPE</strong></p>
-<ul>
-<li><p>Exact capture time for one, two, or more allied Vanguards.</p></li>
-<li><p>Exact contribution cap/diminishing-return curve.</p></li>
-<li><p>How long an opened but unclaimed Well remains available.</p></li>
-<li><p>Exact visual/audio language for stabilization progress and contested control.</p></li>
-</ul></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+**LOCKED RULES**
+
+- Flux Wells are spawn-based neutral objectives, not permanent control points.
+- North and South create competing rotations and cross-map trades.
+- Securing a Well grants temporary Team Flux, strengthening all allied lane Fluxborn while the reward remains active.
+- A Well is **solo-capturable**, but multiple allied Vanguards accelerate the stabilization/capture process.
+- Additional capture contribution is capped or diminished so a five-player dogpile is not automatically required. The exact curve is tunable.
+- When both teams contest the site, control pressure determines progress. Equal control stalls; superior control can continue progress at a reduced rate.
+- A jungler is naturally well-positioned to contest Wells, but ownership is a team problem rather than a role-locked mechanic.
+- There is no Dragon/Baron-style monster health bar and no last-hit secure mechanic at the center of the objective.
+
+**STILL TO PROTOTYPE**
+
+- Exact capture time for one, two, or more allied Vanguards.
+- Exact contribution cap/diminishing-return curve.
+- How long an opened but unclaimed Well remains available.
+- Exact visual/audio language for stabilization progress and contested control.
 
 | *The objective fight should be about controlling the Well site, not maximizing damage per second into a neutral boss.* |
 |------------------------------------------------------------------------------------------------------------------------|
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>7. JUNGLE GEOMETRY</strong></p>
-<p><strong>THE JUNGLE CONTAINS THE LANES</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 7. JUNGLE GEOMETRY
+
+**THE JUNGLE CONTAINS THE LANES**
 
 The defining map difference is spatial: top and bot are not boundary lanes. Wilderness continues beyond them. Every lane has jungle on both sides, allowing outer and inner approaches while preserving readable lane structure.
 
@@ -264,68 +168,35 @@ The defining map difference is spatial: top and bot are not boundary lanes. Wild
 
 Because there is meaningful jungle both around and between lanes, two roaming Vanguards can operate on distinct routes and converge on lanes or objectives. This should emerge from opportunity costs rather than from a dedicated "roamer" role.
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>8. JUNGLE WILDLIFE</strong></p>
-<p><strong>NATIVE ECOLOGY, NOT FLUX BATTERIES</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 8. JUNGLE WILDLIFE
+
+**NATIVE ECOLOGY, NOT FLUX BATTERIES**
 
 Jungle camps are living Veyran fauna. They are not Fluxborn, not summoned constructs, and not automatically corrupted. The jungle should remind players that Veyra existed before the network was built across it.
 
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>LOCKED RULES</strong></p>
-<ul>
-<li><p>Camps have fixed identities throughout the match.</p></li>
-<li><p>No jungle evolution system.</p></li>
-<li><p>Killing a camp grants normal economy plus a simple temporary trait/buff associated with that species.</p></li>
-<li><p>Traits create natural champion synergies without explicitly naming champion-specific bonuses.</p></li>
-<li><p>Wildlife can vary by future battlefield biome while preserving gameplay roles.</p></li>
-</ul></th>
-<th><p><strong>WORKING CAMP CONCEPTS</strong></p>
-<ul>
-<li><p>Ashfang - movement / pursuit trait; naturally attractive to Raska-like mobility champions.</p></li>
-<li><p>Stonehorn - defensive trait.</p></li>
-<li><p>Gloomwing - vision / tracking trait.</p></li>
-<li><p>Skittermaw pack - repeated-attack trait.</p></li>
-<li><p>Miremother - multi-target sustain trait.</p></li>
-<li><p>Razorback - impact / first-contact trait.</p></li>
-</ul></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+**LOCKED RULES**
+
+- Camps have fixed identities throughout the match.
+- No jungle evolution system.
+- Killing a camp grants normal economy plus a simple temporary trait/buff associated with that species.
+- Traits create natural champion synergies without explicitly naming champion-specific bonuses.
+- Wildlife can vary by future battlefield biome while preserving gameplay roles.
+
+**WORKING CAMP CONCEPTS**
+
+- Ashfang - movement / pursuit trait; naturally attractive to Raska-like mobility champions.
+- Stonehorn - defensive trait.
+- Gloomwing - vision / tracking trait.
+- Skittermaw pack - repeated-attack trait.
+- Miremother - multi-target sustain trait.
+- Razorback - impact / first-contact trait.
 
 | *Depth comes from routing and synergy, not from camps becoming a separate progression game.* |
 |----------------------------------------------------------------------------------------------|
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>9. MATCH ECONOMY</strong></p>
-<p><strong>THREE DIFFERENT KINDS OF POWER</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 9. MATCH ECONOMY
+
+**THREE DIFFERENT KINDS OF POWER**
 
 | **GOLD / ITEMS**    | Personal Vanguard power. Earned through Fluxborn last hits, jungle farming, takedowns, structures, and other tuned sources.                                  |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -405,52 +276,29 @@ The Fountain is the team's **item-delivery, equipment-conversion, resale, and lo
 
 The **Economy & Progression Bible v0.1** owns detailed Gold/accounting, XP, queue, undo/resale, and buyback rules; this section states the battleground's fountain behavior.
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>13. OPEN COMPOSITION</strong></p>
-<p><strong>THE GAME CREATES INCENTIVES, NOT ASSIGNMENTS</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 13. OPEN COMPOSITION
+
+**THE GAME CREATES INCENTIVES, NOT ASSIGNMENTS**
 
 The Meridian Crucible does not ask players to declare top, jungle, mid, carry, support, or any other role. Five Vanguards load into the battlefield and the team decides how to distribute them.
 
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>EXPLICITLY ALLOWED</strong></p>
-<ul>
-<li><p>Five players mid at level one.</p></li>
-<li><p>Two roamers and three solo lanes.</p></li>
-<li><p>A traditional 1-1-1-2 structure.</p></li>
-<li><p>No dedicated jungler if the team accepts the cost.</p></li>
-<li><p>A solo bot carry with four players pressuring the rest of the map.</p></li>
-<li><p>Unusual lane swaps and temporary deathballs.</p></li>
-</ul></th>
-<th><p><strong>WHAT BALANCES FREEDOM</strong></p>
-<ul>
-<li><p>Shared XP and gold opportunity costs.</p></li>
-<li><p>Unfarmed jungle wildlife and lost temporary traits.</p></li>
-<li><p>Unattended Fluxborn waves and structure pressure.</p></li>
-<li><p>North/South Flux Well access.</p></li>
-<li><p>Travel time through inner and outer jungle.</p></li>
-<li><p>The enemy team being free to exploit whatever your composition gives up.</p></li>
-</ul></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+**EXPLICITLY ALLOWED**
+
+- Five players mid at level one.
+- Two roamers and three solo lanes.
+- A traditional 1-1-1-2 structure.
+- No dedicated jungler if the team accepts the cost.
+- A solo bot carry with four players pressuring the rest of the map.
+- Unusual lane swaps and temporary deathballs.
+
+**WHAT BALANCES FREEDOM**
+
+- Shared XP and gold opportunity costs.
+- Unfarmed jungle wildlife and lost temporary traits.
+- Unattended Fluxborn waves and structure pressure.
+- North/South Flux Well access.
+- Travel time through inner and outer jungle.
+- The enemy team being free to exploit whatever your composition gives up.
 
 | *If a strategy is unhealthy, fix the economy or map incentive causing it - do not outlaw it because it looks unconventional.* |
 |-------------------------------------------------------------------------------------------------------------------------------|
@@ -604,19 +452,9 @@ With global unique picks and six total distinct bans, a roster of **16 Vanguards
 
 The [Parties, Social & Matchmaking Bible v0.1](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) describes launch party/queue rules and the future Ranked target of parties of up to five with no more than one rank step between any two members. Exact rating, placement, matchmaking, season, queue-penalty, and progression systems remain separate implementation/design decisions.
 
-<table>
-<colgroup>
-<col style="width: 100%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th><p><strong>16. FIRST-PLAYABLE GUARDRAILS</strong></p>
-<p><strong>WHAT THE PROTOTYPE MUST PROVE</strong></p></th>
-</tr>
-</thead>
-<tbody>
-</tbody>
-</table>
+## 16. FIRST-PLAYABLE GUARDRAILS
+
+**WHAT THE PROTOTYPE MUST PROVE**
 
 **TARGET MATCH PACING**
 
@@ -674,7 +512,7 @@ The [Parties, Social & Matchmaking Bible v0.1](Veyra_Parties_Social_Matchmaking_
 
 ### Inhibitors and extra wave units
 
-- Each destroyed inhibitor grants its attacker the already-established **+25 temporary Team Flux for 3 minutes**, strengthening allied Fluxborn globally. The inhibitor reconstructs after its current **3-minute** prototype timer.
+- Each destroyed inhibitor grants the attacking team the already-established **+25 temporary Team Flux for 3 minutes**, strengthening allied Fluxborn globally. The inhibitor reconstructs after its current **3-minute** prototype timer.
 - **Every newly spawned wave in the lane whose enemy inhibitor is currently down gains additional Fluxborn units**. These are extra bodies, **not** a lane-specific stat boost and **not** replacements for the ordinary wave.
 - Each downed inhibitor affects **only its corresponding lane**. If all three enemy inhibitors are down, all three lanes get their respective extra units; there is **no additional all-three-down bonus**.
 - Extra units award **normal Gold and XP** for their unit type when defenders kill them, subject to the standard Economy & Progression Bible rules.

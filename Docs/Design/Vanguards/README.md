@@ -38,7 +38,7 @@ There is no Unreal project in this repository yet. When there is, Vanguard Data 
 
 | Field | Notes |
 |---|---|
-| `id`, `roster_number`, `name`, `title` | `title` may be `null` — Silt currently has none |
+| `id`, `roster_number`, `name`, `title` | `title` may be `null`; no Vanguard uses that today (Silt, the last without one, was titled *The Living Mire* on 2026-09-20) |
 | `canon_section` | section in the Character Bible |
 | `origin_region`, `origin_locality`, `nature` | `nature` from a controlled list; `origin_locality` may be `null` |
 | `role_tags` | descriptive archetypes. **Positional labels are rejected** — the roster enforces no role slots |
@@ -81,7 +81,7 @@ records a legal problem, the other records housekeeping.
 
 Beyond pass/fail it prints a roster summary derived from the data, which is the point — these are the questions that are tedious to answer from prose and trivial to answer from data:
 
-**Owned field entities**, the ADR-003 inventory. Currently 3 combat units, 5 placed markers, 1 ride state, and **18 world volumes** across 9 Vanguards. World volumes are by a wide margin the largest category, and two of them are engine capabilities rather than ability features: Varkesh's Iron Wall modifies pathing for both teams, and Sylra creates true Dense Fog at runtime. Neither has a ruling in any bible.
+**Owned field entities**, the ADR-003 inventory. Currently 3 combat units, 5 placed markers, 1 ride state, and **18 world volumes** across 9 Vanguards. World volumes are by a wide margin the largest category, and two of them are engine capabilities rather than ability features: Varkesh's `iron_wall` (the entity id for the wall Forge Divide, his R, cools into) modifies pathing for both teams, and Sylra creates true Dense Fog at runtime. Neither has a ruling in any bible.
 
 **Crowd control coverage.** 6 Vanguards apply no CC at all; 13 apply no hard CC. Combined with open composition, a legal team can field none.
 
@@ -89,7 +89,7 @@ Beyond pass/fail it prints a roster summary derived from the data, which is the 
 
 **Marks and meters.** 18 of 25 kits apply a named mark, stack or meter. The fiction varies; the mechanical shape often does not.
 
-**Sheet status.** 12 of 25 Vanguards have no sheet, or a sheet that contradicts or under-describes canon.
+**Sheet status.** All 25 entries are `file: null` — 22 `superseded` by authored art and 3 `withdrawn` — printed as a count per status. Neither is a defect; it is the expected state after the baked-text sheets were deleted.
 
 These numbers are descriptive, not verdicts. They are here so the trade-offs are visible when the roster changes, rather than discovered during balance.
 
@@ -102,11 +102,11 @@ python3 Docs/Design/Vanguards/render_sheet.py --all    # all 25
 
 `render_sheet.py` builds a self-contained HTML character sheet by reading the Character Bible and the Vanguard's YAML **at render time**. Nothing is typed by hand and nothing is copied into a third location, so there is no place for the text to drift from canon.
 
-**Artwork is deliberately not part of the output.** Each image region renders as a labelled slot naming what belongs there and at what aspect, so the sheet doubles as the brief for the art that fills it. That separation is the point: text baked into a generated image cannot be corrected, validated or version-controlled, and that is how every render defect in `ConceptArt/` arrived — `CADNCE`, `a Heated meemy`, `substantail`, `Vangaurd` — along with half the canon drift in the discrepancy register. Here a canon change is picked up by re-running the renderer, and the expensive layer never moves.
+**Artwork is never generated or baked in.** Each image region shows the authored file from `ConceptArt/Vanguards/<id>/` when one exists and otherwise renders as a labelled slot naming what belongs there and at what aspect, so the sheet doubles as the brief for the art that fills it. That separation is the point: text baked into a generated image cannot be corrected, validated or version-controlled, and that is how every render defect in the old baked-text sheets (deleted 2026-09-21) arrived — `CADNCE`, `a Heated meemy`, `substantail`, `Vangaurd` — along with half the canon drift in the discrepancy register. Here a canon change is picked up by re-running the renderer, and the expensive layer never moves.
 
 The parser handles all three heading generations in the bible, including Angeru's stance layout, which yields eight ability entries rather than five.
 
-`sheets/19-bryn.html` is committed as a worked example; the rest are build output and ignored. Bryn is the useful demonstration because her sheet is wrong in `ConceptArt/` — the PNG shows "Harbor Flare" reducing Dense Fog, and the rendered sheet shows "Sounding Flare" with presence-only behaviour, because it reads §19 rather than a year-old render.
+All 25 rendered sheets under `sheets/` are committed (see `sheets/.gitignore`): re-run `--all` after a canon change and an empty `git diff` means they match canon. Bryn is the useful demonstration because her old baked-text sheet was wrong — it showed "Harbor Flare" reducing Dense Fog, and the rendered sheet shows "Sounding Flare" with presence-only behaviour, because it reads §19 rather than a year-old render.
 
 ## Changing a Vanguard
 

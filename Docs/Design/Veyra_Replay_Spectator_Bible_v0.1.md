@@ -68,7 +68,15 @@
 - Cameras, replay seeking and alternate viewpoints remain bounded by whichever frontier the invited custom spectator is permitted to receive. When zero delay is selected, that frontier may reach the match's live authoritative timeline; when delayed, the normal three-minute embargo applies to all state and metadata. No spectator control can alter live gameplay, and Spectator Mode supplies no spectator-to-player chat.
 - **Public replay/spectator UI still does not show archived in-match, team or party chat.** The zero-delay custom option changes playback timing, not moderation evidence permissions, block rules, account reporting rights, recording retention or completed replay-link policy.
 
-## 8. Architecture work required before implementation
+
+## 8. Unified Unreal replay/spectator state checkpoint — Client UX Proposals 63, 90–92 (2026-09-23)
+
+**Watch Replay** is available from eligible Match History records, showing actual unavailable/processing/retention state. Starting replay or authorized live spectating **transitions within the same installed Unreal application** to a distinct Replay or Spectator mode; it does **not** launch a second Unreal executable. Leaving an opened history replay returns to the originating Match History entry without changing party readiness. Normal replay-link authorization, recording availability/retention, three-minute matchmade spectator delay, eligible custom spectator delay, saved slots, confidentiality, and public no-chat rules are **unchanged**. The app must not allow replay/spectator state to bypass a live assigned match's **Reconnect-only** restriction or turn spectator into an active Vanguard slot.
+
+See [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md). Mode map/input/asset cleanup and return/navigation lifecycle remain implementation details, not a new replay or spectator permission. The pre-game client design is paused after Proposal **92**.
+
+
+## 9. Architecture work required before implementation
 
 1. Choose replay event/input/schema design, authoritative snapshots/checkpoints, deterministic/faithful playback and ability to seek/frame-step, including non-deterministic physics, RNG, AI actions and GAS/network prediction corrections.
 2. Define Unreal replay/spectator mode lifecycle, camera and UI separation, recorded visibility/fog semantics, versioned assets/content, and compatibility when live game patches change rules/geometry/Vanguard kits.
@@ -80,10 +88,3 @@
 8. Test **delay enforcement at the data boundary**, not just hidden UI controls: no later events via free camera, timeline indexes, cached snapshots, API metadata, alternative player viewpoints or reconnect/seek.
 
 **This is an agreed high-value, large-scope feature; implementation must wait for a dedicated replay architecture/design pass.**
-
-
-## Unified Unreal replay/spectator state checkpoint — Client UX Proposals 63, 90–92 (2026-09-23)
-
-**Watch Replay** is available from eligible Match History records, showing actual unavailable/processing/retention state. Starting replay or authorized live spectating **transitions within the same installed Unreal application** to a distinct Replay or Spectator mode; it does **not** launch a second Unreal executable. Leaving an opened history replay returns to the originating Match History entry without changing party readiness. Normal replay-link authorization, recording availability/retention, three-minute matchmade spectator delay, eligible custom spectator delay, saved slots, confidentiality, and public no-chat rules are **unchanged**. The app must not allow replay/spectator state to bypass a live assigned match's **Reconnect-only** restriction or turn spectator into an active Vanguard slot.
-
-See [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md). Mode map/input/asset cleanup and return/navigation lifecycle remain implementation details, not a new replay or spectator permission. The pre-game client design is paused after Proposal **92**.

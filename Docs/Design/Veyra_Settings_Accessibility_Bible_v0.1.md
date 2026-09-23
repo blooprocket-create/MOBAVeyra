@@ -3,7 +3,7 @@
 **Version:** 0.1 — Consolidated approved/rejected decisions, Proposals 1–168 (2026-09-21)  
 **Status:** Working design canon and player-facing menu consolidation. Proposal 168 approved ending routine one-feature-at-a-time expansion; implementation details and identified open questions remain separate design work.  
 **Scope:** Personal controls, casting, camera, interface, accessibility, audio, graphics, language, settings persistence and in-match access.  
-**Related:** [Combat Bible](Veyra_Combat_Bible_v0.5.md) owns actual attack, ability, targeting and status rules; [Vision Bible](Veyra_Vision_Bible_v0.1.md) owns permitted information; [Chat & Communication Bible](Veyra_Chat_Communication_Bible_v0.1.md) owns recipients, All Chat, mute and communication permissions; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns application handoffs; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) owns match phases and outcomes. [Architecture](../../ARCHITECTURE.md) still governs implementation.
+**Related:** [Combat Bible](Veyra_Combat_Bible_v0.5.md) owns actual attack, ability, targeting and status rules; [Vision Bible](Veyra_Vision_Bible_v0.1.md) owns permitted information; [Chat & Communication Bible](Veyra_Chat_Communication_Bible_v0.1.md) owns recipients, All Chat, mute and communication permissions; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns the launcher handoff and client-state transitions; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) owns match phases and outcomes. [Architecture](../../ARCHITECTURE.md) still governs implementation.
 
 > **Design intent:** Player preferences may change how permitted information and inputs are presented, not the authoritative rules or what a player is allowed to know. Every setting that affects a visible gameplay cue must preserve its essential meaning. These rules are approved product intent, not permission to invent gameplay timing, input automation, networking, storage, or UI architecture.
 
@@ -153,7 +153,7 @@
 
 Settings never establish combat truth, server authority, hidden information, chat recipient permissions, match outcomes or paid entitlements. Proposed defaults in this document apply only where specifically approved. Unspecified defaults, slider limits, exact buffer timings for other game systems, available launch locales and technical implementation remain open; do not silently invent them.
 
-## 10. Resume point
+## 10. Proposal-phase status and later sections
 
 **Proposals 1–168 have been discussed; Proposal 168 approved closing routine feature-by-feature proposals in favor of a practical consolidated menu.** §§12–14 record post-120 decisions and the menu blueprint. Do not continue numbering proposals by default; address genuine open questions only when the author asks.
 

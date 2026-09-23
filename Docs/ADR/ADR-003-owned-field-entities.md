@@ -26,8 +26,8 @@ Sorting them by what the engine actually has to do:
 **3. Persistent world volumes that modify the battlefield itself**
 
 - **Molten Ground** and the cooled **Iron Wall** (Varkesh) — the wall "blocks both teams", i.e. runtime pathing modification.
-- **Lay the Mist** and **Through the White** (Sylra) — create *true Dense Fog* obeying "the battleground's normal Dense Fog rules", i.e. runtime-spawned vision volumes.
-- **Caustic Line** residue and **CODE BLACK** (Mavra), **Buried Alive** and **Sandstorm** (Silt), **Magnetic Field** and **Full Grid** (Relay), **Wildstorm** (Moro), **Briar Scatter** (Celandrine), Aurelisse's three currents, Neris's **Tidebreaker** trail.
+- **Lay the Mist** and **Through the White** (Sylra) — create *true Dense Fog* obeying "the battleground's normal Dense Fog rules", i.e. runtime-spawned vision volumes; plus her passive's short-lived **Mist Trail**.
+- **Caustic Line** residue, the **Pressure Leak** cloud and **CODE BLACK** (Mavra), **Buried Alive** and **Sandstorm** (Silt), **Magnetic Field** and **Full Grid** (Relay), **Wildstorm** (Moro), **Briar Scatter** (Celandrine), Aurelisse's three currents, Neris's **Tidebreaker** trail.
 
 This is the largest category: **18 volumes across 9 Vanguards**, more than the other three categories combined.
 
@@ -37,7 +37,7 @@ This is the largest category: **18 volumes across 9 Vanguards**, more than the o
 
 The Combat Bible §32 already defines the **semantics** that categories 1 and 2 need: summon/clone/decoy definitions, ownership resolution, damage attribution back to the owning Vanguard, and tower-aggression inheritance. That work is done and it is good.
 
-What does not exist anywhere in `Docs/` is the **architectural** answer: how many distinct primitives back these behaviours, which module owns them, and how their lifetime, replication and authority work. Category 4 additionally has no design canon at all — there is no mount, vehicle or ride-state section in the Combat Bible, the Battleground Bible or the Vision Bible. Raska is Vanguard #1.
+What does not exist anywhere in `Docs/` is the **architectural** answer: how many distinct primitives back these behaviours, which module owns them, and how their lifetime, replication and authority work. At the time of this decision, category 4 additionally had no design canon at all — there was no mount, vehicle or ride-state section in the Combat Bible, the Battleground Bible or the Vision Bible. Raska is Vanguard #1. *(Since superseded: Combat Bible §56 Ride states now holds that canon; see Implementation order below.)*
 
 ### Why this cannot be deferred to implementation time
 
@@ -69,7 +69,7 @@ Two sub-questions must be answered at the same time, because they are the ones t
 
 Ownership, lifetime and damage attribution factor into a small common base shared by all three, so that Combat Bible §32's attribution rules are implemented once. Everything above that base is specific to the primitive.
 
-**Raska's ride state is not an owned entity.** It is a separate locomotion feature with its own decision, its own canon (which does not yet exist in any bible) and its own schedule.
+**Raska's ride state is not an owned entity.** It is a separate locomotion feature with its own decision, its own canon (which did not yet exist in any bible when this was decided; it is now Combat Bible §56) and its own schedule.
 
 ### Why the world volume is split rather than unified
 
@@ -83,7 +83,7 @@ Nine Vanguards place no persistent entity at all: **Kade, Patch, Vera, Qazharr, 
 
 A reasonable first four: **Cairn** (tank, control, shielding), **Qazharr** (melee fighter, sustained pressure), **Oriel** (ranged mage, poke and scaling) and **Bryn** (ranged physical carry, attack-interval floor and the Dense Fog presence rule). They cover four archetypes and between them exercise shields, displacement, the Attack Speed overflow reference and the Vision Bible's fog rules.
 
-The remaining sixteen follow as their primitive lands: placed marker first (five Vanguards, simplest), then combat entity (three), then world volume per owning system (nine).
+The remaining sixteen follow as their primitive lands: placed marker first (five Vanguards, simplest), then combat entity (three), then world volume per owning system (nine). *(These per-primitive counts overlap — Sylra appears under both placed marker and world volume, Neris under both combat entity and world volume — so they cover fifteen distinct Vanguards; the sixteenth is Raska, who needs none of the primitives, as below.)*
 
 **Raska is not deferred out of the roster**, and she is no longer last. Two rulings on 2026-09-20 moved her: her ride state is a turn-rate-capped ordinary pathing agent rather than a bespoke movement system, and Hound after Bail Out is a **projectile** under Combat Bible §13/§20 rather than an owned entity. She therefore requires **none of the three primitives** above. She is gated only on the ride-state section being written into the Combat Bible, and can be implemented as soon as it is. **All 26 ride-state questions were answered on 2026-09-20 and written into the Combat Bible as §56 Ride states (v0.5).** That gate is now cleared: she is fully specified and implementable. See [`Ride_State_Open_Questions_v0.1.md`](../Design/Ride_State_Open_Questions_v0.1.md).
 
@@ -143,5 +143,6 @@ Options B and D are compatible and can be taken together. **This is what was acc
 - `Docs/Design/Veyra_Combat_Bible_v0.5.md` §32 (summons, companions, clones, decoys)
 - `Docs/Design/Veyra_Vision_Bible_v0.1.md` (runtime-spawned Dense Fog volumes — currently unaddressed)
 - `Docs/Design/Veyra_Battleground_Bible_v0.9.md` (runtime navigation modification — currently unaddressed)
-- `Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md` (Raska ride state has no supporting canon)
-- [`Docs/Design/Ride_State_Open_Questions_v0.1.md`](../Design/Ride_State_Open_Questions_v0.1.md) — the 26 questions that canon must answer before Raska can be implemented
+- `Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md` §1 (Raska's specific ride-state rules; at decision time her ride state had no supporting canon)
+- `Docs/Design/Veyra_Combat_Bible_v0.5.md` §56 (Ride states — the generic ride-state canon, added after this decision)
+- [`Docs/Design/Ride_State_Open_Questions_v0.1.md`](../Design/Ride_State_Open_Questions_v0.1.md) — decision record for the 26 ride-state questions; all answered 2026-09-20 and superseded as canon by Combat Bible §56
