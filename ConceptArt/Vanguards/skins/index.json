@@ -103,6 +103,23 @@
       "source_sha256": "7a7f6345dabcb0a9c88423c51a1609d86fba1a811ae3646806ee49d5a54fae47",
       "asset_sha256": "daaf3516e8e411df9ffab8b5be1128d150d3fc59ac9d66f3f1fcb781940ea37e",
       "description": "Patch is a small white and graphite robotic teddy with a blue heart core, accompanied by an enormous black armored bear silhouette."
+    },
+    {
+      "id": "raska-amazonian",
+      "vanguard_id": "raska",
+      "vanguard_name": "Raska",
+      "skin_name": "Amazonian Raska",
+      "collection": "Amazonian",
+      "asset": "ConceptArt/Vanguards/raska/skins/amazonian/hero.webp",
+      "type": "cosmetic_concept",
+      "released": false,
+      "image_dimensions": [
+        1672,
+        941
+      ],
+      "source_sha256": "39c6a6bd5fb02a763b1e07510f4741878add94a3f7c2a84f8c75b1d8340fa81d",
+      "asset_sha256": "cfea2482b61a752078ce2cc98ebeb5173941bd52de6bb0e916dd6445279f6efd",
+      "description": "An Amazonian-inspired Raska in jungle-warrior armor with reinforced melee gauntlets, riding a charging cheetah in place of Hound. Her raised fist and mount preserve the close-range, high-speed collision combat silhouette; no spear or other weapon."
     }
   ]
 }
