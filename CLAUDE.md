@@ -2,13 +2,17 @@
 
 Claude Code should treat this repository as an architecture-first Unreal project.
 
+## Find the right context first
+
+Open [`Docs/CONTEXT_MAP.md`](Docs/CONTEXT_MAP.md) and identify the authoritative owner of the task. For a large bible, consult the dedicated [section locator](Docs/Index/README.md) and read a bounded section; do not ingest every current or archived design document. The route and locator are navigation only, never replacements for canon. When editing docs, regenerate the maps with `python3 scripts/check_doc_context.py --write` and run `--check`.
+
 ## Read before work
 
 Always begin substantial gameplay tasks by reading:
 
 - `ARCHITECTURE.md`
 - `PROJECT_STRUCTURE.md`
-- relevant files in `Docs/Design/`
+- the relevant owning sections in `Docs/Design/` selected by the context map
 - relevant records in `Docs/ADR/`
 
 `ARCHITECTURE.md` is the source of truth for technical boundaries. Do not duplicate or reinterpret its rules here.
