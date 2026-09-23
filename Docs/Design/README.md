@@ -75,7 +75,7 @@ All 25 rendered sheets are committed under [`Vanguards/sheets/`](Vanguards/sheet
 
 Text is never baked into the artwork — [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) composes it from canon at render time.
 
-## Concept art is not canon
+## Base art precedence and cosmetic scope
 
 Current artwork lives under [`ConceptArt/Vanguards/`](../../ConceptArt/Vanguards/) and is reconciled against these bibles character by character. **Approved artwork supplied by the author is canon**: where an appearance paragraph and approved art disagree, the art wins and the text is corrected to match, including its anti-drift guardrails. Everything an image cannot carry — what a design is *not*, the figures gameplay needs, and the reasons behind a choice — stays with the text. The rule and its limits are recorded in the Character Bible header and in [`Art_Direction_v0.1.md`](Art_Direction_v0.1.md).
 
