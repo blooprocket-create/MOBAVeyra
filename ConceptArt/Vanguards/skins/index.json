@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "purpose": "Veyra cosmetic concept art catalog; visual concepts only, not released inventory items or gameplay canon",
+  "skins": [
+    {
+      "id": "neris-living-paint",
+      "vanguard_id": "neris",
+      "vanguard_name": "Neris",
+      "skin_name": "Living Paint Neris",
+      "collection": "Living Paint",
+      "asset": "ConceptArt/Vanguards/neris/skins/living-paint/hero.webp",
+      "type": "cosmetic_concept",
+      "released": false,
+      "image_dimensions": [
+        1536,
+        864
+      ],
+      "source_sha256": "31c0046d1845eb269dc194cb7be7018f4fb8b08ad5aef49e022a0d1bce9ed690",
+      "asset_sha256": "7c421bafb93d97384d4a449982906b7f1802cb971c6ccdd5400b0d9184687042",
+      "description": "The Tidebound rides a curling wave of thick blue, indigo and teal pigment; her outfit, hair and wake are rendered as tactile paint."
+    },
+    {
+      "id": "moro-living-paint",
+      "vanguard_id": "moro",
+      "vanguard_name": "Moro",
+      "skin_name": "Living Paint Moro",
+      "collection": "Living Paint",
+      "asset": "ConceptArt/Vanguards/moro/skins/living-paint/hero.webp",
+      "type": "cosmetic_concept",
+      "released": false,
+      "image_dimensions": [
+        1536,
+        864
+      ],
+      "source_sha256": "81e6df51932efc5caec66319ef3c1ad8c43f3b8c6e438fbe5c99b623f908281d",
+      "asset_sha256": "78d62b4d41c5dc591a4365d72d4a83695704894d02cf054545bce88c98a2272d",
+      "description": "The Untamed Masterpiece lunges from an explosion of violet, magenta, turquoise and orange paint; the beast itself is built from pigment."
+    },
+    {
+      "id": "tavi-living-paint",
+      "vanguard_id": "tavi",
+      "vanguard_name": "Tavi",
+      "skin_name": "Living Paint Tavi",
+      "collection": "Living Paint",
+      "asset": "ConceptArt/Vanguards/tavi/skins/living-paint/hero.webp",
+      "type": "cosmetic_concept",
+      "released": false,
+      "image_dimensions": [
+        1536,
+        864
+      ],
+      "source_sha256": "e80db88d26ebbaee6c5631ec3a3baac1aa3835d85c563fc7c6dbaed171b05b3f",
+      "asset_sha256": "1fee6c4bb4cd3ca69cde98eac8405a8984a3c6878aaa773f896ee87915fd26ce",
+      "description": "A mischievous Tavi sweeps a dripping pink paintbrush across a painted canvas, riding a broad splash of living pigment."
+    },
+    {
+      "id": "raska-neon-circuit",
+      "vanguard_id": "raska",
+      "vanguard_name": "Raska",
+      "skin_name": "Neon Circuit Raska",
+      "collection": "Neon Circuit",
+      "asset": "ConceptArt/Vanguards/raska/skins/neon-circuit/hero.webp",
+      "type": "cosmetic_concept",
+      "released": false,
+      "image_dimensions": [
+        1536,
+        864
+      ],
+      "source_sha256": "eace263247fb562100cb0ae916ad583cf012b03de754678453fdecc7756cbf9c",
+      "asset_sha256": "e1c9e78e94551397d05a1651470a96cecd9730353d390adf8205534d3d8e3d0e",
+      "description": "Cyberpunk Raska with an angular black Hound bike, luminous cyan circuitry and matching black armored streetwear."
+    },
+    {
+      "id": "kade-neon-circuit",
+      "vanguard_id": "kade",
+      "vanguard_name": "Kade",
+      "skin_name": "Neon Circuit Kade",
+      "collection": "Neon Circuit",
+      "asset": "ConceptArt/Vanguards/kade/skins/neon-circuit/hero.webp",
+      "type": "cosmetic_concept",
+      "released": false,
+      "image_dimensions": [
+        1536,
+        864
+      ],
+      "source_sha256": "9cf5b87a1d990caf56e85139bbc274af783db43783457d747cc14b3e86cf13d1",
+      "asset_sha256": "d06b244d0ff65c7db847f135e3e259a65d3ffdda49f33d123bbf2f1ddb4ed601",
+      "description": "Cyberpunk Kade aims a long cyan-lit precision rifle, wearing segmented black armor and a red energy-lined mantle."
+    },
+    {
+      "id": "patch-neon-circuit",
+      "vanguard_id": "patch",
+      "vanguard_name": "Patch",
+      "skin_name": "Neon Circuit Patch",
+      "collection": "Neon Circuit",
+      "asset": "ConceptArt/Vanguards/patch/skins/neon-circuit/hero.webp",
+      "type": "cosmetic_concept",
+      "released": false,
+      "image_dimensions": [
+        1536,
+        864
+      ],
+      "source_sha256": "7a7f6345dabcb0a9c88423c51a1609d86fba1a811ae3646806ee49d5a54fae47",
+      "asset_sha256": "daaf3516e8e411df9ffab8b5be1128d150d3fc59ac9d66f3f1fcb781940ea37e",
+      "description": "Patch is a small white and graphite robotic teddy with a blue heart core, accompanied by an enormous black armored bear silhouette."
+    }
+  ]
+}
