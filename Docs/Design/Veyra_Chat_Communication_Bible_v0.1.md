@@ -23,7 +23,7 @@
 
 ## 3. Locked — Party Chat across client handoffs
 
-- **Party Chat persists across the player journey:** pre-game, champion select, live match, post-match and return to the persistent pre-game client. Launching/exiting the Unreal executable does not wipe the party conversation or require party members to re-create the chat merely to continue talking.
+- **Party Chat persists across the player journey:** pre-game, champion select, live match, post-match and return to the persistent pre-game client. Transitioning between ordinary and live states in the same Unreal application, or restarting that application, does not wipe the party conversation or require party members to re-create the chat merely to continue talking.
 - Party Chat recipients are **current authorized party members only**, rather than every player on the same battleground team or every player in the custom match. During a match, it is a separate channel from Team Chat and All Chat.
 - Party membership, parties that persist across a live match and block enforcement follow the Parties & Social Bible. A party-chat message is never broadcast to enemies or non-party allies by default.
 - Detailed behavior for historic messages when someone leaves/is kicked/joins, offline backlogs, notification persistence, post-party deletion and custom-lobby group chat is still **open**; the continuity requirement does not approve access to prior party messages for a new member.
@@ -72,9 +72,18 @@ The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) owns the 
 
 If Unreal has closed while a match is still live, the pre-game client presents a dedicated **Reconnect-only** view. Reconnect is its **only available action**: the pre-game client offers no sidebar, Party Chat, DMs, notification center or normal page navigation in that recovery state. Existing party and conversation state remains preserved, and permitted chat in the **reconnected Unreal in-match client** remains available under the rules above. Normal pre-game social UI returns after the match has ended. This is a UI availability rule, not a change to chat permissions, recipients or message retention.
 
-**Updated checkpoint (2026-09-23):** The pre-game client discussion is paused **after Proposal 49**, not 17; see approved UX Proposals 33–34 for the champion-select chat composer.
+**Historical checkpoint (2026-09-23):** UX Proposals 33–34 approved the champion-select chat composer; the author subsequently continued past 49 and the **current pause is after Proposal 92**.
 
 
 ## Champion-select compact chat refinement — Pre-game UX proposals 33–34 (2026-09-23)
 
 Champion select keeps the normal friends/social sidebar minimized; **one compact, collapsible selection-safe text-chat panel** serves permitted team communication without obscuring the pick/ban controls or allowing navigation away. Ordinary typed messages address **Team**. Prefix `/p` sends the message to the **existing Party Chat conversation and its authorized recipients**, without creating an extra Party Chat panel, tab or second conversation. The input visibly identifies Team by default and Party while a `/p` message is composed; strip the command from the sent body, mark Party messages distinctly in the shared display, and reset input recipient to Team after sending. This is a **UI shortcut**, not new channel authorization, membership or chat retention. Existing recipient permission and mute/restriction rules still apply; no built-in voice chat.
+
+
+## Post-match opt-in chat and unified application — UX Proposals 59–60, 90–92 (2026-09-23)
+
+The optional compact cross-team **Post-Match Chat** panel on the immediate results screen is **opt-in by first message**: until a player sends their first message, they do not receive or view that match's cross-team chat. After opting in, show messages **from that point forward**, not earlier history. Existing All Chat preference, restrictions, mutes and blocks still apply—sending a message cannot bypass All Chat Off. The conversation is separate from continuing Party Chat. Leaving immediate results or starting a new committed match ends that player's participation; saved Match History does not reopen it, and public replay/spectator clients cannot view a chat archive. Restricted moderation evidence retains its existing access rules.
+
+One installed Unreal application hosts ordinary client, champion select and live gameplay states (ADR-003). Party Chat and permitted DMs retain conversation continuity **across state changes/process restart** without implying access to ordinary pre-game chat UI during live-match Reconnect-only. In-match Unreal communication remains available when assigned gameplay resumes. Do not reintroduce a second background pre-game chat executable.
+
+**Current Pre-Game Client UX pause: after Proposal 92.**
