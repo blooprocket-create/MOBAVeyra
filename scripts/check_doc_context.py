@@ -100,10 +100,24 @@ def main() -> int:
 
     errors = check_routes()
     expected_names = {Path(name).stem + ".md" for name in MAPPED_BIBLES}
-    if args.check and SECTIONS.is_dir():
+    if SECTIONS.is_dir():
         extra = {p.name for p in SECTIONS.glob("Veyra_*_Bible_v*.md")} - expected_names
         for filename in sorted(extra):
-            errors.append(f"Stale generated section map: {filename}")
+            obsolete = SECTIONS / filename
+            if args.write:
+                # This directory is reserved for generated locators. Never delete
+                # an unexpected hand-authored file merely because its name matches.
+                header = obsolete.read_text(encoding="utf-8").splitlines()[:4]
+                if "> GENERATED from the active design bible. Do not edit by hand." in header:
+                    obsolete.unlink()
+                    print(f"Removed obsolete section map: {obsolete.relative_to(ROOT)}")
+                else:
+                    errors.append(
+                        f"Unexpected non-generated section file; remove manually: "
+                        f"{obsolete.relative_to(ROOT)}"
+                    )
+            else:
+                errors.append(f"Stale generated section map: {filename}")
 
     for filename in MAPPED_BIBLES:
         source = DESIGN / filename
