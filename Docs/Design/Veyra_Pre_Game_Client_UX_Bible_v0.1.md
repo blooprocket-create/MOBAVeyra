@@ -1,7 +1,7 @@
 # Veyra Pre-Game Client UX Bible
 
-**Version:** 0.1 — Approved Pre-Game Client Proposals 1–17 (2026-09-22)  
-**Status:** Working design canon for the explicitly approved presentation and navigation decisions below. **Discussion paused after Proposal 17 by author request; resume at Proposal 18 only when the author says “continue”.**  
+**Version:** 0.1 — Approved Pre-Game Client Proposals 1–49 (2026-09-23)  
+**Status:** Working design canon for approved decisions through Proposal 49. **Discussion paused after Proposal 49 by author request; propose 50 only when the author says “continue”.**  
 **Scope:** Persistent pre-game client shell, Home/Play, contextual social and party surfaces, notifications, matchmaking presentation, committed champion select, post-match return, and reconnect-only recovery. Not a final art direction, implementation blueprint, or authority specification.  
 **Related:** [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns launcher/client/Unreal transitions; [Parties, Social & Matchmaking Bible](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) owns authoritative party/queue/invite/readiness restrictions; [Chat & Communication Bible](Veyra_Chat_Communication_Bible_v0.1.md) owns channels and permission; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) owns selection cancellation, reconnect, AFK/disconnect and outcomes; [Modes & Access Bible](Veyra_Modes_Access_Bible_v0.1.md) owns eligible modes; [Settings & Accessibility Bible](Veyra_Settings_Accessibility_Bible_v0.1.md) owns personal settings and the accessibility of all these client surfaces.
 
@@ -33,13 +33,13 @@
 ### 3 — Persistent friends/chat sidebar (approved **with modification**)
 
 - Ordinary pages: the sidebar shows permitted friends/presence, **Party Chat**, friend **DMs**, conversation/unread states; collapsed view retains an unobtrusive tab and unread indicators. Conversation and collapse state persist across normal page navigation. The side panel collapses independently of the bottom party panel.
-- **On entering champion select, the sidebar automatically minimizes.** Players may reopen chat **within champion select** to communicate without covering picks/bans/trades/countdown or enabling navigation to other pre-game features. This is **not** an invitation to open the ordinary friends-management interface or leave the selection.
+- **On entering champion select, the sidebar automatically minimizes.** During champion select, the normal sidebar stays minimized; the dedicated compact single chat panel in Proposal 33 provides selection-safe communication without covering picks/bans/trades/countdown or enabling navigation to other pre-game features. This is **not** an invitation to open the ordinary friends-management interface or leave the selection.
 - On cancellation/return to normal pre-game browsing, restore the prior sidebar state. Chat permissions, recipients and continuity remain owned by the Chat Bible. No built-in voice chat.
 
 ### 4 — Champion select owns the entire client (approved **with stronger modification**)
 
 - Champion select is the **committed first stage of playing**, **not** a browsable pre-game page. It replaces ordinary content and **locks out all normal navigation**: no Home, Play, Vanguards, Collection, Shop, Profile, Settings, Match History, party management or other pre-game destinations until selection completes or is cancelled.
-- The normal bottom party panel and party-management controls are **hidden** (not merely collapsed) while party membership persists. The social sidebar auto-minimizes under Proposal 3; only authorized selection-safe chat can be reopened without offering navigation elsewhere.
+- The normal bottom party panel and party-management controls are **hidden** (not merely collapsed) while party membership persists. The social sidebar auto-minimizes under Proposal 3; only the authorized compact champion-select chat is available without offering navigation elsewhere.
 - Prioritize the relevant mode's Vanguard options, team information, pick/ban/trade and selection countdown. Ordinary notifications and secondary client actions cannot obstruct selection or escape the committed state.
 - Completed selection proceeds to the existing Unreal match handoff. On selection cancellation, return to the normal pre-game client, restoring prior main page and panel states subject to actual party/queue state. Disconnect vs deliberate dodge penalties/timelines remain in Match Flow; no new leave/select rules are created.
 
@@ -125,7 +125,7 @@
 | Party lobby / mode selected | Current page with persistent shell | Yes | Independent sidebar and bottom panel; ready-up notifications | Ready, invite, leader-initiated Find Match when eligible |
 | Matchmaking | Current page with compact/expanded queue state | Yes | Chat and non-disruptive notifications; membership/readiness locked | Leader may cancel queue; all may await match |
 | Match Found | Priority acceptance overlay | **No** | Underlying surfaces blocked by overlay | Accept/Decline, then await assembly |
-| Champion select | **Full-screen committed selection** | **No** | Bottom party UI hidden; sidebar auto-minimized; selection-safe text chat may reopen | Complete valid pick/ban/trade/Flux Spell selection under existing mode rules |
+| Champion select | **Full-screen committed selection** | **No** | Bottom party UI hidden; sidebar minimized; compact selection-safe text chat | Complete valid pick/ban/trade/Flux Spell selection under existing mode rules |
 | Unreal live match | Unreal foreground; pre-game client background | No ordinary pre-game browsing through the game | Actual in-match communication remains per Chat Bible | Play the assigned match |
 | Unreal unexpectedly absent while match live | **Dedicated Reconnect-only screen** | **No** | **No pre-game social, chat, party, notifications or shopping access** | **Reconnect only** |
 | Verified post-match | Results primary with ordinary shell restored | Yes | Independent sidebar and party panel; readiness reset | Review, ready next match, navigate freely |
@@ -140,4 +140,78 @@
 - Reliable state restoration across OS process restart, connection failure and select cancellation; no client-only fabricated state or invented acceptance timers. Reconnect error/status/retry mechanisms must preserve the **Reconnect-only** rule while the match remains live.
 - The bottom panel for a **custom host lobby** must not assume an ordinary matchmade queue, five-human readiness or match acceptance; custom match setup and authorization remain governed by Custom Matches Bible.
 
-**Checkpoint:** Pre-Game Client proposals **1–17 are approved**, with modifications on **3, 4, 6, 13 and 17**. The author explicitly paused here. **Do not propose 18 or continue expanding this bible until the author says “continue”.**
+**Checkpoint:** Pre-Game Client proposals **1–49 have been decided** (Proposal 47 rejected; Proposal 41 modified to defer final results layout pending statistics). The author explicitly paused **after Proposal 49**. **Do not propose 50 until the author says “continue”.**
+
+
+## 5. Approved continuation — proposals 18–40 (2026-09-23)
+
+These decisions extend §2. Proposals 18–40 were approved in discussion, with modifications explicitly called out below. Existing owning-system rules override any purely presentational inference.
+
+### Ordinary pages and Vanguard browsing (18–22)
+
+- **18 — Home content:** Feature the current event prominently, the newest Vanguard and related bundle separately, and news below. If no event is active, use a Vanguard or announcement in the principal feature slot. Cards lead to eligible ordinary client destinations and preserve the social/party shell.
+- **19 — Vanguards roster:** Search all released Vanguards; show Owned / Free Rotation / Locked status and All / Owned / Free Rotation filters. Owned status takes precedence where applicable. Even locked Vanguards have browsable details; linking to an existing purchase listing never purchases automatically.
+- **20 — Vanguard detail:** Overview, Abilities, Lore, Skins and Mastery information is accessible for owned and unowned Vanguards. Shop links work only in the ordinary pre-game client.
+- **21 — Ability demonstrations:** Optional player-controlled play/pause/replay of short accurate ability, stance or stage demonstrations; never auto-play. Written descriptions remain available if a demo is missing or stale.
+- **22 — modified, cosmetic interaction:** Detail pages permit comparing/previewing base and owned/unowned skins and show ownership and shop links for unowned skins, but have **no Equip action**. Actual match skin selection happens **only after choosing a Vanguard in champion select**. No shopping or Shop navigation during select.
+
+### Champion-select skin interaction (23–27)
+
+- **23 — Skin carousel:** Once a Vanguard is chosen, a horizontal carousel offers the base appearance and owned skins for match selection. Appearance selection cannot change the Vanguard, deadline, or gameplay. Original default of base unless changed was **superseded by Proposal 26**.
+- **24 — rejected:** Do **not** limit carousel visibility to owned skins. Show unowned skins as visibly locked/previewable but not selectable for the match. No purchase flow, prices that imply in-select purchase, or Shop navigation.
+- **25 — after lock-in and trades:** Skin preview and eligible appearance selection remain available after Vanguard lock-in while select is active. A valid Vanguard trade loads the carousel for the newly assigned Vanguard; the former Vanguard's appearance choice does not transfer. The final eligible choice for the assigned Vanguard enters the match, otherwise base.
+- **26 — remembered appearance:** On future selection of a Vanguard, preselect the skin **actually used in the last match with that Vanguard**, if still owned and available; otherwise base. Save actual match appearance, not a mere preview. After a valid trade load the newly assigned Vanguard's own remembered appearance. This supersedes 23's unconditional base default.
+- **27 — preview versus selected:** Browsing changes the large Vanguard art, including previews of unowned skins. Explicit **Previewing** versus **Selected for Match** state preserves the last eligible selection; end-of-select uses the selected appearance, not whichever unowned or owned skin was last previewed.
+
+### Selection roster, communication and awareness (28–35)
+
+- **28 — team overview:** Persistent teammate display of names, mode-permitted hovers/selections, lock-in status and final assigned Vanguards after picks/trades. Never enforce or infer fixed lanes or roles; opposing-team visibility follows mode rules.
+- **29 — roster search and filters:** Search by name with All / Owned / Free Rotation filters; show true pick eligibility, bans, already-picked and other mode restrictions. Filters never grant access. Reset search/filters at the beginning of each selection session. The roster stays inside committed select.
+- **30 — favorites:** Mark/unmark Vanguards as favorites on detail pages in ordinary browsing; champion select adds Favorites filter. A favorite is not an automatic hover, selection or lock-in and never overrides eligibility. No leaving select to edit favorites.
+- **31 — modified, turn awareness:** Prominent phase countdown and player action/turn state remain visible while browsing roster, skins and selection-safe chat. When the player's pick turn begins, **request foreground focus from the OS**, even if another app is in use; do this once on turn start, not continuous focus stealing. If OS denies focus, rely on supported window/taskbar attention behavior. Never pause the authoritative timer or alter selection/timeout rules.
+- **32 — modified, one audio cue:** On the player's pick or ban turn beginning, play **one brief distinct sound**, subject to existing audio/background settings. **No additional popup, toast, notification-center entry or standalone turn-alert overlay.** The existing phase/turn indicator and Proposal 31 focus request still apply; no new alert-volume slider.
+- **33 — modified, single selection chat:** Normal social sidebar stays minimized throughout select; a compact collapsible **single chat panel** sits beside team information without covering key controls. Ordinary messages address Team. Prefix `/p` addresses the existing Party Chat channel instead; **no extra Party Chat panel/tab or duplicate conversation**. No client-page navigation through chat.
+- **34 — recipient clarity:** Chat composer shows **Team** by default and **Party** when typing `/p` with a message. Strip `/p` from displayed sent text; clearly label party messages in shared chat history. After sending a party message, default the composer back to Team.
+- **35 — selection status:** Team overview distinctly shows **Waiting**, **Not Locked In** (permitted tentative hover) and **Locked In** (confirmed pick). Trades refresh assignment and applicable status. These are not pre-queue Ready/Not Ready states; no second ready check.
+
+### Flux Spell starting loadout and handoff (36–40)
+
+- **36 — starting Flux Spells:** Champion select offers two optional slots, including empty slots, with spell effects and shared-team-Flux unlock thresholds. Choose/replace available starting spells without spending match gold, altering Vanguard selection/lock-in, or extending the timer. Equipped spells enter the match inactive until their shared Flux thresholds. In-match shop replacement still costs gold under established spell rules.
+- **37 — saved loadout per Vanguard:** Prefill slots with the last **starting** spell loadout actually taken into a match with that Vanguard; no saved record means both slots empty. Player can edit before match. Valid trade loads the new Vanguard's saved loadout, not the old Vanguard's choices. In-match shop changes do not overwrite this starting preference.
+- **38 — Your Match Setup:** After Vanguard lock-in show an informational, live-updating summary of the actual assigned Vanguard and lock state, **skin selected for match** (not mere preview), and both starting Flux Spell slots with thresholds/empty state. Valid changes and trades update summary; no extra confirmation or ready step.
+- **39 — selection-session recovery:** Temporary disconnect shows accurate connection status and attempts to rejoin the **same active server-authoritative** selection session. Restore server-accepted picks/bans, assignment, selected skin, starting spells, current phase and remaining timer; never present unacknowledged local actions as accepted. Server deadlines continue; existing dodge/timeout rules remain. If session ended, present its actual outcome instead of reopening expired selection.
+- **40 — Match Starting / Unreal:** After confirmed select completion, show Match Starting with confirmed Vanguard, skin and starting spells, followed by honest Launching Game and Connecting to Match states; do not invent progress or claim successful join prematurely. Unreal takes focus after joining the assigned match. If launch/connect fails while that match remains live, pre-game offers **Reconnect only**, not ordinary browsing or new queue. No second ready check.
+
+## 6. Post-match results and recording decisions — proposals 41–49 (2026-09-23)
+
+**41 — modified / screen layout still open:** Author requested deciding **what gameplay records first**. The proposed results overview and detailed-stats presentation are **not yet approved as a final layout**. Existing approved result gating still holds: only verified completed matches open results, pending information is labeled truthfully, and nobody is automatically readied or requeued.
+
+**42 — core per-player match record (approved with additions):**
+- Identity: player, Vanguard, team and actual result; distinguish team outcome from a separately adjudicated personal-loss override where relevant.
+- Combat: K/D/A; damage to enemy Vanguards separately from damage to other targets. Record damage **dealt** and **taken** by physical/magical/true type; damage shielded by player-provided shields; effective healing **self / teammate** separately.
+- Economy/progression: final level, **total gold earned**, last hits on minions and jungle creatures as separate counts.
+- Objectives: direct damage to enemy towers; count of Flux Wells secured with the player's eligible participation.
+- No forced or inferred role/lane assignment.
+
+**43 — effective-damage attribution (approved):**
+- Damage dealt/taken records **actual health removed/lost**, physical/magical/true; shield-absorbed damage is recorded separately, not also as health damage dealt/taken. Preserve enemy-Vanguard-specific damage as a distinct target-category record.
+- Shield provider receives credit for damage **actually absorbed** by their shield, including a self-applied shield; unused shield capacity gives none.
+- Healing records only **health actually restored**, split into self and teammates; no overhealing.
+
+**44 — crowd control (approved):** Record per-player effective duration of movement/action-restricting crowd control on enemy Vanguards, with control-type breakdown. Exclude missed, immune, and non-Vanguard effects; do not double count same-player same-target overlap. Exact status taxonomy and cross-provider attribution edge cases are implementation definitions, not license to fabricate a global score.
+
+**45 — vision (approved with modification):** Track distinct instances of enemy Vanguard reveals attributable to player effects when previously hidden from team; count continuous reveal only once per reveal event. Track effective reveal duration without counting overlap from same player/target twice. If the actual game supports vision objects, separately record placements and enemy objects disabled/destroyed; otherwise omit those categories. **A per-player Vision Score is approved**, aggregating legitimate vision contributions, **but its weights/formula are unresolved**; do not assume wards or introduce mechanics to justify score fields. Preserve underlying data so the score is interpretable.
+
+**46 — neutral Flux Well objectives (approved):** Count secured Wells with eligible player participation, damage each player deals to active neutral Well objectives, player landing securing final hit where that mechanic applies, and **team-level** records of each Well secured and its capture time. No weighted objective score.
+
+**47 — tower/Fluxborn expansion (rejected):** Do **not** add proposed individual tower-participation credits, team tower-destruction timeline or team Fluxborn tower-damage attribution as end-screen stats. Proposal 42's **direct player damage to enemy towers remains approved**; the rejection does not change tower/Fluxborn gameplay.
+
+**48 — gold sources (approved):** Record per-player gold from Vanguard kills/assists, minions, jungle creatures, objectives **only if the existing rules grant gold**, and passive/other supported income. Categories reconcile to total gold earned; spending is separate and never subtracts from total earned. No new source or economy rule is implied.
+
+**49 — final build snapshot (approved):** Capture server-confirmed final **item inventory** with actual occupied/empty slots, item upgrade tiers and applicable Attunements; and the two **final equipped Flux Spells**, including empty slots. Do not display replaced items or spells as part of the final build. No inferred build recommendation, grade or forced role. Full item-purchase/replacement history is **not approved** by this snapshot.
+
+### Authority, scope and next decision
+
+- Match-side authoritative gameplay systems record the underlying events and compute statistics once per event; **pre-game UI only displays trusted completed-match records**. Do not duplicate combat, Flux, economy, item or vision calculation in UI or invent unavailable values. Reconcile aggregations and avoid double counting. Separate actual team result from any individually adjudicated match outcome.
+- The final end-of-match **screen layout remains open**, as do Vision Score's formula, detailed vision-object mechanics if any, specific crowd-control taxonomy/overlap implementation, full purchase history, and any further stats not expressly approved above.
+- **Pause checkpoint: Proposal 49 accepted; no Proposal 50 until the author says “continue”.**
