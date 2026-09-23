@@ -120,6 +120,23 @@
       "source_sha256": "39c6a6bd5fb02a763b1e07510f4741878add94a3f7c2a84f8c75b1d8340fa81d",
       "asset_sha256": "cfea2482b61a752078ce2cc98ebeb5173941bd52de6bb0e916dd6445279f6efd",
       "description": "An Amazonian-inspired Raska in jungle-warrior armor with reinforced melee gauntlets, riding a charging cheetah in place of Hound. Her raised fist and mount preserve the close-range, high-speed collision combat silhouette; no spear or other weapon."
+    },
+    {
+      "id": "marek-amazonian",
+      "vanguard_id": "marek",
+      "vanguard_name": "Marek",
+      "skin_name": "Amazonian Marek",
+      "collection": "Amazonian",
+      "asset": "ConceptArt/Vanguards/marek/skins/amazonian/hero.webp",
+      "type": "cosmetic_concept",
+      "released": false,
+      "image_dimensions": [
+        1672,
+        941
+      ],
+      "source_sha256": "c1f92994fc6f222f89c27dbd93589ab12b18b3af0b230a9194fc14e9307c0613",
+      "asset_sha256": "066c8ce2399033b163f0f820edf45850eabb9e21529feffb29c1939d4cccda3f",
+      "description": "Amazonian Marek and Nix: Marek wears jungle-warrior gear with violet accents alongside Nix reimagined as a demonic black panther with a masked face and violet glow. They fight as a duo rather than a rider and mount."
     }
   ]
 }
