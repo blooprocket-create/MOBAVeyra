@@ -38,6 +38,8 @@ HERE = pathlib.Path(__file__).resolve().parent
 DESIGN = HERE.parent
 OUT = HERE / "sheets"
 ART = DESIGN.parent.parent / "ConceptArt" / "Vanguards"
+# Superseded images are archived per Vanguard, mirroring ART's layout.
+ARCHIVE = DESIGN.parent.parent / "ConceptArt" / "Archives" / "Vanguards"
 
 
 def newest(stem: str) -> pathlib.Path:
@@ -434,7 +436,7 @@ def missing(ids: list[str]) -> None:
     # rather than kept as a list in prose: the same count was maintained by hand in
     # Art_Direction_v0.1.md and drifted twice in a day, which is the exact failure that
     # document tells everyone else to avoid.
-    authored = sorted(v for v in ids if (ART / v / "superseded_gen1_a.webp").exists())
+    authored = sorted(v for v in ids if (ARCHIVE / v / "superseded_gen1_a.webp").exists())
     if authored:
         print(f"\n  {len(authored)}/{len(ids)} heroes are authored replacements, their appearance "
               f"paragraphs reconciled with the art:")

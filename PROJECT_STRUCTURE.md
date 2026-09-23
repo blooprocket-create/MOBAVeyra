@@ -3,7 +3,7 @@
 **Status:** Provisional structure; architecture direction is locked, exact module names may evolve.  
 **Engine target:** Unreal Engine 5.8  
 **Ability framework:** Unreal Gameplay Ability System (GAS), per `ADR-002`  
-**Application architecture:** Single Unreal client with controlled states, per [`ADR-003`](Docs/ADR/ADR-003-unified-unreal-client-states.md)  
+**Application architecture:** Single Unreal client with controlled states, per [`ADR-004`](Docs/ADR/ADR-004-unified-unreal-client-states.md)  
 **Read first:** [`ARCHITECTURE.md`](ARCHITECTURE.md)
 
 The purpose of this document is to make ownership and dependency direction obvious before the Unreal project becomes large. It is not permission to create every listed module immediately. Start with the smallest useful set and split modules when boundaries become valuable.
@@ -259,7 +259,7 @@ When a module becomes too broad or creates unwanted dependencies, split it delib
 
 ## 7. Unified client presentation and Test Skin — architectural checkpoint (2026-09-23)
 
-A **single installed Unreal client** contains the ordinary pre-game UI, Store/Collection, social/party and matchmaking presentation, interactive Test Skin, committed champion select, live gameplay, verified results and Replay/Spectator/Reconnect-only modes. The website and launcher are separate; the dedicated match server is still authoritative. See [ADR-003](Docs/ADR/ADR-003-unified-unreal-client-states.md). Earlier diagrams' `VeyraUI` is a **presentation responsibility**, not an independent pre-game executable or gameplay authority.
+A **single installed Unreal client** contains the ordinary pre-game UI, Store/Collection, social/party and matchmaking presentation, interactive Test Skin, committed champion select, live gameplay, verified results and Replay/Spectator/Reconnect-only modes. The website and launcher are separate; the dedicated match server is still authoritative. See [ADR-004](Docs/ADR/ADR-004-unified-unreal-client-states.md). Earlier diagrams' `VeyraUI` is a **presentation responsibility**, not an independent pre-game executable or gameplay authority.
 
 - **Client-state coordinator:** explicit legal state transitions, active UI/input focus and map/resource ownership; subscribes to authoritative match/party/queue/session state through contracts. No giant universal `GameInstance`, PlayerController or persistent level owns all gameplay, Shop, preview and match truth.
 - **Ordinary shell:** Home, Play, Shop, Vanguards, profiles, Match History, persistent independently collapsible party/friends/chat surfaces and queue status. UI sends intents, never grants entitlements, money, matchmaking eligibility or progression.

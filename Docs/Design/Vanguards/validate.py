@@ -86,7 +86,7 @@ GRANTS = {"shield", "ally_shield", "ally_fluxborn_shield", "temporary_health",
 TERRAIN = {"jungle", "river", "base"}
 LAYOUT = {"standard", "stance", "stance_modal"}
 
-# Categories established by ADR-003 (Proposed).
+# Categories established by ADR-003 (Accepted).
 ENTITY_CATEGORY = {"combat_unit", "placed_marker", "world_volume", "ride_state"}
 
 # `withdrawn` and `superseded` both mean the sheet is gone, for different reasons, and

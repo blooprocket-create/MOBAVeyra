@@ -18,6 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DESIGN = ROOT / "Docs" / "Design"
 ROUTES = ROOT / "Docs" / "CONTEXT_MAP.md"
+ADRS = ROOT / "Docs" / "ADR"
 SECTIONS = ROOT / "Docs" / "Index" / "sections"
 
 # Separate generated maps keep the entrypoint small, while allowing an agent to
@@ -82,12 +83,19 @@ def check_routes() -> list[str]:
     for filename in MAPPED_BIBLES:
         if filename not in actual:
             errors.append(f"Mapped bible missing from current canon: {filename}")
-    # Two existing accepted ADRs currently share a numeric ID. Until that is
-    # resolved explicitly, route by exact filename rather than by number.
-    for filename in ("ADR-003-owned-field-entities.md",
-                     "ADR-003-unified-unreal-client-states.md"):
-        if f"ADR/{filename}" not in text:
-            errors.append(f"Missing explicit ambiguous ADR route: {filename}")
+    # ADR numbers must be unique, and every record must be routable by filename.
+    owners: dict[str, str] = {}
+    for adr in sorted(ADRS.glob("ADR-*.md")):
+        match = re.match(r"^ADR-(\d{3})-", adr.name)
+        if not match:
+            errors.append(f"ADR filename lacks a three-digit number: {adr.name}")
+            continue
+        number = match.group(1)
+        if number in owners:
+            errors.append(f"Duplicate ADR number {number}: {owners[number]} and {adr.name}")
+        owners.setdefault(number, adr.name)
+        if f"ADR/{adr.name}" not in text:
+            errors.append(f"ADR not routed in context map: {adr.name}")
     return errors
 
 

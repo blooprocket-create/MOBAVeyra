@@ -25,17 +25,19 @@ A slot is filled the moment its file appears; the renderer picks it up with no c
 | `front` `back` `side` `scale` | Orthographic turnaround and scale silhouette — modelling reference, flat even light. |
 | `portrait` `weapon` `material` `signature` | Close detail crops. |
 | `idle` `move` `cast` `ult` | In-game views. **Captured from the running game, never generated** — a generated picture of a gameplay camera cannot answer the one question these slots exist for. |
-| `superseded_gen<N>[_<reason>].webp` | A replaced image, kept rather than overwritten. |
 
 `.png`, `.jpg` and `.webp` all resolve. WebP is what the repository stores: the heroes were 152 MB
 as PNG and are 14 MB as WebP.
 
-### Why superseded images are kept
+### Superseded images
 
-Overwriting a replaced image loses the ability to see what was rejected and why, which matters when
-the same character gets regenerated more than once. `gen1_a/b/c` are the original machine-generated
-variations that every authored hero replaced. Beyond those, four images have been superseded with a
-reason worth recording:
+A replaced image is **moved, never overwritten**, to
+[`../Archives/Vanguards/<id>/`](../Archives/Vanguards/) as `superseded_gen<N>[_<reason>].webp`.
+Overwriting would lose the ability to see what was rejected and why, which matters when the same
+character gets regenerated more than once; archiving keeps this directory to current work only.
+`gen1_a/b/c` are the original machine-generated variations that every authored hero replaced.
+Beyond those, four images have been superseded with a reason worth recording (paths relative to
+`ConceptArt/Archives/Vanguards/`):
 
 | File | Superseded because |
 |---|---|

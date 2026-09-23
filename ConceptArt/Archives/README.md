@@ -16,13 +16,21 @@ superseded design bibles.
 
 ## Contents
 
-**Empty, deliberately.** The 22 baked-text character sheets that preceded the current pipeline were
-deleted on 2026-09-21, at the author's instruction, once every Vanguard carried authored hero art
-and every conflict the sheets raised had been resolved against it.
+- [`Vanguards/<id>/`](Vanguards/) — superseded hero illustrations, one directory per Vanguard,
+  mirroring `../Vanguards/`. Named `superseded_gen<N>[_<reason>].webp`; the generation number
+  orders them. `gen1_a/b/c` are the original machine-generated variations every authored hero
+  replaced; the four later supersessions and their reasons are tabled in
+  [`../Vanguards/README.md`](../Vanguards/README.md#superseded-images). Moved here from beside
+  each `hero.webp` on 2026-09-23 so the current-art directories hold only current work.
+  `render_sheet.py --missing` reads `superseded_gen1_a.webp` here to list which heroes are
+  authored replacements.
 
-This directory is kept rather than removed because the convention is worth keeping: superseded
-concept art belongs here, beside [`Docs/Design/Archives/`](../../Docs/Design/Archives/) for
-superseded bibles, and not next to current work.
+The 22 baked-text character sheets that preceded the current pipeline are **not** here: they were
+deleted on 2026-09-21, at the author's instruction, once every Vanguard carried authored hero art
+and every conflict the sheets raised had been resolved against it. See below.
+
+Superseded concept art belongs here, beside [`Docs/Design/Archives/`](../../Docs/Design/Archives/)
+for superseded bibles, and not next to current work.
 
 ## What happened to them, and what survives
 

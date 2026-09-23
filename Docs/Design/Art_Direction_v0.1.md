@@ -316,13 +316,14 @@ with its art in one of two ways:
   The existing text stays and the art supplies what it was missing.
 
 **The list of which is which lives in the files, not here.** `--missing` prints it, derived
-from the `superseded_gen1_*.webp` each replacement leaves behind. It was previously a count
+from the `superseded_gen1_*.webp` each replacement leaves behind in
+`ConceptArt/Archives/Vanguards/<id>/`. It was previously a count
 and a list maintained by hand in this paragraph, and it drifted twice in a day — a doc that
 opens by explaining why the prompts are generated rather than pasted should not keep a
 hand-updated roster in its own body.
 
-The machine pass each replacement supersedes is kept beside it rather than overwritten, so
-what was rejected stays inspectable.
+The machine pass each replacement supersedes is moved to `ConceptArt/Archives/Vanguards/<id>/`
+rather than overwritten, so what was rejected stays inspectable.
 
 Each paragraph follows the same three-part shape, and new ones should:
 
