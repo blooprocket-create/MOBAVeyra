@@ -1,7 +1,7 @@
 # Veyra Architecture Constitution
 
 **Status:** Locked foundation rules  
-**Scope:** Unreal client, dedicated match server, gameplay framework, tools, tests, and presentation code  
+**Scope:** One unified Unreal client application, dedicated match server, gameplay framework, tools, tests, and presentation code  
 **Purpose:** Preserve a codebase that can evolve quickly without allowing rapid iteration or coding agents to collapse the project into tightly coupled spaghetti.
 
 This document is the highest-level technical authority in the repository. Lower-level implementation documents may refine these rules, but they must not contradict them without an explicit Architecture Decision Record (ADR) and deliberate approval.
@@ -270,7 +270,7 @@ ADRs should record the context, decision, consequences, and alternatives conside
 
 ## 11. Deliberately open decisions
 
-The engine and ability-framework choices are now locked by ADR: **Unreal Engine 5.8** and **GAS adoption**. The following implementation details remain open:
+The engine, ability-framework and unified-client choices are now locked by ADR: **Unreal Engine 5.8** (ADR-001), **GAS adoption** (ADR-002), and **one Unreal application with isolated client states** (ADR-003). The following implementation details remain open:
 
 - exact final module names/count;
 - exact GAS Ability System Component placement and Attribute Set decomposition;
@@ -281,3 +281,12 @@ The engine and ability-framework choices are now locked by ADR: **Unreal Engine 
 - detailed replay/determinism implementation.
 
 Do not invent these decisions in unrelated feature work. When one becomes necessary, decide it deliberately and record it if architectural.
+
+
+## 12. Unified Unreal client-state architecture — ADR-003 (2026-09-23)
+
+The author approved UX Proposals 90–92 and [ADR-003](Docs/ADR/ADR-003-unified-unreal-client-states.md). The launcher still owns authentication/install/patch; **one installed Unreal application** hosts ordinary pre-game browsing, Shop, social/party UI, Test Skin, Match Found, champion select, live gameplay, post-match results, replay, spectator and Reconnect-only as **separate controlled UI/input/resource states**. The dedicated authoritative match server and trusted account, commerce, matchmaking and party owners remain independent of process/state uptime.
+
+**No parallel pre-game/game executable assumption** and **no second Vanguard combat implementation in Shop UI**. Test Skin may reuse installed assets and reusable C++/GAS gameplay primitives under isolated test-only rules, but may not mint progression, entitlements, match state or authoritative combat results. Transition logic coordinates states via explicit contracts/events; no single giant persistent map, god GameInstance/controller, circular dependency, UI-owned gameplay logic or duplicated authority calculations.
+
+Match Found/committed selection/live reconnect outrank optional Test Skin loading and cache preloads; memory and disk caches are budgeted and version-validated, never sources of permission. Enter playable live match only after assignment, required assets and authenticated server connection. On process restart with assigned live match, pre-game **Reconnect is the only action**; verified match completion restores ordinary client state. Exact Unreal travel/world/asset implementation remains open to a deliberate engineering decision and automated transition tests.
