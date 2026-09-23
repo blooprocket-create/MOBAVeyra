@@ -61,6 +61,8 @@ These documents describe working game design, not immutable implementation contr
 
 Current Vanguard artwork lives under [`ConceptArt/Vanguards/`](ConceptArt/Vanguards/), one directory per Vanguard. All **25 currently designed Vanguards** have an authored hero image, and each one's appearance paragraph in the Character Bible has been reconciled with it.
 
+Alternate cosmetic concepts are indexed separately in the [Vanguard skin gallery](ConceptArt/Vanguards/skins/README.md) and its [structured asset index](ConceptArt/Vanguards/skins/index.json). Each skin image stays under its Vanguard's `skins/<collection>/hero.webp`; none replaces that Vanguard's canonical base `hero.webp` or belongs in the historical `ConceptArt/Archives/`.
+
 **All 25 rendered sheets are committed**, under [`Docs/Design/Vanguards/sheets/`](Docs/Design/Vanguards/sheets/) — one HTML file per Vanguard, each showing that Vanguard's hero art beside their kit, lore and signature colour. Open one in a browser from a checkout; the image paths are relative and resolve inside the repository.
 
 Sheets are **generated from canon** rather than drawn with their text baked in: [`Docs/Design/Vanguards/render_sheet.py`](Docs/Design/Vanguards/render_sheet.py) composes each sheet's text at render time (`--all`), fills each image slot from whatever artwork is present, and reports which slots are still empty (`--missing`). It never generates artwork — the hero images are authored separately and dropped in. The house style and the reasoning behind it are in [`Docs/Design/Art_Direction_v0.1.md`](Docs/Design/Art_Direction_v0.1.md).
