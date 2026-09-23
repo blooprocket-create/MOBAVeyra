@@ -5,11 +5,13 @@ on:
     paths:
       - 'Docs/**'
       - 'scripts/check_doc_context.py'
+      - 'tests/test_doc_context.py'
       - '.github/workflows/docs-context-index.yml'
   pull_request:
     paths:
       - 'Docs/**'
       - 'scripts/check_doc_context.py'
+      - 'tests/test_doc_context.py'
       - '.github/workflows/docs-context-index.yml'
 
 jobs:
@@ -22,5 +24,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Regression-test context index maintenance
+        run: python3 -m unittest discover -s tests -p 'test_doc_context.py'
       - name: Verify active bible routing and section locators
         run: python3 scripts/check_doc_context.py --check
