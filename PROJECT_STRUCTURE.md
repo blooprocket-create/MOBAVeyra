@@ -3,6 +3,7 @@
 **Status:** Provisional structure; architecture direction is locked, exact module names may evolve.  
 **Engine target:** Unreal Engine 5.8  
 **Ability framework:** Unreal Gameplay Ability System (GAS), per `ADR-002`  
+**Application architecture:** Single Unreal client with controlled states, per [`ADR-003`](Docs/ADR/ADR-003-unified-unreal-client-states.md)  
 **Read first:** [`ARCHITECTURE.md`](ARCHITECTURE.md)
 
 The purpose of this document is to make ownership and dependency direction obvious before the Unreal project becomes large. It is not permission to create every listed module immediately. Start with the smallest useful set and split modules when boundaries become valuable.
@@ -254,3 +255,17 @@ Avoid generic names such as `Manager` when a more precise owner exists. Prefer d
 Do not create ten empty modules merely because this document lists them. The first Unreal scaffold should establish the minimum clean dependency graph required for the first vertical slice, while preserving the boundaries described here.
 
 When a module becomes too broad or creates unwanted dependencies, split it deliberately and record major changes in an ADR.
+
+
+## 7. Unified client presentation and Test Skin — architectural checkpoint (2026-09-23)
+
+A **single installed Unreal client** contains the ordinary pre-game UI, Store/Collection, social/party and matchmaking presentation, interactive Test Skin, committed champion select, live gameplay, verified results and Replay/Spectator/Reconnect-only modes. The website and launcher are separate; the dedicated match server is still authoritative. See [ADR-003](Docs/ADR/ADR-003-unified-unreal-client-states.md). Earlier diagrams' `VeyraUI` is a **presentation responsibility**, not an independent pre-game executable or gameplay authority.
+
+- **Client-state coordinator:** explicit legal state transitions, active UI/input focus and map/resource ownership; subscribes to authoritative match/party/queue/session state through contracts. No giant universal `GameInstance`, PlayerController or persistent level owns all gameplay, Shop, preview and match truth.
+- **Ordinary shell:** Home, Play, Shop, Vanguards, profiles, Match History, persistent independently collapsible party/friends/chat surfaces and queue status. UI sends intents, never grants entitlements, money, matchmaking eligibility or progression.
+- **Isolated Test Skin world:** entered from Shop inside the same application, reuses actual Vanguard assets and C++/GAS ability primitives with test-only dummies, ability resets/resources and cosmetic comparison. A preview does not act as a live match or second implementation of combat; it cannot commit authoritative rewards or purchases. Deactivate it immediately for Match Found, release unneeded resources on selection entry and return to original Shop listing on normal exit.
+- **Committed state:** Match Found blocking acceptance → champion select (no ordinary page navigation or party management) → truthful loading/connect → live HUD. If the assigned match is still live after process restart or connection failure, only Reconnect is offered in pre-game. Verified completion transitions into results and restores ordinary shell. Replay/Spectator are separate nonparticipant modes with their own permissions.
+- **Performance:** versioned installed assets and budgeted caching/preloading, no mandatory on-demand download for installed skins, optional loads yield to time-critical match transitions. Separate permanent backend/cache records from ephemeral world/widget state.
+- **Required tests:** transition priority while testing/loading skins; no party/queue mutation from test map; no extra Shop/Settings/social entry in committed select or Reconnect-only; ability presentation parity Base/Skin; restart recovery to assigned match; valid/results-only shell restoration; stable memory bounds under repeated test-map enter/exit. Exact module names, map/world travel and Unreal implementation strategy remain provisional.
+
+**Current pre-game client design pause: after Proposal 92; wait for author “continue” before Proposal 93.**
