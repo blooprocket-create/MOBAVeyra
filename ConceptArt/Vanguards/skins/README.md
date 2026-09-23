@@ -18,4 +18,3 @@ The structured catalog is [`index.json`](index.json). Each skin lives under its 
 The **Living Paint** collection uses thick, tactile pigment, palette-knife strokes and dripping splashes as the characters' physical material. **Neon Circuit** uses dark cybernetic hardware and bright cyan energy accents, while preserving each Vanguard's recognizable silhouette and props. These are visual concepts, not rules for gameplay effects.
 
 For a new variant, add an image to its Vanguard directory and an entry to `index.json`; add a catalog row here. Keep variants outside the base hero and model-reference slots so that a new costume never silently redefines the canon appearance.
-
