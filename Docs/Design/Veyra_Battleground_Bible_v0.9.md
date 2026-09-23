@@ -65,7 +65,7 @@ A veteran MOBA player should understand the macro map quickly, but should not be
 - The Combat Bible's terrain rules apply to it unchanged: it stops ordinary displacement at the nearest legal point, displacement never places a Vanguard inside it, each Dash declares whether it may cross terrain, Ghosted never ignores it, and a ride state grants no traversal over it.
 - The **Battleground/navigation system owns** runtime terrain (per [ADR-003](../ADR/ADR-003-owned-field-entities.md)). The creating ability supplies placement, shape and lifetime from validated data. When the terrain expires or is destroyed (for example by **Shatterforge**), pathing is restored at once.
 - Runtime navigation updates are therefore a shipping requirement, with their own performance and server-authority tests.
-- **Still open:** what happens to a unit standing where the terrain forms (for example, moved to the nearest legal point, or the terrain shaped around it). Do not implement a resolution until it is ruled.
+- **Units caught where terrain forms are moved out.** A unit standing inside the footprint when the terrain forms is moved to the **nearest legal point**, the same resolution the Combat Bible uses for displacement into terrain. This move is a placement correction, not a knockback: it deals no damage and applies no crowd control.
 
 ## 3. PRIME WELLS & MATCH VICTORY
 

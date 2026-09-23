@@ -94,7 +94,7 @@ Two rulings this decision defers to the owning bibles, both now required before 
 - the **Vision Bible** must state whether fog volumes are runtime-spawnable, which Sylra's kit assumes;
 - the **Battleground Bible** must state whether an ability may modify pathing for both teams at runtime, which Varkesh's Iron Wall assumes.
 
-**Both satisfied 2026-09-23:** the Vision Bible §2 ("Ability-created Dense Fog") rules that abilities may create true Dense Fog at runtime, and the Battleground Bible §2 ("Ability-created terrain") rules that abilities may change pathing for both teams at runtime. Each ruling keeps one edge case explicitly open (overlapping fog volumes; a unit standing where terrain forms).
+**Both satisfied 2026-09-23:** the Vision Bible §2 ("Ability-created Dense Fog") rules that abilities may create true Dense Fog at runtime, and the Battleground Bible §2 ("Ability-created terrain") rules that abilities may change pathing for both teams at runtime. Both edge cases are also ruled: connected fog counts as one volume, and a unit caught where terrain forms is moved to the nearest legal point.
 
 ## Options considered
 
