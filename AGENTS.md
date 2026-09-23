@@ -2,13 +2,19 @@
 
 This repository is designed to be worked on heavily by coding agents. Speed is useful; architecture violations are not.
 
+## Task-specific context routing
+
+Start with [`Docs/CONTEXT_MAP.md`](Docs/CONTEXT_MAP.md), **not** the entire `Docs/Design/` directory. Use its task-to-owner table to select the smallest current bible and the relevant [section locator](Docs/Index/README.md) for large bibles. Read just the necessary source range and any cross-domain owner it cites; a locator is not canon. Never treat historical `Archives/` or an older proposal checkpoint as current rules.
+
+For documentation changes, update the owning bible and routing links, run `python3 scripts/check_doc_context.py --write`, and verify with `python3 scripts/check_doc_context.py --check`. The CI check catches missing active bibles and stale heading/line maps. Do not silently resolve the two accepted `ADR-003` files by numeric identifier: use their exact filenames as listed in the context map.
+
 ## Mandatory first reads
 
 Before modifying gameplay code, read:
 
 1. [`ARCHITECTURE.md`](ARCHITECTURE.md)
 2. [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md)
-3. Any relevant design bible under [`Docs/Design/`](Docs/Design/)
+3. The relevant *current owning sections*, selected using [`Docs/CONTEXT_MAP.md`](Docs/CONTEXT_MAP.md)
 4. Relevant ADRs under [`Docs/ADR/`](Docs/ADR/)
 
 If a task conflicts with those documents, do not silently choose a side. Surface the conflict.
