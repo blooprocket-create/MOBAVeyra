@@ -1,0 +1,26 @@
+name: Agent documentation context
+
+on:
+  push:
+    paths:
+      - 'Docs/**'
+      - 'scripts/check_doc_context.py'
+      - '.github/workflows/docs-context-index.yml'
+  pull_request:
+    paths:
+      - 'Docs/**'
+      - 'scripts/check_doc_context.py'
+      - '.github/workflows/docs-context-index.yml'
+
+jobs:
+  verify-context-index:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify active bible routing and section locators
+        run: python3 scripts/check_doc_context.py --check
