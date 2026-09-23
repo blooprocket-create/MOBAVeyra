@@ -104,7 +104,14 @@ Depends on combat/abilities/economy through approved contracts. It does not own 
 - Fluxborn-strength progression inputs;
 - notifications when thresholds change.
 
-Flux Spell unlocks are validated against **permanent Team Flux only**; temporary Flux must not contribute to spell-slot unlock state. Under current prototype tuning, the first Flux Spell slot unlocks at **25 permanent Team Flux** and the second at **75 permanent Team Flux**. These values remain data-driven.
+Flux Spell unlocks are validated against **permanent Team Flux only**; temporary Flux must not contribute to spell-slot unlock state. The threshold values are data owned by the Battleground Bible (§14); do not copy them here or into code.
+
+**How Team Flux is used.** The design rules live in the Battleground Bible; this module holds the runtime state.
+
+- **Sources:** destroyed lane Spires and base-defense towers grant *permanent* Flux; secured Flux Wells and destroyed inhibitors grant *temporary* Flux, each grant expiring on its own timer. Flux is never spent: Flux Spell casts do not consume it.
+- **State:** per team, the permanent total plus a list of active temporary grants with their expiry times. *Active* Flux is permanent plus unexpired temporary.
+- **Readers:** Fluxborn strength (active Flux, all lanes); Flux Spell slot unlocks (permanent Flux only); Economy's Fluxborn farm-reward bonus (active Flux at the Fluxborn's death); HUD and statistics presentation.
+- **Dependency direction:** world objectives report destruction/capture through Core contracts or match orchestration, and the Flux system grants the data-defined reward; it does not reach into world actors. Economy sits below Flux, so it never queries Team Flux: the Fluxborn death event carries the value the farm-reward rule needs. Fluxborn scaling reacts to Flux-changed notifications rather than polling.
 
 A Flux Spell cast does not consume shared Flux under the current game design. Swapping Flux Spells at the shop costs gold and should use the economy transaction API rather than mutating gold in the Flux module.
 

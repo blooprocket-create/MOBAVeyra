@@ -1470,9 +1470,8 @@ These values are intentionally data-driven and expected to change through testin
 - Vanguard Combat out-of-combat delay: 5 sec
 - Assist window starting point: 10 sec
 - Structure Effectiveness for secondary attack riders: 50%
-- Spire ramp per consecutive hit: +20%
-- Spire ramp maximum: 5 stacks
-- Spire ramp reset timer: 3 sec
+- Tower ramp per consecutive hit (lane Spires and base-defense towers, §33): +20%
+- Tower ramp maximum: 5 stacks
 
 ## 50. Delayed effects and snapshot timing
 

@@ -94,6 +94,8 @@ Two rulings this decision defers to the owning bibles, both now required before 
 - the **Vision Bible** must state whether fog volumes are runtime-spawnable, which Sylra's kit assumes;
 - the **Battleground Bible** must state whether an ability may modify pathing for both teams at runtime, which Varkesh's Iron Wall assumes.
 
+**Both satisfied 2026-09-23:** the Vision Bible §2 ("Ability-created Dense Fog") rules that abilities may create true Dense Fog at runtime, and the Battleground Bible §2 ("Ability-created terrain") rules that abilities may change pathing for both teams at runtime. Each ruling keeps one edge case explicitly open (overlapping fog volumes; a unit standing where terrain forms).
+
 ## Options considered
 
 ### Option A — One generic owned-entity primitive
@@ -141,8 +143,8 @@ Options B and D are compatible and can be taken together. **This is what was acc
 - `ARCHITECTURE.md` §1.3 (reusable primitives, data-driven configuration), §1.4 (thin Blueprints)
 - `Docs/ADR/ADR-002-gameplay-ability-system.md` (abilities compose shared primitives)
 - `Docs/Design/Veyra_Combat_Bible_v0.5.md` §32 (summons, companions, clones, decoys)
-- `Docs/Design/Veyra_Vision_Bible_v0.1.md` (runtime-spawned Dense Fog volumes — currently unaddressed)
-- `Docs/Design/Veyra_Battleground_Bible_v0.9.md` (runtime navigation modification — currently unaddressed)
+- `Docs/Design/Veyra_Vision_Bible_v0.1.md` (runtime-spawned Dense Fog volumes — ruled in §2, 2026-09-23)
+- `Docs/Design/Veyra_Battleground_Bible_v0.9.md` (runtime navigation modification — ruled in §2, 2026-09-23)
 - `Docs/Design/Veyra_Initial_Roster_Character_Bible_v0.6.md` §1 (Raska's specific ride-state rules; at decision time her ride state had no supporting canon)
 - `Docs/Design/Veyra_Combat_Bible_v0.5.md` §56 (Ride states — the generic ride-state canon, added after this decision)
 - [`Docs/Design/Ride_State_Open_Questions_v0.1.md`](../Design/Ride_State_Open_Questions_v0.1.md) — decision record for the 26 ride-state questions; all answered 2026-09-20 and superseded as canon by Combat Bible §56

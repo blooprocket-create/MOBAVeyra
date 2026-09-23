@@ -68,8 +68,8 @@ vision_touchpoints:
   - ability: w
     effect: creates true Dense Fog
     status: canon
-    note: Requires runtime-spawnable fog volumes -- an engine capability the Vision Bible does not currently
-      address (see ADR-003).
+    note: Runtime-spawned fog is the same construct as map fog and follows every Dense Fog rule (Vision
+      Bible §2, Ability-created Dense Fog).
   - ability: e
     effect: ward-style vision outside fog; presence ping inside fog
     status: canon

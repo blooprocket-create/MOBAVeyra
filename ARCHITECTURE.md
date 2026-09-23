@@ -166,7 +166,7 @@ Before implementing a feature, identify its authoritative owner.
 | Ability execution and cooldown state | Ability system |
 | Gold and purchase affordability | Economy system |
 | Inventory and item ownership | Item/inventory system |
-| Team Flux totals and thresholds | Flux system / team-authoritative state |
+| Team Flux totals and thresholds | Flux system: one per-team ledger of permanent Flux and active temporary grants (design rules: Battleground Bible) |
 | Flux Spell loadout and unlock state | Flux Spell system, validated against team Flux |
 | Objectives and capture state | Objective/world system |
 | Teams, score, match phase, victory | Match state systems |

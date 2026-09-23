@@ -211,7 +211,7 @@ Renames apply to **current canon only**. Archived bible versions under [`Archive
 
 1. ~~**Two sheets now also carry a former name.** Bryn's sheet renders "Tavra" and Oriel's renders "Vitra, The Last Light". Both need re-render regardless — Bryn's for the Dense Fog error (§B2) — so this adds no new work, but the filenames still use the old names until then.~~ **Resolved 2026-09-21:** both baked-text sheets were deleted; the rendered sheets read current canon and carry the current names.
 2. **Initial clustering.** Four M-names (Marek, Moro, Mavra, Mimzi), two T-names (Tavi, Torr) and two V-names (Vera, Varkesh) remain. B, D, F, H, I, J, L, O, U, W, X, Y and Z were unused before these renames; O and B are now taken. Worth drawing from the remainder for future additions.
-3. **Two bible rulings ADR-003 defers**, both required before the corresponding Vanguard is built:
+3. ~~**Two bible rulings ADR-003 defers**, both required before the corresponding Vanguard is built:~~ **Resolved 2026-09-23:** both answered yes — Vision Bible §2 and Battleground Bible §2.
    - the **Vision Bible** must state whether Dense Fog volumes are runtime-spawnable (Sylra's Lay the Mist and Through the White assume yes);
    - the **Battleground Bible** must state whether an ability may modify pathing for both teams at runtime (Varkesh's Iron Wall assumes yes).
 4. ~~**Third-party material still in Git history** (§A). Deleted from the working tree; removal from history is outstanding.~~ **Done 2026-09-20** — see §A and the runbook. Only the private legacy repository still holds the blobs, under the condition the runbook records.

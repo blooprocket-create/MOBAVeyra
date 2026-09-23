@@ -24,6 +24,13 @@ This document consolidates the vision and ward decisions established during batt
 - Skillshots, ground-targeted abilities, and other non-targeted effects can still be aimed into Dense Fog and hit valid hidden enemies when their gameplay geometry intersects.
 - An enemy inside Dense Fog is **not literally in the Combat Bible's Untargetable state** merely because the observer is outside; the restriction is on the outside observer's direct targeting/acquisition. This matters for AoEs, existing DoTs, projectiles, and other combat interactions.
 
+### Ability-created Dense Fog (ruled 2026-09-23)
+
+- **Abilities may create Dense Fog at runtime.** A fog volume created during a match by an ability (currently Sylra's **Lay the Mist** and **Through the White**) is **the same construct** as a map-authored Dense Fog volume, not a lookalike visual effect. Every rule in this section and in §4–§6 applies to it unchanged: outside-observer concealment, the same-volume rule for direct vision and targeting, ward and Waymark presence behavior, Sweeper outlines and Quick Sight.
+- The **Vision system owns** runtime fog volumes, as it owns authored ones (per [ADR-003](../ADR/ADR-003-owned-field-entities.md)). The creating ability supplies only placement, shape and lifetime from validated data; it does not implement its own concealment. When the volume expires, the fog's effects end at once, with no lingering concealment.
+- The Battleground Bible still owns **where map-authored fog is placed**; abilities do not move or remove it.
+- **Still open:** when an ability-created volume overlaps or touches another Dense Fog volume, whether they count as the **same fog volume** for the same-volume rule. Do not implement a merge rule until it is ruled.
+
 ## 3. One dedicated vision-tool slot
 
 Every Vanguard has **one dedicated vision-tool slot**, separate from ordinary inventory and Flux Spell slots.

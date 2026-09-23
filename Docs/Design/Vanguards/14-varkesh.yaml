@@ -55,8 +55,8 @@ owned_entities:
       recast detonates it.
 vision_touchpoints: []
 guards:
-  - The Iron Wall blocks both teams -- this is runtime navigation modification, which no bible currently
-    rules on (see ADR-003).
+  - The Iron Wall is real terrain for every unit while it exists -- runtime navigation modification, ruled
+    in Battleground Bible §2 (Ability-created terrain). Never a collision volume only some units respect.
   - Stress Temper punishes dashes and blinks by cooling at the ENDPOINT; the coating is consumed and uses
     a per-target cooldown.
   - 'Shatterforge must remain a real either/or: keep terrain control, or destroy it for immediate impact.'

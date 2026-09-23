@@ -140,7 +140,7 @@ blockquote { margin:0 0 20px; font-family:Georgia,serif; font-size:20px;
     <div class='slot detail'><span class='slot-label'>Detail — portrait</span><span class='slot-file'>portrait.webp</span></div><div class='slot detail'><span class='slot-label'>Detail — weapon / focus</span><span class='slot-file'>weapon.webp</span></div><div class='slot detail'><span class='slot-label'>Detail — material</span><span class='slot-file'>material.webp</span></div><div class='slot detail'><span class='slot-label'>Detail — signature element</span><span class='slot-file'>signature.webp</span></div></div></div>
 </div>
 
-<div class="panel" style="margin-top:16px"><div class="label">Implementation guards — must survive to code</div><ul><li>The Iron Wall blocks both teams -- this is runtime navigation modification, which no bible currently rules on (see ADR-003).</li><li>Stress Temper punishes dashes and blinks by cooling at the ENDPOINT; the coating is consumed and uses a per-target cooldown.</li><li>Shatterforge must remain a real either/or: keep terrain control, or destroy it for immediate impact.</li></ul></div>
+<div class="panel" style="margin-top:16px"><div class="label">Implementation guards — must survive to code</div><ul><li>The Iron Wall is real terrain for every unit while it exists -- runtime navigation modification, ruled in Battleground Bible §2 (Ability-created terrain). Never a collision volume only some units respect.</li><li>Stress Temper punishes dashes and blinks by cooling at the ENDPOINT; the coating is consumed and uses a per-target cooldown.</li><li>Shatterforge must remain a real either/or: keep terrain control, or destroy it for immediate impact.</li></ul></div>
 
 <div class="prov">
   <strong>Rendered from canon.</strong>

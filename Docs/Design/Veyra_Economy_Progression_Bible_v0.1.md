@@ -238,7 +238,7 @@
 - Economy system owns Gold balances, all reward calculation, reward ownership, payouts, devaluation, bounty amounts, purchase accounting, pending transactions, refunds, and buyback transactions.
 - Progression system owns XP balances, eligibility-aware XP splits, thresholds, levels, level-up stat increments, unspent/allocated skill points, and max-level exclusion.
 - Combat owns actual death and contributor/kill/assist attribution and emits authoritative result events consumed by the economy; it does not independently award duplicate Gold/XP.
-- Battleground owns objective completion and team permanent/temporary Flux state; economy consumes the relevant death/capture/destruction event to pay rewards.
+- Battleground owns objective completion. The **Battleground Bible** owns Team Flux's design rules (sources, amounts, expiry and Fluxborn scaling); at runtime the single **Flux system** holds each team's authoritative permanent/temporary Flux state (see `ARCHITECTURE.md` §3). Economy consumes the relevant death/capture/destruction event to pay rewards, and receives the active Team Flux it needs for Fluxborn farm rewards **in the Fluxborn death event** rather than querying the Flux system.
 - Item/inventory systems own item instances, recipes, slot placement, activation state, and atomic delivery; UI displays server-owned queue, costs, and balances without inventing purchases.
 - Vision and Flux Spell loadout systems own their respective dedicated slots and cooldowns; economy validates and charges fountain swaps.
 
