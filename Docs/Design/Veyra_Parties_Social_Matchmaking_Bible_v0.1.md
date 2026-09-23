@@ -40,7 +40,7 @@
 
 - Once a match begins, **no party-management controls exist in the Unreal in-game client**. Membership, leader and privacy setting are preserved through the live match; no joining, leaving, kicking, invitations to in-match players, or leadership changes through the in-game client.
 - Players in an active match are **unavailable for party invitations**; do not queue such invitations for later. This is different from pending **friend requests**, which are allowed during a match.
-- The pre-game client remains in the background for match/reconnect handling; its existence does not allow bypassing the no-mid-match-party-management rule.
+- **The same installed Unreal application** transitions into live gameplay and Reconnect-only states; ordinary client UI does **not** remain independently accessible in a second background pre-game process. This does not allow bypassing the no-mid-match-party-management rule. Authoritative party membership/presence persists independently of UI/world lifecycle.
 - If a member does not return to the pre-game client after the match, preserve the party during a **configurable short reconnect grace period**. If still offline afterward, remove them automatically and transfer leadership if necessary. Remaining members may Ready up and requeue without the missing player.
 - Outside that specific post-match reconnect grace period, a player going offline in a pre-game party is **removed from the party** (no penalty); reconnecting does not automatically rejoin it. Brief disconnect detection/thresholds for presence and exact grace duration are not yet tuned.
 
@@ -89,3 +89,10 @@ The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) establish
 - On verified match completion, restore party and social UI; retained party members return to **Not Ready** and may prepare the next eligible queue independently of whether others remain on results. If Unreal is closed **while the match is still live**, the pre-game client provides **Reconnect as its only action**: no party panel, social/chat UI, shopping or new queue. This blocks client access, **not** preservation of party membership or normal communication through the player's reconnected Unreal game. The dedicated match and other trusted services retain actual state authority.
 
 **UX discussion is paused after Proposal 17. Resume at Proposal 18 only when the author says “continue”.**
+
+
+## Unified Unreal client and in-queue Test Skin checkpoint — UX Proposals 86–92 (2026-09-23)
+
+The ordinary Shop's interactive Test Skin map is available **during normal matchmaking** in the **same installed Unreal application**. The persistent bottom party panel/queue status remains available: opening/closing or loading a preview must not mutate, pause or restart queue state. A successful Match Found event interrupts/blocks the preview **immediately** with the existing authoritative Accept/Decline overlay; on accepted assembly, close preview before committed champion select. Optional preview asset loading is always lower priority than match assembly, selection, assigned live-match entry and reconnect. On failed assembly, return to eligible ordinary client state, reflecting the **actual** resulting party/queue state; a preview may resume if still permitted, not as a way to avoid readiness/queue locks.
+
+One Unreal application handles these as separate states under [ADR-003](../ADR/ADR-003-unified-unreal-client-states.md); the **dedicated match and trusted party/matchmaking owners are unchanged**. During an assigned live match, neither ordinary client state nor Test Skin permits mid-match party management, purchases or fresh queue. Reconnect-only offers **Reconnect as the sole pre-game action** after crash/process restart while match live. Verified completion restores ordinary shell and approved post-match readiness. **Current UX pause: after Proposal 92.**
