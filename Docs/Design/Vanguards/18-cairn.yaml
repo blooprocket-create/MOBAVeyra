@@ -49,7 +49,7 @@ owned_entities: []
 vision_touchpoints: []
 guards:
   - E reduces displacement DISTANCE. Cairn is NOT immune to Pull or Knockback, does not gain Unstoppable,
-    and remains interruptible. The sheet contradicts this (register §B3).
+    and remains interruptible. The deleted concept sheet contradicted this (register §B3).
   - Q's pull triggers Deep Foundation even though the hook does not stun; slows alone never trigger it.
   - Repeated immobilisation of the SAME Vanguard within a per-target lockout grants no second passive
     shield.

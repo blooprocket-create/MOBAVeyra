@@ -1,4 +1,4 @@
-# ADR-003: One Unreal application with isolated client states
+# ADR-004: One Unreal application with isolated client states
 
 **Status:** Accepted  
 **Date:** 2026-09-23  

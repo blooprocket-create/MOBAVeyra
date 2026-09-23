@@ -49,7 +49,7 @@ guards:
   - W is a stationary firing stance -- Vera cannot move while active.
   - E consumes Cadence, creating a real defensive tradeoff.
   - Cadence stacks decay one at a time after she stops attacking.
-  - Name collides with Vitra (register §G).
+  - 'Former name collision with Vitra, resolved by renaming Vitra to Oriel (register §G).'
 sheet:
   file: null
   status: superseded

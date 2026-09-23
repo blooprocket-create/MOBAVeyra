@@ -8,11 +8,11 @@
 
 This document is retained as the **decision record**: what was asked, what was chosen, what was rejected and why. §56 states the rules; this explains them. Where the two ever disagree, §56 wins and this file is stale.
 
-Raska's Hound is the only feature in the 25-Vanguard roster whose core mechanic has no supporting rules in any bible. [ADR-003](../ADR/ADR-003-owned-field-entities.md) scoped it as a separate locomotion feature rather than an owned field entity, and left it needing canon of its own before she can be implemented.
+**Historical context (as of when the questions were opened, 2026-09-20).** At the time, Raska's Hound was the only feature in the 25-Vanguard roster whose core mechanic had no supporting rules in any bible. [ADR-003](../ADR/ADR-003-owned-field-entities.md) scoped it as a separate locomotion feature rather than an owned field entity, and left it needing canon of its own before she could be implemented. That gap is now closed by Combat Bible §56.
 
-This document is that gap written out as answerable questions. Each cites what canon already settles, so the design work is confined to what is genuinely undecided.
+This document was that gap written out as answerable questions. Each cites what canon already settles, so the design work was confined to what was then genuinely undecided.
 
-**Raska is not deferred from the roster.** All 25 Vanguards ship in the first-playable roster. She is last in the implementation queue because this canon has to exist first.
+**Raska is not deferred from the roster.** All 25 Vanguards ship in the first-playable roster. At the time these questions were opened she was last in the implementation queue because this canon had to exist first; with §56 in place that gate is cleared (see *Status of the implementation gate* below).
 
 ## Source
 

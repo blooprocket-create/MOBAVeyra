@@ -26,7 +26,7 @@ The project is currently in pre-production. The repository is being established 
 
 ### Design bibles
 
-Repository-native Markdown exports of the current working design documents live in [`Docs/Design/`](Docs/Design/):
+Repository-native Markdown exports of the current working design documents live in [`Docs/Design/`](Docs/Design/); see the [agent context map](Docs/CONTEXT_MAP.md) for owning documents and narrow section locators:
 
 - Initial Roster Character Bible v0.6
 - World Bible v0.5
@@ -40,12 +40,13 @@ Repository-native Markdown exports of the current working design documents live 
 - Modes & Access Bible v0.1
 - Custom Matches & Private Lobbies Bible v0.1
 - Launcher, Pre-Game Client & Platform Bible v0.1
-- [Pre-Game Client UX Bible v0.1](Docs/Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) — approved decisions through Proposal 92, including the single Unreal client, Test Skin and committed transitions; paused after 92 until “continue”
+- [Pre-Game Client UX Bible v0.1](Docs/Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) — approved decisions through Proposal 92, including a single installed Unreal application with isolated normal-client, Test Skin, champion-select, live-gameplay, verified-results and Reconnect-only states; **paused after 92 — do not propose 93 until the author says “continue”**
 - Parties, Social & Matchmaking Bible v0.1
 - Chat & Communication Bible v0.1
 - Player Profiles, Identity & Website Bible v0.1
 - Moderation, Reporting & Telemetry Bible v0.1
 - Replay, Saved Matches & Live Spectating Bible v0.1
+- Match Statistics Bible v0.1
 - [Settings & Accessibility Bible v0.1](Docs/Design/Veyra_Settings_Accessibility_Bible_v0.1.md) — consolidated player-facing decisions through Proposal 168; new-feature proposal phase concluded
 
 Invite-only custom matches support host-adjustable gameplay settings, human and individually configured AI on either team, and fewer than ten Vanguards—even one human practicing alone. Human Vanguard selection still requires ownership or weekly rotation; custom games grant no Account XP or Mastery. See the [Custom Matches Bible](Docs/Design/Veyra_Custom_Matches_Bible_v0.1.md).
@@ -77,6 +78,3 @@ Veyra targets **Unreal Engine 5.8** and has formally adopted Unreal's **Gameplay
 ## License
 
 Source is publicly viewable but is **not open source**. See [`LICENSE.md`](LICENSE.md).
-
-
-The [Pre-Game Client UX Bible](Docs/Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) records approved decisions through **Proposal 92**, including a single installed Unreal application with isolated normal-client, Test Skin, champion-select, live-gameplay, verified-results and Reconnect-only states. **The proposal discussion is paused after 92; do not propose 93 until the author says “continue”.** See the [agent context map](Docs/CONTEXT_MAP.md) for owning documents and narrow section locators.

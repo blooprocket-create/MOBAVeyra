@@ -57,7 +57,7 @@ vision_touchpoints: []
 guards:
   - E must not become a zero-cost spam toggle; the state switch carries a cooldown.
   - Only one Waterling may exist at a time.
-  - Canonical pronouns are she/her (register §B9); the sheet uses they/them and is wrong.
+  - Canonical pronouns are she/her (register §B9); the deleted concept sheet used they/them and was wrong.
   - The Calm/Storm modal kit effectively doubles ability variants -- eight, plus a modal companion.
 sheet:
   file: null

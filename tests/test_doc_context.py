@@ -33,17 +33,22 @@ class ContextIndexTests(unittest.TestCase):
         for filename in index.MAPPED_BIBLES:
             (design / filename).write_text("# Sample bible\n## Sample section\n", encoding="utf-8")
             links.append(f"[Owner](Design/{filename})")
-        links.extend((
-            "[Entities](ADR/ADR-003-owned-field-entities.md)",
-            "[Client](ADR/ADR-003-unified-unreal-client-states.md)",
-        ))
+        adrs = root / "Docs" / "ADR"
+        adrs.mkdir(parents=True)
+        for filename in ("ADR-003-owned-field-entities.md",
+                         "ADR-004-unified-unreal-client-states.md"):
+            (adrs / filename).write_text("# ADR\n", encoding="utf-8")
+            links.append(f"[ADR](ADR/{filename})")
         routes.write_text("\n".join(links), encoding="utf-8")
         self.sections = sections
+        self.adrs = adrs
+        self.routes = routes
         for key, value in {
             "ROOT": root,
             "DESIGN": design,
             "ROUTES": routes,
             "SECTIONS": sections,
+            "ADRS": adrs,
         }.items():
             patcher = patch.object(index, key, value)
             patcher.start()
@@ -79,6 +84,23 @@ class ContextIndexTests(unittest.TestCase):
         self.assertEqual(status, 1)
         self.assertTrue(unexpected.exists())
         self.assertIn("Unexpected non-generated section file", diagnostics)
+
+    def test_duplicate_adr_number_rejected(self) -> None:
+        self.assertEqual(self.invoke("--write")[0], 0)
+        duplicate = "ADR-003-another-decision.md"
+        (self.adrs / duplicate).write_text("# ADR\n", encoding="utf-8")
+        with self.routes.open("a", encoding="utf-8") as routes:
+            routes.write(f"\n[ADR](ADR/{duplicate})")
+        result, diagnostics = self.invoke("--check")
+        self.assertEqual(result, 1)
+        self.assertIn("Duplicate ADR number 003", diagnostics)
+
+    def test_unrouted_adr_rejected(self) -> None:
+        self.assertEqual(self.invoke("--write")[0], 0)
+        (self.adrs / "ADR-005-new-decision.md").write_text("# ADR\n", encoding="utf-8")
+        result, diagnostics = self.invoke("--check")
+        self.assertEqual(result, 1)
+        self.assertIn("ADR not routed in context map: ADR-005-new-decision.md", diagnostics)
 
 
 if __name__ == "__main__":

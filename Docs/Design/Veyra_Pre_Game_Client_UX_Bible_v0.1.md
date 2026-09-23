@@ -2,7 +2,7 @@
 
 **Version:** 0.1 — Approved decisions through Pre-Game Client Proposal 92 (2026-09-23)  
 **Status:** Working design canon through Proposal 92, recording approvals, modifications, rejections and deferrals. **Paused after Proposal 92; do not propose 93 until the author says “continue”.**  
-**Scope:** Persistent pre-game client shell, Home/Play, contextual social and party surfaces, notifications, matchmaking presentation, committed champion select, post-match return, and reconnect-only recovery. Not a final art direction, implementation blueprint, or authority specification.  
+**Scope:** Persistent pre-game client shell, Home/Play, contextual social and party surfaces, notifications, matchmaking presentation, Vanguard roster/detail and Mastery pages, committed champion select, post-match results, Match History and Watch Replay entry, player profiles, Shop and checkout, interactive Test Skin, the unified Unreal application's client-state transitions, and reconnect-only recovery. Not a final art direction, implementation blueprint, or authority specification.  
 **Related:** [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns the launcher and one unified Unreal application's state transitions; [Parties, Social & Matchmaking Bible](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) owns authoritative party/queue/invite/readiness restrictions; [Chat & Communication Bible](Veyra_Chat_Communication_Bible_v0.1.md) owns channels and permission; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) owns selection cancellation, reconnect, AFK/disconnect and outcomes; [Modes & Access Bible](Veyra_Modes_Access_Bible_v0.1.md) owns eligible modes; [Settings & Accessibility Bible](Veyra_Settings_Accessibility_Bible_v0.1.md) owns personal settings and the accessibility of all these client surfaces.
 
 > **Client-shell rule:** The page being browsed, the social sidebar, and the party panel are independent in normal pre-game browsing. Time-critical acceptance, committed champion select, and reconnect recovery have priority and **temporarily supersede** the normal shell. Presentation cannot grant permission to bypass authoritative matchmaking, party, ownership, match, or chat rules.
@@ -132,15 +132,9 @@
 
 **Ordering:** Match Found is higher priority than ordinary notifications; champion select is committed, not a page; reconnect-only is mandatory whenever a live match needs return. Normal shell state is restored only when that higher-priority condition legitimately ends.
 
-## 4. Explicitly open design details — not additional approved features
+## 4. Checkpoint history and later sections
 
-- Final visual layout, proportions, art direction, animation, collapsed-strip exact content, accessibility treatment, notification stacking and platform-specific interaction/viewport behavior.
-- Precise live-event content administration, feature-card scheduling, bundle presentation and payment safety; their owning bibles retain gameplay/commerce/entitlement authority.
-- Notification expiry/recovery, readiness-request throttling, queue-estimate calculation/data availability and privacy, and leader automatic-reassignment algorithm. Only the approved *visible behavior* is fixed above.
-- Reliable state restoration across OS process restart, connection failure and select cancellation; no client-only fabricated state or invented acceptance timers. Reconnect error/status/retry mechanisms must preserve the **Reconnect-only** rule while the match remains live.
-- The bottom panel for a **custom host lobby** must not assume an ordinary matchmade queue, five-human readiness or match acceptance; custom match setup and authorization remain governed by Custom Matches Bible.
-
-**Historical checkpoint:** Proposals 1–49 were captured here and the author paused at 49. The discussion later resumed; the **current pause is after Proposal 92**, with Proposal 93 awaiting “continue”. See §§7–9 for decisions made after 49.
+**Historical checkpoint:** Proposals 1–49 were captured here and the author paused at 49. The discussion later resumed; the **current pause is after Proposal 92**, with Proposal 93 awaiting “continue”. See §§7–9 for decisions made after 49. The explicitly open design-details list is at the end of this document (§10).
 
 
 ## 5. Approved continuation — proposals 18–40 (2026-09-23)
@@ -180,7 +174,7 @@ These decisions extend §2. Proposals 18–40 were approved in discussion, with 
 - **37 — saved loadout per Vanguard:** Prefill slots with the last **starting** spell loadout actually taken into a match with that Vanguard; no saved record means both slots empty. Player can edit before match. Valid trade loads the new Vanguard's saved loadout, not the old Vanguard's choices. In-match shop changes do not overwrite this starting preference.
 - **38 — Your Match Setup:** After Vanguard lock-in show an informational, live-updating summary of the actual assigned Vanguard and lock state, **skin selected for match** (not mere preview), and both starting Flux Spell slots with thresholds/empty state. Valid changes and trades update summary; no extra confirmation or ready step.
 - **39 — selection-session recovery:** Temporary disconnect shows accurate connection status and attempts to rejoin the **same active server-authoritative** selection session. Restore server-accepted picks/bans, assignment, selected skin, starting spells, current phase and remaining timer; never present unacknowledged local actions as accepted. Server deadlines continue; existing dodge/timeout rules remain. If session ended, present its actual outcome instead of reopening expired selection.
-- **40 — Match Starting / Unreal:** After confirmed select completion, show Match Starting with confirmed Vanguard, skin and starting spells, followed by honest Preparing Gameplay / Loading and Connecting to Match states (the former separate-executable “Launching Game” wording is superseded by 91–92); do not invent progress or claim successful join prematurely. Unreal takes focus after joining the assigned match. If launch/connect fails while that match remains live, pre-game offers **Reconnect only**, not ordinary browsing or new queue. No second ready check.
+- **40 — Match Starting / Unreal:** After confirmed select completion, show Match Starting with confirmed Vanguard, skin and starting spells, followed by honest Preparing Gameplay / Loading and Connecting to Match states (the former separate-executable “Launching Game” wording is superseded by 91–92); do not invent progress or claim successful join prematurely. Unreal takes focus after joining the assigned match. If launch/connect fails while that match remains live, pre-game offers **Reconnect only**, not ordinary browsing or new queue. No second ready check. [Per ADR-004: “Unreal takes focus” means the same application enters its assigned live-gameplay state; a failed launch/connect while the match remains live leaves that application in its Reconnect-only state, whose only pre-game action is Reconnect.]
 
 ## 6. Post-match results and recording decisions — proposals 41–49 (2026-09-23)
 
@@ -270,3 +264,14 @@ These decisions extend §2. Proposals 18–40 were approved in discussion, with 
 - **92 — approved, controlled in-application transitions:** Preserve appropriate origin Shop navigation, party and authority-backed session state across browsing/test/select/match/results; prevent test input once Match Found begins and release unnecessary test resources before committed transitions. Show honest Match Starting / Preparing Gameplay / Connecting status and enter playable match only when required assets + authoritative assignment/connection are ready. Verified completion transitions to results within the same application with social/party shell restored and no auto-ready/queue. One application **must not** become one enormous persistent map, UI owner or duplicated gameplay framework. Exact Unreal level travel/resource implementation remains open.
 
 **Current checkpoint:** Author approved 92 and explicitly paused to update documentation. **Do not propose 93 until “continue”.** Older pauses at 17 and 49 are historical only. See [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) and [Match Statistics Bible](Veyra_Match_Statistics_Bible_v0.1.md) for authoritative domain cross-references.
+
+
+## 10. Explicitly open design details — not additional approved features
+
+- Final visual layout, proportions, art direction, animation, collapsed-strip exact content, accessibility treatment, notification stacking and platform-specific interaction/viewport behavior.
+- Precise live-event content administration, feature-card scheduling, bundle presentation and payment safety; their owning bibles retain gameplay/commerce/entitlement authority.
+- Notification expiry/recovery, readiness-request throttling, queue-estimate calculation/data availability and privacy, and leader automatic-reassignment algorithm. Only the approved *visible behavior* is fixed above.
+- Reliable state restoration across OS process restart, connection failure and select cancellation; no client-only fabricated state or invented acceptance timers. Reconnect error/status/retry mechanisms must preserve the **Reconnect-only** rule while the match remains live.
+- The bottom panel for a **custom host lobby** must not assume an ordinary matchmade queue, five-human readiness or match acceptance; custom match setup and authorization remain governed by Custom Matches Bible.
+
+*Note:* this list has not been re-audited for Proposals 18–92. Open items recorded with later proposals appear in their own sections — for example §6 “Authority, scope and next decision”, the Proposal 54 deferral in §7 and the open Unreal level-travel/resource implementation in Proposal 92 (§9).

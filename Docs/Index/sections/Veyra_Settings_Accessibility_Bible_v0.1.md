@@ -46,7 +46,7 @@ are regenerated when the source changes.
   - [L133: 7. Cross-device preferences (Proposal 26 — approved)](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L133)
   - [L139: 8. Graphics and display (Proposal 20 — approved)](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L139)
   - [L145: 9. Decisions explicitly not included / cross-bible boundaries](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L145)
-  - [L156: 10. Resume point](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L156)
+  - [L156: 10. Proposal-phase status and later sections](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L156)
   - [L161: 11. Approved decisions and explicit rejections — Proposals 46–120](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L161)
     - [L165: 11.1 Controls, shop interaction, camera and HUD](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L165)
     - [L199: 11.2 Text, visuals, UI accessibility and settings navigation](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L199)

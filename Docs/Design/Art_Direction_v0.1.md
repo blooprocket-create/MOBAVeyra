@@ -2,7 +2,7 @@
 
 **Version:** 0.1
 **Date:** 2026-09-20
-**Supersedes:** `Sheet_Generation_Prompt_v0.1.md`, which prompted for a whole sheet with its text baked in. [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) now owns the text, so only the artwork needs generating.
+**Supersedes:** `Sheet_Generation_Prompt_v0.1.md`, which prompted for a whole sheet with its text baked in. It was removed rather than archived; no copy remains in the repository. [`Vanguards/render_sheet.py`](Vanguards/render_sheet.py) now owns the text, so only the artwork needs generating.
 
 ## The pipeline, as it now stands
 
@@ -45,7 +45,9 @@ exists.
 Text keeps what an image cannot carry — what the design is **not**, the figures gameplay
 needs, and the reason behind a choice. Relay's scale is the worked example: the art
 withdraws "roughly 3.8 m" but cannot supply the number replacing it, so the bible records
-the old figure as superseded and the exact one as still owed.
+the old figure as withdrawn and **"Large"** as a complete answer at its layer. The exact
+collision size is not owed by the bible at all: it is tuning, owned by validated data per
+`ARCHITECTURE.md` §1.3 (see the bible's *Scale is not the bible's to fix* note).
 
 ## House style
 
@@ -68,11 +70,11 @@ Neris moved from the first row to the second when her regenerated hero came back
 The table is classified from the art that exists, so a regeneration can move a character
 across it — check the new face rather than carrying the old entry forward.
 
-Which end each sits at is held per character in `RENDER_BY_ID` in `render_sheet.py`, beside
-the hue overrides, because it is a production choice rather than a fact about the character
-— the bible says who they are, that table says how they are drawn. It reaches all nine
-generated slots per Vanguard; characters with no human face take neither clause, since the
-materials line already covers them.
+Which end each sits at is held per character in the table above, not in the bible,
+because it is a production choice rather than a fact about the character — the bible says
+who they are, this table says how they are drawn. Whoever writes a prompt applies the
+matching clause to all nine generated slots for that Vanguard; characters with no human face
+take neither clause, since the materials line already covers them.
 
 **Classified by cropping all twelve human faces and comparing them side by side**, not by
 recollection. Sylra was the borderline case and decided the size of the list: put next to a
@@ -108,7 +110,12 @@ on his plating, which is his canonical designation and belongs on a machine. The
 against baking data and interface into pixels, not against a unit having its serial number
 painted on it.
 
-### Neris and Sylra collide, and hue cannot fix it
+### Neris and Sylra collided, and hue could not fix it
+
+**Resolved 2026-09-21.** The author kept Sylra and moved Neris: the wave is restored as
+Neris's defining silhouette, and the lantern and ship's-wheel charm went to Sylra outright
+(Character Bible header, *Neris restored to the wave*). The rest of this section is kept as
+the record of how the collision was found; the paragraph quotes in it are the pre-ruling text.
 
 Measured 2026-09-21, after Sylra's hero landed. Side by side they are close to the same
 character: dark hooded headwear, long layered grey-blue robes ribboned at the hem, a **lit
@@ -148,7 +155,7 @@ combination it wants; the sheet prints that brief in every empty slot.
 
 ### Signature colours
 
-Assigned by region so no two sheets collide in a draft grid. Held in `HUE` in `render_sheet.py`, overridden per Vanguard in `HUE_BY_ID`, and injected into every prompt.
+Assigned by region so no two sheets collide in a draft grid. Held in `HUE` in `render_sheet.py`, overridden per Vanguard in `HUE_BY_ID`. The renderer uses it as each sheet's accent; prompts are written by hand, so whoever writes one copies the hex in.
 
 | Region | Hue | | Region | Hue |
 |---|---|---|---|---|
@@ -283,10 +290,10 @@ be made today, so the outstanding figure is not inflated by work nobody can star
 
 That leaves **nine generated slots per Vanguard**, not thirteen.
 
-| | Per Vanguard | Roster of 25 | The 22 with an appearance |
-|---|---|---|---|
-| Generated | 9 | 225 | 198 |
-| Captured in engine | 4 | 100 | 88 |
+| | Per Vanguard | Roster of 25 |
+|---|---|---|
+| Generated | 9 | 225 |
+| Captured in engine | 4 | 100 |
 
 With all 25 heroes done, **200 generated images remain** — eight apiece. If that is
 too much at once, the tiering that keeps the sheets useful is: `hero` alone makes a
@@ -316,13 +323,14 @@ with its art in one of two ways:
   The existing text stays and the art supplies what it was missing.
 
 **The list of which is which lives in the files, not here.** `--missing` prints it, derived
-from the `superseded_gen1_*.webp` each replacement leaves behind. It was previously a count
+from the `superseded_gen1_*.webp` each replacement leaves behind in
+`ConceptArt/Archives/Vanguards/<id>/`. It was previously a count
 and a list maintained by hand in this paragraph, and it drifted twice in a day — a doc that
-opens by explaining why the prompts are generated rather than pasted should not keep a
-hand-updated roster in its own body.
+opens by explaining that sheet text is derived from canon rather than copied by hand should
+not keep a hand-updated roster in its own body.
 
-The machine pass each replacement supersedes is kept beside it rather than overwritten, so
-what was rejected stays inspectable.
+The machine pass each replacement supersedes is moved to `ConceptArt/Archives/Vanguards/<id>/`
+rather than overwritten, so what was rejected stays inspectable.
 
 Each paragraph follows the same three-part shape, and new ones should:
 
@@ -367,7 +375,7 @@ That form is correct for a human art director and wrong for FLUX, which would re
 
 **So `gemini-3-pro-image` is the house model**, for three reasons: it tolerates the
 negation the guardrails are built on, it rewards the long narrative prompts we already
-generate, and it is the model built for *holding a character consistent across shots* —
+write, and it is the model built for *holding a character consistent across shots* —
 which is the entire premise of the hero-first workflow.
 
 **The canon does not bend to suit a model, and never should.** The conversion happens in

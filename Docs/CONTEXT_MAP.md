@@ -32,7 +32,7 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
 | Queues, mode access, future Ranked rules and weekly rotation | [Modes & Access Bible](Design/Veyra_Modes_Access_Bible_v0.1.md) | Ranked is deferred from initial launch; matchmaking and selection UI are separate owners. |
 | Invite-only custom lobby, AI participants and practice-session rules | [Custom Matches Bible](Design/Veyra_Custom_Matches_Bible_v0.1.md) | Modes owns mode eligibility; Match Flow owns authoritative match outcomes. |
 | Account XP, ownership, Collection, persistent currencies and Mastery | [Account, Collection & Mastery Bible](Design/Veyra_Account_Collection_Mastery_Bible_v0.1.md) | Persistent account Flux / Refined Flux are **not** in-match Team Flux. |
-| Launcher, authentication entry, unified Unreal application, Test Skin and state transitions | [Client & Platform Bible](Design/Veyra_Client_Platform_Bible_v0.1.md) | [Section locator](Index/sections/Veyra_Client_Platform_Bible_v0.1.md); the accepted [unified-client ADR](ADR/ADR-003-unified-unreal-client-states.md) governs architecture; UX owns visible screen behavior. |
+| Launcher, authentication entry, unified Unreal application, Test Skin and state transitions | [Client & Platform Bible](Design/Veyra_Client_Platform_Bible_v0.1.md) | [Section locator](Index/sections/Veyra_Client_Platform_Bible_v0.1.md); the accepted [unified-client ADR](ADR/ADR-004-unified-unreal-client-states.md) governs architecture; UX owns visible screen behavior. |
 | Home, Shop, ordinary client shell, Match Found overlays, selection and results UI, Test Skin presentation | [Pre-Game Client UX Bible](Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) | [Section locator](Index/sections/Veyra_Pre_Game_Client_UX_Bible_v0.1.md); Proposals 1–92 are recorded, **paused after 92**. Parties, Chat, Match Flow and Client & Platform retain their rule authority. |
 | Parties, friends, presence, invites, queue readiness and matchmaking | [Parties, Social & Matchmaking Bible](Design/Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) | UX controls presentation, not authoritative permission. |
 | Team/All/Party/DM/post-match text, chat mute, channel permission | [Chat & Communication Bible](Design/Veyra_Chat_Communication_Bible_v0.1.md) | No built-in voice chat; moderation owns reports. |
@@ -50,12 +50,14 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
 - **Art direction:** [Art Direction](Design/Art_Direction_v0.1.md) and [canon discrepancy register](Design/Sheet_Canon_Discrepancy_Register_v0.1.md). [Ride-state question history](Design/Ride_State_Open_Questions_v0.1.md) is *resolved history*, not an open-rules source.
 - **Historical comparison only:** [Design Archives](Design/Archives/README.md) and [Concept Art Archives](../ConceptArt/Archives/README.md). Do not use archived versions to override an active bible.
 
-## ADR identifier collision — use exact filenames
+## Accepted ADRs
 
-Two accepted records currently carry **ADR-003**. Until an explicit renumbering and cross-reference migration is approved, never route using “ADR-003” alone:
+Every ADR number is unique, and every accepted record is routed here (CI checks both). Full summaries are in the [ADR index](ADR/README.md).
 
+- [ADR-001-unreal-version-policy.md](ADR/ADR-001-unreal-version-policy.md) — Unreal Engine 5.8, version-pinned.
+- [ADR-002-gameplay-ability-system.md](ADR/ADR-002-gameplay-ability-system.md) — GAS behind Veyra-owned C++ integration and combat semantics.
 - [ADR-003-owned-field-entities.md](ADR/ADR-003-owned-field-entities.md) — owned combat units, markers and world volumes.
-- [ADR-003-unified-unreal-client-states.md](ADR/ADR-003-unified-unreal-client-states.md) — one Unreal application and isolated client states.
+- [ADR-004-unified-unreal-client-states.md](ADR/ADR-004-unified-unreal-client-states.md) — one Unreal application and isolated client states.
 
 ## Keeping the maps current
 

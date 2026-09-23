@@ -87,7 +87,17 @@
 - **The earned account currency is named Flux; the premium account currency is Refined Flux.** These persistent currencies are **not** in-match Team Flux, Gold or any Flux Spell resource. Backend models, UI labels and docs must distinguish them explicitly.
 - All proposed numbers in this bible are design defaults/data, not implementation constants.
 
-## 7. Deliberately open — return to these when design discussion resumes
+
+## 7. Client-facing commerce, Mastery and cosmetic preview checkpoint — UX Proposals 68–90 (2026-09-23)
+
+- The ordinary Vanguard Collection shows confirmed personal mastery even for unowned/rotation Vanguards, on roster cards and details. The dedicated Mastery view displays **established** progress/milestones and existing mastery-emote upgrade requirements; it is not authority for additional mastery reward types. The **expanded Mastery reward preview** of UX Proposal 70 was rejected. Public profiles may show only the explicitly chosen featured owned Vanguard's Mastery level; a public browsable mastery collection was rejected in UX 73.
+- Shop listings and bundle confirmations show accurate authorized price/currency, exact included and already-owned entitlements, and the contents newly granted; owned-all disables repurchase. **Partial ownership does not imply a discount** unless the commerce service's actual pricing rules supply it. Browsing/preview does not spend, only server-confirmed transactions grant durable entitlements, and retries must not double-charge. This UI checkpoint does not change which purchases are permitted under §3 or decide refund/payment provider rules.
+- **Every skin is a bespoke model-and-animation cosmetic treatment, never a simple color reskin** (UX 78). Cosmetic visuals/audio may differ without gameplay advantage or compromised competitive readability. Shop **Test Skin** is a small isolated interactive map **inside the same installed Unreal application** (UX 79–90) using actual installed skin assets and reusable abilities, test dummies, Base / Skin and same-Vanguard skin comparison, test-only resets and resources. It previews unowned skins but **cannot grant ownership, purchase or equip them, award Gold/XP/Mastery/account rewards, or create a real match**. Live-match appearance is chosen during committed champion select, not Shop/detail/test.
+- Default distribution is **native install and launcher-managed patching** with local asset loading and budgeted caching. Do not assume streaming skin downloads on each Shop view or give cached ownership/price data commerce authority. Preview loading yields to Match Found, selection, assigned match and reconnect (UX 87–89).
+- All client experience states remain in **one Unreal application** per [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md); trusted account/currency/entitlement and authoritative game systems remain separate. **Pre-game UX paused after Proposal 92** until author “continue”.
+
+
+## 8. Deliberately open — return to these when design discussion resumes
 
 1. Exact tutorial content/starter roster and tutorial mastery eligibility, if any.
 2. Final account XP rates, Level 10 gate snapshot, level curve and milestone-premium-currency award table beyond the agreed milestone examples (**30, 50, 75, 100, etc.**).
@@ -97,12 +107,3 @@
 6. Profile catalog, social/matchmaking policy, website authentication, replay/spectator architecture, moderation, and future Ranked rating/season rewards are continued in their own companion bibles.
 
 **Do not treat this v0.1 document as a signal that the broader account/client design is finished or that implementation should begin.**
-
-
-## Client-facing commerce, Mastery and cosmetic preview checkpoint — UX Proposals 68–90 (2026-09-23)
-
-- The ordinary Vanguard Collection shows confirmed personal mastery even for unowned/rotation Vanguards, on roster cards and details. The dedicated Mastery view displays **established** progress/milestones and existing mastery-emote upgrade requirements; it is not authority for additional mastery reward types. The **expanded Mastery reward preview** of UX Proposal 70 was rejected. Public profiles may show only the explicitly chosen featured owned Vanguard's Mastery level; a public browsable mastery collection was rejected in UX 73.
-- Shop listings and bundle confirmations show accurate authorized price/currency, exact included and already-owned entitlements, and the contents newly granted; owned-all disables repurchase. **Partial ownership does not imply a discount** unless the commerce service's actual pricing rules supply it. Browsing/preview does not spend, only server-confirmed transactions grant durable entitlements, and retries must not double-charge. This UI checkpoint does not change which purchases are permitted under §3 or decide refund/payment provider rules.
-- **Every skin is a bespoke model-and-animation cosmetic treatment, never a simple color reskin** (UX 78). Cosmetic visuals/audio may differ without gameplay advantage or compromised competitive readability. Shop **Test Skin** is a small isolated interactive map **inside the same installed Unreal application** (UX 79–90) using actual installed skin assets and reusable abilities, test dummies, Base / Skin and same-Vanguard skin comparison, test-only resets and resources. It previews unowned skins but **cannot grant ownership, purchase or equip them, award Gold/XP/Mastery/account rewards, or create a real match**. Live-match appearance is chosen during committed champion select, not Shop/detail/test.
-- Default distribution is **native install and launcher-managed patching** with local asset loading and budgeted caching. Do not assume streaming skin downloads on each Shop view or give cached ownership/price data commerce authority. Preview loading yields to Match Found, selection, assigned match and reconnect (UX 87–89).
-- All client experience states remain in **one Unreal application** per [ADR-003](../ADR/ADR-003-unified-unreal-client-states.md); trusted account/currency/entitlement and authoritative game systems remain separate. **Pre-game UX paused after Proposal 92** until author “continue”.

@@ -30,7 +30,7 @@
 6. After confirmed match assembly/select, transition the **same Unreal application** through truthful Match Starting / Preparing Gameplay / Connecting to Match status and connect to the assigned dedicated match server; **no second executable launches**. Follow authoritative loading and fountain preparation, then the live match.
 7. If the Unreal application restarts while that match is still active, enter its dedicated **Reconnect-only** state, **not** ordinary browsing. After a verified match resolution, show **post-match results** as the primary page with normal party/social shell restored; all retained party members return to Not Ready and may ready/queue the next match from results or other ordinary pages without waiting for everyone to dismiss results. Display pending reward state honestly when needed.
 
-**Co-op clarification:** PvP loading has **10 human connections**; Co-op vs AI has **5 human connections plus 5 server-controlled enemy AI Vanguards**. No friendly AI fills absent human slots. This modifies the human-connection interpretation of the older Match Flow Bible's shorthand “all ten connections”; it does not change the underlying match timeline or AFK adjudication for human players.
+**Co-op clarification:** PvP loading has **10 human connections**; Co-op vs AI has **5 human connections plus 5 server-controlled enemy AI Vanguards**. No friendly AI fills absent human slots. This matches the Match Flow Bible's loading rule (ten human connections for PvP; five for Co-op vs AI); it does not change the underlying match timeline or AFK adjudication for human players.
 
 ## 3. Locked — collection, progression & post-match UX
 
@@ -61,20 +61,8 @@
 - The gameplay server must not depend on Unreal UI or client-process uptime; a transient pre-game client failure must not become authority over whether an already-live match exists.
 - Editable validated settings own timeouts, retry policies, gates, reward values and product data. No duplicated tuning literals, client-authoritative progression or hard references between unrelated modules to shortcut development.
 
-## 6. Deliberately open — resume design before implementation
 
-- Final UI art/layout/branding and platform-specific implementation remain open. **Approved pre-game UX and the current pause after Proposal 92** live in [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md); the Settings Bible's proposal phase ended at 168. Detailed chat UX, support and privacy not fixed by companion bibles remain open. Approved first-launch accessible setup and settings **within actual Unreal gameplay** remain owned by Settings; no normal Settings access exists on the Reconnect-only pre-game screen.
-- Exact social-service implementation, party disconnect grace durations and corner-case reconciliation; core party, privacy, blocking, ready and match-found rules are now in the Parties & Social Bible.
-- **Ranked is a future feature, not required for initial launch**. Its detailed rating, season flow, matchmaking, tiers and Ranked/event border awards remain open.
-- Authentication provider, account recovery, device/session management, launcher update strategy, anti-cheat, trust boundaries and service topology.
-- Purchases, checkout, regional pricing/tax, refunds/chargebacks, receipts/entitlement recovery, abuse prevention and premium purchase safety.
-- Unified Unreal state lifecycle, process recovery, client/version compatibility, safe champion-select→match / match→post-match transitions and reconnect if services are offline.
-- Tutorial technical implementation, exact matchmaking thresholds/AI logic, replay/spectator recording architecture, detailed moderation/telemetry staff tooling and publishing pipeline.
-
-**This v0.1 is a checkpoint for further discussion, not approval to build unchosen infrastructure or start gameplay implementation.**
-
-
-## Settings & accessibility checkpoint — Proposals 46–120 (2026-09-21)
+## 6. Settings & accessibility checkpoint — Proposals 46–120 (2026-09-21)
 
 The [Settings & Accessibility Bible](Veyra_Settings_Accessibility_Bible_v0.1.md) is authoritative for player preferences; the client implements these UX decisions without changing matchmaking, match-flow or authority rules.
 
@@ -87,28 +75,28 @@ The [Settings & Accessibility Bible](Veyra_Settings_Accessibility_Bible_v0.1.md)
 Exact platform-specific notification API, graphics-preparation mechanics, loading timing and other engineering details remain governed by their existing owners and must not be fabricated from these presentation decisions.
 
 
-## Pre-game client UX checkpoint — Proposals 1–17 (2026-09-22)
+## 7. Pre-game client UX checkpoint — Proposals 1–17 (2026-09-22)
 
-The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) is the **authoritative UI/UX record** for the client discussion through Proposal 17; the author paused feature proposals at that point. The underlying party, matchmaking, chat, match, entitlement and settings permissions retain their existing system owners.
+The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) is the **authoritative UI/UX record** for the client discussion. At this checkpoint the record ran through Proposal 17 and the author had paused feature proposals there (historical; superseded — the current pause is after UX Proposal 92, see §9). The underlying party, matchmaking, chat, match, entitlement and settings permissions retain their existing system owners.
 
 - **Ordinary shell (1–3, 9–10):** Home features live events, latest Vanguard, bundles and news. Persistent **independently collapsible social sidebar** (friends/Party Chat/DMs) and **bottom party panel** stay available while navigating ordinary pre-game pages. Actionable invites/readiness use client-wide notifications, pending-actions entry and the actual party state. The sidebar **automatically minimizes at champion select**, and only non-obstructing selection-safe chat may reopen.
 - **Play, party, queue (2, 6–8, 11–14, 16):** Play presents eligible artwork-led mode cards; selecting a mode creates a **normal one-person party** or updates the existing leader's party and expands the bottom panel. Sending a sidebar party invitation while solo can instead create a **mode-less party**. Members may Ready from expanded panel or notification without returning to Play; leader alone starts/cancels queue; mode changes reset everyone's Ready; manual leadership transfer is confirmed and unavailable during queue/select. Queue-locked party retains normal browsing/DMs, and its bottom status shows **elapsed and carefully labeled estimated wait time** (estimate unavailable when insufficient relevant data; never a promise or a fabricated countdown).
 - **Committed transition (4–5):** Match Found is a priority blocking **Accept/Decline overlay**, with waiting state after acceptance. **Champion select replaces the whole client as a committed match stage**—no navigation to ordinary pages, shopping, Settings or party management; bottom panel hides and sidebar auto-minimizes. On select cancellation, return to prior eligible client state under the existing dodge/disconnect and requeue rules.
-- **Post-match and reconnect (15–17):** Verified match completion returns to results as primary page; restore party/social shell, preserve eligible selected mode, reset retained party members to Not Ready, and let each browse/ready independently. **Unreal closed while live match remains means pre-game client Reconnect-only:** the **only action is Reconnect**; **NO** shop, Settings, friends/DM/Party Chat UI, party controls, notification center, alternative page navigation or new queue. Reconnected Unreal's normal in-match communication is unaffected. Restore normal shell only when the authoritative match has ended.
+- **Post-match and reconnect (15–17):** Verified match completion returns to results as primary page; restore party/social shell, preserve eligible selected mode, reset retained party members to Not Ready, and let each browse/ready independently. **If the application closes or crashes while the live match remains, on restart it enters the Reconnect-only state:** the **only action is Reconnect**; **NO** shop, Settings, friends/DM/Party Chat UI, party controls, notification center, alternative page navigation or new queue. Normal in-match communication in the reconnected live-gameplay state is unaffected. Restore normal shell only when the authoritative match has ended.
 
-**Updated checkpoint (2026-09-23):** Pre-game client decisions now extend through **Proposal 49**. The author paused after 49; do not propose 50 until they say “continue”. See the updated Pre-Game Client UX Bible; the prior 1–17 checkpoint above is historical.
+**Updated checkpoint (2026-09-23, historical):** At that checkpoint pre-game client decisions extended through **Proposal 49** and the author had paused after 49. Superseded — the discussion resumed and the current pause is after UX Proposal 92 (see §9). The prior 1–17 checkpoint above is also historical.
 
 
-## Pre-game client continuation checkpoint — proposals 18–49 (2026-09-23)
+## 8. Pre-game client continuation checkpoint — proposals 18–49 (2026-09-23)
 
 - Ordinary client Vanguard roster and detail pages show eligibility, lore, abilities and skins; detail pages preview but **never equip** a skin. Champion select owns skin choice, including previewable locked/unowned skins with no purchase navigation; remembered per-Vanguard actually-used skin is preselected where eligible.
 - Committed selection contains a team/turn overview, roster search and favorites, a compact single Team chat with `/p` messages to the existing Party Chat, and optional two-slot starting Flux Spells. Skin and spells remain selectable after Vanguard lock-in where selection is active; server-accepted state restores after reconnect to the **same** session with deadlines unpaused.
 - On the player's pick turn the client requests OS foreground focus once, plus **one brief audio cue**; no additional turn popup, toast or notification-center entry. OS restrictions may prevent forced foreground focus. The approved on-screen phase/turn indicator remains.
-- After selection, Match Starting → truthful Preparing Gameplay / Loading → Connecting to Match → playable match state **only on confirmed join**. Earlier “Launching Game” meant launching a second executable and is **superseded by Proposal 91**. A failed launch/connection while assigned match is live leaves the pre-game client **Reconnect-only**; no second ready check or new queue.
-- After verified completion, results display only server-confirmed statistics and final build; pending data must be labeled. The results Screenboard + Detailed Statistics layout was approved in Proposal 50; see UX Bible §7. See UX Bible §6 and Match Statistics Bible.
+- After selection, Match Starting → truthful Preparing Gameplay / Loading → Connecting to Match → playable match state **only on confirmed join**. Earlier “Launching Game” meant launching a second executable and is **superseded by Proposal 91**. A failed launch/connection while assigned match is live leaves the application in its **Reconnect-only** state; no second ready check or new queue.
+- After verified completion, results display only server-confirmed statistics and final build; pending data must be labeled. The results Scoreboard + Detailed Statistics layout was approved in Proposal 50; see UX Bible §7. See UX Bible §6 and Match Statistics Bible.
 
 
-## Unified Unreal application and Test Skin — Pre-game UX Proposals 76–92 (2026-09-23)
+## 9. Unified Unreal application and Test Skin — Pre-game UX Proposals 76–92 (2026-09-23)
 
 **Current architecture supersedes any earlier wording in this bible that treats the pre-game client and Unreal gameplay as separate executables or requires a pre-game process to remain open while a second game process runs.** The website remains for account creation/appeals; the launcher remains for authentication, installation, patching and starting **one Unreal application**. Launcher process persistence is still an implementation detail. This is **not** permission to merge trusted dedicated-server, commerce, party, matchmaking or account authority into the client.
 
@@ -120,3 +108,16 @@ The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) is the **
 - **Shop purchase and cosmetic quality (76–78):** Accurate ownership, bundle contents and actual authoritative cost, explicit non-charging purchase confirmation, idempotent transactions and no double charge. Bundle partially owned contents are disclosed; a wholly owned bundle is not repurchased. **Every skin is a bespoke model and animation treatment, never a simple color reskin**; Shop preview uses actual assets with an interactive Test Skin experience. Browsing, testing and purchasing do **not** equip skins; live match skin choice remains in champion select. No shop navigation during committed select.
 - **Preview loading (85):** Load the chosen skin and test map first, other same-Vanguard appearances on demand from installed/cached assets; keep current test appearance usable while switching, safely activate only a ready new appearance, and label incomplete/unavailable previews truthfully without substituting a recolored base asset.
 - **Status checkpoint:** The author approved Proposal **92** and explicitly paused. No Proposal 93 until they say **“continue”**. This checkpoint supersedes historical pauses after 17 and 49 in earlier sections.
+
+
+## 10. Deliberately open — resume design before implementation
+
+- Final UI art/layout/branding and platform-specific implementation remain open. **Approved pre-game UX and the current pause after Proposal 92** live in [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md); the Settings Bible's proposal phase ended at 168. Detailed chat UX, support and privacy not fixed by companion bibles remain open. Approved first-launch accessible setup and settings **within actual Unreal gameplay** remain owned by Settings; no normal Settings access exists on the Reconnect-only pre-game screen.
+- Exact social-service implementation, party disconnect grace durations and corner-case reconciliation; core party, privacy, blocking, ready and match-found rules are now in the Parties & Social Bible.
+- **Ranked is a future feature, not required for initial launch**. Its detailed rating, season flow, matchmaking, tiers and Ranked/event border awards remain open.
+- Authentication provider, account recovery, device/session management, launcher update strategy, anti-cheat, trust boundaries and service topology.
+- Purchases, checkout, regional pricing/tax, refunds/chargebacks, receipts/entitlement recovery, abuse prevention and premium purchase safety.
+- Unified Unreal state lifecycle, process recovery, client/version compatibility, safe champion-select→match / match→post-match transitions and reconnect if services are offline.
+- Tutorial technical implementation, exact matchmaking thresholds/AI logic, replay/spectator recording architecture, detailed moderation/telemetry staff tooling and publishing pipeline.
+
+**This v0.1 is a checkpoint for further discussion, not approval to build unchosen infrastructure or start gameplay implementation.**

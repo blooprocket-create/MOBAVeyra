@@ -47,7 +47,7 @@ vision_touchpoints:
     effect: reports that an enemy Vanguard is PRESENT in an overlapped Dense Fog zone
     status: canon
     note: Does NOT thin, remove or convert Dense Fog, grant remote targeted acquisition, bypass terrain
-      or stealth rules, or create brush. The sheet shows a fog-reducing reveal and is wrong (register
+      or stealth rules, or create brush. The deleted concept sheet showed a fog-reducing reveal and was wrong (register
       §B2).
 guards:
   - Her personal attack-interval floor does NOT create a second Attack Speed overflow threshold; overflow
