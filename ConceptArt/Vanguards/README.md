@@ -11,6 +11,10 @@ rename or a rewrite in the bible reaches the sheet on the next render and artwor
 stale ability name or a tuning value. The superseded baked-text sheets are what happened without that separation; they were deleted on
 2026-09-21, and [`../Archives/`](../Archives/) records what they were.
 
+## Alternate cosmetic concept art
+
+The canonical `hero.webp` in each Vanguard directory remains the base appearance and modelling reference. Alternate cosmetic looks live separately under `<id>/skins/<collection-slug>/hero.webp` and are indexed in [`skins/README.md`](skins/README.md) and [`skins/index.json`](skins/index.json). A skin illustration is visual exploration only: it does not replace canon appearance, introduce a gameplay effect, or signal a released/owned cosmetic. The skin catalog and the base hero sheet are intentionally separate.
+
 ## File names
 
 A slot is filled the moment its file appears; the renderer picks it up with no configuration.
