@@ -13,11 +13,12 @@ The structured catalog is [`index.json`](index.json). Each skin lives under its 
 | Neon Circuit | Kade | Neon Circuit Kade | [View hero](../kade/skins/neon-circuit/hero.webp) |
 | Neon Circuit | Patch | Neon Circuit Patch | [View hero](../patch/skins/neon-circuit/hero.webp) |
 | Amazonian | Raska | Amazonian Raska | [View hero](../raska/skins/amazonian/hero.webp) *(upload pending)* |
+| Amazonian | Marek | Amazonian Marek | [View hero](../marek/skins/amazonian/hero.webp) *(upload pending)* |
 
 ## Art direction notes
 
-The **Living Paint** collection uses thick, tactile pigment, palette-knife strokes and dripping splashes as the characters' physical material. **Neon Circuit** uses dark cybernetic hardware and bright cyan energy accents, while preserving each Vanguard's recognizable silhouette and props. **Amazonian Raska** replaces Hound's motorcycle silhouette with a cheetah and uses close-combat gauntlets rather than a spear; the base combat identity stays intact. These are visual concepts, not rules for gameplay effects.
+The **Living Paint** collection uses thick, tactile pigment, palette-knife strokes and dripping splashes as the characters' physical material. **Neon Circuit** uses dark cybernetic hardware and bright cyan energy accents, while preserving each Vanguard's recognizable silhouette and props. **Amazonian Marek** pairs the Amazonian warrior with Nix as a demonic masked panther; he is a companion, not a mount. **Amazonian Raska** replaces Hound's motorcycle silhouette with a cheetah and uses close-combat gauntlets rather than a spear; the base combat identity stays intact. These are visual concepts, not rules for gameplay effects.
 
-The Amazonian Raska artwork link will resolve after `hero.webp` is uploaded to its prepared folder on `main`. Until then the index records the expected path and converted WebP checksum.
+The Amazonian artwork links resolve once each `hero.webp` is uploaded to its prepared Vanguard folder on `main`. Until then the index records the expected path and converted WebP checksum.
 
 For a new variant, add an image to its Vanguard directory and an entry to `index.json`; add a catalog row here. Keep variants outside the base hero and model-reference slots so that a new costume never silently redefines the canon appearance.
