@@ -72,4 +72,9 @@ The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) owns the 
 
 If Unreal has closed while a match is still live, the pre-game client presents a dedicated **Reconnect-only** view. Reconnect is its **only available action**: the pre-game client offers no sidebar, Party Chat, DMs, notification center or normal page navigation in that recovery state. Existing party and conversation state remains preserved, and permitted chat in the **reconnected Unreal in-match client** remains available under the rules above. Normal pre-game social UI returns after the match has ended. This is a UI availability rule, not a change to chat permissions, recipients or message retention.
 
-The pre-game client design discussion is **paused after Proposal 17** until the author says “continue”.
+**Updated checkpoint (2026-09-23):** The pre-game client discussion is paused **after Proposal 49**, not 17; see approved UX Proposals 33–34 for the champion-select chat composer.
+
+
+## Champion-select compact chat refinement — Pre-game UX proposals 33–34 (2026-09-23)
+
+Champion select keeps the normal friends/social sidebar minimized; **one compact, collapsible selection-safe text-chat panel** serves permitted team communication without obscuring the pick/ban controls or allowing navigation away. Ordinary typed messages address **Team**. Prefix `/p` sends the message to the **existing Party Chat conversation and its authorized recipients**, without creating an extra Party Chat panel, tab or second conversation. The input visibly identifies Team by default and Party while a `/p` message is composed; strip the command from the sent body, mark Party messages distinctly in the shared display, and reset input recipient to Team after sending. This is a **UI shortcut**, not new channel authorization, membership or chat retention. Existing recipient permission and mute/restriction rules still apply; no built-in voice chat.
