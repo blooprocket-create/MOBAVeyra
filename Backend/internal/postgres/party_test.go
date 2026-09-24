@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -113,12 +114,8 @@ func TestPartyLifecycleInPostgres(t *testing.T) {
 		t.Fatalf("StartQueue: %+v %v", p, err)
 	}
 
-	late, err := f.parties.Invite(ctx, a, c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := f.parties.AcceptInvite(ctx, c, late.ID); !errors.Is(err, party.ErrPartyLocked) {
-		t.Fatalf("want ErrPartyLocked, got %v", err)
+	if _, err := f.parties.Invite(ctx, a, c); !errors.Is(err, party.ErrPartyLocked) {
+		t.Fatalf("inviting from a queued party: want ErrPartyLocked, got %v", err)
 	}
 
 	if err := f.parties.Leave(ctx, a); err != nil {
@@ -244,5 +241,52 @@ func TestBlockRemovesMemberInPostgres(t *testing.T) {
 	}
 	if _, err := f.parties.Get(ctx, b); !errors.Is(err, party.ErrNotInParty) {
 		t.Fatalf("blocked member must be removed: %v", err)
+	}
+}
+
+// With a one-connection pool, a join must still complete: the social checks
+// inside a party transaction read through that transaction's connection.
+func TestJoinWorksWithSingleConnectionPool(t *testing.T) {
+	f := newPartyFixture(t, "A", "B")
+	ctx := context.Background()
+	f.befriend(t, "A", "B")
+
+	tiny, err := Open(ctx, os.Getenv(testDatabaseURLEnv)+"&pool_max_conns=1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tiny.Close()
+	soc := social.NewService(tiny.Social())
+	parties := party.NewService(tiny.Party(), soc, party.Settings{
+		Rules: testPartyRules, InviteLifetime: time.Minute, DefaultPrivacy: party.Private,
+	}, time.Now)
+
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	inv, err := parties.Invite(ctx, f.ids["A"], f.ids["B"])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := parties.AcceptInvite(ctx, f.ids["B"], inv.ID); err != nil {
+		t.Fatalf("accept with one pool connection: %v", err)
+	}
+}
+
+// A failure after the block is written rolls the block back too.
+func TestAtomicRollsBackBlock(t *testing.T) {
+	f := newPartyFixture(t, "A", "B")
+	ctx := context.Background()
+	boom := errors.New("party cleanup failed")
+	err := f.store.Atomic(ctx, func(ctx context.Context) error {
+		if err := f.social.Block(ctx, f.ids["A"], f.ids["B"]); err != nil {
+			return err
+		}
+		return boom
+	})
+	if !errors.Is(err, boom) {
+		t.Fatalf("want the cleanup error, got %v", err)
+	}
+	if blocked, _ := f.social.BlockedWithAny(ctx, f.ids["A"], []string{f.ids["B"]}); blocked {
+		t.Fatal("block must not survive a failed unit of work")
 	}
 }

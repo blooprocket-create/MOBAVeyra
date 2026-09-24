@@ -22,6 +22,10 @@ const EnvironmentLocal = "local"
 // codes to expire within seconds; this is a security invariant, not tuning.
 const MaxLaunchCodeLifetime = time.Minute
 
+// MaxPartySize is the largest party the Parties & Social Bible §1 allows
+// ("one through five players"). party.maxSize may be lower, never higher.
+const MaxPartySize = 5
+
 // DatabaseURLEnv names the environment variable holding the Postgres URL.
 const DatabaseURLEnv = "VEYRA_DATABASE_URL"
 
@@ -234,8 +238,8 @@ func Parse(raw []byte) (Config, error) {
 		switch {
 		case f.Party.MaxSize == nil:
 			missing("party.maxSize")
-		case *f.Party.MaxSize < 1:
-			problems = append(problems, "party.maxSize must be at least 1")
+		case *f.Party.MaxSize < 1 || *f.Party.MaxSize > MaxPartySize:
+			problems = append(problems, fmt.Sprintf("party.maxSize must be between 1 and %d", MaxPartySize))
 		default:
 			c.Party.MaxSize = *f.Party.MaxSize
 		}

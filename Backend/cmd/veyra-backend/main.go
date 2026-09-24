@@ -93,6 +93,7 @@ func run(log *slog.Logger) error {
 			Party:          parties,
 			Modes:          modes,
 			Ready:          store,
+			Atomic:         store.Atomic,
 			BodyLimitBytes: cfg.RequestBodyLimitBytes,
 			DevLogin:       cfg.DevLogin.Enabled,
 			Log:            log,

@@ -39,11 +39,17 @@ type Tx interface {
 	// DeleteInvitesBetween removes pending invites where either account
 	// invited the other.
 	DeleteInvitesBetween(a, b string) error
+	// DeleteInvitesInto removes pending invites into a party for an invitee.
+	DeleteInvitesInto(partyID, invitee string) error
 }
 
 // Store persists parties and invites.
 type Store interface {
-	InTx(ctx context.Context, fn func(Tx) error) error
+	// InTx runs fn in one transaction. The ctx passed to fn carries that
+	// transaction, so SocialGraph queries made with it read through the same
+	// connection instead of taking a second one from the pool, and an
+	// enclosing unit of work (see httpapi.Deps.Atomic) is joined, not nested.
+	InTx(ctx context.Context, fn func(ctx context.Context, tx Tx) error) error
 	// PartyOf returns the account's current party, or ErrNotInParty.
 	PartyOf(ctx context.Context, accountID string) (Party, error)
 	// InvitesFor lists unexpired invites addressed to the account.
@@ -96,7 +102,7 @@ func (s *Service) Invites(ctx context.Context, actor string) ([]Invite, error) {
 // of the party the actor leads (UX-2, UX-6).
 func (s *Service) SelectMode(ctx context.Context, actor, modeID string) (Party, error) {
 	var out Party
-	err := s.store.InTx(ctx, func(tx Tx) error {
+	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		p, err := s.ownOrNewParty(tx, actor)
 		if err != nil {
 			return err
@@ -139,7 +145,7 @@ func (s *Service) CancelQueue(ctx context.Context, actor string) (Party, error) 
 
 // Leave takes the actor out of their party.
 func (s *Service) Leave(ctx context.Context, actor string) error {
-	return s.store.InTx(ctx, func(tx Tx) error {
+	return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		id, err := tx.PartyIDOf(actor)
 		if err != nil {
 			return err
@@ -153,9 +159,9 @@ func (s *Service) Leave(ctx context.Context, actor string) error {
 }
 
 // Invite lets any member invite a friend (§1). An actor without a party gets
-// a new mode-less party they lead (UX-11). Capacity and the queue lock are
-// checked when the invite is accepted, not now, and an invite never reserves
-// a slot.
+// a new mode-less party they lead (UX-11). A queued party cannot invite (§2).
+// Capacity is checked when the invite is accepted, not now, and an invite
+// never reserves a slot.
 func (s *Service) Invite(ctx context.Context, actor, invitee string) (Invite, error) {
 	if actor == invitee {
 		return Invite{}, ErrSelf
@@ -164,10 +170,13 @@ func (s *Service) Invite(ctx context.Context, actor, invitee string) (Invite, er
 		return Invite{}, err
 	}
 	var inv Invite
-	err := s.store.InTx(ctx, func(tx Tx) error {
+	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		p, err := s.ownOrNewParty(tx, actor)
 		if err != nil {
 			return err
+		}
+		if p.Status != Idle {
+			return ErrPartyLocked
 		}
 		if p.IsMember(invitee) {
 			return ErrAlreadyInParty
@@ -191,7 +200,7 @@ func (s *Service) Invite(ctx context.Context, actor, invitee string) (Invite, er
 
 // DeclineInvite discards an invitation addressed to the actor.
 func (s *Service) DeclineInvite(ctx context.Context, actor, inviteID string) error {
-	return s.store.InTx(ctx, func(tx Tx) error {
+	return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		inv, err := tx.Invite(inviteID, s.now())
 		if err != nil {
 			return err
@@ -208,7 +217,7 @@ func (s *Service) DeclineInvite(ctx context.Context, actor, inviteID string) err
 // while in another party leaves it, unless that party is queue-locked (UX-100).
 func (s *Service) AcceptInvite(ctx context.Context, actor, inviteID string) (Party, error) {
 	var out Party
-	err := s.store.InTx(ctx, func(tx Tx) error {
+	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		inv, err := tx.Invite(inviteID, s.now())
 		if err != nil {
 			return err
@@ -233,7 +242,7 @@ func (s *Service) AcceptInvite(ctx context.Context, actor, inviteID string) (Par
 // friends. Until ruled on, being a friend of any current member qualifies.
 func (s *Service) JoinPublic(ctx context.Context, actor, partyID string) (Party, error) {
 	var out Party
-	err := s.store.InTx(ctx, func(tx Tx) error {
+	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		p, err := s.moveInto(ctx, tx, actor, partyID, func(target Party) error {
 			if target.Privacy != Public {
 				return ErrPartyNotJoinable
@@ -253,16 +262,29 @@ func (s *Service) JoinPublic(ctx context.Context, actor, partyID string) (Party,
 	return out, err
 }
 
-// OnBlock applies a new block to party state: pending invites between the two
-// accounts are withdrawn, and two accounts may never share a party (§6).
+// OnBlock applies a new block to party state: pending invites that would put
+// the two accounts in one party are withdrawn, whoever sent them, and two
+// accounts may never share a party (§6).
 //
 // PROVISIONAL: the bibles do not say who leaves when a member blocks another
 // member of their own party. Until ruled on, the blocked account is removed,
 // with no penalty, exactly as if the leader had removed them.
 func (s *Service) OnBlock(ctx context.Context, blocker, blocked string) error {
-	return s.store.InTx(ctx, func(tx Tx) error {
+	return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		if err := tx.DeleteInvitesBetween(blocker, blocked); err != nil {
 			return err
+		}
+		for _, pair := range [][2]string{{blocker, blocked}, {blocked, blocker}} {
+			id, err := tx.PartyIDOf(pair[0])
+			if errors.Is(err, ErrNotInParty) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if err := tx.DeleteInvitesInto(id, pair[1]); err != nil {
+				return err
+			}
 		}
 		id, err := tx.PartyIDOf(blocker)
 		if errors.Is(err, ErrNotInParty) {
@@ -357,7 +379,7 @@ func (s *Service) checkSocial(ctx context.Context, a, b string) error {
 
 func (s *Service) mutate(ctx context.Context, actor string, fn func(*Party) error) (Party, error) {
 	var out Party
-	err := s.store.InTx(ctx, func(tx Tx) error {
+	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		id, err := tx.PartyIDOf(actor)
 		if err != nil {
 			return err

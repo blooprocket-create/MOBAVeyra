@@ -72,12 +72,12 @@ Errors come back as `{"error": "<code>"}` with codes such as `not_leader`, `part
 
 Rules the code enforces, from the Parties & Social Bible:
 
-- Parties hold one to `party.maxSize` players; capacity is checked when an invite is **accepted**, not when it's sent, and an invite never reserves a slot.
+- Parties hold one to `party.maxSize` players (config refuses more than five); capacity is checked when an invite is **accepted**, not when it's sent, and an invite never reserves a slot.
 - Any member can invite a friend. Only the leader picks the mode, privacy, removes members, transfers leadership and starts or cancels the queue.
 - Adding a member or changing the mode resets everyone's Ready. Find Match needs a mode, everyone Ready, and a party no bigger than the mode's team.
-- Find Match locks the party: nobody can join, accept an invite into it, change Ready or mode, or take over as leader. Anyone leaving, being removed or blocked out cancels the queue for everyone and resets Ready.
+- Find Match locks the party: nobody can join, accept an invite into it, send an invite from it, change Ready or mode, or take over as leader. Anyone leaving, being removed or blocked out cancels the queue for everyone and resets Ready.
 - Accepting an invite while in another party moves you, unless your current party is queued.
-- Blocks work in both directions: no friend requests, invites or shared party. Blocking ends the friendship and withdraws pending requests and invites.
+- Blocks work in both directions: no friend requests, invites or shared party. Blocking ends the friendship and withdraws pending requests and every invite that would put the two players in one party, whoever sent it. The block and its party clean-up commit in one transaction.
 - Every change to a party runs in a database transaction with the party row locked, and each account can be in only one party (enforced by the database).
 
 **Provisional rules — the bibles leave these open.** Each is isolated in one place in the code and marked `PROVISIONAL`, so a ruling is a small change:

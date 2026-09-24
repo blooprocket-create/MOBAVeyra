@@ -31,11 +31,14 @@ type ModeInfo struct {
 
 // Deps are the handler dependencies.
 type Deps struct {
-	Identity       *identity.Service
-	Social         *social.Service
-	Party          *party.Service
-	Modes          []ModeInfo
-	Ready          Pinger
+	Identity *identity.Service
+	Social   *social.Service
+	Party    *party.Service
+	Modes    []ModeInfo
+	Ready    Pinger
+	// Atomic runs fn as one unit of work across domains: store calls made
+	// with the ctx it receives share one transaction.
+	Atomic         func(ctx context.Context, fn func(context.Context) error) error
 	BodyLimitBytes int64
 	// DevLogin registers the passwordless dev-login route (local only).
 	DevLogin bool

@@ -314,3 +314,47 @@ func TestLastMemberLeavingDeletesParty(t *testing.T) {
 		t.Fatalf("want ErrNotInParty, got %v", err)
 	}
 }
+
+func TestQueuedPartyCannotInvite(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	f.befriend(t, "a", "b")
+	if _, err := f.parties.SelectMode(ctx, "a", "casual"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.parties.SetReady(ctx, "a", true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.parties.StartQueue(ctx, "a"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.parties.Invite(ctx, "a", "b"); !errors.Is(err, ErrPartyLocked) {
+		t.Fatalf("want ErrPartyLocked, got %v", err)
+	}
+}
+
+// A blocks B while C, A's party-mate, has invited B: that invite would put A
+// and B in one party, so it must go too.
+func TestBlockWithdrawsPartyMatesInvites(t *testing.T) {
+	f := newFixture(t)
+	ctx := context.Background()
+	f.befriend(t, "a", "c")
+	f.befriend(t, "c", "b")
+	f.invite(t, "a", "c")
+	inv, err := f.parties.Invite(ctx, "c", "b")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := f.social.Block(ctx, "a", "b"); err != nil {
+		t.Fatal(err)
+	}
+	if err := f.parties.OnBlock(ctx, "a", "b"); err != nil {
+		t.Fatal(err)
+	}
+	if list, _ := f.parties.Invites(ctx, "b"); len(list) != 0 {
+		t.Fatalf("invite into the blocker's party must be withdrawn: %+v", list)
+	}
+	if _, err := f.parties.AcceptInvite(ctx, "b", inv.ID); !errors.Is(err, ErrInviteNotFound) {
+		t.Fatalf("want ErrInviteNotFound, got %v", err)
+	}
+}

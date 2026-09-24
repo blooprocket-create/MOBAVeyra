@@ -123,15 +123,17 @@ func (s *Server) listBlocks(w http.ResponseWriter, r *http.Request, actor string
 	writeJSON(w, http.StatusOK, map[string][]accountJSON{"blocked": list})
 }
 
-// block records the block, then applies its party consequences. Both steps
-// are idempotent, so a retry after a failure in the second step is safe.
+// block records the block and applies its party consequences in one unit of
+// work, so a block can never be committed while the two accounts still share
+// a party or a pending invite.
 func (s *Server) block(w http.ResponseWriter, r *http.Request, actor string) {
 	target := r.PathValue("accountId")
-	if err := s.Social.Block(r.Context(), actor, target); err != nil {
-		s.fail(w, err)
-		return
-	}
-	s.done(w, s.Party.OnBlock(r.Context(), actor, target))
+	s.done(w, s.Atomic(r.Context(), func(ctx context.Context) error {
+		if err := s.Social.Block(ctx, actor, target); err != nil {
+			return err
+		}
+		return s.Party.OnBlock(ctx, actor, target)
+	}))
 }
 
 func (s *Server) unblock(w http.ResponseWriter, r *http.Request, actor string) {

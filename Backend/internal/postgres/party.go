@@ -21,8 +21,8 @@ type PartyStore struct{ pool *pgxpool.Pool }
 // Party returns the party store.
 func (s *Store) Party() *PartyStore { return &PartyStore{pool: s.pool} }
 
-func (s *PartyStore) InTx(ctx context.Context, fn func(party.Tx) error) error {
-	return inTx(ctx, s.pool, func(tx pgx.Tx) error { return fn(partyTx{ctx: ctx, q: tx}) })
+func (s *PartyStore) InTx(ctx context.Context, fn func(context.Context, party.Tx) error) error {
+	return inTx(ctx, s.pool, func(ctx context.Context, tx pgx.Tx) error { return fn(ctx, partyTx{ctx: ctx, q: tx}) })
 }
 
 // querier is satisfied by both the pool and a transaction.
@@ -167,12 +167,18 @@ func (t partyTx) DeleteInvitesBetween(a, b string) error {
 	return err
 }
 
+func (t partyTx) DeleteInvitesInto(partyID, invitee string) error {
+	_, err := t.q.Exec(t.ctx, `DELETE FROM party.invites WHERE party_id = $1::uuid AND invitee_id = $2::uuid`, partyID, invitee)
+	return err
+}
+
 func (s *PartyStore) PartyOf(ctx context.Context, accountID string) (party.Party, error) {
-	id, err := partyTx{ctx: ctx, q: s.pool}.PartyIDOf(accountID)
+	q := querierFor(ctx, s.pool)
+	id, err := partyTx{ctx: ctx, q: q}.PartyIDOf(accountID)
 	if err != nil {
 		return party.Party{}, err
 	}
-	p, err := loadParty(ctx, s.pool, id, false)
+	p, err := loadParty(ctx, q, id, false)
 	if errors.Is(err, party.ErrPartyNotFound) {
 		return party.Party{}, party.ErrNotInParty
 	}
@@ -180,7 +186,7 @@ func (s *PartyStore) PartyOf(ctx context.Context, accountID string) (party.Party
 }
 
 func (s *PartyStore) InvitesFor(ctx context.Context, accountID string, now time.Time) ([]party.Invite, error) {
-	rows, err := s.pool.Query(ctx, `SELECT `+inviteColumns+` FROM party.invites
+	rows, err := querierFor(ctx, s.pool).Query(ctx, `SELECT `+inviteColumns+` FROM party.invites
 		WHERE invitee_id = $1::uuid AND expires_at > $2 ORDER BY created_at`, accountID, now)
 	if err != nil {
 		return nil, err

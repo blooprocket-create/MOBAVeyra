@@ -38,11 +38,11 @@ func (s memState) clone() memState {
 // NewMemStore returns an empty MemStore.
 func NewMemStore() *MemStore { return &MemStore{state: memState{}.clone()} }
 
-func (m *MemStore) InTx(_ context.Context, fn func(Tx) error) error {
+func (m *MemStore) InTx(ctx context.Context, fn func(context.Context, Tx) error) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	snapshot := m.state.clone()
-	if err := fn(memTx{m}); err != nil {
+	if err := fn(ctx, memTx{m}); err != nil {
 		m.state = snapshot
 		return err
 	}
@@ -142,6 +142,15 @@ func (t memTx) DeleteInvite(id string) error {
 func (t memTx) DeleteInvitesBetween(a, b string) error {
 	for k, inv := range t.m.state.invites {
 		if (inv.InviterID == a && inv.InviteeID == b) || (inv.InviterID == b && inv.InviteeID == a) {
+			delete(t.m.state.invites, k)
+		}
+	}
+	return nil
+}
+
+func (t memTx) DeleteInvitesInto(partyID, invitee string) error {
+	for k, inv := range t.m.state.invites {
+		if inv.PartyID == partyID && inv.InviteeID == invitee {
 			delete(t.m.state.invites, k)
 		}
 	}

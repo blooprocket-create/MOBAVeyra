@@ -19,21 +19,49 @@ type SocialStore struct{ pool *pgxpool.Pool }
 // Social returns the social-graph store.
 func (s *Store) Social() *SocialStore { return &SocialStore{pool: s.pool} }
 
-// inTx runs fn in a transaction, committing on success.
-func inTx(ctx context.Context, pool *pgxpool.Pool, fn func(pgx.Tx) error) error {
+// txKey carries an open transaction in a context.
+type txKey struct{}
+
+// txFrom returns the transaction carried by ctx, if any.
+func txFrom(ctx context.Context) (pgx.Tx, bool) {
+	tx, ok := ctx.Value(txKey{}).(pgx.Tx)
+	return tx, ok
+}
+
+// querierFor reads through ctx's transaction when there is one, so a query
+// made inside a transaction never takes a second pool connection.
+func querierFor(ctx context.Context, pool *pgxpool.Pool) querier {
+	if tx, ok := txFrom(ctx); ok {
+		return tx
+	}
+	return pool
+}
+
+// inTx runs fn in a transaction, committing on success. If ctx already
+// carries a transaction, fn joins it and the outermost caller commits.
+func inTx(ctx context.Context, pool *pgxpool.Pool, fn func(context.Context, pgx.Tx) error) error {
+	if tx, ok := txFrom(ctx); ok {
+		return fn(ctx, tx)
+	}
 	tx, err := pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck // no-op after commit
-	if err := fn(tx); err != nil {
+	if err := fn(context.WithValue(ctx, txKey{}, tx), tx); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
 }
 
+// Atomic runs fn as one unit of work: every store call made with the ctx it
+// receives shares one transaction, committed only if fn succeeds.
+func (s *Store) Atomic(ctx context.Context, fn func(context.Context) error) error {
+	return inTx(ctx, s.pool, func(ctx context.Context, _ pgx.Tx) error { return fn(ctx) })
+}
+
 func (s *SocialStore) InTx(ctx context.Context, fn func(social.Tx) error) error {
-	return inTx(ctx, s.pool, func(tx pgx.Tx) error { return fn(socialTx{ctx: ctx, tx: tx}) })
+	return inTx(ctx, s.pool, func(ctx context.Context, tx pgx.Tx) error { return fn(socialTx{ctx: ctx, tx: tx}) })
 }
 
 type socialTx struct {
@@ -115,7 +143,7 @@ func (t socialTx) DeleteBlock(blocker, blocked string) error {
 }
 
 func (s *SocialStore) ids(ctx context.Context, sql string, args ...any) ([]string, error) {
-	rows, err := s.pool.Query(ctx, sql, args...)
+	rows, err := querierFor(ctx, s.pool).Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +173,7 @@ func (s *SocialStore) BlocksBy(ctx context.Context, account string) ([]string, e
 
 func (s *SocialStore) exists(ctx context.Context, sql string, args ...any) (bool, error) {
 	var ok bool
-	err := s.pool.QueryRow(ctx, `SELECT EXISTS (`+sql+`)`, args...).Scan(&ok)
+	err := querierFor(ctx, s.pool).QueryRow(ctx, `SELECT EXISTS (`+sql+`)`, args...).Scan(&ok)
 	return ok, err
 }
 

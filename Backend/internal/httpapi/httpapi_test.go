@@ -53,11 +53,13 @@ func newTestServer(t *testing.T, devLogin bool) *httptest.Server {
 	}, time.Now)
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
 	srv := httptest.NewServer(New(Deps{
-		Identity:       svc,
-		Social:         soc,
-		Party:          parties,
-		Modes:          []ModeInfo{{ID: "casual_select", Enabled: true, HumanPlayersPerTeam: 5}},
-		Ready:          okPinger{},
+		Identity: svc,
+		Social:   soc,
+		Party:    parties,
+		Modes:    []ModeInfo{{ID: "casual_select", Enabled: true, HumanPlayersPerTeam: 5}},
+		Ready:    okPinger{},
+		// The in-memory stores are separate, so tests run steps in sequence.
+		Atomic:         func(ctx context.Context, fn func(context.Context) error) error { return fn(ctx) },
 		BodyLimitBytes: testBodyLimit,
 		DevLogin:       devLogin,
 		Log:            log,
