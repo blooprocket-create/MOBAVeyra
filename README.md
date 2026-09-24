@@ -22,6 +22,7 @@ The project is currently in pre-production. The repository is being established 
 - [`Docs/CONTEXT_MAP.md`](Docs/CONTEXT_MAP.md) - task-oriented routing to current design owners, large-document section locators and documentation checks.
 - [`CLAUDE.md`](CLAUDE.md) - Claude Code entrypoint and repository working rules.
 - [`Docs/ADR/`](Docs/ADR/) - Architecture Decision Records for major technical choices.
+- [`Backend/`](Backend/README.md) - the Go backend and local Docker stack (`docker compose up --build`); currently the launcher → game login handoff.
 - [`Docs/Pull_Request_Record_v0.1.md`](Docs/Pull_Request_Record_v0.1.md) - the review findings from every pull request, kept in the repository rather than only on the forge.
 
 ### Design bibles

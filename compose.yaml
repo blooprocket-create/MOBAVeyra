@@ -1,0 +1,40 @@
+# Veyra local development stack (ADR-005). LOCAL USE ONLY.
+#
+#   docker compose up --build
+#
+# Ports bind to 127.0.0.1 so nothing is reachable from other machines. The
+# Postgres password below is a throwaway local credential, not a secret; the
+# backend's dev login is enabled by Backend/config/local.json and must never
+# be exposed publicly. Dedicated match-server containers join this stack later.
+
+name: veyra
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: veyra
+      POSTGRES_PASSWORD: veyra-local-only
+      POSTGRES_DB: veyra
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U veyra -d veyra"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  backend:
+    build: ./Backend
+    environment:
+      VEYRA_DATABASE_URL: postgres://veyra:veyra-local-only@postgres:5432/veyra?sslmode=disable
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres-data:

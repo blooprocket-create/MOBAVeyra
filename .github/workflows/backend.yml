@@ -1,0 +1,53 @@
+name: Backend checks
+
+on:
+  push:
+    paths:
+      - 'Backend/**'
+      - 'compose.yaml'
+      - '.github/workflows/backend.yml'
+  pull_request:
+    paths:
+      - 'Backend/**'
+      - 'compose.yaml'
+      - '.github/workflows/backend.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: veyra
+          POSTGRES_PASSWORD: veyra-ci-only
+          POSTGRES_DB: veyra_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U veyra -d veyra_test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      VEYRA_TEST_DATABASE_URL: postgres://veyra:veyra-ci-only@localhost:5432/veyra_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: Backend/go.mod
+          cache-dependency-path: Backend/go.sum
+      - name: gofmt
+        run: test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+      - name: go vet
+        run: go vet ./...
+      - name: go test (with Postgres integration tests)
+        run: go test -race -count=1 ./...
+      - name: Docker image builds
+        run: docker build -t veyra-backend-ci .
+      - name: Compose file is valid
+        working-directory: .
+        run: docker compose config --quiet
