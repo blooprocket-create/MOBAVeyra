@@ -21,6 +21,10 @@ A future move to Unreal Engine 6 is not implied by this ADR and requires a separ
 
 Preview, Beta, or Experimental engine releases must not replace the project's production engine version without a new ADR.
 
+## Pin (2026-09-24)
+
+The project is pinned to **Unreal Engine 5.8.3**, built from Epic's source repository (`5.8.3-release` tag). A source build is required because dedicated-server targets cannot be built with the Epic Games Launcher binary engine. The Windows client and Linux dedicated server are both built from this engine; see [ADR-005](ADR-005-launcher-session-handoff-and-local-first-hosting.md).
+
 ## Consequences
 
 - Initial project files and build tooling target UE 5.8.

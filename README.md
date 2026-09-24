@@ -73,7 +73,7 @@ The earlier baked-text sheets were **deleted on 2026-09-21**, once every Vanguar
 
 ## Status
 
-Veyra targets **Unreal Engine 5.8** and has formally adopted Unreal's **Gameplay Ability System (GAS)** as its ability-framework foundation. Final module boundaries, detailed GAS ownership/prediction policy, backend services, and other unresolved infrastructure choices remain deliberate architecture decisions. Do not invent unresolved choices merely to finish a task; record major choices through an ADR.
+Veyra targets **Unreal Engine 5.8.3** (built from source; Windows client, Linux dedicated server) and has formally adopted Unreal's **Gameplay Ability System (GAS)** as its ability-framework foundation. The launcher, session handoff and local-first Docker hosting with a Go backend are recorded in [ADR-005](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md). Final module boundaries, detailed GAS ownership/prediction policy, hosted backend vendors, and other unresolved infrastructure choices remain deliberate architecture decisions. Do not invent unresolved choices merely to finish a task; record major choices through an ADR.
 
 ## License
 
