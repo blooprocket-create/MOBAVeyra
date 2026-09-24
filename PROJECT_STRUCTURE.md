@@ -224,6 +224,10 @@ This is a guide, not a license for arbitrary sideways dependencies. Prefer contr
 - `Developer` is a leaf from the perspective of production code: everything may be tested by it, nothing production-critical depends on it.
 - Circular module dependencies are prohibited.
 
+### Backend (outside Unreal)
+
+The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity now; party, matchmaking, match allocation and results later). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; they talk to it over HTTP.
+
 ## 3. Content directory
 
 A likely content organization:

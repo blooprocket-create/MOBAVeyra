@@ -1,0 +1,22 @@
+{
+  "environment": "local",
+  "listenAddress": ":8080",
+  "requestBodyLimitBytes": 65536,
+  "http": {
+    "readTimeout": "10s",
+    "writeTimeout": "10s",
+    "idleTimeout": "60s",
+    "shutdownTimeout": "10s"
+  },
+  "sessions": {
+    "launcherLifetime": "720h",
+    "gameLifetime": "24h"
+  },
+  "launchCodes": {
+    "lifetime": "20s"
+  },
+  "devLogin": {
+    "enabled": true,
+    "accounts": ["DevOne", "DevTwo", "DevThree", "DevFour", "DevFive", "DevSix", "DevSeven", "DevEight", "DevNine", "DevTen"]
+  }
+}
