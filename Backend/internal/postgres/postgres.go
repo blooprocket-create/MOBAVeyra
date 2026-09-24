@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
@@ -91,17 +92,26 @@ func migrate(ctx context.Context, pool *pgxpool.Pool) error {
 }
 
 func (s *Store) EnsureDevAccount(ctx context.Context, displayName string) (identity.Account, error) {
-	var a identity.Account
-	err := s.pool.QueryRow(ctx, `
+	if _, err := s.pool.Exec(ctx, `
 		INSERT INTO identity.accounts (display_name, dev_seeded) VALUES ($1, true)
-		ON CONFLICT (display_name) DO UPDATE SET display_name = EXCLUDED.display_name
-		RETURNING id::text, display_name`, displayName).Scan(&a.ID, &a.DisplayName)
-	return a, err
+		ON CONFLICT (display_name) DO NOTHING`, displayName); err != nil {
+		return identity.Account{}, err
+	}
+	var a identity.Account
+	var dev bool
+	if err := s.pool.QueryRow(ctx, `SELECT id::text, display_name, dev_seeded FROM identity.accounts WHERE display_name = $1`,
+		displayName).Scan(&a.ID, &a.DisplayName, &dev); err != nil {
+		return identity.Account{}, err
+	}
+	if !dev {
+		return identity.Account{}, identity.ErrNotDevAccount
+	}
+	return a, nil
 }
 
-func (s *Store) AccountByDisplayName(ctx context.Context, displayName string) (identity.Account, error) {
+func (s *Store) DevAccountByDisplayName(ctx context.Context, displayName string) (identity.Account, error) {
 	var a identity.Account
-	err := s.pool.QueryRow(ctx, `SELECT id::text, display_name FROM identity.accounts WHERE display_name = $1`,
+	err := s.pool.QueryRow(ctx, `SELECT id::text, display_name FROM identity.accounts WHERE display_name = $1 AND dev_seeded`,
 		displayName).Scan(&a.ID, &a.DisplayName)
 	return a, notFound(err)
 }
@@ -113,12 +123,21 @@ func (s *Store) AccountByID(ctx context.Context, id string) (identity.Account, e
 	return a, notFound(err)
 }
 
+// execer is satisfied by both the pool and a transaction.
+type execer interface {
+	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
+}
+
 func (s *Store) CreateSession(ctx context.Context, sess identity.Session) error {
+	return insertSession(ctx, s.pool, sess)
+}
+
+func insertSession(ctx context.Context, db execer, sess identity.Session) error {
 	var build *string
 	if sess.BuildVersion != "" {
 		build = &sess.BuildVersion
 	}
-	_, err := s.pool.Exec(ctx, `
+	_, err := db.Exec(ctx, `
 		INSERT INTO identity.sessions (token_hash, account_id, kind, build_version, created_at, expires_at)
 		VALUES ($1, $2::uuid, $3, $4, $5, $6)`,
 		sess.TokenHash, sess.AccountID, string(sess.Kind), build, sess.CreatedAt, sess.ExpiresAt)
@@ -152,14 +171,42 @@ func (s *Store) CreateLaunchCode(ctx context.Context, c identity.LaunchCode) err
 	return err
 }
 
-func (s *Store) ConsumeLaunchCode(ctx context.Context, codeHash []byte, now time.Time) (identity.LaunchCode, error) {
-	var c identity.LaunchCode
-	err := s.pool.QueryRow(ctx, `
+// RedeemLaunchCode consumes the code and creates the game session in one
+// transaction, so a failure while issuing the session leaves the code unused.
+// A build mismatch commits the consumption alone.
+func (s *Store) RedeemLaunchCode(ctx context.Context, codeHash []byte, buildVersion string, now time.Time, newSession identity.Session) (identity.Account, error) {
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return identity.Account{}, err
+	}
+	defer tx.Rollback(ctx) //nolint:errcheck // no-op after commit
+
+	var accountID, codeBuild string
+	err = tx.QueryRow(ctx, `
 		UPDATE identity.launch_codes SET consumed_at = $2
 		WHERE code_hash = $1 AND consumed_at IS NULL AND expires_at > $2
-		RETURNING code_hash, account_id::text, build_version, created_at, expires_at`,
-		codeHash, now).Scan(&c.CodeHash, &c.AccountID, &c.BuildVersion, &c.CreatedAt, &c.ExpiresAt)
-	return c, notFound(err)
+		RETURNING account_id::text, build_version`,
+		codeHash, now).Scan(&accountID, &codeBuild)
+	if err != nil {
+		return identity.Account{}, notFound(err)
+	}
+	if codeBuild != buildVersion {
+		if err := tx.Commit(ctx); err != nil {
+			return identity.Account{}, err
+		}
+		return identity.Account{}, identity.ErrBuildMismatch
+	}
+
+	var a identity.Account
+	if err := tx.QueryRow(ctx, `SELECT id::text, display_name FROM identity.accounts WHERE id = $1::uuid`,
+		accountID).Scan(&a.ID, &a.DisplayName); err != nil {
+		return identity.Account{}, notFound(err)
+	}
+	newSession.AccountID = a.ID
+	if err := insertSession(ctx, tx, newSession); err != nil {
+		return identity.Account{}, err
+	}
+	return a, tx.Commit(ctx)
 }
 
 func notFound(err error) error {

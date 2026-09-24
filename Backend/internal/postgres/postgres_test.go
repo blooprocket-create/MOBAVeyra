@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"os"
 	"sync"
@@ -126,5 +127,60 @@ func TestConcurrentRedeemSucceedsOnce(t *testing.T) {
 	}
 	if successes != 1 {
 		t.Fatalf("want exactly 1 successful redemption, got %d", successes)
+	}
+}
+
+func testService(store *Store) *identity.Service {
+	return identity.NewService(store, identity.Settings{
+		LauncherSessionLifetime: time.Hour,
+		GameSessionLifetime:     time.Hour,
+		LaunchCodeLifetime:      20 * time.Second,
+		DevLoginEnabled:         true,
+	}, time.Now)
+}
+
+// If issuing the game session fails, the launch code must stay redeemable.
+func TestFailedSessionInsertLeavesCodeUnused(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	if _, err := store.EnsureDevAccount(ctx, "DevOne"); err != nil {
+		t.Fatal(err)
+	}
+	svc := testService(store)
+	login, _, err := svc.DevLogin(ctx, "DevOne")
+	if err != nil {
+		t.Fatal(err)
+	}
+	code, err := svc.IssueLaunchCode(ctx, login.Token, "dev-1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	codeHash := sha256.Sum256([]byte(code.Token))
+	launcherHash := sha256.Sum256([]byte(login.Token))
+
+	// Reusing the launcher session's hash makes the session insert violate
+	// the primary key, simulating a failure after the code is consumed.
+	now := time.Now()
+	clash := identity.Session{TokenHash: launcherHash[:], Kind: identity.SessionGame, BuildVersion: "dev-1", CreatedAt: now, ExpiresAt: now.Add(time.Hour)}
+	if _, err := store.RedeemLaunchCode(ctx, codeHash[:], "dev-1", now, clash); err == nil {
+		t.Fatal("expected the clashing session insert to fail")
+	}
+
+	if _, _, err := svc.RedeemLaunchCode(ctx, code.Token, "dev-1"); err != nil {
+		t.Fatalf("code must still be redeemable after a failed issuance: %v", err)
+	}
+}
+
+func TestDevLoginRefusesNonDevAccountsInPostgres(t *testing.T) {
+	store := openTestStore(t)
+	ctx := context.Background()
+	if _, err := store.pool.Exec(ctx, `INSERT INTO identity.accounts (display_name, dev_seeded) VALUES ('RealPlayer', false)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.EnsureDevAccount(ctx, "RealPlayer"); !errors.Is(err, identity.ErrNotDevAccount) {
+		t.Fatalf("seeding over a real account: want ErrNotDevAccount, got %v", err)
+	}
+	if _, _, err := testService(store).DevLogin(ctx, "RealPlayer"); !errors.Is(err, identity.ErrInvalidCredentials) {
+		t.Fatalf("dev login to a real account: want ErrInvalidCredentials, got %v", err)
 	}
 }

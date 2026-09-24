@@ -49,6 +49,12 @@ var (
 	ErrInvalidBuildVersion = errors.New("invalid build version")
 	ErrDevLoginDisabled    = errors.New("dev login disabled")
 	ErrNotFound            = errors.New("not found")
+	// ErrBuildMismatch is returned by Store.RedeemLaunchCode when the code
+	// was valid but bound to a different build; the code is still consumed.
+	ErrBuildMismatch = errors.New("launch code build mismatch")
+	// ErrNotDevAccount is returned when seeding a dev account whose name is
+	// already held by an account that was not created as a dev account.
+	ErrNotDevAccount = errors.New("account exists and is not a dev account")
 )
 
 // Account is a player account.
@@ -78,17 +84,24 @@ type LaunchCode struct {
 
 // Store persists identity state.
 type Store interface {
-	// EnsureDevAccount creates the named account if absent and returns it.
+	// EnsureDevAccount creates the named dev account if absent and returns
+	// it. It fails with ErrNotDevAccount if a non-dev account holds the name.
 	EnsureDevAccount(ctx context.Context, displayName string) (Account, error)
-	AccountByDisplayName(ctx context.Context, displayName string) (Account, error)
+	// DevAccountByDisplayName finds an account created by dev seeding only.
+	DevAccountByDisplayName(ctx context.Context, displayName string) (Account, error)
 	AccountByID(ctx context.Context, id string) (Account, error)
 	CreateSession(ctx context.Context, s Session) error
 	// ActiveSession returns the unexpired, unrevoked session with this hash.
 	ActiveSession(ctx context.Context, tokenHash []byte, now time.Time) (Session, error)
 	CreateLaunchCode(ctx context.Context, c LaunchCode) error
-	// ConsumeLaunchCode atomically marks an unexpired, unconsumed code as
-	// consumed and returns it. A second call for the same code fails.
-	ConsumeLaunchCode(ctx context.Context, codeHash []byte, now time.Time) (LaunchCode, error)
+	// RedeemLaunchCode atomically consumes an unexpired, unconsumed code and
+	// creates newSession for the code's account, returning that account.
+	// newSession.AccountID is filled from the code. If the code's build
+	// differs from buildVersion, the code is consumed, no session is created
+	// and ErrBuildMismatch is returned. If creating the session fails,
+	// nothing changes and the code stays redeemable. An unknown, expired or
+	// already-consumed code returns ErrNotFound.
+	RedeemLaunchCode(ctx context.Context, codeHash []byte, buildVersion string, now time.Time, newSession Session) (Account, error)
 }
 
 // Settings are the validated lifetimes the service needs.
@@ -124,7 +137,7 @@ func (s *Service) DevLogin(ctx context.Context, displayName string) (IssuedToken
 	if !s.settings.DevLoginEnabled {
 		return IssuedToken{}, Account{}, ErrDevLoginDisabled
 	}
-	acct, err := s.store.AccountByDisplayName(ctx, displayName)
+	acct, err := s.store.DevAccountByDisplayName(ctx, displayName)
 	if errors.Is(err, ErrNotFound) {
 		return IssuedToken{}, Account{}, ErrInvalidCredentials
 	}
@@ -172,22 +185,26 @@ func (s *Service) RedeemLaunchCode(ctx context.Context, code, buildVersion strin
 	if !strings.HasPrefix(code, prefixLaunchCode) {
 		return IssuedToken{}, Account{}, ErrInvalidCredentials
 	}
-	lc, err := s.store.ConsumeLaunchCode(ctx, hashSecret(code), s.now())
-	if errors.Is(err, ErrNotFound) {
+	tok, hash, err := newSecret(prefixGameSession)
+	if err != nil {
+		return IssuedToken{}, Account{}, err
+	}
+	now := s.now()
+	sess := Session{
+		TokenHash:    hash,
+		Kind:         SessionGame,
+		BuildVersion: buildVersion,
+		CreatedAt:    now,
+		ExpiresAt:    now.Add(s.settings.GameSessionLifetime),
+	}
+	acct, err := s.store.RedeemLaunchCode(ctx, hashSecret(code), buildVersion, now, sess)
+	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrBuildMismatch) {
 		return IssuedToken{}, Account{}, ErrInvalidCredentials
 	}
 	if err != nil {
 		return IssuedToken{}, Account{}, err
 	}
-	if lc.BuildVersion != buildVersion {
-		return IssuedToken{}, Account{}, ErrInvalidCredentials
-	}
-	acct, err := s.store.AccountByID(ctx, lc.AccountID)
-	if err != nil {
-		return IssuedToken{}, Account{}, err
-	}
-	tok, err := s.createSession(ctx, acct.ID, SessionGame, buildVersion, s.settings.GameSessionLifetime, prefixGameSession)
-	return tok, acct, err
+	return IssuedToken{Token: tok, ExpiresAt: sess.ExpiresAt}, acct, nil
 }
 
 // AuthenticateGame resolves a game session token to its account.

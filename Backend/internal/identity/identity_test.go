@@ -156,3 +156,17 @@ func TestBuildVersionValidation(t *testing.T) {
 		}
 	}
 }
+
+func TestDevLoginRefusesNonDevAccounts(t *testing.T) {
+	store := NewMemStore()
+	if _, err := store.CreateAccount("RealPlayer"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := store.EnsureDevAccount(context.Background(), "RealPlayer"); !errors.Is(err, ErrNotDevAccount) {
+		t.Fatalf("seeding over a real account: want ErrNotDevAccount, got %v", err)
+	}
+	svc := NewService(store, testSettings, time.Now)
+	if _, _, err := svc.DevLogin(context.Background(), "RealPlayer"); !errors.Is(err, ErrInvalidCredentials) {
+		t.Fatalf("dev login to a real account: want ErrInvalidCredentials, got %v", err)
+	}
+}
