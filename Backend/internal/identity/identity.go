@@ -90,6 +90,10 @@ type Store interface {
 	// DevAccountByDisplayName finds an account created by dev seeding only.
 	DevAccountByDisplayName(ctx context.Context, displayName string) (Account, error)
 	AccountByID(ctx context.Context, id string) (Account, error)
+	// AccountByDisplayName finds any account by its unique display name.
+	AccountByDisplayName(ctx context.Context, displayName string) (Account, error)
+	// AccountsByIDs returns the accounts that exist among ids.
+	AccountsByIDs(ctx context.Context, ids []string) ([]Account, error)
 	CreateSession(ctx context.Context, s Session) error
 	// ActiveSession returns the unexpired, unrevoked session with this hash.
 	ActiveSession(ctx context.Context, tokenHash []byte, now time.Time) (Session, error)
@@ -205,6 +209,24 @@ func (s *Service) RedeemLaunchCode(ctx context.Context, code, buildVersion strin
 		return IssuedToken{}, Account{}, err
 	}
 	return IssuedToken{Token: tok, ExpiresAt: sess.ExpiresAt}, acct, nil
+}
+
+// LookupAccount finds an account by display name.
+func (s *Service) LookupAccount(ctx context.Context, displayName string) (Account, error) {
+	return s.store.AccountByDisplayName(ctx, displayName)
+}
+
+// Accounts returns the accounts that exist among ids, keyed by ID.
+func (s *Service) Accounts(ctx context.Context, ids []string) (map[string]Account, error) {
+	list, err := s.store.AccountsByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+	out := make(map[string]Account, len(list))
+	for _, a := range list {
+		out[a.ID] = a
+	}
+	return out, nil
 }
 
 // AuthenticateGame resolves a game session token to its account.

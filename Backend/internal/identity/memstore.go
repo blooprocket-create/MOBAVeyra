@@ -62,6 +62,28 @@ func (m *MemStore) DevAccountByDisplayName(_ context.Context, displayName string
 	return a, nil
 }
 
+func (m *MemStore) AccountByDisplayName(_ context.Context, displayName string) (Account, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	a, ok := m.byName(displayName)
+	if !ok {
+		return Account{}, ErrNotFound
+	}
+	return a, nil
+}
+
+func (m *MemStore) AccountsByIDs(_ context.Context, ids []string) ([]Account, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []Account
+	for _, id := range ids {
+		if a, ok := m.accounts[id]; ok {
+			out = append(out, a)
+		}
+	}
+	return out, nil
+}
+
 func (m *MemStore) byName(displayName string) (Account, bool) {
 	for _, a := range m.accounts {
 		if a.DisplayName == displayName {

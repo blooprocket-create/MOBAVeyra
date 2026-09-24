@@ -18,5 +18,17 @@
   "devLogin": {
     "enabled": true,
     "accounts": ["DevOne", "DevTwo", "DevThree", "DevFour", "DevFive", "DevSix", "DevSeven", "DevEight", "DevNine", "DevTen"]
-  }
+  },
+  "party": {
+    "maxSize": 5,
+    "inviteLifetime": "2m",
+    "defaultPrivacy": "private"
+  },
+  "modes": [
+    {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 5},
+    {"id": "draft_pick", "enabled": true, "humanPlayersPerTeam": 5},
+    {"id": "coop_beginner", "enabled": true, "humanPlayersPerTeam": 5},
+    {"id": "coop_intermediate", "enabled": true, "humanPlayersPerTeam": 5},
+    {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5}
+  ]
 }
