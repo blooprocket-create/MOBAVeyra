@@ -4,12 +4,13 @@ This directory records major technical choices that should not be casually rever
 
 ## Accepted decisions
 
-- [`ADR-001-unreal-version-policy.md`](ADR-001-unreal-version-policy.md) — Unreal Engine 5.8; deliberate version-pinned upgrades.
+- [`ADR-001-unreal-version-policy.md`](ADR-001-unreal-version-policy.md) — Unreal Engine 5.8, pinned to 5.8.3 built from source; deliberate version-pinned upgrades.
 - [`ADR-002-gameplay-ability-system.md`](ADR-002-gameplay-ability-system.md) — Adopt GAS behind Veyra-owned C++ integration and combat semantics.
 - [`ADR-003-owned-field-entities.md`](ADR-003-owned-field-entities.md) — Three owned-entity primitives (combat entity, placed marker, world volume owned by its ruling system); Raska's ride state scoped separately; implementation sequenced from the nine Vanguards needing no entity. Build order only — all 25 Vanguards remain in the first-playable roster.
 - [`ADR-004-unified-unreal-client-states.md`](ADR-004-unified-unreal-client-states.md) — One Unreal client application with controlled, isolated ordinary client, Test Skin, champion-select, gameplay, results and reconnect states.
+- [`ADR-005-launcher-session-handoff-and-local-first-hosting.md`](ADR-005-launcher-session-handoff-and-local-first-hosting.md) — Tauri launcher, single-use launch-code session handoff, Windows client/Linux server, local-first Docker hosting, Go backend, Git LFS.
 
-**Renumbering note (2026-09-23):** The unified-client record was first filed as a second `ADR-003` and has been renumbered to `ADR-004`; its content and acceptance are unchanged. Historical records such as [`Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md) that say "ADR-003" refer to owned field entities. Every ADR must use a unique number; `scripts/check_doc_context.py --check` enforces this. The next new ADR is `ADR-005`.
+**Renumbering note (2026-09-23):** The unified-client record was first filed as a second `ADR-003` and has been renumbered to `ADR-004`; its content and acceptance are unchanged. Historical records such as [`Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md) that say "ADR-003" refer to owned field entities. Every ADR must use a unique number; `scripts/check_doc_context.py --check` enforces this. The next new ADR is `ADR-006`.
 
 ## When to create an ADR
 

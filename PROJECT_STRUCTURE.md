@@ -1,7 +1,7 @@
 # Veyra Project Structure
 
 **Status:** Provisional structure; architecture direction is locked, exact module names may evolve.  
-**Engine target:** Unreal Engine 5.8  
+**Engine target:** Unreal Engine 5.8.3, source build (`ADR-001`); Windows client, Linux dedicated server (`ADR-005`)  
 **Ability framework:** Unreal Gameplay Ability System (GAS), per `ADR-002`  
 **Application architecture:** Single Unreal client with controlled states, per [`ADR-004`](Docs/ADR/ADR-004-unified-unreal-client-states.md)  
 **Read first:** [`ARCHITECTURE.md`](ARCHITECTURE.md)

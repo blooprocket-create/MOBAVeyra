@@ -153,7 +153,7 @@ Presentation may observe lower layers. Lower layers do not know presentation exi
 
 `VeyraDeveloper`-style test/debug tooling may depend on gameplay modules; production gameplay modules must never depend on developer tooling.
 
-Veyra targets **Unreal Engine 5.8** under [`ADR-001`](Docs/ADR/ADR-001-unreal-version-policy.md) and adopts Unreal's **Gameplay Ability System (GAS)** under [`ADR-002`](Docs/ADR/ADR-002-gameplay-ability-system.md). Exact Veyra module names remain provisional until the project is scaffolded. `PROJECT_STRUCTURE.md` records the current intended split.
+Veyra targets **Unreal Engine 5.8.3** (source build) under [`ADR-001`](Docs/ADR/ADR-001-unreal-version-policy.md) and adopts Unreal's **Gameplay Ability System (GAS)** under [`ADR-002`](Docs/ADR/ADR-002-gameplay-ability-system.md). Exact Veyra module names remain provisional until the project is scaffolded. `PROJECT_STRUCTURE.md` records the current intended split.
 
 ## 3. State ownership
 
@@ -282,14 +282,14 @@ Match Found/committed selection/live reconnect outrank optional Test Skin loadin
 
 ## 12. Deliberately open decisions
 
-The engine, ability-framework and unified-client choices are now locked by ADR: **Unreal Engine 5.8** (ADR-001), **GAS adoption** (ADR-002), and **one Unreal application with isolated client states** (ADR-004). The following implementation details remain open:
+The engine, ability-framework, unified-client and launcher/hosting choices are now locked by ADR: **Unreal Engine 5.8.3 from source** (ADR-001), **GAS adoption** (ADR-002), **one Unreal application with isolated client states** (ADR-004), and **a Tauri launcher with single-use launch-code handoff, Windows client/Linux server, local-first Docker hosting, a Go backend and Git LFS** (ADR-005). The following implementation details remain open:
 
 - exact final module names/count;
 - exact GAS Ability System Component placement and Attribute Set decomposition;
 - exact prediction model for each ability category;
-- backend/database/matchmaking vendor choices;
-- final build farm and CI provider;
-- final asset-management/LFS policy;
+- hosted vendors (identity provider, database host, match-server fleet, website host, CDN), deferred until a working local slice (ADR-005);
+- final build farm beyond the self-hosted runner (ADR-005);
+- detailed LFS file patterns and locking conventions;
 - detailed replay/determinism implementation.
 
 Do not invent these decisions in unrelated feature work. When one becomes necessary, decide it deliberately and record it if architectural.
