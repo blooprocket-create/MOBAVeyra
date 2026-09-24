@@ -21,6 +21,7 @@ Source/
 ├── VeyraItems/
 ├── VeyraFlux/
 ├── VeyraWorld/
+├── VeyraVision/
 ├── VeyraMatch/
 ├── VeyraVanguards/
 ├── VeyraUI/
@@ -52,6 +53,7 @@ Owns reusable combat truth.
 - mitigation/resistance calculations;
 - status effects and crowd-control primitives;
 - displacement primitives;
+- movement modes, including ride states (Combat Bible §56: a ride state is a movement mode on an ordinary pathing agent, not a separate system);
 - combat event data;
 - death-trigger inputs (not full match respawn policy).
 
@@ -81,6 +83,8 @@ Canonical owner for gold and economy rules.
 - economy transactions and audit/debug events.
 
 UI and items request transactions; they do not mutate gold directly.
+
+**Progression** (XP balances, levels, level-up stat increments and skill points) lives in this module for now as a **separate owner** with its own state, per the Economy & Progression Bible. It shares the module, not code paths: Gold and XP are never mixed in one class.
 
 ### VeyraItems
 
@@ -121,9 +125,20 @@ A Flux Spell cast does not consume shared Flux under the current game design. Sw
 - Spires and Prime Well world actors;
 - jungle camps and wildlife systems;
 - lane/Fluxway world behavior;
-- objective capture state and world interactions.
+- objective capture state and world interactions;
+- runtime navigation changes from ability-created terrain (Battleground Bible §2).
 
 World actors report outcomes to the authoritative owning systems rather than reaching directly into UI or champion code.
+
+### VeyraVision
+
+- ordinary map vision and fog of war;
+- Dense Fog volumes, authored and ability-created (Vision Bible §2);
+- wards, the vision-tool slot, Sweeper and Quick Sight;
+- stealth detection and True Sight reveal;
+- presence-sensor events.
+
+Combat still owns targetability and hit validation; Vision supplies what each team can see. Sits at the same layer as World.
 
 ### VeyraMatch
 
@@ -188,7 +203,7 @@ VeyraCore
    ↓
 Combat / Economy
    ↓
-Abilities / Items / Flux / World
+Abilities / Items / Flux / World / Vision
    ↓
 Match / Vanguards
    ↓
@@ -275,4 +290,4 @@ A **single installed Unreal client** contains the ordinary pre-game UI, Store/Co
 - **Performance:** versioned installed assets and budgeted caching/preloading, no mandatory on-demand download for installed skins, optional loads yield to time-critical match transitions. Separate permanent backend/cache records from ephemeral world/widget state.
 - **Required tests:** transition priority while testing/loading skins; no party/queue mutation from test map; no extra Shop/Settings/social entry in committed select or Reconnect-only; ability presentation parity Base/Skin; restart recovery to assigned match; valid/results-only shell restoration; stable memory bounds under repeated test-map enter/exit. Exact module names, map/world travel and Unreal implementation strategy remain provisional.
 
-**Current pre-game client design pause: after Proposal 92; wait for author “continue” before Proposal 93.**
+**Current pre-game client design pause: after UX-92; wait for author “continue” before UX-93.**

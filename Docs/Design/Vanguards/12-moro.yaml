@@ -53,8 +53,8 @@ guards:
   - 'Passive is terrain-conditional: increased percentage damage AND Attack Speed while in jungle terrain,
     plus healing from damaging wildlife. The deleted concept sheet kept only the healing (register §B5).'
   - No stacks and no evolving jungle state are required.
-  - The bible's role_identity label 'Jungler / Sorcerer' is positional and sits in tension with the roster
-    principle that the game enforces no role slots. Recorded here as terrain_affinity instead.
+  - Role label is 'Sorcerer' (the positional 'Jungler' label was removed 2026-09-23, matching the roster
+    principle that the game enforces no role slots). His jungle strength is recorded as terrain_affinity.
   - Intended to be the roster's beginner-friendly kit, though every ability is a skillshot.
 sheet:
   file: null

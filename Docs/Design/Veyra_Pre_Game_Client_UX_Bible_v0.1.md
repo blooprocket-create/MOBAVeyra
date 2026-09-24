@@ -2,6 +2,7 @@
 
 **Version:** 0.1 — Approved decisions through Pre-Game Client Proposal 92 (2026-09-23)  
 **Status:** Working design canon through Proposal 92, recording approvals, modifications, rejections and deferrals. **Paused after Proposal 92; do not propose 93 until the author says “continue”.**  
+**Proposal numbering:** This bible's proposals (1–92) form the **UX** series; cite them from other documents as **UX-*n*** (e.g. UX-50, UX-18–40). The [Settings & Accessibility Bible](Veyra_Settings_Accessibility_Bible_v0.1.md) numbers its proposals as a separate series, cited as **SET-*n***. Bare numbers in this document's own headings and lists refer to the UX series.  
 **Scope:** Persistent pre-game client shell, Home/Play, contextual social and party surfaces, notifications, matchmaking presentation, Vanguard roster/detail and Mastery pages, committed champion select, post-match results, Match History and Watch Replay entry, player profiles, Shop and checkout, interactive Test Skin, the unified Unreal application's client-state transitions, and reconnect-only recovery. Not a final art direction, implementation blueprint, or authority specification.  
 **Related:** [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns the launcher and one unified Unreal application's state transitions; [Parties, Social & Matchmaking Bible](Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) owns authoritative party/queue/invite/readiness restrictions; [Chat & Communication Bible](Veyra_Chat_Communication_Bible_v0.1.md) owns channels and permission; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) owns selection cancellation, reconnect, AFK/disconnect and outcomes; [Modes & Access Bible](Veyra_Modes_Access_Bible_v0.1.md) owns eligible modes; [Settings & Accessibility Bible](Veyra_Settings_Accessibility_Bible_v0.1.md) owns personal settings and the accessibility of all these client surfaces.
 
@@ -47,7 +48,7 @@
 
 - Match Found presents a **prominent blocking overlay** above the current pre-game page with mode, authoritative acceptance countdown, and explicit **Accept / Decline**. While pending, ordinary client page navigation, party controls and other actionable notifications are unavailable; the player cannot dismiss the overlay to browse.
 - After Accept, show waiting for remaining players. Do not launch champion select until match assembly and acceptance are confirmed by trusted services.
-- Decline, timeout or failed assembly returns to the previous page/panel state, reflecting the actual resulting party and queue state. Never auto-accept or alter acceptance/penalty rules. Where supported, the existing privacy-conscious OS background Match Found notification can offer explicit Accept/Decline subject to the same deadline (Settings Proposal 50).
+- Decline, timeout or failed assembly returns to the previous page/panel state, reflecting the actual resulting party and queue state. Never auto-accept or alter acceptance/penalty rules. Where supported, the existing privacy-conscious OS background Match Found notification can offer explicit Accept/Decline subject to the same deadline (SET-50).
 
 ### 6 — Solo queue creates a normal one-person party (approved **with modification**)
 

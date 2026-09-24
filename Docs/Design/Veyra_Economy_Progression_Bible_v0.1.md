@@ -124,6 +124,7 @@
 - The **first Spire destroyed anywhere in the match** additionally grants a **small global Gold bonus to every member of the destroying team**, including nonparticipants and players elsewhere or dead. This team bonus applies even if allied Fluxborn deliver the final blow.
 - Spire damage/chunks grant **no per-hit Gold** and Spires give **no XP**.
 - Spire destruction continues to grant the team its map-defined permanent Team Flux (prototype +25).
+- **Base-defense towers pay exactly like lane Spires:** the same recent-contributor Gold pool rules, no per-hit Gold and no XP. The first base-defense tower destroyed counts toward the **first Spire destroyed** team bonus if no lane Spire has fallen yet. Their permanent Team Flux is set by the Battleground Bible §18.
 
 ### 8.2 Inhibitors, Flux Wells, Prime Well
 
@@ -147,7 +148,7 @@
 - Gain **one skill point per level**. Skill points may be spent immediately via HUD/hotkey or saved indefinitely; allocation is instant and does not require leaving combat.
 - The standard kit has **three basic abilities with a maximum of five ranks each** and an **ultimate with a maximum of three ranks**: 5 + 5 + 5 + 3 = 18 total ranks.
 - **No Vanguard-level/rank gate on Q/W/E.** For example, a player may invest their first five points in one basic ability at Levels 1–5 while leaving the others unlearned.
-- Ultimate rank eligibility opens at **Levels 6, 11, and 16**. Unusual champion kits may have **explicitly documented exceptions**; do not impose standard Q/W/E/ultimate structure on a canon exception.
+- Ultimate rank eligibility opens at **Levels 6, 11, and 16**. Unusual champion kits may have **explicitly documented exceptions**; do not impose standard Q/W/E/ultimate structure on a canon exception. Documented exception: a ride state's replacement abilities share the rank of the basic ability in the same slot and cost no extra skill points (Combat Bible §56).
 - **Allocated points cannot be respecced during the match.** Saving unspent points is allowed.
 
 ## 10. Inventory, starting Gold, and fountain shop

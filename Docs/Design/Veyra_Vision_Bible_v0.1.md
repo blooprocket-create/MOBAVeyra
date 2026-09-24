@@ -73,7 +73,7 @@ Changing tools affects future activations; it does not retroactively remove a wa
 A Persistent Ward placed inside a Dense Fog volume is a **presence sensor**, not a remote enemy-Vanguard camera.
 
 - It does not grant allies outside the fog an enemy Vanguard's model, exact coordinates, outline, or direct target acquisition.
-- When an enemy Vanguard enters the ward's relevant fog coverage, the ward sends a **presence ping** to its team.
+- When an enemy Vanguard enters the ward's relevant fog coverage, the ward sends a **presence ping** to its team. *Relevant fog coverage* means the ward's own data-defined sensor area within that fog, **not the whole fog volume**.
 - When placed while an enemy Vanguard is already in the relevant fog coverage, the ward pings immediately.
 - The ping communicates that an enemy Vanguard is **present in that fog zone**, not their exact location.
 - Ping cadence, persistence, presentation, and sensor coverage are data-driven.
@@ -86,6 +86,7 @@ A Persistent Ward placed inside a Dense Fog volume is a **presence sensor**, not
 - Detected enemy wards are revealed to **the entire allied team** while validly detected, and any allied Vanguard may target and destroy them during that window.
 - A surviving ward becomes invisible again after detection ends unless another effect is still revealing it.
 - General combat visibility and targetability restrictions continue to apply to detected enemy units.
+- **True Sight** is the name for this reveal effect: it exposes Camouflaged and Invisible units within its area (Combat Bible §11). **Sweeper is currently the only source of True Sight.** Any future source must be defined as True Sight explicitly; ordinary wards and vision never grant it.
 
 ### Sweeper versus Dense Fog
 

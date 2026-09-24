@@ -3,7 +3,7 @@
 **Version:** 0.1 — Pre-game party, social, presence and queue decisions checkpoint  
 **Status:** Locked rules where stated; additional matchmaking and social design remains open  
 **Scope:** Parties, invitations, readiness, queue lifecycle, match-found acceptance, block restrictions, presence and friend requests.  
-**Related:** [Pre-Game Client UX](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) owns player-visible party panel, Play mode selection, actionable notifications, queue status and the reconnect-only client state (approved UX Proposals 1–92); this bible retains authoritative party/matchmaking rules. [Client & Platform](Veyra_Client_Platform_Bible_v0.1.md) owns the launcher handoff and client-state transitions; [Modes & Access](Veyra_Modes_Access_Bible_v0.1.md) owns mode eligibility and Vanguard selection; [Match Flow](Veyra_Match_Flow_Bible_v0.1.md) owns champion-select dodge and live-match departure; [Moderation](Veyra_Moderation_Telemetry_Bible_v0.1.md) owns reports and sanctions. [Chat & Communication](Veyra_Chat_Communication_Bible_v0.1.md) owns continuing Party Chat, friend DMs and user-level All Chat/mute behavior.
+**Related:** [Pre-Game Client UX](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) owns player-visible party panel, Play mode selection, actionable notifications, queue status and the reconnect-only client state (approved UX-1–92); this bible retains authoritative party/matchmaking rules. [Client & Platform](Veyra_Client_Platform_Bible_v0.1.md) owns the launcher handoff and client-state transitions; [Modes & Access](Veyra_Modes_Access_Bible_v0.1.md) owns mode eligibility and Vanguard selection; [Match Flow](Veyra_Match_Flow_Bible_v0.1.md) owns champion-select dodge and live-match departure; [Moderation](Veyra_Moderation_Telemetry_Bible_v0.1.md) owns reports and sanctions. [Chat & Communication](Veyra_Chat_Communication_Bible_v0.1.md) owns continuing Party Chat, friend DMs and user-level All Chat/mute behavior.
 
 > Persistent party/friend/block/queue state belongs to trusted services, not client widgets. Privacy and block checks must be authoritative on **both** matchmaking teams. All capacity, timers, rank thresholds and queue settings must be editable, validated data; the startup policy below records initial agreed values. This document does not select a backend vendor or matchmaking algorithm.
 
@@ -68,7 +68,7 @@
 - Launch matchmaking has no requirement to implement a Ranked rating/placement/season system or to split queues by party size. More restrictive party/queue structures may be explored if real matchmaking data warrants them.
 
 
-## 8. Pre-game client UX cross-reference — Proposals 1–17 (2026-09-22)
+## 8. Pre-game client UX cross-reference — UX-1–17 (2026-09-22)
 
 The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) establishes the following **presentation and navigation** details without changing this bible's party, capacity, block, permission, readiness, queue-lock or match-found authority:
 
@@ -77,14 +77,14 @@ The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) establish
 - While the party is queue-locked, ordinary social information/DMs may be received but party-changing invitation and leadership actions remain disabled. Match Found's acceptance overlay blocks ordinary navigation and uses the existing acceptance timer. Champion select **completely takes over** the pre-game client: no browsing, shopping, Settings or party management; the sidebar auto-minimizes with only selection-safe text chat available. Party state persists but its bottom management UI hides.
 - On verified match completion, restore party and social UI; retained party members return to **Not Ready** and may prepare the next eligible queue independently of whether others remain on results. If the application is closed or crashes **while the match is still live**, on restart its Reconnect-only state provides **Reconnect as its only action**: no party panel, social/chat UI, shopping or new queue. This blocks client access, **not** preservation of party membership or normal communication in the player's reconnected live gameplay. The dedicated match and other trusted services retain actual state authority.
 
-**At that checkpoint UX discussion was paused after Proposal 17 (historical; superseded — the current pause is after UX Proposal 92, see §9).**
+**At that checkpoint UX discussion was paused after UX-17 (historical; superseded — the current pause is after UX-92, see §9).**
 
 
-## 9. Unified Unreal client and in-queue Test Skin checkpoint — UX Proposals 86–92 (2026-09-23)
+## 9. Unified Unreal client and in-queue Test Skin checkpoint — UX-86–92 (2026-09-23)
 
 The ordinary Shop's interactive Test Skin map is available **during normal matchmaking** in the **same installed Unreal application**. The persistent bottom party panel/queue status remains available: opening/closing or loading a preview must not mutate, pause or restart queue state. A successful Match Found event interrupts/blocks the preview **immediately** with the existing authoritative Accept/Decline overlay; on accepted assembly, close preview before committed champion select. Optional preview asset loading is always lower priority than match assembly, selection, assigned live-match entry and reconnect. On failed assembly, return to eligible ordinary client state, reflecting the **actual** resulting party/queue state; a preview may resume if still permitted, not as a way to avoid readiness/queue locks.
 
-One Unreal application handles these as separate states under [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md); the **dedicated match and trusted party/matchmaking owners are unchanged**. During an assigned live match, neither ordinary client state nor Test Skin permits mid-match party management, purchases or fresh queue. Reconnect-only offers **Reconnect as the sole pre-game action** after crash/process restart while match live. Verified completion restores ordinary shell and approved post-match readiness. **Current UX pause: after Proposal 92.**
+One Unreal application handles these as separate states under [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md); the **dedicated match and trusted party/matchmaking owners are unchanged**. During an assigned live match, neither ordinary client state nor Test Skin permits mid-match party management, purchases or fresh queue. Reconnect-only offers **Reconnect as the sole pre-game action** after crash/process restart while match live. Verified completion restores ordinary shell and approved post-match readiness. **Current UX pause: after UX-92.**
 
 
 ## 10. Open work and validation
