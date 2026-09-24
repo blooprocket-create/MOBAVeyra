@@ -39,6 +39,17 @@ Working stat names include:
 - Critical Strike Chance
 - Physical Penetration
 - Magic Penetration
+- Critical Damage
+- Lifesteal
+- Omnivamp
+- Tenacity
+- Slow Resistance
+
+**Penetration comes in two forms for both damage types.** Physical Penetration and Magic Penetration each exist as a **percentage** and a **flat** stat, applied in the Combat Bible §3 order (percentage before flat). Each item's data states which form it grants; the stat names above cover both.
+
+Critical Damage, Lifesteal, Omnivamp, Tenacity and Slow Resistance are defined by the Combat Bible, which uses them; they are listed here so item data can grant them.
+
+**Prices are data, not bible canon.** Item prices, recipe completion costs and exact stat values are set in validated item data during the prototype and tuned by playtest. The bible does not need them before implementation starts. Economy's starting-Gold rule sizes against whatever the Tier 1 prices are in data.
 
 Final public-facing terminology and exact formulas remain open where not otherwise specified.
 
@@ -73,7 +84,7 @@ Movement Speed + Attack Speed.
 **Tier 2**  
 Movement Speed + Magic Power amplification.
 
-The exact Magic Power amplification model remains open.
+The exact Magic Power amplification model remains open until playtesting; it is not needed before implementation starts.
 
 ## 6. Current Tier 2 assemblies
 

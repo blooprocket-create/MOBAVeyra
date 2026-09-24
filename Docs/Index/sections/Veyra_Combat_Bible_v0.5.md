@@ -145,13 +145,13 @@ are regenerated when the source changes.
     - [L1631: Movement](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1631)
     - [L1645: Presence](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1645)
     - [L1653: Actions](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1653)
-    - [L1663: Replacement ability set](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1663)
-    - [L1675: Crowd control](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1675)
-    - [L1689: Leaving](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1689)
-    - [L1700: The separated vehicle](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1700)
-    - [L1716: Tuning](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1716)
-  - [L1720: 57. Combat-spec completion rule](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1720)
-  - [L1731: 58. Remaining open combat questions](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1731)
+    - [L1664: Replacement ability set](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1664)
+    - [L1678: Crowd control](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1678)
+    - [L1692: Leaving](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1692)
+    - [L1703: The separated vehicle](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1703)
+    - [L1719: Tuning](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1719)
+  - [L1723: 57. Combat-spec completion rule](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1723)
+  - [L1734: 58. Remaining open combat questions](../../Design/Veyra_Combat_Bible_v0.5.md?plain=1#L1734)
 
 Read only the source section you need; this map does not
 replace the bible, approved ADRs, or the architecture rules.

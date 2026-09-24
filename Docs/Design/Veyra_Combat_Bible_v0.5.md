@@ -429,7 +429,7 @@ Invisible Vanguards remain hidden regardless of ordinary proximity unless reveal
 - Attacking or casting an offensive ability normally breaks stealth unless explicitly allowed.
 - A reveal may expose a stealthed Vanguard without cancelling the stealth buff itself.
 - Ordinary wards do not automatically reveal Invisibility.
-- True Sight reveals valid Camouflaged/Invisible targets within its area.
+- True Sight reveals valid Camouflaged/Invisible targets within its area. The Vision Bible §5 defines it; Sweeper is currently its only source.
 - Stealth does not make a Vanguard Untargetable.
 - Targeted projectiles already launched do not disappear because the target enters stealth.
 - AoEs, skillshots, and other non-targeted effects may hit stealthed/camouflaged targets without seeing them.
@@ -1469,10 +1469,10 @@ These values are intentionally data-driven and expected to change through testin
 - Cast-Time pre-Commit interruption cooldown: 20% of normal cooldown
 - Vanguard Combat out-of-combat delay: 5 sec
 - Assist window starting point: 10 sec
+- Kill-credit window starting point (environment finishes the target, §18 Kill credit): 10 sec
 - Structure Effectiveness for secondary attack riders: 50%
-- Spire ramp per consecutive hit: +20%
-- Spire ramp maximum: 5 stacks
-- Spire ramp reset timer: 3 sec
+- Tower ramp per consecutive hit (lane Spires and base-defense towers, §33): +20%
+- Tower ramp maximum: 5 stacks
 
 ## 50. Delayed effects and snapshot timing
 
@@ -1658,7 +1658,8 @@ While in a ride state, the rider:
 - **cannot damage structures**, which follows from the above, since structures take damage primarily from basic attacks (§33).
 - **retains** any earned empowered basic attack, which may be spent after leaving the state.
 - **may** use Flux Spells.
-- **may not** recall or use the shop. Both require leaving the state first.
+- **may not** recall or use the fountain shop. Both require leaving the state first.
+- **may** browse the shop and pay for **remote purchases** under the Economy & Progression Bible §10. Those items join the ordinary pending-delivery queue and, like any remote purchase, are delivered only at the fountain, which a rider cannot use until the ride state ends.
 
 ### Replacement ability set
 
@@ -1671,6 +1672,8 @@ Mounted actions:
 - are eligible for the rider's own basic-ability empowerment mechanics.
 
 The mounted and unmounted ability sets maintain **completely independent cooldowns**, and both sets continue to progress while either is active.
+
+**Ranks.** Each mounted ability **shares the rank of the basic ability in the same slot**. Mounted abilities cost no skill points of their own, and ranking up a basic ability ranks up its mounted counterpart at the same time. This is the documented exception the Economy & Progression Bible §9 allows for.
 
 ### Crowd control
 

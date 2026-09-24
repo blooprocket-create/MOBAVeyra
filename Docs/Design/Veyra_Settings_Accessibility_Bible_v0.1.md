@@ -2,6 +2,7 @@
 
 **Version:** 0.1 — Consolidated approved/rejected decisions, Proposals 1–168 (2026-09-21)  
 **Status:** Working design canon and player-facing menu consolidation. Proposal 168 approved ending routine one-feature-at-a-time expansion; implementation details and identified open questions remain separate design work.  
+**Proposal numbering:** This bible's proposals (1–168) form the **SET** series; cite them from other documents as **SET-*n*** (e.g. SET-50, SET-111–120). The [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) numbers its proposals as a separate series, cited as **UX-*n***. Bare numbers in this document's own headings and lists refer to the SET series.  
 **Scope:** Personal controls, casting, camera, interface, accessibility, audio, graphics, language, settings persistence and in-match access.  
 **Related:** [Combat Bible](Veyra_Combat_Bible_v0.5.md) owns actual attack, ability, targeting and status rules; [Vision Bible](Veyra_Vision_Bible_v0.1.md) owns permitted information; [Chat & Communication Bible](Veyra_Chat_Communication_Bible_v0.1.md) owns recipients, All Chat, mute and communication permissions; [Client & Platform Bible](Veyra_Client_Platform_Bible_v0.1.md) owns the launcher handoff and client-state transitions; [Match Flow Bible](Veyra_Match_Flow_Bible_v0.1.md) owns match phases and outcomes. [Architecture](../../ARCHITECTURE.md) still governs implementation.
 

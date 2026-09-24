@@ -165,10 +165,14 @@ Before implementing a feature, identify its authoritative owner.
 | Attributes and status effects | Combat/attribute system |
 | Ability execution and cooldown state | Ability system |
 | Gold and purchase affordability | Economy system |
+| XP, levels and skill points | Progression system (separate owner in the Economy module) |
 | Inventory and item ownership | Item/inventory system |
-| Team Flux totals and thresholds | Flux system / team-authoritative state |
+| Team Flux totals and thresholds | Flux system: one per-team ledger of permanent Flux and active temporary grants (design rules: Battleground Bible) |
 | Flux Spell loadout and unlock state | Flux Spell system, validated against team Flux |
 | Objectives and capture state | Objective/world system |
+| Runtime navigation changes (ability-created terrain) | World/navigation system |
+| Map vision, Dense Fog, wards, stealth reveal | Vision system |
+| Ride states and other movement modes | Combat system (movement primitives) |
 | Teams, score, match phase, victory | Match state systems |
 | HUD / shop / scoreboard rendering | UI only; never authoritative |
 
@@ -270,7 +274,7 @@ ADRs should record the context, decision, consequences, and alternatives conside
 
 ## 11. Unified Unreal client-state architecture — ADR-004 (2026-09-23)
 
-The author approved UX Proposals 90–92 and [ADR-004](Docs/ADR/ADR-004-unified-unreal-client-states.md). The launcher still owns authentication/install/patch; **one installed Unreal application** hosts ordinary pre-game browsing, Shop, social/party UI, Test Skin, Match Found, champion select, live gameplay, post-match results, replay, spectator and Reconnect-only as **separate controlled UI/input/resource states**. The dedicated authoritative match server and trusted account, commerce, matchmaking and party owners remain independent of process/state uptime.
+The author approved UX-90–92 and [ADR-004](Docs/ADR/ADR-004-unified-unreal-client-states.md). The launcher still owns authentication/install/patch; **one installed Unreal application** hosts ordinary pre-game browsing, Shop, social/party UI, Test Skin, Match Found, champion select, live gameplay, post-match results, replay, spectator and Reconnect-only as **separate controlled UI/input/resource states**. The dedicated authoritative match server and trusted account, commerce, matchmaking and party owners remain independent of process/state uptime.
 
 **No parallel pre-game/game executable assumption** and **no second Vanguard combat implementation in Shop UI**. Test Skin may reuse installed assets and reusable C++/GAS gameplay primitives under isolated test-only rules, but may not mint progression, entitlements, match state or authoritative combat results. Transition logic coordinates states via explicit contracts/events; no single giant persistent map, god GameInstance/controller, circular dependency, UI-owned gameplay logic or duplicated authority calculations.
 

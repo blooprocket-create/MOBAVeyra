@@ -24,6 +24,13 @@ This document consolidates the vision and ward decisions established during batt
 - Skillshots, ground-targeted abilities, and other non-targeted effects can still be aimed into Dense Fog and hit valid hidden enemies when their gameplay geometry intersects.
 - An enemy inside Dense Fog is **not literally in the Combat Bible's Untargetable state** merely because the observer is outside; the restriction is on the outside observer's direct targeting/acquisition. This matters for AoEs, existing DoTs, projectiles, and other combat interactions.
 
+### Ability-created Dense Fog (ruled 2026-09-23)
+
+- **Abilities may create Dense Fog at runtime.** A fog volume created during a match by an ability (currently Sylra's **Lay the Mist** and **Through the White**) is **the same construct** as a map-authored Dense Fog volume, not a lookalike visual effect. Every rule in this section and in §4–§6 applies to it unchanged: outside-observer concealment, the same-volume rule for direct vision and targeting, ward and Waymark presence behavior, Sweeper outlines and Quick Sight.
+- The **Vision system owns** runtime fog volumes, as it owns authored ones (per [ADR-003](../ADR/ADR-003-owned-field-entities.md)). The creating ability supplies only placement, shape and lifetime from validated data; it does not implement its own concealment. When the volume expires, the fog's effects end at once, with no lingering concealment.
+- The Battleground Bible still owns **where map-authored fog is placed**; abilities do not move or remove it.
+- **Overlapping fog is one volume.** When an ability-created volume overlaps or touches another Dense Fog volume, authored or ability-created, the connected fog counts as **one fog volume** for the same-volume rule while they stay connected. A Vanguard inside any part of it can directly see and target enemies anywhere in it. When a created volume expires, the remaining fog splits back into its separate volumes at once.
+
 ## 3. One dedicated vision-tool slot
 
 Every Vanguard has **one dedicated vision-tool slot**, separate from ordinary inventory and Flux Spell slots.
@@ -66,7 +73,7 @@ Changing tools affects future activations; it does not retroactively remove a wa
 A Persistent Ward placed inside a Dense Fog volume is a **presence sensor**, not a remote enemy-Vanguard camera.
 
 - It does not grant allies outside the fog an enemy Vanguard's model, exact coordinates, outline, or direct target acquisition.
-- When an enemy Vanguard enters the ward's relevant fog coverage, the ward sends a **presence ping** to its team.
+- When an enemy Vanguard enters the ward's relevant fog coverage, the ward sends a **presence ping** to its team. *Relevant fog coverage* means the ward's own data-defined sensor area within that fog, **not the whole fog volume**.
 - When placed while an enemy Vanguard is already in the relevant fog coverage, the ward pings immediately.
 - The ping communicates that an enemy Vanguard is **present in that fog zone**, not their exact location.
 - Ping cadence, persistence, presentation, and sensor coverage are data-driven.
@@ -79,6 +86,7 @@ A Persistent Ward placed inside a Dense Fog volume is a **presence sensor**, not
 - Detected enemy wards are revealed to **the entire allied team** while validly detected, and any allied Vanguard may target and destroy them during that window.
 - A surviving ward becomes invisible again after detection ends unless another effect is still revealing it.
 - General combat visibility and targetability restrictions continue to apply to detected enemy units.
+- **True Sight** is the name for this reveal effect: it exposes Camouflaged and Invisible units within its area (Combat Bible §11). **Sweeper is currently the only source of True Sight.** Any future source must be defined as True Sight explicitly; ordinary wards and vision never grant it.
 
 ### Sweeper versus Dense Fog
 

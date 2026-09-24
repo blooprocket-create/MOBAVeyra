@@ -9,19 +9,19 @@
 
 ## 1. Locked — public profiles and viewing
 
-- Players can view another player's **permitted public profile**: display name, official profile icon, confirmed account level and **one player-chosen owned featured Vanguard** (base artwork, name and their confirmed mastery level). **Full Match History, detailed match statistics and final builds are private by default**, visible on another player's profile only when that player enables **Show Match History on My Profile** (UX Proposal 72); eligible replay links remain governed by Replay Bible access/retention, independently of profile-based access. Do **not** expose a public all-Vanguard Mastery collection (Proposal 73 rejected).
+- Players can view another player's **permitted public profile**: display name, official profile icon, confirmed account level and **one player-chosen owned featured Vanguard** (base artwork, name and their confirmed mastery level). **Full Match History, detailed match statistics and final builds are private by default**, visible on another player's profile only when that player enables **Show Match History on My Profile** (UX-72); eligible replay links remain governed by Replay Bible access/retention, independently of profile-based access. Do **not** expose a public all-Vanguard Mastery collection (UX-73 rejected).
 - **Blocking takes precedence over profile viewing and social interaction:** two mutually blocked accounts cannot use each other's player profiles to interact or bypass their block.
 - Full public *game* profile does **not** mean personal account data is public. Email, credentials, account security settings, private messages and moderator-only chat/evidence are never public profile fields.
 - A player's own ordinary-client profile/Match History remains accessible while queueing (subject to Match Found, champion-select and live-match Reconnect-only restrictions). **Match History on the public profile is private by default; its owner can opt into profile-based sharing and later disable it.** Turning it off does not delete records or revoke other participants' independent access to their copy of shared-match results.
 
 ## 2. Locked — profile hero and appearance
 
-- Profiles are customizable. **No Vanguard is automatically featured**: the player may explicitly choose one of their permanently owned Vanguards or clear the selection; otherwise show a neutral empty state. This UX Proposal 71 decision **supersedes** the earlier most-played default. Do not auto-select the highest-Mastery or most-played Vanguard.
+- Profiles are customizable. **No Vanguard is automatically featured**: the player may explicitly choose one of their permanently owned Vanguards or clear the selection; otherwise show a neutral empty state. This UX-71 decision **supersedes** the earlier most-played default. Do not auto-select the highest-Mastery or most-played Vanguard.
 - A player may **manually choose one permanently owned Vanguard** as their featured hero or clear it; free rotation without permanent ownership does not qualify. Feature uses **base artwork and confirmed mastery level** (or no recorded progress), not a public full mastery collection.
-- The featured Vanguard uses **base artwork** under UX Proposals 71 and 74; an owned skin does not automatically change its profile presentation or equip it in a match. Historical allowance for featured-hero skin display is superseded by the approved base-artwork profile presentation. Skin ownership never creates Vanguard ownership or Ranked eligibility.
+- The featured Vanguard uses **base artwork** under UX-71 and UX-74; an owned skin does not automatically change its profile presentation or equip it in a match. Historical allowance for featured-hero skin display is superseded by the approved base-artwork profile presentation. Skin ownership never creates Vanguard ownership or Ranked eligibility.
 - Players choose their profile icon from **officially available Veyra icons only; user image uploads are not supported**.
 - Launch selection includes **approximately 30 freely available icons**. Additional icons are unlockable through **events**.
-- Players may select and preview **available officially provided profile icons and profile backgrounds**, with a default background always available (UX Proposal 75 confirms earlier profile customization; do not build a duplicate system). Sources, catalogs, launch assets, pricing and other optional display-item types remain undecided; no user-uploaded images.
+- Players may select and preview **available officially provided profile icons and profile backgrounds**, with a default background always available (UX-75 confirms earlier profile customization; do not build a duplicate system). Sources, catalogs, launch assets, pricing and other optional display-item types remain undecided; no user-uploaded images.
 - Profile cosmetics are display-only and must not provide in-match advantages or modify the accuracy of account stats, Mastery or Match History.
 
 ## 3. Locked — account creation, login and verification
@@ -51,13 +51,13 @@
 - Account creation vs rename vs forced-rename claim flows must enforce the same global uniqueness atomically. Name claiming is not account deletion, ban evasion, entitlement transfer, or a mechanism to change someone's account ID.
 
 
-## 6. Pre-game Client profile/privacy checkpoint — Proposals 68–75 (2026-09-23)
+## 6. Pre-game Client profile/privacy checkpoint — UX-68–75 (2026-09-23)
 
 The player's **own** ordinary Vanguard roster/detail pages show confirmed Mastery level/progress/reward requirements even on unowned Vanguards (68–69); **expanded reward inspection was rejected** (70). Public profile showcases **one chosen permanently owned Vanguard** using base artwork and own confirmed Mastery level (71, 74), or a neutral no-featured-Vanguard state if unset. No automated most-played/highest-mastery featured selection. The **public browsable Mastery collection was rejected** (73), notwithstanding older generic “per-Vanguard Mastery” wording in profile concepts.
 
 **Full match history/stats/builds are private by default through the profile** (72); the owner may explicitly enable or disable “Show Match History on My Profile”. Independent match participants retain access to their own copy of shared match results, and Replay Bible links/permissions remain separate. Owner may preview and choose an available official profile icon and background; a default background is always available (75). No skin is equipped by changing profile cosmetics, and the profile hero uses base artwork under 71/74. These decisions supersede older conflicting profile defaults; see [Pre-Game Client UX Bible](Veyra_Pre_Game_Client_UX_Bible_v0.1.md) §8.
 
-**Architecture:** Profile display is an ordinary state in **one Unreal application**, not a separate standalone pre-game executable; website identity/launcher authentication and trusted account records keep their current boundaries under [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md). **Current client design pause: after Proposal 92.**
+**Architecture:** Profile display is an ordinary state in **one Unreal application**, not a separate standalone pre-game executable; website identity/launcher authentication and trusted account records keep their current boundaries under [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md). **Current client design pause: after UX-92.**
 
 
 ## 7. Open work and validation

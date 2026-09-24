@@ -124,6 +124,7 @@
 - The **first Spire destroyed anywhere in the match** additionally grants a **small global Gold bonus to every member of the destroying team**, including nonparticipants and players elsewhere or dead. This team bonus applies even if allied Fluxborn deliver the final blow.
 - Spire damage/chunks grant **no per-hit Gold** and Spires give **no XP**.
 - Spire destruction continues to grant the team its map-defined permanent Team Flux (prototype +25).
+- **Base-defense towers pay exactly like lane Spires:** the same recent-contributor Gold pool rules, no per-hit Gold and no XP. The first base-defense tower destroyed counts toward the **first Spire destroyed** team bonus if no lane Spire has fallen yet. Their permanent Team Flux is set by the Battleground Bible §18.
 
 ### 8.2 Inhibitors, Flux Wells, Prime Well
 
@@ -147,7 +148,7 @@
 - Gain **one skill point per level**. Skill points may be spent immediately via HUD/hotkey or saved indefinitely; allocation is instant and does not require leaving combat.
 - The standard kit has **three basic abilities with a maximum of five ranks each** and an **ultimate with a maximum of three ranks**: 5 + 5 + 5 + 3 = 18 total ranks.
 - **No Vanguard-level/rank gate on Q/W/E.** For example, a player may invest their first five points in one basic ability at Levels 1–5 while leaving the others unlearned.
-- Ultimate rank eligibility opens at **Levels 6, 11, and 16**. Unusual champion kits may have **explicitly documented exceptions**; do not impose standard Q/W/E/ultimate structure on a canon exception.
+- Ultimate rank eligibility opens at **Levels 6, 11, and 16**. Unusual champion kits may have **explicitly documented exceptions**; do not impose standard Q/W/E/ultimate structure on a canon exception. Documented exception: a ride state's replacement abilities share the rank of the basic ability in the same slot and cost no extra skill points (Combat Bible §56).
 - **Allocated points cannot be respecced during the match.** Saving unspent points is allowed.
 
 ## 10. Inventory, starting Gold, and fountain shop
@@ -238,7 +239,7 @@
 - Economy system owns Gold balances, all reward calculation, reward ownership, payouts, devaluation, bounty amounts, purchase accounting, pending transactions, refunds, and buyback transactions.
 - Progression system owns XP balances, eligibility-aware XP splits, thresholds, levels, level-up stat increments, unspent/allocated skill points, and max-level exclusion.
 - Combat owns actual death and contributor/kill/assist attribution and emits authoritative result events consumed by the economy; it does not independently award duplicate Gold/XP.
-- Battleground owns objective completion and team permanent/temporary Flux state; economy consumes the relevant death/capture/destruction event to pay rewards.
+- Battleground owns objective completion. The **Battleground Bible** owns Team Flux's design rules (sources, amounts, expiry and Fluxborn scaling); at runtime the single **Flux system** holds each team's authoritative permanent/temporary Flux state (see `ARCHITECTURE.md` §3). Economy consumes the relevant death/capture/destruction event to pay rewards, and receives the active Team Flux it needs for Fluxborn farm rewards **in the Fluxborn death event** rather than querying the Flux system.
 - Item/inventory systems own item instances, recipes, slot placement, activation state, and atomic delivery; UI displays server-owned queue, costs, and balances without inventing purchases.
 - Vision and Flux Spell loadout systems own their respective dedicated slots and cooldowns; economy validates and charges fountain swaps.
 

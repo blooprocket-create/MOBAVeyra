@@ -9,7 +9,7 @@
 
 ## 1. Locked — replay for every match
 
-- **Every game has a replay recording**: matchmade PvP, Co-op vs AI, future Ranked and custom/private games, including games resolved by remake where a recording exists. Custom/private replay support does **not** mean those games grant account XP or Vanguard Mastery.
+- **Every game has a replay recording**: matchmade PvP, Co-op vs AI, future Ranked and custom/private games, including games resolved by remake: **remakes are always recorded** (ruled 2026-09-23). Custom/private replay support does **not** mean those games grant account XP or Vanguard Mastery.
 - Custom match replay coverage also includes **single-human 1v0 solo practice, uneven teams, mixed human/AI sides and individually configured bot difficulties**. **Host-ended open-ended practice is a completed custom session**, with an explicit **host-ended/no competitive winner** result and its gameplay recording finalized for the existing completed-replay availability, saving and retention rules. Exact replay protocol, early-exit/crash recovery and completion metadata remain architecture work; never drop the recording merely because the match is nonstandard.
 - A completed replay can be opened from the player's Match History or by anyone who has an **available replay link**. A player **does not have to be a participant** to watch or save a linked replay.
 - Public replay access confers **viewing** permission, not participant status, account ownership, moderation privileges, reporting rights, party membership or eligibility to spectate an unrelated live match.
@@ -69,11 +69,11 @@
 - **Public replay/spectator UI still does not show archived in-match, team or party chat.** The zero-delay custom option changes playback timing, not moderation evidence permissions, block rules, account reporting rights, recording retention or completed replay-link policy.
 
 
-## 8. Unified Unreal replay/spectator state checkpoint — Client UX Proposals 63, 90–92 (2026-09-23)
+## 8. Unified Unreal replay/spectator state checkpoint — Client UX-63, UX-90–92 (2026-09-23)
 
 **Watch Replay** is available from eligible Match History records, showing actual unavailable/processing/retention state. Starting replay or authorized live spectating **transitions within the same installed Unreal application** to a distinct Replay or Spectator mode; it does **not** launch a second Unreal executable. Leaving an opened history replay returns to the originating Match History entry without changing party readiness. Normal replay-link authorization, recording availability/retention, three-minute matchmade spectator delay, eligible custom spectator delay, saved slots, confidentiality, and public no-chat rules are **unchanged**. The app must not allow replay/spectator state to bypass a live assigned match's **Reconnect-only** restriction or turn spectator into an active Vanguard slot.
 
-See [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md). Mode map/input/asset cleanup and return/navigation lifecycle remain implementation details, not a new replay or spectator permission. The pre-game client design is paused after Proposal **92**.
+See [ADR-004](../ADR/ADR-004-unified-unreal-client-states.md). Mode map/input/asset cleanup and return/navigation lifecycle remain implementation details, not a new replay or spectator permission. The pre-game client design is paused after **UX-92**.
 
 
 ## 9. Architecture work required before implementation

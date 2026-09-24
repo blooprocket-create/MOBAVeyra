@@ -52,7 +52,7 @@ The game supplies a three-lane battlefield, an encompassing jungle, Flux Wells, 
 | 9 | **Torr, The Unreturned** | Tank / Warden | Magic / Utility | Fluxborn | A Breaker that became permanent |
 | 10 | **Marek, The Black Accord + Nix** | Warlock / Mobile Burst Caster | Magic | Drowned Cantons / Elsewhere | Fight from two positions at once |
 | 11 | **Neris, The Tidebound** | Utility Caster / Enchanter | Magic | Drowned Cantons | Living-wave mobility, Calm/Storm states |
-| 12 | **Moro, The Wildspark** | Jungler / Sorcerer | Magic | Wildwood | Simple predator mage stronger in jungle terrain |
+| 12 | **Moro, The Wildspark** | Sorcerer | Magic | Wildwood | Simple predator mage stronger in jungle terrain |
 | 13 | **Qazharr, The Harbor Wolf** | Fighter / Duelist | Physical | Drowned Cantons, adopted home | Sustained melee pressure and commitment |
 | 14 | **Varkesh, The Forgeheart** | Battlemage / Warden | Magic | Ember Basin | Molten anti-mobility control |
 | 15 | **Angeru, The Housebreaker** | Assassin / Skirmisher | Physical | Reed Provinces | Dual-stance Veil/Blade mastery, shadows, resets, flowing swordplay |
@@ -777,7 +777,7 @@ The cast locks the current Sea State and leaves a corresponding trail:
 
 **Origin:** Wildwood / Verdant Depths  
 **Nature:** Native horned/antler-like jungle predator with Wildlight magic  
-**Role identity:** Beginner-friendly magic jungler/sorcerer  
+**Role identity:** Beginner-friendly magic sorcerer, strongest in jungle terrain  
 **Core fantasy:** A simple magical predator that is strongest in its own terrain.
 
 Moro is genuinely animal, not a speaking humanoid hidden inside a beast design.
@@ -1218,8 +1218,8 @@ Outside Dense Fog, the Waymark provides local ward-style vision.
 Inside Dense Fog, it obeys the normal fog-ward rules:
 
 - it does not reveal exact enemy positions to allies outside the fog;
-- it pings when an enemy Vanguard enters the fog;
-- if an enemy Vanguard is already present when the Waymark is placed, it immediately reports enemy presence.
+- it pings when an enemy Vanguard enters its sensor coverage in the fog;
+- if an enemy Vanguard is already inside that coverage when the Waymark is placed, it immediately reports enemy presence.
 
 Allied Vanguards within the Waymark's vicinity gain a **regenerative shield**.
 

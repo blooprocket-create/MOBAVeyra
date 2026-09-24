@@ -5,7 +5,7 @@ Start with [Veyra's agent context map](../CONTEXT_MAP.md), select the single own
 - [Initial Roster Character Bible — find one Vanguard and its individual abilities](sections/Veyra_Initial_Roster_Character_Bible_v0.6.md)
 - [Combat Bible — find individual combat semantics and ride-state rules](sections/Veyra_Combat_Bible_v0.5.md)
 - [Battleground Bible — find map, jungle, waves, objectives and towers](sections/Veyra_Battleground_Bible_v0.9.md)
-- [Pre-Game Client UX Bible — find proposal groups 1–92 and current client behavior](sections/Veyra_Pre_Game_Client_UX_Bible_v0.1.md)
+- [Pre-Game Client UX Bible — find proposal groups UX-1–92 and current client behavior](sections/Veyra_Pre_Game_Client_UX_Bible_v0.1.md)
 - [Settings & Accessibility Bible — find a particular settings category and proposal](sections/Veyra_Settings_Accessibility_Bible_v0.1.md)
 - [Client & Platform Bible — find unified Unreal state transitions and ownership](sections/Veyra_Client_Platform_Bible_v0.1.md)
 

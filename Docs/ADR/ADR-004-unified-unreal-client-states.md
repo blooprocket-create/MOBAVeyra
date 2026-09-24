@@ -2,7 +2,7 @@
 
 **Status:** Accepted  
 **Date:** 2026-09-23  
-**Approved in:** Pre-Game Client UX Proposals 90–92 (author-approved; paused after Proposal 92)  
+**Approved in:** Pre-Game Client UX-90–92 (author-approved; paused after UX-92)  
 **Related:** [Architecture Constitution](../../ARCHITECTURE.md), [Project Structure](../../PROJECT_STRUCTURE.md), [Client & Platform Bible](../Design/Veyra_Client_Platform_Bible_v0.1.md), [Pre-Game Client UX Bible](../Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md).
 
 ## Context

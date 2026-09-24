@@ -59,6 +59,14 @@ A Vanguard who attunes to one of the Crucible's Prime Wells can project a tempor
 
 A veteran MOBA player should understand the macro map quickly, but should not be able to overlay another game's wall, brush, river, or gank geometry and instantly know every route.
 
+### Ability-created terrain (ruled 2026-09-23)
+
+- **Abilities may change pathing for both teams at runtime.** Temporary impassable terrain created by an ability (currently the cooled black-iron wall from Varkesh's **Forge Divide**) is **real terrain** while it exists: it blocks movement for every unit, both teams and neutral wildlife alike, and pathing units route around it. It is not a collision volume that only some units respect.
+- The Combat Bible's terrain rules apply to it unchanged: it stops ordinary displacement at the nearest legal point, displacement never places a Vanguard inside it, each Dash declares whether it may cross terrain, Ghosted never ignores it, and a ride state grants no traversal over it.
+- The **Battleground/navigation system owns** runtime terrain (per [ADR-003](../ADR/ADR-003-owned-field-entities.md)). The creating ability supplies placement, shape and lifetime from validated data. When the terrain expires or is destroyed (for example by **Shatterforge**), pathing is restored at once.
+- Runtime navigation updates are therefore a shipping requirement, with their own performance and server-authority tests.
+- **Units caught where terrain forms are moved out.** A unit standing inside the footprint when the terrain forms is moved to the **nearest legal point**, the same resolution the Combat Bible uses for displacement into terrain. This move is a placement correction, not a knockback: it deals no damage and applies no crowd control.
+
 ## 3. PRIME WELLS & MATCH VICTORY
 
 **THE NETWORK ANCHORS**
@@ -200,7 +208,7 @@ Jungle camps are living Veyran fauna. They are not Fluxborn, not summoned constr
 
 | **GOLD / ITEMS**    | Personal Vanguard power. Earned through Fluxborn last hits, jungle farming, takedowns, structures, and other tuned sources.                                  |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **TEAM FLUX**       | Collective lane pressure. Permanent Flux comes from destroyed Spires; temporary Flux comes from Flux Wells and destroyed inhibitors. All current Team Flux strengthens allied lane Fluxborn globally, not Vanguards. |
+| **TEAM FLUX**       | Collective lane pressure. Permanent Flux comes from destroyed Spires and base-defense towers (§18); temporary Flux comes from Flux Wells and destroyed inhibitors. All current Team Flux strengthens allied lane Fluxborn globally, not Vanguards. |
 | **WILDLIFE TRAITS** | Temporary tactical adaptations from jungle camps. Strong enough to matter for routing and timing, but not permanent team scaling.                            |
 
 **WHY THIS MATTERS**
@@ -248,14 +256,15 @@ Veyra does **not** currently use traditional brush/bush concealment. Instead, th
 - This remains true even if an allied Vanguard is currently inside that fog.
 - Champion vision inside Dense Fog is **local to the observer**: to directly see enemy Vanguards in the fog, your own Vanguard must also be inside that same fog volume.
 - Dense Fog therefore creates commitment zones rather than ordinary shared-vision bushes.
+- **Placements are deferred on purpose.** Where map-authored Dense Fog sits is decided with the grey-box map, not in this bible; it is not required before implementation starts. The rules above, and the Vision Bible, apply to every placement.
 
 ### Wards inside Dense Fog
 
 A ward placed inside Dense Fog acts as a **presence sensor**, not a remote champion-vision source.
 
 - It does not reveal the exact position/model of enemy Vanguards inside the fog to allies outside.
-- If an enemy Vanguard enters that Dense Fog while the ward is active, the ward pings enemy presence.
-- If the ward is placed while an enemy Vanguard is already inside the fog, it immediately pings that the fog is occupied.
+- If an enemy Vanguard enters the **ward's sensor coverage** inside that fog while the ward is active, the ward pings enemy presence. It senses its own data-defined coverage area, not the whole fog volume (the Vision Bible §4 owns this rule).
+- If the ward is placed while an enemy Vanguard is already inside its coverage, it immediately pings that the area is occupied.
 - The ping communicates **presence in the fog zone**, not exact enemy coordinates.
 - Exact ping cadence, cooldown, persistence, and UI treatment remain tunable.
 
@@ -347,7 +356,7 @@ Players may change their equipped Flux Spells **only at their own Fountain shop*
 
 - Replacing an equipped Flux Spell costs **gold**.
 - The replacement cost creates a real adaptation tradeoff because that gold is no longer available for item progression.
-- Swapping does not bypass the new spell's Team Flux threshold.
+- Swapping does not bypass the target slot's permanent-Flux threshold: thresholds belong to slots, not to individual spells.
 - Remote queued item purchases **cannot** pre-equip or change Flux Spells. The original prematch selections cost no Gold.
 - Exact replacement cost remains tunable.
 
@@ -494,7 +503,7 @@ The [Parties, Social & Matchmaking Bible v0.1](Veyra_Parties_Social_Matchmaking_
 
 ### Fluxborn waves
 
-- A synchronized **15–20-second preparation countdown** precedes the match clock. The exits open together at **0:00**, and the first Fluxborn wave **spawns at 0:30**.
+- A synchronized **15-second preparation countdown** (prototype value, owned by the Match Flow Bible) precedes the match clock. The exits open together at **0:00**, and the first Fluxborn wave **spawns at 0:30**.
 - All **three lanes spawn simultaneously** on the same schedule. Wave arrival/meeting times may vary with actual path length. Lane-specific spawn offsets can be added as data **if playtesting requires**, not assumed in advance.
 - Provisional wave interval: **30 seconds until 14:00; 25 seconds from 14:00 to 30:00; 20 seconds thereafter**. Explicit editable phase boundaries and spawn alignment must avoid duplicate/missed waves when crossing a phase.
 - Ordinary waves contain **frontline and ranged Fluxborn**, with a **tougher siege Fluxborn periodically**. Quantities, unit variants, and siege periodicity are configurable.

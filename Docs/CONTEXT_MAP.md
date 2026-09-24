@@ -2,7 +2,7 @@
 
 **Purpose:** Route an agent to the *smallest authoritative source* for a task. This page is a navigation aid, not a replacement for the linked design documents, the architecture constitution, or accepted decisions.
 
-**Current scope:** All active design bibles in `Docs/Design/` (not `Archives/`). Client UX approvals are recorded through **Proposal 92**; discussion is paused until the author says **“continue.”** Do not extrapolate or approve Proposal 93.
+**Current scope:** All active design bibles in `Docs/Design/` (not `Archives/`). Client UX approvals are recorded through **UX-92**; discussion is paused until the author says **“continue.”** Do not extrapolate or approve UX-93.
 
 ## Minimal-read protocol
 
@@ -23,9 +23,9 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
 |---|---|---|
 | Individual Vanguard identity, kit, lore, base appearance | [Initial Roster Character Bible](Design/Veyra_Initial_Roster_Character_Bible_v0.6.md) | Find **one** numbered Vanguard in its [section locator](Index/sections/Veyra_Initial_Roster_Character_Bible_v0.6.md); use matching [Vanguard YAML](Design/Vanguards/README.md); combat and vision rules remain with their owners. |
 | Regions, setting, histories and geography | [World Bible](Design/Veyra_World_Bible_v0.5.md) | Character Bible governs each Vanguard's identity and individual history. |
-| Map, lanes, jungle, wildlife, towers, Flux Wells, wave schedule and map-spawned objectives | [Battleground Bible](Design/Veyra_Battleground_Bible_v0.9.md) | [Section locator](Index/sections/Veyra_Battleground_Bible_v0.9.md); Combat owns damage/targeting; Vision owns reveal/detection. |
+| Map, lanes, jungle, wildlife, towers, Flux Wells, Team Flux sources and Fluxborn scaling, wave schedule, map-spawned objectives, ability-created terrain | [Battleground Bible](Design/Veyra_Battleground_Bible_v0.9.md) | [Section locator](Index/sections/Veyra_Battleground_Bible_v0.9.md); Combat owns damage/targeting; Vision owns reveal/detection. |
 | Damage, CC, status, attack rules, movement, targeting, towers' combat behavior, ride states | [Combat Bible](Design/Veyra_Combat_Bible_v0.5.md) | [Section locator](Index/sections/Veyra_Combat_Bible_v0.5.md); generic ride states live in §56, not solely in Raska's kit. |
-| Fog of war, Dense Fog, wards, stealth detection, acquisition | [Vision Bible](Design/Veyra_Vision_Bible_v0.1.md) | Battleground owns map fog placement; Combat owns general targetability and hit validity. |
+| Fog of war, Dense Fog (including ability-created fog), wards, stealth detection, acquisition | [Vision Bible](Design/Veyra_Vision_Bible_v0.1.md) | Battleground owns map fog placement; Combat owns general targetability and hit validity. |
 | Gold, XP, economy, leveling, match shop/delivery and buyback | [Economy & Progression Bible](Design/Veyra_Economy_Progression_Bible_v0.1.md) | Account currency is separate; Combat owns damage and kill rules. |
 | Item tiers, recipes, attunements, item abilities and consumables | [Item Bible](Design/Veyra_Item_Bible_v0.3.md) | Economy owns gold transactions; Combat owns shared effects; all tuning is validated designer-editable engine data. |
 | Match stages, champion-select cancellation, AFK/disconnect, surrender, pause and result adjudication | [Match Flow Bible](Design/Veyra_Match_Flow_Bible_v0.1.md) | Parties owns queue/readiness; Client & Platform owns application state; UX owns presentation. |
@@ -33,13 +33,13 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
 | Invite-only custom lobby, AI participants and practice-session rules | [Custom Matches Bible](Design/Veyra_Custom_Matches_Bible_v0.1.md) | Modes owns mode eligibility; Match Flow owns authoritative match outcomes. |
 | Account XP, ownership, Collection, persistent currencies and Mastery | [Account, Collection & Mastery Bible](Design/Veyra_Account_Collection_Mastery_Bible_v0.1.md) | Persistent account Flux / Refined Flux are **not** in-match Team Flux. |
 | Launcher, authentication entry, unified Unreal application, Test Skin and state transitions | [Client & Platform Bible](Design/Veyra_Client_Platform_Bible_v0.1.md) | [Section locator](Index/sections/Veyra_Client_Platform_Bible_v0.1.md); the accepted [unified-client ADR](ADR/ADR-004-unified-unreal-client-states.md) governs architecture; UX owns visible screen behavior. |
-| Home, Shop, ordinary client shell, Match Found overlays, selection and results UI, Test Skin presentation | [Pre-Game Client UX Bible](Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) | [Section locator](Index/sections/Veyra_Pre_Game_Client_UX_Bible_v0.1.md); Proposals 1–92 are recorded, **paused after 92**. Parties, Chat, Match Flow and Client & Platform retain their rule authority. |
+| Home, Shop, ordinary client shell, Match Found overlays, selection and results UI, Test Skin presentation | [Pre-Game Client UX Bible](Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) | [Section locator](Index/sections/Veyra_Pre_Game_Client_UX_Bible_v0.1.md); UX-1–92 are recorded, **paused after UX-92**. Parties, Chat, Match Flow and Client & Platform retain their rule authority. |
 | Parties, friends, presence, invites, queue readiness and matchmaking | [Parties, Social & Matchmaking Bible](Design/Veyra_Parties_Social_Matchmaking_Bible_v0.1.md) | UX controls presentation, not authoritative permission. |
 | Team/All/Party/DM/post-match text, chat mute, channel permission | [Chat & Communication Bible](Design/Veyra_Chat_Communication_Bible_v0.1.md) | No built-in voice chat; moderation owns reports. |
 | Identity, profile surfaces, player names, account creation entry | [Profiles & Identity Bible](Design/Veyra_Profiles_Identity_Bible_v0.1.md) | Account Bible owns progression and unlocks. |
 | Reports, appeals, staff review, logging and telemetry | [Moderation & Telemetry Bible](Design/Veyra_Moderation_Telemetry_Bible_v0.1.md) | Chat owns conversation permissions; results/statistics data stays with trusted owners. |
 | Replay recording, saves, delayed live spectating, replay privacy | [Replay & Spectator Bible](Design/Veyra_Replay_Spectator_Bible_v0.1.md) | Client & Platform governs state transitions; Custom Matches owns invite-only custom spectator options. |
-| Player controls, camera, HUD, graphics, audio, language and accessibility | [Settings & Accessibility Bible](Design/Veyra_Settings_Accessibility_Bible_v0.1.md) | [Section locator](Index/sections/Veyra_Settings_Accessibility_Bible_v0.1.md); approved settings through Proposal 168, not permission to invent UI or server rules. |
+| Player controls, camera, HUD, graphics, audio, language and accessibility | [Settings & Accessibility Bible](Design/Veyra_Settings_Accessibility_Bible_v0.1.md) | [Section locator](Index/sections/Veyra_Settings_Accessibility_Bible_v0.1.md); approved settings through SET-168, not permission to invent UI or server rules. |
 | Server-recorded match fields, scoreboard and detailed results/statistics | [Match Statistics Bible](Design/Veyra_Match_Statistics_Bible_v0.1.md) | Match Flow owns outcome; Combat/Economy/Flux own the facts recorded; UX presents verified results. |
 
 ## Other task routes
