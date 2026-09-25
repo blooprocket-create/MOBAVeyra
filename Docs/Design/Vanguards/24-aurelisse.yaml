@@ -23,7 +23,7 @@ damage_profile:
   - magic
   - utility
 basic_attack:
-  damage_type: magic
+  damage_type: physical
   range_class: ranged
 resource: standard
 ability_layout: standard
