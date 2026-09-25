@@ -16,7 +16,12 @@ const validJSON = `{
   "http": {"readTimeout": "5s", "writeTimeout": "5s", "idleTimeout": "30s", "shutdownTimeout": "5s"},
   "sessions": {"launcherLifetime": "720h", "gameLifetime": "24h"},
   "launchCodes": {"lifetime": "20s"},
-  "devLogin": {"enabled": true, "accounts": ["DevOne", "DevTwo"]}
+  "devLogin": {"enabled": true, "accounts": ["DevOne", "DevTwo"]},
+  "party": {"maxSize": 5, "inviteLifetime": "2m", "defaultPrivacy": "private"},
+  "modes": [
+    {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 5},
+    {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5}
+  ]
 }`
 
 func TestParseValid(t *testing.T) {
@@ -43,6 +48,11 @@ func TestParseRejects(t *testing.T) {
 		"dev login outside local": {`"environment": "local"`, `"environment": "staging"`, "only allowed when environment"},
 		"duplicate dev account":   {`["DevOne", "DevTwo"]`, `["DevOne", "DevOne"]`, "duplicate"},
 		"no dev accounts":         {`["DevOne", "DevTwo"]`, `[]`, "at least one account"},
+		"party size zero":         {`"maxSize": 5`, `"maxSize": 0`, "party.maxSize must be between 1 and 5"},
+		"party size six":          {`"maxSize": 5`, `"maxSize": 6`, "party.maxSize must be between 1 and 5"},
+		"bad privacy":             {`"defaultPrivacy": "private"`, `"defaultPrivacy": "open"`, "party.defaultPrivacy must be"},
+		"duplicate mode":          {`"id": "ranked"`, `"id": "casual_select"`, "duplicate id casual_select"},
+		"mode missing team size":  {`"enabled": false, "humanPlayersPerTeam": 5`, `"enabled": false`, "humanPlayersPerTeam is required"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

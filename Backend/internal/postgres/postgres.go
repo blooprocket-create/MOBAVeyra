@@ -116,8 +116,36 @@ func (s *Store) DevAccountByDisplayName(ctx context.Context, displayName string)
 	return a, notFound(err)
 }
 
+func (s *Store) AccountByDisplayName(ctx context.Context, displayName string) (identity.Account, error) {
+	var a identity.Account
+	err := s.pool.QueryRow(ctx, `SELECT id::text, display_name FROM identity.accounts WHERE display_name = $1`,
+		displayName).Scan(&a.ID, &a.DisplayName)
+	return a, notFound(err)
+}
+
+func (s *Store) AccountsByIDs(ctx context.Context, ids []string) ([]identity.Account, error) {
+	valid := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if uuidPattern.MatchString(id) {
+			valid = append(valid, id)
+		}
+	}
+	rows, err := s.pool.Query(ctx, `SELECT id::text, display_name FROM identity.accounts WHERE id = ANY($1::uuid[])`, valid)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(r pgx.CollectableRow) (identity.Account, error) {
+		var a identity.Account
+		err := r.Scan(&a.ID, &a.DisplayName)
+		return a, err
+	})
+}
+
 func (s *Store) AccountByID(ctx context.Context, id string) (identity.Account, error) {
 	var a identity.Account
+	if !uuidPattern.MatchString(id) {
+		return identity.Account{}, identity.ErrNotFound
+	}
 	err := s.pool.QueryRow(ctx, `SELECT id::text, display_name FROM identity.accounts WHERE id = $1::uuid`,
 		id).Scan(&a.ID, &a.DisplayName)
 	return a, notFound(err)

@@ -22,6 +22,10 @@ const EnvironmentLocal = "local"
 // codes to expire within seconds; this is a security invariant, not tuning.
 const MaxLaunchCodeLifetime = time.Minute
 
+// MaxPartySize is the largest party the Parties & Social Bible §1 allows
+// ("one through five players"). party.maxSize may be lower, never higher.
+const MaxPartySize = 5
+
 // DatabaseURLEnv names the environment variable holding the Postgres URL.
 const DatabaseURLEnv = "VEYRA_DATABASE_URL"
 
@@ -34,7 +38,29 @@ type Config struct {
 	Sessions              SessionLifetimes
 	LaunchCodeLifetime    time.Duration
 	DevLogin              DevLogin
+	Party                 Party
+	Modes                 []Mode
 }
+
+// Party configures party rules (Parties & Social Bible §1).
+type Party struct {
+	MaxSize        int
+	InviteLifetime time.Duration
+	DefaultPrivacy string
+}
+
+// Mode is one matchmade mode's validated settings (Modes & Access Bible §1).
+type Mode struct {
+	ID                  string
+	Enabled             bool
+	HumanPlayersPerTeam int
+}
+
+// Party privacy values accepted in config.
+const (
+	PrivacyPrivate = "private"
+	PrivacyPublic  = "public"
+)
 
 // HTTPTimeouts configures the HTTP server.
 type HTTPTimeouts struct {
@@ -95,6 +121,16 @@ type fileConfig struct {
 		Enabled  *bool    `json:"enabled"`
 		Accounts []string `json:"accounts"`
 	} `json:"devLogin"`
+	Party *struct {
+		MaxSize        *int      `json:"maxSize"`
+		InviteLifetime *Duration `json:"inviteLifetime"`
+		DefaultPrivacy *string   `json:"defaultPrivacy"`
+	} `json:"party"`
+	Modes []struct {
+		ID                  *string `json:"id"`
+		Enabled             *bool   `json:"enabled"`
+		HumanPlayersPerTeam *int    `json:"humanPlayersPerTeam"`
+	} `json:"modes"`
 }
 
 // Load reads and validates the configuration file at path.
@@ -194,6 +230,56 @@ func Parse(raw []byte) (Config, error) {
 		if c.DevLogin.Enabled && len(c.DevLogin.Accounts) == 0 {
 			problems = append(problems, "devLogin.accounts must list at least one account when dev login is enabled")
 		}
+	}
+
+	if f.Party == nil {
+		missing("party")
+	} else {
+		switch {
+		case f.Party.MaxSize == nil:
+			missing("party.maxSize")
+		case *f.Party.MaxSize < 1 || *f.Party.MaxSize > MaxPartySize:
+			problems = append(problems, fmt.Sprintf("party.maxSize must be between 1 and %d", MaxPartySize))
+		default:
+			c.Party.MaxSize = *f.Party.MaxSize
+		}
+		c.Party.InviteLifetime = positive("party.inviteLifetime", f.Party.InviteLifetime)
+		switch {
+		case f.Party.DefaultPrivacy == nil:
+			missing("party.defaultPrivacy")
+		case *f.Party.DefaultPrivacy != PrivacyPrivate && *f.Party.DefaultPrivacy != PrivacyPublic:
+			problems = append(problems, "party.defaultPrivacy must be \""+PrivacyPrivate+"\" or \""+PrivacyPublic+"\"")
+		default:
+			c.Party.DefaultPrivacy = *f.Party.DefaultPrivacy
+		}
+	}
+
+	if len(f.Modes) == 0 {
+		missing("modes")
+	}
+	seenModes := map[string]bool{}
+	for i, m := range f.Modes {
+		field := fmt.Sprintf("modes[%d]", i)
+		if m.ID == nil || strings.TrimSpace(*m.ID) == "" {
+			missing(field + ".id")
+			continue
+		}
+		if seenModes[*m.ID] {
+			problems = append(problems, "modes contains duplicate id "+*m.ID)
+		}
+		seenModes[*m.ID] = true
+		if m.Enabled == nil {
+			missing(field + ".enabled")
+			continue
+		}
+		if m.HumanPlayersPerTeam == nil {
+			missing(field + ".humanPlayersPerTeam")
+			continue
+		}
+		if *m.HumanPlayersPerTeam < 1 {
+			problems = append(problems, field+".humanPlayersPerTeam must be at least 1")
+		}
+		c.Modes = append(c.Modes, Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam})
 	}
 
 	if len(problems) > 0 {

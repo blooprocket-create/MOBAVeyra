@@ -1,11 +1,6 @@
-// Package httpapi exposes the backend over HTTP/JSON.
-//
-//	GET  /healthz              liveness
-//	GET  /readyz               readiness (database reachable)
-//	POST /v1/dev/login         {accountName} -> launcher session (local only)
-//	POST /v1/launch-codes      Bearer launcher session, {buildVersion} -> launch code
-//	POST /v1/game-sessions     {launchCode, buildVersion} -> game session
-//	GET  /v1/me                Bearer game session -> account
+// Package httpapi exposes the backend over HTTP/JSON. It only translates
+// HTTP to domain calls; every rule lives in the domain packages. Routes are
+// listed in Backend/README.md.
 package httpapi
 
 import (
@@ -18,6 +13,8 @@ import (
 	"time"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
 )
 
 // Pinger reports whether a dependency is reachable.
@@ -25,28 +22,67 @@ type Pinger interface {
 	Ping(ctx context.Context) error
 }
 
-// Server holds the handler dependencies.
-type Server struct {
-	identity       *identity.Service
-	ready          Pinger
-	bodyLimitBytes int64
-	devLogin       bool
-	log            *slog.Logger
+// ModeInfo describes a matchmade mode to clients.
+type ModeInfo struct {
+	ID                  string `json:"id"`
+	Enabled             bool   `json:"enabled"`
+	HumanPlayersPerTeam int    `json:"humanPlayersPerTeam"`
 }
 
-// New builds the HTTP handler. The dev-login route exists only when devLogin is true.
-func New(svc *identity.Service, ready Pinger, bodyLimitBytes int64, devLogin bool, log *slog.Logger) http.Handler {
-	s := &Server{identity: svc, ready: ready, bodyLimitBytes: bodyLimitBytes, devLogin: devLogin, log: log}
+// Deps are the handler dependencies.
+type Deps struct {
+	Identity *identity.Service
+	Social   *social.Service
+	Party    *party.Service
+	Modes    []ModeInfo
+	Ready    Pinger
+	// Atomic runs fn as one unit of work across domains: store calls made
+	// with the ctx it receives share one transaction.
+	Atomic         func(ctx context.Context, fn func(context.Context) error) error
+	BodyLimitBytes int64
+	// DevLogin registers the passwordless dev-login route (local only).
+	DevLogin bool
+	Log      *slog.Logger
+}
+
+// Server holds the handler dependencies.
+type Server struct {
+	Deps
+}
+
+// New builds the HTTP handler.
+func New(d Deps) http.Handler {
+	s := &Server{Deps: d}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.healthz)
 	mux.HandleFunc("GET /readyz", s.readyz)
-	if devLogin {
+	if d.DevLogin {
 		mux.HandleFunc("POST /v1/dev/login", s.devLoginHandler)
 	}
 	mux.HandleFunc("POST /v1/launch-codes", s.issueLaunchCode)
 	mux.HandleFunc("POST /v1/game-sessions", s.redeemLaunchCode)
 	mux.HandleFunc("GET /v1/me", s.me)
+	s.routeAccounts(mux)
+	s.routeSocial(mux)
+	s.routeParty(mux)
 	return mux
+}
+
+// authed wraps a handler that requires a game session.
+func (s *Server) authed(h func(w http.ResponseWriter, r *http.Request, actor string)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token, ok := bearer(r)
+		if !ok {
+			writeError(w, http.StatusUnauthorized, "invalid_credentials")
+			return
+		}
+		acct, err := s.Identity.AuthenticateGame(r.Context(), token)
+		if err != nil {
+			s.fail(w, err)
+			return
+		}
+		h(w, r, acct.ID)
+	}
 }
 
 type accountJSON struct {
@@ -65,8 +101,8 @@ func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 }
 
 func (s *Server) readyz(w http.ResponseWriter, r *http.Request) {
-	if err := s.ready.Ping(r.Context()); err != nil {
-		s.log.Warn("readiness check failed", "err", err)
+	if err := s.Ready.Ping(r.Context()); err != nil {
+		s.Log.Warn("readiness check failed", "err", err)
 		writeError(w, http.StatusServiceUnavailable, "not_ready")
 		return
 	}
@@ -80,7 +116,7 @@ func (s *Server) devLoginHandler(w http.ResponseWriter, r *http.Request) {
 	if !s.decode(w, r, &req) {
 		return
 	}
-	tok, acct, err := s.identity.DevLogin(r.Context(), req.AccountName)
+	tok, acct, err := s.Identity.DevLogin(r.Context(), req.AccountName)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -100,7 +136,7 @@ func (s *Server) issueLaunchCode(w http.ResponseWriter, r *http.Request) {
 	if !s.decode(w, r, &req) {
 		return
 	}
-	code, err := s.identity.IssueLaunchCode(r.Context(), token, req.BuildVersion)
+	code, err := s.Identity.IssueLaunchCode(r.Context(), token, req.BuildVersion)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -116,7 +152,7 @@ func (s *Server) redeemLaunchCode(w http.ResponseWriter, r *http.Request) {
 	if !s.decode(w, r, &req) {
 		return
 	}
-	tok, acct, err := s.identity.RedeemLaunchCode(r.Context(), req.LaunchCode, req.BuildVersion)
+	tok, acct, err := s.Identity.RedeemLaunchCode(r.Context(), req.LaunchCode, req.BuildVersion)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -130,7 +166,7 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "invalid_credentials")
 		return
 	}
-	acct, err := s.identity.AuthenticateGame(r.Context(), token)
+	acct, err := s.Identity.AuthenticateGame(r.Context(), token)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -140,7 +176,7 @@ func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 
 // decode reads a size-limited JSON body with no unknown fields.
 func (s *Server) decode(w http.ResponseWriter, r *http.Request, dst any) bool {
-	r.Body = http.MaxBytesReader(w, r.Body, s.bodyLimitBytes)
+	r.Body = http.MaxBytesReader(w, r.Body, s.BodyLimitBytes)
 	dec := json.NewDecoder(r.Body)
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(dst); err != nil {
@@ -155,18 +191,52 @@ func (s *Server) decode(w http.ResponseWriter, r *http.Request, dst any) bool {
 	return true
 }
 
+// errorStatus maps domain errors to HTTP status and a stable error code.
+var errorStatus = []struct {
+	err    error
+	status int
+	code   string
+}{
+	{identity.ErrInvalidCredentials, http.StatusUnauthorized, "invalid_credentials"},
+	{identity.ErrInvalidBuildVersion, http.StatusBadRequest, "invalid_build_version"},
+	{identity.ErrDevLoginDisabled, http.StatusNotFound, "not_found"},
+	{identity.ErrNotFound, http.StatusNotFound, "account_not_found"},
+
+	{social.ErrSelf, http.StatusBadRequest, "cannot_target_self"},
+	{social.ErrAccountNotFound, http.StatusNotFound, "account_not_found"},
+	{social.ErrBlocked, http.StatusForbidden, "blocked"},
+	{social.ErrAlreadyFriends, http.StatusConflict, "already_friends"},
+	{social.ErrRequestNotFound, http.StatusNotFound, "friend_request_not_found"},
+	{social.ErrNotFriends, http.StatusConflict, "not_friends"},
+
+	{party.ErrNotInParty, http.StatusConflict, "not_in_party"},
+	{party.ErrAlreadyInParty, http.StatusConflict, "already_in_party"},
+	{party.ErrNotLeader, http.StatusForbidden, "not_leader"},
+	{party.ErrNotMember, http.StatusNotFound, "not_a_member"},
+	{party.ErrPartyFull, http.StatusConflict, "party_full"},
+	{party.ErrPartyLocked, http.StatusConflict, "party_locked"},
+	{party.ErrNotAllReady, http.StatusConflict, "not_all_ready"},
+	{party.ErrNoMode, http.StatusConflict, "no_mode_selected"},
+	{party.ErrUnknownMode, http.StatusBadRequest, "unknown_mode"},
+	{party.ErrTooManyForMode, http.StatusConflict, "party_too_large_for_mode"},
+	{party.ErrInvalidPrivacy, http.StatusBadRequest, "invalid_privacy"},
+	{party.ErrSelf, http.StatusBadRequest, "cannot_target_self"},
+	{party.ErrNotFriends, http.StatusForbidden, "not_friends"},
+	{party.ErrBlocked, http.StatusForbidden, "blocked"},
+	{party.ErrInviteNotFound, http.StatusNotFound, "invite_not_found"},
+	{party.ErrPartyNotJoinable, http.StatusForbidden, "party_not_joinable"},
+	{party.ErrPartyNotFound, http.StatusNotFound, "party_not_found"},
+}
+
 func (s *Server) fail(w http.ResponseWriter, err error) {
-	switch {
-	case errors.Is(err, identity.ErrInvalidCredentials):
-		writeError(w, http.StatusUnauthorized, "invalid_credentials")
-	case errors.Is(err, identity.ErrInvalidBuildVersion):
-		writeError(w, http.StatusBadRequest, "invalid_build_version")
-	case errors.Is(err, identity.ErrDevLoginDisabled):
-		writeError(w, http.StatusNotFound, "not_found")
-	default:
-		s.log.Error("request failed", "err", err)
-		writeError(w, http.StatusInternalServerError, "internal_error")
+	for _, e := range errorStatus {
+		if errors.Is(err, e.err) {
+			writeError(w, e.status, e.code)
+			return
+		}
 	}
+	s.Log.Error("request failed", "err", err)
+	writeError(w, http.StatusInternalServerError, "internal_error")
 }
 
 func bearer(r *http.Request) (string, bool) {

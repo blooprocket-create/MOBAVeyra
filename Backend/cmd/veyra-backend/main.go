@@ -18,7 +18,9 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/config"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/httpapi"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/postgres"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
 )
 
 func main() {
@@ -70,9 +72,32 @@ func run(log *slog.Logger) error {
 		DevLoginEnabled:         cfg.DevLogin.Enabled,
 	}, time.Now)
 
+	soc := social.NewService(store.Social())
+	rules := party.Rules{MaxSize: cfg.Party.MaxSize, Modes: map[string]party.Mode{}}
+	var modes []httpapi.ModeInfo
+	for _, m := range cfg.Modes {
+		rules.Modes[m.ID] = party.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam}
+		modes = append(modes, httpapi.ModeInfo{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam})
+	}
+	parties := party.NewService(store.Party(), soc, party.Settings{
+		Rules:          rules,
+		InviteLifetime: cfg.Party.InviteLifetime,
+		DefaultPrivacy: party.Privacy(cfg.Party.DefaultPrivacy),
+	}, time.Now)
+
 	srv := &http.Server{
-		Addr:         cfg.ListenAddress,
-		Handler:      httpapi.New(svc, store, cfg.RequestBodyLimitBytes, cfg.DevLogin.Enabled, log),
+		Addr: cfg.ListenAddress,
+		Handler: httpapi.New(httpapi.Deps{
+			Identity:       svc,
+			Social:         soc,
+			Party:          parties,
+			Modes:          modes,
+			Ready:          store,
+			Atomic:         store.Atomic,
+			BodyLimitBytes: cfg.RequestBodyLimitBytes,
+			DevLogin:       cfg.DevLogin.Enabled,
+			Log:            log,
+		}),
 		ReadTimeout:  cfg.HTTP.Read,
 		WriteTimeout: cfg.HTTP.Write,
 		IdleTimeout:  cfg.HTTP.Idle,

@@ -24,7 +24,9 @@ go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -bui
 
 ## What exists so far
 
-Only the **identity module**: the launcher → game session handoff.
+Three modules: **identity** (the launcher → game login handoff), **social** (friends, friend requests, blocks) and **party** (parties, invites, Ready, mode and the Find Match queue lock). Matchmaking itself, match-found acceptance and live presence come next.
+
+### Identity
 
 | Endpoint | Auth | Body | Returns |
 |---|---|---|---|
@@ -42,6 +44,50 @@ Rules the code enforces:
 - Launcher and game sessions are not interchangeable.
 - Every auth failure returns the same `401 invalid_credentials`.
 
+### Social and party
+
+Every route below needs `Authorization: Bearer <game session token>`. Accounts are addressed by ID; `GET /v1/accounts?displayName=X` finds one by name.
+
+| Endpoint | Body | What it does |
+|---|---|---|
+| `GET /v1/friends` | — | friends, incoming and outgoing requests |
+| `POST /v1/friends/requests` | `{"accountId"}` | send a request; if they already asked you, you become friends |
+| `POST /v1/friends/requests/{accountId}/accept` · `/decline` | — | answer a request |
+| `DELETE /v1/friends/requests/{accountId}` | — | withdraw your request |
+| `DELETE /v1/friends/{accountId}` | — | unfriend |
+| `GET /v1/blocks` · `PUT` / `DELETE /v1/blocks/{accountId}` | — | list, block, unblock |
+| `GET /v1/modes` | — | modes and whether each is enabled |
+| `GET /v1/party` | — | your party, or `{"party": null}` |
+| `PUT /v1/party/mode` | `{"mode"}` | leader picks a mode; creates a one-person party if you have none |
+| `PUT /v1/party/privacy` | `{"privacy": "public"\|"private"}` | leader only |
+| `PUT /v1/party/ready` | `{"ready": true}` | mark yourself Ready or not |
+| `PUT /v1/party/leader` | `{"accountId"}` | leader hands over leadership (not while queued) |
+| `POST /v1/party/leave` · `DELETE /v1/party/members/{accountId}` | — | leave, or leader removes someone |
+| `POST` / `DELETE /v1/party/queue` | — | leader presses Find Match / cancels |
+| `GET /v1/party/invites` · `POST /v1/party/invites` | `{"accountId"}` | your invites; invite a friend (creates a party if you have none) |
+| `POST /v1/party/invites/{inviteId}/accept` · `/decline` | — | answer an invite |
+| `POST /v1/parties/{partyId}/join` | — | join a friend's Public party |
+
+Errors come back as `{"error": "<code>"}` with codes such as `not_leader`, `party_full`, `party_locked`, `not_all_ready`, `blocked` and `not_friends`.
+
+Rules the code enforces, from the Parties & Social Bible:
+
+- Parties hold one to `party.maxSize` players (config refuses more than five); capacity is checked when an invite is **accepted**, not when it's sent, and an invite never reserves a slot.
+- Any member can invite a friend. Only the leader picks the mode, privacy, removes members, transfers leadership and starts or cancels the queue.
+- Adding a member or changing the mode resets everyone's Ready. Find Match needs a mode, everyone Ready, and a party no bigger than the mode's team.
+- Find Match locks the party: nobody can join, accept an invite into it, send an invite from it, change Ready or mode, or take over as leader. Anyone leaving, being removed or blocked out cancels the queue for everyone and resets Ready.
+- Accepting an invite while in another party moves you, unless your current party is queued.
+- Blocks work in both directions: no friend requests, invites or shared party. Blocking ends the friendship and withdraws pending requests and every invite that would put the two players in one party, whoever sent it. The block and its party clean-up commit in one transaction.
+- Every change to a party runs in a database transaction with the party row locked, and each account can be in only one party (enforced by the database).
+
+**Provisional rules — the bibles leave these open.** Each is isolated in one place in the code and marked `PROVISIONAL`, so a ruling is a small change:
+
+1. **New leader when the leader leaves:** the longest-standing remaining member (Parties Bible §1).
+2. **Who may join a Public party:** a friend of *any* current member (§1 says "friends").
+3. **Blocking someone in your own party:** the blocked player is removed, with no penalty.
+4. **Leader cancels the queue:** everyone's Ready resets, the same as other cancellations.
+5. **Invite lifetime** `2m` and **default privacy** `private` are provisional values in `config/local.json`.
+
 ## For the Unreal client
 
 The game receives its launch code on **standard input**, one line, never on the command line. On startup it should read that line, then call `POST /v1/game-sessions` with the code and its own build version, and keep the returned game session token in memory. In development, `veyra-devlaunch` starts the game the same way:
@@ -52,7 +98,7 @@ go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -bui
 
 ## Configuration
 
-Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit and the seeded dev accounts (`DevOne` … `DevTen`). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
+Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, and the mode list (Ranked is present but disabled, per the Modes & Access Bible). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
 
 ## Layout
 
@@ -64,11 +110,13 @@ Backend/
 └── internal/
     ├── config/            config loading and validation
     ├── identity/          accounts, sessions, launch codes (domain rules)
+    ├── social/            friends, friend requests, blocks
+    ├── party/             parties, invites, Ready, queue lock
     ├── postgres/          Postgres storage and embedded migrations
     └── httpapi/           HTTP/JSON transport
 ```
 
-Domain packages (`identity`, and later party, matchmaking, match allocation) own their rules and depend only on a storage interface. `postgres` implements storage; `httpapi` only translates HTTP to domain calls.
+Domain packages (`identity`, `social`, `party`, and later matchmaking and match allocation) own their rules and depend only on storage interfaces. `party` reads the social graph through a small interface and never writes it; a block is applied by `social` first and then handed to `party`. `postgres` implements storage; `httpapi` only translates HTTP to domain calls.
 
 ## Tests
 

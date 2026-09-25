@@ -28,7 +28,7 @@ func openTestStore(t *testing.T) *Store {
 		t.Fatalf("Open: %v", err)
 	}
 	t.Cleanup(store.Close)
-	if _, err := store.pool.Exec(ctx, `TRUNCATE identity.launch_codes, identity.sessions, identity.accounts`); err != nil {
+	if _, err := store.pool.Exec(ctx, `TRUNCATE identity.launch_codes, identity.sessions, identity.accounts CASCADE`); err != nil {
 		t.Fatalf("truncate: %v", err)
 	}
 	return store
