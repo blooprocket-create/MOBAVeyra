@@ -1,0 +1,34 @@
+name: Module layer checks
+
+on:
+  push:
+    paths:
+      - 'Game/Source/**'
+      - 'Game/Plugins/**'
+      - 'Game/*.uproject'
+      - 'scripts/check_module_layers.py'
+      - 'tests/test_module_layers.py'
+      - '.github/workflows/module-layers.yml'
+  pull_request:
+    paths:
+      - 'Game/Source/**'
+      - 'Game/Plugins/**'
+      - 'Game/*.uproject'
+      - 'scripts/check_module_layers.py'
+      - 'tests/test_module_layers.py'
+      - '.github/workflows/module-layers.yml'
+
+jobs:
+  verify-module-layers:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Regression-test the module-layer check
+        run: python3 -m unittest discover -s tests -p 'test_module_layers.py'
+      - name: Verify module dependencies against Game/Source/ModuleLayers.json
+        run: python3 scripts/check_module_layers.py

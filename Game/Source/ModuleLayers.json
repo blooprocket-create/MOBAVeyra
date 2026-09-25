@@ -1,0 +1,22 @@
+{
+  "description": "Veyra module layers, bottom to top (ADR-006 §3). A module may depend only on modules in lower layers: never on itself, on a module in its own layer, on a higher layer, or on any sealed layer. scripts/check_module_layers.py enforces this in CI. The milestone that creates a module adds it here; gameplay layers go between Foundation and Composition.",
+  "layers": [
+    {
+      "name": "Foundation",
+      "description": "Lowest Veyra-owned foundation. Depends on no other Veyra module.",
+      "modules": ["VeyraCore"]
+    },
+    {
+      "name": "Composition",
+      "description": "The composition root. Sealed: nothing depends on it.",
+      "sealed": true,
+      "modules": ["Veyra"]
+    },
+    {
+      "name": "Developer",
+      "description": "Automation tests and developer tooling. Sealed: production modules never depend on it.",
+      "sealed": true,
+      "modules": ["VeyraDeveloper"]
+    }
+  ]
+}

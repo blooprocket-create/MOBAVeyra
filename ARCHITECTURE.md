@@ -282,14 +282,19 @@ Match Found/committed selection/live reconnect outrank optional Test Skin loadin
 
 ## 12. Deliberately open decisions
 
-The engine, ability-framework, unified-client and launcher/hosting choices are now locked by ADR: **Unreal Engine 5.8.3 from source** (ADR-001), **GAS adoption** (ADR-002), **one Unreal application with isolated client states** (ADR-004), and **a Tauri launcher with single-use launch-code handoff, Windows client/Linux server, local-first Docker hosting, a Go backend and Git LFS** (ADR-005). The following implementation details remain open:
+The engine, ability-framework, unified-client and launcher/hosting choices are now locked by ADR: **Unreal Engine 5.8.3 from source** (ADR-001), **GAS adoption** (ADR-002), **one Unreal application with isolated client states** (ADR-004), and **a Tauri launcher with single-use launch-code handoff, Windows client/Linux server, local-first Docker hosting, a Go backend and Git LFS** (ADR-005). [ADR-006](Docs/ADR/ADR-006-unreal-project-scaffold.md) records the **Unreal project scaffold**: the project in `Game/`, its targets and modules, GAS placement, networking, tuning format, source control, tests and build scripts.
 
-- exact final module names/count;
-- exact GAS Ability System Component placement and Attribute Set decomposition;
-- exact prediction model for each ability category;
+Decided by ADR-006:
+
+- **module names and count:** the initial set is `Veyra`, `VeyraCore` and `VeyraDeveloper`, and the layer graph is enforced by a check against a declared layer map (ADR-006 §3). Later modules arrive as their first feature lands;
+- **Ability System Component placement:** on the PlayerState for Vanguards (ADR-006 §4). The exact Attribute Set split is finalised in M2 with tests;
+- **LFS file patterns and locking convention** (ADR-006 §9).
+
+The following implementation details remain open:
+
+- exact prediction model for each ability category (ADR-006 §7 leaves it to M3 and later milestones);
 - hosted vendors (identity provider, database host, match-server fleet, website host, CDN), deferred until a working local slice (ADR-005);
 - final build farm beyond the self-hosted runner (ADR-005);
-- detailed LFS file patterns and locking conventions;
-- detailed replay/determinism implementation.
+- detailed replay/determinism implementation (ADR-006 §5 schedules an M3 spike recording a replay alongside Iris; the recording format waits for its own design pass).
 
 Do not invent these decisions in unrelated feature work. When one becomes necessary, decide it deliberately and record it if architectural.
