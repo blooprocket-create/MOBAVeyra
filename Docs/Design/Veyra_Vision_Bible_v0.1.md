@@ -138,3 +138,11 @@ When its area overlaps Dense Fog, Quick Sight acts as a **temporary presence sen
 - Existing placed wards are independent world entities; the owner's current tool equipment only controls what they can activate next.
 - Tune separately: charge recharge, ward lifetime and vision area, placement range, ward durability/destroy rules, Sweeper area and active duration, Sweeper outline linger, Quick Sight area and lifetime, shop swap cost, ward destruction Gold, and presence ping cadence.
 - This version intentionally does **not** invent additional vision-tool variants, ward ownership caps, remote fog-targeting exceptions, or a global stealth-immunity rule.
+
+### Fog of war at the data boundary (ruled 2026-09-25)
+
+- **Fog of war is enforced at the data boundary, per player.** The server sends an enemy unit or enemy-owned entity to a player's client only while it is visible to *that player*. Hidden enemy state is never sent to a client and then concealed there.
+- **Shared vision and Dense Fog.** Ordinary shared team vision (§1) makes an enemy visible to every teammate. A Dense Fog sighting (§2) makes it visible only to observers inside the same fog volume; allies outside that volume do not receive it.
+- **Channels carry only what they allow.** A presence ping (§4, §6) tells the team that an enemy Vanguard is present in a fog zone. A Sweeper outline (§5) carries outline and position while it lasts. Neither sends the hidden unit's full state.
+- **The Vision system is the only writer** of who can see what: the team visibility groups and each observer's fog-volume membership. Other systems and clients read that result; they never widen it.
+- The technical decision is recorded in [ADR-006](../ADR/ADR-006-unreal-project-scaffold.md) §5.

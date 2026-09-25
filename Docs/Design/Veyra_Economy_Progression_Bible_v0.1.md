@@ -148,7 +148,7 @@
 - Gain **one skill point per level**. Skill points may be spent immediately via HUD/hotkey or saved indefinitely; allocation is instant and does not require leaving combat.
 - The standard kit has **three basic abilities with a maximum of five ranks each** and an **ultimate with a maximum of three ranks**: 5 + 5 + 5 + 3 = 18 total ranks.
 - **No Vanguard-level/rank gate on Q/W/E.** For example, a player may invest their first five points in one basic ability at Levels 1–5 while leaving the others unlearned.
-- Ultimate rank eligibility opens at **Levels 6, 11, and 16**. Unusual champion kits may have **explicitly documented exceptions**; do not impose standard Q/W/E/ultimate structure on a canon exception. Documented exception: a ride state's replacement abilities share the rank of the basic ability in the same slot and cost no extra skill points (Combat Bible §56).
+- Ultimate rank eligibility opens at **Levels 6, 11, and 16**. Unusual champion kits may have **explicitly documented exceptions**; do not impose standard Q/W/E/ultimate structure on a canon exception. Documented exception: a ride state's replacement abilities share the rank of the basic ability in the same slot and cost no extra skill points (Combat Bible §56). Documented exception (2026-09-25): Angeru's two stances share each Q, W and E rank, Q, W and E rank to 6, and his stance switch costs no skill point and never ranks, keeping the 18-point total (Character Bible §15).
 - **Allocated points cannot be respecced during the match.** Saving unspent points is allowed.
 
 ## 10. Inventory, starting Gold, and fountain shop

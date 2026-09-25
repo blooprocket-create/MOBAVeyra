@@ -144,21 +144,22 @@ The Crucible has two major neutral Well sites: one near the top-side macro space
 - Flux Wells are spawn-based neutral objectives, not permanent control points.
 - North and South create competing rotations and cross-map trades.
 - Securing a Well grants temporary Team Flux, strengthening all allied lane Fluxborn while the reward remains active.
-- A Well is **solo-capturable**, but multiple allied Vanguards accelerate the stabilization/capture process.
-- Additional capture contribution is capped or diminished so a five-player dogpile is not automatically required. The exact curve is tunable.
-- When both teams contest the site, control pressure determines progress. Equal control stalls; superior control can continue progress at a reduced rate.
+- **A Well has a health bar (ruled 2026-09-25).** Damage from Vanguard attacks and abilities depletes it, and allied Vanguard presence at the site also drains it at a data-driven rate. When its health reaches 0, the team that delivered the final hit, by damage or by a presence tick, secures the Well. A Well can therefore be stolen. This replaces the earlier rule that Wells had no health bar and no last-hit secure.
+- A Well is **solo-capturable**, but multiple allied Vanguards accelerate the capture.
+- Additional presence contribution is capped or diminished so a five-player dogpile is not automatically required. The exact curve is tunable.
+- When both teams contest the site, control pressure determines presence drain. Equal control stalls it; superior control can continue it at a reduced rate. Damage from either team still depletes the Well's health.
 - A jungler is naturally well-positioned to contest Wells, but ownership is a team problem rather than a role-locked mechanic.
-- There is no Dragon/Baron-style monster health bar and no last-hit secure mechanic at the center of the objective.
 
 **STILL TO PROTOTYPE**
 
-- Exact capture time for one, two, or more allied Vanguards.
-- Exact contribution cap/diminishing-return curve.
+- Well health and presence-drain rate, and how long a take lasts for one, two, or more allied Vanguards.
+- Exact presence-contribution cap/diminishing-return curve, and whether damage contribution also needs a cap.
+- Whether Well health regenerates while no team is working on it.
 - How long an opened but unclaimed Well remains available.
-- Exact visual/audio language for stabilization progress and contested control.
+- Exact visual/audio language for Well health, presence drain and contested control.
 
-| *The objective fight should be about controlling the Well site, not maximizing damage per second into a neutral boss.* |
-|------------------------------------------------------------------------------------------------------------------------|
+| *The objective fight is about controlling the Well site and landing the final hit: presence and damage both drain it, and either team can steal it.* |
+|------------------------------------------------------------------------------------------------------------------------------------------------------|
 
 ## 7. JUNGLE GEOMETRY
 
@@ -486,7 +487,7 @@ The [Parties, Social & Matchmaking Bible v0.1](Veyra_Parties_Social_Matchmaking_
 
 **HIGHEST-PRIORITY UNRESOLVED DESIGN QUESTIONS**
 
-- Exact Flux Well capture-time curve and contribution cap.
+- Exact Flux Well health, presence-drain curve and contribution cap.
 - Exact final Fluxborn scaling values/stacking formula after prototype testing.
 - Final base geometry around inhibitors, the two base-defense towers, and the Prime Well.
 - Playtest the established Gold/XP sharing rules from the Economy & Progression Bible with unconventional lane groupings.

@@ -1,0 +1,39 @@
+# Git LFS for Unreal binary assets under Game/ (Docs/ADR/ADR-006-unreal-project-scaffold.md §9).
+#
+# Locking convention: *.uasset and *.umap are lockable. Lock a binary asset before editing it
+# (git lfs lock <path>) and release the lock when the change merges (git lfs unlock <path>).
+# With Git LFS installed, lockable files are checked out read-only until you hold the lock.
+#
+# Every rule is scoped to Game/. Existing ConceptArt/ and Docs/ files are deliberately left as
+# they are, with no history rewrite.
+
+# Unreal assets and maps: LFS, lockable.
+Game/**/*.uasset filter=lfs diff=lfs merge=lfs -text lockable
+Game/**/*.umap filter=lfs diff=lfs merge=lfs -text lockable
+
+# Source binaries: LFS, not lockable.
+# Meshes
+Game/**/*.fbx filter=lfs diff=lfs merge=lfs -text
+Game/**/*.obj filter=lfs diff=lfs merge=lfs -text
+Game/**/*.abc filter=lfs diff=lfs merge=lfs -text
+# Audio
+Game/**/*.wav filter=lfs diff=lfs merge=lfs -text
+Game/**/*.ogg filter=lfs diff=lfs merge=lfs -text
+Game/**/*.flac filter=lfs diff=lfs merge=lfs -text
+# Images
+Game/**/*.png filter=lfs diff=lfs merge=lfs -text
+Game/**/*.tga filter=lfs diff=lfs merge=lfs -text
+Game/**/*.exr filter=lfs diff=lfs merge=lfs -text
+Game/**/*.hdr filter=lfs diff=lfs merge=lfs -text
+Game/**/*.psd filter=lfs diff=lfs merge=lfs -text
+Game/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+Game/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+Game/**/*.bmp filter=lfs diff=lfs merge=lfs -text
+Game/**/*.tif filter=lfs diff=lfs merge=lfs -text
+Game/**/*.tiff filter=lfs diff=lfs merge=lfs -text
+# Video
+Game/**/*.mp4 filter=lfs diff=lfs merge=lfs -text
+Game/**/*.mov filter=lfs diff=lfs merge=lfs -text
+# Fonts
+Game/**/*.ttf filter=lfs diff=lfs merge=lfs -text
+Game/**/*.otf filter=lfs diff=lfs merge=lfs -text

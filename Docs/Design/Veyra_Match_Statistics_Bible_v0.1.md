@@ -46,7 +46,7 @@ Record per-player **effective duration** of movement- or action-restricting cont
 
 ## 5. Neutral objectives (UX-46 — approved)
 
-Record **per player**: secured neutral Flux Wells with eligible participation; actual damage to active neutral Flux Well objectives; whether the player delivered the securing final hit where the existing objective uses that mechanic. Record **per team**: which team secured each Well and capture times, preserving objective sequence. Do not combine these measurements into an invented weighted objective score.
+Record **per player**: secured neutral Flux Wells with eligible participation; actual damage to active neutral Flux Well objectives; whether the player delivered the securing final hit where the existing objective uses that mechanic. Flux Wells use it: a Well has a health bar and the final hit's team secures it (Battleground Bible §6, ruled 2026-09-25). Record **per team**: which team secured each Well and capture times, preserving objective sequence. Do not combine these measurements into an invented weighted objective score.
 
 ## 6. Explicit rejection — tower/Fluxborn extension (UX-47 — rejected)
 

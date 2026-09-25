@@ -13,9 +13,10 @@ Saved/
 DerivedDataCache/
 .vs/
 *.sln
+*.slnx
+.vsconfig
 *.VC.db
 
-# Unreal source-asset / Git LFS policy (.gitattributes) is intentionally NOT set
-# here: "final asset-management/LFS policy" is still listed under ARCHITECTURE.md
-# "Deliberately open decisions". Decide it deliberately (ADR if architectural)
-# before adding asset rules.
+# Unreal binary assets under Game/ go through Git LFS: the patterns and the
+# locking convention live in .gitattributes, as decided in
+# Docs/ADR/ADR-006-unreal-project-scaffold.md §9.

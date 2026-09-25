@@ -4,7 +4,8 @@
 **Status:** Working combat canon for the first playable prototype.  
 **Changes since 0.4:** adds §56 Ride states, a generic movement-mode primitive covering entry, set Movement Speed, rate-limited facing, the replacement ability set, crowd-control interaction, exits, and the separated vehicle as a projectile. Former §56 and §57 renumber to §57 and §58. No existing rule changed, and §56 declares no exception to §9, §26 or any other section.  
 **Scope:** Vanguard combat rules, damage resolution, targeting, control, movement interactions, statuses, timing, and structure combat.  
-**Tuning rule:** Numerical values identified as prototype placeholders must remain data-driven.
+**Tuning rule:** Numerical values identified as prototype placeholders must remain data-driven.  
+**Rulings since 0.5 (2026-09-25):** defines Temporary Health (§7) and Displacement Resistance and Displacement Immunity (§9), names the resource families in use (§58), and adds Temporary Health to §25 step 9. No other rule changed.
 
 ## 1. Core combat principles
 
@@ -211,6 +212,18 @@ Different shields may coexist.
 
 Reapplying the same named shield from the same source follows that effect's explicit refresh/replace rule rather than automatically stacking.
 
+### Temporary Health (ruled 2026-09-25)
+
+Temporary Health is extra Health granted for the lifetime of the effect that grants it. It is **not a shield**.
+
+- **It counts as Health.** While any remains, the remaining amount is added to both current Health and Max Health. Rules that read Health see the raised values, including Percent-Health damage (§34), execute thresholds (§18) and Max-Health scaling, unless an effect explicitly excludes it. It is never missing Health, so missing-Health effects ignore it.
+- **It is spent before ordinary Health.** Damage that passes shields (§25 step 9) reduces Temporary Health first, then ordinary Health. Every damage type spends it, True Damage included; shield priority does not apply.
+- **It cannot be restored.** Healing, regeneration, Lifesteal and Omnivamp restore ordinary Health only. Healing and shield amplification (§51) do not change the granted amount, and Health Costs (§47) are paid from ordinary Health.
+- **It is not a §41 Max Health modifier.** Gaining or losing it adds or removes the same amount of current and maximum Health, so it never heals, and losing it never reduces ordinary Health or kills.
+- **It may drain.** A granting effect may drain its Temporary Health over time. Drain reduces only Temporary Health. When the effect ends, any remainder is removed.
+- **Several grants track independently.** Damage spends the oldest grant first unless an effect explicitly says otherwise. Reapplying the same named grant from the same source follows that effect's refresh/replace rule (§46). It is an ordinary temporary effect for death cleanup (§44).
+- Grant amounts, drain rates and lifetimes are tuning data.
+
 ## 8. Crowd control
 
 ### Core CC types
@@ -257,6 +270,8 @@ Tenacity does not reduce:
 Tenacity reduces Slow duration, not Slow magnitude.
 
 Slow magnitude reduction belongs to a separate **Slow Resistance** mechanic.
+
+Shortening forced displacement belongs to **Displacement Resistance**, and preventing it to **Displacement Immunity** (§9).
 
 Tenacity sources stack multiplicatively.
 
@@ -351,6 +366,24 @@ Terrain stops ordinary displacement at the nearest legal point.
 Displacement can never place a Vanguard inside impassable terrain.
 
 Displacement does not inherently deal damage.
+
+### Displacement Resistance and Displacement Immunity (ruled 2026-09-25)
+
+Both apply only to forced displacement from another source: Knockup, Knockback and Pull (§8). Neither affects the unit's own Dashes, Blinks or movement.
+
+**Displacement Resistance** shortens forced movement.
+
+- It reduces the distance a Knockback or Pull moves the unit by a data-driven percentage. If a Knockup also moves the unit, that travel is shortened the same way; airborne time is unchanged.
+- The displacement still lands. It still interrupts, still owns the unit's movement along its shorter path, and every other effect of the ability still applies. Resistance is not immunity and does not grant Unstoppable.
+- Sources stack multiplicatively, as Tenacity does. Each source's percentage is below 100%, so resistance alone never becomes immunity.
+- Terrain and legal-position checks apply to the shortened path.
+
+**Displacement Immunity** prevents new forced displacement.
+
+- While it lasts, a new Knockup, Knockback or Pull does not move, lift or interrupt the unit. The rest of the ability, such as its damage, Slows or other crowd control, still applies.
+- It is narrower than Unstoppable, which blocks every ordinary CC type; other crowd control applies normally.
+- As with CC immunity (§8), gaining it does not end a displacement already resolving unless the granting effect says so.
+- Suppression is not displacement and is unaffected.
 
 ### Dashes
 
@@ -827,7 +860,7 @@ Every damage event uses the same order:
 6. Apply target-side generic Damage Reduction. Ordinary reduction does not affect True Damage.
 7. Check Invulnerability.
 8. Apply eligible shields using shield-priority rules.
-9. Apply remaining damage to Health.
+9. Apply remaining damage to Temporary Health (§7), then to Health.
 10. Resolve On Damage / On Health Damage and other eligible triggers.
 11. Check eligible Death Prevention / revival-style saves against any lethal result (including Executes), then finalize actual death and kill/assist attribution **only if no valid save prevents the death**.
 
@@ -1737,7 +1770,7 @@ The following remain intentionally open because they are content/balance values 
 
 - exact per-Vanguard base stats and growth;
 - exact attack-range and cast-range values;
-- exact default resource families and regeneration values;
+- exact resource regeneration values. The resource families in use are the standard resource (Mana), Focus (Angeru) and Charge (Relay), and a kit may have no resource (§27). There is no Energy family because no Vanguard uses one; a family is added when a Vanguard needs it (ruled 2026-09-25);
 - exact structure Armor/MR values;
 - exact Spire base damage and attack cadence;
 - exact per-effect Dispel/Purge classifications where not yet designed;
