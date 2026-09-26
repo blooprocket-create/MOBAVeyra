@@ -165,6 +165,10 @@ class CheckTests(unittest.TestCase):
         (self.game / "Tuning" / "Schemas").mkdir(parents=True)
         self.write("Tuning/Schemas/Combat.schema.json", json.dumps(VALID_SCHEMA))
         self.write("Tuning/Combat.json", VALID_DOCUMENT)
+        # This tree has no contract schemas; ContractTests covers them.
+        original = tuning.CONTRACTS
+        tuning.CONTRACTS = []
+        self.addCleanup(setattr, tuning, "CONTRACTS", original)
 
     def write(self, relative: str, text: str) -> None:
         (self.game / relative).write_bytes(text.encode("utf-8"))
@@ -254,11 +258,51 @@ class ReferenceTests(unittest.TestCase):
         self.assertTrue(any("names 'other_bolt'" in e for e in errors), errors)
 
 
+class ContractTests(unittest.TestCase):
+    """Contract schemas from the table in check_tuning.py, each checked with its example."""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.game = Path(self.tmp.name) / "Game"
+        (self.game / "Schemas").mkdir(parents=True)
+        self.write("Schemas/Line.schema.json", json.dumps(VALID_SCHEMA))
+        original = tuning.CONTRACTS
+        tuning.CONTRACTS = [("Schemas/Line.schema.json", "Line.example.json")]
+        self.addCleanup(setattr, tuning, "CONTRACTS", original)
+
+    def write(self, relative: str, text: str) -> None:
+        (self.game / relative).write_bytes(text.encode("utf-8"))
+
+    def errors(self) -> list[str]:
+        return tuning.check_contracts(self.game)[0]
+
+    def test_valid_example_passes(self) -> None:
+        self.write("Line.example.json", VALID_DOCUMENT)
+        self.assertEqual(self.errors(), [])
+
+    def test_invalid_example_fails(self) -> None:
+        self.write("Line.example.json", '{"schemaVersion": 2}\n')
+        self.assertTrue(any("Game/Line.example.json" in e for e in self.errors()), self.errors())
+
+    def test_missing_example_fails(self) -> None:
+        self.assertTrue(any("Line.example.json: is missing" in e for e in self.errors()), self.errors())
+
+    def test_missing_schema_fails(self) -> None:
+        (self.game / "Schemas" / "Line.schema.json").unlink()
+        self.assertTrue(any("Line.schema.json: is missing" in e for e in self.errors()), self.errors())
+
+
 class RealRepositoryTests(unittest.TestCase):
     def test_committed_tuning_passes(self) -> None:
         errors, summary = tuning.check(tuning.GAME)
         self.assertEqual(errors, [], "\n".join(errors))
         self.assertIn("tuning domain", summary)
+
+    def test_committed_contracts_pass(self) -> None:
+        errors, summary = tuning.check_contracts(tuning.GAME)
+        self.assertEqual(errors, [], "\n".join(errors))
+        self.assertIn("contract schema", summary)
 
 
 if __name__ == "__main__":

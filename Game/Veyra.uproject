@@ -30,6 +30,11 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "VeyraServices",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "VeyraDeveloper",
 			"Type": "DeveloperTool",
 			"LoadingPhase": "Default"

@@ -10,8 +10,9 @@ draft-04. Documents must be UTF-8 without a byte-order mark, use LF line endings
 (no duplicate keys, NaN or Infinity) and validate against their schema.
 
 The game applies the same rules when it loads tuning (VeyraCore, VeyraTuning.cpp). The corpus in
-Game/Source/VeyraDeveloper/TestData keeps the two validators in agreement. Needs the pinned
-packages in scripts/requirements-tuning.txt.
+Game/Source/VeyraDeveloper/TestData keeps the two validators in agreement. The contract schemas
+listed in CONTRACTS use the same dialect for documents that are not tuning, and each is checked
+with its example. Needs the pinned packages in scripts/requirements-tuning.txt.
 """
 from __future__ import annotations
 
@@ -44,6 +45,14 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # whose keys are the valid IDs). The loading domain in the game checks the same references.
 REFERENCES: list[tuple[str, str, str, str]] = [
     ("Match", "/developerLoadout/abilityQ", "Abilities", "/targetedDamage"),
+]
+
+# Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.
+# The example is what the other side of the contract writes: the backend's contract test writes the
+# match assignment (ADR-007 §5), and the match server validates it against the schema.
+CONTRACTS: list[tuple[str, str]] = [
+    ("Source/VeyraServices/Schemas/MatchAssignment.schema.json",
+     "Source/VeyraDeveloper/TestData/MatchAssignment.example.json"),
 ]
 
 
@@ -381,6 +390,38 @@ def check(game_dir: Path) -> tuple[list[str], str]:
     return errors, f"{checked} tuning domain(s) valid."
 
 
+def check_contracts(game_dir: Path) -> tuple[list[str], str]:
+    base = game_dir.parent
+    errors: list[str] = []
+
+    def shown(path: Path) -> str:
+        try:
+            return path.relative_to(base).as_posix()
+        except ValueError:
+            return path.as_posix()
+
+    for schema_relative, example_relative in CONTRACTS:
+        schema_path = game_dir / schema_relative
+        example_path = game_dir / example_relative
+        if not schema_path.is_file():
+            errors.append(f"{shown(schema_path)}: is missing")
+            continue
+        schema, schema_errors = load_schema(schema_path, shown(schema_path))
+        errors.extend(schema_errors)
+        if schema is None:
+            continue
+        if not example_path.is_file():
+            errors.append(f"{shown(example_path)}: is missing")
+            continue
+        try:
+            text = example_path.read_bytes().decode("utf-8")
+        except UnicodeDecodeError as error:
+            errors.append(f"{shown(example_path)}: not valid UTF-8 ({error})")
+            continue
+        errors.extend(validate_document(text, schema, shown(example_path)))
+    return errors, f"{len(CONTRACTS)} contract schema(s) valid."
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -395,11 +436,13 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     errors, summary = check(args.game_dir.resolve())
+    contract_errors, contract_summary = check_contracts(args.game_dir.resolve())
+    errors += contract_errors
     if errors:
         for error in errors:
             print("ERROR:", error, file=sys.stderr)
         return 1
-    print(f"OK: {summary}")
+    print(f"OK: {summary} {contract_summary}")
     return 0
 
 

@@ -1,0 +1,54 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Match-server assignment",
+  "description": "The one line of JSON a match server reads on its standard input when it starts (ADR-007 §5). The backend writes it (Backend/internal/match/assignment.go) and VeyraServices binds it to FVeyraAssignmentDocument. It uses the tuning dialect (Game/Tuning/README.md) but is not tuning, and is not part of the tuning hash.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "matchId", "backendUrl", "serverCredential", "participants"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [1] },
+    "matchId": {
+      "type": "string",
+      "description": "The match's ID, a lowercase UUID. The server reports under it.",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "backendUrl": {
+      "type": "string",
+      "description": "The backend's base URL as the match server reaches it: http or https, a host, an optional port, no path.",
+      "pattern": "^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$"
+    },
+    "serverCredential": {
+      "type": "string",
+      "description": "The match-server credential (ADR-007 §2): vms_ and the base64url form of 32 bytes. Kept in memory only and never logged.",
+      "pattern": "^vms_[A-Za-z0-9_-]{43}$"
+    },
+    "participants": {
+      "type": "array",
+      "description": "The roster: who may join, and on which side. Each side's size is checked against Match.json teams.maxTeamSize when the server takes the assignment.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["accountId", "displayName", "side", "ticketHash"],
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "description": "The participant's account ID, a lowercase UUID.",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
+          "displayName": {
+            "type": "string",
+            "description": "The name other players see. Any text without control characters.",
+            "pattern": "^[^\\x00-\\x1f\\x7f]+$"
+          },
+          "side": { "type": "string", "description": "Team A or Team B (Battleground Bible §15).", "enum": ["A", "B"] },
+          "ticketHash": {
+            "type": "string",
+            "description": "The lowercase hex SHA-256 of the participant's join ticket (ADR-007 §3). The server never receives the ticket itself.",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        }
+      }
+    }
+  }
+}

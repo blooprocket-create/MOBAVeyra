@@ -5,6 +5,7 @@ on:
     paths:
       - 'Game/Tuning/**'
       - 'Game/Source/VeyraDeveloper/TestData/**'
+      - 'Game/Source/VeyraServices/Schemas/**'
       - 'scripts/check_tuning.py'
       - 'scripts/requirements-tuning.txt'
       - 'tests/test_tuning.py'
@@ -13,6 +14,7 @@ on:
     paths:
       - 'Game/Tuning/**'
       - 'Game/Source/VeyraDeveloper/TestData/**'
+      - 'Game/Source/VeyraServices/Schemas/**'
       - 'scripts/check_tuning.py'
       - 'scripts/requirements-tuning.txt'
       - 'tests/test_tuning.py'
