@@ -13,8 +13,12 @@
 #
 #   docker compose --profile match-server up --build match-server
 #
-# Clients connect to 127.0.0.1:7777. The backend will start one server per
-# match through its allocator later (ADR-005).
+# Clients connect to 127.0.0.1:7777. Built this way, the image is also tagged
+# veyra-match-server:local, which the backend's allocator starts once per match
+# (ADR-007), on ports 7780-7789 and on this project's network. To build the
+# image without running the direct-connect server:
+#
+#   docker compose --profile match-server build match-server
 
 name: veyra
 
@@ -37,6 +41,13 @@ services:
 
   backend:
     build: ./Backend
+    # The backend starts match servers through the Docker socket (ADR-007 §11).
+    # Access to the socket controls the whole Docker host, so this is for a
+    # developer machine only; the backend runs as root in its container to
+    # open the socket.
+    user: "0:0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       VEYRA_DATABASE_URL: postgres://veyra:veyra-local-only@postgres:5432/veyra?sslmode=disable
     ports:
@@ -47,6 +58,7 @@ services:
 
   match-server:
     profiles: ["match-server"]
+    image: veyra-match-server:local
     build:
       context: Game/Saved/Packages/VeyraServer-Linux/LinuxServer
       dockerfile: ../../../../Docker/Server/Dockerfile

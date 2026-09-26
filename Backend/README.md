@@ -111,6 +111,8 @@ Rules the code enforces:
 - A server credential works only for its own match. A result can be reported again unchanged; a different one is refused. It must list exactly the roster.
 - A match whose server does not report ready within `matches.readyTimeout`, runs past `matches.maxDuration`, or whose server stops without a result is failed. A finished match's server is removed after `matches.removeServerAfter`, and its port is reused only after that.
 
+**Match servers.** Locally, the backend starts each match's server as a Docker container (`internal/docker`), named `veyra-match-<match id>`, from the `veyra-match-server:local` image that `docker compose --profile match-server build match-server` builds from the packaged Linux server. It publishes the server on `127.0.0.1` at a port from `allocator.docker.hostPorts` and joins the compose network, where the server reaches the backend as `http://backend:8080`. To do this the backend container mounts the Docker socket and runs as root, which gives it control of the Docker host: acceptable on a developer machine only.
+
 ## For the Unreal client
 
 The game receives its launch code on **standard input**, one line, never on the command line. On startup it should read that line, then call `POST /v1/game-sessions` with the code and its own build version, and keep the returned game session token in memory. In development, `veyra-devlaunch` starts the game the same way:
@@ -136,6 +138,7 @@ Backend/
     ├── social/            friends, friend requests, blocks
     ├── party/             parties, invites, Ready, queue lock
     ├── match/             matches, join tickets, results, the allocator interface
+    ├── docker/            the local allocator: one Docker container per match
     ├── secret/            bearer secrets and their hashes
     ├── postgres/          Postgres storage and embedded migrations
     └── httpapi/           HTTP/JSON transport
@@ -167,3 +170,9 @@ VEYRA_TEST_DATABASE_URL=postgres://veyra:veyra-local-only@localhost:5432/veyra_t
 ```
 
 CI runs everything against its own Postgres.
+
+The Docker allocator's tests use a fake Engine API. One more test runs it against the real Docker Engine when `VEYRA_TEST_DOCKER_ENDPOINT` and `VEYRA_TEST_DOCKER_IMAGE` are set; the image needs an entrypoint that runs the command it is given, and `sh` and `cat` (`postgres:16` qualifies). It checks that a container receives its assignment on standard input and that `docker inspect` never shows the credential:
+
+```powershell
+docker run --rm -v "${PWD}:/src" -v /var/run/docker.sock:/var/run/docker.sock -e VEYRA_TEST_DOCKER_ENDPOINT=unix:///var/run/docker.sock -e VEYRA_TEST_DOCKER_IMAGE=postgres:16 -w /src/Backend golang:1.25 go test -run TestStartAgainstDockerEngine ./internal/docker
+```

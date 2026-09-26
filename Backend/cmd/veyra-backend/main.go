@@ -16,8 +16,10 @@ import (
 	"time"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/config"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/docker"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/httpapi"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/postgres"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
@@ -85,17 +87,28 @@ func run(log *slog.Logger) error {
 		DefaultPrivacy: party.Privacy(cfg.Party.DefaultPrivacy),
 	}, time.Now)
 
+	matches, err := newMatchService(cfg, store, svc)
+	if err != nil {
+		return err
+	}
+	if cfg.Matches.DevCreate {
+		log.Warn("development match creation is enabled; never expose this backend publicly")
+	}
+	go matches.RunReaper(ctx, cfg.Matches.ReapInterval, log)
+
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,
 		Handler: httpapi.New(httpapi.Deps{
 			Identity:       svc,
 			Social:         soc,
 			Party:          parties,
+			Match:          matches,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,
 			BodyLimitBytes: cfg.RequestBodyLimitBytes,
 			DevLogin:       cfg.DevLogin.Enabled,
+			DevMatches:     cfg.Matches.DevCreate,
 			Log:            log,
 		}),
 		ReadTimeout:  cfg.HTTP.Read,
@@ -119,3 +132,64 @@ func run(log *slog.Logger) error {
 	log.Info("shutting down")
 	return srv.Shutdown(shutdownCtx)
 }
+
+// newMatchService builds the match service with the configured allocator.
+func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Service) (*match.Service, error) {
+	var allocator match.Allocator = noAllocator{}
+	settings := match.Settings{
+		Modes:             map[string]match.Mode{},
+		ReadyTimeout:      cfg.Matches.ReadyTimeout,
+		MaxDuration:       cfg.Matches.MaxDuration,
+		RemoveServerAfter: cfg.Matches.RemoveServerAfter,
+	}
+	for _, m := range cfg.Modes {
+		settings.Modes[m.ID] = match.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam}
+	}
+	if d := cfg.Allocator.Docker; cfg.Allocator.Kind == config.AllocatorDocker && d != nil {
+		dockerAllocator, err := docker.New(docker.Config{
+			Endpoint:       d.Endpoint,
+			APIVersion:     d.APIVersion,
+			RequestTimeout: d.RequestTimeout,
+			Image:          d.Image,
+			Network:        d.Network,
+			NamePrefix:     d.ContainerNamePrefix,
+			ContainerPort:  d.ContainerPort,
+			HostIP:         d.HostIP,
+			ServerArgs:     d.ServerArgs,
+			StopTimeout:    d.StopTimeout,
+		})
+		if err != nil {
+			return nil, err
+		}
+		allocator = dockerAllocator
+		settings.HostPortMin, settings.HostPortMax = d.HostPortMin, d.HostPortMax
+		settings.PublicHost, settings.BackendURL = d.PublicHost, d.BackendURL
+	}
+	accounts := match.AccountsFunc(func(ctx context.Context, accountIDs []string) (map[string]string, error) {
+		found, err := ids.Accounts(ctx, accountIDs)
+		if err != nil {
+			return nil, err
+		}
+		names := make(map[string]string, len(found))
+		for id, a := range found {
+			names[id] = a.DisplayName
+		}
+		return names, nil
+	})
+	return match.NewService(store.Match(), accounts, allocator, settings, time.Now), nil
+}
+
+// noAllocator is used when this backend starts no match servers
+// (allocator.kind "none"). Config refuses dev match creation without an
+// allocator, so Start is never reached through the API.
+type noAllocator struct{}
+
+func (noAllocator) Start(context.Context, match.ServerSpec) error {
+	return errors.New("this backend starts no match servers")
+}
+
+func (noAllocator) Status(context.Context, string) (match.ServerStatus, error) {
+	return match.ServerStatus{Missing: true}, nil
+}
+
+func (noAllocator) Remove(context.Context, string) error { return nil }
