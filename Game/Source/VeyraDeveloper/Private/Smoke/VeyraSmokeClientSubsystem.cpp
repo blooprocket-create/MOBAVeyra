@@ -25,7 +25,7 @@ namespace
 	// Harness settings, not gameplay: how long the whole script may take, how far along its move the
 	// Vanguard must get to count as moving, and how close to the lane centre each Vanguard stops, as
 	// a fraction of the Q ability's cast range, so the two end in range without meeting.
-	constexpr double TimeoutRealSeconds = 180.0;
+	constexpr double SmokeTimeoutRealSeconds = 180.0;
 	constexpr double MoveProgressFraction = 0.5;
 	constexpr double StopFromCentreFractionOfCastRange = 0.25;
 	// How long the paused world must stay paused before this client asks to resume. Long enough for
@@ -85,7 +85,7 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	{
 		return false;
 	}
-	if (FPlatformTime::Seconds() - StartRealTime > TimeoutRealSeconds)
+	if (FPlatformTime::Seconds() - StartRealTime > SmokeTimeoutRealSeconds)
 	{
 		Finish(false, FString::Printf(TEXT("timed out waiting at step %d"), static_cast<int32>(Step)));
 		return false;

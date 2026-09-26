@@ -24,7 +24,7 @@ namespace
 	// Harness settings, not gameplay: how long the check may take, how much faster than real time
 	// the replay plays, how far a Vanguard must travel to count as moving, how close to the end
 	// playback must get, and how many Vanguards the smoke match has.
-	constexpr double TimeoutRealSeconds = 180.0;
+	constexpr double ReplayCheckTimeoutRealSeconds = 180.0;
 	constexpr float PlaybackSpeed = 4.0f;
 	constexpr double MovementThreshold = 100.0;
 	constexpr double EndToleranceSeconds = 0.5;
@@ -61,7 +61,7 @@ bool UVeyraReplayCheckSubsystem::Tick(float /*DeltaSeconds*/)
 	{
 		return false;
 	}
-	if (FPlatformTime::Seconds() - StartRealTime > TimeoutRealSeconds)
+	if (FPlatformTime::Seconds() - StartRealTime > ReplayCheckTimeoutRealSeconds)
 	{
 		Finish(false, FString::Printf(TEXT("timed out; playing: %d"), bPlaying ? 1 : 0));
 		return false;
