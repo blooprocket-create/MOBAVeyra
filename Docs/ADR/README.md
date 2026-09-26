@@ -13,8 +13,9 @@ This directory records major technical choices that should not be casually rever
 ## Proposed decisions
 
 - [`ADR-006-unreal-project-scaffold.md`](ADR-006-unreal-project-scaffold.md) — Unreal project in `Game/`, four targets, the initial module set with an enforced layer map, ASC on the PlayerState, Iris with fog of war enforced per player at the data boundary, text JSON tuning, Git LFS patterns and locking, CQTest and PowerShell build/test scripts. It becomes Accepted when the author merges the M1 pull request that adds it.
+- [`ADR-007-match-join-contract.md`](ADR-007-match-join-contract.md) — How a client joins its assigned match: backend-derived join tickets (a key per match, erased at its end), the server's roster delivered on its standard input at start, a per-match server credential for ready and result reports, the minimum M4 result, and the local Docker allocator. It becomes Accepted when the author merges the M4 pull request that adds it.
 
-**Renumbering note (2026-09-23):** The unified-client record was first filed as a second `ADR-003` and has been renumbered to `ADR-004`; its content and acceptance are unchanged. Historical records such as [`Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md) that say "ADR-003" refer to owned field entities. Every ADR must use a unique number; `scripts/check_doc_context.py --check` enforces this. The next new ADR is `ADR-007`.
+**Renumbering note (2026-09-23):** The unified-client record was first filed as a second `ADR-003` and has been renumbered to `ADR-004`; its content and acceptance are unchanged. Historical records such as [`Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md) that say "ADR-003" refer to owned field entities. Every ADR must use a unique number; `scripts/check_doc_context.py --check` enforces this. The next new ADR is `ADR-008`.
 
 ## When to create an ADR
 
