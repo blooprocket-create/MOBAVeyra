@@ -3,6 +3,7 @@
 #include "Cooldowns/VeyraCooldownComponent.h"
 
 #include "Engine/World.h"
+#include "GameFramework/GameStateBase.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 
@@ -45,7 +46,7 @@ void UVeyraCooldownComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 void UVeyraCooldownComponent::StartCooldown(const FVeyraContentId& Ability, double DurationSeconds)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
-	VeyraCooldowns::Start(Entries, Ability, DurationSeconds, GetWorld()->GetTimeSeconds());
+	VeyraCooldowns::Start(Entries, Ability, DurationSeconds, GetServerNow());
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
 }
 
@@ -56,7 +57,14 @@ double UVeyraCooldownComponent::GetRemainingSeconds(const FVeyraContentId& Abili
 
 double UVeyraCooldownComponent::GetRemainingSecondsNow(const FVeyraContentId& Ability) const
 {
-	return GetRemainingSeconds(Ability, GetWorld()->GetTimeSeconds());
+	return GetRemainingSeconds(Ability, GetServerNow());
+}
+
+double UVeyraCooldownComponent::GetServerNow() const
+{
+	const UWorld* World = GetWorld();
+	const AGameStateBase* GameState = World->GetGameState();
+	return GameState ? GameState->GetServerWorldTimeSeconds() : World->GetTimeSeconds();
 }
 
 double UVeyraCooldownComponent::GetDurationSeconds(const FVeyraContentId& Ability) const

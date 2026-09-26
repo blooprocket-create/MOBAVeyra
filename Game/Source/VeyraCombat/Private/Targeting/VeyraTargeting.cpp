@@ -30,7 +30,11 @@ bool IsAlive(const AActor* Unit)
 
 bool AreHostile(const UObject* A, const UObject* B)
 {
-	return VeyraTeams::TeamOf(A) != VeyraTeams::TeamOf(B);
+	// Only the two sides are hostile to each other. Anything on no side, such as neutral wildlife, is
+	// an explicit targeting category, never an implicit enemy (Combat Bible §29).
+	const EVeyraTeam TeamA = VeyraTeams::TeamOf(A);
+	const EVeyraTeam TeamB = VeyraTeams::TeamOf(B);
+	return TeamA != EVeyraTeam::None && TeamB != EVeyraTeam::None && TeamA != TeamB;
 }
 
 double EdgeToEdgeDistance(const AActor& A, const AActor& B)

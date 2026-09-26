@@ -27,6 +27,13 @@ public:
 	/** Owning client: asks the server to move this player's Vanguard to Destination. */
 	void IssueMoveOrder(const FVector& Destination);
 
+	/**
+	 * Owning client: re-aims the current move order at Destination while the move button is held.
+	 * Each update replaces the last, so it travels unreliably: a lost one is superseded by the next
+	 * and never holds up the reliable orders behind it. The server checks it like any move order.
+	 */
+	void SteerMoveOrder(const FVector& Destination);
+
 	/** Owning client: asks the server to cast the ability in Slot at Target. */
 	void IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Target);
 
@@ -62,6 +69,12 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerIssueMoveOrder(FVector Destination);
 
+	UFUNCTION(Server, Unreliable)
+	void ServerSteerMoveOrder(FVector Destination);
+
+	/** Server: checks a move order from either path and hands it to the game mode. */
+	void ApplyMoveOrder(const FVector& Destination);
+
 	UFUNCTION(Client, Unreliable)
 	void ClientOrderRejected(EVeyraOrderRejection Rejection);
 
@@ -83,7 +96,7 @@ private:
 	void OnMoveOrderStarted();
 	void OnMoveOrderHeld();
 	void OnAbilityQ();
-	void MoveToCursor();
+	void MoveToCursor(bool bSteer);
 
 	UPROPERTY(Transient)
 	FVeyraInputObjects Input;

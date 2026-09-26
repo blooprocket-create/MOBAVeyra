@@ -17,7 +17,7 @@ enum class EVeyraTargetValidity : uint8
 	Caster,
 	/** A combatant whose death is final. */
 	Dead,
-	/** On the caster's side, for an ability that targets enemies. */
+	/** On the caster's side, or on no side, for an ability that targets enemies. */
 	NotHostile,
 	/** Further than the cast range, plus the server's tolerance, edge to edge. */
 	OutOfRange,
@@ -32,7 +32,10 @@ namespace VeyraTargeting
 	/** Whether Unit is a combatant that is alive. A pawn counts through its PlayerState. */
 	VEYRACOMBAT_API bool IsAlive(const AActor* Unit);
 
-	/** Whether A and B are on different sides. */
+	/**
+	 * Whether A and B are on opposing sides. Something on no side is hostile to nothing: neutral units
+	 * are explicit targeting categories, not implicit enemies (Combat Bible §29).
+	 */
 	VEYRACOMBAT_API bool AreHostile(const UObject* A, const UObject* B);
 
 	/** Distance between two units' collision edges on the ground plane, never below 0 (Combat Bible §40). */

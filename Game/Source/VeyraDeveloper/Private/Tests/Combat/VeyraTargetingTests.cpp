@@ -71,6 +71,17 @@ namespace VeyraCombatTests
 			Enemy.GetPlayerState()->FindComponentByClass<UVeyraLifeComponent>()->SetState(EVeyraLifeState::Dead);
 			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Enemy, Range) == EVeyraTargetValidity::Dead));
 		}
+
+		TEST_METHOD(NoSideIsNeverAnImplicitEnemy)
+		{
+			AVeyraVanguardCharacter& Caster = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Neutral = SpawnVanguard(EVeyraTeam::None, FVector(Separation, 0.0, 0.0));
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, FVector(0.0, Separation, 0.0));
+			ASSERT_THAT(IsFalse(VeyraTargeting::AreHostile(&Caster, &Neutral)));
+			ASSERT_THAT(IsFalse(VeyraTargeting::AreHostile(&Neutral, &Enemy)));
+			ASSERT_THAT(IsTrue(VeyraTargeting::AreHostile(&Caster, &Enemy)));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Neutral, Separation) == EVeyraTargetValidity::NotHostile));
+		}
 	};
 }
 

@@ -412,16 +412,28 @@ void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
 	}
 
 	// The body leaves the map; the PlayerState, with its cooldowns and permanent effects, stays. The
-	// death arrives from inside the damage that caused it, so the body goes on the next tick.
-	if (APawn* Body = PlayerState->GetPawn())
-	{
-		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(Body, [Body] { Body->Destroy(); }));
-	}
+	// death arrives from inside the damage that caused it, so the body goes on the next tick. The
+	// timer manager ignores a delay of 0, so an immediate respawn follows the body out on that tick.
 	const double Delay = UVeyraMatchTuningSubsystem::Get().Respawn.DelaySeconds;
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s died; respawning in %g s."), *PlayerState->GetPlayerName(), Delay);
-	FTimerHandle Timer;
-	GetWorldTimerManager().SetTimer(Timer, FTimerDelegate::CreateUObject(this, &AVeyraGameMode::Respawn, TWeakObjectPtr<AVeyraPlayerState>(PlayerState)),
-		static_cast<float>(Delay), /*bLoop*/ false);
+	const TWeakObjectPtr<AVeyraPlayerState> Participant(PlayerState);
+	const TWeakObjectPtr<APawn> Body(PlayerState->GetPawn());
+	const bool bRespawnAtOnce = Delay <= 0.0;
+	GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(this, [this, Participant, Body, bRespawnAtOnce] {
+		if (APawn* OldBody = Body.Get())
+		{
+			OldBody->Destroy();
+		}
+		if (bRespawnAtOnce)
+		{
+			Respawn(Participant);
+		}
+	}));
+	if (!bRespawnAtOnce)
+	{
+		FTimerHandle Timer;
+		GetWorldTimerManager().SetTimer(Timer, FTimerDelegate::CreateUObject(this, &AVeyraGameMode::Respawn, Participant), static_cast<float>(Delay), /*bLoop*/ false);
+	}
 }
 
 void AVeyraGameMode::Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState)

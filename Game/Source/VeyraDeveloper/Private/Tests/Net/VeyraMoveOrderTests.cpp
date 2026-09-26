@@ -71,6 +71,17 @@ namespace VeyraNetTests
 				.ThenClient(0, [this](FState& State) { ASSERT_THAT(AreEqual(LocalControllerOf(State.World)->GetOrderRejectionCount(), 0)); });
 		}
 
+		TEST_METHOD(SteeringAHeldOrderMovesTheVanguard)
+		{
+			const FVector Destination = FVector::ZeroVector;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer([this](FState& State) { MoverId = ServerControllerOf(State, 0)->PlayerState->GetPlayerId(); })
+				.ThenClient(0, [Destination](FState& State) { LocalControllerOf(State.World)->SteerMoveOrder(Destination); })
+				.UntilServer(TEXT("The server moves the Vanguard"), [this, Destination](FState& State) {
+					return IsNear2D(FindVanguard(State.World, MoverId), Destination);
+				});
+		}
+
 		TEST_METHOD(OrdersBeforeTheMatchIsLiveAreRefused)
 		{
 			// Long enough that the order arrives during preparation.

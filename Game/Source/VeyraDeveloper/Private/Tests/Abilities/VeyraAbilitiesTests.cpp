@@ -8,6 +8,7 @@
 #include "Engine/Engine.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Tests/Abilities/VeyraTestClockGameState.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesVerbs.h"
 #include "VeyraCombatVerbs.h"
@@ -59,6 +60,30 @@ namespace VeyraAbilitiesTests
 			TArray<FVeyraCooldownEntry> Entries;
 			VeyraCooldowns::Start(Entries, Id(TEXT("first")), Duration, Start);
 			ASSERT_THAT(IsTrue(VeyraCooldowns::RemainingSeconds(Entries, Id(TEXT("second")), Start) == 0.0));
+		}
+	};
+
+	// Veyra.Abilities.CooldownClock.*: the ledger counts in the server's world time. A client, whose
+	// world clock started when it loaded the map, reads it through its game state's estimate of the
+	// server's clock, so a late joiner sees the true remaining time.
+	TEST_CLASS(CooldownClock, "Veyra.Abilities")
+	{
+		static constexpr double Duration = 5.0;
+		// How far the server's clock runs ahead of a client that loaded the map later.
+		static constexpr float ServerClockAhead = 2.0f;
+
+		FActorTestSpawner Spawner;
+
+		TEST_METHOD(RemainingTimeFollowsTheServerClock)
+		{
+			AVeyraTestClockGameState& GameState = Spawner.SpawnActor<AVeyraTestClockGameState>();
+			UVeyraCooldownComponent& Cooldowns = *Spawner.SpawnActor<AVeyraPlayerState>().FindComponentByClass<UVeyraCooldownComponent>();
+			Cooldowns.StartCooldown(Id(TEXT("test_bolt")), Duration);
+			ASSERT_THAT(IsTrue(Cooldowns.GetRemainingSecondsNow(Id(TEXT("test_bolt"))) == Duration));
+
+			// The same ledger, read where the server's clock is ahead of the local world clock.
+			GameState.SetServerClockOffset(ServerClockAhead);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Cooldowns.GetRemainingSecondsNow(Id(TEXT("test_bolt"))), Duration - ServerClockAhead)));
 		}
 	};
 

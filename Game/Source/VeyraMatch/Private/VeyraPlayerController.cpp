@@ -25,6 +25,11 @@ void AVeyraPlayerController::IssueMoveOrder(const FVector& Destination)
 	ServerIssueMoveOrder(Destination);
 }
 
+void AVeyraPlayerController::SteerMoveOrder(const FVector& Destination)
+{
+	ServerSteerMoveOrder(Destination);
+}
+
 void AVeyraPlayerController::IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Target)
 {
 	FVeyraCastTarget CastTarget;
@@ -59,7 +64,7 @@ void AVeyraPlayerController::SetupInputComponent()
 
 void AVeyraPlayerController::OnMoveOrderStarted()
 {
-	MoveToCursor();
+	MoveToCursor(/*bSteer*/ false);
 }
 
 void AVeyraPlayerController::OnMoveOrderHeld()
@@ -67,17 +72,24 @@ void AVeyraPlayerController::OnMoveOrderHeld()
 	// Holding the button keeps steering toward the cursor, paced below the server's order limit.
 	if (GetWorld()->GetRealTimeSeconds() - LastHeldMoveOrderTime >= GetDefault<UVeyraInputSettings>()->HeldMoveOrderIntervalSeconds)
 	{
-		MoveToCursor();
+		MoveToCursor(/*bSteer*/ true);
 	}
 }
 
-void AVeyraPlayerController::MoveToCursor()
+void AVeyraPlayerController::MoveToCursor(bool bSteer)
 {
 	FHitResult Ground;
 	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
 	{
 		LastHeldMoveOrderTime = GetWorld()->GetRealTimeSeconds();
-		IssueMoveOrder(Ground.Location);
+		if (bSteer)
+		{
+			SteerMoveOrder(Ground.Location);
+		}
+		else
+		{
+			IssueMoveOrder(Ground.Location);
+		}
 	}
 }
 
@@ -180,6 +192,16 @@ void AVeyraPlayerController::OnVanguardSet(APlayerState* /*Participant*/, APawn*
 }
 
 void AVeyraPlayerController::ServerIssueMoveOrder_Implementation(FVector Destination)
+{
+	ApplyMoveOrder(Destination);
+}
+
+void AVeyraPlayerController::ServerSteerMoveOrder_Implementation(FVector Destination)
+{
+	ApplyMoveOrder(Destination);
+}
+
+void AVeyraPlayerController::ApplyMoveOrder(const FVector& Destination)
 {
 	if (!TakeOrderAllowance())
 	{

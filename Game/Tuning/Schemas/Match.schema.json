@@ -52,7 +52,7 @@
       "required": ["delaySeconds"],
       "properties": {
         "delaySeconds": {
-          "description": "Seconds from a death to the respawn. A placeholder: canon's respawn curve, which grows with level and match time (Economy Bible §14), is not yet ruled (Battleground Bible §16).",
+          "description": "Seconds from a death to the respawn; 0 respawns at once. A placeholder: canon's respawn curve, which grows with level and match time (Economy Bible §14), is not yet ruled (Battleground Bible §16).",
           "type": "number",
           "minimum": 0
         }

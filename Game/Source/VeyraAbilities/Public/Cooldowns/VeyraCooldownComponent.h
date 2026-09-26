@@ -37,8 +37,8 @@ namespace VeyraCooldowns
 /**
  * A combatant's ability cooldowns (ADR-006 §4 amendment: a Veyra ledger, not Gameplay Effects). It
  * lives on the PlayerState, so cooldowns keep running through death and respawn (Combat Bible §44).
- * It counts in world time, which stops while the match is paused (ADR-006 §8). Replicated to the
- * owner and to replays for the HUD.
+ * It counts in the server's world time, which stops while the match is paused (ADR-006 §8).
+ * Replicated to the owner and to replays for the HUD.
  */
 UCLASS(ClassGroup = Abilities)
 class VEYRAABILITIES_API UVeyraCooldownComponent : public UActorComponent
@@ -59,13 +59,20 @@ public:
 	 */
 	double GetRemainingSeconds(const FVeyraContentId& Ability, double Now) const;
 
-	/** Server only: seconds until Ability is ready, now. */
+	/** Seconds until Ability is ready, now, on the server or a client (see GetServerNow). */
 	double GetRemainingSecondsNow(const FVeyraContentId& Ability) const;
 
 	/** The duration Ability's current cooldown started with, or 0 if it has none. */
 	double GetDurationSeconds(const FVeyraContentId& Ability) const;
 
 private:
+	/**
+	 * Server world time, which the ledger counts in. On the server that is its own world clock. A
+	 * client's world clock started when it loaded the map, so a client uses the game state's
+	 * synchronized estimate of the server's clock instead.
+	 */
+	double GetServerNow() const;
+
 	UPROPERTY(Replicated)
 	TArray<FVeyraCooldownEntry> Entries;
 };

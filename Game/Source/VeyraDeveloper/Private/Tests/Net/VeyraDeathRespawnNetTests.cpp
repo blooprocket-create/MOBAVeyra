@@ -129,6 +129,28 @@ namespace VeyraNetTests
 						&& Controller->GetPlayerState<AVeyraPlayerState>()->GetAbilitySystemComponent()->GetAvatarActor() == Body;
 				});
 		}
+
+		TEST_METHOD(AZeroDelayRespawnsAtOnce)
+		{
+			// The schema allows 0; the engine's timers would ignore it.
+			Tuning->Tuning.Respawn.DelaySeconds = 0.0;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Kill the victim"), [this](FState& State) {
+					AVeyraPlayerState& Victim = ServerParticipant(State, 0);
+					FirstBody = Victim.GetPawn();
+					FVeyraRawDamageEvent Lethal;
+					Lethal.Components.Add({ EVeyraDamageType::TrueDamage, Tuning->Tuning.DeveloperLoadout.MaxHealth });
+					ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*ServerParticipant(State, 1).GetAbilitySystemComponent(), *Victim.GetAbilitySystemComponent(), Lethal)));
+				})
+				.UntilServer(TEXT("The victim respawns in a new body"), [this](FState& State) {
+					AVeyraPlayerState& Victim = ServerParticipant(State, 0);
+					return Victim.GetPawn() != nullptr && Victim.GetPawn() != FirstBody.Get() && Victim.FindComponentByClass<UVeyraLifeComponent>()->IsAlive();
+				})
+				.ThenServer(TEXT("And the old body is gone"), [this](FState& /*State*/) {
+					const APawn* OldBody = FirstBody.Get();
+					ASSERT_THAT(IsTrue(OldBody == nullptr || OldBody->IsActorBeingDestroyed()));
+				});
+		}
 	};
 }
 
