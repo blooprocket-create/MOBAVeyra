@@ -42,3 +42,13 @@ class VEYRACOMBAT_API UVeyraTemporaryHealthEffect : public UGameplayEffect
 public:
 	UVeyraTemporaryHealthEffect();
 };
+
+/** One resource cost (Combat Bible §27): an instant effect whose execution spends the cost from the spec. */
+UCLASS()
+class VEYRACOMBAT_API UVeyraResourceSpendEffect : public UGameplayEffect
+{
+	GENERATED_BODY()
+
+public:
+	UVeyraResourceSpendEffect();
+};

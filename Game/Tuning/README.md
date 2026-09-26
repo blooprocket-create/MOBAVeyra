@@ -23,17 +23,23 @@ The game (`VeyraTuning.cpp` in VeyraCore) and CI (`scripts/check_tuning.py`) app
 
 Schemas use a strict subset of JSON Schema draft-04:
 
-| Schema type | Keywords |
-|---|---|
-| any | `$schema`, `title`, `description`, `type` |
-| `object` | `properties`, `required` (must list every property), `additionalProperties` (must be `false`) |
-| `number`, `integer` | `minimum` (required), `maximum`, `exclusiveMinimum`, `exclusiveMaximum` (draft-04 booleans), `enum` |
+| Schema form | Keywords | Binds to |
+|---|---|---|
+| any | `$schema`, `title`, `description`, `type` | |
+| record: `object` | `properties`, `required` (must list every property), `additionalProperties` (must be `false`) | a `USTRUCT` |
+| map: `object` | `patternProperties` (exactly one entry, the content ID format), `additionalProperties` (must be `false`) | `TMap<FVeyraContentId, Value>` |
+| `number` | `minimum` (required), `maximum`, `exclusiveMinimum`, `exclusiveMaximum` (draft-04 booleans), `enum` | `double` |
+| `integer` | the same as `number` | `int32` |
+| enum: `string` | `enum`, listing exactly the enum's values as C++ spells them (`"Magic"`) | an `enum class` `UENUM` |
+| content ID: `string` | `pattern`, which must be the content ID format | `FVeyraContentId` |
 
-- The root declares `schemaVersion` as an integer with a one-value `enum`.
+- The root is a record and declares `schemaVersion` as an integer with a one-value `enum`.
 - A JSON key is its struct field's name with the first letter lower-cased: `mitigationConstant` binds to `MitigationConstant`.
-- A `number` binds to a `double` and an `integer` to an `int32`. The schema and the struct must describe exactly the same fields.
+- The schema and the struct must describe exactly the same fields. A map may be empty, and any valid content ID may be a key.
 - Describe each value's meaning and cite the canon section it tunes in its `description`.
 
 ## Content IDs
 
-When tuning refers to content (a Vanguard, an item, a status), it uses a stable content ID: lowercase ASCII snake_case matching `^[a-z][a-z0-9]*(_[a-z0-9]+)*$`, such as `raska` or `code_black_zone`. IDs never change when display names do.
+When tuning refers to content (a Vanguard, an item, a status), it uses a stable content ID: lowercase ASCII snake_case matching `^[a-z][a-z0-9]*(_[a-z0-9]+)*$`, such as `raska` or `code_black_zone`. IDs never change when display names do. In C++ the type is `FVeyraContentId` (VeyraCore).
+
+A reference from one domain's file to content another domain defines (for example, an ability ID in `Match.json` that `Abilities.json` defines) is checked by the loading domain in the game and by the reference table in `scripts/check_tuning.py`.

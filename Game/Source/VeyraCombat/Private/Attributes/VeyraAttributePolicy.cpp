@@ -5,8 +5,10 @@
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Effects/VeyraDamageExecution.h"
+#include "Effects/VeyraResourceSpendExecution.h"
 #include "GameplayEffect.h"
 #include "VeyraCombatLog.h"
 
@@ -41,6 +43,9 @@ namespace
 			{ UVeyraDefenceSet::GetMagicResistReductionRetainedAttribute(), EVeyraModifierRule::Percentage },
 			{ UVeyraDefenceSet::GetIncomingDamageMultiplierAttribute(), EVeyraModifierRule::Percentage },
 			{ UVeyraMobilitySet::GetMoveSpeedAttribute(), EVeyraModifierRule::Stat },
+			{ UVeyraResourceSet::GetResourceAttribute(), EVeyraModifierRule::None },
+			{ UVeyraResourceSet::GetMaxResourceAttribute(), EVeyraModifierRule::Stat },
+			{ UVeyraResourceSet::GetResourceSpendAttribute(), EVeyraModifierRule::None },
 		};
 		return Table;
 	}
@@ -106,7 +111,7 @@ TArray<FString> Check(const UGameplayEffect& Effect)
 
 	for (const FGameplayEffectExecutionDefinition& Execution : Effect.Executions)
 	{
-		if (Execution.CalculationClass != UVeyraDamageExecution::StaticClass())
+		if (Execution.CalculationClass != UVeyraDamageExecution::StaticClass() && Execution.CalculationClass != UVeyraResourceSpendExecution::StaticClass())
 		{
 			Problems.Add(FString::Printf(TEXT("execution %s is not a Veyra execution"), *GetNameSafe(Execution.CalculationClass)));
 		}

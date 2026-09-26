@@ -19,7 +19,7 @@ namespace
 			return { EVeyraShieldCategory::Physical, EVeyraShieldCategory::Universal };
 		case EVeyraDamageType::Magic:
 			return { EVeyraShieldCategory::Magic, EVeyraShieldCategory::Universal };
-		case EVeyraDamageType::True:
+		case EVeyraDamageType::TrueDamage:
 			return { EVeyraShieldCategory::Universal };
 		}
 		return {};

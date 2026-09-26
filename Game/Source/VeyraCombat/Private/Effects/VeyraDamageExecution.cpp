@@ -159,7 +159,7 @@ void UVeyraDamageExecution::Execute_Implementation(const FGameplayEffectCustomEx
 		UVeyraCombatTuningSubsystem::Get().Resistance);
 
 	// One output per component, always in the same order, so absorption is deterministic.
-	for (const EVeyraDamageType Type : { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::True })
+	for (const EVeyraDamageType Type : { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::TrueDamage })
 	{
 		for (const FVeyraDamageComponent& Component : Mitigated.Components)
 		{

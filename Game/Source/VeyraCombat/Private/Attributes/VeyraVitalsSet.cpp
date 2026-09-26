@@ -5,6 +5,7 @@
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "GameFramework/Actor.h"
 #include "GameplayEffectExtension.h"
+#include "Life/VeyraDeath.h"
 #include "Net/UnrealNetwork.h"
 #include "Tags/VeyraStatusTags.h"
 #include "VeyraCombatLog.h"
@@ -17,7 +18,7 @@ FGameplayAttribute UVeyraVitalsSet::GetIncomingDamageAttribute(EVeyraDamageType 
 		return GetIncomingPhysicalDamageAttribute();
 	case EVeyraDamageType::Magic:
 		return GetIncomingMagicDamageAttribute();
-	case EVeyraDamageType::True:
+	case EVeyraDamageType::TrueDamage:
 		return GetIncomingTrueDamageAttribute();
 	}
 	return FGameplayAttribute();
@@ -25,7 +26,7 @@ FGameplayAttribute UVeyraVitalsSet::GetIncomingDamageAttribute(EVeyraDamageType 
 
 TOptional<EVeyraDamageType> UVeyraVitalsSet::GetIncomingDamageType(const FGameplayAttribute& Attribute)
 {
-	for (const EVeyraDamageType Type : { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::True })
+	for (const EVeyraDamageType Type : { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::TrueDamage })
 	{
 		if (Attribute == GetIncomingDamageAttribute(Type))
 		{
@@ -128,6 +129,11 @@ void UVeyraVitalsSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 	if (Result.HealthLost > 0.0)
 	{
 		SetHealth(GetHealth() - static_cast<float>(Result.HealthLost));
+		// Nothing yet prevents a death once Health reaches 0, so the death is final (Combat Bible §18).
+		if (GetHealth() <= 0.0f)
+		{
+			VeyraDeath::FinalizeDeath(*AbilitySystem, Data.EffectSpec.GetEffectContext().GetInstigatorAbilitySystemComponent());
+		}
 	}
 }
 

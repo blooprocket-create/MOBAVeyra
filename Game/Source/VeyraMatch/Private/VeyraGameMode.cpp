@@ -92,6 +92,8 @@ void AVeyraGameMode::StartPlay()
 	GetWorldTimerManager().SetTimer(LoadingTimeout, this, &AVeyraGameMode::OnLoadingTimedOut,
 		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Phases.LoadingTimeoutSeconds));
 	SetActorTickEnabled(true);
+	// Game/Scripts/Smoke.ps1 waits for this line.
+	UE_LOG(LogVeyraMatch, Display, TEXT("Match server ready: loading, waiting for %d player(s)."), ExpectedPlayers);
 }
 
 void AVeyraGameMode::Tick(float DeltaSeconds)
@@ -286,7 +288,8 @@ void AVeyraGameMode::SpawnVanguard(AVeyraPlayerState& PlayerState)
 	if (!PlayerState.HasInitializedStats())
 	{
 		const FVeyraDeveloperLoadoutTuning& Loadout = UVeyraMatchTuningSubsystem::Get().DeveloperLoadout;
-		if (!VeyraCombat::InitializeVitals(*AbilitySystem, Loadout.MaxHealth) || !VeyraCombat::InitializeMoveSpeed(*AbilitySystem, Loadout.MoveSpeed))
+		if (!VeyraCombat::InitializeVitals(*AbilitySystem, Loadout.MaxHealth) || !VeyraCombat::InitializeResource(*AbilitySystem, Loadout.MaxResource)
+			|| !VeyraCombat::InitializeMoveSpeed(*AbilitySystem, Loadout.MoveSpeed))
 		{
 			return;
 		}

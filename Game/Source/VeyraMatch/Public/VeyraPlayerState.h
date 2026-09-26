@@ -12,8 +12,10 @@ class AVeyraVanguardController;
 class UAbilitySystemComponent;
 class UVeyraDamageAbsorptionComponent;
 class UVeyraDefenceSet;
+class UVeyraLifeComponent;
 class UVeyraMobilitySet;
 class UVeyraOffenceSet;
+class UVeyraResourceSet;
 class UVeyraVitalsSet;
 
 /**
@@ -61,6 +63,9 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	TObjectPtr<UVeyraDamageAbsorptionComponent> DamageAbsorption;
 
+	UPROPERTY(VisibleAnywhere, Category = "Combat")
+	TObjectPtr<UVeyraLifeComponent> Life;
+
 	UPROPERTY()
 	TObjectPtr<UVeyraVitalsSet> VitalsSet;
 
@@ -72,6 +77,9 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UVeyraMobilitySet> MobilitySet;
+
+	UPROPERTY()
+	TObjectPtr<UVeyraResourceSet> ResourceSet;
 
 	UPROPERTY(Replicated)
 	EVeyraTeam Team = EVeyraTeam::None;

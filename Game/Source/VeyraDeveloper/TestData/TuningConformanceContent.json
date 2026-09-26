@@ -1,0 +1,29 @@
+{
+  "description": "Documents that both tuning validators must judge the same way for enum strings, content IDs and maps keyed by content ID: the game's (VeyraTuning.cpp, test Veyra.Core.Tuning.ConformanceCorpus) and CI's (scripts/check_tuning.py, tests/test_tuning.py). Each document is raw text checked against TuningConformanceContent.schema.json at schemaVersion 1.",
+  "cases": [
+    {"name": "valid", "valid": true, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "valid with an empty map", "valid": true, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\", \"entries\": {}}"},
+    {"name": "valid with digits and single underscores", "valid": true, "document": "{\"schemaVersion\": 1, \"kind\": \"Beta\", \"target\": \"a1_b2_c3\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "enum value in the wrong case", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"alpha\", \"target\": \"test_bolt\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "enum value not listed", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Gamma\", \"target\": \"test_bolt\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "number for an enum", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": 1, \"target\": \"test_bolt\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "uppercase content ID", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"Test_Bolt\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "content ID starting with a digit", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"1bolt\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "content ID starting with an underscore", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"_bolt\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "content ID ending with an underscore", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"bolt_\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "content ID with a double underscore", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test__bolt\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "content ID with a hyphen", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test-bolt\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "content ID with a trailing newline", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"bolt\\n\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "empty content ID", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"\", \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "number for a content ID", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": 7, \"entries\": {\"first\": {\"weight\": 1}, \"second_2\": {\"weight\": 0}}}"},
+    {"name": "map key that is not a content ID", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\", \"entries\": {\"Bad_Key\": {\"weight\": 1}}}"},
+    {"name": "map key with a trailing newline", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\", \"entries\": {\"bolt\\n\": {\"weight\": 1}}}"},
+    {"name": "map value missing a field", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\", \"entries\": {\"first\": {}}}"},
+    {"name": "map value with an unknown field", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\", \"entries\": {\"first\": {\"weight\": 1, \"extra\": 2}}}"},
+    {"name": "map value of the wrong type", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\", \"entries\": {\"first\": 3}}"},
+    {"name": "map value below its minimum", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\", \"entries\": {\"first\": {\"weight\": -1}}}"},
+    {"name": "duplicate map key", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\", \"entries\": {\"first\": {\"weight\": 1}, \"first\": {\"weight\": 2}}}"},
+    {"name": "array for a map", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\", \"entries\": []}"},
+    {"name": "missing map", "valid": false, "document": "{\"schemaVersion\": 1, \"kind\": \"Alpha\", \"target\": \"test_bolt\"}"}
+  ]
+}

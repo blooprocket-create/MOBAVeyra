@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "resistance"],
+  "required": ["schemaVersion", "resistance", "targeting"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
@@ -23,6 +23,19 @@
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
+        }
+      }
+    },
+    "targeting": {
+      "description": "Server checks of target validity and range (Combat Bible §30, §40).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["serverRangeTolerance"],
+      "properties": {
+        "serverRangeTolerance": {
+          "description": "Extra range in units the server allows on top of a cast range, measured edge to edge, for latency (Combat Bible §30: server range validation may include small latency tolerance). Provisional.",
+          "type": "number",
+          "minimum": 0
         }
       }
     }

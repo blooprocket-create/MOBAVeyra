@@ -66,7 +66,7 @@ namespace VeyraCombatTests
 			Ledger.Shields = { Shield(1, EVeyraShieldCategory::Physical, 100.0), Shield(2, EVeyraShieldCategory::Magic, 100.0),
 				Shield(3, EVeyraShieldCategory::Universal, 30.0) };
 
-			const FVeyraAbsorptionResult Result = VeyraAbsorption::Absorb(EVeyraDamageType::True, 50.0, false, Ledger, FullHealth);
+			const FVeyraAbsorptionResult Result = VeyraAbsorption::Absorb(EVeyraDamageType::TrueDamage, 50.0, false, Ledger, FullHealth);
 			ASSERT_THAT(IsNear(30.0, Result.ShieldAbsorbed, Tolerance));
 			ASSERT_THAT(IsNear(20.0, Result.HealthLost, Tolerance));
 			ASSERT_THAT(IsNear(100.0, FindShield(Ledger, 1)->Remaining, Tolerance));
@@ -86,7 +86,7 @@ namespace VeyraCombatTests
 
 		TEST_METHOD(SpendsTemporaryHealthAfterShieldsForEveryType)
 		{
-			for (const EVeyraDamageType Type : { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::True })
+			for (const EVeyraDamageType Type : { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::TrueDamage })
 			{
 				FVeyraAbsorptionLedger Ledger;
 				Ledger.Shields = { Shield(1, EVeyraShieldCategory::Universal, 10.0) };
@@ -115,7 +115,7 @@ namespace VeyraCombatTests
 			Ledger.Shields = { Shield(1, EVeyraShieldCategory::Universal, 50.0) };
 			Ledger.TemporaryHealth = { Grant(2, 50.0) };
 
-			const FVeyraAbsorptionResult Result = VeyraAbsorption::Absorb(EVeyraDamageType::True, 500.0, true, Ledger, FullHealth);
+			const FVeyraAbsorptionResult Result = VeyraAbsorption::Absorb(EVeyraDamageType::TrueDamage, 500.0, true, Ledger, FullHealth);
 			ASSERT_THAT(IsTrue(Result.bBlockedByInvulnerability));
 			ASSERT_THAT(IsTrue(Result.ShieldAbsorbed == 0.0 && Result.TemporaryHealthSpent == 0.0 && Result.HealthLost == 0.0));
 			ASSERT_THAT(IsNear(50.0, FindShield(Ledger, 1)->Remaining, Tolerance));
@@ -138,8 +138,8 @@ namespace VeyraCombatTests
 				Shield(3, EVeyraShieldCategory::Universal, 50.0) };
 			Start.TemporaryHealth = { Grant(4, 30.0) };
 
-			const TArray<EVeyraDamageType> Forward = { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::True };
-			const TArray<EVeyraDamageType> Backward = { EVeyraDamageType::True, EVeyraDamageType::Magic, EVeyraDamageType::Physical };
+			const TArray<EVeyraDamageType> Forward = { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::TrueDamage };
+			const TArray<EVeyraDamageType> Backward = { EVeyraDamageType::TrueDamage, EVeyraDamageType::Magic, EVeyraDamageType::Physical };
 			double HealthLost[2] = { 0.0, 0.0 };
 			const TArray<EVeyraDamageType>* Orders[2] = { &Forward, &Backward };
 			for (int32 Run = 0; Run < 2; ++Run)

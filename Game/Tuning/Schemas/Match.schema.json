@@ -74,13 +74,18 @@
       "description": "Scaffolding until Vanguard definitions arrive (M4): the base stats every Vanguard gets in developer matches. Provisional values; Combat Bible §58 leaves per-Vanguard stats open.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["maxHealth", "moveSpeed", "turnRateDegreesPerSecond", "capsuleRadius", "capsuleHalfHeight"],
+      "required": ["maxHealth", "maxResource", "moveSpeed", "turnRateDegreesPerSecond", "capsuleRadius", "capsuleHalfHeight"],
       "properties": {
         "maxHealth": {
           "description": "Base Max Health.",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
+        },
+        "maxResource": {
+          "description": "Base Max Resource of the standard resource, Mana (Combat Bible §27, §58). 0 would mean no resource.",
+          "type": "number",
+          "minimum": 0
         },
         "moveSpeed": {
           "description": "Base Move Speed in units per second (Combat Bible §23).",

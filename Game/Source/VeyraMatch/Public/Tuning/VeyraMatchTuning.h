@@ -57,6 +57,9 @@ struct FVeyraDeveloperLoadoutTuning
 	double MaxHealth = 0.0;
 
 	UPROPERTY()
+	double MaxResource = 0.0;
+
+	UPROPERTY()
 	double MoveSpeed = 0.0;
 
 	UPROPERTY()

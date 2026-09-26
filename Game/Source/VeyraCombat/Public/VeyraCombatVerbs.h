@@ -29,8 +29,30 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool InitializeMoveSpeed(UAbilitySystemComponent& AbilitySystem, double MoveSpeed);
 
 	/**
+	 * Sets a unit's base Max Resource from its data and fills its Resource (Combat Bible §27). 0 means
+	 * the unit has no resource. Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool InitializeResource(UAbilitySystemComponent& AbilitySystem, double MaxResource);
+
+	/** Whether the unit has at least Amount of its resource. A cost of 0 is always affordable. */
+	VEYRACOMBAT_API bool CanAffordResource(const UAbilitySystemComponent& AbilitySystem, double Amount);
+
+	/**
+	 * Pays Amount of the unit's resource (Combat Bible §27). Refused, changing nothing, if the unit
+	 * cannot afford it: resources never go negative. Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool SpendResource(UAbilitySystemComponent& AbilitySystem, double Amount);
+
+	/**
+	 * Brings a dead unit back for its respawn: alive, with full Health and Resource (Combat Bible
+	 * §18). Returns false if the unit was not dead.
+	 */
+	VEYRACOMBAT_API bool Revive(UAbilitySystemComponent& AbilitySystem);
+
+	/**
 	 * Deals one damage event from Source to Target through the canonical pipeline (Combat Bible §25).
-	 * Each damage type may appear once, with a finite amount of at least 0. Returns false if refused.
+	 * Each damage type may appear once, with a finite amount of at least 0. A target whose death is
+	 * final takes no damage. Returns false if refused.
 	 */
 	VEYRACOMBAT_API bool DealDamage(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraRawDamageEvent& Damage);
 

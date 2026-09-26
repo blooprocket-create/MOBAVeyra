@@ -36,9 +36,17 @@ namespace VeyraCombatTests
 
 		TEST_METHOD(EveryVeyraAttributeHasARule)
 		{
+			// Every Attribute Set Veyra defines, so a new set cannot skip the policy.
 			TArray<FString> Missing;
-			for (const UClass* SetClass : { UVeyraVitalsSet::StaticClass(), UVeyraOffenceSet::StaticClass(), UVeyraDefenceSet::StaticClass() })
+			int32 Sets = 0;
+			for (TObjectIterator<UClass> SetIt; SetIt; ++SetIt)
 			{
+				const UClass* SetClass = *SetIt;
+				if (!SetClass->IsChildOf(UAttributeSet::StaticClass()) || !SetClass->GetPathName().StartsWith(TEXT("/Script/Veyra")))
+				{
+					continue;
+				}
+				++Sets;
 				for (TFieldIterator<FProperty> It(SetClass); It; ++It)
 				{
 					if (FGameplayAttribute::IsGameplayAttributeDataProperty(*It) && !VeyraAttributePolicy::RuleFor(FGameplayAttribute(*It)).IsSet())
@@ -47,6 +55,7 @@ namespace VeyraCombatTests
 					}
 				}
 			}
+			ASSERT_THAT(IsTrue(Sets > 0, TEXT("Found no Veyra Attribute Sets")));
 			ASSERT_THAT(IsTrue(Missing.IsEmpty(), FString::Printf(TEXT("No rule for: %s"), *FString::Join(Missing, TEXT(", ")))));
 		}
 
