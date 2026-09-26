@@ -11,5 +11,6 @@ public class VeyraServerTarget : TargetRules
 	{
 		Type = TargetType.Server;
 		VeyraTarget.ApplySharedVeyraTargetSettings(this);
+		VeyraTarget.ApplyMonolithicVeyraTargetSettings(this);
 	}
 }

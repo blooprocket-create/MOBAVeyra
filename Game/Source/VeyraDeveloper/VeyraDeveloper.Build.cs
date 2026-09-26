@@ -16,10 +16,25 @@ public class VeyraDeveloper : ModuleRules
 			"GameplayAbilities",
 			"GameplayTags",
 			"Json",
+			"NetCore",
 			"CQTest",
 			"VeyraCore",
 			"VeyraCombat",
 			"VeyraMatch",
 		});
+
+		// CQTest's networked PIE tests start play sessions from the level editor, so they exist
+		// only in editor builds. This module also builds into the Development Client and Server.
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.AddRange(new string[]
+			{
+				"EngineSettings",
+				"LevelEditor",
+				"UnrealEd",
+			});
+		}
+
+		SetupIrisSupport(Target);
 	}
 }

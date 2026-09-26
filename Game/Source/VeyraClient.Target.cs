@@ -9,5 +9,6 @@ public class VeyraClientTarget : TargetRules
 	{
 		Type = TargetType.Client;
 		VeyraTarget.ApplySharedVeyraTargetSettings(this);
+		VeyraTarget.ApplyMonolithicVeyraTargetSettings(this);
 	}
 }
