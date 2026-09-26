@@ -48,6 +48,14 @@ public:
 	EVeyraCastRejection HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
 
 	/**
+	 * Adds an AI-controlled participant with its own PlayerState, on the smaller side, as Co-op and
+	 * custom matches will (ADR-006 §4). It gets a Vanguard like any player, now if the match is past
+	 * loading. It has no behaviour yet: its controller moves only when told. Returns the new
+	 * participant, or null if both sides are full.
+	 */
+	AVeyraPlayerState* AddBotParticipant(const FString& Name);
+
+	/**
 	 * Pauses every gameplay clock (Match Flow Bible §10.2). Pause votes arrive later; until then the
 	 * server pauses directly.
 	 */
@@ -62,6 +70,8 @@ protected:
 private:
 	AVeyraGameState& GetVeyraGameState() const;
 	int32 CountTeamMembers(EVeyraTeam Team) const;
+	/** Whether both sides already have as many participants as the tuning allows. */
+	bool IsFull() const;
 	void AssignTeam(AVeyraPlayerState& PlayerState) const;
 	AActor* FindTeamStart(EVeyraTeam Team) const;
 

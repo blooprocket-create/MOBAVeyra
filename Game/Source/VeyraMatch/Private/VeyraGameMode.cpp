@@ -69,17 +69,9 @@ void AVeyraGameMode::PreLogin(const FString& Options, const FString& Address, co
 	{
 		ErrorMessage = VeyraJoinRules::CheckTuningHash(Options, VeyraTuning::GetCompositeHash());
 	}
-	if (ErrorMessage.IsEmpty())
+	if (ErrorMessage.IsEmpty() && IsFull())
 	{
-		int32 Participants = 0;
-		for (const EVeyraTeam Side : Sides)
-		{
-			Participants += CountTeamMembers(Side);
-		}
-		if (Participants >= static_cast<int32>(UE_ARRAY_COUNT(Sides)) * UVeyraMatchTuningSubsystem::Get().Teams.MaxTeamSize)
-		{
-			ErrorMessage = TEXT("The match is full.");
-		}
+		ErrorMessage = TEXT("The match is full.");
 	}
 	if (!ErrorMessage.IsEmpty())
 	{
@@ -220,6 +212,54 @@ bool AVeyraGameMode::CanSpectate_Implementation(APlayerController* /*Viewer*/, A
 AVeyraGameState& AVeyraGameMode::GetVeyraGameState() const
 {
 	return *CastChecked<AVeyraGameState>(GameState);
+}
+
+bool AVeyraGameMode::IsFull() const
+{
+	int32 Participants = 0;
+	for (const EVeyraTeam Side : Sides)
+	{
+		Participants += CountTeamMembers(Side);
+	}
+	return Participants >= static_cast<int32>(UE_ARRAY_COUNT(Sides)) * UVeyraMatchTuningSubsystem::Get().Teams.MaxTeamSize;
+}
+
+AVeyraPlayerState* AVeyraGameMode::AddBotParticipant(const FString& Name)
+{
+	if (IsFull())
+	{
+		UE_LOG(LogVeyraMatch, Warning, TEXT("Cannot add %s: the match is full."), *Name);
+		return nullptr;
+	}
+
+	// Unlike a human's, a bot's controller carries the participant's PlayerState itself.
+	FActorSpawnParameters Parameters;
+	Parameters.ObjectFlags |= RF_Transient;
+	Parameters.bDeferConstruction = true;
+	AVeyraVanguardController* Controller = GetWorld()->SpawnActor<AVeyraVanguardController>(Parameters);
+	if (!Controller)
+	{
+		return nullptr;
+	}
+	Controller->bWantsPlayerState = true;
+	Controller->FinishSpawning(FTransform::Identity);
+
+	AVeyraPlayerState* PlayerState = Controller->GetPlayerState<AVeyraPlayerState>();
+	if (!PlayerState)
+	{
+		UE_LOG(LogVeyraMatch, Error, TEXT("%s got no Veyra PlayerState and cannot join the match."), *Name);
+		Controller->Destroy();
+		return nullptr;
+	}
+	PlayerState->SetIsABot(true);
+	PlayerState->SetPlayerName(Name);
+	PlayerState->SetVanguardController(Controller);
+	AssignTeam(*PlayerState);
+	if (GetVeyraGameState().GetPhase() != EVeyraMatchPhase::Loading)
+	{
+		SpawnVanguard(*PlayerState);
+	}
+	return PlayerState;
 }
 
 int32 AVeyraGameMode::CountTeamMembers(EVeyraTeam Team) const

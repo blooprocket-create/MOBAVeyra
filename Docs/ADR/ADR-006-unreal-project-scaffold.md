@@ -224,6 +224,36 @@ Modules are created **only when they receive real content**, as Project Structur
     - The replay grows by 0.3–0.6 KB/s, against 1.4–2.1 KB/s sent to each client.
     - The bandwidth spike measures recording again under a full lane population.
   - **Not decided here.** The recording format and what the replay product needs wait for their own design pass (Replay §9).
+- **Amendment (2026-09-26, M3): bandwidth and server cost with a full lane population.** The evidence is `Game/Scripts/Smoke.ps1` with `-LoadTestBots 8 -LoadTestStandIns <n> -NetStatsSeconds 5 -ClientStaySeconds 30`.
+  - **Setup.**
+    - Ten Vanguards: the two smoke clients and eight bots, which wander the lanes.
+    - Lane stand-ins at 0, 72 and 162. Canon gives no wave counts yet, so these bracket plausible populations: 72 is six per wave with two waves alive per side per lane, and 162 is nine per wave with three waves alive.
+    - The stand-ins are replicated characters that walk three lanes on the server, with no gameplay.
+    - Every unit is visible to every client, because nothing uses the fog gate yet, so these are upper bounds.
+    - Figures are steady-state averages over 30 seconds on the containerised Linux server, measured by `VeyraNetStats`.
+  - **Results** at the engine's default update rate for characters:
+
+    | Lane stand-ins | Replicated actors | Server busy per frame | Sent to each client | Replay |
+    |---|---|---|---|---|
+    | 0 | 26 | 1.2 ms | 3.2 KB/s | — |
+    | 72 | 98 | 2.0 ms | 26.8 KB/s | — |
+    | 162 | 188 | 3.0 ms | 63.3 KB/s | — |
+    | 162, recording | 191 | 3.3 ms | 64.9 KB/s | 39 KB/s |
+
+  - **What this means.**
+    - **Server time is not the limit.** 162 moving units cost about 3 ms of the 33 ms frame at the 30 Hz tick. Recording a replay adds about 0.3 ms.
+    - **Bandwidth is the limit.** It grows linearly, by about 0.37 KB/s per moving unit per client at the default update rate. At 162 units a client receives about 63 KB/s, two-thirds of the engine's default configured client rate (100,000 bytes/s). Whether Iris throttles at that rate was not tested.
+    - **Replays grow with the population.** At 162 units a replay grows by about 2.4 MB a minute.
+  - **The levers**, for the milestone that builds lanes:
+    - a lower network update rate for lane units (measured below);
+    - the fog gate, since a client receives only what its player sees;
+    - dormancy for units that stand still.
+  - **The update rate, measured with 162 stand-ins** (`-LoadTestStandInHz`):
+    - **10 Hz:** 23.2 KB/s per client, 63% less than the default, and 2.7 ms of server time per frame.
+    - **20 Hz:** 63.0 KB/s, the same as the default.
+    - The server ticks at 30 Hz, so the default rate is effectively capped at 30 updates a second. A 20 Hz request apparently rounded to every frame, while 10 Hz is every third frame.
+    - Lane units' update rates must therefore be chosen as whole fractions of the server tick. They become lane tuning when lanes arrive.
+  - **Clean logs.** Across all six runs, including 191 replicated actors while recording, the server, the clients and replay playback logged no warnings or errors, and playback showed all ten Vanguards.
 
 ### 6. Tuning data
 

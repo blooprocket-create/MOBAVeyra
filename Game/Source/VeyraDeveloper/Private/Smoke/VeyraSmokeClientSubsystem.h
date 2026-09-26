@@ -19,7 +19,8 @@ class AVeyraVanguardCharacter;
  * the server must land it. With -VeyraSmokePause it then pauses the match, checks that its own
  * world stops and stays stopped for a moment, then resumes it and checks that the world starts
  * again (ADR-006 §8). It logs "VeyraSmoke: PASS" or
- * "VeyraSmoke: FAIL", which is its result, and quits.
+ * "VeyraSmoke: FAIL", which is its result, and quits; with -VeyraSmokeStay=<seconds> a passing client
+ * stays connected that long first.
  */
 UCLASS()
 class UVeyraSmokeClientSubsystem : public UGameInstanceSubsystem
@@ -62,6 +63,7 @@ private:
 	FVector MoveDestination = FVector::ZeroVector;
 	double CastRange = 0.0;
 	double PausedRealTime = 0.0;
+	double StaySeconds = 0.0;
 	TWeakObjectPtr<const AVeyraPlayerState> Enemy;
 	FTSTicker::FDelegateHandle TickHandle;
 };

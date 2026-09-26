@@ -42,6 +42,7 @@ void UVeyraSmokeClientSubsystem::Initialize(FSubsystemCollectionBase& Collection
 {
 	Super::Initialize(Collection);
 	bCheckPause = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokePause"));
+	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeStay="), StaySeconds);
 	StartRealTime = FPlatformTime::Seconds();
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraSmokeClientSubsystem::Tick));
 	UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: started%s."), bCheckPause ? TEXT(", with the pause check") : TEXT(""));
@@ -229,6 +230,16 @@ void UVeyraSmokeClientSubsystem::Finish(bool bPassed, const FString& Reason)
 	UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s: %s."), bPassed ? TEXT("PASS") : TEXT("FAIL"), *Reason);
 	// The line above is the result; Game/Scripts/Smoke.ps1 reads it. On Windows a clean exit cannot
 	// carry a status (the engine loop returns its own exit code), and a forced exit would skip the
-	// clean disconnect the server should see.
+	// clean disconnect the server should see. A failed client quits at once; a passing one may stay.
+	if (bPassed && StaySeconds > 0.0)
+	{
+		// Staying connected after the script, if asked, so the server can be measured.
+		UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: staying connected for %g s."), StaySeconds);
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float) {
+			FPlatformMisc::RequestExit(/*bForce*/ false, TEXT("VeyraSmoke"));
+			return false;
+		}), static_cast<float>(StaySeconds));
+		return;
+	}
 	FPlatformMisc::RequestExit(/*bForce*/ false, TEXT("VeyraSmoke"));
 }

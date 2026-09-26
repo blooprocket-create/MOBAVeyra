@@ -21,6 +21,9 @@
     stopped gracefully so the replay is finished, the replay is copied out of it, and a client of
     the same kind plays it back with -VeyraReplayCheck, which must see both Vanguards, movement, a
     cast's damage and the pause. -NetStatsSeconds has the server log network statistics.
+    -LoadTestBots and -LoadTestStandIns add bot participants and lane stand-ins when preparation
+    begins (ADR-006 §5 bandwidth spike), and -ClientStaySeconds keeps the clients connected that
+    long after their script, so the server can be measured in a steady state.
 
     Client logs, the server log and a summary go to Game/Saved/Smoke/<timestamp>. The server is
     stopped at the end unless -KeepServer is given.
@@ -38,6 +41,14 @@
     Records the match on the server and checks that a client can play it back. Container only.
 .PARAMETER NetStatsSeconds
     When above 0, the server logs a VeyraNetStats line at this interval, in seconds.
+.PARAMETER LoadTestBots
+    Bot participants the server adds when preparation begins.
+.PARAMETER LoadTestStandIns
+    Lane stand-ins the server spawns when preparation begins.
+.PARAMETER LoadTestStandInHz
+    The stand-ins' network update rate; 0 keeps the engine's default for characters.
+.PARAMETER ClientStaySeconds
+    Seconds each client stays connected after its script before quitting.
 .PARAMETER EngineRoot
     Engine folder to use instead of the one registered for the project's EngineAssociation.
 .EXAMPLE
@@ -60,6 +71,18 @@ param(
 
     [ValidateRange(0, 600)]
     [int]$NetStatsSeconds = 0,
+
+    [ValidateRange(0, 8)]
+    [int]$LoadTestBots = 0,
+
+    [ValidateRange(0, 1000)]
+    [int]$LoadTestStandIns = 0,
+
+    [ValidateRange(0, 200)]
+    [int]$LoadTestStandInHz = 0,
+
+    [ValidateRange(0, 3600)]
+    [int]$ClientStaySeconds = 0,
 
     [string]$EngineRoot
 )
@@ -85,6 +108,15 @@ if ($RecordReplay) {
 }
 if ($NetStatsSeconds -gt 0) {
     $urlOptions += "?VeyraNetStats=$NetStatsSeconds"
+}
+if ($LoadTestBots -gt 0) {
+    $urlOptions += "?VeyraLoadBots=$LoadTestBots"
+}
+if ($LoadTestStandIns -gt 0) {
+    $urlOptions += "?VeyraLoadStandIns=$LoadTestStandIns"
+}
+if ($LoadTestStandInHz -gt 0) {
+    $urlOptions += "?VeyraLoadStandInHz=$LoadTestStandInHz"
 }
 
 # The editor server's map and options; compose.yaml gives the container the same ones.
@@ -206,6 +238,9 @@ $clientProcesses = foreach ($index in 1, 2) {
     if ($index -eq 1) {
         $clientArguments += '-VeyraSmokePause'
     }
+    if ($ClientStaySeconds -gt 0) {
+        $clientArguments += "-VeyraSmokeStay=$ClientStaySeconds"
+    }
     $process = Start-Process -FilePath $clientExecutable -ArgumentList ($clientArguments -join ' ') -PassThru
     $null = $process.Handle # Keeps the exit code readable after the process ends.
     $process
@@ -213,7 +248,7 @@ $clientProcesses = foreach ($index in 1, 2) {
 
 $failed = $false
 foreach ($process in $clientProcesses) {
-    if (-not $process.WaitForExit([TimeSpan]::FromMinutes($TimeoutMinutes))) {
+    if (-not $process.WaitForExit([TimeSpan]::FromMinutes($TimeoutMinutes) + [TimeSpan]::FromSeconds($ClientStaySeconds))) {
         $process.Kill($true)
         $failed = $true
     }
