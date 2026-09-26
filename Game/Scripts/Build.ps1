@@ -11,6 +11,13 @@
     folder. VeyraEditor must never rebuild the engine (ADR-006 §2). New files under the engine
     folder are still allowed.
 
+    One exception is recognised (ADR-006 §2 amendment). When UnrealHeaderTool regenerates the
+    project's makefile it can rewrite the engine's NetCore.init.gen.cpp with a new package
+    checksum, which leaves NetCore out of date. If every engine file the build would change is
+    NetCore's object, library and DLL, the version file or a module manifest, VeyraEditor is
+    built again with the guard lifted, and the script says so. Any other engine change still
+    stops the build.
+
     Warning gate. A build that succeeds but reports a warning in Game/Source or Game/Plugins
     exits with code 1: Veyra modules compile with zero warnings (ADR-006 §10).
 
@@ -147,9 +154,63 @@ if ($DryRun) {
 $logFile = Join-Path $gameDir "Saved\Logs\Build-$Target-$Platform-$Configuration.log"
 New-Item -ItemType Directory -Force -Path (Split-Path -Parent $logFile) | Out-Null
 
-Write-Host "Build.bat $($ubtArguments -join ' ')"
-& (Join-Path $engineRoot 'Engine\Build\BatchFiles\Build.bat') @ubtArguments | Tee-Object -FilePath $logFile
-$exitCode = $LASTEXITCODE
+function Invoke-UnrealBuildTool {
+    param([string[]]$Arguments)
+    Write-Host "Build.bat $($Arguments -join ' ')"
+    & (Join-Path $engineRoot 'Engine\Build\BatchFiles\Build.bat') @Arguments | Tee-Object -FilePath $logFile | Out-Host
+    return $LASTEXITCODE
+}
+
+function Get-BlockedEngineFiles {
+    # The engine files UnrealBuildTool refused to change under -NoEngineChanges, relative to the
+    # engine root, or nothing if the build did not stop for that reason.
+    $lines = @(Get-Content -LiteralPath $logFile)
+    if (-not ($lines | Where-Object { $_ -match 'Result: Failed \(FailedDueToEngineChange\)' })) {
+        return @()
+    }
+    $start = [Array]::FindIndex([string[]]$lines, [Predicate[string]] { param($line) $line -match 'Building would modify the following existing engine files' })
+    if ($start -lt 0) {
+        return @()
+    }
+    $prefix = $engineRoot.Replace('/', '\').TrimEnd('\') + '\'
+    $files = foreach ($line in $lines[($start + 1)..($lines.Count - 1)]) {
+        if ($line -match 'Please build from an IDE instead') { break }
+        $trimmed = $line.Trim()
+        if ($trimmed) { $trimmed.Replace('/', '\') -replace ('^' + [regex]::Escape($prefix)), '' }
+    }
+    return @($files)
+}
+
+function Test-NetCoreChecksumOnly {
+    # True when every blocked file belongs to the NetCore rebuild the UnrealHeaderTool quirk causes.
+    param([string[]]$Files)
+    if ($Target -ne 'VeyraEditor' -or $Files.Count -eq 0) {
+        return $false
+    }
+    $allowed = @(
+        '^Engine\\Binaries\\Win64\\UnrealEditor-NetCore\.(dll|pdb)$'
+        '^Engine\\Binaries\\Win64\\UnrealEditor\.version$'
+        "^Engine\\Intermediate\\Build\\Win64\\x64\\UnrealEditor\\$Configuration\\NetCore\\[^\\]+$"
+        '^Engine\\(.+\\)?UnrealEditor\.modules$'
+    )
+    $unexpected = @($Files | Where-Object { $file = $_; -not ($allowed | Where-Object { $file -match $_ }) })
+    if ($unexpected.Count -gt 0) {
+        Write-Host 'The engine guard stopped the build. Engine files it would change beyond the known NetCore rebuild:'
+        $unexpected | Select-Object -First 20 | ForEach-Object { Write-Host "  $_" }
+        return $false
+    }
+    return ($Files | Where-Object { $_ -match 'NetCore' }).Count -gt 0
+}
+
+$exitCode = Invoke-UnrealBuildTool -Arguments $ubtArguments
+if ($exitCode -ne 0 -and -not $AllowEngineChanges) {
+    $blocked = Get-BlockedEngineFiles
+    if (Test-NetCoreChecksumOnly -Files $blocked) {
+        Write-Host ''
+        Write-Host "Engine guard: the only engine change is NetCore's rebuild after UnrealHeaderTool rewrote its package checksum ($($blocked.Count) file(s)). Building again with the guard lifted (ADR-006, section 2)."
+        $exitCode = Invoke-UnrealBuildTool -Arguments @($ubtArguments | Where-Object { $_ -ne '-NoEngineChanges' })
+    }
+}
 
 # Compiler and rules warnings that point into Veyra's own source.
 $veyraSourceFolders = foreach ($folder in 'Source', 'Plugins') {

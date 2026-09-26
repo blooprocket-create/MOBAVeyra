@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Grey-box test map layout",
+  "description": "The developer test map (ADR-006 M3): one straight lane with a start for each side at either end. The network tests build it at runtime and the map commandlet saves it as a map. Map geometry, not gameplay tuning; units are Unreal units.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "floor", "teamStarts", "navigation"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [1]
+    },
+    "floor": {
+      "description": "A flat box centred on the origin whose top face is at height 0.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lengthX", "widthY", "thicknessZ"],
+      "properties": {
+        "lengthX": { "description": "Length along X.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "widthY": { "description": "Width along Y.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "thicknessZ": { "description": "Thickness along Z.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    },
+    "teamStarts": {
+      "description": "Team A starts at negative X and Team B at positive X, on the centre line.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["distanceFromCenterX"],
+      "properties": {
+        "distanceFromCenterX": { "description": "Distance of each start from the centre along X; it must fit on the floor.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    },
+    "navigation": {
+      "description": "The navigation bounds cover the whole floor.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["heightZ"],
+      "properties": {
+        "heightZ": { "description": "Height of the navigation bounds, centred on the floor's top face.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    }
+  }
+}

@@ -591,6 +591,45 @@ FErrors ReadDomainFiles(FStringView Domain, FDomainFiles& OutFiles)
 	return Errors;
 }
 
+namespace
+{
+	TMap<FString, FBlake3Hash>& LoadedDomainHashes()
+	{
+		static TMap<FString, FBlake3Hash> Hashes;
+		return Hashes;
+	}
+}
+
+void RecordLoadedDomain(FStringView Domain, const FBlake3Hash& DocumentHash)
+{
+	check(IsInGameThread());
+	const FString DomainName(Domain);
+	LoadedDomainHashes().Add(DomainName, DocumentHash);
+	UE_LOG(LogVeyraCore, Log, TEXT("Tuning %s loaded, BLAKE3 %s."), *DomainName, *LexToString(DocumentHash));
+}
+
+TMap<FString, FBlake3Hash> GetLoadedDomainHashes()
+{
+	check(IsInGameThread());
+	return LoadedDomainHashes();
+}
+
+FBlake3Hash GetCompositeHash()
+{
+	check(IsInGameThread());
+	TArray<FString> Domains;
+	LoadedDomainHashes().GetKeys(Domains);
+	Domains.Sort();
+
+	FString Lines;
+	for (const FString& DomainName : Domains)
+	{
+		Lines += FString::Printf(TEXT("%s=%s\n"), *DomainName, *LexToString(LoadedDomainHashes().FindChecked(DomainName)));
+	}
+	const FTCHARToUTF8 Utf8(*Lines);
+	return FBlake3::HashBuffer(Utf8.Get(), Utf8.Length());
+}
+
 void ReportLoadFailure(FStringView Domain, const FErrors& Errors)
 {
 	const FString DomainName(Domain);

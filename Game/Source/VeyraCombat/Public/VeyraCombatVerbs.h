@@ -25,6 +25,9 @@ namespace VeyraCombat
 	/** Sets a unit's base Max Health from its data and fills its Health. Returns false if refused. */
 	VEYRACOMBAT_API bool InitializeVitals(UAbilitySystemComponent& AbilitySystem, double MaxHealth);
 
+	/** Sets a unit's base Move Speed from its data. Returns false if refused. */
+	VEYRACOMBAT_API bool InitializeMoveSpeed(UAbilitySystemComponent& AbilitySystem, double MoveSpeed);
+
 	/**
 	 * Deals one damage event from Source to Target through the canonical pipeline (Combat Bible §25).
 	 * Each damage type may appear once, with a finite amount of at least 0. Returns false if refused.

@@ -55,6 +55,11 @@ The Unreal project is **`Game/Veyra.uproject`**, a subdirectory beside `Backend/
 - Supported platforms: Win64 for Editor and Client; Linux and Win64 for Server. The Win64 server is a local debugging convenience only.
 - Build settings: `DefaultBuildSettings = BuildSettingsVersion.V7` and `IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8`. Both were verified as `Latest` in the 5.8.3-release engine source on 2026-09-25.
 - Nothing may force a *unique build environment* on the Editor target. On a source engine that silently rebuilds the whole engine (measured on this machine: several hours).
+- **Amendment (2026-09-26, M3): one known engine rebuild.**
+  - `Game/Scripts/Build.ps1` builds with `-NoEngineChanges`, which stops any build that would change an existing engine file.
+  - Whenever UnrealBuildTool regenerates the project's makefile (a plugin enabled, or a source file added or removed), UnrealHeaderTool can rewrite the engine's generated `NetCore.init.gen.cpp`. Only the package checksum changes, but NetCore then looks out of date.
+  - `Build.ps1` recognises exactly that case: every engine file the VeyraEditor build would change is NetCore's object, library or DLL, the version file, or a module manifest. It then builds again with the guard lifted and says so, which takes about 30 seconds. Any other engine change still stops the build.
+  - Why UnrealHeaderTool does this is not yet understood. The author asked for it to be investigated after M3.
 
 ### 3. Modules
 
@@ -176,6 +181,18 @@ Modules are created **only when they receive real content**, as Project Structur
 - Match Flow §10.2 requires every gameplay timer to freeze while the network, chat and votes keep running.
 - M3 prototypes Unreal's world pause, which stops world time and the timers GAS durations use, against an automated test covering every timer category the bible lists.
 - If world pause cannot meet the rule, a Veyra-owned gameplay clock is introduced instead. That choice is recorded as an amendment.
+- **Amendment (2026-09-26, M3): world pause meets the rule, so there is no Veyra gameplay clock.**
+  - **The test.** `Veyra.Net.MatchPause` pauses a live match on a dedicated server with two clients, under Iris.
+  - **What stops:** Gameplay Effect durations (a shield), world timers, world time and the match clock, and movement. Every timer category in Match Flow §10.2 runs on one of these:
+    - cooldowns and buffs on effect durations or world time;
+    - respawn, buyback, spawn and penalty clocks on world timers;
+    - the match clock on world time;
+    - movement, regeneration and combat on actor ticks.
+  - **What keeps running:** replication (an actor spawned and changed during the pause reaches both clients), real time, and the server's refusal of orders while paused.
+  - **Resuming:** every clock continues from its saved value.
+  - **The rule that follows.** Every gameplay timer uses world time or the world's timer manager, never real time. The only exception is the real-time intermission countdown.
+  - **How clients learn of it.** `AVeyraGameState` replicates the pause and holds the client's match clock still.
+  - **Not covered yet.** In-process tests cannot show a client's own world pausing. The engine carries that through the map's WorldSettings, and in-process play sessions replicate no map-placed actor, under Iris or the legacy system. The multi-process container test covers it.
 
 ### 9. Source control
 

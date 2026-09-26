@@ -3,6 +3,7 @@
 #include "Attributes/VeyraAttributePolicy.h"
 
 #include "Attributes/VeyraDefenceSet.h"
+#include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Effects/VeyraDamageExecution.h"
@@ -39,6 +40,7 @@ namespace
 			{ UVeyraDefenceSet::GetMagicResistReductionFlatAttribute(), EVeyraModifierRule::Flat },
 			{ UVeyraDefenceSet::GetMagicResistReductionRetainedAttribute(), EVeyraModifierRule::Percentage },
 			{ UVeyraDefenceSet::GetIncomingDamageMultiplierAttribute(), EVeyraModifierRule::Percentage },
+			{ UVeyraMobilitySet::GetMoveSpeedAttribute(), EVeyraModifierRule::Stat },
 		};
 		return Table;
 	}

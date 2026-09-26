@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "Attributes/VeyraAttributePolicy.h"
+#include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Effects/VeyraCombatEffects.h"
 #include "Tags/VeyraHealthTags.h"
@@ -61,6 +62,18 @@ bool InitializeVitals(UAbilitySystemComponent& AbilitySystem, double MaxHealth)
 	}
 	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetMaxHealthAttribute(), static_cast<float>(MaxHealth));
 	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), AbilitySystem.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()));
+	return true;
+}
+
+bool InitializeMoveSpeed(UAbilitySystemComponent& AbilitySystem, double MoveSpeed)
+{
+	if (!AbilitySystem.GetSet<UVeyraMobilitySet>() || !IsPositiveFinite(MoveSpeed))
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to initialize Move Speed on %s with %g: it needs a UVeyraMobilitySet and a finite speed above 0."),
+			*GetNameSafe(AbilitySystem.GetOwner()), MoveSpeed);
+		return false;
+	}
+	AbilitySystem.SetNumericAttributeBase(UVeyraMobilitySet::GetMoveSpeedAttribute(), static_cast<float>(MoveSpeed));
 	return true;
 }
 

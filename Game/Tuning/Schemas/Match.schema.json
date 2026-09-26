@@ -1,0 +1,112 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Match tuning",
+  "description": "Gameplay tuning owned by the Match domain (Match Flow Bible, Battleground Bible). VeyraMatch binds it to FVeyraMatchTuning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "teams", "phases", "orders", "developerLoadout"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [1]
+    },
+    "teams": {
+      "description": "The two sides of a match.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxTeamSize"],
+      "properties": {
+        "maxTeamSize": {
+          "description": "Most participants on one side; a match is 5v5 (Battleground Bible, overview).",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "phases": {
+      "description": "The in-match stages before play (Match Flow Bible §1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["loadingTimeoutSeconds", "preparationSeconds"],
+      "properties": {
+        "loadingTimeoutSeconds": {
+          "description": "How long loading waits for every required participant before the match proceeds without them (Match Flow Bible §1, stage 2; prototype 90 s).",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "preparationSeconds": {
+          "description": "Length of fountain preparation before the match clock starts (Match Flow Bible §1, stage 3).",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "orders": {
+      "description": "How the server accepts a player's move orders (ADR-006 §7: server-only movement). Provisional values.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxPerSecond", "destinationProjectionExtent", "arrivalTolerance"],
+      "properties": {
+        "maxPerSecond": {
+          "description": "Sustained orders a player may send per second; the server refuses the rest.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "destinationProjectionExtent": {
+          "description": "How far, in units along each axis, a clicked destination may lie from walkable ground and still be accepted.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "arrivalTolerance": {
+          "description": "How close, in units, a Vanguard must come to its destination to have arrived.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "developerLoadout": {
+      "description": "Scaffolding until Vanguard definitions arrive (M4): the base stats every Vanguard gets in developer matches. Provisional values; Combat Bible §58 leaves per-Vanguard stats open.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxHealth", "moveSpeed", "turnRateDegreesPerSecond", "capsuleRadius", "capsuleHalfHeight"],
+      "properties": {
+        "maxHealth": {
+          "description": "Base Max Health.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "moveSpeed": {
+          "description": "Base Move Speed in units per second (Combat Bible §23).",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "turnRateDegreesPerSecond": {
+          "description": "How fast a Vanguard turns to face where it moves.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "capsuleRadius": {
+          "description": "Gameplay collision radius in units; ranges are measured edge to edge from it (Combat Bible §40).",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "capsuleHalfHeight": {
+          "description": "Half the gameplay collision height in units. Must be at least capsuleRadius.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    }
+  }
+}

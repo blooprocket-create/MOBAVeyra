@@ -39,6 +39,8 @@ Game/**/*.ttf filter=lfs diff=lfs merge=lfs -text
 Game/**/*.otf filter=lfs diff=lfs merge=lfs -text
 
 # Tuning data (ADR-006 §6) is hashed byte for byte and must not depend on the checkout's
-# platform, so it keeps LF line endings everywhere. The tuning test corpus follows the same rule.
+# platform, so it keeps LF line endings everywhere. The tuning test corpus and the grey-box layout,
+# which the same validator reads, follow the same rule.
 Game/Tuning/** text eol=lf
 Game/Source/VeyraDeveloper/TestData/** text eol=lf
+Game/Source/VeyraDeveloper/Greybox/** text eol=lf

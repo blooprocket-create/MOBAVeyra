@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "floor": {
+    "lengthX": 6000,
+    "widthY": 1500,
+    "thicknessZ": 100
+  },
+  "teamStarts": {
+    "distanceFromCenterX": 2500
+  },
+  "navigation": {
+    "heightZ": 1000
+  }
+}
