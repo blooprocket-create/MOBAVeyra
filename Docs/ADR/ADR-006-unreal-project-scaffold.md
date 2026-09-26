@@ -78,6 +78,19 @@ Modules are created **only when they receive real content**, as Project Structur
   - `VeyraMatch` arrives in M2 holding only `AVeyraPlayerState`, so the ASC lives on the PlayerState from the start (§4). The GameMode and GameState follow in M3.
   - `VeyraAbilities` moves to M3, with the first ability. M2 gives it no real content: a stock ASC suffices, and the one Veyra rule the ASC needs (§4's modifier policy) installs as an application query.
   - The layer map is Foundation (`VeyraCore`) → Rules (`VeyraCombat`) → Orchestration (`VeyraMatch`) → Composition (`Veyra`, sealed) → Developer (`VeyraDeveloper`, sealed). M3 inserts a layer for `VeyraAbilities` between Rules and Orchestration.
+- **Amendment (2026-09-26, M3):**
+  - `VeyraAbilities` arrives in its own Abilities layer. It needs no ASC subclass. A stock ASC is enough, because Veyra's base ability class supplies costs, cooldowns and validation through GAS's virtual hooks.
+  - It holds:
+    - the base ability class and the first archetype (targeted damage);
+    - the cooldown ledger (§4) and the loadout component, which maps each ability slot to a content ID;
+    - `VeyraAbilities::TryCast`, the one entry point for a cast;
+    - the Abilities tuning domain.
+  - Projectiles and target shapes arrive with their first abilities.
+  - `VeyraMatch` gains:
+    - the GameMode, GameState and PlayerController;
+    - the Vanguard character and the server-only controller that moves it (§7);
+    - team starts;
+    - the runtime input and camera settings.
 - Later modules (Economy, Items, Flux, World, Vision, Vanguards, UI, a trusted-services client) follow Project Structure as their first feature lands.
 - **The layer graph is enforced by a check, not just by convention.** A repository script reads every `*.Build.cs`, compares the dependencies against a declared layer map, and fails on an upward, sideways or circular edge. It runs in GitHub Actions without Unreal, alongside the existing documentation check.
 
@@ -106,6 +119,32 @@ Modules are created **only when they receive real content**, as Project Structur
   - **Shields and Temporary Health** are not attributes. They are a Combat-owned replicated ledger kept in step with their effects, because canon orders them by category and age (Combat §7).
   - **Health** is written only by the vitals set. The damage execution computes §25 steps 2–6 through Combat's resolver and outputs the meta attributes; the vitals set passes them through shields and Temporary Health before Health.
 - **Gold, XP, levels, skill points, inventory and Team Flux are not GAS attributes.** They stay with their own owners (ADR-002).
+- **Amendment (2026-09-26, M3): cooldowns, costs, death and casting.**
+  - **Cooldowns are a Veyra ledger, not Gameplay Effects.**
+    - `UVeyraCooldownComponent` (`VeyraAbilities`) sits on the PlayerState. For each ability content ID it records when the ability is ready (in world time) and the base duration the cooldown started with.
+    - It replicates to the owner and to replays.
+    - It plugs into GAS through `CheckCooldown`, `ApplyCooldown` and `GetCooldownTimeRemainingAndDuration`, so `CommitAbility` stays the single commit point.
+    - **Why:** these rules are simpler on a ledger than on active effects:
+      - rescaling running cooldowns in proportion when Ability Haste changes, with separate haste pools and refunds (Combat §21);
+      - the 20% cooldown on an interrupted cast (§26);
+      - death cleanup (§44).
+    - Living on the PlayerState, the ledger survives death, and it freezes during a pause (§8).
+  - **Costs.**
+    - `UVeyraResourceSet` (`VeyraCombat`) holds `Resource`, `MaxResource` and a `ResourceSpend` meta attribute.
+    - `Resource` is written only by its set, like Health. Spending goes through a Veyra execution on the §41 allow-list.
+    - Only the standard family (Mana, Combat §58) is data-backed so far. Focus, Charge and no-resource arrive with their first Vanguard.
+  - **Death.**
+    - Combat owns a replicated life state, `UVeyraLifeComponent` (Alive or Dead), on the PlayerState. There is no `Status.Dead` tag, because canon defines no such status and tags come only from closed canon lists (Project Structure §5).
+    - Lethal damage finalizes the death, removes temporary effects (§44) and broadcasts an `FVeyraDeathEvent` through `UVeyraCombatEventSubsystem`.
+    - `VeyraMatch` subscribes to that event. It removes the body, and after a placeholder delay from `Match.json` it revives the participant and spawns a new body at its side's start. The canon respawn curve is still open (Battleground §16).
+    - The Vanguard's controller outlives each body. The engine would otherwise destroy it with the body, because it has no PlayerState of its own.
+  - **Casting.**
+    - The client sends a cast intent: a slot and a target actor.
+    - The match checks the phase and the pause, then calls `VeyraAbilities::TryCast`.
+    - `TryCast` runs the ability's validator: the ability is known, the caster is alive, it is off cooldown, the caster can pay, and the target is valid.
+    - It then activates the ability through a gameplay event whose target the server fills in. The ability checks its target again, and `CommitAbility` pays the cost and starts the cooldown.
+    - Refusals go back to the owning client with a reason.
+    - No client target data is involved (§7), so the target-data spike (§5) concerns later ability kinds.
 
 ### 5. Networking
 
@@ -170,11 +209,41 @@ Modules are created **only when they receive real content**, as Project Structur
 - **Content IDs.** Lowercase ASCII snake_case (`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`), matching the Vanguard and backend identifiers. The `FVeyraContentId` type arrives with the first tuning that references content.
 - **First schema.** Combat's resistance mitigation constant (Combat §3), which the author ruled to be tuning data.
 
+**Amendment (2026-09-26, M3): content in tuning, the connect-time hash, and staging verified.**
+
+- **The dialect grows for content.** Both validators implement these additions, and the shared corpus covers them.
+  - **String enums** bind to `enum class` UENUMs by their short C++ names. The schema's `enum` must list exactly the UENUM's values. `EVeyraDamageType` is now a UENUM; its true-damage value is spelled `TrueDamage` because UnrealHeaderTool forbids `True`.
+  - **Content IDs.** `FVeyraContentId` (`VeyraCore`) wraps a name checked against the canonical pattern. A string schema whose `pattern` is exactly that pattern binds to it.
+  - **Content-keyed maps.** An object with a single `patternProperties` entry (the canonical pattern) and `additionalProperties: false` binds to `TMap<FVeyraContentId, FStruct>`. `Abilities.json` uses one: `targetedDamage` is keyed by ability ID.
+  - **Cross-file references**, which a schema cannot express, are checked in two places:
+    - the loading domain checks them in the game (Match checks that its developer loadout's `abilityQ` is defined in `Abilities.json`);
+    - `scripts/check_tuning.py` keeps a small reference table.
+- **The hash, compared on connect.**
+  - Each domain logs its BLAKE3 hash when it loads.
+  - The composite hash is BLAKE3 over the sorted `domain=hash` lines of every loaded domain, so no domain can be left out.
+  - A client sends it as a login option (`?VeyraTuning=`). `AVeyraGameMode::PreLogin` refuses a missing or different hash.
+  - An editor-build client and the packaged Linux server matched in the container smoke test.
+- **Staging verified.** `Game/Scripts/Package.ps1` lists the packaged server's pak and fails unless every `Game/Tuning` file is in it.
+
 ### 7. Movement
 
 - Vanguards use **CharacterMovementComponent**, driven by server-validated move orders with pathfinding. Mover remains Experimental in 5.8 and is not approved under ADR-001.
 - The client prediction policy for movement and each ability category is decided in M3 and later milestones, not here (Architecture §12).
 - Movement for Fluxborn and other high-count units is decided when lanes are built. Mass replication is not a candidate in 5.8.
+- **Amendment (2026-09-26, M3): server-only movement and casting, with no client prediction** (author ruling, 2026-09-25).
+  - **Intents.** A client sends intents: a move destination, or a cast slot and target. The server validates each one and acts on it. Every client, the owner included, shows the smoothed replicated result.
+  - **Who moves the Vanguard.** A server-only `AVeyraVanguardController` (an AI controller) possesses each Vanguard and moves it with pathfinding. It stays the pawn's owner, so no client can send CharacterMovement moves for it.
+  - **The PlayerController possesses nothing.** It sends the player's intents and views the Vanguard. While pawn-less it is hardened:
+    - no default or spectator pawn;
+    - no restart and no spectating;
+    - on the server, its view point is the Vanguard, because Iris uses the view point.
+  - **After each possession**, the pawn carries the human's PlayerState, so the ASC's avatar is the pawn.
+  - **Order checks** run in this order:
+    - a rate limit from `Match.json`, whose held-click repeat stays below it;
+    - the match phase and the pause;
+    - for moves, a destination that projects onto the navmesh within a tuned distance.
+  - **Preparation refuses every order** until base geometry exists. This is a recorded deviation from Match Flow §1.3, which allows movement inside the fountain.
+  - **Later ability categories** decide their prediction one by one (Architecture §12).
 
 ### 8. Pause and the gameplay clock
 
@@ -192,7 +261,11 @@ Modules are created **only when they receive real content**, as Project Structur
   - **Resuming:** every clock continues from its saved value.
   - **The rule that follows.** Every gameplay timer uses world time or the world's timer manager, never real time. The only exception is the real-time intermission countdown.
   - **How clients learn of it.** `AVeyraGameState` replicates the pause and holds the client's match clock still.
-  - **Not covered yet.** In-process tests cannot show a client's own world pausing. The engine carries that through the map's WorldSettings, and in-process play sessions replicate no map-placed actor, under Iris or the legacy system. The multi-process container test covers it.
+  - **In-process tests cannot show a client's own world pausing.** The engine carries that through the map's WorldSettings, and in-process play sessions replicate no map-placed actor, under Iris or the legacy system.
+  - **Update (2026-09-26): covered across processes.**
+    - `Game/Scripts/Smoke.ps1` has a client request a pause and checks that its own world stops, then starts again on resume.
+    - It passed against the containerised Linux server and against a local editor-build server.
+    - `Veyra.Net.MatchPause` now also checks that the cooldown ledger freezes, on the server and in the owner's view.
 
 ### 9. Source control
 
@@ -211,6 +284,18 @@ Modules are created **only when they receive real content**, as Project Structur
   - Network and headless-match tests use CQTest's PIE networking first and Gauntlet later (Architecture §7).
 - **Builds and tests are driven by versioned PowerShell scripts** in `Game/Scripts/`, so a human, a coding agent and the future self-hosted runner run the same commands (AGENTS.md: "Prefer command-line builds/tests").
 - **Code follows Epic's C++ coding standard** with a `Veyra` class prefix, include-what-you-use and zero compiler warnings in Veyra modules.
+- **Amendment (2026-09-26, M3): packaging, the container and the smoke test.**
+  - **Packaging.** `Game/Scripts/Package.ps1` wraps `RunUAT BuildCookRun` for a target already built by `Build.ps1`. It never passes `-build`, so the `-NoEngineChanges` guard (§2) still holds.
+  - **The match server image** (ADR-005 step 2) is `Game/Docker/Server/Dockerfile`:
+    - it builds from the packaged Linux server;
+    - a `debian:12-slim` stage fails the build if `ldd` reports a missing library;
+    - the final image is distroless `cc-debian12:nonroot`.
+  - **The container** is the `match-server` service in the root `compose.yaml`. It runs only with its compose profile and publishes `127.0.0.1:7777/udp`.
+  - **Direct connect is for development only.** Shipping builds refuse every login until M4's match-join contract.
+  - **The smoke test.** `Game/Scripts/Smoke.ps1` starts the server and two headless clients with `-VeyraSmoke`. Each client moves its Vanguard and casts its Q ability at the other. The first client also pauses and resumes the match.
+    - A client's result is the verdict line it logs. On Windows a clean engine exit always returns 0, so a client's exit code only catches crashes.
+    - `-Server Editor` swaps the container for a local editor-build server when Docker is unavailable.
+  - **Docker Desktop must forward UDP both ways.** Version 4.48.0 on this machine delivered packets into the container but dropped its replies, so clients timed out. Version 4.92 works.
 
 ## Milestones
 

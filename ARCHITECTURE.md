@@ -286,13 +286,14 @@ The engine, ability-framework, unified-client and launcher/hosting choices are n
 
 Decided by ADR-006:
 
-- **module names and count:** the initial set is `Veyra`, `VeyraCore` and `VeyraDeveloper`, and the layer graph is enforced by a check against a declared layer map (ADR-006 §3). Later modules arrive as their first feature lands;
-- **Ability System Component placement and Attribute Sets:** on the PlayerState for Vanguards, with the Attribute Set split and the §41 multiplicative-stacking policy recorded in ADR-006 §4;
+- **module names and count:** `Veyra`, `VeyraCore`, `VeyraCombat`, `VeyraAbilities`, `VeyraMatch` and `VeyraDeveloper` so far, with the layer graph enforced by a check against a declared layer map (ADR-006 §3). Later modules arrive as their first feature lands;
+- **Ability System Component placement and Attribute Sets:** on the PlayerState for Vanguards, with the Attribute Set split and the §41 multiplicative-stacking policy recorded in ADR-006 §4. Cooldowns are a Veyra ledger rather than Gameplay Effects, and death is a Combat-owned life state (ADR-006 §4, M3 amendment);
+- **prediction for movement and the first ability:** none. Both are server-only; the client sends intents and shows the replicated result (ADR-006 §7, M3 amendment);
 - **LFS file patterns and locking convention** (ADR-006 §9).
 
 The following implementation details remain open:
 
-- exact prediction model for each ability category (ADR-006 §7 leaves it to M3 and later milestones);
+- the prediction model for each later ability category (ADR-006 §7);
 - hosted vendors (identity provider, database host, match-server fleet, website host, CDN), deferred until a working local slice (ADR-005);
 - final build farm beyond the self-hosted runner (ADR-005);
 - detailed replay/determinism implementation (ADR-006 §5 schedules an M3 spike recording a replay alongside Iris; the recording format waits for its own design pass).
