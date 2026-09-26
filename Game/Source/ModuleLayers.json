@@ -8,8 +8,13 @@
     },
     {
       "name": "Rules",
-      "description": "Reusable gameplay rules with one authoritative owner each (PROJECT_STRUCTURE.md §2, Combat / Economy). Systems such as Abilities go above this layer.",
+      "description": "Reusable gameplay rules with one authoritative owner each (PROJECT_STRUCTURE.md §2, Combat / Economy).",
       "modules": ["VeyraCombat"]
+    },
+    {
+      "name": "Abilities",
+      "description": "Systems that compose the rules below them (PROJECT_STRUCTURE.md §2, Abilities / Items / Flux / World / Vision).",
+      "modules": ["VeyraAbilities"]
     },
     {
       "name": "Orchestration",

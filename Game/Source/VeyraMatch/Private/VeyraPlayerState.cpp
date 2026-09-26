@@ -9,6 +9,8 @@
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
@@ -24,6 +26,8 @@ AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer
 
 	DamageAbsorption = CreateDefaultSubobject<UVeyraDamageAbsorptionComponent>(TEXT("DamageAbsorption"));
 	Life = CreateDefaultSubobject<UVeyraLifeComponent>(TEXT("Life"));
+	Loadout = CreateDefaultSubobject<UVeyraAbilityLoadoutComponent>(TEXT("Loadout"));
+	Cooldowns = CreateDefaultSubobject<UVeyraCooldownComponent>(TEXT("Cooldowns"));
 
 	// Attribute Sets created as default subobjects of the owner register with its Ability System
 	// Component when the component initializes.

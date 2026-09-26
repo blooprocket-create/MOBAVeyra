@@ -24,6 +24,7 @@ public class VeyraMatch : ModuleRules
 		{
 			"NavigationSystem",
 			"NetCore",
+			"VeyraAbilities",
 			"VeyraCombat",
 		});
 

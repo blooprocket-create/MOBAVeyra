@@ -10,6 +10,8 @@
 
 class AVeyraVanguardController;
 class UAbilitySystemComponent;
+class UVeyraAbilityLoadoutComponent;
+class UVeyraCooldownComponent;
 class UVeyraDamageAbsorptionComponent;
 class UVeyraDefenceSet;
 class UVeyraLifeComponent;
@@ -65,6 +67,13 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	TObjectPtr<UVeyraLifeComponent> Life;
+
+	UPROPERTY(VisibleAnywhere, Category = "Abilities")
+	TObjectPtr<UVeyraAbilityLoadoutComponent> Loadout;
+
+	/** Here rather than on the pawn, so cooldowns keep running through death (Combat Bible §44). */
+	UPROPERTY(VisibleAnywhere, Category = "Abilities")
+	TObjectPtr<UVeyraCooldownComponent> Cooldowns;
 
 	UPROPERTY()
 	TObjectPtr<UVeyraVitalsSet> VitalsSet;

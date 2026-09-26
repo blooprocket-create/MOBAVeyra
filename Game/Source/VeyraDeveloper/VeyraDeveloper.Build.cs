@@ -22,6 +22,7 @@ public class VeyraDeveloper : ModuleRules
 			"CQTest",
 			"VeyraCore",
 			"VeyraCombat",
+			"VeyraAbilities",
 			"VeyraMatch",
 		});
 
