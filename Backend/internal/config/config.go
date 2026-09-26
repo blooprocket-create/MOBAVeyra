@@ -224,6 +224,14 @@ type fileDockerConfig struct {
 var (
 	dockerAPIVersionPattern    = regexp.MustCompile(`^1\.(\d+)$`)
 	containerNamePrefixPattern = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
+
+	// The formats the game accepts, so the backend refuses at startup what
+	// every client or match server would refuse at the handoff: a server
+	// address is a bare host name or IPv4 address (VeyraBackendProtocol.cpp),
+	// and a backend URL is a scheme, a host and an optional port, with no
+	// path, query, fragment or user info (MatchAssignment.schema.json).
+	publicHostPattern = regexp.MustCompile(`^[A-Za-z0-9.-]+$`)
+	backendURLPattern = regexp.MustCompile(`^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$`)
 )
 
 // Load reads and validates the configuration file at path.
@@ -487,12 +495,12 @@ func parseDocker(f *fileDockerConfig, missing func(string), positive func(string
 		problem(prefix + "hostIp must be an IP address")
 	}
 	d.PublicHost = text("publicHost", f.PublicHost)
+	if d.PublicHost != "" && !publicHostPattern.MatchString(d.PublicHost) {
+		problem(prefix + "publicHost must be a host name or IPv4 address, with no port")
+	}
 	d.BackendURL = text("backendUrl", f.BackendURL)
-	if d.BackendURL != "" {
-		u, err := url.Parse(d.BackendURL)
-		if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" || (u.Path != "" && u.Path != "/") {
-			problem(prefix + "backendUrl must be an http or https URL with no path")
-		}
+	if d.BackendURL != "" && !backendURLPattern.MatchString(d.BackendURL) {
+		problem(prefix + "backendUrl must be an http or https URL with a host and an optional port only, such as http://backend:8080")
 	}
 	if len(f.ServerArgs) == 0 {
 		missing(prefix + "serverArgs")

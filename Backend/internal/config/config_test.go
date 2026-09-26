@@ -94,6 +94,12 @@ func TestParseRejects(t *testing.T) {
 		"bad host ip":               {`"hostIp": "127.0.0.1"`, `"hostIp": "localhost"`, "hostIp must be an IP"},
 		"backend url with path":     {`"http://backend:8080"`, `"http://backend:8080/v1"`, "backendUrl must be"},
 		"backend url scheme":        {`"http://backend:8080"`, `"ftp://backend:8080"`, "backendUrl must be"},
+		"backend url with slash":    {`"http://backend:8080"`, `"http://backend:8080/"`, "backendUrl must be"},
+		"backend url with query":    {`"http://backend:8080"`, `"http://backend:8080?x=1"`, "backendUrl must be"},
+		"backend url with fragment": {`"http://backend:8080"`, `"http://backend:8080#x"`, "backendUrl must be"},
+		"backend url with user":     {`"http://backend:8080"`, `"http://user@backend:8080"`, "backendUrl must be"},
+		"public host with port":     {`"publicHost": "127.0.0.1"`, `"publicHost": "127.0.0.1:7780"`, "publicHost must be"},
+		"public host with scheme":   {`"publicHost": "127.0.0.1"`, `"publicHost": "http://127.0.0.1"`, "publicHost must be"},
 		"no server args":            {`["/Game/Map", "-port=7777"]`, `[]`, "serverArgs is required"},
 		"blank server arg":          {`["/Game/Map", "-port=7777"]`, `["/Game/Map", " "]`, "must not contain blank"},
 	}
