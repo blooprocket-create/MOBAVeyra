@@ -52,10 +52,7 @@ $projectFile = Get-VeyraProjectFile
 $gameDir = Split-Path -Parent $projectFile
 $engineRoot = Resolve-VeyraEngineRoot -ProjectFile $projectFile -EngineRoot $EngineRoot
 
-# The Linux toolchain is registered for the machine; this process may not have inherited it.
-if ($Platform -eq 'Linux' -and -not $env:LINUX_MULTIARCH_ROOT) {
-    $env:LINUX_MULTIARCH_ROOT = [Environment]::GetEnvironmentVariable('LINUX_MULTIARCH_ROOT', 'Machine')
-}
+Initialize-VeyraPlatformToolchain -Platform $Platform
 
 $packageDir = Join-Path $gameDir "Saved\Packages\$Target-$Platform"
 $logFile = Join-Path $gameDir "Saved\Logs\Package-$Target-$Platform.log"

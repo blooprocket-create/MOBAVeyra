@@ -137,6 +137,7 @@ function Write-OutdatedActionSummary {
 $projectFile = Get-VeyraProjectFile
 $gameDir = Split-Path -Parent $projectFile
 $engineRoot = Resolve-VeyraEngineRoot -ProjectFile $projectFile -EngineRoot $EngineRoot
+Initialize-VeyraPlatformToolchain -Platform $Platform
 
 $ubtArguments = @($Target, $Platform, $Configuration, "-Project=$projectFile", '-WaitMutex')
 if (-not $AllowEngineChanges) {
