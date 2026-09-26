@@ -7,6 +7,11 @@
       "modules": ["VeyraCore"]
     },
     {
+      "name": "Rules",
+      "description": "Reusable gameplay rules with one authoritative owner each (PROJECT_STRUCTURE.md §2, Combat / Economy). Systems such as Abilities go above this layer.",
+      "modules": ["VeyraCombat"]
+    },
+    {
       "name": "Composition",
       "description": "The composition root. Sealed: nothing depends on it.",
       "sealed": true,

@@ -17,6 +17,7 @@ public class VeyraDeveloper : ModuleRules
 			"Json",
 			"CQTest",
 			"VeyraCore",
+			"VeyraCombat",
 		});
 	}
 }
