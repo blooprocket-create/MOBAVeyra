@@ -54,9 +54,11 @@ services:
     ports:
       - "127.0.0.1:7777:7777/udp"
     # The grey-box map, waiting for two players during loading. Casts are logged
-    # so Game/Scripts/Smoke.ps1 can check them.
+    # so Game/Scripts/Smoke.ps1 can check them. VEYRA_MATCH_URL_OPTIONS adds
+    # developer options to the map URL, such as ?DemoRec=<name> to record a
+    # replay or ?VeyraNetStats=<seconds> to log network statistics.
     command:
-      - "/Game/Veyra/Developer/Maps/L_Greybox?VeyraExpectedPlayers=2"
+      - "/Game/Veyra/Developer/Maps/L_Greybox?VeyraExpectedPlayers=2${VEYRA_MATCH_URL_OPTIONS:-}"
       - "-port=7777"
       - "-log"
       - "-stdout"

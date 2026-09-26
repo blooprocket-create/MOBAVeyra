@@ -10,7 +10,10 @@ FROM debian:12-slim AS check
 COPY . /srv/veyra
 RUN ldd /srv/veyra/Veyra/Binaries/Linux/VeyraServer > /tmp/libraries.txt \
     && cat /tmp/libraries.txt \
-    && ! grep -q "not found" /tmp/libraries.txt
+    && ! grep -q "not found" /tmp/libraries.txt \
+    && mkdir -p /srv/veyra/Veyra/Saved/Demos
+# Saved/Demos is created here for recorded replays, because the runtime image cannot create folders
+# before the engine checks the space in it.
 
 # The engine refuses to run as root, and the server writes its logs and saved state under
 # /srv/veyra, so the files belong to the image's nonroot user (65532).

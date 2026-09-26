@@ -290,9 +290,12 @@ void AVeyraGameMode::BeginPreparation()
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Preparation);
 	UE_LOG(LogVeyraMatch, Log, TEXT("Preparation begins with %d player(s)."), GetNumPlayers());
 
+	// Participants are the players given a side when they joined. Other PlayerStates, such as the
+	// replay recorder's spectator, get no Vanguard.
 	for (APlayerState* Member : GameState->PlayerArray)
 	{
-		if (AVeyraPlayerState* PlayerState = Cast<AVeyraPlayerState>(Member))
+		AVeyraPlayerState* PlayerState = Cast<AVeyraPlayerState>(Member);
+		if (PlayerState && PlayerState->GetVeyraTeam() != EVeyraTeam::None)
 		{
 			SpawnVanguard(*PlayerState);
 		}

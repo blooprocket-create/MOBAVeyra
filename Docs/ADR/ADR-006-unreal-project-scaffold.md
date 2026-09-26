@@ -201,9 +201,29 @@ Modules are created **only when they receive real content**, as Project Structur
     - The packaged server loads its map during engine start-up. `AutomationWorker` and `AutomationController` (non-Shipping only) and `PerfCounters` load after that, so every server logs the warning.
     - None of those modules registers replicated types, so the warning is harmless today, but it would hide a real case.
     - **Fixed (2026-09-26).**
-      - The composition root loads those modules, and the on-demand `PerfCounters` and `Voice`, when the engine finishes initializing, before it starts and loads the first map.
+      - The composition root loads those modules, plus the on-demand `PerfCounters`, `Voice` and replay file writer (`LocalFileNetworkReplayStreaming`), when the engine finishes initializing, before it starts and loads the first map.
       - Since then the packaged server and both packaged clients log no warning at all, and Iris reports that no module loaded late.
       - The network tests no longer preload modules themselves.
+- **Amendment (2026-09-26, M3): a server replay alongside Iris works.** The evidence is `Game/Scripts/Smoke.ps1 -RecordReplay`.
+  - **Recording.**
+    - The containerised server records when its map URL carries `?DemoRec=<name>`.
+    - The replay driver uses the legacy ("Generic") replication model while the game driver runs Iris, as `BaseEngine.ini` configures.
+    - The 26-second smoke match produced a 30 KB replay.
+  - **Playback.** A packaged client played the replay back. It showed both Vanguards, movement, the cast's damage and the match pause. The server, both clients and the playback logged no warnings or errors.
+  - **The pause stops playback.**
+    - The engine advances replay time only while the world has no pauser, and a replay records the match's world pause. Played as-is, a replay stops for good at the first pause.
+    - A viewer clears the recorded pauser and plays on. The match's own pause still reaches the replay through `AVeyraGameState`, so the replay can still show the match as paused.
+    - The Veyra replay viewer must do the same. The smoke check does it already.
+  - **Recording found a bug, now fixed.**
+    - The replay recorder's spectator has a PlayerState, and the GameMode tried to spawn it a Vanguard.
+    - Only players given a side are now participants.
+    - The smoke test now fails on any Veyra error in the server log.
+  - **Container.** The image creates `Saved/Demos`, which the engine checks before it writes the first replay.
+  - **Cost at two players.**
+    - Server busy time is about 1.1 ms per frame with or without recording, at the 30 Hz tick.
+    - The replay grows by 0.3–0.6 KB/s, against 1.4–2.1 KB/s sent to each client.
+    - The bandwidth spike measures recording again under a full lane population.
+  - **Not decided here.** The recording format and what the replay product needs wait for their own design pass (Replay §9).
 
 ### 6. Tuning data
 
@@ -333,6 +353,8 @@ Modules are created **only when they receive real content**, as Project Structur
   - **The smoke test.** `Game/Scripts/Smoke.ps1` starts the server and two headless clients with `-VeyraSmoke`. Each client moves its Vanguard and casts its Q ability at the other. The first client also pauses and resumes the match.
     - A client's result is the verdict line it logs. On Windows a clean engine exit always returns 0, so a client's exit code only catches crashes.
     - `-Server Editor` swaps the container for a local editor-build server when Docker is unavailable.
+    - `-RecordReplay` has the container record the match, then plays the replay back with `-VeyraReplayCheck`. `-NetStatsSeconds` has the server log network statistics.
+    - Any Veyra error in the server log fails the test.
     - It has passed against the container with packaged Win64 clients and with editor-build clients. Clients and server must come from the same source: the target-data spike showed that their polymorphic type tables otherwise differ.
   - **Docker Desktop must forward UDP both ways.** Version 4.48.0 on this machine delivered packets into the container but dropped its replies, so clients timed out. Version 4.92 works.
 

@@ -28,6 +28,9 @@ namespace
 	constexpr double TimeoutRealSeconds = 180.0;
 	constexpr double MoveProgressFraction = 0.5;
 	constexpr double StopFromCentreFractionOfCastRange = 0.25;
+	// How long the paused world must stay paused before this client asks to resume. Long enough for
+	// a replay, which samples a few times a second, to record the pause.
+	constexpr double PauseHoldRealSeconds = 1.0;
 }
 
 bool UVeyraSmokeClientSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -171,8 +174,20 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	case EStep::WaitForPause:
 		if (World->IsPaused() && GameState->IsMatchPaused())
 		{
+			PausedRealTime = FPlatformTime::Seconds();
+			Advance(EStep::HoldPause, TEXT("this client's world is paused"));
+		}
+		break;
+
+	case EStep::HoldPause:
+		if (!World->IsPaused() || !GameState->IsMatchPaused())
+		{
+			Finish(false, TEXT("the match resumed before this client asked"));
+		}
+		else if (FPlatformTime::Seconds() - PausedRealTime >= PauseHoldRealSeconds)
+		{
 			Controller->RequestDeveloperPause(false);
-			Advance(EStep::WaitForResume, TEXT("this client's world is paused; asked to resume"));
+			Advance(EStep::WaitForResume, TEXT("the world stayed paused; asked to resume"));
 		}
 		break;
 

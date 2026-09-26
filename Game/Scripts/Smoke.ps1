@@ -17,6 +17,11 @@
     dedicated server instead, for when Docker is unavailable; it proves the same match flow, but
     not the Linux build or the container.
 
+    -RecordReplay has the server record the match (ADR-006 §5 replay spike). The container is
+    stopped gracefully so the replay is finished, the replay is copied out of it, and a client of
+    the same kind plays it back with -VeyraReplayCheck, which must see both Vanguards, movement, a
+    cast's damage and the pause. -NetStatsSeconds has the server log network statistics.
+
     Client logs, the server log and a summary go to Game/Saved/Smoke/<timestamp>. The server is
     stopped at the end unless -KeepServer is given.
 
@@ -29,6 +34,10 @@
     Minutes to wait for the clients before stopping them.
 .PARAMETER KeepServer
     Leaves the server container running afterwards.
+.PARAMETER RecordReplay
+    Records the match on the server and checks that a client can play it back. Container only.
+.PARAMETER NetStatsSeconds
+    When above 0, the server logs a VeyraNetStats line at this interval, in seconds.
 .PARAMETER EngineRoot
     Engine folder to use instead of the one registered for the project's EngineAssociation.
 .EXAMPLE
@@ -47,6 +56,11 @@ param(
 
     [switch]$KeepServer,
 
+    [switch]$RecordReplay,
+
+    [ValidateRange(0, 600)]
+    [int]$NetStatsSeconds = 0,
+
     [string]$EngineRoot
 )
 
@@ -61,8 +75,26 @@ $ExitInfrastructure = 2
 $ServerReadyLine = 'Match server ready'
 $ServerReadyTimeoutSeconds = 120
 $ServerAddress = '127.0.0.1:7777'
+$ReplayName = 'veyra_smoke'
+$ReplayContainerDir = '/srv/veyra/Veyra/Saved/Demos'
+
+# Developer options for the server's map URL.
+$urlOptions = ''
+if ($RecordReplay) {
+    $urlOptions += "?DemoRec=$ReplayName"
+}
+if ($NetStatsSeconds -gt 0) {
+    $urlOptions += "?VeyraNetStats=$NetStatsSeconds"
+}
+
 # The editor server's map and options; compose.yaml gives the container the same ones.
-$EditorServerArguments = @('/Game/Veyra/Developer/Maps/L_Greybox?VeyraExpectedPlayers=2', '-port=7777', '-server', '-log', '-nullrhi', '-unattended', '-nosplash', '-LogCmds="LogVeyraAbilities Verbose"')
+$EditorServerArguments = @("/Game/Veyra/Developer/Maps/L_Greybox?VeyraExpectedPlayers=2$urlOptions", '-port=7777', '-server', '-log', '-nullrhi', '-unattended', '-nosplash', '-LogCmds="LogVeyraAbilities Verbose"')
+
+if ($RecordReplay -and $Server -ne 'Container') {
+    # Only the container can be stopped gracefully, which the replay needs to be finished.
+    Write-Host '-RecordReplay needs the container server.'
+    exit $ExitInfrastructure
+}
 
 $projectFile = Get-VeyraProjectFile
 $gameDir = Split-Path -Parent $projectFile
@@ -76,6 +108,8 @@ Write-Host "Report folder: $reportDir"
 if ($Clients -eq 'Editor') {
     $clientExecutable = Join-Path $engineRoot 'Engine\Binaries\Win64\UnrealEditor.exe'
     $clientPrefix = @("`"$projectFile`"", $ServerAddress, '-game')
+    $playbackPrefix = @("`"$projectFile`"", '-game')
+    $clientDemosDir = Join-Path $gameDir 'Saved\Demos'
 }
 else {
     # The game binary itself, not the launcher UAT places at the package root, so the script waits
@@ -87,6 +121,9 @@ else {
         $clientExecutable = Join-Path $packageDir '<not packaged>\VeyraClient.exe'
     }
     $clientPrefix = @($ServerAddress)
+    $playbackPrefix = @()
+    # <package>\WindowsClient\Veyra\Binaries\Win64\VeyraClient.exe saves under <package>\WindowsClient\Veyra\Saved.
+    $clientDemosDir = Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $clientExecutable))) 'Saved\Demos'
 }
 if (-not (Test-Path -LiteralPath $clientExecutable -PathType Leaf)) {
     Write-Host "The client was not found at '$clientExecutable'."
@@ -118,6 +155,13 @@ function Stop-Server {
         }
         return
     }
+    if ($RecordReplay) {
+        # A graceful stop lets the server finish the replay before it is copied out.
+        $null = Invoke-Compose -Arguments @('stop', 'match-server')
+        $demosDir = Join-Path $reportDir 'Demos'
+        New-Item -ItemType Directory -Force -Path $demosDir | Out-Null
+        & docker compose --project-directory $repositoryDir --profile match-server cp "match-server:$ReplayContainerDir/." $demosDir | Out-Host
+    }
     Get-ServerLog | Out-File -LiteralPath $serverLogPath -Encoding utf8
     if (-not $KeepServer) {
         $null = Invoke-Compose -Arguments @('down')
@@ -132,6 +176,7 @@ if ($Server -eq 'Editor') {
 }
 else {
     Write-Host 'Starting the match server container.'
+    $env:VEYRA_MATCH_URL_OPTIONS = $urlOptions
     if ((Invoke-Compose -Arguments @('up', '--build', '--detach', 'match-server')) -ne 0) {
         Write-Host 'The match server container did not start.'
         exit $ExitInfrastructure
@@ -194,12 +239,47 @@ foreach ($expected in 'Preparation begins with 2 player(s)', 'The match is live'
         $failed = $true
     }
 }
+# No Veyra code on the server may log an error during the match.
+$serverErrors = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyra\w*: Error: .*')
+foreach ($serverError in $serverErrors) {
+    Write-Host "The server logged an error: $($serverError.Matches[0].Value)"
+    $failed = $true
+}
 # Each client's cast, as the server resolved it (VeyraAbilities logs it at Verbose).
 $abilityQ = (Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Match.json') -Raw | ConvertFrom-Json).developerLoadout.abilityQ
 $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
 if ($casts -lt 2) {
     Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."
     $failed = $true
+}
+
+if ($NetStatsSeconds -gt 0) {
+    Write-Host 'Server network statistics:'
+    Select-String -LiteralPath $serverLogPath -Pattern 'VeyraNetStats: window=.*' | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
+}
+
+if ($RecordReplay) {
+    $replayFile = Join-Path $reportDir "Demos\$ReplayName.replay"
+    if (-not (Test-Path -LiteralPath $replayFile)) {
+        Write-Host "The server left no replay at $ReplayContainerDir/$ReplayName.replay."
+        $failed = $true
+    }
+    else {
+        Write-Host ("Replay: {0:N0} KB." -f ((Get-Item -LiteralPath $replayFile).Length / 1KB))
+        New-Item -ItemType Directory -Force -Path $clientDemosDir | Out-Null
+        Copy-Item -LiteralPath $replayFile -Destination $clientDemosDir -Force
+        $playbackLog = Join-Path $reportDir 'Playback.log'
+        $playbackArguments = $playbackPrefix + @("-VeyraReplayCheck=$ReplayName", '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$playbackLog`"")
+        $playback = Start-Process -FilePath $clientExecutable -ArgumentList ($playbackArguments -join ' ') -PassThru
+        if (-not $playback.WaitForExit([TimeSpan]::FromMinutes($TimeoutMinutes))) {
+            $playback.Kill($true)
+        }
+        $verdict = if (Test-Path -LiteralPath $playbackLog) { Select-String -LiteralPath $playbackLog -Pattern 'VeyraReplayCheck: (PASS|FAIL).*' | Select-Object -Last 1 } else { $null }
+        Write-Host ("Playback: {0}" -f $(if ($verdict) { $verdict.Matches[0].Value } else { 'no verdict logged' }))
+        if (-not $verdict -or $verdict.Matches[0].Value -notmatch 'PASS') {
+            $failed = $true
+        }
+    }
 }
 
 if ($failed) {

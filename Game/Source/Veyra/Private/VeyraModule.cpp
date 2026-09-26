@@ -21,10 +21,11 @@ namespace
 #if WITH_ENGINE && !UE_BUILD_SHIPPING
 			TEXT("AutomationController"),
 #endif
-			// Loaded on demand: server performance counters on the first network tick, and voice when
-			// a client connects.
+			// Loaded on demand: server performance counters on the first network tick, voice when a
+			// client connects, and the replay file writer when a recording starts.
 			TEXT("PerfCounters"),
 			TEXT("Voice"),
+			TEXT("LocalFileNetworkReplayStreaming"),
 		};
 
 		FModuleManager& Modules = FModuleManager::Get();
