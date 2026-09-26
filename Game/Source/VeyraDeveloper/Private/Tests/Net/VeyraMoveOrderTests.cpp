@@ -30,11 +30,6 @@ namespace VeyraNetTests
 
 		int32 MoverId = INDEX_NONE;
 
-		BEFORE_ALL()
-		{
-			LoadOnDemandEngineModules();
-		}
-
 		BEFORE_EACH()
 		{
 			IgnoreLoginViewTargetRpc(*TestRunner);

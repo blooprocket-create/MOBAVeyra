@@ -63,11 +63,6 @@ namespace VeyraNetTests
 		static constexpr double SentZ = 10.0;
 		static constexpr int32 SentPropertyMarker = 4242;
 
-		BEFORE_ALL()
-		{
-			LoadOnDemandEngineModules();
-		}
-
 		BEFORE_EACH()
 		{
 			IgnoreLoginViewTargetRpc(*TestRunner);

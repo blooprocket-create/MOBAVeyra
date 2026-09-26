@@ -166,7 +166,7 @@ Modules are created **only when they receive real content**, as Project Structur
   2. Confirm the known GAS target-data issue UE-365455 and its workaround.
   3. Measure bandwidth and server cost with a full lane population.
   - If a spike fails, the fallback is the legacy replication system with Replication Graph. Choosing it needs a deliberate amendment.
-- **Amendment (2026-09-26, M3): how Iris expresses the per-player fog gate.** The evidence is `Veyra.Net.FogGate`, which uses three players so that one side has two.
+- **Amendment (2026-09-26, M3): how Iris expresses the per-player fog gate** (accepted by the author, 2026-09-26). The evidence is `Veyra.Net.FogGate`, which uses three players so that one side has two.
   - **Units are hidden by default.** Every fog-gated unit uses the engine's filter-out dynamic filter (`NotRouted`), so no client receives it. Inclusion groups, which Iris applies after dynamic filters, open it up:
     - one group per side, allowed for that side's connections, holding the side's own units;
     - one group per observer, allowed only for that observer's connection, holding the enemy units that player currently sees.
@@ -200,7 +200,10 @@ Modules are created **only when they receive real content**, as Project Structur
     - GAS rebuilds its polymorphic target-data type table whenever modules finish loading. Iris warns when that happens while a replication system exists, because a client and server could then disagree on type indices.
     - The packaged server loads its map during engine start-up. `AutomationWorker` and `AutomationController` (non-Shipping only) and `PerfCounters` load after that, so every server logs the warning.
     - None of those modules registers replicated types, so the warning is harmless today, but it would hide a real case.
-    - **Recommended, not done yet:** the composition root loads those modules before the map, so the warning appears only when something real happens.
+    - **Fixed (2026-09-26).**
+      - The composition root loads those modules, and the on-demand `PerfCounters` and `Voice`, when the engine finishes initializing, before it starts and loads the first map.
+      - Since then the packaged server and both packaged clients log no warning at all, and Iris reports that no module loaded late.
+      - The network tests no longer preload modules themselves.
 
 ### 6. Tuning data
 

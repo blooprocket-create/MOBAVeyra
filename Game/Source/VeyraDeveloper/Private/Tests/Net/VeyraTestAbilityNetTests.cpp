@@ -79,11 +79,6 @@ namespace VeyraNetTests
 		double MaxHealth = 0.0;
 		double MaxResource = 0.0;
 
-		BEFORE_ALL()
-		{
-			LoadOnDemandEngineModules();
-		}
-
 		BEFORE_EACH()
 		{
 			IgnoreLoginViewTargetRpc(*TestRunner);

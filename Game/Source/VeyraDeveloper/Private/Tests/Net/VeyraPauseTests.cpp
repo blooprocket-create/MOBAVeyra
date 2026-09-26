@@ -65,11 +65,6 @@ namespace VeyraNetTests
 		FVector PausedLocation = FVector::ZeroVector;
 		TMap<int32, double> PausedClientClocks;
 
-		BEFORE_ALL()
-		{
-			LoadOnDemandEngineModules();
-		}
-
 		BEFORE_EACH()
 		{
 			IgnoreLoginViewTargetRpc(*TestRunner);

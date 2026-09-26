@@ -45,11 +45,6 @@ namespace VeyraNetTests
 		TWeakObjectPtr<APawn> FirstBody;
 		TWeakObjectPtr<AVeyraVanguardController> FirstController;
 
-		BEFORE_ALL()
-		{
-			LoadOnDemandEngineModules();
-		}
-
 		BEFORE_EACH()
 		{
 			IgnoreLoginViewTargetRpc(*TestRunner);

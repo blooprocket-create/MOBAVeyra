@@ -25,11 +25,6 @@ namespace VeyraNetTests
 
 		FPIENetworkComponent<FState> Network{ TestRunner, TestCommandBuilder, bInitializing };
 
-		BEFORE_ALL()
-		{
-			LoadOnDemandEngineModules();
-		}
-
 		BEFORE_EACH()
 		{
 			IgnoreLoginViewTargetRpc(*TestRunner);
