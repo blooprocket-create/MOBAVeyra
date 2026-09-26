@@ -89,6 +89,37 @@ namespace
 		return Pointer.IsEmpty() ? FString(TEXT("(root)")) : Pointer;
 	}
 
+	/**
+	 * Reports every object in a schema that repeats a key, such as a keyword or a property. The
+	 * parser keeps both members and a lookup finds only one, so the schema would be ambiguous.
+	 * scripts/check_tuning.py refuses repeated keys too.
+	 */
+	void CheckSchemaKeysAreUnique(const FValue& Value, const FString& Pointer, FErrors& Errors)
+	{
+		if (Value.IsObject())
+		{
+			TArray<FString> SeenKeys;
+			for (const FValue::Member& Member : Value.GetObject())
+			{
+				const FString Key = NameOf(Member.name);
+				if (ContainsExactly(SeenKeys, Key))
+				{
+					Errors.Add(FString::Printf(TEXT("schema %s: duplicate key \"%s\""), *PointerText(Pointer), *Key));
+				}
+				SeenKeys.Add(Key);
+				CheckSchemaKeysAreUnique(Member.value, ChildPointer(Pointer, Key), Errors);
+			}
+		}
+		else if (Value.IsArray())
+		{
+			int32 Index = 0;
+			for (const FValue& Element : Value.GetArray())
+			{
+				CheckSchemaKeysAreUnique(Element, ChildPointer(Pointer, FString::FromInt(Index++)), Errors);
+			}
+		}
+	}
+
 	bool IsContentId(const FProperty& Property)
 	{
 		const FStructProperty* StructProperty = CastField<FStructProperty>(&Property);
@@ -964,6 +995,7 @@ FErrors ValidateAndBind(FStringView DocumentText, FStringView SchemaText, int32 
 	{
 		return Errors;
 	}
+	CheckSchemaKeysAreUnique(Schema, FString(), Errors);
 
 	// Bind into scratch memory so OutStruct never holds a partly valid result.
 	FStructOnScope Scratch(&Struct);
