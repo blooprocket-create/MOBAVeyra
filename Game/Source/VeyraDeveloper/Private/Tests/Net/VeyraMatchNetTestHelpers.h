@@ -87,12 +87,12 @@ namespace VeyraNetTests
 	/** Humans in a developer test match: one for each side. */
 	inline constexpr int32 MatchClientCount = 2;
 
-	/** A developer match: a dedicated server running AVeyraGameMode and MatchClientCount clients. */
+	/** A developer match: a dedicated server running AVeyraGameMode and ClientCount clients. */
 	template <typename StateType>
-	void BuildMatchNetwork(FPIENetworkComponent<StateType>& Network)
+	void BuildMatchNetwork(FPIENetworkComponent<StateType>& Network, int32 ClientCount = MatchClientCount)
 	{
 		FNetworkComponentBuilder<StateType>()
-			.WithClients(MatchClientCount)
+			.WithClients(ClientCount)
 			.WithGameInstanceClass(UGameInstance::StaticClass())
 			.WithGameMode(AVeyraGameMode::StaticClass())
 			.Build(Network);
