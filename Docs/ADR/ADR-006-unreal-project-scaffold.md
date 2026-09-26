@@ -166,6 +166,41 @@ Modules are created **only when they receive real content**, as Project Structur
   2. Confirm the known GAS target-data issue UE-365455 and its workaround.
   3. Measure bandwidth and server cost with a full lane population.
   - If a spike fails, the fallback is the legacy replication system with Replication Graph. Choosing it needs a deliberate amendment.
+- **Amendment (2026-09-26, M3): how Iris expresses the per-player fog gate.** The evidence is `Veyra.Net.FogGate`, which uses three players so that one side has two.
+  - **Units are hidden by default.** Every fog-gated unit uses the engine's filter-out dynamic filter (`NotRouted`), so no client receives it. Inclusion groups, which Iris applies after dynamic filters, open it up:
+    - one group per side, allowed for that side's connections, holding the side's own units;
+    - one group per observer, allowed only for that observer's connection, holding the enemy units that player currently sees.
+  - **Vision writes both kinds of group.**
+    - Shared team vision adds a sighting to every teammate's observer group.
+    - A Dense Fog sighting goes only into the groups of observers inside the same fog volume.
+    - A unit leaving a player's groups is destroyed on that player's client. In the test, the observer's teammate never received the sighted enemy.
+  - **Data on the always-relevant PlayerState is hidden the same way.** The attribute sets, and later any other per-participant data a fogged enemy must not reveal, replicate with `COND_NetGroup`.
+    - Iris sends a `COND_NetGroup` subobject to a connection only through a group that allows it, so this too is deny-by-default.
+    - Each participant has one net condition group. Its teammates and current observers are members (`APlayerController::IncludeInNetConditionGroup`), and its owner receives the data through the engine's owner group.
+    - An observer who loses sight keeps the value it last saw. GAS on the clients raised no warnings.
+  - **Why not one exclusion group per observer.** Exclusion groups allow everything by default, so a unit Vision forgot would leak. Filter-out plus inclusion groups deny by default.
+  - **What production needs, with Vision:**
+    - **Register before the first send.** GAS registers attribute sets for every connection. The spike re-registered them while replicating; production registers them with `COND_NetGroup` before the first send, through an ASC subclass hook.
+    - **Push memberships to Iris explicitly.** A subobject's net condition groups reach Iris only when game code calls `FReplicationSystemUtil::UpdateSubObjectGroupMemberships` after registering it.
+    - **Replays.** The replay driver uses legacy replication and ignores Iris filters. Gated subobjects also join the replay group so replays record them.
+    - **Subobjects need net condition groups.** Iris ignores subobjects in inclusion groups, so subobject gating always uses net condition groups.
+  - Presence pings and outlines remain separate channels (Vision §2, §4).
+- **Amendment (2026-09-26, M3): GAS target data under Iris.** The evidence is `Veyra.Net.TargetData`. UE-365455 does not appear in the 5.8.3 source, so the spike tested the behaviour directly.
+  - **A client cannot start a GAS ability under §7's control model.**
+    - GAS silently refuses to activate an ability on a machine where the avatar is a simulated proxy.
+    - A Vanguard possessed by its server-side controller is a simulated proxy on its owning client.
+    - So neither GAS prediction nor GAS client target data is available until a prediction ruling for some ability category changes who owns the pawn on that client.
+    - Veyra's casts do not need either: intents travel through the PlayerController, and the server fills the gameplay event (§4).
+  - **Target data made of reflected properties crosses Iris intact**, sent through the ASC's server RPC.
+  - **Iris ignores a struct's own `NetSerialize`.**
+    - Without an Iris NetSerializer, Iris sends the struct's reflected properties and warns that it is "generating descriptor for struct … that has custom serialization".
+    - A field only `NetSerialize` wrote arrived as zero.
+    - **Rule:** every Veyra replicated struct, target data included, is plain reflected properties, or it gets an Iris NetSerializer. The spike's `NetSerialize` struct was removed after the run, because its warning appeared in every development build.
+  - **Modules that load after replication starts.**
+    - GAS rebuilds its polymorphic target-data type table whenever modules finish loading. Iris warns when that happens while a replication system exists, because a client and server could then disagree on type indices.
+    - The packaged server loads its map during engine start-up. `AutomationWorker` and `AutomationController` (non-Shipping only) and `PerfCounters` load after that, so every server logs the warning.
+    - None of those modules registers replicated types, so the warning is harmless today, but it would hide a real case.
+    - **Recommended, not done yet:** the composition root loads those modules before the map, so the warning appears only when something real happens.
 
 ### 6. Tuning data
 
@@ -308,7 +343,7 @@ Each milestone is one branch and one pull request. It is built on the Windows ma
    - Scope: the tuning framework with its first schemas, `VeyraCombat`, the ASC on the PlayerState (in `VeyraMatch`), the Attribute Sets, and the canonical damage pipeline for Combat §3 and §25. `VeyraAbilities` moved to M3 (§3 amendment).
    - Done when the mitigation, penetration, shield and stacking rules pass automated tests, and Editor Win64, Client Win64 and Server Linux build with zero warnings.
 3. **M3 — Match and network.**
-   - Scope: `VeyraAbilities`, the rest of `VeyraMatch`, Iris, click-to-move Vanguards, a grey-box test map, the Linux server in Docker with dev-only direct connect (ADR-005 step 2), and the three spikes in §5 and §8.
+   - Scope: `VeyraAbilities`, the rest of `VeyraMatch`, Iris, click-to-move Vanguards, a grey-box test map, the Linux server in Docker with dev-only direct connect (ADR-005 step 2), the spikes in §5 and §8, and deciding how Iris expresses the per-player fog gate.
    - Done when two clients play against the containerised server and a server-validated test ability passes an automated network test.
 4. **M4 onward.**
    - Session handoff from the game side (ADR-005 step 3), which needs the backend's match-join contract first.
