@@ -2,24 +2,32 @@
 
 #include "Smoke/VeyraSmokeClientSubsystem.h"
 
+#include "AbilitySystemComponent.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformTime.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Targeting/VeyraTargeting.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
+#include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogVeyraSmoke, Log, All);
 
 namespace
 {
-	// Harness settings, not gameplay: how long the whole script may take, and how far along its
-	// move the Vanguard must get to count as moving.
+	// Harness settings, not gameplay: how long the whole script may take, how far along its move the
+	// Vanguard must get to count as moving, and how close to the lane centre each Vanguard stops, as
+	// a fraction of the Q ability's cast range, so the two end in range without meeting.
 	constexpr double TimeoutRealSeconds = 180.0;
 	constexpr double MoveProgressFraction = 0.5;
+	constexpr double StopFromCentreFractionOfCastRange = 0.25;
 }
 
 bool UVeyraSmokeClientSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -51,6 +59,20 @@ AVeyraGameState* UVeyraSmokeClientSubsystem::GetGameState() const
 {
 	const UWorld* World = GetGameInstance()->GetWorld();
 	return World ? World->GetGameState<AVeyraGameState>() : nullptr;
+}
+
+const AVeyraPlayerState* UVeyraSmokeClientSubsystem::FindEnemy(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState) const
+{
+	const AVeyraPlayerState* Self = Controller.GetPlayerState<AVeyraPlayerState>();
+	for (const APlayerState* Participant : GameState.PlayerArray)
+	{
+		const AVeyraPlayerState* Candidate = Cast<AVeyraPlayerState>(Participant);
+		if (Self && Candidate && Candidate->GetVeyraTeam() != Self->GetVeyraTeam() && Candidate->GetPawn())
+		{
+			return Candidate;
+		}
+	}
+	return nullptr;
 }
 
 bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
@@ -86,9 +108,18 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	case EStep::WaitForLiveMatch:
 		if (GameState->GetPhase() == EVeyraMatchPhase::Live)
 		{
-			// Halfway to the lane centre, so the two Vanguards never meet.
+			const FVeyraTargetedDamageAbilityTuning* Ability =
+				UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(UVeyraMatchTuningSubsystem::Get().DeveloperLoadout.AbilityQ);
+			if (!Ability)
+			{
+				Finish(false, TEXT("the developer loadout's Q ability is not a targeted damage ability"));
+				break;
+			}
+			CastRange = Ability->CastRange;
+			// Toward the lane centre, stopping short of it so the two Vanguards end in range of each other.
 			MoveStart = Vanguard->GetActorLocation();
-			MoveDestination = FVector(MoveStart.X / 2.0, MoveStart.Y, 0.0);
+			const double StopX = FMath::Min(FMath::Abs(MoveStart.X), CastRange * StopFromCentreFractionOfCastRange);
+			MoveDestination = FVector(FMath::Sign(MoveStart.X) * StopX, MoveStart.Y, 0.0);
 			Controller->IssueMoveOrder(MoveDestination);
 			Advance(EStep::WaitForMove, TEXT("the match is live; ordered a move"));
 		}
@@ -101,14 +132,38 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 		}
 		else if (FVector::Dist2D(Vanguard->GetActorLocation(), MoveStart) >= FVector::Dist2D(MoveStart, MoveDestination) * MoveProgressFraction)
 		{
-			if (bCheckPause)
+			Advance(EStep::WaitForRange, TEXT("the Vanguard moves"));
+		}
+		break;
+
+	case EStep::WaitForRange:
+		if (const AVeyraPlayerState* Target = FindEnemy(*Controller, *GameState))
+		{
+			AActor* TargetBody = Target->GetPawn();
+			if (VeyraTargeting::EdgeToEdgeDistance(*Vanguard, *TargetBody) <= CastRange)
 			{
-				Controller->RequestDeveloperPause(true);
-				Advance(EStep::WaitForPause, TEXT("the Vanguard moves; asked for a pause"));
+				Enemy = Target;
+				Controller->IssueCastOrder(EVeyraAbilitySlot::Q, TargetBody);
+				Advance(EStep::WaitForHit, TEXT("the enemy is in range; cast Q at it"));
 			}
-			else
+		}
+		break;
+
+	case EStep::WaitForHit:
+		if (Controller->GetCastRejectionCount() > 0)
+		{
+			Finish(false, FString::Printf(TEXT("the server refused the cast: %s"), LexToString(Controller->GetLastCastRejection())));
+		}
+		else if (!Enemy.IsValid())
+		{
+			Finish(false, TEXT("the enemy left the match"));
+		}
+		else
+		{
+			const UAbilitySystemComponent* EnemyAbilities = Enemy->GetAbilitySystemComponent();
+			if (EnemyAbilities->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) < EnemyAbilities->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()))
 			{
-				Finish(true, TEXT("the Vanguard moves"));
+				AfterHit();
 			}
 		}
 		break;
@@ -124,7 +179,7 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	case EStep::WaitForResume:
 		if (!World->IsPaused() && !GameState->IsMatchPaused())
 		{
-			Finish(true, TEXT("the Vanguard moved, and the match paused and resumed"));
+			Finish(true, TEXT("the Vanguard moved, its Q ability hit the enemy, and the match paused and resumed"));
 		}
 		break;
 
@@ -132,6 +187,19 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 		break;
 	}
 	return Step != EStep::Finished;
+}
+
+void UVeyraSmokeClientSubsystem::AfterHit()
+{
+	if (bCheckPause)
+	{
+		GetController()->RequestDeveloperPause(true);
+		Advance(EStep::WaitForPause, TEXT("the cast hit the enemy; asked for a pause"));
+	}
+	else
+	{
+		Finish(true, TEXT("the Vanguard moved, and its Q ability hit the enemy"));
+	}
 }
 
 void UVeyraSmokeClientSubsystem::Advance(EStep NextStep, const TCHAR* Description)
@@ -144,5 +212,8 @@ void UVeyraSmokeClientSubsystem::Finish(bool bPassed, const FString& Reason)
 {
 	Step = EStep::Finished;
 	UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s: %s."), bPassed ? TEXT("PASS") : TEXT("FAIL"), *Reason);
-	FPlatformMisc::RequestExitWithStatus(/*bForce*/ false, bPassed ? 0 : 1);
+	// The line above is the result; Game/Scripts/Smoke.ps1 reads it. On Windows a clean exit cannot
+	// carry a status (the engine loop returns its own exit code), and a forced exit would skip the
+	// clean disconnect the server should see.
+	FPlatformMisc::RequestExit(/*bForce*/ false, TEXT("VeyraSmoke"));
 }

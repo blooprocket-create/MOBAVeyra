@@ -53,13 +53,15 @@ services:
     init: true
     ports:
       - "127.0.0.1:7777:7777/udp"
-    # The grey-box map, waiting for two players during loading.
+    # The grey-box map, waiting for two players during loading. Casts are logged
+    # so Game/Scripts/Smoke.ps1 can check them.
     command:
       - "/Game/Veyra/Developer/Maps/L_Greybox?VeyraExpectedPlayers=2"
       - "-port=7777"
       - "-log"
       - "-stdout"
       - "-FullStdOutLogOutput"
+      - "-LogCmds=LogVeyraAbilities Verbose"
 
 volumes:
   postgres-data:

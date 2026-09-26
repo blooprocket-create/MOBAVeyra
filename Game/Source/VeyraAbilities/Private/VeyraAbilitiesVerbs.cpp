@@ -35,6 +35,8 @@ EVeyraCastRejection TryCast(UAbilitySystemComponent& Caster, EVeyraAbilitySlot S
 	const bool bActivated = Caster.TriggerAbilityFromGameplayEvent(Entry->Handle, Caster.AbilityActorInfo.Get(), FGameplayTag(), &Payload, Caster);
 	UE_CLOG(!bActivated, LogVeyraAbilities, Warning, TEXT("%s passed validation but the ability system did not activate %s."),
 		*GetNameSafe(Caster.GetAvatarActor()), *Entry->Ability.ToString());
+	UE_CLOG(bActivated, LogVeyraAbilities, Verbose, TEXT("%s cast %s at %s."),
+		*GetNameSafe(Caster.GetAvatarActor()), *Entry->Ability.ToString(), *GetNameSafe(Target.Actor));
 	return bActivated ? EVeyraCastRejection::None : EVeyraCastRejection::ActivationFailed;
 }
 }

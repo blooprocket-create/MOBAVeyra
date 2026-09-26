@@ -6,11 +6,16 @@
     Starts the match-server service from the root compose.yaml (ADR-005 step 2), which builds its
     image from the packaged server (Package.ps1 -Target VeyraServer -Platform Linux). Then it starts
     two headless clients with -VeyraSmoke, which connect to 127.0.0.1:7777, wait for the match to go
-    live and move their Vanguards. The first client also pauses and resumes the match and checks
-    that its own world stops (ADR-006 §8).
+    live, move their Vanguards and cast their Q ability at each other; the server must land both
+    casts. The first client also pauses and resumes the match and checks that its own world stops
+    (ADR-006 §8).
 
     Clients: 'Editor' runs the editor build as a game (UnrealEditor.exe -game); 'Packaged' runs
     the packaged client from Package.ps1 -Target VeyraClient -Platform Win64.
+
+    Server: 'Container' is the done criterion's setup. 'Editor' runs the editor build as a local
+    dedicated server instead, for when Docker is unavailable; it proves the same match flow, but
+    not the Linux build or the container.
 
     Client logs, the server log and a summary go to Game/Saved/Smoke/<timestamp>. The server is
     stopped at the end unless -KeepServer is given.
@@ -18,6 +23,8 @@
     Exit codes: 0 passed; 1 a client or the server did not do its part; 2 infrastructure error.
 .PARAMETER Clients
     Which client build to run.
+.PARAMETER Server
+    Which server to run: the container, or a local editor-build dedicated server.
 .PARAMETER TimeoutMinutes
     Minutes to wait for the clients before stopping them.
 .PARAMETER KeepServer
@@ -31,6 +38,9 @@
 param(
     [ValidateSet('Editor', 'Packaged')]
     [string]$Clients = 'Packaged',
+
+    [ValidateSet('Container', 'Editor')]
+    [string]$Server = 'Container',
 
     [ValidateRange(1, 60)]
     [int]$TimeoutMinutes = 5,
@@ -51,6 +61,8 @@ $ExitInfrastructure = 2
 $ServerReadyLine = 'Match server ready'
 $ServerReadyTimeoutSeconds = 120
 $ServerAddress = '127.0.0.1:7777'
+# The editor server's map and options; compose.yaml gives the container the same ones.
+$EditorServerArguments = @('/Game/Veyra/Developer/Maps/L_Greybox?VeyraExpectedPlayers=2', '-port=7777', '-server', '-log', '-nullrhi', '-unattended', '-nosplash', '-LogCmds="LogVeyraAbilities Verbose"')
 
 $projectFile = Get-VeyraProjectFile
 $gameDir = Split-Path -Parent $projectFile
@@ -74,6 +86,9 @@ if (-not (Test-Path -LiteralPath $clientExecutable -PathType Leaf)) {
     exit $ExitInfrastructure
 }
 
+$serverLogPath = Join-Path $reportDir 'Server.log'
+$serverProcess = $null
+
 function Invoke-Compose {
     param([string[]]$Arguments)
     & docker compose --project-directory $repositoryDir --profile match-server @Arguments | Out-Host
@@ -81,20 +96,39 @@ function Invoke-Compose {
 }
 
 function Get-ServerLog {
+    if ($Server -eq 'Editor') {
+        return $(if (Test-Path -LiteralPath $serverLogPath) { Get-Content -LiteralPath $serverLogPath } else { @() })
+    }
     return (& docker compose --project-directory $repositoryDir --profile match-server logs --no-color match-server 2>&1)
 }
 
 function Stop-Server {
-    Get-ServerLog | Out-File -LiteralPath (Join-Path $reportDir 'Server.log') -Encoding utf8
+    if ($Server -eq 'Editor') {
+        # The editor server writes its own log file; stopping it ends the match.
+        if (-not $KeepServer -and $serverProcess -and -not $serverProcess.HasExited) {
+            $serverProcess.Kill($true)
+            $serverProcess.WaitForExit()
+        }
+        return
+    }
+    Get-ServerLog | Out-File -LiteralPath $serverLogPath -Encoding utf8
     if (-not $KeepServer) {
         $null = Invoke-Compose -Arguments @('down')
     }
 }
 
-Write-Host 'Starting the match server container.'
-if ((Invoke-Compose -Arguments @('up', '--build', '--detach', 'match-server')) -ne 0) {
-    Write-Host 'The match server container did not start.'
-    exit $ExitInfrastructure
+if ($Server -eq 'Editor') {
+    Write-Host 'Starting a local editor-build match server.'
+    $serverExecutable = Join-Path $engineRoot 'Engine\Binaries\Win64\UnrealEditor.exe'
+    $serverArguments = @("`"$projectFile`"") + $EditorServerArguments + @("-ABSLOG=`"$serverLogPath`"")
+    $serverProcess = Start-Process -FilePath $serverExecutable -ArgumentList ($serverArguments -join ' ') -PassThru
+}
+else {
+    Write-Host 'Starting the match server container.'
+    if ((Invoke-Compose -Arguments @('up', '--build', '--detach', 'match-server')) -ne 0) {
+        Write-Host 'The match server container did not start.'
+        exit $ExitInfrastructure
+    }
 }
 
 $deadline = (Get-Date).AddSeconds($ServerReadyTimeoutSeconds)
@@ -138,6 +172,8 @@ $index = 0
 foreach ($process in $clientProcesses) {
     $index++
     $log = Join-Path $reportDir "Client$index.log"
+    # The logged verdict is the client's result. Its exit code only catches a crash: on Windows the
+    # engine exits 0 after any clean exit, whatever the smoke client asked for.
     $verdict = if (Test-Path -LiteralPath $log) { Select-String -LiteralPath $log -Pattern 'VeyraSmoke: (PASS|FAIL).*' | Select-Object -Last 1 } else { $null }
     Write-Host ("Client {0}: exit code {1}; {2}" -f $index, $(if ($process.HasExited) { $process.ExitCode } else { 'killed' }), $(if ($verdict) { $verdict.Matches[0].Value } else { 'no verdict logged' }))
     if (-not $process.HasExited -or $process.ExitCode -ne 0 -or -not $verdict -or $verdict.Matches[0].Value -notmatch 'PASS') {
@@ -145,12 +181,18 @@ foreach ($process in $clientProcesses) {
     }
 }
 
-$serverLog = Join-Path $reportDir 'Server.log'
 foreach ($expected in 'Preparation begins with 2 player(s)', 'The match is live', 'Match paused', 'Match resumed') {
-    if (-not (Select-String -LiteralPath $serverLog -SimpleMatch $expected -Quiet)) {
+    if (-not (Select-String -LiteralPath $serverLogPath -SimpleMatch $expected -Quiet)) {
         Write-Host "The server log never says '$expected'."
         $failed = $true
     }
+}
+# Each client's cast, as the server resolved it (VeyraAbilities logs it at Verbose).
+$abilityQ = (Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Match.json') -Raw | ConvertFrom-Json).developerLoadout.abilityQ
+$casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
+if ($casts -lt 2) {
+    Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."
+    $failed = $true
 }
 
 if ($failed) {
