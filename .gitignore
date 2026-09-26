@@ -12,7 +12,7 @@ Intermediate/
 Saved/
 DerivedDataCache/
 # Cook logs BuildCookRun writes next to the project.
-Build/*/FileOpenOrder/
+Game/Build/*/FileOpenOrder/
 .vs/
 *.sln
 *.slnx
