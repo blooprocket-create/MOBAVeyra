@@ -5,7 +5,16 @@
 # Ports bind to 127.0.0.1 so nothing is reachable from other machines. The
 # Postgres password below is a throwaway local credential, not a secret; the
 # backend's dev login is enabled by Backend/config/local.json and must never
-# be exposed publicly. Dedicated match-server containers join this stack later.
+# be exposed publicly.
+#
+# The match server is a developer build of Veyra's Linux dedicated server with
+# direct connect (ADR-005 step 2). It runs only with its profile, after
+# packaging it with Game/Scripts/Package.ps1:
+#
+#   docker compose --profile match-server up --build match-server
+#
+# Clients connect to 127.0.0.1:7777. The backend will start one server per
+# match through its allocator later (ADR-005).
 
 name: veyra
 
@@ -35,6 +44,22 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  match-server:
+    profiles: ["match-server"]
+    build:
+      context: Game/Saved/Packages/VeyraServer-Linux/LinuxServer
+      dockerfile: ../../../../Docker/Server/Dockerfile
+    init: true
+    ports:
+      - "127.0.0.1:7777:7777/udp"
+    # The grey-box map, waiting for two players during loading.
+    command:
+      - "/Game/Veyra/Developer/Maps/L_Greybox?VeyraExpectedPlayers=2"
+      - "-port=7777"
+      - "-log"
+      - "-stdout"
+      - "-FullStdOutLogOutput"
 
 volumes:
   postgres-data:

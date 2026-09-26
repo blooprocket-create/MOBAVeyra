@@ -22,6 +22,28 @@ void AVeyraPlayerController::IssueMoveOrder(const FVector& Destination)
 	ServerIssueMoveOrder(Destination);
 }
 
+void AVeyraPlayerController::RequestDeveloperPause(bool bPause)
+{
+	ServerRequestDeveloperPause(bPause);
+}
+
+void AVeyraPlayerController::ServerRequestDeveloperPause_Implementation(bool bPause)
+{
+#if UE_BUILD_SHIPPING
+	UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a developer pause request from %s: Shipping builds pause only by vote."), *GetNameSafe(PlayerState));
+#else
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	if (GameMode && bPause)
+	{
+		GameMode->PauseMatch(*this);
+	}
+	else if (GameMode)
+	{
+		GameMode->ResumeMatch();
+	}
+#endif
+}
+
 AVeyraVanguardCharacter* AVeyraPlayerController::GetVanguard() const
 {
 	return PlayerState ? Cast<AVeyraVanguardCharacter>(PlayerState->GetPawn()) : nullptr;

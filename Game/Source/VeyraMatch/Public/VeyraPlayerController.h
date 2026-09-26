@@ -25,6 +25,12 @@ public:
 	/** Owning client: asks the server to move this player's Vanguard to Destination. */
 	void IssueMoveOrder(const FVector& Destination);
 
+	/**
+	 * Owning client, developer builds: asks the server to pause or resume the match at once. Pause
+	 * votes (Match Flow Bible §10) will replace it; Shipping servers refuse it.
+	 */
+	void RequestDeveloperPause(bool bPause);
+
 	/** This player's Vanguard, on the server and on every client, or null before it spawns. */
 	AVeyraVanguardCharacter* GetVanguard() const;
 
@@ -47,6 +53,9 @@ private:
 
 	UFUNCTION(Client, Unreliable)
 	void ClientOrderRejected(EVeyraOrderRejection Rejection);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestDeveloperPause(bool bPause);
 
 	UFUNCTION()
 	void OnVanguardSet(APlayerState* Participant, APawn* NewPawn, APawn* OldPawn);

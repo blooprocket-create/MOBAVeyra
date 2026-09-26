@@ -11,6 +11,8 @@ Binaries/
 Intermediate/
 Saved/
 DerivedDataCache/
+# Cook logs BuildCookRun writes next to the project.
+Build/*/FileOpenOrder/
 .vs/
 *.sln
 *.slnx
