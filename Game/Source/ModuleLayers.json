@@ -12,6 +12,11 @@
       "modules": ["VeyraCombat"]
     },
     {
+      "name": "Orchestration",
+      "description": "Coordinates the systems below it without peer-to-peer dependencies (PROJECT_STRUCTURE.md §2, Match / Vanguards).",
+      "modules": ["VeyraMatch"]
+    },
+    {
       "name": "Composition",
       "description": "The composition root. Sealed: nothing depends on it.",
       "sealed": true,
