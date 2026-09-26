@@ -3,11 +3,15 @@
 using UnrealBuildTool;
 
 // Lowest Veyra-owned foundation (ADR-006 §3): log categories, the native Gameplay Tag
-// vocabulary and domain-neutral contracts. It depends on no other Veyra module.
+// vocabulary, the tuning-data framework (§6) and domain-neutral contracts. It depends on no
+// other Veyra module.
 public class VeyraCore : ModuleRules
 {
 	public VeyraCore(ReadOnlyTargetRules Target) : base(Target)
 	{
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "GameplayTags" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "GameplayTags" });
+
+		// RapidJSON parses tuning files; the Json module exposes it.
+		PrivateDependencyModuleNames.Add("Json");
 	}
 }

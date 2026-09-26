@@ -1,0 +1,36 @@
+name: Tuning checks
+
+on:
+  push:
+    paths:
+      - 'Game/Tuning/**'
+      - 'Game/Source/VeyraDeveloper/TestData/**'
+      - 'scripts/check_tuning.py'
+      - 'scripts/requirements-tuning.txt'
+      - 'tests/test_tuning.py'
+      - '.github/workflows/tuning.yml'
+  pull_request:
+    paths:
+      - 'Game/Tuning/**'
+      - 'Game/Source/VeyraDeveloper/TestData/**'
+      - 'scripts/check_tuning.py'
+      - 'scripts/requirements-tuning.txt'
+      - 'tests/test_tuning.py'
+      - '.github/workflows/tuning.yml'
+
+jobs:
+  verify-tuning:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install the pinned schema validator
+        run: python3 -m pip install -r scripts/requirements-tuning.txt
+      - name: Regression-test the tuning check and the shared conformance corpus
+        run: python3 -m unittest discover -s tests -p 'test_tuning.py'
+      - name: Validate Game/Tuning against its schemas
+        run: python3 scripts/check_tuning.py

@@ -49,6 +49,7 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
   - Generate project files, build and test with `Game/Scripts/GenerateProjectFiles.ps1`, `Game/Scripts/Build.ps1` and `Game/Scripts/Test.ps1`.
   - The module layer map is `Game/Source/ModuleLayers.json`, enforced by `scripts/check_module_layers.py`.
   - The Gameplay Tag naming convention lives in [Project Structure §5](../PROJECT_STRUCTURE.md#gameplay-tag-vocabulary).
+  - Gameplay tuning is text data in `Game/Tuning/` ([rules](../Game/Tuning/README.md)). `scripts/check_tuning.py` checks it in CI, and the game checks it again when it loads.
 - **Vanguard editing:** one character's section of the Character Bible → `Docs/Design/Vanguards/<nn>-<name>.yaml` → [Vanguard validation instructions](Design/Vanguards/README.md) → specific base [hero art](../ConceptArt/Vanguards/README.md). Do **not** interpret YAML as engine balance data.
 - **Cosmetics:** [skin gallery](../ConceptArt/Vanguards/skins/README.md) and [asset index](../ConceptArt/Vanguards/skins/index.json) → the particular `ConceptArt/Vanguards/<id>/skins/<collection>/hero.webp`; use base character/art bible only for identity and silhouette.
 - **Art direction:** [Art Direction](Design/Art_Direction_v0.1.md) and [canon discrepancy register](Design/Sheet_Canon_Discrepancy_Register_v0.1.md). [Ride-state question history](Design/Ride_State_Open_Questions_v0.1.md) is *resolved history*, not an open-rules source.

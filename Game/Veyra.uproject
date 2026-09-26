@@ -15,6 +15,16 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "VeyraCombat",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "VeyraMatch",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "VeyraDeveloper",
 			"Type": "DeveloperTool",
 			"LoadingPhase": "Default"
@@ -24,6 +34,10 @@
 		{
 			"Name": "AndroidFileServer",
 			"Enabled": false
+		},
+		{
+			"Name": "GameplayAbilities",
+			"Enabled": true
 		}
 	]
 }

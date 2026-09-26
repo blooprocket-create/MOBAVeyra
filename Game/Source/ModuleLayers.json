@@ -7,6 +7,16 @@
       "modules": ["VeyraCore"]
     },
     {
+      "name": "Rules",
+      "description": "Reusable gameplay rules with one authoritative owner each (PROJECT_STRUCTURE.md §2, Combat / Economy). Systems such as Abilities go above this layer.",
+      "modules": ["VeyraCombat"]
+    },
+    {
+      "name": "Orchestration",
+      "description": "Coordinates the systems below it without peer-to-peer dependencies (PROJECT_STRUCTURE.md §2, Match / Vanguards).",
+      "modules": ["VeyraMatch"]
+    },
+    {
       "name": "Composition",
       "description": "The composition root. Sealed: nothing depends on it.",
       "sealed": true,

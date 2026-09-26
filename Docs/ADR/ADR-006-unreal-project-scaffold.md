@@ -65,10 +65,14 @@ Modules are created **only when they receive real content**, as Project Structur
 | `Veyra` | Runtime (primary) | M1 | Composition root only: module startup and default-class wiring. Nothing depends on it. |
 | `VeyraCore` | Runtime | M1 | Log categories, native Gameplay Tag vocabulary, stable ID types, the tuning-data framework (§6) and domain-neutral contracts. |
 | `VeyraDeveloper` | DeveloperTool | M1 | Automation tests, debug commands and test harnesses. It is a leaf that production modules never depend on. |
-| `VeyraCombat` | Runtime | M2 | Attributes, the damage/healing/shield pipeline, statuses and movement primitives. |
-| `VeyraAbilities` | Runtime | M2 | GAS integration: ASC subclass, base ability, costs, cooldowns, targeting, projectiles. |
-| `VeyraMatch` | Runtime | M3 | GameMode, GameState and PlayerState, teams, phases, spawn/respawn orchestration. |
+| `VeyraCombat` | Runtime | M2 | Attributes, the damage/healing/shield pipeline, statuses and movement primitives. It links the engine's GameplayAbilities module because it owns the Attribute Sets and the damage execution. |
+| `VeyraAbilities` | Runtime | M3 | GAS integration: ASC subclass, base ability, costs, cooldowns, targeting, projectiles. |
+| `VeyraMatch` | Runtime | M2 (PlayerState), M3 (the rest) | GameMode, GameState and PlayerState, teams, phases, spawn/respawn orchestration. |
 
+- **Amendment (2026-09-25, M2):**
+  - `VeyraMatch` arrives in M2 holding only `AVeyraPlayerState`, so the ASC lives on the PlayerState from the start (§4). The GameMode and GameState follow in M3.
+  - `VeyraAbilities` moves to M3, with the first ability. M2 gives it no real content: a stock ASC suffices, and the one Veyra rule the ASC needs (§4's modifier policy) installs as an application query.
+  - The layer map is Foundation (`VeyraCore`) → Rules (`VeyraCombat`) → Orchestration (`VeyraMatch`) → Composition (`Veyra`, sealed) → Developer (`VeyraDeveloper`, sealed). M3 inserts a layer for `VeyraAbilities` between Rules and Orchestration.
 - Later modules (Economy, Items, Flux, World, Vision, Vanguards, UI, a trusted-services client) follow Project Structure as their first feature lands.
 - **The layer graph is enforced by a check, not just by convention.** A repository script reads every `*.Build.cs`, compares the dependencies against a declared layer map, and fails on an upward, sideways or circular edge. It runs in GitHub Actions without Unreal, alongside the existing documentation check.
 
@@ -83,6 +87,19 @@ Modules are created **only when they receive real content**, as Project Structur
 - **Attribute Sets are split by concern.** The draft split is vitals, resource, offence, defence and mobility, plus meta attributes for the damage and healing pipeline.
   - The resource family (standard, Focus, Charge, none) is data, not a class per Vanguard.
   - The exact split, and how multiplicative percentage stacking is implemented (a GAS modifier operation or a custom aggregator), are finalised in M2 with tests. That outcome is recorded here as an amendment.
+- **Amendment (2026-09-25, M2): the split and the stacking.**
+  - **Sets, all in `VeyraCombat`:**
+    - `UVeyraVitalsSet`: Health, Max Health, and the meta attributes `IncomingPhysicalDamage`, `IncomingMagicDamage` and `IncomingTrueDamage`.
+    - `UVeyraOffenceSet`: damage amplification, and flat and percentage penetration against each resistance.
+    - `UVeyraDefenceSet`: Armor, Magic Resist, flat and percentage reduction of each, and damage reduction.
+    - The resource and mobility sets, and Physical and Magic Power, arrive with their first consumer.
+  - **Stacking (Combat §41) needs no custom aggregator.**
+    - Flat changes use `AddBase`. Every percentage is a `MultiplyCompound` factor (1 + x or 1 − x), which the 5.8 aggregator multiplies.
+    - Each attribute has one rule: no modifiers, flat only, percentage only, or both.
+    - An application query on every combatant rejects any other operation, instant or periodic modifiers on stats, and non-Veyra executions. A test checks every Veyra effect definition against the same rules.
+  - **Resistance reduction** is its own pair of attributes, applied in Combat §3's order rather than as a modifier on Armor or Magic Resist, so percentage bonuses never scale it.
+  - **Shields and Temporary Health** are not attributes. They are a Combat-owned replicated ledger kept in step with their effects, because canon orders them by category and age (Combat §7).
+  - **Health** is written only by the vitals set. The damage execution computes §25 steps 2–6 through Combat's resolver and outputs the meta attributes; the vitals set passes them through shields and Temporary Health before Health.
 - **Gold, XP, levels, skill points, inventory and Team Flux are not GAS attributes.** They stay with their own owners (ADR-002).
 
 ### 5. Networking
@@ -126,6 +143,28 @@ Modules are created **only when they receive real content**, as Project Structur
 
 **Why not the alternatives.** Binary Data Assets and DataTables imported from CSV both leave the authoritative numbers in binary files that agents cannot edit, and that need an editor-side reimport step.
 
+**Amendment (2026-09-25, M2): the framework.**
+
+- **Files.**
+  - `Game/Tuning/<Domain>.json`, with its schema in `Game/Tuning/Schemas/<Domain>.schema.json`.
+  - UTF-8 without a byte-order mark, with LF line endings (`.gitattributes`).
+  - Each document has a root `schemaVersion`, which the owning domain checks against the version its code reads.
+  - `Game/Tuning/README.md` holds the rules.
+- **Schema dialect.** A strict subset of JSON Schema draft-04: every field is required, objects forbid extra fields, and every number declares a minimum.
+- **In the game.**
+  - `VeyraTuning::ValidateAndBind` (`VeyraCore`) parses strictly and walks the schema, the document and the reflected struct together.
+  - It collects every error with a JSON pointer, and binds only a fully valid document.
+  - The schema and the struct must describe exactly the same fields.
+  - The engine's JSON-to-struct converter is not used for validation, because it accepts unknown fields and falls back to defaults on wrong types.
+- **Loading.**
+  - Each owning domain loads its file once at startup; for Combat that is `UVeyraCombatTuningSubsystem`.
+  - A failed load is fatal outside the editor and an error inside it.
+- **Hash.** BLAKE3 of each document's exact bytes. The connect-time comparison arrives with networking in M3.
+- **Staging.** Each owning module declares its files as runtime dependencies (UFS), so they ship with every build that runs that domain. M3 verifies them in the packaged Linux server.
+- **CI.** `scripts/check_tuning.py` applies the same rules with a pinned `jsonschema`. A shared corpus runs in both validators, so they cannot drift apart.
+- **Content IDs.** Lowercase ASCII snake_case (`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`), matching the Vanguard and backend identifiers. The `FVeyraContentId` type arrives with the first tuning that references content.
+- **First schema.** Combat's resistance mitigation constant (Combat §3), which the author ruled to be tuning data.
+
 ### 7. Movement
 
 - Vanguards use **CharacterMovementComponent**, driven by server-validated move orders with pathfinding. Mover remains Experimental in 5.8 and is not approved under ADR-001.
@@ -164,10 +203,10 @@ Each milestone is one branch and one pull request. It is built on the Windows ma
    - Scope: project, targets, the `Veyra`, `VeyraCore` and `VeyraDeveloper` modules, Gameplay Tag vocabulary, `.gitattributes`, build/test scripts, the module-layer check and its CI job.
    - Done when Editor Win64, Client Win64 and Server Linux all build, the automation tests pass headless, and both repository checks pass.
 2. **M2 — Tuning and GAS foundation.**
-   - Scope: the tuning framework with its first schemas, `VeyraCombat` and `VeyraAbilities`, the ASC on the PlayerState, the Attribute Sets, and the canonical damage pipeline for Combat §3 and §25.
-   - Done when the mitigation, penetration, shield and stacking rules pass automated tests.
+   - Scope: the tuning framework with its first schemas, `VeyraCombat`, the ASC on the PlayerState (in `VeyraMatch`), the Attribute Sets, and the canonical damage pipeline for Combat §3 and §25. `VeyraAbilities` moved to M3 (§3 amendment).
+   - Done when the mitigation, penetration, shield and stacking rules pass automated tests, and Editor Win64, Client Win64 and Server Linux build with zero warnings.
 3. **M3 — Match and network.**
-   - Scope: `VeyraMatch`, Iris, click-to-move Vanguards, a grey-box test map, the Linux server in Docker with dev-only direct connect (ADR-005 step 2), and the three spikes in §5 and §8.
+   - Scope: `VeyraAbilities`, the rest of `VeyraMatch`, Iris, click-to-move Vanguards, a grey-box test map, the Linux server in Docker with dev-only direct connect (ADR-005 step 2), and the three spikes in §5 and §8.
    - Done when two clients play against the containerised server and a server-validated test ability passes an automated network test.
 4. **M4 onward.**
    - Session handoff from the game side (ADR-005 step 3), which needs the backend's match-join contract first.

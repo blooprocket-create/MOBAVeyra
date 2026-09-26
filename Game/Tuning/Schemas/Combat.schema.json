@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Combat tuning",
+  "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "resistance"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [1]
+    },
+    "resistance": {
+      "description": "Armor and Magic Resistance mitigation (Combat Bible §3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mitigationConstant"],
+      "properties": {
+        "mitigationConstant": {
+          "description": "K in damage taken = raw × K / (K + resistance) for resistance ≥ 0 (Combat Bible §3). A larger K makes each point of Armor or Magic Resistance worth less.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    }
+  }
+}

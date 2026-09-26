@@ -107,6 +107,15 @@ if ((Test-Path -LiteralPath $logFile) -and (Select-String -LiteralPath $logFile 
     Write-Host "No automation test matched '$Filter'."
     exit $ExitTestsFailed
 }
+
+# Automation tests register by class name. A second test class with the same name is dropped with
+# only a warning, so its tests would silently never run.
+$registrationFailures = @(if (Test-Path -LiteralPath $logFile) { Select-String -LiteralPath $logFile -SimpleMatch 'Failed to register test' })
+if ($registrationFailures.Count -gt 0) {
+    Write-Host 'Some tests were not registered, usually because two test classes share a name:'
+    $registrationFailures | ForEach-Object { Write-Host "  $($_.Line)" }
+    exit $ExitTestsFailed
+}
 if (-not (Test-Path -LiteralPath $indexFile)) {
     Write-Host "The editor exited with code $editorExitCode and wrote no report."
     Write-LogTail -Path $logFile

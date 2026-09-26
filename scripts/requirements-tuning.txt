@@ -1,0 +1,2 @@
+# Pinned dependency of scripts/check_tuning.py and tests/test_tuning.py.
+jsonschema==4.26.0
