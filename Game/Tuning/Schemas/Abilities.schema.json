@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Abilities tuning",
+  "description": "Gameplay tuning owned by the Abilities domain: each ability's numbers, keyed by its content ID and grouped by archetype. VeyraAbilities binds it to FVeyraAbilitiesTuning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "targetedDamage"],
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [1]
+    },
+    "targetedDamage": {
+      "description": "Abilities cast at one enemy that resolve at once and deal one damage component (Combat Bible §29 targeted, instant). test_bolt is the developer test ability (ADR-006 M3); its values are provisional.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["castRange", "cooldownSeconds", "resourceCost", "damageType", "damageAmount"],
+          "properties": {
+            "castRange": {
+              "description": "Cast range in units, measured edge to edge (Combat Bible §40).",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "cooldownSeconds": {
+              "description": "Cooldown in seconds, starting at Commit (Combat Bible §26).",
+              "type": "number",
+              "minimum": 0
+            },
+            "resourceCost": {
+              "description": "Resource paid at Commit (Combat Bible §27).",
+              "type": "number",
+              "minimum": 0
+            },
+            "damageType": {
+              "description": "The damage component's type (Combat Bible §2).",
+              "type": "string",
+              "enum": ["Physical", "Magic", "TrueDamage"]
+            },
+            "damageAmount": {
+              "description": "Raw damage before any modifier (Combat Bible §25, step 2).",
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    }
+  }
+}

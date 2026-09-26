@@ -15,7 +15,7 @@ FGameplayTag DamageTypeTag(EVeyraDamageType Type)
 		return VeyraTags::Damage_Type_Physical;
 	case EVeyraDamageType::Magic:
 		return VeyraTags::Damage_Type_Magic;
-	case EVeyraDamageType::True:
+	case EVeyraDamageType::TrueDamage:
 		return VeyraTags::Damage_Type_True;
 	}
 	return FGameplayTag();
@@ -23,7 +23,7 @@ FGameplayTag DamageTypeTag(EVeyraDamageType Type)
 
 TOptional<EVeyraDamageType> DamageTypeFromTag(const FGameplayTag& Tag)
 {
-	for (const EVeyraDamageType Type : { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::True })
+	for (const EVeyraDamageType Type : { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::TrueDamage })
 	{
 		if (Tag.MatchesTagExact(DamageTypeTag(Type)))
 		{

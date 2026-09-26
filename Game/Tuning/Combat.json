@@ -2,5 +2,8 @@
   "schemaVersion": 1,
   "resistance": {
     "mitigationConstant": 100
+  },
+  "targeting": {
+    "serverRangeTolerance": 25
   }
 }

@@ -30,7 +30,20 @@ DOMAIN_SCHEMA = re.compile(r"^[A-Z][A-Za-z0-9]*\.schema\.json$")
 
 COMMON_KEYWORDS = {"$schema", "title", "description", "type"}
 OBJECT_KEYWORDS = {"properties", "required", "additionalProperties"}
+MAP_KEYWORDS = {"patternProperties", "additionalProperties"}
 NUMBER_KEYWORDS = {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "enum"}
+STRING_KEYWORDS = {"enum", "pattern"}
+
+# The content ID format (ADR-006 §6). The only pattern the dialect allows, for content-ID strings
+# and as the one key of a map's "patternProperties". FVeyraContentId::Pattern in VeyraCore matches.
+CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+
+# References from one domain's tuning to content another domain defines, which a schema cannot
+# express. Each entry is (domain, JSON pointer to a content ID, domain, JSON pointer to the map
+# whose keys are the valid IDs). The loading domain in the game checks the same references.
+REFERENCES: list[tuple[str, str, str, str]] = [
+    ("Match", "/developerLoadout/abilityQ", "Abilities", "/targetedDamage"),
+]
 
 
 class DuplicateKeyError(ValueError):
@@ -92,15 +105,46 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
 
     if is_root and kind != "object":
         return [f"{where}: the root must be an object schema"]
+    is_map = kind == "object" and "patternProperties" in schema
+    if is_root and is_map:
+        return [f"{where}: the root must be an object schema with \"properties\", not a map"]
     errors = []
-    if kind == "object":
+    if is_map:
+        allowed = COMMON_KEYWORDS | MAP_KEYWORDS
+    elif kind == "object":
         allowed = COMMON_KEYWORDS | OBJECT_KEYWORDS
     elif kind in ("number", "integer"):
         allowed = COMMON_KEYWORDS | NUMBER_KEYWORDS
+    elif kind == "string":
+        allowed = COMMON_KEYWORDS | STRING_KEYWORDS
     else:
         return [f"{where}: type {kind!r} is not supported"]
     for keyword in sorted(set(schema) - allowed):
         errors.append(f"{where}: keyword {keyword!r} is not supported here")
+
+    if is_map:
+        patterns = schema.get("patternProperties")
+        if schema.get("additionalProperties") is not False:
+            errors.append(f"{where}: a map must declare \"additionalProperties\": false")
+        if not isinstance(patterns, dict) or list(patterns) != [CONTENT_ID_PATTERN]:
+            return errors + [f"{where}: a map must declare \"patternProperties\" with one entry, "
+                             f"the content ID format {CONTENT_ID_PATTERN!r}"]
+        return errors + lint_schema(patterns[CONTENT_ID_PATTERN],
+                                    parts + ["patternProperties", CONTENT_ID_PATTERN], False)
+
+    if kind == "string":
+        has_enum, has_pattern = "enum" in schema, "pattern" in schema
+        if has_enum == has_pattern:
+            errors.append(f"{where}: a string declares either \"enum\" (an enum's values) or "
+                          f"\"pattern\" (a content ID), not both or neither")
+        elif has_enum:
+            values = schema["enum"]
+            if (not isinstance(values, list) or not values
+                    or not all(isinstance(v, str) for v in values) or len(set(values)) != len(values)):
+                errors.append(f"{where}: \"enum\" must be a non-empty array of distinct strings")
+        elif schema["pattern"] != CONTENT_ID_PATTERN:
+            errors.append(f"{where}: \"pattern\" must be the content ID format {CONTENT_ID_PATTERN!r}")
+        return errors
 
     if kind == "object":
         properties = schema.get("properties")
@@ -149,17 +193,87 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
     return errors
 
 
+def full_match(pattern: str, text: str) -> bool:
+    """Whether the whole of text matches. Python's "$" also matches before a final newline, which
+    the game's validator (and the content ID format) does not allow."""
+    return re.fullmatch(pattern.removeprefix("^").removesuffix("$"), text) is not None
+
+
+def strict_validator_class() -> Any:
+    """Draft-04 validation, with "pattern" and "patternProperties" matching whole strings."""
+    from jsonschema import Draft4Validator, validators
+    from jsonschema.exceptions import ValidationError
+
+    def pattern(validator: Any, expected: str, instance: Any, schema: dict[str, Any]) -> Any:
+        if validator.is_type(instance, "string") and not full_match(expected, instance):
+            yield ValidationError(f"{instance!r} does not match {expected!r}")
+
+    def pattern_properties(validator: Any, patterns: dict[str, Any], instance: Any,
+                           schema: dict[str, Any]) -> Any:
+        if not validator.is_type(instance, "object"):
+            return
+        for expected, subschema in patterns.items():
+            for key, value in instance.items():
+                if full_match(expected, key):
+                    yield from validator.descend(value, subschema, path=key, schema_path=expected)
+
+    def additional_properties(validator: Any, allowed: Any, instance: Any,
+                              schema: dict[str, Any]) -> Any:
+        if not validator.is_type(instance, "object") or allowed is not False:
+            return
+        declared = schema.get("properties", {})
+        patterns = schema.get("patternProperties", {})
+        extras = [key for key in instance
+                  if key not in declared and not any(full_match(p, key) for p in patterns)]
+        if extras:
+            yield ValidationError(f"Additional properties are not allowed "
+                                  f"({', '.join(repr(key) for key in extras)} unexpected)")
+
+    return validators.extend(Draft4Validator, {
+        "pattern": pattern,
+        "patternProperties": pattern_properties,
+        "additionalProperties": additional_properties,
+    })
+
+
 def validate_document(text: str, schema: dict[str, Any], label: str) -> list[str]:
     """Apply every document rule; the schema must already have passed lint_schema."""
-    from jsonschema import Draft4Validator
-
     errors = text_errors(text, label)
     document, parse_errors = parse_strict(text, label)
     if parse_errors:
         return errors + parse_errors
-    validator = Draft4Validator(schema)
+    validator = strict_validator_class()(schema)
     for error in sorted(validator.iter_errors(document), key=lambda e: list(e.absolute_path)):
         errors.append(f"{label} {pointer([str(p) for p in error.absolute_path])}: {error.message}")
+    return errors
+
+
+def resolve_pointer(document: Any, where: str) -> tuple[bool, Any]:
+    """The value at a JSON pointer, as (found, value)."""
+    value = document
+    for raw in where.split("/")[1:]:
+        key = raw.replace("~1", "/").replace("~0", "~")
+        if not isinstance(value, dict) or key not in value:
+            return False, None
+        value = value[key]
+    return True, value
+
+
+def reference_errors(documents: dict[str, Any], labels: dict[str, str]) -> list[str]:
+    """Check every entry of REFERENCES whose two domains validated."""
+    errors = []
+    for source, source_pointer, target, target_pointer in REFERENCES:
+        if source not in documents or target not in documents:
+            continue
+        found, value = resolve_pointer(documents[source], source_pointer)
+        target_found, keys = resolve_pointer(documents[target], target_pointer)
+        if not found or not isinstance(value, str):
+            errors.append(f"{labels[source]} {source_pointer}: the reference table expects a content ID here")
+        elif not target_found or not isinstance(keys, dict):
+            errors.append(f"{labels[target]} {target_pointer}: the reference table expects a map here")
+        elif value not in keys:
+            errors.append(f"{labels[source]} {source_pointer}: names {value!r}, which "
+                          f"{labels[target]} {target_pointer} does not define")
     return errors
 
 
@@ -214,6 +328,8 @@ def check(game_dir: Path) -> tuple[list[str], str]:
         errors.append(f"{shown(schemas_dir / (domain + '.schema.json'))}: has no data file")
 
     checked = 0
+    valid_documents: dict[str, Any] = {}
+    labels: dict[str, str] = {}
     for domain in sorted(domains & schema_domains):
         schema_path = schemas_dir / f"{domain}.schema.json"
         document_path = tuning / f"{domain}.json"
@@ -227,8 +343,13 @@ def check(game_dir: Path) -> tuple[list[str], str]:
         except UnicodeDecodeError as error:
             errors.append(f"{shown(document_path)}: not valid UTF-8 ({error})")
             continue
-        errors.extend(validate_document(text, schema, shown(document_path)))
+        document_errors = validate_document(text, schema, shown(document_path))
+        errors.extend(document_errors)
+        if not document_errors:
+            valid_documents[domain] = json.loads(text)
+            labels[domain] = shown(document_path)
         checked += 1
+    errors.extend(reference_errors(valid_documents, labels))
     return errors, f"{checked} tuning domain(s) valid."
 
 

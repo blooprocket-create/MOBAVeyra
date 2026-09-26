@@ -4,6 +4,7 @@
 
 #include "Containers/Array.h"
 #include "Containers/ArrayView.h"
+#include "Containers/Map.h"
 #include "Containers/StringView.h"
 #include "Containers/UnrealString.h"
 #include "Hash/Blake3.h"
@@ -51,6 +52,22 @@ namespace VeyraTuning
 	/** Reads a domain's document and schema from Game/Tuning and hashes the document. */
 	VEYRACORE_API FErrors ReadDomainFiles(FStringView Domain, FDomainFiles& OutFiles);
 
+	/**
+	 * Records the hash of a domain's document once it has loaded, for the composite hash, and logs
+	 * it. LoadDomain calls this; loading the same domain again replaces its entry.
+	 */
+	VEYRACORE_API void RecordLoadedDomain(FStringView Domain, const FBlake3Hash& DocumentHash);
+
+	/**
+	 * One hash over every loaded domain: BLAKE3 of "<Domain>=<document hash>" lines sorted by domain
+	 * name. Client and server compare it when a client joins (ADR-006 §6), so a build whose tuning
+	 * differs in any domain is refused.
+	 */
+	VEYRACORE_API FBlake3Hash GetCompositeHash();
+
+	/** Every loaded domain's document hash, by domain name. */
+	VEYRACORE_API TMap<FString, FBlake3Hash> GetLoadedDomainHashes();
+
 	/** Reads, validates and binds a domain's tuning in one call. */
 	template <typename StructType>
 	FErrors LoadDomain(FStringView Domain, int32 ExpectedSchemaVersion, StructType& OutStruct, FBlake3Hash& OutDocumentHash)
@@ -64,6 +81,7 @@ namespace VeyraTuning
 		if (Errors.IsEmpty())
 		{
 			OutDocumentHash = Files.DocumentHash;
+			RecordLoadedDomain(Domain, Files.DocumentHash);
 		}
 		return Errors;
 	}

@@ -47,6 +47,7 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
 - **Engineering:** [Architecture](../ARCHITECTURE.md) → [Project Structure](../PROJECT_STRUCTURE.md) → relevant [ADR index](ADR/README.md) → owning design section. Do not create a giant manager or make UI, Blueprints, or the client authoritative.
   - The Unreal project is `Game/Veyra.uproject` ([ADR-006](ADR/ADR-006-unreal-project-scaffold.md) §1); `Source/`, `Content/` and `Config/` paths are relative to `Game/`.
   - Generate project files, build and test with `Game/Scripts/GenerateProjectFiles.ps1`, `Game/Scripts/Build.ps1` and `Game/Scripts/Test.ps1`.
+  - Package with `Game/Scripts/Package.ps1`. `Game/Scripts/Smoke.ps1` plays a scripted two-client match against the containerised Linux server ([ADR-006](ADR/ADR-006-unreal-project-scaffold.md) §10).
   - The module layer map is `Game/Source/ModuleLayers.json`, enforced by `scripts/check_module_layers.py`.
   - The Gameplay Tag naming convention lives in [Project Structure §5](../PROJECT_STRUCTURE.md#gameplay-tag-vocabulary).
   - Gameplay tuning is text data in `Game/Tuning/` ([rules](../Game/Tuning/README.md)). `scripts/check_tuning.py` checks it in CI, and the game checks it again when it loads.

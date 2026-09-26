@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "teams": {
+    "maxTeamSize": 5
+  },
+  "phases": {
+    "loadingTimeoutSeconds": 90,
+    "preparationSeconds": 15
+  },
+  "respawn": {
+    "delaySeconds": 10
+  },
+  "orders": {
+    "maxPerSecond": 20,
+    "destinationProjectionExtent": 200,
+    "arrivalTolerance": 10
+  },
+  "developerLoadout": {
+    "maxHealth": 600,
+    "maxResource": 300,
+    "moveSpeed": 335,
+    "turnRateDegreesPerSecond": 720,
+    "capsuleRadius": 40,
+    "capsuleHalfHeight": 90,
+    "abilityQ": "test_bolt"
+  }
+}

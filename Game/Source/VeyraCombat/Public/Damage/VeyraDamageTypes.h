@@ -5,17 +5,22 @@
 #include "Containers/Array.h"
 #include "Containers/ContainerAllocationPolicies.h"
 #include "HAL/Platform.h"
+#include "UObject/ObjectMacros.h"
+
+#include "VeyraDamageTypes.generated.h"
 
 // Value types of the canonical damage pipeline (Combat Bible §25). They are plain data: no world,
 // no Gameplay Ability System types, and all arithmetic in double. The default values below are the
 // identities of their operations (multiply by 1, subtract 0), not tuning.
 
-/** The three primary damage types (Combat Bible §2). */
+/** The three primary damage types (Combat Bible §2). Reflected so tuning can name them. */
+UENUM()
 enum class EVeyraDamageType : uint8
 {
 	Physical,
 	Magic,
-	True,
+	/** True damage. Unreal forbids an enum value named "True", so the name carries its suffix. */
+	TrueDamage,
 };
 
 /** One typed component of a damage event. Components resolve independently (Combat Bible §25). */

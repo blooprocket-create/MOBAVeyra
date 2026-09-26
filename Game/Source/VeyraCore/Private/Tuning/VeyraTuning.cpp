@@ -3,6 +3,7 @@
 #include "Tuning/VeyraTuning.h"
 
 #include "Containers/StringConv.h"
+#include "Content/VeyraContentId.h"
 #include "JsonUtils/RapidJsonUtils.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Optional.h"
@@ -37,6 +38,8 @@ namespace
 	const TCHAR* const CommonKeywords[] = { TEXT("$schema"), TEXT("title"), TEXT("description"), TEXT("type") };
 	const TCHAR* const ObjectKeywords[] = { TEXT("properties"), TEXT("required"), TEXT("additionalProperties") };
 	const TCHAR* const NumberKeywords[] = { TEXT("minimum"), TEXT("maximum"), TEXT("exclusiveMinimum"), TEXT("exclusiveMaximum"), TEXT("enum") };
+	const TCHAR* const StringKeywords[] = { TEXT("enum"), TEXT("pattern") };
+	const TCHAR* const MapKeywords[] = { TEXT("patternProperties"), TEXT("additionalProperties") };
 
 	bool IsOneOf(FStringView Name, TConstArrayView<const TCHAR*> Names)
 	{
@@ -70,6 +73,24 @@ namespace
 	FString PointerText(const FString& Pointer)
 	{
 		return Pointer.IsEmpty() ? FString(TEXT("(root)")) : Pointer;
+	}
+
+	bool IsContentId(const FProperty& Property)
+	{
+		const FStructProperty* StructProperty = CastField<FStructProperty>(&Property);
+		return StructProperty && StructProperty->Struct == FVeyraContentId::StaticStruct();
+	}
+
+	/** An enum's value names as C++ spells them, without the _MAX entry UHT adds. */
+	TArray<FString> EnumValueNames(const UEnum& Enum)
+	{
+		TArray<FString> Names;
+		const int32 Count = Enum.ContainsExistingMax() ? Enum.NumEnums() - 1 : Enum.NumEnums();
+		for (int32 Index = 0; Index < Count; ++Index)
+		{
+			Names.Add(Enum.GetNameStringByIndex(Index));
+		}
+		return Names;
 	}
 
 	// A struct's UPROPERTY "MitigationConstant" is the JSON key "mitigationConstant".
@@ -328,6 +349,11 @@ namespace
 
 			if (TypeName.Equals(TEXT("object"), ESearchCase::CaseSensitive))
 			{
+				if (const FMapProperty* MapProperty = CastField<FMapProperty>(&Property))
+				{
+					WalkMap(Schema, SchemaPointer, Value, Pointer, *MapProperty, MapProperty->ContainerPtrToValuePtr<void>(ContainerMemory));
+					return;
+				}
 				const FStructProperty* StructProperty = CastField<FStructProperty>(&Property);
 				if (!StructProperty)
 				{
@@ -336,6 +362,12 @@ namespace
 				}
 				WalkObject(Schema, SchemaPointer, Value, Pointer, *StructProperty->Struct,
 					StructProperty->ContainerPtrToValuePtr<void>(ContainerMemory), TOptional<int32>());
+				return;
+			}
+
+			if (TypeName.Equals(TEXT("string"), ESearchCase::CaseSensitive))
+			{
+				WalkString(Schema, SchemaPointer, Value, Pointer, Property, ContainerMemory);
 				return;
 			}
 
@@ -389,6 +421,200 @@ namespace
 			{
 				DoubleProperty->SetPropertyValue_InContainer(ContainerMemory, Number.GetValue());
 			}
+		}
+
+		/**
+		 * A map from content IDs to values: an object schema with exactly one "patternProperties"
+		 * entry, the content ID format, and no "properties". Any valid ID may appear, and none is
+		 * required.
+		 */
+		void WalkMap(const FValue& Schema, const FString& SchemaPointer, const FValue* Document, const FString& Pointer,
+			const FMapProperty& MapProperty, void* MapMemory)
+		{
+			if (!CheckKeywords(Schema, SchemaPointer, MapKeywords))
+			{
+				return;
+			}
+			const FValue* Additional = FindMember(Schema, TEXT("additionalProperties"));
+			if (!Additional || !Additional->IsBool() || Additional->GetBool())
+			{
+				SchemaError(SchemaPointer, TEXT("a map must declare \"additionalProperties\": false"));
+			}
+			if (!IsContentId(*MapProperty.KeyProp))
+			{
+				SchemaError(SchemaPointer, FString::Printf(TEXT("is a map, so %s must be keyed by FVeyraContentId"), *MapProperty.GetName()));
+				return;
+			}
+			const FValue* Patterns = FindMember(Schema, TEXT("patternProperties"));
+			if (!Patterns || !Patterns->IsObject() || Patterns->MemberCount() != 1
+				|| !NameOf(Patterns->MemberBegin()->name).Equals(FVeyraContentId::Pattern, ESearchCase::CaseSensitive))
+			{
+				SchemaError(SchemaPointer, FString::Printf(TEXT("a map must declare \"patternProperties\" with one entry, the content ID format \"%s\""),
+					FVeyraContentId::Pattern));
+				return;
+			}
+			const FValue& ValueSchema = Patterns->MemberBegin()->value;
+			const FString ValueSchemaPointer = ChildPointer(ChildPointer(SchemaPointer, TEXT("patternProperties")), FVeyraContentId::Pattern);
+
+			// Check the value schema against the value type once, even for an empty or missing map.
+			// If the schema is broken, the entries are not walked, so its errors are reported once.
+			const int32 ErrorsBefore = Errors.Num();
+			WalkMapValueSchema(ValueSchema, ValueSchemaPointer, MapProperty);
+			if (!Document || Errors.Num() > ErrorsBefore)
+			{
+				return;
+			}
+			if (!Document->IsObject())
+			{
+				DocumentError(Pointer, FString::Printf(TEXT("expected an object, found %s"), UE::Json::GetValueTypeName(*Document)));
+				return;
+			}
+
+			FScriptMapHelper Map(&MapProperty, MapMemory);
+			TArray<FString> SeenKeys;
+			for (const FValue::Member& Member : Document->GetObject())
+			{
+				const FString Key = NameOf(Member.name);
+				const FString EntryPointer = ChildPointer(Pointer, Key);
+				if (ContainsExactly(SeenKeys, Key))
+				{
+					DocumentError(EntryPointer, TEXT("duplicate key"));
+					continue;
+				}
+				SeenKeys.Add(Key);
+				const TOptional<FVeyraContentId> Id = FVeyraContentId::FromText(Key);
+				if (!Id.IsSet())
+				{
+					DocumentError(EntryPointer, TEXT("is not a content ID: lowercase snake_case such as \"test_bolt\""));
+					continue;
+				}
+				const int32 Index = Map.AddDefaultValue_Invalid_NeedsRehash();
+				*reinterpret_cast<FVeyraContentId*>(Map.GetKeyPtr(Index)) = Id.GetValue();
+				WalkValue(ValueSchema, ValueSchemaPointer, &Member.value, EntryPointer, *MapProperty.ValueProp, Map.GetPairPtr(Index));
+			}
+			Map.Rehash();
+		}
+
+		/** Walks a map's value schema with no document, in a scratch entry of the map's type. */
+		void WalkMapValueSchema(const FValue& ValueSchema, const FString& ValueSchemaPointer, const FMapProperty& MapProperty)
+		{
+			TArray<uint8> Scratch;
+			Scratch.SetNumZeroed(MapProperty.GetElementSize());
+			MapProperty.InitializeValue(Scratch.GetData());
+			{
+				FScriptMapHelper Map(&MapProperty, Scratch.GetData());
+				const int32 Index = Map.AddDefaultValue_Invalid_NeedsRehash();
+				WalkValue(ValueSchema, ValueSchemaPointer, nullptr, FString(), *MapProperty.ValueProp, Map.GetPairPtr(Index));
+			}
+			MapProperty.DestroyValue(Scratch.GetData());
+		}
+
+		/** A string is an enum value, bound to an enum class UENUM, or a content ID. */
+		void WalkString(const FValue& Schema, const FString& SchemaPointer, const FValue* Value, const FString& Pointer,
+			const FProperty& Property, void* ContainerMemory)
+		{
+			if (!CheckKeywords(Schema, SchemaPointer, StringKeywords))
+			{
+				return;
+			}
+			if (const FEnumProperty* EnumProperty = CastField<FEnumProperty>(&Property))
+			{
+				WalkEnum(Schema, SchemaPointer, Value, Pointer, *EnumProperty, ContainerMemory);
+			}
+			else if (IsContentId(Property))
+			{
+				WalkContentId(Schema, SchemaPointer, Value, Pointer, Property, ContainerMemory);
+			}
+			else
+			{
+				SchemaError(SchemaPointer, FString::Printf(TEXT("is a string, so %s must be an enum class UENUM or an FVeyraContentId"), *Property.GetName()));
+			}
+		}
+
+		/** The schema's "enum" lists exactly the UENUM's values, spelled as in C++. */
+		void WalkEnum(const FValue& Schema, const FString& SchemaPointer, const FValue* Value, const FString& Pointer,
+			const FEnumProperty& EnumProperty, void* ContainerMemory)
+		{
+			const UEnum& Enum = *EnumProperty.GetEnum();
+			const TArray<FString> Names = EnumValueNames(Enum);
+			if (FindMember(Schema, TEXT("pattern")))
+			{
+				SchemaError(SchemaPointer, TEXT("an enum string declares \"enum\", not \"pattern\""));
+			}
+			const FValue* Listed = FindMember(Schema, TEXT("enum"));
+			const FString Expected = FString::Printf(TEXT("must declare \"enum\" listing exactly the values of %s: %s"), *Enum.GetName(),
+				*FString::Join(Names, TEXT(", ")));
+			if (!Listed || !Listed->IsArray() || Listed->Empty())
+			{
+				SchemaError(SchemaPointer, Expected);
+				return;
+			}
+			TArray<FString> ListedNames;
+			for (const FValue& Entry : Listed->GetArray())
+			{
+				if (!Entry.IsString() || ContainsExactly(ListedNames, NameOf(Entry)) || !ContainsExactly(Names, NameOf(Entry)))
+				{
+					SchemaError(SchemaPointer, Expected);
+					return;
+				}
+				ListedNames.Add(NameOf(Entry));
+			}
+			if (ListedNames.Num() != Names.Num())
+			{
+				SchemaError(SchemaPointer, Expected);
+				return;
+			}
+
+			if (!Value)
+			{
+				return;
+			}
+			if (!Value->IsString())
+			{
+				DocumentError(Pointer, FString::Printf(TEXT("expected a string, found %s"), UE::Json::GetValueTypeName(*Value)));
+				return;
+			}
+			const FString Name = NameOf(*Value);
+			const int32 Index = Names.IndexOfByPredicate([&Name](const FString& Candidate) { return Candidate.Equals(Name, ESearchCase::CaseSensitive); });
+			if (Index == INDEX_NONE)
+			{
+				DocumentError(Pointer, FString::Printf(TEXT("must be one of %s"), *FString::Join(Names, TEXT(", "))));
+				return;
+			}
+			EnumProperty.GetUnderlyingProperty()->SetIntPropertyValue(EnumProperty.ContainerPtrToValuePtr<void>(ContainerMemory), Enum.GetValueByIndex(Index));
+		}
+
+		/** The schema's "pattern" is the content ID format. */
+		void WalkContentId(const FValue& Schema, const FString& SchemaPointer, const FValue* Value, const FString& Pointer,
+			const FProperty& Property, void* ContainerMemory)
+		{
+			if (FindMember(Schema, TEXT("enum")))
+			{
+				SchemaError(SchemaPointer, TEXT("a content ID declares \"pattern\", not \"enum\""));
+			}
+			const FValue* Pattern = FindMember(Schema, TEXT("pattern"));
+			if (!Pattern || !Pattern->IsString() || !NameOf(*Pattern).Equals(FVeyraContentId::Pattern, ESearchCase::CaseSensitive))
+			{
+				SchemaError(SchemaPointer, FString::Printf(TEXT("must declare \"pattern\": \"%s\", the content ID format"), FVeyraContentId::Pattern));
+				return;
+			}
+
+			if (!Value)
+			{
+				return;
+			}
+			if (!Value->IsString())
+			{
+				DocumentError(Pointer, FString::Printf(TEXT("expected a string, found %s"), UE::Json::GetValueTypeName(*Value)));
+				return;
+			}
+			const TOptional<FVeyraContentId> Id = FVeyraContentId::FromText(NameOf(*Value));
+			if (!Id.IsSet())
+			{
+				DocumentError(Pointer, TEXT("is not a content ID: lowercase snake_case such as \"test_bolt\""));
+				return;
+			}
+			*Property.ContainerPtrToValuePtr<FVeyraContentId>(ContainerMemory) = Id.GetValue();
 		}
 
 		void WalkSchemaVersion(const FValue& Schema, const FString& SchemaPointer, const FValue* Value, const FString& Pointer, int32 Expected)
@@ -589,6 +815,45 @@ FErrors ReadDomainFiles(FStringView Domain, FDomainFiles& OutFiles)
 		OutFiles.DocumentHash = FBlake3::HashBuffer(DocumentBytes.GetData(), DocumentBytes.Num());
 	}
 	return Errors;
+}
+
+namespace
+{
+	TMap<FString, FBlake3Hash>& LoadedDomainHashes()
+	{
+		static TMap<FString, FBlake3Hash> Hashes;
+		return Hashes;
+	}
+}
+
+void RecordLoadedDomain(FStringView Domain, const FBlake3Hash& DocumentHash)
+{
+	check(IsInGameThread());
+	const FString DomainName(Domain);
+	LoadedDomainHashes().Add(DomainName, DocumentHash);
+	UE_LOG(LogVeyraCore, Log, TEXT("Tuning %s loaded, BLAKE3 %s."), *DomainName, *LexToString(DocumentHash));
+}
+
+TMap<FString, FBlake3Hash> GetLoadedDomainHashes()
+{
+	check(IsInGameThread());
+	return LoadedDomainHashes();
+}
+
+FBlake3Hash GetCompositeHash()
+{
+	check(IsInGameThread());
+	TArray<FString> Domains;
+	LoadedDomainHashes().GetKeys(Domains);
+	Domains.Sort();
+
+	FString Lines;
+	for (const FString& DomainName : Domains)
+	{
+		Lines += FString::Printf(TEXT("%s=%s\n"), *DomainName, *LexToString(LoadedDomainHashes().FindChecked(DomainName)));
+	}
+	const FTCHARToUTF8 Utf8(*Lines);
+	return FBlake3::HashBuffer(Utf8.Get(), Utf8.Length());
 }
 
 void ReportLoadFailure(FStringView Domain, const FErrors& Errors)

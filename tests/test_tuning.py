@@ -41,15 +41,21 @@ VALID_DOCUMENT = '{"schemaVersion": 1, "resistance": {"constant": 100}}\n'
 class ConformanceCorpusTests(unittest.TestCase):
     """The same cases run in the game as Veyra.Core.Tuning.ConformanceCorpus."""
 
-    def test_corpus_verdicts(self) -> None:
-        corpus = json.loads((TEST_DATA / "TuningConformance.json").read_text(encoding="utf-8"))
-        schema, errors = tuning.load_schema(TEST_DATA / "TuningConformance.schema.json", "corpus schema")
+    def check_corpus(self, name: str) -> None:
+        corpus = json.loads((TEST_DATA / f"{name}.json").read_text(encoding="utf-8"))
+        schema, errors = tuning.load_schema(TEST_DATA / f"{name}.schema.json", "corpus schema")
         self.assertEqual(errors, [])
         self.assertGreater(len(corpus["cases"]), 0)
         for case in corpus["cases"]:
-            with self.subTest(case=case["name"]):
+            with self.subTest(corpus=name, case=case["name"]):
                 problems = tuning.validate_document(case["document"], schema, "document")
                 self.assertEqual(not problems, case["valid"], problems)
+
+    def test_corpus_verdicts(self) -> None:
+        self.check_corpus("TuningConformance")
+
+    def test_content_corpus_verdicts(self) -> None:
+        self.check_corpus("TuningConformanceContent")
 
 
 class SchemaLintTests(unittest.TestCase):
@@ -79,7 +85,7 @@ class SchemaLintTests(unittest.TestCase):
             "no field is optional": lambda s: s["required"].remove("resistance"),
             "which is not a property": lambda s: s["required"].append("ghost"),
             "\"additionalProperties\": false": lambda s: s.update(additionalProperties=True),
-            "type 'string' is not supported": lambda s: constant(s).update(type="string"),
+            "type 'boolean' is not supported": lambda s: constant(s).update(type="boolean"),
             "the root must declare \"schemaVersion\"": lambda s: (
                 s["properties"].pop("schemaVersion"), s["required"].remove("schemaVersion")),
             "one-value \"enum\"": lambda s: s["properties"]["schemaVersion"].update(enum=[1, 2]),
@@ -92,6 +98,47 @@ class SchemaLintTests(unittest.TestCase):
 
     def test_root_must_be_an_object(self) -> None:
         self.assert_lint({"type": "number", "minimum": 0}, "the root must be an object schema")
+
+    def with_field(self, field: dict) -> dict:
+        schema = copy.deepcopy(VALID_SCHEMA)
+        schema["properties"]["field"] = field
+        schema["required"].append("field")
+        return schema
+
+    def test_string_and_map_forms_pass(self) -> None:
+        pattern = tuning.CONTENT_ID_PATTERN
+        for field in (
+            {"type": "string", "enum": ["Physical", "Magic"]},
+            {"type": "string", "pattern": pattern},
+            {"type": "object", "additionalProperties": False,
+             "patternProperties": {pattern: {"type": "number", "minimum": 0}}},
+        ):
+            with self.subTest(field=field):
+                self.assertEqual(self.lint(self.with_field(field)), [])
+
+    def test_string_and_map_rejections(self) -> None:
+        pattern = tuning.CONTENT_ID_PATTERN
+        number = {"type": "number", "minimum": 0}
+        cases = {
+            "either \"enum\"": {"type": "string"},
+            "not both or neither": {"type": "string", "enum": ["A"], "pattern": pattern},
+            "non-empty array of distinct strings": {"type": "string", "enum": ["A", "A"]},
+            "\"pattern\" must be the content ID format": {"type": "string", "pattern": "^[a-z]+$"},
+            "keyword 'minimum' is not supported": {"type": "string", "enum": ["A"], "minimum": 0},
+            "one entry, the content ID format": {"type": "object", "additionalProperties": False,
+                                                 "patternProperties": {"^.*$": number}},
+            "a map must declare \"additionalProperties\": false": {
+                "type": "object", "patternProperties": {pattern: number}},
+            "keyword 'properties' is not supported": {
+                "type": "object", "additionalProperties": False, "properties": {},
+                "patternProperties": {pattern: number}},
+            "every number must declare \"minimum\"": {
+                "type": "object", "additionalProperties": False,
+                "patternProperties": {pattern: {"type": "number"}}},
+        }
+        for fragment, field in cases.items():
+            with self.subTest(fragment=fragment):
+                self.assert_lint(self.with_field(field), fragment)
 
 
 class CheckTests(unittest.TestCase):
@@ -153,6 +200,42 @@ class CheckTests(unittest.TestCase):
             self.write("Tuning/Combat.json", "{}\n")
             self.assertEqual(tuning.main(["--game-dir", str(self.game)]), 1)
         self.assertIn("ERROR:", output.getvalue())
+
+
+class ReferenceTests(unittest.TestCase):
+    """Cross-domain references from the table in check_tuning.py."""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.game = Path(self.tmp.name) / "Game"
+        (self.game / "Tuning" / "Schemas").mkdir(parents=True)
+        pattern = tuning.CONTENT_ID_PATTERN
+        catalogue = {"type": "object", "additionalProperties": False, "required": ["schemaVersion", "things"],
+                     "properties": {"schemaVersion": {"type": "integer", "minimum": 1, "enum": [1]},
+                                    "things": {"type": "object", "additionalProperties": False,
+                                               "patternProperties": {pattern: {"type": "number", "minimum": 0}}}}}
+        user = {"type": "object", "additionalProperties": False, "required": ["schemaVersion", "chosen"],
+                "properties": {"schemaVersion": {"type": "integer", "minimum": 1, "enum": [1]},
+                               "chosen": {"type": "string", "pattern": pattern}}}
+        self.write("Tuning/Schemas/Catalogue.schema.json", json.dumps(catalogue))
+        self.write("Tuning/Schemas/User.schema.json", json.dumps(user))
+        self.write("Tuning/Catalogue.json", '{"schemaVersion": 1, "things": {"test_bolt": 1}}\n')
+        original = tuning.REFERENCES
+        tuning.REFERENCES = [("User", "/chosen", "Catalogue", "/things")]
+        self.addCleanup(setattr, tuning, "REFERENCES", original)
+
+    def write(self, relative: str, text: str) -> None:
+        (self.game / relative).write_bytes(text.encode("utf-8"))
+
+    def test_defined_reference_passes(self) -> None:
+        self.write("Tuning/User.json", '{"schemaVersion": 1, "chosen": "test_bolt"}\n')
+        self.assertEqual(tuning.check(self.game)[0], [])
+
+    def test_undefined_reference_fails(self) -> None:
+        self.write("Tuning/User.json", '{"schemaVersion": 1, "chosen": "other_bolt"}\n')
+        errors = tuning.check(self.game)[0]
+        self.assertTrue(any("names 'other_bolt'" in e for e in errors), errors)
 
 
 class RealRepositoryTests(unittest.TestCase):

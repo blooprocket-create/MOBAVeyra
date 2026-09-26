@@ -70,4 +70,16 @@ function Resolve-VeyraEngineRoot {
     return $root
 }
 
-Export-ModuleMember -Function Get-VeyraProjectFile, Resolve-VeyraEngineRoot
+function Initialize-VeyraPlatformToolchain {
+    <#
+    .SYNOPSIS
+        Makes the Linux cross-compile toolchain visible to this process. It is registered for the
+        machine, and a process started before it was installed has not inherited it.
+    #>
+    param([Parameter(Mandatory)][string]$Platform)
+    if ($Platform -eq 'Linux' -and -not $env:LINUX_MULTIARCH_ROOT) {
+        $env:LINUX_MULTIARCH_ROOT = [Environment]::GetEnvironmentVariable('LINUX_MULTIARCH_ROOT', 'Machine')
+    }
+}
+
+Export-ModuleMember -Function Get-VeyraProjectFile, Resolve-VeyraEngineRoot, Initialize-VeyraPlatformToolchain

@@ -62,6 +62,8 @@ Must never special-case named Vanguards or items.
 
 It links the engine's Gameplay Ability System because it owns the Attribute Sets, the damage execution and the modifier policy for Combat §41 stacking (ADR-006 §4). The damage math itself is plain C++ that the execution calls.
 
+It also owns each combatant's life state and the death event that other domains react to, such as Match's respawn (ADR-006 §4, M3 amendment).
+
 ### VeyraAbilities
 
 Owns reusable ability execution behavior and Veyra's C++ integration layer around Unreal Gameplay Ability System (GAS).
@@ -75,7 +77,15 @@ Owns reusable ability execution behavior and Veyra's C++ integration layer aroun
 
 A Vanguard ability composes this system; it does not recreate it.
 
-It arrives with the first ability in M3 (ADR-006 §3 amendment).
+It arrived in M3 with:
+
+- the base ability class, whose one validator every cast passes;
+- the first archetype, targeted damage;
+- the cooldown ledger, which lives on the PlayerState;
+- the loadout, which maps ability slots to content IDs;
+- `VeyraAbilities::TryCast`, the single entry point for casting.
+
+Abilities are server-only for now, with no client prediction (ADR-006 §4 and §7, M3 amendments).
 
 ### VeyraEconomy
 
@@ -156,7 +166,12 @@ Combat still owns targetability and hit validation; Vision supplies what each te
 
 Use this layer to orchestrate systems when direct peer-to-peer dependencies would create cycles.
 
-Its first class is `AVeyraPlayerState`, which owns each Vanguard's Ability System Component and Attribute Sets so they survive death, respawn and reconnect (ADR-006 §4).
+`AVeyraPlayerState` owns each Vanguard's Ability System Component and Attribute Sets, so they survive death, respawn and reconnect (ADR-006 §4). Since M3 the module also holds:
+
+- the GameMode, which admits players, assigns sides, runs the phases and respawns the dead;
+- the GameState, which replicates the phase, the match clock and the pause;
+- the PlayerController, which sends the player's intents;
+- the Vanguard character, and the server-only controller that moves it (ADR-006 §7).
 
 ### VeyraVanguards
 
@@ -260,6 +275,8 @@ Content/Veyra/
 ├── Audio/
 └── Developer/
 ```
+
+`Developer/` holds development-only content, such as the grey-box test map `Developer/Maps/L_Greybox`. That map is generated from `Source/VeyraDeveloper/Greybox/Greybox.json` by `Game/Scripts/BuildGreyboxMap.ps1`, never edited by hand.
 
 Do not create cross-project junk drawers such as `Misc`, `Stuff`, or `Temp` as permanent homes. Temporary work should have an explicit cleanup path.
 
