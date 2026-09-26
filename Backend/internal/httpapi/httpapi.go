@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
 )
@@ -34,15 +35,19 @@ type Deps struct {
 	Identity *identity.Service
 	Social   *social.Service
 	Party    *party.Service
-	Modes    []ModeInfo
-	Ready    Pinger
+	// Match is optional; without it no match routes are registered.
+	Match *match.Service
+	Modes []ModeInfo
+	Ready Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
 	BodyLimitBytes int64
 	// DevLogin registers the passwordless dev-login route (local only).
 	DevLogin bool
-	Log      *slog.Logger
+	// DevMatches registers the dev match-creation routes (local only).
+	DevMatches bool
+	Log        *slog.Logger
 }
 
 // Server holds the handler dependencies.
@@ -65,6 +70,7 @@ func New(d Deps) http.Handler {
 	s.routeAccounts(mux)
 	s.routeSocial(mux)
 	s.routeParty(mux)
+	s.routeMatch(mux)
 	return mux
 }
 
@@ -226,6 +232,18 @@ var errorStatus = []struct {
 	{party.ErrInviteNotFound, http.StatusNotFound, "invite_not_found"},
 	{party.ErrPartyNotJoinable, http.StatusForbidden, "party_not_joinable"},
 	{party.ErrPartyNotFound, http.StatusNotFound, "party_not_found"},
+
+	{match.ErrUnknownMode, http.StatusBadRequest, "unknown_mode"},
+	{match.ErrInvalidRoster, http.StatusBadRequest, "invalid_roster"},
+	{match.ErrAccountNotFound, http.StatusNotFound, "account_not_found"},
+	{match.ErrAlreadyInMatch, http.StatusConflict, "already_in_match"},
+	{match.ErrNoServerCapacity, http.StatusServiceUnavailable, "no_server_capacity"},
+	{match.ErrAllocationFailed, http.StatusBadGateway, "allocation_failed"},
+	{match.ErrMatchNotFound, http.StatusNotFound, "match_not_found"},
+	{match.ErrUnauthorized, http.StatusUnauthorized, "invalid_credentials"},
+	{match.ErrInvalidState, http.StatusConflict, "invalid_state"},
+	{match.ErrInvalidResult, http.StatusBadRequest, "invalid_result"},
+	{match.ErrResultConflict, http.StatusConflict, "result_conflict"},
 }
 
 func (s *Server) fail(w http.ResponseWriter, err error) {

@@ -24,7 +24,7 @@ go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -bui
 
 ## What exists so far
 
-Three modules: **identity** (the launcher → game login handoff), **social** (friends, friend requests, blocks) and **party** (parties, invites, Ready, mode and the Find Match queue lock). Matchmaking itself, match-found acceptance and live presence come next.
+Four modules: **identity** (the launcher → game login handoff), **social** (friends, friend requests, blocks), **party** (parties, invites, Ready, mode and the Find Match queue lock) and **match** (match servers, join tickets and results, [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md)). Matchmaking itself, match-found acceptance and live presence come next; until then a development-only route creates matches directly.
 
 ### Identity
 
@@ -88,6 +88,29 @@ Rules the code enforces, from the Parties & Social Bible:
 4. **Leader cancels the queue:** everyone's Ready resets, the same as other cancellations.
 5. **Invite lifetime** `2m` and **default privacy** `private` are provisional values in `config/local.json`.
 
+### Matches
+
+How a client joins its assigned match is [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md).
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `POST /v1/dev/matches` | — | `{"mode", "participants": [{"accountId", "side": "A"\|"B"}]}` | `201` and the match; the backend starts its server. **Local only**; the route does not exist unless `matches.devCreate.enabled` |
+| `GET /v1/dev/matches/{matchId}` | — | — | the match, its server port and its result. **Local only**; never returns a secret |
+| `GET /v1/me/match` | `Bearer <game token>` | — | `{"match": null}`, or the player's match: `id`, `state`, `side`, and once it is ready, `server` (`host`, `port`) and the join `ticket` |
+| `POST /v1/server/matches/{matchId}/ready` | `Bearer <server credential>` | `{}` | the server accepts players |
+| `POST /v1/server/matches/{matchId}/result` | `Bearer <server credential>` | `{"endReason", "winner", "durationSeconds", "participants": [{"accountId", "joined", "connectedAtEnd"}]}` | the result is recorded |
+
+Error codes include `already_in_match`, `invalid_roster`, `no_server_capacity`, `allocation_failed`, `invalid_state`, `invalid_result` and `result_conflict`.
+
+Rules the code enforces:
+
+- A match moves from `allocating` to `ready` to `ended`, or to `failed` from either earlier state. An account has at most one active match (enforced by the database).
+- Each side holds at most the mode's `humanPlayersPerTeam`, every account at most once.
+- A join ticket (`vjt_`) is derived from a random key the match keeps, so asking again gives the same ticket; the key is erased when the match ends or fails, which kills every ticket for it. The match server receives only SHA-256 hashes of the tickets.
+- The match server gets its roster and its credential (`vms_`, stored only as a hash) on its standard input, never in an environment variable, a file or its command line.
+- A server credential works only for its own match. A result can be reported again unchanged; a different one is refused. It must list exactly the roster.
+- A match whose server does not report ready within `matches.readyTimeout`, runs past `matches.maxDuration`, or whose server stops without a result is failed. A finished match's server is removed after `matches.removeServerAfter`, and its port is reused only after that.
+
 ## For the Unreal client
 
 The game receives its launch code on **standard input**, one line, never on the command line. On startup it should read that line, then call `POST /v1/game-sessions` with the code and its own build version, and keep the returned game session token in memory. In development, `veyra-devlaunch` starts the game the same way:
@@ -98,7 +121,7 @@ go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -bui
 
 ## Configuration
 
-Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, and the mode list (Ranked is present but disabled, per the Modes & Access Bible). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
+Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
 
 ## Layout
 
@@ -112,20 +135,31 @@ Backend/
     ├── identity/          accounts, sessions, launch codes (domain rules)
     ├── social/            friends, friend requests, blocks
     ├── party/             parties, invites, Ready, queue lock
+    ├── match/             matches, join tickets, results, the allocator interface
+    ├── secret/            bearer secrets and their hashes
     ├── postgres/          Postgres storage and embedded migrations
     └── httpapi/           HTTP/JSON transport
 ```
 
-Domain packages (`identity`, `social`, `party`, and later matchmaking and match allocation) own their rules and depend only on storage interfaces. `party` reads the social graph through a small interface and never writes it; a block is applied by `social` first and then handed to `party`. `postgres` implements storage; `httpapi` only translates HTTP to domain calls.
+Domain packages (`identity`, `social`, `party`, `match`, and later matchmaking) own their rules and depend only on storage interfaces. `party` reads the social graph through a small interface and never writes it; a block is applied by `social` first and then handed to `party`. `postgres` implements storage; `httpapi` only translates HTTP to domain calls.
 
 ## Tests
+
+On Windows, `Check.ps1` runs gofmt, go vet and the tests in the official Go image, so no Go install is needed. `-Postgres` also runs the Postgres integration tests against a separate `veyra_test` database in the compose Postgres:
+
+```powershell
+./Backend/Check.ps1
+./Backend/Check.ps1 -Postgres
+```
+
+With Go installed:
 
 ```sh
 cd Backend
 go test ./...
 ```
 
-Postgres integration tests run when `VEYRA_TEST_DATABASE_URL` points at a disposable database. They wipe the identity tables, so give them their own database, not the `veyra` one the backend uses:
+Postgres integration tests run when `VEYRA_TEST_DATABASE_URL` points at a disposable database. They wipe the identity and match tables, so give them their own database, not the `veyra` one the backend uses:
 
 ```sh
 docker compose exec postgres createdb -U veyra veyra_test
