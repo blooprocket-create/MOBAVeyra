@@ -29,7 +29,7 @@ Source/
 └── VeyraDeveloper/
 ```
 
-These names are placeholders until the Unreal project is scaffolded. The domain responsibilities below matter more than the exact spelling.
+The modules that exist so far, and their enforced layers, are in `Game/Source/ModuleLayers.json` (ADR-006 §3); the others are the intended split. The domain responsibilities below matter more than the exact spelling.
 
 ### VeyraCore
 
@@ -60,6 +60,8 @@ Owns reusable combat truth.
 
 Must never special-case named Vanguards or items.
 
+It links the engine's Gameplay Ability System because it owns the Attribute Sets, the damage execution and the modifier policy for Combat §41 stacking (ADR-006 §4). The damage math itself is plain C++ that the execution calls.
+
 ### VeyraAbilities
 
 Owns reusable ability execution behavior and Veyra's C++ integration layer around Unreal Gameplay Ability System (GAS).
@@ -72,6 +74,8 @@ Owns reusable ability execution behavior and Veyra's C++ integration layer aroun
 - reusable ability tasks/effects.
 
 A Vanguard ability composes this system; it does not recreate it.
+
+It arrives with the first ability in M3 (ADR-006 §3 amendment).
 
 ### VeyraEconomy
 
@@ -151,6 +155,8 @@ Combat still owns targetability and hit validation; Vision supplies what each te
 - high-level coordination between otherwise independent systems.
 
 Use this layer to orchestrate systems when direct peer-to-peer dependencies would create cycles.
+
+Its first class is `AVeyraPlayerState`, which owns each Vanguard's Ability System Component and Attribute Sets so they survive death, respawn and reconnect (ADR-006 §4).
 
 ### VeyraVanguards
 
@@ -285,7 +291,7 @@ Gameplay Tags are Veyra's central typed vocabulary (Architecture §1.12). Native
 - **Declaration.** Tags are declared only in `VeyraCore/Public/Tags/`, one header per tag family, as `VEYRACORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN` inside `namespace VeyraTags`. The C++ symbol is the tag path with `.` replaced by `_`: `VeyraTags::Damage_Type_Physical`.
 - **Definition.** Each tag is defined in the matching `VeyraCore/Private/Tags/` source file with `UE_DEFINE_GAMEPLAY_TAG_COMMENT`. The comment cites the canon section that defines the tag.
 - **Nowhere else.** DeveloperTool modules never define tags, and gameplay code never builds tags from free-form strings.
-- **Canon first.** A tag is added only once its owning bible closes the list it belongs to. Combat §2's descriptive damage-event tags and the Combat §8 crowd-control types wait for M2.
+- **Canon first.** A tag is added only once its owning bible closes the list it belongs to. Combat §2's descriptive damage-event tags are an open list ("such as") and wait until canon closes it; the Combat §8 crowd-control types arrive with the first status that uses them.
 
 The `Veyra.Core.TagConvention` automation tests check every tag `VeyraCore` registers against the form rule and require each one to carry a comment.
 

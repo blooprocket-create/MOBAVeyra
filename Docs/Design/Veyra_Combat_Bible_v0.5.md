@@ -5,7 +5,7 @@
 **Changes since 0.4:** adds §56 Ride states, a generic movement-mode primitive covering entry, set Movement Speed, rate-limited facing, the replacement ability set, crowd-control interaction, exits, and the separated vehicle as a projectile. Former §56 and §57 renumber to §57 and §58. No existing rule changed, and §56 declares no exception to §9, §26 or any other section.  
 **Scope:** Vanguard combat rules, damage resolution, targeting, control, movement interactions, statuses, timing, and structure combat.  
 **Tuning rule:** Numerical values identified as prototype placeholders must remain data-driven.  
-**Rulings since 0.5 (2026-09-25):** defines Temporary Health (§7) and Displacement Resistance and Displacement Immunity (§9), names the resource families in use (§58), and adds Temporary Health to §25 step 9. No other rule changed.
+**Rulings since 0.5 (2026-09-25):** defines Temporary Health (§7) and Displacement Resistance and Displacement Immunity (§9), names the resource families in use (§58), and adds Temporary Health to §25 step 9. Settles how percentage reduction and penetration combine and that the mitigation constant is tuning data (§3), and that Invulnerability consumes no shield or Temporary Health (§10). No other rule changed.
 
 ## 1. Core combat principles
 
@@ -88,6 +88,13 @@ The universal order is:
 Reduction changes the target's actual defensive stat and may push Armor/MR below 0.
 
 Penetration is attacker-specific and cannot by itself push effective Armor/MR below 0. Penetration only bypasses existing positive resistance.
+
+**Percentage sources (ruled 2026-09-25):**
+
+- Percentage Reduction and Percentage Penetration apply to the target's **total** resistance at their step, not only to bonus resistance.
+- Several sources of either combine **multiplicatively**: each keeps (1 − its percentage) of what remains, so two 40% sources remove 64%, not 80%.
+- Percentage Reduction does nothing while resistance is 0 or below; only Flat Reduction pushes it lower.
+- The 100 in the formulas above is the **mitigation constant**. It is tuning data (`Game/Tuning/Combat.json`), and the worked examples use its current value.
 
 ## 4. Basic attacks
 
@@ -425,6 +432,8 @@ Existing DoTs may continue ticking unless the specific Untargetable state also p
 An Invulnerable Vanguard may remain targetable and may still receive non-damage interactions unless otherwise stated.
 
 Physical, Magic, and True Damage reduce Health by 0 during Invulnerability.
+
+**Invulnerability ends the damage event (ruled 2026-09-25).** The check is §25 step 7, before shields, so damage against an Invulnerable unit consumes no shield and no Temporary Health either.
 
 ### Stasis
 

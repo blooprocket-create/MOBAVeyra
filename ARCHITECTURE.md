@@ -33,7 +33,7 @@ Champion-specific code should express what makes a Vanguard unique by composing 
 
 **Project-wide rule: no hardcoded gameplay tuning values and no unexplained numeric literals in gameplay logic.** Designers must be able to tune the game's values without changing or recompiling C++ or modifying Blueprint logic.
 
-- Data Assets, Data Tables, validated configuration assets, and other data-driven definitions own all gameplay and balance parameters: base stats, ratios, cooldowns, Gold/XP rewards, inventory limits where configurable, costs, item recipes, Flux thresholds, jungle values, objective and wave timings, respawn/buyback rules, AI/AFK timings, distances, radii, speeds, caps, and similar settings.
+- Validated, designer-editable text data owns all gameplay and balance parameters: base stats, ratios, cooldowns, Gold/XP rewards, inventory limits where configurable, costs, item recipes, Flux thresholds, jungle values, objective and wave timings, respawn/buyback rules, AI/AFK timings, distances, radii, speeds, caps, and similar settings. That data is the JSON under `Game/Tuning/`, one file per owning domain, validated against a schema (ADR-006 §6). Data Assets hold asset references keyed by stable IDs, never gameplay numbers.
 - Match-flow schedules must be explicit data, including **first wave spawn time, phase boundaries, per-phase spawn intervals, lane offsets if any, and any later cadence changes**. Never bury a proposed schedule inside a timer callback or branch with literal elapsed-time checks.
 - Veyra has its **own map geometry and travel times**. Values borrowed from another MOBA are provisional data entries to validate against Veyra playtests, not engine-level assumptions.
 - Systems load and validate tunable data once through the owning domain, expose it through a clear typed contract, and derive dependent behavior from that data. Avoid copying the same value into unrelated classes, assets, clients, test fixtures, or widgets.
@@ -153,7 +153,7 @@ Presentation may observe lower layers. Lower layers do not know presentation exi
 
 `VeyraDeveloper`-style test/debug tooling may depend on gameplay modules; production gameplay modules must never depend on developer tooling.
 
-Veyra targets **Unreal Engine 5.8.3** (source build) under [`ADR-001`](Docs/ADR/ADR-001-unreal-version-policy.md) and adopts Unreal's **Gameplay Ability System (GAS)** under [`ADR-002`](Docs/ADR/ADR-002-gameplay-ability-system.md). Exact Veyra module names remain provisional until the project is scaffolded. `PROJECT_STRUCTURE.md` records the current intended split.
+Veyra targets **Unreal Engine 5.8.3** (source build) under [`ADR-001`](Docs/ADR/ADR-001-unreal-version-policy.md) and adopts Unreal's **Gameplay Ability System (GAS)** under [`ADR-002`](Docs/ADR/ADR-002-gameplay-ability-system.md). The modules that exist and their enforced layers are listed in `Game/Source/ModuleLayers.json` (ADR-006 §3). `PROJECT_STRUCTURE.md` records the intended split for the modules still to come.
 
 ## 3. State ownership
 
@@ -287,7 +287,7 @@ The engine, ability-framework, unified-client and launcher/hosting choices are n
 Decided by ADR-006:
 
 - **module names and count:** the initial set is `Veyra`, `VeyraCore` and `VeyraDeveloper`, and the layer graph is enforced by a check against a declared layer map (ADR-006 §3). Later modules arrive as their first feature lands;
-- **Ability System Component placement:** on the PlayerState for Vanguards (ADR-006 §4). The exact Attribute Set split is finalised in M2 with tests;
+- **Ability System Component placement and Attribute Sets:** on the PlayerState for Vanguards, with the Attribute Set split and the §41 multiplicative-stacking policy recorded in ADR-006 §4;
 - **LFS file patterns and locking convention** (ADR-006 §9).
 
 The following implementation details remain open:
