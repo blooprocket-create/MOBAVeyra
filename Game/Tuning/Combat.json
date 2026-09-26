@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "resistance": {
+    "mitigationConstant": 100
+  }
+}

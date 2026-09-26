@@ -14,6 +14,7 @@ public class VeyraDeveloper : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"GameplayTags",
+			"Json",
 			"CQTest",
 			"VeyraCore",
 		});
