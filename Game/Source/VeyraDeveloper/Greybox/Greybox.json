@@ -10,5 +10,9 @@
   },
   "navigation": {
     "heightZ": 1000
+  },
+  "sun": {
+    "pitchDegrees": -50,
+    "yawDegrees": 30
   }
 }

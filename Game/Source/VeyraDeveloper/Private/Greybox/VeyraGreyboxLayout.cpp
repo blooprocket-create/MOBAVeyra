@@ -59,7 +59,12 @@ VeyraTuning::FErrors LoadLayout(FVeyraGreyboxLayout& OutLayout)
 	return Errors;
 }
 
-void SpawnFloor(UWorld& World, const FVeyraGreyboxLayout& Layout)
+FVector NavigationBoundsSize(const FVeyraGreyboxLayout& Layout)
+{
+	return FVector(Layout.Floor.LengthX, Layout.Floor.WidthY, Layout.Navigation.HeightZ);
+}
+
+void SpawnFloor(UWorld& World, const FVeyraGreyboxLayout& Layout, EComponentMobility::Type Mobility)
 {
 	UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, CubeMeshPath);
 	checkf(Cube, TEXT("Engine mesh %s is missing."), CubeMeshPath);
@@ -67,13 +72,12 @@ void SpawnFloor(UWorld& World, const FVeyraGreyboxLayout& Layout)
 	// Scale the engine's cube, centred on its origin, to the floor's size, top face at height 0.
 	const FVector Size(Layout.Floor.LengthX, Layout.Floor.WidthY, Layout.Floor.ThicknessZ);
 	const FTransform Transform(FRotator::ZeroRotator, FVector(0.0, 0.0, -Size.Z / 2.0), Size / Cube->GetBoundingBox().GetSize());
-	// Spawned at runtime, so movable: a static component cannot take a mesh once registered.
 	AStaticMeshActor* Floor = World.SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Transform);
-	Floor->SetMobility(EComponentMobility::Movable);
+	Floor->SetMobility(Mobility);
 	Floor->GetStaticMeshComponent()->SetStaticMesh(Cube);
 }
 
-void SpawnServerParts(UWorld& World, const FVeyraGreyboxLayout& Layout)
+void SpawnTeamStarts(UWorld& World, const FVeyraGreyboxLayout& Layout)
 {
 	for (const auto& [Team, Direction] : { TPair<EVeyraTeam, double>(EVeyraTeam::A, -1.0), TPair<EVeyraTeam, double>(EVeyraTeam::B, 1.0) })
 	{
@@ -83,14 +87,17 @@ void SpawnServerParts(UWorld& World, const FVeyraGreyboxLayout& Layout)
 		const FVector Location(Direction * Layout.TeamStarts.DistanceFromCenterX, 0.0, Start->GetCapsuleComponent()->GetScaledCapsuleHalfHeight());
 		Start->FinishSpawning(FTransform(FVector(-Direction, 0.0, 0.0).Rotation(), Location));
 	}
+}
 
-	// A volume spawned at runtime has no brush geometry; its bounds come from this collision box.
+void SpawnRuntimeNavigationBounds(UWorld& World, const FVeyraGreyboxLayout& Layout)
+{
 	// The volume registers with navigation as it spawns, before the box exists, so navigation is
 	// told again once the bounds are real.
 	ANavMeshBoundsVolume* Bounds = World.SpawnActor<ANavMeshBoundsVolume>();
 	UBrushComponent* Brush = Bounds->GetBrushComponent();
 	UBodySetup* Box = NewObject<UBodySetup>(Brush, NAME_None, RF_Transient);
-	Box->AggGeom.BoxElems.Emplace(Layout.Floor.LengthX, Layout.Floor.WidthY, Layout.Navigation.HeightZ);
+	const FVector Size = NavigationBoundsSize(Layout);
+	Box->AggGeom.BoxElems.Emplace(Size.X, Size.Y, Size.Z);
 	Brush->BrushBodySetup = Box;
 	Brush->UpdateBounds();
 	if (UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(&World))

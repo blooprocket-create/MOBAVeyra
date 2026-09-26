@@ -129,11 +129,12 @@ namespace VeyraNetTests
 	{
 		return Network
 			.ThenServer(TEXT("Build the map on the server"), [&Layout](StateType& State) {
-				VeyraGreybox::SpawnFloor(*State.World, Layout);
-				VeyraGreybox::SpawnServerParts(*State.World, Layout);
+				VeyraGreybox::SpawnFloor(*State.World, Layout, EComponentMobility::Movable);
+				VeyraGreybox::SpawnTeamStarts(*State.World, Layout);
+				VeyraGreybox::SpawnRuntimeNavigationBounds(*State.World, Layout);
 			})
 			.ThenClients(TEXT("Build the floor on each client"), [&Layout](StateType& State) {
-				VeyraGreybox::SpawnFloor(*State.World, Layout);
+				VeyraGreybox::SpawnFloor(*State.World, Layout, EComponentMobility::Movable);
 			})
 			.UntilServer(TEXT("Reach the phase"), [Phase](StateType& State) {
 				const AVeyraGameState* GameState = GameStateOf(State.World);
