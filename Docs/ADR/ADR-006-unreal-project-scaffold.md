@@ -330,6 +330,7 @@ Modules are created **only when they receive real content**, as Project Structur
   - **The smoke test.** `Game/Scripts/Smoke.ps1` starts the server and two headless clients with `-VeyraSmoke`. Each client moves its Vanguard and casts its Q ability at the other. The first client also pauses and resumes the match.
     - A client's result is the verdict line it logs. On Windows a clean engine exit always returns 0, so a client's exit code only catches crashes.
     - `-Server Editor` swaps the container for a local editor-build server when Docker is unavailable.
+    - It has passed against the container with packaged Win64 clients and with editor-build clients. Clients and server must come from the same source: the target-data spike showed that their polymorphic type tables otherwise differ.
   - **Docker Desktop must forward UDP both ways.** Version 4.48.0 on this machine delivered packets into the container but dropped its replies, so clients timed out. Version 4.92 works.
 
 ## Milestones

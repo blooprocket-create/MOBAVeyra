@@ -78,7 +78,14 @@ if ($Clients -eq 'Editor') {
     $clientPrefix = @("`"$projectFile`"", $ServerAddress, '-game')
 }
 else {
-    $clientExecutable = Join-Path $gameDir 'Saved\Packages\VeyraClient-Win64\Windows\VeyraClient.exe'
+    # The game binary itself, not the launcher UAT places at the package root, so the script waits
+    # on the process that plays.
+    $packageDir = Join-Path $gameDir 'Saved\Packages\VeyraClient-Win64'
+    $clientExecutable = Get-ChildItem -LiteralPath $packageDir -Recurse -Filter 'VeyraClient.exe' -ErrorAction SilentlyContinue |
+        Where-Object { $_.DirectoryName -like '*\Binaries\Win64' } | Select-Object -First 1 -ExpandProperty FullName
+    if (-not $clientExecutable) {
+        $clientExecutable = Join-Path $packageDir '<not packaged>\VeyraClient.exe'
+    }
     $clientPrefix = @($ServerAddress)
 }
 if (-not (Test-Path -LiteralPath $clientExecutable -PathType Leaf)) {
