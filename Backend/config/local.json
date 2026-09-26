@@ -30,5 +30,30 @@
     {"id": "coop_beginner", "enabled": true, "humanPlayersPerTeam": 5},
     {"id": "coop_intermediate", "enabled": true, "humanPlayersPerTeam": 5},
     {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5}
-  ]
+  ],
+  "matches": {
+    "devCreate": {"enabled": true},
+    "readyTimeout": "120s",
+    "maxDuration": "4h",
+    "reapInterval": "5s",
+    "removeServerAfter": "2m"
+  },
+  "allocator": {
+    "kind": "docker",
+    "docker": {
+      "endpoint": "unix:///var/run/docker.sock",
+      "apiVersion": "1.44",
+      "requestTimeout": "30s",
+      "image": "veyra-match-server:local",
+      "network": "veyra_default",
+      "containerNamePrefix": "veyra-match-",
+      "containerPort": 7777,
+      "hostPorts": {"min": 7780, "max": 7789},
+      "hostIp": "127.0.0.1",
+      "publicHost": "127.0.0.1",
+      "backendUrl": "http://backend:8080",
+      "serverArgs": ["/Game/Veyra/Developer/Maps/L_Greybox", "-port=7777", "-log", "-stdout", "-FullStdOutLogOutput"],
+      "stopTimeout": "10s"
+    }
+  }
 }
