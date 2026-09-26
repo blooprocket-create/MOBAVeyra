@@ -44,7 +44,9 @@ namespace VeyraMatchTests
 
 		TEST_METHOD(DevelopmentBuildsAcceptDirectConnections)
 		{
-			ASSERT_THAT(IsTrue(VeyraJoinRules::CheckDirectConnect().IsEmpty()));
+			// Shipping refuses them without an assignment (ADR-007 §9); tests run in development builds.
+			ASSERT_THAT(IsTrue(VeyraJoinRules::CheckDirectConnect(/*bServerHasAssignment*/ false).IsEmpty()));
+			ASSERT_THAT(IsTrue(VeyraJoinRules::CheckDirectConnect(/*bServerHasAssignment*/ true).IsEmpty()));
 		}
 
 		TEST_METHOD(CompositeHashCoversEveryLoadedDomain)

@@ -2,6 +2,8 @@
 
 #include "VeyraJoinRules.h"
 
+#include "Hash/VeyraSha256.h"
+#include "Join/VeyraMatchRoster.h"
 #include "Kismet/GameplayStatics.h"
 
 namespace VeyraJoinRules
@@ -26,12 +28,45 @@ FString CheckTuningHash(const FString& Options, const FBlake3Hash& ServerHash)
 	return FString();
 }
 
-FString CheckDirectConnect()
+FString MakeTicketOption(const FString& Ticket)
 {
-#if UE_BUILD_SHIPPING
-	return TEXT("This server does not accept direct connections; joining needs the match-join contract.");
-#else
+	return FString::Printf(TEXT("%s=%s"), TicketOption, *Ticket);
+}
+
+FString CheckTicket(const FString& Options, const FVeyraMatchRoster& Roster, FString& OutAccountId)
+{
+	OutAccountId.Reset();
+	const FString Ticket = UGameplayStatics::ParseOption(Options, TicketOption);
+	if (Ticket.IsEmpty())
+	{
+		return TEXT("This match admits players by join ticket, and the client sent none.");
+	}
+	const FVeyraAssignedParticipant* Participant = Roster.FindByTicketHash(VeyraHash::Sha256Hex(Ticket));
+	if (!Participant)
+	{
+		return TEXT("The join ticket is not valid for this match.");
+	}
+	if (Roster.IsConnected(Participant->AccountId))
+	{
+		return FString::Printf(TEXT("%s is already connected."), *Participant->DisplayName);
+	}
+	if (Roster.HasJoined(Participant->AccountId))
+	{
+		return FString::Printf(TEXT("%s left the match, and rejoining waits for reconnect."), *Participant->DisplayName);
+	}
+	OutAccountId = Participant->AccountId;
 	return FString();
-#endif
+}
+
+FString CheckDirectConnect(bool bServerHasAssignment)
+{
+	if constexpr (UE_BUILD_SHIPPING)
+	{
+		if (!bServerHasAssignment)
+		{
+			return TEXT("This server hosts no assigned match, and Shipping builds accept no direct connections.");
+		}
+	}
+	return FString();
 }
 }

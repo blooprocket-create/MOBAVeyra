@@ -147,6 +147,25 @@ void AVeyraPlayerController::ServerRequestDeveloperPause_Implementation(bool bPa
 #endif
 }
 
+void AVeyraPlayerController::RequestDeveloperEndMatch()
+{
+	ServerRequestDeveloperEndMatch();
+}
+
+void AVeyraPlayerController::ServerRequestDeveloperEndMatch_Implementation()
+{
+#if UE_BUILD_SHIPPING
+	UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a developer end-match request from %s: Shipping builds end matches only by their rules."),
+		*GetNameSafe(PlayerState));
+#else
+	if (AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>())
+	{
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s asked to end the match."), *GetNameSafe(PlayerState));
+		GameMode->EndMatch(EVeyraMatchEndReason::DeveloperRequest);
+	}
+#endif
+}
+
 AVeyraVanguardCharacter* AVeyraPlayerController::GetVanguard() const
 {
 	return PlayerState ? Cast<AVeyraVanguardCharacter>(PlayerState->GetPawn()) : nullptr;

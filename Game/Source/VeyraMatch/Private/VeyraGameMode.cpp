@@ -5,6 +5,8 @@
 #include "AbilitySystemComponent.h"
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
+#include "HAL/PlatformTime.h"
+#include "Join/VeyraMatchHostSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -28,7 +30,7 @@ namespace
 	/** The sides that field Vanguards. */
 	constexpr EVeyraTeam Sides[] = { EVeyraTeam::A, EVeyraTeam::B };
 
-	// Until the backend supplies a roster (M4), a developer server is told how many humans to wait for.
+	// A developer server without a roster is told how many humans to wait for.
 	TAutoConsoleVariable<int32> CVarExpectedPlayers(
 		TEXT("veyra.Match.ExpectedPlayers"), 0,
 		TEXT("Humans a developer match waits for during loading when the server URL has no VeyraExpectedPlayers option. ")
@@ -55,19 +57,41 @@ AVeyraGameMode::AVeyraGameMode(const FObjectInitializer& ObjectInitializer)
 void AVeyraGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
+	// Only a dedicated server hosts an assigned match. In-process play can also run standalone
+	// worlds in the same engine, for example a client that left and returned to the default map.
+	const UVeyraMatchHostSubsystem* Host = UVeyraMatchHostSubsystem::Get();
+	if (GetNetMode() == NM_DedicatedServer && Host && Host->GetAssignment().IsSet())
+	{
+		// A hosted match waits for its whole roster.
+		Roster = MakeUnique<FVeyraMatchRoster>(Host->GetAssignment().GetValue());
+		ExpectedPlayers = Roster->Num();
+		UE_CLOG(UGameplayStatics::HasOption(Options, ExpectedPlayersOption), LogVeyraMatch, Warning,
+			TEXT("Ignoring %s: this server hosts match %s and waits for its %d rostered participant(s)."),
+			ExpectedPlayersOption, *Roster->GetAssignment().MatchId, ExpectedPlayers);
+		return;
+	}
 	ExpectedPlayers = UGameplayStatics::GetIntOption(Options, ExpectedPlayersOption, CVarExpectedPlayers.GetValueOnGameThread());
 }
 
 void AVeyraGameMode::PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage)
 {
 	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
+	if (ErrorMessage.IsEmpty() && GetVeyraGameState().GetPhase() == EVeyraMatchPhase::Ended)
+	{
+		ErrorMessage = TEXT("The match has ended.");
+	}
 	if (ErrorMessage.IsEmpty())
 	{
-		ErrorMessage = VeyraJoinRules::CheckDirectConnect();
+		ErrorMessage = VeyraJoinRules::CheckDirectConnect(Roster.IsValid());
 	}
 	if (ErrorMessage.IsEmpty())
 	{
 		ErrorMessage = VeyraJoinRules::CheckTuningHash(Options, VeyraTuning::GetCompositeHash());
+	}
+	if (ErrorMessage.IsEmpty() && Roster)
+	{
+		FString AccountId;
+		ErrorMessage = VeyraJoinRules::CheckTicket(Options, *Roster, AccountId);
 	}
 	if (ErrorMessage.IsEmpty() && IsFull())
 	{
@@ -77,6 +101,48 @@ void AVeyraGameMode::PreLogin(const FString& Options, const FString& Address, co
 	{
 		UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a connection from %s: %s"), *Address, *ErrorMessage);
 	}
+}
+
+FString AVeyraGameMode::InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options,
+	const FString& Portal)
+{
+	FString ErrorMessage = Super::InitNewPlayer(NewPlayerController, UniqueId, Options, Portal);
+	if (!ErrorMessage.IsEmpty() || !Roster)
+	{
+		return ErrorMessage;
+	}
+
+	// PreLogin checked the ticket; check it again here, where the participant is claimed, in case
+	// another login with the same ticket was admitted in between.
+	FString AccountId;
+	ErrorMessage = VeyraJoinRules::CheckTicket(Options, *Roster, AccountId);
+	AVeyraPlayerState* PlayerState = NewPlayerController ? NewPlayerController->GetPlayerState<AVeyraPlayerState>() : nullptr;
+	if (ErrorMessage.IsEmpty() && !PlayerState)
+	{
+		ErrorMessage = TEXT("The player has no Veyra PlayerState.");
+	}
+	if (!ErrorMessage.IsEmpty())
+	{
+		UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a login: %s"), *ErrorMessage);
+		return ErrorMessage;
+	}
+	PlayerState->SetAccountId(AccountId);
+	PlayerState->SetPlayerName(Roster->FindByAccount(AccountId)->DisplayName);
+	Roster->MarkConnected(AccountId);
+	NoteConnectedParticipants();
+	return ErrorMessage;
+}
+
+void AVeyraGameMode::Logout(AController* Exiting)
+{
+	const AVeyraPlayerState* PlayerState = Exiting ? Exiting->GetPlayerState<AVeyraPlayerState>() : nullptr;
+	if (Roster && PlayerState && !PlayerState->GetAccountId().IsEmpty())
+	{
+		Roster->MarkDisconnected(PlayerState->GetAccountId());
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s left; %d rostered participant(s) connected."), *PlayerState->GetPlayerName(), Roster->NumConnected());
+		NoteConnectedParticipants();
+	}
+	Super::Logout(Exiting);
 }
 
 void AVeyraGameMode::StartPlay()
@@ -91,17 +157,87 @@ void AVeyraGameMode::StartPlay()
 	{
 		DeathHandle = Events->OnDeath.AddUObject(this, &AVeyraGameMode::OnDeath);
 	}
+	if (Roster)
+	{
+		NoteConnectedParticipants();
+		AbandonmentTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &AVeyraGameMode::TickAbandonment));
+	}
 	// Game/Scripts/Smoke.ps1 waits for this line.
 	UE_LOG(LogVeyraMatch, Display, TEXT("Match server ready: loading, waiting for %d player(s)."), ExpectedPlayers);
+	// The map is loaded and the server is listening.
+	UVeyraMatchHostSubsystem* Host = UVeyraMatchHostSubsystem::Get();
+	if (Host && GetNetMode() == NM_DedicatedServer)
+	{
+		Host->OnAcceptingPlayers.Broadcast();
+	}
 }
 
 void AVeyraGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	FTSTicker::GetCoreTicker().RemoveTicker(AbandonmentTicker);
 	if (UVeyraCombatEventSubsystem* Events = GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>())
 	{
 		Events->OnDeath.Remove(DeathHandle);
 	}
 	Super::EndPlay(EndPlayReason);
+}
+
+void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason)
+{
+	AVeyraGameState& State = GetVeyraGameState();
+	if (State.GetPhase() == EVeyraMatchPhase::Ended)
+	{
+		return;
+	}
+	SetActorTickEnabled(false);
+	GetWorldTimerManager().ClearTimer(LoadingTimeout);
+	GetWorldTimerManager().ClearTimer(PreparationTimer);
+	FTSTicker::GetCoreTicker().RemoveTicker(AbandonmentTicker);
+	State.SetPhase(EVeyraMatchPhase::Ended);
+	// The clock is frozen now; an ended match need not stay paused.
+	if (State.IsMatchPaused())
+	{
+		ResumeMatch();
+	}
+
+	FVeyraMatchResult Result;
+	Result.EndReason = Reason;
+	Result.DurationSeconds = State.GetMatchClockSeconds();
+	if (Roster)
+	{
+		Result.MatchId = Roster->GetAssignment().MatchId;
+		Result.Participants = Roster->BuildParticipantResults();
+	}
+	// Game/Scripts/Smoke.ps1 checks this line.
+	UE_LOG(LogVeyraMatch, Display, TEXT("The match ended (%s) after %.1f s of match clock."), LexToString(Reason), Result.DurationSeconds);
+	UVeyraMatchHostSubsystem* Host = UVeyraMatchHostSubsystem::Get();
+	if (Host && GetNetMode() == NM_DedicatedServer)
+	{
+		Host->OnMatchEnded.Broadcast(Result);
+	}
+}
+
+void AVeyraGameMode::NoteConnectedParticipants()
+{
+	if (Roster->NumConnected() > 0)
+	{
+		NobodyConnectedSince.Reset();
+	}
+	else if (!NobodyConnectedSince.IsSet())
+	{
+		NobodyConnectedSince = FPlatformTime::Seconds();
+	}
+}
+
+bool AVeyraGameMode::TickAbandonment(float /*DeltaSeconds*/)
+{
+	if (NobodyConnectedSince.IsSet()
+		&& FPlatformTime::Seconds() - NobodyConnectedSince.GetValue() >= UVeyraMatchTuningSubsystem::Get().Lifecycle.AbandonAfterSeconds)
+	{
+		EndMatch(EVeyraMatchEndReason::Abandoned);
+		return false;
+	}
+	return true;
 }
 
 void AVeyraGameMode::Tick(float DeltaSeconds)
@@ -162,7 +298,7 @@ EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerController& Play
 bool AVeyraGameMode::PauseMatch(APlayerController& Requester)
 {
 	// The engine's world pause stops every gameplay clock on the server; the GameState tells clients.
-	if (GetVeyraGameState().IsMatchPaused() || !SetPause(&Requester))
+	if (GetVeyraGameState().GetPhase() == EVeyraMatchPhase::Ended || GetVeyraGameState().IsMatchPaused() || !SetPause(&Requester))
 	{
 		return false;
 	}
@@ -274,8 +410,12 @@ int32 AVeyraGameMode::CountTeamMembers(EVeyraTeam Team) const
 
 void AVeyraGameMode::AssignTeam(AVeyraPlayerState& PlayerState) const
 {
-	// The smaller side, or Team A on a tie. PreLogin has already refused anyone beyond capacity.
-	const EVeyraTeam Team = CountTeamMembers(EVeyraTeam::B) < CountTeamMembers(EVeyraTeam::A) ? EVeyraTeam::B : EVeyraTeam::A;
+	// A rostered participant plays on its assigned side. Anyone else (a bot, or a player on a
+	// developer server) joins the smaller side, or Team A on a tie; PreLogin has already refused
+	// anyone beyond capacity.
+	const FVeyraAssignedParticipant* Participant = Roster && !PlayerState.GetAccountId().IsEmpty() ? Roster->FindByAccount(PlayerState.GetAccountId()) : nullptr;
+	const EVeyraTeam Team = Participant ? Participant->Side
+		: CountTeamMembers(EVeyraTeam::B) < CountTeamMembers(EVeyraTeam::A) ? EVeyraTeam::B : EVeyraTeam::A;
 	PlayerState.SetVeyraTeam(Team);
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s joins Team %s."), *PlayerState.GetPlayerName(), Team == EVeyraTeam::A ? TEXT("A") : TEXT("B"));
 }

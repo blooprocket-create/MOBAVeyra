@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Match domain (Match Flow Bible, Battleground Bible). VeyraMatch binds it to FVeyraMatchTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "teams", "phases", "respawn", "orders", "developerLoadout"],
+  "required": ["schemaVersion", "teams", "phases", "respawn", "lifecycle", "orders", "developerLoadout"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
@@ -55,6 +55,20 @@
           "description": "Seconds from a death to the respawn; 0 respawns at once. A placeholder: canon's respawn curve, which grows with level and match time (Economy Bible §14), is not yet ruled (Battleground Bible §16).",
           "type": "number",
           "minimum": 0
+        }
+      }
+    },
+    "lifecycle": {
+      "description": "How a match server ends its match on its own (ADR-007 §8).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["abandonAfterSeconds"],
+      "properties": {
+        "abandonAfterSeconds": {
+          "description": "Real seconds with no rostered participant connected before the match ends as abandoned. It counts through pauses, since it is a server lifecycle clock, not a gameplay timer. Provisional: canon rules only individual disconnects (Match Flow Bible §4-5).",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
         }
       }
     },
