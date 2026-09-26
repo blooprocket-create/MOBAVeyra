@@ -1,0 +1,21 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Tuning conformance shape",
+  "description": "Test-only schema for the tuning conformance corpus. VeyraDeveloper binds it to FVeyraTuningTestShape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "speed", "count", "nested"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [1] },
+    "speed": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1000 },
+    "count": { "type": "integer", "minimum": 0, "maximum": 10 },
+    "nested": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ratio"],
+      "properties": {
+        "ratio": { "type": "number", "minimum": 0, "maximum": 1, "exclusiveMaximum": true }
+      }
+    }
+  }
+}
