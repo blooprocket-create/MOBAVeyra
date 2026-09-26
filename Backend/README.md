@@ -115,11 +115,24 @@ Rules the code enforces:
 
 ## For the Unreal client
 
-The game receives its launch code on **standard input**, one line, never on the command line. On startup it should read that line, then call `POST /v1/game-sessions` with the code and its own build version, and keep the returned game session token in memory. In development, `veyra-devlaunch` starts the game the same way:
+The game receives its launch code on **standard input**, one line, never on the command line. Started with `-VeyraLaunchCode=stdin`, the game's `VeyraServices` module:
+
+1. reads that line;
+2. calls `POST /v1/game-sessions` with the code and its build version (`ProjectVersion` in `Game/Config/DefaultGame.ini`), and keeps the game session token in memory;
+3. polls `GET /v1/me/match` until the match is ready;
+4. joins the server with its ticket.
+
+It logs its progress as `VeyraHandoff:` lines. The game does not use `-log`, which on Windows can replace the standard handles.
+
+A match server started by the backend gets `-VeyraAssignment=stdin` and reads its assignment the same way. The game's copy of the assignment's shape is `Game/Source/VeyraServices/Schemas/MatchAssignment.schema.json`. `internal/match/contract_test.go` keeps an example the game's tests read, so a change to the assignment must update both.
+
+In development, `veyra-devlaunch` starts the game the same way, with the game's build version:
 
 ```sh
-go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -build dev -- "C:\path\to\Veyra.exe"
+go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -build 0.1.0 -- "C:\path\to\VeyraClient.exe" -VeyraLaunchCode=stdin
 ```
+
+`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result.
 
 ## Configuration
 

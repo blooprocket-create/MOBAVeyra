@@ -3,7 +3,7 @@
 **Status:** Accepted  
 **Date:** 2026-09-24  
 **Approved in:** Author discussion of launcher proposals L1–L5 and hosting H1–H4 (2026-09-24)  
-**Related:** [ADR-001](ADR-001-unreal-version-policy.md) (engine pin), [ADR-004](ADR-004-unified-unreal-client-states.md) (one Unreal application), [Client & Platform Bible](../Design/Veyra_Client_Platform_Bible_v0.1.md) §1, §5, §10, [Architecture Constitution](../../ARCHITECTURE.md) §4, §12.
+**Related:** [ADR-001](ADR-001-unreal-version-policy.md) (engine pin), [ADR-004](ADR-004-unified-unreal-client-states.md) (one Unreal application), [ADR-007](ADR-007-match-join-contract.md) (match-join contract), [Client & Platform Bible](../Design/Veyra_Client_Platform_Bible_v0.1.md) §1, §5, §10, [Architecture Constitution](../../ARCHITECTURE.md) §4, §12.
 
 ## Context
 
@@ -40,6 +40,10 @@ Code-signing certificate, anti-cheat installation, the production identity provi
 
 - The session-handoff contract (launch code → game session) is implemented in the backend and the game from the first networked build; the launcher UI, install and patching follow later without changing game code.
 - Recommended build order: scaffold the 5.8.3 project and Windows client/Linux server targets; containerised server with dev-only direct connect; local backend login, allocation and results; minimal party → queue → Match Found; launcher login and launch; launcher install/patch/repair against a local file server; only then choose hosted vendors.
+  - **Amendment (2026-09-26, M4): step 3 is implemented** under [ADR-007](ADR-007-match-join-contract.md).
+    - The game reads its launch code from standard input (`-VeyraLaunchCode=stdin`), redeems it with its build version (`ProjectVersion` in `Game/Config/DefaultGame.ini`) and joins the match the backend assigned it.
+    - The backend starts one Linux server container per match and records its result.
+    - `Game/Scripts/Smoke.ps1 -Handoff` plays a match this way end to end. `veyra-devlaunch` starts the game over the same channel.
 - Endpoints, timeouts, code lifetimes and retry policies are validated configuration, never literals.
 - Hosted vendors (identity, database host, match-server fleet, website host, CDN), anti-cheat and Perforce remain open decisions for a later ADR.
 - Tuning authored as binary Data Assets cannot be edited by agents; how tuning is authored (for example text imported into DataTables) is a scaffolding decision still to be made.

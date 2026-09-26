@@ -25,6 +25,7 @@ Source/
 ├── VeyraVision/
 ├── VeyraMatch/
 ├── VeyraVanguards/
+├── VeyraServices/
 ├── VeyraUI/
 └── VeyraDeveloper/
 ```
@@ -173,6 +174,14 @@ Use this layer to orchestrate systems when direct peer-to-peer dependencies woul
 - the PlayerController, which sends the player's intents;
 - the Vanguard character, and the server-only controller that moves it (ADR-006 §7).
 
+Since M4 it also owns how a hosted match admits and ends (ADR-007):
+
+- the roster, which admits each participant by join ticket and gives them their side;
+- `UVeyraMatchHostSubsystem`, whose input is the server's assignment and whose outputs are "accepting players" and "match ended";
+- the Ended phase, the developer end-match request, and abandonment.
+
+It knows nothing about the backend; `VeyraServices` connects the two.
+
 ### VeyraVanguards
 
 Champion-specific gameplay content.
@@ -189,6 +198,16 @@ VeyraVanguards/
 ```
 
 Vanguard code may compose Combat and Ability primitives. It must not fork or duplicate their rules.
+
+### VeyraServices
+
+The trusted-services client (ADR-007 §12): the only module that talks to the backend.
+
+- the game's side of the session handoff: it reads the launch code from standard input, redeems it, waits for the player's match and joins it with its ticket;
+- the match server's side: it reads the assignment from standard input, hands the roster to `VeyraMatch`, and reports ready and the result;
+- the backend's address and waits, as validated deployment settings.
+
+It plugs into `VeyraMatch`'s contracts, so no gameplay module depends on it or on HTTP. It sits in its own Services layer, above Orchestration.
 
 ### VeyraUI
 
@@ -229,6 +248,8 @@ Abilities / Items / Flux / World / Vision
    ↓
 Match / Vanguards
    ↓
+Services (the backend client)
+   ↓
 UI
 
 Developer tooling may observe/use all layers.
@@ -248,7 +269,7 @@ This is a guide, not a license for arbitrary sideways dependencies. Prefer contr
 
 ### Backend (outside Unreal)
 
-The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity now; party, matchmaking, match allocation and results later). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; they talk to it over HTTP.
+The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity, social, party, and match allocation and results now; matchmaking later). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; only `VeyraServices` talks to it, over HTTP.
 
 ## 3. Content directory
 

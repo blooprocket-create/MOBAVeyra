@@ -115,10 +115,51 @@ Statistics, rewards and outcome adjudication (Match Flow §11, Match Statistics 
 - A client can join only the match the backend assigned it, only on its assigned side, and only once at a time. A leaked ticket is useless after its match ends.
 - The server needs no backend at login, and tests can supply a roster and tickets directly.
 - Reconnect after a crash needs no new credential: the game asks the backend again and gets the same ticket. Only the server's rebind to the old PlayerState is left to build.
-- **Known exposure:** the engine writes the login options of each connection to the server's log, so a ticket appears there. This is acceptable locally, since tickets are short-lived and scoped to one match. The planned fix is to carry the ticket in the engine's network encryption-token handshake, together with packet encryption, before servers are hosted.
+- **Known exposure:** the engine writes the login options of each connection to the server's log, in its `LogNet` "Login request" and "Join request" lines, so a ticket appears there. This is acceptable locally, since tickets are short-lived and scoped to one match. The planned fix is to carry the ticket in the engine's network encryption-token handshake, together with packet encryption, before servers are hosted.
 - The backend database holds live match keys. Anyone who can read it during a match can derive that match's tickets. Encrypting match keys at rest is left open.
 - The local backend container can control Docker. A hosted allocator must not use the Docker socket this way.
 - Development clients must read their launch code from standard input and must not use `-log`, which on Windows can replace the standard handles.
+
+## Implementation and evidence (M4, 2026-09-26)
+
+**Backend.**
+- The `match` module holds the domain rules, ticket derivation, the result rules and the reaper.
+- `docker` is the local allocator: it attaches to the container, starts it, then writes the assignment and closes standard input.
+- `secret` is the one bearer-secret primitive. Postgres migration `0003_match.sql` holds the match tables.
+- `httpapi` serves the routes in §6 and §10, and `POST /v1/dev/matches` only in the local environment.
+- `Backend/Check.ps1` runs gofmt, vet and the race-enabled tests in the official Go image.
+
+**Game.**
+- `VeyraMatch` owns the roster, the join rules and the match lifecycle:
+  - `UVeyraMatchHostSubsystem` takes the assignment in and raises "accepting players" and "match ended";
+  - `FVeyraMatchRoster`, and ticket checks at login;
+  - the Ended phase, the developer end-match request, and abandonment on a real-time clock.
+- `VeyraServices` is the new trusted-services client, in the Services layer (ADR-006 §3):
+  - A game started with `-VeyraLaunchCode=stdin` reads its code, redeems it with its `ProjectVersion`, polls `GET /v1/me/match` and travels with its ticket.
+  - A dedicated server started with `-VeyraAssignment=stdin` reads and validates its assignment before its first map loads, then reports ready and the result, retrying transient failures. Every Shipping server takes this path.
+  - The backend's address and every wait are `UVeyraServicesSettings` in `Config/DefaultGame.ini`, validated at start.
+- The assignment is validated against `Game/Source/VeyraServices/Schemas/MatchAssignment.schema.json`, using the tuning dialect extended with text and arrays (ADR-006 §6).
+
+**Contract checks.**
+- A Go test writes `Game/Source/VeyraDeveloper/TestData/MatchAssignment.example.json`, built from the backend's ticket vector.
+  - The game's tests bind it, and check that the first participant's ticket hash matches the vector's ticket.
+  - `scripts/check_tuning.py` lints the schema and validates the example in CI.
+  - A change to the assignment's shape therefore fails on both sides.
+
+**Evidence.**
+- Unit tests: `Veyra.Core.Sha256`, `Veyra.Match.JoinTicket`, `.Roster`, `.HostedAssignment` and `.JoinRules`, `Veyra.Services.*`, and the backend's Go tests (including a real-engine Docker stdin test).
+- Network tests: `Veyra.Net.HostedMatch.*` checks rostered sides, refused logins, a developer end with its result, and abandonment.
+- End to end, `Game/Scripts/Smoke.ps1 -Handoff` passes:
+  - The backend creates a match for two dev accounts and starts its container, which reports ready.
+  - Each packaged client reads a fresh launch code from a pipe, joins with its ticket and plays the scripted match; the first client ends it.
+  - The backend records a developer request with no winner and both participants joined and connected at the end, then removes the server.
+  - No log holds a credential except the engine lines named in the known exposure above, and every log is free of warnings.
+
+**Settled while implementing.**
+- **Standard input must be a pipe.** It is read without blocking, one line of at most 64 KiB. A match server refuses to start with the engine's `-cmdstdin`, which would run the assignment as a console command and log it.
+- **Logged problems are redacted.** A JSON syntax error quotes the text around it, which for a one-line assignment includes the credential.
+- **A game's handoff verdict is its log line.** Its failures log "VeyraHandoff: FAIL: <reason>". A graceful Windows exit always returns 0, while a Linux match server exits with a failure status.
+- **Key spelling in cooked builds.** A cooked build keeps one spelling per engine name, the first the process registered, so the assignment's `MatchId` read back as `MatchID`. Schema keys now match struct fields ignoring case in cooked builds (ADR-006 §6).
 
 ## Open items
 
