@@ -59,7 +59,20 @@ The Unreal project is **`Game/Veyra.uproject`**, a subdirectory beside `Backend/
   - `Game/Scripts/Build.ps1` builds with `-NoEngineChanges`, which stops any build that would change an existing engine file.
   - Whenever UnrealBuildTool regenerates the project's makefile (a plugin enabled, or a source file added or removed), UnrealHeaderTool can rewrite the engine's generated `NetCore.init.gen.cpp`. Only the package checksum changes, but NetCore then looks out of date.
   - `Build.ps1` recognises exactly that case: every engine file the VeyraEditor build would change is NetCore's object, library or DLL, the version file, or a module manifest. It then builds again with the guard lifted and says so, which takes about 30 seconds. Any other engine change still stops the build.
-  - Why UnrealHeaderTool does this is not yet understood. The author asked for it to be investigated after M3.
+  - **Cause (investigated 2026-09-26): a race in UnrealHeaderTool's parallel parsing, inside the engine.** Veyra does not cause it; the engine's own editor target hits it too.
+    - UnrealHeaderTool parses headers in parallel. Each header's task first reads its file, which clears that header's export flags, then parses it.
+    - Parsing an `#include` of another header in the same module marks the included header as referenced (`UhtHeaderFile.cs`, where Epic calls it a compatibility hack). If the included header's own read runs later, the mark is lost.
+    - A header with no reflected types counts toward its module's package checksum only while it carries that mark. NetCore's `PushModel.h` is one: its only `UCLASS` and `USTRUCT` markup is an example inside `#if 0`, and `FastArraySerializer.h` includes it.
+    - So each run gives NetCore one of two checksums, depending on thread timing: 0xFC36040C with `PushModel.h` counted, 0x7A7616C1 without it. When the result differs from the file on disk, UnrealHeaderTool rewrites the file. It only runs over the engine's modules when the makefile is regenerated, which is why the rebuild follows those events.
+    - **Evidence:**
+      - Nine UnrealHeaderTool runs in reference mode, which writes nothing to the engine. Single-threaded runs always gave 0x7A7616C1. Parallel runs gave either value, with the Veyra editor manifest and with the engine's own.
+      - Recomputing the checksum from the generated files with the engine's hashing library reproduced both values exactly.
+    - The checksum only versions the package for hot reload, so the rewrite changes nothing at runtime.
+  - **The fix is the narrow allowance above.** No build setting avoids the race:
+    - UnrealBuildTool cannot run UnrealHeaderTool single-threaded in a normal build. It passes extra arguments to UnrealHeaderTool only for one unrelated target setting.
+    - Target settings would give VeyraEditor its own build environment, which this section forbids.
+    - Patching UnrealHeaderTool would mean modifying the engine.
+  - **IrisCore has the same exposure.** Its `NetSerializer.h` has no reflected types, and 19 IrisCore headers include it. A flip there is unlikely, because any of those headers parsed after it restores the mark. The allowance does not cover IrisCore, so if it happens the build stops and is reported.
 
 ### 3. Modules
 
@@ -123,6 +136,7 @@ Modules are created **only when they receive real content**, as Project Structur
   - **Cooldowns are a Veyra ledger, not Gameplay Effects.**
     - `UVeyraCooldownComponent` (`VeyraAbilities`) sits on the PlayerState. For each ability content ID it records when the ability is ready (in world time) and the base duration the cooldown started with.
     - It replicates to the owner and to replays.
+    - It counts in server world time. A client's own world clock starts when it loads the map, so a client reads the ledger against its game state's synchronized estimate of the server's clock.
     - It plugs into GAS through `CheckCooldown`, `ApplyCooldown` and `GetCooldownTimeRemainingAndDuration`, so `CommitAbility` stays the single commit point.
     - **Why:** these rules are simpler on a ledger than on active effects:
       - rescaling running cooldowns in proportion when Ability Haste changes, with separate haste pools and refunds (Combat §21);
@@ -136,12 +150,13 @@ Modules are created **only when they receive real content**, as Project Structur
   - **Death.**
     - Combat owns a replicated life state, `UVeyraLifeComponent` (Alive or Dead), on the PlayerState. There is no `Status.Dead` tag, because canon defines no such status and tags come only from closed canon lists (Project Structure §5).
     - Lethal damage finalizes the death, removes temporary effects (§44) and broadcasts an `FVeyraDeathEvent` through `UVeyraCombatEventSubsystem`.
-    - `VeyraMatch` subscribes to that event. It removes the body, and after a placeholder delay from `Match.json` it revives the participant and spawns a new body at its side's start. The canon respawn curve is still open (Battleground §16).
+    - `VeyraMatch` subscribes to that event. It removes the body, and after a placeholder delay from `Match.json` it revives the participant and spawns a new body at its side's start. A delay of 0 respawns at once. The canon respawn curve is still open (Battleground §16).
     - The Vanguard's controller outlives each body. The engine would otherwise destroy it with the body, because it has no PlayerState of its own.
   - **Casting.**
     - The client sends a cast intent: a slot and a target actor.
     - The match checks the phase and the pause, then calls `VeyraAbilities::TryCast`.
     - `TryCast` runs the ability's validator: the ability is known, the caster is alive, it is off cooldown, the caster can pay, and the target is valid.
+    - An ability against enemies needs a target on the opposing side. Allies are refused, and so is anything on no side, because neutral units are explicit targeting categories, never implicit enemies (Combat §29).
     - It then activates the ability through a gameplay event whose target the server fills in. The ability checks its target again, and `CommitAbility` pays the cost and starts the cooldown.
     - Refusals go back to the owning client with a reason.
     - No client target data is involved (§7), so the target-data spike (§5) concerns later ability kinds.
@@ -320,6 +335,7 @@ Modules are created **only when they receive real content**, as Project Structur
 - Movement for Fluxborn and other high-count units is decided when lanes are built. Mass replication is not a candidate in 5.8.
 - **Amendment (2026-09-26, M3): server-only movement and casting, with no client prediction** (author ruling, 2026-09-25).
   - **Intents.** A client sends intents: a move destination, or a cast slot and target. The server validates each one and acts on it. Every client, the owner included, shows the smoothed replicated result.
+    - A click sends a reliable move order. Holding the button re-aims it at the input settings' held-order interval through an unreliable RPC: each update replaces the last, so a lost one must not hold up the reliable cast and pause requests behind it.
   - **Who moves the Vanguard.** A server-only `AVeyraVanguardController` (an AI controller) possesses each Vanguard and moves it with pathfinding. It stays the pawn's owner, so no client can send CharacterMovement moves for it.
   - **The PlayerController possesses nothing.** It sends the player's intents and views the Vanguard. While pawn-less it is hardened:
     - no default or spectator pawn;
