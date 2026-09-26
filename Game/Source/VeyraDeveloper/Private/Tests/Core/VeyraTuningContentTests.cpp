@@ -120,11 +120,11 @@ namespace VeyraCoreTests
 			ASSERT_THAT(IsTrue(HasError(Errors, TEXT("must be an int32"))));
 		}
 
-		TEST_METHOD(StringsBindOnlyToEnumsAndContentIds)
+		TEST_METHOD(StringsBindOnlyToEnumsContentIdsAndText)
 		{
 			const VeyraTuning::FErrors Errors = BindWithSchema(TEXT("\"weight\": {\"type\": \"number\", \"minimum\": 0}"),
 				TEXT("\"weight\": {\"type\": \"string\", \"pattern\": \"^[a-z][a-z0-9]*(_[a-z0-9]+)*$\"}"));
-			ASSERT_THAT(IsTrue(HasError(Errors, TEXT("must be an enum class UENUM or an FVeyraContentId"))));
+			ASSERT_THAT(IsTrue(HasError(Errors, TEXT("must be an enum class UENUM, an FVeyraContentId or an FString"))));
 		}
 	};
 }

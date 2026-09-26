@@ -273,6 +273,7 @@ namespace VeyraCoreTests
 			// Same cases as tests/test_tuning.py, so the game and CI validators cannot drift apart.
 			TArray<FString> Mismatches = CorpusMismatches<FVeyraTuningTestShape>(TEXT("TuningConformance"));
 			Mismatches.Append(CorpusMismatches<FVeyraTuningContentTestShape>(TEXT("TuningConformanceContent")));
+			Mismatches.Append(CorpusMismatches<FVeyraTuningCollectionsTestShape>(TEXT("TuningConformanceCollections")));
 			ASSERT_THAT(IsTrue(Mismatches.IsEmpty(), FString::Join(Mismatches, TEXT(" || "))));
 		}
 

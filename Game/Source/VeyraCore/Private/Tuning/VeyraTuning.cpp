@@ -4,6 +4,7 @@
 
 #include "Containers/StringConv.h"
 #include "Content/VeyraContentId.h"
+#include "Internationalization/Regex.h"
 #include "JsonUtils/RapidJsonUtils.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Optional.h"
@@ -40,6 +41,19 @@ namespace
 	const TCHAR* const NumberKeywords[] = { TEXT("minimum"), TEXT("maximum"), TEXT("exclusiveMinimum"), TEXT("exclusiveMaximum"), TEXT("enum") };
 	const TCHAR* const StringKeywords[] = { TEXT("enum"), TEXT("pattern") };
 	const TCHAR* const MapKeywords[] = { TEXT("patternProperties"), TEXT("additionalProperties") };
+	const TCHAR* const ArrayKeywords[] = { TEXT("items"), TEXT("minItems"), TEXT("maxItems") };
+
+	/**
+	 * Whether all of Text matches an anchored pattern. ICU's "$" also matches before a final line
+	 * terminator, so the match must also end where the text does (CI's validator uses
+	 * re.fullmatch, which agrees).
+	 */
+	bool MatchesWholeText(const FString& Pattern, const FString& Text)
+	{
+		const FRegexPattern Regex(Pattern);
+		FRegexMatcher Matcher(Regex, Text);
+		return Matcher.FindNext() && Matcher.GetMatchBeginning() == 0 && Matcher.GetMatchEnding() == Text.Len();
+	}
 
 	bool IsOneOf(FStringView Name, TConstArrayView<const TCHAR*> Names)
 	{
@@ -138,6 +152,13 @@ namespace
 		TOptional<double> Maximum;
 		bool bExclusiveMaximum = false;
 		TArray<double> AllowedValues;
+	};
+
+	/** The length bounds of one array schema. */
+	struct FArrayRule
+	{
+		int32 MinItems = 0;
+		TOptional<int32> MaxItems;
 	};
 
 	/** Walks a schema, a document and a reflected struct together, collecting every error. */
@@ -371,6 +392,12 @@ namespace
 				return;
 			}
 
+			if (TypeName.Equals(TEXT("array"), ESearchCase::CaseSensitive))
+			{
+				WalkArray(Schema, SchemaPointer, Value, Pointer, Property, ContainerMemory);
+				return;
+			}
+
 			const bool bInteger = TypeName.Equals(TEXT("integer"), ESearchCase::CaseSensitive);
 			const bool bNumber = TypeName.Equals(TEXT("number"), ESearchCase::CaseSensitive);
 			if (!bInteger && !bNumber)
@@ -509,7 +536,108 @@ namespace
 			MapProperty.DestroyValue(Scratch.GetData());
 		}
 
-		/** A string is an enum value, bound to an enum class UENUM, or a content ID. */
+		/**
+		 * An array of any one supported form: a TArray whose items are described by "items".
+		 * "minItems" is required, as "minimum" is for numbers, so no array's length is unbounded
+		 * by accident.
+		 */
+		void WalkArray(const FValue& Schema, const FString& SchemaPointer, const FValue* Value, const FString& Pointer,
+			const FProperty& Property, void* ContainerMemory)
+		{
+			if (!CheckKeywords(Schema, SchemaPointer, ArrayKeywords))
+			{
+				return;
+			}
+			const FArrayProperty* ArrayProperty = CastField<FArrayProperty>(&Property);
+			if (!ArrayProperty)
+			{
+				SchemaError(SchemaPointer, FString::Printf(TEXT("is an array, so %s must be a TArray"), *Property.GetName()));
+				return;
+			}
+			const FValue* Items = FindMember(Schema, TEXT("items"));
+			if (!Items || !Items->IsObject())
+			{
+				SchemaError(SchemaPointer, TEXT("an array must declare \"items\" as one schema object"));
+				return;
+			}
+			const TOptional<FArrayRule> Rule = ReadArrayRule(Schema, SchemaPointer);
+			const FString ItemsPointer = ChildPointer(SchemaPointer, TEXT("items"));
+
+			// Check the item schema against the item type once, even for an empty or missing array.
+			// If it is broken, the items are not walked, so its errors are reported once.
+			const int32 ErrorsBefore = Errors.Num();
+			WalkArrayItemSchema(*Items, ItemsPointer, *ArrayProperty);
+			if (!Value || !Rule.IsSet() || Errors.Num() > ErrorsBefore)
+			{
+				return;
+			}
+			if (!Value->IsArray())
+			{
+				DocumentError(Pointer, FString::Printf(TEXT("expected an array, found %s"), UE::Json::GetValueTypeName(*Value)));
+				return;
+			}
+			const int32 Count = static_cast<int32>(Value->Size());
+			if (Count < Rule->MinItems)
+			{
+				DocumentError(Pointer, FString::Printf(TEXT("must have at least %d item(s)"), Rule->MinItems));
+			}
+			if (Rule->MaxItems.IsSet() && Count > Rule->MaxItems.GetValue())
+			{
+				DocumentError(Pointer, FString::Printf(TEXT("must have at most %d item(s)"), Rule->MaxItems.GetValue()));
+			}
+
+			FScriptArrayHelper Array(ArrayProperty, ArrayProperty->ContainerPtrToValuePtr<void>(ContainerMemory));
+			Array.EmptyValues();
+			Array.AddValues(Count);
+			int32 Index = 0;
+			for (const FValue& Item : Value->GetArray())
+			{
+				// An item's property sits at offset zero, so its container is the item itself.
+				WalkValue(*Items, ItemsPointer, &Item, ChildPointer(Pointer, LexToString(Index)), *ArrayProperty->Inner, Array.GetRawPtr(Index));
+				++Index;
+			}
+		}
+
+		/** Walks an array's item schema with no document, in a scratch item of the array's type. */
+		void WalkArrayItemSchema(const FValue& ItemSchema, const FString& ItemSchemaPointer, const FArrayProperty& ArrayProperty)
+		{
+			TArray<uint8> Scratch;
+			Scratch.SetNumZeroed(ArrayProperty.GetElementSize());
+			ArrayProperty.InitializeValue(Scratch.GetData());
+			{
+				FScriptArrayHelper Array(&ArrayProperty, Scratch.GetData());
+				const int32 Index = Array.AddValue();
+				WalkValue(ItemSchema, ItemSchemaPointer, nullptr, FString(), *ArrayProperty.Inner, Array.GetRawPtr(Index));
+			}
+			ArrayProperty.DestroyValue(Scratch.GetData());
+		}
+
+		TOptional<FArrayRule> ReadArrayRule(const FValue& Schema, const FString& SchemaPointer)
+		{
+			FArrayRule Rule;
+			const FValue* MinItems = FindMember(Schema, TEXT("minItems"));
+			if (!MinItems || !MinItems->IsInt64() || MinItems->GetInt64() < 0 || MinItems->GetInt64() > MAX_int32)
+			{
+				SchemaError(SchemaPointer, TEXT("every array must declare \"minItems\" as a non-negative integer"));
+				return {};
+			}
+			Rule.MinItems = static_cast<int32>(MinItems->GetInt64());
+			if (const FValue* MaxItems = FindMember(Schema, TEXT("maxItems")))
+			{
+				if (!MaxItems->IsInt64() || MaxItems->GetInt64() < Rule.MinItems || MaxItems->GetInt64() > MAX_int32)
+				{
+					SchemaError(SchemaPointer, TEXT("\"maxItems\" must be an integer no smaller than \"minItems\""));
+					return {};
+				}
+				Rule.MaxItems = static_cast<int32>(MaxItems->GetInt64());
+			}
+			return Rule;
+		}
+
+		/**
+		 * A string is an enum value, bound to an enum class UENUM; a content ID, bound to
+		 * FVeyraContentId; or text in a declared format, bound to FString.
+		 */
 		void WalkString(const FValue& Schema, const FString& SchemaPointer, const FValue* Value, const FString& Pointer,
 			const FProperty& Property, void* ContainerMemory)
 		{
@@ -525,10 +653,57 @@ namespace
 			{
 				WalkContentId(Schema, SchemaPointer, Value, Pointer, Property, ContainerMemory);
 			}
+			else if (const FStrProperty* StrProperty = CastField<FStrProperty>(&Property))
+			{
+				WalkText(Schema, SchemaPointer, Value, Pointer, *StrProperty, ContainerMemory);
+			}
 			else
 			{
-				SchemaError(SchemaPointer, FString::Printf(TEXT("is a string, so %s must be an enum class UENUM or an FVeyraContentId"), *Property.GetName()));
+				SchemaError(SchemaPointer, FString::Printf(TEXT("is a string, so %s must be an enum class UENUM, an FVeyraContentId or an FString"),
+					*Property.GetName()));
 			}
+		}
+
+		/**
+		 * Text bound to an FString. Its "pattern" is required and anchored at both ends, so no
+		 * string field accepts arbitrary text; the whole text must match.
+		 */
+		void WalkText(const FValue& Schema, const FString& SchemaPointer, const FValue* Value, const FString& Pointer,
+			const FStrProperty& Property, void* ContainerMemory)
+		{
+			if (FindMember(Schema, TEXT("enum")))
+			{
+				SchemaError(SchemaPointer, TEXT("text declares \"pattern\", not \"enum\"; an enum string binds to a UENUM"));
+			}
+			const FValue* PatternValue = FindMember(Schema, TEXT("pattern"));
+			const FString Pattern = (PatternValue && PatternValue->IsString()) ? NameOf(*PatternValue) : FString();
+			if (Pattern.Len() < 2 || !Pattern.StartsWith(TEXT("^"), ESearchCase::CaseSensitive) || !Pattern.EndsWith(TEXT("$"), ESearchCase::CaseSensitive))
+			{
+				SchemaError(SchemaPointer, TEXT("\"pattern\" must be anchored: start with ^ and end with $"));
+				return;
+			}
+			if (Pattern.Equals(FVeyraContentId::Pattern, ESearchCase::CaseSensitive))
+			{
+				SchemaError(SchemaPointer, FString::Printf(TEXT("uses the content ID format, so %s must be an FVeyraContentId"), *Property.GetName()));
+				return;
+			}
+
+			if (!Value)
+			{
+				return;
+			}
+			if (!Value->IsString())
+			{
+				DocumentError(Pointer, FString::Printf(TEXT("expected a string, found %s"), UE::Json::GetValueTypeName(*Value)));
+				return;
+			}
+			const FString Text = NameOf(*Value);
+			if (!MatchesWholeText(Pattern, Text))
+			{
+				DocumentError(Pointer, FString::Printf(TEXT("does not match the format %s"), *Pattern));
+				return;
+			}
+			Property.SetPropertyValue_InContainer(ContainerMemory, Text);
 		}
 
 		/** The schema's "enum" lists exactly the UENUM's values, spelled as in C++. */

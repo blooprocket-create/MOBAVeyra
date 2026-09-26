@@ -32,10 +32,15 @@ Schemas use a strict subset of JSON Schema draft-04:
 | `integer` | the same as `number` | `int32` |
 | enum: `string` | `enum`, listing exactly the enum's values as C++ spells them (`"Magic"`) | an `enum class` `UENUM` |
 | content ID: `string` | `pattern`, which must be the content ID format | `FVeyraContentId` |
+| text: `string` | `pattern` (required), anchored with `^` and `$`; the whole text must match | `FString` |
+| `array` | `items` (one schema for every item), `minItems` (required), `maxItems` | `TArray` of any form above except a map |
 
 - The root is a record and declares `schemaVersion` as an integer with a one-value `enum`.
 - A JSON key is its struct field's name with the first letter lower-cased: `mitigationConstant` binds to `MitigationConstant`.
 - The schema and the struct must describe exactly the same fields. A map may be empty, and any valid content ID may be a key.
+- No string or array is unbounded by accident: text always declares its format, and an array always declares `minItems`.
+- The game matches text patterns with ICU and CI with Python's `re`, so a pattern keeps to the syntax both share: literal characters, character classes (`[A-Za-z0-9 ]`, `[^...]`), `\d`-style escapes, quantifiers (`*`, `+`, `?`, `{m,n}`), groups and alternation. Put alternation inside a group (`^(a|b)$`, not `^a|b$`).
+- These forms also describe documents that are not tuning, such as the roster a match server receives ([ADR-007](../../Docs/ADR/ADR-007-match-join-contract.md) §5).
 - Describe each value's meaning and cite the canon section it tunes in its `description`.
 
 ## Content IDs

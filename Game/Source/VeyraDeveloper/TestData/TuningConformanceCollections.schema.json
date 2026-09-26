@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Tuning conformance collections shape",
+  "description": "Test-only schema for the third tuning conformance corpus: strings with a text format, and arrays of content IDs, records and integers. VeyraDeveloper binds it to FVeyraTuningCollectionsTestShape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "label", "tags", "points", "scores"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [1] },
+    "label": { "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9 ]{0,15}$" },
+    "tags": {
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 3,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+    },
+    "points": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["x", "name"],
+        "properties": {
+          "x": { "type": "number", "minimum": 0 },
+          "name": { "type": "string", "pattern": "^[0-9a-f]{4}$" }
+        }
+      }
+    },
+    "scores": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4,
+      "items": { "type": "integer", "minimum": 0, "maximum": 100 }
+    }
+  }
+}

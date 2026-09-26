@@ -33,9 +33,10 @@ OBJECT_KEYWORDS = {"properties", "required", "additionalProperties"}
 MAP_KEYWORDS = {"patternProperties", "additionalProperties"}
 NUMBER_KEYWORDS = {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "enum"}
 STRING_KEYWORDS = {"enum", "pattern"}
+ARRAY_KEYWORDS = {"items", "minItems", "maxItems"}
 
-# The content ID format (ADR-006 §6). The only pattern the dialect allows, for content-ID strings
-# and as the one key of a map's "patternProperties". FVeyraContentId::Pattern in VeyraCore matches.
+# The content ID format (ADR-006 §6): the pattern of content-ID strings, and the one key of a map's
+# "patternProperties". FVeyraContentId::Pattern in VeyraCore matches.
 CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 
 # References from one domain's tuning to content another domain defines, which a schema cannot
@@ -117,6 +118,8 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
         allowed = COMMON_KEYWORDS | NUMBER_KEYWORDS
     elif kind == "string":
         allowed = COMMON_KEYWORDS | STRING_KEYWORDS
+    elif kind == "array":
+        allowed = COMMON_KEYWORDS | ARRAY_KEYWORDS
     else:
         return [f"{where}: type {kind!r} is not supported"]
     for keyword in sorted(set(schema) - allowed):
@@ -136,15 +139,28 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
         has_enum, has_pattern = "enum" in schema, "pattern" in schema
         if has_enum == has_pattern:
             errors.append(f"{where}: a string declares either \"enum\" (an enum's values) or "
-                          f"\"pattern\" (a content ID), not both or neither")
+                          f"\"pattern\" (a content ID or a text format), not both or neither")
         elif has_enum:
             values = schema["enum"]
             if (not isinstance(values, list) or not values
                     or not all(isinstance(v, str) for v in values) or len(set(values)) != len(values)):
                 errors.append(f"{where}: \"enum\" must be a non-empty array of distinct strings")
-        elif schema["pattern"] != CONTENT_ID_PATTERN:
-            errors.append(f"{where}: \"pattern\" must be the content ID format {CONTENT_ID_PATTERN!r}")
+        else:
+            errors.extend(pattern_errors(schema["pattern"], where))
         return errors
+
+    if kind == "array":
+        items = schema.get("items")
+        if not isinstance(items, dict):
+            return errors + [f"{where}: an array must declare \"items\" as one schema object"]
+        minimum = schema.get("minItems")
+        if not is_integer(minimum) or minimum < 0:
+            errors.append(f"{where}: every array must declare \"minItems\" as a non-negative integer")
+        if "maxItems" in schema:
+            maximum = schema["maxItems"]
+            if not is_integer(maximum) or (is_integer(minimum) and maximum < minimum):
+                errors.append(f"{where}: \"maxItems\" must be an integer no smaller than \"minItems\"")
+        return errors + lint_schema(items, parts + ["items"], False)
 
     if kind == "object":
         properties = schema.get("properties")
@@ -191,6 +207,18 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
             errors.append(f"{where}: \"enum\" must be a non-empty array of "
                           f"{'integers' if integer else 'numbers'}")
     return errors
+
+
+def pattern_errors(pattern: Any, where: str) -> list[str]:
+    """A string's "pattern" is anchored at both ends and compiles. The game matches it with ICU,
+    so patterns keep to syntax both engines share (README)."""
+    if not isinstance(pattern, str) or len(pattern) < 2 or not pattern.startswith("^") or not pattern.endswith("$"):
+        return [f"{where}: \"pattern\" must be anchored: start with ^ and end with $"]
+    try:
+        re.compile(pattern)
+    except re.error as error:
+        return [f"{where}: \"pattern\" is not a valid regular expression ({error})"]
+    return []
 
 
 def full_match(pattern: str, text: str) -> bool:

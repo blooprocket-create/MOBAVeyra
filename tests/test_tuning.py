@@ -57,6 +57,9 @@ class ConformanceCorpusTests(unittest.TestCase):
     def test_content_corpus_verdicts(self) -> None:
         self.check_corpus("TuningConformanceContent")
 
+    def test_collections_corpus_verdicts(self) -> None:
+        self.check_corpus("TuningConformanceCollections")
+
 
 class SchemaLintTests(unittest.TestCase):
     def lint(self, schema: dict) -> list[str]:
@@ -110,8 +113,14 @@ class SchemaLintTests(unittest.TestCase):
         for field in (
             {"type": "string", "enum": ["Physical", "Magic"]},
             {"type": "string", "pattern": pattern},
+            {"type": "string", "pattern": "^[A-Za-z0-9 ]{1,16}$"},
             {"type": "object", "additionalProperties": False,
              "patternProperties": {pattern: {"type": "number", "minimum": 0}}},
+            {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 0},
+            {"type": "array", "items": {"type": "string", "pattern": pattern}, "minItems": 1, "maxItems": 3},
+            {"type": "array", "minItems": 1, "items": {
+                "type": "object", "additionalProperties": False, "required": ["x"],
+                "properties": {"x": {"type": "number", "minimum": 0}}}},
         ):
             with self.subTest(field=field):
                 self.assertEqual(self.lint(self.with_field(field)), [])
@@ -123,8 +132,15 @@ class SchemaLintTests(unittest.TestCase):
             "either \"enum\"": {"type": "string"},
             "not both or neither": {"type": "string", "enum": ["A"], "pattern": pattern},
             "non-empty array of distinct strings": {"type": "string", "enum": ["A", "A"]},
-            "\"pattern\" must be the content ID format": {"type": "string", "pattern": "^[a-z]+$"},
+            "\"pattern\" must be anchored": {"type": "string", "pattern": "[a-z]+"},
+            "not a valid regular expression": {"type": "string", "pattern": "^([a-z]$"},
             "keyword 'minimum' is not supported": {"type": "string", "enum": ["A"], "minimum": 0},
+            "an array must declare \"items\"": {"type": "array", "minItems": 0},
+            "every array must declare \"minItems\"": {"type": "array", "items": number},
+            "as a non-negative integer": {"type": "array", "items": number, "minItems": -1},
+            "no smaller than \"minItems\"": {"type": "array", "items": number, "minItems": 2, "maxItems": 1},
+            "keyword 'uniqueItems' is not supported": {"type": "array", "items": number, "minItems": 0, "uniqueItems": True},
+            "every number must declare \"minimum\"": {"type": "array", "items": {"type": "number"}, "minItems": 0},
             "one entry, the content ID format": {"type": "object", "additionalProperties": False,
                                                  "patternProperties": {"^.*$": number}},
             "a map must declare \"additionalProperties\": false": {
@@ -132,7 +148,7 @@ class SchemaLintTests(unittest.TestCase):
             "keyword 'properties' is not supported": {
                 "type": "object", "additionalProperties": False, "properties": {},
                 "patternProperties": {pattern: number}},
-            "every number must declare \"minimum\"": {
+            "must declare \"minimum\"": {
                 "type": "object", "additionalProperties": False,
                 "patternProperties": {pattern: {"type": "number"}}},
         }

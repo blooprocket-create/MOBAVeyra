@@ -8,7 +8,8 @@
 #include "VeyraTuningTestTypes.generated.h"
 
 // Test-only tuning shapes. They match TestData/TuningConformance.schema.json,
-// TestData/TuningConformanceContent.schema.json and the schemas the Veyra.Core.Tuning tests build.
+// TestData/TuningConformanceContent.schema.json, TestData/TuningConformanceCollections.schema.json
+// and the schemas the Veyra.Core.Tuning tests build.
 // UHT forbids preprocessor guards around USTRUCTs, so this header is unconditional.
 
 USTRUCT()
@@ -65,4 +66,35 @@ struct FVeyraTuningContentTestShape
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraTuningTestEntry> Entries;
+};
+
+USTRUCT()
+struct FVeyraTuningTestPoint
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double X = 0.0;
+
+	UPROPERTY()
+	FString Name;
+};
+
+/** Text and arrays: matches TestData/TuningConformanceCollections.schema.json. */
+USTRUCT()
+struct FVeyraTuningCollectionsTestShape
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FString Label;
+
+	UPROPERTY()
+	TArray<FVeyraContentId> Tags;
+
+	UPROPERTY()
+	TArray<FVeyraTuningTestPoint> Points;
+
+	UPROPERTY()
+	TArray<int32> Scores;
 };
