@@ -72,6 +72,10 @@ POSITIONAL = {"jungler", "jungle", "top", "toplane", "mid", "midlane", "bot", "b
               "botlane", "support", "adc", "solo_lane", "duo_lane", "roamer"}
 
 DAMAGE = {"physical", "magic", "true", "utility"}
+# A basic attack deals one of the Combat Bible §2 damage types; "utility" only
+# describes a kit's damage profile. §4 makes Physical the default, so a
+# non-physical basic attack must be an explicit override in the Character Bible.
+BASIC_ATTACK_DAMAGE = {"physical", "magic", "true"}
 RANGE_CLASS = {"melee", "ranged"}
 RESOURCE = {"standard", "focus", "charge", "none"}
 MOBILITY = {"dash", "blink", "leap", "ride"}
@@ -262,7 +266,7 @@ def main() -> int:
                 f"{where}: unknown ability_layout {d.get('ability_layout')!r}", errors)
 
         ba = d.get("basic_attack") or {}
-        require(ba.get("damage_type") in DAMAGE, f"{where}: bad basic_attack.damage_type", errors)
+        require(ba.get("damage_type") in BASIC_ATTACK_DAMAGE, f"{where}: bad basic_attack.damage_type", errors)
         require(ba.get("range_class") in RANGE_CLASS, f"{where}: bad basic_attack.range_class", errors)
 
         if cc_vocab:

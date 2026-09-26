@@ -57,6 +57,8 @@ guards:
   - SIX basic abilities across two stances, with COMPLETELY INDEPENDENT cooldown sets. Focus is shared
     between stances.
   - R is the stance switch, not a traditional ultimate, and is available from the beginning of the match.
+  - SKILL POINTS (2026-09-25). One point in Q, W or E ranks both stances' abilities in that slot. Q, W
+    and E each rank to 6, and R costs no skill point and never ranks, so the budget stays 18 points.
   - Passing Step may target enemy Vanguards, Fluxborn and jungle wildlife; each target has an individual
     re-target lockout.
   - Extreme difficulty is intentional; power budget should reward execution rather than raw button count.

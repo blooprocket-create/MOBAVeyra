@@ -45,20 +45,25 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
 ## Other task routes
 
 - **Engineering:** [Architecture](../ARCHITECTURE.md) → [Project Structure](../PROJECT_STRUCTURE.md) → relevant [ADR index](ADR/README.md) → owning design section. Do not create a giant manager or make UI, Blueprints, or the client authoritative.
+  - The Unreal project is `Game/Veyra.uproject` ([ADR-006](ADR/ADR-006-unreal-project-scaffold.md) §1); `Source/`, `Content/` and `Config/` paths are relative to `Game/`.
+  - Generate project files, build and test with `Game/Scripts/GenerateProjectFiles.ps1`, `Game/Scripts/Build.ps1` and `Game/Scripts/Test.ps1`.
+  - The module layer map is `Game/Source/ModuleLayers.json`, enforced by `scripts/check_module_layers.py`.
+  - The Gameplay Tag naming convention lives in [Project Structure §5](../PROJECT_STRUCTURE.md#gameplay-tag-vocabulary).
 - **Vanguard editing:** one character's section of the Character Bible → `Docs/Design/Vanguards/<nn>-<name>.yaml` → [Vanguard validation instructions](Design/Vanguards/README.md) → specific base [hero art](../ConceptArt/Vanguards/README.md). Do **not** interpret YAML as engine balance data.
 - **Cosmetics:** [skin gallery](../ConceptArt/Vanguards/skins/README.md) and [asset index](../ConceptArt/Vanguards/skins/index.json) → the particular `ConceptArt/Vanguards/<id>/skins/<collection>/hero.webp`; use base character/art bible only for identity and silhouette.
 - **Art direction:** [Art Direction](Design/Art_Direction_v0.1.md) and [canon discrepancy register](Design/Sheet_Canon_Discrepancy_Register_v0.1.md). [Ride-state question history](Design/Ride_State_Open_Questions_v0.1.md) is *resolved history*, not an open-rules source.
 - **Historical comparison only:** [Design Archives](Design/Archives/README.md) and [Concept Art Archives](../ConceptArt/Archives/README.md). Do not use archived versions to override an active bible.
 
-## Accepted ADRs
+## Accepted and proposed ADRs
 
-Every ADR number is unique, and every accepted record is routed here (CI checks both). Full summaries are in the [ADR index](ADR/README.md).
+Every ADR number is unique, and every record, accepted or proposed, is routed here (CI checks both). Full summaries are in the [ADR index](ADR/README.md).
 
 - [ADR-001-unreal-version-policy.md](ADR/ADR-001-unreal-version-policy.md) — Unreal Engine 5.8, pinned to 5.8.3 (source build).
 - [ADR-002-gameplay-ability-system.md](ADR/ADR-002-gameplay-ability-system.md) — GAS behind Veyra-owned C++ integration and combat semantics.
 - [ADR-003-owned-field-entities.md](ADR/ADR-003-owned-field-entities.md) — owned combat units, markers and world volumes.
 - [ADR-004-unified-unreal-client-states.md](ADR/ADR-004-unified-unreal-client-states.md) — one Unreal application and isolated client states.
 - [ADR-005-launcher-session-handoff-and-local-first-hosting.md](ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) — launcher, session handoff, local-first hosting, Go backend, Git LFS.
+- [ADR-006-unreal-project-scaffold.md](ADR/ADR-006-unreal-project-scaffold.md) — **Proposed** (accepted when the M1 pull request merges): Unreal project in `Game/`, targets, initial modules and the layer check, ASC placement, Iris and the per-player fog gate, text JSON tuning, LFS, CQTest and build/test scripts.
 
 ## Keeping the maps current
 

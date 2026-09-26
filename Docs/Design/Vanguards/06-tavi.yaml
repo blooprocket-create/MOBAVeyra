@@ -21,7 +21,7 @@ terrain_affinity: []
 damage_profile:
   - magic
 basic_attack:
-  damage_type: magic
+  damage_type: physical
   range_class: melee
 resource: standard
 ability_layout: standard

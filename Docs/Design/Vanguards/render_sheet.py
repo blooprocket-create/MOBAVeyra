@@ -204,7 +204,8 @@ def slot(vid: str, stem: str, label: str, note: str | None, cls: str) -> str:
     for ext in (".png", ".jpg", ".jpeg", ".webp"):
         f = ART / vid / f"{stem}{ext}"
         if f.exists():
-            rel = os.path.relpath(f, OUT)
+            # URLs use forward slashes; relpath would give backslashes on Windows.
+            rel = pathlib.Path(os.path.relpath(f, OUT)).as_posix()
             return (f"<div class='slot filled {cls}'>"
                     f"<img src='{html.escape(rel)}' alt='{html.escape(label)}'></div>")
     sub = f"<span class='slot-note'>{html.escape(note)}</span>" if note else ""

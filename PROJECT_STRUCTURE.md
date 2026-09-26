@@ -4,6 +4,7 @@
 **Engine target:** Unreal Engine 5.8.3, source build (`ADR-001`); Windows client, Linux dedicated server (`ADR-005`)  
 **Ability framework:** Unreal Gameplay Ability System (GAS), per `ADR-002`  
 **Application architecture:** Single Unreal client with controlled states, per [`ADR-004`](Docs/ADR/ADR-004-unified-unreal-client-states.md)  
+**Project location:** `Game/Veyra.uproject`. The `Source/`, `Content/` and `Config/` paths in this document are relative to `Game/` ([`ADR-006`](Docs/ADR/ADR-006-unreal-project-scaffold.md) §1).  
 **Read first:** [`ARCHITECTURE.md`](ARCHITECTURE.md)
 
 The purpose of this document is to make ownership and dependency direction obvious before the Unreal project becomes large. It is not permission to create every listed module immediately. Start with the smallest useful set and split modules when boundaries become valuable.
@@ -275,6 +276,18 @@ Before adding a class, be able to complete this sentence:
 If the sentence is awkward, the class probably belongs somewhere else or the boundary needs clarification.
 
 Avoid generic names such as `Manager` when a more precise owner exists. Prefer domain terms such as `InventoryComponent`, `TeamFluxState`, `DamageExecution`, or `ObjectiveCaptureComponent` once the actual Unreal design is decided.
+
+### Gameplay Tag vocabulary
+
+Gameplay Tags are Veyra's central typed vocabulary (Architecture §1.12). Native tags follow these rules:
+
+- **Form.** Each tag is a dotted path of PascalCase ASCII segments, rooted at the canon concept and spelled as the owning bible spells it, with no project prefix: `Damage.Type.Physical`.
+- **Declaration.** Tags are declared only in `VeyraCore/Public/Tags/`, one header per tag family, as `VEYRACORE_API UE_DECLARE_GAMEPLAY_TAG_EXTERN` inside `namespace VeyraTags`. The C++ symbol is the tag path with `.` replaced by `_`: `VeyraTags::Damage_Type_Physical`.
+- **Definition.** Each tag is defined in the matching `VeyraCore/Private/Tags/` source file with `UE_DEFINE_GAMEPLAY_TAG_COMMENT`. The comment cites the canon section that defines the tag.
+- **Nowhere else.** DeveloperTool modules never define tags, and gameplay code never builds tags from free-form strings.
+- **Canon first.** A tag is added only once its owning bible closes the list it belongs to. Combat §2's descriptive damage-event tags and the Combat §8 crowd-control types wait for M2.
+
+The `Veyra.Core.TagConvention` automation tests check every tag `VeyraCore` registers against the form rule and require each one to carry a comment.
 
 ## 6. Initial scaffolding rule
 

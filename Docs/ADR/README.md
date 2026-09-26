@@ -10,7 +10,11 @@ This directory records major technical choices that should not be casually rever
 - [`ADR-004-unified-unreal-client-states.md`](ADR-004-unified-unreal-client-states.md) — One Unreal client application with controlled, isolated ordinary client, Test Skin, champion-select, gameplay, results and reconnect states.
 - [`ADR-005-launcher-session-handoff-and-local-first-hosting.md`](ADR-005-launcher-session-handoff-and-local-first-hosting.md) — Tauri launcher, single-use launch-code session handoff, Windows client/Linux server, local-first Docker hosting, Go backend, Git LFS.
 
-**Renumbering note (2026-09-23):** The unified-client record was first filed as a second `ADR-003` and has been renumbered to `ADR-004`; its content and acceptance are unchanged. Historical records such as [`Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md) that say "ADR-003" refer to owned field entities. Every ADR must use a unique number; `scripts/check_doc_context.py --check` enforces this. The next new ADR is `ADR-006`.
+## Proposed decisions
+
+- [`ADR-006-unreal-project-scaffold.md`](ADR-006-unreal-project-scaffold.md) — Unreal project in `Game/`, four targets, the initial module set with an enforced layer map, ASC on the PlayerState, Iris with fog of war enforced per player at the data boundary, text JSON tuning, Git LFS patterns and locking, CQTest and PowerShell build/test scripts. It becomes Accepted when the author merges the M1 pull request that adds it.
+
+**Renumbering note (2026-09-23):** The unified-client record was first filed as a second `ADR-003` and has been renumbered to `ADR-004`; its content and acceptance are unchanged. Historical records such as [`Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md) that say "ADR-003" refer to owned field entities. Every ADR must use a unique number; `scripts/check_doc_context.py --check` enforces this. The next new ADR is `ADR-007`.
 
 ## When to create an ADR
 
