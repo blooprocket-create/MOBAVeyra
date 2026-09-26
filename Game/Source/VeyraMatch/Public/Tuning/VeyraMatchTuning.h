@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Content/VeyraContentId.h"
 #include "UObject/ObjectMacros.h"
 
 #include "VeyraMatchTuning.generated.h"
@@ -29,6 +30,16 @@ struct FVeyraPhasesTuning
 
 	UPROPERTY()
 	double PreparationSeconds = 0.0;
+};
+
+/** When a dead Vanguard returns (Combat Bible §18). A placeholder until canon's respawn curve. */
+USTRUCT()
+struct FVeyraRespawnTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double DelaySeconds = 0.0;
 };
 
 /** How the server accepts a player's move orders (ADR-006 §7). */
@@ -70,6 +81,10 @@ struct FVeyraDeveloperLoadoutTuning
 
 	UPROPERTY()
 	double CapsuleHalfHeight = 0.0;
+
+	/** The ability in the Q slot, which Abilities.json must define. */
+	UPROPERTY()
+	FVeyraContentId AbilityQ;
 };
 
 USTRUCT()
@@ -85,6 +100,9 @@ struct FVeyraMatchTuning
 
 	UPROPERTY()
 	FVeyraPhasesTuning Phases;
+
+	UPROPERTY()
+	FVeyraRespawnTuning Respawn;
 
 	UPROPERTY()
 	FVeyraOrdersTuning Orders;

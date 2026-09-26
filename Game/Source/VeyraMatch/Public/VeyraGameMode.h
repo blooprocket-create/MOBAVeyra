@@ -4,6 +4,7 @@
 
 #include "GameFramework/GameModeBase.h"
 #include "Teams/VeyraTeam.h"
+#include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
 
 #include "VeyraGameMode.generated.h"
@@ -12,6 +13,8 @@ class AVeyraGameState;
 class AVeyraPlayerController;
 class AVeyraPlayerState;
 class AVeyraVanguardCharacter;
+class UAbilitySystemComponent;
+struct FVeyraDeathEvent;
 
 /**
  * Runs one match on the server (Match Flow Bible §1): admits participants, assigns sides, advances
@@ -32,6 +35,7 @@ public:
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	virtual void PreLogin(const FString& Options, const FString& Address, const FUniqueNetIdRepl& UniqueId, FString& ErrorMessage) override;
 	virtual void StartPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaSeconds) override;
 
 	/** Why the match refuses orders right now, or None: orders need the live phase and no pause. */
@@ -39,6 +43,9 @@ public:
 
 	/** Validates a player's move order and hands it to their Vanguard's controller. */
 	EVeyraOrderRejection HandleMoveOrder(AVeyraPlayerController& Player, const FVector& Destination);
+
+	/** Checks the match allows casting, then casts the player's ability in Slot through VeyraAbilities. */
+	EVeyraCastRejection HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
 
 	/**
 	 * Pauses every gameplay clock (Match Flow Bible §10.2). Pause votes arrive later; until then the
@@ -66,6 +73,15 @@ private:
 	void BeginPreparation();
 	void BeginLive();
 	void SpawnVanguard(AVeyraPlayerState& PlayerState);
+
+	/** Gives a participant its developer loadout's base stats and abilities, once per match. */
+	bool InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilitySystemComponent& AbilitySystem);
+
+	/** A Vanguard died: its body leaves the map, and it respawns after the tuned delay (Combat Bible §18). */
+	void OnDeath(const FVeyraDeathEvent& Death);
+	void Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState);
+
+	FDelegateHandle DeathHandle;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Classes")
 	TSubclassOf<AVeyraVanguardCharacter> VanguardClass;

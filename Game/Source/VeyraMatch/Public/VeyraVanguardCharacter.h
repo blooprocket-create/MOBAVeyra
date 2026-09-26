@@ -10,6 +10,8 @@
 #include "VeyraVanguardCharacter.generated.h"
 
 class UAbilitySystemComponent;
+class UCameraComponent;
+class USpringArmComponent;
 struct FOnAttributeChangeData;
 
 /**
@@ -39,4 +41,11 @@ private:
 
 	TWeakObjectPtr<UAbilitySystemComponent> FollowedAbilitySystem;
 	FDelegateHandle MoveSpeedChangedHandle;
+
+	/** The owning player's top-down view (UVeyraCameraSettings). Presentation only. */
+	UPROPERTY(VisibleAnywhere, Category = "Camera")
+	TObjectPtr<USpringArmComponent> CameraArm;
+
+	UPROPERTY(VisibleAnywhere, Category = "Camera")
+	TObjectPtr<UCameraComponent> Camera;
 };

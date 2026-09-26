@@ -6,10 +6,13 @@
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
 #include "Kismet/GameplayStatics.h"
+#include "Life/VeyraCombatEventSubsystem.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "NavigationSystem.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraTuning.h"
+#include "VeyraAbilitiesVerbs.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraGameState.h"
 #include "VeyraJoinRules.h"
@@ -92,8 +95,21 @@ void AVeyraGameMode::StartPlay()
 	GetWorldTimerManager().SetTimer(LoadingTimeout, this, &AVeyraGameMode::OnLoadingTimedOut,
 		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Phases.LoadingTimeoutSeconds));
 	SetActorTickEnabled(true);
+	if (UVeyraCombatEventSubsystem* Events = GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>())
+	{
+		DeathHandle = Events->OnDeath.AddUObject(this, &AVeyraGameMode::OnDeath);
+	}
 	// Game/Scripts/Smoke.ps1 waits for this line.
 	UE_LOG(LogVeyraMatch, Display, TEXT("Match server ready: loading, waiting for %d player(s)."), ExpectedPlayers);
+}
+
+void AVeyraGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (UVeyraCombatEventSubsystem* Events = GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>())
+	{
+		Events->OnDeath.Remove(DeathHandle);
+	}
+	Super::EndPlay(EndPlayReason);
 }
 
 void AVeyraGameMode::Tick(float DeltaSeconds)
@@ -133,6 +149,22 @@ EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerController& Pla
 	const AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
 	AVeyraVanguardController* Controller = PlayerState ? PlayerState->GetVanguardController() : nullptr;
 	return Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard;
+}
+
+EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target)
+{
+	switch (CheckOrdersAllowed())
+	{
+	case EVeyraOrderRejection::None:
+		break;
+	case EVeyraOrderRejection::Paused:
+		return EVeyraCastRejection::Paused;
+	default:
+		return EVeyraCastRejection::WrongPhase;
+	}
+	const AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
+	UAbilitySystemComponent* AbilitySystem = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
+	return AbilitySystem ? VeyraAbilities::TryCast(*AbilitySystem, Slot, Target) : EVeyraCastRejection::UnknownAbility;
 }
 
 bool AVeyraGameMode::PauseMatch(APlayerController& Requester)
@@ -285,15 +317,9 @@ void AVeyraGameMode::SpawnVanguard(AVeyraPlayerState& PlayerState)
 		return;
 	}
 
-	if (!PlayerState.HasInitializedStats())
+	if (!PlayerState.HasInitializedStats() && !InitializeCombatant(PlayerState, *AbilitySystem))
 	{
-		const FVeyraDeveloperLoadoutTuning& Loadout = UVeyraMatchTuningSubsystem::Get().DeveloperLoadout;
-		if (!VeyraCombat::InitializeVitals(*AbilitySystem, Loadout.MaxHealth) || !VeyraCombat::InitializeResource(*AbilitySystem, Loadout.MaxResource)
-			|| !VeyraCombat::InitializeMoveSpeed(*AbilitySystem, Loadout.MoveSpeed))
-		{
-			return;
-		}
-		PlayerState.MarkStatsInitialized();
+		return;
 	}
 
 	FActorSpawnParameters SpawnParameters;
@@ -316,4 +342,52 @@ void AVeyraGameMode::SpawnVanguard(AVeyraPlayerState& PlayerState)
 	Controller->Possess(Vanguard);
 	// An AI controller has no PlayerState of its own, so possession leaves the pawn without one.
 	Vanguard->SetPlayerState(&PlayerState);
+}
+
+bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilitySystemComponent& AbilitySystem)
+{
+	const FVeyraDeveloperLoadoutTuning& Loadout = UVeyraMatchTuningSubsystem::Get().DeveloperLoadout;
+	UVeyraAbilityLoadoutComponent* Abilities = PlayerState.FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+	if (!VeyraCombat::InitializeVitals(AbilitySystem, Loadout.MaxHealth) || !VeyraCombat::InitializeResource(AbilitySystem, Loadout.MaxResource)
+		|| !VeyraCombat::InitializeMoveSpeed(AbilitySystem, Loadout.MoveSpeed) || !Abilities
+		|| !Abilities->Grant(AbilitySystem, EVeyraAbilitySlot::Q, Loadout.AbilityQ))
+	{
+		UE_LOG(LogVeyraMatch, Error, TEXT("Could not prepare %s for the match; see the errors above."), *PlayerState.GetPlayerName());
+		return false;
+	}
+	PlayerState.MarkStatsInitialized();
+	return true;
+}
+
+void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
+{
+	const UAbilitySystemComponent* Victim = Death.Victim.Get();
+	AVeyraPlayerState* PlayerState = Victim ? Cast<AVeyraPlayerState>(Victim->GetOwner()) : nullptr;
+	if (!PlayerState)
+	{
+		return;
+	}
+
+	// The body leaves the map; the PlayerState, with its cooldowns and permanent effects, stays. The
+	// death arrives from inside the damage that caused it, so the body goes on the next tick.
+	if (APawn* Body = PlayerState->GetPawn())
+	{
+		GetWorldTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(Body, [Body] { Body->Destroy(); }));
+	}
+	const double Delay = UVeyraMatchTuningSubsystem::Get().Respawn.DelaySeconds;
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s died; respawning in %g s."), *PlayerState->GetPlayerName(), Delay);
+	FTimerHandle Timer;
+	GetWorldTimerManager().SetTimer(Timer, FTimerDelegate::CreateUObject(this, &AVeyraGameMode::Respawn, TWeakObjectPtr<AVeyraPlayerState>(PlayerState)),
+		static_cast<float>(Delay), /*bLoop*/ false);
+}
+
+void AVeyraGameMode::Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState)
+{
+	UAbilitySystemComponent* AbilitySystem = PlayerState.IsValid() ? PlayerState->GetAbilitySystemComponent() : nullptr;
+	if (!AbilitySystem || !VeyraCombat::Revive(*AbilitySystem))
+	{
+		return;
+	}
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s respawns."), *PlayerState->GetPlayerName());
+	SpawnVanguard(*PlayerState);
 }

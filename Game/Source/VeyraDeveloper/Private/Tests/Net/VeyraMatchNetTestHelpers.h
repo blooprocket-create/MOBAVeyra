@@ -12,6 +12,7 @@
 #include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxLayout.h"
 #include "HAL/IConsoleManager.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "VeyraGameMode.h"
 #include "VeyraGameState.h"
@@ -37,6 +38,24 @@ namespace VeyraNetTests
 		}
 
 		UE_NONCOPYABLE(FScopedMatchTuning);
+	};
+
+	/** Abilities tuning a test sets up. Get() returns it while this object lives. */
+	struct FScopedAbilitiesTuning
+	{
+		FVeyraAbilitiesTuning Tuning;
+
+		FScopedAbilitiesTuning()
+		{
+			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
+		}
+
+		~FScopedAbilitiesTuning()
+		{
+			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
+		}
+
+		UE_NONCOPYABLE(FScopedAbilitiesTuning);
 	};
 
 	/**

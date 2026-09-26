@@ -16,7 +16,11 @@ public class VeyraMatch : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"AIModule",
+			"DeveloperSettings",
+			"EnhancedInput",
 			"GameplayAbilities",
+			"InputCore",
+			"VeyraAbilities",
 			"VeyraCore",
 		});
 
@@ -24,7 +28,6 @@ public class VeyraMatch : ModuleRules
 		{
 			"NavigationSystem",
 			"NetCore",
-			"VeyraAbilities",
 			"VeyraCombat",
 		});
 

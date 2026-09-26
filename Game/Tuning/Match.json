@@ -7,6 +7,9 @@
     "loadingTimeoutSeconds": 90,
     "preparationSeconds": 15
   },
+  "respawn": {
+    "delaySeconds": 10
+  },
   "orders": {
     "maxPerSecond": 20,
     "destinationProjectionExtent": 200,
@@ -18,6 +21,7 @@
     "moveSpeed": 335,
     "turnRateDegreesPerSecond": 720,
     "capsuleRadius": 40,
-    "capsuleHalfHeight": 90
+    "capsuleHalfHeight": 90,
+    "abilityQ": "test_bolt"
   }
 }

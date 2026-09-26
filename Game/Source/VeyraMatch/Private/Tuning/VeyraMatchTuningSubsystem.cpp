@@ -3,6 +3,7 @@
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 
 #include "Engine/Engine.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 namespace
@@ -20,6 +21,8 @@ void UVeyraMatchTuningSubsystem::SetTestOverride(const FVeyraMatchTuning* Overri
 void UVeyraMatchTuningSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	// The developer loadout names abilities, which the Abilities domain defines.
+	Collection.InitializeDependency<UVeyraAbilitiesTuningSubsystem>();
 	const VeyraTuning::FErrors Errors = Reload();
 	if (!Errors.IsEmpty())
 	{
@@ -49,6 +52,12 @@ VeyraTuning::FErrors UVeyraMatchTuningSubsystem::Reload()
 	{
 		// A capsule's half height includes its hemispherical ends, so it can never be shorter than its radius.
 		Errors.Add(TEXT("/developerLoadout/capsuleHalfHeight: must be at least capsuleRadius"));
+	}
+	const UVeyraAbilitiesTuningSubsystem* Abilities = GEngine ? GEngine->GetEngineSubsystem<UVeyraAbilitiesTuningSubsystem>() : nullptr;
+	if (Errors.IsEmpty() && (!Abilities || !Abilities->IsLoaded() || !UVeyraAbilitiesTuningSubsystem::Defines(Loaded.DeveloperLoadout.AbilityQ)))
+	{
+		Errors.Add(FString::Printf(TEXT("/developerLoadout/abilityQ: names \"%s\", which Abilities.json does not define"),
+			*Loaded.DeveloperLoadout.AbilityQ.ToString()));
 	}
 	if (Errors.IsEmpty())
 	{

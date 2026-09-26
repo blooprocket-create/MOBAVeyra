@@ -2,7 +2,10 @@
 
 #include "VeyraPlayerController.h"
 
+#include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
+#include "EnhancedInputComponent.h"
+#include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerState.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "VeyraGameMode.h"
@@ -20,6 +23,94 @@ AVeyraPlayerController::AVeyraPlayerController(const FObjectInitializer& ObjectI
 void AVeyraPlayerController::IssueMoveOrder(const FVector& Destination)
 {
 	ServerIssueMoveOrder(Destination);
+}
+
+void AVeyraPlayerController::IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Target)
+{
+	FVeyraCastTarget CastTarget;
+	CastTarget.Actor = Target;
+	ServerIssueCastOrder(Slot, CastTarget);
+}
+
+void AVeyraPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Only a local controller has run SetupInputComponent and built its mapping context.
+	UEnhancedInputLocalPlayerSubsystem* Subsystem = IsLocalController() ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()) : nullptr;
+	if (Subsystem && Input.MappingContext)
+	{
+		Subsystem->AddMappingContext(Input.MappingContext, /*Priority*/ 0);
+	}
+}
+
+void AVeyraPlayerController::SetupInputComponent()
+{
+	Super::SetupInputComponent();
+
+	Input = VeyraInput::Build(*GetDefault<UVeyraInputSettings>(), *this);
+	if (UEnhancedInputComponent* Enhanced = Cast<UEnhancedInputComponent>(InputComponent))
+	{
+		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Started, this, &AVeyraPlayerController::OnMoveOrderStarted);
+		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnMoveOrderHeld);
+		Enhanced->BindAction(Input.AbilityQ, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityQ);
+	}
+}
+
+void AVeyraPlayerController::OnMoveOrderStarted()
+{
+	MoveToCursor();
+}
+
+void AVeyraPlayerController::OnMoveOrderHeld()
+{
+	// Holding the button keeps steering toward the cursor, paced below the server's order limit.
+	if (GetWorld()->GetRealTimeSeconds() - LastHeldMoveOrderTime >= GetDefault<UVeyraInputSettings>()->HeldMoveOrderIntervalSeconds)
+	{
+		MoveToCursor();
+	}
+}
+
+void AVeyraPlayerController::MoveToCursor()
+{
+	FHitResult Ground;
+	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
+	{
+		LastHeldMoveOrderTime = GetWorld()->GetRealTimeSeconds();
+		IssueMoveOrder(Ground.Location);
+	}
+}
+
+void AVeyraPlayerController::OnAbilityQ()
+{
+	// Quick Cast (Settings Bible §1.2): cast at the unit under the cursor now. The server decides
+	// whether it is a valid target.
+	FHitResult Unit;
+	GetHitResultUnderCursor(ECC_Pawn, /*bTraceComplex*/ false, Unit);
+	IssueCastOrder(EVeyraAbilitySlot::Q, Unit.GetActor());
+}
+
+void AVeyraPlayerController::ServerIssueCastOrder_Implementation(EVeyraAbilitySlot Slot, FVeyraCastTarget Target)
+{
+	if (!TakeOrderAllowance())
+	{
+		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		return;
+	}
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	const EVeyraCastRejection Rejection = GameMode ? GameMode->HandleCastOrder(*this, Slot, Target) : EVeyraCastRejection::WrongPhase;
+	if (Rejection != EVeyraCastRejection::None)
+	{
+		UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused a cast from %s: %s."), *GetNameSafe(PlayerState), LexToString(Rejection));
+		ClientCastRejected(Rejection);
+	}
+}
+
+void AVeyraPlayerController::ClientCastRejected_Implementation(EVeyraCastRejection Rejection)
+{
+	LastCastRejection = Rejection;
+	++CastRejectionCount;
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused a cast: %s."), LexToString(Rejection));
 }
 
 void AVeyraPlayerController::RequestDeveloperPause(bool bPause)

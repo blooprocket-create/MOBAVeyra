@@ -4,9 +4,12 @@
 
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraMobilitySet.h"
+#include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Input/VeyraCameraSettings.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 
 AVeyraVanguardCharacter::AVeyraVanguardCharacter(const FObjectInitializer& ObjectInitializer)
@@ -18,6 +21,14 @@ AVeyraVanguardCharacter::AVeyraVanguardCharacter(const FObjectInitializer& Objec
 
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
+
+	// A fixed top-down view that does not turn with the Vanguard.
+	CameraArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraArm"));
+	CameraArm->SetupAttachment(GetRootComponent());
+	CameraArm->SetUsingAbsoluteRotation(true);
+	CameraArm->bDoCollisionTest = false;
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera->SetupAttachment(CameraArm, USpringArmComponent::SocketName);
 }
 
 void AVeyraVanguardCharacter::PostInitializeComponents()
@@ -35,6 +46,10 @@ void AVeyraVanguardCharacter::PostInitializeComponents()
 	const FVeyraDeveloperLoadoutTuning& Loadout = UVeyraMatchTuningSubsystem::Get().DeveloperLoadout;
 	GetCapsuleComponent()->SetCapsuleSize(static_cast<float>(Loadout.CapsuleRadius), static_cast<float>(Loadout.CapsuleHalfHeight));
 	GetCharacterMovement()->RotationRate = FRotator(0.0, Loadout.TurnRateDegreesPerSecond, 0.0);
+
+	const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
+	CameraArm->TargetArmLength = View.Distance;
+	CameraArm->SetWorldRotation(FRotator(View.PitchDegrees, 0.0, 0.0));
 }
 
 UAbilitySystemComponent* AVeyraVanguardCharacter::GetAbilitySystemComponent() const

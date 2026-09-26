@@ -35,3 +35,11 @@ EVeyraOrderRejection AVeyraVanguardController::MoveToDestination(const FVector& 
 		/*FilterClass*/ nullptr, /*bAllowPartialPath*/ true);
 	return Result == EPathFollowingRequestResult::Failed ? EVeyraOrderRejection::Unreachable : EVeyraOrderRejection::None;
 }
+
+void AVeyraVanguardController::PawnPendingDestroy(APawn* DestroyedPawn)
+{
+	if (DestroyedPawn && DestroyedPawn == GetPawn())
+	{
+		UnPossess();
+	}
+}

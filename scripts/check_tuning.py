@@ -41,7 +41,9 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # References from one domain's tuning to content another domain defines, which a schema cannot
 # express. Each entry is (domain, JSON pointer to a content ID, domain, JSON pointer to the map
 # whose keys are the valid IDs). The loading domain in the game checks the same references.
-REFERENCES: list[tuple[str, str, str, str]] = []
+REFERENCES: list[tuple[str, str, str, str]] = [
+    ("Match", "/developerLoadout/abilityQ", "Abilities", "/targetedDamage"),
+]
 
 
 class DuplicateKeyError(ValueError):

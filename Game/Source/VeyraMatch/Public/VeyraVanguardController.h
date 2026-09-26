@@ -26,4 +26,10 @@ public:
 	 * extent, by pathfinding. The caller has already checked the match allows the order.
 	 */
 	EVeyraOrderRejection MoveToDestination(const FVector& Destination);
+
+	/**
+	 * Lets go of a body leaving the map but stays alive to possess the next one. The engine would
+	 * destroy a controller without a PlayerState here; this one belongs to its participant.
+	 */
+	virtual void PawnPendingDestroy(APawn* DestroyedPawn) override;
 };

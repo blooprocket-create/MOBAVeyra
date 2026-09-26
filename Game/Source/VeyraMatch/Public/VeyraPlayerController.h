@@ -3,6 +3,8 @@
 #pragma once
 
 #include "GameFramework/PlayerController.h"
+#include "Input/VeyraInputSettings.h"
+#include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
 
 #include "VeyraPlayerController.generated.h"
@@ -25,6 +27,9 @@ public:
 	/** Owning client: asks the server to move this player's Vanguard to Destination. */
 	void IssueMoveOrder(const FVector& Destination);
 
+	/** Owning client: asks the server to cast the ability in Slot at Target. */
+	void IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Target);
+
 	/**
 	 * Owning client, developer builds: asks the server to pause or resume the match at once. Pause
 	 * votes (Match Flow Bible §10) will replace it; Shipping servers refuse it.
@@ -38,6 +43,10 @@ public:
 	EVeyraOrderRejection GetLastOrderRejection() const { return LastOrderRejection; }
 	int32 GetOrderRejectionCount() const { return OrderRejectionCount; }
 
+	/** Owning client: the reason the server gave for the last refused cast, and how many it refused. */
+	EVeyraCastRejection GetLastCastRejection() const { return LastCastRejection; }
+	int32 GetCastRejectionCount() const { return CastRejectionCount; }
+
 	/**
 	 * On the server this is the Vanguard's position, never the location a pawn-less client reports:
 	 * replication decides what each player receives from it.
@@ -45,6 +54,8 @@ public:
 	virtual void GetPlayerViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
 protected:
+	virtual void BeginPlay() override;
+	virtual void SetupInputComponent() override;
 	virtual void OnRep_PlayerState() override;
 
 private:
@@ -55,12 +66,29 @@ private:
 	void ClientOrderRejected(EVeyraOrderRejection Rejection);
 
 	UFUNCTION(Server, Reliable)
+	void ServerIssueCastOrder(EVeyraAbilitySlot Slot, FVeyraCastTarget Target);
+
+	UFUNCTION(Client, Unreliable)
+	void ClientCastRejected(EVeyraCastRejection Rejection);
+
+	UFUNCTION(Server, Reliable)
 	void ServerRequestDeveloperPause(bool bPause);
 
 	UFUNCTION()
 	void OnVanguardSet(APlayerState* Participant, APawn* NewPawn, APawn* OldPawn);
 
 	void RejectOrder(EVeyraOrderRejection Rejection);
+
+	// Local input (Settings Bible §1): right-click move and Quick Cast on Q.
+	void OnMoveOrderStarted();
+	void OnMoveOrderHeld();
+	void OnAbilityQ();
+	void MoveToCursor();
+
+	UPROPERTY(Transient)
+	FVeyraInputObjects Input;
+
+	double LastHeldMoveOrderTime = 0.0;
 
 	/** Server: spends one order from the player's allowance, refilled at the tuned rate. */
 	bool TakeOrderAllowance();
@@ -71,4 +99,7 @@ private:
 
 	EVeyraOrderRejection LastOrderRejection = EVeyraOrderRejection::None;
 	int32 OrderRejectionCount = 0;
+
+	EVeyraCastRejection LastCastRejection = EVeyraCastRejection::None;
+	int32 CastRejectionCount = 0;
 };
