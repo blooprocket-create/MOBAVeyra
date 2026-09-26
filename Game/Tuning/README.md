@@ -36,7 +36,7 @@ Schemas use a strict subset of JSON Schema draft-04:
 | `array` | `items` (one schema for every item), `minItems` (required), `maxItems` | `TArray` of any form above except a map |
 
 - The root is a record and declares `schemaVersion` as an integer with a one-value `enum`.
-- A JSON key is its struct field's name with the first letter lower-cased: `mitigationConstant` binds to `MitigationConstant`.
+- A JSON key is its struct field's name with the first letter lower-cased: `mitigationConstant` binds to `MitigationConstant`. The editor checks the exact spelling. A cooked build keeps one spelling per engine name (the first registered, so a field `MatchId` can read back as `MatchID`), so there the key matches its field ignoring case. A document's keys must still match its schema's exactly.
 - The schema and the struct must describe exactly the same fields. A map may be empty, and any valid content ID may be a key.
 - No string or array is unbounded by accident: text always declares its format, and an array always declares `minItems`.
 - The game matches text patterns with ICU and CI with Python's `re`, so a pattern keeps to the syntax both share: literal characters, character classes (`[A-Za-z0-9 ]`, `[^...]`), `\d`-style escapes, quantifiers (`*`, `+`, `?`, `{m,n}`), groups and alternation. Put alternation inside a group (`^(a|b)$`, not `^a|b$`).

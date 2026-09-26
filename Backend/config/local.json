@@ -52,7 +52,7 @@
       "hostIp": "127.0.0.1",
       "publicHost": "127.0.0.1",
       "backendUrl": "http://backend:8080",
-      "serverArgs": ["/Game/Veyra/Developer/Maps/L_Greybox", "-port=7777", "-log", "-stdout", "-FullStdOutLogOutput"],
+      "serverArgs": ["/Game/Veyra/Developer/Maps/L_Greybox", "-port=7777", "-log", "-stdout", "-FullStdOutLogOutput", "-LogCmds=LogVeyraAbilities Verbose"],
       "stopTimeout": "10s"
     }
   }

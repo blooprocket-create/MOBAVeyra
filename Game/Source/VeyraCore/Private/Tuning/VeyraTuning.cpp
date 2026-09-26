@@ -118,6 +118,21 @@ namespace
 		return Key;
 	}
 
+	/**
+	 * True if a schema key names the UPROPERTY. Editor builds keep every name as the source spells
+	 * it, so the key must be exactly the property's JSON key. A cooked build keeps one spelling per
+	 * name, the first the process registered: a property "MatchId" can read back as "MatchID"
+	 * because the engine uses that name too. There the key matches as names do, ignoring case.
+	 */
+	bool KeyNamesProperty(const FString& Key, const FProperty& Property)
+	{
+#if WITH_CASE_PRESERVING_NAME
+		return Key.Equals(JsonKeyOf(Property), ESearchCase::CaseSensitive);
+#else
+		return Key.Equals(JsonKeyOf(Property), ESearchCase::IgnoreCase);
+#endif
+	}
+
 	void CheckTextHygiene(FStringView Text, const TCHAR* Label, FErrors& Errors)
 	{
 		constexpr TCHAR ByteOrderMark = TCHAR(0xFEFF);
@@ -214,7 +229,8 @@ namespace
 			for (TFieldIterator<FProperty> It(&Struct); It; ++It)
 			{
 				StructProperties.Add(*It);
-				if (!ContainsExactly(PropertyNames, JsonKeyOf(**It)))
+				const FProperty& StructProperty = **It;
+				if (!PropertyNames.ContainsByPredicate([&StructProperty](const FString& Key) { return KeyNamesProperty(Key, StructProperty); }))
 				{
 					SchemaError(ChildPointer(SchemaPointer, TEXT("properties")), FString::Printf(TEXT("has no property \"%s\" for %s::%s"),
 						*JsonKeyOf(**It), *Struct.GetName(), *It->GetName()));
@@ -266,7 +282,7 @@ namespace
 
 				const FProperty* const* Property = StructProperties.FindByPredicate([&Name](const FProperty* Candidate)
 				{
-					return JsonKeyOf(*Candidate).Equals(Name, ESearchCase::CaseSensitive);
+					return KeyNamesProperty(Name, *Candidate);
 				});
 				if (!Property)
 				{

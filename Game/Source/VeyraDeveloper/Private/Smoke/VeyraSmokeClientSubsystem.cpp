@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "HAL/PlatformMisc.h"
@@ -42,16 +43,39 @@ void UVeyraSmokeClientSubsystem::Initialize(FSubsystemCollectionBase& Collection
 {
 	Super::Initialize(Collection);
 	bCheckPause = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokePause"));
+	bEndMatch = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeEndMatch"));
+	bWaitForEnd = bEndMatch || FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeWaitForEnd"));
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeStay="), StaySeconds);
 	StartRealTime = FPlatformTime::Seconds();
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraSmokeClientSubsystem::Tick));
-	UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: started%s."), bCheckPause ? TEXT(", with the pause check") : TEXT(""));
+	NetworkFailureHandle = GEngine->OnNetworkFailure().AddUObject(this, &UVeyraSmokeClientSubsystem::OnNetworkFailure);
+	TravelFailureHandle = GEngine->OnTravelFailure().AddUObject(this, &UVeyraSmokeClientSubsystem::OnTravelFailure);
+	UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: started%s%s."), bCheckPause ? TEXT(", with the pause check") : TEXT(""),
+		bEndMatch ? TEXT(", ending the match") : (bWaitForEnd ? TEXT(", until the match ends") : TEXT("")));
 }
 
 void UVeyraSmokeClientSubsystem::Deinitialize()
 {
 	FTSTicker::GetCoreTicker().RemoveTicker(TickHandle);
+	GEngine->OnNetworkFailure().Remove(NetworkFailureHandle);
+	GEngine->OnTravelFailure().Remove(TravelFailureHandle);
 	Super::Deinitialize();
+}
+
+void UVeyraSmokeClientSubsystem::OnNetworkFailure(UWorld* /*World*/, UNetDriver* /*NetDriver*/, ENetworkFailure::Type FailureType, const FString& ErrorString)
+{
+	if (Step != EStep::Finished)
+	{
+		Finish(false, FString::Printf(TEXT("the connection failed (%s): %s"), ENetworkFailure::ToString(FailureType), *ErrorString));
+	}
+}
+
+void UVeyraSmokeClientSubsystem::OnTravelFailure(UWorld* /*World*/, ETravelFailure::Type FailureType, const FString& ErrorString)
+{
+	if (Step != EStep::Finished)
+	{
+		Finish(false, FString::Printf(TEXT("travel to the server failed (%s): %s"), ETravelFailure::ToString(FailureType), *ErrorString));
+	}
 }
 
 AVeyraPlayerController* UVeyraSmokeClientSubsystem::GetController() const
@@ -93,12 +117,12 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 
 	AVeyraPlayerController* Controller = GetController();
 	const AVeyraGameState* GameState = GetGameState();
-	// A client that fails to connect falls back to a local game on the default map, which would
-	// pass every step below; only a networked client counts.
+	// Only a networked client counts. A local game would pass every step below: a client that joins
+	// through the handoff starts in one, and a client whose connection fails falls back to one (the
+	// failure handlers fail the script then).
 	if (GameState && GameState->GetNetMode() != NM_Client)
 	{
-		Finish(false, TEXT("the client is not connected to a server; it is running a local game"));
-		return false;
+		return true;
 	}
 	const AVeyraVanguardCharacter* Vanguard = Controller ? Controller->GetVanguard() : nullptr;
 	if (!Controller || !GameState || !Vanguard)
@@ -195,7 +219,24 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	case EStep::WaitForResume:
 		if (!World->IsPaused() && !GameState->IsMatchPaused())
 		{
-			Finish(true, TEXT("the Vanguard moved, its Q ability hit the enemy, and the match paused and resumed"));
+			AfterScript(TEXT("the Vanguard moved, its Q ability hit the enemy, and the match paused and resumed"));
+		}
+		break;
+
+	case EStep::WaitToBeHit:
+		// Ending the match only after the enemy's cast has landed lets both clients finish their script.
+		if (const UAbilitySystemComponent* OwnAbilities = Controller->GetPlayerState<AVeyraPlayerState>()->GetAbilitySystemComponent();
+			OwnAbilities->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) < OwnAbilities->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()))
+		{
+			Controller->RequestDeveloperEndMatch();
+			Advance(EStep::WaitForEnd, TEXT("the enemy's cast hit this Vanguard; asked to end the match"));
+		}
+		break;
+
+	case EStep::WaitForEnd:
+		if (GameState->GetPhase() == EVeyraMatchPhase::Ended)
+		{
+			Finish(true, ScriptSummary + TEXT("; the match ended"));
 		}
 		break;
 
@@ -214,7 +255,24 @@ void UVeyraSmokeClientSubsystem::AfterHit()
 	}
 	else
 	{
-		Finish(true, TEXT("the Vanguard moved, and its Q ability hit the enemy"));
+		AfterScript(TEXT("the Vanguard moved, and its Q ability hit the enemy"));
+	}
+}
+
+void UVeyraSmokeClientSubsystem::AfterScript(const TCHAR* Summary)
+{
+	ScriptSummary = Summary;
+	if (bEndMatch)
+	{
+		Advance(EStep::WaitToBeHit, TEXT("the script is done; waiting for the enemy's cast before ending the match"));
+	}
+	else if (bWaitForEnd)
+	{
+		Advance(EStep::WaitForEnd, TEXT("the script is done; waiting for the match to end"));
+	}
+	else
+	{
+		Finish(true, ScriptSummary);
 	}
 }
 
