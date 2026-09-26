@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Tuning conformance content shape",
+  "description": "Test-only schema for the second tuning conformance corpus: enum strings, content IDs and maps keyed by content ID. VeyraDeveloper binds it to FVeyraTuningContentTestShape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "target", "entries"],
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [1] },
+    "kind": { "type": "string", "enum": ["Alpha", "Beta"] },
+    "target": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+    "entries": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["weight"],
+          "properties": {
+            "weight": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

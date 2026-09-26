@@ -4,13 +4,20 @@
 
 #include "AbilitySystemInterface.h"
 #include "GameFramework/PlayerState.h"
+#include "Teams/VeyraTeam.h"
 
 #include "VeyraPlayerState.generated.h"
 
+class AVeyraVanguardController;
 class UAbilitySystemComponent;
+class UVeyraAbilityLoadoutComponent;
+class UVeyraCooldownComponent;
 class UVeyraDamageAbsorptionComponent;
 class UVeyraDefenceSet;
+class UVeyraLifeComponent;
+class UVeyraMobilitySet;
 class UVeyraOffenceSet;
+class UVeyraResourceSet;
 class UVeyraVitalsSet;
 
 /**
@@ -19,7 +26,7 @@ class UVeyraVitalsSet;
  * pawn is only the avatar (ADR-006 §4). AI-controlled Vanguards get one too.
  */
 UCLASS()
-class VEYRAMATCH_API AVeyraPlayerState : public APlayerState, public IAbilitySystemInterface
+class VEYRAMATCH_API AVeyraPlayerState : public APlayerState, public IAbilitySystemInterface, public IVeyraTeamMember
 {
 	GENERATED_BODY()
 
@@ -27,7 +34,28 @@ public:
 	AVeyraPlayerState(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
+	virtual EVeyraTeam GetVeyraTeam() const override { return Team; }
 	virtual void PostInitializeComponents() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	/** Server only: the GameMode assigns each participant a side once. */
+	void SetVeyraTeam(EVeyraTeam NewTeam);
+
+	/** Server only: the controller that moves this participant's Vanguard. It outlives each pawn. */
+	AVeyraVanguardController* GetVanguardController() const { return VanguardController; }
+	void SetVanguardController(AVeyraVanguardController* Controller) { VanguardController = Controller; }
+
+	/** Server only: whether the base stats have been set from data. They are set once per match. */
+	bool HasInitializedStats() const { return bStatsInitialized; }
+	void MarkStatsInitialized() { bStatsInitialized = true; }
+
+protected:
+	/**
+	 * The engine destroys a departing player's PlayerState. Veyra keeps it: the Vanguard stays in the
+	 * world with its Ability System Component (Match Flow Bible §4). Reconnecting to it arrives with
+	 * session identity (M4).
+	 */
+	virtual void OnDeactivated() override;
 
 private:
 	/** Replicated in Mixed mode: full effect data to the owning client, the minimum to everyone else. */
@@ -37,6 +65,16 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	TObjectPtr<UVeyraDamageAbsorptionComponent> DamageAbsorption;
 
+	UPROPERTY(VisibleAnywhere, Category = "Combat")
+	TObjectPtr<UVeyraLifeComponent> Life;
+
+	UPROPERTY(VisibleAnywhere, Category = "Abilities")
+	TObjectPtr<UVeyraAbilityLoadoutComponent> Loadout;
+
+	/** Here rather than on the pawn, so cooldowns keep running through death (Combat Bible §44). */
+	UPROPERTY(VisibleAnywhere, Category = "Abilities")
+	TObjectPtr<UVeyraCooldownComponent> Cooldowns;
+
 	UPROPERTY()
 	TObjectPtr<UVeyraVitalsSet> VitalsSet;
 
@@ -45,4 +83,18 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UVeyraDefenceSet> DefenceSet;
+
+	UPROPERTY()
+	TObjectPtr<UVeyraMobilitySet> MobilitySet;
+
+	UPROPERTY()
+	TObjectPtr<UVeyraResourceSet> ResourceSet;
+
+	UPROPERTY(Replicated)
+	EVeyraTeam Team = EVeyraTeam::None;
+
+	UPROPERTY(Transient)
+	TObjectPtr<AVeyraVanguardController> VanguardController;
+
+	bool bStatsInitialized = false;
 };

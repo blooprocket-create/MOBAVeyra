@@ -55,6 +55,24 @@ The Unreal project is **`Game/Veyra.uproject`**, a subdirectory beside `Backend/
 - Supported platforms: Win64 for Editor and Client; Linux and Win64 for Server. The Win64 server is a local debugging convenience only.
 - Build settings: `DefaultBuildSettings = BuildSettingsVersion.V7` and `IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8`. Both were verified as `Latest` in the 5.8.3-release engine source on 2026-09-25.
 - Nothing may force a *unique build environment* on the Editor target. On a source engine that silently rebuilds the whole engine (measured on this machine: several hours).
+- **Amendment (2026-09-26, M3): one known engine rebuild.**
+  - `Game/Scripts/Build.ps1` builds with `-NoEngineChanges`, which stops any build that would change an existing engine file.
+  - Whenever UnrealBuildTool regenerates the project's makefile (a plugin enabled, or a source file added or removed), UnrealHeaderTool can rewrite the engine's generated `NetCore.init.gen.cpp`. Only the package checksum changes, but NetCore then looks out of date.
+  - `Build.ps1` recognises exactly that case: every engine file the VeyraEditor build would change is NetCore's object, library or DLL, the version file, or a module manifest. It then builds again with the guard lifted and says so, which takes about 30 seconds. Any other engine change still stops the build.
+  - **Cause (investigated 2026-09-26): a race in UnrealHeaderTool's parallel parsing, inside the engine.** Veyra does not cause it; the engine's own editor target hits it too.
+    - UnrealHeaderTool parses headers in parallel. Each header's task first reads its file, which clears that header's export flags, then parses it.
+    - Parsing an `#include` of another header in the same module marks the included header as referenced (`UhtHeaderFile.cs`, where Epic calls it a compatibility hack). If the included header's own read runs later, the mark is lost.
+    - A header with no reflected types counts toward its module's package checksum only while it carries that mark. NetCore's `PushModel.h` is one: its only `UCLASS` and `USTRUCT` markup is an example inside `#if 0`, and `FastArraySerializer.h` includes it.
+    - So each run gives NetCore one of two checksums, depending on thread timing: 0xFC36040C with `PushModel.h` counted, 0x7A7616C1 without it. When the result differs from the file on disk, UnrealHeaderTool rewrites the file. It only runs over the engine's modules when the makefile is regenerated, which is why the rebuild follows those events.
+    - **Evidence:**
+      - Nine UnrealHeaderTool runs in reference mode, which writes nothing to the engine. Single-threaded runs always gave 0x7A7616C1. Parallel runs gave either value, with the Veyra editor manifest and with the engine's own.
+      - Recomputing the checksum from the generated files with the engine's hashing library reproduced both values exactly.
+    - The checksum only versions the package for hot reload, so the rewrite changes nothing at runtime.
+  - **The fix is the narrow allowance above.** No build setting avoids the race:
+    - UnrealBuildTool cannot run UnrealHeaderTool single-threaded in a normal build. It passes extra arguments to UnrealHeaderTool only for one unrelated target setting.
+    - Target settings would give VeyraEditor its own build environment, which this section forbids.
+    - Patching UnrealHeaderTool would mean modifying the engine.
+  - **IrisCore has the same exposure.** Its `NetSerializer.h` has no reflected types, and 19 IrisCore headers include it. A flip there is unlikely, because any of those headers parsed after it restores the mark. The allowance does not cover IrisCore, so if it happens the build stops and is reported.
 
 ### 3. Modules
 
@@ -73,6 +91,19 @@ Modules are created **only when they receive real content**, as Project Structur
   - `VeyraMatch` arrives in M2 holding only `AVeyraPlayerState`, so the ASC lives on the PlayerState from the start (§4). The GameMode and GameState follow in M3.
   - `VeyraAbilities` moves to M3, with the first ability. M2 gives it no real content: a stock ASC suffices, and the one Veyra rule the ASC needs (§4's modifier policy) installs as an application query.
   - The layer map is Foundation (`VeyraCore`) → Rules (`VeyraCombat`) → Orchestration (`VeyraMatch`) → Composition (`Veyra`, sealed) → Developer (`VeyraDeveloper`, sealed). M3 inserts a layer for `VeyraAbilities` between Rules and Orchestration.
+- **Amendment (2026-09-26, M3):**
+  - `VeyraAbilities` arrives in its own Abilities layer. It needs no ASC subclass. A stock ASC is enough, because Veyra's base ability class supplies costs, cooldowns and validation through GAS's virtual hooks.
+  - It holds:
+    - the base ability class and the first archetype (targeted damage);
+    - the cooldown ledger (§4) and the loadout component, which maps each ability slot to a content ID;
+    - `VeyraAbilities::TryCast`, the one entry point for a cast;
+    - the Abilities tuning domain.
+  - Projectiles and target shapes arrive with their first abilities.
+  - `VeyraMatch` gains:
+    - the GameMode, GameState and PlayerController;
+    - the Vanguard character and the server-only controller that moves it (§7);
+    - team starts;
+    - the runtime input and camera settings.
 - Later modules (Economy, Items, Flux, World, Vision, Vanguards, UI, a trusted-services client) follow Project Structure as their first feature lands.
 - **The layer graph is enforced by a check, not just by convention.** A repository script reads every `*.Build.cs`, compares the dependencies against a declared layer map, and fails on an upward, sideways or circular edge. It runs in GitHub Actions without Unreal, alongside the existing documentation check.
 
@@ -101,6 +132,34 @@ Modules are created **only when they receive real content**, as Project Structur
   - **Shields and Temporary Health** are not attributes. They are a Combat-owned replicated ledger kept in step with their effects, because canon orders them by category and age (Combat §7).
   - **Health** is written only by the vitals set. The damage execution computes §25 steps 2–6 through Combat's resolver and outputs the meta attributes; the vitals set passes them through shields and Temporary Health before Health.
 - **Gold, XP, levels, skill points, inventory and Team Flux are not GAS attributes.** They stay with their own owners (ADR-002).
+- **Amendment (2026-09-26, M3): cooldowns, costs, death and casting.**
+  - **Cooldowns are a Veyra ledger, not Gameplay Effects.**
+    - `UVeyraCooldownComponent` (`VeyraAbilities`) sits on the PlayerState. For each ability content ID it records when the ability is ready (in world time) and the base duration the cooldown started with.
+    - It replicates to the owner and to replays.
+    - It counts in server world time. A client's own world clock starts when it loads the map, so a client reads the ledger against its game state's synchronized estimate of the server's clock.
+    - It plugs into GAS through `CheckCooldown`, `ApplyCooldown` and `GetCooldownTimeRemainingAndDuration`, so `CommitAbility` stays the single commit point.
+    - **Why:** these rules are simpler on a ledger than on active effects:
+      - rescaling running cooldowns in proportion when Ability Haste changes, with separate haste pools and refunds (Combat §21);
+      - the 20% cooldown on an interrupted cast (§26);
+      - death cleanup (§44).
+    - Living on the PlayerState, the ledger survives death, and it freezes during a pause (§8).
+  - **Costs.**
+    - `UVeyraResourceSet` (`VeyraCombat`) holds `Resource`, `MaxResource` and a `ResourceSpend` meta attribute.
+    - `Resource` is written only by its set, like Health. Spending goes through a Veyra execution on the §41 allow-list.
+    - Only the standard family (Mana, Combat §58) is data-backed so far. Focus, Charge and no-resource arrive with their first Vanguard.
+  - **Death.**
+    - Combat owns a replicated life state, `UVeyraLifeComponent` (Alive or Dead), on the PlayerState. There is no `Status.Dead` tag, because canon defines no such status and tags come only from closed canon lists (Project Structure §5).
+    - Lethal damage finalizes the death, removes temporary effects (§44) and broadcasts an `FVeyraDeathEvent` through `UVeyraCombatEventSubsystem`.
+    - `VeyraMatch` subscribes to that event. It removes the body, and after a placeholder delay from `Match.json` it revives the participant and spawns a new body at its side's start. A delay of 0 respawns at once. The canon respawn curve is still open (Battleground §16).
+    - The Vanguard's controller outlives each body. The engine would otherwise destroy it with the body, because it has no PlayerState of its own.
+  - **Casting.**
+    - The client sends a cast intent: a slot and a target actor.
+    - The match checks the phase and the pause, then calls `VeyraAbilities::TryCast`.
+    - `TryCast` runs the ability's validator: the ability is known, the caster is alive, it is off cooldown, the caster can pay, and the target is valid.
+    - An ability against enemies needs a target on the opposing side. Allies are refused, and so is anything on no side, because neutral units are explicit targeting categories, never implicit enemies (Combat §29).
+    - It then activates the ability through a gameplay event whose target the server fills in. The ability checks its target again, and `CommitAbility` pays the cost and starts the cooldown.
+    - Refusals go back to the owning client with a reason.
+    - No client target data is involved (§7), so the target-data spike (§5) concerns later ability kinds.
 
 ### 5. Networking
 
@@ -122,6 +181,94 @@ Modules are created **only when they receive real content**, as Project Structur
   2. Confirm the known GAS target-data issue UE-365455 and its workaround.
   3. Measure bandwidth and server cost with a full lane population.
   - If a spike fails, the fallback is the legacy replication system with Replication Graph. Choosing it needs a deliberate amendment.
+- **Amendment (2026-09-26, M3): how Iris expresses the per-player fog gate** (accepted by the author, 2026-09-26). The evidence is `Veyra.Net.FogGate`, which uses three players so that one side has two.
+  - **Units are hidden by default.** Every fog-gated unit uses the engine's filter-out dynamic filter (`NotRouted`), so no client receives it. Inclusion groups, which Iris applies after dynamic filters, open it up:
+    - one group per side, allowed for that side's connections, holding the side's own units;
+    - one group per observer, allowed only for that observer's connection, holding the enemy units that player currently sees.
+  - **Vision writes both kinds of group.**
+    - Shared team vision adds a sighting to every teammate's observer group.
+    - A Dense Fog sighting goes only into the groups of observers inside the same fog volume.
+    - A unit leaving a player's groups is destroyed on that player's client. In the test, the observer's teammate never received the sighted enemy.
+  - **Data on the always-relevant PlayerState is hidden the same way.** The attribute sets, and later any other per-participant data a fogged enemy must not reveal, replicate with `COND_NetGroup`.
+    - Iris sends a `COND_NetGroup` subobject to a connection only through a group that allows it, so this too is deny-by-default.
+    - Each participant has one net condition group. Its teammates and current observers are members (`APlayerController::IncludeInNetConditionGroup`), and its owner receives the data through the engine's owner group.
+    - An observer who loses sight keeps the value it last saw. GAS on the clients raised no warnings.
+  - **Why not one exclusion group per observer.** Exclusion groups allow everything by default, so a unit Vision forgot would leak. Filter-out plus inclusion groups deny by default.
+  - **What production needs, with Vision:**
+    - **Register before the first send.** GAS registers attribute sets for every connection. The spike re-registered them while replicating; production registers them with `COND_NetGroup` before the first send, through an ASC subclass hook.
+    - **Push memberships to Iris explicitly.** A subobject's net condition groups reach Iris only when game code calls `FReplicationSystemUtil::UpdateSubObjectGroupMemberships` after registering it.
+    - **Replays.** The replay driver uses legacy replication and ignores Iris filters. Gated subobjects also join the replay group so replays record them.
+    - **Subobjects need net condition groups.** Iris ignores subobjects in inclusion groups, so subobject gating always uses net condition groups.
+  - Presence pings and outlines remain separate channels (Vision §2, §4).
+- **Amendment (2026-09-26, M3): GAS target data under Iris.** The evidence is `Veyra.Net.TargetData`. UE-365455 does not appear in the 5.8.3 source, so the spike tested the behaviour directly.
+  - **A client cannot start a GAS ability under §7's control model.**
+    - GAS silently refuses to activate an ability on a machine where the avatar is a simulated proxy.
+    - A Vanguard possessed by its server-side controller is a simulated proxy on its owning client.
+    - So neither GAS prediction nor GAS client target data is available until a prediction ruling for some ability category changes who owns the pawn on that client.
+    - Veyra's casts do not need either: intents travel through the PlayerController, and the server fills the gameplay event (§4).
+  - **Target data made of reflected properties crosses Iris intact**, sent through the ASC's server RPC.
+  - **Iris ignores a struct's own `NetSerialize`.**
+    - Without an Iris NetSerializer, Iris sends the struct's reflected properties and warns that it is "generating descriptor for struct … that has custom serialization".
+    - A field only `NetSerialize` wrote arrived as zero.
+    - **Rule:** every Veyra replicated struct, target data included, is plain reflected properties, or it gets an Iris NetSerializer. The spike's `NetSerialize` struct was removed after the run, because its warning appeared in every development build.
+  - **Modules that load after replication starts.**
+    - GAS rebuilds its polymorphic target-data type table whenever modules finish loading. Iris warns when that happens while a replication system exists, because a client and server could then disagree on type indices.
+    - The packaged server loads its map during engine start-up. `AutomationWorker` and `AutomationController` (non-Shipping only) and `PerfCounters` load after that, so every server logs the warning.
+    - None of those modules registers replicated types, so the warning is harmless today, but it would hide a real case.
+    - **Fixed (2026-09-26).**
+      - The composition root loads those modules, plus the on-demand `PerfCounters`, `Voice` and replay file writer (`LocalFileNetworkReplayStreaming`), when the engine finishes initializing, before it starts and loads the first map.
+      - Since then the packaged server and both packaged clients log no warning at all, and Iris reports that no module loaded late.
+      - The network tests no longer preload modules themselves.
+- **Amendment (2026-09-26, M3): a server replay alongside Iris works.** The evidence is `Game/Scripts/Smoke.ps1 -RecordReplay`.
+  - **Recording.**
+    - The containerised server records when its map URL carries `?DemoRec=<name>`.
+    - The replay driver uses the legacy ("Generic") replication model while the game driver runs Iris, as `BaseEngine.ini` configures.
+    - The 26-second smoke match produced a 30 KB replay.
+  - **Playback.** A packaged client played the replay back. It showed both Vanguards, movement, the cast's damage and the match pause. The server, both clients and the playback logged no warnings or errors.
+  - **The pause stops playback.**
+    - The engine advances replay time only while the world has no pauser, and a replay records the match's world pause. Played as-is, a replay stops for good at the first pause.
+    - A viewer clears the recorded pauser and plays on. The match's own pause still reaches the replay through `AVeyraGameState`, so the replay can still show the match as paused.
+    - The Veyra replay viewer must do the same. The smoke check does it already.
+  - **Recording found a bug, now fixed.**
+    - The replay recorder's spectator has a PlayerState, and the GameMode tried to spawn it a Vanguard.
+    - Only players given a side are now participants.
+    - The smoke test now fails on any Veyra error in the server log.
+  - **Container.** The image creates `Saved/Demos`, which the engine checks before it writes the first replay.
+  - **Cost at two players.**
+    - Server busy time is about 1.1 ms per frame with or without recording, at the 30 Hz tick.
+    - The replay grows by 0.3–0.6 KB/s, against 1.4–2.1 KB/s sent to each client.
+    - The bandwidth spike measures recording again under a full lane population.
+  - **Not decided here.** The recording format and what the replay product needs wait for their own design pass (Replay §9).
+- **Amendment (2026-09-26, M3): bandwidth and server cost with a full lane population.** The evidence is `Game/Scripts/Smoke.ps1` with `-LoadTestBots 8 -LoadTestStandIns <n> -NetStatsSeconds 5 -ClientStaySeconds 30`.
+  - **Setup.**
+    - Ten Vanguards: the two smoke clients and eight bots, which wander the lanes.
+    - Lane stand-ins at 0, 72 and 162. Canon gives no wave counts yet, so these bracket plausible populations: 72 is six per wave with two waves alive per side per lane, and 162 is nine per wave with three waves alive.
+    - The stand-ins are replicated characters that walk three lanes on the server, with no gameplay.
+    - Every unit is visible to every client, because nothing uses the fog gate yet, so these are upper bounds.
+    - Figures are steady-state averages over 30 seconds on the containerised Linux server, measured by `VeyraNetStats`.
+  - **Results** at the engine's default update rate for characters:
+
+    | Lane stand-ins | Replicated actors | Server busy per frame | Sent to each client | Replay |
+    |---|---|---|---|---|
+    | 0 | 26 | 1.2 ms | 3.2 KB/s | — |
+    | 72 | 98 | 2.0 ms | 26.8 KB/s | — |
+    | 162 | 188 | 3.0 ms | 63.3 KB/s | — |
+    | 162, recording | 191 | 3.3 ms | 64.9 KB/s | 39 KB/s |
+
+  - **What this means.**
+    - **Server time is not the limit.** 162 moving units cost about 3 ms of the 33 ms frame at the 30 Hz tick. Recording a replay adds about 0.3 ms.
+    - **Bandwidth is the limit.** It grows linearly, by about 0.37 KB/s per moving unit per client at the default update rate. At 162 units a client receives about 63 KB/s, two-thirds of the engine's default configured client rate (100,000 bytes/s). Whether Iris throttles at that rate was not tested.
+    - **Replays grow with the population.** At 162 units a replay grows by about 2.4 MB a minute.
+  - **The levers**, for the milestone that builds lanes:
+    - a lower network update rate for lane units (measured below);
+    - the fog gate, since a client receives only what its player sees;
+    - dormancy for units that stand still.
+  - **The update rate, measured with 162 stand-ins** (`-LoadTestStandInHz`):
+    - **10 Hz:** 23.2 KB/s per client, 63% less than the default, and 2.7 ms of server time per frame.
+    - **20 Hz:** 63.0 KB/s, the same as the default.
+    - The server ticks at 30 Hz, so the default rate is effectively capped at 30 updates a second. A 20 Hz request apparently rounded to every frame, while 10 Hz is every third frame.
+    - Lane units' update rates must therefore be chosen as whole fractions of the server tick. They become lane tuning when lanes arrive.
+  - **Clean logs.** Across all six runs, including 191 replicated actors while recording, the server, the clients and replay playback logged no warnings or errors, and playback showed all ten Vanguards.
 
 ### 6. Tuning data
 
@@ -165,17 +312,64 @@ Modules are created **only when they receive real content**, as Project Structur
 - **Content IDs.** Lowercase ASCII snake_case (`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`), matching the Vanguard and backend identifiers. The `FVeyraContentId` type arrives with the first tuning that references content.
 - **First schema.** Combat's resistance mitigation constant (Combat §3), which the author ruled to be tuning data.
 
+**Amendment (2026-09-26, M3): content in tuning, the connect-time hash, and staging verified.**
+
+- **The dialect grows for content.** Both validators implement these additions, and the shared corpus covers them.
+  - **String enums** bind to `enum class` UENUMs by their short C++ names. The schema's `enum` must list exactly the UENUM's values. `EVeyraDamageType` is now a UENUM; its true-damage value is spelled `TrueDamage` because UnrealHeaderTool forbids `True`.
+  - **Content IDs.** `FVeyraContentId` (`VeyraCore`) wraps a name checked against the canonical pattern. A string schema whose `pattern` is exactly that pattern binds to it.
+  - **Content-keyed maps.** An object with a single `patternProperties` entry (the canonical pattern) and `additionalProperties: false` binds to `TMap<FVeyraContentId, FStruct>`. `Abilities.json` uses one: `targetedDamage` is keyed by ability ID.
+  - **Cross-file references**, which a schema cannot express, are checked in two places:
+    - the loading domain checks them in the game (Match checks that its developer loadout's `abilityQ` is defined in `Abilities.json`);
+    - `scripts/check_tuning.py` keeps a small reference table.
+- **The hash, compared on connect.**
+  - Each domain logs its BLAKE3 hash when it loads.
+  - The composite hash is BLAKE3 over the sorted `domain=hash` lines of every loaded domain, so no domain can be left out.
+  - A client sends it as a login option (`?VeyraTuning=`). `AVeyraGameMode::PreLogin` refuses a missing or different hash.
+  - An editor-build client and the packaged Linux server matched in the container smoke test.
+- **Staging verified.** `Game/Scripts/Package.ps1` lists the packaged server's pak and fails unless every `Game/Tuning` file is in it.
+
 ### 7. Movement
 
 - Vanguards use **CharacterMovementComponent**, driven by server-validated move orders with pathfinding. Mover remains Experimental in 5.8 and is not approved under ADR-001.
 - The client prediction policy for movement and each ability category is decided in M3 and later milestones, not here (Architecture §12).
 - Movement for Fluxborn and other high-count units is decided when lanes are built. Mass replication is not a candidate in 5.8.
+- **Amendment (2026-09-26, M3): server-only movement and casting, with no client prediction** (author ruling, 2026-09-25).
+  - **Intents.** A client sends intents: a move destination, or a cast slot and target. The server validates each one and acts on it. Every client, the owner included, shows the smoothed replicated result.
+    - A click sends a reliable move order. Holding the button re-aims it at the input settings' held-order interval through an unreliable RPC: each update replaces the last, so a lost one must not hold up the reliable cast and pause requests behind it.
+  - **Who moves the Vanguard.** A server-only `AVeyraVanguardController` (an AI controller) possesses each Vanguard and moves it with pathfinding. It stays the pawn's owner, so no client can send CharacterMovement moves for it.
+  - **The PlayerController possesses nothing.** It sends the player's intents and views the Vanguard. While pawn-less it is hardened:
+    - no default or spectator pawn;
+    - no restart and no spectating;
+    - on the server, its view point is the Vanguard, because Iris uses the view point.
+  - **After each possession**, the pawn carries the human's PlayerState, so the ASC's avatar is the pawn.
+  - **Order checks** run in this order:
+    - a rate limit from `Match.json`, whose held-click repeat stays below it;
+    - the match phase and the pause;
+    - for moves, a destination that projects onto the navmesh within a tuned distance.
+  - **Preparation refuses every order** until base geometry exists. This is a recorded deviation from Match Flow §1.3, which allows movement inside the fountain.
+  - **Later ability categories** decide their prediction one by one (Architecture §12).
 
 ### 8. Pause and the gameplay clock
 
 - Match Flow §10.2 requires every gameplay timer to freeze while the network, chat and votes keep running.
 - M3 prototypes Unreal's world pause, which stops world time and the timers GAS durations use, against an automated test covering every timer category the bible lists.
 - If world pause cannot meet the rule, a Veyra-owned gameplay clock is introduced instead. That choice is recorded as an amendment.
+- **Amendment (2026-09-26, M3): world pause meets the rule, so there is no Veyra gameplay clock.**
+  - **The test.** `Veyra.Net.MatchPause` pauses a live match on a dedicated server with two clients, under Iris.
+  - **What stops:** Gameplay Effect durations (a shield), world timers, world time and the match clock, and movement. Every timer category in Match Flow §10.2 runs on one of these:
+    - cooldowns and buffs on effect durations or world time;
+    - respawn, buyback, spawn and penalty clocks on world timers;
+    - the match clock on world time;
+    - movement, regeneration and combat on actor ticks.
+  - **What keeps running:** replication (an actor spawned and changed during the pause reaches both clients), real time, and the server's refusal of orders while paused.
+  - **Resuming:** every clock continues from its saved value.
+  - **The rule that follows.** Every gameplay timer uses world time or the world's timer manager, never real time. The only exception is the real-time intermission countdown.
+  - **How clients learn of it.** `AVeyraGameState` replicates the pause and holds the client's match clock still.
+  - **In-process tests cannot show a client's own world pausing.** The engine carries that through the map's WorldSettings, and in-process play sessions replicate no map-placed actor, under Iris or the legacy system.
+  - **Update (2026-09-26): covered across processes.**
+    - `Game/Scripts/Smoke.ps1` has a client request a pause and checks that its own world stops, then starts again on resume.
+    - It passed against the containerised Linux server and against a local editor-build server.
+    - `Veyra.Net.MatchPause` now also checks that the cooldown ledger freezes, on the server and in the owner's view.
 
 ### 9. Source control
 
@@ -194,6 +388,21 @@ Modules are created **only when they receive real content**, as Project Structur
   - Network and headless-match tests use CQTest's PIE networking first and Gauntlet later (Architecture §7).
 - **Builds and tests are driven by versioned PowerShell scripts** in `Game/Scripts/`, so a human, a coding agent and the future self-hosted runner run the same commands (AGENTS.md: "Prefer command-line builds/tests").
 - **Code follows Epic's C++ coding standard** with a `Veyra` class prefix, include-what-you-use and zero compiler warnings in Veyra modules.
+- **Amendment (2026-09-26, M3): packaging, the container and the smoke test.**
+  - **Packaging.** `Game/Scripts/Package.ps1` wraps `RunUAT BuildCookRun` for a target already built by `Build.ps1`. It never passes `-build`, so the `-NoEngineChanges` guard (§2) still holds.
+  - **The match server image** (ADR-005 step 2) is `Game/Docker/Server/Dockerfile`:
+    - it builds from the packaged Linux server;
+    - a `debian:12-slim` stage fails the build if `ldd` reports a missing library;
+    - the final image is distroless `cc-debian12:nonroot`.
+  - **The container** is the `match-server` service in the root `compose.yaml`. It runs only with its compose profile and publishes `127.0.0.1:7777/udp`.
+  - **Direct connect is for development only.** Shipping builds refuse every login until M4's match-join contract.
+  - **The smoke test.** `Game/Scripts/Smoke.ps1` starts the server and two headless clients with `-VeyraSmoke`. Each client moves its Vanguard and casts its Q ability at the other. The first client also pauses and resumes the match.
+    - A client's result is the verdict line it logs. On Windows a clean engine exit always returns 0, so a client's exit code only catches crashes.
+    - `-Server Editor` swaps the container for a local editor-build server when Docker is unavailable.
+    - `-RecordReplay` has the container record the match, then plays the replay back with `-VeyraReplayCheck`. `-NetStatsSeconds` has the server log network statistics.
+    - Any Veyra error in the server log fails the test.
+    - It has passed against the container with packaged Win64 clients and with editor-build clients. Clients and server must come from the same source: the target-data spike showed that their polymorphic type tables otherwise differ.
+  - **Docker Desktop must forward UDP both ways.** Version 4.48.0 on this machine delivered packets into the container but dropped its replies, so clients timed out. Version 4.92 works.
 
 ## Milestones
 
@@ -206,7 +415,7 @@ Each milestone is one branch and one pull request. It is built on the Windows ma
    - Scope: the tuning framework with its first schemas, `VeyraCombat`, the ASC on the PlayerState (in `VeyraMatch`), the Attribute Sets, and the canonical damage pipeline for Combat §3 and §25. `VeyraAbilities` moved to M3 (§3 amendment).
    - Done when the mitigation, penetration, shield and stacking rules pass automated tests, and Editor Win64, Client Win64 and Server Linux build with zero warnings.
 3. **M3 — Match and network.**
-   - Scope: `VeyraAbilities`, the rest of `VeyraMatch`, Iris, click-to-move Vanguards, a grey-box test map, the Linux server in Docker with dev-only direct connect (ADR-005 step 2), and the three spikes in §5 and §8.
+   - Scope: `VeyraAbilities`, the rest of `VeyraMatch`, Iris, click-to-move Vanguards, a grey-box test map, the Linux server in Docker with dev-only direct connect (ADR-005 step 2), the spikes in §5 and §8, and deciding how Iris expresses the per-player fog gate.
    - Done when two clients play against the containerised server and a server-validated test ability passes an automated network test.
 4. **M4 onward.**
    - Session handoff from the game side (ADR-005 step 3), which needs the backend's match-join contract first.

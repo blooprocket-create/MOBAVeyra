@@ -20,6 +20,11 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "VeyraAbilities",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "VeyraMatch",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
@@ -37,6 +42,10 @@
 		},
 		{
 			"Name": "GameplayAbilities",
+			"Enabled": true
+		},
+		{
+			"Name": "Iris",
 			"Enabled": true
 		}
 	]

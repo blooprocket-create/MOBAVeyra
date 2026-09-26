@@ -50,7 +50,7 @@ namespace VeyraCombatTests
 			Defence.MagicResist = 100.0;
 			Defence.IncomingDamageMultiplier = 0.5;
 
-			const FVeyraMitigatedDamage Result = Resolve({ { EVeyraDamageType::True, 100.0 } }, Offence, Defence);
+			const FVeyraMitigatedDamage Result = Resolve({ { EVeyraDamageType::TrueDamage, 100.0 } }, Offence, Defence);
 			ASSERT_THAT(IsTrue(Result.Components[0].Amount == 100.0, TEXT("True Damage changed")));
 		}
 
@@ -61,7 +61,7 @@ namespace VeyraCombatTests
 			Defence.MagicResist = 0.0;
 
 			const FVeyraMitigatedDamage Result = Resolve(
-				{ { EVeyraDamageType::Physical, 100.0 }, { EVeyraDamageType::Magic, 100.0 }, { EVeyraDamageType::True, 50.0 } },
+				{ { EVeyraDamageType::Physical, 100.0 }, { EVeyraDamageType::Magic, 100.0 }, { EVeyraDamageType::TrueDamage, 50.0 } },
 				FVeyraAttackerOffence(), Defence);
 			ASSERT_THAT(AreEqual(3, Result.Components.Num()));
 			ASSERT_THAT(IsNear(50.0, Result.Components[0].Amount, Tolerance));
@@ -84,7 +84,7 @@ namespace VeyraCombatTests
 
 			ASSERT_THAT(IsTrue(Resolve({ { EVeyraDamageType::Physical, 100.0 } }, NoAmplification, FVeyraDefenderDefence()).Components[0].Amount == 0.0));
 			ASSERT_THAT(IsTrue(Resolve({ { EVeyraDamageType::Magic, 100.0 } }, FVeyraAttackerOffence(), NegativeReduction).Components[0].Amount == 0.0));
-			ASSERT_THAT(IsTrue(Resolve({ { EVeyraDamageType::True, -5.0 } }, FVeyraAttackerOffence(), FVeyraDefenderDefence()).Components[0].Amount == 0.0));
+			ASSERT_THAT(IsTrue(Resolve({ { EVeyraDamageType::TrueDamage, -5.0 } }, FVeyraAttackerOffence(), FVeyraDefenderDefence()).Components[0].Amount == 0.0));
 		}
 
 		TEST_METHOD(ResultsAreNotRounded)

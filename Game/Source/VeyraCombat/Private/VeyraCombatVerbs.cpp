@@ -5,8 +5,12 @@
 #include "AbilitySystemComponent.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "Attributes/VeyraAttributePolicy.h"
+#include "Attributes/VeyraMobilitySet.h"
+#include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Effects/VeyraCombatEffects.h"
+#include "Effects/VeyraResourceSpendExecution.h"
+#include "Life/VeyraLifeComponent.h"
 #include "Tags/VeyraHealthTags.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatTagMapping.h"
@@ -64,8 +68,88 @@ bool InitializeVitals(UAbilitySystemComponent& AbilitySystem, double MaxHealth)
 	return true;
 }
 
+bool InitializeMoveSpeed(UAbilitySystemComponent& AbilitySystem, double MoveSpeed)
+{
+	if (!AbilitySystem.GetSet<UVeyraMobilitySet>() || !IsPositiveFinite(MoveSpeed))
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to initialize Move Speed on %s with %g: it needs a UVeyraMobilitySet and a finite speed above 0."),
+			*GetNameSafe(AbilitySystem.GetOwner()), MoveSpeed);
+		return false;
+	}
+	AbilitySystem.SetNumericAttributeBase(UVeyraMobilitySet::GetMoveSpeedAttribute(), static_cast<float>(MoveSpeed));
+	return true;
+}
+
+bool InitializeResource(UAbilitySystemComponent& AbilitySystem, double MaxResource)
+{
+	if (!AbilitySystem.GetSet<UVeyraResourceSet>() || !FMath::IsFinite(MaxResource) || MaxResource < 0.0)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to initialize the resource on %s with Max Resource %g: it needs a UVeyraResourceSet and a finite Max Resource of at least 0."),
+			*GetNameSafe(AbilitySystem.GetOwner()), MaxResource);
+		return false;
+	}
+	AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetMaxResourceAttribute(), static_cast<float>(MaxResource));
+	AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
+	return true;
+}
+
+bool CanAffordResource(const UAbilitySystemComponent& AbilitySystem, double Amount)
+{
+	return Amount <= 0.0 || (AbilitySystem.GetSet<UVeyraResourceSet>() && AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute()) >= Amount);
+}
+
+bool SpendResource(UAbilitySystemComponent& AbilitySystem, double Amount)
+{
+	if (!FMath::IsFinite(Amount) || Amount < 0.0)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused a resource cost of %g on %s: it must be finite and at least 0."), Amount, *GetNameSafe(AbilitySystem.GetOwner()));
+		return false;
+	}
+	if (!CanAffordResource(AbilitySystem, Amount))
+	{
+		return false;
+	}
+	if (Amount == 0.0)
+	{
+		return true;
+	}
+	const FGameplayEffectSpecHandle Spec = AbilitySystem.MakeOutgoingSpec(UVeyraResourceSpendEffect::StaticClass(), UnscaledEffectLevel, AbilitySystem.MakeEffectContext());
+	if (!Spec.IsValid())
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Could not create a resource cost for %s."), *GetNameSafe(AbilitySystem.GetOwner()));
+		return false;
+	}
+	Spec.Data->SetSetByCallerMagnitude(UVeyraResourceSpendExecution::ResourceCostName, static_cast<float>(Amount));
+	AbilitySystem.ApplyGameplayEffectSpecToSelf(*Spec.Data);
+	return true;
+}
+
+bool Revive(UAbilitySystemComponent& AbilitySystem)
+{
+	AActor* Owner = AbilitySystem.GetOwner();
+	UVeyraLifeComponent* Life = Owner ? Owner->FindComponentByClass<UVeyraLifeComponent>() : nullptr;
+	if (!Life || !Life->SetState(EVeyraLifeState::Alive))
+	{
+		return false;
+	}
+	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), AbilitySystem.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()));
+	if (AbilitySystem.GetSet<UVeyraResourceSet>())
+	{
+		AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
+	}
+	return true;
+}
+
 bool DealDamage(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraRawDamageEvent& Damage)
 {
+	const AActor* TargetOwner = Target.GetOwner();
+	const UVeyraLifeComponent* TargetLife = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraLifeComponent>() : nullptr;
+	if (TargetLife && !TargetLife->IsAlive())
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored damage to %s: its death is final."), *GetNameSafe(TargetOwner));
+		return false;
+	}
+
 	TArray<EVeyraDamageType, TInlineAllocator<3>> Types;
 	bool bValid = !Damage.Components.IsEmpty();
 	for (const FVeyraDamageComponent& Component : Damage.Components)

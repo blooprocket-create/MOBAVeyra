@@ -222,39 +222,57 @@ namespace VeyraCoreTests
 #if WITH_EDITOR
 		// These read files from the project folder, which exists only in editor builds.
 
-		TEST_METHOD(ConformanceCorpus)
+		/**
+		 * Runs one corpus from TestData against its schema, binding ShapeType, and returns every case
+		 * whose verdict differs from the corpus's, or a single problem with the corpus itself.
+		 */
+		template <typename ShapeType>
+		static TArray<FString> CorpusMismatches(const TCHAR* CorpusName)
 		{
-			// Same cases as tests/test_tuning.py, so the game and CI validators cannot drift apart.
 			const FString Directory = FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/VeyraDeveloper/TestData"));
 			FString CorpusText;
 			FString SchemaText;
-			ASSERT_THAT(IsTrue(FFileHelper::LoadFileToString(CorpusText, *FPaths::Combine(Directory, TEXT("TuningConformance.json")))));
-			ASSERT_THAT(IsTrue(FFileHelper::LoadFileToString(SchemaText, *FPaths::Combine(Directory, TEXT("TuningConformance.schema.json")))));
+			if (!FFileHelper::LoadFileToString(CorpusText, *FPaths::Combine(Directory, FString(CorpusName) + TEXT(".json")))
+				|| !FFileHelper::LoadFileToString(SchemaText, *FPaths::Combine(Directory, FString(CorpusName) + TEXT(".schema.json"))))
+			{
+				return { FString::Printf(TEXT("%s or its schema cannot be read."), CorpusName) };
+			}
 
 			TValueOrError<UE::Json::FDocument, UE::Json::FParseError> Corpus = UE::Json::Parse(CorpusText);
-			ASSERT_THAT(IsTrue(Corpus.HasValue(), TEXT("TuningConformance.json does not parse.")));
-			const TOptional<UE::Json::FConstObject> Root = UE::Json::GetRootObject(Corpus.GetValue());
-			ASSERT_THAT(IsTrue(Root.IsSet()));
-			const TOptional<UE::Json::FConstArray> Cases = UE::Json::GetArrayField(*Root, TEXT("cases"));
-			ASSERT_THAT(IsTrue(Cases.IsSet() && !Cases->Empty(), TEXT("The corpus has no cases.")));
+			const TOptional<UE::Json::FConstObject> Root = Corpus.HasValue() ? UE::Json::GetRootObject(Corpus.GetValue()) : TOptional<UE::Json::FConstObject>();
+			const TOptional<UE::Json::FConstArray> Cases = Root.IsSet() ? UE::Json::GetArrayField(*Root, TEXT("cases")) : TOptional<UE::Json::FConstArray>();
+			if (!Cases.IsSet() || Cases->Empty())
+			{
+				return { FString::Printf(TEXT("%s does not parse or has no cases."), CorpusName) };
+			}
 
 			TArray<FString> Mismatches;
 			for (const UE::Json::FValue& Case : *Cases)
 			{
-				ASSERT_THAT(IsTrue(Case.IsObject()));
-				const TOptional<FStringView> Name = UE::Json::GetStringField(Case.GetObject(), TEXT("name"));
-				const TOptional<FStringView> Document = UE::Json::GetStringField(Case.GetObject(), TEXT("document"));
-				const TOptional<bool> bValid = UE::Json::GetBoolField(Case.GetObject(), TEXT("valid"));
-				ASSERT_THAT(IsTrue(Name.IsSet() && Document.IsSet() && bValid.IsSet(), TEXT("A corpus case lacks name, document or valid.")));
-
-				FVeyraTuningTestShape Out;
+				const TOptional<FStringView> Name = Case.IsObject() ? UE::Json::GetStringField(Case.GetObject(), TEXT("name")) : TOptional<FStringView>();
+				const TOptional<FStringView> Document = Case.IsObject() ? UE::Json::GetStringField(Case.GetObject(), TEXT("document")) : TOptional<FStringView>();
+				const TOptional<bool> bValid = Case.IsObject() ? UE::Json::GetBoolField(Case.GetObject(), TEXT("valid")) : TOptional<bool>();
+				if (!Name.IsSet() || !Document.IsSet() || !bValid.IsSet())
+				{
+					Mismatches.Add(FString::Printf(TEXT("A case in %s lacks name, document or valid."), CorpusName));
+					continue;
+				}
+				ShapeType Out;
 				const VeyraTuning::FErrors Errors = VeyraTuning::ValidateAndBind(*Document, SchemaText, SchemaVersion, Out);
 				if (Errors.IsEmpty() != *bValid)
 				{
-					Mismatches.Add(FString::Printf(TEXT("'%s' should be %s: %s"), *FString(*Name),
+					Mismatches.Add(FString::Printf(TEXT("%s '%s' should be %s: %s"), CorpusName, *FString(*Name),
 						*bValid ? TEXT("valid") : TEXT("invalid"), *Describe(Errors)));
 				}
 			}
+			return Mismatches;
+		}
+
+		TEST_METHOD(ConformanceCorpus)
+		{
+			// Same cases as tests/test_tuning.py, so the game and CI validators cannot drift apart.
+			TArray<FString> Mismatches = CorpusMismatches<FVeyraTuningTestShape>(TEXT("TuningConformance"));
+			Mismatches.Append(CorpusMismatches<FVeyraTuningContentTestShape>(TEXT("TuningConformanceContent")));
 			ASSERT_THAT(IsTrue(Mismatches.IsEmpty(), FString::Join(Mismatches, TEXT(" || "))));
 		}
 

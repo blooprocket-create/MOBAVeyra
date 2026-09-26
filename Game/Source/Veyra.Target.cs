@@ -9,6 +9,7 @@ public class VeyraTarget : TargetRules
 	{
 		Type = TargetType.Game;
 		ApplySharedVeyraTargetSettings(this);
+		ApplyMonolithicVeyraTargetSettings(this);
 	}
 
 	/// <summary>
@@ -21,5 +22,17 @@ public class VeyraTarget : TargetRules
 		Target.DefaultBuildSettings = BuildSettingsVersion.V7;
 		Target.IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_8;
 		Target.ExtraModuleNames.Add("Veyra");
+	}
+
+	/// <summary>
+	/// Settings for the Game, Client and Server targets only. Each is monolithic and already has
+	/// its own build environment, so these cannot affect VeyraEditor, which must never receive
+	/// them.
+	/// </summary>
+	internal static void ApplyMonolithicVeyraTargetSettings(TargetRules Target)
+	{
+		// Push-model replication (ADR-006 §5). The engine compiles it only into editor builds
+		// unless a target asks for it.
+		Target.bWithPushModel = true;
 	}
 }

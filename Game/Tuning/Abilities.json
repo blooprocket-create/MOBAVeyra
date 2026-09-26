@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "targetedDamage": {
+    "test_bolt": {
+      "castRange": 550,
+      "cooldownSeconds": 4,
+      "resourceCost": 40,
+      "damageType": "Magic",
+      "damageAmount": 120
+    }
+  }
+}

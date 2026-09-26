@@ -20,6 +20,20 @@ struct FVeyraResistanceTuning
 	double MitigationConstant = 0.0;
 };
 
+/** Server-side checks of whether a target is valid and in range (Combat Bible §30, §40). */
+USTRUCT()
+struct FVeyraTargetingTuning
+{
+	GENERATED_BODY()
+
+	/**
+	 * Extra range, in units, the server allows on top of a cast range, so a target that just left
+	 * range on the caster's screen is still accepted (Combat Bible §30).
+	 */
+	UPROPERTY()
+	double ServerRangeTolerance = 0.0;
+};
+
 /** The Combat domain's tuning, bound from Game/Tuning/Combat.json (ADR-006 §6). */
 USTRUCT()
 struct FVeyraCombatTuning
@@ -31,4 +45,7 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraResistanceTuning Resistance;
+
+	UPROPERTY()
+	FVeyraTargetingTuning Targeting;
 };

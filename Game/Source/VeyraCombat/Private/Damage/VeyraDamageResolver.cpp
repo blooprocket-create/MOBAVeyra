@@ -34,7 +34,7 @@ FVeyraDamagePayload ApplySourceSide(const FVeyraRawDamageEvent& Raw, const FVeyr
 	{
 		const double Amount = NonNegative(Component.Amount);
 		// Generic amplification affects Physical and Magic Damage only (§15).
-		const double Amplified = Component.Type == EVeyraDamageType::True ? Amount : Amount * Amplification;
+		const double Amplified = Component.Type == EVeyraDamageType::TrueDamage ? Amount : Amount * Amplification;
 		Payload.Components.Add({ Component.Type, Amplified });
 	}
 	return Payload;
@@ -83,7 +83,7 @@ FVeyraMitigatedDamage ApplyTargetSide(const FVeyraDamagePayload& Payload, const 
 		case EVeyraDamageType::Magic:
 			Result = MitigateAgainst(Amount, Defence.MagicResist, Defence.MagicResistReduction, Payload.MagicPenetration, Tuning) * Reduction;
 			break;
-		case EVeyraDamageType::True:
+		case EVeyraDamageType::TrueDamage:
 			// True Damage skips resistance and generic reduction (§25 steps 5–6).
 			break;
 		}

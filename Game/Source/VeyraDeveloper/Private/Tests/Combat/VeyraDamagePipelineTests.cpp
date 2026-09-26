@@ -66,7 +66,7 @@ namespace VeyraCombatTests
 			Defender->SetNumericAttributeBase(UVeyraDefenceSet::GetMagicResistAttribute(), 50.0f);
 
 			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Attacker, *Defender,
-				Damage({ { EVeyraDamageType::Physical, 200.0 }, { EVeyraDamageType::Magic, 150.0 }, { EVeyraDamageType::True, 50.0 } }))));
+				Damage({ { EVeyraDamageType::Physical, 200.0 }, { EVeyraDamageType::Magic, 150.0 }, { EVeyraDamageType::TrueDamage, 50.0 } }))));
 			const double Expected = StartingMaxHealth - Mitigated(200.0, 100.0) - Mitigated(150.0, 50.0) - 50.0;
 			ASSERT_THAT(IsNear(Expected, Health(), Tolerance));
 		}
@@ -106,7 +106,7 @@ namespace VeyraCombatTests
 			const FActiveGameplayEffectHandle Grant = VeyraCombat::GrantTemporaryHealth(*Attacker, *Defender, 50.0, GrantSeconds);
 			ASSERT_THAT(IsTrue(Grant.IsValid()));
 
-			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Attacker, *Defender, Damage({ { EVeyraDamageType::True, 80.0 } }))));
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Attacker, *Defender, Damage({ { EVeyraDamageType::TrueDamage, 80.0 } }))));
 			ASSERT_THAT(IsNear(StartingMaxHealth - 30.0, Health(), Tolerance));
 			ASSERT_THAT(IsNull(Defender->GetActiveGameplayEffect(Grant), TEXT("The spent grant's effect is still active")));
 		}
@@ -116,7 +116,7 @@ namespace VeyraCombatTests
 			VeyraCombat::GrantShield(*Attacker, *Defender, EVeyraShieldCategory::Universal, 100.0, GrantSeconds);
 			Defender->AddLooseGameplayTag(VeyraTags::Status_Invulnerable);
 
-			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Attacker, *Defender, Damage({ { EVeyraDamageType::True, 300.0 } }))));
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Attacker, *Defender, Damage({ { EVeyraDamageType::TrueDamage, 300.0 } }))));
 			ASSERT_THAT(IsNear(StartingMaxHealth, Health(), Tolerance));
 			ASSERT_THAT(IsNear(100.0, Ledger().Shields[0].Remaining, Tolerance));
 		}
