@@ -2,9 +2,11 @@
 
 using UnrealBuildTool;
 
-// Presentation (ADR-008 §1; PROJECT_STRUCTURE.md "VeyraUI"): the grey-box presentation and the HUD.
-// It observes replicated gameplay state and draws it, and decides nothing. It sits in the
-// Presentation layer, above every gameplay module, and no gameplay module depends on it. It is
+// Presentation (ADR-008 §1, ADR-010 §4; PROJECT_STRUCTURE.md "VeyraUI"): the grey-box presentation,
+// the HUD, the shell's screens and the in-match menu. It observes replicated gameplay state and the
+// client-state coordinator's snapshot, asks through the coordinator's intents, and decides nothing.
+// Its menus are UMG widgets built in C++, with no widget Blueprints. It sits in the Presentation
+// layer, above every gameplay module and VeyraServices, and no gameplay module depends on it. It is
 // ClientOnly in Veyra.uproject, so servers neither build nor load it.
 public class VeyraUI : ModuleRules
 {
@@ -16,19 +18,24 @@ public class VeyraUI : ModuleRules
 			"CoreUObject",
 			"DeveloperSettings",
 			"Engine",
+			"InputCore",
+			"UMG",
 			"VeyraAbilities",
 			"VeyraCombat",
 			"VeyraCore",
 			"VeyraEconomy",
 			"VeyraMatch",
+			"VeyraServices",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
+			// The in-match menu's key, as an input action built at runtime.
+			"EnhancedInput",
 			"GameplayAbilities",
-			// The HUD names the player's ability keys.
-			"InputCore",
 			"RenderCore",
+			"Slate",
+			"SlateCore",
 			// The HUD names each Vanguard's resource.
 			"VeyraVanguards",
 		});

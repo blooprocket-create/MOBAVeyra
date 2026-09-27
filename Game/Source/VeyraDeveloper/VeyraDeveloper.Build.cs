@@ -49,6 +49,8 @@ public class VeyraDeveloper : ModuleRules
 		// only in client and editor builds.
 		if (Target.Type != TargetType.Server)
 		{
+			// The shell tests build the screens and menus, which are UMG widgets.
+			PrivateDependencyModuleNames.Add("UMG");
 			PrivateDependencyModuleNames.Add("VeyraUI");
 			PrivateDefinitions.Add("WITH_VEYRA_UI=1");
 		}

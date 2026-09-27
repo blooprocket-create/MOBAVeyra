@@ -20,8 +20,8 @@ class UNetDriver;
  * -VeyraLaunchCode=stdin (ADR-010 §2). It gives the flow the engine: the clock, standard input and
  * output, travel, and word of loaded worlds, match phases and failed connections.
  *
- * Presentation reads the snapshot, listens for changes, and asks through the intents; whether each
- * is allowed now is CanIssue's to say.
+ * Presentation reads the snapshot, listens for changes, and asks through the intents of GetClient;
+ * whether each is allowed now is CanIssue's to say.
  */
 UCLASS()
 class VEYRASERVICES_API UVeyraClientFlowSubsystem : public UGameInstanceSubsystem, public IVeyraClientFlowHost
@@ -33,23 +33,8 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	const FVeyraClientSnapshot& GetSnapshot() const { return Flow->GetSnapshot(); }
-
-	/** Broadcast after every change to the snapshot. */
-	FSimpleMulticastDelegate& OnChanged() { return Flow->OnChanged(); }
-
-	bool CanIssue(EVeyraClientIntent Intent) const { return Flow->CanIssue(Intent); }
-
-	double GetRemainingPickSeconds() const { return Flow->GetRemainingPickSeconds(); }
-
-	bool ChooseStarter(const FString& VanguardId) { return Flow->ChooseStarter(VanguardId); }
-	bool StartPractice() { return Flow->StartPractice(); }
-	bool HoverVanguard(const FString& VanguardId) { return Flow->HoverVanguard(VanguardId); }
-	bool LockVanguard(const FString& VanguardId) { return Flow->LockVanguard(VanguardId); }
-	bool Reconnect() { return Flow->Reconnect(); }
-	bool ContinueFromResults() { return Flow->ContinueFromResults(); }
-	bool Retry() { return Flow->Retry(); }
-	bool Quit() { return Flow->Quit(); }
+	/** What presentation, and scripts standing in for the player, may observe and ask. Valid while the subsystem is initialized. */
+	IVeyraClientIntents& GetClient() const { return *Flow; }
 
 private:
 	// IVeyraClientFlowHost

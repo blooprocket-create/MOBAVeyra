@@ -4,6 +4,7 @@
 
 #include "Backend/VeyraBackendTransport.h"
 #include "Client/VeyraClientFlowTypes.h"
+#include "Client/VeyraClientIntents.h"
 #include "Delegates/Delegate.h"
 #include "Handoff/VeyraPipeLineReader.h"
 #include "Templates/SharedPointer.h"
@@ -70,12 +71,12 @@ struct FVeyraClientFlowConfig
  * A failure shows as the snapshot's problem, with Retry when repeating the step can help. The flow
  * never quits by itself. It logs "VeyraClientFlow: ..." and never logs a credential.
  */
-class VEYRASERVICES_API FVeyraClientFlow
+class VEYRASERVICES_API FVeyraClientFlow final : public IVeyraClientIntents
 {
 public:
 	/** Backend and Host must outlive the flow. Callbacks that arrive after it is gone are ignored. */
 	FVeyraClientFlow(IVeyraBackendTransport& InBackend, IVeyraClientFlowHost& InHost, FVeyraClientFlowConfig InConfig);
-	~FVeyraClientFlow();
+	virtual ~FVeyraClientFlow() override;
 
 	FVeyraClientFlow(const FVeyraClientFlow&) = delete;
 	FVeyraClientFlow& operator=(const FVeyraClientFlow&) = delete;
@@ -89,29 +90,23 @@ public:
 	/** Reads the launch code and runs the waits that are due. The host calls it every frame. */
 	void Tick();
 
-	const FVeyraClientSnapshot& GetSnapshot() const { return Snapshot; }
-
-	/** Broadcast after every change to the snapshot. */
-	FSimpleMulticastDelegate& OnChanged() { return Changed; }
-
-	/** Whether the intent is allowed now. Presentation enables its controls by this. */
-	bool CanIssue(EVeyraClientIntent Intent) const;
-
-	/** Seconds left on the select's pick timer, by the backend's clock as last read. */
-	double GetRemainingPickSeconds() const;
+	// IVeyraClientIntents
+	virtual const FVeyraClientSnapshot& GetSnapshot() const override { return Snapshot; }
+	virtual FSimpleMulticastDelegate& OnChanged() override { return Changed; }
+	virtual bool CanIssue(EVeyraClientIntent Intent) const override;
+	virtual double GetRemainingPickSeconds() const override;
+	/** Each intent is refused, returning false, when CanIssue says no or its argument is not on offer. */
+	virtual bool ChooseStarter(const FString& VanguardId) override;
+	virtual bool StartPractice() override;
+	virtual bool HoverVanguard(const FString& VanguardId) override;
+	virtual bool LockVanguard(const FString& VanguardId) override;
+	virtual bool Reconnect() override;
+	virtual bool ContinueFromResults() override;
+	virtual bool Retry() override;
+	virtual bool Quit() override;
 
 	/** Which intents a state allows at all, before the snapshot's details: a pure table. */
 	static bool IsIntentAllowed(EVeyraClientState State, EVeyraClientIntent Intent);
-
-	/** Each intent is refused, returning false, when CanIssue says no or its argument is not on offer. */
-	bool ChooseStarter(const FString& VanguardId);
-	bool StartPractice();
-	bool HoverVanguard(const FString& VanguardId);
-	bool LockVanguard(const FString& VanguardId);
-	bool Reconnect();
-	bool ContinueFromResults();
-	bool Retry();
-	bool Quit();
 
 	/** The host loaded a world. */
 	void NotifyWorld(EVeyraClientWorld World);

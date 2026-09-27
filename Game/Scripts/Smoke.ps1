@@ -54,7 +54,7 @@
     instead: the first dev account's onboarding is reset, and one packaged client signs in through
     the launch handshake and runs -VeyraSmokeFlow=practice, which chooses a starter, starts practice,
     hovers and locks a Vanguard, ends the match as its host, checks the verified result and returns
-    to the shell. The backend creates the match from the select and starts its server; the same
+    to the shell, clicking the shell's and the in-match menu's buttons as a player would. The backend creates the match from the select and starts its server; the same
     checks as -Handoff -Practice follow. -Launcher Script means this script does the launcher's part:
     the dev login, the launch code and the handshake.
 
@@ -86,6 +86,7 @@
     Seconds each client stays connected after its script before quitting.
 .PARAMETER Screenshot
     Renders the second client and saves a screenshot of the grey-box presentation. Not with -Handoff.
+    With -Flow, the client renders in a window and saves each screen it passes, as Flow-<screen>.png.
 .PARAMETER Vanguards
     The Vanguards whose kits the clients play, one client each, from Vanguards.json. Not with -Handoff.
 .PARAMETER Practice
@@ -220,9 +221,9 @@ if ($Practice -and -not $Handoff) {
     Write-Host '-Practice plays a practice match through the handoff; add -Handoff.'
     exit $ExitInfrastructure
 }
-if ($Flow -and ($Handoff -or $kitMode -or $Clients -ne 'Packaged' -or $Server -ne 'Container' -or $urlOptions -or $ClientStaySeconds -gt 0 -or $Screenshot)) {
+if ($Flow -and ($Handoff -or $kitMode -or $Clients -ne 'Packaged' -or $Server -ne 'Container' -or $urlOptions -or $ClientStaySeconds -gt 0)) {
     # The backend creates the match and starts its server, as for -Handoff.
-    Write-Host '-Flow runs one packaged client against a container the backend starts, without -Handoff, -Vanguards or the replay, statistics, load-test, stay or screenshot options.'
+    Write-Host '-Flow runs one packaged client against a container the backend starts, without -Handoff, -Vanguards or the replay, statistics, load-test or stay options.'
     exit $ExitInfrastructure
 }
 
@@ -427,7 +428,9 @@ if ($Handoff -or $Flow) {
         # names ignore case, and that is the -Clients parameter.
         $handoffClients = foreach ($index in 0..($playerCount - 1)) {
             $log = Join-Path $reportDir "Client$($index + 1).log"
-            $clientArguments = @('-VeyraLaunchCode=stdin', '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
+            # With -Flow -Screenshot the client renders in a window and saves each screen it passes.
+            $clientArguments = @('-VeyraLaunchCode=stdin', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
+            $clientArguments += $(if ($Flow -and $Screenshot) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=`"$reportDir`"" } else { @('-nullrhi') })
             $clientArguments += $(if ($Flow) { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard") }
                 elseif ($isPractice) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeEndCustomMatch') }
                 elseif ($index -eq 0) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokePause', '-VeyraSmokeEndMatch') }
@@ -529,6 +532,20 @@ if ($Handoff -or $Flow) {
                 # The grey-box presentation must start in the packaged client (ADR-008 §1).
                 foreach ($uiError in @(Select-String -LiteralPath $client.Log -Pattern 'LogVeyraUI: Error: .*')) {
                     Write-Host "  Presentation error: $($uiError.Matches[0].Value)"
+                    $failed = $true
+                }
+            }
+        }
+
+        # -Flow -Screenshot: each screen the client passed was saved.
+        if ($Flow -and $Screenshot) {
+            foreach ($screen in 'StarterChoice', 'Home', 'Play', 'ChampionSelect', 'MatchMenu', 'Results') {
+                $shot = Join-Path $reportDir "Flow-$screen.png"
+                if (Test-Path -LiteralPath $shot) {
+                    Write-Host "Screenshot: $shot"
+                }
+                else {
+                    Write-Host "The client saved no screenshot of $screen."
                     $failed = $true
                 }
             }
