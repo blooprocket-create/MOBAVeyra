@@ -3,17 +3,16 @@
 #pragma once
 
 #include "Abilities/VeyraGameplayAbility.h"
-#include "Delivery/VeyraAreaDelivery.h"
 
-#include "VeyraAreaAbility.generated.h"
+#include "VeyraSkillshotAbility.generated.h"
 
 /**
- * The archetype for an ability that hits the enemies in shapes at the caster or a ground point
- * (ADR-008 §3): at once, after a telegraphed delay, or in channel ticks, in zones ordered innermost
- * first. Each ability of this kind is an entry in Abilities.json's area map.
+ * The archetype for an ability that fires a line projectile toward a ground point (ADR-008 §3). Its
+ * effects are prepared at Commit and land on what the projectile hits; terrain stops it (§9). Each
+ * ability of this kind is an entry in Abilities.json's skillshot map.
  */
 UCLASS()
-class VEYRAABILITIES_API UVeyraAreaAbility : public UVeyraGameplayAbility
+class VEYRAABILITIES_API UVeyraSkillshotAbility : public UVeyraGameplayAbility
 {
 	GENERATED_BODY()
 
@@ -24,10 +23,4 @@ protected:
 	virtual EVeyraCastRejection CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const override;
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const override;
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast) override;
-	virtual void DeliverChannelTick(const FVeyraCast& Cast, int32 Tick) override;
-
-private:
-	/** A channelled area's placement and zones, from Commit to its last tick. */
-	FVeyraEffectFrame ChannelPlacement;
-	TArray<FVeyraPreparedZone> ChannelZones;
 };

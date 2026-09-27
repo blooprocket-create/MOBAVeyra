@@ -31,7 +31,7 @@ void AVeyraDelayedArea::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraDelayedArea, CastId, Params);
 }
 
-void AVeyraDelayedArea::Arm(UAbilitySystemComponent& InCaster, const FVeyraAreaPlacement& Placement, TArray<FVeyraPreparedZone> InZones,
+void AVeyraDelayedArea::Arm(UAbilitySystemComponent& InCaster, const FVeyraEffectFrame& Placement, TArray<FVeyraPreparedZone> InZones,
 	double DelaySeconds, const FVeyraContentId& InAbility, int32 InCastId)
 {
 	Caster = &InCaster;
@@ -66,7 +66,7 @@ void AVeyraDelayedArea::Resolve()
 {
 	if (UAbilitySystemComponent* Source = Caster.Get())
 	{
-		FVeyraAreaPlacement Placement;
+		FVeyraEffectFrame Placement;
 		Placement.Origin = GetActorLocation();
 		Placement.Direction = Direction;
 		Placement.bOriginIsCaster = bOriginIsCaster;

@@ -2,111 +2,18 @@
 
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "Attributes/VeyraResourceSet.h"
-#include "Attributes/VeyraVitalsSet.h"
 #include "Casting/VeyraCastStateComponent.h"
-#include "Components/ActorTestSpawner.h"
-#include "Cooldowns/VeyraCooldownComponent.h"
 #include "CQTest.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "EngineUtils.h"
 #include "Life/VeyraLifeComponent.h"
-#include "Loadout/VeyraAbilityLoadoutComponent.h"
-#include "Movement/VeyraMovementComponent.h"
-#include "Progression/VeyraProgressionComponent.h"
-#include "Shapes/VeyraShapes.h"
-#include "Statuses/VeyraStatusComponent.h"
-#include "Tests/Combat/VeyraCombatTestHelpers.h"
+#include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
-#include "VeyraAbilitiesVerbs.h"
-#include "VeyraCombatVerbs.h"
-#include "VeyraPlayerState.h"
-#include "VeyraVanguardCharacter.h"
 
 #if WITH_AUTOMATION_WORKER
 
 namespace VeyraAbilitiesTests
 {
-	inline FVeyraContentId ArchetypeTestId(const TCHAR* Text)
-	{
-		return FVeyraContentId::FromText(Text).GetValue();
-	}
-
-	inline FVeyraShape CircleOf(double Radius)
-	{
-		FVeyraShape Shape;
-		Shape.Kind = EVeyraShapeKind::Circle;
-		Shape.Radius = Radius;
-		return Shape;
-	}
-
-	/** A status record for test tuning. Test fixture values. */
-	inline FVeyraStatusTuning StatusOf(EVeyraStatusKind Kind, double Magnitude, double DurationSeconds)
-	{
-		FVeyraStatusTuning Status;
-		Status.Kind = Kind;
-		Status.Magnitude = Magnitude;
-		Status.DurationSeconds = DurationSeconds;
-		return Status;
-	}
-
-	/** An instant cast: no windup, no recovery, one value for every rank. */
-	inline FVeyraCastTuning InstantCast(double CastRange, double CooldownSeconds, double ResourceCost)
-	{
-		FVeyraCastTuning Cast;
-		Cast.CooldownSecondsByRank = { CooldownSeconds };
-		Cast.ResourceCostByRank = { ResourceCost };
-		Cast.CastRange = CastRange;
-		return Cast;
-	}
-
-	/** Vanguards in a test world, each with the example stats, on a side, at a place. */
-	struct FArchetypeTestWorld
-	{
-		FActorTestSpawner& Spawner;
-
-		AVeyraVanguardCharacter& Spawn(EVeyraTeam Team, const FVector& Location)
-		{
-			AVeyraPlayerState& PlayerState = Spawner.SpawnActor<AVeyraPlayerState>();
-			PlayerState.SetVeyraTeam(Team);
-			VeyraCombat::InitializeStats(*PlayerState.GetAbilitySystemComponent(), VeyraCombatTests::ExampleStats());
-			AVeyraVanguardCharacter& Vanguard = Spawner.SpawnActorAt<AVeyraVanguardCharacter>(Location, FRotator::ZeroRotator);
-			Vanguard.SetPlayerState(&PlayerState);
-			Vanguard.GetVeyraMovement()->SetMovementMode(MOVE_Walking);
-			return Vanguard;
-		}
-
-		/** Grants Ability in Slot and spends the level-1 skill point on it. */
-		static bool Learn(AVeyraVanguardCharacter& Vanguard, EVeyraAbilitySlot Slot, const FVeyraContentId& Ability)
-		{
-			APlayerState* PlayerState = Vanguard.GetPlayerState();
-			UVeyraProgressionComponent* Progression = PlayerState->FindComponentByClass<UVeyraProgressionComponent>();
-			Progression->Initialize(FVeyraStatGrowth(), 0.0);
-			return PlayerState->FindComponentByClass<UVeyraAbilityLoadoutComponent>()->Grant(*Vanguard.GetAbilitySystemComponent(), Slot, Ability)
-				&& Progression->AllocateRank(Slot) == EVeyraRankRefusal::None;
-		}
-
-		static EVeyraCastRejection CastAt(AVeyraVanguardCharacter& Caster, EVeyraAbilitySlot Slot, const FVector& Point)
-		{
-			FVeyraCastTarget Target;
-			Target.bHasLocation = true;
-			Target.Location = Point;
-			return VeyraAbilities::TryCast(*Caster.GetAbilitySystemComponent(), Slot, Target);
-		}
-
-		static bool Has(const AVeyraVanguardCharacter& Vanguard, const TCHAR* Status)
-		{
-			const FVeyraContentId Id = ArchetypeTestId(Status);
-			return Vanguard.GetPlayerState()->FindComponentByClass<UVeyraStatusComponent>()->GetLedger().Entries.ContainsByPredicate(
-				[&Id](const FVeyraStatusEntry& Entry) { return Entry.Id == Id; });
-		}
-
-		static double HealthLost(const AVeyraVanguardCharacter& Vanguard)
-		{
-			const UAbilitySystemComponent& Unit = *Vanguard.GetAbilitySystemComponent();
-			return Unit.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) - Unit.GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute());
-		}
-	};
-
 	// Veyra.Abilities.Shapes.*: hit shapes on the ground, edges included (Combat Bible §40; ADR-009 §4).
 	TEST_CLASS(Shapes, "Veyra.Abilities")
 	{
@@ -182,6 +89,33 @@ namespace VeyraAbilitiesTests
 			const TArray<AActor*> Units = VeyraShapes::GatherUnits(Spawner.GetWorld(), Placed(CircleOf(Radius)), [](const AActor&) { return true; });
 			ASSERT_THAT(IsTrue(Units == TArray<AActor*>{ &Near, &Far }, FString::Printf(TEXT("gathered %d unit(s)"), Units.Num())));
 			ASSERT_THAT(IsFalse(Units.Contains(&Outside)));
+		}
+
+		TEST_METHOD(APathMeetsBodiesInTheOrderItReachesThem)
+		{
+			// Fixture values: a path along +X and the radius swept along it.
+			constexpr double PathLength = 1000.0;
+			constexpr double SweepRadius = 30.0;
+			const FVector End(PathLength, 0.0, 0.0);
+			const double Touching = SweepRadius + Body;
+			const auto ContactWith = [&End](const FVector& Center) { return VeyraShapes::FirstContactAlong(FVector::ZeroVector, End, SweepRadius, Center, Body); };
+
+			const TOptional<double> Ahead = ContactWith(FVector(Length, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(Ahead.IsSet() && FMath::IsNearlyEqual(Ahead.GetValue(), Length - Touching, Epsilon)));
+			ASSERT_THAT(IsTrue(ContactWith(FVector(Length, Touching - Epsilon, 0.0)).IsSet()));
+			ASSERT_THAT(IsFalse(ContactWith(FVector(Length, Touching + Epsilon, 0.0)).IsSet()));
+			ASSERT_THAT(IsFalse(ContactWith(FVector(-(Touching + Epsilon), 0.0, 0.0)).IsSet(), TEXT("behind the start")));
+			ASSERT_THAT(IsFalse(ContactWith(FVector(PathLength + Touching + Epsilon, 0.0, 0.0)).IsSet(), TEXT("past the end")));
+			const TOptional<double> AtStart = ContactWith(FVector(0.0, Touching, 0.0));
+			ASSERT_THAT(IsTrue(AtStart.IsSet() && AtStart.GetValue() == 0.0, TEXT("touching at the start, edges included")));
+
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Second = World.Spawn(EVeyraTeam::B, FVector(Length, 0.0, 0.0));
+			AVeyraTestFluxborn& First = World.SpawnFluxborn(EVeyraTeam::B, FVector(Length / 2.0, SweepRadius, 0.0));
+			World.Spawn(EVeyraTeam::B, FVector(Length, Radius * 2.0, 0.0));
+			const TArray<FVeyraPathHit> Hits = VeyraShapes::GatherUnitsAlong(Spawner.GetWorld(), FVector::ZeroVector, End, SweepRadius, [](const AActor&) { return true; });
+			ASSERT_THAT(AreEqual(2, Hits.Num()));
+			ASSERT_THAT(IsTrue(Hits[0].Unit == &First && Hits[1].Unit == &Second));
 		}
 	};
 

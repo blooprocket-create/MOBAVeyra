@@ -31,10 +31,8 @@ EVeyraCastRejection UVeyraAreaAbility::CheckTarget(const AActor& /*Caster*/, con
 	{
 		return EVeyraCastRejection::UnknownAbility;
 	}
-	const bool bUsablePoint = Target.bHasLocation && !Target.Location.ContainsNaN() && FMath::IsFinite(Target.Location.X)
-		&& FMath::IsFinite(Target.Location.Y) && FMath::IsFinite(Target.Location.Z);
 	// An area on the caster may be aimed; one at a ground point needs the point.
-	if ((Area->Origin == EVeyraAreaOrigin::TargetPoint || Target.bHasLocation) && !bUsablePoint)
+	if ((Area->Origin == EVeyraAreaOrigin::TargetPoint || Target.bHasLocation) && !HasUsablePoint(Target))
 	{
 		return EVeyraCastRejection::InvalidLocation;
 	}
@@ -59,11 +57,11 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 
 	// An area on the caster lands where the caster is at Commit, which a free windup may have moved.
 	const AActor* Body = Caster->GetAvatarActor();
-	FVeyraAreaPlacement Placement;
+	FVeyraEffectFrame Placement;
 	Placement.bOriginIsCaster = Area->Origin == EVeyraAreaOrigin::Caster;
 	Placement.Origin = Placement.bOriginIsCaster ? (Body ? Body->GetActorLocation() : Cast.CasterLocation) : Cast.Point;
 	Placement.Direction = Cast.Direction;
-	TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, *Area, Cast.Rank);
+	TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, Area->Zones, Cast.Rank);
 
 	if (Area->DelaySeconds > 0.0)
 	{

@@ -5,6 +5,7 @@
 #include "Absorption/VeyraAbsorptionLedger.h"
 #include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
+#include "Movement/VeyraForcedMovementTypes.h"
 #include "Shapes/VeyraShapes.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Tuning/VeyraTuningProvenance.h"
@@ -107,6 +108,8 @@ enum class EVeyraDisplacementDirection : uint8
 	AcrossCastLeft,
 	/** Sideways to the cast's direction, to the caster's right. */
 	AcrossCastRight,
+	/** Out of a projectile's path, to the side of it the unit is on (ADR-008 §9: Cairn's hook). */
+	AsideFromPath,
 };
 
 /** A displacement an effect applies (Combat Bible §9). */
@@ -314,6 +317,113 @@ struct FVeyraSelfBuffAbilityTuning
 	EVeyraRecast Recast = EVeyraRecast::None;
 };
 
+/** How a projectile flies (Combat Bible §13). */
+USTRUCT()
+struct FVeyraProjectileTuning
+{
+	GENERATED_BODY()
+
+	/** Units per second. */
+	UPROPERTY()
+	double Speed = 0.0;
+
+	/** The projectile's own radius, in units: it hits a unit whose body it touches. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	/** How far it flies before it ends, in units. */
+	UPROPERTY()
+	double Range = 0.0;
+};
+
+/** Which units stop a skillshot (Combat Bible §13; ADR-008 §9). */
+UENUM()
+enum class EVeyraSkillshotCollision : uint8
+{
+	/** The first enemy unit of any kind. */
+	FirstEnemy,
+	/** The first enemy Vanguard. It passes through other enemies, applying its pass-through effects to each. */
+	FirstEnemyVanguard,
+	/** Nothing: it hits every enemy on its path once, until its range or terrain ends it. */
+	Pierce,
+};
+
+/** An ability that fires a line projectile toward the cast's point (ADR-008 §3). Terrain stops it (ADR-008 §9). */
+USTRUCT()
+struct FVeyraSkillshotAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	UPROPERTY()
+	FVeyraProjectileTuning Projectile;
+
+	UPROPERTY()
+	EVeyraSkillshotCollision Collision = EVeyraSkillshotCollision::FirstEnemy;
+
+	/** On each unit the projectile hits. */
+	UPROPERTY()
+	FVeyraEffectBundleTuning Effects;
+
+	/** On each unit a FirstEnemyVanguard projectile passes through; empty otherwise. */
+	UPROPERTY()
+	FVeyraEffectBundleTuning PassThroughEffects;
+};
+
+/** Which way a dash goes. */
+UENUM()
+enum class EVeyraDashDirection : uint8
+{
+	/** Toward the cast's point. */
+	TowardPoint,
+	/** Straight back from it, as a recoil (Bryn's Kickback). */
+	AwayFromPoint,
+};
+
+/** An ability that moves its caster, with effects as it sets off and where it stops (ADR-008 §3; Combat Bible §9). */
+USTRUCT()
+struct FVeyraDashAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	UPROPERTY()
+	EVeyraDashDirection Direction = EVeyraDashDirection::TowardPoint;
+
+	/** Units. Terrain stops the dash sooner; it never crosses terrain (ADR-008 §9). */
+	UPROPERTY()
+	double Distance = 0.0;
+
+	/** Units per second. */
+	UPROPERTY()
+	double Speed = 0.0;
+
+	UPROPERTY()
+	EVeyraDashContact Contact = EVeyraDashContact::None;
+
+	/** Areas at the caster, facing the cast's point, as the dash sets off; innermost first. */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> StartZones;
+
+	/** On the enemy a StopAtFirstEnemy dash stops at. */
+	UPROPERTY()
+	FVeyraEffectBundleTuning ContactEffects;
+
+	/** Status IDs put on the caster when it stops at an enemy. */
+	UPROPERTY()
+	TArray<FVeyraContentId> ContactSelfStatuses;
+};
+
 /** Rules every cast shares (Combat Bible §26). */
 USTRUCT()
 struct FVeyraCastingTuning
@@ -350,6 +460,12 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraSelfBuffAbilityTuning> SelfBuff;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraSkillshotAbilityTuning> Skillshot;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraDashAbilityTuning> Dash;
 };
 
 /** The Abilities domain's rules for its tuning (ADR-008 §3, §7). */

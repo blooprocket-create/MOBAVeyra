@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -71,7 +71,11 @@
       "additionalProperties": false,
       "required": ["direction", "distance", "speed"],
       "properties": {
-        "direction": { "type": "string", "enum": ["TowardOrigin", "AwayFromOrigin", "AcrossCastLeft", "AcrossCastRight"] },
+        "direction": {
+          "description": "TowardOrigin pulls toward the area's origin or the caster; AwayFromOrigin knocks back from it; AcrossCastLeft and AcrossCastRight push sideways to the cast; AsideFromPath pushes out of a projectile's path.",
+          "type": "string",
+          "enum": ["TowardOrigin", "AwayFromOrigin", "AcrossCastLeft", "AcrossCastRight", "AsideFromPath"]
+        },
         "distance": { "description": "Units; a Pull toward the origin stops there.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
       }
@@ -85,6 +89,16 @@
         "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
         "statuses": { "$ref": "#/definitions/statusIds" },
         "displacement": { "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/displacement" } }
+      }
+    },
+    "zone": {
+      "description": "One zone of an area: its shape and what it does to each enemy in it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shape", "effects"],
+      "properties": {
+        "shape": { "$ref": "#/definitions/shape" },
+        "effects": { "$ref": "#/definitions/effects" }
       }
     },
     "shape": {
@@ -220,15 +234,7 @@
               "description": "Innermost first: a unit takes the first zone that touches it, and no other.",
               "type": "array",
               "minItems": 1,
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["shape", "effects"],
-                "properties": {
-                  "shape": { "$ref": "#/definitions/shape" },
-                  "effects": { "$ref": "#/definitions/effects" }
-                }
-              }
+              "items": { "$ref": "#/definitions/zone" }
             }
           }
         }
@@ -287,6 +293,76 @@
               "type": "string",
               "enum": ["None", "EndsEarly"]
             }
+          }
+        }
+      }
+    },
+    "skillshot": {
+      "description": "Abilities that fire a line projectile toward the cast's point; terrain stops it (ADR-008 §3, §9).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "projectile", "collision", "effects", "passThroughEffects"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "projectile": {
+              "description": "How the projectile flies (Combat Bible §13).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["speed", "radius", "range"],
+              "properties": {
+                "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                "radius": { "description": "The projectile's own radius: it hits a unit whose body it touches.", "type": "number", "minimum": 0 },
+                "range": { "description": "How far it flies before it ends, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+              }
+            },
+            "collision": {
+              "description": "FirstEnemy: the first enemy unit stops it. FirstEnemyVanguard: only an enemy Vanguard stops it; it passes through other enemies. Pierce: nothing stops it but terrain and its range.",
+              "type": "string",
+              "enum": ["FirstEnemy", "FirstEnemyVanguard", "Pierce"]
+            },
+            "effects": { "description": "On each unit it hits.", "$ref": "#/definitions/effects" },
+            "passThroughEffects": { "description": "On each unit a FirstEnemyVanguard projectile passes through; empty lists otherwise.", "$ref": "#/definitions/effects" }
+          }
+        }
+      }
+    },
+    "dash": {
+      "description": "Abilities that move their caster, with effects as it sets off and where it stops (ADR-008 §3; Combat Bible §9). Displacement interrupts a dash; terrain stops it.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "direction": {
+              "description": "TowardPoint: toward the cast's point. AwayFromPoint: straight back from it, as a recoil.",
+              "type": "string",
+              "enum": ["TowardPoint", "AwayFromPoint"]
+            },
+            "distance": { "description": "Units; terrain stops the dash sooner.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "contact": {
+              "description": "StopAtFirstEnemy: the dash ends at the first enemy it meets, which takes the contact effects.",
+              "type": "string",
+              "enum": ["None", "StopAtFirstEnemy"]
+            },
+            "startZones": {
+              "description": "Areas at the caster, facing the cast's point, as the dash sets off; innermost first.",
+              "type": "array",
+              "minItems": 0,
+              "items": { "$ref": "#/definitions/zone" }
+            },
+            "contactEffects": { "description": "On the enemy a StopAtFirstEnemy dash stops at.", "$ref": "#/definitions/effects" },
+            "contactSelfStatuses": { "description": "Put on the caster when it stops at an enemy.", "$ref": "#/definitions/statusIds" }
           }
         }
       }

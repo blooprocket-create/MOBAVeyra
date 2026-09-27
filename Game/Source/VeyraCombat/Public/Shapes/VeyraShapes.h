@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Math/Vector.h"
+#include "Misc/Optional.h"
 #include "Templates/Function.h"
 #include "UObject/ObjectMacros.h"
 
@@ -56,6 +57,13 @@ struct FVeyraPlacedShape
 	FVector Direction = FVector::ForwardVector;
 };
 
+/** A unit a moving circle reaches, and how far along its path it first touches the unit's body. */
+struct FVeyraPathHit
+{
+	AActor* Unit = nullptr;
+	double Distance = 0.0;
+};
+
 /** Combat's hit geometry (Combat Bible §13, §40), on the ground plane. */
 namespace VeyraShapes
 {
@@ -73,4 +81,17 @@ namespace VeyraShapes
 	 * then in a stable order (ADR-009 §4). Server only.
 	 */
 	VEYRACOMBAT_API TArray<AActor*> GatherUnits(const UWorld& World, const FVeyraPlacedShape& Placed, TFunctionRef<bool(const AActor&)> Include);
+
+	/**
+	 * How far along the path from Start to End a circle of Radius moving along it first touches a body
+	 * circle of BodyRadius at Center, edges included; nothing if it never does. 0 when they touch at Start.
+	 */
+	VEYRACOMBAT_API TOptional<double> FirstContactAlong(const FVector& Start, const FVector& End, double Radius, const FVector& Center, double BodyRadius);
+
+	/**
+	 * The living units that a circle of Radius touches moving from Start to End and that Include
+	 * accepts, in the order it reaches them, then in a stable order (ADR-009 §4). Server only.
+	 */
+	VEYRACOMBAT_API TArray<FVeyraPathHit> GatherUnitsAlong(const UWorld& World, const FVector& Start, const FVector& End, double Radius,
+		TFunctionRef<bool(const AActor&)> Include);
 }

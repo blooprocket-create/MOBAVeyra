@@ -30,7 +30,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Server only: arms the area, placed at the actor's location, to hit DelaySeconds from now. Called once, after spawning. */
-	void Arm(UAbilitySystemComponent& Caster, const FVeyraAreaPlacement& Placement, TArray<FVeyraPreparedZone> Zones, double DelaySeconds,
+	void Arm(UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Placement, TArray<FVeyraPreparedZone> Zones, double DelaySeconds,
 		const FVeyraContentId& Ability, int32 CastId);
 
 	const TArray<FVeyraShape>& GetShapes() const { return Shapes; }

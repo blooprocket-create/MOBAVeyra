@@ -7,6 +7,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Delivery/VeyraDelayedArea.h"
+#include "Delivery/VeyraProjectile.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "GameplayEffect.h"
@@ -25,8 +27,8 @@ namespace VeyraNetTests
 	// Veyra.Net.MatchPause.*: the ADR-006 §8 spike. An approved pause stops every gameplay clock
 	// while networking keeps running (Match Flow Bible §10.2). Each timer category the bible lists
 	// runs on one of the mechanisms checked here: effect durations (buffs, shields), the cooldown
-	// ledger, world timers (respawn, buyback, spawn and penalty clocks), world time (the match clock)
-	// and actor ticks (movement, regeneration, combat).
+	// ledger, world timers (respawn, buyback, spawn and penalty clocks, delayed areas), world time
+	// (the match clock) and actor ticks (movement, projectiles, regeneration, combat).
 	//
 	// Clients learn of the pause from the GameState. These in-process tests cannot check that a
 	// client's own world pauses: the engine replicates that through the map's WorldSettings, and
@@ -67,6 +69,9 @@ namespace VeyraNetTests
 		double PausedStatusEndsAt = 0.0;
 		FVector PausedLocation = FVector::ZeroVector;
 		TMap<int32, double> PausedClientClocks;
+		TWeakObjectPtr<AVeyraProjectile> HeldShot;
+		TWeakObjectPtr<AVeyraDelayedArea> HeldArea;
+		double PausedAreaResolvesAt = 0.0;
 
 		BEFORE_EACH()
 		{
@@ -241,6 +246,59 @@ namespace VeyraNetTests
 				.ThenServer(TEXT("The Slow ran its whole time, not counting the pause"), [this](FState& State) {
 					ASSERT_THAT(IsTrue(State.World->GetTimeSeconds() >= PausedStatusEndsAt));
 					ASSERT_THAT(IsTrue(State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PausedStatusEndsAt - PausedWorldTime + PauseHoldRealSeconds));
+				});
+		}
+
+		TEST_METHOD(PauseHoldsProjectilesAndDelayedAreas)
+		{
+			// Fixture values: a slow projectile sent across the lane, where nothing stands, and an area
+			// that lands after the pause.
+			constexpr double ShotSpeed = 200.0;
+			constexpr double ShotRadius = 20.0;
+			constexpr double ShotRange = 600.0;
+			constexpr double AreaDelaySeconds = 2.0;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Launch a slow projectile and arm a delayed area"), [this, ShotSpeed, ShotRadius, ShotRange, AreaDelaySeconds](FState& State) {
+					AVeyraPlayerState* Mover = MoverState(State);
+					ASSERT_THAT(IsTrue(Mover && Mover->GetPawn()));
+					UAbilitySystemComponent& Caster = *Mover->GetAbilitySystemComponent();
+					const FVector From = Mover->GetPawn()->GetActorLocation();
+					const FVeyraContentId Content = FVeyraContentId::FromText(TEXT("test_pause")).GetValue();
+					AVeyraProjectile* Shot = State.World->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(From));
+					ASSERT_THAT(IsNotNull(Shot));
+					Shot->LaunchLine(Caster, FVector::RightVector, FVeyraProjectileTuning{ ShotSpeed, ShotRadius, ShotRange }, EVeyraSkillshotCollision::FirstEnemy,
+						FVeyraPreparedEffects(), FVeyraPreparedEffects(), Content, 0);
+					AVeyraDelayedArea* Area = State.World->SpawnActor<AVeyraDelayedArea>(AVeyraDelayedArea::StaticClass(), FTransform(From));
+					ASSERT_THAT(IsNotNull(Area));
+					FVeyraEffectFrame Placement;
+					Placement.Origin = From;
+					Area->Arm(Caster, Placement, TArray<FVeyraPreparedZone>(), AreaDelaySeconds, Content, 0);
+					HeldShot = Shot;
+					HeldArea = Area;
+					PausedLocation = From;
+					PausedAreaResolvesAt = Area->GetResolvesAt();
+				})
+				.UntilServer(TEXT("It is flying"), [this](FState&) { return HeldShot.IsValid() && HeldShot->GetActorLocation() != PausedLocation; })
+				.ThenServer(TEXT("Pause"), [this](FState& State) {
+					PausedWorldTime = State.World->GetTimeSeconds();
+					PausedRealTime = State.World->GetUnpausedTimeSeconds();
+					PausedLocation = HeldShot->GetActorLocation();
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->PauseMatch(*ServerControllerOf(State, 0))));
+				})
+				.UntilServer(TEXT("Hold the pause"), [this](FState& State) {
+					return State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PauseHoldRealSeconds;
+				})
+				.ThenServer(TEXT("Neither moved on"), [this](FState& State) {
+					ASSERT_THAT(IsTrue(HeldShot.IsValid() && HeldShot->GetActorLocation() == PausedLocation));
+					ASSERT_THAT(IsTrue(HeldArea.IsValid() && State.World->GetTimeSeconds() == PausedWorldTime));
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->ResumeMatch()));
+				})
+				.UntilServer(TEXT("After the pause the projectile flies its range and the area lands"), [this](FState&) {
+					return !HeldShot.IsValid() && !HeldArea.IsValid();
+				})
+				.ThenServer(TEXT("The area landed on its schedule, not counting the pause"), [this](FState& State) {
+					ASSERT_THAT(IsTrue(State.World->GetTimeSeconds() >= PausedAreaResolvesAt));
+					ASSERT_THAT(IsTrue(State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PausedAreaResolvesAt - PausedWorldTime + PauseHoldRealSeconds));
 				});
 		}
 	};

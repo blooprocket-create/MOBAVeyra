@@ -33,6 +33,28 @@ namespace
 	{
 		return FMath::IsFinite(Value) && Value > 0.0;
 	}
+
+	/** Visits each living unit in World that Include accepts. */
+	template <typename VisitorType>
+	void ForEachUnit(const UWorld& World, TFunctionRef<bool(const AActor&)> Include, VisitorType&& Visit)
+	{
+		for (TActorIterator<APawn> It(&World); It; ++It)
+		{
+			APawn* Unit = *It;
+			if (VeyraUnits::KindOf(Unit).IsSet() && VeyraTargeting::IsAlive(Unit) && Include(*Unit))
+			{
+				Visit(*Unit);
+			}
+		}
+	}
+
+	/** Nearest first, then in a stable order, so every run resolves hits alike. */
+	void SortByDistance(TArray<FVeyraPathHit>& Hits)
+	{
+		Hits.Sort([](const FVeyraPathHit& A, const FVeyraPathHit& B) {
+			return A.Distance != B.Distance ? A.Distance < B.Distance : A.Unit->GetUniqueID() < B.Unit->GetUniqueID();
+		});
+	}
 }
 
 TArray<FString> Validate(const FVeyraShape& Shape)
@@ -127,32 +149,63 @@ double Reach(const FVeyraShape& Shape)
 
 TArray<AActor*> GatherUnits(const UWorld& World, const FVeyraPlacedShape& Placed, TFunctionRef<bool(const AActor&)> Include)
 {
-	struct FHit
-	{
-		AActor* Unit;
-		double Distance;
-	};
-	TArray<FHit> Hits;
-	for (TActorIterator<APawn> It(&World); It; ++It)
-	{
-		APawn* Unit = *It;
-		if (!VeyraUnits::KindOf(Unit).IsSet() || !VeyraTargeting::IsAlive(Unit) || !Include(*Unit))
+	TArray<FVeyraPathHit> Hits;
+	ForEachUnit(World, Include, [&Placed, &Hits](AActor& Unit) {
+		if (Touches(Placed, Unit.GetActorLocation(), Unit.GetSimpleCollisionRadius()))
 		{
-			continue;
+			Hits.Add({ &Unit, FVector::Dist2D(Unit.GetActorLocation(), Placed.Origin) });
 		}
-		if (Touches(Placed, Unit->GetActorLocation(), Unit->GetSimpleCollisionRadius()))
-		{
-			Hits.Add({ Unit, FVector::Dist2D(Unit->GetActorLocation(), Placed.Origin) });
-		}
-	}
-	Hits.Sort([](const FHit& A, const FHit& B) {
-		return A.Distance != B.Distance ? A.Distance < B.Distance : A.Unit->GetUniqueID() < B.Unit->GetUniqueID();
 	});
+	SortByDistance(Hits);
 	TArray<AActor*> Units;
-	for (const FHit& Hit : Hits)
+	for (const FVeyraPathHit& Hit : Hits)
 	{
 		Units.Add(Hit.Unit);
 	}
 	return Units;
+}
+
+TOptional<double> FirstContactAlong(const FVector& Start, const FVector& End, double Radius, const FVector& Center, double BodyRadius)
+{
+	const FVector2D From = Flat(Start);
+	const FVector2D Path = Flat(End) - From;
+	const FVector2D Offset = Flat(Center) - From;
+	const double TouchingSquared = FMath::Square(Radius + BodyRadius);
+	if (Offset.SizeSquared() <= TouchingSquared)
+	{
+		return 0.0;
+	}
+	const double Length = Path.Size();
+	if (!(Length > 0.0))
+	{
+		return {};
+	}
+	// The circles first touch where the moving centre comes within Radius + BodyRadius of the body's.
+	const double Along = FVector2D::DotProduct(Offset, Path / Length);
+	const double AcrossSquared = Offset.SizeSquared() - FMath::Square(Along);
+	if (AcrossSquared > TouchingSquared)
+	{
+		return {};
+	}
+	const double Contact = Along - FMath::Sqrt(FMath::Max(0.0, TouchingSquared - AcrossSquared));
+	// They do not touch at Start, so a contact before it means the body lies behind the path.
+	if (Contact < 0.0 || Contact > Length)
+	{
+		return {};
+	}
+	return Contact;
+}
+
+TArray<FVeyraPathHit> GatherUnitsAlong(const UWorld& World, const FVector& Start, const FVector& End, double Radius, TFunctionRef<bool(const AActor&)> Include)
+{
+	TArray<FVeyraPathHit> Hits;
+	ForEachUnit(World, Include, [&](AActor& Unit) {
+		if (const TOptional<double> Contact = FirstContactAlong(Start, End, Radius, Unit.GetActorLocation(), Unit.GetSimpleCollisionRadius()))
+		{
+			Hits.Add({ &Unit, Contact.GetValue() });
+		}
+	});
+	SortByDistance(Hits);
+	return Hits;
 }
 }

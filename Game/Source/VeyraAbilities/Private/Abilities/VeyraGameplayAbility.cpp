@@ -130,6 +130,12 @@ void UVeyraGameplayAbility::DeliverChannelTick(const FVeyraCast& /*Cast*/, int32
 {
 }
 
+bool UVeyraGameplayAbility::HasUsablePoint(const FVeyraCastTarget& Target)
+{
+	return Target.bHasLocation && !Target.Location.ContainsNaN() && FMath::IsFinite(Target.Location.X) && FMath::IsFinite(Target.Location.Y)
+		&& FMath::IsFinite(Target.Location.Z);
+}
+
 int32 UVeyraGameplayAbility::GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
 {
 	const UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);

@@ -100,6 +100,9 @@ protected:
 	/** Delivers one tick of a channel; Tick counts from 1. */
 	virtual void DeliverChannelTick(const FVeyraCast& Cast, int32 Tick);
 
+	/** Whether Target carries a ground point that can be used: present and finite. */
+	static bool HasUsablePoint(const FVeyraCastTarget& Target);
+
 	/** Ability's rank for Caster: its slot's rank in Progression, 0 when not learned. */
 	int32 GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
 

@@ -89,15 +89,7 @@ namespace
 			{
 				Problem(Pointer + TEXT("/channelSeconds"), TEXT("must be above 0 when the area hits more than once"));
 			}
-			for (int32 Index = 0; Index < Area.Zones.Num(); ++Index)
-			{
-				const FString ZonePointer = FString::Printf(TEXT("%s/zones/%d"), *Pointer, Index);
-				for (const FString& ShapeProblem : VeyraShapes::Validate(Area.Zones[Index].Shape))
-				{
-					Problem(ZonePointer + TEXT("/shape"), ShapeProblem);
-				}
-				CheckEffects(ZonePointer + TEXT("/effects"), Area.Zones[Index].Effects);
-			}
+			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
 		}
 
 		void CheckSelfBuff(const FString& Pointer, const FVeyraSelfBuffAbilityTuning& Buff)
@@ -118,6 +110,40 @@ namespace
 				}
 				CheckStatusIds(AuraPointer + TEXT("/allyStatuses"), Aura.AllyStatuses);
 			}
+		}
+
+		void CheckZones(const FString& Pointer, TConstArrayView<FVeyraAreaZoneTuning> Zones)
+		{
+			for (int32 Index = 0; Index < Zones.Num(); ++Index)
+			{
+				const FString ZonePointer = FString::Printf(TEXT("%s/%d"), *Pointer, Index);
+				for (const FString& ShapeProblem : VeyraShapes::Validate(Zones[Index].Shape))
+				{
+					Problem(ZonePointer + TEXT("/shape"), ShapeProblem);
+				}
+				CheckEffects(ZonePointer + TEXT("/effects"), Zones[Index].Effects);
+			}
+		}
+
+		void CheckSkillshot(const FString& Pointer, const FVeyraSkillshotAbilityTuning& Skillshot)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Skillshot.Cast);
+			CheckEffects(Pointer + TEXT("/effects"), Skillshot.Effects);
+			CheckEffects(Pointer + TEXT("/passThroughEffects"), Skillshot.PassThroughEffects);
+			const FVeyraEffectBundleTuning& PassThrough = Skillshot.PassThroughEffects;
+			const bool bPassesThrough = !PassThrough.Damage.IsEmpty() || !PassThrough.Statuses.IsEmpty() || !PassThrough.Displacement.IsEmpty();
+			if (bPassesThrough && Skillshot.Collision != EVeyraSkillshotCollision::FirstEnemyVanguard)
+			{
+				Problem(Pointer + TEXT("/passThroughEffects"), TEXT("only a FirstEnemyVanguard skillshot passes through units; leave it empty"));
+			}
+		}
+
+		void CheckDash(const FString& Pointer, const FVeyraDashAbilityTuning& Dash)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Dash.Cast);
+			CheckZones(Pointer + TEXT("/startZones"), Dash.StartZones);
+			CheckEffects(Pointer + TEXT("/contactEffects"), Dash.ContactEffects);
+			CheckStatusIds(Pointer + TEXT("/contactSelfStatuses"), Dash.ContactSelfStatuses);
 		}
 
 		void CheckEachIdInOneArchetype()
@@ -144,6 +170,14 @@ namespace
 			for (const TPair<FVeyraContentId, FVeyraSelfBuffAbilityTuning>& Entry : Tuning.SelfBuff)
 			{
 				Note(Entry.Key, TEXT("selfBuff"));
+			}
+			for (const TPair<FVeyraContentId, FVeyraSkillshotAbilityTuning>& Entry : Tuning.Skillshot)
+			{
+				Note(Entry.Key, TEXT("skillshot"));
+			}
+			for (const TPair<FVeyraContentId, FVeyraDashAbilityTuning>& Entry : Tuning.Dash)
+			{
+				Note(Entry.Key, TEXT("dash"));
 			}
 		}
 	};
@@ -183,6 +217,14 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	for (const TPair<FVeyraContentId, FVeyraSelfBuffAbilityTuning>& Entry : Tuning.SelfBuff)
 	{
 		Checker.CheckSelfBuff(TEXT("/selfBuff/") + Entry.Key.ToString(), Entry.Value);
+	}
+	for (const TPair<FVeyraContentId, FVeyraSkillshotAbilityTuning>& Entry : Tuning.Skillshot)
+	{
+		Checker.CheckSkillshot(TEXT("/skillshot/") + Entry.Key.ToString(), Entry.Value);
+	}
+	for (const TPair<FVeyraContentId, FVeyraDashAbilityTuning>& Entry : Tuning.Dash)
+	{
+		Checker.CheckDash(TEXT("/dash/") + Entry.Key.ToString(), Entry.Value);
 	}
 	Checker.CheckEachIdInOneArchetype();
 	return Checker.Problems;

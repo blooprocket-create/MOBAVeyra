@@ -4,7 +4,9 @@
 
 #include "AbilitySystemComponent.h"
 #include "Abilities/VeyraAreaAbility.h"
+#include "Abilities/VeyraDashAbility.h"
 #include "Abilities/VeyraSelfBuffAbility.h"
+#include "Abilities/VeyraSkillshotAbility.h"
 #include "Abilities/VeyraTargetedDamageAbility.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
@@ -31,6 +33,14 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability))
 		{
 			return UVeyraSelfBuffAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindSkillshot(Ability))
+		{
+			return UVeyraSkillshotAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindDash(Ability))
+		{
+			return UVeyraDashAbility::StaticClass();
 		}
 		return nullptr;
 	}

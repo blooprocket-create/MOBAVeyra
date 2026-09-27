@@ -37,6 +37,12 @@ public:
 	/** A self-buff ability's tuning, or null. */
 	static const FVeyraSelfBuffAbilityTuning* FindSelfBuff(const FVeyraContentId& Ability);
 
+	/** A skillshot ability's tuning, or null. */
+	static const FVeyraSkillshotAbilityTuning* FindSkillshot(const FVeyraContentId& Ability);
+
+	/** A dash ability's tuning, or null. */
+	static const FVeyraDashAbilityTuning* FindDash(const FVeyraContentId& Ability);
+
 	/** Status Id as Combat applies it, or nothing if the statuses map has no such status. */
 	static TOptional<FVeyraStatusSpec> FindStatus(const FVeyraContentId& Id);
 

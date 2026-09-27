@@ -58,6 +58,16 @@ const FVeyraSelfBuffAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindSelfBuff(
 	return Get().SelfBuff.Find(Ability);
 }
 
+const FVeyraSkillshotAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindSkillshot(const FVeyraContentId& Ability)
+{
+	return Get().Skillshot.Find(Ability);
+}
+
+const FVeyraDashAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindDash(const FVeyraContentId& Ability)
+{
+	return Get().Dash.Find(Ability);
+}
+
 TOptional<FVeyraStatusSpec> UVeyraAbilitiesTuningSubsystem::FindStatus(const FVeyraContentId& Id)
 {
 	const FVeyraStatusTuning* Status = Get().Statuses.Find(Id);
@@ -66,7 +76,7 @@ TOptional<FVeyraStatusSpec> UVeyraAbilitiesTuningSubsystem::FindStatus(const FVe
 
 bool UVeyraAbilitiesTuningSubsystem::Defines(const FVeyraContentId& Ability)
 {
-	return FindTargetedDamage(Ability) || FindArea(Ability) || FindSelfBuff(Ability);
+	return FindTargetedDamage(Ability) || FindArea(Ability) || FindSelfBuff(Ability) || FindSkillshot(Ability) || FindDash(Ability);
 }
 
 VeyraTuning::FErrors UVeyraAbilitiesTuningSubsystem::Reload()
