@@ -13,6 +13,7 @@ void AVeyraGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, Phase, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, LiveStartServerTime, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, MatchClockAtEnd, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, bMatchPaused, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, PausedAtServerTime, Params);
 }
@@ -26,12 +27,26 @@ double AVeyraGameState::GetGameplayServerTime() const
 
 double AVeyraGameState::GetMatchClockSeconds() const
 {
-	return Phase == EVeyraMatchPhase::Live ? GetGameplayServerTime() - LiveStartServerTime : 0.0;
+	switch (Phase)
+	{
+	case EVeyraMatchPhase::Live:
+		return GetGameplayServerTime() - LiveStartServerTime;
+	case EVeyraMatchPhase::Ended:
+		return MatchClockAtEnd;
+	default:
+		return 0.0;
+	}
 }
 
 void AVeyraGameState::SetPhase(EVeyraMatchPhase NewPhase)
 {
 	check(HasAuthority());
+	if (NewPhase == EVeyraMatchPhase::Ended)
+	{
+		// Read before the phase changes, while the clock still runs.
+		MatchClockAtEnd = GetMatchClockSeconds();
+		MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraGameState, MatchClockAtEnd, this);
+	}
 	Phase = NewPhase;
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraGameState, Phase, this);
 	if (NewPhase == EVeyraMatchPhase::Live)

@@ -44,3 +44,9 @@ Game/**/*.otf filter=lfs diff=lfs merge=lfs -text
 Game/Tuning/** text eol=lf
 Game/Source/VeyraDeveloper/TestData/** text eol=lf
 Game/Source/VeyraDeveloper/Greybox/** text eol=lf
+# The match-assignment schema (ADR-007) is read by the same strict validator.
+Game/Source/VeyraServices/Schemas/** text eol=lf
+
+# The Go backend keeps LF line endings on every platform, so gofmt, which runs in a Linux
+# container (Backend/Check.ps1), sees the files exactly as they are committed.
+Backend/** text eol=lf

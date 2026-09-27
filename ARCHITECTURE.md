@@ -282,11 +282,11 @@ Match Found/committed selection/live reconnect outrank optional Test Skin loadin
 
 ## 12. Deliberately open decisions
 
-The engine, ability-framework, unified-client and launcher/hosting choices are now locked by ADR: **Unreal Engine 5.8.3 from source** (ADR-001), **GAS adoption** (ADR-002), **one Unreal application with isolated client states** (ADR-004), and **a Tauri launcher with single-use launch-code handoff, Windows client/Linux server, local-first Docker hosting, a Go backend and Git LFS** (ADR-005). [ADR-006](Docs/ADR/ADR-006-unreal-project-scaffold.md) records the **Unreal project scaffold**: the project in `Game/`, its targets and modules, GAS placement, networking, tuning format, source control, tests and build scripts.
+The engine, ability-framework, unified-client and launcher/hosting choices are now locked by ADR: **Unreal Engine 5.8.3 from source** (ADR-001), **GAS adoption** (ADR-002), **one Unreal application with isolated client states** (ADR-004), and **a Tauri launcher with single-use launch-code handoff, Windows client/Linux server, local-first Docker hosting, a Go backend and Git LFS** (ADR-005). [ADR-006](Docs/ADR/ADR-006-unreal-project-scaffold.md) records the **Unreal project scaffold**: the project in `Game/`, its targets and modules, GAS placement, networking, tuning format, source control, tests and build scripts. [ADR-007](Docs/ADR/ADR-007-match-join-contract.md) records the **match-join contract**: how a client joins its assigned match, how the backend starts match servers, and how results come back.
 
 Decided by ADR-006:
 
-- **module names and count:** `Veyra`, `VeyraCore`, `VeyraCombat`, `VeyraAbilities`, `VeyraMatch` and `VeyraDeveloper` so far, with the layer graph enforced by a check against a declared layer map (ADR-006 §3). Later modules arrive as their first feature lands;
+- **module names and count:** `Veyra`, `VeyraCore`, `VeyraCombat`, `VeyraAbilities`, `VeyraMatch`, `VeyraServices` and `VeyraDeveloper` so far, with the layer graph enforced by a check against a declared layer map (ADR-006 §3). `VeyraServices` is the only module that talks to the backend (ADR-007 §12). Later modules arrive as their first feature lands;
 - **Ability System Component placement and Attribute Sets:** on the PlayerState for Vanguards, with the Attribute Set split and the §41 multiplicative-stacking policy recorded in ADR-006 §4. Cooldowns are a Veyra ledger rather than Gameplay Effects, and death is a Combat-owned life state (ADR-006 §4, M3 amendment);
 - **prediction for movement and the first ability:** none. Both are server-only; the client sends intents and shows the replicated result (ADR-006 §7, M3 amendment);
 - **LFS file patterns and locking convention** (ADR-006 §9).
@@ -295,6 +295,7 @@ The following implementation details remain open:
 
 - the prediction model for each later ability category (ADR-006 §7);
 - hosted vendors (identity provider, database host, match-server fleet, website host, CDN), deferred until a working local slice (ADR-005);
+- reconnect to a running match, moving join tickets into the network handshake, and a hosted allocator (ADR-007, open items);
 - final build farm beyond the self-hosted runner (ADR-005);
 - detailed replay/determinism implementation (ADR-006 §5 schedules an M3 spike recording a replay alongside Iris; the recording format waits for its own design pass).
 

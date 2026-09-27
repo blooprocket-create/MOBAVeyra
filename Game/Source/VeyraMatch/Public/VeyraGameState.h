@@ -27,7 +27,7 @@ public:
 	 */
 	double GetGameplayServerTime() const;
 
-	/** Seconds since the match went live, 0 before that. */
+	/** Seconds since the match went live: 0 before that, and frozen once it ends. */
 	double GetMatchClockSeconds() const;
 
 	/** Server only: the GameMode advances the phase. */
@@ -43,6 +43,10 @@ private:
 	/** Server gameplay time when the match went live. */
 	UPROPERTY(Replicated)
 	double LiveStartServerTime = 0.0;
+
+	/** The match clock when the match ended; 0 if it ended before going live. */
+	UPROPERTY(Replicated)
+	double MatchClockAtEnd = 0.0;
 
 	UPROPERTY(Replicated)
 	bool bMatchPaused = false;

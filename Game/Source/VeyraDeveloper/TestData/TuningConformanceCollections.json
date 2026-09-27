@@ -1,0 +1,30 @@
+{
+  "description": "Documents that both tuning validators must judge the same way for strings with a text format and for arrays: the game's (VeyraTuning.cpp, test Veyra.Core.Tuning.ConformanceCorpus) and CI's (scripts/check_tuning.py, tests/test_tuning.py). Each document is raw text checked against TuningConformanceCollections.schema.json at schemaVersion 1.",
+  "cases": [
+    {"name": "valid", "valid": true, "document": "{\"schemaVersion\": 1, \"label\": \"Dev One\", \"tags\": [\"alpha\", \"beta_2\"], \"points\": [{\"x\": 1.5, \"name\": \"00ff\"}], \"scores\": [1, 100]}"},
+    {"name": "valid with an empty array", "valid": true, "document": "{\"schemaVersion\": 1, \"label\": \"A\", \"tags\": [], \"points\": [{\"x\": 0, \"name\": \"abcd\"}], \"scores\": [0]}"},
+    {"name": "valid at the most items", "valid": true, "document": "{\"schemaVersion\": 1, \"label\": \"Abcdefghijklmnop\", \"tags\": [\"a\", \"b\", \"c\"], \"points\": [{\"x\": 1, \"name\": \"0000\"}, {\"x\": 2, \"name\": \"ffff\"}], \"scores\": [1, 2, 3, 4]}"},
+    {"name": "empty text", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "text starting with a digit", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"1Dev\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "text too long", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Abcdefghijklmnopq\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "text with a trailing newline", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\\n\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "text with a character outside the format", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev_One\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "number for text", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": 7, \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "too many items", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [\"a\", \"b\", \"c\", \"d\"], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "too few items", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [], \"scores\": [1]}"},
+    {"name": "item that is not a content ID", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [\"Alpha\"], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "item of the wrong type", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [3], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "object for an array", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": {}, \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "null for an array", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": null, \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "record item missing a field", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [{\"x\": 1}], \"scores\": [1]}"},
+    {"name": "record item with an unknown field", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\", \"y\": 2}], \"scores\": [1]}"},
+    {"name": "record item with text outside the format", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00FF\"}], \"scores\": [1]}"},
+    {"name": "record item below a minimum", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [{\"x\": -1, \"name\": \"00ff\"}], \"scores\": [1]}"},
+    {"name": "second record item invalid", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}, {\"x\": 1, \"name\": \"xyz\"}], \"scores\": [1]}"},
+    {"name": "number for a record item", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [5], \"scores\": [1]}"},
+    {"name": "integer item above its maximum", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [101]}"},
+    {"name": "fraction for an integer item", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [1.5]}"},
+    {"name": "nested array for an item", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}], \"scores\": [[1]]}"},
+    {"name": "missing array", "valid": false, "document": "{\"schemaVersion\": 1, \"label\": \"Dev\", \"tags\": [], \"points\": [{\"x\": 1, \"name\": \"00ff\"}]}"}
+  ]
+}

@@ -26,6 +26,7 @@ public class VeyraDeveloper : ModuleRules
 			"VeyraCombat",
 			"VeyraAbilities",
 			"VeyraMatch",
+			"VeyraServices",
 		});
 
 		// CQTest's networked PIE tests start play sessions from the level editor, so they exist

@@ -49,11 +49,18 @@ public:
 	bool HasInitializedStats() const { return bStatsInitialized; }
 	void MarkStatsInitialized() { bStatsInitialized = true; }
 
+	/**
+	 * Server only: the backend account this participant joined as, from the match's roster
+	 * (ADR-007). Empty for bots and on developer servers without an assignment. Not replicated.
+	 */
+	const FString& GetAccountId() const { return AccountId; }
+	void SetAccountId(const FString& InAccountId) { AccountId = InAccountId; }
+
 protected:
 	/**
 	 * The engine destroys a departing player's PlayerState. Veyra keeps it: the Vanguard stays in the
-	 * world with its Ability System Component (Match Flow Bible §4). Reconnecting to it arrives with
-	 * session identity (M4).
+	 * world with its Ability System Component (Match Flow Bible §4). A returning player's account is
+	 * known from the roster (ADR-007); giving it this PlayerState back arrives with reconnect.
 	 */
 	virtual void OnDeactivated() override;
 
@@ -97,4 +104,6 @@ private:
 	TObjectPtr<AVeyraVanguardController> VanguardController;
 
 	bool bStatsInitialized = false;
+
+	FString AccountId;
 };

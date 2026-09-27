@@ -135,6 +135,16 @@ namespace VeyraCoreTests
 			ASSERT_THAT(IsTrue(Rejects(ValidWith(TEXT("\"count\": 3"), TEXT("\"count\": 3, \"count\": 4")), TEXT("/count: duplicate key"))));
 		}
 
+		TEST_METHOD(RejectsDuplicateKeysInTheSchema)
+		{
+			// A repeated keyword, and a repeated property, which the parser would otherwise keep
+			// both of and look up only one of. The CI validator refuses them too.
+			ASSERT_THAT(IsTrue(Rejects(ValidDocument, SchemaWith(TEXT("\"minimum\": 0, \"maximum\": 10}"), TEXT("\"minimum\": 0, \"minimum\": 5, \"maximum\": 10}")),
+				TEXT("schema /properties/count: duplicate key \"minimum\""))));
+			ASSERT_THAT(IsTrue(Rejects(ValidDocument, SchemaWith(TEXT(" \"count\": {"), TEXT(" \"count\": {\"type\": \"integer\", \"minimum\": 0}, \"count\": {")),
+				TEXT("schema /properties: duplicate key \"count\""))));
+		}
+
 		TEST_METHOD(RejectsNonStrictJson)
 		{
 			ASSERT_THAT(IsTrue(Rejects(ValidWith(TEXT("\"count\": 3,"), TEXT("\"count\": 3, // comment\n")), TEXT("document:"))));
@@ -273,6 +283,7 @@ namespace VeyraCoreTests
 			// Same cases as tests/test_tuning.py, so the game and CI validators cannot drift apart.
 			TArray<FString> Mismatches = CorpusMismatches<FVeyraTuningTestShape>(TEXT("TuningConformance"));
 			Mismatches.Append(CorpusMismatches<FVeyraTuningContentTestShape>(TEXT("TuningConformanceContent")));
+			Mismatches.Append(CorpusMismatches<FVeyraTuningCollectionsTestShape>(TEXT("TuningConformanceCollections")));
 			ASSERT_THAT(IsTrue(Mismatches.IsEmpty(), FString::Join(Mismatches, TEXT(" || "))));
 		}
 

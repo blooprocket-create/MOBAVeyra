@@ -43,6 +43,13 @@ public:
 	 */
 	void RequestDeveloperPause(bool bPause);
 
+	/**
+	 * Owning client, developer builds: asks the server to end the match now (ADR-007 §8). Victory
+	 * conditions and surrender votes (Match Flow Bible §8) will end real matches; Shipping servers
+	 * refuse this.
+	 */
+	void RequestDeveloperEndMatch();
+
 	/** This player's Vanguard, on the server and on every client, or null before it spawns. */
 	AVeyraVanguardCharacter* GetVanguard() const;
 
@@ -86,6 +93,9 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestDeveloperPause(bool bPause);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestDeveloperEndMatch();
 
 	UFUNCTION()
 	void OnVanguardSet(APlayerState* Participant, APawn* NewPawn, APawn* OldPawn);

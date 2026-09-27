@@ -22,6 +22,11 @@
       "modules": ["VeyraMatch"]
     },
     {
+      "name": "Services",
+      "description": "The trusted-services client (ADR-006 §3, ADR-007 §12): the only modules that talk to the backend. They plug into the match's contracts, so no gameplay module knows HTTP.",
+      "modules": ["VeyraServices"]
+    },
+    {
       "name": "Composition",
       "description": "The composition root. Sealed: nothing depends on it.",
       "sealed": true,

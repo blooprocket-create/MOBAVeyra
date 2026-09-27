@@ -7,15 +7,19 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "Engine/GameInstance.h"
+#include "Engine/LocalPlayer.h"
 #include "Engine/NetConnection.h"
 #include "Engine/World.h"
 #include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxLayout.h"
 #include "HAL/IConsoleManager.h"
+#include "Hash/VeyraSha256.h"
+#include "Join/VeyraMatchHostSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "VeyraGameMode.h"
 #include "VeyraGameState.h"
+#include "VeyraLocalPlayer.h"
 #include "VeyraPlayerController.h"
 #include "VeyraVanguardCharacter.h"
 
@@ -86,6 +90,71 @@ namespace VeyraNetTests
 
 	/** Humans in a developer test match: one for each side. */
 	inline constexpr int32 MatchClientCount = 2;
+
+	/**
+	 * The join ticket a test gives the client in PIE instance PIEInstance. In-process play puts the
+	 * dedicated server in instance 0 and the clients in 1 and up.
+	 */
+	inline FString TestTicketForPIEInstance(int32 PIEInstance)
+	{
+		return FString::Printf(TEXT("vjt_test_client_%d"), PIEInstance);
+	}
+
+	/** The account a test roster gives the client in PIE instance PIEInstance. */
+	inline FString TestAccountForPIEInstance(int32 PIEInstance)
+	{
+		return FString::Printf(TEXT("test-account-%d"), PIEInstance);
+	}
+
+	/** Gives every PIE client its test join ticket while this object lives. */
+	struct FScopedTestTickets
+	{
+		FScopedTestTickets()
+		{
+			UVeyraLocalPlayer::SetTestTicketProvider([](const ULocalPlayer& Player)
+			{
+				const UGameInstance* GameInstance = Player.GetGameInstance();
+				const FWorldContext* Context = GameInstance ? GameInstance->GetWorldContext() : nullptr;
+				return Context ? TestTicketForPIEInstance(Context->PIEInstance) : FString();
+			});
+		}
+
+		~FScopedTestTickets()
+		{
+			UVeyraLocalPlayer::SetTestTicketProvider(nullptr);
+		}
+
+		UE_NONCOPYABLE(FScopedTestTickets);
+	};
+
+	/**
+	 * Makes the test server host a match whose roster is the PIE clients, the Nth on Sides[N], while
+	 * this object lives. Set it before the network starts: the server reads it when the map loads.
+	 */
+	struct FScopedMatchAssignment
+	{
+		FVeyraMatchAssignment Assignment;
+		TArray<FString> Problems;
+
+		explicit FScopedMatchAssignment(TConstArrayView<EVeyraTeam> Sides)
+		{
+			Assignment.MatchId = TEXT("test-match");
+			for (int32 Index = 0; Index < Sides.Num(); ++Index)
+			{
+				const int32 PIEInstance = Index + 1;
+				Assignment.Participants.Add({ TestAccountForPIEInstance(PIEInstance), FString::Printf(TEXT("TestPlayer%d"), PIEInstance),
+					Sides[Index], VeyraHash::Sha256Hex(TestTicketForPIEInstance(PIEInstance)) });
+			}
+			Problems = UVeyraMatchHostSubsystem::Get()->SetAssignment(Assignment);
+		}
+
+		~FScopedMatchAssignment()
+		{
+			UVeyraMatchHostSubsystem::Get()->ClearAssignment();
+		}
+
+		UE_NONCOPYABLE(FScopedMatchAssignment);
+	};
 
 	/** A developer match: a dedicated server running AVeyraGameMode and ClientCount clients. */
 	template <typename StateType>

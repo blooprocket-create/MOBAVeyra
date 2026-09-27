@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "Containers/Ticker.h"
 #include "GameFramework/GameModeBase.h"
+#include "Join/VeyraMatchRoster.h"
 #include "Teams/VeyraTeam.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
@@ -18,8 +20,12 @@ struct FVeyraDeathEvent;
 
 /**
  * Runs one match on the server (Match Flow Bible §1): admits participants, assigns sides, advances
- * the phases, spawns each Vanguard at its side's fountain and decides whether an order is allowed
- * now. It never lets the engine spawn or respawn a pawn for a player.
+ * the phases, spawns each Vanguard at its side's fountain, decides whether an order is allowed now
+ * and ends the match. It never lets the engine spawn or respawn a pawn for a player.
+ *
+ * A server hosting an assigned match (ADR-007) admits only its roster, each by join ticket and on
+ * its rostered side. A developer server without an assignment admits direct connections and puts
+ * each player on the smaller side.
  */
 UCLASS()
 class VEYRAMATCH_API AVeyraGameMode : public AGameModeBase
@@ -37,6 +43,13 @@ public:
 	virtual void StartPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void Tick(float DeltaSeconds) override;
+	virtual void Logout(AController* Exiting) override;
+
+	/**
+	 * Ends the match: it takes no more orders or players, its clock stops, and its result goes to
+	 * whoever hosts it (UVeyraMatchHostSubsystem::OnMatchEnded). Ending an ended match does nothing.
+	 */
+	void EndMatch(EVeyraMatchEndReason Reason);
 
 	/** Why the match refuses orders right now, or None: orders need the live phase and no pause. */
 	EVeyraOrderRejection CheckOrdersAllowed() const;
@@ -63,6 +76,8 @@ public:
 	bool ResumeMatch();
 
 protected:
+	virtual FString InitNewPlayer(APlayerController* NewPlayerController, const FUniqueNetIdRepl& UniqueId, const FString& Options,
+		const FString& Portal = TEXT("")) override;
 	virtual void HandleStartingNewPlayer_Implementation(APlayerController* NewPlayer) override;
 	virtual bool PlayerCanRestart_Implementation(APlayerController* Player) override;
 	virtual bool CanSpectate_Implementation(APlayerController* Viewer, APlayerState* ViewTarget) override;
@@ -91,7 +106,22 @@ private:
 	void OnDeath(const FVeyraDeathEvent& Death);
 	void Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState);
 
+	/** Starts or stops the abandonment clock as rostered participants come and go. */
+	void NoteConnectedParticipants();
+	/** Ends an assigned match that nobody has been connected to for the tuned time (ADR-007 §8). */
+	bool TickAbandonment(float DeltaSeconds);
+
 	FDelegateHandle DeathHandle;
+
+	/** Set when this server hosts an assigned match. */
+	TUniquePtr<FVeyraMatchRoster> Roster;
+
+	/**
+	 * Real time since which no rostered participant has been connected. The clock counts through
+	 * pauses: it is a server lifecycle clock, not a gameplay timer (ADR-006 §8).
+	 */
+	TOptional<double> NobodyConnectedSince;
+	FTSTicker::FDelegateHandle AbandonmentTicker;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Classes")
 	TSubclassOf<AVeyraVanguardCharacter> VanguardClass;

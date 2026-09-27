@@ -109,5 +109,19 @@ if (@($missing).Count -gt 0) {
     exit 1
 }
 
-Write-Host "Packaged $Target for $Platform in $packageDir; every tuning file is in the package."
+# So must every schema a module reads at run time, such as the match assignment's (ADR-007 §5).
+$sourceDir = Join-Path $gameDir 'Source'
+$missingSchemas = foreach ($file in Get-ChildItem -Path (Join-Path $sourceDir '*\Schemas\*.json')) {
+    $relative = 'Veyra/Source/' + [System.IO.Path]::GetRelativePath($sourceDir, $file.FullName).Replace('\', '/')
+    if (-not ($packaged | Where-Object { $_.Contains($relative) })) {
+        $relative
+    }
+}
+if (@($missingSchemas).Count -gt 0) {
+    Write-Host 'The package is missing module schemas:'
+    $missingSchemas | ForEach-Object { Write-Host "  $_" }
+    exit 1
+}
+
+Write-Host "Packaged $Target for $Platform in $packageDir; every tuning file and module schema is in the package."
 exit 0

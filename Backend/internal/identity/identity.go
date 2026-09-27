@@ -9,13 +9,12 @@ package identity
 
 import (
 	"context"
-	"crypto/rand"
-	"crypto/sha256"
-	"encoding/base64"
 	"errors"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/secret"
 )
 
 // SessionKind separates launcher sessions from game sessions; neither is
@@ -33,9 +32,6 @@ const (
 	prefixGameSession     = "vgs_"
 	prefixLaunchCode      = "vlc_"
 )
-
-// secretBytes is the entropy of every token and code (256 bits).
-const secretBytes = 32
 
 // maxBuildVersionLength bounds the client build identifier (protocol limit).
 const maxBuildVersionLength = 64
@@ -161,7 +157,7 @@ func (s *Service) IssueLaunchCode(ctx context.Context, launcherToken, buildVersi
 	if err != nil {
 		return IssuedToken{}, err
 	}
-	code, hash, err := newSecret(prefixLaunchCode)
+	code, hash, err := secret.New(prefixLaunchCode)
 	if err != nil {
 		return IssuedToken{}, err
 	}
@@ -189,7 +185,7 @@ func (s *Service) RedeemLaunchCode(ctx context.Context, code, buildVersion strin
 	if !strings.HasPrefix(code, prefixLaunchCode) {
 		return IssuedToken{}, Account{}, ErrInvalidCredentials
 	}
-	tok, hash, err := newSecret(prefixGameSession)
+	tok, hash, err := secret.New(prefixGameSession)
 	if err != nil {
 		return IssuedToken{}, Account{}, err
 	}
@@ -201,7 +197,7 @@ func (s *Service) RedeemLaunchCode(ctx context.Context, code, buildVersion strin
 		CreatedAt:    now,
 		ExpiresAt:    now.Add(s.settings.GameSessionLifetime),
 	}
-	acct, err := s.store.RedeemLaunchCode(ctx, hashSecret(code), buildVersion, now, sess)
+	acct, err := s.store.RedeemLaunchCode(ctx, secret.Hash(code), buildVersion, now, sess)
 	if errors.Is(err, ErrNotFound) || errors.Is(err, ErrBuildMismatch) {
 		return IssuedToken{}, Account{}, ErrInvalidCredentials
 	}
@@ -246,7 +242,7 @@ func (s *Service) authenticate(ctx context.Context, token string, kind SessionKi
 	if !strings.HasPrefix(token, prefix) {
 		return Session{}, ErrInvalidCredentials
 	}
-	sess, err := s.store.ActiveSession(ctx, hashSecret(token), s.now())
+	sess, err := s.store.ActiveSession(ctx, secret.Hash(token), s.now())
 	if errors.Is(err, ErrNotFound) {
 		return Session{}, ErrInvalidCredentials
 	}
@@ -260,7 +256,7 @@ func (s *Service) authenticate(ctx context.Context, token string, kind SessionKi
 }
 
 func (s *Service) createSession(ctx context.Context, accountID string, kind SessionKind, buildVersion string, lifetime time.Duration, prefix string) (IssuedToken, error) {
-	tok, hash, err := newSecret(prefix)
+	tok, hash, err := secret.New(prefix)
 	if err != nil {
 		return IssuedToken{}, err
 	}
@@ -284,18 +280,4 @@ func validateBuildVersion(v string) error {
 		return ErrInvalidBuildVersion
 	}
 	return nil
-}
-
-func newSecret(prefix string) (string, []byte, error) {
-	buf := make([]byte, secretBytes)
-	if _, err := rand.Read(buf); err != nil {
-		return "", nil, err
-	}
-	secret := prefix + base64.RawURLEncoding.EncodeToString(buf)
-	return secret, hashSecret(secret), nil
-}
-
-func hashSecret(secret string) []byte {
-	sum := sha256.Sum256([]byte(secret))
-	return sum[:]
 }

@@ -47,10 +47,11 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
 - **Engineering:** [Architecture](../ARCHITECTURE.md) → [Project Structure](../PROJECT_STRUCTURE.md) → relevant [ADR index](ADR/README.md) → owning design section. Do not create a giant manager or make UI, Blueprints, or the client authoritative.
   - The Unreal project is `Game/Veyra.uproject` ([ADR-006](ADR/ADR-006-unreal-project-scaffold.md) §1); `Source/`, `Content/` and `Config/` paths are relative to `Game/`.
   - Generate project files, build and test with `Game/Scripts/GenerateProjectFiles.ps1`, `Game/Scripts/Build.ps1` and `Game/Scripts/Test.ps1`.
-  - Package with `Game/Scripts/Package.ps1`. `Game/Scripts/Smoke.ps1` plays a scripted two-client match against the containerised Linux server ([ADR-006](ADR/ADR-006-unreal-project-scaffold.md) §10).
+  - Package with `Game/Scripts/Package.ps1`. `Game/Scripts/Smoke.ps1` plays a scripted two-client match against the containerised Linux server ([ADR-006](ADR/ADR-006-unreal-project-scaffold.md) §10); with `-Handoff`, the clients reach it through the backend's session handoff ([ADR-007](ADR/ADR-007-match-join-contract.md)).
   - The module layer map is `Game/Source/ModuleLayers.json`, enforced by `scripts/check_module_layers.py`.
   - The Gameplay Tag naming convention lives in [Project Structure §5](../PROJECT_STRUCTURE.md#gameplay-tag-vocabulary).
   - Gameplay tuning is text data in `Game/Tuning/` ([rules](../Game/Tuning/README.md)). `scripts/check_tuning.py` checks it in CI, and the game checks it again when it loads.
+  - The Go backend is in `Backend/` ([README](../Backend/README.md)). How a client joins its assigned match, and how the backend starts match servers and records results, is [ADR-007](ADR/ADR-007-match-join-contract.md); the launcher and session handoff are [ADR-005](ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md).
 - **Vanguard editing:** one character's section of the Character Bible → `Docs/Design/Vanguards/<nn>-<name>.yaml` → [Vanguard validation instructions](Design/Vanguards/README.md) → specific base [hero art](../ConceptArt/Vanguards/README.md). Do **not** interpret YAML as engine balance data.
 - **Cosmetics:** [skin gallery](../ConceptArt/Vanguards/skins/README.md) and [asset index](../ConceptArt/Vanguards/skins/index.json) → the particular `ConceptArt/Vanguards/<id>/skins/<collection>/hero.webp`; use base character/art bible only for identity and silhouette.
 - **Art direction:** [Art Direction](Design/Art_Direction_v0.1.md) and [canon discrepancy register](Design/Sheet_Canon_Discrepancy_Register_v0.1.md). [Ride-state question history](Design/Ride_State_Open_Questions_v0.1.md) is *resolved history*, not an open-rules source.
@@ -66,6 +67,7 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-004-unified-unreal-client-states.md](ADR/ADR-004-unified-unreal-client-states.md) — one Unreal application and isolated client states.
 - [ADR-005-launcher-session-handoff-and-local-first-hosting.md](ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) — launcher, session handoff, local-first hosting, Go backend, Git LFS.
 - [ADR-006-unreal-project-scaffold.md](ADR/ADR-006-unreal-project-scaffold.md) — **Proposed** (accepted when the M1 pull request merges): Unreal project in `Game/`, targets, initial modules and the layer check, ASC placement, Iris and the per-player fog gate, text JSON tuning, LFS, CQTest and build/test scripts.
+- [ADR-007-match-join-contract.md](ADR/ADR-007-match-join-contract.md) — **Proposed** (accepted when the M4 pull request merges): join tickets, the server's roster at start, server reports and results, the local Docker allocator.
 
 ## Keeping the maps current
 

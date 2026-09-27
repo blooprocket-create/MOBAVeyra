@@ -7,9 +7,9 @@
 #include "VeyraMatchTypes.generated.h"
 
 /**
- * The in-match stages the server runs (Match Flow Bible §1). Champion select comes before and
- * resolution after; both arrive with the systems they need. Pause is not a phase: it freezes
- * whichever phase is running.
+ * The in-match stages the server runs (Match Flow Bible §1). Champion select comes before, and the
+ * results screen after the end; both arrive with the systems they need. Pause is not a phase: it
+ * freezes whichever phase is running.
  */
 UENUM()
 enum class EVeyraMatchPhase : uint8
@@ -20,6 +20,8 @@ enum class EVeyraMatchPhase : uint8
 	Preparation,
 	/** The match clock runs from 0:00. */
 	Live,
+	/** The match is over: its result is decided and it takes no more orders or players. */
+	Ended,
 };
 
 /** Why the server refused a player's order. None means it was accepted. */

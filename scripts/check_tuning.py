@@ -10,8 +10,9 @@ draft-04. Documents must be UTF-8 without a byte-order mark, use LF line endings
 (no duplicate keys, NaN or Infinity) and validate against their schema.
 
 The game applies the same rules when it loads tuning (VeyraCore, VeyraTuning.cpp). The corpus in
-Game/Source/VeyraDeveloper/TestData keeps the two validators in agreement. Needs the pinned
-packages in scripts/requirements-tuning.txt.
+Game/Source/VeyraDeveloper/TestData keeps the two validators in agreement. The contract schemas
+listed in CONTRACTS use the same dialect for documents that are not tuning, and each is checked
+with its example. Needs the pinned packages in scripts/requirements-tuning.txt.
 """
 from __future__ import annotations
 
@@ -33,9 +34,10 @@ OBJECT_KEYWORDS = {"properties", "required", "additionalProperties"}
 MAP_KEYWORDS = {"patternProperties", "additionalProperties"}
 NUMBER_KEYWORDS = {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum", "enum"}
 STRING_KEYWORDS = {"enum", "pattern"}
+ARRAY_KEYWORDS = {"items", "minItems", "maxItems"}
 
-# The content ID format (ADR-006 §6). The only pattern the dialect allows, for content-ID strings
-# and as the one key of a map's "patternProperties". FVeyraContentId::Pattern in VeyraCore matches.
+# The content ID format (ADR-006 §6): the pattern of content-ID strings, and the one key of a map's
+# "patternProperties". FVeyraContentId::Pattern in VeyraCore matches.
 CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 
 # References from one domain's tuning to content another domain defines, which a schema cannot
@@ -43,6 +45,14 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # whose keys are the valid IDs). The loading domain in the game checks the same references.
 REFERENCES: list[tuple[str, str, str, str]] = [
     ("Match", "/developerLoadout/abilityQ", "Abilities", "/targetedDamage"),
+]
+
+# Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.
+# The example is what the other side of the contract writes: the backend's contract test writes the
+# match assignment (ADR-007 §5), and the match server validates it against the schema.
+CONTRACTS: list[tuple[str, str]] = [
+    ("Source/VeyraServices/Schemas/MatchAssignment.schema.json",
+     "Source/VeyraDeveloper/TestData/MatchAssignment.example.json"),
 ]
 
 
@@ -117,6 +127,8 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
         allowed = COMMON_KEYWORDS | NUMBER_KEYWORDS
     elif kind == "string":
         allowed = COMMON_KEYWORDS | STRING_KEYWORDS
+    elif kind == "array":
+        allowed = COMMON_KEYWORDS | ARRAY_KEYWORDS
     else:
         return [f"{where}: type {kind!r} is not supported"]
     for keyword in sorted(set(schema) - allowed):
@@ -136,15 +148,28 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
         has_enum, has_pattern = "enum" in schema, "pattern" in schema
         if has_enum == has_pattern:
             errors.append(f"{where}: a string declares either \"enum\" (an enum's values) or "
-                          f"\"pattern\" (a content ID), not both or neither")
+                          f"\"pattern\" (a content ID or a text format), not both or neither")
         elif has_enum:
             values = schema["enum"]
             if (not isinstance(values, list) or not values
                     or not all(isinstance(v, str) for v in values) or len(set(values)) != len(values)):
                 errors.append(f"{where}: \"enum\" must be a non-empty array of distinct strings")
-        elif schema["pattern"] != CONTENT_ID_PATTERN:
-            errors.append(f"{where}: \"pattern\" must be the content ID format {CONTENT_ID_PATTERN!r}")
+        else:
+            errors.extend(pattern_errors(schema["pattern"], where))
         return errors
+
+    if kind == "array":
+        items = schema.get("items")
+        if not isinstance(items, dict):
+            return errors + [f"{where}: an array must declare \"items\" as one schema object"]
+        minimum = schema.get("minItems")
+        if not is_integer(minimum) or minimum < 0:
+            errors.append(f"{where}: every array must declare \"minItems\" as a non-negative integer")
+        if "maxItems" in schema:
+            maximum = schema["maxItems"]
+            if not is_integer(maximum) or (is_integer(minimum) and maximum < minimum):
+                errors.append(f"{where}: \"maxItems\" must be an integer no smaller than \"minItems\"")
+        return errors + lint_schema(items, parts + ["items"], False)
 
     if kind == "object":
         properties = schema.get("properties")
@@ -191,6 +216,18 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
             errors.append(f"{where}: \"enum\" must be a non-empty array of "
                           f"{'integers' if integer else 'numbers'}")
     return errors
+
+
+def pattern_errors(pattern: Any, where: str) -> list[str]:
+    """A string's "pattern" is anchored at both ends and compiles. The game matches it with ICU,
+    so patterns keep to syntax both engines share (README)."""
+    if not isinstance(pattern, str) or len(pattern) < 2 or not pattern.startswith("^") or not pattern.endswith("$"):
+        return [f"{where}: \"pattern\" must be anchored: start with ^ and end with $"]
+    try:
+        re.compile(pattern)
+    except re.error as error:
+        return [f"{where}: \"pattern\" is not a valid regular expression ({error})"]
+    return []
 
 
 def full_match(pattern: str, text: str) -> bool:
@@ -353,6 +390,38 @@ def check(game_dir: Path) -> tuple[list[str], str]:
     return errors, f"{checked} tuning domain(s) valid."
 
 
+def check_contracts(game_dir: Path) -> tuple[list[str], str]:
+    base = game_dir.parent
+    errors: list[str] = []
+
+    def shown(path: Path) -> str:
+        try:
+            return path.relative_to(base).as_posix()
+        except ValueError:
+            return path.as_posix()
+
+    for schema_relative, example_relative in CONTRACTS:
+        schema_path = game_dir / schema_relative
+        example_path = game_dir / example_relative
+        if not schema_path.is_file():
+            errors.append(f"{shown(schema_path)}: is missing")
+            continue
+        schema, schema_errors = load_schema(schema_path, shown(schema_path))
+        errors.extend(schema_errors)
+        if schema is None:
+            continue
+        if not example_path.is_file():
+            errors.append(f"{shown(example_path)}: is missing")
+            continue
+        try:
+            text = example_path.read_bytes().decode("utf-8")
+        except UnicodeDecodeError as error:
+            errors.append(f"{shown(example_path)}: not valid UTF-8 ({error})")
+            continue
+        errors.extend(validate_document(text, schema, shown(example_path)))
+    return errors, f"{len(CONTRACTS)} contract schema(s) valid."
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -367,11 +436,13 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     errors, summary = check(args.game_dir.resolve())
+    contract_errors, contract_summary = check_contracts(args.game_dir.resolve())
+    errors += contract_errors
     if errors:
         for error in errors:
             print("ERROR:", error, file=sys.stderr)
         return 1
-    print(f"OK: {summary}")
+    print(f"OK: {summary} {contract_summary}")
     return 0
 
 

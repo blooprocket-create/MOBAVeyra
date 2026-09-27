@@ -13,5 +13,9 @@ public class VeyraCore : ModuleRules
 
 		// RapidJSON parses tuning files; the Json module exposes it.
 		PrivateDependencyModuleNames.Add("Json");
+
+		// SHA-256 for credential hashes (ADR-007 §3). The engine's own implementation is missing
+		// on Windows and Linux, the only platforms Veyra builds, so this links the engine's OpenSSL.
+		AddEngineThirdPartyPrivateStaticDependencies(Target, "OpenSSL");
 	}
 }

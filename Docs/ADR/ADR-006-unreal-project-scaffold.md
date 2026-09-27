@@ -86,6 +86,7 @@ Modules are created **only when they receive real content**, as Project Structur
 | `VeyraCombat` | Runtime | M2 | Attributes, the damage/healing/shield pipeline, statuses and movement primitives. It links the engine's GameplayAbilities module because it owns the Attribute Sets and the damage execution. |
 | `VeyraAbilities` | Runtime | M3 | GAS integration: ASC subclass, base ability, costs, cooldowns, targeting, projectiles. |
 | `VeyraMatch` | Runtime | M2 (PlayerState), M3 (the rest) | GameMode, GameState and PlayerState, teams, phases, spawn/respawn orchestration. |
+| `VeyraServices` | Runtime | M4 | The trusted-services client (ADR-007): the only module that talks to the backend. |
 
 - **Amendment (2026-09-25, M2):**
   - `VeyraMatch` arrives in M2 holding only `AVeyraPlayerState`, so the ASC lives on the PlayerState from the start (§4). The GameMode and GameState follow in M3.
@@ -104,7 +105,11 @@ Modules are created **only when they receive real content**, as Project Structur
     - the Vanguard character and the server-only controller that moves it (§7);
     - team starts;
     - the runtime input and camera settings.
-- Later modules (Economy, Items, Flux, World, Vision, Vanguards, UI, a trusted-services client) follow Project Structure as their first feature lands.
+- **Amendment (2026-09-26, M4): the trusted-services client.**
+  - `VeyraServices` arrives in a new **Services** layer between Orchestration and Composition. It reads the launch code and the server's assignment from standard input, talks to the backend over HTTP and plugs into `VeyraMatch` (ADR-007 §12). No gameplay module knows HTTP.
+  - `VeyraMatch` gains the roster, the join rules and `UVeyraMatchHostSubsystem`: the assignment is its input, and "accepting players" and "match ended" are its outputs. It also gains the Ended phase.
+  - `VeyraCore` gains SHA-256 (`VeyraHash::Sha256Hex`, over the engine's OpenSSL) for ticket hashes.
+- Later modules (Economy, Items, Flux, World, Vision, Vanguards, UI) follow Project Structure as their first feature lands.
 - **The layer graph is enforced by a check, not just by convention.** A repository script reads every `*.Build.cs`, compares the dependencies against a declared layer map, and fails on an upward, sideways or circular edge. It runs in GitHub Actions without Unreal, alongside the existing documentation check.
 
 ### 4. Gameplay Ability System placement
@@ -328,6 +333,19 @@ Modules are created **only when they receive real content**, as Project Structur
   - An editor-build client and the packaged Linux server matched in the container smoke test.
 - **Staging verified.** `Game/Scripts/Package.ps1` lists the packaged server's pak and fails unless every `Game/Tuning` file is in it.
 
+**Amendment (2026-09-26, M4): text, arrays, contracts and cooked builds.**
+
+- **The dialect grows again.** Both validators implement these additions, and the shared corpus covers them.
+  - **Text** binds to `FString`. It must declare an anchored `pattern` (`^…$`), and the whole text must match. Patterns keep to the regex syntax ICU and Python's `re` share.
+  - **Arrays** bind to `TArray`. They take one `items` schema, a required `minItems` and an optional `maxItems`.
+- **Contracts.** Documents that are not tuning may use the dialect: the match server's assignment (ADR-007 §5) is the first.
+  - `scripts/check_tuning.py` lists each such schema with an example that the other side of the contract writes, and validates the example in CI.
+  - Such documents are not part of the tuning hash.
+- **Cooked builds.** A cooked build keeps one spelling per engine name: the first the process registered, not the source's. So a field's reflected name can differ in case from its declaration; the assignment's `MatchId` read back as `MatchID` on the packaged server.
+  - In cooked builds, a schema key now matches its field ignoring case, as engine names compare.
+  - The editor, which keeps every spelling, still checks the exact camelCase key.
+  - A document's keys must match its schema's exactly everywhere.
+
 ### 7. Movement
 
 - Vanguards use **CharacterMovementComponent**, driven by server-validated move orders with pathfinding. Mover remains Experimental in 5.8 and is not approved under ADR-001.
@@ -403,6 +421,12 @@ Modules are created **only when they receive real content**, as Project Structur
     - Any Veyra error in the server log fails the test.
     - It has passed against the container with packaged Win64 clients and with editor-build clients. Clients and server must come from the same source: the target-data spike showed that their polymorphic type tables otherwise differ.
   - **Docker Desktop must forward UDP both ways.** Version 4.48.0 on this machine delivered packets into the container but dropped its replies, so clients timed out. Version 4.92 works.
+- **Amendment (2026-09-26, M4): the handoff smoke test.**
+  - **Direct connect stays for development.** A server started without an assignment still accepts it in development builds. A server with an assignment admits only its roster by join ticket, and a Shipping server refuses to start without an assignment (ADR-007 §9).
+  - **`Smoke.ps1 -Handoff`** plays the match the way a player reaches one. The backend starts the server; the packaged clients get their launch codes through a pipe and join with their tickets; the first client ends the match. ADR-007's evidence section lists what it checks.
+  - **The smoke client acts only once it is connected.** A handoff client starts in a local world, so the client no longer fails on one. It now fails at once on a network or travel failure instead.
+  - **The M3 smoke removes only its own server container** when it finishes. `compose down` also stopped the backend and its database.
+  - **`Package.ps1`** also fails unless every module schema (`Game/Source/*/Schemas/*.json`) is in the pak.
 
 ## Milestones
 
@@ -417,9 +441,10 @@ Each milestone is one branch and one pull request. It is built on the Windows ma
 3. **M3 — Match and network.**
    - Scope: `VeyraAbilities`, the rest of `VeyraMatch`, Iris, click-to-move Vanguards, a grey-box test map, the Linux server in Docker with dev-only direct connect (ADR-005 step 2), the spikes in §5 and §8, and deciding how Iris expresses the per-player fog gate.
    - Done when two clients play against the containerised server and a server-validated test ability passes an automated network test.
-4. **M4 onward.**
-   - Session handoff from the game side (ADR-005 step 3), which needs the backend's match-join contract first.
-   - Then the first Vanguards in ADR-003 order: Cairn, Qazharr, Oriel, Bryn.
+4. **M4 — Session handoff.**
+   - Scope: ADR-005 step 3 — local backend login, match allocation and results — under the match-join contract in ADR-007. That covers the backend's match module and Docker allocator, the roster and match lifecycle in `VeyraMatch`, and `VeyraServices`. No new gameplay.
+   - Done when two packaged clients redeem launch codes, join their assigned match in a container the backend started, and the backend records the result (`Smoke.ps1 -Handoff`).
+5. **M5 onward.** The first Vanguards in ADR-003 order: Cairn, Qazharr, Oriel, Bryn.
 
 ## Consequences
 

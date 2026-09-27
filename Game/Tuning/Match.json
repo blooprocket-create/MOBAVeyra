@@ -10,6 +10,9 @@
   "respawn": {
     "delaySeconds": 10
   },
+  "lifecycle": {
+    "abandonAfterSeconds": 60
+  },
   "orders": {
     "maxPerSecond": 20,
     "destinationProjectionExtent": 200,

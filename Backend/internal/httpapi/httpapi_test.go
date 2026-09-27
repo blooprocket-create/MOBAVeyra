@@ -27,6 +27,19 @@ var testAccounts = []string{"DevOne", "DevTwo", "DevThree"}
 
 func newTestServer(t *testing.T, devLogin bool) *httptest.Server {
 	t.Helper()
+	return serve(t, newTestDeps(t, devLogin))
+}
+
+func serve(t *testing.T, d Deps) *httptest.Server {
+	t.Helper()
+	srv := httptest.NewServer(New(d))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+// newTestDeps builds in-memory dependencies with the test accounts seeded.
+func newTestDeps(t *testing.T, devLogin bool) Deps {
+	t.Helper()
 	store := identity.NewMemStore()
 	var ids []string
 	for _, name := range testAccounts {
@@ -52,7 +65,7 @@ func newTestServer(t *testing.T, devLogin bool) *httptest.Server {
 		DefaultPrivacy: party.Private,
 	}, time.Now)
 	log := slog.New(slog.NewTextHandler(io.Discard, nil))
-	srv := httptest.NewServer(New(Deps{
+	return Deps{
 		Identity: svc,
 		Social:   soc,
 		Party:    parties,
@@ -63,9 +76,7 @@ func newTestServer(t *testing.T, devLogin bool) *httptest.Server {
 		BodyLimitBytes: testBodyLimit,
 		DevLogin:       devLogin,
 		Log:            log,
-	}))
-	t.Cleanup(srv.Close)
-	return srv
+	}
 }
 
 func call(t *testing.T, srv *httptest.Server, method, path, token string, body any) (int, map[string]any) {

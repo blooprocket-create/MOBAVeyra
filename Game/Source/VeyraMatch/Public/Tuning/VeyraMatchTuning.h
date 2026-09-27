@@ -42,6 +42,17 @@ struct FVeyraRespawnTuning
 	double DelaySeconds = 0.0;
 };
 
+/** How a hosted match's server ends a match on its own (ADR-007 §8). */
+USTRUCT()
+struct FVeyraMatchLifecycleTuning
+{
+	GENERATED_BODY()
+
+	/** Real seconds with no rostered participant connected before the match ends as abandoned. */
+	UPROPERTY()
+	double AbandonAfterSeconds = 0.0;
+};
+
 /** How the server accepts a player's move orders (ADR-006 §7). */
 USTRUCT()
 struct FVeyraOrdersTuning
@@ -103,6 +114,9 @@ struct FVeyraMatchTuning
 
 	UPROPERTY()
 	FVeyraRespawnTuning Respawn;
+
+	UPROPERTY()
+	FVeyraMatchLifecycleTuning Lifecycle;
 
 	UPROPERTY()
 	FVeyraOrdersTuning Orders;
