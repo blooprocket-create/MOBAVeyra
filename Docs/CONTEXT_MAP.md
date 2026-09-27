@@ -70,6 +70,7 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-007-match-join-contract.md](ADR/ADR-007-match-join-contract.md) — join tickets, the server's roster at start, server reports and results, the local Docker allocator.
 - [ADR-008-vanguard-definitions-and-ability-composition.md](ADR/ADR-008-vanguard-definitions-and-ability-composition.md) — Vanguard definitions, abilities composed onto archetypes, the passive registry, Progression, the new modules, provisional values, open canon questions for the first four kits.
 - [ADR-009-runtime-combat-primitives.md](ADR/ADR-009-runtime-combat-primitives.md) — statuses, displacement and dashes, shields with caps, projectiles and areas, shapes, basic attacks, no prediction for these categories.
+- [ADR-010-play-flow.md](ADR/ADR-010-play-flow.md) — **Proposed** (accepted when the M6a pull request merges): the client-state coordinator, front-end map and travel, UMG menus in C++, the launcher and its launch handshake, onboarding and available Vanguards, Custom practice, champion select, assignment v2, queue and Match Found.
 
 ## Keeping the maps current
 

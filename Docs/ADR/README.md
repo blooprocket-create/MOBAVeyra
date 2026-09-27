@@ -16,9 +16,9 @@ This directory records major technical choices that should not be casually rever
 
 ## Proposed decisions
 
-None at present.
+- [`ADR-010-play-flow.md`](ADR-010-play-flow.md) — The play flow: a client-state coordinator in `VeyraServices` replacing the linear handoff; a generated front-end map with absolute travel and verified results; menus as UMG built in C++; the Tauri launcher with a stdout/stdin launch handshake; a stubbed tutorial with an owned starter and a stand-in rotation; solo Custom practice ended by the host; champion select as a backend session that creates the match once; assignment v2 with mode, rules and Vanguards; M6b's queue and Match Found; provisional answers where canon is silent. It becomes Accepted when the author merges the M6a pull request that adds it.
 
-**Renumbering note (2026-09-23):** The unified-client record was first filed as a second `ADR-003` and has been renumbered to `ADR-004`; its content and acceptance are unchanged. Historical records such as [`Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md) that say "ADR-003" refer to owned field entities. Every ADR must use a unique number; `scripts/check_doc_context.py --check` enforces this. The next new ADR is `ADR-010`.
+**Renumbering note (2026-09-23):** The unified-client record was first filed as a second `ADR-003` and has been renumbered to `ADR-004`; its content and acceptance are unchanged. Historical records such as [`Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md) that say "ADR-003" refer to owned field entities. Every ADR must use a unique number; `scripts/check_doc_context.py --check` enforces this. The next new ADR is `ADR-011`.
 
 ## When to create an ADR
 
