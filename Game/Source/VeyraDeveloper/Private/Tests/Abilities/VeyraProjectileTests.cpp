@@ -134,17 +134,25 @@ namespace VeyraAbilitiesTests
 			}
 		}
 
-		void SpawnWall()
+		// Fixture values: a wall across the path, as thick and tall as needed to stop it.
+		static constexpr double WallThickness = 50.0;
+		static constexpr double WallWidth = 600.0;
+		static constexpr double WallHeight = 400.0;
+
+		/** A block of terrain of Size, centred on Center. */
+		void SpawnTerrain(const FVector& Center, const FVector& Size)
 		{
-			// Fixture values: a wall across the path, as thick and tall as needed to stop it.
-			constexpr double Thickness = 50.0;
-			constexpr double Width = 600.0;
-			constexpr double Height = 400.0;
 			UStaticMesh* Cube = LoadObject<UStaticMesh>(nullptr, TEXT("/Engine/BasicShapes/Cube.Cube"));
-			const FTransform Transform(FRotator::ZeroRotator, FVector(WallFaceX + Thickness / 2.0, 0.0, 0.0), FVector(Thickness, Width, Height) / Cube->GetBoundingBox().GetSize());
+			const FTransform Transform(FRotator::ZeroRotator, Center, Size / Cube->GetBoundingBox().GetSize());
 			AStaticMeshActor* Wall = Spawner.GetWorld().SpawnActor<AStaticMeshActor>(AStaticMeshActor::StaticClass(), Transform);
 			Wall->SetMobility(EComponentMobility::Movable);
 			Wall->GetStaticMeshComponent()->SetStaticMesh(Cube);
+		}
+
+		/** A wall across the path at WallFaceX, moved aside by OffsetY. */
+		void SpawnWall(double OffsetY = 0.0)
+		{
+			SpawnTerrain(FVector(WallFaceX + WallThickness / 2.0, OffsetY, 0.0), FVector(WallThickness, WallWidth, WallHeight));
 		}
 
 		TEST_METHOD(AFirstEnemySkillshotStopsAtTheNearestEnemy)
@@ -208,6 +216,29 @@ namespace VeyraAbilitiesTests
 			Fly(ShotRange / ShotSpeed);
 			ASSERT_THAT(IsTrue(World.HealthLost(Behind) == 0.0));
 			ASSERT_THAT(IsTrue(InFlight() == nullptr));
+		}
+
+		TEST_METHOD(TerrainStopsASkillshotWhoseBodyMeetsIt)
+		{
+			// The wall's edge is half the shot's radius beside the path: its centre line passes, its body does not.
+			SpawnWall(-(WallWidth / 2.0 + ShotRadius / 2.0));
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Behind = World.Spawn(EVeyraTeam::B, FVector(WallFaceX * 2.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(LearnAndCast(TEXT("test_lance")) == EVeyraCastRejection::None));
+			Fly(ShotRange / ShotSpeed);
+			ASSERT_THAT(IsTrue(World.HealthLost(Behind) == 0.0));
+			ASSERT_THAT(IsTrue(InFlight() == nullptr));
+		}
+
+		TEST_METHOD(ASkillshotCastAlongAWallItStartsAgainstFlies)
+		{
+			// A wall along the path up to WallFaceX, overlapping the shot's body from its launch but not its centre line.
+			SpawnTerrain(FVector(WallFaceX - ShotRange / 2.0, -(ShotRadius / 2.0 + WallThickness / 2.0), 0.0), FVector(ShotRange, WallThickness, WallHeight));
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Ahead = World.Spawn(EVeyraTeam::B, FVector(WallFaceX * 2.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(LearnAndCast(TEXT("test_spear")) == EVeyraCastRejection::None));
+			Fly(ShotRange / ShotSpeed);
+			ASSERT_THAT(IsTrue(World.HealthLost(Ahead) == Damage));
 		}
 
 		TEST_METHOD(ASkillshotEndsAtItsRange)

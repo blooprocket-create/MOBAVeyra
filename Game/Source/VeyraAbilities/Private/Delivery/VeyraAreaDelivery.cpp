@@ -46,6 +46,13 @@ TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FV
 {
 	// Sides belong to the participant, which outlives its body, so a caster who died since Commit still counts.
 	const AActor* Side = Caster.GetOwner();
+	struct FZoneHit
+	{
+		AActor* Unit = nullptr;
+		const FVeyraPreparedZone* Zone = nullptr;
+		FVeyraAbilityHitSource Source;
+	};
+	TArray<FZoneHit> ZoneHits;
 	TArray<AActor*> Hit;
 	for (const FVeyraPreparedZone& Zone : Zones)
 	{
@@ -56,20 +63,30 @@ TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FV
 		for (AActor* Unit : Units)
 		{
 			Hit.Add(Unit);
-			FVeyraAbilityHitSource UnitSource = Source;
-			if (VeyraUnits::IsVanguard(Unit))
-			{
-				if (Zone.CasterShieldPerVanguard.IsSet())
-				{
-					UnitSource.bCasterShielded = VeyraCombat::GrantShield(Caster, Caster, Zone.CasterShieldPerVanguard.GetValue()).IsValid();
-				}
-				for (const FVeyraStatusSpec& Status : Zone.CasterStatusesPerVanguard)
-				{
-					VeyraCombat::ApplyStatus(Caster, Caster, Status);
-				}
-			}
-			VeyraEffectDelivery::Apply(Caster, *Unit, Zone.Effects, Frame, UnitSource);
+			ZoneHits.Add(FZoneHit{ Unit, &Zone, Source });
 		}
+	}
+
+	// What the caster gains per Vanguard caught comes first: a takedown by the damage that follows then
+	// extends statuses that no later refresh from the same cast replaces.
+	for (FZoneHit& ZoneHit : ZoneHits)
+	{
+		if (!VeyraUnits::IsVanguard(ZoneHit.Unit))
+		{
+			continue;
+		}
+		if (ZoneHit.Zone->CasterShieldPerVanguard.IsSet())
+		{
+			ZoneHit.Source.bCasterShielded = VeyraCombat::GrantShield(Caster, Caster, ZoneHit.Zone->CasterShieldPerVanguard.GetValue()).IsValid();
+		}
+		for (const FVeyraStatusSpec& Status : ZoneHit.Zone->CasterStatusesPerVanguard)
+		{
+			VeyraCombat::ApplyStatus(Caster, Caster, Status);
+		}
+	}
+	for (const FZoneHit& ZoneHit : ZoneHits)
+	{
+		VeyraEffectDelivery::Apply(Caster, *ZoneHit.Unit, ZoneHit.Zone->Effects, Frame, ZoneHit.Source);
 	}
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("An area of %s hit %d unit(s)."), *GetNameSafe(Side), Hit.Num());
 	return Hit;

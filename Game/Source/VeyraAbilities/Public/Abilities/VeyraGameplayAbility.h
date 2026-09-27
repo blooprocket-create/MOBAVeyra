@@ -142,6 +142,12 @@ private:
 	void EnterPhase(EVeyraCastPhase Phase, double Seconds);
 	void FinishCast(bool bCancelled);
 
+	/**
+	 * The rank Commit charges and cools down at: a running cast's, read when it began (ADR-008 §6), so
+	 * a rank taken during its windup changes neither; otherwise the slot's rank now.
+	 */
+	int32 GetCommitRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
+
 	TOptional<FRunningCast> Running;
 	FTimerHandle PhaseTimer;
 	FDelegateHandle InterruptedHandle;
