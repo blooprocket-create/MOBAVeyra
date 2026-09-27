@@ -100,9 +100,9 @@ Until champion select (M6), developer data chooses Vanguards: `Match.json develo
 
 ### 9. Open canon questions and provisional answers
 
-Canon leaves these open. M5 builds the answer on the right as provisional data or behaviour, for the author to confirm or change:
+Canon leaves these open. M5 builds each answer below as provisional data or behaviour. The author reviewed them on 2026-09-27 and ruled on the first; the rest stand for now:
 
-1. **Cairn Q's hook** passes through units that are not Vanguards ("the first enemy Vanguard struck"). **Oriel Q** stops at the first enemy unit of any kind.
+1. **Cairn Q's hook (author ruling, 2026-09-27; Character Bible §18):** it passes through minions and other units that are not Vanguards, pushing each one aside as it travels, and pulls the first enemy Vanguard it reaches. So the skillshot archetype carries an effect for the units it passes through as well as for the unit that stops it. **Oriel Q** stops at the first enemy unit of any kind.
 2. **Shield categories** the kits leave unspecified: Universal for Cairn's passive and R shields, Qazharr W and Oriel E.
 3. **Oriel's basic attack** is Physical (Combat §4's default, and her YAML), although her kit's damage is Magic.
 4. **Bryn E** counts as a Dash (Combat §9): displacement can interrupt it, and terrain stops it without crossing.
