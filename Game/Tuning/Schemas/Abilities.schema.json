@@ -95,7 +95,7 @@
       "description": "One zone of an area: its shape and what it does to each enemy in it.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["shape", "effects", "casterShieldPerVanguard"],
+      "required": ["shape", "effects", "casterShieldPerVanguard", "casterStatusesPerVanguard"],
       "properties": {
         "shape": { "$ref": "#/definitions/shape" },
         "effects": { "$ref": "#/definitions/effects" },
@@ -105,6 +105,10 @@
           "minItems": 0,
           "maxItems": 1,
           "items": { "$ref": "#/definitions/shield" }
+        },
+        "casterStatusesPerVanguard": {
+          "$ref": "#/definitions/statusIds",
+          "description": "Statuses the caster gains for each enemy Vanguard the zone catches, such as the state an ultimate enters when it lands on a Vanguard (No Quarter; ADR-008 §9)."
         }
       }
     },
@@ -166,7 +170,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [2]
+      "enum": [3]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -196,7 +200,7 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards"]
             },
             "stacking": {
               "description": "Combat Bible §46.",

@@ -7,6 +7,7 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Passives/VeyraDeepFoundationPassive.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Shared/VeyraHitChainPassive.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -19,6 +20,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindDeepFoundation(PassiveId))
 	{
 		return UVeyraDeepFoundationPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindHitChain(PassiveId))
+	{
+		return UVeyraHitChainPassive::StaticClass();
 	}
 	return nullptr;
 }

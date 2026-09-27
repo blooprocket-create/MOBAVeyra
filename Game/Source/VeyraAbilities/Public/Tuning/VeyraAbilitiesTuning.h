@@ -260,6 +260,13 @@ struct FVeyraAreaZoneTuning
 	 */
 	UPROPERTY()
 	TArray<FVeyraShieldTuning> CasterShieldPerVanguard;
+
+	/**
+	 * Status IDs from the statuses map the caster gains for each enemy Vanguard the zone catches, such
+	 * as the state an ultimate enters when it lands on a Vanguard (No Quarter; ADR-008 §9).
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> CasterStatusesPerVanguard;
 };
 
 /** An ability that hits the enemies in shapes at the caster or a ground point (ADR-008 §3). */
@@ -553,7 +560,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

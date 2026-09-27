@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "resistance": {
     "mitigationConstant": 100
   },
@@ -40,5 +40,10 @@
     "minimum": 0.2,
     "overflowDamageScalePercent": 132,
     "overflowCurveConstant": 200
+  },
+  "pursuit": {
+    "provenance": "Provisional",
+    "range": 900,
+    "maxAngleDegrees": 60
   }
 }

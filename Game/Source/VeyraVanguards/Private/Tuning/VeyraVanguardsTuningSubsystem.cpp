@@ -55,6 +55,11 @@ const FVeyraDeepFoundationTuning* UVeyraVanguardsTuningSubsystem::FindDeepFounda
 	return Get().DeepFoundation.Find(Passive);
 }
 
+const FVeyraHitChainTuning* UVeyraVanguardsTuningSubsystem::FindHitChain(const FVeyraContentId& Passive)
+{
+	return Get().HitChain.Find(Passive);
+}
+
 VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 {
 	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.

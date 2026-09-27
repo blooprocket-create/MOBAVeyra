@@ -3,6 +3,7 @@
 #include "CQTest.h"
 #include "Movement/VeyraMovementComponent.h"
 #include "Movement/VeyraMovementRules.h"
+#include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -122,6 +123,56 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(Unit, Daze.Id)));
 			ASSERT_THAT(IsFalse(Movement.IsMovementLocked()));
 			ASSERT_THAT(IsTrue(LockChanges == TArray<bool>{ true, false }));
+		}
+
+		TEST_METHOD(HeadingTowardAUnitMeansItLiesWithinTheAngle)
+		{
+			// Fixture values: a unit heading along +X, and a 60-degree allowance either side.
+			constexpr double MaxAngle = 60.0;
+			const FVector Heading(1.0, 0.0, 0.0);
+			ASSERT_THAT(IsTrue(VeyraMovementRules::IsHeadingToward(FVector::ZeroVector, Heading, FVector(100.0, 50.0, 0.0), MaxAngle)));
+			ASSERT_THAT(IsFalse(VeyraMovementRules::IsHeadingToward(FVector::ZeroVector, Heading, FVector(0.0, 100.0, 0.0), MaxAngle), TEXT("beside it")));
+			ASSERT_THAT(IsFalse(VeyraMovementRules::IsHeadingToward(FVector::ZeroVector, -Heading, FVector(100.0, 0.0, 0.0), MaxAngle), TEXT("behind it")));
+			ASSERT_THAT(IsFalse(VeyraMovementRules::IsHeadingToward(FVector::ZeroVector, FVector::ZeroVector, FVector(100.0, 0.0, 0.0), MaxAngle), TEXT("standing still")));
+		}
+
+		TEST_METHOD(ABonusTowardEnemyVanguardsHoldsOnlyWhileHeadingForOne)
+		{
+			// Fixture values: the bonus, a pace, and how far inside the pursuit range the enemy stands.
+			constexpr double Bonus = 0.2;
+			constexpr double Pace = 300.0;
+			constexpr double Inside = 100.0;
+			constexpr double LongSeconds = 60.0;
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Pursuer = World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			const double Range = UVeyraCombatTuningSubsystem::Get().Pursuit.Range;
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Range - Inside, 0.0, 0.0));
+			UAbilitySystemComponent& Unit = *Pursuer.GetAbilitySystemComponent();
+
+			FVeyraStatusSpec Hunt;
+			Hunt.Id = FVeyraContentId::FromText(TEXT("hunt")).GetValue();
+			Hunt.Kind = EVeyraStatusKind::MoveSpeedTowardEnemyVanguards;
+			Hunt.Magnitude = Bonus;
+			Hunt.DurationSeconds = LongSeconds;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Unit, Unit, Hunt)));
+
+			UVeyraMovementComponent& Movement = *Pursuer.GetVeyraMovement();
+			const FVeyraMovementTuning& Committed = UVeyraCombatTuningSubsystem::Get().Movement;
+			const double Plain = VeyraMovementRules::EffectiveSpeed(SpeedInputs(ExampleStats().MoveSpeed), Committed);
+			FVeyraSpeedInputs Hunting = SpeedInputs(ExampleStats().MoveSpeed);
+			Hunting.ConditionalBonus = Bonus;
+			const double Faster = VeyraMovementRules::EffectiveSpeed(Hunting, Committed);
+
+			Movement.Velocity = FVector(Pace, 0.0, 0.0);
+			ASSERT_THAT(IsTrue(Movement.IsMovingTowardEnemyVanguard() && FMath::IsNearlyEqual(Movement.GetMaxSpeed(), Faster, 1e-3)));
+			Movement.Velocity = FVector(-Pace, 0.0, 0.0);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Movement.GetMaxSpeed(), Plain, 1e-3), TEXT("moving away")));
+
+			Movement.Velocity = FVector(Pace, 0.0, 0.0);
+			Enemy.SetActorLocation(FVector(Range + Pursuer.GetSimpleCollisionRadius() + Enemy.GetSimpleCollisionRadius() + Inside, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Movement.GetMaxSpeed(), Plain, 1e-3), TEXT("out of range, edge to edge")));
+			World.Spawn(EVeyraTeam::A, FVector(Range - Inside, 0.0, 0.0));
+			ASSERT_THAT(IsFalse(Movement.IsMovingTowardEnemyVanguard(), TEXT("an ally ahead does not count")));
 		}
 	};
 }

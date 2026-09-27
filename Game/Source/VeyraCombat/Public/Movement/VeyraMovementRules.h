@@ -38,4 +38,11 @@ namespace VeyraMovementRules
 	 * unit's base speed where that is lower; a Stun makes it 0.
 	 */
 	VEYRACOMBAT_API double EffectiveSpeed(const FVeyraSpeedInputs& Inputs, const FVeyraMovementTuning& Tuning);
+
+	/**
+	 * Whether a unit at From, moving along Heading, moves toward a unit at Target: on the ground,
+	 * Target lies within MaxAngleDegrees either side of the heading (ADR-008 §9). A unit that is not
+	 * moving moves toward nothing.
+	 */
+	VEYRACOMBAT_API bool IsHeadingToward(const FVector& From, const FVector& Heading, const FVector& Target, double MaxAngleDegrees);
 }

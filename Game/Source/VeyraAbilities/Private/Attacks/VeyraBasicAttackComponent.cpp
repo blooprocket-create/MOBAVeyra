@@ -263,7 +263,11 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 	// The hit chain counts consecutive attacks on one enemy Vanguard; any other target starts it again.
 	if (VeyraUnits::IsVanguard(&Target))
 	{
-		Chain = ChainTarget.Get() == &Target ? Chain + 1 : 1;
+		if (ChainTarget.Get() != &Target)
+		{
+			ResetChain();
+		}
+		++Chain;
 		ChainTarget = &Target;
 	}
 	else
@@ -438,8 +442,13 @@ void UVeyraBasicAttackComponent::EnterPhase(EVeyraAttackPhase Phase, AActor* Tar
 
 void UVeyraBasicAttackComponent::ResetChain()
 {
+	const bool bHadChain = Chain > 0;
 	ChainTarget.Reset();
 	Chain = 0;
+	if (bHadChain)
+	{
+		OnChainReset.Broadcast();
+	}
 }
 
 void UVeyraBasicAttackComponent::OnCombatStateChanged(bool bInCombat)

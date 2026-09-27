@@ -75,6 +75,12 @@ public:
 	/** Whether the unit cannot follow its orders now: it is stunned, displaced, dashing or casting in place. */
 	bool IsMovementLocked() const { return bMovementLocked; }
 
+	/**
+	 * Whether the body moves toward a living enemy Vanguard, as the combat tuning's pursuit rule
+	 * defines it (Combat Bible §23; ADR-008 §9). A move-speed bonus toward enemy Vanguards holds only then.
+	 */
+	bool IsMovingTowardEnemyVanguard() const;
+
 	/** Server only: raised when IsMovementLocked changes, with its new value. */
 	TMulticastDelegate<void(bool)> OnMovementLockChanged;
 

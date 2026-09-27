@@ -113,19 +113,41 @@ struct FVeyraDeepFoundationTuning
 	double LockoutSeconds = 0.0;
 };
 
+/**
+ * A generic passive that builds up over the hit chain, consecutive basic attacks on one enemy
+ * Vanguard (ADR-008 §5, ADR-009 §5): each attack in the chain applies Status again, so a stacking
+ * status gains a stack per hit, and the chain ending takes it away (Qazharr's Sea Dog, Character
+ * Bible §13).
+ */
+USTRUCT()
+struct FVeyraHitChainTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** A status ID from Abilities.json's statuses map, put on the passive's Vanguard. */
+	UPROPERTY()
+	FVeyraContentId Status;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraDeepFoundationTuning> DeepFoundation;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraHitChainTuning> HitChain;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */
@@ -134,7 +156,8 @@ namespace VeyraVanguardRules
 	/**
 	 * Problems with Tuning a schema cannot express, each a JSON pointer and a message: bodies, basic
 	 * attacks, abilities the Abilities tuning does not define or whose rank lists do not suit their
-	 * slot, passives no passive map defines, and a passive ID in more than one map.
+	 * slot, passives no passive map defines, a passive ID in more than one map, and passive statuses
+	 * the Abilities tuning does not define.
 	 */
 	VEYRAVANGUARDS_API TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, int32 BasicAbilityMaxRank,
 		int32 UltimateMaxRank);

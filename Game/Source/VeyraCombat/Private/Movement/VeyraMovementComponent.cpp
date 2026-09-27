@@ -9,9 +9,11 @@
 #include "GameFramework/Character.h"
 #include "Movement/VeyraMovementRules.h"
 #include "NavigationSystem.h"
+#include "Shapes/VeyraShapes.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
+#include "Units/VeyraUnit.h"
 
 namespace
 {
@@ -55,7 +57,38 @@ float UVeyraMovementComponent::GetMaxSpeed() const
 	Inputs.BaseMoveSpeed = Combatant->GetNumericAttributeBase(UVeyraMobilitySet::GetMoveSpeedAttribute());
 	Inputs.StrongestSlow = Statuses ? Statuses->GetStrongestSlow() : 0.0;
 	Inputs.bStunned = Statuses && EnumHasAnyFlags(Statuses->GetActionBlocks(), EVeyraActionBlocks::Move);
+	// A bonus toward enemy Vanguards holds only while the body heads for one (§23 conditional bonus).
+	const double Pursuit = Statuses ? Statuses->GetStrongest(EVeyraStatusKind::MoveSpeedTowardEnemyVanguards) : 0.0;
+	if (Pursuit > 0.0 && IsMovingTowardEnemyVanguard())
+	{
+		Inputs.ConditionalBonus = Pursuit;
+	}
 	return static_cast<float>(VeyraMovementRules::EffectiveSpeed(Inputs, UVeyraCombatTuningSubsystem::Get().Movement));
+}
+
+bool UVeyraMovementComponent::IsMovingTowardEnemyVanguard() const
+{
+	const UAbilitySystemComponent* Combatant = FollowedCombatant.Get();
+	const AActor* Body = GetOwner();
+	const UWorld* World = GetWorld();
+	const FVector Heading = Velocity.IsNearlyZero() ? FVector(GetCurrentAcceleration()) : FVector(Velocity);
+	if (!Combatant || !Body || !World || Heading.IsNearlyZero())
+	{
+		return false;
+	}
+	// Enemy Vanguards within range, edge to edge: a circle that far past the body's own edge touches them.
+	const FVeyraPursuitTuning& Pursuit = UVeyraCombatTuningSubsystem::Get().Pursuit;
+	FVeyraPlacedShape Near;
+	Near.Shape.Kind = EVeyraShapeKind::Circle;
+	Near.Shape.Radius = Pursuit.Range + Body->GetSimpleCollisionRadius();
+	Near.Origin = Body->GetActorLocation();
+	const AActor* Side = Combatant->GetOwner();
+	const FVector From = Body->GetActorLocation();
+	const TArray<AActor*> Ahead = VeyraShapes::GatherUnits(*World, Near, [Side, Body, &From, &Heading, &Pursuit](const AActor& Unit) {
+		return &Unit != Body && VeyraUnits::IsVanguard(&Unit) && VeyraTargeting::AreHostile(Side, &Unit)
+			&& VeyraMovementRules::IsHeadingToward(From, Heading, Unit.GetActorLocation(), Pursuit.MaxAngleDegrees);
+	});
+	return !Ahead.IsEmpty();
 }
 
 bool UVeyraMovementComponent::StartDisplacement(const FVector& Direction, double Distance, double Speed)

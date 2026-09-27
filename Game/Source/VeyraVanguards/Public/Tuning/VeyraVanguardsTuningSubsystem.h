@@ -34,6 +34,9 @@ public:
 	/** A Deep Foundation passive's tuning, or null. */
 	static const FVeyraDeepFoundationTuning* FindDeepFoundation(const FVeyraContentId& Passive);
 
+	/** A hit-chain passive's tuning, or null. */
+	static const FVeyraHitChainTuning* FindHitChain(const FVeyraContentId& Passive);
+
 	/** Reads and validates the file again, replacing the loaded tuning only when it is valid. */
 	VeyraTuning::FErrors Reload();
 

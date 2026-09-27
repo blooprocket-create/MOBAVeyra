@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -44,6 +44,50 @@
         "r": ["cairn_burden_of_the_depths"]
       },
       "passive": ["cairn_deep_foundation"]
+    },
+    "qazharr": {
+      "provenance": "Provisional",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 50, "capsuleHalfHeight": 95, "turnRateDegreesPerSecond": 540 },
+      "baseStats": {
+        "maxHealth": 650,
+        "maxResource": 300,
+        "resourceRegen": 3.2,
+        "armor": 34,
+        "magicResist": 32,
+        "physicalPower": 64,
+        "magicPower": 0,
+        "attackSpeed": 0.68,
+        "moveSpeed": 345
+      },
+      "growth": {
+        "maxHealth": 100,
+        "maxResource": 40,
+        "resourceRegen": 0.25,
+        "armor": 4.0,
+        "magicResist": 2,
+        "physicalPower": 3.6,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.025
+      },
+      "basicAttack": {
+        "range": 175,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": [{ "kind": "Sector", "radius": 300, "arcDegrees": 120, "length": 0, "width": 0 }]
+      },
+      "abilities": {
+        "q": ["qazharr_heavy_hand"],
+        "w": ["qazharr_weather_it"],
+        "e": ["qazharr_boarding_rush"],
+        "r": ["qazharr_no_quarter"]
+      },
+      "passive": ["qazharr_sea_dog"]
     },
     "test_vanguard": {
       "provenance": "Provisional",
@@ -106,5 +150,8 @@
       },
       "lockoutSeconds": 8
     }
+  },
+  "hitChain": {
+    "qazharr_sea_dog": { "provenance": "Provisional", "status": "qazharr_sea_dog" }
   }
 }

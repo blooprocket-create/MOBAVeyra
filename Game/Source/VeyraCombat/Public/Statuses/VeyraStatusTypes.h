@@ -34,6 +34,12 @@ enum class EVeyraStatusKind : uint8
 	 * (ADR-009 §5); the strongest applies. Not crowd control. Magnitude: that fraction, above 0 and at most 1.
 	 */
 	AttackCleave,
+	/**
+	 * Movement Speed while the unit moves toward an enemy Vanguard (Combat Bible §23, a conditional
+	 * bonus; ADR-008 §9), the strongest applying. Not crowd control. Magnitude: the fraction added,
+	 * above 0 and at most 1.
+	 */
+	MoveSpeedTowardEnemyVanguards,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -137,7 +137,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -194,6 +194,26 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "shield": { "description": "The shield each immobilized enemy Vanguard grants.", "$ref": "#/definitions/shield" },
             "lockoutSeconds": { "description": "How long the same enemy Vanguard cannot grant the shield again.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "hitChain": {
+      "description": "Generic passives that build up over the hit chain, consecutive basic attacks on one enemy Vanguard, and fall off when it ends (ADR-008 §5; Qazharr's Sea Dog, Character Bible §13).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "status"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "status": {
+              "description": "A status from Abilities.json's statuses map, applied again by each attack in the chain: a stacking status gains a stack per hit.",
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+            }
           }
         }
       }

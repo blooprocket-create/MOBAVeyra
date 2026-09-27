@@ -35,4 +35,15 @@ double EffectiveSpeed(const FVeyraSpeedInputs& Inputs, const FVeyraMovementTunin
 	const double Floor = FMath::Min(Tuning.SlowFloor, Inputs.BaseMoveSpeed);
 	return FMath::Max(Speed, FMath::Max(Floor, 0.0));
 }
+
+bool IsHeadingToward(const FVector& From, const FVector& Heading, const FVector& Target, double MaxAngleDegrees)
+{
+	const FVector Moving = Heading.GetSafeNormal2D();
+	const FVector ToTarget = (Target - From).GetSafeNormal2D();
+	if (Moving.IsNearlyZero() || ToTarget.IsNearlyZero())
+	{
+		return false;
+	}
+	return FVector::DotProduct(Moving, ToTarget) >= FMath::Cos(FMath::DegreesToRadians(MaxAngleDegrees));
+}
 }

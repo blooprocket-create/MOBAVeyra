@@ -166,6 +166,16 @@ namespace VeyraAbilitiesTests
 			Grasp.Zones[0].Effects = FVeyraEffectBundleTuning();
 			Grasp.Zones[0].Effects.Displacement.Add(FVeyraDisplacementTuning{ EVeyraDisplacementDirection::TowardOrigin, OuterRadius, OuterRadius });
 			Tuning.Area.Add(ArchetypeTestId(TEXT("test_grasp")), Grasp);
+
+			// A sweep whose caster enters a frenzy when it catches an enemy Vanguard (No Quarter).
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_frenzy")), StatusOf(EVeyraStatusKind::AttackSpeed, 0.5, LongSeconds));
+			FVeyraAreaAbilityTuning Sweep = Slam;
+			Sweep.Cast = InstantCast(CastRange, 0.0, 0.0);
+			Sweep.Zones.SetNum(1);
+			Sweep.Zones[0].Shape = CircleOf(OuterRadius);
+			Sweep.Zones[0].Effects = FVeyraEffectBundleTuning();
+			Sweep.Zones[0].CasterStatusesPerVanguard.Add(ArchetypeTestId(TEXT("test_frenzy")));
+			Tuning.Area.Add(ArchetypeTestId(TEXT("test_sweep")), Sweep);
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
 
 			FArchetypeTestWorld World{ Spawner };
@@ -222,6 +232,19 @@ namespace VeyraAbilitiesTests
 			TActorIterator<AVeyraDelayedArea> Delayed(&Spawner.GetWorld());
 			ASSERT_THAT(IsTrue(Delayed && FVector::Dist2D(Delayed->GetActorLocation(), Point) < 1.0));
 			ASSERT_THAT(IsTrue(Delayed->GetShapes().Num() == 1 && Delayed->GetVeyraTeam() == EVeyraTeam::A));
+		}
+
+		TEST_METHOD(ACatchOnAnEnemyVanguardGivesTheCasterItsZoneStatuses)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_sweep")))));
+			World.SpawnFluxborn(EVeyraTeam::B, FVector(InnerRadius, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::E, FVector(100.0, 0.0, 0.0)) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsFalse(World.Has(*Caster, TEXT("test_frenzy")), TEXT("a unit that is not a Vanguard gives nothing")));
+
+			World.Spawn(EVeyraTeam::B, FVector(0.0, InnerRadius, 0.0));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::E, FVector(100.0, 0.0, 0.0)) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(World.Has(*Caster, TEXT("test_frenzy"))));
 		}
 
 		TEST_METHOD(APullStopsAtTheCastersEdge)
