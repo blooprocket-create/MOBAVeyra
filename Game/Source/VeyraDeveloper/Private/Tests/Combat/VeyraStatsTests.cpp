@@ -15,22 +15,6 @@
 
 namespace VeyraCombatTests
 {
-	/** A complete, valid stat block. Test fixture values, not tuning. */
-	inline FVeyraStatBlock ExampleStats()
-	{
-		FVeyraStatBlock Stats;
-		Stats.MaxHealth = 600.0;
-		Stats.MaxResource = 300.0;
-		Stats.ResourceRegen = 4.0;
-		Stats.Armor = 30.0;
-		Stats.MagicResist = 25.0;
-		Stats.PhysicalPower = 55.0;
-		Stats.MagicPower = 10.0;
-		Stats.AttackSpeed = 0.65;
-		Stats.MoveSpeed = 335.0;
-		return Stats;
-	}
-
 	// Veyra.Combat.Stats.*: base stats from data, and level-up growth that keeps what is missing
 	// (ADR-008 §2, §6; Economy & Progression Bible §9).
 	TEST_CLASS(Stats, "Veyra.Combat")

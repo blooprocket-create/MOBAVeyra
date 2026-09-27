@@ -13,6 +13,7 @@
 #include "Effects/VeyraCombatEffects.h"
 #include "Effects/VeyraResourceSpendExecution.h"
 #include "Life/VeyraLifeComponent.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Tags/VeyraHealthTags.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatTagMapping.h"
@@ -91,10 +92,11 @@ namespace
 	}
 }
 
-void ConfigureCombatant(UAbilitySystemComponent& AbilitySystem, UVeyraDamageAbsorptionComponent& Absorption)
+void ConfigureCombatant(UAbilitySystemComponent& AbilitySystem, UVeyraDamageAbsorptionComponent& Absorption, UVeyraStatusComponent& Statuses)
 {
 	AbilitySystem.GameplayEffectApplicationQueries.Add(FGameplayEffectApplicationQuery::CreateStatic(&VeyraAttributePolicy::AllowsSpec));
 	Absorption.BindTo(AbilitySystem);
+	Statuses.BindTo(AbilitySystem);
 }
 
 bool InitializeVitals(UAbilitySystemComponent& AbilitySystem, double MaxHealth)
@@ -304,5 +306,32 @@ FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source
 {
 	return GrantAbsorption(Source, Target, UVeyraTemporaryHealthEffect::StaticClass(), VeyraTags::TemporaryHealth, Amount, DurationSeconds,
 		TEXT("Temporary Health"));
+}
+
+bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraStatusSpec& Status)
+{
+	AActor* TargetOwner = Target.GetOwner();
+	UVeyraStatusComponent* Statuses = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (!Statuses || IsDeadUnit(Target))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: it has no status ledger, or its death is final."),
+			*Status.Id.ToString(), *GetNameSafe(TargetOwner));
+		return false;
+	}
+	return Statuses->Apply(Source, Status);
+}
+
+bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id)
+{
+	AActor* TargetOwner = Target.GetOwner();
+	UVeyraStatusComponent* Statuses = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->Remove(Id);
+}
+
+EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)
+{
+	const AActor* Owner = Unit.GetOwner();
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses ? Statuses->GetActionBlocks() : EVeyraActionBlocks::None;
 }
 }

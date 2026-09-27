@@ -45,6 +45,10 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	{
 		return EVeyraCastRejection::CasterDead;
 	}
+	if (EnumHasAnyFlags(VeyraCombat::GetActionBlocks(Caster), EVeyraActionBlocks::Cast))
+	{
+		return EVeyraCastRejection::CrowdControlled;
+	}
 	const UVeyraCooldownComponent* Cooldowns = FindBesideAbilitySystem<UVeyraCooldownComponent>(Caster);
 	if (!Cooldowns || Cooldowns->GetRemainingSecondsNow(Ability) > 0.0)
 	{

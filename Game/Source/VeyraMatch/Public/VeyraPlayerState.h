@@ -20,6 +20,7 @@ class UVeyraOffenceSet;
 class UVeyraProgressionComponent;
 class UVeyraRegenerationComponent;
 class UVeyraResourceSet;
+class UVeyraStatusComponent;
 class UVeyraVitalsSet;
 
 /**
@@ -73,6 +74,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	TObjectPtr<UVeyraDamageAbsorptionComponent> DamageAbsorption;
+
+	/** Crowd control, buffs and debuffs. They end at death, unlike the participant's progression. */
+	UPROPERTY(VisibleAnywhere, Category = "Combat")
+	TObjectPtr<UVeyraStatusComponent> Statuses;
 
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	TObjectPtr<UVeyraLifeComponent> Life;

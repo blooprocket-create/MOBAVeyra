@@ -7,6 +7,19 @@
     "serverRangeTolerance": 25
   },
   "regeneration": {
+    "provenance": "Provisional",
     "tickSeconds": 0.5
+  },
+  "movement": {
+    "provenance": "Canon",
+    "softCaps": [
+      { "from": 415, "retained": 0.8 },
+      { "from": 490, "retained": 0.5 }
+    ],
+    "slowFloor": 100
+  },
+  "crowdControl": {
+    "provenance": "Canon",
+    "tenacityFloorSeconds": 0.3
   }
 }

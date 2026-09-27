@@ -6,9 +6,11 @@
 #include "ActiveGameplayEffectHandle.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "Stats/VeyraStatBlock.h"
+#include "Statuses/VeyraStatusTypes.h"
 
 class UAbilitySystemComponent;
 class UVeyraDamageAbsorptionComponent;
+class UVeyraStatusComponent;
 
 /**
  * Combat's verbs (ARCHITECTURE.md §1.10): the one way gameplay code deals damage, grants shields and
@@ -19,9 +21,10 @@ namespace VeyraCombat
 {
 	/**
 	 * Prepares a unit's Ability System Component for combat: installs the §41 modifier policy and
-	 * connects its absorption component. Call once per unit.
+	 * connects its absorption and status components. Call once per unit.
 	 */
-	VEYRACOMBAT_API void ConfigureCombatant(UAbilitySystemComponent& AbilitySystem, UVeyraDamageAbsorptionComponent& Absorption);
+	VEYRACOMBAT_API void ConfigureCombatant(UAbilitySystemComponent& AbilitySystem, UVeyraDamageAbsorptionComponent& Absorption,
+		UVeyraStatusComponent& Statuses);
 
 	/** Sets a unit's base Max Health from its data and fills its Health. Returns false if refused. */
 	VEYRACOMBAT_API bool InitializeVitals(UAbilitySystemComponent& AbilitySystem, double MaxHealth);
@@ -86,4 +89,17 @@ namespace VeyraCombat
 	/** Grants Target Temporary Health (Combat Bible §7). Returns its effect, or an invalid handle if refused. */
 	VEYRACOMBAT_API FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target,
 		double Amount, double DurationSeconds);
+
+	/**
+	 * Applies Status from Source to Target under its stacking policy (Combat Bible §8, §46;
+	 * UVeyraStatusComponent::Apply). A target whose death is final, or that has no status ledger,
+	 * refuses it. Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraStatusSpec& Status);
+
+	/** Ends Target's status Id early, from every source, as when a recast ends a buff. Returns whether it had one. */
+	VEYRACOMBAT_API bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id);
+
+	/** The actions Unit's statuses stop it taking now (Combat Bible §8). None when it has no status ledger. */
+	VEYRACOMBAT_API EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit);
 }

@@ -3,7 +3,6 @@
 #pragma once
 
 #include "AbilitySystemInterface.h"
-#include "Delegates/IDelegateInstance.h"
 #include "GameFramework/Character.h"
 #include "Teams/VeyraTeam.h"
 
@@ -12,7 +11,7 @@
 class UAbilitySystemComponent;
 class UCameraComponent;
 class USpringArmComponent;
-struct FOnAttributeChangeData;
+class UVeyraMovementComponent;
 
 /**
  * A Vanguard's body in the world: the avatar of its participant's Ability System Component, which
@@ -31,17 +30,13 @@ public:
 	virtual EVeyraTeam GetVeyraTeam() const override;
 	virtual void PostInitializeComponents() override;
 
+	/** Combat's movement, which walks at the participant's effective Movement Speed on the server. */
+	UVeyraMovementComponent* GetVeyraMovement() const;
+
 protected:
 	virtual void OnPlayerStateChanged(APlayerState* NewPlayerState, APlayerState* OldPlayerState) override;
-	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 private:
-	void FollowMoveSpeed(UAbilitySystemComponent* AbilitySystem);
-	void OnMoveSpeedChanged(const FOnAttributeChangeData& Change);
-
-	TWeakObjectPtr<UAbilitySystemComponent> FollowedAbilitySystem;
-	FDelegateHandle MoveSpeedChangedHandle;
-
 	/** The owning player's top-down view (UVeyraCameraSettings). Presentation only. */
 	UPROPERTY(VisibleAnywhere, Category = "Camera")
 	TObjectPtr<USpringArmComponent> CameraArm;

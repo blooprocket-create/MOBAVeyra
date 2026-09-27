@@ -42,13 +42,23 @@ const FVeyraCombatTuning& UVeyraCombatTuningSubsystem::Get()
 
 VeyraTuning::FErrors UVeyraCombatTuningSubsystem::Reload()
 {
+	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.
 	FVeyraCombatTuning Loaded;
-	FBlake3Hash Hash;
-	VeyraTuning::FErrors Errors = VeyraTuning::LoadDomain(Domain, FVeyraCombatTuning::SchemaVersion, Loaded, Hash);
+	VeyraTuning::FDomainFiles Files;
+	VeyraTuning::FErrors Errors = VeyraTuning::ReadDomainFiles(Domain, Files);
+	if (Errors.IsEmpty())
+	{
+		Errors = VeyraTuning::ValidateAndBind(Files.DocumentText, Files.SchemaText, FVeyraCombatTuning::SchemaVersion, Loaded);
+	}
+	if (Errors.IsEmpty())
+	{
+		Errors = VeyraCombatTuningRules::Validate(Loaded);
+	}
 	if (Errors.IsEmpty())
 	{
 		Tuning = Loaded;
-		DocumentHash = Hash;
+		DocumentHash = Files.DocumentHash;
+		VeyraTuning::RecordLoadedDomain(Domain, Files.DocumentHash);
 	}
 	return Errors;
 }

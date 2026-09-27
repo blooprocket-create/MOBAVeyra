@@ -12,6 +12,8 @@ const TCHAR* LexToString(EVeyraCastRejection Rejection)
 		return TEXT("UnknownAbility");
 	case EVeyraCastRejection::CasterDead:
 		return TEXT("CasterDead");
+	case EVeyraCastRejection::CrowdControlled:
+		return TEXT("CrowdControlled");
 	case EVeyraCastRejection::OnCooldown:
 		return TEXT("OnCooldown");
 	case EVeyraCastRejection::InsufficientResource:

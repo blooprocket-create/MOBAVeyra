@@ -27,6 +27,8 @@ enum class EVeyraCastRejection : uint8
 	UnknownAbility,
 	/** The caster's death is final. */
 	CasterDead,
+	/** Crowd control stops the caster casting, such as a Stun (Combat Bible §8). */
+	CrowdControlled,
 	OnCooldown,
 	/** Not enough resource for the cost (Combat Bible §27). */
 	InsufficientResource,

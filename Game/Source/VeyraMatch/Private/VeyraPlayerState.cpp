@@ -16,6 +16,7 @@
 #include "Net/UnrealNetwork.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Regeneration/VeyraRegenerationComponent.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraMatchLog.h"
 
@@ -27,6 +28,7 @@ AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer
 	AbilitySystem->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
 	DamageAbsorption = CreateDefaultSubobject<UVeyraDamageAbsorptionComponent>(TEXT("DamageAbsorption"));
+	Statuses = CreateDefaultSubobject<UVeyraStatusComponent>(TEXT("Statuses"));
 	Life = CreateDefaultSubobject<UVeyraLifeComponent>(TEXT("Life"));
 	Loadout = CreateDefaultSubobject<UVeyraAbilityLoadoutComponent>(TEXT("Loadout"));
 	Cooldowns = CreateDefaultSubobject<UVeyraCooldownComponent>(TEXT("Cooldowns"));
@@ -54,7 +56,7 @@ void AVeyraPlayerState::PostInitializeComponents()
 	// Until a Vanguard exists the PlayerState is its own avatar; the Vanguard takes over when it is
 	// given this PlayerState (AVeyraVanguardCharacter::OnPlayerStateChanged).
 	AbilitySystem->InitAbilityActorInfo(this, GetPawn() ? static_cast<AActor*>(GetPawn()) : this);
-	VeyraCombat::ConfigureCombatant(*AbilitySystem, *DamageAbsorption);
+	VeyraCombat::ConfigureCombatant(*AbilitySystem, *DamageAbsorption, *Statuses);
 }
 
 void AVeyraPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
