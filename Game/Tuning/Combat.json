@@ -33,5 +33,12 @@
   "attribution": {
     "provenance": "Canon",
     "assistWindowSeconds": 10
+  },
+  "attackSpeed": {
+    "provenance": "Canon",
+    "cap": 2.5,
+    "minimum": 0.2,
+    "overflowDamageScalePercent": 132,
+    "overflowCurveConstant": 200
   }
 }

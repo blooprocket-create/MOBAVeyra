@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/VeyraAreaAbility.h"
 #include "Abilities/VeyraDashAbility.h"
+#include "Abilities/VeyraEmpoweredAttackAbility.h"
 #include "Abilities/VeyraSelfBuffAbility.h"
 #include "Abilities/VeyraSkillshotAbility.h"
 #include "Abilities/VeyraTargetedDamageAbility.h"
@@ -41,6 +42,10 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindDash(Ability))
 		{
 			return UVeyraDashAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindEmpoweredAttack(Ability))
+		{
+			return UVeyraEmpoweredAttackAbility::StaticClass();
 		}
 		return nullptr;
 	}

@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Casting/VeyraCastSubsystem.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
@@ -175,6 +176,11 @@ void UVeyraGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, /*bReplicateEndAbility*/ true, /*bWasCancelled*/ true);
 		return;
+	}
+	// Casting cancels a basic attack before its Commit, and cuts a backswing short (Combat Bible §48).
+	if (UVeyraBasicAttackComponent* Attacks = FindBesideAbilitySystem<UVeyraBasicAttackComponent>(*Caster))
+	{
+		Attacks->CancelAttack();
 	}
 
 	FRunningCast& Run = Running.Emplace();

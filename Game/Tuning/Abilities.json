@@ -17,5 +17,6 @@
   "area": {},
   "selfBuff": {},
   "skillshot": {},
-  "dash": {}
+  "dash": {},
+  "empoweredAttack": {}
 }

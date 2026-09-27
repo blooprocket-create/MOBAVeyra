@@ -50,13 +50,13 @@ namespace
 			CheckByRank(Pointer + TEXT("/resourceCostByRank"), Cast.ResourceCostByRank);
 		}
 
-		void CheckEffects(const FString& Pointer, const FVeyraEffectBundleTuning& Effects)
+		void CheckDamage(const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList)
 		{
 			TArray<EVeyraDamageType, TInlineAllocator<3>> Types;
-			for (int32 Index = 0; Index < Effects.Damage.Num(); ++Index)
+			for (int32 Index = 0; Index < DamageList.Num(); ++Index)
 			{
-				const FVeyraDamageTuning& Damage = Effects.Damage[Index];
-				const FString DamagePointer = FString::Printf(TEXT("%s/damage/%d"), *Pointer, Index);
+				const FVeyraDamageTuning& Damage = DamageList[Index];
+				const FString DamagePointer = FString::Printf(TEXT("%s/%d"), *Pointer, Index);
 				CheckByRank(DamagePointer + TEXT("/amountByRank"), Damage.AmountByRank);
 				if (Types.Contains(Damage.Type))
 				{
@@ -64,6 +64,11 @@ namespace
 				}
 				Types.Add(Damage.Type);
 			}
+		}
+
+		void CheckEffects(const FString& Pointer, const FVeyraEffectBundleTuning& Effects)
+		{
+			CheckDamage(Pointer + TEXT("/damage"), Effects.Damage);
 			CheckStatusIds(Pointer + TEXT("/statuses"), Effects.Statuses);
 		}
 
@@ -146,6 +151,33 @@ namespace
 			CheckStatusIds(Pointer + TEXT("/contactSelfStatuses"), Dash.ContactSelfStatuses);
 		}
 
+		void CheckEmpoweredAttack(const FString& Pointer, const FVeyraEmpoweredAttackAbilityTuning& Empowered)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Empowered.Cast);
+			CheckDamage(Pointer + TEXT("/damage"), Empowered.Damage);
+			CheckStatusIds(Pointer + TEXT("/statuses"), Empowered.Statuses);
+			CheckByRank(Pointer + TEXT("/armorPenetrationByRank"), Empowered.ArmorPenetrationByRank);
+			if (Empowered.ArmorPenetrationByRank.ContainsByPredicate([](double Fraction) { return Fraction > 1.0; }))
+			{
+				Problem(Pointer + TEXT("/armorPenetrationByRank"), TEXT("each value is a fraction of Armor, at most 1"));
+			}
+			for (int32 Index = 0; Index < Empowered.Cleave.Num(); ++Index)
+			{
+				CheckStatusIds(FString::Printf(TEXT("%s/cleave/%d/statuses"), *Pointer, Index), Empowered.Cleave[Index].Statuses);
+			}
+			for (int32 Index = 0; Index < Empowered.SecondaryImpact.Num(); ++Index)
+			{
+				const FVeyraSecondaryImpactTuning& Impact = Empowered.SecondaryImpact[Index];
+				const FString ImpactPointer = FString::Printf(TEXT("%s/secondaryImpact/%d"), *Pointer, Index);
+				for (const FString& ShapeProblem : VeyraShapes::Validate(Impact.Shape))
+				{
+					Problem(ImpactPointer + TEXT("/shape"), ShapeProblem);
+				}
+				CheckDamage(ImpactPointer + TEXT("/damage"), Impact.Damage);
+				CheckStatusIds(ImpactPointer + TEXT("/statuses"), Impact.Statuses);
+			}
+		}
+
 		void CheckEachIdInOneArchetype()
 		{
 			TMap<FVeyraContentId, FString> Archetypes;
@@ -178,6 +210,10 @@ namespace
 			for (const TPair<FVeyraContentId, FVeyraDashAbilityTuning>& Entry : Tuning.Dash)
 			{
 				Note(Entry.Key, TEXT("dash"));
+			}
+			for (const TPair<FVeyraContentId, FVeyraEmpoweredAttackAbilityTuning>& Entry : Tuning.EmpoweredAttack)
+			{
+				Note(Entry.Key, TEXT("empoweredAttack"));
 			}
 		}
 	};
@@ -225,6 +261,10 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	for (const TPair<FVeyraContentId, FVeyraDashAbilityTuning>& Entry : Tuning.Dash)
 	{
 		Checker.CheckDash(TEXT("/dash/") + Entry.Key.ToString(), Entry.Value);
+	}
+	for (const TPair<FVeyraContentId, FVeyraEmpoweredAttackAbilityTuning>& Entry : Tuning.EmpoweredAttack)
+	{
+		Checker.CheckEmpoweredAttack(TEXT("/empoweredAttack/") + Entry.Key.ToString(), Entry.Value);
 	}
 	Checker.CheckEachIdInOneArchetype();
 	return Checker.Problems;

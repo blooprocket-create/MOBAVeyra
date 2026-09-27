@@ -13,6 +13,7 @@ class AVeyraVanguardController;
 class UAbilitySystemComponent;
 class UVeyraAbilityLoadoutComponent;
 class UVeyraAttributionComponent;
+class UVeyraBasicAttackComponent;
 class UVeyraCastStateComponent;
 class UVeyraCombatStateComponent;
 class UVeyraCooldownComponent;
@@ -104,6 +105,10 @@ private:
 	/** The cast that holds the Vanguard now, for telegraphs. */
 	UPROPERTY(VisibleAnywhere, Category = "Abilities")
 	TObjectPtr<UVeyraCastStateComponent> CastState;
+
+	/** Basic attacks, with the hit chain and a waiting empowerment, which death clears (Combat Bible §44). */
+	UPROPERTY(VisibleAnywhere, Category = "Abilities")
+	TObjectPtr<UVeyraBasicAttackComponent> BasicAttack;
 
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	TObjectPtr<UVeyraRegenerationComponent> Regeneration;

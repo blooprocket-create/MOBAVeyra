@@ -265,6 +265,20 @@ EVeyraOrderRejection AVeyraGameMode::CheckOrdersAllowed() const
 	return GetVeyraGameState().GetPhase() == EVeyraMatchPhase::Live ? EVeyraOrderRejection::None : EVeyraOrderRejection::WrongPhase;
 }
 
+namespace
+{
+	bool IsUsableOrderPoint(const FVector& Point)
+	{
+		return !Point.ContainsNaN() && FMath::IsFinite(Point.X) && FMath::IsFinite(Point.Y) && FMath::IsFinite(Point.Z);
+	}
+
+	AVeyraVanguardController* VanguardControllerOf(const AVeyraPlayerController& Player)
+	{
+		const AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
+		return PlayerState ? PlayerState->GetVanguardController() : nullptr;
+	}
+}
+
 EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerController& Player, const FVector& Destination)
 {
 	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
@@ -272,13 +286,42 @@ EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerController& Pla
 	{
 		return Allowed;
 	}
-	if (Destination.ContainsNaN() || !FMath::IsFinite(Destination.X) || !FMath::IsFinite(Destination.Y) || !FMath::IsFinite(Destination.Z))
+	if (!IsUsableOrderPoint(Destination))
 	{
 		return EVeyraOrderRejection::InvalidOrder;
 	}
-	const AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
-	AVeyraVanguardController* Controller = PlayerState ? PlayerState->GetVanguardController() : nullptr;
+	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
 	return Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard;
+}
+
+EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerController& Player, AActor* Target)
+{
+	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
+	if (Allowed != EVeyraOrderRejection::None)
+	{
+		return Allowed;
+	}
+	if (!Target)
+	{
+		return EVeyraOrderRejection::InvalidOrder;
+	}
+	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
+	return Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard;
+}
+
+EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerController& Player, const FVector& Destination)
+{
+	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
+	if (Allowed != EVeyraOrderRejection::None)
+	{
+		return Allowed;
+	}
+	if (!IsUsableOrderPoint(Destination))
+	{
+		return EVeyraOrderRejection::InvalidOrder;
+	}
+	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
+	return Controller ? Controller->AttackMoveTo(Destination) : EVeyraOrderRejection::NoVanguard;
 }
 
 EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target)

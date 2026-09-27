@@ -100,7 +100,7 @@ Until champion select (M6), developer data chooses Vanguards: `Match.json develo
 
 ### 9. Open canon questions and provisional answers
 
-Canon leaves these open. M5 builds each answer below as provisional data or behaviour. The author reviewed them on 2026-09-27 and ruled on the first; the rest stand for now:
+Canon leaves these open. M5 builds each answer below as provisional data or behaviour. The author reviewed items 1–15 on 2026-09-27 and ruled on the first; the rest stand for now:
 
 1. **Cairn Q's hook (author ruling, 2026-09-27; Character Bible §18):** it passes through minions and other units that are not Vanguards, pushing each one aside as it travels, and pulls the first enemy Vanguard it reaches. So the skillshot archetype carries an effect for the units it passes through as well as for the unit that stops it. **Oriel Q** stops at the first enemy unit of any kind.
 2. **Shield categories** the kits leave unspecified: Universal for Cairn's passive and R shields, Qazharr W and Oriel E.
@@ -117,6 +117,8 @@ Canon leaves these open. M5 builds each answer below as provisional data or beha
 13. **Cairn's "increased maximum Health"** is a higher base stat, not a percentage passive.
 14. **Gathering Light and Breach stacks** reset on death (Combat §44).
 15. **Cairn E's self-slow** is a speed modifier, not crowd control, so Tenacity does not shorten it; the slow floor still applies.
+16. **Overflow Attack Speed** (Combat §22) is measured relative to the cap: overflow % = 100 × (uncapped − 2.5) / 2.5, so 2.75 attacks per second is 10% overflow. Added in G7 for the author's review.
+17. **Cleave geometry** belongs to the Vanguard's basic-attack profile (Qazharr's cleaver arc). A cleave status, such as No Quarter's, or an empowered attack, such as Heavy Hand, gives only the share of damage the other enemies take. Added in G7 for the author's review.
 
 ## Consequences
 

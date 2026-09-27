@@ -424,6 +424,79 @@ struct FVeyraDashAbilityTuning
 	TArray<FVeyraContentId> ContactSelfStatuses;
 };
 
+/** The other enemies an empowered attack hits, in the attacker's cleave shape (ADR-009 §5). */
+USTRUCT()
+struct FVeyraAttackCleaveTuning
+{
+	GENERATED_BODY()
+
+	/** The fraction of the attack's damage each takes, above 0 and at most 1. */
+	UPROPERTY()
+	double DamageFraction = 0.0;
+
+	/** Status IDs from the statuses map, put on each. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
+/** An empowered attack's secondary impact behind its target: proc damage (ADR-009 §5). */
+USTRUCT()
+struct FVeyraSecondaryImpactTuning
+{
+	GENERATED_BODY()
+
+	/** A higher priority replaces a lower one, such as a passive's impact; an attack has at most one. */
+	UPROPERTY()
+	int32 Priority = 0;
+
+	/** Placed at the target, facing away from the attacker; the target itself is never hit by it. */
+	UPROPERTY()
+	FVeyraShape Shape;
+
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> Damage;
+
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
+/** An ability that empowers its caster's next basic attack, which stays a basic attack (ADR-008 §3; Combat Bible §17). */
+USTRUCT()
+struct FVeyraEmpoweredAttackAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	/** How long the empowerment waits for an attack, in seconds. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** Joins the attack's own damage event, so the empowered attack is still one hit (Combat Bible §25). */
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> Damage;
+
+	/** Status IDs put on the target. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	/** The fraction of the target's Armor the attack ignores, by rank: percentage penetration (Combat Bible §3). */
+	UPROPERTY()
+	TArray<double> ArmorPenetrationByRank;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraAttackCleaveTuning> Cleave;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraSecondaryImpactTuning> SecondaryImpact;
+};
+
 /** Rules every cast shares (Combat Bible §26). */
 USTRUCT()
 struct FVeyraCastingTuning
@@ -466,6 +539,9 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraDashAbilityTuning> Dash;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraEmpoweredAttackAbilityTuning> EmpoweredAttack;
 };
 
 /** The Abilities domain's rules for its tuning (ADR-008 §3, §7). */

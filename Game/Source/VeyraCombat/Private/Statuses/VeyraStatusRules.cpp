@@ -68,6 +68,9 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::DisplacementResistance:
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
 		break;
+	case EVeyraStatusKind::AttackCleave:
+		bMagnitudeValid &= Magnitude > 0.0 && AllStacks <= 1.0;
+		break;
 	}
 	if (!bMagnitudeValid)
 	{
@@ -111,17 +114,22 @@ bool IsStronger(const FVeyraStatusEntry& Active, double Magnitude, double EndsAt
 	return EndsAt > Active.EndsAt;
 }
 
-double StrongestSlow(TConstArrayView<FVeyraStatusEntry> Entries)
+double Strongest(TConstArrayView<FVeyraStatusEntry> Entries, EVeyraStatusKind Kind)
 {
-	double Strongest = 0.0;
+	double Largest = 0.0;
 	for (const FVeyraStatusEntry& Entry : Entries)
 	{
-		if (Entry.Kind == EVeyraStatusKind::Slow)
+		if (Entry.Kind == Kind)
 		{
-			Strongest = FMath::Max(Strongest, Entry.Magnitude);
+			Largest = FMath::Max(Largest, Entry.Magnitude);
 		}
 	}
-	return Strongest;
+	return Largest;
+}
+
+double StrongestSlow(TConstArrayView<FVeyraStatusEntry> Entries)
+{
+	return Strongest(Entries, EVeyraStatusKind::Slow);
 }
 
 EVeyraActionBlocks ActionBlocks(TConstArrayView<FVeyraStatusEntry> Entries)

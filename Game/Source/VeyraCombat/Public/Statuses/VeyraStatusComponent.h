@@ -53,6 +53,9 @@ public:
 	/** The fraction of speed the strongest Slow removes; 0 when there is none. */
 	double GetStrongestSlow() const;
 
+	/** The largest magnitude among the unit's statuses of Kind; 0 when it has none. */
+	double GetStrongest(EVeyraStatusKind Kind) const;
+
 	/** The actions the unit's statuses stop it taking. */
 	EVeyraActionBlocks GetActionBlocks() const;
 

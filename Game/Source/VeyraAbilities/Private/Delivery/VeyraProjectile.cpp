@@ -64,7 +64,7 @@ void AVeyraProjectile::LaunchLine(UAbilitySystemComponent& InCaster, const FVect
 }
 
 void AVeyraProjectile::LaunchHoming(UAbilitySystemComponent& InCaster, AActor& Target, double InSpeed, double InRadius, FVeyraPreparedEffects InEffects,
-	const FVeyraContentId& InAbility, int32 InCastId)
+	const FVeyraContentId& InAbility, int32 InCastId, TFunction<void(AActor&)> InOnLanded)
 {
 	Flight = EVeyraProjectileFlight::Homing;
 	HomingTarget = &Target;
@@ -73,6 +73,7 @@ void AVeyraProjectile::LaunchHoming(UAbilitySystemComponent& InCaster, AActor& T
 	Radius = InRadius;
 	Range = 0.0;
 	Effects = MoveTemp(InEffects);
+	OnLanded = MoveTemp(InOnLanded);
 	Launch(InCaster, InAbility, InCastId);
 }
 
@@ -194,6 +195,10 @@ void AVeyraProjectile::AdvanceHoming(UAbilitySystemComponent& Source, double Dis
 	SetActorLocation(Here + Heading * Gap);
 	Met.Add(Target);
 	VeyraEffectDelivery::Apply(Source, *Target, Effects, CasterFrame());
+	if (OnLanded)
+	{
+		OnLanded(*Target);
+	}
 	End();
 }
 

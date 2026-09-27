@@ -18,7 +18,7 @@ namespace
 	// Status effects take every magnitude from SetByCaller data, never from level curves.
 	constexpr float StatusEffectLevel = 1.0f;
 
-	/** The SetByCaller name of the modifier a stat kind drives, or None for Stun and Slow. */
+	/** The SetByCaller name of the modifier a stat kind drives, or None for a kind that changes no stat. */
 	FName StatusMultiplierName(EVeyraStatusKind Kind)
 	{
 		switch (Kind)
@@ -35,6 +35,7 @@ namespace
 			return UVeyraStatusEffect::DisplacementMultiplierName;
 		case EVeyraStatusKind::Stun:
 		case EVeyraStatusKind::Slow:
+		case EVeyraStatusKind::AttackCleave:
 			break;
 		}
 		return NAME_None;
@@ -213,6 +214,11 @@ bool UVeyraStatusComponent::Remove(const FVeyraContentId& Id)
 double UVeyraStatusComponent::GetStrongestSlow() const
 {
 	return VeyraStatuses::StrongestSlow(Ledger.Entries);
+}
+
+double UVeyraStatusComponent::GetStrongest(EVeyraStatusKind Kind) const
+{
+	return VeyraStatuses::Strongest(Ledger.Entries, Kind);
 }
 
 EVeyraActionBlocks UVeyraStatusComponent::GetActionBlocks() const

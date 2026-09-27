@@ -141,6 +141,32 @@ struct FVeyraAttributionTuning
 	double AssistWindowSeconds = 0.0;
 };
 
+/** Attack Speed limits and overflow (Combat Bible §22, §39). */
+USTRUCT()
+struct FVeyraAttackSpeedTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The normal maximum in attacks per second, and the permanent reference overflow is measured from. */
+	UPROPERTY()
+	double Cap = 0.0;
+
+	/** The ordinary minimum in attacks per second; below the cap (VeyraCombatTuningRules::Validate). */
+	UPROPERTY()
+	double Minimum = 0.0;
+
+	/** S in overflow damage % = S × overflow / (C + overflow), overflow being a percentage of the cap. */
+	UPROPERTY()
+	double OverflowDamageScalePercent = 0.0;
+
+	/** C in the same formula. */
+	UPROPERTY()
+	double OverflowCurveConstant = 0.0;
+};
+
 /** The Combat domain's tuning, bound from Game/Tuning/Combat.json (ADR-006 §6). */
 USTRUCT()
 struct FVeyraCombatTuning
@@ -173,6 +199,9 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraAttributionTuning Attribution;
+
+	UPROPERTY()
+	FVeyraAttackSpeedTuning AttackSpeed;
 };
 
 /** The Combat domain's checks that a schema cannot express. */

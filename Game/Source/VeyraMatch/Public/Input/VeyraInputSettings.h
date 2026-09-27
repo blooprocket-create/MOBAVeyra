@@ -13,8 +13,8 @@ class UInputMappingContext;
 
 /**
  * The default bindings for a Vanguard's controls (Settings Bible §1.1: every gameplay action is
- * rebindable; these are the default profile). Stored in Config/DefaultInput.ini. Move, and the four
- * ability slots with Quick Cast (§1.2); casting modes and profiles follow.
+ * rebindable; these are the default profile). Stored in Config/DefaultInput.ini. Move or attack,
+ * attack-move, and the four ability slots with Quick Cast (§1.2); casting modes and profiles follow.
  */
 UCLASS(Config = Input, DefaultConfig, meta = (DisplayName = "Veyra Input"))
 class VEYRAMATCH_API UVeyraInputSettings : public UDeveloperSettings
@@ -22,9 +22,13 @@ class VEYRAMATCH_API UVeyraInputSettings : public UDeveloperSettings
 	GENERATED_BODY()
 
 public:
-	/** Orders the Vanguard to the ground under the cursor. */
+	/** Orders the Vanguard to the ground under the cursor, or to attack the enemy under it. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey MoveOrderKey;
+
+	/** Attack-moves the Vanguard to the ground under the cursor, attacking enemies it meets on the way. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey AttackMoveKey;
 
 	/** Each slot casts at once at the cursor: the unit under it, and the ground under it (Quick Cast). */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
@@ -61,6 +65,9 @@ struct VEYRAMATCH_API FVeyraInputObjects
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> MoveOrder;
+
+	UPROPERTY()
+	TObjectPtr<UInputAction> AttackMove;
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> AbilityQ;

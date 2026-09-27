@@ -17,6 +17,10 @@ TArray<FString> Validate(const FVeyraCombatTuning& Tuning)
 		}
 		PreviousFrom = From;
 	}
+	if (Tuning.AttackSpeed.Minimum >= Tuning.AttackSpeed.Cap)
+	{
+		Problems.Add(TEXT("/attackSpeed/minimum: must be below the cap"));
+	}
 	return Problems;
 }
 }

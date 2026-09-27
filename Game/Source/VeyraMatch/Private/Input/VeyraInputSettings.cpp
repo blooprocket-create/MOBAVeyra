@@ -69,6 +69,9 @@ FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer)
 	Objects.MoveOrder->ValueType = EInputActionValueType::Boolean;
 	Objects.MappingContext->MapKey(Objects.MoveOrder, Settings.MoveOrderKey);
 
+	Objects.AttackMove = NewCastAction(Outer, TEXT("VeyraAttackMove"));
+	Objects.MappingContext->MapKey(Objects.AttackMove, Settings.AttackMoveKey);
+
 	Objects.AbilityQ = NewCastAction(Outer, TEXT("VeyraAbilityQ"));
 	Objects.AbilityW = NewCastAction(Outer, TEXT("VeyraAbilityW"));
 	Objects.AbilityE = NewCastAction(Outer, TEXT("VeyraAbilityE"));

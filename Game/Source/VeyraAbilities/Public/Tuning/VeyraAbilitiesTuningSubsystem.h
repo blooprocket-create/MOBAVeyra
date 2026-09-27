@@ -43,6 +43,9 @@ public:
 	/** A dash ability's tuning, or null. */
 	static const FVeyraDashAbilityTuning* FindDash(const FVeyraContentId& Ability);
 
+	/** An empowered-attack ability's tuning, or null. */
+	static const FVeyraEmpoweredAttackAbilityTuning* FindEmpoweredAttack(const FVeyraContentId& Ability);
+
 	/** Status Id as Combat applies it, or nothing if the statuses map has no such status. */
 	static TOptional<FVeyraStatusSpec> FindStatus(const FVeyraContentId& Id);
 

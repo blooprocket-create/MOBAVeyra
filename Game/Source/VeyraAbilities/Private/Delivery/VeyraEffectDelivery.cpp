@@ -54,29 +54,39 @@ namespace
 	}
 }
 
+double DamageAmount(const UAbilitySystemComponent& Caster, const FVeyraDamageTuning& Damage, int32 Rank)
+{
+	return VeyraAbilityRules::ValueAtRank(Damage.AmountByRank, Rank)
+		+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute()) * Damage.PhysicalPowerRatio
+		+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Damage.MagicPowerRatio;
+}
+
+TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids)
+{
+	TArray<FVeyraStatusSpec> Specs;
+	for (const FVeyraContentId& StatusId : Ids)
+	{
+		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+		{
+			Specs.Add(Status.GetValue());
+		}
+	}
+	return Specs;
+}
+
 FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffectBundleTuning& Effects, int32 Rank)
 {
 	FVeyraPreparedEffects Prepared;
 	if (!Effects.Damage.IsEmpty())
 	{
-		const double PhysicalPower = Caster.GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute());
-		const double MagicPower = Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute());
 		FVeyraRawDamageEvent Raw;
 		for (const FVeyraDamageTuning& Damage : Effects.Damage)
 		{
-			const double Amount = VeyraAbilityRules::ValueAtRank(Damage.AmountByRank, Rank) + PhysicalPower * Damage.PhysicalPowerRatio
-				+ MagicPower * Damage.MagicPowerRatio;
-			Raw.Components.Add({ Damage.Type, Amount });
+			Raw.Components.Add({ Damage.Type, DamageAmount(Caster, Damage, Rank) });
 		}
 		Prepared.Damage = VeyraCombat::PrepareDamage(Caster, Raw);
 	}
-	for (const FVeyraContentId& StatusId : Effects.Statuses)
-	{
-		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
-		{
-			Prepared.Statuses.Add(Status.GetValue());
-		}
-	}
+	Prepared.Statuses = StatusSpecs(Effects.Statuses);
 	if (!Effects.Displacement.IsEmpty())
 	{
 		Prepared.Displacement = Effects.Displacement[0];

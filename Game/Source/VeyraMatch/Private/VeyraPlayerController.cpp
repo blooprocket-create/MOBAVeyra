@@ -7,7 +7,9 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerState.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
+#include "Units/VeyraUnit.h"
 #include "VeyraGameMode.h"
 #include "VeyraMatchLog.h"
 #include "VeyraVanguardCharacter.h"
@@ -28,6 +30,16 @@ void AVeyraPlayerController::IssueMoveOrder(const FVector& Destination)
 void AVeyraPlayerController::SteerMoveOrder(const FVector& Destination)
 {
 	ServerSteerMoveOrder(Destination);
+}
+
+void AVeyraPlayerController::IssueAttackOrder(AActor* Target)
+{
+	ServerIssueAttackOrder(Target);
+}
+
+void AVeyraPlayerController::IssueAttackMoveOrder(const FVector& Destination)
+{
+	ServerIssueAttackMoveOrder(Destination);
 }
 
 void AVeyraPlayerController::IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Target)
@@ -63,6 +75,7 @@ void AVeyraPlayerController::SetupInputComponent()
 	{
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Started, this, &AVeyraPlayerController::OnMoveOrderStarted);
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnMoveOrderHeld);
+		Enhanced->BindAction(Input.AttackMove, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAttackMovePressed);
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 		{
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
@@ -72,16 +85,45 @@ void AVeyraPlayerController::SetupInputComponent()
 
 void AVeyraPlayerController::OnMoveOrderStarted()
 {
+	// On an enemy the button attacks it; anywhere else it moves (Settings Bible §1).
+	AActor* Enemy = FindEnemyUnderCursor();
+	bMoveOrderPressAttacked = Enemy != nullptr;
+	if (Enemy)
+	{
+		IssueAttackOrder(Enemy);
+		return;
+	}
 	MoveToCursor(/*bSteer*/ false);
 }
 
 void AVeyraPlayerController::OnMoveOrderHeld()
 {
 	// Holding the button keeps steering toward the cursor, paced below the server's order limit.
-	if (GetWorld()->GetRealTimeSeconds() - LastHeldMoveOrderTime >= GetDefault<UVeyraInputSettings>()->HeldMoveOrderIntervalSeconds)
+	if (!bMoveOrderPressAttacked
+		&& GetWorld()->GetRealTimeSeconds() - LastHeldMoveOrderTime >= GetDefault<UVeyraInputSettings>()->HeldMoveOrderIntervalSeconds)
 	{
 		MoveToCursor(/*bSteer*/ true);
 	}
+}
+
+void AVeyraPlayerController::OnAttackMovePressed()
+{
+	FHitResult Ground;
+	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
+	{
+		IssueAttackMoveOrder(Ground.Location);
+	}
+}
+
+AActor* AVeyraPlayerController::FindEnemyUnderCursor() const
+{
+	FHitResult Unit;
+	if (!GetHitResultUnderCursor(ECC_Pawn, /*bTraceComplex*/ false, Unit))
+	{
+		return nullptr;
+	}
+	AActor* Candidate = Unit.GetActor();
+	return VeyraUnits::KindOf(Candidate).IsSet() && VeyraTargeting::AreHostile(PlayerState, Candidate) ? Candidate : nullptr;
 }
 
 void AVeyraPlayerController::MoveToCursor(bool bSteer)
@@ -229,6 +271,36 @@ void AVeyraPlayerController::OnVanguardSet(APlayerState* /*Participant*/, APawn*
 void AVeyraPlayerController::ServerIssueMoveOrder_Implementation(FVector Destination)
 {
 	ApplyMoveOrder(Destination);
+}
+
+void AVeyraPlayerController::ServerIssueAttackOrder_Implementation(AActor* Target)
+{
+	if (!TakeOrderAllowance())
+	{
+		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		return;
+	}
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackOrder(*this, Target) : EVeyraOrderRejection::WrongPhase;
+	if (Rejection != EVeyraOrderRejection::None)
+	{
+		RejectOrder(Rejection);
+	}
+}
+
+void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector Destination)
+{
+	if (!TakeOrderAllowance())
+	{
+		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		return;
+	}
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackMoveOrder(*this, Destination) : EVeyraOrderRejection::WrongPhase;
+	if (Rejection != EVeyraOrderRejection::None)
+	{
+		RejectOrder(Rejection);
+	}
 }
 
 void AVeyraPlayerController::ServerSteerMoveOrder_Implementation(FVector Destination)

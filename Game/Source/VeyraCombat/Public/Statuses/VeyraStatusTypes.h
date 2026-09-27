@@ -29,6 +29,11 @@ enum class EVeyraStatusKind : uint8
 	DamageReduction,
 	/** Shortens forced displacement (§9). Magnitude: the fraction removed per stack, above 0 and below 1. */
 	DisplacementResistance,
+	/**
+	 * Basic attacks also hit the other enemies in the attacker's cleave area for part of their damage
+	 * (ADR-009 §5); the strongest applies. Not crowd control. Magnitude: that fraction, above 0 and at most 1.
+	 */
+	AttackCleave,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */
@@ -161,6 +166,9 @@ namespace VeyraStatuses
 
 	/** Whether a new application replaces an active one under UniqueReplaceStrongest. */
 	VEYRACOMBAT_API bool IsStronger(const FVeyraStatusEntry& Active, double Magnitude, double EndsAt);
+
+	/** The largest magnitude among the entries of Kind; 0 when there is none. */
+	VEYRACOMBAT_API double Strongest(TConstArrayView<FVeyraStatusEntry> Entries, EVeyraStatusKind Kind);
 
 	/** The fraction of speed the strongest Slow removes; 0 when there is none (§8). */
 	VEYRACOMBAT_API double StrongestSlow(TConstArrayView<FVeyraStatusEntry> Entries);

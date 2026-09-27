@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -150,7 +150,7 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -363,6 +363,64 @@
             },
             "contactEffects": { "description": "On the enemy a StopAtFirstEnemy dash stops at.", "$ref": "#/definitions/effects" },
             "contactSelfStatuses": { "description": "Put on the caster when it stops at an enemy.", "$ref": "#/definitions/statusIds" }
+          }
+        }
+      }
+    },
+    "empoweredAttack": {
+      "description": "Abilities that empower the caster's next basic attack, which stays a basic attack (ADR-008 §3; Combat Bible §17).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "durationSeconds", "damage", "statuses", "armorPenetrationByRank", "cleave", "secondaryImpact"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "durationSeconds": { "description": "How long the empowerment waits for an attack.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "damage": {
+              "description": "Joins the attack's own damage event, so the empowered attack is still one hit.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 3,
+              "items": { "$ref": "#/definitions/damage" }
+            },
+            "statuses": { "description": "Put on the target.", "$ref": "#/definitions/statusIds" },
+            "armorPenetrationByRank": { "description": "The fraction of the target's Armor the attack ignores, at most 1: percentage penetration (Combat Bible §3).", "$ref": "#/definitions/byRank" },
+            "cleave": {
+              "description": "At most one: the other enemies in the attacker's cleave shape take part of the attack's damage.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["damageFraction", "statuses"],
+                "properties": {
+                  "damageFraction": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+                  "statuses": { "description": "Put on each enemy cleaved.", "$ref": "#/definitions/statusIds" }
+                }
+              }
+            },
+            "secondaryImpact": {
+              "description": "At most one: proc damage in a shape behind the target, excluding it. The attack keeps the highest-priority impact offered, such as over a passive's (ADR-009 §5).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["priority", "shape", "damage", "statuses"],
+                "properties": {
+                  "priority": { "type": "integer", "minimum": 0 },
+                  "shape": { "$ref": "#/definitions/shape" },
+                  "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
+                  "statuses": { "$ref": "#/definitions/statusIds" }
+                }
+              }
+            }
           }
         }
       }

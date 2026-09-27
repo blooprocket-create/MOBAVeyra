@@ -33,6 +33,12 @@ struct FVeyraEffectFrame
 /** How abilities' effects are prepared and applied (ADR-008 §3). Server only. */
 namespace VeyraEffectDelivery
 {
+	/** One damage component's amount for Caster at Rank: the rank's amount plus the caster's power times the ratios. */
+	VEYRAABILITIES_API double DamageAmount(const UAbilitySystemComponent& Caster, const FVeyraDamageTuning& Damage, int32 Rank);
+
+	/** The statuses Ids name, as Combat applies them; an ID the statuses map lacks is skipped. */
+	VEYRAABILITIES_API TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids);
+
 	/** Effects for Caster at Rank: damage from the caster's power now, statuses and displacement from data. */
 	VEYRAABILITIES_API FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffectBundleTuning& Effects, int32 Rank);
 

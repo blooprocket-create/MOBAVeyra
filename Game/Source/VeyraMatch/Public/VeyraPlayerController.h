@@ -34,6 +34,12 @@ public:
 	 */
 	void SteerMoveOrder(const FVector& Destination);
 
+	/** Owning client: asks the server to attack Target with this player's Vanguard (ADR-009 §5). */
+	void IssueAttackOrder(AActor* Target);
+
+	/** Owning client: asks the server to attack-move this player's Vanguard to Destination. */
+	void IssueAttackMoveOrder(const FVector& Destination);
+
 	/** Owning client: asks the server to cast the ability in Slot at Target. */
 	void IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Target);
 
@@ -85,6 +91,12 @@ private:
 	/** Server: checks a move order from either path and hands it to the game mode. */
 	void ApplyMoveOrder(const FVector& Destination);
 
+	UFUNCTION(Server, Reliable)
+	void ServerIssueAttackOrder(AActor* Target);
+
+	UFUNCTION(Server, Reliable)
+	void ServerIssueAttackMoveOrder(FVector Destination);
+
 	UFUNCTION(Client, Unreliable)
 	void ClientOrderRejected(EVeyraOrderRejection Rejection);
 
@@ -105,11 +117,19 @@ private:
 
 	void RejectOrder(EVeyraOrderRejection Rejection);
 
-	// Local input (Settings Bible §1): right-click move and Quick Cast on each ability slot.
+	// Local input (Settings Bible §1): right-click to move or attack, attack-move, and Quick Cast on
+	// each ability slot.
 	void OnMoveOrderStarted();
 	void OnMoveOrderHeld();
+	void OnAttackMovePressed();
 	void OnAbilityPressed(EVeyraAbilitySlot Slot);
 	void MoveToCursor(bool bSteer);
+
+	/** Owning client: the enemy unit under the cursor, if any. */
+	AActor* FindEnemyUnderCursor() const;
+
+	/** Whether the move button's current press ordered an attack, which holding it does not steer. */
+	bool bMoveOrderPressAttacked = false;
 
 	UPROPERTY(Transient)
 	FVeyraInputObjects Input;

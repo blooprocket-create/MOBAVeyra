@@ -6,6 +6,8 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "AbilitySystemComponent.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraProjectile.h"
@@ -14,6 +16,7 @@
 #include "GameplayEffect.h"
 #include "Movement/VeyraMovementComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestActor.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
@@ -28,7 +31,8 @@ namespace VeyraNetTests
 	// while networking keeps running (Match Flow Bible §10.2). Each timer category the bible lists
 	// runs on one of the mechanisms checked here: effect durations (buffs, shields), the cooldown
 	// ledger, world timers (respawn, buyback, spawn and penalty clocks, delayed areas), world time
-	// (the match clock) and actor ticks (movement, projectiles, regeneration, combat).
+	// (the match clock) and actor ticks (movement, projectiles, regeneration, combat). Basic attacks
+	// run on world timers too.
 	//
 	// Clients learn of the pause from the GameState. These in-process tests cannot check that a
 	// client's own world pauses: the engine replicates that through the map's WorldSettings, and
@@ -247,6 +251,54 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(State.World->GetTimeSeconds() >= PausedStatusEndsAt));
 					ASSERT_THAT(IsTrue(State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PausedStatusEndsAt - PausedWorldTime + PauseHoldRealSeconds));
 				});
+		}
+
+		TEST_METHOD(PauseHoldsABasicAttack)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Start an attack and pause during its windup"), [this](FState& State) {
+					// Fixture values: a melee attack, and the target brought well within its range.
+					constexpr double Range = 150.0;
+					constexpr double WindupFraction = 0.25;
+					constexpr double CentreDistance = 120.0;
+					AVeyraPlayerState* Attacker = MoverState(State);
+					const AVeyraPlayerController* OtherController = ServerControllerOf(State, 1);
+					AVeyraPlayerState* Target = OtherController ? OtherController->GetPlayerState<AVeyraPlayerState>() : nullptr;
+					ASSERT_THAT(IsTrue(Attacker && Target && Attacker->GetPawn() && Target->GetPawn()));
+					FVeyraBasicAttackProfile Melee;
+					Melee.Range = Range;
+					Melee.DamageType = EVeyraDamageType::TrueDamage;
+					Melee.PhysicalPowerRatio = 1.0;
+					Melee.WindupFraction = WindupFraction;
+					UVeyraBasicAttackComponent* Attacks = Attacker->FindComponentByClass<UVeyraBasicAttackComponent>();
+					ASSERT_THAT(IsTrue(Attacks->SetProfile(Melee)));
+					ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(*Attacker->GetAbilitySystemComponent(), VeyraCombatTests::ExampleStats())));
+					const FVector From = Attacker->GetPawn()->GetActorLocation();
+					Target->GetPawn()->SetActorLocation(From + FVector(-From.X, 0.0, 0.0).GetSafeNormal() * CentreDistance);
+					ASSERT_THAT(IsTrue(Attacks->StartAttack(*Target->GetPawn()) == EVeyraAttackRejection::None));
+					PausedWorldTime = State.World->GetTimeSeconds();
+					PausedRealTime = State.World->GetUnpausedTimeSeconds();
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->PauseMatch(*ServerControllerOf(State, 0))));
+				})
+				.UntilServer(TEXT("Hold the pause"), [this](FState& State) {
+					return State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PauseHoldRealSeconds;
+				})
+				.ThenServer(TEXT("It is still winding up, and nothing has landed"), [this](FState& State) {
+					const UVeyraBasicAttackComponent* Attacks = MoverState(State)->FindComponentByClass<UVeyraBasicAttackComponent>();
+					const AVeyraPlayerState* Target = ServerControllerOf(State, 1)->GetPlayerState<AVeyraPlayerState>();
+					ASSERT_THAT(IsTrue(Attacks->GetState().Phase == EVeyraAttackPhase::Windup));
+					ASSERT_THAT(IsTrue(TargetHealthLost(*Target) == 0.0));
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->ResumeMatch()));
+				})
+				.UntilServer(TEXT("After the pause it lands"), [](FState& State) {
+					return TargetHealthLost(*ServerControllerOf(State, 1)->GetPlayerState<AVeyraPlayerState>()) > 0.0;
+				});
+		}
+
+		static double TargetHealthLost(const AVeyraPlayerState& Target)
+		{
+			const UAbilitySystemComponent& Unit = *Target.GetAbilitySystemComponent();
+			return Unit.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) - Unit.GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute());
 		}
 
 		TEST_METHOD(PauseHoldsProjectilesAndDelayedAreas)

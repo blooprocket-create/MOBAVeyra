@@ -28,6 +28,7 @@ namespace VeyraMatchTests
 			// Keys other than the shipped defaults, so the settings are what the objects follow.
 			UVeyraInputSettings* Settings = NewObject<UVeyraInputSettings>(GetTransientPackage(), NAME_None, RF_Transient);
 			Settings->MoveOrderKey = EKeys::LeftMouseButton;
+			Settings->AttackMoveKey = EKeys::X;
 			Settings->AbilityQKey = EKeys::One;
 			Settings->AbilityWKey = EKeys::Two;
 			Settings->AbilityEKey = EKeys::Three;
@@ -35,8 +36,11 @@ namespace VeyraMatchTests
 
 			const FVeyraInputObjects Objects = VeyraInput::Build(*Settings, *GetTransientPackage());
 			ASSERT_THAT(IsNotNull(Objects.MappingContext.Get()));
-			ASSERT_THAT(AreEqual(Objects.MappingContext->GetMappings().Num(), 1 + static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::All))));
+			// Move and attack-move, then one per ability slot.
+			constexpr int32 OrderBindings = 2;
+			ASSERT_THAT(AreEqual(Objects.MappingContext->GetMappings().Num(), OrderBindings + static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::All))));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.MoveOrder) == EKeys::LeftMouseButton));
+			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.AttackMove) == EKeys::X));
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 			{
 				ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.GetAbilityAction(Slot)) == Settings->GetAbilityKey(Slot)));
@@ -57,7 +61,7 @@ namespace VeyraMatchTests
 		TEST_METHOD(TheShippedDefaultsAreUsable)
 		{
 			const UVeyraInputSettings& Settings = *GetDefault<UVeyraInputSettings>();
-			TArray<FKey> Keys = { Settings.MoveOrderKey };
+			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey };
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 			{
 				Keys.Add(Settings.GetAbilityKey(Slot));

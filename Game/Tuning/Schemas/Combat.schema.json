@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution"],
+  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution", "attackSpeed"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
@@ -170,6 +170,42 @@
         },
         "assistWindowSeconds": {
           "description": "How long damage, crowd control or a debuff on an enemy Vanguard counts toward an assist if it dies, in seconds.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "attackSpeed": {
+      "description": "Attack Speed limits and overflow (Combat Bible §22, §39): attacks per second stay between the minimum and the cap, and Attack Speed past the cap adds basic-attack damage on a curve.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "cap", "minimum", "overflowDamageScalePercent", "overflowCurveConstant"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Combat Bible §22 gives the formula and §49 lists the values.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "cap": {
+          "description": "The normal maximum, in attacks per second, and the permanent reference that overflow is measured from.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "minimum": {
+          "description": "The ordinary minimum, in attacks per second; below the cap.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "overflowDamageScalePercent": {
+          "description": "S in overflow damage % = S × overflow / (C + overflow), where overflow is how far uncapped Attack Speed exceeds the cap, as a percentage of the cap.",
+          "type": "number",
+          "minimum": 0
+        },
+        "overflowCurveConstant": {
+          "description": "C in the overflow formula: the overflow percentage at which the bonus reaches half of S.",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true

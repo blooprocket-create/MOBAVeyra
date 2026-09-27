@@ -57,6 +57,12 @@ public:
 	/** Validates a player's move order and hands it to their Vanguard's controller. */
 	EVeyraOrderRejection HandleMoveOrder(AVeyraPlayerController& Player, const FVector& Destination);
 
+	/** Checks the match allows orders, then hands a player's attack order on Target to their Vanguard's controller. */
+	EVeyraOrderRejection HandleAttackOrder(AVeyraPlayerController& Player, AActor* Target);
+
+	/** Validates a player's attack-move order and hands it to their Vanguard's controller. */
+	EVeyraOrderRejection HandleAttackMoveOrder(AVeyraPlayerController& Player, const FVector& Destination);
+
 	/** Checks the match allows casting, then casts the player's ability in Slot through VeyraAbilities. */
 	EVeyraCastRejection HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
 

@@ -6,6 +6,7 @@
 #include "Delivery/VeyraEffectDelivery.h"
 #include "GameFramework/Actor.h"
 #include "Teams/VeyraTeam.h"
+#include "Templates/Function.h"
 #include "Tuning/VeyraAbilitiesTuning.h"
 
 #include "VeyraProjectile.generated.h"
@@ -49,9 +50,13 @@ public:
 	void LaunchLine(UAbilitySystemComponent& Caster, const FVector& Direction, const FVeyraProjectileTuning& Tuning, EVeyraSkillshotCollision Collision,
 		FVeyraPreparedEffects Effects, FVeyraPreparedEffects PassThroughEffects, const FVeyraContentId& Ability, int32 CastId);
 
-	/** Server only: sends it from the actor's location after Target, at Speed. Called once, after spawning. */
+	/**
+	 * Server only: sends it from the actor's location after Target, at Speed. When it lands, Effects
+	 * apply to the target and then OnLanded runs, as a basic attack resolves its hit. Called once,
+	 * after spawning.
+	 */
 	void LaunchHoming(UAbilitySystemComponent& Caster, AActor& Target, double Speed, double Radius, FVeyraPreparedEffects Effects,
-		const FVeyraContentId& Ability, int32 CastId);
+		const FVeyraContentId& Ability, int32 CastId, TFunction<void(AActor&)> OnLanded = nullptr);
 
 	/**
 	 * Server only: flies Seconds further, hitting what it meets on the way, and is destroyed once it
@@ -130,6 +135,7 @@ private:
 	TWeakObjectPtr<UAbilitySystemComponent> Caster;
 	FVeyraPreparedEffects Effects;
 	FVeyraPreparedEffects PassThroughEffects;
+	TFunction<void(AActor&)> OnLanded;
 	EVeyraSkillshotCollision Collision = EVeyraSkillshotCollision::FirstEnemy;
 	double Travelled = 0.0;
 
