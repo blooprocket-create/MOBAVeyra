@@ -28,13 +28,19 @@ namespace VeyraMatchTests
 			// Keys other than the shipped defaults, so the settings are what the objects follow.
 			UVeyraInputSettings* Settings = NewObject<UVeyraInputSettings>(GetTransientPackage(), NAME_None, RF_Transient);
 			Settings->MoveOrderKey = EKeys::LeftMouseButton;
-			Settings->AbilityQKey = EKeys::W;
+			Settings->AbilityQKey = EKeys::One;
+			Settings->AbilityWKey = EKeys::Two;
+			Settings->AbilityEKey = EKeys::Three;
+			Settings->AbilityRKey = EKeys::Four;
 
 			const FVeyraInputObjects Objects = VeyraInput::Build(*Settings, *GetTransientPackage());
 			ASSERT_THAT(IsNotNull(Objects.MappingContext.Get()));
-			ASSERT_THAT(AreEqual(Objects.MappingContext->GetMappings().Num(), 2));
+			ASSERT_THAT(AreEqual(Objects.MappingContext->GetMappings().Num(), 1 + static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::All))));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.MoveOrder) == EKeys::LeftMouseButton));
-			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.AbilityQ) == EKeys::W));
+			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
+			{
+				ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.GetAbilityAction(Slot)) == Settings->GetAbilityKey(Slot)));
+			}
 		}
 
 		TEST_METHOD(BuildingTwiceUnderOneOuterGivesSeparateObjects)
@@ -51,9 +57,16 @@ namespace VeyraMatchTests
 		TEST_METHOD(TheShippedDefaultsAreUsable)
 		{
 			const UVeyraInputSettings& Settings = *GetDefault<UVeyraInputSettings>();
-			ASSERT_THAT(IsTrue(Settings.MoveOrderKey.IsValid()));
-			ASSERT_THAT(IsTrue(Settings.AbilityQKey.IsValid()));
-			ASSERT_THAT(IsTrue(Settings.MoveOrderKey != Settings.AbilityQKey));
+			TArray<FKey> Keys = { Settings.MoveOrderKey };
+			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
+			{
+				Keys.Add(Settings.GetAbilityKey(Slot));
+			}
+			for (int32 Index = 0; Index < Keys.Num(); ++Index)
+			{
+				ASSERT_THAT(IsTrue(Keys[Index].IsValid()));
+				ASSERT_THAT(IsFalse(Keys.Find(Keys[Index]) != Index, TEXT("two actions share a default key")));
+			}
 			ASSERT_THAT(IsTrue(Settings.HeldMoveOrderIntervalSeconds > 0.0f));
 			// A held move order repeats no faster than the server accepts orders.
 			const double HeldOrdersPerSecond = 1.0 / Settings.HeldMoveOrderIntervalSeconds;

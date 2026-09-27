@@ -3,6 +3,7 @@
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 
 #include "Engine/Engine.h"
+#include "Progression/VeyraProgressionTuningSubsystem.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 namespace
@@ -20,6 +21,8 @@ void UVeyraAbilitiesTuningSubsystem::SetTestOverride(const FVeyraAbilitiesTuning
 void UVeyraAbilitiesTuningSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	// Rank lists are checked against the ranks Progression allows.
+	Collection.InitializeDependency<UVeyraProgressionTuningSubsystem>();
 	const VeyraTuning::FErrors Errors = Reload();
 	if (!Errors.IsEmpty())
 	{
@@ -45,20 +48,48 @@ const FVeyraTargetedDamageAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindTar
 	return Get().TargetedDamage.Find(Ability);
 }
 
+const FVeyraAreaAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindArea(const FVeyraContentId& Ability)
+{
+	return Get().Area.Find(Ability);
+}
+
+const FVeyraSelfBuffAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindSelfBuff(const FVeyraContentId& Ability)
+{
+	return Get().SelfBuff.Find(Ability);
+}
+
+TOptional<FVeyraStatusSpec> UVeyraAbilitiesTuningSubsystem::FindStatus(const FVeyraContentId& Id)
+{
+	const FVeyraStatusTuning* Status = Get().Statuses.Find(Id);
+	return Status ? TOptional<FVeyraStatusSpec>(VeyraAbilityRules::ToStatusSpec(Id, *Status)) : TOptional<FVeyraStatusSpec>();
+}
+
 bool UVeyraAbilitiesTuningSubsystem::Defines(const FVeyraContentId& Ability)
 {
-	return FindTargetedDamage(Ability) != nullptr;
+	return FindTargetedDamage(Ability) || FindArea(Ability) || FindSelfBuff(Ability);
 }
 
 VeyraTuning::FErrors UVeyraAbilitiesTuningSubsystem::Reload()
 {
+	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.
 	FVeyraAbilitiesTuning Loaded;
-	FBlake3Hash Hash;
-	VeyraTuning::FErrors Errors = VeyraTuning::LoadDomain(Domain, FVeyraAbilitiesTuning::SchemaVersion, Loaded, Hash);
+	VeyraTuning::FDomainFiles Files;
+	VeyraTuning::FErrors Errors = VeyraTuning::ReadDomainFiles(Domain, Files);
+	if (Errors.IsEmpty())
+	{
+		Errors = VeyraTuning::ValidateAndBind(Files.DocumentText, Files.SchemaText, FVeyraAbilitiesTuning::SchemaVersion, Loaded);
+	}
+	if (Errors.IsEmpty())
+	{
+		const FVeyraProgressionTuning& Progression = UVeyraProgressionTuningSubsystem::Get();
+		const int32 RankCounts[] = { Progression.BasicAbilityMaxRank, Progression.UltimateMaxRank };
+		Errors = VeyraAbilityRules::Validate(Loaded, RankCounts);
+	}
 	if (Errors.IsEmpty())
 	{
 		Tuning = Loaded;
-		DocumentHash = Hash;
+		DocumentHash = Files.DocumentHash;
+		VeyraTuning::RecordLoadedDomain(Domain, Files.DocumentHash);
 	}
 	return Errors;
 }

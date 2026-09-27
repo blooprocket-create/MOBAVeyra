@@ -433,4 +433,12 @@ bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash)
 		*GetNameSafe(Unit.GetOwner()), Dash.Distance, Dash.Speed);
 	return bStarted;
 }
+
+void SetCastLocksMovement(UAbilitySystemComponent& Unit, bool bLocks)
+{
+	if (UVeyraMovementComponent* Movement = FindMovement(Unit))
+	{
+		Movement->SetCastLocksMovement(bLocks);
+	}
+}
 }

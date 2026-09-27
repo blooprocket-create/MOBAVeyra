@@ -1,5 +1,10 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "casting": {
+    "provenance": "Canon",
+    "interruptedCooldownFraction": 0.2
+  },
+  "statuses": {},
   "targetedDamage": {
     "test_bolt": {
       "castRange": 550,
@@ -8,5 +13,7 @@
       "damageType": "Magic",
       "damageAmount": 120
     }
-  }
+  },
+  "area": {},
+  "selfBuff": {}
 }

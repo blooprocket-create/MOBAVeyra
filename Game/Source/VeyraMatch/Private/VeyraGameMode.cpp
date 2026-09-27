@@ -540,11 +540,13 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 		UE_LOG(LogVeyraMatch, Error, TEXT("Could not prepare %s for the match; see the errors above."), *PlayerState.GetPlayerName());
 		return false;
 	}
-	// Level 1, with that level's skill point. The developer loadout has no growth; Vanguard
-	// definitions bring it (ADR-008 §2).
+	// Level 1, with that level's skill point, which the developer loadout spends on its one ability
+	// so it can be cast at once. The developer loadout has no growth; Vanguard definitions bring it,
+	// and their players choose their first rank (ADR-008 §2).
 	if (UVeyraProgressionComponent* Progression = PlayerState.FindComponentByClass<UVeyraProgressionComponent>())
 	{
 		Progression->Initialize(FVeyraStatGrowth(), AbilitySystem.GetNumericAttribute(UVeyraOffenceSet::GetAttackSpeedAttribute()));
+		Progression->AllocateRank(EVeyraAbilitySlot::Q);
 	}
 	PlayerState.MarkStatsInitialized();
 	return true;

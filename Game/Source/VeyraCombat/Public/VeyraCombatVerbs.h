@@ -147,4 +147,10 @@ namespace VeyraCombat
 	 * displaced or already dashing, or for values out of range.
 	 */
 	VEYRACOMBAT_API bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash);
+
+	/**
+	 * Holds Unit's body in place for its own cast, or lets it go (Combat Bible §48). Its orders wait
+	 * meanwhile. Does nothing for a unit with no body.
+	 */
+	VEYRACOMBAT_API void SetCastLocksMovement(UAbilitySystemComponent& Unit, bool bLocks);
 }

@@ -14,6 +14,10 @@ const TCHAR* LexToString(EVeyraCastRejection Rejection)
 		return TEXT("CasterDead");
 	case EVeyraCastRejection::CrowdControlled:
 		return TEXT("CrowdControlled");
+	case EVeyraCastRejection::NotLearned:
+		return TEXT("NotLearned");
+	case EVeyraCastRejection::Busy:
+		return TEXT("Busy");
 	case EVeyraCastRejection::OnCooldown:
 		return TEXT("OnCooldown");
 	case EVeyraCastRejection::InsufficientResource:
@@ -26,6 +30,8 @@ const TCHAR* LexToString(EVeyraCastRejection Rejection)
 		return TEXT("NotHostile");
 	case EVeyraCastRejection::OutOfRange:
 		return TEXT("OutOfRange");
+	case EVeyraCastRejection::InvalidLocation:
+		return TEXT("InvalidLocation");
 	case EVeyraCastRejection::WrongPhase:
 		return TEXT("WrongPhase");
 	case EVeyraCastRejection::Paused:

@@ -34,8 +34,10 @@ Schemas use a strict subset of JSON Schema draft-04:
 | content ID: `string` | `pattern`, which must be the content ID format | `FVeyraContentId` |
 | text: `string` | `pattern` (required), anchored with `^` and `$`; the whole text must match | `FString` |
 | `array` | `items` (one schema for every item), `minItems` (required), `maxItems` | `TArray` of any form above except a map |
+| reference | `$ref` (`"#/definitions/<name>"`), and optionally `description` | whatever the named definition binds to |
 
 - The root is a record and declares `schemaVersion` as an integer with a one-value `enum`.
+- A record used in several places is declared once under the root's `definitions`, and each use is a reference to it ([ADR-008](../../Docs/ADR/ADR-008-vanguard-definitions-and-ability-composition.md) §7). A definition may refer to another, but not round a cycle. Only the root declares `definitions`, and a reference must use each one.
 - A JSON key is its struct field's name with the first letter lower-cased: `mitigationConstant` binds to `MitigationConstant`. The editor checks the exact spelling. A cooked build keeps one spelling per engine name (the first registered, so a field `MatchId` can read back as `MatchID`), so there the key matches its field ignoring case. A document's keys must still match its schema's exactly.
 - The schema and the struct must describe exactly the same fields. A map may be empty, and any valid content ID may be a key.
 - No string or array is unbounded by accident: text always declares its format, and an array always declares `minItems`.

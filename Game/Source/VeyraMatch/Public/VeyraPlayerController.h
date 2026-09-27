@@ -37,6 +37,9 @@ public:
 	/** Owning client: asks the server to cast the ability in Slot at Target. */
 	void IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Target);
 
+	/** Owning client: asks the server to cast the ability in Slot at Target, a unit, a ground point or both. */
+	void IssueCastOrder(EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
+
 	/**
 	 * Owning client, developer builds: asks the server to pause or resume the match at once. Pause
 	 * votes (Match Flow Bible §10) will replace it; Shipping servers refuse it.
@@ -102,10 +105,10 @@ private:
 
 	void RejectOrder(EVeyraOrderRejection Rejection);
 
-	// Local input (Settings Bible §1): right-click move and Quick Cast on Q.
+	// Local input (Settings Bible §1): right-click move and Quick Cast on each ability slot.
 	void OnMoveOrderStarted();
 	void OnMoveOrderHeld();
-	void OnAbilityQ();
+	void OnAbilityPressed(EVeyraAbilitySlot Slot);
 	void MoveToCursor(bool bSteer);
 
 	UPROPERTY(Transient)

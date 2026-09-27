@@ -14,13 +14,13 @@ bool UVeyraTargetedDamageAbility::Defines(const FVeyraContentId& Ability) const
 	return UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(Ability) != nullptr;
 }
 
-double UVeyraTargetedDamageAbility::GetResourceCost(const FVeyraContentId& Ability) const
+double UVeyraTargetedDamageAbility::GetResourceCost(const FVeyraContentId& Ability, int32 /*Rank*/) const
 {
 	const FVeyraTargetedDamageAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(Ability);
 	return Tuning ? Tuning->ResourceCost : 0.0;
 }
 
-double UVeyraTargetedDamageAbility::GetCooldownSeconds(const FVeyraContentId& Ability) const
+double UVeyraTargetedDamageAbility::GetCooldownSeconds(const FVeyraContentId& Ability, int32 /*Rank*/) const
 {
 	const FVeyraTargetedDamageAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(Ability);
 	return Tuning ? Tuning->CooldownSeconds : 0.0;

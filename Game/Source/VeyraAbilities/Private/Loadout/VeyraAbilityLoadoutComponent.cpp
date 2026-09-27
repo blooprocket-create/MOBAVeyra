@@ -3,6 +3,8 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 
 #include "AbilitySystemComponent.h"
+#include "Abilities/VeyraAreaAbility.h"
+#include "Abilities/VeyraSelfBuffAbility.h"
 #include "Abilities/VeyraTargetedDamageAbility.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
@@ -11,14 +13,26 @@
 
 namespace
 {
-	// Ability ranks (skill points) arrive with progression; until then every ability is granted at
-	// the Gameplay Ability System's first level, and its numbers come from tuning, not levels.
-	constexpr int32 UnrankedAbilityLevel = 1;
+	// An ability's rank comes from Progression, not from the Gameplay Ability System's level, so
+	// every ability is granted at the system's default level and its numbers come from tuning.
+	constexpr int32 DefaultAbilityLevel = 1;
 
-	/** The archetype class that runs Ability, from where the Abilities tuning defines it. */
+	/** The archetype class that runs Ability, from the map the Abilities tuning defines it in (ADR-008 §3). */
 	TSubclassOf<UVeyraGameplayAbility> ArchetypeFor(const FVeyraContentId& Ability)
 	{
-		return UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(Ability) ? UVeyraTargetedDamageAbility::StaticClass() : nullptr;
+		if (UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(Ability))
+		{
+			return UVeyraTargetedDamageAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindArea(Ability))
+		{
+			return UVeyraAreaAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability))
+		{
+			return UVeyraSelfBuffAbility::StaticClass();
+		}
+		return nullptr;
 	}
 }
 
@@ -59,7 +73,7 @@ bool UVeyraAbilityLoadoutComponent::Grant(UAbilitySystemComponent& AbilitySystem
 		Entry->Slot = Slot;
 	}
 	Entry->Ability = Ability;
-	Entry->Handle = AbilitySystem.GiveAbility(FGameplayAbilitySpec(Archetype, UnrankedAbilityLevel));
+	Entry->Handle = AbilitySystem.GiveAbility(FGameplayAbilitySpec(Archetype, DefaultAbilityLevel));
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraAbilityLoadoutComponent, Entries, this);
 	return Entry->Handle.IsValid();
 }
@@ -67,6 +81,11 @@ bool UVeyraAbilityLoadoutComponent::Grant(UAbilitySystemComponent& AbilitySystem
 const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindSlot(EVeyraAbilitySlot Slot) const
 {
 	return Entries.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; });
+}
+
+const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindAbility(const FVeyraContentId& Ability) const
+{
+	return Entries.FindByPredicate([&Ability](const FVeyraLoadoutEntry& Candidate) { return Candidate.Ability == Ability; });
 }
 
 const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindHandle(FGameplayAbilitySpecHandle Handle) const

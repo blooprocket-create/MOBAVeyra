@@ -2,14 +2,19 @@
 
 #pragma once
 
+#include "Absorption/VeyraAbsorptionLedger.h"
 #include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
+#include "Shapes/VeyraShapes.h"
+#include "Statuses/VeyraStatusTypes.h"
+#include "Tuning/VeyraTuningProvenance.h"
 #include "UObject/ObjectMacros.h"
 
 #include "VeyraAbilitiesTuning.generated.h"
 
-// The Abilities domain's tuning, bound from Game/Tuning/Abilities.json (ADR-006 §6). The schema
-// holds every range; a 0 here only means "not loaded".
+// The Abilities domain's tuning, bound from Game/Tuning/Abilities.json (ADR-006 §6, ADR-008 §3). The
+// schema holds every range; a 0 here only means "not loaded". A field whose name ends "ByRank" holds
+// one value for every rank, or one per rank (VeyraAbilityRules::ValueAtRank).
 
 /** One targeted, instant ability that deals one damage component (Combat Bible §29). */
 USTRUCT()
@@ -33,14 +38,333 @@ struct FVeyraTargetedDamageAbilityTuning
 	double DamageAmount = 0.0;
 };
 
+/** Whether a caster may move during a phase of its cast (Combat Bible §48). */
+UENUM()
+enum class EVeyraCastMovement : uint8
+{
+	Free,
+	Locked,
+};
+
+/** How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4). */
+USTRUCT()
+struct FVeyraCastTuning
+{
+	GENERATED_BODY()
+
+	/** Starts at Commit. */
+	UPROPERTY()
+	TArray<double> CooldownSecondsByRank;
+
+	/** Paid at Commit. */
+	UPROPERTY()
+	TArray<double> ResourceCostByRank;
+
+	/** How far from the caster a ground point may be, in units; a point beyond is brought back within it (ADR-008 §9). 0 for an ability that needs no point. */
+	UPROPERTY()
+	double CastRange = 0.0;
+
+	/** Seconds before Commit. An interruption during them costs nothing and starts part of the cooldown. */
+	UPROPERTY()
+	double WindupSeconds = 0.0;
+
+	UPROPERTY()
+	EVeyraCastMovement WindupMovement = EVeyraCastMovement::Free;
+
+	/** Seconds after delivery before the caster may cast again. */
+	UPROPERTY()
+	double RecoverySeconds = 0.0;
+};
+
+/** One damage component, from the caster's rank and power at Commit (Combat Bible §25, §50). */
+USTRUCT()
+struct FVeyraDamageTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraDamageType Type = EVeyraDamageType::Physical;
+
+	UPROPERTY()
+	TArray<double> AmountByRank;
+
+	UPROPERTY()
+	double PhysicalPowerRatio = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+};
+
+/** Which way a displacement moves a unit an area hits. */
+UENUM()
+enum class EVeyraDisplacementDirection : uint8
+{
+	/** A Pull toward the area's origin. */
+	TowardOrigin,
+	/** A Knockback away from the area's origin. */
+	AwayFromOrigin,
+	/** Sideways to the cast's direction, to the caster's left. */
+	AcrossCastLeft,
+	/** Sideways to the cast's direction, to the caster's right. */
+	AcrossCastRight,
+};
+
+/** A displacement an effect applies (Combat Bible §9). */
+USTRUCT()
+struct FVeyraDisplacementTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraDisplacementDirection Direction = EVeyraDisplacementDirection::TowardOrigin;
+
+	/** Units, before Displacement Resistance. A Pull toward the origin stops there. */
+	UPROPERTY()
+	double Distance = 0.0;
+
+	/** Units per second. */
+	UPROPERTY()
+	double Speed = 0.0;
+};
+
+/** What happens to each unit an area hits (ADR-008 §3). */
+USTRUCT()
+struct FVeyraEffectBundleTuning
+{
+	GENERATED_BODY()
+
+	/** One component per damage type at most. */
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> Damage;
+
+	/** Status IDs from the statuses map. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraDisplacementTuning> Displacement;
+};
+
+/** One status an ability applies, keyed by its ID (Combat Bible §8, §46; FVeyraStatusSpec). */
+USTRUCT()
+struct FVeyraStatusTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	EVeyraStatusKind Kind = EVeyraStatusKind::Stun;
+
+	UPROPERTY()
+	EVeyraStackingPolicy Stacking = EVeyraStackingPolicy::UniqueRefresh;
+
+	UPROPERTY()
+	double Magnitude = 0.0;
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	UPROPERTY()
+	int32 MaxStacks = 1;
+
+	UPROPERTY()
+	double TakedownExtensionSeconds = 0.0;
+
+	UPROPERTY()
+	double TakedownExtensionMaxSeconds = 0.0;
+};
+
+/** Where an area is placed. */
+UENUM()
+enum class EVeyraAreaOrigin : uint8
+{
+	/** On the caster, facing the cast's point. */
+	Caster,
+	/** On the cast's ground point, facing away from the caster. */
+	TargetPoint,
+};
+
+/** One zone of an area: its shape and what it does. */
+USTRUCT()
+struct FVeyraAreaZoneTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraShape Shape;
+
+	UPROPERTY()
+	FVeyraEffectBundleTuning Effects;
+};
+
+/** An ability that hits the enemies in shapes at the caster or a ground point (ADR-008 §3). */
+USTRUCT()
+struct FVeyraAreaAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	UPROPERTY()
+	EVeyraAreaOrigin Origin = EVeyraAreaOrigin::Caster;
+
+	/** Seconds between Commit and the hit, with the area telegraphed; the caster is free meanwhile. */
+	UPROPERTY()
+	double DelaySeconds = 0.0;
+
+	/** How many times the area hits over ChannelSeconds, the caster held in place; 1 and 0 hit once. */
+	UPROPERTY()
+	int32 ChannelTicks = 1;
+
+	UPROPERTY()
+	double ChannelSeconds = 0.0;
+
+	/** Innermost first: a unit takes the first zone that touches it, and no other. */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> Zones;
+};
+
+/** A shield an ability grants its caster (Combat Bible §7, §51). */
+USTRUCT()
+struct FVeyraShieldTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraShieldCategory Category = EVeyraShieldCategory::Universal;
+
+	UPROPERTY()
+	TArray<double> AmountByRank;
+
+	/** Of the caster's Max Health, added to the amount. */
+	UPROPERTY()
+	double MaxHealthRatio = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+};
+
+/** Statuses a buff gives nearby allied Vanguards while it lasts (ADR-008 §9). */
+USTRUCT()
+struct FVeyraAuraTuning
+{
+	GENERATED_BODY()
+
+	/** Units from the caster's centre to an ally's edge. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	/** How long the aura lasts, in seconds. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** How often allies in range are given the statuses again, in seconds. The statuses should outlast it. */
+	UPROPERTY()
+	double RefreshSeconds = 0.0;
+
+	UPROPERTY()
+	TArray<FVeyraContentId> AllyStatuses;
+};
+
+/** What casting a buff again does while it lasts. */
+UENUM()
+enum class EVeyraRecast : uint8
+{
+	/** Nothing: the cooldown applies. */
+	None,
+	/** It ends the buff early, at no cost (ADR-008 §9). */
+	EndsEarly,
+};
+
+/** An ability that buffs its caster, and optionally nearby allies (ADR-008 §3). */
+USTRUCT()
+struct FVeyraSelfBuffAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	/** Status IDs from the statuses map, put on the caster. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraShieldTuning> Shields;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraAuraTuning> Aura;
+
+	UPROPERTY()
+	EVeyraRecast Recast = EVeyraRecast::None;
+};
+
+/** Rules every cast shares (Combat Bible §26). */
+USTRUCT()
+struct FVeyraCastingTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The part of its cooldown a cast starts when interrupted before Commit. */
+	UPROPERTY()
+	double InterruptedCooldownFraction = 0.0;
+};
+
 USTRUCT()
 struct FVeyraAbilitiesTuning
 {
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
+
+	UPROPERTY()
+	FVeyraCastingTuning Casting;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraStatusTuning> Statuses;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraTargetedDamageAbilityTuning> TargetedDamage;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraAreaAbilityTuning> Area;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraSelfBuffAbilityTuning> SelfBuff;
 };
+
+/** The Abilities domain's rules for its tuning (ADR-008 §3, §7). */
+namespace VeyraAbilityRules
+{
+	/** A "ByRank" value at Rank (from 1): the one value for every rank, or the rank's own. 0 outside the list. */
+	VEYRAABILITIES_API double ValueAtRank(TConstArrayView<double> ByRank, int32 Rank);
+
+	/** Status Id as Combat applies it. */
+	VEYRAABILITIES_API FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTuning& Status);
+
+	/**
+	 * Problems with Tuning that a schema cannot express, each a JSON pointer and a message: rank lists
+	 * of the wrong length, statuses and shapes out of range, references to undefined statuses, and an
+	 * ID in more than one archetype map. RankCounts are the lengths a rank list may have besides 1.
+	 */
+	VEYRAABILITIES_API TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<int32> RankCounts);
+}

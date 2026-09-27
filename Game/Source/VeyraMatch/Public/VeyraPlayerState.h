@@ -13,6 +13,7 @@ class AVeyraVanguardController;
 class UAbilitySystemComponent;
 class UVeyraAbilityLoadoutComponent;
 class UVeyraAttributionComponent;
+class UVeyraCastStateComponent;
 class UVeyraCombatStateComponent;
 class UVeyraCooldownComponent;
 class UVeyraDamageAbsorptionComponent;
@@ -99,6 +100,10 @@ private:
 	/** Here rather than on the pawn, so cooldowns keep running through death (Combat Bible §44). */
 	UPROPERTY(VisibleAnywhere, Category = "Abilities")
 	TObjectPtr<UVeyraCooldownComponent> Cooldowns;
+
+	/** The cast that holds the Vanguard now, for telegraphs. */
+	UPROPERTY(VisibleAnywhere, Category = "Abilities")
+	TObjectPtr<UVeyraCastStateComponent> CastState;
 
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	TObjectPtr<UVeyraRegenerationComponent> Regeneration;

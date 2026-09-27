@@ -31,6 +31,15 @@ public:
 	/** A targeted damage ability's tuning, or null if no such ability exists. */
 	static const FVeyraTargetedDamageAbilityTuning* FindTargetedDamage(const FVeyraContentId& Ability);
 
+	/** An area ability's tuning, or null. */
+	static const FVeyraAreaAbilityTuning* FindArea(const FVeyraContentId& Ability);
+
+	/** A self-buff ability's tuning, or null. */
+	static const FVeyraSelfBuffAbilityTuning* FindSelfBuff(const FVeyraContentId& Ability);
+
+	/** Status Id as Combat applies it, or nothing if the statuses map has no such status. */
+	static TOptional<FVeyraStatusSpec> FindStatus(const FVeyraContentId& Id);
+
 	/** Whether any archetype defines Ability. Other domains check references against it. */
 	static bool Defines(const FVeyraContentId& Ability);
 

@@ -8,6 +8,7 @@
 #include "Engine/Engine.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Progression/VeyraProgressionComponent.h"
 #include "Tests/Abilities/VeyraTestClockGameState.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesVerbs.h"
@@ -118,6 +119,11 @@ namespace VeyraAbilitiesTests
 			Caster = &SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
 			Enemy = &SpawnVanguard(EVeyraTeam::B, FVector(CastRange / 2.0, 0.0, 0.0));
 			ASSERT_THAT(IsTrue(LoadoutOf(*Caster).Grant(AbilitiesOf(*Caster), EVeyraAbilitySlot::Q, Id(TEXT("test_bolt")))));
+			// The caster spends its first skill point on Q (ADR-008 §4).
+			UVeyraProgressionComponent* Progression = Caster->GetPlayerState()->FindComponentByClass<UVeyraProgressionComponent>();
+			ASSERT_THAT(IsNotNull(Progression));
+			Progression->Initialize(FVeyraStatGrowth(), 0.0);
+			ASSERT_THAT(IsTrue(Progression->AllocateRank(EVeyraAbilitySlot::Q) == EVeyraRankRefusal::None));
 		}
 
 		AFTER_EACH()
@@ -206,6 +212,16 @@ namespace VeyraAbilitiesTests
 		{
 			TestRunner->AddExpectedMessagePlain(TEXT("defines no ability with that ID"), ELogVerbosity::Error, EAutomationExpectedMessageFlags::Contains, 1);
 			ASSERT_THAT(IsFalse(LoadoutOf(*Caster).Grant(AbilitiesOf(*Caster), EVeyraAbilitySlot::W, Id(TEXT("no_such_ability")))));
+		}
+
+		TEST_METHOD(AnUnlearnedAbilityIsRefused)
+		{
+			// A second ability, in W, which has no rank yet.
+			const FVeyraTargetedDamageAbilityTuning Spark = Tuning.TargetedDamage.FindChecked(Id(TEXT("test_bolt")));
+			Tuning.TargetedDamage.Add(Id(TEXT("test_spark")), Spark);
+			ASSERT_THAT(IsTrue(LoadoutOf(*Caster).Grant(AbilitiesOf(*Caster), EVeyraAbilitySlot::W, Id(TEXT("test_spark")))));
+			ASSERT_THAT(IsTrue(CastAt(Enemy, EVeyraAbilitySlot::W) == EVeyraCastRejection::NotLearned));
+			ASSERT_THAT(IsTrue(Attribute(*Enemy, UVeyraVitalsSet::GetHealthAttribute()) == StartingMaxHealth));
 		}
 	};
 

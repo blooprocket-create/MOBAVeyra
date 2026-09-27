@@ -1,0 +1,15 @@
+{
+  "description": "Documents that both tuning validators must judge the same way for records used through \"$ref\": the game's (VeyraTuning.cpp, test Veyra.Core.Tuning.ConformanceCorpus) and CI's (scripts/check_tuning.py, tests/test_tuning.py). Each document is raw text checked against TuningConformanceRefs.schema.json at schemaVersion 1.",
+  "cases": [
+    {"name": "valid", "valid": true, "document": "{\"schemaVersion\": 1, \"home\": {\"x\": 1, \"name\": \"00ff\"}, \"away\": {\"x\": 2, \"name\": \"abcd\"}, \"extras\": [{\"x\": 3, \"name\": \"0000\"}], \"byId\": {\"north\": {\"x\": 4, \"name\": \"ffff\"}}}"},
+    {"name": "valid with empty collections", "valid": true, "document": "{\"schemaVersion\": 1, \"home\": {\"x\": 0, \"name\": \"0000\"}, \"away\": {\"x\": 0, \"name\": \"0000\"}, \"extras\": [], \"byId\": {}}"},
+    {"name": "a referenced field below its minimum", "valid": false, "document": "{\"schemaVersion\": 1, \"home\": {\"x\": -1, \"name\": \"00ff\"}, \"away\": {\"x\": 2, \"name\": \"abcd\"}, \"extras\": [], \"byId\": {}}"},
+    {"name": "text outside the format through two references", "valid": false, "document": "{\"schemaVersion\": 1, \"home\": {\"x\": 1, \"name\": \"00FF\"}, \"away\": {\"x\": 2, \"name\": \"abcd\"}, \"extras\": [], \"byId\": {}}"},
+    {"name": "a referenced record missing a field", "valid": false, "document": "{\"schemaVersion\": 1, \"home\": {\"x\": 1, \"name\": \"00ff\"}, \"away\": {\"x\": 2}, \"extras\": [], \"byId\": {}}"},
+    {"name": "a referenced record with an unknown field", "valid": false, "document": "{\"schemaVersion\": 1, \"home\": {\"x\": 1, \"name\": \"00ff\", \"y\": 1}, \"away\": {\"x\": 2, \"name\": \"abcd\"}, \"extras\": [], \"byId\": {}}"},
+    {"name": "an array item invalid through a reference", "valid": false, "document": "{\"schemaVersion\": 1, \"home\": {\"x\": 1, \"name\": \"00ff\"}, \"away\": {\"x\": 2, \"name\": \"abcd\"}, \"extras\": [{\"x\": 3, \"name\": \"xyz\"}], \"byId\": {}}"},
+    {"name": "a map value invalid through a reference", "valid": false, "document": "{\"schemaVersion\": 1, \"home\": {\"x\": 1, \"name\": \"00ff\"}, \"away\": {\"x\": 2, \"name\": \"abcd\"}, \"extras\": [], \"byId\": {\"north\": {\"x\": \"far\", \"name\": \"ffff\"}}}"},
+    {"name": "a number for a referenced record", "valid": false, "document": "{\"schemaVersion\": 1, \"home\": 5, \"away\": {\"x\": 2, \"name\": \"abcd\"}, \"extras\": [], \"byId\": {}}"},
+    {"name": "a missing referenced record", "valid": false, "document": "{\"schemaVersion\": 1, \"home\": {\"x\": 1, \"name\": \"00ff\"}, \"extras\": [], \"byId\": {}}"}
+  ]
+}

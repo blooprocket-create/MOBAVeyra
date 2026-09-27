@@ -11,6 +11,7 @@
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Casting/VeyraCastStateComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Life/VeyraLifeComponent.h"
@@ -36,6 +37,7 @@ AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer
 	Life = CreateDefaultSubobject<UVeyraLifeComponent>(TEXT("Life"));
 	Loadout = CreateDefaultSubobject<UVeyraAbilityLoadoutComponent>(TEXT("Loadout"));
 	Cooldowns = CreateDefaultSubobject<UVeyraCooldownComponent>(TEXT("Cooldowns"));
+	CastState = CreateDefaultSubobject<UVeyraCastStateComponent>(TEXT("CastState"));
 	Regeneration = CreateDefaultSubobject<UVeyraRegenerationComponent>(TEXT("Regeneration"));
 	Progression = CreateDefaultSubobject<UVeyraProgressionComponent>(TEXT("Progression"));
 

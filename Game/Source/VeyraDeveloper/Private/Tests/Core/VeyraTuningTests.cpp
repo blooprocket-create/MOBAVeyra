@@ -284,6 +284,7 @@ namespace VeyraCoreTests
 			TArray<FString> Mismatches = CorpusMismatches<FVeyraTuningTestShape>(TEXT("TuningConformance"));
 			Mismatches.Append(CorpusMismatches<FVeyraTuningContentTestShape>(TEXT("TuningConformanceContent")));
 			Mismatches.Append(CorpusMismatches<FVeyraTuningCollectionsTestShape>(TEXT("TuningConformanceCollections")));
+			Mismatches.Append(CorpusMismatches<FVeyraTuningRefsTestShape>(TEXT("TuningConformanceRefs")));
 			ASSERT_THAT(IsTrue(Mismatches.IsEmpty(), FString::Join(Mismatches, TEXT(" || "))));
 		}
 

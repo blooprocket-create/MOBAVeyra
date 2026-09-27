@@ -37,6 +37,11 @@ void AVeyraPlayerController::IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Targ
 	ServerIssueCastOrder(Slot, CastTarget);
 }
 
+void AVeyraPlayerController::IssueCastOrder(EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target)
+{
+	ServerIssueCastOrder(Slot, Target);
+}
+
 void AVeyraPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -58,7 +63,10 @@ void AVeyraPlayerController::SetupInputComponent()
 	{
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Started, this, &AVeyraPlayerController::OnMoveOrderStarted);
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnMoveOrderHeld);
-		Enhanced->BindAction(Input.AbilityQ, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityQ);
+		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
+		{
+			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+		}
 	}
 }
 
@@ -93,13 +101,21 @@ void AVeyraPlayerController::MoveToCursor(bool bSteer)
 	}
 }
 
-void AVeyraPlayerController::OnAbilityQ()
+void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 {
-	// Quick Cast (Settings Bible §1.2): cast at the unit under the cursor now. The server decides
-	// whether it is a valid target.
+	// Quick Cast (Settings Bible §1.2): cast now, at the unit and the ground under the cursor. Each
+	// ability uses what it needs, and the server decides whether it is valid.
+	FVeyraCastTarget Target;
 	FHitResult Unit;
 	GetHitResultUnderCursor(ECC_Pawn, /*bTraceComplex*/ false, Unit);
-	IssueCastOrder(EVeyraAbilitySlot::Q, Unit.GetActor());
+	Target.Actor = Unit.GetActor();
+	FHitResult Ground;
+	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
+	{
+		Target.bHasLocation = true;
+		Target.Location = Ground.Location;
+	}
+	IssueCastOrder(Slot, Target);
 }
 
 void AVeyraPlayerController::ServerIssueCastOrder_Implementation(EVeyraAbilitySlot Slot, FVeyraCastTarget Target)

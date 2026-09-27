@@ -251,11 +251,17 @@ AActor* UVeyraMovementComponent::FindEnemyContact(const FVector& From, const FVe
 	return nullptr;
 }
 
+void UVeyraMovementComponent::SetCastLocksMovement(bool bLocks)
+{
+	bCastLocksMovement = bLocks;
+	RefreshMovementLock();
+}
+
 void UVeyraMovementComponent::RefreshMovementLock()
 {
 	const UVeyraStatusComponent* Statuses = FollowedStatuses.Get();
 	const bool bStunned = Statuses && EnumHasAnyFlags(Statuses->GetActionBlocks(), EVeyraActionBlocks::Move);
-	const bool bLocked = bStunned || ForcedMove.IsSet();
+	const bool bLocked = bStunned || bCastLocksMovement || ForcedMove.IsSet();
 	if (bLocked == bMovementLocked)
 	{
 		return;
@@ -263,8 +269,8 @@ void UVeyraMovementComponent::RefreshMovementLock()
 	bMovementLocked = bLocked;
 	if (bLocked && !ForcedMove.IsSet())
 	{
-		// A stunned unit stops where it stands rather than braking to a halt (Combat Bible §8). Its
-		// path is its controller's to keep or drop, so stopping here leaves the path alone.
+		// A stunned or casting unit stops where it stands rather than braking to a halt (Combat Bible
+		// §8, §48). Its path is its controller's to keep or drop, so stopping here leaves the path alone.
 		StopMovementKeepPathing();
 	}
 	OnMovementLockChanged.Broadcast(bLocked);

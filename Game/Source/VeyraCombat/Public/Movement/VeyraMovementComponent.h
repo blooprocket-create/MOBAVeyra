@@ -66,7 +66,13 @@ public:
 	/** Where the displacement or dash under way ends. */
 	TOptional<FVector> GetForcedMoveDestination() const;
 
-	/** Whether the unit cannot follow its orders now: it is stunned, displaced or dashing. */
+	/**
+	 * Server only: whether the unit's own cast holds it in place, as a windup or channel that locks
+	 * movement does (Combat Bible §48). The body stops, and its orders wait, while it does.
+	 */
+	void SetCastLocksMovement(bool bLocks);
+
+	/** Whether the unit cannot follow its orders now: it is stunned, displaced, dashing or casting in place. */
 	bool IsMovementLocked() const { return bMovementLocked; }
 
 	/** Server only: raised when IsMovementLocked changes, with its new value. */
@@ -101,5 +107,6 @@ private:
 	TWeakObjectPtr<UVeyraStatusComponent> FollowedStatuses;
 	FDelegateHandle StatusesChangedHandle;
 	TOptional<FForcedMove> ForcedMove;
+	bool bCastLocksMovement = false;
 	bool bMovementLocked = false;
 };

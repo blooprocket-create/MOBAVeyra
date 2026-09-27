@@ -18,6 +18,8 @@ public class VeyraAbilities : ModuleRules
 			"GameplayTags",
 			"VeyraCore",
 			"VeyraCombat",
+			// Abilities read their slot's rank from Progression (ADR-008 §4, §6).
+			"VeyraEconomy",
 		});
 
 		// Push-model replication for the cooldown ledger and the loadout.
