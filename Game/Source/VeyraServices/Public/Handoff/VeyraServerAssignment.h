@@ -31,9 +31,12 @@ struct FVeyraAssignmentParticipantDocument
 
 	UPROPERTY()
 	FString TicketHash;
+
+	UPROPERTY()
+	FVeyraContentId VanguardId;
 };
 
-/** The assignment document a match server reads on standard input (ADR-007 §5). */
+/** The assignment document a match server reads on standard input (ADR-007 §5, ADR-010 §9). */
 USTRUCT()
 struct FVeyraAssignmentDocument
 {
@@ -47,6 +50,16 @@ struct FVeyraAssignmentDocument
 
 	UPROPERTY()
 	FString ServerCredential;
+
+	UPROPERTY()
+	FVeyraContentId Mode;
+
+	UPROPERTY()
+	EVeyraMatchRules Rules = EVeyraMatchRules::Standard;
+
+	/** The practice host, or nothing: at most one entry. */
+	UPROPERTY()
+	TArray<FString> HostAccountId;
 
 	UPROPERTY()
 	TArray<FVeyraAssignmentParticipantDocument> Participants;
@@ -65,7 +78,7 @@ struct FVeyraServerAssignment
 namespace VeyraServerAssignment
 {
 	/** The only assignment version this build reads (AssignmentSchemaVersion in Backend/internal/match). */
-	constexpr int32 SchemaVersion = 1;
+	constexpr int32 SchemaVersion = 2;
 
 	/** Where the assignment's schema is, in the project folder or the packaged build. */
 	VEYRASERVICES_API FString SchemaPath();

@@ -34,6 +34,10 @@
     ability of every kit. There is no pause in this mode; with -RecordReplay, playback must show
     every Vanguard, a projectile and a delayed area.
 
+    -Handoff -Practice plays a solo Custom practice match through the handoff instead (ADR-010 §7):
+    one client, the practice match's host, moves and then ends it; the backend must record a
+    host-ended result with no winner.
+
     -Handoff plays the match the way a player reaches one (ADR-007). It rebuilds the match-server
     image from the packaged server, starts the backend, signs in two dev accounts and asks the
     backend for a match between them. The backend starts the server container and writes its
@@ -75,6 +79,8 @@
     Renders the second client and saves a screenshot of the grey-box presentation. Not with -Handoff.
 .PARAMETER Vanguards
     The Vanguards whose kits the clients play, one client each, from Vanguards.json. Not with -Handoff.
+.PARAMETER Practice
+    With -Handoff: a solo practice match that its host ends.
 .PARAMETER EngineRoot
     Engine folder to use instead of the one registered for the project's EngineAssociation.
 .EXAMPLE
@@ -119,6 +125,8 @@ param(
     [switch]$Screenshot,
 
     [string[]]$Vanguards = @(),
+
+    [switch]$Practice,
 
     [string]$EngineRoot
 )
@@ -184,6 +192,10 @@ if ($Handoff -and ($Clients -ne 'Packaged' -or $Server -ne 'Container' -or $urlO
 if ($Handoff -and $kitMode) {
     # The backend's dev match pairs two accounts; the handoff proves the join, not the kits.
     Write-Host '-Handoff plays the two-client script; run -Vanguards without it.'
+    exit $ExitInfrastructure
+}
+if ($Practice -and -not $Handoff) {
+    Write-Host '-Practice plays a practice match through the handoff; add -Handoff.'
     exit $ExitInfrastructure
 }
 
@@ -297,8 +309,13 @@ if ($Handoff) {
         Write-Host 'Config/DefaultGame.ini gives no BackendBaseUrl or ProjectVersion.'
         exit $ExitInfrastructure
     }
-    $mode = ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id
-    $accounts = @($backendConfig.devLogin.accounts | Select-Object -First 2)
+    # A standard match pairs two accounts on opposite sides; a practice match is its host alone, on
+    # the host's side. Standard players play the developer test Vanguard, whose Q the script casts;
+    # the host plays a released Vanguard, as a player would.
+    $PracticeVanguard = 'cairn'
+    $playerCount = $(if ($Practice) { 1 } else { 2 })
+    $mode = $(if ($Practice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
+    $accounts = @($backendConfig.devLogin.accounts | Select-Object -First $playerCount)
 
     Write-Host 'Building the match server image from the packaged server.'
     if ((Invoke-Compose -Arguments @('build', 'match-server')) -ne 0) {
@@ -312,19 +329,25 @@ if ($Handoff) {
         exit $ExitInfrastructure
     }
 
-    # Two dev accounts on opposite sides.
-    $participants = foreach ($index in 0, 1) {
+    $participants = foreach ($index in 0..($playerCount - 1)) {
         $login = Invoke-Backend -Method Post -Path '/v1/dev/login' -Body @{ accountName = $accounts[$index] }
         if ($login.Status -ne 200) {
             Write-Host "Dev login as $($accounts[$index]) failed: HTTP $($login.Status) ($(Get-ErrorCode $login))."
             exit $ExitInfrastructure
         }
-        [pscustomobject]@{ Name = $accounts[$index]; AccountId = $login.Body.account.id; LauncherSession = $login.Body.token; Side = @('A', 'B')[$index] }
+        [pscustomobject]@{ Name = $accounts[$index]; AccountId = $login.Body.account.id; LauncherSession = $login.Body.token
+            Side = $(if ($Practice) { $backendConfig.customPractice.hostSide } else { @('A', 'B')[$index] })
+            Vanguard = $(if ($Practice) { $PracticeVanguard } else { $SmokeVanguard }) }
     }
-    $created = Invoke-Backend -Method Post -Path '/v1/dev/matches' -Body @{
+    $matchRequest = @{
         mode         = $mode
-        participants = @($participants | ForEach-Object { @{ accountId = $_.AccountId; side = $_.Side } })
+        rules        = $(if ($Practice) { 'practice' } else { 'standard' })
+        participants = @($participants | ForEach-Object { @{ accountId = $_.AccountId; side = $_.Side; vanguardId = $_.Vanguard } })
     }
+    if ($Practice) {
+        $matchRequest.hostAccountId = $participants[0].AccountId
+    }
+    $created = Invoke-Backend -Method Post -Path '/v1/dev/matches' -Body $matchRequest
     if ($created.Status -ne 201) {
         $code = Get-ErrorCode $created
         Write-Host "The backend did not create the match: HTTP $($created.Status) ($code)."
@@ -346,13 +369,14 @@ if ($Handoff) {
         $serverLogProcess = Start-Process -FilePath 'docker' -ArgumentList @('logs', '--follow', $container) -NoNewWindow -PassThru `
             -RedirectStandardOutput $serverLogPath -RedirectStandardError $serverErrorLogPath
 
-        # Each client reads its launch code from a pipe. The first plays the pause and ends the match; the
-        # second waits for the end. Neither uses -log, which on Windows can replace the standard handles.
-        # Not $clients: PowerShell names ignore case, and that is the -Clients parameter.
-        $handoffClients = foreach ($index in 0, 1) {
+        # Each client reads its launch code from a pipe, and plays the Vanguard the roster names. In a
+        # standard match the first plays the pause and ends the match, and the second waits for the end;
+        # a practice match's host ends it. None uses -log, which on Windows can replace the standard
+        # handles. Not $clients: PowerShell names ignore case, and that is the -Clients parameter.
+        $handoffClients = foreach ($index in 0..($playerCount - 1)) {
             $log = Join-Path $reportDir "Client$($index + 1).log"
-            $clientArguments = @('-VeyraLaunchCode=stdin', '-VeyraSmoke', "-VeyraVanguard=$SmokeVanguard", '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
-            $clientArguments += $(if ($index -eq 0) { @('-VeyraSmokePause', '-VeyraSmokeEndMatch') } else { @('-VeyraSmokeWaitForEnd') })
+            $clientArguments = @('-VeyraLaunchCode=stdin', '-VeyraSmoke', '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
+            $clientArguments += $(if ($Practice) { @('-VeyraSmokeEndCustomMatch') } elseif ($index -eq 0) { @('-VeyraSmokePause', '-VeyraSmokeEndMatch') } else { @('-VeyraSmokeWaitForEnd') })
             $startInfo = [System.Diagnostics.ProcessStartInfo]::new($clientExecutable, ($clientArguments -join ' '))
             $startInfo.UseShellExecute = $false
             # No console of their own, and their output is discarded: their logs go to -ABSLOG.
@@ -469,15 +493,21 @@ if ($Handoff) {
         }
         else {
             $result = $match.result
+            $expectedEnd = $(if ($Practice) { 'host_ended' } else { 'developer_request' })
             Write-Host ("Result: {0}, winner {1}, {2:N1} s." -f $result.endReason, $(if ($null -eq $result.winner) { 'none' } else { $result.winner }), $result.durationSeconds)
-            if ($result.endReason -ne 'developer_request' -or $null -ne $result.winner -or $result.durationSeconds -le 0) {
-                Write-Host 'Expected a developer request with no winner and a positive duration.'
+            if ($result.endReason -ne $expectedEnd -or $null -ne $result.winner -or $result.durationSeconds -le 0) {
+                Write-Host "Expected $expectedEnd with no winner and a positive duration."
                 $failed = $true
             }
             $expectedAccounts = @($participants.AccountId | Sort-Object)
             $reportedAccounts = @($result.participants.accountId | Sort-Object)
             if (($expectedAccounts -join ',') -ne ($reportedAccounts -join ',') -or @($result.participants | Where-Object { -not ($_.joined -and $_.connectedAtEnd) }).Count -gt 0) {
-                Write-Host 'Expected both participants to have joined and to be connected at the end.'
+                Write-Host 'Expected every participant to have joined and to be connected at the end.'
+                $failed = $true
+            }
+            $rostered = @($match.participants | Where-Object { $_.vanguardId -ne ($participants | Where-Object AccountId -eq $_.accountId).Vanguard })
+            if ($rostered.Count -gt 0 -or ($Practice -and ($match.rules -ne 'practice' -or $match.hostAccountId -ne $participants[0].AccountId))) {
+                Write-Host 'The backend did not keep the requested rules, host or Vanguards.'
                 $failed = $true
             }
         }
@@ -486,9 +516,11 @@ if ($Handoff) {
             $failed = $true
         }
 
-        # What the server logged.
-        foreach ($expected in 'VeyraHandoff: took the assignment', 'VeyraHandoff: reported ready', 'Preparation begins with 2 player(s)', 'The match is live',
-            'Match paused', 'Match resumed', 'The match ended (developer request', 'VeyraHandoff: reported result') {
+        # What the server logged: each participant playing the Vanguard its roster names.
+        $expectedServerLines = @('VeyraHandoff: took the assignment', 'VeyraHandoff: reported ready', "Preparation begins with $playerCount player(s)", 'The match is live',
+            'VeyraHandoff: reported result') + @($participants | ForEach-Object { "$($_.Name) plays $($_.Vanguard)." })
+        $expectedServerLines += $(if ($Practice) { @('the host, ended the custom match', 'The match ended (host ended') } else { @('Match paused', 'Match resumed', 'The match ended (developer request') })
+        foreach ($expected in $expectedServerLines) {
             if (-not (Select-String -LiteralPath $serverLogPath -SimpleMatch $expected -Quiet)) {
                 Write-Host "The server log never says '$expected'."
                 $failed = $true
@@ -498,11 +530,13 @@ if ($Handoff) {
             Write-Host "The server logged an error: $($serverError.Matches[0].Value)"
             $failed = $true
         }
-        $abilityQ = @($vanguardDefinitions.$SmokeVanguard.abilities.q)[0]
-        $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
-        if ($casts -lt 2) {
-            Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."
-            $failed = $true
+        if (-not $Practice) {
+            $abilityQ = @($vanguardDefinitions.$SmokeVanguard.abilities.q)[0]
+            $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
+            if ($casts -lt 2) {
+                Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."
+                $failed = $true
+            }
         }
 
         # No credential in any log. The engine logs each connection's login options on the server, in its

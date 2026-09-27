@@ -7,7 +7,12 @@
 
 #include "VeyraGameState.generated.h"
 
-/** The match state every client sees: the phase, the pause and the match clock (Match Flow Bible §1). */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnVeyraMatchPhaseChanged, EVeyraMatchPhase /*NewPhase*/);
+
+/**
+ * The match state every client sees: the phase, the pause, the match clock, and the rules with a
+ * custom match's host (Match Flow Bible §1; ADR-010 §7).
+ */
 UCLASS()
 class VEYRAMATCH_API AVeyraGameState : public AGameStateBase
 {
@@ -17,6 +22,20 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	EVeyraMatchPhase GetPhase() const { return Phase; }
+
+	/** Broadcast on the server and on every client whenever the phase changes. */
+	FOnVeyraMatchPhaseChanged OnPhaseChanged;
+
+	EVeyraMatchRules GetMatchRules() const { return MatchRules; }
+
+	/** The custom match's host, once they have joined; null for standard rules. */
+	const APlayerState* GetHost() const { return Host; }
+
+	/** Server only: the GameMode sets the assigned rules when the match starts. */
+	void SetMatchRules(EVeyraMatchRules Rules);
+
+	/** Server only: the GameMode names the custom match's host when they join. */
+	void SetHost(APlayerState* InHost);
 
 	/** Whether an approved pause holds the match (Match Flow Bible §1, stage 5, and §10). */
 	bool IsMatchPaused() const { return bMatchPaused; }
@@ -37,8 +56,17 @@ public:
 	void SetMatchPaused(bool bPaused);
 
 private:
-	UPROPERTY(Replicated)
+	UFUNCTION()
+	void OnRep_Phase();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Phase)
 	EVeyraMatchPhase Phase = EVeyraMatchPhase::Loading;
+
+	UPROPERTY(Replicated)
+	EVeyraMatchRules MatchRules = EVeyraMatchRules::Standard;
+
+	UPROPERTY(Replicated)
+	TObjectPtr<APlayerState> Host;
 
 	/** Server gameplay time when the match went live. */
 	UPROPERTY(Replicated)

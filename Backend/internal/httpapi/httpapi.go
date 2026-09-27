@@ -234,7 +234,9 @@ var errorStatus = []struct {
 	{party.ErrPartyNotFound, http.StatusNotFound, "party_not_found"},
 
 	{match.ErrUnknownMode, http.StatusBadRequest, "unknown_mode"},
+	{match.ErrInvalidRules, http.StatusBadRequest, "invalid_rules"},
 	{match.ErrInvalidRoster, http.StatusBadRequest, "invalid_roster"},
+	{match.ErrInvalidVanguard, http.StatusBadRequest, "invalid_vanguard"},
 	{match.ErrAccountNotFound, http.StatusNotFound, "account_not_found"},
 	{match.ErrAlreadyInMatch, http.StatusConflict, "already_in_match"},
 	{match.ErrNoServerCapacity, http.StatusServiceUnavailable, "no_server_capacity"},

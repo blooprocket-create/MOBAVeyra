@@ -10,6 +10,8 @@ const TCHAR* LexToString(EVeyraMatchEndReason Reason)
 		return TEXT("developer request");
 	case EVeyraMatchEndReason::Abandoned:
 		return TEXT("abandoned");
+	case EVeyraMatchEndReason::HostEnded:
+		return TEXT("host ended");
 	}
 	return TEXT("unknown");
 }

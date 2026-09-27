@@ -42,6 +42,7 @@ func newFixture(t *testing.T) *fixture {
 	})
 	f.svc = NewService(f.store, accounts, f.alloc, Settings{
 		Modes:             map[string]Mode{"casual_select": fiveAll, "ranked": {ID: "ranked", HumanPlayersPerTeam: 5}},
+		Practice:          fixturePractice,
 		ReadyTimeout:      fixtureReadyTimeout,
 		MaxDuration:       fixtureMaxDuration,
 		RemoveServerAfter: fixtureRemoveServerAfter,
@@ -55,11 +56,25 @@ func newFixture(t *testing.T) *fixture {
 
 var ctx = context.Background()
 
+// fixturePractice is practice as the fixture configures it.
+var fixturePractice = PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: SideA}
+
+// standard asks for a casual match with these seats.
+func standard(seats ...Seat) Spec {
+	return Spec{Mode: "casual_select", Rules: RulesStandard, Seats: seats}
+}
+
+// practice asks for acc-1's practice match as a Vanguard.
+func practice(vanguard string) Spec {
+	return Spec{Mode: fixturePractice.Mode, Rules: RulesPractice, HostAccountID: "acc-1",
+		Seats: []Seat{{AccountID: "acc-1", Side: fixturePractice.HostSide, VanguardID: vanguard}}}
+}
+
 func (f *fixture) create(t *testing.T, seats ...Seat) Match {
 	t.Helper()
-	m, err := f.svc.CreateDevMatch(ctx, "casual_select", seats)
+	m, err := f.svc.Create(ctx, standard(seats...))
 	if err != nil {
-		t.Fatalf("CreateDevMatch: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	return m
 }
@@ -87,7 +102,7 @@ func (f *fixture) ready(t *testing.T, m Match) Assignment {
 	return a
 }
 
-var twoSeats = []Seat{{AccountID: "acc-1", Side: SideA}, {AccountID: "acc-2", Side: SideB}}
+var twoSeats = []Seat{{AccountID: "acc-1", Side: SideA, VanguardID: "cairn"}, {AccountID: "acc-2", Side: SideB, VanguardID: "cairn"}}
 
 func TestCreateStartsAServerWithTheRoster(t *testing.T) {
 	f := newFixture(t)
@@ -144,29 +159,140 @@ func TestCreateRefusesBadRequests(t *testing.T) {
 	}{
 		"unknown mode":    {"nope", twoSeats, ErrUnknownMode},
 		"disabled mode":   {"ranked", twoSeats, ErrUnknownMode},
-		"unknown account": {"casual_select", []Seat{{AccountID: "ghost", Side: SideA}}, ErrAccountNotFound},
-		"bad side":        {"casual_select", []Seat{{AccountID: "acc-1", Side: "C"}}, ErrInvalidRoster},
-		"duplicate":       {"casual_select", []Seat{{AccountID: "acc-1", Side: SideA}, {AccountID: "acc-1", Side: SideB}}, ErrInvalidRoster},
+		"unknown account": {"casual_select", []Seat{{AccountID: "ghost", Side: SideA, VanguardID: "cairn"}}, ErrAccountNotFound},
+		"bad side":        {"casual_select", []Seat{{AccountID: "acc-1", Side: "C", VanguardID: "cairn"}}, ErrInvalidRoster},
+		"duplicate":       {"casual_select", []Seat{{AccountID: "acc-1", Side: SideA, VanguardID: "cairn"}, {AccountID: "acc-1", Side: SideB, VanguardID: "cairn"}}, ErrInvalidRoster},
+		"no Vanguard":     {"casual_select", []Seat{{AccountID: "acc-1", Side: SideA}}, ErrInvalidVanguard},
+		"bad Vanguard":    {"casual_select", []Seat{{AccountID: "acc-1", Side: SideA, VanguardID: "Cairn"}}, ErrInvalidVanguard},
+		"practice mode":   {fixturePractice.Mode, []Seat{{AccountID: "acc-1", Side: SideA, VanguardID: "cairn"}}, ErrUnknownMode},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			f := newFixture(t)
-			if _, err := f.svc.CreateDevMatch(ctx, tc.mode, tc.seats); !errors.Is(err, tc.want) {
+			if _, err := f.svc.Create(ctx, Spec{Mode: tc.mode, Rules: RulesStandard, Seats: tc.seats}); !errors.Is(err, tc.want) {
 				t.Fatalf("want %v, got %v", tc.want, err)
 			}
 		})
 	}
 }
 
+func TestTheAssignmentCarriesTheModeRulesAndVanguards(t *testing.T) {
+	f := newFixture(t)
+	seats := []Seat{{AccountID: "acc-1", Side: SideA, VanguardID: "oriel"}, {AccountID: "acc-2", Side: SideB, VanguardID: "bryn"}}
+	m := f.create(t, seats...)
+	a := f.assignment(t, m.ID)
+	if a.SchemaVersion != 2 || a.Mode != "casual_select" || a.Rules != "Standard" || len(a.HostAccountID) != 0 {
+		t.Fatalf("wrong assignment header: %+v", a)
+	}
+	if a.Participants[0].VanguardID != "oriel" || a.Participants[1].VanguardID != "bryn" {
+		t.Fatalf("wrong Vanguards: %+v", a.Participants)
+	}
+	pm, _, _ := f.svc.Current(ctx, "acc-2")
+	if pm.Mode != "casual_select" || pm.Rules != RulesStandard || pm.VanguardID != "bryn" {
+		t.Fatalf("the player's view: %+v", pm)
+	}
+}
+
+func TestAPracticeMatchIsItsHostAlone(t *testing.T) {
+	f := newFixture(t)
+	m, err := f.svc.Create(ctx, practice("qazharr"))
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	if m.Rules != RulesPractice || m.HostAccountID != "acc-1" || m.Mode != fixturePractice.Mode {
+		t.Fatalf("practice match: %+v", m)
+	}
+	a := f.assignment(t, m.ID)
+	if a.Rules != "Practice" || len(a.HostAccountID) != 1 || a.HostAccountID[0] != "acc-1" || a.Participants[0].VanguardID != "qazharr" {
+		t.Fatalf("practice assignment: %+v", a)
+	}
+}
+
+func TestPracticeRefusesAnythingButItsHostAlone(t *testing.T) {
+	cases := map[string]struct {
+		change func(*Spec)
+		want   error
+	}{
+		"another mode":  {func(s *Spec) { s.Mode = "casual_select" }, ErrUnknownMode},
+		"no host":       {func(s *Spec) { s.HostAccountID = "" }, ErrInvalidRoster},
+		"host not seat": {func(s *Spec) { s.HostAccountID = "acc-2" }, ErrInvalidRoster},
+		"other side":    {func(s *Spec) { s.Seats[0].Side = SideB }, ErrInvalidRoster},
+		"two seats":     {func(s *Spec) { s.Seats = append(s.Seats, Seat{AccountID: "acc-2", Side: SideB, VanguardID: "cairn"}) }, ErrInvalidRoster},
+		"no Vanguard":   {func(s *Spec) { s.Seats[0].VanguardID = "" }, ErrInvalidVanguard},
+		"unknown rules": {func(s *Spec) { s.Rules = "draft" }, ErrInvalidRules},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			f := newFixture(t)
+			spec := practice("cairn")
+			tc.change(&spec)
+			if _, err := f.svc.Create(ctx, spec); !errors.Is(err, tc.want) {
+				t.Fatalf("want %v, got %v", tc.want, err)
+			}
+		})
+	}
+	t.Run("disabled", func(t *testing.T) {
+		f := newFixture(t)
+		f.svc.settings.Practice.Enabled = false
+		if _, err := f.svc.Create(ctx, practice("cairn")); !errors.Is(err, ErrUnknownMode) {
+			t.Fatalf("want ErrUnknownMode, got %v", err)
+		}
+	})
+	t.Run("a standard match has no host", func(t *testing.T) {
+		f := newFixture(t)
+		spec := standard(twoSeats...)
+		spec.HostAccountID = "acc-1"
+		if _, err := f.svc.Create(ctx, spec); !errors.Is(err, ErrInvalidRoster) {
+			t.Fatalf("want ErrInvalidRoster, got %v", err)
+		}
+	})
+}
+
+func TestOnlyAPracticeMatchCanBeHostEnded(t *testing.T) {
+	f := newFixture(t)
+	casual := f.create(t, Seat{AccountID: "acc-2", Side: SideA, VanguardID: "cairn"})
+	casualAssignment := f.ready(t, casual)
+	stored, _ := f.store.MatchByID(ctx, casual.ID)
+	hostEnded := resultFor(stored)
+	hostEnded.EndReason = EndHostEnded
+	if err := f.svc.ServerResult(ctx, casualAssignment.ServerCredential, casual.ID, hostEnded); !errors.Is(err, ErrInvalidResult) {
+		t.Fatalf("a standard match: want ErrInvalidResult, got %v", err)
+	}
+
+	m, _ := f.svc.Create(ctx, practice("cairn"))
+	a := f.ready(t, m)
+	stored, _ = f.store.MatchByID(ctx, m.ID)
+	hostEnded = resultFor(stored)
+	hostEnded.EndReason = EndHostEnded
+	if err := f.svc.ServerResult(ctx, a.ServerCredential, m.ID, hostEnded); err != nil {
+		t.Fatalf("a practice match: %v", err)
+	}
+}
+
+func TestOnlyParticipantsSeeAMatch(t *testing.T) {
+	f := newFixture(t)
+	m := f.create(t, twoSeats...)
+	got, p, err := f.svc.ForParticipant(ctx, "acc-2", m.ID)
+	if err != nil || got.ID != m.ID || p.Side != SideB || p.VanguardID != "cairn" || got.JoinKey != nil || got.ServerCredentialHash != nil {
+		t.Fatalf("a participant's view: %+v %+v %v", got, p, err)
+	}
+	if _, _, err := f.svc.ForParticipant(ctx, "acc-3", m.ID); !errors.Is(err, ErrMatchNotFound) {
+		t.Fatalf("an outsider: want ErrMatchNotFound, got %v", err)
+	}
+	if _, _, err := f.svc.ForParticipant(ctx, "acc-1", "no-such-match"); !errors.Is(err, ErrMatchNotFound) {
+		t.Fatalf("an unknown match: want ErrMatchNotFound, got %v", err)
+	}
+}
+
 func TestAnAccountHasOneActiveMatch(t *testing.T) {
 	f := newFixture(t)
 	f.create(t, twoSeats...)
-	_, err := f.svc.CreateDevMatch(ctx, "casual_select", []Seat{{AccountID: "acc-2", Side: SideA}, {AccountID: "acc-3", Side: SideB}})
+	_, err := f.svc.Create(ctx, standard([]Seat{{AccountID: "acc-2", Side: SideA, VanguardID: "cairn"}, {AccountID: "acc-3", Side: SideB, VanguardID: "cairn"}}...))
 	if !errors.Is(err, ErrAlreadyInMatch) {
 		t.Fatalf("want ErrAlreadyInMatch, got %v", err)
 	}
 	// The refused match took no port.
-	m := f.create(t, Seat{AccountID: "acc-3", Side: SideA})
+	m := f.create(t, Seat{AccountID: "acc-3", Side: SideA, VanguardID: "cairn"})
 	if m.Server.HostPort != fixturePortMin+1 {
 		t.Fatalf("port %d, want the next free one", m.Server.HostPort)
 	}
@@ -174,9 +300,9 @@ func TestAnAccountHasOneActiveMatch(t *testing.T) {
 
 func TestPortsRunOut(t *testing.T) {
 	f := newFixture(t)
-	f.create(t, Seat{AccountID: "acc-1", Side: SideA})
-	f.create(t, Seat{AccountID: "acc-2", Side: SideA})
-	if _, err := f.svc.CreateDevMatch(ctx, "casual_select", []Seat{{AccountID: "acc-3", Side: SideA}}); !errors.Is(err, ErrNoServerCapacity) {
+	f.create(t, Seat{AccountID: "acc-1", Side: SideA, VanguardID: "cairn"})
+	f.create(t, Seat{AccountID: "acc-2", Side: SideA, VanguardID: "cairn"})
+	if _, err := f.svc.Create(ctx, standard([]Seat{{AccountID: "acc-3", Side: SideA, VanguardID: "cairn"}}...)); !errors.Is(err, ErrNoServerCapacity) {
 		t.Fatalf("want ErrNoServerCapacity, got %v", err)
 	}
 }
@@ -184,7 +310,7 @@ func TestPortsRunOut(t *testing.T) {
 func TestAFailedStartReleasesEverything(t *testing.T) {
 	f := newFixture(t)
 	f.alloc.FailStarts(errors.New("docker is down"))
-	_, err := f.svc.CreateDevMatch(ctx, "casual_select", twoSeats)
+	_, err := f.svc.Create(ctx, standard(twoSeats...))
 	if !errors.Is(err, ErrAllocationFailed) {
 		t.Fatalf("want ErrAllocationFailed, got %v", err)
 	}
@@ -199,8 +325,8 @@ func TestAFailedStartReleasesEverything(t *testing.T) {
 
 func TestServerCredentialsAreScopedToTheirMatch(t *testing.T) {
 	f := newFixture(t)
-	m1 := f.create(t, Seat{AccountID: "acc-1", Side: SideA})
-	m2 := f.create(t, Seat{AccountID: "acc-2", Side: SideA})
+	m1 := f.create(t, Seat{AccountID: "acc-1", Side: SideA, VanguardID: "cairn"})
+	m2 := f.create(t, Seat{AccountID: "acc-2", Side: SideA, VanguardID: "cairn"})
 	a1 := f.assignment(t, m1.ID)
 	for name, cred := range map[string]string{
 		"no prefix":     strings.TrimPrefix(a1.ServerCredential, "vms_"),

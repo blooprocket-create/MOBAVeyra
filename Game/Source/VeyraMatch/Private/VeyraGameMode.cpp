@@ -13,6 +13,7 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "NavigationSystem.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Rules/VeyraMatchRules.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraTuning.h"
@@ -141,6 +142,10 @@ FString AVeyraGameMode::InitNewPlayer(APlayerController* NewPlayerController, co
 	}
 	PlayerState->SetAccountId(AccountId);
 	PlayerState->SetPlayerName(Roster->FindByAccount(AccountId)->DisplayName);
+	if (AccountId == Roster->GetAssignment().HostAccountId)
+	{
+		GetVeyraGameState().SetHost(PlayerState);
+	}
 	Roster->MarkConnected(AccountId);
 	NoteConnectedParticipants();
 	return ErrorMessage;
@@ -162,6 +167,7 @@ void AVeyraGameMode::StartPlay()
 {
 	Super::StartPlay();
 
+	GetVeyraGameState().SetMatchRules(Roster ? Roster->GetAssignment().Rules : EVeyraMatchRules::Standard);
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Loading);
 	GetWorldTimerManager().SetTimer(LoadingTimeout, this, &AVeyraGameMode::OnLoadingTimedOut,
 		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Phases.LoadingTimeoutSeconds));
@@ -228,6 +234,21 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason)
 	{
 		Host->OnMatchEnded.Broadcast(Result);
 	}
+}
+
+EVeyraEndCustomMatchRefusal AVeyraGameMode::HandleEndCustomMatch(const APlayerController& Requester)
+{
+	const AVeyraGameState& State = GetVeyraGameState();
+	const EVeyraEndCustomMatchRefusal Refusal = VeyraMatchRules::CheckEndCustomMatch(State.GetMatchRules(), State.GetPhase(),
+		State.GetHost() != nullptr && State.GetHost() == Requester.PlayerState);
+	if (Refusal != EVeyraEndCustomMatchRefusal::None)
+	{
+		UE_LOG(LogVeyraMatch, Log, TEXT("Refused to end the custom match for %s: %s."), *GetNameSafe(Requester.PlayerState), LexToString(Refusal));
+		return Refusal;
+	}
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s, the host, ended the custom match."), *GetNameSafe(Requester.PlayerState));
+	EndMatch(EVeyraMatchEndReason::HostEnded);
+	return Refusal;
 }
 
 void AVeyraGameMode::NoteConnectedParticipants()
@@ -480,7 +501,19 @@ void AVeyraGameMode::AssignTeam(AVeyraPlayerState& PlayerState) const
 
 void AVeyraGameMode::AssignVanguard(AVeyraPlayerState& PlayerState)
 {
-	// Until champion select, developer data chooses by join order; the last entry covers later joiners.
+	// A rostered participant plays what champion select locked; the assignment was checked against
+	// Vanguards.json when the server took it.
+	if (const FVeyraAssignedParticipant* Participant = Roster && !PlayerState.GetAccountId().IsEmpty() ? Roster->FindByAccount(PlayerState.GetAccountId()) : nullptr)
+	{
+		UE_CLOG(PlayerState.GetRequestedVanguardId().IsValid(), LogVeyraMatch, Warning,
+			TEXT("%s asked for Vanguard %s, but an assigned match plays the Vanguard its roster names."), *PlayerState.GetPlayerName(),
+			*PlayerState.GetRequestedVanguardId().ToString());
+		PlayerState.SetVanguardId(Participant->VanguardId);
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s plays %s."), *PlayerState.GetPlayerName(), *Participant->VanguardId.ToString());
+		return;
+	}
+
+	// On a developer server, developer data chooses by join order; the last entry covers later joiners.
 	const TArray<FVeyraContentId>& Order = UVeyraMatchTuningSubsystem::Get().DeveloperMatch.Vanguards;
 	FVeyraContentId Vanguard = Order.IsEmpty() ? FVeyraContentId() : Order[FMath::Min(VanguardsAssigned, Order.Num() - 1)];
 	++VanguardsAssigned;

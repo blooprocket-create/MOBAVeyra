@@ -54,8 +54,19 @@ type Config struct {
 	DevLogin              DevLogin
 	Party                 Party
 	Modes                 []Mode
+	CustomPractice        CustomPractice
 	Matches               Matches
 	Allocator             Allocator
+}
+
+// CustomPractice configures solo Custom practice (ADR-010 §7). It is a custom
+// match, not a matchmade mode, so its mode ID must not be one of modes.
+type CustomPractice struct {
+	Enabled bool
+	// Mode is the mode ID practice matches record.
+	Mode string
+	// HostSide is the side the practising player plays on: "A" or "B".
+	HostSide string
 }
 
 // Matches configures match lifecycles (ADR-007 §8, §10).
@@ -187,6 +198,11 @@ type fileConfig struct {
 		Enabled             *bool   `json:"enabled"`
 		HumanPlayersPerTeam *int    `json:"humanPlayersPerTeam"`
 	} `json:"modes"`
+	CustomPractice *struct {
+		Enabled  *bool   `json:"enabled"`
+		Mode     *string `json:"mode"`
+		HostSide *string `json:"hostSide"`
+	} `json:"customPractice"`
 	Matches *struct {
 		DevCreate *struct {
 			Enabled *bool `json:"enabled"`
@@ -232,6 +248,9 @@ var (
 	// path, query, fragment or user info (MatchAssignment.schema.json).
 	publicHostPattern = regexp.MustCompile(`^[A-Za-z0-9.-]+$`)
 	backendURLPattern = regexp.MustCompile(`^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$`)
+
+	// contentIDPattern is the game's content ID format (Game/Tuning/README.md).
+	contentIDPattern = regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`)
 )
 
 // Load reads and validates the configuration file at path.
@@ -381,6 +400,34 @@ func Parse(raw []byte) (Config, error) {
 			problems = append(problems, field+".humanPlayersPerTeam must be at least 1")
 		}
 		c.Modes = append(c.Modes, Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam})
+	}
+
+	if f.CustomPractice == nil {
+		missing("customPractice")
+	} else {
+		if f.CustomPractice.Enabled == nil {
+			missing("customPractice.enabled")
+		} else {
+			c.CustomPractice.Enabled = *f.CustomPractice.Enabled
+		}
+		switch {
+		case f.CustomPractice.Mode == nil:
+			missing("customPractice.mode")
+		case !contentIDPattern.MatchString(*f.CustomPractice.Mode):
+			problems = append(problems, "customPractice.mode must be a content ID such as custom_practice")
+		case seenModes[*f.CustomPractice.Mode]:
+			problems = append(problems, "customPractice.mode must not be a matchmade mode's id, so parties can never queue for it")
+		default:
+			c.CustomPractice.Mode = *f.CustomPractice.Mode
+		}
+		switch {
+		case f.CustomPractice.HostSide == nil:
+			missing("customPractice.hostSide")
+		case *f.CustomPractice.HostSide != "A" && *f.CustomPractice.HostSide != "B":
+			problems = append(problems, "customPractice.hostSide must be \"A\" or \"B\"")
+		default:
+			c.CustomPractice.HostSide = *f.CustomPractice.HostSide
+		}
 	}
 
 	if f.Allocator == nil || f.Allocator.Kind == nil {

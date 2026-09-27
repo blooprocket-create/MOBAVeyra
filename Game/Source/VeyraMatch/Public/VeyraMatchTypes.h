@@ -46,3 +46,28 @@ enum class EVeyraOrderRejection : uint8
 };
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraOrderRejection Rejection);
+
+/** Which rules a match plays by (ADR-010 §7, §9). */
+UENUM()
+enum class EVeyraMatchRules : uint8
+{
+	/** A matchmade or developer match. */
+	Standard,
+	/** Solo Custom practice: its host alone, open-ended, and ended by the host (Custom Matches Bible §1, §4). */
+	Practice,
+};
+
+/** Why the server refused to end a custom match. None means it ended. */
+UENUM()
+enum class EVeyraEndCustomMatchRefusal : uint8
+{
+	None,
+	/** The match is not a custom match, so only its own rules end it. */
+	NotCustomMatch,
+	/** Only the custom match's host may end it (Custom Matches Bible §4). */
+	NotHost,
+	/** The match has already ended. */
+	AlreadyEnded,
+};
+
+VEYRAMATCH_API const TCHAR* LexToString(EVeyraEndCustomMatchRefusal Refusal);

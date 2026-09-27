@@ -25,3 +25,19 @@ const TCHAR* LexToString(EVeyraOrderRejection Rejection)
 	}
 	return TEXT("Unknown");
 }
+
+const TCHAR* LexToString(EVeyraEndCustomMatchRefusal Refusal)
+{
+	switch (Refusal)
+	{
+	case EVeyraEndCustomMatchRefusal::None:
+		return TEXT("None");
+	case EVeyraEndCustomMatchRefusal::NotCustomMatch:
+		return TEXT("NotCustomMatch");
+	case EVeyraEndCustomMatchRefusal::NotHost:
+		return TEXT("NotHost");
+	case EVeyraEndCustomMatchRefusal::AlreadyEnded:
+		return TEXT("AlreadyEnded");
+	}
+	return TEXT("Unknown");
+}

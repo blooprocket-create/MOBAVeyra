@@ -137,7 +137,12 @@ func run(log *slog.Logger) error {
 func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Service) (*match.Service, error) {
 	var allocator match.Allocator = noAllocator{}
 	settings := match.Settings{
-		Modes:             map[string]match.Mode{},
+		Modes: map[string]match.Mode{},
+		Practice: match.PracticeSettings{
+			Enabled:  cfg.CustomPractice.Enabled,
+			Mode:     cfg.CustomPractice.Mode,
+			HostSide: match.Side(cfg.CustomPractice.HostSide),
+		},
 		ReadyTimeout:      cfg.Matches.ReadyTimeout,
 		MaxDuration:       cfg.Matches.MaxDuration,
 		RemoveServerAfter: cfg.Matches.RemoveServerAfter,

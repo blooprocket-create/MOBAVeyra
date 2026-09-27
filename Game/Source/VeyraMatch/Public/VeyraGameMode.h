@@ -51,6 +51,13 @@ public:
 	 */
 	void EndMatch(EVeyraMatchEndReason Reason);
 
+	/**
+	 * A player asks to end the custom match as its host (Custom Matches Bible §4; ADR-010 §7). Only
+	 * the host of a practice match may; the match then ends host-ended, with no winner. Returns why it
+	 * was refused, or None.
+	 */
+	EVeyraEndCustomMatchRefusal HandleEndCustomMatch(const APlayerController& Requester);
+
 	/** Why the match refuses orders right now, or None: orders need the live phase and no pause. */
 	EVeyraOrderRejection CheckOrdersAllowed() const;
 
@@ -98,7 +105,10 @@ private:
 	bool IsFull() const;
 	void AssignTeam(AVeyraPlayerState& PlayerState) const;
 
-	/** Chooses the participant's Vanguard: its development request, or the next in the developer order (ADR-008 §8). */
+	/**
+	 * Chooses the participant's Vanguard: a rostered participant plays the one the assignment names
+	 * (ADR-010 §9); anyone else its development request, or the next in the developer order (ADR-008 §8).
+	 */
 	void AssignVanguard(AVeyraPlayerState& PlayerState);
 
 	AActor* FindTeamStart(EVeyraTeam Team) const;

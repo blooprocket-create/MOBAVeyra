@@ -78,6 +78,7 @@ void UVeyraSmokeClientSubsystem::Initialize(FSubsystemCollectionBase& Collection
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeStay="), StaySeconds);
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeScreenshot="), ScreenshotPath);
 	bKit = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeKit"));
+	bEndCustomMatch = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeEndCustomMatch"));
 	StartRealTime = FPlatformTime::Seconds();
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraSmokeClientSubsystem::Tick));
 	NetworkFailureHandle = GEngine->OnNetworkFailure().AddUObject(this, &UVeyraSmokeClientSubsystem::OnNetworkFailure);
@@ -179,6 +180,13 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 			Controller->RequestDeveloperLevels(KitLevel - Progression->GetLevel());
 			Advance(EStep::WaitForLevels, TEXT("the match is live; asked for developer levels"));
 		}
+		else if (GameState->GetPhase() == EVeyraMatchPhase::Live && bEndCustomMatch)
+		{
+			// A practice match has no enemy: move a little, as the Vanguard's own attack range.
+			const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(Controller->GetPlayerState<AVeyraPlayerState>()->GetVanguardId());
+			StartMove(*Controller, *Vanguard, Definition ? Definition->BasicAttack.Range : 0.0);
+			Advance(EStep::WaitForMove, TEXT("the practice match is live; ordered a move"));
+		}
 		else if (GameState->GetPhase() == EVeyraMatchPhase::Live)
 		{
 			// The smoke plays a Vanguard whose Q is a targeted damage ability (Smoke.ps1 asks for test_vanguard).
@@ -236,6 +244,13 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 		if (Controller->GetOrderRejectionCount() > 0)
 		{
 			Finish(false, FString::Printf(TEXT("the server refused the move: %s"), LexToString(Controller->GetLastOrderRejection())));
+		}
+		else if (FVector::Dist2D(Vanguard->GetActorLocation(), MoveStart) >= FVector::Dist2D(MoveStart, MoveDestination) * MoveProgressFraction && bEndCustomMatch)
+		{
+			// The host ends the practice match (ADR-010 §7); the result says host-ended.
+			ScriptSummary = TEXT("the Vanguard moved in its practice match, and its host ended it");
+			Controller->RequestEndCustomMatch();
+			Advance(EStep::WaitForEnd, TEXT("the Vanguard moves; asked to end the custom match as its host"));
 		}
 		else if (FVector::Dist2D(Vanguard->GetActorLocation(), MoveStart) >= FVector::Dist2D(MoveStart, MoveDestination) * MoveProgressFraction)
 		{
@@ -340,7 +355,11 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 		break;
 
 	case EStep::WaitForEnd:
-		if (GameState->GetPhase() == EVeyraMatchPhase::Ended)
+		if (Controller->GetEndCustomMatchRefusalCount() > 0)
+		{
+			Finish(false, FString::Printf(TEXT("the server refused to end the custom match: %s"), LexToString(Controller->GetLastEndCustomMatchRefusal())));
+		}
+		else if (GameState->GetPhase() == EVeyraMatchPhase::Ended)
 		{
 			Finish(true, ScriptSummary + TEXT("; the match ended"));
 		}

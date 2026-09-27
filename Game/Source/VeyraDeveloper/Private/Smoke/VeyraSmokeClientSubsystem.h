@@ -33,6 +33,9 @@ class UNetDriver;
  *   each counting once the server starts its cooldown and retried when the server refuses it;
  * - it orders a basic attack on the nearest enemy and waits for one to commit;
  * - it passes once an enemy Vanguard has taken damage.
+ *
+ * With -VeyraSmokeEndCustomMatch it plays a practice match's host (ADR-010 §7): once the match is
+ * live it moves, asks to end the custom match, and passes when the match ends.
  */
 UCLASS()
 class UVeyraSmokeClientSubsystem : public UGameInstanceSubsystem
@@ -106,6 +109,8 @@ private:
 	FString ScreenshotPath;
 	bool bScreenshotRequested = false;
 	bool bKit = false;
+	/** -VeyraSmokeEndCustomMatch: a practice match's host moves, then ends the match. */
+	bool bEndCustomMatch = false;
 	/** -VeyraSmokeKit: the level that opens the first ultimate rank. */
 	int32 KitLevel = 0;
 	/** -VeyraSmokeKit: the slot being cast, from 0 (Q) to 4 (done), and whether its cast awaits the server. */

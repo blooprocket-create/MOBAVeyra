@@ -22,6 +22,7 @@ const validJSON = `{
     {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 5},
     {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5}
   ],
+  "customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A"},
   "matches": {"devCreate": {"enabled": true}, "readyTimeout": "120s", "maxDuration": "4h", "reapInterval": "5s", "removeServerAfter": "2m"},
   "allocator": {"kind": "docker", "docker": {
     "endpoint": "unix:///var/run/docker.sock", "apiVersion": "1.44", "requestTimeout": "30s",
@@ -80,6 +81,11 @@ func TestParseRejects(t *testing.T) {
 		"bad privacy":               {`"defaultPrivacy": "private"`, `"defaultPrivacy": "open"`, "party.defaultPrivacy must be"},
 		"duplicate mode":            {`"id": "ranked"`, `"id": "casual_select"`, "duplicate id casual_select"},
 		"mode missing team size":    {`"enabled": false, "humanPlayersPerTeam": 5`, `"enabled": false`, "humanPlayersPerTeam is required"},
+		"no custom practice":        {`"customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A"},`, ``, "customPractice is required"},
+		"practice missing side":     {`, "hostSide": "A"}`, `}`, "customPractice.hostSide is required"},
+		"practice bad side":         {`"hostSide": "A"`, `"hostSide": "C"`, "customPractice.hostSide must be"},
+		"practice bad mode":         {`"mode": "custom_practice"`, `"mode": "Custom Practice"`, "customPractice.mode must be a content ID"},
+		"practice queueable mode":   {`"mode": "custom_practice"`, `"mode": "casual_select"`, "must not be a matchmade mode"},
 		"dev matches outside local": {`"environment": "local"`, `"environment": "staging"`, "matches.devCreate.enabled is only allowed"},
 		"missing ready timeout":     {`"readyTimeout": "120s", `, ``, "matches.readyTimeout is required"},
 		"zero reap interval":        {`"reapInterval": "5s"`, `"reapInterval": "0s"`, "matches.reapInterval must be positive"},

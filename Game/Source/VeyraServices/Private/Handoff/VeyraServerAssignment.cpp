@@ -43,12 +43,16 @@ TArray<FString> Parse(FStringView Line, FStringView SchemaText, FVeyraServerAssi
 
 	FVeyraServerAssignment Assignment;
 	Assignment.Match.MatchId = MoveTemp(Document.MatchId);
+	Assignment.Match.Mode = Document.Mode;
+	Assignment.Match.Rules = Document.Rules;
+	Assignment.Match.HostAccountId = Document.HostAccountId.IsEmpty() ? FString() : MoveTemp(Document.HostAccountId[0]);
 	Assignment.BackendUrl = MoveTemp(Document.BackendUrl);
 	Assignment.ServerCredential = MoveTemp(Document.ServerCredential);
 	for (FVeyraAssignmentParticipantDocument& Participant : Document.Participants)
 	{
 		const EVeyraTeam Side = Participant.Side == EVeyraAssignedSide::A ? EVeyraTeam::A : EVeyraTeam::B;
-		Assignment.Match.Participants.Add({ MoveTemp(Participant.AccountId), MoveTemp(Participant.DisplayName), Side, MoveTemp(Participant.TicketHash) });
+		Assignment.Match.Participants.Add({ MoveTemp(Participant.AccountId), MoveTemp(Participant.DisplayName), Side, MoveTemp(Participant.TicketHash),
+			Participant.VanguardId });
 	}
 	Out = MoveTemp(Assignment);
 	return Problems;

@@ -22,6 +22,16 @@ enum class EVeyraResourceFamily : uint8
 	Mana,
 };
 
+/** Who may play a Vanguard (ADR-010 §6). */
+UENUM()
+enum class EVeyraVanguardAvailability : uint8
+{
+	/** Released: players may own and pick it. */
+	Playable,
+	/** For tests and development servers only; Shipping match servers refuse it. */
+	Developer,
+};
+
 /** A Vanguard's body in the world. */
 USTRUCT()
 struct FVeyraVanguardBodyTuning
@@ -66,6 +76,9 @@ struct FVeyraVanguardDefinition
 
 	UPROPERTY()
 	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	EVeyraVanguardAvailability Availability = EVeyraVanguardAvailability::Developer;
 
 	UPROPERTY()
 	EVeyraResourceFamily Resource = EVeyraResourceFamily::Mana;
@@ -192,7 +205,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;

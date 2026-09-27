@@ -90,22 +90,25 @@ Rules the code enforces, from the Parties & Social Bible:
 
 ### Matches
 
-How a client joins its assigned match is [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md).
+How a client joins its assigned match is [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md); how matches carry rules and Vanguards is [ADR-010](../Docs/ADR/ADR-010-play-flow.md) §7–9.
 
 | Endpoint | Auth | Body | Returns |
 |---|---|---|---|
-| `POST /v1/dev/matches` | — | `{"mode", "participants": [{"accountId", "side": "A"\|"B"}]}` | `201` and the match; the backend starts its server. **Local only**; the route does not exist unless `matches.devCreate.enabled` |
-| `GET /v1/dev/matches/{matchId}` | — | — | the match, its server port and its result. **Local only**; never returns a secret |
-| `GET /v1/me/match` | `Bearer <game token>` | — | `{"match": null}`, or the player's match: `id`, `state`, `side`, and once it is ready, `server` (`host`, `port`) and the join `ticket` |
+| `POST /v1/dev/matches` | — | `{"mode", "rules": "standard"\|"practice", "hostAccountId", "participants": [{"accountId", "side": "A"\|"B", "vanguardId"}]}`; `rules` defaults to standard, and only practice names a host | `201` and the match; the backend starts its server. **Local only**; the route does not exist unless `matches.devCreate.enabled`. It stands in for champion select in scripts, so any Vanguard the game defines is accepted |
+| `GET /v1/dev/matches/{matchId}` | — | — | the match, its rules, Vanguards, server port and result. **Local only**; never returns a secret |
+| `GET /v1/me/match` | `Bearer <game token>` | — | `{"match": null}`, or the player's match: `id`, `mode`, `rules`, `state`, `side`, `vanguardId`, and once it is ready, `server` (`host`, `port`) and the join `ticket` |
+| `GET /v1/me/matches/{matchId}` | `Bearer <game token>` | — | a match the player was in: `id`, `mode`, `rules`, `state`, `side`, `vanguardId`, `failureReason`, and once it has ended the verified `result` (`endReason`, `winner`, `durationSeconds`, and the player's own `joined` and `connectedAtEnd`). Anyone else's match is `match_not_found` |
 | `POST /v1/server/matches/{matchId}/ready` | `Bearer <server credential>` | `{}` | the server accepts players |
 | `POST /v1/server/matches/{matchId}/result` | `Bearer <server credential>` | `{"endReason", "winner", "durationSeconds", "participants": [{"accountId", "joined", "connectedAtEnd"}]}` | the result is recorded |
 
-Error codes include `already_in_match`, `invalid_roster`, `no_server_capacity`, `allocation_failed`, `invalid_state`, `invalid_result` and `result_conflict`.
+Error codes include `already_in_match`, `invalid_roster`, `invalid_rules`, `invalid_vanguard`, `no_server_capacity`, `allocation_failed`, `invalid_state`, `invalid_result` and `result_conflict`.
 
 Rules the code enforces:
 
 - A match moves from `allocating` to `ready` to `ended`, or to `failed` from either earlier state. An account has at most one active match (enforced by the database).
-- Each side holds at most the mode's `humanPlayersPerTeam`, every account at most once.
+- A standard match's sides each hold at most the mode's `humanPlayersPerTeam`, every account at most once. A practice match is its host alone, on `customPractice.hostSide`, in the mode `customPractice.mode`, which no party can queue for.
+- Every participant plays a Vanguard, a content ID; the match server refuses one `Game/Tuning/Vanguards.json` does not define.
+- Only a practice match can end `host_ended`: its host ended it (Custom Matches Bible §4).
 - A join ticket (`vjt_`) is derived from a random key the match keeps, so asking again gives the same ticket; the key is erased when the match ends or fails, which kills every ticket for it. The match server receives only SHA-256 hashes of the tickets.
 - The match server gets its roster and its credential (`vms_`, stored only as a hash) on its standard input, never in an environment variable, a file or its command line.
 - A server credential works only for its own match. A result can be reported again unchanged; a different one is refused. It must list exactly the roster.
@@ -136,7 +139,7 @@ go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -bui
 
 ## Configuration
 
-Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
+Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), solo Custom practice (`customPractice`: whether it is on, the mode ID its matches record, and the host's side), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
 
 ## Layout
 

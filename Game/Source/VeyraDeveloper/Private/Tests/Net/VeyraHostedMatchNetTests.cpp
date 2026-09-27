@@ -8,6 +8,7 @@
 #include "Join/VeyraMatchHostSubsystem.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
+#include "Tests/Net/VeyraVanguardNetTestHelpers.h"
 #include "Tuning/VeyraTuning.h"
 #include "VeyraJoinRules.h"
 #include "VeyraPlayerState.h"
@@ -43,8 +44,10 @@ namespace VeyraNetTests
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
 			Tuning->Tuning.Lifecycle.AbandonAfterSeconds = ShortAbandonSeconds;
 			Tickets = MakeUnique<FScopedTestTickets>();
-			// Both on Team A: joining the smaller side would split them, so the roster must decide.
-			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::A });
+			// Both on Team A: joining the smaller side would split them, so the roster must decide. Their
+			// Vanguards differ from the developer order's, so the roster must decide those too.
+			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::A }, EVeyraMatchRules::Standard,
+				TArray<FVeyraContentId>{ ContentId(TEXT("cairn")), ContentId(TEXT("oriel")) });
 			ASSERT_THAT(IsTrue(Assignment->Problems.IsEmpty(), FString::Join(Assignment->Problems, TEXT(" | "))));
 			EndedHandle = UVeyraMatchHostSubsystem::Get()->OnMatchEnded.AddLambda([this](const FVeyraMatchResult& Ended) { Result = Ended; });
 			// A client that disconnects returns to the default map in this same process, and starting
@@ -99,6 +102,36 @@ namespace VeyraNetTests
 				});
 		}
 
+		TEST_METHOD(ParticipantsPlayTheirRosteredVanguard)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.UntilClients(TEXT("Every client sees each participant's rostered Vanguard"), [this](FState& State) {
+					const AVeyraGameState* GameState = GameStateOf(State.World);
+					int32 Matched = 0;
+					for (const APlayerState* Candidate : GameState->PlayerArray)
+					{
+						const AVeyraPlayerState* Player = Cast<AVeyraPlayerState>(Candidate);
+						const FVeyraAssignedParticipant* Rostered = Player ? Assignment->Assignment.Participants.FindByPredicate(
+							[Player](const FVeyraAssignedParticipant& Participant) { return Participant.DisplayName == Player->GetPlayerName(); }) : nullptr;
+						Matched += Rostered && Player->GetVanguardId() == Rostered->VanguardId ? 1 : 0;
+					}
+					return Matched == MatchClientCount;
+				});
+		}
+
+		TEST_METHOD(AStandardMatchCannotBeEndedByAHost)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenClient(TEXT("A client asks to end the custom match"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestEndCustomMatch(); })
+				.UntilClient(TEXT("The server refuses: this is not a custom match"), 0, [](FState& State) {
+					return LocalControllerOf(State.World)->GetLastEndCustomMatchRefusal() == EVeyraEndCustomMatchRefusal::NotCustomMatch;
+				})
+				.ThenServer(TEXT("The match goes on"), [this](FState& State) {
+					ASSERT_THAT(IsTrue(GameStateOf(State.World)->GetPhase() == EVeyraMatchPhase::Live));
+					ASSERT_THAT(IsFalse(Result.IsSet()));
+				});
+		}
+
 		TEST_METHOD(RefusesMissingUnknownAndConnectedTickets)
 		{
 			ExpectRefusals(3);
@@ -149,6 +182,79 @@ namespace VeyraNetTests
 					}
 					const FString Rejoin = TunedOptions() + TEXT("?") + VeyraJoinRules::MakeTicketOption(TestTicketForPIEInstance(1));
 					ASSERT_THAT(IsTrue(PreLoginRefusal(State.World, Rejoin).Contains(TEXT("has ended"))));
+				});
+		}
+	};
+
+	// Veyra.Net.HostedPractice.*: a practice match's host, and only its host, ends it; it ends
+	// host-ended with no winner, and every client sees the phase change (ADR-010 §3, §7). The second
+	// client stands in for anyone who is not the host.
+	NETWORK_TEST_CLASS(HostedPractice, "Veyra.Net")
+	{
+		struct FState : public FBasePIENetworkComponentState
+		{
+		};
+
+		FPIENetworkComponent<FState> Network{ TestRunner, TestCommandBuilder, bInitializing };
+		TUniquePtr<FScopedMatchTuning> Tuning;
+		TUniquePtr<FScopedTestTickets> Tickets;
+		TUniquePtr<FScopedMatchAssignment> Assignment;
+		FVeyraGreyboxLayout Layout;
+		TOptional<FVeyraMatchResult> Result;
+		FDelegateHandle EndedHandle;
+		/** The last phase each client's GameState announced. */
+		TMap<const UWorld*, EVeyraMatchPhase> AnnouncedPhase;
+
+		// Fixture values.
+		static constexpr double ShortPreparationSeconds = 0.1;
+
+		BEFORE_EACH()
+		{
+			IgnoreLoginViewTargetRpc(*TestRunner);
+			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout).IsEmpty()));
+			Tuning = MakeUnique<FScopedMatchTuning>();
+			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
+			Tickets = MakeUnique<FScopedTestTickets>();
+			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::B }, EVeyraMatchRules::Practice);
+			ASSERT_THAT(IsTrue(Assignment->Problems.IsEmpty(), FString::Join(Assignment->Problems, TEXT(" | "))));
+			EndedHandle = UVeyraMatchHostSubsystem::Get()->OnMatchEnded.AddLambda([this](const FVeyraMatchResult& Ended) { Result = Ended; });
+			BuildMatchNetwork(Network);
+		}
+
+		AFTER_EACH()
+		{
+			UVeyraMatchHostSubsystem::Get()->OnMatchEnded.Remove(EndedHandle);
+			Assignment.Reset();
+			Tickets.Reset();
+			Tuning.Reset();
+		}
+
+		TEST_METHOD(OnlyTheHostEndsItAndEveryoneSeesTheEnd)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.UntilClients(TEXT("Every client sees practice rules and the host"), [](FState& State) {
+					const AVeyraGameState* GameState = GameStateOf(State.World);
+					return GameState->GetMatchRules() == EVeyraMatchRules::Practice && GameState->GetHost() != nullptr;
+				})
+				.ThenClients(TEXT("Listen for phase changes"), [this](FState& State) {
+					const UWorld* World = State.World;
+					GameStateOf(World)->OnPhaseChanged.AddLambda([this, World](EVeyraMatchPhase Phase) { AnnouncedPhase.Add(World, Phase); });
+				})
+				.ThenClient(TEXT("Someone who is not the host asks to end it"), 1, [](FState& State) { LocalControllerOf(State.World)->RequestEndCustomMatch(); })
+				.UntilClient(TEXT("The server refuses them"), 1, [](FState& State) {
+					return LocalControllerOf(State.World)->GetLastEndCustomMatchRefusal() == EVeyraEndCustomMatchRefusal::NotHost;
+				})
+				.ThenServer(TEXT("The match goes on"), [this](FState& State) {
+					ASSERT_THAT(IsTrue(GameStateOf(State.World)->GetPhase() == EVeyraMatchPhase::Live && !Result.IsSet()));
+				})
+				.ThenClient(TEXT("The host ends it"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestEndCustomMatch(); })
+				.UntilServer(TEXT("The match ends"), [this](FState& /*State*/) { return Result.IsSet(); })
+				.UntilClients(TEXT("Every client's GameState announces the end"), [this](FState& State) {
+					return AnnouncedPhase.FindRef(State.World) == EVeyraMatchPhase::Ended;
+				})
+				.ThenServer(TEXT("It ended host-ended, with no winner"), [this](FState& /*State*/) {
+					ASSERT_THAT(IsTrue(Result->EndReason == EVeyraMatchEndReason::HostEnded));
+					ASSERT_THAT(IsTrue(Result->Winner == EVeyraTeam::None));
 				});
 		}
 	};

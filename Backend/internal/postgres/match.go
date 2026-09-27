@@ -59,16 +59,17 @@ func (t matchTx) FreePort(lo, hi int) (int, error) {
 
 func (t matchTx) CreateMatch(m match.Match) error {
 	if _, err := t.q.Exec(t.ctx, `
-		INSERT INTO match.matches (id, mode, state, created_at, ready_at, ended_at, join_key,
+		INSERT INTO match.matches (id, mode, rules, host_account_id, state, created_at, ready_at, ended_at, join_key,
 			server_credential_hash, host_port, server_removed_at, failure_reason)
-		VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-		m.ID, m.Mode, string(m.State), m.CreatedAt, nullableTime(m.ReadyAt), nullableTime(m.EndedAt), m.JoinKey,
-		m.ServerCredentialHash, m.Server.HostPort, nullableTime(m.Server.RemovedAt), nullableText(string(m.FailureReason))); err != nil {
+		VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
+		m.ID, m.Mode, string(m.Rules), nullableText(m.HostAccountID), string(m.State), m.CreatedAt, nullableTime(m.ReadyAt),
+		nullableTime(m.EndedAt), m.JoinKey, m.ServerCredentialHash, m.Server.HostPort, nullableTime(m.Server.RemovedAt),
+		nullableText(string(m.FailureReason))); err != nil {
 		return err
 	}
 	for i, p := range m.Participants {
-		if _, err := t.q.Exec(t.ctx, `INSERT INTO match.participants (match_id, account_id, display_name, side, roster_order)
-			VALUES ($1::uuid, $2::uuid, $3, $4, $5)`, m.ID, p.AccountID, p.DisplayName, string(p.Side), i); err != nil {
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO match.participants (match_id, account_id, display_name, side, roster_order, vanguard_id)
+			VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6)`, m.ID, p.AccountID, p.DisplayName, string(p.Side), i, nullableText(p.VanguardID)); err != nil {
 			return err
 		}
 	}
@@ -191,30 +192,31 @@ func (s *MatchStore) MatchesNeedingAttention(ctx context.Context) ([]match.Match
 }
 
 func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Match, error) {
-	sql := `SELECT id::text, mode, state, created_at, ready_at, ended_at, join_key, server_credential_hash,
-		host_port, server_removed_at, coalesce(failure_reason, '')
+	sql := `SELECT id::text, mode, rules, coalesce(host_account_id::text, ''), state, created_at, ready_at, ended_at,
+		join_key, server_credential_hash, host_port, server_removed_at, coalesce(failure_reason, '')
 		FROM match.matches WHERE id = $1::uuid`
 	if lock {
 		sql += ` FOR UPDATE`
 	}
 	var m match.Match
-	var state, failure string
+	var rules, state, failure string
 	var readyAt, endedAt, removedAt *time.Time
 	var port int32
-	err := q.QueryRow(ctx, sql, id).Scan(&m.ID, &m.Mode, &state, &m.CreatedAt, &readyAt, &endedAt, &m.JoinKey,
-		&m.ServerCredentialHash, &port, &removedAt, &failure)
+	err := q.QueryRow(ctx, sql, id).Scan(&m.ID, &m.Mode, &rules, &m.HostAccountID, &state, &m.CreatedAt, &readyAt, &endedAt,
+		&m.JoinKey, &m.ServerCredentialHash, &port, &removedAt, &failure)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return match.Match{}, match.ErrMatchNotFound
 	}
 	if err != nil {
 		return match.Match{}, err
 	}
+	m.Rules = match.Rules(rules)
 	m.State = match.State(state)
 	m.FailureReason = match.FailureReason(failure)
 	m.ReadyAt, m.EndedAt = timeOrZero(readyAt), timeOrZero(endedAt)
 	m.Server = match.Server{HostPort: int(port), RemovedAt: timeOrZero(removedAt)}
 
-	rows, err := q.Query(ctx, `SELECT account_id::text, display_name, side FROM match.participants
+	rows, err := q.Query(ctx, `SELECT account_id::text, display_name, side, coalesce(vanguard_id, '') FROM match.participants
 		WHERE match_id = $1::uuid ORDER BY roster_order`, id)
 	if err != nil {
 		return match.Match{}, err
@@ -222,7 +224,7 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	m.Participants, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (match.Participant, error) {
 		var p match.Participant
 		var side string
-		err := r.Scan(&p.AccountID, &p.DisplayName, &side)
+		err := r.Scan(&p.AccountID, &p.DisplayName, &side, &p.VanguardID)
 		p.Side = match.Side(side)
 		return p, err
 	})

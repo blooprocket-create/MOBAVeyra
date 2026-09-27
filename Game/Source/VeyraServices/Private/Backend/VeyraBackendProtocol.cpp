@@ -64,6 +64,8 @@ namespace
 			return TEXT("developer_request");
 		case EVeyraMatchEndReason::Abandoned:
 			return TEXT("abandoned");
+		case EVeyraMatchEndReason::HostEnded:
+			return TEXT("host_ended");
 		}
 		checkNoEntry();
 		return TEXT("");
