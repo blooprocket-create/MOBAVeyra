@@ -136,20 +136,30 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 	bool bEnds = Step >= Range - Travelled;
 
 	// Terrain stops it where its body meets terrain, as its body meets units (ADR-008 §9, ADR-009 §4).
-	// A body that sets off against terrain, as from a caster standing at a wall, is stopped only where
-	// its centre meets terrain, so it can still be cast along the wall.
-	FHitResult Terrain;
+	// Terrain its body already overlaps where the step starts, as a wall its caster stood against,
+	// stops it only where its centre meets it, so it can still be cast along the wall; any other
+	// terrain its body meets further on still stops it.
 	const FCollisionQueryParams Params(SCENE_QUERY_STAT(VeyraProjectile), /*bTraceComplex*/ false, this);
 	const FCollisionObjectQueryParams TerrainObjects(ECC_WorldStatic);
 	const FVector To = From + Direction * Step;
-	bool bMetTerrain = World.SweepSingleByObjectType(Terrain, From, To, FQuat::Identity, TerrainObjects, FCollisionShape::MakeSphere(static_cast<float>(Radius)), Params);
-	if (bMetTerrain && Terrain.bStartPenetrating)
+	double TerrainDistance = TNumericLimits<double>::Max();
+	TArray<FHitResult> BodyHits;
+	World.SweepMultiByObjectType(BodyHits, From, To, FQuat::Identity, TerrainObjects, FCollisionShape::MakeSphere(static_cast<float>(Radius)), Params);
+	for (const FHitResult& Hit : BodyHits)
 	{
-		bMetTerrain = World.LineTraceSingleByObjectType(Terrain, From, To, TerrainObjects, Params);
+		if (!Hit.bStartPenetrating)
+		{
+			TerrainDistance = FMath::Min(TerrainDistance, static_cast<double>(Hit.Distance));
+		}
 	}
-	if (bMetTerrain)
+	FHitResult CentreHit;
+	if (World.LineTraceSingleByObjectType(CentreHit, From, To, TerrainObjects, Params))
 	{
-		Step = Terrain.Distance;
+		TerrainDistance = FMath::Min(TerrainDistance, static_cast<double>(CentreHit.Distance));
+	}
+	if (TerrainDistance <= Step)
+	{
+		Step = TerrainDistance;
 		bEnds = true;
 	}
 

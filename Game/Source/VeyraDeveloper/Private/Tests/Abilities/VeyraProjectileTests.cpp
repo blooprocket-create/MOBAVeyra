@@ -241,6 +241,22 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(World.HealthLost(Ahead) == Damage));
 		}
 
+		TEST_METHOD(ASkillshotAlongAWallStillStopsAtTerrainItsBodyMeetsAhead)
+		{
+			// Fixture values: past the wall the shot starts against, a block whose edge is half the
+			// shot's radius beside the path, which its body meets but its centre line passes.
+			constexpr double BlockStartX = WallFaceX + 150.0;
+			constexpr double BlockLength = 50.0;
+			SpawnTerrain(FVector(WallFaceX - ShotRange / 2.0, -(ShotRadius / 2.0 + WallThickness / 2.0), 0.0), FVector(ShotRange, WallThickness, WallHeight));
+			SpawnTerrain(FVector(BlockStartX + BlockLength / 2.0, -(ShotRadius / 2.0 + WallThickness / 2.0), 0.0), FVector(BlockLength, WallThickness, WallHeight));
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Behind = World.Spawn(EVeyraTeam::B, FVector(WallFaceX * 2.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(LearnAndCast(TEXT("test_spear")) == EVeyraCastRejection::None));
+			Fly(ShotRange / ShotSpeed);
+			ASSERT_THAT(IsTrue(World.HealthLost(Behind) == 0.0));
+			ASSERT_THAT(IsTrue(InFlight() == nullptr));
+		}
+
 		TEST_METHOD(ASkillshotEndsAtItsRange)
 		{
 			FArchetypeTestWorld World{ Spawner };
