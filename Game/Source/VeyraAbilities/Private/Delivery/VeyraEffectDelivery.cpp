@@ -133,6 +133,7 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 	Hit.Ability = Source.Ability;
 	Hit.CastId = Source.CastId;
 	Hit.bCasterShielded = Source.bCasterShielded;
+	Hit.bDamaging = Effects.Damage.IsValid();
 	if (Effects.Damage.IsValid())
 	{
 		VeyraCombat::DealPreparedDamage(Effects.Damage, *Target);

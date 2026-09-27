@@ -37,6 +37,9 @@ public:
 	/** A hit-chain passive's tuning, or null. */
 	static const FVeyraHitChainTuning* FindHitChain(const FVeyraContentId& Passive);
 
+	/** A Gathering Light passive's tuning, or null. */
+	static const FVeyraGatheringLightTuning* FindGatheringLight(const FVeyraContentId& Passive);
+
 	/** Reads and validates the file again, replacing the loaded tuning only when it is valid. */
 	VeyraTuning::FErrors Reload();
 

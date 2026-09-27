@@ -89,6 +89,50 @@
       },
       "passive": ["qazharr_sea_dog"]
     },
+    "oriel": {
+      "provenance": "Provisional",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 540,
+        "maxResource": 420,
+        "resourceRegen": 5,
+        "armor": 22,
+        "magicResist": 30,
+        "physicalPower": 50,
+        "magicPower": 0,
+        "attackSpeed": 0.625,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 88,
+        "maxResource": 50,
+        "resourceRegen": 0.4,
+        "armor": 3.8,
+        "magicResist": 1.3,
+        "physicalPower": 2.8,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.015
+      },
+      "basicAttack": {
+        "range": 525,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.25,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 1500, "radius": 15 }],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["oriel_splinter_lance"],
+        "w": ["oriel_shattered_sky"],
+        "e": ["oriel_mirror_veil"],
+        "r": ["oriel_final_radiance"]
+      },
+      "passive": ["oriel_gathering_light"]
+    },
     "test_vanguard": {
       "provenance": "Provisional",
       "resource": "Mana",
@@ -153,5 +197,13 @@
   },
   "hitChain": {
     "qazharr_sea_dog": { "provenance": "Provisional", "status": "qazharr_sea_dog" }
+  },
+  "gatheringLight": {
+    "oriel_gathering_light": {
+      "provenance": "Provisional",
+      "stacksToPrime": 3,
+      "fragmentDamage": { "type": "Magic", "amountByRank": [40], "physicalPowerRatio": 0, "magicPowerRatio": 0.35 },
+      "fragment": { "speed": 1400, "radius": 20 }
+    }
   }
 }

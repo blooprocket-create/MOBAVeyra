@@ -132,6 +132,33 @@ struct FVeyraHitChainTuning
 	FVeyraContentId Status;
 };
 
+/**
+ * Oriel's Gathering Light (Character Bible §20). Each damaging ability cast that hits an enemy
+ * Vanguard adds one stack. At StacksToPrime it is primed, and the next such cast consumes the stacks
+ * and sends a homing fragment at one struck Vanguard she can acquire. The stacks end at death
+ * (ADR-008 §9).
+ */
+USTRUCT()
+struct FVeyraGatheringLightTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Canon gives three (§20). */
+	UPROPERTY()
+	int32 StacksToPrime = 0;
+
+	/** The fragment's damage, prepared when it launches (Combat Bible §50); one amount, since a passive has no ranks. */
+	UPROPERTY()
+	FVeyraDamageTuning FragmentDamage;
+
+	/** How the fragment flies: a homing projectile, which terrain does not stop (ADR-008 §9). */
+	UPROPERTY()
+	FVeyraAttackProjectileTuning Fragment;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
@@ -148,6 +175,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraHitChainTuning> HitChain;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraGatheringLightTuning> GatheringLight;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

@@ -38,6 +38,12 @@ namespace VeyraTargeting
 	 */
 	VEYRACOMBAT_API bool AreHostile(const UObject* A, const UObject* B);
 
+	/**
+	 * Whether Acquirer, a unit or its side, may acquire Target as a target now: the hook Vision
+	 * implements for Dense Fog and stealth (ADR-009 §7). Until Vision exists, every target may be.
+	 */
+	VEYRACOMBAT_API bool CanAcquire(const UObject* Acquirer, const AActor& Target);
+
 	/** Distance between two units' collision edges on the ground plane, never below 0 (Combat Bible §40). */
 	VEYRACOMBAT_API double EdgeToEdgeDistance(const AActor& A, const AActor& B);
 

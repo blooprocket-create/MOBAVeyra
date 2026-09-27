@@ -164,6 +164,26 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 1.5,
       "takedownExtensionMaxSeconds": 3
+    },
+    "oriel_shattered_sky_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueReplaceStrongest",
+      "magnitude": 0.25,
+      "durationSeconds": 1.25,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "oriel_mirror_veil_haste": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.25,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
     }
   },
   "targetedDamage": {
@@ -288,6 +308,60 @@
           "casterStatusesPerVanguard": ["qazharr_no_quarter_frenzy", "qazharr_no_quarter_pursuit", "qazharr_no_quarter_tenacity", "qazharr_no_quarter_cleave"]
         }
       ]
+    },
+    "oriel_shattered_sky": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [10, 9.5, 9, 8.5, 8],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 850,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.2
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 0.9,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }],
+            "statuses": ["oriel_shattered_sky_slow"],
+            "displacement": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
+    },
+    "oriel_final_radiance": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [110, 95, 80],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0.75,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.3
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 5,
+      "channelSeconds": 2.0,
+      "zones": [
+        {
+          "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 1300, "width": 180 },
+          "effects": {
+            "damage": [{ "type": "Magic", "amountByRank": [60, 90, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }],
+            "statuses": [],
+            "displacement": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
     }
   },
   "selfBuff": {
@@ -332,6 +406,33 @@
       ],
       "aura": [],
       "recast": "None"
+    },
+    "oriel_mirror_veil": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [18, 17, 16, 15, 14],
+        "resourceCostByRank": [60],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "statuses": ["oriel_mirror_veil_haste"],
+      "shields": [
+        {
+          "id": "oriel_mirror_veil_shield",
+          "category": "Universal",
+          "amountByRank": [70, 110, 150, 190, 230],
+          "maxHealthRatio": 0,
+          "magicPowerRatio": 0.45,
+          "durationSeconds": 2.5,
+          "reapply": "Replace",
+          "maxAmountMaxHealthRatio": 0,
+          "capGroup": []
+        }
+      ],
+      "aura": [],
+      "recast": "None"
     }
   },
   "skillshot": {
@@ -356,6 +457,29 @@
         "damage": [],
         "statuses": [],
         "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900 }]
+      }
+    },
+    "oriel_splinter_lance": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [7, 6.5, 6, 5.5, 5],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 1000,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.2
+      },
+      "projectile": { "speed": 1800, "radius": 40, "range": 1000 },
+      "collision": "FirstEnemy",
+      "effects": {
+        "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.7 }],
+        "statuses": [],
+        "displacement": []
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": []
       }
     }
   },

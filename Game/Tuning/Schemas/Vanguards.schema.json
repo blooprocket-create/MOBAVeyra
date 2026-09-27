@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -64,6 +64,28 @@
         "width": { "type": "number", "minimum": 0 }
       }
     },
+    "homingProjectile": {
+      "description": "A homing projectile, which terrain does not stop (ADR-008 §9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speed", "radius"],
+      "properties": {
+        "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "radius": { "type": "number", "minimum": 0 }
+      }
+    },
+    "damage": {
+      "description": "One damage component: the amount plus the owner's power times the ratios (Combat Bible §25).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "amountByRank", "physicalPowerRatio", "magicPowerRatio"],
+      "properties": {
+        "type": { "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+        "amountByRank": { "description": "One value: a passive has no ranks.", "type": "array", "minItems": 1, "items": { "type": "number", "minimum": 0 } },
+        "physicalPowerRatio": { "type": "number", "minimum": 0 },
+        "magicPowerRatio": { "type": "number", "minimum": 0 }
+      }
+    },
     "basicAttack": {
       "description": "How the Vanguard's basic attacks work (Combat Bible §4, §48; ADR-008 §2).",
       "type": "object",
@@ -82,16 +104,9 @@
           "type": "array",
           "minItems": 0,
           "maxItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["speed", "radius"],
-            "properties": {
-              "speed": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
-              "radius": { "type": "number", "minimum": 0 }
-            }
-          }
+          "items": { "$ref": "#/definitions/homingProjectile" }
         },
+
         "cleave": {
           "description": "Where the attack cleaves when something makes it cleave: at the Vanguard, facing its target.",
           "type": "array",
@@ -214,6 +229,24 @@
               "type": "string",
               "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
             }
+          }
+        }
+      }
+    },
+    "gatheringLight": {
+      "description": "Passives that gather a stack from each damaging cast that hits an enemy Vanguard and, once primed, send a homing fragment with the next (Oriel's Gathering Light, Character Bible §20).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "stacksToPrime", "fragmentDamage", "fragment"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "stacksToPrime": { "description": "Stacks that prime it; canon gives three.", "type": "integer", "minimum": 1 },
+            "fragmentDamage": { "description": "The fragment's damage, prepared when it launches.", "$ref": "#/definitions/damage" },
+            "fragment": { "description": "How the fragment flies.", "$ref": "#/definitions/homingProjectile" }
           }
         }
       }

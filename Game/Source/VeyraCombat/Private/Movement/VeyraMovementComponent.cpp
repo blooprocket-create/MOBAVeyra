@@ -85,7 +85,7 @@ bool UVeyraMovementComponent::IsMovingTowardEnemyVanguard() const
 	const AActor* Side = Combatant->GetOwner();
 	const FVector From = Body->GetActorLocation();
 	const TArray<AActor*> Ahead = VeyraShapes::GatherUnits(*World, Near, [Side, Body, &From, &Heading, &Pursuit](const AActor& Unit) {
-		return &Unit != Body && VeyraUnits::IsVanguard(&Unit) && VeyraTargeting::AreHostile(Side, &Unit)
+		return &Unit != Body && VeyraUnits::IsVanguard(&Unit) && VeyraTargeting::AreHostile(Side, &Unit) && VeyraTargeting::CanAcquire(Side, Unit)
 			&& VeyraMovementRules::IsHeadingToward(From, Heading, Unit.GetActorLocation(), Pursuit.MaxAngleDegrees);
 	});
 	return !Ahead.IsEmpty();

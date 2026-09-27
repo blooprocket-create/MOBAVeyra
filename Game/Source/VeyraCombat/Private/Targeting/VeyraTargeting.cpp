@@ -37,6 +37,12 @@ bool AreHostile(const UObject* A, const UObject* B)
 	return TeamA != EVeyraTeam::None && TeamB != EVeyraTeam::None && TeamA != TeamB;
 }
 
+bool CanAcquire(const UObject* /*Acquirer*/, const AActor& /*Target*/)
+{
+	// Everything is visible until Vision arrives; Dense Fog and stealth will refuse here.
+	return true;
+}
+
 double EdgeToEdgeDistance(const AActor& A, const AActor& B)
 {
 	const double Centres = FVector::Dist2D(A.GetActorLocation(), B.GetActorLocation());

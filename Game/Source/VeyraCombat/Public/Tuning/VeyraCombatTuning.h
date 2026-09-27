@@ -169,8 +169,8 @@ struct FVeyraAttackSpeedTuning
 
 /**
  * When a unit counts as moving toward an enemy Vanguard, for bonuses that hold only then (Combat
- * Bible §23; ADR-008 §9): a living enemy Vanguard is within Range, edge to edge, and lies within
- * MaxAngleDegrees of the way it is moving. Vision will limit it to Vanguards the unit can see.
+ * Bible §23; ADR-008 §9): a living enemy Vanguard it can acquire (VeyraTargeting::CanAcquire) is
+ * within Range, edge to edge, and lies within MaxAngleDegrees of the way it is moving.
  */
 USTRUCT()
 struct FVeyraPursuitTuning

@@ -31,6 +31,9 @@ struct FVeyraAbilityHit
 	FVeyraContentId Ability;
 	int32 CastId = 0;
 
+	/** The hit carried damage: a damaging ability's hit, even when shields or invulnerability take it (§16). */
+	bool bDamaging = false;
+
 	/** A Stun from the hit landed. */
 	bool bStunned = false;
 

@@ -9,6 +9,29 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 	TArray<FString> Problems;
 	const auto Problem = [&Problems](const FString& Pointer, const FString& Message) { Problems.Add(FString::Printf(TEXT("%s: %s"), *Pointer, *Message)); };
 
+	// A passive runs by the one passive map that defines it (ADR-008 §5).
+	TMap<FVeyraContentId, FString> PassiveMaps;
+	const auto RegisterPassive = [&PassiveMaps, &Problem](const FVeyraContentId& Id, const TCHAR* Map) {
+		if (const FString* Earlier = PassiveMaps.Find(Id))
+		{
+			Problem(FString::Printf(TEXT("/%s/%s"), Map, *Id.ToString()), FString::Printf(TEXT("is also defined in /%s; a passive belongs to one passive map"), **Earlier));
+			return;
+		}
+		PassiveMaps.Add(Id, Map);
+	};
+	for (const TPair<FVeyraContentId, FVeyraDeepFoundationTuning>& Entry : Tuning.DeepFoundation)
+	{
+		RegisterPassive(Entry.Key, TEXT("deepFoundation"));
+	}
+	for (const TPair<FVeyraContentId, FVeyraHitChainTuning>& Entry : Tuning.HitChain)
+	{
+		RegisterPassive(Entry.Key, TEXT("hitChain"));
+	}
+	for (const TPair<FVeyraContentId, FVeyraGatheringLightTuning>& Entry : Tuning.GatheringLight)
+	{
+		RegisterPassive(Entry.Key, TEXT("gatheringLight"));
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraVanguardDefinition>& Entry : Tuning.Vanguards)
 	{
 		const FString Pointer = TEXT("/vanguards/") + Entry.Key.ToString();
@@ -58,7 +81,7 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 
 		for (int32 Index = 0; Index < Vanguard.Passive.Num(); ++Index)
 		{
-			if (!Tuning.DeepFoundation.Contains(Vanguard.Passive[Index]) && !Tuning.HitChain.Contains(Vanguard.Passive[Index]))
+			if (!PassiveMaps.Contains(Vanguard.Passive[Index]))
 			{
 				Problem(FString::Printf(TEXT("%s/passive/%d"), *Pointer, Index),
 					FString::Printf(TEXT("names passive \"%s\", which no passive map defines"), *Vanguard.Passive[Index].ToString()));
@@ -82,10 +105,13 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		{
 			Problem(Pointer + TEXT("/status"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Entry.Value.Status.ToString()));
 		}
-		// The passive archetype runs a passive by the map that defines it, so each ID is in one map.
-		if (Tuning.DeepFoundation.Contains(Entry.Key))
+	}
+
+	for (const TPair<FVeyraContentId, FVeyraGatheringLightTuning>& Entry : Tuning.GatheringLight)
+	{
+		if (Entry.Value.FragmentDamage.AmountByRank.Num() != 1)
 		{
-			Problem(Pointer, TEXT("is also defined in /deepFoundation; a passive belongs to one passive map"));
+			Problem(FString::Printf(TEXT("/gatheringLight/%s/fragmentDamage/amountByRank"), *Entry.Key.ToString()), TEXT("holds exactly one value: a passive has no ranks"));
 		}
 	}
 	return Problems;
