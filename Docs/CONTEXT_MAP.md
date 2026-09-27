@@ -68,6 +68,8 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-005-launcher-session-handoff-and-local-first-hosting.md](ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) — launcher, session handoff, local-first hosting, Go backend, Git LFS.
 - [ADR-006-unreal-project-scaffold.md](ADR/ADR-006-unreal-project-scaffold.md) — Unreal project in `Game/`, targets, modules and the layer check, ASC placement, Iris and the per-player fog gate, text JSON tuning, LFS, CQTest and build/test scripts.
 - [ADR-007-match-join-contract.md](ADR/ADR-007-match-join-contract.md) — join tickets, the server's roster at start, server reports and results, the local Docker allocator.
+- [ADR-008-vanguard-definitions-and-ability-composition.md](ADR/ADR-008-vanguard-definitions-and-ability-composition.md) — **Proposed** (accepted when the M5 pull request merges): Vanguard definitions, abilities composed onto archetypes, the passive registry, Progression, the new modules, provisional values, open canon questions for the first four kits.
+- [ADR-009-runtime-combat-primitives.md](ADR/ADR-009-runtime-combat-primitives.md) — **Proposed** (accepted when the M5 pull request merges): statuses, displacement and dashes, shields with caps, projectiles and areas, shapes, basic attacks, no prediction for these categories.
 
 ## Keeping the maps current
 
