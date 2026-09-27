@@ -1,6 +1,6 @@
 # ADR-006: Unreal project scaffold
 
-**Status:** Proposed. It becomes Accepted when the author merges the M1 pull request that adds it.
+**Status:** Accepted. The author merged the M1 pull request that adds it ([#12](https://github.com/blooprocket-create/MOBAVeyra/pull/12)) on 2026-09-26, and the M2–M4 pull requests with their amendments (#13–#15) the same day.
 **Date:** 2026-09-25
 **Author decisions already given (2026-09-25):**
 - the project lives in `Game/`;

@@ -1,6 +1,6 @@
 # ADR-007: Match-join contract and local match allocation
 
-**Status:** Proposed. It becomes Accepted when the author merges the M4 pull request that adds it.  
+**Status:** Accepted. The author merged the M4 pull request that adds it ([#15](https://github.com/blooprocket-create/MOBAVeyra/pull/15)) on 2026-09-26.  
 **Date:** 2026-09-26  
 **Approved in:** Author decisions for M4 (2026-09-26): handoff only; the server checks tickets against a roster given at start; Go tooling runs in Docker.  
 **Related:** [ADR-005](ADR-005-launcher-session-handoff-and-local-first-hosting.md) (session handoff L3, lifecycle L4, hosting H1–H3, build-order step 3), [ADR-006](ADR-006-unreal-project-scaffold.md) (§3 modules, §6 tuning, §10 container and smoke test), [Client & Platform Bible](../Design/Veyra_Client_Platform_Bible_v0.1.md) §5, [Match Flow Bible](../Design/Veyra_Match_Flow_Bible_v0.1.md) §1, §3–4, [Architecture Constitution](../../ARCHITECTURE.md) §4, §11.

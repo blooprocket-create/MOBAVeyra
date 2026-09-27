@@ -66,8 +66,8 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-003-owned-field-entities.md](ADR/ADR-003-owned-field-entities.md) — owned combat units, markers and world volumes.
 - [ADR-004-unified-unreal-client-states.md](ADR/ADR-004-unified-unreal-client-states.md) — one Unreal application and isolated client states.
 - [ADR-005-launcher-session-handoff-and-local-first-hosting.md](ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) — launcher, session handoff, local-first hosting, Go backend, Git LFS.
-- [ADR-006-unreal-project-scaffold.md](ADR/ADR-006-unreal-project-scaffold.md) — **Proposed** (accepted when the M1 pull request merges): Unreal project in `Game/`, targets, initial modules and the layer check, ASC placement, Iris and the per-player fog gate, text JSON tuning, LFS, CQTest and build/test scripts.
-- [ADR-007-match-join-contract.md](ADR/ADR-007-match-join-contract.md) — **Proposed** (accepted when the M4 pull request merges): join tickets, the server's roster at start, server reports and results, the local Docker allocator.
+- [ADR-006-unreal-project-scaffold.md](ADR/ADR-006-unreal-project-scaffold.md) — Unreal project in `Game/`, targets, modules and the layer check, ASC placement, Iris and the per-player fog gate, text JSON tuning, LFS, CQTest and build/test scripts.
+- [ADR-007-match-join-contract.md](ADR/ADR-007-match-join-contract.md) — join tickets, the server's roster at start, server reports and results, the local Docker allocator.
 
 ## Keeping the maps current
 
