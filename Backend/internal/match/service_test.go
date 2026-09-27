@@ -269,6 +269,27 @@ func TestOnlyAPracticeMatchCanBeHostEnded(t *testing.T) {
 	}
 }
 
+func TestASelectCreatesOneMatch(t *testing.T) {
+	f := newFixture(t)
+	spec := practice("cairn")
+	spec.SelectID = "select-1"
+	first, err := f.svc.Create(ctx, spec)
+	if err != nil {
+		t.Fatal(err)
+	}
+	spec.HostAccountID, spec.Seats[0].AccountID = "acc-2", "acc-2"
+	if _, err := f.svc.Create(ctx, spec); !errors.Is(err, ErrSelectHasMatch) {
+		t.Fatalf("a second match for the select: want ErrSelectHasMatch, got %v", err)
+	}
+	found, ok, err := f.svc.BySelect(ctx, "select-1")
+	if err != nil || !ok || found.ID != first.ID || found.JoinKey != nil {
+		t.Fatalf("BySelect: %+v %v %v", found, ok, err)
+	}
+	if _, ok, _ := f.svc.BySelect(ctx, "no-such-select"); ok {
+		t.Fatal("an unknown select has no match")
+	}
+}
+
 func TestOnlyParticipantsSeeAMatch(t *testing.T) {
 	f := newFixture(t)
 	m := f.create(t, twoSeats...)

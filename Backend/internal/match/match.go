@@ -76,6 +76,7 @@ var (
 	ErrInvalidVanguard  = errors.New("invalid Vanguard")
 	ErrAccountNotFound  = errors.New("account not found")
 	ErrAlreadyInMatch   = errors.New("an account is already in an active match")
+	ErrSelectHasMatch   = errors.New("the champion select already created its match")
 	ErrNoServerCapacity = errors.New("no match-server port is free")
 	ErrAllocationFailed = errors.New("the match server could not be started")
 	ErrMatchNotFound    = errors.New("match not found")
@@ -150,11 +151,14 @@ type Match struct {
 	Rules Rules
 	// HostAccountID is the practice match's host; empty for standard rules.
 	HostAccountID string
-	State         State
-	Participants  []Participant
-	CreatedAt     time.Time
-	ReadyAt       time.Time
-	EndedAt       time.Time
+	// SelectID is the champion select that created the match, which creates
+	// at most one; empty for development matches.
+	SelectID     string
+	State        State
+	Participants []Participant
+	CreatedAt    time.Time
+	ReadyAt      time.Time
+	EndedAt      time.Time
 	// JoinKey derives the participants' join tickets. It is nil once the
 	// match is over, which invalidates every ticket (ADR-007 §3).
 	JoinKey []byte

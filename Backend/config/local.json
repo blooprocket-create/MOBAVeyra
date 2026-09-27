@@ -39,7 +39,12 @@
   "customPractice": {
     "enabled": true,
     "mode": "custom_practice",
-    "hostSide": "A"
+    "hostSide": "A",
+    "pickDuration": "30s"
+  },
+  "selection": {
+    "tickInterval": "1s",
+    "startingTimeout": "60s"
   },
   "matches": {
     "devCreate": {"enabled": true},

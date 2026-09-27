@@ -16,6 +16,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
 )
 
@@ -40,8 +41,11 @@ type Deps struct {
 	Match *match.Service
 	// Account is optional; without it no onboarding routes are registered.
 	Account *account.Service
-	Modes   []ModeInfo
-	Ready   Pinger
+	// Selection is optional; without it no practice or champion-select routes
+	// are registered.
+	Selection *selection.Service
+	Modes     []ModeInfo
+	Ready     Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
@@ -78,6 +82,7 @@ func New(d Deps) http.Handler {
 	s.routeParty(mux)
 	s.routeMatch(mux)
 	s.routeOnboarding(mux)
+	s.routeSelection(mux)
 	return mux
 }
 
@@ -242,6 +247,15 @@ var errorStatus = []struct {
 
 	{account.ErrNotAStarter, http.StatusBadRequest, "not_a_starter"},
 	{account.ErrAlreadyChosen, http.StatusConflict, "already_completed"},
+
+	{selection.ErrTutorialRequired, http.StatusConflict, "tutorial_required"},
+	{selection.ErrBusy, http.StatusConflict, "busy"},
+	{selection.ErrPracticeDisabled, http.StatusConflict, "practice_disabled"},
+	{selection.ErrSelectNotFound, http.StatusNotFound, "select_not_found"},
+	{selection.ErrNotAvailable, http.StatusBadRequest, "not_available"},
+	{selection.ErrAlreadyLocked, http.StatusConflict, "already_locked"},
+	{selection.ErrExpired, http.StatusConflict, "expired"},
+	{selection.ErrInvalidState, http.StatusConflict, "invalid_state"},
 
 	{match.ErrUnknownMode, http.StatusBadRequest, "unknown_mode"},
 	{match.ErrInvalidRules, http.StatusBadRequest, "invalid_rules"},

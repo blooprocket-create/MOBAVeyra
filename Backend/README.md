@@ -102,6 +102,22 @@ Which Vanguards a player may pick, and the stubbed first-time tutorial ([ADR-010
 
 The catalog is `vanguards` in `config/local.json`: the released Vanguards, which must equal the Playable ones in `Game/Tuning/Vanguards.json` (`internal/catalog`'s contract test checks it), the starters (3 to 5, Account, Collection & Mastery Bible §1) and the rotation. **Provisional:** every released Vanguard is a starter, and until the weekly rotation exists a stand-in rotation offers every released Vanguard while fewer than `rotation.slots` (12, canon) are released.
 
+### Custom practice and champion select
+
+Solo Custom practice opens a champion select with no lobby; the select creates the match ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §7–8).
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `POST /v1/practice` | `Bearer <game token>` | — | `201` and the `select`: the player alone on `customPractice.hostSide`. Refused as `tutorial_required` before the starter choice, and `busy` with a match, a select or a queued party |
+| `GET /v1/me/select` | `Bearer <game token>` | — | `{"select": null}` or the player's active select |
+| `GET /v1/me/selects/{selectId}` | `Bearer <game token>` | — | a select the player was in, active or over: how it ended |
+| `PUT /v1/me/select/hover` | `Bearer <game token>` | `{"vanguardId"}` | the select |
+| `POST /v1/me/select/lock` | `Bearer <game token>` | `{"vanguardId"}` | the select; once every pick is locked it creates the match first, so the answer is `started` with its `matchId`, or `cancelled` |
+
+A select is `id`, `kind`, `mode`, `state` (`picking`, `starting`, `started`, `cancelled`), `deadline`, `remainingSeconds` (by the server's clock), `seats` (`displayName`, `side`, `you`, `locked`, and `hover` for the player's own team only), `matchId` and `cancelReason` (`timed_out`, `allocation_failed`, `starting_timed_out`). Errors: `not_available` (a Vanguard the player may not pick), `already_locked`, `expired`, `invalid_state`, `select_not_found`.
+
+Rules the code enforces: a player is in at most one active select (enforced by the database); a lock is permanent; a select creates at most one match (a unique `select_id` on the match). When the pick timer (`customPractice.pickDuration`) ends, a seat's hover is locked for it, and a seat with nothing to lock cancels the select. **Provisional** (ADR-010 §11), like the 30-second pick time. A select whose match creation never finishes is settled after `selection.startingTimeout`, which must exceed the allocator's request timeout.
+
 ### Matches
 
 How a client joins its assigned match is [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md); how matches carry rules and Vanguards is [ADR-010](../Docs/ADR/ADR-010-play-flow.md) §7–9.
@@ -153,7 +169,7 @@ go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -bui
 
 ## Configuration
 
-Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), solo Custom practice (`customPractice`: whether it is on, the mode ID its matches record, and the host's side), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
+Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), solo Custom practice (`customPractice`: whether it is on, the mode ID its matches record, the host's side and the pick time), champion select's upkeep (`selection`), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
 
 ## Layout
 
@@ -169,6 +185,7 @@ Backend/
     ├── party/             parties, invites, Ready, queue lock
     ├── catalog/           released Vanguards, starters and the rotation (configuration)
     ├── account/           onboarding (the stubbed tutorial) and Vanguard entitlements
+    ├── selection/         champion select and Custom practice; creates each select's match once
     ├── match/             matches, join tickets, results, the allocator interface
     ├── docker/            the local allocator: one Docker container per match
     ├── secret/            bearer secrets and their hashes

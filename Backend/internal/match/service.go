@@ -64,6 +64,9 @@ type Spec struct {
 	// Standard matches have none.
 	HostAccountID string
 	Seats         []Seat
+	// SelectID is the champion select creating the match; a select creates at
+	// most one (ErrSelectHasMatch). Development matches have none.
+	SelectID string
 }
 
 // PlayerMatch is a player's view of their active match. The server address
@@ -151,6 +154,7 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 		Mode:                 spec.Mode,
 		Rules:                spec.Rules,
 		HostAccountID:        spec.HostAccountID,
+		SelectID:             spec.SelectID,
 		State:                Allocating,
 		Participants:         participants,
 		CreatedAt:            s.now(),
@@ -230,6 +234,19 @@ func (s *Service) ForParticipant(ctx context.Context, accountID, matchID string)
 		return Match{}, Participant{}, ErrMatchNotFound
 	}
 	return withoutSecrets(m), p, nil
+}
+
+// BySelect returns the match a champion select created, without its secrets,
+// and false if it created none.
+func (s *Service) BySelect(ctx context.Context, selectID string) (Match, bool, error) {
+	m, err := s.store.MatchBySelectID(ctx, selectID)
+	if errors.Is(err, ErrMatchNotFound) {
+		return Match{}, false, nil
+	}
+	if err != nil {
+		return Match{}, false, err
+	}
+	return withoutSecrets(m), true, nil
 }
 
 // Get returns a match without its secrets.

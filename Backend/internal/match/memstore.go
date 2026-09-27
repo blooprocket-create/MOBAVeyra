@@ -91,6 +91,17 @@ func (s *MemStore) MatchByServerCredential(_ context.Context, hash []byte) (Matc
 	return Match{}, ErrMatchNotFound
 }
 
+func (s *MemStore) MatchBySelectID(_ context.Context, selectID string) (Match, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for _, m := range s.matches {
+		if selectID != "" && m.SelectID == selectID {
+			return copyMatch(m), nil
+		}
+	}
+	return Match{}, ErrMatchNotFound
+}
+
 func (s *MemStore) MatchesNeedingAttention(_ context.Context) ([]Match, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -122,7 +133,12 @@ func (t memTx) FreePort(lo, hi int) (int, error) {
 }
 
 func (t memTx) CreateMatch(m Match) error {
-	// Mirror the database's one-active-match-per-account constraint.
+	// Mirror the database's one-match-per-select and one-active-match-per-account constraints.
+	for _, other := range t.s.matches {
+		if m.SelectID != "" && other.SelectID == m.SelectID {
+			return ErrSelectHasMatch
+		}
+	}
 	for _, p := range m.Participants {
 		if _, busy := t.s.activeMatchFor(p.AccountID); busy {
 			return ErrAlreadyInMatch

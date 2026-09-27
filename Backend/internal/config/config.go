@@ -71,6 +71,7 @@ type Config struct {
 	Modes                 []Mode
 	Vanguards             Vanguards
 	CustomPractice        CustomPractice
+	Selection             Selection
 	Matches               Matches
 	Allocator             Allocator
 }
@@ -97,6 +98,17 @@ type CustomPractice struct {
 	Mode string
 	// HostSide is the side the practising player plays on: "A" or "B".
 	HostSide string
+	// PickDuration is how long the player has to lock a Vanguard.
+	PickDuration time.Duration
+}
+
+// Selection configures champion select's own upkeep (ADR-010 §8).
+type Selection struct {
+	// TickInterval is how often deadlines are checked.
+	TickInterval time.Duration
+	// StartingTimeout cancels a select whose match creation never finished;
+	// it must exceed the allocator's request timeout.
+	StartingTimeout time.Duration
 }
 
 // Matches configures match lifecycles (ADR-007 §8, §10).
@@ -237,10 +249,15 @@ type fileConfig struct {
 		} `json:"rotation"`
 	} `json:"vanguards"`
 	CustomPractice *struct {
-		Enabled  *bool   `json:"enabled"`
-		Mode     *string `json:"mode"`
-		HostSide *string `json:"hostSide"`
+		Enabled      *bool     `json:"enabled"`
+		Mode         *string   `json:"mode"`
+		HostSide     *string   `json:"hostSide"`
+		PickDuration *Duration `json:"pickDuration"`
 	} `json:"customPractice"`
+	Selection *struct {
+		TickInterval    *Duration `json:"tickInterval"`
+		StartingTimeout *Duration `json:"startingTimeout"`
+	} `json:"selection"`
 	Matches *struct {
 		DevCreate *struct {
 			Enabled *bool `json:"enabled"`
@@ -517,6 +534,14 @@ func Parse(raw []byte) (Config, error) {
 		default:
 			c.CustomPractice.HostSide = *f.CustomPractice.HostSide
 		}
+		c.CustomPractice.PickDuration = positive("customPractice.pickDuration", f.CustomPractice.PickDuration)
+	}
+
+	if f.Selection == nil {
+		missing("selection")
+	} else {
+		c.Selection.TickInterval = positive("selection.tickInterval", f.Selection.TickInterval)
+		c.Selection.StartingTimeout = positive("selection.startingTimeout", f.Selection.StartingTimeout)
 	}
 
 	if f.Allocator == nil || f.Allocator.Kind == nil {
@@ -557,6 +582,11 @@ func Parse(raw []byte) (Config, error) {
 		c.Matches.MaxDuration = positive("matches.maxDuration", f.Matches.MaxDuration)
 		c.Matches.ReapInterval = positive("matches.reapInterval", f.Matches.ReapInterval)
 		c.Matches.RemoveServerAfter = positive("matches.removeServerAfter", f.Matches.RemoveServerAfter)
+	}
+
+	// A select waits for its match's creation, which waits for the allocator.
+	if d := c.Allocator.Docker; d != nil && c.Selection.StartingTimeout > 0 && c.Selection.StartingTimeout <= d.RequestTimeout {
+		problems = append(problems, "selection.startingTimeout must exceed allocator.docker.requestTimeout, or a slow server start would cancel its select")
 	}
 
 	if len(problems) > 0 {
