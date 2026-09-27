@@ -84,11 +84,26 @@
       "description": "What happens to each unit hit.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["damage", "statuses", "displacement"],
+      "required": ["damage", "statuses", "displacement", "missingHealthDamage"],
       "properties": {
         "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
         "statuses": { "$ref": "#/definitions/statusIds" },
-        "displacement": { "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/displacement" } }
+        "displacement": { "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/displacement" } },
+        "missingHealthDamage": {
+          "description": "At most one, beside damage: damage for the Health the target already lacks, read when the hit lands and joining its component of that type (Combat Bible §50).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["type", "missingHealthRatio"],
+            "properties": {
+              "type": { "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+              "missingHealthRatio": { "description": "Of the target's missing Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+            }
+          }
+        }
       }
     },
     "zone": {

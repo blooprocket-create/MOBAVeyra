@@ -185,6 +185,27 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0
     }
+,
+    "bryn_flare_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueReplaceStrongest",
+      "magnitude": 0.3,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "bryn_kickback_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueReplaceStrongest",
+      "magnitude": 0.25,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    }
   },
   "targetedDamage": {
     "test_bolt": {
@@ -216,7 +237,8 @@
           "effects": {
             "damage": [{ "type": "Physical", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }],
             "statuses": ["cairn_crushing_hold_stun"],
-            "displacement": []
+            "displacement": [],
+            "missingHealthDamage": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -226,7 +248,8 @@
           "effects": {
             "damage": [],
             "statuses": ["cairn_crushing_hold_slow"],
-            "displacement": []
+            "displacement": [],
+            "missingHealthDamage": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -253,7 +276,8 @@
           "effects": {
             "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],
             "statuses": ["cairn_burden_stun"],
-            "displacement": [{ "direction": "TowardOrigin", "distance": 150, "speed": 900 }]
+            "displacement": [{ "direction": "TowardOrigin", "distance": 150, "speed": 900 }],
+            "missingHealthDamage": []
           },
           "casterShieldPerVanguard": [
             {
@@ -275,7 +299,8 @@
           "effects": {
             "damage": [],
             "statuses": ["cairn_burden_slow"],
-            "displacement": []
+            "displacement": [],
+            "missingHealthDamage": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -302,7 +327,8 @@
           "effects": {
             "damage": [{ "type": "Physical", "amountByRank": [150, 250, 350], "physicalPowerRatio": 0.9, "magicPowerRatio": 0 }],
             "statuses": [],
-            "displacement": [{ "direction": "AcrossCastLeft", "distance": 250, "speed": 1200 }]
+            "displacement": [{ "direction": "AcrossCastLeft", "distance": 250, "speed": 1200 }],
+            "missingHealthDamage": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": ["qazharr_no_quarter_frenzy", "qazharr_no_quarter_pursuit", "qazharr_no_quarter_tenacity", "qazharr_no_quarter_cleave"]
@@ -329,7 +355,8 @@
           "effects": {
             "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }],
             "statuses": ["oriel_shattered_sky_slow"],
-            "displacement": []
+            "displacement": [],
+            "missingHealthDamage": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -356,7 +383,75 @@
           "effects": {
             "damage": [{ "type": "Magic", "amountByRank": [60, 90, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }],
             "statuses": [],
-            "displacement": []
+            "displacement": [],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
+    },
+    "bryn_sounding_flare": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [50],
+        "castRange": 900,
+        "windupSeconds": 0.2,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.2
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": ["bryn_flare_slow"],
+            "displacement": [],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
+    },
+    "bryn_last_broadside": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 105, 90],
+        "resourceCostByRank": [100],
+        "castRange": 3000,
+        "windupSeconds": 1.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.4
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 1.2,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [300, 450, 600], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [{ "type": "Physical", "missingHealthRatio": 0.15 }]
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        },
+        {
+          "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -451,12 +546,14 @@
       "effects": {
         "damage": [{ "type": "Physical", "amountByRank": [50, 80, 110, 140, 170], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }],
         "statuses": [],
-        "displacement": [{ "direction": "TowardOrigin", "distance": 1050, "speed": 1800 }]
+        "displacement": [{ "direction": "TowardOrigin", "distance": 1050, "speed": 1800 }],
+        "missingHealthDamage": []
       },
       "passThroughEffects": {
         "damage": [],
         "statuses": [],
-        "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900 }]
+        "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900 }],
+        "missingHealthDamage": []
       }
     },
     "oriel_splinter_lance": {
@@ -474,12 +571,14 @@
       "effects": {
         "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.7 }],
         "statuses": [],
-        "displacement": []
+        "displacement": [],
+        "missingHealthDamage": []
       },
       "passThroughEffects": {
         "damage": [],
         "statuses": [],
-        "displacement": []
+        "displacement": [],
+        "missingHealthDamage": []
       }
     }
   },
@@ -502,9 +601,45 @@
       "contactEffects": {
         "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }],
         "statuses": [],
-        "displacement": []
+        "displacement": [],
+        "missingHealthDamage": []
       },
       "contactSelfStatuses": ["qazharr_boarding_rush_haste"]
+    },
+    "bryn_kickback": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [50],
+        "castRange": 500,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "direction": "AwayFromPoint",
+      "distance": 350,
+      "speed": 1400,
+      "contact": "None",
+      "startZones": [
+        {
+          "shape": { "kind": "Sector", "radius": 325, "arcDegrees": 70, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [40, 55, 70, 85, 100], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }],
+            "statuses": ["bryn_kickback_slow"],
+            "displacement": [],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "contactEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": []
+      },
+      "contactSelfStatuses": []
     }
   },
   "empoweredAttack": {
@@ -524,6 +659,30 @@
       "armorPenetrationByRank": [0],
       "cleave": [{ "damageFraction": 0.6, "statuses": ["qazharr_heavy_hand_slow"] }],
       "secondaryImpact": []
+    },
+    "bryn_breach_round": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [9, 8.5, 8, 7.5, 7],
+        "resourceCostByRank": [40, 45, 50, 55, 60],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "durationSeconds": 6,
+      "damage": [{ "type": "Physical", "amountByRank": [40, 70, 100, 130, 160], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],
+      "statuses": [],
+      "armorPenetrationByRank": [0.2, 0.25, 0.3, 0.35, 0.4],
+      "cleave": [],
+      "secondaryImpact": [
+        {
+          "priority": 2,
+          "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 150 },
+          "damage": [{ "type": "Physical", "amountByRank": [60, 90, 120, 150, 180], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }],
+          "statuses": []
+        }
+      ]
     }
   }
 }

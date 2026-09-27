@@ -159,6 +159,33 @@ struct FVeyraGatheringLightTuning
 	FVeyraAttackProjectileTuning Fragment;
 };
 
+/**
+ * Bryn's Breach (Character Bible §19). Every HitsToBreach-th consecutive basic attack on the same
+ * enemy Vanguard, the hit chain, consumes Breach: the attack deals BonusDamage and offers Impact, one
+ * explosion behind the target. An impact of higher priority, such as Breach Round's, replaces it.
+ * Neither re-enters the hit pipeline (ADR-009 §5), and changing targets starts the count again.
+ */
+USTRUCT()
+struct FVeyraBreachTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Canon gives the third hit (§19). */
+	UPROPERTY()
+	int32 HitsToBreach = 0;
+
+	/** Added to the breaching attack's own damage; one amount, since a passive has no ranks. */
+	UPROPERTY()
+	FVeyraDamageTuning BonusDamage;
+
+	/** The explosion behind the target; one amount for each damage component. */
+	UPROPERTY()
+	FVeyraSecondaryImpactTuning Impact;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
@@ -178,6 +205,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraGatheringLightTuning> GatheringLight;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraBreachTuning> Breach;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

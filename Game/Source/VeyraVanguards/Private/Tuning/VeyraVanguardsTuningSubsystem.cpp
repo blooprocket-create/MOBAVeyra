@@ -65,6 +65,11 @@ const FVeyraGatheringLightTuning* UVeyraVanguardsTuningSubsystem::FindGatheringL
 	return Get().GatheringLight.Find(Passive);
 }
 
+const FVeyraBreachTuning* UVeyraVanguardsTuningSubsystem::FindBreach(const FVeyraContentId& Passive)
+{
+	return Get().Breach.Find(Passive);
+}
+
 VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 {
 	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.

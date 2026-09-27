@@ -134,6 +134,8 @@ Canon leaves these open. M5 builds each answer below as provisional data or beha
     - "Legally acquire" goes through `VeyraTargeting::CanAcquire`, which allows every target until Vision arrives (ADR-009 §7).
     - The HUD does not show the stacks yet.
     - Added in G11 for the author's review.
+22. **Breach Round's explosion** is always the "enhanced" one: a wider and stronger rectangle behind the target. On the breaching third shot it replaces Breach's small explosion by priority, and the Breach bonus still joins the hit once. Added in G12 for the author's review.
+23. **Last Broadside's falloff** is two zones, a central circle and an outer ring with less damage. The central zone adds a share of the target's missing Health to the same hit, read when the shell lands (`missingHealthDamage`, provisionally 15%). Added in G12 for the author's review.
 
 ## Consequences
 

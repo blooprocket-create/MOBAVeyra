@@ -52,7 +52,7 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # every item of an array; an ID is valid when any of the maps defines it (ADR-008 §7). The loading
 # domain in the game checks the same references.
 ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack")
-PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight")
+PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
     ("Vanguards", "/vanguards/*/abilities/q/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
@@ -61,6 +61,7 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/vanguards/*/abilities/r/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Vanguards", "/vanguards/*/passive/*", "Vanguards", PASSIVE_MAPS),
     ("Vanguards", "/hitChain/*/status", "Abilities", ("/statuses",)),
+    ("Vanguards", "/breach/*/impact/statuses/*", "Abilities", ("/statuses",)),
 ]
 
 # Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.

@@ -128,6 +128,7 @@ namespace VeyraAbilitiesTests
 		static constexpr double CastRange = 600.0;
 		static constexpr double InnerDamage = 50.0;
 		static constexpr double PowerRatio = 0.5;
+		static constexpr double MissingHealthRatio = 0.25;
 		static constexpr double LongSeconds = 60.0;
 
 		FActorTestSpawner Spawner;
@@ -176,6 +177,13 @@ namespace VeyraAbilitiesTests
 			Sweep.Zones[0].Effects = FVeyraEffectBundleTuning();
 			Sweep.Zones[0].CasterStatusesPerVanguard.Add(ArchetypeTestId(TEXT("test_frenzy")));
 			Tuning.Area.Add(ArchetypeTestId(TEXT("test_sweep")), Sweep);
+
+			// A shell that hits harder the more Health its target already lacks.
+			FVeyraAreaAbilityTuning Shell = Sweep;
+			Shell.Zones[0].CasterStatusesPerVanguard.Reset();
+			Shell.Zones[0].Effects.Damage.Add(FVeyraDamageTuning{ EVeyraDamageType::TrueDamage, { InnerDamage }, 0.0, 0.0 });
+			Shell.Zones[0].Effects.MissingHealthDamage.Add(FVeyraMissingHealthDamageTuning{ EVeyraDamageType::TrueDamage, MissingHealthRatio });
+			Tuning.Area.Add(ArchetypeTestId(TEXT("test_shell")), Shell);
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
 
 			FArchetypeTestWorld World{ Spawner };
@@ -245,6 +253,23 @@ namespace VeyraAbilitiesTests
 			World.Spawn(EVeyraTeam::B, FVector(0.0, InnerRadius, 0.0));
 			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::E, FVector(100.0, 0.0, 0.0)) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(World.Has(*Caster, TEXT("test_frenzy"))));
+		}
+
+		TEST_METHOD(AHitGrowsWithTheHealthItsTargetLacks)
+		{
+			// Fixture value: the Health the target has already lost.
+			constexpr double Wound = 200.0;
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_shell")))));
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(InnerRadius, 0.0, 0.0));
+			FVeyraRawDamageEvent Earlier;
+			Earlier.Components.Add({ EVeyraDamageType::TrueDamage, Wound });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Caster->GetAbilitySystemComponent(), *Enemy.GetAbilitySystemComponent(), Earlier)));
+
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::E, FVector(100.0, 0.0, 0.0)) == EVeyraCastRejection::None));
+			// One hit: its amount, and the ratio of what was missing when it landed.
+			const double Expected = Wound + InnerDamage + MissingHealthRatio * Wound;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Enemy), Expected, 1e-3), FString::Printf(TEXT("lost %g, expected %g"), World.HealthLost(Enemy), Expected)));
 		}
 
 		TEST_METHOD(APullStopsAtTheCastersEdge)

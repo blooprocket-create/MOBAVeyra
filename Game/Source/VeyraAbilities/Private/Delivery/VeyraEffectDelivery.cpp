@@ -92,7 +92,24 @@ FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffec
 	{
 		Prepared.Displacement = Effects.Displacement[0];
 	}
+	if (!Effects.MissingHealthDamage.IsEmpty())
+	{
+		Prepared.MissingHealthDamage = Effects.MissingHealthDamage[0];
+	}
 	return Prepared;
+}
+
+FVeyraSecondaryImpact SecondaryImpact(const UAbilitySystemComponent& Caster, const FVeyraSecondaryImpactTuning& Impact, int32 Rank)
+{
+	FVeyraSecondaryImpact Ready;
+	Ready.Priority = Impact.Priority;
+	Ready.Shape = Impact.Shape;
+	for (const FVeyraDamageTuning& Damage : Impact.Damage)
+	{
+		Ready.Damage.Components.Add({ Damage.Type, DamageAmount(Caster, Damage, Rank) });
+	}
+	Ready.Statuses = StatusSpecs(Impact.Statuses);
+	return Ready;
 }
 
 bool IsEmpty(const FVeyraPreparedEffects& Effects)
@@ -136,7 +153,14 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 	Hit.bDamaging = Effects.Damage.IsValid();
 	if (Effects.Damage.IsValid())
 	{
-		VeyraCombat::DealPreparedDamage(Effects.Damage, *Target);
+		// The target's own values join the hit as it lands (Combat Bible §50).
+		TArray<FVeyraDamageComponent, TInlineAllocator<1>> AddedAtImpact;
+		if (Effects.MissingHealthDamage.IsSet())
+		{
+			const FVeyraMissingHealthDamageTuning& Missing = Effects.MissingHealthDamage.GetValue();
+			AddedAtImpact.Add({ Missing.Type, Missing.MissingHealthRatio * VeyraCombat::GetMissingHealth(*Target) });
+		}
+		VeyraCombat::DealPreparedDamage(Effects.Damage, *Target, AddedAtImpact);
 	}
 	for (const FVeyraStatusSpec& Status : Effects.Statuses)
 	{

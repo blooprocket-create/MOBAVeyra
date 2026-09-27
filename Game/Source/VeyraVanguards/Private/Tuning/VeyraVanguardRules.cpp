@@ -31,6 +31,10 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 	{
 		RegisterPassive(Entry.Key, TEXT("gatheringLight"));
 	}
+	for (const TPair<FVeyraContentId, FVeyraBreachTuning>& Entry : Tuning.Breach)
+	{
+		RegisterPassive(Entry.Key, TEXT("breach"));
+	}
 
 	for (const TPair<FVeyraContentId, FVeyraVanguardDefinition>& Entry : Tuning.Vanguards)
 	{
@@ -112,6 +116,35 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		if (Entry.Value.FragmentDamage.AmountByRank.Num() != 1)
 		{
 			Problem(FString::Printf(TEXT("/gatheringLight/%s/fragmentDamage/amountByRank"), *Entry.Key.ToString()), TEXT("holds exactly one value: a passive has no ranks"));
+		}
+	}
+
+	for (const TPair<FVeyraContentId, FVeyraBreachTuning>& Entry : Tuning.Breach)
+	{
+		const FString Pointer = TEXT("/breach/") + Entry.Key.ToString();
+		const FVeyraBreachTuning& Breach = Entry.Value;
+		if (Breach.BonusDamage.AmountByRank.Num() != 1)
+		{
+			Problem(Pointer + TEXT("/bonusDamage/amountByRank"), TEXT("holds exactly one value: a passive has no ranks"));
+		}
+		for (int32 Index = 0; Index < Breach.Impact.Damage.Num(); ++Index)
+		{
+			if (Breach.Impact.Damage[Index].AmountByRank.Num() != 1)
+			{
+				Problem(FString::Printf(TEXT("%s/impact/damage/%d/amountByRank"), *Pointer, Index), TEXT("holds exactly one value: a passive has no ranks"));
+			}
+		}
+		for (const FString& ShapeProblem : VeyraShapes::Validate(Breach.Impact.Shape))
+		{
+			Problem(Pointer + TEXT("/impact/shape"), ShapeProblem);
+		}
+		for (int32 Index = 0; Index < Breach.Impact.Statuses.Num(); ++Index)
+		{
+			if (!Abilities.Statuses.Contains(Breach.Impact.Statuses[Index]))
+			{
+				Problem(FString::Printf(TEXT("%s/impact/statuses/%d"), *Pointer, Index),
+					FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Breach.Impact.Statuses[Index].ToString()));
+			}
 		}
 	}
 	return Problems;

@@ -133,6 +133,50 @@
       },
       "passive": ["oriel_gathering_light"]
     },
+    "bryn": {
+      "provenance": "Provisional",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 560,
+        "maxResource": 330,
+        "resourceRegen": 3.5,
+        "armor": 25,
+        "magicResist": 30,
+        "physicalPower": 68,
+        "magicPower": 0,
+        "attackSpeed": 0.55,
+        "moveSpeed": 325
+      },
+      "growth": {
+        "maxHealth": 90,
+        "maxResource": 42,
+        "resourceRegen": 0.3,
+        "armor": 3.9,
+        "magicResist": 1.3,
+        "physicalPower": 3.5,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 575,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1.15,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.35,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 1.1,
+        "projectile": [{ "speed": 2200, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["bryn_breach_round"],
+        "w": ["bryn_sounding_flare"],
+        "e": ["bryn_kickback"],
+        "r": ["bryn_last_broadside"]
+      },
+      "passive": ["bryn_breach"]
+    },
     "test_vanguard": {
       "provenance": "Provisional",
       "resource": "Mana",
@@ -204,6 +248,19 @@
       "stacksToPrime": 3,
       "fragmentDamage": { "type": "Magic", "amountByRank": [40], "physicalPowerRatio": 0, "magicPowerRatio": 0.35 },
       "fragment": { "speed": 1400, "radius": 20 }
+    }
+  },
+  "breach": {
+    "bryn_breach": {
+      "provenance": "Provisional",
+      "hitsToBreach": 3,
+      "bonusDamage": { "type": "Physical", "amountByRank": [50], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 },
+      "impact": {
+        "priority": 1,
+        "shape": { "kind": "Circle", "radius": 125, "arcDegrees": 0, "length": 0, "width": 0 },
+        "damage": [{ "type": "Physical", "amountByRank": [40], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }],
+        "statuses": []
+      }
     }
   }
 }

@@ -130,6 +130,23 @@ struct FVeyraDisplacementTuning
 	double Speed = 0.0;
 };
 
+/**
+ * Damage a unit takes for the Health it already lacks, read when the hit lands (Combat Bible §50),
+ * such as an artillery shell's bonus against the wounded (Bryn's Last Broadside).
+ */
+USTRUCT()
+struct FVeyraMissingHealthDamageTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraDamageType Type = EVeyraDamageType::Physical;
+
+	/** Of the target's missing Health, added to the hit's component of Type. */
+	UPROPERTY()
+	double MissingHealthRatio = 0.0;
+};
+
 /** What happens to each unit an area hits (ADR-008 §3). */
 USTRUCT()
 struct FVeyraEffectBundleTuning
@@ -147,6 +164,10 @@ struct FVeyraEffectBundleTuning
 	/** At most one. */
 	UPROPERTY()
 	TArray<FVeyraDisplacementTuning> Displacement;
+
+	/** At most one, and only beside Damage: it joins that hit. */
+	UPROPERTY()
+	TArray<FVeyraMissingHealthDamageTuning> MissingHealthDamage;
 };
 
 /** One status an ability applies, keyed by its ID (Combat Bible §8, §46; FVeyraStatusSpec). */

@@ -70,6 +70,10 @@ namespace
 		{
 			CheckDamage(Pointer + TEXT("/damage"), Effects.Damage);
 			CheckStatusIds(Pointer + TEXT("/statuses"), Effects.Statuses);
+			if (!Effects.MissingHealthDamage.IsEmpty() && Effects.Damage.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/missingHealthDamage"), TEXT("joins the hit's damage, so the effects need damage too"));
+			}
 		}
 
 		void CheckStatuses()
