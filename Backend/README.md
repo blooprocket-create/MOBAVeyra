@@ -148,24 +148,25 @@ Rules the code enforces:
 
 ## For the Unreal client
 
-The game receives its launch code on **standard input**, one line, never on the command line. Started with `-VeyraLaunchCode=stdin`, the game's `VeyraServices` module:
+The game receives its launch code on **standard input**, one line, never on the command line, through the **launch handshake** ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §5; the lines are fixed by `Game/Source/VeyraServices/Contracts/LaunchHandshake.json`). Started with `-VeyraLaunchCode=stdin` and pipes for its standard input and output, the game's `VeyraServices` module:
 
-1. reads that line;
-2. calls `POST /v1/game-sessions` with the code and its build version (`ProjectVersion` in `Game/Config/DefaultGame.ini`), and keeps the game session token in memory;
-3. polls `GET /v1/me/match` until the match is ready;
-4. joins the server with its ticket.
+1. writes `veyra-handoff/1 awaiting-launch-code` on standard output; only then does the launcher request a code and write it, so the code's 20-second life starts once the game can read it;
+2. reads that line and calls `POST /v1/game-sessions` with the code and its build version (`ProjectVersion` in `Game/Config/DefaultGame.ini`), keeping the game session token in memory;
+3. answers `veyra-handoff/1 signed-in`, or `veyra-handoff/1 failed <code>` if it could not sign in, and the launcher's work is done;
+4. polls `GET /v1/me/match` until the match is ready;
+5. joins the server with its ticket.
 
 It logs its progress as `VeyraHandoff:` lines. The game does not use `-log`, which on Windows can replace the standard handles.
 
 A match server started by the backend gets `-VeyraAssignment=stdin` and reads its assignment the same way. The game's copy of the assignment's shape is `Game/Source/VeyraServices/Schemas/MatchAssignment.schema.json`. `internal/match/contract_test.go` keeps an example the game's tests read, so a change to the assignment must update both.
 
-In development, `veyra-devlaunch` starts the game the same way, with the game's build version:
+In development, `veyra-devlaunch` starts the game the same way, speaking the handshake, with the game's build version. It copies the game's other output and waits for the game to exit; `-detach` returns once the game has signed in, as the launcher does:
 
 ```sh
 go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -build 0.1.0 -- "C:\path\to\VeyraClient.exe" -VeyraLaunchCode=stdin
 ```
 
-`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result.
+`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result, through the same handshake (`Start-VeyraHandshakeClient` and `Step-VeyraHandshake` in `Game/Scripts/VeyraProject.psm1`).
 
 ## Configuration
 

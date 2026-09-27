@@ -263,7 +263,6 @@ if ($Handoff) {
     $ServerLogWaitSeconds = 30
     $RemovalMarginSeconds = 15
     $BackendRequestTimeoutSeconds = 10
-    $WaitingForCodeLine = 'VeyraHandoff: waiting for the launch code'
 
     function ConvertFrom-GoDuration([string]$Text) {
         $seconds = 0.0
@@ -377,57 +376,32 @@ if ($Handoff) {
             $log = Join-Path $reportDir "Client$($index + 1).log"
             $clientArguments = @('-VeyraLaunchCode=stdin', '-VeyraSmoke', '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
             $clientArguments += $(if ($Practice) { @('-VeyraSmokeEndCustomMatch') } elseif ($index -eq 0) { @('-VeyraSmokePause', '-VeyraSmokeEndMatch') } else { @('-VeyraSmokeWaitForEnd') })
-            $startInfo = [System.Diagnostics.ProcessStartInfo]::new($clientExecutable, ($clientArguments -join ' '))
-            $startInfo.UseShellExecute = $false
-            # No console of their own, and their output is discarded: their logs go to -ABSLOG.
-            $startInfo.CreateNoWindow = $true
-            $startInfo.RedirectStandardInput = $true
-            $startInfo.RedirectStandardOutput = $true
-            $startInfo.RedirectStandardError = $true
-            $startInfo.StandardInputEncoding = [System.Text.UTF8Encoding]::new($false)
-            $process = [System.Diagnostics.Process]::Start($startInfo)
-            $null = $process.StandardOutput.BaseStream.CopyToAsync([System.IO.Stream]::Null)
-            $null = $process.StandardError.BaseStream.CopyToAsync([System.IO.Stream]::Null)
-            [pscustomobject]@{ Number = $index + 1; Participant = $participants[$index]; Log = $log; Process = $process }
+            $handshake = Start-VeyraHandshakeClient -Executable $clientExecutable -Arguments $clientArguments
+            [pscustomobject]@{ Number = $index + 1; Participant = $participants[$index]; Log = $log; Process = $handshake.Process; Handshake = $handshake }
         }
 
-        # A launch code lives only seconds, so each is issued when its client is ready to read it.
-        $pending = [System.Collections.Generic.List[object]]::new()
-        $handoffClients | ForEach-Object { $pending.Add($_) }
+        # The launch handshake (ADR-010 §5): a launch code lives only seconds, so each is issued when its
+        # client says it is ready to read one, and the client then says whether it signed in.
         $deadline = (Get-Date).AddSeconds($LaunchCodeWaitSeconds)
-        while ($pending.Count -gt 0 -and (Get-Date) -lt $deadline) {
-            foreach ($client in @($pending)) {
-                if ($client.Process.HasExited) {
-                    $null = $pending.Remove($client)
-                    continue
-                }
-                if ((Test-Path -LiteralPath $client.Log) -and (Select-String -LiteralPath $client.Log -SimpleMatch $WaitingForCodeLine -Quiet)) {
+        do {
+            $unsettled = 0
+            foreach ($client in $handoffClients) {
+                # The block runs here, in this script's scope, while $client is this client.
+                $state = Step-VeyraHandshake -Client $client.Handshake -IssueCode {
                     $issued = Invoke-Backend -Method Post -Path '/v1/launch-codes' -Body @{ buildVersion = $buildVersion } -Credential $client.Participant.LauncherSession
-                    try {
-                        if ($issued.Status -eq 200) {
-                            $client.Process.StandardInput.Write($issued.Body.token + "`n")
-                            $client.Process.StandardInput.Flush()
-                        }
-                        else {
-                            Write-Host "Client $($client.Number) got no launch code: HTTP $($issued.Status) ($(Get-ErrorCode $issued))."
-                            $failed = $true
-                        }
-                        $client.Process.StandardInput.Close()
-                    }
-                    catch {
-                        Write-Host "Client $($client.Number) closed its standard input before its launch code arrived."
-                        $failed = $true
-                    }
-                    $issued = $null
-                    $null = $pending.Remove($client)
+                    if ($issued.Status -ne 200) { throw "HTTP $($issued.Status) ($(Get-ErrorCode $issued))" }
+                    $issued.Body.token
                 }
+                if ($state -in 'Starting', 'AwaitingSignIn') { $unsettled++ }
             }
-            Start-Sleep -Milliseconds 250
-        }
-        foreach ($client in $pending) {
-            Write-Host "Client $($client.Number) never waited for its launch code."
-            $client.Process.StandardInput.Close()
-            $failed = $true
+            if ($unsettled -gt 0) { Start-Sleep -Milliseconds 100 }
+        } while ($unsettled -gt 0 -and (Get-Date) -lt $deadline)
+        foreach ($client in $handoffClients) {
+            switch ($client.Handshake.State) {
+                'SignedIn' { }
+                'Failed' { Write-Host "Client $($client.Number) did not sign in: $($client.Handshake.Failure)."; $failed = $true }
+                default { Write-Host "Client $($client.Number) did not finish the launch handshake within $LaunchCodeWaitSeconds s ($($client.Handshake.State))."; $failed = $true }
+            }
         }
         $participants | ForEach-Object { $_.LauncherSession = $null }
 

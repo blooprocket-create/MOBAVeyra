@@ -4,7 +4,9 @@
 
 #include "Backend/VeyraBackendClient.h"
 #include "Containers/Ticker.h"
+#include "Handoff/VeyraLaunchHandshake.h"
 #include "Handoff/VeyraPipeLineReader.h"
+#include "Handoff/VeyraPipeLineWriter.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "Templates/UniquePtr.h"
 
@@ -21,7 +23,8 @@ namespace VeyraBackendProtocol
  * backend reports the player's match ready, gives the local player its join ticket and travels to
  * the match server. Progress is logged as "VeyraHandoff: ..."; any failure logs "VeyraHandoff:
  * FAIL: <reason>" and quits. The launch code, the game session and the ticket stay in memory and
- * are never logged.
+ * are never logged. A launcher learns when to send the code, and whether signing in worked, from the
+ * launch-handshake lines on standard output (ADR-010 §5).
  */
 UCLASS()
 class UVeyraSessionSubsystem : public UGameInstanceSubsystem
@@ -41,11 +44,14 @@ private:
 	void OnMatchAnswer(const FVeyraBackendResponse& Response);
 	void Join(const VeyraBackendProtocol::FMyMatch& Match);
 	void Progress(const FString& Message) const;
-	void Fail(const FString& Reason);
+	/** Logs the failure and quits; before sign-in, it also tells the launcher why. */
+	void Fail(const FString& Reason, TOptional<VeyraLaunchHandshake::EFailure> SignInFailure = {});
 	void StopTickers();
 
 	TUniquePtr<FVeyraBackendClient> Backend;
 	TUniquePtr<FVeyraPipeLineReader> Reader;
+	TUniquePtr<FVeyraPipeLineWriter> Handshake;
+	bool bSignedIn = false;
 	FTSTicker::FDelegateHandle ReadTicker;
 	FTSTicker::FDelegateHandle PollTicker;
 	FString BuildVersion;

@@ -13,6 +13,8 @@ public class VeyraDeveloper : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			// The front-end map test reads the default maps.
+			"EngineSettings",
 			"EnhancedInput",
 			"GameplayAbilities",
 			"GameplayTags",
@@ -38,7 +40,6 @@ public class VeyraDeveloper : ModuleRules
 		{
 			PrivateDependencyModuleNames.AddRange(new string[]
 			{
-				"EngineSettings",
 				"LevelEditor",
 				"UnrealEd",
 			});
