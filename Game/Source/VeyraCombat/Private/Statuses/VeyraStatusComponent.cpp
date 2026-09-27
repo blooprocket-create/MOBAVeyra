@@ -144,9 +144,14 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 	VeyraCombatRecords::NoteHostileAction(&Source, *Target);
 	if (Spec.Kind == EVeyraStatusKind::Stun)
 	{
-		OnInterrupted.Broadcast();
+		NotifyInterrupted();
 	}
 	return true;
+}
+
+void UVeyraStatusComponent::NotifyInterrupted()
+{
+	OnInterrupted.Broadcast();
 }
 
 void UVeyraStatusComponent::ExtendForTakedown()

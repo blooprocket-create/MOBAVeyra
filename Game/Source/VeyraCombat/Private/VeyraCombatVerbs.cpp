@@ -13,6 +13,8 @@
 #include "Effects/VeyraCombatEffects.h"
 #include "Effects/VeyraResourceSpendExecution.h"
 #include "Life/VeyraLifeComponent.h"
+#include "Movement/VeyraMovementComponent.h"
+#include "Records/VeyraCombatRecords.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Tags/VeyraHealthTags.h"
 #include "VeyraCombatLog.h"
@@ -69,6 +71,13 @@ namespace
 		const AActor* Owner = AbilitySystem.GetOwner();
 		const UVeyraLifeComponent* Life = Owner ? Owner->FindComponentByClass<UVeyraLifeComponent>() : nullptr;
 		return Life && !Life->IsAlive();
+	}
+
+	/** The movement of the unit's body, its avatar; none before it has one. */
+	UVeyraMovementComponent* FindMovement(const UAbilitySystemComponent& AbilitySystem)
+	{
+		const AActor* Body = AbilitySystem.GetAvatarActor();
+		return Body ? Body->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
 	}
 
 	FActiveGameplayEffectHandle GrantAbsorption(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target,
@@ -384,5 +393,44 @@ EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)
 	const AActor* Owner = Unit.GetOwner();
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
 	return Statuses ? Statuses->GetActionBlocks() : EVeyraActionBlocks::None;
+}
+
+bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraDisplacement& Displacement)
+{
+	UVeyraMovementComponent* Movement = FindMovement(Target);
+	if (!Movement || IsDeadUnit(Target))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored a displacement of %s: it has no body to move, or its death is final."), *GetNameSafe(Target.GetOwner()));
+		return false;
+	}
+	// §9: Displacement Resistance shortens the path; each source keeps less than all of it, so some remains.
+	const double Retained = Target.GetSet<UVeyraDefenceSet>() ? Target.GetNumericAttribute(UVeyraDefenceSet::GetDisplacementRetainedAttribute()) : 1.0;
+	if (!Movement->StartDisplacement(Displacement.Direction, Displacement.Distance * Retained, Displacement.Speed))
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused a displacement of %s by %g at %g: it needs a horizontal direction and a finite distance and speed above 0."),
+			*GetNameSafe(Target.GetOwner()), Displacement.Distance, Displacement.Speed);
+		return false;
+	}
+	VeyraCombatRecords::NoteHostileAction(&Source, Target);
+	const AActor* Owner = Target.GetOwner();
+	if (UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr)
+	{
+		Statuses->NotifyInterrupted();
+	}
+	return true;
+}
+
+bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash)
+{
+	UVeyraMovementComponent* Movement = FindMovement(Unit);
+	if (!Movement || IsDeadUnit(Unit))
+	{
+		return false;
+	}
+	const bool bLocked = Movement->IsMovementLocked();
+	const bool bStarted = Movement->StartDash(Dash);
+	UE_CLOG(!bStarted && !bLocked, LogVeyraCombat, Error, TEXT("Refused a dash by %s of %g at %g: it needs a horizontal direction and a finite distance and speed above 0."),
+		*GetNameSafe(Unit.GetOwner()), Dash.Distance, Dash.Speed);
+	return bStarted;
 }
 }

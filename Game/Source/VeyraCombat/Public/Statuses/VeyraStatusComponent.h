@@ -59,7 +59,13 @@ public:
 	/** Raised on every machine when the statuses change. */
 	TMulticastDelegate<void()> OnStatusesChanged;
 
-	/** Server only: raised when a status interrupts the unit's current action: a Stun (Combat Bible §26). */
+	/**
+	 * Server only: something interrupted the unit's current action: a Stun, or a displacement (Combat
+	 * Bible §9, §26). The unit's interruptions are announced here, beside its crowd control.
+	 */
+	void NotifyInterrupted();
+
+	/** Server only: raised by NotifyInterrupted and whenever a Stun lands. */
 	TMulticastDelegate<void()> OnInterrupted;
 
 private:

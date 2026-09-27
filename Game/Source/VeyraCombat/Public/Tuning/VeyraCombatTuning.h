@@ -85,6 +85,20 @@ struct FVeyraMovementTuning
 	double SlowFloor = 0.0;
 };
 
+/** Displacement and dashes (Combat Bible §9, ADR-009 §2). */
+USTRUCT()
+struct FVeyraForcedMovementTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How far a forced movement's end may be moved to reach walkable ground, in units and in each direction. */
+	UPROPERTY()
+	double NavigationExtent = 0.0;
+};
+
 /** Crowd control (Combat Bible §8). */
 USTRUCT()
 struct FVeyraCrowdControlTuning
@@ -147,6 +161,9 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraMovementTuning Movement;
+
+	UPROPERTY()
+	FVeyraForcedMovementTuning ForcedMovement;
 
 	UPROPERTY()
 	FVeyraCrowdControlTuning CrowdControl;

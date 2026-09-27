@@ -6,6 +6,7 @@
 #include "ActiveGameplayEffectHandle.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "GameplayEffectTypes.h"
+#include "Movement/VeyraForcedMovementTypes.h"
 #include "Stats/VeyraStatBlock.h"
 #include "Statuses/VeyraStatusTypes.h"
 
@@ -132,4 +133,18 @@ namespace VeyraCombat
 
 	/** The actions Unit's statuses stop it taking now (Combat Bible §8). None when it has no status ledger. */
 	VEYRACOMBAT_API EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit);
+
+	/**
+	 * Displaces Target's body, a Knockback or a Pull from Source (Combat Bible §8, §9; ADR-009 §2).
+	 * Displacement Resistance shortens it; it interrupts the target and replaces an older displacement
+	 * or a dash. The displacement lands even when terrain leaves no room to move. A target whose death
+	 * is final, or that has no body that can be displaced, refuses it. Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraDisplacement& Displacement);
+
+	/**
+	 * Dashes Unit's body (Combat Bible §9). Refused, returning false, while the unit is dead, stunned,
+	 * displaced or already dashing, or for values out of range.
+	 */
+	VEYRACOMBAT_API bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash);
 }

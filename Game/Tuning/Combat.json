@@ -18,6 +18,10 @@
     ],
     "slowFloor": 100
   },
+  "forcedMovement": {
+    "provenance": "Provisional",
+    "navigationExtent": 100
+  },
   "crowdControl": {
     "provenance": "Canon",
     "tenacityFloorSeconds": 0.3

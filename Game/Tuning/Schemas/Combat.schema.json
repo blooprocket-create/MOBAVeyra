@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "crowdControl", "combatState", "attribution"],
+  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
@@ -98,6 +98,25 @@
           "description": "The lowest Movement Speed that slowing can bring a unit to, in units per second, unless its own base speed is lower. Stuns still stop it (Combat Bible §23).",
           "type": "number",
           "minimum": 0
+        }
+      }
+    },
+    "forcedMovement": {
+      "description": "Displacement and dashes (Combat Bible §9, ADR-009 §2): each path is planned once, stopped by terrain and by the end of walkable ground, and its end moved to the nearest walkable point.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "navigationExtent"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives no number, so it was drafted for playtesting.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "navigationExtent": {
+          "description": "How far, in units and in each direction, the end of a forced movement may be moved to reach walkable ground. With none that close, the unit stays where it is.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
         }
       }
     },

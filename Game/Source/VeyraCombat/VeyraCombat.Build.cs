@@ -23,6 +23,9 @@ public class VeyraCombat : ModuleRules
 		// Push-model replication for the attribute sets and the absorption ledger.
 		PrivateDependencyModuleNames.Add("NetCore");
 
+		// Forced movement ends on walkable ground (ADR-009 §2).
+		PrivateDependencyModuleNames.Add("NavigationSystem");
+
 		// The Combat domain's tuning ships with every build that runs combat (ADR-006 §6).
 		RuntimeDependencies.Add("$(ProjectDir)/Tuning/Combat.json", StagedFileType.UFS);
 		RuntimeDependencies.Add("$(ProjectDir)/Tuning/Schemas/Combat.schema.json", StagedFileType.UFS);

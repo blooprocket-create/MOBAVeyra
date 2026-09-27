@@ -10,6 +10,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "GameplayEffect.h"
+#include "Movement/VeyraMovementComponent.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestActor.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
@@ -62,6 +64,7 @@ namespace VeyraNetTests
 		double PausedCooldownRemaining = 0.0;
 		double PausedOwnerCooldownRemaining = 0.0;
 		double PausedMatchClock = 0.0;
+		double PausedStatusEndsAt = 0.0;
 		FVector PausedLocation = FVector::ZeroVector;
 		TMap<int32, double> PausedClientClocks;
 
@@ -184,6 +187,61 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(MoverState(State)->GetPawn()->GetActorLocation() != PausedLocation));
 				})
 				.UntilClients(TEXT("Clients see the match resume"), [](FState& State) { return !GameStateOf(State.World)->IsMatchPaused(); });
+		}
+
+		TEST_METHOD(PauseHoldsForcedMovementAndStatuses)
+		{
+			// Fixture values: a slow knockback and a Slow that both outlast the pause.
+			constexpr double KnockbackDistance = 400.0;
+			constexpr double KnockbackSpeed = 200.0;
+			constexpr double SlowMagnitude = 0.3;
+			constexpr double SlowSeconds = 2.0;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Knock the Vanguard slowly and slow it"), [this](FState& State) {
+					AVeyraPlayerState* Mover = MoverState(State);
+					const AVeyraPlayerController* OtherController = ServerControllerOf(State, 1);
+					AVeyraPlayerState* Other = OtherController ? OtherController->GetPlayerState<AVeyraPlayerState>() : nullptr;
+					ASSERT_THAT(IsTrue(Mover && Other && Mover->GetPawn()));
+					PausedLocation = Mover->GetPawn()->GetActorLocation();
+					UAbilitySystemComponent& Target = *Mover->GetAbilitySystemComponent();
+					ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Other->GetAbilitySystemComponent(), Target,
+						FVeyraDisplacement{ FVector::RightVector, KnockbackDistance, KnockbackSpeed })));
+					FVeyraStatusSpec Chill;
+					Chill.Id = FVeyraContentId::FromText(TEXT("test_chill")).GetValue();
+					Chill.Kind = EVeyraStatusKind::Slow;
+					Chill.Magnitude = SlowMagnitude;
+					Chill.DurationSeconds = SlowSeconds;
+					ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Other->GetAbilitySystemComponent(), Target, Chill)));
+				})
+				.UntilServer(TEXT("It is moving"), [this](FState& State) {
+					return MoverState(State)->GetPawn()->GetActorLocation() != PausedLocation;
+				})
+				.ThenServer(TEXT("Pause"), [this](FState& State) {
+					PausedWorldTime = State.World->GetTimeSeconds();
+					PausedRealTime = State.World->GetUnpausedTimeSeconds();
+					PausedLocation = MoverState(State)->GetPawn()->GetActorLocation();
+					PausedStatusEndsAt = MoverState(State)->FindComponentByClass<UVeyraStatusComponent>()->GetLedger().Entries[0].EndsAt;
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->PauseMatch(*ServerControllerOf(State, 0))));
+				})
+				.UntilServer(TEXT("Hold the pause"), [this](FState& State) {
+					return State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PauseHoldRealSeconds;
+				})
+				.ThenServer(TEXT("Nothing moved or ran out"), [this](FState& State) {
+					const AVeyraPlayerState* Mover = MoverState(State);
+					ASSERT_THAT(IsTrue(Mover->GetPawn()->GetActorLocation() == PausedLocation));
+					ASSERT_THAT(IsTrue(Mover->GetPawn()->FindComponentByClass<UVeyraMovementComponent>()->IsDisplaced()));
+					ASSERT_THAT(AreEqual(1, Mover->FindComponentByClass<UVeyraStatusComponent>()->GetLedger().Entries.Num()));
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->ResumeMatch()));
+				})
+				.UntilServer(TEXT("After the pause the knockback lands and the Slow ends"), [](FState& State) {
+					const AVeyraPlayerState* Mover = MoverState(State);
+					return !Mover->GetPawn()->FindComponentByClass<UVeyraMovementComponent>()->IsDisplaced()
+						&& Mover->FindComponentByClass<UVeyraStatusComponent>()->GetLedger().Entries.IsEmpty();
+				})
+				.ThenServer(TEXT("The Slow ran its whole time, not counting the pause"), [this](FState& State) {
+					ASSERT_THAT(IsTrue(State.World->GetTimeSeconds() >= PausedStatusEndsAt));
+					ASSERT_THAT(IsTrue(State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PausedStatusEndsAt - PausedWorldTime + PauseHoldRealSeconds));
+				});
 		}
 	};
 }
