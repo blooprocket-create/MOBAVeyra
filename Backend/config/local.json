@@ -31,6 +31,11 @@
     {"id": "coop_intermediate", "enabled": true, "humanPlayersPerTeam": 5},
     {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5}
   ],
+  "vanguards": {
+    "released": ["cairn", "qazharr", "oriel", "bryn"],
+    "starters": ["cairn", "qazharr", "oriel", "bryn"],
+    "rotation": {"slots": 12, "standIn": "allReleased"}
+  },
   "customPractice": {
     "enabled": true,
     "mode": "custom_practice",

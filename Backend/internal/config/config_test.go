@@ -22,6 +22,7 @@ const validJSON = `{
     {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 5},
     {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5}
   ],
+  "vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},
   "customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A"},
   "matches": {"devCreate": {"enabled": true}, "readyTimeout": "120s", "maxDuration": "4h", "reapInterval": "5s", "removeServerAfter": "2m"},
   "allocator": {"kind": "docker", "docker": {
@@ -81,6 +82,14 @@ func TestParseRejects(t *testing.T) {
 		"bad privacy":               {`"defaultPrivacy": "private"`, `"defaultPrivacy": "open"`, "party.defaultPrivacy must be"},
 		"duplicate mode":            {`"id": "ranked"`, `"id": "casual_select"`, "duplicate id casual_select"},
 		"mode missing team size":    {`"enabled": false, "humanPlayersPerTeam": 5`, `"enabled": false`, "humanPlayersPerTeam is required"},
+		"no vanguards":              {`"vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},`, ``, "vanguards is required"},
+		"nothing released":          {`"released": ["cairn", "qazharr", "oriel", "bryn"]`, `"released": []`, "vanguards.released is required"},
+		"bad released id":           {`"released": ["cairn",`, `"released": ["Cairn",`, "must hold content IDs"},
+		"duplicate released":        {`"released": ["cairn", "qazharr"`, `"released": ["cairn", "cairn"`, "vanguards.released contains duplicate cairn"},
+		"unreleased starter":        {`"starters": ["cairn", "qazharr", "oriel"]`, `"starters": ["cairn", "qazharr", "raska"]`, "raska is not in vanguards.released"},
+		"too few starters":          {`"starters": ["cairn", "qazharr", "oriel"]`, `"starters": ["cairn", "qazharr"]`, "must list 3 to 5"},
+		"no rotation slots":         {`"slots": 12`, `"slots": 0`, "vanguards.rotation.slots must be at least 1"},
+		"bad stand-in":              {`"standIn": "allReleased"`, `"standIn": "everything"`, "vanguards.rotation.standIn must be"},
 		"no custom practice":        {`"customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A"},`, ``, "customPractice is required"},
 		"practice missing side":     {`, "hostSide": "A"}`, `}`, "customPractice.hostSide is required"},
 		"practice bad side":         {`"hostSide": "A"`, `"hostSide": "C"`, "customPractice.hostSide must be"},

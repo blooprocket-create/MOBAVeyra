@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
@@ -37,14 +38,19 @@ type Deps struct {
 	Party    *party.Service
 	// Match is optional; without it no match routes are registered.
 	Match *match.Service
-	Modes []ModeInfo
-	Ready Pinger
+	// Account is optional; without it no onboarding routes are registered.
+	Account *account.Service
+	Modes   []ModeInfo
+	Ready   Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
 	BodyLimitBytes int64
-	// DevLogin registers the passwordless dev-login route (local only).
+	// DevLogin registers the passwordless dev-login route and the development
+	// account routes (local only).
 	DevLogin bool
+	// DevAccounts are the seeded development accounts' display names.
+	DevAccounts []string
 	// DevMatches registers the dev match-creation routes (local only).
 	DevMatches bool
 	Log        *slog.Logger
@@ -71,6 +77,7 @@ func New(d Deps) http.Handler {
 	s.routeSocial(mux)
 	s.routeParty(mux)
 	s.routeMatch(mux)
+	s.routeOnboarding(mux)
 	return mux
 }
 
@@ -232,6 +239,9 @@ var errorStatus = []struct {
 	{party.ErrInviteNotFound, http.StatusNotFound, "invite_not_found"},
 	{party.ErrPartyNotJoinable, http.StatusForbidden, "party_not_joinable"},
 	{party.ErrPartyNotFound, http.StatusNotFound, "party_not_found"},
+
+	{account.ErrNotAStarter, http.StatusBadRequest, "not_a_starter"},
+	{account.ErrAlreadyChosen, http.StatusConflict, "already_completed"},
 
 	{match.ErrUnknownMode, http.StatusBadRequest, "unknown_mode"},
 	{match.ErrInvalidRules, http.StatusBadRequest, "invalid_rules"},

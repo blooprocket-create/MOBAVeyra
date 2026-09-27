@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,20 @@ const MaxLaunchCodeLifetime = time.Minute
 // MaxPartySize is the largest party the Parties & Social Bible §1 allows
 // ("one through five players"). party.maxSize may be lower, never higher.
 const MaxPartySize = 5
+
+// MinStarters and MaxStarters bound the starter pool: a new player tries three
+// to five starter Vanguards and unlocks one (Account, Collection & Mastery
+// Bible §1).
+const (
+	MinStarters = 3
+	MaxStarters = 5
+)
+
+// Rotation stand-ins the catalog accepts (ADR-010 §6).
+const (
+	StandInAllReleased = "allReleased"
+	StandInNone        = "none"
+)
 
 // DatabaseURLEnv names the environment variable holding the Postgres URL.
 const DatabaseURLEnv = "VEYRA_DATABASE_URL"
@@ -54,9 +69,24 @@ type Config struct {
 	DevLogin              DevLogin
 	Party                 Party
 	Modes                 []Mode
+	Vanguards             Vanguards
 	CustomPractice        CustomPractice
 	Matches               Matches
 	Allocator             Allocator
+}
+
+// Vanguards configures the catalog of Vanguards players may own and pick
+// (ADR-010 §6). Released must equal Game/Tuning/Vanguards.json's Playable
+// Vanguards; a contract test checks it.
+type Vanguards struct {
+	Released []string
+	// Starters are the Vanguards a new player may choose, all released.
+	Starters []string
+	// RotationSlots is how many Vanguards the weekly rotation offers.
+	RotationSlots int
+	// RotationStandIn is what the rotation offers until the weekly rotation
+	// exists: StandInAllReleased or StandInNone.
+	RotationStandIn string
 }
 
 // CustomPractice configures solo Custom practice (ADR-010 §7). It is a custom
@@ -198,6 +228,14 @@ type fileConfig struct {
 		Enabled             *bool   `json:"enabled"`
 		HumanPlayersPerTeam *int    `json:"humanPlayersPerTeam"`
 	} `json:"modes"`
+	Vanguards *struct {
+		Released []string `json:"released"`
+		Starters []string `json:"starters"`
+		Rotation *struct {
+			Slots   *int    `json:"slots"`
+			StandIn *string `json:"standIn"`
+		} `json:"rotation"`
+	} `json:"vanguards"`
 	CustomPractice *struct {
 		Enabled  *bool   `json:"enabled"`
 		Mode     *string `json:"mode"`
@@ -400,6 +438,57 @@ func Parse(raw []byte) (Config, error) {
 			problems = append(problems, field+".humanPlayersPerTeam must be at least 1")
 		}
 		c.Modes = append(c.Modes, Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam})
+	}
+
+	if f.Vanguards == nil {
+		missing("vanguards")
+	} else {
+		ids := func(field string, list []string) []string {
+			if len(list) == 0 {
+				missing(field)
+			}
+			seen := map[string]bool{}
+			for _, id := range list {
+				if !contentIDPattern.MatchString(id) {
+					problems = append(problems, field+" must hold content IDs such as cairn, not "+strconv.Quote(id))
+				}
+				if seen[id] {
+					problems = append(problems, field+" contains duplicate "+id)
+				}
+				seen[id] = true
+			}
+			return append([]string(nil), list...)
+		}
+		c.Vanguards.Released = ids("vanguards.released", f.Vanguards.Released)
+		c.Vanguards.Starters = ids("vanguards.starters", f.Vanguards.Starters)
+		if n := len(c.Vanguards.Starters); n > 0 && (n < MinStarters || n > MaxStarters) {
+			problems = append(problems, fmt.Sprintf("vanguards.starters must list %d to %d Vanguards (Account, Collection & Mastery Bible §1)", MinStarters, MaxStarters))
+		}
+		for _, id := range c.Vanguards.Starters {
+			if !slices.Contains(c.Vanguards.Released, id) {
+				problems = append(problems, "vanguards.starters must be released, and "+id+" is not in vanguards.released")
+			}
+		}
+		if f.Vanguards.Rotation == nil {
+			missing("vanguards.rotation")
+		} else {
+			switch {
+			case f.Vanguards.Rotation.Slots == nil:
+				missing("vanguards.rotation.slots")
+			case *f.Vanguards.Rotation.Slots < 1:
+				problems = append(problems, "vanguards.rotation.slots must be at least 1")
+			default:
+				c.Vanguards.RotationSlots = *f.Vanguards.Rotation.Slots
+			}
+			switch {
+			case f.Vanguards.Rotation.StandIn == nil:
+				missing("vanguards.rotation.standIn")
+			case *f.Vanguards.Rotation.StandIn != StandInAllReleased && *f.Vanguards.Rotation.StandIn != StandInNone:
+				problems = append(problems, "vanguards.rotation.standIn must be \""+StandInAllReleased+"\" or \""+StandInNone+"\"")
+			default:
+				c.Vanguards.RotationStandIn = *f.Vanguards.Rotation.StandIn
+			}
+		}
 	}
 
 	if f.CustomPractice == nil {

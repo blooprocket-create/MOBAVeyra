@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/catalog"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/config"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/docker"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/httpapi"
@@ -87,6 +89,14 @@ func run(log *slog.Logger) error {
 		DefaultPrivacy: party.Privacy(cfg.Party.DefaultPrivacy),
 	}, time.Now)
 
+	vanguards := catalog.New(catalog.Settings{
+		Released:      cfg.Vanguards.Released,
+		Starters:      cfg.Vanguards.Starters,
+		RotationSlots: cfg.Vanguards.RotationSlots,
+		StandIn:       catalog.StandIn(cfg.Vanguards.RotationStandIn),
+	})
+	accounts := account.NewService(store.Account(), vanguards, time.Now)
+
 	matches, err := newMatchService(cfg, store, svc)
 	if err != nil {
 		return err
@@ -103,11 +113,13 @@ func run(log *slog.Logger) error {
 			Social:         soc,
 			Party:          parties,
 			Match:          matches,
+			Account:        accounts,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,
 			BodyLimitBytes: cfg.RequestBodyLimitBytes,
 			DevLogin:       cfg.DevLogin.Enabled,
+			DevAccounts:    cfg.DevLogin.Accounts,
 			DevMatches:     cfg.Matches.DevCreate,
 			Log:            log,
 		}),

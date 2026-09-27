@@ -88,6 +88,20 @@ Rules the code enforces, from the Parties & Social Bible:
 4. **Leader cancels the queue:** everyone's Ready resets, the same as other cancellations.
 5. **Invite lifetime** `2m` and **default privacy** `private` are provisional values in `config/local.json`.
 
+### Onboarding and Vanguards
+
+Which Vanguards a player may pick, and the stubbed first-time tutorial ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §6).
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `GET /v1/me/profile` | `Bearer <game token>` | — | `account` (`id`, `displayName`) and `tutorial` (`completed`, `starterVanguardId`) |
+| `GET /v1/me/vanguards` | `Bearer <game token>` | — | `owned`, `rotation`, `available` (owned and rotation, released only) and `starters` |
+| `POST /v1/me/starter` | `Bearer <game token>` | `{"vanguardId"}` | the profile; the starter is owned from now on. Once only: `already_completed`; only a starter: `not_a_starter` |
+| `GET /v1/dev/accounts` | — | — | `accounts` (`displayName`), the seeded dev accounts for the launcher's picker. **Local only**, with dev login |
+| `POST /v1/dev/accounts/{name}/reset-onboarding` | — | — | `204`; the dev account is back before its starter choice, for repeatable test runs. **Local only**, with dev login |
+
+The catalog is `vanguards` in `config/local.json`: the released Vanguards, which must equal the Playable ones in `Game/Tuning/Vanguards.json` (`internal/catalog`'s contract test checks it), the starters (3 to 5, Account, Collection & Mastery Bible §1) and the rotation. **Provisional:** every released Vanguard is a starter, and until the weekly rotation exists a stand-in rotation offers every released Vanguard while fewer than `rotation.slots` (12, canon) are released.
+
 ### Matches
 
 How a client joins its assigned match is [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md); how matches carry rules and Vanguards is [ADR-010](../Docs/ADR/ADR-010-play-flow.md) §7–9.
@@ -153,6 +167,8 @@ Backend/
     ├── identity/          accounts, sessions, launch codes (domain rules)
     ├── social/            friends, friend requests, blocks
     ├── party/             parties, invites, Ready, queue lock
+    ├── catalog/           released Vanguards, starters and the rotation (configuration)
+    ├── account/           onboarding (the stubbed tutorial) and Vanguard entitlements
     ├── match/             matches, join tickets, results, the allocator interface
     ├── docker/            the local allocator: one Docker container per match
     ├── secret/            bearer secrets and their hashes
@@ -160,7 +176,7 @@ Backend/
     └── httpapi/           HTTP/JSON transport
 ```
 
-Domain packages (`identity`, `social`, `party`, `match`, and later matchmaking) own their rules and depend only on storage interfaces. `party` reads the social graph through a small interface and never writes it; a block is applied by `social` first and then handed to `party`. `postgres` implements storage; `httpapi` only translates HTTP to domain calls.
+Domain packages (`identity`, `social`, `party`, `account`, `match`, and later matchmaking) own their rules and depend only on storage interfaces; `account` reads the catalog through a small interface. `party` reads the social graph through a small interface and never writes it; a block is applied by `social` first and then handed to `party`. `postgres` implements storage; `httpapi` only translates HTTP to domain calls.
 
 ## Tests
 
