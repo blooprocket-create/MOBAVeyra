@@ -15,6 +15,7 @@
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
+#include "UnrealClient.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
@@ -47,6 +48,7 @@ void UVeyraSmokeClientSubsystem::Initialize(FSubsystemCollectionBase& Collection
 	bEndMatch = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeEndMatch"));
 	bWaitForEnd = bEndMatch || FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeWaitForEnd"));
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeStay="), StaySeconds);
+	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeScreenshot="), ScreenshotPath);
 	StartRealTime = FPlatformTime::Seconds();
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraSmokeClientSubsystem::Tick));
 	NetworkFailureHandle = GEngine->OnNetworkFailure().AddUObject(this, &UVeyraSmokeClientSubsystem::OnNetworkFailure);
@@ -252,6 +254,13 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 
 void UVeyraSmokeClientSubsystem::AfterHit()
 {
+	// A rendering client shows the grey-box presentation mid-match (ADR-008 §1). The viewport saves
+	// it at the end of its next frame, so the client must stay a moment (-VeyraSmokeStay=).
+	if (!ScreenshotPath.IsEmpty())
+	{
+		FScreenshotRequest::RequestScreenshot(ScreenshotPath, /*bShowUI*/ true, /*bAddFilenameSuffix*/ false);
+		UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: asked for a screenshot at %s."), *ScreenshotPath);
+	}
 	if (bCheckPause)
 	{
 		GetController()->RequestDeveloperPause(true);

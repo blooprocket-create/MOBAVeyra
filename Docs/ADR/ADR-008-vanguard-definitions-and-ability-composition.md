@@ -30,6 +30,11 @@ Three modules arrive with M5, each in a new layer of `Game/Source/ModuleLayers.j
 - The layer rule (a module depends only on lower layers) forces Economy into its own layer: Progression applies stat growth through Combat verbs, and Abilities reads ranks from Progression.
 - Vanguards sit below Match, because Match prepares each participant's Vanguard; Vanguards never depend on Match.
 - `EVeyraAbilitySlot` moves to `VeyraCore`, since Progression, below Abilities, needs it.
+- Added in G9 for the author's review: `VeyraUI` is `ClientOnly` in `Veyra.uproject`, so servers neither build nor load it.
+  - The layer map marks Presentation client-only. The layer check requires a client-only module to be `ClientOnly`, and requires any module outside that layer to add it only inside `if (Target.Type != TargetType.Server)`, as `VeyraDeveloper` does for its tests.
+  - It draws over whichever HUD the player has, through the engine's post-render hook, so no gameplay class chooses or knows it.
+  - Its look (engine shapes, colours, sizes) is presentation, not tuning. It lives in `UVeyraGreyboxSettings` in `DefaultGame.ini`.
+  - Telegraphs come from `VeyraCastTelegraphs`, in Abilities, which places each shape by the rules its delivery uses.
 
 ### 2. Vanguard definitions
 

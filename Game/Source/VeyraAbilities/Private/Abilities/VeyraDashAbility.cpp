@@ -65,7 +65,7 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 			FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	}
 
-	const FVector Heading = Dash->Direction == EVeyraDashDirection::AwayFromPoint ? -Cast.Direction : Cast.Direction;
+	const FVector Heading = VeyraAbilityRules::DashHeading(*Dash, Cast.Direction);
 	StopWatching();
 	UVeyraMovementComponent* Movement = Body->FindComponentByClass<UVeyraMovementComponent>();
 	if (Dash->Contact == EVeyraDashContact::StopAtFirstEnemy && Movement)

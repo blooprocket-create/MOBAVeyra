@@ -10,6 +10,15 @@
 
 namespace VeyraAreaDelivery
 {
+FVeyraEffectFrame Place(const FVeyraAreaAbilityTuning& Area, const FVector& CasterLocation, const FVector& Point, const FVector& Direction)
+{
+	FVeyraEffectFrame Placement;
+	Placement.bOriginIsCaster = Area.Origin == EVeyraAreaOrigin::Caster;
+	Placement.Origin = Placement.bOriginIsCaster ? CasterLocation : Point;
+	Placement.Direction = Direction;
+	return Placement;
+}
+
 TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraAreaZoneTuning> Zones, int32 Rank)
 {
 	TArray<FVeyraPreparedZone> Prepared;

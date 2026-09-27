@@ -57,10 +57,7 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 
 	// An area on the caster lands where the caster is at Commit, which a free windup may have moved.
 	const AActor* Body = Caster->GetAvatarActor();
-	FVeyraEffectFrame Placement;
-	Placement.bOriginIsCaster = Area->Origin == EVeyraAreaOrigin::Caster;
-	Placement.Origin = Placement.bOriginIsCaster ? (Body ? Body->GetActorLocation() : Cast.CasterLocation) : Cast.Point;
-	Placement.Direction = Cast.Direction;
+	const FVeyraEffectFrame Placement = VeyraAreaDelivery::Place(*Area, Body ? Body->GetActorLocation() : Cast.CasterLocation, Cast.Point, Cast.Direction);
 	TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, Area->Zones, Cast.Rank);
 
 	if (Area->DelaySeconds > 0.0)

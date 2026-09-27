@@ -596,6 +596,9 @@ namespace VeyraAbilityRules
 	 */
 	VEYRAABILITIES_API TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<int32> RankCounts);
 
+	/** The way Dash moves its caster for a cast facing CastDirection. */
+	VEYRAABILITIES_API FVector DashHeading(const FVeyraDashAbilityTuning& Dash, const FVector& CastDirection);
+
 	/** Whether any archetype map of Tuning defines Ability. */
 	VEYRAABILITIES_API bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
 

@@ -286,6 +286,11 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	return Checker.Problems;
 }
 
+FVector DashHeading(const FVeyraDashAbilityTuning& Dash, const FVector& CastDirection)
+{
+	return Dash.Direction == EVeyraDashDirection::AwayFromPoint ? -CastDirection : CastDirection;
+}
+
 bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
 {
 	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)

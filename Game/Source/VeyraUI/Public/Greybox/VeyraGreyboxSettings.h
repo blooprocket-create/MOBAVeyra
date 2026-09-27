@@ -1,0 +1,117 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#pragma once
+
+#include "Engine/DeveloperSettings.h"
+
+#include "VeyraGreyboxSettings.generated.h"
+
+class UMaterialInterface;
+class UStaticMesh;
+
+/**
+ * How the grey-box presentation looks (ADR-008 §1): engine shapes, colours and sizes. Presentation,
+ * not tuning, stored in Config/DefaultGame.ini. Every value is required: the grey-box draws nothing
+ * and logs the problems when Validate finds any.
+ */
+UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Veyra Grey-box Presentation"))
+class VEYRAUI_API UVeyraGreyboxSettings : public UDeveloperSettings
+{
+	GENERATED_BODY()
+
+public:
+	/** Every problem with these settings, as "Field: message"; empty when the grey-box can use them. */
+	TArray<FString> Validate() const;
+
+	/** A unit's body: stretched to its collision capsule. */
+	UPROPERTY(Config, EditAnywhere, Category = "Assets")
+	TSoftObjectPtr<UStaticMesh> BodyMesh;
+
+	/** A projectile: scaled to its radius. */
+	UPROPERTY(Config, EditAnywhere, Category = "Assets")
+	TSoftObjectPtr<UStaticMesh> ProjectileMesh;
+
+	/** The material bodies and projectiles wear; ColorParameter sets its colour. */
+	UPROPERTY(Config, EditAnywhere, Category = "Assets")
+	TSoftObjectPtr<UMaterialInterface> ShapeMaterial;
+
+	/** The vector parameter of ShapeMaterial that holds the colour. */
+	UPROPERTY(Config, EditAnywhere, Category = "Assets")
+	FName ColorParameter;
+
+	/** The viewer's own Vanguard. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor OwnColor = FLinearColor::Transparent;
+
+	/** The viewer's side. A viewer on no side sees side A as allies. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor AllyColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor EnemyColor = FLinearColor::Transparent;
+
+	/** Units on no side. */
+	UPROPERTY(Config, EditAnywhere, Category = "Sides")
+	FLinearColor NeutralColor = FLinearColor::Transparent;
+
+	/** The tint of a stunned unit. */
+	UPROPERTY(Config, EditAnywhere, Category = "Statuses")
+	FLinearColor StunColor = FLinearColor::Transparent;
+
+	/** The tint of a slowed unit. */
+	UPROPERTY(Config, EditAnywhere, Category = "Statuses")
+	FLinearColor SlowColor = FLinearColor::Transparent;
+
+	/** How far a status tint moves a body from its side's colour: above 0, at most 1. */
+	UPROPERTY(Config, EditAnywhere, Category = "Statuses", meta = (ClampMin = "0", ClampMax = "1"))
+	float StatusTintStrength = 0.0f;
+
+	/** Shields on the Health bar. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor ShieldColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor ResourceColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor BarBackgroundColor = FLinearColor::Transparent;
+
+	/** All HUD text. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor TextColor = FLinearColor::Transparent;
+
+	/** The overhead Health bar's size, in pixels. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "1"))
+	float BarWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "1"))
+	float BarHeight = 0.0f;
+
+	/** The resource bar under it, in pixels. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "1"))
+	float ResourceBarHeight = 0.0f;
+
+	/** How far above a unit's head its bars sit, in units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "0"))
+	float BarLift = 0.0f;
+
+	/** The HUD panel's distance from the screen's edge, in pixels. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "0"))
+	float HudMargin = 0.0f;
+
+	/** Telegraph outlines, in units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
+	float TelegraphThickness = 0.0f;
+
+	/** Straight segments in a whole circle's outline; arcs use their share. At least 3. */
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "3"))
+	int32 CircleSegments = 0;
+
+	/** How far above the ground telegraphs are drawn, in units, so the floor does not hide them. */
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
+	float TelegraphLift = 0.0f;
+
+	/** How far above and below a telegraph's origin the ground is looked for, in units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "1"))
+	float GroundProbeDistance = 0.0f;
+};

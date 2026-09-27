@@ -75,6 +75,8 @@ private:
 	bool bWaitForEnd = false;
 	/** What the script did before the end of the match, for the verdict. */
 	FString ScriptSummary;
+	/** Where to save a screenshot once the cast has landed (-VeyraSmokeScreenshot=); empty for none. */
+	FString ScreenshotPath;
 	FDelegateHandle NetworkFailureHandle;
 	FDelegateHandle TravelFailureHandle;
 	double StartRealTime = 0.0;

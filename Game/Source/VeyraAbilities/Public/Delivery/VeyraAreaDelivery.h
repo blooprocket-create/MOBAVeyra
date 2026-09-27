@@ -20,9 +20,16 @@ struct FVeyraPreparedZone
 	TOptional<FVeyraShieldGrant> CasterShieldPerVanguard;
 };
 
-/** How areas hit (ADR-008 §3, ADR-009 §4). Server only. */
+/** How areas hit (ADR-008 §3, ADR-009 §4). Server only, except Place. */
 namespace VeyraAreaDelivery
 {
+	/**
+	 * Where Area lands for a caster at CasterLocation casting at Point in Direction: on the caster,
+	 * facing the direction, or on the point, facing away from the caster. Any machine: telegraphs
+	 * place an area as the server places its hit.
+	 */
+	VEYRAABILITIES_API FVeyraEffectFrame Place(const FVeyraAreaAbilityTuning& Area, const FVector& CasterLocation, const FVector& Point, const FVector& Direction);
+
 	/** Zones for Caster at Rank. */
 	VEYRAABILITIES_API TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraAreaZoneTuning> Zones, int32 Rank);
 

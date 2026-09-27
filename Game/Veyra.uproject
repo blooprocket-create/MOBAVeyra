@@ -45,6 +45,11 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "VeyraUI",
+			"Type": "ClientOnly",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "VeyraDeveloper",
 			"Type": "DeveloperTool",
 			"LoadingPhase": "Default"

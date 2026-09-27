@@ -21,6 +21,7 @@ public class VeyraDeveloper : ModuleRules
 			"NavigationSystem",
 			"NetCore",
 			"PhysicsCore",
+			"Projects",
 			"CQTest",
 			"VeyraCore",
 			"VeyraCombat",
@@ -41,6 +42,18 @@ public class VeyraDeveloper : ModuleRules
 				"LevelEditor",
 				"UnrealEd",
 			});
+		}
+
+		// VeyraUI is client only (ADR-008 §1): servers neither build nor load it, so its tests exist
+		// only in client and editor builds.
+		if (Target.Type != TargetType.Server)
+		{
+			PrivateDependencyModuleNames.Add("VeyraUI");
+			PrivateDefinitions.Add("WITH_VEYRA_UI=1");
+		}
+		else
+		{
+			PrivateDefinitions.Add("WITH_VEYRA_UI=0");
 		}
 
 		SetupIrisSupport(Target);

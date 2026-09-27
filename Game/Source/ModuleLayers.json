@@ -37,6 +37,12 @@
       "modules": ["VeyraServices"]
     },
     {
+      "name": "Presentation",
+      "description": "Presentation (ADR-008 §1, ARCHITECTURE.md §2): it observes every layer below and decides nothing, and nothing below knows it exists. Client only: its modules are ClientOnly in the .uproject, so servers neither build nor load them, and a module outside this layer may add one only for targets that are not servers.",
+      "clientOnly": true,
+      "modules": ["VeyraUI"]
+    },
+    {
       "name": "Composition",
       "description": "The composition root. Sealed: nothing depends on it.",
       "sealed": true,
