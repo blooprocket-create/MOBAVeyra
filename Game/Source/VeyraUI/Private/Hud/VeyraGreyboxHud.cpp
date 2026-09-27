@@ -124,12 +124,13 @@ namespace
 		for (const FVeyraHudSlot& Slot : Player.Slots)
 		{
 			const FString Key = Input.GetAbilityKey(Slot.Slot).GetDisplayName(false).ToString();
-			FString State;
 			if (!Slot.Ability.IsValid())
 			{
-				State = TEXT("empty");
+				Lines.Add(FString::Printf(TEXT("[%s] no ability"), *Key));
+				continue;
 			}
-			else if (Slot.Rank == 0)
+			FString State;
+			if (Slot.Rank == 0)
 			{
 				State = TEXT("not learned");
 			}
