@@ -61,7 +61,8 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 		Placement.Origin = Body->GetActorLocation();
 		Placement.Direction = Cast.Direction;
 		Placement.bOriginIsCaster = true;
-		VeyraAreaDelivery::Resolve(*World, *Caster, Placement, VeyraAreaDelivery::PrepareZones(*Caster, Dash->StartZones, Cast.Rank));
+		VeyraAreaDelivery::Resolve(*World, *Caster, Placement, VeyraAreaDelivery::PrepareZones(*Caster, Dash->StartZones, Cast.Rank),
+			FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	}
 
 	const FVector Heading = Dash->Direction == EVeyraDashDirection::AwayFromPoint ? -Cast.Direction : Cast.Direction;
@@ -71,6 +72,7 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 	{
 		FPendingContact& Pending = Contact.Emplace();
 		Pending.Caster = Caster;
+		Pending.Source = FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId };
 		Pending.Direction = Heading;
 		Pending.Effects = VeyraEffectDelivery::Prepare(*Caster, Dash->ContactEffects, Cast.Rank);
 		for (const FVeyraContentId& StatusId : Dash->ContactSelfStatuses)
@@ -106,7 +108,7 @@ void UVeyraDashAbility::OnDashEnded(const FVeyraDashEnd& End)
 	Frame.Origin = Body ? Body->GetActorLocation() : Enemy->GetActorLocation();
 	Frame.Direction = Pending->Direction;
 	Frame.bOriginIsCaster = Body != nullptr;
-	VeyraEffectDelivery::Apply(*Caster, *Enemy, Pending->Effects, Frame);
+	VeyraEffectDelivery::Apply(*Caster, *Enemy, Pending->Effects, Frame, Pending->Source);
 	for (const FVeyraStatusSpec& Status : Pending->SelfStatuses)
 	{
 		VeyraCombat::ApplyStatus(*Caster, *Caster, Status);

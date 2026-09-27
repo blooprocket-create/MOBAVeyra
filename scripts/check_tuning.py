@@ -47,10 +47,19 @@ DEFINITIONS_PREFIX = "#/definitions/"
 CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 
 # References from one domain's tuning to content another domain defines, which a schema cannot
-# express. Each entry is (domain, JSON pointer to a content ID, domain, JSON pointer to the map
-# whose keys are the valid IDs). The loading domain in the game checks the same references.
-REFERENCES: list[tuple[str, str, str, str]] = [
-    ("Match", "/developerLoadout/abilityQ", "Abilities", "/targetedDamage"),
+# express. Each entry is (domain, JSON pointer to content IDs, domain, JSON pointers to the maps whose
+# keys are the valid IDs). A "*" segment in the first pointer stands for every key of an object or
+# every item of an array; an ID is valid when any of the maps defines it (ADR-008 §7). The loading
+# domain in the game checks the same references.
+ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack")
+PASSIVE_MAPS = ("/deepFoundation",)
+REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
+    ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
+    ("Vanguards", "/vanguards/*/abilities/q/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/vanguards/*/abilities/w/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/vanguards/*/abilities/e/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/vanguards/*/abilities/r/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/vanguards/*/passive/*", "Vanguards", PASSIVE_MAPS),
 ]
 
 # Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.
@@ -353,21 +362,48 @@ def resolve_pointer(document: Any, where: str) -> tuple[bool, Any]:
     return True, value
 
 
+def expand_pointer(document: Any, pattern: str) -> list[tuple[str, Any]]:
+    """Every (pointer, value) a pointer pattern reaches; a "*" segment matches each key or item."""
+    reached: list[tuple[str, Any]] = [("", document)]
+    for raw in pattern.split("/")[1:]:
+        key = raw.replace("~1", "/").replace("~0", "~")
+        following: list[tuple[str, Any]] = []
+        for where, value in reached:
+            if raw == "*" and isinstance(value, dict):
+                following.extend((f"{where}/{name}", item) for name, item in value.items())
+            elif raw == "*" and isinstance(value, list):
+                following.extend((f"{where}/{index}", item) for index, item in enumerate(value))
+            elif isinstance(value, dict) and key in value:
+                following.append((f"{where}/{raw}", value[key]))
+        reached = following
+    return reached
+
+
 def reference_errors(documents: dict[str, Any], labels: dict[str, str]) -> list[str]:
     """Check every entry of REFERENCES whose two domains validated."""
     errors = []
-    for source, source_pointer, target, target_pointer in REFERENCES:
+    for source, source_pattern, target, target_pointers in REFERENCES:
         if source not in documents or target not in documents:
             continue
-        found, value = resolve_pointer(documents[source], source_pointer)
-        target_found, keys = resolve_pointer(documents[target], target_pointer)
-        if not found or not isinstance(value, str):
-            errors.append(f"{labels[source]} {source_pointer}: the reference table expects a content ID here")
-        elif not target_found or not isinstance(keys, dict):
-            errors.append(f"{labels[target]} {target_pointer}: the reference table expects a map here")
-        elif value not in keys:
-            errors.append(f"{labels[source]} {source_pointer}: names {value!r}, which "
-                          f"{labels[target]} {target_pointer} does not define")
+        pointers = (target_pointers,) if isinstance(target_pointers, str) else target_pointers
+        maps = []
+        for target_pointer in pointers:
+            target_found, keys = resolve_pointer(documents[target], target_pointer)
+            if not target_found or not isinstance(keys, dict):
+                errors.append(f"{labels[target]} {target_pointer}: the reference table expects a map here")
+            else:
+                maps.append(keys)
+        if len(maps) != len(pointers):
+            continue
+        reached = expand_pointer(documents[source], source_pattern)
+        if not reached and "*" not in source_pattern:
+            errors.append(f"{labels[source]} {source_pattern}: the reference table expects a content ID here")
+        for where, value in reached:
+            if not isinstance(value, str):
+                errors.append(f"{labels[source]} {where}: the reference table expects a content ID here")
+            elif not any(value in keys for keys in maps):
+                errors.append(f"{labels[source]} {where}: names {value!r}, which {labels[target]} "
+                              f"{' or '.join(pointers)} does not define")
     return errors
 
 

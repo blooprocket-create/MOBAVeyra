@@ -7,12 +7,47 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerState.h"
+#include "HAL/IConsoleManager.h"
+#include "Progression/VeyraProgressionComponent.h"
+#include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraGameMode.h"
 #include "VeyraMatchLog.h"
 #include "VeyraVanguardCharacter.h"
+
+#if !UE_BUILD_SHIPPING
+namespace
+{
+	/** The world's local player's controller, which a console command speaks for. */
+	AVeyraPlayerController* ConsoleController(const UWorld* World)
+	{
+		return World ? Cast<AVeyraPlayerController>(World->GetFirstPlayerController()) : nullptr;
+	}
+
+	// Developer XP until minions give it (ADR-008 §6). The server refuses them in Shipping.
+	FAutoConsoleCommandWithWorldAndArgs GrantExperienceCommand(TEXT("Veyra.Dev.GrantXp"),
+		TEXT("Development builds: asks the server to give your Vanguard this much XP. Usage: Veyra.Dev.GrantXp <amount>"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World) {
+			AVeyraPlayerController* Controller = ConsoleController(World);
+			if (Controller && Args.Num() == 1)
+			{
+				Controller->RequestDeveloperExperience(FCString::Atoi(*Args[0]));
+			}
+		}));
+
+	FAutoConsoleCommandWithWorldAndArgs GrantLevelsCommand(TEXT("Veyra.Dev.GrantLevels"),
+		TEXT("Development builds: asks the server for enough XP to raise your Vanguard this many levels. Usage: Veyra.Dev.GrantLevels <levels>"),
+		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World) {
+			AVeyraPlayerController* Controller = ConsoleController(World);
+			if (Controller && Args.Num() == 1)
+			{
+				Controller->RequestDeveloperLevels(FCString::Atoi(*Args[0]));
+			}
+		}));
+}
+#endif
 
 AVeyraPlayerController::AVeyraPlayerController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -145,6 +180,13 @@ void AVeyraPlayerController::MoveToCursor(bool bSteer)
 
 void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 {
+	// With the rank-up modifier held, the slot's key spends a skill point on it instead.
+	if (IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
+	{
+		RequestRankUp(Slot);
+		return;
+	}
+
 	// Quick Cast (Settings Bible §1.2): cast now, at the unit and the ground under the cursor. Each
 	// ability uses what it needs, and the server decides whether it is valid.
 	FVeyraCastTarget Target;
@@ -222,6 +264,102 @@ void AVeyraPlayerController::ServerRequestDeveloperEndMatch_Implementation()
 		GameMode->EndMatch(EVeyraMatchEndReason::DeveloperRequest);
 	}
 #endif
+}
+
+void AVeyraPlayerController::RequestRankUp(EVeyraAbilitySlot Slot)
+{
+	ServerRankUp(Slot);
+}
+
+void AVeyraPlayerController::ServerRankUp_Implementation(EVeyraAbilitySlot Slot)
+{
+	if (!TakeOrderAllowance())
+	{
+		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		return;
+	}
+	const AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	const EVeyraOrderRejection Allowed = GameMode ? GameMode->CheckRankUpAllowed() : EVeyraOrderRejection::WrongPhase;
+	if (Allowed != EVeyraOrderRejection::None)
+	{
+		RejectOrder(Allowed);
+		return;
+	}
+	UVeyraProgressionComponent* Progression = PlayerState ? PlayerState->FindComponentByClass<UVeyraProgressionComponent>() : nullptr;
+	const EVeyraRankRefusal Refusal = Progression ? Progression->AllocateRank(Slot) : EVeyraRankRefusal::NotInitialized;
+	if (Refusal != EVeyraRankRefusal::None)
+	{
+		UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused a rank-up from %s: %s."), *GetNameSafe(PlayerState), LexToString(Refusal));
+		ClientRankUpRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ClientRankUpRefused_Implementation(EVeyraRankRefusal Refusal)
+{
+	LastRankUpRefusal = Refusal;
+	++RankUpRefusalCount;
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused a rank-up: %s."), LexToString(Refusal));
+}
+
+void AVeyraPlayerController::RequestDeveloperExperience(int32 Amount)
+{
+	ServerRequestDeveloperExperience(Amount);
+}
+
+void AVeyraPlayerController::RequestDeveloperLevels(int32 Levels)
+{
+	ServerRequestDeveloperLevels(Levels);
+}
+
+void AVeyraPlayerController::ServerRequestDeveloperExperience_Implementation(int32 Amount)
+{
+#if UE_BUILD_SHIPPING
+	UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a developer XP request from %s: Shipping builds grant XP only through play."), *GetNameSafe(PlayerState));
+#else
+	UVeyraProgressionComponent* Progression = FindDeveloperProgression();
+	if (Progression && Amount > 0)
+	{
+		const int32 Gained = Progression->AddExperience(Amount);
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s took %d developer XP and gained %d level(s)."), *GetNameSafe(PlayerState), Amount, Gained);
+	}
+#endif
+}
+
+void AVeyraPlayerController::ServerRequestDeveloperLevels_Implementation(int32 Levels)
+{
+#if UE_BUILD_SHIPPING
+	UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a developer level request from %s: Shipping builds grant XP only through play."), *GetNameSafe(PlayerState));
+#else
+	UVeyraProgressionComponent* Progression = FindDeveloperProgression();
+	if (!Progression || Levels <= 0)
+	{
+		return;
+	}
+	// The XP from here to the level Levels above this one, or to the cap.
+	const FVeyraProgressionTuning& Tuning = UVeyraProgressionTuningSubsystem::Get();
+	const int32 Target = FMath::Min(Progression->GetLevel() + Levels, Tuning.MaxLevel);
+	int64 Needed = -static_cast<int64>(Progression->GetExperience());
+	for (int32 Level = Progression->GetLevel(); Level < Target; ++Level)
+	{
+		Needed += Tuning.Experience.ToNextLevel[Level - 1];
+	}
+	if (Needed > 0)
+	{
+		const int32 Gained = Progression->AddExperience(static_cast<int32>(FMath::Min<int64>(Needed, MAX_int32)));
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s took developer XP for %d level(s)."), *GetNameSafe(PlayerState), Gained);
+	}
+#endif
+}
+
+UVeyraProgressionComponent* AVeyraPlayerController::FindDeveloperProgression() const
+{
+	const AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	if (!GameMode || GameMode->CheckRankUpAllowed() != EVeyraOrderRejection::None)
+	{
+		return nullptr;
+	}
+	UVeyraProgressionComponent* Progression = PlayerState ? PlayerState->FindComponentByClass<UVeyraProgressionComponent>() : nullptr;
+	return Progression && Progression->IsInitialized() ? Progression : nullptr;
 }
 
 AVeyraVanguardCharacter* AVeyraPlayerController::GetVanguard() const

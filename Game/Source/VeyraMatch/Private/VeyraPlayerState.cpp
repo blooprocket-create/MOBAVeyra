@@ -20,9 +20,11 @@
 #include "Net/UnrealNetwork.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Regeneration/VeyraRegenerationComponent.h"
+#include "Passives/VeyraPassive.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraMatchLog.h"
+#include "VeyraVanguardCharacter.h"
 
 AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -74,12 +76,28 @@ void AVeyraPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, Team, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, VanguardId, Params);
 }
 
 void AVeyraPlayerState::SetVeyraTeam(EVeyraTeam NewTeam)
 {
 	Team = NewTeam;
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, Team, this);
+}
+
+void AVeyraPlayerState::SetVanguardId(const FVeyraContentId& InVanguardId)
+{
+	VanguardId = InVanguardId;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, VanguardId, this);
+}
+
+void AVeyraPlayerState::OnRep_VanguardId()
+{
+	// The body may have arrived first, before it knew which Vanguard it is.
+	if (AVeyraVanguardCharacter* Body = GetPawn<AVeyraVanguardCharacter>())
+	{
+		Body->ApplyVanguardBody();
+	}
 }
 
 void AVeyraPlayerState::OnDeactivated()

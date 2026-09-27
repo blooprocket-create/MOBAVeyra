@@ -20,7 +20,7 @@ namespace VeyraNetTests
 	/** The Q ability every developer Vanguard is given, and fixture numbers for it. */
 	struct FTestBolt
 	{
-		static FVeyraContentId Id() { return UVeyraMatchTuningSubsystem::Get().DeveloperLoadout.AbilityQ; }
+		static FVeyraContentId Id() { return TestVanguardAbilityQ(); }
 		static constexpr double LongRange = 10000.0;
 		static constexpr double CooldownSeconds = 30.0;
 		static constexpr double ResourceCost = 10.0;
@@ -70,6 +70,7 @@ namespace VeyraNetTests
 		TUniquePtr<FScopedExpectedPlayers> ExpectedPlayers;
 		TUniquePtr<FScopedMatchTuning> Tuning;
 		TUniquePtr<FScopedAbilitiesTuning> Abilities;
+		TUniquePtr<FScopedVanguardsTuning> Vanguards;
 		FVeyraGreyboxLayout Layout;
 
 		static constexpr double ShortPreparationSeconds = 0.1;
@@ -85,8 +86,9 @@ namespace VeyraNetTests
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
-			MaxHealth = Tuning->Tuning.DeveloperLoadout.MaxHealth;
-			MaxResource = Tuning->Tuning.DeveloperLoadout.MaxResource;
+			Vanguards = MakeUnique<FScopedVanguardsTuning>();
+			MaxHealth = TestVanguard().BaseStats.MaxHealth;
+			MaxResource = TestVanguard().BaseStats.MaxResource;
 			Abilities = MakeUnique<FScopedAbilitiesTuning>();
 			FTestBolt::Configure(Abilities->Tuning, FTestBolt::LongRange);
 			ExpectedPlayers = MakeUnique<FScopedExpectedPlayers>(MatchClientCount);
@@ -96,6 +98,7 @@ namespace VeyraNetTests
 		AFTER_EACH()
 		{
 			Abilities.Reset();
+			Vanguards.Reset();
 			Tuning.Reset();
 			ExpectedPlayers.Reset();
 		}
@@ -157,7 +160,7 @@ namespace VeyraNetTests
 
 		TEST_METHOD(TheServerRefusesCastsItCannotPayFor)
 		{
-			Tuning->Tuning.DeveloperLoadout.MaxResource = FTestBolt::ResourceCost / 2.0;
+			Vanguards->Definition(TestVanguardId()).BaseStats.MaxResource = FTestBolt::ResourceCost / 2.0;
 			Identify(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
 				.ThenClient(0, [this](FState& State) { CastFromClient0(State, TargetId); })
 				.UntilClient(0, [](FState& State) {

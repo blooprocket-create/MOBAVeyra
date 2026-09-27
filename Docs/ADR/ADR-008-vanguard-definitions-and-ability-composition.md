@@ -98,6 +98,8 @@ Abilities reads the slot's rank at cast start. Until minions give XP, a developm
 
 Until champion select (M6), developer data chooses Vanguards: `Match.json developerMatch.vanguards` assigns them by join order, and a development-only `-VeyraVanguard=` option overrides it for one client. Shipping refuses the option. Hosted matches (ADR-007) follow the same developer order; the match-join contract does not change.
 
+Added in G8 for the author's review: `developerMatch.startingRank` can spend each participant's level-1 skill point on one slot so a developer match can cast at once (Q in the committed data; `None` leaves the first rank to the player). `Vanguards.json` keeps `test_vanguard`, the developer test Vanguard whose Q is `test_bolt`: the successor of the M3 developer loadout, which the smoke clients and the older network tests play.
+
 ### 9. Open canon questions and provisional answers
 
 Canon leaves these open. M5 builds each answer below as provisional data or behaviour. The author reviewed items 1–15 on 2026-09-27 and ruled on the first; the rest stand for now:

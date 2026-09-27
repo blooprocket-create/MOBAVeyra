@@ -49,4 +49,8 @@ Schemas use a strict subset of JSON Schema draft-04:
 
 When tuning refers to content (a Vanguard, an item, a status), it uses a stable content ID: lowercase ASCII snake_case matching `^[a-z][a-z0-9]*(_[a-z0-9]+)*$`, such as `raska` or `code_black_zone`. IDs never change when display names do. In C++ the type is `FVeyraContentId` (VeyraCore).
 
-A reference from one domain's file to content another domain defines (for example, an ability ID in `Match.json` that `Abilities.json` defines) is checked by the loading domain in the game and by the reference table in `scripts/check_tuning.py`.
+A reference from one domain's file to content another domain defines is checked by the loading domain in the game and by the reference table in `scripts/check_tuning.py` ([ADR-008](../../Docs/ADR/ADR-008-vanguard-definitions-and-ability-composition.md) §7). For example, each Vanguard in `Match.json`'s developer order must be one `Vanguards.json` defines, and each ability in a Vanguard's kit must be defined by one of `Abilities.json`'s archetype maps. In the table, a `*` in a pointer stands for every key or item there, and a reference may name several maps, any of which may define the ID.
+
+## Provenance
+
+Every record whose values were drafted rather than taken from canon carries `"provenance": "Provisional"`; canon values carry `"Canon"`, and the author marks reviewed drafts `"Reviewed"` ([ADR-008](../../Docs/ADR/ADR-008-vanguard-definitions-and-ability-composition.md) §7). `scripts/check_tuning.py` reports how many provisional records remain.

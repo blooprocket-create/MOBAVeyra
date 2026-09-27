@@ -1,0 +1,202 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Vanguards tuning",
+  "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "vanguards", "deepFoundation"],
+  "definitions": {
+    "provenance": {
+      "description": "Where these values come from (ADR-008 §7).",
+      "type": "string",
+      "enum": ["Provisional", "Canon", "Reviewed"]
+    },
+    "contentIds": {
+      "description": "At most one content ID.",
+      "type": "array",
+      "minItems": 0,
+      "maxItems": 1,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+    },
+    "stats": {
+      "description": "Base stats (FVeyraStatBlock): Max Health, Move Speed and Attack Speed above 0, the rest at least 0.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxHealth", "maxResource", "resourceRegen", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeed", "moveSpeed"],
+      "properties": {
+        "maxHealth": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "maxResource": { "type": "number", "minimum": 0 },
+        "resourceRegen": { "description": "Resource per second.", "type": "number", "minimum": 0 },
+        "armor": { "type": "number", "minimum": 0 },
+        "magicResist": { "type": "number", "minimum": 0 },
+        "physicalPower": { "type": "number", "minimum": 0 },
+        "magicPower": { "type": "number", "minimum": 0 },
+        "attackSpeed": { "description": "Attacks per second at level 1.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "moveSpeed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    },
+    "growth": {
+      "description": "What each level after the first adds to the base stats (Economy & Progression Bible §9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxHealth", "maxResource", "resourceRegen", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeedFraction"],
+      "properties": {
+        "maxHealth": { "type": "number", "minimum": 0 },
+        "maxResource": { "type": "number", "minimum": 0 },
+        "resourceRegen": { "type": "number", "minimum": 0 },
+        "armor": { "type": "number", "minimum": 0 },
+        "magicResist": { "type": "number", "minimum": 0 },
+        "physicalPower": { "type": "number", "minimum": 0 },
+        "magicPower": { "type": "number", "minimum": 0 },
+        "attackSpeedFraction": { "description": "Each level adds this fraction of the level-1 Attack Speed.", "type": "number", "minimum": 0 }
+      }
+    },
+    "shape": {
+      "description": "A hit shape (ADR-009 §4). Each kind uses its own sizes; the others are 0.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "radius", "arcDegrees", "length", "width"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["Circle", "Sector", "Rectangle"] },
+        "radius": { "type": "number", "minimum": 0 },
+        "arcDegrees": { "type": "number", "minimum": 0, "maximum": 360 },
+        "length": { "type": "number", "minimum": 0 },
+        "width": { "type": "number", "minimum": 0 }
+      }
+    },
+    "basicAttack": {
+      "description": "How the Vanguard's basic attacks work (Combat Bible §4, §48; ADR-008 §2).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["range", "damageType", "physicalPowerRatio", "magicPowerRatio", "windupFraction", "acquisitionRadius", "minimumIntervalSeconds", "projectile", "cleave"],
+      "properties": {
+        "range": { "description": "Edge to edge, in units (Combat Bible §40).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "damageType": { "description": "Physical unless the Vanguard overrides it (Combat Bible §4).", "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+        "physicalPowerRatio": { "type": "number", "minimum": 0 },
+        "magicPowerRatio": { "type": "number", "minimum": 0 },
+        "windupFraction": { "description": "The part of each attack's interval before Commit; the rest is backswing.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1, "exclusiveMaximum": true },
+        "acquisitionRadius": { "description": "How far past the Vanguard's edge attack-move looks for an enemy.", "type": "number", "minimum": 0 },
+        "minimumIntervalSeconds": { "description": "The shortest time between attacks whatever the Attack Speed; 0 for none.", "type": "number", "minimum": 0 },
+        "projectile": {
+          "description": "A ranged attack's homing projectile; empty for melee.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["speed", "radius"],
+            "properties": {
+              "speed": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+              "radius": { "type": "number", "minimum": 0 }
+            }
+          }
+        },
+        "cleave": {
+          "description": "Where the attack cleaves when something makes it cleave: at the Vanguard, facing its target.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "$ref": "#/definitions/shape" }
+        }
+      }
+    },
+    "shield": {
+      "description": "A shield granted to the Vanguard (Combat Bible §7, §51; ADR-009 §3): the amount plus Max Health and Magic Power times the ratios.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "amountByRank", "maxHealthRatio", "magicPowerRatio", "durationSeconds", "reapply", "maxAmountMaxHealthRatio", "capGroup"],
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+        "category": { "type": "string", "enum": ["Physical", "Magic", "Universal"] },
+        "amountByRank": { "description": "A passive's shield has one value.", "type": "array", "minItems": 1, "items": { "type": "number", "minimum": 0 } },
+        "maxHealthRatio": { "type": "number", "minimum": 0 },
+        "magicPowerRatio": { "type": "number", "minimum": 0 },
+        "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "reapply": { "type": "string", "enum": ["Replace", "Merge"] },
+        "maxAmountMaxHealthRatio": { "description": "The most a merged shield holds, as a fraction of Max Health.", "type": "number", "minimum": 0 },
+        "capGroup": {
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "totalMaxHealthRatio"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+              "totalMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+            }
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [1]
+    },
+    "vanguards": {
+      "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "resource", "body", "baseStats", "growth", "basicAttack", "abilities", "passive"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "resource": { "description": "What the Vanguard spends to cast (Combat Bible §27).", "type": "string", "enum": ["Mana"] },
+            "body": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["capsuleRadius", "capsuleHalfHeight", "turnRateDegreesPerSecond"],
+              "properties": {
+                "capsuleRadius": { "description": "The body's radius, which ranges measure from (Combat Bible §40).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                "capsuleHalfHeight": { "description": "Including the rounded ends, so at least the radius.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                "turnRateDegreesPerSecond": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+              }
+            },
+            "baseStats": { "$ref": "#/definitions/stats" },
+            "growth": { "$ref": "#/definitions/growth" },
+            "basicAttack": { "$ref": "#/definitions/basicAttack" },
+            "abilities": {
+              "description": "The ability in each slot, from Abilities.json; R is the ultimate.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["q", "w", "e", "r"],
+              "properties": {
+                "q": { "$ref": "#/definitions/contentIds" },
+                "w": { "$ref": "#/definitions/contentIds" },
+                "e": { "$ref": "#/definitions/contentIds" },
+                "r": { "$ref": "#/definitions/contentIds" }
+              }
+            },
+            "passive": { "description": "The passive, from one of the passive maps.", "$ref": "#/definitions/contentIds" }
+          }
+        }
+      }
+    },
+    "deepFoundation": {
+      "description": "Passives that shield their Vanguard when one of its abilities immobilizes an enemy Vanguard (Cairn's Deep Foundation, Character Bible §18).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "shield", "lockoutSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "shield": { "description": "The shield each immobilized enemy Vanguard grants.", "$ref": "#/definitions/shield" },
+            "lockoutSeconds": { "description": "How long the same enemy Vanguard cannot grant the shield again.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

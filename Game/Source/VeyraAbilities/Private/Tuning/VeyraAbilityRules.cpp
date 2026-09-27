@@ -103,7 +103,7 @@ namespace
 			CheckStatusIds(Pointer + TEXT("/statuses"), Buff.Statuses);
 			for (int32 Index = 0; Index < Buff.Shields.Num(); ++Index)
 			{
-				CheckByRank(FString::Printf(TEXT("%s/shields/%d/amountByRank"), *Pointer, Index), Buff.Shields[Index].AmountByRank);
+				CheckShield(FString::Printf(TEXT("%s/shields/%d"), *Pointer, Index), Buff.Shields[Index]);
 			}
 			for (int32 Index = 0; Index < Buff.Aura.Num(); ++Index)
 			{
@@ -127,6 +127,22 @@ namespace
 					Problem(ZonePointer + TEXT("/shape"), ShapeProblem);
 				}
 				CheckEffects(ZonePointer + TEXT("/effects"), Zones[Index].Effects);
+				for (int32 ShieldIndex = 0; ShieldIndex < Zones[Index].CasterShieldPerVanguard.Num(); ++ShieldIndex)
+				{
+					CheckShield(FString::Printf(TEXT("%s/casterShieldPerVanguard/%d"), *ZonePointer, ShieldIndex), Zones[Index].CasterShieldPerVanguard[ShieldIndex]);
+				}
+			}
+		}
+
+		void CheckShield(const FString& Pointer, const FVeyraShieldTuning& Shield)
+		{
+			CheckByRank(Pointer + TEXT("/amountByRank"), Shield.AmountByRank);
+			for (const FVeyraShieldCapGroupTuning& Group : Shield.CapGroup)
+			{
+				if (Group.TotalMaxHealthRatio < Shield.MaxAmountMaxHealthRatio)
+				{
+					Problem(Pointer + TEXT("/capGroup/0/totalMaxHealthRatio"), TEXT("a group holds at least as much as one of its shields"));
+				}
 			}
 		}
 
@@ -267,6 +283,41 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 		Checker.CheckEmpoweredAttack(TEXT("/empoweredAttack/") + Entry.Key.ToString(), Entry.Value);
 	}
 	Checker.CheckEachIdInOneArchetype();
+	return Checker.Problems;
+}
+
+bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
+{
+	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)
+		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability);
+}
+
+TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 RankCount)
+{
+	const int32 RankCounts[] = { RankCount };
+	FAbilityTuningChecker Checker{ Tuning, RankCounts };
+	const FString Key = Ability.ToString();
+	if (const FVeyraAreaAbilityTuning* Area = Tuning.Area.Find(Ability))
+	{
+		Checker.CheckArea(TEXT("/area/") + Key, *Area);
+	}
+	if (const FVeyraSelfBuffAbilityTuning* Buff = Tuning.SelfBuff.Find(Ability))
+	{
+		Checker.CheckSelfBuff(TEXT("/selfBuff/") + Key, *Buff);
+	}
+	if (const FVeyraSkillshotAbilityTuning* Skillshot = Tuning.Skillshot.Find(Ability))
+	{
+		Checker.CheckSkillshot(TEXT("/skillshot/") + Key, *Skillshot);
+	}
+	if (const FVeyraDashAbilityTuning* Dash = Tuning.Dash.Find(Ability))
+	{
+		Checker.CheckDash(TEXT("/dash/") + Key, *Dash);
+	}
+	if (const FVeyraEmpoweredAttackAbilityTuning* Empowered = Tuning.EmpoweredAttack.Find(Ability))
+	{
+		Checker.CheckEmpoweredAttack(TEXT("/empoweredAttack/") + Key, *Empowered);
+	}
+	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;
 }
 }

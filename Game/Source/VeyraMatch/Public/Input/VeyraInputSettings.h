@@ -43,6 +43,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey AbilityRKey;
 
+	/** Held with an ability slot's key, spends a skill point on that slot instead of casting. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey RankUpModifierKey;
+
 	/** The key bound to Slot. */
 	const FKey& GetAbilityKey(EVeyraAbilitySlot Slot) const;
 

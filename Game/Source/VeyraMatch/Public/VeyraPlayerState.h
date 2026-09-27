@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AbilitySystemInterface.h"
+#include "Content/VeyraContentId.h"
 #include "GameFramework/PlayerState.h"
 #include "Teams/VeyraTeam.h"
 #include "Units/VeyraUnit.h"
@@ -25,6 +26,7 @@ class UVeyraOffenceSet;
 class UVeyraProgressionComponent;
 class UVeyraRegenerationComponent;
 class UVeyraResourceSet;
+class UVeyraPassive;
 class UVeyraStatusComponent;
 class UVeyraVitalsSet;
 
@@ -54,9 +56,26 @@ public:
 	AVeyraVanguardController* GetVanguardController() const { return VanguardController; }
 	void SetVanguardController(AVeyraVanguardController* Controller) { VanguardController = Controller; }
 
-	/** Server only: whether the base stats have been set from data. They are set once per match. */
+	/** Server only: whether the participant has been prepared as its Vanguard. That happens once per match. */
 	bool HasInitializedStats() const { return bStatsInitialized; }
 	void MarkStatsInitialized() { bStatsInitialized = true; }
+
+	/** The Vanguard this participant plays, on every machine, which gives its body its shape (ADR-008 §2). */
+	const FVeyraContentId& GetVanguardId() const { return VanguardId; }
+
+	/** Server only: set once, before the participant's first Vanguard spawns. */
+	void SetVanguardId(const FVeyraContentId& InVanguardId);
+
+	/** Server only: keeps the participant's started passive alive for the match. */
+	void SetPassive(UVeyraPassive* InPassive) { Passive = InPassive; }
+	UVeyraPassive* GetPassive() const { return Passive; }
+
+	/**
+	 * Server only, development builds: the Vanguard this participant asked to play with the
+	 * -VeyraVanguard= option (ADR-008 §8). Invalid when it asked for none.
+	 */
+	const FVeyraContentId& GetRequestedVanguardId() const { return RequestedVanguardId; }
+	void SetRequestedVanguardId(const FVeyraContentId& InVanguardId) { RequestedVanguardId = InVanguardId; }
 
 	/**
 	 * Server only: the backend account this participant joined as, from the match's roster
@@ -134,6 +153,18 @@ private:
 
 	UPROPERTY(Replicated)
 	EVeyraTeam Team = EVeyraTeam::None;
+
+	UFUNCTION()
+	void OnRep_VanguardId();
+
+	UPROPERTY(ReplicatedUsing = OnRep_VanguardId)
+	FVeyraContentId VanguardId;
+
+	/** Server only. */
+	UPROPERTY(Transient)
+	TObjectPtr<UVeyraPassive> Passive;
+
+	FVeyraContentId RequestedVanguardId;
 
 	UPROPERTY(Transient)
 	TObjectPtr<AVeyraVanguardController> VanguardController;

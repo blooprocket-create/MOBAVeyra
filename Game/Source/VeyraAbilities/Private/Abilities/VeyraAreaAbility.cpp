@@ -78,7 +78,7 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 		ChannelZones = MoveTemp(Zones);
 		return FVeyraChannelPlan{ Area->ChannelTicks, Area->ChannelSeconds };
 	}
-	VeyraAreaDelivery::Resolve(*World, *Caster, Placement, Zones);
+	VeyraAreaDelivery::Resolve(*World, *Caster, Placement, Zones, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	return FVeyraChannelPlan();
 }
 
@@ -87,6 +87,6 @@ void UVeyraAreaAbility::DeliverChannelTick(const FVeyraCast& Cast, int32 /*Tick*
 	UAbilitySystemComponent* Caster = Cast.Caster.Get();
 	if (Caster && GetWorld())
 	{
-		VeyraAreaDelivery::Resolve(*GetWorld(), *Caster, ChannelPlacement, ChannelZones);
+		VeyraAreaDelivery::Resolve(*GetWorld(), *Caster, ChannelPlacement, ChannelZones, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	}
 }

@@ -35,6 +35,13 @@ public:
 	/** Combat's movement, which walks at the participant's effective Movement Speed on the server. */
 	UVeyraMovementComponent* GetVeyraMovement() const;
 
+	/**
+	 * Shapes the body as its participant's Vanguard: its capsule and turn rate (ADR-008 §2). Every
+	 * machine reads the same tuning, whose hash is checked on join, so each builds the same body. Does
+	 * nothing until the participant's Vanguard is known.
+	 */
+	void ApplyVanguardBody();
+
 protected:
 	virtual void OnPlayerStateChanged(APlayerState* NewPlayerState, APlayerState* OldPlayerState) override;
 

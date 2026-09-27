@@ -260,7 +260,12 @@ namespace VeyraAbilitiesTests
 			FVeyraSelfBuffAbilityTuning Brace;
 			Brace.Cast = InstantCast(0.0, LongSeconds, ResourceCost);
 			Brace.Statuses = { ArchetypeTestId(TEXT("test_bulwark")), ArchetypeTestId(TEXT("test_heavy")) };
-			Brace.Shields.Add(FVeyraShieldTuning{ EVeyraShieldCategory::Universal, { ShieldBase }, MaxHealthRatio, 0.0, LongSeconds });
+			FVeyraShieldTuning& Shield = Brace.Shields.AddDefaulted_GetRef();
+			Shield.Id = ArchetypeTestId(TEXT("test_brace_shield"));
+			Shield.Category = EVeyraShieldCategory::Universal;
+			Shield.AmountByRank = { ShieldBase };
+			Shield.MaxHealthRatio = MaxHealthRatio;
+			Shield.DurationSeconds = LongSeconds;
 			Brace.Aura.Add(FVeyraAuraTuning{ AuraRadius, LongSeconds, LongSeconds / 2.0, { ArchetypeTestId(TEXT("test_cover")) } });
 			Brace.Recast = EVeyraRecast::EndsEarly;
 			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_brace")), Brace);

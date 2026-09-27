@@ -153,10 +153,10 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 		Met.Add(&Unit);
 		if (Collision == EVeyraSkillshotCollision::FirstEnemyVanguard && !VeyraUnits::IsVanguard(&Unit))
 		{
-			VeyraEffectDelivery::Apply(Source, Unit, PassThroughEffects, PathFrame());
+			VeyraEffectDelivery::Apply(Source, Unit, PassThroughEffects, PathFrame(), FVeyraAbilityHitSource{ Ability, CastId });
 			continue;
 		}
-		VeyraEffectDelivery::Apply(Source, Unit, Effects, CasterFrame());
+		VeyraEffectDelivery::Apply(Source, Unit, Effects, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
 		if (Collision != EVeyraSkillshotCollision::Pierce)
 		{
 			Travelled += Hit.Distance;
@@ -194,7 +194,7 @@ void AVeyraProjectile::AdvanceHoming(UAbilitySystemComponent& Source, double Dis
 	}
 	SetActorLocation(Here + Heading * Gap);
 	Met.Add(Target);
-	VeyraEffectDelivery::Apply(Source, *Target, Effects, CasterFrame());
+	VeyraEffectDelivery::Apply(Source, *Target, Effects, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
 	if (OnLanded)
 	{
 		OnLanded(*Target);

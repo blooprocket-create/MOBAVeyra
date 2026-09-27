@@ -3,7 +3,7 @@
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 
 #include "Engine/Engine.h"
-#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
 
 #if WITH_DEV_AUTOMATION_TESTS
 namespace
@@ -21,8 +21,8 @@ void UVeyraMatchTuningSubsystem::SetTestOverride(const FVeyraMatchTuning* Overri
 void UVeyraMatchTuningSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	// The developer loadout names abilities, which the Abilities domain defines.
-	Collection.InitializeDependency<UVeyraAbilitiesTuningSubsystem>();
+	// Developer matches name Vanguards, which the Vanguards domain defines.
+	Collection.InitializeDependency<UVeyraVanguardsTuningSubsystem>();
 	const VeyraTuning::FErrors Errors = Reload();
 	if (!Errors.IsEmpty())
 	{
@@ -48,16 +48,18 @@ VeyraTuning::FErrors UVeyraMatchTuningSubsystem::Reload()
 	FVeyraMatchTuning Loaded;
 	FBlake3Hash Hash;
 	VeyraTuning::FErrors Errors = VeyraTuning::LoadDomain(Domain, FVeyraMatchTuning::SchemaVersion, Loaded, Hash);
-	if (Errors.IsEmpty() && Loaded.DeveloperLoadout.CapsuleHalfHeight < Loaded.DeveloperLoadout.CapsuleRadius)
+	const UVeyraVanguardsTuningSubsystem* Vanguards = GEngine ? GEngine->GetEngineSubsystem<UVeyraVanguardsTuningSubsystem>() : nullptr;
+	if (Errors.IsEmpty() && (!Vanguards || !Vanguards->IsLoaded()))
 	{
-		// A capsule's half height includes its hemispherical ends, so it can never be shorter than its radius.
-		Errors.Add(TEXT("/developerLoadout/capsuleHalfHeight: must be at least capsuleRadius"));
+		Errors.Add(TEXT("Match.json names Vanguards, and the Vanguards tuning did not load"));
 	}
-	const UVeyraAbilitiesTuningSubsystem* Abilities = GEngine ? GEngine->GetEngineSubsystem<UVeyraAbilitiesTuningSubsystem>() : nullptr;
-	if (Errors.IsEmpty() && (!Abilities || !Abilities->IsLoaded() || !UVeyraAbilitiesTuningSubsystem::Defines(Loaded.DeveloperLoadout.AbilityQ)))
+	for (int32 Index = 0; Errors.IsEmpty() && Index < Loaded.DeveloperMatch.Vanguards.Num(); ++Index)
 	{
-		Errors.Add(FString::Printf(TEXT("/developerLoadout/abilityQ: names \"%s\", which Abilities.json does not define"),
-			*Loaded.DeveloperLoadout.AbilityQ.ToString()));
+		const FVeyraContentId& Vanguard = Loaded.DeveloperMatch.Vanguards[Index];
+		if (!UVeyraVanguardsTuningSubsystem::FindVanguard(Vanguard))
+		{
+			Errors.Add(FString::Printf(TEXT("/developerMatch/vanguards/%d: names \"%s\", which Vanguards.json does not define"), Index, *Vanguard.ToString()));
+		}
 	}
 	if (Errors.IsEmpty())
 	{

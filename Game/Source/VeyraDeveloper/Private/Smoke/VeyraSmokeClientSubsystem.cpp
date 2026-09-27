@@ -9,6 +9,7 @@
 #include "Engine/World.h"
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformTime.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Targeting/VeyraTargeting.h"
@@ -136,11 +137,14 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	case EStep::WaitForLiveMatch:
 		if (GameState->GetPhase() == EVeyraMatchPhase::Live)
 		{
-			const FVeyraTargetedDamageAbilityTuning* Ability =
-				UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(UVeyraMatchTuningSubsystem::Get().DeveloperLoadout.AbilityQ);
+			// The smoke plays a Vanguard whose Q is a targeted damage ability (Smoke.ps1 asks for test_vanguard).
+			const AVeyraPlayerState* Own = Controller->GetPlayerState<AVeyraPlayerState>();
+			const UVeyraAbilityLoadoutComponent* Loadout = Own ? Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+			const FVeyraLoadoutEntry* SlotQ = Loadout ? Loadout->FindSlot(EVeyraAbilitySlot::Q) : nullptr;
+			const FVeyraTargetedDamageAbilityTuning* Ability = SlotQ ? UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(SlotQ->Ability) : nullptr;
 			if (!Ability)
 			{
-				Finish(false, TEXT("the developer loadout's Q ability is not a targeted damage ability"));
+				Finish(false, TEXT("the Vanguard's Q ability is not a targeted damage ability; run the smoke with -VeyraVanguard=test_vanguard"));
 				break;
 			}
 			CastRange = Ability->CastRange;

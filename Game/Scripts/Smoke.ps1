@@ -5,9 +5,9 @@
 .DESCRIPTION
     Starts the match-server service from the root compose.yaml (ADR-005 step 2), which builds its
     image from the packaged server (Package.ps1 -Target VeyraServer -Platform Linux). Then it starts
-    two headless clients with -VeyraSmoke, which connect to 127.0.0.1:7777, wait for the match to go
-    live, move their Vanguards and cast their Q ability at each other; the server must land both
-    casts. The first client also pauses and resumes the match and checks that its own world stops
+    two headless clients with -VeyraSmoke, which connect to 127.0.0.1:7777 as the developer test
+    Vanguard (-VeyraVanguard=test_vanguard), wait for the match to go live, move their Vanguards and
+    cast their Q ability at each other; the server must land both casts. The first client also pauses and resumes the match and checks that its own world stops
     (ADR-006 §8).
 
     Clients: 'Editor' runs the editor build as a game (UnrealEditor.exe -game); 'Packaged' runs
@@ -117,6 +117,8 @@ $ServerReadyTimeoutSeconds = 120
 $ServerAddress = '127.0.0.1:7777'
 $ReplayName = 'veyra_smoke'
 $ReplayContainerDir = '/srv/veyra/Veyra/Saved/Demos'
+# The clients play the developer test Vanguard, whose Q is the targeted ability the script casts (ADR-008 §8).
+$SmokeVanguard = 'test_vanguard'
 
 # Developer options for the server's map URL.
 $urlOptions = ''
@@ -303,7 +305,7 @@ if ($Handoff) {
         # Not $clients: PowerShell names ignore case, and that is the -Clients parameter.
         $handoffClients = foreach ($index in 0, 1) {
             $log = Join-Path $reportDir "Client$($index + 1).log"
-            $clientArguments = @('-VeyraLaunchCode=stdin', '-VeyraSmoke', '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
+            $clientArguments = @('-VeyraLaunchCode=stdin', '-VeyraSmoke', "-VeyraVanguard=$SmokeVanguard", '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
             $clientArguments += $(if ($index -eq 0) { @('-VeyraSmokePause', '-VeyraSmokeEndMatch') } else { @('-VeyraSmokeWaitForEnd') })
             $startInfo = [System.Diagnostics.ProcessStartInfo]::new($clientExecutable, ($clientArguments -join ' '))
             $startInfo.UseShellExecute = $false
@@ -445,7 +447,7 @@ if ($Handoff) {
             Write-Host "The server logged an error: $($serverError.Matches[0].Value)"
             $failed = $true
         }
-        $abilityQ = (Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Match.json') -Raw | ConvertFrom-Json).developerLoadout.abilityQ
+        $abilityQ = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Vanguards.json') -Raw | ConvertFrom-Json).vanguards.$SmokeVanguard.abilities.q)[0]
         $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
         if ($casts -lt 2) {
             Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."
@@ -559,6 +561,7 @@ Write-Host 'The server is ready.'
 $clientProcesses = foreach ($index in 1, 2) {
     $clientArguments = $clientPrefix + @(
         '-VeyraSmoke'
+        "-VeyraVanguard=$SmokeVanguard"
         '-nullrhi'
         '-nosound'
         '-nosplash'
@@ -611,7 +614,7 @@ foreach ($serverError in $serverErrors) {
     $failed = $true
 }
 # Each client's cast, as the server resolved it (VeyraAbilities logs it at Verbose).
-$abilityQ = (Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Match.json') -Raw | ConvertFrom-Json).developerLoadout.abilityQ
+$abilityQ = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Vanguards.json') -Raw | ConvertFrom-Json).vanguards.$SmokeVanguard.abilities.q)[0]
 $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
 if ($casts -lt 2) {
     Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."

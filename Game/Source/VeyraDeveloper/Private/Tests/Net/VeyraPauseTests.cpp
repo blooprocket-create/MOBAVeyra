@@ -102,7 +102,7 @@ namespace VeyraNetTests
 
 		FVeyraContentId Ability() const
 		{
-			return Tuning->Tuning.DeveloperLoadout.AbilityQ;
+			return TestVanguardAbilityQ();
 		}
 
 		static UVeyraCooldownComponent* CooldownsOf(const APlayerState* PlayerState)

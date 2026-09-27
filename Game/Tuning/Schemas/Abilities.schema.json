@@ -95,10 +95,56 @@
       "description": "One zone of an area: its shape and what it does to each enemy in it.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["shape", "effects"],
+      "required": ["shape", "effects", "casterShieldPerVanguard"],
       "properties": {
         "shape": { "$ref": "#/definitions/shape" },
-        "effects": { "$ref": "#/definitions/effects" }
+        "effects": { "$ref": "#/definitions/effects" },
+        "casterShieldPerVanguard": {
+          "description": "At most one: a shield the caster gains once for each enemy Vanguard the zone catches, such as an ultimate's per-target shield.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "$ref": "#/definitions/shield" }
+        }
+      }
+    },
+    "shield": {
+      "description": "A shield granted to the caster (Combat Bible §7, §51; ADR-009 §3): the rank's amount plus the caster's Max Health and Magic Power times the ratios.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "amountByRank", "maxHealthRatio", "magicPowerRatio", "durationSeconds", "reapply", "maxAmountMaxHealthRatio", "capGroup"],
+      "properties": {
+        "id": {
+          "description": "The shield's identity: a new grant meets an active shield with it from the same caster as reapply says.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+        },
+        "category": { "type": "string", "enum": ["Physical", "Magic", "Universal"] },
+        "amountByRank": { "$ref": "#/definitions/byRank" },
+        "maxHealthRatio": { "description": "Of the caster's Max Health, added to the amount.", "type": "number", "minimum": 0 },
+        "magicPowerRatio": { "type": "number", "minimum": 0 },
+        "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "reapply": {
+          "description": "Replace: a new grant starts the shield again. Merge: it adds to what is left, up to the maximum, and restarts the duration.",
+          "type": "string",
+          "enum": ["Replace", "Merge"]
+        },
+        "maxAmountMaxHealthRatio": { "description": "The most a merged shield holds, as a fraction of the caster's Max Health; never less than one grant.", "type": "number", "minimum": 0 },
+        "capGroup": {
+          "description": "At most one: a group whose shields from this caster together hold at most a share of its Max Health, such as Cairn's passive and ultimate shields.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "totalMaxHealthRatio"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+              "totalMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+            }
+          }
+        }
       }
     },
     "shape": {
@@ -258,18 +304,7 @@
               "type": "array",
               "minItems": 0,
               "maxItems": 1,
-              "items": {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["category", "amountByRank", "maxHealthRatio", "magicPowerRatio", "durationSeconds"],
-                "properties": {
-                  "category": { "type": "string", "enum": ["Physical", "Magic", "Universal"] },
-                  "amountByRank": { "$ref": "#/definitions/byRank" },
-                  "maxHealthRatio": { "description": "Of the caster's Max Health, added to the amount.", "type": "number", "minimum": 0 },
-                  "magicPowerRatio": { "type": "number", "minimum": 0 },
-                  "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
-                }
-              }
+              "items": { "$ref": "#/definitions/shield" }
             },
             "aura": {
               "description": "At most one aura of statuses for nearby allied Vanguards (ADR-008 §9).",

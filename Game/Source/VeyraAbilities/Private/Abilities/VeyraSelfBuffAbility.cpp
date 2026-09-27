@@ -4,8 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
-#include "Attributes/VeyraOffenceSet.h"
-#include "Attributes/VeyraVitalsSet.h"
+#include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/World.h"
 #include "Shapes/VeyraShapes.h"
 #include "Statuses/VeyraStatusComponent.h"
@@ -86,16 +85,7 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 	for (const FVeyraShieldTuning& Shield : Buff->Shields)
 	{
 		// §51: the amount is built from the rank and the caster's stats, then the shield is created.
-		FVeyraShieldGrant Grant;
-		Grant.Id = Cast.Ability;
-		Grant.Category = Shield.Category;
-		Grant.Amount = VeyraAbilityRules::ValueAtRank(Shield.AmountByRank, Cast.Rank)
-			+ Caster->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) * Shield.MaxHealthRatio
-			+ Caster->GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Shield.MagicPowerRatio;
-		Grant.MaxAmount = Grant.Amount;
-		Grant.DurationSeconds = Shield.DurationSeconds;
-		Grant.Reapply = EVeyraShieldReapply::Replace;
-		VeyraCombat::GrantShield(*Caster, *Caster, Grant);
+		VeyraCombat::GrantShield(*Caster, *Caster, VeyraEffectDelivery::ShieldGrant(*Caster, Shield, Cast.Rank));
 	}
 	for (const FVeyraAuraTuning& Aura : Buff->Aura)
 	{

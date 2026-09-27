@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Events/VeyraAbilityEvents.h"
 #include "Misc/Optional.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Tuning/VeyraAbilitiesTuning.h"
@@ -39,12 +40,23 @@ namespace VeyraEffectDelivery
 	/** The statuses Ids name, as Combat applies them; an ID the statuses map lacks is skipped. */
 	VEYRAABILITIES_API TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids);
 
+	/**
+	 * Shield's grant from Caster at Rank, its amounts worked out now from the caster's stats (Combat
+	 * Bible §51): the rank's amount plus Max Health and Magic Power times the ratios, and its maximum
+	 * and cap group total as shares of Max Health.
+	 */
+	VEYRAABILITIES_API FVeyraShieldGrant ShieldGrant(const UAbilitySystemComponent& Caster, const FVeyraShieldTuning& Shield, int32 Rank);
+
 	/** Effects for Caster at Rank: damage from the caster's power now, statuses and displacement from data. */
 	VEYRAABILITIES_API FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffectBundleTuning& Effects, int32 Rank);
 
 	/** Whether Effects do anything. */
 	VEYRAABILITIES_API bool IsEmpty(const FVeyraPreparedEffects& Effects);
 
-	/** Applies Effects from Caster to Unit, measuring any displacement from Frame. */
-	VEYRAABILITIES_API void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEffects& Effects, const FVeyraEffectFrame& Frame);
+	/**
+	 * Applies Effects from Caster to Unit, measuring any displacement from Frame, and announces the hit
+	 * with the control that landed (On Ability Hit) when Source names an ability.
+	 */
+	VEYRAABILITIES_API void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEffects& Effects, const FVeyraEffectFrame& Frame,
+		const FVeyraAbilityHitSource& Source);
 }

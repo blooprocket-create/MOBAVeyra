@@ -9,7 +9,8 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Input/VeyraCameraSettings.h"
 #include "Movement/VeyraMovementComponent.h"
-#include "Tuning/VeyraMatchTuningSubsystem.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
+#include "VeyraPlayerState.h"
 
 AVeyraVanguardCharacter::AVeyraVanguardCharacter(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UVeyraMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -40,12 +41,6 @@ void AVeyraVanguardCharacter::PostInitializeComponents()
 		return;
 	}
 
-	// Server and clients read the same tuning (its hash is checked on join), so both build the same
-	// body.
-	const FVeyraDeveloperLoadoutTuning& Loadout = UVeyraMatchTuningSubsystem::Get().DeveloperLoadout;
-	GetCapsuleComponent()->SetCapsuleSize(static_cast<float>(Loadout.CapsuleRadius), static_cast<float>(Loadout.CapsuleHalfHeight));
-	GetCharacterMovement()->RotationRate = FRotator(0.0, Loadout.TurnRateDegreesPerSecond, 0.0);
-
 	const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
 	CameraArm->TargetArmLength = View.Distance;
 	CameraArm->SetWorldRotation(FRotator(View.PitchDegrees, 0.0, 0.0));
@@ -54,6 +49,20 @@ void AVeyraVanguardCharacter::PostInitializeComponents()
 UVeyraMovementComponent* AVeyraVanguardCharacter::GetVeyraMovement() const
 {
 	return CastChecked<UVeyraMovementComponent>(GetCharacterMovement());
+}
+
+void AVeyraVanguardCharacter::ApplyVanguardBody()
+{
+	const AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>();
+	const FVeyraVanguardDefinition* Definition =
+		Participant && Participant->GetVanguardId().IsValid() ? UVeyraVanguardsTuningSubsystem::FindVanguard(Participant->GetVanguardId()) : nullptr;
+	if (!Definition)
+	{
+		return;
+	}
+	const FVeyraVanguardBodyTuning& Body = Definition->Body;
+	GetCapsuleComponent()->SetCapsuleSize(static_cast<float>(Body.CapsuleRadius), static_cast<float>(Body.CapsuleHalfHeight));
+	GetCharacterMovement()->RotationRate = FRotator(0.0, Body.TurnRateDegreesPerSecond, 0.0);
 }
 
 UAbilitySystemComponent* AVeyraVanguardCharacter::GetAbilitySystemComponent() const
@@ -97,4 +106,5 @@ void AVeyraVanguardCharacter::OnPlayerStateChanged(APlayerState* NewPlayerState,
 	{
 		GetVeyraMovement()->BindCombatant(NewAbilitySystem);
 	}
+	ApplyVanguardBody();
 }

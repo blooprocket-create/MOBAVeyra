@@ -78,7 +78,7 @@ namespace VeyraNetTests
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
-			MaxHealth = Tuning->Tuning.DeveloperLoadout.MaxHealth;
+			MaxHealth = TestVanguard().BaseStats.MaxHealth;
 			ExpectedPlayers = MakeUnique<FScopedExpectedPlayers>(PlayerCount);
 			BuildMatchNetwork(Network, PlayerCount);
 		}

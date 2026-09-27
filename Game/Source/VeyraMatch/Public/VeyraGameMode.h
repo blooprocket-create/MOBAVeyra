@@ -66,6 +66,9 @@ public:
 	/** Checks the match allows casting, then casts the player's ability in Slot through VeyraAbilities. */
 	EVeyraCastRejection HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
 
+	/** Why the match refuses rank-ups now, or None: they need preparation or the live phase, and no pause. */
+	EVeyraOrderRejection CheckRankUpAllowed() const;
+
 	/**
 	 * Adds an AI-controlled participant with its own PlayerState, on the smaller side, as Co-op and
 	 * custom matches will (ADR-006 §4). It gets a Vanguard like any player, now if the match is past
@@ -94,6 +97,10 @@ private:
 	/** Whether both sides already have as many participants as the tuning allows. */
 	bool IsFull() const;
 	void AssignTeam(AVeyraPlayerState& PlayerState) const;
+
+	/** Chooses the participant's Vanguard: its development request, or the next in the developer order (ADR-008 §8). */
+	void AssignVanguard(AVeyraPlayerState& PlayerState);
+
 	AActor* FindTeamStart(EVeyraTeam Team) const;
 
 	/** The map has a start for each side standing on built navigation. */
@@ -105,7 +112,7 @@ private:
 	void BeginLive();
 	void SpawnVanguard(AVeyraPlayerState& PlayerState);
 
-	/** Gives a participant its developer loadout's base stats and abilities, once per match. */
+	/** Prepares a participant as its Vanguard, once per match (VeyraVanguards::PrepareCombatant). */
 	bool InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilitySystemComponent& AbilitySystem);
 
 	/** A Vanguard died: its body leaves the map, and it respawns after the tuned delay (Combat Bible §18). */
@@ -133,6 +140,10 @@ private:
 	TSubclassOf<AVeyraVanguardCharacter> VanguardClass;
 
 	int32 ExpectedPlayers = 0;
+
+	/** How many participants have been given a Vanguard, for the developer join order. */
+	int32 VanguardsAssigned = 0;
+
 	bool bLoadingTimedOut = false;
 	FTimerHandle LoadingTimeout;
 	FTimerHandle PreparationTimer;

@@ -22,6 +22,9 @@ public class VeyraMatch : ModuleRules
 			"InputCore",
 			"VeyraAbilities",
 			"VeyraCore",
+			// Its PlayerController reports rank-up refusals.
+			"VeyraEconomy",
+			"VeyraVanguards",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
@@ -29,7 +32,6 @@ public class VeyraMatch : ModuleRules
 			"NavigationSystem",
 			"NetCore",
 			"VeyraCombat",
-			"VeyraEconomy",
 		});
 
 		// The Match domain's tuning ships with every build that runs a match (ADR-006 §6).

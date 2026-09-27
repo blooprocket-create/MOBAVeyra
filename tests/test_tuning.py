@@ -308,6 +308,27 @@ class ReferenceTests(unittest.TestCase):
         errors = tuning.check(self.game)[0]
         self.assertTrue(any("names 'other_bolt'" in e for e in errors), errors)
 
+    def test_a_wildcard_checks_every_item_against_any_of_the_maps(self) -> None:
+        pattern = tuning.CONTENT_ID_PATTERN
+        catalogue = {"type": "object", "additionalProperties": False, "required": ["schemaVersion", "things", "others"],
+                     "properties": {"schemaVersion": {"type": "integer", "minimum": 1, "enum": [1]},
+                                    "things": {"type": "object", "additionalProperties": False,
+                                               "patternProperties": {pattern: {"type": "number", "minimum": 0}}},
+                                    "others": {"type": "object", "additionalProperties": False,
+                                               "patternProperties": {pattern: {"type": "number", "minimum": 0}}}}}
+        user = {"type": "object", "additionalProperties": False, "required": ["schemaVersion", "chosen"],
+                "properties": {"schemaVersion": {"type": "integer", "minimum": 1, "enum": [1]},
+                               "chosen": {"type": "array", "minItems": 0, "items": {"type": "string", "pattern": pattern}}}}
+        self.write("Tuning/Schemas/Catalogue.schema.json", json.dumps(catalogue))
+        self.write("Tuning/Schemas/User.schema.json", json.dumps(user))
+        self.write("Tuning/Catalogue.json", '{"schemaVersion": 1, "things": {"test_bolt": 1}, "others": {"test_spark": 1}}\n')
+        tuning.REFERENCES = [("User", "/chosen/*", "Catalogue", ("/things", "/others"))]
+        self.write("Tuning/User.json", '{"schemaVersion": 1, "chosen": ["test_bolt", "test_spark"]}\n')
+        self.assertEqual(tuning.check(self.game)[0], [])
+        self.write("Tuning/User.json", '{"schemaVersion": 1, "chosen": ["test_bolt", "other_bolt"]}\n')
+        errors = tuning.check(self.game)[0]
+        self.assertTrue(any("/chosen/1: names 'other_bolt'" in e for e in errors), errors)
+
 
 class ContractTests(unittest.TestCase):
     """Contract schemas from the table in check_tuning.py, each checked with its example."""

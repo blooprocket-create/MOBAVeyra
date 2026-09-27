@@ -190,6 +190,58 @@ enum class EVeyraAreaOrigin : uint8
 	TargetPoint,
 };
 
+/** A group whose shields from one caster together hold at most a share of its Max Health on a unit (ADR-009 §3). */
+USTRUCT()
+struct FVeyraShieldCapGroupTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraContentId Id;
+
+	/** The group's total, as a fraction of the caster's Max Health. */
+	UPROPERTY()
+	double TotalMaxHealthRatio = 0.0;
+};
+
+/** A shield an ability or passive grants its caster (Combat Bible §7, §51; ADR-009 §3). */
+USTRUCT()
+struct FVeyraShieldTuning
+{
+	GENERATED_BODY()
+
+	/** The shield's identity: a new grant meets an active shield with it from the same caster as Reapply says. */
+	UPROPERTY()
+	FVeyraContentId Id;
+
+	UPROPERTY()
+	EVeyraShieldCategory Category = EVeyraShieldCategory::Universal;
+
+	UPROPERTY()
+	TArray<double> AmountByRank;
+
+	/** Of the caster's Max Health, added to the amount. */
+	UPROPERTY()
+	double MaxHealthRatio = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	UPROPERTY()
+	EVeyraShieldReapply Reapply = EVeyraShieldReapply::Replace;
+
+	/** The most a merged shield holds, as a fraction of the caster's Max Health; no less than one grant. */
+	UPROPERTY()
+	double MaxAmountMaxHealthRatio = 0.0;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraShieldCapGroupTuning> CapGroup;
+};
+
 /** One zone of an area: its shape and what it does. */
 USTRUCT()
 struct FVeyraAreaZoneTuning
@@ -201,6 +253,13 @@ struct FVeyraAreaZoneTuning
 
 	UPROPERTY()
 	FVeyraEffectBundleTuning Effects;
+
+	/**
+	 * At most one: a shield the caster gains once for each enemy Vanguard the zone catches, such as an
+	 * ultimate's per-target shield (ADR-008 §9).
+	 */
+	UPROPERTY()
+	TArray<FVeyraShieldTuning> CasterShieldPerVanguard;
 };
 
 /** An ability that hits the enemies in shapes at the caster or a ground point (ADR-008 §3). */
@@ -232,29 +291,6 @@ struct FVeyraAreaAbilityTuning
 	/** Innermost first: a unit takes the first zone that touches it, and no other. */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> Zones;
-};
-
-/** A shield an ability grants its caster (Combat Bible §7, §51). */
-USTRUCT()
-struct FVeyraShieldTuning
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	EVeyraShieldCategory Category = EVeyraShieldCategory::Universal;
-
-	UPROPERTY()
-	TArray<double> AmountByRank;
-
-	/** Of the caster's Max Health, added to the amount. */
-	UPROPERTY()
-	double MaxHealthRatio = 0.0;
-
-	UPROPERTY()
-	double MagicPowerRatio = 0.0;
-
-	UPROPERTY()
-	double DurationSeconds = 0.0;
 };
 
 /** Statuses a buff gives nearby allied Vanguards while it lasts (ADR-008 §9). */
@@ -559,4 +595,13 @@ namespace VeyraAbilityRules
 	 * ID in more than one archetype map. RankCounts are the lengths a rank list may have besides 1.
 	 */
 	VEYRAABILITIES_API TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<int32> RankCounts);
+
+	/** Whether any archetype map of Tuning defines Ability. */
+	VEYRAABILITIES_API bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
+
+	/**
+	 * Problems with Ability as the ability of a slot with RankCount ranks: each of its rank lists must
+	 * hold one value, or exactly RankCount (ADR-008 §3).
+	 */
+	VEYRAABILITIES_API TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 RankCount);
 }

@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 
 namespace VeyraEffectDelivery
@@ -99,20 +100,47 @@ bool IsEmpty(const FVeyraPreparedEffects& Effects)
 	return !Effects.Damage.IsValid() && Effects.Statuses.IsEmpty() && !Effects.Displacement.IsSet();
 }
 
-void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEffects& Effects, const FVeyraEffectFrame& Frame)
+FVeyraShieldGrant ShieldGrant(const UAbilitySystemComponent& Caster, const FVeyraShieldTuning& Shield, int32 Rank)
+{
+	const double MaxHealth = Caster.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+	FVeyraShieldGrant Grant;
+	Grant.Id = Shield.Id;
+	Grant.Category = Shield.Category;
+	Grant.Amount = VeyraAbilityRules::ValueAtRank(Shield.AmountByRank, Rank) + MaxHealth * Shield.MaxHealthRatio
+		+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Shield.MagicPowerRatio;
+	Grant.DurationSeconds = Shield.DurationSeconds;
+	Grant.Reapply = Shield.Reapply;
+	Grant.MaxAmount = FMath::Max(Grant.Amount, MaxHealth * Shield.MaxAmountMaxHealthRatio);
+	if (!Shield.CapGroup.IsEmpty())
+	{
+		Grant.CapGroup = Shield.CapGroup[0].Id;
+		Grant.CapGroupTotal = MaxHealth * Shield.CapGroup[0].TotalMaxHealthRatio;
+	}
+	return Grant;
+}
+
+void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEffects& Effects, const FVeyraEffectFrame& Frame,
+	const FVeyraAbilityHitSource& Source)
 {
 	UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
 	if (!Target)
 	{
 		return;
 	}
+	FVeyraAbilityHit Hit;
+	Hit.Caster = &Caster;
+	Hit.Target = &Unit;
+	Hit.Ability = Source.Ability;
+	Hit.CastId = Source.CastId;
+	Hit.bCasterShielded = Source.bCasterShielded;
 	if (Effects.Damage.IsValid())
 	{
 		VeyraCombat::DealPreparedDamage(Effects.Damage, *Target);
 	}
 	for (const FVeyraStatusSpec& Status : Effects.Statuses)
 	{
-		VeyraCombat::ApplyStatus(Caster, *Target, Status);
+		const bool bApplied = VeyraCombat::ApplyStatus(Caster, *Target, Status);
+		Hit.bStunned |= bApplied && Status.Kind == EVeyraStatusKind::Stun;
 	}
 	if (Effects.Displacement.IsSet())
 	{
@@ -120,8 +148,12 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 		const double CasterRadius = CasterBody ? CasterBody->GetSimpleCollisionRadius() : 0.0;
 		if (const TOptional<FVeyraDisplacement> Displacement = DisplacementFor(Effects.Displacement.GetValue(), Unit, Frame, CasterRadius))
 		{
-			VeyraCombat::Displace(Caster, *Target, Displacement.GetValue());
+			Hit.bDisplaced = VeyraCombat::Displace(Caster, *Target, Displacement.GetValue());
 		}
+	}
+	if (Source.Ability.IsValid())
+	{
+		UVeyraAbilityEventSubsystem::Announce(Unit.GetWorld(), Hit);
 	}
 }
 }

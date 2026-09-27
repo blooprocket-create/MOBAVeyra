@@ -4,6 +4,7 @@
 
 #include "GameFramework/PlayerController.h"
 #include "Input/VeyraInputSettings.h"
+#include "Progression/VeyraProgressionTypes.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
 
@@ -59,6 +60,21 @@ public:
 	 */
 	void RequestDeveloperEndMatch();
 
+	/** Owning client: asks the server to spend a skill point on the ability in Slot (Economy & Progression Bible §1). */
+	void RequestRankUp(EVeyraAbilitySlot Slot);
+
+	/**
+	 * Owning client, developer builds: asks the server for Amount XP, or for enough XP to gain Levels
+	 * levels, until minions give XP (ADR-008 §6). Shipping servers refuse them. The console commands
+	 * Veyra.Dev.GrantXp and Veyra.Dev.GrantLevels send them.
+	 */
+	void RequestDeveloperExperience(int32 Amount);
+	void RequestDeveloperLevels(int32 Levels);
+
+	/** Owning client: the reason the server gave for the last refused rank-up, and how many it refused. */
+	EVeyraRankRefusal GetLastRankUpRefusal() const { return LastRankUpRefusal; }
+	int32 GetRankUpRefusalCount() const { return RankUpRefusalCount; }
+
 	/** This player's Vanguard, on the server and on every client, or null before it spawns. */
 	AVeyraVanguardCharacter* GetVanguard() const;
 
@@ -112,6 +128,21 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerRequestDeveloperEndMatch();
 
+	UFUNCTION(Server, Reliable)
+	void ServerRankUp(EVeyraAbilitySlot Slot);
+
+	UFUNCTION(Client, Unreliable)
+	void ClientRankUpRefused(EVeyraRankRefusal Refusal);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestDeveloperExperience(int32 Amount);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestDeveloperLevels(int32 Levels);
+
+	/** Server, developer builds: the participant's progression, if its XP may be granted. */
+	class UVeyraProgressionComponent* FindDeveloperProgression() const;
+
 	UFUNCTION()
 	void OnVanguardSet(APlayerState* Participant, APawn* NewPawn, APawn* OldPawn);
 
@@ -148,4 +179,7 @@ private:
 
 	EVeyraCastRejection LastCastRejection = EVeyraCastRejection::None;
 	int32 CastRejectionCount = 0;
+
+	EVeyraRankRefusal LastRankUpRefusal = EVeyraRankRefusal::None;
+	int32 RankUpRefusalCount = 0;
 };

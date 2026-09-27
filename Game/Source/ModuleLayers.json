@@ -22,8 +22,13 @@
       "modules": ["VeyraAbilities"]
     },
     {
+      "name": "Content",
+      "description": "Content domains (ADR-008 §1, PROJECT_STRUCTURE.md \"Vanguards\"): definitions and the passives the shared systems cannot express. Above Abilities, whose archetypes run the kits; below Match, which orchestrates them.",
+      "modules": ["VeyraVanguards"]
+    },
+    {
       "name": "Orchestration",
-      "description": "Coordinates the systems below it without peer-to-peer dependencies (PROJECT_STRUCTURE.md §2, Match / Vanguards).",
+      "description": "Coordinates the systems below it without peer-to-peer dependencies (PROJECT_STRUCTURE.md §2, Match).",
       "modules": ["VeyraMatch"]
     },
     {

@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "Engine/World.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Units/VeyraUnit.h"
 #include "VeyraAbilitiesLog.h"
 
 namespace VeyraAreaDelivery
@@ -14,12 +15,17 @@ TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstA
 	TArray<FVeyraPreparedZone> Prepared;
 	for (const FVeyraAreaZoneTuning& Zone : Zones)
 	{
-		Prepared.Add(FVeyraPreparedZone{ Zone.Shape, VeyraEffectDelivery::Prepare(Caster, Zone.Effects, Rank) });
+		FVeyraPreparedZone& Ready = Prepared.Add_GetRef(FVeyraPreparedZone{ Zone.Shape, VeyraEffectDelivery::Prepare(Caster, Zone.Effects, Rank) });
+		if (!Zone.CasterShieldPerVanguard.IsEmpty())
+		{
+			Ready.CasterShieldPerVanguard = VeyraEffectDelivery::ShieldGrant(Caster, Zone.CasterShieldPerVanguard[0], Rank);
+		}
 	}
 	return Prepared;
 }
 
-TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Frame, TConstArrayView<FVeyraPreparedZone> Zones)
+TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Frame, TConstArrayView<FVeyraPreparedZone> Zones,
+	const FVeyraAbilityHitSource& Source)
 {
 	// Sides belong to the participant, which outlives its body, so a caster who died since Commit still counts.
 	const AActor* Side = Caster.GetOwner();
@@ -33,7 +39,12 @@ TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FV
 		for (AActor* Unit : Units)
 		{
 			Hit.Add(Unit);
-			VeyraEffectDelivery::Apply(Caster, *Unit, Zone.Effects, Frame);
+			FVeyraAbilityHitSource UnitSource = Source;
+			if (Zone.CasterShieldPerVanguard.IsSet() && VeyraUnits::IsVanguard(Unit))
+			{
+				UnitSource.bCasterShielded = VeyraCombat::GrantShield(Caster, Caster, Zone.CasterShieldPerVanguard.GetValue()).IsValid();
+			}
+			VeyraEffectDelivery::Apply(Caster, *Unit, Zone.Effects, Frame, UnitSource);
 		}
 	}
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("An area of %s hit %d unit(s)."), *GetNameSafe(Side), Hit.Num());

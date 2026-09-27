@@ -17,6 +17,7 @@
 #include "Join/VeyraMatchHostSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraGameMode.h"
 #include "VeyraGameState.h"
 #include "VeyraLocalPlayer.h"
@@ -25,7 +26,27 @@
 
 namespace VeyraNetTests
 {
-	/** Match tuning a test may change. Get() returns it while this object lives. */
+	/** The developer test Vanguard, whose Q is the developer test ability (Vanguards.json). */
+	inline FVeyraContentId TestVanguardId()
+	{
+		return FVeyraContentId::FromText(TEXT("test_vanguard")).GetValue();
+	}
+
+	inline const FVeyraVanguardDefinition& TestVanguard()
+	{
+		return *UVeyraVanguardsTuningSubsystem::FindVanguard(TestVanguardId());
+	}
+
+	/** The ability in the test Vanguard's Q slot. */
+	inline FVeyraContentId TestVanguardAbilityQ()
+	{
+		return TestVanguard().Abilities.Q[0];
+	}
+
+	/**
+	 * Match tuning a test may change. Get() returns it while this object lives. Every participant
+	 * plays the test Vanguard, with Q learned at level 1, unless the test chooses otherwise.
+	 */
 	struct FScopedMatchTuning
 	{
 		FVeyraMatchTuning Tuning;
@@ -33,6 +54,8 @@ namespace VeyraNetTests
 		FScopedMatchTuning()
 			: Tuning(UVeyraMatchTuningSubsystem::Get())
 		{
+			Tuning.DeveloperMatch.Vanguards = { TestVanguardId() };
+			Tuning.DeveloperMatch.StartingRank = EVeyraDeveloperStartingRank::Q;
 			UVeyraMatchTuningSubsystem::SetTestOverride(&Tuning);
 		}
 
@@ -42,6 +65,30 @@ namespace VeyraNetTests
 		}
 
 		UE_NONCOPYABLE(FScopedMatchTuning);
+	};
+
+	/** Vanguards tuning a test may change, starting from the committed one. Get() returns it while this object lives. */
+	struct FScopedVanguardsTuning
+	{
+		FVeyraVanguardsTuning Tuning;
+
+		FScopedVanguardsTuning()
+			: Tuning(UVeyraVanguardsTuningSubsystem::Get())
+		{
+			UVeyraVanguardsTuningSubsystem::SetTestOverride(&Tuning);
+		}
+
+		~FScopedVanguardsTuning()
+		{
+			UVeyraVanguardsTuningSubsystem::SetTestOverride(nullptr);
+		}
+
+		FVeyraVanguardDefinition& Definition(const FVeyraContentId& Vanguard)
+		{
+			return Tuning.Vanguards.FindChecked(Vanguard);
+		}
+
+		UE_NONCOPYABLE(FScopedVanguardsTuning);
 	};
 
 	/** Abilities tuning a test sets up. Get() returns it while this object lives. */

@@ -70,7 +70,7 @@ void AVeyraDelayedArea::Resolve()
 		Placement.Origin = GetActorLocation();
 		Placement.Direction = Direction;
 		Placement.bOriginIsCaster = bOriginIsCaster;
-		VeyraAreaDelivery::Resolve(*GetWorld(), *Source, Placement, Zones);
+		VeyraAreaDelivery::Resolve(*GetWorld(), *Source, Placement, Zones, FVeyraAbilityHitSource{ Ability, CastId });
 	}
 	Destroy();
 }

@@ -81,8 +81,7 @@ TOptional<FVeyraStatusSpec> UVeyraAbilitiesTuningSubsystem::FindStatus(const FVe
 
 bool UVeyraAbilitiesTuningSubsystem::Defines(const FVeyraContentId& Ability)
 {
-	return FindTargetedDamage(Ability) || FindArea(Ability) || FindSelfBuff(Ability) || FindSkillshot(Ability) || FindDash(Ability)
-		|| FindEmpoweredAttack(Ability);
+	return VeyraAbilityRules::Defines(Get(), Ability);
 }
 
 VeyraTuning::FErrors UVeyraAbilitiesTuningSubsystem::Reload()

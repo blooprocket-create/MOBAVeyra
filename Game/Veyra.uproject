@@ -30,6 +30,11 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "VeyraVanguards",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "VeyraMatch",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"

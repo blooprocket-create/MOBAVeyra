@@ -34,6 +34,7 @@ private:
 	struct FPendingContact
 	{
 		TWeakObjectPtr<UAbilitySystemComponent> Caster;
+		FVeyraAbilityHitSource Source;
 		FVector Direction = FVector::ForwardVector;
 		FVeyraPreparedEffects Effects;
 		TArray<FVeyraStatusSpec> SelfStatuses;

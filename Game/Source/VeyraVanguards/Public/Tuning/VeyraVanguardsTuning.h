@@ -1,0 +1,141 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#pragma once
+
+#include "Attacks/VeyraBasicAttackTypes.h"
+#include "Content/VeyraContentId.h"
+#include "Progression/VeyraProgressionTypes.h"
+#include "Stats/VeyraStatBlock.h"
+#include "Tuning/VeyraAbilitiesTuning.h"
+#include "Tuning/VeyraTuningProvenance.h"
+#include "UObject/ObjectMacros.h"
+
+#include "VeyraVanguardsTuning.generated.h"
+
+// The Vanguards domain's tuning, bound from Game/Tuning/Vanguards.json (ADR-006 §6, ADR-008 §2). The
+// schema holds every range; a 0 here only means "not loaded".
+
+/** What a Vanguard spends to cast (Combat Bible §27; ADR-008 §2). Only Mana arrives with M5. */
+UENUM()
+enum class EVeyraResourceFamily : uint8
+{
+	Mana,
+};
+
+/** A Vanguard's body in the world. */
+USTRUCT()
+struct FVeyraVanguardBodyTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double CapsuleRadius = 0.0;
+
+	/** Includes the capsule's rounded ends, so never less than the radius. */
+	UPROPERTY()
+	double CapsuleHalfHeight = 0.0;
+
+	UPROPERTY()
+	double TurnRateDegreesPerSecond = 0.0;
+};
+
+/** The abilities in a Vanguard's slots, by content ID; each at most one. */
+USTRUCT()
+struct FVeyraVanguardKitTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	TArray<FVeyraContentId> Q;
+
+	UPROPERTY()
+	TArray<FVeyraContentId> W;
+
+	UPROPERTY()
+	TArray<FVeyraContentId> E;
+
+	UPROPERTY()
+	TArray<FVeyraContentId> R;
+};
+
+/** One Vanguard (ADR-008 §2). */
+USTRUCT()
+struct FVeyraVanguardDefinition
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	EVeyraResourceFamily Resource = EVeyraResourceFamily::Mana;
+
+	UPROPERTY()
+	FVeyraVanguardBodyTuning Body;
+
+	/** The stats at level 1. */
+	UPROPERTY()
+	FVeyraStatBlock BaseStats;
+
+	/** What each later level adds (Economy & Progression Bible §9). */
+	UPROPERTY()
+	FVeyraStatGrowth Growth;
+
+	UPROPERTY()
+	FVeyraBasicAttackProfile BasicAttack;
+
+	UPROPERTY()
+	FVeyraVanguardKitTuning Abilities;
+
+	/** At most one passive, from one of the passive maps. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Passive;
+};
+
+/**
+ * A passive that shields its Vanguard whenever one of its abilities immobilizes an enemy Vanguard,
+ * by a Stun or a displacement (Cairn's Deep Foundation, Character Bible §18).
+ */
+USTRUCT()
+struct FVeyraDeepFoundationTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The shield each immobilized enemy Vanguard grants; merging bounds several into one. */
+	UPROPERTY()
+	FVeyraShieldTuning Shield;
+
+	/** How long the same enemy Vanguard cannot grant the shield again, in seconds. */
+	UPROPERTY()
+	double LockoutSeconds = 0.0;
+};
+
+USTRUCT()
+struct FVeyraVanguardsTuning
+{
+	GENERATED_BODY()
+
+	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
+	static constexpr int32 SchemaVersion = 1;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraDeepFoundationTuning> DeepFoundation;
+};
+
+/** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */
+namespace VeyraVanguardRules
+{
+	/**
+	 * Problems with Tuning a schema cannot express, each a JSON pointer and a message: bodies, basic
+	 * attacks, abilities the Abilities tuning does not define or whose rank lists do not suit their
+	 * slot, passives no passive map defines, and a passive ID in more than one map.
+	 */
+	VEYRAVANGUARDS_API TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, int32 BasicAbilityMaxRank,
+		int32 UltimateMaxRank);
+}

@@ -61,7 +61,7 @@ namespace VeyraMatchTests
 		TEST_METHOD(TheShippedDefaultsAreUsable)
 		{
 			const UVeyraInputSettings& Settings = *GetDefault<UVeyraInputSettings>();
-			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey };
+			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey, Settings.RankUpModifierKey };
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 			{
 				Keys.Add(Settings.GetAbilityKey(Slot));
