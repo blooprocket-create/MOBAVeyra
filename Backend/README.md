@@ -153,10 +153,11 @@ The game receives its launch code on **standard input**, one line, never on the 
 1. writes `veyra-handoff/1 awaiting-launch-code` on standard output; only then does the launcher request a code and write it, so the code's 20-second life starts once the game can read it;
 2. reads that line and calls `POST /v1/game-sessions` with the code and its build version (`ProjectVersion` in `Game/Config/DefaultGame.ini`), keeping the game session token in memory;
 3. answers `veyra-handoff/1 signed-in`, or `veyra-handoff/1 failed <code>` if it could not sign in, and the launcher's work is done;
-4. polls `GET /v1/me/match` until the match is ready;
-5. joins the server with its ticket.
+4. finds where the player is, in this order (ADR-010 §2): a live match from `GET /v1/me/match` leads to **Reconnect-only**, which outranks everything; then a select in progress from `GET /v1/me/select` resumes; then a player without a starter (`GET /v1/me/profile`) chooses one; otherwise the shell;
+5. from the shell, starts practice (`POST /v1/practice`), polls the select, hovers and locks, polls `GET /v1/me/match` until the match is ready, and joins the server with its ticket;
+6. when the match ends, travels back to the front end and polls `GET /v1/me/matches/{id}` for the verified result.
 
-It logs its progress as `VeyraHandoff:` lines. The game does not use `-log`, which on Windows can replace the standard handles.
+A failure never quits the game: it shows with Retry where retrying can help. The client-state coordinator, `FVeyraClientFlow`, logs its progress as `VeyraClientFlow:` lines. The game does not use `-log`, which on Windows can replace the standard handles.
 
 A match server started by the backend gets `-VeyraAssignment=stdin` and reads its assignment the same way. The game's copy of the assignment's shape is `Game/Source/VeyraServices/Schemas/MatchAssignment.schema.json`. `internal/match/contract_test.go` keeps an example the game's tests read, so a change to the assignment must update both.
 
@@ -166,7 +167,9 @@ In development, `veyra-devlaunch` starts the game the same way, speaking the han
 go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -build 0.1.0 -- "C:\path\to\VeyraClient.exe" -VeyraLaunchCode=stdin
 ```
 
-`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result, through the same handshake (`Start-VeyraHandshakeClient` and `Step-VeyraHandshake` in `Game/Scripts/VeyraProject.psm1`).
+A match created with `POST /v1/dev/matches` before the game starts waits behind Reconnect, as any live match does.
+
+`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result, through the same handshake (`Start-VeyraHandshakeClient` and `Step-VeyraHandshake` in `Game/Scripts/VeyraProject.psm1`); its clients press Reconnect with `-VeyraSmokeFlow=join`. `Smoke.ps1 -Flow Practice` plays the whole solo path instead: starter choice, practice, champion select, the match, End Custom Match and the verified result.
 
 ## Configuration
 

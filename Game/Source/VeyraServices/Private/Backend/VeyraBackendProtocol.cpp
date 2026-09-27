@@ -27,6 +27,12 @@ namespace
 	const TCHAR* const ErrorCodePattern = TEXT("^[a-z_]{1,64}$");
 	/** Any Veyra credential, including a truncated one. The first group is its prefix. */
 	const TCHAR* const CredentialPattern = TEXT("(vls|vgs|vlc|vms|vjt)_[A-Za-z0-9_-]*");
+	/** A content ID (Game/Tuning/README.md), such as a Vanguard's or a mode's. */
+	const TCHAR* const ContentIdPattern = TEXT("^[a-z][a-z0-9]*(_[a-z0-9]+)*$");
+	/** A word the backend uses for a state or a reason, such as "picking" or "timed_out". */
+	const TCHAR* const WordPattern = TEXT("^[a-z_]{1,64}$");
+	/** One of the battleground's two teams. */
+	const TCHAR* const SidePattern = TEXT("^[AB]$");
 
 	/** The highest TCP or UDP port. */
 	constexpr int32 MaxPort = 65535;
@@ -54,6 +60,77 @@ namespace
 	bool StringField(const FJsonObject& Object, FStringView Name, FString& Out)
 	{
 		return Object.HasTypedField<EJson::String>(Name) && Object.TryGetStringField(Name, Out);
+	}
+
+	/** A string field in Pattern's format. */
+	bool StringField(const FJsonObject& Object, FStringView Name, const TCHAR* Pattern, FString& Out)
+	{
+		return StringField(Object, Name, Out) && MatchesWhole(Pattern, Out);
+	}
+
+	/** A field that is null, which leaves Out empty, or a string in Pattern's format. */
+	bool NullableStringField(const FJsonObject& Object, FStringView Name, const TCHAR* Pattern, FString& Out)
+	{
+		Out.Reset();
+		return Object.HasTypedField<EJson::Null>(Name) || StringField(Object, Name, Pattern, Out);
+	}
+
+	bool BoolField(const FJsonObject& Object, FStringView Name, bool& Out)
+	{
+		return Object.HasTypedField<EJson::Boolean>(Name) && Object.TryGetBoolField(Name, Out);
+	}
+
+	/** A number field that is finite and not negative. */
+	bool DurationField(const FJsonObject& Object, FStringView Name, double& Out)
+	{
+		return Object.HasTypedField<EJson::Number>(Name) && Object.TryGetNumberField(Name, Out) && FMath::IsFinite(Out) && Out >= 0.0;
+	}
+
+	/** An array of strings, each in Pattern's format. */
+	bool StringArrayField(const FJsonObject& Object, FStringView Name, const TCHAR* Pattern, TArray<FString>& Out)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+		if (!Object.HasTypedField<EJson::Array>(Name) || !Object.TryGetArrayField(Name, Values))
+		{
+			return false;
+		}
+		Out.Reset();
+		for (const TSharedPtr<FJsonValue>& Value : *Values)
+		{
+			FString Text;
+			if (!Value.IsValid() || Value->Type != EJson::String || !Value->TryGetString(Text) || !MatchesWhole(Pattern, Text))
+			{
+				return false;
+			}
+			Out.Add(MoveTemp(Text));
+		}
+		return true;
+	}
+
+	/** An object field; null is not one. */
+	const FJsonObject* ObjectField(const FJsonObject& Object, FStringView Name)
+	{
+		const TSharedPtr<FJsonObject>* Field = nullptr;
+		return Object.HasTypedField<EJson::Object>(Name) && Object.TryGetObjectField(Name, Field) && Field->IsValid() ? Field->Get() : nullptr;
+	}
+
+	bool ParseSelectState(const FString& Text, ESelectState& Out)
+	{
+		static const TPair<const TCHAR*, ESelectState> States[] = {
+			{ TEXT("picking"), ESelectState::Picking },
+			{ TEXT("starting"), ESelectState::Starting },
+			{ TEXT("started"), ESelectState::Started },
+			{ TEXT("cancelled"), ESelectState::Cancelled },
+		};
+		for (const TPair<const TCHAR*, ESelectState>& State : States)
+		{
+			if (Text.Equals(State.Key, ESearchCase::CaseSensitive))
+			{
+				Out = State.Value;
+				return true;
+			}
+		}
+		return false;
 	}
 
 	const TCHAR* EndReasonName(EVeyraMatchEndReason Reason)
@@ -198,6 +275,154 @@ bool ParseMyMatch(const FString& Body, FMyMatch& Out, FString& OutProblem)
 	Match.bReady = true;
 	Out = MoveTemp(Match);
 	return true;
+}
+
+bool IsContentId(FStringView Text)
+{
+	return MatchesWhole(ContentIdPattern, Text);
+}
+
+bool ParseProfile(const FString& Body, FProfile& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	const FJsonObject* Account = Root.IsValid() ? ObjectField(*Root, TEXT("account")) : nullptr;
+	const FJsonObject* Tutorial = Root.IsValid() ? ObjectField(*Root, TEXT("tutorial")) : nullptr;
+	FProfile Profile;
+	if (!Account || !Tutorial || !StringField(*Account, TEXT("id"), IdPattern, Profile.AccountId) || !StringField(*Account, TEXT("displayName"), Profile.DisplayName)
+		|| Profile.DisplayName.IsEmpty() || !BoolField(*Tutorial, TEXT("completed"), Profile.bTutorialCompleted)
+		|| !NullableStringField(*Tutorial, TEXT("starterVanguardId"), ContentIdPattern, Profile.StarterVanguardId))
+	{
+		OutProblem = TEXT("the answer is not a profile with an account and a tutorial");
+		return false;
+	}
+	Out = MoveTemp(Profile);
+	return true;
+}
+
+bool ParseVanguardAccess(const FString& Body, FVanguardAccess& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	FVanguardAccess Access;
+	if (!Root.IsValid() || !StringArrayField(*Root, TEXT("owned"), ContentIdPattern, Access.Owned)
+		|| !StringArrayField(*Root, TEXT("rotation"), ContentIdPattern, Access.Rotation)
+		|| !StringArrayField(*Root, TEXT("available"), ContentIdPattern, Access.Available)
+		|| !StringArrayField(*Root, TEXT("starters"), ContentIdPattern, Access.Starters))
+	{
+		OutProblem = TEXT("the answer does not list owned, rotation, available and starter Vanguards by their IDs");
+		return false;
+	}
+	Out = MoveTemp(Access);
+	return true;
+}
+
+const FSelectSeat* FSelect::FindYou() const
+{
+	return Seats.FindByPredicate([](const FSelectSeat& Seat) { return Seat.bYou; });
+}
+
+bool ParseSelect(const FString& Body, TOptional<FSelect>& OutSelect, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	if (!Root.IsValid() || !Root->HasField(TEXT("select")))
+	{
+		OutProblem = TEXT("the answer has no \"select\"");
+		return false;
+	}
+	if (Root->HasTypedField<EJson::Null>(TEXT("select")))
+	{
+		OutSelect.Reset();
+		return true;
+	}
+
+	const FJsonObject* Object = ObjectField(*Root, TEXT("select"));
+	FSelect Select;
+	FString State;
+	const TArray<TSharedPtr<FJsonValue>>* Seats = nullptr;
+	if (!Object || !StringField(*Object, TEXT("id"), IdPattern, Select.Id) || !StringField(*Object, TEXT("kind"), WordPattern, Select.Kind)
+		|| !StringField(*Object, TEXT("mode"), ContentIdPattern, Select.Mode) || !StringField(*Object, TEXT("state"), State)
+		|| !ParseSelectState(State, Select.State) || !DurationField(*Object, TEXT("remainingSeconds"), Select.RemainingSeconds)
+		|| !NullableStringField(*Object, TEXT("matchId"), IdPattern, Select.MatchId)
+		|| !NullableStringField(*Object, TEXT("cancelReason"), WordPattern, Select.CancelReason)
+		|| !Object->HasTypedField<EJson::Array>(TEXT("seats")) || !Object->TryGetArrayField(TEXT("seats"), Seats))
+	{
+		OutProblem = TEXT("the select's ID, kind, mode, state, timer, match, cancel reason or seats are missing or not in the expected format");
+		return false;
+	}
+	for (const TSharedPtr<FJsonValue>& Value : *Seats)
+	{
+		const TSharedPtr<FJsonObject>* SeatObject = nullptr;
+		FSelectSeat Seat;
+		if (!Value.IsValid() || !Value->TryGetObject(SeatObject) || !SeatObject->IsValid() || !StringField(**SeatObject, TEXT("displayName"), Seat.DisplayName)
+			|| Seat.DisplayName.IsEmpty() || !StringField(**SeatObject, TEXT("side"), SidePattern, Seat.Side) || !BoolField(**SeatObject, TEXT("you"), Seat.bYou)
+			|| !NullableStringField(**SeatObject, TEXT("hover"), ContentIdPattern, Seat.Hover)
+			|| !NullableStringField(**SeatObject, TEXT("locked"), ContentIdPattern, Seat.Locked))
+		{
+			OutProblem = TEXT("a seat of the select is not in the expected format");
+			return false;
+		}
+		Select.Seats.Add(MoveTemp(Seat));
+	}
+	if (Select.Seats.FilterByPredicate([](const FSelectSeat& Seat) { return Seat.bYou; }).Num() != 1)
+	{
+		OutProblem = TEXT("the select does not hold exactly one seat for this player");
+		return false;
+	}
+	if ((Select.State == ESelectState::Started) == Select.MatchId.IsEmpty() || (Select.State == ESelectState::Cancelled) == Select.CancelReason.IsEmpty())
+	{
+		OutProblem = TEXT("the select's match or cancel reason does not fit its state");
+		return false;
+	}
+	OutSelect = MoveTemp(Select);
+	return true;
+}
+
+bool FMatchOutcome::IsActive() const
+{
+	return State.Equals(TEXT("allocating"), ESearchCase::CaseSensitive) || State.Equals(TEXT("ready"), ESearchCase::CaseSensitive);
+}
+
+bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	const FJsonObject* Object = Root.IsValid() ? ObjectField(*Root, TEXT("match")) : nullptr;
+	FMatchOutcome Outcome;
+	if (!Object || !StringField(*Object, TEXT("id"), IdPattern, Outcome.MatchId) || !StringField(*Object, TEXT("mode"), ContentIdPattern, Outcome.Mode)
+		|| !StringField(*Object, TEXT("rules"), WordPattern, Outcome.Rules) || !StringField(*Object, TEXT("state"), WordPattern, Outcome.State)
+		|| !StringField(*Object, TEXT("side"), SidePattern, Outcome.Side) || !NullableStringField(*Object, TEXT("vanguardId"), ContentIdPattern, Outcome.VanguardId)
+		|| !NullableStringField(*Object, TEXT("failureReason"), WordPattern, Outcome.FailureReason) || !Object->HasField(TEXT("result")))
+	{
+		OutProblem = TEXT("the match's ID, mode, rules, state, side, Vanguard, failure or result are missing or not in the expected format");
+		return false;
+	}
+	if (const FJsonObject* Result = ObjectField(*Object, TEXT("result")))
+	{
+		if (!StringField(*Result, TEXT("endReason"), WordPattern, Outcome.EndReason) || !NullableStringField(*Result, TEXT("winner"), SidePattern, Outcome.Winner)
+			|| !DurationField(*Result, TEXT("durationSeconds"), Outcome.DurationSeconds) || !BoolField(*Result, TEXT("joined"), Outcome.bJoined)
+			|| !BoolField(*Result, TEXT("connectedAtEnd"), Outcome.bConnectedAtEnd))
+		{
+			OutProblem = TEXT("the match's result is not in the expected format");
+			return false;
+		}
+		Outcome.bHasResult = true;
+	}
+	else if (!Object->HasTypedField<EJson::Null>(TEXT("result")))
+	{
+		OutProblem = TEXT("the match's result is neither null nor a result");
+		return false;
+	}
+	Out = MoveTemp(Outcome);
+	return true;
+}
+
+FString BuildVanguardBody(const FString& VanguardId)
+{
+	FString Body;
+	const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Body);
+	Writer->WriteObjectStart();
+	Writer->WriteValue(TEXT("vanguardId"), VanguardId);
+	Writer->WriteObjectEnd();
+	Writer->Close();
+	return Body;
 }
 
 FString BuildResultBody(const FVeyraMatchResult& Result)

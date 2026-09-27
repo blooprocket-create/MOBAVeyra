@@ -261,14 +261,22 @@ namespace VeyraServicesTests
 			Candidate->LaunchCodeReadTimeoutSeconds = 0.0f;
 			Candidate->MatchPollIntervalSeconds = 0.0f;
 			Candidate->MatchWaitTimeoutSeconds = -1.0f;
+			Candidate->ClientRequestAttempts = 0;
+			Candidate->ClientRetryIntervalSeconds = 0.0f;
+			Candidate->SelectPollIntervalSeconds = 0.0f;
+			Candidate->ResultPollIntervalSeconds = 0.0f;
+			Candidate->ResultWaitTimeoutSeconds = 0.0f;
+			Candidate->ReconnectPollIntervalSeconds = 0.0f;
 			Candidate->AssignmentReadTimeoutSeconds = 0.0f;
 			Candidate->AssignmentPollIntervalSeconds = 0.0f;
 			Candidate->ReportAttempts = 0;
 			Candidate->ReportRetryIntervalSeconds = 0.0f;
 			const FString Problems = Describe(Candidate->Validate());
 			for (const TCHAR* Name : { TEXT("BackendBaseUrl"), TEXT("RequestTimeoutSeconds"), TEXT("LaunchCodeReadTimeoutSeconds"),
-					 TEXT("MatchPollIntervalSeconds"), TEXT("MatchWaitTimeoutSeconds"), TEXT("AssignmentReadTimeoutSeconds"),
-					 TEXT("AssignmentPollIntervalSeconds"), TEXT("ReportAttempts"), TEXT("ReportRetryIntervalSeconds") })
+					 TEXT("MatchPollIntervalSeconds"), TEXT("MatchWaitTimeoutSeconds"), TEXT("ClientRequestAttempts"), TEXT("ClientRetryIntervalSeconds"),
+					 TEXT("SelectPollIntervalSeconds"), TEXT("ResultPollIntervalSeconds"), TEXT("ResultWaitTimeoutSeconds"),
+					 TEXT("ReconnectPollIntervalSeconds"), TEXT("AssignmentReadTimeoutSeconds"), TEXT("AssignmentPollIntervalSeconds"),
+					 TEXT("ReportAttempts"), TEXT("ReportRetryIntervalSeconds") })
 			{
 				ASSERT_THAT(IsTrue(Problems.Contains(Name), FString::Printf(TEXT("%s is not named in: %s"), Name, *Problems)));
 			}

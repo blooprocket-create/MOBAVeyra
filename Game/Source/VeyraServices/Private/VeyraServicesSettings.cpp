@@ -16,6 +16,11 @@ TArray<FString> UVeyraServicesSettings::Validate() const
 		{ TEXT("LaunchCodeReadTimeoutSeconds"), LaunchCodeReadTimeoutSeconds },
 		{ TEXT("MatchPollIntervalSeconds"), MatchPollIntervalSeconds },
 		{ TEXT("MatchWaitTimeoutSeconds"), MatchWaitTimeoutSeconds },
+		{ TEXT("ClientRetryIntervalSeconds"), ClientRetryIntervalSeconds },
+		{ TEXT("SelectPollIntervalSeconds"), SelectPollIntervalSeconds },
+		{ TEXT("ResultPollIntervalSeconds"), ResultPollIntervalSeconds },
+		{ TEXT("ResultWaitTimeoutSeconds"), ResultWaitTimeoutSeconds },
+		{ TEXT("ReconnectPollIntervalSeconds"), ReconnectPollIntervalSeconds },
 		{ TEXT("AssignmentReadTimeoutSeconds"), AssignmentReadTimeoutSeconds },
 		{ TEXT("AssignmentPollIntervalSeconds"), AssignmentPollIntervalSeconds },
 		{ TEXT("ReportRetryIntervalSeconds"), ReportRetryIntervalSeconds },
@@ -27,9 +32,16 @@ TArray<FString> UVeyraServicesSettings::Validate() const
 			Problems.Add(FString::Printf(TEXT("%s must be positive"), Duration.Key));
 		}
 	}
-	if (ReportAttempts < 1)
+	const TPair<const TCHAR*, int32> Attempts[] = {
+		{ TEXT("ClientRequestAttempts"), ClientRequestAttempts },
+		{ TEXT("ReportAttempts"), ReportAttempts },
+	};
+	for (const TPair<const TCHAR*, int32>& Attempt : Attempts)
 	{
-		Problems.Add(TEXT("ReportAttempts must be at least 1"));
+		if (Attempt.Value < 1)
+		{
+			Problems.Add(FString::Printf(TEXT("%s must be at least 1"), Attempt.Key));
+		}
 	}
 	return Problems;
 }

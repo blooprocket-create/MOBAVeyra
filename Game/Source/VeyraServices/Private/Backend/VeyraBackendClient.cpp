@@ -17,6 +17,11 @@ bool FVeyraBackendResponse::IsTransient() const
 	return !bAnswered || Status >= EHttpResponseCodes::ServerError;
 }
 
+bool FVeyraBackendResponse::IsUnauthorized() const
+{
+	return bAnswered && Status == EHttpResponseCodes::Denied;
+}
+
 FString FVeyraBackendResponse::Describe() const
 {
 	if (!bAnswered)
@@ -33,14 +38,19 @@ FVeyraBackendClient::FVeyraBackendClient(FString InBaseUrl, float InTimeoutSecon
 {
 }
 
-void FVeyraBackendClient::Get(const FString& Path, const FString& Credential, FVeyraBackendCallback OnDone) const
+void FVeyraBackendClient::Get(const FString& Path, const FString& Credential, FVeyraBackendCallback OnDone)
 {
 	Send(TEXT("GET"), Path, Credential, nullptr, MoveTemp(OnDone));
 }
 
-void FVeyraBackendClient::Post(const FString& Path, const FString& Credential, const FString& Body, FVeyraBackendCallback OnDone) const
+void FVeyraBackendClient::Post(const FString& Path, const FString& Credential, const FString& Body, FVeyraBackendCallback OnDone)
 {
 	Send(TEXT("POST"), Path, Credential, &Body, MoveTemp(OnDone));
+}
+
+void FVeyraBackendClient::Put(const FString& Path, const FString& Credential, const FString& Body, FVeyraBackendCallback OnDone)
+{
+	Send(TEXT("PUT"), Path, Credential, &Body, MoveTemp(OnDone));
 }
 
 void FVeyraBackendClient::Send(const TCHAR* Verb, const FString& Path, const FString& Credential, const FString* Body, FVeyraBackendCallback OnDone) const

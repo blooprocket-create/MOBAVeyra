@@ -42,12 +42,21 @@
     image from the packaged server, starts the backend, signs in two dev accounts and asks the
     backend for a match between them. The backend starts the server container and writes its
     assignment to its standard input. Each packaged client starts with -VeyraLaunchCode=stdin and
-    gets a fresh launch code through a pipe as soon as it waits for one. It redeems the code, waits
-    for its match, joins with its ticket and plays the script; the first client then ends the match
-    once both casts have landed. The backend must record the result (a developer request, no winner,
-    both participants joined and connected at the end) and remove the server. No log may hold a
-    credential, except the join tickets the engine logs with each login on the server (ADR-007,
-    known exposure). The backend is stopped afterwards only if this script started it.
+    gets a fresh launch code through a pipe as soon as it waits for one. It redeems the code, finds
+    its match waiting and presses Reconnect (-VeyraSmokeFlow=join), joins with its ticket and plays
+    the script; the first client then ends the match once both casts have landed. The backend must
+    record the result (a developer request, no winner, both participants joined and connected at the
+    end) and remove the server. No log may hold a credential, except the join tickets the engine
+    logs with each login on the server (ADR-007, known exposure). The backend is stopped afterwards
+    only if this script started it.
+
+    -Flow Practice plays the whole solo path through the client-state coordinator (ADR-010 §2)
+    instead: the first dev account's onboarding is reset, and one packaged client signs in through
+    the launch handshake and runs -VeyraSmokeFlow=practice, which chooses a starter, starts practice,
+    hovers and locks a Vanguard, ends the match as its host, checks the verified result and returns
+    to the shell. The backend creates the match from the select and starts its server; the same
+    checks as -Handoff -Practice follow. -Launcher Script means this script does the launcher's part:
+    the dev login, the launch code and the handshake.
 
     Client logs, the server log and a summary go to Game/Saved/Smoke/<timestamp>. The server is
     stopped at the end unless -KeepServer is given.
@@ -81,6 +90,11 @@
     The Vanguards whose kits the clients play, one client each, from Vanguards.json. Not with -Handoff.
 .PARAMETER Practice
     With -Handoff: a solo practice match that its host ends.
+.PARAMETER Flow
+    Plays a path through the client-state coordinator: Practice, the solo path. Packaged client and
+    container only.
+.PARAMETER Launcher
+    With -Flow: who plays the launcher's part. Script: this script.
 .PARAMETER EngineRoot
     Engine folder to use instead of the one registered for the project's EngineAssociation.
 .EXAMPLE
@@ -89,6 +103,8 @@
     ./Game/Scripts/Smoke.ps1 -Vanguards cairn,qazharr,oriel,bryn -RecordReplay
 .EXAMPLE
     ./Game/Scripts/Smoke.ps1 -Handoff
+.EXAMPLE
+    ./Game/Scripts/Smoke.ps1 -Flow Practice -Launcher Script
 #>
 [CmdletBinding()]
 param(
@@ -127,6 +143,12 @@ param(
     [string[]]$Vanguards = @(),
 
     [switch]$Practice,
+
+    [ValidateSet('Practice')]
+    [string]$Flow,
+
+    [ValidateSet('Script')]
+    [string]$Launcher = 'Script',
 
     [string]$EngineRoot
 )
@@ -198,6 +220,11 @@ if ($Practice -and -not $Handoff) {
     Write-Host '-Practice plays a practice match through the handoff; add -Handoff.'
     exit $ExitInfrastructure
 }
+if ($Flow -and ($Handoff -or $kitMode -or $Clients -ne 'Packaged' -or $Server -ne 'Container' -or $urlOptions -or $ClientStaySeconds -gt 0 -or $Screenshot)) {
+    # The backend creates the match and starts its server, as for -Handoff.
+    Write-Host '-Flow runs one packaged client against a container the backend starts, without -Handoff, -Vanguards or the replay, statistics, load-test, stay or screenshot options.'
+    exit $ExitInfrastructure
+}
 
 $projectFile = Get-VeyraProjectFile
 $gameDir = Split-Path -Parent $projectFile
@@ -253,9 +280,10 @@ function Invoke-Compose {
     return $LASTEXITCODE
 }
 
-if ($Handoff) {
+if ($Handoff -or $Flow) {
     # The session handoff (ADR-007): the backend creates the match and starts its server; each client
-    # redeems a launch code from its standard input and joins with its ticket.
+    # redeems a launch code from its standard input and joins with its ticket. With -Flow the client's
+    # own champion select creates the match (ADR-010 §8).
 
     # Harness settings, not gameplay: how long to wait for each stage.
     $LaunchCodeWaitSeconds = 60
@@ -310,11 +338,15 @@ if ($Handoff) {
     }
     # A standard match pairs two accounts on opposite sides; a practice match is its host alone, on
     # the host's side. Standard players play the developer test Vanguard, whose Q the script casts;
-    # the host plays a released Vanguard, as a player would.
+    # the host plays a released Vanguard, as a player would, and with -Flow chooses it as the starter.
     $PracticeVanguard = 'cairn'
-    $playerCount = $(if ($Practice) { 1 } else { 2 })
-    $mode = $(if ($Practice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
+    $isPractice = $Practice -or $Flow -eq 'Practice'
+    $playerCount = $(if ($isPractice) { 1 } else { 2 })
+    $mode = $(if ($isPractice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
     $accounts = @($backendConfig.devLogin.accounts | Select-Object -First $playerCount)
+    # -Flow: the client logs the match its select created as it joins it.
+    $JoiningLinePattern = 'VeyraClientFlow: joining match ([0-9a-f-]{36}) at '
+    $MatchIdWaitPollMilliseconds = 250
 
     Write-Host 'Building the match server image from the packaged server.'
     if ((Invoke-Compose -Arguments @('build', 'match-server')) -ne 0) {
@@ -335,47 +367,71 @@ if ($Handoff) {
             exit $ExitInfrastructure
         }
         [pscustomobject]@{ Name = $accounts[$index]; AccountId = $login.Body.account.id; LauncherSession = $login.Body.token
-            Side = $(if ($Practice) { $backendConfig.customPractice.hostSide } else { @('A', 'B')[$index] })
-            Vanguard = $(if ($Practice) { $PracticeVanguard } else { $SmokeVanguard }) }
+            Side = $(if ($isPractice) { $backendConfig.customPractice.hostSide } else { @('A', 'B')[$index] })
+            Vanguard = $(if ($isPractice) { $PracticeVanguard } else { $SmokeVanguard }) }
     }
-    $matchRequest = @{
-        mode         = $mode
-        rules        = $(if ($Practice) { 'practice' } else { 'standard' })
-        participants = @($participants | ForEach-Object { @{ accountId = $_.AccountId; side = $_.Side; vanguardId = $_.Vanguard } })
+
+    $matchId = $null
+    $container = $null
+    $serverErrorLogPath = Join-Path $reportDir 'Server.stderr.log'
+    # The server's log, for as long as its container runs; docker replays it from the start.
+    function Start-ServerLog {
+        Start-Process -FilePath 'docker' -ArgumentList @('logs', '--follow', $container) -NoNewWindow -PassThru `
+            -RedirectStandardOutput $serverLogPath -RedirectStandardError $serverErrorLogPath
     }
-    if ($Practice) {
-        $matchRequest.hostAccountId = $participants[0].AccountId
-    }
-    $created = Invoke-Backend -Method Post -Path '/v1/dev/matches' -Body $matchRequest
-    if ($created.Status -ne 201) {
-        $code = Get-ErrorCode $created
-        Write-Host "The backend did not create the match: HTTP $($created.Status) ($code)."
-        if ($code -eq 'already_in_match') {
-            Write-Host 'An account is still in a match from an earlier run. Its server ends an empty match after Match.json lifecycle.abandonAfterSeconds; try again then.'
+
+    if ($Flow) {
+        # The player starts as new: the flow chooses a starter first (ADR-010 §6).
+        $reset = Invoke-Backend -Method Post -Path "/v1/dev/accounts/$($participants[0].Name)/reset-onboarding"
+        if ($reset.Status -ne 204) {
+            Write-Host "The backend did not reset $($participants[0].Name)'s onboarding: HTTP $($reset.Status) ($(Get-ErrorCode $reset))."
+            exit $ExitInfrastructure
         }
-        exit $ExitInfrastructure
     }
-    $matchId = $created.Body.match.id
-    $container = $backendConfig.allocator.docker.containerNamePrefix + $matchId
-    Write-Host "Match ${matchId}: server container $container, port $($created.Body.match.hostPort)."
+    else {
+        $matchRequest = @{
+            mode         = $mode
+            rules        = $(if ($isPractice) { 'practice' } else { 'standard' })
+            participants = @($participants | ForEach-Object { @{ accountId = $_.AccountId; side = $_.Side; vanguardId = $_.Vanguard } })
+        }
+        if ($isPractice) {
+            $matchRequest.hostAccountId = $participants[0].AccountId
+        }
+        $created = Invoke-Backend -Method Post -Path '/v1/dev/matches' -Body $matchRequest
+        if ($created.Status -ne 201) {
+            $code = Get-ErrorCode $created
+            Write-Host "The backend did not create the match: HTTP $($created.Status) ($code)."
+            if ($code -eq 'already_in_match') {
+                Write-Host 'An account is still in a match from an earlier run. Its server ends an empty match after Match.json lifecycle.abandonAfterSeconds; try again then.'
+            }
+            exit $ExitInfrastructure
+        }
+        $matchId = $created.Body.match.id
+        $container = $backendConfig.allocator.docker.containerNamePrefix + $matchId
+        Write-Host "Match ${matchId}: server container $container, port $($created.Body.match.hostPort)."
+    }
 
     $handoffClients = @()
     $serverLogProcess = $null
     $failed = $false
     try {
-        # The server's log, for as long as its container runs.
-        $serverErrorLogPath = Join-Path $reportDir 'Server.stderr.log'
-        $serverLogProcess = Start-Process -FilePath 'docker' -ArgumentList @('logs', '--follow', $container) -NoNewWindow -PassThru `
-            -RedirectStandardOutput $serverLogPath -RedirectStandardError $serverErrorLogPath
+        if ($container) {
+            $serverLogProcess = Start-ServerLog
+        }
 
         # Each client reads its launch code from a pipe, and plays the Vanguard the roster names. In a
         # standard match the first plays the pause and ends the match, and the second waits for the end;
-        # a practice match's host ends it. None uses -log, which on Windows can replace the standard
-        # handles. Not $clients: PowerShell names ignore case, and that is the -Clients parameter.
+        # a practice match's host ends it. A match created before the client started waits behind
+        # Reconnect, which -VeyraSmokeFlow=join presses; -VeyraSmokeFlow=practice plays the whole flow.
+        # None uses -log, which on Windows can replace the standard handles. Not $clients: PowerShell
+        # names ignore case, and that is the -Clients parameter.
         $handoffClients = foreach ($index in 0..($playerCount - 1)) {
             $log = Join-Path $reportDir "Client$($index + 1).log"
-            $clientArguments = @('-VeyraLaunchCode=stdin', '-VeyraSmoke', '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
-            $clientArguments += $(if ($Practice) { @('-VeyraSmokeEndCustomMatch') } elseif ($index -eq 0) { @('-VeyraSmokePause', '-VeyraSmokeEndMatch') } else { @('-VeyraSmokeWaitForEnd') })
+            $clientArguments = @('-VeyraLaunchCode=stdin', '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
+            $clientArguments += $(if ($Flow) { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard") }
+                elseif ($isPractice) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeEndCustomMatch') }
+                elseif ($index -eq 0) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokePause', '-VeyraSmokeEndMatch') }
+                else { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeWaitForEnd') })
             $handshake = Start-VeyraHandshakeClient -Executable $clientExecutable -Arguments $clientArguments
             [pscustomobject]@{ Number = $index + 1; Participant = $participants[$index]; Log = $log; Process = $handshake.Process; Handshake = $handshake }
         }
@@ -405,26 +461,44 @@ if ($Handoff) {
         }
         $participants | ForEach-Object { $_.LauncherSession = $null }
 
+        # -Flow: the match exists once the client's select starts it; its server's log is followed
+        # from then.
+        $clientDeadline = (Get-Date).AddMinutes($TimeoutMinutes)
+        while ($Flow -and -not $matchId -and -not $handoffClients[0].Process.HasExited -and (Get-Date) -lt $clientDeadline) {
+            Start-Sleep -Milliseconds $MatchIdWaitPollMilliseconds
+            $joining = if (Test-Path -LiteralPath $handoffClients[0].Log) { Select-String -LiteralPath $handoffClients[0].Log -Pattern $JoiningLinePattern | Select-Object -First 1 } else { $null }
+            if ($joining) {
+                $matchId = $joining.Matches[0].Groups[1].Value
+                $container = $backendConfig.allocator.docker.containerNamePrefix + $matchId
+                Write-Host "Match ${matchId}, created by the client's champion select: server container $container."
+                $serverLogProcess = Start-ServerLog
+            }
+        }
         foreach ($client in $handoffClients) {
-            if (-not $client.Process.WaitForExit([int][TimeSpan]::FromMinutes($TimeoutMinutes).TotalMilliseconds)) {
+            if (-not $client.Process.WaitForExit([int][Math]::Max(0, ($clientDeadline - (Get-Date)).TotalMilliseconds))) {
                 $client.Process.Kill($true)
                 $failed = $true
             }
+        }
+        if (-not $matchId) {
+            Write-Host 'The client never joined a match.'
+            $failed = $true
         }
 
         # The server reports the result and quits; the backend then ends the match and, later, removes
         # the container.
         function Get-DevMatch {
+            if (-not $matchId) { return $null }
             $answer = Invoke-Backend -Method Get -Path "/v1/dev/matches/$matchId"
             return $(if ($answer.Status -eq 200) { $answer.Body.match } else { $null })
         }
         $deadline = (Get-Date).AddSeconds($MatchEndWaitSeconds)
         do {
             $match = Get-DevMatch
-            if ($match -and $match.state -in 'ended', 'failed') { break }
+            if (-not $matchId -or ($match -and $match.state -in 'ended', 'failed')) { break }
             Start-Sleep -Seconds 1
         } while ((Get-Date) -lt $deadline)
-        if (-not $serverLogProcess.WaitForExit($ServerLogWaitSeconds * 1000)) {
+        if ($serverLogProcess -and -not $serverLogProcess.WaitForExit($ServerLogWaitSeconds * 1000)) {
             $serverLogProcess.Kill($true)
         }
         if ($match -and $match.state -in 'ended', 'failed') {
@@ -447,9 +521,9 @@ if ($Handoff) {
                 $failed = $true
             }
             if (Test-Path -LiteralPath $client.Log) {
-                Select-String -LiteralPath $client.Log -Pattern 'VeyraHandoff: FAIL.*' | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
-                if (-not (Select-String -LiteralPath $client.Log -SimpleMatch "VeyraHandoff: joining match $matchId" -Quiet)) {
-                    Write-Host "  It never joined match $matchId through the handoff."
+                Select-String -LiteralPath $client.Log -Pattern 'VeyraClientFlow: (signing in failed|problem|the connection to match).*' | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
+                if ($matchId -and -not (Select-String -LiteralPath $client.Log -SimpleMatch "VeyraClientFlow: joining match $matchId at " -Quiet)) {
+                    Write-Host "  It never joined match $matchId through the client flow."
                     $failed = $true
                 }
                 # The grey-box presentation must start in the packaged client (ADR-008 §1).
@@ -467,7 +541,7 @@ if ($Handoff) {
         }
         else {
             $result = $match.result
-            $expectedEnd = $(if ($Practice) { 'host_ended' } else { 'developer_request' })
+            $expectedEnd = $(if ($isPractice) { 'host_ended' } else { 'developer_request' })
             Write-Host ("Result: {0}, winner {1}, {2:N1} s." -f $result.endReason, $(if ($null -eq $result.winner) { 'none' } else { $result.winner }), $result.durationSeconds)
             if ($result.endReason -ne $expectedEnd -or $null -ne $result.winner -or $result.durationSeconds -le 0) {
                 Write-Host "Expected $expectedEnd with no winner and a positive duration."
@@ -480,7 +554,7 @@ if ($Handoff) {
                 $failed = $true
             }
             $rostered = @($match.participants | Where-Object { $_.vanguardId -ne ($participants | Where-Object AccountId -eq $_.accountId).Vanguard })
-            if ($rostered.Count -gt 0 -or ($Practice -and ($match.rules -ne 'practice' -or $match.hostAccountId -ne $participants[0].AccountId))) {
+            if ($rostered.Count -gt 0 -or ($isPractice -and ($match.rules -ne 'practice' -or $match.hostAccountId -ne $participants[0].AccountId))) {
                 Write-Host 'The backend did not keep the requested rules, host or Vanguards.'
                 $failed = $true
             }
@@ -490,10 +564,14 @@ if ($Handoff) {
             $failed = $true
         }
 
-        # What the server logged: each participant playing the Vanguard its roster names.
-        $expectedServerLines = @('VeyraHandoff: took the assignment', 'VeyraHandoff: reported ready', "Preparation begins with $playerCount player(s)", 'The match is live',
+        # What the server logged: each participant playing the Vanguard its roster names. A match that
+        # never started leaves an empty log, whose every line is missing.
+        if (-not (Test-Path -LiteralPath $serverLogPath)) {
+            New-Item -ItemType File -Path $serverLogPath | Out-Null
+        }
+        $expectedServerLines =@('VeyraHandoff: took the assignment', 'VeyraHandoff: reported ready', "Preparation begins with $playerCount player(s)", 'The match is live',
             'VeyraHandoff: reported result') + @($participants | ForEach-Object { "$($_.Name) plays $($_.Vanguard)." })
-        $expectedServerLines += $(if ($Practice) { @('the host, ended the custom match', 'The match ended (host ended') } else { @('Match paused', 'Match resumed', 'The match ended (developer request') })
+        $expectedServerLines += $(if ($isPractice) { @('the host, ended the custom match', 'The match ended (host ended') } else { @('Match paused', 'Match resumed', 'The match ended (developer request') })
         foreach ($expected in $expectedServerLines) {
             if (-not (Select-String -LiteralPath $serverLogPath -SimpleMatch $expected -Quiet)) {
                 Write-Host "The server log never says '$expected'."
@@ -504,7 +582,7 @@ if ($Handoff) {
             Write-Host "The server logged an error: $($serverError.Matches[0].Value)"
             $failed = $true
         }
-        if (-not $Practice) {
+        if (-not $isPractice) {
             $abilityQ = @($vanguardDefinitions.$SmokeVanguard.abilities.q)[0]
             $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
             if ($casts -lt 2) {
@@ -543,7 +621,7 @@ if ($Handoff) {
         if ($serverLogProcess -and -not $serverLogProcess.HasExited) {
             $serverLogProcess.Kill($true)
         }
-        if (& docker ps --all --quiet --filter "name=^/$container$") {
+        if ($container -and (& docker ps --all --quiet --filter "name=^/$container$")) {
             Write-Host "Removing $container."
             & docker rm --force $container | Out-Null
         }
@@ -553,11 +631,12 @@ if ($Handoff) {
         $null = Invoke-Compose -Arguments @('stop', 'backend', 'postgres')
     }
 
+    $smokeName = $(if ($Flow) { "$Flow flow" } else { 'handoff' })
     if ($failed) {
-        Write-Host "The handoff smoke test failed. Logs: $reportDir"
+        Write-Host "The $smokeName smoke test failed. Logs: $reportDir"
         exit $ExitFailed
     }
-    Write-Host "The handoff smoke test passed. Logs: $reportDir"
+    Write-Host "The $smokeName smoke test passed. Logs: $reportDir"
     exit $ExitPassed
 }
 

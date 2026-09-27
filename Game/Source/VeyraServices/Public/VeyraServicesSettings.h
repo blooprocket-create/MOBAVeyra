@@ -38,9 +38,33 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Client")
 	float MatchPollIntervalSeconds = 0.0f;
 
-	/** Client: seconds to wait for the player's match to be ready before giving up. */
+	/** Client: seconds to wait for the player's match to be ready before offering Retry. */
 	UPROPERTY(Config, EditAnywhere, Category = "Client")
 	float MatchWaitTimeoutSeconds = 0.0f;
+
+	/** Client: attempts at a request the backend did not answer, or failed with a server error, before showing the problem. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	int32 ClientRequestAttempts = 0;
+
+	/** Client: seconds between attempts at such a request. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float ClientRetryIntervalSeconds = 0.0f;
+
+	/** Client: seconds between reads of the champion select while the player is in one. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float SelectPollIntervalSeconds = 0.0f;
+
+	/** Client: seconds between asks for a match's verified result after the player leaves it. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float ResultPollIntervalSeconds = 0.0f;
+
+	/** Client: seconds to wait for a match's verified result before showing that it is not available. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float ResultWaitTimeoutSeconds = 0.0f;
+
+	/** Client: seconds between checks, while the player may only reconnect, of whether their match still runs. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float ReconnectPollIntervalSeconds = 0.0f;
 
 	/**
 	 * Match server: seconds to wait for its assignment on standard input. The server waits before
