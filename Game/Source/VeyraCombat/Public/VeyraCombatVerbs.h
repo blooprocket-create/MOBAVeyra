@@ -5,6 +5,7 @@
 #include "Absorption/VeyraAbsorptionLedger.h"
 #include "ActiveGameplayEffectHandle.h"
 #include "Damage/VeyraDamageTypes.h"
+#include "Stats/VeyraStatBlock.h"
 
 class UAbilitySystemComponent;
 class UVeyraDamageAbsorptionComponent;
@@ -33,6 +34,28 @@ namespace VeyraCombat
 	 * the unit has no resource. Returns false if refused.
 	 */
 	VEYRACOMBAT_API bool InitializeResource(UAbilitySystemComponent& AbilitySystem, double MaxResource);
+
+	/**
+	 * Sets every base stat from a unit's data and fills its Health and Resource (ADR-008 §2). Max
+	 * Health, Move Speed and Attack Speed must be above 0; the rest at least 0; all finite. Returns
+	 * false, changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool InitializeStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock& Stats);
+
+	/**
+	 * Raises the base stats by Growth when a unit levels up (Economy & Progression Bible §9). Health
+	 * and Resource rise by the same flat amount as their maximums, so the bars do not refill: the
+	 * amount missing before the level-up is still missing after it. That supersedes the Combat Bible
+	 * §41 rule of keeping the percentage. Every value must be finite and at least 0. Returns false,
+	 * changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool GrowBaseStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock& Growth);
+
+	/**
+	 * Restores Amount of the unit's resource, never above its maximum (Combat Bible §27). Returns false
+	 * if refused: Amount must be finite and at least 0.
+	 */
+	VEYRACOMBAT_API bool RestoreResource(UAbilitySystemComponent& AbilitySystem, double Amount);
 
 	/** Whether the unit has at least Amount of its resource. A cost of 0 is always affordable. */
 	VEYRACOMBAT_API bool CanAffordResource(const UAbilitySystemComponent& AbilitySystem, double Amount);

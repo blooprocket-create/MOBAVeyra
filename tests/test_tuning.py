@@ -293,6 +293,22 @@ class ContractTests(unittest.TestCase):
         self.assertTrue(any("Line.schema.json: is missing" in e for e in self.errors()), self.errors())
 
 
+class ProvenanceTests(unittest.TestCase):
+    """The provisional-values marker (ADR-008 §7)."""
+
+    def test_counts_provisional_records_at_any_depth(self) -> None:
+        document = {
+            "schemaVersion": 1,
+            "experience": {"provenance": "Provisional", "toNextLevel": [1]},
+            "things": {"a": {"provenance": "Reviewed"}, "b": {"provenance": "Provisional"}},
+            "list": [{"provenance": "Provisional"}, {"provenance": "Canon"}],
+        }
+        self.assertEqual(tuning.count_provisional(document), 3)
+
+    def test_a_document_without_markers_counts_none(self) -> None:
+        self.assertEqual(tuning.count_provisional({"schemaVersion": 1, "value": 2}), 0)
+
+
 class RealRepositoryTests(unittest.TestCase):
     def test_committed_tuning_passes(self) -> None:
         errors, summary = tuning.check(tuning.GAME)

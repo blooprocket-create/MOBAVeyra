@@ -387,7 +387,24 @@ def check(game_dir: Path) -> tuple[list[str], str]:
             labels[domain] = shown(document_path)
         checked += 1
     errors.extend(reference_errors(valid_documents, labels))
-    return errors, f"{checked} tuning domain(s) valid."
+    provisional = sum(count_provisional(document) for document in valid_documents.values())
+    return errors, f"{checked} tuning domain(s) valid; {provisional} provisional record(s) await review."
+
+
+# The provenance marker (ADR-008 §7): a record whose values the implementer drafted says so, and the
+# author changes it to "Reviewed" after reviewing it.
+PROVENANCE_KEY = "provenance"
+PROVISIONAL = "Provisional"
+
+
+def count_provisional(value: Any) -> int:
+    """How many records in a tuning document are still marked provisional."""
+    if isinstance(value, dict):
+        own = 1 if value.get(PROVENANCE_KEY) == PROVISIONAL else 0
+        return own + sum(count_provisional(child) for child in value.values())
+    if isinstance(value, list):
+        return sum(count_provisional(child) for child in value)
+    return 0
 
 
 def check_contracts(game_dir: Path) -> tuple[list[str], str]:

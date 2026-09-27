@@ -3,19 +3,10 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "Slots/VeyraAbilitySlot.h"
 #include "UObject/ObjectMacros.h"
 
 #include "VeyraAbilityTypes.generated.h"
-
-/** A Vanguard's ability slots (Settings Bible §1.2: Q/W/E/R). Basic attacks, Flux Spells and item actives get theirs later. */
-UENUM()
-enum class EVeyraAbilitySlot : uint8
-{
-	Q,
-	W,
-	E,
-	R,
-};
 
 /** What a cast is aimed at. Targeted abilities use Actor; locations arrive with skillshots. */
 USTRUCT()

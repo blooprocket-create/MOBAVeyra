@@ -3,6 +3,7 @@
 #include "VeyraGameMode.h"
 
 #include "AbilitySystemComponent.h"
+#include "Attributes/VeyraOffenceSet.h"
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformTime.h"
@@ -11,6 +12,7 @@
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "NavigationSystem.h"
+#include "Progression/VeyraProgressionComponent.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraTuning.h"
@@ -537,6 +539,12 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 	{
 		UE_LOG(LogVeyraMatch, Error, TEXT("Could not prepare %s for the match; see the errors above."), *PlayerState.GetPlayerName());
 		return false;
+	}
+	// Level 1, with that level's skill point. The developer loadout has no growth; Vanguard
+	// definitions bring it (ADR-008 §2).
+	if (UVeyraProgressionComponent* Progression = PlayerState.FindComponentByClass<UVeyraProgressionComponent>())
+	{
+		Progression->Initialize(FVeyraStatGrowth(), AbilitySystem.GetNumericAttribute(UVeyraOffenceSet::GetAttackSpeedAttribute()));
 	}
 	PlayerState.MarkStatsInitialized();
 	return true;

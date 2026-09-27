@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "resistance", "targeting"],
+  "required": ["schemaVersion", "resistance", "targeting", "regeneration"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "resistance": {
       "description": "Armor and Magic Resistance mitigation (Combat Bible §3).",
@@ -36,6 +36,20 @@
           "description": "Extra range in units the server allows on top of a cast range, measured edge to edge, for latency (Combat Bible §30: server range validation may include small latency tolerance). Provisional.",
           "type": "number",
           "minimum": 0
+        }
+      }
+    },
+    "regeneration": {
+      "description": "Resource regeneration over time (Combat Bible §28: base resource regeneration continues in and out of combat).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tickSeconds"],
+      "properties": {
+        "tickSeconds": {
+          "description": "How often regeneration is applied, in seconds; each tick restores a unit's per-second rate times this. Shorter ticks fill bars more smoothly and replicate more often. Provisional (M5).",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
         }
       }
     }

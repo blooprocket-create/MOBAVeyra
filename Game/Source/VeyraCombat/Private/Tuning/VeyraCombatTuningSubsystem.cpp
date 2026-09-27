@@ -4,6 +4,19 @@
 
 #include "Engine/Engine.h"
 
+#if WITH_DEV_AUTOMATION_TESTS
+namespace
+{
+	const FVeyraCombatTuning* GCombatTuningTestOverride = nullptr;
+}
+
+void UVeyraCombatTuningSubsystem::SetTestOverride(const FVeyraCombatTuning* Override)
+{
+	check(IsInGameThread());
+	GCombatTuningTestOverride = Override;
+}
+#endif
+
 void UVeyraCombatTuningSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
@@ -16,6 +29,12 @@ void UVeyraCombatTuningSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 
 const FVeyraCombatTuning& UVeyraCombatTuningSubsystem::Get()
 {
+#if WITH_DEV_AUTOMATION_TESTS
+	if (GCombatTuningTestOverride)
+	{
+		return *GCombatTuningTestOverride;
+	}
+#endif
 	const UVeyraCombatTuningSubsystem* Subsystem = GEngine ? GEngine->GetEngineSubsystem<UVeyraCombatTuningSubsystem>() : nullptr;
 	checkf(Subsystem && Subsystem->Tuning.IsSet(), TEXT("Combat tuning is not loaded; see the tuning errors earlier in the log."));
 	return Subsystem->Tuning.GetValue();

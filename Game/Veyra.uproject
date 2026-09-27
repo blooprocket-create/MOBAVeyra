@@ -20,6 +20,11 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "VeyraEconomy",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "VeyraAbilities",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"

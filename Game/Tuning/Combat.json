@@ -1,9 +1,12 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "resistance": {
     "mitigationConstant": 100
   },
   "targeting": {
     "serverRangeTolerance": 25
+  },
+  "regeneration": {
+    "tickSeconds": 0.5
   }
 }

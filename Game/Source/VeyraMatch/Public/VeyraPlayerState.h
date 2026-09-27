@@ -17,6 +17,8 @@ class UVeyraDefenceSet;
 class UVeyraLifeComponent;
 class UVeyraMobilitySet;
 class UVeyraOffenceSet;
+class UVeyraProgressionComponent;
+class UVeyraRegenerationComponent;
 class UVeyraResourceSet;
 class UVeyraVitalsSet;
 
@@ -81,6 +83,13 @@ private:
 	/** Here rather than on the pawn, so cooldowns keep running through death (Combat Bible §44). */
 	UPROPERTY(VisibleAnywhere, Category = "Abilities")
 	TObjectPtr<UVeyraCooldownComponent> Cooldowns;
+
+	UPROPERTY(VisibleAnywhere, Category = "Combat")
+	TObjectPtr<UVeyraRegenerationComponent> Regeneration;
+
+	/** Level, XP, skill points and ranks survive death with the rest of the participant. */
+	UPROPERTY(VisibleAnywhere, Category = "Progression")
+	TObjectPtr<UVeyraProgressionComponent> Progression;
 
 	UPROPERTY()
 	TObjectPtr<UVeyraVitalsSet> VitalsSet;

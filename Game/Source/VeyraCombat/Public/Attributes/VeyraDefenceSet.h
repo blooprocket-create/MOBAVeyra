@@ -27,6 +27,8 @@ public:
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraDefenceSet, MagicResistReductionFlat)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraDefenceSet, MagicResistReductionRetained)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraDefenceSet, IncomingDamageMultiplier)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraDefenceSet, TenacityRetained)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraDefenceSet, DisplacementRetained)
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -52,6 +54,12 @@ protected:
 	UFUNCTION()
 	void OnRep_IncomingDamageMultiplier(const FGameplayAttributeData& OldValue);
 
+	UFUNCTION()
+	void OnRep_TenacityRetained(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_DisplacementRetained(const FGameplayAttributeData& OldValue);
+
 private:
 	UPROPERTY(ReplicatedUsing = OnRep_Armor)
 	FGameplayAttributeData Armor;
@@ -76,4 +84,18 @@ private:
 	/** Generic Damage Reduction (§15): the product of every source's 1 − x. */
 	UPROPERTY(ReplicatedUsing = OnRep_IncomingDamageMultiplier)
 	FGameplayAttributeData IncomingDamageMultiplier;
+
+	/**
+	 * The fraction of a Tenacity-reducible crowd-control duration that remains (Combat Bible §8):
+	 * the product of every Tenacity source's 1 − x, since "Tenacity sources stack multiplicatively".
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_TenacityRetained)
+	FGameplayAttributeData TenacityRetained;
+
+	/**
+	 * The fraction of a forced movement's distance that remains (Combat Bible §9, Displacement
+	 * Resistance): the product of every source's 1 − x. Airborne time is unchanged.
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_DisplacementRetained)
+	FGameplayAttributeData DisplacementRetained;
 };

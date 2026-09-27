@@ -12,6 +12,11 @@
       "modules": ["VeyraCombat"]
     },
     {
+      "name": "Economy",
+      "description": "The Economy domain (ARCHITECTURE.md §3, ADR-008 §1): in-match Progression now, Gold later. Above Combat, whose verbs apply level-up growth; below Abilities, which reads ranks.",
+      "modules": ["VeyraEconomy"]
+    },
+    {
       "name": "Abilities",
       "description": "Systems that compose the rules below them (PROJECT_STRUCTURE.md §2, Abilities / Items / Flux / World / Vision).",
       "modules": ["VeyraAbilities"]

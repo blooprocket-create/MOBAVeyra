@@ -5,7 +5,9 @@
 #include "AbilitySystemComponent.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "Attributes/VeyraAttributePolicy.h"
+#include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraMobilitySet.h"
+#include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Effects/VeyraCombatEffects.h"
@@ -26,6 +28,46 @@ namespace
 	bool IsPositiveFinite(double Value)
 	{
 		return FMath::IsFinite(Value) && Value > 0.0;
+	}
+
+	bool IsNonNegativeFinite(double Value)
+	{
+		return FMath::IsFinite(Value) && Value >= 0.0;
+	}
+
+	/** Every base stat a stat block sets, paired with its value in the block. */
+	struct FStatEntry
+	{
+		FGameplayAttribute Attribute;
+		double Value;
+	};
+
+	TArray<FStatEntry, TInlineAllocator<9>> StatEntries(const FVeyraStatBlock& Stats)
+	{
+		return {
+			{ UVeyraVitalsSet::GetMaxHealthAttribute(), Stats.MaxHealth },
+			{ UVeyraResourceSet::GetMaxResourceAttribute(), Stats.MaxResource },
+			{ UVeyraResourceSet::GetResourceRegenAttribute(), Stats.ResourceRegen },
+			{ UVeyraDefenceSet::GetArmorAttribute(), Stats.Armor },
+			{ UVeyraDefenceSet::GetMagicResistAttribute(), Stats.MagicResist },
+			{ UVeyraOffenceSet::GetPhysicalPowerAttribute(), Stats.PhysicalPower },
+			{ UVeyraOffenceSet::GetMagicPowerAttribute(), Stats.MagicPower },
+			{ UVeyraOffenceSet::GetAttackSpeedAttribute(), Stats.AttackSpeed },
+			{ UVeyraMobilitySet::GetMoveSpeedAttribute(), Stats.MoveSpeed },
+		};
+	}
+
+	bool HasEveryStatSet(const UAbilitySystemComponent& AbilitySystem)
+	{
+		return AbilitySystem.GetSet<UVeyraVitalsSet>() && AbilitySystem.GetSet<UVeyraResourceSet>() && AbilitySystem.GetSet<UVeyraDefenceSet>()
+			&& AbilitySystem.GetSet<UVeyraOffenceSet>() && AbilitySystem.GetSet<UVeyraMobilitySet>();
+	}
+
+	bool IsDeadUnit(const UAbilitySystemComponent& AbilitySystem)
+	{
+		const AActor* Owner = AbilitySystem.GetOwner();
+		const UVeyraLifeComponent* Life = Owner ? Owner->FindComponentByClass<UVeyraLifeComponent>() : nullptr;
+		return Life && !Life->IsAlive();
 	}
 
 	FActiveGameplayEffectHandle GrantAbsorption(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target,
@@ -90,6 +132,80 @@ bool InitializeResource(UAbilitySystemComponent& AbilitySystem, double MaxResour
 	}
 	AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetMaxResourceAttribute(), static_cast<float>(MaxResource));
 	AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
+	return true;
+}
+
+bool InitializeStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock& Stats)
+{
+	bool bValid = HasEveryStatSet(AbilitySystem) && IsPositiveFinite(Stats.MaxHealth) && IsPositiveFinite(Stats.MoveSpeed) && IsPositiveFinite(Stats.AttackSpeed);
+	for (const FStatEntry& Entry : StatEntries(Stats))
+	{
+		bValid &= IsNonNegativeFinite(Entry.Value);
+	}
+	if (!bValid)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to initialize the stats of %s: it needs every Veyra attribute set, Max Health, Move Speed and Attack Speed above 0, and every other stat finite and at least 0."),
+			*GetNameSafe(AbilitySystem.GetOwner()));
+		return false;
+	}
+	for (const FStatEntry& Entry : StatEntries(Stats))
+	{
+		AbilitySystem.SetNumericAttributeBase(Entry.Attribute, static_cast<float>(Entry.Value));
+	}
+	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), AbilitySystem.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()));
+	AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
+	return true;
+}
+
+bool GrowBaseStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock& Growth)
+{
+	bool bValid = HasEveryStatSet(AbilitySystem);
+	for (const FStatEntry& Entry : StatEntries(Growth))
+	{
+		bValid &= IsNonNegativeFinite(Entry.Value);
+	}
+	if (!bValid)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to grow the stats of %s: it needs every Veyra attribute set, and every growth finite and at least 0."),
+			*GetNameSafe(AbilitySystem.GetOwner()));
+		return false;
+	}
+
+	const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
+	const FGameplayAttribute MaxHealth = UVeyraVitalsSet::GetMaxHealthAttribute();
+	const FGameplayAttribute Resource = UVeyraResourceSet::GetResourceAttribute();
+	const FGameplayAttribute MaxResource = UVeyraResourceSet::GetMaxResourceAttribute();
+	const float MissingHealth = AbilitySystem.GetNumericAttribute(MaxHealth) - AbilitySystem.GetNumericAttribute(Health);
+	const float MissingResource = AbilitySystem.GetNumericAttribute(MaxResource) - AbilitySystem.GetNumericAttribute(Resource);
+
+	for (const FStatEntry& Entry : StatEntries(Growth))
+	{
+		if (Entry.Value > 0.0)
+		{
+			AbilitySystem.SetNumericAttributeBase(Entry.Attribute, AbilitySystem.GetNumericAttributeBase(Entry.Attribute) + static_cast<float>(Entry.Value));
+		}
+	}
+
+	// A dead unit stays at 0 Health; it is revived with full Health anyway (Combat Bible §18).
+	if (!IsDeadUnit(AbilitySystem))
+	{
+		AbilitySystem.SetNumericAttributeBase(Health, AbilitySystem.GetNumericAttribute(MaxHealth) - MissingHealth);
+	}
+	AbilitySystem.SetNumericAttributeBase(Resource, AbilitySystem.GetNumericAttribute(MaxResource) - MissingResource);
+	return true;
+}
+
+bool RestoreResource(UAbilitySystemComponent& AbilitySystem, double Amount)
+{
+	if (!AbilitySystem.GetSet<UVeyraResourceSet>() || !IsNonNegativeFinite(Amount))
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to restore %g resource on %s: it needs a UVeyraResourceSet and an amount that is finite and at least 0."),
+			Amount, *GetNameSafe(AbilitySystem.GetOwner()));
+		return false;
+	}
+	// The resource set keeps Resource within [0, Max Resource].
+	const FGameplayAttribute Resource = UVeyraResourceSet::GetResourceAttribute();
+	AbilitySystem.SetNumericAttributeBase(Resource, AbilitySystem.GetNumericAttributeBase(Resource) + static_cast<float>(Amount));
 	return true;
 }
 

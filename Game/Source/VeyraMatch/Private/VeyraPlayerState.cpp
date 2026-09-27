@@ -14,6 +14,8 @@
 #include "Life/VeyraLifeComponent.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
+#include "Progression/VeyraProgressionComponent.h"
+#include "Regeneration/VeyraRegenerationComponent.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraMatchLog.h"
 
@@ -28,6 +30,8 @@ AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer
 	Life = CreateDefaultSubobject<UVeyraLifeComponent>(TEXT("Life"));
 	Loadout = CreateDefaultSubobject<UVeyraAbilityLoadoutComponent>(TEXT("Loadout"));
 	Cooldowns = CreateDefaultSubobject<UVeyraCooldownComponent>(TEXT("Cooldowns"));
+	Regeneration = CreateDefaultSubobject<UVeyraRegenerationComponent>(TEXT("Regeneration"));
+	Progression = CreateDefaultSubobject<UVeyraProgressionComponent>(TEXT("Progression"));
 
 	// Attribute Sets created as default subobjects of the owner register with its Ability System
 	// Component when the component initializes.

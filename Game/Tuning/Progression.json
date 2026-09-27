@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "maxLevel": 18,
+  "skillPointsPerLevel": 1,
+  "basicAbilityMaxRank": 5,
+  "ultimateMaxRank": 3,
+  "ultimateRankLevels": [6, 11, 16],
+  "experience": {
+    "provenance": "Provisional",
+    "toNextLevel": [280, 380, 480, 580, 680, 780, 880, 980, 1080, 1180, 1280, 1380, 1480, 1580, 1680, 1780, 1880]
+  }
+}

@@ -34,6 +34,20 @@ struct FVeyraTargetingTuning
 	double ServerRangeTolerance = 0.0;
 };
 
+/** Resource regeneration over time (Combat Bible §28). */
+USTRUCT()
+struct FVeyraRegenerationTuning
+{
+	GENERATED_BODY()
+
+	/**
+	 * How often regeneration is applied, in seconds; each tick restores the per-second rate times this.
+	 * The schema requires it to be above 0; 0 here only means "not loaded".
+	 */
+	UPROPERTY()
+	double TickSeconds = 0.0;
+};
+
 /** The Combat domain's tuning, bound from Game/Tuning/Combat.json (ADR-006 §6). */
 USTRUCT()
 struct FVeyraCombatTuning
@@ -41,11 +55,14 @@ struct FVeyraCombatTuning
 	GENERATED_BODY()
 
 	/** The Combat.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
 
 	UPROPERTY()
 	FVeyraResistanceTuning Resistance;
 
 	UPROPERTY()
 	FVeyraTargetingTuning Targeting;
+
+	UPROPERTY()
+	FVeyraRegenerationTuning Regeneration;
 };
