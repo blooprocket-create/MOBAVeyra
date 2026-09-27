@@ -126,6 +126,16 @@ Canon leaves these open. M5 builds each answer below as provisional data or beha
 15. **Cairn E's self-slow** is a speed modifier, not crowd control, so Tenacity does not shorten it; the slow floor still applies.
 16. **Overflow Attack Speed** (Combat §22) is measured relative to the cap: overflow % = 100 × (uncapped − 2.5) / 2.5, so 2.75 attacks per second is 10% overflow. Added in G7 for the author's review.
 17. **Cleave geometry** belongs to the Vanguard's basic-attack profile (Qazharr's cleaver arc). A cleave status, such as No Quarter's, or an empowered attack, such as Heavy Hand, gives only the share of damage the other enemies take. Added in G7 for the author's review.
+18. **Moving toward an enemy Vanguard** (No Quarter's Movement Speed, Combat §23's conditional bonus): a living enemy Vanguard within a range, edge to edge, lies within an angle either side of the unit's movement direction. Both limits are provisional data in `Combat.json` (`pursuit`: 900 units, 60°). Vision will limit it to Vanguards the unit can see. Added in G10 for the author's review.
+19. **No Quarter** is four statuses that R's zone gives Qazharr for each enemy Vanguard it catches: Attack Speed, Movement Speed toward enemy Vanguards, Tenacity and Attack Cleave. Each is extended by takedowns up to a cap. Catching several Vanguards only refreshes them. The zone field is generic (`casterStatusesPerVanguard`), like Burden of the Depths' per-Vanguard shield. Added in G10 for the author's review.
+20. **Sea Dog** is the generic hit-chain passive (§5). Each attack in the chain adds a stack of an Attack Speed status, up to its maximum, and the chain ending removes it. The status lasts longer than the out-of-combat delay, so only the end of the chain takes it away. Added in G10 for the author's review.
+21. **Gathering Light** counts each cast once, by Cast ID, even a delayed area that lands after later casts.
+    - Its fragment deals one amount plus a Magic Power ratio, since a passive has no ranks. It is a homing projectile that carries the consuming cast's ID, so it never counts as a cast of its own.
+    - "Legally acquire" goes through `VeyraTargeting::CanAcquire`, which allows every target until Vision arrives (ADR-009 §7).
+    - The HUD does not show the stacks yet.
+    - Added in G11 for the author's review.
+22. **Breach Round's explosion** is always the "enhanced" one: a wider and stronger rectangle behind the target. On the breaching third shot it replaces Breach's small explosion by priority, and the Breach bonus still joins the hit once. Added in G12 for the author's review.
+23. **Last Broadside's falloff** is two zones, a central circle and an outer ring with less damage. The central zone adds a share of the target's missing Health to the same hit, read when the shell lands (`missingHealthDamage`, provisionally 15%). Added in G12 for the author's review.
 
 ## Consequences
 

@@ -9,6 +9,33 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 	TArray<FString> Problems;
 	const auto Problem = [&Problems](const FString& Pointer, const FString& Message) { Problems.Add(FString::Printf(TEXT("%s: %s"), *Pointer, *Message)); };
 
+	// A passive runs by the one passive map that defines it (ADR-008 §5).
+	TMap<FVeyraContentId, FString> PassiveMaps;
+	const auto RegisterPassive = [&PassiveMaps, &Problem](const FVeyraContentId& Id, const TCHAR* Map) {
+		if (const FString* Earlier = PassiveMaps.Find(Id))
+		{
+			Problem(FString::Printf(TEXT("/%s/%s"), Map, *Id.ToString()), FString::Printf(TEXT("is also defined in /%s; a passive belongs to one passive map"), **Earlier));
+			return;
+		}
+		PassiveMaps.Add(Id, Map);
+	};
+	for (const TPair<FVeyraContentId, FVeyraDeepFoundationTuning>& Entry : Tuning.DeepFoundation)
+	{
+		RegisterPassive(Entry.Key, TEXT("deepFoundation"));
+	}
+	for (const TPair<FVeyraContentId, FVeyraHitChainTuning>& Entry : Tuning.HitChain)
+	{
+		RegisterPassive(Entry.Key, TEXT("hitChain"));
+	}
+	for (const TPair<FVeyraContentId, FVeyraGatheringLightTuning>& Entry : Tuning.GatheringLight)
+	{
+		RegisterPassive(Entry.Key, TEXT("gatheringLight"));
+	}
+	for (const TPair<FVeyraContentId, FVeyraBreachTuning>& Entry : Tuning.Breach)
+	{
+		RegisterPassive(Entry.Key, TEXT("breach"));
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraVanguardDefinition>& Entry : Tuning.Vanguards)
 	{
 		const FString Pointer = TEXT("/vanguards/") + Entry.Key.ToString();
@@ -58,7 +85,7 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 
 		for (int32 Index = 0; Index < Vanguard.Passive.Num(); ++Index)
 		{
-			if (!Tuning.DeepFoundation.Contains(Vanguard.Passive[Index]))
+			if (!PassiveMaps.Contains(Vanguard.Passive[Index]))
 			{
 				Problem(FString::Printf(TEXT("%s/passive/%d"), *Pointer, Index),
 					FString::Printf(TEXT("names passive \"%s\", which no passive map defines"), *Vanguard.Passive[Index].ToString()));
@@ -72,6 +99,52 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		if (Entry.Value.Shield.AmountByRank.Num() != 1)
 		{
 			Problem(FString::Printf(TEXT("/deepFoundation/%s/shield/amountByRank"), *Entry.Key.ToString()), TEXT("holds exactly one value: a passive has no ranks"));
+		}
+	}
+
+	for (const TPair<FVeyraContentId, FVeyraHitChainTuning>& Entry : Tuning.HitChain)
+	{
+		const FString Pointer = TEXT("/hitChain/") + Entry.Key.ToString();
+		if (!Abilities.Statuses.Contains(Entry.Value.Status))
+		{
+			Problem(Pointer + TEXT("/status"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Entry.Value.Status.ToString()));
+		}
+	}
+
+	for (const TPair<FVeyraContentId, FVeyraGatheringLightTuning>& Entry : Tuning.GatheringLight)
+	{
+		if (Entry.Value.FragmentDamage.AmountByRank.Num() != 1)
+		{
+			Problem(FString::Printf(TEXT("/gatheringLight/%s/fragmentDamage/amountByRank"), *Entry.Key.ToString()), TEXT("holds exactly one value: a passive has no ranks"));
+		}
+	}
+
+	for (const TPair<FVeyraContentId, FVeyraBreachTuning>& Entry : Tuning.Breach)
+	{
+		const FString Pointer = TEXT("/breach/") + Entry.Key.ToString();
+		const FVeyraBreachTuning& Breach = Entry.Value;
+		if (Breach.BonusDamage.AmountByRank.Num() != 1)
+		{
+			Problem(Pointer + TEXT("/bonusDamage/amountByRank"), TEXT("holds exactly one value: a passive has no ranks"));
+		}
+		for (int32 Index = 0; Index < Breach.Impact.Damage.Num(); ++Index)
+		{
+			if (Breach.Impact.Damage[Index].AmountByRank.Num() != 1)
+			{
+				Problem(FString::Printf(TEXT("%s/impact/damage/%d/amountByRank"), *Pointer, Index), TEXT("holds exactly one value: a passive has no ranks"));
+			}
+		}
+		for (const FString& ShapeProblem : VeyraShapes::Validate(Breach.Impact.Shape))
+		{
+			Problem(Pointer + TEXT("/impact/shape"), ShapeProblem);
+		}
+		for (int32 Index = 0; Index < Breach.Impact.Statuses.Num(); ++Index)
+		{
+			if (!Abilities.Statuses.Contains(Breach.Impact.Statuses[Index]))
+			{
+				Problem(FString::Printf(TEXT("%s/impact/statuses/%d"), *Pointer, Index),
+					FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Breach.Impact.Statuses[Index].ToString()));
+			}
 		}
 	}
 	return Problems;

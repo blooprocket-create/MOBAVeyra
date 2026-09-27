@@ -104,6 +104,17 @@ namespace VeyraCombat
 	 */
 	VEYRACOMBAT_API bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemComponent& Target);
 
+	/**
+	 * Deals prepared damage to Target with AddedAtImpact joining the same event, each amount added to
+	 * its type's component: values the target decides when the damage lands, such as a bonus for its
+	 * missing Health (Combat Bible §50). It stays one hit for mitigation and shields (§25). Each added
+	 * amount must be finite and at least 0. Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemComponent& Target, TConstArrayView<FVeyraDamageComponent> AddedAtImpact);
+
+	/** The Health a unit lacks: its Max Health less its Health, never below 0. */
+	VEYRACOMBAT_API double GetMissingHealth(const UAbilitySystemComponent& Unit);
+
 	/** Prepares one damage event from Source and deals it to Target at once. Returns false if refused. */
 	VEYRACOMBAT_API bool DealDamage(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraRawDamageEvent& Damage);
 

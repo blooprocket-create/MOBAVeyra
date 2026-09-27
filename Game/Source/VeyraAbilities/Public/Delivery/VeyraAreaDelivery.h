@@ -18,6 +18,9 @@ struct FVeyraPreparedZone
 
 	/** The shield the caster gains for each enemy Vanguard the zone catches, if it has one. */
 	TOptional<FVeyraShieldGrant> CasterShieldPerVanguard;
+
+	/** The statuses the caster gains for each enemy Vanguard the zone catches. */
+	TArray<FVeyraStatusSpec> CasterStatusesPerVanguard;
 };
 
 /** How areas hit (ADR-008 §3, ADR-009 §4). Server only, except Place. */

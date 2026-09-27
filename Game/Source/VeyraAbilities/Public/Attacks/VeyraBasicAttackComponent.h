@@ -83,6 +83,12 @@ public:
 	/** Server: an attack ended, finished or cancelled, so an order can carry on. */
 	TMulticastDelegate<void()> OnAttackEnded;
 
+	/**
+	 * Server: the hit chain ended, by a switch to another target, leaving combat or death (Combat
+	 * Bible §16), so what it built up falls off.
+	 */
+	TMulticastDelegate<void()> OnChainReset;
+
 protected:
 	virtual void InitializeComponent() override;
 	virtual void UninitializeComponent() override;

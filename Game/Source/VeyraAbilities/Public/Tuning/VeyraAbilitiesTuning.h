@@ -130,6 +130,23 @@ struct FVeyraDisplacementTuning
 	double Speed = 0.0;
 };
 
+/**
+ * Damage a unit takes for the Health it already lacks, read when the hit lands (Combat Bible §50),
+ * such as an artillery shell's bonus against the wounded (Bryn's Last Broadside).
+ */
+USTRUCT()
+struct FVeyraMissingHealthDamageTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraDamageType Type = EVeyraDamageType::Physical;
+
+	/** Of the target's missing Health, added to the hit's component of Type. */
+	UPROPERTY()
+	double MissingHealthRatio = 0.0;
+};
+
 /** What happens to each unit an area hits (ADR-008 §3). */
 USTRUCT()
 struct FVeyraEffectBundleTuning
@@ -147,6 +164,10 @@ struct FVeyraEffectBundleTuning
 	/** At most one. */
 	UPROPERTY()
 	TArray<FVeyraDisplacementTuning> Displacement;
+
+	/** At most one, and only beside Damage: it joins that hit. */
+	UPROPERTY()
+	TArray<FVeyraMissingHealthDamageTuning> MissingHealthDamage;
 };
 
 /** One status an ability applies, keyed by its ID (Combat Bible §8, §46; FVeyraStatusSpec). */
@@ -260,6 +281,13 @@ struct FVeyraAreaZoneTuning
 	 */
 	UPROPERTY()
 	TArray<FVeyraShieldTuning> CasterShieldPerVanguard;
+
+	/**
+	 * Status IDs from the statuses map the caster gains for each enemy Vanguard the zone catches, such
+	 * as the state an ultimate enters when it lands on a Vanguard (No Quarter; ADR-008 §9).
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> CasterStatusesPerVanguard;
 };
 
 /** An ability that hits the enemies in shapes at the caster or a ground point (ADR-008 §3). */
@@ -553,7 +581,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

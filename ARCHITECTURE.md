@@ -282,18 +282,19 @@ Match Found/committed selection/live reconnect outrank optional Test Skin loadin
 
 ## 12. Deliberately open decisions
 
-The engine, ability-framework, unified-client and launcher/hosting choices are now locked by ADR: **Unreal Engine 5.8.3 from source** (ADR-001), **GAS adoption** (ADR-002), **one Unreal application with isolated client states** (ADR-004), and **a Tauri launcher with single-use launch-code handoff, Windows client/Linux server, local-first Docker hosting, a Go backend and Git LFS** (ADR-005). [ADR-006](Docs/ADR/ADR-006-unreal-project-scaffold.md) records the **Unreal project scaffold**: the project in `Game/`, its targets and modules, GAS placement, networking, tuning format, source control, tests and build scripts. [ADR-007](Docs/ADR/ADR-007-match-join-contract.md) records the **match-join contract**: how a client joins its assigned match, how the backend starts match servers, and how results come back.
+The engine, ability-framework, unified-client and launcher/hosting choices are now locked by ADR: **Unreal Engine 5.8.3 from source** (ADR-001), **GAS adoption** (ADR-002), **one Unreal application with isolated client states** (ADR-004), and **a Tauri launcher with single-use launch-code handoff, Windows client/Linux server, local-first Docker hosting, a Go backend and Git LFS** (ADR-005). [ADR-006](Docs/ADR/ADR-006-unreal-project-scaffold.md) records the **Unreal project scaffold**: the project in `Game/`, its targets and modules, GAS placement, networking, tuning format, source control, tests and build scripts. [ADR-007](Docs/ADR/ADR-007-match-join-contract.md) records the **match-join contract**: how a client joins its assigned match, how the backend starts match servers, and how results come back. [ADR-008](Docs/ADR/ADR-008-vanguard-definitions-and-ability-composition.md) records **Vanguard definitions and ability composition**, and [ADR-009](Docs/ADR/ADR-009-runtime-combat-primitives.md) the **runtime combat primitives** the first kits use; both are accepted when the author merges the M5 pull requests.
 
-Decided by ADR-006:
+Decided by ADR-006, ADR-008 and ADR-009:
 
-- **module names and count:** `Veyra`, `VeyraCore`, `VeyraCombat`, `VeyraAbilities`, `VeyraMatch`, `VeyraServices` and `VeyraDeveloper` so far, with the layer graph enforced by a check against a declared layer map (ADR-006 §3). `VeyraServices` is the only module that talks to the backend (ADR-007 §12). Later modules arrive as their first feature lands;
-- **Ability System Component placement and Attribute Sets:** on the PlayerState for Vanguards, with the Attribute Set split and the §41 multiplicative-stacking policy recorded in ADR-006 §4. Cooldowns are a Veyra ledger rather than Gameplay Effects, and death is a Combat-owned life state (ADR-006 §4, M3 amendment);
-- **prediction for movement and the first ability:** none. Both are server-only; the client sends intents and shows the replicated result (ADR-006 §7, M3 amendment);
+- **module names and count:** `Veyra`, `VeyraCore`, `VeyraCombat`, `VeyraEconomy`, `VeyraAbilities`, `VeyraVanguards`, `VeyraMatch`, `VeyraServices`, `VeyraUI` and `VeyraDeveloper` so far, with the layer graph enforced by a check against a declared layer map (ADR-006 §3; ADR-008 §1). `VeyraServices` is the only module that talks to the backend (ADR-007 §12). `VeyraUI` is client only: servers neither build nor load it. Later modules arrive as their first feature lands;
+- **Ability System Component placement and Attribute Sets:** on the PlayerState for Vanguards, with the Attribute Set split and the §41 multiplicative-stacking policy recorded in ADR-006 §4. Cooldowns are a Veyra ledger rather than Gameplay Effects, and death is a Combat-owned life state (ADR-006 §4, M3 amendment). Statuses are a Combat-owned ledger with one native Gameplay Effect (ADR-009 §1);
+- **how kits are expressed:** as data composed onto a few ability archetypes, with unique passives as content-owned classes that react only to published events and hooks (ADR-008 §3, §5);
+- **prediction for movement and abilities:** none. Movement, casting, dashes, displacement, skillshots, ground areas, channels and basic attacks are server-only; the client sends intents and shows the replicated result (ADR-006 §7, M3 amendment; ADR-009 §6);
 - **LFS file patterns and locking convention** (ADR-006 §9).
 
 The following implementation details remain open:
 
-- the prediction model for each later ability category (ADR-006 §7);
+- the prediction model for any ability category ADR-009 §6 does not cover, decided when that category first arrives;
 - hosted vendors (identity provider, database host, match-server fleet, website host, CDN), deferred until a working local slice (ADR-005);
 - reconnect to a running match, moving join tickets into the network handshake, and a hosted allocator (ADR-007, open items);
 - final build farm beyond the self-hosted runner (ADR-005);

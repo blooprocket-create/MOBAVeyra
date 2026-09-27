@@ -380,6 +380,18 @@ class ProvenanceTests(unittest.TestCase):
     def test_a_document_without_markers_counts_none(self) -> None:
         self.assertEqual(tuning.count_provisional({"schemaVersion": 1, "value": 2}), 0)
 
+    def test_lists_each_provisional_record_by_pointer(self) -> None:
+        document = {
+            "schemaVersion": 1,
+            "experience": {"provenance": "Provisional", "toNextLevel": [1]},
+            "things": {"a/b": {"provenance": "Reviewed"}, "c": {"provenance": "Provisional"}},
+            "list": [{"provenance": "Canon"}, {"provenance": "Provisional"}],
+        }
+        self.assertEqual(tuning.provisional_records(document), ["/experience", "/things/c", "/list/1"])
+
+    def test_a_provisional_root_is_listed_as_the_root(self) -> None:
+        self.assertEqual(tuning.provisional_records({"provenance": "Provisional"}), ["(root)"])
+
 
 class RealRepositoryTests(unittest.TestCase):
     def test_committed_tuning_passes(self) -> None:

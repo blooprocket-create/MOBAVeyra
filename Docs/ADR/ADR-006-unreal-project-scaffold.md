@@ -109,7 +109,12 @@ Modules are created **only when they receive real content**, as Project Structur
   - `VeyraServices` arrives in a new **Services** layer between Orchestration and Composition. It reads the launch code and the server's assignment from standard input, talks to the backend over HTTP and plugs into `VeyraMatch` (ADR-007 §12). No gameplay module knows HTTP.
   - `VeyraMatch` gains the roster, the join rules and `UVeyraMatchHostSubsystem`: the assignment is its input, and "accepting players" and "match ended" are its outputs. It also gains the Ended phase.
   - `VeyraCore` gains SHA-256 (`VeyraHash::Sha256Hex`, over the engine's OpenSSL) for ticket hashes.
-- Later modules (Economy, Items, Flux, World, Vision, Vanguards, UI) follow Project Structure as their first feature lands.
+- **Amendment (2026-09-27, M5): Economy, Vanguards and UI** ([ADR-008](ADR-008-vanguard-definitions-and-ability-composition.md) §1).
+  - `VeyraEconomy` arrives with Progression in an **Economy** layer between Rules and Abilities. `VeyraVanguards` arrives in a **Content** layer between Abilities and Orchestration. `VeyraUI` arrives in a **Presentation** layer above Services.
+  - The layer order is now Foundation → Rules → Economy → Abilities → Content → Orchestration → Services → Presentation → Composition (sealed), Developer (sealed).
+  - Presentation is client only. `VeyraUI` is `ClientOnly` in `Veyra.uproject`, so servers neither build nor load it. The layer check requires that, and lets a module outside the layer add it only for targets that are not servers.
+  - `EVeyraAbilitySlot` moves to `VeyraCore`, because Progression, below Abilities, names slots.
+- Later modules (Items, Flux, World, Vision) follow Project Structure as their first feature lands.
 - **The layer graph is enforced by a check, not just by convention.** A repository script reads every `*.Build.cs`, compares the dependencies against a declared layer map, and fails on an upward, sideways or circular edge. It runs in GitHub Actions without Unreal, alongside the existing documentation check.
 
 ### 4. Gameplay Ability System placement
@@ -165,6 +170,14 @@ Modules are created **only when they receive real content**, as Project Structur
     - It then activates the ability through a gameplay event whose target the server fills in. The ability checks its target again, and `CommitAbility` pays the cost and starts the cooldown.
     - Refusals go back to the owning client with a reason.
     - No client target data is involved (§7), so the target-data spike (§5) concerns later ability kinds.
+- **Amendment (2026-09-27, M5): the first kits** ([ADR-008](ADR-008-vanguard-definitions-and-ability-composition.md), [ADR-009](ADR-009-runtime-combat-primitives.md)).
+  - **New attributes**, each with one rule in the modifier policy: Physical Power, Magic Power, Attack Speed, Resource Regeneration, and the retained shares of crowd-control duration (Tenacity) and displacement.
+  - **Statuses** are a Combat-owned ledger. Their stat changes go through one native duration effect with `MultiplyCompound` SetByCaller lines, so they stay inside the §41 policy and death's cleanup (ADR-009 §1).
+  - **A cast intent** also carries a ground point, which the server checks and clamps to range. New refusals: `NotLearned`, `CrowdControlled`, `Busy` and `InvalidLocation`.
+  - **Casts have phases**: windup, Commit, delivery, an optional channel, recovery. Commit stays the single point that pays the cost and starts the cooldown; a cast interrupted before it enters 20% of its cooldown (Combat §26). Each cast has a server Cast ID (ADR-008 §4).
+  - **Projectiles and delayed areas** carry damage prepared at Commit, as this section requires, and never an ASC (ADR-009 §4).
+  - **Basic attacks** belong to Abilities, on the PlayerState beside the cooldown ledger (ADR-009 §5).
+  - **Ranks** come from Progression (`VeyraEconomy`). Levels, XP and skill points are not attributes.
 
 ### 5. Networking
 
@@ -324,7 +337,7 @@ Modules are created **only when they receive real content**, as Project Structur
   - **Content IDs.** `FVeyraContentId` (`VeyraCore`) wraps a name checked against the canonical pattern. A string schema whose `pattern` is exactly that pattern binds to it.
   - **Content-keyed maps.** An object with a single `patternProperties` entry (the canonical pattern) and `additionalProperties: false` binds to `TMap<FVeyraContentId, FStruct>`. `Abilities.json` uses one: `targetedDamage` is keyed by ability ID.
   - **Cross-file references**, which a schema cannot express, are checked in two places:
-    - the loading domain checks them in the game (Match checks that its developer loadout's `abilityQ` is defined in `Abilities.json`);
+    - the loading domain checks them in the game (Match checks that its developer loadout's `abilityQ` is defined in `Abilities.json`; M5 replaced the loadout, see below);
     - `scripts/check_tuning.py` keeps a small reference table.
 - **The hash, compared on connect.**
   - Each domain logs its BLAKE3 hash when it loads.
@@ -346,6 +359,15 @@ Modules are created **only when they receive real content**, as Project Structur
   - The editor, which keeps every spelling, still checks the exact camelCase key.
   - A document's keys must match its schema's exactly everywhere.
 
+**Amendment (2026-09-27, M5): Vanguards, Progression and provenance** ([ADR-008](ADR-008-vanguard-definitions-and-ability-composition.md) §2, §7, §8).
+
+- **The dialect grows again**, in both validators and the shared corpus:
+  - **Local references.** A record used in several places is declared once under the root's `definitions` and used through `$ref`.
+  - **Cross-file references** take a `*` for every key or item, and may name several maps, any of which may define the ID.
+- **New files.** `Progression.json` (`VeyraEconomy`) and `Vanguards.json` (`VeyraVanguards`). `Abilities.json` gains casting rules, statuses and one map per archetype; `Combat.json` gains the rules the kits need.
+- **The developer loadout is gone.** `Match.json`'s `developerMatch` names each participant's Vanguard in join order, and Match checks that `Vanguards.json` defines each one. A Vanguard's kit replaces the loadout's Q.
+- **Provenance.** Every record whose values the implementer drafted carries `"provenance": "Provisional"`. `scripts/check_tuning.py` counts them, and `--list-provisional` lists each one for review.
+
 ### 7. Movement
 
 - Vanguards use **CharacterMovementComponent**, driven by server-validated move orders with pathfinding. Mover remains Experimental in 5.8 and is not approved under ADR-001.
@@ -366,6 +388,11 @@ Modules are created **only when they receive real content**, as Project Structur
     - for moves, a destination that projects onto the navmesh within a tuned distance.
   - **Preparation refuses every order** until base geometry exists. This is a recorded deviation from Match Flow §1.3, which allows movement inside the fountain.
   - **Later ability categories** decide their prediction one by one (Architecture §12).
+- **Amendment (2026-09-27, M5): forced movement, attacks and no prediction** ([ADR-009](ADR-009-runtime-combat-primitives.md) §2, §5, §6).
+  - `UVeyraMovementComponent` extends CharacterMovementComponent with `Displaced` and `Dashing` modes and computes the effective move speed. A path is planned once on the server: terrain stops it, and it ends on walkable ground.
+  - While crowd control locks movement, the Vanguard's controller holds the latest order and resumes it afterwards.
+  - The PlayerController also sends attack and attack-move orders, which the Vanguard's controller carries out.
+  - Dashes, displacement, skillshots, ground areas, channels and basic attacks are server-only, with no client prediction, like movement and the first ability.
 
 ### 8. Pause and the gameplay clock
 
@@ -427,6 +454,11 @@ Modules are created **only when they receive real content**, as Project Structur
   - **The smoke client acts only once it is connected.** A handoff client starts in a local world, so the client no longer fails on one. It now fails at once on a network or travel failure instead.
   - **The M3 smoke removes only its own server container** when it finishes. `compose down` also stopped the backend and its database.
   - **`Package.ps1`** also fails unless every module schema (`Game/Source/*/Schemas/*.json`) is in the pak.
+- **Amendment (2026-09-27, M5): kits in the smoke test.**
+  - **Every kit has a network suite**, `Veyra.Net.Vanguards.<Name>`, which asserts each ability's outcome as the clients see it.
+  - **`Smoke.ps1 -Vanguards cairn,qazharr,oriel,bryn`** starts one client per Vanguard, so four names make a 2v2. Each client takes developer levels up to the first ultimate rank, ranks every ability, casts Q, W, E and R at the nearest enemy, attacks, and passes once an enemy has taken damage. The server must resolve every ability of every kit. With `-RecordReplay`, playback must also show every Vanguard, a projectile and a delayed area.
+  - **`-Screenshot`** renders one client and saves a frame of the grey-box presentation. Every client fails on a presentation error, which is how a package that did not cook the presentation's assets shows.
+  - The server's expected player count comes from the script (`VEYRA_EXPECTED_PLAYERS` for the container).
 
 ## Milestones
 
@@ -444,7 +476,11 @@ Each milestone is one branch and one pull request. It is built on the Windows ma
 4. **M4 — Session handoff.**
    - Scope: ADR-005 step 3 — local backend login, match allocation and results — under the match-join contract in ADR-007. That covers the backend's match module and Docker allocator, the roster and match lifecycle in `VeyraMatch`, and `VeyraServices`. No new gameplay.
    - Done when two packaged clients redeem launch codes, join their assigned match in a container the backend started, and the backend records the result (`Smoke.ps1 -Handoff`).
-5. **M5 onward.** The first Vanguards in ADR-003 order: Cairn, Qazharr, Oriel, Bryn.
+5. **M5 — The first Vanguards.**
+   - Scope: Cairn, Qazharr, Oriel and Bryn in ADR-003 order, under ADR-008 and ADR-009: `VeyraEconomy` (Progression), `VeyraVanguards`, the runtime combat primitives, the ability archetypes, basic attacks, and grey-box presentation in `VeyraUI`. The Vision parts of their kits wait for Vision.
+   - Delivered as two pull requests: M5a (the foundations, Cairn and the presentation) and M5b (Qazharr, Oriel, Bryn and the four-client smoke).
+   - Done when every kit's network suite passes, and four packaged clients, one per Vanguard, play their kits against the containerised server (`Smoke.ps1 -Vanguards`), with the replay and handoff smokes still passing.
+6. **M6 — The play flow.** Launcher, sign-in, the client, Play, mode selection, a minimal champion select and the start of a match, with Custom practice for a solo player.
 
 ## Consequences
 

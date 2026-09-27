@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -64,6 +64,40 @@
         "width": { "type": "number", "minimum": 0 }
       }
     },
+    "homingProjectile": {
+      "description": "A homing projectile, which terrain does not stop (ADR-008 §9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speed", "radius"],
+      "properties": {
+        "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "radius": { "type": "number", "minimum": 0 }
+      }
+    },
+    "damage": {
+      "description": "One damage component: the amount plus the owner's power times the ratios (Combat Bible §25).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "amountByRank", "physicalPowerRatio", "magicPowerRatio"],
+      "properties": {
+        "type": { "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+        "amountByRank": { "description": "One value: a passive has no ranks.", "type": "array", "minItems": 1, "items": { "type": "number", "minimum": 0 } },
+        "physicalPowerRatio": { "type": "number", "minimum": 0 },
+        "magicPowerRatio": { "type": "number", "minimum": 0 }
+      }
+    },
+    "secondaryImpact": {
+      "description": "An explosion behind a basic attack's target, facing away from the attacker; the target itself is never hit by it (ADR-009 §5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["priority", "shape", "damage", "statuses"],
+      "properties": {
+        "priority": { "description": "A higher priority replaces a lower one; an attack keeps one impact.", "type": "integer", "minimum": 0 },
+        "shape": { "$ref": "#/definitions/shape" },
+        "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
+        "statuses": { "description": "Status IDs from Abilities.json's statuses map.", "$ref": "#/definitions/contentIds" }
+      }
+    },
     "basicAttack": {
       "description": "How the Vanguard's basic attacks work (Combat Bible §4, §48; ADR-008 §2).",
       "type": "object",
@@ -82,16 +116,9 @@
           "type": "array",
           "minItems": 0,
           "maxItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["speed", "radius"],
-            "properties": {
-              "speed": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
-              "radius": { "type": "number", "minimum": 0 }
-            }
-          }
+          "items": { "$ref": "#/definitions/homingProjectile" }
         },
+
         "cleave": {
           "description": "Where the attack cleaves when something makes it cleave: at the Vanguard, facing its target.",
           "type": "array",
@@ -137,7 +164,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -194,6 +221,62 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "shield": { "description": "The shield each immobilized enemy Vanguard grants.", "$ref": "#/definitions/shield" },
             "lockoutSeconds": { "description": "How long the same enemy Vanguard cannot grant the shield again.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "hitChain": {
+      "description": "Generic passives that build up over the hit chain, consecutive basic attacks on one enemy Vanguard, and fall off when it ends (ADR-008 §5; Qazharr's Sea Dog, Character Bible §13).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "status"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "status": {
+              "description": "A status from Abilities.json's statuses map, applied again by each attack in the chain: a stacking status gains a stack per hit.",
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+            }
+          }
+        }
+      }
+    },
+    "gatheringLight": {
+      "description": "Passives that gather a stack from each damaging cast that hits an enemy Vanguard and, once primed, send a homing fragment with the next (Oriel's Gathering Light, Character Bible §20).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "stacksToPrime", "fragmentDamage", "fragment"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "stacksToPrime": { "description": "Stacks that prime it; canon gives three.", "type": "integer", "minimum": 1 },
+            "fragmentDamage": { "description": "The fragment's damage, prepared when it launches.", "$ref": "#/definitions/damage" },
+            "fragment": { "description": "How the fragment flies.", "$ref": "#/definitions/homingProjectile" }
+          }
+        }
+      }
+    },
+    "breach": {
+      "description": "Passives that, on every Nth consecutive basic attack on the same enemy Vanguard, add damage and an explosion behind the target (Bryn's Breach, Character Bible §19).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "hitsToBreach", "bonusDamage", "impact"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "hitsToBreach": { "description": "Which consecutive hit breaches; canon gives the third.", "type": "integer", "minimum": 1 },
+            "bonusDamage": { "description": "Added to the breaching attack's own damage.", "$ref": "#/definitions/damage" },
+            "impact": { "description": "The explosion behind the target; a higher-priority impact such as Breach Round's replaces it.", "$ref": "#/definitions/secondaryImpact" }
           }
         }
       }

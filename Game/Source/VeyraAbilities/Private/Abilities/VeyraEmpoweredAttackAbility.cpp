@@ -66,16 +66,7 @@ FVeyraChannelPlan UVeyraEmpoweredAttackAbility::Deliver(const FVeyraCast& Cast)
 		}
 		if (!Empowered.SecondaryImpact.IsEmpty())
 		{
-			const FVeyraSecondaryImpactTuning& Tuned = Empowered.SecondaryImpact[0];
-			FVeyraSecondaryImpact Impact;
-			Impact.Priority = Tuned.Priority;
-			Impact.Shape = Tuned.Shape;
-			for (const FVeyraDamageTuning& Damage : Tuned.Damage)
-			{
-				Impact.Damage.Components.Add({ Damage.Type, VeyraEffectDelivery::DamageAmount(*Attacker, Damage, Rank) });
-			}
-			Impact.Statuses = VeyraEffectDelivery::StatusSpecs(Tuned.Statuses);
-			Plan.OfferSecondaryImpact(Impact);
+			Plan.OfferSecondaryImpact(VeyraEffectDelivery::SecondaryImpact(*Attacker, Empowered.SecondaryImpact[0], Rank));
 		}
 	};
 	Attacks->Empower(MoveTemp(Empowerment));

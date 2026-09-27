@@ -65,6 +65,8 @@ It links the engine's Gameplay Ability System because it owns the Attribute Sets
 
 It also owns each combatant's life state and the death event that other domains react to, such as Match's respawn (ADR-006 §4, M3 amendment).
 
+M5 added the runtime primitives the first kits use ([ADR-009](Docs/ADR/ADR-009-runtime-combat-primitives.md)): the status ledger, the movement component with its displacement and dash modes, shields with identity and caps, Combat State and assist attribution, and damage prepared at Commit.
+
 ### VeyraAbilities
 
 Owns reusable ability execution behavior and Veyra's C++ integration layer around Unreal Gameplay Ability System (GAS).
@@ -86,7 +88,15 @@ It arrived in M3 with:
 - the loadout, which maps ability slots to content IDs;
 - `VeyraAbilities::TryCast`, the single entry point for casting.
 
-Abilities are server-only for now, with no client prediction (ADR-006 §4 and §7, M3 amendments).
+M5 added ([ADR-008](Docs/ADR/ADR-008-vanguard-definitions-and-ability-composition.md) §3–§4, ADR-009):
+
+- the archetypes a kit's data composes (skillshot, area, self-buff, empowered attack and dash);
+- cast phases and Cast IDs;
+- projectiles, delayed areas and shapes;
+- basic attacks;
+- the telegraphs presentation draws for a cast.
+
+Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy
 
@@ -101,6 +111,8 @@ Canonical owner for gold and economy rules.
 UI and items request transactions; they do not mutate gold directly.
 
 **Progression** (XP balances, levels, level-up stat increments and skill points) lives in this module for now as a **separate owner** with its own state, per the Economy & Progression Bible. It shares the module, not code paths: Gold and XP are never mixed in one class.
+
+Progression arrived first, in M5 (ADR-008 §6): the module holds only it until Gold's first feature. It sits in its own Economy layer, above Combat, whose verbs apply level-up growth, and below Abilities, which reads ranks.
 
 ### VeyraItems
 
@@ -186,18 +198,16 @@ It knows nothing about the backend; `VeyraServices` connects the two.
 
 Champion-specific gameplay content.
 
-Suggested internal pattern:
+A kit is data: `Game/Tuning/Vanguards.json` defines each Vanguard, and its abilities are records in `Abilities.json` that the shared archetypes run (ADR-008 §2–§3). Code exists only for passives the shared systems cannot express, so the module is organised by kind, not by Vanguard (ADR-008 §5):
 
 ```text
 VeyraVanguards/
-├── Shared/
-├── Raska/
-├── Kade/
-├── Silt/
-└── ...
+├── Passives/   one class per unique passive (Deep Foundation, Gathering Light, Breach)
+├── Shared/     generic passives any Vanguard's data can use (the hit chain)
+└── Tuning/     the Vanguards.json binding and its rules
 ```
 
-Vanguard code may compose Combat and Ability primitives. It must not fork or duplicate their rules.
+Vanguard code may compose Combat and Ability primitives. It must not fork or duplicate their rules. It sits in the Content layer, below Match, which prepares each participant's Vanguard.
 
 ### VeyraServices
 
@@ -222,6 +232,8 @@ Presentation only.
 
 UI observes/queries gameplay state and emits user intent. No gameplay module depends on UI.
 
+It arrived in M5 with grey-box presentation (`Greybox/`: engine shapes for bodies, projectiles and cast telegraphs) and a Canvas HUD (`Hud/`), both placeholders (ADR-008 §1). It is `ClientOnly`, so servers neither build nor load it, and the layer check enforces that.
+
 ### VeyraDeveloper
 
 Non-shipping or development-facing utilities.
@@ -242,15 +254,19 @@ Conceptually:
 ```text
 VeyraCore
    ↓
-Combat / Economy
+Combat
+   ↓
+Economy
    ↓
 Abilities / Items / Flux / World / Vision
    ↓
-Match / Vanguards
+Vanguards (content)
+   ↓
+Match
    ↓
 Services (the backend client)
    ↓
-UI
+UI (client only)
 
 Developer tooling may observe/use all layers.
 ```

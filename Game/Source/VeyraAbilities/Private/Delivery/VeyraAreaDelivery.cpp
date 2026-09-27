@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "Engine/World.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraAbilitiesLog.h"
 
@@ -29,6 +30,13 @@ TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstA
 		{
 			Ready.CasterShieldPerVanguard = VeyraEffectDelivery::ShieldGrant(Caster, Zone.CasterShieldPerVanguard[0], Rank);
 		}
+		for (const FVeyraContentId& StatusId : Zone.CasterStatusesPerVanguard)
+		{
+			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+			{
+				Ready.CasterStatusesPerVanguard.Add(Status.GetValue());
+			}
+		}
 	}
 	return Prepared;
 }
@@ -49,9 +57,16 @@ TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FV
 		{
 			Hit.Add(Unit);
 			FVeyraAbilityHitSource UnitSource = Source;
-			if (Zone.CasterShieldPerVanguard.IsSet() && VeyraUnits::IsVanguard(Unit))
+			if (VeyraUnits::IsVanguard(Unit))
 			{
-				UnitSource.bCasterShielded = VeyraCombat::GrantShield(Caster, Caster, Zone.CasterShieldPerVanguard.GetValue()).IsValid();
+				if (Zone.CasterShieldPerVanguard.IsSet())
+				{
+					UnitSource.bCasterShielded = VeyraCombat::GrantShield(Caster, Caster, Zone.CasterShieldPerVanguard.GetValue()).IsValid();
+				}
+				for (const FVeyraStatusSpec& Status : Zone.CasterStatusesPerVanguard)
+				{
+					VeyraCombat::ApplyStatus(Caster, Caster, Status);
+				}
 			}
 			VeyraEffectDelivery::Apply(Caster, *Unit, Zone.Effects, Frame, UnitSource);
 		}

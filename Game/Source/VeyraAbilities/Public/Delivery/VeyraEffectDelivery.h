@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Attacks/VeyraBasicAttackTypes.h"
 #include "Events/VeyraAbilityEvents.h"
 #include "Misc/Optional.h"
 #include "Statuses/VeyraStatusTypes.h"
@@ -19,6 +20,9 @@ struct FVeyraPreparedEffects
 
 	TArray<FVeyraStatusSpec> Statuses;
 	TOptional<FVeyraDisplacementTuning> Displacement;
+
+	/** Damage for the target's missing Health, read when the hit lands; it joins Damage. */
+	TOptional<FVeyraMissingHealthDamageTuning> MissingHealthDamage;
 };
 
 /** Where effects are applied from: the point displacements are measured from, and the way they face. */
@@ -46,6 +50,12 @@ namespace VeyraEffectDelivery
 	 * and cap group total as shares of Max Health.
 	 */
 	VEYRAABILITIES_API FVeyraShieldGrant ShieldGrant(const UAbilitySystemComponent& Caster, const FVeyraShieldTuning& Shield, int32 Rank);
+
+	/**
+	 * Impact as a basic attack's secondary impact from Caster at Rank, its damage from the caster's
+	 * power now (ADR-009 §5): an empowered attack's, or a passive's.
+	 */
+	VEYRAABILITIES_API FVeyraSecondaryImpact SecondaryImpact(const UAbilitySystemComponent& Caster, const FVeyraSecondaryImpactTuning& Impact, int32 Rank);
 
 	/** Effects for Caster at Rank: damage from the caster's power now, statuses and displacement from data. */
 	VEYRAABILITIES_API FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffectBundleTuning& Effects, int32 Rank);

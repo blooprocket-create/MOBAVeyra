@@ -70,6 +70,10 @@ namespace
 		{
 			CheckDamage(Pointer + TEXT("/damage"), Effects.Damage);
 			CheckStatusIds(Pointer + TEXT("/statuses"), Effects.Statuses);
+			if (!Effects.MissingHealthDamage.IsEmpty() && Effects.Damage.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/missingHealthDamage"), TEXT("joins the hit's damage, so the effects need damage too"));
+			}
 		}
 
 		void CheckStatuses()
@@ -131,6 +135,7 @@ namespace
 				{
 					CheckShield(FString::Printf(TEXT("%s/casterShieldPerVanguard/%d"), *ZonePointer, ShieldIndex), Zones[Index].CasterShieldPerVanguard[ShieldIndex]);
 				}
+				CheckStatusIds(ZonePointer + TEXT("/casterStatusesPerVanguard"), Zones[Index].CasterStatusesPerVanguard);
 			}
 		}
 

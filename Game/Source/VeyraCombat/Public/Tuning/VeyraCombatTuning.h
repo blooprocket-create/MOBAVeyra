@@ -167,6 +167,27 @@ struct FVeyraAttackSpeedTuning
 	double OverflowCurveConstant = 0.0;
 };
 
+/**
+ * When a unit counts as moving toward an enemy Vanguard, for bonuses that hold only then (Combat
+ * Bible §23; ADR-008 §9): a living enemy Vanguard it can acquire (VeyraTargeting::CanAcquire) is
+ * within Range, edge to edge, and lies within MaxAngleDegrees of the way it is moving.
+ */
+USTRUCT()
+struct FVeyraPursuitTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double Range = 0.0;
+
+	/** Either side of the unit's movement direction, in degrees; above 0 and below 90. */
+	UPROPERTY()
+	double MaxAngleDegrees = 0.0;
+};
+
 /** The Combat domain's tuning, bound from Game/Tuning/Combat.json (ADR-006 §6). */
 USTRUCT()
 struct FVeyraCombatTuning
@@ -174,7 +195,7 @@ struct FVeyraCombatTuning
 	GENERATED_BODY()
 
 	/** The Combat.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraResistanceTuning Resistance;
@@ -202,6 +223,9 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraAttackSpeedTuning AttackSpeed;
+
+	UPROPERTY()
+	FVeyraPursuitTuning Pursuit;
 };
 
 /** The Combat domain's checks that a schema cannot express. */

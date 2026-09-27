@@ -69,6 +69,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
 		break;
 	case EVeyraStatusKind::AttackCleave:
+	case EVeyraStatusKind::MoveSpeedTowardEnemyVanguards:
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks <= 1.0;
 		break;
 	}

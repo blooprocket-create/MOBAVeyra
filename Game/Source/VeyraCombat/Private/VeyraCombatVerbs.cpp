@@ -328,6 +328,37 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	return Source->ApplyGameplayEffectSpecToTarget(*Damage.Spec.Data, &Target).WasSuccessfullyApplied();
 }
 
+bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemComponent& Target, TConstArrayView<FVeyraDamageComponent> AddedAtImpact)
+{
+	if (AddedAtImpact.IsEmpty() || !Damage.IsValid())
+	{
+		return DealPreparedDamage(Damage, Target);
+	}
+	for (const FVeyraDamageComponent& Added : AddedAtImpact)
+	{
+		if (!IsNonNegativeFinite(Added.Amount))
+		{
+			UE_LOG(LogVeyraCombat, Error, TEXT("Refused damage to %s: an amount added at impact must be finite and at least 0."), *GetNameSafe(Target.GetOwner()));
+			return false;
+		}
+	}
+	// A copy, so the preparation stays the same for every other target it reaches.
+	FVeyraPreparedDamage Landing;
+	Landing.Spec = FGameplayEffectSpecHandle(new FGameplayEffectSpec(*Damage.Spec.Data));
+	for (const FVeyraDamageComponent& Added : AddedAtImpact)
+	{
+		const FGameplayTag Tag = VeyraCombatTagMapping::DamageTypeTag(Added.Type);
+		const float Prepared = Landing.Spec.Data->GetSetByCallerMagnitude(Tag, /*WarnIfNotFound*/ false, 0.0f);
+		Landing.Spec.Data->SetSetByCallerMagnitude(Tag, Prepared + static_cast<float>(Added.Amount));
+	}
+	return DealPreparedDamage(Landing, Target);
+}
+
+double GetMissingHealth(const UAbilitySystemComponent& Unit)
+{
+	return FMath::Max(0.0, Unit.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) - Unit.GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()));
+}
+
 bool DealDamage(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraRawDamageEvent& Damage)
 {
 	if (IsDeadUnit(Target))

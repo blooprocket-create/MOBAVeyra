@@ -36,6 +36,7 @@ namespace
 		case EVeyraStatusKind::Stun:
 		case EVeyraStatusKind::Slow:
 		case EVeyraStatusKind::AttackCleave:
+		case EVeyraStatusKind::MoveSpeedTowardEnemyVanguards:
 			break;
 		}
 		return NAME_None;

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -84,6 +84,127 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0
+    },
+    "qazharr_sea_dog": {
+      "provenance": "Provisional",
+      "kind": "AttackSpeed",
+      "stacking": "Stacking",
+      "magnitude": 0.06,
+      "durationSeconds": 6,
+      "maxStacks": 5,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "qazharr_heavy_hand_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueReplaceStrongest",
+      "magnitude": 0.3,
+      "durationSeconds": 1.25,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "qazharr_weather_it_tenacity": {
+      "provenance": "Provisional",
+      "kind": "Tenacity",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 3,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "qazharr_boarding_rush_haste": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.2,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "qazharr_no_quarter_frenzy": {
+      "provenance": "Provisional",
+      "kind": "AttackSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.5,
+      "durationSeconds": 6,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 1.5,
+      "takedownExtensionMaxSeconds": 3
+    },
+    "qazharr_no_quarter_pursuit": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeedTowardEnemyVanguards",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.2,
+      "durationSeconds": 6,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 1.5,
+      "takedownExtensionMaxSeconds": 3
+    },
+    "qazharr_no_quarter_tenacity": {
+      "provenance": "Provisional",
+      "kind": "Tenacity",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 6,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 1.5,
+      "takedownExtensionMaxSeconds": 3
+    },
+    "qazharr_no_quarter_cleave": {
+      "provenance": "Provisional",
+      "kind": "AttackCleave",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.4,
+      "durationSeconds": 6,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 1.5,
+      "takedownExtensionMaxSeconds": 3
+    },
+    "oriel_shattered_sky_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueReplaceStrongest",
+      "magnitude": 0.25,
+      "durationSeconds": 1.25,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "oriel_mirror_veil_haste": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.25,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    }
+,
+    "bryn_flare_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueReplaceStrongest",
+      "magnitude": 0.3,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "bryn_kickback_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueReplaceStrongest",
+      "magnitude": 0.25,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
     }
   },
   "targetedDamage": {
@@ -116,18 +237,22 @@
           "effects": {
             "damage": [{ "type": "Physical", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }],
             "statuses": ["cairn_crushing_hold_stun"],
-            "displacement": []
+            "displacement": [],
+            "missingHealthDamage": []
           },
-          "casterShieldPerVanguard": []
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
         },
         {
           "shape": { "kind": "Sector", "radius": 425, "arcDegrees": 100, "length": 0, "width": 0 },
           "effects": {
             "damage": [],
             "statuses": ["cairn_crushing_hold_slow"],
-            "displacement": []
+            "displacement": [],
+            "missingHealthDamage": []
           },
-          "casterShieldPerVanguard": []
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
         }
       ]
     },
@@ -151,7 +276,8 @@
           "effects": {
             "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],
             "statuses": ["cairn_burden_stun"],
-            "displacement": [{ "direction": "TowardOrigin", "distance": 150, "speed": 900 }]
+            "displacement": [{ "direction": "TowardOrigin", "distance": 150, "speed": 900 }],
+            "missingHealthDamage": []
           },
           "casterShieldPerVanguard": [
             {
@@ -165,16 +291,170 @@
               "maxAmountMaxHealthRatio": 0.18,
               "capGroup": [{ "id": "cairn_shields", "totalMaxHealthRatio": 0.25 }]
             }
-          ]
+          ],
+          "casterStatusesPerVanguard": []
         },
         {
           "shape": { "kind": "Circle", "radius": 550, "arcDegrees": 0, "length": 0, "width": 0 },
           "effects": {
             "damage": [],
             "statuses": ["cairn_burden_slow"],
-            "displacement": []
+            "displacement": [],
+            "missingHealthDamage": []
           },
-          "casterShieldPerVanguard": []
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
+    },
+    "qazharr_no_quarter": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [100, 85, 70],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0.6,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.3
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "zones": [
+        {
+          "shape": { "kind": "Sector", "radius": 400, "arcDegrees": 160, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [150, 250, 350], "physicalPowerRatio": 0.9, "magicPowerRatio": 0 }],
+            "statuses": [],
+            "displacement": [{ "direction": "AcrossCastLeft", "distance": 250, "speed": 1200 }],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": ["qazharr_no_quarter_frenzy", "qazharr_no_quarter_pursuit", "qazharr_no_quarter_tenacity", "qazharr_no_quarter_cleave"]
+        }
+      ]
+    },
+    "oriel_shattered_sky": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [10, 9.5, 9, 8.5, 8],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 850,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.2
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 0.9,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }],
+            "statuses": ["oriel_shattered_sky_slow"],
+            "displacement": [],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
+    },
+    "oriel_final_radiance": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [110, 95, 80],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0.75,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.3
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 5,
+      "channelSeconds": 2.0,
+      "zones": [
+        {
+          "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 1300, "width": 180 },
+          "effects": {
+            "damage": [{ "type": "Magic", "amountByRank": [60, 90, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
+    },
+    "bryn_sounding_flare": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [50],
+        "castRange": 900,
+        "windupSeconds": 0.2,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.2
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": ["bryn_flare_slow"],
+            "displacement": [],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
+    },
+    "bryn_last_broadside": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 105, 90],
+        "resourceCostByRank": [100],
+        "castRange": 3000,
+        "windupSeconds": 1.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.4
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 1.2,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [300, 450, 600], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [{ "type": "Physical", "missingHealthRatio": 0.15 }]
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        },
+        {
+          "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
         }
       ]
     }
@@ -194,6 +474,60 @@
       "shields": [],
       "aura": [{ "radius": 600, "durationSeconds": 4, "refreshSeconds": 0.5, "allyStatuses": ["cairn_immovable_cover"] }],
       "recast": "EndsEarly"
+    },
+    "qazharr_weather_it": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [40],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "statuses": ["qazharr_weather_it_tenacity"],
+      "shields": [
+        {
+          "id": "qazharr_weather_it_shield",
+          "category": "Universal",
+          "amountByRank": [60, 95, 130, 165, 200],
+          "maxHealthRatio": 0.06,
+          "magicPowerRatio": 0,
+          "durationSeconds": 3,
+          "reapply": "Replace",
+          "maxAmountMaxHealthRatio": 0,
+          "capGroup": []
+        }
+      ],
+      "aura": [],
+      "recast": "None"
+    },
+    "oriel_mirror_veil": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [18, 17, 16, 15, 14],
+        "resourceCostByRank": [60],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "statuses": ["oriel_mirror_veil_haste"],
+      "shields": [
+        {
+          "id": "oriel_mirror_veil_shield",
+          "category": "Universal",
+          "amountByRank": [70, 110, 150, 190, 230],
+          "maxHealthRatio": 0,
+          "magicPowerRatio": 0.45,
+          "durationSeconds": 2.5,
+          "reapply": "Replace",
+          "maxAmountMaxHealthRatio": 0,
+          "capGroup": []
+        }
+      ],
+      "aura": [],
+      "recast": "None"
     }
   },
   "skillshot": {
@@ -212,15 +546,143 @@
       "effects": {
         "damage": [{ "type": "Physical", "amountByRank": [50, 80, 110, 140, 170], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }],
         "statuses": [],
-        "displacement": [{ "direction": "TowardOrigin", "distance": 1050, "speed": 1800 }]
+        "displacement": [{ "direction": "TowardOrigin", "distance": 1050, "speed": 1800 }],
+        "missingHealthDamage": []
       },
       "passThroughEffects": {
         "damage": [],
         "statuses": [],
-        "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900 }]
+        "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900 }],
+        "missingHealthDamage": []
+      }
+    },
+    "oriel_splinter_lance": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [7, 6.5, 6, 5.5, 5],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 1000,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.2
+      },
+      "projectile": { "speed": 1800, "radius": 40, "range": 1000 },
+      "collision": "FirstEnemy",
+      "effects": {
+        "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.7 }],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": []
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": []
       }
     }
   },
-  "dash": {},
-  "empoweredAttack": {}
+  "dash": {
+    "qazharr_boarding_rush": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [45],
+        "castRange": 450,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "direction": "TowardPoint",
+      "distance": 450,
+      "speed": 1200,
+      "contact": "StopAtFirstEnemy",
+      "startZones": [],
+      "contactEffects": {
+        "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": []
+      },
+      "contactSelfStatuses": ["qazharr_boarding_rush_haste"]
+    },
+    "bryn_kickback": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [50],
+        "castRange": 500,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "direction": "AwayFromPoint",
+      "distance": 350,
+      "speed": 1400,
+      "contact": "None",
+      "startZones": [
+        {
+          "shape": { "kind": "Sector", "radius": 325, "arcDegrees": 70, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [40, 55, 70, 85, 100], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }],
+            "statuses": ["bryn_kickback_slow"],
+            "displacement": [],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "contactEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": []
+      },
+      "contactSelfStatuses": []
+    }
+  },
+  "empoweredAttack": {
+    "qazharr_heavy_hand": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [8, 7.5, 7, 6.5, 6],
+        "resourceCostByRank": [30],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "durationSeconds": 5,
+      "damage": [{ "type": "Physical", "amountByRank": [30, 55, 80, 105, 130], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }],
+      "statuses": ["qazharr_heavy_hand_slow"],
+      "armorPenetrationByRank": [0],
+      "cleave": [{ "damageFraction": 0.6, "statuses": ["qazharr_heavy_hand_slow"] }],
+      "secondaryImpact": []
+    },
+    "bryn_breach_round": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [9, 8.5, 8, 7.5, 7],
+        "resourceCostByRank": [40, 45, 50, 55, 60],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "durationSeconds": 6,
+      "damage": [{ "type": "Physical", "amountByRank": [40, 70, 100, 130, 160], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],
+      "statuses": [],
+      "armorPenetrationByRank": [0.2, 0.25, 0.3, 0.35, 0.4],
+      "cleave": [],
+      "secondaryImpact": [
+        {
+          "priority": 2,
+          "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 150 },
+          "damage": [{ "type": "Physical", "amountByRank": [60, 90, 120, 150, 180], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }],
+          "statuses": []
+        }
+      ]
+    }
+  }
 }

@@ -88,6 +88,7 @@ void UVeyraTargetedDamageAbility::ActivateAbility(const FGameplayAbilitySpecHand
 		Hit.Target = Target.Actor;
 		Hit.Ability = Ability;
 		Hit.CastId = World ? World->GetSubsystem<UVeyraCastSubsystem>()->IssueCastId() : 0;
+		Hit.bDamaging = true;
 		UVeyraAbilityEventSubsystem::Announce(World, Hit);
 	}
 	EndAbility(Handle, ActorInfo, ActivationInfo, /*bReplicateEndAbility*/ true, /*bWasCancelled*/ false);

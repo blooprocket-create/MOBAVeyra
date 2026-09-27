@@ -3,7 +3,11 @@
 #include "Smoke/VeyraSmokeClientSubsystem.h"
 
 #include "AbilitySystemComponent.h"
+#include "Algo/AllOf.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Casting/VeyraCastStateComponent.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -12,9 +16,12 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Progression/VeyraProgressionComponent.h"
+#include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "UnrealClient.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
@@ -34,6 +41,27 @@ namespace
 	// How long the paused world must stay paused before this client asks to resume. Long enough for
 	// a replay, which samples a few times a second, to record the pause.
 	constexpr double PauseHoldRealSeconds = 1.0;
+	// -VeyraSmokeKit: how many times one ability may be refused for a passing reason before the
+	// script gives up.
+	constexpr int32 KitCastAttemptLimit = 20;
+
+	/** -VeyraSmokeKit: whether a refused cast may succeed if tried again a moment later. */
+	bool IsPassingKitRejection(EVeyraCastRejection Rejection)
+	{
+		switch (Rejection)
+		{
+		case EVeyraCastRejection::CasterDead:
+		case EVeyraCastRejection::CrowdControlled:
+		case EVeyraCastRejection::Busy:
+		case EVeyraCastRejection::InsufficientResource:
+		case EVeyraCastRejection::TargetDead:
+		case EVeyraCastRejection::OutOfRange:
+		case EVeyraCastRejection::Paused:
+			return true;
+		default:
+			return false;
+		}
+	}
 }
 
 bool UVeyraSmokeClientSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -49,6 +77,7 @@ void UVeyraSmokeClientSubsystem::Initialize(FSubsystemCollectionBase& Collection
 	bWaitForEnd = bEndMatch || FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeWaitForEnd"));
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeStay="), StaySeconds);
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeScreenshot="), ScreenshotPath);
+	bKit = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeKit"));
 	StartRealTime = FPlatformTime::Seconds();
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraSmokeClientSubsystem::Tick));
 	NetworkFailureHandle = GEngine->OnNetworkFailure().AddUObject(this, &UVeyraSmokeClientSubsystem::OnNetworkFailure);
@@ -137,7 +166,20 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	switch (Step)
 	{
 	case EStep::WaitForLiveMatch:
-		if (GameState->GetPhase() == EVeyraMatchPhase::Live)
+		if (GameState->GetPhase() == EVeyraMatchPhase::Live && bKit)
+		{
+			// The whole kit needs the first ultimate rank: developer levels up to it (ADR-008 §6).
+			const UVeyraProgressionComponent* Progression = Controller->GetPlayerState<AVeyraPlayerState>()->FindComponentByClass<UVeyraProgressionComponent>();
+			const TArray<int32>& UltimateLevels = UVeyraProgressionTuningSubsystem::Get().UltimateRankLevels;
+			if (!Progression || !Progression->IsInitialized() || UltimateLevels.IsEmpty())
+			{
+				break;
+			}
+			KitLevel = UltimateLevels[0];
+			Controller->RequestDeveloperLevels(KitLevel - Progression->GetLevel());
+			Advance(EStep::WaitForLevels, TEXT("the match is live; asked for developer levels"));
+		}
+		else if (GameState->GetPhase() == EVeyraMatchPhase::Live)
 		{
 			// The smoke plays a Vanguard whose Q is a targeted damage ability (Smoke.ps1 asks for test_vanguard).
 			const AVeyraPlayerState* Own = Controller->GetPlayerState<AVeyraPlayerState>();
@@ -150,14 +192,45 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 				break;
 			}
 			CastRange = Ability->CastRange;
-			// Toward the lane centre, stopping short of it so the two Vanguards end in range of each other.
-			MoveStart = Vanguard->GetActorLocation();
-			const double StopX = FMath::Min(FMath::Abs(MoveStart.X), CastRange * StopFromCentreFractionOfCastRange);
-			MoveDestination = FVector(FMath::Sign(MoveStart.X) * StopX, MoveStart.Y, 0.0);
-			Controller->IssueMoveOrder(MoveDestination);
+			StartMove(*Controller, *Vanguard, CastRange);
 			Advance(EStep::WaitForMove, TEXT("the match is live; ordered a move"));
 		}
 		break;
+
+	case EStep::WaitForLevels:
+		if (const UVeyraProgressionComponent* Progression = Controller->GetPlayerState<AVeyraPlayerState>()->FindComponentByClass<UVeyraProgressionComponent>();
+			Progression && Progression->GetLevel() >= KitLevel)
+		{
+			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
+			{
+				Controller->RequestRankUp(Slot);
+			}
+			Advance(EStep::WaitForRanks, TEXT("reached the ultimate's level; asked to rank every ability"));
+		}
+		break;
+
+	case EStep::WaitForRanks:
+	{
+		const AVeyraPlayerState* Own = Controller->GetPlayerState<AVeyraPlayerState>();
+		const UVeyraProgressionComponent* Progression = Own->FindComponentByClass<UVeyraProgressionComponent>();
+		if (Controller->GetLastRankUpRefusal() != EVeyraRankRefusal::None)
+		{
+			Finish(false, FString::Printf(TEXT("the server refused a rank: %s"), LexToString(Controller->GetLastRankUpRefusal())));
+		}
+		else if (Controller->GetOrderRejectionCount() > 0)
+		{
+			Finish(false, FString::Printf(TEXT("the server refused a rank-up order: %s"), LexToString(Controller->GetLastOrderRejection())));
+		}
+		else if (Progression && Algo::AllOf(VeyraAbilitySlots::All, [Progression](EVeyraAbilitySlot Slot) { return Progression->GetRank(Slot) > 0; }))
+		{
+			// Toward the lane centre, stopping within the Vanguard's own attack range of it.
+			const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(Own->GetVanguardId());
+			CastRange = Definition ? Definition->BasicAttack.Range : 0.0;
+			StartMove(*Controller, *Vanguard, CastRange);
+			Advance(EStep::WaitForMove, TEXT("every ability is ranked; ordered a move"));
+		}
+		break;
+	}
 
 	case EStep::WaitForMove:
 		if (Controller->GetOrderRejectionCount() > 0)
@@ -166,7 +239,34 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 		}
 		else if (FVector::Dist2D(Vanguard->GetActorLocation(), MoveStart) >= FVector::Dist2D(MoveStart, MoveDestination) * MoveProgressFraction)
 		{
-			Advance(EStep::WaitForRange, TEXT("the Vanguard moves"));
+			Advance(bKit ? EStep::KitCast : EStep::WaitForRange, TEXT("the Vanguard moves"));
+		}
+		break;
+
+	case EStep::KitCast:
+		TickKitCast(*Controller, *GameState, *Vanguard);
+		break;
+
+	case EStep::KitAttack:
+	{
+		const UVeyraBasicAttackComponent* Attacks = Controller->GetPlayerState<AVeyraPlayerState>()->FindComponentByClass<UVeyraBasicAttackComponent>();
+		if (Attacks && Attacks->GetState().Phase == EVeyraAttackPhase::Backswing)
+		{
+			Advance(EStep::KitDamage, TEXT("a basic attack committed"));
+		}
+		else if (Controller->GetOrderRejectionCount() > KitRejectionsBefore)
+		{
+			// The order was refused, perhaps while crowd controlled: order it again at whoever is nearest.
+			KitRejectionsBefore = Controller->GetOrderRejectionCount();
+			Controller->IssueAttackOrder(FindNearestEnemyBody(*Controller, *GameState, Vanguard->GetActorLocation()));
+		}
+		break;
+	}
+
+	case EStep::KitDamage:
+		if (HasAnEnemyTakenDamage(*Controller, *GameState))
+		{
+			AfterScript(TEXT("the Vanguard took its levels, ranked its kit, moved, cast Q, W, E and R, attacked, and the enemies took damage"));
 		}
 		break;
 
@@ -252,15 +352,136 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	return Step != EStep::Finished;
 }
 
-void UVeyraSmokeClientSubsystem::AfterHit()
+void UVeyraSmokeClientSubsystem::StartMove(AVeyraPlayerController& Controller, const AVeyraVanguardCharacter& Vanguard, double StopDistance)
+{
+	// Toward the lane centre, stopping short of it so the Vanguards end in range of each other.
+	MoveStart = Vanguard.GetActorLocation();
+	const double StopX = FMath::Min(FMath::Abs(MoveStart.X), StopDistance * StopFromCentreFractionOfCastRange);
+	MoveDestination = FVector(FMath::Sign(MoveStart.X) * StopX, MoveStart.Y, 0.0);
+	Controller.IssueMoveOrder(MoveDestination);
+}
+
+AActor* UVeyraSmokeClientSubsystem::FindNearestEnemyBody(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState, const FVector& From) const
+{
+	const AVeyraPlayerState* Self = Controller.GetPlayerState<AVeyraPlayerState>();
+	AActor* Nearest = nullptr;
+	double NearestDistance = TNumericLimits<double>::Max();
+	for (const APlayerState* Participant : GameState.PlayerArray)
+	{
+		const AVeyraPlayerState* Candidate = Cast<AVeyraPlayerState>(Participant);
+		APawn* Body = Candidate ? Candidate->GetPawn() : nullptr;
+		if (!Self || !Body || Candidate->GetVeyraTeam() == Self->GetVeyraTeam() || !VeyraTargeting::IsAlive(Body))
+		{
+			continue;
+		}
+		const double Distance = FVector::Dist2D(From, Body->GetActorLocation());
+		if (Distance < NearestDistance)
+		{
+			Nearest = Body;
+			NearestDistance = Distance;
+		}
+	}
+	return Nearest;
+}
+
+void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller, const AVeyraGameState& GameState, const AVeyraVanguardCharacter& Vanguard)
+{
+	const AVeyraPlayerState* Own = Controller.GetPlayerState<AVeyraPlayerState>();
+	const UVeyraCastStateComponent* CastState = Own->FindComponentByClass<UVeyraCastStateComponent>();
+	const UVeyraCooldownComponent* Cooldowns = Own->FindComponentByClass<UVeyraCooldownComponent>();
+	const UVeyraAbilityLoadoutComponent* Loadout = Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+	if (!CastState || !Cooldowns || !Loadout)
+	{
+		return;
+	}
+	// A rendering client shows a telegraph mid-cast (ADR-008 §1).
+	if (CastState->GetState().Phase == EVeyraCastPhase::Windup || CastState->GetState().Phase == EVeyraCastPhase::Channel)
+	{
+		RequestScreenshot();
+	}
+
+	const EVeyraAbilitySlot Slot = VeyraAbilitySlots::All[KitSlotIndex];
+	const FVeyraLoadoutEntry* Entry = Loadout->FindSlot(Slot);
+	if (!Entry)
+	{
+		Finish(false, FString::Printf(TEXT("slot %d holds no ability"), KitSlotIndex));
+		return;
+	}
+	if (bKitCastPending)
+	{
+		// A cast counts once the server starts its cooldown, at Commit (ADR-008 §4).
+		if (Cooldowns->GetRemainingSecondsNow(Entry->Ability) > 0.0)
+		{
+			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s committed after %d attempt(s)."), *Entry->Ability.ToString(), KitCastAttempts);
+			bKitCastPending = false;
+			KitCastAttempts = 0;
+			if (++KitSlotIndex == UE_ARRAY_COUNT(VeyraAbilitySlots::All))
+			{
+				KitRejectionsBefore = Controller.GetOrderRejectionCount();
+				Controller.IssueAttackOrder(FindNearestEnemyBody(Controller, GameState, Vanguard.GetActorLocation()));
+				Advance(EStep::KitAttack, TEXT("cast Q, W, E and R; ordered a basic attack"));
+			}
+		}
+		else if (Controller.GetCastRejectionCount() > KitRejectionsBefore)
+		{
+			const EVeyraCastRejection Rejection = Controller.GetLastCastRejection();
+			if (!IsPassingKitRejection(Rejection) || KitCastAttempts >= KitCastAttemptLimit)
+			{
+				Finish(false, FString::Printf(TEXT("the server refused %s %d time(s), last: %s"), *Entry->Ability.ToString(), KitCastAttempts, LexToString(Rejection)));
+				return;
+			}
+			// Refused while something passing held the Vanguard, such as another cast or crowd control: try again.
+			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s refused (%s); trying again."), *Entry->Ability.ToString(), LexToString(Rejection));
+			bKitCastPending = false;
+		}
+		return;
+	}
+	AActor* Target = FindNearestEnemyBody(Controller, GameState, Vanguard.GetActorLocation());
+	if (!Target || CastState->IsBusy())
+	{
+		return;
+	}
+	FVeyraCastTarget CastTarget;
+	CastTarget.Actor = Target;
+	CastTarget.bHasLocation = true;
+	CastTarget.Location = Target->GetActorLocation();
+	KitRejectionsBefore = Controller.GetCastRejectionCount();
+	++KitCastAttempts;
+	bKitCastPending = true;
+	Controller.IssueCastOrder(Slot, CastTarget);
+}
+
+bool UVeyraSmokeClientSubsystem::HasAnEnemyTakenDamage(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState) const
+{
+	const AVeyraPlayerState* Self = Controller.GetPlayerState<AVeyraPlayerState>();
+	for (const APlayerState* Participant : GameState.PlayerArray)
+	{
+		const AVeyraPlayerState* Candidate = Cast<AVeyraPlayerState>(Participant);
+		const UAbilitySystemComponent* Abilities = Candidate ? Candidate->GetAbilitySystemComponent() : nullptr;
+		if (Self && Abilities && Candidate->GetVeyraTeam() != Self->GetVeyraTeam()
+			&& Abilities->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) < Abilities->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void UVeyraSmokeClientSubsystem::RequestScreenshot()
 {
 	// A rendering client shows the grey-box presentation mid-match (ADR-008 §1). The viewport saves
 	// it at the end of its next frame, so the client must stay a moment (-VeyraSmokeStay=).
-	if (!ScreenshotPath.IsEmpty())
+	if (!ScreenshotPath.IsEmpty() && !bScreenshotRequested)
 	{
+		bScreenshotRequested = true;
 		FScreenshotRequest::RequestScreenshot(ScreenshotPath, /*bShowUI*/ true, /*bAddFilenameSuffix*/ false);
 		UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: asked for a screenshot at %s."), *ScreenshotPath);
 	}
+}
+
+void UVeyraSmokeClientSubsystem::AfterHit()
+{
+	RequestScreenshot();
 	if (bCheckPause)
 	{
 		GetController()->RequestDeveloperPause(true);
