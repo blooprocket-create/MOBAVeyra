@@ -1,0 +1,15 @@
+[package]
+name = "veyra-launcher"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+# custom-protocol embeds the UI and serves it from the binary; the Tauri CLI would turn it on for
+# release builds, and this launcher builds with plain cargo (ADR-010 §5).
+tauri = { version = "2", features = ["custom-protocol"] }
+veyra-launcher-core = { path = "../core" }

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Veyra</title>
+<link rel="stylesheet" href="launcher.css">
+<script src="launcher.js" defer></script>
+</head>
+<body>
+<main>
+  <h1>VEYRA</h1>
+
+  <section id="loading">
+    <p class="status">Contacting Veyra's services…</p>
+  </section>
+
+  <section id="sign-in" hidden>
+    <h2>Sign In</h2>
+    <p class="note">Development sign-in: choose an account. There is no password until Veyra's identity provider arrives.</p>
+    <label for="account">Account</label>
+    <select id="account"></select>
+    <button id="play" type="button">Play</button>
+  </section>
+
+  <section id="progress" hidden>
+    <p class="status" id="stage"></p>
+    <p class="note">The launcher closes once Veyra has signed you in.</p>
+  </section>
+
+  <section id="problem" hidden>
+    <h2>Something went wrong</h2>
+    <p id="problem-text"></p>
+    <button id="retry" type="button">Try Again</button>
+  </section>
+
+  <footer id="build"></footer>
+</main>
+</body>
+</html>

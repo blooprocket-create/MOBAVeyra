@@ -95,7 +95,8 @@
     Plays a path through the client-state coordinator: Practice, the solo path. Packaged client and
     container only.
 .PARAMETER Launcher
-    With -Flow: who plays the launcher's part. Script: this script.
+    With -Flow: who plays the launcher's part. Script: this script. Cli: veyra-launch-cli, the launcher's
+    headless twin (Launcher/), built in release, with Launcher/config/local.json.
 .PARAMETER EngineRoot
     Engine folder to use instead of the one registered for the project's EngineAssociation.
 .EXAMPLE
@@ -148,7 +149,7 @@ param(
     [ValidateSet('Practice')]
     [string]$Flow,
 
-    [ValidateSet('Script')]
+    [ValidateSet('Script', 'Cli')]
     [string]$Launcher = 'Script',
 
     [string]$EngineRoot
@@ -230,6 +231,18 @@ if ($Flow -and ($Handoff -or $kitMode -or $Clients -ne 'Packaged' -or $Server -n
 $projectFile = Get-VeyraProjectFile
 $gameDir = Split-Path -Parent $projectFile
 $repositoryDir = Split-Path -Parent $gameDir
+
+# -Launcher Cli: the launcher's headless twin and its configuration (Launcher/).
+$launchCli = Join-Path $repositoryDir 'Launcher\target\release\veyra-launch-cli.exe'
+$launcherConfig = Join-Path $repositoryDir 'Launcher\config\local.json'
+if ($Launcher -eq 'Cli' -and -not $Flow) {
+    Write-Host '-Launcher Cli plays the launcher''s part in a -Flow run; add -Flow.'
+    exit $ExitInfrastructure
+}
+if ($Launcher -eq 'Cli' -and -not (Test-Path -LiteralPath $launchCli -PathType Leaf)) {
+    Write-Host "The launcher CLI was not found at '$launchCli'. Build it: Launcher/Check.ps1, or cargo build --release in Launcher."
+    exit $ExitInfrastructure
+}
 $engineRoot = Resolve-VeyraEngineRoot -ProjectFile $projectFile -EngineRoot $EngineRoot
 
 # The Vanguard definitions: each client's, and the abilities the server must resolve.
@@ -428,14 +441,36 @@ if ($Handoff -or $Flow) {
         # names ignore case, and that is the -Clients parameter.
         $handoffClients = foreach ($index in 0..($playerCount - 1)) {
             $log = Join-Path $reportDir "Client$($index + 1).log"
+            # The script quotes paths for a command line of its own; the launcher CLI passes each
+            # argument as it is.
+            $quote = $(if ($Launcher -eq 'Cli') { '' } else { '"' })
             # With -Flow -Screenshot the client renders in a window and saves each screen it passes.
-            $clientArguments = @('-VeyraLaunchCode=stdin', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
-            $clientArguments += $(if ($Flow -and $Screenshot) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=`"$reportDir`"" } else { @('-nullrhi') })
+            $clientArguments = @('-nosound', '-nosplash', '-unattended', "-ABSLOG=$quote$log$quote")
+            $clientArguments += $(if ($Flow -and $Screenshot) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=$quote$reportDir$quote" } else { @('-nullrhi') })
             $clientArguments += $(if ($Flow) { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard") }
                 elseif ($isPractice) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeEndCustomMatch') }
                 elseif ($index -eq 0) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokePause', '-VeyraSmokeEndMatch') }
                 else { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeWaitForEnd') })
-            $handshake = Start-VeyraHandshakeClient -Executable $clientExecutable -Arguments $clientArguments
+            if ($Launcher -eq 'Cli') {
+                # The launcher's headless twin does the launcher's part (ADR-010 §5): it signs in, starts
+                # the game its configuration names (the package's VeyraBuild.json) with the launch-code
+                # switch, hands it a code and exits once it signed in. The game runs on.
+                $launcherLog = Join-Path $reportDir "Launcher$($index + 1).log"
+                $said = @(& $launchCli '--config' $launcherConfig '--account' $participants[$index].Name '--' @clientArguments 2>&1 | ForEach-Object { "$_" })
+                $said | Set-Content -LiteralPath $launcherLog -Encoding utf8NoBOM
+                $signedIn = $said | Select-String -Pattern '^veyra-launch signed-in pid (\d+)$' | Select-Object -First 1
+                $process = $null
+                if ($LASTEXITCODE -eq 0 -and $signedIn) {
+                    $process = Get-Process -Id ([int]$signedIn.Matches[0].Groups[1].Value) -ErrorAction SilentlyContinue
+                }
+                if (-not $process) {
+                    $said | Select-String -Pattern '^veyra-launch: ' | Select-Object -Last 1 | ForEach-Object { Write-Host "Launcher CLI, client $($index + 1): $($_.Line)" }
+                }
+                [pscustomobject]@{ Number = $index + 1; Participant = $participants[$index]; Log = $log; Process = $process
+                    Handshake = [pscustomobject]@{ State = $(if ($process) { 'SignedIn' } else { 'Failed' }); Failure = 'the launcher CLI did not launch it' } }
+                continue
+            }
+            $handshake = Start-VeyraHandshakeClient -Executable $clientExecutable -Arguments (@('-VeyraLaunchCode=stdin') + $clientArguments)
             [pscustomobject]@{ Number = $index + 1; Participant = $participants[$index]; Log = $log; Process = $handshake.Process; Handshake = $handshake }
         }
 
@@ -443,6 +478,7 @@ if ($Handoff -or $Flow) {
         # client says it is ready to read one, and the client then says whether it signed in.
         $deadline = (Get-Date).AddSeconds($LaunchCodeWaitSeconds)
         do {
+            if ($Launcher -eq 'Cli') { break }
             $unsettled = 0
             foreach ($client in $handoffClients) {
                 # The block runs here, in this script's scope, while $client is this client.
@@ -467,7 +503,7 @@ if ($Handoff -or $Flow) {
         # -Flow: the match exists once the client's select starts it; its server's log is followed
         # from then.
         $clientDeadline = (Get-Date).AddMinutes($TimeoutMinutes)
-        while ($Flow -and -not $matchId -and -not $handoffClients[0].Process.HasExited -and (Get-Date) -lt $clientDeadline) {
+        while ($Flow -and -not $matchId -and $handoffClients[0].Process -and -not $handoffClients[0].Process.HasExited -and (Get-Date) -lt $clientDeadline) {
             Start-Sleep -Milliseconds $MatchIdWaitPollMilliseconds
             $joining = if (Test-Path -LiteralPath $handoffClients[0].Log) { Select-String -LiteralPath $handoffClients[0].Log -Pattern $JoiningLinePattern | Select-Object -First 1 } else { $null }
             if ($joining) {
@@ -477,7 +513,7 @@ if ($Handoff -or $Flow) {
                 $serverLogProcess = Start-ServerLog
             }
         }
-        foreach ($client in $handoffClients) {
+        foreach ($client in @($handoffClients | Where-Object Process)) {
             if (-not $client.Process.WaitForExit([int][Math]::Max(0, ($clientDeadline - (Get-Date)).TotalMilliseconds))) {
                 $client.Process.Kill($true)
                 $failed = $true
@@ -614,7 +650,8 @@ if ($Handoff -or $Flow) {
         $credentialPattern = '(vls|vgs|vlc|vms)_[A-Za-z0-9_-]{8,}'
         $ticketPattern = 'vjt_[A-Za-z0-9_-]{8,}'
         $engineLoginLine = 'LogNet: (Login|Join) request: '
-        foreach ($log in @($handoffClients.Log) + @($serverLogPath, $serverErrorLogPath)) {
+        $launcherLogs = @(Get-ChildItem -LiteralPath $reportDir -Filter 'Launcher*.log' | ForEach-Object FullName)
+        foreach ($log in @($handoffClients.Log) + $launcherLogs + @($serverLogPath, $serverErrorLogPath)) {
             if (-not (Test-Path -LiteralPath $log)) { continue }
             $name = Split-Path -Leaf $log
             $credentialLines = @(Select-String -LiteralPath $log -Pattern $credentialPattern).Count
@@ -631,7 +668,7 @@ if ($Handoff -or $Flow) {
         # Leave nothing behind, even after an error: a client or log reader still running, and a
         # server the backend did not remove.
         foreach ($client in @($handoffClients)) {
-            if ($client -and -not $client.Process.HasExited) {
+            if ($client -and $client.Process -and -not $client.Process.HasExited) {
                 $client.Process.Kill($true)
             }
         }

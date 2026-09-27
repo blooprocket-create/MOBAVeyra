@@ -11,6 +11,9 @@
 
     Tuning check. The packaged build must carry every tuning file (ADR-006 §6). The script lists
     the package's .pak files with UnrealPak and fails if any file in Game/Tuning is missing.
+
+    A client package gets VeyraBuild.json at its root: its build version and the game's path, which
+    the launcher reads (Launcher/, ADR-010 §5).
 .PARAMETER Target
     VeyraServer or VeyraClient.
 .PARAMETER Platform
@@ -121,6 +124,26 @@ if (@($missingSchemas).Count -gt 0) {
     Write-Host 'The package is missing module schemas:'
     $missingSchemas | ForEach-Object { Write-Host "  $_" }
     exit 1
+}
+
+if ($Target -eq 'VeyraClient') {
+    # The build's manifest, which the launcher reads (Launcher/, ADR-010 §5): the build version a
+    # launch code is bound to, and where the game is. The game binary itself, not the launcher UAT
+    # places at the package root.
+    $gameExecutable = Get-ChildItem -LiteralPath $packageDir -Recurse -Filter 'VeyraClient.exe' |
+        Where-Object { $_.DirectoryName -like '*\Binaries\Win64' } | Select-Object -First 1
+    $buildVersion = (Select-String -LiteralPath (Join-Path $gameDir 'Config\DefaultGame.ini') -Pattern '^ProjectVersion=(\S+)$' | Select-Object -First 1).Matches.Groups[1].Value
+    if (-not $gameExecutable -or -not $buildVersion) {
+        Write-Host 'The package has no VeyraClient.exe under Binaries\Win64, or Config/DefaultGame.ini gives no ProjectVersion.'
+        exit 1
+    }
+    $manifest = [ordered]@{
+        schemaVersion = 1
+        buildVersion  = $buildVersion
+        executable    = [System.IO.Path]::GetRelativePath($packageDir, $gameExecutable.FullName).Replace('\', '/')
+    }
+    $manifest | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $packageDir 'VeyraBuild.json') -Encoding utf8NoBOM
+    Write-Host "Wrote VeyraBuild.json: build $buildVersion, $($manifest.executable)."
 }
 
 Write-Host "Packaged $Target for $Platform in $packageDir; every tuning file and module schema is in the package."

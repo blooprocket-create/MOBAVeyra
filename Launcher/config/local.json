@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "backend": {
+    "baseUrl": "http://127.0.0.1:8080"
+  },
+  "http": {
+    "timeoutSeconds": 10
+  },
+  "launch": {
+    "awaitReadySeconds": 180,
+    "awaitSignInSeconds": 30
+  },
+  "game": {
+    "buildManifest": "../../Game/Saved/Packages/VeyraClient-Win64/VeyraBuild.json",
+    "arguments": []
+  }
+}

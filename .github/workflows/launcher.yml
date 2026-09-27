@@ -1,0 +1,35 @@
+name: Launcher checks
+
+on:
+  push:
+    paths:
+      - 'Launcher/**'
+      - 'Game/Source/VeyraServices/Contracts/LaunchHandshake.json'
+      - '.github/workflows/launcher.yml'
+  pull_request:
+    paths:
+      - 'Launcher/**'
+      - 'Game/Source/VeyraServices/Contracts/LaunchHandshake.json'
+      - '.github/workflows/launcher.yml'
+
+jobs:
+  check:
+    # The Tauri app needs WebView2, so the whole workspace is checked on Windows, as it ships.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rust toolchain
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy,rustfmt
+          rustup default stable
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            Launcher/target
+          key: launcher-${{ runner.os }}-${{ hashFiles('Launcher/Cargo.lock') }}
+          restore-keys: launcher-${{ runner.os }}-
+      - name: fmt, clippy, test and release build
+        shell: pwsh
+        run: ./Launcher/Check.ps1
