@@ -85,6 +85,16 @@ struct VEYRACOMBAT_API FVeyraStatusSpec
 	/** The most stacks the status can hold: at least 1, and exactly 1 unless it stacks. */
 	UPROPERTY()
 	int32 MaxStacks = 1;
+
+	/**
+	 * Seconds each takedown by the unit adds to the status's remaining time (ADR-009 §1), up to
+	 * TakedownExtensionMaxSeconds in all. Both 0 for a status takedowns do not extend.
+	 */
+	UPROPERTY()
+	double TakedownExtensionSeconds = 0.0;
+
+	UPROPERTY()
+	double TakedownExtensionMaxSeconds = 0.0;
 };
 
 /** One active status as every machine sees it. Replicated for presentation. */

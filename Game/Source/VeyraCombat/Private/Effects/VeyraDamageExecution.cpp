@@ -7,6 +7,7 @@
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Damage/VeyraDamageResolver.h"
+#include "Effects/VeyraCombatEffects.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatTagMapping.h"
@@ -135,11 +136,20 @@ void UVeyraDamageExecution::Execute_Implementation(const FGameplayEffectCustomEx
 		return Value;
 	};
 
+	// The event's own penetration joins the attacker's: flat values add, retained fractions multiply (§3).
+	// An event without its own adds nothing.
+	const FVeyraPenetration Identity;
+	const auto EventValue = [&Spec](const FName Name, double Default) {
+		return static_cast<double>(Spec.GetSetByCallerMagnitude(Name, /*WarnIfNotFound*/ false, static_cast<float>(Default)));
+	};
+
 	const FDamageCaptures& Capture = Captures();
 	FVeyraAttackerOffence Offence;
 	Offence.OutgoingDamageMultiplier = Read(Capture.OutgoingDamageMultiplier);
-	Offence.PhysicalPenetration = { Read(Capture.PhysicalPenetrationFlat), Read(Capture.PhysicalPenetrationRetained) };
-	Offence.MagicPenetration = { Read(Capture.MagicPenetrationFlat), Read(Capture.MagicPenetrationRetained) };
+	Offence.PhysicalPenetration = { Read(Capture.PhysicalPenetrationFlat) + EventValue(UVeyraDamageEffect::PhysicalPenetrationFlatName, Identity.Flat),
+		Read(Capture.PhysicalPenetrationRetained) * EventValue(UVeyraDamageEffect::PhysicalPenetrationRetainedName, Identity.Retained) };
+	Offence.MagicPenetration = { Read(Capture.MagicPenetrationFlat) + EventValue(UVeyraDamageEffect::MagicPenetrationFlatName, Identity.Flat),
+		Read(Capture.MagicPenetrationRetained) * EventValue(UVeyraDamageEffect::MagicPenetrationRetainedName, Identity.Retained) };
 
 	FVeyraDefenderDefence Defence;
 	Defence.Armor = Read(Capture.Armor);

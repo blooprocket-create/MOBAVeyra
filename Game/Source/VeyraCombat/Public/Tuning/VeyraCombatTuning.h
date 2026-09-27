@@ -99,6 +99,34 @@ struct FVeyraCrowdControlTuning
 	double TenacityFloorSeconds = 0.0;
 };
 
+/** Vanguard Combat State (Combat Bible §28). */
+USTRUCT()
+struct FVeyraCombatStateTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How long after its last Vanguard combat a unit leaves Combat State, in seconds. */
+	UPROPERTY()
+	double OutOfCombatSeconds = 0.0;
+};
+
+/** Kill and assist credit (Combat Bible §18). */
+USTRUCT()
+struct FVeyraAttributionTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How long a contribution to a Vanguard's death counts toward an assist, in seconds. */
+	UPROPERTY()
+	double AssistWindowSeconds = 0.0;
+};
+
 /** The Combat domain's tuning, bound from Game/Tuning/Combat.json (ADR-006 §6). */
 USTRUCT()
 struct FVeyraCombatTuning
@@ -122,6 +150,12 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraCrowdControlTuning CrowdControl;
+
+	UPROPERTY()
+	FVeyraCombatStateTuning CombatState;
+
+	UPROPERTY()
+	FVeyraAttributionTuning Attribution;
 };
 
 /** The Combat domain's checks that a schema cannot express. */

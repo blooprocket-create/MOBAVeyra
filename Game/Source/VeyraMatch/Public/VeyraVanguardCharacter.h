@@ -5,6 +5,7 @@
 #include "AbilitySystemInterface.h"
 #include "GameFramework/Character.h"
 #include "Teams/VeyraTeam.h"
+#include "Units/VeyraUnit.h"
 
 #include "VeyraVanguardCharacter.generated.h"
 
@@ -19,7 +20,7 @@ class UVeyraMovementComponent;
  * every client, including its owner, shows the replicated result (ADR-006 §7, no prediction).
  */
 UCLASS()
-class VEYRAMATCH_API AVeyraVanguardCharacter : public ACharacter, public IAbilitySystemInterface, public IVeyraTeamMember
+class VEYRAMATCH_API AVeyraVanguardCharacter : public ACharacter, public IAbilitySystemInterface, public IVeyraTeamMember, public IVeyraUnit
 {
 	GENERATED_BODY()
 
@@ -28,6 +29,7 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual EVeyraTeam GetVeyraTeam() const override;
+	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Vanguard; }
 	virtual void PostInitializeComponents() override;
 
 	/** Combat's movement, which walks at the participant's effective Movement Speed on the server. */

@@ -4,6 +4,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
+#include "Attribution/VeyraAttributionComponent.h"
+#include "CombatState/VeyraCombatStateComponent.h"
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraOffenceSet.h"
@@ -29,6 +31,8 @@ AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer
 
 	DamageAbsorption = CreateDefaultSubobject<UVeyraDamageAbsorptionComponent>(TEXT("DamageAbsorption"));
 	Statuses = CreateDefaultSubobject<UVeyraStatusComponent>(TEXT("Statuses"));
+	CombatState = CreateDefaultSubobject<UVeyraCombatStateComponent>(TEXT("CombatState"));
+	Attribution = CreateDefaultSubobject<UVeyraAttributionComponent>(TEXT("Attribution"));
 	Life = CreateDefaultSubobject<UVeyraLifeComponent>(TEXT("Life"));
 	Loadout = CreateDefaultSubobject<UVeyraAbilityLoadoutComponent>(TEXT("Loadout"));
 	Cooldowns = CreateDefaultSubobject<UVeyraCooldownComponent>(TEXT("Cooldowns"));

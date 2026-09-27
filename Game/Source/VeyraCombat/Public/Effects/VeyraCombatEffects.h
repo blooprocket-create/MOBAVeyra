@@ -10,7 +10,11 @@
 // numbers of its own: every amount and duration arrives on the spec from the caller's data
 // (ADR-006 §6), so nothing tunable lives in a binary asset.
 
-/** One damage event: an instant effect whose execution runs the canonical pipeline (Combat Bible §25). */
+/**
+ * One damage event: an instant effect whose execution runs the canonical pipeline (Combat Bible §25).
+ * Its components are Damage.Type SetByCaller magnitudes; the event's own penetration, when it has
+ * any, uses the SetByCaller names below.
+ */
 UCLASS()
 class VEYRACOMBAT_API UVeyraDamageEffect : public UGameplayEffect
 {
@@ -18,6 +22,11 @@ class VEYRACOMBAT_API UVeyraDamageEffect : public UGameplayEffect
 
 public:
 	UVeyraDamageEffect();
+
+	static const FName PhysicalPenetrationFlatName;
+	static const FName PhysicalPenetrationRetainedName;
+	static const FName MagicPenetrationFlatName;
+	static const FName MagicPenetrationRetainedName;
 };
 
 /**

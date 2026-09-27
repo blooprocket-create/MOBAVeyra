@@ -42,6 +42,12 @@ public:
 	/** Server only: ends status Id early, from every source. Returns whether the unit had it. */
 	bool Remove(const FVeyraContentId& Id);
 
+	/**
+	 * Server only: the unit took part in a takedown (Combat Bible §18). Each status that takedowns
+	 * extend gains its extension, up to its maximum in all (ADR-009 §1).
+	 */
+	void ExtendForTakedown();
+
 	const FVeyraStatusLedger& GetLedger() const { return Ledger; }
 
 	/** The fraction of speed the strongest Slow removes; 0 when there is none. */
@@ -62,6 +68,10 @@ private:
 	{
 		FActiveGameplayEffectHandle Effect;
 		TWeakObjectPtr<UAbilitySystemComponent> Source;
+		double TakedownExtensionSeconds = 0.0;
+		double TakedownExtensionMaxSeconds = 0.0;
+		/** How much takedowns have extended the current application so far. */
+		double ExtendedSeconds = 0.0;
 	};
 
 	UFUNCTION()

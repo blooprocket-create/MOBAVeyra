@@ -9,6 +9,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
+#include "Records/VeyraCombatRecords.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "VeyraCombatLog.h"
 
@@ -114,15 +115,11 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 	}
 
 	FVeyraStatusEntry* Entry = nullptr;
+	FActiveGameplayEffectHandle Replaced;
 	if (ActiveIndex != INDEX_NONE)
 	{
 		Entry = &Ledger.Entries[ActiveIndex];
-		FServerEntry& Server = ServerEntries.FindChecked(Entry->Sequence);
-		const FActiveGameplayEffectHandle Replaced = Server.Effect;
-		// Point the entry at its new effect first, so removing the old one leaves the entry in place.
-		Server.Effect = Effect;
-		Server.Source = &Source;
-		Target->RemoveActiveGameplayEffect(Replaced);
+		Replaced = ServerEntries.FindChecked(Entry->Sequence).Effect;
 	}
 	else
 	{
@@ -130,19 +127,50 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 		Entry->Sequence = NextSequence++;
 		Entry->Id = Spec.Id;
 		Entry->Kind = Spec.Kind;
-		ServerEntries.Add(Entry->Sequence, FServerEntry{ Effect, &Source });
 	}
+	// A new application starts its takedown extensions afresh.
+	ServerEntries.Add(Entry->Sequence, FServerEntry{ Effect, &Source, Spec.TakedownExtensionSeconds, Spec.TakedownExtensionMaxSeconds });
 	Entry->Magnitude = Spec.Magnitude;
 	Entry->Stacks = Stacks;
 	Entry->StartedAt = Now;
 	Entry->EndsAt = EndsAt;
+	// The entry points at its new effect already, so removing the old one leaves the entry in place.
+	if (Replaced.IsValid())
+	{
+		Target->RemoveActiveGameplayEffect(Replaced);
+	}
 	MarkLedgerChanged();
 
+	VeyraCombatRecords::NoteHostileAction(&Source, *Target);
 	if (Spec.Kind == EVeyraStatusKind::Stun)
 	{
 		OnInterrupted.Broadcast();
 	}
 	return true;
+}
+
+void UVeyraStatusComponent::ExtendForTakedown()
+{
+	UAbilitySystemComponent* Target = BoundAbilitySystem.Get();
+	bool bExtended = false;
+	for (FVeyraStatusEntry& Entry : Ledger.Entries)
+	{
+		FServerEntry& Server = ServerEntries.FindChecked(Entry.Sequence);
+		const double Extension = FMath::Min(Server.TakedownExtensionSeconds, Server.TakedownExtensionMaxSeconds - Server.ExtendedSeconds);
+		if (!Target || Extension <= 0.0)
+		{
+			continue;
+		}
+		// A later start leaves the effect longer to run; the world clock keeps counting it.
+		Target->ModifyActiveEffectStartTime(Server.Effect, static_cast<float>(Extension));
+		Server.ExtendedSeconds += Extension;
+		Entry.EndsAt += Extension;
+		bExtended = true;
+	}
+	if (bExtended)
+	{
+		MarkLedgerChanged();
+	}
 }
 
 bool UVeyraStatusComponent::Remove(const FVeyraContentId& Id)

@@ -5,12 +5,15 @@
 #include "AbilitySystemInterface.h"
 #include "GameFramework/PlayerState.h"
 #include "Teams/VeyraTeam.h"
+#include "Units/VeyraUnit.h"
 
 #include "VeyraPlayerState.generated.h"
 
 class AVeyraVanguardController;
 class UAbilitySystemComponent;
 class UVeyraAbilityLoadoutComponent;
+class UVeyraAttributionComponent;
+class UVeyraCombatStateComponent;
 class UVeyraCooldownComponent;
 class UVeyraDamageAbsorptionComponent;
 class UVeyraDefenceSet;
@@ -29,7 +32,7 @@ class UVeyraVitalsSet;
  * pawn is only the avatar (ADR-006 §4). AI-controlled Vanguards get one too.
  */
 UCLASS()
-class VEYRAMATCH_API AVeyraPlayerState : public APlayerState, public IAbilitySystemInterface, public IVeyraTeamMember
+class VEYRAMATCH_API AVeyraPlayerState : public APlayerState, public IAbilitySystemInterface, public IVeyraTeamMember, public IVeyraUnit
 {
 	GENERATED_BODY()
 
@@ -38,6 +41,7 @@ public:
 
 	virtual UAbilitySystemComponent* GetAbilitySystemComponent() const override;
 	virtual EVeyraTeam GetVeyraTeam() const override { return Team; }
+	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Vanguard; }
 	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
@@ -78,6 +82,13 @@ private:
 	/** Crowd control, buffs and debuffs. They end at death, unlike the participant's progression. */
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	TObjectPtr<UVeyraStatusComponent> Statuses;
+
+	UPROPERTY(VisibleAnywhere, Category = "Combat")
+	TObjectPtr<UVeyraCombatStateComponent> CombatState;
+
+	/** Who contributed toward this participant's death, for assists. Server only. */
+	UPROPERTY(VisibleAnywhere, Category = "Combat")
+	TObjectPtr<UVeyraAttributionComponent> Attribution;
 
 	UPROPERTY(VisibleAnywhere, Category = "Combat")
 	TObjectPtr<UVeyraLifeComponent> Life;

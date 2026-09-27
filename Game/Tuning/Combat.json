@@ -21,5 +21,13 @@
   "crowdControl": {
     "provenance": "Canon",
     "tenacityFloorSeconds": 0.3
+  },
+  "combatState": {
+    "provenance": "Canon",
+    "outOfCombatSeconds": 5
+  },
+  "attribution": {
+    "provenance": "Canon",
+    "assistWindowSeconds": 10
   }
 }

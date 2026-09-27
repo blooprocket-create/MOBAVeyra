@@ -8,6 +8,11 @@
 #include "Effects/VeyraDamageExecution.h"
 #include "Effects/VeyraResourceSpendExecution.h"
 
+const FName UVeyraDamageEffect::PhysicalPenetrationFlatName(TEXT("PhysicalPenetrationFlat"));
+const FName UVeyraDamageEffect::PhysicalPenetrationRetainedName(TEXT("PhysicalPenetrationRetained"));
+const FName UVeyraDamageEffect::MagicPenetrationFlatName(TEXT("MagicPenetrationFlat"));
+const FName UVeyraDamageEffect::MagicPenetrationRetainedName(TEXT("MagicPenetrationRetained"));
+
 const FName UVeyraStatusEffect::MoveSpeedMultiplierName(TEXT("MoveSpeedMultiplier"));
 const FName UVeyraStatusEffect::AttackSpeedMultiplierName(TEXT("AttackSpeedMultiplier"));
 const FName UVeyraStatusEffect::TenacityMultiplierName(TEXT("TenacityMultiplier"));

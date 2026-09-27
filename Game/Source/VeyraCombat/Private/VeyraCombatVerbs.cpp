@@ -258,48 +258,99 @@ bool Revive(UAbilitySystemComponent& AbilitySystem)
 	return true;
 }
 
-bool DealDamage(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraRawDamageEvent& Damage)
+FVeyraPreparedDamage PrepareDamage(UAbilitySystemComponent& Source, const FVeyraRawDamageEvent& Damage)
 {
-	const AActor* TargetOwner = Target.GetOwner();
-	const UVeyraLifeComponent* TargetLife = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraLifeComponent>() : nullptr;
-	if (TargetLife && !TargetLife->IsAlive())
-	{
-		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored damage to %s: its death is final."), *GetNameSafe(TargetOwner));
-		return false;
-	}
-
 	TArray<EVeyraDamageType, TInlineAllocator<3>> Types;
 	bool bValid = !Damage.Components.IsEmpty();
 	for (const FVeyraDamageComponent& Component : Damage.Components)
 	{
-		bValid &= !Types.Contains(Component.Type) && FMath::IsFinite(Component.Amount) && Component.Amount >= 0.0;
+		bValid &= !Types.Contains(Component.Type) && IsNonNegativeFinite(Component.Amount);
 		Types.Add(Component.Type);
+	}
+	for (const FVeyraPenetration* Penetration : { &Damage.PhysicalPenetration, &Damage.MagicPenetration })
+	{
+		bValid &= IsNonNegativeFinite(Penetration->Flat) && IsNonNegativeFinite(Penetration->Retained) && Penetration->Retained <= 1.0;
 	}
 	if (!bValid)
 	{
-		UE_LOG(LogVeyraCombat, Error, TEXT("Refused damage to %s: it needs at least one component, each type at most once, with a finite amount of at least 0."),
-			*GetNameSafe(Target.GetOwner()));
-		return false;
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused damage from %s: it needs at least one component, each type at most once, with a finite amount of at least 0, and penetration with Flat at least 0 and Retained within [0, 1]."),
+			*GetNameSafe(Source.GetOwner()));
+		return FVeyraPreparedDamage();
 	}
 
-	const FGameplayEffectSpecHandle Spec = Source.MakeOutgoingSpec(UVeyraDamageEffect::StaticClass(), UnscaledEffectLevel, Source.MakeEffectContext());
-	if (!Spec.IsValid())
+	// Making the spec captures the source's offence now (UVeyraDamageExecution snapshots it).
+	FVeyraPreparedDamage Prepared;
+	Prepared.Spec = Source.MakeOutgoingSpec(UVeyraDamageEffect::StaticClass(), UnscaledEffectLevel, Source.MakeEffectContext());
+	if (!Prepared.IsValid())
 	{
-		UE_LOG(LogVeyraCombat, Error, TEXT("Could not create a damage effect for %s."), *GetNameSafe(Target.GetOwner()));
-		return false;
+		UE_LOG(LogVeyraCombat, Error, TEXT("Could not create a damage effect from %s."), *GetNameSafe(Source.GetOwner()));
+		return FVeyraPreparedDamage();
 	}
 	for (const FVeyraDamageComponent& Component : Damage.Components)
 	{
-		Spec.Data->SetSetByCallerMagnitude(VeyraCombatTagMapping::DamageTypeTag(Component.Type), static_cast<float>(Component.Amount));
+		Prepared.Spec.Data->SetSetByCallerMagnitude(VeyraCombatTagMapping::DamageTypeTag(Component.Type), static_cast<float>(Component.Amount));
 	}
-	return Source.ApplyGameplayEffectSpecToTarget(*Spec.Data, &Target).WasSuccessfullyApplied();
+	const TPair<FName, double> EventPenetration[] = {
+		{ UVeyraDamageEffect::PhysicalPenetrationFlatName, Damage.PhysicalPenetration.Flat },
+		{ UVeyraDamageEffect::PhysicalPenetrationRetainedName, Damage.PhysicalPenetration.Retained },
+		{ UVeyraDamageEffect::MagicPenetrationFlatName, Damage.MagicPenetration.Flat },
+		{ UVeyraDamageEffect::MagicPenetrationRetainedName, Damage.MagicPenetration.Retained },
+	};
+	for (const TPair<FName, double>& Value : EventPenetration)
+	{
+		Prepared.Spec.Data->SetSetByCallerMagnitude(Value.Key, static_cast<float>(Value.Value));
+	}
+	return Prepared;
+}
+
+bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemComponent& Target)
+{
+	UAbilitySystemComponent* Source = Damage.IsValid() ? Damage.Spec.Data->GetContext().GetInstigatorAbilitySystemComponent() : nullptr;
+	if (!Source)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused damage to %s: it was not prepared, or its source is gone."), *GetNameSafe(Target.GetOwner()));
+		return false;
+	}
+	if (IsDeadUnit(Target))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored damage to %s: its death is final."), *GetNameSafe(Target.GetOwner()));
+		return false;
+	}
+	return Source->ApplyGameplayEffectSpecToTarget(*Damage.Spec.Data, &Target).WasSuccessfullyApplied();
+}
+
+bool DealDamage(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraRawDamageEvent& Damage)
+{
+	if (IsDeadUnit(Target))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored damage to %s: its death is final."), *GetNameSafe(Target.GetOwner()));
+		return false;
+	}
+	const FVeyraPreparedDamage Prepared = PrepareDamage(Source, Damage);
+	return Prepared.IsValid() && DealPreparedDamage(Prepared, Target);
+}
+
+FActiveGameplayEffectHandle GrantShield(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraShieldGrant& Grant)
+{
+	AActor* TargetOwner = Target.GetOwner();
+	UVeyraDamageAbsorptionComponent* Absorption = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraDamageAbsorptionComponent>() : nullptr;
+	if (!Absorption)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused shield %s on %s: it has no UVeyraDamageAbsorptionComponent."), *Grant.Id.ToString(), *GetNameSafe(TargetOwner));
+		return FActiveGameplayEffectHandle();
+	}
+	return Absorption->GrantShield(Source, Grant);
 }
 
 FActiveGameplayEffectHandle GrantShield(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, EVeyraShieldCategory Category,
 	double Amount, double DurationSeconds)
 {
-	return GrantAbsorption(Source, Target, UVeyraShieldEffect::StaticClass(), VeyraCombatTagMapping::ShieldCategoryTag(Category), Amount,
-		DurationSeconds, TEXT("a shield"));
+	FVeyraShieldGrant Grant;
+	Grant.Category = Category;
+	Grant.Amount = Amount;
+	Grant.MaxAmount = Amount;
+	Grant.DurationSeconds = DurationSeconds;
+	return GrantShield(Source, Target, Grant);
 }
 
 FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, double Amount, double DurationSeconds)

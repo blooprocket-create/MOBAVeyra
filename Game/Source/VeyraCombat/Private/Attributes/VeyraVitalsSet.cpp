@@ -7,6 +7,7 @@
 #include "GameplayEffectExtension.h"
 #include "Life/VeyraDeath.h"
 #include "Net/UnrealNetwork.h"
+#include "Records/VeyraCombatRecords.h"
 #include "Tags/VeyraStatusTags.h"
 #include "VeyraCombatLog.h"
 
@@ -124,6 +125,14 @@ void UVeyraVitalsSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 		return;
 	}
 
+	// Damage counts as a fight, and toward an assist, even when shields take all of it (Combat Bible §18,
+	// §28). It is recorded before any death it causes, so the death sees it.
+	UAbilitySystemComponent* Source = Data.EffectSpec.GetEffectContext().GetInstigatorAbilitySystemComponent();
+	if (Amount > 0.0f)
+	{
+		VeyraCombatRecords::NoteHostileAction(Source, *AbilitySystem);
+	}
+
 	const bool bInvulnerable = AbilitySystem->HasMatchingGameplayTag(VeyraTags::Status_Invulnerable);
 	const FVeyraAbsorptionResult Result = Absorption->ApplyIncomingDamage(Type.GetValue(), Amount, bInvulnerable, GetHealth());
 	if (Result.HealthLost > 0.0)
@@ -132,7 +141,7 @@ void UVeyraVitalsSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 		// Nothing yet prevents a death once Health reaches 0, so the death is final (Combat Bible §18).
 		if (GetHealth() <= 0.0f)
 		{
-			VeyraDeath::FinalizeDeath(*AbilitySystem, Data.EffectSpec.GetEffectContext().GetInstigatorAbilitySystemComponent());
+			VeyraDeath::FinalizeDeath(*AbilitySystem, Source);
 		}
 	}
 }

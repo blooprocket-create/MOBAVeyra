@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "UObject/ObjectMacros.h"
 
@@ -17,6 +18,46 @@ enum class EVeyraShieldCategory : uint8
 	Magic,
 	/** Absorbs Physical, Magic and True Damage. */
 	Universal,
+};
+
+/** What a shield grant does to an active shield with the same identity from the same source (Combat Bible §7). */
+UENUM()
+enum class EVeyraShieldReapply : uint8
+{
+	/** The grant replaces the shield: its amount and duration start again. */
+	Replace,
+	/** The grant adds to what the shield has left, up to its maximum, and its duration starts again. */
+	Merge,
+};
+
+/**
+ * One shield grant (ADR-009 §3), with its amounts already worked out by the caller from its data,
+ * after the §51 modifiers.
+ */
+struct FVeyraShieldGrant
+{
+	/** The shield's identity. The same identity from the same source is one shield; no identity never merges. */
+	FVeyraContentId Id;
+
+	EVeyraShieldCategory Category = EVeyraShieldCategory::Universal;
+
+	/** What this grant adds; above 0. */
+	double Amount = 0.0;
+
+	double DurationSeconds = 0.0;
+
+	EVeyraShieldReapply Reapply = EVeyraShieldReapply::Replace;
+
+	/** The most the shield can hold after merging; at least Amount. */
+	double MaxAmount = 0.0;
+
+	/**
+	 * An optional group whose shields from one source together hold at most CapGroupTotal on a unit,
+	 * such as Cairn's passive and ultimate shields. No group, and a total of 0, when the shield has none.
+	 */
+	FVeyraContentId CapGroup;
+
+	double CapGroupTotal = 0.0;
 };
 
 /** One active shield. */

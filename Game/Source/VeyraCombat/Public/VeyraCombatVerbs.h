@@ -5,12 +5,24 @@
 #include "Absorption/VeyraAbsorptionLedger.h"
 #include "ActiveGameplayEffectHandle.h"
 #include "Damage/VeyraDamageTypes.h"
+#include "GameplayEffectTypes.h"
 #include "Stats/VeyraStatBlock.h"
 #include "Statuses/VeyraStatusTypes.h"
 
 class UAbilitySystemComponent;
 class UVeyraDamageAbsorptionComponent;
 class UVeyraStatusComponent;
+
+/**
+ * A damage event prepared at Commit (Combat Bible §50, ADR-009 §4), which a projectile or delayed
+ * area carries until it lands. Server only.
+ */
+struct FVeyraPreparedDamage
+{
+	FGameplayEffectSpecHandle Spec;
+
+	bool IsValid() const { return Spec.IsValid(); }
+};
 
 /**
  * Combat's verbs (ARCHITECTURE.md §1.10): the one way gameplay code deals damage, grants shields and
@@ -76,13 +88,31 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool Revive(UAbilitySystemComponent& AbilitySystem);
 
 	/**
-	 * Deals one damage event from Source to Target through the canonical pipeline (Combat Bible §25).
-	 * Each damage type may appear once, with a finite amount of at least 0. A target whose death is
-	 * final takes no damage. Returns false if refused.
+	 * Prepares one damage event from Source (Combat Bible §50): the source's offence, its Damage
+	 * Amplification and penetration, is fixed now, while each target's defences are read when it is
+	 * dealt. Each damage type may appear once, with a finite amount of at least 0; the event's own
+	 * penetration must have Flat at least 0 and Retained within [0, 1]. Returns an invalid preparation
+	 * if refused.
 	 */
+	VEYRACOMBAT_API FVeyraPreparedDamage PrepareDamage(UAbilitySystemComponent& Source, const FVeyraRawDamageEvent& Damage);
+
+	/**
+	 * Deals prepared damage to Target through the canonical pipeline (Combat Bible §25). One
+	 * preparation can be dealt to several targets. A target whose death is final takes no damage.
+	 * Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemComponent& Target);
+
+	/** Prepares one damage event from Source and deals it to Target at once. Returns false if refused. */
 	VEYRACOMBAT_API bool DealDamage(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraRawDamageEvent& Damage);
 
-	/** Grants Target a shield (Combat Bible §7). Returns its effect, or an invalid handle if refused. */
+	/**
+	 * Grants Target a shield from Source (Combat Bible §7; UVeyraDamageAbsorptionComponent::GrantShield).
+	 * Returns its effect, or an invalid handle if refused or there is no room for it.
+	 */
+	VEYRACOMBAT_API FActiveGameplayEffectHandle GrantShield(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraShieldGrant& Grant);
+
+	/** Grants Target a shield with no identity, which never merges with another. */
 	VEYRACOMBAT_API FActiveGameplayEffectHandle GrantShield(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target,
 		EVeyraShieldCategory Category, double Amount, double DurationSeconds);
 

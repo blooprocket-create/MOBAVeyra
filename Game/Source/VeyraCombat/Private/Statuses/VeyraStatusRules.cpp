@@ -39,6 +39,14 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	{
 		Problems.Add(TEXT("stacking: crowd control does not stack; overlapping instances are tracked instead (Combat Bible §8)"));
 	}
+	const double Extension = Spec.TakedownExtensionSeconds;
+	const double MaxExtension = Spec.TakedownExtensionMaxSeconds;
+	const bool bNoExtension = Extension == 0.0 && MaxExtension == 0.0;
+	const bool bValidExtension = FMath::IsFinite(Extension) && FMath::IsFinite(MaxExtension) && Extension > 0.0 && MaxExtension >= Extension;
+	if (!bNoExtension && !bValidExtension)
+	{
+		Problems.Add(TEXT("takedownExtensionSeconds: both takedown extension values are 0, or the extension is above 0 and the maximum at least as long"));
+	}
 
 	const double Magnitude = Spec.Magnitude;
 	const double AllStacks = Magnitude * FMath::Max(Spec.MaxStacks, 1);
