@@ -27,6 +27,13 @@
     second client in a window and saves Greybox.png, a frame of the grey-box presentation taken
     once its cast has landed (ADR-008 §1), to the report folder.
 
+    -Vanguards plays whole kits instead (ADR-008): one client per Vanguard named, joining teams in
+    turn, so four names make a 2v2. Each client starts with -VeyraSmokeKit: it takes developer levels
+    up to the first ultimate rank, ranks every ability, moves, casts Q, W, E and R at the nearest
+    enemy and attacks it, and passes once an enemy has taken damage. The server must resolve every
+    ability of every kit. There is no pause in this mode; with -RecordReplay, playback must show
+    every Vanguard, a projectile and a delayed area.
+
     -Handoff plays the match the way a player reaches one (ADR-007). It rebuilds the match-server
     image from the packaged server, starts the backend, signs in two dev accounts and asks the
     backend for a match between them. The backend starts the server container and writes its
@@ -66,10 +73,14 @@
     Seconds each client stays connected after its script before quitting.
 .PARAMETER Screenshot
     Renders the second client and saves a screenshot of the grey-box presentation. Not with -Handoff.
+.PARAMETER Vanguards
+    The Vanguards whose kits the clients play, one client each, from Vanguards.json. Not with -Handoff.
 .PARAMETER EngineRoot
     Engine folder to use instead of the one registered for the project's EngineAssociation.
 .EXAMPLE
     ./Game/Scripts/Smoke.ps1 -Clients Editor
+.EXAMPLE
+    ./Game/Scripts/Smoke.ps1 -Vanguards cairn,qazharr,oriel,bryn -RecordReplay
 .EXAMPLE
     ./Game/Scripts/Smoke.ps1 -Handoff
 #>
@@ -107,6 +118,8 @@ param(
 
     [switch]$Screenshot,
 
+    [string[]]$Vanguards = @(),
+
     [string]$EngineRoot
 )
 
@@ -130,6 +143,12 @@ $SmokeVanguard = 'test_vanguard'
 $ScreenshotWindow = @('-windowed', '-ResX=1280', '-ResY=720')
 $ScreenshotStaySeconds = 5
 $ScreenshotName = 'Greybox.png'
+$SlotKeys = 'q', 'w', 'e', 'r'
+
+# -Vanguards: one client per Vanguard. 'a,b' passed through pwsh -File arrives as one string.
+$Vanguards = @($Vanguards | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$kitMode = $Vanguards.Count -gt 0
+$clientCount = $(if ($kitMode) { $Vanguards.Count } else { 2 })
 
 # Developer options for the server's map URL.
 $urlOptions = ''
@@ -150,7 +169,7 @@ if ($LoadTestStandInHz -gt 0) {
 }
 
 # The editor server's map and options; compose.yaml gives the container the same ones.
-$EditorServerArguments = @("/Game/Veyra/Developer/Maps/L_Greybox?VeyraExpectedPlayers=2$urlOptions", '-port=7777', '-server', '-log', '-nullrhi', '-unattended', '-nosplash', '-LogCmds="LogVeyraAbilities Verbose"')
+$EditorServerArguments = @("/Game/Veyra/Developer/Maps/L_Greybox?VeyraExpectedPlayers=$clientCount$urlOptions",'-port=7777', '-server', '-log', '-nullrhi', '-unattended', '-nosplash', '-LogCmds="LogVeyraAbilities Verbose"')
 
 if ($RecordReplay -and $Server -ne 'Container') {
     # Only the container can be stopped gracefully, which the replay needs to be finished.
@@ -162,11 +181,27 @@ if ($Handoff -and ($Clients -ne 'Packaged' -or $Server -ne 'Container' -or $urlO
     Write-Host '-Handoff runs packaged clients against a container the backend starts, without the replay, statistics, load-test, stay or screenshot options.'
     exit $ExitInfrastructure
 }
+if ($Handoff -and $kitMode) {
+    # The backend's dev match pairs two accounts; the handoff proves the join, not the kits.
+    Write-Host '-Handoff plays the two-client script; run -Vanguards without it.'
+    exit $ExitInfrastructure
+}
 
 $projectFile = Get-VeyraProjectFile
 $gameDir = Split-Path -Parent $projectFile
 $repositoryDir = Split-Path -Parent $gameDir
 $engineRoot = Resolve-VeyraEngineRoot -ProjectFile $projectFile -EngineRoot $EngineRoot
+
+# The Vanguard definitions: each client's, and the abilities the server must resolve.
+$vanguardDefinitions = (Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Vanguards.json') -Raw | ConvertFrom-Json).vanguards
+$maxPlayers = 2 * (Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Match.json') -Raw | ConvertFrom-Json).teams.maxTeamSize
+if ($kitMode) {
+    $unknown = @($Vanguards | Where-Object { -not $vanguardDefinitions.PSObject.Properties[$_] })
+    if ($unknown.Count -gt 0 -or $clientCount -lt 2 -or $clientCount -gt $maxPlayers) {
+        Write-Host "-Vanguards needs 2 to $maxPlayers Vanguards that Vanguards.json defines; unknown: $($unknown -join ', ')."
+        exit $ExitInfrastructure
+    }
+}
 
 $reportDir = Join-Path $gameDir ('Saved\Smoke\' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
 New-Item -ItemType Directory -Force -Path $reportDir | Out-Null
@@ -463,7 +498,7 @@ if ($Handoff) {
             Write-Host "The server logged an error: $($serverError.Matches[0].Value)"
             $failed = $true
         }
-        $abilityQ = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Vanguards.json') -Raw | ConvertFrom-Json).vanguards.$SmokeVanguard.abilities.q)[0]
+        $abilityQ = @($vanguardDefinitions.$SmokeVanguard.abilities.q)[0]
         $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
         if ($casts -lt 2) {
             Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."
@@ -556,6 +591,7 @@ if ($Server -eq 'Editor') {
 }
 else {
     Write-Host 'Starting the match server container.'
+    $env:VEYRA_EXPECTED_PLAYERS = $clientCount
     $env:VEYRA_MATCH_URL_OPTIONS = $urlOptions
     if ((Invoke-Compose -Arguments @('up', '--build', '--detach', 'match-server')) -ne 0) {
         Write-Host 'The match server container did not start.'
@@ -575,19 +611,22 @@ while (-not ((Get-ServerLog) -match $ServerReadyLine)) {
 Write-Host 'The server is ready.'
 
 $screenshotPath = Join-Path $reportDir $ScreenshotName
-$clientProcesses = foreach ($index in 1, 2) {
+$clientProcesses = foreach ($index in 1..$clientCount) {
     # With -Screenshot the second client renders; the first, which checks the pause, stays headless.
     $renders = $Screenshot -and $index -eq 2
     $clientArguments = $clientPrefix + @(
         '-VeyraSmoke'
-        "-VeyraVanguard=$SmokeVanguard"
+        "-VeyraVanguard=$(if ($kitMode) { $Vanguards[$index - 1] } else { $SmokeVanguard })"
         '-nosound'
         '-nosplash'
         '-unattended'
         "-ABSLOG=`"$(Join-Path $reportDir "Client$index.log")`""
     )
     $clientArguments += $(if ($renders) { $ScreenshotWindow + "-VeyraSmokeScreenshot=`"$screenshotPath`"" } else { '-nullrhi' })
-    if ($index -eq 1) {
+    if ($kitMode) {
+        $clientArguments += '-VeyraSmokeKit'
+    }
+    elseif ($index -eq 1) {
         $clientArguments += '-VeyraSmokePause'
     }
     $stay = $(if ($renders) { [Math]::Max($ClientStaySeconds, $ScreenshotStaySeconds) } else { $ClientStaySeconds })
@@ -638,7 +677,11 @@ if ($Screenshot) {
     }
 }
 
-foreach ($expected in 'Preparation begins with 2 player(s)', 'The match is live', 'Match paused', 'Match resumed') {
+$expectedServerLines = @("Preparation begins with $clientCount player(s)", 'The match is live')
+if (-not $kitMode) {
+    $expectedServerLines += 'Match paused', 'Match resumed'
+}
+foreach ($expected in $expectedServerLines) {
     if (-not (Select-String -LiteralPath $serverLogPath -SimpleMatch $expected -Quiet)) {
         Write-Host "The server log never says '$expected'."
         $failed = $true
@@ -650,12 +693,25 @@ foreach ($serverError in $serverErrors) {
     Write-Host "The server logged an error: $($serverError.Matches[0].Value)"
     $failed = $true
 }
-# Each client's cast, as the server resolved it (VeyraAbilities logs it at Verbose).
-$abilityQ = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Vanguards.json') -Raw | ConvertFrom-Json).vanguards.$SmokeVanguard.abilities.q)[0]
-$casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
-if ($casts -lt 2) {
-    Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."
-    $failed = $true
+# Each client's casts, as the server resolved them (VeyraAbilities logs them at Verbose).
+if ($kitMode) {
+    foreach ($vanguard in $Vanguards) {
+        foreach ($slot in $SlotKeys) {
+            $ability = @($vanguardDefinitions.$vanguard.abilities.$slot)[0]
+            if (-not (Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $ability at " -Quiet)) {
+                Write-Host "The server log shows no cast of $ability ($vanguard's $($slot.ToUpper()))."
+                $failed = $true
+            }
+        }
+    }
+}
+else {
+    $abilityQ = @($vanguardDefinitions.$SmokeVanguard.abilities.q)[0]
+    $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
+    if ($casts -lt 2) {
+        Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."
+        $failed = $true
+    }
 }
 
 if ($NetStatsSeconds -gt 0) {
@@ -674,7 +730,11 @@ if ($RecordReplay) {
         New-Item -ItemType Directory -Force -Path $clientDemosDir | Out-Null
         Copy-Item -LiteralPath $replayFile -Destination $clientDemosDir -Force
         $playbackLog = Join-Path $reportDir 'Playback.log'
-        $playbackArguments = $playbackPrefix + @("-VeyraReplayCheck=$ReplayName", '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$playbackLog`"")
+        $playbackArguments = $playbackPrefix + @("-VeyraReplayCheck=$ReplayName", "-VeyraReplayVanguards=$clientCount", '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$playbackLog`"")
+        if ($kitMode) {
+            # The kits pause nothing, and their skillshots, ranged attacks and delayed areas must replay.
+            $playbackArguments += '-VeyraReplaySkipPause', '-VeyraReplayDeliveries'
+        }
         $playback = Start-Process -FilePath $clientExecutable -ArgumentList ($playbackArguments -join ' ') -PassThru
         if (-not $playback.WaitForExit([TimeSpan]::FromMinutes($TimeoutMinutes))) {
             $playback.Kill($true)

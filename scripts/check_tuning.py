@@ -492,14 +492,33 @@ PROVENANCE_KEY = "provenance"
 PROVISIONAL = "Provisional"
 
 
+def provisional_records(value: Any, parts: list[str] | None = None) -> list[str]:
+    """The JSON pointer of each record in a tuning document still marked provisional, in document order."""
+    parts = parts or []
+    found: list[str] = []
+    if isinstance(value, dict):
+        if value.get(PROVENANCE_KEY) == PROVISIONAL:
+            found.append(pointer(parts))
+        for key, child in value.items():
+            found += provisional_records(child, parts + [key])
+    elif isinstance(value, list):
+        for index, child in enumerate(value):
+            found += provisional_records(child, parts + [str(index)])
+    return found
+
+
 def count_provisional(value: Any) -> int:
     """How many records in a tuning document are still marked provisional."""
-    if isinstance(value, dict):
-        own = 1 if value.get(PROVENANCE_KEY) == PROVISIONAL else 0
-        return own + sum(count_provisional(child) for child in value.values())
-    if isinstance(value, list):
-        return sum(count_provisional(child) for child in value)
-    return 0
+    return len(provisional_records(value))
+
+
+def list_provisional(game_dir: Path) -> list[str]:
+    """Every provisional record in the tuning files, as "<file> <pointer>", for the author's review."""
+    lines: list[str] = []
+    for path in sorted((game_dir / "Tuning").glob("*.json")):
+        document = json.loads(path.read_bytes().decode("utf-8"))
+        lines += [f"{path.name} {where}" for where in provisional_records(document)]
+    return lines
 
 
 def check_contracts(game_dir: Path) -> tuple[list[str], str]:
@@ -539,6 +558,8 @@ def main(argv: list[str] | None = None) -> int:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--game-dir", type=Path, default=GAME,
                         help="Unreal project folder (default: the repository's Game/).")
+    parser.add_argument("--list-provisional", action="store_true",
+                        help="After a passing check, list each provisional record (ADR-008 §7).")
     args = parser.parse_args(argv)
     try:
         import jsonschema  # noqa: F401
@@ -555,6 +576,9 @@ def main(argv: list[str] | None = None) -> int:
             print("ERROR:", error, file=sys.stderr)
         return 1
     print(f"OK: {summary} {contract_summary}")
+    if args.list_provisional:
+        for line in list_provisional(args.game_dir.resolve()):
+            print(line)
     return 0
 
 

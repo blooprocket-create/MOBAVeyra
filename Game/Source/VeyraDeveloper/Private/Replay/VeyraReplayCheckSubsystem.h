@@ -16,6 +16,10 @@ class AActor;
  * them moving, a Vanguard losing Health to a cast, and the match pausing. Like any replay viewer,
  * it plays through the match's recorded world pause (ADR-006 §5). It logs
  * "VeyraReplayCheck: PASS" or "VeyraReplayCheck: FAIL", which is its result, and quits.
+ *
+ * For a smoke match that played whole kits (Smoke.ps1 -Vanguards), -VeyraReplayVanguards=<count>
+ * sets how many Vanguards it must show, -VeyraReplaySkipPause drops the pause, and
+ * -VeyraReplayDeliveries also requires a projectile and a delayed area (ADR-009 §4).
  */
 UCLASS()
 class UVeyraReplayCheckSubsystem : public UGameInstanceSubsystem
@@ -40,11 +44,18 @@ private:
 	bool bPlaying = false;
 	bool bFinished = false;
 
+	// What the replay must show.
+	int32 ExpectedVanguards = 0;
+	bool bExpectPause = true;
+	bool bExpectDeliveries = false;
+
 	// What the replay has shown so far.
 	int32 MostVanguards = 0;
 	bool bSawMovement = false;
 	bool bSawDamage = false;
 	bool bSawPause = false;
+	bool bSawProjectile = false;
+	bool bSawDelayedArea = false;
 	bool bClearedRecordedPause = false;
 	TMap<TWeakObjectPtr<AActor>, FVector> FirstLocations;
 };

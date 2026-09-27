@@ -26,6 +26,13 @@ class UNetDriver;
  * the end; with -VeyraSmokeWaitForEnd it only waits for the end. It logs "VeyraSmoke: PASS" or
  * "VeyraSmoke: FAIL", which is its result, and quits; with -VeyraSmokeStay=<seconds> a passing client
  * stays connected that long first. A failed connection or travel fails it at once.
+ *
+ * With -VeyraSmokeKit it plays any Vanguard's whole kit instead of one Q:
+ * - it takes developer levels up to the first ultimate rank and ranks every ability (ADR-008 §6);
+ * - it moves toward the lane centre, then casts Q, W, E and R in turn at the nearest enemy Vanguard,
+ *   each counting once the server starts its cooldown and retried when the server refuses it;
+ * - it orders a basic attack on the nearest enemy and waits for one to commit;
+ * - it passes once an enemy Vanguard has taken damage.
  */
 UCLASS()
 class UVeyraSmokeClientSubsystem : public UGameInstanceSubsystem
@@ -49,6 +56,12 @@ private:
 		WaitForResume,
 		WaitToBeHit,
 		WaitForEnd,
+		// -VeyraSmokeKit
+		WaitForLevels,
+		WaitForRanks,
+		KitCast,
+		KitAttack,
+		KitDamage,
 		Finished,
 	};
 
@@ -59,6 +72,20 @@ private:
 	AVeyraPlayerController* GetController() const;
 	AVeyraGameState* GetGameState() const;
 	const AVeyraPlayerState* FindEnemy(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState) const;
+
+	/** The living enemy Vanguard nearest From; null if none has a body. */
+	AActor* FindNearestEnemyBody(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState, const FVector& From) const;
+
+	/** Orders the Vanguard toward the lane centre, stopping StopDistance short of it at most. */
+	void StartMove(AVeyraPlayerController& Controller, const AVeyraVanguardCharacter& Vanguard, double StopDistance);
+
+	/** -VeyraSmokeKit: one step of casting the kit, in slot order. */
+	void TickKitCast(AVeyraPlayerController& Controller, const AVeyraGameState& GameState, const AVeyraVanguardCharacter& Vanguard);
+
+	/** -VeyraSmokeKit: whether any enemy Vanguard has lost Health. */
+	bool HasAnEnemyTakenDamage(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState) const;
+
+	void RequestScreenshot();
 
 	/** After this client's cast hits: pauses, or goes on to the end of the match, or passes. */
 	void AfterHit();
@@ -77,6 +104,15 @@ private:
 	FString ScriptSummary;
 	/** Where to save a screenshot once the cast has landed (-VeyraSmokeScreenshot=); empty for none. */
 	FString ScreenshotPath;
+	bool bScreenshotRequested = false;
+	bool bKit = false;
+	/** -VeyraSmokeKit: the level that opens the first ultimate rank. */
+	int32 KitLevel = 0;
+	/** -VeyraSmokeKit: the slot being cast, from 0 (Q) to 4 (done), and whether its cast awaits the server. */
+	int32 KitSlotIndex = 0;
+	bool bKitCastPending = false;
+	int32 KitRejectionsBefore = 0;
+	int32 KitCastAttempts = 0;
 	FDelegateHandle NetworkFailureHandle;
 	FDelegateHandle TravelFailureHandle;
 	double StartRealTime = 0.0;

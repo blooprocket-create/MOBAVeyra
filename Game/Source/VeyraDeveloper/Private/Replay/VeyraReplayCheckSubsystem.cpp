@@ -4,6 +4,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Delivery/VeyraDelayedArea.h"
+#include "Delivery/VeyraProjectile.h"
 #include "Engine/DemoNetDriver.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -23,12 +25,12 @@ namespace
 {
 	// Harness settings, not gameplay: how long the check may take, how much faster than real time
 	// the replay plays, how far a Vanguard must travel to count as moving, how close to the end
-	// playback must get, and how many Vanguards the smoke match has.
+	// playback must get, and how many Vanguards the smoke match has unless -VeyraReplayVanguards= says.
 	constexpr double ReplayCheckTimeoutRealSeconds = 180.0;
 	constexpr float PlaybackSpeed = 4.0f;
 	constexpr double MovementThreshold = 100.0;
 	constexpr double EndToleranceSeconds = 0.5;
-	constexpr int32 ExpectedVanguards = 2;
+	constexpr int32 DefaultExpectedVanguards = 2;
 	constexpr double ProgressLogRealSeconds = 2.0;
 
 	const TCHAR* const ReplayOption = TEXT("VeyraReplayCheck=");
@@ -44,6 +46,10 @@ void UVeyraReplayCheckSubsystem::Initialize(FSubsystemCollectionBase& Collection
 {
 	Super::Initialize(Collection);
 	FParse::Value(FCommandLine::Get(), ReplayOption, ReplayName);
+	ExpectedVanguards = DefaultExpectedVanguards;
+	FParse::Value(FCommandLine::Get(), TEXT("VeyraReplayVanguards="), ExpectedVanguards);
+	bExpectPause = !FParse::Param(FCommandLine::Get(), TEXT("VeyraReplaySkipPause"));
+	bExpectDeliveries = FParse::Param(FCommandLine::Get(), TEXT("VeyraReplayDeliveries"));
 	StartRealTime = FPlatformTime::Seconds();
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraReplayCheckSubsystem::Tick));
 	UE_LOG(LogVeyraReplayCheck, Display, TEXT("VeyraReplayCheck: will play %s."), *ReplayName);
@@ -121,9 +127,11 @@ bool UVeyraReplayCheckSubsystem::Tick(float /*DeltaSeconds*/)
 
 	if (Replay->GetDemoCurrentTime() >= Replay->GetDemoTotalTime() - EndToleranceSeconds)
 	{
-		const bool bPassed = MostVanguards >= ExpectedVanguards && bSawMovement && bSawDamage && bSawPause;
-		Finish(bPassed, FString::Printf(TEXT("%d Vanguard(s), movement %d, damage %d, pause %d (recorded world pause cleared %d), over %.1f s"),
-			MostVanguards, bSawMovement ? 1 : 0, bSawDamage ? 1 : 0, bSawPause ? 1 : 0, bClearedRecordedPause ? 1 : 0, Replay->GetDemoTotalTime()));
+		const bool bPassed = MostVanguards >= ExpectedVanguards && bSawMovement && bSawDamage && (bSawPause || !bExpectPause)
+			&& ((bSawProjectile && bSawDelayedArea) || !bExpectDeliveries);
+		Finish(bPassed, FString::Printf(TEXT("%d of %d Vanguard(s), movement %d, damage %d, pause %d%s (recorded world pause cleared %d), projectile %d, delayed area %d%s, over %.1f s"),
+			MostVanguards, ExpectedVanguards, bSawMovement ? 1 : 0, bSawDamage ? 1 : 0, bSawPause ? 1 : 0, bExpectPause ? TEXT("") : TEXT(" (not expected)"),
+			bClearedRecordedPause ? 1 : 0, bSawProjectile ? 1 : 0, bSawDelayedArea ? 1 : 0, bExpectDeliveries ? TEXT("") : TEXT(" (not expected)"), Replay->GetDemoTotalTime()));
 		return false;
 	}
 	return true;
@@ -140,6 +148,9 @@ void UVeyraReplayCheckSubsystem::Observe(const UWorld& World)
 		bSawMovement |= FVector::Dist2D(First, Location) >= MovementThreshold;
 	}
 	MostVanguards = FMath::Max(MostVanguards, Vanguards);
+	// Ability deliveries replicate as their own actors (ADR-009 §4), so playback must show them.
+	bSawProjectile |= static_cast<bool>(TActorIterator<AVeyraProjectile>(&World));
+	bSawDelayedArea |= static_cast<bool>(TActorIterator<AVeyraDelayedArea>(&World));
 
 	if (const AVeyraGameState* GameState = World.GetGameState<AVeyraGameState>())
 	{
