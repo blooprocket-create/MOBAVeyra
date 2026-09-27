@@ -26,6 +26,12 @@ DEFAULT_LAYERS = [
     {"name": "Developer", "sealed": True, "modules": ["VeyraDeveloper"]},
 ]
 
+CLIENT_LAYERS = DEFAULT_LAYERS[:2] + [
+    {"name": "Presentation", "clientOnly": True, "modules": ["VeyraUI"]},
+] + DEFAULT_LAYERS[2:]
+
+ALL_MODULES = ["Veyra", "VeyraCore", "VeyraCombat", "VeyraEconomy", "VeyraDeveloper"]
+
 
 def build_cs(module: str, body: str) -> str:
     return textwrap.dedent(f"""\
@@ -62,7 +68,7 @@ class ModuleLayerTests(unittest.TestCase):
                 "VeyraCombat",
             });
             """)
-        self.write_uproject(["Veyra", "VeyraCore", "VeyraCombat", "VeyraEconomy", "VeyraDeveloper"])
+        self.write_uproject(ALL_MODULES)
 
     def write_layers(self, layer_list: list[dict]) -> None:
         (self.game / "Source" / "ModuleLayers.json").write_text(
@@ -75,9 +81,19 @@ class ModuleLayerTests(unittest.TestCase):
         path.write_text(build_cs(module, body), encoding="utf-8")
         return path
 
-    def write_uproject(self, modules: list[str]) -> None:
-        descriptor = {"FileVersion": 3, "Modules": [{"Name": m, "Type": "Runtime"} for m in modules]}
+    def write_uproject(self, modules: list[str], types: dict[str, str] | None = None) -> None:
+        types = types or {}
+        descriptor = {"FileVersion": 3,
+                      "Modules": [{"Name": m, "Type": types.get(m, "Runtime")} for m in modules]}
         (self.game / "Veyra.uproject").write_text(json.dumps(descriptor), encoding="utf-8")
+
+    def add_client_module(self, ui_type: str = "ClientOnly", developer_body: str | None = None) -> None:
+        """Adds VeyraUI in a client-only layer; VeyraDeveloper adds it as developer_body says."""
+        self.write_layers(CLIENT_LAYERS)
+        self.write_module("VeyraUI", 'PrivateDependencyModuleNames.AddRange(new[] { "Engine", "VeyraCombat" });')
+        self.write_uproject(ALL_MODULES + ["VeyraUI"], {"VeyraUI": ui_type})
+        if developer_body is not None:
+            self.write_module("VeyraDeveloper", developer_body)
 
     def errors(self) -> list[str]:
         return layers.check(self.game)[0]
@@ -204,6 +220,7 @@ class ModuleLayerTests(unittest.TestCase):
              "VeyraCore is declared in both A and B"),
             ([{"name": "A", "modules": ["VeyraCore"], "seald": True}], 'unknown key "seald"'),
             ([{"name": "A", "modules": ["VeyraCore"], "sealed": "yes"}], 'non-boolean "sealed"'),
+            ([{"name": "A", "modules": ["VeyraCore"], "clientOnly": 1}], 'non-boolean "clientOnly"'),
             ([{"name": "A", "modules": []}], 'needs a non-empty "modules" list'),
             ([], 'non-empty "layers" list'),
         )
@@ -211,6 +228,41 @@ class ModuleLayerTests(unittest.TestCase):
             with self.subTest(fragment=fragment):
                 self.write_layers(layer_list)
                 self.assert_error(fragment)
+
+    def test_client_only_module_added_for_non_server_targets_passes(self) -> None:
+        self.add_client_module(developer_body="""\
+            PrivateDependencyModuleNames.Add("VeyraCombat");
+            if (Target.Type != TargetType.Server)
+            {
+                PrivateDependencyModuleNames.Add("VeyraUI");
+            }
+            """)
+        self.assertEqual(self.errors(), [])
+
+    def test_client_only_module_added_for_every_target_rejected(self) -> None:
+        self.add_client_module(developer_body='PrivateDependencyModuleNames.Add("VeyraUI");')
+        self.assert_error("depends on the client-only VeyraUI for every target")
+
+    def test_client_only_module_under_another_condition_rejected(self) -> None:
+        self.add_client_module(developer_body="""\
+            if (Target.Type != TargetType.Server)
+            {
+                PrivateDependencyModuleNames.Add("VeyraCombat");
+            }
+            if (Target.bBuildEditor)
+            {
+                PrivateDependencyModuleNames.Add("VeyraUI");
+            }
+            """)
+        self.assert_error("depends on the client-only VeyraUI for every target")
+
+    def test_client_only_layer_needs_client_only_type(self) -> None:
+        self.add_client_module(ui_type="Runtime")
+        self.assert_error("VeyraUI is in the client-only layer Presentation, so its Type must be ClientOnly")
+
+    def test_client_only_type_needs_client_only_layer(self) -> None:
+        self.write_uproject(ALL_MODULES, {"VeyraEconomy": "ClientOnly"})
+        self.assert_error("VeyraEconomy is ClientOnly, so it belongs in a client-only layer")
 
     def test_main_reports_errors_and_exit_code(self) -> None:
         self.write_module("VeyraCore", 'PublicDependencyModuleNames.Add("VeyraCombat");')

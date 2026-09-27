@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "vanguards": {
+    "cairn": {
+      "provenance": "Provisional",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 55, "capsuleHalfHeight": 100, "turnRateDegreesPerSecond": 540 },
+      "baseStats": {
+        "maxHealth": 720,
+        "maxResource": 320,
+        "resourceRegen": 3.5,
+        "armor": 38,
+        "magicResist": 32,
+        "physicalPower": 58,
+        "magicPower": 0,
+        "attackSpeed": 0.625,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 105,
+        "maxResource": 45,
+        "resourceRegen": 0.25,
+        "armor": 4.2,
+        "magicResist": 2,
+        "physicalPower": 3.2,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.015
+      },
+      "basicAttack": {
+        "range": 150,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["cairn_iron_grasp"],
+        "w": ["cairn_crushing_hold"],
+        "e": ["cairn_immovable"],
+        "r": ["cairn_burden_of_the_depths"]
+      },
+      "passive": ["cairn_deep_foundation"]
+    },
+    "test_vanguard": {
+      "provenance": "Provisional",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 600,
+        "maxResource": 300,
+        "resourceRegen": 0,
+        "armor": 0,
+        "magicResist": 0,
+        "physicalPower": 55,
+        "magicPower": 0,
+        "attackSpeed": 0.65,
+        "moveSpeed": 335
+      },
+      "growth": {
+        "maxHealth": 0,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 0,
+        "magicResist": 0,
+        "physicalPower": 0,
+        "magicPower": 0,
+        "attackSpeedFraction": 0
+      },
+      "basicAttack": {
+        "range": 150,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["test_bolt"],
+        "w": [],
+        "e": [],
+        "r": []
+      },
+      "passive": []
+    }
+  },
+  "deepFoundation": {
+    "cairn_deep_foundation": {
+      "provenance": "Provisional",
+      "shield": {
+        "id": "cairn_foundation_shield",
+        "category": "Universal",
+        "amountByRank": [0],
+        "maxHealthRatio": 0.05,
+        "magicPowerRatio": 0,
+        "durationSeconds": 4,
+        "reapply": "Merge",
+        "maxAmountMaxHealthRatio": 0.12,
+        "capGroup": [{ "id": "cairn_shields", "totalMaxHealthRatio": 0.25 }]
+      },
+      "lockoutSeconds": 8
+    }
+  }
+}

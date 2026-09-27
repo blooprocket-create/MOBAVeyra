@@ -3,6 +3,7 @@
 #include "VeyraAbilitiesVerbs.h"
 
 #include "AbilitySystemComponent.h"
+#include "Abilities/GameplayAbilityTargetTypes.h"
 #include "Abilities/VeyraGameplayAbility.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "VeyraAbilitiesLog.h"
@@ -28,10 +29,17 @@ EVeyraCastRejection TryCast(UAbilitySystemComponent& Caster, EVeyraAbilitySlot S
 	}
 
 	// The target travels in the activation's event data, which the server fills; no client target
-	// data is involved (ADR-006 §7).
+	// data is involved (ADR-006 §7). A ground point goes as a literal location.
 	FGameplayEventData Payload;
 	Payload.Instigator = Caster.GetAvatarActor();
 	Payload.Target = Target.Actor;
+	if (Target.bHasLocation)
+	{
+		FGameplayAbilityTargetData_LocationInfo* Point = new FGameplayAbilityTargetData_LocationInfo();
+		Point->TargetLocation.LocationType = EGameplayAbilityTargetingLocationType::LiteralTransform;
+		Point->TargetLocation.LiteralTransform = FTransform(Target.Location);
+		Payload.TargetData.Add(Point);
+	}
 	const bool bActivated = Caster.TriggerAbilityFromGameplayEvent(Entry->Handle, Caster.AbilityActorInfo.Get(), FGameplayTag(), &Payload, Caster);
 	UE_CLOG(!bActivated, LogVeyraAbilities, Warning, TEXT("%s passed validation but the ability system did not activate %s."),
 		*GetNameSafe(Caster.GetAvatarActor()), *Entry->Ability.ToString());

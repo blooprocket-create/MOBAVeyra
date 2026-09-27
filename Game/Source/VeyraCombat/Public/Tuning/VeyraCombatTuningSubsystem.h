@@ -36,6 +36,11 @@ public:
 	/** BLAKE3 of Combat.json's exact bytes, for comparing tuning between builds. */
 	const FBlake3Hash& GetDocumentHash() const { return DocumentHash; }
 
+#if WITH_DEV_AUTOMATION_TESTS
+	/** Tests only: Get() returns this until it is cleared with nullptr. The caller keeps it alive. */
+	static void SetTestOverride(const FVeyraCombatTuning* Override);
+#endif
+
 private:
 	TOptional<FVeyraCombatTuning> Tuning;
 	FBlake3Hash DocumentHash;

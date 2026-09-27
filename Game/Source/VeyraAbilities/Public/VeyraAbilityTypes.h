@@ -3,21 +3,12 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "Slots/VeyraAbilitySlot.h"
 #include "UObject/ObjectMacros.h"
 
 #include "VeyraAbilityTypes.generated.h"
 
-/** A Vanguard's ability slots (Settings Bible §1.2: Q/W/E/R). Basic attacks, Flux Spells and item actives get theirs later. */
-UENUM()
-enum class EVeyraAbilitySlot : uint8
-{
-	Q,
-	W,
-	E,
-	R,
-};
-
-/** What a cast is aimed at. Targeted abilities use Actor; locations arrive with skillshots. */
+/** What a cast is aimed at: a unit for targeted abilities, a ground point for areas and aimed abilities. */
 USTRUCT()
 struct FVeyraCastTarget
 {
@@ -25,6 +16,13 @@ struct FVeyraCastTarget
 
 	UPROPERTY()
 	TObjectPtr<AActor> Actor = nullptr;
+
+	/** Whether the cast has a ground point. */
+	UPROPERTY()
+	bool bHasLocation = false;
+
+	UPROPERTY()
+	FVector Location = FVector::ZeroVector;
 };
 
 /** Why the server refused a cast. None means it was accepted. */
@@ -36,6 +34,12 @@ enum class EVeyraCastRejection : uint8
 	UnknownAbility,
 	/** The caster's death is final. */
 	CasterDead,
+	/** Crowd control stops the caster casting, such as a Stun (Combat Bible §8). */
+	CrowdControlled,
+	/** The slot's rank is 0: no skill point has gone into it (ADR-008 §4). */
+	NotLearned,
+	/** Another cast's windup, channel or recovery holds the caster (Combat Bible §48). */
+	Busy,
 	OnCooldown,
 	/** Not enough resource for the cost (Combat Bible §27). */
 	InsufficientResource,
@@ -45,6 +49,8 @@ enum class EVeyraCastRejection : uint8
 	/** The target is on the caster's side. */
 	NotHostile,
 	OutOfRange,
+	/** The ability needs a ground point, and the cast has no usable one. */
+	InvalidLocation,
 	/** The match refuses casts in this phase. */
 	WrongPhase,
 	/** The match is paused (Match Flow Bible §10.2). */
@@ -54,3 +60,17 @@ enum class EVeyraCastRejection : uint8
 };
 
 VEYRAABILITIES_API const TCHAR* LexToString(EVeyraCastRejection Rejection);
+
+/** The phase of a cast that holds its caster (Combat Bible §26, §48; ADR-008 §4). */
+UENUM()
+enum class EVeyraCastPhase : uint8
+{
+	/** No cast holds the caster. */
+	None,
+	/** Before Commit. */
+	Windup,
+	/** After Commit, delivering over time with the caster in place. */
+	Channel,
+	/** After delivery, before the caster may cast again. */
+	Recovery,
+};

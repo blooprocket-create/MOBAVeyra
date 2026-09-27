@@ -8,9 +8,9 @@
 #include "VeyraMobilitySet.generated.h"
 
 /**
- * How a unit moves (Combat Bible §23). Move Speed is a §41 stat; the pawn's movement component
- * follows it on the server. The §23 soft caps and the slow floor arrive with the first effect that
- * changes speed.
+ * How a unit moves (Combat Bible §23). Move Speed is a §41 stat. The Slows, soft caps, slow floor
+ * and Stuns come after it, in the effective speed the body's UVeyraMovementComponent walks at on
+ * the server (VeyraMovementRules::EffectiveSpeed).
  */
 UCLASS()
 class VEYRACOMBAT_API UVeyraMobilitySet : public UAttributeSet

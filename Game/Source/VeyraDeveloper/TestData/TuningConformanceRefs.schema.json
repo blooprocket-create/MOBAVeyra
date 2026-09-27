@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Tuning conformance references shape",
+  "description": "Test-only schema for the fourth tuning conformance corpus: records declared once under \"definitions\" and used through \"$ref\" as a field, an array item and a map value, including a reference inside a definition. VeyraDeveloper binds it to FVeyraTuningRefsTestShape.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "home", "away", "extras", "byId"],
+  "definitions": {
+    "point": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "name"],
+      "properties": {
+        "x": { "type": "number", "minimum": 0 },
+        "name": { "$ref": "#/definitions/shortName" }
+      }
+    },
+    "shortName": { "type": "string", "pattern": "^[0-9a-f]{4}$" }
+  },
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [1] },
+    "home": { "$ref": "#/definitions/point" },
+    "away": { "description": "The same record again.", "$ref": "#/definitions/point" },
+    "extras": { "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/point" } },
+    "byId": {
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/point" } }
+    }
+  }
+}

@@ -5,9 +5,9 @@
 .DESCRIPTION
     Starts the match-server service from the root compose.yaml (ADR-005 step 2), which builds its
     image from the packaged server (Package.ps1 -Target VeyraServer -Platform Linux). Then it starts
-    two headless clients with -VeyraSmoke, which connect to 127.0.0.1:7777, wait for the match to go
-    live, move their Vanguards and cast their Q ability at each other; the server must land both
-    casts. The first client also pauses and resumes the match and checks that its own world stops
+    two headless clients with -VeyraSmoke, which connect to 127.0.0.1:7777 as the developer test
+    Vanguard (-VeyraVanguard=test_vanguard), wait for the match to go live, move their Vanguards and
+    cast their Q ability at each other; the server must land both casts. The first client also pauses and resumes the match and checks that its own world stops
     (ADR-006 §8).
 
     Clients: 'Editor' runs the editor build as a game (UnrealEditor.exe -game); 'Packaged' runs
@@ -23,7 +23,9 @@
     cast's damage and the pause. -NetStatsSeconds has the server log network statistics.
     -LoadTestBots and -LoadTestStandIns add bot participants and lane stand-ins when preparation
     begins (ADR-006 §5 bandwidth spike), and -ClientStaySeconds keeps the clients connected that
-    long after their script, so the server can be measured in a steady state.
+    long after their script, so the server can be measured in a steady state. -Screenshot renders the
+    second client in a window and saves Greybox.png, a frame of the grey-box presentation taken
+    once its cast has landed (ADR-008 §1), to the report folder.
 
     -Handoff plays the match the way a player reaches one (ADR-007). It rebuilds the match-server
     image from the packaged server, starts the backend, signs in two dev accounts and asks the
@@ -62,6 +64,8 @@
     The stand-ins' network update rate; 0 keeps the engine's default for characters.
 .PARAMETER ClientStaySeconds
     Seconds each client stays connected after its script before quitting.
+.PARAMETER Screenshot
+    Renders the second client and saves a screenshot of the grey-box presentation. Not with -Handoff.
 .PARAMETER EngineRoot
     Engine folder to use instead of the one registered for the project's EngineAssociation.
 .EXAMPLE
@@ -101,6 +105,8 @@ param(
     [ValidateRange(0, 3600)]
     [int]$ClientStaySeconds = 0,
 
+    [switch]$Screenshot,
+
     [string]$EngineRoot
 )
 
@@ -117,6 +123,13 @@ $ServerReadyTimeoutSeconds = 120
 $ServerAddress = '127.0.0.1:7777'
 $ReplayName = 'veyra_smoke'
 $ReplayContainerDir = '/srv/veyra/Veyra/Saved/Demos'
+# The clients play the developer test Vanguard, whose Q is the targeted ability the script casts (ADR-008 §8).
+$SmokeVanguard = 'test_vanguard'
+# -Screenshot: the rendering client's window, and how long it stays after its script so the
+# screenshot it asked for is drawn and saved.
+$ScreenshotWindow = @('-windowed', '-ResX=1280', '-ResY=720')
+$ScreenshotStaySeconds = 5
+$ScreenshotName = 'Greybox.png'
 
 # Developer options for the server's map URL.
 $urlOptions = ''
@@ -144,9 +157,9 @@ if ($RecordReplay -and $Server -ne 'Container') {
     Write-Host '-RecordReplay needs the container server.'
     exit $ExitInfrastructure
 }
-if ($Handoff -and ($Clients -ne 'Packaged' -or $Server -ne 'Container' -or $urlOptions -or $ClientStaySeconds -gt 0)) {
+if ($Handoff -and ($Clients -ne 'Packaged' -or $Server -ne 'Container' -or $urlOptions -or $ClientStaySeconds -gt 0 -or $Screenshot)) {
     # The backend starts the server with its own arguments, so no map URL options reach it.
-    Write-Host '-Handoff runs packaged clients against a container the backend starts, without the replay, statistics, load-test or stay options.'
+    Write-Host '-Handoff runs packaged clients against a container the backend starts, without the replay, statistics, load-test, stay or screenshot options.'
     exit $ExitInfrastructure
 }
 
@@ -303,7 +316,7 @@ if ($Handoff) {
         # Not $clients: PowerShell names ignore case, and that is the -Clients parameter.
         $handoffClients = foreach ($index in 0, 1) {
             $log = Join-Path $reportDir "Client$($index + 1).log"
-            $clientArguments = @('-VeyraLaunchCode=stdin', '-VeyraSmoke', '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
+            $clientArguments = @('-VeyraLaunchCode=stdin', '-VeyraSmoke', "-VeyraVanguard=$SmokeVanguard", '-nullrhi', '-nosound', '-nosplash', '-unattended', "-ABSLOG=`"$log`"")
             $clientArguments += $(if ($index -eq 0) { @('-VeyraSmokePause', '-VeyraSmokeEndMatch') } else { @('-VeyraSmokeWaitForEnd') })
             $startInfo = [System.Diagnostics.ProcessStartInfo]::new($clientExecutable, ($clientArguments -join ' '))
             $startInfo.UseShellExecute = $false
@@ -406,6 +419,11 @@ if ($Handoff) {
                     Write-Host "  It never joined match $matchId through the handoff."
                     $failed = $true
                 }
+                # The grey-box presentation must start in the packaged client (ADR-008 §1).
+                foreach ($uiError in @(Select-String -LiteralPath $client.Log -Pattern 'LogVeyraUI: Error: .*')) {
+                    Write-Host "  Presentation error: $($uiError.Matches[0].Value)"
+                    $failed = $true
+                }
             }
         }
 
@@ -445,7 +463,7 @@ if ($Handoff) {
             Write-Host "The server logged an error: $($serverError.Matches[0].Value)"
             $failed = $true
         }
-        $abilityQ = (Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Match.json') -Raw | ConvertFrom-Json).developerLoadout.abilityQ
+        $abilityQ = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Vanguards.json') -Raw | ConvertFrom-Json).vanguards.$SmokeVanguard.abilities.q)[0]
         $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
         if ($casts -lt 2) {
             Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."
@@ -556,20 +574,25 @@ while (-not ((Get-ServerLog) -match $ServerReadyLine)) {
 }
 Write-Host 'The server is ready.'
 
+$screenshotPath = Join-Path $reportDir $ScreenshotName
 $clientProcesses = foreach ($index in 1, 2) {
+    # With -Screenshot the second client renders; the first, which checks the pause, stays headless.
+    $renders = $Screenshot -and $index -eq 2
     $clientArguments = $clientPrefix + @(
         '-VeyraSmoke'
-        '-nullrhi'
+        "-VeyraVanguard=$SmokeVanguard"
         '-nosound'
         '-nosplash'
         '-unattended'
         "-ABSLOG=`"$(Join-Path $reportDir "Client$index.log")`""
     )
+    $clientArguments += $(if ($renders) { $ScreenshotWindow + "-VeyraSmokeScreenshot=`"$screenshotPath`"" } else { '-nullrhi' })
     if ($index -eq 1) {
         $clientArguments += '-VeyraSmokePause'
     }
-    if ($ClientStaySeconds -gt 0) {
-        $clientArguments += "-VeyraSmokeStay=$ClientStaySeconds"
+    $stay = $(if ($renders) { [Math]::Max($ClientStaySeconds, $ScreenshotStaySeconds) } else { $ClientStaySeconds })
+    if ($stay -gt 0) {
+        $clientArguments += "-VeyraSmokeStay=$stay"
     }
     $process = Start-Process -FilePath $clientExecutable -ArgumentList ($clientArguments -join ' ') -PassThru
     $null = $process.Handle # Keeps the exit code readable after the process ends.
@@ -578,7 +601,7 @@ $clientProcesses = foreach ($index in 1, 2) {
 
 $failed = $false
 foreach ($process in $clientProcesses) {
-    if (-not $process.WaitForExit([TimeSpan]::FromMinutes($TimeoutMinutes) + [TimeSpan]::FromSeconds($ClientStaySeconds))) {
+    if (-not $process.WaitForExit([TimeSpan]::FromMinutes($TimeoutMinutes) + [TimeSpan]::FromSeconds([Math]::Max($ClientStaySeconds, $ScreenshotStaySeconds)))) {
         $process.Kill($true)
         $failed = $true
     }
@@ -596,6 +619,23 @@ foreach ($process in $clientProcesses) {
     if (-not $process.HasExited -or $process.ExitCode -ne 0 -or -not $verdict -or $verdict.Matches[0].Value -notmatch 'PASS') {
         $failed = $true
     }
+    # The grey-box presentation logs an error and stays off when its settings or assets are missing,
+    # as in a package that did not cook them (ADR-008 §1).
+    if (Test-Path -LiteralPath $log) {
+        foreach ($uiError in @(Select-String -LiteralPath $log -Pattern 'LogVeyraUI: Error: .*')) {
+            Write-Host "Client $index logged a presentation error: $($uiError.Matches[0].Value)"
+            $failed = $true
+        }
+    }
+}
+if ($Screenshot) {
+    if (Test-Path -LiteralPath $screenshotPath) {
+        Write-Host "Grey-box screenshot: $screenshotPath"
+    }
+    else {
+        Write-Host 'The rendering client saved no screenshot.'
+        $failed = $true
+    }
 }
 
 foreach ($expected in 'Preparation begins with 2 player(s)', 'The match is live', 'Match paused', 'Match resumed') {
@@ -611,7 +651,7 @@ foreach ($serverError in $serverErrors) {
     $failed = $true
 }
 # Each client's cast, as the server resolved it (VeyraAbilities logs it at Verbose).
-$abilityQ = (Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Match.json') -Raw | ConvertFrom-Json).developerLoadout.abilityQ
+$abilityQ = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Vanguards.json') -Raw | ConvertFrom-Json).vanguards.$SmokeVanguard.abilities.q)[0]
 $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
 if ($casts -lt 2) {
     Write-Host "The server log shows $casts cast(s) of $abilityQ; expected one from each client."

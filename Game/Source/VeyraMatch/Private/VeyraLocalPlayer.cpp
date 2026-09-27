@@ -2,6 +2,9 @@
 
 #include "VeyraLocalPlayer.h"
 
+#include "Content/VeyraContentId.h"
+#include "Misc/CommandLine.h"
+#include "Misc/Parse.h"
 #include "Tuning/VeyraTuning.h"
 #include "VeyraJoinRules.h"
 
@@ -35,5 +38,13 @@ FString UVeyraLocalPlayer::GetGameLoginOptions() const
 	{
 		Options += TEXT("?") + VeyraJoinRules::MakeTicketOption(Ticket);
 	}
+#if !UE_BUILD_SHIPPING
+	// A development client may ask for its Vanguard with -VeyraVanguard=<id> (ADR-008 §8).
+	FString Vanguard;
+	if (FParse::Value(FCommandLine::Get(), TEXT("-VeyraVanguard="), Vanguard) && FVeyraContentId::FromText(Vanguard).IsSet())
+	{
+		Options += FString::Printf(TEXT("?%s=%s"), VeyraJoinRules::VanguardOption, *Vanguard);
+	}
+#endif
 	return Options;
 }

@@ -1,0 +1,62 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#pragma once
+
+#include "Events/VeyraAbilityEvents.h"
+#include "Misc/Optional.h"
+#include "Statuses/VeyraStatusTypes.h"
+#include "Tuning/VeyraAbilitiesTuning.h"
+#include "VeyraCombatVerbs.h"
+
+class AActor;
+class UAbilitySystemComponent;
+
+/** What an ability does to each unit it hits, prepared at Commit (Combat Bible §50). */
+struct FVeyraPreparedEffects
+{
+	/** Invalid when the effects deal no damage. */
+	FVeyraPreparedDamage Damage;
+
+	TArray<FVeyraStatusSpec> Statuses;
+	TOptional<FVeyraDisplacementTuning> Displacement;
+};
+
+/** Where effects are applied from: the point displacements are measured from, and the way they face. */
+struct FVeyraEffectFrame
+{
+	FVector Origin = FVector::ZeroVector;
+	FVector Direction = FVector::ForwardVector;
+
+	/** Whether the origin is the caster, so a Pull toward it stops at the caster's edge. */
+	bool bOriginIsCaster = false;
+};
+
+/** How abilities' effects are prepared and applied (ADR-008 §3). Server only. */
+namespace VeyraEffectDelivery
+{
+	/** One damage component's amount for Caster at Rank: the rank's amount plus the caster's power times the ratios. */
+	VEYRAABILITIES_API double DamageAmount(const UAbilitySystemComponent& Caster, const FVeyraDamageTuning& Damage, int32 Rank);
+
+	/** The statuses Ids name, as Combat applies them; an ID the statuses map lacks is skipped. */
+	VEYRAABILITIES_API TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids);
+
+	/**
+	 * Shield's grant from Caster at Rank, its amounts worked out now from the caster's stats (Combat
+	 * Bible §51): the rank's amount plus Max Health and Magic Power times the ratios, and its maximum
+	 * and cap group total as shares of Max Health.
+	 */
+	VEYRAABILITIES_API FVeyraShieldGrant ShieldGrant(const UAbilitySystemComponent& Caster, const FVeyraShieldTuning& Shield, int32 Rank);
+
+	/** Effects for Caster at Rank: damage from the caster's power now, statuses and displacement from data. */
+	VEYRAABILITIES_API FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffectBundleTuning& Effects, int32 Rank);
+
+	/** Whether Effects do anything. */
+	VEYRAABILITIES_API bool IsEmpty(const FVeyraPreparedEffects& Effects);
+
+	/**
+	 * Applies Effects from Caster to Unit, measuring any displacement from Frame, and announces the hit
+	 * with the control that landed (On Ability Hit) when Source names an ability.
+	 */
+	VEYRAABILITIES_API void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEffects& Effects, const FVeyraEffectFrame& Frame,
+		const FVeyraAbilityHitSource& Source);
+}

@@ -3,6 +3,7 @@
 #include "VeyraGameMode.h"
 
 #include "AbilitySystemComponent.h"
+#include "Attributes/VeyraOffenceSet.h"
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformTime.h"
@@ -11,6 +12,7 @@
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "NavigationSystem.h"
+#include "Progression/VeyraProgressionComponent.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraTuning.h"
@@ -22,8 +24,10 @@
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
 #include "VeyraTeamStart.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraVanguardCharacter.h"
 #include "VeyraVanguardController.h"
+#include "VeyraVanguards.h"
 
 namespace
 {
@@ -107,6 +111,15 @@ FString AVeyraGameMode::InitNewPlayer(APlayerController* NewPlayerController, co
 	const FString& Portal)
 {
 	FString ErrorMessage = Super::InitNewPlayer(NewPlayerController, UniqueId, Options, Portal);
+#if !UE_BUILD_SHIPPING
+	// A development client may ask for a Vanguard for itself (ADR-008 §8); Shipping ignores the option.
+	const FString Requested = UGameplayStatics::ParseOption(Options, VeyraJoinRules::VanguardOption);
+	AVeyraPlayerState* Requester = NewPlayerController ? NewPlayerController->GetPlayerState<AVeyraPlayerState>() : nullptr;
+	if (ErrorMessage.IsEmpty() && Requester && !Requested.IsEmpty())
+	{
+		Requester->SetRequestedVanguardId(FVeyraContentId::FromText(Requested).Get(FVeyraContentId()));
+	}
+#endif
 	if (!ErrorMessage.IsEmpty() || !Roster)
 	{
 		return ErrorMessage;
@@ -263,6 +276,20 @@ EVeyraOrderRejection AVeyraGameMode::CheckOrdersAllowed() const
 	return GetVeyraGameState().GetPhase() == EVeyraMatchPhase::Live ? EVeyraOrderRejection::None : EVeyraOrderRejection::WrongPhase;
 }
 
+namespace
+{
+	bool IsUsableOrderPoint(const FVector& Point)
+	{
+		return !Point.ContainsNaN() && FMath::IsFinite(Point.X) && FMath::IsFinite(Point.Y) && FMath::IsFinite(Point.Z);
+	}
+
+	AVeyraVanguardController* VanguardControllerOf(const AVeyraPlayerController& Player)
+	{
+		const AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
+		return PlayerState ? PlayerState->GetVanguardController() : nullptr;
+	}
+}
+
 EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerController& Player, const FVector& Destination)
 {
 	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
@@ -270,13 +297,42 @@ EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerController& Pla
 	{
 		return Allowed;
 	}
-	if (Destination.ContainsNaN() || !FMath::IsFinite(Destination.X) || !FMath::IsFinite(Destination.Y) || !FMath::IsFinite(Destination.Z))
+	if (!IsUsableOrderPoint(Destination))
 	{
 		return EVeyraOrderRejection::InvalidOrder;
 	}
-	const AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
-	AVeyraVanguardController* Controller = PlayerState ? PlayerState->GetVanguardController() : nullptr;
+	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
 	return Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard;
+}
+
+EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerController& Player, AActor* Target)
+{
+	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
+	if (Allowed != EVeyraOrderRejection::None)
+	{
+		return Allowed;
+	}
+	if (!Target)
+	{
+		return EVeyraOrderRejection::InvalidOrder;
+	}
+	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
+	return Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard;
+}
+
+EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerController& Player, const FVector& Destination)
+{
+	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
+	if (Allowed != EVeyraOrderRejection::None)
+	{
+		return Allowed;
+	}
+	if (!IsUsableOrderPoint(Destination))
+	{
+		return EVeyraOrderRejection::InvalidOrder;
+	}
+	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
+	return Controller ? Controller->AttackMoveTo(Destination) : EVeyraOrderRejection::NoVanguard;
 }
 
 EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target)
@@ -328,6 +384,7 @@ void AVeyraGameMode::HandleStartingNewPlayer_Implementation(APlayerController* N
 		return;
 	}
 	AssignTeam(*PlayerState);
+	AssignVanguard(*PlayerState);
 	if (GetVeyraGameState().GetPhase() != EVeyraMatchPhase::Loading)
 	{
 		SpawnVanguard(*PlayerState);
@@ -391,6 +448,7 @@ AVeyraPlayerState* AVeyraGameMode::AddBotParticipant(const FString& Name)
 	PlayerState->SetPlayerName(Name);
 	PlayerState->SetVanguardController(Controller);
 	AssignTeam(*PlayerState);
+	AssignVanguard(*PlayerState);
 	if (GetVeyraGameState().GetPhase() != EVeyraMatchPhase::Loading)
 	{
 		SpawnVanguard(*PlayerState);
@@ -418,6 +476,28 @@ void AVeyraGameMode::AssignTeam(AVeyraPlayerState& PlayerState) const
 		: CountTeamMembers(EVeyraTeam::B) < CountTeamMembers(EVeyraTeam::A) ? EVeyraTeam::B : EVeyraTeam::A;
 	PlayerState.SetVeyraTeam(Team);
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s joins Team %s."), *PlayerState.GetPlayerName(), Team == EVeyraTeam::A ? TEXT("A") : TEXT("B"));
+}
+
+void AVeyraGameMode::AssignVanguard(AVeyraPlayerState& PlayerState)
+{
+	// Until champion select, developer data chooses by join order; the last entry covers later joiners.
+	const TArray<FVeyraContentId>& Order = UVeyraMatchTuningSubsystem::Get().DeveloperMatch.Vanguards;
+	FVeyraContentId Vanguard = Order.IsEmpty() ? FVeyraContentId() : Order[FMath::Min(VanguardsAssigned, Order.Num() - 1)];
+	++VanguardsAssigned;
+	const FVeyraContentId& Requested = PlayerState.GetRequestedVanguardId();
+	if (Requested.IsValid())
+	{
+		if (UVeyraVanguardsTuningSubsystem::FindVanguard(Requested))
+		{
+			Vanguard = Requested;
+		}
+		else
+		{
+			UE_LOG(LogVeyraMatch, Warning, TEXT("%s asked for Vanguard %s, which Vanguards.json does not define."), *PlayerState.GetPlayerName(), *Requested.ToString());
+		}
+	}
+	PlayerState.SetVanguardId(Vanguard);
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s plays %s."), *PlayerState.GetPlayerName(), *Vanguard.ToString());
 }
 
 AActor* AVeyraGameMode::FindTeamStart(EVeyraTeam Team) const
@@ -529,17 +609,43 @@ void AVeyraGameMode::SpawnVanguard(AVeyraPlayerState& PlayerState)
 
 bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilitySystemComponent& AbilitySystem)
 {
-	const FVeyraDeveloperLoadoutTuning& Loadout = UVeyraMatchTuningSubsystem::Get().DeveloperLoadout;
-	UVeyraAbilityLoadoutComponent* Abilities = PlayerState.FindComponentByClass<UVeyraAbilityLoadoutComponent>();
-	if (!VeyraCombat::InitializeVitals(AbilitySystem, Loadout.MaxHealth) || !VeyraCombat::InitializeResource(AbilitySystem, Loadout.MaxResource)
-		|| !VeyraCombat::InitializeMoveSpeed(AbilitySystem, Loadout.MoveSpeed) || !Abilities
-		|| !Abilities->Grant(AbilitySystem, EVeyraAbilitySlot::Q, Loadout.AbilityQ))
+	const FVeyraPreparedVanguard Prepared = VeyraVanguards::PrepareCombatant(AbilitySystem, PlayerState.GetVanguardId());
+	if (!Prepared.bPrepared)
 	{
 		UE_LOG(LogVeyraMatch, Error, TEXT("Could not prepare %s for the match; see the errors above."), *PlayerState.GetPlayerName());
 		return false;
 	}
+	PlayerState.SetPassive(Prepared.Passive);
+
+	// A developer match may spend the level-1 skill point for the player, so the Vanguard can cast at once.
+	UVeyraProgressionComponent* Progression = PlayerState.FindComponentByClass<UVeyraProgressionComponent>();
+	switch (UVeyraMatchTuningSubsystem::Get().DeveloperMatch.StartingRank)
+	{
+	case EVeyraDeveloperStartingRank::Q:
+		Progression->AllocateRank(EVeyraAbilitySlot::Q);
+		break;
+	case EVeyraDeveloperStartingRank::W:
+		Progression->AllocateRank(EVeyraAbilitySlot::W);
+		break;
+	case EVeyraDeveloperStartingRank::E:
+		Progression->AllocateRank(EVeyraAbilitySlot::E);
+		break;
+	case EVeyraDeveloperStartingRank::None:
+		break;
+	}
 	PlayerState.MarkStatsInitialized();
 	return true;
+}
+
+EVeyraOrderRejection AVeyraGameMode::CheckRankUpAllowed() const
+{
+	// Skill points may be spent in preparation too (Match Flow Bible §1), but not while paused or after the end.
+	if (GetWorld()->IsPaused())
+	{
+		return EVeyraOrderRejection::Paused;
+	}
+	const EVeyraMatchPhase Phase = GetVeyraGameState().GetPhase();
+	return Phase == EVeyraMatchPhase::Preparation || Phase == EVeyraMatchPhase::Live ? EVeyraOrderRejection::None : EVeyraOrderRejection::WrongPhase;
 }
 
 void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)

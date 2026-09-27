@@ -22,6 +22,9 @@ public class VeyraMatch : ModuleRules
 			"InputCore",
 			"VeyraAbilities",
 			"VeyraCore",
+			// Its PlayerController reports rank-up refusals.
+			"VeyraEconomy",
+			"VeyraVanguards",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

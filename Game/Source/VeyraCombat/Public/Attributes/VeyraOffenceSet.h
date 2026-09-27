@@ -25,8 +25,12 @@ public:
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, PhysicalPenetrationRetained)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, MagicPenetrationFlat)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, MagicPenetrationRetained)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, PhysicalPower)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, MagicPower)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, AttackSpeed)
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;
 
 protected:
 	UFUNCTION()
@@ -43,6 +47,15 @@ protected:
 
 	UFUNCTION()
 	void OnRep_MagicPenetrationRetained(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_PhysicalPower(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_MagicPower(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_AttackSpeed(const FGameplayAttributeData& OldValue);
 
 private:
 	/** Generic Damage Amplification (§15): the product of every source's 1 + x. */
@@ -64,4 +77,19 @@ private:
 	/** The fraction of Magic Resistance left after percentage penetration. */
 	UPROPERTY(ReplicatedUsing = OnRep_MagicPenetrationRetained)
 	FGameplayAttributeData MagicPenetrationRetained;
+
+	/** A §41 stat that physical ratios scale with (Combat Bible §3). */
+	UPROPERTY(ReplicatedUsing = OnRep_PhysicalPower)
+	FGameplayAttributeData PhysicalPower;
+
+	/** A §41 stat that magic ratios scale with (Combat Bible §3). */
+	UPROPERTY(ReplicatedUsing = OnRep_MagicPower)
+	FGameplayAttributeData MagicPower;
+
+	/**
+	 * Attacks per second before the Combat Bible §22 cap and minimum, which the basic attack applies
+	 * with the overflow rule. A §41 stat.
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_AttackSpeed)
+	FGameplayAttributeData AttackSpeed;
 };

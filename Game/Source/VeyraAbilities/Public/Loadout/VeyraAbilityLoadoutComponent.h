@@ -50,6 +50,7 @@ public:
 	bool Grant(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot, const FVeyraContentId& Ability);
 
 	const FVeyraLoadoutEntry* FindSlot(EVeyraAbilitySlot Slot) const;
+	const FVeyraLoadoutEntry* FindAbility(const FVeyraContentId& Ability) const;
 	const FVeyraLoadoutEntry* FindHandle(FGameplayAbilitySpecHandle Handle) const;
 
 private:

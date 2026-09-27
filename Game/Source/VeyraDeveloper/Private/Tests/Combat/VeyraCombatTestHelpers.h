@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "Components/ActorTestSpawner.h"
 #include "GameplayEffect.h"
+#include "Stats/VeyraStatBlock.h"
 #include "UObject/Package.h"
 #include "VeyraPlayerState.h"
 
@@ -19,6 +20,22 @@ namespace VeyraCombatTests
 	{
 		AVeyraPlayerState& PlayerState = Spawner.SpawnActor<AVeyraPlayerState>();
 		return *PlayerState.GetAbilitySystemComponent();
+	}
+
+	/** A complete, valid stat block. Test fixture values, not tuning. */
+	inline FVeyraStatBlock ExampleStats()
+	{
+		FVeyraStatBlock Stats;
+		Stats.MaxHealth = 600.0;
+		Stats.MaxResource = 300.0;
+		Stats.ResourceRegen = 4.0;
+		Stats.Armor = 30.0;
+		Stats.MagicResist = 25.0;
+		Stats.PhysicalPower = 55.0;
+		Stats.MagicPower = 10.0;
+		Stats.AttackSpeed = 0.65;
+		Stats.MoveSpeed = 335.0;
+		return Stats;
 	}
 
 	struct FTestModifier

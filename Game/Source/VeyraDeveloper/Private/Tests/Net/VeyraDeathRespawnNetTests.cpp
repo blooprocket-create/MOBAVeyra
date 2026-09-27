@@ -58,7 +58,7 @@ namespace VeyraNetTests
 			Bolt.CooldownSeconds = LongCooldownSeconds;
 			Bolt.DamageType = EVeyraDamageType::TrueDamage;
 			Bolt.DamageAmount = BoltDamage;
-			Abilities->Tuning.TargetedDamage.Add(Tuning->Tuning.DeveloperLoadout.AbilityQ, Bolt);
+			Abilities->Tuning.TargetedDamage.Add(TestVanguardAbilityQ(), Bolt);
 			ExpectedPlayers = MakeUnique<FScopedExpectedPlayers>(MatchClientCount);
 			BuildMatchNetwork(Network);
 		}
@@ -77,7 +77,7 @@ namespace VeyraNetTests
 
 		double RemainingCooldown(const AVeyraPlayerState& Participant, double Now) const
 		{
-			return Participant.FindComponentByClass<UVeyraCooldownComponent>()->GetRemainingSeconds(Tuning->Tuning.DeveloperLoadout.AbilityQ, Now);
+			return Participant.FindComponentByClass<UVeyraCooldownComponent>()->GetRemainingSeconds(TestVanguardAbilityQ(), Now);
 		}
 
 		TEST_METHOD(ADeadVanguardRespawnsAtItsFountainWithItsCooldowns)
@@ -100,7 +100,7 @@ namespace VeyraNetTests
 				.ThenServer(TEXT("Kill the victim"), [this](FState& State) {
 					AVeyraPlayerState& Victim = ServerParticipant(State, 0);
 					FVeyraRawDamageEvent Lethal;
-					Lethal.Components.Add({ EVeyraDamageType::TrueDamage, Tuning->Tuning.DeveloperLoadout.MaxHealth });
+					Lethal.Components.Add({ EVeyraDamageType::TrueDamage, TestVanguard().BaseStats.MaxHealth });
 					ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*ServerParticipant(State, 1).GetAbilitySystemComponent(), *Victim.GetAbilitySystemComponent(), Lethal)));
 					ASSERT_THAT(IsFalse(Victim.FindComponentByClass<UVeyraLifeComponent>()->IsAlive()));
 				})
@@ -119,7 +119,7 @@ namespace VeyraNetTests
 					// The sides start at opposite ends, DistanceFromCenterX from the centre, so this is its own start.
 					ASSERT_THAT(IsTrue(FVector::Dist2D(Victim.GetPawn()->GetActorLocation(), VictimStart) < Layout.TeamStarts.DistanceFromCenterX));
 					ASSERT_THAT(IsTrue(Abilities.GetAvatarActor() == Victim.GetPawn()));
-					ASSERT_THAT(IsTrue(Abilities.GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) == Tuning->Tuning.DeveloperLoadout.MaxHealth));
+					ASSERT_THAT(IsTrue(Abilities.GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) == TestVanguard().BaseStats.MaxHealth));
 					ASSERT_THAT(IsTrue(RemainingCooldown(Victim, State.World->GetTimeSeconds()) > 0.0));
 				})
 				.UntilClient(TEXT("The victim's client views and drives the new body"), 0, [this](FState& State) {
@@ -139,7 +139,7 @@ namespace VeyraNetTests
 					AVeyraPlayerState& Victim = ServerParticipant(State, 0);
 					FirstBody = Victim.GetPawn();
 					FVeyraRawDamageEvent Lethal;
-					Lethal.Components.Add({ EVeyraDamageType::TrueDamage, Tuning->Tuning.DeveloperLoadout.MaxHealth });
+					Lethal.Components.Add({ EVeyraDamageType::TrueDamage, TestVanguard().BaseStats.MaxHealth });
 					ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*ServerParticipant(State, 1).GetAbilitySystemComponent(), *Victim.GetAbilitySystemComponent(), Lethal)));
 				})
 				.UntilServer(TEXT("The victim respawns in a new body"), [this](FState& State) {

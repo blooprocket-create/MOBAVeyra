@@ -12,19 +12,35 @@
       "modules": ["VeyraCombat"]
     },
     {
+      "name": "Economy",
+      "description": "The Economy domain (ARCHITECTURE.md §3, ADR-008 §1): in-match Progression now, Gold later. Above Combat, whose verbs apply level-up growth; below Abilities, which reads ranks.",
+      "modules": ["VeyraEconomy"]
+    },
+    {
       "name": "Abilities",
       "description": "Systems that compose the rules below them (PROJECT_STRUCTURE.md §2, Abilities / Items / Flux / World / Vision).",
       "modules": ["VeyraAbilities"]
     },
     {
+      "name": "Content",
+      "description": "Content domains (ADR-008 §1, PROJECT_STRUCTURE.md \"Vanguards\"): definitions and the passives the shared systems cannot express. Above Abilities, whose archetypes run the kits; below Match, which orchestrates them.",
+      "modules": ["VeyraVanguards"]
+    },
+    {
       "name": "Orchestration",
-      "description": "Coordinates the systems below it without peer-to-peer dependencies (PROJECT_STRUCTURE.md §2, Match / Vanguards).",
+      "description": "Coordinates the systems below it without peer-to-peer dependencies (PROJECT_STRUCTURE.md §2, Match).",
       "modules": ["VeyraMatch"]
     },
     {
       "name": "Services",
       "description": "The trusted-services client (ADR-006 §3, ADR-007 §12): the only modules that talk to the backend. They plug into the match's contracts, so no gameplay module knows HTTP.",
       "modules": ["VeyraServices"]
+    },
+    {
+      "name": "Presentation",
+      "description": "Presentation (ADR-008 §1, ARCHITECTURE.md §2): it observes every layer below and decides nothing, and nothing below knows it exists. Client only: its modules are ClientOnly in the .uproject, so servers neither build nor load them, and a module outside this layer may add one only for targets that are not servers.",
+      "clientOnly": true,
+      "modules": ["VeyraUI"]
     },
     {
       "name": "Composition",

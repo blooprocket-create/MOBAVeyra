@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "resistance", "targeting"],
+  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution", "attackSpeed"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "resistance": {
       "description": "Armor and Magic Resistance mitigation (Combat Bible §3).",
@@ -36,6 +36,179 @@
           "description": "Extra range in units the server allows on top of a cast range, measured edge to edge, for latency (Combat Bible §30: server range validation may include small latency tolerance). Provisional.",
           "type": "number",
           "minimum": 0
+        }
+      }
+    },
+    "regeneration": {
+      "description": "Resource regeneration over time (Combat Bible §28: base resource regeneration continues in and out of combat).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "tickSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives no tick length, so it was drafted for playtesting.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "tickSeconds": {
+          "description": "How often regeneration is applied, in seconds; each tick restores a unit's per-second rate times this. Shorter ticks fill bars more smoothly and replicate more often.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "movement": {
+      "description": "Effective Movement Speed (Combat Bible §23, §39): the soft caps and the floor that ordinary slowing cannot go below.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "softCaps", "slowFloor"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Combat Bible §49 lists them.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "softCaps": {
+          "description": "Soft caps in rising order of \"from\". Speed above a cap's \"from\" keeps only \"retained\" of each extra unit, until the next cap. Empty means no soft caps.",
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["from", "retained"],
+            "properties": {
+              "from": {
+                "description": "The speed, in units per second, where this cap begins.",
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMinimum": true
+              },
+              "retained": {
+                "description": "The fraction of each unit of speed above \"from\" that is kept, above 0 and at most 1.",
+                "type": "number",
+                "minimum": 0,
+                "exclusiveMinimum": true,
+                "maximum": 1
+              }
+            }
+          }
+        },
+        "slowFloor": {
+          "description": "The lowest Movement Speed that slowing can bring a unit to, in units per second, unless its own base speed is lower. Stuns still stop it (Combat Bible §23).",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "forcedMovement": {
+      "description": "Displacement and dashes (Combat Bible §9, ADR-009 §2): each path is planned once, stopped by terrain and by the end of walkable ground, and its end moved to the nearest walkable point.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "navigationExtent"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives no number, so it was drafted for playtesting.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "navigationExtent": {
+          "description": "How far, in units and in each direction, the end of a forced movement may be moved to reach walkable ground. With none that close, the unit stays where it is.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "crowdControl": {
+      "description": "Crowd control durations (Combat Bible §8).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "tenacityFloorSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Combat Bible §49 lists it.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "tenacityFloorSeconds": {
+          "description": "The shortest duration Tenacity can shorten a crowd-control effect to, in seconds. An effect that starts shorter than this is not shortened.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "combatState": {
+      "description": "Vanguard Combat State (Combat Bible §28): dealing or taking damage from an enemy Vanguard, or crowd-controlling or debuffing one, puts both in combat.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "outOfCombatSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Combat Bible §49 lists it.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "outOfCombatSeconds": {
+          "description": "How long after its last Vanguard combat a unit leaves Combat State, in seconds.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "attribution": {
+      "description": "Kill and assist credit (Combat Bible §18).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "assistWindowSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Combat Bible §49 lists it as a starting point.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "assistWindowSeconds": {
+          "description": "How long damage, crowd control or a debuff on an enemy Vanguard counts toward an assist if it dies, in seconds.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "attackSpeed": {
+      "description": "Attack Speed limits and overflow (Combat Bible §22, §39): attacks per second stay between the minimum and the cap, and Attack Speed past the cap adds basic-attack damage on a curve.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "cap", "minimum", "overflowDamageScalePercent", "overflowCurveConstant"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Combat Bible §22 gives the formula and §49 lists the values.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "cap": {
+          "description": "The normal maximum, in attacks per second, and the permanent reference that overflow is measured from.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "minimum": {
+          "description": "The ordinary minimum, in attacks per second; below the cap.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "overflowDamageScalePercent": {
+          "description": "S in overflow damage % = S × overflow / (C + overflow), where overflow is how far uncapped Attack Speed exceeds the cap, as a percentage of the cap.",
+          "type": "number",
+          "minimum": 0
+        },
+        "overflowCurveConstant": {
+          "description": "C in the overflow formula: the overflow percentage at which the bonus reaches half of S.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
         }
       }
     }

@@ -20,6 +20,9 @@ namespace VeyraJoinRules
 	/** The login option that carries the client's join ticket (ADR-007 §4). */
 	inline constexpr const TCHAR* TicketOption = TEXT("VeyraTicket");
 
+	/** The login option, development builds only, that asks for a Vanguard (ADR-008 §8); Shipping servers ignore it. */
+	inline constexpr const TCHAR* VanguardOption = TEXT("VeyraVanguard");
+
 	/** The login option for a join ticket, as "VeyraTicket=<ticket>". */
 	VEYRAMATCH_API FString MakeTicketOption(const FString& Ticket);
 

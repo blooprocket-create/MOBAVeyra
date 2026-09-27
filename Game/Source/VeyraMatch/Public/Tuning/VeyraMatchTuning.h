@@ -69,33 +69,29 @@ struct FVeyraOrdersTuning
 	double ArrivalTolerance = 0.0;
 };
 
-/** Base stats for every Vanguard in developer matches, until Vanguard definitions arrive (M4). */
+/** The slot a developer match ranks up for each participant at level 1. */
+UENUM()
+enum class EVeyraDeveloperStartingRank : uint8
+{
+	/** The player chooses. */
+	None,
+	Q,
+	W,
+	E,
+};
+
+/** Developer matches until champion select (ADR-008 §8). */
 USTRUCT()
-struct FVeyraDeveloperLoadoutTuning
+struct FVeyraDeveloperMatchTuning
 {
 	GENERATED_BODY()
 
+	/** The Vanguard each participant plays, in join order; the last one plays for every later joiner. */
 	UPROPERTY()
-	double MaxHealth = 0.0;
+	TArray<FVeyraContentId> Vanguards;
 
 	UPROPERTY()
-	double MaxResource = 0.0;
-
-	UPROPERTY()
-	double MoveSpeed = 0.0;
-
-	UPROPERTY()
-	double TurnRateDegreesPerSecond = 0.0;
-
-	UPROPERTY()
-	double CapsuleRadius = 0.0;
-
-	UPROPERTY()
-	double CapsuleHalfHeight = 0.0;
-
-	/** The ability in the Q slot, which Abilities.json must define. */
-	UPROPERTY()
-	FVeyraContentId AbilityQ;
+	EVeyraDeveloperStartingRank StartingRank = EVeyraDeveloperStartingRank::None;
 };
 
 USTRUCT()
@@ -104,7 +100,7 @@ struct FVeyraMatchTuning
 	GENERATED_BODY()
 
 	/** The Match.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
 
 	UPROPERTY()
 	FVeyraTeamsTuning Teams;
@@ -122,5 +118,5 @@ struct FVeyraMatchTuning
 	FVeyraOrdersTuning Orders;
 
 	UPROPERTY()
-	FVeyraDeveloperLoadoutTuning DeveloperLoadout;
+	FVeyraDeveloperMatchTuning DeveloperMatch;
 };

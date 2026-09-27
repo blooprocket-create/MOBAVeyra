@@ -41,6 +41,8 @@ enum class EVeyraOrderRejection : uint8
 	InvalidOrder,
 	/** The destination is not on or near walkable ground. */
 	Unreachable,
+	/** The target is not a living enemy unit, or the Vanguard has no basic attack. */
+	CannotAttack,
 };
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraOrderRejection Rejection);

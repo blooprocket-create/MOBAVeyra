@@ -1535,7 +1535,7 @@ Cairn has increased maximum Health. When he **successfully immobilizes** an enem
 
 ## Q — Iron Grasp
 
-Extend the giant hooked arm on its embedded chain in a telegraphed straight-line skillshot. Catch and pull the first enemy Vanguard struck toward Cairn, dealing **minor physical damage**. The hook itself does **not** stun; **its successful Pull does count as one Deep Foundation immobilization**, subject to that target's passive lockout. The windup, travel, collision, terrain blocking, range, and miss recovery should give opponents a meaningful chance to evade or intercept the engage.
+Extend the giant hooked arm on its embedded chain in a telegraphed straight-line skillshot. Catch and pull the first enemy Vanguard struck toward Cairn, dealing **minor physical damage**. The hook itself does **not** stun; **its successful Pull does count as one Deep Foundation immobilization**, subject to that target's passive lockout. The windup, travel, collision, terrain blocking, range, and miss recovery should give opponents a meaningful chance to evade or intercept the engage. **Minions (author ruling, 2026-09-27):** the hook passes through minions and other units that are not Vanguards, pushing each one aside as it travels. It never stops on or pulls them; only an enemy Vanguard ends its flight.
 
 ## W — Crushing Hold
 

@@ -3,17 +3,17 @@
 #include "VeyraVanguardCharacter.h"
 
 #include "AbilitySystemComponent.h"
-#include "Attributes/VeyraMobilitySet.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Input/VeyraCameraSettings.h"
-#include "Tuning/VeyraMatchTuningSubsystem.h"
+#include "Movement/VeyraMovementComponent.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
+#include "VeyraPlayerState.h"
 
 AVeyraVanguardCharacter::AVeyraVanguardCharacter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UVeyraMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	// The GameMode creates and keeps each Vanguard's controller, so nothing spawns one automatically.
 	AutoPossessAI = EAutoPossessAI::Disabled;
@@ -41,15 +41,28 @@ void AVeyraVanguardCharacter::PostInitializeComponents()
 		return;
 	}
 
-	// Server and clients read the same tuning (its hash is checked on join), so both build the same
-	// body.
-	const FVeyraDeveloperLoadoutTuning& Loadout = UVeyraMatchTuningSubsystem::Get().DeveloperLoadout;
-	GetCapsuleComponent()->SetCapsuleSize(static_cast<float>(Loadout.CapsuleRadius), static_cast<float>(Loadout.CapsuleHalfHeight));
-	GetCharacterMovement()->RotationRate = FRotator(0.0, Loadout.TurnRateDegreesPerSecond, 0.0);
-
 	const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
 	CameraArm->TargetArmLength = View.Distance;
 	CameraArm->SetWorldRotation(FRotator(View.PitchDegrees, 0.0, 0.0));
+}
+
+UVeyraMovementComponent* AVeyraVanguardCharacter::GetVeyraMovement() const
+{
+	return CastChecked<UVeyraMovementComponent>(GetCharacterMovement());
+}
+
+void AVeyraVanguardCharacter::ApplyVanguardBody()
+{
+	const AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>();
+	const FVeyraVanguardDefinition* Definition =
+		Participant && Participant->GetVanguardId().IsValid() ? UVeyraVanguardsTuningSubsystem::FindVanguard(Participant->GetVanguardId()) : nullptr;
+	if (!Definition)
+	{
+		return;
+	}
+	const FVeyraVanguardBodyTuning& Body = Definition->Body;
+	GetCapsuleComponent()->SetCapsuleSize(static_cast<float>(Body.CapsuleRadius), static_cast<float>(Body.CapsuleHalfHeight));
+	GetCharacterMovement()->RotationRate = FRotator(0.0, Body.TurnRateDegreesPerSecond, 0.0);
 }
 
 UAbilitySystemComponent* AVeyraVanguardCharacter::GetAbilitySystemComponent() const
@@ -88,37 +101,10 @@ void AVeyraVanguardCharacter::OnPlayerStateChanged(APlayerState* NewPlayerState,
 		}
 	}
 
+	// Only the server moves Vanguards, so only its movement follows the participant.
 	if (HasAuthority())
 	{
-		FollowMoveSpeed(NewAbilitySystem);
+		GetVeyraMovement()->BindCombatant(NewAbilitySystem);
 	}
-}
-
-void AVeyraVanguardCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-	FollowMoveSpeed(nullptr);
-	Super::EndPlay(EndPlayReason);
-}
-
-void AVeyraVanguardCharacter::FollowMoveSpeed(UAbilitySystemComponent* AbilitySystem)
-{
-	if (UAbilitySystemComponent* Followed = FollowedAbilitySystem.Get())
-	{
-		Followed->GetGameplayAttributeValueChangeDelegate(UVeyraMobilitySet::GetMoveSpeedAttribute()).Remove(MoveSpeedChangedHandle);
-	}
-	MoveSpeedChangedHandle.Reset();
-	FollowedAbilitySystem = AbilitySystem;
-
-	if (AbilitySystem)
-	{
-		// Only the server moves Vanguards, so only its movement component needs the speed.
-		MoveSpeedChangedHandle = AbilitySystem->GetGameplayAttributeValueChangeDelegate(UVeyraMobilitySet::GetMoveSpeedAttribute())
-			.AddUObject(this, &AVeyraVanguardCharacter::OnMoveSpeedChanged);
-		GetCharacterMovement()->MaxWalkSpeed = AbilitySystem->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
-	}
-}
-
-void AVeyraVanguardCharacter::OnMoveSpeedChanged(const FOnAttributeChangeData& Change)
-{
-	GetCharacterMovement()->MaxWalkSpeed = Change.NewValue;
+	ApplyVanguardBody();
 }

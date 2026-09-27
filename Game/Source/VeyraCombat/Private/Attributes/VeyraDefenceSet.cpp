@@ -14,6 +14,8 @@ UVeyraDefenceSet::UVeyraDefenceSet()
 	InitMagicResistReductionFlat(0.0f);
 	InitMagicResistReductionRetained(1.0f);
 	InitIncomingDamageMultiplier(1.0f);
+	InitTenacityRetained(1.0f);
+	InitDisplacementRetained(1.0f);
 }
 
 void UVeyraDefenceSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -30,6 +32,8 @@ void UVeyraDefenceSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraDefenceSet, MagicResistReductionFlat, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraDefenceSet, MagicResistReductionRetained, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraDefenceSet, IncomingDamageMultiplier, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraDefenceSet, TenacityRetained, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraDefenceSet, DisplacementRetained, Params);
 }
 
 void UVeyraDefenceSet::OnRep_Armor(const FGameplayAttributeData& OldValue)
@@ -65,4 +69,14 @@ void UVeyraDefenceSet::OnRep_MagicResistReductionRetained(const FGameplayAttribu
 void UVeyraDefenceSet::OnRep_IncomingDamageMultiplier(const FGameplayAttributeData& OldValue)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraDefenceSet, IncomingDamageMultiplier, OldValue);
+}
+
+void UVeyraDefenceSet::OnRep_TenacityRetained(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraDefenceSet, TenacityRetained, OldValue);
+}
+
+void UVeyraDefenceSet::OnRep_DisplacementRetained(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraDefenceSet, DisplacementRetained, OldValue);
 }

@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Match domain (Match Flow Bible, Battleground Bible). VeyraMatch binds it to FVeyraMatchTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "teams", "phases", "respawn", "lifecycle", "orders", "developerLoadout"],
+  "required": ["schemaVersion", "teams", "phases", "respawn", "lifecycle", "orders", "developerMatch"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "teams": {
       "description": "The two sides of a match.",
@@ -97,51 +97,22 @@
         }
       }
     },
-    "developerLoadout": {
-      "description": "Scaffolding until Vanguard definitions arrive (M4): the base stats every Vanguard gets in developer matches. Provisional values; Combat Bible §58 leaves per-Vanguard stats open.",
+    "developerMatch": {
+      "description": "Developer matches until champion select (ADR-008 §8): the Vanguard each participant plays, by join order, and a head start on ranks. Hosted matches use the same order.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["maxHealth", "maxResource", "moveSpeed", "turnRateDegreesPerSecond", "capsuleRadius", "capsuleHalfHeight", "abilityQ"],
+      "required": ["vanguards", "startingRank"],
       "properties": {
-        "maxHealth": {
-          "description": "Base Max Health.",
-          "type": "number",
-          "minimum": 0,
-          "exclusiveMinimum": true
+        "vanguards": {
+          "description": "The Vanguard each participant plays, in join order; the last one plays for every later joiner. Each is a content ID that Vanguards.json defines. A development build's -VeyraVanguard= option overrides it for one client.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
         },
-        "maxResource": {
-          "description": "Base Max Resource of the standard resource, Mana (Combat Bible §27, §58). 0 would mean no resource.",
-          "type": "number",
-          "minimum": 0
-        },
-        "moveSpeed": {
-          "description": "Base Move Speed in units per second (Combat Bible §23).",
-          "type": "number",
-          "minimum": 0,
-          "exclusiveMinimum": true
-        },
-        "turnRateDegreesPerSecond": {
-          "description": "How fast a Vanguard turns to face where it moves.",
-          "type": "number",
-          "minimum": 0,
-          "exclusiveMinimum": true
-        },
-        "capsuleRadius": {
-          "description": "Gameplay collision radius in units; ranges are measured edge to edge from it (Combat Bible §40).",
-          "type": "number",
-          "minimum": 0,
-          "exclusiveMinimum": true
-        },
-        "capsuleHalfHeight": {
-          "description": "Half the gameplay collision height in units. Must be at least capsuleRadius.",
-          "type": "number",
-          "minimum": 0,
-          "exclusiveMinimum": true
-        },
-        "abilityQ": {
-          "description": "The ability in the Q slot: a content ID that Abilities.json defines.",
+        "startingRank": {
+          "description": "The slot a developer match spends each participant's level-1 skill point on, so its Vanguard can cast at once; None leaves the choice to the player.",
           "type": "string",
-          "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+          "enum": ["None", "Q", "W", "E"]
         }
       }
     }

@@ -42,6 +42,14 @@ namespace
 	const TCHAR* const StringKeywords[] = { TEXT("enum"), TEXT("pattern") };
 	const TCHAR* const MapKeywords[] = { TEXT("patternProperties"), TEXT("additionalProperties") };
 	const TCHAR* const ArrayKeywords[] = { TEXT("items"), TEXT("minItems"), TEXT("maxItems") };
+	// Shared records are declared once under the root's "definitions" and used through "$ref".
+	const TCHAR* const RootKeywords[] = { TEXT("properties"), TEXT("required"), TEXT("additionalProperties"), TEXT("definitions") };
+	const TCHAR* const RefKeywords[] = { TEXT("$ref"), TEXT("description") };
+	const TCHAR* const DefinitionsPrefix = TEXT("#/definitions/");
+
+	// How many definitions may nest inside one another. A deeper chain means a schema that refers to
+	// itself, which no reflected struct can match.
+	constexpr int32 MaxDefinitionDepth = 32;
 
 	/**
 	 * Whether all of Text matches an anchored pattern. ICU's "$" also matches before a final line
@@ -216,11 +224,38 @@ namespace
 		{
 		}
 
+		/**
+		 * Walks the root schema and document. The root alone may declare "definitions"; each must be
+		 * used by a "$ref" somewhere, so no part of a schema goes unchecked.
+		 */
+		void WalkRoot(const FValue& Schema, const FValue& Document, const UStruct& Struct, void* Memory, int32 ExpectedSchemaVersion)
+		{
+			Definitions = Schema.IsObject() ? FindMember(Schema, TEXT("definitions")) : nullptr;
+			const FString DefinitionsPointer = ChildPointer(FString(), TEXT("definitions"));
+			if (Definitions && !Definitions->IsObject())
+			{
+				SchemaError(DefinitionsPointer, TEXT("must be an object of schemas"));
+				Definitions = nullptr;
+			}
+			const int32 ErrorsBefore = Errors.Num();
+			WalkObject(Schema, FString(), &Document, FString(), Struct, Memory, ExpectedSchemaVersion);
+			if (Definitions && Errors.Num() == ErrorsBefore)
+			{
+				for (const FValue::Member& Member : Definitions->GetObject())
+				{
+					if (!ContainsExactly(UsedDefinitions, NameOf(Member.name)))
+					{
+						SchemaError(ChildPointer(DefinitionsPointer, NameOf(Member.name)), TEXT("is never used by a \"$ref\""));
+					}
+				}
+			}
+		}
+
 		/** Document may be null when it is already missing; the schema is still checked. */
 		void WalkObject(const FValue& Schema, const FString& SchemaPointer, const FValue* Document, const FString& Pointer,
 			const UStruct& Struct, void* Memory, TOptional<int32> ExpectedSchemaVersion)
 		{
-			if (!CheckKeywords(Schema, SchemaPointer, ObjectKeywords))
+			if (!CheckKeywords(Schema, SchemaPointer, ExpectedSchemaVersion.IsSet() ? TConstArrayView<const TCHAR*>(RootKeywords) : TConstArrayView<const TCHAR*>(ObjectKeywords)))
 			{
 				return;
 			}
@@ -335,6 +370,60 @@ namespace
 			Errors.Add(FString::Printf(TEXT("%s: %s"), *PointerText(Pointer), *Message));
 		}
 
+		/**
+		 * The definition a "$ref" schema names, following a chain of references to a schema that is
+		 * not one; null, with an error, when it names nothing it can use. A "$ref" may stand only
+		 * beside a description.
+		 */
+		const FValue* ResolveRef(const FValue& Schema, const FString& SchemaPointer, FString& OutDefinitionPointer)
+		{
+			CheckKeywordsIn(Schema, SchemaPointer, RefKeywords, TEXT("cannot stand beside \"$ref\""));
+			TArray<FString> Followed;
+			const FValue* Node = &Schema;
+			while (const FValue* Ref = Node->IsObject() ? FindMember(*Node, TEXT("$ref")) : nullptr)
+			{
+				const FString Target = Ref->IsString() ? NameOf(*Ref) : FString();
+				const FString Name = Target.StartsWith(DefinitionsPrefix, ESearchCase::CaseSensitive) ? Target.RightChop(FCString::Strlen(DefinitionsPrefix)) : FString();
+				if (Name.IsEmpty() || Name.Contains(TEXT("/")))
+				{
+					SchemaError(SchemaPointer, FString::Printf(TEXT("\"$ref\" must name a definition as \"%s<name>\""), DefinitionsPrefix));
+					return nullptr;
+				}
+				const FValue* Definition = Definitions ? FindMember(*Definitions, *Name) : nullptr;
+				if (!Definition)
+				{
+					SchemaError(SchemaPointer, FString::Printf(TEXT("\"$ref\" names \"%s\", which \"definitions\" does not declare"), *Name));
+					return nullptr;
+				}
+				if (ContainsExactly(Followed, Name))
+				{
+					SchemaError(SchemaPointer, TEXT("\"$ref\" leads round a cycle of definitions"));
+					return nullptr;
+				}
+				Followed.Add(Name);
+				if (!ContainsExactly(UsedDefinitions, Name))
+				{
+					UsedDefinitions.Add(Name);
+				}
+				Node = Definition;
+				OutDefinitionPointer = ChildPointer(ChildPointer(FString(), TEXT("definitions")), Name);
+			}
+			return Node;
+		}
+
+		/** Reports each keyword of Schema outside Allowed, saying why. */
+		void CheckKeywordsIn(const FValue& Schema, const FString& SchemaPointer, TConstArrayView<const TCHAR*> Allowed, const TCHAR* Why)
+		{
+			for (const FValue::Member& Member : Schema.GetObject())
+			{
+				const FString Keyword = NameOf(Member.name);
+				if (!IsOneOf(Keyword, Allowed))
+				{
+					SchemaError(SchemaPointer, FString::Printf(TEXT("keyword \"%s\" %s"), *Keyword, Why));
+				}
+			}
+		}
+
 		/** Rejects keywords outside the dialect or outside the schema's type. */
 		bool CheckKeywords(const FValue& Schema, const FString& SchemaPointer, TConstArrayView<const TCHAR*> TypeKeywords)
 		{
@@ -410,6 +499,21 @@ namespace
 			if (!Schema.IsObject())
 			{
 				SchemaError(SchemaPointer, TEXT("must be an object"));
+				return;
+			}
+			if (FindMember(Schema, TEXT("$ref")))
+			{
+				FString DefinitionPointer;
+				const FValue* Definition = ResolveRef(Schema, SchemaPointer, DefinitionPointer);
+				if (Definition && DefinitionDepth >= MaxDefinitionDepth)
+				{
+					SchemaError(SchemaPointer, TEXT("definitions nest too deeply; a definition may not contain itself"));
+				}
+				else if (Definition)
+				{
+					TGuardValue<int32> Depth(DefinitionDepth, DefinitionDepth + 1);
+					WalkValue(*Definition, DefinitionPointer, Value, Pointer, Property, ContainerMemory);
+				}
 				return;
 			}
 			const FValue* Type = FindMember(Schema, TEXT("type"));
@@ -978,6 +1082,15 @@ namespace
 		}
 
 		FErrors& Errors;
+
+		/** The root's "definitions", when it declares them. */
+		const FValue* Definitions = nullptr;
+
+		/** The definitions a "$ref" has named so far. */
+		TArray<FString> UsedDefinitions;
+
+		/** How many definitions the walk is inside. */
+		int32 DefinitionDepth = 0;
 	};
 }
 
@@ -999,7 +1112,7 @@ FErrors ValidateAndBind(FStringView DocumentText, FStringView SchemaText, int32 
 
 	// Bind into scratch memory so OutStruct never holds a partly valid result.
 	FStructOnScope Scratch(&Struct);
-	FWalker(Errors).WalkObject(Schema, FString(), &Document, FString(), Struct, Scratch.GetStructMemory(), ExpectedSchemaVersion);
+	FWalker(Errors).WalkRoot(Schema, Document, Struct, Scratch.GetStructMemory(), ExpectedSchemaVersion);
 	if (Errors.IsEmpty())
 	{
 		Struct.CopyScriptStruct(OutStruct, Scratch.GetStructMemory());

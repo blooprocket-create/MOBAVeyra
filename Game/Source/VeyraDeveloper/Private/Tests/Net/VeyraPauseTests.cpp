@@ -6,10 +6,17 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "AbilitySystemComponent.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Delivery/VeyraDelayedArea.h"
+#include "Delivery/VeyraProjectile.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/PlayerState.h"
 #include "GameplayEffect.h"
+#include "Movement/VeyraMovementComponent.h"
+#include "Statuses/VeyraStatusComponent.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestActor.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
@@ -23,8 +30,9 @@ namespace VeyraNetTests
 	// Veyra.Net.MatchPause.*: the ADR-006 §8 spike. An approved pause stops every gameplay clock
 	// while networking keeps running (Match Flow Bible §10.2). Each timer category the bible lists
 	// runs on one of the mechanisms checked here: effect durations (buffs, shields), the cooldown
-	// ledger, world timers (respawn, buyback, spawn and penalty clocks), world time (the match clock)
-	// and actor ticks (movement, regeneration, combat).
+	// ledger, world timers (respawn, buyback, spawn and penalty clocks, delayed areas), world time
+	// (the match clock) and actor ticks (movement, projectiles, regeneration, combat). Basic attacks
+	// run on world timers too.
 	//
 	// Clients learn of the pause from the GameState. These in-process tests cannot check that a
 	// client's own world pauses: the engine replicates that through the map's WorldSettings, and
@@ -62,8 +70,12 @@ namespace VeyraNetTests
 		double PausedCooldownRemaining = 0.0;
 		double PausedOwnerCooldownRemaining = 0.0;
 		double PausedMatchClock = 0.0;
+		double PausedStatusEndsAt = 0.0;
 		FVector PausedLocation = FVector::ZeroVector;
 		TMap<int32, double> PausedClientClocks;
+		TWeakObjectPtr<AVeyraProjectile> HeldShot;
+		TWeakObjectPtr<AVeyraDelayedArea> HeldArea;
+		double PausedAreaResolvesAt = 0.0;
 
 		BEFORE_EACH()
 		{
@@ -90,7 +102,7 @@ namespace VeyraNetTests
 
 		FVeyraContentId Ability() const
 		{
-			return Tuning->Tuning.DeveloperLoadout.AbilityQ;
+			return TestVanguardAbilityQ();
 		}
 
 		static UVeyraCooldownComponent* CooldownsOf(const APlayerState* PlayerState)
@@ -184,6 +196,162 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(MoverState(State)->GetPawn()->GetActorLocation() != PausedLocation));
 				})
 				.UntilClients(TEXT("Clients see the match resume"), [](FState& State) { return !GameStateOf(State.World)->IsMatchPaused(); });
+		}
+
+		TEST_METHOD(PauseHoldsForcedMovementAndStatuses)
+		{
+			// Fixture values: a slow knockback and a Slow that both outlast the pause.
+			constexpr double KnockbackDistance = 400.0;
+			constexpr double KnockbackSpeed = 200.0;
+			constexpr double SlowMagnitude = 0.3;
+			constexpr double SlowSeconds = 2.0;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Knock the Vanguard slowly and slow it"), [this](FState& State) {
+					AVeyraPlayerState* Mover = MoverState(State);
+					const AVeyraPlayerController* OtherController = ServerControllerOf(State, 1);
+					AVeyraPlayerState* Other = OtherController ? OtherController->GetPlayerState<AVeyraPlayerState>() : nullptr;
+					ASSERT_THAT(IsTrue(Mover && Other && Mover->GetPawn()));
+					PausedLocation = Mover->GetPawn()->GetActorLocation();
+					UAbilitySystemComponent& Target = *Mover->GetAbilitySystemComponent();
+					ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Other->GetAbilitySystemComponent(), Target,
+						FVeyraDisplacement{ FVector::RightVector, KnockbackDistance, KnockbackSpeed })));
+					FVeyraStatusSpec Chill;
+					Chill.Id = FVeyraContentId::FromText(TEXT("test_chill")).GetValue();
+					Chill.Kind = EVeyraStatusKind::Slow;
+					Chill.Magnitude = SlowMagnitude;
+					Chill.DurationSeconds = SlowSeconds;
+					ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Other->GetAbilitySystemComponent(), Target, Chill)));
+				})
+				.UntilServer(TEXT("It is moving"), [this](FState& State) {
+					return MoverState(State)->GetPawn()->GetActorLocation() != PausedLocation;
+				})
+				.ThenServer(TEXT("Pause"), [this](FState& State) {
+					PausedWorldTime = State.World->GetTimeSeconds();
+					PausedRealTime = State.World->GetUnpausedTimeSeconds();
+					PausedLocation = MoverState(State)->GetPawn()->GetActorLocation();
+					PausedStatusEndsAt = MoverState(State)->FindComponentByClass<UVeyraStatusComponent>()->GetLedger().Entries[0].EndsAt;
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->PauseMatch(*ServerControllerOf(State, 0))));
+				})
+				.UntilServer(TEXT("Hold the pause"), [this](FState& State) {
+					return State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PauseHoldRealSeconds;
+				})
+				.ThenServer(TEXT("Nothing moved or ran out"), [this](FState& State) {
+					const AVeyraPlayerState* Mover = MoverState(State);
+					ASSERT_THAT(IsTrue(Mover->GetPawn()->GetActorLocation() == PausedLocation));
+					ASSERT_THAT(IsTrue(Mover->GetPawn()->FindComponentByClass<UVeyraMovementComponent>()->IsDisplaced()));
+					ASSERT_THAT(AreEqual(1, Mover->FindComponentByClass<UVeyraStatusComponent>()->GetLedger().Entries.Num()));
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->ResumeMatch()));
+				})
+				.UntilServer(TEXT("After the pause the knockback lands and the Slow ends"), [](FState& State) {
+					const AVeyraPlayerState* Mover = MoverState(State);
+					return !Mover->GetPawn()->FindComponentByClass<UVeyraMovementComponent>()->IsDisplaced()
+						&& Mover->FindComponentByClass<UVeyraStatusComponent>()->GetLedger().Entries.IsEmpty();
+				})
+				.ThenServer(TEXT("The Slow ran its whole time, not counting the pause"), [this](FState& State) {
+					ASSERT_THAT(IsTrue(State.World->GetTimeSeconds() >= PausedStatusEndsAt));
+					ASSERT_THAT(IsTrue(State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PausedStatusEndsAt - PausedWorldTime + PauseHoldRealSeconds));
+				});
+		}
+
+		TEST_METHOD(PauseHoldsABasicAttack)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Start an attack and pause during its windup"), [this](FState& State) {
+					// Fixture values: a melee attack, and the target brought well within its range.
+					constexpr double Range = 150.0;
+					constexpr double WindupFraction = 0.25;
+					constexpr double CentreDistance = 120.0;
+					AVeyraPlayerState* Attacker = MoverState(State);
+					const AVeyraPlayerController* OtherController = ServerControllerOf(State, 1);
+					AVeyraPlayerState* Target = OtherController ? OtherController->GetPlayerState<AVeyraPlayerState>() : nullptr;
+					ASSERT_THAT(IsTrue(Attacker && Target && Attacker->GetPawn() && Target->GetPawn()));
+					FVeyraBasicAttackProfile Melee;
+					Melee.Range = Range;
+					Melee.DamageType = EVeyraDamageType::TrueDamage;
+					Melee.PhysicalPowerRatio = 1.0;
+					Melee.WindupFraction = WindupFraction;
+					UVeyraBasicAttackComponent* Attacks = Attacker->FindComponentByClass<UVeyraBasicAttackComponent>();
+					ASSERT_THAT(IsTrue(Attacks->SetProfile(Melee)));
+					ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(*Attacker->GetAbilitySystemComponent(), VeyraCombatTests::ExampleStats())));
+					const FVector From = Attacker->GetPawn()->GetActorLocation();
+					Target->GetPawn()->SetActorLocation(From + FVector(-From.X, 0.0, 0.0).GetSafeNormal() * CentreDistance);
+					ASSERT_THAT(IsTrue(Attacks->StartAttack(*Target->GetPawn()) == EVeyraAttackRejection::None));
+					PausedWorldTime = State.World->GetTimeSeconds();
+					PausedRealTime = State.World->GetUnpausedTimeSeconds();
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->PauseMatch(*ServerControllerOf(State, 0))));
+				})
+				.UntilServer(TEXT("Hold the pause"), [this](FState& State) {
+					return State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PauseHoldRealSeconds;
+				})
+				.ThenServer(TEXT("It is still winding up, and nothing has landed"), [this](FState& State) {
+					const UVeyraBasicAttackComponent* Attacks = MoverState(State)->FindComponentByClass<UVeyraBasicAttackComponent>();
+					const AVeyraPlayerState* Target = ServerControllerOf(State, 1)->GetPlayerState<AVeyraPlayerState>();
+					ASSERT_THAT(IsTrue(Attacks->GetState().Phase == EVeyraAttackPhase::Windup));
+					ASSERT_THAT(IsTrue(TargetHealthLost(*Target) == 0.0));
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->ResumeMatch()));
+				})
+				.UntilServer(TEXT("After the pause it lands"), [](FState& State) {
+					return TargetHealthLost(*ServerControllerOf(State, 1)->GetPlayerState<AVeyraPlayerState>()) > 0.0;
+				});
+		}
+
+		static double TargetHealthLost(const AVeyraPlayerState& Target)
+		{
+			const UAbilitySystemComponent& Unit = *Target.GetAbilitySystemComponent();
+			return Unit.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) - Unit.GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute());
+		}
+
+		TEST_METHOD(PauseHoldsProjectilesAndDelayedAreas)
+		{
+			// Fixture values: a slow projectile sent across the lane, where nothing stands, and an area
+			// that lands after the pause.
+			constexpr double ShotSpeed = 200.0;
+			constexpr double ShotRadius = 20.0;
+			constexpr double ShotRange = 600.0;
+			constexpr double AreaDelaySeconds = 2.0;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Launch a slow projectile and arm a delayed area"), [this, ShotSpeed, ShotRadius, ShotRange, AreaDelaySeconds](FState& State) {
+					AVeyraPlayerState* Mover = MoverState(State);
+					ASSERT_THAT(IsTrue(Mover && Mover->GetPawn()));
+					UAbilitySystemComponent& Caster = *Mover->GetAbilitySystemComponent();
+					const FVector From = Mover->GetPawn()->GetActorLocation();
+					const FVeyraContentId Content = FVeyraContentId::FromText(TEXT("test_pause")).GetValue();
+					AVeyraProjectile* Shot = State.World->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(From));
+					ASSERT_THAT(IsNotNull(Shot));
+					Shot->LaunchLine(Caster, FVector::RightVector, FVeyraProjectileTuning{ ShotSpeed, ShotRadius, ShotRange }, EVeyraSkillshotCollision::FirstEnemy,
+						FVeyraPreparedEffects(), FVeyraPreparedEffects(), Content, 0);
+					AVeyraDelayedArea* Area = State.World->SpawnActor<AVeyraDelayedArea>(AVeyraDelayedArea::StaticClass(), FTransform(From));
+					ASSERT_THAT(IsNotNull(Area));
+					FVeyraEffectFrame Placement;
+					Placement.Origin = From;
+					Area->Arm(Caster, Placement, TArray<FVeyraPreparedZone>(), AreaDelaySeconds, Content, 0);
+					HeldShot = Shot;
+					HeldArea = Area;
+					PausedLocation = From;
+					PausedAreaResolvesAt = Area->GetResolvesAt();
+				})
+				.UntilServer(TEXT("It is flying"), [this](FState&) { return HeldShot.IsValid() && HeldShot->GetActorLocation() != PausedLocation; })
+				.ThenServer(TEXT("Pause"), [this](FState& State) {
+					PausedWorldTime = State.World->GetTimeSeconds();
+					PausedRealTime = State.World->GetUnpausedTimeSeconds();
+					PausedLocation = HeldShot->GetActorLocation();
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->PauseMatch(*ServerControllerOf(State, 0))));
+				})
+				.UntilServer(TEXT("Hold the pause"), [this](FState& State) {
+					return State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PauseHoldRealSeconds;
+				})
+				.ThenServer(TEXT("Neither moved on"), [this](FState& State) {
+					ASSERT_THAT(IsTrue(HeldShot.IsValid() && HeldShot->GetActorLocation() == PausedLocation));
+					ASSERT_THAT(IsTrue(HeldArea.IsValid() && State.World->GetTimeSeconds() == PausedWorldTime));
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->ResumeMatch()));
+				})
+				.UntilServer(TEXT("After the pause the projectile flies its range and the area lands"), [this](FState&) {
+					return !HeldShot.IsValid() && !HeldArea.IsValid();
+				})
+				.ThenServer(TEXT("The area landed on its schedule, not counting the pause"), [this](FState& State) {
+					ASSERT_THAT(IsTrue(State.World->GetTimeSeconds() >= PausedAreaResolvesAt));
+					ASSERT_THAT(IsTrue(State.World->GetUnpausedTimeSeconds() - PausedRealTime >= PausedAreaResolvesAt - PausedWorldTime + PauseHoldRealSeconds));
+				});
 		}
 	};
 }

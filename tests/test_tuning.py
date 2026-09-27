@@ -60,6 +60,9 @@ class ConformanceCorpusTests(unittest.TestCase):
     def test_collections_corpus_verdicts(self) -> None:
         self.check_corpus("TuningConformanceCollections")
 
+    def test_refs_corpus_verdicts(self) -> None:
+        self.check_corpus("TuningConformanceRefs")
+
 
 class SchemaLintTests(unittest.TestCase):
     def lint(self, schema: dict) -> list[str]:
@@ -155,6 +158,54 @@ class SchemaLintTests(unittest.TestCase):
         for fragment, field in cases.items():
             with self.subTest(fragment=fragment):
                 self.assert_lint(self.with_field(field), fragment)
+
+
+class ReferenceLintTests(unittest.TestCase):
+    """The same rules as Veyra.Core.TuningRefs in the game."""
+
+    RECORD = {"type": "object", "additionalProperties": False, "required": ["ratio"],
+              "properties": {"ratio": {"$ref": "#/definitions/fraction"}}}
+    FRACTION = {"type": "number", "minimum": 0, "maximum": 1}
+
+    def schema(self, nested: dict, definitions: dict) -> dict:
+        schema = copy.deepcopy(VALID_SCHEMA)
+        schema["definitions"] = definitions
+        schema["properties"]["nested"] = nested
+        schema["required"].append("nested")
+        return schema
+
+    def usual(self, **extra: dict) -> dict:
+        return {"record": copy.deepcopy(self.RECORD), "fraction": dict(self.FRACTION), **extra}
+
+    def assert_lint(self, schema: dict, fragment: str) -> None:
+        errors = tuning.lint_schema(schema, [], True)
+        self.assertTrue(any(fragment in e for e in errors), f"expected {fragment!r} in {errors}")
+
+    def test_references_pass(self) -> None:
+        for nested in ({"$ref": "#/definitions/record"},
+                       {"description": "The shared record.", "$ref": "#/definitions/record"}):
+            with self.subTest(nested=nested):
+                self.assertEqual(tuning.lint_schema(self.schema(nested, self.usual()), [], True), [])
+
+    def test_rejections(self) -> None:
+        cases = {
+            "\"definitions\" does not declare": (
+                {"$ref": "#/definitions/ghost"}, self.usual()),
+            "must name a definition": (
+                {"$ref": "#/properties/resistance"}, self.usual()),
+            "cannot stand beside \"$ref\"": (
+                {"$ref": "#/definitions/record", "type": "object"}, self.usual()),
+            "cycle of definitions": (
+                {"$ref": "#/definitions/first"},
+                self.usual(first={"$ref": "#/definitions/second"}, second={"$ref": "#/definitions/first"})),
+            "is never used": (
+                {"$ref": "#/definitions/record"}, self.usual(spare={"type": "number", "minimum": 0})),
+            "keyword 'definitions' is not supported": (
+                {**copy.deepcopy(self.RECORD), "definitions": {}}, {"fraction": dict(self.FRACTION)}),
+        }
+        for fragment, (nested, definitions) in cases.items():
+            with self.subTest(fragment=fragment):
+                self.assert_lint(self.schema(nested, definitions), fragment)
 
 
 class CheckTests(unittest.TestCase):
@@ -257,6 +308,27 @@ class ReferenceTests(unittest.TestCase):
         errors = tuning.check(self.game)[0]
         self.assertTrue(any("names 'other_bolt'" in e for e in errors), errors)
 
+    def test_a_wildcard_checks_every_item_against_any_of_the_maps(self) -> None:
+        pattern = tuning.CONTENT_ID_PATTERN
+        catalogue = {"type": "object", "additionalProperties": False, "required": ["schemaVersion", "things", "others"],
+                     "properties": {"schemaVersion": {"type": "integer", "minimum": 1, "enum": [1]},
+                                    "things": {"type": "object", "additionalProperties": False,
+                                               "patternProperties": {pattern: {"type": "number", "minimum": 0}}},
+                                    "others": {"type": "object", "additionalProperties": False,
+                                               "patternProperties": {pattern: {"type": "number", "minimum": 0}}}}}
+        user = {"type": "object", "additionalProperties": False, "required": ["schemaVersion", "chosen"],
+                "properties": {"schemaVersion": {"type": "integer", "minimum": 1, "enum": [1]},
+                               "chosen": {"type": "array", "minItems": 0, "items": {"type": "string", "pattern": pattern}}}}
+        self.write("Tuning/Schemas/Catalogue.schema.json", json.dumps(catalogue))
+        self.write("Tuning/Schemas/User.schema.json", json.dumps(user))
+        self.write("Tuning/Catalogue.json", '{"schemaVersion": 1, "things": {"test_bolt": 1}, "others": {"test_spark": 1}}\n')
+        tuning.REFERENCES = [("User", "/chosen/*", "Catalogue", ("/things", "/others"))]
+        self.write("Tuning/User.json", '{"schemaVersion": 1, "chosen": ["test_bolt", "test_spark"]}\n')
+        self.assertEqual(tuning.check(self.game)[0], [])
+        self.write("Tuning/User.json", '{"schemaVersion": 1, "chosen": ["test_bolt", "other_bolt"]}\n')
+        errors = tuning.check(self.game)[0]
+        self.assertTrue(any("/chosen/1: names 'other_bolt'" in e for e in errors), errors)
+
 
 class ContractTests(unittest.TestCase):
     """Contract schemas from the table in check_tuning.py, each checked with its example."""
@@ -291,6 +363,22 @@ class ContractTests(unittest.TestCase):
     def test_missing_schema_fails(self) -> None:
         (self.game / "Schemas" / "Line.schema.json").unlink()
         self.assertTrue(any("Line.schema.json: is missing" in e for e in self.errors()), self.errors())
+
+
+class ProvenanceTests(unittest.TestCase):
+    """The provisional-values marker (ADR-008 §7)."""
+
+    def test_counts_provisional_records_at_any_depth(self) -> None:
+        document = {
+            "schemaVersion": 1,
+            "experience": {"provenance": "Provisional", "toNextLevel": [1]},
+            "things": {"a": {"provenance": "Reviewed"}, "b": {"provenance": "Provisional"}},
+            "list": [{"provenance": "Provisional"}, {"provenance": "Canon"}],
+        }
+        self.assertEqual(tuning.count_provisional(document), 3)
+
+    def test_a_document_without_markers_counts_none(self) -> None:
+        self.assertEqual(tuning.count_provisional({"schemaVersion": 1, "value": 2}), 0)
 
 
 class RealRepositoryTests(unittest.TestCase):

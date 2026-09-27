@@ -20,7 +20,17 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "VeyraEconomy",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "VeyraAbilities",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "VeyraVanguards",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
 		},
@@ -32,6 +42,11 @@
 		{
 			"Name": "VeyraServices",
 			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "VeyraUI",
+			"Type": "ClientOnly",
 			"LoadingPhase": "Default"
 		},
 		{

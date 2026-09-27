@@ -5,9 +5,25 @@
 #include "Absorption/VeyraAbsorptionLedger.h"
 #include "ActiveGameplayEffectHandle.h"
 #include "Damage/VeyraDamageTypes.h"
+#include "GameplayEffectTypes.h"
+#include "Movement/VeyraForcedMovementTypes.h"
+#include "Stats/VeyraStatBlock.h"
+#include "Statuses/VeyraStatusTypes.h"
 
 class UAbilitySystemComponent;
 class UVeyraDamageAbsorptionComponent;
+class UVeyraStatusComponent;
+
+/**
+ * A damage event prepared at Commit (Combat Bible §50, ADR-009 §4), which a projectile or delayed
+ * area carries until it lands. Server only.
+ */
+struct FVeyraPreparedDamage
+{
+	FGameplayEffectSpecHandle Spec;
+
+	bool IsValid() const { return Spec.IsValid(); }
+};
 
 /**
  * Combat's verbs (ARCHITECTURE.md §1.10): the one way gameplay code deals damage, grants shields and
@@ -18,9 +34,10 @@ namespace VeyraCombat
 {
 	/**
 	 * Prepares a unit's Ability System Component for combat: installs the §41 modifier policy and
-	 * connects its absorption component. Call once per unit.
+	 * connects its absorption and status components. Call once per unit.
 	 */
-	VEYRACOMBAT_API void ConfigureCombatant(UAbilitySystemComponent& AbilitySystem, UVeyraDamageAbsorptionComponent& Absorption);
+	VEYRACOMBAT_API void ConfigureCombatant(UAbilitySystemComponent& AbilitySystem, UVeyraDamageAbsorptionComponent& Absorption,
+		UVeyraStatusComponent& Statuses);
 
 	/** Sets a unit's base Max Health from its data and fills its Health. Returns false if refused. */
 	VEYRACOMBAT_API bool InitializeVitals(UAbilitySystemComponent& AbilitySystem, double MaxHealth);
@@ -33,6 +50,28 @@ namespace VeyraCombat
 	 * the unit has no resource. Returns false if refused.
 	 */
 	VEYRACOMBAT_API bool InitializeResource(UAbilitySystemComponent& AbilitySystem, double MaxResource);
+
+	/**
+	 * Sets every base stat from a unit's data and fills its Health and Resource (ADR-008 §2). Max
+	 * Health, Move Speed and Attack Speed must be above 0; the rest at least 0; all finite. Returns
+	 * false, changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool InitializeStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock& Stats);
+
+	/**
+	 * Raises the base stats by Growth when a unit levels up (Economy & Progression Bible §9). Health
+	 * and Resource rise by the same flat amount as their maximums, so the bars do not refill: the
+	 * amount missing before the level-up is still missing after it. That supersedes the Combat Bible
+	 * §41 rule of keeping the percentage. Every value must be finite and at least 0. Returns false,
+	 * changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool GrowBaseStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock& Growth);
+
+	/**
+	 * Restores Amount of the unit's resource, never above its maximum (Combat Bible §27). Returns false
+	 * if refused: Amount must be finite and at least 0.
+	 */
+	VEYRACOMBAT_API bool RestoreResource(UAbilitySystemComponent& AbilitySystem, double Amount);
 
 	/** Whether the unit has at least Amount of its resource. A cost of 0 is always affordable. */
 	VEYRACOMBAT_API bool CanAffordResource(const UAbilitySystemComponent& AbilitySystem, double Amount);
@@ -50,17 +89,68 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool Revive(UAbilitySystemComponent& AbilitySystem);
 
 	/**
-	 * Deals one damage event from Source to Target through the canonical pipeline (Combat Bible §25).
-	 * Each damage type may appear once, with a finite amount of at least 0. A target whose death is
-	 * final takes no damage. Returns false if refused.
+	 * Prepares one damage event from Source (Combat Bible §50): the source's offence, its Damage
+	 * Amplification and penetration, is fixed now, while each target's defences are read when it is
+	 * dealt. Each damage type may appear once, with a finite amount of at least 0; the event's own
+	 * penetration must have Flat at least 0 and Retained within [0, 1]. Returns an invalid preparation
+	 * if refused.
 	 */
+	VEYRACOMBAT_API FVeyraPreparedDamage PrepareDamage(UAbilitySystemComponent& Source, const FVeyraRawDamageEvent& Damage);
+
+	/**
+	 * Deals prepared damage to Target through the canonical pipeline (Combat Bible §25). One
+	 * preparation can be dealt to several targets. A target whose death is final takes no damage.
+	 * Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemComponent& Target);
+
+	/** Prepares one damage event from Source and deals it to Target at once. Returns false if refused. */
 	VEYRACOMBAT_API bool DealDamage(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraRawDamageEvent& Damage);
 
-	/** Grants Target a shield (Combat Bible §7). Returns its effect, or an invalid handle if refused. */
+	/**
+	 * Grants Target a shield from Source (Combat Bible §7; UVeyraDamageAbsorptionComponent::GrantShield).
+	 * Returns its effect, or an invalid handle if refused or there is no room for it.
+	 */
+	VEYRACOMBAT_API FActiveGameplayEffectHandle GrantShield(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraShieldGrant& Grant);
+
+	/** Grants Target a shield with no identity, which never merges with another. */
 	VEYRACOMBAT_API FActiveGameplayEffectHandle GrantShield(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target,
 		EVeyraShieldCategory Category, double Amount, double DurationSeconds);
 
 	/** Grants Target Temporary Health (Combat Bible §7). Returns its effect, or an invalid handle if refused. */
 	VEYRACOMBAT_API FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target,
 		double Amount, double DurationSeconds);
+
+	/**
+	 * Applies Status from Source to Target under its stacking policy (Combat Bible §8, §46;
+	 * UVeyraStatusComponent::Apply). A target whose death is final, or that has no status ledger,
+	 * refuses it. Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraStatusSpec& Status);
+
+	/** Ends Target's status Id early, from every source, as when a recast ends a buff. Returns whether it had one. */
+	VEYRACOMBAT_API bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id);
+
+	/** The actions Unit's statuses stop it taking now (Combat Bible §8). None when it has no status ledger. */
+	VEYRACOMBAT_API EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit);
+
+	/**
+	 * Displaces Target's body, a Knockback or a Pull from Source (Combat Bible §8, §9; ADR-009 §2).
+	 * Displacement Resistance shortens it; it interrupts the target and replaces an older displacement
+	 * or a dash. The displacement lands even when terrain leaves no room to move. A target whose death
+	 * is final, or that has no body that can be displaced, refuses it. Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraDisplacement& Displacement);
+
+	/**
+	 * Dashes Unit's body (Combat Bible §9). Refused, returning false, while the unit is dead, stunned,
+	 * displaced or already dashing, or for values out of range.
+	 */
+	VEYRACOMBAT_API bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash);
+
+	/**
+	 * Holds Unit's body in place for its own cast, or lets it go (Combat Bible §48). Its orders wait
+	 * meanwhile. Does nothing for a unit with no body.
+	 */
+	VEYRACOMBAT_API void SetCastLocksMovement(UAbilitySystemComponent& Unit, bool bLocks);
 }

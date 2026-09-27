@@ -1,5 +1,91 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "casting": {
+    "provenance": "Canon",
+    "interruptedCooldownFraction": 0.2
+  },
+  "statuses": {
+    "cairn_crushing_hold_stun": {
+      "provenance": "Provisional",
+      "kind": "Stun",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 1.0,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "cairn_crushing_hold_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueReplaceStrongest",
+      "magnitude": 0.3,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "cairn_immovable_guard": {
+      "provenance": "Provisional",
+      "kind": "DamageReduction",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.35,
+      "durationSeconds": 4,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "cairn_immovable_anchor": {
+      "provenance": "Provisional",
+      "kind": "DisplacementResistance",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.5,
+      "durationSeconds": 4,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "cairn_immovable_burden": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": -0.3,
+      "durationSeconds": 4,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "cairn_immovable_cover": {
+      "provenance": "Provisional",
+      "kind": "DamageReduction",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.1,
+      "durationSeconds": 1.0,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "cairn_burden_stun": {
+      "provenance": "Provisional",
+      "kind": "Stun",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 1.25,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "cairn_burden_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueReplaceStrongest",
+      "magnitude": 0.4,
+      "durationSeconds": 2.0,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    }
+  },
   "targetedDamage": {
     "test_bolt": {
       "castRange": 550,
@@ -8,5 +94,133 @@
       "damageType": "Magic",
       "damageAmount": 120
     }
-  }
+  },
+  "area": {
+    "cairn_crushing_hold": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [13, 12, 11, 10, 9],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 0,
+        "windupSeconds": 0.45,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.3
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "zones": [
+        {
+          "shape": { "kind": "Sector", "radius": 225, "arcDegrees": 100, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }],
+            "statuses": ["cairn_crushing_hold_stun"],
+            "displacement": []
+          },
+          "casterShieldPerVanguard": []
+        },
+        {
+          "shape": { "kind": "Sector", "radius": 425, "arcDegrees": 100, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": ["cairn_crushing_hold_slow"],
+            "displacement": []
+          },
+          "casterShieldPerVanguard": []
+        }
+      ]
+    },
+    "cairn_burden_of_the_depths": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 105, 90],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 1.0,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.4
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 275, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],
+            "statuses": ["cairn_burden_stun"],
+            "displacement": [{ "direction": "TowardOrigin", "distance": 150, "speed": 900 }]
+          },
+          "casterShieldPerVanguard": [
+            {
+              "id": "cairn_burden_shield",
+              "category": "Universal",
+              "amountByRank": [0],
+              "maxHealthRatio": 0.06,
+              "magicPowerRatio": 0,
+              "durationSeconds": 4,
+              "reapply": "Merge",
+              "maxAmountMaxHealthRatio": 0.18,
+              "capGroup": [{ "id": "cairn_shields", "totalMaxHealthRatio": 0.25 }]
+            }
+          ]
+        },
+        {
+          "shape": { "kind": "Circle", "radius": 550, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": ["cairn_burden_slow"],
+            "displacement": []
+          },
+          "casterShieldPerVanguard": []
+        }
+      ]
+    }
+  },
+  "selfBuff": {
+    "cairn_immovable": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [18, 17, 16, 15, 14],
+        "resourceCostByRank": [40],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
+      "shields": [],
+      "aura": [{ "radius": 600, "durationSeconds": 4, "refreshSeconds": 0.5, "allyStatuses": ["cairn_immovable_cover"] }],
+      "recast": "EndsEarly"
+    }
+  },
+  "skillshot": {
+    "cairn_iron_grasp": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 1050,
+        "windupSeconds": 0.35,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.25
+      },
+      "projectile": { "speed": 1650, "radius": 55, "range": 1050 },
+      "collision": "FirstEnemyVanguard",
+      "effects": {
+        "damage": [{ "type": "Physical", "amountByRank": [50, 80, 110, 140, 170], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }],
+        "statuses": [],
+        "displacement": [{ "direction": "TowardOrigin", "distance": 1050, "speed": 1800 }]
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900 }]
+      }
+    }
+  },
+  "dash": {},
+  "empoweredAttack": {}
 }

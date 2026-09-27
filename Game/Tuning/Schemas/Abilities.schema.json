@@ -1,16 +1,220 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Abilities tuning",
-  "description": "Gameplay tuning owned by the Abilities domain: each ability's numbers, keyed by its content ID and grouped by archetype. VeyraAbilities binds it to FVeyraAbilitiesTuning.",
+  "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "targetedDamage"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack"],
+  "definitions": {
+    "provenance": {
+      "description": "Where these values come from (ADR-008 §7).",
+      "type": "string",
+      "enum": ["Provisional", "Canon", "Reviewed"]
+    },
+    "byRank": {
+      "description": "One value for every rank, or one value per rank (5 for a basic ability, 3 for an ultimate).",
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "number", "minimum": 0 }
+    },
+    "statusIds": {
+      "description": "Statuses from /statuses, by ID.",
+      "type": "array",
+      "minItems": 0,
+      "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+    },
+    "cast": {
+      "description": "How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds"],
+      "properties": {
+        "cooldownSecondsByRank": { "description": "Cooldown in seconds, starting at Commit.", "$ref": "#/definitions/byRank" },
+        "resourceCostByRank": { "description": "Resource paid at Commit.", "$ref": "#/definitions/byRank" },
+        "castRange": {
+          "description": "How far from the caster the cast's ground point may be, in units; a point beyond it is brought back within it (ADR-008 §9). 0 for an ability that needs no point.",
+          "type": "number",
+          "minimum": 0
+        },
+        "windupSeconds": {
+          "description": "Seconds before Commit. An interruption during them costs nothing and starts part of the cooldown (Combat Bible §26).",
+          "type": "number",
+          "minimum": 0
+        },
+        "windupMovement": {
+          "description": "Whether the caster may move during the windup (Combat Bible §48).",
+          "type": "string",
+          "enum": ["Free", "Locked"]
+        },
+        "recoverySeconds": {
+          "description": "Seconds after delivery before the caster may cast again.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "damage": {
+      "description": "One damage component: its amount at the caster's rank plus the caster's power times the ratios, fixed at Commit (Combat Bible §25, §50).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "amountByRank", "physicalPowerRatio", "magicPowerRatio"],
+      "properties": {
+        "type": { "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+        "amountByRank": { "$ref": "#/definitions/byRank" },
+        "physicalPowerRatio": { "type": "number", "minimum": 0 },
+        "magicPowerRatio": { "type": "number", "minimum": 0 }
+      }
+    },
+    "displacement": {
+      "description": "A Knockback or Pull of each unit hit (Combat Bible §9). Displacement Resistance shortens it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["direction", "distance", "speed"],
+      "properties": {
+        "direction": {
+          "description": "TowardOrigin pulls toward the area's origin or the caster; AwayFromOrigin knocks back from it; AcrossCastLeft and AcrossCastRight push sideways to the cast; AsideFromPath pushes out of a projectile's path.",
+          "type": "string",
+          "enum": ["TowardOrigin", "AwayFromOrigin", "AcrossCastLeft", "AcrossCastRight", "AsideFromPath"]
+        },
+        "distance": { "description": "Units; a Pull toward the origin stops there.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    },
+    "effects": {
+      "description": "What happens to each unit hit.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["damage", "statuses", "displacement"],
+      "properties": {
+        "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
+        "statuses": { "$ref": "#/definitions/statusIds" },
+        "displacement": { "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/displacement" } }
+      }
+    },
+    "zone": {
+      "description": "One zone of an area: its shape and what it does to each enemy in it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["shape", "effects", "casterShieldPerVanguard"],
+      "properties": {
+        "shape": { "$ref": "#/definitions/shape" },
+        "effects": { "$ref": "#/definitions/effects" },
+        "casterShieldPerVanguard": {
+          "description": "At most one: a shield the caster gains once for each enemy Vanguard the zone catches, such as an ultimate's per-target shield.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "$ref": "#/definitions/shield" }
+        }
+      }
+    },
+    "shield": {
+      "description": "A shield granted to the caster (Combat Bible §7, §51; ADR-009 §3): the rank's amount plus the caster's Max Health and Magic Power times the ratios.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "category", "amountByRank", "maxHealthRatio", "magicPowerRatio", "durationSeconds", "reapply", "maxAmountMaxHealthRatio", "capGroup"],
+      "properties": {
+        "id": {
+          "description": "The shield's identity: a new grant meets an active shield with it from the same caster as reapply says.",
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+        },
+        "category": { "type": "string", "enum": ["Physical", "Magic", "Universal"] },
+        "amountByRank": { "$ref": "#/definitions/byRank" },
+        "maxHealthRatio": { "description": "Of the caster's Max Health, added to the amount.", "type": "number", "minimum": 0 },
+        "magicPowerRatio": { "type": "number", "minimum": 0 },
+        "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "reapply": {
+          "description": "Replace: a new grant starts the shield again. Merge: it adds to what is left, up to the maximum, and restarts the duration.",
+          "type": "string",
+          "enum": ["Replace", "Merge"]
+        },
+        "maxAmountMaxHealthRatio": { "description": "The most a merged shield holds, as a fraction of the caster's Max Health; never less than one grant.", "type": "number", "minimum": 0 },
+        "capGroup": {
+          "description": "At most one: a group whose shields from this caster together hold at most a share of its Max Health, such as Cairn's passive and ultimate shields.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "totalMaxHealthRatio"],
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+              "totalMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+            }
+          }
+        }
+      }
+    },
+    "shape": {
+      "description": "A hit shape (ADR-009 §4). Each kind uses its own sizes; the others are 0.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "radius", "arcDegrees", "length", "width"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["Circle", "Sector", "Rectangle"] },
+        "radius": { "description": "Circle and Sector, in units.", "type": "number", "minimum": 0 },
+        "arcDegrees": { "description": "Sector: the whole angle, in degrees.", "type": "number", "minimum": 0, "maximum": 360 },
+        "length": { "description": "Rectangle: along the cast's direction, in units.", "type": "number", "minimum": 0 },
+        "width": { "description": "Rectangle: across it, in units.", "type": "number", "minimum": 0 }
+      }
+    }
+  },
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
+    },
+    "casting": {
+      "description": "Rules every cast shares (Combat Bible §26).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "interruptedCooldownFraction"],
+      "properties": {
+        "provenance": { "description": "Combat Bible §49 lists the fraction.", "$ref": "#/definitions/provenance" },
+        "interruptedCooldownFraction": {
+          "description": "The part of its cooldown a cast starts when it is interrupted before Commit (Combat Bible §26).",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "statuses": {
+      "description": "Statuses abilities apply, keyed by their stable ID (Combat Bible §8, §46).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "kind": {
+              "type": "string",
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave"]
+            },
+            "stacking": {
+              "description": "Combat Bible §46.",
+              "type": "string",
+              "enum": ["UniqueRefresh", "UniqueReplaceStrongest", "Stacking", "IndependentSources"]
+            },
+            "magnitude": {
+              "description": "Read as the kind says (EVeyraStatusKind): 0 for a Stun, the fraction of speed removed for a Slow, a signed change for Move Speed and Attack Speed, the fraction removed for the others.",
+              "type": "number",
+              "minimum": -1
+            },
+            "durationSeconds": { "description": "Before Tenacity, which shortens crowd control only.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "maxStacks": { "type": "integer", "minimum": 1 },
+            "takedownExtensionSeconds": { "description": "Seconds each takedown adds; 0 for none.", "type": "number", "minimum": 0 },
+            "takedownExtensionMaxSeconds": { "description": "The most takedowns add in all.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
     },
     "targetedDamage": {
       "description": "Abilities cast at one enemy that resolve at once and deal one damage component (Combat Bible §29 targeted, instant). test_bolt is the developer test ability (ADR-006 M3); its values are provisional.",
@@ -47,6 +251,210 @@
               "description": "Raw damage before any modifier (Combat Bible §25, step 2).",
               "type": "number",
               "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "area": {
+      "description": "Abilities that hit the enemies in shapes at the caster or a ground point, at once, after a delay, or in channel ticks (ADR-008 §3).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "zones"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "origin": {
+              "description": "Caster: on the caster, facing the cast's point. TargetPoint: on the point, facing away from the caster.",
+              "type": "string",
+              "enum": ["Caster", "TargetPoint"]
+            },
+            "delaySeconds": { "description": "Seconds between Commit and the hit, with the area telegraphed; the caster is free meanwhile.", "type": "number", "minimum": 0 },
+            "channelTicks": { "description": "How many times the area hits over channelSeconds, the caster held in place.", "type": "integer", "minimum": 1 },
+            "channelSeconds": { "type": "number", "minimum": 0 },
+            "zones": {
+              "description": "Innermost first: a unit takes the first zone that touches it, and no other.",
+              "type": "array",
+              "minItems": 1,
+              "items": { "$ref": "#/definitions/zone" }
+            }
+          }
+        }
+      }
+    },
+    "selfBuff": {
+      "description": "Abilities that buff their caster, and optionally nearby allied Vanguards (ADR-008 §3).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "recast"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "statuses": { "description": "Put on the caster.", "$ref": "#/definitions/statusIds" },
+            "shields": {
+              "description": "At most one shield on the caster (Combat Bible §7).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": { "$ref": "#/definitions/shield" }
+            },
+            "aura": {
+              "description": "At most one aura of statuses for nearby allied Vanguards (ADR-008 §9).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["radius", "durationSeconds", "refreshSeconds", "allyStatuses"],
+                "properties": {
+                  "radius": { "description": "Units from the caster's centre to an ally's edge.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "refreshSeconds": { "description": "How often allies in range get the statuses again; the statuses should outlast it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "allyStatuses": { "$ref": "#/definitions/statusIds" }
+                }
+              }
+            },
+            "recast": {
+              "description": "EndsEarly: casting again while the buff lasts ends it, at no cost.",
+              "type": "string",
+              "enum": ["None", "EndsEarly"]
+            }
+          }
+        }
+      }
+    },
+    "skillshot": {
+      "description": "Abilities that fire a line projectile toward the cast's point; terrain stops it (ADR-008 §3, §9).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "projectile", "collision", "effects", "passThroughEffects"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "projectile": {
+              "description": "How the projectile flies (Combat Bible §13).",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["speed", "radius", "range"],
+              "properties": {
+                "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                "radius": { "description": "The projectile's own radius: it hits a unit whose body it touches.", "type": "number", "minimum": 0 },
+                "range": { "description": "How far it flies before it ends, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+              }
+            },
+            "collision": {
+              "description": "FirstEnemy: the first enemy unit stops it. FirstEnemyVanguard: only an enemy Vanguard stops it; it passes through other enemies. Pierce: nothing stops it but terrain and its range.",
+              "type": "string",
+              "enum": ["FirstEnemy", "FirstEnemyVanguard", "Pierce"]
+            },
+            "effects": { "description": "On each unit it hits.", "$ref": "#/definitions/effects" },
+            "passThroughEffects": { "description": "On each unit a FirstEnemyVanguard projectile passes through; empty lists otherwise.", "$ref": "#/definitions/effects" }
+          }
+        }
+      }
+    },
+    "dash": {
+      "description": "Abilities that move their caster, with effects as it sets off and where it stops (ADR-008 §3; Combat Bible §9). Displacement interrupts a dash; terrain stops it.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "direction": {
+              "description": "TowardPoint: toward the cast's point. AwayFromPoint: straight back from it, as a recoil.",
+              "type": "string",
+              "enum": ["TowardPoint", "AwayFromPoint"]
+            },
+            "distance": { "description": "Units; terrain stops the dash sooner.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "contact": {
+              "description": "StopAtFirstEnemy: the dash ends at the first enemy it meets, which takes the contact effects.",
+              "type": "string",
+              "enum": ["None", "StopAtFirstEnemy"]
+            },
+            "startZones": {
+              "description": "Areas at the caster, facing the cast's point, as the dash sets off; innermost first.",
+              "type": "array",
+              "minItems": 0,
+              "items": { "$ref": "#/definitions/zone" }
+            },
+            "contactEffects": { "description": "On the enemy a StopAtFirstEnemy dash stops at.", "$ref": "#/definitions/effects" },
+            "contactSelfStatuses": { "description": "Put on the caster when it stops at an enemy.", "$ref": "#/definitions/statusIds" }
+          }
+        }
+      }
+    },
+    "empoweredAttack": {
+      "description": "Abilities that empower the caster's next basic attack, which stays a basic attack (ADR-008 §3; Combat Bible §17).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "durationSeconds", "damage", "statuses", "armorPenetrationByRank", "cleave", "secondaryImpact"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "durationSeconds": { "description": "How long the empowerment waits for an attack.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "damage": {
+              "description": "Joins the attack's own damage event, so the empowered attack is still one hit.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 3,
+              "items": { "$ref": "#/definitions/damage" }
+            },
+            "statuses": { "description": "Put on the target.", "$ref": "#/definitions/statusIds" },
+            "armorPenetrationByRank": { "description": "The fraction of the target's Armor the attack ignores, at most 1: percentage penetration (Combat Bible §3).", "$ref": "#/definitions/byRank" },
+            "cleave": {
+              "description": "At most one: the other enemies in the attacker's cleave shape take part of the attack's damage.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["damageFraction", "statuses"],
+                "properties": {
+                  "damageFraction": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+                  "statuses": { "description": "Put on each enemy cleaved.", "$ref": "#/definitions/statusIds" }
+                }
+              }
+            },
+            "secondaryImpact": {
+              "description": "At most one: proc damage in a shape behind the target, excluding it. The attack keeps the highest-priority impact offered, such as over a passive's (ADR-009 §5).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["priority", "shape", "damage", "statuses"],
+                "properties": {
+                  "priority": { "type": "integer", "minimum": 0 },
+                  "shape": { "$ref": "#/definitions/shape" },
+                  "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
+                  "statuses": { "$ref": "#/definitions/statusIds" }
+                }
+              }
             }
           }
         }

@@ -15,6 +15,11 @@ void UVeyraResourceSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	Params.RepNotifyCondition = REPNOTIFY_Always;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraResourceSet, Resource, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraResourceSet, MaxResource, Params);
+
+	// Regeneration shows on the owner's own HUD only, like the offence stats.
+	FDoRepLifetimeParams OwnerParams = Params;
+	OwnerParams.Condition = COND_OwnerOnly;
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraResourceSet, ResourceRegen, OwnerParams);
 }
 
 void UVeyraResourceSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const
@@ -28,6 +33,12 @@ void UVeyraResourceSet::PreAttributeBaseChange(const FGameplayAttribute& Attribu
 		UE_LOG(LogVeyraCombat, Error, TEXT("Base Max Resource on %s would become %g; it cannot be negative, so it keeps %g."),
 			*GetNameSafe(GetOwningActor()), NewValue, MaxResource.GetBaseValue());
 		NewValue = MaxResource.GetBaseValue();
+	}
+	else if (Attribute == GetResourceRegenAttribute() && NewValue < 0.0f)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Base Resource regeneration on %s would become %g; it cannot be negative, so it keeps %g."),
+			*GetNameSafe(GetOwningActor()), NewValue, ResourceRegen.GetBaseValue());
+		NewValue = ResourceRegen.GetBaseValue();
 	}
 }
 
@@ -91,4 +102,9 @@ void UVeyraResourceSet::OnRep_Resource(const FGameplayAttributeData& OldValue)
 void UVeyraResourceSet::OnRep_MaxResource(const FGameplayAttributeData& OldValue)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraResourceSet, MaxResource, OldValue);
+}
+
+void UVeyraResourceSet::OnRep_ResourceRegen(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraResourceSet, ResourceRegen, OldValue);
 }

@@ -9,11 +9,13 @@
 #include "Engine/World.h"
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformTime.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
+#include "UnrealClient.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
@@ -46,6 +48,7 @@ void UVeyraSmokeClientSubsystem::Initialize(FSubsystemCollectionBase& Collection
 	bEndMatch = FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeEndMatch"));
 	bWaitForEnd = bEndMatch || FParse::Param(FCommandLine::Get(), TEXT("VeyraSmokeWaitForEnd"));
 	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeStay="), StaySeconds);
+	FParse::Value(FCommandLine::Get(), TEXT("VeyraSmokeScreenshot="), ScreenshotPath);
 	StartRealTime = FPlatformTime::Seconds();
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraSmokeClientSubsystem::Tick));
 	NetworkFailureHandle = GEngine->OnNetworkFailure().AddUObject(this, &UVeyraSmokeClientSubsystem::OnNetworkFailure);
@@ -136,11 +139,14 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	case EStep::WaitForLiveMatch:
 		if (GameState->GetPhase() == EVeyraMatchPhase::Live)
 		{
-			const FVeyraTargetedDamageAbilityTuning* Ability =
-				UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(UVeyraMatchTuningSubsystem::Get().DeveloperLoadout.AbilityQ);
+			// The smoke plays a Vanguard whose Q is a targeted damage ability (Smoke.ps1 asks for test_vanguard).
+			const AVeyraPlayerState* Own = Controller->GetPlayerState<AVeyraPlayerState>();
+			const UVeyraAbilityLoadoutComponent* Loadout = Own ? Own->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+			const FVeyraLoadoutEntry* SlotQ = Loadout ? Loadout->FindSlot(EVeyraAbilitySlot::Q) : nullptr;
+			const FVeyraTargetedDamageAbilityTuning* Ability = SlotQ ? UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(SlotQ->Ability) : nullptr;
 			if (!Ability)
 			{
-				Finish(false, TEXT("the developer loadout's Q ability is not a targeted damage ability"));
+				Finish(false, TEXT("the Vanguard's Q ability is not a targeted damage ability; run the smoke with -VeyraVanguard=test_vanguard"));
 				break;
 			}
 			CastRange = Ability->CastRange;
@@ -248,6 +254,13 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 
 void UVeyraSmokeClientSubsystem::AfterHit()
 {
+	// A rendering client shows the grey-box presentation mid-match (ADR-008 §1). The viewport saves
+	// it at the end of its next frame, so the client must stay a moment (-VeyraSmokeStay=).
+	if (!ScreenshotPath.IsEmpty())
+	{
+		FScreenshotRequest::RequestScreenshot(ScreenshotPath, /*bShowUI*/ true, /*bAddFilenameSuffix*/ false);
+		UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: asked for a screenshot at %s."), *ScreenshotPath);
+	}
 	if (bCheckPause)
 	{
 		GetController()->RequestDeveloperPause(true);

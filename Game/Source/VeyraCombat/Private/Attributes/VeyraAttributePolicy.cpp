@@ -35,6 +35,9 @@ namespace
 			{ UVeyraOffenceSet::GetPhysicalPenetrationRetainedAttribute(), EVeyraModifierRule::Percentage },
 			{ UVeyraOffenceSet::GetMagicPenetrationFlatAttribute(), EVeyraModifierRule::Flat },
 			{ UVeyraOffenceSet::GetMagicPenetrationRetainedAttribute(), EVeyraModifierRule::Percentage },
+			{ UVeyraOffenceSet::GetPhysicalPowerAttribute(), EVeyraModifierRule::Stat },
+			{ UVeyraOffenceSet::GetMagicPowerAttribute(), EVeyraModifierRule::Stat },
+			{ UVeyraOffenceSet::GetAttackSpeedAttribute(), EVeyraModifierRule::Stat },
 			{ UVeyraDefenceSet::GetArmorAttribute(), EVeyraModifierRule::Stat },
 			{ UVeyraDefenceSet::GetMagicResistAttribute(), EVeyraModifierRule::Stat },
 			{ UVeyraDefenceSet::GetArmorReductionFlatAttribute(), EVeyraModifierRule::Flat },
@@ -42,10 +45,13 @@ namespace
 			{ UVeyraDefenceSet::GetMagicResistReductionFlatAttribute(), EVeyraModifierRule::Flat },
 			{ UVeyraDefenceSet::GetMagicResistReductionRetainedAttribute(), EVeyraModifierRule::Percentage },
 			{ UVeyraDefenceSet::GetIncomingDamageMultiplierAttribute(), EVeyraModifierRule::Percentage },
+			{ UVeyraDefenceSet::GetTenacityRetainedAttribute(), EVeyraModifierRule::Percentage },
+			{ UVeyraDefenceSet::GetDisplacementRetainedAttribute(), EVeyraModifierRule::Percentage },
 			{ UVeyraMobilitySet::GetMoveSpeedAttribute(), EVeyraModifierRule::Stat },
 			{ UVeyraResourceSet::GetResourceAttribute(), EVeyraModifierRule::None },
 			{ UVeyraResourceSet::GetMaxResourceAttribute(), EVeyraModifierRule::Stat },
 			{ UVeyraResourceSet::GetResourceSpendAttribute(), EVeyraModifierRule::None },
+			{ UVeyraResourceSet::GetResourceRegenAttribute(), EVeyraModifierRule::Stat },
 		};
 		return Table;
 	}

@@ -24,6 +24,7 @@ public:
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraResourceSet, Resource)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraResourceSet, MaxResource)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraResourceSet, ResourceSpend)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraResourceSet, ResourceRegen)
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;
@@ -39,6 +40,9 @@ protected:
 	UFUNCTION()
 	void OnRep_MaxResource(const FGameplayAttributeData& OldValue);
 
+	UFUNCTION()
+	void OnRep_ResourceRegen(const FGameplayAttributeData& OldValue);
+
 private:
 	/** Never below 0 or above Max Resource (Combat Bible §27: resources do not go negative). */
 	UPROPERTY(ReplicatedUsing = OnRep_Resource)
@@ -51,4 +55,11 @@ private:
 	/** Meta attribute: a cost to take from Resource. Not replicated. */
 	UPROPERTY()
 	FGameplayAttributeData ResourceSpend;
+
+	/**
+	 * Resource restored per second, in and out of combat (Combat Bible §28: base resource
+	 * regeneration normally continues both in and out of combat). A §41 stat.
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_ResourceRegen)
+	FGameplayAttributeData ResourceRegen;
 };

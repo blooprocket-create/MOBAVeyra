@@ -36,15 +36,30 @@ NUMBER_KEYWORDS = {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
 STRING_KEYWORDS = {"enum", "pattern"}
 ARRAY_KEYWORDS = {"items", "minItems", "maxItems"}
 
+# Shared records are declared once under the root's "definitions" and used through "$ref", which
+# may stand only beside a description. The game's validator applies the same rules.
+ROOT_KEYWORDS = OBJECT_KEYWORDS | {"definitions"}
+REF_KEYWORDS = {"$ref", "description"}
+DEFINITIONS_PREFIX = "#/definitions/"
+
 # The content ID format (ADR-006 §6): the pattern of content-ID strings, and the one key of a map's
 # "patternProperties". FVeyraContentId::Pattern in VeyraCore matches.
 CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 
 # References from one domain's tuning to content another domain defines, which a schema cannot
-# express. Each entry is (domain, JSON pointer to a content ID, domain, JSON pointer to the map
-# whose keys are the valid IDs). The loading domain in the game checks the same references.
-REFERENCES: list[tuple[str, str, str, str]] = [
-    ("Match", "/developerLoadout/abilityQ", "Abilities", "/targetedDamage"),
+# express. Each entry is (domain, JSON pointer to content IDs, domain, JSON pointers to the maps whose
+# keys are the valid IDs). A "*" segment in the first pointer stands for every key of an object or
+# every item of an array; an ID is valid when any of the maps defines it (ADR-008 §7). The loading
+# domain in the game checks the same references.
+ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack")
+PASSIVE_MAPS = ("/deepFoundation",)
+REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
+    ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
+    ("Vanguards", "/vanguards/*/abilities/q/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/vanguards/*/abilities/w/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/vanguards/*/abilities/e/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/vanguards/*/abilities/r/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/vanguards/*/passive/*", "Vanguards", PASSIVE_MAPS),
 ]
 
 # Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.
@@ -104,11 +119,62 @@ def pointer(parts: list[str]) -> str:
     return "/" + "/".join(escaped) if escaped else "(root)"
 
 
-def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
-    """Check that a schema stays inside the tuning dialect."""
+def lint_schema(schema: Any, parts: list[str], is_root: bool,
+                definitions: dict[str, Any] | None = None, used: set[str] | None = None) -> list[str]:
+    """Check that a schema stays inside the tuning dialect. At the root, also check its
+    "definitions", each of which some "$ref" must use."""
+    if is_root:
+        return lint_root(schema)
     where = f"schema {pointer(parts)}"
     if not isinstance(schema, dict):
         return [f"{where}: must be an object"]
+    if "$ref" in schema:
+        return ref_errors(schema, where, definitions or {}, used if used is not None else set())
+    return lint_node(schema, parts, False, definitions or {}, used if used is not None else set())
+
+
+def lint_root(schema: Any) -> list[str]:
+    where = f"schema {pointer([])}"
+    if not isinstance(schema, dict):
+        return [f"{where}: must be an object"]
+    definitions = schema.get("definitions", {})
+    errors = []
+    if not isinstance(definitions, dict):
+        errors.append(f"schema {pointer(['definitions'])}: must be an object of schemas")
+        definitions = {}
+    used: set[str] = set()
+    errors.extend(lint_node(schema, [], True, definitions, used))
+    for name, definition in definitions.items():
+        errors.extend(lint_schema(definition, ["definitions", name], False, definitions, used))
+    if not errors:
+        errors.extend(f"schema {pointer(['definitions', name])}: is never used by a \"$ref\""
+                      for name in definitions if name not in used)
+    return errors
+
+
+def ref_errors(schema: dict[str, Any], where: str, definitions: dict[str, Any], used: set[str]) -> list[str]:
+    """A "$ref" names a definition, possibly through a chain of references, and stands alone."""
+    errors = [f"{where}: keyword {keyword!r} cannot stand beside \"$ref\"" for keyword in sorted(set(schema) - REF_KEYWORDS)]
+    followed: list[str] = []
+    node: Any = schema
+    while isinstance(node, dict) and "$ref" in node:
+        target = node["$ref"]
+        name = target[len(DEFINITIONS_PREFIX):] if isinstance(target, str) and target.startswith(DEFINITIONS_PREFIX) else ""
+        if not name or "/" in name:
+            return errors + [f"{where}: \"$ref\" must name a definition as \"{DEFINITIONS_PREFIX}<name>\""]
+        if name not in definitions:
+            return errors + [f"{where}: \"$ref\" names {name!r}, which \"definitions\" does not declare"]
+        if name in followed:
+            return errors + [f"{where}: \"$ref\" leads round a cycle of definitions"]
+        followed.append(name)
+        used.add(name)
+        node = definitions[name]
+    return errors
+
+
+def lint_node(schema: dict[str, Any], parts: list[str], is_root: bool,
+              definitions: dict[str, Any], used: set[str]) -> list[str]:
+    where = f"schema {pointer(parts)}"
     kind = schema.get("type")
     if not isinstance(kind, str):
         return [f"{where}: must declare \"type\" as a string"]
@@ -122,7 +188,7 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
     if is_map:
         allowed = COMMON_KEYWORDS | MAP_KEYWORDS
     elif kind == "object":
-        allowed = COMMON_KEYWORDS | OBJECT_KEYWORDS
+        allowed = COMMON_KEYWORDS | (ROOT_KEYWORDS if is_root else OBJECT_KEYWORDS)
     elif kind in ("number", "integer"):
         allowed = COMMON_KEYWORDS | NUMBER_KEYWORDS
     elif kind == "string":
@@ -142,7 +208,7 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
             return errors + [f"{where}: a map must declare \"patternProperties\" with one entry, "
                              f"the content ID format {CONTENT_ID_PATTERN!r}"]
         return errors + lint_schema(patterns[CONTENT_ID_PATTERN],
-                                    parts + ["patternProperties", CONTENT_ID_PATTERN], False)
+                                    parts + ["patternProperties", CONTENT_ID_PATTERN], False, definitions, used)
 
     if kind == "string":
         has_enum, has_pattern = "enum" in schema, "pattern" in schema
@@ -169,7 +235,7 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
             maximum = schema["maxItems"]
             if not is_integer(maximum) or (is_integer(minimum) and maximum < minimum):
                 errors.append(f"{where}: \"maxItems\" must be an integer no smaller than \"minItems\"")
-        return errors + lint_schema(items, parts + ["items"], False)
+        return errors + lint_schema(items, parts + ["items"], False, definitions, used)
 
     if kind == "object":
         properties = schema.get("properties")
@@ -196,7 +262,7 @@ def lint_schema(schema: Any, parts: list[str], is_root: bool) -> list[str]:
                       and is_integer(version["enum"][0])):
                 errors.append(f"{where}: \"schemaVersion\" must be an integer with a one-value \"enum\"")
         for name, child in properties.items():
-            errors.extend(lint_schema(child, parts + ["properties", name], False))
+            errors.extend(lint_schema(child, parts + ["properties", name], False, definitions, used))
         return errors
 
     integer = kind == "integer"
@@ -296,21 +362,48 @@ def resolve_pointer(document: Any, where: str) -> tuple[bool, Any]:
     return True, value
 
 
+def expand_pointer(document: Any, pattern: str) -> list[tuple[str, Any]]:
+    """Every (pointer, value) a pointer pattern reaches; a "*" segment matches each key or item."""
+    reached: list[tuple[str, Any]] = [("", document)]
+    for raw in pattern.split("/")[1:]:
+        key = raw.replace("~1", "/").replace("~0", "~")
+        following: list[tuple[str, Any]] = []
+        for where, value in reached:
+            if raw == "*" and isinstance(value, dict):
+                following.extend((f"{where}/{name}", item) for name, item in value.items())
+            elif raw == "*" and isinstance(value, list):
+                following.extend((f"{where}/{index}", item) for index, item in enumerate(value))
+            elif isinstance(value, dict) and key in value:
+                following.append((f"{where}/{raw}", value[key]))
+        reached = following
+    return reached
+
+
 def reference_errors(documents: dict[str, Any], labels: dict[str, str]) -> list[str]:
     """Check every entry of REFERENCES whose two domains validated."""
     errors = []
-    for source, source_pointer, target, target_pointer in REFERENCES:
+    for source, source_pattern, target, target_pointers in REFERENCES:
         if source not in documents or target not in documents:
             continue
-        found, value = resolve_pointer(documents[source], source_pointer)
-        target_found, keys = resolve_pointer(documents[target], target_pointer)
-        if not found or not isinstance(value, str):
-            errors.append(f"{labels[source]} {source_pointer}: the reference table expects a content ID here")
-        elif not target_found or not isinstance(keys, dict):
-            errors.append(f"{labels[target]} {target_pointer}: the reference table expects a map here")
-        elif value not in keys:
-            errors.append(f"{labels[source]} {source_pointer}: names {value!r}, which "
-                          f"{labels[target]} {target_pointer} does not define")
+        pointers = (target_pointers,) if isinstance(target_pointers, str) else target_pointers
+        maps = []
+        for target_pointer in pointers:
+            target_found, keys = resolve_pointer(documents[target], target_pointer)
+            if not target_found or not isinstance(keys, dict):
+                errors.append(f"{labels[target]} {target_pointer}: the reference table expects a map here")
+            else:
+                maps.append(keys)
+        if len(maps) != len(pointers):
+            continue
+        reached = expand_pointer(documents[source], source_pattern)
+        if not reached and "*" not in source_pattern:
+            errors.append(f"{labels[source]} {source_pattern}: the reference table expects a content ID here")
+        for where, value in reached:
+            if not isinstance(value, str):
+                errors.append(f"{labels[source]} {where}: the reference table expects a content ID here")
+            elif not any(value in keys for keys in maps):
+                errors.append(f"{labels[source]} {where}: names {value!r}, which {labels[target]} "
+                              f"{' or '.join(pointers)} does not define")
     return errors
 
 
@@ -387,7 +480,24 @@ def check(game_dir: Path) -> tuple[list[str], str]:
             labels[domain] = shown(document_path)
         checked += 1
     errors.extend(reference_errors(valid_documents, labels))
-    return errors, f"{checked} tuning domain(s) valid."
+    provisional = sum(count_provisional(document) for document in valid_documents.values())
+    return errors, f"{checked} tuning domain(s) valid; {provisional} provisional record(s) await review."
+
+
+# The provenance marker (ADR-008 §7): a record whose values the implementer drafted says so, and the
+# author changes it to "Reviewed" after reviewing it.
+PROVENANCE_KEY = "provenance"
+PROVISIONAL = "Provisional"
+
+
+def count_provisional(value: Any) -> int:
+    """How many records in a tuning document are still marked provisional."""
+    if isinstance(value, dict):
+        own = 1 if value.get(PROVENANCE_KEY) == PROVISIONAL else 0
+        return own + sum(count_provisional(child) for child in value.values())
+    if isinstance(value, list):
+        return sum(count_provisional(child) for child in value)
+    return 0
 
 
 def check_contracts(game_dir: Path) -> tuple[list[str], str]:

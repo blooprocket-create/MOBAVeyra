@@ -4,6 +4,9 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Casting/VeyraCastSubsystem.h"
+#include "Engine/World.h"
+#include "Events/VeyraAbilityEvents.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesLog.h"
@@ -14,13 +17,13 @@ bool UVeyraTargetedDamageAbility::Defines(const FVeyraContentId& Ability) const
 	return UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(Ability) != nullptr;
 }
 
-double UVeyraTargetedDamageAbility::GetResourceCost(const FVeyraContentId& Ability) const
+double UVeyraTargetedDamageAbility::GetResourceCost(const FVeyraContentId& Ability, int32 /*Rank*/) const
 {
 	const FVeyraTargetedDamageAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(Ability);
 	return Tuning ? Tuning->ResourceCost : 0.0;
 }
 
-double UVeyraTargetedDamageAbility::GetCooldownSeconds(const FVeyraContentId& Ability) const
+double UVeyraTargetedDamageAbility::GetCooldownSeconds(const FVeyraContentId& Ability, int32 /*Rank*/) const
 {
 	const FVeyraTargetedDamageAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindTargetedDamage(Ability);
 	return Tuning ? Tuning->CooldownSeconds : 0.0;
@@ -75,6 +78,17 @@ void UVeyraTargetedDamageAbility::ActivateAbility(const FGameplayAbilitySpecHand
 		// Commit is final (§54): the cost and cooldown stand even though the damage did not land.
 		UE_LOG(LogVeyraAbilities, Warning, TEXT("%s committed %s, but its damage to %s was refused."), *GetNameSafe(Caster),
 			*Ability.ToString(), *GetNameSafe(Target.Actor));
+	}
+	else
+	{
+		// It resolves at once, outside the phases that issue Cast IDs, so it takes one here (Combat Bible §45).
+		const UWorld* World = GetWorld();
+		FVeyraAbilityHit Hit;
+		Hit.Caster = ActorInfo->AbilitySystemComponent.Get();
+		Hit.Target = Target.Actor;
+		Hit.Ability = Ability;
+		Hit.CastId = World ? World->GetSubsystem<UVeyraCastSubsystem>()->IssueCastId() : 0;
+		UVeyraAbilityEventSubsystem::Announce(World, Hit);
 	}
 	EndAbility(Handle, ActorInfo, ActivationInfo, /*bReplicateEndAbility*/ true, /*bWasCancelled*/ false);
 }

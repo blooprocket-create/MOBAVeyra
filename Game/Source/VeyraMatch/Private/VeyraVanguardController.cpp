@@ -2,15 +2,40 @@
 
 #include "VeyraVanguardController.h"
 
+#include "Attacks/VeyraBasicAttackComponent.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/PlayerState.h"
+#include "Movement/VeyraMovementComponent.h"
 #include "NavigationSystem.h"
 #include "Navigation/PathFollowingComponent.h"
+#include "Shapes/VeyraShapes.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
+#include "Units/VeyraUnit.h"
+
+namespace
+{
+	/** The walkable point nearest Destination within the tuned projection extent, if there is one. */
+	TOptional<FVector> ProjectOrderDestination(const UWorld* World, const FVector& Destination)
+	{
+		const FVeyraOrdersTuning& Orders = UVeyraMatchTuningSubsystem::Get().Orders;
+		const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(World);
+		FNavLocation Walkable;
+		if (!Navigation || !Navigation->ProjectPointToNavigation(Destination, Walkable, FVector(Orders.DestinationProjectionExtent)))
+		{
+			return {};
+		}
+		return Walkable.Location;
+	}
+}
 
 AVeyraVanguardController::AVeyraVanguardController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	// The Vanguard carries its participant's PlayerState, set by the GameMode after possession.
 	bWantsPlayerState = false;
+	// Attack orders follow their target every tick.
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 EVeyraOrderRejection AVeyraVanguardController::MoveToDestination(const FVector& Destination)
@@ -19,21 +44,232 @@ EVeyraOrderRejection AVeyraVanguardController::MoveToDestination(const FVector& 
 	{
 		return EVeyraOrderRejection::NoVanguard;
 	}
-
-	const FVeyraOrdersTuning& Orders = UVeyraMatchTuningSubsystem::Get().Orders;
-	const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
-	FNavLocation Walkable;
-	if (!Navigation || !Navigation->ProjectPointToNavigation(Destination, Walkable, FVector(Orders.DestinationProjectionExtent)))
+	const TOptional<FVector> Walkable = ProjectOrderDestination(GetWorld(), Destination);
+	if (!Walkable.IsSet())
 	{
 		return EVeyraOrderRejection::Unreachable;
 	}
 
-	// A partial path is allowed: an order toward a point the Vanguard cannot fully reach takes it as
-	// close as the path allows.
-	const EPathFollowingRequestResult::Type Result = MoveToLocation(Walkable.Location, static_cast<float>(Orders.ArrivalTolerance),
-		/*bStopOnOverlap*/ false, /*bUsePathfinding*/ true, /*bProjectDestinationToNavigation*/ false, /*bCanStrafe*/ false,
-		/*FilterClass*/ nullptr, /*bAllowPartialPath*/ true);
-	return Result == EPathFollowingRequestResult::Failed ? EVeyraOrderRejection::Unreachable : EVeyraOrderRejection::None;
+	// Moving replaces an attack order, cancels an attack before its Commit and cuts a backswing short (§48).
+	ClearAttackOrder();
+	if (UVeyraBasicAttackComponent* Attacks = GetBasicAttack())
+	{
+		Attacks->CancelAttack();
+	}
+	MoveOrder = Walkable.GetValue();
+	if (IsMovementLocked())
+	{
+		// Held, not refused: normal orders never override what owns the movement (Combat Bible §9).
+		return EVeyraOrderRejection::None;
+	}
+	return FollowMoveOrder() == EPathFollowingRequestResult::Failed ? EVeyraOrderRejection::Unreachable : EVeyraOrderRejection::None;
+}
+
+EVeyraOrderRejection AVeyraVanguardController::AttackUnit(AActor& Target)
+{
+	const APawn* Body = GetPawn();
+	if (!Body)
+	{
+		return EVeyraOrderRejection::NoVanguard;
+	}
+	UVeyraBasicAttackComponent* Attacks = GetBasicAttack();
+	const bool bEnemyUnit = VeyraUnits::KindOf(&Target).IsSet() && VeyraTargeting::IsAlive(&Target) && VeyraTargeting::AreHostile(Body, &Target);
+	if (!Attacks || !Attacks->HasProfile() || !bEnemyUnit)
+	{
+		return EVeyraOrderRejection::CannotAttack;
+	}
+
+	// A new target takes over from an attack still winding up; the same one again changes nothing.
+	if (AttackTarget.Get() != &Target && Attacks->GetState().Phase == EVeyraAttackPhase::Windup)
+	{
+		Attacks->CancelAttack();
+	}
+	MoveOrder.Reset();
+	AttackMoveDestination.Reset();
+	AttackTarget = &Target;
+	AttackPath = EAttackPath::None;
+	UpdateAttackOrder();
+	return EVeyraOrderRejection::None;
+}
+
+EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Destination)
+{
+	if (!GetPawn())
+	{
+		return EVeyraOrderRejection::NoVanguard;
+	}
+	UVeyraBasicAttackComponent* Attacks = GetBasicAttack();
+	if (!Attacks || !Attacks->HasProfile())
+	{
+		return EVeyraOrderRejection::CannotAttack;
+	}
+	const TOptional<FVector> Walkable = ProjectOrderDestination(GetWorld(), Destination);
+	if (!Walkable.IsSet())
+	{
+		return EVeyraOrderRejection::Unreachable;
+	}
+
+	if (Attacks->GetState().Phase == EVeyraAttackPhase::Windup)
+	{
+		Attacks->CancelAttack();
+	}
+	MoveOrder.Reset();
+	AttackTarget.Reset();
+	AttackMoveDestination = Walkable.GetValue();
+	AttackPath = EAttackPath::None;
+	UpdateAttackOrder();
+	return EVeyraOrderRejection::None;
+}
+
+void AVeyraVanguardController::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+	if (HasAuthority())
+	{
+		UpdateAttackOrder();
+	}
+}
+
+void AVeyraVanguardController::UpdateAttackOrder()
+{
+	if (!AttackTarget.IsValid() && !AttackMoveDestination.IsSet())
+	{
+		return;
+	}
+	const APawn* Body = GetPawn();
+	UVeyraBasicAttackComponent* Attacks = GetBasicAttack();
+	if (!Body || !Attacks)
+	{
+		ClearAttackOrder();
+		return;
+	}
+	// The order waits while something owns the movement, and while an attack winds up.
+	if (IsMovementLocked() || Attacks->GetState().Phase == EVeyraAttackPhase::Windup)
+	{
+		return;
+	}
+
+	AActor* Target = AttackTarget.Get();
+	if (Target && (!VeyraTargeting::IsAlive(Target) || !VeyraTargeting::AreHostile(Body, Target)))
+	{
+		Target = nullptr;
+		AttackTarget.Reset();
+	}
+	if (AttackMoveDestination.IsSet())
+	{
+		// Attack-move lets go of an enemy that leaves the acquisition radius, and takes the nearest one in it.
+		if (Target && VeyraTargeting::EdgeToEdgeDistance(*Body, *Target) > Attacks->GetProfile().AcquisitionRadius)
+		{
+			Target = nullptr;
+			AttackTarget.Reset();
+		}
+		if (!Target)
+		{
+			Target = FindAttackMoveTarget(*Attacks);
+			AttackTarget = Target;
+		}
+		if (!Target)
+		{
+			if (AttackPath != EAttackPath::ToDestination)
+			{
+				FollowAttackMove();
+			}
+			return;
+		}
+	}
+	else if (!Target)
+	{
+		// The unit it attacked died or became invalid. The Vanguard stands: there is no idle acquisition.
+		ClearAttackOrder();
+		return;
+	}
+
+	switch (Attacks->CheckAttack(Target))
+	{
+	case EVeyraAttackRejection::None:
+		StopForAttack();
+		Attacks->StartAttack(*Target);
+		break;
+	case EVeyraAttackRejection::OutOfRange:
+		if (AttackPath != EAttackPath::ToTarget)
+		{
+			// Chasing cuts a backswing short. The path follows the target; the next steps stop it in range.
+			Attacks->CancelAttack();
+			const EPathFollowingRequestResult::Type Result = MoveToActor(Target, /*AcceptanceRadius*/ 0.0f, /*bStopOnOverlap*/ true,
+				/*bUsePathfinding*/ true, /*bCanStrafe*/ false, /*FilterClass*/ nullptr, /*bAllowPartialPath*/ true);
+			AttackPath = Result == EPathFollowingRequestResult::RequestSuccessful ? EAttackPath::ToTarget : EAttackPath::None;
+		}
+		break;
+	case EVeyraAttackRejection::OnCooldown:
+		// In range: it waits there for the attack's interval.
+		StopForAttack();
+		break;
+	case EVeyraAttackRejection::InvalidTarget:
+		AttackTarget.Reset();
+		if (!AttackMoveDestination.IsSet())
+		{
+			ClearAttackOrder();
+		}
+		break;
+	case EVeyraAttackRejection::NoProfile:
+	case EVeyraAttackRejection::AttackerDead:
+		ClearAttackOrder();
+		break;
+	case EVeyraAttackRejection::CrowdControlled:
+	case EVeyraAttackRejection::Busy:
+		break;
+	}
+}
+
+void AVeyraVanguardController::FollowAttackMove()
+{
+	const EPathFollowingRequestResult::Type Result = MoveToLocation(AttackMoveDestination.GetValue(),
+		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Orders.ArrivalTolerance), /*bStopOnOverlap*/ false, /*bUsePathfinding*/ true,
+		/*bProjectDestinationToNavigation*/ false, /*bCanStrafe*/ false, /*FilterClass*/ nullptr, /*bAllowPartialPath*/ true);
+	if (Result == EPathFollowingRequestResult::RequestSuccessful)
+	{
+		AttackPath = EAttackPath::ToDestination;
+	}
+	else
+	{
+		// Already there, or no path: the attack-move is finished.
+		ClearAttackOrder();
+	}
+}
+
+void AVeyraVanguardController::StopForAttack()
+{
+	if (AttackPath != EAttackPath::None || GetPathFollowingComponent()->GetStatus() != EPathFollowingStatus::Idle)
+	{
+		AttackPath = EAttackPath::None;
+		StopMovement();
+	}
+}
+
+void AVeyraVanguardController::ClearAttackOrder()
+{
+	AttackTarget.Reset();
+	AttackMoveDestination.Reset();
+	AttackPath = EAttackPath::None;
+}
+
+UVeyraBasicAttackComponent* AVeyraVanguardController::GetBasicAttack() const
+{
+	const APawn* Body = GetPawn();
+	const APlayerState* Participant = Body ? Body->GetPlayerState() : nullptr;
+	return Participant ? Participant->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
+}
+
+AActor* AVeyraVanguardController::FindAttackMoveTarget(const UVeyraBasicAttackComponent& Attacks) const
+{
+	const APawn* Body = GetPawn();
+	// A circle this wide around the Vanguard's centre touches every body within the radius of its edge.
+	FVeyraShape Reach;
+	Reach.Kind = EVeyraShapeKind::Circle;
+	Reach.Radius = Attacks.GetProfile().AcquisitionRadius + Body->GetSimpleCollisionRadius();
+	const TArray<AActor*> Enemies = VeyraShapes::GatherUnits(*GetWorld(), FVeyraPlacedShape{ Reach, Body->GetActorLocation(), Body->GetActorForwardVector() },
+		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit); });
+	return Enemies.IsEmpty() ? nullptr : Enemies[0];
 }
 
 void AVeyraVanguardController::PawnPendingDestroy(APawn* DestroyedPawn)
@@ -42,4 +278,90 @@ void AVeyraVanguardController::PawnPendingDestroy(APawn* DestroyedPawn)
 	{
 		UnPossess();
 	}
+}
+
+void AVeyraVanguardController::OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result)
+{
+	Super::OnMoveCompleted(RequestID, Result);
+
+	// A newer order replacing this path, or a lock pausing it, keeps the order; any other end,
+	// arriving or failing, finishes it.
+	if (!bStoppingForLock && !Result.HasFlag(FPathFollowingResultFlags::NewRequest))
+	{
+		MoveOrder.Reset();
+		// Reaching an attack-move's destination with nothing to attack finishes it too.
+		if (AttackPath == EAttackPath::ToDestination && Result.IsSuccess() && !AttackTarget.IsValid())
+		{
+			ClearAttackOrder();
+		}
+	}
+	// The attack order finds its next path on its next step.
+	if (!Result.HasFlag(FPathFollowingResultFlags::NewRequest))
+	{
+		AttackPath = EAttackPath::None;
+	}
+}
+
+void AVeyraVanguardController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+	WatchMovement(InPawn ? Cast<UVeyraMovementComponent>(InPawn->GetMovementComponent()) : nullptr);
+}
+
+void AVeyraVanguardController::OnUnPossess()
+{
+	// A new body starts without the old one's orders.
+	WatchMovement(nullptr);
+	MoveOrder.Reset();
+	ClearAttackOrder();
+	Super::OnUnPossess();
+}
+
+void AVeyraVanguardController::WatchMovement(UVeyraMovementComponent* Movement)
+{
+	if (UVeyraMovementComponent* Watched = WatchedMovement.Get())
+	{
+		Watched->OnMovementLockChanged.Remove(MovementLockHandle);
+	}
+	MovementLockHandle.Reset();
+	WatchedMovement = Movement;
+	if (Movement)
+	{
+		MovementLockHandle = Movement->OnMovementLockChanged.AddUObject(this, &AVeyraVanguardController::OnMovementLockChanged);
+	}
+}
+
+void AVeyraVanguardController::OnMovementLockChanged(bool bLocked)
+{
+	if (bLocked)
+	{
+		TGuardValue<bool> StoppingForLock(bStoppingForLock, true);
+		StopMovement();
+	}
+	else if (MoveOrder.IsSet())
+	{
+		// The unit may have been moved while locked, so it finds a new path from where it is.
+		FollowMoveOrder();
+	}
+}
+
+bool AVeyraVanguardController::IsMovementLocked() const
+{
+	const UVeyraMovementComponent* Movement = WatchedMovement.Get();
+	return Movement && Movement->IsMovementLocked();
+}
+
+EPathFollowingRequestResult::Type AVeyraVanguardController::FollowMoveOrder()
+{
+	// A partial path is allowed: an order toward a point the Vanguard cannot fully reach takes it as
+	// close as the path allows.
+	const EPathFollowingRequestResult::Type Result = MoveToLocation(MoveOrder.GetValue(),
+		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Orders.ArrivalTolerance), /*bStopOnOverlap*/ false, /*bUsePathfinding*/ true,
+		/*bProjectDestinationToNavigation*/ false, /*bCanStrafe*/ false, /*FilterClass*/ nullptr, /*bAllowPartialPath*/ true);
+	// Already there, or no path: either way the order is finished.
+	if (Result != EPathFollowingRequestResult::RequestSuccessful)
+	{
+		MoveOrder.Reset();
+	}
+	return Result;
 }

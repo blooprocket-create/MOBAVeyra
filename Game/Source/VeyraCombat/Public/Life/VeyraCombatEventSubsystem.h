@@ -15,6 +15,12 @@ struct FVeyraDeathEvent
 
 	/** Whoever dealt the lethal damage. Null for damage with no source. Kill credit (§18) reads it later. */
 	TWeakObjectPtr<UAbilitySystemComponent> Killer;
+
+	/**
+	 * The enemy Vanguards, other than the killer, who damaged, crowd-controlled or debuffed the victim
+	 * within the assist window (§18). With a Vanguard killer, they are the takedown's participants.
+	 */
+	TArray<TWeakObjectPtr<UAbilitySystemComponent>> Assisters;
 };
 
 /**

@@ -33,12 +33,6 @@ struct FVeyraDamageComponent
 /** One damage event can carry at most one component per type. */
 using FVeyraDamageComponents = TArray<FVeyraDamageComponent, TInlineAllocator<3>>;
 
-/** Step 2 of §25: the raw damage event before any modifier. */
-struct FVeyraRawDamageEvent
-{
-	FVeyraDamageComponents Components;
-};
-
 /** An attacker's penetration against one resistance (Combat Bible §3). */
 struct FVeyraPenetration
 {
@@ -47,6 +41,19 @@ struct FVeyraPenetration
 
 	/** The fraction of positive resistance kept by percentage penetration: Π(1 − x) over sources. */
 	double Retained = 1.0;
+};
+
+/** Step 2 of §25: the raw damage event before any modifier. */
+struct FVeyraRawDamageEvent
+{
+	FVeyraDamageComponents Components;
+
+	/**
+	 * Penetration this event carries itself, such as an armour-piercing shot's, on top of its
+	 * attacker's: flat values add and retained fractions multiply (§3). The defaults add nothing.
+	 */
+	FVeyraPenetration PhysicalPenetration;
+	FVeyraPenetration MagicPenetration;
 };
 
 /** Resistance reduction applied to one of a target's resistances (Combat Bible §3). */

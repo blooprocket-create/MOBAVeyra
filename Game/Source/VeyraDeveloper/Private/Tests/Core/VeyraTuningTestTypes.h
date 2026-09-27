@@ -98,3 +98,22 @@ struct FVeyraTuningCollectionsTestShape
 	UPROPERTY()
 	TArray<int32> Scores;
 };
+
+/** Records used through "$ref": matches TestData/TuningConformanceRefs.schema.json. */
+USTRUCT()
+struct FVeyraTuningRefsTestShape
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraTuningTestPoint Home;
+
+	UPROPERTY()
+	FVeyraTuningTestPoint Away;
+
+	UPROPERTY()
+	TArray<FVeyraTuningTestPoint> Extras;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraTuningTestPoint> ById;
+};

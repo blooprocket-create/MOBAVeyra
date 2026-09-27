@@ -4,6 +4,7 @@
 
 #include "GameFramework/PlayerController.h"
 #include "Input/VeyraInputSettings.h"
+#include "Progression/VeyraProgressionTypes.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
 
@@ -34,8 +35,17 @@ public:
 	 */
 	void SteerMoveOrder(const FVector& Destination);
 
+	/** Owning client: asks the server to attack Target with this player's Vanguard (ADR-009 §5). */
+	void IssueAttackOrder(AActor* Target);
+
+	/** Owning client: asks the server to attack-move this player's Vanguard to Destination. */
+	void IssueAttackMoveOrder(const FVector& Destination);
+
 	/** Owning client: asks the server to cast the ability in Slot at Target. */
 	void IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Target);
+
+	/** Owning client: asks the server to cast the ability in Slot at Target, a unit, a ground point or both. */
+	void IssueCastOrder(EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
 
 	/**
 	 * Owning client, developer builds: asks the server to pause or resume the match at once. Pause
@@ -49,6 +59,21 @@ public:
 	 * refuse this.
 	 */
 	void RequestDeveloperEndMatch();
+
+	/** Owning client: asks the server to spend a skill point on the ability in Slot (Economy & Progression Bible §1). */
+	void RequestRankUp(EVeyraAbilitySlot Slot);
+
+	/**
+	 * Owning client, developer builds: asks the server for Amount XP, or for enough XP to gain Levels
+	 * levels, until minions give XP (ADR-008 §6). Shipping servers refuse them. The console commands
+	 * Veyra.Dev.GrantXp and Veyra.Dev.GrantLevels send them.
+	 */
+	void RequestDeveloperExperience(int32 Amount);
+	void RequestDeveloperLevels(int32 Levels);
+
+	/** Owning client: the reason the server gave for the last refused rank-up, and how many it refused. */
+	EVeyraRankRefusal GetLastRankUpRefusal() const { return LastRankUpRefusal; }
+	int32 GetRankUpRefusalCount() const { return RankUpRefusalCount; }
 
 	/** This player's Vanguard, on the server and on every client, or null before it spawns. */
 	AVeyraVanguardCharacter* GetVanguard() const;
@@ -82,6 +107,12 @@ private:
 	/** Server: checks a move order from either path and hands it to the game mode. */
 	void ApplyMoveOrder(const FVector& Destination);
 
+	UFUNCTION(Server, Reliable)
+	void ServerIssueAttackOrder(AActor* Target);
+
+	UFUNCTION(Server, Reliable)
+	void ServerIssueAttackMoveOrder(FVector Destination);
+
 	UFUNCTION(Client, Unreliable)
 	void ClientOrderRejected(EVeyraOrderRejection Rejection);
 
@@ -97,16 +128,39 @@ private:
 	UFUNCTION(Server, Reliable)
 	void ServerRequestDeveloperEndMatch();
 
+	UFUNCTION(Server, Reliable)
+	void ServerRankUp(EVeyraAbilitySlot Slot);
+
+	UFUNCTION(Client, Unreliable)
+	void ClientRankUpRefused(EVeyraRankRefusal Refusal);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestDeveloperExperience(int32 Amount);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestDeveloperLevels(int32 Levels);
+
+	/** Server, developer builds: the participant's progression, if its XP may be granted. */
+	class UVeyraProgressionComponent* FindDeveloperProgression() const;
+
 	UFUNCTION()
 	void OnVanguardSet(APlayerState* Participant, APawn* NewPawn, APawn* OldPawn);
 
 	void RejectOrder(EVeyraOrderRejection Rejection);
 
-	// Local input (Settings Bible §1): right-click move and Quick Cast on Q.
+	// Local input (Settings Bible §1): right-click to move or attack, attack-move, and Quick Cast on
+	// each ability slot.
 	void OnMoveOrderStarted();
 	void OnMoveOrderHeld();
-	void OnAbilityQ();
+	void OnAttackMovePressed();
+	void OnAbilityPressed(EVeyraAbilitySlot Slot);
 	void MoveToCursor(bool bSteer);
+
+	/** Owning client: the enemy unit under the cursor, if any. */
+	AActor* FindEnemyUnderCursor() const;
+
+	/** Whether the move button's current press ordered an attack, which holding it does not steer. */
+	bool bMoveOrderPressAttacked = false;
 
 	UPROPERTY(Transient)
 	FVeyraInputObjects Input;
@@ -125,4 +179,7 @@ private:
 
 	EVeyraCastRejection LastCastRejection = EVeyraCastRejection::None;
 	int32 CastRejectionCount = 0;
+
+	EVeyraRankRefusal LastRankUpRefusal = EVeyraRankRefusal::None;
+	int32 RankUpRefusalCount = 0;
 };

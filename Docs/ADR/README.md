@@ -14,9 +14,10 @@ This directory records major technical choices that should not be casually rever
 
 ## Proposed decisions
 
-None at present.
+- [`ADR-008-vanguard-definitions-and-ability-composition.md`](ADR-008-vanguard-definitions-and-ability-composition.md) — Vanguard definitions in tuning data; abilities composed from data onto six archetypes with per-rank values, cast phases and Cast IDs; unique passives behind a content-owned registry; Progression in a new `VeyraEconomy` module; the `VeyraVanguards` and `VeyraUI` modules and layers; the provisional-values marker; developer Vanguard selection; the open canon questions for the first four kits. It becomes Accepted when the author merges the M5 pull request that adds it.
+- [`ADR-009-runtime-combat-primitives.md`](ADR-009-runtime-combat-primitives.md) — The Combat status ledger with one native Gameplay Effect; the movement component for displacement and dashes; shields with identity and caps, Combat State and assist attribution; projectiles and delayed areas with damage prepared at Commit; shapes; basic attacks; no client prediction for these categories. It becomes Accepted when the author merges the M5 pull request that adds it.
 
-**Renumbering note (2026-09-23):** The unified-client record was first filed as a second `ADR-003` and has been renumbered to `ADR-004`; its content and acceptance are unchanged. Historical records such as [`Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md) that say "ADR-003" refer to owned field entities. Every ADR must use a unique number; `scripts/check_doc_context.py --check` enforces this. The next new ADR is `ADR-008`.
+**Renumbering note (2026-09-23):** The unified-client record was first filed as a second `ADR-003` and has been renumbered to `ADR-004`; its content and acceptance are unchanged. Historical records such as [`Pull_Request_Record_v0.1.md`](../Pull_Request_Record_v0.1.md) that say "ADR-003" refer to owned field entities. Every ADR must use a unique number; `scripts/check_doc_context.py --check` enforces this. The next new ADR is `ADR-010`.
 
 ## When to create an ADR
 

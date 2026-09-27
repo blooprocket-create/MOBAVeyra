@@ -10,6 +10,10 @@ Public/PrivateDependencyModuleNames, Public/PrivateIncludePathModuleNames or
 DynamicallyLoadedModuleNames. A module may depend only on modules in lower layers: never on
 itself, on its own layer, on a higher layer, or on a sealed layer. Engine modules are ignored.
 
+A layer marked "clientOnly" holds modules that servers neither build nor load: each is
+"ClientOnly" in the .uproject, and every ClientOnly module is in such a layer. A module outside
+those layers may depend on one only inside an `if (Target.Type != TargetType.Server)` block.
+
 The check fails closed. Dependencies must be literal names added with .Add("Name") or
 .AddRange(new[] { "Name", ... }); anything the check cannot read is an error, not a pass.
 """
@@ -43,10 +47,12 @@ ADD_RANGE_RE = re.compile(
 ITEMS_RE = re.compile(r"\s*" + NAME + r"\s*(?:,\s*" + NAME + r"\s*)*,?\s*")
 ITEM_RE = re.compile(NAME)
 FORBIDDEN_RE = re.compile(r"\bCircularlyReferencedDependentModules\b")
+SERVER_EXCLUDED_RE = re.compile(r"\bif\s*\(\s*Target\.Type\s*!=\s*TargetType\.Server\s*\)\s*\{")
 STRING_START_RE = re.compile(r'[$@]{0,2}"')
 CHAR_LITERAL_RE = re.compile(r"'(?:\\.|[^'\\])*'")
-LAYER_KEYS = {"name", "description", "modules", "sealed"}
+LAYER_KEYS = {"name", "description", "modules", "sealed", "clientOnly"}
 MAP_KEYS = {"description", "layers"}
+CLIENT_ONLY_TYPE = "ClientOnly"
 
 
 class CheckError(Exception):
@@ -58,6 +64,7 @@ class Dependency:
     target: str
     source_field: str
     line: int
+    offset: int  # Where it is added, in the comment-stripped code.
 
 
 @dataclass
@@ -65,6 +72,11 @@ class BuildFile:
     module: str
     shown: str  # The path as reported in messages.
     dependencies: list[Dependency] = field(default_factory=list)
+    # The bodies of `if (Target.Type != TargetType.Server) { ... }` blocks, as offsets.
+    server_excluded: list[tuple[int, int]] = field(default_factory=list)
+
+    def excludes_servers(self, offset: int) -> bool:
+        return any(start <= offset < end for start, end in self.server_excluded)
 
 
 @dataclass
@@ -73,6 +85,7 @@ class Layer:
     name: str
     sealed: bool
     modules: list[str]
+    client_only: bool = False
 
 
 def strip_comments(text: str) -> str:
@@ -126,6 +139,25 @@ def strip_comments(text: str) -> str:
     return "".join(out)
 
 
+def block_end(code: str, open_brace: int) -> int:
+    """Return the offset just past the brace that closes the block opened at open_brace."""
+    depth, i, length = 0, open_brace, len(code)
+    while i < length:
+        char = code[i]
+        if char == '"':
+            i += 1
+            while i < length and code[i] != '"':
+                i += 2 if code[i] == "\\" else 1
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return i + 1
+        i += 1
+    raise CheckError("unterminated block")
+
+
 def parse_build_file(path: Path, shown: str) -> tuple[BuildFile, list[str]]:
     module = path.name[: -len(".Build.cs")]
     build = BuildFile(module, shown)
@@ -143,16 +175,21 @@ def parse_build_file(path: Path, shown: str) -> tuple[BuildFile, list[str]]:
             f"{shown}:{line_of(match.start())}: CircularlyReferencedDependentModules is not "
             "allowed; break the cycle instead."
         )
+    for match in SERVER_EXCLUDED_RE.finditer(code):
+        try:
+            build.server_excluded.append((match.end(), block_end(code, match.end() - 1)))
+        except CheckError as error:
+            errors.append(f"{shown}:{line_of(match.start())}: {error}")
     for match in FIELD_RE.finditer(code):
         name, line = match.group(1), line_of(match.start())
         added = ADD_RE.match(code, match.end())
         if added:
-            build.dependencies.append(Dependency(added.group(1), name, line))
+            build.dependencies.append(Dependency(added.group(1), name, line, match.start()))
             continue
         added_range = ADD_RANGE_RE.match(code, match.end())
         if added_range and ITEMS_RE.fullmatch(added_range.group("items")):
             for item in ITEM_RE.finditer(added_range.group("items")):
-                build.dependencies.append(Dependency(item.group(1), name, line))
+                build.dependencies.append(Dependency(item.group(1), name, line, match.start()))
             continue
         errors.append(
             f"{shown}:{line}: unsupported use of {name}. Use only .Add(\"Name\") or "
@@ -184,11 +221,14 @@ def load_layers(path: Path, shown: str) -> tuple[list[Layer], list[str]]:
         for key in sorted(set(entry) - LAYER_KEYS):
             errors.append(f"{shown}: layer {index} has unknown key \"{key}\".")
         name, modules, sealed = entry.get("name"), entry.get("modules"), entry.get("sealed", False)
+        client_only = entry.get("clientOnly", False)
         if not isinstance(name, str) or not name:
             errors.append(f"{shown}: layer {index} needs a \"name\".")
             continue
         if not isinstance(sealed, bool):
             errors.append(f"{shown}: layer {name} has a non-boolean \"sealed\".")
+        if not isinstance(client_only, bool):
+            errors.append(f"{shown}: layer {name} has a non-boolean \"clientOnly\".")
         if (not isinstance(modules, list) or not modules
                 or not all(isinstance(module, str) and module for module in modules)):
             errors.append(f"{shown}: layer {name} needs a non-empty \"modules\" list of names.")
@@ -197,7 +237,7 @@ def load_layers(path: Path, shown: str) -> tuple[list[Layer], list[str]]:
             if module in owner:
                 errors.append(f"{shown}: {module} is declared in both {owner[module]} and {name}.")
             owner[module] = name
-        layers.append(Layer(index, name, sealed is True, list(modules)))
+        layers.append(Layer(index, name, sealed is True, list(modules), client_only is True))
     return layers, errors
 
 
@@ -269,14 +309,23 @@ def check(game_dir: Path) -> tuple[list[str], str]:
     else:
         try:
             descriptor = json.loads(projects[0].read_text(encoding="utf-8-sig"))
-            listed = {entry["Name"] for entry in descriptor.get("Modules", [])}
-        except (json.JSONDecodeError, KeyError, TypeError) as error:
+            types = {entry["Name"]: entry.get("Type") for entry in descriptor.get("Modules", [])}
+        except (json.JSONDecodeError, KeyError, TypeError, AttributeError) as error:
             errors.append(f"{shown(projects[0])}: cannot read its module list: {error}")
         else:
+            listed = set(types)
             for module in sorted(source_modules - listed):
                 errors.append(f"{projects[0].name} does not list module {module} from Source/.")
             for module in sorted(listed - source_modules):
                 errors.append(f"{projects[0].name} lists module {module}, which has no Build.cs in Source/.")
+            for module in sorted(listed & source_modules):
+                in_client_layer = module in layer_of and layer_of[module].client_only
+                if in_client_layer and types[module] != CLIENT_ONLY_TYPE:
+                    errors.append(f"{projects[0].name}: {module} is in the client-only layer "
+                                  f"{layer_of[module].name}, so its Type must be {CLIENT_ONLY_TYPE}.")
+                elif types[module] == CLIENT_ONLY_TYPE and module in layer_of and not in_client_layer:
+                    errors.append(f"{projects[0].name}: {module} is {CLIENT_ONLY_TYPE}, so it belongs in a "
+                                  f"client-only layer of {layer_map}.")
 
     graph: dict[str, list[str]] = {module: [] for module in builds}
     edge_count = 0
@@ -307,6 +356,11 @@ def check(game_dir: Path) -> tuple[list[str], str]:
             elif target_layer.index > source_layer.index:
                 errors.append(f"{where}: {build.module} (layer {source_layer.name}) depends on "
                               f"{target} in the higher layer {target_layer.name}.")
+            if (target_layer.client_only and not source_layer.client_only
+                    and not build.excludes_servers(dependency.offset)):
+                errors.append(f"{where}: {build.module} depends on the client-only {target} for every "
+                              "target. Servers neither build nor load it: add it only inside "
+                              "`if (Target.Type != TargetType.Server)`.")
 
     cycle = find_cycle(graph)
     if cycle:
