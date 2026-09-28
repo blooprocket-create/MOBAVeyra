@@ -125,6 +125,13 @@ public:
 	/** Server: one tick of Prime Well regeneration, Seconds long. Its timer calls it; tests may too. */
 	void RegeneratePrimeWells(double Seconds);
 
+	/**
+	 * Server: brings each structure's backdoor protection Seconds up to date (Battleground Bible §19):
+	 * none while an attacking Fluxborn is within its radius, else climbing to the maximum. Its timer
+	 * calls it; tests may too.
+	 */
+	void UpdateBackdoorProtection(double Seconds);
+
 private:
 	void OnDeath(const FVeyraDeathEvent& Death);
 	void OnFluxbornDied(AVeyraFluxborn& Fluxborn);
@@ -137,6 +144,7 @@ private:
 	void OnHostileDamage(const FVeyraHostileDamageEvent& Event);
 	void RebuildInhibitor(TWeakObjectPtr<AVeyraStructure> Inhibitor);
 	void OnRegenerationTimer();
+	void OnBackdoorTimer();
 
 	/** The next wave is due: it spawns, and the one after is scheduled. */
 	void OnWaveTimer();
@@ -165,6 +173,7 @@ private:
 
 	TMap<TWeakObjectPtr<AVeyraStructure>, FTimerHandle> RebuildTimers;
 	FTimerHandle RegenerationTimer;
+	FTimerHandle BackdoorTimer;
 	FDelegateHandle DeathHandle;
 	FDelegateHandle HostileDamageHandle;
 	bool bStopped = false;

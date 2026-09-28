@@ -106,6 +106,8 @@ void UVeyraBattlegroundSubsystem::SpawnStructures(const FVeyraBattlegroundLayout
 	RefreshInvulnerability();
 	const float Tick = static_cast<float>(UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds);
 	World->GetTimerManager().SetTimer(RegenerationTimer, FTimerDelegate::CreateUObject(this, &UVeyraBattlegroundSubsystem::OnRegenerationTimer), Tick, /*bLoop*/ true);
+	const float Backdoor = static_cast<float>(UVeyraWorldTuningSubsystem::Get().Backdoor.UpdateSeconds);
+	World->GetTimerManager().SetTimer(BackdoorTimer, FTimerDelegate::CreateUObject(this, &UVeyraBattlegroundSubsystem::OnBackdoorTimer), Backdoor, /*bLoop*/ true);
 	UE_LOG(LogVeyraWorld, Log, TEXT("Spawned the battleground's %d structures."), Structures.Num());
 }
 
@@ -330,6 +332,7 @@ void UVeyraBattlegroundSubsystem::Stop()
 	{
 		FTimerManager& Timers = World->GetTimerManager();
 		Timers.ClearTimer(RegenerationTimer);
+		Timers.ClearTimer(BackdoorTimer);
 		Timers.ClearTimer(WaveTimer);
 		for (FTimerHandle& File : FileTimers)
 		{
@@ -378,6 +381,36 @@ void UVeyraBattlegroundSubsystem::RegeneratePrimeWells(double Seconds)
 			VeyraCombat::RestoreHealth(Well, Well.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) * Fraction * Seconds);
 		}
 	}
+}
+
+void UVeyraBattlegroundSubsystem::UpdateBackdoorProtection(double Seconds)
+{
+	if (bStopped)
+	{
+		return;
+	}
+	const FVeyraBackdoorTuning& Backdoor = UVeyraWorldTuningSubsystem::Get().Backdoor;
+	const TArray<AVeyraFluxborn*> Living = GetFluxborn();
+	for (AVeyraStructure* Structure : Structures)
+	{
+		if (!Structure || Structure->IsDestroyed() || !VeyraStructureRules::HasBackdoorProtection(Structure->GetStructureKind()))
+		{
+			continue;
+		}
+		// The attackers are the other side's Fluxborn; Vanguards and their summons never lift it (§19).
+		const EVeyraTeam Attackers = VeyraTeams::Opposing(Structure->GetVeyraTeam());
+		const FVector Centre = Structure->GetActorLocation();
+		const bool bNear = Living.ContainsByPredicate([Attackers, &Centre, &Backdoor](const AVeyraFluxborn* Unit) {
+			return Unit->GetVeyraTeam() == Attackers && FVector::Dist2D(Unit->GetActorLocation(), Centre) <= Backdoor.Radius;
+		});
+		Structure->SetBackdoorProtection(
+			VeyraStructureRules::NextBackdoorProtection(Structure->GetBackdoorProtection(), bNear, Backdoor.MaxReduction, Backdoor.RampSeconds, Seconds));
+	}
+}
+
+void UVeyraBattlegroundSubsystem::OnBackdoorTimer()
+{
+	UpdateBackdoorProtection(UVeyraWorldTuningSubsystem::Get().Backdoor.UpdateSeconds);
 }
 
 void UVeyraBattlegroundSubsystem::OnDeath(const FVeyraDeathEvent& Death)

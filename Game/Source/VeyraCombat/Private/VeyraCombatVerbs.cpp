@@ -254,6 +254,18 @@ bool SetUnitScaling(UAbilitySystemComponent& AbilitySystem, double BaseMaxHealth
 	return true;
 }
 
+bool SetBaseDamageReduction(UAbilitySystemComponent& AbilitySystem, double Fraction)
+{
+	if (!AbilitySystem.GetSet<UVeyraDefenceSet>() || !IsNonNegativeFinite(Fraction) || Fraction >= 1.0)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused a damage reduction of %g on %s: it needs a UVeyraDefenceSet and a fraction from 0 to below 1."),
+			Fraction, *GetNameSafe(AbilitySystem.GetOwner()));
+		return false;
+	}
+	AbilitySystem.SetNumericAttributeBase(UVeyraDefenceSet::GetIncomingDamageMultiplierAttribute(), static_cast<float>(1.0 - Fraction));
+	return true;
+}
+
 bool RestoreResource(UAbilitySystemComponent& AbilitySystem, double Amount)
 {
 	if (!AbilitySystem.GetSet<UVeyraResourceSet>() || !IsNonNegativeFinite(Amount))

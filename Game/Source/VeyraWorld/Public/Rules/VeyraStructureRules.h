@@ -41,6 +41,15 @@ namespace VeyraStructureRules
 	/** Whether a structure of Kind shoots: lane Spires and base-defense towers do; inhibitors and the Prime Well are passive (§10, §18). */
 	VEYRAWORLD_API bool Attacks(EVeyraStructureKind Kind);
 
+	/** Whether a structure of Kind has backdoor protection: lane Spires, base-defense towers and the Prime Well (§19). */
+	VEYRAWORLD_API bool HasBackdoorProtection(EVeyraStructureKind Kind);
+
+	/**
+	 * Backdoor protection Seconds later (Battleground Bible §19): none at once while an attacking
+	 * Fluxborn is near; otherwise Current climbing toward Max, from none to Max in RampSeconds.
+	 */
+	VEYRAWORLD_API double NextBackdoorProtection(double Current, bool bAttackingFluxbornNear, double Max, double RampSeconds, double Seconds);
+
 	/**
 	 * The developer siege's next target among Defenders' structures in All (ADR-011 §15): the first
 	 * standing one that can be damaged, taking the shortest way to the Prime Well — down the mid lane,

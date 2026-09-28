@@ -200,6 +200,28 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsTrue(Controller->GetTarget() == Enemy && Controller->GetTarget() != &Champion));
 		}
 
+		TEST_METHOD(AVanguardWhoHurtsAnAllyDrawsNearbyFluxborn)
+		{
+			AVeyraFluxborn* Strider = Battleground->SpawnFluxborn(Kind(TEXT("strider")), EVeyraTeam::A, EVeyraLane::Mid);
+			const double Reach = Strider->GetBasicAttack()->GetProfile().AcquisitionRadius;
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			const FVector Here = Strider->GetActorLocation();
+			AVeyraVanguardCharacter& Ally = World.Spawn(EVeyraTeam::A, Here + FVector(Reach / 4.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Attacker = World.Spawn(EVeyraTeam::B, Here + FVector(Reach / 2.0, 0.0, 0.0));
+			// Beyond its attack range, so it closes rather than winds up an attack.
+			AVeyraFluxborn* Enemy = Battleground->SpawnFluxborn(Kind(TEXT("strider")), EVeyraTeam::B, EVeyraLane::Mid);
+			Enemy->SetActorLocation(Here + FVector(0.0, Reach / 2.0, 0.0));
+			AVeyraFluxbornController* Controller = Cast<AVeyraFluxbornController>(Strider->GetController());
+			Controller->Think();
+			ASSERT_THAT(IsTrue(Controller->GetTarget() == Enemy && !Controller->IsResponding()));
+
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Hit });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Attacker.GetAbilitySystemComponent(), *Ally.GetAbilitySystemComponent(), Damage)));
+			Controller->Think();
+			ASSERT_THAT(IsTrue(Controller->GetTarget() == &Attacker && Controller->IsResponding(), TEXT("it turns on the attacker")));
+		}
+
 		TEST_METHOD(AFallenFluxbornIsRemoved)
 		{
 			AVeyraFluxborn* Strider = Battleground->SpawnFluxborn(Kind(TEXT("strider")), EVeyraTeam::A, EVeyraLane::Mid);

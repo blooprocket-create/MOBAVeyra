@@ -89,6 +89,7 @@ void AVeyraStructure::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraStructure, Order, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraStructure, bInvulnerable, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraStructure, RebuildsAt, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraStructure, BackdoorProtection, Params);
 }
 
 void AVeyraStructure::Configure(const FVeyraStructurePlacement& Placement)
@@ -132,6 +133,16 @@ void AVeyraStructure::SetInvulnerable(bool bNewInvulnerable)
 	}
 	bInvulnerable = bNewInvulnerable;
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraStructure, bInvulnerable, this);
+}
+
+void AVeyraStructure::SetBackdoorProtection(double Fraction)
+{
+	if (!HasAuthority() || Fraction == BackdoorProtection || !VeyraCombat::SetBaseDamageReduction(*AbilitySystem, Fraction))
+	{
+		return;
+	}
+	BackdoorProtection = Fraction;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraStructure, BackdoorProtection, this);
 }
 
 void AVeyraStructure::SetRebuildsAt(double At)

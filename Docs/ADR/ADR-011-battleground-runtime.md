@@ -220,7 +220,8 @@ Lane Spires and base-defense towers share one attack component and one set of ru
 - **Backdoor protection** (M7b):
   - Lane Spires, base towers and the Prime Well gain damage reduction while no Fluxborn of the attacking team is within the protection radius.
   - It ramps toward its maximum after the last one leaves or dies, and drops to zero the moment one enters.
-  - It is a self-sourced damage-reduction status, so the normal pipeline applies it.
+  - It is the structure's own base damage reduction (Combat's `VeyraCombat::SetBaseDamageReduction`), so the normal pipeline applies it and True Damage skips it, as it skips every generic reduction (Combat §25). A status would have had to be reapplied at every step of the ramp.
+  - The battleground subsystem brings every protected structure up to date on a world-time timer, and each structure replicates its protection for presentation.
   - It never overrides invulnerability.
 - **Ordering is a rule, not only geometry.** Before the author's ruling, canon gated lane Spires by position and backdoor protection alone (Battleground §5, §10). The ruling is recorded in Battleground §10. A rebuilt inhibitor does not restore the Spires in front of it, which never rebuild.
 

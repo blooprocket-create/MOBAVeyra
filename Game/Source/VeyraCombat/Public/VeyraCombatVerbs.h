@@ -86,6 +86,13 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool SetUnitScaling(UAbilitySystemComponent& AbilitySystem, double BaseMaxHealth, double HealthMultiplier, double DamageMultiplier);
 
 	/**
+	 * Sets the damage reduction a unit carries of its own, outside any status, as a structure's backdoor
+	 * protection (Combat Bible §33): its base incoming damage becomes 1 − Fraction. True Damage skips it
+	 * (§25). Fraction must be finite, at least 0 and below 1. Returns false, changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool SetBaseDamageReduction(UAbilitySystemComponent& AbilitySystem, double Fraction);
+
+	/**
 	 * Restores Amount of the unit's resource, never above its maximum (Combat Bible §27). Returns false
 	 * if refused: Amount must be finite and at least 0.
 	 */

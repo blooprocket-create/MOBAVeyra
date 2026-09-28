@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the World domain (Battleground Bible; ADR-011 §12, §17): the battleground's grey-box layout, which the map commandlet bakes and the server spawns from, and its structures. Distances are in world units; X runs up the screen and Y to its right. VeyraWorld binds it to FVeyraWorldTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "layout", "structures", "inhibitor", "primeWell", "towerAttack", "towerRamp", "fluxborn", "waves", "replication"],
+  "required": ["schemaVersion", "layout", "structures", "inhibitor", "primeWell", "towerAttack", "towerRamp", "backdoor", "fluxborn", "waves", "replication"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -230,6 +230,19 @@
         "provenance": { "$ref": "#/definitions/provenance" },
         "perShot": { "description": "Damage added per consecutive shot, as a fraction of the base; 0.2 is +20%.", "type": "number", "minimum": 0 },
         "maxStacks": { "description": "The most ramp stacks a shot can carry.", "type": "integer", "minimum": 0 }
+      }
+    },
+    "backdoor": {
+      "description": "Backdoor protection (Battleground Bible §19; Combat Bible §33): with no attacking Fluxborn near, a lane Spire, base tower or Prime Well takes less damage, climbing to a maximum; an attacking Fluxborn arriving removes it at once. It never lifts invulnerability.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "radius", "maxReduction", "rampSeconds", "updateSeconds"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "radius": { "description": "How near the structure's centre an attacking Fluxborn lifts the protection.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "maxReduction": { "description": "The most damage it removes, from 0 to below 1.", "type": "number", "minimum": 0, "maximum": 1, "exclusiveMaximum": true },
+        "rampSeconds": { "description": "Seconds from none to the maximum.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "updateSeconds": { "description": "How often it is brought up to date.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
       }
     },
     "fluxborn": {

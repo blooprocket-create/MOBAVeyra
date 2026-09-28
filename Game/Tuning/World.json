@@ -68,6 +68,13 @@
     "perShot": 0.2,
     "maxStacks": 5
   },
+  "backdoor": {
+    "provenance": "Provisional",
+    "radius": 1100,
+    "maxReduction": 0.66,
+    "rampSeconds": 5,
+    "updateSeconds": 0.5
+  },
   "fluxborn": {
     "provenance": "Provisional",
     "units": {

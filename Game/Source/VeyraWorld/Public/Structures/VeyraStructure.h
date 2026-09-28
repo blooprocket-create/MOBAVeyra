@@ -83,6 +83,12 @@ public:
 	/** Its attack if its kind shoots (lane Spires and base-defense towers), else null. */
 	UVeyraStructureAttackComponent* GetAttack() const;
 
+	/** The damage its backdoor protection removes now, 0 to below 1 (Battleground Bible §19), as every machine sees it. */
+	double GetBackdoorProtection() const { return BackdoorProtection; }
+
+	/** Server: sets its backdoor protection, through Combat's base damage reduction. */
+	void SetBackdoorProtection(double Fraction);
+
 private:
 	/** Shapes the capsule from its kind's tuning, on every machine once the kind is known. */
 	void ApplyBody();
@@ -107,6 +113,9 @@ private:
 
 	UPROPERTY(Replicated)
 	double RebuildsAt = 0.0;
+
+	UPROPERTY(Replicated)
+	double BackdoorProtection = 0.0;
 
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> Capsule;

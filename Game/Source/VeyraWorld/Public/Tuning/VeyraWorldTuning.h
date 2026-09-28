@@ -188,6 +188,36 @@ struct FVeyraPrimeWellTuning
 	double RegenerationFractionPerSecond = 0.0;
 };
 
+/**
+ * Backdoor protection (Battleground Bible §19; Combat Bible §33): a lane Spire, base-defense tower or
+ * Prime Well with no attacking Fluxborn near takes less damage, the reduction climbing toward its
+ * maximum; an attacking Fluxborn arriving removes it at once. It never lifts invulnerability.
+ */
+USTRUCT()
+struct FVeyraBackdoorTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How near the structure's centre an attacking Fluxborn must be to lift the protection, in units. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	/** The most damage it removes, 0 to below 1: 0.66 takes two thirds off. */
+	UPROPERTY()
+	double MaxReduction = 0.0;
+
+	/** Seconds from none to the maximum, once no attacking Fluxborn is near. */
+	UPROPERTY()
+	double RampSeconds = 0.0;
+
+	/** How often it is brought up to date, in seconds of world time. */
+	UPROPERTY()
+	double UpdateSeconds = 0.0;
+};
+
 /** A lane Spire's or base-defense tower's shot (Combat Bible §33, §55). */
 USTRUCT()
 struct FVeyraTowerAttackTuning
@@ -441,6 +471,9 @@ struct FVeyraWorldTuning
 
 	UPROPERTY()
 	FVeyraTowerRampTuning TowerRamp;
+
+	UPROPERTY()
+	FVeyraBackdoorTuning Backdoor;
 
 	UPROPERTY()
 	FVeyraFluxbornTuning Fluxborn;
