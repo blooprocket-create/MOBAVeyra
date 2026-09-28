@@ -83,8 +83,10 @@ namespace VeyraNetTests
 					const double Power = UVeyraItemsTuningSubsystem::FindItem(Grip())->Stats.PhysicalPower;
 					return HoldsGrip(Participant) && FMath::IsNearlyEqual(PowerOf(Participant), State.PowerBefore + Power);
 				})
-				.UntilClient(TEXT("The buyer sees it in its slots"), 0, [](FState& State) {
-					return HoldsGrip(*LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>());
+				.UntilClient(TEXT("The buyer sees it in its slots, at its fountain, and that undo can take it back"), 0, [](FState& State) {
+					const AVeyraPlayerState& Own = *LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>();
+					const UVeyraInventoryComponent& Inventory = *Own.FindComponentByClass<UVeyraInventoryComponent>();
+					return HoldsGrip(Own) && Inventory.IsAtFountain() && Inventory.GetUndoStepCount() == 1;
 				})
 				.ThenServer(TEXT("Note the Gold before the sale"), [](FState& State) {
 					State.GoldBeforeSale = ServerParticipant(State).FindComponentByClass<UVeyraGoldComponent>()->GetGold();

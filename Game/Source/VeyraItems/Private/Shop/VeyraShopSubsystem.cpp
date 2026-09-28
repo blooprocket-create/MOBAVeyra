@@ -76,7 +76,7 @@ EVeyraShopRefusal UVeyraShopSubsystem::Buy(AActor& Participant, const FVeyraCont
 		const EVeyraShopRefusal Refusal = VeyraInventory::Apply(Tuning, Slots, Entry);
 		check(Refusal == EVeyraShopRefusal::None);
 		Inventory->SetSlots(MoveTemp(Slots));
-		Inventory->UndoSteps.Add(MoveTemp(Step));
+		Inventory->AddUndoStep(MoveTemp(Step));
 		ApplyItems(Participant);
 	}
 	else
@@ -138,7 +138,7 @@ EVeyraShopRefusal UVeyraShopSubsystem::Sell(AActor& Participant, int32 Slot)
 	}
 	Inventory->SetSlots(MoveTemp(Slots));
 	// A sale changes what an undo would restore: the steps no longer describe the slots.
-	Inventory->UndoSteps.Reset();
+	Inventory->ResetUndoSteps();
 	Gold->Grant(Value, EVeyraGoldReason::Sale);
 	Revalidate(*Inventory, *Gold);
 	ApplyItems(Participant);
@@ -169,7 +169,7 @@ EVeyraShopRefusal UVeyraShopSubsystem::Undo(AActor& Participant)
 	}
 	const double Paid = Step.Paid;
 	Inventory->SetSlots(Step.SlotsBefore);
-	Inventory->UndoSteps.Pop();
+	Inventory->PopUndoStep();
 	Gold->Grant(Paid, EVeyraGoldReason::Undo);
 	ApplyItems(Participant);
 	return EVeyraShopRefusal::None;
@@ -182,14 +182,14 @@ void UVeyraShopSubsystem::SetAtFountain(AActor& Participant, bool bAtFountain)
 	{
 		return;
 	}
-	Inventory->bAtFountain = bAtFountain;
+	Inventory->SetAtFountainState(bAtFountain);
 	if (bAtFountain)
 	{
 		Deliver(Participant);
 	}
 	else
 	{
-		Inventory->UndoSteps.Reset();
+		Inventory->ResetUndoSteps();
 	}
 }
 
@@ -393,7 +393,7 @@ EVeyraShopRefusal UVeyraShopSubsystem::UseConsumable(AActor& Participant, int32 
 	}
 	Inventory->SetSlots(MoveTemp(Slots));
 	// A used consumable has given benefit; no undo may bring it back (§12).
-	Inventory->UndoSteps.Reset();
+	Inventory->ResetUndoSteps();
 
 	// Restores in equal parts on Combat's regeneration tick, on world time, so a pause holds it.
 	const double TickSeconds = UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds;
@@ -421,7 +421,7 @@ void UVeyraShopSubsystem::NoteActiveUsed(AActor& Participant, int32 Index)
 	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
 	Slots[Index].bBenefited = true;
 	Inventory->SetSlots(MoveTemp(Slots));
-	Inventory->UndoSteps.Reset();
+	Inventory->ResetUndoSteps();
 }
 
 void UVeyraShopSubsystem::OnRestorationTimer()
@@ -490,7 +490,7 @@ void UVeyraShopSubsystem::Deliver(AActor& Participant)
 		const EVeyraShopRefusal Refusal = VeyraInventory::Apply(Tuning, Slots, Entry);
 		check(Refusal == EVeyraShopRefusal::None);
 		Gold->SettleHold(Entry.GoldHold);
-		Inventory->UndoSteps.Add(MoveTemp(Step));
+		Inventory->AddUndoStep(MoveTemp(Step));
 	}
 	UE_LOG(LogVeyraItems, Log, TEXT("%s received %d purchase(s) at the fountain."), *GetNameSafe(&Participant), Inventory->Queue.Num());
 	Inventory->SetSlots(MoveTemp(Slots));

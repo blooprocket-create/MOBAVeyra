@@ -46,11 +46,17 @@ public:
 	/** Owner and server only: purchases paid for and not yet delivered, in order. */
 	const TArray<FVeyraPendingPurchase>& GetQueue() const { return Queue; }
 
-	/** Server only: whether the Vanguard stands at its own fountain, as Match reports it. */
+	/**
+	 * Owner and server only: whether the shop delivers, sells and undoes for the participant now: at
+	 * its own fountain, or dead, as Match reports it (ADR-012 §7, §9).
+	 */
 	bool IsAtFountain() const { return bAtFountain; }
 
 	/** Server only: this fountain visit's purchases that undo can take back, oldest first. */
 	const TArray<FVeyraUndoStep>& GetUndoSteps() const { return UndoSteps; }
+
+	/** Owner and server only: how many purchases undo can take back now, for the shop screen. */
+	int32 GetUndoStepCount() const { return UndoStepCount; }
 
 	/** Server only: the stacks each stacking Attunement holds now, by Attunement. */
 	TMap<FVeyraContentId, int32> GetStackCounts() const;
@@ -60,6 +66,13 @@ private:
 
 	void SetSlots(TArray<FVeyraInventorySlot> NewSlots);
 	void SetQueue(TArray<FVeyraPendingPurchase> NewQueue);
+	void SetAtFountainState(bool bNewAtFountain);
+
+	// The undo steps change only through these, which keep their replicated count.
+	void AddUndoStep(FVeyraUndoStep Step);
+	void PopUndoStep();
+	void ResetUndoSteps();
+	void SetUndoStepCount();
 
 	UPROPERTY(Replicated)
 	TArray<FVeyraInventorySlot> Slots;
@@ -67,7 +80,12 @@ private:
 	UPROPERTY(Replicated)
 	TArray<FVeyraPendingPurchase> Queue;
 
+	UPROPERTY(Replicated)
 	bool bAtFountain = false;
+
+	UPROPERTY(Replicated)
+	int32 UndoStepCount = 0;
+
 	TArray<FVeyraUndoStep> UndoSteps;
 	TMap<FVeyraContentId, FVeyraAttunementStacks> Stacks;
 };

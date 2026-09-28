@@ -11,8 +11,9 @@
  * What players read about Vanguards, their abilities and passives: names, titles and one-line
  * descriptions (ADR-010 §4). They live in a string table read from Game/Text/VeyraText.csv, so the
  * text is reviewable, localisable data and no screen shows a content ID. Its keys are
- * vanguard.<id>.name and .title, ability.<id>.name and .description, and passive.<id>.name and
- * .description. Developer content without text shows its content ID.
+ * vanguard.<id>.name and .title, ability.<id>.name and .description, passive.<id>.name and
+ * .description, and item.<id>.name and .description. Developer content without text shows its
+ * content ID.
  */
 namespace VeyraContentText
 {
@@ -32,9 +33,19 @@ namespace VeyraContentText
 	VEYRAUI_API FText PassiveName(const FVeyraContentId& Passive);
 	VEYRAUI_API FText PassiveDescription(const FVeyraContentId& Passive);
 
+	/** An item's name, and what its Active, Attunement or use does; empty for a plain item. */
+	VEYRAUI_API FText ItemName(const FVeyraContentId& Item);
+	VEYRAUI_API FText ItemDescription(const FVeyraContentId& Item);
+
 	/**
 	 * The keys a Playable Vanguard needs that the table lacks: its name and title, and each of its
 	 * abilities' and its passive's name and description. Empty when every released Vanguard has its text.
 	 */
 	VEYRAUI_API TArray<FString> FindMissingPlayableText();
+
+	/**
+	 * The keys the shop's items need that the table lacks: every item's name, and a description for
+	 * each whose Active, Attunement or use the shop must explain. Empty when the catalog has its text.
+	 */
+	VEYRAUI_API TArray<FString> FindMissingItemText();
 }

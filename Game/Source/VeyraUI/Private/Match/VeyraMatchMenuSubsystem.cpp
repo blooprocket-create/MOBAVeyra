@@ -12,6 +12,7 @@
 #include "InputMappingContext.h"
 #include "Match/VeyraMatchMenu.h"
 #include "Shell/VeyraShellStyleSettings.h"
+#include "Shop/VeyraShopScreen.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
@@ -46,6 +47,11 @@ void UVeyraMatchMenuSubsystem::Deinitialize()
 		Menu->RemoveFromParent();
 		Menu = nullptr;
 	}
+	if (Shop)
+	{
+		Shop->RemoveFromParent();
+		Shop = nullptr;
+	}
 	Super::Deinitialize();
 }
 
@@ -61,16 +67,22 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	{
 		return true;
 	}
-	// A new match: the old controller, its binding and any open menu went with the old world. The
-	// action and its mapping are built at runtime, so no binary input asset exists.
+	// A new match: the old controller, its binding and any open screen went with the old world. The
+	// actions and their mapping are built at runtime, so no binary input asset exists.
 	Menu = nullptr;
+	Shop = nullptr;
+	const UVeyraUIInputSettings& Keys = *GetDefault<UVeyraUIInputSettings>();
 	MenuAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
 	MenuAction->ValueType = EInputActionValueType::Boolean;
+	ShopAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
+	ShopAction->ValueType = EInputActionValueType::Boolean;
 	MenuMapping = NewObject<UInputMappingContext>(this, NAME_None, RF_Transient);
-	MenuMapping->MapKey(MenuAction, GetDefault<UVeyraUIInputSettings>()->MatchMenuKey);
+	MenuMapping->MapKey(MenuAction, Keys.MatchMenuKey);
+	MenuMapping->MapKey(ShopAction, Keys.ShopKey);
 	Input->AddMappingContext(MenuMapping, /*Priority*/ 1);
 	UEnhancedInputComponent* Component = NewObject<UEnhancedInputComponent>(Controller, NAME_None, RF_Transient);
 	Component->BindAction(MenuAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleMenu);
+	Component->BindAction(ShopAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleShop);
 	Controller->PushInputComponent(Component);
 	MenuInput = Component;
 	BoundController = Controller;
@@ -79,7 +91,12 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 
 void UVeyraMatchMenuSubsystem::ToggleMenu()
 {
-	if (Menu)
+	if (Shop && !Menu)
+	{
+		// The menu's key closes the shop first.
+		CloseShop();
+	}
+	else if (Menu)
 	{
 		CloseMenu();
 	}
@@ -87,6 +104,51 @@ void UVeyraMatchMenuSubsystem::ToggleMenu()
 	{
 		OpenMenu();
 	}
+}
+
+void UVeyraMatchMenuSubsystem::ToggleShop()
+{
+	if (Shop)
+	{
+		CloseShop();
+	}
+	else
+	{
+		OpenShop();
+	}
+}
+
+void UVeyraMatchMenuSubsystem::OpenShop()
+{
+	AVeyraPlayerController* Controller = BoundController.Get();
+	if (!Controller || !Controller->IsLocalController())
+	{
+		return;
+	}
+	Shop = CreateWidget<UVeyraShopScreen>(Controller);
+	if (!Shop)
+	{
+		return;
+	}
+	Shop->Show(*Controller, [this] { CloseShop(); });
+	// Centred over the match, which stays in view and in play around it.
+	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+	const FVector2D Centre(0.5, 0.5);
+	Shop->SetAnchorsInViewport(FAnchors(Centre.X, Centre.Y));
+	Shop->SetAlignmentInViewport(Centre);
+	Shop->SetDesiredSizeInViewport(FVector2D(Style.ShopWidth, Style.ShopHeight));
+	Shop->AddToViewport();
+	UpdateInputMode();
+}
+
+void UVeyraMatchMenuSubsystem::CloseShop()
+{
+	if (Shop)
+	{
+		Shop->RemoveFromParent();
+		Shop = nullptr;
+	}
+	UpdateInputMode();
 }
 
 void UVeyraMatchMenuSubsystem::OpenMenu()
@@ -102,11 +164,9 @@ void UVeyraMatchMenuSubsystem::OpenMenu()
 		return;
 	}
 	Menu->Show(*Controller, [this] { CloseMenu(); });
-	Menu->AddToViewport();
-	FInputModeGameAndUI Mode;
-	Mode.SetWidgetToFocus(Menu->TakeWidget());
-	Mode.SetHideCursorDuringCapture(false);
-	Controller->SetInputMode(Mode);
+	// Above the shop, if it is open.
+	Menu->AddToViewport(/*ZOrder*/ 1);
+	UpdateInputMode();
 }
 
 void UVeyraMatchMenuSubsystem::CloseMenu()
@@ -116,7 +176,28 @@ void UVeyraMatchMenuSubsystem::CloseMenu()
 		Menu->RemoveFromParent();
 		Menu = nullptr;
 	}
-	if (AVeyraPlayerController* Controller = BoundController.Get())
+	UpdateInputMode();
+}
+
+void UVeyraMatchMenuSubsystem::UpdateInputMode()
+{
+	AVeyraPlayerController* Controller = BoundController.Get();
+	if (!Controller)
+	{
+		return;
+	}
+	if (Menu || Shop)
+	{
+		// The menu takes the keyboard; the shop leaves it to the game, so abilities and items still work.
+		FInputModeGameAndUI Mode;
+		if (Menu)
+		{
+			Mode.SetWidgetToFocus(Menu->TakeWidget());
+		}
+		Mode.SetHideCursorDuringCapture(false);
+		Controller->SetInputMode(Mode);
+	}
+	else
 	{
 		FInputModeGameOnly Mode;
 		Mode.SetConsumeCaptureMouseDown(false);

@@ -23,6 +23,8 @@ void UVeyraInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	Owner.bIsPushBased = true;
 	Owner.Condition = COND_OwnerOnly;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraInventoryComponent, Queue, Owner);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraInventoryComponent, bAtFountain, Owner);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraInventoryComponent, UndoStepCount, Owner);
 }
 
 TMap<FVeyraContentId, int32> UVeyraInventoryComponent::GetStackCounts() const
@@ -45,4 +47,37 @@ void UVeyraInventoryComponent::SetQueue(TArray<FVeyraPendingPurchase> NewQueue)
 {
 	Queue = MoveTemp(NewQueue);
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraInventoryComponent, Queue, this);
+}
+
+void UVeyraInventoryComponent::SetAtFountainState(bool bNewAtFountain)
+{
+	bAtFountain = bNewAtFountain;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraInventoryComponent, bAtFountain, this);
+}
+
+void UVeyraInventoryComponent::AddUndoStep(FVeyraUndoStep Step)
+{
+	UndoSteps.Add(MoveTemp(Step));
+	SetUndoStepCount();
+}
+
+void UVeyraInventoryComponent::PopUndoStep()
+{
+	UndoSteps.Pop();
+	SetUndoStepCount();
+}
+
+void UVeyraInventoryComponent::ResetUndoSteps()
+{
+	UndoSteps.Reset();
+	SetUndoStepCount();
+}
+
+void UVeyraInventoryComponent::SetUndoStepCount()
+{
+	if (UndoStepCount != UndoSteps.Num())
+	{
+		UndoStepCount = UndoSteps.Num();
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraInventoryComponent, UndoStepCount, this);
+	}
 }

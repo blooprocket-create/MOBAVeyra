@@ -14,6 +14,7 @@
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraHudModel.h"
 #include "Input/VeyraInputSettings.h"
+#include "Shell/VeyraUIInputSettings.h"
 #include "Text/VeyraContentText.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -200,6 +201,33 @@ namespace
 			}
 			Lines.Add({ MoveTemp(Line), bEmpowered ? Settings.EmpoweredColor : Settings.TextColor });
 			AddDescription(Lines, VeyraContentText::AbilityDescription(Slot.Ability));
+		}
+
+		// The item bar: each inventory slot by its key, what it holds and its Active's cooldown (ADR-012 §1).
+		if (!Player.Items.IsEmpty())
+		{
+			FString Bar;
+			for (const FVeyraHudItemSlot& Item : Player.Items)
+			{
+				FString Held = TEXT("-");
+				if (Item.Item.IsValid())
+				{
+					Held = VeyraContentText::ItemName(Item.Item).ToString();
+					if (Item.Count > 1)
+					{
+						Held += FString::Printf(TEXT(" x%d"), Item.Count);
+					}
+					if (Item.CooldownSeconds > 0.0)
+					{
+						Held += FString::Printf(TEXT(" %.1f s"), Item.CooldownSeconds);
+					}
+				}
+				Bar += FString::Printf(TEXT("[%s] %s   "), *Input.GetAbilityKey(Item.Slot).GetDisplayName(false).ToString(), *Held);
+			}
+			const FString ShopKey = GetDefault<UVeyraUIInputSettings>()->ShopKey.GetDisplayName(false).ToString();
+			Bar += Player.PendingPurchases > 0 ? FString::Printf(TEXT("Shop [%s]: %d waiting for the fountain"), *ShopKey, Player.PendingPurchases)
+											   : FString::Printf(TEXT("Shop [%s]"), *ShopKey);
+			Lines.Add({ MoveTemp(Bar), Settings.TextColor });
 		}
 
 		float Y = Canvas.ClipY - Settings.HudMargin - Lines.Num() * HudLineHeight();

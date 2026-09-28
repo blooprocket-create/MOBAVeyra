@@ -52,6 +52,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("CardWidth"), CardWidth },
 		{ TEXT("CardHeight"), CardHeight },
 		{ TEXT("MenuWidth"), MenuWidth },
+		{ TEXT("ShopWidth"), ShopWidth },
+		{ TEXT("ShopHeight"), ShopHeight },
 	};
 	for (const TPair<const TCHAR*, float>& Length : Lengths)
 	{

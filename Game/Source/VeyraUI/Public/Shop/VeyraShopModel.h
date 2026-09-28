@@ -1,0 +1,90 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#pragma once
+
+#include "Content/VeyraContentId.h"
+#include "Internationalization/Text.h"
+#include "Inventory/VeyraInventoryRules.h"
+
+class AActor;
+struct FVeyraItemStatsTuning;
+
+/** One item the shop sells, as the participant would pay for it now. */
+struct FVeyraShopOffer
+{
+	FVeyraContentId Item;
+	int32 Tier = 0;
+
+	/** Its whole recipe's cost, which orders the shop's lists. */
+	double TotalCost = 0.0;
+
+	/** What buying it costs now: its recipe, less the owned components it would consume (§11.1). */
+	double Price = 0.0;
+
+	/** Why it cannot be bought now; None when it can. */
+	EVeyraShopRefusal Refusal = EVeyraShopRefusal::None;
+
+	bool operator==(const FVeyraShopOffer&) const = default;
+};
+
+/** One inventory slot as the shop shows it. */
+struct FVeyraShopSlot
+{
+	/** Invalid when the slot is empty. */
+	FVeyraContentId Item;
+	int32 Count = 0;
+
+	/** What selling one returns (Economy & Progression Bible §12). */
+	double SaleValue = 0.0;
+
+	bool operator==(const FVeyraShopSlot&) const = default;
+};
+
+/** A purchase waiting for the fountain (§11), which may be cancelled for all its Gold. */
+struct FVeyraShopPending
+{
+	FVeyraContentId Item;
+	double Paid = 0.0;
+
+	bool operator==(const FVeyraShopPending&) const = default;
+};
+
+/** What the shop shows its participant. */
+struct FVeyraShopView
+{
+	double Gold = 0.0;
+
+	/** Whether purchases arrive at once and selling and undo work: at the fountain, or dead (ADR-012 §7, §9). */
+	bool bAtShop = false;
+
+	/** How many of this visit's purchases undo can take back. */
+	int32 UndoSteps = 0;
+
+	/** Every item, by tier, then whole cost, then ID. */
+	TArray<FVeyraShopOffer> Offers;
+
+	/** The inventory's slots, in order. */
+	TArray<FVeyraShopSlot> Slots;
+
+	/** Purchases waiting for the fountain, in order. */
+	TArray<FVeyraShopPending> Pending;
+
+	bool operator==(const FVeyraShopView&) const = default;
+};
+
+/**
+ * The shop screen's model (ADR-012 §11): what it shows, from the participant's replicated Gold and
+ * inventory and the catalog, priced by the inventory rules the server uses. It decides nothing; the
+ * server checks every request again.
+ */
+namespace VeyraShopModel
+{
+	/** What the shop shows Participant, from what its owner sees. */
+	VEYRAUI_API FVeyraShopView Describe(const AActor& Participant);
+
+	/** An item's stats as the shop lists them, such as "+20 Physical Power, +150 Health". Empty for none. */
+	VEYRAUI_API FText DescribeStats(const FVeyraItemStatsTuning& Stats);
+
+	/** Why the shop refuses, in the player's words. */
+	VEYRAUI_API FText DescribeRefusal(EVeyraShopRefusal Refusal);
+}

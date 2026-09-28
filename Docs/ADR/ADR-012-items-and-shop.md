@@ -57,7 +57,7 @@ Match's fountain check tracks each participant entering and leaving their own fo
 
 ### 8. Recall is a Match order
 
-A channel on a world-time timer (`Match.json` `recall`), interrupted by a new move, attack or cast order, by hostile damage (Combat's hostile-damage event), or by crowd control; on completion the Vanguard is moved to its side's start. It is refused while dead, paused or ended.
+A channel on a world-time timer (`Match.json` `recall`), interrupted by a new move, attack or cast order (item Actives included), by hostile damage (Combat's hostile-damage event), by an interruption (a Stun or a displacement, Combat §9) or by death; on completion the living Vanguard is moved to its side's start. It is refused while dead, paused or ended, and under crowd control that stops casting. A channel sits in `UVeyraRecallComponent` on the PlayerState, which replicates its start and end for the HUD and watches Combat's events itself while it runs; the game mode starts it, ends it on each order the Vanguard takes, and moves the Vanguard home.
 
 ### 9. League answers where canon is silent (for the author to overturn)
 
@@ -71,6 +71,8 @@ A channel on a world-time timer (`Match.json` `recall`), interrupted by a new mo
 8. Crit is deferred with its items.
 9. A dead Vanguard shops as if at its fountain: purchases are delivered at once and give nothing until respawn, and selling and undo work (Economy §10: equipment bought while dead "is assigned at the fountain").
 10. A recipe buys its missing components as part of the purchase, and uses owned ones (recursively) where it can: the completion cost is always paid, as Item §1 requires.
+11. Using a consumable does not interrupt Recall; every other order does.
+12. P opens the shop and B recalls, League's default keys; Escape closes an open shop before it opens the menu.
 
 ### 10. Values are data
 
@@ -80,6 +82,10 @@ A channel on a world-time timer (`Match.json` `recall`), interrupted by a new mo
 | Resale | `Items.json` | 70% of the present form's total cost (Economy §12 prototype) |
 | Recall | `Match.json` | Channel 8 s |
 | Starting Gold | `Economy.json` | 500 (M7), sized for a T1 item or a component and Tonics (Economy §10) |
+
+### 11. The shop screen is presentation
+
+The shop is a UMG screen built in C++ in VeyraUI, beside the in-match menu (ADR-010 §4), and decides nothing. Its model reads the owner's replicated Gold and inventory and prices every item with `VeyraInventory::Quote`, the rule the server prices by, so it shows what the server will charge. So that it can offer selling and undo only when they work, the inventory replicates to its owner whether the shop is open to it (at the fountain, or dead) and how many purchases undo can take back. Each button asks through the player controller; the server checks the request again and the screen shows its refusal. The greybox HUD gains an item bar (keys 1–6, each slot's item, stack and Active cooldown, and the purchases waiting) and Recall's channel bar. Item names and descriptions live in the string table `Game/Text/VeyraText.csv`, and a test holds the catalog to it.
 
 ## Consequences
 
