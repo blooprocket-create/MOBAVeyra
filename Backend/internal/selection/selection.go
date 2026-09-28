@@ -57,6 +57,10 @@ const (
 	// CancelPresenceLost: a player stopped answering, a disconnect (Match Flow
 	// Bible §2).
 	CancelPresenceLost CancelReason = "presence_lost"
+	// CancelNoLongerMatched: two of its players now block each other (Parties
+	// & Social Bible §6). Nobody is at fault; its name says no more, so no
+	// player learns of another's block.
+	CancelNoLongerMatched CancelReason = "no_longer_matched"
 )
 
 // Errors describing rule violations. Callers map them to response codes.

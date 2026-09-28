@@ -38,8 +38,23 @@ type fixture struct {
 	accounts *account.Service
 	alloc    *match.FakeAllocator
 	queued   map[string]bool
+	blocks   blockList
 	ends     *selectEnds
 	now      time.Time
+}
+
+// blockList holds blocks between accounts, either way round.
+type blockList map[[2]string]bool
+
+func (b blockList) BlockedAmong(_ context.Context, accounts []string) (bool, error) {
+	for _, x := range accounts {
+		for _, y := range accounts {
+			if b[[2]string{x, y}] {
+				return true, nil
+			}
+		}
+	}
+	return false, nil
 }
 
 // selectEnds records what matchmaking was told of each matchmade select's end.
@@ -57,7 +72,7 @@ func (e *selectEnds) SelectEnded(_ context.Context, accounts, leaving []string, 
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
-	f := &fixture{store: NewMemStore(), alloc: match.NewFakeAllocator(), queued: map[string]bool{}, ends: &selectEnds{}, now: t0}
+	f := &fixture{store: NewMemStore(), alloc: match.NewFakeAllocator(), queued: map[string]bool{}, blocks: blockList{}, ends: &selectEnds{}, now: t0}
 	clock := func() time.Time { return f.now }
 	names := match.AccountsFunc(func(_ context.Context, ids []string) (map[string]string, error) {
 		out := map[string]string{}
@@ -81,8 +96,8 @@ func newFixture(t *testing.T) *fixture {
 		RotationSlots: 12, StandIn: catalog.StandInNone})
 	f.accounts = account.NewService(account.NewMemStore(), vanguards, clock)
 	parties := PartiesFunc(func(_ context.Context, id string) (bool, error) { return f.queued[id], nil })
-	f.svc = NewService(f.store, f.accounts, names, f.matches, parties, Settings{Practice: fixturePractice, Casual: fixtureCasual, StartingTimeout: fixtureStarting},
-		clock, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	f.svc = NewService(f.store, f.accounts, names, f.matches, parties, f.blocks,
+		Settings{Practice: fixturePractice, Casual: fixtureCasual, StartingTimeout: fixtureStarting}, clock, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	f.svc.SetMatchmaking(f.ends)
 	return f
 }

@@ -46,7 +46,7 @@ func newPracticeTestServer(t *testing.T) *httptest.Server {
 		RotationSlots: 12, StandIn: catalog.StandInAllReleased})
 	d.Account = account.NewService(account.NewMemStore(), c, time.Now)
 	notQueued := selection.PartiesFunc(func(context.Context, string) (bool, error) { return false, nil })
-	d.Selection = selection.NewService(selection.NewMemStore(), d.Account, names, d.Match, notQueued, selection.Settings{
+	d.Selection = selection.NewService(selection.NewMemStore(), d.Account, names, d.Match, notQueued, d.Social, selection.Settings{
 		Practice:        selection.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA, PickDuration: time.Minute},
 		StartingTimeout: time.Minute,
 	}, time.Now, slog.New(slog.NewTextHandler(io.Discard, nil)))

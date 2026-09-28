@@ -60,6 +60,7 @@ var (
 	ErrPartyNotFound    = errors.New("party not found")
 	ErrModeUnavailable  = errors.New("the mode has no matchmaking yet")
 	ErrNotInQueue       = errors.New("the party is not where matchmaking expects it")
+	ErrMemberBusy       = errors.New("a member is in a match or champion select")
 )
 
 // Member is one party member.

@@ -22,6 +22,7 @@ const (
 	acceptFor   = 15 * time.Second
 	partyLimit  = 5
 	inviteLimit = time.Minute
+	searchSteps = 1000
 )
 
 // socialGraph is everyone's friend, with the blocks the test sets.
@@ -32,6 +33,27 @@ func (g socialGraph) FriendOfAny(context.Context, string, []string) (bool, error
 func (g socialGraph) BlockedWithAny(_ context.Context, a string, others []string) (bool, error) {
 	for _, b := range others {
 		if g.blocks[[2]string{a, b}] || g.blocks[[2]string{b, a}] {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (g socialGraph) BlockedAmong(ctx context.Context, accounts []string) (bool, error) {
+	for _, a := range accounts {
+		if blocked, _ := g.BlockedWithAny(ctx, a, accounts); blocked {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+// playing holds the accounts in a match or champion select.
+type playing map[string]bool
+
+func (p playing) Busy(_ context.Context, accounts []string) (bool, error) {
+	for _, a := range accounts {
+		if p[a] {
 			return true, nil
 		}
 	}
@@ -59,12 +81,13 @@ type fixture struct {
 	store   *MemStore
 	selects *selects
 	social  socialGraph
+	playing playing
 	svc     *Service
 }
 
 func newFixture(t *testing.T) *fixture {
 	f := &fixture{t: t, now: time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC), store: NewMemStore(), selects: &selects{},
-		social: socialGraph{blocks: map[[2]string]bool{}}}
+		social: socialGraph{blocks: map[[2]string]bool{}}, playing: playing{}}
 	clock := func() time.Time { return f.now }
 	rules := party.Rules{MaxSize: partyLimit, Modes: map[string]party.Mode{
 		oneVsOne:  {ID: oneVsOne, Enabled: true, HumanPlayersPerTeam: 1, Matchmade: true},
@@ -72,9 +95,11 @@ func newFixture(t *testing.T) *fixture {
 		unmatched: {ID: unmatched, Enabled: true, HumanPlayersPerTeam: 5},
 	}}
 	f.parties = party.NewService(party.NewMemStore(), f.social, party.Settings{Rules: rules, InviteLifetime: inviteLimit, DefaultPrivacy: party.Private}, clock)
-	f.svc = NewService(f.store, f.parties, f.social, f.selects, Settings{
+	f.parties.SetActivity(f.playing)
+	f.svc = NewService(f.store, f.parties, f.social, f.playing, f.selects, Settings{
 		Modes:          []Mode{{ID: oneVsOne, TeamSize: 1}, {ID: twoVsTwo, TeamSize: 2}},
 		AcceptDuration: acceptFor,
+		SearchLimit:    searchSteps,
 	}, clock, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	return f
 }
@@ -190,6 +215,66 @@ func TestBlockedPlayersAreNeverMatched(t *testing.T) {
 	}
 	if pending, _ := f.store.Pending(ctx); len(pending) != 0 {
 		t.Fatal("a block holds either way, even at the cost of the wait")
+	}
+}
+
+func TestABlockPlacedDuringMatchFoundStopsItForEveryone(t *testing.T) {
+	f := newFixture(t)
+	f.queue(oneVsOne, "a")
+	queuedAt := f.party("a").QueuedAt
+	f.queue(oneVsOne, "b")
+	f.match()
+	if _, err := f.svc.Accept(ctx, "a"); err != nil {
+		t.Fatalf("Accept: %v", err)
+	}
+	// b blocks a after the match was found: the two may not share it (§6).
+	f.social.blocks[[2]string{"b", "a"}] = true
+	found, err := f.svc.Accept(ctx, "b")
+	if err != nil || found.State != Abandoned || found.AbandonReason != AbandonNoLongerMatched {
+		t.Fatalf("the last acceptance: %+v %v", found, err)
+	}
+	if len(f.selects.opened) != 0 {
+		t.Fatalf("a select was opened for two players who block each other: %+v", f.selects.opened)
+	}
+	// Nobody is at fault: both return to the queue, in their places.
+	if a := f.party("a"); a.Status != party.Queued || !a.QueuedAt.Equal(queuedAt) || f.party("b").Status != party.Queued {
+		t.Fatalf("after the block: %+v, b %s", a, f.party("b").Status)
+	}
+}
+
+func TestAPartyWithAPlayerInAMatchLeavesTheQueue(t *testing.T) {
+	f := newFixture(t)
+	f.queue(oneVsOne, "a")
+	f.queue(oneVsOne, "b")
+	f.queue(oneVsOne, "c")
+	// a's match started after a queued, in a race the queue's own check missed.
+	f.playing["a"] = true
+	if err := f.svc.MatchOnce(ctx); err != nil {
+		t.Fatalf("MatchOnce: %v", err)
+	}
+	if p := f.party("a"); p.Status != party.Idle || p.Members[0].Ready {
+		t.Fatalf("a's party leaves the queue, Not Ready: %+v", p)
+	}
+	found, ok, _ := f.svc.Current(ctx, "b")
+	if !ok || found.Seats[0].AccountID != "b" || found.Seats[1].AccountID != "c" {
+		t.Fatalf("b and c are matched without a: %+v", found)
+	}
+}
+
+func TestAPlayerInAMatchCannotQueue(t *testing.T) {
+	f := newFixture(t)
+	f.playing["a"] = true
+	if _, err := f.parties.SelectMode(ctx, "a", oneVsOne); err != nil {
+		t.Fatalf("SelectMode: %v", err)
+	}
+	if _, err := f.parties.SetReady(ctx, "a", true); err != nil {
+		t.Fatalf("SetReady: %v", err)
+	}
+	if _, err := f.parties.StartQueue(ctx, "a"); !errors.Is(err, party.ErrMemberBusy) {
+		t.Fatalf("queueing from a match: %v", err)
+	}
+	if f.party("a").Status != party.Idle {
+		t.Fatal("the party stays idle")
 	}
 }
 

@@ -25,6 +25,8 @@ type Settings struct {
 	Modes []Mode
 	// AcceptDuration is how long players have to accept a match found.
 	AcceptDuration time.Duration
+	// SearchLimit is the most steps Group takes around one party in a pass.
+	SearchLimit int
 }
 
 // Parties moves parties through matchmaking. The party package implements it;
@@ -44,6 +46,18 @@ type Parties interface {
 // implements it.
 type Blocks interface {
 	BlockedWithAny(ctx context.Context, account string, others []string) (bool, error)
+	// BlockedAmong reports whether any two of accounts block each other, and
+	// holds each pair's block lock until the caller's unit of work ends, so no
+	// block between them can commit before what the caller does with the
+	// answer.
+	BlockedAmong(ctx context.Context, accounts []string) (bool, error)
+}
+
+// Activity answers whether any of accounts is in a match or a champion
+// select, where no queued player may be (the main package joins the match
+// and selection packages to implement it).
+type Activity interface {
+	Busy(ctx context.Context, accounts []string) (bool, error)
 }
 
 // SelectSeat is one player of an accepted match, for its champion select.
@@ -63,6 +77,7 @@ type Service struct {
 	store    Store
 	parties  Parties
 	blocks   Blocks
+	activity Activity
 	selects  Selects
 	settings Settings
 	now      func() time.Time
@@ -70,8 +85,9 @@ type Service struct {
 }
 
 // NewService builds a Service. now is injectable for tests.
-func NewService(store Store, parties Parties, blocks Blocks, selects Selects, settings Settings, now func() time.Time, log *slog.Logger) *Service {
-	return &Service{store: store, parties: parties, blocks: blocks, selects: selects, settings: settings, now: now, log: log}
+func NewService(store Store, parties Parties, blocks Blocks, activity Activity, selects Selects, settings Settings, now func() time.Time,
+	log *slog.Logger) *Service {
+	return &Service{store: store, parties: parties, blocks: blocks, activity: activity, selects: selects, settings: settings, now: now, log: log}
 }
 
 // Current returns the account's pending match found, and false when it has none.
@@ -157,8 +173,17 @@ func (s *Service) abandon(ctx context.Context, f *Found, reason AbandonReason, c
 }
 
 // assemble opens the champion select of a match everyone accepted. If it
-// cannot open, the match is abandoned.
+// cannot open, the match is abandoned. Blocks are checked again first, under
+// their locks: one placed since the match was found forbids it (Parties &
+// Social Bible §6), and nobody is at fault.
 func (s *Service) assemble(ctx context.Context, f *Found, now time.Time) error {
+	blocked, err := s.blocks.BlockedAmong(ctx, f.Accounts())
+	if err != nil {
+		return err
+	}
+	if blocked {
+		return s.abandon(ctx, f, AbandonNoLongerMatched, nil, now)
+	}
 	seats := make([]SelectSeat, len(f.Seats))
 	for i, seat := range f.Seats {
 		seats[i] = SelectSeat{AccountID: seat.AccountID, Side: seat.Side}
@@ -247,18 +272,40 @@ func (s *Service) MatchOnce(ctx context.Context) error {
 func (s *Service) matchMode(ctx context.Context, mode Mode) error {
 	return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		queued, err := s.parties.LockQueued(ctx, mode.ID)
-		if err != nil || len(queued) < 2 {
+		if err != nil {
 			return err
 		}
-		candidates := make([]Candidate, len(queued))
-		for i, p := range queued {
-			candidates[i] = Candidate{PartyID: p.ID}
+		// A player already in a match or champion select cannot be matched
+		// again: their party leaves the queue instead of costing the others a
+		// select that could never start its match.
+		var candidates []Candidate
+		var busy []string
+		for _, p := range queued {
+			candidate := Candidate{PartyID: p.ID}
 			for _, m := range p.Members {
-				candidates[i].Accounts = append(candidates[i].Accounts, m.AccountID)
+				candidate.Accounts = append(candidate.Accounts, m.AccountID)
+			}
+			isBusy, err := s.activity.Busy(ctx, candidate.Accounts)
+			if err != nil {
+				return err
+			}
+			if isBusy {
+				busy = append(busy, p.ID)
+				continue
+			}
+			candidates = append(candidates, candidate)
+		}
+		if len(busy) > 0 {
+			s.log.Info("parties left the queue: a member is in a match or champion select", "mode", mode.ID, "parties", len(busy))
+			if err := s.parties.ReturnToIdle(ctx, busy); err != nil {
+				return err
 			}
 		}
+		if len(candidates) < 2 {
+			return nil
+		}
 		blocks := &blockCache{ctx: ctx, blocks: s.blocks, known: map[[2]string]bool{}}
-		groupings := Group(candidates, mode.TeamSize, blocks.blocked)
+		groupings := Group(candidates, mode.TeamSize, s.settings.SearchLimit, blocks.blocked)
 		if blocks.err != nil {
 			return blocks.err
 		}

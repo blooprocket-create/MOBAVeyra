@@ -50,7 +50,8 @@
     ]
   },
   "matchmaking": {
-    "interval": "1s"
+    "interval": "1s",
+    "searchLimit": 10000
   },
   "matchFound": {
     "acceptDuration": "15s"

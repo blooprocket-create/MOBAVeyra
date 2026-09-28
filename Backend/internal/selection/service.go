@@ -74,6 +74,14 @@ type Matches interface {
 	BySelect(ctx context.Context, selectID string) (match.Match, bool, error)
 }
 
+// Blocks answers whether players block each other. The social package
+// implements it.
+type Blocks interface {
+	// BlockedAmong reports whether any two of accounts block each other, and
+	// holds each pair's block lock until the caller's unit of work ends.
+	BlockedAmong(ctx context.Context, accounts []string) (bool, error)
+}
+
 // Parties answers whether an account's party is queued.
 type Parties interface {
 	Queued(ctx context.Context, accountID string) (bool, error)
@@ -94,6 +102,7 @@ type Service struct {
 	names       Names
 	matches     Matches
 	parties     Parties
+	blocks      Blocks
 	matchmaking Matchmaking
 	settings    Settings
 	now         func() time.Time
@@ -101,9 +110,10 @@ type Service struct {
 }
 
 // NewService builds a Service. now is injectable for tests.
-func NewService(store Store, accounts Accounts, names Names, matches Matches, parties Parties, settings Settings,
+func NewService(store Store, accounts Accounts, names Names, matches Matches, parties Parties, blocks Blocks, settings Settings,
 	now func() time.Time, log *slog.Logger) *Service {
-	return &Service{store: store, accounts: accounts, names: names, matches: matches, parties: parties, settings: settings, now: now, log: log}
+	return &Service{store: store, accounts: accounts, names: names, matches: matches, parties: parties, blocks: blocks, settings: settings,
+		now: now, log: log}
 }
 
 // SetMatchmaking connects the matchmaker, which in turn opens Casual Selects;
@@ -299,14 +309,14 @@ func (s *Service) Lock(ctx context.Context, accountID, vanguardID string) (Sessi
 	if err := s.checkPick(ctx, accountID, vanguardID); err != nil {
 		return Session{}, err
 	}
-	session, err := s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
+	session, err := s.changeActive(ctx, accountID, func(ctx context.Context, session *Session) error {
 		now := s.now()
 		session.Seen(accountID, now)
 		if err := session.Lock(accountID, vanguardID, now); err != nil {
 			return err
 		}
 		if session.AllLocked() {
-			session.BeginStarting(now)
+			return s.beginStarting(ctx, session, now)
 		}
 		return nil
 	})
@@ -347,6 +357,27 @@ func (s *Service) changeActive(ctx context.Context, accountID string, change fun
 		return tx.SaveSession(session)
 	})
 	return out, err
+}
+
+// beginStarting moves a select whose every pick is locked to starting, inside
+// its transaction. A matchmade select checks blocks again first, under their
+// locks: a block placed since its match was found forbids the match (Parties &
+// Social Bible §6), so the select is cancelled, nobody at fault, and everyone
+// returns to the queue. Once starting, the match goes ahead.
+func (s *Service) beginStarting(ctx context.Context, session *Session, now time.Time) error {
+	if session.Kind == KindCasual {
+		blocked, err := s.blocks.BlockedAmong(ctx, session.Accounts())
+		if err != nil {
+			return err
+		}
+		if blocked {
+			session.Cancel(CancelNoLongerMatched, now)
+			s.log.Info("champion select can no longer make its match", "select", session.ID)
+			return s.ended(ctx, *session, nil)
+		}
+	}
+	session.BeginStarting(now)
+	return nil
 }
 
 // startMatch creates the match of a select that has just begun starting, and
@@ -439,7 +470,9 @@ func (s *Service) tickOne(ctx context.Context, listed Session) error {
 				return err
 			}
 			if session.Expire(now) {
-				session.BeginStarting(now)
+				if err := s.beginStarting(ctx, &session, now); err != nil {
+					return err
+				}
 				starting = session
 			} else if err := s.ended(ctx, session, session.Unlocked()); err != nil {
 				return err

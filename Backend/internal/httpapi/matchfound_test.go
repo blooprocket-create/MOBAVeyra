@@ -28,6 +28,25 @@ func (c casualSeats) OpenCasual(ctx context.Context, mode string, seats []matchm
 	return c.selects.OpenCasual(ctx, mode, casual)
 }
 
+// playing says whether players are in a match or champion select, as the
+// backend's own adapter does.
+type playing struct {
+	matches *match.Service
+	selects *selection.Service
+}
+
+func (p playing) Busy(ctx context.Context, accounts []string) (bool, error) {
+	for _, id := range accounts {
+		if _, in, err := p.matches.Current(ctx, id); err != nil || in {
+			return in, err
+		}
+		if _, in, err := p.selects.Current(ctx, id); err != nil || in {
+			return in, err
+		}
+	}
+	return false, nil
+}
+
 // newMatchmakingTestServer serves parties, Match Found, champion select and
 // matches together, with Casual Select one a side.
 func newMatchmakingTestServer(t *testing.T) (*httptest.Server, *matchmaking.Service) {
@@ -61,13 +80,16 @@ func newMatchmakingTestServer(t *testing.T) (*httptest.Server, *matchmaking.Serv
 		p, err := d.Party.Get(ctx, id)
 		return err == nil && p.Status.InMatchmaking(), nil
 	})
-	d.Selection = selection.NewService(selection.NewMemStore(), d.Account, names, d.Match, queued, selection.Settings{
+	d.Selection = selection.NewService(selection.NewMemStore(), d.Account, names, d.Match, queued, d.Social, selection.Settings{
 		Casual:          selection.CasualSettings{PickDuration: time.Minute, PresenceTimeout: time.Minute},
 		StartingTimeout: time.Minute,
 	}, time.Now, log)
-	d.Matchmaking = matchmaking.NewService(matchmaking.NewMemStore(), d.Party, d.Social, casualSeats{d.Selection}, matchmaking.Settings{
+	busy := playing{matches: d.Match, selects: d.Selection}
+	d.Party.SetActivity(busy)
+	d.Matchmaking = matchmaking.NewService(matchmaking.NewMemStore(), d.Party, d.Social, busy, casualSeats{d.Selection}, matchmaking.Settings{
 		Modes:          []matchmaking.Mode{{ID: "casual_select", TeamSize: 1}},
 		AcceptDuration: time.Minute,
+		SearchLimit:    1000,
 	}, time.Now, log)
 	d.Selection.SetMatchmaking(d.Matchmaking)
 	return serve(t, d), d.Matchmaking
@@ -135,5 +157,31 @@ func TestQueueMatchFoundAndCasualSelectOverHTTP(t *testing.T) {
 	}
 	if status, body := call(t, srv, "POST", "/v1/me/match-found/decline", one, nil); status != http.StatusNotFound || body["error"] != "match_found_not_found" {
 		t.Fatalf("nothing to decline: %d %v", status, body)
+	}
+}
+
+func TestQueueRefusesAPartyWhoseMemberIsInAMatch(t *testing.T) {
+	srv, matchmaker := newMatchmakingTestServer(t)
+	one, _ := gameSession(t, srv, "DevOne")
+	two, _ := gameSession(t, srv, "DevTwo")
+	for _, token := range []string{one, two} {
+		call(t, srv, "PUT", "/v1/party/mode", token, map[string]string{"mode": "casual_select"})
+		call(t, srv, "PUT", "/v1/party/ready", token, map[string]bool{"ready": true})
+		call(t, srv, "POST", "/v1/party/queue", token, nil)
+	}
+	if err := matchmaker.MatchOnce(context.Background()); err != nil {
+		t.Fatalf("MatchOnce: %v", err)
+	}
+	call(t, srv, "POST", "/v1/me/match-found/accept", one, nil)
+	call(t, srv, "POST", "/v1/me/match-found/accept", two, nil)
+	call(t, srv, "POST", "/v1/me/select/lock", one, map[string]string{"vanguardId": "bryn"})
+	if _, started := call(t, srv, "POST", "/v1/me/select/lock", two, map[string]string{"vanguardId": "cairn"}); started["select"].(map[string]any)["state"] != "started" {
+		t.Fatalf("the match did not start: %v", started)
+	}
+
+	// The match lets the party go, Not Ready; while it runs, it cannot queue again.
+	call(t, srv, "PUT", "/v1/party/ready", one, map[string]bool{"ready": true})
+	if status, body := call(t, srv, "POST", "/v1/party/queue", one, nil); status != http.StatusConflict || body["error"] != "member_busy" {
+		t.Fatalf("queueing from inside a match: %d %v", status, body)
 	}
 }

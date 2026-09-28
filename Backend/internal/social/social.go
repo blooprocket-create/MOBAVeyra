@@ -8,6 +8,7 @@ package social
 import (
 	"context"
 	"errors"
+	"slices"
 )
 
 // Errors describing rule violations.
@@ -223,6 +224,41 @@ func (s *Service) FriendOfAny(ctx context.Context, account string, others []stri
 
 func (s *Service) BlockedWithAny(ctx context.Context, account string, others []string) (bool, error) {
 	return s.store.BlockedWithAny(ctx, account, others)
+}
+
+// BlockedAmong reports whether any two of accounts block each other, for
+// match assembly (§6). It takes the lock Block takes for every pair, in one
+// order, before reading, and a caller's unit of work keeps them until it ends:
+// a block between the accounts either committed first and is seen, or waits
+// until the caller has acted on the answer.
+func (s *Service) BlockedAmong(ctx context.Context, accounts []string) (bool, error) {
+	sorted := slices.Compact(slices.Sorted(slices.Values(accounts)))
+	var pairs [][2]string
+	for i, a := range sorted {
+		for _, b := range sorted[i+1:] {
+			pairs = append(pairs, [2]string{a, b})
+		}
+	}
+	blocked := false
+	err := s.store.InTx(ctx, func(tx Tx) error {
+		for _, p := range pairs {
+			if err := tx.LockPair(p[0], p[1]); err != nil {
+				return err
+			}
+		}
+		for _, p := range pairs {
+			either, err := tx.BlockedEither(p[0], p[1])
+			if err != nil {
+				return err
+			}
+			if either {
+				blocked = true
+				return nil
+			}
+		}
+		return nil
+	})
+	return blocked, err
 }
 
 func (s *Service) checkPair(tx Tx, actor, target string) error {

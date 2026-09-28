@@ -204,7 +204,12 @@ FText DescribeNotice(const FString& Notice)
 	}
 	if (Notice == TEXT("match_found_requeued"))
 	{
-		return LOCTEXT("NoticeFoundRequeued", "Another player did not accept the match. You are back in the queue, in your place.");
+		// Also after a block between two players, which no one may learn of (Parties & Social Bible §6).
+		return LOCTEXT("NoticeFoundRequeued", "The match did not go ahead. You are back in the queue, in your place.");
+	}
+	if (Notice == TEXT("no_longer_matched"))
+	{
+		return LOCTEXT("NoticeNoLongerMatched", "Champion select ended: this match can no longer go ahead. You are back in the queue.");
 	}
 	return FText::Format(LOCTEXT("NoticeOther", "Notice: {0}"), FText::FromString(Notice));
 }
@@ -246,6 +251,10 @@ FText DescribeProblem(const FVeyraClientProblem& Problem)
 	if (Problem.Code == TEXT("not_leader"))
 	{
 		return LOCTEXT("ProblemNotLeader", "Only the party leader can do that.");
+	}
+	if (Problem.Code == TEXT("member_busy"))
+	{
+		return LOCTEXT("ProblemMemberBusy", "Someone in your party is still in a match or champion select.");
 	}
 	// Anything else is shown as the flow reported it; the message never holds a credential.
 	return FText::FromString(Problem.Message);

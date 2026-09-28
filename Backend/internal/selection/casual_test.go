@@ -57,6 +57,47 @@ func TestEveryoneLockingStartsTheMatchAndLetsThePartiesGo(t *testing.T) {
 	}
 }
 
+func TestABlockPlacedDuringTheSelectStopsItsMatch(t *testing.T) {
+	f := newFixture(t)
+	s := f.casual(t, "cairn", "oriel")
+	if _, err := f.svc.Lock(ctx, "acc-1", "cairn"); err != nil {
+		t.Fatalf("Lock acc-1: %v", err)
+	}
+	// acc-2 blocks acc-1 before the last lock: the two may not share the match.
+	f.blocks[[2]string{"acc-2", "acc-1"}] = true
+	locked, err := f.svc.Lock(ctx, "acc-2", "oriel")
+	if err != nil || locked.State != Cancelled || locked.CancelReason != CancelNoLongerMatched {
+		t.Fatalf("the last lock: %+v %v", locked, err)
+	}
+	if _, found, _ := f.matches.BySelect(ctx, s.ID); found {
+		t.Fatal("a match was created for two players who block each other")
+	}
+	if len(f.ends.calls) != 1 || f.ends.calls[0].started || len(f.ends.calls[0].leaving) != 0 {
+		t.Fatalf("nobody is at fault, so every party returns to the queue: %+v", f.ends.calls)
+	}
+}
+
+func TestABlockStopsASelectItsTimerWouldStart(t *testing.T) {
+	f := newFixture(t)
+	s := f.casual(t, "cairn", "oriel")
+	for id, pick := range map[string]string{"acc-1": "cairn", "acc-2": "oriel"} {
+		if _, err := f.svc.Hover(ctx, id, pick); err != nil {
+			t.Fatalf("Hover %s: %v", id, err)
+		}
+	}
+	f.blocks[[2]string{"acc-1", "acc-2"}] = true
+	f.now = s.Deadline
+	if err := f.svc.Tick(ctx); err != nil {
+		t.Fatalf("Tick: %v", err)
+	}
+	if ended, _ := f.svc.ForParticipant(ctx, "acc-1", s.ID); ended.State != Cancelled || ended.CancelReason != CancelNoLongerMatched {
+		t.Fatalf("the timer's lock of the hovers: %+v", ended)
+	}
+	if _, found, _ := f.matches.BySelect(ctx, s.ID); found {
+		t.Fatal("a match was created for two players who block each other")
+	}
+}
+
 func TestPicksAreUniqueAcrossTeamsAndHoversReserveNothing(t *testing.T) {
 	f := newFixture(t)
 	s := f.casual(t, "cairn", "cairn")

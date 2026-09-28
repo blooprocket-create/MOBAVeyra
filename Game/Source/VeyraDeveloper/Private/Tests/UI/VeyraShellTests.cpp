@@ -159,6 +159,11 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("match_found_missed")).ToString().Contains(TEXT("not accepted in time"))));
 			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("match_found_abandoned")).ToString().StartsWith(TEXT("Someone in your party did not accept"))));
 			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("match_found_requeued")).ToString().Contains(TEXT("You are back in the queue"))));
+			// A block between two players ends a match found or a select, and nobody is told of it (§6).
+			ASSERT_THAT(IsFalse(VeyraShellModels::DescribeNotice(TEXT("match_found_requeued")).ToString().Contains(TEXT("player"))));
+			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("no_longer_matched")).ToString().Contains(TEXT("can no longer go ahead"))));
+			ASSERT_THAT(AreEqual(VeyraShellModels::DescribeProblem(FVeyraClientProblem{ TEXT("member_busy"), TEXT("raw"), false }).ToString(),
+				FString(TEXT("Someone in your party is still in a match or champion select."))));
 		}
 
 		TEST_METHOD(PartyAndModeModels)

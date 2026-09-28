@@ -25,7 +25,7 @@ const validJSON = `{
   "vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},
   "customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A", "pickDuration": "30s", "playersPerSide": 5,
     "bots": [{"side": "B", "vanguardId": "cairn"}, {"side": "B", "vanguardId": "bryn"}]},
-  "matchmaking": {"interval": "1s"},
+  "matchmaking": {"interval": "1s", "searchLimit": 10000},
   "matchFound": {"acceptDuration": "15s"},
   "casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},
   "selection": {"tickInterval": "1s", "startingTimeout": "60s"},
@@ -54,6 +54,9 @@ func TestParseValid(t *testing.T) {
 	}
 	if p := c.CustomPractice; p.PlayersPerSide != 5 || len(p.Bots) != 2 || p.Bots[1] != (PracticeBot{Side: "B", VanguardID: "bryn"}) {
 		t.Fatalf("practice bots not parsed: %+v", p)
+	}
+	if c.Matchmaking.Interval != time.Second || c.Matchmaking.SearchLimit != 10000 {
+		t.Fatalf("matchmaking not parsed: %+v", c.Matchmaking)
 	}
 	d := c.Allocator.Docker
 	if c.Allocator.Kind != AllocatorDocker || d == nil || d.HostPortMin != 7780 || d.HostPortMax != 7789 || len(d.ServerArgs) != 2 || d.BackendURL != "http://backend:8080" {
@@ -92,8 +95,10 @@ func TestParseRejects(t *testing.T) {
 		"mode missing team size":    {`"enabled": false, "humanPlayersPerTeam": 5`, `"enabled": false`, "humanPlayersPerTeam is required"},
 		"mode missing matchmaking":  {`, "matchmaking": "notImplemented"}`, `}`, "modes[1].matchmaking is required"},
 		"mode bad matchmaking":      {`"matchmaking": "casualSelect"`, `"matchmaking": "draft"`, "modes[0].matchmaking must be"},
-		"no matchmaking":            {`"matchmaking": {"interval": "1s"},`, ``, "matchmaking is required"},
+		"no matchmaking":            {`"matchmaking": {"interval": "1s", "searchLimit": 10000},`, ``, "matchmaking is required"},
 		"zero matchmaking interval": {`"interval": "1s"`, `"interval": "0s"`, "matchmaking.interval must be positive"},
+		"no search limit":           {`, "searchLimit": 10000`, ``, "matchmaking.searchLimit is required"},
+		"zero search limit":         {`"searchLimit": 10000`, `"searchLimit": 0`, "matchmaking.searchLimit must be at least 1"},
 		"no match found":            {`"matchFound": {"acceptDuration": "15s"},`, ``, "matchFound is required"},
 		"no accept duration":        {`{"acceptDuration": "15s"}`, `{}`, "matchFound.acceptDuration is required"},
 		"no casual select":          {`"casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},`, ``, "casualSelect is required"},

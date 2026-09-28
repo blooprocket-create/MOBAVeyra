@@ -192,6 +192,9 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
 8. **M6b, a match found that did not go ahead** is explained by the player's own answer, then by their party. Either they declined, or someone else did not accept and they are queued again in their place, or their party left the queue. Nobody learns who declined.
 9. **M6b, a standard match has no victory condition yet.** Outside Shipping, the in-match menu offers End Match (Developer), behind a confirmation. Its result says a developer ended it, with no winner.
 10. **M6b, the grey box shows Match Found in place of the page**, not as an overlay above it. It blocks the same things, and the page returns as it was.
+11. **M6b, a block placed after a match was found** stops that match before it exists (Parties §6: "all subsequent … match assembly"). Blocks are checked again, under the locks a block takes, when the last player accepts and when every pick is locked. Nobody is at fault, and every party returns to the queue in its place. The reason, `no_longer_matched`, names no block, so no player learns of another's. Once a select has begun starting its match, the match goes ahead, as a live match does.
+12. **M6b, a party one of whose members is in a match or a champion select cannot queue** (`member_busy`). The matchmaker takes such a party out of the queue if it got there anyway.
+13. **M6b, the matchmaker's search** backtracks, so it finds every grouping of whole parties that fits. When blocks make it combinatorial, a configured limit on its steps per party and pass bounds it; a party whose search runs out waits for the next pass. Canon leaves scale controls to future design (§6).
 
 ### 12. Values are data
 
@@ -202,6 +205,7 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
 | Practice bots (four enemies, one of each released Vanguard) and players per side (5) | backend configuration | provisional; 5 is canon's team size |
 | How a bot wanders: how often it picks a point (4 s), and how far from the middle (600 units) | `Match.json` `bots` | provisional |
 | Match Found accept duration (15 s); Casual Select pick duration (60 s); select presence timeout (10 s); the local 1v1 team size | backend configuration | provisional; canon gives no values, and its team size is 5 |
+| The matchmaker's search limit (10 000 steps per party and pass) | backend configuration | provisional scale control |
 | Select, party, Match Found, results and reconnect polling; retries; how long to wait for results | `UVeyraServicesSettings` | operational |
 | Menu style and key; HUD colours | presentation settings | presentation |
 | Names, titles and descriptions of Vanguards, abilities and passives | `Game/Text/VeyraText.csv` | text, not tuning |
@@ -264,7 +268,7 @@ Every configuration is parsed strictly: each field is required, and an unknown f
 - `matchmaking`: a loop that locks queued parties with `FOR UPDATE SKIP LOCKED` and groups them oldest first. It never splits a party, and keeps blocked players off each other's match. Match Found takes accepts, declines and timeouts. Each mode names its matchmaking, `casualSelect` or `notImplemented`.
 - `party`: the statuses idle, queued, found and selecting, and the time in the queue.
 - `selection`: Casual Select, with sides, unique locks, hovers private to the team, presence by polling, and Leave as a dodge. When a matchmade select ends, it settles the parties in the same transaction.
-- Migrations `0008_matchmaking` and `0009_casual_select`.
+- Migrations `0008_matchmaking`, `0009_casual_select` and `0010_no_longer_matched`.
 - New routes: `GET /v1/me/match-found`, `POST /v1/me/match-found/accept` and `/decline`, and `POST /v1/me/select/leave`. The party gains `queuedSeconds`, and each mode its `matchmaking`.
 
 **Game.**

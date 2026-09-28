@@ -49,6 +49,10 @@ const (
 	AbandonPartyChanged AbandonReason = "party_changed"
 	// AbandonSelectFailed: champion select could not open.
 	AbandonSelectFailed AbandonReason = "select_failed"
+	// AbandonNoLongerMatched: two of its players now block each other
+	// (Parties & Social Bible §6). Nobody is at fault; its name says no more,
+	// so no player learns of another's block.
+	AbandonNoLongerMatched AbandonReason = "no_longer_matched"
 )
 
 // Errors describing rule violations. Callers map them to response codes.
@@ -147,7 +151,8 @@ func (f *Found) Counts() (accepted, total int) {
 // PartyAtFault reports whether a party is why the match fell through, so it
 // leaves the queue instead of returning to it (§3): a member declined or, when
 // the timer ran out, had not accepted. A failed champion select faults no one
-// but returns everyone to idle.
+// but returns everyone to idle; a new block faults no one, and everyone
+// returns to the queue.
 func (f *Found) PartyAtFault(partyID string, reason AbandonReason) bool {
 	if reason == AbandonSelectFailed {
 		return true
@@ -174,6 +179,15 @@ func (f *Found) Abandon(reason AbandonReason, now time.Time) {
 // Assemble records the champion select a fully accepted match opened.
 func (f *Found) Assemble(selectID string, now time.Time) {
 	f.State, f.SelectID, f.EndedAt = Accepted, selectID, now
+}
+
+// Accounts returns every player in the proposed match.
+func (f *Found) Accounts() []string {
+	ids := make([]string, len(f.Seats))
+	for i, seat := range f.Seats {
+		ids[i] = seat.AccountID
+	}
+	return ids
 }
 
 // PartyIDs returns the ID of each party in the proposed match.

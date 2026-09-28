@@ -116,7 +116,7 @@ func run(log *slog.Logger) error {
 		}
 		return err == nil && p.Status.InMatchmaking(), err
 	})
-	selects := selection.NewService(store.Selection(), accounts, displayNames(svc), matches, queued, selection.Settings{
+	selects := selection.NewService(store.Selection(), accounts, displayNames(svc), matches, queued, soc, selection.Settings{
 		Practice: selection.PracticeSettings{
 			Enabled:      cfg.CustomPractice.Enabled,
 			Mode:         cfg.CustomPractice.Mode,
@@ -131,13 +131,15 @@ func run(log *slog.Logger) error {
 	}, time.Now, log)
 	go selects.RunTicker(ctx, cfg.Selection.TickInterval)
 
-	mmSettings := matchmaking.Settings{AcceptDuration: cfg.MatchFound.AcceptDuration}
+	busy := activity{matches: matches, selects: selects}
+	parties.SetActivity(busy)
+	mmSettings := matchmaking.Settings{AcceptDuration: cfg.MatchFound.AcceptDuration, SearchLimit: cfg.Matchmaking.SearchLimit}
 	for _, m := range cfg.Modes {
 		if m.Enabled && m.Matchmaking == config.MatchmakingCasualSelect {
 			mmSettings.Modes = append(mmSettings.Modes, matchmaking.Mode{ID: m.ID, TeamSize: m.HumanPlayersPerTeam})
 		}
 	}
-	matchmaker := matchmaking.NewService(store.Matchmaking(), parties, soc, casualSelects{selects}, mmSettings, time.Now, log)
+	matchmaker := matchmaking.NewService(store.Matchmaking(), parties, soc, busy, casualSelects{selects}, mmSettings, time.Now, log)
 	selects.SetMatchmaking(matchmaker)
 	go matchmaker.Run(ctx, cfg.Matchmaking.Interval)
 
@@ -180,6 +182,25 @@ func run(log *slog.Logger) error {
 	defer cancel()
 	log.Info("shutting down")
 	return srv.Shutdown(shutdownCtx)
+}
+
+// activity says whether players are in a match or champion select, for the
+// party and matchmaking rules that keep them out of the queue meanwhile.
+type activity struct {
+	matches *match.Service
+	selects *selection.Service
+}
+
+func (a activity) Busy(ctx context.Context, accounts []string) (bool, error) {
+	for _, id := range accounts {
+		if _, inMatch, err := a.matches.Current(ctx, id); err != nil || inMatch {
+			return inMatch, err
+		}
+		if _, selecting, err := a.selects.Current(ctx, id); err != nil || selecting {
+			return selecting, err
+		}
+	}
+	return false, nil
 }
 
 // casualSelects opens the matchmaker's Casual Selects.

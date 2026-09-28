@@ -71,6 +71,13 @@ type SocialGraph interface {
 	BlockedWithAny(ctx context.Context, account string, others []string) (bool, error)
 }
 
+// Activity answers whether any of accounts is in a match or a champion
+// select. The main package joins the match and selection packages to
+// implement it; they in turn read parties, so it is set after both exist.
+type Activity interface {
+	Busy(ctx context.Context, accounts []string) (bool, error)
+}
+
 // Settings are the validated party settings.
 type Settings struct {
 	Rules          Rules
@@ -83,6 +90,7 @@ type Settings struct {
 type Service struct {
 	store    Store
 	social   SocialGraph
+	activity Activity
 	settings Settings
 	now      func() time.Time
 }
@@ -91,6 +99,11 @@ type Service struct {
 func NewService(store Store, social SocialGraph, settings Settings, now func() time.Time) *Service {
 	return &Service{store: store, social: social, settings: settings, now: now}
 }
+
+// SetActivity connects what says whether a player is in a match or champion
+// select, which StartQueue checks. Until it is set, StartQueue checks nothing
+// more than the party's own rules.
+func (s *Service) SetActivity(a Activity) { s.activity = a }
 
 // Get returns the actor's party.
 func (s *Service) Get(ctx context.Context, actor string) (Party, error) {
@@ -148,8 +161,30 @@ func (s *Service) Kick(ctx context.Context, actor, target string) (Party, error)
 	return s.mutate(ctx, actor, func(p *Party) error { return p.Kick(actor, target) })
 }
 
+// StartQueue also refuses a party one of whose members is in a match or
+// champion select already: matchmaking could never make their next match, and
+// the other players would wait on it for nothing.
 func (s *Service) StartQueue(ctx context.Context, actor string) (Party, error) {
-	return s.mutate(ctx, actor, func(p *Party) error { return p.StartQueue(actor, s.settings.Rules, s.now()) })
+	return s.mutateIn(ctx, actor, func(ctx context.Context, p *Party) error {
+		if err := p.StartQueue(actor, s.settings.Rules, s.now()); err != nil {
+			return err
+		}
+		if s.activity == nil {
+			return nil
+		}
+		members := make([]string, len(p.Members))
+		for i, m := range p.Members {
+			members[i] = m.AccountID
+		}
+		busy, err := s.activity.Busy(ctx, members)
+		if err != nil {
+			return err
+		}
+		if busy {
+			return ErrMemberBusy
+		}
+		return nil
+	})
 }
 
 // The matchmaking package moves parties through a proposed match and its
@@ -475,6 +510,12 @@ func (s *Service) checkSocial(ctx context.Context, a, b string) error {
 }
 
 func (s *Service) mutate(ctx context.Context, actor string, fn func(*Party) error) (Party, error) {
+	return s.mutateIn(ctx, actor, func(_ context.Context, p *Party) error { return fn(p) })
+}
+
+// mutateIn is mutate for a change that also asks other domains, with the ctx
+// that carries its transaction.
+func (s *Service) mutateIn(ctx context.Context, actor string, fn func(context.Context, *Party) error) (Party, error) {
 	var out Party
 	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		id, err := tx.PartyIDOf(actor)
@@ -485,7 +526,7 @@ func (s *Service) mutate(ctx context.Context, actor string, fn func(*Party) erro
 		if err != nil {
 			return err
 		}
-		if err := fn(&p); err != nil {
+		if err := fn(ctx, &p); err != nil {
 			return err
 		}
 		out = p

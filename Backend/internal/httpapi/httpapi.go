@@ -252,6 +252,7 @@ var errorStatus = []struct {
 	{party.ErrPartyNotJoinable, http.StatusForbidden, "party_not_joinable"},
 	{party.ErrPartyNotFound, http.StatusNotFound, "party_not_found"},
 	{party.ErrModeUnavailable, http.StatusConflict, "mode_not_available"},
+	{party.ErrMemberBusy, http.StatusConflict, "member_busy"},
 
 	{matchmaking.ErrFoundNotFound, http.StatusNotFound, "match_found_not_found"},
 	{matchmaking.ErrAlreadyDecided, http.StatusConflict, "already_answered"},

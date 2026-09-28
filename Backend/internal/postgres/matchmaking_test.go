@@ -25,6 +25,11 @@ func (s *openedSelects) OpenCasual(context.Context, string, []matchmaking.Select
 	return "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee", nil
 }
 
+// idlePlayers is nobody being in a match or champion select.
+type idlePlayers struct{}
+
+func (idlePlayers) Busy(context.Context, []string) (bool, error) { return false, nil }
+
 type matchmakingFixture struct {
 	partyFixture
 	selects *openedSelects
@@ -34,11 +39,39 @@ type matchmakingFixture struct {
 func newMatchmakingFixture(t *testing.T, names ...string) matchmakingFixture {
 	t.Helper()
 	f := matchmakingFixture{partyFixture: newPartyFixture(t, names...), selects: &openedSelects{}}
-	f.svc = matchmaking.NewService(f.store.Matchmaking(), f.parties, f.social, f.selects, matchmaking.Settings{
+	f.svc = matchmaking.NewService(f.store.Matchmaking(), f.parties, f.social, idlePlayers{}, f.selects, matchmaking.Settings{
 		Modes:          []matchmaking.Mode{{ID: "casual", TeamSize: 1}},
 		AcceptDuration: time.Minute,
+		SearchLimit:    1000,
 	}, time.Now, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	return f
+}
+
+// A block placed while a match is found is seen under its lock when the last
+// player accepts: no select opens, and both parties return to the queue.
+func TestABlockStopsAMatchFoundInPostgres(t *testing.T) {
+	f := newMatchmakingFixture(t, "A", "B")
+	ctx := context.Background()
+	f.queue(t, "A")
+	f.queue(t, "B")
+	if err := f.svc.MatchOnce(ctx); err != nil {
+		t.Fatalf("MatchOnce: %v", err)
+	}
+	if _, err := f.svc.Accept(ctx, f.ids["A"]); err != nil {
+		t.Fatalf("Accept A: %v", err)
+	}
+	if err := f.social.Block(ctx, f.ids["B"], f.ids["A"]); err != nil {
+		t.Fatalf("Block: %v", err)
+	}
+	found, err := f.svc.Accept(ctx, f.ids["B"])
+	if err != nil || found.State != matchmaking.Abandoned || found.AbandonReason != matchmaking.AbandonNoLongerMatched || f.selects.opened != 0 {
+		t.Fatalf("the last acceptance: %+v %v, %d opened", found, err, f.selects.opened)
+	}
+	for _, name := range []string{"A", "B"} {
+		if p, _ := f.parties.Get(ctx, f.ids[name]); p.Status != party.Queued {
+			t.Fatalf("%s's party: %s", name, p.Status)
+		}
+	}
 }
 
 func (f matchmakingFixture) queue(t *testing.T, name string) {

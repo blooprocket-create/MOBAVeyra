@@ -132,6 +132,10 @@ type PracticeBot struct {
 type Matchmaking struct {
 	// Interval is how often the matchmaker forms matches and settles Match Found.
 	Interval time.Duration
+	// SearchLimit is the most placements the matchmaker tries around one party
+	// in a pass. It bounds the search when blocks make grouping combinatorial
+	// (Parties & Social Bible §6: scale controls are future design).
+	SearchLimit int
 }
 
 // MatchFound configures Match Found (Parties & Social Bible §3).
@@ -310,7 +314,8 @@ type fileConfig struct {
 		} `json:"bots"`
 	} `json:"customPractice"`
 	Matchmaking *struct {
-		Interval *Duration `json:"interval"`
+		Interval    *Duration `json:"interval"`
+		SearchLimit *int      `json:"searchLimit"`
 	} `json:"matchmaking"`
 	MatchFound *struct {
 		AcceptDuration *Duration `json:"acceptDuration"`
@@ -649,6 +654,14 @@ func Parse(raw []byte) (Config, error) {
 		missing("matchmaking")
 	} else {
 		c.Matchmaking.Interval = positive("matchmaking.interval", f.Matchmaking.Interval)
+		switch {
+		case f.Matchmaking.SearchLimit == nil:
+			missing("matchmaking.searchLimit")
+		case *f.Matchmaking.SearchLimit < 1:
+			problems = append(problems, "matchmaking.searchLimit must be at least 1")
+		default:
+			c.Matchmaking.SearchLimit = *f.Matchmaking.SearchLimit
+		}
 	}
 	if f.MatchFound == nil {
 		missing("matchFound")
