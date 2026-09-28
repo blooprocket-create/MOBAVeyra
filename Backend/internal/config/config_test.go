@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -176,5 +177,41 @@ func TestCommittedLocalConfigLoads(t *testing.T) {
 	}
 	if _, err := Load(path); err != nil {
 		t.Fatalf("Load(%s): %v", path, err)
+	}
+}
+
+// No side the committed config lets the backend fill may be larger than the
+// match server's own cap, Game/Tuning/Match.json teams.maxTeamSize: the server
+// refuses such an assignment (UVeyraMatchHostSubsystem::SetAssignment), and
+// the match would fail before it is ready. Both files are data, so they are
+// kept in step here.
+func TestTeamSizesFitTheGamesMatchJSON(t *testing.T) {
+	_, file, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(file), "..", "..", "..")
+	cfg, err := Load(filepath.Join(root, "Backend", "config", "local.json"))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	raw, err := os.ReadFile(filepath.Join(root, "Game", "Tuning", "Match.json"))
+	if err != nil {
+		t.Fatalf("read the game's Match.json: %v", err)
+	}
+	var tuning struct {
+		Teams struct {
+			MaxTeamSize int `json:"maxTeamSize"`
+		} `json:"teams"`
+	}
+	if err := json.Unmarshal(raw, &tuning); err != nil || tuning.Teams.MaxTeamSize < 1 {
+		t.Fatalf("Match.json teams.maxTeamSize: %d %v", tuning.Teams.MaxTeamSize, err)
+	}
+	limit := tuning.Teams.MaxTeamSize
+	if cfg.CustomPractice.PlayersPerSide > limit {
+		t.Fatalf("customPractice.playersPerSide is %d, but the match server holds at most %d a side (Match.json teams.maxTeamSize)",
+			cfg.CustomPractice.PlayersPerSide, limit)
+	}
+	for _, m := range cfg.Modes {
+		if m.HumanPlayersPerTeam > limit {
+			t.Fatalf("mode %s has %d players a side, but the match server holds at most %d (Match.json teams.maxTeamSize)", m.ID, m.HumanPlayersPerTeam, limit)
+		}
 	}
 }
