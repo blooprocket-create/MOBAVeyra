@@ -208,7 +208,7 @@ namespace VeyraEconomyTests
 
 		TEST_METHOD(PassiveGoldPaysEveryoneOnItsTimerUntilTheMatchEnds)
 		{
-			// The author's income: 9 every 10 seconds, from 30 seconds in.
+			// Fixture values: a payment every 10 seconds, from 30 seconds in.
 			FVeyraEconomyTuning Tuning = UVeyraEconomyTuningSubsystem::Get();
 			Tuning.PassiveGold.PerPayment = 9.0;
 			Tuning.PassiveGold.IntervalSeconds = 10.0;
