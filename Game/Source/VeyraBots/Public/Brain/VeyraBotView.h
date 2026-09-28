@@ -98,6 +98,18 @@ struct FVeyraBotStructure
 	bool bAlliesInRange = false;
 };
 
+/** A jungle camp on the bot's side, as it knows it (ADR-014 §7). */
+struct FVeyraBotCamp
+{
+	FVector Center = FVector::ZeroVector;
+
+	/** Its living creatures; none while it waits to respawn. */
+	TArray<FVeyraBotUnit> Creatures;
+
+	/** When it spawns next, in match time; 0 while its creatures stand. */
+	double SpawnsAt = 0.0;
+};
+
 /**
  * What a bot knows at one decision (ADR-013 §4): read from the world by VeyraBotSenses, and plain
  * data, so the rules that decide from it are pure and tested without a world.
@@ -138,6 +150,18 @@ struct FVeyraBotView
 	TOptional<FVeyraBotStructure> EnemyStructure;
 
 	TArray<FVeyraBotSlot> Slots;
+
+	/** Whether it plays the jungle (ADR-014 §7). */
+	bool bJungle = false;
+
+	/** Its side's camps. */
+	TArray<FVeyraBotCamp> Camps;
+
+	/** The open Flux Wells. */
+	TArray<FVeyraBotUnit> Wells;
+
+	/** For a jungler: the enemy Vanguards within its gank range. */
+	TArray<FVeyraBotUnit> GankTargets;
 };
 
 /** What a bot does next. */

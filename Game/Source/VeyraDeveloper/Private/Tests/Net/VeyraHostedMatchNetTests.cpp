@@ -293,14 +293,14 @@ namespace VeyraNetTests
 				})
 				.ThenServer(TEXT("They play their sides and Vanguards, each with a brain for its seat"), [this](FState& State) {
 					const TArray<const AVeyraPlayerState*> Bots = BotsOf(State.World);
-					const TArray<EVeyraLane>& Lanes = UVeyraBotsTuningSubsystem::Get().Lanes;
+					const TArray<EVeyraBotRole>& Roles = UVeyraBotsTuningSubsystem::Get().Roles;
 					for (int32 Index = 0; Index < Bots.Num(); ++Index)
 					{
 						ASSERT_THAT(IsTrue(Bots[Index]->GetVeyraTeam() == PracticeBots[Index].Side));
 						ASSERT_THAT(IsTrue(Bots[Index]->GetVanguardId() == PracticeBots[Index].VanguardId));
 						const UVeyraBotBrainComponent* Brain = Bots[Index]->GetVanguardController()->FindComponentByClass<UVeyraBotBrainComponent>();
 						ASSERT_THAT(IsNotNull(Brain));
-						ASSERT_THAT(IsTrue(Brain->GetDifficulty() == PracticeBots[Index].Difficulty && Brain->GetLane() == Lanes[Index % Lanes.Num()]));
+						ASSERT_THAT(IsTrue(Brain->GetDifficulty() == PracticeBots[Index].Difficulty && Brain->GetRole() == Roles[Index % Roles.Num()]));
 					}
 				})
 				.UntilClients(TEXT("Every client sees the bots' Vanguards"), [this](FState& State) {

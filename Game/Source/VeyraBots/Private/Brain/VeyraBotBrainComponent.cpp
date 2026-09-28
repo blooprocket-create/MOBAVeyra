@@ -25,10 +25,10 @@ UVeyraBotBrainComponent::UVeyraBotBrainComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UVeyraBotBrainComponent::Configure(AVeyraPlayerState& InBot, EVeyraLane InLane, EVeyraBotDifficulty InDifficulty, int32 Seed)
+void UVeyraBotBrainComponent::Configure(AVeyraPlayerState& InBot, EVeyraBotRole InRole, EVeyraBotDifficulty InDifficulty, int32 Seed)
 {
 	Bot = &InBot;
-	Lane = InLane;
+	Role = InRole;
 	Difficulty = InDifficulty;
 	Random.Initialize(Seed);
 }
@@ -61,7 +61,7 @@ FVeyraBotIntent UVeyraBotBrainComponent::Think()
 		return {};
 	}
 	const FVeyraBotsTuning& Tuning = UVeyraBotsTuningSubsystem::Get();
-	const FVeyraBotView View = VeyraBotSenses::Sense(*Participant, Lane, Tuning);
+	const FVeyraBotView View = VeyraBotSenses::Sense(*Participant, Role, Tuning);
 	// Shopping and skill points work in preparation too, and while dead, as a player's do.
 	Shop(View, *GameMode);
 	RankUp(*GameMode);

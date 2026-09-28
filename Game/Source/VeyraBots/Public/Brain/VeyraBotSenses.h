@@ -13,6 +13,6 @@ class AVeyraPlayerState;
  */
 namespace VeyraBotSenses
 {
-	/** What Bot knows now, playing Lane. */
-	VEYRABOTS_API FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraLane Lane, const FVeyraBotsTuning& Tuning);
+	/** What Bot knows now, playing Role. */
+	VEYRABOTS_API FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVeyraBotsTuning& Tuning);
 }

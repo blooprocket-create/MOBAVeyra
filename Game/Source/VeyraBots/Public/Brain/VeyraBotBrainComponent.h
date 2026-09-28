@@ -28,13 +28,14 @@ class VEYRABOTS_API UVeyraBotBrainComponent : public UActorComponent
 public:
 	UVeyraBotBrainComponent();
 
-	/** Before registering: the participant it plays, its lane and difficulty, and the seed of its chances. */
-	void Configure(AVeyraPlayerState& InBot, EVeyraLane InLane, EVeyraBotDifficulty InDifficulty, int32 Seed);
+	/** Before registering: the participant it plays, its role and difficulty, and the seed of its chances. */
+	void Configure(AVeyraPlayerState& InBot, EVeyraBotRole InRole, EVeyraBotDifficulty InDifficulty, int32 Seed);
 
 	/** One decision now, acted on. The timer calls it; tests call it directly. */
 	FVeyraBotIntent Think();
 
-	EVeyraLane GetLane() const { return Lane; }
+	EVeyraBotRole GetRole() const { return Role; }
+	EVeyraLane GetLane() const { return VeyraBots::LaneOf(Role); }
 	EVeyraBotDifficulty GetDifficulty() const { return Difficulty; }
 
 	/** The intent it last acted on. */
@@ -50,7 +51,7 @@ private:
 	void Act(const FVeyraBotIntent& Intent, AVeyraGameMode& GameMode);
 
 	TWeakObjectPtr<AVeyraPlayerState> Bot;
-	EVeyraLane Lane = EVeyraLane::Mid;
+	EVeyraBotRole Role = EVeyraBotRole::Mid;
 	EVeyraBotDifficulty Difficulty = EVeyraBotDifficulty::Beginner;
 	FVeyraBotMemory Memory;
 	FRandomStream Random;
