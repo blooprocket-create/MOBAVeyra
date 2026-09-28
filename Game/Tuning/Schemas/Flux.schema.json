@@ -36,13 +36,13 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "grants": {
-      "description": "Team Flux from destroyed enemy structures. Flux Wells join when they are built.",
+      "description": "Team Flux from destroyed enemy structures and secured Flux Wells (Battleground Bible §6).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "laneSpire", "baseTower", "inhibitor"],
+      "required": ["provenance", "laneSpire", "baseTower", "inhibitor", "fluxWell"],
       "properties": {
         "provenance": {
           "description": "Where these values come from (ADR-008 §7). Battleground Bible §5, §10 and §18 give them at current prototype tuning.",
@@ -51,7 +51,8 @@
         },
         "laneSpire": { "$ref": "#/definitions/grant", "description": "A destroyed lane Spire: +25 permanent (Battleground Bible §5)." },
         "baseTower": { "$ref": "#/definitions/grant", "description": "A destroyed base-defense tower: the same as a lane Spire (Battleground Bible §18)." },
-        "inhibitor": { "$ref": "#/definitions/grant", "description": "A destroyed inhibitor: +25 temporary for 3 minutes (Battleground Bible §10)." }
+        "inhibitor": { "$ref": "#/definitions/grant", "description": "A destroyed inhibitor: +25 temporary for 3 minutes (Battleground Bible §10)." },
+        "fluxWell": { "$ref": "#/definitions/grant", "description": "A secured Flux Well (§6: +50 temporary for 3 minutes)." }
       }
     },
     "fluxbornScaling": {

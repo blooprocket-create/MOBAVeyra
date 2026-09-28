@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the World domain (Battleground Bible; ADR-011 §12, §17): the battleground's grey-box layout, which the map commandlet bakes and the server spawns from, and its structures. Distances are in world units; X runs up the screen and Y to its right. VeyraWorld binds it to FVeyraWorldTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "layout", "structures", "inhibitor", "primeWell", "towerAttack", "towerRamp", "backdoor", "fluxborn", "waves", "replication"],
+  "required": ["schemaVersion", "layout", "structures", "inhibitor", "primeWell", "towerAttack", "towerRamp", "backdoor", "fluxborn", "waves", "replication", "wildlife", "fluxWells"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -126,6 +126,40 @@
         "count": { "type": "integer", "minimum": 1 }
       }
     },
+    "wildlifeSpecies": {
+      "description": "One species of jungle wildlife (Battleground Bible §8; ADR-014 §2). Camps never evolve (§17).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stats", "basicAttack", "capsuleRadius", "capsuleHalfHeight", "traits"],
+      "properties": {
+        "stats": {"$ref": "#/definitions/stats"},
+        "basicAttack": {"$ref": "#/definitions/basicAttack"},
+        "capsuleRadius": {"type": "number", "minimum": 0, "exclusiveMinimum": true},
+        "capsuleHalfHeight": {"type": "number", "minimum": 0, "exclusiveMinimum": true},
+        "traits": {
+          "description": "The trait its camp's clear grants the Vanguard credited with the last kill: at most one status in Abilities.json, or none.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": {"type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"}
+        }
+      }
+    },
+    "camp": {
+      "description": "One of Team A's camps; Team B's is its mirror (Battleground Bible §7, §17).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["species", "count", "center", "spawnSeconds", "respawnSeconds", "leashRadius", "spacing"],
+      "properties": {
+        "species": {"description": "A species in wildlife.species.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"},
+        "count": {"description": "How many creatures of its species it holds.", "type": "integer", "minimum": 1},
+        "center": {"$ref": "#/definitions/point", "description": "Where it sits: its leash's centre."},
+        "spawnSeconds": {"description": "When it first spawns, in match-clock seconds (§17: two spawn groups, 0:55 and 1:07).", "type": "number", "minimum": 0},
+        "respawnSeconds": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How long after its last creature dies it spawns again (§17: each camp on its own timer)."},
+        "leashRadius": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How far from its centre its creatures fight before they walk home and heal (§17)."},
+        "spacing": {"type": "number", "minimum": 0, "description": "With several creatures, how far from the centre each stands."}
+      }
+    },
     "fluxbornDefinition": {
       "description": "One kind of Fluxborn (Battleground Bible §4; ADR-011 §7).",
       "type": "object",
@@ -145,7 +179,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "layout": {
       "description": "The grey-box battleground (Battleground Bible §2, macro shape ruled 2026-09-28): bases in opposite corners, top and bot lanes along the sides set in from the edge with outer jungle beyond, mid on the diagonal, the river across the other diagonal. Team A's half is authored; Team B's is its mirror across Y = -X.",
@@ -302,6 +336,94 @@
         "siegeUnits": { "description": "Added to the waves that bring siege units, behind the front line.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/waveUnits" } },
         "inhibitorDownUnits": { "description": "Added to each wave of a lane whose enemy inhibitor is down (§18).", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/waveUnits" } },
         "unitIntervalSeconds": { "description": "Seconds between one unit of a wave leaving the base and the next, so they walk out in a file.", "type": "number", "minimum": 0 }
+      }
+    },
+    "wildlife": {
+      "description": "The jungle's wildlife (Battleground Bible §7, §8, §17; ADR-014 §2).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "species", "ai", "camps"],
+      "properties": {
+        "provenance": {"$ref": "#/definitions/provenance"},
+        "species": {
+          "description": "Every species, keyed by its stable ID.",
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": {
+            "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {"$ref": "#/definitions/wildlifeSpecies"}
+          }
+        },
+        "ai": {
+          "description": "How every creature's server controller behaves.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["thinkSeconds", "corpseSeconds"],
+          "properties": {
+            "thinkSeconds": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How often it reconsiders its target, in seconds of world time."},
+            "corpseSeconds": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How long a fallen creature's body stays."}
+          }
+        },
+        "camps": {
+          "description": "Team A's camps; Team B's are their mirror.",
+          "type": "array",
+          "minItems": 0,
+          "items": {"$ref": "#/definitions/camp"}
+        }
+      }
+    },
+    "fluxWells": {
+      "description": "The North and South Flux Wells (Battleground Bible §6; ADR-014 §4). What a secure grants is Flux.json's and Economy.json's.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "sites", "timing", "maxHealth", "armor", "magicResist", "capsuleRadius", "capsuleHalfHeight", "radius", "presence", "regeneration"],
+      "properties": {
+        "provenance": {"$ref": "#/definitions/provenance"},
+        "sites": {
+          "description": "Where each Well stands: on the river, so each is its own mirror.",
+          "type": "array",
+          "minItems": 0,
+          "items": {"$ref": "#/definitions/point"}
+        },
+        "timing": {
+          "description": "Opening and cycle (§6: they open at 6:00, and a secured Well waits 5 minutes).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "openSeconds", "respawnSeconds"],
+          "properties": {
+            "provenance": {"$ref": "#/definitions/provenance"},
+            "openSeconds": {"type": "number", "minimum": 0, "description": "When the Wells first open, in match-clock seconds."},
+            "respawnSeconds": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How long after its secure a Well opens again."}
+          }
+        },
+        "maxHealth": {"type": "number", "minimum": 0, "exclusiveMinimum": true},
+        "armor": {"type": "number", "minimum": 0},
+        "magicResist": {"type": "number", "minimum": 0},
+        "capsuleRadius": {"type": "number", "minimum": 0, "exclusiveMinimum": true},
+        "capsuleHalfHeight": {"type": "number", "minimum": 0, "exclusiveMinimum": true},
+        "radius": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How near its centre a Vanguard must stand to count as present."},
+        "presence": {
+          "description": "How allied Vanguards standing at an open Well drain it (§6).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tickSeconds", "drainPerSecond", "drainPerAdditional", "maxCounted", "contestedFactor"],
+          "properties": {
+            "tickSeconds": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How often presence drains it, in seconds of world time."},
+            "drainPerSecond": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "Health drained per second by one Vanguard alone."},
+            "drainPerAdditional": {"type": "number", "minimum": 0, "description": "Added per second by each further Vanguard counted."},
+            "maxCounted": {"description": "The most Vanguards of one side that count (§6: a dogpile is not required).", "type": "integer", "minimum": 1},
+            "contestedFactor": {"description": "Contested, the side with more drains at this fraction of the rate for its lead; equal sides stall it.", "type": "number", "minimum": 0, "maximum": 1}
+          }
+        },
+        "regeneration": {
+          "description": "An open Well nobody works on heals.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["idleSeconds", "fractionPerSecond"],
+          "properties": {
+            "idleSeconds": {"type": "number", "minimum": 0, "description": "How long without damage or presence before it heals."},
+            "fractionPerSecond": {"type": "number", "minimum": 0, "description": "Health restored per second, as a fraction of its Max Health."}
+          }
+        }
       }
     },
     "replication": {

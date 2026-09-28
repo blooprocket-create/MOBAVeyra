@@ -9,20 +9,25 @@ namespace VeyraRewards
 TArray<FString> Validate(const FVeyraEconomyTuning& Tuning)
 {
 	TArray<FString> Problems;
-	for (const TPair<FVeyraContentId, double>& Gold : Tuning.Gold.Fluxborn)
-	{
-		if (!Tuning.Experience.Fluxborn.Contains(Gold.Key))
+	// Every Fluxborn, and every species of wildlife, that pays Gold gives XP, and the reverse.
+	const auto CheckPaired = [&Problems](const TMap<FVeyraContentId, double>& Gold, const TMap<FVeyraContentId, double>& Experience, const TCHAR* Field) {
+		for (const TPair<FVeyraContentId, double>& Entry : Gold)
 		{
-			Problems.Add(FString::Printf(TEXT("/experience/fluxborn: %s has Gold but no XP"), *Gold.Key.ToString()));
+			if (!Experience.Contains(Entry.Key))
+			{
+				Problems.Add(FString::Printf(TEXT("/experience/%s: %s has Gold but no XP"), Field, *Entry.Key.ToString()));
+			}
 		}
-	}
-	for (const TPair<FVeyraContentId, double>& Experience : Tuning.Experience.Fluxborn)
-	{
-		if (!Tuning.Gold.Fluxborn.Contains(Experience.Key))
+		for (const TPair<FVeyraContentId, double>& Entry : Experience)
 		{
-			Problems.Add(FString::Printf(TEXT("/gold/fluxborn: %s has XP but no Gold"), *Experience.Key.ToString()));
+			if (!Gold.Contains(Entry.Key))
+			{
+				Problems.Add(FString::Printf(TEXT("/gold/%s: %s has XP but no Gold"), Field, *Entry.Key.ToString()));
+			}
 		}
-	}
+	};
+	CheckPaired(Tuning.Gold.Fluxborn, Tuning.Experience.Fluxborn, TEXT("fluxborn"));
+	CheckPaired(Tuning.Gold.Wildlife, Tuning.Experience.Wildlife, TEXT("wildlife"));
 	return Problems;
 }
 

@@ -46,6 +46,15 @@ namespace VeyraLayout
 	/** The length of the path through Points. */
 	VEYRAWORLD_API double Length(TConstArrayView<FVeyraMapPoint> Points);
 
+	/** How far Point lies from the path through Points: from its nearest segment. */
+	VEYRAWORLD_API double DistanceToPath(TConstArrayView<FVeyraMapPoint> Points, const FVector2D& Point);
+
+	/**
+	 * How far Point lies from the river's diagonal, Y = -X, toward Team A's base: positive on Team A's
+	 * half, negative on Team B's.
+	 */
+	VEYRAWORLD_API double DepthInTeamAHalf(const FVeyraBattlegroundLayout& Layout, const FVector2D& Point);
+
 	/** The point Distance along the path through Points, clamped to its ends. */
 	VEYRAWORLD_API FVector2D PointAlong(TConstArrayView<FVeyraMapPoint> Points, double Distance);
 

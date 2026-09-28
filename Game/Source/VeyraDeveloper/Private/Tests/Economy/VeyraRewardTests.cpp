@@ -86,6 +86,20 @@ namespace VeyraEconomyTests
 			{
 				ASSERT_THAT(IsTrue(UVeyraEconomyTuningSubsystem::Get().Gold.Fluxborn.Contains(Unit.Key), Unit.Key.ToString()));
 			}
+			// And every species of wildlife (Economy §7).
+			for (const TPair<FVeyraContentId, FVeyraWildlifeSpecies>& Species : UVeyraWorldTuningSubsystem::Get().Wildlife.Species)
+			{
+				ASSERT_THAT(IsTrue(UVeyraEconomyTuningSubsystem::Get().Gold.Wildlife.Contains(Species.Key), Species.Key.ToString()));
+			}
+		}
+
+		TEST_METHOD(WildlifeGoldAndXpComeInPairs)
+		{
+			FVeyraEconomyTuning Broken = UVeyraEconomyTuningSubsystem::Get();
+			const FVeyraContentId Lone = FVeyraContentId::FromText(TEXT("lone_creature")).GetValue();
+			Broken.Gold.Wildlife.Add(Lone, 1.0);
+			const TArray<FString> Problems = VeyraRewards::Validate(Broken);
+			ASSERT_THAT(IsTrue(Problems.Num() == 1 && Problems[0].StartsWith(TEXT("/experience/wildlife: lone_creature has Gold but no XP")), FString::Join(Problems, TEXT(" | "))));
 		}
 	};
 

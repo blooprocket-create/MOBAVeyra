@@ -103,6 +103,37 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/lanes/2/spireDistances: Team A's structures must stay on its half")), All));
 			ASSERT_THAT(IsTrue(Mentions(TEXT("/layout/base: every point must lie on the floor")), All));
 		}
+
+		TEST_METHOD(DistancesToAPathAndIntoTeamAsHalf)
+		{
+			const TArray<FVeyraMapPoint> Path = { { 0.0, 0.0 }, { 100.0, 0.0 }, { 100.0, 100.0 } };
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraLayout::DistanceToPath(Path, FVector2D(50.0, 30.0)), 30.0, Tolerance)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraLayout::DistanceToPath(Path, FVector2D(130.0, 50.0)), 30.0, Tolerance), TEXT("the nearest segment")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraLayout::DistanceToPath(Path, FVector2D(-40.0, 0.0)), 40.0, Tolerance), TEXT("beyond an end")));
+			// Team A's base is at negative X and Y in the committed layout.
+			const FVeyraBattlegroundLayout& Layout = Committed();
+			ASSERT_THAT(IsTrue(VeyraLayout::DepthInTeamAHalf(Layout, FVector2D(-100.0, -100.0)) > 0.0));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraLayout::DepthInTeamAHalf(Layout, FVector2D(300.0, -300.0)), 0.0, Tolerance), TEXT("on the river")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraLayout::DepthInTeamAHalf(Layout, FVector2D(100.0, 100.0)), -200.0 / UE_SQRT_2, Tolerance)));
+		}
+
+		TEST_METHOD(CampsStayOnTeamAsHalfOffTheLanesAndWellsOnTheRiver)
+		{
+			FVeyraWorldTuning Broken = UVeyraWorldTuningSubsystem::Get();
+			ASSERT_THAT(IsTrue(Broken.Wildlife.Camps.Num() >= 3 && !Broken.FluxWells.Sites.IsEmpty()));
+			// On Team B's half; on the mid lane; of no species.
+			Broken.Wildlife.Camps[0].Center = { 3000.0, 3000.0 };
+			Broken.Wildlife.Camps[1].Center = { -2000.0, -2000.0 };
+			Broken.Wildlife.Camps[2].Species = FVeyraContentId::FromText(TEXT("unicorn")).GetValue();
+			Broken.FluxWells.Sites[0] = { 3000.0, -1000.0 };
+			const TArray<FString> Problems = VeyraWorld::Validate(Broken);
+			const FString All = FString::Join(Problems, TEXT(" | "));
+			const auto Mentions = [&Problems](const TCHAR* Text) { return Problems.ContainsByPredicate([Text](const FString& Problem) { return Problem.Contains(Text); }); };
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/wildlife/camps/0/center: the camp must lie on Team A's half")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/wildlife/camps/1/center: the camp's leash must stay clear of the EVeyraLane::Mid lane")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/wildlife/camps/2/species: unicorn is no species")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/fluxWells/sites/0: must lie on the river")), All));
+		}
 	};
 
 	// Veyra.Flux.FluxTuning.*: the committed Flux.json loads, and a grant's duration matches its kind.

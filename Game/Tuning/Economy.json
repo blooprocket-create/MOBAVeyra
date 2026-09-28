@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "gold": {
     "provenance": "Provisional",
     "starting": 500,
@@ -9,7 +9,9 @@
     "assistPoolFraction": 0.5,
     "firstBloodFraction": 0.5,
     "structurePool": 250,
-    "firstStructureBonus": 100
+    "firstStructureBonus": 100,
+    "wildlife": { "ashfang": 80, "stonehorn": 80, "skittermaw": 28, "miremother": 80, "razorback": 80, "gloomwing": 80 },
+    "fluxWellPool": 80
   },
   "passiveGold": {
     "provenance": "Provisional",
@@ -20,6 +22,7 @@
   "experience": {
     "provenance": "Provisional",
     "fluxborn": { "strider": 60, "spark": 30, "breaker": 93 },
+    "wildlife": { "ashfang": 100, "stonehorn": 100, "skittermaw": 34, "miremother": 100, "razorback": 100, "gloomwing": 100 },
     "sharedPoolFraction": 1.2,
     "killBase": 60,
     "killPerLevel": 30,

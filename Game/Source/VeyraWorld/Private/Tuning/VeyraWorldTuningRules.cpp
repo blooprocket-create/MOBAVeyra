@@ -146,6 +146,80 @@ TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
 	CheckUnits(Waves.Units, TEXT("units"));
 	CheckUnits(Waves.SiegeUnits, TEXT("siegeUnits"));
 	CheckUnits(Waves.InhibitorDownUnits, TEXT("inhibitorDownUnits"));
+
+	// Wildlife (Battleground Bible §7, §8, §17; ADR-014 §2).
+	const FVeyraWildlifeTuning& Wildlife = Tuning.Wildlife;
+	for (const TPair<FVeyraContentId, FVeyraWildlifeSpecies>& Species : Wildlife.Species)
+	{
+		const FString Pointer = TEXT("/wildlife/species/") + Species.Key.ToString();
+		for (const FString& AttackProblem : VeyraBasicAttacks::Validate(Species.Value.BasicAttack))
+		{
+			Problems.Add(Pointer + TEXT("/basicAttack: ") + AttackProblem);
+		}
+		if (Species.Value.CapsuleHalfHeight < Species.Value.CapsuleRadius)
+		{
+			Problems.Add(Pointer + TEXT("/capsuleHalfHeight: must be at least capsuleRadius"));
+		}
+	}
+	// Each of Team A's camps, its leash and all, on the floor, on Team A's half clear of the river, and
+	// clear of every lane; Team B's are their mirror, so they are too.
+	for (int32 Index = 0; Index < Wildlife.Camps.Num(); ++Index)
+	{
+		const FVeyraCampTuning& Camp = Wildlife.Camps[Index];
+		const FString Pointer = FString::Printf(TEXT("/wildlife/camps/%d"), Index);
+		if (!Tuning.FindSpecies(Camp.Species))
+		{
+			Problems.Add(Pointer + FString::Printf(TEXT("/species: %s is no species of wildlife"), *Camp.Species.ToString()));
+		}
+		const FVector2D Center = VeyraLayout::ToVector(Camp.Center);
+		const double Reach = Camp.LeashRadius;
+		if (FMath::Abs(Center.X) + Reach > Layout.HalfExtent || FMath::Abs(Center.Y) + Reach > Layout.HalfExtent)
+		{
+			Problems.Add(Pointer + TEXT("/center: the camp's leash must lie on the floor"));
+		}
+		if (VeyraLayout::DepthInTeamAHalf(Layout, Center) < Layout.RiverWidth / 2.0 + Reach)
+		{
+			Problems.Add(Pointer + TEXT("/center: the camp must lie on Team A's half, its leash clear of the river"));
+		}
+		for (const FVeyraLaneLayout& Lane : Layout.Lanes)
+		{
+			if (VeyraLayout::DistanceToPath(Lane.Points, Center) < Lane.Width / 2.0 + Reach)
+			{
+				Problems.Add(Pointer + FString::Printf(TEXT("/center: the camp's leash must stay clear of the %s lane"), *UEnum::GetValueAsString(Lane.Lane)));
+			}
+		}
+		if (Camp.Count > 1 && Camp.Spacing >= Reach)
+		{
+			Problems.Add(Pointer + TEXT("/spacing: the creatures must stand inside the camp's leash"));
+		}
+	}
+
+	// The Flux Wells stand on the river, each its own mirror, clear of every lane (§6; ADR-014 §4).
+	const FVeyraFluxWellsTuning& Wells = Tuning.FluxWells;
+	for (int32 Index = 0; Index < Wells.Sites.Num(); ++Index)
+	{
+		const FString Pointer = FString::Printf(TEXT("/fluxWells/sites/%d"), Index);
+		const FVector2D Site = VeyraLayout::ToVector(Wells.Sites[Index]);
+		if (!IsOnFloor(Wells.Sites[Index], Layout.HalfExtent))
+		{
+			Problems.Add(Pointer + TEXT(": must lie on the floor"));
+		}
+		if (FMath::Abs(VeyraLayout::DepthInTeamAHalf(Layout, Site)) > Layout.RiverWidth / 2.0)
+		{
+			Problems.Add(Pointer + TEXT(": must lie on the river, so both teams reach it alike"));
+		}
+		for (const FVeyraLaneLayout& Lane : Layout.Lanes)
+		{
+			if (VeyraLayout::DistanceToPath(Lane.Points, Site) < Lane.Width / 2.0 + Wells.Radius)
+			{
+				Problems.Add(Pointer + FString::Printf(TEXT(": the Well's radius must stay clear of the %s lane"), *UEnum::GetValueAsString(Lane.Lane)));
+			}
+		}
+	}
+	if (Wells.CapsuleRadius >= Wells.Radius)
+	{
+		Problems.Add(TEXT("/fluxWells/radius: must reach beyond the Well's body"));
+	}
 	return Problems;
 }
 }

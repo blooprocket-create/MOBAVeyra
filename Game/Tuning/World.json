@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "layout": {
     "provenance": "Provisional",
     "halfExtent": 9000,
@@ -126,5 +126,301 @@
   "replication": {
     "provenance": "Provisional",
     "fluxbornUpdateEveryServerTicks": 3
+  },
+  "wildlife": {
+    "provenance": "Provisional",
+    "species": {
+      "ashfang": {
+        "stats": {
+          "maxHealth": 1400,
+          "healthRegen": 0,
+          "maxResource": 0,
+          "resourceRegen": 0,
+          "armor": 15,
+          "magicResist": 10,
+          "physicalPower": 45,
+          "magicPower": 0,
+          "attackSpeed": 0.65,
+          "moveSpeed": 350
+        },
+        "basicAttack": {
+          "range": 150,
+          "damageType": "Physical",
+          "physicalPowerRatio": 1,
+          "magicPowerRatio": 0,
+          "windupFraction": 0.3,
+          "acquisitionRadius": 500,
+          "minimumIntervalSeconds": 0,
+          "projectile": [],
+          "cleave": []
+        },
+        "capsuleRadius": 55,
+        "capsuleHalfHeight": 70,
+        "traits": [
+          "ashfang_trait"
+        ]
+      },
+      "stonehorn": {
+        "stats": {
+          "maxHealth": 1800,
+          "healthRegen": 0,
+          "maxResource": 0,
+          "resourceRegen": 0,
+          "armor": 30,
+          "magicResist": 20,
+          "physicalPower": 55,
+          "magicPower": 0,
+          "attackSpeed": 0.5,
+          "moveSpeed": 300
+        },
+        "basicAttack": {
+          "range": 170,
+          "damageType": "Physical",
+          "physicalPowerRatio": 1,
+          "magicPowerRatio": 0,
+          "windupFraction": 0.3,
+          "acquisitionRadius": 500,
+          "minimumIntervalSeconds": 0,
+          "projectile": [],
+          "cleave": []
+        },
+        "capsuleRadius": 65,
+        "capsuleHalfHeight": 80,
+        "traits": [
+          "stonehorn_trait"
+        ]
+      },
+      "skittermaw": {
+        "stats": {
+          "maxHealth": 480,
+          "healthRegen": 0,
+          "maxResource": 0,
+          "resourceRegen": 0,
+          "armor": 5,
+          "magicResist": 5,
+          "physicalPower": 16,
+          "magicPower": 0,
+          "attackSpeed": 1.0,
+          "moveSpeed": 380
+        },
+        "basicAttack": {
+          "range": 110,
+          "damageType": "Physical",
+          "physicalPowerRatio": 1,
+          "magicPowerRatio": 0,
+          "windupFraction": 0.3,
+          "acquisitionRadius": 500,
+          "minimumIntervalSeconds": 0,
+          "projectile": [],
+          "cleave": []
+        },
+        "capsuleRadius": 30,
+        "capsuleHalfHeight": 40,
+        "traits": [
+          "skittermaw_trait"
+        ]
+      },
+      "miremother": {
+        "stats": {
+          "maxHealth": 1500,
+          "healthRegen": 0,
+          "maxResource": 0,
+          "resourceRegen": 0,
+          "armor": 10,
+          "magicResist": 20,
+          "physicalPower": 40,
+          "magicPower": 0,
+          "attackSpeed": 0.6,
+          "moveSpeed": 300
+        },
+        "basicAttack": {
+          "range": 175,
+          "damageType": "Physical",
+          "physicalPowerRatio": 1,
+          "magicPowerRatio": 0,
+          "windupFraction": 0.3,
+          "acquisitionRadius": 500,
+          "minimumIntervalSeconds": 0,
+          "projectile": [],
+          "cleave": []
+        },
+        "capsuleRadius": 60,
+        "capsuleHalfHeight": 70,
+        "traits": [
+          "miremother_trait"
+        ]
+      },
+      "razorback": {
+        "stats": {
+          "maxHealth": 1600,
+          "healthRegen": 0,
+          "maxResource": 0,
+          "resourceRegen": 0,
+          "armor": 25,
+          "magicResist": 15,
+          "physicalPower": 60,
+          "magicPower": 0,
+          "attackSpeed": 0.55,
+          "moveSpeed": 330
+        },
+        "basicAttack": {
+          "range": 160,
+          "damageType": "Physical",
+          "physicalPowerRatio": 1,
+          "magicPowerRatio": 0,
+          "windupFraction": 0.3,
+          "acquisitionRadius": 500,
+          "minimumIntervalSeconds": 0,
+          "projectile": [],
+          "cleave": []
+        },
+        "capsuleRadius": 60,
+        "capsuleHalfHeight": 70,
+        "traits": [
+          "razorback_trait"
+        ]
+      },
+      "gloomwing": {
+        "stats": {
+          "maxHealth": 1200,
+          "healthRegen": 0,
+          "maxResource": 0,
+          "resourceRegen": 0,
+          "armor": 10,
+          "magicResist": 10,
+          "physicalPower": 40,
+          "magicPower": 0,
+          "attackSpeed": 0.7,
+          "moveSpeed": 360
+        },
+        "basicAttack": {
+          "range": 150,
+          "damageType": "Physical",
+          "physicalPowerRatio": 1,
+          "magicPowerRatio": 0,
+          "windupFraction": 0.3,
+          "acquisitionRadius": 500,
+          "minimumIntervalSeconds": 0,
+          "projectile": [],
+          "cleave": []
+        },
+        "capsuleRadius": 50,
+        "capsuleHalfHeight": 60,
+        "traits": []
+      }
+    },
+    "ai": {
+      "thinkSeconds": 0.25,
+      "corpseSeconds": 1
+    },
+    "camps": [
+      {
+        "species": "ashfang",
+        "count": 1,
+        "center": {
+          "x": 1500,
+          "y": -4500
+        },
+        "spawnSeconds": 55,
+        "respawnSeconds": 150,
+        "leashRadius": 800,
+        "spacing": 0
+      },
+      {
+        "species": "stonehorn",
+        "count": 1,
+        "center": {
+          "x": -1200,
+          "y": -3800
+        },
+        "spawnSeconds": 67,
+        "respawnSeconds": 150,
+        "leashRadius": 800,
+        "spacing": 0
+      },
+      {
+        "species": "skittermaw",
+        "count": 3,
+        "center": {
+          "x": -4500,
+          "y": 1500
+        },
+        "spawnSeconds": 55,
+        "respawnSeconds": 150,
+        "leashRadius": 800,
+        "spacing": 150
+      },
+      {
+        "species": "miremother",
+        "count": 1,
+        "center": {
+          "x": -3800,
+          "y": -1200
+        },
+        "spawnSeconds": 67,
+        "respawnSeconds": 150,
+        "leashRadius": 800,
+        "spacing": 0
+      },
+      {
+        "species": "razorback",
+        "count": 1,
+        "center": {
+          "x": 2500,
+          "y": -8000
+        },
+        "spawnSeconds": 55,
+        "respawnSeconds": 150,
+        "leashRadius": 800,
+        "spacing": 0
+      },
+      {
+        "species": "gloomwing",
+        "count": 1,
+        "center": {
+          "x": -8000,
+          "y": 2500
+        },
+        "spawnSeconds": 67,
+        "respawnSeconds": 150,
+        "leashRadius": 800,
+        "spacing": 0
+      }
+    ]
+  },
+  "fluxWells": {
+    "provenance": "Provisional",
+    "sites": [
+      {
+        "x": 3000,
+        "y": -3000
+      },
+      {
+        "x": -3000,
+        "y": 3000
+      }
+    ],
+    "timing": {
+      "provenance": "Canon",
+      "openSeconds": 360,
+      "respawnSeconds": 300
+    },
+    "maxHealth": 4000,
+    "armor": 40,
+    "magicResist": 40,
+    "capsuleRadius": 120,
+    "capsuleHalfHeight": 120,
+    "radius": 700,
+    "presence": {
+      "tickSeconds": 0.5,
+      "drainPerSecond": 50,
+      "drainPerAdditional": 25,
+      "maxCounted": 3,
+      "contestedFactor": 0.5
+    },
+    "regeneration": {
+      "idleSeconds": 5,
+      "fractionPerSecond": 0.02
+    }
   }
 }

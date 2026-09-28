@@ -68,6 +68,12 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Economy", "/gold/fluxborn/#", "World", ("/fluxborn/units",)),
     ("Economy", "/experience/fluxborn/#", "World", ("/fluxborn/units",)),
     ("World", "/fluxborn/units/#", "Economy", ("/gold/fluxborn",)),
+    # Wildlife likewise: every species is paid for and named where its camps and traits are.
+    ("Economy", "/gold/wildlife/#", "World", ("/wildlife/species",)),
+    ("Economy", "/experience/wildlife/#", "World", ("/wildlife/species",)),
+    ("World", "/wildlife/species/#", "Economy", ("/gold/wildlife",)),
+    ("World", "/wildlife/camps/*/species", "World", ("/wildlife/species",)),
+    ("World", "/wildlife/species/*/traits/*", "Abilities", ("/statuses",)),
     # Recipes name items, Attunements their maps, Actives the abilities; consumables are items.
     ("Items", "/items/*/components/*", "Items", ("/items",)),
     ("Items", "/items/*/attunement/*", "Items", ("/weightOfWar", "/overcharge", "/spoolUp", "/overcycle")),
