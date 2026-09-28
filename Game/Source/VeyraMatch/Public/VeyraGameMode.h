@@ -156,7 +156,7 @@ private:
 
 	void OnLoadingTimedOut();
 
-	/** Adds the assignment's bots on their sides, each walking with a UVeyraBotWanderComponent (ADR-010 §7). */
+	/** Adds the assignment's bots on their sides as playing bots, each with its difficulty (ADR-010 §7, ADR-013 §2). */
 	void AddAssignedBots();
 
 	void BeginPreparation();

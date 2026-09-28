@@ -9,7 +9,8 @@
   "positioning": {
     "provenance": "Provisional",
     "followDistance": 350,
-    "holdTolerance": 150
+    "holdTolerance": 150,
+    "leaveFountainHealthFraction": 0.9
   },
   "difficulties": {
     "beginner": {

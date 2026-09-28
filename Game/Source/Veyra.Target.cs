@@ -38,6 +38,9 @@ public class VeyraTarget : TargetRules
 		// A monolithic Win64 link outgrew the linker's default 4 KB PDB pages (LNK1318, "LIMIT (12)"),
 		// as UnrealBuildTool warns monolithic game builds may. Larger pages allow a larger PDB; the
 		// option is the linker's alone, so nothing recompiles.
-		Target.WindowsPlatform.PdbPageSize = 8192;
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			Target.WindowsPlatform.PdbPageSize = 8192;
+		}
 	}
 }

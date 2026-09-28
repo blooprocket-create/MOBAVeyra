@@ -69,6 +69,9 @@ public:
 
 	const TArray<TObjectPtr<AVeyraStructure>>& GetStructures() const { return Structures; }
 
+	/** The layout the structures were spawned from, whose lanes the Fluxborn walk; null before they spawn. */
+	const FVeyraBattlegroundLayout* GetLayout() const { return Layout.GetPtrOrNull(); }
+
 	/** The structure of Kind on Team, in Lane (none for the base), at Order; null if there is none. */
 	AVeyraStructure* FindStructure(EVeyraTeam Team, EVeyraStructureKind Kind, TOptional<EVeyraLane> Lane, int32 Order) const;
 

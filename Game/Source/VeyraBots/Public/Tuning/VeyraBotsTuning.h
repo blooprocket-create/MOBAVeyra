@@ -82,6 +82,10 @@ struct FVeyraBotPositioningTuning
 	/** How far from its spot a bot may stand before it walks back, in units. */
 	UPROPERTY()
 	double HoldTolerance = 0.0;
+
+	/** A bot that retreated heals at its fountain to this fraction of Max Health before it goes back. */
+	UPROPERTY()
+	double LeaveFountainHealthFraction = 0.0;
 };
 
 /** One behaviour (Custom Matches Bible §3): how a bot plays, never the rules. */

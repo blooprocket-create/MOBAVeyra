@@ -19,7 +19,7 @@ Every gameplay balance, timing, range, cost and cap value lives here as validate
 | `Vanguards.json` | `VeyraVanguards` | Vanguard definitions, and one map per unique passive (ADR-008 §2, §5). |
 | `Flux.json` | `VeyraFlux` | What each source of Team Flux grants, and how active Team Flux strengthens Fluxborn ([ADR-011](../../Docs/ADR/ADR-011-battleground-runtime.md) §10). |
 | `World.json` | `VeyraWorld` | The battleground's grey-box layout, which the map commandlet bakes and the server spawns from; structures, inhibitor rebuilds, Prime Well regeneration, tower attacks and backdoor protection; the Fluxborn, how they think, and the wave schedule (ADR-011 §7–§9, §12, §17). |
-| `Match.json` | `VeyraMatch` | Teams, phases, respawn, fountain recovery, Recall's channel ([ADR-012](../../Docs/ADR/ADR-012-items-and-shop.md) §8), abandonment, order limits, how bots wander, and the developer match. |
+| `Match.json` | `VeyraMatch` | Teams, phases, respawn, fountain recovery, Recall's channel ([ADR-012](../../Docs/ADR/ADR-012-items-and-shop.md) §8), abandonment, order limits, and the developer match. |
 
 What players read about Vanguards, their abilities and passives is text, not tuning: it lives in `Game/Text/VeyraText.csv`, a string table VeyraUI reads, and carries no numbers.
 

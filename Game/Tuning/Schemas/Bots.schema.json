@@ -86,11 +86,12 @@
       "description": "Where a bot stands in its lane (ADR-013 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "followDistance", "holdTolerance"],
+      "required": ["provenance", "followDistance", "holdTolerance", "leaveFountainHealthFraction"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "followDistance": { "description": "How far behind its wave's front, toward its own base, a bot holds, in units.", "type": "number", "minimum": 0 },
-        "holdTolerance": { "description": "How far from its spot a bot may stand before it walks back, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+        "holdTolerance": { "description": "How far from its spot a bot may stand before it walks back, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "leaveFountainHealthFraction": { "description": "A bot that retreated heals at its fountain to this fraction of Max Health before it goes back.", "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
     "difficulties": {

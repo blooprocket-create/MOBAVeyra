@@ -8,7 +8,6 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Battleground/VeyraBattlegroundLink.h"
 #include "Casting/VeyraCastStateComponent.h"
-#include "Bots/VeyraBotWanderComponent.h"
 #include "Bots/VeyraMatchEvents.h"
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
@@ -751,17 +750,8 @@ void AVeyraGameMode::AddAssignedBots()
 	for (int32 Index = 0; Index < Assignment.Bots.Num(); ++Index)
 	{
 		const FVeyraAssignedBot& Bot = Assignment.Bots[Index];
-		const AVeyraPlayerState* Participant = AddPlayingBot(FString::Printf(TEXT("Bot %d"), Index + 1), Bot.Side, Bot.VanguardId, Bot.Difficulty);
-		AVeyraVanguardController* Controller = Participant ? Participant->GetVanguardController() : nullptr;
-		if (!Controller)
-		{
-			continue;
-		}
-		UVeyraBotWanderComponent* Wander = NewObject<UVeyraBotWanderComponent>(Controller);
-		// Each match's bots walk their own ways, the same ways each time that match is replayed.
-		Wander->SetSeed(static_cast<int32>(HashCombine(GetTypeHash(Assignment.MatchId), static_cast<uint32>(Index))));
-		Wander->RegisterComponent();
-		++Added;
+		// Announced as it is seated, so its brain attaches (ADR-013 §2).
+		Added += AddPlayingBot(FString::Printf(TEXT("Bot %d"), Index + 1), Bot.Side, Bot.VanguardId, Bot.Difficulty) ? 1 : 0;
 	}
 	// Game/Scripts/Smoke.ps1 checks this line in practice matches.
 	UE_CLOG(!Assignment.Bots.IsEmpty(), LogVeyraMatch, Display, TEXT("Added %d of the assignment's %d bot(s)."), Added, Assignment.Bots.Num());
