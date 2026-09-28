@@ -59,7 +59,7 @@ func newTestDeps(t *testing.T, devLogin bool) Deps {
 	parties := party.NewService(party.NewMemStore(), soc, party.Settings{
 		Rules: party.Rules{
 			MaxSize: 5,
-			Modes:   map[string]party.Mode{"casual_select": {ID: "casual_select", Enabled: true, HumanPlayersPerTeam: 5}},
+			Modes:   map[string]party.Mode{"casual_select": {ID: "casual_select", Enabled: true, HumanPlayersPerTeam: 5, Matchmade: true}},
 		},
 		InviteLifetime: time.Minute,
 		DefaultPrivacy: party.Private,

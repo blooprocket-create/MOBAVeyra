@@ -15,6 +15,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
@@ -30,6 +31,9 @@ type ModeInfo struct {
 	ID                  string `json:"id"`
 	Enabled             bool   `json:"enabled"`
 	HumanPlayersPerTeam int    `json:"humanPlayersPerTeam"`
+	// Matchmaking is casualSelect, or notImplemented for a mode that cannot be
+	// queued yet, which clients show as not yet available.
+	Matchmaking string `json:"matchmaking"`
 }
 
 // Deps are the handler dependencies.
@@ -44,8 +48,10 @@ type Deps struct {
 	// Selection is optional; without it no practice or champion-select routes
 	// are registered.
 	Selection *selection.Service
-	Modes     []ModeInfo
-	Ready     Pinger
+	// Matchmaking is optional; without it no Match Found routes are registered.
+	Matchmaking *matchmaking.Service
+	Modes       []ModeInfo
+	Ready       Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
@@ -83,6 +89,7 @@ func New(d Deps) http.Handler {
 	s.routeMatch(mux)
 	s.routeOnboarding(mux)
 	s.routeSelection(mux)
+	s.routeMatchFound(mux)
 	return mux
 }
 
@@ -244,6 +251,12 @@ var errorStatus = []struct {
 	{party.ErrInviteNotFound, http.StatusNotFound, "invite_not_found"},
 	{party.ErrPartyNotJoinable, http.StatusForbidden, "party_not_joinable"},
 	{party.ErrPartyNotFound, http.StatusNotFound, "party_not_found"},
+	{party.ErrModeUnavailable, http.StatusConflict, "mode_not_available"},
+
+	{matchmaking.ErrFoundNotFound, http.StatusNotFound, "match_found_not_found"},
+	{matchmaking.ErrAlreadyDecided, http.StatusConflict, "already_answered"},
+	{matchmaking.ErrFoundOver, http.StatusConflict, "match_found_over"},
+	{matchmaking.ErrExpired, http.StatusConflict, "expired"},
 
 	{account.ErrNotAStarter, http.StatusBadRequest, "not_a_starter"},
 	{account.ErrAlreadyChosen, http.StatusConflict, "already_completed"},
@@ -256,6 +269,8 @@ var errorStatus = []struct {
 	{selection.ErrAlreadyLocked, http.StatusConflict, "already_locked"},
 	{selection.ErrExpired, http.StatusConflict, "expired"},
 	{selection.ErrInvalidState, http.StatusConflict, "invalid_state"},
+	{selection.ErrTaken, http.StatusConflict, "taken"},
+	{selection.ErrCannotLeave, http.StatusConflict, "cannot_leave"},
 
 	{match.ErrUnknownMode, http.StatusBadRequest, "unknown_mode"},
 	{match.ErrInvalidRules, http.StatusBadRequest, "invalid_rules"},

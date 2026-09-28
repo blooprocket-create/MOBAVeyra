@@ -22,6 +22,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/httpapi"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/postgres"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
@@ -81,8 +82,9 @@ func run(log *slog.Logger) error {
 	rules := party.Rules{MaxSize: cfg.Party.MaxSize, Modes: map[string]party.Mode{}}
 	var modes []httpapi.ModeInfo
 	for _, m := range cfg.Modes {
-		rules.Modes[m.ID] = party.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam}
-		modes = append(modes, httpapi.ModeInfo{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam})
+		matchmade := m.Matchmaking == config.MatchmakingCasualSelect
+		rules.Modes[m.ID] = party.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam, Matchmade: matchmade}
+		modes = append(modes, httpapi.ModeInfo{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam, Matchmaking: m.Matchmaking})
 	}
 	parties := party.NewService(store.Party(), soc, party.Settings{
 		Rules:          rules,
@@ -112,7 +114,7 @@ func run(log *slog.Logger) error {
 		if errors.Is(err, party.ErrNotInParty) {
 			return false, nil
 		}
-		return err == nil && p.Status == party.Queued, err
+		return err == nil && p.Status.InMatchmaking(), err
 	})
 	selects := selection.NewService(store.Selection(), accounts, displayNames(svc), matches, queued, selection.Settings{
 		Practice: selection.PracticeSettings{
@@ -121,9 +123,23 @@ func run(log *slog.Logger) error {
 			HostSide:     match.Side(cfg.CustomPractice.HostSide),
 			PickDuration: cfg.CustomPractice.PickDuration,
 		},
+		Casual: selection.CasualSettings{
+			PickDuration:    cfg.CasualSelect.PickDuration,
+			PresenceTimeout: cfg.CasualSelect.PresenceTimeout,
+		},
 		StartingTimeout: cfg.Selection.StartingTimeout,
 	}, time.Now, log)
 	go selects.RunTicker(ctx, cfg.Selection.TickInterval)
+
+	mmSettings := matchmaking.Settings{AcceptDuration: cfg.MatchFound.AcceptDuration}
+	for _, m := range cfg.Modes {
+		if m.Enabled && m.Matchmaking == config.MatchmakingCasualSelect {
+			mmSettings.Modes = append(mmSettings.Modes, matchmaking.Mode{ID: m.ID, TeamSize: m.HumanPlayersPerTeam})
+		}
+	}
+	matchmaker := matchmaking.NewService(store.Matchmaking(), parties, soc, casualSelects{selects}, mmSettings, time.Now, log)
+	selects.SetMatchmaking(matchmaker)
+	go matchmaker.Run(ctx, cfg.Matchmaking.Interval)
 
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,
@@ -134,6 +150,7 @@ func run(log *slog.Logger) error {
 			Match:          matches,
 			Account:        accounts,
 			Selection:      selects,
+			Matchmaking:    matchmaker,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,
@@ -163,6 +180,17 @@ func run(log *slog.Logger) error {
 	defer cancel()
 	log.Info("shutting down")
 	return srv.Shutdown(shutdownCtx)
+}
+
+// casualSelects opens the matchmaker's Casual Selects.
+type casualSelects struct{ selects *selection.Service }
+
+func (c casualSelects) OpenCasual(ctx context.Context, mode string, seats []matchmaking.SelectSeat) (string, error) {
+	casual := make([]selection.CasualSeat, len(seats))
+	for i, seat := range seats {
+		casual[i] = selection.CasualSeat{AccountID: seat.AccountID, Side: seat.Side}
+	}
+	return c.selects.OpenCasual(ctx, mode, casual)
 }
 
 // newMatchService builds the match service with the configured allocator.

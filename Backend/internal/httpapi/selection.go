@@ -17,6 +17,7 @@ func (s *Server) routeSelection(mux *http.ServeMux) {
 	mux.HandleFunc("GET /v1/me/selects/{selectId}", s.authed(s.mySelectByID))
 	mux.HandleFunc("PUT /v1/me/select/hover", s.authed(s.hoverVanguard))
 	mux.HandleFunc("POST /v1/me/select/lock", s.authed(s.lockVanguard))
+	mux.HandleFunc("POST /v1/me/select/leave", s.authed(s.leaveSelect))
 }
 
 type selectSeatJSON struct {
@@ -82,10 +83,10 @@ func (s *Server) startPractice(w http.ResponseWriter, r *http.Request, actor str
 	writeJSON(w, http.StatusCreated, map[string]any{"select": s.toSelectJSON(session, actor)})
 }
 
-// mySelect answers "am I in a champion select": the client resumes one
-// after a restart.
+// mySelect answers "am I in a champion select": the client resumes one after
+// a restart, and polls it while picking, which is its presence there.
 func (s *Server) mySelect(w http.ResponseWriter, r *http.Request, actor string) {
-	session, ok, err := s.Selection.Current(r.Context(), actor)
+	session, ok, err := s.Selection.Poll(r.Context(), actor)
 	if err != nil {
 		s.fail(w, err)
 		return
@@ -116,6 +117,17 @@ func (s *Server) hoverVanguard(w http.ResponseWriter, r *http.Request, actor str
 		return
 	}
 	session, err := s.Selection.Hover(r.Context(), actor, req.VanguardID)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"select": s.toSelectJSON(session, actor)})
+}
+
+// leaveSelect leaves a Casual Select, which cancels it for everyone: a dodge
+// (Match Flow Bible §2). The others return to the queue.
+func (s *Server) leaveSelect(w http.ResponseWriter, r *http.Request, actor string) {
+	session, err := s.Selection.Leave(r.Context(), actor)
 	if err != nil {
 		s.fail(w, err)
 		return

@@ -26,6 +26,11 @@ const (
 
 var fixturePractice = PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA, PickDuration: fixturePick}
 
+var fixtureCasual = CasualSettings{PickDuration: 2 * fixturePick, PresenceTimeout: 10 * time.Second}
+
+// casualMode is a matchmade mode, one a side as in local play.
+const casualMode = "casual_select"
+
 type fixture struct {
 	svc      *Service
 	store    *MemStore
@@ -33,12 +38,26 @@ type fixture struct {
 	accounts *account.Service
 	alloc    *match.FakeAllocator
 	queued   map[string]bool
+	ends     *selectEnds
 	now      time.Time
+}
+
+// selectEnds records what matchmaking was told of each matchmade select's end.
+type selectEnds struct{ calls []selectEnd }
+
+type selectEnd struct {
+	accounts, leaving []string
+	started           bool
+}
+
+func (e *selectEnds) SelectEnded(_ context.Context, accounts, leaving []string, started bool) error {
+	e.calls = append(e.calls, selectEnd{accounts: accounts, leaving: leaving, started: started})
+	return nil
 }
 
 func newFixture(t *testing.T) *fixture {
 	t.Helper()
-	f := &fixture{store: NewMemStore(), alloc: match.NewFakeAllocator(), queued: map[string]bool{}, now: t0}
+	f := &fixture{store: NewMemStore(), alloc: match.NewFakeAllocator(), queued: map[string]bool{}, ends: &selectEnds{}, now: t0}
 	clock := func() time.Time { return f.now }
 	names := match.AccountsFunc(func(_ context.Context, ids []string) (map[string]string, error) {
 		out := map[string]string{}
@@ -48,7 +67,7 @@ func newFixture(t *testing.T) *fixture {
 		return out, nil
 	})
 	f.matches = match.NewService(match.NewMemStore(), names, f.alloc, match.Settings{
-		Modes:             map[string]match.Mode{},
+		Modes:             map[string]match.Mode{casualMode: {ID: casualMode, Enabled: true, HumanPlayersPerTeam: 1}},
 		Practice:          match.PracticeSettings{Enabled: true, Mode: fixturePractice.Mode, HostSide: fixturePractice.HostSide},
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,
@@ -62,8 +81,9 @@ func newFixture(t *testing.T) *fixture {
 		RotationSlots: 12, StandIn: catalog.StandInNone})
 	f.accounts = account.NewService(account.NewMemStore(), vanguards, clock)
 	parties := PartiesFunc(func(_ context.Context, id string) (bool, error) { return f.queued[id], nil })
-	f.svc = NewService(f.store, f.accounts, names, f.matches, parties, Settings{Practice: fixturePractice, StartingTimeout: fixtureStarting},
+	f.svc = NewService(f.store, f.accounts, names, f.matches, parties, Settings{Practice: fixturePractice, Casual: fixtureCasual, StartingTimeout: fixtureStarting},
 		clock, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	f.svc.SetMatchmaking(f.ends)
 	return f
 }
 
@@ -225,7 +245,7 @@ func TestAStuckStartIsSettled(t *testing.T) {
 	}
 	stuck := func(id string) Session {
 		s := f.practice(t, id)
-		_ = f.store.InTx(ctx, func(tx Tx) error {
+		_ = f.store.InTx(ctx, func(_ context.Context, tx Tx) error {
 			locked, _ := tx.LockSession(s.ID)
 			_ = locked.Lock(id, "cairn", f.now)
 			locked.BeginStarting(f.now)

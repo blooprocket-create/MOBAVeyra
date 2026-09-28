@@ -14,7 +14,7 @@ import (
 
 var testPartyRules = party.Rules{
 	MaxSize: 5,
-	Modes:   map[string]party.Mode{"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5}},
+	Modes:   map[string]party.Mode{"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5, Matchmade: true}},
 }
 
 type partyFixture struct {

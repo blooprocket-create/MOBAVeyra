@@ -21,14 +21,14 @@ func copySession(s Session) Session {
 	return s
 }
 
-func (m *MemStore) InTx(_ context.Context, fn func(Tx) error) error {
+func (m *MemStore) InTx(ctx context.Context, fn func(context.Context, Tx) error) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	snapshot := make(map[string]Session, len(m.sessions))
 	for k, v := range m.sessions {
 		snapshot[k] = copySession(v)
 	}
-	if err := fn(memTx{m}); err != nil {
+	if err := fn(ctx, memTx{m}); err != nil {
 		m.sessions = snapshot
 		return err
 	}

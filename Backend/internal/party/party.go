@@ -19,16 +19,25 @@ const (
 	Public  Privacy = "public"
 )
 
-// Status is the party's matchmaking state.
+// Status is the party's matchmaking state. Every status but Idle locks the
+// party: its composition is fixed from the moment the leader presses Find
+// Match until matchmaking lets it go (§2).
 type Status string
 
 const (
 	// Idle parties can change membership, mode and readiness.
 	Idle Status = "idle"
-	// Queued parties are locked: membership composition is fixed from the
-	// moment the leader presses Find Match (§2).
+	// Queued parties wait for the matchmaker.
 	Queued Status = "queued"
+	// Found parties are in a proposed match, waiting for every player to
+	// accept it (§3).
+	Found Status = "found"
+	// Selecting parties are in the champion select of an accepted match.
+	Selecting Status = "selecting"
 )
+
+// InMatchmaking reports whether the party is queued, found or selecting.
+func (s Status) InMatchmaking() bool { return s != Idle }
 
 // Errors describing rule violations. Callers map them to user-facing codes.
 var (
@@ -49,6 +58,8 @@ var (
 	ErrInviteNotFound   = errors.New("invitation not found or expired")
 	ErrPartyNotJoinable = errors.New("party is not open to join")
 	ErrPartyNotFound    = errors.New("party not found")
+	ErrModeUnavailable  = errors.New("the mode has no matchmaking yet")
+	ErrNotInQueue       = errors.New("the party is not where matchmaking expects it")
 )
 
 // Member is one party member.
@@ -65,6 +76,9 @@ type Party struct {
 	Mode     string // "" until the leader selects one
 	Privacy  Privacy
 	Status   Status
+	// QueuedAt is when the leader pressed Find Match; zero while idle. A
+	// party returned to the queue after a declined match keeps it.
+	QueuedAt time.Time
 	Members  []Member
 
 	isNew bool // created in this transaction and not yet stored
@@ -75,6 +89,9 @@ type Mode struct {
 	ID                  string
 	Enabled             bool
 	HumanPlayersPerTeam int
+	// Matchmade modes have a matchmaker; the others may be selected but not
+	// queued yet.
+	Matchmade bool
 }
 
 // Rules are the validated party settings the pure rules need.
@@ -138,9 +155,10 @@ func (p *Party) Remove(accountID string) (empty bool, err error) {
 	if len(p.Members) == 0 {
 		return true, nil
 	}
-	if p.Status == Queued {
-		p.Status = Idle
-		p.resetReady()
+	// A departure during matchmaking takes the party out of it; a proposed
+	// match or champion select it was in notices and is abandoned (§2–3).
+	if p.Status.InMatchmaking() {
+		p.ReturnToIdle()
 	}
 	if p.LeaderID == accountID {
 		p.LeaderID = replacementLeader(p.Members)
@@ -233,8 +251,9 @@ func (p *Party) TransferLeader(leaderID, targetID string) error {
 }
 
 // StartQueue is the leader pressing Find Match: every member Ready, a mode
-// selected and the party no larger than one team. It locks membership (§2).
-func (p *Party) StartQueue(leaderID string, rules Rules) error {
+// with a matchmaker selected, and the party no larger than one team. It locks
+// membership (§2).
+func (p *Party) StartQueue(leaderID string, rules Rules, now time.Time) error {
 	if err := p.requireLeader(leaderID); err != nil {
 		return err
 	}
@@ -248,6 +267,9 @@ func (p *Party) StartQueue(leaderID string, rules Rules) error {
 	if !ok || !mode.Enabled {
 		return ErrUnknownMode
 	}
+	if !mode.Matchmade {
+		return ErrModeUnavailable
+	}
 	if len(p.Members) > mode.HumanPlayersPerTeam {
 		return ErrTooManyForMode
 	}
@@ -256,7 +278,47 @@ func (p *Party) StartQueue(leaderID string, rules Rules) error {
 			return ErrNotAllReady
 		}
 	}
+	p.Status, p.QueuedAt = Queued, now
+	return nil
+}
+
+// ReturnToIdle takes the party out of matchmaking: it may change again, and
+// everyone readies up afresh before the next queue (§2–3).
+func (p *Party) ReturnToIdle() {
+	p.Status, p.QueuedAt = Idle, time.Time{}
+	p.resetReady()
+}
+
+// MarkFound puts a queued party into a proposed match.
+func (p *Party) MarkFound() error {
+	if p.Status != Queued {
+		return ErrNotInQueue
+	}
+	p.Status = Found
+	return nil
+}
+
+// Requeue returns a party to the queue after a proposed match or select it
+// was in fell through without it being at fault. It keeps its place: its
+// queue time and its members' Ready.
+//
+// PROVISIONAL (ADR-010 §11): the bible leaves "cross-party matchmaking
+// restoration" open; until ruled on, accepters keep their original queue time.
+func (p *Party) Requeue() error {
+	if p.Status != Found && p.Status != Selecting {
+		return ErrNotInQueue
+	}
 	p.Status = Queued
+	return nil
+}
+
+// MarkSelecting moves a party whose proposed match everyone accepted into its
+// champion select.
+func (p *Party) MarkSelecting() error {
+	if p.Status != Found {
+		return ErrNotInQueue
+	}
+	p.Status = Selecting
 	return nil
 }
 
@@ -272,7 +334,6 @@ func (p *Party) CancelQueue(leaderID string) error {
 	if p.Status != Queued {
 		return nil
 	}
-	p.Status = Idle
-	p.resetReady()
+	p.ReturnToIdle()
 	return nil
 }

@@ -19,8 +19,8 @@ type SelectionStore struct{ pool *pgxpool.Pool }
 // Selection returns the champion-select store.
 func (s *Store) Selection() *SelectionStore { return &SelectionStore{pool: s.pool} }
 
-func (s *SelectionStore) InTx(ctx context.Context, fn func(selection.Tx) error) error {
-	return inTx(ctx, s.pool, func(ctx context.Context, tx pgx.Tx) error { return fn(selectionTx{ctx: ctx, q: tx}) })
+func (s *SelectionStore) InTx(ctx context.Context, fn func(context.Context, selection.Tx) error) error {
+	return inTx(ctx, s.pool, func(ctx context.Context, tx pgx.Tx) error { return fn(ctx, selectionTx{ctx: ctx, q: tx}) })
 }
 
 type selectionTx struct {
@@ -30,16 +30,17 @@ type selectionTx struct {
 
 func (t selectionTx) CreateSession(s selection.Session) error {
 	if _, err := t.q.Exec(t.ctx, `
-		INSERT INTO selection.sessions (id, kind, mode, host_account_id, state, created_at, deadline, starting_at, ended_at, match_id, cancel_reason)
-		VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6, $7, $8, $9, $10::uuid, $11)`,
+		INSERT INTO selection.sessions (id, kind, mode, host_account_id, state, created_at, deadline, starting_at, ended_at, match_id, cancel_reason, left_by)
+		VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6, $7, $8, $9, $10::uuid, $11, $12::uuid)`,
 		s.ID, string(s.Kind), s.Mode, nullableText(s.HostAccountID), string(s.State), s.CreatedAt, s.Deadline, nullableTime(s.StartingAt),
-		nullableTime(s.EndedAt), nullableText(s.MatchID), nullableText(string(s.CancelReason))); err != nil {
+		nullableTime(s.EndedAt), nullableText(s.MatchID), nullableText(string(s.CancelReason)), nullableText(s.LeftBy)); err != nil {
 		return err
 	}
 	for i, seat := range s.Seats {
-		if _, err := t.q.Exec(t.ctx, `INSERT INTO selection.seats (session_id, account_id, display_name, side, seat_order, hover, locked, locked_at)
-			VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8)`,
-			s.ID, seat.AccountID, seat.DisplayName, string(seat.Side), i, nullableText(seat.Hover), nullableText(seat.Locked), nullableTime(seat.LockedAt)); err != nil {
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO selection.seats (session_id, account_id, display_name, side, seat_order, hover, locked, locked_at, last_seen)
+			VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9)`,
+			s.ID, seat.AccountID, seat.DisplayName, string(seat.Side), i, nullableText(seat.Hover), nullableText(seat.Locked), nullableTime(seat.LockedAt),
+			nullableTime(seat.LastSeen)); err != nil {
 			return err
 		}
 	}
@@ -66,9 +67,10 @@ func (t selectionTx) LockSession(id string) (selection.Session, error) {
 // SaveSession stores a session's changes. Seats never join or leave a session,
 // so only their picks change.
 func (t selectionTx) SaveSession(s selection.Session) error {
-	tag, err := t.q.Exec(t.ctx, `UPDATE selection.sessions SET state = $2, starting_at = $3, ended_at = $4, match_id = $5::uuid, cancel_reason = $6
-		WHERE id = $1::uuid`,
-		s.ID, string(s.State), nullableTime(s.StartingAt), nullableTime(s.EndedAt), nullableText(s.MatchID), nullableText(string(s.CancelReason)))
+	tag, err := t.q.Exec(t.ctx, `UPDATE selection.sessions SET state = $2, starting_at = $3, ended_at = $4, match_id = $5::uuid, cancel_reason = $6,
+		left_by = $7::uuid WHERE id = $1::uuid`,
+		s.ID, string(s.State), nullableTime(s.StartingAt), nullableTime(s.EndedAt), nullableText(s.MatchID), nullableText(string(s.CancelReason)),
+		nullableText(s.LeftBy))
 	if err != nil {
 		return err
 	}
@@ -76,8 +78,9 @@ func (t selectionTx) SaveSession(s selection.Session) error {
 		return selection.ErrSelectNotFound
 	}
 	for _, seat := range s.Seats {
-		if _, err := t.q.Exec(t.ctx, `UPDATE selection.seats SET hover = $3, locked = $4, locked_at = $5 WHERE session_id = $1::uuid AND account_id = $2::uuid`,
-			s.ID, seat.AccountID, nullableText(seat.Hover), nullableText(seat.Locked), nullableTime(seat.LockedAt)); err != nil {
+		if _, err := t.q.Exec(t.ctx, `UPDATE selection.seats SET hover = $3, locked = $4, locked_at = $5, last_seen = $6
+			WHERE session_id = $1::uuid AND account_id = $2::uuid`,
+			s.ID, seat.AccountID, nullableText(seat.Hover), nullableText(seat.Locked), nullableTime(seat.LockedAt), nullableTime(seat.LastSeen)); err != nil {
 			return err
 		}
 	}
@@ -134,7 +137,7 @@ func (s *SelectionStore) Active(ctx context.Context) ([]selection.Session, error
 
 func loadSession(ctx context.Context, q querier, id string, lock bool) (selection.Session, error) {
 	sql := `SELECT id::text, kind, mode, coalesce(host_account_id::text, ''), state, created_at, deadline, starting_at, ended_at,
-		coalesce(match_id::text, ''), coalesce(cancel_reason, '') FROM selection.sessions WHERE id = $1::uuid`
+		coalesce(match_id::text, ''), coalesce(cancel_reason, ''), coalesce(left_by::text, '') FROM selection.sessions WHERE id = $1::uuid`
 	if lock {
 		sql += ` FOR UPDATE`
 	}
@@ -142,7 +145,7 @@ func loadSession(ctx context.Context, q querier, id string, lock bool) (selectio
 	var kind, state, reason string
 	var startingAt, endedAt *time.Time
 	err := q.QueryRow(ctx, sql, id).Scan(&s.ID, &kind, &s.Mode, &s.HostAccountID, &state, &s.CreatedAt, &s.Deadline, &startingAt, &endedAt,
-		&s.MatchID, &reason)
+		&s.MatchID, &reason, &s.LeftBy)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return selection.Session{}, selection.ErrSelectNotFound
 	}
@@ -151,7 +154,7 @@ func loadSession(ctx context.Context, q querier, id string, lock bool) (selectio
 	}
 	s.Kind, s.State, s.CancelReason = selection.Kind(kind), selection.State(state), selection.CancelReason(reason)
 	s.StartingAt, s.EndedAt = timeOrZero(startingAt), timeOrZero(endedAt)
-	rows, err := q.Query(ctx, `SELECT account_id::text, display_name, side, coalesce(hover, ''), coalesce(locked, ''), locked_at
+	rows, err := q.Query(ctx, `SELECT account_id::text, display_name, side, coalesce(hover, ''), coalesce(locked, ''), locked_at, last_seen
 		FROM selection.seats WHERE session_id = $1::uuid ORDER BY seat_order`, id)
 	if err != nil {
 		return selection.Session{}, err
@@ -159,9 +162,9 @@ func loadSession(ctx context.Context, q querier, id string, lock bool) (selectio
 	s.Seats, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (selection.Seat, error) {
 		var seat selection.Seat
 		var side string
-		var lockedAt *time.Time
-		err := r.Scan(&seat.AccountID, &seat.DisplayName, &side, &seat.Hover, &seat.Locked, &lockedAt)
-		seat.Side, seat.LockedAt = match.Side(side), timeOrZero(lockedAt)
+		var lockedAt, lastSeen *time.Time
+		err := r.Scan(&seat.AccountID, &seat.DisplayName, &side, &seat.Hover, &seat.Locked, &lockedAt, &lastSeen)
+		seat.Side, seat.LockedAt, seat.LastSeen = match.Side(side), timeOrZero(lockedAt), timeOrZero(lastSeen)
 		return seat, err
 	})
 	if err != nil {

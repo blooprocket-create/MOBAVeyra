@@ -33,9 +33,14 @@ func (s State) Active() bool { return s == Picking || s == Starting }
 // Kind says which rules a select follows.
 type Kind string
 
-// KindPractice is solo Custom practice: its host alone, picking from their
-// available Vanguards (ADR-010 §7).
-const KindPractice Kind = "practice"
+const (
+	// KindPractice is solo Custom practice: its host alone, picking from their
+	// available Vanguards (ADR-010 §7).
+	KindPractice Kind = "practice"
+	// KindCasual is Casual Select (Battleground Bible §15): the players of a
+	// match everyone accepted pick at once, with no bans.
+	KindCasual Kind = "casual"
+)
 
 // CancelReason says why a select ended without a match.
 type CancelReason string
@@ -47,6 +52,11 @@ const (
 	CancelAllocationFailed CancelReason = "allocation_failed"
 	// CancelStartingTimedOut: creating the match never finished.
 	CancelStartingTimedOut CancelReason = "starting_timed_out"
+	// CancelLeft: a player left champion select, a dodge (Match Flow Bible §2).
+	CancelLeft CancelReason = "left"
+	// CancelPresenceLost: a player stopped answering, a disconnect (Match Flow
+	// Bible §2).
+	CancelPresenceLost CancelReason = "presence_lost"
 )
 
 // Errors describing rule violations. Callers map them to response codes.
@@ -60,6 +70,8 @@ var (
 	ErrExpired          = errors.New("the pick timer has ended")
 	ErrInvalidState     = errors.New("the champion select is not picking")
 	ErrAlreadySelecting = errors.New("an account is already in a champion select")
+	ErrTaken            = errors.New("another player has locked that Vanguard")
+	ErrCannotLeave      = errors.New("this champion select cannot be left")
 )
 
 // Seat is one player's place in a select.
@@ -73,6 +85,9 @@ type Seat struct {
 	// Locked is the Vanguard the player locked in; permanent once set.
 	Locked   string
 	LockedAt time.Time
+	// LastSeen is when the player's client last asked about the select, its
+	// presence while polling (ADR-010 §10).
+	LastSeen time.Time
 }
 
 // Session is one champion select.
@@ -93,6 +108,9 @@ type Session struct {
 	// MatchID is the match the select created, once started.
 	MatchID      string
 	CancelReason CancelReason
+	// LeftBy is the player who left a select cancelled as CancelLeft: the
+	// dodge's record. No penalty follows yet; Match Flow §2 sets no schedule.
+	LeftBy string
 }
 
 // seat returns the account's seat.
@@ -129,12 +147,26 @@ func (s *Session) checkPicking(accountID string, now time.Time) (*Seat, error) {
 	return seat, nil
 }
 
+// Taken reports whether a player other than accountID has locked the
+// Vanguard. Picks are unique across both teams in PvP (Battleground Bible §15).
+func (s *Session) Taken(vanguardID, accountID string) bool {
+	for _, seat := range s.Seats {
+		if seat.AccountID != accountID && seat.Locked == vanguardID {
+			return true
+		}
+	}
+	return false
+}
+
 // Hover records the Vanguard a player is considering. The caller has checked
 // that they may pick it.
 func (s *Session) Hover(accountID, vanguardID string, now time.Time) error {
 	seat, err := s.checkPicking(accountID, now)
 	if err != nil {
 		return err
+	}
+	if s.Taken(vanguardID, accountID) {
+		return ErrTaken
 	}
 	seat.Hover = vanguardID
 	return nil
@@ -147,7 +179,67 @@ func (s *Session) Lock(accountID, vanguardID string, now time.Time) error {
 	if err != nil {
 		return err
 	}
+	if s.Taken(vanguardID, accountID) {
+		return ErrTaken
+	}
 	seat.Hover, seat.Locked, seat.LockedAt = vanguardID, vanguardID, now
+	return nil
+}
+
+// Seen records the player's client asking about the select.
+func (s *Session) Seen(accountID string, now time.Time) {
+	if seat, ok := s.seat(accountID); ok {
+		seat.LastSeen = now
+	}
+}
+
+// Absent returns the players whose clients have not asked about the select
+// for longer than timeout.
+func (s *Session) Absent(now time.Time, timeout time.Duration) []string {
+	var absent []string
+	for _, seat := range s.Seats {
+		if now.Sub(seat.LastSeen) > timeout {
+			absent = append(absent, seat.AccountID)
+		}
+	}
+	return absent
+}
+
+// Unlocked returns the players who have not locked a Vanguard.
+func (s *Session) Unlocked() []string {
+	var out []string
+	for _, seat := range s.Seats {
+		if seat.Locked == "" {
+			out = append(out, seat.AccountID)
+		}
+	}
+	return out
+}
+
+// Accounts returns every seated player.
+func (s *Session) Accounts() []string {
+	out := make([]string, len(s.Seats))
+	for i, seat := range s.Seats {
+		out[i] = seat.AccountID
+	}
+	return out
+}
+
+// Leave cancels a Casual Select because a player left it: a dodge (Match Flow
+// Bible §2). A practice select cannot be left; only its timer ends it
+// (ADR-010 §11).
+func (s *Session) Leave(accountID string, now time.Time) error {
+	if _, ok := s.seat(accountID); !ok {
+		return ErrSelectNotFound
+	}
+	if s.Kind != KindCasual {
+		return ErrCannotLeave
+	}
+	if s.State != Picking {
+		return ErrInvalidState
+	}
+	s.Cancel(CancelLeft, now)
+	s.LeftBy = accountID
 	return nil
 }
 
@@ -162,11 +254,11 @@ func (s *Session) AllLocked() bool {
 }
 
 // Expire ends the pick timer (provisional, ADR-010 §11): a seat with a hover
-// locks it, and a seat with nothing to lock cancels the select. It reports
-// whether every seat is now locked.
+// locks it, unless someone locked it first, and a seat with nothing to lock
+// cancels the select. It reports whether every seat is now locked.
 func (s *Session) Expire(now time.Time) bool {
 	for i := range s.Seats {
-		if seat := &s.Seats[i]; seat.Locked == "" && seat.Hover != "" {
+		if seat := &s.Seats[i]; seat.Locked == "" && seat.Hover != "" && !s.Taken(seat.Hover, seat.AccountID) {
 			seat.Locked, seat.LockedAt = seat.Hover, now
 		}
 	}

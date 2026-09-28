@@ -48,6 +48,14 @@ const (
 // DatabaseURLEnv names the environment variable holding the Postgres URL.
 const DatabaseURLEnv = "VEYRA_DATABASE_URL"
 
+// Matchmaking kinds a mode may have (ADR-010 §10).
+const (
+	// MatchmakingCasualSelect: a matchmaker, then Match Found and Casual Select.
+	MatchmakingCasualSelect = "casualSelect"
+	// MatchmakingNotImplemented: the mode may be selected but not queued yet.
+	MatchmakingNotImplemented = "notImplemented"
+)
+
 // Allocator kinds (ADR-007 §11).
 const (
 	AllocatorDocker = "docker"
@@ -71,6 +79,9 @@ type Config struct {
 	Modes                 []Mode
 	Vanguards             Vanguards
 	CustomPractice        CustomPractice
+	Matchmaking           Matchmaking
+	MatchFound            MatchFound
+	CasualSelect          CasualSelect
 	Selection             Selection
 	Matches               Matches
 	Allocator             Allocator
@@ -115,6 +126,27 @@ type PracticeBot struct {
 	Side string
 	// VanguardID is the released Vanguard the bot plays.
 	VanguardID string
+}
+
+// Matchmaking configures the matchmaker (ADR-010 §10).
+type Matchmaking struct {
+	// Interval is how often the matchmaker forms matches and settles Match Found.
+	Interval time.Duration
+}
+
+// MatchFound configures Match Found (Parties & Social Bible §3).
+type MatchFound struct {
+	// AcceptDuration is how long players have to accept a match found.
+	AcceptDuration time.Duration
+}
+
+// CasualSelect configures Casual Select (ADR-010 §10; Battleground Bible §15).
+type CasualSelect struct {
+	// PickDuration is how long its players have to lock their Vanguards.
+	PickDuration time.Duration
+	// PresenceTimeout cancels a select a player's client has stopped polling
+	// for this long: a disconnect.
+	PresenceTimeout time.Duration
 }
 
 // Selection configures champion select's own upkeep (ADR-010 §8).
@@ -178,6 +210,8 @@ type Mode struct {
 	ID                  string
 	Enabled             bool
 	HumanPlayersPerTeam int
+	// Matchmaking is MatchmakingCasualSelect or MatchmakingNotImplemented.
+	Matchmaking string
 }
 
 // Party privacy values accepted in config.
@@ -254,6 +288,7 @@ type fileConfig struct {
 		ID                  *string `json:"id"`
 		Enabled             *bool   `json:"enabled"`
 		HumanPlayersPerTeam *int    `json:"humanPlayersPerTeam"`
+		Matchmaking         *string `json:"matchmaking"`
 	} `json:"modes"`
 	Vanguards *struct {
 		Released []string `json:"released"`
@@ -274,6 +309,16 @@ type fileConfig struct {
 			VanguardID *string `json:"vanguardId"`
 		} `json:"bots"`
 	} `json:"customPractice"`
+	Matchmaking *struct {
+		Interval *Duration `json:"interval"`
+	} `json:"matchmaking"`
+	MatchFound *struct {
+		AcceptDuration *Duration `json:"acceptDuration"`
+	} `json:"matchFound"`
+	CasualSelect *struct {
+		PickDuration    *Duration `json:"pickDuration"`
+		PresenceTimeout *Duration `json:"presenceTimeout"`
+	} `json:"casualSelect"`
 	Selection *struct {
 		TickInterval    *Duration `json:"tickInterval"`
 		StartingTimeout *Duration `json:"startingTimeout"`
@@ -474,7 +519,14 @@ func Parse(raw []byte) (Config, error) {
 		if *m.HumanPlayersPerTeam < 1 {
 			problems = append(problems, field+".humanPlayersPerTeam must be at least 1")
 		}
-		c.Modes = append(c.Modes, Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam})
+		if m.Matchmaking == nil {
+			missing(field + ".matchmaking")
+			continue
+		}
+		if *m.Matchmaking != MatchmakingCasualSelect && *m.Matchmaking != MatchmakingNotImplemented {
+			problems = append(problems, field+".matchmaking must be \""+MatchmakingCasualSelect+"\" or \""+MatchmakingNotImplemented+"\"")
+		}
+		c.Modes = append(c.Modes, Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam, Matchmaking: *m.Matchmaking})
 	}
 
 	if f.Vanguards == nil {
@@ -591,6 +643,23 @@ func Parse(raw []byte) (Config, error) {
 				}
 			}
 		}
+	}
+
+	if f.Matchmaking == nil {
+		missing("matchmaking")
+	} else {
+		c.Matchmaking.Interval = positive("matchmaking.interval", f.Matchmaking.Interval)
+	}
+	if f.MatchFound == nil {
+		missing("matchFound")
+	} else {
+		c.MatchFound.AcceptDuration = positive("matchFound.acceptDuration", f.MatchFound.AcceptDuration)
+	}
+	if f.CasualSelect == nil {
+		missing("casualSelect")
+	} else {
+		c.CasualSelect.PickDuration = positive("casualSelect.pickDuration", f.CasualSelect.PickDuration)
+		c.CasualSelect.PresenceTimeout = positive("casualSelect.presenceTimeout", f.CasualSelect.PresenceTimeout)
 	}
 
 	if f.Selection == nil {
