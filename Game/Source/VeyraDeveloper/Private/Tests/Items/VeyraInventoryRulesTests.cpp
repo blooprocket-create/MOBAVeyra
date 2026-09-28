@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "CQTest.h"
+#include "Inventory/VeyraEquipmentRules.h"
 #include "Inventory/VeyraInventoryRules.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
 #include "Tuning/VeyraItemsTuning.h"
@@ -153,6 +154,22 @@ namespace VeyraItemsTests
 			}
 			ASSERT_THAT(IsTrue(CountOf(Slots, TEXT("test_tonic")) == 6));
 			ASSERT_THAT(IsTrue(Slots.FilterByPredicate([](const FVeyraInventorySlot& Slot) { return !Slot.IsEmpty(); }).Num() == 2));
+		}
+
+		TEST_METHOD(EquipmentAddsEachItemsStatsAndBonusAttackSpeedFromTheBase)
+		{
+			// Fixture values: a grip with power and Attack Speed, two of them held.
+			constexpr double BaseAttackSpeed = 0.625;
+			FVeyraItemsTuning WithStats = Tuning;
+			WithStats.Items[ItemId(TEXT("test_grip"))].Stats.PhysicalPower = 10.0;
+			WithStats.Items[ItemId(TEXT("test_grip"))].Stats.AttackSpeed = 0.12;
+			WithStats.Items[ItemId(TEXT("test_plate"))].Stats.Health = 150.0;
+			BuyHere(TEXT("test_grip"));
+			BuyHere(TEXT("test_grip"));
+			BuyHere(TEXT("test_plate"));
+			const FVeyraEquipmentStats Stats = VeyraEquipment::StatsFor(WithStats, Slots, BaseAttackSpeed);
+			ASSERT_THAT(IsTrue(Stats.PhysicalPower == 20.0 && Stats.MaxHealth == 150.0));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Stats.AttackSpeed, BaseAttackSpeed * 0.24), TEXT("a fraction of the base, added (ADR-012 §6)")));
 		}
 
 		TEST_METHOD(ResaleIsTheShopsFractionOrTheConsumablesOwn)

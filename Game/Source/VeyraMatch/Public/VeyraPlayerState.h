@@ -24,6 +24,7 @@ class UVeyraLifeComponent;
 class UVeyraMobilitySet;
 class UVeyraOffenceSet;
 class UVeyraGoldComponent;
+class UVeyraInventoryComponent;
 class UVeyraProgressionComponent;
 class UVeyraRegenerationComponent;
 class UVeyraResourceSet;
@@ -149,6 +150,10 @@ private:
 	/** Gold survives death too (Economy & Progression Bible §14). */
 	UPROPERTY(VisibleAnywhere, Category = "Progression")
 	TObjectPtr<UVeyraGoldComponent> Gold;
+
+	/** So do items, and purchases waiting for the fountain (§10–§11). */
+	UPROPERTY(VisibleAnywhere, Category = "Items")
+	TObjectPtr<UVeyraInventoryComponent> Inventory;
 
 	UPROPERTY()
 	TObjectPtr<UVeyraVitalsSet> VitalsSet;

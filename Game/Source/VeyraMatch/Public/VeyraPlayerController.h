@@ -3,8 +3,11 @@
 #pragma once
 
 #include "GameFramework/PlayerController.h"
+#include "Content/VeyraContentId.h"
 #include "Input/VeyraInputSettings.h"
+#include "Inventory/VeyraInventoryRules.h"
 #include "Progression/VeyraProgressionTypes.h"
+#include "Templates/Function.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
 
@@ -92,6 +95,25 @@ public:
 	EVeyraRankRefusal GetLastRankUpRefusal() const { return LastRankUpRefusal; }
 	int32 GetRankUpRefusalCount() const { return RankUpRefusalCount; }
 
+	/**
+	 * Owning client: asks the server to buy Item (Economy & Progression Bible §10–§11). At the fountain,
+	 * or while dead, it arrives at once; elsewhere it waits for the fountain.
+	 */
+	void RequestBuyItem(const FVeyraContentId& Item);
+
+	/** Owning client: asks to sell one of the item in inventory slot Slot, from 0, at the fountain (§12). */
+	void RequestSellItem(int32 Slot);
+
+	/** Owning client: asks to undo this fountain visit's latest purchase (§12). */
+	void RequestUndoPurchase();
+
+	/** Owning client: asks to cancel the pending purchase at Index, from 0, for all its Gold (§11.3). */
+	void RequestCancelPurchase(int32 Index);
+
+	/** Owning client: the reason the server gave for the last refused shop request, and how many it refused. */
+	EVeyraShopRefusal GetLastShopRefusal() const { return LastShopRefusal; }
+	int32 GetShopRefusalCount() const { return ShopRefusalCount; }
+
 	/** This player's Vanguard, on the server and on every client, or null before it spawns. */
 	AVeyraVanguardCharacter* GetVanguard() const;
 
@@ -158,6 +180,24 @@ private:
 	void ClientRankUpRefused(EVeyraRankRefusal Refusal);
 
 	UFUNCTION(Server, Reliable)
+	void ServerBuyItem(FVeyraContentId Item);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSellItem(int32 Slot);
+
+	UFUNCTION(Server, Reliable)
+	void ServerUndoPurchase();
+
+	UFUNCTION(Server, Reliable)
+	void ServerCancelPurchase(int32 Index);
+
+	UFUNCTION(Client, Unreliable)
+	void ClientShopRefused(EVeyraShopRefusal Refusal);
+
+	/** Server: runs a shop request if the match allows shopping now, and tells the client why it was refused. */
+	void RunShopRequest(TFunctionRef<EVeyraShopRefusal(class UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request);
+
+	UFUNCTION(Server, Reliable)
 	void ServerRequestDeveloperExperience(int32 Amount);
 
 	UFUNCTION(Server, Reliable)
@@ -211,4 +251,7 @@ private:
 
 	EVeyraEndCustomMatchRefusal LastEndCustomMatchRefusal = EVeyraEndCustomMatchRefusal::None;
 	int32 EndCustomMatchRefusalCount = 0;
+
+	EVeyraShopRefusal LastShopRefusal = EVeyraShopRefusal::None;
+	int32 ShopRefusalCount = 0;
 };

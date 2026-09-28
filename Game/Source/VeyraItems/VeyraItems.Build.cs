@@ -17,6 +17,17 @@ public class VeyraItems : ModuleRules
 			"CoreUObject",
 			"Engine",
 			"VeyraCore",
+			// Equipment is applied as Combat's equipment stats.
+			"VeyraCombat",
+		});
+
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			"GameplayAbilities",
+			// Push-model replication for the inventory.
+			"NetCore",
+			// Purchases spend and refund Gold; bonus Attack Speed is a fraction of the base progression keeps.
+			"VeyraEconomy",
 		});
 
 		// The Items tuning ships with every build that runs a match (ADR-006 §6).

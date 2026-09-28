@@ -87,6 +87,12 @@ public:
 	EVeyraOrderRejection CheckRankUpAllowed() const;
 
 	/**
+	 * Why the match refuses shopping now, or None: the same phases as rank-ups, and a pause freezes it
+	 * (Match Flow Bible §10.2; ADR-012 §7).
+	 */
+	EVeyraOrderRejection CheckShopAllowed() const { return CheckRankUpAllowed(); }
+
+	/**
 	 * Adds an AI-controlled participant with its own PlayerState, as Co-op and custom matches do
 	 * (ADR-006 §4). Side and Vanguard seat it, as an assigned match's bots are; without them it joins
 	 * the smaller side and plays the developer order's Vanguard. It gets its Vanguard like any player,

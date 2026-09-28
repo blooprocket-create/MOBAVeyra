@@ -24,6 +24,8 @@ public class VeyraMatch : ModuleRules
 			"VeyraCore",
 			// Its PlayerController reports rank-up refusals.
 			"VeyraEconomy",
+			// ...and shop refusals; the PlayerState holds the inventory (ADR-012 §7).
+			"VeyraItems",
 			"VeyraVanguards",
 		});
 

@@ -19,6 +19,8 @@
 #include "Progression/VeyraProgressionComponent.h"
 #include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraMatchRules.h"
+#include "Shop/VeyraShopSubsystem.h"
+#include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraTuning.h"
@@ -770,8 +772,9 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 	case EVeyraDeveloperStartingRank::None:
 		break;
 	}
-	// The one guaranteed Gold, once per match (Economy & Progression Bible §1).
+	// The one guaranteed Gold, once per match (Economy & Progression Bible §1), and empty slots to spend it on (§10).
 	UVeyraRewardSubsystem::GrantStartingGold(PlayerState);
+	UVeyraShopSubsystem::InitializeInventory(PlayerState);
 	PlayerState.MarkStatsInitialized();
 	return true;
 }
@@ -804,6 +807,11 @@ void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
 	const int32 Level = Progression && Progression->IsInitialized() ? Progression->GetLevel() : 1;
 	const double Delay = VeyraMatchRules::RespawnDelaySeconds(Level, GetVeyraGameState().GetMatchClockSeconds(), UVeyraMatchTuningSubsystem::Get().Respawn);
 	PlayerState->SetRespawnAt(GetWorld()->GetTimeSeconds() + Delay);
+	// Purchases waiting for the fountain are delivered there now, for use after the respawn (§11.2).
+	if (UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>())
+	{
+		Shop->DeliverOnDeath(*PlayerState);
+	}
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s died at level %d; respawning in %g s."), *PlayerState->GetPlayerName(), Level, Delay);
 	const TWeakObjectPtr<AVeyraPlayerState> Participant(PlayerState);
 	const TWeakObjectPtr<APawn> Body(PlayerState->GetPawn());
@@ -828,13 +836,21 @@ void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
 void AVeyraGameMode::RecoverAtFountains()
 {
 	const FVeyraFountainTuning& Fountain = UVeyraMatchTuningSubsystem::Get().Fountain;
+	UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>();
 	for (APlayerState* Member : GameState->PlayerArray)
 	{
 		AVeyraPlayerState* PlayerState = Cast<AVeyraPlayerState>(Member);
 		const APawn* Body = PlayerState ? PlayerState->GetPawn() : nullptr;
 		const AActor* Start = Body ? FindTeamStart(PlayerState->GetVeyraTeam()) : nullptr;
 		UAbilitySystemComponent* AbilitySystem = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
-		if (!Start || !AbilitySystem || FVector::Dist2D(Body->GetActorLocation(), Start->GetActorLocation()) > Fountain.Radius)
+		const bool bAtFountain = Start && FVector::Dist2D(Body->GetActorLocation(), Start->GetActorLocation()) <= Fountain.Radius;
+		// The shop receives, sells and undoes only here (Economy & Progression Bible §10, §12; ADR-012 §7).
+		// The dead shop as if here (ADR-012 §9), and respawn here, so death never ends undo.
+		if (Shop && PlayerState)
+		{
+			Shop->SetAtFountain(*PlayerState, bAtFountain || !VeyraTargeting::IsAlive(PlayerState));
+		}
+		if (!bAtFountain || !AbilitySystem)
 		{
 			continue;
 		}

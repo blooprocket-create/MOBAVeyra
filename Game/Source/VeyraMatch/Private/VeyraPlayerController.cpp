@@ -10,6 +10,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Shop/VeyraShopSubsystem.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -330,6 +331,71 @@ void AVeyraPlayerController::ClientRankUpRefused_Implementation(EVeyraRankRefusa
 	LastRankUpRefusal = Refusal;
 	++RankUpRefusalCount;
 	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused a rank-up: %s."), LexToString(Refusal));
+}
+
+void AVeyraPlayerController::RequestBuyItem(const FVeyraContentId& Item)
+{
+	ServerBuyItem(Item);
+}
+
+void AVeyraPlayerController::RequestSellItem(int32 Slot)
+{
+	ServerSellItem(Slot);
+}
+
+void AVeyraPlayerController::RequestUndoPurchase()
+{
+	ServerUndoPurchase();
+}
+
+void AVeyraPlayerController::RequestCancelPurchase(int32 Index)
+{
+	ServerCancelPurchase(Index);
+}
+
+void AVeyraPlayerController::ServerBuyItem_Implementation(FVeyraContentId Item)
+{
+	RunShopRequest([&Item](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.Buy(Participant, Item); });
+}
+
+void AVeyraPlayerController::ServerSellItem_Implementation(int32 Slot)
+{
+	RunShopRequest([Slot](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.Sell(Participant, Slot); });
+}
+
+void AVeyraPlayerController::ServerUndoPurchase_Implementation()
+{
+	RunShopRequest([](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.Undo(Participant); });
+}
+
+void AVeyraPlayerController::ServerCancelPurchase_Implementation(int32 Index)
+{
+	RunShopRequest([Index](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.Cancel(Participant, Index); });
+}
+
+void AVeyraPlayerController::RunShopRequest(TFunctionRef<EVeyraShopRefusal(UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request)
+{
+	if (!TakeOrderAllowance())
+	{
+		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		return;
+	}
+	const AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>();
+	const bool bAllowed = GameMode && GameMode->CheckShopAllowed() == EVeyraOrderRejection::None;
+	const EVeyraShopRefusal Refusal = bAllowed && Shop && PlayerState ? Request(*Shop, *PlayerState) : EVeyraShopRefusal::NotNow;
+	if (Refusal != EVeyraShopRefusal::None)
+	{
+		UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused a shop request from %s: %s."), *GetNameSafe(PlayerState), LexToString(Refusal));
+		ClientShopRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ClientShopRefused_Implementation(EVeyraShopRefusal Refusal)
+{
+	LastShopRefusal = Refusal;
+	++ShopRefusalCount;
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("The shop refused a request: %s."), LexToString(Refusal));
 }
 
 void AVeyraPlayerController::RequestDeveloperExperience(int32 Amount)
