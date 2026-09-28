@@ -22,9 +22,31 @@ namespace
 			|| Refusal == EVeyraShopRefusal::InventoryFull;
 	}
 
-	/** The dearest part of Item's recipe, at any depth, that Gold buys now and is not already held. */
+	/** Each held item and queued purchase, by count: what a recipe's parts draw on, each copy once. */
+	TMap<FVeyraContentId, int32> HeldCounts(TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue)
+	{
+		TMap<FVeyraContentId, int32> Counts;
+		for (const FVeyraInventorySlot& Slot : Slots)
+		{
+			if (!Slot.IsEmpty())
+			{
+				Counts.FindOrAdd(Slot.Item) += Slot.Count;
+			}
+		}
+		for (const FVeyraPendingPurchase& Entry : Queue)
+		{
+			Counts.FindOrAdd(Entry.Item) += 1;
+		}
+		return Counts;
+	}
+
+	/**
+	 * The dearest part of Item's recipe, at any depth, that Gold buys now and is not already held. Each
+	 * held copy counts once, so a recipe that needs a part twice still wants the second (Unheld: the
+	 * copies not yet spoken for).
+	 */
 	void FindAffordablePart(const FVeyraItemsTuning& Items, const FVeyraContentId& Item, TConstArrayView<FVeyraInventorySlot> Slots,
-		TConstArrayView<FVeyraPendingPurchase> Queue, double Gold, TOptional<FVeyraContentId>& Best, double& BestPrice)
+		TConstArrayView<FVeyraPendingPurchase> Queue, double Gold, TMap<FVeyraContentId, int32>& Unheld, TOptional<FVeyraContentId>& Best, double& BestPrice)
 	{
 		const FVeyraItemDefinition* Definition = Items.Items.Find(Item);
 		if (!Definition)
@@ -33,8 +55,9 @@ namespace
 		}
 		for (const FVeyraContentId& Part : Definition->Components)
 		{
-			if (Holds(Slots, Queue, Part))
+			if (int32* Copies = Unheld.Find(Part); Copies && *Copies > 0)
 			{
+				--*Copies;
 				continue;
 			}
 			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Items, Slots, Queue, Part);
@@ -43,7 +66,7 @@ namespace
 				Best = Part;
 				BestPrice = Quote.Price;
 			}
-			FindAffordablePart(Items, Part, Slots, Queue, Gold, Best, BestPrice);
+			FindAffordablePart(Items, Part, Slots, Queue, Gold, Unheld, Best, BestPrice);
 		}
 	}
 
@@ -163,7 +186,8 @@ TOptional<FVeyraContentId> NextPurchase(const FVeyraItemsTuning& Items, TConstAr
 		}
 		TOptional<FVeyraContentId> Part;
 		double PartPrice = 0.0;
-		FindAffordablePart(Items, Item, Slots, Queue, Gold, Part, PartPrice);
+		TMap<FVeyraContentId, int32> Unheld = HeldCounts(Slots, Queue);
+		FindAffordablePart(Items, Item, Slots, Queue, Gold, Unheld, Part, PartPrice);
 		// Nothing affordable toward it: save for it rather than skip ahead.
 		return Part;
 	}
@@ -279,12 +303,11 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 	// tower covers the foe, and the enemy wave would not turn on it (ADR-013 §8.4, §8.5; Battleground
 	// Bible §19).
 	const FVeyraBotUnit* Foe = nullptr;
-	const bool bWaveWouldAnswer = View.FluxbornWouldAnswer > Difficulty.FluxbornTolerance;
 	for (const FVeyraBotUnit& Enemy : View.EnemyVanguards)
 	{
-		if (bWaveWouldAnswer)
+		if (Enemy.Defenders > Difficulty.FluxbornTolerance)
 		{
-			break;
+			continue;
 		}
 		const double* SeenAt = Memory.FirstSeen.Find(Enemy.Actor);
 		const bool bWatched = SeenAt && View.Now - *SeenAt >= Difficulty.ReactionSeconds;

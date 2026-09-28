@@ -59,6 +59,12 @@ struct FVeyraBotUnit
 	/** The fraction of the bot's basic attack damage it takes, after its resistance. */
 	double DamageTaken = 1.0;
 
+	/**
+	 * For an enemy Vanguard: how many Fluxborn of its side stand within their aggression response
+	 * range of it, and would turn on a bot that hit it (Battleground Bible §19).
+	 */
+	int32 Defenders = 0;
+
 	double HealthFraction() const { return MaxHealth > 0.0 ? Health / MaxHealth : 0.0; }
 };
 
@@ -127,8 +133,6 @@ struct FVeyraBotView
 	TArray<FVeyraBotUnit> AllyVanguards;
 	TArray<FVeyraBotUnit> EnemyFluxborn;
 
-	/** How many enemy Fluxborn would answer if it hit an enemy Vanguard now: those within their aggression response range. */
-	int32 FluxbornWouldAnswer = 0;
 
 	/** The next standing enemy structure along its lane, if it sees one. */
 	TOptional<FVeyraBotStructure> EnemyStructure;

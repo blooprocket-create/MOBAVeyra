@@ -172,11 +172,14 @@ namespace VeyraBotsTests
 			Difficulty.ReactionSeconds = 0.0;
 			Difficulty.FluxbornTolerance = 1;
 			FVeyraBotView View = AliveAt(0.0);
-			View.EnemyVanguards.Add(Unit(Near, 0.5));
-			View.FluxbornWouldAnswer = 2;
-			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Attack, TEXT("two Fluxborn would turn on it")));
-			View.FluxbornWouldAnswer = 1;
-			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Attack, TEXT("one it tolerates")));
+			FVeyraBotUnit& Defended = View.EnemyVanguards.Add_GetRef(Unit(Near, 0.4));
+			Defended.Defenders = 2;
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Attack, TEXT("two of its Fluxborn would turn on the bot")));
+			// Another foe, farther from its wave: that one it takes on, though the first is weaker.
+			FVeyraBotUnit& Alone = View.EnemyVanguards.Add_GetRef(Unit(Near, 0.5));
+			Alone.Defenders = 1;
+			const FVeyraBotIntent Fight = Decide(View);
+			ASSERT_THAT(IsTrue(Fight.Action == EVeyraBotAction::Attack && Fight.Target == Alone.Actor, TEXT("one it tolerates")));
 		}
 
 		TEST_METHOD(ItNeverFightsAHealthierFoeOrOneUnderAnEnemyTower)
@@ -332,6 +335,22 @@ namespace VeyraBotsTests
 			Slots[0].Item = ItemId(TEXT("test_temper"));
 			Slots[0].Count = 1;
 			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 5000.0) == ItemId(TEXT("test_wheel"))));
+		}
+
+		TEST_METHOD(ARecipesSecondCopyOfAPartIsStillWanted)
+		{
+			// The wheel takes two grips: holding one, the bot still buys the second.
+			const FVeyraItemsTuning Items = TestCatalog();
+			TArray<FVeyraInventorySlot> Slots;
+			Slots.SetNum(Items.Shop.InventorySlots);
+			Slots[0].Item = ItemId(TEXT("test_grip"));
+			Slots[0].Count = 1;
+			const TArray<FVeyraContentId> Build = { ItemId(TEXT("test_wheel")) };
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 360.0) == ItemId(TEXT("test_grip"))));
+			// Holding both, only the wheel's own cost remains.
+			Slots[1] = Slots[0];
+			ASSERT_THAT(IsFalse(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 360.0).IsSet()));
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 400.0) == ItemId(TEXT("test_wheel"))));
 		}
 
 		TEST_METHOD(TheLaneMeasuresDistanceAlongItsPath)

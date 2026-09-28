@@ -76,7 +76,7 @@ The targeting kind of each ability comes from the archetype map that defines it 
 5. Target choice: the enemy Vanguard in reach with the lowest Health fraction.
 6. Beginner reacts later, misses some last hits, casts less often, does not lead skillshots and retreats earlier. Intermediate reacts sooner, last-hits reliably, leads skillshots and trades harder.
 7. Bots buy no consumables yet: builds hold equipment only, and Field Tonics wait for a consumables rule in `Bots.json`.
-8. Bots respect minion aggro: they start no fight while more enemy Fluxborn than `fluxbornTolerance` stand within those Fluxborn's aggression response range (World.json), since hitting an enemy Vanguard would turn them on the bot (Battleground Bible §19).
+8. Bots respect minion aggro: they start no fight with an enemy Vanguard while more of its side's Fluxborn than `fluxbornTolerance` stand within their aggression response range of it (World.json), since hitting it would turn them on the bot (Battleground Bible §19).
 9. Bots farm and push as League's do: they go for a last hit once a Fluxborn has at most `lastHitLead` basic attacks' damage left, to cover walking up and winding up, and otherwise shove the wave by attacking the weakest enemy Fluxborn within `positioning.pushRange` (`pushChance` per decision). Once they choose a Fluxborn they keep attacking it until it dies or leaves their sight, unless a last hit comes up, so a fresh choice each decision never throws a windup away. Neither happens under an enemy tower unless their own wave holds its aggro.
 
 ## Consequences

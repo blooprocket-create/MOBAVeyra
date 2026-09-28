@@ -33,7 +33,7 @@
         "retreatHealthFraction": { "description": "Below this fraction of Max Health the bot retreats, and recalls once it is safe.", "type": "number", "minimum": 0, "maximum": 1 },
         "fightHealthMargin": { "description": "The bot fights an enemy Vanguard only while its own Health fraction is at least the enemy's plus this margin.", "type": "number", "minimum": -1, "maximum": 1 },
         "shopRecallGold": { "description": "With this much Gold and its next purchase affordable, a bot recalls to shop when no enemy Vanguard is near (League's 'back to spend').", "type": "number", "minimum": 0 },
-        "fluxbornTolerance": { "description": "The most enemy Fluxborn within their aggression response range (World.json fluxborn.ai) of the bot when it starts a fight; with more, hitting an enemy Vanguard would turn the wave on it (Battleground Bible §19).", "type": "integer", "minimum": 0 }
+        "fluxbornTolerance": { "description": "The most Fluxborn of an enemy Vanguard's side within their aggression response range (World.json fluxborn.ai) of it when the bot starts a fight with it; with more, the hit would turn them on the bot (Battleground Bible §19).", "type": "integer", "minimum": 0 }
       }
     },
     "vanguard": {

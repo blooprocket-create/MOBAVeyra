@@ -144,8 +144,8 @@ struct FVeyraBotDifficultyTuning
 	double ShopRecallGold = 0.0;
 
 	/**
-	 * The most enemy Fluxborn that may stand within their aggression response range of the bot when
-	 * it starts a fight: more, and hitting an enemy Vanguard would turn the wave on it.
+	 * The most Fluxborn of an enemy Vanguard's side that may stand within their aggression response
+	 * range of it when the bot starts a fight with it: more, and the hit would turn them on the bot.
 	 */
 	UPROPERTY()
 	int32 FluxbornTolerance = 0;

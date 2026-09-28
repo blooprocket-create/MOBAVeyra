@@ -202,8 +202,19 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraLane Lane, const FVeyraB
 			const UAbilitySystemComponent* Defender = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Fluxborn);
 			const double Resistance = AttributeOf(Defender, bPhysicalAttack ? UVeyraDefenceSet::GetArmorAttribute() : UVeyraDefenceSet::GetMagicResistAttribute());
 			Seen.DamageTaken = VeyraDamage::ResistanceDamageMultiplier(Resistance, MitigationConstant);
-			// A Fluxborn answers an attack on an allied Vanguard within its response range of its edge.
-			View.FluxbornWouldAnswer += VeyraBotRules::EdgeDistance(View.Self, Seen) <= AnswerRange ? 1 : 0;
+		}
+	}
+
+	// Each enemy Vanguard's Fluxborn that would answer a hit on it: World's own predicate, edge to edge
+	// from the defender, within their aggression response range (Battleground Bible §19).
+	for (FVeyraBotUnit& Enemy : View.EnemyVanguards)
+	{
+		const AActor* Defender = Enemy.Actor.Get();
+		for (const AVeyraFluxborn* Fluxborn : Everyone)
+		{
+			const bool bDefends = Defender && Fluxborn && Fluxborn->IsAlive() && Fluxborn->GetVeyraTeam() != Team
+				&& VeyraTargeting::EdgeToEdgeDistance(*Fluxborn, *Defender) <= AnswerRange;
+			Enemy.Defenders += bDefends ? 1 : 0;
 		}
 	}
 
