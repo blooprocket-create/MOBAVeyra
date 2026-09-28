@@ -150,7 +150,7 @@ struct FVeyraOrdersTuning
  * practice target: it wanders near the middle of the map and does not fight back.
  */
 USTRUCT()
-struct FVeyraBotsTuning
+struct FVeyraMatchBotsTuning
 {
 	GENERATED_BODY()
 
@@ -218,7 +218,7 @@ struct FVeyraMatchTuning
 	FVeyraOrdersTuning Orders;
 
 	UPROPERTY()
-	FVeyraBotsTuning Bots;
+	FVeyraMatchBotsTuning Bots;
 
 	UPROPERTY()
 	FVeyraDeveloperMatchTuning DeveloperMatch;

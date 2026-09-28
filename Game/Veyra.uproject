@@ -55,6 +55,11 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "VeyraBots",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "VeyraServices",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"
