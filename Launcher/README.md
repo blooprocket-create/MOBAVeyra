@@ -30,7 +30,7 @@ This runs `cargo fmt --check`, `cargo clippy` with warnings as errors, and `carg
 
 The launcher starts the packaged client that `Game/Scripts/Package.ps1 -Target VeyraClient -Platform Win64` makes. That script also writes the build's manifest, `VeyraBuild.json`, beside the package: the build version a launch code is bound to, and the game's path.
 
-With the local backend running (`docker compose up -d backend`), open the launcher:
+`Game/Scripts/Play.ps1` does the rest for you: it starts the backend, rebuilds the match server's image, builds the launcher and opens it, with the game in a window and its log in `Game/Saved/Play/`. By hand, with the local backend running (`docker compose up -d backend`), open the launcher:
 
 ```powershell
 ./Launcher/target/release/veyra-launcher.exe

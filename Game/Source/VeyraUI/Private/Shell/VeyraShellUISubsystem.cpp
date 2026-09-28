@@ -38,6 +38,8 @@ void UVeyraShellUISubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		return;
 	}
 	ChangedHandle = Flow->GetClient().OnChanged().AddUObject(this, &UVeyraShellUISubsystem::Update);
+	// The coordinator may deinitialize first; the screen lets go of its client before it does.
+	EndingHandle = Flow->OnClientEnding().AddUObject(this, &UVeyraShellUISubsystem::ReleaseClient);
 	PostLoadMapHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UVeyraShellUISubsystem::OnPostLoadMap);
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraShellUISubsystem::Tick));
 	Update();
@@ -47,13 +49,19 @@ void UVeyraShellUISubsystem::Deinitialize()
 {
 	FTSTicker::GetCoreTicker().RemoveTicker(TickHandle);
 	FCoreUObjectDelegates::PostLoadMapWithWorld.Remove(PostLoadMapHandle);
+	ReleaseClient();
+	Super::Deinitialize();
+}
+
+void UVeyraShellUISubsystem::ReleaseClient()
+{
 	if (UVeyraClientFlowSubsystem* Coordinator = Flow.Get())
 	{
+		Coordinator->OnClientEnding().Remove(EndingHandle);
 		Coordinator->GetClient().OnChanged().Remove(ChangedHandle);
 	}
 	DropScreen();
 	Flow.Reset();
-	Super::Deinitialize();
 }
 
 void UVeyraShellUISubsystem::Update()

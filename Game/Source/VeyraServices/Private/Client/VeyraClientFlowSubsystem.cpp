@@ -63,6 +63,9 @@ void UVeyraClientFlowSubsystem::Deinitialize()
 	{
 		GameState->OnPhaseChanged.Remove(PhaseHandle);
 	}
+	// Whoever holds the client lets go while it is still valid.
+	ClientEnding.Broadcast();
+	ClientEnding.Clear();
 	// The flow first: answers still in flight then find it gone.
 	Flow.Reset();
 	Backend.Reset();

@@ -31,6 +31,8 @@ bool UVeyraShellScreen::Initialize()
 		Content = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		Background->SetContent(Content);
 		WidgetTree->RootWidget = Background;
+		// The shell's input mode gives the screen keyboard focus.
+		SetIsFocusable(true);
 	}
 	return bFirst;
 }

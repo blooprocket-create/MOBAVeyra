@@ -24,7 +24,9 @@ go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -bui
 
 ## What exists so far
 
-Four modules: **identity** (the launcher → game login handoff), **social** (friends, friend requests, blocks), **party** (parties, invites, Ready, mode and the Find Match queue lock) and **match** (match servers, join tickets and results, [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md)). Matchmaking itself, match-found acceptance and live presence come next; until then a development-only route creates matches directly.
+Seven modules: **identity** (the launcher → game login handoff), **social** (friends, friend requests, blocks), **party** (parties, invites, Ready, mode and the Find Match queue lock), **catalog** (released Vanguards, starters and the rotation), **account** (onboarding and Vanguard entitlements), **selection** (champion select and solo Custom practice, [ADR-010](../Docs/ADR/ADR-010-play-flow.md)) and **match** (match servers, join tickets and results, [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md)). A player reaches a match through practice: champion select creates it. Matchmaking itself, match-found acceptance and live presence come next; a development-only route also creates matches directly, for scripts.
+
+To play through all of it, `Game/Scripts/Play.ps1` starts this stack and opens the [launcher](../Launcher/README.md).
 
 ### Identity
 
@@ -161,7 +163,7 @@ A failure never quits the game: it shows with Retry where retrying can help. The
 
 A match server started by the backend gets `-VeyraAssignment=stdin` and reads its assignment the same way. The game's copy of the assignment's shape is `Game/Source/VeyraServices/Schemas/MatchAssignment.schema.json`. `internal/match/contract_test.go` keeps an example the game's tests read, so a change to the assignment must update both.
 
-In development, `veyra-devlaunch` starts the game the same way, speaking the handshake, with the game's build version. It copies the game's other output and waits for the game to exit; `-detach` returns once the game has signed in, as the launcher does:
+The [launcher](../Launcher/README.md) is the real caller: it signs in with `POST /v1/dev/login`, starts the packaged game and hands it a code this way. In development, `veyra-devlaunch` starts the game the same way, speaking the handshake, with the game's build version. It copies the game's other output and waits for the game to exit; `-detach` returns once the game has signed in, as the launcher does:
 
 ```sh
 go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -build 0.1.0 -- "C:\path\to\VeyraClient.exe" -VeyraLaunchCode=stdin
@@ -169,7 +171,7 @@ go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -bui
 
 A match created with `POST /v1/dev/matches` before the game starts waits behind Reconnect, as any live match does.
 
-`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result, through the same handshake (`Start-VeyraHandshakeClient` and `Step-VeyraHandshake` in `Game/Scripts/VeyraProject.psm1`); its clients press Reconnect with `-VeyraSmokeFlow=join`. `Smoke.ps1 -Flow Practice` plays the whole solo path instead: starter choice, practice, champion select, the match, End Custom Match and the verified result.
+`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result, through the same handshake (`Start-VeyraHandshakeClient` and `Step-VeyraHandshake` in `Game/Scripts/VeyraProject.psm1`); its clients press Reconnect with `-VeyraSmokeFlow=join`. `Smoke.ps1 -Flow Practice` plays the whole solo path instead: starter choice, practice, champion select, the match, End Custom Match and the verified result. With `-Launcher Cli` the launcher's headless twin signs in and starts the game.
 
 ## Configuration
 

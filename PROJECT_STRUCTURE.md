@@ -213,9 +213,11 @@ Vanguard code may compose Combat and Ability primitives. It must not fork or dup
 
 The trusted-services client (ADR-007 §12): the only module that talks to the backend.
 
-- the game's side of the session handoff: it reads the launch code from standard input, redeems it, waits for the player's match and joins it with its ticket;
+- the client-state coordinator (`Client/`, [ADR-010](Docs/ADR/ADR-010-play-flow.md) §2): `FVeyraClientFlow` is plain C++ that owns the game session, the client's state (signing in, starter choice, shell, champion select, match, results, Reconnect-only and the rest) and the player's intents, and reaches the backend and the engine only through injected interfaces. `UVeyraClientFlowSubsystem` hosts it in a client's GameInstance. The UI observes its snapshot and asks through `IVeyraClientIntents`; the coordinator and the backend decide;
+- the game's side of the session handoff: it reads the launch code from standard input once it has said it is ready (the launch handshake, `Contracts/LaunchHandshake.json`), and redeems it;
+- the front end (`FrontEnd/`, ADR-010 §3): `AVeyraShellGameMode`, the pawnless game mode of the generated `L_FrontEnd` map where the shell runs;
 - the match server's side: it reads the assignment from standard input, hands the roster to `VeyraMatch`, and reports ready and the result;
-- the backend's address and waits, as validated deployment settings.
+- the backend's address, waits and polling, as validated settings.
 
 It plugs into `VeyraMatch`'s contracts, so no gameplay module depends on it or on HTTP. It sits in its own Services layer, above Orchestration.
 
@@ -234,6 +236,12 @@ UI observes/queries gameplay state and emits user intent. No gameplay module dep
 
 It arrived in M5 with grey-box presentation (`Greybox/`: engine shapes for bodies, projectiles and cast telegraphs) and a Canvas HUD (`Hud/`), both placeholders (ADR-008 §1). It is `ClientOnly`, so servers neither build nor load it, and the layer check enforces that.
 
+M6 added the menus, UMG widgets built entirely in C++ with no widget Blueprints (ADR-010 §4):
+
+- `Shell/`: the screen for each client state (starter choice, Home, Play, champion select, results, Reconnect-only, problems), built from pure view models over the coordinator's snapshot. Buttons ask the coordinator's intents and are enabled only when it allows them;
+- `Match/`: the in-match menu, with Resume, and End Custom Match for a practice match's host;
+- the style and the menu key, as validated settings in `DefaultGame.ini` and `DefaultInput.ini`.
+
 ### VeyraDeveloper
 
 Non-shipping or development-facing utilities.
@@ -246,6 +254,8 @@ Non-shipping or development-facing utilities.
 - bot/test drivers.
 
 Developer tooling may depend on production systems. Production systems must never require developer tooling.
+
+Its scripted players drive the game from the command line for `Game/Scripts/Smoke.ps1`: one plays a match's script, one plays a Vanguard's whole kit, and since M6 one plays the play flow by clicking the same shell and menu buttons a player would (`-Flow Practice`).
 
 ## 2. Dependency direction
 
@@ -285,7 +295,11 @@ This is a guide, not a license for arbitrary sideways dependencies. Prefer contr
 
 ### Backend (outside Unreal)
 
-The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity, social, party, and match allocation and results now; matchmaking later). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; only `VeyraServices` talks to it, over HTTP.
+The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity, social, party, the Vanguard catalog, accounts with onboarding and entitlements, champion select, and match allocation and results now; matchmaking later). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; only `VeyraServices` talks to it, over HTTP.
+
+### Launcher (outside Unreal)
+
+The launcher from ADR-005 L1–L4 and [ADR-010](Docs/ADR/ADR-010-play-flow.md) §5 lives in [`Launcher/`](Launcher/README.md): a Tauri v2 app built with plain `cargo`. `core/` holds everything it does (its configuration, the build manifest, the backend client and the launch handshake), so the window (`app/`, `ui/`) and the headless `veyra-launch-cli` (`cli/`) are thin. It signs the player in, starts the packaged game and hands it a launch code, then closes; it never links to the game. `Game/Scripts/Play.ps1` opens it.
 
 ## 3. Content directory
 
@@ -307,6 +321,7 @@ Content/Veyra/
 │   ├── MeridianCrucible/
 │   ├── Jungle/
 │   └── Structures/
+├── FrontEnd/
 ├── UI/
 ├── VFX/
 ├── Audio/
@@ -314,6 +329,8 @@ Content/Veyra/
 ```
 
 `Developer/` holds development-only content, such as the grey-box test map `Developer/Maps/L_Greybox`. That map is generated from `Source/VeyraDeveloper/Greybox/Greybox.json` by `Game/Scripts/BuildGreyboxMap.ps1`, never edited by hand.
+
+`FrontEnd/Maps/L_FrontEnd`, the client's default map where the shell runs (ADR-010 §3), is generated the same way by `Game/Scripts/BuildFrontEndMap.ps1`: an empty world with the shell's game mode.
 
 Do not create cross-project junk drawers such as `Misc`, `Stuff`, or `Temp` as permanent homes. Temporary work should have an explicit cleanup path.
 

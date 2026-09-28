@@ -570,6 +570,13 @@ if ($Handoff -or $Flow) {
                     Write-Host "  Presentation error: $($uiError.Matches[0].Value)"
                     $failed = $true
                 }
+                # The client must also close cleanly: a crash after its verdict still fails. A client the
+                # launcher CLI started is not this script's child, so its log is where a crash shows.
+                if (Select-String -LiteralPath $client.Log -SimpleMatch '=== Critical error: ===' -Quiet) {
+                    $frame = Select-String -LiteralPath $client.Log -Pattern '\[Callstack\] \S+ (\S+)' | Select-Object -First 1
+                    Write-Host "  It crashed$(if ($frame) { " in $($frame.Matches[0].Groups[1].Value)" })."
+                    $failed = $true
+                }
             }
         }
 

@@ -221,6 +221,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.ReachShell()));
 			ShowScreen();
 			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::Shell && Screen->GetPage() == EVeyraShellPage::Home));
+			ASSERT_THAT(IsTrue(Screen->IsFocusable(), TEXT("the shell's input mode gives the screen keyboard focus")));
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Welcome, DevOne."))));
 			Button(TEXT("Play"))->Press();
 			ASSERT_THAT(IsTrue(Screen->GetPage() == EVeyraShellPage::Play));
@@ -331,6 +332,7 @@ namespace VeyraShellTests
 			bool bClosed = false;
 			Menu->Show(Controller, [&bClosed] { bClosed = true; });
 			ASSERT_THAT(IsTrue(LabelsOf(Menu->GetButtons()) == TArray<FString>{ TEXT("Resume") }));
+			ASSERT_THAT(IsTrue(Menu->IsFocusable(), TEXT("the open menu's input mode gives it keyboard focus")));
 			Menu->FindButton(FText::FromString(TEXT("Resume")))->Press();
 			ASSERT_THAT(IsTrue(bClosed));
 		}

@@ -34,6 +34,8 @@ private:
 	/** Shows or hides the screen for the coordinator's state. */
 	void Update();
 	void DropScreen();
+	/** Lets go of the coordinator's client and takes the screen down, while the client is still valid. */
+	void ReleaseClient();
 	void OnPostLoadMap(UWorld* World);
 	/** Gives the player's controller the input mode the screen needs, once per controller and mode. */
 	bool Tick(float DeltaSeconds);
@@ -46,6 +48,7 @@ private:
 	TWeakObjectPtr<APlayerController> InputModeFor;
 	bool bInputModeIsShell = false;
 	FDelegateHandle ChangedHandle;
+	FDelegateHandle EndingHandle;
 	FDelegateHandle PostLoadMapHandle;
 	FTSTicker::FDelegateHandle TickHandle;
 };

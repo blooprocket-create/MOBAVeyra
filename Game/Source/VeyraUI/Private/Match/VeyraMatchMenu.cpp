@@ -42,6 +42,8 @@ bool UVeyraMatchMenu::Initialize()
 		Width->AddChild(Panel);
 		Scrim->SetContent(Width);
 		WidgetTree->RootWidget = Scrim;
+		// The open menu's input mode gives it keyboard focus.
+		SetIsFocusable(true);
 	}
 	return bFirst;
 }

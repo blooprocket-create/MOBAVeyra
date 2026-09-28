@@ -33,8 +33,14 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	/** What presentation, and scripts standing in for the player, may observe and ask. Valid while the subsystem is initialized. */
+	/** What presentation, and scripts standing in for the player, may observe and ask. Valid until OnClientEnding. */
 	IVeyraClientIntents& GetClient() const { return *Flow; }
+
+	/**
+	 * Fires once as the subsystem deinitializes, while the client is still valid. A GameInstance's
+	 * subsystems deinitialize in no set order, so a subsystem holding the client lets go of it here.
+	 */
+	FSimpleMulticastDelegate& OnClientEnding() { return ClientEnding; }
 
 private:
 	// IVeyraClientFlowHost
@@ -62,6 +68,7 @@ private:
 	TUniquePtr<FVeyraPipeLineReader> LaunchCodeReader;
 	TUniquePtr<FVeyraPipeLineWriter> Handshake;
 	TUniquePtr<FVeyraClientFlow> Flow;
+	FSimpleMulticastDelegate ClientEnding;
 	TWeakObjectPtr<AVeyraGameState> WatchedGameState;
 	FDelegateHandle PhaseHandle;
 	FTSTicker::FDelegateHandle TickHandle;

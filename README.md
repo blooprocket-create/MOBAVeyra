@@ -22,7 +22,8 @@ The project is currently in pre-production. The repository is being established 
 - [`Docs/CONTEXT_MAP.md`](Docs/CONTEXT_MAP.md) - task-oriented routing to current design owners, large-document section locators and documentation checks.
 - [`CLAUDE.md`](CLAUDE.md) - Claude Code entrypoint and repository working rules.
 - [`Docs/ADR/`](Docs/ADR/) - Architecture Decision Records for major technical choices.
-- [`Backend/`](Backend/README.md) - the Go backend and local Docker stack (`docker compose up --build`); currently the launcher → game login handoff.
+- [`Backend/`](Backend/README.md) - the Go backend and local Docker stack (`docker compose up --build`): sign-in, parties, onboarding, champion select, Custom practice, and match servers and results.
+- [`Launcher/`](Launcher/README.md) - the Tauri launcher: it signs the player in, starts the game and hands it a launch code.
 - [`Docs/Pull_Request_Record_v0.1.md`](Docs/Pull_Request_Record_v0.1.md) - the review findings from every pull request, kept in the repository rather than only on the forge.
 
 ### Design bibles
@@ -72,9 +73,23 @@ Sheets are **generated from canon** rather than drawn with their text baked in: 
 
 The earlier baked-text sheets were **deleted on 2026-09-21**, once every Vanguard carried authored art and every conflict they raised was resolved against it. What they were, and why `superseded` is a distinct status from `withdrawn`, is recorded in [`ConceptArt/Archives/`](ConceptArt/Archives/) and the [discrepancy register](Docs/Design/Sheet_Canon_Discrepancy_Register_v0.1.md).
 
+## Play it
+
+The first playable path is a solo **Custom practice** match on the grey-box map with one of four Vanguards: Cairn, Qazharr, Oriel and Bryn ([ADR-010](Docs/ADR/ADR-010-play-flow.md)). On Windows, with the engine built and Docker running:
+
+```powershell
+./Game/Scripts/Build.ps1 -Target VeyraClient
+./Game/Scripts/Package.ps1 -Target VeyraClient -Platform Win64
+./Game/Scripts/Build.ps1 -Target VeyraServer -Platform Linux
+./Game/Scripts/Package.ps1 -Target VeyraServer -Platform Linux
+./Game/Scripts/Play.ps1
+```
+
+`Play.ps1` starts the local backend, builds the match server's image and the launcher (Rust from rustup), and opens the launcher. Pick a development account and press Play: the game starts and signs in. Choose a starter Vanguard, then Play → Custom → Practice, pick a Vanguard and Lock In. In the match, Esc opens the menu, where End Custom Match leaves it; the results follow. `-ResetOnboarding DevOne` makes an account new again. To try kits against bots without the launcher: `Play.ps1 -Direct -Vanguard oriel -Bots 3`.
+
 ## Status
 
-Veyra targets **Unreal Engine 5.8.3** (built from source; Windows client, Linux dedicated server) and has formally adopted Unreal's **Gameplay Ability System (GAS)** as its ability-framework foundation. The launcher, session handoff and local-first Docker hosting with a Go backend are recorded in [ADR-005](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md). Final module boundaries, detailed GAS ownership/prediction policy, hosted backend vendors, and other unresolved infrastructure choices remain deliberate architecture decisions. Do not invent unresolved choices merely to finish a task; record major choices through an ADR.
+Veyra targets **Unreal Engine 5.8.3** (built from source; Windows client, Linux dedicated server) and has formally adopted Unreal's **Gameplay Ability System (GAS)** as its ability-framework foundation. The launcher, session handoff and local-first Docker hosting with a Go backend are recorded in [ADR-005](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md), and the play flow built on them (the client's states, menus, onboarding, champion select and Custom practice) in [ADR-010](Docs/ADR/ADR-010-play-flow.md). Final module boundaries, detailed GAS ownership/prediction policy, hosted backend vendors, and other unresolved infrastructure choices remain deliberate architecture decisions. Do not invent unresolved choices merely to finish a task; record major choices through an ADR.
 
 ## License
 
