@@ -266,6 +266,65 @@ bool SetBaseDamageReduction(UAbilitySystemComponent& AbilitySystem, double Fract
 	return true;
 }
 
+bool SetEquipmentStats(UAbilitySystemComponent& AbilitySystem, const FVeyraEquipmentStats& Stats)
+{
+	const TPair<FName, double> Values[] = {
+		{ UVeyraEquipmentEffect::MaxHealthName, Stats.MaxHealth },
+		{ UVeyraEquipmentEffect::HealthRegenName, Stats.HealthRegen },
+		{ UVeyraEquipmentEffect::PhysicalPowerName, Stats.PhysicalPower },
+		{ UVeyraEquipmentEffect::MagicPowerName, Stats.MagicPower },
+		{ UVeyraEquipmentEffect::AttackSpeedName, Stats.AttackSpeed },
+		{ UVeyraEquipmentEffect::AbilityHasteName, Stats.AbilityHaste },
+		{ UVeyraEquipmentEffect::MoveSpeedName, Stats.MoveSpeed },
+		{ UVeyraEquipmentEffect::MagicPenetrationFlatName, Stats.MagicPenetrationFlat },
+	};
+	bool bValid = HasEveryStatSet(AbilitySystem) && IsNonNegativeFinite(Stats.MagicPowerFraction);
+	bool bAnything = Stats.MagicPowerFraction > 0.0;
+	for (const TPair<FName, double>& Value : Values)
+	{
+		bValid &= IsNonNegativeFinite(Value.Value);
+		bAnything |= Value.Value > 0.0;
+	}
+	if (!bValid)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused equipment stats for %s: it needs every Veyra attribute set, and every value finite and at least 0."),
+			*GetNameSafe(AbilitySystem.GetOwner()));
+		return false;
+	}
+
+	const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
+	const FGameplayAttribute MaxHealth = UVeyraVitalsSet::GetMaxHealthAttribute();
+	const float OldMax = AbilitySystem.GetNumericAttribute(MaxHealth);
+	const float Fraction = OldMax > 0.0f ? AbilitySystem.GetNumericAttribute(Health) / OldMax : 1.0f;
+
+	// The last equipment's effect goes; this one replaces it.
+	FGameplayEffectQuery Previous;
+	Previous.EffectDefinition = UVeyraEquipmentEffect::StaticClass();
+	AbilitySystem.RemoveActiveEffects(Previous);
+	if (bAnything)
+	{
+		const FGameplayEffectSpecHandle Spec = AbilitySystem.MakeOutgoingSpec(UVeyraEquipmentEffect::StaticClass(), UnscaledEffectLevel, AbilitySystem.MakeEffectContext());
+		if (!Spec.IsValid())
+		{
+			UE_LOG(LogVeyraCombat, Error, TEXT("Could not create the equipment effect for %s."), *GetNameSafe(AbilitySystem.GetOwner()));
+			return false;
+		}
+		for (const TPair<FName, double>& Value : Values)
+		{
+			Spec.Data->SetSetByCallerMagnitude(Value.Key, static_cast<float>(Value.Value));
+		}
+		Spec.Data->SetSetByCallerMagnitude(UVeyraEquipmentEffect::MagicPowerMultiplierName, static_cast<float>(1.0 + Stats.MagicPowerFraction));
+		AbilitySystem.ApplyGameplayEffectSpecToSelf(*Spec.Data);
+	}
+
+	// A dead unit stays at 0 Health (Combat Bible §18).
+	if (!IsDeadUnit(AbilitySystem))
+	{
+		AbilitySystem.SetNumericAttributeBase(Health, AbilitySystem.GetNumericAttribute(MaxHealth) * Fraction);
+	}
+	return true;
+}
+
 bool RestoreResource(UAbilitySystemComponent& AbilitySystem, double Amount)
 {
 	if (!AbilitySystem.GetSet<UVeyraResourceSet>() || !IsNonNegativeFinite(Amount))

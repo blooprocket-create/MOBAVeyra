@@ -48,7 +48,7 @@ A new **Items** layer holds **VeyraItems**, directly above Abilities and below B
 
 `VeyraCombat::SetEquipmentStats(ASC, FVeyraEquipmentStats)` replaces one infinite native effect with the inventory's summed flat stats and percentage factors on every change, as `SetUnitScaling` does (ADR-011 §10); Max Health keeps its percentage (§41). Combat gains:
 
-- **Ability Haste** (a new attribute): a cooldown lasts base × 100 / (100 + Ability Haste), fixed when it starts, as in League; a running cooldown is not rescaled.
+- **Ability Haste** (a new attribute, floored at 0, Combat §39): a cooldown lasts base × 100 / (100 + Ability Haste) (§21); gaining or losing Haste while a cooldown runs rescales its remaining time proportionally (§21), so the cooldown ledger rescales its running entries whenever the attribute changes.
 - **Bonus Attack Speed** adds to level growth rather than compounding: an item's fraction becomes a flat Attack Speed modifier worth the Vanguard's base Attack Speed times that fraction, so base × (1 + growth) + base × bonus = base × (1 + growth + bonus). Statuses still multiply on top. This is §41's "unless explicitly stated otherwise", stated here, and matches League.
 
 ### 7. Match routes the fountain and forwards requests

@@ -42,6 +42,12 @@ public:
 
 	bool IsInitialized() const { return Level > 0; }
 	int32 GetLevel() const { return Level; }
+
+	/**
+	 * Server only: the unit's level-1 Attack Speed, which Attack Speed growth and bonus Attack Speed
+	 * are fractions of, so both add rather than compound (ADR-012 §6).
+	 */
+	double GetBaseAttackSpeed() const { return BaseAttackSpeed; }
 	int32 GetRank(EVeyraAbilitySlot Slot) const;
 
 	/** Owner and server only: XP towards the next level, with full fractional precision (§1). */

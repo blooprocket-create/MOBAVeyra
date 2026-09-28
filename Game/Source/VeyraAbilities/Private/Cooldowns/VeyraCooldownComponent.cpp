@@ -2,10 +2,14 @@
 
 #include "Cooldowns/VeyraCooldownComponent.h"
 
+#include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
+#include "Attributes/VeyraOffenceSet.h"
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
+#include "Stats/VeyraHaste.h"
 
 namespace VeyraCooldowns
 {
@@ -26,6 +30,18 @@ void Start(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability,
 	Entry->ReadyAt = Now + DurationSeconds;
 	Entry->DurationSeconds = DurationSeconds;
 }
+
+void Rescale(TArray<FVeyraCooldownEntry>& Entries, double Factor, double Now)
+{
+	for (FVeyraCooldownEntry& Entry : Entries)
+	{
+		if (Entry.ReadyAt > Now)
+		{
+			Entry.ReadyAt = Now + (Entry.ReadyAt - Now) * Factor;
+			Entry.DurationSeconds *= Factor;
+		}
+	}
+}
 }
 
 UVeyraCooldownComponent::UVeyraCooldownComponent()
@@ -43,10 +59,47 @@ void UVeyraCooldownComponent::GetLifetimeReplicatedProps(TArray<FLifetimePropert
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraCooldownComponent, Entries, Params);
 }
 
-void UVeyraCooldownComponent::StartCooldown(const FVeyraContentId& Ability, double DurationSeconds)
+void UVeyraCooldownComponent::OnRegister()
+{
+	Super::OnRegister();
+	if (UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner()))
+	{
+		HasteHandle = AbilitySystem->GetGameplayAttributeValueChangeDelegate(UVeyraOffenceSet::GetAbilityHasteAttribute())
+			.AddUObject(this, &UVeyraCooldownComponent::OnAbilityHasteChanged);
+	}
+}
+
+void UVeyraCooldownComponent::OnUnregister()
+{
+	if (UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner()))
+	{
+		AbilitySystem->GetGameplayAttributeValueChangeDelegate(UVeyraOffenceSet::GetAbilityHasteAttribute()).Remove(HasteHandle);
+	}
+	HasteHandle.Reset();
+	Super::OnUnregister();
+}
+
+void UVeyraCooldownComponent::StartCooldown(const FVeyraContentId& Ability, double BaseSeconds)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
-	VeyraCooldowns::Start(Entries, Ability, DurationSeconds, GetServerNow());
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner());
+	const double Haste = AbilitySystem && AbilitySystem->HasAttributeSetForAttribute(UVeyraOffenceSet::GetAbilityHasteAttribute())
+		? AbilitySystem->GetNumericAttribute(UVeyraOffenceSet::GetAbilityHasteAttribute())
+		: 0.0;
+	VeyraCooldowns::Start(Entries, Ability, BaseSeconds * VeyraHaste::CooldownMultiplier(Haste), GetServerNow());
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+}
+
+void UVeyraCooldownComponent::OnAbilityHasteChanged(const FOnAttributeChangeData& Change)
+{
+	const AActor* Owner = GetOwner();
+	if (!Owner || !Owner->HasAuthority() || Entries.IsEmpty())
+	{
+		return;
+	}
+	// What remains keeps its proportion: it becomes the new multiplier's share of the old one's (§21).
+	const double Factor = VeyraHaste::CooldownMultiplier(Change.NewValue) / VeyraHaste::CooldownMultiplier(Change.OldValue);
+	VeyraCooldowns::Rescale(Entries, Factor, GetServerNow());
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
 }
 

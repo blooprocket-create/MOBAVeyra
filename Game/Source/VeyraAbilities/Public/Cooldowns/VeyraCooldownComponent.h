@@ -4,6 +4,7 @@
 
 #include "Components/ActorComponent.h"
 #include "Content/VeyraContentId.h"
+#include "GameplayEffectTypes.h"
 
 #include "VeyraCooldownComponent.generated.h"
 
@@ -32,6 +33,12 @@ namespace VeyraCooldowns
 
 	/** Starts Ability's cooldown at time Now, replacing any running one. */
 	VEYRAABILITIES_API void Start(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability, double DurationSeconds, double Now);
+
+	/**
+	 * Scales every cooldown still running at time Now by Factor, what remains and what it started with
+	 * alike, as when Ability Haste changes mid-cooldown (Combat Bible §21). Finished ones stay finished.
+	 */
+	VEYRAABILITIES_API void Rescale(TArray<FVeyraCooldownEntry>& Entries, double Factor, double Now);
 }
 
 /**
@@ -49,9 +56,14 @@ public:
 	UVeyraCooldownComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 
-	/** Server only: starts Ability's cooldown now. */
-	void StartCooldown(const FVeyraContentId& Ability, double DurationSeconds);
+	/**
+	 * Server only: starts Ability's cooldown now, BaseSeconds shortened by the owner's Ability Haste
+	 * (Combat Bible §21). While it runs, a change of Haste rescales what remains.
+	 */
+	void StartCooldown(const FVeyraContentId& Ability, double BaseSeconds);
 
 	/**
 	 * Seconds until Ability is ready at server gameplay time Now. The server passes its world time;
@@ -73,6 +85,11 @@ private:
 	 */
 	double GetServerNow() const;
 
+	/** The owner's Ability Haste changed: running cooldowns keep their proportion (§21). Server only. */
+	void OnAbilityHasteChanged(const FOnAttributeChangeData& Change);
+
 	UPROPERTY(Replicated)
 	TArray<FVeyraCooldownEntry> Entries;
+
+	FDelegateHandle HasteHandle;
 };
