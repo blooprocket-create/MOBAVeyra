@@ -473,6 +473,10 @@ struct FVeyraWildlifeAiTuning
 	/** How long a fallen creature's body stays before it is removed, in seconds. */
 	UPROPERTY()
 	double CorpseSeconds = 0.0;
+
+	/** How close to its spot a creature walking home must come to be home, in units. */
+	UPROPERTY()
+	double HomeAcceptance = 0.0;
 };
 
 /** One of Team A's camps; Team B's is its mirror (Battleground Bible §7, §8, §17). */

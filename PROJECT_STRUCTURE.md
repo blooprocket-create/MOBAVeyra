@@ -172,7 +172,8 @@ VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §
 
 - `Structures/`: `AVeyraStructure`, a pawn with its own Ability System Component, and the tower attack.
 - `Fluxborn/`: `AVeyraFluxborn` and its server-only `AVeyraFluxbornController`, which follows its lane's waypoints and fights by `VeyraFluxbornRules` (ADR-011 §7).
-- `Rules/`: pure rules over data — tower targeting and ramp, structure vulnerability and backdoor protection, Fluxborn targeting, and the wave schedule.
+- `Wildlife/` (M10a, [ADR-014](Docs/ADR/ADR-014-jungle-and-flux-wells.md) §2): `AVeyraWildlife`, a neutral creature in the Fluxborn pattern; its server-only `AVeyraWildlifeController`, which answers its camp's attacker, leashes and heals at home; and `UVeyraJungleSubsystem`, which spawns, clears and respawns the camps, reports each creature's death to Economy and grants the cleared camp's trait.
+- `Rules/`: pure rules over data — tower targeting and ramp, structure vulnerability and backdoor protection, Fluxborn targeting, the wave schedule, and where wildlife stands and how far it fights.
 - `UVeyraBattlegroundSubsystem` spawns the structures and waves on the server, runs their timers, routes hostile damage to the towers and Fluxborn nearby, and reports deaths only it can describe to Economy's rewards.
 
 ### VeyraVision

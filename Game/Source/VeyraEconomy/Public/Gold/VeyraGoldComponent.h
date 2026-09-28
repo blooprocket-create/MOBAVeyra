@@ -29,6 +29,10 @@ enum class EVeyraGoldReason : uint8
 	Undo,
 	/** The steady income of a live match (author ruling, 2026-09-28, amending §1). */
 	Passive,
+	/** A jungle creature's kill (§7). */
+	Wildlife,
+	/** A share of a secured Flux Well's pool (§8.2). */
+	FluxWell,
 };
 
 VEYRAECONOMY_API const TCHAR* LexToString(EVeyraGoldReason Reason);

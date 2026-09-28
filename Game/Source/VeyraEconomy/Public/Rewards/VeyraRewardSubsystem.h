@@ -52,6 +52,13 @@ public:
 	 */
 	void StartPassiveGold();
 
+	/**
+	 * Server: a jungle creature of Species died (§7). The Vanguard who landed its killing blow takes
+	 * its Gold, wherever they stand; the killing side's living Vanguards near it share its XP, and with
+	 * no Vanguard's blow, each side's near it share it. There is no participation Gold.
+	 */
+	void RewardWildlifeDeath(const FVeyraDeathEvent& Death, const FVeyraContentId& Species);
+
 	/** Server: pays nothing more, as when the match ends (§8.2). */
 	void Stop();
 
@@ -86,6 +93,9 @@ private:
 	static bool CanGainExperience(const FRecipient& Recipient);
 
 	void GrantExperience(const FRecipient& Recipient, double Amount) const;
+
+	/** Shares Experience among Side's living Vanguards near Where who can still gain XP (§3.3, §7). */
+	void ShareExperience(TConstArrayView<FRecipient> All, EVeyraTeam Side, const FVector& Where, double Experience) const;
 	bool IsServer() const;
 
 	FDelegateHandle DeathHandle;

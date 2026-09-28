@@ -10,6 +10,7 @@
 #include "VeyraBattlegroundSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraTeamFluxSubsystem.h"
+#include "Wildlife/VeyraJungleSubsystem.h"
 
 namespace
 {
@@ -41,6 +42,7 @@ void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrim
 	Battleground = World.GetSubsystem<UVeyraBattlegroundSubsystem>();
 	Flux = World.GetSubsystem<UVeyraTeamFluxSubsystem>();
 	Rewards = World.GetSubsystem<UVeyraRewardSubsystem>();
+	Jungle = World.GetSubsystem<UVeyraJungleSubsystem>();
 	OnPrimeWellDestroyed = MoveTemp(InOnPrimeWellDestroyed);
 	if (UVeyraBattlegroundSubsystem* Subsystem = Battleground.Get())
 	{
@@ -82,23 +84,32 @@ void FVeyraBattlegroundLink::Stop()
 	{
 		TeamFlux->OnTeamFluxChanged.Remove(FluxChangedHandle);
 	}
+	if (UVeyraJungleSubsystem* Camps = Jungle.Get())
+	{
+		Camps->Stop();
+	}
 	// Nothing is paid once the match ends (Economy & Progression Bible §8.2).
 	if (UVeyraRewardSubsystem* Paying = Rewards.Get())
 	{
 		Paying->Stop();
 	}
 	Rewards.Reset();
+	Jungle.Reset();
 	DestroyedHandle.Reset();
 	FluxChangedHandle.Reset();
 	Battleground.Reset();
 	Flux.Reset();
 }
 
-void FVeyraBattlegroundLink::StartWaves()
+void FVeyraBattlegroundLink::StartLive()
 {
 	if (UVeyraBattlegroundSubsystem* Subsystem = Battleground.Get())
 	{
 		Subsystem->StartWaves();
+	}
+	if (UVeyraJungleSubsystem* Camps = Jungle.Get())
+	{
+		Camps->Start();
 	}
 }
 

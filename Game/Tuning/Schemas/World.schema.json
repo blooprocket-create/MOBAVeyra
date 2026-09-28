@@ -357,10 +357,11 @@
           "description": "How every creature's server controller behaves.",
           "type": "object",
           "additionalProperties": false,
-          "required": ["thinkSeconds", "corpseSeconds"],
+          "required": ["thinkSeconds", "corpseSeconds", "homeAcceptance"],
           "properties": {
             "thinkSeconds": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How often it reconsiders its target, in seconds of world time."},
-            "corpseSeconds": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How long a fallen creature's body stays."}
+            "corpseSeconds": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How long a fallen creature's body stays."},
+            "homeAcceptance": {"type": "number", "minimum": 0, "exclusiveMinimum": true, "description": "How close to its spot a creature walking home must come to be home."}
           }
         },
         "camps": {

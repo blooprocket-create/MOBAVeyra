@@ -8,6 +8,7 @@
 
 class UAbilitySystemComponent;
 class UVeyraBattlegroundSubsystem;
+class UVeyraJungleSubsystem;
 class UVeyraRewardSubsystem;
 class UVeyraTeamFluxSubsystem;
 class UWorld;
@@ -17,7 +18,9 @@ struct FVeyraStructureDestroyedEvent;
  * Match's side of the battleground (ADR-011 §2, §3): World and Flux are peers that never call each
  * other, so this routes between them. A destroyed structure grants its destroyers the Team Flux its
  * kind gives; every change to a team's Flux reaches World, whose Fluxborn follow it; and a destroyed
- * Prime Well is reported to the game mode, which decides victory. The game mode owns one; server only.
+ * Prime Well is reported to the game mode, which decides victory. It starts the battleground's waves
+ * and jungle as the match goes live, and stops them when it ends (ADR-014 §6). The game mode owns
+ * one; server only.
  */
 class FVeyraBattlegroundLink
 {
@@ -33,8 +36,8 @@ public:
 	/** Disconnects, and stops the battleground's timers and its rewards, as when the match ends. */
 	void Stop();
 
-	/** Starts the battleground's Fluxborn waves, as the match goes live (Battleground Bible §17). */
-	void StartWaves();
+	/** Starts the battleground's Fluxborn waves and its jungle, as the match goes live (Battleground Bible §17). */
+	void StartLive();
 
 	/**
 	 * Developer builds: Source, on Team, destroys the enemies' next structure in siege order with a
@@ -51,6 +54,7 @@ private:
 	TWeakObjectPtr<UVeyraBattlegroundSubsystem> Battleground;
 	TWeakObjectPtr<UVeyraTeamFluxSubsystem> Flux;
 	TWeakObjectPtr<UVeyraRewardSubsystem> Rewards;
+	TWeakObjectPtr<UVeyraJungleSubsystem> Jungle;
 	FDelegateHandle DestroyedHandle;
 	FDelegateHandle FluxChangedHandle;
 	FOnPrimeWellDestroyed OnPrimeWellDestroyed;

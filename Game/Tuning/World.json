@@ -311,7 +311,8 @@
     },
     "ai": {
       "thinkSeconds": 0.25,
-      "corpseSeconds": 1
+      "corpseSeconds": 1,
+      "homeAcceptance": 100
     },
     "camps": [
       {

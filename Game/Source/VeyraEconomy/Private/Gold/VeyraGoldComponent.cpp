@@ -34,6 +34,10 @@ const TCHAR* LexToString(EVeyraGoldReason Reason)
 		return TEXT("an undone purchase");
 	case EVeyraGoldReason::Passive:
 		return TEXT("passive income");
+	case EVeyraGoldReason::Wildlife:
+		return TEXT("a jungle creature");
+	case EVeyraGoldReason::FluxWell:
+		return TEXT("a share of a Flux Well");
 	}
 	return TEXT("unknown");
 }
