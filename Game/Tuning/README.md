@@ -13,6 +13,7 @@ Every gameplay balance, timing, range, cost and cap value lives here as validate
 | `Combat.json` | `VeyraCombat` | Resistance mitigation, targeting, regeneration, movement and forced movement, crowd control, Combat State, assist attribution, kill credit, Structure Effectiveness, Attack Speed, and moving toward enemy Vanguards. |
 | `Progression.json` | `VeyraEconomy` | Levels, the XP curve, skill points, maximum ranks and the levels that open ultimate ranks. |
 | `Economy.json` | `VeyraEconomy` | Starting Gold, and the Gold and XP that Fluxborn, Vanguard kills and structures pay: last hits, participation, assists, First Blood, structure pools, the Team Flux bonus, and who is near and recent enough to share (ADR-011 §11, §17). |
+| `Items.json` | `VeyraItems` | The shop's catalog and rules: each item's tier, recipe, cost, stats, Active and Attunement; consumables; the Attunements' values; inventory slots, resale, uniqueness and the Boots limit ([ADR-012](../../Docs/ADR/ADR-012-items-and-shop.md) §3, §10). |
 | `Abilities.json` | `VeyraAbilities` | Casting rules, statuses, and one map per ability archetype ([ADR-008](../../Docs/ADR/ADR-008-vanguard-definitions-and-ability-composition.md) §3). |
 | `Vanguards.json` | `VeyraVanguards` | Vanguard definitions, and one map per unique passive (ADR-008 §2, §5). |
 | `Flux.json` | `VeyraFlux` | What each source of Team Flux grants, and how active Team Flux strengthens Fluxborn ([ADR-011](../../Docs/ADR/ADR-011-battleground-runtime.md) §10). |

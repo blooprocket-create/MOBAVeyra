@@ -132,6 +132,8 @@ Gold and the rewards arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runt
 
 Depends on combat/abilities/economy through approved contracts. It does not own the underlying damage or gold formulas.
 
+VeyraItems arrived in M8 ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §2) in its own **Items** layer, above Abilities, whose archetypes run item Actives, and below Battleground. Its catalog is `Game/Tuning/Items.json`; `VeyraItems::Validate` holds the tier rules the schema cannot (Item Bible §2, §11). It spends and refunds Gold through Economy and applies equipment through `VeyraCombat::SetEquipmentStats`; Match routes the fountain and the player's shop requests to it.
+
 ### VeyraFlux
 
 - authoritative shared team Flux;

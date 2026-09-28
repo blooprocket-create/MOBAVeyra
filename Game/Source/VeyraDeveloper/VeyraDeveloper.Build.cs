@@ -29,6 +29,7 @@ public class VeyraDeveloper : ModuleRules
 			"VeyraCombat",
 			"VeyraEconomy",
 			"VeyraAbilities",
+			"VeyraItems",
 			"VeyraFlux",
 			"VeyraWorld",
 			"VeyraVanguards",
