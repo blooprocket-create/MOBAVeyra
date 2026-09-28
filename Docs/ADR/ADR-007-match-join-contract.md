@@ -77,6 +77,8 @@ Every credential is a prefix followed by the base64url encoding (no padding) of 
 
 Statistics, rewards and outcome adjudication (Match Flow §11, Match Statistics Bible) build on this record later.
 
+**Amended:** [ADR-010](ADR-010-play-flow.md) §7 adds `host_ended`, for practice only. [ADR-011](ADR-011-battleground-runtime.md) §13 adds `prime_well_destroyed`, for standard matches only: a side destroyed the other's Prime Well. It is the one end with a `winner`, and every other end must leave `winner` null; the backend and its schema keep the two together.
+
 ### 8. How a match ends in M4
 
 - **Developer request.** A development build lets a player end the match, like the developer pause (ADR-006 §8). Shipping refuses it.
@@ -171,7 +173,7 @@ Statistics, rewards and outcome adjudication (Match Flow §11, Match Statistics 
 - Turning results into statistics, rewards and adjudicated outcomes.
 - Credentials for spectators and replay viewers.
 - AI participants in custom lobbies.
-- Victory conditions, which make `winner` meaningful.
+- Victory conditions, which make `winner` meaningful. The Prime Well's destruction arrived with [ADR-011](ADR-011-battleground-runtime.md) §13; surrender (Match Flow §8) has not.
 
 ## Alternatives considered
 

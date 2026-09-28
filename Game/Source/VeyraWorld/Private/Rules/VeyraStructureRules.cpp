@@ -64,4 +64,36 @@ bool Attacks(EVeyraStructureKind Kind)
 {
 	return Kind == EVeyraStructureKind::LaneSpire || Kind == EVeyraStructureKind::BaseTower;
 }
+
+TOptional<int32> NextToSiege(EVeyraTeam Defenders, TConstArrayView<FVeyraStructureStatus> All)
+{
+	// Siege order, lowest first: the mid lane, the base towers, the Prime Well, then the other lanes.
+	const auto Stage = [](const FVeyraStructureStatus& Structure) {
+		if (Structure.Kind == EVeyraStructureKind::BaseTower)
+		{
+			return 1;
+		}
+		if (Structure.Kind == EVeyraStructureKind::PrimeWell)
+		{
+			return 2;
+		}
+		const EVeyraLane Lane = Structure.Lane.Get(EVeyraLane::Mid);
+		return Lane == EVeyraLane::Mid ? 0 : Lane == EVeyraLane::Top ? 3 : 4;
+	};
+	TOptional<int32> Best;
+	for (int32 Index = 0; Index < All.Num(); ++Index)
+	{
+		const FVeyraStructureStatus& Structure = All[Index];
+		if (Structure.Team != Defenders || Structure.bDestroyed || IsInvulnerable(Structure, All))
+		{
+			continue;
+		}
+		const FVeyraStructureStatus* Current = Best.IsSet() ? &All[Best.GetValue()] : nullptr;
+		if (!Current || Stage(Structure) < Stage(*Current) || (Stage(Structure) == Stage(*Current) && Structure.Order < Current->Order))
+		{
+			Best = Index;
+		}
+	}
+	return Best;
+}
 }

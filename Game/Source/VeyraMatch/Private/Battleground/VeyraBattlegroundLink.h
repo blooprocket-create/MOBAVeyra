@@ -6,6 +6,7 @@
 #include "Teams/VeyraTeam.h"
 #include "UObject/WeakObjectPtr.h"
 
+class UAbilitySystemComponent;
 class UVeyraBattlegroundSubsystem;
 class UVeyraTeamFluxSubsystem;
 class UWorld;
@@ -30,6 +31,12 @@ public:
 
 	/** Disconnects, and stops the battleground's timers, as when the match ends. */
 	void Stop();
+
+	/**
+	 * Developer builds: Source, on Team, destroys the enemies' next structure in siege order with a
+	 * lethal developer hit through the damage pipeline (ADR-011 §15). Returns whether one fell.
+	 */
+	bool DeveloperSiege(UAbilitySystemComponent& Source, EVeyraTeam Team);
 
 private:
 	void OnStructureDestroyed(const FVeyraStructureDestroyedEvent& Event);

@@ -53,10 +53,12 @@
     -Flow Practice plays the whole solo path through the client-state coordinator (ADR-010 §2)
     instead: the first dev account's onboarding is reset, and one packaged client signs in through
     the launch handshake and runs -VeyraSmokeFlow=practice, which chooses a starter, starts practice,
-    hovers and locks a Vanguard, ends the match as its host, checks the verified result and returns
-    to the shell, clicking the shell's and the in-match menu's buttons as a player would. The backend creates the match from the select and starts its server; the same
-    checks as -Handoff -Practice follow. -Launcher Script means this script does the launcher's part:
-    the dev login, the launch code and the handshake.
+    hovers and locks a Vanguard, sieges the bots' side down to its Prime Well with Veyra.Dev.Siege,
+    and, since practice has no victory (ADR-011 §14), ends the match as its host, checks the verified
+    result and returns to the shell, clicking the shell's and the in-match menu's buttons as a player
+    would. The backend creates the match from the select and starts its server; the same checks as
+    -Handoff -Practice follow. -Launcher Script means this script does the launcher's part: the dev
+    login, the launch code and the handshake.
 
     -Flow Casual plays the matchmade path with two packaged clients, one per dev account, against
     the local 1v1 casual mode (ADR-010 §10). Each chooses the matchmade mode in Play, readies up,
@@ -64,6 +66,11 @@
     client walks and ends the standard match from its menu's developer end; both check the verified
     result and return to the shell. The backend must record a developer-request end with no winner,
     both players joined and connected at the end, and remove the server.
+
+    -Flow CasualVictory plays the same matchmade path to a win (ADR-011 §13): the first client sieges
+    the other side's structures in order with Veyra.Dev.Siege until its Prime Well falls, which ends
+    the match. The backend must record prime_well_destroyed with the side the matchmaker gave the
+    first client as the winner; the first client's results must say Victory and the second's Defeat.
 
     -Flow CasualDecline plays a match found that does not go ahead: both clients queue; the second
     declines once the first has accepted. The decliner must be back in the shell out of the queue;
@@ -107,7 +114,8 @@
     With -Handoff: a solo practice match that its host ends.
 .PARAMETER Flow
     Plays a path through the client-state coordinator: Practice, the solo path; Casual, a matchmade
-    1v1; CasualDecline, a declined match found. Packaged clients and container only.
+    1v1; CasualVictory, a matchmade 1v1 won by siege; CasualDecline, a declined match found. Packaged
+    clients and container only.
 .PARAMETER Launcher
     With -Flow: who plays the launcher's part. Script: this script. Cli: veyra-launch-cli, the launcher's
     headless twin (Launcher/), built in release, with Launcher/config/local.json.
@@ -164,7 +172,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice', 'Casual', 'CasualDecline')]
+    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualDecline')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -384,7 +392,8 @@ if ($Handoff -or $Flow) {
     # -Flow Casual: picks are unique in a matchmade select, so each player locks its own.
     $CasualVanguards = @('cairn', 'oriel')
     $isPractice = $Practice -or $Flow -eq 'Practice'
-    $isMatchmade = $Flow -in 'Casual', 'CasualDecline'
+    $isMatchmade = $Flow -in 'Casual', 'CasualVictory', 'CasualDecline'
+    $isVictory = $Flow -eq 'CasualVictory'
     # Every run but a declined match found plays a match.
     $expectsMatch = $Flow -ne 'CasualDecline'
     $playerCount = $(if ($isPractice) { 1 } else { 2 })
@@ -499,8 +508,9 @@ if ($Handoff -or $Flow) {
             # With -Flow -Screenshot the first client renders in a window and saves each screen it passes.
             $clientArguments = @('-nosound', '-nosplash', '-unattended', "-ABSLOG=$quote$log$quote")
             $clientArguments += $(if ($Flow -and $Screenshot -and $index -eq 0) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=$quote$reportDir$quote" } else { @('-nullrhi') })
-            $clientArguments += $(if ($Flow -eq 'Practice') { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard") }
+            $clientArguments += $(if ($Flow -eq 'Practice') { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard", '-VeyraSmokeFlowSieges') }
                 elseif ($Flow -eq 'Casual') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch') } else { @() }) }
+                elseif ($isVictory) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
                 elseif ($Flow -eq 'CasualDecline') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=requeue' } else { '-VeyraSmokeFlow=decline' })) }
                 elseif ($isPractice) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeEndCustomMatch') }
                 elseif ($index -eq 0) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokePause', '-VeyraSmokeEndMatch') }
@@ -644,6 +654,7 @@ if ($Handoff -or $Flow) {
             $screens = switch ($Flow) {
                 'Practice' { 'StarterChoice', 'Home', 'Play', 'ChampionSelect', 'MatchMenu', 'Results' }
                 'Casual' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'MatchMenu', 'Results' }
+                'CasualVictory' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'CasualDecline' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'Requeued' }
             }
             foreach ($screen in $screens) {
@@ -667,10 +678,13 @@ if ($Handoff -or $Flow) {
         }
         else {
             $result = $match.result
-            $expectedEnd = $(if ($isPractice) { 'host_ended' } else { 'developer_request' })
+            $expectedEnd = $(if ($isPractice) { 'host_ended' } elseif ($isVictory) { 'prime_well_destroyed' } else { 'developer_request' })
+            # Only a won match has a winner: the side of the first client, which sieged. The matchmaker
+            # chose the sides, so the match's record says which it played.
+            $expectedWinner = $(if ($isVictory) { ($match.participants | Where-Object accountId -eq $participants[0].AccountId).side } else { $null })
             Write-Host ("Result: {0}, winner {1}, {2:N1} s." -f $result.endReason, $(if ($null -eq $result.winner) { 'none' } else { $result.winner }), $result.durationSeconds)
-            if ($result.endReason -ne $expectedEnd -or $null -ne $result.winner -or $result.durationSeconds -le 0) {
-                Write-Host "Expected $expectedEnd with no winner and a positive duration."
+            if ($result.endReason -ne $expectedEnd -or $result.winner -ne $expectedWinner -or $result.durationSeconds -le 0) {
+                Write-Host "Expected $expectedEnd with winner $(if ($expectedWinner) { $expectedWinner } else { 'none' }) and a positive duration."
                 $failed = $true
             }
             $expectedAccounts = @($participants.AccountId | Sort-Object)
@@ -703,10 +717,15 @@ if ($Handoff -or $Flow) {
         $expectedServerLines =@('VeyraHandoff: took the assignment', 'VeyraHandoff: reported ready', "Preparation begins with $playerCount player(s)", 'The match is live',
             'VeyraHandoff: reported result') + @($participants | ForEach-Object { "$($_.Name) plays $($_.Vanguard)." })
         $expectedServerLines += $(if ($isPractice) { @('the host, ended the custom match', 'The match ended (host ended') }
+            elseif ($isVictory) { @("destroyed the other side's Prime Well", 'The match ended (prime well destroyed') }
             elseif ($isMatchmade) { @('The match ended (developer request') }
             else { @('Match paused', 'Match resumed', 'The match ended (developer request') })
         if (-not $expectsMatch) {
             $expectedServerLines = @()
+        }
+        # The practice flow sieges the Prime Well down, and its match goes on (ADR-011 §14).
+        if ($Flow -eq 'Practice') {
+            $expectedServerLines += "destroyed the other side's Prime Well"
         }
         # A practice match adds the practice bots the backend's configuration lists (ADR-010 §7).
         $practiceBots = @($backendConfig.customPractice.bots)

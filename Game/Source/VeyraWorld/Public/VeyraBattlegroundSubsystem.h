@@ -57,6 +57,9 @@ public:
 	/** The structure of Kind on Team, in Lane (none for the base), at Order; null if there is none. */
 	AVeyraStructure* FindStructure(EVeyraTeam Team, EVeyraStructureKind Kind, TOptional<EVeyraLane> Lane, int32 Order) const;
 
+	/** The developer siege's next target among Defenders' structures (VeyraStructureRules::NextToSiege); null when none can be damaged. */
+	AVeyraStructure* NextSiegeTarget(EVeyraTeam Defenders) const;
+
 	/**
 	 * Server: stops shooting, rebuilding and regenerating, as when the match ends (Economy Bible §8.2:
 	 * nothing more happens after victory).

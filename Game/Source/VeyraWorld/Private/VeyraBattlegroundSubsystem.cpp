@@ -117,6 +117,21 @@ AVeyraStructure* UVeyraBattlegroundSubsystem::FindStructure(EVeyraTeam Team, EVe
 	return nullptr;
 }
 
+AVeyraStructure* UVeyraBattlegroundSubsystem::NextSiegeTarget(EVeyraTeam Defenders) const
+{
+	// StatusesOf skips null entries, so the index is taken over the live structures alike.
+	TArray<AVeyraStructure*> Live;
+	for (AVeyraStructure* Structure : Structures)
+	{
+		if (Structure)
+		{
+			Live.Add(Structure);
+		}
+	}
+	const TOptional<int32> Next = VeyraStructureRules::NextToSiege(Defenders, StatusesOf(Structures));
+	return Next.IsSet() ? Live[Next.GetValue()] : nullptr;
+}
+
 void UVeyraBattlegroundSubsystem::Stop()
 {
 	bStopped = true;

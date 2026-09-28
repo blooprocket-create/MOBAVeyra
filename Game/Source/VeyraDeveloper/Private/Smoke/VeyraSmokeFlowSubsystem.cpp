@@ -6,11 +6,14 @@
 #include "Client/VeyraClientFlowSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
+#include "GameFramework/PlayerState.h"
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformTime.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
+#include "Structures/VeyraStructure.h"
 #include "UnrealClient.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
@@ -35,6 +38,12 @@ namespace
 	const TCHAR* const VanguardSwitch = TEXT("VeyraSmokeFlowVanguard=");
 	const TCHAR* const ScreenshotSwitch = TEXT("VeyraSmokeFlowScreenshots=");
 	const TCHAR* const EndsMatchSwitch = TEXT("VeyraSmokeFlowEndsMatch");
+	const TCHAR* const SiegesSwitch = TEXT("VeyraSmokeFlowSieges");
+	const TCHAR* const VictorySwitch = TEXT("VeyraSmokeFlowVictory");
+	// Harness settings for the siege: how often it asks, leaving time for each fall to replicate, and
+	// how many asks mean something is wrong, well above the structures on the way to a Prime Well.
+	constexpr double SiegeIntervalRealSeconds = 1.0;
+	constexpr int32 MaxSiegeRequests = 40;
 	// Harness settings, not gameplay: how long the whole script may take, how far the Vanguard must
 	// walk toward the lane centre before the match is ended, and how long to wait for a screenshot to
 	// be saved.
@@ -49,6 +58,7 @@ namespace
 	const TCHAR* const PracticeEndReason = TEXT("host_ended");
 	const TCHAR* const PracticeRules = TEXT("practice");
 	const TCHAR* const DeveloperEndReason = TEXT("developer_request");
+	const TCHAR* const VictoryEndReason = TEXT("prime_well_destroyed");
 	const TCHAR* const StandardRules = TEXT("standard");
 	// How the coordinator explains a match found that did not go ahead.
 	const TCHAR* const DeclinedNotice = TEXT("match_found_declined");
@@ -81,6 +91,8 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	FParse::Value(FCommandLine::Get(), VanguardSwitch, WantedVanguard);
 	FParse::Value(FCommandLine::Get(), ScreenshotSwitch, ScreenshotFolder);
 	bEndsMatch = FParse::Param(FCommandLine::Get(), EndsMatchSwitch);
+	bSieges = FParse::Param(FCommandLine::Get(), SiegesSwitch);
+	bVictory = FParse::Param(FCommandLine::Get(), VictorySwitch);
 	StartRealTime = FPlatformTime::Seconds();
 	const TPair<const TCHAR*, EScript> Scripts[] = {
 		{ TEXT("join"), EScript::Join },
@@ -99,7 +111,8 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		return;
 	}
 	Script = Known->Value;
-	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: started the %s flow script%s."), *Mode, bEndsMatch ? TEXT(", which ends the match") : TEXT(""));
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: started the %s flow script%s%s."), *Mode, bEndsMatch ? TEXT(", which ends the match") : TEXT(""),
+		bSieges ? TEXT(", which sieges") : TEXT(""));
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraSmokeFlowSubsystem::Tick));
 }
 
@@ -187,9 +200,9 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		}
 		else if (bSawResults)
 		{
-			Finish(true, FString::Printf(TEXT("clicked through the starter choice, Play and Practice, locked %s, ended the match from its menu as its host, ")
+			Finish(true, FString::Printf(TEXT("clicked through the starter choice, Play and Practice, locked %s, %sended the match from its menu as its host, ")
 										 TEXT("saw its verified result and returned to the shell"),
-				*LockedVanguard));
+				*LockedVanguard, bSieges ? TEXT("sieged the enemy Prime Well down, played on, ") : TEXT("")));
 		}
 		else if (bStartedPractice && !Snapshot.Notice.IsEmpty())
 		{
@@ -264,7 +277,9 @@ void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
 	if (bSawResults)
 	{
 		Finish(true, FString::Printf(TEXT("queued, accepted the match found, locked %s, %s, saw its verified result and returned to the shell"), *LockedVanguard,
-			bEndsMatch ? TEXT("ended the match from its menu as a developer") : TEXT("waited for the match to end")));
+			bEndsMatch ? TEXT("ended the match from its menu as a developer")
+			: bSieges  ? TEXT("won the match by siege")
+					   : TEXT("waited for the match to end")));
 		return;
 	}
 
@@ -534,8 +549,9 @@ void UVeyraSmokeFlowSubsystem::TickOpponent(IVeyraClientIntents& Flow)
 
 void UVeyraSmokeFlowSubsystem::TickInMatch()
 {
-	// The practice host ends its match; of a standard match's players, the one told to.
-	if (Script == EScript::Casual && !bEndsMatch)
+	// The practice host ends its match; of a standard match's players, the one told to, or the one
+	// that sieges.
+	if (Script == EScript::Casual && !bEndsMatch && !bSieges)
 	{
 		return;
 	}
@@ -544,6 +560,10 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 	const AVeyraGameState* GameState = World ? World->GetGameState<AVeyraGameState>() : nullptr;
 	const AActor* Vanguard = Controller ? Controller->GetVanguard() : nullptr;
 	if (!Controller || !GameState || !Vanguard || GameState->GetPhase() != EVeyraMatchPhase::Live)
+	{
+		return;
+	}
+	if (bSieges && TickSiege(*Controller, *World))
 	{
 		return;
 	}
@@ -623,6 +643,44 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 #endif
 }
 
+bool UVeyraSmokeFlowSubsystem::TickSiege(AVeyraPlayerController& Controller, const UWorld& World)
+{
+	if (bSiegeDone)
+	{
+		return false;
+	}
+	// Practice goes on after the enemy Prime Well falls (ADR-011 §14): the siege stops there, and the
+	// script ends the match as its host. A standard match ends at that fall, and the flow leaves it.
+	if (Script == EScript::Practice)
+	{
+		const EVeyraTeam Enemies = VeyraTeams::Opposing(VeyraTeams::TeamOf(Controller.PlayerState));
+		for (TActorIterator<AVeyraStructure> It(&World); It; ++It)
+		{
+			if (It->GetVeyraTeam() == Enemies && It->GetStructureKind() == EVeyraStructureKind::PrimeWell && It->IsDestroyed())
+			{
+				bSiegeDone = true;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the enemy Prime Well fell after %d siege(s), and the practice match goes on."), SiegeRequests);
+				return false;
+			}
+		}
+	}
+	if (SiegeRequests >= MaxSiegeRequests)
+	{
+		Finish(false, FString::Printf(TEXT("sieged %d times and the %s"), SiegeRequests,
+			Script == EScript::Practice ? TEXT("enemy Prime Well still stands") : TEXT("match has not ended")));
+		return true;
+	}
+	const double Now = FPlatformTime::Seconds();
+	if (Now >= NextSiegeAt)
+	{
+		NextSiegeAt = Now + SiegeIntervalRealSeconds;
+		++SiegeRequests;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: asked for developer siege %d."), SiegeRequests);
+		Controller.RequestDeveloperSiege();
+	}
+	return true;
+}
+
 void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot)
 {
 	if (bSawResults)
@@ -639,15 +697,30 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 		*Result->MatchId, *Result->EndReason, *Result->Rules, Result->Winner.IsEmpty() ? TEXT("none") : *Result->Winner, Result->DurationSeconds,
 		*Result->VanguardId, Result->bJoined ? TEXT("joined") : TEXT("never joined"), Result->bConnectedAtEnd ? TEXT("connected") : TEXT("disconnected"));
 	const bool bPractice = Script == EScript::Practice;
-	const TCHAR* const ExpectedEndReason = bPractice ? PracticeEndReason : DeveloperEndReason;
+	const TCHAR* const ExpectedEndReason = bPractice ? PracticeEndReason : bVictory ? VictoryEndReason : DeveloperEndReason;
 	const TCHAR* const ExpectedRules = bPractice ? PracticeRules : StandardRules;
-	if (Result->EndReason != ExpectedEndReason || Result->Rules != ExpectedRules || !Result->Winner.IsEmpty() || Result->VanguardId != LockedVanguard
+	// Only a won match has a winner: the sieging player's side, which the other lost to.
+	const bool bWinnerRight = bVictory ? !Result->Winner.IsEmpty() && (Result->Winner == Result->Side) == bSieges : Result->Winner.IsEmpty();
+	if (Result->EndReason != ExpectedEndReason || Result->Rules != ExpectedRules || !bWinnerRight || Result->VanguardId != LockedVanguard
 		|| !Result->bJoined || !Result->bConnectedAtEnd || Result->MatchId != Snapshot.MatchId)
 	{
-		Finish(false, FString::Printf(TEXT("the verified result is not a %s match ended by %s, with no winner, of the locked Vanguard, joined and connected at the end"),
-			ExpectedRules, ExpectedEndReason));
+		Finish(false, FString::Printf(TEXT("the verified result is not a %s match ended by %s, %s, of the locked Vanguard, joined and connected at the end"),
+			ExpectedRules, ExpectedEndReason, !bVictory ? TEXT("with no winner") : bSieges ? TEXT("won by this side") : TEXT("lost by this side")));
 		return;
 	}
+#if WITH_VEYRA_UI
+	// The results screen says so (ADR-011 §13).
+	if (bVictory)
+	{
+		const FString Headline = VeyraShellModels::DescribeResults(Snapshot).Headline.ToString();
+		const TCHAR* const ExpectedHeadline = bSieges ? TEXT("Victory") : TEXT("Defeat");
+		if (Headline != ExpectedHeadline)
+		{
+			Finish(false, FString::Printf(TEXT("the results screen says \"%s\", not \"%s\""), *Headline, ExpectedHeadline));
+			return;
+		}
+	}
+#endif
 	if (!Capture(TEXT("Results")) && Click(ContinueLabel))
 	{
 		bSawResults = true;

@@ -19,6 +19,11 @@ EVeyraEndCustomMatchRefusal CheckEndCustomMatch(EVeyraMatchRules Rules, EVeyraMa
 	return bRequesterIsHost ? EVeyraEndCustomMatchRefusal::None : EVeyraEndCustomMatchRefusal::NotHost;
 }
 
+bool DoesPrimeWellWin(EVeyraMatchRules Rules, EVeyraMatchPhase Phase)
+{
+	return Rules == EVeyraMatchRules::Standard && Phase == EVeyraMatchPhase::Live;
+}
+
 FString CheckAssignedVanguard(const FVeyraContentId& Vanguard, const FVeyraVanguardDefinition* Definition, bool bShipping)
 {
 	if (!Vanguard.IsValid())

@@ -136,6 +136,7 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
   - The backend's practice settings list them (`customPractice.bots`: a side and a released Vanguard each, with `playersPerSide` bounding each side, the host included). Every practice match gets them; they are stored with the match and sent in its assignment (§9).
   - The match server adds them when preparation begins, on their sides as their Vanguards. They are no accounts: no ticket, and no place in the result.
   - For now a bot is a target: it wanders near the middle of the map (`Match.json` `bots`) and does not fight back. Host-chosen and fighting AI come with custom lobbies and Co-op.
+- **Amended by [ADR-011](ADR-011-battleground-runtime.md) §14:** practice plays on the battleground, with its structures, and has no victory condition. A destroyed Prime Well stays destroyed and the match goes on until End Custom Match.
 
 ### 8. Champion select belongs to the trusted services
 
@@ -190,7 +191,7 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
 6. **M6b, after a Match Found decline:** accepters keep their original queue time. A dodge is recorded, with no timed penalty, since Match Flow §2 defines no schedule.
 7. **M6b:** everyone is Not Ready once a match starts (UX-15).
 8. **M6b, a match found that did not go ahead** is explained by the player's own answer, then by their party. Either they declined, or someone else did not accept and they are queued again in their place, or their party left the queue. Nobody learns who declined.
-9. **M6b, a standard match has no victory condition yet.** Outside Shipping, the in-match menu offers End Match (Developer), behind a confirmation. Its result says a developer ended it, with no winner.
+9. **M6b, a standard match has no victory condition yet.** Outside Shipping, the in-match menu offers End Match (Developer), behind a confirmation. Its result says a developer ended it, with no winner. *Amended by [ADR-011](ADR-011-battleground-runtime.md) §13:* destroying the other side's Prime Well now wins a standard match, and the results screen says Victory or Defeat; End Match (Developer) stays for development.
 10. **M6b, the grey box shows Match Found in place of the page**, not as an overlay above it. It blocks the same things, and the page returns as it was.
 11. **M6b, a block placed after a match was found** stops that match before it exists (Parties §6: "all subsequent … match assembly"). Blocks are checked again, under the locks a block takes, when the last player accepts and when every pick is locked. Nobody is at fault, and every party returns to the queue in its place. The reason, `no_longer_matched`, names no block, so no player learns of another's. Once a select has begun starting its match, the match goes ahead, as a live match does.
 12. **M6b, a party one of whose members is in a match or a champion select cannot queue** (`member_busy`). The matchmaker takes such a party out of the queue if it got there anyway.
@@ -326,7 +327,7 @@ Every configuration is parsed strictly: each field is required, and an unknown f
 - Draft Pick bans and turn order; Co-op AI.
 - Queue-dodge penalties; the select trade protocol.
 - Rejoining a running match.
-- Victory conditions and the winner.
+- Surrender (Match Flow §8). The Prime Well's victory arrived with [ADR-011](ADR-011-battleground-runtime.md) §13.
 - Remembered launcher login, and install and patching.
 - A push channel instead of polling.
 - Presence while queued. A client that closes while its party is queued leaves the party queued until its next Match Found goes unanswered, which takes it out (Parties §3). Its opponent waits for that deadline.

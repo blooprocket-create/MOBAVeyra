@@ -92,6 +92,24 @@ func TestHostEndedNeedsPracticeRules(t *testing.T) {
 	}
 }
 
+func TestPrimeWellDestroyedNeedsAWinnerAndStandardRules(t *testing.T) {
+	m := readyMatch()
+	r := resultFor(m)
+	r.EndReason = EndPrimeWellDestroyed
+	if err := m.End(r, t0); !errors.Is(err, ErrInvalidResult) {
+		t.Fatalf("no winner: want ErrInvalidResult, got %v", err)
+	}
+	r.Winner = SideB
+	practice := readyMatch()
+	practice.Rules = RulesPractice
+	if err := practice.End(r, t0); !errors.Is(err, ErrInvalidResult) {
+		t.Fatalf("practice has no victory: want ErrInvalidResult, got %v", err)
+	}
+	if err := m.End(r, t0); err != nil || m.Result.EndReason != EndPrimeWellDestroyed || m.Result.Winner != SideB {
+		t.Fatalf("standard rules: %v %+v", err, m.Result)
+	}
+}
+
 func resultFor(m Match) Result {
 	r := Result{EndReason: EndDeveloperRequest, DurationSeconds: 42}
 	for _, p := range m.Participants {
@@ -150,6 +168,7 @@ func TestEndRejectsInvalidResults(t *testing.T) {
 	cases := map[string]func(*Result){
 		"unknown reason":     func(r *Result) { r.EndReason = "surrender" },
 		"unknown winner":     func(r *Result) { r.Winner = "C" },
+		"winner, no victory": func(r *Result) { r.Winner = SideA },
 		"negative duration":  func(r *Result) { r.DurationSeconds = -1 },
 		"NaN duration":       func(r *Result) { r.DurationSeconds = math.NaN() },
 		"missing player":     func(r *Result) { r.Participants = r.Participants[:1] },

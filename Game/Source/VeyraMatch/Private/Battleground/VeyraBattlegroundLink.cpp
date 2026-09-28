@@ -2,8 +2,12 @@
 
 #include "Battleground/VeyraBattlegroundLink.h"
 
+#include "AbilitySystemComponent.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Engine/World.h"
+#include "Structures/VeyraStructure.h"
 #include "VeyraBattlegroundSubsystem.h"
+#include "VeyraCombatVerbs.h"
 #include "VeyraTeamFluxSubsystem.h"
 
 namespace
@@ -52,6 +56,23 @@ void FVeyraBattlegroundLink::Stop()
 	DestroyedHandle.Reset();
 	Battleground.Reset();
 	Flux.Reset();
+}
+
+bool FVeyraBattlegroundLink::DeveloperSiege(UAbilitySystemComponent& Source, EVeyraTeam Team)
+{
+	UVeyraBattlegroundSubsystem* Subsystem = Battleground.Get();
+	AVeyraStructure* Target = Subsystem ? Subsystem->NextSiegeTarget(VeyraTeams::Opposing(Team)) : nullptr;
+	if (!Target)
+	{
+		return false;
+	}
+	// Its whole Health as True damage: nothing mitigates it, so it is lethal.
+	UAbilitySystemComponent& Structure = *Target->GetAbilitySystemComponent();
+	FVeyraRawDamageEvent Damage;
+	Damage.Components.Add({ EVeyraDamageType::TrueDamage, Structure.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) });
+	Damage.Delivery = EVeyraDamageDelivery::Developer;
+	VeyraCombat::DealDamage(Source, Structure, Damage);
+	return Target->IsDestroyed();
 }
 
 void FVeyraBattlegroundLink::OnStructureDestroyed(const FVeyraStructureDestroyedEvent& Event)

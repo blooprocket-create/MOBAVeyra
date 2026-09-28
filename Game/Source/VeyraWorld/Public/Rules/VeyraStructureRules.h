@@ -40,4 +40,12 @@ namespace VeyraStructureRules
 
 	/** Whether a structure of Kind shoots: lane Spires and base-defense towers do; inhibitors and the Prime Well are passive (§10, §18). */
 	VEYRAWORLD_API bool Attacks(EVeyraStructureKind Kind);
+
+	/**
+	 * The developer siege's next target among Defenders' structures in All (ADR-011 §15): the first
+	 * standing one that can be damaged, taking the shortest way to the Prime Well — down the mid lane,
+	 * then the base towers, then the Well — and the other lanes only after. Its index in All; none
+	 * when nothing can be damaged.
+	 */
+	VEYRAWORLD_API TOptional<int32> NextToSiege(EVeyraTeam Defenders, TConstArrayView<FVeyraStructureStatus> All);
 }

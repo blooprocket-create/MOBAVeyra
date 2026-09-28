@@ -246,6 +246,29 @@ namespace VeyraShellTests
 			ASSERT_THAT(AreEqual(Model.Lines.Num(), 2, TEXT("why it failed, and why the player left it")));
 		}
 
+		TEST_METHOD(ResultsModelVictory)
+		{
+			VeyraBackendProtocol::FMatchOutcome Outcome;
+			Outcome.MatchId = MatchId;
+			Outcome.Mode = TEXT("casual_select");
+			Outcome.State = TEXT("ended");
+			Outcome.Side = TEXT("A");
+			Outcome.bHasResult = true;
+			Outcome.EndReason = TEXT("prime_well_destroyed");
+			Outcome.Winner = TEXT("A");
+			FVeyraClientSnapshot Snapshot;
+			Snapshot.State = EVeyraClientState::Results;
+			Snapshot.Result = Outcome;
+			FVeyraResultsModel Model = VeyraShellModels::DescribeResults(Snapshot);
+			ASSERT_THAT(AreEqual(Model.Headline.ToString(), FString(TEXT("Victory"))));
+			ASSERT_THAT(IsTrue(FText::Join(FText::FromString(TEXT("|")), Model.Lines).ToString().Contains(TEXT("A Prime Well was destroyed."))));
+
+			Outcome.Side = TEXT("B");
+			Snapshot.Result = Outcome;
+			Model = VeyraShellModels::DescribeResults(Snapshot);
+			ASSERT_THAT(AreEqual(Model.Headline.ToString(), FString(TEXT("Defeat"))));
+		}
+
 		TEST_METHOD(NamesAndTheSignature)
 		{
 			ASSERT_THAT(AreEqual(VeyraShellModels::NameOf(TEXT("custom_practice")).ToString(), FString(TEXT("Custom Practice"))));

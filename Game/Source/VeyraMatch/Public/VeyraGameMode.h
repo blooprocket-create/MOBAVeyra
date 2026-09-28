@@ -48,9 +48,18 @@ public:
 
 	/**
 	 * Ends the match: it takes no more orders or players, its clock stops, and its result goes to
-	 * whoever hosts it (UVeyraMatchHostSubsystem::OnMatchEnded). Ending an ended match does nothing.
+	 * whoever hosts it (UVeyraMatchHostSubsystem::OnMatchEnded). Winner is the side that destroyed the
+	 * other's Prime Well, and None for every other reason; a call that mismatches them is refused.
+	 * Ending an ended match does nothing.
 	 */
-	void EndMatch(EVeyraMatchEndReason Reason);
+	void EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner = EVeyraTeam::None);
+
+	/**
+	 * Developer builds: destroys the next structure of Requester's enemies in siege order with a
+	 * lethal developer hit from Requester, through the damage pipeline, so invulnerability, Team Flux
+	 * and victory run for real (ADR-011 §15). Returns whether one fell.
+	 */
+	bool HandleDeveloperSiege(const APlayerController& Requester);
 
 	/**
 	 * A player asks to end the custom match as its host (Custom Matches Bible §4; ADR-010 §7). Only

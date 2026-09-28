@@ -79,6 +79,21 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsFalse(Invulnerable(All)[3], TEXT("a rebuilt inhibitor behind fallen Spires can be hit again")));
 		}
 
+		TEST_METHOD(TheSiegeTakesTheShortestWayToThePrimeWell)
+		{
+			TArray<FVeyraStructureStatus> All = OneTeam();
+			// Another lane's outer Spire, which the way to the Well does not need.
+			All.Add({ EVeyraStructureKind::LaneSpire, EVeyraTeam::A, EVeyraLane::Top, 0, false });
+			TArray<int32> Order;
+			while (const TOptional<int32> Next = VeyraStructureRules::NextToSiege(EVeyraTeam::A, All))
+			{
+				Order.Add(Next.GetValue());
+				All[Next.GetValue()].bDestroyed = true;
+			}
+			ASSERT_THAT(IsTrue(Order == TArray<int32>({ 0, 1, 2, 3, 4, 5, 6, 7 }), TEXT("the mid lane, the base towers, the Well, then the other lanes")));
+			ASSERT_THAT(IsFalse(VeyraStructureRules::NextToSiege(EVeyraTeam::B, OneTeam()).IsSet(), TEXT("team B has nothing here")));
+		}
+
 		TEST_METHOD(OneTeamsStructuresNeverGateTheOthers)
 		{
 			TArray<FVeyraStructureStatus> All = OneTeam();
