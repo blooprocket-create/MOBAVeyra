@@ -6,9 +6,13 @@
 #include "CQTest.h"
 #include "Fluxborn/VeyraFluxborn.h"
 #include "Gold/VeyraGoldComponent.h"
+#include "Life/VeyraLifeComponent.h"
+#include "Misc/ScopeExit.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Rewards/VeyraRewardRules.h"
+#include "Rewards/VeyraRewardSubsystem.h"
+#include "TimerManager.h"
 #include "Structures/VeyraStructure.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/World/VeyraBattlegroundTestLayout.h"
@@ -189,6 +193,44 @@ namespace VeyraEconomyTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(GoldOf(*Killer), Tuning.Gold.StructurePool + Tuning.Gold.FirstStructureBonus, Tolerance)));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(GoldOf(*Ally), Tuning.Gold.FirstStructureBonus, Tolerance), TEXT("the whole team takes the first bonus")));
 			ASSERT_THAT(IsTrue(XpOf(*Killer) == 0.0, TEXT("structures give no XP")));
+		}
+
+		/** Moves world time on by Seconds. The timer manager ticks at most once per engine frame, and a
+		 *  test runs inside one; its first tick only activates the timers set before it. */
+		void Advance(double Seconds)
+		{
+			FTimerManager& Timers = Spawner.GetWorld().GetTimerManager();
+			++GFrameCounter;
+			Timers.Tick(0.0f);
+			++GFrameCounter;
+			Timers.Tick(static_cast<float>(Seconds));
+		}
+
+		TEST_METHOD(PassiveGoldPaysEveryoneOnItsTimerUntilTheMatchEnds)
+		{
+			// The author's income: 9 every 10 seconds, from 30 seconds in.
+			FVeyraEconomyTuning Tuning = UVeyraEconomyTuningSubsystem::Get();
+			Tuning.PassiveGold.PerPayment = 9.0;
+			Tuning.PassiveGold.IntervalSeconds = 10.0;
+			Tuning.PassiveGold.StartSeconds = 30.0;
+			UVeyraEconomyTuningSubsystem::SetTestOverride(&Tuning);
+			ON_SCOPE_EXIT { UVeyraEconomyTuningSubsystem::SetTestOverride(nullptr); };
+			UVeyraRewardSubsystem& Rewards = *Spawner.GetWorld().GetSubsystem<UVeyraRewardSubsystem>();
+			// The dead earn it too.
+			Ally->GetPlayerState()->FindComponentByClass<UVeyraLifeComponent>()->SetState(EVeyraLifeState::Dead);
+			Rewards.StartPassiveGold();
+
+			const FVeyraPassiveGoldTuning& Passive = Tuning.PassiveGold;
+			Advance(Passive.StartSeconds + Passive.IntervalSeconds / 2.0);
+			ASSERT_THAT(IsTrue(GoldOf(*Killer) == 0.0, TEXT("nothing before its first interval ends")));
+			Advance(Passive.IntervalSeconds);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(GoldOf(*Killer), Passive.PerPayment, Tolerance)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(GoldOf(*Ally), Passive.PerPayment, Tolerance), TEXT("dead or alive")));
+
+			// Nothing is paid once the match ends (§8.2).
+			Rewards.Stop();
+			Advance(Passive.IntervalSeconds * 3.0);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(GoldOf(*Killer), Passive.PerPayment, Tolerance)));
 		}
 	};
 }

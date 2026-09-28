@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "gold": {
     "provenance": "Provisional",
     "starting": 500,
@@ -10,6 +10,12 @@
     "firstBloodFraction": 0.5,
     "structurePool": 250,
     "firstStructureBonus": 100
+  },
+  "passiveGold": {
+    "provenance": "Provisional",
+    "perPayment": 9,
+    "intervalSeconds": 10,
+    "startSeconds": 30
   },
   "experience": {
     "provenance": "Provisional",

@@ -1,10 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Economy tuning",
-  "description": "Gold and XP rewards owned by the Economy domain (Economy & Progression Bible §1–§8; ADR-011 §11, §17): starting Gold, what lane Fluxborn, Vanguard kills and structures pay, the Team Flux farm bonus, and who is near enough to share. VeyraEconomy binds it to FVeyraEconomyTuning. The XP curve stays in Progression.json.",
+  "description": "Gold and XP rewards owned by the Economy domain (Economy & Progression Bible §1–§8; ADR-011 §11, §17): starting and passive Gold, what lane Fluxborn, Vanguard kills and structures pay, the Team Flux farm bonus, and who is near enough to share. VeyraEconomy binds it to FVeyraEconomyTuning. The XP curve stays in Progression.json.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "gold", "experience", "fluxBonus", "eligibility"],
+  "required": ["schemaVersion", "gold", "passiveGold", "experience", "fluxBonus", "eligibility"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -23,7 +23,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "gold": {
       "description": "Individual Gold (§1, §3, §5, §8).",
@@ -40,6 +40,18 @@
         "firstBloodFraction": { "description": "The match's first kill adds this fraction of the base kill Gold for the killer (§5.2: 50%).", "type": "number", "minimum": 0 },
         "structurePool": { "description": "A lane Spire's or base-defense tower's Gold, split among its recent contributors (§8.1).", "type": "number", "minimum": 0 },
         "firstStructureBonus": { "description": "The first Spire or base tower to fall adds this for every member of the destroying team (§8.1).", "type": "number", "minimum": 0 }
+      }
+    },
+    "passiveGold": {
+      "description": "Passive Gold (author ruling 2026-09-28, amending §1): every participant earns a steady income while the match is live, dead or alive, as in League of Legends. There is still no passive XP.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "perPayment", "intervalSeconds", "startSeconds"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "perPayment": { "description": "The Gold each participant receives at each payment (the author: 9 every 10 seconds).", "type": "number", "minimum": 0 },
+        "intervalSeconds": { "description": "How often it is paid, in seconds of live match.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "startSeconds": { "description": "How long after the match goes live the income begins, in seconds (League starts it as the first minions spawn).", "type": "number", "minimum": 0 }
       }
     },
     "experience": {

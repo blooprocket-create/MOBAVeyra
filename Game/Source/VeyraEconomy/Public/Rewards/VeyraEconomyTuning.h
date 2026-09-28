@@ -50,6 +50,31 @@ struct FVeyraGoldTuning
 	double FirstStructureBonus = 0.0;
 };
 
+/**
+ * Passive Gold (author ruling, 2026-09-28, amending §1): every participant earns a steady income while
+ * the match is live, dead or alive, as in League of Legends. There is still no passive XP.
+ */
+USTRUCT()
+struct FVeyraPassiveGoldTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The Gold each participant receives at each payment. */
+	UPROPERTY()
+	double PerPayment = 0.0;
+
+	/** How often it is paid, in seconds of live match. */
+	UPROPERTY()
+	double IntervalSeconds = 0.0;
+
+	/** How long after the match goes live the income begins, in seconds. */
+	UPROPERTY()
+	double StartSeconds = 0.0;
+};
+
 /** Individual XP rewards (§3.3, §6). The XP curve is Progression.json's. */
 USTRUCT()
 struct FVeyraExperienceRewardTuning
@@ -134,10 +159,13 @@ struct FVeyraEconomyTuning
 	GENERATED_BODY()
 
 	/** The Economy.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
 
 	UPROPERTY()
 	FVeyraGoldTuning Gold;
+
+	UPROPERTY()
+	FVeyraPassiveGoldTuning PassiveGold;
 
 	UPROPERTY()
 	FVeyraExperienceRewardTuning Experience;

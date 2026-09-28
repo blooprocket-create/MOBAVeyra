@@ -13,6 +13,7 @@
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Rewards/VeyraRewardRules.h"
 #include "Targeting/VeyraTargeting.h"
+#include "TimerManager.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraEconomyLog.h"
 
@@ -29,6 +30,7 @@ void UVeyraRewardSubsystem::Deinitialize()
 {
 	if (UWorld* World = GetWorld())
 	{
+		World->GetTimerManager().ClearTimer(PassiveGoldTimer);
 		if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
 		{
 			Events->OnDeath.Remove(DeathHandle);
@@ -37,9 +39,38 @@ void UVeyraRewardSubsystem::Deinitialize()
 	Super::Deinitialize();
 }
 
+void UVeyraRewardSubsystem::StartPassiveGold()
+{
+	const FVeyraPassiveGoldTuning& Passive = UVeyraEconomyTuningSubsystem::Get().PassiveGold;
+	if (bStopped || !IsServer() || !(Passive.PerPayment > 0.0))
+	{
+		return;
+	}
+	// The first payment covers the first interval after the start, so the timer's first delay is never 0.
+	GetWorld()->GetTimerManager().SetTimer(PassiveGoldTimer, this, &UVeyraRewardSubsystem::PayPassiveGold, static_cast<float>(Passive.IntervalSeconds),
+		/*bLoop*/ true, static_cast<float>(Passive.StartSeconds + Passive.IntervalSeconds));
+}
+
+void UVeyraRewardSubsystem::PayPassiveGold()
+{
+	const double Payment = UVeyraEconomyTuningSubsystem::Get().PassiveGold.PerPayment;
+	for (const FRecipient& Recipient : Recipients())
+	{
+		// Those on a side; a spectator plays no part.
+		if (Recipient.Team != EVeyraTeam::None)
+		{
+			Recipient.Gold->Grant(Payment, EVeyraGoldReason::Passive);
+		}
+	}
+}
+
 void UVeyraRewardSubsystem::Stop()
 {
 	bStopped = true;
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(PassiveGoldTimer);
+	}
 }
 
 void UVeyraRewardSubsystem::GrantStartingGold(APlayerState& Participant)

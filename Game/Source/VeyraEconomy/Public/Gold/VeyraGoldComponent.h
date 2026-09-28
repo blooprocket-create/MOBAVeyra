@@ -27,6 +27,8 @@ enum class EVeyraGoldReason : uint8
 	Sale,
 	/** A purchase undone at the fountain, for all it cost (§12). */
 	Undo,
+	/** The steady income of a live match (author ruling, 2026-09-28, amending §1). */
+	Passive,
 };
 
 VEYRAECONOMY_API const TCHAR* LexToString(EVeyraGoldReason Reason);

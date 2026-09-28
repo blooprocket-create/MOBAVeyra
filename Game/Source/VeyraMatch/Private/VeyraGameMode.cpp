@@ -796,6 +796,12 @@ void AVeyraGameMode::BeginLive()
 {
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Live);
 	UE_LOG(LogVeyraMatch, Log, TEXT("The match is live."));
+	// Passive Gold runs with the live match (author ruling, 2026-09-28); the battleground link stops
+	// it with every other reward when the match ends.
+	if (UVeyraRewardSubsystem* Rewards = GetWorld()->GetSubsystem<UVeyraRewardSubsystem>())
+	{
+		Rewards->StartPassiveGold();
+	}
 	// The Fluxborn waves begin with the match clock (Battleground Bible §17).
 	if (Battleground)
 	{
