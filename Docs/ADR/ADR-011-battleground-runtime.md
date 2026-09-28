@@ -248,7 +248,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - `UVeyraGoldComponent` on the PlayerState holds a fractional balance, replicated to its owner only;
   - every grant carries a reason and is logged for audit;
   - starting Gold is granted when preparation begins;
-  - **passive Gold** (author ruling, 2026-09-28; Economy §1 amended, which had ruled it out): every participant on a side receives `Economy.json` `passiveGold.perPayment` (9) every `intervalSeconds` (10), from `startSeconds` (30, Provisional: League starts it as the first minions spawn) after the match goes live, dead or alive. `UVeyraRewardSubsystem` pays it on a world-time timer, so a pause holds it; Match starts it at Live, and it stops with every other reward when the match ends. There is still no passive XP;
+  - **passive Gold** (author ruling, 2026-09-28; Economy §1 amended, which had ruled it out): every participant on a side receives `Economy.json` `passiveGold.perPayment` (15) every `intervalSeconds` (10), 90 a minute, from `startSeconds` (30, Provisional: League starts it as the first minions spawn) after the match goes live, dead or alive. `UVeyraRewardSubsystem` pays it on a world-time timer, so a pause holds it; Match starts it at Live, and it stops with every other reward when the match ends. There is still no passive XP;
   - the UI rounds only for display.
 - **Rewards** follow Economy §3–§8:
   - **Fluxborn:**

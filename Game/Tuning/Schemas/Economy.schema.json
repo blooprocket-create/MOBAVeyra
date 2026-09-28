@@ -49,7 +49,7 @@
       "required": ["provenance", "perPayment", "intervalSeconds", "startSeconds"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
-        "perPayment": { "description": "The Gold each participant receives at each payment (the author: 9 every 10 seconds).", "type": "number", "minimum": 0 },
+        "perPayment": { "description": "The Gold each participant receives at each payment (the author's ruling: 15 every 10 seconds, 90 a minute).", "type": "number", "minimum": 0 },
         "intervalSeconds": { "description": "How often it is paid, in seconds of live match.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "startSeconds": { "description": "How long after the match goes live the income begins, in seconds (League starts it as the first minions spawn).", "type": "number", "minimum": 0 }
       }
