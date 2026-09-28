@@ -19,8 +19,8 @@ namespace VeyraProgression
 	struct FExperienceState
 	{
 		int32 Level = 1;
-		/** XP gained towards the next level; always 0 at the cap. */
-		int32 Experience = 0;
+		/** XP gained towards the next level, with full fractional precision (§1); always 0 at the cap. */
+		double Experience = 0.0;
 	};
 
 	/** XP needed to go from Level to Level + 1; 0 at the cap. */
@@ -30,7 +30,7 @@ namespace VeyraProgression
 	 * Adds Amount XP (at least 0). One reward may grant several levels, and XP past the cap is
 	 * discarded (§9). Returns the new state; LevelsGained tells how many levels it crossed.
 	 */
-	VEYRAECONOMY_API FExperienceState AddExperience(const FExperienceState& State, int32 Amount, const FVeyraProgressionTuning& Tuning, int32& LevelsGained);
+	VEYRAECONOMY_API FExperienceState AddExperience(const FExperienceState& State, double Amount, const FVeyraProgressionTuning& Tuning, int32& LevelsGained);
 
 	/** Skill points a unit has earned by Level in total (§9: one per level, from level 1). */
 	VEYRAECONOMY_API int32 SkillPointsEarned(int32 Level, const FVeyraProgressionTuning& Tuning);

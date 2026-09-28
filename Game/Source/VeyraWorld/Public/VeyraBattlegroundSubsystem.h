@@ -134,7 +134,7 @@ public:
 
 private:
 	void OnDeath(const FVeyraDeathEvent& Death);
-	void OnFluxbornDied(AVeyraFluxborn& Fluxborn);
+	void OnFluxbornDied(AVeyraFluxborn& Fluxborn, const FVeyraDeathEvent& Death);
 
 	/**
 	 * An enemy Vanguard that damages a defending Vanguard draws the priority of each tower with both in

@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Engine/World.h"
+#include "Rewards/VeyraRewardSubsystem.h"
 #include "Structures/VeyraStructure.h"
 #include "VeyraBattlegroundSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -39,6 +40,7 @@ void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrim
 {
 	Battleground = World.GetSubsystem<UVeyraBattlegroundSubsystem>();
 	Flux = World.GetSubsystem<UVeyraTeamFluxSubsystem>();
+	Rewards = World.GetSubsystem<UVeyraRewardSubsystem>();
 	OnPrimeWellDestroyed = MoveTemp(InOnPrimeWellDestroyed);
 	if (UVeyraBattlegroundSubsystem* Subsystem = Battleground.Get())
 	{
@@ -80,6 +82,12 @@ void FVeyraBattlegroundLink::Stop()
 	{
 		TeamFlux->OnTeamFluxChanged.Remove(FluxChangedHandle);
 	}
+	// Nothing is paid once the match ends (Economy & Progression Bible §8.2).
+	if (UVeyraRewardSubsystem* Paying = Rewards.Get())
+	{
+		Paying->Stop();
+	}
+	Rewards.Reset();
 	DestroyedHandle.Reset();
 	FluxChangedHandle.Reset();
 	Battleground.Reset();

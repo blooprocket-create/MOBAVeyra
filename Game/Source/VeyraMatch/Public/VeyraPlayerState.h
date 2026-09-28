@@ -23,6 +23,7 @@ class UVeyraDefenceSet;
 class UVeyraLifeComponent;
 class UVeyraMobilitySet;
 class UVeyraOffenceSet;
+class UVeyraGoldComponent;
 class UVeyraProgressionComponent;
 class UVeyraRegenerationComponent;
 class UVeyraResourceSet;
@@ -84,6 +85,15 @@ public:
 	const FString& GetAccountId() const { return AccountId; }
 	void SetAccountId(const FString& InAccountId) { AccountId = InAccountId; }
 
+	/**
+	 * When the participant's dead Vanguard returns, in the server's world time, on every machine, so
+	 * the HUD can count down (Economy & Progression Bible §14). Meaningful only while it is dead.
+	 */
+	double GetRespawnAt() const { return RespawnAt; }
+
+	/** Server only: set as the Vanguard dies. */
+	void SetRespawnAt(double InRespawnAt);
+
 protected:
 	/**
 	 * The engine destroys a departing player's PlayerState. Veyra keeps it: the Vanguard stays in the
@@ -136,6 +146,10 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Progression")
 	TObjectPtr<UVeyraProgressionComponent> Progression;
 
+	/** Gold survives death too (Economy & Progression Bible §14). */
+	UPROPERTY(VisibleAnywhere, Category = "Progression")
+	TObjectPtr<UVeyraGoldComponent> Gold;
+
 	UPROPERTY()
 	TObjectPtr<UVeyraVitalsSet> VitalsSet;
 
@@ -159,6 +173,9 @@ private:
 
 	UPROPERTY(ReplicatedUsing = OnRep_VanguardId)
 	FVeyraContentId VanguardId;
+
+	UPROPERTY(Replicated)
+	double RespawnAt = 0.0;
 
 	/** Server only. */
 	UPROPERTY(Transient)

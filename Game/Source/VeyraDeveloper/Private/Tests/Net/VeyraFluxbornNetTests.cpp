@@ -54,7 +54,7 @@ namespace VeyraNetTests
 
 		BEFORE_EACH()
 		{
-			IgnoreLoginViewTargetRpc(*TestRunner);
+			IgnoreKnownIrisWarnings(*TestRunner);
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Greybox).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
@@ -138,7 +138,7 @@ namespace VeyraNetTests
 
 		BEFORE_EACH()
 		{
-			IgnoreLoginViewTargetRpc(*TestRunner);
+			IgnoreKnownIrisWarnings(*TestRunner);
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Greybox).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;

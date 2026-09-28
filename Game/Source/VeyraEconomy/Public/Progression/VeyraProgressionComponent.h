@@ -35,7 +35,7 @@ public:
 	 * Server only: adds Amount XP (Economy & Progression §9). Each level gained raises the base stats
 	 * by the growth and grants its skill points. Returns the number of levels gained.
 	 */
-	int32 AddExperience(int32 Amount);
+	int32 AddExperience(double Amount);
 
 	/** Server only: spends one skill point raising Slot by one rank (§1, §9). Points are never refunded. */
 	EVeyraRankRefusal AllocateRank(EVeyraAbilitySlot Slot);
@@ -44,8 +44,8 @@ public:
 	int32 GetLevel() const { return Level; }
 	int32 GetRank(EVeyraAbilitySlot Slot) const;
 
-	/** Owner and server only: XP towards the next level. */
-	int32 GetExperience() const { return Experience; }
+	/** Owner and server only: XP towards the next level, with full fractional precision (§1). */
+	double GetExperience() const { return Experience; }
 
 	/** Owner and server only. */
 	int32 GetUnspentSkillPoints() const { return UnspentSkillPoints; }
@@ -55,7 +55,7 @@ public:
 
 private:
 	void SetLevel(int32 NewLevel);
-	void SetExperience(int32 NewExperience);
+	void SetExperience(double NewExperience);
 	void SetUnspentSkillPoints(int32 NewPoints);
 
 	/** 0 until Initialize. */
@@ -67,7 +67,7 @@ private:
 	TArray<int32> Ranks;
 
 	UPROPERTY(Replicated)
-	int32 Experience = 0;
+	double Experience = 0.0;
 
 	UPROPERTY(Replicated)
 	int32 UnspentSkillPoints = 0;

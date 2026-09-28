@@ -261,6 +261,11 @@ Lane Spires and base-defense towers share one attack component and one set of ru
     - the first Spire or base tower destroyed in the match adds a bonus to every member of the destroying team;
     - inhibitors and the Prime Well pay nothing, and structures give no XP.
   - **Stop at victory:** nothing is paid after the match ends (Economy §8.2).
+- **Who pays** (M7b G11):
+  - `UVeyraRewardSubsystem` (Economy, a world subsystem) decides who qualifies and pays through the Gold and progression components; the arithmetic is the pure `VeyraRewards` functions, and every value is `Economy.json`'s.
+  - It follows Combat's deaths for Vanguard kills itself. Combat's death event carries the victim's location, the credited killer, the assisters and every contributor with their times, so the windows and the radius need nothing else.
+  - World reports what only it knows: a Fluxborn's kind and its team's active Flux at death, and which structure fell. The subsystem never reads Flux or World.
+  - A Fluxborn last-hit by anything but an enemy Vanguard leaves its Gold unclaimed; its XP still goes to the nearby living allies.
 - **XP becomes fractional** (Economy §1); thresholds and carry-over are unchanged.
 - **Vanguard Health Regeneration** (author ruling, 2026-09-28; amends ADR-008 §2):
   - every Vanguard declares a base Health Regeneration per second and its growth per level in `Vanguards.json`, beside Resource Regeneration;
@@ -268,8 +273,8 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - it restores through Combat's Health restore as a Health Regeneration source, a category distinct from healing (Combat §6), so Healing Reduction can reduce it when that arrives;
   - structures have none; the Prime Well's own rule is separate (§9).
 - **Respawn** (Economy §14):
-  - The timer grows with the Vanguard's level and the elapsed match time, from a data curve in `Match.json`.
-  - A replicated respawn time drives the HUD countdown.
+  - The timer grows with the Vanguard's level and the elapsed match time, from a data curve in `Match.json` (the pure `VeyraMatchRules::RespawnDelaySeconds`).
+  - A replicated respawn time on the PlayerState drives the HUD countdown.
   - Death never costs Gold, XP or levels.
 - **Fountain recovery** (Battleground §12): a living Vanguard at their own fountain recovers Health and resource at a data rate, through the same Health restore. This is provisional answer 8.
 
@@ -385,11 +390,11 @@ Every value below is designer-editable data; none is a constant in code. Each re
 | Replication | `World.json` | Fluxborn every 3 server ticks (10 Hz); structures every 6 |
 | Team Flux | `Flux.json` | Lane Spire and base tower +25 permanent (Canon); inhibitor +25 for 180 s (Canon); every 25 active Flux gives +5% Health and +5% damage (Canon) |
 | Gold | `Economy.json` (new) | Starting 500; Strider 21, Spark 14, Breaker 60; base kill 300; assist pool 50% (Canon); First Blood +50% (Canon); participation 10% (Canon); Flux reward bonus 1% per 25, up to 10% (Canon); Spire and base-tower pool 250; first-Spire team bonus 100; participation radius 1400; participation window 10 s; structure contribution window 15 s |
-| XP | `Progression.json` (v2) | Strider 60, Spark 30, Breaker 93; base kill XP 60 + 30 × (victim level − 1); higher-level victim ×1.2; radius 1400; shared pool 120% and +20% per extra participant (Canon) |
+| XP rewards | `Economy.json` (new) | Strider 60, Spark 30, Breaker 93; base kill XP 60 + 30 × (victim level − 1); higher-level victim ×1.2; radius 1400; shared pool 120% and +20% per extra participant (Canon). The XP curve stays in `Progression.json` |
 | Kill credit | `Combat.json` | Kill-credit window 10 s |
 | Structure Effectiveness | `Combat.json` | 50% (Canon) |
-| Respawn | `Match.json` (v4) | Level 1: 6 s, rising to 45 s at Level 18; +2% per minute after 15:00, at most +50% |
-| Fountain recovery | `Match.json` | Radius and Health and resource per second at the fountain |
+| Respawn | `Match.json` (v4) | By level: 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22.5, 25, 27.5, 30, 33, 36, 40, 45 s; +2% per minute after 15:00, at most +50% |
+| Fountain recovery | `Match.json` (v4) | Within 900 of the side's start; 10% of Max Health and of max resource per second, restored every 0.25 s |
 | Vanguard Health Regeneration | `Vanguards.json` (v4) | Per second at Level 1, then per level: Cairn 1.7 + 0.16; Qazharr 1.6 + 0.15; Oriel 1.1 + 0.11; Bryn 0.75 + 0.11; the test Vanguard 0 |
 | Maps | backend configuration | The server map for each mode, Custom practice and development matches |
 

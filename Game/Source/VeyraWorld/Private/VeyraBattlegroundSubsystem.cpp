@@ -10,6 +10,7 @@
 #include "Fluxborn/VeyraFluxbornController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Layout/VeyraLayout.h"
+#include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraStructureRules.h"
 #include "Rules/VeyraWaveRules.h"
 #include "Structures/VeyraStructure.h"
@@ -418,7 +419,7 @@ void UVeyraBattlegroundSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 	const UAbilitySystemComponent* Victim = Death.Victim.Get();
 	if (AVeyraFluxborn* Unit = Victim ? Cast<AVeyraFluxborn>(Victim->GetOwner()) : nullptr; Unit && IsServer())
 	{
-		OnFluxbornDied(*Unit);
+		OnFluxbornDied(*Unit, Death);
 		return;
 	}
 	AVeyraStructure* Structure = Victim ? Cast<AVeyraStructure>(Victim->GetOwner()) : nullptr;
@@ -428,6 +429,13 @@ void UVeyraBattlegroundSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 	}
 	UE_LOG(LogVeyraWorld, Log, TEXT("%s was destroyed."), *Describe(*Structure));
 	RefreshInvulnerability();
+	// Spires and base towers pay their contributors; inhibitors and the Prime Well pay nothing (Economy Bible §8).
+	const EVeyraStructureKind Kind = Structure->GetStructureKind();
+	UVeyraRewardSubsystem* Rewards = GetWorld()->GetSubsystem<UVeyraRewardSubsystem>();
+	if (Rewards && (Kind == EVeyraStructureKind::LaneSpire || Kind == EVeyraStructureKind::BaseTower))
+	{
+		Rewards->RewardStructureDestroyed(Death, Structure->GetVeyraTeam());
+	}
 
 	if (Structure->GetStructureKind() == EVeyraStructureKind::Inhibitor && !bStopped)
 	{
@@ -449,7 +457,7 @@ void UVeyraBattlegroundSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 	OnStructureDestroyed.Broadcast(Event);
 }
 
-void UVeyraBattlegroundSubsystem::OnFluxbornDied(AVeyraFluxborn& Unit)
+void UVeyraBattlegroundSubsystem::OnFluxbornDied(AVeyraFluxborn& Unit, const FVeyraDeathEvent& Death)
 {
 	Fluxborn.Remove(&Unit);
 	// Its body collapses where it fell, blocking nothing, and is removed after a moment (Battleground Bible §4).
@@ -461,6 +469,11 @@ void UVeyraBattlegroundSubsystem::OnFluxbornDied(AVeyraFluxborn& Unit)
 	Unit.GetCharacterMovement()->DisableMovement();
 	Unit.SetActorEnableCollision(false);
 	Unit.SetLifeSpan(static_cast<float>(UVeyraWorldTuningSubsystem::Get().Fluxborn.CorpseSeconds));
+	// Its team's active Flux when it died raises what it pays (Economy & Progression Bible §4).
+	if (UVeyraRewardSubsystem* Rewards = GetWorld()->GetSubsystem<UVeyraRewardSubsystem>())
+	{
+		Rewards->RewardFluxbornDeath(Death, Unit.GetKind(), FluxOf(Unit.GetVeyraTeam()).ActiveFlux);
+	}
 }
 
 void UVeyraBattlegroundSubsystem::OnHostileDamage(const FVeyraHostileDamageEvent& Event)

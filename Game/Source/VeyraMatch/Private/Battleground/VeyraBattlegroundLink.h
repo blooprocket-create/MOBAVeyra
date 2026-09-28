@@ -8,6 +8,7 @@
 
 class UAbilitySystemComponent;
 class UVeyraBattlegroundSubsystem;
+class UVeyraRewardSubsystem;
 class UVeyraTeamFluxSubsystem;
 class UWorld;
 struct FVeyraStructureDestroyedEvent;
@@ -29,7 +30,7 @@ public:
 	/** Connects World and Flux in World. Does nothing where neither exists. */
 	void Start(UWorld& World, FOnPrimeWellDestroyed InOnPrimeWellDestroyed);
 
-	/** Disconnects, and stops the battleground's timers, as when the match ends. */
+	/** Disconnects, and stops the battleground's timers and its rewards, as when the match ends. */
 	void Stop();
 
 	/** Starts the battleground's Fluxborn waves, as the match goes live (Battleground Bible §17). */
@@ -49,6 +50,7 @@ private:
 
 	TWeakObjectPtr<UVeyraBattlegroundSubsystem> Battleground;
 	TWeakObjectPtr<UVeyraTeamFluxSubsystem> Flux;
+	TWeakObjectPtr<UVeyraRewardSubsystem> Rewards;
 	FDelegateHandle DestroyedHandle;
 	FDelegateHandle FluxChangedHandle;
 	FOnPrimeWellDestroyed OnPrimeWellDestroyed;

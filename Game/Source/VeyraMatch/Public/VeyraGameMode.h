@@ -147,6 +147,9 @@ private:
 	/** The battleground reports a Prime Well destroyed: Winner destroyed the other side's (ADR-011 §13). */
 	void OnPrimeWellDestroyed(EVeyraTeam Winner);
 
+	/** Restores each living Vanguard standing at its own fountain (Battleground Bible §12; ADR-011 §11). */
+	void RecoverAtFountains();
+
 	/** Starts or stops the abandonment clock as rostered participants come and go. */
 	void NoteConnectedParticipants();
 	/** Ends an assigned match that nobody has been connected to for the tuned time (ADR-007 §8). */
@@ -178,4 +181,5 @@ private:
 	bool bLoadingTimedOut = false;
 	FTimerHandle LoadingTimeout;
 	FTimerHandle PreparationTimer;
+	FTimerHandle FountainTimer;
 };

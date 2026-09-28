@@ -2,10 +2,23 @@
 
 #include "Rules/VeyraMatchRules.h"
 
+#include "Tuning/VeyraMatchTuning.h"
 #include "Tuning/VeyraVanguardsTuning.h"
 
 namespace VeyraMatchRules
 {
+double RespawnDelaySeconds(int32 Level, double MatchClockSeconds, const FVeyraRespawnTuning& Respawn)
+{
+	if (Respawn.SecondsByLevel.IsEmpty())
+	{
+		return 0.0;
+	}
+	const double LevelSeconds = Respawn.SecondsByLevel[FMath::Clamp(Level - 1, 0, Respawn.SecondsByLevel.Num() - 1)];
+	constexpr double SecondsPerMinute = 60.0;
+	const double MinutesPast = FMath::Max(0.0, MatchClockSeconds - Respawn.Elapsed.StartSeconds) / SecondsPerMinute;
+	return LevelSeconds * (1.0 + FMath::Min(Respawn.Elapsed.MaxFraction, MinutesPast * Respawn.Elapsed.FractionPerMinute));
+}
+
 EVeyraEndCustomMatchRefusal CheckEndCustomMatch(EVeyraMatchRules Rules, EVeyraMatchPhase Phase, bool bRequesterIsHost)
 {
 	if (Rules != EVeyraMatchRules::Practice)

@@ -38,6 +38,8 @@ public class VeyraUI : ModuleRules
 			"SlateCore",
 			// The HUD names each Vanguard's resource, and the text checks cover each released Vanguard.
 			"VeyraVanguards",
+			// The HUD shows each team's Team Flux and what it gives their Fluxborn.
+			"VeyraFlux",
 			// The grey-box draws the battleground's lanes, river and bases from its layout.
 			"VeyraWorld",
 		});

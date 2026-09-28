@@ -48,6 +48,12 @@ struct FVeyraDeathEvent
 
 	/** When the victim died, in the server's world time. */
 	double DiedAtSeconds = 0.0;
+
+	/**
+	 * Where the victim's body stood when it died; unset for a unit with no body. Rewards measure who
+	 * was near the death from it (Economy Bible §2), whatever becomes of the body afterwards.
+	 */
+	TOptional<FVector> Location;
 };
 
 /** Damage dealt by a unit to a unit on the opposing side, as it lands. */

@@ -329,6 +329,20 @@ class ReferenceTests(unittest.TestCase):
         errors = tuning.check(self.game)[0]
         self.assertTrue(any("/chosen/1: names 'other_bolt'" in e for e in errors), errors)
 
+    def test_a_key_segment_checks_a_maps_keys(self) -> None:
+        pattern = tuning.CONTENT_ID_PATTERN
+        user = {"type": "object", "additionalProperties": False, "required": ["schemaVersion", "priced"],
+                "properties": {"schemaVersion": {"type": "integer", "minimum": 1, "enum": [1]},
+                               "priced": {"type": "object", "additionalProperties": False,
+                                          "patternProperties": {pattern: {"type": "number", "minimum": 0}}}}}
+        self.write("Tuning/Schemas/User.schema.json", json.dumps(user))
+        tuning.REFERENCES = [("User", "/priced/#", "Catalogue", "/things")]
+        self.write("Tuning/User.json", '{"schemaVersion": 1, "priced": {"test_bolt": 5}}\n')
+        self.assertEqual(tuning.check(self.game)[0], [])
+        self.write("Tuning/User.json", '{"schemaVersion": 1, "priced": {"test_bolt": 5, "other_bolt": 2}}\n')
+        errors = tuning.check(self.game)[0]
+        self.assertTrue(any("/priced/other_bolt: names 'other_bolt'" in e for e in errors), errors)
+
 
 class ContractTests(unittest.TestCase):
     """Contract schemas from the table in check_tuning.py, each checked with its example."""

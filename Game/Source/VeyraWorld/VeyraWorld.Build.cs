@@ -26,6 +26,12 @@ public class VeyraWorld : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
+			// Fluxborn and structures report their deaths to the rewards, a layer below (ADR-011 §3, §11).
+			"VeyraEconomy",
+		});
+
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
 			// Push-model replication for the structures and Fluxborn.
 			"NetCore",
 			"NavigationSystem",

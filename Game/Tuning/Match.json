@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "teams": {
     "maxTeamSize": 5
   },
@@ -8,7 +8,20 @@
     "preparationSeconds": 15
   },
   "respawn": {
-    "delaySeconds": 10
+    "provenance": "Provisional",
+    "secondsByLevel": [6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22.5, 25, 27.5, 30, 33, 36, 40, 45],
+    "elapsed": {
+      "startSeconds": 900,
+      "fractionPerMinute": 0.02,
+      "maxFraction": 0.5
+    }
+  },
+  "fountain": {
+    "provenance": "Provisional",
+    "radius": 900,
+    "healthFractionPerSecond": 0.1,
+    "resourceFractionPerSecond": 0.1,
+    "intervalSeconds": 0.25
   },
   "lifecycle": {
     "abandonAfterSeconds": 60
