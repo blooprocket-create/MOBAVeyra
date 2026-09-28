@@ -40,7 +40,14 @@
     "enabled": true,
     "mode": "custom_practice",
     "hostSide": "A",
-    "pickDuration": "30s"
+    "pickDuration": "30s",
+    "playersPerSide": 5,
+    "bots": [
+      {"side": "B", "vanguardId": "cairn"},
+      {"side": "B", "vanguardId": "qazharr"},
+      {"side": "B", "vanguardId": "oriel"},
+      {"side": "B", "vanguardId": "bryn"}
+    ]
   },
   "selection": {
     "tickInterval": "1s",

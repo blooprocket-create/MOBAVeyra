@@ -19,8 +19,8 @@
 #include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
-#include "Hud/VeyraGreyboxHud.h"
 #include "Hud/VeyraHudModel.h"
+#include "Hud/VeyraHudOverlay.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -82,15 +82,14 @@ void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		UE_LOG(LogVeyraUI, Error, TEXT("The grey-box presentation is off: %s"), *Problem);
 	}
 	bReady = Problems.IsEmpty();
-	if (bReady)
-	{
-		HudHandle = AHUD::OnHUDPostRender.AddUObject(this, &UVeyraGreyboxSubsystem::DrawHud);
-	}
 }
 
 void UVeyraGreyboxSubsystem::Deinitialize()
 {
-	AHUD::OnHUDPostRender.Remove(HudHandle);
+	if (AHUD* Hud = OverlayHud.Get(); Hud && HudOverlay.IsValid())
+	{
+		Hud->RemovePostRenderedActor(HudOverlay.Get());
+	}
 	if (TelegraphLines && TelegraphLines->IsRegistered())
 	{
 		TelegraphLines->UnregisterComponent();
@@ -125,6 +124,33 @@ void UVeyraGreyboxSubsystem::Refresh()
 	RefreshProjectiles();
 	RefreshTelegraphs();
 	DrawTelegraphs();
+	AttachHudOverlay();
+}
+
+void UVeyraGreyboxSubsystem::AttachHudOverlay()
+{
+	const APlayerController* Viewer = GetWorld()->GetFirstPlayerController();
+	AHUD* Hud = Viewer ? Viewer->GetHUD() : nullptr;
+	if (!Hud || (Hud == OverlayHud.Get() && HudOverlay.IsValid()))
+	{
+		return;
+	}
+	if (!HudOverlay.IsValid())
+	{
+		FActorSpawnParameters Parameters;
+		Parameters.ObjectFlags |= RF_Transient;
+		AVeyraHudOverlay* Overlay = GetWorld()->SpawnActor<AVeyraHudOverlay>(Parameters);
+		if (!Overlay)
+		{
+			return;
+		}
+		Overlay->SetGreybox(*this);
+		HudOverlay = Overlay;
+	}
+	// The HUD renders its overlay actors on its own canvas, which the menus cover.
+	Hud->bShowOverlays = true;
+	Hud->AddPostRenderedActor(HudOverlay.Get());
+	OverlayHud = Hud;
 }
 
 UStaticMeshComponent* UVeyraGreyboxSubsystem::FindBody(const AActor& Unit) const
@@ -395,11 +421,3 @@ void UVeyraGreyboxSubsystem::DrawTelegraphs()
 	}
 }
 
-void UVeyraGreyboxSubsystem::DrawHud(AHUD* Hud, UCanvas* Canvas)
-{
-	// Every world's HUDs broadcast here; draw only over this world's.
-	if (bReady && Hud && Canvas && Hud->GetWorld() == GetWorld())
-	{
-		VeyraGreyboxHud::Draw(*Canvas, *this, Hud->GetOwningPlayerController());
-	}
-}

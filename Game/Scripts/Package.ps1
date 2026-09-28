@@ -127,6 +127,20 @@ if (@($missingSchemas).Count -gt 0) {
 }
 
 if ($Target -eq 'VeyraClient') {
+    # And a client must carry what players read about Vanguards (Game/Text, VeyraUI's string table).
+    $textDir = Join-Path $gameDir 'Text'
+    $missingText = foreach ($file in Get-ChildItem -LiteralPath $textDir -Filter '*.csv') {
+        $relative = 'Veyra/Text/' + $file.Name
+        if (-not ($packaged | Where-Object { $_.Contains($relative) })) {
+            $relative
+        }
+    }
+    if (@($missingText).Count -gt 0) {
+        Write-Host 'The package is missing player-facing text:'
+        $missingText | ForEach-Object { Write-Host "  $_" }
+        exit 1
+    }
+
     # The build's manifest, which the launcher reads (Launcher/, ADR-010 §5): the build version a
     # launch code is bound to, and where the game is. The game binary itself, not the launcher UAT
     # places at the package root.

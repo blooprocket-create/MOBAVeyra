@@ -100,6 +100,30 @@ TArray<FString> UVeyraMatchHostSubsystem::SetAssignment(FVeyraMatchAssignment In
 			Problems.Add(Where + TEXT(": ") + VanguardProblem);
 		}
 	}
+	// Bots are practice targets for now (ADR-010 §7); they take places on their sides like anyone.
+	if (!bPractice && !InAssignment.Bots.IsEmpty())
+	{
+		Problems.Add(TEXT("only a practice match has bots"));
+	}
+	for (int32 Index = 0; Index < InAssignment.Bots.Num(); ++Index)
+	{
+		const FVeyraAssignedBot& Bot = InAssignment.Bots[Index];
+		const FString Where = FString::Printf(TEXT("bot %d"), Index);
+		if (Bot.Side == EVeyraTeam::A || Bot.Side == EVeyraTeam::B)
+		{
+			++SideCounts[Bot.Side == EVeyraTeam::A ? 0 : 1];
+		}
+		else
+		{
+			Problems.Add(Where + TEXT(": the side must be A or B"));
+		}
+		const FString VanguardProblem = VeyraMatchRules::CheckAssignedVanguard(Bot.VanguardId,
+			Bot.VanguardId.IsValid() ? UVeyraVanguardsTuningSubsystem::FindVanguard(Bot.VanguardId) : nullptr, UE_BUILD_SHIPPING != 0);
+		if (!VanguardProblem.IsEmpty())
+		{
+			Problems.Add(Where + TEXT(": ") + VanguardProblem);
+		}
+	}
 	for (const int32 Count : SideCounts)
 	{
 		if (Count > MaxTeamSize)
@@ -113,8 +137,8 @@ TArray<FString> UVeyraMatchHostSubsystem::SetAssignment(FVeyraMatchAssignment In
 		Assignment.Reset();
 		return Problems;
 	}
-	UE_LOG(LogVeyraMatch, Log, TEXT("Hosting %s match %s (%s) with %d participant(s)."), bPractice ? TEXT("practice") : TEXT("standard"),
-		*InAssignment.MatchId, *InAssignment.Mode.ToString(), InAssignment.Participants.Num());
+	UE_LOG(LogVeyraMatch, Log, TEXT("Hosting %s match %s (%s) with %d participant(s) and %d bot(s)."), bPractice ? TEXT("practice") : TEXT("standard"),
+		*InAssignment.MatchId, *InAssignment.Mode.ToString(), InAssignment.Participants.Num(), InAssignment.Bots.Num());
 	Assignment = MoveTemp(InAssignment);
 	return Problems;
 }

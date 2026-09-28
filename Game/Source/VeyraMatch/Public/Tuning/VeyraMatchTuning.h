@@ -69,6 +69,24 @@ struct FVeyraOrdersTuning
 	double ArrivalTolerance = 0.0;
 };
 
+/**
+ * How the match's AI participants behave (Custom Matches Bible §1; ADR-010 §7). For now a bot is a
+ * practice target: it wanders near the middle of the map and does not fight back.
+ */
+USTRUCT()
+struct FVeyraBotsTuning
+{
+	GENERATED_BODY()
+
+	/** Seconds between a bot's choices of where to walk. */
+	UPROPERTY()
+	double WanderIntervalSeconds = 0.0;
+
+	/** How far, in units, from the point midway between the two sides' starts a bot may walk. */
+	UPROPERTY()
+	double WanderRadius = 0.0;
+};
+
 /** The slot a developer match ranks up for each participant at level 1. */
 UENUM()
 enum class EVeyraDeveloperStartingRank : uint8
@@ -100,7 +118,7 @@ struct FVeyraMatchTuning
 	GENERATED_BODY()
 
 	/** The Match.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraTeamsTuning Teams;
@@ -116,6 +134,9 @@ struct FVeyraMatchTuning
 
 	UPROPERTY()
 	FVeyraOrdersTuning Orders;
+
+	UPROPERTY()
+	FVeyraBotsTuning Bots;
 
 	UPROPERTY()
 	FVeyraDeveloperMatchTuning DeveloperMatch;

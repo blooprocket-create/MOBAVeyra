@@ -176,8 +176,9 @@ namespace VeyraNetTests
 
 	/**
 	 * Makes the test server host a match whose roster is the PIE clients, the Nth on Sides[N] as
-	 * Vanguards[N] (the test Vanguard where none is given), while this object lives. A practice match's
-	 * host is the first client. Set it before the network starts: the server reads it when the map loads.
+	 * Vanguards[N] (the test Vanguard where none is given), and which adds Bots, while this object
+	 * lives. A practice match's host is the first client. Set it before the network starts: the server
+	 * reads it when the map loads.
 	 */
 	struct FScopedMatchAssignment
 	{
@@ -185,11 +186,12 @@ namespace VeyraNetTests
 		TArray<FString> Problems;
 
 		explicit FScopedMatchAssignment(TConstArrayView<EVeyraTeam> Sides, EVeyraMatchRules Rules = EVeyraMatchRules::Standard,
-			TConstArrayView<FVeyraContentId> Vanguards = {})
+			TConstArrayView<FVeyraContentId> Vanguards = {}, TConstArrayView<FVeyraAssignedBot> Bots = {})
 		{
 			Assignment.MatchId = TEXT("test-match");
 			Assignment.Mode = FVeyraContentId::FromText(TEXT("test_mode")).GetValue();
 			Assignment.Rules = Rules;
+			Assignment.Bots = TArray<FVeyraAssignedBot>(Bots);
 			for (int32 Index = 0; Index < Sides.Num(); ++Index)
 			{
 				const int32 PIEInstance = Index + 1;

@@ -14,6 +14,7 @@
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraHudModel.h"
 #include "Input/VeyraInputSettings.h"
+#include "Text/VeyraContentText.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraGameState.h"
@@ -108,25 +109,54 @@ namespace
 		DrawHudText(Canvas, FVector2D((Canvas.ClipX - Width) / 2.0f, Settings.HudMargin), Text, Settings.TextColor);
 	}
 
-	/** The player's level, XP, skill points, vitals, and each slot's rank and cooldown, bottom left. */
+	/** One line of the player's panel, in its colour. */
+	struct FHudLine
+	{
+		FString Text;
+		FLinearColor Color;
+	};
+
+	/** The indent that puts a description under its ability's name. */
+	const TCHAR* const DescriptionIndent = TEXT("      ");
+
+	/**
+	 * The player's Vanguard, level, XP, skill points and vitals; its passive; and each slot's ability,
+	 * rank and cooldown, each with a line saying what it does. Bottom left.
+	 */
 	void DrawPlayerPanel(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const AVeyraPlayerState& Participant, double Now)
 	{
 		const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
 		const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(Player.Vanguard);
 		const FString Resource = Definition ? HudEnumName(Definition->Resource) : FString(TEXT("Resource"));
 		const UVeyraInputSettings& Input = *GetDefault<UVeyraInputSettings>();
+		const auto AddDescription = [&Settings](TArray<FHudLine>& Lines, const FText& Description) {
+			if (!Description.IsEmpty())
+			{
+				Lines.Add({ DescriptionIndent + Description.ToString(), Settings.DescriptionColor });
+			}
+		};
 
-		TArray<FString> Lines;
-		Lines.Add(FString::Printf(TEXT("%s   Level %d   XP %d / %d   Skill points %d"), *Player.Vanguard.ToString(), Player.Level, Player.Experience,
-			Player.ExperienceToNextLevel, Player.UnspentSkillPoints));
-		Lines.Add(FString::Printf(TEXT("Health %.0f / %.0f   Shield %.0f   %s %.0f / %.0f"), Player.Vitals.Health, Player.Vitals.MaxHealth, Player.Vitals.Shield,
-			*Resource, Player.Vitals.Resource, Player.Vitals.MaxResource));
+		TArray<FHudLine> Lines;
+		FString Name = VeyraContentText::VanguardName(Player.Vanguard).ToString();
+		if (const FText Title = VeyraContentText::VanguardTitle(Player.Vanguard); !Title.IsEmpty())
+		{
+			Name += TEXT(", ") + Title.ToString();
+		}
+		Lines.Add({ FString::Printf(TEXT("%s   Level %d   XP %d / %d   Skill points %d"), *Name, Player.Level, Player.Experience,
+			Player.ExperienceToNextLevel, Player.UnspentSkillPoints), Settings.TextColor });
+		Lines.Add({ FString::Printf(TEXT("Health %.0f / %.0f   Shield %.0f   %s %.0f / %.0f"), Player.Vitals.Health, Player.Vitals.MaxHealth, Player.Vitals.Shield,
+			*Resource, Player.Vitals.Resource, Player.Vitals.MaxResource), Settings.TextColor });
+		if (Player.Passive.IsValid())
+		{
+			Lines.Add({ FString::Printf(TEXT("Passive: %s"), *VeyraContentText::PassiveName(Player.Passive).ToString()), Settings.TextColor });
+			AddDescription(Lines, VeyraContentText::PassiveDescription(Player.Passive));
+		}
 		for (const FVeyraHudSlot& Slot : Player.Slots)
 		{
 			const FString Key = Input.GetAbilityKey(Slot.Slot).GetDisplayName(false).ToString();
 			if (!Slot.Ability.IsValid())
 			{
-				Lines.Add(FString::Printf(TEXT("[%s] no ability"), *Key));
+				Lines.Add({ FString::Printf(TEXT("[%s] no ability"), *Key), Settings.TextColor });
 				continue;
 			}
 			FString State;
@@ -142,18 +172,25 @@ namespace
 			{
 				State = TEXT("ready");
 			}
-			FString Line = FString::Printf(TEXT("[%s] %s   rank %d / %d   %s"), *Key, *Slot.Ability.ToString(), Slot.Rank, Slot.MaxRank, *State);
+			FString Line = FString::Printf(TEXT("[%s] %s   rank %d / %d   %s"), *Key, *VeyraContentText::AbilityName(Slot.Ability).ToString(), Slot.Rank,
+				Slot.MaxRank, *State);
 			if (Slot.bCanRankUp)
 			{
 				Line += FString::Printf(TEXT("   %s+%s to rank up"), *Input.RankUpModifierKey.GetDisplayName(false).ToString(), *Key);
 			}
-			Lines.Add(MoveTemp(Line));
+			const bool bEmpowered = Slot.EmpoweredSeconds > 0.0;
+			if (bEmpowered)
+			{
+				Line += FString::Printf(TEXT("   next attack empowered: %.1f s"), Slot.EmpoweredSeconds);
+			}
+			Lines.Add({ MoveTemp(Line), bEmpowered ? Settings.EmpoweredColor : Settings.TextColor });
+			AddDescription(Lines, VeyraContentText::AbilityDescription(Slot.Ability));
 		}
 
 		float Y = Canvas.ClipY - Settings.HudMargin - Lines.Num() * HudLineHeight();
-		for (const FString& Line : Lines)
+		for (const FHudLine& Line : Lines)
 		{
-			DrawHudText(Canvas, FVector2D(Settings.HudMargin, Y), Line, Settings.TextColor);
+			DrawHudText(Canvas, FVector2D(Settings.HudMargin, Y), Line.Text, Line.Color);
 			Y += HudLineHeight();
 		}
 	}

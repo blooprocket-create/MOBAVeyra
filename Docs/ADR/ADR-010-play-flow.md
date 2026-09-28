@@ -24,7 +24,7 @@ M6 builds the flow the author asked for: open the launcher, sign in, the client 
 - **M6a (one pull request):** launcher → sign in → starter choice → Play → Custom → Practice → champion select → match → End Custom Match → verified results → back to the shell.
 - **M6b (a stacked pull request):** party → queue → Match Found → Casual Select champion select with several clients, then a match and results.
 - **Deferred:**
-  - custom lobbies with invites, team slots and bots;
+  - custom lobbies with invites, team slots and host-chosen AI; bots that fight back;
   - Draft Pick, Co-op and Ranked;
   - the real tutorial and entitlements purchase;
   - the launcher's install, patch and self-update, and remembered login;
@@ -79,6 +79,8 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
 - **CommonUI is not used.** It needs binary input-data assets, and a mouse-driven grey box needs none of its gamepad routing.
 - **The in-match menu** opens with a key from input settings. It offers Resume and, only to the host of a practice match, **End Custom Match** with a confirmation.
 - **Style and keys** are presentation settings in `DefaultGame.ini` and `DefaultInput.ini`, validated like `UVeyraGreyboxSettings`.
+- **What players read about Vanguards** (names, titles, and each ability's and passive's name and one-line description) is a string table, `Game/Text/VeyraText.csv`: reviewable, localisable text beside `Game/Tuning`, with no numbers, which stay in tuning. The HUD's panel and the shell read it; developer content without text shows its content ID. A test requires text for every Playable Vanguard's kit.
+- **The HUD shows an empowerment waiting for the next basic attack.** The basic-attack component replicates which ability's empowerment waits and until when; the server's rules stay where they are.
 
 ### 5. The launcher
 
@@ -130,6 +132,10 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
 - **Ending it.** The match is open-ended (Custom §1, §4) and ends only by **End Custom Match**.
   - That is a host command the match server validates: practice rules, and the host only.
   - The result is **`host_ended`** with no winner, a new end reason valid only for practice.
+- **Bots, so the player has targets** (Custom §1: AI participants; added after the author first played, 2026-09-27).
+  - The backend's practice settings list them (`customPractice.bots`: a side and a released Vanguard each, with `playersPerSide` bounding each side, the host included). Every practice match gets them; they are stored with the match and sent in its assignment (§9).
+  - The match server adds them when preparation begins, on their sides as their Vanguards. They are no accounts: no ticket, and no place in the result.
+  - For now a bot is a target: it wanders near the middle of the map (`Match.json` `bots`) and does not fight back. Host-chosen and fighting AI come with custom lobbies and Co-op.
 
 ### 8. Champion select belongs to the trusted services
 
@@ -154,7 +160,8 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
   - the mode;
   - the rules;
   - the practice host;
-  - each participant's Vanguard.
+  - each participant's Vanguard;
+  - the bots, each a side and a Vanguard. Only a practice match has any, and they count toward each side's size.
   - The game's schema, the golden example and the backend's contract test change together.
 - **The server takes each participant's Vanguard from its roster** (amending ADR-008 §8).
   - `developerMatch.vanguards` and `-VeyraVanguard=` apply only to development servers without an assignment.
@@ -188,9 +195,12 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
 |---|---|---|
 | Released Vanguards and starters; rotation slots (12) and the stand-in | backend configuration | released is contract-tested; starters and the stand-in are provisional; 12 is canon |
 | Practice pick duration (30 s) and the host's side | backend configuration | provisional |
+| Practice bots (four enemies, one of each released Vanguard) and players per side (5) | backend configuration | provisional; 5 is canon's team size |
+| How a bot wanders: how often it picks a point (4 s), and how far from the middle (600 units) | `Match.json` `bots` | provisional |
 | Match Found accept duration (15 s); Casual Select pick duration (60 s); select presence timeout (10 s); the local 1v1 team size | backend configuration | provisional; canon gives no values, and its team size is 5 |
 | Select, results and reconnect polling; retries; how long to wait for results | `UVeyraServicesSettings` | operational |
-| Menu style and key | presentation settings | presentation |
+| Menu style and key; HUD colours | presentation settings | presentation |
+| Names, titles and descriptions of Vanguards, abilities and passives | `Game/Text/VeyraText.csv` | text, not tuning |
 | How long the launcher waits for the game to be ready, and for sign-in | launcher configuration | provisional |
 
 Every configuration is parsed strictly: each field is required, and an unknown field is an error.
@@ -207,7 +217,7 @@ Every configuration is parsed strictly: each field is required, and an unknown f
 ## Implementation and evidence (M6a, 2026-09-27)
 
 **Backend.**
-- New domains: `catalog` (released Vanguards, starters and the stand-in rotation, from configuration), `account` (onboarding and entitlements) and `selection` (champion select and Custom practice). Migrations `0004_match_rules`, `0005_account` and `0006_selection`.
+- New domains: `catalog` (released Vanguards, starters and the stand-in rotation, from configuration), `account` (onboarding and entitlements) and `selection` (champion select and Custom practice). Migrations `0004_match_rules`, `0005_account`, `0006_selection` and `0007_match_bots`.
 - `match` creates matches from a specification, with the rules, the practice host and each seat's Vanguard, and accepts `host_ended` only for practice. A select creates its match exactly once, through a unique select ID.
 - The routes in §6–§9, and the development routes the launcher and scripts use (`GET /v1/dev/accounts`, `POST /v1/dev/accounts/{name}/reset-onboarding`).
 
@@ -216,8 +226,8 @@ Every configuration is parsed strictly: each field is required, and an unknown f
   - `Client/`: `FVeyraClientFlow`, `IVeyraClientIntents` and `UVeyraClientFlowSubsystem`, which replaces `UVeyraSessionSubsystem`. The player API's parsers are in `VeyraBackendProtocol`.
   - `FrontEnd/`: `AVeyraShellGameMode`. `L_FrontEnd` is generated by `UVeyraFrontEndMapCommandlet` (`Game/Scripts/BuildFrontEndMap.ps1`).
   - The launch handshake's writer, and its contract, `Contracts/LaunchHandshake.json`.
-- `VeyraMatch`: the match rules and host, End Custom Match on the server, and the GameState's phase event. The server takes each Vanguard from the roster; `Vanguards.json` v3 marks each Vanguard Playable or Developer.
-- `VeyraUI`: `Shell/` (the screens, their view models, the style) and `Match/` (the in-match menu and its key).
+- `VeyraMatch`: the match rules and host, End Custom Match on the server, and the GameState's phase event. The server takes each Vanguard from the roster; `Vanguards.json` v3 marks each Vanguard Playable or Developer. `Bots/`: `UVeyraBotWanderComponent`, a practice bot's behaviour; the GameMode adds the assignment's bots when preparation begins (`Match.json` v3 adds `bots`).
+- `VeyraUI`: `Shell/` (the screens, their view models, the style), `Match/` (the in-match menu and its key), and `Text/` (`VeyraContentText`, the string table's reader). The grey-box HUD names each ability and passive, says what it does, and shows a waiting empowerment.
 - `VeyraDeveloper`: `VeyraSmokeFlowSubsystem`, a scripted player that clicks the shell's and the menu's buttons.
 
 **Launcher.** `Launcher/`: the core, the window, `veyra-launch-cli`, and `veyra-fake-game` for its tests. `Package.ps1` writes `VeyraBuild.json`, the build manifest the launcher reads. `Launcher/Check.ps1` and `.github/workflows/launcher.yml` run its checks.
@@ -228,13 +238,13 @@ Every configuration is parsed strictly: each field is required, and an unknown f
 - `Smoke.ps1 -Handoff -Practice` plays a practice match through the handoff.
 
 **Evidence.**
-- Unit, world and network tests: 453 Unreal automation tests pass, among them `Veyra.Services.ClientFlow.*`, `Veyra.UI.*` and `Veyra.Net.HostedMatch.*`. The Go tests pass, with Postgres. The launcher's 26 Rust tests pass: 18 in the core, and 8 end to end with a fake backend and a fake game.
+- Unit, world and network tests: 458 Unreal automation tests pass, among them `Veyra.Services.ClientFlow.*`, `Veyra.UI.*` (with `ContentText.*`), `Veyra.Match.HostedAssignment.*` and `Veyra.Net.HostedMatch.*` and `.HostedPractice.*` (bots join their sides as their Vanguards and wander near the middle; the result names only players). The Go tests pass, with Postgres. The launcher's 26 Rust tests pass: 18 in the core, and 8 end to end with a fake backend and a fake game.
 - End to end, each against the backend and the Linux server container:
   - `Smoke.ps1 -Flow Practice`, with the launcher's part played by the script and then by `veyra-launch-cli`. A new account chooses a starter, starts practice, hovers and locks, plays, ends the match from the menu, sees the verified result (`host_ended`, no winner) and returns to the shell. The client then closes cleanly.
   - `-Handoff`, `-Handoff -Practice` and `-Vanguards cairn,qazharr,oriel,bryn`, as before M6.
   - `-Flow Practice -Screenshot` renders each screen in a window.
 - The launcher window was driven through WebView2's DevTools port from `Play.ps1`: the accounts appeared, and Play signed in. The launcher closed, and the game reached the starter choice in its window. With no backend, the window shows the problem.
-- The author plays the flow by hand before M6a merges.
+- The author played the flow by hand on 2026-09-27: launcher, sign-in, Play, Custom, Practice, select, the match, End Custom Match, results and the shell all worked. With nothing to hit, the kits were hard to read, and the HUD showed through the Esc menu; the practice bots, the HUD's text and the HUD overlay followed, and `-Flow Practice` now checks that the server added the configured bots.
 
 **Settled while implementing.**
 - **Tauri without its CLI** needs its `custom-protocol` feature. Without it, a plain `cargo build` produces a development build that looks for a development server.
@@ -242,6 +252,7 @@ Every configuration is parsed strictly: each field is required, and an unknown f
 - **A GameInstance's subsystems deinitialize in no set order.** The coordinator's subsystem announces its end while its client is still valid, and the shell's subsystem lets go of the client then. Without that, every client crashed on exit after its work was done. The smoke scripts now fail a client that crashes, even after it passed.
 - **A UI-only input mode focuses a widget**, so the shell's screen and the in-match menu are focusable.
 - **UMG widgets build under `-nullrhi`**, so the screens are tested headless; `-Screenshot` checks how they look.
+- **The engine's HUD post-render event passes the debug canvas**, which is drawn above every widget, so the grey-box HUD showed through the menu. It now draws through an overlay actor the local HUD renders on its own canvas (`AVeyraHudOverlay`), under the widgets.
 
 ## Amendments to earlier records
 
@@ -255,7 +266,7 @@ Every configuration is parsed strictly: each field is required, and an unknown f
 
 ## Open items
 
-- Custom lobbies with invites, team slots and bots, whose screen falls under the UX-93 pause (Custom §7).
+- Custom lobbies with invites, team slots and host-chosen AI, whose screen falls under the UX-93 pause (Custom §7); bots that fight back.
 - The real tutorial, starter trials and the weekly rotation.
 - Draft Pick bans and turn order; Co-op AI.
 - Queue-dodge penalties; the select trade protocol.

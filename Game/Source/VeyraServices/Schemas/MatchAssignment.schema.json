@@ -1,10 +1,10 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Match-server assignment",
-  "description": "The one line of JSON a match server reads on its standard input when it starts (ADR-007 §5; version 2, ADR-010 §9). The backend writes it (Backend/internal/match/assignment.go) and VeyraServices binds it to FVeyraAssignmentDocument. It uses the tuning dialect (Game/Tuning/README.md) but is not tuning, and is not part of the tuning hash.",
+  "description": "The one line of JSON a match server reads on its standard input when it starts (ADR-007 §5; version 2, ADR-010 §7, §9). The backend writes it (Backend/internal/match/assignment.go) and VeyraServices binds it to FVeyraAssignmentDocument. It uses the tuning dialect (Game/Tuning/README.md) but is not tuning, and is not part of the tuning hash.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "matchId", "backendUrl", "serverCredential", "mode", "rules", "hostAccountId", "participants"],
+  "required": ["schemaVersion", "matchId", "backendUrl", "serverCredential", "mode", "rules", "hostAccountId", "participants", "bots"],
   "properties": {
     "schemaVersion": { "type": "integer", "minimum": 1, "enum": [2] },
     "matchId": {
@@ -67,6 +67,24 @@
           "vanguardId": {
             "type": "string",
             "description": "The Vanguard the participant locked in champion select, a content ID that Vanguards.json defines.",
+            "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+          }
+        }
+      }
+    },
+    "bots": {
+      "type": "array",
+      "description": "The match's AI participants, which the server adds when the match starts (Custom Matches Bible §1; ADR-010 §7). Only a practice match has any. They count toward each side's Match.json teams.maxTeamSize, and are no account: no ticket, no result.",
+      "minItems": 0,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["side", "vanguardId"],
+        "properties": {
+          "side": { "type": "string", "description": "Team A or Team B.", "enum": ["A", "B"] },
+          "vanguardId": {
+            "type": "string",
+            "description": "The Vanguard the bot plays, a content ID that Vanguards.json defines.",
             "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
           }
         }

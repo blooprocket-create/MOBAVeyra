@@ -49,8 +49,9 @@ func newMatchFixture(t *testing.T, names ...string) *matchFixture {
 		return out, nil
 	})
 	f.svc = match.NewService(store.Match(), accounts, f.alloc, match.Settings{
-		Modes:             map[string]match.Mode{"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5}},
-		Practice:          match.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA},
+		Modes: map[string]match.Mode{"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5}},
+		Practice: match.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA,
+			Bots: []match.Bot{{Side: match.SideB, VanguardID: "cairn"}, {Side: match.SideB, VanguardID: "bryn"}}},
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,
 		RemoveServerAfter: time.Minute,
@@ -144,7 +145,8 @@ func TestMatchLifecycleInPostgres(t *testing.T) {
 	}
 }
 
-// A practice match keeps its rules, host and Vanguard, and can end host_ended.
+// A practice match keeps its rules, host, Vanguard and bots, and can end
+// host_ended.
 func TestPracticeMatchInPostgres(t *testing.T) {
 	f := newMatchFixture(t, "DevOne")
 	ctx := context.Background()
@@ -157,6 +159,9 @@ func TestPracticeMatchInPostgres(t *testing.T) {
 	stored, err := f.store.Match().MatchByID(ctx, m.ID)
 	if err != nil || stored.Rules != match.RulesPractice || stored.HostAccountID != host || stored.Participants[0].VanguardID != "oriel" {
 		t.Fatalf("stored practice match: %+v %v", stored, err)
+	}
+	if len(stored.Bots) != 2 || stored.Bots[0] != (match.Bot{Side: match.SideB, VanguardID: "cairn"}) || stored.Bots[1].VanguardID != "bryn" {
+		t.Fatalf("stored bots, in order: %+v", stored.Bots)
 	}
 	cred := f.credential(t, m.ID)
 	if err := f.svc.ServerReady(ctx, cred, m.ID); err != nil {

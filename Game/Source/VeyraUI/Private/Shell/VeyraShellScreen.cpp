@@ -132,7 +132,7 @@ void UVeyraShellScreen::BuildStatus(const FVeyraClientSnapshot& Snapshot)
 	const VeyraBackendProtocol::FSelectSeat* You = Snapshot.Select.FindYou();
 	if ((Snapshot.State == EVeyraClientState::MatchStarting || Snapshot.State == EVeyraClientState::Connecting) && You && !You->Locked.IsEmpty())
 	{
-		AddText(*Content, FText::Format(LOCTEXT("StatusVanguard", "Your Vanguard: {0}"), VeyraShellModels::NameOf(You->Locked)), static_cast<uint8>(EVeyraShellText::Muted));
+		AddText(*Content, FText::Format(LOCTEXT("StatusVanguard", "Your Vanguard: {0}"), VeyraShellModels::VanguardNameOf(You->Locked)), static_cast<uint8>(EVeyraShellText::Muted));
 	}
 }
 
@@ -157,7 +157,7 @@ void UVeyraShellScreen::BuildStarterChoice(const FVeyraClientSnapshot& Snapshot)
 		USizeBox* Card = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 		Card->SetWidthOverride(Style.CardWidth);
 		Card->SetHeightOverride(Style.CardHeight);
-		Card->AddChild(AddButton(*Card, VeyraShellModels::NameOf(Starter), [this, Starter] { Client->ChooseStarter(Starter); }, bCanChoose));
+		Card->AddChild(AddButton(*Card, VeyraShellModels::VanguardNameOf(Starter), [this, Starter] { Client->ChooseStarter(Starter); }, bCanChoose));
 		VeyraShellStyle::AddSpaced(*Cards, *Card);
 	}
 	VeyraShellStyle::AddSpaced(*Content, *Cards);

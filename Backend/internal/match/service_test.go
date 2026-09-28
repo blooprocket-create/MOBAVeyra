@@ -57,7 +57,8 @@ func newFixture(t *testing.T) *fixture {
 var ctx = context.Background()
 
 // fixturePractice is practice as the fixture configures it.
-var fixturePractice = PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: SideA}
+var fixturePractice = PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: SideA,
+	Bots: []Bot{{Side: SideB, VanguardID: "cairn"}, {Side: SideB, VanguardID: "bryn"}}}
 
 // standard asks for a casual match with these seats.
 func standard(seats ...Seat) Spec {
@@ -184,6 +185,9 @@ func TestTheAssignmentCarriesTheModeRulesAndVanguards(t *testing.T) {
 	if a.SchemaVersion != 2 || a.Mode != "casual_select" || a.Rules != "Standard" || len(a.HostAccountID) != 0 {
 		t.Fatalf("wrong assignment header: %+v", a)
 	}
+	if a.Bots == nil || len(a.Bots) != 0 {
+		t.Fatalf("a standard match has no bots, written as an empty list: %+v", a.Bots)
+	}
 	if a.Participants[0].VanguardID != "oriel" || a.Participants[1].VanguardID != "bryn" {
 		t.Fatalf("wrong Vanguards: %+v", a.Participants)
 	}
@@ -193,7 +197,7 @@ func TestTheAssignmentCarriesTheModeRulesAndVanguards(t *testing.T) {
 	}
 }
 
-func TestAPracticeMatchIsItsHostAlone(t *testing.T) {
+func TestAPracticeMatchIsItsHostAndTheConfiguredBots(t *testing.T) {
 	f := newFixture(t)
 	m, err := f.svc.Create(ctx, practice("qazharr"))
 	if err != nil {
@@ -202,9 +206,16 @@ func TestAPracticeMatchIsItsHostAlone(t *testing.T) {
 	if m.Rules != RulesPractice || m.HostAccountID != "acc-1" || m.Mode != fixturePractice.Mode {
 		t.Fatalf("practice match: %+v", m)
 	}
+	if len(m.Bots) != len(fixturePractice.Bots) || m.Bots[1] != fixturePractice.Bots[1] {
+		t.Fatalf("practice bots: %+v", m.Bots)
+	}
 	a := f.assignment(t, m.ID)
 	if a.Rules != "Practice" || len(a.HostAccountID) != 1 || a.HostAccountID[0] != "acc-1" || a.Participants[0].VanguardID != "qazharr" {
 		t.Fatalf("practice assignment: %+v", a)
+	}
+	want := []AssignedBot{{Side: SideB, VanguardID: "cairn"}, {Side: SideB, VanguardID: "bryn"}}
+	if len(a.Participants) != 1 || len(a.Bots) != len(want) || a.Bots[0] != want[0] || a.Bots[1] != want[1] {
+		t.Fatalf("the bots are no participants, and go to the server in order: %+v %+v", a.Participants, a.Bots)
 	}
 }
 

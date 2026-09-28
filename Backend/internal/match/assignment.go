@@ -8,8 +8,8 @@ import (
 
 // AssignmentSchemaVersion is the version of the assignment document this
 // backend writes. The match server reads exactly one version (ADR-007 §5).
-// Version 2 adds the mode, the rules, the practice host and each
-// participant's Vanguard (ADR-010 §9).
+// Version 2 adds the mode, the rules, the practice host, each participant's
+// Vanguard and the bots (ADR-010 §7, §9).
 const AssignmentSchemaVersion = 2
 
 // Assignment is what a match server receives on its standard input when it
@@ -27,6 +27,15 @@ type Assignment struct {
 	// dialect writes an optional value as an array of at most one.
 	HostAccountID []string              `json:"hostAccountId"`
 	Participants  []AssignedParticipant `json:"participants"`
+	// Bots are the AI participants the server adds when the match starts;
+	// always a list, empty for a standard match.
+	Bots []AssignedBot `json:"bots"`
+}
+
+// AssignedBot is one AI participant in an Assignment.
+type AssignedBot struct {
+	Side       Side   `json:"side"`
+	VanguardID string `json:"vanguardId"`
 }
 
 // AssignedParticipant is one roster entry in an Assignment.
@@ -59,6 +68,7 @@ func BuildAssignment(m Match, serverCredential, backendURL string) ([]byte, erro
 		Mode:             m.Mode,
 		Rules:            rules,
 		HostAccountID:    []string{},
+		Bots:             []AssignedBot{},
 	}
 	if m.HostAccountID != "" {
 		a.HostAccountID = append(a.HostAccountID, m.HostAccountID)
@@ -71,6 +81,9 @@ func BuildAssignment(m Match, serverCredential, backendURL string) ([]byte, erro
 			TicketHash:  TicketHash(DeriveTicket(m.JoinKey, m.ID, p.AccountID)),
 			VanguardID:  p.VanguardID,
 		})
+	}
+	for _, b := range m.Bots {
+		a.Bots = append(a.Bots, AssignedBot{Side: b.Side, VanguardID: b.VanguardID})
 	}
 	line, err := json.Marshal(a)
 	if err != nil {

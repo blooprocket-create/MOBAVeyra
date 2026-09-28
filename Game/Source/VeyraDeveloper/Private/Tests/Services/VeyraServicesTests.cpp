@@ -433,6 +433,7 @@ namespace VeyraServicesTests
 			ASSERT_THAT(AreEqual(Parsed.Match.Mode.ToString(), FString(TEXT("casual_select"))));
 			ASSERT_THAT(IsTrue(Parsed.Match.Rules == EVeyraMatchRules::Standard && Parsed.Match.HostAccountId.IsEmpty()));
 			ASSERT_THAT(AreEqual(Parsed.Match.Participants.Num(), 2));
+			ASSERT_THAT(IsTrue(Parsed.Match.Bots.IsEmpty(), TEXT("a standard match has no bots")));
 			const FVeyraAssignedParticipant& First = Parsed.Match.Participants[0];
 			ASSERT_THAT(AreEqual(First.DisplayName, FString(TEXT("DevOne"))));
 			ASSERT_THAT(IsTrue(First.Side == EVeyraTeam::A));
@@ -454,16 +455,22 @@ namespace VeyraServicesTests
 			ASSERT_THAT(IsTrue(Problems.IsEmpty(), Describe(Problems)));
 		}
 
-		TEST_METHOD(ReadsAPracticeAssignment)
+		TEST_METHOD(ReadsAPracticeAssignmentWithItsBots)
 		{
-			const FString Practice = Example.Replace(TEXT("\"rules\":\"Standard\",\"hostAccountId\":[]"),
-				TEXT("\"rules\":\"Practice\",\"hostAccountId\":[\"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee\"]"), ESearchCase::CaseSensitive);
-			ASSERT_THAT(IsTrue(Practice != Example));
+			const FString Practice = Example
+				.Replace(TEXT("\"rules\":\"Standard\",\"hostAccountId\":[]"), TEXT("\"rules\":\"Practice\",\"hostAccountId\":[\"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee\"]"),
+					ESearchCase::CaseSensitive)
+				.Replace(TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"bryn\"},{\"side\":\"A\",\"vanguardId\":\"qazharr\"}]"),
+					ESearchCase::CaseSensitive);
+			ASSERT_THAT(IsTrue(Practice.Contains(TEXT("\"Practice\"")) && Practice.Contains(TEXT("\"bryn\""))));
 			FVeyraServerAssignment Parsed;
 			const TArray<FString> Problems = VeyraServerAssignment::Parse(Practice, SchemaText, Parsed);
 			ASSERT_THAT(IsTrue(Problems.IsEmpty(), Describe(Problems)));
 			ASSERT_THAT(IsTrue(Parsed.Match.Rules == EVeyraMatchRules::Practice));
 			ASSERT_THAT(AreEqual(Parsed.Match.HostAccountId, FString(TEXT("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))));
+			ASSERT_THAT(AreEqual(Parsed.Match.Bots.Num(), 2));
+			ASSERT_THAT(IsTrue(Parsed.Match.Bots[0].Side == EVeyraTeam::B && Parsed.Match.Bots[0].VanguardId.ToString() == TEXT("bryn")));
+			ASSERT_THAT(IsTrue(Parsed.Match.Bots[1].Side == EVeyraTeam::A && Parsed.Match.Bots[1].VanguardId.ToString() == TEXT("qazharr")));
 		}
 
 		TEST_METHOD(RefusesABrokenAssignment)
@@ -481,6 +488,9 @@ namespace VeyraServicesTests
 				{ TEXT("\"backendUrl\":\"http://backend:8080\""), TEXT("\"backendUrl\":\"http://backend:8080/v1\"") },
 				{ TEXT("\"displayName\":\"DevOne\""), TEXT("\"displayName\":\"Dev\\u0007One\"") },
 				{ TEXT("\"matchId\""), TEXT("\"extra\":1,\"matchId\"") },
+				{ TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"Cairn\"}]") },
+				{ TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"C\",\"vanguardId\":\"cairn\"}]") },
+				{ TEXT(",\"bots\":[]"), TEXT("") },
 			};
 			for (const TPair<const TCHAR*, const TCHAR*>& Break : Breaks)
 			{
@@ -489,7 +499,7 @@ namespace VeyraServicesTests
 			}
 			FVeyraServerAssignment Out;
 			const int32 RosterStart = Example.Find(TEXT("\"participants\":["), ESearchCase::CaseSensitive);
-			const FString NoOne = Example.Left(RosterStart) + TEXT("\"participants\":[]}");
+			const FString NoOne = Example.Left(RosterStart) + TEXT("\"participants\":[],\"bots\":[]}");
 			ASSERT_THAT(IsFalse(VeyraServerAssignment::Parse(NoOne, SchemaText, Out).IsEmpty()));
 		}
 

@@ -5,6 +5,8 @@
 
 #if ENABLE_PIE_NETWORK_TEST
 
+#include "Bots/VeyraBotWanderComponent.h"
+#include "EngineUtils.h"
 #include "Join/VeyraMatchHostSubsystem.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
@@ -12,6 +14,8 @@
 #include "Tuning/VeyraTuning.h"
 #include "VeyraJoinRules.h"
 #include "VeyraPlayerState.h"
+#include "VeyraTeamStart.h"
+#include "VeyraVanguardController.h"
 
 namespace VeyraNetTests
 {
@@ -187,8 +191,9 @@ namespace VeyraNetTests
 	};
 
 	// Veyra.Net.HostedPractice.*: a practice match's host, and only its host, ends it; it ends
-	// host-ended with no winner, and every client sees the phase change (ADR-010 §3, §7). The second
-	// client stands in for anyone who is not the host.
+	// host-ended with no winner, and every client sees the phase change (ADR-010 §3, §7). Its bots join
+	// their sides as their Vanguards and wander near the middle. The second client stands in for anyone
+	// who is not the host.
 	NETWORK_TEST_CLASS(HostedPractice, "Veyra.Net")
 	{
 		struct FState : public FBasePIENetworkComponentState
@@ -204,6 +209,8 @@ namespace VeyraNetTests
 		FDelegateHandle EndedHandle;
 		/** The last phase each client's GameState announced. */
 		TMap<const UWorld*, EVeyraMatchPhase> AnnouncedPhase;
+		/** The practice match's bots, both on the side that is not the host's. */
+		TArray<FVeyraAssignedBot> PracticeBots;
 
 		// Fixture values.
 		static constexpr double ShortPreparationSeconds = 0.1;
@@ -215,7 +222,9 @@ namespace VeyraNetTests
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
 			Tickets = MakeUnique<FScopedTestTickets>();
-			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::B }, EVeyraMatchRules::Practice);
+			PracticeBots = { { EVeyraTeam::B, ContentId(TEXT("cairn")) }, { EVeyraTeam::B, ContentId(TEXT("bryn")) } };
+			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::B }, EVeyraMatchRules::Practice,
+				TArray<FVeyraContentId>{}, PracticeBots);
 			ASSERT_THAT(IsTrue(Assignment->Problems.IsEmpty(), FString::Join(Assignment->Problems, TEXT(" | "))));
 			EndedHandle = UVeyraMatchHostSubsystem::Get()->OnMatchEnded.AddLambda([this](const FVeyraMatchResult& Ended) { Result = Ended; });
 			BuildMatchNetwork(Network);
@@ -252,9 +261,64 @@ namespace VeyraNetTests
 				.UntilClients(TEXT("Every client's GameState announces the end"), [this](FState& State) {
 					return AnnouncedPhase.FindRef(State.World) == EVeyraMatchPhase::Ended;
 				})
-				.ThenServer(TEXT("It ended host-ended, with no winner"), [this](FState& /*State*/) {
+				.ThenServer(TEXT("It ended host-ended, with no winner, and its result names the players, not the bots"), [this](FState& /*State*/) {
 					ASSERT_THAT(IsTrue(Result->EndReason == EVeyraMatchEndReason::HostEnded));
 					ASSERT_THAT(IsTrue(Result->Winner == EVeyraTeam::None));
+					ASSERT_THAT(AreEqual(Result->Participants.Num(), MatchClientCount));
+				});
+		}
+
+		/** The server's bots, in the order the match added them. */
+		static TArray<const AVeyraPlayerState*> BotsOf(const UWorld* World)
+		{
+			TArray<const AVeyraPlayerState*> Bots;
+			for (const APlayerState* Member : GameStateOf(World)->PlayerArray)
+			{
+				if (const AVeyraPlayerState* Bot = Cast<AVeyraPlayerState>(Member); Bot && Bot->IsABot())
+				{
+					Bots.Add(Bot);
+				}
+			}
+			return Bots;
+		}
+
+		TEST_METHOD(ItsBotsJoinTheirSideAsTheirVanguardsAndWanderNearTheMiddle)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.UntilServer(TEXT("Each bot's Vanguard is on the map"), [this](FState& State) {
+					const TArray<const AVeyraPlayerState*> Bots = BotsOf(State.World);
+					return Bots.Num() == PracticeBots.Num() && !Bots.ContainsByPredicate([](const AVeyraPlayerState* Bot) { return !Bot->GetPawn(); });
+				})
+				.ThenServer(TEXT("They play their sides and Vanguards, and walk toward a point near the middle"), [this](FState& State) {
+					const TArray<const AVeyraPlayerState*> Bots = BotsOf(State.World);
+					for (int32 Index = 0; Index < Bots.Num(); ++Index)
+					{
+						ASSERT_THAT(IsTrue(Bots[Index]->GetVeyraTeam() == PracticeBots[Index].Side));
+						ASSERT_THAT(IsTrue(Bots[Index]->GetVanguardId() == PracticeBots[Index].VanguardId));
+					}
+					FVector Middle = FVector::ZeroVector;
+					int32 Starts = 0;
+					for (TActorIterator<AVeyraTeamStart> It(State.World); It; ++It)
+					{
+						Middle += It->GetActorLocation();
+						++Starts;
+					}
+					Middle /= Starts;
+					AVeyraVanguardController* Controller = Bots[0]->GetVanguardController();
+					UVeyraBotWanderComponent* Wander = Controller->FindComponentByClass<UVeyraBotWanderComponent>();
+					ASSERT_THAT(IsNotNull(Wander));
+					const TOptional<FVector> Point = Wander->Wander();
+					ASSERT_THAT(IsTrue(Point.IsSet()));
+					ASSERT_THAT(IsTrue(FVector::Dist2D(Point.GetValue(), Middle) <= Tuning->Tuning.Bots.WanderRadius));
+					ASSERT_THAT(IsTrue(Controller->GetMoveOrder().IsSet(), TEXT("the point lies on the walkable floor")));
+				})
+				.UntilClients(TEXT("Every client sees the bots' Vanguards"), [this](FState& State) {
+					int32 Seen = 0;
+					for (const APlayerState* Member : GameStateOf(State.World)->PlayerArray)
+					{
+						Seen += Member->IsABot() && Member->GetPawn() ? 1 : 0;
+					}
+					return Seen == PracticeBots.Num();
 				});
 		}
 	};

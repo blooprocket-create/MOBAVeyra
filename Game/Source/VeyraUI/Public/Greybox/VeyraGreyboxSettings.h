@@ -76,9 +76,17 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor BarBackgroundColor = FLinearColor::Transparent;
 
-	/** All HUD text. */
+	/** HUD text. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor TextColor = FLinearColor::Transparent;
+
+	/** The line under each ability on the player's panel that says what it does. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor DescriptionColor = FLinearColor::Transparent;
+
+	/** An ability whose empowerment waits for the next basic attack. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor EmpoweredColor = FLinearColor::Transparent;
 
 	/** The overhead Health bar's size, in pixels. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "1"))

@@ -97,6 +97,9 @@ namespace VeyraShellModels
 	/** A content ID as a name: "custom_practice" becomes "Custom Practice". */
 	VEYRAUI_API FText NameOf(const FString& ContentId);
 
+	/** A Vanguard's name, from VeyraContentText; NameOf for an ID the table does not know. */
+	VEYRAUI_API FText VanguardNameOf(const FString& VanguardId);
+
 	/** The Status and Stopped screens' title and detail. */
 	VEYRAUI_API FVeyraStatusModel DescribeStatus(const FVeyraClientSnapshot& Snapshot);
 

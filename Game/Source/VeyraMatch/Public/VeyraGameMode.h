@@ -77,12 +77,13 @@ public:
 	EVeyraOrderRejection CheckRankUpAllowed() const;
 
 	/**
-	 * Adds an AI-controlled participant with its own PlayerState, on the smaller side, as Co-op and
-	 * custom matches will (ADR-006 §4). It gets a Vanguard like any player, now if the match is past
-	 * loading. It has no behaviour yet: its controller moves only when told. Returns the new
-	 * participant, or null if both sides are full.
+	 * Adds an AI-controlled participant with its own PlayerState, as Co-op and custom matches do
+	 * (ADR-006 §4). Side and Vanguard seat it, as an assigned match's bots are; without them it joins
+	 * the smaller side and plays the developer order's Vanguard. It gets its Vanguard like any player,
+	 * now if the match is past loading. Its controller moves only when told. Returns the new
+	 * participant, or null if its side, or with no side both, are full.
 	 */
-	AVeyraPlayerState* AddBotParticipant(const FString& Name);
+	AVeyraPlayerState* AddBotParticipant(const FString& Name, EVeyraTeam Side = EVeyraTeam::None, const FVeyraContentId& Vanguard = FVeyraContentId());
 
 	/**
 	 * Pauses every gameplay clock (Match Flow Bible §10.2). Pause votes arrive later; until then the
@@ -118,6 +119,10 @@ private:
 	bool HaveExpectedPlayersJoined();
 
 	void OnLoadingTimedOut();
+
+	/** Adds the assignment's bots on their sides, each walking with a UVeyraBotWanderComponent (ADR-010 §7). */
+	void AddAssignedBots();
+
 	void BeginPreparation();
 	void BeginLive();
 	void SpawnVanguard(AVeyraPlayerState& PlayerState);

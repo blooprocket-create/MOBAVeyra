@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "teams": {
     "maxTeamSize": 5
   },
@@ -17,6 +17,10 @@
     "maxPerSecond": 20,
     "destinationProjectionExtent": 200,
     "arrivalTolerance": 10
+  },
+  "bots": {
+    "wanderIntervalSeconds": 4,
+    "wanderRadius": 600
   },
   "developerMatch": {
     "vanguards": ["cairn"],

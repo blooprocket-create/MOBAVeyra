@@ -110,6 +110,7 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 		participants[i] = Participant{AccountID: seat.AccountID, Side: seat.Side, VanguardID: seat.VanguardID}
 		ids[i] = seat.AccountID
 	}
+	var bots []Bot
 	switch spec.Rules {
 	case RulesStandard:
 		mode, ok := s.settings.Modes[spec.Mode]
@@ -126,6 +127,8 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 		if err := ValidatePractice(s.settings.Practice, spec.Mode, spec.HostAccountID, participants); err != nil {
 			return Match{}, err
 		}
+		// Practice gives its player targets: the configured bots (ADR-010 §7).
+		bots = append([]Bot(nil), s.settings.Practice.Bots...)
 	default:
 		return Match{}, ErrInvalidRules
 	}
@@ -157,6 +160,7 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 		SelectID:             spec.SelectID,
 		State:                Allocating,
 		Participants:         participants,
+		Bots:                 bots,
 		CreatedAt:            s.now(),
 		JoinKey:              key,
 		ServerCredentialHash: credentialHash,

@@ -2,6 +2,8 @@
 
 #include "Shell/VeyraShellModels.h"
 
+#include "Text/VeyraContentText.h"
+
 #define LOCTEXT_NAMESPACE "VeyraShell"
 
 namespace VeyraShellModels
@@ -105,6 +107,12 @@ FText NameOf(const FString& ContentId)
 		Word[0] = FChar::ToUpper(Word[0]);
 	}
 	return FText::FromString(FString::Join(Words, TEXT(" ")));
+}
+
+FText VanguardNameOf(const FString& VanguardId)
+{
+	const TOptional<FVeyraContentId> Id = FVeyraContentId::FromText(VanguardId);
+	return Id.IsSet() ? VeyraContentText::VanguardName(Id.GetValue()) : NameOf(VanguardId);
 }
 
 FVeyraStatusModel DescribeStatus(const FVeyraClientSnapshot& Snapshot)
@@ -214,14 +222,14 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 		SeatModel.Status = !Seat.Locked.IsEmpty() ? EVeyraSeatStatus::LockedIn : (!Seat.Hover.IsEmpty() ? EVeyraSeatStatus::NotLockedIn : EVeyraSeatStatus::Waiting);
 		SeatModel.StatusText = SeatStatusText(SeatModel.Status);
 		const FString& Shown = !Seat.Locked.IsEmpty() ? Seat.Locked : Seat.Hover;
-		SeatModel.Vanguard = Shown.IsEmpty() ? FText::GetEmpty() : NameOf(Shown);
+		SeatModel.Vanguard = Shown.IsEmpty() ? FText::GetEmpty() : VanguardNameOf(Shown);
 		Model.Seats.Add(MoveTemp(SeatModel));
 	}
 
 	const FString Chosen = You ? (!You->Locked.IsEmpty() ? You->Locked : You->Hover) : FString();
 	for (const FString& Id : Snapshot.AvailableVanguards)
 	{
-		Model.Cards.Add(FVeyraSelectCardModel{ Id, NameOf(Id), Id == Chosen });
+		Model.Cards.Add(FVeyraSelectCardModel{ Id, VanguardNameOf(Id), Id == Chosen });
 	}
 	Model.bCanChoose = bCanHover;
 	if (You && You->Locked.IsEmpty() && !You->Hover.IsEmpty())
@@ -257,7 +265,7 @@ FVeyraResultsModel DescribeResults(const FVeyraClientSnapshot& Snapshot)
 		Model.Lines.Add(FText::Format(LOCTEXT("ResultMode", "Mode: {0}"), NameOf(Outcome->Mode)));
 		if (!Outcome->VanguardId.IsEmpty())
 		{
-			Model.Lines.Add(FText::Format(LOCTEXT("ResultVanguard", "Your Vanguard: {0}"), NameOf(Outcome->VanguardId)));
+			Model.Lines.Add(FText::Format(LOCTEXT("ResultVanguard", "Your Vanguard: {0}"), VanguardNameOf(Outcome->VanguardId)));
 		}
 		Model.Lines.Add(FText::Format(LOCTEXT("ResultDuration", "Duration: {0}"), FormatCountdown(Outcome->DurationSeconds)));
 	}

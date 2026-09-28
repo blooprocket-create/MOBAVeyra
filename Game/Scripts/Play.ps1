@@ -13,10 +13,10 @@
 
     In the launcher, choose a development account and press Play. The launcher starts the packaged
     client, hands it a launch code and closes; the game signs in. A new account chooses its starter
-    Vanguard first. Then Play, Custom, Practice: a short champion select, then the match, alone on the
-    grey-box map. Esc opens the menu, where End Custom Match leaves it; the results follow, and
-    Continue returns to the shell. The script waits until the game closes. The game's log goes to
-    Game/Saved/Play/<timestamp>.
+    Vanguard first. Then Play, Custom, Practice: a short champion select, then the match on the grey-box
+    map, with practice bots near its middle to try your kit on. Esc opens the menu, where End Custom
+    Match leaves it; the results follow, and Continue returns to the shell. The script waits until
+    the game closes. The game's log goes to Game/Saved/Play/<timestamp>.
 
     It needs the packaged client and server (Package.ps1 -Target VeyraClient -Platform Win64 and
     -Target VeyraServer -Platform Linux), Docker running, and Rust from rustup to build the launcher.
@@ -204,11 +204,12 @@ if (-not $Direct) {
     Write-Host '  1. Choose a development account and press Play. The launcher closes once the game has signed in.'
     Write-Host '  2. A new account chooses its starter Vanguard, once.'
     Write-Host '  3. Play, Custom, Practice; then pick a Vanguard and Lock In before the countdown ends.'
-    Write-Host '  4. In the match, alone on the grey-box map:'
+    Write-Host '  4. In the match: practice bots wander near the middle of the map as targets; they do not fight back.'
+    Write-Host '     The panel at the bottom left says what your passive and each ability do. Controls:'
     Write-MatchControls -Indent '       '
     Write-Host '       Esc                  the menu: Resume, or End Custom Match to leave'
     Write-Host '  5. The results follow; Continue returns to the shell. Quit, or close the window, to finish.'
-    Write-Host '  To try kits against bots instead: Play.ps1 -Direct -Vanguard <id> -Bots <n>.'
+    Write-Host '  To skip the launcher and try a kit at once: Play.ps1 -Direct -Vanguard <id> -Bots <n>.'
     Write-Host ''
 
     $launcherStarted = Get-Date

@@ -100,6 +100,21 @@ type CustomPractice struct {
 	HostSide string
 	// PickDuration is how long the player has to lock a Vanguard.
 	PickDuration time.Duration
+	// PlayersPerSide is how many Vanguards, the host and bots together, one
+	// side of a practice match may hold.
+	PlayersPerSide int
+	// Bots are the AI participants every practice match adds, so its player
+	// has targets (ADR-010 §7). Until custom lobbies let the host choose them,
+	// they come from here.
+	Bots []PracticeBot
+}
+
+// PracticeBot is one AI participant in a practice match.
+type PracticeBot struct {
+	// Side is "A" or "B".
+	Side string
+	// VanguardID is the released Vanguard the bot plays.
+	VanguardID string
 }
 
 // Selection configures champion select's own upkeep (ADR-010 §8).
@@ -249,10 +264,15 @@ type fileConfig struct {
 		} `json:"rotation"`
 	} `json:"vanguards"`
 	CustomPractice *struct {
-		Enabled      *bool     `json:"enabled"`
-		Mode         *string   `json:"mode"`
-		HostSide     *string   `json:"hostSide"`
-		PickDuration *Duration `json:"pickDuration"`
+		Enabled        *bool     `json:"enabled"`
+		Mode           *string   `json:"mode"`
+		HostSide       *string   `json:"hostSide"`
+		PickDuration   *Duration `json:"pickDuration"`
+		PlayersPerSide *int      `json:"playersPerSide"`
+		Bots           *[]struct {
+			Side       *string `json:"side"`
+			VanguardID *string `json:"vanguardId"`
+		} `json:"bots"`
 	} `json:"customPractice"`
 	Selection *struct {
 		TickInterval    *Duration `json:"tickInterval"`
@@ -535,6 +555,42 @@ func Parse(raw []byte) (Config, error) {
 			c.CustomPractice.HostSide = *f.CustomPractice.HostSide
 		}
 		c.CustomPractice.PickDuration = positive("customPractice.pickDuration", f.CustomPractice.PickDuration)
+		switch {
+		case f.CustomPractice.PlayersPerSide == nil:
+			missing("customPractice.playersPerSide")
+		case *f.CustomPractice.PlayersPerSide < 1:
+			problems = append(problems, "customPractice.playersPerSide must be at least 1")
+		default:
+			c.CustomPractice.PlayersPerSide = *f.CustomPractice.PlayersPerSide
+		}
+		if f.CustomPractice.Bots == nil {
+			missing("customPractice.bots")
+		} else {
+			// The host takes a place on its side; each bot plays a released Vanguard.
+			perSide := map[string]int{c.CustomPractice.HostSide: 1}
+			for i, b := range *f.CustomPractice.Bots {
+				field := fmt.Sprintf("customPractice.bots[%d]", i)
+				switch {
+				case b.Side == nil:
+					missing(field + ".side")
+				case *b.Side != "A" && *b.Side != "B":
+					problems = append(problems, field+".side must be \"A\" or \"B\"")
+				case b.VanguardID == nil:
+					missing(field + ".vanguardId")
+				case !slices.Contains(c.Vanguards.Released, *b.VanguardID):
+					problems = append(problems, field+".vanguardId must be in vanguards.released, and "+strconv.Quote(*b.VanguardID)+" is not")
+				default:
+					perSide[*b.Side]++
+					c.CustomPractice.Bots = append(c.CustomPractice.Bots, PracticeBot{Side: *b.Side, VanguardID: *b.VanguardID})
+				}
+			}
+			for _, side := range []string{"A", "B"} {
+				if limit := c.CustomPractice.PlayersPerSide; limit > 0 && perSide[side] > limit {
+					problems = append(problems, fmt.Sprintf("customPractice.bots put %d Vanguards on side %s, the host included, more than customPractice.playersPerSide (%d)",
+						perSide[side], side, limit))
+				}
+			}
+		}
 	}
 
 	if f.Selection == nil {

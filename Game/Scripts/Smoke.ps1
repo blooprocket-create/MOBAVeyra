@@ -633,6 +633,11 @@ if ($Handoff -or $Flow) {
         $expectedServerLines =@('VeyraHandoff: took the assignment', 'VeyraHandoff: reported ready', "Preparation begins with $playerCount player(s)", 'The match is live',
             'VeyraHandoff: reported result') + @($participants | ForEach-Object { "$($_.Name) plays $($_.Vanguard)." })
         $expectedServerLines += $(if ($isPractice) { @('the host, ended the custom match', 'The match ended (host ended') } else { @('Match paused', 'Match resumed', 'The match ended (developer request') })
+        # A practice match adds the practice bots the backend's configuration lists (ADR-010 §7).
+        $practiceBots = @($backendConfig.customPractice.bots)
+        if ($isPractice -and $practiceBots.Count -gt 0) {
+            $expectedServerLines += "Added $($practiceBots.Count) of the assignment's $($practiceBots.Count) bot(s)."
+        }
         foreach ($expected in $expectedServerLines) {
             if (-not (Select-String -LiteralPath $serverLogPath -SimpleMatch $expected -Quiet)) {
                 Write-Host "The server log never says '$expected'."

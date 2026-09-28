@@ -142,6 +142,19 @@ type PracticeSettings struct {
 	Mode string
 	// HostSide is the side the practising player plays on.
 	HostSide Side
+	// Bots are the AI participants every practice match adds (Custom Matches
+	// Bible §1), validated with the configuration: known sides, released
+	// Vanguards, and room on each side.
+	Bots []Bot
+}
+
+// Bot is an AI participant: a side and the Vanguard it plays. It is not an
+// account, so it has no join ticket and no result; the match server adds it
+// when the match starts.
+type Bot struct {
+	Side Side
+	// VanguardID is the content ID of the Vanguard the bot plays.
+	VanguardID string
 }
 
 // Match is the authoritative state of one match.
@@ -156,9 +169,11 @@ type Match struct {
 	SelectID     string
 	State        State
 	Participants []Participant
-	CreatedAt    time.Time
-	ReadyAt      time.Time
-	EndedAt      time.Time
+	// Bots are the match's AI participants; only practice matches have any.
+	Bots      []Bot
+	CreatedAt time.Time
+	ReadyAt   time.Time
+	EndedAt   time.Time
 	// JoinKey derives the participants' join tickets. It is nil once the
 	// match is over, which invalidates every ticket (ADR-007 §3).
 	JoinKey []byte

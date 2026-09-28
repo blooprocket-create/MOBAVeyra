@@ -189,6 +189,10 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(World.Learn(*Attacker, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_heavy")))));
 			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Attacker->GetAbilitySystemComponent(), EVeyraAbilitySlot::W, FVeyraCastTarget()) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(Attacks->IsEmpowered()));
+			// Presentation sees which ability waits, and until when.
+			const FVeyraAttackEmpowermentView& View = Attacks->GetEmpowermentView();
+			ASSERT_THAT(IsTrue(View.Ability == ArchetypeTestId(TEXT("test_heavy"))));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(View.ExpiresAt - Spawner.GetWorld().GetTimeSeconds(), LongSeconds, Tolerance)));
 			bool bEmpoweredEvent = false;
 			Attacks->OnAttack.AddLambda([&bEmpoweredEvent](const FVeyraAttackEvent& Event) { bEmpoweredEvent = Event.bEmpowered; });
 
@@ -196,6 +200,7 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Enemy), BaseDamage() + BonusDamage, Tolerance), TEXT("one hit, with the bonus in it")));
 			ASSERT_THAT(IsTrue(World.Has(Enemy, TEXT("test_slow")) && bEmpoweredEvent));
 			ASSERT_THAT(IsFalse(Attacks->IsEmpowered(), TEXT("the attack consumed it")));
+			ASSERT_THAT(IsFalse(Attacks->GetEmpowermentView().Ability.IsValid(), TEXT("and presentation no longer shows it")));
 		}
 
 		TEST_METHOD(ACleavingAttackHitsOtherEnemiesForPartOfItsDamage)

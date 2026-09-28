@@ -48,11 +48,15 @@ TArray<FString> Parse(FStringView Line, FStringView SchemaText, FVeyraServerAssi
 	Assignment.Match.HostAccountId = Document.HostAccountId.IsEmpty() ? FString() : MoveTemp(Document.HostAccountId[0]);
 	Assignment.BackendUrl = MoveTemp(Document.BackendUrl);
 	Assignment.ServerCredential = MoveTemp(Document.ServerCredential);
+	const auto SideOf = [](EVeyraAssignedSide Side) { return Side == EVeyraAssignedSide::A ? EVeyraTeam::A : EVeyraTeam::B; };
 	for (FVeyraAssignmentParticipantDocument& Participant : Document.Participants)
 	{
-		const EVeyraTeam Side = Participant.Side == EVeyraAssignedSide::A ? EVeyraTeam::A : EVeyraTeam::B;
-		Assignment.Match.Participants.Add({ MoveTemp(Participant.AccountId), MoveTemp(Participant.DisplayName), Side, MoveTemp(Participant.TicketHash),
-			Participant.VanguardId });
+		Assignment.Match.Participants.Add({ MoveTemp(Participant.AccountId), MoveTemp(Participant.DisplayName), SideOf(Participant.Side),
+			MoveTemp(Participant.TicketHash), Participant.VanguardId });
+	}
+	for (const FVeyraAssignmentBotDocument& Bot : Document.Bots)
+	{
+		Assignment.Match.Bots.Add({ SideOf(Bot.Side), Bot.VanguardId });
 	}
 	Out = MoveTemp(Assignment);
 	return Problems;

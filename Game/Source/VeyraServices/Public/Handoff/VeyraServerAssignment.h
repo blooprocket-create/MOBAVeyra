@@ -36,7 +36,20 @@ struct FVeyraAssignmentParticipantDocument
 	FVeyraContentId VanguardId;
 };
 
-/** The assignment document a match server reads on standard input (ADR-007 §5, ADR-010 §9). */
+/** One AI participant in the assignment document. */
+USTRUCT()
+struct FVeyraAssignmentBotDocument
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraAssignedSide Side = EVeyraAssignedSide::A;
+
+	UPROPERTY()
+	FVeyraContentId VanguardId;
+};
+
+/** The assignment document a match server reads on standard input (ADR-007 §5, ADR-010 §7, §9). */
 USTRUCT()
 struct FVeyraAssignmentDocument
 {
@@ -63,6 +76,9 @@ struct FVeyraAssignmentDocument
 
 	UPROPERTY()
 	TArray<FVeyraAssignmentParticipantDocument> Participants;
+
+	UPROPERTY()
+	TArray<FVeyraAssignmentBotDocument> Bots;
 };
 
 /** A match server's assignment, read and checked. */

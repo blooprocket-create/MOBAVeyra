@@ -85,7 +85,7 @@ The first playable path is a solo **Custom practice** match on the grey-box map 
 ./Game/Scripts/Play.ps1
 ```
 
-`Play.ps1` starts the local backend, builds the match server's image and the launcher (Rust from rustup), and opens the launcher. Pick a development account and press Play: the game starts and signs in. Choose a starter Vanguard, then Play → Custom → Practice, pick a Vanguard and Lock In. In the match, Esc opens the menu, where End Custom Match leaves it; the results follow. `-ResetOnboarding DevOne` makes an account new again. To try kits against bots without the launcher: `Play.ps1 -Direct -Vanguard oriel -Bots 3`.
+`Play.ps1` starts the local backend, builds the match server's image and the launcher (Rust from rustup), and opens the launcher. Pick a development account and press Play: the game starts and signs in. Choose a starter Vanguard, then Play → Custom → Practice, pick a Vanguard and Lock In. In the match, practice bots wander near the middle of the map as targets (they do not fight back), and the panel at the bottom left says what each ability does. Esc opens the menu, where End Custom Match leaves it; the results follow. `-ResetOnboarding DevOne` makes an account new again. To try kits against bots without the launcher: `Play.ps1 -Direct -Vanguard oriel -Bots 3`.
 
 ## Status
 

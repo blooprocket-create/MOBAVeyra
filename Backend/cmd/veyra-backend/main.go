@@ -182,6 +182,9 @@ func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Ser
 	for _, m := range cfg.Modes {
 		settings.Modes[m.ID] = match.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam}
 	}
+	for _, b := range cfg.CustomPractice.Bots {
+		settings.Practice.Bots = append(settings.Practice.Bots, match.Bot{Side: match.Side(b.Side), VanguardID: b.VanguardID})
+	}
 	if d := cfg.Allocator.Docker; cfg.Allocator.Kind == config.AllocatorDocker && d != nil {
 		dockerAllocator, err := docker.New(docker.Config{
 			Endpoint:       d.Endpoint,

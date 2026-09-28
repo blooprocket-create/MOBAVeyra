@@ -214,6 +214,39 @@ namespace VeyraMatchTests
 			HostedStandard.HostAccountId = TEXT("account-1");
 			ASSERT_THAT(IsTrue(IsRefused(HostedStandard, TEXT("only a practice match has a host"))));
 		}
+
+		TEST_METHOD(OnlyAPracticeMatchHasBotsAndTheyTakePlaces)
+		{
+			FVeyraMatchAssignment Practice = TwoParticipantAssignment();
+			Practice.Rules = EVeyraMatchRules::Practice;
+			Practice.Participants.SetNum(1);
+			Practice.HostAccountId = TEXT("account-1");
+			Practice.Bots = { { EVeyraTeam::B, RosterContentId(TEXT("cairn")) }, { EVeyraTeam::B, RosterContentId(TEXT("bryn")) } };
+			ASSERT_THAT(IsTrue(Host->SetAssignment(Practice).IsEmpty()));
+			ASSERT_THAT(AreEqual(Host->GetAssignment()->Bots.Num(), 2));
+			Host->ClearAssignment();
+
+			FVeyraMatchAssignment NoSide = Practice;
+			NoSide.Bots[0].Side = EVeyraTeam::None;
+			ASSERT_THAT(IsTrue(IsRefused(NoSide, TEXT("bot 0: the side must be A or B"))));
+
+			FVeyraMatchAssignment Unknown = Practice;
+			Unknown.Bots[1].VanguardId = RosterContentId(TEXT("no_such_vanguard"));
+			ASSERT_THAT(IsTrue(IsRefused(Unknown, TEXT("bot 1: "))));
+
+			// A bot takes a place on its side like a player: the host and a full side of bots is too many.
+			FVeyraMatchAssignment Crowded = Practice;
+			Crowded.Bots.Reset();
+			for (int32 Index = 0; Index < UVeyraMatchTuningSubsystem::Get().Teams.MaxTeamSize; ++Index)
+			{
+				Crowded.Bots.Add({ EVeyraTeam::A, RosterContentId(TEXT("cairn")) });
+			}
+			ASSERT_THAT(IsTrue(IsRefused(Crowded, TEXT("teams.maxTeamSize"))));
+
+			FVeyraMatchAssignment StandardWithBots = TwoParticipantAssignment();
+			StandardWithBots.Bots = Practice.Bots;
+			ASSERT_THAT(IsTrue(IsRefused(StandardWithBots, TEXT("only a practice match has bots"))));
+		}
 	};
 
 	// Veyra.Match.MatchRules.*: who may end a custom match, and which Vanguards a server hosts

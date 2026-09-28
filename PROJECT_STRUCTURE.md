@@ -192,6 +192,8 @@ Since M4 it also owns how a hosted match admits and ends (ADR-007):
 - `UVeyraMatchHostSubsystem`, whose input is the server's assignment and whose outputs are "accepting players" and "match ended";
 - the Ended phase, the developer end-match request, and abandonment.
 
+Since M6 it adds an assigned practice match's bots, whose behaviour is `Bots/` (ADR-010 §7): for now they wander near the middle of the map as targets.
+
 It knows nothing about the backend; `VeyraServices` connects the two.
 
 ### VeyraVanguards
@@ -240,7 +242,10 @@ M6 added the menus, UMG widgets built entirely in C++ with no widget Blueprints 
 
 - `Shell/`: the screen for each client state (starter choice, Home, Play, champion select, results, Reconnect-only, problems), built from pure view models over the coordinator's snapshot. Buttons ask the coordinator's intents and are enabled only when it allows them;
 - `Match/`: the in-match menu, with Resume, and End Custom Match for a practice match's host;
+- `Text/`: what players read about Vanguards, abilities and passives, from the string table `Game/Text/VeyraText.csv` (text, not tuning);
 - the style and the menu key, as validated settings in `DefaultGame.ini` and `DefaultInput.ini`.
+
+The grey-box HUD draws through an overlay actor the local player's HUD renders (`Hud/`), so the menus cover it.
 
 ### VeyraDeveloper
 

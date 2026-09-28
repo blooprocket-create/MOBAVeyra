@@ -82,6 +82,12 @@ func (t matchTx) CreateMatch(m match.Match) error {
 			return err
 		}
 	}
+	for i, b := range m.Bots {
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO match.bots (match_id, bot_order, side, vanguard_id) VALUES ($1::uuid, $2, $3, $4)`,
+			m.ID, i, string(b.Side), b.VanguardID); err != nil {
+			return err
+		}
+	}
 	if !m.State.Active() {
 		return nil
 	}
@@ -251,6 +257,20 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 		err := r.Scan(&p.AccountID, &p.DisplayName, &side, &p.VanguardID)
 		p.Side = match.Side(side)
 		return p, err
+	})
+	if err != nil {
+		return match.Match{}, err
+	}
+	rows, err = q.Query(ctx, `SELECT side, vanguard_id FROM match.bots WHERE match_id = $1::uuid ORDER BY bot_order`, id)
+	if err != nil {
+		return match.Match{}, err
+	}
+	m.Bots, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (match.Bot, error) {
+		var b match.Bot
+		var side string
+		err := r.Scan(&side, &b.VanguardID)
+		b.Side = match.Side(side)
+		return b, err
 	})
 	if err != nil {
 		return match.Match{}, err

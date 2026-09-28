@@ -19,6 +19,7 @@ func NewMemStore() *MemStore { return &MemStore{matches: map[string]Match{}} }
 
 func copyMatch(m Match) Match {
 	m.Participants = append([]Participant(nil), m.Participants...)
+	m.Bots = append([]Bot(nil), m.Bots...)
 	m.JoinKey = append([]byte(nil), m.JoinKey...)
 	if len(m.JoinKey) == 0 {
 		m.JoinKey = nil

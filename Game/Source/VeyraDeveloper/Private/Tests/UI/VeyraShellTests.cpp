@@ -14,6 +14,7 @@
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "Tests/Services/VeyraClientFlowTestRig.h"
+#include "Text/VeyraContentText.h"
 #include "UObject/Package.h"
 #include "VeyraPlayerController.h"
 
@@ -307,6 +308,38 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(LabelsOf(Screen->GetButtons()) == TArray<FString>{ TEXT("Quit") }));
 			Button(TEXT("Quit"))->Press();
 			ASSERT_THAT(IsTrue(Rig.Host.bQuit));
+		}
+	};
+
+	// Veyra.UI.ContentText.*: what players read about Vanguards, abilities and passives (ADR-010 §4).
+	TEST_CLASS(ContentText, "Veyra.UI")
+	{
+		static FVeyraContentId IdOf(const TCHAR* Text)
+		{
+			return FVeyraContentId::FromText(Text).GetValue();
+		}
+
+		TEST_METHOD(EveryReleasedVanguardHasItsText)
+		{
+			const TArray<FString> Missing = VeyraContentText::FindMissingPlayableText();
+			ASSERT_THAT(IsTrue(Missing.IsEmpty(), FString::Printf(TEXT("Game/Text/VeyraText.csv lacks %s"), *FString::Join(Missing, TEXT(", ")))));
+		}
+
+		TEST_METHOD(NamesComeFromTheTableAndDeveloperContentShowsItsId)
+		{
+			const FText Name = VeyraContentText::AbilityName(IdOf(TEXT("qazharr_heavy_hand")));
+			ASSERT_THAT(IsTrue(Name.IsFromStringTable()));
+			ASSERT_THAT(AreEqual(Name.ToString(), FString(TEXT("Heavy Hand"))));
+			ASSERT_THAT(AreEqual(VeyraContentText::VanguardTitle(IdOf(TEXT("qazharr"))).ToString(), FString(TEXT("The Harbor Wolf"))));
+			// A quoted field keeps its commas.
+			ASSERT_THAT(IsTrue(VeyraContentText::AbilityDescription(IdOf(TEXT("cairn_immovable"))).ToString().Contains(TEXT("less far, but walks slower"))));
+			ASSERT_THAT(AreEqual(VeyraShellModels::VanguardNameOf(TEXT("qazharr")).ToString(), FString(TEXT("Qazharr"))));
+
+			// The developer test Vanguard has no text: its ID stands in, and it has no title or description.
+			ASSERT_THAT(AreEqual(VeyraContentText::VanguardName(IdOf(TEXT("test_vanguard"))).ToString(), FString(TEXT("test_vanguard"))));
+			ASSERT_THAT(IsTrue(VeyraContentText::VanguardTitle(IdOf(TEXT("test_vanguard"))).IsEmpty()));
+			ASSERT_THAT(IsTrue(VeyraContentText::AbilityDescription(IdOf(TEXT("test_bolt"))).IsEmpty()));
+			ASSERT_THAT(AreEqual(VeyraContentText::AbilityName(IdOf(TEXT("test_bolt"))).ToString(), FString(TEXT("test_bolt"))));
 		}
 	};
 

@@ -36,8 +36,11 @@ public class VeyraUI : ModuleRules
 			"RenderCore",
 			"Slate",
 			"SlateCore",
-			// The HUD names each Vanguard's resource.
+			// The HUD names each Vanguard's resource, and the text checks cover each released Vanguard.
 			"VeyraVanguards",
 		});
+
+		// What players read about Vanguards, abilities and passives (VeyraContentText).
+		RuntimeDependencies.Add("$(ProjectDir)/Text/VeyraText.csv", StagedFileType.UFS);
 	}
 }

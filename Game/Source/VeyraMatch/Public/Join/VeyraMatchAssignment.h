@@ -23,6 +23,16 @@ struct FVeyraAssignedParticipant
 	FVeyraContentId VanguardId;
 };
 
+/**
+ * One AI participant the server adds when the match starts (Custom Matches Bible §1; ADR-010 §7). A
+ * bot is no account: it has no ticket and no result.
+ */
+struct FVeyraAssignedBot
+{
+	EVeyraTeam Side = EVeyraTeam::None;
+	FVeyraContentId VanguardId;
+};
+
 /** The match a server hosts, as the backend assigned it. */
 struct FVeyraMatchAssignment
 {
@@ -33,6 +43,8 @@ struct FVeyraMatchAssignment
 	/** The account that hosts a practice match; empty for standard rules. */
 	FString HostAccountId;
 	TArray<FVeyraAssignedParticipant> Participants;
+	/** Only a practice match has bots. */
+	TArray<FVeyraAssignedBot> Bots;
 };
 
 /** Why a match ended (ADR-007 §7–8, ADR-010 §7). */
