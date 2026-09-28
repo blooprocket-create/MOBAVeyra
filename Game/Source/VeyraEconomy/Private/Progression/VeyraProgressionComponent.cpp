@@ -65,6 +65,7 @@ int32 UVeyraProgressionComponent::AddExperience(int32 Amount)
 	UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner());
 	FVeyraStatBlock PerLevel;
 	PerLevel.MaxHealth = Growth.MaxHealth;
+	PerLevel.HealthRegen = Growth.HealthRegen;
 	PerLevel.MaxResource = Growth.MaxResource;
 	PerLevel.ResourceRegen = Growth.ResourceRegen;
 	PerLevel.Armor = Growth.Armor;

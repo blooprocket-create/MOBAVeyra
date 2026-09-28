@@ -167,6 +167,13 @@ struct VEYRAABILITIES_API FVeyraAttackPlan
 	bool bEmpowered = false;
 
 	FVeyraRawDamageEvent Damage;
+
+	/**
+	 * The attack's own damage, before an empowerment or a modifier adds riders to Damage. Against a
+	 * structure only the riders are reduced to Structure Effectiveness (Combat Bible §33).
+	 */
+	FVeyraDamageComponents BaseDamage;
+
 	TArray<FVeyraStatusSpec> TargetStatuses;
 	TOptional<FVeyraAttackCleave> Cleave;
 	TOptional<FVeyraSecondaryImpact> SecondaryImpact;
@@ -220,4 +227,10 @@ namespace VeyraBasicAttacks
 {
 	/** Problems with Profile, each a field name and a message; empty when it can be used. */
 	VEYRAABILITIES_API TArray<FString> Validate(const FVeyraBasicAttackProfile& Profile);
+
+	/**
+	 * The attack's damage as a structure takes it (Combat Bible §33): each type keeps its share of
+	 * the attack's own damage in full, and Effectiveness of what riders added on top.
+	 */
+	VEYRAABILITIES_API FVeyraRawDamageEvent AgainstStructure(const FVeyraAttackPlan& Plan, double Effectiveness);
 }

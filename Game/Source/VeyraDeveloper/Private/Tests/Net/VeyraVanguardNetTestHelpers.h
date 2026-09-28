@@ -73,8 +73,8 @@ namespace VeyraNetTests
 
 	/**
 	 * A duel between the first two clients' Vanguards. On the server, Prepare raises both to a level
-	 * with a rank in every ability and stands the second a distance from the first, toward the lane's
-	 * centre; a client then casts at it.
+	 * with a rank in every ability, stops their Health regenerating, and stands the second a distance
+	 * from the first, toward the lane's centre; a client then casts at it.
 	 */
 	struct FVanguardDuel
 	{
@@ -108,6 +108,8 @@ namespace VeyraNetTests
 						return false;
 					}
 				}
+				// The suites measure each hit by the Health it removes, so neither Vanguard regenerates.
+				Participant->GetAbilitySystemComponent()->SetNumericAttributeBase(UVeyraVitalsSet::GetHealthRegenAttribute(), 0.0f);
 			}
 			const FVector From = Caster->GetPawn()->GetActorLocation();
 			TargetPoint = From + FVector(-From.X, 0.0, 0.0).GetSafeNormal() * Distance;

@@ -34,14 +34,20 @@ namespace
 		return FMath::IsFinite(Value) && Value > 0.0;
 	}
 
-	/** Visits each living unit in World that Include accepts. */
+	/**
+	 * Visits each living unit in World that Include accepts. Structures are among them only when
+	 * Structures allows: areas, skillshots, cleaves and secondary impacts do not hit structures
+	 * (Combat Bible §33).
+	 */
 	template <typename VisitorType>
-	void ForEachUnit(const UWorld& World, TFunctionRef<bool(const AActor&)> Include, VisitorType&& Visit)
+	void ForEachUnit(const UWorld& World, TFunctionRef<bool(const AActor&)> Include, EVeyraStructureTargeting Structures, VisitorType&& Visit)
 	{
 		for (TActorIterator<APawn> It(&World); It; ++It)
 		{
 			APawn* Unit = *It;
-			if (VeyraUnits::KindOf(Unit).IsSet() && VeyraTargeting::IsAlive(Unit) && Include(*Unit))
+			const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Unit);
+			const bool bExcluded = Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Structure && Structures == EVeyraStructureTargeting::Refuse;
+			if (Kind.IsSet() && !bExcluded && VeyraTargeting::IsAlive(Unit) && Include(*Unit))
 			{
 				Visit(*Unit);
 			}
@@ -147,10 +153,11 @@ double Reach(const FVeyraShape& Shape)
 	return 0.0;
 }
 
-TArray<AActor*> GatherUnits(const UWorld& World, const FVeyraPlacedShape& Placed, TFunctionRef<bool(const AActor&)> Include)
+TArray<AActor*> GatherUnits(const UWorld& World, const FVeyraPlacedShape& Placed, TFunctionRef<bool(const AActor&)> Include,
+	EVeyraStructureTargeting Structures)
 {
 	TArray<FVeyraPathHit> Hits;
-	ForEachUnit(World, Include, [&Placed, &Hits](AActor& Unit) {
+	ForEachUnit(World, Include, Structures, [&Placed, &Hits](AActor& Unit) {
 		if (Touches(Placed, Unit.GetActorLocation(), Unit.GetSimpleCollisionRadius()))
 		{
 			Hits.Add({ &Unit, FVector::Dist2D(Unit.GetActorLocation(), Placed.Origin) });
@@ -199,7 +206,7 @@ TOptional<double> FirstContactAlong(const FVector& Start, const FVector& End, do
 TArray<FVeyraPathHit> GatherUnitsAlong(const UWorld& World, const FVector& Start, const FVector& End, double Radius, TFunctionRef<bool(const AActor&)> Include)
 {
 	TArray<FVeyraPathHit> Hits;
-	ForEachUnit(World, Include, [&](AActor& Unit) {
+	ForEachUnit(World, Include, EVeyraStructureTargeting::Refuse, [&](AActor& Unit) {
 		if (const TOptional<double> Contact = FirstContactAlong(Start, End, Radius, Unit.GetActorLocation(), Unit.GetSimpleCollisionRadius()))
 		{
 			Hits.Add({ &Unit, Contact.GetValue() });

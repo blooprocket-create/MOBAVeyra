@@ -23,6 +23,36 @@ enum class EVeyraDamageType : uint8
 	TrueDamage,
 };
 
+/**
+ * How a damage event is delivered, which decides whether it can damage a structure (Combat Bible §33,
+ * §55; ADR-011 §5). It stands in for canon's Structure Attack and Structure Projectile tags, which
+ * are on Combat §2's open descriptive-tag list and so are not added.
+ */
+UENUM()
+enum class EVeyraDamageDelivery : uint8
+{
+	/** An ability's damage, and anything not otherwise named. It does not damage structures. */
+	Ability,
+	/** A basic attack's hit on its target, empowered or not (§33: structures take damage primarily from basic attacks). */
+	BasicAttack,
+	/** A structure's own attack, such as a Spire's shot (§55). It is not a basic attack. */
+	StructureAttack,
+	/** Damage a basic attack or passive spreads to others, such as a cleave or a secondary impact. It does not damage structures. */
+	Proc,
+	/** A developer command's damage, which reaches structures so tests and smokes can exercise them. */
+	Developer,
+};
+
+namespace VeyraDamageDelivery
+{
+	/** Whether damage delivered this way can damage a structure (Combat Bible §33). */
+	inline bool DamagesStructures(EVeyraDamageDelivery Delivery)
+	{
+		return Delivery == EVeyraDamageDelivery::BasicAttack || Delivery == EVeyraDamageDelivery::StructureAttack
+			|| Delivery == EVeyraDamageDelivery::Developer;
+	}
+}
+
 /** One typed component of a damage event. Components resolve independently (Combat Bible §25). */
 struct FVeyraDamageComponent
 {
@@ -54,6 +84,9 @@ struct FVeyraRawDamageEvent
 	 */
 	FVeyraPenetration PhysicalPenetration;
 	FVeyraPenetration MagicPenetration;
+
+	/** How the event is delivered; an ability's by default. */
+	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
 };
 
 /** Resistance reduction applied to one of a target's resistances (Combat Bible §3). */

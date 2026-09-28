@@ -22,6 +22,7 @@ class VEYRACOMBAT_API UVeyraVitalsSet : public UAttributeSet
 public:
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraVitalsSet, Health)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraVitalsSet, MaxHealth)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraVitalsSet, HealthRegen)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraVitalsSet, IncomingPhysicalDamage)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraVitalsSet, IncomingMagicDamage)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraVitalsSet, IncomingTrueDamage)
@@ -46,6 +47,9 @@ protected:
 	UFUNCTION()
 	void OnRep_MaxHealth(const FGameplayAttributeData& OldValue);
 
+	UFUNCTION()
+	void OnRep_HealthRegen(const FGameplayAttributeData& OldValue);
+
 private:
 	/** Ordinary Health, never below 0 or above MaxHealth (Combat Bible §39). */
 	UPROPERTY(ReplicatedUsing = OnRep_Health)
@@ -54,6 +58,13 @@ private:
 	/** A §41 stat. A change keeps the Health percentage (§41), and it must stay above 0 (§39). */
 	UPROPERTY(ReplicatedUsing = OnRep_MaxHealth)
 	FGameplayAttributeData MaxHealth;
+
+	/**
+	 * Health restored per second, in and out of combat (Combat Bible §6; author ruling 2026-09-28,
+	 * ADR-011 §11). A §41 stat; 0 for a unit that does not regenerate.
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_HealthRegen)
+	FGameplayAttributeData HealthRegen;
 
 	/** Meta attributes: mitigated damage of each type on its way to absorption. Never replicated. */
 	UPROPERTY(meta = (HideFromModifiers))

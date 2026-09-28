@@ -15,20 +15,26 @@ void NoteHostileAction(UAbilitySystemComponent* Source, UAbilitySystemComponent&
 {
 	AActor* SourceUnit = Source ? Source->GetOwner() : nullptr;
 	AActor* TargetUnit = Target.GetOwner();
-	const bool bEnemyVanguards = SourceUnit && TargetUnit && SourceUnit != TargetUnit && VeyraUnits::IsVanguard(SourceUnit)
-		&& VeyraUnits::IsVanguard(TargetUnit) && VeyraTargeting::AreHostile(SourceUnit, TargetUnit);
-	if (!bEnemyVanguards || !TargetUnit->HasAuthority())
+	const bool bVanguardAgainstEnemy = SourceUnit && TargetUnit && SourceUnit != TargetUnit && VeyraUnits::IsVanguard(SourceUnit)
+		&& VeyraTargeting::AreHostile(SourceUnit, TargetUnit);
+	if (!bVanguardAgainstEnemy || !TargetUnit->HasAuthority())
 	{
 		return;
 	}
 
-	for (AActor* Unit : { SourceUnit, TargetUnit })
+	// Combat State is between Vanguards (Combat Bible §28).
+	if (VeyraUnits::IsVanguard(TargetUnit))
 	{
-		if (UVeyraCombatStateComponent* CombatState = Unit->FindComponentByClass<UVeyraCombatStateComponent>())
+		for (AActor* Unit : { SourceUnit, TargetUnit })
 		{
-			CombatState->NoteCombat();
+			if (UVeyraCombatStateComponent* CombatState = Unit->FindComponentByClass<UVeyraCombatStateComponent>())
+			{
+				CombatState->NoteCombat();
+			}
 		}
 	}
+	// Any unit that keeps attribution records the Vanguard: for assists on a Vanguard (§18), and for
+	// Economy's participation and structure rewards on anything else (ADR-011 §6).
 	if (UVeyraAttributionComponent* Attribution = TargetUnit->FindComponentByClass<UVeyraAttributionComponent>())
 	{
 		Attribution->NoteContribution(*Source, TargetUnit->GetWorld()->GetTimeSeconds());

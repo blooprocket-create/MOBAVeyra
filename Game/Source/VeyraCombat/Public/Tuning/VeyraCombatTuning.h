@@ -141,6 +141,34 @@ struct FVeyraAttributionTuning
 	double AssistWindowSeconds = 0.0;
 };
 
+/** Kill credit for a death the environment finishes (Combat Bible §18). */
+USTRUCT()
+struct FVeyraKillCreditTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How recently an enemy Vanguard must have contributed to be credited with such a kill, in seconds. */
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+};
+
+/** Basic attacks against structures (Combat Bible §33). */
+USTRUCT()
+struct FVeyraStructureCombatTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Structure Effectiveness: the fraction of a basic attack's secondary riders a structure takes. */
+	UPROPERTY()
+	double Effectiveness = 0.0;
+};
+
 /** Attack Speed limits and overflow (Combat Bible §22, §39). */
 USTRUCT()
 struct FVeyraAttackSpeedTuning
@@ -195,7 +223,7 @@ struct FVeyraCombatTuning
 	GENERATED_BODY()
 
 	/** The Combat.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 3;
+	static constexpr int32 SchemaVersion = 4;
 
 	UPROPERTY()
 	FVeyraResistanceTuning Resistance;
@@ -220,6 +248,12 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraAttributionTuning Attribution;
+
+	UPROPERTY()
+	FVeyraKillCreditTuning KillCredit;
+
+	UPROPERTY()
+	FVeyraStructureCombatTuning Structures;
 
 	UPROPERTY()
 	FVeyraAttackSpeedTuning AttackSpeed;

@@ -8,6 +8,7 @@
 #include "Life/VeyraLifeComponent.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
 
 #if WITH_AUTOMATION_WORKER
 
@@ -201,6 +202,20 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(World.Has(Enemy, TEXT("test_slow")) && bEmpoweredEvent));
 			ASSERT_THAT(IsFalse(Attacks->IsEmpowered(), TEXT("the attack consumed it")));
 			ASSERT_THAT(IsFalse(Attacks->GetEmpowermentView().Ability.IsValid(), TEXT("and presentation no longer shows it")));
+		}
+
+		TEST_METHOD(AStructureTakesTheAttackInFullAndItsRidersAtStructureEffectiveness)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraTestStructure& Spire = World.SpawnStructure(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(*Attacker, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_heavy")))));
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Attacker->GetAbilitySystemComponent(), EVeyraAbilitySlot::W, FVeyraCastTarget()) == EVeyraCastRejection::None));
+
+			ASSERT_THAT(IsTrue(AttackNow(Spire) == EVeyraAttackRejection::None, TEXT("basic attacks may target structures")));
+			const double Effectiveness = UVeyraCombatTuningSubsystem::Get().Structures.Effectiveness;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Spire), BaseDamage() + BonusDamage * Effectiveness, Tolerance),
+				FString::Printf(TEXT("lost %g"), World.HealthLost(Spire))));
+			ASSERT_THAT(IsFalse(World.Has(Spire, TEXT("test_slow")), TEXT("the empowerment's slow does not affect a structure")));
 		}
 
 		TEST_METHOD(ACleavingAttackHitsOtherEnemiesForPartOfItsDamage)

@@ -46,6 +46,11 @@ void UVeyraVitalsSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Params.RepNotifyCondition = REPNOTIFY_Always;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraVitalsSet, Health, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraVitalsSet, MaxHealth, Params);
+
+	// Regeneration shows on the owner's own HUD only, like resource regeneration.
+	FDoRepLifetimeParams OwnerParams = Params;
+	OwnerParams.Condition = COND_OwnerOnly;
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraVitalsSet, HealthRegen, OwnerParams);
 }
 
 void UVeyraVitalsSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const
@@ -59,6 +64,12 @@ void UVeyraVitalsSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute
 		UE_LOG(LogVeyraCombat, Error, TEXT("Base Max Health on %s would become %g; it must stay above 0 (Combat Bible §39), so it keeps %g."),
 			*GetNameSafe(GetOwningActor()), NewValue, MaxHealth.GetBaseValue());
 		NewValue = MaxHealth.GetBaseValue();
+	}
+	else if (Attribute == GetHealthRegenAttribute() && NewValue < 0.0f)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Base Health regeneration on %s would become %g; it cannot be negative, so it keeps %g."),
+			*GetNameSafe(GetOwningActor()), NewValue, HealthRegen.GetBaseValue());
+		NewValue = HealthRegen.GetBaseValue();
 	}
 }
 
@@ -154,4 +165,9 @@ void UVeyraVitalsSet::OnRep_Health(const FGameplayAttributeData& OldValue)
 void UVeyraVitalsSet::OnRep_MaxHealth(const FGameplayAttributeData& OldValue)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraVitalsSet, MaxHealth, OldValue);
+}
+
+void UVeyraVitalsSet::OnRep_HealthRegen(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraVitalsSet, HealthRegen, OldValue);
 }

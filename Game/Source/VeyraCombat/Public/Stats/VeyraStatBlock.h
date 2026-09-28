@@ -19,6 +19,10 @@ struct VEYRACOMBAT_API FVeyraStatBlock
 	UPROPERTY()
 	double MaxHealth = 0.0;
 
+	/** Health restored per second (Combat Bible §6). */
+	UPROPERTY()
+	double HealthRegen = 0.0;
+
 	/** 0 for a unit with no resource (Combat Bible §27). */
 	UPROPERTY()
 	double MaxResource = 0.0;

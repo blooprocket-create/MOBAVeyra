@@ -9,6 +9,7 @@
 #include "Damage/VeyraDamageResolver.h"
 #include "Effects/VeyraCombatEffects.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
+#include "Units/VeyraUnit.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatTagMapping.h"
 
@@ -163,6 +164,16 @@ void UVeyraDamageExecution::Execute_Implementation(const FGameplayEffectCustomEx
 		UE_LOG(LogVeyraCombat, Error, TEXT("Damage from %s to %s was not applied: %s."), *GetNameSafe(Attacker ? Attacker->GetOwner() : nullptr),
 			*GetNameSafe(Defender ? Defender->GetOwner() : nullptr), *FString::Join(Problems, TEXT("; ")));
 		return;
+	}
+
+	// §33: a structure's Armor and Magic Resist are its own; penetration and resistance reduction do
+	// not touch them.
+	if (VeyraUnits::IsStructure(Defender->GetOwner()))
+	{
+		Offence.PhysicalPenetration = Identity;
+		Offence.MagicPenetration = Identity;
+		Defence.ArmorReduction = FVeyraResistanceReduction();
+		Defence.MagicResistReduction = FVeyraResistanceReduction();
 	}
 
 	const FVeyraMitigatedDamage Mitigated = VeyraDamage::ApplyTargetSide(VeyraDamage::ApplySourceSide(Raw, Offence), Defence,

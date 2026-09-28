@@ -10,7 +10,7 @@
 /**
  * What kind of unit something is. Rules that name a kind, such as Vanguard Combat State (Combat
  * Bible §28) or a skillshot that passes through minions (ADR-008 §9), ask this rather than a class.
- * Kinds arrive with their first unit: wildlife and structures come later.
+ * Kinds arrive with their first unit: wildlife comes later.
  */
 UENUM()
 enum class EVeyraUnitKind : uint8
@@ -19,6 +19,12 @@ enum class EVeyraUnitKind : uint8
 	Vanguard,
 	/** A lane minion (Battleground Bible). */
 	Fluxborn,
+	/**
+	 * A lane Spire, base-defense tower, inhibitor or Prime Well (Battleground Bible §5, §18). Combat
+	 * Bible §33's structure rules apply to it: basic attacks and tower attacks damage it, abilities
+	 * do not unless they say so (ADR-011 §5).
+	 */
+	Structure,
 };
 
 UINTERFACE(MinimalAPI, NotBlueprintable)
@@ -43,4 +49,7 @@ namespace VeyraUnits
 
 	/** Whether Object is a Vanguard. */
 	VEYRACORE_API bool IsVanguard(const UObject* Object);
+
+	/** Whether Object is a structure. */
+	VEYRACORE_API bool IsStructure(const UObject* Object);
 }

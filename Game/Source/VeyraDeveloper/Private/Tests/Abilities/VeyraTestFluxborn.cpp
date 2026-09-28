@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
+#include "Attribution/VeyraAttributionComponent.h"
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraOffenceSet.h"
@@ -30,6 +31,7 @@ AVeyraTestFluxborn::AVeyraTestFluxborn(const FObjectInitializer& ObjectInitializ
 	DamageAbsorption = CreateDefaultSubobject<UVeyraDamageAbsorptionComponent>(TEXT("DamageAbsorption"));
 	Statuses = CreateDefaultSubobject<UVeyraStatusComponent>(TEXT("Statuses"));
 	Life = CreateDefaultSubobject<UVeyraLifeComponent>(TEXT("Life"));
+	Attribution = CreateDefaultSubobject<UVeyraAttributionComponent>(TEXT("Attribution"));
 	VitalsSet = CreateDefaultSubobject<UVeyraVitalsSet>(TEXT("VitalsSet"));
 	OffenceSet = CreateDefaultSubobject<UVeyraOffenceSet>(TEXT("OffenceSet"));
 	DefenceSet = CreateDefaultSubobject<UVeyraDefenceSet>(TEXT("DefenceSet"));
@@ -66,4 +68,9 @@ void AVeyraTestFluxborn::SetVeyraTeam(EVeyraTeam NewTeam)
 UVeyraMovementComponent* AVeyraTestFluxborn::GetVeyraMovement() const
 {
 	return CastChecked<UVeyraMovementComponent>(GetCharacterMovement());
+}
+
+AVeyraTestStructure::AVeyraTestStructure(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
 }

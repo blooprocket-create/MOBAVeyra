@@ -212,7 +212,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - The Prime Well alone regenerates missing Health, and only while all of its team's inhibitors stand.
   - It stops at once when any inhibitor falls.
   - Spires and base towers never regenerate.
-  - This is the first use of Combat's minimal Health restore, a Veyra execution on Combat §41's allow-list.
+  - It uses Combat's Health restore verb (`VeyraCombat::RestoreHealth`), which never overheals and restores nothing to the dead; Healing Reduction joins it when healing arrives.
 - **Backdoor protection** (M7b):
   - Lane Spires, base towers and the Prime Well gain damage reduction while no Fluxborn of the attacking team is within the protection radius.
   - It ramps toward its maximum after the last one leaves or dies, and drops to zero the moment one enters.

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -8,6 +8,7 @@
       "body": { "capsuleRadius": 55, "capsuleHalfHeight": 100, "turnRateDegreesPerSecond": 540 },
       "baseStats": {
         "maxHealth": 720,
+        "healthRegen": 1.7,
         "maxResource": 320,
         "resourceRegen": 3.5,
         "armor": 38,
@@ -19,6 +20,7 @@
       },
       "growth": {
         "maxHealth": 105,
+        "healthRegen": 0.16,
         "maxResource": 45,
         "resourceRegen": 0.25,
         "armor": 4.2,
@@ -53,6 +55,7 @@
       "body": { "capsuleRadius": 50, "capsuleHalfHeight": 95, "turnRateDegreesPerSecond": 540 },
       "baseStats": {
         "maxHealth": 650,
+        "healthRegen": 1.6,
         "maxResource": 300,
         "resourceRegen": 3.2,
         "armor": 34,
@@ -64,6 +67,7 @@
       },
       "growth": {
         "maxHealth": 100,
+        "healthRegen": 0.15,
         "maxResource": 40,
         "resourceRegen": 0.25,
         "armor": 4.0,
@@ -98,6 +102,7 @@
       "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
       "baseStats": {
         "maxHealth": 540,
+        "healthRegen": 1.1,
         "maxResource": 420,
         "resourceRegen": 5,
         "armor": 22,
@@ -109,6 +114,7 @@
       },
       "growth": {
         "maxHealth": 88,
+        "healthRegen": 0.11,
         "maxResource": 50,
         "resourceRegen": 0.4,
         "armor": 3.8,
@@ -143,6 +149,7 @@
       "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 600 },
       "baseStats": {
         "maxHealth": 560,
+        "healthRegen": 0.75,
         "maxResource": 330,
         "resourceRegen": 3.5,
         "armor": 25,
@@ -154,6 +161,7 @@
       },
       "growth": {
         "maxHealth": 90,
+        "healthRegen": 0.11,
         "maxResource": 42,
         "resourceRegen": 0.3,
         "armor": 3.9,
@@ -188,6 +196,7 @@
       "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
       "baseStats": {
         "maxHealth": 600,
+        "healthRegen": 0,
         "maxResource": 300,
         "resourceRegen": 0,
         "armor": 0,
@@ -199,6 +208,7 @@
       },
       "growth": {
         "maxHealth": 0,
+        "healthRegen": 0,
         "maxResource": 0,
         "resourceRegen": 0,
         "armor": 0,

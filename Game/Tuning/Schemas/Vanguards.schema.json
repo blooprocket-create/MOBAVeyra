@@ -22,9 +22,10 @@
       "description": "Base stats (FVeyraStatBlock): Max Health, Move Speed and Attack Speed above 0, the rest at least 0.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["maxHealth", "maxResource", "resourceRegen", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeed", "moveSpeed"],
+      "required": ["maxHealth", "healthRegen", "maxResource", "resourceRegen", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeed", "moveSpeed"],
       "properties": {
         "maxHealth": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "healthRegen": { "description": "Health per second, in and out of combat (Combat Bible §6; ADR-011 §11).", "type": "number", "minimum": 0 },
         "maxResource": { "type": "number", "minimum": 0 },
         "resourceRegen": { "description": "Resource per second.", "type": "number", "minimum": 0 },
         "armor": { "type": "number", "minimum": 0 },
@@ -39,9 +40,10 @@
       "description": "What each level after the first adds to the base stats (Economy & Progression Bible §9).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["maxHealth", "maxResource", "resourceRegen", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeedFraction"],
+      "required": ["maxHealth", "healthRegen", "maxResource", "resourceRegen", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeedFraction"],
       "properties": {
         "maxHealth": { "type": "number", "minimum": 0 },
+        "healthRegen": { "type": "number", "minimum": 0 },
         "maxResource": { "type": "number", "minimum": 0 },
         "resourceRegen": { "type": "number", "minimum": 0 },
         "armor": { "type": "number", "minimum": 0 },
@@ -164,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [3]
+      "enum": [4]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
