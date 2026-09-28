@@ -581,9 +581,12 @@ bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Targe
 			*Status.Id.ToString(), *GetNameSafe(TargetOwner));
 		return false;
 	}
-	if (IsStructureUnit(Target) && VeyraTargeting::AreHostile(Source.GetOwner(), TargetOwner))
+	const TOptional<EVeyraUnitKind> TargetKind = VeyraUnits::KindOf(TargetOwner);
+	const bool bObjective = TargetKind.IsSet() && TargetKind.GetValue() == EVeyraUnitKind::Objective;
+	if ((IsStructureUnit(Target) || bObjective) && VeyraTargeting::AreHostile(Source.GetOwner(), TargetOwner))
 	{
-		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: enemy statuses do not affect structures (Combat Bible §33)."),
+		// A neutral objective ignores them too, as League's objectives ignore crowd control (ADR-014 §4).
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: enemy statuses do not affect structures (Combat Bible §33) or objectives."),
 			*Status.Id.ToString(), *GetNameSafe(TargetOwner));
 		return false;
 	}

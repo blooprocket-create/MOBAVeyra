@@ -59,6 +59,12 @@ public:
 	 */
 	void RewardWildlifeDeath(const FVeyraDeathEvent& Death, const FVeyraContentId& Species);
 
+	/**
+	 * Server: a Flux Well was secured (§8.2). Its Gold pool is split evenly among Capturers, the
+	 * securing side's Vanguards working on it at that moment; there is no XP.
+	 */
+	void RewardFluxWellSecured(TConstArrayView<UAbilitySystemComponent*> Capturers);
+
 	/** Server: pays nothing more, as when the match ends (§8.2). */
 	void Stop();
 

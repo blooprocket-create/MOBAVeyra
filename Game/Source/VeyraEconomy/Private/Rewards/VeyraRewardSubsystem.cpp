@@ -89,6 +89,27 @@ void UVeyraRewardSubsystem::RewardWildlifeDeath(const FVeyraDeathEvent& Death, c
 	}
 }
 
+void UVeyraRewardSubsystem::RewardFluxWellSecured(TConstArrayView<UAbilitySystemComponent*> Capturers)
+{
+	if (bStopped || !IsServer() || Capturers.IsEmpty())
+	{
+		return;
+	}
+	const TArray<FRecipient> All = Recipients();
+	TArray<const FRecipient*> Paid;
+	for (const UAbilitySystemComponent* Capturer : Capturers)
+	{
+		if (const FRecipient* Recipient = FindRecipient(All, Capturer))
+		{
+			Paid.AddUnique(Recipient);
+		}
+	}
+	for (const FRecipient* Recipient : Paid)
+	{
+		Recipient->Gold->Grant(UVeyraEconomyTuningSubsystem::Get().Gold.FluxWellPool / Paid.Num(), EVeyraGoldReason::FluxWell);
+	}
+}
+
 void UVeyraRewardSubsystem::ShareExperience(TConstArrayView<FRecipient> All, EVeyraTeam Side, const FVector& Where, double Experience) const
 {
 	TArray<const FRecipient*> Leveling;

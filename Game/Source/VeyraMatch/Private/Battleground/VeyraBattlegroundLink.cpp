@@ -10,6 +10,7 @@
 #include "VeyraBattlegroundSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraTeamFluxSubsystem.h"
+#include "Wells/VeyraFluxWellSubsystem.h"
 #include "Wildlife/VeyraJungleSubsystem.h"
 
 namespace
@@ -43,6 +44,11 @@ void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrim
 	Flux = World.GetSubsystem<UVeyraTeamFluxSubsystem>();
 	Rewards = World.GetSubsystem<UVeyraRewardSubsystem>();
 	Jungle = World.GetSubsystem<UVeyraJungleSubsystem>();
+	FluxWells = World.GetSubsystem<UVeyraFluxWellSubsystem>();
+	if (UVeyraFluxWellSubsystem* Wells = FluxWells.Get())
+	{
+		SecuredHandle = Wells->OnFluxWellSecured.AddRaw(this, &FVeyraBattlegroundLink::OnFluxWellSecured);
+	}
 	OnPrimeWellDestroyed = MoveTemp(InOnPrimeWellDestroyed);
 	if (UVeyraBattlegroundSubsystem* Subsystem = Battleground.Get())
 	{
@@ -88,6 +94,11 @@ void FVeyraBattlegroundLink::Stop()
 	{
 		Camps->Stop();
 	}
+	if (UVeyraFluxWellSubsystem* Wells = FluxWells.Get())
+	{
+		Wells->OnFluxWellSecured.Remove(SecuredHandle);
+		Wells->Stop();
+	}
 	// Nothing is paid once the match ends (Economy & Progression Bible §8.2).
 	if (UVeyraRewardSubsystem* Paying = Rewards.Get())
 	{
@@ -95,6 +106,8 @@ void FVeyraBattlegroundLink::Stop()
 	}
 	Rewards.Reset();
 	Jungle.Reset();
+	FluxWells.Reset();
+	SecuredHandle.Reset();
 	DestroyedHandle.Reset();
 	FluxChangedHandle.Reset();
 	Battleground.Reset();
@@ -110,6 +123,19 @@ void FVeyraBattlegroundLink::StartLive()
 	if (UVeyraJungleSubsystem* Camps = Jungle.Get())
 	{
 		Camps->Start();
+	}
+	if (UVeyraFluxWellSubsystem* Wells = FluxWells.Get())
+	{
+		Wells->Start();
+	}
+}
+
+void FVeyraBattlegroundLink::OnFluxWellSecured(const FVeyraFluxWellSecuredEvent& Event)
+{
+	// Its side takes the Well's temporary Team Flux (Battleground Bible §6).
+	if (UVeyraTeamFluxSubsystem* TeamFlux = Flux.Get())
+	{
+		TeamFlux->Grant(Event.Team, EVeyraFluxSource::FluxWell);
 	}
 }
 
