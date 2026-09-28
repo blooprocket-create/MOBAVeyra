@@ -6,6 +6,7 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "AbilitySystemComponent.h"
+#include "Casting/VeyraCastStateComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/PlayerStart.h"
 #include "Recall/VeyraRecallComponent.h"
@@ -112,6 +113,21 @@ namespace VeyraNetTests
 					const APawn* Body = Own->GetVanguard();
 					return Body && FVector::Dist2D(Body->GetActorLocation(), Home) < HomeTolerance
 						&& !Own->GetPlayerState<AVeyraPlayerState>()->FindComponentByClass<UVeyraRecallComponent>()->IsRecalling();
+				});
+		}
+
+		TEST_METHOD(ACastInProgressStopsARecallBeginning)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("A cast holds the Vanguard, then ends"), [this](FState& State) {
+					UVeyraCastStateComponent& CastState = *ServerParticipant(State).FindComponentByClass<UVeyraCastStateComponent>();
+					FVeyraCastState Winding;
+					Winding.Phase = EVeyraCastPhase::Windup;
+					CastState.SetState(Winding);
+					ASSERT_THAT(IsTrue(OrderRecall(State) == EVeyraOrderRejection::Casting));
+					ASSERT_THAT(IsFalse(ServerRecall(State).IsRecalling()));
+					CastState.Clear();
+					ASSERT_THAT(IsTrue(OrderRecall(State) == EVeyraOrderRejection::None && ServerRecall(State).IsRecalling()));
 				});
 		}
 

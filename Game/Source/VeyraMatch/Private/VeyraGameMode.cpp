@@ -7,6 +7,7 @@
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Battleground/VeyraBattlegroundLink.h"
+#include "Casting/VeyraCastStateComponent.h"
 #include "Bots/VeyraBotWanderComponent.h"
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
@@ -461,6 +462,13 @@ EVeyraOrderRejection AVeyraGameMode::HandleRecallOrder(AVeyraPlayerController& P
 	if (Statuses && EnumHasAnyFlags(Statuses->GetActionBlocks(), EVeyraActionBlocks::Cast))
 	{
 		return EVeyraOrderRejection::CrowdControlled;
+	}
+	// Nor while another cast holds the Vanguard, in its windup, channel or recovery: that cast would
+	// go on beside the channel.
+	const UVeyraCastStateComponent* CastState = PlayerState->FindComponentByClass<UVeyraCastStateComponent>();
+	if (CastState && CastState->IsBusy())
+	{
+		return EVeyraOrderRejection::Casting;
 	}
 	if (Recall->IsRecalling())
 	{
@@ -937,6 +945,8 @@ void AVeyraGameMode::Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState)
 	{
 		return;
 	}
+	// What it bought while dead takes effect now (ADR-012 §9).
+	UVeyraShopSubsystem::ApplyItems(*PlayerState);
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s respawns."), *PlayerState->GetPlayerName());
 	SpawnVanguard(*PlayerState);
 }

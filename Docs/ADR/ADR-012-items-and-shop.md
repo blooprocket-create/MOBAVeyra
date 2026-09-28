@@ -57,7 +57,7 @@ Match's fountain check tracks each participant entering and leaving their own fo
 
 ### 8. Recall is a Match order
 
-A channel on a world-time timer (`Match.json` `recall`), interrupted by a new move, attack or cast order (item Actives included), by hostile damage (Combat's hostile-damage event), by an interruption (a Stun or a displacement, Combat §9) or by death; on completion the living Vanguard is moved to its side's start. It is refused while dead, paused or ended, and under crowd control that stops casting. A channel sits in `UVeyraRecallComponent` on the PlayerState, which replicates its start and end for the HUD and watches Combat's events itself while it runs; the game mode starts it, ends it on each order the Vanguard takes, and moves the Vanguard home.
+A channel on a world-time timer (`Match.json` `recall`), interrupted by a new move, attack or cast order (item Actives included), by hostile damage (Combat's hostile-damage event), by an interruption (a Stun or a displacement, Combat §9) or by death; on completion the living Vanguard is moved to its side's start. It is refused while dead, paused or ended, under crowd control that stops casting, and while another cast holds the Vanguard (its windup, channel or recovery), as a cast is. A channel sits in `UVeyraRecallComponent` on the PlayerState, which replicates its start and end for the HUD and watches Combat's events itself while it runs; the game mode starts it, ends it on each order the Vanguard takes, and moves the Vanguard home.
 
 ### 9. League answers where canon is silent (for the author to overturn)
 

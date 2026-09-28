@@ -239,7 +239,8 @@ void AVeyraPlayerController::ServerIssueCastOrder_Implementation(EVeyraAbilitySl
 	const EVeyraItemUse Use = PlayerState && ItemIndex != INDEX_NONE ? UVeyraShopSubsystem::GetUse(*PlayerState, ItemIndex) : EVeyraItemUse::None;
 	if (Use == EVeyraItemUse::Consumable)
 	{
-		RunShopRequest([ItemIndex](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.UseConsumable(Participant, ItemIndex); });
+		// This order has taken its allowance already.
+		ApplyShopRequest([ItemIndex](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.UseConsumable(Participant, ItemIndex); });
 		return;
 	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
@@ -411,6 +412,11 @@ void AVeyraPlayerController::RunShopRequest(TFunctionRef<EVeyraShopRefusal(UVeyr
 		RejectOrder(EVeyraOrderRejection::TooFrequent);
 		return;
 	}
+	ApplyShopRequest(Request);
+}
+
+void AVeyraPlayerController::ApplyShopRequest(TFunctionRef<EVeyraShopRefusal(UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request)
+{
 	const AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
 	UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>();
 	const bool bAllowed = GameMode && GameMode->CheckShopAllowed() == EVeyraOrderRejection::None;

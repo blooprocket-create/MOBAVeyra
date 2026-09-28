@@ -314,7 +314,9 @@ void UVeyraShopSubsystem::ApplyItems(AActor& Participant)
 {
 	const UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
 	UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Participant);
-	if (!Inventory || !AbilitySystem)
+	// The dead get nothing from their items, whatever they buy, sell or undo, until they respawn
+	// (ADR-012 §9): Match applies them then.
+	if (!Inventory || !AbilitySystem || !VeyraTargeting::IsAlive(&Participant))
 	{
 		return;
 	}

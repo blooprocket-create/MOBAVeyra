@@ -45,6 +45,8 @@ enum class EVeyraOrderRejection : uint8
 	CannotAttack,
 	/** Crowd control stops the Vanguard casting, such as a Stun, so it cannot begin a Recall (Combat Bible §8). */
 	CrowdControlled,
+	/** Another cast holds the Vanguard, in its windup, channel or recovery, so it cannot begin a Recall. */
+	Casting,
 };
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraOrderRejection Rejection);

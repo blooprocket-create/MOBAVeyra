@@ -278,9 +278,11 @@ namespace VeyraItemsTests
 
 		TEST_METHOD(TheDeadShopAsAtTheFountain)
 		{
+			const double Before = PhysicalPower();
 			Die();
 			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_grip"))) == EVeyraShopRefusal::None));
 			ASSERT_THAT(IsTrue(CountOf(TEXT("test_grip")) == 1, TEXT("assigned at the fountain (§10)")));
+			ASSERT_THAT(IsTrue(PhysicalPower() == Before, TEXT("and giving nothing until respawn (ADR-012 §9)")));
 			ASSERT_THAT(IsTrue(Subsystem->Sell(*Participant, 0) == EVeyraShopRefusal::None));
 		}
 	};

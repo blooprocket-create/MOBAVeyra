@@ -203,8 +203,11 @@ private:
 	UFUNCTION(Client, Unreliable)
 	void ClientShopRefused(EVeyraShopRefusal Refusal);
 
-	/** Server: runs a shop request if the match allows shopping now, and tells the client why it was refused. */
+	/** Server: runs a shop request if the order allowance and the match allow it, and tells the client why it was refused. */
 	void RunShopRequest(TFunctionRef<EVeyraShopRefusal(class UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request);
+
+	/** Server: RunShopRequest for an order that has taken its allowance already. */
+	void ApplyShopRequest(TFunctionRef<EVeyraShopRefusal(class UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestDeveloperExperience(int32 Amount);
