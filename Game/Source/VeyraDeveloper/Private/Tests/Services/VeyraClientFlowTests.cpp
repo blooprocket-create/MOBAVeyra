@@ -401,14 +401,20 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Flow->AcceptMatch()));
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200, MatchFoundBody(TEXT("pending"), TEXT("accepted"), 1))));
 
-			// The other player declines. Nobody learns who; the player who accepted is queued again, keeping their place.
+			// The other player declines. Nobody learns who; the party read says the player who accepted is
+			// queued again, keeping their place.
 			Advance(0.5);
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, NoMatchFound)));
 			ASSERT_THAT(IsTrue(ResumeToShell()));
-			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("match_found_abandoned"))));
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("queued"), true, 12.0))));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("match_found_requeued"))));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Flow->GetQueuedSeconds(), 12.0)));
 			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::CancelQueue)));
+
+			// Only that first read explains it: queueing again later changes no notice.
+			ASSERT_THAT(IsTrue(Flow->CancelQueue()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("DELETE"), TEXT("/v1/party/queue"), 200, PartyBody(TEXT("idle"), false))));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("match_found_requeued"))));
 		}
 
 		TEST_METHOD(MatchFoundMissedLeavesTheQueue)
@@ -422,7 +428,19 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Flow->GetRemainingAcceptSeconds() == 0.0));
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, NoMatchFound)));
 			ASSERT_THAT(IsTrue(ResumeToShell()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("idle"), false))));
 			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("match_found_missed"))));
+		}
+
+		TEST_METHOD(MatchFoundDeclinedByAnotherBeforeAnAnswerRequeues)
+		{
+			// Another player declines before this one answers: not at fault, so queued again.
+			ASSERT_THAT(IsTrue(ReachMatchFound()));
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, NoMatchFound)));
+			ASSERT_THAT(IsTrue(ResumeToShell()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("queued"), true, 4.0))));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("match_found_requeued"))));
 		}
 
 		TEST_METHOD(LeavingACasualSelectDodges)

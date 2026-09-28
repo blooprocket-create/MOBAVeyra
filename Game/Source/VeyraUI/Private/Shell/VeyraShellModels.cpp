@@ -200,7 +200,11 @@ FText DescribeNotice(const FString& Notice)
 	}
 	if (Notice == TEXT("match_found_abandoned"))
 	{
-		return LOCTEXT("NoticeFoundAbandoned", "Another player did not accept the match.");
+		return LOCTEXT("NoticeFoundAbandoned", "Someone in your party did not accept the match. Your party left the queue.");
+	}
+	if (Notice == TEXT("match_found_requeued"))
+	{
+		return LOCTEXT("NoticeFoundRequeued", "Another player did not accept the match. You are back in the queue, in your place.");
 	}
 	return FText::Format(LOCTEXT("NoticeOther", "Notice: {0}"), FText::FromString(Notice));
 }

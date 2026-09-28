@@ -113,9 +113,11 @@ struct FVeyraClientSnapshot
 	/**
 	 * Why the player is here, as a code for the presentation: a cancelled select's reason, such as
 	 * "timed_out" or "left"; "you_left" for the player who left it; "connection_lost" or
-	 * "join_failed" after a match; or how a match found ended without its select, by the player's
-	 * own answer: "match_found_declined", "match_found_missed" (no answer in time) or
-	 * "match_found_abandoned" (they accepted; someone else did not). Empty for none.
+	 * "join_failed" after a match; or how a match found ended without its select:
+	 * "match_found_declined" (the player declined), "match_found_requeued" (someone else did not
+	 * accept, and the party is queued again), or, when the party left the queue,
+	 * "match_found_missed" (the player gave no answer) or "match_found_abandoned" (the player
+	 * accepted; someone in their party did not). Empty for none.
 	 */
 	FString Notice;
 	/** The signed-in player's account. */

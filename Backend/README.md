@@ -180,8 +180,10 @@ The game receives its launch code on **standard input**, one line, never on the 
 2. reads that line and calls `POST /v1/game-sessions` with the code and its build version (`ProjectVersion` in `Game/Config/DefaultGame.ini`), keeping the game session token in memory;
 3. answers `veyra-handoff/1 signed-in`, or `veyra-handoff/1 failed <code>` if it could not sign in, and the launcher's work is done;
 4. finds where the player is, in this order (ADR-010 §2): a live match from `GET /v1/me/match` leads to **Reconnect-only**, which outranks everything; then a select in progress from `GET /v1/me/select` resumes; then a player without a starter (`GET /v1/me/profile`) chooses one; otherwise the shell;
-5. from the shell, starts practice (`POST /v1/practice`), polls the select, hovers and locks, polls `GET /v1/me/match` until the match is ready, and joins the server with its ticket;
-6. when the match ends, travels back to the front end and polls `GET /v1/me/matches/{id}` for the verified result.
+5. in the shell, reads `GET /v1/modes` and polls `GET /v1/party`. The player either starts practice (`POST /v1/practice`), or chooses a matchmade mode, readies up and queues (`PUT /v1/party/mode`, `PUT /v1/party/ready`, `POST` and `DELETE /v1/party/queue`);
+6. when the party is found, polls `GET /v1/me/match-found` until every player has answered (`POST /v1/me/match-found/accept` or `/decline`). If it goes ahead, champion select follows; otherwise the player is back in the shell, queued again or not;
+7. in champion select, polls the select, hovers and locks (a matchmade select may be left, `POST /v1/me/select/leave`), polls `GET /v1/me/match` until the match is ready, and joins the server with its ticket;
+8. when the match ends, travels back to the front end and polls `GET /v1/me/matches/{id}` for the verified result.
 
 A failure never quits the game: it shows with Retry where retrying can help. The client-state coordinator, `FVeyraClientFlow`, logs its progress as `VeyraClientFlow:` lines. The game does not use `-log`, which on Windows can replace the standard handles.
 
@@ -195,7 +197,7 @@ go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -bui
 
 A match created with `POST /v1/dev/matches` before the game starts waits behind Reconnect, as any live match does.
 
-`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result, through the same handshake (`Start-VeyraHandshakeClient` and `Step-VeyraHandshake` in `Game/Scripts/VeyraProject.psm1`); its clients press Reconnect with `-VeyraSmokeFlow=join`. `Smoke.ps1 -Flow Practice` plays the whole solo path instead: starter choice, practice, champion select, the match, End Custom Match and the verified result. With `-Launcher Cli` the launcher's headless twin signs in and starts the game.
+`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result, through the same handshake (`Start-VeyraHandshakeClient` and `Step-VeyraHandshake` in `Game/Scripts/VeyraProject.psm1`); its clients press Reconnect with `-VeyraSmokeFlow=join`. `Smoke.ps1 -Flow Practice` plays the whole solo path instead: starter choice, practice, champion select, the match, End Custom Match and the verified result. `Smoke.ps1 -Flow Casual` plays a matchmade 1v1 with two games at once: queue, Match Found, Casual Select, the match and the verified result. `-Flow CasualDecline` checks that a declined Match Found puts the decliner out of the queue and the other player back in it. With `-Launcher Cli` the launcher's headless twin signs in and starts each game.
 
 ## Configuration
 

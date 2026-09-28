@@ -326,7 +326,7 @@ void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot
 
 	// The team overview: each seat's name, Vanguard and selection status (UX-28, UX-35), with the enemy
 	// team apart when there is one.
-	UHorizontalBox* Teams = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	UVerticalBox* Teams = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	for (const bool bAllies : { true, false })
 	{
 		if (!bAllies && !Model.bTeams)

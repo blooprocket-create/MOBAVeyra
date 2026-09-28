@@ -178,6 +178,7 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
   - a decline or timeout removes the decliner's party from the queue with Ready reset;
   - accepters return to the queue.
 - **Other modes** show as not yet available.
+- **The client** reads the modes and polls the party while in the shell, since there is no push channel. A party that is found enters a Match Found state, which holds every other intent until the player answers. A matchmade select offers Leave, which cancels it for everyone as a dodge.
 
 ### 11. Provisional answers where canon is silent
 
@@ -188,6 +189,9 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
 5. **Reconnect-only** offers Reconnect, and says plainly that the server still refuses rejoining (ADR-007 open item). It waits there until the match ends, then shows results.
 6. **M6b, after a Match Found decline:** accepters keep their original queue time. A dodge is recorded, with no timed penalty, since Match Flow §2 defines no schedule.
 7. **M6b:** everyone is Not Ready once a match starts (UX-15).
+8. **M6b, a match found that did not go ahead** is explained by the player's own answer, then by their party. Either they declined, or someone else did not accept and they are queued again in their place, or their party left the queue. Nobody learns who declined.
+9. **M6b, a standard match has no victory condition yet.** Outside Shipping, the in-match menu offers End Match (Developer), behind a confirmation. Its result says a developer ended it, with no winner.
+10. **M6b, the grey box shows Match Found in place of the page**, not as an overlay above it. It blocks the same things, and the page returns as it was.
 
 ### 12. Values are data
 
@@ -198,7 +202,7 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
 | Practice bots (four enemies, one of each released Vanguard) and players per side (5) | backend configuration | provisional; 5 is canon's team size |
 | How a bot wanders: how often it picks a point (4 s), and how far from the middle (600 units) | `Match.json` `bots` | provisional |
 | Match Found accept duration (15 s); Casual Select pick duration (60 s); select presence timeout (10 s); the local 1v1 team size | backend configuration | provisional; canon gives no values, and its team size is 5 |
-| Select, results and reconnect polling; retries; how long to wait for results | `UVeyraServicesSettings` | operational |
+| Select, party, Match Found, results and reconnect polling; retries; how long to wait for results | `UVeyraServicesSettings` | operational |
 | Menu style and key; HUD colours | presentation settings | presentation |
 | Names, titles and descriptions of Vanguards, abilities and passives | `Game/Text/VeyraText.csv` | text, not tuning |
 | How long the launcher waits for the game to be ready, and for sign-in | launcher configuration | provisional |
@@ -254,6 +258,53 @@ Every configuration is parsed strictly: each field is required, and an unknown f
 - **UMG widgets build under `-nullrhi`**, so the screens are tested headless; `-Screenshot` checks how they look.
 - **The engine's HUD post-render event passes the debug canvas**, which is drawn above every widget, so the grey-box HUD showed through the menu. It now draws through an overlay actor the local HUD renders on its own canvas (`AVeyraHudOverlay`), under the widgets.
 
+## Implementation and evidence (M6b, 2026-09-27)
+
+**Backend.**
+- `matchmaking`: a loop that locks queued parties with `FOR UPDATE SKIP LOCKED` and groups them oldest first. It never splits a party, and keeps blocked players off each other's match. Match Found takes accepts, declines and timeouts. Each mode names its matchmaking, `casualSelect` or `notImplemented`.
+- `party`: the statuses idle, queued, found and selecting, and the time in the queue.
+- `selection`: Casual Select, with sides, unique locks, hovers private to the team, presence by polling, and Leave as a dodge. When a matchmade select ends, it settles the parties in the same transaction.
+- Migrations `0008_matchmaking` and `0009_casual_select`.
+- New routes: `GET /v1/me/match-found`, `POST /v1/me/match-found/accept` and `/decline`, and `POST /v1/me/select/leave`. The party gains `queuedSeconds`, and each mode its `matchmaking`.
+
+**Game.**
+- `VeyraServices`:
+  - the coordinator's shell reads the modes and polls the party;
+  - the new state `MatchFound`;
+  - the intents `SelectMode`, `SetReady`, `FindMatch`, `CancelQueue`, `AcceptMatch`, `DeclineMatch` and `LeaveSelect`;
+  - the transport gains `DELETE`;
+  - `PartyPollIntervalSeconds` and `MatchFoundPollIntervalSeconds` are new settings.
+- `VeyraUI`:
+  - mode cards;
+  - the party panel, with the queue's time and "Estimate unavailable" (UX-2);
+  - Match Found;
+  - champion select with both teams apart, picks another player locked, and Leave;
+  - End Match (Developer).
+- `VeyraDeveloper`: the scripted player's `casual`, `decline` and `requeue` scripts, and `opponent`, a sparring partner.
+
+**Scripts.**
+- `Smoke.ps1 -Flow Casual` and `-Flow CasualDecline` run two clients.
+- `Play.ps1 -Opponent` plays a matchmade 1v1 against the sparring partner; with `-Check`, it runs `-Flow Casual`.
+
+**Evidence.**
+- Unreal automation tests, among them:
+  - `Veyra.Services.MatchmakingApi.*`;
+  - `Veyra.Services.ClientFlow.{QueueCancel, MatchFound*, LeavingACasualSelectDodges, AnOpponentLeavingRequeues, APracticeSelectCannotBeLeft}`;
+  - `Veyra.UI.Shell.{MatchFoundModel, TeamSelectModel, PartyAndModeModels}`;
+  - `Veyra.UI.ShellScreens.{PlayQueuesTheParty, MatchFoundBlocksTheShell, ACasualSelectShowsTheTeamsAndOffersLeave}`;
+  - `Veyra.UI.MatchMenu.DeveloperEndVisibility`.
+- The Go tests pass with Postgres, among them concurrent matchmaking passes and the HTTP path from queue to select.
+- End to end, against the backend and the Linux server container, with `veyra-launch-cli` signing each client in:
+  - `Smoke.ps1 -Flow Casual`. Two clients choose Casual Select, ready up, find a match and accept it, then lock different Vanguards. One walks and ends the match from its menu. Both see the verified result (`developer_request`, no winner, both joined and connected at the end) and return to the shell. The backend removes the server. With `-Screenshot`, each new screen renders in a window.
+  - `Smoke.ps1 -Flow CasualDecline`. The second client declines once the first has accepted. The decliner is back in the shell and out of the queue. The first is queued again in its place, then leaves the queue. No match is created.
+  - `-Flow Practice` still passes.
+  - The sparring partner against a scripted player: it queued, accepted, locked a different Vanguard after the player locked, and queued again after the match.
+
+**Settled while implementing.**
+- **The backend reports only a Match Found that waits for answers**, so the client learns how one ended from where the player is afterwards: in its select, or in the shell. There, the first read of the party says whether they are queued again. A player who had not answered yet when someone else declined is queued again; they did not miss it.
+- **Party answers are numbered**, so a poll overtaken by an intent's answer is not shown.
+- **`Package.ps1` stages the client binary last built**, so a client change needs `Build.ps1 -Target VeyraClient` first.
+
 ## Amendments to earlier records
 
 - **ADR-004:** the coordinator is `FVeyraClientFlow` in VeyraServices. The front end is a generated map with absolute travel, and menus are UMG built in C++.
@@ -274,6 +325,8 @@ Every configuration is parsed strictly: each field is required, and an unknown f
 - Victory conditions and the winner.
 - Remembered launcher login, and install and patching.
 - A push channel instead of polling.
+- Presence while queued. A client that closes while its party is queued leaves the party queued until its next Match Found goes unanswered, which takes it out (Parties §3). Its opponent waits for that deadline.
+- The real Match Found overlay above the page, and a queue estimate (UX-2).
 
 ## Alternatives considered
 

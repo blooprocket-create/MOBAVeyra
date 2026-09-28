@@ -157,7 +157,8 @@ namespace VeyraShellTests
 			// How a match found ended reads by the player's own answer; nobody learns who declined.
 			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("match_found_declined")).ToString().Contains(TEXT("Your party left the queue"))));
 			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("match_found_missed")).ToString().Contains(TEXT("not accepted in time"))));
-			ASSERT_THAT(AreEqual(VeyraShellModels::DescribeNotice(TEXT("match_found_abandoned")).ToString(), FString(TEXT("Another player did not accept the match."))));
+			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("match_found_abandoned")).ToString().StartsWith(TEXT("Someone in your party did not accept"))));
+			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("match_found_requeued")).ToString().Contains(TEXT("You are back in the queue"))));
 		}
 
 		TEST_METHOD(PartyAndModeModels)

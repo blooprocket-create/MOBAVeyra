@@ -15,7 +15,7 @@ Install, patch, repair and the launcher's own signed updates arrive with ADR-005
 | `core/` | `veyra-launcher-core`: the configuration, the build manifest, the backend client and the launch handshake. All HTTP is here, in Rust over rustls, so the web view makes no requests. |
 | `app/` | `veyra-launcher`: the Tauri window, three commands over the core. `build.rs` draws the app icon into the git-ignored `app/icons/`, so no binary icon is committed. |
 | `ui/` | The window's static HTML, CSS and JavaScript. No Node toolchain and no bundler. |
-| `cli/` | `veyra-launch-cli`: the launcher without its window, for scripts (`Game/Scripts/Smoke.ps1 -Flow Practice -Launcher Cli`); and `veyra-fake-game`, a stand-in game that speaks the handshake, for tests. |
+| `cli/` | `veyra-launch-cli`: the launcher without its window, for scripts (`Game/Scripts/Smoke.ps1 -Flow Practice -Launcher Cli`, and the opponent of `Play.ps1 -Opponent`); and `veyra-fake-game`, a stand-in game that speaks the handshake, for tests. |
 | `config/local.json` | The configuration for a local backend. |
 
 ## Build, check and run

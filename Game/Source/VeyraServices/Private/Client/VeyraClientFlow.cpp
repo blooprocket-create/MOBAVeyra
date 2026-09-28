@@ -39,6 +39,13 @@ namespace
 	const TCHAR* const AcceptedAnswer = TEXT("accepted");
 	const TCHAR* const DeclinedAnswer = TEXT("declined");
 
+	// How a match found that did not go ahead is explained. Missed and abandoned are refined by the
+	// shell's first read of the party: a party back in the queue was not at fault.
+	const TCHAR* const DeclinedNotice = TEXT("match_found_declined");
+	const TCHAR* const MissedNotice = TEXT("match_found_missed");
+	const TCHAR* const AbandonedNotice = TEXT("match_found_abandoned");
+	const TCHAR* const RequeuedNotice = TEXT("match_found_requeued");
+
 	/** Whether the player leads the party. */
 	bool Leads(const FVeyraClientSnapshot& Snapshot)
 	{
@@ -568,6 +575,7 @@ bool FVeyraClientFlow::StartPractice()
 void FVeyraClientFlow::EnterShell(const FString& Notice)
 {
 	Enter(EVeyraClientState::Shell, Notice);
+	bExplainQueue = Notice == MissedNotice || Notice == AbandonedNotice;
 	Broadcast();
 	if (Snapshot.Modes.IsEmpty())
 	{
@@ -613,8 +621,22 @@ void FVeyraClientFlow::PollParty()
 			ShowBadAnswer(TEXT("the player's party"), Problem, [this] { PollParty(); });
 			return;
 		}
-		if (ApplyParty(Sequence, MoveTemp(Party)) && Snapshot.Party.IsSet()
-			&& (Snapshot.Party->Status == EPartyStatus::Found || Snapshot.Party->Status == EPartyStatus::Selecting))
+		if (!ApplyParty(Sequence, MoveTemp(Party)))
+		{
+			After(Config.PartyPollIntervalSeconds, [this] { PollParty(); });
+			return;
+		}
+		if (bExplainQueue)
+		{
+			bExplainQueue = false;
+			if (Snapshot.Party.IsSet() && Snapshot.Party->Status != EPartyStatus::Idle)
+			{
+				// Not at fault: matchmaking put the party back in the queue, keeping its place (§3).
+				Snapshot.Notice = RequeuedNotice;
+				Broadcast();
+			}
+		}
+		if (Snapshot.Party.IsSet() && (Snapshot.Party->Status == EPartyStatus::Found || Snapshot.Party->Status == EPartyStatus::Selecting))
 		{
 			FollowParty();
 			return;
@@ -827,12 +849,13 @@ void FVeyraClientFlow::ApplyMatchFound(const VeyraBackendProtocol::FMatchFound& 
 void FVeyraClientFlow::LeaveMatchFound()
 {
 	// An accepted match continues in its select. Otherwise, the notice says why the player is back
-	// in the shell by their own answer: nobody learns who else declined (Parties & Social Bible §3).
+	// in the shell, by their own answer and then their party: nobody learns who else declined
+	// (Parties & Social Bible §3).
 	const VeyraBackendProtocol::FMatchFound& Found = Snapshot.MatchFound;
 	FString Notice;
 	if (Found.State != AcceptedAnswer)
 	{
-		Notice = Found.You == DeclinedAnswer ? TEXT("match_found_declined") : Found.You == AcceptedAnswer ? TEXT("match_found_abandoned") : TEXT("match_found_missed");
+		Notice = Found.You == DeclinedAnswer ? DeclinedNotice : Found.You == AcceptedAnswer ? AbandonedNotice : MissedNotice;
 	}
 	Log(FString::Printf(TEXT("match found %s is over (%s)."), *Found.Id, Notice.IsEmpty() ? AcceptedAnswer : *Notice));
 	Resume(Notice);

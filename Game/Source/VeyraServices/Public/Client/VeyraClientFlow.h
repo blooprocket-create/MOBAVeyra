@@ -248,6 +248,8 @@ private:
 	/** Numbers party requests, so an answer overtaken by a later one is not shown. */
 	uint32 PartySequence = 0;
 	uint32 ShownPartySequence = 0;
+	/** The shell's next read of the party says whether a match found that did not go ahead left the party queued. */
+	bool bExplainQueue = false;
 	double MatchDeadline = 0.0;
 	double ResultDeadline = 0.0;
 	/** The player left their match because it ended, not because the connection failed. */
