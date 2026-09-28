@@ -66,9 +66,21 @@ void UVeyraShellScreen::NativeDestruct()
 void UVeyraShellScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	if (Countdown && Client && Shown == EVeyraShellScreen::ChampionSelect)
+	if (!Client)
+	{
+		return;
+	}
+	if (Countdown && Shown == EVeyraShellScreen::ChampionSelect)
 	{
 		Countdown->SetText(VeyraShellModels::FormatCountdown(Client->GetRemainingPickSeconds()));
+	}
+	else if (Countdown && Shown == EVeyraShellScreen::MatchFound)
+	{
+		Countdown->SetText(VeyraShellModels::FormatCountdown(Client->GetRemainingAcceptSeconds()));
+	}
+	if (QueueStatus && Shown == EVeyraShellScreen::Shell)
+	{
+		QueueStatus->SetText(VeyraShellModels::FormatQueueStatus(Client->GetQueuedSeconds()));
 	}
 }
 
@@ -93,6 +105,7 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	Content->ClearChildren();
 	Buttons.Reset();
 	Countdown = nullptr;
+	QueueStatus = nullptr;
 	Shown = VeyraShellModels::ScreenFor(Snapshot.State);
 	switch (Shown)
 	{
@@ -109,6 +122,9 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		break;
 	case EVeyraShellScreen::Shell:
 		BuildShell(Snapshot);
+		break;
+	case EVeyraShellScreen::MatchFound:
+		BuildMatchFound(Snapshot);
 		break;
 	case EVeyraShellScreen::ChampionSelect:
 		BuildChampionSelect(Snapshot);
@@ -176,14 +192,80 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	{
 		AddText(*Content, Notice, static_cast<uint8>(EVeyraShellText::Body));
 	}
+	BuildParty(Snapshot, *Content);
 	if (Page == EVeyraShellPage::Play)
 	{
-		BuildPlay(*Content);
+		BuildPlay(Snapshot, *Content);
 	}
 	else
 	{
 		BuildHome(Snapshot, *Content);
 	}
+}
+
+void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
+{
+	const FVeyraPartyModel Model = VeyraShellModels::DescribeParty(Snapshot, Client->CanIssue(EVeyraClientIntent::SetReady),
+		Client->CanIssue(EVeyraClientIntent::FindMatch), Client->CanIssue(EVeyraClientIntent::CancelQueue));
+	if (!Model.bShown)
+	{
+		return;
+	}
+	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+	UBorder* Panel = VeyraShellStyle::MakeBorder(*WidgetTree, Style.PanelColor, Style.Spacing);
+	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Panel->SetContent(Rows);
+	AddText(*Rows, LOCTEXT("PartyTitle", "Party"), static_cast<uint8>(EVeyraShellText::Heading));
+	AddText(*Rows, Model.Mode, static_cast<uint8>(EVeyraShellText::Body));
+	for (const FText& Member : Model.Members)
+	{
+		AddText(*Rows, Member, static_cast<uint8>(EVeyraShellText::Body));
+	}
+	if (Model.bQueued)
+	{
+		QueueStatus = AddText(*Rows, VeyraShellModels::FormatQueueStatus(Client->GetQueuedSeconds()), static_cast<uint8>(EVeyraShellText::Heading));
+	}
+	else if (!Model.Status.IsEmpty())
+	{
+		AddText(*Rows, Model.Status, static_cast<uint8>(EVeyraShellText::Muted));
+	}
+
+	UHorizontalBox* Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	if (!Model.bQueued)
+	{
+		const bool bReady = Model.bReadyTarget;
+		AddButton(*Actions, Model.ReadyLabel, [this, bReady] { Client->SetReady(bReady); }, Model.bCanReady);
+	}
+	if (Model.bOffersFindMatch)
+	{
+		AddButton(*Actions, LOCTEXT("FindMatch", "Find Match"), [this] { Client->FindMatch(); }, Model.bCanFindMatch);
+	}
+	if (Model.bOffersCancel)
+	{
+		AddButton(*Actions, LOCTEXT("CancelQueue", "Cancel"), [this] { Client->CancelQueue(); }, Model.bCanCancel);
+	}
+	VeyraShellStyle::AddSpaced(*Rows, *Actions);
+	VeyraShellStyle::AddSpaced(Parent, *Panel);
+}
+
+void UVeyraShellScreen::BuildMatchFound(const FVeyraClientSnapshot& Snapshot)
+{
+	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+	const bool bCanAnswer = Client->CanIssue(EVeyraClientIntent::AcceptMatch);
+	const FVeyraMatchFoundModel Model = VeyraShellModels::DescribeMatchFound(Snapshot, Client->GetRemainingAcceptSeconds(), bCanAnswer);
+	UBorder* Panel = VeyraShellStyle::MakeBorder(*WidgetTree, Style.PanelColor, Style.ScreenPadding);
+	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Panel->SetContent(Rows);
+	AddText(*Rows, Model.Title, static_cast<uint8>(EVeyraShellText::Title));
+	AddText(*Rows, Model.Mode, static_cast<uint8>(EVeyraShellText::Heading));
+	Countdown = AddText(*Rows, Model.Countdown, static_cast<uint8>(EVeyraShellText::Countdown));
+	AddText(*Rows, Model.Progress, static_cast<uint8>(EVeyraShellText::Body));
+	AddText(*Rows, Model.Phase, static_cast<uint8>(EVeyraShellText::Muted));
+	UHorizontalBox* Answers = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	AddButton(*Answers, LOCTEXT("Accept", "Accept"), [this] { Client->AcceptMatch(); }, Model.bCanAnswer);
+	AddButton(*Answers, LOCTEXT("Decline", "Decline"), [this] { Client->DeclineMatch(); }, Model.bCanAnswer);
+	VeyraShellStyle::AddSpaced(*Rows, *Answers);
+	VeyraShellStyle::AddSpaced(*Content, *Panel);
 }
 
 void UVeyraShellScreen::BuildHome(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
@@ -193,11 +275,35 @@ void UVeyraShellScreen::BuildHome(const FVeyraClientSnapshot& Snapshot, UPanelWi
 	AddButton(Parent, LOCTEXT("HomePlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); });
 }
 
-void UVeyraShellScreen::BuildPlay(UPanelWidget& Parent)
+void UVeyraShellScreen::BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
 {
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 	AddText(Parent, LOCTEXT("PlayTitle", "Play"), static_cast<uint8>(EVeyraShellText::Title));
-	// A mode card: its name, what it is, its team format and whether it is available (UX-12).
+
+	// A mode card: its name, its team format and whether it is available (UX-12). Choosing one makes
+	// the player a party of one, or changes the mode of the party they lead (UX-6).
+	const bool bCanSelectMode = Client->CanIssue(EVeyraClientIntent::SelectMode);
+	UWrapBox* Modes = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass());
+	for (const FVeyraModeCardModel& ModeCard : VeyraShellModels::DescribeModes(Snapshot))
+	{
+		USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Size->SetWidthOverride(Style.CardWidth);
+		UBorder* Card = VeyraShellStyle::MakeBorder(*WidgetTree, Style.PanelColor, Style.Spacing);
+		UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		Card->SetContent(Rows);
+		Size->AddChild(Card);
+		const FString ModeId = ModeCard.ModeId;
+		AddButton(*Rows, ModeCard.Name, [this, ModeId] { Client->SelectMode(ModeId); }, bCanSelectMode && ModeCard.bAvailable, ModeCard.bSelected);
+		AddText(*Rows, ModeCard.Format, static_cast<uint8>(EVeyraShellText::Body));
+		if (!ModeCard.Availability.IsEmpty())
+		{
+			AddText(*Rows, ModeCard.Availability, static_cast<uint8>(EVeyraShellText::Muted));
+		}
+		VeyraShellStyle::AddSpaced(*Modes, *Size);
+	}
+	VeyraShellStyle::AddSpaced(Parent, *Modes);
+
+	// Custom practice is not a matchmade mode: it starts at once, with no party or queue (ADR-010 §7).
 	UBorder* Card = VeyraShellStyle::MakeBorder(*WidgetTree, Style.PanelColor, Style.Spacing);
 	UVerticalBox* Custom = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	Card->SetContent(Custom);
@@ -213,22 +319,40 @@ void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot
 {
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 	const FVeyraSelectModel Model = VeyraShellModels::DescribeSelect(Snapshot, Client->GetRemainingPickSeconds(),
-		Client->CanIssue(EVeyraClientIntent::HoverVanguard), Client->CanIssue(EVeyraClientIntent::LockVanguard));
+		Client->CanIssue(EVeyraClientIntent::HoverVanguard), Client->CanIssue(EVeyraClientIntent::LockVanguard), Client->CanIssue(EVeyraClientIntent::LeaveSelect));
 	AddText(*Content, Model.Title, static_cast<uint8>(EVeyraShellText::Title));
 	Countdown = AddText(*Content, Model.Countdown, static_cast<uint8>(EVeyraShellText::Countdown));
 	AddText(*Content, Model.Phase, static_cast<uint8>(EVeyraShellText::Body));
 
-	// The team overview: each seat's name, Vanguard and selection status (UX-28, UX-35).
-	UBorder* Team = VeyraShellStyle::MakeBorder(*WidgetTree, Style.PanelColor, Style.Spacing);
-	UVerticalBox* Seats = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	Team->SetContent(Seats);
-	for (const FVeyraSelectSeatModel& Seat : Model.Seats)
+	// The team overview: each seat's name, Vanguard and selection status (UX-28, UX-35), with the enemy
+	// team apart when there is one.
+	UVerticalBox* Teams = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	for (const bool bAllies : { true, false })
 	{
-		const FText Line = Seat.Vanguard.IsEmpty() ? FText::Format(LOCTEXT("SeatLine", "{0}: {1}"), Seat.Name, Seat.StatusText)
-												   : FText::Format(LOCTEXT("SeatLineVanguard", "{0}: {1}, {2}"), Seat.Name, Seat.Vanguard, Seat.StatusText);
-		AddText(*Seats, Line, static_cast<uint8>(Seat.bYou ? EVeyraShellText::Heading : EVeyraShellText::Body));
+		if (!bAllies && !Model.bTeams)
+		{
+			break;
+		}
+		UBorder* Team = VeyraShellStyle::MakeBorder(*WidgetTree, Style.PanelColor, Style.Spacing);
+		UVerticalBox* Seats = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		Team->SetContent(Seats);
+		if (Model.bTeams)
+		{
+			AddText(*Seats, bAllies ? LOCTEXT("YourTeam", "Your Team") : LOCTEXT("EnemyTeam", "Enemy Team"), static_cast<uint8>(EVeyraShellText::Heading));
+		}
+		for (const FVeyraSelectSeatModel& Seat : Model.Seats)
+		{
+			if (Seat.bAlly != bAllies)
+			{
+				continue;
+			}
+			const FText Line = Seat.Vanguard.IsEmpty() ? FText::Format(LOCTEXT("SeatLine", "{0}: {1}"), Seat.Name, Seat.StatusText)
+													   : FText::Format(LOCTEXT("SeatLineVanguard", "{0}: {1}, {2}"), Seat.Name, Seat.Vanguard, Seat.StatusText);
+			AddText(*Seats, Line, static_cast<uint8>(Seat.bYou ? EVeyraShellText::Heading : EVeyraShellText::Body));
+		}
+		VeyraShellStyle::AddSpaced(*Teams, *Team);
 	}
-	VeyraShellStyle::AddSpaced(*Content, *Team);
+	VeyraShellStyle::AddSpaced(*Content, *Teams);
 
 	UWrapBox* Roster = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass());
 	for (const FVeyraSelectCardModel& CardModel : Model.Cards)
@@ -237,12 +361,23 @@ void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot
 		Card->SetWidthOverride(Style.CardWidth);
 		Card->SetHeightOverride(Style.CardHeight);
 		const FString Id = CardModel.VanguardId;
-		Card->AddChild(AddButton(*Card, CardModel.Name, [this, Id] { Client->HoverVanguard(Id); }, Model.bCanChoose, CardModel.bChosen));
+		Card->AddChild(AddButton(*Card, CardModel.Name, [this, Id] { Client->HoverVanguard(Id); }, Model.bCanChoose && !CardModel.bTaken, CardModel.bChosen));
 		VeyraShellStyle::AddSpaced(*Roster, *Card);
 	}
 	VeyraShellStyle::AddSpaced(*Content, *Roster);
+	UHorizontalBox* Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	const FString LockInId = Model.LockInVanguardId;
-	AddButton(*Content, LOCTEXT("LockIn", "Lock In"), [this, LockInId] { Client->LockVanguard(LockInId); }, Model.bCanLockIn);
+	AddButton(*Actions, LOCTEXT("LockIn", "Lock In"), [this, LockInId] { Client->LockVanguard(LockInId); }, Model.bCanLockIn);
+	if (Model.bOffersLeave)
+	{
+		AddButton(*Actions, LOCTEXT("LeaveSelect", "Leave"), [this] { Client->LeaveSelect(); }, Model.bCanLeave);
+	}
+	VeyraShellStyle::AddSpaced(*Content, *Actions);
+	if (Model.bOffersLeave)
+	{
+		AddText(*Content, LOCTEXT("LeaveWarning", "Leaving ends champion select for everyone and takes your party out of the queue."),
+			static_cast<uint8>(EVeyraShellText::Muted));
+	}
 }
 
 void UVeyraShellScreen::BuildReconnectOnly(const FVeyraClientSnapshot& Snapshot)

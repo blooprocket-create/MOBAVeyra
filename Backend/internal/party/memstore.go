@@ -148,6 +148,22 @@ func (t memTx) DeleteInvitesBetween(a, b string) error {
 	return nil
 }
 
+func (t memTx) LockQueued(mode string) ([]Party, error) {
+	var out []Party
+	for _, p := range t.m.state.parties {
+		if p.Status == Queued && p.Mode == mode {
+			out = append(out, copyParty(p))
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if !out[i].QueuedAt.Equal(out[j].QueuedAt) {
+			return out[i].QueuedAt.Before(out[j].QueuedAt)
+		}
+		return out[i].ID < out[j].ID
+	})
+	return out, nil
+}
+
 func (t memTx) DeleteInvitesInto(partyID, invitee string) error {
 	for k, inv := range t.m.state.invites {
 		if inv.PartyID == partyID && inv.InviteeID == invitee {

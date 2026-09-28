@@ -53,6 +53,11 @@ void FVeyraBackendClient::Put(const FString& Path, const FString& Credential, co
 	Send(TEXT("PUT"), Path, Credential, &Body, MoveTemp(OnDone));
 }
 
+void FVeyraBackendClient::Delete(const FString& Path, const FString& Credential, FVeyraBackendCallback OnDone)
+{
+	Send(TEXT("DELETE"), Path, Credential, nullptr, MoveTemp(OnDone));
+}
+
 void FVeyraBackendClient::Send(const TCHAR* Verb, const FString& Path, const FString& Credential, const FString* Body, FVeyraBackendCallback OnDone) const
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();

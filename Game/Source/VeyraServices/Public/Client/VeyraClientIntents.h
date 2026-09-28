@@ -25,10 +25,23 @@ public:
 	/** Seconds left on the select's pick timer, by the backend's clock as last read. */
 	virtual double GetRemainingPickSeconds() const = 0;
 
+	/** Seconds the party has been in matchmaking, by the backend's clock as last read; 0 when it is not. */
+	virtual double GetQueuedSeconds() const = 0;
+
+	/** Seconds left to accept a match found, by the backend's clock as last read. */
+	virtual double GetRemainingAcceptSeconds() const = 0;
+
 	virtual bool ChooseStarter(const FString& VanguardId) = 0;
 	virtual bool StartPractice() = 0;
+	virtual bool SelectMode(const FString& ModeId) = 0;
+	virtual bool SetReady(bool bReady) = 0;
+	virtual bool FindMatch() = 0;
+	virtual bool CancelQueue() = 0;
+	virtual bool AcceptMatch() = 0;
+	virtual bool DeclineMatch() = 0;
 	virtual bool HoverVanguard(const FString& VanguardId) = 0;
 	virtual bool LockVanguard(const FString& VanguardId) = 0;
+	virtual bool LeaveSelect() = 0;
 	virtual bool Reconnect() = 0;
 	virtual bool ContinueFromResults() = 0;
 	virtual bool Retry() = 0;

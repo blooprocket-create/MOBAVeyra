@@ -20,11 +20,19 @@ namespace VeyraMatchMenuModel
 	 * (ADR-010 §4, §7). The server checks the same before it ends anything.
 	 */
 	VEYRAUI_API bool CanEndCustomMatch(EVeyraMatchRules Rules, const APlayerState* Host, const APlayerState* Self);
+
+	/**
+	 * Whether the menu offers End Match (Developer): a standard match has no victory condition yet,
+	 * so outside Shipping a developer may end it to reach its result (ADR-010). Shipping servers refuse
+	 * the request anyway.
+	 */
+	VEYRAUI_API bool OffersDeveloperEnd(EVeyraMatchRules Rules);
 }
 
 /**
- * The in-match menu (ADR-010 §4), built in C++: Resume, and for a practice match's host, End Custom
- * Match behind a confirmation. It asks the server through the player's controller and decides nothing.
+ * The in-match menu (ADR-010 §4), built in C++: Resume; for a practice match's host, End Custom Match
+ * behind a confirmation; and outside Shipping, End Match (Developer) for a standard match, behind the
+ * same confirmation. It asks the server through the player's controller and decides nothing.
  */
 UCLASS()
 class VEYRAUI_API UVeyraMatchMenu : public UUserWidget
@@ -48,10 +56,17 @@ private:
 	void Rebuild();
 	UVeyraShellButton* AddButton(const FText& Label, TFunction<void()> Action);
 
+	/** What waits for confirmation, if anything. */
+	enum class EConfirming : uint8
+	{
+		Nothing,
+		EndCustomMatch,
+		DeveloperEnd,
+	};
+
 	TWeakObjectPtr<AVeyraPlayerController> Controller;
 	TFunction<void()> Close;
-	/** Whether End Custom Match waits for its confirmation. */
-	bool bConfirming = false;
+	EConfirming Confirming = EConfirming::Nothing;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Content;

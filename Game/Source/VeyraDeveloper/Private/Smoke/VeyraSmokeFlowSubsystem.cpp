@@ -2,6 +2,7 @@
 
 #include "Smoke/VeyraSmokeFlowSubsystem.h"
 
+#include "Algo/Find.h"
 #include "Client/VeyraClientFlowSubsystem.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -28,24 +29,42 @@ DEFINE_LOG_CATEGORY_STATIC(LogVeyraSmokeFlow, Log, All);
 
 namespace
 {
+	using VeyraBackendProtocol::EPartyStatus;
+
 	const TCHAR* const FlowSwitch = TEXT("VeyraSmokeFlow=");
 	const TCHAR* const VanguardSwitch = TEXT("VeyraSmokeFlowVanguard=");
 	const TCHAR* const ScreenshotSwitch = TEXT("VeyraSmokeFlowScreenshots=");
-	// Harness settings, not gameplay: how long the whole practice script may take, how far the
-	// Vanguard must walk toward the lane centre before its host ends the match, how long to wait for a
-	// screenshot to be saved, and what the verified result of a practice its host ended must say
-	// (ADR-010 §7).
+	const TCHAR* const EndsMatchSwitch = TEXT("VeyraSmokeFlowEndsMatch");
+	// Harness settings, not gameplay: how long the whole script may take, how far the Vanguard must
+	// walk toward the lane centre before the match is ended, and how long to wait for a screenshot to
+	// be saved.
 	constexpr double FlowTimeoutRealSeconds = 300.0;
 	constexpr double MoveProofDistance = 100.0;
 	constexpr double ScreenshotHoldRealSeconds = 1.0;
-	const TCHAR* const ExpectedEndReason = TEXT("host_ended");
-	const TCHAR* const ExpectedRules = TEXT("practice");
+	// The sparring partner locks its pick once the other team has locked, or with this much of the
+	// pick timer left, so it never takes the Vanguard the person was about to lock.
+	constexpr double OpponentLockSeconds = 15.0;
+	// What the verified result must say: a practice its host ended (ADR-010 §7), or a standard match
+	// a developer ended.
+	const TCHAR* const PracticeEndReason = TEXT("host_ended");
+	const TCHAR* const PracticeRules = TEXT("practice");
+	const TCHAR* const DeveloperEndReason = TEXT("developer_request");
+	const TCHAR* const StandardRules = TEXT("standard");
+	// How the coordinator explains a match found that did not go ahead.
+	const TCHAR* const DeclinedNotice = TEXT("match_found_declined");
+	const TCHAR* const RequeuedNotice = TEXT("match_found_requeued");
 	// The labels of the buttons the script clicks, as the shell and the menu show them.
 	const TCHAR* const PlayLabel = TEXT("Play");
 	const TCHAR* const PracticeLabel = TEXT("Practice");
+	const TCHAR* const ReadyLabel = TEXT("Ready");
+	const TCHAR* const FindMatchLabel = TEXT("Find Match");
+	const TCHAR* const CancelQueueLabel = TEXT("Cancel");
+	const TCHAR* const AcceptLabel = TEXT("Accept");
+	const TCHAR* const DeclineLabel = TEXT("Decline");
 	const TCHAR* const LockInLabel = TEXT("Lock In");
 	const TCHAR* const ContinueLabel = TEXT("Continue");
 	const TCHAR* const EndCustomMatchLabel = TEXT("End Custom Match");
+	const TCHAR* const DeveloperEndLabel = TEXT("End Match (Developer)");
 }
 
 bool UVeyraSmokeFlowSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -61,14 +80,26 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	FParse::Value(FCommandLine::Get(), FlowSwitch, Mode);
 	FParse::Value(FCommandLine::Get(), VanguardSwitch, WantedVanguard);
 	FParse::Value(FCommandLine::Get(), ScreenshotSwitch, ScreenshotFolder);
-	bPractice = Mode.Equals(TEXT("practice"), ESearchCase::CaseSensitive);
+	bEndsMatch = FParse::Param(FCommandLine::Get(), EndsMatchSwitch);
 	StartRealTime = FPlatformTime::Seconds();
-	if (!bPractice && !Mode.Equals(TEXT("join"), ESearchCase::CaseSensitive))
+	const TPair<const TCHAR*, EScript> Scripts[] = {
+		{ TEXT("join"), EScript::Join },
+		{ TEXT("practice"), EScript::Practice },
+		{ TEXT("casual"), EScript::Casual },
+		{ TEXT("decline"), EScript::Decline },
+		{ TEXT("requeue"), EScript::Requeue },
+		{ TEXT("opponent"), EScript::Opponent },
+	};
+	const TPair<const TCHAR*, EScript>* Known = Algo::FindByPredicate(Scripts, [&Mode](const TPair<const TCHAR*, EScript>& Candidate) {
+		return Mode.Equals(Candidate.Key, ESearchCase::CaseSensitive);
+	});
+	if (!Known)
 	{
-		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes \"practice\" or \"join\", not \"%s\""), *Mode));
+		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue or opponent, not \"%s\""), *Mode));
 		return;
 	}
-	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: started the %s flow script."), *Mode);
+	Script = Known->Value;
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: started the %s flow script%s."), *Mode, bEndsMatch ? TEXT(", which ends the match") : TEXT(""));
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraSmokeFlowSubsystem::Tick));
 }
 
@@ -91,7 +122,7 @@ bool UVeyraSmokeFlowSubsystem::Tick(float /*DeltaSeconds*/)
 		return false;
 	}
 	IVeyraClientIntents& Flow = FlowHost->GetClient();
-	if (!bPractice)
+	if (Script == EScript::Join)
 	{
 		// A script created the match before the game started, so it waits behind Reconnect (UX-17).
 		if (Flow.CanIssue(EVeyraClientIntent::Reconnect))
@@ -102,6 +133,12 @@ bool UVeyraSmokeFlowSubsystem::Tick(float /*DeltaSeconds*/)
 		}
 		return true;
 	}
+	if (Script == EScript::Opponent)
+	{
+		// It spars until it is closed.
+		TickOpponent(Flow);
+		return true;
+	}
 	if (FPlatformTime::Seconds() - StartRealTime > FlowTimeoutRealSeconds)
 	{
 		Finish(false, FString::Printf(TEXT("timed out in %s"), LexToString(Flow.GetSnapshot().State)));
@@ -109,12 +146,12 @@ bool UVeyraSmokeFlowSubsystem::Tick(float /*DeltaSeconds*/)
 	}
 	if (FPlatformTime::Seconds() >= HoldUntil)
 	{
-		TickPractice(Flow);
+		TickScript(Flow);
 	}
 	return !bFinished;
 }
 
-void UVeyraSmokeFlowSubsystem::TickPractice(IVeyraClientIntents& Flow)
+void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 {
 	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
 	if (Snapshot.Problem.IsSet())
@@ -144,7 +181,11 @@ void UVeyraSmokeFlowSubsystem::TickPractice(IVeyraClientIntents& Flow)
 		break;
 
 	case EVeyraClientState::Shell:
-		if (bSawResults)
+		if (IsMatchmade())
+		{
+			TickMatchmadeShell(Flow);
+		}
+		else if (bSawResults)
 		{
 			Finish(true, FString::Printf(TEXT("clicked through the starter choice, Play and Practice, locked %s, ended the match from its menu as its host, ")
 										 TEXT("saw its verified result and returned to the shell"),
@@ -171,7 +212,16 @@ void UVeyraSmokeFlowSubsystem::TickPractice(IVeyraClientIntents& Flow)
 		}
 		break;
 
+	case EVeyraClientState::MatchFound:
+		TickMatchFound(Flow);
+		break;
+
 	case EVeyraClientState::Selecting:
+		if (Script == EScript::Decline || Script == EScript::Requeue)
+		{
+			Finish(false, TEXT("the match found went ahead, but this script expected a player to decline it"));
+			break;
+		}
 		if (Flow.CanIssue(EVeyraClientIntent::HoverVanguard))
 		{
 			const FString Pick = ChooseFrom(Snapshot.AvailableVanguards);
@@ -199,27 +249,281 @@ void UVeyraSmokeFlowSubsystem::TickPractice(IVeyraClientIntents& Flow)
 		break;
 
 	case EVeyraClientState::Results:
-		if (!bSawResults)
+		CheckResults(Snapshot);
+		break;
+
+	default:
+		break;
+	}
+}
+
+void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
+{
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	const TOptional<VeyraBackendProtocol::FParty>& Party = Snapshot.Party;
+	if (bSawResults)
+	{
+		Finish(true, FString::Printf(TEXT("queued, accepted the match found, locked %s, %s, saw its verified result and returned to the shell"), *LockedVanguard,
+			bEndsMatch ? TEXT("ended the match from its menu as a developer") : TEXT("waited for the match to end")));
+		return;
+	}
+
+	// A match found that did not go ahead. Its notice is final once the shell has read the party
+	// afresh, which says whether the party is queued again.
+	const bool bPartyRead = !Party.IsSet() || Party->Status == EPartyStatus::Idle || Party->Status == EPartyStatus::Queued;
+	if (bAnswered && !bPartyRead)
+	{
+		return;
+	}
+	if (Script == EScript::Decline && bAnswered)
+	{
+		if (Snapshot.Notice != DeclinedNotice)
 		{
-			const TOptional<VeyraBackendProtocol::FMatchOutcome>& Result = Snapshot.Result;
-			if (!Result.IsSet() || !Result->bHasResult)
+			Finish(false, FString::Printf(TEXT("after declining, the shell's notice is \"%s\""), *Snapshot.Notice));
+		}
+		else if (Party.IsSet() && Party->Status == EPartyStatus::Idle && !Capture(TEXT("Declined")))
+		{
+			Finish(true, TEXT("declined the match found once the other player accepted, and is back in the shell, out of the queue"));
+		}
+		return;
+	}
+	if (Script == EScript::Requeue && Snapshot.Notice == RequeuedNotice)
+	{
+		if (!bCancelledQueue)
+		{
+			if (Flow.CanIssue(EVeyraClientIntent::CancelQueue) && !Capture(TEXT("Requeued")) && Click(CancelQueueLabel))
 			{
-				Finish(false, FString::Printf(TEXT("match %s has no verified result"), *Snapshot.MatchId));
-				break;
+				bCancelledQueue = true;
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: back in the queue after the other player declined; leaving it."));
 			}
-			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the verified result of match %s: %s, %s rules, winner %s, %.1f s, as %s, %s, %s at the end."),
-				*Result->MatchId, *Result->EndReason, *Result->Rules, Result->Winner.IsEmpty() ? TEXT("none") : *Result->Winner, Result->DurationSeconds,
-				*Result->VanguardId, Result->bJoined ? TEXT("joined") : TEXT("never joined"), Result->bConnectedAtEnd ? TEXT("connected") : TEXT("disconnected"));
-			if (Result->EndReason != ExpectedEndReason || Result->Rules != ExpectedRules || !Result->Winner.IsEmpty() || Result->VanguardId != LockedVanguard
-				|| !Result->bJoined || !Result->bConnectedAtEnd || Result->MatchId != Snapshot.MatchId)
+		}
+		else if (Party.IsSet() && Party->Status == EPartyStatus::Idle)
+		{
+			Finish(true, TEXT("accepted the match found, was queued again in its place when the other player declined, and left the queue"));
+		}
+		return;
+	}
+	if (bAnswered && !Snapshot.Notice.IsEmpty())
+	{
+		Finish(false, FString::Printf(TEXT("the match did not go ahead (%s)"), *Snapshot.Notice));
+		return;
+	}
+
+	// Into the queue: the first matchmade mode, Ready, then Find Match (UX-6).
+	if (bFoundMatch)
+	{
+		if (Party.IsSet() && Party->Status == EPartyStatus::Queued)
+		{
+			Capture(TEXT("Queue"));
+		}
+		return;
+	}
+	if (Snapshot.Modes.IsEmpty())
+	{
+		return;
+	}
+	const VeyraBackendProtocol::FModeInfo* Mode =
+		Snapshot.Modes.FindByPredicate([](const VeyraBackendProtocol::FModeInfo& Candidate) { return Candidate.bEnabled && Candidate.bMatchmade; });
+	if (!Mode)
+	{
+		Finish(false, TEXT("the backend offers no matchmade mode"));
+		return;
+	}
+	if (ChosenMode.IsEmpty())
+	{
+		if (!bOpenedPlay)
+		{
+			if (!Capture(TEXT("Home")) && Click(PlayLabel))
 			{
-				Finish(false, TEXT("the verified result is not a host-ended practice, with no winner, of the locked Vanguard, joined and connected at the end"));
-				break;
+				bOpenedPlay = true;
 			}
-			if (!Capture(TEXT("Results")) && Click(ContinueLabel))
+		}
+		else if (Capture(TEXT("Play")))
+		{
+			// The Play page's screenshot comes first.
+		}
+		else if (Party.IsSet() && Party->Mode == Mode->Id)
+		{
+			// A party of an earlier run still has the mode.
+			ChosenMode = Mode->Id;
+		}
+		else if (Flow.CanIssue(EVeyraClientIntent::SelectMode) && Click(VanguardLabel(Mode->Id)))
+		{
+			ChosenMode = Mode->Id;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: chose %s."), *Mode->Id);
+		}
+		return;
+	}
+	if (!Party.IsSet() || Party->Mode != ChosenMode)
+	{
+		return;
+	}
+	if (Party->Status != EPartyStatus::Idle)
+	{
+		// Queued by an earlier run, or found already.
+		bFoundMatch = true;
+		return;
+	}
+	const VeyraBackendProtocol::FPartyMember* You = Party->Find(Snapshot.AccountId);
+	if (!You)
+	{
+		return;
+	}
+	if (!You->bReady)
+	{
+		if (!bReadied && Flow.CanIssue(EVeyraClientIntent::SetReady) && Click(ReadyLabel))
+		{
+			bReadied = true;
+		}
+		return;
+	}
+	if (Flow.CanIssue(EVeyraClientIntent::FindMatch) && !Capture(TEXT("Party")) && Click(FindMatchLabel))
+	{
+		bFoundMatch = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: Ready; finding a match."));
+	}
+}
+
+void UVeyraSmokeFlowSubsystem::TickMatchFound(IVeyraClientIntents& Flow)
+{
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	if (Script == EScript::Practice)
+	{
+		Finish(false, TEXT("a match was found for a player who only practises"));
+		return;
+	}
+	if (bAnswered || !Flow.CanIssue(EVeyraClientIntent::AcceptMatch))
+	{
+		return;
+	}
+	const bool bDecline = Script == EScript::Decline;
+	// The decline waits for everyone else to accept, so the others are queued again after accepting.
+	if (bDecline && Snapshot.MatchFound.Accepted < Snapshot.MatchFound.Total - 1)
+	{
+		return;
+	}
+	if (Capture(TEXT("MatchFound")))
+	{
+		return;
+	}
+	if (Click(bDecline ? DeclineLabel : AcceptLabel))
+	{
+		bAnswered = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s the match found with %.0f s left."), bDecline ? TEXT("declined") : TEXT("accepted"),
+			Flow.GetRemainingAcceptSeconds());
+	}
+}
+
+void UVeyraSmokeFlowSubsystem::TickOpponent(IVeyraClientIntents& Flow)
+{
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	// A sparring partner carries on: it retries what can be retried, and otherwise goes on playing, as
+	// after a pick another player took first.
+	if (Snapshot.Problem.IsSet() && Flow.CanIssue(EVeyraClientIntent::Retry))
+	{
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the opponent retries after %s."), *Snapshot.Problem->Code);
+		Flow.Retry();
+		return;
+	}
+	switch (Snapshot.State)
+	{
+	case EVeyraClientState::StarterChoice:
+		if (Flow.CanIssue(EVeyraClientIntent::ChooseStarter) && !Snapshot.Starters.IsEmpty())
+		{
+			Flow.ChooseStarter(Snapshot.Starters.Contains(WantedVanguard) ? WantedVanguard : Snapshot.Starters[0]);
+		}
+		break;
+
+	case EVeyraClientState::Shell:
+	{
+		const TOptional<VeyraBackendProtocol::FParty>& Party = Snapshot.Party;
+		const VeyraBackendProtocol::FModeInfo* Mode =
+			Snapshot.Modes.FindByPredicate([](const VeyraBackendProtocol::FModeInfo& Candidate) { return Candidate.bEnabled && Candidate.bMatchmade; });
+		if (!Mode)
+		{
+			break;
+		}
+		if (!Party.IsSet() || Party->Mode != Mode->Id)
+		{
+			if (Flow.CanIssue(EVeyraClientIntent::SelectMode))
 			{
-				bSawResults = true;
+				Flow.SelectMode(Mode->Id);
 			}
+			break;
+		}
+		const VeyraBackendProtocol::FPartyMember* You = Party->Find(Snapshot.AccountId);
+		if (Party->Status != EPartyStatus::Idle || !You)
+		{
+			break;
+		}
+		if (!You->bReady)
+		{
+			if (Flow.CanIssue(EVeyraClientIntent::SetReady))
+			{
+				Flow.SetReady(true);
+			}
+		}
+		else if (Flow.CanIssue(EVeyraClientIntent::FindMatch))
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the opponent queues for %s."), *Mode->Id);
+			Flow.FindMatch();
+		}
+		break;
+	}
+
+	case EVeyraClientState::MatchFound:
+		if (Flow.CanIssue(EVeyraClientIntent::AcceptMatch))
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the opponent accepts the match found."));
+			Flow.AcceptMatch();
+		}
+		break;
+
+	case EVeyraClientState::Selecting:
+	{
+		const VeyraBackendProtocol::FSelectSeat* You = Snapshot.Select.FindYou();
+		if (!You || !Flow.CanIssue(EVeyraClientIntent::LockVanguard))
+		{
+			break;
+		}
+		const TArray<VeyraBackendProtocol::FSelectSeat>& Seats = Snapshot.Select.Seats;
+		const bool bOthersLocked = Seats.ContainsByPredicate([You](const VeyraBackendProtocol::FSelectSeat& Seat) { return Seat.Side != You->Side && !Seat.Locked.IsEmpty(); });
+		if (!bOthersLocked && Flow.GetRemainingPickSeconds() > OpponentLockSeconds)
+		{
+			break;
+		}
+		const auto IsFree = [&Seats](const FString& Id) {
+			return !Seats.ContainsByPredicate([&Id](const VeyraBackendProtocol::FSelectSeat& Seat) { return Seat.Locked == Id; });
+		};
+		FString Pick = IsFree(WantedVanguard) && Snapshot.AvailableVanguards.Contains(WantedVanguard) ? WantedVanguard : FString();
+		for (const FString& Id : Snapshot.AvailableVanguards)
+		{
+			if (Pick.IsEmpty() && IsFree(Id))
+			{
+				Pick = Id;
+			}
+		}
+		if (Pick.IsEmpty())
+		{
+			break;
+		}
+		if (You->Hover != Pick)
+		{
+			Flow.HoverVanguard(Pick);
+		}
+		else
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the opponent locks in %s."), *Pick);
+			Flow.LockVanguard(Pick);
+		}
+		break;
+	}
+
+	case EVeyraClientState::Results:
+		// It stands still in the match; afterwards it goes again.
+		if (Flow.CanIssue(EVeyraClientIntent::ContinueFromResults))
+		{
+			Flow.ContinueFromResults();
 		}
 		break;
 
@@ -230,6 +534,11 @@ void UVeyraSmokeFlowSubsystem::TickPractice(IVeyraClientIntents& Flow)
 
 void UVeyraSmokeFlowSubsystem::TickInMatch()
 {
+	// The practice host ends its match; of a standard match's players, the one told to.
+	if (Script == EScript::Casual && !bEndsMatch)
+	{
+		return;
+	}
 	const UWorld* World = GetGameInstance()->GetWorld();
 	AVeyraPlayerController* Controller = Cast<AVeyraPlayerController>(GetGameInstance()->GetFirstLocalPlayerController());
 	const AVeyraGameState* GameState = World ? World->GetGameState<AVeyraGameState>() : nullptr;
@@ -243,7 +552,7 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 		// Play a little: walk toward the lane centre.
 		bOrderedMove = true;
 		MoveStart = Vanguard->GetActorLocation();
-		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the practice match is live; walking toward the lane centre."));
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the match is live; walking toward the lane centre."));
 		Controller->IssueMoveOrder(FVector(0.0, MoveStart.Y, 0.0));
 		return;
 	}
@@ -265,7 +574,9 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 		return;
 	}
 #if WITH_VEYRA_UI
-	// The host ends the practice match from the in-match menu (ADR-010 §4, §7), behind its confirmation.
+	// The match is ended from the in-match menu (ADR-010 §4, §7), behind its confirmation: End Custom
+	// Match by a practice host, the developer end in a standard match.
+	const TCHAR* const EndLabel = Script == EScript::Practice ? EndCustomMatchLabel : DeveloperEndLabel;
 	UVeyraMatchMenuSubsystem* Menus = GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>();
 	if (!Menus)
 	{
@@ -288,10 +599,10 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 		}
 		return;
 	}
-	UVeyraShellButton* EndButton = Menus->GetMenu()->FindButton(FText::FromString(EndCustomMatchLabel));
+	UVeyraShellButton* EndButton = Menus->GetMenu()->FindButton(FText::FromString(EndLabel));
 	if (!EndButton || !EndButton->GetIsEnabled())
 	{
-		Finish(false, TEXT("the in-match menu offers the practice match's host no End Custom Match"));
+		Finish(false, FString::Printf(TEXT("the in-match menu offers no %s"), EndLabel));
 		return;
 	}
 	if (!bConfirmingEnd)
@@ -304,7 +615,7 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 	{
 		return;
 	}
-	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: confirmed End Custom Match."));
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: confirmed %s."), EndLabel);
 	bAskedToEnd = true;
 	EndButton->Press();
 #else
@@ -312,10 +623,41 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 #endif
 }
 
+void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot)
+{
+	if (bSawResults)
+	{
+		return;
+	}
+	const TOptional<VeyraBackendProtocol::FMatchOutcome>& Result = Snapshot.Result;
+	if (!Result.IsSet() || !Result->bHasResult)
+	{
+		Finish(false, FString::Printf(TEXT("match %s has no verified result"), *Snapshot.MatchId));
+		return;
+	}
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the verified result of match %s: %s, %s rules, winner %s, %.1f s, as %s, %s, %s at the end."),
+		*Result->MatchId, *Result->EndReason, *Result->Rules, Result->Winner.IsEmpty() ? TEXT("none") : *Result->Winner, Result->DurationSeconds,
+		*Result->VanguardId, Result->bJoined ? TEXT("joined") : TEXT("never joined"), Result->bConnectedAtEnd ? TEXT("connected") : TEXT("disconnected"));
+	const bool bPractice = Script == EScript::Practice;
+	const TCHAR* const ExpectedEndReason = bPractice ? PracticeEndReason : DeveloperEndReason;
+	const TCHAR* const ExpectedRules = bPractice ? PracticeRules : StandardRules;
+	if (Result->EndReason != ExpectedEndReason || Result->Rules != ExpectedRules || !Result->Winner.IsEmpty() || Result->VanguardId != LockedVanguard
+		|| !Result->bJoined || !Result->bConnectedAtEnd || Result->MatchId != Snapshot.MatchId)
+	{
+		Finish(false, FString::Printf(TEXT("the verified result is not a %s match ended by %s, with no winner, of the locked Vanguard, joined and connected at the end"),
+			ExpectedRules, ExpectedEndReason));
+		return;
+	}
+	if (!Capture(TEXT("Results")) && Click(ContinueLabel))
+	{
+		bSawResults = true;
+	}
+}
+
 FString UVeyraSmokeFlowSubsystem::VanguardLabel(const FString& VanguardId)
 {
 #if WITH_VEYRA_UI
-	// A Vanguard's button shows its name, not its content ID.
+	// A Vanguard's or a mode's button shows its name, not its content ID.
 	return VeyraShellModels::NameOf(VanguardId).ToString();
 #else
 	return VanguardId;

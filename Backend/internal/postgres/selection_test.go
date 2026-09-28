@@ -13,6 +13,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/catalog"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
 )
 
 // newSelectionFixture wires the account, match and selection services to
@@ -39,7 +40,7 @@ func newSelectionFixture(t *testing.T) (*selection.Service, *match.Service, stri
 		return out, nil
 	})
 	notQueued := selection.PartiesFunc(func(context.Context, string) (bool, error) { return false, nil })
-	svc := selection.NewService(f.store.Selection(), accounts, names, f.svc, notQueued, selection.Settings{
+	svc := selection.NewService(f.store.Selection(), accounts, names, f.svc, notQueued, social.NewService(f.store.Social()), selection.Settings{
 		Practice:        selection.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA, PickDuration: time.Minute},
 		StartingTimeout: time.Minute,
 	}, func() time.Time { return f.now }, slog.New(slog.NewTextHandler(io.Discard, nil)))

@@ -215,7 +215,7 @@ Vanguard code may compose Combat and Ability primitives. It must not fork or dup
 
 The trusted-services client (ADR-007 §12): the only module that talks to the backend.
 
-- the client-state coordinator (`Client/`, [ADR-010](Docs/ADR/ADR-010-play-flow.md) §2): `FVeyraClientFlow` is plain C++ that owns the game session, the client's state (signing in, starter choice, shell, champion select, match, results, Reconnect-only and the rest) and the player's intents, and reaches the backend and the engine only through injected interfaces. `UVeyraClientFlowSubsystem` hosts it in a client's GameInstance. The UI observes its snapshot and asks through `IVeyraClientIntents`; the coordinator and the backend decide;
+- the client-state coordinator (`Client/`, [ADR-010](Docs/ADR/ADR-010-play-flow.md) §2): `FVeyraClientFlow` is plain C++ that owns the game session, the client's state (signing in, starter choice, shell with the party and its queue, Match Found, champion select, match, results, Reconnect-only and the rest) and the player's intents, and reaches the backend and the engine only through injected interfaces. `UVeyraClientFlowSubsystem` hosts it in a client's GameInstance. The UI observes its snapshot and asks through `IVeyraClientIntents`; the coordinator and the backend decide;
 - the game's side of the session handoff: it reads the launch code from standard input once it has said it is ready (the launch handshake, `Contracts/LaunchHandshake.json`), and redeems it;
 - the front end (`FrontEnd/`, ADR-010 §3): `AVeyraShellGameMode`, the pawnless game mode of the generated `L_FrontEnd` map where the shell runs;
 - the match server's side: it reads the assignment from standard input, hands the roster to `VeyraMatch`, and reports ready and the result;
@@ -260,7 +260,7 @@ Non-shipping or development-facing utilities.
 
 Developer tooling may depend on production systems. Production systems must never require developer tooling.
 
-Its scripted players drive the game from the command line for `Game/Scripts/Smoke.ps1`: one plays a match's script, one plays a Vanguard's whole kit, and since M6 one plays the play flow by clicking the same shell and menu buttons a player would (`-Flow Practice`).
+Its scripted players drive the game from the command line for `Game/Scripts/Smoke.ps1`: one plays a match's script, one plays a Vanguard's whole kit, and since M6 one plays the play flow by clicking the same shell and menu buttons a player would. It plays practice alone (`-Flow Practice`), and a matchmade 1v1 in two games at once (`-Flow Casual`, `-Flow CasualDecline`). The same scripted player is also a sparring partner for a person playing the matchmade path (`Game/Scripts/Play.ps1 -Opponent`).
 
 ## 2. Dependency direction
 
@@ -300,7 +300,7 @@ This is a guide, not a license for arbitrary sideways dependencies. Prefer contr
 
 ### Backend (outside Unreal)
 
-The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity, social, party, the Vanguard catalog, accounts with onboarding and entitlements, champion select, and match allocation and results now; matchmaking later). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; only `VeyraServices` talks to it, over HTTP.
+The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity, social, party, matchmaking with Match Found, the Vanguard catalog, accounts with onboarding and entitlements, champion select, and match allocation and results). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; only `VeyraServices` talks to it, over HTTP.
 
 ### Launcher (outside Unreal)
 

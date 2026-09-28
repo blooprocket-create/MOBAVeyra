@@ -22,6 +22,15 @@ bool CanEndCustomMatch(EVeyraMatchRules Rules, const APlayerState* Host, const A
 {
 	return Rules == EVeyraMatchRules::Practice && Host && Host == Self;
 }
+
+bool OffersDeveloperEnd(EVeyraMatchRules Rules)
+{
+#if UE_BUILD_SHIPPING
+	return false;
+#else
+	return Rules == EVeyraMatchRules::Standard;
+#endif
+}
 }
 
 bool UVeyraMatchMenu::Initialize()
@@ -52,7 +61,7 @@ void UVeyraMatchMenu::Show(AVeyraPlayerController& InController, TFunction<void(
 {
 	Controller = &InController;
 	Close = MoveTemp(InClose);
-	bConfirming = false;
+	Confirming = EConfirming::Nothing;
 	Rebuild();
 }
 
@@ -67,16 +76,30 @@ void UVeyraMatchMenu::Rebuild()
 	AVeyraPlayerController* Owner = Controller.Get();
 	const AVeyraGameState* GameState = Owner && Owner->GetWorld() ? Owner->GetWorld()->GetGameState<AVeyraGameState>() : nullptr;
 	const bool bCanEnd = Owner && GameState && VeyraMatchMenuModel::CanEndCustomMatch(GameState->GetMatchRules(), GameState->GetHost(), Owner->PlayerState);
+	const bool bCanEndAsDeveloper = Owner && GameState && VeyraMatchMenuModel::OffersDeveloperEnd(GameState->GetMatchRules());
+	const FText EndCustomLabel = LOCTEXT("EndCustomMatch", "End Custom Match");
+	const FText DeveloperEndLabel = LOCTEXT("DeveloperEnd", "End Match (Developer)");
 
-	if (bConfirming && bCanEnd)
+	const bool bConfirmingCustom = Confirming == EConfirming::EndCustomMatch && bCanEnd;
+	const bool bConfirmingDeveloper = Confirming == EConfirming::DeveloperEnd && bCanEndAsDeveloper;
+	if (bConfirmingCustom || bConfirmingDeveloper)
 	{
-		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("ConfirmTitle", "End this practice match?"), VeyraShellStyle::EVeyraShellText::Heading));
-		VeyraShellStyle::AddSpaced(*Content,
-			*VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("ConfirmDetail", "It ends now, with no winner."), VeyraShellStyle::EVeyraShellText::Body));
-		AddButton(LOCTEXT("EndCustomMatch", "End Custom Match"), [this] {
+		const FText Title = bConfirmingCustom ? LOCTEXT("ConfirmTitle", "End this practice match?") : LOCTEXT("ConfirmDeveloperTitle", "End this match for everyone?");
+		const FText Detail = bConfirmingCustom ? LOCTEXT("ConfirmDetail", "It ends now, with no winner.")
+											   : LOCTEXT("ConfirmDeveloperDetail", "A development build's shortcut: it ends now, with no winner.");
+		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, Title, VeyraShellStyle::EVeyraShellText::Heading));
+		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, Detail, VeyraShellStyle::EVeyraShellText::Body));
+		AddButton(bConfirmingCustom ? EndCustomLabel : DeveloperEndLabel, [this, bConfirmingCustom] {
 			if (AVeyraPlayerController* Player = Controller.Get())
 			{
-				Player->RequestEndCustomMatch();
+				if (bConfirmingCustom)
+				{
+					Player->RequestEndCustomMatch();
+				}
+				else
+				{
+					Player->RequestDeveloperEndMatch();
+				}
 			}
 			if (Close)
 			{
@@ -84,7 +107,7 @@ void UVeyraMatchMenu::Rebuild()
 			}
 		});
 		AddButton(LOCTEXT("Cancel", "Cancel"), [this] {
-			bConfirming = false;
+			Confirming = EConfirming::Nothing;
 			Rebuild();
 		});
 		return;
@@ -99,8 +122,15 @@ void UVeyraMatchMenu::Rebuild()
 	});
 	if (bCanEnd)
 	{
-		AddButton(LOCTEXT("EndCustomMatch", "End Custom Match"), [this] {
-			bConfirming = true;
+		AddButton(EndCustomLabel, [this] {
+			Confirming = EConfirming::EndCustomMatch;
+			Rebuild();
+		});
+	}
+	if (bCanEndAsDeveloper)
+	{
+		AddButton(DeveloperEndLabel, [this] {
+			Confirming = EConfirming::DeveloperEnd;
 			Rebuild();
 		});
 	}

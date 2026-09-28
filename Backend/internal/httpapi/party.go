@@ -35,11 +35,15 @@ type memberJSON struct {
 }
 
 type partyJSON struct {
-	ID      string       `json:"id"`
-	Mode    string       `json:"mode"`
-	Privacy string       `json:"privacy"`
-	Status  string       `json:"status"`
-	Members []memberJSON `json:"members"`
+	ID      string `json:"id"`
+	Mode    string `json:"mode"`
+	Privacy string `json:"privacy"`
+	// Status is idle, queued, found (Match Found) or selecting.
+	Status string `json:"status"`
+	// QueuedSeconds is how long the party has been in matchmaking, by the
+	// server's clock; 0 while idle (UX-2: elapsed queue time).
+	QueuedSeconds float64      `json:"queuedSeconds"`
+	Members       []memberJSON `json:"members"`
 }
 
 type inviteJSON struct {
@@ -58,7 +62,7 @@ func (s *Server) partyJSON(ctx context.Context, p party.Party) (partyJSON, error
 	if err != nil {
 		return partyJSON{}, err
 	}
-	out := partyJSON{ID: p.ID, Mode: p.Mode, Privacy: string(p.Privacy), Status: string(p.Status)}
+	out := partyJSON{ID: p.ID, Mode: p.Mode, Privacy: string(p.Privacy), Status: string(p.Status), QueuedSeconds: s.Party.QueuedFor(p).Seconds()}
 	for _, m := range p.Members {
 		out.Members = append(out.Members, memberJSON{
 			AccountID:   m.AccountID,

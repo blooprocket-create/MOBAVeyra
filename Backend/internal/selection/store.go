@@ -17,7 +17,9 @@ type Tx interface {
 
 // Store persists champion selects.
 type Store interface {
-	InTx(ctx context.Context, fn func(Tx) error) error
+	// InTx runs fn in one transaction. The ctx passed to fn carries it, so the
+	// matchmaking calls a select makes with that ctx join it.
+	InTx(ctx context.Context, fn func(ctx context.Context, tx Tx) error) error
 	// ActiveFor returns the account's active select, or ErrSelectNotFound.
 	ActiveFor(ctx context.Context, accountID string) (Session, error)
 	// ByID returns a session, or ErrSelectNotFound.

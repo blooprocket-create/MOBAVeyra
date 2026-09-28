@@ -188,6 +188,144 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(IsFalse(VeyraBackendProtocol::IsContentId(TEXT("a__b"))));
 		}
 	};
+
+	const TCHAR* const PartyId = TEXT("44444444-5555-4666-8777-888888888888");
+	const TCHAR* const OtherAccountId = TEXT("66666666-7777-4888-8999-aaaaaaaaaaaa");
+	const TCHAR* const FoundId = TEXT("55555555-6666-4777-8888-999999999999");
+
+	FString Member(const TCHAR* Id, const TCHAR* Name, bool bReady, bool bLeader)
+	{
+		return FString::Printf(TEXT("{\"accountId\":\"%s\",\"displayName\":\"%s\",\"ready\":%s,\"leader\":%s}"), Id, Name, bReady ? TEXT("true") : TEXT("false"),
+			bLeader ? TEXT("true") : TEXT("false"));
+	}
+
+	FString Party(const TCHAR* Mode, const TCHAR* Status, const FString& Members, const TCHAR* QueuedSeconds = TEXT("0"))
+	{
+		return FString::Printf(TEXT("{\"party\":{\"id\":\"%s\",\"mode\":\"%s\",\"privacy\":\"private\",\"status\":\"%s\",\"queuedSeconds\":%s,\"members\":[%s]}}"), PartyId, Mode,
+			Status, QueuedSeconds, *Members);
+	}
+
+	FString Found(const TCHAR* State, const TCHAR* You, const TCHAR* Accepted, const TCHAR* Total, const TCHAR* SelectIdValue, const TCHAR* Reason)
+	{
+		return FString::Printf(TEXT("{\"matchFound\":{\"id\":\"%s\",\"mode\":\"casual_select\",\"state\":\"%s\",\"deadline\":\"2026-09-27T12:00:15Z\",")
+							   TEXT("\"remainingSeconds\":9.5,\"accepted\":%s,\"total\":%s,\"you\":\"%s\",\"selectId\":%s,\"abandonReason\":%s}}"),
+			FoundId, State, Accepted, Total, You, SelectIdValue, Reason);
+	}
+
+	// Veyra.Services.MatchmakingApi.*: reading the modes, the party and Match Found, which the
+	// client-state coordinator polls (ADR-010 §10; Parties & Social Bible §2–3). A problem never
+	// quotes the body.
+	TEST_CLASS(MatchmakingApi, "Veyra.Services")
+	{
+		TEST_METHOD(ReadsTheModes)
+		{
+			TArray<VeyraBackendProtocol::FModeInfo> Modes;
+			FString Problem;
+			const TCHAR* const Body = TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"},")
+									  TEXT("{\"id\":\"ranked\",\"enabled\":false,\"humanPlayersPerTeam\":5,\"matchmaking\":\"notImplemented\"}]}");
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseModes(Body, Modes, Problem), Problem));
+			ASSERT_THAT(AreEqual(Modes.Num(), 2));
+			ASSERT_THAT(AreEqual(Modes[0].Id, FString(TEXT("casual_select"))));
+			ASSERT_THAT(IsTrue(Modes[0].bEnabled && Modes[0].bMatchmade));
+			ASSERT_THAT(AreEqual(Modes[0].HumanPlayersPerTeam, 1));
+			ASSERT_THAT(IsFalse(Modes[1].bEnabled || Modes[1].bMatchmade));
+
+			for (const TCHAR* Bad : { TEXT("{}"), TEXT("{\"modes\":null}"),
+					 TEXT("{\"modes\":[{\"id\":\"Casual\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"}]}"),
+					 TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":true,\"humanPlayersPerTeam\":0,\"matchmaking\":\"casualSelect\"}]}"),
+					 TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":\"yes\",\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"}]}"),
+					 TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":true,\"humanPlayersPerTeam\":1}]}") })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseModes(Bad, Modes, Problem), Bad));
+				ASSERT_THAT(IsFalse(Problem.IsEmpty()));
+			}
+		}
+
+		TEST_METHOD(ReadsAParty)
+		{
+			TOptional<VeyraBackendProtocol::FParty> Read;
+			FString Problem;
+			const FString Members = Member(AccountId, TEXT("DevOne"), true, true) + TEXT(",") + Member(OtherAccountId, TEXT("DevTwo"), false, false);
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(Party(TEXT("casual_select"), TEXT("queued"), Members, TEXT("12.5")), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read.IsSet()));
+			ASSERT_THAT(AreEqual(Read->Id, FString(PartyId)));
+			ASSERT_THAT(IsTrue(Read->Status == VeyraBackendProtocol::EPartyStatus::Queued));
+			ASSERT_THAT(IsTrue(Read->QueuedSeconds == 12.5));
+			ASSERT_THAT(IsTrue(Read->Find(AccountId)->bLeader));
+			ASSERT_THAT(IsFalse(Read->Find(OtherAccountId)->bReady));
+			ASSERT_THAT(IsFalse(Read->AllReady()));
+
+			// A party made by an invitation has no mode until its leader chooses one.
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(Party(TEXT(""), TEXT("idle"), Member(AccountId, TEXT("DevOne"), false, true)), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read->Mode.IsEmpty()));
+			for (const TCHAR* Status : { TEXT("found"), TEXT("selecting") })
+			{
+				ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(Party(TEXT("casual_select"), Status, Member(AccountId, TEXT("DevOne"), true, true)), Read, Problem), Problem));
+			}
+			ASSERT_THAT(IsTrue(Read->Status == VeyraBackendProtocol::EPartyStatus::Selecting));
+
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(TEXT("{\"party\":null}"), Read, Problem), Problem));
+			ASSERT_THAT(IsFalse(Read.IsSet()));
+		}
+
+		TEST_METHOD(RefusesAPartyThatDoesNotFit)
+		{
+			const FString Leader = Member(AccountId, TEXT("DevOne"), true, true);
+			const TArray<FString> Bodies = {
+				TEXT("{}"),
+				Party(TEXT("casual_select"), TEXT("waiting"), Leader),
+				Party(TEXT("Casual Select"), TEXT("idle"), Leader),
+				Party(TEXT("casual_select"), TEXT("idle"), Member(AccountId, TEXT("DevOne"), true, false)),
+				Party(TEXT("casual_select"), TEXT("idle"), Leader + TEXT(",") + Member(OtherAccountId, TEXT("DevTwo"), true, true)),
+				Party(TEXT("casual_select"), TEXT("idle"), Member(TEXT("no"), TEXT("DevOne"), true, true)),
+				Party(TEXT("casual_select"), TEXT("queued"), Leader, TEXT("-1")),
+			};
+			for (const FString& Body : Bodies)
+			{
+				TOptional<VeyraBackendProtocol::FParty> Read;
+				FString Problem;
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseParty(Body, Read, Problem), Body));
+				ASSERT_THAT(IsFalse(Problem.IsEmpty()));
+			}
+		}
+
+		TEST_METHOD(ReadsAMatchFound)
+		{
+			TOptional<VeyraBackendProtocol::FMatchFound> Read;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseMatchFound(Found(TEXT("pending"), TEXT("accepted"), TEXT("1"), TEXT("2"), TEXT("null"), TEXT("null")), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read.IsSet()));
+			ASSERT_THAT(AreEqual(Read->Id, FString(FoundId)));
+			ASSERT_THAT(AreEqual(Read->You, FString(TEXT("accepted"))));
+			ASSERT_THAT(IsTrue(Read->Accepted == 1 && Read->Total == 2));
+			ASSERT_THAT(IsTrue(Read->RemainingSeconds == 9.5));
+
+			const FString Opened = FString::Printf(TEXT("\"%s\""), SelectId);
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseMatchFound(Found(TEXT("accepted"), TEXT("accepted"), TEXT("2"), TEXT("2"), *Opened, TEXT("null")), Read, Problem), Problem));
+			ASSERT_THAT(AreEqual(Read->SelectId, FString(SelectId)));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseMatchFound(Found(TEXT("abandoned"), TEXT("declined"), TEXT("0"), TEXT("2"), TEXT("null"), TEXT("\"declined\"")), Read, Problem), Problem));
+			ASSERT_THAT(AreEqual(Read->AbandonReason, FString(TEXT("declined"))));
+
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseMatchFound(TEXT("{\"matchFound\":null}"), Read, Problem), Problem));
+			ASSERT_THAT(IsFalse(Read.IsSet()));
+
+			for (const FString& Bad : { FString(TEXT("{}")), Found(TEXT("pending"), TEXT("pending"), TEXT("3"), TEXT("2"), TEXT("null"), TEXT("null")),
+					 Found(TEXT("pending"), TEXT("pending"), TEXT("0"), TEXT("0"), TEXT("null"), TEXT("null")),
+					 Found(TEXT("pending"), TEXT("Maybe!"), TEXT("0"), TEXT("2"), TEXT("null"), TEXT("null")),
+					 Found(TEXT("accepted"), TEXT("accepted"), TEXT("2"), TEXT("2"), TEXT("\"../select\""), TEXT("null")) })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseMatchFound(Bad, Read, Problem), Bad));
+				ASSERT_THAT(IsFalse(Problem.IsEmpty()));
+			}
+		}
+
+		TEST_METHOD(WritesPartyChoices)
+		{
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildModeBody(TEXT("casual_select")), FString(TEXT("{\"mode\":\"casual_select\"}"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildReadyBody(true), FString(TEXT("{\"ready\":true}"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildReadyBody(false), FString(TEXT("{\"ready\":false}"))));
+		}
+	};
 }
 
 #endif // WITH_AUTOMATION_WORKER

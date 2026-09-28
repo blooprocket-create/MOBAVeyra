@@ -23,6 +23,15 @@ namespace VeyraClientFlowTests
 		bool ReachShell() { return Rig.ReachShell(); }
 		bool ReachSelect() { return Rig.ReachSelect(); }
 		bool ReachMatch() { return Rig.ReachMatch(); }
+		bool ReachMatchFound() { return Rig.ReachMatchFound(); }
+
+		/** Answers the reads that find where the player is, when that is the shell. */
+		bool ResumeToShell()
+		{
+			return State() == EVeyraClientState::Loading && Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch)
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, ProfileBody(true))
+				&& State() == EVeyraClientState::Shell;
+		}
 
 		TEST_METHOD(Transitions)
 		{
@@ -30,8 +39,15 @@ namespace VeyraClientFlowTests
 			const TPair<EVeyraClientIntent, EVeyraClientState> Owners[] = {
 				{ EVeyraClientIntent::ChooseStarter, EVeyraClientState::StarterChoice },
 				{ EVeyraClientIntent::StartPractice, EVeyraClientState::Shell },
+				{ EVeyraClientIntent::SelectMode, EVeyraClientState::Shell },
+				{ EVeyraClientIntent::SetReady, EVeyraClientState::Shell },
+				{ EVeyraClientIntent::FindMatch, EVeyraClientState::Shell },
+				{ EVeyraClientIntent::CancelQueue, EVeyraClientState::Shell },
+				{ EVeyraClientIntent::AcceptMatch, EVeyraClientState::MatchFound },
+				{ EVeyraClientIntent::DeclineMatch, EVeyraClientState::MatchFound },
 				{ EVeyraClientIntent::HoverVanguard, EVeyraClientState::Selecting },
 				{ EVeyraClientIntent::LockVanguard, EVeyraClientState::Selecting },
+				{ EVeyraClientIntent::LeaveSelect, EVeyraClientState::Selecting },
 				{ EVeyraClientIntent::Reconnect, EVeyraClientState::ReconnectOnly },
 				{ EVeyraClientIntent::ContinueFromResults, EVeyraClientState::Results },
 			};
@@ -280,10 +296,182 @@ namespace VeyraClientFlowTests
 
 			ASSERT_THAT(IsTrue(Flow->Retry()));
 			ASSERT_THAT(IsFalse(Flow->GetSnapshot().Problem.IsSet()));
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch)));
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect)));
-			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, ProfileBody(true))));
+			ASSERT_THAT(IsTrue(ResumeToShell()));
+		}
+
+		TEST_METHOD(QueueCancel)
+		{
+			ASSERT_THAT(IsTrue(ReachShell()));
+			// The shell reads the modes and the party; until the modes arrive, none can be chosen.
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::SelectMode)));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/modes"), 200, ModesBody)));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Modes.Num(), 2));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, NoParty)));
+			ASSERT_THAT(IsFalse(Flow->GetSnapshot().Party.IsSet()));
+
+			// A mode without a matchmaker is not on offer; without a party nothing can be readied or queued.
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::SelectMode)));
+			ASSERT_THAT(IsFalse(Flow->SelectMode(UnmatchedMode)));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::SetReady)));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::FindMatch)));
+			ASSERT_THAT(IsTrue(Flow->SelectMode(CasualMode)));
+			ASSERT_THAT(AreEqual(Backend.Find(TEXT("PUT"), TEXT("/v1/party/mode"))->Body, FString(TEXT("{\"mode\":\"casual_select\"}"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/party/mode"), 200, PartyBody(TEXT("idle"), false))));
+			// Find Match waits until everyone is Ready (UX-6).
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::FindMatch)));
+
+			// A read of the party sent before Ready and answered after it is stale, and changes nothing.
+			Advance(1.0);
+			ASSERT_THAT(IsTrue(Flow->SetReady(true)));
+			ASSERT_THAT(AreEqual(Backend.Find(TEXT("PUT"), TEXT("/v1/party/ready"))->Body, FString(TEXT("{\"ready\":true}"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/party/ready"), 200, PartyBody(TEXT("idle"), true))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("idle"), false))));
+			ASSERT_THAT(IsTrue(Flow->GetSnapshot().Party->AllReady()));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::FindMatch)));
+
+			ASSERT_THAT(IsTrue(Flow->FindMatch()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/party/queue"), 200, PartyBody(TEXT("queued"), true))));
+			ASSERT_THAT(IsTrue(Flow->GetSnapshot().Party->Status == VeyraBackendProtocol::EPartyStatus::Queued));
+			// The queue time is the backend's, counted on between reads (UX-2).
+			Advance(1.0);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("queued"), true, 7.0))));
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Flow->GetQueuedSeconds(), 7.5)));
+
+			// A queued party cannot practise, change its mode or unready; its leader's Cancel takes it out.
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::StartPractice)));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::SelectMode)));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::SetReady)));
+			ASSERT_THAT(IsTrue(Flow->CancelQueue()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("DELETE"), TEXT("/v1/party/queue"), 200, PartyBody(TEXT("idle"), false))));
 			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Shell));
+			ASSERT_THAT(IsTrue(Flow->GetQueuedSeconds() == 0.0));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::StartPractice)));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::FindMatch)));
+		}
+
+		TEST_METHOD(MatchFoundAcceptedOpensTheSelect)
+		{
+			ASSERT_THAT(IsTrue(ReachMatchFound()));
+			// A match found holds everything else until it is answered (Parties & Social Bible §3).
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::CancelQueue)));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::StartPractice)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Flow->GetRemainingAcceptSeconds(), 15.0)));
+			ASSERT_THAT(IsTrue(Flow->AcceptMatch()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200,
+				MatchFoundBody(TEXT("pending"), TEXT("accepted"), 1, FString(), FString(), 14.0))));
+
+			// The answer is given once; the player waits for the others.
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::MatchFound));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::AcceptMatch)));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::DeclineMatch)));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().MatchFound.Accepted, 1));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Flow->GetRemainingAcceptSeconds(), 14.0)));
+
+			// The last acceptance opens the select. Only a match found that waits is reported, so the next read is empty.
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, NoMatchFound)));
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Loading));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch)));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, CasualSelectBody(TEXT("picking")))));
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Selecting));
+			ASSERT_THAT(IsTrue(Flow->GetSnapshot().Notice.IsEmpty()));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Select.Seats.Num(), 2));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::LeaveSelect)));
+		}
+
+		TEST_METHOD(MatchFoundDeclinedLeavesTheQueue)
+		{
+			ASSERT_THAT(IsTrue(ReachMatchFound()));
+			ASSERT_THAT(IsTrue(Flow->DeclineMatch()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/decline"), 200,
+				MatchFoundBody(TEXT("abandoned"), TEXT("declined"), 0, FString(), TEXT("declined"), 0.0))));
+			ASSERT_THAT(IsTrue(ResumeToShell()));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("match_found_declined"))));
+
+			// The decliner's party left the queue, Not Ready (§3).
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("idle"), false))));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::CancelQueue)));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::SetReady)));
+		}
+
+		TEST_METHOD(MatchFoundAbandonedByAnotherRequeues)
+		{
+			ASSERT_THAT(IsTrue(ReachMatchFound()));
+			ASSERT_THAT(IsTrue(Flow->AcceptMatch()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200, MatchFoundBody(TEXT("pending"), TEXT("accepted"), 1))));
+
+			// The other player declines. Nobody learns who; the party read says the player who accepted is
+			// queued again, keeping their place.
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, NoMatchFound)));
+			ASSERT_THAT(IsTrue(ResumeToShell()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("queued"), true, 12.0))));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("match_found_requeued"))));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Flow->GetQueuedSeconds(), 12.0)));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::CancelQueue)));
+
+			// Only that first read explains it: queueing again later changes no notice.
+			ASSERT_THAT(IsTrue(Flow->CancelQueue()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("DELETE"), TEXT("/v1/party/queue"), 200, PartyBody(TEXT("idle"), false))));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("match_found_requeued"))));
+		}
+
+		TEST_METHOD(MatchFoundMissedLeavesTheQueue)
+		{
+			ASSERT_THAT(IsTrue(ReachMatchFound()));
+			// The timer runs out without an answer.
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, MatchFoundBody(TEXT("pending"), TEXT("pending"), 1, FString(), FString(), 0.5))));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Flow->GetRemainingAcceptSeconds(), 0.5)));
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Flow->GetRemainingAcceptSeconds() == 0.0));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, NoMatchFound)));
+			ASSERT_THAT(IsTrue(ResumeToShell()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("idle"), false))));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("match_found_missed"))));
+		}
+
+		TEST_METHOD(MatchFoundDeclinedByAnotherBeforeAnAnswerRequeues)
+		{
+			// Another player declines before this one answers: not at fault, so queued again.
+			ASSERT_THAT(IsTrue(ReachMatchFound()));
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, NoMatchFound)));
+			ASSERT_THAT(IsTrue(ResumeToShell()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("queued"), true, 4.0))));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("match_found_requeued"))));
+		}
+
+		TEST_METHOD(LeavingACasualSelectDodges)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachCasualSelect()));
+			ASSERT_THAT(IsTrue(Flow->LeaveSelect()));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/select/leave"), 200, CasualSelectBody(TEXT("cancelled"), TEXT("left")))));
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Shell));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("you_left"))));
+			// The leaver's party left the queue, Not Ready (Match Flow Bible §2).
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("idle"), false))));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::StartPractice)));
+		}
+
+		TEST_METHOD(AnOpponentLeavingRequeues)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachCasualSelect()));
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect)));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), SelectPath(), 200, CasualSelectBody(TEXT("cancelled"), TEXT("left")))));
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Shell));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Notice, FString(TEXT("left"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("queued"), true, 20.0))));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::CancelQueue)));
+		}
+
+		TEST_METHOD(APracticeSelectCannotBeLeft)
+		{
+			ASSERT_THAT(IsTrue(ReachSelect()));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::LeaveSelect)));
+			ASSERT_THAT(IsFalse(Flow->LeaveSelect()));
 		}
 	};
 }

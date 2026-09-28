@@ -9,8 +9,8 @@ import (
 var testRules = Rules{
 	MaxSize: 5,
 	Modes: map[string]Mode{
-		"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5},
-		"tiny":   {ID: "tiny", Enabled: true, HumanPlayersPerTeam: 2},
+		"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5, Matchmade: true},
+		"tiny":   {ID: "tiny", Enabled: true, HumanPlayersPerTeam: 2, Matchmade: true},
 		"ranked": {ID: "ranked", Enabled: false, HumanPlayersPerTeam: 5},
 	},
 }
@@ -74,18 +74,18 @@ func TestModeChangeResetsReadyAndRejectsDisabledModes(t *testing.T) {
 
 func TestFindMatchRequiresLeaderModeReadyAndSize(t *testing.T) {
 	p := newParty("a", "b", "c")
-	mustErr(t, p.StartQueue("a", testRules), ErrNoMode)
+	mustErr(t, p.StartQueue("a", testRules, t0), ErrNoMode)
 	if err := p.SetMode("a", "tiny", testRules); err != nil {
 		t.Fatal(err)
 	}
-	mustErr(t, p.StartQueue("a", testRules), ErrTooManyForMode)
+	mustErr(t, p.StartQueue("a", testRules, t0), ErrTooManyForMode)
 	if err := p.SetMode("a", "casual", testRules); err != nil {
 		t.Fatal(err)
 	}
-	mustErr(t, p.StartQueue("a", testRules), ErrNotAllReady)
+	mustErr(t, p.StartQueue("a", testRules, t0), ErrNotAllReady)
 	readyAll(t, p)
-	mustErr(t, p.StartQueue("b", testRules), ErrNotLeader)
-	if err := p.StartQueue("a", testRules); err != nil {
+	mustErr(t, p.StartQueue("b", testRules, t0), ErrNotLeader)
+	if err := p.StartQueue("a", testRules, t0); err != nil {
 		t.Fatal(err)
 	}
 	if p.Status != Queued {
@@ -97,7 +97,7 @@ func TestQueueLocksComposition(t *testing.T) {
 	p := newParty("a", "b")
 	_ = p.SetMode("a", "casual", testRules)
 	readyAll(t, p)
-	if err := p.StartQueue("a", testRules); err != nil {
+	if err := p.StartQueue("a", testRules, t0); err != nil {
 		t.Fatal(err)
 	}
 	mustErr(t, p.Add("c", testRules, t0), ErrPartyLocked)
@@ -110,7 +110,7 @@ func TestDepartureDuringQueueCancelsAndResetsReady(t *testing.T) {
 	p := newParty("a", "b", "c")
 	_ = p.SetMode("a", "casual", testRules)
 	readyAll(t, p)
-	_ = p.StartQueue("a", testRules)
+	_ = p.StartQueue("a", testRules, t0)
 	if _, err := p.Remove("c"); err != nil {
 		t.Fatal(err)
 	}
@@ -160,11 +160,50 @@ func TestKickAndTransfer(t *testing.T) {
 	}
 }
 
+func TestMatchmakingMovesAQueuedPartyAndKeepsItsPlace(t *testing.T) {
+	p := newParty("a", "b")
+	_ = p.SetMode("a", "casual", testRules)
+	readyAll(t, p)
+	mustErr(t, p.MarkFound(), ErrNotInQueue)
+	if err := p.StartQueue("a", testRules, t0); err != nil || !p.QueuedAt.Equal(t0) {
+		t.Fatalf("queued at %v: %v", p.QueuedAt, err)
+	}
+	if err := p.MarkFound(); err != nil || p.Status != Found {
+		t.Fatalf("found: %v", err)
+	}
+	mustErr(t, p.Add("c", testRules, t0), ErrPartyLocked)
+	mustErr(t, p.SetReady("a", false), ErrPartyLocked)
+	if err := p.CancelQueue("a"); err != nil || p.Status != Found {
+		t.Fatal("the leader cannot cancel a match found; its players answer it")
+	}
+	// Returned to the queue, it keeps its place and its Ready.
+	if err := p.Requeue(); err != nil || p.Status != Queued || !p.QueuedAt.Equal(t0) || !p.Members[1].Ready {
+		t.Fatalf("requeued: %+v %v", p, err)
+	}
+	_ = p.MarkFound()
+	if err := p.MarkSelecting(); err != nil || p.Status != Selecting {
+		t.Fatalf("selecting: %v", err)
+	}
+	mustErr(t, p.MarkFound(), ErrNotInQueue)
+	// A departure during champion select takes the party out, Not Ready.
+	if _, err := p.Remove("b"); err != nil || p.Status != Idle || !p.QueuedAt.IsZero() || p.Members[0].Ready {
+		t.Fatalf("after a departure: %+v %v", p, err)
+	}
+}
+
+func TestOnlyAModeWithAMatchmakerQueues(t *testing.T) {
+	rules := Rules{MaxSize: 5, Modes: map[string]Mode{"coop": {ID: "coop", Enabled: true, HumanPlayersPerTeam: 5}}}
+	p := newParty("a")
+	_ = p.SetMode("a", "coop", rules)
+	readyAll(t, p)
+	mustErr(t, p.StartQueue("a", rules, t0), ErrModeUnavailable)
+}
+
 func TestLeaderCancelResetsReady(t *testing.T) {
 	p := newParty("a", "b")
 	_ = p.SetMode("a", "casual", testRules)
 	readyAll(t, p)
-	_ = p.StartQueue("a", testRules)
+	_ = p.StartQueue("a", testRules, t0)
 	mustErr(t, p.CancelQueue("b"), ErrNotLeader)
 	if err := p.CancelQueue("a"); err != nil {
 		t.Fatal(err)

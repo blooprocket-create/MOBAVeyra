@@ -23,8 +23,16 @@
 
     -ResetOnboarding <account> makes that development account new again, so it chooses a starter.
 
+    -Opponent plays the matchmade path instead of practice: a headless scripted opponent signs in
+    as the second development account (Backend/config/local.json, devLogin.accounts) through the
+    launcher's headless twin, and queues for the local 1v1 casual mode. Sign in as another account,
+    choose Casual Select in Play, Ready, Find Match and Accept. The opponent locks a Vanguard after
+    you and stands still in the match; Esc, End Match (Developer) ends it. After the results it
+    queues again, until the game closes, and then this script closes it too.
+
     -Check proves the same path without a window: Smoke.ps1 -Flow Practice -Launcher Cli, where the
-    launcher's headless twin signs in and a scripted client clicks through the flow.
+    launcher's headless twin signs in and a scripted client clicks through the flow. With -Opponent,
+    Smoke.ps1 -Flow Casual -Launcher Cli, two scripted clients through a whole matchmade match.
 
     -Direct skips the launcher and the backend, to try kits quickly. It starts a local match server on
     the grey-box map, waits until it is ready, and opens a game window that connects to it, playing
@@ -43,6 +51,8 @@
     Skips the launcher and the backend: a local match server and a window that joins it at once.
 .PARAMETER ResetOnboarding
     A development account to make new again before the launcher opens. Not with -Direct.
+.PARAMETER Opponent
+    Starts a scripted opponent for a matchmade 1v1 alongside the launcher. Not with -Direct.
 .PARAMETER Vanguard
     With -Direct: the Vanguard to play, from Game/Tuning/Vanguards.json.
 .PARAMETER Bots
@@ -60,6 +70,8 @@
 .EXAMPLE
     ./Game/Scripts/Play.ps1 -ResetOnboarding DevOne
 .EXAMPLE
+    ./Game/Scripts/Play.ps1 -Opponent
+.EXAMPLE
     ./Game/Scripts/Play.ps1 -Direct -Vanguard bryn -Bots 3
 #>
 [CmdletBinding()]
@@ -67,6 +79,8 @@ param(
     [switch]$Direct,
 
     [string]$ResetOnboarding,
+
+    [switch]$Opponent,
 
     [string]$Vanguard = 'cairn',
 
@@ -103,8 +117,8 @@ if (-not $Direct -and $directOnly) {
     Write-Host "Only -Direct takes -$($directOnly -join ', -'); the launcher's path chooses its Vanguard in champion select."
     exit $ExitInfrastructure
 }
-if ($Direct -and $ResetOnboarding) {
-    Write-Host '-ResetOnboarding applies to the launcher''s path, not with -Direct.'
+if ($Direct -and ($ResetOnboarding -or $Opponent)) {
+    Write-Host '-ResetOnboarding and -Opponent apply to the launcher''s path, not with -Direct.'
     exit $ExitInfrastructure
 }
 
@@ -162,9 +176,22 @@ if (-not $Direct) {
         exit $ExitInfrastructure
     }
 
+    # -Opponent: the second development account spars in the local 1v1 casual mode (ADR-010 §10).
+    $backendConfig = Get-Content -LiteralPath (Join-Path $repositoryDir 'Backend\config\local.json') -Raw | ConvertFrom-Json
+    $devAccounts = @($backendConfig.devLogin.accounts)
+    if ($Opponent) {
+        $casualMode = $backendConfig.modes | Where-Object { $_.enabled -and $_.matchmaking -eq 'casualSelect' } | Select-Object -First 1
+        if (-not $casualMode -or $casualMode.humanPlayersPerTeam -ne 1 -or $devAccounts.Count -lt 2) {
+            Write-Host '-Opponent needs an enabled casualSelect mode of one human player per team, and two development accounts, in Backend/config/local.json.'
+            exit $ExitInfrastructure
+        }
+        $opponentAccount = $devAccounts[1]
+    }
+
     if ($Check) {
-        Write-Host 'Checking the play flow without a window: Smoke.ps1 -Flow Practice -Launcher Cli.'
-        $smokeArguments = @{ Flow = 'Practice'; Launcher = 'Cli' }
+        $checkFlow = $(if ($Opponent) { 'Casual' } else { 'Practice' })
+        Write-Host "Checking the play flow without a window: Smoke.ps1 -Flow $checkFlow -Launcher Cli."
+        $smokeArguments = @{ Flow = $checkFlow; Launcher = 'Cli' }
         if ($EngineRoot) {
             $smokeArguments.EngineRoot = $EngineRoot
         }
@@ -199,30 +226,76 @@ if (-not $Direct) {
     $runConfigPath = Join-Path $logDir 'Launcher.json'
     $launcherConfig | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $runConfigPath -Encoding utf8NoBOM
 
+    $opponentProcess = $null
+    if ($Opponent) {
+        # The launcher's headless twin signs the opponent in and starts a headless game that plays it.
+        $launchCli = Join-Path $launcherDir 'target\release\veyra-launch-cli.exe'
+        if (-not (Test-Path -LiteralPath $launchCli -PathType Leaf)) {
+            Write-Host 'The launcher''s headless twin is not built and cargo was not found. Install Rust with rustup (stable, MSVC).'
+            exit $ExitInfrastructure
+        }
+        $opponentLogPath = Join-Path $logDir 'Opponent.log'
+        Write-Host "Starting your opponent: $opponentAccount, headless."
+        $said = @(& $launchCli '--config' $launcherConfigPath '--account' $opponentAccount '--' '-nullrhi' '-nosound' '-nosplash' '-unattended' "-ABSLOG=$opponentLogPath" '-VeyraSmokeFlow=opponent' 2>&1 | ForEach-Object { "$_" })
+        $said | Set-Content -LiteralPath (Join-Path $logDir 'OpponentLauncher.log') -Encoding utf8NoBOM
+        $signedIn = $said | Select-String -Pattern '^veyra-launch signed-in pid (\d+)$' | Select-Object -First 1
+        if ($LASTEXITCODE -eq 0 -and $signedIn) {
+            $opponentProcess = Get-Process -Id ([int]$signedIn.Matches[0].Groups[1].Value) -ErrorAction SilentlyContinue
+        }
+        if (-not $opponentProcess) {
+            $said | Select-String -Pattern '^veyra-launch: ' | Select-Object -Last 1 | ForEach-Object { Write-Host "  $($_.Line)" }
+            Write-Host "The opponent did not start. Its logs: $logDir"
+            exit $ExitInfrastructure
+        }
+    }
+
     Write-Host ''
     Write-Host 'The launcher is opening.'
-    Write-Host '  1. Choose a development account and press Play. The launcher closes once the game has signed in.'
-    Write-Host '  2. A new account chooses its starter Vanguard, once.'
-    Write-Host '  3. Play, Custom, Practice; then pick a Vanguard and Lock In before the countdown ends.'
-    Write-Host '  4. In the match: practice bots wander near the middle of the map as targets; they do not fight back.'
-    Write-Host '     The panel at the bottom left says what your passive and each ability do. Controls:'
-    Write-MatchControls -Indent '       '
-    Write-Host '       Esc                  the menu: Resume, or End Custom Match to leave'
-    Write-Host '  5. The results follow; Continue returns to the shell. Quit, or close the window, to finish.'
+    if ($Opponent) {
+        Write-Host "  1. Choose $($devAccounts[0]), not $opponentAccount (your opponent), and press Play. The launcher closes once the game has signed in."
+        Write-Host '  2. A new account chooses its starter Vanguard, once.'
+        Write-Host '  3. Play, then Casual Select; Ready, then Find Match. Your opponent is already queued: Accept the match found.'
+        Write-Host '  4. Champion select: pick a Vanguard and Lock In. Your opponent locks a different one after you.'
+        Write-Host '  5. In the match your opponent stands still as a target. Controls:'
+        Write-MatchControls -Indent '       '
+        Write-Host '       Esc                  the menu: Resume, or End Match (Developer) to end it for both'
+        Write-Host '  6. The results follow; Continue returns to the shell, where you can queue again. Quit, or close the window, to finish.'
+    }
+    else {
+        Write-Host '  1. Choose a development account and press Play. The launcher closes once the game has signed in.'
+        Write-Host '  2. A new account chooses its starter Vanguard, once.'
+        Write-Host '  3. Play, Custom, Practice; then pick a Vanguard and Lock In before the countdown ends.'
+        Write-Host '  4. In the match: practice bots wander near the middle of the map as targets; they do not fight back.'
+        Write-Host '     The panel at the bottom left says what your passive and each ability do. Controls:'
+        Write-MatchControls -Indent '       '
+        Write-Host '       Esc                  the menu: Resume, or End Custom Match to leave'
+        Write-Host '  5. The results follow; Continue returns to the shell. Quit, or close the window, to finish.'
+        Write-Host '  To play a matchmade 1v1 against a scripted opponent: Play.ps1 -Opponent.'
+    }
     Write-Host '  To skip the launcher and try a kit at once: Play.ps1 -Direct -Vanguard <id> -Bots <n>.'
     Write-Host ''
 
-    $launcherStarted = Get-Date
-    $launcherProcess = Start-Process -FilePath $launcherExecutable -ArgumentList @('--config', "`"$runConfigPath`"") -PassThru
-    $launcherProcess.WaitForExit()
-    $game = Get-Process -Name 'VeyraClient' -ErrorAction SilentlyContinue | Where-Object { $_.StartTime -ge $launcherStarted } | Select-Object -First 1
-    if (-not $game) {
-        Write-Host 'The launcher closed without starting the game.'
+    try {
+        $launcherStarted = Get-Date
+        $launcherProcess = Start-Process -FilePath $launcherExecutable -ArgumentList @('--config', "`"$runConfigPath`"") -PassThru
+        $launcherProcess.WaitForExit()
+        $game = Get-Process -Name 'VeyraClient' -ErrorAction SilentlyContinue |
+            Where-Object { $_.StartTime -ge $launcherStarted -and (-not $opponentProcess -or $_.Id -ne $opponentProcess.Id) } | Select-Object -First 1
+        if (-not $game) {
+            Write-Host 'The launcher closed without starting the game.'
+        }
+        else {
+            Write-Host 'The game is running. This script waits until it closes.'
+            $game.WaitForExit()
+            Write-Host "The game closed. Its log: $clientLogPath"
+        }
     }
-    else {
-        Write-Host 'The game is running. This script waits until it closes.'
-        $game.WaitForExit()
-        Write-Host "The game closed. Its log: $clientLogPath"
+    finally {
+        if ($opponentProcess -and -not $opponentProcess.HasExited) {
+            # Still queued, its party is taken out of matchmaking when its next match found goes unanswered.
+            $opponentProcess.Kill($true)
+            Write-Host "Closed your opponent. Its log: $opponentLogPath"
+        }
     }
     Write-Host 'The backend is still running, so a match you left can still report its result. To stop it: docker compose stop backend postgres'
     exit $ExitPlayed

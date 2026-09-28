@@ -22,8 +22,10 @@ enum class EVeyraClientState : uint8
 	Loading,
 	/** The one-time starter choice that stands in for the tutorial (ADR-010 §6). */
 	StarterChoice,
-	/** Home, Play and the mode choice. */
+	/** Home, Play and the mode choice, the party, and its queue. */
 	Shell,
+	/** Matchmaking found a match, and every player must accept it (Parties & Social Bible §3). */
+	MatchFound,
 	/** Champion select. */
 	Selecting,
 	/** The match exists and its server is starting. */
@@ -47,8 +49,20 @@ enum class EVeyraClientIntent : uint8
 {
 	ChooseStarter,
 	StartPractice,
+	/** Chooses the party's mode, making a party of one if the player has none. The leader's. */
+	SelectMode,
+	/** Readies up, or stops being Ready, for the party's mode. */
+	SetReady,
+	/** Queues the party. The leader's, once every member is Ready. */
+	FindMatch,
+	/** Takes the party out of the queue. The leader's. */
+	CancelQueue,
+	AcceptMatch,
+	DeclineMatch,
 	HoverVanguard,
 	LockVanguard,
+	/** Leaves a matchmade champion select, which cancels it for everyone (a dodge). */
+	LeaveSelect,
 	Reconnect,
 	ContinueFromResults,
 	/** Repeats the step whose problem is showing. */
@@ -98,13 +112,30 @@ struct FVeyraClientSnapshot
 	TOptional<FVeyraClientProblem> Problem;
 	/**
 	 * Why the player is here, as a code for the presentation: a cancelled select's reason, such as
-	 * "timed_out", or "connection_lost" or "join_failed" after a match. Empty for none.
+	 * "timed_out" or "left"; "you_left" for the player who left it; "connection_lost" or
+	 * "join_failed" after a match; or how a match found ended without its select:
+	 * "match_found_declined" (the player declined), "match_found_requeued" (not through the
+	 * player's party, and it is queued again), or, when the party left the queue,
+	 * "match_found_missed" (the player gave no answer) or "match_found_abandoned" (the player
+	 * accepted; someone in their party did not). Empty for none.
 	 */
 	FString Notice;
+	/** The signed-in player's account. */
+	FString AccountId;
 	/** SignInFailed: what the launcher was told. */
 	TOptional<VeyraLaunchHandshake::EFailure> SignInFailure;
 	/** StarterChoice: the starters, in the catalog's order. */
 	TArray<FString> Starters;
+	/** Shell: the modes the Play screen offers, in the backend's order; empty until read. */
+	TArray<VeyraBackendProtocol::FModeInfo> Modes;
+	/** Shell and MatchFound: the player's party as last read; unset while they have none, or before it is read. */
+	TOptional<VeyraBackendProtocol::FParty> Party;
+	/** While the party is in matchmaking: when it entered, on the flow host's clock. */
+	double QueuedSince = 0.0;
+	/** MatchFound: the match found as last read. */
+	VeyraBackendProtocol::FMatchFound MatchFound;
+	/** MatchFound: when the acceptance timer ends, on the flow host's clock. */
+	double AcceptEndsAt = 0.0;
 	/** Selecting: the Vanguards the player may pick, in the catalog's order; empty until read. */
 	TArray<FString> AvailableVanguards;
 	/** Selecting: the select as last read. */

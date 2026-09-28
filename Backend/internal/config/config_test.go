@@ -20,12 +20,15 @@ const validJSON = `{
   "devLogin": {"enabled": true, "accounts": ["DevOne", "DevTwo"]},
   "party": {"maxSize": 5, "inviteLifetime": "2m", "defaultPrivacy": "private"},
   "modes": [
-    {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 5},
-    {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5}
+    {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "casualSelect"},
+    {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
   ],
   "vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},
   "customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A", "pickDuration": "30s", "playersPerSide": 5,
     "bots": [{"side": "B", "vanguardId": "cairn"}, {"side": "B", "vanguardId": "bryn"}]},
+  "matchmaking": {"interval": "1s", "searchLimit": 10000},
+  "matchFound": {"acceptDuration": "15s"},
+  "casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},
   "selection": {"tickInterval": "1s", "startingTimeout": "60s"},
   "matches": {"devCreate": {"enabled": true}, "readyTimeout": "120s", "maxDuration": "4h", "reapInterval": "5s", "removeServerAfter": "2m"},
   "allocator": {"kind": "docker", "docker": {
@@ -53,6 +56,9 @@ func TestParseValid(t *testing.T) {
 	if p := c.CustomPractice; p.PlayersPerSide != 5 || len(p.Bots) != 2 || p.Bots[1] != (PracticeBot{Side: "B", VanguardID: "bryn"}) {
 		t.Fatalf("practice bots not parsed: %+v", p)
 	}
+	if c.Matchmaking.Interval != time.Second || c.Matchmaking.SearchLimit != 10000 {
+		t.Fatalf("matchmaking not parsed: %+v", c.Matchmaking)
+	}
 	d := c.Allocator.Docker
 	if c.Allocator.Kind != AllocatorDocker || d == nil || d.HostPortMin != 7780 || d.HostPortMax != 7789 || len(d.ServerArgs) != 2 || d.BackendURL != "http://backend:8080" {
 		t.Fatalf("allocator not parsed: %+v %+v", c.Allocator, d)
@@ -76,26 +82,36 @@ func TestParseRejects(t *testing.T) {
 	cases := map[string]struct {
 		from, to, want string
 	}{
-		"unknown field":           {`"listenAddress"`, `"listenAddres"`, "unknown field"},
-		"missing lifetime":        {`"launchCodes": {"lifetime": "20s"}`, `"launchCodes": {}`, "launchCodes.lifetime is required"},
-		"launch code too long":    {`"lifetime": "20s"`, `"lifetime": "5m"`, "must not exceed"},
-		"negative session":        {`"gameLifetime": "24h"`, `"gameLifetime": "-1h"`, "must be positive"},
-		"dev login outside local": {`"environment": "local"`, `"environment": "staging"`, "only allowed when environment"},
-		"duplicate dev account":   {`["DevOne", "DevTwo"]`, `["DevOne", "DevOne"]`, "duplicate"},
-		"no dev accounts":         {`["DevOne", "DevTwo"]`, `[]`, "at least one account"},
-		"party size zero":         {`"maxSize": 5`, `"maxSize": 0`, "party.maxSize must be between 1 and 5"},
-		"party size six":          {`"maxSize": 5`, `"maxSize": 6`, "party.maxSize must be between 1 and 5"},
-		"bad privacy":             {`"defaultPrivacy": "private"`, `"defaultPrivacy": "open"`, "party.defaultPrivacy must be"},
-		"duplicate mode":          {`"id": "ranked"`, `"id": "casual_select"`, "duplicate id casual_select"},
-		"mode missing team size":  {`"enabled": false, "humanPlayersPerTeam": 5`, `"enabled": false`, "humanPlayersPerTeam is required"},
-		"no vanguards":            {`"vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},`, ``, "vanguards is required"},
-		"nothing released":        {`"released": ["cairn", "qazharr", "oriel", "bryn"]`, `"released": []`, "vanguards.released is required"},
-		"bad released id":         {`"released": ["cairn",`, `"released": ["Cairn",`, "must hold content IDs"},
-		"duplicate released":      {`"released": ["cairn", "qazharr"`, `"released": ["cairn", "cairn"`, "vanguards.released contains duplicate cairn"},
-		"unreleased starter":      {`"starters": ["cairn", "qazharr", "oriel"]`, `"starters": ["cairn", "qazharr", "raska"]`, "raska is not in vanguards.released"},
-		"too few starters":        {`"starters": ["cairn", "qazharr", "oriel"]`, `"starters": ["cairn", "qazharr"]`, "must list 3 to 5"},
-		"no rotation slots":       {`"slots": 12`, `"slots": 0`, "vanguards.rotation.slots must be at least 1"},
-		"bad stand-in":            {`"standIn": "allReleased"`, `"standIn": "everything"`, "vanguards.rotation.standIn must be"},
+		"unknown field":             {`"listenAddress"`, `"listenAddres"`, "unknown field"},
+		"missing lifetime":          {`"launchCodes": {"lifetime": "20s"}`, `"launchCodes": {}`, "launchCodes.lifetime is required"},
+		"launch code too long":      {`"lifetime": "20s"`, `"lifetime": "5m"`, "must not exceed"},
+		"negative session":          {`"gameLifetime": "24h"`, `"gameLifetime": "-1h"`, "must be positive"},
+		"dev login outside local":   {`"environment": "local"`, `"environment": "staging"`, "only allowed when environment"},
+		"duplicate dev account":     {`["DevOne", "DevTwo"]`, `["DevOne", "DevOne"]`, "duplicate"},
+		"no dev accounts":           {`["DevOne", "DevTwo"]`, `[]`, "at least one account"},
+		"party size zero":           {`"maxSize": 5`, `"maxSize": 0`, "party.maxSize must be between 1 and 5"},
+		"party size six":            {`"maxSize": 5`, `"maxSize": 6`, "party.maxSize must be between 1 and 5"},
+		"bad privacy":               {`"defaultPrivacy": "private"`, `"defaultPrivacy": "open"`, "party.defaultPrivacy must be"},
+		"duplicate mode":            {`"id": "ranked"`, `"id": "casual_select"`, "duplicate id casual_select"},
+		"mode missing team size":    {`"enabled": false, "humanPlayersPerTeam": 5`, `"enabled": false`, "humanPlayersPerTeam is required"},
+		"mode missing matchmaking":  {`, "matchmaking": "notImplemented"}`, `}`, "modes[1].matchmaking is required"},
+		"mode bad matchmaking":      {`"matchmaking": "casualSelect"`, `"matchmaking": "draft"`, "modes[0].matchmaking must be"},
+		"no matchmaking":            {`"matchmaking": {"interval": "1s", "searchLimit": 10000},`, ``, "matchmaking is required"},
+		"zero matchmaking interval": {`"interval": "1s"`, `"interval": "0s"`, "matchmaking.interval must be positive"},
+		"no search limit":           {`, "searchLimit": 10000`, ``, "matchmaking.searchLimit is required"},
+		"zero search limit":         {`"searchLimit": 10000`, `"searchLimit": 0`, "matchmaking.searchLimit must be at least 1"},
+		"no match found":            {`"matchFound": {"acceptDuration": "15s"},`, ``, "matchFound is required"},
+		"no accept duration":        {`{"acceptDuration": "15s"}`, `{}`, "matchFound.acceptDuration is required"},
+		"no casual select":          {`"casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},`, ``, "casualSelect is required"},
+		"no presence timeout":       {`, "presenceTimeout": "10s"`, ``, "casualSelect.presenceTimeout is required"},
+		"no vanguards":              {`"vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},`, ``, "vanguards is required"},
+		"nothing released":          {`"released": ["cairn", "qazharr", "oriel", "bryn"]`, `"released": []`, "vanguards.released is required"},
+		"bad released id":           {`"released": ["cairn",`, `"released": ["Cairn",`, "must hold content IDs"},
+		"duplicate released":        {`"released": ["cairn", "qazharr"`, `"released": ["cairn", "cairn"`, "vanguards.released contains duplicate cairn"},
+		"unreleased starter":        {`"starters": ["cairn", "qazharr", "oriel"]`, `"starters": ["cairn", "qazharr", "raska"]`, "raska is not in vanguards.released"},
+		"too few starters":          {`"starters": ["cairn", "qazharr", "oriel"]`, `"starters": ["cairn", "qazharr"]`, "must list 3 to 5"},
+		"no rotation slots":         {`"slots": 12`, `"slots": 0`, "vanguards.rotation.slots must be at least 1"},
+		"bad stand-in":              {`"standIn": "allReleased"`, `"standIn": "everything"`, "vanguards.rotation.standIn must be"},
 		"no custom practice": {`"customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A", "pickDuration": "30s", "playersPerSide": 5,
     "bots": [{"side": "B", "vanguardId": "cairn"}, {"side": "B", "vanguardId": "bryn"}]},`, ``, "customPractice is required"},
 		"practice missing side":   {`"hostSide": "A", `, ``, "customPractice.hostSide is required"},

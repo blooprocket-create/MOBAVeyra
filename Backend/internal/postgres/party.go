@@ -51,20 +51,21 @@ func (t partyTx) LockParty(id string) (party.Party, error) {
 }
 
 func loadParty(ctx context.Context, q querier, id string, lock bool) (party.Party, error) {
-	sql := `SELECT id::text, leader_id::text, coalesce(mode, ''), privacy, status FROM party.parties WHERE id = $1::uuid`
+	sql := `SELECT id::text, leader_id::text, coalesce(mode, ''), privacy, status, queued_at FROM party.parties WHERE id = $1::uuid`
 	if lock {
 		sql += ` FOR UPDATE`
 	}
 	var p party.Party
 	var privacy, status string
-	err := q.QueryRow(ctx, sql, id).Scan(&p.ID, &p.LeaderID, &p.Mode, &privacy, &status)
+	var queuedAt *time.Time
+	err := q.QueryRow(ctx, sql, id).Scan(&p.ID, &p.LeaderID, &p.Mode, &privacy, &status, &queuedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return party.Party{}, party.ErrPartyNotFound
 	}
 	if err != nil {
 		return party.Party{}, err
 	}
-	p.Privacy, p.Status = party.Privacy(privacy), party.Status(status)
+	p.Privacy, p.Status, p.QueuedAt = party.Privacy(privacy), party.Status(status), timeOrZero(queuedAt)
 
 	rows, err := q.Query(ctx, `SELECT account_id::text, ready, joined_at FROM party.members
 		WHERE party_id = $1::uuid ORDER BY joined_at, account_id`, id)
@@ -87,17 +88,17 @@ func nullableMode(mode string) *string {
 }
 
 func (t partyTx) CreateParty(p party.Party) error {
-	if _, err := t.q.Exec(t.ctx, `INSERT INTO party.parties (id, leader_id, mode, privacy, status)
-		VALUES ($1::uuid, $2::uuid, $3, $4, $5)`,
-		p.ID, p.LeaderID, nullableMode(p.Mode), string(p.Privacy), string(p.Status)); err != nil {
+	if _, err := t.q.Exec(t.ctx, `INSERT INTO party.parties (id, leader_id, mode, privacy, status, queued_at)
+		VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6)`,
+		p.ID, p.LeaderID, nullableMode(p.Mode), string(p.Privacy), string(p.Status), nullableTime(p.QueuedAt)); err != nil {
 		return err
 	}
 	return t.insertMembers(p)
 }
 
 func (t partyTx) SaveParty(p party.Party) error {
-	if _, err := t.q.Exec(t.ctx, `UPDATE party.parties SET leader_id = $2::uuid, mode = $3, privacy = $4, status = $5
-		WHERE id = $1::uuid`, p.ID, p.LeaderID, nullableMode(p.Mode), string(p.Privacy), string(p.Status)); err != nil {
+	if _, err := t.q.Exec(t.ctx, `UPDATE party.parties SET leader_id = $2::uuid, mode = $3, privacy = $4, status = $5, queued_at = $6
+		WHERE id = $1::uuid`, p.ID, p.LeaderID, nullableMode(p.Mode), string(p.Privacy), string(p.Status), nullableTime(p.QueuedAt)); err != nil {
 		return err
 	}
 	if _, err := t.q.Exec(t.ctx, `DELETE FROM party.members WHERE party_id = $1::uuid`, p.ID); err != nil {
@@ -119,6 +120,29 @@ func (t partyTx) insertMembers(p party.Party) error {
 		}
 	}
 	return nil
+}
+
+func (t partyTx) LockQueued(mode string) ([]party.Party, error) {
+	// SKIP LOCKED: a party another transaction holds, such as another
+	// matchmaker pass's, is left to it.
+	rows, err := t.q.Query(t.ctx, `SELECT id::text FROM party.parties WHERE status = 'queued' AND mode = $1
+		ORDER BY queued_at, id FOR UPDATE SKIP LOCKED`, mode)
+	if err != nil {
+		return nil, err
+	}
+	ids, err := pgx.CollectRows(rows, pgx.RowTo[string])
+	if err != nil {
+		return nil, err
+	}
+	out := make([]party.Party, 0, len(ids))
+	for _, id := range ids {
+		p, err := loadParty(t.ctx, t.q, id, false)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, p)
+	}
+	return out, nil
 }
 
 func (t partyTx) DeleteParty(id string) error {

@@ -58,6 +58,17 @@
     checks as -Handoff -Practice follow. -Launcher Script means this script does the launcher's part:
     the dev login, the launch code and the handshake.
 
+    -Flow Casual plays the matchmade path with two packaged clients, one per dev account, against
+    the local 1v1 casual mode (ADR-010 §10). Each chooses the matchmade mode in Play, readies up,
+    finds a match and accepts it; in the Casual Select they lock different Vanguards. The first
+    client walks and ends the standard match from its menu's developer end; both check the verified
+    result and return to the shell. The backend must record a developer-request end with no winner,
+    both players joined and connected at the end, and remove the server.
+
+    -Flow CasualDecline plays a match found that does not go ahead: both clients queue; the second
+    declines once the first has accepted. The decliner must be back in the shell out of the queue;
+    the first must be queued again in its place, then leaves the queue. No match is created.
+
     Client logs, the server log and a summary go to Game/Saved/Smoke/<timestamp>. The server is
     stopped at the end unless -KeepServer is given.
 
@@ -92,8 +103,8 @@
 .PARAMETER Practice
     With -Handoff: a solo practice match that its host ends.
 .PARAMETER Flow
-    Plays a path through the client-state coordinator: Practice, the solo path. Packaged client and
-    container only.
+    Plays a path through the client-state coordinator: Practice, the solo path; Casual, a matchmade
+    1v1; CasualDecline, a declined match found. Packaged clients and container only.
 .PARAMETER Launcher
     With -Flow: who plays the launcher's part. Script: this script. Cli: veyra-launch-cli, the launcher's
     headless twin (Launcher/), built in release, with Launcher/config/local.json.
@@ -107,6 +118,8 @@
     ./Game/Scripts/Smoke.ps1 -Handoff
 .EXAMPLE
     ./Game/Scripts/Smoke.ps1 -Flow Practice -Launcher Script
+.EXAMPLE
+    ./Game/Scripts/Smoke.ps1 -Flow Casual -Launcher Cli
 #>
 [CmdletBinding()]
 param(
@@ -146,7 +159,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice')]
+    [ValidateSet('Practice', 'Casual', 'CasualDecline')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -224,7 +237,7 @@ if ($Practice -and -not $Handoff) {
 }
 if ($Flow -and ($Handoff -or $kitMode -or $Clients -ne 'Packaged' -or $Server -ne 'Container' -or $urlOptions -or $ClientStaySeconds -gt 0)) {
     # The backend creates the match and starts its server, as for -Handoff.
-    Write-Host '-Flow runs one packaged client against a container the backend starts, without -Handoff, -Vanguards or the replay, statistics, load-test or stay options.'
+    Write-Host '-Flow runs packaged clients against a container the backend starts, without -Handoff, -Vanguards or the replay, statistics, load-test or stay options.'
     exit $ExitInfrastructure
 }
 
@@ -355,9 +368,23 @@ if ($Handoff -or $Flow) {
     # the host's side. Standard players play the developer test Vanguard, whose Q the script casts;
     # the host plays a released Vanguard, as a player would, and with -Flow chooses it as the starter.
     $PracticeVanguard = 'cairn'
+    # -Flow Casual: picks are unique in a matchmade select, so each player locks its own.
+    $CasualVanguards = @('cairn', 'oriel')
     $isPractice = $Practice -or $Flow -eq 'Practice'
+    $isMatchmade = $Flow -in 'Casual', 'CasualDecline'
+    # Every run but a declined match found plays a match.
+    $expectsMatch = $Flow -ne 'CasualDecline'
     $playerCount = $(if ($isPractice) { 1 } else { 2 })
     $mode = $(if ($isPractice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
+    if ($isMatchmade) {
+        # Two players make one match only with the local 1v1 team size (ADR-010, provisional).
+        $casualMode = $backendConfig.modes | Where-Object { $_.enabled -and $_.matchmaking -eq 'casualSelect' } | Select-Object -First 1
+        if (-not $casualMode -or $casualMode.humanPlayersPerTeam -ne 1) {
+            Write-Host "-Flow $Flow needs an enabled casualSelect mode of one human player per team in Backend/config/local.json."
+            exit $ExitInfrastructure
+        }
+        $mode = $casualMode.id
+    }
     $accounts = @($backendConfig.devLogin.accounts | Select-Object -First $playerCount)
     # -Flow: the client logs the match its select created as it joins it.
     $JoiningLinePattern = 'VeyraClientFlow: joining match ([0-9a-f-]{36}) at '
@@ -383,7 +410,11 @@ if ($Handoff -or $Flow) {
         }
         [pscustomobject]@{ Name = $accounts[$index]; AccountId = $login.Body.account.id; LauncherSession = $login.Body.token
             Side = $(if ($isPractice) { $backendConfig.customPractice.hostSide } else { @('A', 'B')[$index] })
-            Vanguard = $(if ($isPractice) { $PracticeVanguard } else { $SmokeVanguard }) }
+            Vanguard = $(if ($isPractice) { $PracticeVanguard } elseif ($isMatchmade) { $CasualVanguards[$index] } else { $SmokeVanguard }) }
+    }
+    if ($isMatchmade -and @($participants).Count -lt 2) {
+        Write-Host "-Flow $Flow needs two dev accounts in Backend/config/local.json devLogin.accounts."
+        exit $ExitInfrastructure
     }
 
     $matchId = $null
@@ -395,13 +426,18 @@ if ($Handoff -or $Flow) {
             -RedirectStandardOutput $serverLogPath -RedirectStandardError $serverErrorLogPath
     }
 
-    if ($Flow) {
+    if ($Flow -eq 'Practice') {
         # The player starts as new: the flow chooses a starter first (ADR-010 §6).
         $reset = Invoke-Backend -Method Post -Path "/v1/dev/accounts/$($participants[0].Name)/reset-onboarding"
         if ($reset.Status -ne 204) {
             Write-Host "The backend did not reset $($participants[0].Name)'s onboarding: HTTP $($reset.Status) ($(Get-ErrorCode $reset))."
             exit $ExitInfrastructure
         }
+    }
+    elseif ($Flow) {
+        # The matchmade flows keep the accounts' onboarding; a new player chooses a starter on the way.
+        # Matchmaking and the clients' champion select create any match.
+        Write-Host "Queueing $($participants.Name -join ' and ') for $mode."
     }
     else {
         $matchRequest = @{
@@ -445,10 +481,12 @@ if ($Handoff -or $Flow) {
             # The script quotes paths for a command line of its own; the launcher CLI passes each
             # argument as it is.
             $quote = $(if ($Launcher -eq 'Cli') { '' } else { '"' })
-            # With -Flow -Screenshot the client renders in a window and saves each screen it passes.
+            # With -Flow -Screenshot the first client renders in a window and saves each screen it passes.
             $clientArguments = @('-nosound', '-nosplash', '-unattended', "-ABSLOG=$quote$log$quote")
-            $clientArguments += $(if ($Flow -and $Screenshot) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=$quote$reportDir$quote" } else { @('-nullrhi') })
-            $clientArguments += $(if ($Flow) { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard") }
+            $clientArguments += $(if ($Flow -and $Screenshot -and $index -eq 0) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=$quote$reportDir$quote" } else { @('-nullrhi') })
+            $clientArguments += $(if ($Flow -eq 'Practice') { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard") }
+                elseif ($Flow -eq 'Casual') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch') } else { @() }) }
+                elseif ($Flow -eq 'CasualDecline') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=requeue' } else { '-VeyraSmokeFlow=decline' })) }
                 elseif ($isPractice) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeEndCustomMatch') }
                 elseif ($index -eq 0) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokePause', '-VeyraSmokeEndMatch') }
                 else { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeWaitForEnd') })
@@ -504,7 +542,7 @@ if ($Handoff -or $Flow) {
         # -Flow: the match exists once the client's select starts it; its server's log is followed
         # from then.
         $clientDeadline = (Get-Date).AddMinutes($TimeoutMinutes)
-        while ($Flow -and -not $matchId -and $handoffClients[0].Process -and -not $handoffClients[0].Process.HasExited -and (Get-Date) -lt $clientDeadline) {
+        while ($Flow -and $expectsMatch -and -not $matchId -and $handoffClients[0].Process -and -not $handoffClients[0].Process.HasExited -and (Get-Date) -lt $clientDeadline) {
             Start-Sleep -Milliseconds $MatchIdWaitPollMilliseconds
             $joining = if (Test-Path -LiteralPath $handoffClients[0].Log) { Select-String -LiteralPath $handoffClients[0].Log -Pattern $JoiningLinePattern | Select-Object -First 1 } else { $null }
             if ($joining) {
@@ -520,8 +558,13 @@ if ($Handoff -or $Flow) {
                 $failed = $true
             }
         }
-        if (-not $matchId) {
+        if ($expectsMatch -and -not $matchId) {
             Write-Host 'The client never joined a match.'
+            $failed = $true
+        }
+        $writtenLogs = @($handoffClients.Log | Where-Object { Test-Path -LiteralPath $_ })
+        if (-not $expectsMatch -and $writtenLogs.Count -gt 0 -and (Select-String -LiteralPath $writtenLogs -Pattern $JoiningLinePattern -Quiet)) {
+            Write-Host 'A client joined a match, but the match found should not have gone ahead.'
             $failed = $true
         }
 
@@ -581,9 +624,14 @@ if ($Handoff -or $Flow) {
             }
         }
 
-        # -Flow -Screenshot: each screen the client passed was saved.
+        # -Flow -Screenshot: each screen the first client passed was saved.
         if ($Flow -and $Screenshot) {
-            foreach ($screen in 'StarterChoice', 'Home', 'Play', 'ChampionSelect', 'MatchMenu', 'Results') {
+            $screens = switch ($Flow) {
+                'Practice' { 'StarterChoice', 'Home', 'Play', 'ChampionSelect', 'MatchMenu', 'Results' }
+                'Casual' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'MatchMenu', 'Results' }
+                'CasualDecline' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'Requeued' }
+            }
+            foreach ($screen in $screens) {
                 $shot = Join-Path $reportDir "Flow-$screen.png"
                 if (Test-Path -LiteralPath $shot) {
                     Write-Host "Screenshot: $shot"
@@ -595,8 +643,10 @@ if ($Handoff -or $Flow) {
             }
         }
 
-        # The result the backend recorded (ADR-007 §7).
-        if (-not $match -or $match.state -ne 'ended' -or -not $match.result) {
+        # The result the backend recorded (ADR-007 §7). A match found that did not go ahead has none.
+        if (-not $expectsMatch) {
+        }
+        elseif (-not $match -or $match.state -ne 'ended' -or -not $match.result) {
             Write-Host "The backend recorded no result; the match is $(if ($match) { "$($match.state) ($($match.failureReason))" } else { 'unknown' })."
             $failed = $true
         }
@@ -615,12 +665,17 @@ if ($Handoff -or $Flow) {
                 $failed = $true
             }
             $rostered = @($match.participants | Where-Object { $_.vanguardId -ne ($participants | Where-Object AccountId -eq $_.accountId).Vanguard })
-            if ($rostered.Count -gt 0 -or ($isPractice -and ($match.rules -ne 'practice' -or $match.hostAccountId -ne $participants[0].AccountId))) {
+            $expectedRules = $(if ($isPractice) { 'practice' } else { 'standard' })
+            if ($rostered.Count -gt 0 -or $match.rules -ne $expectedRules -or ($isPractice -and $match.hostAccountId -ne $participants[0].AccountId)) {
                 Write-Host 'The backend did not keep the requested rules, host or Vanguards.'
                 $failed = $true
             }
+            if ($isMatchmade -and $match.mode -ne $mode) {
+                Write-Host "The match's mode is $($match.mode), not $mode."
+                $failed = $true
+            }
         }
-        if (-not ($match -and $match.serverRemoved)) {
+        if ($expectsMatch -and -not ($match -and $match.serverRemoved)) {
             Write-Host 'The backend did not remove the match server.'
             $failed = $true
         }
@@ -632,7 +687,12 @@ if ($Handoff -or $Flow) {
         }
         $expectedServerLines =@('VeyraHandoff: took the assignment', 'VeyraHandoff: reported ready', "Preparation begins with $playerCount player(s)", 'The match is live',
             'VeyraHandoff: reported result') + @($participants | ForEach-Object { "$($_.Name) plays $($_.Vanguard)." })
-        $expectedServerLines += $(if ($isPractice) { @('the host, ended the custom match', 'The match ended (host ended') } else { @('Match paused', 'Match resumed', 'The match ended (developer request') })
+        $expectedServerLines += $(if ($isPractice) { @('the host, ended the custom match', 'The match ended (host ended') }
+            elseif ($isMatchmade) { @('The match ended (developer request') }
+            else { @('Match paused', 'Match resumed', 'The match ended (developer request') })
+        if (-not $expectsMatch) {
+            $expectedServerLines = @()
+        }
         # A practice match adds the practice bots the backend's configuration lists (ADR-010 §7).
         $practiceBots = @($backendConfig.customPractice.bots)
         if ($isPractice -and $practiceBots.Count -gt 0) {
@@ -648,7 +708,7 @@ if ($Handoff -or $Flow) {
             Write-Host "The server logged an error: $($serverError.Matches[0].Value)"
             $failed = $true
         }
-        if (-not $isPractice) {
+        if (-not $isPractice -and -not $Flow) {
             $abilityQ = @($vanguardDefinitions.$SmokeVanguard.abilities.q)[0]
             $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
             if ($casts -lt 2) {

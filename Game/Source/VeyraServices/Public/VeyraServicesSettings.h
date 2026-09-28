@@ -66,6 +66,14 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Client")
 	float ReconnectPollIntervalSeconds = 0.0f;
 
+	/** Client: seconds between reads of the player's party in the shell, which is how a queue's progress and a found match arrive. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float PartyPollIntervalSeconds = 0.0f;
+
+	/** Client: seconds between reads of a match found while the player is in it. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float MatchFoundPollIntervalSeconds = 0.0f;
+
 	/**
 	 * Match server: seconds to wait for its assignment on standard input. The server waits before
 	 * its first map loads, because the map's game mode reads the roster.

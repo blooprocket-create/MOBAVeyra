@@ -22,14 +22,15 @@ enum class EVeyraShellPage : uint8
 
 /**
  * The shell's screens (ADR-010 §4), built in C++ with no widget Blueprint: signing in, the starter
- * choice, Home and Play, champion select, Match Starting and Connecting, Reconnect-only, results, and
- * the problem banner with Retry. It shows the coordinator's snapshot and asks through its intents,
- * with buttons enabled only when CanIssue allows; it decides nothing.
+ * choice, Home and Play with their mode cards and the party panel, Match Found, champion select,
+ * Match Starting and Connecting, Reconnect-only, results, and the problem banner with Retry. It shows
+ * the coordinator's snapshot and asks through its intents, with buttons enabled only when CanIssue
+ * allows; it decides nothing.
  *
- * Champion select and Reconnect-only own the whole screen: no navigation, and on Reconnect-only no
- * action but Reconnect (UX-4, UX-17). The countdown follows the backend's pick timer every frame; the
- * rest is rebuilt only when what it shows changes, so a poll that changes nothing never interrupts a
- * click.
+ * Match Found, champion select and Reconnect-only own the whole screen: no navigation, and on
+ * Reconnect-only no action but Reconnect (UX §5, UX-4, UX-17). The countdowns and the queue's time
+ * follow the backend's timers every frame; the rest is rebuilt only when what it shows changes, so a
+ * poll that changes nothing never interrupts a click.
  */
 UCLASS()
 class VEYRAUI_API UVeyraShellScreen : public UUserWidget
@@ -72,7 +73,10 @@ private:
 	void BuildStarterChoice(const FVeyraClientSnapshot& Snapshot);
 	void BuildShell(const FVeyraClientSnapshot& Snapshot);
 	void BuildHome(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
-	void BuildPlay(UPanelWidget& Parent);
+	void BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** The party panel, on every page of the shell while the player has a party (UX §3). */
+	void BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	void BuildMatchFound(const FVeyraClientSnapshot& Snapshot);
 	void BuildChampionSelect(const FVeyraClientSnapshot& Snapshot);
 	void BuildReconnectOnly(const FVeyraClientSnapshot& Snapshot);
 	void BuildResults(const FVeyraClientSnapshot& Snapshot);
@@ -89,9 +93,13 @@ private:
 	UPROPERTY(Transient)
 	TObjectPtr<UVerticalBox> Content;
 
-	/** Champion select's countdown, updated every frame. */
+	/** Champion select's or Match Found's countdown, updated every frame. */
 	UPROPERTY(Transient)
 	TObjectPtr<UTextBlock> Countdown;
+
+	/** The party panel's time in the queue, updated every frame. */
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> QueueStatus;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UVeyraShellButton>> Buttons;

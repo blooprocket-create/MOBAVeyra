@@ -17,8 +17,13 @@ enum class EVeyraShellScreen : uint8
 	Stopped,
 	/** The one-time starter choice (ADR-010 §6). */
 	StarterChoice,
-	/** Ordinary pre-game pages: Home and Play (UX §1). */
+	/** Ordinary pre-game pages: Home and Play (UX §1), and the party panel. */
 	Shell,
+	/**
+	 * Match Found: Accept or Decline, blocking everything else until answered (UX §5). The grey box
+	 * shows it in place of the page, which returns as it was when the match found is over.
+	 */
+	MatchFound,
 	/** Champion select, which owns the whole client (UX-4). */
 	ChampionSelect,
 	/** Match in Progress, with Reconnect as the only action (UX-17). */
@@ -44,6 +49,8 @@ struct FVeyraSelectSeatModel
 	EVeyraSeatStatus Status = EVeyraSeatStatus::Waiting;
 	FText StatusText;
 	bool bYou = false;
+	/** On the player's side. */
+	bool bAlly = true;
 };
 
 struct FVeyraSelectCardModel
@@ -52,6 +59,8 @@ struct FVeyraSelectCardModel
 	FText Name;
 	/** The player's own hover or lock. */
 	bool bChosen = false;
+	/** Locked by another player: picks are unique in a matchmade select. */
+	bool bTaken = false;
 };
 
 /** Champion select as the screen shows it. */
@@ -68,6 +77,62 @@ struct FVeyraSelectModel
 	FString LockInVanguardId;
 	bool bCanChoose = false;
 	bool bCanLockIn = false;
+	/** Seats on both sides: the overview shows the player's team and the enemy team apart. */
+	bool bTeams = false;
+	/** A matchmade select still picking offers Leave, which cancels it for everyone (a dodge). */
+	bool bOffersLeave = false;
+	bool bCanLeave = false;
+};
+
+/** A mode card on the Play page (UX-12). */
+struct FVeyraModeCardModel
+{
+	FString ModeId;
+	FText Name;
+	/** Such as "1v1": the human players on each team. */
+	FText Format;
+	/** Whether it can be chosen at all: only modes with a matchmaker can. */
+	bool bAvailable = false;
+	/** For a mode that cannot be chosen: why. */
+	FText Availability;
+	/** The party's mode. */
+	bool bSelected = false;
+};
+
+/** The party panel: its mode, roster, readiness and queue (UX §3, UX-2, UX-6). */
+struct FVeyraPartyModel
+{
+	/** False while the player has no party: there is no panel. */
+	bool bShown = false;
+	FText Mode;
+	/** One line per member: name, "(you)", "(leader)", and Ready or Not Ready. */
+	TArray<FText> Members;
+	/** What happens next, such as who must ready up; empty while queued, when the queue timer shows instead. */
+	FText Status;
+	bool bQueued = false;
+	/** The Ready toggle: what pressing it sets, its label, and whether it can be pressed. */
+	bool bReadyTarget = true;
+	FText ReadyLabel;
+	bool bCanReady = false;
+	/** Find Match and Cancel are the leader's (Parties & Social Bible §2). */
+	bool bOffersFindMatch = false;
+	bool bCanFindMatch = false;
+	bool bOffersCancel = false;
+	bool bCanCancel = false;
+};
+
+/** The Match Found overlay (UX §5). */
+struct FVeyraMatchFoundModel
+{
+	FText Title;
+	FText Mode;
+	/** The backend's acceptance timer, rounded up. */
+	FText Countdown;
+	/** Such as "1 of 2 accepted"; nobody learns who. */
+	FText Progress;
+	/** Accept to play, or waiting for the others once accepted. */
+	FText Phase;
+	bool bCanAnswer = false;
 };
 
 /** The results screen. */
@@ -112,7 +177,18 @@ namespace VeyraShellModels
 	/** "m:ss", rounded up to the whole second. */
 	VEYRAUI_API FText FormatCountdown(double Seconds);
 
-	VEYRAUI_API FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock);
+	VEYRAUI_API FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock, bool bCanLeave);
+
+	/** The enabled modes, in the backend's order. A mode is shown even when it has no matchmaker yet, as not yet available. */
+	VEYRAUI_API TArray<FVeyraModeCardModel> DescribeModes(const FVeyraClientSnapshot& Snapshot);
+
+	/** The party panel; the flags say which of its intents the coordinator allows now. */
+	VEYRAUI_API FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanReady, bool bCanFindMatch, bool bCanCancel);
+
+	/** The queue's status: its elapsed time, and no estimate until one can be made honestly (UX-2). */
+	VEYRAUI_API FText FormatQueueStatus(double QueuedSeconds);
+
+	VEYRAUI_API FVeyraMatchFoundModel DescribeMatchFound(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanAnswer);
 
 	VEYRAUI_API FVeyraResultsModel DescribeResults(const FVeyraClientSnapshot& Snapshot);
 

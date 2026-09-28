@@ -41,6 +41,10 @@ type Tx interface {
 	DeleteInvitesBetween(a, b string) error
 	// DeleteInvitesInto removes pending invites into a party for an invitee.
 	DeleteInvitesInto(partyID, invitee string) error
+	// LockQueued loads and locks the parties queued for a mode, oldest first.
+	// Parties another transaction has locked are skipped, so two matchmaker
+	// passes never both take a party.
+	LockQueued(mode string) ([]Party, error)
 }
 
 // Store persists parties and invites.
@@ -67,6 +71,13 @@ type SocialGraph interface {
 	BlockedWithAny(ctx context.Context, account string, others []string) (bool, error)
 }
 
+// Activity answers whether any of accounts is in a match or a champion
+// select. The main package joins the match and selection packages to
+// implement it; they in turn read parties, so it is set after both exist.
+type Activity interface {
+	Busy(ctx context.Context, accounts []string) (bool, error)
+}
+
 // Settings are the validated party settings.
 type Settings struct {
 	Rules          Rules
@@ -79,6 +90,7 @@ type Settings struct {
 type Service struct {
 	store    Store
 	social   SocialGraph
+	activity Activity
 	settings Settings
 	now      func() time.Time
 }
@@ -88,9 +100,23 @@ func NewService(store Store, social SocialGraph, settings Settings, now func() t
 	return &Service{store: store, social: social, settings: settings, now: now}
 }
 
+// SetActivity connects what says whether a player is in a match or champion
+// select, which StartQueue checks. Until it is set, StartQueue checks nothing
+// more than the party's own rules.
+func (s *Service) SetActivity(a Activity) { s.activity = a }
+
 // Get returns the actor's party.
 func (s *Service) Get(ctx context.Context, actor string) (Party, error) {
 	return s.store.PartyOf(ctx, actor)
+}
+
+// QueuedFor returns how long the party has been in matchmaking, by the
+// service's clock; zero while it is idle.
+func (s *Service) QueuedFor(p Party) time.Duration {
+	if p.QueuedAt.IsZero() {
+		return 0
+	}
+	return max(s.now().Sub(p.QueuedAt), 0)
 }
 
 // Invites lists the actor's pending invitations.
@@ -135,8 +161,114 @@ func (s *Service) Kick(ctx context.Context, actor, target string) (Party, error)
 	return s.mutate(ctx, actor, func(p *Party) error { return p.Kick(actor, target) })
 }
 
+// StartQueue also refuses a party one of whose members is in a match or
+// champion select already: matchmaking could never make their next match, and
+// the other players would wait on it for nothing.
 func (s *Service) StartQueue(ctx context.Context, actor string) (Party, error) {
-	return s.mutate(ctx, actor, func(p *Party) error { return p.StartQueue(actor, s.settings.Rules) })
+	return s.mutateIn(ctx, actor, func(ctx context.Context, p *Party) error {
+		if err := p.StartQueue(actor, s.settings.Rules, s.now()); err != nil {
+			return err
+		}
+		if s.activity == nil {
+			return nil
+		}
+		members := make([]string, len(p.Members))
+		for i, m := range p.Members {
+			members[i] = m.AccountID
+		}
+		busy, err := s.activity.Busy(ctx, members)
+		if err != nil {
+			return err
+		}
+		if busy {
+			return ErrMemberBusy
+		}
+		return nil
+	})
+}
+
+// The matchmaking package moves parties through a proposed match and its
+// champion select with these, inside its own unit of work.
+
+// LockQueued returns a mode's queued parties, oldest first, locked until the
+// caller's unit of work ends.
+func (s *Service) LockQueued(ctx context.Context, mode string) ([]Party, error) {
+	var out []Party
+	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
+		queued, err := tx.LockQueued(mode)
+		out = queued
+		return err
+	})
+	return out, err
+}
+
+// MarkFound puts queued parties into a proposed match.
+func (s *Service) MarkFound(ctx context.Context, ids []string) error {
+	return s.changeByID(ctx, ids, (*Party).MarkFound)
+}
+
+// MarkSelecting moves parties whose match everyone accepted into its select.
+func (s *Service) MarkSelecting(ctx context.Context, ids []string) error {
+	return s.changeByID(ctx, ids, (*Party).MarkSelecting)
+}
+
+// Requeue returns parties to the queue with their places kept. A party that
+// has since left matchmaking, or no longer exists, stays as it is.
+func (s *Service) Requeue(ctx context.Context, ids []string) error {
+	return s.changeByID(ctx, ids, func(p *Party) error {
+		if err := p.Requeue(); !errors.Is(err, ErrNotInQueue) {
+			return err
+		}
+		return nil
+	})
+}
+
+// ReturnToIdle takes parties out of matchmaking, Not Ready.
+func (s *Service) ReturnToIdle(ctx context.Context, ids []string) error {
+	return s.changeByID(ctx, ids, func(p *Party) error {
+		p.ReturnToIdle()
+		return nil
+	})
+}
+
+// Status returns a party's status; a party that no longer exists is Idle.
+func (s *Service) Status(ctx context.Context, id string) (Status, error) {
+	var status Status
+	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
+		p, err := tx.LockParty(id)
+		if errors.Is(err, ErrPartyNotFound) {
+			status = Idle
+			return nil
+		}
+		status = p.Status
+		return err
+	})
+	return status, err
+}
+
+// changeByID applies change to each existing party, in ID order so two units
+// of work never lock the same parties in opposite orders.
+func (s *Service) changeByID(ctx context.Context, ids []string, change func(*Party) error) error {
+	sorted := append([]string(nil), ids...)
+	sort.Strings(sorted)
+	return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
+		for _, id := range sorted {
+			p, err := tx.LockParty(id)
+			if errors.Is(err, ErrPartyNotFound) {
+				continue
+			}
+			if err != nil {
+				return err
+			}
+			if err := change(&p); err != nil {
+				return fmt.Errorf("party %s: %w", id, err)
+			}
+			if err := tx.SaveParty(p); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (s *Service) CancelQueue(ctx context.Context, actor string) (Party, error) {
@@ -378,6 +510,12 @@ func (s *Service) checkSocial(ctx context.Context, a, b string) error {
 }
 
 func (s *Service) mutate(ctx context.Context, actor string, fn func(*Party) error) (Party, error) {
+	return s.mutateIn(ctx, actor, func(_ context.Context, p *Party) error { return fn(p) })
+}
+
+// mutateIn is mutate for a change that also asks other domains, with the ctx
+// that carries its transaction.
+func (s *Service) mutateIn(ctx context.Context, actor string, fn func(context.Context, *Party) error) (Party, error) {
 	var out Party
 	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
 		id, err := tx.PartyIDOf(actor)
@@ -388,7 +526,7 @@ func (s *Service) mutate(ctx context.Context, actor string, fn func(*Party) erro
 		if err != nil {
 			return err
 		}
-		if err := fn(&p); err != nil {
+		if err := fn(ctx, &p); err != nil {
 			return err
 		}
 		out = p

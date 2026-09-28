@@ -8,10 +8,11 @@
 
 namespace
 {
+	using VeyraBackendProtocol::EPartyStatus;
 	using VeyraBackendProtocol::ESelectState;
 	using VeyraLaunchHandshake::EFailure;
 
-	// The player routes (ADR-007 §10, ADR-010 §6–8).
+	// The player routes (ADR-007 §10, ADR-010 §6–10).
 	const TCHAR* const RedeemPath = TEXT("/v1/game-sessions");
 	const TCHAR* const MyMatchPath = TEXT("/v1/me/match");
 	const TCHAR* const MySelectPath = TEXT("/v1/me/select");
@@ -21,6 +22,36 @@ namespace
 	const TCHAR* const PracticePath = TEXT("/v1/practice");
 	const TCHAR* const HoverPath = TEXT("/v1/me/select/hover");
 	const TCHAR* const LockPath = TEXT("/v1/me/select/lock");
+	const TCHAR* const LeaveSelectPath = TEXT("/v1/me/select/leave");
+	const TCHAR* const ModesPath = TEXT("/v1/modes");
+	const TCHAR* const PartyPath = TEXT("/v1/party");
+	const TCHAR* const PartyModePath = TEXT("/v1/party/mode");
+	const TCHAR* const PartyReadyPath = TEXT("/v1/party/ready");
+	const TCHAR* const QueuePath = TEXT("/v1/party/queue");
+	const TCHAR* const MatchFoundPath = TEXT("/v1/me/match-found");
+	const TCHAR* const AcceptMatchPath = TEXT("/v1/me/match-found/accept");
+	const TCHAR* const DeclineMatchPath = TEXT("/v1/me/match-found/decline");
+
+	/** The kind of champion select matchmaking opens, which a player may leave. */
+	const TCHAR* const CasualSelectKind = TEXT("casual");
+	/** A match found's state while it waits for answers, and a player's answer before they give one. */
+	const TCHAR* const PendingAnswer = TEXT("pending");
+	const TCHAR* const AcceptedAnswer = TEXT("accepted");
+	const TCHAR* const DeclinedAnswer = TEXT("declined");
+
+	// How a match found that did not go ahead is explained. Missed and abandoned are refined by the
+	// shell's first read of the party: a party back in the queue was not at fault.
+	const TCHAR* const DeclinedNotice = TEXT("match_found_declined");
+	const TCHAR* const MissedNotice = TEXT("match_found_missed");
+	const TCHAR* const AbandonedNotice = TEXT("match_found_abandoned");
+	const TCHAR* const RequeuedNotice = TEXT("match_found_requeued");
+
+	/** Whether the player leads the party. */
+	bool Leads(const FVeyraClientSnapshot& Snapshot)
+	{
+		const VeyraBackendProtocol::FPartyMember* You = Snapshot.Party.IsSet() ? Snapshot.Party->Find(Snapshot.AccountId) : nullptr;
+		return You && You->bLeader;
+	}
 
 	FString SelectPath(const FString& SelectId)
 	{
@@ -59,6 +90,8 @@ const TCHAR* LexToString(EVeyraClientState State)
 		return TEXT("StarterChoice");
 	case EVeyraClientState::Shell:
 		return TEXT("Shell");
+	case EVeyraClientState::MatchFound:
+		return TEXT("MatchFound");
 	case EVeyraClientState::Selecting:
 		return TEXT("Selecting");
 	case EVeyraClientState::MatchStarting:
@@ -89,10 +122,24 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("ChooseStarter");
 	case EVeyraClientIntent::StartPractice:
 		return TEXT("StartPractice");
+	case EVeyraClientIntent::SelectMode:
+		return TEXT("SelectMode");
+	case EVeyraClientIntent::SetReady:
+		return TEXT("SetReady");
+	case EVeyraClientIntent::FindMatch:
+		return TEXT("FindMatch");
+	case EVeyraClientIntent::CancelQueue:
+		return TEXT("CancelQueue");
+	case EVeyraClientIntent::AcceptMatch:
+		return TEXT("AcceptMatch");
+	case EVeyraClientIntent::DeclineMatch:
+		return TEXT("DeclineMatch");
 	case EVeyraClientIntent::HoverVanguard:
 		return TEXT("HoverVanguard");
 	case EVeyraClientIntent::LockVanguard:
 		return TEXT("LockVanguard");
+	case EVeyraClientIntent::LeaveSelect:
+		return TEXT("LeaveSelect");
 	case EVeyraClientIntent::Reconnect:
 		return TEXT("Reconnect");
 	case EVeyraClientIntent::ContinueFromResults:
@@ -118,6 +165,8 @@ FVeyraClientFlowConfig FVeyraClientFlowConfig::FromSettings(const UVeyraServices
 	Config.ResultPollIntervalSeconds = Settings.ResultPollIntervalSeconds;
 	Config.ResultWaitTimeoutSeconds = Settings.ResultWaitTimeoutSeconds;
 	Config.ReconnectPollIntervalSeconds = Settings.ReconnectPollIntervalSeconds;
+	Config.PartyPollIntervalSeconds = Settings.PartyPollIntervalSeconds;
+	Config.MatchFoundPollIntervalSeconds = Settings.MatchFoundPollIntervalSeconds;
 	return Config;
 }
 
@@ -191,9 +240,17 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::ChooseStarter:
 		return State == EVeyraClientState::StarterChoice;
 	case EVeyraClientIntent::StartPractice:
+	case EVeyraClientIntent::SelectMode:
+	case EVeyraClientIntent::SetReady:
+	case EVeyraClientIntent::FindMatch:
+	case EVeyraClientIntent::CancelQueue:
 		return State == EVeyraClientState::Shell;
+	case EVeyraClientIntent::AcceptMatch:
+	case EVeyraClientIntent::DeclineMatch:
+		return State == EVeyraClientState::MatchFound;
 	case EVeyraClientIntent::HoverVanguard:
 	case EVeyraClientIntent::LockVanguard:
+	case EVeyraClientIntent::LeaveSelect:
 		return State == EVeyraClientState::Selecting;
 	case EVeyraClientIntent::Reconnect:
 		return State == EVeyraClientState::ReconnectOnly;
@@ -220,18 +277,57 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 	{
 		return false;
 	}
-	if (Intent == EVeyraClientIntent::HoverVanguard || Intent == EVeyraClientIntent::LockVanguard)
+	const TOptional<VeyraBackendProtocol::FParty>& Party = Snapshot.Party;
+	switch (Intent)
+	{
+	case EVeyraClientIntent::StartPractice:
+		// A party in matchmaking cannot practise as well.
+		return !Party.IsSet() || Party->Status == EPartyStatus::Idle;
+	case EVeyraClientIntent::SelectMode:
+		// Choosing a mode without a party makes one the player leads (UX-6).
+		return !Snapshot.Modes.IsEmpty() && (!Party.IsSet() || LeadsIdleParty());
+	case EVeyraClientIntent::SetReady:
+		return Party.IsSet() && Party->Status == EPartyStatus::Idle && !Party->Mode.IsEmpty();
+	case EVeyraClientIntent::FindMatch:
+	{
+		const VeyraBackendProtocol::FModeInfo* Mode = Party.IsSet() ? FindMode(Party->Mode) : nullptr;
+		return LeadsIdleParty() && Mode && Mode->bEnabled && Mode->bMatchmade && Party->Members.Num() <= Mode->HumanPlayersPerTeam && Party->AllReady();
+	}
+	case EVeyraClientIntent::CancelQueue:
+		return Party.IsSet() && Party->Status == EPartyStatus::Queued && Leads(Snapshot);
+	case EVeyraClientIntent::AcceptMatch:
+	case EVeyraClientIntent::DeclineMatch:
+		return Snapshot.MatchFound.State == PendingAnswer && Snapshot.MatchFound.You == PendingAnswer;
+	case EVeyraClientIntent::HoverVanguard:
+	case EVeyraClientIntent::LockVanguard:
 	{
 		// A lock is permanent (Battleground Bible §15).
 		const VeyraBackendProtocol::FSelectSeat* You = Snapshot.Select.FindYou();
 		return Snapshot.Select.State == ESelectState::Picking && You && You->Locked.IsEmpty() && !Snapshot.AvailableVanguards.IsEmpty();
 	}
-	return true;
+	case EVeyraClientIntent::LeaveSelect:
+		// Practice has no one to dodge; only its timer ends it (ADR-010).
+		return Snapshot.Select.Kind == CasualSelectKind && Snapshot.Select.State == ESelectState::Picking;
+	default:
+		return true;
+	}
 }
 
 double FVeyraClientFlow::GetRemainingPickSeconds() const
 {
 	return Snapshot.State == EVeyraClientState::Selecting ? FMath::Max(0.0, Snapshot.PickEndsAt - Host.Now()) : 0.0;
+}
+
+double FVeyraClientFlow::GetQueuedSeconds() const
+{
+	const bool bInShell = Snapshot.State == EVeyraClientState::Shell || Snapshot.State == EVeyraClientState::MatchFound;
+	const bool bQueued = Snapshot.Party.IsSet() && Snapshot.Party->Status != EPartyStatus::Idle;
+	return bInShell && bQueued ? FMath::Max(0.0, Host.Now() - Snapshot.QueuedSince) : 0.0;
+}
+
+double FVeyraClientFlow::GetRemainingAcceptSeconds() const
+{
+	return Snapshot.State == EVeyraClientState::MatchFound ? FMath::Max(0.0, Snapshot.AcceptEndsAt - Host.Now()) : 0.0;
 }
 
 // Signing in ------------------------------------------------------------------------------------
@@ -307,6 +403,7 @@ void FVeyraClientFlow::OnRedeemed(const FVeyraBackendResponse& Response)
 	}
 	GameSession = MoveTemp(Session.Token);
 	Snapshot.DisplayName = Session.DisplayName;
+	Snapshot.AccountId = Session.AccountId;
 	Host.WriteHandshake(VeyraLaunchHandshake::SignedIn);
 	Log(FString::Printf(TEXT("signed in as %s."), *Session.DisplayName));
 	Resume();
@@ -326,10 +423,11 @@ void FVeyraClientFlow::FailSignIn(EFailure Failure, const FString& Reason)
 
 // Where the player is ---------------------------------------------------------------------------
 
-void FVeyraClientFlow::Resume()
+void FVeyraClientFlow::Resume(const FString& Notice)
 {
 	// A live match outranks everything, then a select in progress, then the starter choice (ADR-010 §2).
-	Enter(EVeyraClientState::Loading);
+	// A match found shows through the party, which the shell reads.
+	Enter(EVeyraClientState::Loading, Notice);
 	Broadcast();
 	Call(EVerb::Get, MyMatchPath, FString(), [this](const FVeyraBackendResponse& Response) {
 		if (!Response.IsSuccess())
@@ -389,8 +487,7 @@ void FVeyraClientFlow::LoadProfile()
 		}
 		if (Profile.bTutorialCompleted)
 		{
-			Enter(EVeyraClientState::Shell);
-			Broadcast();
+			EnterShell(Snapshot.Notice);
 			return;
 		}
 		Call(EVerb::Get, VanguardsPath, FString(), [this](const FVeyraBackendResponse& VanguardsResponse) {
@@ -425,8 +522,7 @@ bool FVeyraClientFlow::ChooseStarter(const FString& VanguardId)
 		SetBusy(false);
 		if (Response.IsSuccess())
 		{
-			Enter(EVeyraClientState::Shell);
-			Broadcast();
+			EnterShell(FString());
 		}
 		else if (IsRefusal(Response, TEXT("already_completed")))
 		{
@@ -474,6 +570,348 @@ bool FVeyraClientFlow::StartPractice()
 	return true;
 }
 
+// The shell, the party and its queue ------------------------------------------------------------
+
+void FVeyraClientFlow::EnterShell(const FString& Notice)
+{
+	Enter(EVeyraClientState::Shell, Notice);
+	bExplainQueue = Notice == MissedNotice || Notice == AbandonedNotice;
+	Broadcast();
+	if (Snapshot.Modes.IsEmpty())
+	{
+		LoadModes();
+	}
+	// There is no push channel yet: a queue's progress, and a match found, arrive through the party (ADR-010 §10).
+	PollParty();
+}
+
+void FVeyraClientFlow::LoadModes()
+{
+	Call(EVerb::Get, ModesPath, FString(), [this](const FVeyraBackendResponse& Response) {
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("the modes"), [this] { LoadModes(); });
+			return;
+		}
+		TArray<VeyraBackendProtocol::FModeInfo> Modes;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseModes(Response.Body, Modes, Problem))
+		{
+			ShowBadAnswer(TEXT("the modes"), Problem, [this] { LoadModes(); });
+			return;
+		}
+		Snapshot.Modes = MoveTemp(Modes);
+		Broadcast();
+	});
+}
+
+void FVeyraClientFlow::PollParty()
+{
+	const uint32 Sequence = ++PartySequence;
+	Call(EVerb::Get, PartyPath, FString(), [this, Sequence](const FVeyraBackendResponse& Response) {
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("the player's party"), [this] { PollParty(); });
+			return;
+		}
+		TOptional<VeyraBackendProtocol::FParty> Party;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseParty(Response.Body, Party, Problem))
+		{
+			ShowBadAnswer(TEXT("the player's party"), Problem, [this] { PollParty(); });
+			return;
+		}
+		if (!ApplyParty(Sequence, MoveTemp(Party)))
+		{
+			After(Config.PartyPollIntervalSeconds, [this] { PollParty(); });
+			return;
+		}
+		if (bExplainQueue)
+		{
+			bExplainQueue = false;
+			if (Snapshot.Party.IsSet() && Snapshot.Party->Status != EPartyStatus::Idle)
+			{
+				// Not at fault: matchmaking put the party back in the queue, keeping its place (§3).
+				Snapshot.Notice = RequeuedNotice;
+				Broadcast();
+			}
+		}
+		if (Snapshot.Party.IsSet() && (Snapshot.Party->Status == EPartyStatus::Found || Snapshot.Party->Status == EPartyStatus::Selecting))
+		{
+			FollowParty();
+			return;
+		}
+		After(Config.PartyPollIntervalSeconds, [this] { PollParty(); });
+	});
+}
+
+void FVeyraClientFlow::CallParty(EVerb Verb, const TCHAR* Path, const FString& Body, const TCHAR* What)
+{
+	const uint32 Sequence = ++PartySequence;
+	SetBusy(true);
+	Call(Verb, Path, Body, [this, Sequence, What](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		if (IsRefusal(Response, TEXT("party_locked")))
+		{
+			// Matchmaking moved the party on first; the next read shows where.
+			return;
+		}
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, What, nullptr);
+			return;
+		}
+		TOptional<VeyraBackendProtocol::FParty> Party;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseParty(Response.Body, Party, Problem))
+		{
+			ShowBadAnswer(What, Problem, nullptr);
+			return;
+		}
+		ApplyParty(Sequence, MoveTemp(Party));
+	});
+}
+
+bool FVeyraClientFlow::ApplyParty(uint32 Sequence, TOptional<VeyraBackendProtocol::FParty> Party)
+{
+	if (Sequence < ShownPartySequence)
+	{
+		return false;
+	}
+	ShownPartySequence = Sequence;
+	if (Party.IsSet() && Party->Status != EPartyStatus::Idle)
+	{
+		Snapshot.QueuedSince = Host.Now() - Party->QueuedSeconds;
+	}
+	Snapshot.Party = MoveTemp(Party);
+	Broadcast();
+	return true;
+}
+
+void FVeyraClientFlow::FollowParty()
+{
+	if (Snapshot.Party->Status == EPartyStatus::Found)
+	{
+		Call(EVerb::Get, MatchFoundPath, FString(), [this](const FVeyraBackendResponse& Response) {
+			if (!Response.IsSuccess())
+			{
+				ShowRefusal(Response, TEXT("the match found"), [this] { PollParty(); });
+				return;
+			}
+			TOptional<VeyraBackendProtocol::FMatchFound> Found;
+			FString Problem;
+			if (!VeyraBackendProtocol::ParseMatchFound(Response.Body, Found, Problem))
+			{
+				ShowBadAnswer(TEXT("the match found"), Problem, [this] { PollParty(); });
+				return;
+			}
+			if (Found.IsSet())
+			{
+				EnterMatchFound(*Found);
+				return;
+			}
+			// It ended before this read; the party shows what came of it.
+			After(Config.PartyPollIntervalSeconds, [this] { PollParty(); });
+		});
+		return;
+	}
+	Call(EVerb::Get, MySelectPath, FString(), [this](const FVeyraBackendResponse& Response) {
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("the player's champion select"), [this] { PollParty(); });
+			return;
+		}
+		TOptional<VeyraBackendProtocol::FSelect> Select;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseSelect(Response.Body, Select, Problem))
+		{
+			ShowBadAnswer(TEXT("the player's champion select"), Problem, [this] { PollParty(); });
+			return;
+		}
+		if (Select.IsSet())
+		{
+			EnterSelecting(*Select);
+			return;
+		}
+		After(Config.PartyPollIntervalSeconds, [this] { PollParty(); });
+	});
+}
+
+const VeyraBackendProtocol::FModeInfo* FVeyraClientFlow::FindMode(const FString& ModeId) const
+{
+	return Snapshot.Modes.FindByPredicate([&ModeId](const VeyraBackendProtocol::FModeInfo& Mode) { return Mode.Id == ModeId; });
+}
+
+bool FVeyraClientFlow::LeadsIdleParty() const
+{
+	return Snapshot.Party.IsSet() && Snapshot.Party->Status == EPartyStatus::Idle && Leads(Snapshot);
+}
+
+bool FVeyraClientFlow::SelectMode(const FString& ModeId)
+{
+	const VeyraBackendProtocol::FModeInfo* Mode = FindMode(ModeId);
+	if (!CanIssue(EVeyraClientIntent::SelectMode) || !Mode || !Mode->bEnabled || !Mode->bMatchmade)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("choosing the mode %s."), *ModeId));
+	CallParty(EVerb::Put, PartyModePath, VeyraBackendProtocol::BuildModeBody(ModeId), TEXT("the mode"));
+	return true;
+}
+
+bool FVeyraClientFlow::SetReady(bool bReady)
+{
+	if (!CanIssue(EVeyraClientIntent::SetReady))
+	{
+		return false;
+	}
+	Log(bReady ? TEXT("ready.") : TEXT("not ready."));
+	CallParty(EVerb::Put, PartyReadyPath, VeyraBackendProtocol::BuildReadyBody(bReady), TEXT("Ready"));
+	return true;
+}
+
+bool FVeyraClientFlow::FindMatch()
+{
+	if (!CanIssue(EVeyraClientIntent::FindMatch))
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("queueing for %s."), *Snapshot.Party->Mode));
+	CallParty(EVerb::Post, QueuePath, FString(), TEXT("the queue"));
+	return true;
+}
+
+bool FVeyraClientFlow::CancelQueue()
+{
+	if (!CanIssue(EVeyraClientIntent::CancelQueue))
+	{
+		return false;
+	}
+	Log(TEXT("leaving the queue."));
+	CallParty(EVerb::Delete, QueuePath, FString(), TEXT("leaving the queue"));
+	return true;
+}
+
+// A match found ---------------------------------------------------------------------------------
+
+void FVeyraClientFlow::EnterMatchFound(const VeyraBackendProtocol::FMatchFound& Found)
+{
+	Enter(EVeyraClientState::MatchFound);
+	Log(FString::Printf(TEXT("a match was found (%s, %s): %d of %d accepted."), *Found.Id, *Found.Mode, Found.Accepted, Found.Total));
+	ApplyMatchFound(Found);
+	if (Snapshot.State == EVeyraClientState::MatchFound)
+	{
+		After(Config.MatchFoundPollIntervalSeconds, [this] { PollMatchFound(); });
+	}
+}
+
+void FVeyraClientFlow::PollMatchFound()
+{
+	Call(EVerb::Get, MatchFoundPath, FString(), [this](const FVeyraBackendResponse& Response) {
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("the match found"), [this] { PollMatchFound(); });
+			return;
+		}
+		TOptional<VeyraBackendProtocol::FMatchFound> Found;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseMatchFound(Response.Body, Found, Problem))
+		{
+			ShowBadAnswer(TEXT("the match found"), Problem, [this] { PollMatchFound(); });
+			return;
+		}
+		if (!Found.IsSet() || Found->Id != Snapshot.MatchFound.Id)
+		{
+			// Only a match found that waits for answers is reported: this one is over.
+			LeaveMatchFound();
+			return;
+		}
+		ApplyMatchFound(*Found);
+		if (Snapshot.State == EVeyraClientState::MatchFound)
+		{
+			After(Config.MatchFoundPollIntervalSeconds, [this] { PollMatchFound(); });
+		}
+	});
+}
+
+void FVeyraClientFlow::ApplyMatchFound(const VeyraBackendProtocol::FMatchFound& Found)
+{
+	Snapshot.MatchFound = Found;
+	if (Found.State != PendingAnswer)
+	{
+		LeaveMatchFound();
+		return;
+	}
+	Snapshot.AcceptEndsAt = Host.Now() + Found.RemainingSeconds;
+	Broadcast();
+}
+
+void FVeyraClientFlow::LeaveMatchFound()
+{
+	// An accepted match continues in its select. Otherwise, the notice says why the player is back
+	// in the shell, by their own answer and then their party: nobody learns who else declined
+	// (Parties & Social Bible §3).
+	const VeyraBackendProtocol::FMatchFound& Found = Snapshot.MatchFound;
+	FString Notice;
+	if (Found.State != AcceptedAnswer)
+	{
+		Notice = Found.You == DeclinedAnswer ? DeclinedNotice : Found.You == AcceptedAnswer ? AbandonedNotice : MissedNotice;
+	}
+	Log(FString::Printf(TEXT("match found %s is over (%s)."), *Found.Id, Notice.IsEmpty() ? AcceptedAnswer : *Notice));
+	Resume(Notice);
+}
+
+bool FVeyraClientFlow::AcceptMatch()
+{
+	if (!CanIssue(EVeyraClientIntent::AcceptMatch))
+	{
+		return false;
+	}
+	AnswerMatchFound(/*bAccept*/ true);
+	return true;
+}
+
+bool FVeyraClientFlow::DeclineMatch()
+{
+	if (!CanIssue(EVeyraClientIntent::DeclineMatch))
+	{
+		return false;
+	}
+	AnswerMatchFound(/*bAccept*/ false);
+	return true;
+}
+
+void FVeyraClientFlow::AnswerMatchFound(bool bAccept)
+{
+	Log(bAccept ? TEXT("accepting the match.") : TEXT("declining the match."));
+	SetBusy(true);
+	Call(EVerb::Post, bAccept ? AcceptMatchPath : DeclineMatchPath, FString(), [this](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		TOptional<VeyraBackendProtocol::FMatchFound> Found;
+		FString Problem;
+		if (Response.IsSuccess() && VeyraBackendProtocol::ParseMatchFound(Response.Body, Found, Problem) && Found.IsSet() && Found->Id == Snapshot.MatchFound.Id)
+		{
+			// The last acceptance opens the select before the backend answers.
+			ApplyMatchFound(*Found);
+		}
+		else if (Response.IsSuccess())
+		{
+			ShowBadAnswer(TEXT("the answer to the match found"), Problem.IsEmpty() ? FString(TEXT("it is not the player's match found")) : Problem, nullptr);
+		}
+		else if (IsRefusal(Response, TEXT("match_found_not_found")) || IsRefusal(Response, TEXT("match_found_over")) || IsRefusal(Response, TEXT("expired")))
+		{
+			LeaveMatchFound();
+		}
+		else if (!IsRefusal(Response, TEXT("already_answered")))
+		{
+			ShowRefusal(Response, TEXT("the answer to the match found"), nullptr);
+		}
+		// An answer an earlier attempt already gave shows on the next read.
+	});
+}
+
+// Champion select -------------------------------------------------------------------------------
+
 void FVeyraClientFlow::EnterSelecting(const VeyraBackendProtocol::FSelect& Select)
 {
 	Enter(EVeyraClientState::Selecting);
@@ -498,8 +936,7 @@ void FVeyraClientFlow::ApplySelect(const VeyraBackendProtocol::FSelect& Select)
 		return;
 	case ESelectState::Cancelled:
 		Log(FString::Printf(TEXT("champion select %s was cancelled (%s)."), *Select.Id, *Select.CancelReason));
-		Enter(EVeyraClientState::Shell, Select.CancelReason);
-		Broadcast();
+		EnterShell(Select.CancelReason);
 		return;
 	default:
 		Snapshot.Select = Select;
@@ -601,7 +1038,7 @@ bool FVeyraClientFlow::HoverVanguard(const FString& VanguardId)
 		{
 			ShowBadAnswer(TEXT("the hover"), Problem.IsEmpty() ? FString(TEXT("it is not the player's select")) : Problem, nullptr);
 		}
-		else if (IsRefusal(Response, TEXT("not_available")))
+		else if (IsRefusal(Response, TEXT("not_available")) || IsRefusal(Response, TEXT("taken")))
 		{
 			ShowRefusal(Response, TEXT("the hover"), nullptr);
 		}
@@ -631,11 +1068,47 @@ bool FVeyraClientFlow::LockVanguard(const FString& VanguardId)
 		{
 			ShowBadAnswer(TEXT("the lock"), Problem.IsEmpty() ? FString(TEXT("it is not the player's select")) : Problem, nullptr);
 		}
-		else if (IsRefusal(Response, TEXT("not_available")))
+		else if (IsRefusal(Response, TEXT("not_available")) || IsRefusal(Response, TEXT("taken")))
 		{
+			// In a matchmade select a Vanguard is unique: another player may have locked it first.
 			ShowRefusal(Response, TEXT("the lock"), nullptr);
 		}
 		// Otherwise, such as a lock that an earlier attempt already made, the next read shows where the select is.
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::LeaveSelect()
+{
+	if (!CanIssue(EVeyraClientIntent::LeaveSelect))
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("leaving champion select %s."), *SelectId));
+	SetBusy(true);
+	Call(EVerb::Post, LeaveSelectPath, FString(), [this](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		TOptional<VeyraBackendProtocol::FSelect> Select;
+		FString Problem;
+		if (Response.IsSuccess() && VeyraBackendProtocol::ParseSelect(Response.Body, Select, Problem) && Select.IsSet() && Select->Id == SelectId)
+		{
+			if (Select->State == ESelectState::Cancelled)
+			{
+				// Everyone else sees it cancelled because a player left; the leaver's party left the queue.
+				EnterShell(TEXT("you_left"));
+				return;
+			}
+			ApplySelect(*Select);
+		}
+		else if (Response.IsSuccess())
+		{
+			ShowBadAnswer(TEXT("leaving champion select"), Problem.IsEmpty() ? FString(TEXT("it is not the player's select")) : Problem, nullptr);
+		}
+		else if (IsRefusal(Response, TEXT("cannot_leave")))
+		{
+			ShowRefusal(Response, TEXT("leaving champion select"), nullptr);
+		}
+		// Otherwise the select moved on, and the next read shows where.
 	});
 	return true;
 }
@@ -1017,6 +1490,9 @@ void FVeyraClientFlow::Call(EVerb Verb, const FString& Path, const FString& Body
 		break;
 	case EVerb::Put:
 		Backend.Put(Path, GameSession, Body, MoveTemp(OnDone));
+		break;
+	case EVerb::Delete:
+		Backend.Delete(Path, GameSession, MoveTemp(OnDone));
 		break;
 	}
 }
