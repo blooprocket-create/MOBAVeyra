@@ -88,3 +88,16 @@ public:
 
 	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Structure; }
 };
+
+// A jungle creature for the tests of what is neutral: the test unit, reporting itself wildlife, on no
+// side unless a test gives it one (ADR-014 §1).
+UCLASS(NotBlueprintable, NotPlaceable, Transient)
+class AVeyraTestWildlife : public AVeyraTestFluxborn
+{
+	GENERATED_BODY()
+
+public:
+	AVeyraTestWildlife(const FObjectInitializer& ObjectInitializer);
+
+	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Wildlife; }
+};

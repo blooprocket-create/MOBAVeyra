@@ -4,6 +4,7 @@
 #include "Components/ActorTestSpawner.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Tests/Abilities/VeyraTestFluxborn.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraPlayerState.h"
@@ -81,6 +82,24 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsFalse(VeyraTargeting::AreHostile(&Neutral, &Enemy)));
 			ASSERT_THAT(IsTrue(VeyraTargeting::AreHostile(&Caster, &Enemy)));
 			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Neutral, Separation) == EVeyraTargetValidity::NotHostile));
+		}
+
+		TEST_METHOD(NeutralUnitsAreHostileToVanguardsButNotToLaneUnits)
+		{
+			// A neutral unit is the one explicit category on no side (ADR-014 §1).
+			AVeyraVanguardCharacter& Caster = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, FVector(0.0, Separation, 0.0));
+			AVeyraTestWildlife& Creature = Spawner.SpawnActorAt<AVeyraTestWildlife>(FVector(Separation, 0.0, 0.0), FRotator::ZeroRotator);
+			AVeyraTestWildlife& OtherCreature = Spawner.SpawnActorAt<AVeyraTestWildlife>(FVector(-Separation, 0.0, 0.0), FRotator::ZeroRotator);
+			AVeyraTestFluxborn& Minion = Spawner.SpawnActorAt<AVeyraTestFluxborn>(FVector(0.0, -Separation, 0.0), FRotator::ZeroRotator);
+			Minion.SetVeyraTeam(EVeyraTeam::B);
+			AVeyraTestStructure& Tower = Spawner.SpawnActorAt<AVeyraTestStructure>(FVector(Separation, Separation, 0.0), FRotator::ZeroRotator);
+			Tower.SetVeyraTeam(EVeyraTeam::B);
+			ASSERT_THAT(IsTrue(VeyraTargeting::AreHostile(&Caster, &Creature) && VeyraTargeting::AreHostile(&Creature, &Enemy), TEXT("both sides fight it, and it fights back")));
+			ASSERT_THAT(IsFalse(VeyraTargeting::AreHostile(&Minion, &Creature) || VeyraTargeting::AreHostile(&Creature, &Minion), TEXT("not lane Fluxborn")));
+			ASSERT_THAT(IsFalse(VeyraTargeting::AreHostile(&Tower, &Creature) || VeyraTargeting::AreHostile(&Creature, &Tower), TEXT("not structures")));
+			ASSERT_THAT(IsFalse(VeyraTargeting::AreHostile(&Creature, &OtherCreature), TEXT("not another neutral unit")));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Creature, Separation) == EVeyraTargetValidity::Valid));
 		}
 	};
 }

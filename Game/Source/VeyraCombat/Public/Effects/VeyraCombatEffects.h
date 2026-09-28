@@ -70,6 +70,8 @@ public:
 	static const FName TenacityMultiplierName;
 	static const FName IncomingDamageMultiplierName;
 	static const FName DisplacementMultiplierName;
+	static const FName HealthRegenMultiplierName;
+	static const FName OutgoingDamageMultiplierName;
 };
 
 /**

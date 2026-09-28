@@ -215,7 +215,7 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification"]
             },
             "stacking": {
               "description": "Combat Bible §46.",

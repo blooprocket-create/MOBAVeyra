@@ -74,3 +74,8 @@ AVeyraTestStructure::AVeyraTestStructure(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 {
 }
+
+AVeyraTestWildlife::AVeyraTestWildlife(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}

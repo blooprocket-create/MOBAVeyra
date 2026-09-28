@@ -40,6 +40,13 @@ enum class EVeyraStatusKind : uint8
 	 * above 0 and at most 1.
 	 */
 	MoveSpeedTowardEnemyVanguards,
+	/** Changes Health Regeneration. Not crowd control. Magnitude: the change per stack, above -1 and not 0; 1 doubles it. */
+	HealthRegeneration,
+	/**
+	 * Increases the damage the unit deals, the counterpart of DamageReduction. Not crowd control.
+	 * Magnitude: the fraction added per stack, above 0, every stack together at most 1.
+	 */
+	DamageAmplification,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

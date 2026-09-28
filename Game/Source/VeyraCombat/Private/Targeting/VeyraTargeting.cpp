@@ -31,11 +31,24 @@ bool IsAlive(const AActor* Unit)
 
 bool AreHostile(const UObject* A, const UObject* B)
 {
-	// Only the two sides are hostile to each other. Anything on no side, such as neutral wildlife, is
-	// an explicit targeting category, never an implicit enemy (Combat Bible §29).
+	// The two sides are hostile to each other. Anything on no side is no one's enemy, save one explicit
+	// category (Combat Bible §29; ADR-014 §1): a neutral unit, wildlife or an objective, is hostile to
+	// what is on a side (Vanguards and what they cast), but never to lane Fluxborn or structures, and
+	// never to another neutral unit.
 	const EVeyraTeam TeamA = VeyraTeams::TeamOf(A);
 	const EVeyraTeam TeamB = VeyraTeams::TeamOf(B);
-	return TeamA != EVeyraTeam::None && TeamB != EVeyraTeam::None && TeamA != TeamB;
+	if (TeamA != EVeyraTeam::None && TeamB != EVeyraTeam::None)
+	{
+		return TeamA != TeamB;
+	}
+	const UObject* Sided = TeamA != EVeyraTeam::None ? A : TeamB != EVeyraTeam::None ? B : nullptr;
+	const UObject* Other = Sided == A ? B : A;
+	if (!Sided || !VeyraUnits::IsNeutral(Other))
+	{
+		return false;
+	}
+	const TOptional<EVeyraUnitKind> SidedKind = VeyraUnits::KindOf(Sided);
+	return !SidedKind.IsSet() || (SidedKind.GetValue() != EVeyraUnitKind::Fluxborn && SidedKind.GetValue() != EVeyraUnitKind::Structure);
 }
 
 bool CanAcquire(const UObject* /*Acquirer*/, const AActor& /*Target*/)
