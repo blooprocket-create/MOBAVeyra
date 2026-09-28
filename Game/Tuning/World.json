@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "layout": {
+    "provenance": "Provisional",
+    "halfExtent": 9000,
+    "riverWidth": 1000,
+    "lanes": [
+      {
+        "lane": "Top",
+        "points": [{ "x": -2300, "y": -6500 }, { "x": 6500, "y": -6500 }, { "x": 6500, "y": 2300 }],
+        "width": 700,
+        "inhibitorDistance": 0,
+        "spireDistances": [1200, 3200, 5500]
+      },
+      {
+        "lane": "Mid",
+        "points": [{ "x": -3530, "y": -3530 }, { "x": 3530, "y": 3530 }],
+        "width": 700,
+        "inhibitorDistance": 0,
+        "spireDistances": [1000, 2200, 3400]
+      },
+      {
+        "lane": "Bottom",
+        "points": [{ "x": -6500, "y": -2300 }, { "x": -6500, "y": 6500 }, { "x": 2300, "y": 6500 }],
+        "width": 700,
+        "inhibitorDistance": 0,
+        "spireDistances": [1200, 3200, 5500]
+      }
+    ],
+    "base": {
+      "primeWell": { "x": -6500, "y": -6500 },
+      "baseTowers": [{ "x": -5758, "y": -6252 }, { "x": -6252, "y": -5758 }],
+      "fountain": { "x": -7800, "y": -7800 },
+      "padRadius": 4200,
+      "fountainRadius": 700
+    }
+  },
+  "structures": {
+    "provenance": "Provisional",
+    "laneSpire": { "maxHealth": 3500, "armor": 60, "magicResist": 60, "capsuleRadius": 120, "capsuleHalfHeight": 250 },
+    "baseTower": { "maxHealth": 3000, "armor": 60, "magicResist": 60, "capsuleRadius": 120, "capsuleHalfHeight": 250 },
+    "inhibitor": { "maxHealth": 3000, "armor": 20, "magicResist": 20, "capsuleRadius": 150, "capsuleHalfHeight": 120 },
+    "primeWell": { "maxHealth": 5500, "armor": 0, "magicResist": 0, "capsuleRadius": 350, "capsuleHalfHeight": 300 }
+  },
+  "inhibitor": {
+    "provenance": "Canon",
+    "rebuildSeconds": 180
+  },
+  "primeWell": {
+    "provenance": "Provisional",
+    "regenerationFractionPerSecond": 0.005
+  },
+  "towerAttack": {
+    "provenance": "Provisional",
+    "damageType": "Physical",
+    "damage": 150,
+    "intervalSeconds": 1,
+    "range": 750,
+    "projectileSpeed": 1200,
+    "projectileRadius": 30
+  },
+  "towerRamp": {
+    "provenance": "Canon",
+    "perShot": 0.2,
+    "maxStacks": 5
+  }
+}

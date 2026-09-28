@@ -147,6 +147,8 @@ Flux Spell unlocks are validated against **permanent Team Flux only**; temporary
 
 A Flux Spell cast does not consume shared Flux under the current game design. Swapping Flux Spells at the shop costs gold and should use the economy transaction API rather than mutating gold in the Flux module.
 
+VeyraFlux arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2) in the **Battleground** layer, a peer of VeyraWorld: the two meet only through Match, which passes World's structure destructions to Flux and Flux's changes back to World. Its tuning is `Game/Tuning/Flux.json`.
+
 ### VeyraWorld
 
 - Flux Wells and other world objectives;
@@ -157,6 +159,8 @@ A Flux Spell cast does not consume shared Flux under the current game design. Sw
 - runtime navigation changes from ability-created terrain (Battleground Bible §2).
 
 World actors report outcomes to the authoritative owning systems rather than reaching directly into UI or champion code.
+
+VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2, §12) in the **Battleground** layer, above Abilities, whose attacks and projectiles its units use. `Game/Tuning/World.json` holds the battleground's layout (Team A's half; Team B's is its mirror across the river's diagonal) and its structures; `VeyraLayout` turns the layout into lanes, waypoints and structure placements for the map commandlet and the server alike.
 
 ### VeyraVision
 

@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "World tuning",
+  "description": "Gameplay tuning owned by the World domain (Battleground Bible; ADR-011 §12, §17): the battleground's grey-box layout, which the map commandlet bakes and the server spawns from, and its structures. Distances are in world units; X runs up the screen and Y to its right. VeyraWorld binds it to FVeyraWorldTuning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "layout", "structures", "inhibitor", "primeWell", "towerAttack", "towerRamp"],
+  "definitions": {
+    "provenance": {
+      "description": "Where these values come from (ADR-008 §7).",
+      "type": "string",
+      "enum": ["Provisional", "Canon", "Reviewed"]
+    },
+    "point": {
+      "description": "A point on the floor, in world units.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["x", "y"],
+      "properties": {
+        "x": { "type": "number", "minimum": -1000000 },
+        "y": { "type": "number", "minimum": -1000000 }
+      }
+    },
+    "lane": {
+      "description": "One Fluxway (Battleground Bible §2, §4) and Team A's structures on it; Team B's are their mirror.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["lane", "points", "width", "inhibitorDistance", "spireDistances"],
+      "properties": {
+        "lane": { "type": "string", "enum": ["Top", "Mid", "Bottom"] },
+        "points": {
+          "description": "The lane's path from Team A's base to Team B's. It must be its own mirror across Y = -X, reversed.",
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/definitions/point" }
+        },
+        "width": { "description": "How wide the lane's road is drawn.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "inhibitorDistance": { "description": "Team A's inhibitor: its distance along the lane from Team A's end.", "type": "number", "minimum": 0 },
+        "spireDistances": {
+          "description": "Team A's three Spires (Battleground Bible §10): their distances beyond the inhibitor, strictly rising, so the last is the outer Spire.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+        }
+      }
+    },
+    "structure": {
+      "description": "One kind of structure's stats and body. Structures have their own Armor and Magic Resist (Combat Bible §33).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxHealth", "armor", "magicResist", "capsuleRadius", "capsuleHalfHeight"],
+      "properties": {
+        "maxHealth": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "armor": { "type": "number", "minimum": 0 },
+        "magicResist": { "type": "number", "minimum": 0 },
+        "capsuleRadius": { "description": "The body's radius: what attacks reach and what blocks movement.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "capsuleHalfHeight": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [1]
+    },
+    "layout": {
+      "description": "The grey-box battleground (Battleground Bible §2, macro shape ruled 2026-09-28): bases in opposite corners, top and bot lanes along the sides set in from the edge with outer jungle beyond, mid on the diagonal, the river across the other diagonal. Team A's half is authored; Team B's is its mirror across Y = -X.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "halfExtent", "riverWidth", "lanes", "base"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "halfExtent": { "description": "The square floor reaches this far from the centre in each direction.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "riverWidth": { "description": "How wide the river is drawn along its diagonal.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "lanes": { "description": "Top, Mid and Bottom, once each.", "type": "array", "minItems": 3, "maxItems": 3, "items": { "$ref": "#/definitions/lane" } },
+        "base": {
+          "description": "Team A's base (Battleground Bible §3, §12, §18).",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["primeWell", "baseTowers", "fountain", "padRadius", "fountainRadius"],
+          "properties": {
+            "primeWell": { "$ref": "#/definitions/point" },
+            "baseTowers": { "description": "The two base-defense towers (§18).", "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/point" } },
+            "fountain": { "$ref": "#/definitions/point", "description": "Where the team's Vanguards start and respawn." },
+            "padRadius": { "description": "The base's pad, drawn around the Prime Well.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "fountainRadius": { "description": "How far from the fountain point a Vanguard counts as at its fountain (§12).", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "structures": {
+      "description": "Every kind of structure's stats and body (Battleground Bible §5, §10, §18). Canon gives no numbers.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "laneSpire", "baseTower", "inhibitor", "primeWell"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "laneSpire": { "$ref": "#/definitions/structure" },
+        "baseTower": { "$ref": "#/definitions/structure" },
+        "inhibitor": { "$ref": "#/definitions/structure" },
+        "primeWell": { "$ref": "#/definitions/structure" }
+      }
+    },
+    "inhibitor": {
+      "description": "An inhibitor reconstructs after it falls (Battleground Bible §10, §18).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "rebuildSeconds"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "rebuildSeconds": { "description": "How long after its destruction an inhibitor reconstructs at full Health, in seconds (§10: 3 minutes).", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    },
+    "primeWell": {
+      "description": "The passive Prime Well regenerates missing Health while all its team's inhibitors stand (Battleground Bible §18).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "regenerationFractionPerSecond"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "regenerationFractionPerSecond": { "description": "Missing Health restored per second, as a fraction of its Max Health.", "type": "number", "minimum": 0 }
+      }
+    },
+    "towerAttack": {
+      "description": "A lane Spire's or base-defense tower's shot (Combat Bible §33, §55): Physical, not a basic attack, never a crit.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "damageType", "damage", "intervalSeconds", "range", "projectileSpeed", "projectileRadius"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "damageType": { "description": "Physical at current prototype defaults (§55).", "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+        "damage": { "description": "Each shot's base damage, before the consecutive-hit ramp.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "intervalSeconds": { "description": "Seconds between shots.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "range": { "description": "Attack range, edge to edge (Combat Bible §40).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "projectileSpeed": { "description": "The homing shot's speed, in units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "projectileRadius": { "description": "The shot's own radius; it lands when it touches the target's body.", "type": "number", "minimum": 0 }
+      }
+    },
+    "towerRamp": {
+      "description": "Consecutive tower shots against the same Vanguard escalate, and reset on target loss or switch (Combat Bible §33).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "perShot", "maxStacks"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "perShot": { "description": "Damage added per consecutive shot, as a fraction of the base; 0.2 is +20%.", "type": "number", "minimum": 0 },
+        "maxStacks": { "description": "The most ramp stacks a shot can carry.", "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}

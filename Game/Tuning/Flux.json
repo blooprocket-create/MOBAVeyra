@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "grants": {
+    "provenance": "Canon",
+    "laneSpire": { "duration": "Permanent", "amount": 25, "durationSeconds": 0 },
+    "baseTower": { "duration": "Permanent", "amount": 25, "durationSeconds": 0 },
+    "inhibitor": { "duration": "Temporary", "amount": 25, "durationSeconds": 180 }
+  },
+  "fluxbornScaling": {
+    "provenance": "Canon",
+    "stepFlux": 25,
+    "healthPerStep": 0.05,
+    "damagePerStep": 0.05
+  }
+}

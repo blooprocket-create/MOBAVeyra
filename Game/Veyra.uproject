@@ -30,6 +30,16 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "VeyraFlux",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "VeyraWorld",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "VeyraVanguards",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"

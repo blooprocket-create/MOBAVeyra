@@ -18,8 +18,13 @@
     },
     {
       "name": "Abilities",
-      "description": "Systems that compose the rules below them (PROJECT_STRUCTURE.md §2, Abilities / Items / Flux / World / Vision).",
+      "description": "Systems that compose the rules below them (PROJECT_STRUCTURE.md §2, Abilities; Items later).",
       "modules": ["VeyraAbilities"]
+    },
+    {
+      "name": "Battleground",
+      "description": "The battleground's systems (ADR-011 §2, PROJECT_STRUCTURE.md §2, Flux / World; Vision later): peers that compose Abilities' attacks and projectiles and meet only through Match (Orchestration). Above Abilities; below Content, whose kits may later call into the world.",
+      "modules": ["VeyraFlux", "VeyraWorld"]
     },
     {
       "name": "Content",
