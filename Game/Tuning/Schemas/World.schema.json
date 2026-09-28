@@ -127,7 +127,7 @@
       "description": "A lane Spire's or base-defense tower's shot (Combat Bible §33, §55): Physical, not a basic attack, never a crit.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "damageType", "damage", "intervalSeconds", "range", "projectileSpeed", "projectileRadius"],
+      "required": ["provenance", "damageType", "damage", "intervalSeconds", "range", "projectileSpeed", "projectileRadius", "thinkSeconds"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "damageType": { "description": "Physical at current prototype defaults (§55).", "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
@@ -135,7 +135,8 @@
         "intervalSeconds": { "description": "Seconds between shots.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "range": { "description": "Attack range, edge to edge (Combat Bible §40).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "projectileSpeed": { "description": "The homing shot's speed, in units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-        "projectileRadius": { "description": "The shot's own radius; it lands when it touches the target's body.", "type": "number", "minimum": 0 }
+        "projectileRadius": { "description": "The shot's own radius; it lands when it touches the target's body.", "type": "number", "minimum": 0 },
+        "thinkSeconds": { "description": "How often a tower reconsiders its target, in seconds: how soon it answers aggression or a target leaving.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
       }
     },
     "towerRamp": {

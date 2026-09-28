@@ -9,9 +9,12 @@
 #include "Layout/VeyraLayout.h"
 #include "Rules/VeyraStructureRules.h"
 #include "Structures/VeyraStructure.h"
+#include "Structures/VeyraStructureAttackComponent.h"
+#include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
+#include "Units/VeyraUnit.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraWorldLog.h"
 
@@ -46,6 +49,7 @@ void UVeyraBattlegroundSubsystem::Initialize(FSubsystemCollectionBase& Collectio
 	if (Events)
 	{
 		DeathHandle = Events->OnDeath.AddUObject(this, &UVeyraBattlegroundSubsystem::OnDeath);
+		HostileDamageHandle = Events->OnHostileDamage.AddUObject(this, &UVeyraBattlegroundSubsystem::OnHostileDamage);
 	}
 }
 
@@ -56,6 +60,7 @@ void UVeyraBattlegroundSubsystem::Deinitialize()
 		if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
 		{
 			Events->OnDeath.Remove(DeathHandle);
+			Events->OnHostileDamage.Remove(HostileDamageHandle);
 		}
 	}
 	Stop();
@@ -88,6 +93,10 @@ void UVeyraBattlegroundSubsystem::SpawnStructures(const FVeyraBattlegroundLayout
 		Structure->FinishSpawning(FTransform(Location));
 		Structure->InitializeStats();
 		Structures.Add(Structure);
+		if (UVeyraStructureAttackComponent* Attack = Structure->GetAttack())
+		{
+			Attack->StartAttacking();
+		}
 	}
 	RefreshInvulnerability();
 	const float Tick = static_cast<float>(UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds);
@@ -111,6 +120,13 @@ AVeyraStructure* UVeyraBattlegroundSubsystem::FindStructure(EVeyraTeam Team, EVe
 void UVeyraBattlegroundSubsystem::Stop()
 {
 	bStopped = true;
+	for (AVeyraStructure* Structure : Structures)
+	{
+		if (UVeyraStructureAttackComponent* Attack = Structure ? Structure->GetAttack() : nullptr)
+		{
+			Attack->StopAttacking();
+		}
+	}
 	if (UWorld* World = GetWorld())
 	{
 		FTimerManager& Timers = World->GetTimerManager();
@@ -188,6 +204,27 @@ void UVeyraBattlegroundSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 	Event.Lane = Structure->GetLane();
 	Event.Death = Death;
 	OnStructureDestroyed.Broadcast(Event);
+}
+
+void UVeyraBattlegroundSubsystem::OnHostileDamage(const FVeyraHostileDamageEvent& Event)
+{
+	const UAbilitySystemComponent* Source = Event.Source.Get();
+	const UAbilitySystemComponent* Target = Event.Target.Get();
+	AActor* Attacker = Source ? Source->GetAvatarActor() : nullptr;
+	const AActor* Defender = Target ? Target->GetAvatarActor() : nullptr;
+	if (bStopped || !IsServer() || !Attacker || !Defender || !VeyraUnits::IsVanguard(Attacker) || !VeyraUnits::IsVanguard(Defender))
+	{
+		return;
+	}
+	for (AVeyraStructure* Structure : Structures)
+	{
+		UVeyraStructureAttackComponent* Attack = Structure ? Structure->GetAttack() : nullptr;
+		if (Attack && !Structure->IsDestroyed() && Structure->GetVeyraTeam() == VeyraTeams::TeamOf(Defender)
+			&& VeyraTargeting::AreHostile(Structure, Attacker) && Attack->IsInRange(*Attacker) && Attack->IsInRange(*Defender))
+		{
+			Attack->NoteAggression(*Attacker);
+		}
+	}
 }
 
 void UVeyraBattlegroundSubsystem::RebuildInhibitor(TWeakObjectPtr<AVeyraStructure> Inhibitor)

@@ -57,7 +57,8 @@
     "intervalSeconds": 1,
     "range": 750,
     "projectileSpeed": 1200,
-    "projectileRadius": 30
+    "projectileRadius": 30,
+    "thinkSeconds": 0.25
   },
   "towerRamp": {
     "provenance": "Canon",

@@ -212,6 +212,10 @@ struct FVeyraTowerAttackTuning
 
 	UPROPERTY()
 	double ProjectileRadius = 0.0;
+
+	/** How often a tower reconsiders its target, in seconds: how soon it answers aggression or a target leaving. */
+	UPROPERTY()
+	double ThinkSeconds = 0.0;
 };
 
 /** Consecutive tower shots on the same Vanguard escalate (Combat Bible §33). */

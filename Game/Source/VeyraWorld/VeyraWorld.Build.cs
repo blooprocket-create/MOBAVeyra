@@ -23,6 +23,8 @@ public class VeyraWorld : ModuleRules
 		{
 			// Push-model replication for the structures.
 			"NetCore",
+			// Tower shots fly as the homing projectiles abilities use (ADR-011 §2, §8).
+			"VeyraAbilities",
 		});
 
 		// The World tuning, the battleground's layout among it, ships with every build that runs a

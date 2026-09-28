@@ -369,7 +369,7 @@ Every value below is designer-editable data; none is a constant in code. Each re
 |---|---|---|
 | Layout | `World.json` | Floor 18000 × 18000. Top and bot lanes run 2500 in from the edges, leaving an outer jungle band beyond them. Lanes are 700 wide; the river is 1000 wide on the anti-diagonal. Each base is a quarter-disc about 4200 across around its lane corner, with the fountain in the map corner. Between the inhibitors, side lanes are about 17 500 long and mid about 10 500, close to League's proportions |
 | Spire positions | `World.json` | Distance from the owning inhibitor: side lanes 1200 / 3200 / 5500 (the outer Spire before the lane's corner); mid 1000 / 2200 / 3400. Three per lane (Canon) |
-| Lane Spire and base tower | `World.json` | Health 3500 / 3000; Armor 60, Magic Resist 60; 150 Physical damage every 1.0 s; range 750; projectile speed 1200; ramp +20% per shot, five stacks (Canon illustration) |
+| Lane Spire and base tower | `World.json` | Health 3500 / 3000; Armor 60, Magic Resist 60; 150 Physical damage every 1.0 s; range 750; projectile speed 1200; reconsiders its target every 0.25 s; ramp +20% per shot, five stacks (Canon illustration) |
 | Inhibitor | `World.json` | Health 3000; rebuild 180 s (Canon); +1 Breaker per new wave in its lane while down |
 | Prime Well | `World.json` | Health 5500; regenerates 0.5% of Max Health per second while all inhibitors stand |
 | Backdoor protection | `World.json` | Radius 1100; maximum 66% damage reduction; ramp over 5 s; checked every 0.5 s |

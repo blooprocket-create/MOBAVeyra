@@ -37,4 +37,7 @@ namespace VeyraStructureRules
 
 	/** Whether Team's Prime Well regenerates: only while all its team's inhibitors stand (§18). */
 	VEYRAWORLD_API bool PrimeWellRegenerates(EVeyraTeam Team, TConstArrayView<FVeyraStructureStatus> All);
+
+	/** Whether a structure of Kind shoots: lane Spires and base-defense towers do; inhibitors and the Prime Well are passive (§10, §18). */
+	VEYRAWORLD_API bool Attacks(EVeyraStructureKind Kind);
 }

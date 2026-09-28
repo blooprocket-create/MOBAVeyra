@@ -28,11 +28,13 @@ struct FVeyraStructureDestroyedEvent
 };
 
 /**
- * The battleground's world state on the server (ADR-011 §2, §9, §12): it spawns the structures from
- * the layout when the map is the battleground, keeps their invulnerability to the rules as they fall
- * (lane order, base towers, the Prime Well), rebuilds inhibitors, regenerates each Prime Well while
- * its inhibitors stand, and announces each destruction, so Match can grant Team Flux and decide
- * victory. Timers run on world time, so a pause holds them. A client's instance does nothing.
+ * The battleground's world state on the server (ADR-011 §2, §8, §9, §12): it spawns the structures
+ * from the layout when the map is the battleground, sets their towers shooting, keeps their
+ * invulnerability to the rules as they fall (lane order, base towers, the Prime Well), rebuilds
+ * inhibitors, regenerates each Prime Well while its inhibitors stand, and announces each
+ * destruction, so Match can grant Team Flux and decide victory. It is the one listener to Combat's
+ * hostile damage, routing tower aggression (Combat Bible §33). Timers run on world time, so a pause
+ * holds them. A client's instance does nothing.
  */
 UCLASS()
 class VEYRAWORLD_API UVeyraBattlegroundSubsystem : public UWorldSubsystem
@@ -56,8 +58,8 @@ public:
 	AVeyraStructure* FindStructure(EVeyraTeam Team, EVeyraStructureKind Kind, TOptional<EVeyraLane> Lane, int32 Order) const;
 
 	/**
-	 * Server: stops rebuilding and regenerating, as when the match ends (Economy Bible §8.2: nothing
-	 * more happens after victory).
+	 * Server: stops shooting, rebuilding and regenerating, as when the match ends (Economy Bible §8.2:
+	 * nothing more happens after victory).
 	 */
 	void Stop();
 
@@ -72,6 +74,9 @@ public:
 
 private:
 	void OnDeath(const FVeyraDeathEvent& Death);
+
+	/** An enemy Vanguard that damages a defending Vanguard, both in a tower's range, draws that tower's priority (§33). */
+	void OnHostileDamage(const FVeyraHostileDamageEvent& Event);
 	void RebuildInhibitor(TWeakObjectPtr<AVeyraStructure> Inhibitor);
 	void OnRegenerationTimer();
 	bool IsServer() const;
@@ -82,5 +87,6 @@ private:
 	TMap<TWeakObjectPtr<AVeyraStructure>, FTimerHandle> RebuildTimers;
 	FTimerHandle RegenerationTimer;
 	FDelegateHandle DeathHandle;
+	FDelegateHandle HostileDamageHandle;
 	bool bStopped = false;
 };

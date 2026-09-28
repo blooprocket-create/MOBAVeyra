@@ -19,6 +19,7 @@ class UVeyraDefenceSet;
 class UVeyraLifeComponent;
 class UVeyraOffenceSet;
 class UVeyraStatusComponent;
+class UVeyraStructureAttackComponent;
 class UVeyraVitalsSet;
 struct FVeyraStructurePlacement;
 struct FVeyraStructureTuning;
@@ -79,6 +80,9 @@ public:
 	/** Its stats, from World.json by its kind. */
 	const FVeyraStructureTuning& GetTuning() const;
 
+	/** Its attack if its kind shoots (lane Spires and base-defense towers), else null. */
+	UVeyraStructureAttackComponent* GetAttack() const;
+
 private:
 	/** Shapes the capsule from its kind's tuning, on every machine once the kind is known. */
 	void ApplyBody();
@@ -130,4 +134,7 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UVeyraDefenceSet> DefenceSet;
+
+	UPROPERTY()
+	TObjectPtr<UVeyraStructureAttackComponent> Attack;
 };

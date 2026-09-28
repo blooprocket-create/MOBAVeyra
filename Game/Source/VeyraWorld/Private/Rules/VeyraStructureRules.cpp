@@ -59,4 +59,9 @@ bool PrimeWellRegenerates(EVeyraTeam Team, TConstArrayView<FVeyraStructureStatus
 {
 	return !AnyDestroyed(All, [Team](const FVeyraStructureStatus& Other) { return Other.Team == Team && Other.Kind == EVeyraStructureKind::Inhibitor; });
 }
+
+bool Attacks(EVeyraStructureKind Kind)
+{
+	return Kind == EVeyraStructureKind::LaneSpire || Kind == EVeyraStructureKind::BaseTower;
+}
 }

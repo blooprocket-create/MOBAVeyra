@@ -14,7 +14,9 @@
 #include "Life/VeyraLifeComponent.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
+#include "Rules/VeyraStructureRules.h"
 #include "Statuses/VeyraStatusComponent.h"
+#include "Structures/VeyraStructureAttackComponent.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraWorldLog.h"
@@ -47,6 +49,8 @@ AVeyraStructure::AVeyraStructure(const FObjectInitializer& ObjectInitializer)
 	VitalsSet = CreateDefaultSubobject<UVeyraVitalsSet>(TEXT("VitalsSet"));
 	OffenceSet = CreateDefaultSubobject<UVeyraOffenceSet>(TEXT("OffenceSet"));
 	DefenceSet = CreateDefaultSubobject<UVeyraDefenceSet>(TEXT("DefenceSet"));
+	// Server logic only; kinds that do not shoot never start it.
+	Attack = CreateDefaultSubobject<UVeyraStructureAttackComponent>(TEXT("Attack"));
 }
 
 void AVeyraStructure::PostInitializeComponents()
@@ -157,6 +161,11 @@ const FVeyraStructureTuning& AVeyraStructure::GetTuning() const
 		return Structures.PrimeWell;
 	}
 	return Structures.LaneSpire;
+}
+
+UVeyraStructureAttackComponent* AVeyraStructure::GetAttack() const
+{
+	return VeyraStructureRules::Attacks(Kind) ? Attack.Get() : nullptr;
 }
 
 void AVeyraStructure::ApplyBody()
