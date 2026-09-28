@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Content/VeyraContentId.h"
+#include "Engine/TimerHandle.h"
 #include "Inventory/VeyraInventoryRules.h"
 #include "Subsystems/WorldSubsystem.h"
 
@@ -11,6 +12,17 @@
 class AActor;
 class UVeyraGoldComponent;
 class UVeyraInventoryComponent;
+
+/** What the key of an item slot does (author ruling 2026-09-28; ADR-012 §1). */
+enum class EVeyraItemUse : uint8
+{
+	/** The slot is empty, or its item has nothing to use. */
+	None,
+	/** Used up: the shop uses it. */
+	Consumable,
+	/** An Active: Abilities casts it from the item slot, under the match's cast rules. */
+	Active,
+};
 
 /**
  * The shop's transactions (Economy & Progression Bible §10–§12; ADR-012 §5): buying, cancelling,
@@ -53,10 +65,40 @@ public:
 	/** Sets Participant's slot count, empty, as its match prepares. */
 	static void InitializeInventory(AActor& Participant);
 
-	/** Recomputes what Participant's items add to its stats (ADR-012 §6). */
-	static void ApplyEquipment(AActor& Participant);
+	/**
+	 * After any change to Participant's slots: what its items add to its stats (ADR-012 §6), and the
+	 * Actives its item slots hold, granted in the slot each item sits in and cleared from empty ones.
+	 */
+	static void ApplyItems(AActor& Participant);
+
+	/** What the key of inventory slot Index, from 0, does for Participant now. */
+	static EVeyraItemUse GetUse(const AActor& Participant, int32 Index);
+
+	/**
+	 * Uses one of the consumable in inventory slot Index (Item Bible §10): Field Tonic restores its
+	 * Health over its duration. Refused while dead, or while one is still restoring.
+	 */
+	EVeyraShopRefusal UseConsumable(AActor& Participant, int32 Index);
+
+	/** Participant cast the Active in inventory slot Index: the item has given benefit, so undo ends (§12). */
+	static void NoteActiveUsed(AActor& Participant, int32 Index);
+
+	virtual void Deinitialize() override;
 
 private:
+	/** A consumable restoring Health over time. */
+	struct FRestoration
+	{
+		TWeakObjectPtr<AActor> Participant;
+		double PerTick = 0.0;
+		int32 TicksLeft = 0;
+	};
+
+	void OnRestorationTimer();
+
+	TArray<FRestoration> Restorations;
+	FTimerHandle RestorationTimer;
+
 	/** Whether Participant may receive, sell and undo now: at its fountain, or dead (ADR-012 §9). */
 	static bool IsAtShop(const AActor& Participant, const UVeyraInventoryComponent& Inventory);
 

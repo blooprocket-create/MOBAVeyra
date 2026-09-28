@@ -43,6 +43,28 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey AbilityRKey;
 
+	/**
+	 * Each uses the item in its inventory slot, 1 to 6 (author ruling 2026-09-28; ADR-012 §1): a
+	 * consumable is used up, and an Active is cast at the cursor, as Quick Cast casts.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey Item1Key;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey Item2Key;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey Item3Key;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey Item4Key;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey Item5Key;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey Item6Key;
+
 	/** Held with an ability slot's key, spends a skill point on that slot instead of casting. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey RankUpModifierKey;
@@ -84,6 +106,10 @@ struct VEYRAMATCH_API FVeyraInputObjects
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> AbilityR;
+
+	/** One per item slot, in inventory order. */
+	UPROPERTY()
+	TArray<TObjectPtr<UInputAction>> ItemSlots;
 
 	/** The action that casts Slot. */
 	UInputAction* GetAbilityAction(EVeyraAbilitySlot Slot) const;

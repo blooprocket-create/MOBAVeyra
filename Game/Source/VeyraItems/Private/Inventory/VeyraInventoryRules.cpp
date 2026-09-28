@@ -31,7 +31,9 @@ const TCHAR* LexToString(EVeyraShopRefusal Refusal)
 	case EVeyraShopRefusal::MissingComponent:
 		return TEXT("a component is gone");
 	case EVeyraShopRefusal::NotNow:
-		return TEXT("not while the match is paused or over");
+		return TEXT("not now");
+	case EVeyraShopRefusal::StillRestoring:
+		return TEXT("one is still restoring");
 	}
 	return TEXT("unknown");
 }

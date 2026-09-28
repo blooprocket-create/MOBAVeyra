@@ -125,6 +125,10 @@ void AVeyraPlayerController::SetupInputComponent()
 		{
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
 		}
+		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
+		{
+			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+		}
 	}
 }
 
@@ -190,8 +194,8 @@ void AVeyraPlayerController::MoveToCursor(bool bSteer)
 
 void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 {
-	// With the rank-up modifier held, the slot's key spends a skill point on it instead.
-	if (IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
+	// With the rank-up modifier held, a kit slot's key spends a skill point on it instead.
+	if (!VeyraAbilitySlots::IsItemSlot(Slot) && IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
 	{
 		RequestRankUp(Slot);
 		return;
@@ -219,8 +223,24 @@ void AVeyraPlayerController::ServerIssueCastOrder_Implementation(EVeyraAbilitySl
 		RejectOrder(EVeyraOrderRejection::TooFrequent);
 		return;
 	}
+	// An item slot's key uses its item (ADR-012 §1): a consumable through the shop, an Active as a cast.
+	const int32 ItemIndex = VeyraAbilitySlots::ItemIndexOf(Slot);
+	const EVeyraItemUse Use = PlayerState && ItemIndex != INDEX_NONE ? UVeyraShopSubsystem::GetUse(*PlayerState, ItemIndex) : EVeyraItemUse::None;
+	if (Use == EVeyraItemUse::Consumable)
+	{
+		RunShopRequest([ItemIndex](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.UseConsumable(Participant, ItemIndex); });
+		return;
+	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
-	const EVeyraCastRejection Rejection = GameMode ? GameMode->HandleCastOrder(*this, Slot, Target) : EVeyraCastRejection::WrongPhase;
+	EVeyraCastRejection Rejection = EVeyraCastRejection::UnknownAbility;
+	if (ItemIndex == INDEX_NONE || Use == EVeyraItemUse::Active)
+	{
+		Rejection = GameMode ? GameMode->HandleCastOrder(*this, Slot, Target) : EVeyraCastRejection::WrongPhase;
+	}
+	if (Rejection == EVeyraCastRejection::None && Use == EVeyraItemUse::Active)
+	{
+		UVeyraShopSubsystem::NoteActiveUsed(*PlayerState, ItemIndex);
+	}
 	if (Rejection != EVeyraCastRejection::None)
 	{
 		UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused a cast from %s: %s."), *GetNameSafe(PlayerState), LexToString(Rejection));

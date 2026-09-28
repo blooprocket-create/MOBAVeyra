@@ -19,7 +19,7 @@ double RemainingSeconds(TConstArrayView<FVeyraCooldownEntry> Entries, const FVey
 	return Entry ? FMath::Max(0.0, Entry->ReadyAt - Now) : 0.0;
 }
 
-void Start(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability, double DurationSeconds, double Now)
+void Start(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability, double DurationSeconds, double Now, bool bAbilityHaste)
 {
 	FVeyraCooldownEntry* Entry = Entries.FindByPredicate([&Ability](const FVeyraCooldownEntry& Candidate) { return Candidate.Ability == Ability; });
 	if (!Entry)
@@ -29,13 +29,14 @@ void Start(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability,
 	}
 	Entry->ReadyAt = Now + DurationSeconds;
 	Entry->DurationSeconds = DurationSeconds;
+	Entry->bAbilityHaste = bAbilityHaste;
 }
 
 void Rescale(TArray<FVeyraCooldownEntry>& Entries, double Factor, double Now)
 {
 	for (FVeyraCooldownEntry& Entry : Entries)
 	{
-		if (Entry.ReadyAt > Now)
+		if (Entry.bAbilityHaste && Entry.ReadyAt > Now)
 		{
 			Entry.ReadyAt = Now + (Entry.ReadyAt - Now) * Factor;
 			Entry.DurationSeconds *= Factor;
@@ -79,14 +80,15 @@ void UVeyraCooldownComponent::OnUnregister()
 	Super::OnUnregister();
 }
 
-void UVeyraCooldownComponent::StartCooldown(const FVeyraContentId& Ability, double BaseSeconds)
+void UVeyraCooldownComponent::StartCooldown(const FVeyraContentId& Ability, double BaseSeconds, EVeyraCooldownHaste Haste)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
+	const bool bAbilityHaste = Haste == EVeyraCooldownHaste::Ability;
 	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(GetOwner());
-	const double Haste = AbilitySystem && AbilitySystem->HasAttributeSetForAttribute(UVeyraOffenceSet::GetAbilityHasteAttribute())
+	const double AbilityHaste = bAbilityHaste && AbilitySystem && AbilitySystem->HasAttributeSetForAttribute(UVeyraOffenceSet::GetAbilityHasteAttribute())
 		? AbilitySystem->GetNumericAttribute(UVeyraOffenceSet::GetAbilityHasteAttribute())
 		: 0.0;
-	VeyraCooldowns::Start(Entries, Ability, BaseSeconds * VeyraHaste::CooldownMultiplier(Haste), GetServerNow());
+	VeyraCooldowns::Start(Entries, Ability, BaseSeconds * VeyraHaste::CooldownMultiplier(AbilityHaste), GetServerNow(), bAbilityHaste);
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
 }
 

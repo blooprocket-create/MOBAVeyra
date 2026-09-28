@@ -183,6 +183,15 @@ namespace VeyraEconomyTests
 			ASSERT_THAT(IsTrue(Progression->AllocateRank(EVeyraAbilitySlot::W) == EVeyraRankRefusal::NoSkillPoint));
 		}
 
+		TEST_METHOD(ItemSlotsTakeNoRanks)
+		{
+			// An item's Active has no ranks (ADR-012 §1); a request for one changes nothing.
+			Progression->Initialize(FVeyraStatGrowth(), 0.0);
+			ASSERT_THAT(IsTrue(Progression->AllocateRank(EVeyraAbilitySlot::Item1) == EVeyraRankRefusal::MaxRank));
+			ASSERT_THAT(AreEqual(VeyraProgression::SkillPointsEarned(1, Tuning), Progression->GetUnspentSkillPoints()));
+			ASSERT_THAT(AreEqual(0, Progression->GetRank(EVeyraAbilitySlot::Item6)));
+		}
+
 		TEST_METHOD(NothingProgressesBeforeInitialization)
 		{
 			ASSERT_THAT(AreEqual(0, Progression->AddExperience(1000)));

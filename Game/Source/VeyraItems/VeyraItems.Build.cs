@@ -26,6 +26,8 @@ public class VeyraItems : ModuleRules
 			"GameplayAbilities",
 			// Push-model replication for the inventory.
 			"NetCore",
+			// Item slots hold their items' Actives, which Abilities' archetypes run (ADR-012 §1).
+			"VeyraAbilities",
 			// Purchases spend and refund Gold; bonus Attack Speed is a fraction of the base progression keeps.
 			"VeyraEconomy",
 		});

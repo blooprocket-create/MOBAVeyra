@@ -78,8 +78,10 @@ enum class EVeyraShopRefusal : uint8
 	EmptySlot,
 	/** A component the pending purchase needs is gone (§11.3). */
 	MissingComponent,
-	/** The match is paused or over (Match Flow §10.2). */
+	/** The match is paused or over (Match Flow §10.2), or the Vanguard is dead. */
 	NotNow,
+	/** A consumable is still restoring; another waits until it ends. */
+	StillRestoring,
 };
 
 VEYRAITEMS_API const TCHAR* LexToString(EVeyraShopRefusal Refusal);

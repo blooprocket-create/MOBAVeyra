@@ -96,7 +96,7 @@
     "razorwheel": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["iron_grip", "iron_grip"], "cost": 400, "stackLimit": 1,
       "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 30, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0 },
-      "active": [], "attunement": []
+      "active": ["razorwheel_cleave"], "attunement": []
     },
     "grand_prism": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["arc_crystal", "arc_crystal"], "cost": 380, "stackLimit": 1,

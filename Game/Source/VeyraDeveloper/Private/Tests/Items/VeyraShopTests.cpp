@@ -1,15 +1,22 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Components/ActorTestSpawner.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
 #include "CQTest.h"
+#include "Engine/World.h"
 #include "Gold/VeyraGoldComponent.h"
+#include "TimerManager.h"
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Life/VeyraLifeComponent.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
+#include "VeyraAbilitiesVerbs.h"
 #include "VeyraPlayerState.h"
 
 #if WITH_AUTOMATION_WORKER
@@ -144,6 +151,76 @@ namespace VeyraItemsTests
 			Subsystem->SetAtFountain(*Participant, false);
 			Subsystem->SetAtFountain(*Participant, true);
 			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::NothingToUndo));
+		}
+
+		TEST_METHOD(AnItemsActiveSitsInItsSlotAndCastsAtRankOne)
+		{
+			// The committed Abilities.json's Cleave, on the test wheel.
+			const FVeyraContentId Cleave = ItemId(TEXT("razorwheel_cleave"));
+			Tuning.Items[ItemId(TEXT("test_wheel"))].Active = { Cleave };
+			Subsystem->SetAtFountain(*Participant, true);
+			Subsystem->Buy(*Participant, ItemId(TEXT("test_wheel")));
+			ASSERT_THAT(IsTrue(UVeyraShopSubsystem::GetUse(*Participant, 0) == EVeyraItemUse::Active));
+			const UVeyraAbilityLoadoutComponent* Loadout = Participant->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+			const FVeyraLoadoutEntry* Entry = Loadout->FindSlot(EVeyraAbilitySlot::Item1);
+			ASSERT_THAT(IsTrue(Entry && Entry->Ability == Cleave, TEXT("slot 1's key casts it (ADR-012 §1)")));
+
+			// Ability Haste leaves an item's cooldown alone (Combat Bible §21).
+			UAbilitySystemComponent& Abilities = *Participant->GetAbilitySystemComponent();
+			Abilities.SetNumericAttributeBase(UVeyraOffenceSet::GetAbilityHasteAttribute(), 100.0f);
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(Abilities, EVeyraAbilitySlot::Item1, FVeyraCastTarget()) == EVeyraCastRejection::None,
+				TEXT("no ranks needed")));
+			const double Cooldown = Participant->FindComponentByClass<UVeyraCooldownComponent>()->GetRemainingSecondsNow(Cleave);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Cooldown, UVeyraAbilitiesTuningSubsystem::FindArea(Cleave)->Cast.CooldownSecondsByRank[0]),
+				FString::SanitizeFloat(Cooldown)));
+
+			ASSERT_THAT(IsTrue(Subsystem->Sell(*Participant, 0) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsNull(Loadout->FindSlot(EVeyraAbilitySlot::Item1), TEXT("the Active leaves with its item")));
+		}
+
+		TEST_METHOD(ATonicRestoresHealthOverTimeOneAtATime)
+		{
+			// Fixture values: 100 Health over 1 second.
+			constexpr double Restored = 100.0;
+			constexpr double Duration = 1.0;
+			FVeyraConsumableTuning& Tonic = Tuning.Consumables[ItemId(TEXT("test_tonic"))];
+			Tonic.HealthRestored = Restored;
+			Tonic.DurationSeconds = Duration;
+			Subsystem->SetAtFountain(*Participant, true);
+			Subsystem->Buy(*Participant, ItemId(TEXT("test_tonic")));
+			Subsystem->Buy(*Participant, ItemId(TEXT("test_tonic")));
+			UAbilitySystemComponent& Abilities = *Participant->GetAbilitySystemComponent();
+			const double Max = Abilities.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+			Abilities.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), static_cast<float>(Max - 2.0 * Restored));
+
+			ASSERT_THAT(IsTrue(UVeyraShopSubsystem::GetUse(*Participant, 0) == EVeyraItemUse::Consumable));
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(CountOf(TEXT("test_tonic")) == 1, TEXT("one is used up")));
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::StillRestoring));
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::NothingToUndo, TEXT("a used consumable ends undo")));
+
+			// Past its duration, on world time. The timer manager ticks at most once per engine frame, and
+			// a test runs inside one; its first tick only activates the timers set before it, so two frames
+			// pass. A looping timer fires once for each interval the second covers.
+			constexpr float Margin = 0.1f;
+			FTimerManager& Timers = Spawner.GetWorld().GetTimerManager();
+			++GFrameCounter;
+			Timers.Tick(0.0f);
+			++GFrameCounter;
+			Timers.Tick(static_cast<float>(Duration) + Margin);
+			const double Health = Abilities.GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute());
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Health, Max - Restored, 1.0),
+				FString::Printf(TEXT("all of it, and no more: Health %.1f of %.1f, expected %.1f"), Health, Max, Max - Restored)));
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None, TEXT("the next may start")));
+		}
+
+		TEST_METHOD(AnEmptySlotOrAPlainItemHasNothingToUse)
+		{
+			ASSERT_THAT(IsTrue(UVeyraShopSubsystem::GetUse(*Participant, 0) == EVeyraItemUse::None));
+			Subsystem->SetAtFountain(*Participant, true);
+			Subsystem->Buy(*Participant, ItemId(TEXT("test_grip")));
+			ASSERT_THAT(IsTrue(UVeyraShopSubsystem::GetUse(*Participant, 0) == EVeyraItemUse::None));
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::EmptySlot));
 		}
 
 		TEST_METHOD(TheDeadShopAsAtTheFountain)

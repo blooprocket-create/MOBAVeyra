@@ -217,6 +217,34 @@
     }
   },
   "area": {
+    "razorwheel_cleave": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [10],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [0], "physicalPowerRatio": 0.75, "magicPowerRatio": 0 }],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
+    },
     "cairn_crushing_hold": {
       "provenance": "Provisional",
       "cast": {
