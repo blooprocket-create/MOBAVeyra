@@ -25,6 +25,16 @@ void UVeyraInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraInventoryComponent, Queue, Owner);
 }
 
+TMap<FVeyraContentId, int32> UVeyraInventoryComponent::GetStackCounts() const
+{
+	TMap<FVeyraContentId, int32> Counts;
+	for (const TPair<FVeyraContentId, FVeyraAttunementStacks>& Held : Stacks)
+	{
+		Counts.Add(Held.Key, Held.Value.Count);
+	}
+	return Counts;
+}
+
 void UVeyraInventoryComponent::SetSlots(TArray<FVeyraInventorySlot> NewSlots)
 {
 	Slots = MoveTemp(NewSlots);

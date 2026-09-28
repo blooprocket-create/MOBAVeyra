@@ -83,7 +83,18 @@ public:
 	/** Participant cast the Active in inventory slot Index: the item has given benefit, so undo ends (§12). */
 	static void NoteActiveUsed(AActor& Participant, int32 Index);
 
+	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
+
+	/**
+	 * Hostile damage landed: a stacking Attunement of the source's items gains a stack when its hit
+	 * qualifies (Item Bible §8–§9): Spool Up from a basic attack, Overcycle from an ability, each on an
+	 * enemy Vanguard. Server only. Public for tests; Combat's event calls it in a match.
+	 */
+	void OnHostileDamage(const struct FVeyraHostileDamageEvent& Event);
+
+	/** Server only: drops every stack whose time is up and reapplies what changed. Its timer calls it. */
+	void ExpireStacks();
 
 private:
 	/** A consumable restoring Health over time. */
@@ -98,6 +109,11 @@ private:
 
 	TArray<FRestoration> Restorations;
 	FTimerHandle RestorationTimer;
+
+	/** The participants holding stacks, which the stack timer checks. */
+	TArray<TWeakObjectPtr<AActor>> Stacked;
+	FTimerHandle StackTimer;
+	FDelegateHandle HostileDamageHandle;
 
 	/** Whether Participant may receive, sell and undo now: at its fountain, or dead (ADR-012 §9). */
 	static bool IsAtShop(const AActor& Participant, const UVeyraInventoryComponent& Inventory);

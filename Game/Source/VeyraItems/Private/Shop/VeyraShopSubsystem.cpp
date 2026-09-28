@@ -8,6 +8,7 @@
 #include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraEquipmentRules.h"
 #include "Inventory/VeyraInventoryComponent.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Stats/VeyraEquipmentStats.h"
@@ -15,6 +16,7 @@
 #include "TimerManager.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
+#include "Units/VeyraUnit.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraItemsLog.h"
 
@@ -193,7 +195,109 @@ void UVeyraShopSubsystem::SetAtFountain(AActor& Participant, bool bAtFountain)
 
 void UVeyraShopSubsystem::DeliverOnDeath(AActor& Participant)
 {
+	// Death ends what the Attunements built up, as it ends every temporary effect (Combat Bible §44).
+	if (UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>(); Inventory && !Inventory->Stacks.IsEmpty())
+	{
+		Inventory->Stacks.Reset();
+		ApplyItems(Participant);
+	}
 	Deliver(Participant);
+}
+
+void UVeyraShopSubsystem::Initialize(FSubsystemCollectionBase& Collection)
+{
+	Super::Initialize(Collection);
+	if (UVeyraCombatEventSubsystem* Events = Collection.InitializeDependency<UVeyraCombatEventSubsystem>())
+	{
+		HostileDamageHandle = Events->OnHostileDamage.AddUObject(this, &UVeyraShopSubsystem::OnHostileDamage);
+	}
+}
+
+void UVeyraShopSubsystem::OnHostileDamage(const FVeyraHostileDamageEvent& Event)
+{
+	const UAbilitySystemComponent* Source = Event.Source.Get();
+	const UAbilitySystemComponent* Target = Event.Target.Get();
+	AActor* Participant = Source ? Source->GetOwner() : nullptr;
+	UVeyraInventoryComponent* Inventory = Participant ? Participant->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
+	if (!Inventory || !Target || !VeyraUnits::IsVanguard(Target->GetOwner()) || !Participant->HasAuthority())
+	{
+		return;
+	}
+	const bool bBasicAttack = Event.Delivery == EVeyraDamageDelivery::BasicAttack;
+	const bool bAbility = Event.Delivery == EVeyraDamageDelivery::Ability;
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	const double Now = GetWorld()->GetTimeSeconds();
+	bool bChanged = false;
+	for (const FVeyraInventorySlot& Slot : Inventory->Slots)
+	{
+		const FVeyraItemDefinition* Item = Slot.IsEmpty() ? nullptr : Tuning.Items.Find(Slot.Item);
+		if (!Item)
+		{
+			continue;
+		}
+		for (const FVeyraContentId& Attunement : Item->Attunement)
+		{
+			const FVeyraStackingAttunementTuning* SpoolUp = bBasicAttack ? Tuning.SpoolUp.Find(Attunement) : nullptr;
+			const FVeyraStackingAttunementTuning* Overcycle = bAbility ? Tuning.Overcycle.Find(Attunement) : nullptr;
+			const FVeyraStackingAttunementTuning* Stacking = SpoolUp ? SpoolUp : Overcycle;
+			if (!Stacking)
+			{
+				continue;
+			}
+			// Each qualifying hit adds a stack up to the cap and refreshes them all (Item Bible §8–§9).
+			FVeyraAttunementStacks& Held = Inventory->Stacks.FindOrAdd(Attunement);
+			Held.Count = FMath::Min(Held.Count + 1, Stacking->MaxStacks);
+			Held.ExpiresAt = Now + Stacking->DurationSeconds;
+			bChanged = true;
+		}
+	}
+	if (!bChanged)
+	{
+		return;
+	}
+	Stacked.AddUnique(Participant);
+	ApplyItems(*Participant);
+	if (!GetWorld()->GetTimerManager().IsTimerActive(StackTimer))
+	{
+		GetWorld()->GetTimerManager().SetTimer(StackTimer, FTimerDelegate::CreateUObject(this, &UVeyraShopSubsystem::ExpireStacks),
+			static_cast<float>(UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds), /*bLoop*/ true);
+	}
+}
+
+void UVeyraShopSubsystem::ExpireStacks()
+{
+	const double Now = GetWorld()->GetTimeSeconds();
+	for (int32 Index = Stacked.Num() - 1; Index >= 0; --Index)
+	{
+		AActor* Participant = Stacked[Index].Get();
+		UVeyraInventoryComponent* Inventory = Participant ? Participant->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
+		if (!Inventory)
+		{
+			Stacked.RemoveAt(Index);
+			continue;
+		}
+		bool bExpired = false;
+		for (auto It = Inventory->Stacks.CreateIterator(); It; ++It)
+		{
+			if (It->Value.ExpiresAt <= Now)
+			{
+				It.RemoveCurrent();
+				bExpired = true;
+			}
+		}
+		if (bExpired)
+		{
+			ApplyItems(*Participant);
+		}
+		if (Inventory->Stacks.IsEmpty())
+		{
+			Stacked.RemoveAt(Index);
+		}
+	}
+	if (Stacked.IsEmpty())
+	{
+		GetWorld()->GetTimerManager().ClearTimer(StackTimer);
+	}
 }
 
 void UVeyraShopSubsystem::InitializeInventory(AActor& Participant)
@@ -217,7 +321,8 @@ void UVeyraShopSubsystem::ApplyItems(AActor& Participant)
 	// Bonus Attack Speed is a fraction of the base, beside level growth, so the two add (ADR-012 §6).
 	const UVeyraProgressionComponent* Progression = Participant.FindComponentByClass<UVeyraProgressionComponent>();
 	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
-	const FVeyraEquipmentStats Stats = VeyraEquipment::StatsFor(Tuning, Inventory->Slots, Progression ? Progression->GetBaseAttackSpeed() : 0.0);
+	const FVeyraEquipmentStats Stats = VeyraEquipment::StatsFor(Tuning, Inventory->Slots, Progression ? Progression->GetBaseAttackSpeed() : 0.0,
+		Inventory->GetStackCounts());
 	VeyraCombat::SetEquipmentStats(*AbilitySystem, Stats);
 
 	// Each item slot holds its item's Active, if it has one (ADR-012 §1).
@@ -346,11 +451,17 @@ void UVeyraShopSubsystem::OnRestorationTimer()
 
 void UVeyraShopSubsystem::Deinitialize()
 {
-	if (const UWorld* World = GetWorld())
+	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(RestorationTimer);
+		World->GetTimerManager().ClearTimer(StackTimer);
+		if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
+		{
+			Events->OnHostileDamage.Remove(HostileDamageHandle);
+		}
 	}
 	Restorations.Reset();
+	Stacked.Reset();
 	Super::Deinitialize();
 }
 

@@ -7,6 +7,15 @@
 
 #include "VeyraInventoryComponent.generated.h"
 
+/** A stacking Attunement's stacks (Item Bible §8–§9: Spool Up, Overcycle). Server only. */
+struct FVeyraAttunementStacks
+{
+	int32 Count = 0;
+
+	/** When they all fall away, in the server's world time; each qualifying hit refreshes it. */
+	double ExpiresAt = 0.0;
+};
+
 /** One purchase made at the fountain that undo can take back (Economy & Progression Bible §12). Server only. */
 struct FVeyraUndoStep
 {
@@ -43,6 +52,9 @@ public:
 	/** Server only: this fountain visit's purchases that undo can take back, oldest first. */
 	const TArray<FVeyraUndoStep>& GetUndoSteps() const { return UndoSteps; }
 
+	/** Server only: the stacks each stacking Attunement holds now, by Attunement. */
+	TMap<FVeyraContentId, int32> GetStackCounts() const;
+
 private:
 	friend class UVeyraShopSubsystem;
 
@@ -57,4 +69,5 @@ private:
 
 	bool bAtFountain = false;
 	TArray<FVeyraUndoStep> UndoSteps;
+	TMap<FVeyraContentId, FVeyraAttunementStacks> Stacks;
 };

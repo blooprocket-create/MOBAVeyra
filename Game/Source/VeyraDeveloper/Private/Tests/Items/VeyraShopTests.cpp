@@ -9,8 +9,10 @@
 #include "Gold/VeyraGoldComponent.h"
 #include "TimerManager.h"
 #include "Inventory/VeyraInventoryComponent.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Progression/VeyraProgressionComponent.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
@@ -212,6 +214,57 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Health, Max - Restored, 1.0),
 				FString::Printf(TEXT("all of it, and no more: Health %.1f of %.1f, expected %.1f"), Health, Max, Max - Restored)));
 			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None, TEXT("the next may start")));
+		}
+
+		TEST_METHOD(BasicAttacksOnVanguardsStackSpoolUpUntilItLapses)
+		{
+			// Fixture values: the Masterwork gains a Spool Up of 10% of base Attack Speed a stack, three at most, for 2 s.
+			constexpr double PerStack = 0.1;
+			constexpr int32 MaxStacks = 3;
+			constexpr double Lasts = 2.0;
+			const FVeyraContentId Spool = ItemId(TEXT("test_spool"));
+			Tuning.Items[ItemId(TEXT("test_temper"))].Attunement = { Spool };
+			FVeyraStackingAttunementTuning& SpoolUp = Tuning.SpoolUp.Add(Spool);
+			SpoolUp.PerStack = PerStack;
+			SpoolUp.MaxStacks = MaxStacks;
+			SpoolUp.DurationSeconds = Lasts;
+			Tuning.WeightOfWar.Reset();
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_temper"))) == EVeyraShopRefusal::None));
+
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(200.0, 0.0, 0.0));
+			UAbilitySystemComponent& Abilities = *Participant->GetAbilitySystemComponent();
+			const double Before = Abilities.GetNumericAttribute(UVeyraOffenceSet::GetAttackSpeedAttribute());
+			// Bonus Attack Speed is a fraction of the base progression keeps.
+			UVeyraProgressionComponent* Progression = Participant->FindComponentByClass<UVeyraProgressionComponent>();
+			Progression->Initialize(FVeyraStatGrowth(), Before);
+			const double BaseAttackSpeed = Progression->GetBaseAttackSpeed();
+			ASSERT_THAT(IsTrue(BaseAttackSpeed > 0.0));
+			FVeyraHostileDamageEvent Hit;
+			Hit.Source = &Abilities;
+			Hit.Target = Enemy.GetAbilitySystemComponent();
+			Hit.Delivery = EVeyraDamageDelivery::Ability;
+			Subsystem->OnHostileDamage(Hit);
+			ASSERT_THAT(IsTrue(Abilities.GetNumericAttribute(UVeyraOffenceSet::GetAttackSpeedAttribute()) == Before, TEXT("an ability is no basic attack")));
+
+			Hit.Delivery = EVeyraDamageDelivery::BasicAttack;
+			for (int32 Attack = 0; Attack < MaxStacks + 2; ++Attack)
+			{
+				Subsystem->OnHostileDamage(Hit);
+			}
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Abilities.GetNumericAttribute(UVeyraOffenceSet::GetAttackSpeedAttribute()), Before + BaseAttackSpeed * PerStack * MaxStacks, 1e-4),
+				TEXT("stacks to its cap")));
+
+			// Past its duration, the stacks fall away.
+			UWorld& WorldTime = Spawner.GetWorld();
+			const double Until = WorldTime.GetTimeSeconds() + Lasts + 0.1;
+			while (WorldTime.GetTimeSeconds() < Until)
+			{
+				WorldTime.Tick(LEVELTICK_TimeOnly, 0.1f);
+			}
+			Subsystem->ExpireStacks();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Abilities.GetNumericAttribute(UVeyraOffenceSet::GetAttackSpeedAttribute()), Before, 1e-4)));
 		}
 
 		TEST_METHOD(AnEmptySlotOrAPlainItemHasNothingToUse)

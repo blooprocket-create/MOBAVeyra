@@ -167,9 +167,43 @@ namespace VeyraItemsTests
 			BuyHere(TEXT("test_grip"));
 			BuyHere(TEXT("test_grip"));
 			BuyHere(TEXT("test_plate"));
-			const FVeyraEquipmentStats Stats = VeyraEquipment::StatsFor(WithStats, Slots, BaseAttackSpeed);
+			const FVeyraEquipmentStats Stats = VeyraEquipment::StatsFor(WithStats, Slots, BaseAttackSpeed, {});
 			ASSERT_THAT(IsTrue(Stats.PhysicalPower == 20.0 && Stats.MaxHealth == 150.0));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Stats.AttackSpeed, BaseAttackSpeed * 0.24), TEXT("a fraction of the base, added (ADR-012 §6)")));
+		}
+
+		TEST_METHOD(EachAttunementAddsWhatItsDataSays)
+		{
+			// Fixture values: the Masterwork's Weight of War, and an Overcharge, a Spool Up and an
+			// Overcycle given to it in turn.
+			constexpr double BaseAttackSpeed = 0.625;
+			FVeyraItemsTuning WithAttunements = Tuning;
+			FVeyraItemDefinition& Temper = WithAttunements.Items[ItemId(TEXT("test_temper"))];
+			Temper.Stats.Health = 400.0;
+			WithAttunements.WeightOfWar[ItemId(TEXT("test_weight"))].BonusHealthFraction = 0.025;
+			BuyHere(TEXT("test_temper"));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraEquipment::StatsFor(WithAttunements, Slots, BaseAttackSpeed, {}).PhysicalPower, 400.0 * 0.025),
+				TEXT("Weight of War: Physical Power from bonus Health")));
+
+			const FVeyraContentId Stacking = ItemId(TEXT("test_stacking"));
+			Temper.Attunement = { Stacking };
+			WithAttunements.Overcharge.Add(Stacking).MagicPowerFraction = 0.3;
+			ASSERT_THAT(IsTrue(VeyraEquipment::StatsFor(WithAttunements, Slots, BaseAttackSpeed, {}).MagicPowerFraction == 0.3, TEXT("Overcharge")));
+
+			WithAttunements.Overcharge.Reset();
+			FVeyraStackingAttunementTuning& SpoolUp = WithAttunements.SpoolUp.Add(Stacking);
+			SpoolUp.PerStack = 0.06;
+			SpoolUp.MaxStacks = 5;
+			const TMap<FVeyraContentId, int32> Beyond = { { Stacking, 9 } };
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraEquipment::StatsFor(WithAttunements, Slots, BaseAttackSpeed, Beyond).AttackSpeed, BaseAttackSpeed * 0.06 * 5),
+				TEXT("Spool Up: bonus Attack Speed per stack, up to its cap")));
+
+			WithAttunements.SpoolUp.Reset();
+			FVeyraStackingAttunementTuning& Overcycle = WithAttunements.Overcycle.Add(Stacking);
+			Overcycle.PerStack = 4.0;
+			Overcycle.MaxStacks = 5;
+			const TMap<FVeyraContentId, int32> Two = { { Stacking, 2 } };
+			ASSERT_THAT(IsTrue(VeyraEquipment::StatsFor(WithAttunements, Slots, BaseAttackSpeed, Two).AbilityHaste == 8.0, TEXT("Overcycle: Ability Haste per stack")));
 		}
 
 		TEST_METHOD(ResaleIsTheShopsFractionOrTheConsumablesOwn)
