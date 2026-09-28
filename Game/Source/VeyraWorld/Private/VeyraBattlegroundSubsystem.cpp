@@ -6,6 +6,9 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Battleground/VeyraBattlegroundMarker.h"
 #include "Engine/World.h"
+#include "Fluxborn/VeyraFluxborn.h"
+#include "Fluxborn/VeyraFluxbornController.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Layout/VeyraLayout.h"
 #include "Rules/VeyraStructureRules.h"
 #include "Structures/VeyraStructure.h"
@@ -76,14 +79,15 @@ void UVeyraBattlegroundSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	}
 }
 
-void UVeyraBattlegroundSubsystem::SpawnStructures(const FVeyraBattlegroundLayout& Layout)
+void UVeyraBattlegroundSubsystem::SpawnStructures(const FVeyraBattlegroundLayout& InLayout)
 {
 	UWorld* World = GetWorld();
 	if (!World || !IsServer())
 	{
 		return;
 	}
-	for (const FVeyraStructurePlacement& Placement : VeyraLayout::Structures(Layout))
+	Layout = InLayout;
+	for (const FVeyraStructurePlacement& Placement : VeyraLayout::Structures(InLayout))
 	{
 		AVeyraStructure* Structure = World->SpawnActorDeferred<AVeyraStructure>(AVeyraStructure::StaticClass(), FTransform::Identity, nullptr, nullptr,
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
@@ -132,6 +136,83 @@ AVeyraStructure* UVeyraBattlegroundSubsystem::NextSiegeTarget(EVeyraTeam Defende
 	return Next.IsSet() ? Live[Next.GetValue()] : nullptr;
 }
 
+AVeyraFluxborn* UVeyraBattlegroundSubsystem::SpawnFluxborn(const FVeyraContentId& Kind, EVeyraTeam Team, EVeyraLane Lane)
+{
+	UWorld* World = GetWorld();
+	const FVeyraLaneLayout* LaneLayout = Layout.IsSet() ? Layout->Lanes.FindByPredicate([Lane](const FVeyraLaneLayout& Each) { return Each.Lane == Lane; }) : nullptr;
+	const FVeyraFluxbornDefinition* Definition = UVeyraWorldTuningSubsystem::Get().FindFluxborn(Kind);
+	if (!World || !IsServer() || bStopped || !LaneLayout || !Definition || (Team != EVeyraTeam::A && Team != EVeyraTeam::B))
+	{
+		UE_LOG(LogVeyraWorld, Warning, TEXT("Refused to spawn a %s for team %s in the %s lane."), *Kind.ToString(), *UEnum::GetValueAsString(Team),
+			*UEnum::GetValueAsString(Lane));
+		return nullptr;
+	}
+	// It walks its lane toward the enemy base, then on to the enemy's Prime Well.
+	TArray<FVector2D> Waypoints = VeyraLayout::Waypoints(*LaneLayout, Team);
+	Waypoints.Add(VeyraLayout::ForTeam(VeyraLayout::ToVector(Layout->Base.PrimeWell), VeyraTeams::Opposing(Team)));
+	// It spawns in front of its inhibitor, on the floor, facing up the lane.
+	const FVector2D SpawnPoint = VeyraLayout::ForTeam(VeyraLayout::PointAlong(LaneLayout->Points, LaneLayout->FluxbornSpawnDistance), Team);
+	const FVector Start(SpawnPoint, Definition->CapsuleHalfHeight);
+	const FRotator Facing = FVector(Waypoints[1] - Waypoints[0], 0.0).Rotation();
+
+	AVeyraFluxborn* Unit = World->SpawnActorDeferred<AVeyraFluxborn>(AVeyraFluxborn::StaticClass(), FTransform(Facing, Start), nullptr, nullptr,
+		ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn);
+	if (!Unit)
+	{
+		return nullptr;
+	}
+	Unit->Configure(Kind, Team, Lane, MoveTemp(Waypoints));
+	Unit->FinishSpawning(FTransform(Facing, Start));
+	const FVeyraTeamFluxStrength& Strength = FluxOf(Team);
+	if (!Unit->InitializeStats(Strength.HealthMultiplier, Strength.DamageMultiplier))
+	{
+		Unit->Destroy();
+		return nullptr;
+	}
+	Fluxborn.Add(Unit);
+	return Unit;
+}
+
+TArray<AVeyraFluxborn*> UVeyraBattlegroundSubsystem::GetFluxborn() const
+{
+	TArray<AVeyraFluxborn*> Living;
+	for (const TWeakObjectPtr<AVeyraFluxborn>& Each : Fluxborn)
+	{
+		if (AVeyraFluxborn* Unit = Each.Get(); Unit && Unit->IsAlive())
+		{
+			Living.Add(Unit);
+		}
+	}
+	return Living;
+}
+
+void UVeyraBattlegroundSubsystem::SetTeamFlux(EVeyraTeam Team, const FVeyraTeamFluxStrength& Flux)
+{
+	if (Team != EVeyraTeam::A && Team != EVeyraTeam::B)
+	{
+		return;
+	}
+	FluxOf(Team) = Flux;
+	// Temporary Flux falls away from units already on the field too (Battleground Bible §4).
+	for (AVeyraFluxborn* Unit : GetFluxborn())
+	{
+		if (Unit->GetVeyraTeam() == Team)
+		{
+			Unit->ApplyStrength(Flux.HealthMultiplier, Flux.DamageMultiplier);
+		}
+	}
+}
+
+FVeyraTeamFluxStrength UVeyraBattlegroundSubsystem::GetTeamFlux(EVeyraTeam Team) const
+{
+	return Team == EVeyraTeam::B ? FluxB : FluxA;
+}
+
+FVeyraTeamFluxStrength& UVeyraBattlegroundSubsystem::FluxOf(EVeyraTeam Team)
+{
+	return Team == EVeyraTeam::B ? FluxB : FluxA;
+}
+
 void UVeyraBattlegroundSubsystem::Stop()
 {
 	bStopped = true;
@@ -140,6 +221,14 @@ void UVeyraBattlegroundSubsystem::Stop()
 		if (UVeyraStructureAttackComponent* Attack = Structure ? Structure->GetAttack() : nullptr)
 		{
 			Attack->StopAttacking();
+		}
+	}
+	// The Fluxborn stand where they are.
+	for (AVeyraFluxborn* Unit : GetFluxborn())
+	{
+		if (AController* Controller = Unit->GetController())
+		{
+			Controller->UnPossess();
 		}
 	}
 	if (UWorld* World = GetWorld())
@@ -193,6 +282,11 @@ void UVeyraBattlegroundSubsystem::RegeneratePrimeWells(double Seconds)
 void UVeyraBattlegroundSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 {
 	const UAbilitySystemComponent* Victim = Death.Victim.Get();
+	if (AVeyraFluxborn* Unit = Victim ? Cast<AVeyraFluxborn>(Victim->GetOwner()) : nullptr; Unit && IsServer())
+	{
+		OnFluxbornDied(*Unit);
+		return;
+	}
 	AVeyraStructure* Structure = Victim ? Cast<AVeyraStructure>(Victim->GetOwner()) : nullptr;
 	if (!Structure || !IsServer() || !Structures.Contains(Structure))
 	{
@@ -221,6 +315,20 @@ void UVeyraBattlegroundSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 	OnStructureDestroyed.Broadcast(Event);
 }
 
+void UVeyraBattlegroundSubsystem::OnFluxbornDied(AVeyraFluxborn& Unit)
+{
+	Fluxborn.Remove(&Unit);
+	// Its body collapses where it fell, blocking nothing, and is removed after a moment (Battleground Bible §4).
+	if (AController* Controller = Unit.GetController())
+	{
+		Controller->UnPossess();
+		Controller->Destroy();
+	}
+	Unit.GetCharacterMovement()->DisableMovement();
+	Unit.SetActorEnableCollision(false);
+	Unit.SetLifeSpan(static_cast<float>(UVeyraWorldTuningSubsystem::Get().Fluxborn.CorpseSeconds));
+}
+
 void UVeyraBattlegroundSubsystem::OnHostileDamage(const FVeyraHostileDamageEvent& Event)
 {
 	const UAbilitySystemComponent* Source = Event.Source.Get();
@@ -238,6 +346,18 @@ void UVeyraBattlegroundSubsystem::OnHostileDamage(const FVeyraHostileDamageEvent
 			&& VeyraTargeting::AreHostile(Structure, Attacker) && Attack->IsInRange(*Attacker) && Attack->IsInRange(*Defender))
 		{
 			Attack->NoteAggression(*Attacker);
+		}
+	}
+	// The defender's Fluxborn near it may turn on the attacker (Battleground Bible §19).
+	const double Response = UVeyraWorldTuningSubsystem::Get().Fluxborn.Ai.AggressionResponseRange;
+	const EVeyraTeam Defenders = VeyraTeams::TeamOf(Defender);
+	for (AVeyraFluxborn* Unit : GetFluxborn())
+	{
+		AVeyraFluxbornController* Controller = Cast<AVeyraFluxbornController>(Unit->GetController());
+		if (Controller && Unit->GetVeyraTeam() == Defenders && VeyraTargeting::AreHostile(Unit, Attacker)
+			&& VeyraTargeting::EdgeToEdgeDistance(*Unit, *Defender) <= Response)
+		{
+			Controller->NoteAggression(*Attacker);
 		}
 	}
 }

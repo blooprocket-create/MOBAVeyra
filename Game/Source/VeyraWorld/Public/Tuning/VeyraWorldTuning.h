@@ -2,8 +2,11 @@
 
 #pragma once
 
+#include "Attacks/VeyraBasicAttackTypes.h"
 #include "Battleground/VeyraBattlegroundTypes.h"
+#include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
+#include "Stats/VeyraStatBlock.h"
 #include "Tuning/VeyraTuningProvenance.h"
 #include "UObject/ObjectMacros.h"
 
@@ -52,6 +55,10 @@ struct FVeyraLaneLayout
 	 */
 	UPROPERTY()
 	TArray<double> SpireDistances;
+
+	/** Where Team A's Fluxborn of this lane spawn: their distance along the lane from Team A's end, clear of the inhibitor. */
+	UPROPERTY()
+	double FluxbornSpawnDistance = 0.0;
 };
 
 /** Team A's base (Battleground Bible §3, §12, §18); Team B's is its mirror. */
@@ -236,6 +243,108 @@ struct FVeyraTowerRampTuning
 	int32 MaxStacks = 0;
 };
 
+/** What part a kind of Fluxborn plays in its wave (Battleground Bible §4, §19). */
+UENUM()
+enum class EVeyraFluxbornRole : uint8
+{
+	/** Front-line melee bodies (Striders). */
+	Frontline,
+	/** Ranged units (Sparks). */
+	Ranged,
+	/** Periodic siege units, which put structures in range first (Breakers, §19). */
+	Siege,
+};
+
+/** One kind of Fluxborn: its stats, body and basic attack (Battleground Bible §4; ADR-011 §7). */
+USTRUCT()
+struct FVeyraFluxbornDefinition
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraFluxbornRole Role = EVeyraFluxbornRole::Frontline;
+
+	/** Its base stats, before Team Flux strengthens it. No resource. */
+	UPROPERTY()
+	FVeyraStatBlock Stats;
+
+	/** The same attack component and profile as Vanguards use; its acquisition radius is how far it looks for enemies. */
+	UPROPERTY()
+	FVeyraBasicAttackProfile BasicAttack;
+
+	/** The body's capsule, in units. */
+	UPROPERTY()
+	double CapsuleRadius = 0.0;
+
+	UPROPERTY()
+	double CapsuleHalfHeight = 0.0;
+};
+
+/** How every Fluxborn's server controller behaves (ADR-011 §7). */
+USTRUCT()
+struct FVeyraFluxbornAiTuning
+{
+	GENERATED_BODY()
+
+	/** How often it reconsiders its target and its path, in seconds of world time. */
+	UPROPERTY()
+	double ThinkSeconds = 0.0;
+
+	/** How far past its edge an enemy Vanguard that hurts a nearby ally draws it (Battleground Bible §19), in units. */
+	UPROPERTY()
+	double AggressionResponseRange = 0.0;
+
+	/** How far from its lane's path it engages a target, in units: a chase that would take it farther ends, and it returns. */
+	UPROPERTY()
+	double LeashRange = 0.0;
+
+	/** How close to a waypoint counts as reaching it, in units. */
+	UPROPERTY()
+	double WaypointAcceptance = 0.0;
+};
+
+/** The lane Fluxborn (Battleground Bible §4, §17, §19; ADR-011 §7). */
+USTRUCT()
+struct FVeyraFluxbornTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Every kind, by its stable ID, such as strider. */
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraFluxbornDefinition> Units;
+
+	UPROPERTY()
+	FVeyraFluxbornAiTuning Ai;
+
+	/** How long a fallen Fluxborn's body stays before it is removed, in seconds. */
+	UPROPERTY()
+	double CorpseSeconds = 0.0;
+
+	/** Local avoidance among Fluxborn (Combat Bible §24): how far each looks, in units, and how much it gives way, 0 to 1. */
+	UPROPERTY()
+	double AvoidanceConsiderationRadius = 0.0;
+
+	UPROPERTY()
+	double AvoidanceWeight = 0.0;
+};
+
+/** How often the battleground's units replicate (ADR-011 §7; amends ADR-006 §5). */
+USTRUCT()
+struct FVeyraWorldReplicationTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** A Fluxborn sends its state every this many server ticks: 3 is 10 Hz at a 30 Hz tick. */
+	UPROPERTY()
+	int32 FluxbornUpdateEveryServerTicks = 0;
+};
+
 /** The World domain's tuning, bound from Game/Tuning/World.json (ADR-006 §6, ADR-011 §12, §17). */
 USTRUCT()
 struct FVeyraWorldTuning
@@ -262,6 +371,15 @@ struct FVeyraWorldTuning
 
 	UPROPERTY()
 	FVeyraTowerRampTuning TowerRamp;
+
+	UPROPERTY()
+	FVeyraFluxbornTuning Fluxborn;
+
+	UPROPERTY()
+	FVeyraWorldReplicationTuning Replication;
+
+	/** The kind of Fluxborn with Id, or null. */
+	const FVeyraFluxbornDefinition* FindFluxborn(const FVeyraContentId& Id) const { return Fluxborn.Units.Find(Id); }
 };
 
 /** The World domain's checks that a schema cannot express. */

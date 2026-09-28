@@ -77,6 +77,15 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool GrowBaseStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock& Growth);
 
 	/**
+	 * Scales a unit that grows stronger from outside its own stats, as Team Flux strengthens Fluxborn
+	 * (Battleground Bible §4; ADR-011 §10): its base Max Health becomes BaseMaxHealth times
+	 * HealthMultiplier, with Health keeping its percentage (Combat Bible §41), and its base outgoing
+	 * damage becomes DamageMultiplier. Each call replaces the last. Values must be finite and above 0.
+	 * Returns false, changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool SetUnitScaling(UAbilitySystemComponent& AbilitySystem, double BaseMaxHealth, double HealthMultiplier, double DamageMultiplier);
+
+	/**
 	 * Restores Amount of the unit's resource, never above its maximum (Combat Bible §27). Returns false
 	 * if refused: Amount must be finite and at least 0.
 	 */

@@ -165,9 +165,13 @@ Calls go down the layers, events go up, and the two peers meet only through Matc
   - a basic attack whose profile comes from `World.json`, using the same attack component and profile type as Vanguards.
 - **`AVeyraFluxbornController`**:
   - thinks on a world-time timer, so it freezes during a pause;
-  - walks its lane's waypoints (reversed for Team B);
+  - walks its lane's waypoints (reversed for Team B), then on to the enemy's Prime Well;
+  - spawns at its lane's `fluxbornSpawnDistance`, in front of the inhibitor; the layout's checks keep that point clear of every structure;
   - after a chase, resumes at the first waypoint ahead of it along the lane, never behind;
+  - engages only what lies within its leash of the lane's path, so a chase that would draw it away ends;
+  - walks past structures whose prerequisites make them invulnerable (Battleground §18);
   - holds its order while crowd control locks movement, like the Vanguard controller.
+- **A fallen Fluxborn** loses its controller and collision at once, and its body is removed after `corpseSeconds`.
 - **Target choice** (Battleground §19, Combat §33), in order:
   1. responding to aggression: an enemy Vanguard that damaged a nearby allied Vanguard, until it leaves the engagement range;
   2. for siege Fluxborn, a structure already in attack range;
@@ -175,7 +179,7 @@ Calls go down the layers, events go up, and the two peers meet only through Matc
   4. an enemy structure;
   5. an enemy Vanguard.
 
-  Ties break by distance, then by a stable ID.
+  Ties break by distance, then by a stable ID. A valid current target is kept unless a better rank is on offer, so a Fluxborn arriving draws it from a Vanguard it attacked for want of one.
 - **The aggro router.** One World subscriber to Combat's hostile-damage event notifies the towers and Fluxborn near the victim, rather than each unit subscribing.
 - **Collision.** Blocking collision (Combat §24), with the movement component's avoidance among Fluxborn; the radius and weight are data.
 - **Replication** (amends ADR-006 §5):
@@ -227,7 +231,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - inhibitors grant temporary Flux, each grant expiring on its own timer;
   - Flux is never spent.
 - **Active Flux** is permanent plus unexpired temporary. It sets Fluxborn strength for the whole team: each step of Flux adds a fraction of Health and damage (Canon prototype: every 25 adds +5% of each).
-- **Live scaling.** World applies the strength to each Fluxborn at spawn and again to every living one on each change. Canon says temporary Flux "falls away when its source expires". It is one infinite native effect per unit with multiplicative Max Health and damage lines, and Max Health keeps its current percentage (Combat §41).
+- **Live scaling.** World applies the strength to each Fluxborn at spawn and again to every living one on each change. Canon says temporary Flux "falls away when its source expires". Combat's `VeyraCombat::SetUnitScaling` sets the unit's base Max Health to its kind's times the Health multiplier, keeping Health's percentage (Combat §41), and its base outgoing damage multiplier to the damage multiplier. Each call replaces the last, so expiries need no bookkeeping, and statuses still modify on top of the base.
 - **Permanent Flux** is kept separate for Flux Spell slot unlocks, which are deferred.
 - **HUD:** each team's active and permanent Flux, the Fluxborn bonus, and the countdown of each temporary grant.
 
@@ -375,7 +379,7 @@ Every value below is designer-editable data; none is a constant in code. Each re
 | Prime Well | `World.json` | Health 5500; regenerates 0.5% of Max Health per second while all inhibitors stand |
 | Backdoor protection | `World.json` | Radius 1100; maximum 66% damage reduction; ramp over 5 s; checked every 0.5 s |
 | Fluxborn | `World.json` | Strider: Health 450, Physical Power 12, 1.25 attacks/s, range 110. Spark: 290, 23, 0.67/s, range 550, projectile speed 650. Breaker: 900, 40, 0.5/s, range 300, Armor 30. Move speed 325 for all |
-| Fluxborn AI | `World.json` | Think every 0.25 s; acquisition 700; aggression response 700; leash 900; waypoint acceptance 150; avoidance radius and weight |
+| Fluxborn AI | `World.json` | Think every 0.25 s; acquisition 700 (the basic attack's acquisition radius); aggression response 700; leash 900 from the lane's path; waypoint acceptance 150; avoidance radius 200 and weight 0.5; bodies removed 1 s after death; spawn 350 along each lane, in front of the inhibitor |
 | Waves | `World.json` | First wave at 0:30 (Canon); every 30 s, 25 s from 14:00, 20 s from 30:00 (Canon); 3 Striders + 3 Sparks; a Breaker every 3rd wave, every 2nd from 30:00 |
 | Replication | `World.json` | Fluxborn every 3 server ticks (10 Hz); structures every 6 |
 | Team Flux | `Flux.json` | Lane Spire and base tower +25 permanent (Canon); inhibitor +25 for 180 s (Canon); every 25 active Flux gives +5% Health and +5% damage (Canon) |

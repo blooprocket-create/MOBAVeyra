@@ -231,6 +231,29 @@ bool GrowBaseStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock
 	return true;
 }
 
+bool SetUnitScaling(UAbilitySystemComponent& AbilitySystem, double BaseMaxHealth, double HealthMultiplier, double DamageMultiplier)
+{
+	if (!AbilitySystem.GetSet<UVeyraVitalsSet>() || !AbilitySystem.GetSet<UVeyraOffenceSet>() || !IsPositiveFinite(BaseMaxHealth)
+		|| !IsPositiveFinite(HealthMultiplier) || !IsPositiveFinite(DamageMultiplier))
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to scale %s (Max Health %g x %g, damage x %g): it needs vitals and offence, and every value finite and above 0."),
+			*GetNameSafe(AbilitySystem.GetOwner()), BaseMaxHealth, HealthMultiplier, DamageMultiplier);
+		return false;
+	}
+	const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
+	const FGameplayAttribute MaxHealth = UVeyraVitalsSet::GetMaxHealthAttribute();
+	const float OldMax = AbilitySystem.GetNumericAttribute(MaxHealth);
+	const float Fraction = OldMax > 0.0f ? AbilitySystem.GetNumericAttribute(Health) / OldMax : 1.0f;
+	AbilitySystem.SetNumericAttributeBase(MaxHealth, static_cast<float>(BaseMaxHealth * HealthMultiplier));
+	// A dead unit stays at 0 Health (Combat Bible §18).
+	if (!IsDeadUnit(AbilitySystem))
+	{
+		AbilitySystem.SetNumericAttributeBase(Health, AbilitySystem.GetNumericAttribute(MaxHealth) * Fraction);
+	}
+	AbilitySystem.SetNumericAttributeBase(UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute(), static_cast<float>(DamageMultiplier));
+	return true;
+}
+
 bool RestoreResource(UAbilitySystemComponent& AbilitySystem, double Amount)
 {
 	if (!AbilitySystem.GetSet<UVeyraResourceSet>() || !IsNonNegativeFinite(Amount))

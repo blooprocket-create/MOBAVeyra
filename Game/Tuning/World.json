@@ -10,21 +10,24 @@
         "points": [{ "x": -2300, "y": -6500 }, { "x": 6500, "y": -6500 }, { "x": 6500, "y": 2300 }],
         "width": 700,
         "inhibitorDistance": 0,
-        "spireDistances": [1200, 3200, 5500]
+        "spireDistances": [1200, 3200, 5500],
+        "fluxbornSpawnDistance": 350
       },
       {
         "lane": "Mid",
         "points": [{ "x": -3530, "y": -3530 }, { "x": 3530, "y": 3530 }],
         "width": 700,
         "inhibitorDistance": 0,
-        "spireDistances": [1000, 2200, 3400]
+        "spireDistances": [1000, 2200, 3400],
+        "fluxbornSpawnDistance": 350
       },
       {
         "lane": "Bottom",
         "points": [{ "x": -6500, "y": -2300 }, { "x": -6500, "y": 6500 }, { "x": 2300, "y": 6500 }],
         "width": 700,
         "inhibitorDistance": 0,
-        "spireDistances": [1200, 3200, 5500]
+        "spireDistances": [1200, 3200, 5500],
+        "fluxbornSpawnDistance": 350
       }
     ],
     "base": {
@@ -64,5 +67,44 @@
     "provenance": "Canon",
     "perShot": 0.2,
     "maxStacks": 5
+  },
+  "fluxborn": {
+    "provenance": "Provisional",
+    "units": {
+      "strider": {
+        "role": "Frontline",
+        "stats": { "maxHealth": 450, "healthRegen": 0, "maxResource": 0, "resourceRegen": 0, "armor": 0, "magicResist": 0, "physicalPower": 12, "magicPower": 0, "attackSpeed": 1.25, "moveSpeed": 325 },
+        "basicAttack": { "range": 110, "damageType": "Physical", "physicalPowerRatio": 1, "magicPowerRatio": 0, "windupFraction": 0.3, "acquisitionRadius": 700, "minimumIntervalSeconds": 0, "projectile": [], "cleave": [] },
+        "capsuleRadius": 35,
+        "capsuleHalfHeight": 60
+      },
+      "spark": {
+        "role": "Ranged",
+        "stats": { "maxHealth": 290, "healthRegen": 0, "maxResource": 0, "resourceRegen": 0, "armor": 0, "magicResist": 0, "physicalPower": 23, "magicPower": 0, "attackSpeed": 0.67, "moveSpeed": 325 },
+        "basicAttack": { "range": 550, "damageType": "Physical", "physicalPowerRatio": 1, "magicPowerRatio": 0, "windupFraction": 0.3, "acquisitionRadius": 700, "minimumIntervalSeconds": 0, "projectile": [{ "speed": 650, "radius": 10 }], "cleave": [] },
+        "capsuleRadius": 30,
+        "capsuleHalfHeight": 55
+      },
+      "breaker": {
+        "role": "Siege",
+        "stats": { "maxHealth": 900, "healthRegen": 0, "maxResource": 0, "resourceRegen": 0, "armor": 30, "magicResist": 0, "physicalPower": 40, "magicPower": 0, "attackSpeed": 0.5, "moveSpeed": 325 },
+        "basicAttack": { "range": 300, "damageType": "Physical", "physicalPowerRatio": 1, "magicPowerRatio": 0, "windupFraction": 0.3, "acquisitionRadius": 700, "minimumIntervalSeconds": 0, "projectile": [{ "speed": 1200, "radius": 15 }], "cleave": [] },
+        "capsuleRadius": 45,
+        "capsuleHalfHeight": 70
+      }
+    },
+    "ai": {
+      "thinkSeconds": 0.25,
+      "aggressionResponseRange": 700,
+      "leashRange": 900,
+      "waypointAcceptance": 150
+    },
+    "corpseSeconds": 1,
+    "avoidanceConsiderationRadius": 200,
+    "avoidanceWeight": 0.5
+  },
+  "replication": {
+    "provenance": "Provisional",
+    "fluxbornUpdateEveryServerTicks": 3
   }
 }

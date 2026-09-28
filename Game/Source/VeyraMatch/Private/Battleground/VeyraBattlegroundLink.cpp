@@ -44,6 +44,29 @@ void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrim
 	{
 		DestroyedHandle = Subsystem->OnStructureDestroyed.AddRaw(this, &FVeyraBattlegroundLink::OnStructureDestroyed);
 	}
+	if (UVeyraTeamFluxSubsystem* TeamFlux = Flux.Get())
+	{
+		FluxChangedHandle = TeamFlux->OnTeamFluxChanged.AddRaw(this, &FVeyraBattlegroundLink::OnTeamFluxChanged);
+		// World starts from each team's Flux as it stands.
+		OnTeamFluxChanged(EVeyraTeam::A);
+		OnTeamFluxChanged(EVeyraTeam::B);
+	}
+}
+
+void FVeyraBattlegroundLink::OnTeamFluxChanged(EVeyraTeam Team)
+{
+	UVeyraTeamFluxSubsystem* TeamFlux = Flux.Get();
+	UVeyraBattlegroundSubsystem* Subsystem = Battleground.Get();
+	if (!TeamFlux || !Subsystem)
+	{
+		return;
+	}
+	const FVeyraFluxbornStrength Strength = TeamFlux->GetFluxbornStrength(Team);
+	FVeyraTeamFluxStrength View;
+	View.ActiveFlux = TeamFlux->GetActive(Team);
+	View.HealthMultiplier = Strength.HealthMultiplier;
+	View.DamageMultiplier = Strength.DamageMultiplier;
+	Subsystem->SetTeamFlux(Team, View);
 }
 
 void FVeyraBattlegroundLink::Stop()
@@ -53,7 +76,12 @@ void FVeyraBattlegroundLink::Stop()
 		Subsystem->OnStructureDestroyed.Remove(DestroyedHandle);
 		Subsystem->Stop();
 	}
+	if (UVeyraTeamFluxSubsystem* TeamFlux = Flux.Get())
+	{
+		TeamFlux->OnTeamFluxChanged.Remove(FluxChangedHandle);
+	}
 	DestroyedHandle.Reset();
+	FluxChangedHandle.Reset();
 	Battleground.Reset();
 	Flux.Reset();
 }

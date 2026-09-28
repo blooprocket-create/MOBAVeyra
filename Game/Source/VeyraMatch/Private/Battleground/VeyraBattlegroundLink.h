@@ -15,8 +15,8 @@ struct FVeyraStructureDestroyedEvent;
 /**
  * Match's side of the battleground (ADR-011 §2, §3): World and Flux are peers that never call each
  * other, so this routes between them. A destroyed structure grants its destroyers the Team Flux its
- * kind gives, and a destroyed Prime Well is reported to the game mode, which decides victory. The
- * game mode owns one; server only.
+ * kind gives; every change to a team's Flux reaches World, whose Fluxborn follow it; and a destroyed
+ * Prime Well is reported to the game mode, which decides victory. The game mode owns one; server only.
  */
 class FVeyraBattlegroundLink
 {
@@ -41,8 +41,12 @@ public:
 private:
 	void OnStructureDestroyed(const FVeyraStructureDestroyedEvent& Event);
 
+	/** Team's Flux changed, by a grant or an expiry: World's Fluxborn follow it (ADR-011 §3, §10). */
+	void OnTeamFluxChanged(EVeyraTeam Team);
+
 	TWeakObjectPtr<UVeyraBattlegroundSubsystem> Battleground;
 	TWeakObjectPtr<UVeyraTeamFluxSubsystem> Flux;
 	FDelegateHandle DestroyedHandle;
+	FDelegateHandle FluxChangedHandle;
 	FOnPrimeWellDestroyed OnPrimeWellDestroyed;
 };
