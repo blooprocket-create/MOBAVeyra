@@ -21,10 +21,10 @@ DEFINE_LOG_CATEGORY_STATIC(LogVeyraBotMatch, Log, All);
 
 namespace
 {
-	const TCHAR* const BotsOption = TEXT("VeyraPlayingBots=");
-	const TCHAR* const DifficultyOption = TEXT("VeyraBotDifficulty=");
+	const TCHAR* const PlayingBotsOption = TEXT("VeyraPlayingBots=");
+	const TCHAR* const BotDifficultyOption = TEXT("VeyraBotDifficulty=");
 	// Harness settings, not tuning: how often the match's state is logged, in seconds of match clock.
-	constexpr double ReportIntervalSeconds = 60.0;
+	constexpr double BotMatchReportSeconds = 60.0;
 }
 
 bool UVeyraBotMatchSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -35,9 +35,9 @@ bool UVeyraBotMatchSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 void UVeyraBotMatchSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 {
 	Super::OnWorldBeginPlay(InWorld);
-	const TCHAR* Count = InWorld.URL.GetOption(BotsOption, nullptr);
+	const TCHAR* Count = InWorld.URL.GetOption(PlayingBotsOption, nullptr);
 	BotCount = Count ? FMath::Max(0, FCString::Atoi(Count)) : 0;
-	const TCHAR* Named = InWorld.URL.GetOption(DifficultyOption, nullptr);
+	const TCHAR* Named = InWorld.URL.GetOption(BotDifficultyOption, nullptr);
 	Difficulty = Named && FCString::Stricmp(Named, TEXT("Intermediate")) == 0 ? EVeyraBotDifficulty::Intermediate : EVeyraBotDifficulty::Beginner;
 	if (BotCount > 0)
 	{
@@ -61,7 +61,7 @@ void UVeyraBotMatchSubsystem::Tick(float /*DeltaTime*/)
 	}
 	if (GameState->GetPhase() == EVeyraMatchPhase::Live && GameState->GetMatchClockSeconds() >= NextReportAt)
 	{
-		NextReportAt = GameState->GetMatchClockSeconds() + ReportIntervalSeconds;
+		NextReportAt = GameState->GetMatchClockSeconds() + BotMatchReportSeconds;
 		Report(*World);
 	}
 }
