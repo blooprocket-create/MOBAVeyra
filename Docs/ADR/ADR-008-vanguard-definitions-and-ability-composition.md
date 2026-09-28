@@ -1,6 +1,6 @@
 # ADR-008: Vanguard definitions and ability composition
 
-**Status:** Proposed. It becomes Accepted when the author merges the M5 pull request that adds it.  
+**Status:** Accepted. The author merged the M5 pull requests that add it and build on it ([#17](https://github.com/blooprocket-create/MOBAVeyra/pull/17), [#18](https://github.com/blooprocket-create/MOBAVeyra/pull/18)) on 2026-09-27.  
 **Date:** 2026-09-26  
 **Approved in:** Author decisions for M5 (2026-09-26): Vanguards before the play flow; provisional values drafted by the implementer; levels, ranks and skill points with a developer XP command; the Vision parts deferred; grey-box presentation.  
 **Related:** [ADR-002](ADR-002-gameplay-ability-system.md) (GAS behind Veyra-owned integration), [ADR-003](ADR-003-owned-field-entities.md) (implementation order), [ADR-006](ADR-006-unreal-project-scaffold.md) (§3 modules, §4 GAS placement, §6 tuning), [ADR-009](ADR-009-runtime-combat-primitives.md) (the runtime primitives these definitions use), [Character Bible](../Design/Veyra_Initial_Roster_Character_Bible_v0.6.md) §13, §18, §19, §20, [Combat Bible](../Design/Veyra_Combat_Bible_v0.5.md), [Economy & Progression Bible](../Design/Veyra_Economy_Progression_Bible_v0.1.md) §1, §9, §16, [Architecture Constitution](../../ARCHITECTURE.md) §1.3, §1.9–§1.10, §3.

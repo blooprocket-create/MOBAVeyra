@@ -1,6 +1,6 @@
 # ADR-009: Runtime combat primitives
 
-**Status:** Proposed. It becomes Accepted when the author merges the M5 pull request that adds it.  
+**Status:** Accepted. The author merged the M5 pull requests that add it and build on it ([#17](https://github.com/blooprocket-create/MOBAVeyra/pull/17), [#18](https://github.com/blooprocket-create/MOBAVeyra/pull/18)) on 2026-09-27.  
 **Date:** 2026-09-26  
 **Approved in:** Author decisions for M5 (2026-09-26), as for ADR-008.  
 **Related:** [ADR-002](ADR-002-gameplay-ability-system.md), [ADR-006](ADR-006-unreal-project-scaffold.md) (§4 GAS placement and the §41 allow-list, §5 Iris, §7 server-only movement, §8 world-time pause), [ADR-008](ADR-008-vanguard-definitions-and-ability-composition.md) (the definitions that use these primitives), [Combat Bible](../Design/Veyra_Combat_Bible_v0.5.md) §4, §7–§9, §12–§13, §16–§17, §22–§23, §26, §28, §40, §44–§50, §54, [Architecture Constitution](../../ARCHITECTURE.md) §1.10, §3, §12.
