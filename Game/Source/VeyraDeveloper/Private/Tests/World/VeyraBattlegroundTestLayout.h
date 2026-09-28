@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Tuning/VeyraWorldTuning.h"
+#include "Tuning/VeyraWorldTuningSubsystem.h"
 
 namespace VeyraWorldTests
 {
@@ -30,4 +31,23 @@ namespace VeyraWorldTests
 		Layout.Base.FountainRadius = 300.0;
 		return Layout;
 	}
+
+	/** World tuning a test may change, starting from the committed one. Get() returns it while this object lives. */
+	struct FScopedWorldTuning
+	{
+		FVeyraWorldTuning Tuning;
+
+		FScopedWorldTuning()
+			: Tuning(UVeyraWorldTuningSubsystem::Get())
+		{
+			UVeyraWorldTuningSubsystem::SetTestOverride(&Tuning);
+		}
+
+		~FScopedWorldTuning()
+		{
+			UVeyraWorldTuningSubsystem::SetTestOverride(nullptr);
+		}
+
+		UE_NONCOPYABLE(FScopedWorldTuning);
+	};
 }

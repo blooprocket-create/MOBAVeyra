@@ -120,6 +120,32 @@ TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
 			Problems.Add(Pointer + TEXT("/capsuleHalfHeight: must be at least capsuleRadius"));
 		}
 	}
+
+	// Waves: phases in order from 0, and every unit a kind of Fluxborn (Battleground Bible §17).
+	const FVeyraWavesTuning& Waves = Tuning.Waves;
+	if (Waves.Phases.IsEmpty() || Waves.Phases[0].FromSeconds != 0.0)
+	{
+		Problems.Add(TEXT("/waves/phases: the first phase must begin at 0"));
+	}
+	for (int32 Index = 1; Index < Waves.Phases.Num(); ++Index)
+	{
+		if (Waves.Phases[Index].FromSeconds <= Waves.Phases[Index - 1].FromSeconds)
+		{
+			Problems.Add(FString::Printf(TEXT("/waves/phases/%d/fromSeconds: phases must begin in order"), Index));
+		}
+	}
+	const auto CheckUnits = [&Problems, &Tuning](const TArray<FVeyraWaveUnitTuning>& Units, const TCHAR* Field) {
+		for (int32 Index = 0; Index < Units.Num(); ++Index)
+		{
+			if (!Tuning.FindFluxborn(Units[Index].Unit))
+			{
+				Problems.Add(FString::Printf(TEXT("/waves/%s/%d/unit: %s is no kind of Fluxborn"), Field, Index, *Units[Index].Unit.ToString()));
+			}
+		}
+	};
+	CheckUnits(Waves.Units, TEXT("units"));
+	CheckUnits(Waves.SiegeUnits, TEXT("siegeUnits"));
+	CheckUnits(Waves.InhibitorDownUnits, TEXT("inhibitorDownUnits"));
 	return Problems;
 }
 }

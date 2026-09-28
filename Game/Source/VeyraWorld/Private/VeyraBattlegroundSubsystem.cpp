@@ -11,6 +11,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Layout/VeyraLayout.h"
 #include "Rules/VeyraStructureRules.h"
+#include "Rules/VeyraWaveRules.h"
 #include "Structures/VeyraStructure.h"
 #include "Structures/VeyraStructureAttackComponent.h"
 #include "Targeting/VeyraTargeting.h"
@@ -173,6 +174,100 @@ AVeyraFluxborn* UVeyraBattlegroundSubsystem::SpawnFluxborn(const FVeyraContentId
 	return Unit;
 }
 
+void UVeyraBattlegroundSubsystem::StartWaves()
+{
+	UWorld* World = GetWorld();
+	if (!World || !IsServer() || bStopped || !Layout.IsSet() || bWavesStarted)
+	{
+		return;
+	}
+	bWavesStarted = true;
+	WavesStartedAt = World->GetTimeSeconds();
+	NextWave = 0;
+	ScheduleWave();
+}
+
+void UVeyraBattlegroundSubsystem::ScheduleWave()
+{
+	UWorld* World = GetWorld();
+	const double MatchSeconds = World->GetTimeSeconds() - WavesStartedAt;
+	const double Delay = VeyraWaveRules::WaveTime(UVeyraWorldTuningSubsystem::Get().Waves, NextWave) - MatchSeconds;
+	// A timer needs a delay above 0; a wave already due spawns at once.
+	if (Delay <= 0.0)
+	{
+		OnWaveTimer();
+		return;
+	}
+	World->GetTimerManager().SetTimer(WaveTimer, FTimerDelegate::CreateUObject(this, &UVeyraBattlegroundSubsystem::OnWaveTimer), static_cast<float>(Delay),
+		/*bLoop*/ false);
+}
+
+void UVeyraBattlegroundSubsystem::OnWaveTimer()
+{
+	if (bStopped)
+	{
+		return;
+	}
+	SpawnWave(NextWave);
+	ScheduleWave();
+}
+
+void UVeyraBattlegroundSubsystem::SpawnWave(int32 Index)
+{
+	UWorld* World = GetWorld();
+	if (!World || !IsServer() || bStopped || !Layout.IsSet())
+	{
+		return;
+	}
+	const FVeyraWavesTuning& Waves = UVeyraWorldTuningSubsystem::Get().Waves;
+	const bool bSiege = VeyraWaveRules::HasSiege(Waves, Index, VeyraWaveRules::WaveTime(Waves, Index));
+	FTimerManager& Timers = World->GetTimerManager();
+	FileTimers.RemoveAll([&Timers](const FTimerHandle& Handle) { return !Timers.IsTimerActive(Handle); });
+	for (const FVeyraLaneLayout& Lane : Layout->Lanes)
+	{
+		for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+		{
+			// A lane whose enemy inhibitor is down adds units to this team's waves in it (Battleground Bible §18).
+			const TArray<FVeyraContentId> Units = VeyraWaveRules::Composition(Waves, bSiege, IsInhibitorDown(VeyraTeams::Opposing(Team), Lane.Lane));
+			for (int32 Place = 0; Place < Units.Num(); ++Place)
+			{
+				const double Delay = Waves.UnitIntervalSeconds * Place;
+				if (Delay <= 0.0)
+				{
+					SpawnFluxborn(Units[Place], Team, Lane.Lane);
+					continue;
+				}
+				Timers.SetTimer(FileTimers.AddDefaulted_GetRef(),
+					FTimerDelegate::CreateUObject(this, &UVeyraBattlegroundSubsystem::SpawnWaveUnit, Units[Place], Team, Lane.Lane),
+					static_cast<float>(Delay), /*bLoop*/ false);
+			}
+		}
+	}
+	NextWave = FMath::Max(NextWave, Index + 1);
+	UE_LOG(LogVeyraWorld, Log, TEXT("Wave %d spawned in %d lane(s)%s."), Index + 1, Layout->Lanes.Num(), bSiege ? TEXT(", with siege units") : TEXT(""));
+}
+
+void UVeyraBattlegroundSubsystem::SpawnWaveUnit(FVeyraContentId Kind, EVeyraTeam Team, EVeyraLane Lane)
+{
+	if (!bStopped)
+	{
+		SpawnFluxborn(Kind, Team, Lane);
+	}
+}
+
+bool UVeyraBattlegroundSubsystem::IsInhibitorDown(EVeyraTeam Team, EVeyraLane Lane) const
+{
+	for (const AVeyraStructure* Structure : Structures)
+	{
+		if (Structure && Structure->GetVeyraTeam() == Team && Structure->GetStructureKind() == EVeyraStructureKind::Inhibitor
+			&& Structure->GetLane() == TOptional<EVeyraLane>(Lane) && Structure->IsDestroyed())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
 TArray<AVeyraFluxborn*> UVeyraBattlegroundSubsystem::GetFluxborn() const
 {
 	TArray<AVeyraFluxborn*> Living;
@@ -235,12 +330,18 @@ void UVeyraBattlegroundSubsystem::Stop()
 	{
 		FTimerManager& Timers = World->GetTimerManager();
 		Timers.ClearTimer(RegenerationTimer);
+		Timers.ClearTimer(WaveTimer);
+		for (FTimerHandle& File : FileTimers)
+		{
+			Timers.ClearTimer(File);
+		}
 		for (TPair<TWeakObjectPtr<AVeyraStructure>, FTimerHandle>& Rebuild : RebuildTimers)
 		{
 			Timers.ClearTimer(Rebuild.Value);
 		}
 	}
 	RebuildTimers.Reset();
+	FileTimers.Reset();
 }
 
 void UVeyraBattlegroundSubsystem::RefreshInvulnerability()

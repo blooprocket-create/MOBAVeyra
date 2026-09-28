@@ -86,6 +86,14 @@ void FVeyraBattlegroundLink::Stop()
 	Flux.Reset();
 }
 
+void FVeyraBattlegroundLink::StartWaves()
+{
+	if (UVeyraBattlegroundSubsystem* Subsystem = Battleground.Get())
+	{
+		Subsystem->StartWaves();
+	}
+}
+
 bool FVeyraBattlegroundLink::DeveloperSiege(UAbilitySystemComponent& Source, EVeyraTeam Team)
 {
 	UVeyraBattlegroundSubsystem* Subsystem = Battleground.Get();

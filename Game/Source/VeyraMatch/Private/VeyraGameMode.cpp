@@ -693,6 +693,11 @@ void AVeyraGameMode::BeginLive()
 {
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Live);
 	UE_LOG(LogVeyraMatch, Log, TEXT("The match is live."));
+	// The Fluxborn waves begin with the match clock (Battleground Bible §17).
+	if (Battleground)
+	{
+		Battleground->StartWaves();
+	}
 }
 
 void AVeyraGameMode::SpawnVanguard(AVeyraPlayerState& PlayerState)

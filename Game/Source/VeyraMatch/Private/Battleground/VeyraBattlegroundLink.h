@@ -32,6 +32,9 @@ public:
 	/** Disconnects, and stops the battleground's timers, as when the match ends. */
 	void Stop();
 
+	/** Starts the battleground's Fluxborn waves, as the match goes live (Battleground Bible §17). */
+	void StartWaves();
+
 	/**
 	 * Developer builds: Source, on Team, destroys the enemies' next structure in siege order with a
 	 * lethal developer hit through the damage pipeline (ADR-011 §15). Returns whether one fell.

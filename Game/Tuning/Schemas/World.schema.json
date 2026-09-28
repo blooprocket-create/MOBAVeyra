@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the World domain (Battleground Bible; ADR-011 §12, §17): the battleground's grey-box layout, which the map commandlet bakes and the server spawns from, and its structures. Distances are in world units; X runs up the screen and Y to its right. VeyraWorld binds it to FVeyraWorldTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "layout", "structures", "inhibitor", "primeWell", "towerAttack", "towerRamp", "fluxborn", "replication"],
+  "required": ["schemaVersion", "layout", "structures", "inhibitor", "primeWell", "towerAttack", "towerRamp", "fluxborn", "waves", "replication"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -114,6 +114,16 @@
         "minimumIntervalSeconds": { "description": "The shortest time between attacks whatever the Attack Speed; 0 for none.", "type": "number", "minimum": 0 },
         "projectile": { "description": "A ranged attack's homing projectile; empty for melee.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/homingProjectile" } },
         "cleave": { "description": "Where the attack cleaves when something makes it cleave.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/shape" } }
+      }
+    },
+    "waveUnits": {
+      "description": "Some Fluxborn of one kind, by its ID in fluxborn.units.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit", "count"],
+      "properties": {
+        "unit": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+        "count": { "type": "integer", "minimum": 1 }
       }
     },
     "fluxbornDefinition": {
@@ -250,6 +260,35 @@
         "corpseSeconds": { "description": "How long a fallen Fluxborn's body stays before it is removed.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "avoidanceConsiderationRadius": { "description": "How far each Fluxborn looks for others to give way to (Combat Bible §24).", "type": "number", "minimum": 0 },
         "avoidanceWeight": { "description": "How much it gives way, 0 to 1.", "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "waves": {
+      "description": "The Fluxborn waves (Battleground Bible §17, §18): all three lanes spawn together on one schedule; no wave grows stronger over time.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "firstWaveSeconds", "phases", "units", "siegeUnits", "inhibitorDownUnits", "unitIntervalSeconds"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "firstWaveSeconds": { "description": "When the first wave spawns, in match-clock seconds (§17: 0:30).", "type": "number", "minimum": 0 },
+        "phases": {
+          "description": "Spans of the match with their own cadence, in order, the first from 0. Each wave follows the last by the interval of the phase the last spawned in, so no wave is duplicated or skipped at a boundary (§17).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["fromSeconds", "intervalSeconds", "siegeEveryWaves"],
+            "properties": {
+              "fromSeconds": { "description": "When the phase begins, in match-clock seconds.", "type": "number", "minimum": 0 },
+              "intervalSeconds": { "description": "Seconds from each wave spawned in the phase to the next.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+              "siegeEveryWaves": { "description": "Every this many waves brings siege units; 0 for none.", "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "units": { "description": "Every wave's units, front line first.", "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/waveUnits" } },
+        "siegeUnits": { "description": "Added to the waves that bring siege units, behind the front line.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/waveUnits" } },
+        "inhibitorDownUnits": { "description": "Added to each wave of a lane whose enemy inhibitor is down (§18).", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/waveUnits" } },
+        "unitIntervalSeconds": { "description": "Seconds between one unit of a wave leaving the base and the next, so they walk out in a file.", "type": "number", "minimum": 0 }
       }
     },
     "replication": {

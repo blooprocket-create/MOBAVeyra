@@ -103,6 +103,19 @@
     "avoidanceConsiderationRadius": 200,
     "avoidanceWeight": 0.5
   },
+  "waves": {
+    "provenance": "Provisional",
+    "firstWaveSeconds": 30,
+    "phases": [
+      { "fromSeconds": 0, "intervalSeconds": 30, "siegeEveryWaves": 3 },
+      { "fromSeconds": 840, "intervalSeconds": 25, "siegeEveryWaves": 3 },
+      { "fromSeconds": 1800, "intervalSeconds": 20, "siegeEveryWaves": 2 }
+    ],
+    "units": [{ "unit": "strider", "count": 3 }, { "unit": "spark", "count": 3 }],
+    "siegeUnits": [{ "unit": "breaker", "count": 1 }],
+    "inhibitorDownUnits": [{ "unit": "breaker", "count": 1 }],
+    "unitIntervalSeconds": 0.5
+  },
   "replication": {
     "provenance": "Provisional",
     "fluxbornUpdateEveryServerTicks": 3

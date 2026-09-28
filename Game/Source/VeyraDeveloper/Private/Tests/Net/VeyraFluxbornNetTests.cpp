@@ -15,6 +15,23 @@
 
 namespace VeyraNetTests
 {
+	namespace FluxbornNetTests
+	{
+		/** The Fluxborn of Team this machine sees, in no particular order. */
+		inline TArray<const AVeyraFluxborn*> SeenFluxborn(const UWorld* World, EVeyraTeam Team)
+		{
+			TArray<const AVeyraFluxborn*> Seen;
+			for (TActorIterator<AVeyraFluxborn> It(World); It; ++It)
+			{
+				if (It->GetVeyraTeam() == Team && !It->IsActorBeingDestroyed())
+				{
+					Seen.Add(*It);
+				}
+			}
+			return Seen;
+		}
+	}
+
 	// Veyra.Net.FluxbornLanes.*: Fluxborn march their lane under their server controllers, fight the
 	// enemy's where the waves meet, and fall; every client sees it (ADR-011 §7).
 	NETWORK_TEST_CLASS(FluxbornLanes, "Veyra.Net")
@@ -56,20 +73,6 @@ namespace VeyraNetTests
 			return FVeyraContentId::FromText(TEXT("strider")).GetValue();
 		}
 
-		/** The Fluxborn of Team this machine sees, in no particular order. */
-		static TArray<const AVeyraFluxborn*> SeenFluxborn(const UWorld* World, EVeyraTeam Team)
-		{
-			TArray<const AVeyraFluxborn*> Seen;
-			for (TActorIterator<AVeyraFluxborn> It(World); It; ++It)
-			{
-				if (It->GetVeyraTeam() == Team && !It->IsActorBeingDestroyed())
-				{
-					Seen.Add(*It);
-				}
-			}
-			return Seen;
-		}
-
 		static bool IsHurt(const AVeyraFluxborn* Unit)
 		{
 			return Unit && VeyraCombat::GetMissingHealth(*Unit->GetAbilitySystemComponent()) > 0.0;
@@ -88,7 +91,7 @@ namespace VeyraNetTests
 				.UntilClients(TEXT("Every client sees team A's Strider march toward team B"), [this](FState& State) {
 					// The compact mid lane runs up the diagonal, toward team B.
 					const FVector2D Toward = FVector2D(1.0, 1.0).GetSafeNormal();
-					for (const AVeyraFluxborn* Unit : SeenFluxborn(State.World, EVeyraTeam::A))
+					for (const AVeyraFluxborn* Unit : FluxbornNetTests::SeenFluxborn(State.World, EVeyraTeam::A))
 					{
 						if (FVector2D::DotProduct(FVector2D(Unit->GetActorLocation()) - OursStart, Toward) >= MarchProof)
 						{
@@ -98,8 +101,8 @@ namespace VeyraNetTests
 					return false;
 				})
 				.UntilClients(TEXT("Every client sees them hurt each other where they meet"), [](FState& State) {
-					const TArray<const AVeyraFluxborn*> A = SeenFluxborn(State.World, EVeyraTeam::A);
-					const TArray<const AVeyraFluxborn*> B = SeenFluxborn(State.World, EVeyraTeam::B);
+					const TArray<const AVeyraFluxborn*> A = FluxbornNetTests::SeenFluxborn(State.World, EVeyraTeam::A);
+					const TArray<const AVeyraFluxborn*> B = FluxbornNetTests::SeenFluxborn(State.World, EVeyraTeam::B);
 					return A.Num() == 1 && B.Num() == 1 && IsHurt(A[0]) && IsHurt(B[0]);
 				})
 				.ThenServer(TEXT("Team A's Strider falls"), [this](FState& /*State*/) {
@@ -111,7 +114,59 @@ namespace VeyraNetTests
 					Lethal.Delivery = EVeyraDamageDelivery::Developer;
 					ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Theirs->GetAbilitySystemComponent(), Victim, Lethal) && !Unit->IsAlive()));
 				})
-				.UntilClients(TEXT("Every client sees its body removed"), [](FState& State) { return SeenFluxborn(State.World, EVeyraTeam::A).IsEmpty(); });
+				.UntilClients(TEXT("Every client sees its body removed"), [](FState& State) { return FluxbornNetTests::SeenFluxborn(State.World, EVeyraTeam::A).IsEmpty(); });
+		}
+	};
+
+	// Veyra.Net.FluxbornWaves.*: the waves begin when the match goes live, each team's leaving its base
+	// in a file, and every client sees them (Battleground Bible §17; ADR-011 §7).
+	NETWORK_TEST_CLASS(FluxbornWaves, "Veyra.Net")
+	{
+		struct FState : public FBasePIENetworkComponentState
+		{
+		};
+
+		FPIENetworkComponent<FState> Network{ TestRunner, TestCommandBuilder, bInitializing };
+		TUniquePtr<FScopedExpectedPlayers> ExpectedPlayers;
+		TUniquePtr<FScopedMatchTuning> Tuning;
+		TUniquePtr<VeyraWorldTests::FScopedWorldTuning> World;
+		FVeyraGreyboxLayout Greybox;
+
+		// Fixture values: a short preparation, and a first wave soon after the match goes live.
+		static constexpr double ShortPreparationSeconds = 0.1;
+		static constexpr double SoonSeconds = 0.5;
+
+		BEFORE_EACH()
+		{
+			IgnoreLoginViewTargetRpc(*TestRunner);
+			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Greybox).IsEmpty()));
+			Tuning = MakeUnique<FScopedMatchTuning>();
+			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
+			World = MakeUnique<VeyraWorldTests::FScopedWorldTuning>();
+			World->Tuning.Waves.FirstWaveSeconds = SoonSeconds;
+			ExpectedPlayers = MakeUnique<FScopedExpectedPlayers>(MatchClientCount);
+			BuildMatchNetwork(Network);
+		}
+
+		AFTER_EACH()
+		{
+			World.Reset();
+			Tuning.Reset();
+			ExpectedPlayers.Reset();
+		}
+
+		TEST_METHOD(TheFirstWaveMarchesOutForBothTeams)
+		{
+			StartBattleground(Network, Greybox, EVeyraMatchPhase::Live)
+				.UntilClients(TEXT("Every client sees a whole wave of each team"), [this](FState& State) {
+					int32 Wave = 0;
+					for (const FVeyraWaveUnitTuning& Units : World->Tuning.Waves.Units)
+					{
+						Wave += Units.Count;
+					}
+					return FluxbornNetTests::SeenFluxborn(State.World, EVeyraTeam::A).Num() >= Wave
+						&& FluxbornNetTests::SeenFluxborn(State.World, EVeyraTeam::B).Num() >= Wave;
+				});
 		}
 	};
 }

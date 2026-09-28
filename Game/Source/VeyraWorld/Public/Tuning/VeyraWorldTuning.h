@@ -331,6 +331,76 @@ struct FVeyraFluxbornTuning
 	double AvoidanceWeight = 0.0;
 };
 
+/** One span of the match with its own wave cadence (Battleground Bible §17). */
+USTRUCT()
+struct FVeyraWavePhaseTuning
+{
+	GENERATED_BODY()
+
+	/** When the phase begins, in match-clock seconds; the first begins at 0. */
+	UPROPERTY()
+	double FromSeconds = 0.0;
+
+	/** Seconds from each wave spawned in this phase to the next. */
+	UPROPERTY()
+	double IntervalSeconds = 0.0;
+
+	/** Every this many waves brings siege units; 0 for none. */
+	UPROPERTY()
+	int32 SiegeEveryWaves = 0;
+};
+
+/** Some Fluxborn of one kind in a wave. */
+USTRUCT()
+struct FVeyraWaveUnitTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraContentId Unit;
+
+	UPROPERTY()
+	int32 Count = 0;
+};
+
+/**
+ * The Fluxborn waves (Battleground Bible §17, §18): all three lanes spawn together, on a schedule
+ * whose phases quicken it; ordinary waves hold front-line and ranged units, some bring siege units,
+ * and a lane whose enemy inhibitor is down adds more. No wave grows stronger over time.
+ */
+USTRUCT()
+struct FVeyraWavesTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** When the first wave spawns, in match-clock seconds. */
+	UPROPERTY()
+	double FirstWaveSeconds = 0.0;
+
+	/** In order of FromSeconds, the first from 0. */
+	UPROPERTY()
+	TArray<FVeyraWavePhaseTuning> Phases;
+
+	/** Every wave's units, in the order they leave the base: front line first. */
+	UPROPERTY()
+	TArray<FVeyraWaveUnitTuning> Units;
+
+	/** Added to the waves that bring siege units, after the front line. */
+	UPROPERTY()
+	TArray<FVeyraWaveUnitTuning> SiegeUnits;
+
+	/** Added to each wave of a lane whose enemy inhibitor is down (§18). */
+	UPROPERTY()
+	TArray<FVeyraWaveUnitTuning> InhibitorDownUnits;
+
+	/** Seconds between one unit of a wave leaving the base and the next, so they walk out in a file. */
+	UPROPERTY()
+	double UnitIntervalSeconds = 0.0;
+};
+
 /** How often the battleground's units replicate (ADR-011 §7; amends ADR-006 §5). */
 USTRUCT()
 struct FVeyraWorldReplicationTuning
@@ -374,6 +444,9 @@ struct FVeyraWorldTuning
 
 	UPROPERTY()
 	FVeyraFluxbornTuning Fluxborn;
+
+	UPROPERTY()
+	FVeyraWavesTuning Waves;
 
 	UPROPERTY()
 	FVeyraWorldReplicationTuning Replication;
