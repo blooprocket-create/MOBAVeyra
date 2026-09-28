@@ -19,6 +19,8 @@
 #include "Life/VeyraLifeComponent.h"
 #include "Interfaces/IProjectManager.h"
 #include "Materials/MaterialInterface.h"
+#include "Wells/VeyraFluxWell.h"
+#include "Wildlife/VeyraWildlife.h"
 #include "Modules/ModuleManager.h"
 #include "ProjectDescriptor.h"
 #include "Progression/VeyraProgressionRules.h"
@@ -221,6 +223,33 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Outer.IsSet() && Outer->Kind == EVeyraStructureKind::LaneSpire && !Outer->bInvulnerable));
 			ASSERT_THAT(IsTrue(Middle.IsSet() && Middle->bInvulnerable, TEXT("the outer Spire still stands")));
 			ASSERT_THAT(IsFalse(VeyraHud::StructureOf(*Caster, Now).IsSet(), TEXT("a Vanguard is no structure")));
+		}
+
+		TEST_METHOD(NeutralUnitsAreDrawnGreyAndNamedOnTheHud)
+		{
+			// A creature says what it is; a Flux Well where it stands in its cycle (ADR-014 §2, §4).
+			constexpr double UntilOpen = 10.0;
+			AVeyraWildlife& Creature = Spawner.SpawnActor<AVeyraWildlife>();
+			const FVeyraContentId Species = FVeyraContentId::FromText(TEXT("ashfang")).GetValue();
+			Creature.Configure(Species, 0, Creature.GetActorLocation(), OuterRadius);
+			AVeyraFluxWell& Well = Spawner.SpawnActor<AVeyraFluxWell>();
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+			const FLinearColor Neutral = GetDefault<UVeyraGreyboxSettings>()->NeutralColor;
+			for (const APawn* Unit : { static_cast<APawn*>(&Creature), static_cast<APawn*>(&Well) })
+			{
+				const UStaticMeshComponent* Body = Presentation.FindBody(*Unit);
+				ASSERT_THAT(IsTrue(Body && ColorShownBy(*Body).Equals(Neutral), TEXT("on no side, grey")));
+			}
+			const double Now = Presentation.GetServerNow();
+			const TOptional<FVeyraContentId> Named = VeyraHud::SpeciesOf(Creature);
+			ASSERT_THAT(IsTrue(Named.IsSet() && Named.GetValue() == Species));
+			Well.SetState(EVeyraFluxWellState::Closed, Now + UntilOpen);
+			TOptional<FVeyraHudFluxWell> Shown = VeyraHud::FluxWellOf(Well, Now);
+			ASSERT_THAT(IsTrue(Shown.IsSet() && Shown->State == EVeyraFluxWellState::Closed && FMath::IsNearlyEqual(Shown->OpensInSeconds, UntilOpen, Tolerance)));
+			Well.SetState(EVeyraFluxWellState::Open, 0.0);
+			Shown = VeyraHud::FluxWellOf(Well, Now);
+			ASSERT_THAT(IsTrue(Shown->State == EVeyraFluxWellState::Open && Shown->OpensInSeconds == 0.0));
+			ASSERT_THAT(IsFalse(VeyraHud::FluxWellOf(*Caster, Now).IsSet() || VeyraHud::SpeciesOf(*Caster).IsSet(), TEXT("a Vanguard is neither")));
 		}
 
 		TEST_METHOD(AStunnedUnitIsTinted)

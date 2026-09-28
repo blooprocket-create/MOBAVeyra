@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Wells/VeyraFluxWell.h"
 #include "Battleground/VeyraBattlegroundTypes.h"
 #include "Containers/Array.h"
 #include "Content/VeyraContentId.h"
@@ -119,6 +120,15 @@ struct FVeyraHudStructure
 	double RebuildSeconds = 0.0;
 };
 
+/** What a Flux Well's bar says about it (Battleground Bible §6; ADR-014 §4). */
+struct FVeyraHudFluxWell
+{
+	EVeyraFluxWellState State = EVeyraFluxWellState::Closed;
+
+	/** Seconds until it opens, closed or respawning; 0 while open. */
+	double OpensInSeconds = 0.0;
+};
+
 /** One team's Team Flux on the HUD (ADR-011 §10). */
 struct FVeyraHudTeamFlux
 {
@@ -148,6 +158,12 @@ namespace VeyraHud
 
 	/** What Unit's bar says about it as a structure at ServerNow; nothing when it is not one. */
 	VEYRAUI_API TOptional<FVeyraHudStructure> StructureOf(const AActor& Unit, double ServerNow);
+
+	/** What Unit's bar says about it as a Flux Well at ServerNow; nothing when it is not one. */
+	VEYRAUI_API TOptional<FVeyraHudFluxWell> FluxWellOf(const AActor& Unit, double ServerNow);
+
+	/** Unit's species as a jungle creature; nothing when it is not one (ADR-014 §2). */
+	VEYRAUI_API TOptional<FVeyraContentId> SpeciesOf(const AActor& Unit);
 
 	/** Participant's panel at ServerNow, in server gameplay time. */
 	VEYRAUI_API FVeyraHudPlayer DescribePlayer(const AVeyraPlayerState& Participant, double ServerNow);

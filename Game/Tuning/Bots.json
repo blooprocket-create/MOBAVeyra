@@ -44,7 +44,7 @@
       "fluxbornTolerance": 2
     }
   },
-  "roles": ["Mid", "Top", "Bottom", "Bottom", "Jungle"],
+  "roles": ["Mid", "Top", "Jungle", "Bottom", "Bottom"],
   "jungle": {
     "provenance": "Provisional",
     "gankRange": 3000,
