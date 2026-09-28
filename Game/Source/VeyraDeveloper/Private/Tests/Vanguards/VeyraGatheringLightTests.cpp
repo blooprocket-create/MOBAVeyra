@@ -5,6 +5,7 @@
 #include "EngineUtils.h"
 #include "Events/VeyraAbilityEvents.h"
 #include "Life/VeyraCombatEventSubsystem.h"
+#include "Life/VeyraLifeComponent.h"
 #include "Passives/VeyraGatheringLightPassive.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
@@ -142,6 +143,27 @@ namespace VeyraVanguardsTests
 			Death.Victim = Body->GetAbilitySystemComponent();
 			Spawner.GetWorld().GetSubsystem<UVeyraCombatEventSubsystem>()->OnDeath.Broadcast(Death);
 			ASSERT_THAT(AreEqual(0, Passive->GetStacks()));
+		}
+
+		TEST_METHOD(HitsThatLandWhileSheIsDeadCountForNothing)
+		{
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Apart, 0.0, 0.0));
+			Prime(Enemy);
+			UVeyraLifeComponent* Life = Body->GetPlayerState()->FindComponentByClass<UVeyraLifeComponent>();
+			Life->SetState(EVeyraLifeState::Dead);
+			FVeyraDeathEvent Death;
+			Death.Victim = Body->GetAbilitySystemComponent();
+			Spawner.GetWorld().GetSubsystem<UVeyraCombatEventSubsystem>()->OnDeath.Broadcast(Death);
+
+			// Casts from before her death still land.
+			Hit(Enemy, NextCastId++);
+			Hit(Enemy, NextCastId++);
+			ASSERT_THAT(IsTrue(Passive->GetStacks() == 0 && Fragment() == nullptr, TEXT("nothing builds or fires from the dead")));
+
+			Life->SetState(EVeyraLifeState::Alive);
+			Hit(Enemy, NextCastId++);
+			ASSERT_THAT(AreEqual(1, Passive->GetStacks()));
 		}
 	};
 }

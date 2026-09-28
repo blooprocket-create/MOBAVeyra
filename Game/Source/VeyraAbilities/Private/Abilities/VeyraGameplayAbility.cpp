@@ -145,6 +145,11 @@ int32 UVeyraGameplayAbility::GetRank(const UAbilitySystemComponent& Caster, cons
 	return Entry && Progression ? Progression->GetRank(Entry->Slot) : 0;
 }
 
+int32 UVeyraGameplayAbility::GetCommitRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
+{
+	return Running.IsSet() && Running->Cast.Ability == Ability ? Running->Cast.Rank : GetRank(Caster, Ability);
+}
+
 FVeyraContentId UVeyraGameplayAbility::GetContentId(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
 {
 	const UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(ActorInfo);
@@ -380,7 +385,7 @@ void UVeyraGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handl
 	const FVeyraContentId Ability = GetContentId(Handle, ActorInfo);
 	if (Cooldowns && Caster && Ability.IsValid())
 	{
-		Cooldowns->StartCooldown(Ability, GetCooldownSeconds(Ability, GetRank(*Caster, Ability)));
+		Cooldowns->StartCooldown(Ability, GetCooldownSeconds(Ability, GetCommitRank(*Caster, Ability)));
 	}
 }
 
@@ -402,7 +407,7 @@ bool UVeyraGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, c
 	{
 		return false;
 	}
-	return EndsEarlyOnRecast(*AbilitySystem, Ability) || VeyraCombat::CanAffordResource(*AbilitySystem, GetResourceCost(Ability, GetRank(*AbilitySystem, Ability)));
+	return EndsEarlyOnRecast(*AbilitySystem, Ability) || VeyraCombat::CanAffordResource(*AbilitySystem, GetResourceCost(Ability, GetCommitRank(*AbilitySystem, Ability)));
 }
 
 void UVeyraGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -410,7 +415,7 @@ void UVeyraGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, c
 {
 	UAbilitySystemComponent* AbilitySystem = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
 	const FVeyraContentId Ability = GetContentId(Handle, ActorInfo);
-	if (AbilitySystem && !VeyraCombat::SpendResource(*AbilitySystem, GetResourceCost(Ability, GetRank(*AbilitySystem, Ability))))
+	if (AbilitySystem && !VeyraCombat::SpendResource(*AbilitySystem, GetResourceCost(Ability, GetCommitRank(*AbilitySystem, Ability))))
 	{
 		// CommitAbility checked the cost a moment ago, so this means the rules changed underneath it.
 		UE_LOG(LogVeyraAbilities, Error, TEXT("%s committed but could not pay its cost."), *GetNameSafe(this));

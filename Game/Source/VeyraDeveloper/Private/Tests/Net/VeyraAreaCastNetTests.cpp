@@ -99,6 +99,12 @@ namespace VeyraNetTests
 			Quake.Zones[0].Effects.Statuses.Add(Id(TEXT("test_stun")));
 			Abilities->Tuning.Area.Add(Id(TEXT("test_quake")), Quake);
 
+			// The same, dearer and slower from its second rank on.
+			FVeyraAreaAbilityTuning HeavyQuake = Quake;
+			HeavyQuake.Cast.ResourceCostByRank = { ResourceCost, ResourceCost * 2.0, ResourceCost * 2.0, ResourceCost * 2.0, ResourceCost * 2.0 };
+			HeavyQuake.Cast.CooldownSecondsByRank = { CooldownSeconds, CooldownSeconds * 2.0, CooldownSeconds * 2.0, CooldownSeconds * 2.0, CooldownSeconds * 2.0 };
+			Abilities->Tuning.Area.Add(Id(TEXT("test_heavy_quake")), HeavyQuake);
+
 			FVeyraAreaAbilityTuning Barrage = AreaAt(EVeyraAreaOrigin::TargetPoint, Circle, Damage);
 			Barrage.DelaySeconds = PhaseSeconds;
 			Abilities->Tuning.Area.Add(Id(TEXT("test_barrage")), Barrage);
@@ -227,6 +233,35 @@ namespace VeyraNetTests
 					const double Fraction = UVeyraAbilitiesTuningSubsystem::Get().Casting.InterruptedCooldownFraction;
 					ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Caster->FindComponentByClass<UVeyraCooldownComponent>()->GetDurationSeconds(Id(TEXT("test_quake"))),
 						CooldownSeconds * Fraction)));
+				});
+		}
+
+		TEST_METHOD(ARankTakenDuringTheWindupCountsFromTheNextCast)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Learn the heavy windup area, with a level's point to spare"), [this](FState& State) {
+					LearnW(State, TEXT("test_heavy_quake"));
+					AVeyraPlayerState* Caster = ParticipantOf(State, 0);
+					UVeyraProgressionComponent* Progression = Caster->FindComponentByClass<UVeyraProgressionComponent>();
+					Progression->AddExperience(UVeyraProgressionTuningSubsystem::Get().Experience.ToNextLevel[Progression->GetLevel() - 1]);
+					ASSERT_THAT(IsTrue(Progression->GetUnspentSkillPoints() > 0));
+					ResourceBefore = Caster->GetAbilitySystemComponent()->GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
+				})
+				.ThenClient(TEXT("Cast it at the enemy"), 0, [this](FState& State) { CastWAtTheTarget(State); })
+				.UntilServer(TEXT("The windup begins"), [](FState& State) { return CasterPhase(State) == EVeyraCastPhase::Windup; })
+				.ThenServer(TEXT("Take the second rank during it"), [this](FState& State) {
+					UVeyraProgressionComponent* Progression = ParticipantOf(State, 0)->FindComponentByClass<UVeyraProgressionComponent>();
+					ASSERT_THAT(IsTrue(Progression->AllocateRank(EVeyraAbilitySlot::W) == EVeyraRankRefusal::None));
+					ASSERT_THAT(AreEqual(2, Progression->GetRank(EVeyraAbilitySlot::W)));
+				})
+				.UntilServer(TEXT("It hits after the windup"), [](FState& State) { return HealthLost(ParticipantOf(State, 1)) > 0.0; })
+				.ThenServer(TEXT("Commit charged and cooled down at the rank the cast began with"), [this](FState& State) {
+					// ADR-008 §6: a cast reads its rank when it begins. Resource may only have regenerated since.
+					const AVeyraPlayerState* Caster = ParticipantOf(State, 0);
+					const double Resource = Caster->GetAbilitySystemComponent()->GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
+					ASSERT_THAT(IsTrue(Resource >= ResourceBefore - ResourceCost - 1e-3, FString::Printf(TEXT("spent %g"), ResourceBefore - Resource)));
+					ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Caster->FindComponentByClass<UVeyraCooldownComponent>()->GetDurationSeconds(Id(TEXT("test_heavy_quake"))),
+						CooldownSeconds)));
 				});
 		}
 

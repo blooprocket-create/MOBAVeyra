@@ -7,6 +7,7 @@
 #include "Delivery/VeyraDelayedArea.h"
 #include "EngineUtils.h"
 #include "Life/VeyraLifeComponent.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 
@@ -130,6 +131,7 @@ namespace VeyraAbilitiesTests
 		static constexpr double PowerRatio = 0.5;
 		static constexpr double MissingHealthRatio = 0.25;
 		static constexpr double LongSeconds = 60.0;
+		static constexpr double TakedownExtension = 5.0;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -177,6 +179,16 @@ namespace VeyraAbilitiesTests
 			Sweep.Zones[0].Effects = FVeyraEffectBundleTuning();
 			Sweep.Zones[0].CasterStatusesPerVanguard.Add(ArchetypeTestId(TEXT("test_frenzy")));
 			Tuning.Area.Add(ArchetypeTestId(TEXT("test_sweep")), Sweep);
+
+			// A sweep that also deals damage, into a frenzy that takedowns extend (No Quarter).
+			FVeyraStatusTuning Rampage = StatusOf(EVeyraStatusKind::AttackSpeed, 0.5, LongSeconds);
+			Rampage.TakedownExtensionSeconds = TakedownExtension;
+			Rampage.TakedownExtensionMaxSeconds = TakedownExtension;
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_rampage_frenzy")), Rampage);
+			FVeyraAreaAbilityTuning RampageSweep = Sweep;
+			RampageSweep.Zones[0].CasterStatusesPerVanguard = { ArchetypeTestId(TEXT("test_rampage_frenzy")) };
+			RampageSweep.Zones[0].Effects.Damage.Add(FVeyraDamageTuning{ EVeyraDamageType::TrueDamage, { InnerDamage }, 0.0, 0.0 });
+			Tuning.Area.Add(ArchetypeTestId(TEXT("test_rampage")), RampageSweep);
 
 			// A shell that hits harder the more Health its target already lacks.
 			FVeyraAreaAbilityTuning Shell = Sweep;
@@ -253,6 +265,27 @@ namespace VeyraAbilitiesTests
 			World.Spawn(EVeyraTeam::B, FVector(0.0, InnerRadius, 0.0));
 			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::E, FVector(100.0, 0.0, 0.0)) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(World.Has(*Caster, TEXT("test_frenzy"))));
+		}
+
+		TEST_METHOD(ATakedownKeepsItsExtensionThroughTheSameCastsOtherCatches)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_rampage")))));
+			// The nearer is resolved first, with less Health left than the sweep deals; the farther survives it.
+			AVeyraVanguardCharacter& Doomed = World.Spawn(EVeyraTeam::B, FVector(InnerRadius / 2.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Survivor = World.Spawn(EVeyraTeam::B, FVector(0.0, InnerRadius, 0.0));
+			FVeyraRawDamageEvent Earlier;
+			Earlier.Components.Add({ EVeyraDamageType::TrueDamage, VeyraCombatTests::ExampleStats().MaxHealth - InnerDamage / 2.0 });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Caster->GetAbilitySystemComponent(), *Doomed.GetAbilitySystemComponent(), Earlier)));
+
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::E, FVector(100.0, 0.0, 0.0)) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(!VeyraTargeting::IsAlive(&Doomed) && VeyraTargeting::IsAlive(&Survivor)));
+			const UVeyraStatusComponent* Statuses = Caster->GetPlayerState()->FindComponentByClass<UVeyraStatusComponent>();
+			const FVeyraContentId FrenzyId = ArchetypeTestId(TEXT("test_rampage_frenzy"));
+			const FVeyraStatusEntry* Frenzy = Statuses->GetLedger().Entries.FindByPredicate([&FrenzyId](const FVeyraStatusEntry& Entry) { return Entry.Id == FrenzyId; });
+			ASSERT_THAT(IsNotNull(Frenzy));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Frenzy->EndsAt - Frenzy->StartedAt, LongSeconds + TakedownExtension, 1e-3),
+				FString::Printf(TEXT("the frenzy lasts %g s"), Frenzy->EndsAt - Frenzy->StartedAt)));
 		}
 
 		TEST_METHOD(AHitGrowsWithTheHealthItsTargetLacks)

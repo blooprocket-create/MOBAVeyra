@@ -71,6 +71,12 @@ void UVeyraGatheringLightPassive::OnAbilityHit(const FVeyraAbilityHit& Hit)
 	{
 		return;
 	}
+	// Her projectiles and areas can land after she dies; the stacks her death cleared stay cleared until she lives again.
+	const AActor* Avatar = Owner->GetAvatarActor();
+	if (!Avatar || !VeyraTargeting::IsAlive(Avatar))
+	{
+		return;
+	}
 	const AActor* Side = Owner->GetOwner();
 	if (!VeyraUnits::IsVanguard(Target) || !VeyraTargeting::AreHostile(Side, Target) || CountedCasts.Contains(Hit.CastId))
 	{
