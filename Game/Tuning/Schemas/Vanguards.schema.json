@@ -164,7 +164,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [2]
+      "enum": [3]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -174,9 +174,14 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "resource", "body", "baseStats", "growth", "basicAttack", "abilities", "passive"],
+          "required": ["provenance", "availability", "resource", "body", "baseStats", "growth", "basicAttack", "abilities", "passive"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
+            "availability": {
+              "description": "Playable Vanguards are released: players may own and pick them, and the backend's catalog lists them (ADR-010 §6). Developer Vanguards exist for tests and development servers only; a Shipping match server refuses them.",
+              "type": "string",
+              "enum": ["Playable", "Developer"]
+            },
             "resource": { "description": "What the Vanguard spends to cast (Combat Bible §27).", "type": "string", "enum": ["Mana"] },
             "body": {
               "type": "object",

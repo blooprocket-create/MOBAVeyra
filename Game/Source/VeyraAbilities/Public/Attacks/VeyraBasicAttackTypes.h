@@ -187,6 +187,21 @@ struct FVeyraAttackEvent
 	bool bEmpowered = false;
 };
 
+/** What presentation sees of an empowerment waiting for the next attack: which ability, and until when. */
+USTRUCT()
+struct FVeyraAttackEmpowermentView
+{
+	GENERATED_BODY()
+
+	/** Invalid when no empowerment waits. */
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	/** When it lapses unused, in the server's world time. */
+	UPROPERTY()
+	double ExpiresAt = 0.0;
+};
+
 /** An empowerment the next basic attack consumes at its Commit (Combat Bible §17). */
 struct FVeyraAttackEmpowerment
 {

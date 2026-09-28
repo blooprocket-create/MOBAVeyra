@@ -11,7 +11,8 @@ type Tx interface {
 	// safe to use for a match created in the same transaction.
 	FreePort(lo, hi int) (int, error)
 	// CreateMatch stores a new match. It fails with ErrAlreadyInMatch if any
-	// participant already has an active match.
+	// participant already has an active match, and with ErrSelectHasMatch if
+	// its champion select already created one.
 	CreateMatch(m Match) error
 	// LockMatch loads and locks a match, or returns ErrMatchNotFound.
 	LockMatch(id string) (Match, error)
@@ -30,6 +31,9 @@ type Store interface {
 	// MatchByServerCredential returns the match whose server credential has
 	// this hash, or ErrMatchNotFound.
 	MatchByServerCredential(ctx context.Context, hash []byte) (Match, error)
+	// MatchBySelectID returns the match a champion select created, or
+	// ErrMatchNotFound.
+	MatchBySelectID(ctx context.Context, selectID string) (Match, error)
 	// MatchesNeedingAttention returns the active matches, and the finished
 	// matches whose server has not been removed.
 	MatchesNeedingAttention(ctx context.Context) ([]Match, error)

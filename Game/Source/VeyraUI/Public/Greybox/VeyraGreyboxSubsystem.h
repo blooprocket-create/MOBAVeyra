@@ -10,7 +10,6 @@
 
 class AHUD;
 class AVeyraProjectile;
-class UCanvas;
 class ULineBatchComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
@@ -114,7 +113,12 @@ private:
 	void RefreshProjectiles();
 	void RefreshTelegraphs();
 	void DrawTelegraphs();
-	void DrawHud(AHUD* Hud, UCanvas* Canvas);
+
+	/**
+	 * Has the local player's HUD draw the grey-box HUD, through an overlay actor it renders for
+	 * (AVeyraHudOverlay), once per HUD. That puts the HUD on the HUD's own canvas, under the menus.
+	 */
+	void AttachHudOverlay();
 
 	/** A shape of Mesh attached to Owner, with its own material instance, or null. */
 	UStaticMeshComponent* AddShape(AActor& Owner, UStaticMesh& Mesh, UMaterialInstanceDynamic*& OutMaterial) const;
@@ -137,7 +141,10 @@ private:
 	TMap<TWeakObjectPtr<const AActor>, FBody> Bodies;
 	TMap<TWeakObjectPtr<const AVeyraProjectile>, FProjectileVisual> Projectiles;
 	TArray<FVeyraTelegraph> Telegraphs;
-	FDelegateHandle HudHandle;
+
+	/** The overlay actor, which the world owns, and the HUD it draws for. */
+	TWeakObjectPtr<AActor> HudOverlay;
+	TWeakObjectPtr<AHUD> OverlayHud;
 
 	/** Whether the settings and their assets are usable; nothing is drawn otherwise. */
 	bool bReady = false;

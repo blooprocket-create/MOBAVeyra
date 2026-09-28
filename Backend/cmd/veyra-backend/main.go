@@ -15,6 +15,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/catalog"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/config"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/docker"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/httpapi"
@@ -22,6 +24,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/postgres"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
 )
 
@@ -87,6 +90,14 @@ func run(log *slog.Logger) error {
 		DefaultPrivacy: party.Privacy(cfg.Party.DefaultPrivacy),
 	}, time.Now)
 
+	vanguards := catalog.New(catalog.Settings{
+		Released:      cfg.Vanguards.Released,
+		Starters:      cfg.Vanguards.Starters,
+		RotationSlots: cfg.Vanguards.RotationSlots,
+		StandIn:       catalog.StandIn(cfg.Vanguards.RotationStandIn),
+	})
+	accounts := account.NewService(store.Account(), vanguards, time.Now)
+
 	matches, err := newMatchService(cfg, store, svc)
 	if err != nil {
 		return err
@@ -96,6 +107,24 @@ func run(log *slog.Logger) error {
 	}
 	go matches.RunReaper(ctx, cfg.Matches.ReapInterval, log)
 
+	queued := selection.PartiesFunc(func(ctx context.Context, accountID string) (bool, error) {
+		p, err := parties.Get(ctx, accountID)
+		if errors.Is(err, party.ErrNotInParty) {
+			return false, nil
+		}
+		return err == nil && p.Status == party.Queued, err
+	})
+	selects := selection.NewService(store.Selection(), accounts, displayNames(svc), matches, queued, selection.Settings{
+		Practice: selection.PracticeSettings{
+			Enabled:      cfg.CustomPractice.Enabled,
+			Mode:         cfg.CustomPractice.Mode,
+			HostSide:     match.Side(cfg.CustomPractice.HostSide),
+			PickDuration: cfg.CustomPractice.PickDuration,
+		},
+		StartingTimeout: cfg.Selection.StartingTimeout,
+	}, time.Now, log)
+	go selects.RunTicker(ctx, cfg.Selection.TickInterval)
+
 	srv := &http.Server{
 		Addr: cfg.ListenAddress,
 		Handler: httpapi.New(httpapi.Deps{
@@ -103,11 +132,14 @@ func run(log *slog.Logger) error {
 			Social:         soc,
 			Party:          parties,
 			Match:          matches,
+			Account:        accounts,
+			Selection:      selects,
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,
 			BodyLimitBytes: cfg.RequestBodyLimitBytes,
 			DevLogin:       cfg.DevLogin.Enabled,
+			DevAccounts:    cfg.DevLogin.Accounts,
 			DevMatches:     cfg.Matches.DevCreate,
 			Log:            log,
 		}),
@@ -137,13 +169,21 @@ func run(log *slog.Logger) error {
 func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Service) (*match.Service, error) {
 	var allocator match.Allocator = noAllocator{}
 	settings := match.Settings{
-		Modes:             map[string]match.Mode{},
+		Modes: map[string]match.Mode{},
+		Practice: match.PracticeSettings{
+			Enabled:  cfg.CustomPractice.Enabled,
+			Mode:     cfg.CustomPractice.Mode,
+			HostSide: match.Side(cfg.CustomPractice.HostSide),
+		},
 		ReadyTimeout:      cfg.Matches.ReadyTimeout,
 		MaxDuration:       cfg.Matches.MaxDuration,
 		RemoveServerAfter: cfg.Matches.RemoveServerAfter,
 	}
 	for _, m := range cfg.Modes {
 		settings.Modes[m.ID] = match.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam}
+	}
+	for _, b := range cfg.CustomPractice.Bots {
+		settings.Practice.Bots = append(settings.Practice.Bots, match.Bot{Side: match.Side(b.Side), VanguardID: b.VanguardID})
 	}
 	if d := cfg.Allocator.Docker; cfg.Allocator.Kind == config.AllocatorDocker && d != nil {
 		dockerAllocator, err := docker.New(docker.Config{
@@ -165,7 +205,12 @@ func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Ser
 		settings.HostPortMin, settings.HostPortMax = d.HostPortMin, d.HostPortMax
 		settings.PublicHost, settings.BackendURL = d.PublicHost, d.BackendURL
 	}
-	accounts := match.AccountsFunc(func(ctx context.Context, accountIDs []string) (map[string]string, error) {
+	return match.NewService(store.Match(), displayNames(ids), allocator, settings, time.Now), nil
+}
+
+// displayNames resolves accounts' display names through identity.
+func displayNames(ids *identity.Service) match.AccountsFunc {
+	return func(ctx context.Context, accountIDs []string) (map[string]string, error) {
 		found, err := ids.Accounts(ctx, accountIDs)
 		if err != nil {
 			return nil, err
@@ -175,8 +220,7 @@ func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Ser
 			names[id] = a.DisplayName
 		}
 		return names, nil
-	})
-	return match.NewService(store.Match(), accounts, allocator, settings, time.Now), nil
+	}
 }
 
 // noAllocator is used when this backend starts no match servers

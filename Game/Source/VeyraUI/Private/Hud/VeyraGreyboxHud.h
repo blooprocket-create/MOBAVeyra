@@ -7,9 +7,10 @@ class UCanvas;
 class UVeyraGreyboxSubsystem;
 
 /**
- * The grey-box HUD, drawn over whichever HUD the player has: each unit's overhead bars and
- * statuses, the match clock, and the player's panel (level, XP, skill points, ranks and cooldowns).
- * It draws what VeyraHud reads from replicated state.
+ * The grey-box HUD, drawn on the canvas of whichever HUD the player has (AVeyraHudOverlay): each
+ * unit's overhead bars and statuses, the match clock, and the player's panel (the Vanguard, level,
+ * XP, skill points, its passive, and each ability's rank, cooldown, waiting empowerment and what it
+ * does, VeyraContentText). It draws what VeyraHud reads from replicated state.
  */
 namespace VeyraGreyboxHud
 {

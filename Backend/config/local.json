@@ -31,6 +31,28 @@
     {"id": "coop_intermediate", "enabled": true, "humanPlayersPerTeam": 5},
     {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5}
   ],
+  "vanguards": {
+    "released": ["cairn", "qazharr", "oriel", "bryn"],
+    "starters": ["cairn", "qazharr", "oriel", "bryn"],
+    "rotation": {"slots": 12, "standIn": "allReleased"}
+  },
+  "customPractice": {
+    "enabled": true,
+    "mode": "custom_practice",
+    "hostSide": "A",
+    "pickDuration": "30s",
+    "playersPerSide": 5,
+    "bots": [
+      {"side": "B", "vanguardId": "cairn"},
+      {"side": "B", "vanguardId": "qazharr"},
+      {"side": "B", "vanguardId": "oriel"},
+      {"side": "B", "vanguardId": "bryn"}
+    ]
+  },
+  "selection": {
+    "tickInterval": "1s",
+    "startingTimeout": "60s"
+  },
   "matches": {
     "devCreate": {"enabled": true},
     "readyTimeout": "120s",

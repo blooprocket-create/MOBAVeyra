@@ -52,6 +52,7 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
   - The Gameplay Tag naming convention lives in [Project Structure §5](../PROJECT_STRUCTURE.md#gameplay-tag-vocabulary).
   - Gameplay tuning is text data in `Game/Tuning/` ([rules](../Game/Tuning/README.md)). `scripts/check_tuning.py` checks it in CI, and the game checks it again when it loads.
   - The Go backend is in `Backend/` ([README](../Backend/README.md)). How a client joins its assigned match, and how the backend starts match servers and records results, is [ADR-007](ADR/ADR-007-match-join-contract.md); the launcher and session handoff are [ADR-005](ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md).
+  - The launcher is in `Launcher/` ([README](../Launcher/README.md)). The play flow (the client-state coordinator in `VeyraServices`, the menus in `VeyraUI`, the launch handshake, onboarding, champion select and Custom practice) is [ADR-010](ADR/ADR-010-play-flow.md). `Game/Scripts/Play.ps1` plays it through the launcher; `Smoke.ps1 -Flow Practice` checks it without a window.
 - **Vanguard editing:** one character's section of the Character Bible → `Docs/Design/Vanguards/<nn>-<name>.yaml` → [Vanguard validation instructions](Design/Vanguards/README.md) → specific base [hero art](../ConceptArt/Vanguards/README.md). Do **not** interpret YAML as engine balance data.
 - **Cosmetics:** [skin gallery](../ConceptArt/Vanguards/skins/README.md) and [asset index](../ConceptArt/Vanguards/skins/index.json) → the particular `ConceptArt/Vanguards/<id>/skins/<collection>/hero.webp`; use base character/art bible only for identity and silhouette.
 - **Art direction:** [Art Direction](Design/Art_Direction_v0.1.md) and [canon discrepancy register](Design/Sheet_Canon_Discrepancy_Register_v0.1.md). [Ride-state question history](Design/Ride_State_Open_Questions_v0.1.md) is *resolved history*, not an open-rules source.
@@ -70,6 +71,7 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-007-match-join-contract.md](ADR/ADR-007-match-join-contract.md) — join tickets, the server's roster at start, server reports and results, the local Docker allocator.
 - [ADR-008-vanguard-definitions-and-ability-composition.md](ADR/ADR-008-vanguard-definitions-and-ability-composition.md) — Vanguard definitions, abilities composed onto archetypes, the passive registry, Progression, the new modules, provisional values, open canon questions for the first four kits.
 - [ADR-009-runtime-combat-primitives.md](ADR/ADR-009-runtime-combat-primitives.md) — statuses, displacement and dashes, shields with caps, projectiles and areas, shapes, basic attacks, no prediction for these categories.
+- [ADR-010-play-flow.md](ADR/ADR-010-play-flow.md) — **Proposed** (accepted when the M6a pull request merges): the client-state coordinator, front-end map and travel, UMG menus in C++, the launcher and its launch handshake, onboarding and available Vanguards, Custom practice, champion select, assignment v2, queue and Match Found.
 
 ## Keeping the maps current
 

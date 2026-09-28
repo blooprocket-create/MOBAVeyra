@@ -1,0 +1,27 @@
+{
+  "productName": "Veyra Launcher",
+  "version": "0.1.0",
+  "identifier": "com.wayfinder.veyra.launcher",
+  "build": {
+    "frontendDist": "../ui"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "Veyra",
+        "width": 460,
+        "height": 560,
+        "resizable": false,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self'; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": false,
+    "icon": ["icons/icon.ico"]
+  }
+}

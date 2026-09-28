@@ -82,6 +82,12 @@ namespace VeyraAbilitiesTests
 			FVeyraSkillshotAbilityTuning AimedBolt = Bolt;
 			AimedBolt.Cast.WindupSeconds = LongSeconds;
 			Tuning.Skillshot.Add(ArchetypeTestId(TEXT("test_aimed_bolt")), AimedBolt);
+
+			// An empowerment that waits the whole test for the next basic attack.
+			FVeyraEmpoweredAttackAbilityTuning Heavy;
+			Heavy.Cast = InstantCast(0.0, LongSeconds, 0.0);
+			Heavy.DurationSeconds = LongSeconds;
+			Tuning.EmpoweredAttack.Add(ArchetypeTestId(TEXT("test_heavy")), Heavy);
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
 
 			FArchetypeTestWorld World{ Spawner };
@@ -300,6 +306,23 @@ namespace VeyraAbilitiesTests
 			Player = VeyraHud::DescribePlayer(Participant, Now);
 			ASSERT_THAT(IsTrue(Player.Level == 2 && Player.UnspentSkillPoints == 1));
 			ASSERT_THAT(IsTrue(Player.Slots[0].bCanRankUp && Player.Slots[1].bCanRankUp && !Player.Slots[3].bCanRankUp));
+		}
+
+		TEST_METHOD(TheHudShowsAnEmpowermentWaitingForTheNextAttack)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			const FVeyraContentId Heavy = ArchetypeTestId(TEXT("test_heavy"));
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, Heavy)));
+			const AVeyraPlayerState& Participant = *Caster->GetPlayerState<AVeyraPlayerState>();
+			const double Now = RefreshedGreybox().GetServerNow();
+			ASSERT_THAT(IsTrue(VeyraHud::DescribePlayer(Participant, Now).Slots[1].EmpoweredSeconds == 0.0, TEXT("nothing waits before the cast")));
+
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Caster->GetAbilitySystemComponent(), EVeyraAbilitySlot::W, FVeyraCastTarget()) == EVeyraCastRejection::None));
+			const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Player.Slots[1].EmpoweredSeconds, LongSeconds, Tolerance), FString::SanitizeFloat(Player.Slots[1].EmpoweredSeconds)));
+			ASSERT_THAT(IsTrue(Player.Slots[0].EmpoweredSeconds == 0.0, TEXT("only the slot that cast it")));
+			ASSERT_THAT(IsTrue(VeyraHud::DescribePlayer(Participant, Now + LongSeconds + StepSeconds).Slots[1].EmpoweredSeconds == 0.0,
+				TEXT("a lapsed empowerment shows nothing")));
 		}
 
 		TEST_METHOD(OutlinesTraceTheirShapes)

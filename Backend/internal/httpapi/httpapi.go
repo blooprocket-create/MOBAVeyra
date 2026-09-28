@@ -12,9 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
 )
 
@@ -37,14 +39,22 @@ type Deps struct {
 	Party    *party.Service
 	// Match is optional; without it no match routes are registered.
 	Match *match.Service
-	Modes []ModeInfo
-	Ready Pinger
+	// Account is optional; without it no onboarding routes are registered.
+	Account *account.Service
+	// Selection is optional; without it no practice or champion-select routes
+	// are registered.
+	Selection *selection.Service
+	Modes     []ModeInfo
+	Ready     Pinger
 	// Atomic runs fn as one unit of work across domains: store calls made
 	// with the ctx it receives share one transaction.
 	Atomic         func(ctx context.Context, fn func(context.Context) error) error
 	BodyLimitBytes int64
-	// DevLogin registers the passwordless dev-login route (local only).
+	// DevLogin registers the passwordless dev-login route and the development
+	// account routes (local only).
 	DevLogin bool
+	// DevAccounts are the seeded development accounts' display names.
+	DevAccounts []string
 	// DevMatches registers the dev match-creation routes (local only).
 	DevMatches bool
 	Log        *slog.Logger
@@ -71,6 +81,8 @@ func New(d Deps) http.Handler {
 	s.routeSocial(mux)
 	s.routeParty(mux)
 	s.routeMatch(mux)
+	s.routeOnboarding(mux)
+	s.routeSelection(mux)
 	return mux
 }
 
@@ -233,8 +245,22 @@ var errorStatus = []struct {
 	{party.ErrPartyNotJoinable, http.StatusForbidden, "party_not_joinable"},
 	{party.ErrPartyNotFound, http.StatusNotFound, "party_not_found"},
 
+	{account.ErrNotAStarter, http.StatusBadRequest, "not_a_starter"},
+	{account.ErrAlreadyChosen, http.StatusConflict, "already_completed"},
+
+	{selection.ErrTutorialRequired, http.StatusConflict, "tutorial_required"},
+	{selection.ErrBusy, http.StatusConflict, "busy"},
+	{selection.ErrPracticeDisabled, http.StatusConflict, "practice_disabled"},
+	{selection.ErrSelectNotFound, http.StatusNotFound, "select_not_found"},
+	{selection.ErrNotAvailable, http.StatusBadRequest, "not_available"},
+	{selection.ErrAlreadyLocked, http.StatusConflict, "already_locked"},
+	{selection.ErrExpired, http.StatusConflict, "expired"},
+	{selection.ErrInvalidState, http.StatusConflict, "invalid_state"},
+
 	{match.ErrUnknownMode, http.StatusBadRequest, "unknown_mode"},
+	{match.ErrInvalidRules, http.StatusBadRequest, "invalid_rules"},
 	{match.ErrInvalidRoster, http.StatusBadRequest, "invalid_roster"},
+	{match.ErrInvalidVanguard, http.StatusBadRequest, "invalid_vanguard"},
 	{match.ErrAccountNotFound, http.StatusNotFound, "account_not_found"},
 	{match.ErrAlreadyInMatch, http.StatusConflict, "already_in_match"},
 	{match.ErrNoServerCapacity, http.StatusServiceUnavailable, "no_server_capacity"},

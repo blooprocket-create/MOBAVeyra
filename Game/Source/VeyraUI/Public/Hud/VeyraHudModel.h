@@ -48,6 +48,9 @@ struct FVeyraHudSlot
 
 	/** Seconds until it is ready; 0 when it is. */
 	double CooldownSeconds = 0.0;
+
+	/** Seconds the empowerment it cast still waits for the next basic attack; 0 when none waits (Combat Bible §17). */
+	double EmpoweredSeconds = 0.0;
 };
 
 /** The player's own panel. */
@@ -65,6 +68,9 @@ struct FVeyraHudPlayer
 
 	/** Q, W, E and R, in order. */
 	TArray<FVeyraHudSlot> Slots;
+
+	/** The Vanguard's passive, as its definition names it; invalid when it has none. */
+	FVeyraContentId Passive;
 };
 
 /**

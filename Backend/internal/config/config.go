@@ -14,6 +14,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -29,6 +30,20 @@ const MaxLaunchCodeLifetime = time.Minute
 // MaxPartySize is the largest party the Parties & Social Bible §1 allows
 // ("one through five players"). party.maxSize may be lower, never higher.
 const MaxPartySize = 5
+
+// MinStarters and MaxStarters bound the starter pool: a new player tries three
+// to five starter Vanguards and unlocks one (Account, Collection & Mastery
+// Bible §1).
+const (
+	MinStarters = 3
+	MaxStarters = 5
+)
+
+// Rotation stand-ins the catalog accepts (ADR-010 §6).
+const (
+	StandInAllReleased = "allReleased"
+	StandInNone        = "none"
+)
 
 // DatabaseURLEnv names the environment variable holding the Postgres URL.
 const DatabaseURLEnv = "VEYRA_DATABASE_URL"
@@ -54,8 +69,61 @@ type Config struct {
 	DevLogin              DevLogin
 	Party                 Party
 	Modes                 []Mode
+	Vanguards             Vanguards
+	CustomPractice        CustomPractice
+	Selection             Selection
 	Matches               Matches
 	Allocator             Allocator
+}
+
+// Vanguards configures the catalog of Vanguards players may own and pick
+// (ADR-010 §6). Released must equal Game/Tuning/Vanguards.json's Playable
+// Vanguards; a contract test checks it.
+type Vanguards struct {
+	Released []string
+	// Starters are the Vanguards a new player may choose, all released.
+	Starters []string
+	// RotationSlots is how many Vanguards the weekly rotation offers.
+	RotationSlots int
+	// RotationStandIn is what the rotation offers until the weekly rotation
+	// exists: StandInAllReleased or StandInNone.
+	RotationStandIn string
+}
+
+// CustomPractice configures solo Custom practice (ADR-010 §7). It is a custom
+// match, not a matchmade mode, so its mode ID must not be one of modes.
+type CustomPractice struct {
+	Enabled bool
+	// Mode is the mode ID practice matches record.
+	Mode string
+	// HostSide is the side the practising player plays on: "A" or "B".
+	HostSide string
+	// PickDuration is how long the player has to lock a Vanguard.
+	PickDuration time.Duration
+	// PlayersPerSide is how many Vanguards, the host and bots together, one
+	// side of a practice match may hold.
+	PlayersPerSide int
+	// Bots are the AI participants every practice match adds, so its player
+	// has targets (ADR-010 §7). Until custom lobbies let the host choose them,
+	// they come from here.
+	Bots []PracticeBot
+}
+
+// PracticeBot is one AI participant in a practice match.
+type PracticeBot struct {
+	// Side is "A" or "B".
+	Side string
+	// VanguardID is the released Vanguard the bot plays.
+	VanguardID string
+}
+
+// Selection configures champion select's own upkeep (ADR-010 §8).
+type Selection struct {
+	// TickInterval is how often deadlines are checked.
+	TickInterval time.Duration
+	// StartingTimeout cancels a select whose match creation never finished;
+	// it must exceed the allocator's request timeout.
+	StartingTimeout time.Duration
 }
 
 // Matches configures match lifecycles (ADR-007 §8, §10).
@@ -187,6 +255,29 @@ type fileConfig struct {
 		Enabled             *bool   `json:"enabled"`
 		HumanPlayersPerTeam *int    `json:"humanPlayersPerTeam"`
 	} `json:"modes"`
+	Vanguards *struct {
+		Released []string `json:"released"`
+		Starters []string `json:"starters"`
+		Rotation *struct {
+			Slots   *int    `json:"slots"`
+			StandIn *string `json:"standIn"`
+		} `json:"rotation"`
+	} `json:"vanguards"`
+	CustomPractice *struct {
+		Enabled        *bool     `json:"enabled"`
+		Mode           *string   `json:"mode"`
+		HostSide       *string   `json:"hostSide"`
+		PickDuration   *Duration `json:"pickDuration"`
+		PlayersPerSide *int      `json:"playersPerSide"`
+		Bots           *[]struct {
+			Side       *string `json:"side"`
+			VanguardID *string `json:"vanguardId"`
+		} `json:"bots"`
+	} `json:"customPractice"`
+	Selection *struct {
+		TickInterval    *Duration `json:"tickInterval"`
+		StartingTimeout *Duration `json:"startingTimeout"`
+	} `json:"selection"`
 	Matches *struct {
 		DevCreate *struct {
 			Enabled *bool `json:"enabled"`
@@ -232,6 +323,9 @@ var (
 	// path, query, fragment or user info (MatchAssignment.schema.json).
 	publicHostPattern = regexp.MustCompile(`^[A-Za-z0-9.-]+$`)
 	backendURLPattern = regexp.MustCompile(`^https?://[A-Za-z0-9.-]+(:[0-9]{1,5})?$`)
+
+	// contentIDPattern is the game's content ID format (Game/Tuning/README.md).
+	contentIDPattern = regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`)
 )
 
 // Load reads and validates the configuration file at path.
@@ -383,6 +477,129 @@ func Parse(raw []byte) (Config, error) {
 		c.Modes = append(c.Modes, Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam})
 	}
 
+	if f.Vanguards == nil {
+		missing("vanguards")
+	} else {
+		ids := func(field string, list []string) []string {
+			if len(list) == 0 {
+				missing(field)
+			}
+			seen := map[string]bool{}
+			for _, id := range list {
+				if !contentIDPattern.MatchString(id) {
+					problems = append(problems, field+" must hold content IDs such as cairn, not "+strconv.Quote(id))
+				}
+				if seen[id] {
+					problems = append(problems, field+" contains duplicate "+id)
+				}
+				seen[id] = true
+			}
+			return append([]string(nil), list...)
+		}
+		c.Vanguards.Released = ids("vanguards.released", f.Vanguards.Released)
+		c.Vanguards.Starters = ids("vanguards.starters", f.Vanguards.Starters)
+		if n := len(c.Vanguards.Starters); n > 0 && (n < MinStarters || n > MaxStarters) {
+			problems = append(problems, fmt.Sprintf("vanguards.starters must list %d to %d Vanguards (Account, Collection & Mastery Bible §1)", MinStarters, MaxStarters))
+		}
+		for _, id := range c.Vanguards.Starters {
+			if !slices.Contains(c.Vanguards.Released, id) {
+				problems = append(problems, "vanguards.starters must be released, and "+id+" is not in vanguards.released")
+			}
+		}
+		if f.Vanguards.Rotation == nil {
+			missing("vanguards.rotation")
+		} else {
+			switch {
+			case f.Vanguards.Rotation.Slots == nil:
+				missing("vanguards.rotation.slots")
+			case *f.Vanguards.Rotation.Slots < 1:
+				problems = append(problems, "vanguards.rotation.slots must be at least 1")
+			default:
+				c.Vanguards.RotationSlots = *f.Vanguards.Rotation.Slots
+			}
+			switch {
+			case f.Vanguards.Rotation.StandIn == nil:
+				missing("vanguards.rotation.standIn")
+			case *f.Vanguards.Rotation.StandIn != StandInAllReleased && *f.Vanguards.Rotation.StandIn != StandInNone:
+				problems = append(problems, "vanguards.rotation.standIn must be \""+StandInAllReleased+"\" or \""+StandInNone+"\"")
+			default:
+				c.Vanguards.RotationStandIn = *f.Vanguards.Rotation.StandIn
+			}
+		}
+	}
+
+	if f.CustomPractice == nil {
+		missing("customPractice")
+	} else {
+		if f.CustomPractice.Enabled == nil {
+			missing("customPractice.enabled")
+		} else {
+			c.CustomPractice.Enabled = *f.CustomPractice.Enabled
+		}
+		switch {
+		case f.CustomPractice.Mode == nil:
+			missing("customPractice.mode")
+		case !contentIDPattern.MatchString(*f.CustomPractice.Mode):
+			problems = append(problems, "customPractice.mode must be a content ID such as custom_practice")
+		case seenModes[*f.CustomPractice.Mode]:
+			problems = append(problems, "customPractice.mode must not be a matchmade mode's id, so parties can never queue for it")
+		default:
+			c.CustomPractice.Mode = *f.CustomPractice.Mode
+		}
+		switch {
+		case f.CustomPractice.HostSide == nil:
+			missing("customPractice.hostSide")
+		case *f.CustomPractice.HostSide != "A" && *f.CustomPractice.HostSide != "B":
+			problems = append(problems, "customPractice.hostSide must be \"A\" or \"B\"")
+		default:
+			c.CustomPractice.HostSide = *f.CustomPractice.HostSide
+		}
+		c.CustomPractice.PickDuration = positive("customPractice.pickDuration", f.CustomPractice.PickDuration)
+		switch {
+		case f.CustomPractice.PlayersPerSide == nil:
+			missing("customPractice.playersPerSide")
+		case *f.CustomPractice.PlayersPerSide < 1:
+			problems = append(problems, "customPractice.playersPerSide must be at least 1")
+		default:
+			c.CustomPractice.PlayersPerSide = *f.CustomPractice.PlayersPerSide
+		}
+		if f.CustomPractice.Bots == nil {
+			missing("customPractice.bots")
+		} else {
+			// The host takes a place on its side; each bot plays a released Vanguard.
+			perSide := map[string]int{c.CustomPractice.HostSide: 1}
+			for i, b := range *f.CustomPractice.Bots {
+				field := fmt.Sprintf("customPractice.bots[%d]", i)
+				switch {
+				case b.Side == nil:
+					missing(field + ".side")
+				case *b.Side != "A" && *b.Side != "B":
+					problems = append(problems, field+".side must be \"A\" or \"B\"")
+				case b.VanguardID == nil:
+					missing(field + ".vanguardId")
+				case !slices.Contains(c.Vanguards.Released, *b.VanguardID):
+					problems = append(problems, field+".vanguardId must be in vanguards.released, and "+strconv.Quote(*b.VanguardID)+" is not")
+				default:
+					perSide[*b.Side]++
+					c.CustomPractice.Bots = append(c.CustomPractice.Bots, PracticeBot{Side: *b.Side, VanguardID: *b.VanguardID})
+				}
+			}
+			for _, side := range []string{"A", "B"} {
+				if limit := c.CustomPractice.PlayersPerSide; limit > 0 && perSide[side] > limit {
+					problems = append(problems, fmt.Sprintf("customPractice.bots put %d Vanguards on side %s, the host included, more than customPractice.playersPerSide (%d)",
+						perSide[side], side, limit))
+				}
+			}
+		}
+	}
+
+	if f.Selection == nil {
+		missing("selection")
+	} else {
+		c.Selection.TickInterval = positive("selection.tickInterval", f.Selection.TickInterval)
+		c.Selection.StartingTimeout = positive("selection.startingTimeout", f.Selection.StartingTimeout)
+	}
+
 	if f.Allocator == nil || f.Allocator.Kind == nil {
 		missing("allocator.kind")
 	} else {
@@ -421,6 +638,11 @@ func Parse(raw []byte) (Config, error) {
 		c.Matches.MaxDuration = positive("matches.maxDuration", f.Matches.MaxDuration)
 		c.Matches.ReapInterval = positive("matches.reapInterval", f.Matches.ReapInterval)
 		c.Matches.RemoveServerAfter = positive("matches.removeServerAfter", f.Matches.RemoveServerAfter)
+	}
+
+	// A select waits for its match's creation, which waits for the allocator.
+	if d := c.Allocator.Docker; d != nil && c.Selection.StartingTimeout > 0 && c.Selection.StartingTimeout <= d.RequestTimeout {
+		problems = append(problems, "selection.startingTimeout must exceed allocator.docker.requestTimeout, or a slow server start would cancel its select")
 	}
 
 	if len(problems) > 0 {

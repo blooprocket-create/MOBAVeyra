@@ -15,7 +15,7 @@ var (
 func roster(sides ...Side) []Participant {
 	out := make([]Participant, len(sides))
 	for i, s := range sides {
-		out[i] = Participant{AccountID: string(rune('a' + i)), DisplayName: "P", Side: s}
+		out[i] = Participant{AccountID: string(rune('a' + i)), DisplayName: "P", Side: s, VanguardID: "cairn"}
 	}
 	return out
 }
@@ -35,6 +35,8 @@ func TestValidateRoster(t *testing.T) {
 		"side too large":    {Mode{ID: "m", Enabled: true, HumanPlayersPerTeam: 1}, roster(SideA, SideA), ErrInvalidRoster},
 		"duplicate account": {fiveAll, append(roster(SideA), Participant{AccountID: "a", Side: SideB}), ErrInvalidRoster},
 		"blank account":     {fiveAll, []Participant{{Side: SideA}}, ErrInvalidRoster},
+		"no Vanguard":       {fiveAll, []Participant{{AccountID: "a", Side: SideA}}, ErrInvalidVanguard},
+		"bad Vanguard":      {fiveAll, []Participant{{AccountID: "a", Side: SideA, VanguardID: "not a content id"}}, ErrInvalidVanguard},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -45,8 +47,49 @@ func TestValidateRoster(t *testing.T) {
 	}
 }
 
+func TestValidatePractice(t *testing.T) {
+	practice := PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: SideA}
+	host := roster(SideA)
+	cases := map[string]struct {
+		settings PracticeSettings
+		mode     string
+		host     string
+		ps       []Participant
+		want     error
+	}{
+		"its host alone":   {practice, "custom_practice", "a", host, nil},
+		"disabled":         {PracticeSettings{Mode: "custom_practice", HostSide: SideA}, "custom_practice", "a", host, ErrUnknownMode},
+		"another mode":     {practice, "casual_select", "a", host, ErrUnknownMode},
+		"no host":          {practice, "custom_practice", "", host, ErrInvalidRoster},
+		"not the host":     {practice, "custom_practice", "b", host, ErrInvalidRoster},
+		"two players":      {practice, "custom_practice", "a", roster(SideA, SideB), ErrInvalidRoster},
+		"the other side":   {practice, "custom_practice", "a", roster(SideB), ErrInvalidRoster},
+		"without Vanguard": {practice, "custom_practice", "a", []Participant{{AccountID: "a", Side: SideA}}, ErrInvalidVanguard},
+	}
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			if err := ValidatePractice(tc.settings, tc.mode, tc.host, tc.ps); !errors.Is(err, tc.want) {
+				t.Fatalf("want %v, got %v", tc.want, err)
+			}
+		})
+	}
+}
+
 func readyMatch() Match {
-	return Match{ID: "m", State: Ready, Participants: roster(SideA, SideB), ReadyAt: t0, JoinKey: []byte("key")}
+	return Match{ID: "m", Rules: RulesStandard, State: Ready, Participants: roster(SideA, SideB), ReadyAt: t0, JoinKey: []byte("key")}
+}
+
+func TestHostEndedNeedsPracticeRules(t *testing.T) {
+	m := readyMatch()
+	r := resultFor(m)
+	r.EndReason = EndHostEnded
+	if err := m.End(r, t0); !errors.Is(err, ErrInvalidResult) {
+		t.Fatalf("standard rules: want ErrInvalidResult, got %v", err)
+	}
+	m.Rules = RulesPractice
+	if err := m.End(r, t0); err != nil || m.Result.EndReason != EndHostEnded {
+		t.Fatalf("practice rules: %v %+v", err, m.Result)
+	}
 }
 
 func resultFor(m Match) Result {

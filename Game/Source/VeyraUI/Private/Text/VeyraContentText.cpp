@@ -1,0 +1,119 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#include "Text/VeyraContentText.h"
+
+#include "Internationalization/StringTableCore.h"
+#include "Internationalization/StringTableRegistry.h"
+#include "Misc/Paths.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
+
+namespace VeyraContentText
+{
+namespace
+{
+	// The key's parts: vanguard.<id>.name and so on.
+	const TCHAR* const VanguardKind = TEXT("vanguard");
+	const TCHAR* const AbilityKind = TEXT("ability");
+	const TCHAR* const PassiveKind = TEXT("passive");
+	const TCHAR* const NameField = TEXT("name");
+	const TCHAR* const TitleField = TEXT("title");
+	const TCHAR* const DescriptionField = TEXT("description");
+
+	FString KeyOf(const TCHAR* Kind, const FVeyraContentId& Id, const TCHAR* Field)
+	{
+		return FString::Printf(TEXT("%s.%s.%s"), Kind, *Id.ToString(), Field);
+	}
+
+	bool HasKey(const FString& Key)
+	{
+		const FStringTableConstPtr Table = FStringTableRegistry::Get().FindStringTable(TableName);
+		FString Source;
+		return Table.IsValid() && Table->GetSourceString(FTextKey(Key), Source);
+	}
+
+	/** The table's text for the key, or Fallback when the table has none. */
+	FText TextOr(const TCHAR* Kind, const FVeyraContentId& Id, const TCHAR* Field, const FString& Fallback)
+	{
+		const FString Key = KeyOf(Kind, Id, Field);
+		return HasKey(Key) ? FText::FromStringTable(TableName, FTextKey(Key)) : FText::FromString(Fallback);
+	}
+}
+
+FString TablePath()
+{
+	return FPaths::Combine(FPaths::ProjectDir(), TEXT("Text"), TEXT("VeyraText.csv"));
+}
+
+void Register()
+{
+	// What LOCTABLE_FROMFILE_GAME does, from the project folder rather than Content/, where the
+	// editor would offer to import the file as an asset. Game/Tuning is read the same way.
+	FStringTableRegistry::Get().Internal_LocTableFromFile(TableName, TableName, TEXT("Text/VeyraText.csv"), FPaths::ProjectDir());
+}
+
+FText VanguardName(const FVeyraContentId& Vanguard)
+{
+	return TextOr(VanguardKind, Vanguard, NameField, Vanguard.ToString());
+}
+
+FText VanguardTitle(const FVeyraContentId& Vanguard)
+{
+	return TextOr(VanguardKind, Vanguard, TitleField, FString());
+}
+
+FText AbilityName(const FVeyraContentId& Ability)
+{
+	return TextOr(AbilityKind, Ability, NameField, Ability.ToString());
+}
+
+FText AbilityDescription(const FVeyraContentId& Ability)
+{
+	return TextOr(AbilityKind, Ability, DescriptionField, FString());
+}
+
+FText PassiveName(const FVeyraContentId& Passive)
+{
+	return TextOr(PassiveKind, Passive, NameField, Passive.ToString());
+}
+
+FText PassiveDescription(const FVeyraContentId& Passive)
+{
+	return TextOr(PassiveKind, Passive, DescriptionField, FString());
+}
+
+TArray<FString> FindMissingPlayableText()
+{
+	TArray<FString> Missing;
+	const auto Require = [&Missing](const TCHAR* Kind, const FVeyraContentId& Id, const TCHAR* Field) {
+		const FString Key = KeyOf(Kind, Id, Field);
+		if (!HasKey(Key))
+		{
+			Missing.Add(Key);
+		}
+	};
+	for (const TPair<FVeyraContentId, FVeyraVanguardDefinition>& Pair : UVeyraVanguardsTuningSubsystem::Get().Vanguards)
+	{
+		const FVeyraVanguardDefinition& Definition = Pair.Value;
+		if (Definition.Availability != EVeyraVanguardAvailability::Playable)
+		{
+			continue;
+		}
+		Require(VanguardKind, Pair.Key, NameField);
+		Require(VanguardKind, Pair.Key, TitleField);
+		for (const TArray<FVeyraContentId>* Slot : { &Definition.Abilities.Q, &Definition.Abilities.W, &Definition.Abilities.E, &Definition.Abilities.R })
+		{
+			for (const FVeyraContentId& Ability : *Slot)
+			{
+				Require(AbilityKind, Ability, NameField);
+				Require(AbilityKind, Ability, DescriptionField);
+			}
+		}
+		for (const FVeyraContentId& Passive : Definition.Passive)
+		{
+			Require(PassiveKind, Passive, NameField);
+			Require(PassiveKind, Passive, DescriptionField);
+		}
+	}
+	return Missing;
+}
+}

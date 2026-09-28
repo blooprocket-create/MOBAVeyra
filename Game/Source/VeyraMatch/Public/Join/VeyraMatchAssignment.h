@@ -2,12 +2,15 @@
 
 #pragma once
 
+#include "Content/VeyraContentId.h"
 #include "CoreMinimal.h"
 #include "Teams/VeyraTeam.h"
+#include "VeyraMatchTypes.h"
 
 /**
- * One rostered participant: who may join the match this server hosts, and on which side
- * (ADR-007 §5). The server never learns the participant's join ticket, only its hash.
+ * One rostered participant: who may join the match this server hosts, on which side, and as which
+ * Vanguard (ADR-007 §5, ADR-010 §9). The server never learns the participant's join ticket, only its
+ * hash.
  */
 struct FVeyraAssignedParticipant
 {
@@ -16,22 +19,43 @@ struct FVeyraAssignedParticipant
 	EVeyraTeam Side = EVeyraTeam::None;
 	/** The lowercase hex SHA-256 of the participant's join ticket. */
 	FString TicketHash;
+	/** The Vanguard the participant locked in champion select. */
+	FVeyraContentId VanguardId;
+};
+
+/**
+ * One AI participant the server adds when the match starts (Custom Matches Bible §1; ADR-010 §7). A
+ * bot is no account: it has no ticket and no result.
+ */
+struct FVeyraAssignedBot
+{
+	EVeyraTeam Side = EVeyraTeam::None;
+	FVeyraContentId VanguardId;
 };
 
 /** The match a server hosts, as the backend assigned it. */
 struct FVeyraMatchAssignment
 {
 	FString MatchId;
+	/** The mode the match records, such as casual_select or custom_practice. */
+	FVeyraContentId Mode;
+	EVeyraMatchRules Rules = EVeyraMatchRules::Standard;
+	/** The account that hosts a practice match; empty for standard rules. */
+	FString HostAccountId;
 	TArray<FVeyraAssignedParticipant> Participants;
+	/** Only a practice match has bots. */
+	TArray<FVeyraAssignedBot> Bots;
 };
 
-/** Why a match ended (ADR-007 §7–8). */
+/** Why a match ended (ADR-007 §7–8, ADR-010 §7). */
 enum class EVeyraMatchEndReason : uint8
 {
 	/** A developer ended it; Shipping builds refuse this. */
 	DeveloperRequest,
 	/** No participant was connected for the tuned grace period. */
 	Abandoned,
+	/** The host ended a practice match (Custom Matches Bible §4). */
+	HostEnded,
 };
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraMatchEndReason Reason);

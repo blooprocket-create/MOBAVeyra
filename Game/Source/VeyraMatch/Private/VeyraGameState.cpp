@@ -12,6 +12,8 @@ void AVeyraGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, Phase, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, MatchRules, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, Host, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, LiveStartServerTime, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, MatchClockAtEnd, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, bMatchPaused, Params);
@@ -54,6 +56,26 @@ void AVeyraGameState::SetPhase(EVeyraMatchPhase NewPhase)
 		LiveStartServerTime = GetGameplayServerTime();
 		MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraGameState, LiveStartServerTime, this);
 	}
+	OnPhaseChanged.Broadcast(Phase);
+}
+
+void AVeyraGameState::OnRep_Phase()
+{
+	OnPhaseChanged.Broadcast(Phase);
+}
+
+void AVeyraGameState::SetMatchRules(EVeyraMatchRules Rules)
+{
+	check(HasAuthority());
+	MatchRules = Rules;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraGameState, MatchRules, this);
+}
+
+void AVeyraGameState::SetHost(APlayerState* InHost)
+{
+	check(HasAuthority());
+	Host = InHost;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraGameState, Host, this);
 }
 
 void AVeyraGameState::SetMatchPaused(bool bPaused)

@@ -30,10 +30,12 @@ func TestAssignmentMatchesTheGamesContract(t *testing.T) {
 	// first participant's ticket hash against the vector's ticket.
 	m := Match{
 		ID:      vectorMatchID,
+		Mode:    "casual_select",
+		Rules:   RulesStandard,
 		JoinKey: vectorKey(),
 		Participants: []Participant{
-			{AccountID: vectorAccountID, DisplayName: "DevOne", Side: SideA},
-			{AccountID: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", DisplayName: "DevTwo", Side: SideB},
+			{AccountID: vectorAccountID, DisplayName: "DevOne", Side: SideA, VanguardID: "cairn"},
+			{AccountID: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", DisplayName: "DevTwo", Side: SideB, VanguardID: "oriel"},
 		},
 	}
 	line, err := BuildAssignment(m, contractCredential, "http://backend:8080")

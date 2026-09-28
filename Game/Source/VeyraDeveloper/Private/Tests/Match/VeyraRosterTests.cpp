@@ -4,20 +4,28 @@
 #include "Hash/VeyraSha256.h"
 #include "Join/VeyraMatchHostSubsystem.h"
 #include "Join/VeyraMatchRoster.h"
+#include "Rules/VeyraMatchRules.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraJoinRules.h"
 
 #if WITH_AUTOMATION_WORKER
 
 namespace VeyraMatchTests
 {
-	/** A two-participant assignment whose tickets are "vjt_one" and "vjt_two". */
+	FVeyraContentId RosterContentId(const TCHAR* Text)
+	{
+		return FVeyraContentId::FromText(Text).GetValue();
+	}
+
+	/** A two-participant casual assignment whose tickets are "vjt_one" and "vjt_two", as Cairn and Oriel. */
 	FVeyraMatchAssignment TwoParticipantAssignment()
 	{
 		FVeyraMatchAssignment Assignment;
 		Assignment.MatchId = TEXT("match-1");
-		Assignment.Participants.Add({ TEXT("account-1"), TEXT("DevOne"), EVeyraTeam::A, VeyraHash::Sha256Hex(TEXT("vjt_one")) });
-		Assignment.Participants.Add({ TEXT("account-2"), TEXT("DevTwo"), EVeyraTeam::B, VeyraHash::Sha256Hex(TEXT("vjt_two")) });
+		Assignment.Mode = RosterContentId(TEXT("casual_select"));
+		Assignment.Participants.Add({ TEXT("account-1"), TEXT("DevOne"), EVeyraTeam::A, VeyraHash::Sha256Hex(TEXT("vjt_one")), RosterContentId(TEXT("cairn")) });
+		Assignment.Participants.Add({ TEXT("account-2"), TEXT("DevTwo"), EVeyraTeam::B, VeyraHash::Sha256Hex(TEXT("vjt_two")), RosterContentId(TEXT("oriel")) });
 		return Assignment;
 	}
 
@@ -167,9 +175,107 @@ namespace VeyraMatchTests
 			for (int32 Index = 0; Index <= MaxTeamSize; ++Index)
 			{
 				const FString Ticket = FString::Printf(TEXT("vjt_%d"), Index);
-				Crowded.Participants.Add({ FString::Printf(TEXT("account-%d"), Index), TEXT("Dev"), EVeyraTeam::A, VeyraHash::Sha256Hex(Ticket) });
+				Crowded.Participants.Add({ FString::Printf(TEXT("account-%d"), Index), TEXT("Dev"), EVeyraTeam::A, VeyraHash::Sha256Hex(Ticket),
+					RosterContentId(TEXT("cairn")) });
 			}
 			ASSERT_THAT(IsTrue(IsRefused(Crowded, TEXT("teams.maxTeamSize"))));
+		}
+
+		TEST_METHOD(RefusesAModeOrVanguardItCannotHost)
+		{
+			FVeyraMatchAssignment NoMode = TwoParticipantAssignment();
+			NoMode.Mode = FVeyraContentId();
+			ASSERT_THAT(IsTrue(IsRefused(NoMode, TEXT("no mode"))));
+
+			FVeyraMatchAssignment NoVanguard = TwoParticipantAssignment();
+			NoVanguard.Participants[1].VanguardId = FVeyraContentId();
+			ASSERT_THAT(IsTrue(IsRefused(NoVanguard, TEXT("Vanguard is missing"))));
+
+			FVeyraMatchAssignment Unknown = TwoParticipantAssignment();
+			Unknown.Participants[0].VanguardId = RosterContentId(TEXT("no_such_vanguard"));
+			ASSERT_THAT(IsTrue(IsRefused(Unknown, TEXT("does not define no_such_vanguard"))));
+		}
+
+		TEST_METHOD(APracticeMatchHasItsHostOnTheRoster)
+		{
+			FVeyraMatchAssignment Practice = TwoParticipantAssignment();
+			Practice.Rules = EVeyraMatchRules::Practice;
+			Practice.Participants.SetNum(1);
+			Practice.HostAccountId = TEXT("account-1");
+			ASSERT_THAT(IsTrue(Host->SetAssignment(Practice).IsEmpty()));
+			Host->ClearAssignment();
+
+			Practice.HostAccountId = TEXT("account-2");
+			ASSERT_THAT(IsTrue(IsRefused(Practice, TEXT("host must be on its roster"))));
+			Practice.HostAccountId.Reset();
+			ASSERT_THAT(IsTrue(IsRefused(Practice, TEXT("host must be on its roster"))));
+
+			FVeyraMatchAssignment HostedStandard = TwoParticipantAssignment();
+			HostedStandard.HostAccountId = TEXT("account-1");
+			ASSERT_THAT(IsTrue(IsRefused(HostedStandard, TEXT("only a practice match has a host"))));
+		}
+
+		TEST_METHOD(OnlyAPracticeMatchHasBotsAndTheyTakePlaces)
+		{
+			FVeyraMatchAssignment Practice = TwoParticipantAssignment();
+			Practice.Rules = EVeyraMatchRules::Practice;
+			Practice.Participants.SetNum(1);
+			Practice.HostAccountId = TEXT("account-1");
+			Practice.Bots = { { EVeyraTeam::B, RosterContentId(TEXT("cairn")) }, { EVeyraTeam::B, RosterContentId(TEXT("bryn")) } };
+			ASSERT_THAT(IsTrue(Host->SetAssignment(Practice).IsEmpty()));
+			ASSERT_THAT(AreEqual(Host->GetAssignment()->Bots.Num(), 2));
+			Host->ClearAssignment();
+
+			FVeyraMatchAssignment NoSide = Practice;
+			NoSide.Bots[0].Side = EVeyraTeam::None;
+			ASSERT_THAT(IsTrue(IsRefused(NoSide, TEXT("bot 0: the side must be A or B"))));
+
+			FVeyraMatchAssignment Unknown = Practice;
+			Unknown.Bots[1].VanguardId = RosterContentId(TEXT("no_such_vanguard"));
+			ASSERT_THAT(IsTrue(IsRefused(Unknown, TEXT("bot 1: "))));
+
+			// A bot takes a place on its side like a player: the host and a full side of bots is too many.
+			FVeyraMatchAssignment Crowded = Practice;
+			Crowded.Bots.Reset();
+			for (int32 Index = 0; Index < UVeyraMatchTuningSubsystem::Get().Teams.MaxTeamSize; ++Index)
+			{
+				Crowded.Bots.Add({ EVeyraTeam::A, RosterContentId(TEXT("cairn")) });
+			}
+			ASSERT_THAT(IsTrue(IsRefused(Crowded, TEXT("teams.maxTeamSize"))));
+
+			FVeyraMatchAssignment StandardWithBots = TwoParticipantAssignment();
+			StandardWithBots.Bots = Practice.Bots;
+			ASSERT_THAT(IsTrue(IsRefused(StandardWithBots, TEXT("only a practice match has bots"))));
+		}
+	};
+
+	// Veyra.Match.MatchRules.*: who may end a custom match, and which Vanguards a server hosts
+	// (ADR-010 §6–7).
+	TEST_CLASS(MatchRules, "Veyra.Match")
+	{
+		TEST_METHOD(OnlyThePracticeHostEndsAPracticeMatch)
+		{
+			using namespace VeyraMatchRules;
+			ASSERT_THAT(IsTrue(CheckEndCustomMatch(EVeyraMatchRules::Practice, EVeyraMatchPhase::Live, true) == EVeyraEndCustomMatchRefusal::None));
+			ASSERT_THAT(IsTrue(CheckEndCustomMatch(EVeyraMatchRules::Practice, EVeyraMatchPhase::Preparation, true) == EVeyraEndCustomMatchRefusal::None));
+			ASSERT_THAT(IsTrue(CheckEndCustomMatch(EVeyraMatchRules::Practice, EVeyraMatchPhase::Live, false) == EVeyraEndCustomMatchRefusal::NotHost));
+			ASSERT_THAT(IsTrue(CheckEndCustomMatch(EVeyraMatchRules::Practice, EVeyraMatchPhase::Ended, true) == EVeyraEndCustomMatchRefusal::AlreadyEnded));
+			ASSERT_THAT(IsTrue(CheckEndCustomMatch(EVeyraMatchRules::Standard, EVeyraMatchPhase::Live, true) == EVeyraEndCustomMatchRefusal::NotCustomMatch));
+		}
+
+		TEST_METHOD(ShippingHostsOnlyPlayableVanguards)
+		{
+			using namespace VeyraMatchRules;
+			const FVeyraContentId Cairn = RosterContentId(TEXT("cairn"));
+			const FVeyraContentId TestVanguard = RosterContentId(TEXT("test_vanguard"));
+			const FVeyraVanguardDefinition* Playable = UVeyraVanguardsTuningSubsystem::FindVanguard(Cairn);
+			const FVeyraVanguardDefinition* Developer = UVeyraVanguardsTuningSubsystem::FindVanguard(TestVanguard);
+			ASSERT_THAT(IsNotNull(Playable));
+			ASSERT_THAT(IsNotNull(Developer));
+			ASSERT_THAT(IsTrue(CheckAssignedVanguard(Cairn, Playable, /*bShipping*/ true).IsEmpty()));
+			ASSERT_THAT(IsTrue(CheckAssignedVanguard(TestVanguard, Developer, /*bShipping*/ false).IsEmpty()));
+			ASSERT_THAT(IsTrue(CheckAssignedVanguard(TestVanguard, Developer, /*bShipping*/ true).Contains(TEXT("developer Vanguard"))));
+			ASSERT_THAT(IsFalse(CheckAssignedVanguard(RosterContentId(TEXT("no_such_vanguard")), nullptr, /*bShipping*/ false).IsEmpty()));
 		}
 	};
 }

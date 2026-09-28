@@ -7,6 +7,7 @@ package match
 import (
 	"errors"
 	"math"
+	"regexp"
 	"sort"
 	"time"
 )
@@ -36,12 +37,25 @@ const (
 	SideB Side = "B"
 )
 
+// Rules says which rules a match plays by (ADR-010 §7, §9).
+type Rules string
+
+const (
+	// RulesStandard is a matchmade or developer match.
+	RulesStandard Rules = "standard"
+	// RulesPractice is solo Custom practice: its host alone, open-ended, and
+	// ended by the host (Custom Matches Bible §1, §4).
+	RulesPractice Rules = "practice"
+)
+
 // EndReason says why a match ended with a result (ADR-007 §7–8).
 type EndReason string
 
 const (
 	EndDeveloperRequest EndReason = "developer_request"
 	EndAbandoned        EndReason = "abandoned"
+	// EndHostEnded is a practice match its host ended (ADR-010 §7).
+	EndHostEnded EndReason = "host_ended"
 )
 
 // FailureReason says why a match ended without a result.
@@ -57,9 +71,12 @@ const (
 // Errors describing rule violations. Callers map them to response codes.
 var (
 	ErrUnknownMode      = errors.New("unknown or unavailable mode")
+	ErrInvalidRules     = errors.New("unknown match rules")
 	ErrInvalidRoster    = errors.New("invalid roster")
+	ErrInvalidVanguard  = errors.New("invalid Vanguard")
 	ErrAccountNotFound  = errors.New("account not found")
 	ErrAlreadyInMatch   = errors.New("an account is already in an active match")
+	ErrSelectHasMatch   = errors.New("the champion select already created its match")
 	ErrNoServerCapacity = errors.New("no match-server port is free")
 	ErrAllocationFailed = errors.New("the match server could not be started")
 	ErrMatchNotFound    = errors.New("match not found")
@@ -74,7 +91,17 @@ type Participant struct {
 	AccountID   string
 	DisplayName string
 	Side        Side
+	// VanguardID is the content ID of the Vanguard the participant plays. It
+	// is empty only for matches created before matches carried Vanguards.
+	VanguardID string
 }
+
+// contentIDPattern is the content ID format the game's tuning uses
+// (Game/Tuning/README.md).
+var contentIDPattern = regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`)
+
+// IsContentID reports whether s has the content ID format.
+func IsContentID(s string) bool { return contentIDPattern.MatchString(s) }
 
 // ParticipantResult is what the server reports about one participant.
 type ParticipantResult struct {
@@ -108,15 +135,45 @@ type Mode struct {
 	HumanPlayersPerTeam int
 }
 
+// PracticeSettings configures solo Custom practice (ADR-010 §7).
+type PracticeSettings struct {
+	Enabled bool
+	// Mode is the mode ID practice matches record. No matchmade mode uses it.
+	Mode string
+	// HostSide is the side the practising player plays on.
+	HostSide Side
+	// Bots are the AI participants every practice match adds (Custom Matches
+	// Bible §1), validated with the configuration: known sides, released
+	// Vanguards, and room on each side.
+	Bots []Bot
+}
+
+// Bot is an AI participant: a side and the Vanguard it plays. It is not an
+// account, so it has no join ticket and no result; the match server adds it
+// when the match starts.
+type Bot struct {
+	Side Side
+	// VanguardID is the content ID of the Vanguard the bot plays.
+	VanguardID string
+}
+
 // Match is the authoritative state of one match.
 type Match struct {
-	ID           string
-	Mode         string
+	ID    string
+	Mode  string
+	Rules Rules
+	// HostAccountID is the practice match's host; empty for standard rules.
+	HostAccountID string
+	// SelectID is the champion select that created the match, which creates
+	// at most one; empty for development matches.
+	SelectID     string
 	State        State
 	Participants []Participant
-	CreatedAt    time.Time
-	ReadyAt      time.Time
-	EndedAt      time.Time
+	// Bots are the match's AI participants; only practice matches have any.
+	Bots      []Bot
+	CreatedAt time.Time
+	ReadyAt   time.Time
+	EndedAt   time.Time
 	// JoinKey derives the participants' join tickets. It is nil once the
 	// match is over, which invalidates every ticket (ADR-007 §3).
 	JoinKey []byte
@@ -137,9 +194,10 @@ func (m *Match) Participant(accountID string) (Participant, bool) {
 	return Participant{}, false
 }
 
-// ValidateRoster checks a requested roster against its mode: an enabled mode,
-// at least one participant, known sides, no account twice, and no side larger
-// than the mode's team (Battleground Bible: two teams of up to five).
+// ValidateRoster checks a requested standard roster against its mode: an
+// enabled mode, at least one participant, known sides, no account twice, no
+// side larger than the mode's team (Battleground Bible: two teams of up to
+// five), and a Vanguard for everyone.
 func ValidateRoster(mode Mode, participants []Participant) error {
 	if !mode.Enabled {
 		return ErrUnknownMode
@@ -161,6 +219,29 @@ func ValidateRoster(mode Mode, participants []Participant) error {
 		if perSide[p.Side] > mode.HumanPlayersPerTeam {
 			return ErrInvalidRoster
 		}
+		if !IsContentID(p.VanguardID) {
+			return ErrInvalidVanguard
+		}
+	}
+	return nil
+}
+
+// ValidatePractice checks a requested practice roster: practice is enabled,
+// the mode is practice's, and the roster is its host alone on the host's side
+// with a Vanguard (Custom Matches Bible §1).
+func ValidatePractice(practice PracticeSettings, modeID, hostAccountID string, participants []Participant) error {
+	if !practice.Enabled || modeID != practice.Mode {
+		return ErrUnknownMode
+	}
+	if hostAccountID == "" || len(participants) != 1 {
+		return ErrInvalidRoster
+	}
+	p := participants[0]
+	if p.AccountID != hostAccountID || p.Side != practice.HostSide {
+		return ErrInvalidRoster
+	}
+	if !IsContentID(p.VanguardID) {
+		return ErrInvalidVanguard
 	}
 	return nil
 }
@@ -219,7 +300,14 @@ func (m *Match) Fail(reason FailureReason, now time.Time) {
 }
 
 func (m *Match) validateResult(r Result) error {
-	if r.EndReason != EndDeveloperRequest && r.EndReason != EndAbandoned {
+	switch r.EndReason {
+	case EndDeveloperRequest, EndAbandoned:
+	case EndHostEnded:
+		// Only practice has a host to end it (ADR-010 §7).
+		if m.Rules != RulesPractice {
+			return ErrInvalidResult
+		}
+	default:
 		return ErrInvalidResult
 	}
 	if r.Winner != "" && r.Winner != SideA && r.Winner != SideB {

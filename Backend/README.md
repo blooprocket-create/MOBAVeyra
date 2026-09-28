@@ -24,7 +24,9 @@ go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -bui
 
 ## What exists so far
 
-Four modules: **identity** (the launcher → game login handoff), **social** (friends, friend requests, blocks), **party** (parties, invites, Ready, mode and the Find Match queue lock) and **match** (match servers, join tickets and results, [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md)). Matchmaking itself, match-found acceptance and live presence come next; until then a development-only route creates matches directly.
+Seven modules: **identity** (the launcher → game login handoff), **social** (friends, friend requests, blocks), **party** (parties, invites, Ready, mode and the Find Match queue lock), **catalog** (released Vanguards, starters and the rotation), **account** (onboarding and Vanguard entitlements), **selection** (champion select and solo Custom practice, [ADR-010](../Docs/ADR/ADR-010-play-flow.md)) and **match** (match servers, join tickets and results, [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md)). A player reaches a match through practice: champion select creates it. Matchmaking itself, match-found acceptance and live presence come next; a development-only route also creates matches directly, for scripts.
+
+To play through all of it, `Game/Scripts/Play.ps1` starts this stack and opens the [launcher](../Launcher/README.md).
 
 ### Identity
 
@@ -88,24 +90,57 @@ Rules the code enforces, from the Parties & Social Bible:
 4. **Leader cancels the queue:** everyone's Ready resets, the same as other cancellations.
 5. **Invite lifetime** `2m` and **default privacy** `private` are provisional values in `config/local.json`.
 
-### Matches
+### Onboarding and Vanguards
 
-How a client joins its assigned match is [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md).
+Which Vanguards a player may pick, and the stubbed first-time tutorial ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §6).
 
 | Endpoint | Auth | Body | Returns |
 |---|---|---|---|
-| `POST /v1/dev/matches` | — | `{"mode", "participants": [{"accountId", "side": "A"\|"B"}]}` | `201` and the match; the backend starts its server. **Local only**; the route does not exist unless `matches.devCreate.enabled` |
-| `GET /v1/dev/matches/{matchId}` | — | — | the match, its server port and its result. **Local only**; never returns a secret |
-| `GET /v1/me/match` | `Bearer <game token>` | — | `{"match": null}`, or the player's match: `id`, `state`, `side`, and once it is ready, `server` (`host`, `port`) and the join `ticket` |
+| `GET /v1/me/profile` | `Bearer <game token>` | — | `account` (`id`, `displayName`) and `tutorial` (`completed`, `starterVanguardId`) |
+| `GET /v1/me/vanguards` | `Bearer <game token>` | — | `owned`, `rotation`, `available` (owned and rotation, released only) and `starters` |
+| `POST /v1/me/starter` | `Bearer <game token>` | `{"vanguardId"}` | the profile; the starter is owned from now on. Once only: `already_completed`; only a starter: `not_a_starter` |
+| `GET /v1/dev/accounts` | — | — | `accounts` (`displayName`), the seeded dev accounts for the launcher's picker. **Local only**, with dev login |
+| `POST /v1/dev/accounts/{name}/reset-onboarding` | — | — | `204`; the dev account is back before its starter choice, for repeatable test runs. **Local only**, with dev login |
+
+The catalog is `vanguards` in `config/local.json`: the released Vanguards, which must equal the Playable ones in `Game/Tuning/Vanguards.json` (`internal/catalog`'s contract test checks it), the starters (3 to 5, Account, Collection & Mastery Bible §1) and the rotation. **Provisional:** every released Vanguard is a starter, and until the weekly rotation exists a stand-in rotation offers every released Vanguard while fewer than `rotation.slots` (12, canon) are released.
+
+### Custom practice and champion select
+
+Solo Custom practice opens a champion select with no lobby; the select creates the match ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §7–8).
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `POST /v1/practice` | `Bearer <game token>` | — | `201` and the `select`: the player alone on `customPractice.hostSide`. Refused as `tutorial_required` before the starter choice, and `busy` with a match, a select or a queued party |
+| `GET /v1/me/select` | `Bearer <game token>` | — | `{"select": null}` or the player's active select |
+| `GET /v1/me/selects/{selectId}` | `Bearer <game token>` | — | a select the player was in, active or over: how it ended |
+| `PUT /v1/me/select/hover` | `Bearer <game token>` | `{"vanguardId"}` | the select |
+| `POST /v1/me/select/lock` | `Bearer <game token>` | `{"vanguardId"}` | the select; once every pick is locked it creates the match first, so the answer is `started` with its `matchId`, or `cancelled` |
+
+A select is `id`, `kind`, `mode`, `state` (`picking`, `starting`, `started`, `cancelled`), `deadline`, `remainingSeconds` (by the server's clock), `seats` (`displayName`, `side`, `you`, `locked`, and `hover` for the player's own team only), `matchId` and `cancelReason` (`timed_out`, `allocation_failed`, `starting_timed_out`). Errors: `not_available` (a Vanguard the player may not pick), `already_locked`, `expired`, `invalid_state`, `select_not_found`.
+
+Rules the code enforces: a player is in at most one active select (enforced by the database); a lock is permanent; a select creates at most one match (a unique `select_id` on the match). When the pick timer (`customPractice.pickDuration`) ends, a seat's hover is locked for it, and a seat with nothing to lock cancels the select. **Provisional** (ADR-010 §11), like the 30-second pick time. A select whose match creation never finishes is settled after `selection.startingTimeout`, which must exceed the allocator's request timeout.
+
+### Matches
+
+How a client joins its assigned match is [ADR-007](../Docs/ADR/ADR-007-match-join-contract.md); how matches carry rules and Vanguards is [ADR-010](../Docs/ADR/ADR-010-play-flow.md) §7–9.
+
+| Endpoint | Auth | Body | Returns |
+|---|---|---|---|
+| `POST /v1/dev/matches` | — | `{"mode", "rules": "standard"\|"practice", "hostAccountId", "participants": [{"accountId", "side": "A"\|"B", "vanguardId"}]}`; `rules` defaults to standard, and only practice names a host | `201` and the match; the backend starts its server. **Local only**; the route does not exist unless `matches.devCreate.enabled`. It stands in for champion select in scripts, so any Vanguard the game defines is accepted |
+| `GET /v1/dev/matches/{matchId}` | — | — | the match, its rules, Vanguards, server port and result. **Local only**; never returns a secret |
+| `GET /v1/me/match` | `Bearer <game token>` | — | `{"match": null}`, or the player's match: `id`, `mode`, `rules`, `state`, `side`, `vanguardId`, and once it is ready, `server` (`host`, `port`) and the join `ticket` |
+| `GET /v1/me/matches/{matchId}` | `Bearer <game token>` | — | a match the player was in: `id`, `mode`, `rules`, `state`, `side`, `vanguardId`, `failureReason`, and once it has ended the verified `result` (`endReason`, `winner`, `durationSeconds`, and the player's own `joined` and `connectedAtEnd`). Anyone else's match is `match_not_found` |
 | `POST /v1/server/matches/{matchId}/ready` | `Bearer <server credential>` | `{}` | the server accepts players |
 | `POST /v1/server/matches/{matchId}/result` | `Bearer <server credential>` | `{"endReason", "winner", "durationSeconds", "participants": [{"accountId", "joined", "connectedAtEnd"}]}` | the result is recorded |
 
-Error codes include `already_in_match`, `invalid_roster`, `no_server_capacity`, `allocation_failed`, `invalid_state`, `invalid_result` and `result_conflict`.
+Error codes include `already_in_match`, `invalid_roster`, `invalid_rules`, `invalid_vanguard`, `no_server_capacity`, `allocation_failed`, `invalid_state`, `invalid_result` and `result_conflict`.
 
 Rules the code enforces:
 
 - A match moves from `allocating` to `ready` to `ended`, or to `failed` from either earlier state. An account has at most one active match (enforced by the database).
-- Each side holds at most the mode's `humanPlayersPerTeam`, every account at most once.
+- A standard match's sides each hold at most the mode's `humanPlayersPerTeam`, every account at most once. A practice match is its host alone, on `customPractice.hostSide`, in the mode `customPractice.mode`, which no party can queue for, and the bots `customPractice.bots` lists: AI participants the server adds, each a side and a released Vanguard, stored with the match and sent in its assignment. No side may hold more than `customPractice.playersPerSide`, the host included; bots are no accounts, so they get no ticket and no result. Neither that nor any mode's `humanPlayersPerTeam` may exceed the match server's own cap, `teams.maxTeamSize` in `Game/Tuning/Match.json`, or the server refuses the assignment; `internal/config`'s contract test checks it.
+- Every participant plays a Vanguard, a content ID; the match server refuses one `Game/Tuning/Vanguards.json` does not define.
+- Only a practice match can end `host_ended`: its host ended it (Custom Matches Bible §4).
 - A join ticket (`vjt_`) is derived from a random key the match keeps, so asking again gives the same ticket; the key is erased when the match ends or fails, which kills every ticket for it. The match server receives only SHA-256 hashes of the tickets.
 - The match server gets its roster and its credential (`vms_`, stored only as a hash) on its standard input, never in an environment variable, a file or its command line.
 - A server credential works only for its own match. A result can be reported again unchanged; a different one is refused. It must list exactly the roster.
@@ -115,28 +150,32 @@ Rules the code enforces:
 
 ## For the Unreal client
 
-The game receives its launch code on **standard input**, one line, never on the command line. Started with `-VeyraLaunchCode=stdin`, the game's `VeyraServices` module:
+The game receives its launch code on **standard input**, one line, never on the command line, through the **launch handshake** ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §5; the lines are fixed by `Game/Source/VeyraServices/Contracts/LaunchHandshake.json`). Started with `-VeyraLaunchCode=stdin` and pipes for its standard input and output, the game's `VeyraServices` module:
 
-1. reads that line;
-2. calls `POST /v1/game-sessions` with the code and its build version (`ProjectVersion` in `Game/Config/DefaultGame.ini`), and keeps the game session token in memory;
-3. polls `GET /v1/me/match` until the match is ready;
-4. joins the server with its ticket.
+1. writes `veyra-handoff/1 awaiting-launch-code` on standard output; only then does the launcher request a code and write it, so the code's 20-second life starts once the game can read it;
+2. reads that line and calls `POST /v1/game-sessions` with the code and its build version (`ProjectVersion` in `Game/Config/DefaultGame.ini`), keeping the game session token in memory;
+3. answers `veyra-handoff/1 signed-in`, or `veyra-handoff/1 failed <code>` if it could not sign in, and the launcher's work is done;
+4. finds where the player is, in this order (ADR-010 §2): a live match from `GET /v1/me/match` leads to **Reconnect-only**, which outranks everything; then a select in progress from `GET /v1/me/select` resumes; then a player without a starter (`GET /v1/me/profile`) chooses one; otherwise the shell;
+5. from the shell, starts practice (`POST /v1/practice`), polls the select, hovers and locks, polls `GET /v1/me/match` until the match is ready, and joins the server with its ticket;
+6. when the match ends, travels back to the front end and polls `GET /v1/me/matches/{id}` for the verified result.
 
-It logs its progress as `VeyraHandoff:` lines. The game does not use `-log`, which on Windows can replace the standard handles.
+A failure never quits the game: it shows with Retry where retrying can help. The client-state coordinator, `FVeyraClientFlow`, logs its progress as `VeyraClientFlow:` lines. The game does not use `-log`, which on Windows can replace the standard handles.
 
 A match server started by the backend gets `-VeyraAssignment=stdin` and reads its assignment the same way. The game's copy of the assignment's shape is `Game/Source/VeyraServices/Schemas/MatchAssignment.schema.json`. `internal/match/contract_test.go` keeps an example the game's tests read, so a change to the assignment must update both.
 
-In development, `veyra-devlaunch` starts the game the same way, with the game's build version:
+The [launcher](../Launcher/README.md) is the real caller: it signs in with `POST /v1/dev/login`, starts the packaged game and hands it a code this way. In development, `veyra-devlaunch` starts the game the same way, speaking the handshake, with the game's build version. It copies the game's other output and waits for the game to exit; `-detach` returns once the game has signed in, as the launcher does:
 
 ```sh
 go run ./cmd/veyra-devlaunch -backend http://localhost:8080 -account DevOne -build 0.1.0 -- "C:\path\to\VeyraClient.exe" -VeyraLaunchCode=stdin
 ```
 
-`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result.
+A match created with `POST /v1/dev/matches` before the game starts waits behind Reconnect, as any live match does.
+
+`Game/Scripts/Smoke.ps1 -Handoff` plays a whole match this way, from dev login to the recorded result, through the same handshake (`Start-VeyraHandshakeClient` and `Step-VeyraHandshake` in `Game/Scripts/VeyraProject.psm1`); its clients press Reconnect with `-VeyraSmokeFlow=join`. `Smoke.ps1 -Flow Practice` plays the whole solo path instead: starter choice, practice, champion select, the match, End Custom Match and the verified result. With `-Launcher Cli` the launcher's headless twin signs in and starts the game.
 
 ## Configuration
 
-Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
+Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), solo Custom practice (`customPractice`: whether it is on, the mode ID its matches record, the host's side, the pick time, how many Vanguards a side may hold, and the practice bots, provisionally one enemy of each released Vanguard), champion select's upkeep (`selection`), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
 
 ## Layout
 
@@ -150,6 +189,9 @@ Backend/
     ├── identity/          accounts, sessions, launch codes (domain rules)
     ├── social/            friends, friend requests, blocks
     ├── party/             parties, invites, Ready, queue lock
+    ├── catalog/           released Vanguards, starters and the rotation (configuration)
+    ├── account/           onboarding (the stubbed tutorial) and Vanguard entitlements
+    ├── selection/         champion select and Custom practice; creates each select's match once
     ├── match/             matches, join tickets, results, the allocator interface
     ├── docker/            the local allocator: one Docker container per match
     ├── secret/            bearer secrets and their hashes
@@ -157,7 +199,7 @@ Backend/
     └── httpapi/           HTTP/JSON transport
 ```
 
-Domain packages (`identity`, `social`, `party`, `match`, and later matchmaking) own their rules and depend only on storage interfaces. `party` reads the social graph through a small interface and never writes it; a block is applied by `social` first and then handed to `party`. `postgres` implements storage; `httpapi` only translates HTTP to domain calls.
+Domain packages (`identity`, `social`, `party`, `account`, `match`, and later matchmaking) own their rules and depend only on storage interfaces; `account` reads the catalog through a small interface. `party` reads the social graph through a small interface and never writes it; a block is applied by `social` first and then handed to `party`. `postgres` implements storage; `httpapi` only translates HTTP to domain calls.
 
 ## Tests
 

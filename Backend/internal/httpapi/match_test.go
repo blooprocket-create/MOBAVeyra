@@ -29,6 +29,7 @@ func newMatchTestServer(t *testing.T, devMatches bool) (*httptest.Server, *match
 	})
 	d.Match = match.NewService(match.NewMemStore(), accounts, alloc, match.Settings{
 		Modes:             map[string]match.Mode{"casual_select": {ID: "casual_select", Enabled: true, HumanPlayersPerTeam: 5}},
+		Practice:          match.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA},
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,
 		RemoveServerAfter: time.Minute,
@@ -66,7 +67,7 @@ func TestMatchHandoffOverHTTP(t *testing.T) {
 
 	status, created := call(t, srv, "POST", "/v1/dev/matches", "", map[string]any{
 		"mode":         "casual_select",
-		"participants": []map[string]string{{"accountId": oneID, "side": "A"}, {"accountId": twoID, "side": "B"}},
+		"participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}, {"accountId": twoID, "side": "B", "vanguardId": "cairn"}},
 	})
 	if status != http.StatusCreated {
 		t.Fatalf("create: %d %v", status, created)
@@ -132,11 +133,62 @@ func TestMatchHandoffOverHTTP(t *testing.T) {
 	}
 }
 
+func TestAPracticeMatchAndItsResultOverHTTP(t *testing.T) {
+	srv, alloc := newMatchTestServer(t, true)
+	one, oneID := gameSession(t, srv, "DevOne")
+	two, _ := gameSession(t, srv, "DevTwo")
+
+	status, created := call(t, srv, "POST", "/v1/dev/matches", "", map[string]any{
+		"mode": "custom_practice", "rules": "practice", "hostAccountId": oneID,
+		"participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "oriel"}},
+	})
+	if status != http.StatusCreated {
+		t.Fatalf("create practice: %d %v", status, created)
+	}
+	m := created["match"].(map[string]any)
+	matchID := m["id"].(string)
+	if m["rules"] != "practice" || m["hostAccountId"] != oneID || m["participants"].([]any)[0].(map[string]any)["vanguardId"] != "oriel" {
+		t.Fatalf("dev view of a practice match: %v", m)
+	}
+
+	_, mine := call(t, srv, "GET", "/v1/me/match", one, nil)
+	current := mine["match"].(map[string]any)
+	if current["mode"] != "custom_practice" || current["rules"] != "practice" || current["vanguardId"] != "oriel" {
+		t.Fatalf("the player's match: %v", current)
+	}
+
+	status, view := call(t, srv, "GET", "/v1/me/matches/"+matchID, one, nil)
+	running := view["match"].(map[string]any)
+	if status != http.StatusOK || running["state"] != "allocating" || running["result"] != nil || running["vanguardId"] != "oriel" {
+		t.Fatalf("the result route before the end: %d %v", status, view)
+	}
+	if status, body := call(t, srv, "GET", "/v1/me/matches/"+matchID, two, nil); status != http.StatusNotFound || body["error"] != "match_not_found" {
+		t.Fatalf("another player's match: %d %v", status, body)
+	}
+	if status, _ := call(t, srv, "GET", "/v1/me/matches/"+matchID, "", nil); status != http.StatusUnauthorized {
+		t.Fatalf("without a session: want 401, got %d", status)
+	}
+
+	cred := serverCredential(t, alloc, matchID)
+	call(t, srv, "POST", "/v1/server/matches/"+matchID+"/ready", cred, map[string]any{})
+	result := map[string]any{"endReason": "host_ended", "winner": nil, "durationSeconds": 95.0,
+		"participants": []map[string]any{{"accountId": oneID, "joined": true, "connectedAtEnd": true}}}
+	if status, body := call(t, srv, "POST", "/v1/server/matches/"+matchID+"/result", cred, result); status != http.StatusOK {
+		t.Fatalf("host_ended result: %d %v", status, body)
+	}
+	_, view = call(t, srv, "GET", "/v1/me/matches/"+matchID, one, nil)
+	ended := view["match"].(map[string]any)
+	verified, _ := ended["result"].(map[string]any)
+	if ended["state"] != "ended" || verified["endReason"] != "host_ended" || verified["winner"] != nil || verified["joined"] != true || verified["connectedAtEnd"] != true {
+		t.Fatalf("the verified result: %v", ended)
+	}
+}
+
 func TestDevMatchResponsesCarryNoSecrets(t *testing.T) {
 	srv, alloc := newMatchTestServer(t, true)
 	_, oneID := gameSession(t, srv, "DevOne")
 	_, created := call(t, srv, "POST", "/v1/dev/matches", "", map[string]any{
-		"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "A"}},
+		"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}},
 	})
 	matchID := created["match"].(map[string]any)["id"].(string)
 	cred := serverCredential(t, alloc, matchID)
@@ -173,10 +225,13 @@ func TestMatchRoutesRejectBadRequests(t *testing.T) {
 		status int
 		code   string
 	}{
-		{"unknown mode", map[string]any{"mode": "nope", "participants": []map[string]string{{"accountId": oneID, "side": "A"}}}, http.StatusBadRequest, "unknown_mode"},
-		{"bad side", map[string]any{"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "C"}}}, http.StatusBadRequest, "invalid_roster"},
-		{"unknown account", map[string]any{"mode": "casual_select", "participants": []map[string]string{{"accountId": "ghost", "side": "A"}}}, http.StatusNotFound, "account_not_found"},
+		{"unknown mode", map[string]any{"mode": "nope", "participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}}}, http.StatusBadRequest, "unknown_mode"},
+		{"bad side", map[string]any{"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "C", "vanguardId": "cairn"}}}, http.StatusBadRequest, "invalid_roster"},
+		{"unknown account", map[string]any{"mode": "casual_select", "participants": []map[string]string{{"accountId": "ghost", "side": "A", "vanguardId": "cairn"}}}, http.StatusNotFound, "account_not_found"},
 		{"unknown field", map[string]any{"mode": "casual_select", "extra": true}, http.StatusBadRequest, "malformed_request"},
+		{"no Vanguard", map[string]any{"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "A"}}}, http.StatusBadRequest, "invalid_vanguard"},
+		{"unknown rules", map[string]any{"mode": "casual_select", "rules": "draft", "participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}}}, http.StatusBadRequest, "invalid_rules"},
+		{"practice without host", map[string]any{"mode": "custom_practice", "rules": "practice", "participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}}}, http.StatusBadRequest, "invalid_roster"},
 	}
 	for _, tc := range cases {
 		if status, body := call(t, srv, "POST", "/v1/dev/matches", "", tc.body); status != tc.status || body["error"] != tc.code {
@@ -185,12 +240,12 @@ func TestMatchRoutesRejectBadRequests(t *testing.T) {
 	}
 
 	_, created := call(t, srv, "POST", "/v1/dev/matches", "", map[string]any{
-		"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "A"}},
+		"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}},
 	})
 	matchID := created["match"].(map[string]any)["id"].(string)
 	cred := serverCredential(t, alloc, matchID)
 	if status, body := call(t, srv, "POST", "/v1/dev/matches", "", map[string]any{
-		"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "B"}},
+		"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "B", "vanguardId": "cairn"}},
 	}); status != http.StatusConflict || body["error"] != "already_in_match" {
 		t.Fatalf("a second match for one account: %d %v", status, body)
 	}

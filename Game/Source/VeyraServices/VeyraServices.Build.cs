@@ -3,8 +3,9 @@
 using UnrealBuildTool;
 
 // The trusted-services client (ADR-006 §3, ADR-007): the only Veyra module that talks to the
-// backend. A client reads its launch code from standard input, signs in and joins its assigned
-// match; a match server reads its assignment from standard input and reports that it is ready and
+// backend. On a client, the client-state coordinator (ADR-010 §2) signs in with the launch code from
+// standard input and carries the player from the shell through champion select, the match and its
+// result; a match server reads its assignment from standard input and reports that it is ready and
 // how its match ended. It plugs into VeyraMatch's contracts, so no gameplay module knows HTTP.
 public class VeyraServices : ModuleRules
 {

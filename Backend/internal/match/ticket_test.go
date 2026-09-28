@@ -60,10 +60,11 @@ func TestTicketsAreStableAndDistinct(t *testing.T) {
 func TestAssignmentIsOneLineWithTicketHashesOnly(t *testing.T) {
 	m := Match{
 		ID:      vectorMatchID,
+		Rules:   RulesStandard,
 		JoinKey: vectorKey(),
 		Participants: []Participant{
-			{AccountID: vectorAccountID, DisplayName: "DevOne", Side: SideA},
-			{AccountID: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", DisplayName: "DevTwo", Side: SideB},
+			{AccountID: vectorAccountID, DisplayName: "DevOne", Side: SideA, VanguardID: "cairn"},
+			{AccountID: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", DisplayName: "DevTwo", Side: SideB, VanguardID: "cairn"},
 		},
 	}
 	line, err := BuildAssignment(m, "vms_credential", "http://backend:8080")

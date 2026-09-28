@@ -232,6 +232,16 @@ namespace VeyraServicesTests
 			ASSERT_THAT(AreEqual(Body->GetStringField(TEXT("winner")), FString(TEXT("B"))));
 			ASSERT_THAT(AreEqual(Body->GetArrayField(TEXT("participants")).Num(), 0));
 		}
+
+		TEST_METHOD(NamesAHostEndedMatch)
+		{
+			FVeyraMatchResult Result;
+			Result.EndReason = EVeyraMatchEndReason::HostEnded;
+			const TSharedPtr<FJsonObject> Body = Parse(VeyraBackendProtocol::BuildResultBody(Result));
+			ASSERT_THAT(IsTrue(Body.IsValid()));
+			ASSERT_THAT(AreEqual(Body->GetStringField(TEXT("endReason")), FString(TEXT("host_ended"))));
+			ASSERT_THAT(IsTrue(Body->HasTypedField<EJson::Null>(TEXT("winner"))));
+		}
 	};
 
 	// Veyra.Services.Settings.*: the backend's address and every wait are validated settings.
@@ -251,14 +261,22 @@ namespace VeyraServicesTests
 			Candidate->LaunchCodeReadTimeoutSeconds = 0.0f;
 			Candidate->MatchPollIntervalSeconds = 0.0f;
 			Candidate->MatchWaitTimeoutSeconds = -1.0f;
+			Candidate->ClientRequestAttempts = 0;
+			Candidate->ClientRetryIntervalSeconds = 0.0f;
+			Candidate->SelectPollIntervalSeconds = 0.0f;
+			Candidate->ResultPollIntervalSeconds = 0.0f;
+			Candidate->ResultWaitTimeoutSeconds = 0.0f;
+			Candidate->ReconnectPollIntervalSeconds = 0.0f;
 			Candidate->AssignmentReadTimeoutSeconds = 0.0f;
 			Candidate->AssignmentPollIntervalSeconds = 0.0f;
 			Candidate->ReportAttempts = 0;
 			Candidate->ReportRetryIntervalSeconds = 0.0f;
 			const FString Problems = Describe(Candidate->Validate());
 			for (const TCHAR* Name : { TEXT("BackendBaseUrl"), TEXT("RequestTimeoutSeconds"), TEXT("LaunchCodeReadTimeoutSeconds"),
-					 TEXT("MatchPollIntervalSeconds"), TEXT("MatchWaitTimeoutSeconds"), TEXT("AssignmentReadTimeoutSeconds"),
-					 TEXT("AssignmentPollIntervalSeconds"), TEXT("ReportAttempts"), TEXT("ReportRetryIntervalSeconds") })
+					 TEXT("MatchPollIntervalSeconds"), TEXT("MatchWaitTimeoutSeconds"), TEXT("ClientRequestAttempts"), TEXT("ClientRetryIntervalSeconds"),
+					 TEXT("SelectPollIntervalSeconds"), TEXT("ResultPollIntervalSeconds"), TEXT("ResultWaitTimeoutSeconds"),
+					 TEXT("ReconnectPollIntervalSeconds"), TEXT("AssignmentReadTimeoutSeconds"), TEXT("AssignmentPollIntervalSeconds"),
+					 TEXT("ReportAttempts"), TEXT("ReportRetryIntervalSeconds") })
 			{
 				ASSERT_THAT(IsTrue(Problems.Contains(Name), FString::Printf(TEXT("%s is not named in: %s"), Name, *Problems)));
 			}
@@ -412,11 +430,16 @@ namespace VeyraServicesTests
 			ASSERT_THAT(AreEqual(Parsed.Match.MatchId, FString(ExampleId)));
 			ASSERT_THAT(AreEqual(Parsed.BackendUrl, FString(TEXT("http://backend:8080"))));
 			ASSERT_THAT(IsTrue(Parsed.ServerCredential.StartsWith(TEXT("vms_"), ESearchCase::CaseSensitive)));
+			ASSERT_THAT(AreEqual(Parsed.Match.Mode.ToString(), FString(TEXT("casual_select"))));
+			ASSERT_THAT(IsTrue(Parsed.Match.Rules == EVeyraMatchRules::Standard && Parsed.Match.HostAccountId.IsEmpty()));
 			ASSERT_THAT(AreEqual(Parsed.Match.Participants.Num(), 2));
+			ASSERT_THAT(IsTrue(Parsed.Match.Bots.IsEmpty(), TEXT("a standard match has no bots")));
 			const FVeyraAssignedParticipant& First = Parsed.Match.Participants[0];
 			ASSERT_THAT(AreEqual(First.DisplayName, FString(TEXT("DevOne"))));
 			ASSERT_THAT(IsTrue(First.Side == EVeyraTeam::A));
+			ASSERT_THAT(AreEqual(First.VanguardId.ToString(), FString(TEXT("cairn"))));
 			ASSERT_THAT(IsTrue(Parsed.Match.Participants[1].Side == EVeyraTeam::B));
+			ASSERT_THAT(AreEqual(Parsed.Match.Participants[1].VanguardId.ToString(), FString(TEXT("oriel"))));
 			// The backend's ticket vector (Backend/internal/match/ticket_test.go): the game hashes the
 			// ticket the backend derived for this participant to the hash the backend sent.
 			ASSERT_THAT(AreEqual(First.TicketHash, VeyraHash::Sha256Hex(TEXT("vjt_xdMWyGQJg9xC_-yn9b-5ZYoh8_KKDRs9Bfjlh7WgwKQ"))));
@@ -432,16 +455,42 @@ namespace VeyraServicesTests
 			ASSERT_THAT(IsTrue(Problems.IsEmpty(), Describe(Problems)));
 		}
 
+		TEST_METHOD(ReadsAPracticeAssignmentWithItsBots)
+		{
+			const FString Practice = Example
+				.Replace(TEXT("\"rules\":\"Standard\",\"hostAccountId\":[]"), TEXT("\"rules\":\"Practice\",\"hostAccountId\":[\"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee\"]"),
+					ESearchCase::CaseSensitive)
+				.Replace(TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"bryn\"},{\"side\":\"A\",\"vanguardId\":\"qazharr\"}]"),
+					ESearchCase::CaseSensitive);
+			ASSERT_THAT(IsTrue(Practice.Contains(TEXT("\"Practice\"")) && Practice.Contains(TEXT("\"bryn\""))));
+			FVeyraServerAssignment Parsed;
+			const TArray<FString> Problems = VeyraServerAssignment::Parse(Practice, SchemaText, Parsed);
+			ASSERT_THAT(IsTrue(Problems.IsEmpty(), Describe(Problems)));
+			ASSERT_THAT(IsTrue(Parsed.Match.Rules == EVeyraMatchRules::Practice));
+			ASSERT_THAT(AreEqual(Parsed.Match.HostAccountId, FString(TEXT("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))));
+			ASSERT_THAT(AreEqual(Parsed.Match.Bots.Num(), 2));
+			ASSERT_THAT(IsTrue(Parsed.Match.Bots[0].Side == EVeyraTeam::B && Parsed.Match.Bots[0].VanguardId.ToString() == TEXT("bryn")));
+			ASSERT_THAT(IsTrue(Parsed.Match.Bots[1].Side == EVeyraTeam::A && Parsed.Match.Bots[1].VanguardId.ToString() == TEXT("qazharr")));
+		}
+
 		TEST_METHOD(RefusesABrokenAssignment)
 		{
 			const TArray<TPair<const TCHAR*, const TCHAR*>> Breaks = {
-				{ TEXT("\"schemaVersion\":1"), TEXT("\"schemaVersion\":2") },
+				// A version 1 assignment carries no Vanguards; this build reads version 2 only.
+				{ TEXT("\"schemaVersion\":2"), TEXT("\"schemaVersion\":1") },
+				{ TEXT("\"rules\":\"Standard\""), TEXT("\"rules\":\"Draft\"") },
+				{ TEXT("\"mode\":\"casual_select\""), TEXT("\"mode\":\"Casual Select\"") },
+				{ TEXT("\"hostAccountId\":[]"), TEXT("\"hostAccountId\":[\"a\",\"b\"]") },
+				{ TEXT("\"vanguardId\":\"cairn\""), TEXT("\"vanguardId\":\"Cairn\"") },
 				{ TEXT("\"side\":\"B\""), TEXT("\"side\":\"C\"") },
 				{ TEXT("\"ticketHash\":\"f9de"), TEXT("\"ticketHash\":\"F9DE") },
 				{ TEXT("\"serverCredential\":\"vms_"), TEXT("\"serverCredential\":\"vgs_") },
 				{ TEXT("\"backendUrl\":\"http://backend:8080\""), TEXT("\"backendUrl\":\"http://backend:8080/v1\"") },
 				{ TEXT("\"displayName\":\"DevOne\""), TEXT("\"displayName\":\"Dev\\u0007One\"") },
 				{ TEXT("\"matchId\""), TEXT("\"extra\":1,\"matchId\"") },
+				{ TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"Cairn\"}]") },
+				{ TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"C\",\"vanguardId\":\"cairn\"}]") },
+				{ TEXT(",\"bots\":[]"), TEXT("") },
 			};
 			for (const TPair<const TCHAR*, const TCHAR*>& Break : Breaks)
 			{
@@ -450,14 +499,15 @@ namespace VeyraServicesTests
 			}
 			FVeyraServerAssignment Out;
 			const int32 RosterStart = Example.Find(TEXT("\"participants\":["), ESearchCase::CaseSensitive);
-			const FString NoOne = Example.Left(RosterStart) + TEXT("\"participants\":[]}");
+			const FString NoOne = Example.Left(RosterStart) + TEXT("\"participants\":[],\"bots\":[]}");
 			ASSERT_THAT(IsFalse(VeyraServerAssignment::Parse(NoOne, SchemaText, Out).IsEmpty()));
 		}
 
 		TEST_METHOD(ProblemsNeverShowTheCredential)
 		{
 			// A JSON syntax error quotes the text around it, which is the whole line.
-			const int32 CredentialEnd = Example.Find(TEXT("\",\"participants\""), ESearchCase::CaseSensitive);
+			// The credential is the field before the mode.
+			const int32 CredentialEnd = Example.Find(TEXT("\",\"mode\""), ESearchCase::CaseSensitive);
 			ASSERT_THAT(IsTrue(CredentialEnd > 0));
 			FVeyraServerAssignment Out;
 			const TArray<FString> Problems = VeyraServerAssignment::Parse(Example.Left(CredentialEnd) + TEXT("\"}}"), SchemaText, Out);

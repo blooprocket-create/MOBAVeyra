@@ -60,6 +60,16 @@ public:
 	 */
 	void RequestDeveloperEndMatch();
 
+	/**
+	 * Owning client: asks the server to end the custom match as its host (Custom Matches Bible §4;
+	 * ADR-010 §7). The server refuses anyone but a practice match's host.
+	 */
+	void RequestEndCustomMatch();
+
+	/** Owning client: the reason the server gave for the last refused End Custom Match, and how many it refused. */
+	EVeyraEndCustomMatchRefusal GetLastEndCustomMatchRefusal() const { return LastEndCustomMatchRefusal; }
+	int32 GetEndCustomMatchRefusalCount() const { return EndCustomMatchRefusalCount; }
+
 	/** Owning client: asks the server to spend a skill point on the ability in Slot (Economy & Progression Bible §1). */
 	void RequestRankUp(EVeyraAbilitySlot Slot);
 
@@ -129,6 +139,12 @@ private:
 	void ServerRequestDeveloperEndMatch();
 
 	UFUNCTION(Server, Reliable)
+	void ServerRequestEndCustomMatch();
+
+	UFUNCTION(Client, Reliable)
+	void ClientEndCustomMatchRefused(EVeyraEndCustomMatchRefusal Refusal);
+
+	UFUNCTION(Server, Reliable)
 	void ServerRankUp(EVeyraAbilitySlot Slot);
 
 	UFUNCTION(Client, Unreliable)
@@ -182,4 +198,7 @@ private:
 
 	EVeyraRankRefusal LastRankUpRefusal = EVeyraRankRefusal::None;
 	int32 RankUpRefusalCount = 0;
+
+	EVeyraEndCustomMatchRefusal LastEndCustomMatchRefusal = EVeyraEndCustomMatchRefusal::None;
+	int32 EndCustomMatchRefusalCount = 0;
 };

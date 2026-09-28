@@ -59,6 +59,7 @@ void UVeyraBasicAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraBasicAttackComponent, State, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraBasicAttackComponent, EmpowermentView, Params);
 }
 
 void UVeyraBasicAttackComponent::InitializeComponent()
@@ -289,7 +290,7 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 			Empowerment->Apply(Plan);
 		}
 	}
-	Empowerment.Reset();
+	ClearEmpowerment();
 
 	const UVeyraStatusComponent* Statuses = GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
 	const double CleaveFraction = Statuses ? Statuses->GetStrongest(EVeyraStatusKind::AttackCleave) : 0.0;
@@ -401,7 +402,21 @@ void UVeyraBasicAttackComponent::HitAround(const FVeyraAttackEvent& Event, const
 void UVeyraBasicAttackComponent::Empower(FVeyraAttackEmpowerment InEmpowerment)
 {
 	EmpowermentExpiresAt = GetServerNow() + InEmpowerment.DurationSeconds;
+	EmpowermentView.Ability = InEmpowerment.Ability;
+	EmpowermentView.ExpiresAt = EmpowermentExpiresAt;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraBasicAttackComponent, EmpowermentView, this);
 	Empowerment = MoveTemp(InEmpowerment);
+}
+
+void UVeyraBasicAttackComponent::ClearEmpowerment()
+{
+	Empowerment.Reset();
+	if (EmpowermentView.Ability.IsValid())
+	{
+		// A lapsed empowerment needs no update: presentation compares ExpiresAt with the clock.
+		EmpowermentView = FVeyraAttackEmpowermentView();
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraBasicAttackComponent, EmpowermentView, this);
+	}
 }
 
 bool UVeyraBasicAttackComponent::IsEmpowered() const
@@ -467,7 +482,7 @@ void UVeyraBasicAttackComponent::OnDeath(const FVeyraDeathEvent& Death)
 	{
 		CancelAttack();
 		ResetChain();
-		Empowerment.Reset();
+		ClearEmpowerment();
 	}
 }
 

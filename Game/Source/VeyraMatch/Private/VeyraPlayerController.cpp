@@ -266,6 +266,28 @@ void AVeyraPlayerController::ServerRequestDeveloperEndMatch_Implementation()
 #endif
 }
 
+void AVeyraPlayerController::RequestEndCustomMatch()
+{
+	ServerRequestEndCustomMatch();
+}
+
+void AVeyraPlayerController::ServerRequestEndCustomMatch_Implementation()
+{
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	const EVeyraEndCustomMatchRefusal Refusal = GameMode ? GameMode->HandleEndCustomMatch(*this) : EVeyraEndCustomMatchRefusal::NotCustomMatch;
+	if (Refusal != EVeyraEndCustomMatchRefusal::None)
+	{
+		ClientEndCustomMatchRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ClientEndCustomMatchRefused_Implementation(EVeyraEndCustomMatchRefusal Refusal)
+{
+	LastEndCustomMatchRefusal = Refusal;
+	++EndCustomMatchRefusalCount;
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused to end the custom match: %s."), LexToString(Refusal));
+}
+
 void AVeyraPlayerController::RequestRankUp(EVeyraAbilitySlot Slot)
 {
 	ServerRankUp(Slot);

@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
@@ -13,6 +14,7 @@
 #include "Progression/VeyraProgressionRules.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Statuses/VeyraStatusComponent.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraPlayerState.h"
 
 namespace
@@ -84,8 +86,14 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		Player.UnspentSkillPoints = Progression->GetUnspentSkillPoints();
 	}
 
+	if (const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(Player.Vanguard); Definition && !Definition->Passive.IsEmpty())
+	{
+		Player.Passive = Definition->Passive[0];
+	}
+
 	const UVeyraAbilityLoadoutComponent* Loadout = Participant.FindComponentByClass<UVeyraAbilityLoadoutComponent>();
 	const UVeyraCooldownComponent* Cooldowns = Participant.FindComponentByClass<UVeyraCooldownComponent>();
+	const UVeyraBasicAttackComponent* Attacks = Participant.FindComponentByClass<UVeyraBasicAttackComponent>();
 	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 	{
 		FVeyraHudSlot& Shown = Player.Slots.AddDefaulted_GetRef();
@@ -95,6 +103,10 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		{
 			Shown.Ability = Entry->Ability;
 			Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow) : 0.0;
+			if (Attacks && Attacks->GetEmpowermentView().Ability == Entry->Ability)
+			{
+				Shown.EmpoweredSeconds = FMath::Max(0.0, Attacks->GetEmpowermentView().ExpiresAt - ServerNow);
+			}
 		}
 		if (Progression && Progression->IsInitialized())
 		{

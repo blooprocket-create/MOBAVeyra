@@ -49,7 +49,9 @@ func newMatchFixture(t *testing.T, names ...string) *matchFixture {
 		return out, nil
 	})
 	f.svc = match.NewService(store.Match(), accounts, f.alloc, match.Settings{
-		Modes:             map[string]match.Mode{"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5}},
+		Modes: map[string]match.Mode{"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5}},
+		Practice: match.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA,
+			Bots: []match.Bot{{Side: match.SideB, VanguardID: "cairn"}, {Side: match.SideB, VanguardID: "bryn"}}},
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,
 		RemoveServerAfter: time.Minute,
@@ -64,9 +66,14 @@ func newMatchFixture(t *testing.T, names ...string) *matchFixture {
 func (f *matchFixture) seats(sides map[string]match.Side) []match.Seat {
 	var out []match.Seat
 	for name, side := range sides {
-		out = append(out, match.Seat{AccountID: f.ids[name], Side: side})
+		out = append(out, match.Seat{AccountID: f.ids[name], Side: side, VanguardID: "cairn"})
 	}
 	return out
+}
+
+// casual asks for a standard casual match with these seats.
+func (f *matchFixture) casual(seats []match.Seat) match.Spec {
+	return match.Spec{Mode: "casual", Rules: match.RulesStandard, Seats: seats}
 }
 
 func (f *matchFixture) credential(t *testing.T, matchID string) string {
@@ -85,9 +92,9 @@ func (f *matchFixture) credential(t *testing.T, matchID string) string {
 func TestMatchLifecycleInPostgres(t *testing.T) {
 	f := newMatchFixture(t, "DevOne", "DevTwo")
 	ctx := context.Background()
-	m, err := f.svc.CreateDevMatch(ctx, "casual", f.seats(map[string]match.Side{"DevOne": match.SideA, "DevTwo": match.SideB}))
+	m, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{"DevOne": match.SideA, "DevTwo": match.SideB})))
 	if err != nil {
-		t.Fatalf("CreateDevMatch: %v", err)
+		t.Fatalf("Create: %v", err)
 	}
 	stored, err := f.store.Match().MatchByID(ctx, m.ID)
 	if err != nil || len(stored.JoinKey) != 32 || len(stored.Participants) != 2 || stored.Server.HostPort != testPortMin {
@@ -132,9 +139,42 @@ func TestMatchLifecycleInPostgres(t *testing.T) {
 	if err := f.svc.Reap(ctx); err != nil {
 		t.Fatalf("Reap: %v", err)
 	}
-	again, err := f.svc.CreateDevMatch(ctx, "casual", f.seats(map[string]match.Side{"DevOne": match.SideA}))
+	again, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{"DevOne": match.SideA})))
 	if err != nil || again.Server.HostPort != testPortMin {
 		t.Fatalf("reusing the removed server's port: %+v %v", again, err)
+	}
+}
+
+// A practice match keeps its rules, host, Vanguard and bots, and can end
+// host_ended.
+func TestPracticeMatchInPostgres(t *testing.T) {
+	f := newMatchFixture(t, "DevOne")
+	ctx := context.Background()
+	host := f.ids["DevOne"]
+	m, err := f.svc.Create(ctx, match.Spec{Mode: "custom_practice", Rules: match.RulesPractice, HostAccountID: host,
+		Seats: []match.Seat{{AccountID: host, Side: match.SideA, VanguardID: "oriel"}}})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	stored, err := f.store.Match().MatchByID(ctx, m.ID)
+	if err != nil || stored.Rules != match.RulesPractice || stored.HostAccountID != host || stored.Participants[0].VanguardID != "oriel" {
+		t.Fatalf("stored practice match: %+v %v", stored, err)
+	}
+	if len(stored.Bots) != 2 || stored.Bots[0] != (match.Bot{Side: match.SideB, VanguardID: "cairn"}) || stored.Bots[1].VanguardID != "bryn" {
+		t.Fatalf("stored bots, in order: %+v", stored.Bots)
+	}
+	cred := f.credential(t, m.ID)
+	if err := f.svc.ServerReady(ctx, cred, m.ID); err != nil {
+		t.Fatalf("ServerReady: %v", err)
+	}
+	r := match.Result{EndReason: match.EndHostEnded, DurationSeconds: 30,
+		Participants: []match.ParticipantResult{{AccountID: host, Joined: true, ConnectedAtEnd: true}}}
+	if err := f.svc.ServerResult(ctx, cred, m.ID, r); err != nil {
+		t.Fatalf("ServerResult: %v", err)
+	}
+	ended, p, err := f.svc.ForParticipant(ctx, host, m.ID)
+	if err != nil || ended.Result == nil || ended.Result.EndReason != match.EndHostEnded || p.VanguardID != "oriel" {
+		t.Fatalf("the host's view of the ended match: %+v %+v %v", ended, p, err)
 	}
 }
 
@@ -149,7 +189,7 @@ func TestConcurrentMatchesForOneAccount(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			_, err := f.svc.CreateDevMatch(ctx, "casual", f.seats(map[string]match.Side{"DevOne": match.SideA, other: match.SideB}))
+			_, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{"DevOne": match.SideA, other: match.SideB})))
 			errs <- err
 		}()
 	}
@@ -185,7 +225,7 @@ func TestConcurrentMatchesTakeDistinctPorts(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			m, err := f.svc.CreateDevMatch(ctx, "casual", f.seats(map[string]match.Side{n: match.SideA}))
+			m, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{n: match.SideA})))
 			results <- outcome{m.Server.HostPort, err}
 		}()
 	}
@@ -213,14 +253,14 @@ func TestAFailedStartLeavesNothingActiveInPostgres(t *testing.T) {
 	f := newMatchFixture(t, "DevOne")
 	ctx := context.Background()
 	f.alloc.FailStarts(errors.New("docker is down"))
-	if _, err := f.svc.CreateDevMatch(ctx, "casual", f.seats(map[string]match.Side{"DevOne": match.SideA})); !errors.Is(err, match.ErrAllocationFailed) {
+	if _, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{"DevOne": match.SideA}))); !errors.Is(err, match.ErrAllocationFailed) {
 		t.Fatalf("want ErrAllocationFailed, got %v", err)
 	}
 	if _, ok, _ := f.svc.Current(ctx, f.ids["DevOne"]); ok {
 		t.Fatal("the player must be free again")
 	}
 	f.alloc.FailStarts(nil)
-	if m, err := f.svc.CreateDevMatch(ctx, "casual", f.seats(map[string]match.Side{"DevOne": match.SideA})); err != nil || m.Server.HostPort != testPortMin {
+	if m, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{"DevOne": match.SideA}))); err != nil || m.Server.HostPort != testPortMin {
 		t.Fatalf("the failed match's port must be free: %+v %v", m, err)
 	}
 }

@@ -1,8 +1,9 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
+      "availability": "Playable",
       "resource": "Mana",
       "body": { "capsuleRadius": 55, "capsuleHalfHeight": 100, "turnRateDegreesPerSecond": 540 },
       "baseStats": {
@@ -47,6 +48,7 @@
     },
     "qazharr": {
       "provenance": "Provisional",
+      "availability": "Playable",
       "resource": "Mana",
       "body": { "capsuleRadius": 50, "capsuleHalfHeight": 95, "turnRateDegreesPerSecond": 540 },
       "baseStats": {
@@ -91,6 +93,7 @@
     },
     "oriel": {
       "provenance": "Provisional",
+      "availability": "Playable",
       "resource": "Mana",
       "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
       "baseStats": {
@@ -135,6 +138,7 @@
     },
     "bryn": {
       "provenance": "Provisional",
+      "availability": "Playable",
       "resource": "Mana",
       "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 600 },
       "baseStats": {
@@ -179,6 +183,7 @@
     },
     "test_vanguard": {
       "provenance": "Provisional",
+      "availability": "Developer",
       "resource": "Mana",
       "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
       "baseStats": {

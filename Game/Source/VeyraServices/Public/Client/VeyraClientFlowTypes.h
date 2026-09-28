@@ -1,0 +1,118 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#pragma once
+
+#include "Backend/VeyraBackendProtocol.h"
+#include "Containers/Array.h"
+#include "Containers/UnrealString.h"
+#include "Handoff/VeyraLaunchHandshake.h"
+#include "Misc/Optional.h"
+
+/**
+ * Where a signed-in game is, from the launch to the shell and through a match (ADR-004, ADR-010 §2).
+ * Each state has one screen; the in-match state has the match's own presentation.
+ */
+enum class EVeyraClientState : uint8
+{
+	/** Waiting for the launch code on standard input, then redeeming it. */
+	SigningIn,
+	/** Signing in failed. A launch code works once, so only Quit helps; the launcher offers Retry. */
+	SignInFailed,
+	/** Signed in: finding out whether the player has a match, a select, or a starter to choose. */
+	Loading,
+	/** The one-time starter choice that stands in for the tutorial (ADR-010 §6). */
+	StarterChoice,
+	/** Home, Play and the mode choice. */
+	Shell,
+	/** Champion select. */
+	Selecting,
+	/** The match exists and its server is starting. */
+	MatchStarting,
+	/** Travelling to the match server. */
+	Connecting,
+	InMatch,
+	/** Travelling back to the front end after a match, or after losing it. */
+	Returning,
+	/** Waiting for the backend's verified result (UX-15). */
+	AwaitingResults,
+	Results,
+	/** The player's match runs without them: Reconnect is all they may do (UX-17). */
+	ReconnectOnly,
+	/** The backend no longer accepts the game session; only Quit helps. */
+	SessionEnded,
+};
+
+/** What the player, or a script standing in for them, can ask for. */
+enum class EVeyraClientIntent : uint8
+{
+	ChooseStarter,
+	StartPractice,
+	HoverVanguard,
+	LockVanguard,
+	Reconnect,
+	ContinueFromResults,
+	/** Repeats the step whose problem is showing. */
+	Retry,
+	/** Always allowed: the game never quits by itself. */
+	Quit,
+};
+
+/** Which kind of world the client just loaded. */
+enum class EVeyraClientWorld : uint8
+{
+	/** The front end, or any world not connected to a server. */
+	FrontEnd,
+	/** A world connected to a match server. */
+	Match,
+};
+
+VEYRASERVICES_API const TCHAR* LexToString(EVeyraClientState State);
+VEYRASERVICES_API const TCHAR* LexToString(EVeyraClientIntent Intent);
+
+/** Something that went wrong, shown on the current screen. */
+struct FVeyraClientProblem
+{
+	/**
+	 * Stable, for presentation and tests: the backend's error code, such as "not_available", or the
+	 * client's own: "backend_unreachable", "bad_answer", "session_ended", "match_not_ready",
+	 * "travel_failed", or a launch-handshake failure code.
+	 */
+	FString Code;
+	/** What happened, for the log and the screen. It never quotes a response body or a credential. */
+	FString Message;
+	/** Whether Retry repeats the failed step. */
+	bool bCanRetry = false;
+};
+
+/** Everything the presentation shows about the flow. Only the flow changes it. */
+struct FVeyraClientSnapshot
+{
+	EVeyraClientState State = EVeyraClientState::SigningIn;
+	/** Increases with every change. */
+	uint32 Revision = 0;
+	/** The signed-in player's name. */
+	FString DisplayName;
+	/** A request the player asked for is in flight: intents wait. */
+	bool bBusy = false;
+	/** The problem on the current screen, if any. */
+	TOptional<FVeyraClientProblem> Problem;
+	/**
+	 * Why the player is here, as a code for the presentation: a cancelled select's reason, such as
+	 * "timed_out", or "connection_lost" or "join_failed" after a match. Empty for none.
+	 */
+	FString Notice;
+	/** SignInFailed: what the launcher was told. */
+	TOptional<VeyraLaunchHandshake::EFailure> SignInFailure;
+	/** StarterChoice: the starters, in the catalog's order. */
+	TArray<FString> Starters;
+	/** Selecting: the Vanguards the player may pick, in the catalog's order; empty until read. */
+	TArray<FString> AvailableVanguards;
+	/** Selecting: the select as last read. */
+	VeyraBackendProtocol::FSelect Select;
+	/** Selecting: when the pick timer ends, on the flow host's clock. */
+	double PickEndsAt = 0.0;
+	/** From MatchStarting on: the player's match. */
+	FString MatchId;
+	/** Results: the verified result, or unset when none arrived in time. */
+	TOptional<VeyraBackendProtocol::FMatchOutcome> Result;
+};

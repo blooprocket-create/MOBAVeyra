@@ -1,0 +1,7 @@
+{
+  "description": "The launch handshake (ADR-010 §5, amending ADR-005 L3). A launcher starts the game with -VeyraLaunchCode=stdin and pipes for its standard input and output. The game writes awaitingLaunchCode on standard output once it is ready to read; only then does the launcher request a launch code and write it, one line, to standard input. The game answers signedIn once the backend has redeemed the code, or failedPrefix, a space and one failure code. Every line ends with LF and never carries a secret; a launcher ignores any other line. The game (VeyraLaunchHandshake.h), veyra-devlaunch (Backend) and the launcher (Launcher/) test their copies against this file.",
+  "awaitingLaunchCode": "veyra-handoff/1 awaiting-launch-code",
+  "signedIn": "veyra-handoff/1 signed-in",
+  "failedPrefix": "veyra-handoff/1 failed",
+  "failureCodes": ["no_launch_code", "invalid_launch_code", "sign_in_refused", "backend_unreachable", "bad_answer", "misconfigured"]
+}

@@ -32,6 +32,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("ResourceColor"), ResourceColor },
 		{ TEXT("BarBackgroundColor"), BarBackgroundColor },
 		{ TEXT("TextColor"), TextColor },
+		{ TEXT("DescriptionColor"), DescriptionColor },
+		{ TEXT("EmpoweredColor"), EmpoweredColor },
 	};
 	for (const FNamedColor& Named : Colors)
 	{

@@ -1,0 +1,21 @@
+[package]
+name = "veyra-launch-cli"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "veyra-launch-cli"
+path = "src/main.rs"
+
+# A stand-in for the game that speaks the launch handshake, for this package's tests and for
+# scripts that check a launcher without the engine.
+[[bin]]
+name = "veyra-fake-game"
+path = "src/bin/fake_game.rs"
+
+[dependencies]
+veyra-launcher-core = { path = "../core" }
+
+[dev-dependencies]
+serde_json = "1"

@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Bots/VeyraBotWanderComponent.h"
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformTime.h"
@@ -13,6 +14,7 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "NavigationSystem.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Rules/VeyraMatchRules.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraTuning.h"
@@ -141,6 +143,10 @@ FString AVeyraGameMode::InitNewPlayer(APlayerController* NewPlayerController, co
 	}
 	PlayerState->SetAccountId(AccountId);
 	PlayerState->SetPlayerName(Roster->FindByAccount(AccountId)->DisplayName);
+	if (AccountId == Roster->GetAssignment().HostAccountId)
+	{
+		GetVeyraGameState().SetHost(PlayerState);
+	}
 	Roster->MarkConnected(AccountId);
 	NoteConnectedParticipants();
 	return ErrorMessage;
@@ -162,6 +168,7 @@ void AVeyraGameMode::StartPlay()
 {
 	Super::StartPlay();
 
+	GetVeyraGameState().SetMatchRules(Roster ? Roster->GetAssignment().Rules : EVeyraMatchRules::Standard);
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Loading);
 	GetWorldTimerManager().SetTimer(LoadingTimeout, this, &AVeyraGameMode::OnLoadingTimedOut,
 		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Phases.LoadingTimeoutSeconds));
@@ -228,6 +235,21 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason)
 	{
 		Host->OnMatchEnded.Broadcast(Result);
 	}
+}
+
+EVeyraEndCustomMatchRefusal AVeyraGameMode::HandleEndCustomMatch(const APlayerController& Requester)
+{
+	const AVeyraGameState& State = GetVeyraGameState();
+	const EVeyraEndCustomMatchRefusal Refusal = VeyraMatchRules::CheckEndCustomMatch(State.GetMatchRules(), State.GetPhase(),
+		State.GetHost() != nullptr && State.GetHost() == Requester.PlayerState);
+	if (Refusal != EVeyraEndCustomMatchRefusal::None)
+	{
+		UE_LOG(LogVeyraMatch, Log, TEXT("Refused to end the custom match for %s: %s."), *GetNameSafe(Requester.PlayerState), LexToString(Refusal));
+		return Refusal;
+	}
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s, the host, ended the custom match."), *GetNameSafe(Requester.PlayerState));
+	EndMatch(EVeyraMatchEndReason::HostEnded);
+	return Refusal;
 }
 
 void AVeyraGameMode::NoteConnectedParticipants()
@@ -417,11 +439,12 @@ bool AVeyraGameMode::IsFull() const
 	return Participants >= static_cast<int32>(UE_ARRAY_COUNT(Sides)) * UVeyraMatchTuningSubsystem::Get().Teams.MaxTeamSize;
 }
 
-AVeyraPlayerState* AVeyraGameMode::AddBotParticipant(const FString& Name)
+AVeyraPlayerState* AVeyraGameMode::AddBotParticipant(const FString& Name, EVeyraTeam Side, const FVeyraContentId& Vanguard)
 {
-	if (IsFull())
+	const bool bSeated = Side == EVeyraTeam::A || Side == EVeyraTeam::B;
+	if (bSeated ? CountTeamMembers(Side) >= UVeyraMatchTuningSubsystem::Get().Teams.MaxTeamSize : IsFull())
 	{
-		UE_LOG(LogVeyraMatch, Warning, TEXT("Cannot add %s: the match is full."), *Name);
+		UE_LOG(LogVeyraMatch, Warning, TEXT("Cannot add %s: %s."), *Name, bSeated ? TEXT("its side is full") : TEXT("the match is full"));
 		return nullptr;
 	}
 
@@ -447,8 +470,24 @@ AVeyraPlayerState* AVeyraGameMode::AddBotParticipant(const FString& Name)
 	PlayerState->SetIsABot(true);
 	PlayerState->SetPlayerName(Name);
 	PlayerState->SetVanguardController(Controller);
-	AssignTeam(*PlayerState);
-	AssignVanguard(*PlayerState);
+	if (bSeated)
+	{
+		PlayerState->SetVeyraTeam(Side);
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s joins Team %s."), *Name, Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"));
+	}
+	else
+	{
+		AssignTeam(*PlayerState);
+	}
+	if (Vanguard.IsValid())
+	{
+		PlayerState->SetVanguardId(Vanguard);
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s plays %s."), *Name, *Vanguard.ToString());
+	}
+	else
+	{
+		AssignVanguard(*PlayerState);
+	}
 	if (GetVeyraGameState().GetPhase() != EVeyraMatchPhase::Loading)
 	{
 		SpawnVanguard(*PlayerState);
@@ -480,7 +519,19 @@ void AVeyraGameMode::AssignTeam(AVeyraPlayerState& PlayerState) const
 
 void AVeyraGameMode::AssignVanguard(AVeyraPlayerState& PlayerState)
 {
-	// Until champion select, developer data chooses by join order; the last entry covers later joiners.
+	// A rostered participant plays what champion select locked; the assignment was checked against
+	// Vanguards.json when the server took it.
+	if (const FVeyraAssignedParticipant* Participant = Roster && !PlayerState.GetAccountId().IsEmpty() ? Roster->FindByAccount(PlayerState.GetAccountId()) : nullptr)
+	{
+		UE_CLOG(PlayerState.GetRequestedVanguardId().IsValid(), LogVeyraMatch, Warning,
+			TEXT("%s asked for Vanguard %s, but an assigned match plays the Vanguard its roster names."), *PlayerState.GetPlayerName(),
+			*PlayerState.GetRequestedVanguardId().ToString());
+		PlayerState.SetVanguardId(Participant->VanguardId);
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s plays %s."), *PlayerState.GetPlayerName(), *Participant->VanguardId.ToString());
+		return;
+	}
+
+	// On a developer server, developer data chooses by join order; the last entry covers later joiners.
 	const TArray<FVeyraContentId>& Order = UVeyraMatchTuningSubsystem::Get().DeveloperMatch.Vanguards;
 	FVeyraContentId Vanguard = Order.IsEmpty() ? FVeyraContentId() : Order[FMath::Min(VanguardsAssigned, Order.Num() - 1)];
 	++VanguardsAssigned;
@@ -543,10 +594,39 @@ void AVeyraGameMode::OnLoadingTimedOut()
 	UE_CLOG(!IsMapReady(), LogVeyraMatch, Error, TEXT("Loading timed out, but the map is not ready: it needs a start for each side on built navigation."));
 }
 
+void AVeyraGameMode::AddAssignedBots()
+{
+	if (!Roster)
+	{
+		return;
+	}
+	const FVeyraMatchAssignment& Assignment = Roster->GetAssignment();
+	int32 Added = 0;
+	for (int32 Index = 0; Index < Assignment.Bots.Num(); ++Index)
+	{
+		const FVeyraAssignedBot& Bot = Assignment.Bots[Index];
+		const AVeyraPlayerState* Participant = AddBotParticipant(FString::Printf(TEXT("Bot %d"), Index + 1), Bot.Side, Bot.VanguardId);
+		AVeyraVanguardController* Controller = Participant ? Participant->GetVanguardController() : nullptr;
+		if (!Controller)
+		{
+			continue;
+		}
+		UVeyraBotWanderComponent* Wander = NewObject<UVeyraBotWanderComponent>(Controller);
+		// Each match's bots walk their own ways, the same ways each time that match is replayed.
+		Wander->SetSeed(static_cast<int32>(HashCombine(GetTypeHash(Assignment.MatchId), static_cast<uint32>(Index))));
+		Wander->RegisterComponent();
+		++Added;
+	}
+	// Game/Scripts/Smoke.ps1 checks this line in practice matches.
+	UE_CLOG(!Assignment.Bots.IsEmpty(), LogVeyraMatch, Display, TEXT("Added %d of the assignment's %d bot(s)."), Added, Assignment.Bots.Num());
+}
+
 void AVeyraGameMode::BeginPreparation()
 {
 	SetActorTickEnabled(false);
 	GetWorldTimerManager().ClearTimer(LoadingTimeout);
+	// Before the phase changes, so each bot gets its Vanguard below with everyone else.
+	AddAssignedBots();
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Preparation);
 	UE_LOG(LogVeyraMatch, Log, TEXT("Preparation begins with %d player(s)."), GetNumPlayers());
 

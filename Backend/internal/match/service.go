@@ -15,6 +15,8 @@ import (
 // Settings are the validated settings the match service needs.
 type Settings struct {
 	Modes map[string]Mode
+	// Practice configures solo Custom practice matches.
+	Practice PracticeSettings
 	// ReadyTimeout fails a match whose server has not reported ready.
 	ReadyTimeout time.Duration
 	// MaxDuration fails a ready match that has not ended.
@@ -50,14 +52,32 @@ func (f AccountsFunc) DisplayNames(ctx context.Context, ids []string) (map[strin
 type Seat struct {
 	AccountID string
 	Side      Side
+	// VanguardID is the Vanguard the account plays, a content ID.
+	VanguardID string
+}
+
+// Spec is a requested match (ADR-010 §9).
+type Spec struct {
+	Mode  string
+	Rules Rules
+	// HostAccountID is the practice match's host, who must be its only seat.
+	// Standard matches have none.
+	HostAccountID string
+	Seats         []Seat
+	// SelectID is the champion select creating the match; a select creates at
+	// most one (ErrSelectHasMatch). Development matches have none.
+	SelectID string
 }
 
 // PlayerMatch is a player's view of their active match. The server address
 // and ticket are set only once the match is ready.
 type PlayerMatch struct {
 	MatchID    string
+	Mode       string
+	Rules      Rules
 	State      State
 	Side       Side
+	VanguardID string
 	ServerHost string
 	ServerPort int
 	// Ticket is the player's join ticket (ADR-007 §3–4).
@@ -78,23 +98,39 @@ func NewService(store Store, accounts Accounts, allocator Allocator, settings Se
 	return &Service{store: store, accounts: accounts, allocator: allocator, settings: settings, now: now}
 }
 
-// CreateDevMatch creates a match from a roster and starts its server. It
-// stands in for Match Found until party → queue → Match Found exists
-// (ADR-005 step 4); callers expose it only in development. The returned
-// match carries no secrets.
-func (s *Service) CreateDevMatch(ctx context.Context, modeID string, seats []Seat) (Match, error) {
-	mode, ok := s.settings.Modes[modeID]
-	if !ok {
-		return Match{}, ErrUnknownMode
-	}
-	participants := make([]Participant, len(seats))
-	ids := make([]string, len(seats))
-	for i, seat := range seats {
-		participants[i] = Participant{AccountID: seat.AccountID, Side: seat.Side}
+// Create creates a match from a specification and starts its server. Champion
+// select creates matches through it, and the development route stands in for
+// select in scripts (ADR-010 §8–9). Callers validate each Vanguard against
+// what the player may pick; Create checks only the roster's shape. The
+// returned match carries no secrets.
+func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
+	participants := make([]Participant, len(spec.Seats))
+	ids := make([]string, len(spec.Seats))
+	for i, seat := range spec.Seats {
+		participants[i] = Participant{AccountID: seat.AccountID, Side: seat.Side, VanguardID: seat.VanguardID}
 		ids[i] = seat.AccountID
 	}
-	if err := ValidateRoster(mode, participants); err != nil {
-		return Match{}, err
+	var bots []Bot
+	switch spec.Rules {
+	case RulesStandard:
+		mode, ok := s.settings.Modes[spec.Mode]
+		if !ok {
+			return Match{}, ErrUnknownMode
+		}
+		if spec.HostAccountID != "" {
+			return Match{}, ErrInvalidRoster
+		}
+		if err := ValidateRoster(mode, participants); err != nil {
+			return Match{}, err
+		}
+	case RulesPractice:
+		if err := ValidatePractice(s.settings.Practice, spec.Mode, spec.HostAccountID, participants); err != nil {
+			return Match{}, err
+		}
+		// Practice gives its player targets: the configured bots (ADR-010 §7).
+		bots = append([]Bot(nil), s.settings.Practice.Bots...)
+	default:
+		return Match{}, ErrInvalidRules
 	}
 	names, err := s.accounts.DisplayNames(ctx, ids)
 	if err != nil {
@@ -118,9 +154,13 @@ func (s *Service) CreateDevMatch(ctx context.Context, modeID string, seats []Sea
 	}
 	m := Match{
 		ID:                   newID(),
-		Mode:                 modeID,
+		Mode:                 spec.Mode,
+		Rules:                spec.Rules,
+		HostAccountID:        spec.HostAccountID,
+		SelectID:             spec.SelectID,
 		State:                Allocating,
 		Participants:         participants,
+		Bots:                 bots,
 		CreatedAt:            s.now(),
 		JoinKey:              key,
 		ServerCredentialHash: credentialHash,
@@ -175,13 +215,42 @@ func (s *Service) Current(ctx context.Context, accountID string) (PlayerMatch, b
 		return PlayerMatch{}, false, err
 	}
 	p, _ := m.Participant(accountID)
-	out := PlayerMatch{MatchID: m.ID, State: m.State, Side: p.Side}
+	out := PlayerMatch{MatchID: m.ID, Mode: m.Mode, Rules: m.Rules, State: m.State, Side: p.Side, VanguardID: p.VanguardID}
 	if m.State == Ready && len(m.JoinKey) > 0 {
 		out.ServerHost = s.settings.PublicHost
 		out.ServerPort = m.Server.HostPort
 		out.Ticket = DeriveTicket(m.JoinKey, m.ID, accountID)
 	}
 	return out, true, nil
+}
+
+// ForParticipant returns a match, without its secrets, and the account's place
+// in it. A match the account did not play in is ErrMatchNotFound, so its
+// existence is not disclosed. Players read their verified result through it
+// (ADR-010 §3).
+func (s *Service) ForParticipant(ctx context.Context, accountID, matchID string) (Match, Participant, error) {
+	m, err := s.store.MatchByID(ctx, matchID)
+	if err != nil {
+		return Match{}, Participant{}, err
+	}
+	p, ok := m.Participant(accountID)
+	if !ok {
+		return Match{}, Participant{}, ErrMatchNotFound
+	}
+	return withoutSecrets(m), p, nil
+}
+
+// BySelect returns the match a champion select created, without its secrets,
+// and false if it created none.
+func (s *Service) BySelect(ctx context.Context, selectID string) (Match, bool, error) {
+	m, err := s.store.MatchBySelectID(ctx, selectID)
+	if errors.Is(err, ErrMatchNotFound) {
+		return Match{}, false, nil
+	}
+	if err != nil {
+		return Match{}, false, err
+	}
+	return withoutSecrets(m), true, nil
 }
 
 // Get returns a match without its secrets.

@@ -59,6 +59,9 @@ public:
 	/** Server: whether an empowerment waits for the next attack. */
 	bool IsEmpowered() const;
 
+	/** On every machine: the empowerment waiting for the next attack, as presentation shows it. */
+	const FVeyraAttackEmpowermentView& GetEmpowermentView() const { return EmpowermentView; }
+
 	/** The timing an attack starting now would have (Combat Bible §22). */
 	FVeyraAttackTiming GetTiming() const;
 
@@ -129,6 +132,9 @@ private:
 	void EndBackswing();
 	void EndAttack();
 	void EnterPhase(EVeyraAttackPhase Phase, AActor* Target, double EndsAt);
+
+	/** Forgets the waiting empowerment, if any, and tells presentation. */
+	void ClearEmpowerment();
 	void ResetChain();
 	void OnCombatStateChanged(bool bInCombat);
 	void OnDeath(const FVeyraDeathEvent& Death);
@@ -149,6 +155,9 @@ private:
 
 	TOptional<FVeyraAttackEmpowerment> Empowerment;
 	double EmpowermentExpiresAt = 0.0;
+
+	UPROPERTY(Replicated)
+	FVeyraAttackEmpowermentView EmpowermentView;
 
 	TWeakObjectPtr<AActor> ChainTarget;
 	int32 Chain = 0;

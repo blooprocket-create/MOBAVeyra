@@ -1,0 +1,291 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#pragma once
+
+#include "Backend/VeyraBackendTransport.h"
+#include "Client/VeyraClientFlow.h"
+#include "Templates/UniquePtr.h"
+
+/**
+ * The client-state coordinator on a fake backend and engine, for tests of the flow and of the screens
+ * that show it. Each backend request waits until the test answers it; bodies are the player routes'
+ * as the backend writes them.
+ */
+namespace VeyraClientFlowTests
+{
+	inline const TCHAR* const AccountId = TEXT("11111111-2222-4333-8444-555555555555");
+	inline const TCHAR* const SelectId = TEXT("22222222-3333-4444-8555-666666666666");
+	inline const TCHAR* const MatchId = TEXT("33333333-4444-4555-8666-777777777777");
+	inline const TCHAR* const Server = TEXT("127.0.0.1:7780");
+
+	/** A value in a credential's format: its prefix and 43 base64url characters. It is not a credential. */
+	inline FString ExampleCredential(const TCHAR* Prefix, TCHAR Fill)
+	{
+		return FString(Prefix) + FString::ChrN(43, Fill);
+	}
+
+	inline FString GameSession() { return ExampleCredential(TEXT("vgs_"), TEXT('B')); }
+	inline FString Ticket() { return ExampleCredential(TEXT("vjt_"), TEXT('C')); }
+
+	inline FString Quoted(const FString& Text)
+	{
+		return Text.IsEmpty() ? FString(TEXT("null")) : TEXT("\"") + Text + TEXT("\"");
+	}
+
+	inline FString ErrorBody(const TCHAR* Code)
+	{
+		return FString::Printf(TEXT("{\"error\":\"%s\"}"), Code);
+	}
+
+	inline FString SessionBody()
+	{
+		return FString::Printf(TEXT("{\"token\":\"%s\",\"expiresAt\":\"2026-09-27T12:00:00Z\",\"account\":{\"id\":\"%s\",\"displayName\":\"DevOne\"}}"), *GameSession(), AccountId);
+	}
+
+	inline const TCHAR* const NoMatch = TEXT("{\"match\":null}");
+
+	inline FString StartingMatch()
+	{
+		return FString::Printf(TEXT("{\"match\":{\"id\":\"%s\",\"mode\":\"custom_practice\",\"rules\":\"practice\",\"state\":\"allocating\",\"side\":\"A\",")
+							   TEXT("\"vanguardId\":\"oriel\",\"server\":null,\"ticket\":null}}"),
+			MatchId);
+	}
+
+	inline FString ReadyMatch()
+	{
+		return FString::Printf(TEXT("{\"match\":{\"id\":\"%s\",\"mode\":\"custom_practice\",\"rules\":\"practice\",\"state\":\"ready\",\"side\":\"A\",")
+							   TEXT("\"vanguardId\":\"oriel\",\"server\":{\"host\":\"127.0.0.1\",\"port\":7780},\"ticket\":\"%s\"}}"),
+			MatchId, *Ticket());
+	}
+
+	inline const TCHAR* const NoSelect = TEXT("{\"select\":null}");
+
+	inline FString SelectBody(const TCHAR* State, const FString& Hover = FString(), const FString& Locked = FString(), const FString& StartedMatch = FString(),
+		const FString& CancelReason = FString(), double Remaining = 30.0)
+	{
+		return FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"practice\",\"mode\":\"custom_practice\",\"state\":\"%s\",")
+							   TEXT("\"deadline\":\"2026-09-27T12:00:30Z\",\"remainingSeconds\":%g,")
+							   TEXT("\"seats\":[{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,\"hover\":%s,\"locked\":%s}],")
+							   TEXT("\"matchId\":%s,\"cancelReason\":%s}}"),
+			SelectId, State, Remaining, *Quoted(Hover), *Quoted(Locked), *Quoted(StartedMatch), *Quoted(CancelReason));
+	}
+
+	inline FString ProfileBody(bool bCompleted)
+	{
+		return FString::Printf(TEXT("{\"account\":{\"id\":\"%s\",\"displayName\":\"DevOne\"},\"tutorial\":{\"completed\":%s,\"starterVanguardId\":%s}}"), AccountId,
+			bCompleted ? TEXT("true") : TEXT("false"), bCompleted ? TEXT("\"oriel\"") : TEXT("null"));
+	}
+
+	inline const TCHAR* const VanguardsBody = TEXT("{\"owned\":[],\"rotation\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"],")
+											  TEXT("\"available\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"],\"starters\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"]}");
+
+	inline FString OutcomeBody(const TCHAR* State, bool bWithResult)
+	{
+		const FString Result = bWithResult
+			? FString(TEXT("{\"endReason\":\"host_ended\",\"winner\":null,\"durationSeconds\":42.5,\"joined\":true,\"connectedAtEnd\":true}"))
+			: FString(TEXT("null"));
+		return FString::Printf(TEXT("{\"match\":{\"id\":\"%s\",\"mode\":\"custom_practice\",\"rules\":\"practice\",\"state\":\"%s\",\"side\":\"A\",")
+							   TEXT("\"vanguardId\":\"oriel\",\"failureReason\":null,\"result\":%s}}"),
+			MatchId, State, *Result);
+	}
+
+	inline FString MatchOutcomePath() { return FString(TEXT("/v1/me/matches/")) + MatchId; }
+	inline FString SelectPath() { return FString(TEXT("/v1/me/selects/")) + SelectId; }
+
+	/** A backend that holds every request until the test answers it. */
+	class FFlowTestBackend final : public IVeyraBackendTransport
+	{
+	public:
+		struct FRequest
+		{
+			FString Verb;
+			FString Path;
+			FString Credential;
+			FString Body;
+			FVeyraBackendCallback OnDone;
+		};
+
+		TArray<FRequest> Pending;
+
+		virtual void Get(const FString& Path, const FString& Credential, FVeyraBackendCallback OnDone) override
+		{
+			Pending.Add({ TEXT("GET"), Path, Credential, FString(), MoveTemp(OnDone) });
+		}
+
+		virtual void Post(const FString& Path, const FString& Credential, const FString& Body, FVeyraBackendCallback OnDone) override
+		{
+			Pending.Add({ TEXT("POST"), Path, Credential, Body, MoveTemp(OnDone) });
+		}
+
+		virtual void Put(const FString& Path, const FString& Credential, const FString& Body, FVeyraBackendCallback OnDone) override
+		{
+			Pending.Add({ TEXT("PUT"), Path, Credential, Body, MoveTemp(OnDone) });
+		}
+
+		const FRequest* Find(const TCHAR* Verb, const FString& Path) const
+		{
+			return Pending.FindByPredicate([Verb, &Path](const FRequest& Request) { return Request.Verb == Verb && Request.Path == Path; });
+		}
+
+		/** Answers the oldest pending request with this verb and path; a status of 0 is no answer at all. False if none is pending. */
+		bool Answer(const TCHAR* Verb, const FString& Path, int32 Status, const FString& Body = FString())
+		{
+			const int32 Index = Pending.IndexOfByPredicate([Verb, &Path](const FRequest& Request) { return Request.Verb == Verb && Request.Path == Path; });
+			if (Index == INDEX_NONE)
+			{
+				return false;
+			}
+			FRequest Request = MoveTemp(Pending[Index]);
+			Pending.RemoveAt(Index);
+			FVeyraBackendResponse Response;
+			Response.bAnswered = Status > 0;
+			Response.Status = Status;
+			Response.Body = Body;
+			Request.OnDone(Response);
+			return true;
+		}
+	};
+
+	/** An engine that records what the flow asks of it. */
+	class FFlowTestHost final : public IVeyraClientFlowHost
+	{
+	public:
+		double Clock = 100.0;
+		TArray<FString> Input;
+		bool bInputClosed = false;
+		TArray<FString> HandshakeLines;
+		/** "match <address>" or "front end". */
+		TArray<FString> Travels;
+		FString JoinTicket;
+		bool bQuit = false;
+
+		virtual double Now() const override { return Clock; }
+
+		virtual EVeyraPipeRead PollLaunchCode(FString& OutLine) override
+		{
+			if (!Input.IsEmpty())
+			{
+				OutLine = Input[0];
+				Input.RemoveAt(0);
+				return EVeyraPipeRead::Line;
+			}
+			return bInputClosed ? EVeyraPipeRead::EndOfInput : EVeyraPipeRead::Pending;
+		}
+
+		virtual void WriteHandshake(const FString& Line) override { HandshakeLines.Add(Line); }
+
+		virtual bool TravelToMatch(const FString& Address, const FString& InTicket) override
+		{
+			Travels.Add(TEXT("match ") + Address);
+			JoinTicket = InTicket;
+			return true;
+		}
+
+		virtual void TravelToFrontEnd() override
+		{
+			Travels.Add(TEXT("front end"));
+			JoinTicket.Reset();
+		}
+
+		virtual void QuitGame() override { bQuit = true; }
+	};
+
+	/** A coordinator on the fakes, with the steps most tests start from. */
+	struct FClientFlowTestRig
+	{
+		FFlowTestBackend Backend;
+		FFlowTestHost Host;
+		TUniquePtr<FVeyraClientFlow> Flow;
+
+		FClientFlowTestRig()
+		{
+			// Fixture values: short waits, and two attempts at an unanswered request.
+			FVeyraClientFlowConfig Config;
+			Config.BuildVersion = TEXT("0.1.0");
+			Config.LaunchCodeReadTimeoutSeconds = 30.0;
+			Config.RequestAttempts = 2;
+			Config.RetryIntervalSeconds = 1.0;
+			Config.SelectPollIntervalSeconds = 0.5;
+			Config.MatchPollIntervalSeconds = 1.0;
+			Config.MatchWaitTimeoutSeconds = 60.0;
+			Config.ResultPollIntervalSeconds = 1.0;
+			Config.ResultWaitTimeoutSeconds = 10.0;
+			Config.ReconnectPollIntervalSeconds = 5.0;
+			Flow = MakeUnique<FVeyraClientFlow>(Backend, Host, Config);
+		}
+
+		EVeyraClientState State() const { return Flow->GetSnapshot().State; }
+
+		void Advance(double Seconds)
+		{
+			Host.Clock += Seconds;
+			Flow->Tick();
+		}
+
+		/** Starts, reads a launch code and redeems it: the flow then asks for the player's match. */
+		bool SignIn()
+		{
+			Flow->Start();
+			Host.Input.Add(ExampleCredential(TEXT("vlc_"), TEXT('A')));
+			Flow->Tick();
+			return Backend.Answer(TEXT("POST"), TEXT("/v1/game-sessions"), 200, SessionBody()) && State() == EVeyraClientState::Loading;
+		}
+
+		/** Signs in with no match and no select, and a profile whose tutorial is Completed or not. */
+		bool ReachProfile(bool bCompleted)
+		{
+			return SignIn() && Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect)
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, ProfileBody(bCompleted));
+		}
+
+		/** Signs in with no match, no select and the tutorial completed. */
+		bool ReachShell()
+		{
+			return ReachProfile(true) && State() == EVeyraClientState::Shell;
+		}
+
+		/** Signs in as a new player, with the starters read. */
+		bool ReachStarterChoice()
+		{
+			return ReachProfile(false) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody) && State() == EVeyraClientState::StarterChoice;
+		}
+
+		/** From the shell into a practice select, with the available Vanguards read. */
+		bool ReachSelect()
+		{
+			return ReachShell() && Flow->StartPractice() && Backend.Answer(TEXT("POST"), TEXT("/v1/practice"), 201, SelectBody(TEXT("picking")))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody) && State() == EVeyraClientState::Selecting;
+		}
+
+		/** Locks Oriel; the match's server is ready at once, and the game joins it. */
+		bool ReachMatch()
+		{
+			if (!ReachSelect() || !Flow->LockVanguard(TEXT("oriel"))
+				|| !Backend.Answer(TEXT("POST"), TEXT("/v1/me/select/lock"), 200, SelectBody(TEXT("started"), TEXT("oriel"), TEXT("oriel"), MatchId))
+				|| !Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, ReadyMatch()) || State() != EVeyraClientState::Connecting)
+			{
+				return false;
+			}
+			Flow->NotifyWorld(EVeyraClientWorld::Match);
+			return State() == EVeyraClientState::InMatch;
+		}
+
+		/** From a match that ended to its verified result. */
+		bool ReachResults()
+		{
+			if (!ReachMatch())
+			{
+				return false;
+			}
+			Flow->NotifyMatchPhase(EVeyraMatchPhase::Ended);
+			Flow->NotifyWorld(EVeyraClientWorld::FrontEnd);
+			return Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, OutcomeBody(TEXT("ended"), true)) && State() == EVeyraClientState::Results;
+		}
+
+		/** Signs in to find a live match: Reconnect-only. */
+		bool ReachReconnectOnly()
+		{
+			return SignIn() && Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, ReadyMatch()) && State() == EVeyraClientState::ReconnectOnly;
+		}
+	};
+}

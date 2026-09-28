@@ -22,3 +22,8 @@ Game/Build/*/FileOpenOrder/
 # Unreal binary assets under Game/ go through Git LFS: the patterns and the
 # locking convention live in .gitattributes, as decided in
 # Docs/ADR/ADR-006-unreal-project-scaffold.md §9.
+
+# The launcher's Rust build output, and what tauri-build writes beside its sources.
+Launcher/target/
+Launcher/app/icons/
+Launcher/app/gen/

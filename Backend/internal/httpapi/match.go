@@ -19,14 +19,16 @@ func (s *Server) routeMatch(mux *http.ServeMux) {
 		mux.HandleFunc("GET /v1/dev/matches/{matchId}", s.getDevMatch)
 	}
 	mux.HandleFunc("GET /v1/me/match", s.authed(s.myMatch))
+	mux.HandleFunc("GET /v1/me/matches/{matchId}", s.authed(s.myMatchResult))
 	mux.HandleFunc("POST /v1/server/matches/{matchId}/ready", s.serverReady)
 	mux.HandleFunc("POST /v1/server/matches/{matchId}/result", s.serverResult)
 }
 
 type participantJSON struct {
-	AccountID   string `json:"accountId"`
-	DisplayName string `json:"displayName"`
-	Side        string `json:"side"`
+	AccountID   string  `json:"accountId"`
+	DisplayName string  `json:"displayName"`
+	Side        string  `json:"side"`
+	VanguardID  *string `json:"vanguardId"`
 }
 
 type participantResultJSON struct {
@@ -46,6 +48,8 @@ type resultJSON struct {
 type devMatchJSON struct {
 	ID            string            `json:"id"`
 	Mode          string            `json:"mode"`
+	Rules         string            `json:"rules"`
+	HostAccountID *string           `json:"hostAccountId"`
 	State         string            `json:"state"`
 	Participants  []participantJSON `json:"participants"`
 	HostPort      int               `json:"hostPort"`
@@ -61,6 +65,8 @@ func toDevMatchJSON(m match.Match) devMatchJSON {
 	out := devMatchJSON{
 		ID:            m.ID,
 		Mode:          m.Mode,
+		Rules:         string(m.Rules),
+		HostAccountID: textOrNil(m.HostAccountID),
 		State:         string(m.State),
 		HostPort:      m.Server.HostPort,
 		CreatedAt:     m.CreatedAt,
@@ -71,7 +77,8 @@ func toDevMatchJSON(m match.Match) devMatchJSON {
 		Participants:  []participantJSON{},
 	}
 	for _, p := range m.Participants {
-		out.Participants = append(out.Participants, participantJSON{AccountID: p.AccountID, DisplayName: p.DisplayName, Side: string(p.Side)})
+		out.Participants = append(out.Participants, participantJSON{AccountID: p.AccountID, DisplayName: p.DisplayName, Side: string(p.Side),
+			VanguardID: textOrNil(p.VanguardID)})
 	}
 	if r := m.Result; r != nil {
 		out.Result = &resultJSON{EndReason: string(r.EndReason), Winner: textOrNil(string(r.Winner)), DurationSeconds: r.DurationSeconds,
@@ -83,22 +90,32 @@ func toDevMatchJSON(m match.Match) devMatchJSON {
 	return out
 }
 
+// createDevMatch creates a match from a roster in development, standing in
+// for champion select in scripts (ADR-010 §9). Rules default to standard; a
+// practice match names its host. Any Vanguard the game defines is accepted,
+// including developer ones: the match server refuses unknown Vanguards.
 func (s *Server) createDevMatch(w http.ResponseWriter, r *http.Request) {
 	var req struct {
-		Mode         string `json:"mode"`
-		Participants []struct {
-			AccountID string `json:"accountId"`
-			Side      string `json:"side"`
+		Mode          string `json:"mode"`
+		Rules         string `json:"rules"`
+		HostAccountID string `json:"hostAccountId"`
+		Participants  []struct {
+			AccountID  string `json:"accountId"`
+			Side       string `json:"side"`
+			VanguardID string `json:"vanguardId"`
 		} `json:"participants"`
 	}
 	if !s.decode(w, r, &req) {
 		return
 	}
-	seats := make([]match.Seat, len(req.Participants))
-	for i, p := range req.Participants {
-		seats[i] = match.Seat{AccountID: p.AccountID, Side: match.Side(p.Side)}
+	spec := match.Spec{Mode: req.Mode, Rules: match.Rules(req.Rules), HostAccountID: req.HostAccountID}
+	if spec.Rules == "" {
+		spec.Rules = match.RulesStandard
 	}
-	m, err := s.Match.CreateDevMatch(r.Context(), req.Mode, seats)
+	for _, p := range req.Participants {
+		spec.Seats = append(spec.Seats, match.Seat{AccountID: p.AccountID, Side: match.Side(p.Side), VanguardID: p.VanguardID})
+	}
+	m, err := s.Match.Create(r.Context(), spec)
 	if err != nil {
 		if errors.Is(err, match.ErrAllocationFailed) {
 			s.Log.Error("match server did not start", "err", err)
@@ -135,15 +152,58 @@ func (s *Server) myMatch(w http.ResponseWriter, r *http.Request, actor string) {
 		Port int    `json:"port"`
 	}
 	out := struct {
-		ID     string      `json:"id"`
-		State  string      `json:"state"`
-		Side   string      `json:"side"`
-		Server *serverJSON `json:"server"`
-		Ticket *string     `json:"ticket"`
-	}{ID: pm.MatchID, State: string(pm.State), Side: string(pm.Side)}
+		ID         string      `json:"id"`
+		Mode       string      `json:"mode"`
+		Rules      string      `json:"rules"`
+		State      string      `json:"state"`
+		Side       string      `json:"side"`
+		VanguardID *string     `json:"vanguardId"`
+		Server     *serverJSON `json:"server"`
+		Ticket     *string     `json:"ticket"`
+	}{ID: pm.MatchID, Mode: pm.Mode, Rules: string(pm.Rules), State: string(pm.State), Side: string(pm.Side), VanguardID: textOrNil(pm.VanguardID)}
 	if pm.Ticket != "" {
 		out.Server = &serverJSON{Host: pm.ServerHost, Port: pm.ServerPort}
 		out.Ticket = &pm.Ticket
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"match": out})
+}
+
+// myMatchResult answers a participant's "how did my match end": the verified
+// result the client shows after a match (ADR-010 §3). The result is the
+// server's report as the backend recorded it, with only the player's own
+// participation; it is null until the match has ended. A match the player was
+// not in does not exist for them.
+func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor string) {
+	m, p, err := s.Match.ForParticipant(r.Context(), actor, r.PathValue("matchId"))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	type playerResultJSON struct {
+		EndReason       string  `json:"endReason"`
+		Winner          *string `json:"winner"`
+		DurationSeconds float64 `json:"durationSeconds"`
+		Joined          bool    `json:"joined"`
+		ConnectedAtEnd  bool    `json:"connectedAtEnd"`
+	}
+	out := struct {
+		ID            string            `json:"id"`
+		Mode          string            `json:"mode"`
+		Rules         string            `json:"rules"`
+		State         string            `json:"state"`
+		Side          string            `json:"side"`
+		VanguardID    *string           `json:"vanguardId"`
+		FailureReason *string           `json:"failureReason"`
+		Result        *playerResultJSON `json:"result"`
+	}{ID: m.ID, Mode: m.Mode, Rules: string(m.Rules), State: string(m.State), Side: string(p.Side), VanguardID: textOrNil(p.VanguardID),
+		FailureReason: textOrNil(string(m.FailureReason))}
+	if res := m.Result; res != nil {
+		out.Result = &playerResultJSON{EndReason: string(res.EndReason), Winner: textOrNil(string(res.Winner)), DurationSeconds: res.DurationSeconds}
+		for _, pr := range res.Participants {
+			if pr.AccountID == actor {
+				out.Result.Joined, out.Result.ConnectedAtEnd = pr.Joined, pr.ConnectedAtEnd
+			}
+		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"match": out})
 }

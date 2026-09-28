@@ -12,6 +12,10 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 )
 
+// matchSelectConstraint is the unique constraint that lets a champion select
+// create at most one match (migration 0006).
+const matchSelectConstraint = "matches_select_id_key"
+
 // matchPortLockKey is a fixed key for pg_advisory_xact_lock, so concurrent
 // match creations pick host ports one at a time. It differs from
 // migrationLockKey.
@@ -58,17 +62,29 @@ func (t matchTx) FreePort(lo, hi int) (int, error) {
 }
 
 func (t matchTx) CreateMatch(m match.Match) error {
-	if _, err := t.q.Exec(t.ctx, `
-		INSERT INTO match.matches (id, mode, state, created_at, ready_at, ended_at, join_key,
+	_, err := t.q.Exec(t.ctx, `
+		INSERT INTO match.matches (id, mode, rules, host_account_id, select_id, state, created_at, ready_at, ended_at, join_key,
 			server_credential_hash, host_port, server_removed_at, failure_reason)
-		VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-		m.ID, m.Mode, string(m.State), m.CreatedAt, nullableTime(m.ReadyAt), nullableTime(m.EndedAt), m.JoinKey,
-		m.ServerCredentialHash, m.Server.HostPort, nullableTime(m.Server.RemovedAt), nullableText(string(m.FailureReason))); err != nil {
+		VALUES ($1::uuid, $2, $3, $4::uuid, $5::uuid, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+		m.ID, m.Mode, string(m.Rules), nullableText(m.HostAccountID), nullableText(m.SelectID), string(m.State), m.CreatedAt,
+		nullableTime(m.ReadyAt), nullableTime(m.EndedAt), m.JoinKey, m.ServerCredentialHash, m.Server.HostPort,
+		nullableTime(m.Server.RemovedAt), nullableText(string(m.FailureReason)))
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == uniqueViolation && pgErr.ConstraintName == matchSelectConstraint {
+		return match.ErrSelectHasMatch
+	}
+	if err != nil {
 		return err
 	}
 	for i, p := range m.Participants {
-		if _, err := t.q.Exec(t.ctx, `INSERT INTO match.participants (match_id, account_id, display_name, side, roster_order)
-			VALUES ($1::uuid, $2::uuid, $3, $4, $5)`, m.ID, p.AccountID, p.DisplayName, string(p.Side), i); err != nil {
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO match.participants (match_id, account_id, display_name, side, roster_order, vanguard_id)
+			VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6)`, m.ID, p.AccountID, p.DisplayName, string(p.Side), i, nullableText(p.VanguardID)); err != nil {
+			return err
+		}
+	}
+	for i, b := range m.Bots {
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO match.bots (match_id, bot_order, side, vanguard_id) VALUES ($1::uuid, $2, $3, $4)`,
+			m.ID, i, string(b.Side), b.VanguardID); err != nil {
 			return err
 		}
 	}
@@ -78,7 +94,6 @@ func (t matchTx) CreateMatch(m match.Match) error {
 	for _, p := range m.Participants {
 		_, err := t.q.Exec(t.ctx, `INSERT INTO match.active_assignments (account_id, match_id) VALUES ($1::uuid, $2::uuid)`,
 			p.AccountID, m.ID)
-		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == uniqueViolation {
 			return match.ErrAlreadyInMatch
 		}
@@ -169,6 +184,22 @@ func (s *MatchStore) MatchByServerCredential(ctx context.Context, hash []byte) (
 	return loadMatch(ctx, q, id, false)
 }
 
+func (s *MatchStore) MatchBySelectID(ctx context.Context, selectID string) (match.Match, error) {
+	if !uuidPattern.MatchString(selectID) {
+		return match.Match{}, match.ErrMatchNotFound
+	}
+	q := querierFor(ctx, s.pool)
+	var id string
+	err := q.QueryRow(ctx, `SELECT id::text FROM match.matches WHERE select_id = $1::uuid`, selectID).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return match.Match{}, match.ErrMatchNotFound
+	}
+	if err != nil {
+		return match.Match{}, err
+	}
+	return loadMatch(ctx, q, id, false)
+}
+
 func (s *MatchStore) MatchesNeedingAttention(ctx context.Context) ([]match.Match, error) {
 	q := querierFor(ctx, s.pool)
 	rows, err := q.Query(ctx, `SELECT id::text FROM match.matches WHERE server_removed_at IS NULL ORDER BY created_at, id`)
@@ -191,30 +222,31 @@ func (s *MatchStore) MatchesNeedingAttention(ctx context.Context) ([]match.Match
 }
 
 func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Match, error) {
-	sql := `SELECT id::text, mode, state, created_at, ready_at, ended_at, join_key, server_credential_hash,
-		host_port, server_removed_at, coalesce(failure_reason, '')
+	sql := `SELECT id::text, mode, rules, coalesce(host_account_id::text, ''), coalesce(select_id::text, ''), state, created_at,
+		ready_at, ended_at, join_key, server_credential_hash, host_port, server_removed_at, coalesce(failure_reason, '')
 		FROM match.matches WHERE id = $1::uuid`
 	if lock {
 		sql += ` FOR UPDATE`
 	}
 	var m match.Match
-	var state, failure string
+	var rules, state, failure string
 	var readyAt, endedAt, removedAt *time.Time
 	var port int32
-	err := q.QueryRow(ctx, sql, id).Scan(&m.ID, &m.Mode, &state, &m.CreatedAt, &readyAt, &endedAt, &m.JoinKey,
-		&m.ServerCredentialHash, &port, &removedAt, &failure)
+	err := q.QueryRow(ctx, sql, id).Scan(&m.ID, &m.Mode, &rules, &m.HostAccountID, &m.SelectID, &state, &m.CreatedAt, &readyAt,
+		&endedAt, &m.JoinKey, &m.ServerCredentialHash, &port, &removedAt, &failure)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return match.Match{}, match.ErrMatchNotFound
 	}
 	if err != nil {
 		return match.Match{}, err
 	}
+	m.Rules = match.Rules(rules)
 	m.State = match.State(state)
 	m.FailureReason = match.FailureReason(failure)
 	m.ReadyAt, m.EndedAt = timeOrZero(readyAt), timeOrZero(endedAt)
 	m.Server = match.Server{HostPort: int(port), RemovedAt: timeOrZero(removedAt)}
 
-	rows, err := q.Query(ctx, `SELECT account_id::text, display_name, side FROM match.participants
+	rows, err := q.Query(ctx, `SELECT account_id::text, display_name, side, coalesce(vanguard_id, '') FROM match.participants
 		WHERE match_id = $1::uuid ORDER BY roster_order`, id)
 	if err != nil {
 		return match.Match{}, err
@@ -222,9 +254,23 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	m.Participants, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (match.Participant, error) {
 		var p match.Participant
 		var side string
-		err := r.Scan(&p.AccountID, &p.DisplayName, &side)
+		err := r.Scan(&p.AccountID, &p.DisplayName, &side, &p.VanguardID)
 		p.Side = match.Side(side)
 		return p, err
+	})
+	if err != nil {
+		return match.Match{}, err
+	}
+	rows, err = q.Query(ctx, `SELECT side, vanguard_id FROM match.bots WHERE match_id = $1::uuid ORDER BY bot_order`, id)
+	if err != nil {
+		return match.Match{}, err
+	}
+	m.Bots, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (match.Bot, error) {
+		var b match.Bot
+		var side string
+		err := r.Scan(&side, &b.VanguardID)
+		b.Side = match.Side(side)
+		return b, err
 	})
 	if err != nil {
 		return match.Match{}, err
