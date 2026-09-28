@@ -76,6 +76,11 @@ struct FVeyraHudPlayer
 	bool bDead = false;
 	double RespawnSeconds = 0.0;
 
+	/** Whether a Recall channel runs (ADR-012 §8): the seconds it has left, and how much of it has passed, from 0 to 1. */
+	bool bRecalling = false;
+	double RecallSeconds = 0.0;
+	double RecallProgress = 0.0;
+
 	/** Q, W, E and R, in order. */
 	TArray<FVeyraHudSlot> Slots;
 

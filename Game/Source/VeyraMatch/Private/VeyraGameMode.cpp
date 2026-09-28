@@ -17,9 +17,11 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "NavigationSystem.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Recall/VeyraRecallComponent.h"
 #include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraMatchRules.h"
 #include "Shop/VeyraShopSubsystem.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
@@ -361,6 +363,22 @@ namespace
 		const AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
 		return PlayerState ? PlayerState->GetVanguardController() : nullptr;
 	}
+
+	/**
+	 * An order the Vanguard takes ends its Recall channel (ADR-012 §8); a refused one changes nothing.
+	 * Returns Rejection, so each order path can pass its result through.
+	 */
+	template <typename RejectionType>
+	RejectionType EndRecallIfTaken(const AVeyraPlayerController& Player, RejectionType Rejection)
+	{
+		const APlayerState* PlayerState = Player.GetPlayerState<APlayerState>();
+		UVeyraRecallComponent* Recall = PlayerState ? PlayerState->FindComponentByClass<UVeyraRecallComponent>() : nullptr;
+		if (Rejection == RejectionType::None && Recall)
+		{
+			Recall->Interrupt();
+		}
+		return Rejection;
+	}
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerController& Player, const FVector& Destination)
@@ -375,7 +393,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerController& Pla
 		return EVeyraOrderRejection::InvalidOrder;
 	}
 	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
-	return Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard;
+	return EndRecallIfTaken(Player, Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard);
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerController& Player, AActor* Target)
@@ -390,7 +408,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerController& P
 		return EVeyraOrderRejection::InvalidOrder;
 	}
 	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
-	return Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard;
+	return EndRecallIfTaken(Player, Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard);
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerController& Player, const FVector& Destination)
@@ -405,7 +423,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerControlle
 		return EVeyraOrderRejection::InvalidOrder;
 	}
 	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
-	return Controller ? Controller->AttackMoveTo(Destination) : EVeyraOrderRejection::NoVanguard;
+	return EndRecallIfTaken(Player, Controller ? Controller->AttackMoveTo(Destination) : EVeyraOrderRejection::NoVanguard);
 }
 
 EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target)
@@ -421,7 +439,54 @@ EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerController& Play
 	}
 	const AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
 	UAbilitySystemComponent* AbilitySystem = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
-	return AbilitySystem ? VeyraAbilities::TryCast(*AbilitySystem, Slot, Target) : EVeyraCastRejection::UnknownAbility;
+	return EndRecallIfTaken(Player, AbilitySystem ? VeyraAbilities::TryCast(*AbilitySystem, Slot, Target) : EVeyraCastRejection::UnknownAbility);
+}
+
+EVeyraOrderRejection AVeyraGameMode::HandleRecallOrder(AVeyraPlayerController& Player)
+{
+	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
+	if (Allowed != EVeyraOrderRejection::None)
+	{
+		return Allowed;
+	}
+	AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
+	AVeyraVanguardController* Controller = PlayerState ? PlayerState->GetVanguardController() : nullptr;
+	UVeyraRecallComponent* Recall = PlayerState ? PlayerState->FindComponentByClass<UVeyraRecallComponent>() : nullptr;
+	if (!Controller || !Controller->GetPawn() || !Recall || !VeyraTargeting::IsAlive(PlayerState))
+	{
+		return EVeyraOrderRejection::NoVanguard;
+	}
+	// Recall is cast like an ability, so what stops casting stops it beginning.
+	const UVeyraStatusComponent* Statuses = PlayerState->FindComponentByClass<UVeyraStatusComponent>();
+	if (Statuses && EnumHasAnyFlags(Statuses->GetActionBlocks(), EVeyraActionBlocks::Cast))
+	{
+		return EVeyraOrderRejection::CrowdControlled;
+	}
+	if (Recall->IsRecalling())
+	{
+		return EVeyraOrderRejection::None;
+	}
+	Controller->StopOrders();
+	Recall->Start(UVeyraMatchTuningSubsystem::Get().Recall.ChannelSeconds,
+		FSimpleDelegate::CreateUObject(this, &AVeyraGameMode::CompleteRecall, TWeakObjectPtr<AVeyraPlayerState>(PlayerState)));
+	return EVeyraOrderRejection::None;
+}
+
+void AVeyraGameMode::CompleteRecall(TWeakObjectPtr<AVeyraPlayerState> PlayerState)
+{
+	APawn* Body = PlayerState.IsValid() ? PlayerState->GetPawn() : nullptr;
+	const AActor* Start = Body ? FindTeamStart(PlayerState->GetVeyraTeam()) : nullptr;
+	// A channel that outlasts the match, or its Vanguard, brings no one home.
+	if (!Start || !VeyraTargeting::IsAlive(PlayerState.Get()) || GetVeyraGameState().GetPhase() != EVeyraMatchPhase::Live)
+	{
+		return;
+	}
+	if (AVeyraVanguardController* Controller = PlayerState->GetVanguardController())
+	{
+		Controller->StopOrders();
+	}
+	Body->TeleportTo(Start->GetActorLocation(), Start->GetActorRotation());
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s recalls to its fountain."), *PlayerState->GetPlayerName());
 }
 
 bool AVeyraGameMode::PauseMatch(APlayerController& Requester)

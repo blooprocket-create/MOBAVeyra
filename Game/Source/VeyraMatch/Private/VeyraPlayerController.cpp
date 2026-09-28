@@ -87,6 +87,11 @@ void AVeyraPlayerController::IssueAttackMoveOrder(const FVector& Destination)
 	ServerIssueAttackMoveOrder(Destination);
 }
 
+void AVeyraPlayerController::RequestRecall()
+{
+	ServerRecall();
+}
+
 void AVeyraPlayerController::IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Target)
 {
 	FVeyraCastTarget CastTarget;
@@ -121,6 +126,7 @@ void AVeyraPlayerController::SetupInputComponent()
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Started, this, &AVeyraPlayerController::OnMoveOrderStarted);
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnMoveOrderHeld);
 		Enhanced->BindAction(Input.AttackMove, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAttackMovePressed);
+		Enhanced->BindAction(Input.Recall, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnRecallPressed);
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 		{
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
@@ -162,6 +168,11 @@ void AVeyraPlayerController::OnAttackMovePressed()
 	{
 		IssueAttackMoveOrder(Ground.Location);
 	}
+}
+
+void AVeyraPlayerController::OnRecallPressed()
+{
+	RequestRecall();
 }
 
 AActor* AVeyraPlayerController::FindEnemyUnderCursor() const
@@ -568,6 +579,21 @@ void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector D
 	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
 	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackMoveOrder(*this, Destination) : EVeyraOrderRejection::WrongPhase;
+	if (Rejection != EVeyraOrderRejection::None)
+	{
+		RejectOrder(Rejection);
+	}
+}
+
+void AVeyraPlayerController::ServerRecall_Implementation()
+{
+	if (!TakeOrderAllowance())
+	{
+		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		return;
+	}
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleRecallOrder(*this) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection);

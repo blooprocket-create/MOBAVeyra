@@ -83,6 +83,13 @@ public:
 	/** Checks the match allows casting, then casts the player's ability in Slot through VeyraAbilities. */
 	EVeyraCastRejection HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
 
+	/**
+	 * Begins the player's Recall (Economy & Progression Bible §10; ADR-012 §8): the Vanguard stops and
+	 * channels, and goes home to its fountain if nothing interrupts it. A channel already running
+	 * carries on. Refused while orders are, while dead, and under crowd control that stops casting.
+	 */
+	EVeyraOrderRejection HandleRecallOrder(AVeyraPlayerController& Player);
+
 	/** Why the match refuses rank-ups now, or None: they need preparation or the live phase, and no pause. */
 	EVeyraOrderRejection CheckRankUpAllowed() const;
 
@@ -152,6 +159,9 @@ private:
 
 	/** The battleground reports a Prime Well destroyed: Winner destroyed the other side's (ADR-011 §13). */
 	void OnPrimeWellDestroyed(EVeyraTeam Winner);
+
+	/** A Recall channel completed: the living Vanguard arrives at its side's fountain. */
+	void CompleteRecall(TWeakObjectPtr<AVeyraPlayerState> PlayerState);
 
 	/** Restores each living Vanguard standing at its own fountain (Battleground Bible §12; ADR-011 §11). */
 	void RecoverAtFountains();

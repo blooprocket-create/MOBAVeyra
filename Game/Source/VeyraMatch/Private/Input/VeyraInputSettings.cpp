@@ -103,6 +103,8 @@ FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer)
 	{
 		Objects.MappingContext->MapKey(Objects.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
 	}
+	Objects.Recall = NewCastAction(Outer, TEXT("VeyraRecall"));
+	Objects.MappingContext->MapKey(Objects.Recall, Settings.RecallKey);
 	return Objects;
 }
 }

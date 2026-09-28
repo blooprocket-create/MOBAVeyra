@@ -23,6 +23,7 @@
 #include "ProjectDescriptor.h"
 #include "Progression/VeyraProgressionRules.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Recall/VeyraRecallComponent.h"
 #include "State/VeyraTeamFluxState.h"
 #include "Structures/VeyraStructure.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
@@ -391,6 +392,26 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Shown.TemporarySeconds.Num() == 1 && FMath::IsNearlyEqual(Shown.TemporarySeconds[0], GrantSeconds), TEXT("only the grant still counting")));
 			const double Bonus = VeyraFlux::StrengthFor(Permanent + Grant, UVeyraFluxTuningSubsystem::Get().FluxbornScaling).HealthMultiplier - 1.0;
 			ASSERT_THAT(IsTrue(Shown.FluxbornBonus == Bonus, TEXT("Flux's own rule")));
+		}
+
+		TEST_METHOD(TheHudShowsARecallChannelFilling)
+		{
+			AVeyraPlayerState& Participant = *Caster->GetPlayerState<AVeyraPlayerState>();
+			UVeyraRecallComponent& Recall = *Participant.FindComponentByClass<UVeyraRecallComponent>();
+			ASSERT_THAT(IsFalse(VeyraHud::DescribePlayer(Participant, RefreshedGreybox().GetServerNow()).bRecalling));
+
+			// Fixture channel: a quarter of the way through.
+			constexpr double ChannelSeconds = 8.0;
+			constexpr double Passed = 2.0;
+			Recall.Start(ChannelSeconds, FSimpleDelegate());
+			const double StartedAt = Recall.GetChannel().StartedAt;
+			const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, StartedAt + Passed);
+			ASSERT_THAT(IsTrue(Player.bRecalling));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Player.RecallSeconds, ChannelSeconds - Passed)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Player.RecallProgress, Passed / ChannelSeconds)));
+
+			ASSERT_THAT(IsTrue(Recall.Interrupt()));
+			ASSERT_THAT(IsFalse(VeyraHud::DescribePlayer(Participant, StartedAt + Passed).bRecalling, TEXT("an interrupted channel leaves the HUD")));
 		}
 
 		TEST_METHOD(TheHudShowsAnEmpowermentWaitingForTheNextAttack)

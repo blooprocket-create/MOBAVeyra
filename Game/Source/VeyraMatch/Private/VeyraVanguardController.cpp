@@ -121,6 +121,17 @@ EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Desti
 	return EVeyraOrderRejection::None;
 }
 
+void AVeyraVanguardController::StopOrders()
+{
+	MoveOrder.Reset();
+	ClearAttackOrder();
+	if (UVeyraBasicAttackComponent* Attacks = GetBasicAttack(); Attacks && Attacks->GetState().Phase == EVeyraAttackPhase::Windup)
+	{
+		Attacks->CancelAttack();
+	}
+	StopMovement();
+}
+
 void AVeyraVanguardController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);

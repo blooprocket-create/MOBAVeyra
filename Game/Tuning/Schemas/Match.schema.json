@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Match domain (Match Flow Bible, Battleground Bible). VeyraMatch binds it to FVeyraMatchTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "lifecycle", "orders", "bots", "developerMatch"],
+  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "orders", "bots", "developerMatch"],
   "properties": {
     "schemaVersion": {
-      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery.",
+      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery; version 5 adds Recall.",
       "type": "integer",
       "minimum": 1,
-      "enum": [4]
+      "enum": [5]
     },
     "teams": {
       "description": "The two sides of a match.",
@@ -88,7 +88,7 @@
       }
     },
     "fountain": {
-      "description": "How quickly a living Vanguard recovers at its own fountain (Battleground Bible §12; ADR-011 §11). With no recall yet, it is how a Vanguard comes back to strength.",
+      "description": "How quickly a living Vanguard recovers at its own fountain (Battleground Bible §12; ADR-011 §11).",
       "type": "object",
       "additionalProperties": false,
       "required": ["provenance", "radius", "healthFractionPerSecond", "resourceFractionPerSecond", "intervalSeconds"],
@@ -116,6 +116,25 @@
         },
         "intervalSeconds": {
           "description": "Seconds between restorations.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "recall": {
+      "description": "Recall: a channel that brings a living Vanguard home to its fountain (Economy & Progression Bible §10; ADR-012 §8). A new order, hostile damage and death interrupt it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "channelSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "channelSeconds": {
+          "description": "Seconds the channel lasts, on match time.",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true

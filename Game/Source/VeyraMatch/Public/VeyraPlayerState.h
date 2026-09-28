@@ -26,6 +26,7 @@ class UVeyraOffenceSet;
 class UVeyraGoldComponent;
 class UVeyraInventoryComponent;
 class UVeyraProgressionComponent;
+class UVeyraRecallComponent;
 class UVeyraRegenerationComponent;
 class UVeyraResourceSet;
 class UVeyraPassive;
@@ -154,6 +155,10 @@ private:
 	/** So do items, and purchases waiting for the fountain (§10–§11). */
 	UPROPERTY(VisibleAnywhere, Category = "Items")
 	TObjectPtr<UVeyraInventoryComponent> Inventory;
+
+	/** Recall home to the fountain (ADR-012 §8). */
+	UPROPERTY(VisibleAnywhere, Category = "Match")
+	TObjectPtr<UVeyraRecallComponent> Recall;
 
 	UPROPERTY()
 	TObjectPtr<UVeyraVitalsSet> VitalsSet;

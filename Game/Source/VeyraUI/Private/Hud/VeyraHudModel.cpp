@@ -16,6 +16,7 @@
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionRules.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Recall/VeyraRecallComponent.h"
 #include "State/VeyraTeamFluxState.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Structures/VeyraStructure.h"
@@ -117,6 +118,14 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 	{
 		Player.bDead = true;
 		Player.RespawnSeconds = FMath::Max(0.0, Participant.GetRespawnAt() - ServerNow);
+	}
+	if (const UVeyraRecallComponent* Recall = Participant.FindComponentByClass<UVeyraRecallComponent>(); Recall && Recall->IsRecalling())
+	{
+		const FVeyraRecallChannel& Channel = Recall->GetChannel();
+		const double Length = Channel.EndsAt - Channel.StartedAt;
+		Player.bRecalling = true;
+		Player.RecallSeconds = FMath::Max(0.0, Channel.EndsAt - ServerNow);
+		Player.RecallProgress = Length > 0.0 ? FMath::Clamp((ServerNow - Channel.StartedAt) / Length, 0.0, 1.0) : 1.0;
 	}
 
 	if (const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(Player.Vanguard); Definition && !Definition->Passive.IsEmpty())

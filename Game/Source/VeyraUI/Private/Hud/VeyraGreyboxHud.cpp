@@ -218,6 +218,19 @@ namespace
 			Canvas.TextSize(HudFont(), Respawn, Width, Height);
 			DrawHudText(Canvas, FVector2D((Canvas.ClipX - Width) / 2.0f, Settings.HudMargin + HudLineHeight()), Respawn, Settings.TextColor);
 		}
+
+		// While recalling, the channel's bar filling toward home, with the time it has left (ADR-012 §8).
+		if (Player.bRecalling)
+		{
+			const FVector2D TopLeft((Canvas.ClipX - Settings.ChannelBarWidth) / 2.0f, Canvas.ClipY - Settings.ChannelBarLift);
+			DrawHudRect(Canvas, TopLeft, FVector2D(Settings.ChannelBarWidth, Settings.ChannelBarHeight), Settings.BarBackgroundColor);
+			DrawHudRect(Canvas, TopLeft, FVector2D(Settings.ChannelBarWidth * Player.RecallProgress, Settings.ChannelBarHeight), Settings.ChannelColor);
+			const FString Recall = FString::Printf(TEXT("Recall   %.1f s"), Player.RecallSeconds);
+			float Width = 0.0f;
+			float Height = 0.0f;
+			Canvas.TextSize(HudFont(), Recall, Width, Height);
+			DrawHudText(Canvas, FVector2D((Canvas.ClipX - Width) / 2.0f, TopLeft.Y - HudLineHeight()), Recall, Settings.TextColor);
+		}
 	}
 
 	/**

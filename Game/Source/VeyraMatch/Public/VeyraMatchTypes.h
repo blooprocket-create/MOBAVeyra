@@ -43,6 +43,8 @@ enum class EVeyraOrderRejection : uint8
 	Unreachable,
 	/** The target is not a living enemy unit, or the Vanguard has no basic attack. */
 	CannotAttack,
+	/** Crowd control stops the Vanguard casting, such as a Stun, so it cannot begin a Recall (Combat Bible §8). */
+	CrowdControlled,
 };
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraOrderRejection Rejection);

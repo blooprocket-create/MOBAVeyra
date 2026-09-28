@@ -55,6 +55,12 @@ public:
 	 */
 	EVeyraOrderRejection AttackMoveTo(const FVector& Destination);
 
+	/**
+	 * Stops the Vanguard where it stands: every order ends, and an attack still winding up is
+	 * cancelled. Recall begins this way (ADR-012 §8).
+	 */
+	void StopOrders();
+
 	/** The unit an attack or attack-move order is attacking now, if any. */
 	AActor* GetAttackTarget() const { return AttackTarget.Get(); }
 

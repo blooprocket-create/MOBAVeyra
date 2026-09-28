@@ -51,6 +51,12 @@ public:
 	void IssueCastOrder(EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
 
 	/**
+	 * Owning client: asks the server to begin a Recall home to the fountain (Economy & Progression
+	 * Bible §10; ADR-012 §8). A refusal arrives as an order rejection.
+	 */
+	void RequestRecall();
+
+	/**
 	 * Owning client, developer builds: asks the server to pause or resume the match at once. Pause
 	 * votes (Match Flow Bible §10) will replace it; Shipping servers refuse it.
 	 */
@@ -156,6 +162,9 @@ private:
 	void ClientOrderRejected(EVeyraOrderRejection Rejection);
 
 	UFUNCTION(Server, Reliable)
+	void ServerRecall();
+
+	UFUNCTION(Server, Reliable)
 	void ServerIssueCastOrder(EVeyraAbilitySlot Slot, FVeyraCastTarget Target);
 
 	UFUNCTION(Client, Unreliable)
@@ -219,6 +228,7 @@ private:
 	void OnMoveOrderStarted();
 	void OnMoveOrderHeld();
 	void OnAttackMovePressed();
+	void OnRecallPressed();
 	void OnAbilityPressed(EVeyraAbilitySlot Slot);
 	void MoveToCursor(bool bSteer);
 
