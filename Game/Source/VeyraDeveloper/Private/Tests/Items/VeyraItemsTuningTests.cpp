@@ -2,45 +2,13 @@
 
 #include "CQTest.h"
 #include "Engine/Engine.h"
+#include "Tests/Items/VeyraItemsTestCatalog.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 
 #if WITH_AUTOMATION_WORKER
 
 namespace VeyraItemsTests
 {
-	FVeyraContentId ItemId(const TCHAR* Text)
-	{
-		return FVeyraContentId::FromText(Text).GetValue();
-	}
-
-	/** A test catalog in the bible's shape: two components, an assembly, a Masterwork and a consumable. Fixture values. */
-	FVeyraItemsTuning TestCatalog()
-	{
-		FVeyraItemsTuning Tuning;
-		Tuning.Shop.InventorySlots = 6;
-		Tuning.Shop.ResaleFraction = 0.7;
-		Tuning.Shop.UniqueFromTier = 3;
-		Tuning.Shop.MaxBoots = 1;
-		const auto Add = [&Tuning](const TCHAR* Id, int32 Tier, double Cost, TArray<FVeyraContentId> Components) -> FVeyraItemDefinition& {
-			FVeyraItemDefinition& Item = Tuning.Items.Add(ItemId(Id));
-			Item.Tier = Tier;
-			Item.Cost = Cost;
-			Item.StackLimit = 1;
-			Item.Components = MoveTemp(Components);
-			return Item;
-		};
-		Add(TEXT("test_grip"), 1, 350.0, {});
-		Add(TEXT("test_plate"), 1, 400.0, {});
-		Add(TEXT("test_harness"), 2, 350.0, { ItemId(TEXT("test_grip")), ItemId(TEXT("test_plate")) });
-		Add(TEXT("test_temper"), 3, 600.0, { ItemId(TEXT("test_harness")), ItemId(TEXT("test_plate")) }).Attunement = { ItemId(TEXT("test_weight")) };
-		FVeyraItemDefinition& Tonic = Add(TEXT("test_tonic"), 1, 50.0, {});
-		Tonic.Category = EVeyraItemCategory::Consumable;
-		Tonic.StackLimit = 5;
-		Tuning.Consumables.Add(ItemId(TEXT("test_tonic")));
-		Tuning.WeightOfWar.Add(ItemId(TEXT("test_weight")));
-		return Tuning;
-	}
-
 	bool HasProblem(const TArray<FString>& Problems, const TCHAR* Prefix)
 	{
 		return Problems.ContainsByPredicate([Prefix](const FString& Problem) { return Problem.StartsWith(Prefix); });
