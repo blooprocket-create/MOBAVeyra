@@ -289,12 +289,13 @@ Lane Spires and base-defense towers share one attack component and one set of ru
 
   Team B's positions follow from a declared mirror: a reflection across the river's diagonal, which maps each lane onto itself and swaps the bases. Distances are therefore balanced by construction, as Battleground §2 and §7 ask. Travel distance is gameplay, so the layout is tuning: hashed, staged and compared at login.
 - **`UVeyraBattlegroundMapCommandlet`** (VeyraDeveloper, following the `L_Greybox` and `L_FrontEnd` commandlets) bakes `Content/Veyra/World/Maps/L_Battleground`:
-  - the floor, lane strips, river, jungle regions and base pads;
+  - the floor;
   - the fountains as team starts;
   - navigation bounds and light;
   - a marker that tells the server to spawn the battleground.
 
   `Game/Scripts/BuildBattlegroundMap.ps1` runs it, and the map is never edited by hand.
+- **The grey-box presentation draws the ground's regions** on each client from the same layout, once the battleground's structures arrive: the river, each lane's road and each base's pad in its side's colour, over a floor that reads as jungle. They are presentation only; nothing collides with them or shapes navigation. Drawing them rather than baking them keeps one colour scheme with the rest of the grey-box, which colours its shapes per viewer (a pad is ally or enemy). Found missing in the M7a review.
 - **Runtime spawning.** The server spawns structures from the layout when it finds the marker, during loading. Network tests spawn a compact test layout the same way.
 - **Map selection:**
   - `ServerDefaultMap` becomes `L_Battleground`.
