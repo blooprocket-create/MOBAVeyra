@@ -56,7 +56,7 @@ namespace VeyraShellTests
 				{ EVeyraClientState::Loading, EVeyraShellScreen::Status },
 				{ EVeyraClientState::StarterChoice, EVeyraShellScreen::StarterChoice },
 				{ EVeyraClientState::Shell, EVeyraShellScreen::Shell },
-				{ EVeyraClientState::MatchFound, EVeyraShellScreen::Shell },
+				{ EVeyraClientState::MatchFound, EVeyraShellScreen::MatchFound },
 				{ EVeyraClientState::Selecting, EVeyraShellScreen::ChampionSelect },
 				{ EVeyraClientState::MatchStarting, EVeyraShellScreen::Status },
 				{ EVeyraClientState::Connecting, EVeyraShellScreen::Status },
@@ -77,7 +77,7 @@ namespace VeyraShellTests
 		TEST_METHOD(SelectModel)
 		{
 			// A hover is tentative: Not Locked In, and Lock In would lock it (UX-35).
-			FVeyraSelectModel Model = VeyraShellModels::DescribeSelect(SelectSnapshot(TEXT("oriel"), FString()), 27.2, true, true);
+			FVeyraSelectModel Model = VeyraShellModels::DescribeSelect(SelectSnapshot(TEXT("oriel"), FString()), 27.2, true, true, false);
 			ASSERT_THAT(AreEqual(Model.Countdown.ToString(), FString(TEXT("0:28"))));
 			ASSERT_THAT(AreEqual(Model.Title.ToString(), FString(TEXT("Custom Practice: Champion Select"))));
 			ASSERT_THAT(AreEqual(Model.Seats.Num(), 1));
@@ -90,15 +90,121 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Model.bCanLockIn));
 
 			// With nothing hovered there is nothing to lock.
-			Model = VeyraShellModels::DescribeSelect(SelectSnapshot(FString(), FString()), 30.0, true, true);
+			Model = VeyraShellModels::DescribeSelect(SelectSnapshot(FString(), FString()), 30.0, true, true, false);
 			ASSERT_THAT(IsTrue(Model.Seats[0].Status == EVeyraSeatStatus::Waiting && !Model.bCanLockIn));
 
 			// A lock is final.
-			Model = VeyraShellModels::DescribeSelect(SelectSnapshot(TEXT("oriel"), TEXT("oriel")), 12.0, false, false);
+			Model = VeyraShellModels::DescribeSelect(SelectSnapshot(TEXT("oriel"), TEXT("oriel")), 12.0, false, false, false);
 			ASSERT_THAT(IsTrue(Model.Seats[0].Status == EVeyraSeatStatus::LockedIn));
 			ASSERT_THAT(IsTrue(Model.LockInVanguardId.IsEmpty() && !Model.bCanLockIn && !Model.bCanChoose));
 			ASSERT_THAT(AreEqual(VeyraShellModels::FormatCountdown(-3.0).ToString(), FString(TEXT("0:00"))));
 			ASSERT_THAT(AreEqual(VeyraShellModels::FormatCountdown(75.0).ToString(), FString(TEXT("1:15"))));
+		}
+
+		TEST_METHOD(TeamSelectModel)
+		{
+			// A matchmade select: the enemy team apart, its locks visible and unique, and Leave offered.
+			FVeyraClientSnapshot Snapshot = SelectSnapshot(TEXT("oriel"), FString());
+			Snapshot.Select.Kind = TEXT("casual");
+			Snapshot.Select.Mode = TEXT("casual_select");
+			Snapshot.Select.Seats.Add(VeyraBackendProtocol::FSelectSeat{ TEXT("DevTwo"), TEXT("B"), false, FString(), TEXT("cairn") });
+			FVeyraSelectModel Model = VeyraShellModels::DescribeSelect(Snapshot, 50.0, true, true, true);
+			ASSERT_THAT(IsTrue(Model.bTeams));
+			ASSERT_THAT(IsTrue(Model.Seats[0].bAlly && !Model.Seats[1].bAlly));
+			ASSERT_THAT(AreEqual(Model.Seats[1].StatusText.ToString(), FString(TEXT("Locked In"))));
+			ASSERT_THAT(AreEqual(Model.Seats[1].Vanguard.ToString(), FString(TEXT("Cairn"))));
+			ASSERT_THAT(IsTrue(Model.Cards[0].VanguardId == TEXT("cairn") && Model.Cards[0].bTaken, TEXT("another player locked Cairn")));
+			ASSERT_THAT(IsFalse(Model.Cards[1].bTaken));
+			ASSERT_THAT(IsTrue(Model.bCanLockIn, TEXT("the player's own hover is free")));
+			ASSERT_THAT(IsTrue(Model.bOffersLeave && Model.bCanLeave));
+
+			// A hover on a Vanguard someone else locks cannot be locked in.
+			Snapshot.Select.Seats[0].Hover = TEXT("cairn");
+			Model = VeyraShellModels::DescribeSelect(Snapshot, 49.0, true, true, true);
+			ASSERT_THAT(IsFalse(Model.bCanLockIn));
+
+			// Once every pick is in, there is nothing left to leave.
+			Snapshot.Select.State = VeyraBackendProtocol::ESelectState::Starting;
+			ASSERT_THAT(IsFalse(VeyraShellModels::DescribeSelect(Snapshot, 0.0, false, false, false).bOffersLeave));
+
+			// Practice has one team, and no Leave.
+			Model = VeyraShellModels::DescribeSelect(SelectSnapshot(FString(), FString()), 30.0, true, true, false);
+			ASSERT_THAT(IsFalse(Model.bTeams || Model.bOffersLeave));
+		}
+
+		TEST_METHOD(MatchFoundModel)
+		{
+			FVeyraClientSnapshot Snapshot;
+			Snapshot.State = EVeyraClientState::MatchFound;
+			Snapshot.MatchFound.Id = FoundId;
+			Snapshot.MatchFound.Mode = CasualMode;
+			Snapshot.MatchFound.State = TEXT("pending");
+			Snapshot.MatchFound.You = TEXT("pending");
+			Snapshot.MatchFound.Accepted = 1;
+			Snapshot.MatchFound.Total = 2;
+			FVeyraMatchFoundModel Model = VeyraShellModels::DescribeMatchFound(Snapshot, 14.2, true);
+			ASSERT_THAT(AreEqual(Model.Title.ToString(), FString(TEXT("Match Found"))));
+			ASSERT_THAT(AreEqual(Model.Mode.ToString(), FString(TEXT("Casual Select"))));
+			ASSERT_THAT(AreEqual(Model.Countdown.ToString(), FString(TEXT("0:15"))));
+			ASSERT_THAT(AreEqual(Model.Progress.ToString(), FString(TEXT("1 of 2 accepted"))));
+			ASSERT_THAT(IsTrue(Model.Phase.ToString().StartsWith(TEXT("Accept to play")) && Model.bCanAnswer));
+
+			Snapshot.MatchFound.You = TEXT("accepted");
+			Model = VeyraShellModels::DescribeMatchFound(Snapshot, 9.0, false);
+			ASSERT_THAT(AreEqual(Model.Phase.ToString(), FString(TEXT("Accepted. Waiting for the other players."))));
+			ASSERT_THAT(IsFalse(Model.bCanAnswer));
+
+			// How a match found ended reads by the player's own answer; nobody learns who declined.
+			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("match_found_declined")).ToString().Contains(TEXT("Your party left the queue"))));
+			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("match_found_missed")).ToString().Contains(TEXT("not accepted in time"))));
+			ASSERT_THAT(AreEqual(VeyraShellModels::DescribeNotice(TEXT("match_found_abandoned")).ToString(), FString(TEXT("Another player did not accept the match."))));
+		}
+
+		TEST_METHOD(PartyAndModeModels)
+		{
+			FVeyraClientSnapshot Snapshot;
+			Snapshot.State = EVeyraClientState::Shell;
+			Snapshot.AccountId = AccountId;
+			ASSERT_THAT(IsFalse(VeyraShellModels::DescribeParty(Snapshot, false, false, false).bShown, TEXT("no party, no panel")));
+
+			// Only enabled modes show; one without a matchmaker says so (UX-12).
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseModes(ModesBody, Snapshot.Modes, Problem), Problem));
+			Snapshot.Modes.Add(VeyraBackendProtocol::FModeInfo{ TEXT("ranked"), false, 5, false });
+			TOptional<VeyraBackendProtocol::FParty> Party;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(PartyBody(TEXT("idle"), false), Party, Problem), Problem));
+			Snapshot.Party = Party;
+			const TArray<FVeyraModeCardModel> Cards = VeyraShellModels::DescribeModes(Snapshot);
+			ASSERT_THAT(AreEqual(Cards.Num(), 2));
+			ASSERT_THAT(IsTrue(Cards[0].bAvailable && Cards[0].bSelected && Cards[0].Availability.IsEmpty()));
+			ASSERT_THAT(AreEqual(Cards[0].Format.ToString(), FString(TEXT("1v1"))));
+			ASSERT_THAT(IsTrue(!Cards[1].bAvailable && !Cards[1].bSelected));
+			ASSERT_THAT(AreEqual(Cards[1].Availability.ToString(), FString(TEXT("Not yet available"))));
+
+			// The leader of a party that is not Ready yet.
+			FVeyraPartyModel Model = VeyraShellModels::DescribeParty(Snapshot, true, false, false);
+			ASSERT_THAT(IsTrue(Model.bShown && !Model.bQueued));
+			ASSERT_THAT(AreEqual(Model.Mode.ToString(), FString(TEXT("Mode: Casual Select"))));
+			ASSERT_THAT(AreEqual(Model.Members[0].ToString(), FString(TEXT("DevOne (you, leader): Not Ready"))));
+			ASSERT_THAT(AreEqual(Model.Status.ToString(), FString(TEXT("Find Match opens once everyone is Ready."))));
+			ASSERT_THAT(IsTrue(Model.bReadyTarget && Model.bCanReady));
+			ASSERT_THAT(AreEqual(Model.ReadyLabel.ToString(), FString(TEXT("Ready"))));
+			ASSERT_THAT(IsTrue(Model.bOffersFindMatch && !Model.bCanFindMatch && !Model.bOffersCancel));
+
+			// Queued: the time shows instead, only the leader may cancel, and Ready is locked (§2).
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseParty(PartyBody(TEXT("queued"), true, 3.0), Party, Problem), Problem));
+			Snapshot.Party = Party;
+			Model = VeyraShellModels::DescribeParty(Snapshot, false, false, true);
+			ASSERT_THAT(IsTrue(Model.bQueued && Model.Status.IsEmpty()));
+			ASSERT_THAT(IsTrue(!Model.bOffersFindMatch && Model.bOffersCancel && Model.bCanCancel));
+			ASSERT_THAT(AreEqual(Model.ReadyLabel.ToString(), FString(TEXT("Unready"))));
+			ASSERT_THAT(AreEqual(VeyraShellModels::FormatQueueStatus(67.9).ToString(), FString(TEXT("In queue: 1:07. Estimate unavailable."))));
+
+			// A member who does not lead sees the leader, and neither Find Match nor Cancel.
+			Snapshot.AccountId = TEXT("66666666-7777-4888-8999-aaaaaaaaaaaa");
+			Model = VeyraShellModels::DescribeParty(Snapshot, false, false, false);
+			ASSERT_THAT(AreEqual(Model.Members[0].ToString(), FString(TEXT("DevOne (leader): Ready"))));
+			ASSERT_THAT(IsFalse(Model.bOffersFindMatch || Model.bOffersCancel));
 		}
 
 		TEST_METHOD(ResultsModel)
@@ -298,6 +404,62 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsNull(Button(TEXT("Retry"))));
 		}
 
+		TEST_METHOD(PlayQueuesTheParty)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/modes"), 200, ModesBody)));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, NoParty)));
+			ShowScreen();
+			Button(TEXT("Play"))->Press();
+			// Mode cards: one to choose, one not yet available; no party panel before a mode is chosen.
+			ASSERT_THAT(IsTrue(Button(TEXT("Casual Select"))->GetIsEnabled()));
+			ASSERT_THAT(IsFalse(Button(TEXT("Draft Pick"))->GetIsEnabled()));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Not yet available"))));
+			ASSERT_THAT(IsNull(Button(TEXT("Ready"))));
+
+			Button(TEXT("Casual Select"))->Press();
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/party/mode"), 200, PartyBody(TEXT("idle"), false))));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("DevOne (you, leader): Not Ready")), Screen->DescribeText()));
+			ASSERT_THAT(IsFalse(Button(TEXT("Find Match"))->GetIsEnabled(), TEXT("everyone must be Ready")));
+			Button(TEXT("Ready"))->Press();
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/party/ready"), 200, PartyBody(TEXT("idle"), true))));
+			ASSERT_THAT(IsNotNull(Button(TEXT("Unready"))));
+			Button(TEXT("Find Match"))->Press();
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/party/queue"), 200, PartyBody(TEXT("queued"), true))));
+
+			// Queued: the time shows, Practice waits, and the leader may cancel.
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Estimate unavailable.")), Screen->DescribeText()));
+			ASSERT_THAT(IsFalse(Button(TEXT("Practice"))->GetIsEnabled()));
+			ASSERT_THAT(IsNull(Button(TEXT("Find Match"))));
+			Button(TEXT("Cancel"))->Press();
+			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("DELETE"), TEXT("/v1/party/queue"))));
+		}
+
+		TEST_METHOD(MatchFoundBlocksTheShell)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachMatchFound()));
+			ShowScreen();
+			// Only Accept and Decline: no navigation, party controls or Quit until it is answered (UX §5).
+			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::MatchFound));
+			ASSERT_THAT(IsTrue(LabelsOf(Screen->GetButtons()) == (TArray<FString>{ TEXT("Accept"), TEXT("Decline") })));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("0 of 2 accepted"))));
+			Button(TEXT("Accept"))->Press();
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200, MatchFoundBody(TEXT("pending"), TEXT("accepted"), 1))));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Accepted. Waiting for the other players."))));
+			ASSERT_THAT(IsFalse(Button(TEXT("Decline"))->GetIsEnabled()));
+		}
+
+		TEST_METHOD(ACasualSelectShowsTheTeamsAndOffersLeave)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachCasualSelect()));
+			ShowScreen();
+			const FString Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Your Team")) && Text.Contains(TEXT("Enemy Team")) && Text.Contains(TEXT("DevTwo: Waiting")), Text));
+			ASSERT_THAT(IsTrue(Button(TEXT("Leave"))->GetIsEnabled()));
+			Button(TEXT("Leave"))->Press();
+			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/select/leave"))));
+		}
+
 		TEST_METHOD(ASignInFailureOffersOnlyQuit)
 		{
 			TestRunner->AddExpectedMessagePlain(TEXT("VeyraClientFlow: signing in failed"), ELogVerbosity::Error, EAutomationExpectedMessageFlags::Contains, 1);
@@ -357,6 +519,13 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::CanEndCustomMatch(EVeyraMatchRules::Practice, &Host, &Other), TEXT("only the host")));
 			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::CanEndCustomMatch(EVeyraMatchRules::Standard, &Host, &Host), TEXT("only practice")));
 			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::CanEndCustomMatch(EVeyraMatchRules::Practice, nullptr, &Host), TEXT("before the host joins")));
+		}
+
+		TEST_METHOD(DeveloperEndVisibility)
+		{
+			// A standard match has no victory condition yet: outside Shipping a developer may end it.
+			ASSERT_THAT(AreEqual(VeyraMatchMenuModel::OffersDeveloperEnd(EVeyraMatchRules::Standard), !UE_BUILD_SHIPPING));
+			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::OffersDeveloperEnd(EVeyraMatchRules::Practice), TEXT("practice has End Custom Match")));
 		}
 
 		TEST_METHOD(OutsidePracticeTheMenuOffersResume)

@@ -10,10 +10,23 @@ namespace VeyraShellModels
 {
 namespace
 {
+	using VeyraBackendProtocol::EPartyStatus;
 	using VeyraBackendProtocol::ESelectState;
 	using VeyraBackendProtocol::FSelectSeat;
 
 	constexpr int32 SecondsPerMinute = 60;
+	/** The kind of champion select matchmaking opens, which a player may leave. */
+	const TCHAR* const MatchmadeSelectKind = TEXT("casual");
+	/** A player's answer to a match found, once given. */
+	const TCHAR* const AcceptedAnswer = TEXT("accepted");
+	const TCHAR* const DeclinedAnswer = TEXT("declined");
+
+	/** "m:ss". */
+	FText FormatClock(int32 WholeSeconds)
+	{
+		const int32 Whole = FMath::Max(0, WholeSeconds);
+		return FText::FromString(FString::Printf(TEXT("%d:%02d"), Whole / SecondsPerMinute, Whole % SecondsPerMinute));
+	}
 
 	FText SeatStatusText(EVeyraSeatStatus Status)
 	{
@@ -80,8 +93,9 @@ EVeyraShellScreen ScreenFor(EVeyraClientState State)
 	case EVeyraClientState::StarterChoice:
 		return EVeyraShellScreen::StarterChoice;
 	case EVeyraClientState::Shell:
-	case EVeyraClientState::MatchFound:
 		return EVeyraShellScreen::Shell;
+	case EVeyraClientState::MatchFound:
+		return EVeyraShellScreen::MatchFound;
 	case EVeyraClientState::Selecting:
 		return EVeyraShellScreen::ChampionSelect;
 	case EVeyraClientState::ReconnectOnly:
@@ -164,6 +178,30 @@ FText DescribeNotice(const FString& Notice)
 	{
 		return LOCTEXT("NoticeJoinFailed", "The match's server did not let you in.");
 	}
+	if (Notice == TEXT("left"))
+	{
+		return LOCTEXT("NoticeLeft", "Champion select ended: a player left it.");
+	}
+	if (Notice == TEXT("presence_lost"))
+	{
+		return LOCTEXT("NoticePresenceLost", "Champion select ended: a player lost their connection.");
+	}
+	if (Notice == TEXT("you_left"))
+	{
+		return LOCTEXT("NoticeYouLeft", "You left champion select, which ended it for everyone. Your party left the queue.");
+	}
+	if (Notice == TEXT("match_found_declined"))
+	{
+		return LOCTEXT("NoticeFoundDeclined", "You declined the match. Your party left the queue.");
+	}
+	if (Notice == TEXT("match_found_missed"))
+	{
+		return LOCTEXT("NoticeFoundMissed", "The match was not accepted in time. Your party left the queue.");
+	}
+	if (Notice == TEXT("match_found_abandoned"))
+	{
+		return LOCTEXT("NoticeFoundAbandoned", "Another player did not accept the match.");
+	}
 	return FText::Format(LOCTEXT("NoticeOther", "Notice: {0}"), FText::FromString(Notice));
 }
 
@@ -185,17 +223,36 @@ FText DescribeProblem(const FVeyraClientProblem& Problem)
 	{
 		return LOCTEXT("ProblemMatchNotReady", "The match's server is taking too long to start.");
 	}
+	if (Problem.Code == TEXT("taken"))
+	{
+		return LOCTEXT("ProblemTaken", "Another player has already locked in that Vanguard.");
+	}
+	if (Problem.Code == TEXT("not_all_ready"))
+	{
+		return LOCTEXT("ProblemNotAllReady", "Everyone in the party must be Ready first.");
+	}
+	if (Problem.Code == TEXT("mode_not_available"))
+	{
+		return LOCTEXT("ProblemModeNotAvailable", "That mode is not available yet.");
+	}
+	if (Problem.Code == TEXT("party_too_large_for_mode"))
+	{
+		return LOCTEXT("ProblemPartyTooLarge", "Your party is too large for that mode.");
+	}
+	if (Problem.Code == TEXT("not_leader"))
+	{
+		return LOCTEXT("ProblemNotLeader", "Only the party leader can do that.");
+	}
 	// Anything else is shown as the flow reported it; the message never holds a credential.
 	return FText::FromString(Problem.Message);
 }
 
 FText FormatCountdown(double Seconds)
 {
-	const int32 Whole = FMath::Max(0, FMath::CeilToInt(Seconds));
-	return FText::FromString(FString::Printf(TEXT("%d:%02d"), Whole / SecondsPerMinute, Whole % SecondsPerMinute));
+	return FormatClock(FMath::CeilToInt(Seconds));
 }
 
-FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock)
+FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock, bool bCanLeave)
 {
 	const VeyraBackendProtocol::FSelect& Select = Snapshot.Select;
 	FVeyraSelectModel Model;
@@ -219,6 +276,9 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 	{
 		FVeyraSelectSeatModel SeatModel;
 		SeatModel.bYou = Seat.bYou;
+		// The backend never shows the enemy team's hovers, only its locks.
+		SeatModel.bAlly = !You || Seat.Side == You->Side;
+		Model.bTeams |= !SeatModel.bAlly;
 		SeatModel.Name = Seat.bYou ? FText::Format(LOCTEXT("SeatYou", "{0} (you)"), FText::FromString(Seat.DisplayName)) : FText::FromString(Seat.DisplayName);
 		SeatModel.Status = !Seat.Locked.IsEmpty() ? EVeyraSeatStatus::LockedIn : (!Seat.Hover.IsEmpty() ? EVeyraSeatStatus::NotLockedIn : EVeyraSeatStatus::Waiting);
 		SeatModel.StatusText = SeatStatusText(SeatModel.Status);
@@ -228,16 +288,122 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 	}
 
 	const FString Chosen = You ? (!You->Locked.IsEmpty() ? You->Locked : You->Hover) : FString();
+	const auto IsTaken = [&Select](const FString& Id) {
+		return Select.Seats.ContainsByPredicate([&Id](const FSelectSeat& Seat) { return !Seat.bYou && Seat.Locked == Id; });
+	};
 	for (const FString& Id : Snapshot.AvailableVanguards)
 	{
-		Model.Cards.Add(FVeyraSelectCardModel{ Id, VanguardNameOf(Id), Id == Chosen });
+		Model.Cards.Add(FVeyraSelectCardModel{ Id, VanguardNameOf(Id), Id == Chosen, IsTaken(Id) });
 	}
 	Model.bCanChoose = bCanHover;
 	if (You && You->Locked.IsEmpty() && !You->Hover.IsEmpty())
 	{
 		Model.LockInVanguardId = You->Hover;
 	}
-	Model.bCanLockIn = bCanLock && !Model.LockInVanguardId.IsEmpty();
+	Model.bCanLockIn = bCanLock && !Model.LockInVanguardId.IsEmpty() && !IsTaken(Model.LockInVanguardId);
+	Model.bOffersLeave = Select.Kind == MatchmadeSelectKind && Select.State == ESelectState::Picking;
+	Model.bCanLeave = bCanLeave;
+	return Model;
+}
+
+TArray<FVeyraModeCardModel> DescribeModes(const FVeyraClientSnapshot& Snapshot)
+{
+	TArray<FVeyraModeCardModel> Cards;
+	const FString PartyMode = Snapshot.Party.IsSet() ? Snapshot.Party->Mode : FString();
+	for (const VeyraBackendProtocol::FModeInfo& Mode : Snapshot.Modes)
+	{
+		if (!Mode.bEnabled)
+		{
+			continue;
+		}
+		FVeyraModeCardModel Card;
+		Card.ModeId = Mode.Id;
+		Card.Name = NameOf(Mode.Id);
+		Card.Format = FText::Format(LOCTEXT("ModeFormat", "{0}v{0}"), FText::AsNumber(Mode.HumanPlayersPerTeam));
+		Card.bAvailable = Mode.bMatchmade;
+		if (!Mode.bMatchmade)
+		{
+			Card.Availability = LOCTEXT("ModeNotYetAvailable", "Not yet available");
+		}
+		Card.bSelected = Mode.Id == PartyMode;
+		Cards.Add(MoveTemp(Card));
+	}
+	return Cards;
+}
+
+FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanReady, bool bCanFindMatch, bool bCanCancel)
+{
+	FVeyraPartyModel Model;
+	if (!Snapshot.Party.IsSet())
+	{
+		return Model;
+	}
+	const VeyraBackendProtocol::FParty& Party = *Snapshot.Party;
+	const VeyraBackendProtocol::FPartyMember* You = Party.Find(Snapshot.AccountId);
+	const bool bLeader = You && You->bLeader;
+	Model.bShown = true;
+	Model.Mode = Party.Mode.IsEmpty() ? LOCTEXT("PartyNoMode", "No mode chosen yet: the leader chooses one in Play.")
+									  : FText::Format(LOCTEXT("PartyMode", "Mode: {0}"), NameOf(Party.Mode));
+	for (const VeyraBackendProtocol::FPartyMember& Member : Party.Members)
+	{
+		const FText Name = FText::FromString(Member.DisplayName);
+		const bool bIsYou = Member.AccountId == Snapshot.AccountId;
+		const FText Who = bIsYou && Member.bLeader ? FText::Format(LOCTEXT("MemberYouLeader", "{0} (you, leader)"), Name)
+			: bIsYou								? FText::Format(LOCTEXT("MemberYou", "{0} (you)"), Name)
+			: Member.bLeader						? FText::Format(LOCTEXT("MemberLeader", "{0} (leader)"), Name)
+													: Name;
+		Model.Members.Add(FText::Format(LOCTEXT("MemberLine", "{0}: {1}"), Who, Member.bReady ? LOCTEXT("MemberReady", "Ready") : LOCTEXT("MemberNotReady", "Not Ready")));
+	}
+	Model.bQueued = Party.Status != EPartyStatus::Idle;
+	if (!Model.bQueued && !Party.Mode.IsEmpty())
+	{
+		if (!Party.AllReady())
+		{
+			Model.Status = bLeader ? LOCTEXT("PartyLeaderWaits", "Find Match opens once everyone is Ready.")
+								   : LOCTEXT("PartyMemberWaits", "Ready up: the leader finds a match once everyone is Ready.");
+		}
+		else
+		{
+			Model.Status = bLeader ? LOCTEXT("PartyLeaderReady", "Everyone is Ready.") : LOCTEXT("PartyMemberReady", "Everyone is Ready: the leader finds a match.");
+		}
+	}
+	Model.bReadyTarget = !(You && You->bReady);
+	Model.ReadyLabel = Model.bReadyTarget ? LOCTEXT("ReadyUp", "Ready") : LOCTEXT("Unready", "Unready");
+	Model.bCanReady = bCanReady;
+	Model.bOffersFindMatch = bLeader && !Model.bQueued;
+	Model.bCanFindMatch = bCanFindMatch;
+	Model.bOffersCancel = bLeader && Model.bQueued;
+	Model.bCanCancel = bCanCancel;
+	return Model;
+}
+
+FText FormatQueueStatus(double QueuedSeconds)
+{
+	// Elapsed time only: there is no estimator yet, and the canon forbids a made-up one (UX-2).
+	return FText::Format(LOCTEXT("QueueStatus", "In queue: {0}. Estimate unavailable."), FormatClock(FMath::FloorToInt(QueuedSeconds)));
+}
+
+FVeyraMatchFoundModel DescribeMatchFound(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanAnswer)
+{
+	const VeyraBackendProtocol::FMatchFound& Found = Snapshot.MatchFound;
+	FVeyraMatchFoundModel Model;
+	Model.Title = LOCTEXT("MatchFoundTitle", "Match Found");
+	Model.Mode = NameOf(Found.Mode);
+	Model.Countdown = FormatCountdown(RemainingSeconds);
+	Model.Progress = FText::Format(LOCTEXT("MatchFoundProgress", "{0} of {1} accepted"), FText::AsNumber(Found.Accepted), FText::AsNumber(Found.Total));
+	if (Found.You == AcceptedAnswer)
+	{
+		Model.Phase = LOCTEXT("MatchFoundAccepted", "Accepted. Waiting for the other players.");
+	}
+	else if (Found.You == DeclinedAnswer)
+	{
+		Model.Phase = LOCTEXT("MatchFoundDeclined", "Declined.");
+	}
+	else
+	{
+		Model.Phase = LOCTEXT("MatchFoundPending", "Accept to play. Declining takes your party out of the queue.");
+	}
+	Model.bCanAnswer = bCanAnswer;
 	return Model;
 }
 
@@ -279,7 +445,7 @@ FVeyraResultsModel DescribeResults(const FVeyraClientSnapshot& Snapshot)
 
 FString Signature(const FVeyraClientSnapshot& Snapshot)
 {
-	TStringBuilder<512> Text;
+	TStringBuilder<1024> Text;
 	Text << LexToString(Snapshot.State) << TEXT("|") << Snapshot.DisplayName << TEXT("|") << (Snapshot.bBusy ? TEXT("busy") : TEXT("idle")) << TEXT("|") << Snapshot.Notice;
 	if (Snapshot.Problem.IsSet())
 	{
@@ -293,6 +459,28 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 		{
 			Text << TEXT(";") << Seat.DisplayName << TEXT(":") << Seat.Hover << TEXT(":") << Seat.Locked;
 		}
+	}
+	Text << TEXT("|modes:");
+	for (const VeyraBackendProtocol::FModeInfo& Mode : Snapshot.Modes)
+	{
+		Text << Mode.Id << TEXT(":") << (Mode.bEnabled ? TEXT("on") : TEXT("off")) << TEXT(":") << (Mode.bMatchmade ? TEXT("matchmade") : TEXT("unmatched")) << TEXT(":")
+			 << Mode.HumanPlayersPerTeam << TEXT(";");
+	}
+	// The queue's time and the acceptance timer count on every frame without a rebuild.
+	if (Snapshot.Party.IsSet())
+	{
+		const VeyraBackendProtocol::FParty& Party = *Snapshot.Party;
+		Text << TEXT("|party:") << Party.Id << TEXT(":") << Party.Mode << TEXT(":") << static_cast<int32>(Party.Status);
+		for (const VeyraBackendProtocol::FPartyMember& Member : Party.Members)
+		{
+			Text << TEXT(";") << Member.AccountId << TEXT(":") << Member.DisplayName << TEXT(":") << (Member.bReady ? TEXT("ready") : TEXT("not ready"))
+				 << (Member.bLeader ? TEXT(":leader") : TEXT(""));
+		}
+	}
+	if (Snapshot.State == EVeyraClientState::MatchFound)
+	{
+		const VeyraBackendProtocol::FMatchFound& Found = Snapshot.MatchFound;
+		Text << TEXT("|found:") << Found.Id << TEXT(":") << Found.State << TEXT(":") << Found.You << TEXT(":") << Found.Accepted << TEXT("/") << Found.Total;
 	}
 	Text << TEXT("|match:") << Snapshot.MatchId;
 	if (Snapshot.Result.IsSet())
