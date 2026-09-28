@@ -16,6 +16,7 @@
 #include "Units/VeyraUnit.h"
 #include "VeyraGameMode.h"
 #include "VeyraMatchLog.h"
+#include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
 
 #if !UE_BUILD_SHIPPING
@@ -247,7 +248,7 @@ void AVeyraPlayerController::ServerIssueCastOrder_Implementation(EVeyraAbilitySl
 	EVeyraCastRejection Rejection = EVeyraCastRejection::UnknownAbility;
 	if (ItemIndex == INDEX_NONE || Use == EVeyraItemUse::Active)
 	{
-		Rejection = GameMode ? GameMode->HandleCastOrder(*this, Slot, Target) : EVeyraCastRejection::WrongPhase;
+		Rejection = GameMode ? GameMode->HandleCastOrder(GetPlayerState<AVeyraPlayerState>(), Slot, Target) : EVeyraCastRejection::WrongPhase;
 	}
 	if (Rejection == EVeyraCastRejection::None && Use == EVeyraItemUse::Active)
 	{
@@ -569,7 +570,7 @@ void AVeyraPlayerController::ServerIssueAttackOrder_Implementation(AActor* Targe
 		return;
 	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
-	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackOrder(*this, Target) : EVeyraOrderRejection::WrongPhase;
+	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackOrder(GetPlayerState<AVeyraPlayerState>(), Target) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection);
@@ -584,7 +585,7 @@ void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector D
 		return;
 	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
-	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackMoveOrder(*this, Destination) : EVeyraOrderRejection::WrongPhase;
+	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackMoveOrder(GetPlayerState<AVeyraPlayerState>(), Destination) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection);
@@ -599,7 +600,7 @@ void AVeyraPlayerController::ServerRecall_Implementation()
 		return;
 	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
-	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleRecallOrder(*this) : EVeyraOrderRejection::WrongPhase;
+	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleRecallOrder(GetPlayerState<AVeyraPlayerState>()) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection);
@@ -620,7 +621,7 @@ void AVeyraPlayerController::ApplyMoveOrder(const FVector& Destination)
 	}
 
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
-	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleMoveOrder(*this, Destination) : EVeyraOrderRejection::WrongPhase;
+	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleMoveOrder(GetPlayerState<AVeyraPlayerState>(), Destination) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection);

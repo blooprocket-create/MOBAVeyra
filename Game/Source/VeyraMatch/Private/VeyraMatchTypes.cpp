@@ -30,6 +30,18 @@ const TCHAR* LexToString(EVeyraOrderRejection Rejection)
 	return TEXT("Unknown");
 }
 
+const TCHAR* LexToString(EVeyraBotDifficulty Difficulty)
+{
+	switch (Difficulty)
+	{
+	case EVeyraBotDifficulty::Beginner:
+		return TEXT("Beginner");
+	case EVeyraBotDifficulty::Intermediate:
+		return TEXT("Intermediate");
+	}
+	return TEXT("Unknown");
+}
+
 const TCHAR* LexToString(EVeyraEndCustomMatchRefusal Refusal)
 {
 	switch (Refusal)

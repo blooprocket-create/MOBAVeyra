@@ -31,6 +31,7 @@ struct FVeyraAssignedBot
 {
 	EVeyraTeam Side = EVeyraTeam::None;
 	FVeyraContentId VanguardId;
+	EVeyraBotDifficulty Difficulty = EVeyraBotDifficulty::Beginner;
 };
 
 /** The match a server hosts, as the backend assigned it. */

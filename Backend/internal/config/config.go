@@ -126,6 +126,8 @@ type PracticeBot struct {
 	Side string
 	// VanguardID is the released Vanguard the bot plays.
 	VanguardID string
+	// Difficulty is "beginner" or "intermediate" (Custom Matches Bible §3).
+	Difficulty string
 }
 
 // Matchmaking configures the matchmaker (ADR-010 §10).
@@ -321,6 +323,7 @@ type fileConfig struct {
 		Bots           *[]struct {
 			Side       *string `json:"side"`
 			VanguardID *string `json:"vanguardId"`
+			Difficulty *string `json:"difficulty"`
 		} `json:"bots"`
 	} `json:"customPractice"`
 	Matchmaking *struct {
@@ -654,9 +657,13 @@ func Parse(raw []byte) (Config, error) {
 					missing(field + ".vanguardId")
 				case !slices.Contains(c.Vanguards.Released, *b.VanguardID):
 					problems = append(problems, field+".vanguardId must be in vanguards.released, and "+strconv.Quote(*b.VanguardID)+" is not")
+				case b.Difficulty == nil:
+					missing(field + ".difficulty")
+				case *b.Difficulty != "beginner" && *b.Difficulty != "intermediate":
+					problems = append(problems, field+".difficulty must be \"beginner\" or \"intermediate\"")
 				default:
 					perSide[*b.Side]++
-					c.CustomPractice.Bots = append(c.CustomPractice.Bots, PracticeBot{Side: *b.Side, VanguardID: *b.VanguardID})
+					c.CustomPractice.Bots = append(c.CustomPractice.Bots, PracticeBot{Side: *b.Side, VanguardID: *b.VanguardID, Difficulty: *b.Difficulty})
 				}
 			}
 			for _, side := range []string{"A", "B"} {

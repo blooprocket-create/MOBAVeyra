@@ -71,24 +71,30 @@ public:
 	/** Why the match refuses orders right now, or None: orders need the live phase and no pause. */
 	EVeyraOrderRejection CheckOrdersAllowed() const;
 
-	/** Validates a player's move order and hands it to their Vanguard's controller. */
-	EVeyraOrderRejection HandleMoveOrder(AVeyraPlayerController& Player, const FVector& Destination);
+	/*
+	 * The order paths, by participant: its player controller forwards a player's orders here, and a
+	 * bot's brain gives its own the same way (ADR-013 §3), so both obey the same checks. A null
+	 * participant has no Vanguard.
+	 */
 
-	/** Checks the match allows orders, then hands a player's attack order on Target to their Vanguard's controller. */
-	EVeyraOrderRejection HandleAttackOrder(AVeyraPlayerController& Player, AActor* Target);
+	/** Validates a move order and hands it to the participant's Vanguard controller. */
+	EVeyraOrderRejection HandleMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination);
 
-	/** Validates a player's attack-move order and hands it to their Vanguard's controller. */
-	EVeyraOrderRejection HandleAttackMoveOrder(AVeyraPlayerController& Player, const FVector& Destination);
+	/** Checks the match allows orders, then hands an attack order on Target to the participant's Vanguard controller. */
+	EVeyraOrderRejection HandleAttackOrder(AVeyraPlayerState* Participant, AActor* Target);
 
-	/** Checks the match allows casting, then casts the player's ability in Slot through VeyraAbilities. */
-	EVeyraCastRejection HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
+	/** Validates an attack-move order and hands it to the participant's Vanguard controller. */
+	EVeyraOrderRejection HandleAttackMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination);
+
+	/** Checks the match allows casting, then casts the participant's ability in Slot through VeyraAbilities. */
+	EVeyraCastRejection HandleCastOrder(AVeyraPlayerState* Participant, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
 
 	/**
 	 * Begins the player's Recall (Economy & Progression Bible §10; ADR-012 §8): the Vanguard stops and
 	 * channels, and goes home to its fountain if nothing interrupts it. A channel already running
 	 * carries on. Refused while orders are, while dead, and under crowd control that stops casting.
 	 */
-	EVeyraOrderRejection HandleRecallOrder(AVeyraPlayerController& Player);
+	EVeyraOrderRejection HandleRecallOrder(AVeyraPlayerState* Participant);
 
 	/** Why the match refuses rank-ups now, or None: they need preparation or the live phase, and no pause. */
 	EVeyraOrderRejection CheckRankUpAllowed() const;
@@ -107,6 +113,13 @@ public:
 	 * participant, or null if its side, or with no side both, are full.
 	 */
 	AVeyraPlayerState* AddBotParticipant(const FString& Name, EVeyraTeam Side = EVeyraTeam::None, const FVeyraContentId& Vanguard = FVeyraContentId());
+
+	/**
+	 * Adds a bot that plays (ADR-013 §2): a participant as AddBotParticipant adds one, then announced
+	 * through UVeyraMatchEvents::OnBotAdded with its seat, so the layer above can give it a brain.
+	 * Returns the participant, or null if its side is full.
+	 */
+	AVeyraPlayerState* AddPlayingBot(const FString& Name, EVeyraTeam Side, const FVeyraContentId& Vanguard, EVeyraBotDifficulty Difficulty);
 
 	/**
 	 * Pauses every gameplay clock (Match Flow Bible §10.2). Pause votes arrive later; until then the

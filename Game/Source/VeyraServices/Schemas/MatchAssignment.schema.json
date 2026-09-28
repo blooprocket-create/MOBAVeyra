@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schemaVersion", "matchId", "backendUrl", "serverCredential", "mode", "rules", "hostAccountId", "participants", "bots"],
   "properties": {
-    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [2] },
+    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [3] },
     "matchId": {
       "type": "string",
       "description": "The match's ID, a lowercase UUID. The server reports under it.",
@@ -79,13 +79,18 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["side", "vanguardId"],
+        "required": ["side", "vanguardId", "difficulty"],
         "properties": {
           "side": { "type": "string", "description": "Team A or Team B.", "enum": ["A", "B"] },
           "vanguardId": {
             "type": "string",
             "description": "The Vanguard the bot plays, a content ID that Vanguards.json defines.",
             "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+          },
+          "difficulty": {
+            "type": "string",
+            "description": "How the bot plays (Custom Matches Bible §3; ADR-013 §6). It never changes the rules.",
+            "enum": ["Beginner", "Intermediate"]
           }
         }
       }

@@ -56,7 +56,7 @@ TArray<FString> Parse(FStringView Line, FStringView SchemaText, FVeyraServerAssi
 	}
 	for (const FVeyraAssignmentBotDocument& Bot : Document.Bots)
 	{
-		Assignment.Match.Bots.Add({ SideOf(Bot.Side), Bot.VanguardId });
+		Assignment.Match.Bots.Add({ SideOf(Bot.Side), Bot.VanguardId, Bot.Difficulty });
 	}
 	Out = MoveTemp(Assignment);
 	return Problems;

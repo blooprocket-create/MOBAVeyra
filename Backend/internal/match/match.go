@@ -172,6 +172,22 @@ type Bot struct {
 	Side Side
 	// VanguardID is the content ID of the Vanguard the bot plays.
 	VanguardID string
+	// Difficulty is how the bot plays (Custom Matches Bible §3; ADR-013 §6).
+	Difficulty BotDifficulty
+}
+
+// BotDifficulty is one of the AI behaviours canon defines (Custom Matches
+// Bible §3). It changes how a bot plays, never the rules (Modes & Access §4).
+type BotDifficulty string
+
+const (
+	BotBeginner     BotDifficulty = "beginner"
+	BotIntermediate BotDifficulty = "intermediate"
+)
+
+// Valid reports whether d is a defined difficulty.
+func (d BotDifficulty) Valid() bool {
+	return d == BotBeginner || d == BotIntermediate
 }
 
 // Match is the authoritative state of one match.

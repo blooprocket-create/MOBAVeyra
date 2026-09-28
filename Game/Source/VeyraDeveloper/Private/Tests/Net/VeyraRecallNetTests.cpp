@@ -83,7 +83,7 @@ namespace VeyraNetTests
 		/** On the server: the first client's Recall order, as its key sends it. */
 		static EVeyraOrderRejection OrderRecall(FState& State)
 		{
-			return GameModeOf(State.World)->HandleRecallOrder(*ServerControllerOf(State, 0));
+			return GameModeOf(State.World)->HandleRecallOrder(&ServerParticipant(State));
 		}
 
 		/** Moves the Vanguard well away from its fountain, noting where home is. */
