@@ -50,6 +50,7 @@ func newMatchFixture(t *testing.T, names ...string) *matchFixture {
 	})
 	f.svc = match.NewService(store.Match(), accounts, f.alloc, match.Settings{
 		Modes: map[string]match.Mode{"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5}},
+		Maps:  match.FakeMaps,
 		Practice: match.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA,
 			Bots: []match.Bot{{Side: match.SideB, VanguardID: "cairn"}, {Side: match.SideB, VanguardID: "bryn"}}},
 		ReadyTimeout:      time.Minute,

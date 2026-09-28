@@ -150,14 +150,14 @@ How a client joins its assigned match is [ADR-007](../Docs/ADR/ADR-007-match-joi
 
 | Endpoint | Auth | Body | Returns |
 |---|---|---|---|
-| `POST /v1/dev/matches` | — | `{"mode", "rules": "standard"\|"practice", "hostAccountId", "participants": [{"accountId", "side": "A"\|"B", "vanguardId"}]}`; `rules` defaults to standard, and only practice names a host | `201` and the match; the backend starts its server. **Local only**; the route does not exist unless `matches.devCreate.enabled`. It stands in for champion select in scripts, so any Vanguard the game defines is accepted |
+| `POST /v1/dev/matches` | — | `{"mode", "rules": "standard"\|"practice", "map": "development"\|"play", "hostAccountId", "participants": [{"accountId", "side": "A"\|"B", "vanguardId"}]}`; `rules` defaults to standard, `map` to the development grey box, and only practice names a host | `201` and the match; the backend starts its server. **Local only**; the route does not exist unless `matches.devCreate.enabled`. It stands in for champion select in scripts, so any Vanguard the game defines is accepted |
 | `GET /v1/dev/matches/{matchId}` | — | — | the match, its rules, Vanguards, server port and result. **Local only**; never returns a secret |
 | `GET /v1/me/match` | `Bearer <game token>` | — | `{"match": null}`, or the player's match: `id`, `mode`, `rules`, `state`, `side`, `vanguardId`, and once it is ready, `server` (`host`, `port`) and the join `ticket` |
 | `GET /v1/me/matches/{matchId}` | `Bearer <game token>` | — | a match the player was in: `id`, `mode`, `rules`, `state`, `side`, `vanguardId`, `failureReason`, and once it has ended the verified `result` (`endReason`, `winner`, `durationSeconds`, and the player's own `joined` and `connectedAtEnd`). Anyone else's match is `match_not_found` |
 | `POST /v1/server/matches/{matchId}/ready` | `Bearer <server credential>` | `{}` | the server accepts players |
 | `POST /v1/server/matches/{matchId}/result` | `Bearer <server credential>` | `{"endReason", "winner", "durationSeconds", "participants": [{"accountId", "joined", "connectedAtEnd"}]}` | the result is recorded |
 
-Error codes include `already_in_match`, `invalid_roster`, `invalid_rules`, `invalid_vanguard`, `no_server_capacity`, `allocation_failed`, `invalid_state`, `invalid_result` and `result_conflict`.
+Error codes include `already_in_match`, `invalid_roster`, `invalid_rules`, `invalid_map`, `invalid_vanguard`, `no_server_capacity`, `allocation_failed`, `invalid_state`, `invalid_result` and `result_conflict`.
 
 Rules the code enforces:
 
@@ -170,7 +170,7 @@ Rules the code enforces:
 - A server credential works only for its own match. A result can be reported again unchanged; a different one is refused. It must list exactly the roster.
 - A match whose server does not report ready within `matches.readyTimeout`, runs past `matches.maxDuration`, or whose server stops without a result is failed. A finished match's server is removed after `matches.removeServerAfter`, and its port is reused only after that.
 
-**Match servers.** Locally, the backend starts each match's server as a Docker container (`internal/docker`), named `veyra-match-<match id>`, from the `veyra-match-server:local` image that `docker compose --profile match-server build match-server` builds from the packaged Linux server. It publishes the server on `127.0.0.1` at a port from `allocator.docker.hostPorts` and joins the compose network, where the server reaches the backend as `http://backend:8080`. To do this the backend container mounts the Docker socket and runs as root, which gives it control of the Docker host: acceptable on a developer machine only.
+**Match servers.** Locally, the backend starts each match's server as a Docker container (`internal/docker`), named `veyra-match-<match id>`, from the `veyra-match-server:local` image that `docker compose --profile match-server build match-server` builds from the packaged Linux server. The server's command line starts with its map (ADR-011 §12): `matches.maps.play`, the battleground, for every match players make through champion select, and `matches.maps.development`, the one-lane grey box, for development matches unless they ask for `"map": "play"`; `allocator.docker.serverArgs` holds the rest and may not name a map. It publishes the server on `127.0.0.1` at a port from `allocator.docker.hostPorts` and joins the compose network, where the server reaches the backend as `http://backend:8080`. To do this the backend container mounts the Docker socket and runs as root, which gives it control of the Docker host: acceptable on a developer machine only.
 
 ## For the Unreal client
 

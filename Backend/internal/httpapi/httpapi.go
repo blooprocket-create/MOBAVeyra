@@ -275,6 +275,7 @@ var errorStatus = []struct {
 
 	{match.ErrUnknownMode, http.StatusBadRequest, "unknown_mode"},
 	{match.ErrInvalidRules, http.StatusBadRequest, "invalid_rules"},
+	{match.ErrInvalidMap, http.StatusBadRequest, "invalid_map"},
 	{match.ErrInvalidRoster, http.StatusBadRequest, "invalid_roster"},
 	{match.ErrInvalidVanguard, http.StatusBadRequest, "invalid_vanguard"},
 	{match.ErrAccountNotFound, http.StatusNotFound, "account_not_found"},

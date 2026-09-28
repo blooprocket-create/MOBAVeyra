@@ -7,6 +7,8 @@ type ServerSpec struct {
 	MatchID string
 	// HostPort is the reserved port players connect to.
 	HostPort int
+	// Map is the map the server loads, a /Game/ path (ADR-011 §12).
+	Map string
 	// Assignment is written to the server's standard input and nowhere else
 	// (ADR-007 §5). It holds the server's credential.
 	Assignment []byte

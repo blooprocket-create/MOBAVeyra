@@ -1,5 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Battleground/VeyraBattlegroundMapCommandlet.h"
 #include "CQTest.h"
 
 #if WITH_AUTOMATION_WORKER
@@ -110,17 +111,19 @@ namespace VeyraServicesTests
 			ASSERT_THAT(IsTrue(Map->GetWorldSettings()->DefaultGameMode == AVeyraShellGameMode::StaticClass()));
 		}
 
-		TEST_METHOD(GamesStartThereAndBothMapsAreCooked)
+		TEST_METHOD(GamesStartThereServersOnTheBattlegroundAndEveryMapIsCooked)
 		{
 			// The engine reports the default map by its package name.
 			ASSERT_THAT(AreEqual(UGameMapsSettings::GetGameDefaultMap(), FString(UVeyraFrontEndMapCommandlet::MapPackageName)));
 			FString ServerMap;
 			GConfig->GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("ServerDefaultMap"), ServerMap, GEngineIni);
-			ASSERT_THAT(AreEqual(ServerMap, FString(TEXT("/Game/Veyra/Developer/Maps/L_Greybox.L_Greybox"))));
+			ASSERT_THAT(AreEqual(ServerMap, ObjectPath(UVeyraBattlegroundMapCommandlet::MapPackageName)));
 			TArray<FString> Cooked;
 			GConfig->GetArray(TEXT("/Script/UnrealEd.ProjectPackagingSettings"), TEXT("MapsToCook"), Cooked, GGameIni);
 			const FString Joined = FString::Join(Cooked, TEXT("|"));
 			ASSERT_THAT(IsTrue(Joined.Contains(UVeyraFrontEndMapCommandlet::MapPackageName), Joined));
+			ASSERT_THAT(IsTrue(Joined.Contains(UVeyraBattlegroundMapCommandlet::MapPackageName), Joined));
+			// Development matches still load the grey box.
 			ASSERT_THAT(IsTrue(Joined.Contains(TEXT("/Game/Veyra/Developer/Maps/L_Greybox")), Joined));
 		}
 	};

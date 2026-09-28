@@ -29,6 +29,7 @@ func newMatchTestServer(t *testing.T, devMatches bool) (*httptest.Server, *match
 	})
 	d.Match = match.NewService(match.NewMemStore(), accounts, alloc, match.Settings{
 		Modes:             map[string]match.Mode{"casual_select": {ID: "casual_select", Enabled: true, HumanPlayersPerTeam: 5}},
+		Maps:              match.FakeMaps,
 		Practice:          match.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA},
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,
@@ -76,6 +77,9 @@ func TestMatchHandoffOverHTTP(t *testing.T) {
 	matchID := m["id"].(string)
 	if m["state"] != "allocating" || m["hostPort"] != float64(7780) {
 		t.Fatalf("created match: %v", m)
+	}
+	if spec, _ := alloc.Spec(matchID); spec.Map != match.FakeMaps[match.MapDevelopment] {
+		t.Fatalf("a development match loads %q; want the development map", spec.Map)
 	}
 
 	_, mine := call(t, srv, "GET", "/v1/me/match", one, nil)
@@ -232,6 +236,7 @@ func TestMatchRoutesRejectBadRequests(t *testing.T) {
 		{"no Vanguard", map[string]any{"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "A"}}}, http.StatusBadRequest, "invalid_vanguard"},
 		{"unknown rules", map[string]any{"mode": "casual_select", "rules": "draft", "participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}}}, http.StatusBadRequest, "invalid_rules"},
 		{"practice without host", map[string]any{"mode": "custom_practice", "rules": "practice", "participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}}}, http.StatusBadRequest, "invalid_roster"},
+		{"unknown map", map[string]any{"mode": "casual_select", "map": "arena", "participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}}}, http.StatusBadRequest, "invalid_map"},
 	}
 	for _, tc := range cases {
 		if status, body := call(t, srv, "POST", "/v1/dev/matches", "", tc.body); status != tc.status || body["error"] != tc.code {

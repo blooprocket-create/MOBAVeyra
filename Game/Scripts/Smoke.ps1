@@ -69,6 +69,9 @@
     declines once the first has accepted. The decliner must be back in the shell out of the queue;
     the first must be queued again in its place, then leaves the queue. No match is created.
 
+    -Map Battleground plays a direct or -Handoff match on the battleground instead of the one-lane grey
+    box (ADR-011 §12). The -Flow paths always play on the battleground, as every player-made match does.
+
     Client logs, the server log and a summary go to Game/Saved/Smoke/<timestamp>. The server is
     stopped at the end unless -KeepServer is given.
 
@@ -108,6 +111,8 @@
 .PARAMETER Launcher
     With -Flow: who plays the launcher's part. Script: this script. Cli: veyra-launch-cli, the launcher's
     headless twin (Launcher/), built in release, with Launcher/config/local.json.
+.PARAMETER Map
+    Without -Flow: 'Greybox' (default), the one-lane grey box, or 'Battleground'.
 .PARAMETER EngineRoot
     Engine folder to use instead of the one registered for the project's EngineAssociation.
 .EXAMPLE
@@ -165,6 +170,9 @@ param(
     [ValidateSet('Script', 'Cli')]
     [string]$Launcher = 'Script',
 
+    [ValidateSet('Greybox', 'Battleground')]
+    [string]$Map = 'Greybox',
+
     [string]$EngineRoot
 )
 
@@ -214,7 +222,12 @@ if ($LoadTestStandInHz -gt 0) {
 }
 
 # The editor server's map and options; compose.yaml gives the container the same ones.
-$EditorServerArguments = @("/Game/Veyra/Developer/Maps/L_Greybox?VeyraExpectedPlayers=$clientCount$urlOptions",'-port=7777', '-server', '-log', '-nullrhi', '-unattended', '-nosplash', '-LogCmds="LogVeyraAbilities Verbose"')
+$MapUrl = $(if ($Map -eq 'Battleground') { '/Game/Veyra/World/Maps/L_Battleground' } else { '/Game/Veyra/Developer/Maps/L_Greybox' })
+$EditorServerArguments = @("${MapUrl}?VeyraExpectedPlayers=$clientCount$urlOptions",'-port=7777', '-server', '-log', '-nullrhi', '-unattended', '-nosplash', '-LogCmds="LogVeyraAbilities Verbose"')
+if ($Flow -and $PSBoundParameters.ContainsKey('Map')) {
+    Write-Host '-Flow always plays on the battleground; -Map applies to direct and -Handoff matches.'
+    exit $ExitInfrastructure
+}
 
 if ($RecordReplay -and $Server -ne 'Container') {
     # Only the container can be stopped gracefully, which the replay needs to be finished.
@@ -443,6 +456,8 @@ if ($Handoff -or $Flow) {
         $matchRequest = @{
             mode         = $mode
             rules        = $(if ($isPractice) { 'practice' } else { 'standard' })
+            # Development matches load the grey box unless asked for the battleground (ADR-011 §12).
+            map          = $(if ($Map -eq 'Battleground') { 'play' } else { 'development' })
             participants = @($participants | ForEach-Object { @{ accountId = $_.AccountId; side = $_.Side; vanguardId = $_.Vanguard } })
         }
         if ($isPractice) {
@@ -807,6 +822,7 @@ else {
     Write-Host 'Starting the match server container.'
     $env:VEYRA_EXPECTED_PLAYERS = $clientCount
     $env:VEYRA_MATCH_URL_OPTIONS = $urlOptions
+    $env:VEYRA_MATCH_MAP = $MapUrl
     if ((Invoke-Compose -Arguments @('up', '--build', '--detach', 'match-server')) -ne 0) {
         Write-Host 'The match server container did not start.'
         exit $ExitInfrastructure

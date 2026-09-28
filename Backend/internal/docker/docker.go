@@ -97,7 +97,7 @@ func (a *Allocator) Start(ctx context.Context, spec match.ServerSpec) error {
 	port := fmt.Sprintf("%d/udp", a.cfg.ContainerPort)
 	create := map[string]any{
 		"Image":        a.cfg.Image,
-		"Cmd":          append(append([]string(nil), a.cfg.ServerArgs...), AssignmentSwitch),
+		"Cmd":          serverCommand(spec.Map, a.cfg.ServerArgs),
 		"AttachStdin":  true,
 		"OpenStdin":    true,
 		"StdinOnce":    true,
@@ -131,6 +131,18 @@ func (a *Allocator) Start(ctx context.Context, spec match.ServerSpec) error {
 		return fmt.Errorf("close %s's standard input: %w", name, err)
 	}
 	return nil
+}
+
+// serverCommand is the match server's command line: the map it loads, then the
+// configured arguments, then the switch that has it read its assignment. An
+// image whose command needs no map (the engine test's) is given none.
+func serverCommand(mapPath string, serverArgs []string) []string {
+	var command []string
+	if mapPath != "" {
+		command = append(command, mapPath)
+	}
+	command = append(command, serverArgs...)
+	return append(command, AssignmentSwitch)
 }
 
 // attachStdin attaches to a container's standard input. The Engine upgrades

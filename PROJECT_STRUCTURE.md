@@ -341,6 +341,8 @@ Content/Veyra/
 
 `FrontEnd/Maps/L_FrontEnd`, the client's default map where the shell runs (ADR-010 §3), is generated the same way by `Game/Scripts/BuildFrontEndMap.ps1`: an empty world with the shell's game mode.
 
+`World/Maps/L_Battleground`, the server's default map where every player-made match plays (ADR-011 §12), is generated from the layout in `Game/Tuning/World.json` by `Game/Scripts/BuildBattlegroundMap.ps1`: the floor, each team's start at its fountain, navigation bounds, a sun, and the marker that has the server spawn the structures. Development matches keep `L_Greybox`.
+
 Do not create cross-project junk drawers such as `Misc`, `Stuff`, or `Temp` as permanent homes. Temporary work should have an explicit cleanup path.
 
 ## 4. Content versus code

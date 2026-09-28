@@ -30,13 +30,14 @@ const validJSON = `{
   "matchFound": {"acceptDuration": "15s"},
   "casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},
   "selection": {"tickInterval": "1s", "startingTimeout": "60s"},
-  "matches": {"devCreate": {"enabled": true}, "readyTimeout": "120s", "maxDuration": "4h", "reapInterval": "5s", "removeServerAfter": "2m"},
+  "matches": {"devCreate": {"enabled": true}, "readyTimeout": "120s", "maxDuration": "4h", "reapInterval": "5s", "removeServerAfter": "2m",
+    "maps": {"play": "/Game/Maps/L_Play", "development": "/Game/Maps/L_Dev"}},
   "allocator": {"kind": "docker", "docker": {
     "endpoint": "unix:///var/run/docker.sock", "apiVersion": "1.44", "requestTimeout": "30s",
     "image": "veyra-match-server:local", "network": "veyra_default", "containerNamePrefix": "veyra-match-",
     "containerPort": 7777, "hostPorts": {"min": 7780, "max": 7789}, "hostIp": "127.0.0.1",
     "publicHost": "127.0.0.1", "backendUrl": "http://backend:8080",
-    "serverArgs": ["/Game/Map", "-port=7777"], "stopTimeout": "10s"}}
+    "serverArgs": ["-port=7777", "-log"], "stopTimeout": "10s"}}
 }`
 
 func TestParseValid(t *testing.T) {
@@ -52,6 +53,9 @@ func TestParseValid(t *testing.T) {
 	}
 	if !c.Matches.DevCreate || c.Matches.ReadyTimeout != 120*time.Second || c.Matches.RemoveServerAfter != 2*time.Minute {
 		t.Fatalf("matches not parsed: %+v", c.Matches)
+	}
+	if c.Matches.Maps != (Maps{Play: "/Game/Maps/L_Play", Development: "/Game/Maps/L_Dev"}) {
+		t.Fatalf("maps not parsed: %+v", c.Matches.Maps)
 	}
 	if p := c.CustomPractice; p.PlayersPerSide != 5 || len(p.Bots) != 2 || p.Bots[1] != (PracticeBot{Side: "B", VanguardID: "bryn"}) {
 		t.Fatalf("practice bots not parsed: %+v", p)
@@ -151,8 +155,13 @@ func TestParseRejects(t *testing.T) {
 		"backend url with user":     {`"http://backend:8080"`, `"http://user@backend:8080"`, "backendUrl must be"},
 		"public host with port":     {`"publicHost": "127.0.0.1"`, `"publicHost": "127.0.0.1:7780"`, "publicHost must be"},
 		"public host with scheme":   {`"publicHost": "127.0.0.1"`, `"publicHost": "http://127.0.0.1"`, "publicHost must be"},
-		"no server args":            {`["/Game/Map", "-port=7777"]`, `[]`, "serverArgs is required"},
-		"blank server arg":          {`["/Game/Map", "-port=7777"]`, `["/Game/Map", " "]`, "must not contain blank"},
+		"no server args":            {`["-port=7777", "-log"]`, `[]`, "serverArgs is required"},
+		"blank server arg":          {`["-port=7777", "-log"]`, `["-port=7777", " "]`, "must not contain blank"},
+		"map in server args":        {`["-port=7777", "-log"]`, `["/Game/Maps/L_Play", "-log"]`, "serverArgs must not name a map"},
+		"no maps": {`,
+    "maps": {"play": "/Game/Maps/L_Play", "development": "/Game/Maps/L_Dev"}`, ``, "matches.maps is required"},
+		"no development map": {`, "development": "/Game/Maps/L_Dev"`, ``, "matches.maps.development is required"},
+		"map not a path":     {`"play": "/Game/Maps/L_Play"`, `"play": "L_Play"`, "matches.maps.play must be a map path"},
 	}
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {

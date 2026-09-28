@@ -143,7 +143,7 @@ func testConfig(endpoint string) Config {
 		NamePrefix:     "veyra-match-",
 		ContainerPort:  7777,
 		HostIP:         "127.0.0.1",
-		ServerArgs:     []string{"/Game/Map", "-port=7777"},
+		ServerArgs:     []string{"-port=7777"},
 		StopTimeout:    10 * time.Second,
 	}
 }
@@ -156,7 +156,7 @@ func TestStartHandsTheAssignmentOnlyToStandardInput(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New: %v", err)
 	}
-	if err := a.Start(context.Background(), match.ServerSpec{MatchID: "m-1", HostPort: 7780, Assignment: []byte(testAssignment)}); err != nil {
+	if err := a.Start(context.Background(), match.ServerSpec{MatchID: "m-1", HostPort: 7780, Map: "/Game/Map", Assignment: []byte(testAssignment)}); err != nil {
 		t.Fatalf("Start: %v", err)
 	}
 	select {
@@ -181,8 +181,8 @@ func TestStartHandsTheAssignmentOnlyToStandardInput(t *testing.T) {
 		t.Fatal("the container must get no environment")
 	}
 	cmd := engine.createBody["Cmd"].([]any)
-	if len(cmd) != 3 || cmd[2] != AssignmentSwitch {
-		t.Fatalf("Cmd %v must end with %s", cmd, AssignmentSwitch)
+	if len(cmd) != 3 || cmd[0] != "/Game/Map" || cmd[2] != AssignmentSwitch {
+		t.Fatalf("Cmd %v must start with the match's map and end with %s", cmd, AssignmentSwitch)
 	}
 	if engine.createBody["OpenStdin"] != true || engine.createBody["StdinOnce"] != true {
 		t.Fatal("standard input must be open once")

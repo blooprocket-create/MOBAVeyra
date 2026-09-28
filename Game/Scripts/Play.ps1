@@ -13,8 +13,8 @@
 
     In the launcher, choose a development account and press Play. The launcher starts the packaged
     client, hands it a launch code and closes; the game signs in. A new account chooses its starter
-    Vanguard first. Then Play, Custom, Practice: a short champion select, then the match on the grey-box
-    map, with practice bots near its middle to try your kit on. Esc opens the menu, where End Custom
+    Vanguard first. Then Play, Custom, Practice: a short champion select, then the match on the
+    battleground, with practice bots near its middle to try your kit on. Esc opens the menu, where End Custom
     Match leaves it; the results follow, and Continue returns to the shell. The script waits until
     the game closes. The game's log goes to Game/Saved/Play/<timestamp>.
 
@@ -35,7 +35,8 @@
     Smoke.ps1 -Flow Casual -Launcher Cli, two scripted clients through a whole matchmade match.
 
     -Direct skips the launcher and the backend, to try kits quickly. It starts a local match server on
-    the grey-box map, waits until it is ready, and opens a game window that connects to it, playing
+    the battleground (-Map Greybox: the one-lane grey box, where -Check runs unless told otherwise),
+    waits until it is ready, and opens a game window that connects to it, playing
     -Vanguard. The server waits for just you, so the match starts after the 15-second preparation
     (Match.json) instead of the loading timeout. -Bots adds that many bot Vanguards when preparation
     begins; they join the smaller team, so the first is an enemy and the next an ally, and so on. They
@@ -61,6 +62,8 @@
     With -Direct: 'Editor' (default) or 'Container'.
 .PARAMETER Client
     With -Direct: 'Editor' (default) or 'Packaged'.
+.PARAMETER Map
+    With -Direct: 'Battleground' (default; with -Check, 'Greybox') or 'Greybox'.
 .PARAMETER Check
     Runs a headless scripted client instead of a window, and reports whether it passed.
 .PARAMETER EngineRoot
@@ -93,6 +96,9 @@ param(
     [ValidateSet('Editor', 'Packaged')]
     [string]$Client = 'Editor',
 
+    [ValidateSet('Battleground', 'Greybox')]
+    [string]$Map,
+
     [switch]$Check,
 
     [string]$EngineRoot
@@ -112,7 +118,7 @@ $projectFile = Get-VeyraProjectFile
 $gameDir = Split-Path -Parent $projectFile
 $repositoryDir = Split-Path -Parent $gameDir
 
-$directOnly = @('Vanguard', 'Bots', 'Server', 'Client') | Where-Object { $PSBoundParameters.ContainsKey($_) }
+$directOnly = @('Vanguard', 'Bots', 'Server', 'Client', 'Map') | Where-Object { $PSBoundParameters.ContainsKey($_) }
 if (-not $Direct -and $directOnly) {
     Write-Host "Only -Direct takes -$($directOnly -join ', -'); the launcher's path chooses its Vanguard in champion select."
     exit $ExitInfrastructure
@@ -310,7 +316,9 @@ $ServerAddress = "127.0.0.1:$ServerPort"
 $ServerReadyLine = 'Match server ready'
 $ServerReadyTimeoutSeconds = 180
 $CheckTimeoutMinutes = 5
-$MapUrl = '/Game/Veyra/Developer/Maps/L_Greybox'
+# The kit check was built on the grey box's single lane, so it keeps it unless told otherwise.
+if (-not $Map) { $Map = $(if ($Check) { 'Greybox' } else { 'Battleground' }) }
+$MapUrl = $(if ($Map -eq 'Greybox') { '/Game/Veyra/Developer/Maps/L_Greybox' } else { '/Game/Veyra/World/Maps/L_Battleground' })
 
 $engineRoot = Resolve-VeyraEngineRoot -ProjectFile $projectFile -EngineRoot $EngineRoot
 
@@ -377,6 +385,7 @@ try {
         Write-Host 'Starting the match server container (packaged Linux server).'
         $env:VEYRA_EXPECTED_PLAYERS = '1'
         $env:VEYRA_MATCH_URL_OPTIONS = $urlOptions
+        $env:VEYRA_MATCH_MAP = $MapUrl
         if ((Invoke-Compose -Arguments @('--profile', 'match-server', 'up', '--build', '--detach', 'match-server')) -ne 0) {
             Write-Host 'The match server container did not start. Package the Linux server first, and check that Docker is running.'
             exit $ExitInfrastructure

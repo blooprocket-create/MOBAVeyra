@@ -48,6 +48,18 @@ const (
 	RulesPractice Rules = "practice"
 )
 
+// MapKind names which map a match's server loads (ADR-011 §12). Configuration
+// gives each kind its map, so a request never names a map path itself.
+type MapKind string
+
+const (
+	// MapPlay is the battleground, where every player-made match plays.
+	MapPlay MapKind = "play"
+	// MapDevelopment is the one-lane grey box development matches keep, so the
+	// smoke runs built on it keep their meaning.
+	MapDevelopment MapKind = "development"
+)
+
 // EndReason says why a match ended with a result (ADR-007 §7–8).
 type EndReason string
 
@@ -72,6 +84,7 @@ const (
 var (
 	ErrUnknownMode      = errors.New("unknown or unavailable mode")
 	ErrInvalidRules     = errors.New("unknown match rules")
+	ErrInvalidMap       = errors.New("unknown map kind")
 	ErrInvalidRoster    = errors.New("invalid roster")
 	ErrInvalidVanguard  = errors.New("invalid Vanguard")
 	ErrAccountNotFound  = errors.New("account not found")
