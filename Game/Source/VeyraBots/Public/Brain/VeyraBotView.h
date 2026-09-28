@@ -107,6 +107,10 @@ struct FVeyraBotView
 	/** At its own fountain, where the shop delivers. */
 	bool bAtFountain = false;
 
+	/** Its Gold, and whether its build has a purchase that Gold affords now. */
+	double Gold = 0.0;
+	bool bPurchaseWaiting = false;
+
 	FVeyraBotUnit Self;
 
 	/** Its basic attack's reach, edge to edge, and what one does to a Fluxborn, before mitigation. */
@@ -122,6 +126,9 @@ struct FVeyraBotView
 	TArray<FVeyraBotUnit> EnemyVanguards;
 	TArray<FVeyraBotUnit> AllyVanguards;
 	TArray<FVeyraBotUnit> EnemyFluxborn;
+
+	/** How many enemy Fluxborn would answer if it hit an enemy Vanguard now: those within their aggression response range. */
+	int32 FluxbornWouldAnswer = 0;
 
 	/** The next standing enemy structure along its lane, if it sees one. */
 	TOptional<FVeyraBotStructure> EnemyStructure;
@@ -166,4 +173,7 @@ struct FVeyraBotMemory
 
 	/** Set when Health falls below the retreat line; cleared once healed at the fountain. */
 	bool bRetreating = false;
+
+	/** The enemy Fluxborn it last chose to attack, which it keeps attacking so a windup is not thrown away. */
+	TWeakObjectPtr<AActor> FarmTarget;
 };

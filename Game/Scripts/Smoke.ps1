@@ -105,6 +105,13 @@
     Lane stand-ins the server spawns when preparation begins.
 .PARAMETER LoadTestStandInHz
     The stand-ins' network update rate; 0 keeps the engine's default for characters.
+.PARAMETER PlayingBots
+    Playing bots the server seats when preparation begins, each on the smaller side, taking the
+    released Vanguards in turn (ADR-013). With -ClientStaySeconds the match runs on while the clients
+    stay; the server's minute-by-minute report of the match, the bots' purchases, deaths, recalls and
+    the structures that fell are summarised at the end.
+.PARAMETER BotDifficulty
+    How the playing bots play: Beginner (default) or Intermediate.
 .PARAMETER ClientStaySeconds
     Seconds each client stays connected after its script before quitting.
 .PARAMETER Screenshot
@@ -164,6 +171,12 @@ param(
 
     [ValidateRange(0, 200)]
     [int]$LoadTestStandInHz = 0,
+
+    [ValidateRange(0, 10)]
+    [int]$PlayingBots = 0,
+
+    [ValidateSet('Beginner', 'Intermediate')]
+    [string]$BotDifficulty = 'Beginner',
 
     [ValidateRange(0, 3600)]
     [int]$ClientStaySeconds = 0,
@@ -229,6 +242,9 @@ if ($LoadTestStandIns -gt 0) {
 }
 if ($LoadTestStandInHz -gt 0) {
     $urlOptions += "?VeyraLoadStandInHz=$LoadTestStandInHz"
+}
+if ($PlayingBots -gt 0) {
+    $urlOptions += "?VeyraPlayingBots=${PlayingBots}?VeyraBotDifficulty=${BotDifficulty}"
 }
 
 # The editor server's map and options; compose.yaml gives the container the same ones.
@@ -968,6 +984,35 @@ else {
 if ($NetStatsSeconds -gt 0) {
     Write-Host 'Server network statistics:'
     Select-String -LiteralPath $serverLogPath -Pattern 'VeyraNetStats: window=.*' | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
+}
+
+if ($PlayingBots -gt 0) {
+    # How the bots played: they must be seated, report, and buy; the rest is what happened.
+    Write-Host 'The playing bots:'
+    $seated = Select-String -LiteralPath $serverLogPath -Pattern 'VeyraBotMatch: seated (\d+) of (\d+)' | Select-Object -First 1
+    $reports = @(Select-String -LiteralPath $serverLogPath -Pattern 'VeyraBotMatch: at .*')
+    $bought = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraItems: .* bought ')
+    $deaths = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraMatch: \S+ died at level ')
+    $recalls = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraMatch: Bot\d+ recalls to its fountain')
+    $fallen = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraWorld: .* was destroyed\.')
+    $ended = Select-String -LiteralPath $serverLogPath -Pattern 'The match ended \(.*' | Select-Object -Last 1
+    Write-Host ("  {0}; {1} purchase(s), {2} death(s), {3} bot recall(s), {4} structure(s) destroyed." -f $(if ($seated) { $seated.Matches[0].Value } else { 'none seated' }),
+        $bought.Count, $deaths.Count, $recalls.Count, $fallen.Count)
+    $reports | Select-Object -Last 3 | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
+    $fallen | Select-Object -First 12 | ForEach-Object { Write-Host "  $($_.Line -replace '^.*LogVeyraWorld: ', '')" }
+    if ($ended) { Write-Host "  $($ended.Matches[0].Value)" }
+    if (-not $seated -or $seated.Matches[0].Groups[1].Value -ne "$PlayingBots") {
+        Write-Host "  Expected all $PlayingBots bot(s) seated."
+        $failed = $true
+    }
+    if ($bought.Count -eq 0) {
+        Write-Host '  No bot bought anything.'
+        $failed = $true
+    }
+    if ($reports.Count -eq 0) {
+        Write-Host '  The server never reported the match: it never went live.'
+        $failed = $true
+    }
 }
 
 if ($RecordReplay) {

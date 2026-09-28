@@ -83,6 +83,10 @@ struct FVeyraBotPositioningTuning
 	UPROPERTY()
 	double HoldTolerance = 0.0;
 
+	/** How near, edge to edge, an enemy Fluxborn must be for a bot to push with it, in units. */
+	UPROPERTY()
+	double PushRange = 0.0;
+
 	/** A bot that retreated heals at its fountain to this fraction of Max Health before it goes back. */
 	UPROPERTY()
 	double LeaveFountainHealthFraction = 0.0;
@@ -109,6 +113,17 @@ struct FVeyraBotDifficultyTuning
 	UPROPERTY()
 	double LastHitChance = 0.0;
 
+	/**
+	 * How many basic attacks' damage a Fluxborn may have left when the bot goes for the last hit: at
+	 * least 1, and more to cover walking up and winding up.
+	 */
+	UPROPERTY()
+	double LastHitLead = 0.0;
+
+	/** The chance, at each decision with nothing to last-hit, that the bot shoves its wave. */
+	UPROPERTY()
+	double PushChance = 0.0;
+
 	/** The chance, at each decision, that the bot casts an ability that is ready and useful. */
 	UPROPERTY()
 	double CastChance = 0.0;
@@ -123,6 +138,17 @@ struct FVeyraBotDifficultyTuning
 	/** The bot fights an enemy Vanguard only while its Health fraction is at least the enemy's plus this. */
 	UPROPERTY()
 	double FightHealthMargin = 0.0;
+
+	/** With this much Gold and its next purchase affordable, a bot in a quiet lane recalls to shop. */
+	UPROPERTY()
+	double ShopRecallGold = 0.0;
+
+	/**
+	 * The most enemy Fluxborn that may stand within their aggression response range of the bot when
+	 * it starts a fight: more, and hitting an enemy Vanguard would turn the wave on it.
+	 */
+	UPROPERTY()
+	int32 FluxbornTolerance = 0;
 };
 
 USTRUCT()

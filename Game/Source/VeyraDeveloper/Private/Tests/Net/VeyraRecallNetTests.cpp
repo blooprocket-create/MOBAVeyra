@@ -9,6 +9,7 @@
 #include "Casting/VeyraCastStateComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/PlayerStart.h"
+#include "Inventory/VeyraInventoryComponent.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
@@ -46,6 +47,7 @@ namespace VeyraNetTests
 		static constexpr double HomeTolerance = 100.0;
 		static constexpr double ScratchDamage = 1.0;
 		static constexpr double StunSeconds = 5.0;
+		static constexpr double NeverSeconds = 3600.0;
 
 		BEFORE_EACH()
 		{
@@ -128,6 +130,24 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsFalse(ServerRecall(State).IsRecalling()));
 					CastState.Clear();
 					ASSERT_THAT(IsTrue(OrderRecall(State) == EVeyraOrderRejection::None && ServerRecall(State).IsRecalling()));
+				});
+		}
+
+		TEST_METHOD(ItsShopOpensTheMomentItArrives)
+		{
+			// A fountain check too slow ever to run: only the arrival itself can open the shop.
+			Tuning->Tuning.Fountain.IntervalSeconds = NeverSeconds;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Send the Vanguard away, and recall"), [this](FState& State) {
+					SendAway(State);
+					ASSERT_THAT(IsFalse(ServerParticipant(State).FindComponentByClass<UVeyraInventoryComponent>()->IsAtFountain()));
+					ASSERT_THAT(IsTrue(OrderRecall(State) == EVeyraOrderRejection::None));
+				})
+				.UntilServer(TEXT("It arrives home"), [](FState& State) {
+					return FVector::Dist2D(ServerBody(State).GetActorLocation(), State.Home) < HomeTolerance && !ServerRecall(State).IsRecalling();
+				})
+				.ThenServer(TEXT("Its shop is open"), [this](FState& State) {
+					ASSERT_THAT(IsTrue(ServerParticipant(State).FindComponentByClass<UVeyraInventoryComponent>()->IsAtFountain()));
 				});
 		}
 

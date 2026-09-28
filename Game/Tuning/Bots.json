@@ -8,8 +8,9 @@
   },
   "positioning": {
     "provenance": "Provisional",
-    "followDistance": 350,
+    "followDistance": 200,
     "holdTolerance": 150,
+    "pushRange": 500,
     "leaveFountainHealthFraction": 0.9
   },
   "difficulties": {
@@ -18,20 +19,28 @@
       "thinkSeconds": 0.5,
       "reactionSeconds": 1.0,
       "lastHitChance": 0.5,
+      "lastHitLead": 1.2,
+      "pushChance": 0.5,
       "castChance": 0.35,
       "aim": "AtTarget",
       "retreatHealthFraction": 0.35,
-      "fightHealthMargin": 0.15
+      "fightHealthMargin": -0.1,
+      "shopRecallGold": 900,
+      "fluxbornTolerance": 1
     },
     "intermediate": {
       "provenance": "Provisional",
       "thinkSeconds": 0.25,
       "reactionSeconds": 0.4,
       "lastHitChance": 0.85,
+      "lastHitLead": 1.5,
+      "pushChance": 0.8,
       "castChance": 0.75,
       "aim": "Lead",
       "retreatHealthFraction": 0.25,
-      "fightHealthMargin": 0.0
+      "fightHealthMargin": -0.2,
+      "shopRecallGold": 800,
+      "fluxbornTolerance": 2
     }
   },
   "lanes": ["Mid", "Top", "Bottom", "Bottom", "Top"],

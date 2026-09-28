@@ -41,5 +41,5 @@ void UVeyraBotSubsystem::OnBotAdded(AVeyraPlayerState& Bot, const FVeyraBotSeat&
 	UVeyraBotBrainComponent* Brain = NewObject<UVeyraBotBrainComponent>(Controller);
 	Brain->Configure(Bot, Lane, Seat.Difficulty, static_cast<int32>(HashCombine(GetTypeHash(Bot.GetPlayerId()), GetTypeHash(Seat.Seat))));
 	Brain->RegisterComponent();
-	UE_LOG(LogVeyraBots, Log, TEXT("%s plays %s lane as a %s bot."), *Bot.GetPlayerName(), *UEnum::GetValueAsString(Lane), LexToString(Seat.Difficulty));
+	UE_LOG(LogVeyraBots, Log, TEXT("%s plays %s lane as a %s bot."), *Bot.GetPlayerName(), *StaticEnum<EVeyraLane>()->GetNameStringByValue(static_cast<int64>(Lane)), LexToString(Seat.Difficulty));
 }

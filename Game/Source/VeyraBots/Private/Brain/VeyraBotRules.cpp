@@ -275,11 +275,17 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 		return MoveTo(EVeyraBotAction::Retreat, View.LaneHold, TEXT("under tower fire: backing off"));
 	}
 
-	// Fight the weakest enemy Vanguard it has watched long enough, if the trade favours it and no
-	// enemy tower covers either of them (ADR-013 §8.4, §8.5).
+	// Fight the weakest enemy Vanguard it has watched long enough, if the trade favours it, no enemy
+	// tower covers the foe, and the enemy wave would not turn on it (ADR-013 §8.4, §8.5; Battleground
+	// Bible §19).
 	const FVeyraBotUnit* Foe = nullptr;
+	const bool bWaveWouldAnswer = View.FluxbornWouldAnswer > Difficulty.FluxbornTolerance;
 	for (const FVeyraBotUnit& Enemy : View.EnemyVanguards)
 	{
+		if (bWaveWouldAnswer)
+		{
+			break;
+		}
 		const double* SeenAt = Memory.FirstSeen.Find(Enemy.Actor);
 		const bool bWatched = SeenAt && View.Now - *SeenAt >= Difficulty.ReactionSeconds;
 		const bool bFavoured = Health >= Enemy.HealthFraction() + Difficulty.FightHealthMargin;
@@ -319,25 +325,63 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 		return AttackOf(*Foe, TEXT("fighting"));
 	}
 
-	// Last-hit a Fluxborn one basic attack kills, unless an enemy tower would shoot it for that.
+	// Gold to spend and a quiet lane: back to shop (ADR-013 §8.2).
+	if (!View.bAtFountain && View.bPurchaseWaiting && View.Gold >= Difficulty.ShopRecallGold)
+	{
+		const FVeyraBotUnit* Threat = Nearest(View.Self, View.EnemyVanguards);
+		if (!Threat || EdgeDistance(View.Self, *Threat) > Tuning.Senses.SafeRadius)
+		{
+			return Intent(EVeyraBotAction::Recall, TEXT("Gold to spend: recalling to shop"));
+		}
+	}
+
+	// Last-hit a Fluxborn about to die: within a lead of one basic attack, which covers walking up
+	// and winding up. Push with the weakest one near it otherwise. Never where an enemy tower would
+	// shoot it for that, unless its wave holds the tower.
 	const FVeyraBotUnit* Prey = nullptr;
+	const FVeyraBotUnit* Weakest = nullptr;
+	const FVeyraBotUnit* Committed = nullptr;
+	const bool bWaveHoldsTower = View.EnemyStructure.IsSet() && View.EnemyStructure->bAlliesInRange;
 	for (const FVeyraBotUnit& Fluxborn : View.EnemyFluxborn)
 	{
-		const bool bSafe = !IsCoveredByTower(View, Fluxborn, 0.0) || (View.EnemyStructure.IsSet() && View.EnemyStructure->bAlliesInRange);
-		if (Fluxborn.Health <= View.AttackDamage * Fluxborn.DamageTaken && bSafe && (!Prey || EdgeDistance(View.Self, Fluxborn) < EdgeDistance(View.Self, *Prey)))
+		if (IsCoveredByTower(View, Fluxborn, 0.0) && !bWaveHoldsTower)
+		{
+			continue;
+		}
+		Committed = Fluxborn.Actor == Memory.FarmTarget ? &Fluxborn : Committed;
+		const double Distance = EdgeDistance(View.Self, Fluxborn);
+		if (Fluxborn.Health <= View.AttackDamage * Fluxborn.DamageTaken * Difficulty.LastHitLead && (!Prey || Distance < EdgeDistance(View.Self, *Prey)))
 		{
 			Prey = &Fluxborn;
+		}
+		if (Distance <= Tuning.Positioning.PushRange && (!Weakest || Fluxborn.Health < Weakest->Health))
+		{
+			Weakest = &Fluxborn;
 		}
 	}
 	if (Prey && Random.FRand() < Difficulty.LastHitChance)
 	{
+		Memory.FarmTarget = Prey->Actor;
 		return AttackOf(*Prey, TEXT("last-hitting"));
+	}
+
+	// Keep attacking the Fluxborn it chose: a new choice each decision would throw its windups away.
+	if (Committed)
+	{
+		return AttackOf(*Committed, TEXT("keeping at its Fluxborn"));
 	}
 
 	// Siege with its wave: a structure it can damage while the tower shoots the wave (ADR-013 §8.4).
 	if (View.EnemyStructure.IsSet() && View.EnemyStructure->bVulnerable && View.EnemyStructure->bAlliesInRange)
 	{
 		return AttackOf(View.EnemyStructure->Unit, TEXT("sieging with its wave"));
+	}
+
+	// Shove the wave, as League's bots do, so lanes push and structures come under siege.
+	if (Weakest && Random.FRand() < Difficulty.PushChance)
+	{
+		Memory.FarmTarget = Weakest->Actor;
+		return AttackOf(*Weakest, TEXT("pushing the wave"));
 	}
 
 	if (FVector::Dist2D(View.Self.Location, View.LaneHold) > Tuning.Positioning.HoldTolerance)

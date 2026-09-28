@@ -37,9 +37,11 @@ namespace VeyraBotsTests
 			Tuning.Positioning.FollowDistance = 350.0;
 			Tuning.Positioning.HoldTolerance = 150.0;
 			Tuning.Positioning.LeaveFountainHealthFraction = 0.9;
+			Tuning.Positioning.PushRange = 500.0;
 			Difficulty.ThinkSeconds = 0.25;
 			Difficulty.ReactionSeconds = 0.5;
 			Difficulty.LastHitChance = 1.0;
+			Difficulty.LastHitLead = 1.0;
 			Difficulty.CastChance = 1.0;
 			Difficulty.RetreatHealthFraction = 0.3;
 			Difficulty.FightHealthMargin = 0.0;
@@ -165,6 +167,18 @@ namespace VeyraBotsTests
 			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Attack));
 		}
 
+		TEST_METHOD(ItStartsNoFightTheEnemyWaveWouldAnswer)
+		{
+			Difficulty.ReactionSeconds = 0.0;
+			Difficulty.FluxbornTolerance = 1;
+			FVeyraBotView View = AliveAt(0.0);
+			View.EnemyVanguards.Add(Unit(Near, 0.5));
+			View.FluxbornWouldAnswer = 2;
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Attack, TEXT("two Fluxborn would turn on it")));
+			View.FluxbornWouldAnswer = 1;
+			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Attack, TEXT("one it tolerates")));
+		}
+
 		TEST_METHOD(ItNeverFightsAHealthierFoeOrOneUnderAnEnemyTower)
 		{
 			Difficulty.ReactionSeconds = 0.0;
@@ -191,7 +205,8 @@ namespace VeyraBotsTests
 			FVeyraBotIntent Intent = Decide(View);
 			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Low.Actor));
 
-			// Armor that halves the attack keeps a Fluxborn just out of reach.
+			// Armor that halves the attack keeps a Fluxborn just out of reach, for a bot choosing afresh.
+			Memory.FarmTarget.Reset();
 			View.EnemyFluxborn[1].Health = View.AttackDamage * 0.75;
 			View.EnemyFluxborn[1].DamageTaken = 0.5;
 			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Attack));
@@ -202,6 +217,69 @@ namespace VeyraBotsTests
 			Tower.bAlliesInRange = true;
 			Intent = Decide(View);
 			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Tower.Unit.Actor));
+		}
+
+		TEST_METHOD(ItRecallsToShopWithGoldToSpendWhenNoEnemyIsNear)
+		{
+			Difficulty.ShopRecallGold = 1000.0;
+			FVeyraBotView View = AliveAt(0.0);
+			View.Gold = Difficulty.ShopRecallGold;
+			View.bPurchaseWaiting = true;
+			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Recall));
+			// An enemy near: it stays; nothing to buy, or too little Gold: it stays.
+			View.EnemyVanguards.Add(Unit(Near, 1.0));
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Recall));
+			View.EnemyVanguards.Reset();
+			View.bPurchaseWaiting = false;
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Recall));
+			View.bPurchaseWaiting = true;
+			View.Gold = Difficulty.ShopRecallGold - 1.0;
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Recall));
+		}
+
+		TEST_METHOD(ItGoesForALastHitEarlyAndPushesOtherwise)
+		{
+			FVeyraBotView View = AliveAt(0.0);
+			FVeyraBotUnit Hurt = Unit(Near);
+			Hurt.Health = View.AttackDamage * 1.4;
+			FVeyraBotUnit Healthy = Unit(Near);
+			View.EnemyFluxborn = { Healthy, Hurt };
+			// Out of reach of one attack: no last hit, and without pushing it holds.
+			Difficulty.PushChance = 0.0;
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Attack));
+			// A lead covers it.
+			Difficulty.LastHitLead = 1.5;
+			FVeyraBotIntent Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Hurt.Actor));
+			// With no last hit to take, it pushes with the weakest Fluxborn near it.
+			Difficulty.LastHitLead = 1.0;
+			Difficulty.PushChance = 1.0;
+			Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Hurt.Actor, TEXT("the weakest")));
+			// Not beyond its push range.
+			View.EnemyFluxborn = { Unit(Far) };
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Attack));
+		}
+
+		TEST_METHOD(ItKeepsAttackingTheFluxbornItChose)
+		{
+			FVeyraBotView View = AliveAt(0.0);
+			View.LaneHold = FVector(-Far, 0.0, 0.0);
+			const FVeyraBotUnit Chosen = Unit(Near);
+			View.EnemyFluxborn = { Chosen };
+			Difficulty.PushChance = 1.0;
+			ASSERT_THAT(IsTrue(Decide(View).Target == Chosen.Actor));
+			// A weaker one comes near and no new push is chosen: it stays on the first, not walking
+			// back to its place and throwing the windup away.
+			FVeyraBotUnit Weaker = Unit(Near);
+			Weaker.Health = Chosen.Health / 2.0;
+			View.EnemyFluxborn = { Chosen, Weaker };
+			Difficulty.PushChance = 0.0;
+			const FVeyraBotIntent Kept = Decide(View);
+			ASSERT_THAT(IsTrue(Kept.Action == EVeyraBotAction::Attack && Kept.Target == Chosen.Actor));
+			// Once it is gone, it chooses afresh.
+			View.EnemyFluxborn = { Weaker };
+			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Move));
 		}
 
 		TEST_METHOD(OtherwiseItTakesItsPlaceInLane)

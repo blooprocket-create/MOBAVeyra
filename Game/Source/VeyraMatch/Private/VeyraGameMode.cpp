@@ -489,7 +489,16 @@ void AVeyraGameMode::CompleteRecall(TWeakObjectPtr<AVeyraPlayerState> PlayerStat
 	{
 		Controller->StopOrders();
 	}
-	Body->TeleportTo(Start->GetActorLocation(), Start->GetActorRotation());
+	if (!Body->TeleportTo(Start->GetActorLocation(), Start->GetActorRotation()))
+	{
+		return;
+	}
+	// Arriving opens its shop at once, not at the next fountain check: until then it would seem
+	// still away, and a bot would recall again.
+	if (UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>())
+	{
+		Shop->SetAtFountain(*PlayerState, true);
+	}
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s recalls to its fountain."), *PlayerState->GetPlayerName());
 }
 

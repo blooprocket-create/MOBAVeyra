@@ -10,6 +10,9 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Brain/VeyraBotAbilities.h"
 #include "Brain/VeyraBotLane.h"
+#include "Brain/VeyraBotRules.h"
+#include "Gold/VeyraGoldComponent.h"
+#include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Damage/VeyraDamageResolver.h"
@@ -121,9 +124,18 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraLane Lane, const FVeyraB
 	{
 		View.bRecalling = Recall->IsRecalling();
 	}
-	if (const UVeyraInventoryComponent* Inventory = Bot.FindComponentByClass<UVeyraInventoryComponent>())
+	const UVeyraInventoryComponent* Inventory = Bot.FindComponentByClass<UVeyraInventoryComponent>();
+	const UVeyraGoldComponent* Gold = Bot.FindComponentByClass<UVeyraGoldComponent>();
+	const FVeyraBotVanguardTuning* Behaviour = Tuning.Vanguards.Find(Bot.GetVanguardId());
+	if (Inventory)
 	{
 		View.bAtFountain = Inventory->IsAtFountain();
+	}
+	if (Inventory && Gold && Behaviour)
+	{
+		View.Gold = Gold->GetGold();
+		View.bPurchaseWaiting =
+			VeyraBotRules::NextPurchase(UVeyraItemsTuningSubsystem::Get(), Behaviour->Build, Inventory->GetSlots(), Inventory->GetQueue(), View.Gold).IsSet();
 	}
 	const EVeyraTeam Team = Bot.GetVeyraTeam();
 	const AActor* Start = FindStart(*World, Team);
@@ -165,6 +177,7 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraLane Lane, const FVeyraB
 	const FVeyraLaneLayout* LaneLayout = Layout ? Layout->Lanes.FindByPredicate([Lane](const FVeyraLaneLayout& Candidate) { return Candidate.Lane == Lane; }) : nullptr;
 	const TArray<FVector2D> Path = LaneLayout ? VeyraLayout::Waypoints(*LaneLayout, Team) : TArray<FVector2D>();
 	const double MitigationConstant = UVeyraCombatTuningSubsystem::Get().Resistance.MitigationConstant;
+	const double AnswerRange = UVeyraWorldTuningSubsystem::Get().Fluxborn.Ai.AggressionResponseRange;
 	TOptional<double> WaveFront;
 	TArray<const AVeyraFluxborn*> Allies;
 	const TArray<AVeyraFluxborn*> Everyone = Battleground ? Battleground->GetFluxborn() : TArray<AVeyraFluxborn*>();
@@ -189,6 +202,8 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraLane Lane, const FVeyraB
 			const UAbilitySystemComponent* Defender = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Fluxborn);
 			const double Resistance = AttributeOf(Defender, bPhysicalAttack ? UVeyraDefenceSet::GetArmorAttribute() : UVeyraDefenceSet::GetMagicResistAttribute());
 			Seen.DamageTaken = VeyraDamage::ResistanceDamageMultiplier(Resistance, MitigationConstant);
+			// A Fluxborn answers an attack on an allied Vanguard within its response range of its edge.
+			View.FluxbornWouldAnswer += VeyraBotRules::EdgeDistance(View.Self, Seen) <= AnswerRange ? 1 : 0;
 		}
 	}
 
@@ -250,7 +265,7 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraLane Lane, const FVeyraB
 		View.LaneHold.Z = View.Self.Location.Z;
 	}
 
-	SenseSlots(Bot, Tuning.Vanguards.Find(Bot.GetVanguardId()), View);
+	SenseSlots(Bot, Behaviour, View);
 	return View;
 }
 }

@@ -40,10 +40,11 @@ The game mode's order handlers gain overloads by participant (`AVeyraPlayerState
   1. shop and spend skill points when dead or at the fountain;
   2. retreat, then recall, when hurt;
   3. recall when the next item is affordable and the lane is quiet;
-  4. fight an enemy Vanguard when the trade favours the bot and no enemy tower covers it;
-  5. last-hit Fluxborn;
+  4. fight an enemy Vanguard when the trade favours the bot, no enemy tower covers it and the enemy wave would not turn on it;
+  5. last-hit Fluxborn about to die;
   6. siege with the wave;
-  7. otherwise hold behind the wave.
+  7. push: attack the weakest enemy Fluxborn near it;
+  8. otherwise hold behind the wave.
 - **Act:** `UVeyraBotBrainComponent` thinks on a world-time timer, so a pause holds bots too. It turns the intent into orders through §3, re-issuing only when the intent changes.
 
 The targeting kind of each ability comes from the archetype map that defines it (ADR-008): targeted, area, skillshot, dash, self-buff or empowered attack. Each kind has one aiming rule, so no ability is named in code.
@@ -51,15 +52,15 @@ The targeting kind of each ability comes from the archetype map that defines it 
 ### 5. Difficulty and behaviour are data
 
 `Game/Tuning/Bots.json` (owner VeyraBots, with a schema) holds:
-- **`difficulties.beginner` and `.intermediate`:** think and reaction times, last-hit and cast chances, whether skillshots lead, and the retreat, recall and fight thresholds.
+- **`difficulties.beginner` and `.intermediate`:** think and reaction times, last-hit, push and cast chances, the last-hit lead, whether skillshots lead, how many enemy Fluxborn a fight may provoke, and the retreat, recall and fight thresholds.
 - **`lanes`:** which lane each seat plays.
 - **`vanguards.<id>`:** each Vanguard's build order (item IDs), skill priority and cast conditions.
 
-`check_tuning.py` checks the item and Vanguard references. Randomness (a missed last hit, a withheld cast) draws from a stream seeded by the match and the seat, so a match replays the same.
+`check_tuning.py` checks the item and Vanguard references. Randomness (a missed last hit, a withheld cast) draws from a stream seeded by the participant and its seat, so a bot's choices repeat for the same seating.
 
 ### 6. Seats carry difficulty
 
-`FVeyraAssignedBot` and the backend's `AssignedBot` gain `difficulty` (Beginner or Intermediate), validated; practice bots default to Beginner in `customPractice.bots`. A developer match may add bots with `-VeyraBots=<n>[:difficulty]` for local soak runs.
+`FVeyraAssignedBot` and the backend's `AssignedBot` gain `difficulty` (Beginner or Intermediate), validated; practice bots default to Beginner in `customPractice.bots`. A developer server adds playing bots with the map URL options `VeyraPlayingBots=<n>` and `VeyraBotDifficulty=`, which `Smoke.ps1 -PlayingBots` uses to run whole bot matches.
 
 ### 7. Scope
 
@@ -69,12 +70,14 @@ The targeting kind of each ability comes from the archetype map that defines it 
 ### 8. League answers where canon is silent (for the author to overturn)
 
 1. Lanes: one top, one mid, two bottom; with no jungle, the fifth plays top.
-2. Retreat below a Health fraction, then recall once no enemy is near; recall on the next affordable item when the lane is quiet.
+2. Retreat below a Health fraction, then recall once no enemy is near; with Gold past a threshold (`shopRecallGold`) and the next purchase affordable, recall to spend it when no enemy is near.
 3. Bots buy when dead or at the fountain, from their Vanguard's build order, as League's bots follow fixed builds.
 4. Bots never dive towers: they fight only outside an enemy tower's range unless allied Fluxborn hold its aggro.
 5. Target choice: the enemy Vanguard in reach with the lowest Health fraction.
 6. Beginner reacts later, misses some last hits, casts less often, does not lead skillshots and retreats earlier. Intermediate reacts sooner, last-hits reliably, leads skillshots and trades harder.
-7. A bot uses a Field Tonic when hurt and out of combat.
+7. Bots buy no consumables yet: builds hold equipment only, and Field Tonics wait for a consumables rule in `Bots.json`.
+8. Bots respect minion aggro: they start no fight while more enemy Fluxborn than `fluxbornTolerance` stand within those Fluxborn's aggression response range (World.json), since hitting an enemy Vanguard would turn them on the bot (Battleground Bible §19).
+9. Bots farm and push as League's do: they go for a last hit once a Fluxborn has at most `lastHitLead` basic attacks' damage left, to cover walking up and winding up, and otherwise shove the wave by attacking the weakest enemy Fluxborn within `positioning.pushRange` (`pushChance` per decision). Once they choose a Fluxborn they keep attacking it until it dies or leaves their sight, unless a last hit comes up, so a fresh choice each decision never throws a windup away. Neither happens under an enemy tower unless their own wave holds its aggro.
 
 ## Consequences
 

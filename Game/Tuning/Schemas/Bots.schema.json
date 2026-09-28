@@ -20,16 +20,20 @@
       "description": "One behaviour (Custom Matches Bible §3). It changes how a bot plays, never the rules (Modes & Access Bible §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "thinkSeconds", "reactionSeconds", "lastHitChance", "castChance", "aim", "retreatHealthFraction", "fightHealthMargin"],
+      "required": ["provenance", "thinkSeconds", "reactionSeconds", "lastHitChance", "lastHitLead", "pushChance", "castChance", "aim", "retreatHealthFraction", "fightHealthMargin", "shopRecallGold", "fluxbornTolerance"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "thinkSeconds": { "description": "Seconds between a bot's decisions, on match time.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "reactionSeconds": { "description": "How long an enemy Vanguard must be in sight before the bot fights it.", "type": "number", "minimum": 0 },
         "lastHitChance": { "description": "The chance, at each decision, that the bot goes for a Fluxborn its basic attack would kill.", "type": "number", "minimum": 0, "maximum": 1 },
+        "lastHitLead": { "description": "How many basic attacks' damage a Fluxborn may have left when the bot goes for the last hit: at least 1, and more to cover walking up and winding up.", "type": "number", "minimum": 1 },
+        "pushChance": { "description": "The chance, at each decision with nothing to last-hit, that the bot shoves its wave by attacking the weakest enemy Fluxborn near it.", "type": "number", "minimum": 0, "maximum": 1 },
         "castChance": { "description": "The chance, at each decision, that the bot casts an ability that is ready and useful.", "type": "number", "minimum": 0, "maximum": 1 },
         "aim": { "description": "Where the bot aims a skillshot or area at a moving target: where it is (AtTarget), or where it will be (Lead).", "type": "string", "enum": ["AtTarget", "Lead"] },
         "retreatHealthFraction": { "description": "Below this fraction of Max Health the bot retreats, and recalls once it is safe.", "type": "number", "minimum": 0, "maximum": 1 },
-        "fightHealthMargin": { "description": "The bot fights an enemy Vanguard only while its own Health fraction is at least the enemy's plus this margin.", "type": "number", "minimum": -1, "maximum": 1 }
+        "fightHealthMargin": { "description": "The bot fights an enemy Vanguard only while its own Health fraction is at least the enemy's plus this margin.", "type": "number", "minimum": -1, "maximum": 1 },
+        "shopRecallGold": { "description": "With this much Gold and its next purchase affordable, a bot recalls to shop when no enemy Vanguard is near (League's 'back to spend').", "type": "number", "minimum": 0 },
+        "fluxbornTolerance": { "description": "The most enemy Fluxborn within their aggression response range (World.json fluxborn.ai) of the bot when it starts a fight; with more, hitting an enemy Vanguard would turn the wave on it (Battleground Bible §19).", "type": "integer", "minimum": 0 }
       }
     },
     "vanguard": {
@@ -86,11 +90,12 @@
       "description": "Where a bot stands in its lane (ADR-013 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "followDistance", "holdTolerance", "leaveFountainHealthFraction"],
+      "required": ["provenance", "followDistance", "holdTolerance", "pushRange", "leaveFountainHealthFraction"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "followDistance": { "description": "How far behind its wave's front, toward its own base, a bot holds, in units.", "type": "number", "minimum": 0 },
         "holdTolerance": { "description": "How far from its spot a bot may stand before it walks back, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "pushRange": { "description": "How near, edge to edge, an enemy Fluxborn must be for a bot to push with it, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "leaveFountainHealthFraction": { "description": "A bot that retreated heals at its fountain to this fraction of Max Health before it goes back.", "type": "number", "minimum": 0, "maximum": 1 }
       }
     },
