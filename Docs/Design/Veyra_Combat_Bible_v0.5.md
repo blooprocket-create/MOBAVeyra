@@ -1055,18 +1055,13 @@ Ownership ultimately resolves back to a Vanguard or world system; recursive summ
 
 Structures take damage primarily from basic attacks.
 
-### Primary Damage Type conversion
+### Basic attacks against structures (ruled 2026-09-28)
 
-Every Vanguard has an explicit **Primary Damage Type**.
+A basic attack against a damageable structure is resolved like any other basic attack. It uses the Vanguard's Physical Power, deals Physical Damage (§4), and checks the structure's Armor. This holds for every Vanguard, including those whose abilities scale from Magic Power.
 
-When basic attacking a damageable structure:
+**The stat model** is the familiar one: basic attacks scale from Physical Power, and each ability scales from whichever of Physical or Magic Power its own data names. Magic Power normally comes from items rather than base stats. A mage such as Oriel therefore hits structures with her ordinary Physical basic attack.
 
-- Physical-primary Vanguards use their Physical Power for the structure attack.
-- Magic-primary Vanguards use their Magic Power for the structure attack.
-
-The structure attack then deals the corresponding Physical or Magic damage and checks the structure's matching defensive stat.
-
-The engine must not guess a Vanguard's Primary Damage Type based on whichever stat happens to be higher at the moment.
+**Superseded:** the earlier rule gave every Vanguard a Primary Damage Type and had Magic-primary Vanguards convert structure attacks to Magic Power. With Magic Power coming from items, it left mages unable to damage structures early and made them outscale everyone against structures later.
 
 ### Structure Effectiveness
 

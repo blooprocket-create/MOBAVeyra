@@ -59,6 +59,18 @@ A Vanguard who attunes to one of the Crucible's Prime Wells can project a tempor
 
 A veteran MOBA player should understand the macro map quickly, but should not be able to overlay another game's wall, brush, river, or gank geometry and instantly know every route.
 
+### Macro shape (ruled 2026-09-28)
+
+- At the macro scale the map should **look like a familiar League of Legends-style battleground**:
+  - the two Prime Wells in opposite corners;
+  - top lane running up one side and across the top;
+  - bot lane running along the bottom and up the other side;
+  - mid lane on the diagonal between the bases;
+  - a river crossing the other diagonal;
+  - inner jungle between the lanes.
+- The Veyra difference is the **outer jungle** beyond top and bot (§7), so those lanes are not the edge of the map.
+- Walls, jungle routes and fog placement stay Veyra's own, per the design intent above.
+
 ### Ability-created terrain (ruled 2026-09-23)
 
 - **Abilities may change pathing for both teams at runtime.** Temporary impassable terrain created by an ability (currently the cooled black-iron wall from Varkesh's **Forge Divide**) is **real terrain** while it exists: it blocks movement for every unit, both teams and neutral wildlife alike, and pathing units route around it. It is not a collision volume that only some units respect.

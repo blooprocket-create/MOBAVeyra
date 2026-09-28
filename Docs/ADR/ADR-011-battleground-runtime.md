@@ -22,7 +22,7 @@ Several facts in the code shape the design:
 1. **The planned layer for Flux and World cannot hold them.** `ModuleLayers.json` puts World and Flux beside VeyraAbilities in the Abilities layer. Fluxborn need `UVeyraBasicAttackComponent`, and tower shots need `AVeyraProjectile`, which both live in VeyraAbilities, and a module may not depend on a module in its own layer.
 2. **Combat records attribution only between Vanguards.** Kill credit for a death the environment finishes (Combat §18) is not implemented, and a Vanguard's takedown effects fire when it kills anything.
 3. **"Structure Attack" and "Structure Projectile"** (Combat §55) are on Combat §2's open descriptive-tag list, and Project Structure §5 forbids adding tags from an open list.
-4. **No Vanguard declares a Primary Damage Type** (Combat §33). All four basic attacks are Physical, and every base Magic Power is 0.
+4. **Canon's structure conversion did not fit the stat model.** Combat §33 gave every Vanguard a Primary Damage Type and had Magic-primary Vanguards hit structures with Magic Power, but no Vanguard declares one. Like League of Legends, every base Magic Power is 0: it is meant to come from items. The author ruled the conversion out (§5).
 5. **Healing does not exist yet** (ADR-009 open item). The Prime Well's regeneration needs a minimal form of it.
 6. **In-process play sessions replicate no map-placed actor** (ADR-006 §8), so anything the network tests must see is spawned at runtime.
 
@@ -131,11 +131,11 @@ Calls go down the layers, events go up, and the two peers meet only through Matc
 - **Targeting and area effects.**
   - Targeting an enemy structure with an ability that is not structure-enabled is refused with its own reason.
   - Areas, skillshots, cleaves and secondary impacts do not gather structures.
-- **Structure Effectiveness** (`Combat.json`, Canon 50%) scales secondary riders on a basic attack against a structure: crit bonus, on-hit damage, empowered bonus damage, and lifesteal. The converted basic-attack damage stays at full effectiveness.
-- **Primary Damage Type** (amends ADR-008 §2).
-  - Every Vanguard declares one in `Vanguards.json`, and structure basic attacks use its matching power and the structure's matching defence. The engine never guesses it.
-  - Cairn, Qazharr and Bryn are **Physical**-primary.
-  - Oriel's canon entry says "Damage: Magic", so she is **Magic**-primary. Her provisional stats from M5 give her no Magic Power, so she would deal no damage to structures. Her Magic Power is the open question in §16.
+- **Structure Effectiveness** (`Combat.json`, Canon 50%) scales secondary riders on a basic attack against a structure: crit bonus, on-hit damage, empowered bonus damage, and lifesteal. The basic-attack damage itself stays at full effectiveness.
+- **Basic attacks hit structures as they hit anything else** (author ruling, 2026-09-28; Combat §33 amended). They use Physical Power, deal Physical damage and check the structure's Armor, for every Vanguard.
+  - There is no Primary Damage Type and no conversion to Magic Power, so `Vanguards.json` gains no such field.
+  - The target stat model is the familiar AD/AP split: basic attacks scale from Physical Power, and each ability scales from whichever power its data names. Base Magic Power is 0, and Magic Power comes from items.
+  - Oriel, whose abilities scale from Magic Power, hits structures with her Physical basic attack. Her M5 stats already match the model.
 - **Tower attacks** (Combat §55):
   - Physical;
   - the `StructureAttack` delivery;
@@ -270,15 +270,26 @@ Lane Spires and base-defense towers share one attack component and one set of ru
 
 ### 12. The battleground layout and map
 
+- **The macro shape looks like a familiar League-style battleground** (author ruling, 2026-09-28; Battleground §2):
+  - Team A's base is in the bottom-left corner and Team B's in the top-right;
+  - top lane runs up the left side and across the top;
+  - bot lane runs along the bottom and up the right side;
+  - mid lane runs on the diagonal between the bases;
+  - the river crosses on the other diagonal;
+  - inner jungle fills the four spaces between the lanes;
+  - the river ends near the top and bot lane corners, where Battleground §6 places the two Flux Well sites.
+  - The author's reference is an overview of League of Legends' Summoner's Rift (2026-09-28). Each base is a quarter-disc plaza in its corner, with its three lanes fanning out.
+  - The Veyra difference: top and bot are set in from the edge, with **outer jungle** beyond them (Battleground §7).
+- **What M7 builds of the jungle.** Jungle and river are marked as distinct grey-box floor regions, so the shape reads and the space is reserved. Their walls, camps and routes arrive with the jungle work and stay Veyra's own.
 - **One data file drives both the map and the server's spawning.** `Game/Tuning/World.json` `layout` holds:
-  - the floor;
+  - the floor, the river and the jungle regions;
   - three lane polylines from Team A's base to Team B's;
   - each lane's inhibitor as a distance along the lane from its owning end, and its Spires as distances beyond that inhibitor;
   - Team A's Prime Well, base towers and fountain.
 
-  Team B's positions follow from a declared mirror (a reflection across the diagonal that maps each lane onto itself), so distances are balanced by construction, as Battleground §2 asks. Travel distance is gameplay, so the layout is tuning: hashed, staged and compared at login.
+  Team B's positions follow from a declared mirror: a reflection across the river's diagonal, which maps each lane onto itself and swaps the bases. Distances are therefore balanced by construction, as Battleground §2 and §7 ask. Travel distance is gameplay, so the layout is tuning: hashed, staged and compared at login.
 - **`UVeyraBattlegroundMapCommandlet`** (VeyraDeveloper, following the `L_Greybox` and `L_FrontEnd` commandlets) bakes `Content/Veyra/World/Maps/L_Battleground`:
-  - the floor, lane strips and base pads;
+  - the floor, lane strips, river, jungle regions and base pads;
   - the fountains as team starts;
   - navigation bounds and light;
   - a marker that tells the server to spawn the battleground.
@@ -325,13 +336,15 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - Shipping refuses it, like the other developer commands.
   - `Smoke.ps1 -Flow CasualVictory` uses it to reach Victory and Defeat end to end in minutes.
 
-### 16. Author rulings, provisional answers and open questions
+### 16. Author rulings and provisional answers
 
 **The author ruled on 2026-09-28, reviewing this record:**
 
 - **Lane structures fall in order** (§9); recorded in Battleground §10.
 - **Every Vanguard regenerates Health** (§11).
 - **The results screen builds up as features land**; it shows the winner now (§13).
+- **Basic attacks hit structures with Physical Power** for every Vanguard; Primary Damage Type conversion is removed from Combat §33. The stat model follows League's AD/AP split (§5).
+- **The map looks like a familiar League-style battleground at the macro scale**, with outer jungle beyond top and bot (§12); recorded in Battleground §2.
 
 **Provisional answers where canon is silent:**
 
@@ -347,9 +360,6 @@ Lane Spires and base-defense towers share one attack component and one set of ru
 10. **Fluxborn target order** among equals (§7) and **tower "normal targeting"** keeping its current Fluxborn (§8): canon gives priorities, not tie-breaks.
 11. **The grey-box layout and every number in §17.**
 
-**Open question for the author:**
-
-- **Oriel's Magic Power.** Canon makes her Magic-primary (§5), and her M5 stats give her 0 Magic Power, so she deals nothing to structures. The recommendation is a provisional base Magic Power near her Physical Power, so her structure attacks match her basic attacks today. Her abilities' Magic Power ratios would then add damage, so their base amounts may come down to compensate.
 
 ### 17. Values are data
 
@@ -357,8 +367,8 @@ Every value below is designer-editable data; none is a constant in code. Each re
 
 | Area | Owner | Values |
 |---|---|---|
-| Layout | `World.json` | Floor 14000 × 14000; bases in opposite corners about 5000 from the centre, mirrored; side lanes about 16 800 long and mid about 11 000 |
-| Spire positions | `World.json` | Distance from the owning inhibitor: side lanes 1200 / 3200 / 5500; mid 1000 / 2200 / 3400. Three per lane (Canon) |
+| Layout | `World.json` | Floor 18000 × 18000. Top and bot lanes run 2500 in from the edges, leaving an outer jungle band beyond them. Lanes are 700 wide; the river is 1000 wide on the anti-diagonal. Each base is a quarter-disc about 4200 across around its lane corner, with the fountain in the map corner. Between the inhibitors, side lanes are about 17 500 long and mid about 10 500, close to League's proportions |
+| Spire positions | `World.json` | Distance from the owning inhibitor: side lanes 1200 / 3200 / 5500 (the outer Spire before the lane's corner); mid 1000 / 2200 / 3400. Three per lane (Canon) |
 | Lane Spire and base tower | `World.json` | Health 3500 / 3000; Armor 60, Magic Resist 60; 150 Physical damage every 1.0 s; range 750; projectile speed 1200; ramp +20% per shot, five stacks (Canon illustration) |
 | Inhibitor | `World.json` | Health 3000; rebuild 180 s (Canon); +1 Breaker per new wave in its lane while down |
 | Prime Well | `World.json` | Health 5500; regenerates 0.5% of Max Health per second while all inhibitors stand |
@@ -375,7 +385,6 @@ Every value below is designer-editable data; none is a constant in code. Each re
 | Respawn | `Match.json` (v4) | Level 1: 6 s, rising to 45 s at Level 18; +2% per minute after 15:00, at most +50% |
 | Fountain recovery | `Match.json` | Radius and Health and resource per second at the fountain |
 | Vanguard Health Regeneration | `Vanguards.json` (v4) | Per second at Level 1, then per level: Cairn 1.7 + 0.16; Qazharr 1.6 + 0.15; Oriel 1.1 + 0.11; Bryn 0.75 + 0.11; the test Vanguard 0 |
-| Primary Damage Type | `Vanguards.json` (v4) | Cairn, Qazharr, Bryn Physical; Oriel Magic (Canon) |
 | Maps | backend configuration | The server map for each mode, Custom practice and development matches |
 
 ## Consequences
@@ -397,7 +406,7 @@ Every value below is designer-editable data; none is a constant in code. Each re
   - §5: Fluxborn and structure update rates and Iris filters;
   - §7: Fluxborn movement.
 - **ADR-007 §7:** the `prime_well_destroyed` end reason with a winner.
-- **ADR-008 §2:** every Vanguard declares a Primary Damage Type and a Health Regeneration with its growth.
+- **ADR-008 §2:** every Vanguard declares a Health Regeneration with its growth.
 - **ADR-009 §3:** attribution on any victim, the credited killer, the hostile-damage event, and takedowns on Vanguard victims only.
 - **ADR-010:**
   - §7: practice on the battleground without victory;
@@ -409,7 +418,6 @@ Every value below is designer-editable data; none is a constant in code. Each re
 - The fountain barrier during preparation, which would let Vanguards move inside their fountain (ADR-006 §7 deviation).
 - Recall, the shop and buyback (M8 and later).
 - Kill-streak bounties and death-streak devaluation (Economy §5.3–5.4).
-- Oriel's Magic Power (§16).
 - Whether "Structure Attack" and "Structure Projectile" become canon tags.
 - The Vision fog gate for Fluxborn and structures.
 
