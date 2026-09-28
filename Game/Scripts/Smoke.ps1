@@ -290,7 +290,8 @@ $serverProcess = $null
 
 function Invoke-Compose {
     param([string[]]$Arguments)
-    & docker compose --project-directory $repositoryDir --profile match-server @Arguments | Out-Host
+    # Plain progress: Docker's live display fails in a terminal once its output is piped.
+    & docker compose --progress plain --project-directory $repositoryDir --profile match-server @Arguments | Out-Host
     return $LASTEXITCODE
 }
 
@@ -722,7 +723,7 @@ function Stop-Server {
         $null = Invoke-Compose -Arguments @('stop', 'match-server')
         $demosDir = Join-Path $reportDir 'Demos'
         New-Item -ItemType Directory -Force -Path $demosDir | Out-Null
-        & docker compose --project-directory $repositoryDir --profile match-server cp "match-server:$ReplayContainerDir/." $demosDir | Out-Host
+        & docker compose --progress plain --project-directory $repositoryDir --profile match-server cp "match-server:$ReplayContainerDir/." $demosDir | Out-Host
     }
     Get-ServerLog | Out-File -LiteralPath $serverLogPath -Encoding utf8
     if (-not $KeepServer) {

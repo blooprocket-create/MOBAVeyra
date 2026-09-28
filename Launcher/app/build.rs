@@ -13,9 +13,19 @@ const ACCENT: [u8; 4] = [0x5a, 0xb4, 0xe6, 0xff];
 const SIZES: [u32; 2] = [32, 256];
 
 fn main() {
-    let icon = Path::new(&std::env::var("CARGO_MANIFEST_DIR").expect("cargo sets CARGO_MANIFEST_DIR")).join("icons/icon.ico");
+    let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").expect("cargo sets CARGO_MANIFEST_DIR");
+    // tauri-build watches capabilities/, and a watched path that does not exist is always stale, which
+    // would rebuild the launcher every time. The launcher grants no capabilities (its window calls only
+    // the app's own commands), so the folder exists and stays empty.
+    fs::create_dir_all(Path::new(&manifest_dir).join("capabilities")).expect("create capabilities/");
+    let icon = Path::new(&manifest_dir).join("icons/icon.ico");
     fs::create_dir_all(icon.parent().expect("the icon has a folder")).expect("create icons/");
-    fs::write(&icon, ico(&SIZES)).expect("write icons/icon.ico");
+    // Written only when it differs: tauri-build watches the icon, so rewriting it would rebuild the
+    // launcher on every build.
+    let bytes = ico(&SIZES);
+    if fs::read(&icon).ok().as_deref() != Some(bytes.as_slice()) {
+        fs::write(&icon, &bytes).expect("write icons/icon.ico");
+    }
     println!("cargo:rerun-if-changed=build.rs");
     tauri_build::build();
 }

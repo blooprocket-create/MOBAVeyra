@@ -112,6 +112,18 @@ $logDir = Join-Path $gameDir ('Saved\Play\' + (Get-Date -Format 'yyyyMMdd-HHmmss
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 $clientLogPath = Join-Path $logDir 'Client.log'
 
+# Runs docker compose and returns its exit code. Docker's live progress display fails in a terminal
+# once its output is captured ("failed to get console"), so it prints plain progress; its lines are
+# shown only when it fails.
+function Invoke-Compose([string[]]$Arguments) {
+    $said = @(& docker compose --progress plain --project-directory $repositoryDir @Arguments 2>&1 | ForEach-Object { "$_" })
+    $code = $LASTEXITCODE
+    if ($code -ne 0) {
+        $said | Select-Object -Last 25 | ForEach-Object { Write-Host "  $_" }
+    }
+    return $code
+}
+
 function Write-MatchControls([string]$Indent = '  ') {
     Write-Host "${Indent}Right-click          move, or attack the enemy under the cursor"
     Write-Host "${Indent}A                    attack-move toward the cursor"
@@ -161,14 +173,12 @@ if (-not $Direct) {
     }
 
     Write-Host 'Building the match server image from the packaged server.'
-    & docker compose --project-directory $repositoryDir --profile match-server build match-server | Out-Host
-    if ($LASTEXITCODE -ne 0) {
+    if ((Invoke-Compose -Arguments @('--profile', 'match-server', 'build', 'match-server')) -ne 0) {
         Write-Host 'The match server image did not build. Check that Docker is running, and package the server: Build.ps1 -Target VeyraServer -Platform Linux, then Package.ps1 -Target VeyraServer -Platform Linux.'
         exit $ExitInfrastructure
     }
     Write-Host 'Starting the backend.'
-    & docker compose --project-directory $repositoryDir up --build --detach --wait postgres backend | Out-Host
-    if ($LASTEXITCODE -ne 0) {
+    if ((Invoke-Compose -Arguments @('up', '--build', '--detach', '--wait', 'postgres', 'backend')) -ne 0) {
         Write-Host 'The backend did not start. Its log: docker compose logs backend'
         exit $ExitInfrastructure
     }
@@ -293,8 +303,7 @@ try {
         Write-Host 'Starting the match server container (packaged Linux server).'
         $env:VEYRA_EXPECTED_PLAYERS = '1'
         $env:VEYRA_MATCH_URL_OPTIONS = $urlOptions
-        & docker compose --project-directory $repositoryDir --profile match-server up --build --detach match-server 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
+        if ((Invoke-Compose -Arguments @('--profile', 'match-server', 'up', '--build', '--detach', 'match-server')) -ne 0) {
             Write-Host 'The match server container did not start. Package the Linux server first, and check that Docker is running.'
             exit $ExitInfrastructure
         }
