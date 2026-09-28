@@ -132,15 +132,15 @@
     "species": {
       "ashfang": {
         "stats": {
-          "maxHealth": 1400,
+          "maxHealth": 700,
           "healthRegen": 0,
           "maxResource": 0,
           "resourceRegen": 0,
-          "armor": 15,
+          "armor": 10,
           "magicResist": 10,
-          "physicalPower": 45,
+          "physicalPower": 20,
           "magicPower": 0,
-          "attackSpeed": 0.65,
+          "attackSpeed": 0.6,
           "moveSpeed": 350
         },
         "basicAttack": {
@@ -162,13 +162,13 @@
       },
       "stonehorn": {
         "stats": {
-          "maxHealth": 1800,
+          "maxHealth": 850,
           "healthRegen": 0,
           "maxResource": 0,
           "resourceRegen": 0,
-          "armor": 30,
-          "magicResist": 20,
-          "physicalPower": 55,
+          "armor": 20,
+          "magicResist": 15,
+          "physicalPower": 18,
           "magicPower": 0,
           "attackSpeed": 0.5,
           "moveSpeed": 300
@@ -192,15 +192,15 @@
       },
       "skittermaw": {
         "stats": {
-          "maxHealth": 480,
+          "maxHealth": 250,
           "healthRegen": 0,
           "maxResource": 0,
           "resourceRegen": 0,
           "armor": 5,
           "magicResist": 5,
-          "physicalPower": 16,
+          "physicalPower": 7,
           "magicPower": 0,
-          "attackSpeed": 1.0,
+          "attackSpeed": 0.9,
           "moveSpeed": 380
         },
         "basicAttack": {
@@ -222,15 +222,15 @@
       },
       "miremother": {
         "stats": {
-          "maxHealth": 1500,
+          "maxHealth": 750,
           "healthRegen": 0,
           "maxResource": 0,
           "resourceRegen": 0,
           "armor": 10,
-          "magicResist": 20,
-          "physicalPower": 40,
+          "magicResist": 15,
+          "physicalPower": 18,
           "magicPower": 0,
-          "attackSpeed": 0.6,
+          "attackSpeed": 0.55,
           "moveSpeed": 300
         },
         "basicAttack": {
@@ -252,13 +252,13 @@
       },
       "razorback": {
         "stats": {
-          "maxHealth": 1600,
+          "maxHealth": 800,
           "healthRegen": 0,
           "maxResource": 0,
           "resourceRegen": 0,
-          "armor": 25,
-          "magicResist": 15,
-          "physicalPower": 60,
+          "armor": 15,
+          "magicResist": 10,
+          "physicalPower": 24,
           "magicPower": 0,
           "attackSpeed": 0.55,
           "moveSpeed": 330
@@ -282,15 +282,15 @@
       },
       "gloomwing": {
         "stats": {
-          "maxHealth": 1200,
+          "maxHealth": 650,
           "healthRegen": 0,
           "maxResource": 0,
           "resourceRegen": 0,
           "armor": 10,
           "magicResist": 10,
-          "physicalPower": 40,
+          "physicalPower": 18,
           "magicPower": 0,
-          "attackSpeed": 0.7,
+          "attackSpeed": 0.65,
           "moveSpeed": 360
         },
         "basicAttack": {
