@@ -170,6 +170,87 @@ namespace VeyraBackendProtocol
 	/** Reads the answer to GET /v1/me/matches/{id}. False, with the problem, if it is not one. */
 	VEYRASERVICES_API bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProblem);
 
+	/** A mode the Play screen offers, as GET /v1/modes reports it (ADR-010 §10). */
+	struct FModeInfo
+	{
+		FString Id;
+		bool bEnabled = false;
+		int32 HumanPlayersPerTeam = 0;
+		/** Whether it has a matchmaker; a mode without one is shown as not yet available. */
+		bool bMatchmade = false;
+	};
+
+	/** Reads the answer to GET /v1/modes. False, with the problem, if it is not one. */
+	VEYRASERVICES_API bool ParseModes(const FString& Body, TArray<FModeInfo>& Out, FString& OutProblem);
+
+	/** Where a party is in matchmaking (Parties & Social Bible §2–3). Every status but Idle locks it. */
+	enum class EPartyStatus : uint8
+	{
+		Idle,
+		Queued,
+		/** In Match Found: every player must accept. */
+		Found,
+		Selecting,
+	};
+
+	struct FPartyMember
+	{
+		FString AccountId;
+		FString DisplayName;
+		bool bReady = false;
+		bool bLeader = false;
+	};
+
+	/** The player's party, as the party routes report it. */
+	struct FParty
+	{
+		FString Id;
+		/** Empty until the leader chooses one. */
+		FString Mode;
+		EPartyStatus Status = EPartyStatus::Idle;
+		/** How long it has been in matchmaking when the backend answered, by the backend's clock. */
+		double QueuedSeconds = 0.0;
+		TArray<FPartyMember> Members;
+
+		VEYRASERVICES_API const FPartyMember* Find(const FString& AccountId) const;
+		/** Whether every member is Ready. */
+		VEYRASERVICES_API bool AllReady() const;
+	};
+
+	/**
+	 * Reads {"party": ...}, the answer of every party route. OutParty is unset when the party is null:
+	 * the player has none. False, with the problem, if the answer is not a party.
+	 */
+	VEYRASERVICES_API bool ParseParty(const FString& Body, TOptional<FParty>& OutParty, FString& OutProblem);
+
+	/** A match found, as one of its players sees it (Parties & Social Bible §3). */
+	struct FMatchFound
+	{
+		FString Id;
+		FString Mode;
+		/** "pending", "accepted" or "abandoned". */
+		FString State;
+		/** What was left of the acceptance timer when the backend answered, by the backend's clock. */
+		double RemainingSeconds = 0.0;
+		int32 Accepted = 0;
+		int32 Total = 0;
+		/** The player's own answer: "pending", "accepted" or "declined". */
+		FString You;
+		/** Set once accepted: the champion select it opened. */
+		FString SelectId;
+		/** Set once abandoned, such as "declined". */
+		FString AbandonReason;
+	};
+
+	/** Reads {"matchFound": ...}. OutFound is unset when it is null. False, with the problem, if it is not one. */
+	VEYRASERVICES_API bool ParseMatchFound(const FString& Body, TOptional<FMatchFound>& OutFound, FString& OutProblem);
+
+	/** The body of PUT /v1/party/mode. */
+	VEYRASERVICES_API FString BuildModeBody(const FString& ModeId);
+
+	/** The body of PUT /v1/party/ready. */
+	VEYRASERVICES_API FString BuildReadyBody(bool bReady);
+
 	/** The body of POST /v1/me/starter, PUT /v1/me/select/hover and POST /v1/me/select/lock. */
 	VEYRASERVICES_API FString BuildVanguardBody(const FString& VanguardId);
 

@@ -42,4 +42,6 @@ public:
 	virtual void Post(const FString& Path, const FString& Credential, const FString& Body, FVeyraBackendCallback OnDone) = 0;
 
 	virtual void Put(const FString& Path, const FString& Credential, const FString& Body, FVeyraBackendCallback OnDone) = 0;
+
+	virtual void Delete(const FString& Path, const FString& Credential, FVeyraBackendCallback OnDone) = 0;
 };

@@ -80,6 +80,7 @@ EVeyraShellScreen ScreenFor(EVeyraClientState State)
 	case EVeyraClientState::StarterChoice:
 		return EVeyraShellScreen::StarterChoice;
 	case EVeyraClientState::Shell:
+	case EVeyraClientState::MatchFound:
 		return EVeyraShellScreen::Shell;
 	case EVeyraClientState::Selecting:
 		return EVeyraShellScreen::ChampionSelect;

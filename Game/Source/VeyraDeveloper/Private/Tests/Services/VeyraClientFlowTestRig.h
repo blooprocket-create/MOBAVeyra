@@ -16,7 +16,12 @@ namespace VeyraClientFlowTests
 	inline const TCHAR* const AccountId = TEXT("11111111-2222-4333-8444-555555555555");
 	inline const TCHAR* const SelectId = TEXT("22222222-3333-4444-8555-666666666666");
 	inline const TCHAR* const MatchId = TEXT("33333333-4444-4555-8666-777777777777");
+	inline const TCHAR* const PartyId = TEXT("44444444-5555-4666-8777-888888888888");
+	inline const TCHAR* const FoundId = TEXT("55555555-6666-4777-8888-999999999999");
 	inline const TCHAR* const Server = TEXT("127.0.0.1:7780");
+	/** The matchmade mode, and one that has no matchmaker yet, as the local backend offers them. */
+	inline const TCHAR* const CasualMode = TEXT("casual_select");
+	inline const TCHAR* const UnmatchedMode = TEXT("draft_pick");
 
 	/** A value in a credential's format: its prefix and 43 base64url characters. It is not a credential. */
 	inline FString ExampleCredential(const TCHAR* Prefix, TCHAR Fill)
@@ -89,6 +94,41 @@ namespace VeyraClientFlowTests
 			MatchId, State, *Result);
 	}
 
+	/** A matchmade select: the player on side A, an opponent on side B. */
+	inline FString CasualSelectBody(const TCHAR* State, const FString& CancelReason = FString())
+	{
+		return FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"casual\",\"mode\":\"casual_select\",\"state\":\"%s\",")
+							   TEXT("\"deadline\":\"2026-09-27T12:01:00Z\",\"remainingSeconds\":60,")
+							   TEXT("\"seats\":[{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,\"hover\":null,\"locked\":null},")
+							   TEXT("{\"displayName\":\"DevTwo\",\"side\":\"B\",\"you\":false,\"hover\":null,\"locked\":null}],")
+							   TEXT("\"matchId\":null,\"cancelReason\":%s}}"),
+			SelectId, State, *Quoted(CancelReason));
+	}
+
+	inline const TCHAR* const ModesBody = TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"},")
+										  TEXT("{\"id\":\"draft_pick\",\"enabled\":true,\"humanPlayersPerTeam\":5,\"matchmaking\":\"notImplemented\"}]}");
+
+	inline const TCHAR* const NoParty = TEXT("{\"party\":null}");
+
+	/** The player's party of one, which they lead. */
+	inline FString PartyBody(const TCHAR* Status, bool bReady, double QueuedSeconds = 0.0)
+	{
+		return FString::Printf(TEXT("{\"party\":{\"id\":\"%s\",\"mode\":\"casual_select\",\"privacy\":\"private\",\"status\":\"%s\",\"queuedSeconds\":%g,")
+							   TEXT("\"members\":[{\"accountId\":\"%s\",\"displayName\":\"DevOne\",\"ready\":%s,\"leader\":true}]}}"),
+			PartyId, Status, QueuedSeconds, AccountId, bReady ? TEXT("true") : TEXT("false"));
+	}
+
+	inline const TCHAR* const NoMatchFound = TEXT("{\"matchFound\":null}");
+
+	/** A 1v1 match found, as the player sees it. */
+	inline FString MatchFoundBody(const TCHAR* State, const TCHAR* You, int32 Accepted, const FString& OpenedSelect = FString(), const FString& AbandonReason = FString(),
+		double Remaining = 15.0)
+	{
+		return FString::Printf(TEXT("{\"matchFound\":{\"id\":\"%s\",\"mode\":\"casual_select\",\"state\":\"%s\",\"deadline\":\"2026-09-27T12:00:15Z\",")
+							   TEXT("\"remainingSeconds\":%g,\"accepted\":%d,\"total\":2,\"you\":\"%s\",\"selectId\":%s,\"abandonReason\":%s}}"),
+			FoundId, State, Remaining, Accepted, You, *Quoted(OpenedSelect), *Quoted(AbandonReason));
+	}
+
 	inline FString MatchOutcomePath() { return FString(TEXT("/v1/me/matches/")) + MatchId; }
 	inline FString SelectPath() { return FString(TEXT("/v1/me/selects/")) + SelectId; }
 
@@ -120,6 +160,11 @@ namespace VeyraClientFlowTests
 		virtual void Put(const FString& Path, const FString& Credential, const FString& Body, FVeyraBackendCallback OnDone) override
 		{
 			Pending.Add({ TEXT("PUT"), Path, Credential, Body, MoveTemp(OnDone) });
+		}
+
+		virtual void Delete(const FString& Path, const FString& Credential, FVeyraBackendCallback OnDone) override
+		{
+			Pending.Add({ TEXT("DELETE"), Path, Credential, FString(), MoveTemp(OnDone) });
 		}
 
 		const FRequest* Find(const TCHAR* Verb, const FString& Path) const
@@ -211,6 +256,8 @@ namespace VeyraClientFlowTests
 			Config.ResultPollIntervalSeconds = 1.0;
 			Config.ResultWaitTimeoutSeconds = 10.0;
 			Config.ReconnectPollIntervalSeconds = 5.0;
+			Config.PartyPollIntervalSeconds = 1.0;
+			Config.MatchFoundPollIntervalSeconds = 0.5;
 			Flow = MakeUnique<FVeyraClientFlow>(Backend, Host, Config);
 		}
 
@@ -238,10 +285,42 @@ namespace VeyraClientFlowTests
 				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, ProfileBody(bCompleted));
 		}
 
-		/** Signs in with no match, no select and the tutorial completed. */
+		/** Signs in with no match, no select and the tutorial completed. The shell's reads of the modes and the party wait. */
 		bool ReachShell()
 		{
 			return ReachProfile(true) && State() == EVeyraClientState::Shell;
+		}
+
+		/** From the shell into the queue: the modes read, no party, then casual select chosen, Ready, and Find Match. */
+		bool ReachQueue()
+		{
+			return ReachShell() && Backend.Answer(TEXT("GET"), TEXT("/v1/modes"), 200, ModesBody) && Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, NoParty)
+				&& Flow->SelectMode(CasualMode) && Backend.Answer(TEXT("PUT"), TEXT("/v1/party/mode"), 200, PartyBody(TEXT("idle"), false))
+				&& Flow->SetReady(true) && Backend.Answer(TEXT("PUT"), TEXT("/v1/party/ready"), 200, PartyBody(TEXT("idle"), true)) && Flow->FindMatch()
+				&& Backend.Answer(TEXT("POST"), TEXT("/v1/party/queue"), 200, PartyBody(TEXT("queued"), true)) && State() == EVeyraClientState::Shell;
+		}
+
+		/** The queued party's next read shows a match found, which waits for the player's answer. */
+		bool ReachMatchFound()
+		{
+			if (!ReachQueue())
+			{
+				return false;
+			}
+			Advance(1.0);
+			return Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, PartyBody(TEXT("found"), true, 1.0))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/match-found"), 200, MatchFoundBody(TEXT("pending"), TEXT("pending"), 0))
+				&& State() == EVeyraClientState::MatchFound;
+		}
+
+		/** Everyone accepts the match found: its casual select opens, with the available Vanguards read. */
+		bool ReachCasualSelect()
+		{
+			return ReachMatchFound() && Flow->AcceptMatch()
+				&& Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200, MatchFoundBody(TEXT("accepted"), TEXT("accepted"), 2, SelectId))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch)
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, CasualSelectBody(TEXT("picking")))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody) && State() == EVeyraClientState::Selecting;
 		}
 
 		/** Signs in as a new player, with the starters read. */

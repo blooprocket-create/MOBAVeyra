@@ -51,6 +51,8 @@ struct FVeyraClientFlowConfig
 	double ResultPollIntervalSeconds = 0.0;
 	double ResultWaitTimeoutSeconds = 0.0;
 	double ReconnectPollIntervalSeconds = 0.0;
+	double PartyPollIntervalSeconds = 0.0;
+	double MatchFoundPollIntervalSeconds = 0.0;
 
 	static VEYRASERVICES_API FVeyraClientFlowConfig FromSettings(const UVeyraServicesSettings& Settings, const FString& BuildVersion);
 };
@@ -61,9 +63,13 @@ struct FVeyraClientFlowConfig
  *
  * It signs in with the launch code from standard input and keeps the game session in memory only.
  * After sign-in, a live match leads to Reconnect-only, then a select in progress resumes, then a
- * player without a starter chooses one; otherwise the shell. Practice opens a champion select; once
- * every pick is locked it waits for the match's server, joins it with the join ticket, and when the
- * match ends travels back to the front end and waits for the backend's verified result. A lost
+ * player without a starter chooses one; otherwise the shell. Practice opens a champion select. In
+ * the shell the flow also reads the modes and keeps reading the player's party: the leader chooses
+ * a matchmade mode, everyone readies up, and the leader queues it. A match found blocks everything
+ * else until it is answered: once every player accepts, its champion select opens; otherwise the
+ * player returns to the shell, queued again or not as the backend decided. Once every pick is
+ * locked the flow waits for the match's server, joins it with the join ticket, and when the match
+ * ends travels back to the front end and waits for the backend's verified result. A lost
  * connection leads back through the backend: Reconnect-only while the match still runs, otherwise
  * its result.
  *
@@ -95,11 +101,21 @@ public:
 	virtual FSimpleMulticastDelegate& OnChanged() override { return Changed; }
 	virtual bool CanIssue(EVeyraClientIntent Intent) const override;
 	virtual double GetRemainingPickSeconds() const override;
+	virtual double GetQueuedSeconds() const override;
+	virtual double GetRemainingAcceptSeconds() const override;
 	/** Each intent is refused, returning false, when CanIssue says no or its argument is not on offer. */
 	virtual bool ChooseStarter(const FString& VanguardId) override;
 	virtual bool StartPractice() override;
+	/** Only an enabled, matchmade mode is on offer: the others are not available yet. */
+	virtual bool SelectMode(const FString& ModeId) override;
+	virtual bool SetReady(bool bReady) override;
+	virtual bool FindMatch() override;
+	virtual bool CancelQueue() override;
+	virtual bool AcceptMatch() override;
+	virtual bool DeclineMatch() override;
 	virtual bool HoverVanguard(const FString& VanguardId) override;
 	virtual bool LockVanguard(const FString& VanguardId) override;
+	virtual bool LeaveSelect() override;
 	virtual bool Reconnect() override;
 	virtual bool ContinueFromResults() override;
 	virtual bool Retry() override;
@@ -123,6 +139,7 @@ private:
 		Get,
 		Post,
 		Put,
+		Delete,
 	};
 
 	struct FWait
@@ -141,8 +158,32 @@ private:
 	void FailSignIn(VeyraLaunchHandshake::EFailure Failure, const FString& Reason);
 
 	// Where the player is.
-	void Resume();
+	/** Finds where the player is. Notice is kept for the shell, if that is where they are. */
+	void Resume(const FString& Notice = FString());
 	void LoadProfile();
+
+	// The shell, the party and its queue.
+	void EnterShell(const FString& Notice);
+	void LoadModes();
+	void PollParty();
+	/** Sends a party request; its answer is the party, which is shown unless a later request's answer already was. */
+	void CallParty(EVerb Verb, const TCHAR* Path, const FString& Body, const TCHAR* What);
+	/** Shows a party read by the request numbered Sequence. False if a later request's answer was already shown. */
+	bool ApplyParty(uint32 Sequence, TOptional<VeyraBackendProtocol::FParty> Party);
+	/** The party left the shell's hands: into a match found or a champion select. */
+	void FollowParty();
+	const VeyraBackendProtocol::FModeInfo* FindMode(const FString& ModeId) const;
+	bool LeadsIdleParty() const;
+
+	// A match found.
+	void EnterMatchFound(const VeyraBackendProtocol::FMatchFound& Found);
+	void PollMatchFound();
+	void ApplyMatchFound(const VeyraBackendProtocol::FMatchFound& Found);
+	/** The match found is over: into its select, or back to the shell. */
+	void LeaveMatchFound();
+	void AnswerMatchFound(bool bAccept);
+
+	// Champion select.
 	void EnterSelecting(const VeyraBackendProtocol::FSelect& Select);
 	void ApplySelect(const VeyraBackendProtocol::FSelect& Select);
 	void LoadAvailableVanguards();
@@ -204,6 +245,9 @@ private:
 	/** The game session credential ("vgs_"). In memory only. */
 	FString GameSession;
 	FString SelectId;
+	/** Numbers party requests, so an answer overtaken by a later one is not shown. */
+	uint32 PartySequence = 0;
+	uint32 ShownPartySequence = 0;
 	double MatchDeadline = 0.0;
 	double ResultDeadline = 0.0;
 	/** The player left their match because it ended, not because the connection failed. */

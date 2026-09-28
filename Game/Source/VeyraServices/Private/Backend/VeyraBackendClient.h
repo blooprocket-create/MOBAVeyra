@@ -20,6 +20,8 @@ public:
 
 	virtual void Put(const FString& Path, const FString& Credential, const FString& Body, FVeyraBackendCallback OnDone) override;
 
+	virtual void Delete(const FString& Path, const FString& Credential, FVeyraBackendCallback OnDone) override;
+
 	const FString& GetBaseUrl() const { return BaseUrl; }
 
 private:

@@ -2,6 +2,7 @@
 
 #include "Backend/VeyraBackendProtocol.h"
 
+#include "Algo/Find.h"
 #include "Dom/JsonObject.h"
 #include "Internationalization/Regex.h"
 #include "Policies/CondensedJsonPrintPolicy.h"
@@ -412,6 +413,163 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 	}
 	Out = MoveTemp(Outcome);
 	return true;
+}
+
+bool ParseModes(const FString& Body, TArray<FModeInfo>& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+	if (!Root.IsValid() || !Root->HasTypedField<EJson::Array>(TEXT("modes")) || !Root->TryGetArrayField(TEXT("modes"), Values))
+	{
+		OutProblem = TEXT("the answer has no list of modes");
+		return false;
+	}
+	TArray<FModeInfo> Modes;
+	for (const TSharedPtr<FJsonValue>& Value : *Values)
+	{
+		const TSharedPtr<FJsonObject>* Object = nullptr;
+		FModeInfo Mode;
+		FString Matchmaking;
+		double Team = 0.0;
+		if (!Value.IsValid() || !Value->TryGetObject(Object) || !Object->IsValid() || !StringField(**Object, TEXT("id"), ContentIdPattern, Mode.Id)
+			|| !BoolField(**Object, TEXT("enabled"), Mode.bEnabled) || !DurationField(**Object, TEXT("humanPlayersPerTeam"), Team) || Team < 1.0
+			|| !StringField(**Object, TEXT("matchmaking"), Matchmaking))
+		{
+			OutProblem = TEXT("a mode is not in the expected format");
+			return false;
+		}
+		Mode.HumanPlayersPerTeam = FMath::FloorToInt32(Team);
+		Mode.bMatchmade = Matchmaking.Equals(TEXT("casualSelect"), ESearchCase::CaseSensitive);
+		Modes.Add(MoveTemp(Mode));
+	}
+	Out = MoveTemp(Modes);
+	return true;
+}
+
+const FPartyMember* FParty::Find(const FString& AccountId) const
+{
+	return Members.FindByPredicate([&AccountId](const FPartyMember& Member) { return Member.AccountId == AccountId; });
+}
+
+bool FParty::AllReady() const
+{
+	return !Members.ContainsByPredicate([](const FPartyMember& Member) { return !Member.bReady; });
+}
+
+bool ParseParty(const FString& Body, TOptional<FParty>& OutParty, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	if (!Root.IsValid() || !Root->HasField(TEXT("party")))
+	{
+		OutProblem = TEXT("the answer has no \"party\"");
+		return false;
+	}
+	if (Root->HasTypedField<EJson::Null>(TEXT("party")))
+	{
+		OutParty.Reset();
+		return true;
+	}
+	const FJsonObject* Object = ObjectField(*Root, TEXT("party"));
+	FParty Party;
+	FString Status;
+	const TArray<TSharedPtr<FJsonValue>>* Members = nullptr;
+	if (!Object || !StringField(*Object, TEXT("id"), IdPattern, Party.Id) || !StringField(*Object, TEXT("mode"), Party.Mode)
+		|| (!Party.Mode.IsEmpty() && !MatchesWhole(ContentIdPattern, Party.Mode)) || !StringField(*Object, TEXT("status"), Status)
+		|| !DurationField(*Object, TEXT("queuedSeconds"), Party.QueuedSeconds) || !Object->HasTypedField<EJson::Array>(TEXT("members"))
+		|| !Object->TryGetArrayField(TEXT("members"), Members))
+	{
+		OutProblem = TEXT("the party's ID, mode, status, queue time or members are missing or not in the expected format");
+		return false;
+	}
+	static const TPair<const TCHAR*, EPartyStatus> Statuses[] = {
+		{ TEXT("idle"), EPartyStatus::Idle },
+		{ TEXT("queued"), EPartyStatus::Queued },
+		{ TEXT("found"), EPartyStatus::Found },
+		{ TEXT("selecting"), EPartyStatus::Selecting },
+	};
+	const TPair<const TCHAR*, EPartyStatus>* Known = Algo::FindByPredicate(Statuses, [&Status](const TPair<const TCHAR*, EPartyStatus>& Candidate) {
+		return Status.Equals(Candidate.Key, ESearchCase::CaseSensitive);
+	});
+	if (!Known)
+	{
+		OutProblem = TEXT("the party's status is not one the game knows");
+		return false;
+	}
+	Party.Status = Known->Value;
+	for (const TSharedPtr<FJsonValue>& Value : *Members)
+	{
+		const TSharedPtr<FJsonObject>* MemberObject = nullptr;
+		FPartyMember Member;
+		if (!Value.IsValid() || !Value->TryGetObject(MemberObject) || !MemberObject->IsValid()
+			|| !StringField(**MemberObject, TEXT("accountId"), IdPattern, Member.AccountId) || !StringField(**MemberObject, TEXT("displayName"), Member.DisplayName)
+			|| Member.DisplayName.IsEmpty() || !BoolField(**MemberObject, TEXT("ready"), Member.bReady) || !BoolField(**MemberObject, TEXT("leader"), Member.bLeader))
+		{
+			OutProblem = TEXT("a member of the party is not in the expected format");
+			return false;
+		}
+		Party.Members.Add(MoveTemp(Member));
+	}
+	if (Party.Members.FilterByPredicate([](const FPartyMember& Member) { return Member.bLeader; }).Num() != 1)
+	{
+		OutProblem = TEXT("the party does not have exactly one leader");
+		return false;
+	}
+	OutParty = MoveTemp(Party);
+	return true;
+}
+
+bool ParseMatchFound(const FString& Body, TOptional<FMatchFound>& OutFound, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	if (!Root.IsValid() || !Root->HasField(TEXT("matchFound")))
+	{
+		OutProblem = TEXT("the answer has no \"matchFound\"");
+		return false;
+	}
+	if (Root->HasTypedField<EJson::Null>(TEXT("matchFound")))
+	{
+		OutFound.Reset();
+		return true;
+	}
+	const FJsonObject* Object = ObjectField(*Root, TEXT("matchFound"));
+	FMatchFound Found;
+	double Accepted = 0.0;
+	double Total = 0.0;
+	if (!Object || !StringField(*Object, TEXT("id"), IdPattern, Found.Id) || !StringField(*Object, TEXT("mode"), ContentIdPattern, Found.Mode)
+		|| !StringField(*Object, TEXT("state"), WordPattern, Found.State) || !DurationField(*Object, TEXT("remainingSeconds"), Found.RemainingSeconds)
+		|| !DurationField(*Object, TEXT("accepted"), Accepted) || !DurationField(*Object, TEXT("total"), Total) || Accepted > Total || Total < 1.0
+		|| !StringField(*Object, TEXT("you"), WordPattern, Found.You) || !NullableStringField(*Object, TEXT("selectId"), IdPattern, Found.SelectId)
+		|| !NullableStringField(*Object, TEXT("abandonReason"), WordPattern, Found.AbandonReason))
+	{
+		OutProblem = TEXT("the match found's ID, mode, state, timer, counts, answer, select or reason are missing or not in the expected format");
+		return false;
+	}
+	Found.Accepted = FMath::FloorToInt32(Accepted);
+	Found.Total = FMath::FloorToInt32(Total);
+	OutFound = MoveTemp(Found);
+	return true;
+}
+
+FString BuildModeBody(const FString& ModeId)
+{
+	FString Body;
+	const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Body);
+	Writer->WriteObjectStart();
+	Writer->WriteValue(TEXT("mode"), ModeId);
+	Writer->WriteObjectEnd();
+	Writer->Close();
+	return Body;
+}
+
+FString BuildReadyBody(bool bReady)
+{
+	FString Body;
+	const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Body);
+	Writer->WriteObjectStart();
+	Writer->WriteValue(TEXT("ready"), bReady);
+	Writer->WriteObjectEnd();
+	Writer->Close();
+	return Body;
 }
 
 FString BuildVanguardBody(const FString& VanguardId)

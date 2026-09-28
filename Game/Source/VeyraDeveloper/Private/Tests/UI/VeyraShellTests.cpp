@@ -56,6 +56,7 @@ namespace VeyraShellTests
 				{ EVeyraClientState::Loading, EVeyraShellScreen::Status },
 				{ EVeyraClientState::StarterChoice, EVeyraShellScreen::StarterChoice },
 				{ EVeyraClientState::Shell, EVeyraShellScreen::Shell },
+				{ EVeyraClientState::MatchFound, EVeyraShellScreen::Shell },
 				{ EVeyraClientState::Selecting, EVeyraShellScreen::ChampionSelect },
 				{ EVeyraClientState::MatchStarting, EVeyraShellScreen::Status },
 				{ EVeyraClientState::Connecting, EVeyraShellScreen::Status },
