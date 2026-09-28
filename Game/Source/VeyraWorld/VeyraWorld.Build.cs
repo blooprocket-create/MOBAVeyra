@@ -14,8 +14,15 @@ public class VeyraWorld : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			"GameplayAbilities",
 			"VeyraCore",
 			"VeyraCombat",
+		});
+
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			// Push-model replication for the structures.
+			"NetCore",
 		});
 
 		// The World tuning, the battleground's layout among it, ships with every build that runs a

@@ -35,4 +35,10 @@ namespace VeyraTeams
 {
 	/** The side of any object that declares one, and None for everything else. */
 	VEYRACORE_API EVeyraTeam TeamOf(const UObject* Object);
+
+	/** The other side: B for A, A for B, None for None. */
+	inline EVeyraTeam Opposing(EVeyraTeam Team)
+	{
+		return Team == EVeyraTeam::A ? EVeyraTeam::B : Team == EVeyraTeam::B ? EVeyraTeam::A : EVeyraTeam::None;
+	}
 }

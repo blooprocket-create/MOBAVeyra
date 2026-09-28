@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Battleground/VeyraBattlegroundLink.h"
 #include "Bots/VeyraBotWanderComponent.h"
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
@@ -177,6 +178,8 @@ void AVeyraGameMode::StartPlay()
 	{
 		DeathHandle = Events->OnDeath.AddUObject(this, &AVeyraGameMode::OnDeath);
 	}
+	Battleground = MakeShared<FVeyraBattlegroundLink>();
+	Battleground->Start(*GetWorld(), FVeyraBattlegroundLink::FOnPrimeWellDestroyed::CreateUObject(this, &AVeyraGameMode::OnPrimeWellDestroyed));
 	if (Roster)
 	{
 		NoteConnectedParticipants();
@@ -199,6 +202,7 @@ void AVeyraGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		Events->OnDeath.Remove(DeathHandle);
 	}
+	Battleground.Reset();
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -213,6 +217,11 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason)
 	GetWorldTimerManager().ClearTimer(LoadingTimeout);
 	GetWorldTimerManager().ClearTimer(PreparationTimer);
 	FTSTicker::GetCoreTicker().RemoveTicker(AbandonmentTicker);
+	// Nothing on the battleground happens after the end: no rebuilds, no regeneration (Economy Bible §8.2).
+	if (Battleground)
+	{
+		Battleground->Stop();
+	}
 	State.SetPhase(EVeyraMatchPhase::Ended);
 	// The clock is frozen now; an ended match need not stay paused.
 	if (State.IsMatchPaused())
@@ -250,6 +259,11 @@ EVeyraEndCustomMatchRefusal AVeyraGameMode::HandleEndCustomMatch(const APlayerCo
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s, the host, ended the custom match."), *GetNameSafe(Requester.PlayerState));
 	EndMatch(EVeyraMatchEndReason::HostEnded);
 	return Refusal;
+}
+
+void AVeyraGameMode::OnPrimeWellDestroyed(EVeyraTeam Winner)
+{
+	UE_LOG(LogVeyraMatch, Log, TEXT("Team %s destroyed the other side's Prime Well."), *UEnum::GetValueAsString(Winner));
 }
 
 void AVeyraGameMode::NoteConnectedParticipants()

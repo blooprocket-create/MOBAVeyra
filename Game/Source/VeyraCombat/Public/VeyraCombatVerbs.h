@@ -45,6 +45,12 @@ namespace VeyraCombat
 	/** Sets a unit's base Max Health from its data and fills its Health. Returns false if refused. */
 	VEYRACOMBAT_API bool InitializeVitals(UAbilitySystemComponent& AbilitySystem, double MaxHealth);
 
+	/**
+	 * Sets a unit's base Armor and Magic Resist from its data, as a structure's own defences
+	 * (Combat Bible §33). Both must be finite and at least 0. Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool InitializeResistances(UAbilitySystemComponent& AbilitySystem, double Armor, double MagicResist);
+
 	/** Sets a unit's base Move Speed from its data. Returns false if refused. */
 	VEYRACOMBAT_API bool InitializeMoveSpeed(UAbilitySystemComponent& AbilitySystem, double MoveSpeed);
 

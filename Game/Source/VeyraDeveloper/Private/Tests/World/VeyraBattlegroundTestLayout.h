@@ -1,0 +1,31 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#pragma once
+
+#include "Tuning/VeyraWorldTuning.h"
+
+namespace VeyraWorldTests
+{
+	/**
+	 * A battleground small enough for tests (ADR-011 §15): one mid lane with every structure kind
+	 * close together, Team B's the mirror of Team A's. Fixture values, not tuning.
+	 */
+	inline FVeyraBattlegroundLayout CompactBattleground()
+	{
+		FVeyraBattlegroundLayout Layout;
+		Layout.HalfExtent = 3000.0;
+		Layout.RiverWidth = 400.0;
+		FVeyraLaneLayout& Lane = Layout.Lanes.AddDefaulted_GetRef();
+		Lane.Lane = EVeyraLane::Mid;
+		Lane.Points = { { -1500.0, -1500.0 }, { 1500.0, 1500.0 } };
+		Lane.Width = 400.0;
+		Lane.InhibitorDistance = 0.0;
+		Lane.SpireDistances = { 300.0, 600.0, 900.0 };
+		Layout.Base.PrimeWell = { -2400.0, -2400.0 };
+		Layout.Base.BaseTowers = { { -1800.0, -2300.0 }, { -2300.0, -1800.0 } };
+		Layout.Base.Fountain = { -2750.0, -2750.0 };
+		Layout.Base.PadRadius = 800.0;
+		Layout.Base.FountainRadius = 300.0;
+		return Layout;
+	}
+}

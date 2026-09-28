@@ -13,6 +13,7 @@
 
 class AVeyraGameState;
 class AVeyraPlayerController;
+class FVeyraBattlegroundLink;
 class AVeyraPlayerState;
 class AVeyraVanguardCharacter;
 class UAbilitySystemComponent;
@@ -134,12 +135,18 @@ private:
 	void OnDeath(const FVeyraDeathEvent& Death);
 	void Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState);
 
+	/** The battleground reports a Prime Well destroyed: Winner destroyed the other side's (ADR-011 §13). */
+	void OnPrimeWellDestroyed(EVeyraTeam Winner);
+
 	/** Starts or stops the abandonment clock as rostered participants come and go. */
 	void NoteConnectedParticipants();
 	/** Ends an assigned match that nobody has been connected to for the tuned time (ADR-007 §8). */
 	bool TickAbandonment(float DeltaSeconds);
 
 	FDelegateHandle DeathHandle;
+
+	/** Connects the battleground's World and Flux while the match runs (ADR-011 §3). */
+	TSharedPtr<FVeyraBattlegroundLink> Battleground;
 
 	/** Set when this server hosts an assigned match. */
 	TUniquePtr<FVeyraMatchRoster> Roster;

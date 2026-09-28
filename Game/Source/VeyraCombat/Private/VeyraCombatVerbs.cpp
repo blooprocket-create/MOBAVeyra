@@ -133,6 +133,19 @@ bool InitializeVitals(UAbilitySystemComponent& AbilitySystem, double MaxHealth)
 	return true;
 }
 
+bool InitializeResistances(UAbilitySystemComponent& AbilitySystem, double Armor, double MagicResist)
+{
+	if (!AbilitySystem.GetSet<UVeyraDefenceSet>() || !IsNonNegativeFinite(Armor) || !IsNonNegativeFinite(MagicResist))
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to initialize the resistances of %s with Armor %g and Magic Resist %g: it needs a UVeyraDefenceSet, and both finite and at least 0."),
+			*GetNameSafe(AbilitySystem.GetOwner()), Armor, MagicResist);
+		return false;
+	}
+	AbilitySystem.SetNumericAttributeBase(UVeyraDefenceSet::GetArmorAttribute(), static_cast<float>(Armor));
+	AbilitySystem.SetNumericAttributeBase(UVeyraDefenceSet::GetMagicResistAttribute(), static_cast<float>(MagicResist));
+	return true;
+}
+
 bool InitializeMoveSpeed(UAbilitySystemComponent& AbilitySystem, double MoveSpeed)
 {
 	if (!AbilitySystem.GetSet<UVeyraMobilitySet>() || !IsPositiveFinite(MoveSpeed))
