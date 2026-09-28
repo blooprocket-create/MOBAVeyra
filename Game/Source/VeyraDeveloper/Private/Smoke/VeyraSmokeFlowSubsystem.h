@@ -85,6 +85,19 @@ private:
 	 * rest of the match script waits.
 	 */
 	bool TickSiege(AVeyraPlayerController& Controller, const UWorld& World);
+
+	/**
+	 * Practice: at the fountain, opens the shop as its key does and buys the cheapest piece of
+	 * equipment the starting Gold affords by clicking it, then closes the shop once the item arrives
+	 * (ADR-012 §11). True while it shops, so the rest of the match script waits.
+	 */
+	bool TickShop(AVeyraPlayerController& Controller);
+
+	/**
+	 * Practice: once the Vanguard has walked away from its fountain, recalls home and waits for it to
+	 * arrive (ADR-012 §8). True while it recalls.
+	 */
+	bool TickRecall(AVeyraPlayerController& Controller, const AActor& Vanguard);
 	void CheckResults(const FVeyraClientSnapshot& Snapshot);
 	bool IsMatchmade() const { return Script == EScript::Casual || Script == EScript::Decline || Script == EScript::Requeue; }
 
@@ -129,6 +142,13 @@ private:
 	bool bFoundMatch = false;
 	bool bAnswered = false;
 	bool bCancelledQueue = false;
+	/** Practice: the item the shop bought, and whether it arrived and the shop closed. */
+	FString BoughtItem;
+	bool bShopped = false;
+	/** Practice: whether the script asked to recall, saw the channel, and saw the Vanguard home. */
+	bool bAskedToRecall = false;
+	bool bSawRecall = false;
+	bool bRecalled = false;
 	bool bOrderedMove = false;
 	bool bOpenedMenu = false;
 	bool bConfirmingEnd = false;

@@ -131,13 +131,14 @@ void UVeyraMatchMenuSubsystem::OpenShop()
 		return;
 	}
 	Shop->Show(*Controller, [this] { CloseShop(); });
-	// Centred over the match, which stays in view and in play around it.
+	// Centred over the match, which stays in view and in play around it. The viewport keeps these
+	// only once the shop is in it, and a size resets the anchors, so they go in this order.
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 	const FVector2D Centre(0.5, 0.5);
+	Shop->AddToViewport();
+	Shop->SetDesiredSizeInViewport(FVector2D(Style.ShopWidth, Style.ShopHeight));
 	Shop->SetAnchorsInViewport(FAnchors(Centre.X, Centre.Y));
 	Shop->SetAlignmentInViewport(Centre);
-	Shop->SetDesiredSizeInViewport(FVector2D(Style.ShopWidth, Style.ShopHeight));
-	Shop->AddToViewport();
 	UpdateInputMode();
 }
 

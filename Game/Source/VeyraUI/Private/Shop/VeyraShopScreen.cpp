@@ -10,6 +10,7 @@
 #include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
+#include "Components/VerticalBoxSlot.h"
 #include "GameFramework/PlayerState.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
@@ -140,7 +141,9 @@ void UVeyraShopScreen::Rebuild()
 	// The heading: Gold, where purchases arrive, undo and close.
 	UHorizontalBox* Header = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	VeyraShellStyle::AddSpaced(*Header, *VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Title", "Shop"), EVeyraShellText::Title));
-	VeyraShellStyle::AddSpaced(*Header, *VeyraShellStyle::MakeText(*WidgetTree, FText::Format(LOCTEXT("Gold", "Gold {0}"), GoldText(View.Gold)), EVeyraShellText::Heading));
+	UTextBlock* GoldLine = VeyraShellStyle::MakeText(*WidgetTree, FText::Format(LOCTEXT("Gold", "Gold {0}"), GoldText(View.Gold)), EVeyraShellText::Heading);
+	GoldLine->SetAutoWrapText(false);
+	VeyraShellStyle::AddSpaced(*Header, *GoldLine);
 	const FText Where = View.bAtShop ? LOCTEXT("AtShop", "Purchases arrive now.") : LOCTEXT("AwayFromShop", "Purchases wait for your fountain.");
 	VeyraShellStyle::AddSpaced(*Header, *VeyraShellStyle::MakeText(*WidgetTree, Where, EVeyraShellText::Muted));
 	UVerticalBox* HeaderButtons = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
@@ -256,6 +259,16 @@ UVeyraShellButton* UVeyraShopScreen::AddButton(UVerticalBox& Parent, const FText
 	UVeyraShellButton* Button = UVeyraShellButton::Make(*WidgetTree, Label, MoveTemp(Action), bEnabled);
 	Buttons.Add(Button);
 	VeyraShellStyle::AddSpaced(Parent, *Button);
+	// The shop's buttons fill their column, and an item's name and price keep to one line: wrapping
+	// measures a rebuilt label against the width it had before, and breaks it.
+	if (UVerticalBoxSlot* ButtonSlot = Cast<UVerticalBoxSlot>(Button->Slot))
+	{
+		ButtonSlot->SetHorizontalAlignment(HAlign_Fill);
+	}
+	if (UTextBlock* LabelText = Cast<UTextBlock>(Button->GetChildAt(0)))
+	{
+		LabelText->SetAutoWrapText(false);
+	}
 	return Button;
 }
 

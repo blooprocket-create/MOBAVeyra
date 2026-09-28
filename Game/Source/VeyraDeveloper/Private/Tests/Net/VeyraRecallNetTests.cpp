@@ -6,6 +6,8 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "AbilitySystemComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/PlayerStart.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
@@ -31,6 +33,9 @@ namespace VeyraNetTests
 		FPIENetworkComponent<FState> Network{ TestRunner, TestCommandBuilder, bInitializing };
 		TUniquePtr<FScopedExpectedPlayers> ExpectedPlayers;
 		TUniquePtr<FScopedMatchTuning> Tuning;
+		TUniquePtr<FScopedVanguardsTuning> TallBodies;
+		/** Where the server placed the Vanguard at the start, for the client steps. */
+		FVector Home = FVector::ZeroVector;
 		FVeyraGreyboxLayout Layout;
 
 		// Fixture values: a short channel, a spot well away from the fountain, a scratch and a Stun.
@@ -54,6 +59,7 @@ namespace VeyraNetTests
 
 		AFTER_EACH()
 		{
+			TallBodies.Reset();
 			Tuning.Reset();
 			ExpectedPlayers.Reset();
 		}
@@ -90,10 +96,37 @@ namespace VeyraNetTests
 		TEST_METHOD(AFinishedChannelBringsTheVanguardHome)
 		{
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
-				.ThenServer(TEXT("Send the Vanguard away"), [](FState& State) { SendAway(State); })
+				.ThenServer(TEXT("Send the Vanguard away"), [this](FState& State) {
+					SendAway(State);
+					Home = State.Home;
+				})
 				.ThenClient(TEXT("Recall"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestRecall(); })
 				.UntilClient(TEXT("The client sees the channel"), 0, [](FState& State) {
 					return LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>()->FindComponentByClass<UVeyraRecallComponent>()->IsRecalling();
+				})
+				.UntilServer(TEXT("It arrives home"), [](FState& State) {
+					return FVector::Dist2D(ServerBody(State).GetActorLocation(), State.Home) < HomeTolerance && !ServerRecall(State).IsRecalling();
+				})
+				.UntilClient(TEXT("Its client sees it home, the channel over"), 0, [this](FState& State) {
+					const AVeyraPlayerController* Own = LocalControllerOf(State.World);
+					const APawn* Body = Own->GetVanguard();
+					return Body && FVector::Dist2D(Body->GetActorLocation(), Home) < HomeTolerance
+						&& !Own->GetPlayerState<AVeyraPlayerState>()->FindComponentByClass<UVeyraRecallComponent>()->IsRecalling();
+				});
+		}
+
+		TEST_METHOD(AVanguardTallerThanItsStartStillArrivesHome)
+		{
+			// A body taller than the start's capsule stands into the floor there, as Cairn's does; it
+			// spawned there anyway, and must arrive there too.
+			constexpr double ExtraHalfHeight = 10.0;
+			TallBodies = MakeUnique<FScopedVanguardsTuning>();
+			const double StartHalfHeight = GetDefault<APlayerStart>()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+			TallBodies->Definition(TestVanguardId()).Body.CapsuleHalfHeight = StartHalfHeight + ExtraHalfHeight;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Send the Vanguard away, and recall"), [this](FState& State) {
+					SendAway(State);
+					ASSERT_THAT(IsTrue(OrderRecall(State) == EVeyraOrderRejection::None));
 				})
 				.UntilServer(TEXT("It arrives home"), [](FState& State) {
 					return FVector::Dist2D(ServerBody(State).GetActorLocation(), State.Home) < HomeTolerance && !ServerRecall(State).IsRecalling();
