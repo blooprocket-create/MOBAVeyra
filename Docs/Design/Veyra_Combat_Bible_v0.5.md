@@ -154,6 +154,10 @@ Overheal must be an explicit mechanic, such as a Vanguard skill that converts ex
 
 Healing, Health Regeneration, Lifesteal, and Omnivamp are distinct source categories even though all may restore Health.
 
+### Health Regeneration
+
+Every Vanguard has a base **Health Regeneration** stat (ruled 2026-09-28). Its per-Vanguard values and level growth are data.
+
 ### Lifesteal
 
 Lifesteal heals from actual post-mitigation damage dealt by basic attacks.

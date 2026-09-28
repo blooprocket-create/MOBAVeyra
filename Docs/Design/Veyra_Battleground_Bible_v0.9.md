@@ -231,6 +231,13 @@ Permanent Flux never expires during the match.
 
 This means structural success on one Fluxway helps all three lanes because every allied lane Fluxborn benefits from the team's global Flux total.
 
+### Lane structures fall in order (ruled 2026-09-28)
+
+- Each Fluxway's structures must be destroyed **in order**, from the outermost Spire inward: outer Spire, then middle Spire, then inner Spire, then that lane's inhibitor.
+- A structure whose predecessor in its lane still stands is **invulnerable**. Damage already dealt to it stays, as with every structure invulnerability.
+- Destroyed Spires never rebuild, so an inhibitor that reconstructs is at once attackable again, because its lane's Spires are already down.
+- This ordering is separate from backdoor protection (§19), which still applies to every lane Spire, and from the base-tower and Prime Well prerequisites (§18).
+
 ### Inhibitors
 
 Each lane has a reconstructing inhibitor structure beyond its Spires.

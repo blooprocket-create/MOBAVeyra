@@ -134,7 +134,8 @@ Calls go down the layers, events go up, and the two peers meet only through Matc
 - **Structure Effectiveness** (`Combat.json`, Canon 50%) scales secondary riders on a basic attack against a structure: crit bonus, on-hit damage, empowered bonus damage, and lifesteal. The converted basic-attack damage stays at full effectiveness.
 - **Primary Damage Type** (amends ADR-008 §2).
   - Every Vanguard declares one in `Vanguards.json`, and structure basic attacks use its matching power and the structure's matching defence. The engine never guesses it.
-  - Provisionally all four are **Physical**: their basic attacks are Physical and their base Magic Power is 0. Oriel's kit reads as magic, so the author should confirm her type before her Magic Power grows.
+  - Cairn, Qazharr and Bryn are **Physical**-primary.
+  - Oriel's canon entry says "Damage: Magic", so she is **Magic**-primary. Her provisional stats from M5 give her no Magic Power, so she would deal no damage to structures. Her Magic Power is the open question in §16.
 - **Tower attacks** (Combat §55):
   - Physical;
   - the `StructureAttack` delivery;
@@ -199,6 +200,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
 ### 9. Invulnerability, inhibitors, the Prime Well and backdoor protection (Battleground §18–19)
 
 - **Invulnerability** is applied through Combat's invulnerability verb, from a pure World rule over the structure graph:
+  - **each lane's structures fall in order** (author ruling, 2026-09-28): a lane Spire is invulnerable while the Spire in front of it in the same lane stands, outer before middle before inner, and the lane's inhibitor is invulnerable while that lane's inner Spire stands;
   - base towers are invulnerable while all of their team's inhibitors stand;
   - the Prime Well is vulnerable only while both base towers are destroyed and at least one of its team's inhibitors is down;
   - damage already dealt stays.
@@ -216,7 +218,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - It ramps toward its maximum after the last one leaves or dies, and drops to zero the moment one enters.
   - It is a self-sourced damage-reduction status, so the normal pipeline applies it.
   - It never overrides invulnerability.
-- **No outer-before-inner gating.** Canon makes only base towers and the Prime Well conditionally invulnerable. Lane Spires are gated by position and backdoor protection alone (Battleground §5, §10). This is provisional answer 3 in §16.
+- **Ordering is a rule, not only geometry.** Before the author's ruling, canon gated lane Spires by position and backdoor protection alone (Battleground §5, §10). The ruling is recorded in Battleground §10. A rebuilt inhibitor does not restore the Spires in front of it, which never rebuild.
 
 ### 10. Team Flux
 
@@ -255,6 +257,11 @@ Lane Spires and base-defense towers share one attack component and one set of ru
     - inhibitors and the Prime Well pay nothing, and structures give no XP.
   - **Stop at victory:** nothing is paid after the match ends (Economy §8.2).
 - **XP becomes fractional** (Economy §1); thresholds and carry-over are unchanged.
+- **Vanguard Health Regeneration** (author ruling, 2026-09-28; amends ADR-008 §2):
+  - every Vanguard declares a base Health Regeneration per second and its growth per level in `Vanguards.json`, beside Resource Regeneration;
+  - the regeneration component restores it on its world-time timer, in and out of combat, until the Vanguard dies;
+  - it restores through Combat's Health restore as a Health Regeneration source, a category distinct from healing (Combat §6), so Healing Reduction can reduce it when that arrives;
+  - structures have none; the Prime Well's own rule is separate (§9).
 - **Respawn** (Economy §14):
   - The timer grows with the Vanguard's level and the elapsed match time, from a data curve in `Match.json`.
   - A replicated respawn time drives the HUD countdown.
@@ -292,7 +299,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - accepts `prime_well_destroyed` only with a winner and only for Standard rules;
   - adds a migration whose check keeps the reason and the winner together.
 - **The client's results screen** shows Victory or Defeat from the verified result.
-- **Results record the winner only.** Gold and other statistics come with the statistics work (Match Statistics Bible).
+- **Results record the winner for now** (author, 2026-09-28: the results screen builds up as features land). Gold and other statistics join it with the work that produces them (Match Statistics Bible).
 - **The backend's maximum match duration stays a failure safety net**, far above canon's 20–45-minute pacing. It is not a match-length cutoff, which canon forbids (Battleground §18).
 
 ### 14. Practice (amends ADR-010 §7)
@@ -318,21 +325,31 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - Shipping refuses it, like the other developer commands.
   - `Smoke.ps1 -Flow CasualVictory` uses it to reach Victory and Defeat end to end in minutes.
 
-### 16. Provisional answers where canon is silent
+### 16. Author rulings, provisional answers and open questions
+
+**The author ruled on 2026-09-28, reviewing this record:**
+
+- **Lane structures fall in order** (§9); recorded in Battleground §10.
+- **Every Vanguard regenerates Health** (§11).
+- **The results screen builds up as features land**; it shows the winner now (§13).
+
+**Provisional answers where canon is silent:**
 
 1. **Layer placement:** Flux and World are peers in a Battleground layer, routed through Match (§2–§3).
 2. **Structures are pawns**, spawned from data (§4).
-3. **No outer-before-inner invulnerability** for lane Spires (§9).
-4. **All four Vanguards are Physical-primary** for now; Oriel is to be confirmed (§5).
-5. **Temporary Flux changes Fluxborn live**, not only at spawn (§10).
-6. **Kill-credit window** of 10 s, matching the assist window; takedown effects only on Vanguard victims (§6).
-7. **Results record the winner only** (§13).
-8. **Fountain recovery exists** at provisional rates (§11). Without it, Health returns only on respawn, since there is no recall.
-9. **Practice after its Prime Well falls:** the match continues (§14).
-10. **Per-kind server maps**, with development matches on `L_Greybox` (§12).
-11. **Reward values live with their owner.** Gold values are in Economy's tuning and XP values in Progression's, keyed by Fluxborn ID. A test keeps them in step with `World.json`'s Fluxborn list.
-12. **Fluxborn target order** among equals (§7) and **tower "normal targeting"** keeping its current Fluxborn (§8): canon gives priorities, not tie-breaks.
-13. **The grey-box layout and every number in §17.**
+3. **Temporary Flux changes Fluxborn live**, not only at spawn (§10).
+4. **Kill-credit window** of 10 s, matching the assist window; takedown effects only on Vanguard victims (§6).
+5. **Fountain recovery exists** at provisional rates (§11). Without it, Health returns only by regeneration or respawn, since there is no recall.
+6. **Health Regeneration continues in and out of combat**, like resource regeneration (Combat §28).
+7. **Practice after its Prime Well falls:** the match continues (§14).
+8. **Per-kind server maps**, with development matches on `L_Greybox` (§12).
+9. **Reward values live with their owner.** Gold values are in Economy's tuning and XP values in Progression's, keyed by Fluxborn ID. A test keeps them in step with `World.json`'s Fluxborn list.
+10. **Fluxborn target order** among equals (§7) and **tower "normal targeting"** keeping its current Fluxborn (§8): canon gives priorities, not tie-breaks.
+11. **The grey-box layout and every number in §17.**
+
+**Open question for the author:**
+
+- **Oriel's Magic Power.** Canon makes her Magic-primary (§5), and her M5 stats give her 0 Magic Power, so she deals nothing to structures. The recommendation is a provisional base Magic Power near her Physical Power, so her structure attacks match her basic attacks today. Her abilities' Magic Power ratios would then add damage, so their base amounts may come down to compensate.
 
 ### 17. Values are data
 
@@ -357,6 +374,8 @@ Every value below is designer-editable data; none is a constant in code. Each re
 | Structure Effectiveness | `Combat.json` | 50% (Canon) |
 | Respawn | `Match.json` (v4) | Level 1: 6 s, rising to 45 s at Level 18; +2% per minute after 15:00, at most +50% |
 | Fountain recovery | `Match.json` | Radius and Health and resource per second at the fountain |
+| Vanguard Health Regeneration | `Vanguards.json` (v4) | Per second at Level 1, then per level: Cairn 1.7 + 0.16; Qazharr 1.6 + 0.15; Oriel 1.1 + 0.11; Bryn 0.75 + 0.11; the test Vanguard 0 |
+| Primary Damage Type | `Vanguards.json` (v4) | Cairn, Qazharr, Bryn Physical; Oriel Magic (Canon) |
 | Maps | backend configuration | The server map for each mode, Custom practice and development matches |
 
 ## Consequences
@@ -378,7 +397,7 @@ Every value below is designer-editable data; none is a constant in code. Each re
   - §5: Fluxborn and structure update rates and Iris filters;
   - §7: Fluxborn movement.
 - **ADR-007 §7:** the `prime_well_destroyed` end reason with a winner.
-- **ADR-008 §2:** every Vanguard declares a Primary Damage Type.
+- **ADR-008 §2:** every Vanguard declares a Primary Damage Type and a Health Regeneration with its growth.
 - **ADR-009 §3:** attribution on any victim, the credited killer, the hostile-damage event, and takedowns on Vanguard victims only.
 - **ADR-010:**
   - §7: practice on the battleground without victory;
@@ -390,7 +409,7 @@ Every value below is designer-editable data; none is a constant in code. Each re
 - The fountain barrier during preparation, which would let Vanguards move inside their fountain (ADR-006 §7 deviation).
 - Recall, the shop and buyback (M8 and later).
 - Kill-streak bounties and death-streak devaluation (Economy §5.3–5.4).
-- Oriel's Primary Damage Type.
+- Oriel's Magic Power (§16).
 - Whether "Structure Attack" and "Structure Projectile" become canon tags.
 - The Vision fog gate for Fluxborn and structures.
 
