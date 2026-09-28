@@ -187,6 +187,12 @@ Calls go down the layers, events go up, and the two peers meet only through Matc
   - push model;
   - Iris filter exemptions until Vision brings the fog gate, like Vanguards.
 - **Expected population:** about 60–80 Fluxborn in steady state and about 110 at peak, plus 30 structures. That is within the M3 study's measured range (72–162 stand-ins). M7b measures it again with real Fluxborn.
+- **Measured (M7b G13, 2026-09-28).** `Smoke.ps1 -Map Battleground -LoadTestBots 8 -NetStatsSeconds 10 -ClientStaySeconds 180`, run as a 5v5 of two packaged clients and eight bots against the Linux server container, with waves marching in all three lanes. The update rates were Fluxborn every 3 ticks and structures every 6. In steady state, from about 1:30 of match clock:
+  - 130–146 replicated actors;
+  - server busy time 2.9–3.6 ms per frame on average (at most 12.4 ms), of the 33 ms frame at 30 Hz;
+  - 9.6–13.6 KB/s sent to each client.
+  
+  That is about a seventh of the engine's default client rate (100,000 bytes/s) and below ADR-006 §5's 10 Hz measurement (23.2 KB/s for 162 units). **No update rate is retuned.** The Vision fog gate will lower it further.
 
 ### 8. Towers
 
@@ -407,7 +413,7 @@ Every value below is designer-editable data; none is a constant in code. Each re
   - XP becomes fractional through the HUD and tests;
   - takedown effects stop firing on non-Vanguard kills;
   - abilities stop damaging structures.
-- **Replicated population grows several times over.** Bandwidth is the limit ADR-006 §5 found; M7b measures it and tunes update rates.
+- **Replicated population grows several times over.** Bandwidth is the limit ADR-006 §5 found. M7b measured it at 10–14 KB/s per client in a 5v5 with full waves (§7), so the update rates stand.
 - **`L_Battleground` is a binary map that needs an LFS lock.** It is generated, so its source of truth is text.
 
 ## Amendments to earlier records

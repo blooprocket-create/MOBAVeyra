@@ -33,7 +33,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogVeyraSmoke, Log, All);
 namespace
 {
 	// Harness settings, not gameplay: how long the whole script may take, how far along its move the
-	// Vanguard must get to count as moving, and how close to the lane centre each Vanguard stops, as
+	// Vanguard must get to count as moving, and how close to the map's centre each Vanguard stops, as
 	// a fraction of the Q ability's cast range, so the two end in range without meeting.
 	constexpr double SmokeTimeoutRealSeconds = 180.0;
 	constexpr double MoveProgressFraction = 0.5;
@@ -122,20 +122,6 @@ AVeyraGameState* UVeyraSmokeClientSubsystem::GetGameState() const
 	return World ? World->GetGameState<AVeyraGameState>() : nullptr;
 }
 
-const AVeyraPlayerState* UVeyraSmokeClientSubsystem::FindEnemy(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState) const
-{
-	const AVeyraPlayerState* Self = Controller.GetPlayerState<AVeyraPlayerState>();
-	for (const APlayerState* Participant : GameState.PlayerArray)
-	{
-		const AVeyraPlayerState* Candidate = Cast<AVeyraPlayerState>(Participant);
-		if (Self && Candidate && Candidate->GetVeyraTeam() != Self->GetVeyraTeam() && Candidate->GetPawn())
-		{
-			return Candidate;
-		}
-	}
-	return nullptr;
-}
-
 bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 {
 	if (Step == EStep::Finished)
@@ -144,7 +130,21 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 	}
 	if (FPlatformTime::Seconds() - StartRealTime > SmokeTimeoutRealSeconds)
 	{
-		Finish(false, FString::Printf(TEXT("timed out waiting at step %d"), static_cast<int32>(Step)));
+		// Where things stood, so a failed run explains itself.
+		FString Where;
+		const AVeyraPlayerController* Controller = GetController();
+		const AVeyraGameState* GameState = GetGameState();
+		if (const APawn* Vanguard = Controller ? Controller->GetVanguard() : nullptr)
+		{
+			Where = FString::Printf(TEXT("; the Vanguard is at %s, sent from %s to %s"), *Vanguard->GetActorLocation().ToCompactString(),
+				*MoveStart.ToCompactString(), *MoveDestination.ToCompactString());
+			if (const AActor* Nearest = GameState ? FindNearestEnemyBody(*Controller, *GameState, Vanguard->GetActorLocation()) : nullptr)
+			{
+				Where += FString::Printf(TEXT("; the nearest enemy is %.0f away at %s"), FVector::Dist2D(Vanguard->GetActorLocation(), Nearest->GetActorLocation()),
+					*Nearest->GetActorLocation().ToCompactString());
+			}
+		}
+		Finish(false, FString::Printf(TEXT("timed out waiting at step %d%s"), static_cast<int32>(Step), *Where));
 		return false;
 	}
 
@@ -286,10 +286,11 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 		break;
 
 	case EStep::WaitForRange:
-		if (const AVeyraPlayerState* Target = FindEnemy(*Controller, *GameState))
+		// The nearest enemy: with bots in the match, the first one listed may be anywhere.
+		if (AActor* TargetBody = FindNearestEnemyBody(*Controller, *GameState, Vanguard->GetActorLocation()))
 		{
-			AActor* TargetBody = Target->GetPawn();
-			if (VeyraTargeting::EdgeToEdgeDistance(*Vanguard, *TargetBody) <= CastRange)
+			const AVeyraPlayerState* Target = Cast<APawn>(TargetBody)->GetPlayerState<AVeyraPlayerState>();
+			if (Target && VeyraTargeting::EdgeToEdgeDistance(*Vanguard, *TargetBody) <= CastRange)
 			{
 				Enemy = Target;
 				Controller->IssueCastOrder(EVeyraAbilitySlot::Q, TargetBody);
@@ -373,10 +374,12 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 
 void UVeyraSmokeClientSubsystem::StartMove(AVeyraPlayerController& Controller, const AVeyraVanguardCharacter& Vanguard, double StopDistance)
 {
-	// Toward the lane centre, stopping short of it so the Vanguards end in range of each other.
+	// Toward the map's centre, stopping short of it so the Vanguards end in range of each other. The
+	// sides start mirrored through the centre on both maps: across the grey box's lane, and in the
+	// battleground's opposite corners, where the path runs down the middle lane.
 	MoveStart = Vanguard.GetActorLocation();
-	const double StopX = FMath::Min(FMath::Abs(MoveStart.X), StopDistance * StopFromCentreFractionOfCastRange);
-	MoveDestination = FVector(FMath::Sign(MoveStart.X) * StopX, MoveStart.Y, 0.0);
+	const double StopFromCentre = FMath::Min(MoveStart.Size2D(), StopDistance * StopFromCentreFractionOfCastRange);
+	MoveDestination = MoveStart.GetSafeNormal2D() * StopFromCentre;
 	Controller.IssueMoveOrder(MoveDestination);
 }
 
