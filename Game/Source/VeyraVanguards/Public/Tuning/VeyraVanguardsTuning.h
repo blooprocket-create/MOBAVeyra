@@ -252,6 +252,92 @@ struct FVeyraMovingTargetTuning
 	FVeyraDeadReckoningTuning DeadReckoning;
 };
 
+/** A Redlined form (Roster Bible §1): the slot, and the ability it runs at full Momentum. */
+USTRUCT()
+struct FVeyraRedlinedTuning
+{
+	GENERATED_BODY()
+
+	/** Q, W or E. */
+	UPROPERTY()
+	EVeyraAbilitySlot Slot = EVeyraAbilitySlot::Q;
+
+	UPROPERTY()
+	FVeyraContentId Ability;
+};
+
+/** Roadhouse (Roster Bible §1): the lunging attack that follows a Redlined cast. */
+USTRUCT()
+struct FVeyraRoadhouseTuning
+{
+	GENERATED_BODY()
+
+	/** From Abilities.json's statuses, held on her while Roadhouse waits: its longer reach. */
+	UPROPERTY()
+	FVeyraContentId ReachStatus;
+
+	/** Its bonus damage; one amount. */
+	UPROPERTY()
+	FVeyraDamageTuning Damage;
+
+	/** And this share of the target's missing Health; at least 0. */
+	UPROPERTY()
+	double MissingHealthRatio = 0.0;
+
+	/** And this share of her bonus Health; at least 0. */
+	UPROPERTY()
+	double BonusHealthRatio = 0.0;
+
+	/** The lunge's units per second; above 0. */
+	UPROPERTY()
+	double LungeSpeed = 0.0;
+};
+
+/**
+ * Raska's Redline (Roster Bible §1): Momentum, the stacks of a Counter status from her, builds with the
+ * distance she moves herself, her attacks and her casts. At full, her next basic ability runs its
+ * Redlined form and spends the meter; her next basic attack on an enemy Vanguard after that is Roadhouse.
+ * Statuses may hold the meter full, as NO BRAKES does. Its data is an entry in Vanguards.json's
+ * momentum map.
+ */
+USTRUCT()
+struct FVeyraMomentumTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: a Stacking Counter whose stacks are Momentum and whose most stacks are full. */
+	UPROPERTY()
+	FVeyraContentId Meter;
+
+	/** The units she moves herself for each point; above 0. */
+	UPROPERTY()
+	double UnitsPerPoint = 0.0;
+
+	UPROPERTY()
+	int32 PointsPerAttack = 0;
+
+	UPROPERTY()
+	int32 PointsPerCast = 0;
+
+	/** How often her own movement is counted, in seconds; above 0. */
+	UPROPERTY()
+	double SampleSeconds = 0.0;
+
+	/** The Redlined forms her slots hold at full. */
+	UPROPERTY()
+	TArray<FVeyraRedlinedTuning> Redlined;
+
+	/** From Abilities.json's statuses: while she has any, the meter stays full. */
+	UPROPERTY()
+	TArray<FVeyraContentId> HoldFullStatuses;
+
+	UPROPERTY()
+	FVeyraRoadhouseTuning Roadhouse;
+};
+
 /**
  * Gorraveth's No Time to Bleed (Roster Bible §23): helping clear a whole jungle camp restores a share
  * of his Max Health and more, and gives statuses such as a burst of Movement Speed, once per cleared
@@ -483,7 +569,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 10;
+	static constexpr int32 SchemaVersion = 11;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -514,6 +600,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraCampRewardTuning> CampReward;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraMomentumTuning> Momentum;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

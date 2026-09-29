@@ -40,6 +40,43 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 	{
 		RegisterPassive(Entry.Key, TEXT("breach"));
 	}
+	for (const TPair<FVeyraContentId, FVeyraMomentumTuning>& Entry : Tuning.Momentum)
+	{
+		RegisterPassive(Entry.Key, TEXT("momentum"));
+		const FString Pointer = TEXT("/momentum/") + Entry.Key.ToString();
+		const FVeyraMomentumTuning& Momentum = Entry.Value;
+		const FVeyraStatusTuning* Meter = Abilities.Statuses.Find(Momentum.Meter);
+		if (!Meter || Meter->Kind != EVeyraStatusKind::Counter || Meter->Stacking != EVeyraStackingPolicy::Stacking || Meter->MaxStacks < 2)
+		{
+			Problem(Pointer + TEXT("/meter"), TEXT("names a Stacking Counter status of at least two stacks, which Abilities.json defines"));
+		}
+		TArray<FVeyraContentId> Named = Momentum.HoldFullStatuses;
+		Named.Add(Momentum.Roadhouse.ReachStatus);
+		for (const FVeyraContentId& Status : Named)
+		{
+			if (!Abilities.Statuses.Contains(Status))
+			{
+				Problem(Pointer, FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Status.ToString()));
+			}
+		}
+		TArray<EVeyraAbilitySlot> Slots;
+		for (const FVeyraRedlinedTuning& Form : Momentum.Redlined)
+		{
+			const bool bBasic = Form.Slot == EVeyraAbilitySlot::Q || Form.Slot == EVeyraAbilitySlot::W || Form.Slot == EVeyraAbilitySlot::E;
+			if (!bBasic || Slots.Contains(Form.Slot) || !VeyraAbilityRules::Defines(Abilities, Form.Ability))
+			{
+				Problem(Pointer + TEXT("/redlined"), TEXT("each form is a defined ability in a basic ability's slot, Q, W or E, once"));
+			}
+			Slots.Add(Form.Slot);
+		}
+		const FVeyraRoadhouseTuning& Roadhouse = Momentum.Roadhouse;
+		if (!(Momentum.UnitsPerPoint > 0.0) || !(Momentum.SampleSeconds > 0.0) || Momentum.PointsPerAttack < 0 || Momentum.PointsPerCast < 0
+			|| Roadhouse.Damage.AmountByRank.Num() != 1 || Roadhouse.MissingHealthRatio < 0.0 || Roadhouse.BonusHealthRatio < 0.0 || !(Roadhouse.LungeSpeed > 0.0))
+		{
+			Problem(Pointer, TEXT("unitsPerPoint, sampleSeconds and the lunge's speed are above 0; points and ratios at least 0; Roadhouse's damage one amount"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraCampRewardTuning>& Entry : Tuning.CampReward)
 	{
 		RegisterPassive(Entry.Key, TEXT("campReward"));

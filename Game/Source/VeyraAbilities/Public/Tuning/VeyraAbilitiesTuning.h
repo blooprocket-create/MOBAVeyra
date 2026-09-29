@@ -235,6 +235,13 @@ struct FVeyraEffectBundleTuning
 	/** Damage multiplied against some kinds of unit (ADR-018 §6), as Gorraveth's against wildlife; one entry per kind. */
 	UPROPERTY()
 	TArray<FVeyraUnitKindMultiplierTuning> UnitKindMultipliers;
+
+	/**
+	 * Status IDs that spare a unit this bundle's displacement: one displacement per target per cast, as
+	 * Raska's Hound spares what her landing knocked up (Roster Bible §1).
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> DisplacementUnlessStatuses;
 };
 
 /** How a DamageOverTime status ticks (Combat Bible §14; ADR-015 §3). */
@@ -671,6 +678,10 @@ struct FVeyraEndPayloadTuning
 	/** The most it lasts; at least BaseSeconds. */
 	UPROPERTY()
 	double MaxSeconds = 0.0;
+
+	/** The hits the caster must take for it to come at all, as Countersteer's counter needs a blocked hit; 0 for always. */
+	UPROPERTY()
+	int32 MinHits = 0;
 };
 
 /** An ability that buffs its caster, and optionally nearby allies (ADR-008 §3). */
@@ -1177,7 +1188,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 11;
+	static constexpr int32 SchemaVersion = 12;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

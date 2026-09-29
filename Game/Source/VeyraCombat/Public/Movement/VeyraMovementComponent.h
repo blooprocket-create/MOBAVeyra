@@ -102,6 +102,14 @@ public:
 
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	/**
+	 * Server: the distance the body has moved itself since the last call, walking, riding or dashing,
+	 * never displaced, fleeing or held on, as Raska's Momentum counts it (ADR-018 §7), and starts again.
+	 */
+	double TakeTravelled();
+
 	/**
 	 * Where a forced movement of Distance along Direction from the unit's position ends: terrain stops
 	 * it at the nearest point the body fits (Combat Bible §9), and so does the end of walkable ground;
@@ -194,6 +202,9 @@ private:
 		double Seconds = 0.0;
 	};
 	TOptional<FRideDecay> RideDecay;
+
+	/** How far it has moved itself since TakeTravelled last read it. */
+	double Travelled = 0.0;
 
 	TWeakObjectPtr<UAbilitySystemComponent> FollowedCombatant;
 	TWeakObjectPtr<UVeyraStatusComponent> FollowedStatuses;

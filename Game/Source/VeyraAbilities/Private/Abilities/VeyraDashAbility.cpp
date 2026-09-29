@@ -73,11 +73,6 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 			FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	}
 
-	// Leaving the ride first, the vehicle goes on without its rider (Combat Bible §56).
-	if (Dash->RideExit == EVeyraRideExit::Leave)
-	{
-		VeyraCombat::EndRide(*Caster, EVeyraRideEndReason::Dismounted);
-	}
 	FVector Heading = VeyraAbilityRules::DashHeading(*Dash, Cast.Direction);
 	if (Dash->Direction == EVeyraDashDirection::AwayFromHost)
 	{
@@ -100,48 +95,72 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 		Frame.bOriginIsCaster = true;
 		VeyraEffectDelivery::Apply(*Caster, *Host, HostEffects, Frame, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	}
-	StopWatching();
 	UVeyraMovementComponent* Movement = Body->FindComponentByClass<UVeyraMovementComponent>();
-	if ((Dash->Contact == EVeyraDashContact::StopAtFirstEnemy || !Dash->EndZones.IsEmpty()) && Movement)
+	const bool bLeavesRide = Dash->RideExit == EVeyraRideExit::Leave && VeyraCombat::IsRiding(*Caster);
+	TSharedPtr<FPendingContact> Pending;
+	if ((Dash->Contact == EVeyraDashContact::StopAtFirstEnemy || !Dash->EndZones.IsEmpty() || bLeavesRide) && Movement)
 	{
-		FPendingContact& Pending = Contact.Emplace();
-		Pending.Caster = Caster;
-		Pending.Source = FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId };
-		Pending.Direction = Heading;
-		Pending.Effects = VeyraEffectDelivery::Prepare(*Caster, Dash->ContactEffects, Cast.Rank);
+		Pending = MakeShared<FPendingContact>();
+		Pending->bLeavesRide = bLeavesRide;
+		Pending->Caster = Caster;
+		Pending->Source = FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId };
+		Pending->Direction = Heading;
+		Pending->Effects = VeyraEffectDelivery::Prepare(*Caster, Dash->ContactEffects, Cast.Rank);
 		for (const FVeyraContentId& StatusId : Dash->ContactSelfStatuses)
 		{
 			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
 			{
-				Pending.SelfStatuses.Add(Status.GetValue());
+				Pending->SelfStatuses.Add(Status.GetValue());
 			}
 		}
-		Pending.EndZones = VeyraAreaDelivery::PrepareZones(*Caster, Dash->EndZones, Cast.Rank);
-		Watched = Movement;
-		DashEndedHandle = Movement->OnDashEnded.AddUObject(this, &UVeyraDashAbility::OnDashEnded);
+		Pending->EndZones = VeyraAreaDelivery::PrepareZones(*Caster, Dash->EndZones, Cast.Rank);
+		Pending->Movement = Movement;
+		// Bound to the caster: it runs once, when this dash ends, and lets go of itself.
+		Pending->Handle = Movement->OnDashEnded.AddWeakLambda(Caster, [Pending](const FVeyraDashEnd& End) {
+			// Held first: removing this binding destroys the lambda, and what it captured with it.
+			const TSharedPtr<FPendingContact> Held = Pending;
+			if (UVeyraMovementComponent* Moved = Held->Movement.Get())
+			{
+				Moved->OnDashEnded.Remove(Held->Handle);
+			}
+			Land(*Held, End);
+		});
 	}
 	if (!VeyraCombat::Dash(*Caster, FVeyraDash{ Heading, Dash->Distance, Dash->Speed, Dash->Contact }))
 	{
 		UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s could not dash for %s (cast %d)."), *GetNameSafe(Body), *Cast.Ability.ToString(), Cast.CastId);
-		StopWatching();
+		if (Pending.IsValid())
+		{
+			Movement->OnDashEnded.Remove(Pending->Handle);
+		}
+		// It still leaves the ride, where it stands.
+		if (bLeavesRide)
+		{
+			VeyraCombat::EndRide(*Caster, EVeyraRideEndReason::Dismounted);
+		}
 	}
 	return FVeyraChannelPlan();
 }
 
-void UVeyraDashAbility::OnDashEnded(const FVeyraDashEnd& End)
+void UVeyraDashAbility::Land(const FPendingContact& Pending, const FVeyraDashEnd& End)
 {
-	const TOptional<FPendingContact> Pending = Contact;
-	StopWatching();
-	UAbilitySystemComponent* Caster = Pending.IsSet() ? Pending->Caster.Get() : nullptr;
+	UAbilitySystemComponent* Caster = Pending.Caster.Get();
 	const AActor* Body = Caster ? Caster->GetAvatarActor() : nullptr;
+	UWorld* World = Body ? Body->GetWorld() : nullptr;
 	// Where it lands, unless a displacement cut it short (ADR-018 §6).
-	if (Body && End.Reason != EVeyraDashEndReason::Interrupted && !Pending->EndZones.IsEmpty() && GetWorld())
+	if (World && End.Reason != EVeyraDashEndReason::Interrupted && !Pending.EndZones.IsEmpty())
 	{
 		FVeyraEffectFrame Landing;
 		Landing.Origin = Body->GetActorLocation();
-		Landing.Direction = Pending->Direction;
+		Landing.Direction = Pending.Direction;
 		Landing.bOriginIsCaster = true;
-		VeyraAreaDelivery::Resolve(*GetWorld(), *Caster, Landing, Pending->EndZones, Pending->Source);
+		VeyraAreaDelivery::Resolve(*World, *Caster, Landing, Pending.EndZones, Pending.Source);
+	}
+	// It leaves the ride as it lands, after its landing's effects, so its vehicle goes on from there and
+	// spares what the landing knocked up (Roster Bible §1: one displacement per target).
+	if (Caster && Pending.bLeavesRide)
+	{
+		VeyraCombat::EndRide(*Caster, EVeyraRideEndReason::Dismounted);
 	}
 	AActor* Enemy = End.Contact.Get();
 	if (End.Reason != EVeyraDashEndReason::EnemyContact || !Caster || !Enemy)
@@ -150,24 +169,13 @@ void UVeyraDashAbility::OnDashEnded(const FVeyraDashEnd& End)
 	}
 	FVeyraEffectFrame Frame;
 	Frame.Origin = Body ? Body->GetActorLocation() : Enemy->GetActorLocation();
-	Frame.Direction = Pending->Direction;
+	Frame.Direction = Pending.Direction;
 	Frame.bOriginIsCaster = Body != nullptr;
-	VeyraEffectDelivery::Apply(*Caster, *Enemy, Pending->Effects, Frame, Pending->Source);
-	for (const FVeyraStatusSpec& Status : Pending->SelfStatuses)
+	VeyraEffectDelivery::Apply(*Caster, *Enemy, Pending.Effects, Frame, Pending.Source);
+	for (const FVeyraStatusSpec& Status : Pending.SelfStatuses)
 	{
 		VeyraCombat::ApplyStatus(*Caster, *Caster, Status);
 	}
-}
-
-void UVeyraDashAbility::StopWatching()
-{
-	if (UVeyraMovementComponent* Movement = Watched.Get())
-	{
-		Movement->OnDashEnded.Remove(DashEndedHandle);
-	}
-	Watched.Reset();
-	DashEndedHandle.Reset();
-	Contact.Reset();
 }
 
 bool UVeyraDashAbility::IsOffensive(const FVeyraContentId& Ability) const

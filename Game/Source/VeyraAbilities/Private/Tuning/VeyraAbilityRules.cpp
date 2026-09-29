@@ -87,6 +87,11 @@ namespace
 		{
 			CheckDamage(Pointer + TEXT("/damage"), Effects.Damage);
 			CheckStatusIds(Pointer + TEXT("/statuses"), Effects.Statuses);
+			CheckStatusIds(Pointer + TEXT("/displacementUnlessStatuses"), Effects.DisplacementUnlessStatuses);
+			if (!Effects.DisplacementUnlessStatuses.IsEmpty() && Effects.Displacement.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/displacementUnlessStatuses"), TEXT("spares units a displacement, so the effects need one"));
+			}
 			if (!Effects.MissingHealthDamage.IsEmpty() && Effects.Damage.IsEmpty())
 			{
 				Problem(Pointer + TEXT("/missingHealthDamage"), TEXT("joins the hit's damage, so the effects need damage too"));
@@ -272,7 +277,7 @@ namespace
 				const FString PayloadPointer = FString::Printf(TEXT("%s/endPayload/%d"), *Pointer, Index);
 				CheckStatusIds(PayloadPointer + TEXT("/status"), { Payload.Status });
 				if (!(Payload.AfterSeconds > 0.0) || !(Payload.Radius > 0.0) || !(Payload.BaseSeconds > 0.0) || Payload.SecondsPerHit < 0.0
-					|| Payload.MaxSeconds < Payload.BaseSeconds)
+					|| Payload.MaxSeconds < Payload.BaseSeconds || Payload.MinHits < 0)
 				{
 					Problem(PayloadPointer, TEXT("afterSeconds, radius and baseSeconds are above 0, secondsPerHit at least 0, and maxSeconds at least baseSeconds"));
 				}
@@ -408,6 +413,15 @@ namespace
 			if (Ride.Vehicle.Num() > 1)
 			{
 				Problem(Pointer + TEXT("/vehicle"), TEXT("holds at most one"));
+			}
+			// A recast that fires at expiry ends the ride itself, so it must be a dash that leaves it.
+			for (const FVeyraRecastTuning& Recast : Ride.Cast.RecastWindow)
+			{
+				const FVeyraDashAbilityTuning* Exit = Tuning.Dash.Find(Recast.Ability);
+				if (Recast.OnExpiry == EVeyraRecastExpiry::Cast && (!Exit || Exit->RideExit != EVeyraRideExit::Leave))
+				{
+					Problem(Pointer + TEXT("/cast/recastWindow"), TEXT("a recast that fires at expiry is a dash that leaves the ride (rideExit: Leave)"));
+				}
 			}
 			for (const FVeyraContentId& Vehicle : Ride.Vehicle)
 			{

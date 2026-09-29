@@ -11,6 +11,7 @@
 #include "Passives/VeyraDeepFoundationPassive.h"
 #include "Passives/VeyraGatheringLightPassive.h"
 #include "Passives/VeyraHauntPassive.h"
+#include "Passives/VeyraMomentumPassive.h"
 #include "Passives/VeyraMovingTargetPassive.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Shared/VeyraHitChainPassive.h"
@@ -59,6 +60,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindCampReward(PassiveId))
 	{
 		return UVeyraCampRewardPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindMomentum(PassiveId))
+	{
+		return UVeyraMomentumPassive::StaticClass();
 	}
 	return nullptr;
 }

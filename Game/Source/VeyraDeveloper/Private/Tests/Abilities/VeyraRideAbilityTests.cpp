@@ -123,13 +123,13 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Has(*Rider, TEXT("test_big"))));
 		}
 
-		TEST_METHOD(BailingOutEndsItAndTheVehicleGoesOn)
+		TEST_METHOD(BailingOutLeapsAndLeavesTheRideAsItLands)
 		{
 			ASSERT_THAT(IsTrue(Ride(TEXT("test_kick"))));
 			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Rider, EVeyraAbilitySlot::Q, FVector(Range, 0.0, 0.0)) == EVeyraCastRejection::None));
-			ASSERT_THAT(IsFalse(Rider->GetVeyraMovement()->IsRiding()));
-			ASSERT_THAT(IsTrue(Rider->GetVeyraMovement()->IsDashing(), TEXT("it leaps free")));
-			ASSERT_THAT(IsTrue(Vehicles() == 1 && Holds(EVeyraAbilitySlot::Q, TEXT("test_kick")) && !FArchetypeTestWorld::Has(*Rider, TEXT("test_big"))));
+			// It leaps free and leaves the ride where it lands, after its landing's effects (Roster Bible §1);
+			// the landing itself runs over real frames, in Veyra.Net.Vanguards.Raska.
+			ASSERT_THAT(IsTrue(Rider->GetVeyraMovement()->IsDashing() && Rider->GetVeyraMovement()->IsRiding() && Vehicles() == 0));
 		}
 
 		TEST_METHOD(ItEndsWithItsTimeAndTheVehicleGoesOn)
@@ -157,9 +157,8 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Ride(TEXT("test_brakes"))));
 			ASSERT_THAT(IsTrue(Holds(EVeyraAbilitySlot::Q, TEXT("test_bail"))));
 			AdvanceWorld(RideSeconds + WorldStep * 2.0);
-			ASSERT_THAT(IsFalse(Rider->GetVeyraMovement()->IsRiding()));
 			ASSERT_THAT(IsTrue(Rider->GetVeyraMovement()->IsDashing(), TEXT("its payoff comes whether or not it was cast")));
-			ASSERT_THAT(IsTrue(Vehicles() == 1));
+			ASSERT_THAT(IsTrue(Rider->GetVeyraMovement()->IsRiding() && Vehicles() == 0, TEXT("the payoff ends the ride as it lands, not the clock")));
 		}
 
 		TEST_METHOD(ValidationKeepsARideInShape)
@@ -171,10 +170,12 @@ namespace VeyraAbilitiesTests
 			Kick.TurnRateDegreesPerSecond = 0.0;
 			Kick.Mounted.Add(FVeyraRideSlotTuning{ EVeyraAbilitySlot::R, ArchetypeTestId(TEXT("test_bail")) });
 			Kick.Vehicle = { ArchetypeTestId(TEXT("test_bail")) };
+			Broken.Dash.FindChecked(ArchetypeTestId(TEXT("test_bail"))).RideExit = EVeyraRideExit::Stay;
 			const FString All = FString::Join(VeyraAbilityRules::Validate(Broken, RankCounts), TEXT(" | "));
 			ASSERT_THAT(IsTrue(All.Contains(TEXT("/ride/test_kick:")), All));
 			ASSERT_THAT(IsTrue(All.Contains(TEXT("/ride/test_kick/mounted/1/slot:")), All));
 			ASSERT_THAT(IsTrue(All.Contains(TEXT("/ride/test_kick/vehicle:")), All));
+			ASSERT_THAT(IsTrue(All.Contains(TEXT("/ride/test_brakes/cast/recastWindow:")), All));
 		}
 	};
 }

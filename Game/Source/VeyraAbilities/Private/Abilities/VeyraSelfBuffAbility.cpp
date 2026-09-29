@@ -349,6 +349,11 @@ void UVeyraSelfBuffAbility::FirePayload()
 		return;
 	}
 	const FVeyraEndPayloadTuning& Payload = Buff->EndPayload[0];
+	// A payload that needs hits comes only after that many (Roster Bible §1: Countersteer's counter).
+	if (Hits < Payload.MinHits)
+	{
+		return;
+	}
 	TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(Payload.Status, GetCasterLevel(*Caster));
 	if (!Status.IsSet())
 	{

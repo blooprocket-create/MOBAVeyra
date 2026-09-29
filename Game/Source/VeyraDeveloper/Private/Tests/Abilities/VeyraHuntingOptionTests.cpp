@@ -128,6 +128,26 @@ namespace VeyraAbilitiesTests
 				FString::Printf(TEXT("lost %g"), FArchetypeTestWorld::HealthLost(*Caster))));
 		}
 
+		TEST_METHOD(AStatusSparesAUnitTheDisplacement)
+		{
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_aloft")), StatusOf(EVeyraStatusKind::Knockup, 0.0, LongSeconds));
+			FVeyraEffectBundleTuning& Effects = Tuning.Area.FindChecked(ArchetypeTestId(TEXT("test_rake"))).Zones[0].Effects;
+			FVeyraDisplacementTuning& Push = Effects.Displacement.AddDefaulted_GetRef();
+			Push.Direction = EVeyraDisplacementDirection::AwayFromOrigin;
+			Push.Distance = Reach;
+			Push.Speed = Reach * 4.0;
+			Effects.DisplacementUnlessStatuses.Add(ArchetypeTestId(TEXT("test_aloft")));
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Aloft = World.Spawn(EVeyraTeam::B, FVector(Reach / 2.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Grounded = World.Spawn(EVeyraTeam::B, FVector(0.0, Reach / 2.0, 0.0));
+			const FVeyraStatusSpec Knocked = UVeyraAbilitiesTuningSubsystem::FindStatus(ArchetypeTestId(TEXT("test_aloft"))).GetValue();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Aloft.GetAbilitySystemComponent(), *Aloft.GetAbilitySystemComponent(), Knocked)));
+			ASSERT_THAT(IsTrue(Rake() == EVeyraCastRejection::None));
+			AdvanceWorld(ChannelSeconds / 2.0 + WorldStep * 3.0);
+			ASSERT_THAT(IsTrue(Grounded.GetVeyraMovement()->IsDisplaced() && !Aloft.GetVeyraMovement()->IsDisplaced(), TEXT("one displacement per target per cast")));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::HealthLost(Aloft) > 0.0, TEXT("it still takes the damage")));
+		}
+
 		TEST_METHOD(ValidationKeepsTheOptionsInShape)
 		{
 			constexpr int32 RankCounts[] = { 5, 3 };

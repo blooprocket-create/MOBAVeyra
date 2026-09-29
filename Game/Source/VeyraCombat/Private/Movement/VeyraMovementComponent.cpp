@@ -269,6 +269,25 @@ void UVeyraMovementComponent::EndRide(EVeyraRideEndReason Reason)
 	OnRideEnded.Broadcast(End);
 }
 
+void UVeyraMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	const FVector Before = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
+	// Its own movement: walking, riding or its own dash, never what moves it against its will.
+	const bool bOwnMovement = !ForcedMove.IsSet() || ForcedMove->Mode == EVeyraCustomMovementMode::Dashing;
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+	if (UpdatedComponent && bOwnMovement)
+	{
+		Travelled += FVector::Dist2D(Before, UpdatedComponent->GetComponentLocation());
+	}
+}
+
+double UVeyraMovementComponent::TakeTravelled()
+{
+	const double Moved = Travelled;
+	Travelled = 0.0;
+	return Moved;
+}
+
 double UVeyraMovementComponent::GetRideTurnRadius() const
 {
 	return IsRiding() ? Ride->SetSpeed / FMath::DegreesToRadians(Ride->TurnRateDegreesPerSecond) : 0.0;

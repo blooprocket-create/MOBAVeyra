@@ -116,6 +116,7 @@ A ride state is a movement mode on `UVeyraMovementComponent`, owned by Combat:
 - **Kept:** an earned empowered attack survives until after the ride.
 - **The ability set:** the replacement set of §1.
 - **The vehicle:** it exists only from the entry cast to the end of any separated phase. On every exit, death included, it continues as a projectile along the rider's heading, and its damage is still the rider's.
+- **Leaving on landing:** a dash that leaves the ride holds it until it lands, then ends it, so its landing's effects come before the vehicle goes on. A dash's landing is held by the caster, not by the ability that set off, since a used-once follow-up's ability may be removed mid-dash.
 - **The ride archetype** (`ride` map) enters it: set speed, turn rate, duration, decay, statuses held on the rider, mounted actions by slot and the vehicle's skillshot. A dash may leave the ride first (`rideExit: Leave`), as Bail Out and Last Exit do. As the ride's time runs out, a recast that fires at expiry fires first, so Last Exit's payoff never loses a race with the ride's own end.
 
 Combat also counts the **distance a unit moves itself** (Raska's Momentum), excluding forced movement.
@@ -175,6 +176,12 @@ Every value is Provisional data, a League stand-in:
   - Momentum counts her own dashes, not forced movement, and resets on death;
   - canon gives Redlined forms only for Q and W, so E and the mounted set have none yet;
   - a destination inside her turning circle is approached at the closest point.
+  - Momentum is the stacks of a Counter status: 1 per 40 units she moves herself, dashes included, +5 per attack and +8 per cast, to 100;
+  - at full, Q and W hold their Redlined forms, used once and cooling down as the slots' own abilities; a ride holds Redline off until she leaves it, since the mounted set has none;
+  - Roadhouse: +250 reach while it waits, and the attack adds 30, 10% of the target's missing Health and 3% of her bonus Health, lunging to the target;
+  - Redlined Breakneck knocks back what it stops at; Countersteer's counter is a Slow, and Redlined its Stun, in a circle of 350 around her, and comes only if a hostile hit landed while she braced;
+  - Powerslide is a cone Slow; its turn is left for later;
+  - a dash that leaves the ride keeps the ride until it lands: its landing resolves first, then Hound goes on from there, sparing what Last Exit knocked up (one displacement per target).
 
 The values live in `Game/Tuning/Vanguards.json`, `Abilities.json` and `Bots.json`.
 

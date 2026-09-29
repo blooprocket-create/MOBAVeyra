@@ -47,6 +47,7 @@ public:
 	static const FVeyraMarkProcTuning* FindMarkProc(const FVeyraContentId& Passive);
 	static const FVeyraHauntTuning* FindHaunt(const FVeyraContentId& Passive);
 	static const FVeyraCampRewardTuning* FindCampReward(const FVeyraContentId& Passive);
+	static const FVeyraMomentumTuning* FindMomentum(const FVeyraContentId& Passive);
 
 	/** Reads and validates the file again, replacing the loaded tuning only when it is valid. */
 	VeyraTuning::FErrors Reload();

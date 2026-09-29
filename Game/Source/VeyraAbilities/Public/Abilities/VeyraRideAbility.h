@@ -54,5 +54,7 @@ private:
 	TWeakObjectPtr<UVeyraMovementComponent> Watched;
 	FDelegateHandle RideEndedHandle;
 	FDelegateHandle DeathHandle;
+	/** Its time ran out mid-dash: the dash ends first, and the ride with it if the dash has not ended it. */
+	FDelegateHandle ExpiryDashHandle;
 	FTimerHandle ExpiryTimer;
 };

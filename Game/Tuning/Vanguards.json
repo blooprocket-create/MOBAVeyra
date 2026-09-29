@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -445,6 +445,48 @@
       },
       "abilities": { "q": ["gorraveth_rip_through"], "w": ["gorraveth_furnace_rake"], "e": ["gorraveth_ravine_bound"], "r": ["gorraveth_tear_them_apart"] },
       "passive": ["gorraveth_no_time_to_bleed"]
+    },
+    "raska": {
+      "provenance": "Provisional",
+      "availability": "Developer",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 50, "capsuleHalfHeight": 95, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 620,
+        "healthRegen": 1.4,
+        "maxResource": 300,
+        "resourceRegen": 3,
+        "armor": 34,
+        "magicResist": 32,
+        "physicalPower": 58,
+        "magicPower": 0,
+        "attackSpeed": 0.65,
+        "moveSpeed": 340
+      },
+      "growth": {
+        "maxHealth": 112,
+        "healthRegen": 0.14,
+        "maxResource": 40,
+        "resourceRegen": 0.22,
+        "armor": 4.4,
+        "magicResist": 2.05,
+        "physicalPower": 3.2,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 150,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": { "q": ["raska_breakneck"], "w": ["raska_countersteer"], "e": ["raska_kickstart"], "r": ["raska_no_brakes"] },
+      "passive": ["raska_redline"]
     }
   },
   "deepFoundation": {
@@ -564,6 +606,25 @@
       "healthAmount": 40,
       "statuses": ["gorraveth_rush"],
       "takedownCooldownSeconds": 20
+    }
+  },
+  "momentum": {
+    "raska_redline": {
+      "provenance": "Provisional",
+      "meter": "raska_momentum",
+      "unitsPerPoint": 40,
+      "pointsPerAttack": 5,
+      "pointsPerCast": 8,
+      "sampleSeconds": 0.25,
+      "redlined": [{ "slot": "Q", "ability": "raska_breakneck_redlined" }, { "slot": "W", "ability": "raska_countersteer_redlined" }],
+      "holdFullStatuses": ["raska_no_brakes"],
+      "roadhouse": {
+        "reachStatus": "raska_roadhouse_reach",
+        "damage": { "type": "Physical", "amountByRank": [30], "physicalPowerRatio": 0, "magicPowerRatio": 0 },
+        "missingHealthRatio": 0.1,
+        "bonusHealthRatio": 0.03,
+        "lungeSpeed": 1400
+      }
     }
   }
 }

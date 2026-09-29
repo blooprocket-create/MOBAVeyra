@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -166,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [10]
+      "enum": [11]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -373,6 +373,40 @@
             "healthAmount": { "description": "And this much more.", "type": "number", "minimum": 0 },
             "statuses": { "description": "From Abilities.json's statuses, put on the owner.", "$ref": "#/definitions/contentIds" },
             "takedownCooldownSeconds": { "description": "Seconds between two rewards from takedowns.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "momentum": {
+      "description": "Passives that build Momentum by the distance their owner moves itself, its attacks and its casts; at full its slots hold their Redlined forms, and the cast that spends it readies Roadhouse (Raska's Redline, Roster Bible §1).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "meter", "unitsPerPoint", "pointsPerAttack", "pointsPerCast", "sampleSeconds", "redlined", "holdFullStatuses", "roadhouse"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "meter": { "description": "From Abilities.json's statuses: a Stacking Counter whose stacks are Momentum.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "unitsPerPoint": { "description": "The units the owner moves itself for each point.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "pointsPerAttack": { "type": "integer", "minimum": 0 },
+            "pointsPerCast": { "type": "integer", "minimum": 0 },
+            "sampleSeconds": { "description": "How often its own movement is counted.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "redlined": { "description": "The Redlined forms its slots hold at full.", "type": "array", "minItems": 0, "maxItems": 3,
+              "items": { "type": "object", "additionalProperties": false, "required": ["slot", "ability"], "properties": { "slot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] }, "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } } } },
+            "holdFullStatuses": { "description": "From Abilities.json's statuses: while the owner has any, the meter stays full.", "$ref": "#/definitions/contentIds" },
+            "roadhouse": {
+              "type": "object", "additionalProperties": false,
+              "required": ["reachStatus", "damage", "missingHealthRatio", "bonusHealthRatio", "lungeSpeed"],
+              "properties": {
+                "reachStatus": { "description": "From Abilities.json's statuses, held while Roadhouse waits.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                "damage": { "$ref": "#/definitions/damage" },
+                "missingHealthRatio": { "type": "number", "minimum": 0 },
+                "bonusHealthRatio": { "type": "number", "minimum": 0 },
+                "lungeSpeed": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+              }
+            }
           }
         }
       }

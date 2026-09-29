@@ -27,6 +27,9 @@ struct FVeyraPreparedEffects
 	/** Damage's components as prepared, and what multiplies them against a kind of unit as the hit lands. */
 	FVeyraDamageComponents RawDamage;
 	TArray<FVeyraUnitKindMultiplierTuning> UnitKindMultipliers;
+
+	/** Statuses that spare a unit the displacement. */
+	TArray<FVeyraContentId> DisplacementUnlessStatuses;
 };
 
 /** Where effects are applied from: the point displacements are measured from, and the way they face. */

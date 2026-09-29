@@ -128,7 +128,7 @@ void UVeyraRideAbility::Expire()
 	const bool bFiresAtExpiry = CastTuning && !CastTuning->RecastWindow.IsEmpty() && CastTuning->RecastWindow[0].OnExpiry == EVeyraRecastExpiry::Cast;
 	const FVeyraLoadoutEntry* FollowUp = bFiresAtExpiry && Loadout ? Loadout->FindAbility(CastTuning->RecastWindow[0].Ability) : nullptr;
 	const FVeyraLoadoutEntry* Holding = FollowUp ? Loadout->FindSlot(FollowUp->Slot) : nullptr;
-	if (Holding && Holding->Ability == CastTuning->RecastWindow[0].Ability)
+	if (Holding && Holding->Ability == CastTuning->RecastWindow[0].Ability && Caster->GetAvatarActor())
 	{
 		const AActor* Body = Caster->GetAvatarActor();
 		const UVeyraMovementComponent* Movement = Watched.Get();
@@ -136,12 +136,42 @@ void UVeyraRideAbility::Expire()
 		Ahead.bHasLocation = Body != nullptr;
 		Ahead.Location = Body ? Body->GetActorLocation() + (Movement ? Movement->GetRideHeading() : Body->GetActorForwardVector()) * Body->GetSimpleCollisionRadius() * 4.0
 			: FVector::ZeroVector;
-		VeyraAbilities::TryCast(*Caster, Holding->Slot, Ahead);
+		// It leaves the ride as it lands (validation holds it to a dash that leaves), and ends it then.
+		if (VeyraAbilities::TryCast(*Caster, Holding->Slot, Ahead) == EVeyraCastRejection::None)
+		{
+			return;
+		}
 	}
-	if (Rider.IsValid() && VeyraCombat::IsRiding(*Caster))
+	if (!Rider.IsValid() || !VeyraCombat::IsRiding(*Caster))
 	{
-		VeyraCombat::EndRide(*Caster, EVeyraRideEndReason::Expired);
+		return;
 	}
+	// Mid-dash, as when its recast fired on its own timer: the dash ends first. One that leaves the
+	// ride ends it as it lands, after its landing; any other hands the end back to the clock.
+	UVeyraMovementComponent* Movement = Watched.Get();
+	if (Movement && Movement->IsDashing())
+	{
+		if (!ExpiryDashHandle.IsValid())
+		{
+			ExpiryDashHandle = Movement->OnDashEnded.AddWeakLambda(this, [this](const FVeyraDashEnd&) {
+				// On the next tick, after the dash's own landing, which the same event runs (listeners run
+				// newest first).
+				UAbilitySystemComponent* Still = Rider.Get();
+				UWorld* World = GetWorld();
+				if (Still && World)
+				{
+					World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(Still, [Held = TWeakObjectPtr<UAbilitySystemComponent>(Still)]() {
+						if (UAbilitySystemComponent* Unit = Held.Get(); Unit && VeyraCombat::IsRiding(*Unit))
+						{
+							VeyraCombat::EndRide(*Unit, EVeyraRideEndReason::Expired);
+						}
+					}));
+				}
+			});
+		}
+		return;
+	}
+	VeyraCombat::EndRide(*Caster, EVeyraRideEndReason::Expired);
 }
 
 void UVeyraRideAbility::OnRideEnded(const FVeyraRideEnd& End)
@@ -211,7 +241,9 @@ void UVeyraRideAbility::StopWatching()
 	if (UVeyraMovementComponent* Movement = Watched.Get())
 	{
 		Movement->OnRideEnded.Remove(RideEndedHandle);
+		Movement->OnDashEnded.Remove(ExpiryDashHandle);
 	}
+	ExpiryDashHandle.Reset();
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(ExpiryTimer);

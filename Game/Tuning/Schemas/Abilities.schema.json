@@ -106,7 +106,7 @@
       "description": "What happens to each unit hit.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["damage", "statuses", "displacement", "missingHealthDamage", "unitKindMultipliers"],
+      "required": ["damage", "statuses", "displacement", "missingHealthDamage", "unitKindMultipliers", "displacementUnlessStatuses"],
       "properties": {
         "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
         "statuses": { "$ref": "#/definitions/statusIds" },
@@ -126,7 +126,8 @@
             }
           }
         },
-        "unitKindMultipliers": { "description": "Damage multiplied against some kinds of unit, at least 1, once per kind, never structures (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "object", "additionalProperties": false, "required": ["kind", "multiplier"], "properties": { "kind": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }, "multiplier": { "type": "number", "minimum": 1 } } } }
+        "unitKindMultipliers": { "description": "Damage multiplied against some kinds of unit, at least 1, once per kind, never structures (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "object", "additionalProperties": false, "required": ["kind", "multiplier"], "properties": { "kind": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }, "multiplier": { "type": "number", "minimum": 1 } } } },
+        "displacementUnlessStatuses": { "description": "Statuses that spare a unit this displacement: one displacement per target per cast (Roster Bible §1).", "$ref": "#/definitions/statusIds" }
       }
     },
     "zone": {
@@ -208,7 +209,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [11]
+      "enum": [12]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -497,14 +498,15 @@
               "type": "array", "minItems": 0, "maxItems": 1,
               "items": {
                 "type": "object", "additionalProperties": false,
-                "required": ["afterSeconds", "radius", "status", "baseSeconds", "secondsPerHit", "maxSeconds"],
+                "required": ["afterSeconds", "radius", "status", "baseSeconds", "secondsPerHit", "maxSeconds", "minHits"],
                 "properties": {
                   "afterSeconds": { "description": "When it comes, in seconds after the cast.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "radius": { "description": "Units from the caster's centre to an enemy's edge.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "status": { "description": "A status ID from the statuses map.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
                   "baseSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "secondsPerHit": { "type": "number", "minimum": 0 },
-                  "maxSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                  "maxSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "minHits": { "description": "The hits the caster must take for it to come at all; 0 for always.", "type": "integer", "minimum": 0 }
                 }
               }
             }

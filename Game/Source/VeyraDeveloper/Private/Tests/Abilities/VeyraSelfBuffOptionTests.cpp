@@ -171,6 +171,17 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Has(Latecomer, TEXT("test_chill")), TEXT("it keeps refreshing after its cast")));
 		}
 
+		TEST_METHOD(APayloadThatNeedsHitsComesOnlyAfterThem)
+		{
+			Tuning.SelfBuff.FindChecked(ArchetypeTestId(TEXT("test_play_dead"))).EndPayload[0].MinHits = 1;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Close = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_play_dead")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector::ZeroVector) == EVeyraCastRejection::None));
+			AdvanceWorld(PayloadAfter + WorldStep);
+			ASSERT_THAT(IsTrue(Find(Close, TEXT("test_fear")) == nullptr, TEXT("no hit, no counter")));
+		}
+
 		TEST_METHOD(ValidationKeepsTheOptionsInShape)
 		{
 			constexpr int32 RankCounts[] = { 5, 3 };

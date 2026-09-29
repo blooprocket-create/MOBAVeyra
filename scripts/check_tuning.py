@@ -54,7 +54,7 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
 ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride")
-PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward")
+PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
     ("Vanguards", "/vanguards/*/abilities/q/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
@@ -75,6 +75,10 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/haunt/*/hauntStatus", "Abilities", ("/statuses",)),
     ("Vanguards", "/haunt/*/statuses/*", "Abilities", ("/statuses",)),
     ("Vanguards", "/campReward/*/statuses/*", "Abilities", ("/statuses",)),
+    ("Vanguards", "/momentum/*/meter", "Abilities", ("/statuses",)),
+    ("Vanguards", "/momentum/*/redlined/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/momentum/*/holdFullStatuses/*", "Abilities", ("/statuses",)),
+    ("Vanguards", "/momentum/*/roadhouse/reachStatus", "Abilities", ("/statuses",)),
     ("Abilities", "/area/*/casterStatuses/*", "Abilities", ("/statuses",)),
     # A variant is an ability of any archetype, and what an area spends is a status (ADR-018 §1, §6).
     ("Abilities", "/selfBuff/*/variants/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
