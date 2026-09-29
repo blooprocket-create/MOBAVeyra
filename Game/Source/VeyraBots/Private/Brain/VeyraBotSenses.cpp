@@ -185,7 +185,7 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWard
 	if (Attacks && Attacks->HasProfile())
 	{
 		const FVeyraBasicAttackProfile& Profile = Attacks->GetProfile();
-		View.AttackRange = Profile.Range;
+		View.AttackRange = Attacks->GetRange(nullptr);
 		View.AttackDamage = AttributeOf(AbilitySystem, UVeyraOffenceSet::GetPhysicalPowerAttribute()) * Profile.PhysicalPowerRatio
 			+ AttributeOf(AbilitySystem, UVeyraOffenceSet::GetMagicPowerAttribute()) * Profile.MagicPowerRatio;
 	}

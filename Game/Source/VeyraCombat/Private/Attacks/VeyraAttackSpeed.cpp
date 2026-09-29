@@ -12,11 +12,12 @@ namespace
 	constexpr double PercentPerWhole = 100.0;
 }
 
-FVeyraAttackTiming Resolve(double UncappedAttacksPerSecond, const FVeyraAttackSpeedTuning& Tuning, double MinimumIntervalSeconds)
+FVeyraAttackTiming Resolve(double UncappedAttacksPerSecond, const FVeyraAttackSpeedTuning& Tuning, double MinimumIntervalSeconds, double RaisedCap)
 {
 	FVeyraAttackTiming Timing;
 	const double Uncapped = FMath::IsFinite(UncappedAttacksPerSecond) ? UncappedAttacksPerSecond : 0.0;
-	Timing.AttacksPerSecond = FMath::Clamp(Uncapped, Tuning.Minimum, Tuning.Cap);
+	const double Cap = FMath::IsFinite(RaisedCap) ? FMath::Max(Tuning.Cap, RaisedCap) : Tuning.Cap;
+	Timing.AttacksPerSecond = FMath::Clamp(Uncapped, Tuning.Minimum, Cap);
 	Timing.IntervalSeconds = FMath::Max(1.0 / Timing.AttacksPerSecond, MinimumIntervalSeconds);
 
 	// Overflow is how far uncapped Attack Speed exceeds the cap, as a percentage of the cap.

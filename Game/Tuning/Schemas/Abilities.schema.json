@@ -185,7 +185,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [5]
+      "enum": [6]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -210,12 +210,12 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime"],
+          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -246,6 +246,11 @@
                   "damagePerLevel": { "description": "Added to each tick for each Level of its source's beyond the first, fixed as it lands.", "type": "number", "minimum": 0 }
                 }
               }
+            },
+            "stackDecaySeconds": {
+              "description": "For a stacking status: once its duration runs out it loses one stack and lasts this long again, until the last stack goes (ADR-018 §2). 0 to end at once.",
+              "type": "number",
+              "minimum": 0
             }
           }
         }

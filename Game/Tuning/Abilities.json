@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -14,7 +14,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "stonehorn_trait": {
       "provenance": "Provisional",
@@ -25,7 +26,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "skittermaw_trait": {
       "provenance": "Provisional",
@@ -36,7 +38,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "miremother_trait": {
       "provenance": "Provisional",
@@ -47,7 +50,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "razorback_trait": {
       "provenance": "Provisional",
@@ -58,7 +62,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "cairn_crushing_hold_stun": {
       "provenance": "Provisional",
@@ -69,7 +74,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "cairn_crushing_hold_slow": {
       "provenance": "Provisional",
@@ -80,7 +86,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "cairn_immovable_guard": {
       "provenance": "Provisional",
@@ -91,7 +98,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "cairn_immovable_anchor": {
       "provenance": "Provisional",
@@ -102,7 +110,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "cairn_immovable_burden": {
       "provenance": "Provisional",
@@ -113,7 +122,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "cairn_immovable_cover": {
       "provenance": "Provisional",
@@ -124,7 +134,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "cairn_burden_stun": {
       "provenance": "Provisional",
@@ -135,7 +146,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "cairn_burden_slow": {
       "provenance": "Provisional",
@@ -146,7 +158,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "qazharr_sea_dog": {
       "provenance": "Provisional",
@@ -157,7 +170,8 @@
       "maxStacks": 5,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "qazharr_heavy_hand_slow": {
       "provenance": "Provisional",
@@ -168,7 +182,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "qazharr_weather_it_tenacity": {
       "provenance": "Provisional",
@@ -179,7 +194,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "qazharr_boarding_rush_haste": {
       "provenance": "Provisional",
@@ -190,7 +206,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "qazharr_no_quarter_frenzy": {
       "provenance": "Provisional",
@@ -201,7 +218,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 1.5,
       "takedownExtensionMaxSeconds": 3,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "qazharr_no_quarter_pursuit": {
       "provenance": "Provisional",
@@ -212,7 +230,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 1.5,
       "takedownExtensionMaxSeconds": 3,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "qazharr_no_quarter_tenacity": {
       "provenance": "Provisional",
@@ -223,7 +242,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 1.5,
       "takedownExtensionMaxSeconds": 3,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "qazharr_no_quarter_cleave": {
       "provenance": "Provisional",
@@ -234,7 +254,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 1.5,
       "takedownExtensionMaxSeconds": 3,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "oriel_shattered_sky_slow": {
       "provenance": "Provisional",
@@ -245,7 +266,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "oriel_mirror_veil_haste": {
       "provenance": "Provisional",
@@ -256,7 +278,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     }
 ,
     "bryn_flare_slow": {
@@ -268,7 +291,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "bryn_kickback_slow": {
       "provenance": "Provisional",
@@ -279,7 +303,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     }
 ,
     "mend_haste": {
@@ -291,7 +316,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "scorch_burn": {
       "provenance": "Provisional",
@@ -302,7 +328,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": [{ "damageType": "TrueDamage", "tickSeconds": 1, "damagePerLevel": 4 }]
+      "damageOverTime": [{ "damageType": "TrueDamage", "tickSeconds": 1, "damagePerLevel": 4 }],
+      "stackDecaySeconds": 0
     },
     "enfeeble_slow": {
       "provenance": "Provisional",
@@ -313,7 +340,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     },
     "enfeeble_weaken": {
       "provenance": "Provisional",
@@ -324,7 +352,8 @@
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
-      "damageOverTime": []
+      "damageOverTime": [],
+      "stackDecaySeconds": 0
     }
   },
   "targetedDamage": {

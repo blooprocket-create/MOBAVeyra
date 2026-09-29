@@ -48,7 +48,8 @@ New kinds in Combat's one status ledger. Each is defined by its canon section, w
 | **AttackRange** | Adds to basic-attack range. | no |
 | **AttackSpeedCap** | Raises the Attack Speed cap. Overflow is still measured from the ordinary cap (§22). | no |
 | **SlowResistance** | Reduces Slows. | no |
-| **Restraint** | The unit's own choice to block movement, attacks or casts, whichever are named. Not crowd control; Cleanse ignores it. | no |
+| **Planted** | The unit's own choice to stand still, as in a firing stance: it cannot move, and may attack and cast. Not crowd control; Tenacity and Cleanse ignore it. | no |
+| **Dormant** | The unit's own choice to take no action, as Patch's Play Dead: it cannot move, attack or cast. Not crowd control. | no |
 | **Camouflage** | Hidden beyond the status's detection radius (§11; §4 here). | no |
 | **DisplacementImmunity** | §9, as ruled 2026-09-25. | no |
 | **Unstoppable** | Ordinary crowd control cannot affect the unit; Suppression still can (§8, §9). | no |
@@ -130,7 +131,7 @@ Every value is Provisional data, a League stand-in:
   - Cadence: 8 stacks of +7% Attack Speed, decaying one at a time;
   - her Firing Line echo is **proc damage without On-Hit** (Combat §16; League's Rageblade phantom hit does apply On-Hit);
   - R's "every third attack" counts every attack;
-  - Dig In is a Restraint on movement, not crowd control.
+  - Dig In plants her: movement blocked, not crowd control.
 - **Mimzi:**
   - range 550, Magic attacks (her design sheet);
   - Camouflage's detection radius is 400;

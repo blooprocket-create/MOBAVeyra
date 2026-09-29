@@ -60,6 +60,37 @@ enum class EVeyraStatusKind : uint8
 	 * removed per stack, above 0, every stack together below 1.
 	 */
 	Weaken,
+	/**
+	 * Adds to the unit's basic-attack range (ADR-018 §2). Not crowd control. Magnitude: the distance
+	 * added per stack, above 0; every entry adds.
+	 */
+	AttackRange,
+	/**
+	 * Raises the unit's Attack Speed cap for a while (Combat Bible §22); overflow is still measured from
+	 * the ordinary cap. Not crowd control. Magnitude: the raised cap in attacks per second, above 0; the
+	 * strongest applies, and a cap below the ordinary one changes nothing.
+	 */
+	AttackSpeedCap,
+	/**
+	 * Weakens the Slows on the unit (ADR-018 §2). Not crowd control. Magnitude: the fraction of each
+	 * Slow removed per stack, above 0, every stack together below 1; entries multiply, as Tenacity does.
+	 */
+	SlowResistance,
+	/**
+	 * The unit has chosen to stand still, such as in a firing stance (ADR-018 §2): it cannot move, and
+	 * may attack and cast. Not crowd control: Tenacity does not shorten it. Magnitude: 0.
+	 */
+	Planted,
+	/**
+	 * Hidden from enemies beyond a detection radius (Combat Bible §11; ADR-018 §4). Not crowd control;
+	 * attacking or an offensive cast ends it. Magnitude: the detection radius, above 0.
+	 */
+	Camouflage,
+	/**
+	 * The status's source reaches further with its basic attacks against this unit (ADR-018 §2), such
+	 * as Kade against a Tracked target. Not crowd control. Magnitude: the distance added per stack, above 0.
+	 */
+	SourceAttackRange,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */
@@ -134,6 +165,13 @@ struct VEYRACOMBAT_API FVeyraStatusSpec
 	/** Seconds between a DamageOverTime status's ticks, above 0 and at most its duration; 0 for every other kind. */
 	UPROPERTY()
 	double TickSeconds = 0.0;
+
+	/**
+	 * For a stacking status: when its duration runs out it loses one stack, not all, and runs this long
+	 * again, until the last stack goes (ADR-018 §2). 0 to end at once, as every other status does.
+	 */
+	UPROPERTY()
+	double StackDecaySeconds = 0.0;
 };
 
 /** One active status as every machine sees it. Replicated for presentation. */
@@ -203,6 +241,15 @@ namespace VeyraStatuses
 
 	/** The largest magnitude among the entries of Kind; 0 when there is none. */
 	VEYRACOMBAT_API double Strongest(TConstArrayView<FVeyraStatusEntry> Entries, EVeyraStatusKind Kind);
+
+	/** The entries of Kind added together, each its magnitude times its stacks; 0 when there is none. */
+	VEYRACOMBAT_API double Total(TConstArrayView<FVeyraStatusEntry> Entries, EVeyraStatusKind Kind);
+
+	/**
+	 * What a reduction kind leaves: the product of 1 - magnitude × stacks over the entries of Kind, as
+	 * Tenacity combines (§8); 1 when there is none.
+	 */
+	VEYRACOMBAT_API double Retained(TConstArrayView<FVeyraStatusEntry> Entries, EVeyraStatusKind Kind);
 
 	/** The fraction of speed the strongest Slow removes; 0 when there is none (§8). */
 	VEYRACOMBAT_API double StrongestSlow(TConstArrayView<FVeyraStatusEntry> Entries);

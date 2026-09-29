@@ -6,9 +6,11 @@
 #include "Delivery/VeyraProjectile.h"
 #include "EngineUtils.h"
 #include "Life/VeyraLifeComponent.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
+#include "VeyraCombatVerbs.h"
 
 #if WITH_AUTOMATION_WORKER
 
@@ -33,6 +35,7 @@ namespace VeyraAbilitiesTests
 		static constexpr double WeakImpactDamage = 999.0;
 		static constexpr double LongSeconds = 60.0;
 		static constexpr double Tolerance = 1e-3;
+		static constexpr double RangeMargin = 10.0;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -150,6 +153,41 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(World.HealthLost(Enemy) == 0.0));
 			ASSERT_THAT(IsTrue(Attacks->GetState().Phase == EVeyraAttackPhase::None));
 			ASSERT_THAT(IsTrue(Attacks->GetNextAttackAt() == 0.0, TEXT("a cancelled attack spends nothing")));
+		}
+
+		/** A status record for ApplyStatus. Fixture values. */
+		static FVeyraStatusSpec Mark(const TCHAR* Id, EVeyraStatusKind Kind, double Magnitude)
+		{
+			FVeyraStatusSpec Spec;
+			Spec.Id = ArchetypeTestId(Id);
+			Spec.Kind = Kind;
+			Spec.Magnitude = Magnitude;
+			Spec.DurationSeconds = LongSeconds;
+			return Spec;
+		}
+
+		TEST_METHOD(RangeGrowsWithAttackRangeAndWithTheTargetsMarksFromThisAttacker)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Range * 3.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Ally = World.Spawn(EVeyraTeam::A, FVector(0.0, Range * 3.0, 0.0));
+			const double Gap = VeyraTargeting::EdgeToEdgeDistance(*Attacker, Enemy);
+			ASSERT_THAT(IsTrue(Gap > Range && Attacks->CheckAttack(&Enemy) == EVeyraAttackRejection::OutOfRange));
+			const double Extra = Gap - Range + RangeMargin;
+			UAbilitySystemComponent& Self = *Attacker->GetAbilitySystemComponent();
+			UAbilitySystemComponent& Target = *Enemy.GetAbilitySystemComponent();
+
+			// A mark reaches further only for the unit that placed it, as Kade's Tracked does (ADR-018 §2).
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Ally.GetAbilitySystemComponent(), Target, Mark(TEXT("test_ally_mark"), EVeyraStatusKind::SourceAttackRange, Extra))));
+			ASSERT_THAT(IsTrue(Attacks->CheckAttack(&Enemy) == EVeyraAttackRejection::OutOfRange && Attacks->GetRange(&Enemy) == Range));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Self, Target, Mark(TEXT("test_mark"), EVeyraStatusKind::SourceAttackRange, Extra))));
+			ASSERT_THAT(IsTrue(Attacks->CheckAttack(&Enemy) == EVeyraAttackRejection::None && Attacks->GetRange(nullptr) == Range));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(Target, ArchetypeTestId(TEXT("test_mark")))));
+			ASSERT_THAT(IsTrue(Attacks->CheckAttack(&Enemy) == EVeyraAttackRejection::OutOfRange));
+
+			// Its own AttackRange reaches every target further.
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Self, Self, Mark(TEXT("test_reach"), EVeyraStatusKind::AttackRange, Extra))));
+			ASSERT_THAT(IsTrue(Attacks->CheckAttack(&Enemy) == EVeyraAttackRejection::None && FMath::IsNearlyEqual(Attacks->GetRange(nullptr), Range + Extra)));
 		}
 
 		TEST_METHOD(OnlyALivingEnemyUnitCanBeAttacked)

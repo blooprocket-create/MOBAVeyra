@@ -40,6 +40,13 @@ namespace VeyraCombatTests
 		// must not end during a test.
 		static constexpr double TestTenacityFloorSeconds = 0.5;
 		static constexpr double LongSeconds = 60.0;
+		static constexpr float WorldStep = 0.1f;
+		static constexpr double CadencePerStack = 0.1;
+		static constexpr double CadenceSeconds = 1.0;
+		static constexpr double CadenceDecaySeconds = 0.5;
+		static constexpr int32 CadenceStacks = 3;
+		static constexpr double Reach = 150.0;
+		static constexpr double Half = 0.5;
 
 		FVeyraCombatTuning Tuning;
 		FActorTestSpawner Spawner;
@@ -305,6 +312,87 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(Value(UVeyraMobilitySet::GetMoveSpeedAttribute()) == ExampleStats().MoveSpeed));
 			ASSERT_THAT(IsFalse(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("daze"), EVeyraStatusKind::Stun, 0.0, LongSeconds)),
 				TEXT("a unit whose death is final takes no statuses")));
+		}
+
+		/**
+		 * Moves world time and its timers on by Seconds in small steps, so effects expire as the world's
+		 * clock passes them. A time-only world tick skips timers, and Gameplay Effects expire by timer.
+		 */
+		void AdvanceWorld(double Seconds)
+		{
+			UWorld& World = Spawner.GetWorld();
+			const double Until = World.GetTimeSeconds() + Seconds;
+			while (World.GetTimeSeconds() < Until)
+			{
+				World.Tick(LEVELTICK_TimeOnly, WorldStep);
+				++GFrameCounter;
+				World.GetTimerManager().Tick(WorldStep);
+			}
+		}
+
+		TEST_METHOD(AStackThatDecaysLosesOneAtATime)
+		{
+			FVeyraStatusSpec Cadence = TestStatus(TEXT("test_cadence"), EVeyraStatusKind::AttackSpeed, CadencePerStack, CadenceSeconds, EVeyraStackingPolicy::Stacking, CadenceStacks);
+			Cadence.StackDecaySeconds = CadenceDecaySeconds;
+			const double Base = Value(UVeyraOffenceSet::GetAttackSpeedAttribute());
+			for (int32 Stack = 0; Stack < CadenceStacks; ++Stack)
+			{
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Cadence)));
+			}
+			ASSERT_THAT(AreEqual(Find(TEXT("test_cadence"))->Stacks, CadenceStacks));
+			// Its time runs out: one stack goes, and the rest last the decay time again (ADR-018 §2).
+			AdvanceWorld(CadenceSeconds + WorldStep);
+			ASSERT_THAT(IsNotNull(Find(TEXT("test_cadence")), TEXT("one stack goes, not the status")));
+			ASSERT_THAT(AreEqual(Find(TEXT("test_cadence"))->Stacks, CadenceStacks - 1));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Value(UVeyraOffenceSet::GetAttackSpeedAttribute()), Base * (1.0 + CadencePerStack * (CadenceStacks - 1)), 1e-4)));
+			AdvanceWorld(CadenceDecaySeconds + WorldStep);
+			ASSERT_THAT(IsTrue(Find(TEXT("test_cadence")) && Find(TEXT("test_cadence"))->Stacks == CadenceStacks - 2));
+			AdvanceWorld(CadenceDecaySeconds + WorldStep);
+			ASSERT_THAT(IsNull(Find(TEXT("test_cadence")), TEXT("the last stack goes")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Value(UVeyraOffenceSet::GetAttackSpeedAttribute()), Base, 1e-4)));
+
+			// Removed early, it ends at once, whatever it had.
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Cadence) && VeyraCombat::ApplyStatus(*Caster, *Unit, Cadence)));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Cadence.Id) && !Find(TEXT("test_cadence"))));
+		}
+
+		TEST_METHOD(PlantedStopsMovementButNotAttacksOrCasts)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, TestStatus(TEXT("test_planted"), EVeyraStatusKind::Planted, 0.0, LongSeconds))));
+			ASSERT_THAT(IsTrue(StatusLedger->GetActionBlocks() == EVeyraActionBlocks::Move));
+			// A choice, not crowd control: Tenacity leaves it whole.
+			ASSERT_THAT(IsFalse(VeyraStatuses::IsTenacityReducible(EVeyraStatusKind::Planted)));
+		}
+
+		TEST_METHOD(TotalsAndRetainedCombineTheirEntries)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("test_reach"), EVeyraStatusKind::AttackRange, Reach, LongSeconds))));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, TestStatus(TEXT("test_reach_2"), EVeyraStatusKind::AttackRange, Reach, LongSeconds))));
+			ASSERT_THAT(IsTrue(StatusLedger->GetTotal(EVeyraStatusKind::AttackRange) == Reach * 2.0, TEXT("every range adds")));
+			ASSERT_THAT(IsTrue(StatusLedger->GetTotalFrom(EVeyraStatusKind::AttackRange, *Caster) == Reach, TEXT("one source's own")));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, TestStatus(TEXT("test_resist"), EVeyraStatusKind::SlowResistance, Half, LongSeconds))));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("test_resist_2"), EVeyraStatusKind::SlowResistance, Half, LongSeconds))));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StatusLedger->GetRetained(EVeyraStatusKind::SlowResistance), Half * Half), TEXT("resistances multiply, as Tenacity does")));
+		}
+
+		TEST_METHOD(TheNewKindsKeepTheirMagnitudesInRange)
+		{
+			const auto Valid = [](EVeyraStatusKind Kind, double Magnitude, EVeyraStackingPolicy Stacking = EVeyraStackingPolicy::UniqueRefresh, int32 MaxStacks = 1,
+								  double Decay = 0.0) {
+				FVeyraStatusSpec Spec = TestStatus(TEXT("test_kind"), Kind, Magnitude, LongSeconds, Stacking, MaxStacks);
+				Spec.StackDecaySeconds = Decay;
+				return VeyraStatuses::Validate(Spec).IsEmpty();
+			};
+			ASSERT_THAT(IsTrue(Valid(EVeyraStatusKind::AttackRange, Reach) && !Valid(EVeyraStatusKind::AttackRange, 0.0)));
+			ASSERT_THAT(IsTrue(Valid(EVeyraStatusKind::SourceAttackRange, Reach) && !Valid(EVeyraStatusKind::SourceAttackRange, -Reach)));
+			ASSERT_THAT(IsTrue(Valid(EVeyraStatusKind::AttackSpeedCap, 3.0) && !Valid(EVeyraStatusKind::AttackSpeedCap, 3.0, EVeyraStackingPolicy::Stacking, 2)));
+			ASSERT_THAT(IsTrue(Valid(EVeyraStatusKind::SlowResistance, Half) && !Valid(EVeyraStatusKind::SlowResistance, 1.0)));
+			ASSERT_THAT(IsTrue(Valid(EVeyraStatusKind::Planted, 0.0) && !Valid(EVeyraStatusKind::Planted, Half)));
+			ASSERT_THAT(IsTrue(Valid(EVeyraStatusKind::Camouflage, 400.0) && !Valid(EVeyraStatusKind::Camouflage, 0.0)));
+			// Only a stacking status decays a stack at a time.
+			ASSERT_THAT(IsTrue(Valid(EVeyraStatusKind::AttackSpeed, CadencePerStack, EVeyraStackingPolicy::Stacking, CadenceStacks, CadenceDecaySeconds)));
+			ASSERT_THAT(IsFalse(Valid(EVeyraStatusKind::AttackSpeed, CadencePerStack, EVeyraStackingPolicy::UniqueRefresh, 1, CadenceDecaySeconds)));
+			ASSERT_THAT(IsFalse(Valid(EVeyraStatusKind::AttackSpeed, CadencePerStack, EVeyraStackingPolicy::Stacking, CadenceStacks, -1.0)));
 		}
 
 		TEST_METHOD(RefusesStatusesOutsideTheRules)

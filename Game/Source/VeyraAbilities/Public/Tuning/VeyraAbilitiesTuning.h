@@ -237,6 +237,10 @@ struct FVeyraStatusTuning
 	/** Exactly one for a DamageOverTime status, and none for any other kind. */
 	UPROPERTY()
 	TArray<FVeyraDamageOverTimeTuning> DamageOverTime;
+
+	/** Seconds each remaining stack lasts once its duration runs out, for a status that loses one at a time; 0 for none. */
+	UPROPERTY()
+	double StackDecaySeconds = 0.0;
 };
 
 /** Where an area is placed. */
@@ -684,7 +688,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 5;
+	static constexpr int32 SchemaVersion = 6;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

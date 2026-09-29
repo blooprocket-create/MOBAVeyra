@@ -80,7 +80,19 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks <= 1.0;
 		break;
 	case EVeyraStatusKind::DamageOverTime:
+	case EVeyraStatusKind::AttackRange:
+	case EVeyraStatusKind::SourceAttackRange:
+	case EVeyraStatusKind::Camouflage:
 		bMagnitudeValid &= Magnitude > 0.0;
+		break;
+	case EVeyraStatusKind::AttackSpeedCap:
+		bMagnitudeValid &= Magnitude > 0.0 && Spec.MaxStacks == 1;
+		break;
+	case EVeyraStatusKind::SlowResistance:
+		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
+		break;
+	case EVeyraStatusKind::Planted:
+		bMagnitudeValid &= Magnitude == 0.0;
 		break;
 	}
 	if (!bMagnitudeValid)
@@ -94,6 +106,12 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	if (!bTickValid)
 	{
 		Problems.Add(TEXT("tickSeconds: a damage-over-time status ticks every tickSeconds, above 0 and at most its duration; any other kind has none"));
+	}
+	// Only a stacking status can lose its stacks one at a time.
+	const bool bDecayValid = FMath::IsFinite(Spec.StackDecaySeconds) && Spec.StackDecaySeconds >= 0.0 && (Spec.StackDecaySeconds == 0.0 || bStacks);
+	if (!bDecayValid)
+	{
+		Problems.Add(TEXT("stackDecaySeconds: 0, or above 0 for a stacking status that loses one stack at a time"));
 	}
 	return Problems;
 }
@@ -153,6 +171,32 @@ double Strongest(TConstArrayView<FVeyraStatusEntry> Entries, EVeyraStatusKind Ki
 	return Largest;
 }
 
+double Total(TConstArrayView<FVeyraStatusEntry> Entries, EVeyraStatusKind Kind)
+{
+	double Sum = 0.0;
+	for (const FVeyraStatusEntry& Entry : Entries)
+	{
+		if (Entry.Kind == Kind)
+		{
+			Sum += Entry.Magnitude * Entry.Stacks;
+		}
+	}
+	return Sum;
+}
+
+double Retained(TConstArrayView<FVeyraStatusEntry> Entries, EVeyraStatusKind Kind)
+{
+	double Left = 1.0;
+	for (const FVeyraStatusEntry& Entry : Entries)
+	{
+		if (Entry.Kind == Kind)
+		{
+			Left *= FMath::Clamp(1.0 - Entry.Magnitude * Entry.Stacks, 0.0, 1.0);
+		}
+	}
+	return Left;
+}
+
 double StrongestSlow(TConstArrayView<FVeyraStatusEntry> Entries)
 {
 	return Strongest(Entries, EVeyraStatusKind::Slow);
@@ -166,6 +210,10 @@ EVeyraActionBlocks ActionBlocks(TConstArrayView<FVeyraStatusEntry> Entries)
 		if (Entry.Kind == EVeyraStatusKind::Stun)
 		{
 			Blocks |= EVeyraActionBlocks::Move | EVeyraActionBlocks::Attack | EVeyraActionBlocks::Cast;
+		}
+		else if (Entry.Kind == EVeyraStatusKind::Planted)
+		{
+			Blocks |= EVeyraActionBlocks::Move;
 		}
 	}
 	return Blocks;
