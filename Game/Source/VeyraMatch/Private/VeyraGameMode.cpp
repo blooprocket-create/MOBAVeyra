@@ -706,7 +706,7 @@ void AVeyraGameMode::GiveBackPlayerState(APlayerController& Controller, AVeyraPl
 	}
 	Controller.SetPlayerState(&Kept);
 	Kept.SetOwner(&Controller);
-	Kept.SetIsInactive(false);
+	Kept.SetAway(false);
 	// Its abilities act for the new controller, whose connection now owns what only its owner sees.
 	if (UAbilitySystemComponent* AbilitySystem = Kept.GetAbilitySystemComponent())
 	{
@@ -955,7 +955,7 @@ void AVeyraGameMode::SeatNoShows()
 		Seat->SetAccountId(Participant.AccountId);
 		Seat->SetPlayerName(Participant.DisplayName);
 		// Kept as a disconnected participant's PlayerState is (AVeyraPlayerState::OnDeactivated).
-		Seat->SetIsInactive(true);
+		Seat->SetAway(true);
 		AssignTeam(*Seat);
 		AssignVanguard(*Seat);
 		if (Absence)
