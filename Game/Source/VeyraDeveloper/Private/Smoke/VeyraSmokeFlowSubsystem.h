@@ -155,8 +155,9 @@ private:
 	bool bFoundMatch = false;
 	bool bAnswered = false;
 	bool bCancelledQueue = false;
-	/** Practice: the item the shop bought, and whether it arrived and the shop closed. */
+	/** Practice: the item the shop bought, the Flux Spell slot 1 swapped to, and whether both arrived and the shop closed. */
 	FString BoughtItem;
+	FString SwappedSpell;
 	bool bShopped = false;
 	/** Practice: whether the script asked to recall, saw the channel, and saw the Vanguard home. */
 	bool bAskedToRecall = false;

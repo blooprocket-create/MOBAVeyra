@@ -721,7 +721,7 @@ bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
 	}
 	if (Controller.GetShopRefusalCount() > 0)
 	{
-		Finish(false, FString::Printf(TEXT("the server refused the purchase: %s"), LexToString(Controller.GetLastShopRefusal())));
+		Finish(false, FString::Printf(TEXT("the server refused the purchase or swap: %s"), LexToString(Controller.GetLastShopRefusal())));
 		return true;
 	}
 	const bool bArrived = Algo::FindByPredicate(Inventory->GetSlots(), [this](const FVeyraInventorySlot& Slot) {
@@ -731,10 +731,33 @@ bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
 	{
 		return true;
 	}
+	// Then Flux Spell slot 1 swaps, for Gold, to the first roster spell neither slot holds (ADR-015 §7).
+	if (SwappedSpell.IsEmpty())
+	{
+		const FVeyraShopSpellOffer* Offer = View.SpellSlots.IsEmpty() ? nullptr : Algo::FindByPredicate(View.SpellSlots[0].Offers, [](const FVeyraShopSpellOffer& Candidate) {
+			return Candidate.Refusal == EVeyraShopRefusal::None;
+		});
+		UVeyraShellButton* Swap = Offer ? Shop.FindButton(UVeyraShopScreen::SwapLabel(0, Offer->Spell)) : nullptr;
+		if (!Swap || !Swap->GetIsEnabled())
+		{
+			Finish(false, TEXT("the shop offers no Flux Spell swap the Gold left affords"));
+			return true;
+		}
+		SwappedSpell = Offer->Spell.ToString();
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: swapping Flux Spell slot 1 from %s to %s for %.0f Gold."), *View.SpellSlots[0].Spell.ToString(), *SwappedSpell,
+			View.SpellSwapCost);
+		Swap->Press();
+		return true;
+	}
+	if (View.SpellSlots.IsEmpty() || View.SpellSlots[0].Spell.ToString() != SwappedSpell)
+	{
+		return true;
+	}
 	const double GoldLeft = View.Gold;
 	Screens->ToggleShop();
 	bShopped = true;
-	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s arrived in the inventory, leaving %.0f Gold; closed the shop."), *BoughtItem, GoldLeft);
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s arrived in the inventory and slot 1 holds %s, leaving %.0f Gold; closed the shop."), *BoughtItem,
+		*SwappedSpell, GoldLeft);
 	return false;
 #else
 	Finish(false, TEXT("this build has no shop"));
