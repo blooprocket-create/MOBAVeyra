@@ -54,6 +54,15 @@ namespace
 		case EVeyraStatusKind::Camouflage:
 		case EVeyraStatusKind::SourceAttackRange:
 		case EVeyraStatusKind::Counter:
+		case EVeyraStatusKind::Dormant:
+		case EVeyraStatusKind::Unstoppable:
+		case EVeyraStatusKind::DisplacementImmunity:
+		case EVeyraStatusKind::Fear:
+		case EVeyraStatusKind::Knockup:
+		case EVeyraStatusKind::Ghosted:
+		case EVeyraStatusKind::BodyScale:
+		case EVeyraStatusKind::DirectionalDamageReduction:
+		case EVeyraStatusKind::AttackDamageAmplification:
 			break;
 		}
 		return NAME_None;
@@ -168,6 +177,8 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 	}
 	FServerEntry& Server = ServerEntries.Add(Entry->Sequence, FServerEntry{ Effect, &Source, Spec.TakedownExtensionSeconds, Spec.TakedownExtensionMaxSeconds });
 	Server.StackDecaySeconds = Spec.StackDecaySeconds;
+	Server.ArcDegrees = Spec.ArcDegrees;
+	Server.UnitKinds = Spec.UnitKinds;
 	if (Spec.Kind == EVeyraStatusKind::DamageOverTime)
 	{
 		Server.TickDamageType = Spec.DamageType;
@@ -317,6 +328,47 @@ int32 UVeyraStatusComponent::GetStacksFrom(const FVeyraContentId& Id, const UAbi
 		}
 	}
 	return Stacks;
+}
+
+bool UVeyraStatusComponent::Has(EVeyraStatusKind Kind) const
+{
+	return Ledger.Entries.ContainsByPredicate([Kind](const FVeyraStatusEntry& Entry) { return Entry.Kind == Kind; });
+}
+
+double UVeyraStatusComponent::GetDirectionalRetained(const FVector& Facing, const FVector& ToSource) const
+{
+	const FVector Ahead = Facing.GetSafeNormal2D();
+	const FVector Toward = ToSource.GetSafeNormal2D();
+	if (Ahead.IsNearlyZero() || Toward.IsNearlyZero())
+	{
+		return 1.0;
+	}
+	const double Off = FMath::RadiansToDegrees(FMath::Acos(FMath::Clamp(FVector::DotProduct(Ahead, Toward), -1.0, 1.0)));
+	double Retained = 1.0;
+	for (const FVeyraStatusEntry& Entry : Ledger.Entries)
+	{
+		const FServerEntry* Server = Entry.Kind == EVeyraStatusKind::DirectionalDamageReduction ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		if (Server && Off <= Server->ArcDegrees / 2.0)
+		{
+			Retained *= 1.0 - Entry.Magnitude * Entry.Stacks;
+		}
+	}
+	return FMath::Max(Retained, 0.0);
+}
+
+double UVeyraStatusComponent::GetAttackAmplification(TOptional<EVeyraUnitKind> TargetKind) const
+{
+	double Added = 0.0;
+	for (const FVeyraStatusEntry& Entry : Ledger.Entries)
+	{
+		const FServerEntry* Server = Entry.Kind == EVeyraStatusKind::AttackDamageAmplification ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		const bool bApplies = Server && (Server->UnitKinds.IsEmpty() || (TargetKind.IsSet() && Server->UnitKinds.Contains(TargetKind.GetValue())));
+		if (bApplies)
+		{
+			Added += Entry.Magnitude * Entry.Stacks;
+		}
+	}
+	return Added;
 }
 
 EVeyraActionBlocks UVeyraStatusComponent::GetActionBlocks() const

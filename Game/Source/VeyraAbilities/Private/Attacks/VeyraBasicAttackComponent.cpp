@@ -333,6 +333,15 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 		Plan.Cleave = FVeyraAttackCleave{ CleaveFraction, {} };
 	}
 	OnModifyAttack.Broadcast(Plan);
+	// Amplified, against the target's kind when the status names one (ADR-018 §2).
+	if (Statuses)
+	{
+		const double Amplification = Statuses->GetAttackAmplification(VeyraUnits::KindOf(Plan.Target.Get()));
+		for (FVeyraDamageComponent& Component : Plan.Damage.Components)
+		{
+			Component.Amount *= 1.0 + Amplification;
+		}
+	}
 	return Plan;
 }
 

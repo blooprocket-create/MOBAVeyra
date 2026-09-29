@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -15,7 +15,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "stonehorn_trait": {
       "provenance": "Provisional",
@@ -27,7 +29,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "skittermaw_trait": {
       "provenance": "Provisional",
@@ -39,7 +43,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "miremother_trait": {
       "provenance": "Provisional",
@@ -51,7 +57,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "razorback_trait": {
       "provenance": "Provisional",
@@ -63,7 +71,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "cairn_crushing_hold_stun": {
       "provenance": "Provisional",
@@ -75,7 +85,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "cairn_crushing_hold_slow": {
       "provenance": "Provisional",
@@ -87,7 +99,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "cairn_immovable_guard": {
       "provenance": "Provisional",
@@ -99,7 +113,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "cairn_immovable_anchor": {
       "provenance": "Provisional",
@@ -111,7 +127,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "cairn_immovable_burden": {
       "provenance": "Provisional",
@@ -123,7 +141,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "cairn_immovable_cover": {
       "provenance": "Provisional",
@@ -135,7 +155,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "cairn_burden_stun": {
       "provenance": "Provisional",
@@ -147,7 +169,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "cairn_burden_slow": {
       "provenance": "Provisional",
@@ -159,7 +183,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "qazharr_sea_dog": {
       "provenance": "Provisional",
@@ -171,7 +197,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "qazharr_heavy_hand_slow": {
       "provenance": "Provisional",
@@ -183,7 +211,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "qazharr_weather_it_tenacity": {
       "provenance": "Provisional",
@@ -195,7 +225,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "qazharr_boarding_rush_haste": {
       "provenance": "Provisional",
@@ -207,7 +239,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "qazharr_no_quarter_frenzy": {
       "provenance": "Provisional",
@@ -219,7 +253,9 @@
       "takedownExtensionSeconds": 1.5,
       "takedownExtensionMaxSeconds": 3,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "qazharr_no_quarter_pursuit": {
       "provenance": "Provisional",
@@ -231,7 +267,9 @@
       "takedownExtensionSeconds": 1.5,
       "takedownExtensionMaxSeconds": 3,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "qazharr_no_quarter_tenacity": {
       "provenance": "Provisional",
@@ -243,7 +281,9 @@
       "takedownExtensionSeconds": 1.5,
       "takedownExtensionMaxSeconds": 3,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "qazharr_no_quarter_cleave": {
       "provenance": "Provisional",
@@ -255,7 +295,9 @@
       "takedownExtensionSeconds": 1.5,
       "takedownExtensionMaxSeconds": 3,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "oriel_shattered_sky_slow": {
       "provenance": "Provisional",
@@ -267,7 +309,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "oriel_mirror_veil_haste": {
       "provenance": "Provisional",
@@ -279,7 +323,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     }
 ,
     "bryn_flare_slow": {
@@ -292,7 +338,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "bryn_kickback_slow": {
       "provenance": "Provisional",
@@ -304,7 +352,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     }
 ,
     "mend_haste": {
@@ -317,7 +367,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "scorch_burn": {
       "provenance": "Provisional",
@@ -329,7 +381,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [{ "damageType": "TrueDamage", "tickSeconds": 1, "damagePerLevel": 4 }],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "enfeeble_slow": {
       "provenance": "Provisional",
@@ -341,7 +395,9 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
     "enfeeble_weaken": {
       "provenance": "Provisional",
@@ -353,26 +409,28 @@
       "takedownExtensionSeconds": 0,
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
-      "stackDecaySeconds": 0
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
     },
-    "kade_tracked": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 200, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "kade_sightline_fervor": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "kade_sightline_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "kade_kill_corridor_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 10, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "vera_cadence": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "Stacking", "magnitude": 0.07, "durationSeconds": 2.5, "maxStacks": 8, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0.5 },
-    "vera_ranged": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 125, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "vera_dig_in_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "vera_dig_in_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 150, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "vera_dig_in_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "vera_dig_in_footing": { "provenance": "Provisional", "kind": "SlowResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "vera_dig_in_anchor": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "vera_dig_in_volley_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 225, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "vera_dig_in_volley_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "vera_last_volley": { "provenance": "Provisional", "kind": "AttackSpeedCap", "stacking": "UniqueRefresh", "magnitude": 3.0, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "mimzi_hex": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 4, "maxStacks": 2, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "mimzi_camouflage": { "provenance": "Provisional", "kind": "Camouflage", "stacking": "UniqueRefresh", "magnitude": 400, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "mimzi_scamper": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "mimzi_winkbomb_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 }
+    "kade_tracked": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 200, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "kade_sightline_fervor": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "kade_sightline_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "kade_kill_corridor_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 10, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "vera_cadence": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "Stacking", "magnitude": 0.07, "durationSeconds": 2.5, "maxStacks": 8, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0.5, "arcDegrees": 0, "unitKinds": [] },
+    "vera_ranged": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 125, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "vera_dig_in_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "vera_dig_in_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 150, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "vera_dig_in_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "vera_dig_in_footing": { "provenance": "Provisional", "kind": "SlowResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "vera_dig_in_anchor": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "vera_dig_in_volley_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 225, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "vera_dig_in_volley_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "vera_last_volley": { "provenance": "Provisional", "kind": "AttackSpeedCap", "stacking": "UniqueRefresh", "magnitude": 3.0, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "mimzi_hex": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 4, "maxStacks": 2, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "mimzi_camouflage": { "provenance": "Provisional", "kind": "Camouflage", "stacking": "UniqueRefresh", "magnitude": 400, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "mimzi_scamper": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "mimzi_winkbomb_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] }
   },
   "targetedDamage": {
     "test_bolt": {

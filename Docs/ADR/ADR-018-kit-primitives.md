@@ -120,6 +120,14 @@ Combat also counts the **distance a unit moves itself** (Raska's Momentum), excl
 ### 8. League answers where canon is silent (for the author to overturn)
 
 Every value is Provisional data, a League stand-in:
+- **The second status kinds:**
+  - Unstoppable refuses an enemy's Stun, Slow, Fear and Knockup, and every displacement; debuffs that are not crowd control, such as Weaken, still land;
+  - DisplacementImmunity refuses Knockups and displacements, but not Stuns;
+  - a Knockup holds the unit where it stands for its time, and Tenacity does not shorten it (League's airborne); an ability that also moves the unit pairs it with a displacement;
+  - a Fear walks the unit straight away from its source for the Fear's time, under the Fear's Slow; terrain ends the walk, a displacement replaces it, and a Fear cleansed early ends it;
+  - a directional reduction judges the attacker from where it stands as the damage lands, projectiles included; several multiply;
+  - an attack amplification scales every component of the attack, including what passives add to it;
+  - the match statistics count a Fear or a Knockup as stun time, since each is hard crowd control.
 - **Kade:**
   - range 600;
   - Q in Jhin W's range;

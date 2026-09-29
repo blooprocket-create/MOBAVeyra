@@ -273,6 +273,14 @@ struct FVeyraStatusTuning
 	/** Seconds each remaining stack lasts once its duration runs out, for a status that loses one at a time; 0 for none. */
 	UPROPERTY()
 	double StackDecaySeconds = 0.0;
+
+	/** A DirectionalDamageReduction's guarded arc, in degrees; 0 for any other kind. */
+	UPROPERTY()
+	double ArcDegrees = 0.0;
+
+	/** An AttackDamageAmplification's unit kinds, empty for all; empty for any other kind. */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> UnitKinds;
 };
 
 /** Where an area is placed. */
@@ -872,7 +880,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 6;
+	static constexpr int32 SchemaVersion = 7;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

@@ -21,6 +21,8 @@ enum class EVeyraCustomMovementMode : uint8
 	Displaced,
 	/** The unit's own dash owns it. */
 	Dashing,
+	/** A Fear owns it: the unit walks away from its source (Combat Bible §8). */
+	Fleeing,
 };
 
 /**
@@ -51,6 +53,15 @@ public:
 
 	/** Server only: starts a dash. Refused, returning false, while the unit's movement is locked. */
 	bool StartDash(const FVeyraDash& Dash);
+
+	/**
+	 * Server: the unit flees Distance along Direction at Speed, as a Fear makes it, unless a
+	 * displacement holds it; it ends a dash (Combat Bible §8). False if it cannot.
+	 */
+	bool StartFleeing(const FVector& Direction, double Distance, double Speed);
+
+	/** Whether a Fear moves the unit now. */
+	bool IsFleeing() const;
 
 	/**
 	 * Where a forced movement of Distance along Direction from the unit's position ends: terrain stops
@@ -108,6 +119,14 @@ private:
 	AActor* FindEnemyContact(const FVector& From, const FVector& To, FVector& OutContactLocation) const;
 
 	void RefreshMovementLock();
+
+	/** Its statuses changed: its lock, and the body they shape (Ghosted, BodyScale; ADR-018 §2). */
+	void OnFollowedStatusesChanged();
+	void RefreshBody();
+
+	/** The body as it was before any status shaped it; unset until the first refresh. */
+	TOptional<float> BaseCapsuleRadius;
+	TOptional<ECollisionResponse> BasePawnResponse;
 
 	TWeakObjectPtr<UAbilitySystemComponent> FollowedCombatant;
 	TWeakObjectPtr<UVeyraStatusComponent> FollowedStatuses;

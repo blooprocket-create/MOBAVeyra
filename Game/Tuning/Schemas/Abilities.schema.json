@@ -207,7 +207,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [6]
+      "enum": [7]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -232,12 +232,12 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds"],
+          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds", "arcDegrees", "unitKinds"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -273,6 +273,14 @@
               "description": "For a stacking status: once its duration runs out it loses one stack and lasts this long again, until the last stack goes (ADR-018 §2). 0 to end at once.",
               "type": "number",
               "minimum": 0
+            },
+            "arcDegrees": { "description": "DirectionalDamageReduction: the arc of the unit's facing it guards, in degrees; 0 for any other kind.", "type": "number", "minimum": 0, "maximum": 360 },
+            "unitKinds": {
+              "description": "AttackDamageAmplification: the unit kinds it amplifies attacks against (EVeyraUnitKind), empty for all; empty for any other kind.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 6,
+              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }
             }
           }
         }

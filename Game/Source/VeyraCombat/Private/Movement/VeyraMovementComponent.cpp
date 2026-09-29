@@ -37,9 +37,43 @@ void UVeyraMovementComponent::BindCombatant(UAbilitySystemComponent* Combatant)
 	if (UVeyraStatusComponent* Statuses = Participant ? Participant->FindComponentByClass<UVeyraStatusComponent>() : nullptr)
 	{
 		FollowedStatuses = Statuses;
-		StatusesChangedHandle = Statuses->OnStatusesChanged.AddUObject(this, &UVeyraMovementComponent::RefreshMovementLock);
+		StatusesChangedHandle = Statuses->OnStatusesChanged.AddUObject(this, &UVeyraMovementComponent::OnFollowedStatusesChanged);
+	}
+	OnFollowedStatusesChanged();
+}
+
+void UVeyraMovementComponent::OnFollowedStatusesChanged()
+{
+	// A Fear cleansed or ended early ends its flight with it.
+	const UVeyraStatusComponent* Statuses = FollowedStatuses.Get();
+	if (IsFleeing() && !(Statuses && Statuses->Has(EVeyraStatusKind::Fear)))
+	{
+		EndForcedMove();
 	}
 	RefreshMovementLock();
+	RefreshBody();
+}
+
+void UVeyraMovementComponent::RefreshBody()
+{
+	const ACharacter* Character = Cast<ACharacter>(GetOwner());
+	UCapsuleComponent* Capsule = Character ? Character->GetCapsuleComponent() : nullptr;
+	if (!Capsule)
+	{
+		return;
+	}
+	if (!BaseCapsuleRadius.IsSet())
+	{
+		BaseCapsuleRadius = Capsule->GetUnscaledCapsuleRadius();
+		BasePawnResponse = Capsule->GetCollisionResponseToChannel(ECC_Pawn);
+	}
+	const UVeyraStatusComponent* Statuses = FollowedStatuses.Get();
+	// Ghosted, it passes through units, never terrain (Combat Bible §24).
+	const bool bGhosted = Statuses && Statuses->Has(EVeyraStatusKind::Ghosted);
+	Capsule->SetCollisionResponseToChannel(ECC_Pawn, bGhosted ? ECR_Ignore : BasePawnResponse.GetValue());
+	// Its body is wider or narrower for its hits (§13).
+	const double Scale = Statuses && Statuses->Has(EVeyraStatusKind::BodyScale) ? Statuses->GetStrongest(EVeyraStatusKind::BodyScale) : 1.0;
+	Capsule->SetCapsuleRadius(static_cast<float>(BaseCapsuleRadius.GetValue() * Scale), /*bUpdateOverlaps*/ true);
 }
 
 float UVeyraMovementComponent::GetMaxSpeed() const
@@ -109,6 +143,30 @@ bool UVeyraMovementComponent::StartDisplacement(const FVector& Direction, double
 		OnDashEnded.Broadcast(FVeyraDashEnd{ EVeyraDashEndReason::Interrupted, nullptr });
 	}
 	return true;
+}
+
+bool UVeyraMovementComponent::StartFleeing(const FVector& Direction, double Distance, double Speed)
+{
+	if (IsDisplaced() || !IsForcedMoveValid(Direction, Distance, Speed) || !UpdatedComponent)
+	{
+		return false;
+	}
+	const bool bInterruptsDash = IsDashing();
+	FForcedMove Move;
+	Move.Mode = EVeyraCustomMovementMode::Fleeing;
+	Move.Destination = ResolveForcedMoveEnd(Direction, Distance);
+	Move.Speed = Speed;
+	BeginForcedMove(Move);
+	if (bInterruptsDash)
+	{
+		OnDashEnded.Broadcast(FVeyraDashEnd{ EVeyraDashEndReason::Interrupted, nullptr });
+	}
+	return true;
+}
+
+bool UVeyraMovementComponent::IsFleeing() const
+{
+	return ForcedMove.IsSet() && ForcedMove->Mode == EVeyraCustomMovementMode::Fleeing;
 }
 
 bool UVeyraMovementComponent::StartDash(const FVeyraDash& Dash)

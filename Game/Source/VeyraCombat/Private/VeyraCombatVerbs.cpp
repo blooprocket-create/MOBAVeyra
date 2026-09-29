@@ -92,10 +92,38 @@ namespace
 	}
 
 	/** The movement of the unit's body, its avatar; none before it has one. */
+	/**
+	 * A feared unit walks straight away from its source for the Fear's time, at its Movement Speed less
+	 * the Fear's Slow, as a forced move that terrain ends (§8).
+	 */
+	void StartFleeing(const UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const UVeyraStatusComponent& Statuses, const FVeyraStatusSpec& Fear);
+
 	UVeyraMovementComponent* FindMovement(const UAbilitySystemComponent& AbilitySystem)
 	{
 		const AActor* Body = AbilitySystem.GetAvatarActor();
 		return Body ? Body->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+	}
+
+	void StartFleeing(const UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const UVeyraStatusComponent& Statuses, const FVeyraStatusSpec& Fear)
+	{
+		UVeyraMovementComponent* Movement = FindMovement(Target);
+		const AActor* From = Source.GetAvatarActor();
+		const AActor* Body = Target.GetAvatarActor();
+		const UWorld* World = Body ? Body->GetWorld() : nullptr;
+		const FVeyraStatusEntry* Entry = Statuses.GetLedger().Entries.FindByPredicate([&Fear](const FVeyraStatusEntry& Candidate) { return Candidate.Id == Fear.Id; });
+		if (!Movement || !From || !Body || !World || !Entry)
+		{
+			return;
+		}
+		// Away from the source; from a source right on top of it, the way it faces.
+		FVector Away = (Body->GetActorLocation() - From->GetActorLocation()).GetSafeNormal2D();
+		if (Away.IsNearlyZero())
+		{
+			Away = Body->GetActorForwardVector().GetSafeNormal2D();
+		}
+		const double Speed = Target.GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute()) * (1.0 - Fear.Magnitude);
+		const double Seconds = FMath::Max(0.0, Entry->EndsAt - World->GetTimeSeconds());
+		Movement->StartFleeing(Away, Speed * Seconds, Speed);
 	}
 
 	FActiveGameplayEffectHandle GrantAbsorption(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target,
@@ -629,7 +657,29 @@ bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Targe
 		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: no status affects a ward (ADR-016 §6)."), *Status.Id.ToString(), *GetNameSafe(TargetOwner));
 		return false;
 	}
-	return Statuses->Apply(Source, Status);
+	// Unstoppable refuses an enemy's crowd control; immunity to displacement refuses a Knockup (§8, §9).
+	const bool bHostile = VeyraTargeting::AreHostile(Source.GetOwner(), TargetOwner);
+	const bool bUnstoppable = VeyraStatuses::IsCrowdControl(Status.Kind) && Statuses->Has(EVeyraStatusKind::Unstoppable);
+	const bool bImmune = Status.Kind == EVeyraStatusKind::Knockup && Statuses->Has(EVeyraStatusKind::DisplacementImmunity);
+	if (bHostile && (bUnstoppable || bImmune))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: it is %s."), *Status.Id.ToString(), *GetNameSafe(TargetOwner),
+			bUnstoppable ? TEXT("Unstoppable") : TEXT("immune to displacement"));
+		return false;
+	}
+	if (!Statuses->Apply(Source, Status))
+	{
+		return false;
+	}
+	if (Status.Kind == EVeyraStatusKind::Knockup || Status.Kind == EVeyraStatusKind::Fear)
+	{
+		Statuses->NotifyInterrupted();
+	}
+	if (Status.Kind == EVeyraStatusKind::Fear)
+	{
+		StartFleeing(Source, Target, *Statuses, Status);
+	}
+	return true;
 }
 
 bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id)
@@ -674,6 +724,14 @@ bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, 
 	if (!Movement || IsDeadUnit(Target))
 	{
 		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored a displacement of %s: it has no body to move, or its death is final."), *GetNameSafe(Target.GetOwner()));
+		return false;
+	}
+	// Unstoppable or immune to displacement, it stays where it is (§9).
+	const AActor* Moved = Target.GetOwner();
+	const UVeyraStatusComponent* Guards = Moved ? Moved->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (Guards && (Guards->Has(EVeyraStatusKind::Unstoppable) || Guards->Has(EVeyraStatusKind::DisplacementImmunity)))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored a displacement of %s: it cannot be displaced now."), *GetNameSafe(Moved));
 		return false;
 	}
 	// §9: Displacement Resistance shortens the path; each source keeps less than all of it, so some remains.
