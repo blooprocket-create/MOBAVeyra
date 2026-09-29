@@ -2,13 +2,15 @@
 
 #include "VeyraPlayerController.h"
 
-#include "Votes/VeyraVoteSubsystem.h"
+#include "Camera/VeyraCameraRig.h"
+#include "Engine/GameViewportClient.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerState.h"
 #include "HAL/IConsoleManager.h"
+#include "Input/VeyraCameraSettings.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
@@ -20,6 +22,7 @@
 #include "VeyraMatchLog.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
+#include "Votes/VeyraVoteSubsystem.h"
 
 #if !UE_BUILD_SHIPPING
 namespace
@@ -65,7 +68,7 @@ namespace
 AVeyraPlayerController::AVeyraPlayerController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	// The controller possesses nothing, so it chooses its own view target: the Vanguard.
+	// The controller possesses nothing, so it chooses its own view target: its camera rig.
 	bAutoManageActiveCameraTarget = false;
 	bShowMouseCursor = true;
 }
@@ -111,12 +114,35 @@ void AVeyraPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// The local player's own view (ADR-020 §1); nothing else sees it.
+	if (IsLocalController())
+	{
+		FActorSpawnParameters Parameters;
+		Parameters.Owner = this;
+		Parameters.ObjectFlags |= RF_Transient;
+		CameraRig = GetWorld()->SpawnActor<AVeyraCameraRig>(Parameters);
+		if (APawn* Vanguard = GetVanguard())
+		{
+			OnVanguardSet(PlayerState, Vanguard, nullptr);
+		}
+	}
+
 	// Only a local controller has run SetupInputComponent and built its mapping context.
 	UEnhancedInputLocalPlayerSubsystem* Subsystem = IsLocalController() ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()) : nullptr;
 	if (Subsystem && Input.MappingContext)
 	{
 		Subsystem->AddMappingContext(Input.MappingContext, /*Priority*/ 0);
 	}
+}
+
+void AVeyraPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (CameraRig)
+	{
+		CameraRig->Destroy();
+		CameraRig = nullptr;
+	}
+	Super::EndPlay(EndPlayReason);
 }
 
 void AVeyraPlayerController::SetupInputComponent()
@@ -664,10 +690,76 @@ void AVeyraPlayerController::OnRep_PlayerState()
 
 void AVeyraPlayerController::OnVanguardSet(APlayerState* /*Participant*/, APawn* NewPawn, APawn* /*OldPawn*/)
 {
-	if (NewPawn)
+	if (!NewPawn)
+	{
+		return;
+	}
+	if (!CameraRig)
 	{
 		SetViewTarget(NewPawn);
+		return;
 	}
+	// The camera starts on the Vanguard; after that it goes where the player takes it.
+	if (!bCameraPlaced)
+	{
+		bCameraPlaced = true;
+		CameraRig->LookAt(NewPawn->GetActorLocation());
+	}
+	SetViewTarget(CameraRig);
+}
+
+void AVeyraPlayerController::PlayerTick(float DeltaTime)
+{
+	Super::PlayerTick(DeltaTime);
+	if (IsLocalController() && CameraRig)
+	{
+		TickCamera(DeltaTime);
+	}
+}
+
+void AVeyraPlayerController::TickCamera(float DeltaTime)
+{
+	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
+	const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
+	if (WasInputKeyJustPressed(Keys.CameraModeKey))
+	{
+		CameraRig->SetMode(VeyraCamera::Next(CameraRig->GetMode()));
+	}
+	FVeyraCameraInput CameraInput;
+	CameraInput.Pan.X = (IsInputKeyDown(Keys.CameraRightKey) ? 1.0 : 0.0) - (IsInputKeyDown(Keys.CameraLeftKey) ? 1.0 : 0.0);
+	CameraInput.Pan.Y = (IsInputKeyDown(Keys.CameraUpKey) ? 1.0 : 0.0) - (IsInputKeyDown(Keys.CameraDownKey) ? 1.0 : 0.0);
+	FVector2D Mouse;
+	const bool bHasMouse = GetMousePosition(Mouse.X, Mouse.Y);
+	const UGameViewportClient* Viewport = GetLocalPlayer() ? GetLocalPlayer()->ViewportClient : nullptr;
+	// The edges pan only while the game's window has focus, as League's do.
+	if (bHasMouse && View.bEdgeScroll && Viewport && Viewport->Viewport && Viewport->Viewport->HasFocus())
+	{
+		FVector2D Size;
+		Viewport->GetViewportSize(Size);
+		CameraInput.Pan += VeyraCamera::EdgePan(Mouse, Size, View.EdgeScrollPixels);
+	}
+	CameraInput.Pan.X = FMath::Clamp(CameraInput.Pan.X, -1.0, 1.0);
+	CameraInput.Pan.Y = FMath::Clamp(CameraInput.Pan.Y, -1.0, 1.0);
+	// Dragging moves the ground with the cursor, so the view moves against it.
+	if (bHasMouse && IsInputKeyDown(Keys.CameraDragKey))
+	{
+		if (LastDragMouse.IsSet())
+		{
+			const FVector2D Moved = Mouse - LastDragMouse.GetValue();
+			CameraInput.Drag = FVector2D(-Moved.X, Moved.Y) * View.DragUnitsPerPixel;
+		}
+		LastDragMouse = Mouse;
+	}
+	else
+	{
+		LastDragMouse.Reset();
+	}
+	CameraInput.bHoldCenter = IsInputKeyDown(Keys.HoldToCenterKey);
+	if (const AVeyraVanguardCharacter* Vanguard = GetVanguard())
+	{
+		CameraInput.Vanguard = Vanguard->GetActorLocation();
+	}
+	CameraRig->Step(CameraInput, DeltaTime);
 }
 
 void AVeyraPlayerController::ServerIssueMoveOrder_Implementation(FVector Destination)

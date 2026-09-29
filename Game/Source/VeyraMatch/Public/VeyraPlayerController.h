@@ -171,8 +171,14 @@ public:
 	 */
 	virtual void GetPlayerViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
+	/** Owning client: the local camera, once the controller has made it (ADR-020 §1). */
+	class AVeyraCameraRig* GetCameraRig() const { return CameraRig; }
+
+	virtual void PlayerTick(float DeltaTime) override;
+
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupInputComponent() override;
 	virtual void OnRep_PlayerState() override;
 
@@ -275,6 +281,18 @@ private:
 
 	UFUNCTION()
 	void OnVanguardSet(APlayerState* Participant, APawn* NewPawn, APawn* OldPawn);
+
+	/** Owning client: this frame's camera input from the keys, the screen's edges and the drag. */
+	void TickCamera(float DeltaTime);
+
+	UPROPERTY(Transient)
+	TObjectPtr<class AVeyraCameraRig> CameraRig;
+
+	/** Whether the camera has been put on the Vanguard once; after that it moves as the player moves it. */
+	bool bCameraPlaced = false;
+
+	/** Where the cursor was on the last frame of a middle-mouse drag. */
+	TOptional<FVector2D> LastDragMouse;
 
 	void RejectOrder(EVeyraOrderRejection Rejection);
 
