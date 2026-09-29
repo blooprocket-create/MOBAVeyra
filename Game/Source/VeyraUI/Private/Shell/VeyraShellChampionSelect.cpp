@@ -83,10 +83,16 @@ namespace
 		return Box;
 	}
 
-	/** Text in Role, centred, with no spacing after it: for the compact seat rows and tiles. */
-	UTextBlock* AddLine(UWidgetTree& Tree, UPanelWidget& Parent, const FText& Text, EVeyraShellText Role, EHorizontalAlignment Align = HAlign_Left)
+	/**
+	 * Text in Role, aligned by Align, with no spacing after it: for the compact seat rows and tiles. Only
+	 * descriptions wrap (bWrap): UMG wraps text in an auto-sized slot at its narrowest, so a short label
+	 * that may wrap breaks after every word.
+	 */
+	UTextBlock* AddLine(UWidgetTree& Tree, UPanelWidget& Parent, const FText& Text, EVeyraShellText Role, EHorizontalAlignment Align = HAlign_Left,
+		bool bWrap = false)
 	{
 		UTextBlock* Block = VeyraShellStyle::MakeText(Tree, Text, Role);
+		Block->SetAutoWrapText(bWrap);
 		Block->SetJustification(Align == HAlign_Right ? ETextJustify::Right : (Align == HAlign_Center ? ETextJustify::Center : ETextJustify::Left));
 		if (UVerticalBox* Column = Cast<UVerticalBox>(&Parent))
 		{
@@ -97,6 +103,15 @@ namespace
 			Parent.AddChild(Block);
 		}
 		return Block;
+	}
+
+	/** A text button's label on one line, as AddLine's are. */
+	void KeepOnOneLine(UVeyraShellButton& Button)
+	{
+		if (UTextBlock* Label = Cast<UTextBlock>(Button.GetChildAt(0)))
+		{
+			Label->SetAutoWrapText(false);
+		}
 	}
 
 	/** One of the countdown's draining bars, emptying toward the countdown in the middle. */
@@ -294,7 +309,7 @@ UWidget& UVeyraShellScreen::MakeCentre(const FVeyraSelectModel& Model)
 		for (const FVeyraAbilityLineModel& Ability : Model.Abilities)
 		{
 			AddLine(*WidgetTree, *Lines, FText::Format(LOCTEXT("AbilityLine", "{0}: {1}"), Ability.Key, Ability.Name), EVeyraShellText::Heading);
-			UTextBlock* Description = AddLine(*WidgetTree, *Lines, Ability.Description, EVeyraShellText::Muted);
+			UTextBlock* Description = AddLine(*WidgetTree, *Lines, Ability.Description, EVeyraShellText::Muted, HAlign_Left, /*bWrap*/ true);
 			Cast<UVerticalBoxSlot>(Description->Slot)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, Settings.Spacing / 2.0f));
 		}
 		UOverlaySlot* KitSlot = Frame->AddChildToOverlay(Kit);
@@ -313,6 +328,7 @@ UWidget& UVeyraShellScreen::MakeCentre(const FVeyraSelectModel& Model)
 			Refresh();
 		});
 		Cast<UVerticalBoxSlot>(Toggle->Slot)->SetHorizontalAlignment(HAlign_Center);
+		KeepOnOneLine(*Toggle);
 	}
 	return *Centre;
 }
@@ -326,12 +342,12 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 	UVerticalBox* Setup = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	if (!Model.Setup.IsEmpty())
 	{
-		AddLine(*WidgetTree, *Setup, Model.Setup, EVeyraShellText::Body);
+		AddLine(*WidgetTree, *Setup, Model.Setup, EVeyraShellText::Body, HAlign_Left, /*bWrap*/ true);
 	}
 	if (Model.bOffersLeave)
 	{
 		AddLine(*WidgetTree, *Setup, LOCTEXT("LeaveWarning", "Leaving ends champion select for everyone and takes your party out of the queue."),
-			EVeyraShellText::Muted);
+			EVeyraShellText::Muted, HAlign_Left, /*bWrap*/ true);
 	}
 	UHorizontalBoxSlot* SetupSlot = Footer->AddChildToHorizontalBox(Setup);
 	SetupSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
@@ -352,6 +368,11 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 	const FString LockInId = Model.LockInVanguardId;
 	UTextBlock* LockInText = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("LockInTile", "LOCK IN"), EVeyraShellText::Heading);
 	LockInText->SetJustification(ETextJustify::Center);
+	if (Model.bCanLockIn)
+	{
+		// Dark on the gold it is filled with while it can be pressed, as League's reads.
+		LockInText->SetColorAndOpacity(FSlateColor(Settings.BackgroundColor));
+	}
 	USizeBox* LockInBox = Sized(*WidgetTree, *LockInText, FVector2D(Settings.LockInWidth, Settings.SpellTileSize));
 	Cast<USizeBoxSlot>(LockInText->Slot)->SetVerticalAlignment(VAlign_Center);
 	AddContentButton(*Loadout, LOCTEXT("LockIn", "Lock In"), *LockInBox, [this, LockInId] { Client->LockVanguard(LockInId); }, Model.bCanLockIn, Model.bCanLockIn);
@@ -363,6 +384,7 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 	{
 		UVeyraShellButton* Leave = AddButton(*Mode, LOCTEXT("LeaveSelect", "Leave"), [this] { Client->LeaveSelect(); }, Model.bCanLeave);
 		Cast<UVerticalBoxSlot>(Leave->Slot)->SetHorizontalAlignment(HAlign_Right);
+		KeepOnOneLine(*Leave);
 	}
 	AddLine(*WidgetTree, *Mode, Model.ModeLabel, EVeyraShellText::Heading, HAlign_Right);
 	UHorizontalBoxSlot* ModeSlot = Footer->AddChildToHorizontalBox(Mode);
@@ -405,7 +427,7 @@ void UVeyraShellScreen::BuildSpellPicker(const FVeyraSelectModel& Model)
 		AddLine(*WidgetTree, *Tile, Choice.Name, EVeyraShellText::Heading);
 		if (!Choice.Description.IsEmpty())
 		{
-			AddLine(*WidgetTree, *Tile, Choice.Description, EVeyraShellText::Small);
+			AddLine(*WidgetTree, *Tile, Choice.Description, EVeyraShellText::Small, HAlign_Left, /*bWrap*/ true);
 		}
 		USizeBox* Box = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 		Box->SetWidthOverride(Settings.PickerTileWidth);
