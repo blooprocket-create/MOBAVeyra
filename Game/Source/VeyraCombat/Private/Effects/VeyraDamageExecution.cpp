@@ -2,6 +2,7 @@
 
 #include "Effects/VeyraDamageExecution.h"
 
+#include "Statuses/VeyraStatusComponent.h"
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraOffenceSet.h"
@@ -164,6 +165,16 @@ void UVeyraDamageExecution::Execute_Implementation(const FGameplayEffectCustomEx
 		UE_LOG(LogVeyraCombat, Error, TEXT("Damage from %s to %s was not applied: %s."), *GetNameSafe(Attacker ? Attacker->GetOwner() : nullptr),
 			*GetNameSafe(Defender ? Defender->GetOwner() : nullptr), *FString::Join(Problems, TEXT("; ")));
 		return;
+	}
+
+	// A guard facing its attacker takes less (DirectionalDamageReduction, ADR-018 §2). A projectile is
+	// judged from where its source stands as it lands.
+	const AActor* DefenderBody = Defender->GetAvatarActor();
+	const AActor* AttackerBody = Attacker->GetAvatarActor();
+	const UVeyraStatusComponent* Guards = Defender->GetOwner() ? Defender->GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (DefenderBody && AttackerBody && Guards)
+	{
+		Defence.IncomingDamageMultiplier *= Guards->GetDirectionalRetained(DefenderBody->GetActorForwardVector(), AttackerBody->GetActorLocation() - DefenderBody->GetActorLocation());
 	}
 
 	// A ward counts hits, not damage: every blow that reaches it takes one point of its Health, whatever

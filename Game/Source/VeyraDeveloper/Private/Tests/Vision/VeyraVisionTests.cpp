@@ -5,6 +5,7 @@
 #include "Life/VeyraLifeComponent.h"
 #include "Rules/VeyraVisionRules.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Tethers/VeyraTetherSubsystem.h"
 #include "Tests/Abilities/VeyraTestFluxborn.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
@@ -238,6 +239,28 @@ namespace VeyraVisionTests
 			Vision().UpdateNow();
 			ASSERT_THAT(IsTrue(VeyraTargeting::CanAcquire(&Inside, Enemy), TEXT("in the same fog, within its radius")));
 			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("a sighting in fog is still not shared")));
+		}
+
+		TEST_METHOD(ATetherShowsItsTargetThroughFogAndCamouflageButNotInDenseFog)
+		{
+			const double S = SightRadius();
+			AVeyraVanguardCharacter& Source = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, FVector(S * 2.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Enemy, DetectionRadius())));
+			Vision().Start();
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy)));
+			// Fixture values: a tether long enough to hold for the test.
+			FVeyraTetherSpec Thread;
+			Thread.Id = FVeyraContentId::FromText(TEXT("test_thread")).GetValue();
+			Thread.MaxRange = S * 4.0;
+			Thread.DurationSeconds = 60.0;
+			UVeyraTetherSubsystem& Tethers = *Spawner.GetWorld().GetSubsystem<UVeyraTetherSubsystem>();
+			ASSERT_THAT(IsTrue(Tethers.Tether(*Source.GetAbilitySystemComponent(), *Enemy.GetAbilitySystemComponent(), Thread)));
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("out of sight and Camouflaged, but tethered (Combat Bible §43)")));
+			Vision().SetDenseFog({ FVeyraFogCircle{ FVector2D(Enemy.GetActorLocation()), S / 4.0 } });
+			Vision().UpdateNow();
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("Dense Fog overrides a tether's vision")));
 		}
 
 		TEST_METHOD(TrueSightShowsACamouflagedEnemyToALookoutInTheSameFog)

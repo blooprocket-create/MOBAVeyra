@@ -12,6 +12,7 @@
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "VeyraCombatVerbs.h"
+#include "VeyraGameMode.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardController.h"
 
@@ -37,6 +38,14 @@ namespace VeyraNetTests
 		static constexpr double KnockbackSpeed = 600.0;
 		static constexpr double DashSpeed = 5000.0;
 		static constexpr double PositionSlack = 2.0;
+		static constexpr double HoldSeconds = 3.0;
+		static constexpr double RideSpeed = 600.0;
+		static constexpr double RideTurnRate = 120.0;
+		static constexpr double BackDistance = 600.0;
+		static constexpr double MinimumArc = 150.0;
+		FVector RideStart = FVector::ZeroVector;
+		FVector RideHeading = FVector::ForwardVector;
+		double Sideways = 0.0;
 
 		int32 MoverId = INDEX_NONE;
 		FVector Expected = FVector::ZeroVector;
@@ -135,6 +144,61 @@ namespace VeyraNetTests
 				})
 				.UntilServer(TEXT("It arrives after the displacement"), [this, Destination](FState& State) {
 					return IsNear2D(ParticipantOf(State, 0)->GetPawn(), Destination, Tuning->Tuning.Orders.ArrivalTolerance + PositionSlack);
+				});
+		}
+
+		TEST_METHOD(AHeldVanguardGoesWhereItsHostGoesForEveryone)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("The first Vanguard holds on to the second"), [this](FState& State) {
+					AVeyraPlayerState* Holder = ParticipantOf(State, 0);
+					AVeyraPlayerState* Host = ParticipantOf(State, 1);
+					ASSERT_THAT(IsTrue(Holder && Host && Holder->GetPawn() && Host->GetPawn()));
+					MoverId = Holder->GetPlayerId();
+					ASSERT_THAT(IsTrue(VeyraCombat::Attach(*Holder->GetAbilitySystemComponent(), *Host->GetPawn(), HoldSeconds)));
+					Expected = Host->GetPawn()->GetActorLocation() + FVector(0.0, KnockbackDistance, 0.0);
+					ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Holder->GetAbilitySystemComponent(), *Host->GetAbilitySystemComponent(),
+						FVeyraDisplacement{ FVector::RightVector, KnockbackDistance, KnockbackSpeed })));
+				})
+				.UntilServer(TEXT("The host lands"), [this](FState& State) {
+					return !MovementOf(ParticipantOf(State, 1))->IsDisplaced() && IsNear2D(ParticipantOf(State, 1)->GetPawn(), Expected, PositionSlack);
+				})
+				.ThenServer(TEXT("The holder is still at its back"), [this](FState& State) {
+					const APawn* Holder = ParticipantOf(State, 0)->GetPawn();
+					const APawn* Host = ParticipantOf(State, 1)->GetPawn();
+					ASSERT_THAT(IsTrue(MovementOf(ParticipantOf(State, 0))->IsAttached()));
+					ASSERT_THAT(IsTrue(VeyraTargeting::EdgeToEdgeDistance(*Holder, *Host) <= PositionSlack,
+						FString::Printf(TEXT("%g apart"), VeyraTargeting::EdgeToEdgeDistance(*Holder, *Host))));
+					Expected = Holder->GetActorLocation();
+				})
+				.UntilClients(TEXT("Every client sees it there"), [this](FState& State) {
+					return IsNear2D(FindVanguard(State.World, MoverId), Expected, PositionSlack);
+				})
+				.UntilServer(TEXT("It lets go as its time runs out"), [](FState& State) { return !MovementOf(ParticipantOf(State, 0))->IsAttached(); });
+		}
+
+		TEST_METHOD(ARiderSentBackArcsRoundAndCannotRecall)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("The first Vanguard rides, and is sent back the way it faces"), [this](FState& State) {
+					AVeyraPlayerState* Rider = ParticipantOf(State, 0);
+					const APawn* Body = Rider ? Rider->GetPawn() : nullptr;
+					ASSERT_THAT(IsTrue(Body != nullptr));
+					ASSERT_THAT(IsTrue(VeyraCombat::StartRide(*Rider->GetAbilitySystemComponent(), FVeyraRide{ RideSpeed, RideTurnRate, 0.0 })));
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->HandleRecallOrder(Rider) == EVeyraOrderRejection::Mounted, TEXT("a rider cannot recall")));
+					RideStart = Body->GetActorLocation();
+					RideHeading = MovementOf(Rider)->GetRideHeading();
+					Sideways = 0.0;
+					ASSERT_THAT(IsTrue(Rider->GetVanguardController()->MoveToDestination(RideStart - RideHeading * BackDistance) == EVeyraOrderRejection::None));
+				})
+				.UntilServer(TEXT("It gets there"), [this](FState& State) {
+					const AVeyraPlayerState* Rider = ParticipantOf(State, 0);
+					const FVector Offset = Rider->GetPawn()->GetActorLocation() - RideStart;
+					Sideways = FMath::Max(Sideways, FMath::Abs(FVector::CrossProduct(RideHeading, Offset).Z));
+					return !Rider->GetVanguardController()->GetMoveOrder().IsSet();
+				})
+				.ThenServer(TEXT("Round an arc, not by pivoting"), [this](FState&) {
+					ASSERT_THAT(IsTrue(Sideways >= MinimumArc, FString::Printf(TEXT("%g sideways at most"), Sideways)));
 				});
 		}
 

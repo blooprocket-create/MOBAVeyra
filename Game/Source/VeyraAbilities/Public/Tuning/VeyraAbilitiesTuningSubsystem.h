@@ -46,6 +46,9 @@ public:
 	/** An empowered-attack ability's tuning, or null. */
 	static const FVeyraEmpoweredAttackAbilityTuning* FindEmpoweredAttack(const FVeyraContentId& Ability);
 	static const FVeyraVolleyAbilityTuning* FindVolley(const FVeyraContentId& Ability);
+	static const FVeyraTetherAbilityTuning* FindTether(const FVeyraContentId& Ability);
+	static const FVeyraAttachAbilityTuning* FindAttach(const FVeyraContentId& Ability);
+	static const FVeyraRideAbilityTuning* FindRide(const FVeyraContentId& Ability);
 
 	/**
 	 * Status Id as Combat applies it from a source at SourceLevel, or nothing if the statuses map has

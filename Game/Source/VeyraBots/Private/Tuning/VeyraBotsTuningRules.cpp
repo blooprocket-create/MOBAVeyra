@@ -3,6 +3,7 @@
 #include "Tuning/VeyraBotsTuning.h"
 
 #include "Algo/Count.h"
+#include "Brain/VeyraBotAbilities.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuning.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
@@ -55,6 +56,15 @@ TArray<FString> Validate(const FVeyraBotsTuning& Tuning)
 						Index, *Item.ToString(), *Vanguard.Build[Other].ToString()));
 					break;
 				}
+			}
+		}
+		// Each ability it names is one a bot knows how to aim: one that no archetype defines would
+		// never be cast.
+		for (const TPair<FVeyraContentId, EVeyraBotAbilityUse>& Use : Vanguard.Abilities)
+		{
+			if (!VeyraBotAbilities::ProfileOf(Use.Key, 0.0).IsSet())
+			{
+				Problems.Add(FString::Printf(TEXT("%s/abilities: %s is not an ability a bot can aim"), *Pointer, *Use.Key.ToString()));
 			}
 		}
 		for (const EVeyraBotSkill Skill : { EVeyraBotSkill::Q, EVeyraBotSkill::W, EVeyraBotSkill::E })

@@ -63,3 +63,59 @@ struct FVeyraDashEnd
 	/** The enemy it stopped at, for EnemyContact. */
 	TWeakObjectPtr<AActor> Contact;
 };
+
+/** A ride state's movement (Combat Bible §56), with its values worked out from data. */
+struct FVeyraRide
+{
+	/** The rider's Movement Speed, set rather than added; above 0. */
+	double SetSpeed = 0.0;
+
+	/** How fast its heading may turn, in degrees per second, whatever its speed; above 0. */
+	double TurnRateDegreesPerSecond = 0.0;
+
+	/** Seconds over which it slows back to its ordinary speed once the ride ends; at least 0. */
+	double DecaySeconds = 0.0;
+};
+
+/** Why a ride ended (Combat Bible §56, "Leaving"). */
+enum class EVeyraRideEndReason : uint8
+{
+	/** Its rider left it: a dismount, or a recast that separates rider and vehicle. */
+	Dismounted,
+	/** Its time ran out. */
+	Expired,
+	/** Its rider died. */
+	Died,
+};
+
+struct FVeyraRideEnd
+{
+	EVeyraRideEndReason Reason = EVeyraRideEndReason::Expired;
+
+	/** Where the rider was and which way it was heading as it ended, for its vehicle. */
+	FVector Location = FVector::ZeroVector;
+	FVector Heading = FVector::ForwardVector;
+};
+
+/** Why a unit let go of the body it held on to (ADR-018 §2). */
+enum class EVeyraAttachEndReason : uint8
+{
+	/** Its time ran out. */
+	Expired,
+	/** It let go itself, as a recast does. */
+	Released,
+	/** The host died or is gone. */
+	HostLost,
+	/** The unit itself died. */
+	Died,
+	/** A displacement, a Fear or another attach took over its movement. */
+	Replaced,
+};
+
+struct FVeyraAttachEnd
+{
+	EVeyraAttachEndReason Reason = EVeyraAttachEndReason::Expired;
+
+	/** The body it held on to. */
+	TWeakObjectPtr<AActor> Host;
+};

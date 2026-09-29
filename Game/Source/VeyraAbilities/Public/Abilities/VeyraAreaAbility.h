@@ -33,4 +33,10 @@ private:
 	/** A channelled area's placement and zones, from Commit to its last tick. */
 	FVeyraEffectFrame ChannelPlacement;
 	TArray<FVeyraPreparedZone> ChannelZones;
+
+	/** Restores its caster's Health from the units Hit, for its heal-on-hit data, within what is left of the cast's cap. */
+	void HealFromHits(UAbilitySystemComponent& Caster, const FVeyraAreaAbilityTuning& Area, TConstArrayView<AActor*> Hit);
+
+	/** What the cast under way has restored so far. */
+	double HealedThisCast = 0.0;
 };

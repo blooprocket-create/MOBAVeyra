@@ -60,9 +60,10 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 	}
 	if (const FVeyraDashAbilityTuning* Dash = UVeyraAbilitiesTuningSubsystem::FindDash(Ability))
 	{
-		// A dash reaches as far as it carries the caster, or as far as its opening areas reach.
+		// A dash reaches as far as it carries the caster and its landing's areas reach beyond, or as far
+		// as its opening areas reach.
 		Profile.Targeting = EVeyraBotTargeting::Point;
-		Profile.Reach = FMath::Max(Dash->Distance, LargestZone(Dash->StartZones));
+		Profile.Reach = FMath::Max(Dash->Distance + LargestZone(Dash->EndZones), LargestZone(Dash->StartZones));
 		Profile.LeadSeconds = Dash->Cast.WindupSeconds;
 		Profile.bAwayFromPoint = Dash->Direction == EVeyraDashDirection::AwayFromPoint;
 		Profile.CostByRank = Dash->Cast.ResourceCostByRank;
@@ -89,6 +90,35 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 		Profile.Reach = Shot ? Shot->Projectile.Range : 0.0;
 		Profile.LeadSeconds = Volley->Cast.WindupSeconds;
 		Profile.CostByRank = Volley->Cast.ResourceCostByRank;
+		return Profile;
+	}
+	if (const FVeyraTetherAbilityTuning* Tether = UVeyraAbilitiesTuningSubsystem::FindTether(Ability))
+	{
+		Profile.Targeting = EVeyraBotTargeting::Unit;
+		Profile.Reach = Tether->Cast.CastRange;
+		Profile.LeadSeconds = Tether->Cast.WindupSeconds;
+		Profile.CostByRank = Tether->Cast.ResourceCostByRank;
+		Profile.TargetKinds = Tether->TargetKinds;
+		return Profile;
+	}
+	if (const FVeyraAttachAbilityTuning* Attach = UVeyraAbilitiesTuningSubsystem::FindAttach(Ability))
+	{
+		// A leap at the unit it holds on to.
+		Profile.Targeting = EVeyraBotTargeting::Unit;
+		Profile.Reach = Attach->Cast.CastRange;
+		Profile.LeadSeconds = Attach->Cast.WindupSeconds;
+		Profile.CostByRank = Attach->Cast.ResourceCostByRank;
+		Profile.TargetKinds = Attach->TargetKinds;
+		return Profile;
+	}
+	if (const FVeyraRideAbilityTuning* Ride = UVeyraAbilitiesTuningSubsystem::FindRide(Ability))
+	{
+		// A ride reaches as far as it carries its rider; its mounted actions, in the slots it holds, do
+		// the rest.
+		Profile.Targeting = EVeyraBotTargeting::Self;
+		Profile.Reach = Ride->SetSpeed * Ride->DurationSeconds;
+		Profile.LeadSeconds = Ride->Cast.WindupSeconds;
+		Profile.CostByRank = Ride->Cast.ResourceCostByRank;
 		return Profile;
 	}
 	return {};

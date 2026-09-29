@@ -357,6 +357,13 @@ namespace VeyraMatchStatisticsTests
 				&& Scoreboard[3].Side == EVeyraTeam::B, TEXT("side A first")));
 		}
 
+		TEST_METHOD(AFearCountsWithTheStuns)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Abilities(*Attacker), Abilities(*Target), Status(TEXT("test_fear"), EVeyraStatusKind::Fear, 0.0, StunSeconds))));
+			Wait(StunSeconds + Step);
+			ASSERT_THAT(IsTrue(Of(*Attacker).CrowdControl.Stun > 0.0 && Of(*Attacker).CrowdControl.Slow == 0.0));
+		}
+
 		TEST_METHOD(EachParticipantIsRecordedOnce)
 		{
 			Statistics->AddParticipant(*Attacker);

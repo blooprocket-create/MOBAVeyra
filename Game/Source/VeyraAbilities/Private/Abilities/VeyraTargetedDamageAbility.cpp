@@ -37,30 +37,7 @@ EVeyraCastRejection UVeyraTargetedDamageAbility::CheckTarget(const AActor& Caste
 	{
 		return EVeyraCastRejection::UnknownAbility;
 	}
-	switch (VeyraTargeting::CheckEnemyTarget(Caster, Target.Actor, Tuning->CastRange))
-	{
-	case EVeyraTargetValidity::Valid:
-	{
-		// It may be for some kinds of unit only, as a Smite is for monsters (ADR-015 §3).
-		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Target.Actor);
-		const bool bKindAllowed = Tuning->TargetKinds.IsEmpty() || (Kind.IsSet() && Tuning->TargetKinds.Contains(Kind.GetValue()));
-		return bKindAllowed ? EVeyraCastRejection::None : EVeyraCastRejection::InvalidTarget;
-	}
-	case EVeyraTargetValidity::Dead:
-		return EVeyraCastRejection::TargetDead;
-	case EVeyraTargetValidity::NotHostile:
-		return EVeyraCastRejection::NotHostile;
-	case EVeyraTargetValidity::OutOfRange:
-		return EVeyraCastRejection::OutOfRange;
-	case EVeyraTargetValidity::NotVisible:
-		return EVeyraCastRejection::NotVisible;
-	case EVeyraTargetValidity::NotACombatant:
-	case EVeyraTargetValidity::Caster:
-	case EVeyraTargetValidity::Structure:
-	case EVeyraTargetValidity::Ward:
-		return EVeyraCastRejection::InvalidTarget;
-	}
-	return EVeyraCastRejection::InvalidTarget;
+	return CheckEnemyUnit(Caster, Target.Actor, Tuning->CastRange, Tuning->TargetKinds);
 }
 
 void UVeyraTargetedDamageAbility::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,

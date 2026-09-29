@@ -92,8 +92,8 @@ Vision enforces Camouflage as it does wards' Invisibility, with these rules:
 ### 6. New delivery and archetype options
 
 - **Volley (a new archetype).** A cast locks a lane and roots the caster. Each shot is a recast, fired at intervals, up to a count that events may raise.
-- **Tether.** A tether links source and target and, beyond its break range, pulls once and ends (§43). Combat keeps the tether ledger. Vision gives the source's side sight of a tethered target, which Dense Fog still overrides (§43).
-- **Attach.** The caster rides its target's position for a duration, owning none of the target's movement. The cast's data says what the caster may do while attached.
+- **Tether (a new archetype).** A tether links source and target and, beyond its break range, pulls once and ends (§43). Combat keeps the tether ledger and judges it on a world timer (`Combat.json tethers.checkSeconds`): death, its time or stretching ends it; losing sight of the target or its Camouflage does not. A newer tether of the same ability from the same source replaces the older. Statuses the tether declares are held on the target while it lasts. Vision gives the source's side sight of a tethered target, which Dense Fog still overrides (§43).
+- **Attach (a new archetype).** The caster leaps at its target and, ending within reach, holds on to its back for a duration, owning none of the target's movement; a leap that ends out of reach does nothing more. It is a movement mode of the caster's body: it passes through units meanwhile, cannot attack and may cast. It ends with its time, either unit's death, a displacement or Fear of the caster, or its release. Statuses the attach declares are held on the host while it lasts. A dash may throw its caster straight back from its host (`AwayFromHost`), with effects on the host, as Bear Hug's recast; the recast ends early if the hold does.
 - **Options on existing archetypes:**
   - a caster recoil on skillshots;
   - consuming the caster's statuses;
@@ -110,18 +110,28 @@ Vision enforces Camouflage as it does wards' Invisibility, with these rules:
 ### 7. Ride states (ADR-003's separate decision, made here; Combat §56)
 
 A ride state is a movement mode on `UVeyraMovementComponent`, owned by Combat:
-- **Movement:** Movement Speed is **set**, never added. Soft caps do not apply; Slows and the floor do. Facing turns at a limited rate, which the server owns; the arrival rule is the widest permitted arc, never slowing to pivot.
-- **Presence:** the rider is Ghosted, with one combined, larger hitbox.
+- **Movement:** Movement Speed is **set**, never added. Soft caps do not apply; Slows and the floor do. The heading turns at a limited rate, which the server owns: the rider keeps its speed through the widest permitted arc, never slowing to pivot. A move order to a point inside its turning circle ends at the closest approach, as soon as it starts moving away again (Match's controller). After the ride its speed falls linearly to ordinary across the ride's decay window.
+- **Presence:** the rider passes through units as a Ghosted unit does; its combined, larger hitbox is a BodyScale status the ride holds.
 - **Blocked actions:** attacks (attack-move becomes move), damaging structures, recall and the fountain shop. Match refuses those.
 - **Kept:** an earned empowered attack survives until after the ride.
 - **The ability set:** the replacement set of §1.
 - **The vehicle:** it exists only from the entry cast to the end of any separated phase. On every exit, death included, it continues as a projectile along the rider's heading, and its damage is still the rider's.
+- **Leaving on landing:** a dash that leaves the ride holds it until it lands, then ends it, so its landing's effects come before the vehicle goes on. A dash's landing is held by the caster, not by the ability that set off, since a used-once follow-up's ability may be removed mid-dash.
+- **The ride archetype** (`ride` map) enters it: set speed, turn rate, duration, decay, statuses held on the rider, mounted actions by slot and the vehicle's skillshot. A dash may leave the ride first (`rideExit: Leave`), as Bail Out and Last Exit do. As the ride's time runs out, a recast that fires at expiry fires first, so Last Exit's payoff never loses a race with the ride's own end.
 
 Combat also counts the **distance a unit moves itself** (Raska's Momentum), excluding forced movement.
 
 ### 8. League answers where canon is silent (for the author to overturn)
 
 Every value is Provisional data, a League stand-in:
+- **The second status kinds:**
+  - Unstoppable refuses an enemy's Stun, Slow, Fear and Knockup, and every displacement; debuffs that are not crowd control, such as Weaken, still land;
+  - DisplacementImmunity refuses Knockups and displacements, but not Stuns;
+  - a Knockup holds the unit where it stands for its time, and Tenacity does not shorten it (League's airborne); an ability that also moves the unit pairs it with a displacement;
+  - a Fear walks the unit straight away from its source for the Fear's time, under the Fear's Slow; terrain ends the walk, a displacement replaces it, and a Fear cleansed early ends it;
+  - a directional reduction judges the attacker from where it stands as the damage lands, projectiles included; several multiply;
+  - an attack amplification scales every component of the attack, including what passives add to it;
+  - the match statistics count a Fear or a Knockup as stun time, since each is hard crowd control.
 - **Kade:**
   - range 600;
   - Q in Jhin W's range;
@@ -151,13 +161,27 @@ Every value is Provisional data, a League stand-in:
   - a missed Bear Hug has no effect and goes on cooldown;
   - the throw lands behind him, away from the target;
   - recasting Play Dead does not end it early.
+  - the Haunt comes only from an enemy Vanguard's damage, and the lash only when a Haunted enemy damages an allied Vanguard within 800 of a living Patch;
+  - Bear Hug and Don't Leave Me target enemy Vanguards only;
+  - Play Dead's pulse counts every hostile hit Patch takes while it lasts, damage over time included, and fears every enemy unit within its radius;
+  - The Thing Inside's aura slows every enemy unit near him, Fluxborn and wildlife included; during it, Bear Hug holds longer and slows harder.
 - **Gorraveth:**
   - "helping finish a camp" means he damaged any creature of it and is alive when it clears;
   - Ravine Bound's landing need not be visible, and it crosses no walls (the map has none yet).
+  - a camp he helped clear, or a takedown on its 20-second cooldown, restores 6% of his Max Health and 40, with +25% Movement Speed for 2 seconds;
+  - Rip Through's area is its whole path, and Q and W deal 1.5 times their damage to wildlife;
+  - Furnace Rake's two sweeps are circles around him wherever he stands; each wildlife hit restores 4% of his Max Health, at most 12% per cast;
+  - during R, a Q or W hit on an enemy Vanguard gives +30% Movement Speed toward enemy Vanguards, not that one alone, for 2 seconds, refreshed; the frenzy's statuses gain 2 seconds per takedown up to 6, while its Q and W forms keep their 6 seconds.
 - **Raska:**
   - Momentum counts her own dashes, not forced movement, and resets on death;
   - canon gives Redlined forms only for Q and W, so E and the mounted set have none yet;
   - a destination inside her turning circle is approached at the closest point.
+  - Momentum is the stacks of a Counter status: 1 per 40 units she moves herself, dashes included, +5 per attack and +8 per cast, to 100;
+  - at full, Q and W hold their Redlined forms, used once and cooling down as the slots' own abilities; a ride holds Redline off until she leaves it, since the mounted set has none;
+  - Roadhouse: +250 reach while it waits, and the attack adds 30, 10% of the target's missing Health and 3% of her bonus Health, lunging to the target;
+  - Redlined Breakneck knocks back what it stops at; Countersteer's counter is a Slow, and Redlined its Stun, in a circle of 350 around her, and comes only if a hostile hit landed while she braced;
+  - Powerslide is a cone Slow; its turn is left for later;
+  - a dash that leaves the ride keeps the ride until it lands: its landing resolves first, then Hound goes on from there, sparing what Last Exit knocked up (one displacement per target).
 
 The values live in `Game/Tuning/Vanguards.json`, `Abilities.json` and `Bots.json`.
 
@@ -166,6 +190,11 @@ The values live in `Game/Tuning/Vanguards.json`, `Abilities.json` and `Bots.json
 - **M13a:** Kade, Vera and Mimzi, with slot overrides, the first status kinds, Camouflage, lingering areas, volleys and their options.
 - **M13b:** Patch, Gorraveth and Raska, with the second status kinds, tethers, attach, camp-cleared, ride states and their options.
 - Each Vanguard is released with bot data, its portrait, its text and the backend's released list.
+- Bots aim the new archetypes as ADR-013 §4 does the rest:
+  - a tether or a leap to hold on is cast at a unit in its cast range;
+  - a ride is cast on itself and reaches as far as it carries its rider, and its mounted actions are aimed as the slots' own abilities;
+  - a dash reaches as far as its landing's areas;
+  - a bot entry names every ability its slots come to hold (follow-ups, variants, mounted actions, Redlined forms), and each must be one a bot can aim.
 
 ## Consequences
 
@@ -180,6 +209,7 @@ The values live in `Game/Tuning/Vanguards.json`, `Abilities.json` and `Bots.json
 - **ADR-008:** slots may be overridden (§1).
 - **ADR-009:** the new status kinds, source-relative statuses, the decay mode, and the events of §3.
 - **ADR-016:** Camouflage (§4) and shaped reveals (§5).
+- **ADR-013:** bot profiles for tethers, attach and rides, and bot entries that name every ability a slot comes to hold (§9).
 
 ## Open items
 
@@ -190,4 +220,5 @@ The values live in `Game/Tuning/Vanguards.json`, `Abilities.json` and `Bots.json
 - Mirroring the turn rate on clients (ADR-009 §6 keeps no prediction).
 - A displacement a newer one cuts short still reports the path it resolved, so Dead Reckoning may count more than the unit travelled; reporting on arrival would delay Tracked until the knockback ends.
 - HUD meters for Cadence, Hex and Momentum beyond status stacks.
+- Tethers breaking on Untargetability (§43): Combat has no Untargetable state yet.
 - Bots that leave a stance before they move: until then Bots.json marks Vera's Dig In `Never`, so bots do not cast it.

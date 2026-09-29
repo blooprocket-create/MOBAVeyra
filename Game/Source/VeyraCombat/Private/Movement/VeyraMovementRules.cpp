@@ -32,6 +32,11 @@ double EffectiveSpeed(const FVeyraSpeedInputs& Inputs, const FVeyraMovementTunin
 	double Speed = Inputs.MoveSpeed * (1.0 + Inputs.ConditionalBonus);
 	Speed *= 1.0 - Inputs.StrongestSlow;
 	Speed = ApplySoftCaps(Speed, Tuning.SoftCaps);
+	if (Inputs.SetSpeed.IsSet())
+	{
+		// A ride's set speed replaces it; Slows reduce it, and the soft caps never apply (§56).
+		Speed = Inputs.SetSpeed.GetValue() * (1.0 - Inputs.StrongestSlow);
+	}
 	const double Floor = FMath::Min(Tuning.SlowFloor, Inputs.BaseMoveSpeed);
 	return FMath::Max(Speed, FMath::Max(Floor, 0.0));
 }

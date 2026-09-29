@@ -4,6 +4,7 @@
 
 #include "Abilities/VeyraGameplayAbility.h"
 #include "Engine/TimerHandle.h"
+#include "Delegates/IDelegateInstance.h"
 
 #include "VeyraSelfBuffAbility.generated.h"
 
@@ -15,6 +16,8 @@ struct FVeyraHealTuning;
  * (ADR-008 §9), and optionally a heal for the caster and its most wounded ally (ADR-015 §3). A recast
  * may end it early. Each ability of this kind is an entry in Abilities.json's selfBuff map.
  */
+struct FVeyraHostileDamageEvent;
+
 UCLASS()
 class VEYRAABILITIES_API UVeyraSelfBuffAbility : public UVeyraGameplayAbility
 {
@@ -57,4 +60,16 @@ private:
 	FVeyraContentId AuraAbility;
 	double AuraEndsAt = 0.0;
 	FTimerHandle AuraTimer;
+
+	/** An end payload under way (ADR-018 §6): counts the hostile hits its caster takes until it comes. */
+	void StartPayload(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
+	void OnHostileDamage(const FVeyraHostileDamageEvent& Event);
+	void FirePayload();
+	void StopPayload();
+
+	TWeakObjectPtr<UAbilitySystemComponent> PayloadCaster;
+	FVeyraContentId PayloadAbility;
+	int32 PayloadHits = 0;
+	FTimerHandle PayloadTimer;
+	FDelegateHandle HostileDamageHandle;
 };

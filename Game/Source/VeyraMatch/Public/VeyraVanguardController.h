@@ -100,6 +100,12 @@ private:
 	/** Carries out an attack or attack-move order one step: chase, attack, wait, or walk on. */
 	void UpdateAttackOrder();
 	void FollowAttackMove();
+
+	/** A rider's move order ends at its closest approach to a destination inside its turning circle. */
+	void UpdateRideArrival();
+
+	/** The nearest a rider has come to its destination since it came within its turning circle. */
+	TOptional<double> RideClosest;
 	void StopForAttack();
 	void ClearAttackOrder();
 	UVeyraBasicAttackComponent* GetBasicAttack() const;

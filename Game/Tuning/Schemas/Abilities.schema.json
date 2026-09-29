@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "fluxSpells"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "fluxSpells"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -106,7 +106,7 @@
       "description": "What happens to each unit hit.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["damage", "statuses", "displacement", "missingHealthDamage"],
+      "required": ["damage", "statuses", "displacement", "missingHealthDamage", "unitKindMultipliers", "displacementUnlessStatuses"],
       "properties": {
         "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
         "statuses": { "$ref": "#/definitions/statusIds" },
@@ -125,7 +125,9 @@
               "missingHealthRatio": { "description": "Of the target's missing Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
             }
           }
-        }
+        },
+        "unitKindMultipliers": { "description": "Damage multiplied against some kinds of unit, at least 1, once per kind, never structures (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "object", "additionalProperties": false, "required": ["kind", "multiplier"], "properties": { "kind": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }, "multiplier": { "type": "number", "minimum": 1 } } } },
+        "displacementUnlessStatuses": { "description": "Statuses that spare a unit this displacement: one displacement per target per cast (Roster Bible §1).", "$ref": "#/definitions/statusIds" }
       }
     },
     "zone": {
@@ -207,7 +209,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [6]
+      "enum": [12]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -232,12 +234,12 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds"],
+          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds", "arcDegrees", "unitKinds"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -273,6 +275,14 @@
               "description": "For a stacking status: once its duration runs out it loses one stack and lasts this long again, until the last stack goes (ADR-018 §2). 0 to end at once.",
               "type": "number",
               "minimum": 0
+            },
+            "arcDegrees": { "description": "DirectionalDamageReduction: the arc of the unit's facing it guards, in degrees; 0 for any other kind.", "type": "number", "minimum": 0, "maximum": 360 },
+            "unitKinds": {
+              "description": "AttackDamageAmplification: the unit kinds it amplifies attacks against (EVeyraUnitKind), empty for all; empty for any other kind.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 6,
+              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }
             }
           }
         }
@@ -335,7 +345,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger", "consumesCasterStatuses"],
+          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger", "consumesCasterStatuses", "channelMovement", "casterStatuses", "healOnHit"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -386,7 +396,10 @@
                 }
               }
             },
-            "consumesCasterStatuses": { "description": "Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6).", "$ref": "#/definitions/statusIds" }
+            "consumesCasterStatuses": { "description": "Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6).", "$ref": "#/definitions/statusIds" },
+            "channelMovement": { "description": "Locked holds the caster in place while it channels; Free lets it move, each tick placed where it stands (ADR-018 §6).", "type": "string", "enum": ["Free", "Locked"] },
+            "casterStatuses": { "description": "Put on the caster as it commits.", "$ref": "#/definitions/statusIds" },
+            "healOnHit": { "description": "At most one: Health the caster restores from the units it hits, capped for the cast (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["unitKinds", "maxHealthRatioPerHit", "capMaxHealthRatio"], "properties": { "unitKinds": { "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] } }, "maxHealthRatioPerHit": { "type": "number", "minimum": 0, "exclusiveMinimum": true }, "capMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } }
           }
         }
       }
@@ -399,7 +412,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -419,12 +432,13 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["radius", "durationSeconds", "refreshSeconds", "allyStatuses"],
+                "required": ["radius", "durationSeconds", "refreshSeconds", "allyStatuses", "enemyStatuses"],
                 "properties": {
                   "radius": { "description": "Units from the caster's centre to an ally's edge.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "refreshSeconds": { "description": "How often allies in range get the statuses again; the statuses should outlast it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-                  "allyStatuses": { "$ref": "#/definitions/statusIds" }
+                  "allyStatuses": { "$ref": "#/definitions/statusIds" },
+                  "enemyStatuses": { "description": "Put on each living enemy unit in range at every refresh, never a structure or a ward (ADR-018 §6).", "$ref": "#/definitions/statusIds" }
                 }
               }
             },
@@ -463,6 +477,36 @@
                   "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
                   "cooldown": { "description": "Own keeps its own cooldown; Shared is one cooldown with the slot's own ability.", "type": "string", "enum": ["Own", "Shared"] },
                   "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                }
+              }
+            },
+            "temporaryHealth": {
+              "description": "At most one: Temporary Health for its caster (Combat Bible §7; ADR-018 §6).",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["amountByRank", "maxHealthRatio", "durationSeconds"],
+                "properties": {
+                  "amountByRank": { "$ref": "#/definitions/byRank" },
+                  "maxHealthRatio": { "description": "And this share of the caster's Max Health.", "type": "number", "minimum": 0 },
+                  "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                }
+              }
+            },
+            "endPayload": {
+              "description": "At most one: as the buff ends, a status on each enemy unit near its caster, lasting longer for each hit the caster took meanwhile (ADR-018 §6).",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["afterSeconds", "radius", "status", "baseSeconds", "secondsPerHit", "maxSeconds", "minHits"],
+                "properties": {
+                  "afterSeconds": { "description": "When it comes, in seconds after the cast.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "radius": { "description": "Units from the caster's centre to an enemy's edge.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "status": { "description": "A status ID from the statuses map.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "baseSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "secondsPerHit": { "type": "number", "minimum": 0 },
+                  "maxSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "minHits": { "description": "The hits the caster must take for it to come at all; 0 for always.", "type": "integer", "minimum": 0 }
                 }
               }
             }
@@ -527,14 +571,14 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses"],
+          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses", "hostEffects", "endZones", "rideExit"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
             "direction": {
-              "description": "TowardPoint: toward the cast's point. AwayFromPoint: straight back from it, as a recoil.",
+              "description": "TowardPoint: toward the cast's point. AwayFromPoint: straight back from it, as a recoil. AwayFromHost: straight back from the unit the caster holds on to, letting go (ADR-018 §2).",
               "type": "string",
-              "enum": ["TowardPoint", "AwayFromPoint"]
+              "enum": ["TowardPoint", "AwayFromPoint", "AwayFromHost"]
             },
             "distance": { "description": "Units; terrain stops the dash sooner.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -550,7 +594,10 @@
               "items": { "$ref": "#/definitions/zone" }
             },
             "contactEffects": { "description": "On the enemy a StopAtFirstEnemy dash stops at.", "$ref": "#/definitions/effects" },
-            "contactSelfStatuses": { "description": "Put on the caster when it stops at an enemy.", "$ref": "#/definitions/statusIds" }
+            "contactSelfStatuses": { "description": "Put on the caster when it stops at an enemy.", "$ref": "#/definitions/statusIds" },
+            "hostEffects": { "description": "On the unit an AwayFromHost dash lets go of, as the throw's stumble; no effects for any other dash.", "$ref": "#/definitions/effects" },
+            "endZones": {"description": "Areas at the caster, facing the cast's point, as the dash sets off; innermost first.", "type": "array", "minItems": 0, "items": {"$ref": "#/definitions/zone"}},
+            "rideExit": { "description": "Stay: it rides on, if it rides. Leave: it separates rider and vehicle first, as Bail Out and Last Exit do (Combat Bible §56).", "type": "string", "enum": ["Stay", "Leave"] }
           }
         }
       }
@@ -645,6 +692,74 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "tether": {
+      "description": "Abilities that tether an enemy to their caster (Combat Bible §43; ADR-018), as Patch's Don't Leave Me: the caster's side sees the target while it holds; stretched beyond its range, it may snap the target back once, and ends.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "targetKinds", "maxRange", "durationSeconds", "snapDistance", "snapSpeed", "targetStatuses"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "targetKinds": { "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] } },
+            "maxRange": { "description": "Edge to edge, in units; beyond it the tether stretches. At least the cast's range.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "snapDistance": { "description": "Stretched, the pull toward the caster, in units before Displacement Resistance; 0 for none.", "type": "number", "minimum": 0 },
+            "snapSpeed": { "description": "The pull's units per second: above 0 with a pull, 0 without.", "type": "number", "minimum": 0 },
+            "targetStatuses": { "description": "Held on the target while the tether lasts.", "$ref": "#/definitions/statusIds" }
+          }
+        }
+      }
+    },
+    "attach": {
+      "description": "Abilities that leap their caster at an enemy and hold on to it (ADR-018 §2), as Patch's Bear Hug: ending within reach, the caster attaches for a while and the host takes the host effects and holds the host statuses; out of reach, nothing more happens.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "targetKinds", "leapSpeed", "reachOnArrival", "attachSeconds", "hostStatuses", "hostEffects"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "targetKinds": { "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] } },
+            "leapSpeed": { "description": "The leap's units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "reachOnArrival": { "description": "Edge to edge, in units, how near the target must be as the leap ends for the caster to take hold.", "type": "number", "minimum": 0 },
+            "attachSeconds": { "description": "How long it holds on.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "hostStatuses": { "description": "Held on the host while the caster holds on.", "$ref": "#/definitions/statusIds" },
+            "hostEffects": { "description": "On the host as the caster takes hold.", "$ref": "#/definitions/effects" }
+          }
+        }
+      }
+    },
+    "ride": {
+      "description": "Abilities that put their caster in a ride state (Combat Bible §56; ADR-018 §7), as Raska's Kickstart and NO BRAKES: a set speed and a limited turn rate, mounted actions in their slots, statuses held meanwhile, and a vehicle that goes on without its rider as the ride ends.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "setSpeed", "turnRateDegreesPerSecond", "durationSeconds", "decaySeconds", "riderStatuses", "mounted", "vehicle"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "setSpeed": { "description": "The rider's Movement Speed, set rather than added.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "turnRateDegreesPerSecond": { "description": "How fast its heading turns.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "decaySeconds": { "description": "Seconds over which the rider slows back to its ordinary speed after.", "type": "number", "minimum": 0 },
+            "riderStatuses": { "description": "Held on the rider while it rides.", "$ref": "#/definitions/statusIds" },
+            "mounted": { "description": "The mounted actions, one per basic ability's slot.", "type": "array", "minItems": 0, "maxItems": 3,
+              "items": { "type": "object", "additionalProperties": false, "required": ["slot", "ability"], "properties": { "slot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] }, "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } } } },
+            "vehicle": { "description": "At most one: the skillshot its vehicle goes on as along the rider's heading as the ride ends.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
           }
         }
       }

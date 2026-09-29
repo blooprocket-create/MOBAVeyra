@@ -93,8 +93,34 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 		break;
 	case EVeyraStatusKind::Planted:
 	case EVeyraStatusKind::Counter:
+	case EVeyraStatusKind::Dormant:
+	case EVeyraStatusKind::Unstoppable:
+	case EVeyraStatusKind::DisplacementImmunity:
+	case EVeyraStatusKind::Knockup:
+	case EVeyraStatusKind::Ghosted:
 		bMagnitudeValid &= Magnitude == 0.0;
 		break;
+	case EVeyraStatusKind::Fear:
+		bMagnitudeValid &= Magnitude >= 0.0 && Magnitude < 1.0;
+		break;
+	case EVeyraStatusKind::BodyScale:
+		bMagnitudeValid &= Magnitude > 0.0 && Spec.MaxStacks == 1;
+		break;
+	case EVeyraStatusKind::DirectionalDamageReduction:
+		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
+		break;
+	case EVeyraStatusKind::AttackDamageAmplification:
+		bMagnitudeValid &= Magnitude > 0.0;
+		break;
+	}
+	const bool bGuards = Spec.Kind == EVeyraStatusKind::DirectionalDamageReduction;
+	if (bGuards ? !(Spec.ArcDegrees > 0.0 && Spec.ArcDegrees <= 360.0) : Spec.ArcDegrees != 0.0)
+	{
+		Problems.Add(TEXT("arcDegrees: a directional reduction guards an arc above 0 and at most 360 degrees; any other kind has none"));
+	}
+	if (Spec.Kind != EVeyraStatusKind::AttackDamageAmplification && !Spec.UnitKinds.IsEmpty())
+	{
+		Problems.Add(TEXT("unitKinds: only an attack amplification names unit kinds"));
 	}
 	if (!bMagnitudeValid)
 	{
@@ -126,7 +152,13 @@ int32 TickCount(double DurationSeconds, double TickSeconds)
 
 bool IsTenacityReducible(EVeyraStatusKind Kind)
 {
-	return Kind == EVeyraStatusKind::Stun || Kind == EVeyraStatusKind::Slow;
+	// A Knockup is crowd control Tenacity does not shorten, as League's airborne (§8).
+	return Kind == EVeyraStatusKind::Stun || Kind == EVeyraStatusKind::Slow || Kind == EVeyraStatusKind::Fear;
+}
+
+bool IsCrowdControl(EVeyraStatusKind Kind)
+{
+	return IsTenacityReducible(Kind) || Kind == EVeyraStatusKind::Knockup;
 }
 
 double ApplyTenacity(double DurationSeconds, double TenacityRetained, double FloorSeconds)
@@ -209,6 +241,10 @@ EVeyraActionBlocks ActionBlocks(TConstArrayView<FVeyraStatusEntry> Entries)
 	for (const FVeyraStatusEntry& Entry : Entries)
 	{
 		if (Entry.Kind == EVeyraStatusKind::Stun)
+		{
+			Blocks |= EVeyraActionBlocks::Move | EVeyraActionBlocks::Attack | EVeyraActionBlocks::Cast;
+		}
+		else if (Entry.Kind == EVeyraStatusKind::Dormant || Entry.Kind == EVeyraStatusKind::Fear || Entry.Kind == EVeyraStatusKind::Knockup)
 		{
 			Blocks |= EVeyraActionBlocks::Move | EVeyraActionBlocks::Attack | EVeyraActionBlocks::Cast;
 		}

@@ -117,6 +117,8 @@ private:
 	bool bKitCastPending = false;
 	int32 KitRejectionsBefore = 0;
 	int32 KitCastAttempts = 0;
+	/** -VeyraSmokeKit: when the slot being cast was first refused, in real seconds. */
+	TOptional<double> KitFirstRefusedAt;
 	FDelegateHandle NetworkFailureHandle;
 	FDelegateHandle TravelFailureHandle;
 	double StartRealTime = 0.0;

@@ -124,6 +124,94 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(Displaced.Num() == 1, TEXT("a unit that cannot move is not displaced")));
 		}
 
+		TEST_METHOD(TheUnstoppableAndTheImmuneStayPut)
+		{
+			for (const EVeyraStatusKind Kind : { EVeyraStatusKind::Unstoppable, EVeyraStatusKind::DisplacementImmunity })
+			{
+				FVeyraStatusSpec Guard;
+				Guard.Id = FVeyraContentId::FromText(TEXT("guard")).GetValue();
+				Guard.Kind = Kind;
+				Guard.DurationSeconds = 60.0;
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, Guard)));
+				ASSERT_THAT(IsFalse(VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::BackwardVector))));
+				ASSERT_THAT(IsFalse(Movement->IsDisplaced()));
+				ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Guard.Id)));
+			}
+		}
+
+		TEST_METHOD(AFearedUnitFleesItsSourceUntilADisplacementTakesOver)
+		{
+			constexpr double Slowed = 0.5;
+			constexpr double FearSeconds = 1.0;
+			FVeyraStatusSpec Fear;
+			Fear.Id = FVeyraContentId::FromText(TEXT("fear")).GetValue();
+			Fear.Kind = EVeyraStatusKind::Fear;
+			Fear.Magnitude = Slowed;
+			Fear.DurationSeconds = FearSeconds;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy, *Unit, Fear)));
+			ASSERT_THAT(IsTrue(Movement->IsFleeing() && Movement->IsMovementLocked()));
+			// Its source has no body here, so it flees the way it faces: toward the wall, never through it.
+			const FVector End = Movement->GetForcedMoveDestination().GetValue();
+			ASSERT_THAT(IsTrue(End.X > Start.X && End.X <= WallFaceX - Radius() + Tolerance, FString::Printf(TEXT("fled to X %g"), End.X)));
+			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::BackwardVector))));
+			ASSERT_THAT(IsTrue(Movement->IsDisplaced() && !Movement->IsFleeing()));
+			ASSERT_THAT(IsFalse(Movement->StartFleeing(FVector::ForwardVector, Distance, Speed), TEXT("a Fear never replaces a displacement")));
+		}
+
+		TEST_METHOD(AFearEndedEarlyEndsTheFlight)
+		{
+			FVeyraStatusSpec Fear;
+			Fear.Id = FVeyraContentId::FromText(TEXT("fear")).GetValue();
+			Fear.Kind = EVeyraStatusKind::Fear;
+			Fear.DurationSeconds = 1.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy, *Unit, Fear) && Movement->IsFleeing()));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Fear.Id)));
+			ASSERT_THAT(IsFalse(Movement->IsFleeing()));
+			ASSERT_THAT(IsFalse(Movement->IsMovementLocked()));
+		}
+
+		TEST_METHOD(GhostedPassesThroughUnitsAndBodyScaleWidensTheBody)
+		{
+			UCapsuleComponent* Capsule = CastChecked<ACharacter>(Movement->GetOwner())->GetCapsuleComponent();
+			const ECollisionResponse Before = Capsule->GetCollisionResponseToChannel(ECC_Pawn);
+			const float Width = Capsule->GetUnscaledCapsuleRadius();
+			FVeyraStatusSpec Ghost;
+			Ghost.Id = FVeyraContentId::FromText(TEXT("ghost")).GetValue();
+			Ghost.Kind = EVeyraStatusKind::Ghosted;
+			Ghost.DurationSeconds = 60.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, Ghost)));
+			ASSERT_THAT(IsTrue(Capsule->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Ignore));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Ghost.Id) && Capsule->GetCollisionResponseToChannel(ECC_Pawn) == Before));
+
+			constexpr double Scale = 1.5;
+			FVeyraStatusSpec Big;
+			Big.Id = FVeyraContentId::FromText(TEXT("big")).GetValue();
+			Big.Kind = EVeyraStatusKind::BodyScale;
+			Big.Magnitude = Scale;
+			Big.DurationSeconds = 60.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, Big)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Capsule->GetUnscaledCapsuleRadius(), Width * Scale, 0.01)));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Big.Id) && FMath::IsNearlyEqual(Capsule->GetUnscaledCapsuleRadius(), Width, 0.01)));
+		}
+
+		TEST_METHOD(AStatusLeavesTheBodyItsCharacterSized)
+		{
+			// A Vanguard's character sizes its body from its data after its movement binds; a status
+			// that shapes no body must leave that size, and the collision, as they are.
+			UCapsuleComponent* Capsule = CastChecked<ACharacter>(Movement->GetOwner())->GetCapsuleComponent();
+			const float Sized = Capsule->GetUnscaledCapsuleRadius() * 1.5f;
+			Capsule->SetCapsuleRadius(Sized);
+			const ECollisionResponse Response = Capsule->GetCollisionResponseToChannel(ECC_Pawn);
+			FVeyraStatusSpec Daze;
+			Daze.Id = FVeyraContentId::FromText(TEXT("daze")).GetValue();
+			Daze.Kind = EVeyraStatusKind::Stun;
+			Daze.DurationSeconds = 60.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy, *Unit, Daze)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Capsule->GetUnscaledCapsuleRadius(), Sized), FString::Printf(TEXT("radius %g"), Capsule->GetUnscaledCapsuleRadius())));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Daze.Id)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Capsule->GetUnscaledCapsuleRadius(), Sized) && Capsule->GetCollisionResponseToChannel(ECC_Pawn) == Response));
+		}
+
 		TEST_METHOD(ANewerDisplacementReplacesTheOlder)
 		{
 			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::BackwardVector))));

@@ -87,9 +87,26 @@ namespace
 		{
 			CheckDamage(Pointer + TEXT("/damage"), Effects.Damage);
 			CheckStatusIds(Pointer + TEXT("/statuses"), Effects.Statuses);
+			CheckStatusIds(Pointer + TEXT("/displacementUnlessStatuses"), Effects.DisplacementUnlessStatuses);
+			if (!Effects.DisplacementUnlessStatuses.IsEmpty() && Effects.Displacement.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/displacementUnlessStatuses"), TEXT("spares units a displacement, so the effects need one"));
+			}
 			if (!Effects.MissingHealthDamage.IsEmpty() && Effects.Damage.IsEmpty())
 			{
 				Problem(Pointer + TEXT("/missingHealthDamage"), TEXT("joins the hit's damage, so the effects need damage too"));
+			}
+			TArray<EVeyraUnitKind> Kinds;
+			for (int32 Index = 0; Index < Effects.UnitKindMultipliers.Num(); ++Index)
+			{
+				const FVeyraUnitKindMultiplierTuning& Entry = Effects.UnitKindMultipliers[Index];
+				const bool bRepeated = Kinds.Contains(Entry.Kind);
+				Kinds.Add(Entry.Kind);
+				if (!(Entry.Multiplier >= 1.0) || !FMath::IsFinite(Entry.Multiplier) || Entry.Kind == EVeyraUnitKind::Structure || bRepeated)
+				{
+					Problem(FString::Printf(TEXT("%s/unitKindMultipliers/%d"), *Pointer, Index),
+						TEXT("a finite multiplier of at least 1, once per kind, never against structures (Combat Bible §33)"));
+				}
 			}
 		}
 
@@ -165,6 +182,23 @@ namespace
 			}
 			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
 			CheckStatusIds(Pointer + TEXT("/consumesCasterStatuses"), Area.ConsumesCasterStatuses);
+			CheckStatusIds(Pointer + TEXT("/casterStatuses"), Area.CasterStatuses);
+			if (Area.ChannelMovement == EVeyraCastMovement::Free && Area.ChannelTicks < 2)
+			{
+				Problem(Pointer + TEXT("/channelMovement"), TEXT("only a channel of two ticks or more lets its caster move"));
+			}
+			if (Area.HealOnHit.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/healOnHit"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Area.HealOnHit.Num(); ++Index)
+			{
+				const FVeyraHealOnHitTuning& Heal = Area.HealOnHit[Index];
+				if (!(Heal.MaxHealthRatioPerHit > 0.0) || Heal.CapMaxHealthRatio < Heal.MaxHealthRatioPerHit)
+				{
+					Problem(FString::Printf(TEXT("%s/healOnHit/%d"), *Pointer, Index), TEXT("maxHealthRatioPerHit is above 0 and capMaxHealthRatio at least it"));
+				}
+			}
 			if (Area.Linger.Num() > 1)
 			{
 				Problem(Pointer + TEXT("/linger"), TEXT("holds at most one lingering area (ADR-018 §5)"));
@@ -221,6 +255,32 @@ namespace
 					Problem(AuraPointer + TEXT("/refreshSeconds"), TEXT("must be at most the aura's duration"));
 				}
 				CheckStatusIds(AuraPointer + TEXT("/allyStatuses"), Aura.AllyStatuses);
+				CheckStatusIds(AuraPointer + TEXT("/enemyStatuses"), Aura.EnemyStatuses);
+			}
+			if (Buff.TemporaryHealth.Num() > 1 || Buff.EndPayload.Num() > 1)
+			{
+				Problem(Pointer, TEXT("temporaryHealth and endPayload each hold at most one"));
+			}
+			for (int32 Index = 0; Index < Buff.TemporaryHealth.Num(); ++Index)
+			{
+				const FVeyraTemporaryHealthTuning& Temporary = Buff.TemporaryHealth[Index];
+				const FString TemporaryPointer = FString::Printf(TEXT("%s/temporaryHealth/%d"), *Pointer, Index);
+				CheckByRank(TemporaryPointer + TEXT("/amountByRank"), Temporary.AmountByRank);
+				if (!(Temporary.DurationSeconds > 0.0) || Temporary.MaxHealthRatio < 0.0)
+				{
+					Problem(TemporaryPointer, TEXT("durationSeconds is above 0 and maxHealthRatio at least 0"));
+				}
+			}
+			for (int32 Index = 0; Index < Buff.EndPayload.Num(); ++Index)
+			{
+				const FVeyraEndPayloadTuning& Payload = Buff.EndPayload[Index];
+				const FString PayloadPointer = FString::Printf(TEXT("%s/endPayload/%d"), *Pointer, Index);
+				CheckStatusIds(PayloadPointer + TEXT("/status"), { Payload.Status });
+				if (!(Payload.AfterSeconds > 0.0) || !(Payload.Radius > 0.0) || !(Payload.BaseSeconds > 0.0) || Payload.SecondsPerHit < 0.0
+					|| Payload.MaxSeconds < Payload.BaseSeconds || Payload.MinHits < 0)
+				{
+					Problem(PayloadPointer, TEXT("afterSeconds, radius and baseSeconds are above 0, secondsPerHit at least 0, and maxSeconds at least baseSeconds"));
+				}
 			}
 			for (int32 Index = 0; Index < Buff.Heal.Num(); ++Index)
 			{
@@ -288,6 +348,100 @@ namespace
 			CheckZones(Pointer + TEXT("/startZones"), Dash.StartZones);
 			CheckEffects(Pointer + TEXT("/contactEffects"), Dash.ContactEffects);
 			CheckStatusIds(Pointer + TEXT("/contactSelfStatuses"), Dash.ContactSelfStatuses);
+			CheckEffects(Pointer + TEXT("/hostEffects"), Dash.HostEffects);
+			CheckZones(Pointer + TEXT("/endZones"), Dash.EndZones);
+			const FVeyraEffectBundleTuning& Host = Dash.HostEffects;
+			const bool bHasHostEffects = !Host.Damage.IsEmpty() || !Host.Statuses.IsEmpty() || !Host.Displacement.IsEmpty() || !Host.MissingHealthDamage.IsEmpty();
+			if (bHasHostEffects && Dash.Direction != EVeyraDashDirection::AwayFromHost)
+			{
+				Problem(Pointer + TEXT("/hostEffects"), TEXT("only an AwayFromHost dash has a host to affect; leave it empty"));
+			}
+		}
+
+		/** The kinds a targeted ability names: never a structure (Combat Bible §33). */
+		void CheckTargetKinds(const FString& Pointer, TConstArrayView<EVeyraUnitKind> Kinds)
+		{
+			if (Kinds.Contains(EVeyraUnitKind::Structure))
+			{
+				Problem(Pointer, TEXT("an ability does not target structures (Combat Bible §33)"));
+			}
+		}
+
+		void CheckTether(const FString& Pointer, const FVeyraTetherAbilityTuning& Tether)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Tether.Cast);
+			CheckTargetKinds(Pointer + TEXT("/targetKinds"), Tether.TargetKinds);
+			CheckStatusIds(Pointer + TEXT("/targetStatuses"), Tether.TargetStatuses);
+			if (!(Tether.MaxRange > 0.0) || !(Tether.DurationSeconds > 0.0))
+			{
+				Problem(Pointer, TEXT("maxRange and durationSeconds are above 0"));
+			}
+			if (Tether.MaxRange < Tether.Cast.CastRange)
+			{
+				Problem(Pointer + TEXT("/maxRange"), TEXT("is at least the cast's range, or the tether would stretch as it lands"));
+			}
+			if (Tether.SnapDistance > 0.0 ? !(Tether.SnapSpeed > 0.0) : Tether.SnapSpeed != 0.0)
+			{
+				Problem(Pointer + TEXT("/snapSpeed"), TEXT("is above 0 with a snap, and 0 without one"));
+			}
+		}
+
+		void CheckRide(const FString& Pointer, const FVeyraRideAbilityTuning& Ride)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Ride.Cast);
+			CheckStatusIds(Pointer + TEXT("/riderStatuses"), Ride.RiderStatuses);
+			if (!(Ride.SetSpeed > 0.0) || !(Ride.TurnRateDegreesPerSecond > 0.0) || !(Ride.DurationSeconds > 0.0) || Ride.DecaySeconds < 0.0)
+			{
+				Problem(Pointer, TEXT("setSpeed, turnRateDegreesPerSecond and durationSeconds are above 0, and decaySeconds at least 0"));
+			}
+			TArray<EVeyraAbilitySlot> Slots;
+			for (int32 Index = 0; Index < Ride.Mounted.Num(); ++Index)
+			{
+				const FVeyraRideSlotTuning& Mounted = Ride.Mounted[Index];
+				const FString MountedPointer = FString::Printf(TEXT("%s/mounted/%d"), *Pointer, Index);
+				const bool bBasic = Mounted.Slot == EVeyraAbilitySlot::Q || Mounted.Slot == EVeyraAbilitySlot::W || Mounted.Slot == EVeyraAbilitySlot::E;
+				if (!bBasic || Slots.Contains(Mounted.Slot))
+				{
+					Problem(MountedPointer + TEXT("/slot"), TEXT("a basic ability's slot, Q, W or E, once each (Combat Bible §56)"));
+				}
+				Slots.Add(Mounted.Slot);
+				if (!Defines(Tuning, Mounted.Ability))
+				{
+					Problem(MountedPointer + TEXT("/ability"), FString::Printf(TEXT("names ability \"%s\", which no archetype defines"), *Mounted.Ability.ToString()));
+				}
+			}
+			if (Ride.Vehicle.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/vehicle"), TEXT("holds at most one"));
+			}
+			// A recast that fires at expiry ends the ride itself, so it must be a dash that leaves it.
+			for (const FVeyraRecastTuning& Recast : Ride.Cast.RecastWindow)
+			{
+				const FVeyraDashAbilityTuning* Exit = Tuning.Dash.Find(Recast.Ability);
+				if (Recast.OnExpiry == EVeyraRecastExpiry::Cast && (!Exit || Exit->RideExit != EVeyraRideExit::Leave))
+				{
+					Problem(Pointer + TEXT("/cast/recastWindow"), TEXT("a recast that fires at expiry is a dash that leaves the ride (rideExit: Leave)"));
+				}
+			}
+			for (const FVeyraContentId& Vehicle : Ride.Vehicle)
+			{
+				if (!Tuning.Skillshot.Contains(Vehicle))
+				{
+					Problem(Pointer + TEXT("/vehicle"), FString::Printf(TEXT("names \"%s\", which /skillshot does not define"), *Vehicle.ToString()));
+				}
+			}
+		}
+
+		void CheckAttach(const FString& Pointer, const FVeyraAttachAbilityTuning& Attach)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Attach.Cast);
+			CheckTargetKinds(Pointer + TEXT("/targetKinds"), Attach.TargetKinds);
+			CheckStatusIds(Pointer + TEXT("/hostStatuses"), Attach.HostStatuses);
+			CheckEffects(Pointer + TEXT("/hostEffects"), Attach.HostEffects);
+			if (!(Attach.LeapSpeed > 0.0) || !(Attach.AttachSeconds > 0.0))
+			{
+				Problem(Pointer, TEXT("leapSpeed and attachSeconds are above 0"));
+			}
 		}
 
 		void CheckVolley(const FString& Pointer, const FVeyraVolleyAbilityTuning& Volley)
@@ -388,6 +542,18 @@ namespace
 			{
 				Note(Entry.Key, TEXT("volley"));
 			}
+			for (const TPair<FVeyraContentId, FVeyraTetherAbilityTuning>& Entry : Tuning.Tether)
+			{
+				Note(Entry.Key, TEXT("tether"));
+			}
+			for (const TPair<FVeyraContentId, FVeyraAttachAbilityTuning>& Entry : Tuning.Attach)
+			{
+				Note(Entry.Key, TEXT("attach"));
+			}
+			for (const TPair<FVeyraContentId, FVeyraRideAbilityTuning>& Entry : Tuning.Ride)
+			{
+				Note(Entry.Key, TEXT("ride"));
+			}
 		}
 	};
 }
@@ -411,6 +577,8 @@ FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTunin
 	Spec.DurationSeconds = Status.DurationSeconds;
 	Spec.MaxStacks = Status.MaxStacks;
 	Spec.StackDecaySeconds = Status.StackDecaySeconds;
+	Spec.ArcDegrees = Status.ArcDegrees;
+	Spec.UnitKinds = Status.UnitKinds;
 	Spec.TakedownExtensionSeconds = Status.TakedownExtensionSeconds;
 	Spec.TakedownExtensionMaxSeconds = Status.TakedownExtensionMaxSeconds;
 	if (!Status.DamageOverTime.IsEmpty())
@@ -460,6 +628,18 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	{
 		Checker.CheckVolley(TEXT("/volley/") + Entry.Key.ToString(), Entry.Value);
 	}
+	for (const TPair<FVeyraContentId, FVeyraTetherAbilityTuning>& Entry : Tuning.Tether)
+	{
+		Checker.CheckTether(TEXT("/tether/") + Entry.Key.ToString(), Entry.Value);
+	}
+	for (const TPair<FVeyraContentId, FVeyraAttachAbilityTuning>& Entry : Tuning.Attach)
+	{
+		Checker.CheckAttach(TEXT("/attach/") + Entry.Key.ToString(), Entry.Value);
+	}
+	for (const TPair<FVeyraContentId, FVeyraRideAbilityTuning>& Entry : Tuning.Ride)
+	{
+		Checker.CheckRide(TEXT("/ride/") + Entry.Key.ToString(), Entry.Value);
+	}
 	Checker.CheckEachIdInOneArchetype();
 	Checker.CheckFluxSpells();
 	return Checker.Problems;
@@ -473,7 +653,8 @@ FVector DashHeading(const FVeyraDashAbilityTuning& Dash, const FVector& CastDire
 bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
 {
 	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)
-		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability);
+		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability)
+		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability) || Tuning.Ride.Contains(Ability);
 }
 
 double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
@@ -507,6 +688,18 @@ double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentI
 	{
 		Cast = &Volley->Cast;
 	}
+	else if (const FVeyraTetherAbilityTuning* Tether = Tuning.Tether.Find(Ability))
+	{
+		Cast = &Tether->Cast;
+	}
+	else if (const FVeyraAttachAbilityTuning* Attach = Tuning.Attach.Find(Ability))
+	{
+		Cast = &Attach->Cast;
+	}
+	else if (const FVeyraRideAbilityTuning* Ride = Tuning.Ride.Find(Ability))
+	{
+		Cast = &Ride->Cast;
+	}
 	return Cast ? ValueAtRank(Cast->CooldownSecondsByRank, Rank) : 0.0;
 }
 
@@ -538,6 +731,18 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	if (const FVeyraVolleyAbilityTuning* Volley = Tuning.Volley.Find(Ability))
 	{
 		Checker.CheckVolley(TEXT("/volley/") + Key, *Volley);
+	}
+	if (const FVeyraTetherAbilityTuning* Tether = Tuning.Tether.Find(Ability))
+	{
+		Checker.CheckTether(TEXT("/tether/") + Key, *Tether);
+	}
+	if (const FVeyraAttachAbilityTuning* Attach = Tuning.Attach.Find(Ability))
+	{
+		Checker.CheckAttach(TEXT("/attach/") + Key, *Attach);
+	}
+	if (const FVeyraRideAbilityTuning* Ride = Tuning.Ride.Find(Ability))
+	{
+		Checker.CheckRide(TEXT("/ride/") + Key, *Ride);
 	}
 	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;

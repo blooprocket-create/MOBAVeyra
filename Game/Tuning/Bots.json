@@ -142,6 +142,50 @@
         "mimzi_now_you_see_me": "Escape",
         "mimzi_grand_prank": "Damage"
       }
+    },
+    "patch": {
+      "provenance": "Provisional",
+      "build": ["swift_boots", "colossus_temper", "reinforced_chassis", "siege_frame", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "patch_bear_hug": "Engage",
+        "patch_bear_hug_inside": "Engage",
+        "patch_bear_hug_throw": "Never",
+        "patch_play_dead": "Defend",
+        "patch_dont_leave_me": "Engage",
+        "patch_the_thing_inside": "Empower"
+      }
+    },
+    "gorraveth": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "cycler_core", "colossus_temper", "razorwheel", "striker_assembly"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "gorraveth_rip_through": "Damage",
+        "gorraveth_rip_through_hunt": "Damage",
+        "gorraveth_furnace_rake": "Damage",
+        "gorraveth_furnace_rake_hunt": "Damage",
+        "gorraveth_ravine_bound": "Engage",
+        "gorraveth_tear_them_apart": "Empower"
+      }
+    },
+    "raska": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "colossus_temper", "cycler_core", "reinforced_chassis", "razorwheel"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "raska_breakneck": "Engage",
+        "raska_breakneck_through": "Damage",
+        "raska_breakneck_redlined": "Engage",
+        "raska_countersteer": "Defend",
+        "raska_countersteer_redlined": "Defend",
+        "raska_kickstart": "Engage",
+        "raska_no_brakes": "Engage",
+        "raska_sideswipe": "Damage",
+        "raska_powerslide": "Damage",
+        "raska_bail_out": "Never",
+        "raska_last_exit": "Damage"
+      }
     }
   }
 }

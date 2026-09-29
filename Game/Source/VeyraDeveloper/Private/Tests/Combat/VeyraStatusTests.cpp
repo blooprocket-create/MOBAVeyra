@@ -395,6 +395,91 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsFalse(Valid(EVeyraStatusKind::AttackSpeed, CadencePerStack, EVeyraStackingPolicy::Stacking, CadenceStacks, -1.0)));
 		}
 
+		/** Caster and Unit on opposing sides, as the refusals of an enemy's crowd control need. */
+		void MakeEnemies() const
+		{
+			CastChecked<AVeyraPlayerState>(Caster->GetOwner())->SetVeyraTeam(EVeyraTeam::A);
+			CastChecked<AVeyraPlayerState>(Unit->GetOwner())->SetVeyraTeam(EVeyraTeam::B);
+		}
+
+		TEST_METHOD(UnstoppableRefusesAnEnemysCrowdControlButNotABuff)
+		{
+			MakeEnemies();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, TestStatus(TEXT("test_unstoppable"), EVeyraStatusKind::Unstoppable, 0.0, LongSeconds))));
+			ASSERT_THAT(IsFalse(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("test_stun"), EVeyraStatusKind::Stun, 0.0, LongSeconds))));
+			ASSERT_THAT(IsFalse(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("test_slow"), EVeyraStatusKind::Slow, Half, LongSeconds))));
+			ASSERT_THAT(IsFalse(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("test_fear"), EVeyraStatusKind::Fear, Half, LongSeconds))));
+			ASSERT_THAT(IsFalse(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("test_knockup"), EVeyraStatusKind::Knockup, 0.0, LongSeconds))));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("test_weaken"), EVeyraStatusKind::Weaken, Half, LongSeconds)), TEXT("a debuff that is no crowd control still lands")));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, TestStatus(TEXT("test_haste"), EVeyraStatusKind::MoveSpeed, Half, LongSeconds))));
+		}
+
+		TEST_METHOD(ImmunityToDisplacementRefusesAKnockupButNotAStun)
+		{
+			MakeEnemies();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, TestStatus(TEXT("test_anchor"), EVeyraStatusKind::DisplacementImmunity, 0.0, LongSeconds))));
+			ASSERT_THAT(IsFalse(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("test_knockup"), EVeyraStatusKind::Knockup, 0.0, LongSeconds))));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("test_stun"), EVeyraStatusKind::Stun, 0.0, LongSeconds))));
+		}
+
+		TEST_METHOD(DormantFearAndKnockupTakeEveryActionButOnlyFearIsShortened)
+		{
+			const EVeyraActionBlocks All = EVeyraActionBlocks::Move | EVeyraActionBlocks::Attack | EVeyraActionBlocks::Cast;
+			for (const EVeyraStatusKind Kind : { EVeyraStatusKind::Dormant, EVeyraStatusKind::Fear, EVeyraStatusKind::Knockup })
+			{
+				const FVeyraStatusSpec Spec = TestStatus(TEXT("test_hold"), Kind, 0.0, LongSeconds);
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, Spec)));
+				ASSERT_THAT(IsTrue(StatusLedger->GetActionBlocks() == All));
+				ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Spec.Id)));
+			}
+			ASSERT_THAT(IsTrue(VeyraStatuses::IsTenacityReducible(EVeyraStatusKind::Fear) && !VeyraStatuses::IsTenacityReducible(EVeyraStatusKind::Knockup)));
+			ASSERT_THAT(IsTrue(VeyraStatuses::IsCrowdControl(EVeyraStatusKind::Knockup) && !VeyraStatuses::IsCrowdControl(EVeyraStatusKind::Dormant)));
+		}
+
+		TEST_METHOD(ADirectionalReductionGuardsItsArcOnly)
+		{
+			constexpr double Guard = 0.6;
+			constexpr double Arc = 90.0;
+			FVeyraStatusSpec Spec = TestStatus(TEXT("test_guard"), EVeyraStatusKind::DirectionalDamageReduction, Guard, LongSeconds);
+			Spec.ArcDegrees = Arc;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, Spec)));
+			const FVector Facing = FVector::ForwardVector;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StatusLedger->GetDirectionalRetained(Facing, FVector::ForwardVector), 1.0 - Guard)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StatusLedger->GetDirectionalRetained(Facing, FVector::ForwardVector.RotateAngleAxis(Arc / 2.0 - 1.0, FVector::UpVector)), 1.0 - Guard)));
+			ASSERT_THAT(IsTrue(StatusLedger->GetDirectionalRetained(Facing, FVector::ForwardVector.RotateAngleAxis(Arc / 2.0 + 1.0, FVector::UpVector)) == 1.0));
+			ASSERT_THAT(IsTrue(StatusLedger->GetDirectionalRetained(Facing, FVector::BackwardVector) == 1.0));
+		}
+
+		TEST_METHOD(AnAttackAmplificationMayNameTheKindsItAmplifies)
+		{
+			FVeyraStatusSpec Hunt = TestStatus(TEXT("test_hunt"), EVeyraStatusKind::AttackDamageAmplification, Half, LongSeconds);
+			Hunt.UnitKinds = { EVeyraUnitKind::Vanguard };
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, Hunt)));
+			ASSERT_THAT(IsTrue(StatusLedger->GetAttackAmplification(EVeyraUnitKind::Vanguard) == Half));
+			ASSERT_THAT(IsTrue(StatusLedger->GetAttackAmplification(EVeyraUnitKind::Fluxborn) == 0.0 && StatusLedger->GetAttackAmplification({}) == 0.0));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, TestStatus(TEXT("test_fury"), EVeyraStatusKind::AttackDamageAmplification, Half, LongSeconds))));
+			ASSERT_THAT(IsTrue(StatusLedger->GetAttackAmplification(EVeyraUnitKind::Fluxborn) == Half, TEXT("one naming no kind amplifies against all")));
+		}
+
+		TEST_METHOD(TheSecondWaveKeepsItsFieldsToItsKinds)
+		{
+			const auto Valid = [](const FVeyraStatusSpec& Spec) { return VeyraStatuses::Validate(Spec).IsEmpty(); };
+			FVeyraStatusSpec Guard = TestStatus(TEXT("test_kind"), EVeyraStatusKind::DirectionalDamageReduction, Half, LongSeconds);
+			ASSERT_THAT(IsFalse(Valid(Guard), TEXT("a guard needs its arc")));
+			Guard.ArcDegrees = 120.0;
+			ASSERT_THAT(IsTrue(Valid(Guard)));
+			FVeyraStatusSpec Stun = TestStatus(TEXT("test_kind"), EVeyraStatusKind::Stun, 0.0, LongSeconds);
+			Stun.ArcDegrees = 120.0;
+			ASSERT_THAT(IsFalse(Valid(Stun)));
+			FVeyraStatusSpec Haste = TestStatus(TEXT("test_kind"), EVeyraStatusKind::MoveSpeed, Half, LongSeconds);
+			Haste.UnitKinds = { EVeyraUnitKind::Vanguard };
+			ASSERT_THAT(IsFalse(Valid(Haste), TEXT("only an attack amplification names kinds")));
+			ASSERT_THAT(IsTrue(Valid(TestStatus(TEXT("test_kind"), EVeyraStatusKind::Fear, Half, LongSeconds))));
+			ASSERT_THAT(IsFalse(Valid(TestStatus(TEXT("test_kind"), EVeyraStatusKind::Fear, 1.0, LongSeconds))));
+			ASSERT_THAT(IsFalse(Valid(TestStatus(TEXT("test_kind"), EVeyraStatusKind::BodyScale, 1.5, LongSeconds, EVeyraStackingPolicy::Stacking, 2))));
+			ASSERT_THAT(IsFalse(Valid(TestStatus(TEXT("test_kind"), EVeyraStatusKind::Knockup, Half, LongSeconds))));
+		}
+
 		TEST_METHOD(RefusesStatusesOutsideTheRules)
 		{
 			const FVeyraStatusSpec Refused[] = {

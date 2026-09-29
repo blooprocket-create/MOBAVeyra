@@ -2,6 +2,7 @@
 
 #include "Abilities/VeyraGameplayAbility.h"
 
+#include "Units/VeyraUnit.h"
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
@@ -201,6 +202,51 @@ void UVeyraGameplayAbility::DeliverChannelTick(const FVeyraCast& /*Cast*/, int32
 {
 }
 
+EVeyraCastRejection UVeyraGameplayAbility::CheckEnemyUnit(const AActor& Caster, const AActor* Target, double CastRange, TConstArrayView<EVeyraUnitKind> Kinds)
+{
+	switch (VeyraTargeting::CheckEnemyTarget(Caster, Target, CastRange))
+	{
+	case EVeyraTargetValidity::Valid:
+	{
+		// It may be for some kinds of unit only, as a Smite is for monsters (ADR-015 §3).
+		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Target);
+		const bool bKindAllowed = Kinds.IsEmpty() || (Kind.IsSet() && Kinds.Contains(Kind.GetValue()));
+		return bKindAllowed ? EVeyraCastRejection::None : EVeyraCastRejection::InvalidTarget;
+	}
+	case EVeyraTargetValidity::Dead:
+		return EVeyraCastRejection::TargetDead;
+	case EVeyraTargetValidity::NotHostile:
+		return EVeyraCastRejection::NotHostile;
+	case EVeyraTargetValidity::OutOfRange:
+		return EVeyraCastRejection::OutOfRange;
+	case EVeyraTargetValidity::NotVisible:
+		return EVeyraCastRejection::NotVisible;
+	case EVeyraTargetValidity::NotACombatant:
+	case EVeyraTargetValidity::Caster:
+	case EVeyraTargetValidity::Structure:
+	case EVeyraTargetValidity::Ward:
+		return EVeyraCastRejection::InvalidTarget;
+	}
+	return EVeyraCastRejection::InvalidTarget;
+}
+
+void UVeyraGameplayAbility::EndRecastWindow(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
+{
+	const FVeyraCastTuning* CastTuning = GetCastTuning(Ability);
+	UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
+	if (!CastTuning || CastTuning->RecastWindow.IsEmpty() || !Loadout)
+	{
+		return;
+	}
+	const FVeyraContentId& FollowUp = CastTuning->RecastWindow[0].Ability;
+	const FVeyraLoadoutEntry* Entry = Loadout->FindAbility(FollowUp);
+	const FVeyraLoadoutEntry* Current = Entry ? Loadout->FindSlot(Entry->Slot) : nullptr;
+	if (Current && Current->Ability == FollowUp)
+	{
+		Loadout->EndOverride(Caster, Entry->Slot);
+	}
+}
+
 bool UVeyraGameplayAbility::HasUsablePoint(const FVeyraCastTarget& Target)
 {
 	return Target.bHasLocation && !Target.Location.ContainsNaN() && FMath::IsFinite(Target.Location.X) && FMath::IsFinite(Target.Location.Y)
@@ -330,7 +376,7 @@ void UVeyraGameplayAbility::OnWindupEnded()
 	Run.Channel = Deliver(Run.Cast);
 	if (Run.Channel.Ticks > 0 && Run.Channel.Seconds > 0.0)
 	{
-		VeyraCombat::SetCastLocksMovement(*Caster, true);
+		VeyraCombat::SetCastLocksMovement(*Caster, Run.Channel.bLocksMovement);
 		EnterPhase(EVeyraCastPhase::Channel, Run.Channel.Seconds);
 		GetWorld()->GetTimerManager().SetTimer(PhaseTimer, FTimerDelegate::CreateUObject(this, &UVeyraGameplayAbility::OnChannelTick),
 			static_cast<float>(Run.Channel.Seconds / Run.Channel.Ticks), /*bLoop*/ true);

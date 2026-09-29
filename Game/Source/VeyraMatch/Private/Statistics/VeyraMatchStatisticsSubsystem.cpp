@@ -55,7 +55,7 @@ bool IsTower(const AActor* Unit)
 /** The crowd control the statistics count (ADR-017 §9.3): the kinds that exist. */
 bool IsCountedCrowdControl(EVeyraStatusKind Kind)
 {
-	return Kind == EVeyraStatusKind::Stun || Kind == EVeyraStatusKind::Slow;
+	return VeyraStatuses::IsCrowdControl(Kind);
 }
 
 bool IsServer(const UWorld* World)
@@ -174,7 +174,8 @@ TOptional<FVeyraPlayerStatistics> UVeyraMatchStatisticsSubsystem::Snapshot(const
 		}
 		AnyKind.FindOrAdd(Entry.Key.Key).Append(Spans);
 		const double Seconds = VeyraStatisticsRules::UnionSeconds(MoveTemp(Spans));
-		(static_cast<EVeyraStatusKind>(Entry.Key.Value) == EVeyraStatusKind::Stun ? Statistics.CrowdControl.Stun : Statistics.CrowdControl.Slow) += Seconds;
+		// A Fear or a Knockup counts with the stuns: hard crowd control (Match Statistics Bible §4).
+		(static_cast<EVeyraStatusKind>(Entry.Key.Value) == EVeyraStatusKind::Slow ? Statistics.CrowdControl.Slow : Statistics.CrowdControl.Stun) += Seconds;
 	}
 	for (TPair<FObjectKey, TArray<FVeyraSpan>>& Target : AnyKind)
 	{

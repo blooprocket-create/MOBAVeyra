@@ -24,6 +24,12 @@ struct FVeyraSpeedInputs
 
 	/** A Stun stops all movement. */
 	bool bStunned = false;
+
+	/**
+	 * A ride state's speed, set rather than added to Move Speed (Combat Bible §56): Slows still apply
+	 * to it, and the floor, but the soft caps do not. Unset otherwise.
+	 */
+	TOptional<double> SetSpeed;
 };
 
 /** Combat's Movement Speed rules (Combat Bible §23, §39), as plain functions. */
