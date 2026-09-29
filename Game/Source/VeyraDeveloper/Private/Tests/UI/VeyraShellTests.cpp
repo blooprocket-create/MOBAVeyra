@@ -22,6 +22,7 @@
 #include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "UObject/Package.h"
+#include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
 
 namespace VeyraShellTests
@@ -816,6 +817,24 @@ namespace VeyraShellTests
 			// A standard match has no victory condition yet: outside Shipping a developer may end it.
 			ASSERT_THAT(AreEqual(VeyraMatchMenuModel::OffersDeveloperEnd(EVeyraMatchRules::Standard), !UE_BUILD_SHIPPING));
 			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::OffersDeveloperEnd(EVeyraMatchRules::Practice), TEXT("practice has End Custom Match")));
+		}
+
+		TEST_METHOD(AStandardMatchsMenuStartsVotesBehindAConfirmation)
+		{
+			// A standard match's GameState: the menu offers its votes (ADR-019 §7).
+			Spawner.SpawnActor<AVeyraGameState>();
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			UVeyraMatchMenu* Menu = CreateWidget<UVeyraMatchMenu>(&Spawner.GetWorld());
+			bool bClosed = false;
+			Menu->Show(Controller, [&bClosed] { bClosed = true; });
+			const TArray<FString> Labels = LabelsOf(Menu->GetButtons());
+			ASSERT_THAT(IsTrue(Labels.Contains(TEXT("Request Pause")) && Labels.Contains(TEXT("Surrender")) && Labels.Contains(TEXT("Remake"))));
+			ASSERT_THAT(IsFalse(Labels.Contains(TEXT("Resume Early")), TEXT("only while paused")));
+			ASSERT_THAT(IsFalse(Labels.Contains(TEXT("Vote Yes")), TEXT("no vote is open")));
+			Menu->FindButton(FText::FromString(TEXT("Surrender")))->Press();
+			ASSERT_THAT(IsTrue(LabelsOf(Menu->GetButtons()) == TArray<FString>{ TEXT("Vote to Surrender"), TEXT("Cancel") }, TEXT("behind a confirmation")));
+			ASSERT_THAT(IsFalse(bClosed));
+			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::OffersVotes(EVeyraMatchRules::Practice), TEXT("a practice match's host ends it")));
 		}
 
 		TEST_METHOD(OutsidePracticeTheMenuOffersResume)

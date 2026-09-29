@@ -130,6 +130,8 @@ void AVeyraPlayerController::SetupInputComponent()
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnMoveOrderHeld);
 		Enhanced->BindAction(Input.AttackMove, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAttackMovePressed);
 		Enhanced->BindAction(Input.Recall, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnRecallPressed);
+		Enhanced->BindAction(Input.VoteYes, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteYesPressed);
+		Enhanced->BindAction(Input.VoteNo, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteNoPressed);
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 		{
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
@@ -181,6 +183,22 @@ void AVeyraPlayerController::OnAttackMovePressed()
 void AVeyraPlayerController::OnRecallPressed()
 {
 	RequestRecall();
+}
+
+void AVeyraPlayerController::OnVoteYesPressed()
+{
+	CastVote(true);
+}
+
+void AVeyraPlayerController::OnVoteNoPressed()
+{
+	CastVote(false);
+}
+
+void AVeyraPlayerController::ClientAbsenceWarning_Implementation(bool bAfk)
+{
+	bWarnedAfk = bAfk;
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s"), bAfk ? TEXT("The server counts this player AFK; the Vanguard walks to safety.") : TEXT("This player is back in control."));
 }
 
 AActor* AVeyraPlayerController::FindEnemyUnderCursor() const

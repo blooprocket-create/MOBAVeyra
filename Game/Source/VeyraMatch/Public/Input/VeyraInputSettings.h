@@ -81,6 +81,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey RecallKey;
 
+	/** Answer the open vote YES or NO (Match Flow Bible §7–§10; ADR-019 §7). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey VoteYesKey;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey VoteNoKey;
+
 	/** Held with an ability slot's key, spends a skill point on that slot instead of casting. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey RankUpModifierKey;
@@ -136,6 +143,12 @@ struct VEYRAMATCH_API FVeyraInputObjects
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> Recall;
+
+	UPROPERTY()
+	TObjectPtr<UInputAction> VoteYes;
+
+	UPROPERTY()
+	TObjectPtr<UInputAction> VoteNo;
 
 	/** The action that casts Slot. */
 	UInputAction* GetAbilityAction(EVeyraAbilitySlot Slot) const;

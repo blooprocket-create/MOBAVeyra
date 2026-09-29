@@ -122,6 +122,7 @@ void UVeyraAbsenceSubsystem::NoteComeBack(const AVeyraPlayerState& Participant, 
 {
 	const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>();
 	Entry.AtReturn = Statistics ? Statistics->Snapshot(Participant) : TOptional<FVeyraPlayerStatistics>();
+	OnCameBack.Broadcast(Participant);
 }
 
 UVeyraAbsenceSubsystem::FPersonalResult UVeyraAbsenceSubsystem::Adjudicate(const AVeyraPlayerState& Participant, bool bTeamWon, double ActiveSeconds) const

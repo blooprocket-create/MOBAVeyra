@@ -268,6 +268,8 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	}
 	if (UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>())
 	{
+		Absence->OnBecameAfk.Remove(BecameAfkHandle);
+		Absence->OnCameBack.Remove(CameBackHandle);
 		Absence->Stop();
 	}
 	if (UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>())
@@ -660,6 +662,22 @@ void AVeyraGameMode::OnVotePassed(EVeyraVoteKind Kind, EVeyraTeam Team)
 	}
 }
 
+void AVeyraGameMode::OnBecameAfk(AVeyraPlayerState& Participant, const FVeyraAbsenceRecord& /*Record*/)
+{
+	if (AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Participant.GetOwner()))
+	{
+		Player->WarnAfk(true);
+	}
+}
+
+void AVeyraGameMode::OnCameBack(const AVeyraPlayerState& Participant)
+{
+	if (AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Participant.GetOwner()))
+	{
+		Player->WarnAfk(false);
+	}
+}
+
 void AVeyraGameMode::OnIntermissionOver()
 {
 	ResumeMatch();
@@ -1027,6 +1045,8 @@ void AVeyraGameMode::BeginLive()
 	}
 	if (Absence && GetVeyraGameState().GetMatchRules() == EVeyraMatchRules::Standard)
 	{
+		BecameAfkHandle = Absence->OnBecameAfk.AddUObject(this, &AVeyraGameMode::OnBecameAfk);
+		CameBackHandle = Absence->OnCameBack.AddUObject(this, &AVeyraGameMode::OnCameBack);
 		Absence->Start();
 	}
 	// Passive Gold runs with the live match (author ruling, 2026-09-28); the battleground link stops

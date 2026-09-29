@@ -10,6 +10,8 @@
 #include "VeyraMatchTypes.h"
 #include "Votes/VeyraVoteTypes.h"
 
+struct FVeyraAbsenceRecord;
+
 #include "VeyraGameMode.generated.h"
 
 class AVeyraGameState;
@@ -218,6 +220,10 @@ private:
 	/** The intermission ran its full time: play resumes. */
 	void OnIntermissionOver();
 
+	/** Tells an AFK player so, and that it is back in control once it acts (Match Flow Bible §5.1). */
+	void OnBecameAfk(AVeyraPlayerState& Participant, const FVeyraAbsenceRecord& Record);
+	void OnCameBack(const AVeyraPlayerState& Participant);
+
 	/** Starts or stops the abandonment clock as rostered participants come and go. */
 	void NoteConnectedParticipants();
 	/** Ends an assigned match that nobody has been connected to for the tuned time (ADR-007 §8). */
@@ -225,6 +231,8 @@ private:
 
 	FDelegateHandle DeathHandle;
 	FDelegateHandle VotePassedHandle;
+	FDelegateHandle BecameAfkHandle;
+	FDelegateHandle CameBackHandle;
 	FDelegateHandle IntermissionOverHandle;
 
 	/** Connects the battleground's World and Flux while the match runs (ADR-011 §3). */

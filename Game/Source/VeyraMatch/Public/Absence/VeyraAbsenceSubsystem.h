@@ -61,6 +61,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAbsenceChanged, AVeyraPlayerState& /*Participant*/, const FVeyraAbsenceRecord& /*Record*/);
 	FOnAbsenceChanged OnBecameAfk;
 	FOnAbsenceChanged OnPersonalLoss;
+	/** Called when an AFK participant acts again, or a disconnected one returns. */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCameBack, const AVeyraPlayerState& /*Participant*/);
+	FOnCameBack OnCameBack;
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual bool IsTickable() const override { return bRunning; }

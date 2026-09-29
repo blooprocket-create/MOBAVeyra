@@ -125,6 +125,10 @@ FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer)
 	Objects.MappingContext->MapKey(Objects.VisionTool, Settings.VisionToolKey);
 	Objects.Recall = NewCastAction(Outer, TEXT("VeyraRecall"));
 	Objects.MappingContext->MapKey(Objects.Recall, Settings.RecallKey);
+	Objects.VoteYes = NewCastAction(Outer, TEXT("VeyraVoteYes"));
+	Objects.MappingContext->MapKey(Objects.VoteYes, Settings.VoteYesKey);
+	Objects.VoteNo = NewCastAction(Outer, TEXT("VeyraVoteNo"));
+	Objects.MappingContext->MapKey(Objects.VoteNo, Settings.VoteNoKey);
 	return Objects;
 }
 }

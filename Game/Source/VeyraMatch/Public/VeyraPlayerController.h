@@ -84,6 +84,15 @@ public:
 	void RequestVote(EVeyraVoteKind Kind);
 	void CastVote(bool bYes);
 
+	/**
+	 * Owning client: whether the server counts this player AFK, its Vanguard walked to safety until its
+	 * next order (Match Flow Bible §5.1; ADR-019 §3).
+	 */
+	bool IsWarnedAfk() const { return bWarnedAfk; }
+
+	/** Server: tells the owning client whether it is AFK. */
+	void WarnAfk(bool bAfk) { ClientAbsenceWarning(bAfk); }
+
 	/** Owning client: the reason the server gave for the last refused vote or ballot, and how many it refused. */
 	EVeyraVoteRefusal GetLastVoteRefusal() const { return LastVoteRefusal; }
 	int32 GetVoteRefusalCount() const { return VoteRefusalCount; }
@@ -207,6 +216,9 @@ private:
 	UFUNCTION(Client, Reliable)
 	void ClientEndCustomMatchRefused(EVeyraEndCustomMatchRefusal Refusal);
 
+	UFUNCTION(Client, Reliable)
+	void ClientAbsenceWarning(bool bAfk);
+
 	UFUNCTION(Server, Reliable)
 	void ServerRequestVote(EVeyraVoteKind Kind);
 
@@ -272,6 +284,8 @@ private:
 	void OnMoveOrderHeld();
 	void OnAttackMovePressed();
 	void OnRecallPressed();
+	void OnVoteYesPressed();
+	void OnVoteNoPressed();
 	void OnAbilityPressed(EVeyraAbilitySlot Slot);
 	void MoveToCursor(bool bSteer);
 
@@ -307,6 +321,8 @@ private:
 
 	EVeyraVoteRefusal LastVoteRefusal = EVeyraVoteRefusal::None;
 	int32 VoteRefusalCount = 0;
+
+	bool bWarnedAfk = false;
 
 	EVeyraShopRefusal LastShopRefusal = EVeyraShopRefusal::None;
 	int32 ShopRefusalCount = 0;

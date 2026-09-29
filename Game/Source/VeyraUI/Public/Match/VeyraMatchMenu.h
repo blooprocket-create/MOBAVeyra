@@ -27,12 +27,17 @@ namespace VeyraMatchMenuModel
 	 * the request anyway.
 	 */
 	VEYRAUI_API bool OffersDeveloperEnd(EVeyraMatchRules Rules);
+
+	/** Whether the menu offers votes: a standard match's (ADR-019 §4); a practice match's host ends it. */
+	VEYRAUI_API bool OffersVotes(EVeyraMatchRules Rules);
 }
 
 /**
  * The in-match menu (ADR-010 §4), built in C++: Resume; for a practice match's host, End Custom Match
  * behind a confirmation; and outside Shipping, End Match (Developer) for a standard match, behind the
- * same confirmation. It asks the server through the player's controller and decides nothing.
+ * same confirmation. A standard match's players also start votes here (ADR-019 §7): Surrender and
+ * Remake behind a confirmation, Request Pause, or Resume Early while paused, and answer an open vote
+ * with Vote Yes or Vote No. It asks the server through the player's controller and decides nothing.
  */
 UCLASS()
 class VEYRAUI_API UVeyraMatchMenu : public UUserWidget
@@ -62,6 +67,8 @@ private:
 		Nothing,
 		EndCustomMatch,
 		DeveloperEnd,
+		Surrender,
+		Remake,
 	};
 
 	TWeakObjectPtr<AVeyraPlayerController> Controller;

@@ -92,9 +92,10 @@ The Match Flow Bible gives every value, as initial tuning, in `Game/Tuning/Match
 
 The UX Bible approves no layouts for these screens, so they stay grey-box:
 - **AFK warning:** a banner under the match clock.
-- **Vote panel:** under the match clock, with the kind, the tally, the time left, and Yes and No.
+- **Vote panel:** under the match clock, with the kind, the tally, the time left, and Yes and No on F1 and F2 (`VoteYesKey`, `VoteNoKey`). A team's vote shows only to that team, as League shows a surrender.
 - **Match menu:** Surrender, Remake and Request Pause. Each is refused with the reason its rule gives.
-- **Intermission:** "Paused — resumes in m:ss", with Resume Early.
+- **Intermission:** "Paused, resumes in m:ss", with Resume Early.
+- **Scoreboard:** a player who left keeps its line, marked disconnected, since a client's own player list drops inactive PlayerStates.
 
 ### 8. Delivery
 
