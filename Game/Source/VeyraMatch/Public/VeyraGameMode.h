@@ -184,6 +184,10 @@ private:
 
 	/** A Vanguard died: its body leaves the map, and it respawns after the tuned delay (Combat Bible §18). */
 	void OnDeath(const FVeyraDeathEvent& Death);
+
+	/** The result's scoreboard: each participant the match prepared, side A first, in seat order (ADR-017 §5). */
+	TArray<FVeyraPlayerResult> BuildScoreboard() const;
+
 	void Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState);
 
 	/** The battleground reports a Prime Well destroyed: Winner destroyed the other side's (ADR-011 §13). */

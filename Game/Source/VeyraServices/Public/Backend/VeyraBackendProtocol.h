@@ -147,6 +147,19 @@ namespace VeyraBackendProtocol
 	 */
 	VEYRASERVICES_API bool ParseSelect(const FString& Body, TOptional<FSelect>& OutSelect, FString& OutProblem);
 
+	/** One player's line on a verified result's scoreboard (ADR-017 §5), with no account. */
+	struct FPlayerOutcome
+	{
+		/** "A" or "B". */
+		FString Side;
+		FString Name;
+		FString VanguardId;
+		/** Whether this is the player who asked. */
+		bool bYou = false;
+		/** The recorded statistics, with the final items and Flux Spells. */
+		FVeyraPlayerStatistics Statistics;
+	};
+
 	/** How the player's match went, as GET /v1/me/matches/{id} reports it (ADR-010 §3). */
 	struct FMatchOutcome
 	{
@@ -169,6 +182,10 @@ namespace VeyraBackendProtocol
 		double DurationSeconds = 0.0;
 		bool bJoined = false;
 		bool bConnectedAtEnd = false;
+		/** Whether the result carries a scoreboard: a result from an older server, or one nobody played, has none. */
+		bool bHasScoreboard = false;
+		/** The scoreboard's lines, as the server reported them: side A first, in seat order. */
+		TArray<FPlayerOutcome> Players;
 
 		/** Whether the match still holds its players: allocating or ready. */
 		VEYRASERVICES_API bool IsActive() const;

@@ -28,6 +28,7 @@ func copyMatch(m Match) Match {
 	if m.Result != nil {
 		r := *m.Result
 		r.Participants = append([]ParticipantResult(nil), r.Participants...)
+		r.Players = copyPlayers(r.Players)
 		m.Result = &r
 	}
 	return m

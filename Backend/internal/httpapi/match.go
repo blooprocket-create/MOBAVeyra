@@ -42,6 +42,71 @@ type resultJSON struct {
 	Winner          *string                 `json:"winner"`
 	DurationSeconds float64                 `json:"durationSeconds"`
 	Participants    []participantResultJSON `json:"participants"`
+	// Players is the scoreboard (ADR-017 §5); absent from servers that send none.
+	Players []scoreboardLineJSON `json:"players"`
+}
+
+// scoreboardLineJSON is one player's line as the match server reports it. A
+// bot has a null account.
+type scoreboardLineJSON struct {
+	Side       string                 `json:"side"`
+	Name       string                 `json:"name"`
+	AccountID  *string                `json:"accountId"`
+	VanguardID string                 `json:"vanguardId"`
+	Statistics match.PlayerStatistics `json:"statistics"`
+	Items      []string               `json:"items"`
+	FluxSpells []string               `json:"fluxSpells"`
+}
+
+// scoreboardPlayerJSON is one player's line as a participant sees it: no
+// account IDs, and You on their own line.
+type scoreboardPlayerJSON struct {
+	Side       string                 `json:"side"`
+	Name       string                 `json:"name"`
+	VanguardID string                 `json:"vanguardId"`
+	You        bool                   `json:"you"`
+	Statistics match.PlayerStatistics `json:"statistics"`
+	Items      []string               `json:"items"`
+	FluxSpells [2]string              `json:"fluxSpells"`
+}
+
+// scoreboardFor is a result's scoreboard as the participant actor sees it;
+// nil when the result has none.
+func scoreboardFor(players []match.PlayerResult, actor string) []scoreboardPlayerJSON {
+	if players == nil {
+		return nil
+	}
+	out := make([]scoreboardPlayerJSON, 0, len(players))
+	for _, p := range players {
+		items := p.Items
+		if items == nil {
+			items = []string{}
+		}
+		out = append(out, scoreboardPlayerJSON{Side: string(p.Side), Name: p.Name, VanguardID: p.VanguardID, You: p.AccountID != "" && p.AccountID == actor,
+			Statistics: p.Statistics, Items: items, FluxSpells: p.FluxSpells})
+	}
+	return out
+}
+
+// playersFrom reads a reported scoreboard. It refuses a line whose shape the
+// domain cannot hold: an empty account, or other than two spell slots.
+func playersFrom(lines []scoreboardLineJSON) ([]match.PlayerResult, bool) {
+	if lines == nil {
+		return nil, true
+	}
+	out := make([]match.PlayerResult, 0, len(lines))
+	for _, l := range lines {
+		if (l.AccountID != nil && *l.AccountID == "") || len(l.FluxSpells) != 2 || l.Items == nil {
+			return nil, false
+		}
+		p := match.PlayerResult{Side: match.Side(l.Side), Name: l.Name, VanguardID: l.VanguardID, Statistics: l.Statistics, Items: l.Items,
+			FluxSpells: [2]string{l.FluxSpells[0], l.FluxSpells[1]}}
+		if l.AccountID != nil {
+			p.AccountID = *l.AccountID
+		}
+		out = append(out, p)
+	}
+	return out, true
 }
 
 // devMatchJSON is a development view of a match. It carries no secrets.
@@ -191,6 +256,8 @@ func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor str
 		DurationSeconds float64 `json:"durationSeconds"`
 		Joined          bool    `json:"joined"`
 		ConnectedAtEnd  bool    `json:"connectedAtEnd"`
+		// Players is the scoreboard, null when the server sent none (ADR-017 §5).
+		Players []scoreboardPlayerJSON `json:"players"`
 	}
 	out := struct {
 		ID            string            `json:"id"`
@@ -204,7 +271,8 @@ func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor str
 	}{ID: m.ID, Mode: m.Mode, Rules: string(m.Rules), State: string(m.State), Side: string(p.Side), VanguardID: textOrNil(p.VanguardID),
 		FailureReason: textOrNil(string(m.FailureReason))}
 	if res := m.Result; res != nil {
-		out.Result = &playerResultJSON{EndReason: string(res.EndReason), Winner: textOrNil(string(res.Winner)), DurationSeconds: res.DurationSeconds}
+		out.Result = &playerResultJSON{EndReason: string(res.EndReason), Winner: textOrNil(string(res.Winner)), DurationSeconds: res.DurationSeconds,
+			Players: scoreboardFor(res.Players, actor)}
 		for _, pr := range res.Participants {
 			if pr.AccountID == actor {
 				out.Result.Joined, out.Result.ConnectedAtEnd = pr.Joined, pr.ConnectedAtEnd
@@ -252,6 +320,12 @@ func (s *Server) serverResult(w http.ResponseWriter, r *http.Request) {
 	for _, p := range req.Participants {
 		result.Participants = append(result.Participants, match.ParticipantResult(p))
 	}
+	players, ok := playersFrom(req.Players)
+	if !ok {
+		writeError(w, http.StatusBadRequest, "invalid_result")
+		return
+	}
+	result.Players = players
 	if err := s.Match.ServerResult(r.Context(), credential, r.PathValue("matchId"), result); err != nil {
 		s.fail(w, err)
 		return

@@ -9,6 +9,7 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
+#include "Slots/VeyraAbilitySlot.h"
 
 namespace VeyraBackendProtocol
 {
@@ -113,6 +114,188 @@ namespace
 	{
 		const TSharedPtr<FJsonObject>* Field = nullptr;
 		return Object.HasTypedField<EJson::Object>(Name) && Object.TryGetObjectField(Name, Field) && Field->IsValid() ? Field->Get() : nullptr;
+	}
+
+	/**
+	 * The scoreboard's statistics as the backend names them (Backend/internal/match/scoreboard.go;
+	 * ADR-017 §5): each a count or an amount, at the top of "statistics" or in one of its groups.
+	 * The result body and the verified result both use this one table, so they cannot disagree.
+	 */
+	struct FStatisticCount
+	{
+		const TCHAR* Name;
+		int32& (*Of)(FVeyraPlayerStatistics&);
+	};
+
+	struct FStatisticAmount
+	{
+		/** The group object it sits in, such as "damageDealt"; null at the top. */
+		const TCHAR* Group;
+		const TCHAR* Name;
+		double& (*Of)(FVeyraPlayerStatistics&);
+	};
+
+	using FStats = FVeyraPlayerStatistics;
+
+	const FStatisticCount StatisticCounts[] = {
+		{ TEXT("kills"), [](FStats& S) -> int32& { return S.Kills; } },
+		{ TEXT("deaths"), [](FStats& S) -> int32& { return S.Deaths; } },
+		{ TEXT("assists"), [](FStats& S) -> int32& { return S.Assists; } },
+		{ TEXT("level"), [](FStats& S) -> int32& { return S.Level; } },
+		{ TEXT("minionKills"), [](FStats& S) -> int32& { return S.MinionKills; } },
+		{ TEXT("jungleKills"), [](FStats& S) -> int32& { return S.JungleKills; } },
+		{ TEXT("wellsSecured"), [](FStats& S) -> int32& { return S.WellsSecured; } },
+		{ TEXT("wellFinalHits"), [](FStats& S) -> int32& { return S.WellFinalHits; } },
+		{ TEXT("wardsPlaced"), [](FStats& S) -> int32& { return S.WardsPlaced; } },
+		{ TEXT("wardsDestroyed"), [](FStats& S) -> int32& { return S.WardsDestroyed; } },
+	};
+
+	const FStatisticAmount StatisticAmounts[] = {
+		{ nullptr, TEXT("vanguardDamage"), [](FStats& S) -> double& { return S.VanguardDamage; } },
+		{ nullptr, TEXT("damageShielded"), [](FStats& S) -> double& { return S.DamageShielded; } },
+		{ nullptr, TEXT("selfHealing"), [](FStats& S) -> double& { return S.SelfHealing; } },
+		{ nullptr, TEXT("teammateHealing"), [](FStats& S) -> double& { return S.TeammateHealing; } },
+		{ nullptr, TEXT("goldEarned"), [](FStats& S) -> double& { return S.GoldEarned; } },
+		{ nullptr, TEXT("towerDamage"), [](FStats& S) -> double& { return S.TowerDamage; } },
+		{ nullptr, TEXT("wellDamage"), [](FStats& S) -> double& { return S.WellDamage; } },
+		{ TEXT("damageDealt"), TEXT("physical"), [](FStats& S) -> double& { return S.DamageDealt.Physical; } },
+		{ TEXT("damageDealt"), TEXT("magic"), [](FStats& S) -> double& { return S.DamageDealt.Magic; } },
+		{ TEXT("damageDealt"), TEXT("true"), [](FStats& S) -> double& { return S.DamageDealt.TrueDamage; } },
+		{ TEXT("damageTaken"), TEXT("physical"), [](FStats& S) -> double& { return S.DamageTaken.Physical; } },
+		{ TEXT("damageTaken"), TEXT("magic"), [](FStats& S) -> double& { return S.DamageTaken.Magic; } },
+		{ TEXT("damageTaken"), TEXT("true"), [](FStats& S) -> double& { return S.DamageTaken.TrueDamage; } },
+		{ TEXT("crowdControl"), TEXT("stun"), [](FStats& S) -> double& { return S.CrowdControl.Stun; } },
+		{ TEXT("crowdControl"), TEXT("slow"), [](FStats& S) -> double& { return S.CrowdControl.Slow; } },
+		{ TEXT("goldBySource"), TEXT("starting"), [](FStats& S) -> double& { return S.GoldBySource.Starting; } },
+		{ TEXT("goldBySource"), TEXT("kills"), [](FStats& S) -> double& { return S.GoldBySource.Kills; } },
+		{ TEXT("goldBySource"), TEXT("assists"), [](FStats& S) -> double& { return S.GoldBySource.Assists; } },
+		{ TEXT("goldBySource"), TEXT("minions"), [](FStats& S) -> double& { return S.GoldBySource.Minions; } },
+		{ TEXT("goldBySource"), TEXT("jungle"), [](FStats& S) -> double& { return S.GoldBySource.Jungle; } },
+		{ TEXT("goldBySource"), TEXT("objectives"), [](FStats& S) -> double& { return S.GoldBySource.Objectives; } },
+		{ TEXT("goldBySource"), TEXT("wards"), [](FStats& S) -> double& { return S.GoldBySource.Wards; } },
+		{ TEXT("goldBySource"), TEXT("passive"), [](FStats& S) -> double& { return S.GoldBySource.Passive; } },
+	};
+
+	/** The groups "statistics" holds, in the order the body writes them. */
+	const TCHAR* const StatisticGroups[] = { TEXT("damageDealt"), TEXT("damageTaken"), TEXT("crowdControl"), TEXT("goldBySource") };
+
+	/** The spell slots a line carries, which the backend requires exactly (ADR-015 §1). */
+	constexpr int32 SpellSlotCount = UE_ARRAY_COUNT(VeyraAbilitySlots::Spells);
+
+	using FBodyWriter = TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>;
+
+	void WriteStatistics(FBodyWriter& Writer, FVeyraPlayerStatistics Values)
+	{
+		Writer.WriteObjectStart(TEXT("statistics"));
+		for (const FStatisticCount& Count : StatisticCounts)
+		{
+			Writer.WriteValue(Count.Name, Count.Of(Values));
+		}
+		for (const FStatisticAmount& Amount : StatisticAmounts)
+		{
+			if (!Amount.Group)
+			{
+				Writer.WriteValue(Amount.Name, Amount.Of(Values));
+			}
+		}
+		for (const TCHAR* Group : StatisticGroups)
+		{
+			Writer.WriteObjectStart(Group);
+			for (const FStatisticAmount& Amount : StatisticAmounts)
+			{
+				if (Amount.Group && FCString::Strcmp(Amount.Group, Group) == 0)
+				{
+					Writer.WriteValue(Amount.Name, Amount.Of(Values));
+				}
+			}
+			Writer.WriteObjectEnd();
+		}
+		Writer.WriteObjectEnd();
+	}
+
+	/** Slots as the backend takes them: a content ID, or "" for an empty slot, at least MinSlots of them. */
+	void WriteSlots(FBodyWriter& Writer, const TCHAR* Name, TConstArrayView<FVeyraContentId> Slots, int32 MinSlots)
+	{
+		Writer.WriteArrayStart(Name);
+		for (int32 Index = 0; Index < FMath::Max(Slots.Num(), MinSlots); ++Index)
+		{
+			Writer.WriteValue(Slots.IsValidIndex(Index) && Slots[Index].IsValid() ? Slots[Index].ToString() : FString());
+		}
+		Writer.WriteArrayEnd();
+	}
+
+	/** A number field that is a whole count, not negative. */
+	bool CountField(const FJsonObject& Object, FStringView Name, int32& Out)
+	{
+		double Value = 0.0;
+		if (!DurationField(Object, Name, Value) || Value != FMath::FloorToDouble(Value) || Value > MAX_int32)
+		{
+			return false;
+		}
+		Out = static_cast<int32>(Value);
+		return true;
+	}
+
+	bool ParseStatistics(const FJsonObject& Object, FVeyraPlayerStatistics& Out)
+	{
+		for (const FStatisticCount& Count : StatisticCounts)
+		{
+			if (!CountField(Object, Count.Name, Count.Of(Out)))
+			{
+				return false;
+			}
+		}
+		for (const FStatisticAmount& Amount : StatisticAmounts)
+		{
+			const FJsonObject* Group = Amount.Group ? ObjectField(Object, Amount.Group) : &Object;
+			if (!Group || !DurationField(*Group, Amount.Name, Amount.Of(Out)))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** Slots from an array of strings, each a content ID or "" for an empty slot. */
+	bool SlotsField(const FJsonObject& Object, FStringView Name, TArray<FVeyraContentId>& Out)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+		if (!Object.HasTypedField<EJson::Array>(Name) || !Object.TryGetArrayField(Name, Values))
+		{
+			return false;
+		}
+		Out.Reset();
+		for (const TSharedPtr<FJsonValue>& Value : *Values)
+		{
+			FString Text;
+			if (!Value.IsValid() || Value->Type != EJson::String || !Value->TryGetString(Text))
+			{
+				return false;
+			}
+			const TOptional<FVeyraContentId> Slot = Text.IsEmpty() ? TOptional<FVeyraContentId>(FVeyraContentId()) : FVeyraContentId::FromText(Text);
+			if (!Slot.IsSet())
+			{
+				return false;
+			}
+			Out.Add(Slot.GetValue());
+		}
+		return true;
+	}
+
+	/** A verified result's scoreboard line (Backend/internal/httpapi/match.go, scoreboardPlayerJSON). */
+	bool ParsePlayerOutcome(const FJsonValue& Value, FPlayerOutcome& Out)
+	{
+		const TSharedPtr<FJsonObject>* Object = nullptr;
+		if (Value.Type != EJson::Object || !Value.TryGetObject(Object) || !Object->IsValid())
+		{
+			return false;
+		}
+		const FJsonObject& Line = **Object;
+		const FJsonObject* Statistics = ObjectField(Line, TEXT("statistics"));
+		return StringField(Line, TEXT("side"), SidePattern, Out.Side) && StringField(Line, TEXT("name"), Out.Name) && !Out.Name.IsEmpty()
+			&& StringField(Line, TEXT("vanguardId"), ContentIdPattern, Out.VanguardId) && BoolField(Line, TEXT("you"), Out.bYou) && Statistics
+			&& ParseStatistics(*Statistics, Out.Statistics) && SlotsField(Line, TEXT("items"), Out.Statistics.Items)
+			&& SlotsField(Line, TEXT("fluxSpells"), Out.Statistics.FluxSpells) && Out.Statistics.FluxSpells.Num() == SpellSlotCount;
 	}
 
 	bool ParseSelectState(const FString& Text, ESelectState& Out)
@@ -423,6 +606,25 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 			return false;
 		}
 		Outcome.bHasResult = true;
+		// The scoreboard: null, or absent from an older backend, when the server sent none (ADR-017 §5).
+		const TArray<TSharedPtr<FJsonValue>>* Players = nullptr;
+		if (Result->HasTypedField<EJson::Array>(TEXT("players")) && Result->TryGetArrayField(TEXT("players"), Players))
+		{
+			for (const TSharedPtr<FJsonValue>& Line : *Players)
+			{
+				if (!Line.IsValid() || !ParsePlayerOutcome(*Line, Outcome.Players.AddDefaulted_GetRef()))
+				{
+					OutProblem = TEXT("the match's scoreboard is not in the expected format");
+					return false;
+				}
+			}
+			Outcome.bHasScoreboard = true;
+		}
+		else if (Result->HasField(TEXT("players")) && !Result->HasTypedField<EJson::Null>(TEXT("players")))
+		{
+			OutProblem = TEXT("the match's scoreboard is neither null nor a list");
+			return false;
+		}
 	}
 	else if (!Object->HasTypedField<EJson::Null>(TEXT("result")))
 	{
@@ -639,6 +841,28 @@ FString BuildResultBody(const FVeyraMatchResult& Result)
 		Writer->WriteValue(TEXT("accountId"), Participant.AccountId);
 		Writer->WriteValue(TEXT("joined"), Participant.bJoined);
 		Writer->WriteValue(TEXT("connectedAtEnd"), Participant.bConnectedAtEnd);
+		Writer->WriteObjectEnd();
+	}
+	Writer->WriteArrayEnd();
+	// The scoreboard (ADR-017 §5): every player, a bot with no account.
+	Writer->WriteArrayStart(TEXT("players"));
+	for (const FVeyraPlayerResult& Player : Result.Players)
+	{
+		Writer->WriteObjectStart();
+		Writer->WriteValue(TEXT("side"), Player.Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"));
+		Writer->WriteValue(TEXT("name"), Player.DisplayName);
+		if (Player.AccountId.IsEmpty())
+		{
+			Writer->WriteNull(TEXT("accountId"));
+		}
+		else
+		{
+			Writer->WriteValue(TEXT("accountId"), Player.AccountId);
+		}
+		Writer->WriteValue(TEXT("vanguardId"), Player.VanguardId.ToString());
+		WriteStatistics(*Writer, Player.Statistics);
+		WriteSlots(*Writer, TEXT("items"), Player.Statistics.Items, 0);
+		WriteSlots(*Writer, TEXT("fluxSpells"), Player.Statistics.FluxSpells, SpellSlotCount);
 		Writer->WriteObjectEnd();
 	}
 	Writer->WriteArrayEnd();

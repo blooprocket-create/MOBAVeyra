@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -134,9 +135,15 @@ func (t matchTx) SaveMatch(m match.Match) error {
 		return nil
 	}
 	r := m.Result
-	tag, err = t.q.Exec(t.ctx, `INSERT INTO match.results (match_id, end_reason, winner, duration_seconds)
-		VALUES ($1::uuid, $2, $3, $4) ON CONFLICT (match_id) DO NOTHING`,
-		m.ID, string(r.EndReason), nullableText(string(r.Winner)), r.DurationSeconds)
+	var players []byte
+	if r.Players != nil {
+		if players, err = json.Marshal(r.Players); err != nil {
+			return err
+		}
+	}
+	tag, err = t.q.Exec(t.ctx, `INSERT INTO match.results (match_id, end_reason, winner, duration_seconds, players)
+		VALUES ($1::uuid, $2, $3, $4, $5) ON CONFLICT (match_id) DO NOTHING`,
+		m.ID, string(r.EndReason), nullableText(string(r.Winner)), r.DurationSeconds, players)
 	if err != nil || tag.RowsAffected() == 0 {
 		return err
 	}
@@ -303,8 +310,9 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	var r match.Result
 	var reason string
 	var winner *string
-	err = q.QueryRow(ctx, `SELECT end_reason, winner, duration_seconds FROM match.results WHERE match_id = $1::uuid`, id).
-		Scan(&reason, &winner, &r.DurationSeconds)
+	var players []byte
+	err = q.QueryRow(ctx, `SELECT end_reason, winner, duration_seconds, players FROM match.results WHERE match_id = $1::uuid`, id).
+		Scan(&reason, &winner, &r.DurationSeconds, &players)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return m, nil
 	}
@@ -314,6 +322,11 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	r.EndReason = match.EndReason(reason)
 	if winner != nil {
 		r.Winner = match.Side(*winner)
+	}
+	if players != nil {
+		if err := json.Unmarshal(players, &r.Players); err != nil {
+			return match.Match{}, err
+		}
 	}
 	rows, err = q.Query(ctx, `SELECT account_id::text, joined, connected_at_end FROM match.result_participants
 		WHERE match_id = $1::uuid ORDER BY account_id`, id)

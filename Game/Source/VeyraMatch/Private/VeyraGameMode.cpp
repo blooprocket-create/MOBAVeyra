@@ -265,6 +265,7 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 		Result.MatchId = Roster->GetAssignment().MatchId;
 		Result.Participants = Roster->BuildParticipantResults();
 	}
+	Result.Players = BuildScoreboard();
 	// Game/Scripts/Smoke.ps1 checks this line.
 	UE_LOG(LogVeyraMatch, Display, TEXT("The match ended (%s) after %.1f s of match clock%s."), LexToString(Reason), Result.DurationSeconds,
 		Winner == EVeyraTeam::None ? TEXT("") : *FString::Printf(TEXT("; team %s won"), *StaticEnum<EVeyraTeam>()->GetNameStringByValue(static_cast<int64>(Winner))));
@@ -273,6 +274,41 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	{
 		Host->OnMatchEnded.Broadcast(Result);
 	}
+}
+
+TArray<FVeyraPlayerResult> AVeyraGameMode::BuildScoreboard() const
+{
+	// Every participant given a side, bots too: the replay recorder's spectator has none.
+	TArray<const AVeyraPlayerState*> Seated;
+	for (const APlayerState* Member : GameState->PlayerArray)
+	{
+		const AVeyraPlayerState* Participant = Cast<AVeyraPlayerState>(Member);
+		if (Participant && Participant->GetVeyraTeam() != EVeyraTeam::None)
+		{
+			Seated.Add(Participant);
+		}
+	}
+	Seated.Sort([](const AVeyraPlayerState& A, const AVeyraPlayerState& B) {
+		return A.GetVeyraTeam() != B.GetVeyraTeam() ? A.GetVeyraTeam() == EVeyraTeam::A : A.GetPlayerId() < B.GetPlayerId();
+	});
+	const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>();
+	TArray<FVeyraPlayerResult> Players;
+	for (const AVeyraPlayerState* Participant : Seated)
+	{
+		// Only a participant the match prepared has a record; one who arrived too late to play has none.
+		const TOptional<FVeyraPlayerStatistics> Record = Statistics ? Statistics->Snapshot(*Participant) : TOptional<FVeyraPlayerStatistics>();
+		if (!Record.IsSet())
+		{
+			continue;
+		}
+		FVeyraPlayerResult& Player = Players.AddDefaulted_GetRef();
+		Player.Side = Participant->GetVeyraTeam();
+		Player.DisplayName = Participant->GetPlayerName();
+		Player.AccountId = Participant->GetAccountId();
+		Player.VanguardId = Participant->GetVanguardId();
+		Player.Statistics = Record.GetValue();
+	}
+	return Players;
 }
 
 EVeyraEndCustomMatchRefusal AVeyraGameMode::HandleEndCustomMatch(const APlayerController& Requester)
