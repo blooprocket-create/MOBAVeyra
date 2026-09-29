@@ -164,6 +164,26 @@ namespace
 				Problem(Pointer + TEXT("/reveal"), TEXT("radius and durationSeconds are both above 0, or both 0 for no reveal"));
 			}
 			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
+			if (Area.Linger.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/linger"), TEXT("holds at most one lingering area (ADR-018 §5)"));
+			}
+			for (int32 Index = 0; Index < Area.Linger.Num(); ++Index)
+			{
+				const FVeyraLingerTuning& Linger = Area.Linger[Index];
+				const FString LingerPointer = FString::Printf(TEXT("%s/linger/%d"), *Pointer, Index);
+				if (Area.DelaySeconds > 0.0 || Area.ChannelTicks > 1)
+				{
+					Problem(LingerPointer, TEXT("lingers after an area that hits at once, not a delayed or channelled one"));
+				}
+				if (!(Linger.DurationSeconds > 0.0) || !(Linger.PulseSeconds > 0.0) || Linger.PulseSeconds > Linger.DurationSeconds)
+				{
+					Problem(LingerPointer, TEXT("durationSeconds and pulseSeconds are above 0, and a pulse is no longer than the area lasts"));
+				}
+				CheckStatusIds(LingerPointer + TEXT("/casterStatuses"), Linger.CasterStatuses);
+				CheckStatusIds(LingerPointer + TEXT("/allyStatuses"), Linger.AllyStatuses);
+				CheckStatusIds(LingerPointer + TEXT("/enemyStatuses"), Linger.EnemyStatuses);
+			}
 		}
 
 		void CheckSelfBuff(const FString& Pointer, const FVeyraSelfBuffAbilityTuning& Buff)

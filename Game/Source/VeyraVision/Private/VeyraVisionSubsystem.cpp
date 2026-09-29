@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Delivery/VeyraDelayedArea.h"
+#include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -149,7 +150,7 @@ UVeyraVisionSubsystem::~UVeyraVisionSubsystem() = default;
 
 bool UVeyraVisionSubsystem::IsGated(const AActor& Unit)
 {
-	if (Unit.IsA<AVeyraProjectile>() || Unit.IsA<AVeyraDelayedArea>())
+	if (Unit.IsA<AVeyraProjectile>() || Unit.IsA<AVeyraDelayedArea>() || Unit.IsA<AVeyraLingeringArea>())
 	{
 		return true;
 	}
@@ -262,6 +263,17 @@ void UVeyraVisionSubsystem::RevealArea(EVeyraTeam Team, const FVector& Centre, d
 	}
 }
 
+void UVeyraVisionSubsystem::RevealShape(EVeyraTeam Team, const FVeyraPlacedShape& Placed, double DurationSeconds)
+{
+	const UWorld* World = GetWorld();
+	if (World && IsSide(Team))
+	{
+		FSightArea& Area = SightAreas.Add_GetRef(FSightArea{ NextSightAreaId++, Team, FVector2D(Placed.Origin), VeyraShapes::Reach(Placed.Shape),
+			World->GetTimeSeconds() + DurationSeconds });
+		Area.Shape = Placed;
+	}
+}
+
 bool UVeyraVisionSubsystem::IsInTrueSight(EVeyraTeam Side, const AActor& Unit) const
 {
 	const FVector2D Where(Unit.GetActorLocation());
@@ -318,7 +330,8 @@ void UVeyraVisionSubsystem::UpdateSensors(const TArray<const AActor*>& Gated, do
 			}
 			for (const FSightArea& Area : SightAreas)
 			{
-				if (Area.Team == Side && FVector2D::DistSquared(Area.Centre, Where) <= FMath::Square(Area.Radius))
+				// A lit shape senses nothing in the fog (ADR-018 §5); a lit circle senses presence.
+				if (Area.Team == Side && !Area.Shape.IsSet() && FVector2D::DistSquared(Area.Centre, Where) <= FMath::Square(Area.Radius))
 				{
 					Ping(AreaSensorKey(Area.Id), *Enemy);
 				}
@@ -465,7 +478,8 @@ void UVeyraVisionSubsystem::UpdateNow()
 	// A lit area is ordinary vision for its side while it lasts (Vision Bible §6).
 	for (const FSightArea& Area : SightAreas)
 	{
-		Sources.Add(FVeyraSightSource{ Area.Team, Area.Centre, Area.Radius });
+		FVeyraSightSource& Lit = Sources.Add_GetRef(FVeyraSightSource{ Area.Team, Area.Centre, Area.Radius });
+		Lit.Shape = Area.Shape;
 	}
 	for (const TPair<EVeyraTeam, TWeakObjectPtr<AVeyraVisionTeamState>>& State : TeamStates)
 	{

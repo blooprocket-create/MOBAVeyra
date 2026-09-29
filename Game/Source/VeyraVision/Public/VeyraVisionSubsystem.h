@@ -79,6 +79,7 @@ public:
 	virtual bool CanSee(const UObject& Observer, const AActor& Target) const override;
 	virtual bool IsVisibleToTeam(EVeyraTeam Team, const AActor& Target) const override;
 	virtual void RevealArea(EVeyraTeam Team, const FVector& Centre, double Radius, double DurationSeconds) override;
+	virtual void RevealShape(EVeyraTeam Team, const FVeyraPlacedShape& Placed, double DurationSeconds) override;
 
 	virtual void Deinitialize() override;
 
@@ -100,6 +101,8 @@ private:
 		FVector2D Centre = FVector2D::ZeroVector;
 		double Radius = 0.0;
 		double Until = 0.0;
+		/** A lit shape instead of the circle: it senses nothing in Dense Fog (ADR-018 §5). */
+		TOptional<FVeyraPlacedShape> Shape;
 	};
 
 	/** True Sight around a unit, for a while. */

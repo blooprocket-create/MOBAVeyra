@@ -379,6 +379,45 @@ struct FVeyraAreaRevealTuning
 	double DurationSeconds = 0.0;
 };
 
+/** What a lingering area shows its caster's side (ADR-018 §5). */
+UENUM()
+enum class EVeyraLingerSight : uint8
+{
+	/** Nothing. */
+	None,
+	/** Its shape is ordinary vision while it lasts: never True Sight, and nothing in Dense Fog. */
+	Ordinary,
+};
+
+/** A delivered area that lasts, giving those inside it statuses by side (ADR-018 §5). */
+USTRUCT()
+struct FVeyraLingerTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** Seconds between the statuses it gives; it gives them first as it lands. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/** For its caster, while inside. */
+	UPROPERTY()
+	TArray<FVeyraContentId> CasterStatuses;
+
+	/** For the allied Vanguards inside, its caster apart. */
+	UPROPERTY()
+	TArray<FVeyraContentId> AllyStatuses;
+
+	/** For the enemy units inside. */
+	UPROPERTY()
+	TArray<FVeyraContentId> EnemyStatuses;
+
+	UPROPERTY()
+	EVeyraLingerSight Sight = EVeyraLingerSight::None;
+};
+
 /** An ability that hits the enemies in shapes at the caster or a ground point (ADR-008 §3). */
 USTRUCT()
 struct FVeyraAreaAbilityTuning
@@ -411,6 +450,10 @@ struct FVeyraAreaAbilityTuning
 	/** Innermost first: a unit takes the first zone that touches it, and no other. */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> Zones;
+
+	/** At most one: after it hits, the area lasts in its outermost zone's shape (ADR-018 §5). */
+	UPROPERTY()
+	TArray<FVeyraLingerTuning> Linger;
 };
 
 /** Statuses a buff gives nearby allied Vanguards while it lasts (ADR-008 §9). */

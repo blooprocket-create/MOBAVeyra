@@ -240,6 +240,32 @@ namespace VeyraVisionTests
 			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("a sighting in fog is still not shared")));
 		}
 
+		TEST_METHOD(AShapedRevealIsOrdinaryVisionInsideItsShape)
+		{
+			// A corridor lit far beyond the side's sight, along +X (ADR-018 §5).
+			const double S = SightRadius();
+			SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Inside = SpawnVanguard(EVeyraTeam::B, FVector(S * 3.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Beside = SpawnVanguard(EVeyraTeam::B, FVector(S * 3.0, S, 0.0));
+			AVeyraVanguardCharacter& Hidden = SpawnVanguard(EVeyraTeam::B, FVector(S * 3.5, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Hidden, DetectionRadius())));
+			Vision().Start();
+			FVeyraShape Corridor;
+			Corridor.Kind = EVeyraShapeKind::Rectangle;
+			Corridor.Length = S * 2.0;
+			Corridor.Width = S / 4.0;
+			// Fixture value: longer than the test.
+			constexpr double RevealSeconds = 60.0;
+			Vision().RevealShape(EVeyraTeam::A, FVeyraPlacedShape{ Corridor, FVector(S * 2.0, 0.0, 0.0), FVector::ForwardVector }, RevealSeconds);
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Inside)));
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Beside), TEXT("beside the shape, though within its reach")));
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Hidden), TEXT("ordinary vision detects no Camouflage")));
+			// Over Dense Fog it shows nothing.
+			Vision().SetDenseFog({ FVeyraFogCircle{ FVector2D(S * 3.0, 0.0), S / 8.0 } });
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Inside)));
+		}
+
 		TEST_METHOD(AWorldWithoutAMatchSeesEverything)
 		{
 			// Match starts Vision; unit tests and development worlds without a match never do.

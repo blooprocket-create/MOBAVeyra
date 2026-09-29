@@ -9,6 +9,7 @@
 #include "Components/LineBatchComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
+#include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -500,6 +501,12 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 			Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Shape, Area.GetActorLocation(), Area.GetDirection() }, EVeyraTelegraphSource::DelayedArea,
 				Area.GetVeyraTeam(), Remaining });
 		}
+	}
+	for (TActorIterator<AVeyraLingeringArea> It(GetWorld()); It; ++It)
+	{
+		const AVeyraLingeringArea& Area = **It;
+		Telegraphs.Add(FVeyraTelegraph{ Area.GetPlacedShape(), EVeyraTelegraphSource::LingeringArea, Area.GetVeyraTeam(),
+			FMath::Max(0.0, Area.GetEndsAt() - Now) });
 	}
 }
 

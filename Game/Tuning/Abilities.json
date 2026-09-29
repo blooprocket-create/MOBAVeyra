@@ -427,7 +427,8 @@
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
         }
-      ]
+      ],
+      "linger": []
     },
     "cairn_crushing_hold": {
       "provenance": "Provisional",
@@ -468,7 +469,8 @@
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
         }
-      ]
+      ],
+      "linger": []
     },
     "cairn_burden_of_the_depths": {
       "provenance": "Provisional",
@@ -521,7 +523,8 @@
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
         }
-      ]
+      ],
+      "linger": []
     },
     "qazharr_no_quarter": {
       "provenance": "Provisional",
@@ -551,7 +554,8 @@
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": ["qazharr_no_quarter_frenzy", "qazharr_no_quarter_pursuit", "qazharr_no_quarter_tenacity", "qazharr_no_quarter_cleave"]
         }
-      ]
+      ],
+      "linger": []
     },
     "oriel_shattered_sky": {
       "provenance": "Provisional",
@@ -581,7 +585,8 @@
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
         }
-      ]
+      ],
+      "linger": []
     },
     "oriel_final_radiance": {
       "provenance": "Provisional",
@@ -611,7 +616,8 @@
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
         }
-      ]
+      ],
+      "linger": []
     },
     "bryn_sounding_flare": {
       "provenance": "Provisional",
@@ -641,7 +647,8 @@
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
         }
-      ]
+      ],
+      "linger": []
     },
     "bryn_last_broadside": {
       "provenance": "Provisional",
@@ -682,7 +689,8 @@
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
         }
-      ]
+      ],
+      "linger": []
     }
   },
   "selfBuff": {

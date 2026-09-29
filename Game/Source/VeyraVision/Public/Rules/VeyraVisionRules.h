@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Shapes/VeyraShapes.h"
 #include "Math/Vector2D.h"
 #include "Teams/VeyraTeam.h"
 
@@ -15,6 +16,9 @@ struct FVeyraSightSource
 
 	/** Whether it detects Camouflage: a Vanguard or a standing structure, never a ward (ADR-018 §4). */
 	bool bDetects = false;
+
+	/** A lit shape, which sees exactly what lies inside it; unset for a circle of Radius (ADR-018 §5). */
+	TOptional<FVeyraPlacedShape> Shape;
 };
 
 /** A Dense Fog circle (Vision Bible §2): the battleground's bush, authored on the map or made by an ability. */
@@ -28,7 +32,7 @@ struct FVeyraFogCircle
 /** Vision's rules, as plain functions of positions (ADR-016 §2). */
 namespace VeyraVisionRules
 {
-	/** Whether one of Team's Sources has Point within its sight. */
+	/** Whether one of Team's Sources has Point within its sight: its circle, or its shape. */
 	VEYRAVISION_API bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point);
 
 	/**

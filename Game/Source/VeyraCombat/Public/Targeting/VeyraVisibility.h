@@ -9,6 +9,7 @@
 
 class AActor;
 class UWorld;
+struct FVeyraPlacedShape;
 
 /**
  * What a world's vision allows (ADR-016 §2): the contract Vision implements and Combat's targeting,
@@ -35,6 +36,12 @@ public:
 	 * lights an area, as Bryn's Sounding Flare does, asks for it here.
 	 */
 	virtual void RevealArea(EVeyraTeam Team, const FVector& Centre, double Radius, double DurationSeconds) = 0;
+
+	/**
+	 * Lights Placed for Team for DurationSeconds (ADR-018 §5): ordinary vision inside the shape, never
+	 * True Sight, and over Dense Fog nothing at all. A lingering area, as Kade's Sightline, asks for it.
+	 */
+	virtual void RevealShape(EVeyraTeam Team, const FVeyraPlacedShape& Placed, double DurationSeconds) = 0;
 };
 
 /**
@@ -72,4 +79,7 @@ namespace VeyraVisibility
 
 	/** Server: lights an area for Team in World's vision; a world without vision already sees everything. */
 	VEYRACOMBAT_API void RevealArea(const UWorld& World, EVeyraTeam Team, const FVector& Centre, double Radius, double DurationSeconds);
+
+	/** Server: lights a shape for Team in World's vision; a world without vision already sees everything. */
+	VEYRACOMBAT_API void RevealShape(const UWorld& World, EVeyraTeam Team, const FVeyraPlacedShape& Placed, double DurationSeconds);
 }

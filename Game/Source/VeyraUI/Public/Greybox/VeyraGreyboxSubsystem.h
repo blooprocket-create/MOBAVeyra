@@ -26,6 +26,8 @@ enum class EVeyraTelegraphSource : uint8
 	Channel,
 	/** A delayed area waiting to hit. */
 	DelayedArea,
+	/** A lingering area, until it ends (ADR-018 §5). */
+	LingeringArea,
 };
 
 /** One telegraphed shape, as this machine draws it. */

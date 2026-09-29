@@ -335,7 +335,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones"],
+          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -362,6 +362,29 @@
               "type": "array",
               "minItems": 1,
               "items": { "$ref": "#/definitions/zone" }
+            },
+            "linger": {
+              "description": "At most one: after it hits at once, the area lasts in its outermost zone's shape, giving those inside it statuses by side (ADR-018 §5), as Kade's Sightline does.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["durationSeconds", "pulseSeconds", "casterStatuses", "allyStatuses", "enemyStatuses", "sight"],
+                "properties": {
+                  "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "pulseSeconds": { "description": "Seconds between the statuses it gives; it gives them first as it lands.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "casterStatuses": { "description": "For its caster, while inside.", "$ref": "#/definitions/statusIds" },
+                  "allyStatuses": { "description": "For the allied Vanguards inside, its caster apart.", "$ref": "#/definitions/statusIds" },
+                  "enemyStatuses": { "description": "For the enemy units inside.", "$ref": "#/definitions/statusIds" },
+                  "sight": {
+                    "description": "Ordinary: its shape is ordinary vision for its caster's side while it lasts, never True Sight and nothing in Dense Fog.",
+                    "type": "string",
+                    "enum": ["None", "Ordinary"]
+                  }
+                }
+              }
             }
           }
         }

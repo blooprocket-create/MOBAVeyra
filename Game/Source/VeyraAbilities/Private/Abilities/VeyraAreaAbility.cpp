@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
+#include "Delivery/VeyraLingeringArea.h"
 #include "Engine/World.h"
 #include "Targeting/VeyraVisibility.h"
 #include "Teams/VeyraTeam.h"
@@ -84,7 +85,43 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 		return FVeyraChannelPlan{ Area->ChannelTicks, Area->ChannelSeconds };
 	}
 	VeyraAreaDelivery::Resolve(*World, *Caster, Placement, Zones, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
+	if (!Area->Linger.IsEmpty() && !Area->Zones.IsEmpty())
+	{
+		Linger(*Caster, Placement, *Area, Cast);
+	}
 	return FVeyraChannelPlan();
+}
+
+void UVeyraAreaAbility::Linger(UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Placement, const FVeyraAreaAbilityTuning& Area, const FVeyraCast& Cast) const
+{
+	UWorld* World = GetWorld();
+	const FVeyraLingerTuning& Tuning = Area.Linger[0];
+	// Its statuses from the caster's Level at Commit (Combat Bible §50).
+	const int32 Level = GetCasterLevel(Caster);
+	FVeyraLingerStatuses Statuses;
+	const auto Prepare = [Level](TConstArrayView<FVeyraContentId> Ids, TArray<FVeyraStatusSpec>& Out) {
+		for (const FVeyraContentId& Id : Ids)
+		{
+			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(Id, Level))
+			{
+				Out.Add(Status.GetValue());
+			}
+		}
+	};
+	Prepare(Tuning.CasterStatuses, Statuses.Caster);
+	Prepare(Tuning.AllyStatuses, Statuses.Allies);
+	Prepare(Tuning.EnemyStatuses, Statuses.Enemies);
+	// It lasts in its outermost zone's shape.
+	const FVeyraShape& Shape = Area.Zones.Last().Shape;
+	if (AVeyraLingeringArea* Lingering = World->SpawnActor<AVeyraLingeringArea>(AVeyraLingeringArea::StaticClass(), FTransform(Placement.Origin)))
+	{
+		Lingering->Arm(Caster, Placement, Shape, MoveTemp(Statuses), Tuning.DurationSeconds, Tuning.PulseSeconds, Cast.Ability);
+	}
+	if (Tuning.Sight == EVeyraLingerSight::Ordinary)
+	{
+		VeyraVisibility::RevealShape(*World, VeyraTeams::TeamOf(Caster.GetOwner()), FVeyraPlacedShape{ Shape, Placement.Origin, Placement.Direction },
+			Tuning.DurationSeconds);
+	}
 }
 
 void UVeyraAreaAbility::DeliverChannelTick(const FVeyraCast& Cast, int32 /*Tick*/)
