@@ -258,7 +258,8 @@ void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPane
 	{
 		// A saved record: the same Scoreboard and Detailed Statistics as the results screen (UX-51).
 		AddButton(Parent, LOCTEXT("BackToHistory", "Back to Match History"), [this] { Client->CloseHistoryMatch(); },
-			Client->CanIssue(EVeyraClientIntent::CloseHistoryMatch));
+			Client->CanIssue(EVeyraClientIntent::CloseHistoryMatch))
+			->KeepLabelOnOneLine();
 		AddText(Parent, Model.Opened->Headline, static_cast<uint8>(EVeyraShellText::Title));
 		for (const FText& Line : Model.Opened->Lines)
 		{
@@ -525,7 +526,8 @@ void UVeyraShellScreen::BuildScoreboard(const FVeyraMatchReport& Report, UPanelW
 			UHorizontalBox* Build = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 			AddCell(*Build, FText::GetEmpty(), Style.ReportColumnWidth, static_cast<uint8>(EVeyraShellText::Small));
 			// One line, so neither half wraps in a column of its own.
-			AddText(*Build, FText::Format(LOCTEXT("ReportBuild", "{0}      {1}"), Line.Items, Line.FluxSpells), static_cast<uint8>(EVeyraShellText::Small));
+			AddText(*Build, FText::Format(LOCTEXT("ReportBuild", "{0}      {1}"), Line.Items, Line.FluxSpells), static_cast<uint8>(EVeyraShellText::Small))
+				->SetAutoWrapText(false);
 			VeyraShellStyle::AddSpaced(Parent, *Build);
 		}
 	}
