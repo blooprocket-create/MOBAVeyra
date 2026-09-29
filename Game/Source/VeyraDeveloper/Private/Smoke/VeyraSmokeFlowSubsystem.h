@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Containers/Set.h"
+#include "Content/VeyraContentId.h"
 #include "Containers/Ticker.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 
@@ -101,8 +102,20 @@ private:
 	void CheckResults(const FVeyraClientSnapshot& Snapshot);
 	bool IsMatchmade() const { return Script == EScript::Casual || Script == EScript::Decline || Script == EScript::Requeue; }
 
-	/** Clicks the shell's button labelled Label. False, having failed the script, if it cannot. */
-	bool Click(const FString& Label);
+	/**
+	 * Clicks the shell's button labelled Label, the Occurrence-th where several share it. False, having
+	 * failed the script, if it cannot.
+	 */
+	bool Click(const FString& Label, int32 Occurrence = 0);
+
+	/**
+	 * In champion select, clicks the next Flux Spell choice the script wants: the roster's first
+	 * spells, one per slot, as a player would (ADR-015 §7). True once every slot holds its spell.
+	 */
+	bool ChooseFluxSpells(const FVeyraClientSnapshot& Snapshot, IVeyraClientIntents& Flow);
+
+	/** The label of a Flux Spell's button. */
+	static FString SpellLabel(const FVeyraContentId& SpellId);
 
 	/** The label of a Vanguard's button. */
 	static FString VanguardLabel(const FString& VanguardId);
@@ -142,8 +155,9 @@ private:
 	bool bFoundMatch = false;
 	bool bAnswered = false;
 	bool bCancelledQueue = false;
-	/** Practice: the item the shop bought, and whether it arrived and the shop closed. */
+	/** Practice: the item the shop bought, the Flux Spell slot 1 swapped to, and whether both arrived and the shop closed. */
 	FString BoughtItem;
+	FString SwappedSpell;
 	bool bShopped = false;
 	/** Practice: whether the script asked to recall, saw the channel, and saw the Vanguard home. */
 	bool bAskedToRecall = false;

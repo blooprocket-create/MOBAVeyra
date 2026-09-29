@@ -452,6 +452,10 @@ namespace VeyraServicesTests
 			ASSERT_THAT(AreEqual(First.VanguardId.ToString(), FString(TEXT("cairn"))));
 			ASSERT_THAT(IsTrue(Parsed.Match.Participants[1].Side == EVeyraTeam::B));
 			ASSERT_THAT(AreEqual(Parsed.Match.Participants[1].VanguardId.ToString(), FString(TEXT("oriel"))));
+			// Each participant's starting Flux Spells, an empty string an empty slot (ADR-015 §5).
+			ASSERT_THAT(IsTrue(First.FluxSpells.Num() == 2 && First.FluxSpells[0].ToString() == TEXT("blink") && First.FluxSpells[1].ToString() == TEXT("scorch")));
+			const TArray<FVeyraContentId>& SecondSpells = Parsed.Match.Participants[1].FluxSpells;
+			ASSERT_THAT(IsTrue(SecondSpells.Num() == 2 && SecondSpells[0].ToString() == TEXT("mend") && !SecondSpells[1].IsValid()));
 			// The backend's ticket vector (Backend/internal/match/ticket_test.go): the game hashes the
 			// ticket the backend derived for this participant to the hash the backend sent.
 			ASSERT_THAT(AreEqual(First.TicketHash, VeyraHash::Sha256Hex(TEXT("vjt_xdMWyGQJg9xC_-yn9b-5ZYoh8_KKDRs9Bfjlh7WgwKQ"))));
@@ -490,8 +494,10 @@ namespace VeyraServicesTests
 		TEST_METHOD(RefusesABrokenAssignment)
 		{
 			const TArray<TPair<const TCHAR*, const TCHAR*>> Breaks = {
-				// A version 2 assignment carries no bot difficulties; this build reads version 3 only.
-				{ TEXT("\"schemaVersion\":3"), TEXT("\"schemaVersion\":2") },
+				// A version 3 assignment carries no Flux Spells; this build reads version 4 only.
+				{ TEXT("\"schemaVersion\":4"), TEXT("\"schemaVersion\":3") },
+				{ TEXT("\"fluxSpells\":[\"blink\",\"scorch\"]"), TEXT("\"fluxSpells\":[\"blink\"]") },
+				{ TEXT("\"fluxSpells\":[\"blink\",\"scorch\"]"), TEXT("\"fluxSpells\":[\"Blink\",\"\"]") },
 				{ TEXT("\"rules\":\"Standard\""), TEXT("\"rules\":\"Draft\"") },
 				{ TEXT("\"mode\":\"casual_select\""), TEXT("\"mode\":\"Casual Select\"") },
 				{ TEXT("\"hostAccountId\":[]"), TEXT("\"hostAccountId\":[\"a\",\"b\"]") },

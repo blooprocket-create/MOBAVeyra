@@ -2,7 +2,10 @@
 
 #include "Shell/VeyraShellModels.h"
 
+#include "Slots/VeyraAbilitySlot.h"
 #include "Text/VeyraContentText.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "Tuning/VeyraFluxTuningSubsystem.h"
 
 #define LOCTEXT_NAMESPACE "VeyraShell"
 
@@ -240,6 +243,10 @@ FText DescribeProblem(const FVeyraClientProblem& Problem)
 	{
 		return LOCTEXT("ProblemTaken", "Another player has already locked in that Vanguard.");
 	}
+	if (Problem.Code == TEXT("invalid_flux_spells"))
+	{
+		return LOCTEXT("ProblemInvalidFluxSpells", "Those Flux Spells cannot be taken: each slot takes a different spell.");
+	}
 	if (Problem.Code == TEXT("not_all_ready"))
 	{
 		return LOCTEXT("ProblemNotAllReady", "Everyone in the party must be Ready first.");
@@ -269,7 +276,47 @@ FText FormatCountdown(double Seconds)
 	return FormatClock(FMath::CeilToInt(Seconds));
 }
 
-FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock, bool bCanLeave)
+namespace
+{
+	FText SpellNameOf(const FString& SpellId)
+	{
+		const TOptional<FVeyraContentId> Id = FVeyraContentId::FromText(SpellId);
+		return Id.IsSet() ? VeyraContentText::AbilityName(Id.GetValue()) : FText::FromString(SpellId);
+	}
+
+	/** The player's two spell slots, and once locked in the Match Setup summary (Pre-Game Client UX Bible 36, 38). */
+	void DescribeFluxSpells(const FSelectSeat& You, FVeyraSelectModel& Model)
+	{
+		const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
+		const TArray<double>& Thresholds = UVeyraFluxTuningSubsystem::Get().SpellSlots.Thresholds;
+		TArray<FText> Summary;
+		for (int32 Slot = 0; Slot < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)); ++Slot)
+		{
+			const FString Chosen = You.FluxSpells.IsValidIndex(Slot) ? You.FluxSpells[Slot] : FString();
+			FVeyraSpellSlotModel& SlotModel = Model.SpellSlots.AddDefaulted_GetRef();
+			SlotModel.Slot = Slot;
+			SlotModel.Title = FText::Format(LOCTEXT("SpellSlotTitle", "Flux Spell {0}"), FText::AsNumber(Slot + 1));
+			const FText Threshold = Thresholds.IsValidIndex(Slot) ? FText::AsNumber(Thresholds[Slot]) : FText::GetEmpty();
+			SlotModel.Unlock = FText::Format(LOCTEXT("SpellSlotUnlock", "Unlocks at {0} permanent Team Flux"), Threshold);
+			SlotModel.Chosen = Chosen.IsEmpty() ? LOCTEXT("SpellSlotEmpty", "Empty") : SpellNameOf(Chosen);
+			SlotModel.Choices.Add(FVeyraSpellChoiceModel{ FString(), LOCTEXT("SpellNone", "None"), FText::GetEmpty(), Chosen.IsEmpty() });
+			for (const FVeyraContentId& Spell : Roster)
+			{
+				SlotModel.Choices.Add(FVeyraSpellChoiceModel{ Spell.ToString(), VeyraContentText::AbilityName(Spell), VeyraContentText::AbilityDescription(Spell),
+					Spell.ToString() == Chosen });
+			}
+			Summary.Add(FText::Format(LOCTEXT("SetupSpell", "{0} ({1} Flux)"), SlotModel.Chosen, Threshold));
+		}
+		if (!You.Locked.IsEmpty())
+		{
+			Model.Setup = FText::Format(LOCTEXT("MatchSetup", "Your Match Setup: {0}, locked in. Flux Spells: {1}."), VanguardNameOf(You.Locked),
+				FText::Join(FText::FromString(TEXT(", ")), Summary));
+		}
+	}
+}
+
+FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock, bool bCanLeave,
+	bool bCanChooseSpells)
 {
 	const VeyraBackendProtocol::FSelect& Select = Snapshot.Select;
 	FVeyraSelectModel Model;
@@ -320,6 +367,11 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 	Model.bCanLockIn = bCanLock && !Model.LockInVanguardId.IsEmpty() && !IsTaken(Model.LockInVanguardId);
 	Model.bOffersLeave = Select.Kind == MatchmadeSelectKind && Select.State == ESelectState::Picking;
 	Model.bCanLeave = bCanLeave;
+	if (You)
+	{
+		DescribeFluxSpells(*You, Model);
+	}
+	Model.bCanChooseSpells = bCanChooseSpells && You;
 	return Model;
 }
 
@@ -485,7 +537,7 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 		Text << TEXT("|select:") << Snapshot.Select.Id << TEXT(":") << static_cast<int32>(Snapshot.Select.State);
 		for (const FSelectSeat& Seat : Snapshot.Select.Seats)
 		{
-			Text << TEXT(";") << Seat.DisplayName << TEXT(":") << Seat.Hover << TEXT(":") << Seat.Locked;
+			Text << TEXT(";") << Seat.DisplayName << TEXT(":") << Seat.Hover << TEXT(":") << Seat.Locked << TEXT(":") << FString::Join(Seat.FluxSpells, TEXT(","));
 		}
 	}
 	Text << TEXT("|modes:");

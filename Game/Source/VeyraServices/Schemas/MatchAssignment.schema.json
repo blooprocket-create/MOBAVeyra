@@ -6,7 +6,7 @@
   "additionalProperties": false,
   "required": ["schemaVersion", "matchId", "backendUrl", "serverCredential", "mode", "rules", "hostAccountId", "participants", "bots"],
   "properties": {
-    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [3] },
+    "schemaVersion": { "type": "integer", "minimum": 1, "enum": [4] },
     "matchId": {
       "type": "string",
       "description": "The match's ID, a lowercase UUID. The server reports under it.",
@@ -46,7 +46,7 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["accountId", "displayName", "side", "ticketHash", "vanguardId"],
+        "required": ["accountId", "displayName", "side", "ticketHash", "vanguardId", "fluxSpells"],
         "properties": {
           "accountId": {
             "type": "string",
@@ -68,6 +68,13 @@
             "type": "string",
             "description": "The Vanguard the participant locked in champion select, a content ID that Vanguards.json defines.",
             "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+          },
+          "fluxSpells": {
+            "type": "array",
+            "description": "The participant's starting Flux Spells, one per spell slot in slot order: a content ID on Abilities.json's roster, or an empty string for an empty slot (ADR-015 §5).",
+            "minItems": 2,
+            "maxItems": 2,
+            "items": { "type": "string", "pattern": "^([a-z][a-z0-9]*(_[a-z0-9]+)*)?$" }
           }
         }
       }

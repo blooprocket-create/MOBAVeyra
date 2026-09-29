@@ -164,6 +164,20 @@ struct FVeyraRewardEligibilityTuning
 	double StructureContributionSeconds = 0.0;
 };
 
+/** What replacing an equipped Flux Spell at the fountain costs (Economy & Progression Bible §13.2; ADR-015 §6). */
+USTRUCT()
+struct FVeyraFluxSpellEconomyTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Gold, for filling an empty slot too; never refunded (§12). */
+	UPROPERTY()
+	double SwapCost = 0.0;
+};
+
 /** The Economy domain's tuning, bound from Game/Tuning/Economy.json (ADR-006 §6, ADR-011 §11). */
 USTRUCT()
 struct FVeyraEconomyTuning
@@ -171,7 +185,7 @@ struct FVeyraEconomyTuning
 	GENERATED_BODY()
 
 	/** The Economy.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 3;
+	static constexpr int32 SchemaVersion = 4;
 
 	UPROPERTY()
 	FVeyraGoldTuning Gold;
@@ -187,4 +201,7 @@ struct FVeyraEconomyTuning
 
 	UPROPERTY()
 	FVeyraRewardEligibilityTuning Eligibility;
+
+	UPROPERTY()
+	FVeyraFluxSpellEconomyTuning FluxSpells;
 };

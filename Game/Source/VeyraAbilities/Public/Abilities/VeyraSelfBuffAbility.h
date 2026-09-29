@@ -7,11 +7,13 @@
 
 #include "VeyraSelfBuffAbility.generated.h"
 
+struct FVeyraHealTuning;
+
 /**
  * The archetype for an ability that buffs its caster (ADR-008 §3): statuses and a shield on the
- * caster, and optionally an aura of statuses for nearby allied Vanguards, refreshed on an interval
- * (ADR-008 §9). A recast may end it early. Each ability of this kind is an entry in Abilities.json's
- * selfBuff map.
+ * caster, optionally an aura of statuses for nearby allied Vanguards, refreshed on an interval
+ * (ADR-008 §9), and optionally a heal for the caster and its most wounded ally (ADR-015 §3). A recast
+ * may end it early. Each ability of this kind is an entry in Abilities.json's selfBuff map.
  */
 UCLASS()
 class VEYRAABILITIES_API UVeyraSelfBuffAbility : public UVeyraGameplayAbility
@@ -30,6 +32,12 @@ protected:
 private:
 	void RefreshAura();
 	void StopAura();
+
+	/** Restores Heal's Health to Caster and to its most wounded ally in range, and gives each Heal's statuses (ADR-015 §3). */
+	void DeliverHeal(UAbilitySystemComponent& Caster, const FVeyraHealTuning& Heal) const;
+
+	/** The living allied Vanguard within Range of Caster that lacks the most of its Health; none if all are whole. */
+	UAbilitySystemComponent* FindMostWoundedAlly(const UAbilitySystemComponent& Caster, double Range) const;
 	bool IsAuraRunning() const;
 
 	/** The aura under way: whose, for which ability, and until when in world time. */

@@ -5,6 +5,9 @@
 #include "GameFramework/Actor.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Rewards/VeyraEconomyTuningSubsystem.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuning.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 
@@ -52,6 +55,40 @@ FVeyraShopView Describe(const AActor& Participant)
 		if (Offer.Refusal == EVeyraShopRefusal::None && Offer.Price > View.Gold)
 		{
 			Offer.Refusal = EVeyraShopRefusal::NotEnoughGold;
+		}
+	}
+	// The spell slots: a swap happens only at the fountain, for Gold, never to a spell already equipped.
+	View.SpellSwapCost = UVeyraEconomyTuningSubsystem::Get().FluxSpells.SwapCost;
+	if (const UVeyraAbilityLoadoutComponent* Loadout = Participant.FindComponentByClass<UVeyraAbilityLoadoutComponent>())
+	{
+		TArray<FVeyraContentId, TInlineAllocator<2>> Equipped;
+		for (const EVeyraAbilitySlot SpellSlot : VeyraAbilitySlots::Spells)
+		{
+			const FVeyraLoadoutEntry* Entry = Loadout->FindSlot(SpellSlot);
+			FVeyraShopSpellSlot& Shown = View.SpellSlots.AddDefaulted_GetRef();
+			Shown.Spell = Entry ? Entry->Ability : FVeyraContentId();
+			Shown.bLocked = Loadout->IsLocked(SpellSlot);
+			Equipped.Add(Shown.Spell);
+		}
+		for (FVeyraShopSpellSlot& Shown : View.SpellSlots)
+		{
+			for (const FVeyraContentId& Spell : UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster)
+			{
+				EVeyraShopRefusal Refusal = EVeyraShopRefusal::None;
+				if (Equipped.Contains(Spell))
+				{
+					Refusal = EVeyraShopRefusal::AlreadyEquipped;
+				}
+				else if (!View.bAtShop)
+				{
+					Refusal = EVeyraShopRefusal::NotAtFountain;
+				}
+				else if (View.SpellSwapCost > View.Gold)
+				{
+					Refusal = EVeyraShopRefusal::NotEnoughGold;
+				}
+				Shown.Offers.Add(FVeyraShopSpellOffer{ Spell, Refusal });
+			}
 		}
 	}
 	View.Offers.Sort([](const FVeyraShopOffer& A, const FVeyraShopOffer& B) {
@@ -120,6 +157,12 @@ FText DescribeRefusal(EVeyraShopRefusal Refusal)
 		return LOCTEXT("NotNow", "Not now.");
 	case EVeyraShopRefusal::StillRestoring:
 		return LOCTEXT("StillRestoring", "One is still restoring.");
+	case EVeyraShopRefusal::UnknownSpell:
+		return LOCTEXT("UnknownSpell", "There is no such Flux Spell.");
+	case EVeyraShopRefusal::NoSuchSpellSlot:
+		return LOCTEXT("NoSuchSpellSlot", "There is no such spell slot.");
+	case EVeyraShopRefusal::AlreadyEquipped:
+		return LOCTEXT("AlreadyEquipped", "That Flux Spell is equipped already.");
 	}
 	return FText::GetEmpty();
 }

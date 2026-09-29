@@ -21,6 +21,11 @@ struct FVeyraAssignedParticipant
 	FString TicketHash;
 	/** The Vanguard the participant locked in champion select. */
 	FVeyraContentId VanguardId;
+	/**
+	 * The starting Flux Spells the participant chose in champion select, one per spell slot in slot
+	 * order; an invalid ID is an empty slot (ADR-015 §5).
+	 */
+	TArray<FVeyraContentId> FluxSpells;
 };
 
 /**

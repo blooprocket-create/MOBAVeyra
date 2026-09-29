@@ -64,6 +64,24 @@ void UVeyraAbilityLoadoutComponent::GetLifetimeReplicatedProps(TArray<FLifetimeP
 	Params.bIsPushBased = true;
 	Params.Condition = COND_ReplayOrOwner;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, Entries, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraAbilityLoadoutComponent, UnlockedSpellSlots, Params);
+}
+
+void UVeyraAbilityLoadoutComponent::SetUnlockedSpellSlots(int32 Count)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+	// Permanent Flux never falls, so neither do its unlocks (Battleground Bible §14).
+	const int32 Clamped = FMath::Clamp(Count, UnlockedSpellSlots, static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)));
+	if (Clamped != UnlockedSpellSlots)
+	{
+		UnlockedSpellSlots = Clamped;
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraAbilityLoadoutComponent, UnlockedSpellSlots, this);
+	}
+}
+
+bool UVeyraAbilityLoadoutComponent::IsLocked(EVeyraAbilitySlot Slot) const
+{
+	return VeyraAbilitySlots::IsSpellSlot(Slot) && VeyraAbilitySlots::SpellIndexOf(Slot) >= UnlockedSpellSlots;
 }
 
 bool UVeyraAbilityLoadoutComponent::Grant(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot, const FVeyraContentId& Ability)

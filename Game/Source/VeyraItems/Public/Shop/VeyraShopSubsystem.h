@@ -54,6 +54,14 @@ public:
 	EVeyraShopRefusal Undo(AActor& Participant);
 
 	/**
+	 * Puts roster spell Spell in Participant's Flux Spell slot Slot (from 0) for Economy.json's swap
+	 * cost, at its fountain only and never queued (Battleground Bible §14; Economy & Progression Bible
+	 * §13.2; ADR-015 §6). A locked slot may be swapped, and stays locked. If the spell it replaces is
+	 * cooling down, the new one starts on its full cooldown, so a swap never resets one.
+	 */
+	EVeyraShopRefusal SwapFluxSpell(AActor& Participant, int32 Slot, const FVeyraContentId& Spell);
+
+	/**
 	 * Match reports Participant arriving at or leaving its own fountain. Arriving delivers the queue
 	 * (§11.2); leaving ends undo (§12).
 	 */

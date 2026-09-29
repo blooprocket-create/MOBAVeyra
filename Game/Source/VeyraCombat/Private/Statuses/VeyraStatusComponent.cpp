@@ -10,8 +10,10 @@
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "Records/VeyraCombatRecords.h"
+#include "TimerManager.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "VeyraCombatLog.h"
+#include "VeyraCombatVerbs.h"
 
 namespace
 {
@@ -36,11 +38,13 @@ namespace
 		case EVeyraStatusKind::HealthRegeneration:
 			return UVeyraStatusEffect::HealthRegenMultiplierName;
 		case EVeyraStatusKind::DamageAmplification:
+		case EVeyraStatusKind::Weaken:
 			return UVeyraStatusEffect::OutgoingDamageMultiplierName;
 		case EVeyraStatusKind::Stun:
 		case EVeyraStatusKind::Slow:
 		case EVeyraStatusKind::AttackCleave:
 		case EVeyraStatusKind::MoveSpeedTowardEnemyVanguards:
+		case EVeyraStatusKind::DamageOverTime:
 			break;
 		}
 		return NAME_None;
@@ -134,8 +138,20 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 		Entry->Id = Spec.Id;
 		Entry->Kind = Spec.Kind;
 	}
-	// A new application starts its takedown extensions afresh.
-	ServerEntries.Add(Entry->Sequence, FServerEntry{ Effect, &Source, Spec.TakedownExtensionSeconds, Spec.TakedownExtensionMaxSeconds });
+	// A new application starts its takedown extensions, and its ticks, afresh (§14: a refresh restarts the duration).
+	if (FServerEntry* Earlier = ServerEntries.Find(Entry->Sequence))
+	{
+		StopTicking(*Earlier, /*bDealDueTick*/ false);
+	}
+	FServerEntry& Server = ServerEntries.Add(Entry->Sequence, FServerEntry{ Effect, &Source, Spec.TakedownExtensionSeconds, Spec.TakedownExtensionMaxSeconds });
+	if (Spec.Kind == EVeyraStatusKind::DamageOverTime)
+	{
+		Server.TickDamageType = Spec.DamageType;
+		Server.TickDamage = Spec.Magnitude * Stacks;
+		Server.TickSeconds = Spec.TickSeconds;
+		Server.TicksLeft = VeyraStatuses::TickCount(DurationSeconds, Spec.TickSeconds);
+		StartTicking(Entry->Sequence, Server);
+	}
 	Entry->Magnitude = Spec.Magnitude;
 	Entry->Stacks = Stacks;
 	Entry->StartedAt = Now;
@@ -195,6 +211,8 @@ bool UVeyraStatusComponent::Remove(const FVeyraContentId& Id)
 			FServerEntry Server;
 			if (ServerEntries.RemoveAndCopyValue(Ledger.Entries[Index].Sequence, Server))
 			{
+				// Removed early: what has not ticked yet never will (Combat Bible §14).
+				StopTicking(Server, /*bDealDueTick*/ false);
 				Ended.Add(Server.Effect);
 			}
 			Ledger.Entries.RemoveAt(Index);
@@ -251,9 +269,74 @@ void UVeyraStatusComponent::OnEffectRemoved(const FActiveGameplayEffect& Effect)
 	{
 		return;
 	}
-	ServerEntries.Remove(Ended);
+	FServerEntry Server;
+	ServerEntries.RemoveAndCopyValue(Ended, Server);
 	Ledger.Entries.RemoveAll([Ended](const FVeyraStatusEntry& Entry) { return Entry.Sequence == Ended; });
 	MarkLedgerChanged();
+	// Its time ran out, or its unit died; a dead unit takes no more damage, so only the former ticks.
+	StopTicking(Server, /*bDealDueTick*/ true);
+}
+
+void UVeyraStatusComponent::StartTicking(int32 Sequence, FServerEntry& Server)
+{
+	UWorld* World = GetWorld();
+	if (!World || Server.TicksLeft <= 0)
+	{
+		return;
+	}
+	// World time, so a pause holds the ticks as it holds the status's effect (ADR-006 §8).
+	World->GetTimerManager().SetTimer(Server.TickTimer, FTimerDelegate::CreateUObject(this, &UVeyraStatusComponent::DealTick, Sequence),
+		static_cast<float>(Server.TickSeconds), /*bLoop*/ true);
+}
+
+void UVeyraStatusComponent::DealTick(int32 Sequence)
+{
+	FServerEntry* Server = ServerEntries.Find(Sequence);
+	if (!Server || Server->TicksLeft <= 0)
+	{
+		return;
+	}
+	--Server->TicksLeft;
+	if (Server->TicksLeft == 0)
+	{
+		if (UWorld* World = GetWorld())
+		{
+			World->GetTimerManager().ClearTimer(Server->TickTimer);
+		}
+	}
+	// Copied first: a lethal tick ends the unit's statuses, this one among them.
+	const TWeakObjectPtr<UAbilitySystemComponent> Source = Server->Source;
+	DealTickDamage(Source, Server->TickDamageType, Server->TickDamage);
+}
+
+void UVeyraStatusComponent::StopTicking(FServerEntry& Server, bool bDealDueTick)
+{
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(Server.TickTimer);
+	}
+	// Whole ticks fit its duration, so only the last can remain as its effect ends, due at that same
+	// moment; the two timers run in either order (§14: no tick is lost).
+	const bool bLastTickDue = bDealDueTick && Server.TicksLeft == 1;
+	Server.TicksLeft = 0;
+	if (bLastTickDue)
+	{
+		DealTickDamage(Server.Source, Server.TickDamageType, Server.TickDamage);
+	}
+}
+
+void UVeyraStatusComponent::DealTickDamage(const TWeakObjectPtr<UAbilitySystemComponent>& Source, EVeyraDamageType Type, double Amount) const
+{
+	UAbilitySystemComponent* Attacker = Source.Get();
+	UAbilitySystemComponent* Target = BoundAbilitySystem.Get();
+	if (!Attacker || !Target)
+	{
+		return;
+	}
+	FVeyraRawDamageEvent Damage;
+	Damage.Components.Add({ Type, Amount });
+	Damage.Delivery = EVeyraDamageDelivery::Periodic;
+	VeyraCombat::DealDamage(*Attacker, *Target, Damage);
 }
 
 FActiveGameplayEffectHandle UVeyraStatusComponent::ApplyEffect(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target,

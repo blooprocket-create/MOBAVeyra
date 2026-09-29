@@ -128,6 +128,7 @@ func run(log *slog.Logger) error {
 			PresenceTimeout: cfg.CasualSelect.PresenceTimeout,
 		},
 		StartingTimeout: cfg.Selection.StartingTimeout,
+		FluxSpells:      cfg.FluxSpells.Roster,
 	}, time.Now, log)
 	go selects.RunTicker(ctx, cfg.Selection.TickInterval)
 

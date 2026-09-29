@@ -70,6 +70,23 @@ struct FVeyraHudItemSlot
 	double CooldownSeconds = 0.0;
 };
 
+/** One Flux Spell slot on the HUD (ADR-015 §7): locked with the permanent Flux it needs, ready, or cooling down. */
+struct FVeyraHudSpellSlot
+{
+	EVeyraAbilitySlot Slot = EVeyraAbilitySlot::Spell1;
+
+	/** Invalid when the slot is empty. */
+	FVeyraContentId Spell;
+
+	bool bLocked = false;
+
+	/** The permanent Team Flux that unlocks the slot (Battleground Bible §14). */
+	double UnlockFlux = 0.0;
+
+	/** Seconds until it is ready; 0 when it is. */
+	double CooldownSeconds = 0.0;
+};
+
 /** The player's own panel. */
 struct FVeyraHudPlayer
 {
@@ -100,6 +117,9 @@ struct FVeyraHudPlayer
 
 	/** The inventory's slots, 1 to 6, in order. */
 	TArray<FVeyraHudItemSlot> Items;
+
+	/** The two Flux Spell slots, in order. */
+	TArray<FVeyraHudSpellSlot> Spells;
 
 	/** Purchases waiting for the fountain (Economy & Progression Bible §11). */
 	int32 PendingPurchases = 0;

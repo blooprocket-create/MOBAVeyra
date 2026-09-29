@@ -37,4 +37,9 @@ type Store interface {
 	// MatchesNeedingAttention returns the active matches, and the finished
 	// matches whose server has not been removed.
 	MatchesNeedingAttention(ctx context.Context) ([]Match, error)
+	// LastFluxSpells returns the starting Flux Spells of the account's most
+	// recently created match with the Vanguard whose server became ready, so
+	// a match that failed to start saves nothing, or two empty slots if it has
+	// none.
+	LastFluxSpells(ctx context.Context, accountID, vanguardID string) ([2]string, error)
 }

@@ -6,6 +6,7 @@
 #include "Teams/VeyraTeam.h"
 #include "UObject/WeakObjectPtr.h"
 
+class APlayerState;
 class UAbilitySystemComponent;
 class UVeyraBattlegroundSubsystem;
 class UVeyraFluxWellSubsystem;
@@ -21,8 +22,9 @@ struct FVeyraStructureDestroyedEvent;
  * other, so this routes between them. A destroyed structure grants its destroyers the Team Flux its
  * kind gives; every change to a team's Flux reaches World, whose Fluxborn follow it; and a destroyed
  * Prime Well is reported to the game mode, which decides victory; a secured Flux Well grants its side
- * that source's Team Flux. It starts the battleground's waves, jungle and Wells as the match goes
- * live, and stops them when it ends (ADR-014 §6). The game mode owns one; server only.
+ * that source's Team Flux. A team's permanent Flux unlocks its participants' Flux Spell slots
+ * (ADR-015 §4). It starts the battleground's waves, jungle and Wells as the match goes live, and stops
+ * them when it ends (ADR-014 §6). The game mode owns one; server only.
  */
 class FVeyraBattlegroundLink
 {
@@ -47,13 +49,23 @@ public:
 	 */
 	bool DeveloperSiege(UAbilitySystemComponent& Source, EVeyraTeam Team);
 
+	/**
+	 * Unlocks the Flux Spell slots Participant's team's permanent Flux has reached (Battleground Bible
+	 * §14), as when its Vanguard first spawns. Temporary Flux never counts.
+	 */
+	void UnlockSpellSlots(APlayerState& Participant) const;
+
 private:
 	void OnStructureDestroyed(const FVeyraStructureDestroyedEvent& Event);
 	void OnFluxWellSecured(const FVeyraFluxWellSecuredEvent& Event);
 
-	/** Team's Flux changed, by a grant or an expiry: World's Fluxborn follow it (ADR-011 §3, §10). */
+	/**
+	 * Team's Flux changed, by a grant or an expiry: its participants' spell slots and World's Fluxborn
+	 * follow it (ADR-011 §3, §10; ADR-015 §4).
+	 */
 	void OnTeamFluxChanged(EVeyraTeam Team);
 
+	TWeakObjectPtr<UWorld> MatchWorld;
 	TWeakObjectPtr<UVeyraBattlegroundSubsystem> Battleground;
 	TWeakObjectPtr<UVeyraTeamFluxSubsystem> Flux;
 	TWeakObjectPtr<UVeyraRewardSubsystem> Rewards;

@@ -46,8 +46,11 @@ public:
 	/** An empowered-attack ability's tuning, or null. */
 	static const FVeyraEmpoweredAttackAbilityTuning* FindEmpoweredAttack(const FVeyraContentId& Ability);
 
-	/** Status Id as Combat applies it, or nothing if the statuses map has no such status. */
-	static TOptional<FVeyraStatusSpec> FindStatus(const FVeyraContentId& Id);
+	/**
+	 * Status Id as Combat applies it from a source at SourceLevel, or nothing if the statuses map has
+	 * no such status. Only a damage-over-time status's ticks read the Level.
+	 */
+	static TOptional<FVeyraStatusSpec> FindStatus(const FVeyraContentId& Id, int32 SourceLevel = 1);
 
 	/** Whether any archetype defines Ability. Other domains check references against it. */
 	static bool Defines(const FVeyraContentId& Ability);

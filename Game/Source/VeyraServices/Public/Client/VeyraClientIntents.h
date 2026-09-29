@@ -42,6 +42,11 @@ public:
 	virtual bool HoverVanguard(const FString& VanguardId) = 0;
 	virtual bool LockVanguard(const FString& VanguardId) = 0;
 	virtual bool LeaveSelect() = 0;
+	/**
+	 * Puts SpellId, a roster Flux Spell or empty for none, in spell slot Slot (from 0). Choosing the
+	 * other slot's spell swaps the two, as League's picker does.
+	 */
+	virtual bool ChooseFluxSpell(int32 Slot, const FString& SpellId) = 0;
 	virtual bool Reconnect() = 0;
 	virtual bool ContinueFromResults() = 0;
 	virtual bool Retry() = 0;

@@ -34,11 +34,18 @@ namespace
 		return Owner ? Owner->FindComponentByClass<ComponentType>() : nullptr;
 	}
 
-	/** Which Haste shortens Ability's cooldown: an item's Active cools down as the item's, never by Ability Haste (Combat Bible §21). */
+	/**
+	 * Which Haste shortens Ability's cooldown (Combat Bible §21): an item's Active cools down as the
+	 * item's, never by Ability Haste, and a Flux Spell's cooldown is fixed.
+	 */
 	EVeyraCooldownHaste HasteOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
 	{
 		const UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
 		const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindAbility(Ability) : nullptr;
+		if (Entry && VeyraAbilitySlots::IsSpellSlot(Entry->Slot))
+		{
+			return EVeyraCooldownHaste::Fixed;
+		}
 		return Entry && VeyraAbilitySlots::IsItemSlot(Entry->Slot) ? EVeyraCooldownHaste::Item : EVeyraCooldownHaste::Ability;
 	}
 
@@ -149,13 +156,19 @@ int32 UVeyraGameplayAbility::GetRank(const UAbilitySystemComponent& Caster, cons
 {
 	const UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
 	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindAbility(Ability) : nullptr;
-	// An item's Active has no ranks: it works at its one rank while the item is held (ADR-012 §1).
-	if (Entry && VeyraAbilitySlots::IsItemSlot(Entry->Slot))
+	// An item's Active and a Flux Spell have no ranks: each works at its one rank (ADR-012 §1, ADR-015 §1).
+	if (Entry && (VeyraAbilitySlots::IsItemSlot(Entry->Slot) || VeyraAbilitySlots::IsSpellSlot(Entry->Slot)))
 	{
 		return 1;
 	}
 	const UVeyraProgressionComponent* Progression = FindBesideAbilitySystem<UVeyraProgressionComponent>(Caster);
 	return Entry && Progression ? Progression->GetRank(Entry->Slot) : 0;
+}
+
+int32 UVeyraGameplayAbility::GetCasterLevel(const UAbilitySystemComponent& Caster)
+{
+	const UVeyraProgressionComponent* Progression = FindBesideAbilitySystem<UVeyraProgressionComponent>(Caster);
+	return Progression ? FMath::Max(1, Progression->GetLevel()) : 1;
 }
 
 int32 UVeyraGameplayAbility::GetCommitRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const

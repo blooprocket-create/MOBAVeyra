@@ -34,8 +34,8 @@ func TestAssignmentMatchesTheGamesContract(t *testing.T) {
 		Rules:   RulesStandard,
 		JoinKey: vectorKey(),
 		Participants: []Participant{
-			{AccountID: vectorAccountID, DisplayName: "DevOne", Side: SideA, VanguardID: "cairn"},
-			{AccountID: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", DisplayName: "DevTwo", Side: SideB, VanguardID: "oriel"},
+			{AccountID: vectorAccountID, DisplayName: "DevOne", Side: SideA, VanguardID: "cairn", FluxSpells: [2]string{"blink", "scorch"}},
+			{AccountID: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff", DisplayName: "DevTwo", Side: SideB, VanguardID: "oriel", FluxSpells: [2]string{"mend", ""}},
 		},
 	}
 	line, err := BuildAssignment(m, contractCredential, "http://backend:8080")

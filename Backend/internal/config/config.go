@@ -78,6 +78,7 @@ type Config struct {
 	Party                 Party
 	Modes                 []Mode
 	Vanguards             Vanguards
+	FluxSpells            FluxSpells
 	CustomPractice        CustomPractice
 	Matchmaking           Matchmaking
 	MatchFound            MatchFound
@@ -99,6 +100,13 @@ type Vanguards struct {
 	// RotationStandIn is what the rotation offers until the weekly rotation
 	// exists: StandInAllReleased or StandInNone.
 	RotationStandIn string
+}
+
+// FluxSpells configures the Flux Spells a player may choose in champion select
+// (ADR-015 §5). Roster must equal Game/Tuning/Abilities.json's fluxSpells
+// roster; a contract test checks it.
+type FluxSpells struct {
+	Roster []string
 }
 
 // CustomPractice configures solo Custom practice (ADR-010 §7). It is a custom
@@ -314,6 +322,9 @@ type fileConfig struct {
 			StandIn *string `json:"standIn"`
 		} `json:"rotation"`
 	} `json:"vanguards"`
+	FluxSpells *struct {
+		Roster []string `json:"roster"`
+	} `json:"fluxSpells"`
 	CustomPractice *struct {
 		Enabled        *bool     `json:"enabled"`
 		Mode           *string   `json:"mode"`
@@ -604,6 +615,25 @@ func Parse(raw []byte) (Config, error) {
 				c.Vanguards.RotationStandIn = *f.Vanguards.Rotation.StandIn
 			}
 		}
+	}
+
+	if f.FluxSpells == nil {
+		missing("fluxSpells")
+	} else {
+		if len(f.FluxSpells.Roster) == 0 {
+			missing("fluxSpells.roster")
+		}
+		seen := map[string]bool{}
+		for _, id := range f.FluxSpells.Roster {
+			if !contentIDPattern.MatchString(id) {
+				problems = append(problems, "fluxSpells.roster must hold content IDs such as blink, not "+strconv.Quote(id))
+			}
+			if seen[id] {
+				problems = append(problems, "fluxSpells.roster contains duplicate "+id)
+			}
+			seen[id] = true
+		}
+		c.FluxSpells.Roster = append([]string(nil), f.FluxSpells.Roster...)
 	}
 
 	if f.CustomPractice == nil {

@@ -38,6 +38,8 @@ const TCHAR* LexToString(EVeyraCastRejection Rejection)
 		return TEXT("Paused");
 	case EVeyraCastRejection::ActivationFailed:
 		return TEXT("ActivationFailed");
+	case EVeyraCastRejection::Locked:
+		return TEXT("Locked");
 	}
 	return TEXT("Unknown");
 }

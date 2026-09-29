@@ -122,6 +122,13 @@ public:
 	AVeyraPlayerState* AddPlayingBot(const FString& Name, EVeyraTeam Side, const FVeyraContentId& Vanguard, EVeyraBotDifficulty Difficulty);
 
 	/**
+	 * Gives a participant its starting Flux Spells, one per spell slot in slot order, as champion select
+	 * does for a player (ADR-015 §5): a bot chooses its own once seated. Equipped at once if its Vanguard
+	 * has spawned, or at its first spawn. Returns false, changing nothing, for spells off the roster.
+	 */
+	bool EquipStartingFluxSpells(AVeyraPlayerState& Participant, TArray<FVeyraContentId> Spells);
+
+	/**
 	 * Pauses every gameplay clock (Match Flow Bible §10.2). Pause votes arrive later; until then the
 	 * server pauses directly.
 	 */
@@ -165,6 +172,9 @@ private:
 
 	/** Prepares a participant as its Vanguard, once per match (VeyraVanguards::PrepareCombatant). */
 	bool InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilitySystemComponent& AbilitySystem);
+
+	/** Equips the participant's starting Flux Spells in its spell slots, locked until its team's Flux opens them. */
+	void EquipFluxSpells(AVeyraPlayerState& PlayerState, UAbilitySystemComponent& AbilitySystem) const;
 
 	/** A Vanguard died: its body leaves the map, and it respawns after the tuned delay (Combat Bible §18). */
 	void OnDeath(const FVeyraDeathEvent& Death);

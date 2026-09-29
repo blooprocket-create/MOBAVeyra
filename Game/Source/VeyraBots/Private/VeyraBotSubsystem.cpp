@@ -4,8 +4,10 @@
 
 #include "Bots/VeyraMatchEvents.h"
 #include "Brain/VeyraBotBrainComponent.h"
+#include "Engine/World.h"
 #include "Tuning/VeyraBotsTuningSubsystem.h"
 #include "VeyraBotsLog.h"
+#include "VeyraGameMode.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardController.h"
 
@@ -31,13 +33,19 @@ void UVeyraBotSubsystem::Deinitialize()
 void UVeyraBotSubsystem::OnBotAdded(AVeyraPlayerState& Bot, const FVeyraBotSeat& Seat)
 {
 	AVeyraVanguardController* Controller = Bot.GetVanguardController();
-	const TArray<EVeyraBotRole>& Roles = UVeyraBotsTuningSubsystem::Get().Roles;
-	if (!Controller || Roles.IsEmpty())
+	const TArray<FVeyraBotSeatTuning>& Seats = UVeyraBotsTuningSubsystem::Get().Seats;
+	if (!Controller || Seats.IsEmpty())
 	{
 		return;
 	}
-	// Later seats than the roles list wrap around it.
-	const EVeyraBotRole Role = Roles[Seat.Seat % Roles.Num()];
+	// Later seats than the list wrap around it.
+	const FVeyraBotSeatTuning& Place = Seats[Seat.Seat % Seats.Num()];
+	const EVeyraBotRole Role = Place.Role;
+	// It takes its seat's Flux Spells, as a player takes theirs from champion select (ADR-015 §8).
+	if (AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>())
+	{
+		GameMode->EquipStartingFluxSpells(Bot, Place.FluxSpells);
+	}
 	UVeyraBotBrainComponent* Brain = NewObject<UVeyraBotBrainComponent>(Controller);
 	Brain->Configure(Bot, Role, Seat.Difficulty, static_cast<int32>(HashCombine(GetTypeHash(Bot.GetPlayerId()), GetTypeHash(Seat.Seat))));
 	Brain->RegisterComponent();

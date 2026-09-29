@@ -179,8 +179,8 @@ namespace VeyraNetTests
 
 	/**
 	 * Makes the test server host a match whose roster is the PIE clients, the Nth on Sides[N] as
-	 * Vanguards[N] (the test Vanguard where none is given), and which adds Bots, while this object
-	 * lives. A practice match's host is the first client. Set it before the network starts: the server
+	 * Vanguards[N] (the test Vanguard where none is given) taking FluxSpells[N] (none where none is
+	 * given), and which adds Bots, while this object lives. A practice match's host is the first client. Set it before the network starts: the server
 	 * reads it when the map loads.
 	 */
 	struct FScopedMatchAssignment
@@ -189,7 +189,8 @@ namespace VeyraNetTests
 		TArray<FString> Problems;
 
 		explicit FScopedMatchAssignment(TConstArrayView<EVeyraTeam> Sides, EVeyraMatchRules Rules = EVeyraMatchRules::Standard,
-			TConstArrayView<FVeyraContentId> Vanguards = {}, TConstArrayView<FVeyraAssignedBot> Bots = {})
+			TConstArrayView<FVeyraContentId> Vanguards = {}, TConstArrayView<FVeyraAssignedBot> Bots = {},
+			TConstArrayView<TArray<FVeyraContentId>> FluxSpells = {})
 		{
 			Assignment.MatchId = TEXT("test-match");
 			Assignment.Mode = FVeyraContentId::FromText(TEXT("test_mode")).GetValue();
@@ -201,6 +202,10 @@ namespace VeyraNetTests
 				Assignment.Participants.Add({ TestAccountForPIEInstance(PIEInstance), FString::Printf(TEXT("TestPlayer%d"), PIEInstance),
 					Sides[Index], VeyraHash::Sha256Hex(TestTicketForPIEInstance(PIEInstance)),
 					Vanguards.IsValidIndex(Index) ? Vanguards[Index] : TestVanguardId() });
+				if (FluxSpells.IsValidIndex(Index))
+				{
+					Assignment.Participants.Last().FluxSpells = FluxSpells[Index];
+				}
 			}
 			if (Rules == EVeyraMatchRules::Practice && !Assignment.Participants.IsEmpty())
 			{

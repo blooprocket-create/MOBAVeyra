@@ -56,6 +56,9 @@ type Seat struct {
 	Side      Side
 	// VanguardID is the Vanguard the account plays, a content ID.
 	VanguardID string
+	// FluxSpells are its starting Flux Spells in slot order, empty for an
+	// empty slot. Callers check them against the roster (ADR-015 §5).
+	FluxSpells [2]string
 }
 
 // Spec is a requested match (ADR-010 §9).
@@ -119,7 +122,10 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 	participants := make([]Participant, len(spec.Seats))
 	ids := make([]string, len(spec.Seats))
 	for i, seat := range spec.Seats {
-		participants[i] = Participant{AccountID: seat.AccountID, Side: seat.Side, VanguardID: seat.VanguardID}
+		if !ValidFluxSpells(seat.FluxSpells) {
+			return Match{}, ErrInvalidFluxSpells
+		}
+		participants[i] = Participant{AccountID: seat.AccountID, Side: seat.Side, VanguardID: seat.VanguardID, FluxSpells: seat.FluxSpells}
 		ids[i] = seat.AccountID
 	}
 	var bots []Bot
@@ -263,6 +269,14 @@ func (s *Service) BySelect(ctx context.Context, selectID string) (Match, bool, e
 		return Match{}, false, err
 	}
 	return withoutSecrets(m), true, nil
+}
+
+// LastFluxSpells returns the starting Flux Spells the account last took into a
+// match with the Vanguard, or two empty slots: its saved loadout for that
+// Vanguard (Pre-Game Client UX Bible 37). Only a match whose server became
+// ready was taken into; one that failed to start saves nothing.
+func (s *Service) LastFluxSpells(ctx context.Context, accountID, vanguardID string) ([2]string, error) {
+	return s.store.LastFluxSpells(ctx, accountID, vanguardID)
 }
 
 // Get returns a match without its secrets.

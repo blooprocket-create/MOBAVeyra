@@ -25,6 +25,7 @@
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraTuning.h"
 #include "VeyraAbilitiesVerbs.h"
@@ -681,6 +682,7 @@ void AVeyraGameMode::AssignVanguard(AVeyraPlayerState& PlayerState)
 			TEXT("%s asked for Vanguard %s, but an assigned match plays the Vanguard its roster names."), *PlayerState.GetPlayerName(),
 			*PlayerState.GetRequestedVanguardId().ToString());
 		PlayerState.SetVanguardId(Participant->VanguardId);
+		PlayerState.SetStartingFluxSpells(Participant->FluxSpells);
 		UE_LOG(LogVeyraMatch, Log, TEXT("%s plays %s."), *PlayerState.GetPlayerName(), *Participant->VanguardId.ToString());
 		return;
 	}
@@ -856,6 +858,8 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 	}
 	PlayerState.SetPassive(Prepared.Passive);
 
+	EquipFluxSpells(PlayerState, AbilitySystem);
+
 	// A developer match may spend the level-1 skill point for the player, so the Vanguard can cast at once.
 	UVeyraProgressionComponent* Progression = PlayerState.FindComponentByClass<UVeyraProgressionComponent>();
 	switch (UVeyraMatchTuningSubsystem::Get().DeveloperMatch.StartingRank)
@@ -875,7 +879,52 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 	// The one guaranteed Gold, once per match (Economy & Progression Bible §1), and empty slots to spend it on (§10).
 	UVeyraRewardSubsystem::GrantStartingGold(PlayerState);
 	UVeyraShopSubsystem::InitializeInventory(PlayerState);
+	// Its spell slots start as open as its team's permanent Flux has made them (ADR-015 §4).
+	if (Battleground)
+	{
+		Battleground->UnlockSpellSlots(PlayerState);
+	}
 	PlayerState.MarkStatsInitialized();
+	return true;
+}
+
+void AVeyraGameMode::EquipFluxSpells(AVeyraPlayerState& PlayerState, UAbilitySystemComponent& AbilitySystem) const
+{
+	// The Flux Spells it chose, equipped in its spell slots, locked until its team's Flux opens them (ADR-015 §5).
+	UVeyraAbilityLoadoutComponent* Loadout = PlayerState.FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+	const TArray<FVeyraContentId>& Spells = PlayerState.GetStartingFluxSpells();
+	for (int32 Index = 0; Loadout && Index < Spells.Num() && Index < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)); ++Index)
+	{
+		if (Spells[Index].IsValid() && !Loadout->Grant(AbilitySystem, VeyraAbilitySlots::Spells[Index], Spells[Index]))
+		{
+			UE_LOG(LogVeyraMatch, Error, TEXT("Could not equip %s's Flux Spell %s."), *PlayerState.GetPlayerName(), *Spells[Index].ToString());
+		}
+	}
+	if (Spells.ContainsByPredicate([](const FVeyraContentId& Spell) { return Spell.IsValid(); }))
+	{
+		TArray<FString> Names;
+		for (const FVeyraContentId& Spell : Spells)
+		{
+			Names.Add(Spell.IsValid() ? Spell.ToString() : TEXT("(empty)"));
+		}
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s takes Flux Spells %s into the match."), *PlayerState.GetPlayerName(), *FString::Join(Names, TEXT(", ")));
+	}
+}
+
+bool AVeyraGameMode::EquipStartingFluxSpells(AVeyraPlayerState& Participant, TArray<FVeyraContentId> Spells)
+{
+	const FString Problem = VeyraMatchRules::CheckAssignedFluxSpells(Spells, UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster);
+	if (!Problem.IsEmpty())
+	{
+		UE_LOG(LogVeyraMatch, Error, TEXT("Refused %s's starting Flux Spells: %s."), *Participant.GetPlayerName(), *Problem);
+		return false;
+	}
+	Participant.SetStartingFluxSpells(MoveTemp(Spells));
+	// Already spawned, as a bot seated in preparation is: equip them now.
+	if (UAbilitySystemComponent* AbilitySystem = Participant.HasInitializedStats() ? Participant.GetAbilitySystemComponent() : nullptr)
+	{
+		EquipFluxSpells(Participant, *AbilitySystem);
+	}
 	return true;
 }
 

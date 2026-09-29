@@ -63,6 +63,31 @@ struct FVeyraSelectCardModel
 	bool bTaken = false;
 };
 
+/** One Flux Spell a slot may take, or none (Pre-Game Client UX Bible 36; ADR-015 §5). */
+struct FVeyraSpellChoiceModel
+{
+	/** Empty for no spell. */
+	FString SpellId;
+	FText Name;
+	FText Description;
+	bool bChosen = false;
+};
+
+/** One of the two Flux Spell slots in champion select, with what may fill it. */
+struct FVeyraSpellSlotModel
+{
+	/** From 0, in unlock order. */
+	int32 Slot = 0;
+	/** "Flux Spell 1". */
+	FText Title;
+	/** "Unlocks at 25 permanent Team Flux": the slot's own threshold (Battleground Bible §14). */
+	FText Unlock;
+	/** The chosen spell's name, or "Empty". */
+	FText Chosen;
+	/** None first, then every roster spell. */
+	TArray<FVeyraSpellChoiceModel> Choices;
+};
+
 /** Champion select as the screen shows it. */
 struct FVeyraSelectModel
 {
@@ -82,6 +107,12 @@ struct FVeyraSelectModel
 	/** A matchmade select still picking offers Leave, which cancels it for everyone (a dodge). */
 	bool bOffersLeave = false;
 	bool bCanLeave = false;
+	/** The player's two starting Flux Spell slots; empty when the player has no seat. */
+	TArray<FVeyraSpellSlotModel> SpellSlots;
+	/** Choosing never waits for lock-in and never touches the timer (UX 36). */
+	bool bCanChooseSpells = false;
+	/** "Your Match Setup" once locked in (UX 38): the Vanguard and both spells with their thresholds. Empty before. */
+	FText Setup;
 };
 
 /** A mode card on the Play page (UX-12). */
@@ -177,7 +208,8 @@ namespace VeyraShellModels
 	/** "m:ss", rounded up to the whole second. */
 	VEYRAUI_API FText FormatCountdown(double Seconds);
 
-	VEYRAUI_API FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock, bool bCanLeave);
+	VEYRAUI_API FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock, bool bCanLeave,
+		bool bCanChooseSpells = false);
 
 	/** The enabled modes, in the backend's order. A mode is shown even when it has no matchmaker yet, as not yet available. */
 	VEYRAUI_API TArray<FVeyraModeCardModel> DescribeModes(const FVeyraClientSnapshot& Snapshot);

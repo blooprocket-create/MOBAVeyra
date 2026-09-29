@@ -363,6 +363,21 @@ bool ParseSelect(const FString& Body, TOptional<FSelect>& OutSelect, FString& Ou
 			OutProblem = TEXT("a seat of the select is not in the expected format");
 			return false;
 		}
+		// Only the player's own seat carries its Flux Spells: content IDs, or "" for an empty slot.
+		const TArray<TSharedPtr<FJsonValue>>* Spells = nullptr;
+		if (!(*SeatObject)->HasTypedField<EJson::Null>(TEXT("fluxSpells")) && (*SeatObject)->TryGetArrayField(TEXT("fluxSpells"), Spells))
+		{
+			for (const TSharedPtr<FJsonValue>& Spell : *Spells)
+			{
+				FString Id;
+				if (!Spell.IsValid() || !Spell->TryGetString(Id) || (!Id.IsEmpty() && !MatchesWhole(ContentIdPattern, Id)))
+				{
+					OutProblem = TEXT("a seat's Flux Spells are not in the expected format");
+					return false;
+				}
+				Seat.FluxSpells.Add(MoveTemp(Id));
+			}
+		}
 		Select.Seats.Add(MoveTemp(Seat));
 	}
 	if (Select.Seats.FilterByPredicate([](const FSelectSeat& Seat) { return Seat.bYou; }).Num() != 1)
@@ -569,6 +584,22 @@ FString BuildReadyBody(bool bReady)
 	const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Body);
 	Writer->WriteObjectStart();
 	Writer->WriteValue(TEXT("ready"), bReady);
+	Writer->WriteObjectEnd();
+	Writer->Close();
+	return Body;
+}
+
+FString BuildFluxSpellsBody(TConstArrayView<FString> Spells)
+{
+	FString Body;
+	const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Body);
+	Writer->WriteObjectStart();
+	Writer->WriteArrayStart(TEXT("fluxSpells"));
+	for (const FString& Spell : Spells)
+	{
+		Writer->WriteValue(Spell);
+	}
+	Writer->WriteArrayEnd();
 	Writer->WriteObjectEnd();
 	Writer->Close();
 	return Body;

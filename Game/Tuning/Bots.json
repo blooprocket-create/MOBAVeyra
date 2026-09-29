@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "senses": {
     "provenance": "Provisional",
     "sightRadius": 1400,
@@ -44,7 +44,14 @@
       "fluxbornTolerance": 2
     }
   },
-  "roles": ["Mid", "Top", "Jungle", "Bottom", "Bottom"],
+  "seats": [
+    { "role": "Mid", "fluxSpells": ["blink", "scorch"] },
+    { "role": "Top", "fluxSpells": ["blink", "scorch"] },
+    { "role": "Jungle", "fluxSpells": ["blink", "wildstrike"] },
+    { "role": "Bottom", "fluxSpells": ["blink", "mend"] },
+    { "role": "Bottom", "fluxSpells": ["blink", "enfeeble"] }
+  ],
+  "fluxSpells": { "blink": "Escape", "mend": "Defend", "scorch": "Damage", "enfeeble": "Damage", "wildstrike": "Secure" },
   "jungle": {
     "provenance": "Provisional",
     "gankRange": 3000,

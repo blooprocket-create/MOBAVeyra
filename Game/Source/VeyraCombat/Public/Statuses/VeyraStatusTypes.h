@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Content/VeyraContentId.h"
+#include "Damage/VeyraDamageTypes.h"
 #include "Misc/EnumClassFlags.h"
 #include "UObject/ObjectMacros.h"
 
@@ -47,6 +48,18 @@ enum class EVeyraStatusKind : uint8
 	 * Magnitude: the fraction added per stack, above 0, every stack together at most 1.
 	 */
 	DamageAmplification,
+	/**
+	 * Deals damage of the status's DamageType in its source's name every TickSeconds while it lasts
+	 * (Combat Bible §14): no tick as it lands and no partial tick as it ends. Not crowd control.
+	 * Magnitude: the damage of one tick per stack, above 0.
+	 */
+	DamageOverTime,
+	/**
+	 * Reduces the damage the unit deals, the hostile counterpart of DamageAmplification (ADR-015 §3).
+	 * Like generic reduction it spares True damage (§15). Not crowd control. Magnitude: the fraction
+	 * removed per stack, above 0, every stack together below 1.
+	 */
+	Weaken,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */
@@ -113,6 +126,14 @@ struct VEYRACOMBAT_API FVeyraStatusSpec
 
 	UPROPERTY()
 	double TakedownExtensionMaxSeconds = 0.0;
+
+	/** A DamageOverTime status's damage type; unused by other kinds. */
+	UPROPERTY()
+	EVeyraDamageType DamageType = EVeyraDamageType::Physical;
+
+	/** Seconds between a DamageOverTime status's ticks, above 0 and at most its duration; 0 for every other kind. */
+	UPROPERTY()
+	double TickSeconds = 0.0;
 };
 
 /** One active status as every machine sees it. Replicated for presentation. */
@@ -188,4 +209,7 @@ namespace VeyraStatuses
 
 	/** The actions the entries block. */
 	VEYRACOMBAT_API EVeyraActionBlocks ActionBlocks(TConstArrayView<FVeyraStatusEntry> Entries);
+
+	/** How many whole ticks a DamageOverTime status of DurationSeconds deals, one every TickSeconds (§14). */
+	VEYRACOMBAT_API int32 TickCount(double DurationSeconds, double TickSeconds);
 }

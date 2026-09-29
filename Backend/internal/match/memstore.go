@@ -103,6 +103,21 @@ func (s *MemStore) MatchBySelectID(_ context.Context, selectID string) (Match, e
 	return Match{}, ErrMatchNotFound
 }
 
+func (s *MemStore) LastFluxSpells(_ context.Context, accountID, vanguardID string) ([2]string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var last Match
+	var spells [2]string
+	for _, m := range s.matches {
+		for _, p := range m.Participants {
+			if p.AccountID == accountID && p.VanguardID == vanguardID && !m.ReadyAt.IsZero() && (last.ID == "" || m.CreatedAt.After(last.CreatedAt)) {
+				last, spells = m, p.FluxSpells
+			}
+		}
+	}
+	return spells, nil
+}
+
 func (s *MemStore) MatchesNeedingAttention(_ context.Context) ([]Match, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

@@ -14,6 +14,11 @@ EVeyraCastRejection TryCast(UAbilitySystemComponent& Caster, EVeyraAbilitySlot S
 {
 	const AActor* Owner = Caster.GetOwner();
 	const UVeyraAbilityLoadoutComponent* Loadout = Owner ? Owner->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	// A locked spell slot refuses before anything else, whatever it holds (ADR-015 §4).
+	if (Loadout && Loadout->IsLocked(Slot))
+	{
+		return EVeyraCastRejection::Locked;
+	}
 	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr;
 	const FGameplayAbilitySpec* Spec = Entry ? Caster.FindAbilitySpecFromHandle(Entry->Handle) : nullptr;
 	const UVeyraGameplayAbility* Ability = Spec ? Cast<UVeyraGameplayAbility>(Spec->Ability) : nullptr;

@@ -82,6 +82,12 @@ enum class EVeyraShopRefusal : uint8
 	NotNow,
 	/** A consumable is still restoring; another waits until it ends. */
 	StillRestoring,
+	/** The Flux Spell roster has no such spell (ADR-015 §6). */
+	UnknownSpell,
+	/** A Vanguard has two Flux Spell slots. */
+	NoSuchSpellSlot,
+	/** One of the Vanguard's slots holds that spell already. */
+	AlreadyEquipped,
 };
 
 VEYRAITEMS_API const TCHAR* LexToString(EVeyraShopRefusal Refusal);

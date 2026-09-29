@@ -254,6 +254,34 @@ namespace
 			Lines.Add({ MoveTemp(Bar), Settings.TextColor });
 		}
 
+		// The Flux Spells, by their keys: locked with the permanent Flux each needs, ready, or cooling (ADR-015 §7).
+		if (!Player.Spells.IsEmpty())
+		{
+			FString Bar;
+			for (const FVeyraHudSpellSlot& Spell : Player.Spells)
+			{
+				FString State = TEXT("-");
+				if (Spell.Spell.IsValid())
+				{
+					State = VeyraContentText::AbilityName(Spell.Spell).ToString();
+					if (Spell.bLocked)
+					{
+						State += FString::Printf(TEXT(" (locked until %.0f permanent Team Flux)"), Spell.UnlockFlux);
+					}
+					else if (Spell.CooldownSeconds > 0.0)
+					{
+						State += FString::Printf(TEXT(" %.0f s"), FMath::CeilToDouble(Spell.CooldownSeconds));
+					}
+					else
+					{
+						State += TEXT(" ready");
+					}
+				}
+				Bar += FString::Printf(TEXT("[%s] %s   "), *Input.GetAbilityKey(Spell.Slot).GetDisplayName(false).ToString(), *State);
+			}
+			Lines.Add({ MoveTemp(Bar), Settings.TextColor });
+		}
+
 		float Y = Canvas.ClipY - Settings.HudMargin - Lines.Num() * HudLineHeight();
 		for (const FHudLine& Line : Lines)
 		{

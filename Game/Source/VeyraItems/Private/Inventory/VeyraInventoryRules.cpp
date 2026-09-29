@@ -34,6 +34,12 @@ const TCHAR* LexToString(EVeyraShopRefusal Refusal)
 		return TEXT("not now");
 	case EVeyraShopRefusal::StillRestoring:
 		return TEXT("one is still restoring");
+	case EVeyraShopRefusal::UnknownSpell:
+		return TEXT("no such Flux Spell");
+	case EVeyraShopRefusal::NoSuchSpellSlot:
+		return TEXT("no such spell slot");
+	case EVeyraShopRefusal::AlreadyEquipped:
+		return TEXT("already equipped");
 	}
 	return TEXT("unknown");
 }

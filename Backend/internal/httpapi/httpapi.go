@@ -278,6 +278,7 @@ var errorStatus = []struct {
 	{match.ErrInvalidMap, http.StatusBadRequest, "invalid_map"},
 	{match.ErrInvalidRoster, http.StatusBadRequest, "invalid_roster"},
 	{match.ErrInvalidVanguard, http.StatusBadRequest, "invalid_vanguard"},
+	{match.ErrInvalidFluxSpells, http.StatusBadRequest, "invalid_flux_spells"},
 	{match.ErrAccountNotFound, http.StatusNotFound, "account_not_found"},
 	{match.ErrAlreadyInMatch, http.StatusConflict, "already_in_match"},
 	{match.ErrNoServerCapacity, http.StatusServiceUnavailable, "no_server_capacity"},

@@ -1,12 +1,15 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
+#include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Casting/VeyraCastStateComponent.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
 #include "CQTest.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "EngineUtils.h"
 #include "Life/VeyraLifeComponent.h"
+#include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -398,6 +401,198 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsFalse(World.Has(*Caster, TEXT("test_bulwark")) || World.Has(*Caster, TEXT("test_heavy"))));
 			ASSERT_THAT(IsTrue(Unit.GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute()) == ResourceAfterFirst));
 			ASSERT_THAT(IsTrue(Cast() == EVeyraCastRejection::OnCooldown, TEXT("once ended, the cooldown applies again")));
+		}
+	};
+
+	// Veyra.Abilities.SpellArchetypes.*: what the Flux Spells ask of the archetypes: a spell slot's rank
+	// and fixed cooldown, a targeted ability's statuses and unit kinds, Level-scaled amounts, and the
+	// heal (ADR-015 §1–§3).
+	TEST_CLASS(SpellArchetypes, "Veyra.Abilities")
+	{
+		// Fixture values, independent of the committed Abilities.json.
+		static constexpr double CastRange = 600.0;
+		static constexpr double Near = 200.0;
+		static constexpr double Cooldown = 90.0;
+		static constexpr double SmiteDamage = 300.0;
+		static constexpr double BurnPerTick = 10.0;
+		static constexpr double BurnPerLevel = 2.0;
+		static constexpr double HealAmount = 100.0;
+		static constexpr double HealPerLevel = 10.0;
+		static constexpr double AllyRange = 500.0;
+		static constexpr double LongSeconds = 60.0;
+		static constexpr double AbilityHaste = 100.0;
+
+		FActorTestSpawner Spawner;
+		FVeyraAbilitiesTuning Tuning;
+		AVeyraVanguardCharacter* Caster = nullptr;
+
+		BEFORE_EACH()
+		{
+			FVeyraStatusTuning Burn = StatusOf(EVeyraStatusKind::DamageOverTime, BurnPerTick, LongSeconds);
+			Burn.DamageOverTime.Add(FVeyraDamageOverTimeTuning{ EVeyraDamageType::TrueDamage, 1.0, BurnPerLevel });
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_burn")), Burn);
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_rush")), StatusOf(EVeyraStatusKind::MoveSpeed, 0.3, LongSeconds));
+
+			FVeyraTargetedDamageAbilityTuning Smite;
+			Smite.CastRange = CastRange;
+			Smite.CooldownSeconds = Cooldown;
+			Smite.DamageType = EVeyraDamageType::TrueDamage;
+			Smite.DamageAmount = SmiteDamage;
+			Smite.TargetKinds = { EVeyraUnitKind::Wildlife, EVeyraUnitKind::Objective, EVeyraUnitKind::Fluxborn };
+			Tuning.TargetedDamage.Add(ArchetypeTestId(TEXT("test_smite")), Smite);
+
+			FVeyraTargetedDamageAbilityTuning Ignite;
+			Ignite.CastRange = CastRange;
+			Ignite.CooldownSeconds = Cooldown;
+			Ignite.DamageType = EVeyraDamageType::TrueDamage;
+			Ignite.Statuses = { ArchetypeTestId(TEXT("test_burn")) };
+			Ignite.TargetKinds = { EVeyraUnitKind::Vanguard };
+			Tuning.TargetedDamage.Add(ArchetypeTestId(TEXT("test_ignite")), Ignite);
+
+			FVeyraSelfBuffAbilityTuning Mend;
+			Mend.Cast = InstantCast(0.0, Cooldown, 0.0);
+			Mend.Heal.Add(FVeyraHealTuning{ HealAmount, HealPerLevel, AllyRange, { ArchetypeTestId(TEXT("test_rush")) } });
+			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_mend")), Mend);
+			Tuning.FluxSpells.Roster = { ArchetypeTestId(TEXT("test_smite")), ArchetypeTestId(TEXT("test_ignite")), ArchetypeTestId(TEXT("test_mend")) };
+			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
+
+			FArchetypeTestWorld World{ Spawner };
+			Caster = &World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			// Its team's permanent Flux has opened both slots, as Match would set it (ADR-015 §4).
+			LoadoutOf(*Caster).SetUnlockedSpellSlots(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells));
+		}
+
+		AFTER_EACH()
+		{
+			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
+		}
+
+		static UVeyraAbilityLoadoutComponent& LoadoutOf(AVeyraVanguardCharacter& Vanguard)
+		{
+			return *Vanguard.GetPlayerState()->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+		}
+
+		EVeyraCastRejection CastAtUnit(EVeyraAbilitySlot Slot, AActor& Unit) const
+		{
+			FVeyraCastTarget Target;
+			Target.Actor = &Unit;
+			Target.bHasLocation = true;
+			Target.Location = Unit.GetActorLocation();
+			return VeyraAbilities::TryCast(*Caster->GetAbilitySystemComponent(), Slot, Target);
+		}
+
+		/** Takes Amount of Unit's Health, as a hazard on no side would. */
+		void Hurt(AActor& Unit, double Amount)
+		{
+			UAbilitySystemComponent& Hazard = VeyraCombatTests::SpawnCombatant(Spawner);
+			VeyraCombat::InitializeStats(Hazard, VeyraCombatTests::ExampleStats());
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Amount });
+			VeyraCombat::DealDamage(Hazard, *UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit), Damage);
+		}
+
+		TEST_METHOD(ASpellSlotCastsAtRankOneOnAFixedCooldown)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraTestFluxborn& Minion = World.SpawnFluxborn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Equip(*Caster, EVeyraAbilitySlot::Spell1, ArchetypeTestId(TEXT("test_smite")))));
+			// Haste that would halve an ability's cooldown leaves a spell's alone (Combat Bible §21).
+			Caster->GetAbilitySystemComponent()->SetNumericAttributeBase(UVeyraOffenceSet::GetAbilityHasteAttribute(), static_cast<float>(AbilityHaste));
+			ASSERT_THAT(IsTrue(CastAtUnit(EVeyraAbilitySlot::Spell1, Minion) == EVeyraCastRejection::None, TEXT("a spell needs no rank")));
+			const UVeyraCooldownComponent& Cooldowns = *Caster->GetPlayerState()->FindComponentByClass<UVeyraCooldownComponent>();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Cooldowns.GetDurationSeconds(ArchetypeTestId(TEXT("test_smite"))), Cooldown),
+				FString::Printf(TEXT("cooldown %.1f s"), Cooldowns.GetDurationSeconds(ArchetypeTestId(TEXT("test_smite"))))));
+		}
+
+		TEST_METHOD(ALockedSpellSlotRefusesWhateverItHolds)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Newcomer = World.Spawn(EVeyraTeam::A, FVector(0.0, Near, 0.0));
+			ASSERT_THAT(IsTrue(World.Equip(Newcomer, EVeyraAbilitySlot::Spell1, ArchetypeTestId(TEXT("test_mend")))));
+			ASSERT_THAT(IsTrue(World.Equip(Newcomer, EVeyraAbilitySlot::Spell2, ArchetypeTestId(TEXT("test_smite")))));
+			const auto CastMend = [&Newcomer](EVeyraAbilitySlot Slot) { return VeyraAbilities::TryCast(*Newcomer.GetAbilitySystemComponent(), Slot, FVeyraCastTarget()); };
+			ASSERT_THAT(IsTrue(CastMend(EVeyraAbilitySlot::Spell1) == EVeyraCastRejection::Locked, TEXT("no permanent Flux yet")));
+			UVeyraAbilityLoadoutComponent& Loadout = LoadoutOf(Newcomer);
+			Loadout.SetUnlockedSpellSlots(1);
+			ASSERT_THAT(IsTrue(CastMend(EVeyraAbilitySlot::Spell1) == EVeyraCastRejection::None, TEXT("the first slot opens first")));
+			ASSERT_THAT(IsTrue(CastMend(EVeyraAbilitySlot::Spell2) == EVeyraCastRejection::Locked, TEXT("locked whatever it holds, target or none")));
+			Loadout.SetUnlockedSpellSlots(0);
+			ASSERT_THAT(AreEqual(1, Loadout.GetUnlockedSpellSlots(), TEXT("an unlock lasts the match")));
+		}
+
+		TEST_METHOD(ATargetedSpellHitsOnlyTheKindsItNames)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			AVeyraTestFluxborn& Minion = World.SpawnFluxborn(EVeyraTeam::B, FVector(0.0, Near, 0.0));
+			ASSERT_THAT(IsTrue(World.Equip(*Caster, EVeyraAbilitySlot::Spell1, ArchetypeTestId(TEXT("test_smite")))));
+			ASSERT_THAT(IsTrue(World.Equip(*Caster, EVeyraAbilitySlot::Spell2, ArchetypeTestId(TEXT("test_ignite")))));
+			ASSERT_THAT(IsTrue(CastAtUnit(EVeyraAbilitySlot::Spell1, Enemy) == EVeyraCastRejection::InvalidTarget, TEXT("a smite spares Vanguards")));
+			ASSERT_THAT(IsTrue(CastAtUnit(EVeyraAbilitySlot::Spell2, Minion) == EVeyraCastRejection::InvalidTarget, TEXT("an ignite is for Vanguards")));
+			ASSERT_THAT(IsTrue(CastAtUnit(EVeyraAbilitySlot::Spell1, Minion) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Minion), SmiteDamage, 1e-3)));
+		}
+
+		TEST_METHOD(AnIgniteBurnsByItsCastersLevel)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Equip(*Caster, EVeyraAbilitySlot::Spell2, ArchetypeTestId(TEXT("test_ignite")))));
+			UVeyraProgressionComponent& Progression = *Caster->GetPlayerState()->FindComponentByClass<UVeyraProgressionComponent>();
+			Progression.AddExperience(UVeyraProgressionTuningSubsystem::Get().Experience.ToNextLevel[0]);
+			const int32 Level = Progression.GetLevel();
+			ASSERT_THAT(IsTrue(Level > 1));
+			ASSERT_THAT(IsTrue(CastAtUnit(EVeyraAbilitySlot::Spell2, Enemy) == EVeyraCastRejection::None));
+			const UVeyraStatusComponent& Statuses = *Enemy.GetPlayerState()->FindComponentByClass<UVeyraStatusComponent>();
+			const FVeyraStatusEntry* Burning = Statuses.GetLedger().Entries.FindByPredicate([](const FVeyraStatusEntry& Entry) { return Entry.Kind == EVeyraStatusKind::DamageOverTime; });
+			ASSERT_THAT(IsNotNull(Burning));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Burning->Magnitude, BurnPerTick + BurnPerLevel * (Level - 1)), TEXT("its ticks are fixed at the caster's Level")));
+			ASSERT_THAT(IsTrue(World.HealthLost(Enemy) == 0.0, TEXT("nothing lands at once")));
+		}
+
+		TEST_METHOD(AMendHealsTheCasterAndTheMostWoundedAllyInRange)
+		{
+			// Fixture values: the Health each lacks.
+			constexpr double CasterLacks = 50.0;
+			constexpr double MostWoundedLacks = 300.0;
+			constexpr double LessWoundedLacks = 150.0;
+			constexpr double FarLacks = 400.0;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& MostWounded = World.Spawn(EVeyraTeam::A, FVector(AllyRange / 2.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& LessWounded = World.Spawn(EVeyraTeam::A, FVector(0.0, AllyRange / 4.0, 0.0));
+			AVeyraVanguardCharacter& Far = World.Spawn(EVeyraTeam::A, FVector(AllyRange * 3.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(0.0, -AllyRange / 4.0, 0.0));
+			Hurt(*Caster, CasterLacks);
+			Hurt(MostWounded, MostWoundedLacks);
+			Hurt(LessWounded, LessWoundedLacks);
+			Hurt(Far, FarLacks);
+			Hurt(Enemy, FarLacks);
+			ASSERT_THAT(IsTrue(World.Equip(*Caster, EVeyraAbilitySlot::Spell1, ArchetypeTestId(TEXT("test_mend")))));
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Caster->GetAbilitySystemComponent(), EVeyraAbilitySlot::Spell1, FVeyraCastTarget()) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(World.HealthLost(*Caster) == 0.0, TEXT("healed to full, and no further")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(MostWounded), MostWoundedLacks - HealAmount, 1e-3)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(LessWounded), LessWoundedLacks, 1e-3), TEXT("one ally only")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Far), FarLacks, 1e-3) && FMath::IsNearlyEqual(World.HealthLost(Enemy), FarLacks, 1e-3)));
+			ASSERT_THAT(IsTrue(World.Has(*Caster, TEXT("test_rush")) && World.Has(MostWounded, TEXT("test_rush"))));
+			ASSERT_THAT(IsFalse(World.Has(LessWounded, TEXT("test_rush"))));
+		}
+
+		TEST_METHOD(TheRosterNamesSingleRankAbilitiesThatExist)
+		{
+			const int32 BasicRanks[] = { 5 };
+			ASSERT_THAT(IsTrue(VeyraAbilityRules::Validate(Tuning, BasicRanks).IsEmpty(), FString::Join(VeyraAbilityRules::Validate(Tuning, BasicRanks), TEXT(" | "))));
+			FVeyraAbilitiesTuning Broken = Tuning;
+			Broken.SelfBuff[ArchetypeTestId(TEXT("test_mend"))].Cast.CooldownSecondsByRank = { 5.0, 4.0, 3.0, 2.0, 1.0 };
+			Broken.FluxSpells.Roster.Add(ArchetypeTestId(TEXT("test_nothing")));
+			Broken.Statuses[ArchetypeTestId(TEXT("test_burn"))].DamageOverTime.Reset();
+			Broken.TargetedDamage[ArchetypeTestId(TEXT("test_ignite"))].Statuses.Reset();
+			const TArray<FString> Problems = VeyraAbilityRules::Validate(Broken, BasicRanks);
+			const FString All = FString::Join(Problems, TEXT(" | "));
+			const auto Mentions = [&Problems](const TCHAR* Text) { return Problems.ContainsByPredicate([Text](const FString& Problem) { return Problem.Contains(Text); }); };
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/fluxSpells/roster/2: \"test_mend\" has ranks")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/fluxSpells/roster/3: names \"test_nothing\"")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/statuses/test_burn/damageOverTime")), All));
+			ASSERT_THAT(IsTrue(Mentions(TEXT("/targetedDamage/test_ignite/damageAmount: deals no damage and applies no status")), All));
 		}
 	};
 

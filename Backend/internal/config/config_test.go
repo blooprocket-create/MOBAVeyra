@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -24,6 +25,7 @@ const validJSON = `{
     {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
   ],
   "vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},
+  "fluxSpells": {"roster": ["blink", "mend"]},
   "customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A", "pickDuration": "30s", "playersPerSide": 5,
     "bots": [{"side": "B", "vanguardId": "cairn", "difficulty": "beginner"}, {"side": "B", "vanguardId": "bryn", "difficulty": "intermediate"}]},
   "matchmaking": {"interval": "1s", "searchLimit": 10000},
@@ -109,6 +111,9 @@ func TestParseRejects(t *testing.T) {
 		"no casual select":          {`"casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},`, ``, "casualSelect is required"},
 		"no presence timeout":       {`, "presenceTimeout": "10s"`, ``, "casualSelect.presenceTimeout is required"},
 		"no vanguards":              {`"vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},`, ``, "vanguards is required"},
+		"no flux spells":            {`"fluxSpells": {"roster": ["blink", "mend"]},`, ``, "fluxSpells is required"},
+		"empty spell roster":        {`"roster": ["blink", "mend"]`, `"roster": []`, "fluxSpells.roster is required"},
+		"duplicate spell":           {`"roster": ["blink", "mend"]`, `"roster": ["blink", "blink"]`, "fluxSpells.roster contains duplicate blink"},
 		"nothing released":          {`"released": ["cairn", "qazharr", "oriel", "bryn"]`, `"released": []`, "vanguards.released is required"},
 		"bad released id":           {`"released": ["cairn",`, `"released": ["Cairn",`, "must hold content IDs"},
 		"duplicate released":        {`"released": ["cairn", "qazharr"`, `"released": ["cairn", "cairn"`, "vanguards.released contains duplicate cairn"},
@@ -224,5 +229,33 @@ func TestTeamSizesFitTheGamesMatchJSON(t *testing.T) {
 		if m.HumanPlayersPerTeam > limit {
 			t.Fatalf("mode %s has %d players a side, but the match server holds at most %d (Match.json teams.maxTeamSize)", m.ID, m.HumanPlayersPerTeam, limit)
 		}
+	}
+}
+
+// The Flux Spells champion select offers are exactly the game's roster,
+// Game/Tuning/Abilities.json fluxSpells.roster, in the same order: the match
+// server refuses a spell off it (ADR-015 §5). Both files are data, so they are
+// kept in step here.
+func TestFluxSpellRosterIsTheGamesAbilitiesJSON(t *testing.T) {
+	_, file, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(file), "..", "..", "..")
+	cfg, err := Load(filepath.Join(root, "Backend", "config", "local.json"))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	raw, err := os.ReadFile(filepath.Join(root, "Game", "Tuning", "Abilities.json"))
+	if err != nil {
+		t.Fatalf("read the game's Abilities.json: %v", err)
+	}
+	var tuning struct {
+		FluxSpells struct {
+			Roster []string `json:"roster"`
+		} `json:"fluxSpells"`
+	}
+	if err := json.Unmarshal(raw, &tuning); err != nil {
+		t.Fatalf("parse Abilities.json: %v", err)
+	}
+	if !slices.Equal(cfg.FluxSpells.Roster, tuning.FluxSpells.Roster) {
+		t.Fatalf("config fluxSpells.roster %v, but Abilities.json's roster is %v", cfg.FluxSpells.Roster, tuning.FluxSpells.Roster)
 	}
 }

@@ -14,7 +14,10 @@
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "Tests/Services/VeyraClientFlowTestRig.h"
+#include "Slots/VeyraAbilitySlot.h"
 #include "Text/VeyraContentText.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "UObject/Package.h"
 #include "VeyraPlayerController.h"
 
@@ -72,6 +75,33 @@ namespace VeyraShellTests
 			{
 				ASSERT_THAT(IsTrue(VeyraShellModels::ScreenFor(Pair.Key) == Pair.Value, LexToString(Pair.Key)));
 			}
+		}
+
+		TEST_METHOD(ChampionSelectOffersBothSpellSlotsAndSumsUpTheSetup)
+		{
+			const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
+			const TArray<double>& Thresholds = UVeyraFluxTuningSubsystem::Get().SpellSlots.Thresholds;
+			ASSERT_THAT(IsTrue(Roster.Num() >= 2 && Thresholds.Num() == 2));
+			FVeyraClientSnapshot Snapshot = SelectSnapshot(TEXT("oriel"), FString());
+			Snapshot.Select.Seats[0].FluxSpells = { Roster[0].ToString(), FString() };
+			FVeyraSelectModel Model = VeyraShellModels::DescribeSelect(Snapshot, 20.0, true, true, false, true);
+			ASSERT_THAT(IsTrue(Model.bCanChooseSpells && Model.SpellSlots.Num() == 2));
+			// Each slot shows its own permanent-Flux threshold (UX 36).
+			ASSERT_THAT(IsTrue(Model.SpellSlots[0].Unlock.ToString().Contains(FText::AsNumber(Thresholds[0]).ToString())));
+			ASSERT_THAT(IsTrue(Model.SpellSlots[1].Unlock.ToString().Contains(FText::AsNumber(Thresholds[1]).ToString())));
+			ASSERT_THAT(AreEqual(Model.SpellSlots[0].Chosen.ToString(), VeyraContentText::AbilityName(Roster[0]).ToString()));
+			ASSERT_THAT(AreEqual(Model.SpellSlots[1].Chosen.ToString(), FString(TEXT("Empty"))));
+			// None, then every roster spell, the chosen one marked.
+			ASSERT_THAT(AreEqual(Model.SpellSlots[0].Choices.Num(), Roster.Num() + 1));
+			ASSERT_THAT(IsTrue(!Model.SpellSlots[0].Choices[0].bChosen && Model.SpellSlots[0].Choices[1].bChosen));
+			ASSERT_THAT(IsTrue(Model.SpellSlots[1].Choices[0].bChosen, TEXT("an empty slot has None chosen")));
+			ASSERT_THAT(IsTrue(Model.Setup.IsEmpty(), TEXT("Your Match Setup comes with lock-in")));
+
+			Snapshot.Select.Seats[0].Locked = TEXT("oriel");
+			Model = VeyraShellModels::DescribeSelect(Snapshot, 10.0, false, false, false, true);
+			ASSERT_THAT(IsTrue(Model.bCanChooseSpells, TEXT("spells stay open after lock-in")));
+			ASSERT_THAT(IsTrue(Model.Setup.ToString().Contains(TEXT("Oriel")) && Model.Setup.ToString().Contains(VeyraContentText::AbilityName(Roster[0]).ToString()),
+				Model.Setup.ToString()));
 		}
 
 		TEST_METHOD(SelectModel)
@@ -378,8 +408,18 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.ReachSelect()));
 			ShowScreen();
 			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::ChampionSelect));
-			// No navigation leaves a committed select (UX-4).
-			ASSERT_THAT(IsTrue(LabelsOf(Screen->GetButtons()) == (TArray<FString>{ TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Lock In") })));
+			// No navigation leaves a committed select (UX-4): the Vanguards, each Flux Spell slot's choices, and Lock In.
+			TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn") };
+			for (int32 SpellSlot = 0; SpellSlot < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)); ++SpellSlot)
+			{
+				Expected.Add(TEXT("None"));
+				for (const FVeyraContentId& Spell : UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster)
+				{
+					Expected.Add(VeyraContentText::AbilityName(Spell).ToString());
+				}
+			}
+			Expected.Add(TEXT("Lock In"));
+			ASSERT_THAT(IsTrue(LabelsOf(Screen->GetButtons()) == Expected, FString::Join(LabelsOf(Screen->GetButtons()), TEXT(", "))));
 			ASSERT_THAT(IsFalse(Button(TEXT("Lock In"))->GetIsEnabled(), TEXT("nothing is hovered yet")));
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("DevOne (you): Waiting"))));
 

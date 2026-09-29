@@ -65,14 +65,15 @@ namespace VeyraClientFlowTests
 
 	inline const TCHAR* const NoSelect = TEXT("{\"select\":null}");
 
+	/** FluxSpells is the seat's spells as JSON, such as ["blink",""]. */
 	inline FString SelectBody(const TCHAR* State, const FString& Hover = FString(), const FString& Locked = FString(), const FString& StartedMatch = FString(),
-		const FString& CancelReason = FString(), double Remaining = 30.0)
+		const FString& CancelReason = FString(), double Remaining = 30.0, const TCHAR* FluxSpells = TEXT("[\"\",\"\"]"))
 	{
 		return FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"practice\",\"mode\":\"custom_practice\",\"state\":\"%s\",")
 							   TEXT("\"deadline\":\"2026-09-27T12:00:30Z\",\"remainingSeconds\":%g,")
-							   TEXT("\"seats\":[{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,\"hover\":%s,\"locked\":%s}],")
+							   TEXT("\"seats\":[{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,\"hover\":%s,\"locked\":%s,\"fluxSpells\":%s}],")
 							   TEXT("\"matchId\":%s,\"cancelReason\":%s}}"),
-			SelectId, State, Remaining, *Quoted(Hover), *Quoted(Locked), *Quoted(StartedMatch), *Quoted(CancelReason));
+			SelectId, State, Remaining, *Quoted(Hover), *Quoted(Locked), FluxSpells, *Quoted(StartedMatch), *Quoted(CancelReason));
 	}
 
 	inline FString ProfileBody(bool bCompleted)

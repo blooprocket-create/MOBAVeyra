@@ -79,8 +79,11 @@ namespace
 		return FVector2D(Location.X, Location.Y);
 	}
 
-	/** Its slots as it can use them now: learned, off cooldown, affordable, and not held by another cast. */
-	void SenseSlots(const AVeyraPlayerState& Bot, const FVeyraBotVanguardTuning* Behaviour, FVeyraBotView& View)
+	/**
+	 * Its slots as it can use them now: learned, off cooldown, affordable, and not held by another cast;
+	 * a Flux Spell also unlocked by its team's permanent Flux (ADR-015 §8).
+	 */
+	void SenseSlots(const AVeyraPlayerState& Bot, const FVeyraBotVanguardTuning* Behaviour, const FVeyraBotsTuning& Tuning, FVeyraBotView& View)
 	{
 		const UVeyraAbilityLoadoutComponent* Loadout = Bot.FindComponentByClass<UVeyraAbilityLoadoutComponent>();
 		const UVeyraCooldownComponent* Cooldowns = Bot.FindComponentByClass<UVeyraCooldownComponent>();
@@ -109,6 +112,25 @@ namespace
 			const int32 Rank = Progression->IsInitialized() ? Progression->GetRank(Slot) : 0;
 			Seen.bReady = Rank >= 1 && !bBusy && Cooldowns->GetRemainingSeconds(Entry->Ability, View.Now) <= 0.0
 				&& VeyraCombat::CanAffordResource(*AbilitySystem, VeyraAbilityRules::ValueAtRank(Seen.Profile.CostByRank, Rank));
+		}
+		// Its Flux Spells: no ranks, what each is for from its seat's data.
+		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Spells)
+		{
+			const FVeyraLoadoutEntry* Entry = Loadout->FindSlot(Slot);
+			const EVeyraBotAbilityUse* Use = Entry ? Tuning.FluxSpells.Find(Entry->Ability) : nullptr;
+			const TOptional<FVeyraBotAbilityProfile> Profile = Entry ? VeyraBotAbilities::ProfileOf(Entry->Ability, View.AttackRange) : TOptional<FVeyraBotAbilityProfile>();
+			if (!Use || !Profile.IsSet())
+			{
+				continue;
+			}
+			FVeyraBotSlot& Seen = View.Slots.AddDefaulted_GetRef();
+			Seen.Slot = Slot;
+			Seen.Ability = Entry->Ability;
+			Seen.Use = *Use;
+			Seen.Profile = Profile.GetValue();
+			constexpr int32 SpellRank = 1;
+			Seen.bReady = !Loadout->IsLocked(Slot) && !bBusy && Cooldowns->GetRemainingSeconds(Entry->Ability, View.Now) <= 0.0
+				&& VeyraCombat::CanAffordResource(*AbilitySystem, VeyraAbilityRules::ValueAtRank(Seen.Profile.CostByRank, SpellRank));
 		}
 	}
 }
@@ -323,7 +345,7 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVey
 		}
 	}
 
-	SenseSlots(Bot, Behaviour, View);
+	SenseSlots(Bot, Behaviour, Tuning, View);
 	return View;
 }
 }

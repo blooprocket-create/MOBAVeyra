@@ -32,6 +32,11 @@ void Start(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability,
 	Entry->bAbilityHaste = bAbilityHaste;
 }
 
+bool Clear(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability)
+{
+	return Entries.RemoveAll([&Ability](const FVeyraCooldownEntry& Entry) { return Entry.Ability == Ability; }) > 0;
+}
+
 void Rescale(TArray<FVeyraCooldownEntry>& Entries, double Factor, double Now)
 {
 	for (FVeyraCooldownEntry& Entry : Entries)
@@ -90,6 +95,15 @@ void UVeyraCooldownComponent::StartCooldown(const FVeyraContentId& Ability, doub
 		: 0.0;
 	VeyraCooldowns::Start(Entries, Ability, BaseSeconds * VeyraHaste::CooldownMultiplier(AbilityHaste), GetServerNow(), bAbilityHaste);
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+}
+
+void UVeyraCooldownComponent::ClearCooldown(const FVeyraContentId& Ability)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+	if (VeyraCooldowns::Clear(Entries, Ability))
+	{
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+	}
 }
 
 void UVeyraCooldownComponent::OnAbilityHasteChanged(const FOnAttributeChangeData& Change)

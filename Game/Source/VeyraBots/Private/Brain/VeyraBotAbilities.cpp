@@ -35,6 +35,9 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 		Profile.Targeting = EVeyraBotTargeting::Unit;
 		Profile.Reach = Targeted->CastRange;
 		Profile.CostByRank = { Targeted->ResourceCost };
+		Profile.Damage = Targeted->DamageAmount;
+		Profile.bTrueDamage = Targeted->DamageType == EVeyraDamageType::TrueDamage;
+		Profile.TargetKinds = Targeted->TargetKinds;
 		return Profile;
 	}
 	if (const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(Ability))

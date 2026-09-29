@@ -78,6 +78,36 @@ var (
 	ErrCannotLeave      = errors.New("this champion select cannot be left")
 )
 
+// SetFluxSpells records the starting Flux Spells a seated player chose, while
+// the select is picking, before or after lock-in; choosing never touches the
+// timer (Pre-Game Client UX Bible 36). The caller has checked them against
+// the roster.
+func (s *Session) SetFluxSpells(accountID string, spells [2]string, now time.Time) error {
+	seat, ok := s.seat(accountID)
+	if !ok {
+		return ErrSelectNotFound
+	}
+	if s.State != Picking {
+		return ErrInvalidState
+	}
+	if !now.Before(s.Deadline) {
+		return ErrExpired
+	}
+	if !match.ValidFluxSpells(spells) {
+		return match.ErrInvalidFluxSpells
+	}
+	seat.FluxSpells, seat.FluxSpellsEdited = spells, true
+	return nil
+}
+
+// FollowSavedFluxSpells gives a seat whose player has not chosen spells the
+// saved loadout of the Vanguard it now hovers or locked.
+func (s *Session) FollowSavedFluxSpells(accountID string, saved [2]string) {
+	if seat, ok := s.seat(accountID); ok && !seat.FluxSpellsEdited {
+		seat.FluxSpells = saved
+	}
+}
+
 // Seat is one player's place in a select.
 type Seat struct {
 	AccountID   string
@@ -89,6 +119,14 @@ type Seat struct {
 	// Locked is the Vanguard the player locked in; permanent once set.
 	Locked   string
 	LockedAt time.Time
+	// FluxSpells are the starting Flux Spells the player takes into the
+	// match, in slot order, empty for an empty slot (ADR-015 §5). Free to
+	// change until the match starts, before or after lock-in.
+	FluxSpells [2]string
+	// FluxSpellsEdited is whether the player chose them. Until they do, they
+	// follow the saved loadout of the Vanguard the seat hovers or locked
+	// (Pre-Game Client UX Bible 37).
+	FluxSpellsEdited bool
 	// LastSeen is when the player's client last asked about the select, its
 	// presence while polling (ADR-010 §10).
 	LastSeen time.Time

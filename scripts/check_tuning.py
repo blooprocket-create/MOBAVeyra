@@ -64,6 +64,8 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/vanguards/*/passive/*", "Vanguards", PASSIVE_MAPS),
     ("Vanguards", "/hitChain/*/status", "Abilities", ("/statuses",)),
     ("Vanguards", "/breach/*/impact/statuses/*", "Abilities", ("/statuses",)),
+    # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).
+    ("Abilities", "/fluxSpells/roster/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     # Every Fluxborn Economy pays for is one World defines, and every one World defines is paid for.
     ("Economy", "/gold/fluxborn/#", "World", ("/fluxborn/units",)),
     ("Economy", "/experience/fluxborn/#", "World", ("/fluxborn/units",)),
@@ -83,6 +85,9 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Bots", "/vanguards/#", "Vanguards", ("/vanguards",)),
     ("Bots", "/vanguards/*/build/*", "Items", ("/items",)),
     ("Bots", "/vanguards/*/abilities/#", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    # Bot seats take Flux Spells, and know what each is for (ADR-015 §8).
+    ("Bots", "/seats/*/fluxSpells/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Bots", "/fluxSpells/#", "Abilities", ABILITY_ARCHETYPE_MAPS),
 ]
 
 # Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.

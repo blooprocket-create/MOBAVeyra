@@ -153,6 +153,23 @@ namespace VeyraWorldTests
 			ASSERT_THAT(AreEqual(2, Problems.Num()));
 			ASSERT_THAT(IsTrue(Problems[0].StartsWith(TEXT("/grants/laneSpire/durationSeconds")) && Problems[1].StartsWith(TEXT("/grants/inhibitor/durationSeconds"))));
 		}
+
+		TEST_METHOD(SpellSlotsOpenAsPermanentFluxReachesTheirRisingThresholds)
+		{
+			// Fixture thresholds, as canon's (Battleground Bible §14).
+			const TArray<double> Thresholds = { 25.0, 75.0 };
+			ASSERT_THAT(AreEqual(0, VeyraFlux::UnlockedSpellSlots(0.0, Thresholds)));
+			ASSERT_THAT(AreEqual(0, VeyraFlux::UnlockedSpellSlots(24.0, Thresholds)));
+			ASSERT_THAT(AreEqual(1, VeyraFlux::UnlockedSpellSlots(25.0, Thresholds), TEXT("a threshold reached opens its slot")));
+			ASSERT_THAT(AreEqual(1, VeyraFlux::UnlockedSpellSlots(74.0, Thresholds)));
+			ASSERT_THAT(AreEqual(2, VeyraFlux::UnlockedSpellSlots(500.0, Thresholds)));
+
+			FVeyraFluxTuning Broken = UVeyraFluxTuningSubsystem::Get();
+			Broken.SpellSlots.Thresholds = { 75.0, 25.0 };
+			ASSERT_THAT(IsTrue(VeyraFlux::Validate(Broken).ContainsByPredicate([](const FString& Problem) { return Problem.StartsWith(TEXT("/spellSlots/thresholds/1")); })));
+			Broken.SpellSlots.Thresholds = { 25.0 };
+			ASSERT_THAT(IsTrue(VeyraFlux::Validate(Broken).ContainsByPredicate([](const FString& Problem) { return Problem.StartsWith(TEXT("/spellSlots/thresholds:")); })));
+		}
 	};
 }
 

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
@@ -39,6 +40,8 @@ type Settings struct {
 	// StartingTimeout cancels a select whose match creation never finished.
 	// It must exceed how long creating a match can take.
 	StartingTimeout time.Duration
+	// FluxSpells is the roster of Flux Spells a player may choose (ADR-015 §5).
+	FluxSpells []string
 }
 
 // CasualSeat is one player of a match everyone accepted, on its side.
@@ -72,6 +75,10 @@ type Matches interface {
 	Current(ctx context.Context, accountID string) (match.PlayerMatch, bool, error)
 	Create(ctx context.Context, spec match.Spec) (match.Match, error)
 	BySelect(ctx context.Context, selectID string) (match.Match, bool, error)
+	// LastFluxSpells returns the starting Flux Spells the account last took
+	// into a match with the Vanguard, or two empty slots (Pre-Game Client UX
+	// Bible 37).
+	LastFluxSpells(ctx context.Context, accountID, vanguardID string) ([2]string, error)
 }
 
 // Blocks answers whether players block each other. The social package
@@ -296,11 +303,49 @@ func (s *Service) Hover(ctx context.Context, accountID, vanguardID string) (Sess
 	if err := s.checkPick(ctx, accountID, vanguardID); err != nil {
 		return Session{}, err
 	}
+	saved, err := s.savedFluxSpells(ctx, accountID, vanguardID)
+	if err != nil {
+		return Session{}, err
+	}
 	return s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
 		now := s.now()
 		session.Seen(accountID, now)
-		return session.Hover(accountID, vanguardID, now)
+		if err := session.Hover(accountID, vanguardID, now); err != nil {
+			return err
+		}
+		session.FollowSavedFluxSpells(accountID, saved)
+		return nil
 	})
+}
+
+// SetFluxSpells records the starting Flux Spells the account chose in its
+// active select: roster spells or empty slots, no spell twice (ADR-015 §5).
+func (s *Service) SetFluxSpells(ctx context.Context, accountID string, spells [2]string) (Session, error) {
+	for _, spell := range spells {
+		if spell != "" && !slices.Contains(s.settings.FluxSpells, spell) {
+			return Session{}, match.ErrInvalidFluxSpells
+		}
+	}
+	return s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
+		now := s.now()
+		session.Seen(accountID, now)
+		return session.SetFluxSpells(accountID, spells, now)
+	})
+}
+
+// savedFluxSpells is the account's saved loadout for the Vanguard, keeping
+// only spells still on the roster.
+func (s *Service) savedFluxSpells(ctx context.Context, accountID, vanguardID string) ([2]string, error) {
+	saved, err := s.matches.LastFluxSpells(ctx, accountID, vanguardID)
+	if err != nil {
+		return [2]string{}, err
+	}
+	for i, spell := range saved {
+		if !slices.Contains(s.settings.FluxSpells, spell) {
+			saved[i] = ""
+		}
+	}
+	return saved, nil
 }
 
 // Lock locks the account's Vanguard in its active select. When every seat has
@@ -309,12 +354,17 @@ func (s *Service) Lock(ctx context.Context, accountID, vanguardID string) (Sessi
 	if err := s.checkPick(ctx, accountID, vanguardID); err != nil {
 		return Session{}, err
 	}
+	saved, err := s.savedFluxSpells(ctx, accountID, vanguardID)
+	if err != nil {
+		return Session{}, err
+	}
 	session, err := s.changeActive(ctx, accountID, func(ctx context.Context, session *Session) error {
 		now := s.now()
 		session.Seen(accountID, now)
 		if err := session.Lock(accountID, vanguardID, now); err != nil {
 			return err
 		}
+		session.FollowSavedFluxSpells(accountID, saved)
 		if session.AllLocked() {
 			return s.beginStarting(ctx, session, now)
 		}
@@ -386,7 +436,7 @@ func (s *Service) beginStarting(ctx context.Context, session *Session, now time.
 func (s *Service) startMatch(ctx context.Context, session Session) (Session, error) {
 	spec := match.Spec{Mode: session.Mode, Rules: rulesFor(session.Kind), HostAccountID: session.HostAccountID, SelectID: session.ID}
 	for _, seat := range session.Seats {
-		spec.Seats = append(spec.Seats, match.Seat{AccountID: seat.AccountID, Side: seat.Side, VanguardID: seat.Locked})
+		spec.Seats = append(spec.Seats, match.Seat{AccountID: seat.AccountID, Side: seat.Side, VanguardID: seat.Locked, FluxSpells: seat.FluxSpells})
 	}
 	created, createErr := s.matches.Create(ctx, spec)
 	if createErr != nil {

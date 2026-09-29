@@ -4,7 +4,7 @@
   "description": "Gold and XP rewards owned by the Economy domain (Economy & Progression Bible §1–§8; ADR-011 §11, §17): starting and passive Gold, what lane Fluxborn, Vanguard kills and structures pay, the Team Flux farm bonus, and who is near enough to share. VeyraEconomy binds it to FVeyraEconomyTuning. The XP curve stays in Progression.json.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "gold", "passiveGold", "experience", "fluxBonus", "eligibility"],
+  "required": ["schemaVersion", "gold", "passiveGold", "experience", "fluxBonus", "eligibility", "fluxSpells"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -23,7 +23,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [3]
+      "enum": [4]
     },
     "gold": {
       "description": "Individual Gold (§1, §3, §5, §8).",
@@ -94,6 +94,16 @@
         "radius": { "description": "How near a death a Vanguard must be for farm XP, participation Gold and kill XP, in units; walls and fog never block it (§2).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "fluxbornParticipationSeconds": { "description": "How recently an allied Vanguard must have damaged a Fluxborn for nearby allies to share its Gold (§3.2).", "type": "number", "minimum": 0 },
         "structureContributionSeconds": { "description": "How recently a Vanguard must have damaged a structure to share its pool (§8.1).", "type": "number", "minimum": 0 }
+      }
+    },
+    "fluxSpells": {
+      "description": "Replacing an equipped Flux Spell at the fountain (§13.2; ADR-015 §6). The original picks from champion select cost nothing.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "swapCost"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "swapCost": { "description": "Gold a swap costs, for filling an empty slot too; never refunded.", "type": "number", "minimum": 0 }
       }
     }
   }

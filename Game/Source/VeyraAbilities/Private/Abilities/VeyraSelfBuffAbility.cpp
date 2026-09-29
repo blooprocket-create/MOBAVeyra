@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/World.h"
 #include "Shapes/VeyraShapes.h"
@@ -96,7 +97,67 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 			static_cast<float>(Aura.RefreshSeconds), /*bLoop*/ true);
 		RefreshAura();
 	}
+	for (const FVeyraHealTuning& Heal : Buff->Heal)
+	{
+		DeliverHeal(*Caster, Heal);
+	}
 	return FVeyraChannelPlan();
+}
+
+void UVeyraSelfBuffAbility::DeliverHeal(UAbilitySystemComponent& Caster, const FVeyraHealTuning& Heal) const
+{
+	const int32 Level = GetCasterLevel(Caster);
+	const double Amount = VeyraAbilityRules::AtLevel(Heal.Amount, Heal.AmountPerLevel, Level);
+	TArray<UAbilitySystemComponent*, TInlineAllocator<2>> Healed = { &Caster };
+	if (UAbilitySystemComponent* Ally = FindMostWoundedAlly(Caster, Heal.AllyRange))
+	{
+		Healed.Add(Ally);
+	}
+	for (UAbilitySystemComponent* Unit : Healed)
+	{
+		// Never above Max Health (Combat Bible §6).
+		VeyraCombat::RestoreHealth(*Unit, Amount);
+		for (const FVeyraContentId& StatusId : Heal.Statuses)
+		{
+			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId, Level))
+			{
+				VeyraCombat::ApplyStatus(Caster, *Unit, Status.GetValue());
+			}
+		}
+	}
+}
+
+UAbilitySystemComponent* UVeyraSelfBuffAbility::FindMostWoundedAlly(const UAbilitySystemComponent& Caster, double Range) const
+{
+	UWorld* World = GetWorld();
+	const AActor* Body = Caster.GetAvatarActor();
+	const EVeyraTeam Side = VeyraTeams::TeamOf(Caster.GetOwner());
+	if (!World || !Body || !(Range > 0.0) || Side == EVeyraTeam::None)
+	{
+		return nullptr;
+	}
+	FVeyraShape Circle;
+	Circle.Kind = EVeyraShapeKind::Circle;
+	Circle.Radius = Range;
+	const TArray<AActor*> Allies = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Circle, Body->GetActorLocation(), Body->GetActorForwardVector() },
+		[Body, Side](const AActor& Unit) {
+			return &Unit != Body && VeyraTeams::TeamOf(&Unit) == Side && VeyraUnits::IsVanguard(&Unit) && VeyraTargeting::IsAlive(&Unit);
+		});
+	// The ally that lacks the most of its Health; one at full Health needs none (League's Heal).
+	UAbilitySystemComponent* MostWounded = nullptr;
+	double LowestFraction = 1.0;
+	for (AActor* Ally : Allies)
+	{
+		UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Ally);
+		const double MaxHealth = AbilitySystem ? AbilitySystem->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) : 0.0;
+		const double Fraction = MaxHealth > 0.0 ? AbilitySystem->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) / MaxHealth : 1.0;
+		if (Fraction < LowestFraction)
+		{
+			LowestFraction = Fraction;
+			MostWounded = AbilitySystem;
+		}
+	}
+	return MostWounded;
 }
 
 void UVeyraSelfBuffAbility::RefreshAura()

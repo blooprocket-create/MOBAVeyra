@@ -319,7 +319,8 @@ void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot
 {
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 	const FVeyraSelectModel Model = VeyraShellModels::DescribeSelect(Snapshot, Client->GetRemainingPickSeconds(),
-		Client->CanIssue(EVeyraClientIntent::HoverVanguard), Client->CanIssue(EVeyraClientIntent::LockVanguard), Client->CanIssue(EVeyraClientIntent::LeaveSelect));
+		Client->CanIssue(EVeyraClientIntent::HoverVanguard), Client->CanIssue(EVeyraClientIntent::LockVanguard), Client->CanIssue(EVeyraClientIntent::LeaveSelect),
+		Client->CanIssue(EVeyraClientIntent::ChooseFluxSpell));
 	AddText(*Content, Model.Title, static_cast<uint8>(EVeyraShellText::Title));
 	Countdown = AddText(*Content, Model.Countdown, static_cast<uint8>(EVeyraShellText::Countdown));
 	AddText(*Content, Model.Phase, static_cast<uint8>(EVeyraShellText::Body));
@@ -365,6 +366,39 @@ void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot
 		VeyraShellStyle::AddSpaced(*Roster, *Card);
 	}
 	VeyraShellStyle::AddSpaced(*Content, *Roster);
+
+	// The two starting Flux Spell slots, each with its own threshold; choosing is free and never waits
+	// for lock-in (Pre-Game Client UX Bible 36; ADR-015 §7).
+	if (!Model.SpellSlots.IsEmpty())
+	{
+		UBorder* SpellsCard = VeyraShellStyle::MakeBorder(*WidgetTree, Style.PanelColor, Style.Spacing);
+		UVerticalBox* Spells = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		SpellsCard->SetContent(Spells);
+		AddText(*Spells, LOCTEXT("FluxSpellsTitle", "Flux Spells"), static_cast<uint8>(EVeyraShellText::Heading));
+		for (const FVeyraSpellSlotModel& SlotModel : Model.SpellSlots)
+		{
+			AddText(*Spells, FText::Format(LOCTEXT("SpellSlotLine", "{0} ({1}): {2}"), SlotModel.Title, SlotModel.Unlock, SlotModel.Chosen),
+				static_cast<uint8>(EVeyraShellText::Body));
+			UWrapBox* Choices = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass());
+			FText ChosenDescription;
+			for (const FVeyraSpellChoiceModel& Choice : SlotModel.Choices)
+			{
+				const int32 SpellSlot = SlotModel.Slot;
+				const FString SpellId = Choice.SpellId;
+				AddButton(*Choices, Choice.Name, [this, SpellSlot, SpellId] { Client->ChooseFluxSpell(SpellSlot, SpellId); }, Model.bCanChooseSpells, Choice.bChosen);
+				if (Choice.bChosen)
+				{
+					ChosenDescription = Choice.Description;
+				}
+			}
+			VeyraShellStyle::AddSpaced(*Spells, *Choices);
+			if (!ChosenDescription.IsEmpty())
+			{
+				AddText(*Spells, ChosenDescription, static_cast<uint8>(EVeyraShellText::Muted));
+			}
+		}
+		VeyraShellStyle::AddSpaced(*Content, *SpellsCard);
+	}
 	UHorizontalBox* Actions = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	const FString LockInId = Model.LockInVanguardId;
 	AddButton(*Actions, LOCTEXT("LockIn", "Lock In"), [this, LockInId] { Client->LockVanguard(LockInId); }, Model.bCanLockIn);
@@ -373,6 +407,10 @@ void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot
 		AddButton(*Actions, LOCTEXT("LeaveSelect", "Leave"), [this] { Client->LeaveSelect(); }, Model.bCanLeave);
 	}
 	VeyraShellStyle::AddSpaced(*Content, *Actions);
+	if (!Model.Setup.IsEmpty())
+	{
+		AddText(*Content, Model.Setup, static_cast<uint8>(EVeyraShellText::Body));
+	}
 	if (Model.bOffersLeave)
 	{
 		AddText(*Content, LOCTEXT("LeaveWarning", "Leaving ends champion select for everyone and takes your party out of the queue."),
@@ -460,11 +498,12 @@ TArray<UVeyraShellButton*> UVeyraShellScreen::GetButtons() const
 	return Out;
 }
 
-UVeyraShellButton* UVeyraShellScreen::FindButton(const FText& Label) const
+UVeyraShellButton* UVeyraShellScreen::FindButton(const FText& Label, int32 Occurrence) const
 {
+	int32 Seen = 0;
 	for (const TObjectPtr<UVeyraShellButton>& Button : Buttons)
 	{
-		if (Button && Button->GetLabel().ToString() == Label.ToString())
+		if (Button && Button->GetLabel().ToString() == Label.ToString() && Seen++ == Occurrence)
 		{
 			return Button.Get();
 		}

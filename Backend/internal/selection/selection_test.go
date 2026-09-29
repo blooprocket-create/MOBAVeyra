@@ -2,6 +2,7 @@ package selection
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -27,6 +28,9 @@ const (
 var fixturePractice = PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA, PickDuration: fixturePick}
 
 var fixtureCasual = CasualSettings{PickDuration: 2 * fixturePick, PresenceTimeout: 10 * time.Second}
+
+// fixtureFluxSpells is the roster of Flux Spells the fixture offers.
+var fixtureFluxSpells = []string{"blink", "mend", "scorch"}
 
 // casualMode is a matchmade mode, one a side as in local play.
 const casualMode = "casual_select"
@@ -98,7 +102,8 @@ func newFixture(t *testing.T) *fixture {
 	f.accounts = account.NewService(account.NewMemStore(), vanguards, clock)
 	parties := PartiesFunc(func(_ context.Context, id string) (bool, error) { return f.queued[id], nil })
 	f.svc = NewService(f.store, f.accounts, names, f.matches, parties, f.blocks,
-		Settings{Practice: fixturePractice, Casual: fixtureCasual, StartingTimeout: fixtureStarting}, clock, slog.New(slog.NewTextHandler(io.Discard, nil)))
+		Settings{Practice: fixturePractice, Casual: fixtureCasual, StartingTimeout: fixtureStarting, FluxSpells: fixtureFluxSpells}, clock,
+		slog.New(slog.NewTextHandler(io.Discard, nil)))
 	f.svc.SetMatchmaking(f.ends)
 	return f
 }
@@ -196,6 +201,75 @@ func TestLockingCreatesThePracticeMatchOnce(t *testing.T) {
 	}
 	if _, err := f.svc.Lock(ctx, "acc-1", "oriel"); !errors.Is(err, ErrSelectNotFound) {
 		t.Fatalf("locking again after the start: want ErrSelectNotFound, got %v", err)
+	}
+}
+
+func TestStartingFluxSpellsAreFreeAndFollowTheSavedLoadout(t *testing.T) {
+	f := newFixture(t)
+	f.onboard(t, "acc-1", "oriel")
+	f.practice(t, "acc-1")
+	if hovered, err := f.svc.Hover(ctx, "acc-1", "oriel"); err != nil || hovered.Seats[0].FluxSpells != ([2]string{}) {
+		t.Fatalf("no saved loadout leaves both slots empty: %+v %v", hovered, err)
+	}
+	for _, refused := range [][2]string{{"blink", "ignite"}, {"mend", "mend"}, {"Blink", ""}} {
+		if _, err := f.svc.SetFluxSpells(ctx, "acc-1", refused); !errors.Is(err, match.ErrInvalidFluxSpells) {
+			t.Fatalf("%v: want ErrInvalidFluxSpells, got %v", refused, err)
+		}
+	}
+	chosen, err := f.svc.SetFluxSpells(ctx, "acc-1", [2]string{"", "scorch"})
+	if err != nil || chosen.Seats[0].FluxSpells != [2]string{"", "scorch"} || !chosen.Deadline.Equal(t0.Add(fixturePick)) {
+		t.Fatalf("an empty slot and a roster spell, and the timer untouched: %+v %v", chosen, err)
+	}
+	locked, err := f.svc.Lock(ctx, "acc-1", "oriel")
+	if err != nil || locked.State != Started {
+		t.Fatalf("Lock: %+v %v", locked, err)
+	}
+	m, _, err := f.matches.BySelect(ctx, locked.ID)
+	if err != nil || m.Participants[0].FluxSpells != [2]string{"", "scorch"} {
+		t.Fatalf("the match takes the spells: %+v %v", m.Participants, err)
+	}
+
+	// The match never readies and fails, freeing its player for another select. The spells never
+	// went into a match, so nothing is saved (Pre-Game Client UX Bible 37).
+	f.now = f.now.Add(2 * time.Minute)
+	if err := f.matches.Reap(ctx); err != nil {
+		t.Fatal(err)
+	}
+	f.practice(t, "acc-1")
+	if hovered, err := f.svc.Hover(ctx, "acc-1", "oriel"); err != nil || hovered.Seats[0].FluxSpells != ([2]string{}) {
+		t.Fatalf("a match that failed to start saves nothing: %+v %v", hovered, err)
+	}
+
+	// This time the server becomes ready: the player took the spells into a match, which later ends.
+	// The next select prefills them until the player chooses.
+	if _, err := f.svc.SetFluxSpells(ctx, "acc-1", [2]string{"", "scorch"}); err != nil {
+		t.Fatal(err)
+	}
+	locked, err = f.svc.Lock(ctx, "acc-1", "oriel")
+	if err != nil || locked.State != Started {
+		t.Fatalf("Lock: %+v %v", locked, err)
+	}
+	spec, ok := f.alloc.Spec(locked.MatchID)
+	var assignment match.Assignment
+	if !ok || json.Unmarshal(spec.Assignment, &assignment) != nil {
+		t.Fatalf("no assignment for %s", locked.MatchID)
+	}
+	if err := f.matches.ServerReady(ctx, assignment.ServerCredential, locked.MatchID); err != nil {
+		t.Fatalf("ServerReady: %v", err)
+	}
+	f.now = f.now.Add(2 * time.Hour)
+	if err := f.matches.Reap(ctx); err != nil {
+		t.Fatal(err)
+	}
+	f.practice(t, "acc-1")
+	if hovered, err := f.svc.Hover(ctx, "acc-1", "oriel"); err != nil || hovered.Seats[0].FluxSpells != [2]string{"", "scorch"} {
+		t.Fatalf("the saved loadout: %+v %v", hovered, err)
+	}
+	if _, err := f.svc.SetFluxSpells(ctx, "acc-1", [2]string{"blink", "mend"}); err != nil {
+		t.Fatal(err)
+	}
+	if again, err := f.svc.Hover(ctx, "acc-1", "oriel"); err != nil || again.Seats[0].FluxSpells != [2]string{"blink", "mend"} {
+		t.Fatalf("a player's own choice stays: %+v %v", again, err)
 	}
 }
 

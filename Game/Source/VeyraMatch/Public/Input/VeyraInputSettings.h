@@ -65,6 +65,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey Item6Key;
 
+	/** Each casts the Flux Spell in its slot at the cursor, as Quick Cast casts (ADR-015 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey Spell1Key;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey Spell2Key;
+
 	/** Channels the Vanguard home to its fountain (Economy & Progression Bible §10; ADR-012 §8). */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey RecallKey;
@@ -114,6 +121,10 @@ struct VEYRAMATCH_API FVeyraInputObjects
 	/** One per item slot, in inventory order. */
 	UPROPERTY()
 	TArray<TObjectPtr<UInputAction>> ItemSlots;
+
+	/** One per Flux Spell slot, in slot order. */
+	UPROPERTY()
+	TArray<TObjectPtr<UInputAction>> SpellSlots;
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> Recall;

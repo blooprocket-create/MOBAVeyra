@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
 #include "Engine/World.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraEquipmentRules.h"
@@ -11,9 +12,11 @@
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Stats/VeyraEquipmentStats.h"
 #include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -143,6 +146,64 @@ EVeyraShopRefusal UVeyraShopSubsystem::Sell(AActor& Participant, int32 Slot)
 	Revalidate(*Inventory, *Gold);
 	ApplyItems(Participant);
 	UE_LOG(LogVeyraItems, Log, TEXT("%s sold %s for %.0f Gold."), *GetNameSafe(&Participant), *Sold.ToString(), Value);
+	return EVeyraShopRefusal::None;
+}
+
+EVeyraShopRefusal UVeyraShopSubsystem::SwapFluxSpell(AActor& Participant, int32 Slot, const FVeyraContentId& Spell)
+{
+	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
+	UVeyraGoldComponent* Gold = Participant.FindComponentByClass<UVeyraGoldComponent>();
+	UVeyraAbilityLoadoutComponent* Loadout = Participant.FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+	UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Participant);
+	if (!Inventory || !Gold || !Loadout || !AbilitySystem)
+	{
+		return EVeyraShopRefusal::NotNow;
+	}
+	// Only at its own fountain: a remote purchase never changes a spell (§14).
+	if (!IsAtShop(Participant, *Inventory))
+	{
+		return EVeyraShopRefusal::NotAtFountain;
+	}
+	if (Slot < 0 || Slot >= static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)))
+	{
+		return EVeyraShopRefusal::NoSuchSpellSlot;
+	}
+	const FVeyraAbilitiesTuning& Abilities = UVeyraAbilitiesTuningSubsystem::Get();
+	if (!Abilities.FluxSpells.Roster.Contains(Spell))
+	{
+		return EVeyraShopRefusal::UnknownSpell;
+	}
+	for (const EVeyraAbilitySlot SpellSlot : VeyraAbilitySlots::Spells)
+	{
+		const FVeyraLoadoutEntry* Equipped = Loadout->FindSlot(SpellSlot);
+		if (Equipped && Equipped->Ability == Spell)
+		{
+			return EVeyraShopRefusal::AlreadyEquipped;
+		}
+	}
+	const double Cost = UVeyraEconomyTuningSubsystem::Get().FluxSpells.SwapCost;
+	if (!Gold->Spend(Cost))
+	{
+		return EVeyraShopRefusal::NotEnoughGold;
+	}
+	const EVeyraAbilitySlot Target = VeyraAbilitySlots::Spells[Slot];
+	const FVeyraLoadoutEntry* Replaced = Loadout->FindSlot(Target);
+	const FVeyraContentId Previous = Replaced ? Replaced->Ability : FVeyraContentId();
+	UVeyraCooldownComponent* Cooldowns = Participant.FindComponentByClass<UVeyraCooldownComponent>();
+	const bool bWasCooling = Previous.IsValid() && Cooldowns && Cooldowns->GetRemainingSecondsNow(Previous) > 0.0;
+	Loadout->Grant(*AbilitySystem, Target, Spell);
+	// A swap never resets a cooldown and never inherits one: the new spell takes the slot's state. The
+	// ledger keys cooldowns by spell, so a spell swapped back in forgets what it had before (ADR-015 §6).
+	if (bWasCooling)
+	{
+		Cooldowns->StartCooldown(Spell, VeyraAbilityRules::CooldownSeconds(Abilities, Spell, 1), EVeyraCooldownHaste::Fixed);
+	}
+	else if (Cooldowns)
+	{
+		Cooldowns->ClearCooldown(Spell);
+	}
+	UE_LOG(LogVeyraItems, Log, TEXT("%s swapped Flux Spell slot %d from %s to %s for %.0f Gold."), *GetNameSafe(&Participant), Slot + 1,
+		Previous.IsValid() ? *Previous.ToString() : TEXT("(empty)"), *Spell.ToString(), Cost);
 	return EVeyraShopRefusal::None;
 }
 

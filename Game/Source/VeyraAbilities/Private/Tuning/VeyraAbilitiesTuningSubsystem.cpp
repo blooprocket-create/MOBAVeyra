@@ -73,10 +73,10 @@ const FVeyraEmpoweredAttackAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindEm
 	return Get().EmpoweredAttack.Find(Ability);
 }
 
-TOptional<FVeyraStatusSpec> UVeyraAbilitiesTuningSubsystem::FindStatus(const FVeyraContentId& Id)
+TOptional<FVeyraStatusSpec> UVeyraAbilitiesTuningSubsystem::FindStatus(const FVeyraContentId& Id, int32 SourceLevel)
 {
 	const FVeyraStatusTuning* Status = Get().Statuses.Find(Id);
-	return Status ? TOptional<FVeyraStatusSpec>(VeyraAbilityRules::ToStatusSpec(Id, *Status)) : TOptional<FVeyraStatusSpec>();
+	return Status ? TOptional<FVeyraStatusSpec>(VeyraAbilityRules::ToStatusSpec(Id, *Status, SourceLevel)) : TOptional<FVeyraStatusSpec>();
 }
 
 bool UVeyraAbilitiesTuningSubsystem::Defines(const FVeyraContentId& Ability)

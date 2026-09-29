@@ -39,14 +39,16 @@ namespace VeyraMatchTests
 			Settings->Item4Key = EKeys::F1;
 			Settings->Item5Key = EKeys::F2;
 			Settings->Item6Key = EKeys::F3;
+			Settings->Spell1Key = EKeys::F5;
+			Settings->Spell2Key = EKeys::F6;
 			Settings->RecallKey = EKeys::F4;
 
 			const FVeyraInputObjects Objects = VeyraInput::Build(*Settings, *GetTransientPackage());
 			ASSERT_THAT(IsNotNull(Objects.MappingContext.Get()));
-			// Move, attack-move and Recall, then one per ability slot and one per item slot.
+			// Move, attack-move and Recall, then one per ability slot, item slot and Flux Spell slot.
 			constexpr int32 OrderBindings = 3;
 			ASSERT_THAT(AreEqual(Objects.MappingContext->GetMappings().Num(),
-				OrderBindings + static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::All) + UE_ARRAY_COUNT(VeyraAbilitySlots::Items))));
+				OrderBindings + static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::All) + UE_ARRAY_COUNT(VeyraAbilitySlots::Items) + UE_ARRAY_COUNT(VeyraAbilitySlots::Spells))));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.MoveOrder) == EKeys::LeftMouseButton));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.AttackMove) == EKeys::X));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.Recall) == EKeys::F4));
@@ -55,6 +57,10 @@ namespace VeyraMatchTests
 				ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.GetAbilityAction(Slot)) == Settings->GetAbilityKey(Slot)));
 			}
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
+			{
+				ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.GetAbilityAction(Slot)) == Settings->GetAbilityKey(Slot)));
+			}
+			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Spells)
 			{
 				ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.GetAbilityAction(Slot)) == Settings->GetAbilityKey(Slot)));
 			}
@@ -80,6 +86,10 @@ namespace VeyraMatchTests
 				Keys.Add(Settings.GetAbilityKey(Slot));
 			}
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
+			{
+				Keys.Add(Settings.GetAbilityKey(Slot));
+			}
+			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Spells)
 			{
 				Keys.Add(Settings.GetAbilityKey(Slot));
 			}

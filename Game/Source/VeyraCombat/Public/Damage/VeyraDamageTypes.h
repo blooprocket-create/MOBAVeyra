@@ -47,6 +47,11 @@ enum class EVeyraDamageDelivery : uint8
 	 * damage structures.
 	 */
 	Presence,
+	/**
+	 * A damage-over-time status's tick, dealt in its source's name (Combat Bible §14; ADR-015 §3), so
+	 * rules that treat DoT damage apart, such as Omnivamp's, can find it. It does not damage structures.
+	 */
+	Periodic,
 };
 
 namespace VeyraDamageDelivery

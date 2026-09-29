@@ -57,6 +57,8 @@ enum class EVeyraCastRejection : uint8
 	Paused,
 	/** The Gameplay Ability System refused to activate the ability. */
 	ActivationFailed,
+	/** A Flux Spell slot its team's permanent Flux has not unlocked yet (Battleground Bible §14; ADR-015 §4). */
+	Locked,
 };
 
 VEYRAABILITIES_API const TCHAR* LexToString(EVeyraCastRejection Rejection);

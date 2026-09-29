@@ -36,6 +36,9 @@
     "starters": ["cairn", "qazharr", "oriel", "bryn"],
     "rotation": {"slots": 12, "standIn": "allReleased"}
   },
+  "fluxSpells": {
+    "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]
+  },
   "customPractice": {
     "enabled": true,
     "mode": "custom_practice",

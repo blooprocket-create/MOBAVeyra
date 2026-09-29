@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "grants": {
     "provenance": "Canon",
     "laneSpire": { "duration": "Permanent", "amount": 25, "durationSeconds": 0 },
@@ -12,5 +12,9 @@
     "stepFlux": 25,
     "healthPerStep": 0.05,
     "damagePerStep": 0.05
+  },
+  "spellSlots": {
+    "provenance": "Canon",
+    "thresholds": [25, 75]
   }
 }

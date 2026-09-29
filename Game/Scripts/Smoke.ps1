@@ -746,6 +746,16 @@ if ($Handoff -or $Flow) {
         if ($Flow -eq 'Practice') {
             $expectedServerLines += "destroyed the other side's Prime Well"
         }
+        # Each scripted player chooses the roster's first Flux Spells in champion select and takes them
+        # into the match (ADR-015 §5).
+        if ($Flow -in @('Practice', 'Casual', 'CasualVictory')) {
+            $spellRoster = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Abilities.json') -Raw | ConvertFrom-Json).fluxSpells.roster)
+            $expectedServerLines += @($participants | ForEach-Object { "$($_.Name) takes Flux Spells $($spellRoster[0]), $($spellRoster[1]) into the match." })
+            # The practice player then swaps slot 1 at the fountain, for Gold, to the first spell neither slot holds (ADR-015 §7).
+            if ($Flow -eq 'Practice') {
+                $expectedServerLines += "swapped Flux Spell slot 1 from $($spellRoster[0]) to $($spellRoster[2])"
+            }
+        }
         # A practice match adds the practice bots the backend's configuration lists (ADR-010 §7).
         $practiceBots = @($backendConfig.customPractice.bots)
         if ($isPractice -and $practiceBots.Count -gt 0) {

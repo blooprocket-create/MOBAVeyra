@@ -106,6 +106,9 @@ protected:
 	/** Ability's rank for Caster: its slot's rank in Progression, 0 when not learned. */
 	int32 GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
 
+	/** Caster's Level in Progression, which Level-scaled amounts read (ADR-015 §3); 1 for a unit without one. */
+	static int32 GetCasterLevel(const UAbilitySystemComponent& Caster);
+
 	/** The content this spec runs, from the combatant's loadout. */
 	FVeyraContentId GetContentId(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;
 

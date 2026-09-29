@@ -32,6 +32,11 @@ enum class EVeyraBotAbilityUse : uint8
 	Escape,
 	/** Cast before a basic attack on an enemy Vanguard. */
 	Empower,
+	/**
+	 * Cast at a jungle creature or a Flux Well in reach that the cast's damage would finish, to take
+	 * it before anyone else can: League's Smite (ADR-015 §8).
+	 */
+	Secure,
 };
 
 /** Where a bot aims a skillshot or area at a moving target. */
@@ -222,6 +227,20 @@ struct FVeyraBotJungleTuning
 	double WellRange = 0.0;
 };
 
+/** One bot seat: what it plays, and the starting Flux Spells it chooses, as League's bots do (ADR-015 §8). */
+USTRUCT()
+struct FVeyraBotSeatTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraBotRole Role = EVeyraBotRole::Mid;
+
+	/** Roster spells, one per spell slot in slot order; at most two. */
+	UPROPERTY()
+	TArray<FVeyraContentId> FluxSpells;
+};
+
 /** The Bots domain's tuning, bound from Game/Tuning/Bots.json (ADR-006 §6, ADR-013 §5). */
 USTRUCT()
 struct FVeyraBotsTuning
@@ -229,7 +248,7 @@ struct FVeyraBotsTuning
 	GENERATED_BODY()
 
 	/** The Bots.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraBotSensesTuning Senses;
@@ -240,9 +259,13 @@ struct FVeyraBotsTuning
 	UPROPERTY()
 	FVeyraBotDifficultiesTuning Difficulties;
 
-	/** What each seat plays, by the bot's place among its side's bots; later seats wrap around. */
+	/** What each seat plays and the spells it takes, by the bot's place among its side's bots; later seats wrap around. */
 	UPROPERTY()
-	TArray<EVeyraBotRole> Roles;
+	TArray<FVeyraBotSeatTuning> Seats;
+
+	/** What each Flux Spell is for, which tells a bot when to cast it. */
+	UPROPERTY()
+	TMap<FVeyraContentId, EVeyraBotAbilityUse> FluxSpells;
 
 	UPROPERTY()
 	FVeyraBotJungleTuning Jungle;
