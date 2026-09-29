@@ -35,6 +35,39 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 	{
 		RegisterPassive(Entry.Key, TEXT("breach"));
 	}
+	for (const TPair<FVeyraContentId, FVeyraMarkProcTuning>& Entry : Tuning.MarkProc)
+	{
+		RegisterPassive(Entry.Key, TEXT("markProc"));
+		const FString Pointer = TEXT("/markProc/") + Entry.Key.ToString();
+		const FVeyraMarkProcTuning& MarkProc = Entry.Value;
+		const FVeyraStatusTuning* Mark = Abilities.Statuses.Find(MarkProc.Mark);
+		if (!Mark)
+		{
+			Problem(Pointer + TEXT("/mark"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *MarkProc.Mark.ToString()));
+		}
+		else if (Mark->Stacking != EVeyraStackingPolicy::Stacking || Mark->MaxStacks < 2)
+		{
+			Problem(Pointer + TEXT("/mark"), TEXT("must be a Stacking status of at least two stacks, whose most prime the proc"));
+		}
+		if (MarkProc.ProcDamage.AmountByRank.Num() != 1 || MarkProc.ProcDamagePerLevel < 0.0 || MarkProc.Emergence.Num() > 1 || MarkProc.ProcBolts.Num() > 1)
+		{
+			Problem(Pointer, TEXT("procDamage has one amount and a per-Level amount of at least 0; emergence and procBolts hold at most one each"));
+		}
+		for (const FVeyraEmergenceTuning& Emergence : MarkProc.Emergence)
+		{
+			if (!Abilities.Statuses.Contains(Emergence.Status) || !(Emergence.WindowSeconds >= 0.0) || Emergence.BonusDamage.AmountByRank.Num() != 1)
+			{
+				Problem(Pointer + TEXT("/emergence/0"), TEXT("names a status Abilities.json defines, with a window of at least 0 and one amount"));
+			}
+		}
+		for (const FVeyraProcBoltTuning& Bolt : MarkProc.ProcBolts)
+		{
+			if (!(Bolt.WindowSeconds > 0.0) || !(Bolt.Radius > 0.0) || Bolt.Damage.AmountByRank.Num() != 1 || !(Bolt.Projectile.Speed > 0.0))
+			{
+				Problem(Pointer + TEXT("/procBolts/0"), TEXT("its window and radius are above 0, its damage one amount, and its speed above 0"));
+			}
+		}
+	}
 	for (const TPair<FVeyraContentId, FVeyraCadenceTuning>& Entry : Tuning.Cadence)
 	{
 		RegisterPassive(Entry.Key, TEXT("cadence"));

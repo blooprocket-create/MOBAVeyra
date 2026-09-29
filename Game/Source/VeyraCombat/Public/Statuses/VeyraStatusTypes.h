@@ -91,6 +91,11 @@ enum class EVeyraStatusKind : uint8
 	 * as Kade against a Tracked target. Not crowd control. Magnitude: the distance added per stack, above 0.
 	 */
 	SourceAttackRange,
+	/**
+	 * A mark or meter with no effect of its own, which a passive reads (ADR-018 §2): Mimzi's Hex, and
+	 * later Raska's Momentum. Not crowd control. Magnitude: 0.
+	 */
+	Counter,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

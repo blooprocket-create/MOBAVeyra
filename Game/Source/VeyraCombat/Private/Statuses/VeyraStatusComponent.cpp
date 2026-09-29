@@ -53,6 +53,7 @@ namespace
 		case EVeyraStatusKind::Planted:
 		case EVeyraStatusKind::Camouflage:
 		case EVeyraStatusKind::SourceAttackRange:
+		case EVeyraStatusKind::Counter:
 			break;
 		}
 		return NAME_None;
@@ -302,6 +303,20 @@ bool UVeyraStatusComponent::HasFrom(const FVeyraContentId& Id, const UAbilitySys
 		const FServerEntry* Server = Entry.Id == Id ? ServerEntries.Find(Entry.Sequence) : nullptr;
 		return Server && Server->Source.Get() == &Source;
 	});
+}
+
+int32 UVeyraStatusComponent::GetStacksFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const
+{
+	int32 Stacks = 0;
+	for (const FVeyraStatusEntry& Entry : Ledger.Entries)
+	{
+		const FServerEntry* Server = Entry.Id == Id ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		if (Server && Server->Source.Get() == &Source)
+		{
+			Stacks += Entry.Stacks;
+		}
+	}
+	return Stacks;
 }
 
 EVeyraActionBlocks UVeyraStatusComponent::GetActionBlocks() const

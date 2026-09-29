@@ -72,6 +72,9 @@ public:
 	/** Server: whether the unit has status Id from Source, as a mark only its applier reads (ADR-018 §2). */
 	bool HasFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
 
+	/** Server: the stacks of status Id the unit has from Source; 0 for none. */
+	int32 GetStacksFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
+
 	/** The actions the unit's statuses stop it taking. */
 	EVeyraActionBlocks GetActionBlocks() const;
 

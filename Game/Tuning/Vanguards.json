@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -319,6 +319,48 @@
       },
       "abilities": { "q": ["vera_range_found"], "w": ["vera_dig_in"], "e": ["vera_break_the_line"], "r": ["vera_the_last_volley"] },
       "passive": ["vera_cadence"]
+    },
+    "mimzi": {
+      "provenance": "Provisional",
+      "availability": "Developer",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 34, "capsuleHalfHeight": 70, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 540,
+        "healthRegen": 0.7,
+        "maxResource": 350,
+        "resourceRegen": 3.6,
+        "armor": 22,
+        "magicResist": 30,
+        "physicalPower": 52,
+        "magicPower": 0,
+        "attackSpeed": 0.65,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 88,
+        "healthRegen": 0.1,
+        "maxResource": 45,
+        "resourceRegen": 0.3,
+        "armor": 4,
+        "magicResist": 1.3,
+        "physicalPower": 2.6,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.025
+      },
+      "basicAttack": {
+        "range": 550,
+        "damageType": "Magic",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0.25,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 2000, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["mimzi_twinklebolt"], "w": ["mimzi_winkbomb"], "e": ["mimzi_now_you_see_me"], "r": ["mimzi_grand_prank"] },
+      "passive": ["mimzi_pocket_hex"]
     }
   },
   "deepFoundation": {
@@ -394,6 +436,30 @@
         "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 700, "width": 150 },
         "damage": [{ "type": "Physical", "amountByRank": [60], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }]
       }
+    }
+  },
+  "markProc": {
+    "mimzi_pocket_hex": {
+      "provenance": "Provisional",
+      "mark": "mimzi_hex",
+      "procDamage": { "type": "Magic", "amountByRank": [30], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 },
+      "procDamagePerLevel": 8,
+      "emergence": [
+        {
+          "status": "mimzi_camouflage",
+          "windowSeconds": 3,
+          "bonusDamage": { "type": "Magic", "amountByRank": [25], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }
+        }
+      ],
+      "procBolts": [
+        {
+          "ability": "mimzi_grand_prank",
+          "windowSeconds": 6,
+          "radius": 600,
+          "damage": { "type": "Magic", "amountByRank": [20], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 },
+          "projectile": { "speed": 1800, "radius": 20 }
+        }
+      ]
     }
   }
 }

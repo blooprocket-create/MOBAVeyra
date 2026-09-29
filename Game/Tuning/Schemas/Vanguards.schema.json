@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -166,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [6]
+      "enum": [7]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -284,6 +284,56 @@
             "hitsToBreach": { "description": "Which consecutive hit breaches; canon gives the third.", "type": "integer", "minimum": 1 },
             "bonusDamage": { "description": "Added to the breaching attack's own damage.", "$ref": "#/definitions/damage" },
             "impact": { "description": "The explosion behind the target; a higher-priority impact such as Breach Round's replaces it.", "$ref": "#/definitions/secondaryImpact" }
+          }
+        }
+      }
+    },
+    "markProc": {
+      "description": "Passives whose basic attacks on enemy Vanguards stack a mark from the owner, and spend it primed at its most stacks for proc damage; optionally an empowered first attack out of a Camouflage, and a window after an ability in which each proc sends a bolt (Mimzi's Pocket Hex, Roster Bible §21).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "mark", "procDamage", "procDamagePerLevel", "emergence", "procBolts"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "mark": { "description": "From Abilities.json: a Stacking status whose most stacks prime the proc.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "procDamage": { "$ref": "#/definitions/damage" },
+            "procDamagePerLevel": { "description": "Added for each Level past the first.", "type": "number", "minimum": 0 },
+            "emergence": {
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["status", "windowSeconds", "bonusDamage"],
+                "properties": {
+                  "status": { "description": "The Camouflage the attack comes out of.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "windowSeconds": { "description": "How long after it ends the first attack still counts.", "type": "number", "minimum": 0 },
+                  "bonusDamage": { "$ref": "#/definitions/damage" }
+                }
+              }
+            },
+            "procBolts": {
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["ability", "windowSeconds", "radius", "damage", "projectile"],
+                "properties": {
+                  "ability": { "description": "Whose commit opens the window.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "windowSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "radius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "damage": { "$ref": "#/definitions/damage" },
+                  "projectile": { "$ref": "#/definitions/homingProjectile" }
+                }
+              }
+            }
           }
         }
       }

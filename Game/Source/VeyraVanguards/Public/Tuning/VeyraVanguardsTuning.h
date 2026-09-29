@@ -329,13 +329,91 @@ struct FVeyraCadenceTuning
 	FVeyraSpectralRankTuning SpectralRank;
 };
 
+/** The first attack out of a Camouflage: bonus damage, and a full mark on a target not yet primed (Roster Bible §21). */
+USTRUCT()
+struct FVeyraEmergenceTuning
+{
+	GENERATED_BODY()
+
+	/** The Camouflage it follows, from Abilities.json. */
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	/** How long after the Camouflage ends the first attack still counts. */
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	/** One amount. */
+	UPROPERTY()
+	FVeyraDamageTuning BonusDamage;
+};
+
+/** After an ability commits, for a while each proc also sends a lesser bolt at a nearby enemy Vanguard (Grand Prank!). */
+USTRUCT()
+struct FVeyraProcBoltTuning
+{
+	GENERATED_BODY()
+
+	/** The ability whose commit opens the window. */
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	/** How near the proc's target the bolt's target stands, from the owner's reach of it. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	/** One amount; proc damage that marks nothing and sends nothing. */
+	UPROPERTY()
+	FVeyraDamageTuning Damage;
+
+	UPROPERTY()
+	FVeyraAttackProjectileTuning Projectile;
+};
+
+/**
+ * A mark-and-proc passive (ADR-008 §5; Roster Bible §21's Pocket Hex): each basic attack on an enemy
+ * Vanguard adds a stack of the mark, from its owner; one that finds the mark at its cap spends it for
+ * proc damage and adds none. Abilities add their own stacks through their statuses. Its data is an
+ * entry in Vanguards.json's markProc map.
+ */
+USTRUCT()
+struct FVeyraMarkProcTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: a Stacking mark, whose most stacks prime the proc. */
+	UPROPERTY()
+	FVeyraContentId Mark;
+
+	/** One amount, and this much more for each Level past the first. */
+	UPROPERTY()
+	FVeyraDamageTuning ProcDamage;
+
+	UPROPERTY()
+	double ProcDamagePerLevel = 0.0;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraEmergenceTuning> Emergence;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraProcBoltTuning> ProcBolts;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 6;
+	static constexpr int32 SchemaVersion = 7;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -357,6 +435,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraCadenceTuning> Cadence;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraMarkProcTuning> MarkProc;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

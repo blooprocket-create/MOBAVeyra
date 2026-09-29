@@ -140,7 +140,10 @@ Every value is Provisional data, a League stand-in:
 - **Mimzi:**
   - range 550, Magic attacks (her design sheet);
   - Camouflage's detection radius is 400;
-  - her R bolts target only enemies she could legally acquire, and apply no Hex.
+  - her R bolts target only enemies she could legally acquire, and apply no Hex;
+  - each bolt goes to the nearest other enemy Vanguard within 600 of the proc's target, or to the target itself when none is;
+  - Hex is a Counter status from her, lapsing after 4 s; her abilities add two stacks by listing it twice;
+  - "the first basic attack after emerging" is her first attack from the moment she is Camouflaged until 3 s after it ends, including the attack that ends it.
 - **Patch:**
   - he cannot attack while attached but may cast;
   - a missed Bear Hug has no effect and goes on cooldown;
