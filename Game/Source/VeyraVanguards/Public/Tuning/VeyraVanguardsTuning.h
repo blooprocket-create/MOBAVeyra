@@ -252,6 +252,41 @@ struct FVeyraMovingTargetTuning
 	FVeyraDeadReckoningTuning DeadReckoning;
 };
 
+/**
+ * Patch's Haunted Attachment (Roster Bible §5): an enemy Vanguard that damages Patch is Haunted for a
+ * while, once per its own cooldown; a Haunted enemy that damages one of his allied Vanguards near him
+ * instead is lashed by the spirit, and the Haunt is spent. It reads Combat's OnHostileDamage; no core
+ * system names it. Its data is an entry in Vanguards.json's haunt map.
+ */
+USTRUCT()
+struct FVeyraHauntTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses, put on the enemy by the owner; its time is the Haunt's. */
+	UPROPERTY()
+	FVeyraContentId HauntStatus;
+
+	/** How long before the same enemy can be Haunted again, in seconds; at least 0. */
+	UPROPERTY()
+	double PerEnemyCooldownSeconds = 0.0;
+
+	/** Units between the owner's centre and the damaged ally's for the spirit to lash out; above 0. */
+	UPROPERTY()
+	double AllyRadius = 0.0;
+
+	/** The lash's proc damage; one amount. */
+	UPROPERTY()
+	FVeyraDamageTuning Damage;
+
+	/** From Abilities.json's statuses, put on the lashed enemy, such as a brief Slow. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
 /** Firing Line: at full Cadence, a spectral echo repeats each attack (Roster Bible §7). */
 USTRUCT()
 struct FVeyraFiringLineTuning
@@ -417,7 +452,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 8;
+	static constexpr int32 SchemaVersion = 9;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -442,6 +477,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraMarkProcTuning> MarkProc;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraHauntTuning> Haunt;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

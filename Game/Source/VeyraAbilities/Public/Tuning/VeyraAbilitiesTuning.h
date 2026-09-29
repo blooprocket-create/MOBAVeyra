@@ -469,13 +469,16 @@ struct FVeyraAreaAbilityTuning
 	TArray<FVeyraContentId> ConsumesCasterStatuses;
 };
 
-/** Statuses a buff gives nearby allied Vanguards while it lasts (ADR-008 §9). */
+/**
+ * Statuses a buff gives nearby allied Vanguards while it lasts (ADR-008 §9), and optionally puts on the
+ * enemy units near it (ADR-018 §6), as Patch's The Thing Inside.
+ */
 USTRUCT()
 struct FVeyraAuraTuning
 {
 	GENERATED_BODY()
 
-	/** Units from the caster's centre to an ally's edge. */
+	/** Units from the caster's centre to a unit's edge. */
 	UPROPERTY()
 	double Radius = 0.0;
 
@@ -489,6 +492,10 @@ struct FVeyraAuraTuning
 
 	UPROPERTY()
 	TArray<FVeyraContentId> AllyStatuses;
+
+	/** Put on each living enemy unit in range at every refresh, never a structure or a ward. */
+	UPROPERTY()
+	TArray<FVeyraContentId> EnemyStatuses;
 };
 
 /**
@@ -557,6 +564,60 @@ struct FVeyraVariantTuning
 	double DurationSeconds = 0.0;
 };
 
+/** Temporary Health a self-buff grants its caster (Combat Bible §7; ADR-018 §6), as Patch's The Thing Inside. */
+USTRUCT()
+struct FVeyraTemporaryHealthTuning
+{
+	GENERATED_BODY()
+
+	/** One value for every rank, or one per rank. */
+	UPROPERTY()
+	TArray<double> AmountByRank;
+
+	/** And this share of the caster's Max Health. */
+	UPROPERTY()
+	double MaxHealthRatio = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+};
+
+/**
+ * What a self-buff does as it ends (ADR-018 §6), as Patch's Play Dead's Fear pulse: a status on each
+ * enemy unit within Radius of its caster, lasting longer for each hit the caster took while the buff
+ * lasted, up to its most.
+ */
+USTRUCT()
+struct FVeyraEndPayloadTuning
+{
+	GENERATED_BODY()
+
+	/** When it comes, in seconds after the cast: as the buff ends. Above 0. */
+	UPROPERTY()
+	double AfterSeconds = 0.0;
+
+	/** Units from the caster's centre to an enemy's edge; above 0. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	/** A status ID from the statuses map. */
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	/** How long the status lasts with no hit taken; above 0. */
+	UPROPERTY()
+	double BaseSeconds = 0.0;
+
+	/** Added for each hit taken; at least 0. */
+	UPROPERTY()
+	double SecondsPerHit = 0.0;
+
+	/** The most it lasts; at least BaseSeconds. */
+	UPROPERTY()
+	double MaxSeconds = 0.0;
+};
+
 /** An ability that buffs its caster, and optionally nearby allies (ADR-008 §3). */
 USTRUCT()
 struct FVeyraSelfBuffAbilityTuning
@@ -591,6 +652,14 @@ struct FVeyraSelfBuffAbilityTuning
 	/** Slots that hold another ability while the buff lasts (ADR-018 §1). */
 	UPROPERTY()
 	TArray<FVeyraVariantTuning> Variants;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraTemporaryHealthTuning> TemporaryHealth;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraEndPayloadTuning> EndPayload;
 };
 
 /** How a projectile flies (Combat Bible §13). */
@@ -975,7 +1044,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 8;
+	static constexpr int32 SchemaVersion = 9;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

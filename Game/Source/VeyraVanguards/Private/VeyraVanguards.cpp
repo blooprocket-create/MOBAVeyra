@@ -9,6 +9,7 @@
 #include "Passives/VeyraCadencePassive.h"
 #include "Passives/VeyraDeepFoundationPassive.h"
 #include "Passives/VeyraGatheringLightPassive.h"
+#include "Passives/VeyraHauntPassive.h"
 #include "Passives/VeyraMovingTargetPassive.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Shared/VeyraHitChainPassive.h"
@@ -49,6 +50,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindMarkProc(PassiveId))
 	{
 		return UVeyraMarkProcPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindHaunt(PassiveId))
+	{
+		return UVeyraHauntPassive::StaticClass();
 	}
 	return nullptr;
 }

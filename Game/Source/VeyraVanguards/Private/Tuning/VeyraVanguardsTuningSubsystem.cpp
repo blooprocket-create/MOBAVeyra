@@ -85,6 +85,11 @@ const FVeyraMarkProcTuning* UVeyraVanguardsTuningSubsystem::FindMarkProc(const F
 	return Get().MarkProc.Find(Passive);
 }
 
+const FVeyraHauntTuning* UVeyraVanguardsTuningSubsystem::FindHaunt(const FVeyraContentId& Passive)
+{
+	return Get().Haunt.Find(Passive);
+}
+
 VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 {
 	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.

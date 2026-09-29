@@ -54,7 +54,7 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
 ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach")
-PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc")
+PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
     ("Vanguards", "/vanguards/*/abilities/q/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
@@ -72,6 +72,8 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/markProc/*/mark", "Abilities", ("/statuses",)),
     ("Vanguards", "/markProc/*/emergence/*/status", "Abilities", ("/statuses",)),
     ("Vanguards", "/markProc/*/procBolts/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/haunt/*/hauntStatus", "Abilities", ("/statuses",)),
+    ("Vanguards", "/haunt/*/statuses/*", "Abilities", ("/statuses",)),
     # A variant is an ability of any archetype, and what an area spends is a status (ADR-018 §1, §6).
     ("Abilities", "/selfBuff/*/variants/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Abilities", "/area/*/consumesCasterStatuses/*", "Abilities", ("/statuses",)),
@@ -81,6 +83,9 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     # A tether holds statuses on its target, and an attach on its host, while they last (ADR-018 §2).
     ("Abilities", "/tether/*/targetStatuses/*", "Abilities", ("/statuses",)),
     ("Abilities", "/attach/*/hostStatuses/*", "Abilities", ("/statuses",)),
+    # What a buff's end and its aura put on enemies are statuses (ADR-018 §6).
+    ("Abilities", "/selfBuff/*/endPayload/*/status", "Abilities", ("/statuses",)),
+    ("Abilities", "/selfBuff/*/aura/*/enemyStatuses/*", "Abilities", ("/statuses",)),
     # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).
     ("Abilities", "/fluxSpells/roster/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     # Every Fluxborn Economy pays for is one World defines, and every one World defines is paid for.

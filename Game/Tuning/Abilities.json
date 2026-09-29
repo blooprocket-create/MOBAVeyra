@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 8,
+  "schemaVersion": 9,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -430,7 +430,19 @@
     "mimzi_hex": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 4, "maxStacks": 2, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
     "mimzi_camouflage": { "provenance": "Provisional", "kind": "Camouflage", "stacking": "UniqueRefresh", "magnitude": 400, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
     "mimzi_scamper": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "mimzi_winkbomb_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] }
+    "mimzi_winkbomb_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_haunted": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_haunt_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_hugged": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 2.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_hugged_inside": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_dormant": { "provenance": "Provisional", "kind": "Dormant", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_play_dead_guard": { "provenance": "Provisional", "kind": "DamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_play_dead_anchor": { "provenance": "Provisional", "kind": "DisplacementImmunity", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_fear": { "provenance": "Provisional", "kind": "Fear", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_threaded": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_inside_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.8, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_inside_footing": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
+    "patch_inside_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] }
   },
   "targetedDamage": {
     "test_bolt": {
@@ -923,10 +935,12 @@
       },
       "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
       "shields": [],
-      "aura": [{ "radius": 600, "durationSeconds": 4, "refreshSeconds": 0.5, "allyStatuses": ["cairn_immovable_cover"] }],
+      "aura": [{ "radius": 600, "durationSeconds": 4, "refreshSeconds": 0.5, "enemyStatuses": [], "allyStatuses": ["cairn_immovable_cover"] }],
       "heal": [],
       "recast": "EndsEarly",
-      "variants": []
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": []
     },
     "qazharr_weather_it": {
       "provenance": "Provisional",
@@ -956,7 +970,9 @@
       "aura": [],
       "heal": [],
       "recast": "None",
-      "variants": []
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": []
     },
     "oriel_mirror_veil": {
       "provenance": "Provisional",
@@ -986,7 +1002,9 @@
       "aura": [],
       "heal": [],
       "recast": "None",
-      "variants": []
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": []
     },
     "mend": {
       "provenance": "Provisional",
@@ -1004,7 +1022,9 @@
       "aura": [],
       "heal": [{ "amount": 80, "amountPerLevel": 14, "allyRange": 850, "statuses": ["mend_haste"] }],
       "recast": "None",
-      "variants": []
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": []
     },
     "vera_dig_in": {
       "provenance": "Provisional",
@@ -1022,7 +1042,9 @@
       "aura": [],
       "heal": [],
       "recast": "EndsEarly",
-      "variants": []
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": []
     },
     "vera_dig_in_volley": {
       "provenance": "Provisional",
@@ -1040,7 +1062,9 @@
       "aura": [],
       "heal": [],
       "recast": "EndsEarly",
-      "variants": []
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": []
     },
     "vera_the_last_volley": {
       "provenance": "Provisional",
@@ -1058,7 +1082,9 @@
       "aura": [],
       "heal": [],
       "recast": "None",
-      "variants": [{ "slot": "W", "ability": "vera_dig_in_volley", "cooldown": "Own", "durationSeconds": 8 }]
+      "variants": [{ "slot": "W", "ability": "vera_dig_in_volley", "cooldown": "Own", "durationSeconds": 8 }],
+      "temporaryHealth": [],
+      "endPayload": []
     },
     "mimzi_now_you_see_me": {
       "provenance": "Provisional",
@@ -1076,7 +1102,49 @@
       "aura": [],
       "heal": [],
       "recast": "None",
-      "variants": []
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": []
+    },
+    "patch_play_dead": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [18, 16.5, 15, 13.5, 12],
+        "resourceCostByRank": [60],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "statuses": ["patch_dormant", "patch_play_dead_guard", "patch_play_dead_anchor"],
+      "shields": [],
+      "aura": [],
+      "heal": [],
+      "recast": "None",
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": [{ "afterSeconds": 1.5, "radius": 350, "status": "patch_fear", "baseSeconds": 0.5, "secondsPerHit": 0.1, "maxSeconds": 1.25 }]
+    },
+    "patch_the_thing_inside": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 105, 90],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "statuses": ["patch_inside_body", "patch_inside_footing"],
+      "shields": [],
+      "aura": [{ "radius": 350, "durationSeconds": 8, "refreshSeconds": 0.25, "enemyStatuses": ["patch_inside_chill"], "allyStatuses": [] }],
+      "heal": [],
+      "recast": "None",
+      "variants": [{ "slot": "Q", "ability": "patch_bear_hug_inside", "cooldown": "Own", "durationSeconds": 8 }],
+      "temporaryHealth": [{ "amountByRank": [200, 350, 500], "maxHealthRatio": 0.1, "durationSeconds": 8 }],
+      "endPayload": []
     }
   },
   "skillshot": {
@@ -1332,6 +1400,26 @@
       },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [] }
+    },
+    "patch_bear_hug_throw": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [1],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "direction": "AwayFromHost",
+      "distance": 300,
+      "speed": 1200,
+      "contact": "None",
+      "startZones": [],
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [] },
+      "contactSelfStatuses": [],
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 75, "speed": 600 }], "missingHealthDamage": [] }
     }
   },
   "empoweredAttack": {
@@ -1399,8 +1487,64 @@
       "bonus": [{ "status": "kade_tracked", "maxShots": 2 }]
     }
   },
-  "tether": {},
-  "attach": {},
+  "tether": {
+    "patch_dont_leave_me": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [55],
+        "castRange": 550,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "targetKinds": ["Vanguard"],
+      "maxRange": 750,
+      "durationSeconds": 3,
+      "snapDistance": 300,
+      "snapSpeed": 1200,
+      "targetStatuses": ["patch_threaded"]
+    }
+  },
+  "attach": {
+    "patch_bear_hug": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [12, 11, 10, 9, 8],
+        "resourceCostByRank": [50],
+        "castRange": 450,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 2.5, "onExpiry": "Lapse" }]
+      },
+      "targetKinds": ["Vanguard"],
+      "leapSpeed": 1200,
+      "reachOnArrival": 75,
+      "attachSeconds": 2.5,
+      "hostStatuses": ["patch_hugged"],
+      "hostEffects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": [], "displacement": [], "missingHealthDamage": [] }
+    },
+    "patch_bear_hug_inside": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [8],
+        "resourceCostByRank": [50],
+        "castRange": 450,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 3, "onExpiry": "Lapse" }]
+      },
+      "targetKinds": ["Vanguard"],
+      "leapSpeed": 1200,
+      "reachOnArrival": 75,
+      "attachSeconds": 3,
+      "hostStatuses": ["patch_hugged_inside"],
+      "hostEffects": { "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200, 250, 300], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": [], "displacement": [], "missingHealthDamage": [] }
+    }
+  },
   "fluxSpells": {
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]

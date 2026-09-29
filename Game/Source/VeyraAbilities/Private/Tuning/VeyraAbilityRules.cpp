@@ -221,6 +221,32 @@ namespace
 					Problem(AuraPointer + TEXT("/refreshSeconds"), TEXT("must be at most the aura's duration"));
 				}
 				CheckStatusIds(AuraPointer + TEXT("/allyStatuses"), Aura.AllyStatuses);
+				CheckStatusIds(AuraPointer + TEXT("/enemyStatuses"), Aura.EnemyStatuses);
+			}
+			if (Buff.TemporaryHealth.Num() > 1 || Buff.EndPayload.Num() > 1)
+			{
+				Problem(Pointer, TEXT("temporaryHealth and endPayload each hold at most one"));
+			}
+			for (int32 Index = 0; Index < Buff.TemporaryHealth.Num(); ++Index)
+			{
+				const FVeyraTemporaryHealthTuning& Temporary = Buff.TemporaryHealth[Index];
+				const FString TemporaryPointer = FString::Printf(TEXT("%s/temporaryHealth/%d"), *Pointer, Index);
+				CheckByRank(TemporaryPointer + TEXT("/amountByRank"), Temporary.AmountByRank);
+				if (!(Temporary.DurationSeconds > 0.0) || Temporary.MaxHealthRatio < 0.0)
+				{
+					Problem(TemporaryPointer, TEXT("durationSeconds is above 0 and maxHealthRatio at least 0"));
+				}
+			}
+			for (int32 Index = 0; Index < Buff.EndPayload.Num(); ++Index)
+			{
+				const FVeyraEndPayloadTuning& Payload = Buff.EndPayload[Index];
+				const FString PayloadPointer = FString::Printf(TEXT("%s/endPayload/%d"), *Pointer, Index);
+				CheckStatusIds(PayloadPointer + TEXT("/status"), { Payload.Status });
+				if (!(Payload.AfterSeconds > 0.0) || !(Payload.Radius > 0.0) || !(Payload.BaseSeconds > 0.0) || Payload.SecondsPerHit < 0.0
+					|| Payload.MaxSeconds < Payload.BaseSeconds)
+				{
+					Problem(PayloadPointer, TEXT("afterSeconds, radius and baseSeconds are above 0, secondsPerHit at least 0, and maxSeconds at least baseSeconds"));
+				}
 			}
 			for (int32 Index = 0; Index < Buff.Heal.Num(); ++Index)
 			{

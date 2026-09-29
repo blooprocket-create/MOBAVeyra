@@ -207,7 +207,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [8]
+      "enum": [9]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -407,7 +407,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -427,12 +427,13 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["radius", "durationSeconds", "refreshSeconds", "allyStatuses"],
+                "required": ["radius", "durationSeconds", "refreshSeconds", "allyStatuses", "enemyStatuses"],
                 "properties": {
                   "radius": { "description": "Units from the caster's centre to an ally's edge.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "refreshSeconds": { "description": "How often allies in range get the statuses again; the statuses should outlast it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-                  "allyStatuses": { "$ref": "#/definitions/statusIds" }
+                  "allyStatuses": { "$ref": "#/definitions/statusIds" },
+                  "enemyStatuses": { "description": "Put on each living enemy unit in range at every refresh, never a structure or a ward (ADR-018 §6).", "$ref": "#/definitions/statusIds" }
                 }
               }
             },
@@ -471,6 +472,35 @@
                   "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
                   "cooldown": { "description": "Own keeps its own cooldown; Shared is one cooldown with the slot's own ability.", "type": "string", "enum": ["Own", "Shared"] },
                   "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                }
+              }
+            },
+            "temporaryHealth": {
+              "description": "At most one: Temporary Health for its caster (Combat Bible §7; ADR-018 §6).",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["amountByRank", "maxHealthRatio", "durationSeconds"],
+                "properties": {
+                  "amountByRank": { "$ref": "#/definitions/byRank" },
+                  "maxHealthRatio": { "description": "And this share of the caster's Max Health.", "type": "number", "minimum": 0 },
+                  "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                }
+              }
+            },
+            "endPayload": {
+              "description": "At most one: as the buff ends, a status on each enemy unit near its caster, lasting longer for each hit the caster took meanwhile (ADR-018 §6).",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["afterSeconds", "radius", "status", "baseSeconds", "secondsPerHit", "maxSeconds"],
+                "properties": {
+                  "afterSeconds": { "description": "When it comes, in seconds after the cast.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "radius": { "description": "Units from the caster's centre to an enemy's edge.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "status": { "description": "A status ID from the statuses map.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "baseSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "secondsPerHit": { "type": "number", "minimum": 0 },
+                  "maxSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
                 }
               }
             }

@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -166,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [8]
+      "enum": [9]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -334,6 +334,26 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "haunt": {
+      "description": "Passives that Haunt an enemy Vanguard that damages their owner, once per its own cooldown, and lash it when it damages an ally near the owner instead (Patch's Haunted Attachment, Roster Bible §5).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "hauntStatus", "perEnemyCooldownSeconds", "allyRadius", "damage", "statuses"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "hauntStatus": { "description": "From Abilities.json's statuses, put on the enemy by the owner; its time is the Haunt's.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "perEnemyCooldownSeconds": { "description": "How long before the same enemy can be Haunted again.", "type": "number", "minimum": 0 },
+            "allyRadius": { "description": "Units between the owner's centre and the damaged ally's for the spirit to lash out.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "damage": { "description": "The lash's proc damage.", "$ref": "#/definitions/damage" },
+            "statuses": { "description": "From Abilities.json's statuses, put on the lashed enemy.", "$ref": "#/definitions/contentIds" }
           }
         }
       }

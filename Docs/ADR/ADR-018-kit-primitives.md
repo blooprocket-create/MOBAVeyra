@@ -159,6 +159,10 @@ Every value is Provisional data, a League stand-in:
   - a missed Bear Hug has no effect and goes on cooldown;
   - the throw lands behind him, away from the target;
   - recasting Play Dead does not end it early.
+  - the Haunt comes only from an enemy Vanguard's damage, and the lash only when a Haunted enemy damages an allied Vanguard within 800 of a living Patch;
+  - Bear Hug and Don't Leave Me target enemy Vanguards only;
+  - Play Dead's pulse counts every hostile hit Patch takes while it lasts, damage over time included, and fears every enemy unit within its radius;
+  - The Thing Inside's aura slows every enemy unit near him, Fluxborn and wildlife included; during it, Bear Hug holds longer and slows harder.
 - **Gorraveth:**
   - "helping finish a camp" means he damaged any creature of it and is alive when it clears;
   - Ravine Bound's landing need not be visible, and it crosses no walls (the map has none yet).

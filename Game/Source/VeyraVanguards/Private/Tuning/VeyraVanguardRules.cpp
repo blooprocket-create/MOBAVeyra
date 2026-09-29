@@ -40,6 +40,30 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 	{
 		RegisterPassive(Entry.Key, TEXT("breach"));
 	}
+	for (const TPair<FVeyraContentId, FVeyraHauntTuning>& Entry : Tuning.Haunt)
+	{
+		RegisterPassive(Entry.Key, TEXT("haunt"));
+		const FString Pointer = TEXT("/haunt/") + Entry.Key.ToString();
+		const FVeyraHauntTuning& Haunt = Entry.Value;
+		TArray<FVeyraContentId> Named = Haunt.Statuses;
+		Named.Add(Haunt.HauntStatus);
+		for (const FVeyraContentId& Status : Named)
+		{
+			if (!Abilities.Statuses.Contains(Status))
+			{
+				Problem(Pointer, FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Status.ToString()));
+			}
+		}
+		if (Haunt.Damage.AmountByRank.Num() != 1)
+		{
+			Problem(Pointer + TEXT("/damage"), TEXT("a passive has no ranks: its damage has one amount"));
+		}
+		if (!(Haunt.AllyRadius > 0.0) || Haunt.PerEnemyCooldownSeconds < 0.0)
+		{
+			Problem(Pointer, TEXT("allyRadius is above 0 and perEnemyCooldownSeconds at least 0"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraMarkProcTuning>& Entry : Tuning.MarkProc)
 	{
 		RegisterPassive(Entry.Key, TEXT("markProc"));
