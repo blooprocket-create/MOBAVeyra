@@ -215,6 +215,8 @@ Since M6 it adds an assigned practice match's bots (ADR-010 §7). Since M9 it se
 
 Since M8 it routes the shop and holds Recall ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §7–§8): the fountain check tells `UVeyraShopSubsystem` who stands at their fountain, deaths deliver the queue, and the player controller forwards buy, sell, undo, cancel and item-slot requests. `Recall/` holds the channel on each PlayerState; the game mode starts it (B), ends it on every order the Vanguard takes, and brings the Vanguard home.
 
+Since M12 `Statistics/` holds the match's one statistics service ([ADR-017](Docs/ADR/ADR-017-match-statistics.md) §3). `UVeyraMatchStatisticsSubsystem` records every participant, bots too, from the events Combat, Economy, World and Vision report, and never computes what they decide. Pure rules (`VeyraStatisticsRules`) hold the crowd-control union and which Gold counts as earned. Each PlayerState's `UVeyraScoreComponent` carries the public part, K/D/A and last hits, to every client.
+
 It knows nothing about the backend; `VeyraServices` connects the two.
 
 ### VeyraBots
@@ -279,6 +281,8 @@ M6 added the menus, UMG widgets built entirely in C++ with no widget Blueprints 
 The grey-box HUD draws through an overlay actor the local player's HUD renders (`Hud/`), so the menus cover it.
 
 M8 added `Shop/` ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §11): the shop screen, which P opens beside the game, and its model, which prices every item by the inventory rule the server uses. The HUD gained the item bar (keys 1–6) and Recall's channel bar, and the string table gained item names and descriptions.
+
+M12 added `Scoreboard/` ([ADR-017](Docs/ADR/ADR-017-match-statistics.md) §4): the in-match scoreboard, open while Tab is held. It has both teams, the viewer's first, and each player's Vanguard, level, K/D/A, creep score and items. Its model reads only what every client receives: each PlayerState's public score, level and inventory.
 
 ### VeyraDeveloper
 

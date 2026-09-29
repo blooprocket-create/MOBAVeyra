@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Absorption/VeyraAbsorptionLedger.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "ActiveGameplayEffectHandle.h"
 #include "Components/ActorComponent.h"
 #include "Containers/Map.h"
@@ -47,9 +48,11 @@ public:
 
 	/**
 	 * Combat Bible §25 steps 7–9 for one mitigated damage component, on the server. Health is the
-	 * unit's ordinary Health before the component; the caller applies the result's HealthLost.
+	 * unit's ordinary Health before the component; the caller applies the result's HealthLost. Each
+	 * shield's share goes to OutShieldShares, when given, with the shield's provider.
 	 */
-	FVeyraAbsorptionResult ApplyIncomingDamage(EVeyraDamageType Type, double Amount, bool bInvulnerable, double Health);
+	FVeyraAbsorptionResult ApplyIncomingDamage(EVeyraDamageType Type, double Amount, bool bInvulnerable, double Health,
+		TArray<FVeyraShieldShare>* OutShieldShares = nullptr);
 
 	const FVeyraAbsorptionLedger& GetLedger() const { return Ledger; }
 

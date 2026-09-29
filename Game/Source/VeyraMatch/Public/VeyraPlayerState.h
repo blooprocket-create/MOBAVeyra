@@ -29,6 +29,7 @@ class UVeyraProgressionComponent;
 class UVeyraRecallComponent;
 class UVeyraRegenerationComponent;
 class UVeyraResourceSet;
+class UVeyraScoreComponent;
 class UVeyraPassive;
 class UVeyraStatusComponent;
 class UVeyraVisionToolComponent;
@@ -174,6 +175,10 @@ private:
 	/** The vision tool and its ward charges, which survive death (Vision Bible §7; ADR-016 §6). */
 	UPROPERTY(VisibleAnywhere, Category = "Vision")
 	TObjectPtr<UVeyraVisionToolComponent> VisionTool;
+
+	/** Its public score: K/D/A and last hits, for the in-match scoreboard (ADR-017 §3). */
+	UPROPERTY(VisibleAnywhere, Category = "Match")
+	TObjectPtr<UVeyraScoreComponent> PublicScore;
 
 	UPROPERTY()
 	TObjectPtr<UVeyraVitalsSet> VitalsSet;

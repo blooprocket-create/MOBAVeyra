@@ -176,6 +176,9 @@ namespace VeyraWorldTests
 			Hit(*Taker.GetAbilitySystemComponent(), *Well().GetAbilitySystemComponent(), Full - Drain * Tick * 1.5);
 			Wells->UpdatePresence(Tick);
 			ASSERT_THAT(IsTrue(Secured.Num() == 1 && Secured[0].Team == EVeyraTeam::A && Secured[0].Site == 0));
+			// Presence lands its last hit in a present Vanguard's name (ADR-014 §4), for the statistics (ADR-017 §3).
+			ASSERT_THAT(IsTrue(Secured[0].FinalHitter.Get() == Taker.GetAbilitySystemComponent()));
+			ASSERT_THAT(IsTrue(Secured[0].Capturers.Num() == 1 && Secured[0].Capturers[0].Get() == Taker.GetAbilitySystemComponent()));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Taker.GetPlayerState()->FindComponentByClass<UVeyraGoldComponent>()->GetGold(),
 				UVeyraEconomyTuningSubsystem::Get().Gold.FluxWellPool, Tolerance), TEXT("the whole pool to the only capturer")));
 			ASSERT_THAT(IsTrue(Well().GetState() == EVeyraFluxWellState::Respawning));
@@ -189,7 +192,7 @@ namespace VeyraWorldTests
 			Wells->Start();
 			Wells->Open(0);
 			AVeyraVanguardCharacter& Ours = SpawnVanguard(EVeyraTeam::A, FVector(SiteX + Radius / 2.0, SiteY, 100.0));
-			SpawnVanguard(EVeyraTeam::B, FVector(SiteX - Radius / 2.0, SiteY, 100.0));
+			AVeyraVanguardCharacter& Theirs = SpawnVanguard(EVeyraTeam::B, FVector(SiteX - Radius / 2.0, SiteY, 100.0));
 			AVeyraVanguardCharacter& Thief = SpawnVanguard(EVeyraTeam::B, FVector(SiteX, SiteY + Radius * 3.0, 100.0));
 			// Ours is hit a little first, so it is below full and a heal would show.
 			Hit(*Ours.GetAbilitySystemComponent(), *Well().GetAbilitySystemComponent(), Drain);
@@ -199,6 +202,14 @@ namespace VeyraWorldTests
 			// A blow from outside its radius takes it for the thief's side.
 			Hit(*Thief.GetAbilitySystemComponent(), *Well().GetAbilitySystemComponent(), Before);
 			ASSERT_THAT(IsTrue(Secured.Num() == 1 && Secured[0].Team == EVeyraTeam::B));
+			// Secured with participation: the thief, who landed it, and its ally at the Well; not ours (ADR-017 §3).
+			ASSERT_THAT(IsTrue(Secured[0].FinalHitter.Get() == Thief.GetAbilitySystemComponent()));
+			const auto Captured = [this](const AVeyraVanguardCharacter& Vanguard) {
+				return Secured[0].Capturers.ContainsByPredicate([&Vanguard](const TWeakObjectPtr<UAbilitySystemComponent>& Capturer) {
+					return Capturer.Get() == Vanguard.GetAbilitySystemComponent();
+				});
+			};
+			ASSERT_THAT(IsTrue(Secured[0].Capturers.Num() == 2 && Captured(Thief) && Captured(Theirs) && !Captured(Ours)));
 			ASSERT_THAT(IsTrue(Thief.GetPlayerState()->FindComponentByClass<UVeyraGoldComponent>()->GetGold() > 0.0, TEXT("the stealer shares the pool")));
 			ASSERT_THAT(IsTrue(Ours.GetPlayerState()->FindComponentByClass<UVeyraGoldComponent>()->GetGold() == 0.0));
 		}

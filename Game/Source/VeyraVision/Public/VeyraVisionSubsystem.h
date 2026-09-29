@@ -33,8 +33,13 @@ class VEYRAVISION_API UVeyraVisionSubsystem : public UWorldSubsystem, public IVe
 	GENERATED_BODY()
 
 public:
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnWardPlaced, const AVeyraWard&, APlayerState& /*Placer*/);
+
 	UVeyraVisionSubsystem();
 	virtual ~UVeyraVisionSubsystem() override;
+
+	/** Server: a ward was placed, for the match statistics (ADR-017 §3). Its destruction is a death. */
+	FOnWardPlaced OnWardPlaced;
 
 	/** Server: starts working vision out, governing targeting and gating what clients receive. */
 	void Start();

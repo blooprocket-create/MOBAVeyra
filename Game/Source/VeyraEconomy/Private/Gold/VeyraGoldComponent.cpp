@@ -70,6 +70,7 @@ bool UVeyraGoldComponent::Grant(double Amount, EVeyraGoldReason Reason)
 	}
 	SetGold(Gold + Amount);
 	UE_LOG(LogVeyraEconomy, Verbose, TEXT("%s gained %.2f Gold for %s, now %.2f."), *GetNameSafe(GetOwner()), Amount, LexToString(Reason), Gold);
+	OnGoldGranted.Broadcast(Amount, Reason);
 	return true;
 }
 

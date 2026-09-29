@@ -12,13 +12,15 @@ class UInputAction;
 class UInputComponent;
 class UInputMappingContext;
 class UVeyraMatchMenu;
+class UVeyraScoreboard;
 class UVeyraShopScreen;
 
 /**
  * Opens and closes the in-match screens with their keys (UVeyraUIInputSettings) in any match a Veyra
  * player controller plays: the menu (ADR-010 §4) and the shop (ADR-012 §11). While either is open,
  * the player's input reaches both it and the game; when both close, only the game. The menu's key
- * closes an open shop first, as Escape does in League.
+ * closes an open shop first, as Escape does in League. The scoreboard (ADR-017 §4) shows while its
+ * key is held and takes no input.
  */
 UCLASS()
 class VEYRAUI_API UVeyraMatchMenuSubsystem : public UGameInstanceSubsystem
@@ -45,6 +47,13 @@ public:
 
 	/** The open shop, or null. */
 	UVeyraShopScreen* GetShop() const { return Shop; }
+
+	/** Shows the scoreboard, as pressing its key does, and hides it, as letting go does. */
+	void ShowScoreboard();
+	void HideScoreboard();
+
+	/** The scoreboard while shown, or null. */
+	UVeyraScoreboard* GetScoreboard() const { return Scoreboard; }
 
 private:
 	/** Binds the menu key for each new match controller. */
@@ -76,6 +85,12 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVeyraShopScreen> Shop;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> ScoreboardAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UVeyraScoreboard> Scoreboard;
 
 	FTSTicker::FDelegateHandle TickHandle;
 	/** Whether the input settings are usable; the menu is off otherwise. */

@@ -116,6 +116,13 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool RestoreHealth(UAbilitySystemComponent& AbilitySystem, double Amount);
 
 	/**
+	 * Server: restores Amount of Health to Target as a heal Provider gives, as an ability or an item
+	 * does, never above Max Health (Combat Bible §6). Returns the Health actually restored, which
+	 * statistics credit to Provider (ADR-017 §1); 0 for a dead unit or a refused amount.
+	 */
+	VEYRACOMBAT_API double RestoreHealthFrom(UAbilitySystemComponent& Provider, UAbilitySystemComponent& Target, double Amount);
+
+	/**
 	 * Makes the unit invulnerable (Combat Bible §10) until a matching RevokeInvulnerability. Grants
 	 * count, so each grant needs its own revoke; statuses that make a unit invulnerable count
 	 * separately. Structures use it for their prerequisites (Battleground Bible §18). Server only.

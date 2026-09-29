@@ -358,6 +358,7 @@ AVeyraWard* UVeyraVisionSubsystem::PlaceWard(APlayerState& Placer, const FVector
 		Gate->AddToSide(*Ward, Team);
 	}
 	UE_LOG(LogVeyraVision, Log, TEXT("%s places a ward at %s."), *Placer.GetPlayerName(), *Where.ToCompactString());
+	OnWardPlaced.Broadcast(*Ward, Placer);
 	return Ward;
 }
 

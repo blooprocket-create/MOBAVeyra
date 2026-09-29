@@ -67,12 +67,17 @@ class VEYRAECONOMY_API UVeyraGoldComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
+	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGoldGranted, double /*Amount*/, EVeyraGoldReason);
+
 	UVeyraGoldComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Server only: adds Amount Gold for Reason and logs it. Refused unless finite and above 0. */
 	bool Grant(double Amount, EVeyraGoldReason Reason);
+
+	/** Server: every grant, as it lands, for the match statistics (ADR-017 §2). Economy keeps no statistic. */
+	FOnGoldGranted OnGoldGranted;
 
 	/**
 	 * Server only: pays Amount for a purchase delivered at once (§10). Refused, changing nothing, unless

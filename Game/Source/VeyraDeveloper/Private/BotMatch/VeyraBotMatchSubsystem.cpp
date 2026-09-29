@@ -9,6 +9,7 @@
 #include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Statistics/VeyraMatchStatisticsSubsystem.h"
 #include "Structures/VeyraStructure.h"
 #include "Tuning/VeyraBotsTuningSubsystem.h"
 #include "VeyraBattlegroundSubsystem.h"
@@ -108,6 +109,7 @@ void UVeyraBotMatchSubsystem::Report(UWorld& World) const
 			(Structure->GetVeyraTeam() == EVeyraTeam::A ? StandingA : StandingB) += 1;
 		}
 	}
+	const UVeyraMatchStatisticsSubsystem* Statistics = World.GetSubsystem<UVeyraMatchStatisticsSubsystem>();
 	FString Participants;
 	for (const APlayerState* Member : GameState->PlayerArray)
 	{
@@ -125,6 +127,13 @@ void UVeyraBotMatchSubsystem::Report(UWorld& World) const
 		}
 		const UVeyraGoldComponent* Gold = Participant->FindComponentByClass<UVeyraGoldComponent>();
 		Participants += FString::Printf(TEXT(" %s(L%d, %d items, %.0f Gold"), *Participant->GetPlayerName(), Progression->GetLevel(), Items, Gold ? Gold->GetGold() : 0.0);
+		// What the match has recorded of it so far (ADR-017 §3).
+		if (const TOptional<FVeyraPlayerStatistics> Record = Statistics ? Statistics->Snapshot(*Participant) : TOptional<FVeyraPlayerStatistics>())
+		{
+			Participants += FString::Printf(TEXT(", %d/%d/%d, %d CS, %.0f to Vanguards, %.1f s CC, %.0f healed, %.0f shielded"), Record->Kills, Record->Deaths,
+				Record->Assists, Record->MinionKills + Record->JungleKills, Record->VanguardDamage, Record->CrowdControl.Total,
+				Record->SelfHealing + Record->TeammateHealing, Record->DamageShielded);
+		}
 		// For a bot, its Health and what it is doing, so a stalled one shows why.
 		const AVeyraVanguardController* Controller = Participant->GetVanguardController();
 		const UVeyraBotBrainComponent* Brain = Controller ? Controller->FindComponentByClass<UVeyraBotBrainComponent>() : nullptr;

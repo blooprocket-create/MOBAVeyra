@@ -345,22 +345,44 @@ bool RestoreResource(UAbilitySystemComponent& AbilitySystem, double Amount)
 	return true;
 }
 
+namespace
+{
+	/** Restores Health and reports what it actually restored, and who gave it (ADR-017 §1); nullopt when refused. */
+	TOptional<double> Restore(UAbilitySystemComponent* Provider, UAbilitySystemComponent& AbilitySystem, double Amount)
+	{
+		if (!AbilitySystem.GetSet<UVeyraVitalsSet>() || !IsNonNegativeFinite(Amount))
+		{
+			UE_LOG(LogVeyraCombat, Error, TEXT("Refused to restore %g Health on %s: it needs a UVeyraVitalsSet and an amount that is finite and at least 0."),
+				Amount, *GetNameSafe(AbilitySystem.GetOwner()));
+			return {};
+		}
+		if (IsDeadUnit(AbilitySystem))
+		{
+			return {};
+		}
+		// The vitals set keeps Health within [0, Max Health], so restoration never overheals (Combat Bible §6).
+		const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
+		const double Before = AbilitySystem.GetNumericAttribute(Health);
+		AbilitySystem.SetNumericAttributeBase(Health, AbilitySystem.GetNumericAttributeBase(Health) + static_cast<float>(Amount));
+		const double Restored = FMath::Max(0.0, AbilitySystem.GetNumericAttribute(Health) - Before);
+		UWorld* World = AbilitySystem.GetWorld();
+		UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+		if (Events && Restored > 0.0)
+		{
+			Events->OnHealthRestored.Broadcast(FVeyraHealthRestored{ Provider, &AbilitySystem, Restored });
+		}
+		return Restored;
+	}
+}
+
 bool RestoreHealth(UAbilitySystemComponent& AbilitySystem, double Amount)
 {
-	if (!AbilitySystem.GetSet<UVeyraVitalsSet>() || !IsNonNegativeFinite(Amount))
-	{
-		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to restore %g Health on %s: it needs a UVeyraVitalsSet and an amount that is finite and at least 0."),
-			Amount, *GetNameSafe(AbilitySystem.GetOwner()));
-		return false;
-	}
-	if (IsDeadUnit(AbilitySystem))
-	{
-		return false;
-	}
-	// The vitals set keeps Health within [0, Max Health], so restoration never overheals (Combat Bible §6).
-	const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
-	AbilitySystem.SetNumericAttributeBase(Health, AbilitySystem.GetNumericAttributeBase(Health) + static_cast<float>(Amount));
-	return true;
+	return Restore(nullptr, AbilitySystem, Amount).IsSet();
+}
+
+double RestoreHealthFrom(UAbilitySystemComponent& Provider, UAbilitySystemComponent& Target, double Amount)
+{
+	return Restore(&Provider, Target, Amount).Get(0.0);
 }
 
 void GrantInvulnerability(UAbilitySystemComponent& AbilitySystem)

@@ -520,7 +520,8 @@ void UVeyraShopSubsystem::OnRestorationTimer()
 			Restorations.RemoveAt(Index);
 			continue;
 		}
-		VeyraCombat::RestoreHealth(*AbilitySystem, Restoration.PerTick);
+		// The participant heals itself with its item (ADR-017 §9).
+		VeyraCombat::RestoreHealthFrom(*AbilitySystem, *AbilitySystem, Restoration.PerTick);
 		if (--Restoration.TicksLeft <= 0)
 		{
 			Restorations.RemoveAt(Index);

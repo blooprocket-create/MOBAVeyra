@@ -130,12 +130,22 @@ FActiveGameplayEffectHandle UVeyraDamageAbsorptionComponent::GrantShield(UAbilit
 	return Effect;
 }
 
-FVeyraAbsorptionResult UVeyraDamageAbsorptionComponent::ApplyIncomingDamage(EVeyraDamageType Type, double Amount, bool bInvulnerable, double Health)
+FVeyraAbsorptionResult UVeyraDamageAbsorptionComponent::ApplyIncomingDamage(EVeyraDamageType Type, double Amount, bool bInvulnerable, double Health,
+	TArray<FVeyraShieldShare>* OutShieldShares)
 {
 	const FVeyraAbsorptionResult Result = VeyraAbsorption::Absorb(Type, Amount, bInvulnerable, Ledger, Health);
 	if (Result.ShieldAbsorbed > 0.0 || Result.TemporaryHealthSpent > 0.0)
 	{
 		MarkLedgerDirty();
+	}
+	// Whose shield took what, while a depleted shield's provider is still known (ADR-017 §1).
+	if (OutShieldShares)
+	{
+		for (const FVeyraAbsorbedShare& Share : Result.ShieldShares)
+		{
+			const FServerEntry* Server = ServerEntries.Find(Share.Sequence);
+			OutShieldShares->Add(FVeyraShieldShare{ Server ? Server->Source : nullptr, Share.Amount });
+		}
 	}
 
 	// An emptied entry's effect ends with it. Its ledger entry is already gone.

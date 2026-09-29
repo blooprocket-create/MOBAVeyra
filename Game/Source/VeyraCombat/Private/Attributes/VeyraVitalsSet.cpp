@@ -3,8 +3,10 @@
 #include "Attributes/VeyraVitalsSet.h"
 
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
+#include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "GameplayEffectExtension.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "Life/VeyraDeath.h"
 #include "Net/UnrealNetwork.h"
 #include "Records/VeyraCombatRecords.h"
@@ -145,15 +147,22 @@ void UVeyraVitalsSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 	}
 
 	const bool bInvulnerable = AbilitySystem->HasMatchingGameplayTag(VeyraTags::Status_Invulnerable);
-	const FVeyraAbsorptionResult Result = Absorption->ApplyIncomingDamage(Type.GetValue(), Amount, bInvulnerable, GetHealth());
+	TArray<FVeyraShieldShare> ShieldShares;
+	const FVeyraAbsorptionResult Result = Absorption->ApplyIncomingDamage(Type.GetValue(), Amount, bInvulnerable, GetHealth(), &ShieldShares);
 	if (Result.HealthLost > 0.0)
 	{
 		SetHealth(GetHealth() - static_cast<float>(Result.HealthLost));
-		// Nothing yet prevents a death once Health reaches 0, so the death is final (Combat Bible §18).
-		if (GetHealth() <= 0.0f)
-		{
-			VeyraDeath::FinalizeDeath(*AbilitySystem, Source);
-		}
+	}
+	// What it cost, and whose shields took it, before any death it causes (ADR-017 §1).
+	UVeyraCombatEventSubsystem* Events = Owner->GetWorld() ? Owner->GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+	if (Events && (Result.HealthLost > 0.0 || Result.ShieldAbsorbed > 0.0 || Result.TemporaryHealthSpent > 0.0))
+	{
+		Events->OnDamageResolved.Broadcast(FVeyraDamageResolution{ Source, AbilitySystem, Type.GetValue(), Result.HealthLost, Result.TemporaryHealthSpent, MoveTemp(ShieldShares) });
+	}
+	// Nothing yet prevents a death once Health reaches 0, so the death is final (Combat Bible §18).
+	if (Result.HealthLost > 0.0 && GetHealth() <= 0.0f)
+	{
+		VeyraDeath::FinalizeDeath(*AbilitySystem, Source);
 	}
 }
 

@@ -19,6 +19,12 @@ struct FVeyraFluxWellSecuredEvent
 
 	/** The side that landed its last hit, by damage or by presence. */
 	EVeyraTeam Team = EVeyraTeam::None;
+
+	/** The side's Vanguards that secured it: those present, and whoever landed the last hit (Economy Bible §8.2). */
+	TArray<TWeakObjectPtr<UAbilitySystemComponent>> Capturers;
+
+	/** The Vanguard that landed the last hit, by damage or by presence; null when no Vanguard did (Match Statistics Bible §5). */
+	TWeakObjectPtr<UAbilitySystemComponent> FinalHitter;
 };
 
 /**
