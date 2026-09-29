@@ -410,6 +410,16 @@ void AVeyraPlayerController::ServerCancelPurchase_Implementation(int32 Index)
 	RunShopRequest([Index](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.Cancel(Participant, Index); });
 }
 
+void AVeyraPlayerController::RequestSwapFluxSpell(int32 Slot, const FVeyraContentId& Spell)
+{
+	ServerSwapFluxSpell(Slot, Spell);
+}
+
+void AVeyraPlayerController::ServerSwapFluxSpell_Implementation(int32 Slot, FVeyraContentId Spell)
+{
+	RunShopRequest([Slot, &Spell](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.SwapFluxSpell(Participant, Slot, Spell); });
+}
+
 void AVeyraPlayerController::RunShopRequest(TFunctionRef<EVeyraShopRefusal(UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request)
 {
 	if (!TakeOrderAllowance())

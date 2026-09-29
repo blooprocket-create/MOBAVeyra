@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "gold": {
     "provenance": "Provisional",
     "starting": 500,
@@ -40,5 +40,9 @@
     "radius": 1400,
     "fluxbornParticipationSeconds": 10,
     "structureContributionSeconds": 15
+  },
+  "fluxSpells": {
+    "provenance": "Provisional",
+    "swapCost": 150
   }
 }

@@ -9,12 +9,15 @@
 #include "Gold/VeyraGoldComponent.h"
 #include "Hud/VeyraHudModel.h"
 #include "Inventory/VeyraInventoryComponent.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shop/VeyraShopModel.h"
 #include "Shop/VeyraShopScreen.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
@@ -95,6 +98,33 @@ namespace VeyraItemsTests
 			const FVeyraShopOffer* Wheel = OfferFor(View, TEXT("test_wheel"));
 			const double GripCost = Tuning.Items[ItemId(TEXT("test_grip"))].Cost;
 			ASSERT_THAT(IsTrue(Wheel && Wheel->Price == Tuning.Items[ItemId(TEXT("test_wheel"))].Cost + GripCost));
+		}
+
+		TEST_METHOD(TheModelOffersEachSpellSlotItsSwaps)
+		{
+			const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
+			ASSERT_THAT(IsTrue(Roster.Num() >= 2));
+			UVeyraAbilityLoadoutComponent& Loadout = *Participant->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+			ASSERT_THAT(IsTrue(Loadout.Grant(*Participant->GetAbilitySystemComponent(), EVeyraAbilitySlot::Spell1, Roster[0])));
+
+			FVeyraShopView View = VeyraShopModel::Describe(*Participant);
+			ASSERT_THAT(IsTrue(View.SpellSlots.Num() == 2 && View.SpellSwapCost == UVeyraEconomyTuningSubsystem::Get().FluxSpells.SwapCost));
+			ASSERT_THAT(IsTrue(View.SpellSlots[0].Spell == Roster[0] && View.SpellSlots[0].bLocked && !View.SpellSlots[1].Spell.IsValid()));
+			ASSERT_THAT(IsTrue(View.SpellSlots[1].Offers[1].Refusal == EVeyraShopRefusal::NotAtFountain, TEXT("never from afar")));
+			ASSERT_THAT(IsTrue(View.SpellSlots[1].Offers[0].Refusal == EVeyraShopRefusal::AlreadyEquipped, TEXT("the first slot holds it")));
+
+			Subsystem->SetAtFountain(*Participant, true);
+			View = VeyraShopModel::Describe(*Participant);
+			ASSERT_THAT(IsTrue(View.SpellSlots[1].Offers[1].Refusal == EVeyraShopRefusal::None));
+			// The screen offers each swap the model allows, and none to the spell a slot holds.
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			Controller.PlayerState = Participant;
+			UVeyraShopScreen* Screen = CreateWidget<UVeyraShopScreen>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Screen));
+			Screen->Show(Controller, [] {});
+			const UVeyraShellButton* Swap = Screen->FindButton(UVeyraShopScreen::SwapLabel(1, Roster[1]));
+			ASSERT_THAT(IsTrue(Swap && Swap->GetIsEnabled()));
+			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShopScreen::SwapLabel(0, Roster[0]))));
 		}
 
 		TEST_METHOD(StatsReadAsTheShopListsThem)

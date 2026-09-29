@@ -49,6 +49,26 @@ struct FVeyraShopPending
 	bool operator==(const FVeyraShopPending&) const = default;
 };
 
+/** A roster Flux Spell as a swap into one slot, or why it cannot be now. */
+struct FVeyraShopSpellOffer
+{
+	FVeyraContentId Spell;
+	EVeyraShopRefusal Refusal = EVeyraShopRefusal::None;
+	bool operator==(const FVeyraShopSpellOffer&) const = default;
+};
+
+/** One Flux Spell slot as the shop shows it (ADR-015 §6). */
+struct FVeyraShopSpellSlot
+{
+	/** Invalid when the slot is empty. */
+	FVeyraContentId Spell;
+	/** Its team's permanent Flux has not opened it yet; a swap still may, and it stays locked. */
+	bool bLocked = false;
+	/** Every roster spell, in roster order. */
+	TArray<FVeyraShopSpellOffer> Offers;
+	bool operator==(const FVeyraShopSpellSlot&) const = default;
+};
+
 /** What the shop shows its participant. */
 struct FVeyraShopView
 {
@@ -68,6 +88,9 @@ struct FVeyraShopView
 
 	/** Purchases waiting for the fountain, in order. */
 	TArray<FVeyraShopPending> Pending;
+	/** The two Flux Spell slots, in slot order, and what a swap costs (Economy & Progression Bible §13.2). */
+	TArray<FVeyraShopSpellSlot> SpellSlots;
+	double SpellSwapCost = 0.0;
 
 	bool operator==(const FVeyraShopView&) const = default;
 };

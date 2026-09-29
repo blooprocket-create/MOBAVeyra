@@ -367,6 +367,36 @@ bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability
 		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability);
 }
 
+double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
+{
+	if (const FVeyraTargetedDamageAbilityTuning* Targeted = Tuning.TargetedDamage.Find(Ability))
+	{
+		return Targeted->CooldownSeconds;
+	}
+	const FVeyraCastTuning* Cast = nullptr;
+	if (const FVeyraAreaAbilityTuning* Area = Tuning.Area.Find(Ability))
+	{
+		Cast = &Area->Cast;
+	}
+	else if (const FVeyraSelfBuffAbilityTuning* Buff = Tuning.SelfBuff.Find(Ability))
+	{
+		Cast = &Buff->Cast;
+	}
+	else if (const FVeyraSkillshotAbilityTuning* Skillshot = Tuning.Skillshot.Find(Ability))
+	{
+		Cast = &Skillshot->Cast;
+	}
+	else if (const FVeyraDashAbilityTuning* Dash = Tuning.Dash.Find(Ability))
+	{
+		Cast = &Dash->Cast;
+	}
+	else if (const FVeyraEmpoweredAttackAbilityTuning* Empowered = Tuning.EmpoweredAttack.Find(Ability))
+	{
+		Cast = &Empowered->Cast;
+	}
+	return Cast ? ValueAtRank(Cast->CooldownSecondsByRank, Rank) : 0.0;
+}
+
 TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 RankCount)
 {
 	const int32 RankCounts[] = { RankCount };

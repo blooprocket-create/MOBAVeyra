@@ -116,6 +116,12 @@ public:
 	/** Owning client: asks to cancel the pending purchase at Index, from 0, for all its Gold (§11.3). */
 	void RequestCancelPurchase(int32 Index);
 
+	/**
+	 * Owning client: asks to put roster spell Spell in Flux Spell slot Slot, from 0, for Gold, at the
+	 * fountain (ADR-015 §6).
+	 */
+	void RequestSwapFluxSpell(int32 Slot, const FVeyraContentId& Spell);
+
 	/** Owning client: the reason the server gave for the last refused shop request, and how many it refused. */
 	EVeyraShopRefusal GetLastShopRefusal() const { return LastShopRefusal; }
 	int32 GetShopRefusalCount() const { return ShopRefusalCount; }
@@ -199,6 +205,9 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerCancelPurchase(int32 Index);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSwapFluxSpell(int32 Slot, FVeyraContentId Spell);
 
 	UFUNCTION(Client, Unreliable)
 	void ClientShopRefused(EVeyraShopRefusal Refusal);

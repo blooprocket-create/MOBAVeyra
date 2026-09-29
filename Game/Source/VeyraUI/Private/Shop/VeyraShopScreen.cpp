@@ -126,6 +126,11 @@ FText UVeyraShopScreen::CancelLabel(int32 Index)
 	return FText::Format(LOCTEXT("Cancel", "Cancel {0}"), FText::AsNumber(Index + 1));
 }
 
+FText UVeyraShopScreen::SwapLabel(int32 Slot, const FVeyraContentId& Spell)
+{
+	return FText::Format(LOCTEXT("Swap", "Slot {0}: {1}"), FText::AsNumber(Slot + 1), VeyraContentText::AbilityName(Spell));
+}
+
 void UVeyraShopScreen::Rebuild()
 {
 	if (!Content)
@@ -213,6 +218,41 @@ void UVeyraShopScreen::Rebuild()
 			VeyraShellStyle::AddSpaced(*PendingRow, *Cell);
 		}
 		VeyraShellStyle::AddSpaced(*Content, *PendingRow);
+	}
+
+	// The Flux Spell slots: each swap costs Gold, at the fountain only (ADR-015 §6).
+	if (!View.SpellSlots.IsEmpty())
+	{
+		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
+			FText::Format(LOCTEXT("FluxSpells", "Flux Spells (each swap {0})"), GoldText(View.SpellSwapCost)), EVeyraShellText::Heading));
+		UHorizontalBox* SpellRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		for (int32 Index = 0; Index < View.SpellSlots.Num(); ++Index)
+		{
+			const FVeyraShopSpellSlot& Shown = View.SpellSlots[Index];
+			UVerticalBox* Cell = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			FText Held = Shown.Spell.IsValid() ? VeyraContentText::AbilityName(Shown.Spell) : LOCTEXT("NoSpell", "Empty");
+			if (Shown.bLocked)
+			{
+				Held = FText::Format(LOCTEXT("LockedSpell", "{0} (locked)"), Held);
+			}
+			VeyraShellStyle::AddSpaced(*Cell, *VeyraShellStyle::MakeText(*WidgetTree, FText::Format(LOCTEXT("SpellSlotLine", "Spell {0}: {1}"),
+				FText::AsNumber(Index + 1), Held), EVeyraShellText::Body));
+			for (const FVeyraShopSpellOffer& Offer : Shown.Offers)
+			{
+				if (Offer.Spell == Shown.Spell)
+				{
+					continue;
+				}
+				AddButton(*Cell, SwapLabel(Index, Offer.Spell), [this, Index, Spell = Offer.Spell] {
+					if (AVeyraPlayerController* Player = Controller.Get())
+					{
+						Player->RequestSwapFluxSpell(Index, Spell);
+					}
+				}, Offer.Refusal == EVeyraShopRefusal::None);
+			}
+			SpellRow->AddChildToHorizontalBox(Cell)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		}
+		VeyraShellStyle::AddSpaced(*Content, *SpellRow);
 	}
 
 	// Every item, a column per tier, each with its price now and its stats.

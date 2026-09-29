@@ -50,6 +50,9 @@ public:
 	/** The label of the button that cancels the pending purchase at Index, from 0. */
 	static FText CancelLabel(int32 Index);
 
+	/** The label of the button that swaps Spell into Flux Spell slot Slot, from 0. */
+	static FText SwapLabel(int32 Slot, const FVeyraContentId& Spell);
+
 	/** The line that says why the server refused the last request; empty when none has been. */
 	FText GetMessage() const;
 

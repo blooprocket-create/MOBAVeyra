@@ -13,6 +13,7 @@
 #include "Life/VeyraLifeComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
@@ -77,6 +78,45 @@ namespace VeyraItemsTests
 		void Die() const
 		{
 			Participant->FindComponentByClass<UVeyraLifeComponent>()->SetState(EVeyraLifeState::Dead);
+		}
+
+		TEST_METHOD(AFluxSpellSwapsOnlyAtTheFountainForGold)
+		{
+			const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
+			ASSERT_THAT(IsTrue(Roster.Num() >= 4));
+			const double Cost = UVeyraEconomyTuningSubsystem::Get().FluxSpells.SwapCost;
+			UVeyraAbilityLoadoutComponent& Loadout = *Participant->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+			ASSERT_THAT(IsTrue(Loadout.Grant(*Participant->GetAbilitySystemComponent(), EVeyraAbilitySlot::Spell1, Roster[0])));
+
+			// Never remotely: a queued purchase cannot change a spell (Battleground Bible §14).
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 0, Roster[1]) == EVeyraShopRefusal::NotAtFountain));
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 1, Roster[0]) == EVeyraShopRefusal::AlreadyEquipped, TEXT("one spell, one slot")));
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 2, Roster[1]) == EVeyraShopRefusal::NoSuchSpellSlot));
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 0, ItemId(TEXT("test_grip"))) == EVeyraShopRefusal::UnknownSpell));
+			ASSERT_THAT(IsTrue(Gold->GetGold() == Purse, TEXT("a refusal costs nothing")));
+
+			// A locked slot takes the swap and stays locked: its threshold is the slot's (§14).
+			ASSERT_THAT(IsTrue(Loadout.IsLocked(EVeyraAbilitySlot::Spell1)));
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 0, Roster[1]) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Loadout.FindSlot(EVeyraAbilitySlot::Spell1)->Ability == Roster[1] && Loadout.IsLocked(EVeyraAbilitySlot::Spell1)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Gold->GetGold(), Purse - Cost)));
+			// Filling an empty slot is a swap too.
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 1, Roster[0]) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Gold->GetGold(), Purse - Cost * 2.0)));
+
+			// A spell swapped in while the old one cools starts on its own full cooldown, so a swap never resets one.
+			UVeyraCooldownComponent& Cooldowns = *Participant->FindComponentByClass<UVeyraCooldownComponent>();
+			Cooldowns.StartCooldown(Roster[1], VeyraAbilityRules::CooldownSeconds(UVeyraAbilitiesTuningSubsystem::Get(), Roster[1], 1), EVeyraCooldownHaste::Fixed);
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 0, Roster[2]) == EVeyraShopRefusal::None));
+			const double Full = VeyraAbilityRules::CooldownSeconds(UVeyraAbilitiesTuningSubsystem::Get(), Roster[2], 1);
+			ASSERT_THAT(IsTrue(Full > 0.0 && FMath::IsNearlyEqual(Cooldowns.GetRemainingSecondsNow(Roster[2]), Full)));
+			// A spell swapped in for a ready one is ready.
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 1, Roster[3]) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Cooldowns.GetRemainingSecondsNow(Roster[3]) == 0.0));
+
+			Gold->Spend(Gold->GetGold());
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 1, Roster[0]) == EVeyraShopRefusal::NotEnoughGold));
 		}
 
 		TEST_METHOD(AtTheFountainAPurchaseArrivesAtOnceWithItsStats)

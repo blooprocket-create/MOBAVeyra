@@ -723,6 +723,9 @@ namespace VeyraAbilityRules
 	/** Whether any archetype map of Tuning defines Ability. */
 	VEYRAABILITIES_API bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
 
+	/** Ability's cooldown at Rank before any Haste, from whichever archetype map defines it; 0 for none. */
+	VEYRAABILITIES_API double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank);
+
 	/**
 	 * Problems with Ability as the ability of a slot with RankCount ranks: each of its rank lists must
 	 * hold one value, or exactly RankCount (ADR-008 §3).
