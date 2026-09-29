@@ -38,6 +38,8 @@ public class VeyraUI : ModuleRules
 			"RenderCore",
 			"Slate",
 			"SlateCore",
+			// The monitors, for a match that fills the one its window is on.
+			"ApplicationCore",
 			// The HUD names each Vanguard's resource, and the text checks cover each released Vanguard.
 			"VeyraVanguards",
 			// The HUD shows each team's Team Flux and what it gives their Fluxborn.

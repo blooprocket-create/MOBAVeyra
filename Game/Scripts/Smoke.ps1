@@ -118,6 +118,10 @@
 .PARAMETER Screenshot
     Renders the second client and saves a screenshot of the grey-box presentation. Not with -Handoff.
     With -Flow, the client renders in a window and saves each screen it passes, as Flow-<screen>.png.
+.PARAMETER MatchDisplay
+    With -Flow: how a rendering client's match takes the screen (UVeyraDisplaySettings). Windowed by
+    default, so smoke runs never cover the screen; BorderlessFullscreen or Fullscreen checks that the
+    match takes the screen and gives the window back for the results.
 .PARAMETER Vanguards
     The Vanguards whose kits the clients play, one client each, from Vanguards.json. Not with -Handoff.
 .PARAMETER Practice
@@ -183,6 +187,9 @@ param(
     [int]$ClientStaySeconds = 0,
 
     [switch]$Screenshot,
+
+    [ValidateSet('Windowed', 'BorderlessFullscreen', 'Fullscreen')]
+    [string]$MatchDisplay = 'Windowed',
 
     [string[]]$Vanguards = @(),
 
@@ -525,7 +532,7 @@ if ($Handoff -or $Flow) {
             # argument as it is.
             $quote = $(if ($Launcher -eq 'Cli') { '' } else { '"' })
             # With -Flow -Screenshot the first client renders in a window and saves each screen it passes.
-            $clientArguments = @('-nosound', '-nosplash', '-unattended', "-ABSLOG=$quote$log$quote")
+            $clientArguments = @('-nosound', '-nosplash', '-unattended', "-ABSLOG=$quote$log$quote", "-VeyraMatchDisplay=$MatchDisplay")
             $clientArguments += $(if ($Flow -and $Screenshot -and $index -eq 0) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=$quote$reportDir$quote" } else { @('-nullrhi') })
             $clientArguments += $(if ($Flow -eq 'Practice') { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard", '-VeyraSmokeFlowSieges') }
                 elseif ($Flow -eq 'Casual') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch') } else { @() }) }
@@ -684,6 +691,15 @@ if ($Handoff -or $Flow) {
                 else {
                     Write-Host "The client saved no screenshot of $screen."
                     $failed = $true
+                }
+            }
+            # A match that takes the screen gives the window back for the results.
+            if ($MatchDisplay -ne 'Windowed' -and $expectsMatch -and (Test-Path -LiteralPath $handoffClients[0].Log)) {
+                foreach ($expected in @('The match takes the screen', "The client's window is back")) {
+                    if (-not (Select-String -LiteralPath $handoffClients[0].Log -SimpleMatch $expected -Quiet)) {
+                        Write-Host "The rendering client never says '$expected'."
+                        $failed = $true
+                    }
                 }
             }
         }

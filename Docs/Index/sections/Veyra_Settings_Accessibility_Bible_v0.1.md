@@ -59,9 +59,9 @@ are regenerated when the source changes.
     - [L270: 12.1 Account preference ownership, settings import/export and safeguards](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L270)
     - [L281: 12.2 Vanguard control profiles and pre-match safety](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L281)
     - [L305: 12.3 Camera, targeting, visual readability, audio and display](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L305)
-    - [L326: 12.4 End of feature-proposal phase](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L326)
-  - [L330: 13. Consolidated player-facing Settings menu blueprint (Proposal 168)](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L330)
-  - [L347: 14. Behavior rules kept OUT of the Settings menu; open questions](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L347)
+    - [L328: 12.4 End of feature-proposal phase](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L328)
+  - [L332: 13. Consolidated player-facing Settings menu blueprint (Proposal 168)](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L332)
+  - [L349: 14. Behavior rules kept OUT of the Settings menu; open questions](../../Design/Veyra_Settings_Accessibility_Bible_v0.1.md?plain=1#L349)
 
 Read only the source section you need; this map does not
 replace the bible, approved ADRs, or the architecture rules.
