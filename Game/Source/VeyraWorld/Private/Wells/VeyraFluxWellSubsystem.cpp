@@ -232,7 +232,18 @@ void UVeyraFluxWellSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 		Rewards->RewardFluxWellSecured(Capturers);
 	}
 	UE_LOG(LogVeyraWorld, Log, TEXT("Flux Well %d was secured by %s."), Well->GetSite(), *UEnum::GetValueAsString(Team));
-	OnFluxWellSecured.Broadcast({ Well->GetSite(), Team });
+	FVeyraFluxWellSecuredEvent Event;
+	Event.Site = Well->GetSite();
+	Event.Team = Team;
+	for (UAbilitySystemComponent* Capturer : Capturers)
+	{
+		Event.Capturers.Add(Capturer);
+	}
+	if (Securer && VeyraUnits::IsVanguard(Securer->GetOwner()))
+	{
+		Event.FinalHitter = Securer;
+	}
+	OnFluxWellSecured.Broadcast(Event);
 }
 
 TArray<AActor*> UVeyraFluxWellSubsystem::PresentVanguards(const AVeyraFluxWell& Well, EVeyraTeam Side) const

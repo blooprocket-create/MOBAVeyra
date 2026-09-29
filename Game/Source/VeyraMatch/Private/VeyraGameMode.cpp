@@ -22,6 +22,7 @@
 #include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraMatchRules.h"
 #include "Shop/VeyraShopSubsystem.h"
+#include "Statistics/VeyraMatchStatisticsSubsystem.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
@@ -188,6 +189,11 @@ void AVeyraGameMode::StartPlay()
 	{
 		DeathHandle = Events->OnDeath.AddUObject(this, &AVeyraGameMode::OnDeath);
 	}
+	// The match's record begins with it (ADR-017 §3).
+	if (UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>())
+	{
+		Statistics->Start();
+	}
 	Battleground = MakeShared<FVeyraBattlegroundLink>();
 	Battleground->Start(*GetWorld(), FVeyraBattlegroundLink::FOnPrimeWellDestroyed::CreateUObject(this, &AVeyraGameMode::OnPrimeWellDestroyed));
 	if (Roster)
@@ -238,6 +244,10 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	if (Battleground)
 	{
 		Battleground->Stop();
+	}
+	if (UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>())
+	{
+		Statistics->Stop();
 	}
 	State.SetPhase(EVeyraMatchPhase::Ended);
 	// The clock is frozen now; an ended match need not stay paused.
@@ -905,6 +915,11 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 		break;
 	case EVeyraDeveloperStartingRank::None:
 		break;
+	}
+	// Its record begins before its starting Gold, which counts as earned (ADR-017 §9.1).
+	if (UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>())
+	{
+		Statistics->AddParticipant(PlayerState);
 	}
 	// The one guaranteed Gold, once per match (Economy & Progression Bible §1), and empty slots to spend it on (§10).
 	UVeyraRewardSubsystem::GrantStartingGold(PlayerState);
