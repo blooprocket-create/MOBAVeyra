@@ -452,6 +452,10 @@ func TestMatchHistoryOverHTTP(t *testing.T) {
 	if status != http.StatusOK || len(matches) != 1 || matches[0].(map[string]any)["id"] != second {
 		t.Fatalf("filtered: %d %v", status, body)
 	}
+	// The mode filter's choices cover every record, whatever the filter (UX-67).
+	if modes, _ := body["modes"].([]any); len(modes) != 1 || modes[0] != "casual_select" {
+		t.Fatalf("modes: %v", body["modes"])
+	}
 	for query, code := range map[string]string{"?outcome=draw": "invalid_filter", "?vanguard=Cairn": "invalid_filter", "?cursor=nope": "invalid_cursor"} {
 		if status, body := call(t, srv, "GET", "/v1/me/matches"+query, one, nil); status != http.StatusBadRequest || body["error"] != code {
 			t.Fatalf("%s: %d %v", query, status, body)

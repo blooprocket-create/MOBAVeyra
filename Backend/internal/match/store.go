@@ -46,4 +46,7 @@ type Store interface {
 	// that match filter, newest first (by end, then by ID), after the cursor
 	// when one is given.
 	MatchHistory(ctx context.Context, accountID string, filter HistoryFilter, after *HistoryCursor, limit int) ([]HistoryEntry, error)
+	// HistoryModes returns the modes of the account's completed matches,
+	// sorted: every mode its history can be filtered by.
+	HistoryModes(ctx context.Context, accountID string) ([]string, error)
 }

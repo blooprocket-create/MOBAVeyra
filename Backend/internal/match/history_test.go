@@ -3,6 +3,7 @@ package match
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"testing"
 	"time"
 )
@@ -99,5 +100,23 @@ func TestHistoryCursorsRoundTrip(t *testing.T) {
 	got, err := DecodeHistoryCursor(c.Encode())
 	if err != nil || !got.EndedAt.Equal(c.EndedAt) || got.MatchID != c.MatchID {
 		t.Fatalf("round trip: %+v %v", got, err)
+	}
+}
+
+func TestHistoryModesCoverEveryRecord(t *testing.T) {
+	f := newFixture(t)
+	f.endedFor(1, "custom_practice", SideA, "cairn", "", 10)
+	f.endedFor(2, "casual_select", SideA, "cairn", SideA, 20)
+	f.endedFor(3, "casual_select", SideB, "oriel", SideA, 30)
+	// Another player's mode, and an unfinished match's, are not acc-1's.
+	f.store.matches["x"] = Match{ID: "x", Mode: "ranked_select", State: Ended, EndedAt: t0, Participants: []Participant{{AccountID: "acc-2", Side: SideA}}, Result: &Result{}}
+	f.store.matches["y"] = Match{ID: "y", Mode: "draft_select", State: Ready, Participants: []Participant{{AccountID: "acc-1", Side: SideA}}}
+
+	modes, err := f.svc.HistoryModes(ctx, "acc-1")
+	if err != nil || !slices.Equal(modes, []string{"casual_select", "custom_practice"}) {
+		t.Fatalf("modes: %v %v", modes, err)
+	}
+	if modes, err := f.svc.HistoryModes(ctx, "acc-3"); err != nil || len(modes) != 0 {
+		t.Fatalf("no history: %v %v", modes, err)
 	}
 }

@@ -642,6 +642,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Casual Select")) && Text.Contains(TEXT("Victory")) && Text.Contains(TEXT("No Contest")) && Text.Contains(TEXT("25:11")), Text));
 			ASSERT_THAT(IsNotNull(Button(TEXT("Load More"))));
 			ASSERT_THAT(IsTrue(Button(TEXT("All Vanguards")) && Button(TEXT("Oriel")) && Button(TEXT("All Modes")) && Button(TEXT("Defeat")), TEXT("each filter's choices")));
+			ASSERT_THAT(IsNotNull(Button(TEXT("Custom Practice")), TEXT("a mode with saved matches, though none is on the pages read")));
 
 			// A filter reads the first page again (UX-64).
 			Button(TEXT("Defeat"))->Press();

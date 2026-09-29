@@ -142,6 +142,19 @@ func (s *MemStore) MatchHistory(_ context.Context, accountID string, filter Hist
 	return out, nil
 }
 
+func (s *MemStore) HistoryModes(_ context.Context, accountID string) ([]string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []string
+	for _, m := range s.matches {
+		if e, ok := historyEntryFor(m, accountID, HistoryFilter{}); ok && !slices.Contains(out, e.Mode) {
+			out = append(out, e.Mode)
+		}
+	}
+	slices.Sort(out)
+	return out, nil
+}
+
 func (s *MemStore) MatchesNeedingAttention(_ context.Context) ([]Match, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

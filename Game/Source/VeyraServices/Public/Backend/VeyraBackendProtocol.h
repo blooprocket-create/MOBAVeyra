@@ -240,6 +240,8 @@ namespace VeyraBackendProtocol
 	{
 		TArray<FHistoryEntry> Entries;
 		FString Next;
+		/** Every mode the player has a completed match in, whatever the filter: the mode filter's choices (UX-67). */
+		TArray<FString> Modes;
 	};
 
 	/** GET /v1/me/matches with Filter, from Cursor (empty for the first page). */
