@@ -34,6 +34,14 @@ namespace
 		return Owner ? Owner->FindComponentByClass<ComponentType>() : nullptr;
 	}
 
+	/** Which Haste shortens Ability's cooldown: an item's Active cools down as the item's, never by Ability Haste (Combat Bible §21). */
+	EVeyraCooldownHaste HasteOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
+	{
+		const UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
+		const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindAbility(Ability) : nullptr;
+		return Entry && VeyraAbilitySlots::IsItemSlot(Entry->Slot) ? EVeyraCooldownHaste::Item : EVeyraCooldownHaste::Ability;
+	}
+
 	/** The cast's target from its activation's event data, where VeyraAbilities::TryCast put it. */
 	FVeyraCastTarget CastTargetFrom(const FGameplayEventData* EventData)
 	{
@@ -141,6 +149,11 @@ int32 UVeyraGameplayAbility::GetRank(const UAbilitySystemComponent& Caster, cons
 {
 	const UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
 	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindAbility(Ability) : nullptr;
+	// An item's Active has no ranks: it works at its one rank while the item is held (ADR-012 §1).
+	if (Entry && VeyraAbilitySlots::IsItemSlot(Entry->Slot))
+	{
+		return 1;
+	}
 	const UVeyraProgressionComponent* Progression = FindBesideAbilitySystem<UVeyraProgressionComponent>(Caster);
 	return Entry && Progression ? Progression->GetRank(Entry->Slot) : 0;
 }
@@ -301,7 +314,8 @@ void UVeyraGameplayAbility::OnCasterInterrupted()
 		UVeyraCooldownComponent* Cooldowns = Caster ? FindBesideAbilitySystem<UVeyraCooldownComponent>(*Caster) : nullptr;
 		if (Cooldowns)
 		{
-			Cooldowns->StartCooldown(Cast.Ability, GetCooldownSeconds(Cast.Ability, Cast.Rank) * UVeyraAbilitiesTuningSubsystem::Get().Casting.InterruptedCooldownFraction);
+			Cooldowns->StartCooldown(Cast.Ability, GetCooldownSeconds(Cast.Ability, Cast.Rank) * UVeyraAbilitiesTuningSubsystem::Get().Casting.InterruptedCooldownFraction,
+				HasteOf(*Caster, Cast.Ability));
 		}
 		FinishCast(/*bCancelled*/ true);
 		break;
@@ -385,7 +399,7 @@ void UVeyraGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handl
 	const FVeyraContentId Ability = GetContentId(Handle, ActorInfo);
 	if (Cooldowns && Caster && Ability.IsValid())
 	{
-		Cooldowns->StartCooldown(Ability, GetCooldownSeconds(Ability, GetCommitRank(*Caster, Ability)));
+		Cooldowns->StartCooldown(Ability, GetCooldownSeconds(Ability, GetCommitRank(*Caster, Ability)), HasteOf(*Caster, Ability));
 	}
 }
 

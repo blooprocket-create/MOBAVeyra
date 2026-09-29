@@ -65,6 +65,22 @@ bool Attacks(EVeyraStructureKind Kind)
 	return Kind == EVeyraStructureKind::LaneSpire || Kind == EVeyraStructureKind::BaseTower;
 }
 
+bool HasBackdoorProtection(EVeyraStructureKind Kind)
+{
+	return Kind != EVeyraStructureKind::Inhibitor;
+}
+
+double NextBackdoorProtection(double Current, bool bAttackingFluxbornNear, double Max, double RampSeconds, double Seconds)
+{
+	// An attacking Fluxborn arriving removes it at once, with no ramp down.
+	if (bAttackingFluxbornNear)
+	{
+		return 0.0;
+	}
+	const double Step = RampSeconds > 0.0 ? Max * FMath::Max(0.0, Seconds) / RampSeconds : Max;
+	return FMath::Min(Max, FMath::Max(0.0, Current) + Step);
+}
+
 TOptional<int32> NextToSiege(EVeyraTeam Defenders, TConstArrayView<FVeyraStructureStatus> All)
 {
 	// Siege order, lowest first: the mid lane, the base towers, the Prime Well, then the other lanes.

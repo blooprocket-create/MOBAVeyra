@@ -6,6 +6,7 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "AbilitySystemComponent.h"
+#include "Rules/VeyraStructureRules.h"
 #include "State/VeyraTeamFluxState.h"
 #include "Tests/Net/VeyraBattlegroundNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
@@ -34,7 +35,7 @@ namespace VeyraNetTests
 
 		BEFORE_EACH()
 		{
-			IgnoreLoginViewTargetRpc(*TestRunner);
+			IgnoreKnownIrisWarnings(*TestRunner);
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Greybox).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
@@ -78,6 +79,17 @@ namespace VeyraNetTests
 							&& Structure->GetOrder() == 1 && !Structure->IsInvulnerable();
 					}
 					return TeamA && TeamA->Permanent == UVeyraFluxTuningSubsystem::Get().Grants.LaneSpire.Amount && bMiddleOpen;
+				});
+		}
+
+		TEST_METHOD(EveryClientSeesBackdoorProtectionRise)
+		{
+			StartBattleground(Network, Greybox, EVeyraMatchPhase::Live)
+				.UntilClients(TEXT("With no Fluxborn near, every client sees each protected structure's protection rise"), [](FState& State) {
+					const TArray<AVeyraStructure*> Structures = SeenStructures(State.World);
+					return Structures.Num() > 0 && !Structures.ContainsByPredicate([](const AVeyraStructure* Structure) {
+						return VeyraStructureRules::HasBackdoorProtection(Structure->GetStructureKind()) && !(Structure->GetBackdoorProtection() > 0.0);
+					});
 				});
 		}
 	};

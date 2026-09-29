@@ -7,6 +7,7 @@
 #include "Damage/VeyraDamageTypes.h"
 #include "GameplayEffectTypes.h"
 #include "Movement/VeyraForcedMovementTypes.h"
+#include "Stats/VeyraEquipmentStats.h"
 #include "Stats/VeyraStatBlock.h"
 #include "Statuses/VeyraStatusTypes.h"
 
@@ -75,6 +76,30 @@ namespace VeyraCombat
 	 * changing nothing, if refused.
 	 */
 	VEYRACOMBAT_API bool GrowBaseStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock& Growth);
+
+	/**
+	 * Scales a unit that grows stronger from outside its own stats, as Team Flux strengthens Fluxborn
+	 * (Battleground Bible §4; ADR-011 §10): its base Max Health becomes BaseMaxHealth times
+	 * HealthMultiplier, with Health keeping its percentage (Combat Bible §41), and its base outgoing
+	 * damage becomes DamageMultiplier. Each call replaces the last. Values must be finite and above 0.
+	 * Returns false, changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool SetUnitScaling(UAbilitySystemComponent& AbilitySystem, double BaseMaxHealth, double HealthMultiplier, double DamageMultiplier);
+
+	/**
+	 * Sets the damage reduction a unit carries of its own, outside any status, as a structure's backdoor
+	 * protection (Combat Bible §33): its base incoming damage becomes 1 − Fraction. True Damage skips it
+	 * (§25). Fraction must be finite, at least 0 and below 1. Returns false, changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool SetBaseDamageReduction(UAbilitySystemComponent& AbilitySystem, double Fraction);
+
+	/**
+	 * Sets what a unit's equipment adds to its stats (ADR-012 §6), replacing whatever it added before,
+	 * so a change of equipment needs no bookkeeping. Health keeps its percentage of Max Health (Combat
+	 * Bible §41); a dead unit stays at 0. All-zero stats remove the equipment's effect. Every value must
+	 * be finite and at least 0. Returns false, changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool SetEquipmentStats(UAbilitySystemComponent& AbilitySystem, const FVeyraEquipmentStats& Stats);
 
 	/**
 	 * Restores Amount of the unit's resource, never above its maximum (Combat Bible §27). Returns false

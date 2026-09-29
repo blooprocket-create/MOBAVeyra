@@ -1,5 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Components/ActorTestSpawner.h"
@@ -61,6 +62,44 @@ namespace VeyraAbilitiesTests
 			TArray<FVeyraCooldownEntry> Entries;
 			VeyraCooldowns::Start(Entries, Id(TEXT("first")), Duration, Start);
 			ASSERT_THAT(IsTrue(VeyraCooldowns::RemainingSeconds(Entries, Id(TEXT("second")), Start) == 0.0));
+		}
+
+		TEST_METHOD(RescalingKeepsWhatRemainsInProportion)
+		{
+			// Combat Bible §21: a change of Haste mid-cooldown rescales what remains.
+			constexpr double Elapsed = 1.0;
+			constexpr double Factor = 0.5;
+			TArray<FVeyraCooldownEntry> Entries;
+			VeyraCooldowns::Start(Entries, Id(TEXT("running")), Duration, Start);
+			VeyraCooldowns::Start(Entries, Id(TEXT("finished")), Elapsed / 2.0, Start);
+			VeyraCooldowns::Rescale(Entries, Factor, Start + Elapsed);
+			ASSERT_THAT(IsTrue(VeyraCooldowns::RemainingSeconds(Entries, Id(TEXT("running")), Start + Elapsed) == (Duration - Elapsed) * Factor));
+			ASSERT_THAT(IsTrue(VeyraCooldowns::RemainingSeconds(Entries, Id(TEXT("finished")), Start + Elapsed) == 0.0, TEXT("a finished cooldown stays finished")));
+		}
+	};
+
+	// Veyra.Abilities.CooldownHaste.*: a combatant's Ability Haste shortens the cooldowns it starts, and
+	// a change of Haste rescales the ones running (Combat Bible §21).
+	TEST_CLASS(CooldownHaste, "Veyra.Abilities")
+	{
+		static constexpr double BaseSeconds = 10.0;
+		static constexpr double HalvingHaste = 100.0;
+
+		FActorTestSpawner Spawner;
+
+		TEST_METHOD(HasteShortensAndRescalesCooldowns)
+		{
+			AVeyraPlayerState& Participant = Spawner.SpawnActor<AVeyraPlayerState>();
+			UVeyraCooldownComponent& Cooldowns = *Participant.FindComponentByClass<UVeyraCooldownComponent>();
+			UAbilitySystemComponent& Abilities = *Participant.GetAbilitySystemComponent();
+			Abilities.SetNumericAttributeBase(UVeyraOffenceSet::GetAbilityHasteAttribute(), static_cast<float>(HalvingHaste));
+
+			Cooldowns.StartCooldown(Id(TEXT("test_bolt")), BaseSeconds);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Cooldowns.GetRemainingSecondsNow(Id(TEXT("test_bolt"))), BaseSeconds / 2.0)));
+
+			// Losing the Haste mid-cooldown puts back the time it took off what remains.
+			Abilities.SetNumericAttributeBase(UVeyraOffenceSet::GetAbilityHasteAttribute(), 0.0f);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Cooldowns.GetRemainingSecondsNow(Id(TEXT("test_bolt"))), BaseSeconds)));
 		}
 	};
 

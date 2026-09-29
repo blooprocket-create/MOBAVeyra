@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the World domain (Battleground Bible; ADR-011 §12, §17): the battleground's grey-box layout, which the map commandlet bakes and the server spawns from, and its structures. Distances are in world units; X runs up the screen and Y to its right. VeyraWorld binds it to FVeyraWorldTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "layout", "structures", "inhibitor", "primeWell", "towerAttack", "towerRamp"],
+  "required": ["schemaVersion", "layout", "structures", "inhibitor", "primeWell", "towerAttack", "towerRamp", "backdoor", "fluxborn", "waves", "replication"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -25,7 +25,7 @@
       "description": "One Fluxway (Battleground Bible §2, §4) and Team A's structures on it; Team B's are their mirror.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["lane", "points", "width", "inhibitorDistance", "spireDistances"],
+      "required": ["lane", "points", "width", "inhibitorDistance", "spireDistances", "fluxbornSpawnDistance"],
       "properties": {
         "lane": { "type": "string", "enum": ["Top", "Mid", "Bottom"] },
         "points": {
@@ -41,7 +41,8 @@
           "type": "array",
           "minItems": 1,
           "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
-        }
+        },
+        "fluxbornSpawnDistance": { "description": "Where Team A's Fluxborn of this lane spawn: their distance along the lane from Team A's end, clear of the inhibitor (Battleground Bible §17).", "type": "number", "minimum": 0 }
       }
     },
     "structure": {
@@ -54,6 +55,87 @@
         "armor": { "type": "number", "minimum": 0 },
         "magicResist": { "type": "number", "minimum": 0 },
         "capsuleRadius": { "description": "The body's radius: what attacks reach and what blocks movement.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "capsuleHalfHeight": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    },
+    "stats": {
+      "description": "Base stats (FVeyraStatBlock), as a Vanguard's: Max Health, Move Speed and Attack Speed above 0, the rest at least 0.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["maxHealth", "healthRegen", "maxResource", "resourceRegen", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeed", "moveSpeed"],
+      "properties": {
+        "maxHealth": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "healthRegen": { "description": "Health per second.", "type": "number", "minimum": 0 },
+        "maxResource": { "type": "number", "minimum": 0 },
+        "resourceRegen": { "type": "number", "minimum": 0 },
+        "armor": { "type": "number", "minimum": 0 },
+        "magicResist": { "type": "number", "minimum": 0 },
+        "physicalPower": { "type": "number", "minimum": 0 },
+        "magicPower": { "type": "number", "minimum": 0 },
+        "attackSpeed": { "description": "Attacks per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "moveSpeed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    },
+    "homingProjectile": {
+      "description": "A homing projectile, which terrain does not stop (ADR-008 §9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speed", "radius"],
+      "properties": {
+        "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "radius": { "type": "number", "minimum": 0 }
+      }
+    },
+    "shape": {
+      "description": "A hit shape (ADR-009 §4). Each kind uses its own sizes; the others are 0.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "radius", "arcDegrees", "length", "width"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["Circle", "Sector", "Rectangle"] },
+        "radius": { "type": "number", "minimum": 0 },
+        "arcDegrees": { "type": "number", "minimum": 0, "maximum": 360 },
+        "length": { "type": "number", "minimum": 0 },
+        "width": { "type": "number", "minimum": 0 }
+      }
+    },
+    "basicAttack": {
+      "description": "A basic attack, with the profile Vanguards use (Combat Bible §4, §48; ADR-008 §2).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["range", "damageType", "physicalPowerRatio", "magicPowerRatio", "windupFraction", "acquisitionRadius", "minimumIntervalSeconds", "projectile", "cleave"],
+      "properties": {
+        "range": { "description": "Edge to edge, in units (Combat Bible §40).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "damageType": { "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+        "physicalPowerRatio": { "type": "number", "minimum": 0 },
+        "magicPowerRatio": { "type": "number", "minimum": 0 },
+        "windupFraction": { "description": "The part of each attack's interval before Commit; the rest is backswing.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1, "exclusiveMaximum": true },
+        "acquisitionRadius": { "description": "How far past its edge the unit looks for an enemy.", "type": "number", "minimum": 0 },
+        "minimumIntervalSeconds": { "description": "The shortest time between attacks whatever the Attack Speed; 0 for none.", "type": "number", "minimum": 0 },
+        "projectile": { "description": "A ranged attack's homing projectile; empty for melee.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/homingProjectile" } },
+        "cleave": { "description": "Where the attack cleaves when something makes it cleave.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/shape" } }
+      }
+    },
+    "waveUnits": {
+      "description": "Some Fluxborn of one kind, by its ID in fluxborn.units.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit", "count"],
+      "properties": {
+        "unit": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+        "count": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "fluxbornDefinition": {
+      "description": "One kind of Fluxborn (Battleground Bible §4; ADR-011 §7).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["role", "stats", "basicAttack", "capsuleRadius", "capsuleHalfHeight"],
+      "properties": {
+        "role": { "description": "Frontline (Striders), Ranged (Sparks) or Siege (Breakers, which put structures in range first, §19).", "type": "string", "enum": ["Frontline", "Ranged", "Siege"] },
+        "stats": { "$ref": "#/definitions/stats" },
+        "basicAttack": { "$ref": "#/definitions/basicAttack" },
+        "capsuleRadius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "capsuleHalfHeight": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
       }
     }
@@ -148,6 +230,88 @@
         "provenance": { "$ref": "#/definitions/provenance" },
         "perShot": { "description": "Damage added per consecutive shot, as a fraction of the base; 0.2 is +20%.", "type": "number", "minimum": 0 },
         "maxStacks": { "description": "The most ramp stacks a shot can carry.", "type": "integer", "minimum": 0 }
+      }
+    },
+    "backdoor": {
+      "description": "Backdoor protection (Battleground Bible §19; Combat Bible §33): with no attacking Fluxborn near, a lane Spire, base tower or Prime Well takes less damage, climbing to a maximum; an attacking Fluxborn arriving removes it at once. It never lifts invulnerability.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "radius", "maxReduction", "rampSeconds", "updateSeconds"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "radius": { "description": "How near the structure's centre an attacking Fluxborn lifts the protection.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "maxReduction": { "description": "The most damage it removes, from 0 to below 1.", "type": "number", "minimum": 0, "maximum": 1, "exclusiveMaximum": true },
+        "rampSeconds": { "description": "Seconds from none to the maximum.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "updateSeconds": { "description": "How often it is brought up to date.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    },
+    "fluxborn": {
+      "description": "The lane Fluxborn (Battleground Bible §4, §17, §19; ADR-011 §7). Team Flux strengthens them; nothing else scales them over time.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "units", "ai", "corpseSeconds", "avoidanceConsiderationRadius", "avoidanceWeight"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "units": {
+          "description": "Every kind of Fluxborn, keyed by its stable ID.",
+          "type": "object",
+          "additionalProperties": false,
+          "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/fluxbornDefinition" } }
+        },
+        "ai": {
+          "description": "How every Fluxborn's server controller behaves.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["thinkSeconds", "aggressionResponseRange", "leashRange", "waypointAcceptance"],
+          "properties": {
+            "thinkSeconds": { "description": "How often it reconsiders its target and path, in seconds of world time.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "aggressionResponseRange": { "description": "How far past its edge an enemy Vanguard hurting a nearby ally draws it (§19).", "type": "number", "minimum": 0 },
+            "leashRange": { "description": "How far from its lane's path it engages a target: a chase that would take it farther ends, and it returns.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "waypointAcceptance": { "description": "How close to a waypoint counts as reaching it.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        },
+        "corpseSeconds": { "description": "How long a fallen Fluxborn's body stays before it is removed.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "avoidanceConsiderationRadius": { "description": "How far each Fluxborn looks for others to give way to (Combat Bible §24).", "type": "number", "minimum": 0 },
+        "avoidanceWeight": { "description": "How much it gives way, 0 to 1.", "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "waves": {
+      "description": "The Fluxborn waves (Battleground Bible §17, §18): all three lanes spawn together on one schedule; no wave grows stronger over time.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "firstWaveSeconds", "phases", "units", "siegeUnits", "inhibitorDownUnits", "unitIntervalSeconds"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "firstWaveSeconds": { "description": "When the first wave spawns, in match-clock seconds (§17: 0:30).", "type": "number", "minimum": 0 },
+        "phases": {
+          "description": "Spans of the match with their own cadence, in order, the first from 0. Each wave follows the last by the interval of the phase the last spawned in, so no wave is duplicated or skipped at a boundary (§17).",
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["fromSeconds", "intervalSeconds", "siegeEveryWaves"],
+            "properties": {
+              "fromSeconds": { "description": "When the phase begins, in match-clock seconds.", "type": "number", "minimum": 0 },
+              "intervalSeconds": { "description": "Seconds from each wave spawned in the phase to the next.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+              "siegeEveryWaves": { "description": "Every this many waves brings siege units; 0 for none.", "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "units": { "description": "Every wave's units, front line first.", "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/waveUnits" } },
+        "siegeUnits": { "description": "Added to the waves that bring siege units, behind the front line.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/waveUnits" } },
+        "inhibitorDownUnits": { "description": "Added to each wave of a lane whose enemy inhibitor is down (§18).", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/waveUnits" } },
+        "unitIntervalSeconds": { "description": "Seconds between one unit of a wave leaving the base and the next, so they walk out in a file.", "type": "number", "minimum": 0 }
+      }
+    },
+    "replication": {
+      "description": "How often the battleground's units replicate, as whole fractions of the server's tick (ADR-011 §7; amends ADR-006 §5).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "fluxbornUpdateEveryServerTicks"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "fluxbornUpdateEveryServerTicks": { "description": "A Fluxborn sends its state every this many server ticks.", "type": "integer", "minimum": 1 }
       }
     }
   }

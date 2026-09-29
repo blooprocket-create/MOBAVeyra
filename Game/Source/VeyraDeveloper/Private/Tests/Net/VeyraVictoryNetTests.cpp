@@ -89,7 +89,7 @@ namespace VeyraNetTests
 
 		BEFORE_EACH()
 		{
-			IgnoreLoginViewTargetRpc(*TestRunner);
+			IgnoreKnownIrisWarnings(*TestRunner);
 			Match = MakeUnique<VictoryTests::FScopedVictoryMatch>(EVeyraMatchRules::Standard);
 			ASSERT_THAT(IsTrue(Match->Assignment->Problems.IsEmpty(), FString::Join(Match->Assignment->Problems, TEXT(" | "))));
 			BuildMatchNetwork(Network);
@@ -140,7 +140,7 @@ namespace VeyraNetTests
 
 		BEFORE_EACH()
 		{
-			IgnoreLoginViewTargetRpc(*TestRunner);
+			IgnoreKnownIrisWarnings(*TestRunner);
 			Match = MakeUnique<VictoryTests::FScopedVictoryMatch>(EVeyraMatchRules::Practice);
 			ASSERT_THAT(IsTrue(Match->Assignment->Problems.IsEmpty(), FString::Join(Match->Assignment->Problems, TEXT(" | "))));
 			BuildMatchNetwork(Network);

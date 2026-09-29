@@ -40,18 +40,26 @@ namespace VeyraEconomyTests
 		TEST_METHOD(ExperienceCarriesThroughSeveralLevels)
 		{
 			int32 Gained = 0;
-			const VeyraProgression::FExperienceState After = VeyraProgression::AddExperience({ 1, 0 }, 350, Tuning, Gained);
+			const VeyraProgression::FExperienceState After = VeyraProgression::AddExperience({ 1, 0.0 }, 350.0, Tuning, Gained);
 			ASSERT_THAT(AreEqual(3, After.Level));
-			ASSERT_THAT(AreEqual(350 - 100 - 200, After.Experience));
+			ASSERT_THAT(IsTrue(After.Experience == 350.0 - 100.0 - 200.0));
 			ASSERT_THAT(AreEqual(2, Gained));
+		}
+
+		TEST_METHOD(ExperienceKeepsItsFraction)
+		{
+			// Economy & Progression Bible §1: shared rewards keep full precision.
+			int32 Gained = 0;
+			const VeyraProgression::FExperienceState After = VeyraProgression::AddExperience({ 1, 0.0 }, 100.5, Tuning, Gained);
+			ASSERT_THAT(IsTrue(After.Level == 2 && FMath::IsNearlyEqual(After.Experience, 0.5)));
 		}
 
 		TEST_METHOD(ExperiencePastTheCapIsDiscarded)
 		{
 			int32 Gained = 0;
-			const VeyraProgression::FExperienceState After = VeyraProgression::AddExperience({ 4, 50 }, 100000, Tuning, Gained);
+			const VeyraProgression::FExperienceState After = VeyraProgression::AddExperience({ 4, 50.0 }, 100000.0, Tuning, Gained);
 			ASSERT_THAT(AreEqual(Tuning.MaxLevel, After.Level));
-			ASSERT_THAT(AreEqual(0, After.Experience));
+			ASSERT_THAT(IsTrue(After.Experience == 0.0));
 			ASSERT_THAT(AreEqual(1, Gained));
 			ASSERT_THAT(AreEqual(0, VeyraProgression::ExperienceToNextLevel(Tuning.MaxLevel, Tuning)));
 		}
@@ -173,6 +181,15 @@ namespace VeyraEconomyTests
 			ASSERT_THAT(AreEqual(1, Progression->GetRank(EVeyraAbilitySlot::Q)));
 			ASSERT_THAT(AreEqual(0, Progression->GetUnspentSkillPoints()));
 			ASSERT_THAT(IsTrue(Progression->AllocateRank(EVeyraAbilitySlot::W) == EVeyraRankRefusal::NoSkillPoint));
+		}
+
+		TEST_METHOD(ItemSlotsTakeNoRanks)
+		{
+			// An item's Active has no ranks (ADR-012 §1); a request for one changes nothing.
+			Progression->Initialize(FVeyraStatGrowth(), 0.0);
+			ASSERT_THAT(IsTrue(Progression->AllocateRank(EVeyraAbilitySlot::Item1) == EVeyraRankRefusal::MaxRank));
+			ASSERT_THAT(AreEqual(VeyraProgression::SkillPointsEarned(1, Tuning), Progression->GetUnspentSkillPoints()));
+			ASSERT_THAT(AreEqual(0, Progression->GetRank(EVeyraAbilitySlot::Item6)));
 		}
 
 		TEST_METHOD(NothingProgressesBeforeInitialization)

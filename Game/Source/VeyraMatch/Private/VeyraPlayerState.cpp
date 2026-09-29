@@ -18,9 +18,12 @@
 #include "Life/VeyraLifeComponent.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
+#include "Gold/VeyraGoldComponent.h"
+#include "Inventory/VeyraInventoryComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Regeneration/VeyraRegenerationComponent.h"
 #include "Passives/VeyraPassive.h"
+#include "Recall/VeyraRecallComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraMatchLog.h"
@@ -44,6 +47,9 @@ AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer
 	BasicAttack = CreateDefaultSubobject<UVeyraBasicAttackComponent>(TEXT("BasicAttack"));
 	Regeneration = CreateDefaultSubobject<UVeyraRegenerationComponent>(TEXT("Regeneration"));
 	Progression = CreateDefaultSubobject<UVeyraProgressionComponent>(TEXT("Progression"));
+	Gold = CreateDefaultSubobject<UVeyraGoldComponent>(TEXT("Gold"));
+	Inventory = CreateDefaultSubobject<UVeyraInventoryComponent>(TEXT("Inventory"));
+	Recall = CreateDefaultSubobject<UVeyraRecallComponent>(TEXT("Recall"));
 
 	// Attribute Sets created as default subobjects of the owner register with its Ability System
 	// Component when the component initializes.
@@ -77,6 +83,7 @@ void AVeyraPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, Team, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, VanguardId, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, RespawnAt, Params);
 }
 
 void AVeyraPlayerState::SetVeyraTeam(EVeyraTeam NewTeam)
@@ -89,6 +96,12 @@ void AVeyraPlayerState::SetVanguardId(const FVeyraContentId& InVanguardId)
 {
 	VanguardId = InVanguardId;
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, VanguardId, this);
+}
+
+void AVeyraPlayerState::SetRespawnAt(double InRespawnAt)
+{
+	RespawnAt = InRespawnAt;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, RespawnAt, this);
 }
 
 void AVeyraPlayerState::OnRep_VanguardId()

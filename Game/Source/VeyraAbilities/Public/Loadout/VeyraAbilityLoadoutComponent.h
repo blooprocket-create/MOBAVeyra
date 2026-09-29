@@ -49,6 +49,9 @@ public:
 	 */
 	bool Grant(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot, const FVeyraContentId& Ability);
 
+	/** Server only: empties Slot, taking back its ability, as when an item with an Active leaves its slot. */
+	void Clear(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot);
+
 	const FVeyraLoadoutEntry* FindSlot(EVeyraAbilitySlot Slot) const;
 	const FVeyraLoadoutEntry* FindAbility(const FVeyraContentId& Ability) const;
 	const FVeyraLoadoutEntry* FindHandle(FGameplayAbilitySpecHandle Handle) const;

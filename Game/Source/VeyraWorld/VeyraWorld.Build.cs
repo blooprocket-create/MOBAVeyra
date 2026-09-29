@@ -17,14 +17,24 @@ public class VeyraWorld : ModuleRules
 			"GameplayAbilities",
 			"VeyraCore",
 			"VeyraCombat",
+			// Fluxborn attack with the basic attack component and profile Vanguards use, and tower
+			// shots fly as the homing projectiles abilities use (ADR-011 §2, §7, §8).
+			"VeyraAbilities",
+			// The Fluxborn's server controllers walk the navigation mesh (ADR-011 §7).
+			"AIModule",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			// Push-model replication for the structures.
+			// Fluxborn and structures report their deaths to the rewards, a layer below (ADR-011 §3, §11).
+			"VeyraEconomy",
+		});
+
+		PrivateDependencyModuleNames.AddRange(new string[]
+		{
+			// Push-model replication for the structures and Fluxborn.
 			"NetCore",
-			// Tower shots fly as the homing projectiles abilities use (ADR-011 §2, §8).
-			"VeyraAbilities",
+			"NavigationSystem",
 		});
 
 		// The World tuning, the battleground's layout among it, ships with every build that runs a

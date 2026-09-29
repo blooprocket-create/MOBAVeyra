@@ -5,6 +5,7 @@
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Effects/VeyraDamageExecution.h"
 #include "Effects/VeyraResourceSpendExecution.h"
 
@@ -38,6 +39,48 @@ UVeyraStatusEffect::UVeyraStatusEffect()
 		Modifier.Attribute = Line.Key;
 		Modifier.ModifierOp = EGameplayModOp::MultiplyCompound;
 		Modifier.ModifierMagnitude = FGameplayEffectModifierMagnitude(Multiplier);
+	}
+}
+
+const FName UVeyraEquipmentEffect::MaxHealthName(TEXT("EquipmentMaxHealth"));
+const FName UVeyraEquipmentEffect::HealthRegenName(TEXT("EquipmentHealthRegen"));
+const FName UVeyraEquipmentEffect::PhysicalPowerName(TEXT("EquipmentPhysicalPower"));
+const FName UVeyraEquipmentEffect::MagicPowerName(TEXT("EquipmentMagicPower"));
+const FName UVeyraEquipmentEffect::AttackSpeedName(TEXT("EquipmentAttackSpeed"));
+const FName UVeyraEquipmentEffect::AbilityHasteName(TEXT("EquipmentAbilityHaste"));
+const FName UVeyraEquipmentEffect::MoveSpeedName(TEXT("EquipmentMoveSpeed"));
+const FName UVeyraEquipmentEffect::MagicPenetrationFlatName(TEXT("EquipmentMagicPenetrationFlat"));
+const FName UVeyraEquipmentEffect::MagicPowerMultiplierName(TEXT("EquipmentMagicPowerMultiplier"));
+
+UVeyraEquipmentEffect::UVeyraEquipmentEffect()
+{
+	DurationPolicy = EGameplayEffectDurationType::Infinite;
+
+	struct FLine
+	{
+		FGameplayAttribute Attribute;
+		FName DataName;
+		EGameplayModOp::Type Operation;
+	};
+	const FLine Lines[] = {
+		{ UVeyraVitalsSet::GetMaxHealthAttribute(), MaxHealthName, EGameplayModOp::AddBase },
+		{ UVeyraVitalsSet::GetHealthRegenAttribute(), HealthRegenName, EGameplayModOp::AddBase },
+		{ UVeyraOffenceSet::GetPhysicalPowerAttribute(), PhysicalPowerName, EGameplayModOp::AddBase },
+		{ UVeyraOffenceSet::GetMagicPowerAttribute(), MagicPowerName, EGameplayModOp::AddBase },
+		{ UVeyraOffenceSet::GetAttackSpeedAttribute(), AttackSpeedName, EGameplayModOp::AddBase },
+		{ UVeyraOffenceSet::GetAbilityHasteAttribute(), AbilityHasteName, EGameplayModOp::AddBase },
+		{ UVeyraMobilitySet::GetMoveSpeedAttribute(), MoveSpeedName, EGameplayModOp::AddBase },
+		{ UVeyraOffenceSet::GetMagicPenetrationFlatAttribute(), MagicPenetrationFlatName, EGameplayModOp::AddBase },
+		{ UVeyraOffenceSet::GetMagicPowerAttribute(), MagicPowerMultiplierName, EGameplayModOp::MultiplyCompound },
+	};
+	for (const FLine& Line : Lines)
+	{
+		FSetByCallerFloat Magnitude;
+		Magnitude.DataName = Line.DataName;
+		FGameplayModifierInfo& Modifier = Modifiers.AddDefaulted_GetRef();
+		Modifier.Attribute = Line.Attribute;
+		Modifier.ModifierOp = Line.Operation;
+		Modifier.ModifierMagnitude = FGameplayEffectModifierMagnitude(Magnitude);
 	}
 }
 

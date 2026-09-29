@@ -5,6 +5,8 @@
 #include "Internationalization/StringTableCore.h"
 #include "Internationalization/StringTableRegistry.h"
 #include "Misc/Paths.h"
+#include "Tuning/VeyraItemsTuning.h"
+#include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 
 namespace VeyraContentText
@@ -15,6 +17,7 @@ namespace
 	const TCHAR* const VanguardKind = TEXT("vanguard");
 	const TCHAR* const AbilityKind = TEXT("ability");
 	const TCHAR* const PassiveKind = TEXT("passive");
+	const TCHAR* const ItemKind = TEXT("item");
 	const TCHAR* const NameField = TEXT("name");
 	const TCHAR* const TitleField = TEXT("title");
 	const TCHAR* const DescriptionField = TEXT("description");
@@ -79,6 +82,39 @@ FText PassiveName(const FVeyraContentId& Passive)
 FText PassiveDescription(const FVeyraContentId& Passive)
 {
 	return TextOr(PassiveKind, Passive, DescriptionField, FString());
+}
+
+FText ItemName(const FVeyraContentId& Item)
+{
+	return TextOr(ItemKind, Item, NameField, Item.ToString());
+}
+
+FText ItemDescription(const FVeyraContentId& Item)
+{
+	return TextOr(ItemKind, Item, DescriptionField, FString());
+}
+
+TArray<FString> FindMissingItemText()
+{
+	TArray<FString> Missing;
+	for (const TPair<FVeyraContentId, FVeyraItemDefinition>& Pair : UVeyraItemsTuningSubsystem::Get().Items)
+	{
+		const FVeyraItemDefinition& Item = Pair.Value;
+		TArray<const TCHAR*> Fields = { NameField };
+		if (!Item.Active.IsEmpty() || !Item.Attunement.IsEmpty() || Item.Category == EVeyraItemCategory::Consumable)
+		{
+			Fields.Add(DescriptionField);
+		}
+		for (const TCHAR* Field : Fields)
+		{
+			const FString Key = KeyOf(ItemKind, Pair.Key, Field);
+			if (!HasKey(Key))
+			{
+				Missing.Add(Key);
+			}
+		}
+	}
+	return Missing;
 }
 
 TArray<FString> FindMissingPlayableText()

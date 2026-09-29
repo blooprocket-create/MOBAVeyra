@@ -85,6 +85,30 @@ public:
 	UVeyraStatusMarkerEffect();
 };
 
+/**
+ * A unit's equipment (ADR-012 §6): an infinite effect with one flat modifier for each stat an item
+ * can add and a percentage factor for Magic Power, each a SetByCaller value named below. One is
+ * active at a time; VeyraCombat::SetEquipmentStats replaces it whenever the equipment changes.
+ */
+UCLASS()
+class VEYRACOMBAT_API UVeyraEquipmentEffect : public UGameplayEffect
+{
+	GENERATED_BODY()
+
+public:
+	UVeyraEquipmentEffect();
+
+	static const FName MaxHealthName;
+	static const FName HealthRegenName;
+	static const FName PhysicalPowerName;
+	static const FName MagicPowerName;
+	static const FName AttackSpeedName;
+	static const FName AbilityHasteName;
+	static const FName MoveSpeedName;
+	static const FName MagicPenetrationFlatName;
+	static const FName MagicPowerMultiplierName;
+};
+
 /** One resource cost (Combat Bible §27): an instant effect whose execution spends the cost from the spec. */
 UCLASS()
 class VEYRACOMBAT_API UVeyraResourceSpendEffect : public UGameplayEffect

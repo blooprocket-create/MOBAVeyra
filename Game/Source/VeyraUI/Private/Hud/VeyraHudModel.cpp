@@ -9,11 +9,19 @@
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Gold/VeyraGoldComponent.h"
+#include "Inventory/VeyraInventoryComponent.h"
+#include "Ledger/VeyraFluxLedger.h"
+#include "Life/VeyraLifeComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionRules.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Recall/VeyraRecallComponent.h"
+#include "State/VeyraTeamFluxState.h"
 #include "Statuses/VeyraStatusComponent.h"
+#include "Structures/VeyraStructure.h"
+#include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraPlayerState.h"
 
@@ -67,6 +75,23 @@ TArray<FVeyraHudStatus> VeyraHud::StatusesOf(const AActor& Unit, double ServerNo
 	return Statuses;
 }
 
+TOptional<FVeyraHudStructure> VeyraHud::StructureOf(const AActor& Unit, double ServerNow)
+{
+	const AVeyraStructure* Structure = Cast<AVeyraStructure>(&Unit);
+	if (!Structure)
+	{
+		return {};
+	}
+	FVeyraHudStructure Shown;
+	Shown.Kind = Structure->GetStructureKind();
+	Shown.bInvulnerable = Structure->IsInvulnerable();
+	if (Structure->GetRebuildsAt() > 0.0)
+	{
+		Shown.RebuildSeconds = FMath::Max(0.0, Structure->GetRebuildsAt() - ServerNow);
+	}
+	return Shown;
+}
+
 FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, double ServerNow)
 {
 	FVeyraHudPlayer Player;
@@ -81,9 +106,27 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 	if (Progression && Progression->IsInitialized())
 	{
 		Player.Level = Progression->GetLevel();
-		Player.Experience = Progression->GetExperience();
+		// Rounded down for display only: it never shows a level's XP before it is earned.
+		Player.Experience = FMath::FloorToInt32(Progression->GetExperience());
 		Player.ExperienceToNextLevel = VeyraProgression::ExperienceToNextLevel(Player.Level, Tuning);
 		Player.UnspentSkillPoints = Progression->GetUnspentSkillPoints();
+	}
+	if (const UVeyraGoldComponent* Gold = Participant.FindComponentByClass<UVeyraGoldComponent>())
+	{
+		Player.Gold = FMath::FloorToInt32(Gold->GetGold());
+	}
+	if (const UVeyraLifeComponent* Life = Participant.FindComponentByClass<UVeyraLifeComponent>(); Life && !Life->IsAlive())
+	{
+		Player.bDead = true;
+		Player.RespawnSeconds = FMath::Max(0.0, Participant.GetRespawnAt() - ServerNow);
+	}
+	if (const UVeyraRecallComponent* Recall = Participant.FindComponentByClass<UVeyraRecallComponent>(); Recall && Recall->IsRecalling())
+	{
+		const FVeyraRecallChannel& Channel = Recall->GetChannel();
+		const double Length = Channel.EndsAt - Channel.StartedAt;
+		Player.bRecalling = true;
+		Player.RecallSeconds = FMath::Max(0.0, Channel.EndsAt - ServerNow);
+		Player.RecallProgress = Length > 0.0 ? FMath::Clamp((ServerNow - Channel.StartedAt) / Length, 0.0, 1.0) : 1.0;
 	}
 
 	if (const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(Player.Vanguard); Definition && !Definition->Passive.IsEmpty())
@@ -114,5 +157,54 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 			Shown.bCanRankUp = VeyraProgression::CheckRankUp(Slot, Shown.Rank, Player.Level, Player.UnspentSkillPoints, Tuning) == EVeyraRankRefusal::None;
 		}
 	}
+	if (const UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>())
+	{
+		const TArray<FVeyraInventorySlot>& Held = Inventory->GetSlots();
+		for (int32 Index = 0; Index < Held.Num() && Index < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Items)); ++Index)
+		{
+			FVeyraHudItemSlot& Shown = Player.Items.AddDefaulted_GetRef();
+			Shown.Slot = VeyraAbilitySlots::Items[Index];
+			if (Held[Index].IsEmpty())
+			{
+				continue;
+			}
+			Shown.Item = Held[Index].Item;
+			Shown.Count = Held[Index].Count;
+			// An item's Active sits in its slot's loadout entry, and cools down under its own ID.
+			if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Shown.Slot) : nullptr; Entry && Cooldowns)
+			{
+				Shown.CooldownSeconds = Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow);
+			}
+		}
+		Player.PendingPurchases = Inventory->GetQueue().Num();
+	}
 	return Player;
+}
+
+TArray<FVeyraHudTeamFlux> VeyraHud::DescribeTeamFlux(const UWorld* World, double ServerNow)
+{
+	TArray<FVeyraHudTeamFlux> Teams;
+	const AVeyraTeamFluxState* State = AVeyraTeamFluxState::Find(World);
+	if (!State)
+	{
+		return Teams;
+	}
+	for (const FVeyraTeamFluxView& View : State->GetTeams())
+	{
+		FVeyraHudTeamFlux& Shown = Teams.AddDefaulted_GetRef();
+		Shown.Team = View.Team;
+		Shown.Active = View.ActiveAt(ServerNow);
+		Shown.Permanent = View.Permanent;
+		// Flux's own rule says what the Flux gives; the HUD only shows it.
+		Shown.FluxbornBonus = VeyraFlux::StrengthFor(Shown.Active, UVeyraFluxTuningSubsystem::Get().FluxbornScaling).HealthMultiplier - 1.0;
+		for (const FVeyraTemporaryFluxView& Grant : View.Temporary)
+		{
+			if (Grant.ExpiresAt > ServerNow)
+			{
+				Shown.TemporarySeconds.Add(Grant.ExpiresAt - ServerNow);
+			}
+		}
+		Shown.TemporarySeconds.Sort();
+	}
+	return Teams;
 }

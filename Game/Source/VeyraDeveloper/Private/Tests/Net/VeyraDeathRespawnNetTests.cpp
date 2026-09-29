@@ -47,11 +47,13 @@ namespace VeyraNetTests
 
 		BEFORE_EACH()
 		{
-			IgnoreLoginViewTargetRpc(*TestRunner);
+			IgnoreKnownIrisWarnings(*TestRunner);
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
-			Tuning->Tuning.Respawn.DelaySeconds = RespawnSeconds;
+			// One timer at every level, and no lengthening with the match clock.
+			Tuning->Tuning.Respawn.SecondsByLevel = { RespawnSeconds };
+			Tuning->Tuning.Respawn.Elapsed = FVeyraRespawnElapsedTuning();
 			Abilities = MakeUnique<FScopedAbilitiesTuning>();
 			FVeyraTargetedDamageAbilityTuning Bolt;
 			Bolt.CastRange = LongRange;
@@ -105,6 +107,9 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsFalse(Victim.FindComponentByClass<UVeyraLifeComponent>()->IsAlive()));
 				})
 				.UntilClients(TEXT("Every machine sees the body leave"), [this](FState& State) { return FindVanguard(State.World, VictimId) == nullptr; })
+				.UntilClient(TEXT("The victim's client learns when it returns"), 0, [](FState& State) {
+					return LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>()->GetRespawnAt() > 0.0;
+				})
 				.UntilServer(TEXT("The victim respawns"), [this](FState& State) {
 					AVeyraPlayerState& Victim = ServerParticipant(State, 0);
 					return Victim.GetPawn() != nullptr && Victim.FindComponentByClass<UVeyraLifeComponent>()->IsAlive();
@@ -133,7 +138,7 @@ namespace VeyraNetTests
 		TEST_METHOD(AZeroDelayRespawnsAtOnce)
 		{
 			// The schema allows 0; the engine's timers would ignore it.
-			Tuning->Tuning.Respawn.DelaySeconds = 0.0;
+			Tuning->Tuning.Respawn.SecondsByLevel = { 0.0 };
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
 				.ThenServer(TEXT("Kill the victim"), [this](FState& State) {
 					AVeyraPlayerState& Victim = ServerParticipant(State, 0);

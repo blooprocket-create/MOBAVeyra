@@ -4,8 +4,18 @@
 
 #include "Components/ActorComponent.h"
 #include "Content/VeyraContentId.h"
+#include "GameplayEffectTypes.h"
 
 #include "VeyraCooldownComponent.generated.h"
+
+/** Which Haste shortens a cooldown (Combat Bible §21): Ability Haste and Item Haste never cross-apply. */
+enum class EVeyraCooldownHaste : uint8
+{
+	/** A Vanguard's ability: Ability Haste shortens it, and a change of it rescales what remains. */
+	Ability,
+	/** An item's Active: Item Haste's, which nothing grants yet; Ability Haste leaves it alone. */
+	Item,
+};
 
 /** One ability's cooldown: when it is ready again, in server gameplay time, and how long it was. */
 USTRUCT()
@@ -22,6 +32,10 @@ struct FVeyraCooldownEntry
 	/** The duration it started with, kept so Ability Haste can rescale it later (Combat Bible §21). */
 	UPROPERTY()
 	double DurationSeconds = 0.0;
+
+	/** Whether Ability Haste rescales it: false for an item's Active. Server only. */
+	UPROPERTY(NotReplicated)
+	bool bAbilityHaste = true;
 };
 
 /** The cooldown ledger's arithmetic, as plain functions of gameplay time. */
@@ -30,8 +44,16 @@ namespace VeyraCooldowns
 	/** Seconds until Ability is ready at time Now; 0 when it is ready. */
 	VEYRAABILITIES_API double RemainingSeconds(TConstArrayView<FVeyraCooldownEntry> Entries, const FVeyraContentId& Ability, double Now);
 
-	/** Starts Ability's cooldown at time Now, replacing any running one. */
-	VEYRAABILITIES_API void Start(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability, double DurationSeconds, double Now);
+	/** Starts Ability's cooldown at time Now, replacing any running one. bAbilityHaste: whether Ability Haste rescales it. */
+	VEYRAABILITIES_API void Start(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability, double DurationSeconds, double Now,
+		bool bAbilityHaste = true);
+
+	/**
+	 * Scales every Ability-Haste cooldown still running at time Now by Factor, what remains and what it
+	 * started with alike, as when Ability Haste changes mid-cooldown (Combat Bible §21). Finished ones
+	 * stay finished; items' cooldowns are left alone.
+	 */
+	VEYRAABILITIES_API void Rescale(TArray<FVeyraCooldownEntry>& Entries, double Factor, double Now);
 }
 
 /**
@@ -49,9 +71,15 @@ public:
 	UVeyraCooldownComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 
-	/** Server only: starts Ability's cooldown now. */
-	void StartCooldown(const FVeyraContentId& Ability, double DurationSeconds);
+	/**
+	 * Server only: starts Ability's cooldown now. A Vanguard ability's BaseSeconds is shortened by the
+	 * owner's Ability Haste (Combat Bible §21), and a change of Haste while it runs rescales what
+	 * remains; an item's Active is not.
+	 */
+	void StartCooldown(const FVeyraContentId& Ability, double BaseSeconds, EVeyraCooldownHaste Haste = EVeyraCooldownHaste::Ability);
 
 	/**
 	 * Seconds until Ability is ready at server gameplay time Now. The server passes its world time;
@@ -73,6 +101,11 @@ private:
 	 */
 	double GetServerNow() const;
 
+	/** The owner's Ability Haste changed: running cooldowns keep their proportion (§21). Server only. */
+	void OnAbilityHasteChanged(const FOnAttributeChangeData& Change);
+
 	UPROPERTY(Replicated)
 	TArray<FVeyraCooldownEntry> Entries;
+
+	FDelegateHandle HasteHandle;
 };

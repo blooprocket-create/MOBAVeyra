@@ -33,15 +33,28 @@ namespace VeyraMatchTests
 			Settings->AbilityWKey = EKeys::Two;
 			Settings->AbilityEKey = EKeys::Three;
 			Settings->AbilityRKey = EKeys::Four;
+			Settings->Item1Key = EKeys::Z;
+			Settings->Item2Key = EKeys::C;
+			Settings->Item3Key = EKeys::V;
+			Settings->Item4Key = EKeys::F1;
+			Settings->Item5Key = EKeys::F2;
+			Settings->Item6Key = EKeys::F3;
+			Settings->RecallKey = EKeys::F4;
 
 			const FVeyraInputObjects Objects = VeyraInput::Build(*Settings, *GetTransientPackage());
 			ASSERT_THAT(IsNotNull(Objects.MappingContext.Get()));
-			// Move and attack-move, then one per ability slot.
-			constexpr int32 OrderBindings = 2;
-			ASSERT_THAT(AreEqual(Objects.MappingContext->GetMappings().Num(), OrderBindings + static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::All))));
+			// Move, attack-move and Recall, then one per ability slot and one per item slot.
+			constexpr int32 OrderBindings = 3;
+			ASSERT_THAT(AreEqual(Objects.MappingContext->GetMappings().Num(),
+				OrderBindings + static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::All) + UE_ARRAY_COUNT(VeyraAbilitySlots::Items))));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.MoveOrder) == EKeys::LeftMouseButton));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.AttackMove) == EKeys::X));
+			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.Recall) == EKeys::F4));
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
+			{
+				ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.GetAbilityAction(Slot)) == Settings->GetAbilityKey(Slot)));
+			}
+			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
 			{
 				ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.GetAbilityAction(Slot)) == Settings->GetAbilityKey(Slot)));
 			}
@@ -61,8 +74,12 @@ namespace VeyraMatchTests
 		TEST_METHOD(TheShippedDefaultsAreUsable)
 		{
 			const UVeyraInputSettings& Settings = *GetDefault<UVeyraInputSettings>();
-			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey, Settings.RankUpModifierKey };
+			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey, Settings.RecallKey, Settings.RankUpModifierKey };
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
+			{
+				Keys.Add(Settings.GetAbilityKey(Slot));
+			}
+			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
 			{
 				Keys.Add(Settings.GetAbilityKey(Slot));
 			}

@@ -4,7 +4,10 @@
 
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraResourceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Battleground/VeyraBattlegroundLink.h"
+#include "Casting/VeyraCastStateComponent.h"
 #include "Bots/VeyraBotWanderComponent.h"
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
@@ -15,7 +18,12 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "NavigationSystem.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Recall/VeyraRecallComponent.h"
+#include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraMatchRules.h"
+#include "Shop/VeyraShopSubsystem.h"
+#include "Statuses/VeyraStatusComponent.h"
+#include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraTuning.h"
@@ -222,6 +230,7 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	SetActorTickEnabled(false);
 	GetWorldTimerManager().ClearTimer(LoadingTimeout);
 	GetWorldTimerManager().ClearTimer(PreparationTimer);
+	GetWorldTimerManager().ClearTimer(FountainTimer);
 	FTSTicker::GetCoreTicker().RemoveTicker(AbandonmentTicker);
 	// Nothing on the battleground happens after the end: no rebuilds, no regeneration (Economy Bible §8.2).
 	if (Battleground)
@@ -355,6 +364,22 @@ namespace
 		const AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
 		return PlayerState ? PlayerState->GetVanguardController() : nullptr;
 	}
+
+	/**
+	 * An order the Vanguard takes ends its Recall channel (ADR-012 §8); a refused one changes nothing.
+	 * Returns Rejection, so each order path can pass its result through.
+	 */
+	template <typename RejectionType>
+	RejectionType EndRecallIfTaken(const AVeyraPlayerController& Player, RejectionType Rejection)
+	{
+		const APlayerState* PlayerState = Player.GetPlayerState<APlayerState>();
+		UVeyraRecallComponent* Recall = PlayerState ? PlayerState->FindComponentByClass<UVeyraRecallComponent>() : nullptr;
+		if (Rejection == RejectionType::None && Recall)
+		{
+			Recall->Interrupt();
+		}
+		return Rejection;
+	}
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerController& Player, const FVector& Destination)
@@ -369,7 +394,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerController& Pla
 		return EVeyraOrderRejection::InvalidOrder;
 	}
 	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
-	return Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard;
+	return EndRecallIfTaken(Player, Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard);
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerController& Player, AActor* Target)
@@ -384,7 +409,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerController& P
 		return EVeyraOrderRejection::InvalidOrder;
 	}
 	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
-	return Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard;
+	return EndRecallIfTaken(Player, Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard);
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerController& Player, const FVector& Destination)
@@ -399,7 +424,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerControlle
 		return EVeyraOrderRejection::InvalidOrder;
 	}
 	AVeyraVanguardController* Controller = VanguardControllerOf(Player);
-	return Controller ? Controller->AttackMoveTo(Destination) : EVeyraOrderRejection::NoVanguard;
+	return EndRecallIfTaken(Player, Controller ? Controller->AttackMoveTo(Destination) : EVeyraOrderRejection::NoVanguard);
 }
 
 EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerController& Player, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target)
@@ -415,7 +440,61 @@ EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerController& Play
 	}
 	const AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
 	UAbilitySystemComponent* AbilitySystem = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
-	return AbilitySystem ? VeyraAbilities::TryCast(*AbilitySystem, Slot, Target) : EVeyraCastRejection::UnknownAbility;
+	return EndRecallIfTaken(Player, AbilitySystem ? VeyraAbilities::TryCast(*AbilitySystem, Slot, Target) : EVeyraCastRejection::UnknownAbility);
+}
+
+EVeyraOrderRejection AVeyraGameMode::HandleRecallOrder(AVeyraPlayerController& Player)
+{
+	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
+	if (Allowed != EVeyraOrderRejection::None)
+	{
+		return Allowed;
+	}
+	AVeyraPlayerState* PlayerState = Player.GetPlayerState<AVeyraPlayerState>();
+	AVeyraVanguardController* Controller = PlayerState ? PlayerState->GetVanguardController() : nullptr;
+	UVeyraRecallComponent* Recall = PlayerState ? PlayerState->FindComponentByClass<UVeyraRecallComponent>() : nullptr;
+	if (!Controller || !Controller->GetPawn() || !Recall || !VeyraTargeting::IsAlive(PlayerState))
+	{
+		return EVeyraOrderRejection::NoVanguard;
+	}
+	// Recall is cast like an ability, so what stops casting stops it beginning.
+	const UVeyraStatusComponent* Statuses = PlayerState->FindComponentByClass<UVeyraStatusComponent>();
+	if (Statuses && EnumHasAnyFlags(Statuses->GetActionBlocks(), EVeyraActionBlocks::Cast))
+	{
+		return EVeyraOrderRejection::CrowdControlled;
+	}
+	// Nor while another cast holds the Vanguard, in its windup, channel or recovery: that cast would
+	// go on beside the channel.
+	const UVeyraCastStateComponent* CastState = PlayerState->FindComponentByClass<UVeyraCastStateComponent>();
+	if (CastState && CastState->IsBusy())
+	{
+		return EVeyraOrderRejection::Casting;
+	}
+	if (Recall->IsRecalling())
+	{
+		return EVeyraOrderRejection::None;
+	}
+	Controller->StopOrders();
+	Recall->Start(UVeyraMatchTuningSubsystem::Get().Recall.ChannelSeconds,
+		FSimpleDelegate::CreateUObject(this, &AVeyraGameMode::CompleteRecall, TWeakObjectPtr<AVeyraPlayerState>(PlayerState)));
+	return EVeyraOrderRejection::None;
+}
+
+void AVeyraGameMode::CompleteRecall(TWeakObjectPtr<AVeyraPlayerState> PlayerState)
+{
+	APawn* Body = PlayerState.IsValid() ? PlayerState->GetPawn() : nullptr;
+	const AActor* Start = Body ? FindTeamStart(PlayerState->GetVeyraTeam()) : nullptr;
+	// A channel that outlasts the match, or its Vanguard, brings no one home.
+	if (!Start || !VeyraTargeting::IsAlive(PlayerState.Get()) || GetVeyraGameState().GetPhase() != EVeyraMatchPhase::Live)
+	{
+		return;
+	}
+	if (AVeyraVanguardController* Controller = PlayerState->GetVanguardController())
+	{
+		Controller->StopOrders();
+	}
+	Body->TeleportTo(Start->GetActorLocation(), Start->GetActorRotation());
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s recalls to its fountain."), *PlayerState->GetPlayerName());
 }
 
 bool AVeyraGameMode::PauseMatch(APlayerController& Requester)
@@ -687,12 +766,20 @@ void AVeyraGameMode::BeginPreparation()
 	}
 	GetWorldTimerManager().SetTimer(PreparationTimer, this, &AVeyraGameMode::BeginLive,
 		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Phases.PreparationSeconds));
+	// A world-time timer, so a pause holds it.
+	GetWorldTimerManager().SetTimer(FountainTimer, this, &AVeyraGameMode::RecoverAtFountains,
+		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Fountain.IntervalSeconds), /*bLoop*/ true);
 }
 
 void AVeyraGameMode::BeginLive()
 {
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Live);
 	UE_LOG(LogVeyraMatch, Log, TEXT("The match is live."));
+	// The Fluxborn waves begin with the match clock (Battleground Bible §17).
+	if (Battleground)
+	{
+		Battleground->StartWaves();
+	}
 }
 
 void AVeyraGameMode::SpawnVanguard(AVeyraPlayerState& PlayerState)
@@ -758,6 +845,9 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 	case EVeyraDeveloperStartingRank::None:
 		break;
 	}
+	// The one guaranteed Gold, once per match (Economy & Progression Bible §1), and empty slots to spend it on (§10).
+	UVeyraRewardSubsystem::GrantStartingGold(PlayerState);
+	UVeyraShopSubsystem::InitializeInventory(PlayerState);
 	PlayerState.MarkStatsInitialized();
 	return true;
 }
@@ -785,8 +875,17 @@ void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
 	// The body leaves the map; the PlayerState, with its cooldowns and permanent effects, stays. The
 	// death arrives from inside the damage that caused it, so the body goes on the next tick. The
 	// timer manager ignores a delay of 0, so an immediate respawn follows the body out on that tick.
-	const double Delay = UVeyraMatchTuningSubsystem::Get().Respawn.DelaySeconds;
-	UE_LOG(LogVeyraMatch, Log, TEXT("%s died; respawning in %g s."), *PlayerState->GetPlayerName(), Delay);
+	// The timer grows with the Vanguard's level and the match clock (Economy & Progression Bible §14).
+	const UVeyraProgressionComponent* Progression = PlayerState->FindComponentByClass<UVeyraProgressionComponent>();
+	const int32 Level = Progression && Progression->IsInitialized() ? Progression->GetLevel() : 1;
+	const double Delay = VeyraMatchRules::RespawnDelaySeconds(Level, GetVeyraGameState().GetMatchClockSeconds(), UVeyraMatchTuningSubsystem::Get().Respawn);
+	PlayerState->SetRespawnAt(GetWorld()->GetTimeSeconds() + Delay);
+	// Purchases waiting for the fountain are delivered there now, for use after the respawn (§11.2).
+	if (UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>())
+	{
+		Shop->DeliverOnDeath(*PlayerState);
+	}
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s died at level %d; respawning in %g s."), *PlayerState->GetPlayerName(), Level, Delay);
 	const TWeakObjectPtr<AVeyraPlayerState> Participant(PlayerState);
 	const TWeakObjectPtr<APawn> Body(PlayerState->GetPawn());
 	const bool bRespawnAtOnce = Delay <= 0.0;
@@ -807,6 +906,38 @@ void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
 	}
 }
 
+void AVeyraGameMode::RecoverAtFountains()
+{
+	const FVeyraFountainTuning& Fountain = UVeyraMatchTuningSubsystem::Get().Fountain;
+	UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>();
+	for (APlayerState* Member : GameState->PlayerArray)
+	{
+		AVeyraPlayerState* PlayerState = Cast<AVeyraPlayerState>(Member);
+		const APawn* Body = PlayerState ? PlayerState->GetPawn() : nullptr;
+		const AActor* Start = Body ? FindTeamStart(PlayerState->GetVeyraTeam()) : nullptr;
+		UAbilitySystemComponent* AbilitySystem = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
+		const bool bAtFountain = Start && FVector::Dist2D(Body->GetActorLocation(), Start->GetActorLocation()) <= Fountain.Radius;
+		// The shop receives, sells and undoes only here (Economy & Progression Bible §10, §12; ADR-012 §7).
+		// The dead shop as if here (ADR-012 §9), and respawn here, so death never ends undo.
+		if (Shop && PlayerState)
+		{
+			Shop->SetAtFountain(*PlayerState, bAtFountain || !VeyraTargeting::IsAlive(PlayerState));
+		}
+		if (!bAtFountain || !AbilitySystem)
+		{
+			continue;
+		}
+		// The restore verbs refuse the dead and never overfill.
+		VeyraCombat::RestoreHealth(*AbilitySystem,
+			AbilitySystem->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) * Fountain.HealthFractionPerSecond * Fountain.IntervalSeconds);
+		if (AbilitySystem->HasAttributeSetForAttribute(UVeyraResourceSet::GetMaxResourceAttribute()))
+		{
+			VeyraCombat::RestoreResource(*AbilitySystem,
+				AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()) * Fountain.ResourceFractionPerSecond * Fountain.IntervalSeconds);
+		}
+	}
+}
+
 void AVeyraGameMode::Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState)
 {
 	UAbilitySystemComponent* AbilitySystem = PlayerState.IsValid() ? PlayerState->GetAbilitySystemComponent() : nullptr;
@@ -814,6 +945,8 @@ void AVeyraGameMode::Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState)
 	{
 		return;
 	}
+	// What it bought while dead takes effect now (ADR-012 §9).
+	UVeyraShopSubsystem::ApplyItems(*PlayerState);
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s respawns."), *PlayerState->GetPlayerName());
 	SpawnVanguard(*PlayerState);
 }

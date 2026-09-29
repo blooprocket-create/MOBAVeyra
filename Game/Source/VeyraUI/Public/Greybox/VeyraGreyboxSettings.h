@@ -103,6 +103,19 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "0"))
 	float BarLift = 0.0f;
 
+	/** A channel's bar, such as Recall's, centred near the bottom of the screen: its colour, size and height above the bottom edge, in pixels. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor ChannelColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "1"))
+	float ChannelBarWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "1"))
+	float ChannelBarHeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "0"))
+	float ChannelBarLift = 0.0f;
+
 	/** The HUD panel's distance from the screen's edge, in pixels. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "0"))
 	float HudMargin = 0.0f;

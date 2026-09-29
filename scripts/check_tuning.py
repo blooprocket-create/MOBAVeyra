@@ -49,8 +49,10 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # References from one domain's tuning to content another domain defines, which a schema cannot
 # express. Each entry is (domain, JSON pointer to content IDs, domain, JSON pointers to the maps whose
 # keys are the valid IDs). A "*" segment in the first pointer stands for every key of an object or
-# every item of an array; an ID is valid when any of the maps defines it (ADR-008 §7). The loading
-# domain in the game checks the same references.
+# every item of an array; a final "#" segment stands for every key of a map, so a map's keys can
+# name content too. An ID is valid when any of the maps defines it (ADR-008 §7). The game checks
+# the same references in the loading domain, or, when that domain's layer cannot see the other, in
+# a test of the committed tuning.
 ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack")
 PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
@@ -62,6 +64,15 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/vanguards/*/passive/*", "Vanguards", PASSIVE_MAPS),
     ("Vanguards", "/hitChain/*/status", "Abilities", ("/statuses",)),
     ("Vanguards", "/breach/*/impact/statuses/*", "Abilities", ("/statuses",)),
+    # Every Fluxborn Economy pays for is one World defines, and every one World defines is paid for.
+    ("Economy", "/gold/fluxborn/#", "World", ("/fluxborn/units",)),
+    ("Economy", "/experience/fluxborn/#", "World", ("/fluxborn/units",)),
+    ("World", "/fluxborn/units/#", "Economy", ("/gold/fluxborn",)),
+    # Recipes name items, Attunements their maps, Actives the abilities; consumables are items.
+    ("Items", "/items/*/components/*", "Items", ("/items",)),
+    ("Items", "/items/*/attunement/*", "Items", ("/weightOfWar", "/overcharge", "/spoolUp", "/overcycle")),
+    ("Items", "/items/*/active/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Items", "/consumables/#", "Items", ("/items",)),
 ]
 
 # Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.
@@ -365,13 +376,18 @@ def resolve_pointer(document: Any, where: str) -> tuple[bool, Any]:
 
 
 def expand_pointer(document: Any, pattern: str) -> list[tuple[str, Any]]:
-    """Every (pointer, value) a pointer pattern reaches; a "*" segment matches each key or item."""
+    """
+    Every (pointer, value) a pointer pattern reaches; a "*" segment matches each key or item, and a
+    final "#" segment reaches each key of a map as the value.
+    """
     reached: list[tuple[str, Any]] = [("", document)]
     for raw in pattern.split("/")[1:]:
         key = raw.replace("~1", "/").replace("~0", "~")
         following: list[tuple[str, Any]] = []
         for where, value in reached:
-            if raw == "*" and isinstance(value, dict):
+            if raw == "#" and isinstance(value, dict):
+                following.extend((f"{where}/{name}", name) for name in value)
+            elif raw == "*" and isinstance(value, dict):
                 following.extend((f"{where}/{name}", item) for name, item in value.items())
             elif raw == "*" and isinstance(value, list):
                 following.extend((f"{where}/{index}", item) for index, item in enumerate(value))
@@ -398,7 +414,7 @@ def reference_errors(documents: dict[str, Any], labels: dict[str, str]) -> list[
         if len(maps) != len(pointers):
             continue
         reached = expand_pointer(documents[source], source_pattern)
-        if not reached and "*" not in source_pattern:
+        if not reached and "*" not in source_pattern and not source_pattern.endswith("/#"):
             errors.append(f"{labels[source]} {source_pattern}: the reference table expects a content ID here")
         for where, value in reached:
             if not isinstance(value, str):

@@ -18,8 +18,13 @@
     },
     {
       "name": "Abilities",
-      "description": "Systems that compose the rules below them (PROJECT_STRUCTURE.md §2, Abilities; Items later).",
+      "description": "Systems that compose the rules below them (PROJECT_STRUCTURE.md §2, Abilities).",
       "modules": ["VeyraAbilities"]
+    },
+    {
+      "name": "Items",
+      "description": "Items and the shop (ADR-012 §2, PROJECT_STRUCTURE.md \"VeyraItems\"): definitions, inventories and purchases. Above Abilities, whose archetypes run item Actives; below Battleground. Match routes the fountain and the player's requests to it.",
+      "modules": ["VeyraItems"]
     },
     {
       "name": "Battleground",

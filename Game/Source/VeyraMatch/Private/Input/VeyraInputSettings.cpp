@@ -18,6 +18,18 @@ const FKey& UVeyraInputSettings::GetAbilityKey(EVeyraAbilitySlot Slot) const
 		return AbilityEKey;
 	case EVeyraAbilitySlot::R:
 		return AbilityRKey;
+	case EVeyraAbilitySlot::Item1:
+		return Item1Key;
+	case EVeyraAbilitySlot::Item2:
+		return Item2Key;
+	case EVeyraAbilitySlot::Item3:
+		return Item3Key;
+	case EVeyraAbilitySlot::Item4:
+		return Item4Key;
+	case EVeyraAbilitySlot::Item5:
+		return Item5Key;
+	case EVeyraAbilitySlot::Item6:
+		return Item6Key;
 	}
 	return EKeys::Invalid;
 }
@@ -34,8 +46,11 @@ UInputAction* FVeyraInputObjects::GetAbilityAction(EVeyraAbilitySlot Slot) const
 		return AbilityE;
 	case EVeyraAbilitySlot::R:
 		return AbilityR;
+	default:
+		break;
 	}
-	return nullptr;
+	const int32 Index = VeyraAbilitySlots::ItemIndexOf(Slot);
+	return ItemSlots.IsValidIndex(Index) ? ItemSlots[Index].Get() : nullptr;
 }
 
 namespace VeyraInput
@@ -76,10 +91,20 @@ FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer)
 	Objects.AbilityW = NewCastAction(Outer, TEXT("VeyraAbilityW"));
 	Objects.AbilityE = NewCastAction(Outer, TEXT("VeyraAbilityE"));
 	Objects.AbilityR = NewCastAction(Outer, TEXT("VeyraAbilityR"));
+	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Items)); ++Index)
+	{
+		Objects.ItemSlots.Add(NewCastAction(Outer, TEXT("VeyraItemSlot")));
+	}
 	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 	{
 		Objects.MappingContext->MapKey(Objects.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
 	}
+	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
+	{
+		Objects.MappingContext->MapKey(Objects.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
+	}
+	Objects.Recall = NewCastAction(Outer, TEXT("VeyraRecall"));
+	Objects.MappingContext->MapKey(Objects.Recall, Settings.RecallKey);
 	return Objects;
 }
 }

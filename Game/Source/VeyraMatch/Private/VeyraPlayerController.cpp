@@ -10,6 +10,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Shop/VeyraShopSubsystem.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -86,6 +87,11 @@ void AVeyraPlayerController::IssueAttackMoveOrder(const FVector& Destination)
 	ServerIssueAttackMoveOrder(Destination);
 }
 
+void AVeyraPlayerController::RequestRecall()
+{
+	ServerRecall();
+}
+
 void AVeyraPlayerController::IssueCastOrder(EVeyraAbilitySlot Slot, AActor* Target)
 {
 	FVeyraCastTarget CastTarget;
@@ -120,7 +126,12 @@ void AVeyraPlayerController::SetupInputComponent()
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Started, this, &AVeyraPlayerController::OnMoveOrderStarted);
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnMoveOrderHeld);
 		Enhanced->BindAction(Input.AttackMove, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAttackMovePressed);
+		Enhanced->BindAction(Input.Recall, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnRecallPressed);
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
+		{
+			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+		}
+		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
 		{
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
 		}
@@ -159,6 +170,11 @@ void AVeyraPlayerController::OnAttackMovePressed()
 	}
 }
 
+void AVeyraPlayerController::OnRecallPressed()
+{
+	RequestRecall();
+}
+
 AActor* AVeyraPlayerController::FindEnemyUnderCursor() const
 {
 	FHitResult Unit;
@@ -189,8 +205,8 @@ void AVeyraPlayerController::MoveToCursor(bool bSteer)
 
 void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 {
-	// With the rank-up modifier held, the slot's key spends a skill point on it instead.
-	if (IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
+	// With the rank-up modifier held, a kit slot's key spends a skill point on it instead.
+	if (!VeyraAbilitySlots::IsItemSlot(Slot) && IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
 	{
 		RequestRankUp(Slot);
 		return;
@@ -218,8 +234,25 @@ void AVeyraPlayerController::ServerIssueCastOrder_Implementation(EVeyraAbilitySl
 		RejectOrder(EVeyraOrderRejection::TooFrequent);
 		return;
 	}
+	// An item slot's key uses its item (ADR-012 §1): a consumable through the shop, an Active as a cast.
+	const int32 ItemIndex = VeyraAbilitySlots::ItemIndexOf(Slot);
+	const EVeyraItemUse Use = PlayerState && ItemIndex != INDEX_NONE ? UVeyraShopSubsystem::GetUse(*PlayerState, ItemIndex) : EVeyraItemUse::None;
+	if (Use == EVeyraItemUse::Consumable)
+	{
+		// This order has taken its allowance already.
+		ApplyShopRequest([ItemIndex](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.UseConsumable(Participant, ItemIndex); });
+		return;
+	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
-	const EVeyraCastRejection Rejection = GameMode ? GameMode->HandleCastOrder(*this, Slot, Target) : EVeyraCastRejection::WrongPhase;
+	EVeyraCastRejection Rejection = EVeyraCastRejection::UnknownAbility;
+	if (ItemIndex == INDEX_NONE || Use == EVeyraItemUse::Active)
+	{
+		Rejection = GameMode ? GameMode->HandleCastOrder(*this, Slot, Target) : EVeyraCastRejection::WrongPhase;
+	}
+	if (Rejection == EVeyraCastRejection::None && Use == EVeyraItemUse::Active)
+	{
+		UVeyraShopSubsystem::NoteActiveUsed(*PlayerState, ItemIndex);
+	}
 	if (Rejection != EVeyraCastRejection::None)
 	{
 		UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused a cast from %s: %s."), *GetNameSafe(PlayerState), LexToString(Rejection));
@@ -332,6 +365,76 @@ void AVeyraPlayerController::ClientRankUpRefused_Implementation(EVeyraRankRefusa
 	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused a rank-up: %s."), LexToString(Refusal));
 }
 
+void AVeyraPlayerController::RequestBuyItem(const FVeyraContentId& Item)
+{
+	ServerBuyItem(Item);
+}
+
+void AVeyraPlayerController::RequestSellItem(int32 Slot)
+{
+	ServerSellItem(Slot);
+}
+
+void AVeyraPlayerController::RequestUndoPurchase()
+{
+	ServerUndoPurchase();
+}
+
+void AVeyraPlayerController::RequestCancelPurchase(int32 Index)
+{
+	ServerCancelPurchase(Index);
+}
+
+void AVeyraPlayerController::ServerBuyItem_Implementation(FVeyraContentId Item)
+{
+	RunShopRequest([&Item](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.Buy(Participant, Item); });
+}
+
+void AVeyraPlayerController::ServerSellItem_Implementation(int32 Slot)
+{
+	RunShopRequest([Slot](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.Sell(Participant, Slot); });
+}
+
+void AVeyraPlayerController::ServerUndoPurchase_Implementation()
+{
+	RunShopRequest([](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.Undo(Participant); });
+}
+
+void AVeyraPlayerController::ServerCancelPurchase_Implementation(int32 Index)
+{
+	RunShopRequest([Index](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.Cancel(Participant, Index); });
+}
+
+void AVeyraPlayerController::RunShopRequest(TFunctionRef<EVeyraShopRefusal(UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request)
+{
+	if (!TakeOrderAllowance())
+	{
+		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		return;
+	}
+	ApplyShopRequest(Request);
+}
+
+void AVeyraPlayerController::ApplyShopRequest(TFunctionRef<EVeyraShopRefusal(UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request)
+{
+	const AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>();
+	const bool bAllowed = GameMode && GameMode->CheckShopAllowed() == EVeyraOrderRejection::None;
+	const EVeyraShopRefusal Refusal = bAllowed && Shop && PlayerState ? Request(*Shop, *PlayerState) : EVeyraShopRefusal::NotNow;
+	if (Refusal != EVeyraShopRefusal::None)
+	{
+		UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused a shop request from %s: %s."), *GetNameSafe(PlayerState), LexToString(Refusal));
+		ClientShopRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ClientShopRefused_Implementation(EVeyraShopRefusal Refusal)
+{
+	LastShopRefusal = Refusal;
+	++ShopRefusalCount;
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("The shop refused a request: %s."), LexToString(Refusal));
+}
+
 void AVeyraPlayerController::RequestDeveloperExperience(int32 Amount)
 {
 	ServerRequestDeveloperExperience(Amount);
@@ -385,14 +488,14 @@ void AVeyraPlayerController::ServerRequestDeveloperLevels_Implementation(int32 L
 	// The XP from here to the level Levels above this one, or to the cap.
 	const FVeyraProgressionTuning& Tuning = UVeyraProgressionTuningSubsystem::Get();
 	const int32 Target = FMath::Min(Progression->GetLevel() + Levels, Tuning.MaxLevel);
-	int64 Needed = -static_cast<int64>(Progression->GetExperience());
+	double Needed = -Progression->GetExperience();
 	for (int32 Level = Progression->GetLevel(); Level < Target; ++Level)
 	{
 		Needed += Tuning.Experience.ToNextLevel[Level - 1];
 	}
-	if (Needed > 0)
+	if (Needed > 0.0)
 	{
-		const int32 Gained = Progression->AddExperience(static_cast<int32>(FMath::Min<int64>(Needed, MAX_int32)));
+		const int32 Gained = Progression->AddExperience(Needed);
 		UE_LOG(LogVeyraMatch, Log, TEXT("%s took developer XP for %d level(s)."), *GetNameSafe(PlayerState), Gained);
 	}
 #endif
@@ -482,6 +585,21 @@ void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector D
 	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
 	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackMoveOrder(*this, Destination) : EVeyraOrderRejection::WrongPhase;
+	if (Rejection != EVeyraOrderRejection::None)
+	{
+		RejectOrder(Rejection);
+	}
+}
+
+void AVeyraPlayerController::ServerRecall_Implementation()
+{
+	if (!TakeOrderAllowance())
+	{
+		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		return;
+	}
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleRecallOrder(*this) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection);

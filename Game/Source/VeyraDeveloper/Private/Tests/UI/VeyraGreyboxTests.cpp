@@ -12,18 +12,24 @@
 #include "EngineUtils.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
+#include "Gold/VeyraGoldComponent.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraHudModel.h"
+#include "Ledger/VeyraFluxLedger.h"
+#include "Life/VeyraLifeComponent.h"
 #include "Interfaces/IProjectManager.h"
 #include "Materials/MaterialInterface.h"
 #include "Modules/ModuleManager.h"
 #include "ProjectDescriptor.h"
 #include "Progression/VeyraProgressionRules.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Recall/VeyraRecallComponent.h"
+#include "State/VeyraTeamFluxState.h"
 #include "Structures/VeyraStructure.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/World/VeyraBattlegroundTestLayout.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "VeyraBattlegroundSubsystem.h"
 
@@ -207,6 +213,14 @@ namespace VeyraAbilitiesTests
 			{
 				ASSERT_THAT(IsNotNull(Presentation.FindBody(*Structure), TEXT("every structure has a body")));
 			}
+
+			// Each structure's bar names it and says whether the structures before it protect it.
+			const double Now = Presentation.GetServerNow();
+			const TOptional<FVeyraHudStructure> Outer = VeyraHud::StructureOf(*Battleground->FindStructure(EVeyraTeam::B, EVeyraStructureKind::LaneSpire, EVeyraLane::Mid, 0), Now);
+			const TOptional<FVeyraHudStructure> Middle = VeyraHud::StructureOf(*Battleground->FindStructure(EVeyraTeam::B, EVeyraStructureKind::LaneSpire, EVeyraLane::Mid, 1), Now);
+			ASSERT_THAT(IsTrue(Outer.IsSet() && Outer->Kind == EVeyraStructureKind::LaneSpire && !Outer->bInvulnerable));
+			ASSERT_THAT(IsTrue(Middle.IsSet() && Middle->bInvulnerable, TEXT("the outer Spire still stands")));
+			ASSERT_THAT(IsFalse(VeyraHud::StructureOf(*Caster, Now).IsSet(), TEXT("a Vanguard is no structure")));
 		}
 
 		TEST_METHOD(AStunnedUnitIsTinted)
@@ -340,6 +354,64 @@ namespace VeyraAbilitiesTests
 			Player = VeyraHud::DescribePlayer(Participant, Now);
 			ASSERT_THAT(IsTrue(Player.Level == 2 && Player.UnspentSkillPoints == 1));
 			ASSERT_THAT(IsTrue(Player.Slots[0].bCanRankUp && Player.Slots[1].bCanRankUp && !Player.Slots[3].bCanRankUp));
+		}
+
+		TEST_METHOD(TheHudShowsGoldTheRespawnWaitAndTeamFlux)
+		{
+			AVeyraPlayerState& Participant = *Caster->GetPlayerState<AVeyraPlayerState>();
+			const double Now = RefreshedGreybox().GetServerNow();
+			constexpr double Gold = 512.75;
+			ASSERT_THAT(IsTrue(Participant.FindComponentByClass<UVeyraGoldComponent>()->Grant(Gold, EVeyraGoldReason::Developer)));
+			FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
+			ASSERT_THAT(IsTrue(Player.Gold == FMath::FloorToInt32(Gold) && !Player.bDead, TEXT("Gold is rounded down for display")));
+
+			constexpr double WaitSeconds = 12.0;
+			Participant.SetRespawnAt(Now + WaitSeconds);
+			Participant.FindComponentByClass<UVeyraLifeComponent>()->SetState(EVeyraLifeState::Dead);
+			Player = VeyraHud::DescribePlayer(Participant, Now);
+			ASSERT_THAT(IsTrue(Player.bDead && FMath::IsNearlyEqual(Player.RespawnSeconds, WaitSeconds)));
+
+			// Fixture Flux: a permanent total, a grant still counting and one that has lapsed.
+			constexpr double Permanent = 50.0;
+			constexpr double Grant = 25.0;
+			constexpr double GrantSeconds = 30.0;
+			FVeyraTeamFluxView Ours;
+			Ours.Team = EVeyraTeam::A;
+			Ours.Permanent = Permanent;
+			FVeyraTemporaryFluxView& Counting = Ours.Temporary.AddDefaulted_GetRef();
+			Counting.Amount = Grant;
+			Counting.ExpiresAt = Now + GrantSeconds;
+			FVeyraTemporaryFluxView& Lapsed = Ours.Temporary.AddDefaulted_GetRef();
+			Lapsed.Amount = Grant;
+			Lapsed.ExpiresAt = Now - StepSeconds;
+			Spawner.SpawnActor<AVeyraTeamFluxState>().SetTeams({ Ours });
+			const TArray<FVeyraHudTeamFlux> Teams = VeyraHud::DescribeTeamFlux(&Spawner.GetWorld(), Now);
+			ASSERT_THAT(AreEqual(1, Teams.Num()));
+			const FVeyraHudTeamFlux& Shown = Teams[0];
+			ASSERT_THAT(IsTrue(Shown.Team == EVeyraTeam::A && Shown.Active == Permanent + Grant && Shown.Permanent == Permanent));
+			ASSERT_THAT(IsTrue(Shown.TemporarySeconds.Num() == 1 && FMath::IsNearlyEqual(Shown.TemporarySeconds[0], GrantSeconds), TEXT("only the grant still counting")));
+			const double Bonus = VeyraFlux::StrengthFor(Permanent + Grant, UVeyraFluxTuningSubsystem::Get().FluxbornScaling).HealthMultiplier - 1.0;
+			ASSERT_THAT(IsTrue(Shown.FluxbornBonus == Bonus, TEXT("Flux's own rule")));
+		}
+
+		TEST_METHOD(TheHudShowsARecallChannelFilling)
+		{
+			AVeyraPlayerState& Participant = *Caster->GetPlayerState<AVeyraPlayerState>();
+			UVeyraRecallComponent& Recall = *Participant.FindComponentByClass<UVeyraRecallComponent>();
+			ASSERT_THAT(IsFalse(VeyraHud::DescribePlayer(Participant, RefreshedGreybox().GetServerNow()).bRecalling));
+
+			// Fixture channel: a quarter of the way through.
+			constexpr double ChannelSeconds = 8.0;
+			constexpr double Passed = 2.0;
+			Recall.Start(ChannelSeconds, FSimpleDelegate());
+			const double StartedAt = Recall.GetChannel().StartedAt;
+			const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, StartedAt + Passed);
+			ASSERT_THAT(IsTrue(Player.bRecalling));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Player.RecallSeconds, ChannelSeconds - Passed)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Player.RecallProgress, Passed / ChannelSeconds)));
+
+			ASSERT_THAT(IsTrue(Recall.Interrupt()));
+			ASSERT_THAT(IsFalse(VeyraHud::DescribePlayer(Participant, StartedAt + Passed).bRecalling, TEXT("an interrupted channel leaves the HUD")));
 		}
 
 		TEST_METHOD(TheHudShowsAnEmpowermentWaitingForTheNextAttack)

@@ -54,7 +54,9 @@
     instead: the first dev account's onboarding is reset, and one packaged client signs in through
     the launch handshake and runs -VeyraSmokeFlow=practice, which chooses a starter, starts practice,
     hovers and locks a Vanguard, sieges the bots' side down to its Prime Well with Veyra.Dev.Siege,
-    and, since practice has no victory (ADR-011 §14), ends the match as its host, checks the verified
+    opens the shop with its key and buys a piece of equipment with the starting Gold, walks away from
+    the fountain and recalls home (ADR-012 §8, §11), and, since practice has no victory (ADR-011
+    §14), ends the match as its host, checks the verified
     result and returns to the shell, clicking the shell's and the in-match menu's buttons as a player
     would. The backend creates the match from the select and starts its server; the same checks as
     -Handoff -Practice follow. -Launcher Script means this script does the launcher's part: the dev

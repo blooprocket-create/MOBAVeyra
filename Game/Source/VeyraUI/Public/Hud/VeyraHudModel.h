@@ -2,14 +2,17 @@
 
 #pragma once
 
+#include "Battleground/VeyraBattlegroundTypes.h"
 #include "Containers/Array.h"
 #include "Content/VeyraContentId.h"
 #include "Misc/Optional.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Statuses/VeyraStatusTypes.h"
+#include "Teams/VeyraTeam.h"
 
 class AActor;
 class AVeyraPlayerState;
+class UWorld;
 
 /** A unit's bars, as the overhead display and the HUD show them. */
 struct FVeyraHudVitals
@@ -53,24 +56,81 @@ struct FVeyraHudSlot
 	double EmpoweredSeconds = 0.0;
 };
 
+/** One inventory slot on the HUD's item bar, used by its key (ADR-012 §1). */
+struct FVeyraHudItemSlot
+{
+	EVeyraAbilitySlot Slot = EVeyraAbilitySlot::Item1;
+
+	/** Invalid when the slot is empty. */
+	FVeyraContentId Item;
+	int32 Count = 0;
+
+	/** Seconds until its Active is ready; 0 when it is, or it has none. */
+	double CooldownSeconds = 0.0;
+};
+
 /** The player's own panel. */
 struct FVeyraHudPlayer
 {
 	FVeyraContentId Vanguard;
 	int32 Level = 0;
 
-	/** XP toward the next level, and what that level needs; both 0 at the cap. */
+	/** XP toward the next level, whole for display (the stored value keeps its fraction), and what that level needs; both 0 at the cap. */
 	int32 Experience = 0;
 	int32 ExperienceToNextLevel = 0;
+
+	/** Gold, whole for display (Economy & Progression Bible §1: the UI rounds only for display). */
+	int32 Gold = 0;
 
 	int32 UnspentSkillPoints = 0;
 	FVeyraHudVitals Vitals;
 
+	/** Whether the Vanguard is dead, and the seconds until it returns (Economy & Progression Bible §14). */
+	bool bDead = false;
+	double RespawnSeconds = 0.0;
+
+	/** Whether a Recall channel runs (ADR-012 §8): the seconds it has left, and how much of it has passed, from 0 to 1. */
+	bool bRecalling = false;
+	double RecallSeconds = 0.0;
+	double RecallProgress = 0.0;
+
 	/** Q, W, E and R, in order. */
 	TArray<FVeyraHudSlot> Slots;
 
+	/** The inventory's slots, 1 to 6, in order. */
+	TArray<FVeyraHudItemSlot> Items;
+
+	/** Purchases waiting for the fountain (Economy & Progression Bible §11). */
+	int32 PendingPurchases = 0;
+
 	/** The Vanguard's passive, as its definition names it; invalid when it has none. */
 	FVeyraContentId Passive;
+};
+
+/** What a structure's bar says about it (Battleground Bible §5, §10, §18). */
+struct FVeyraHudStructure
+{
+	EVeyraStructureKind Kind = EVeyraStructureKind::LaneSpire;
+
+	/** Whether it cannot be damaged yet, because a structure before it stands. */
+	bool bInvulnerable = false;
+
+	/** Seconds until a destroyed inhibitor rebuilds; 0 when none is due. */
+	double RebuildSeconds = 0.0;
+};
+
+/** One team's Team Flux on the HUD (ADR-011 §10). */
+struct FVeyraHudTeamFlux
+{
+	EVeyraTeam Team = EVeyraTeam::None;
+	double Active = 0.0;
+	double Permanent = 0.0;
+
+	/** The Health and damage fraction its Fluxborn gain from it. */
+	double FluxbornBonus = 0.0;
+
+	/** Seconds left on each temporary grant still counting, soonest first. */
+	TArray<double> TemporarySeconds;
 };
 
 /**
@@ -86,6 +146,12 @@ namespace VeyraHud
 	/** Unit's statuses in the order they were applied, each with its time left at ServerNow, in server gameplay time. */
 	VEYRAUI_API TArray<FVeyraHudStatus> StatusesOf(const AActor& Unit, double ServerNow);
 
+	/** What Unit's bar says about it as a structure at ServerNow; nothing when it is not one. */
+	VEYRAUI_API TOptional<FVeyraHudStructure> StructureOf(const AActor& Unit, double ServerNow);
+
 	/** Participant's panel at ServerNow, in server gameplay time. */
 	VEYRAUI_API FVeyraHudPlayer DescribePlayer(const AVeyraPlayerState& Participant, double ServerNow);
+
+	/** Each team's Team Flux at ServerNow, as the replicated Flux state holds it; empty before it arrives. */
+	VEYRAUI_API TArray<FVeyraHudTeamFlux> DescribeTeamFlux(const UWorld* World, double ServerNow);
 }

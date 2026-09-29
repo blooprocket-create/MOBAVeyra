@@ -165,9 +165,13 @@ Calls go down the layers, events go up, and the two peers meet only through Matc
   - a basic attack whose profile comes from `World.json`, using the same attack component and profile type as Vanguards.
 - **`AVeyraFluxbornController`**:
   - thinks on a world-time timer, so it freezes during a pause;
-  - walks its lane's waypoints (reversed for Team B);
+  - walks its lane's waypoints (reversed for Team B), then on to the enemy's Prime Well;
+  - spawns at its lane's `fluxbornSpawnDistance`, in front of the inhibitor; the layout's checks keep that point clear of every structure;
   - after a chase, resumes at the first waypoint ahead of it along the lane, never behind;
+  - engages only what lies within its leash of the lane's path, so a chase that would draw it away ends;
+  - walks past structures whose prerequisites make them invulnerable (Battleground §18);
   - holds its order while crowd control locks movement, like the Vanguard controller.
+- **A fallen Fluxborn** loses its controller and collision at once, and its body is removed after `corpseSeconds`.
 - **Target choice** (Battleground §19, Combat §33), in order:
   1. responding to aggression: an enemy Vanguard that damaged a nearby allied Vanguard, until it leaves the engagement range;
   2. for siege Fluxborn, a structure already in attack range;
@@ -175,7 +179,7 @@ Calls go down the layers, events go up, and the two peers meet only through Matc
   4. an enemy structure;
   5. an enemy Vanguard.
 
-  Ties break by distance, then by a stable ID.
+  Ties break by distance, then by a stable ID. A valid current target is kept unless a better rank is on offer, so a Fluxborn arriving draws it from a Vanguard it attacked for want of one.
 - **The aggro router.** One World subscriber to Combat's hostile-damage event notifies the towers and Fluxborn near the victim, rather than each unit subscribing.
 - **Collision.** Blocking collision (Combat §24), with the movement component's avoidance among Fluxborn; the radius and weight are data.
 - **Replication** (amends ADR-006 §5):
@@ -183,6 +187,12 @@ Calls go down the layers, events go up, and the two peers meet only through Matc
   - push model;
   - Iris filter exemptions until Vision brings the fog gate, like Vanguards.
 - **Expected population:** about 60–80 Fluxborn in steady state and about 110 at peak, plus 30 structures. That is within the M3 study's measured range (72–162 stand-ins). M7b measures it again with real Fluxborn.
+- **Measured (M7b G13, 2026-09-28).** `Smoke.ps1 -Map Battleground -LoadTestBots 8 -NetStatsSeconds 10 -ClientStaySeconds 180`, run as a 5v5 of two packaged clients and eight bots against the Linux server container, with waves marching in all three lanes. The update rates were Fluxborn every 3 ticks and structures every 6. In steady state, from about 1:30 of match clock:
+  - 130–146 replicated actors;
+  - server busy time 2.9–3.6 ms per frame on average (at most 12.4 ms), of the 33 ms frame at 30 Hz;
+  - 9.6–13.6 KB/s sent to each client.
+  
+  That is about a seventh of the engine's default client rate (100,000 bytes/s) and below ADR-006 §5's 10 Hz measurement (23.2 KB/s for 162 units). **No update rate is retuned.** The Vision fog gate will lower it further.
 
 ### 8. Towers
 
@@ -216,7 +226,8 @@ Lane Spires and base-defense towers share one attack component and one set of ru
 - **Backdoor protection** (M7b):
   - Lane Spires, base towers and the Prime Well gain damage reduction while no Fluxborn of the attacking team is within the protection radius.
   - It ramps toward its maximum after the last one leaves or dies, and drops to zero the moment one enters.
-  - It is a self-sourced damage-reduction status, so the normal pipeline applies it.
+  - It is the structure's own base damage reduction (Combat's `VeyraCombat::SetBaseDamageReduction`), so the normal pipeline applies it and True Damage skips it, as it skips every generic reduction (Combat §25). A status would have had to be reapplied at every step of the ramp.
+  - The battleground subsystem brings every protected structure up to date on a world-time timer, and each structure replicates its protection for presentation.
   - It never overrides invulnerability.
 - **Ordering is a rule, not only geometry.** Before the author's ruling, canon gated lane Spires by position and backdoor protection alone (Battleground §5, §10). The ruling is recorded in Battleground §10. A rebuilt inhibitor does not restore the Spires in front of it, which never rebuild.
 
@@ -227,7 +238,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - inhibitors grant temporary Flux, each grant expiring on its own timer;
   - Flux is never spent.
 - **Active Flux** is permanent plus unexpired temporary. It sets Fluxborn strength for the whole team: each step of Flux adds a fraction of Health and damage (Canon prototype: every 25 adds +5% of each).
-- **Live scaling.** World applies the strength to each Fluxborn at spawn and again to every living one on each change. Canon says temporary Flux "falls away when its source expires". It is one infinite native effect per unit with multiplicative Max Health and damage lines, and Max Health keeps its current percentage (Combat §41).
+- **Live scaling.** World applies the strength to each Fluxborn at spawn and again to every living one on each change. Canon says temporary Flux "falls away when its source expires". Combat's `VeyraCombat::SetUnitScaling` sets the unit's base Max Health to its kind's times the Health multiplier, keeping Health's percentage (Combat §41), and its base outgoing damage multiplier to the damage multiplier. Each call replaces the last, so expiries need no bookkeeping, and statuses still modify on top of the base.
 - **Permanent Flux** is kept separate for Flux Spell slot unlocks, which are deferred.
 - **HUD:** each team's active and permanent Flux, the Fluxborn bonus, and the countdown of each temporary grant.
 
@@ -256,6 +267,11 @@ Lane Spires and base-defense towers share one attack component and one set of ru
     - the first Spire or base tower destroyed in the match adds a bonus to every member of the destroying team;
     - inhibitors and the Prime Well pay nothing, and structures give no XP.
   - **Stop at victory:** nothing is paid after the match ends (Economy §8.2).
+- **Who pays** (M7b G11):
+  - `UVeyraRewardSubsystem` (Economy, a world subsystem) decides who qualifies and pays through the Gold and progression components; the arithmetic is the pure `VeyraRewards` functions, and every value is `Economy.json`'s.
+  - It follows Combat's deaths for Vanguard kills itself. Combat's death event carries the victim's location, the credited killer, the assisters and every contributor with their times, so the windows and the radius need nothing else.
+  - World reports what only it knows: a Fluxborn's kind and its team's active Flux at death, and which structure fell. The subsystem never reads Flux or World.
+  - A Fluxborn last-hit by anything but an enemy Vanguard leaves its Gold unclaimed; its XP still goes to the nearby living allies.
 - **XP becomes fractional** (Economy §1); thresholds and carry-over are unchanged.
 - **Vanguard Health Regeneration** (author ruling, 2026-09-28; amends ADR-008 §2):
   - every Vanguard declares a base Health Regeneration per second and its growth per level in `Vanguards.json`, beside Resource Regeneration;
@@ -263,8 +279,8 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - it restores through Combat's Health restore as a Health Regeneration source, a category distinct from healing (Combat §6), so Healing Reduction can reduce it when that arrives;
   - structures have none; the Prime Well's own rule is separate (§9).
 - **Respawn** (Economy §14):
-  - The timer grows with the Vanguard's level and the elapsed match time, from a data curve in `Match.json`.
-  - A replicated respawn time drives the HUD countdown.
+  - The timer grows with the Vanguard's level and the elapsed match time, from a data curve in `Match.json` (the pure `VeyraMatchRules::RespawnDelaySeconds`).
+  - A replicated respawn time on the PlayerState drives the HUD countdown.
   - Death never costs Gold, XP or levels.
 - **Fountain recovery** (Battleground §12): a living Vanguard at their own fountain recovers Health and resource at a data rate, through the same Health restore. This is provisional answer 8.
 
@@ -375,16 +391,16 @@ Every value below is designer-editable data; none is a constant in code. Each re
 | Prime Well | `World.json` | Health 5500; regenerates 0.5% of Max Health per second while all inhibitors stand |
 | Backdoor protection | `World.json` | Radius 1100; maximum 66% damage reduction; ramp over 5 s; checked every 0.5 s |
 | Fluxborn | `World.json` | Strider: Health 450, Physical Power 12, 1.25 attacks/s, range 110. Spark: 290, 23, 0.67/s, range 550, projectile speed 650. Breaker: 900, 40, 0.5/s, range 300, Armor 30. Move speed 325 for all |
-| Fluxborn AI | `World.json` | Think every 0.25 s; acquisition 700; aggression response 700; leash 900; waypoint acceptance 150; avoidance radius and weight |
-| Waves | `World.json` | First wave at 0:30 (Canon); every 30 s, 25 s from 14:00, 20 s from 30:00 (Canon); 3 Striders + 3 Sparks; a Breaker every 3rd wave, every 2nd from 30:00 |
+| Fluxborn AI | `World.json` | Think every 0.25 s; acquisition 700 (the basic attack's acquisition radius); aggression response 700; leash 900 from the lane's path; waypoint acceptance 150; avoidance radius 200 and weight 0.5; bodies removed 1 s after death; spawn 350 along each lane, in front of the inhibitor |
+| Waves | `World.json` | First wave at 0:30 (Canon); every 30 s, 25 s from 14:00, 20 s from 30:00 (Canon); 3 Striders + 3 Sparks; a Breaker every 3rd wave, every 2nd from 30:00, walking behind the Striders; +1 Breaker in a lane whose enemy inhibitor is down; units leave the base 0.5 s apart. Each wave follows the last by the interval of the phase the last spawned in, so a phase boundary never duplicates or skips one |
 | Replication | `World.json` | Fluxborn every 3 server ticks (10 Hz); structures every 6 |
 | Team Flux | `Flux.json` | Lane Spire and base tower +25 permanent (Canon); inhibitor +25 for 180 s (Canon); every 25 active Flux gives +5% Health and +5% damage (Canon) |
 | Gold | `Economy.json` (new) | Starting 500; Strider 21, Spark 14, Breaker 60; base kill 300; assist pool 50% (Canon); First Blood +50% (Canon); participation 10% (Canon); Flux reward bonus 1% per 25, up to 10% (Canon); Spire and base-tower pool 250; first-Spire team bonus 100; participation radius 1400; participation window 10 s; structure contribution window 15 s |
-| XP | `Progression.json` (v2) | Strider 60, Spark 30, Breaker 93; base kill XP 60 + 30 × (victim level − 1); higher-level victim ×1.2; radius 1400; shared pool 120% and +20% per extra participant (Canon) |
+| XP rewards | `Economy.json` (new) | Strider 60, Spark 30, Breaker 93; base kill XP 60 + 30 × (victim level − 1); higher-level victim ×1.2; radius 1400; shared pool 120% and +20% per extra participant (Canon). The XP curve stays in `Progression.json` |
 | Kill credit | `Combat.json` | Kill-credit window 10 s |
 | Structure Effectiveness | `Combat.json` | 50% (Canon) |
-| Respawn | `Match.json` (v4) | Level 1: 6 s, rising to 45 s at Level 18; +2% per minute after 15:00, at most +50% |
-| Fountain recovery | `Match.json` | Radius and Health and resource per second at the fountain |
+| Respawn | `Match.json` (v4) | By level: 6, 7, 8, 9, 10, 12, 14, 16, 18, 20, 22.5, 25, 27.5, 30, 33, 36, 40, 45 s; +2% per minute after 15:00, at most +50% |
+| Fountain recovery | `Match.json` (v4) | Within 900 of the side's start; 10% of Max Health and of max resource per second, restored every 0.25 s |
 | Vanguard Health Regeneration | `Vanguards.json` (v4) | Per second at Level 1, then per level: Cairn 1.7 + 0.16; Qazharr 1.6 + 0.15; Oriel 1.1 + 0.11; Bryn 0.75 + 0.11; the test Vanguard 0 |
 | Maps | backend configuration | The server map for each mode, Custom practice and development matches |
 
@@ -397,7 +413,7 @@ Every value below is designer-editable data; none is a constant in code. Each re
   - XP becomes fractional through the HUD and tests;
   - takedown effects stop firing on non-Vanguard kills;
   - abilities stop damaging structures.
-- **Replicated population grows several times over.** Bandwidth is the limit ADR-006 §5 found; M7b measures it and tunes update rates.
+- **Replicated population grows several times over.** Bandwidth is the limit ADR-006 §5 found. M7b measured it at 10–14 KB/s per client in a 5v5 with full waves (§7), so the update rates stand.
 - **`L_Battleground` is a binary map that needs an LFS lock.** It is generated, so its source of truth is text.
 
 ## Amendments to earlier records

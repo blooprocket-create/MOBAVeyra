@@ -112,7 +112,12 @@ UI and items request transactions; they do not mutate gold directly.
 
 **Progression** (XP balances, levels, level-up stat increments and skill points) lives in this module for now as a **separate owner** with its own state, per the Economy & Progression Bible. It shares the module, not code paths: Gold and XP are never mixed in one class.
 
-Progression arrived first, in M5 (ADR-008 §6): the module holds only it until Gold's first feature. It sits in its own Economy layer, above Combat, whose verbs apply level-up growth, and below Abilities, which reads ranks.
+Progression arrived first, in M5 (ADR-008 §6). It sits in its own Economy layer, above Combat, whose verbs apply level-up growth, and below Abilities, which reads ranks.
+
+Gold and the rewards arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §11):
+
+- `Gold/`: `UVeyraGoldComponent` on the PlayerState, a fractional balance replicated to its owner, changed only by explained grants.
+- `Rewards/`: `UVeyraRewardSubsystem` decides who qualifies for each death's Gold and XP and pays through the Gold and progression components; the arithmetic is the pure `VeyraRewards` functions, and the values are `Game/Tuning/Economy.json`'s. It follows Combat's deaths for Vanguard kills; World reports Fluxborn deaths, with their team's active Flux, and fallen structures, so Economy never reads Flux or World.
 
 ### VeyraItems
 
@@ -126,6 +131,8 @@ Progression arrived first, in M5 (ADR-008 §6): the module holds only it until G
 - shop-facing item queries.
 
 Depends on combat/abilities/economy through approved contracts. It does not own the underlying damage or gold formulas.
+
+VeyraItems arrived in M8 ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §2) in its own **Items** layer, above Abilities, whose archetypes run item Actives, and below Battleground. Its catalog is `Game/Tuning/Items.json`; `VeyraItems::Validate` holds the tier rules the schema cannot (Item Bible §2, §11). It spends and refunds Gold through Economy and applies equipment through `VeyraCombat::SetEquipmentStats`; Match routes the fountain and the player's shop requests to it.
 
 ### VeyraFlux
 
@@ -162,6 +169,11 @@ World actors report outcomes to the authoritative owning systems rather than rea
 
 VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2, §12) in the **Battleground** layer, above Abilities, whose attacks and projectiles its units use. `Game/Tuning/World.json` holds the battleground's layout (Team A's half; Team B's is its mirror across the river's diagonal) and its structures; `VeyraLayout` turns the layout into lanes, waypoints and structure placements for the map commandlet and the server alike.
 
+- `Structures/`: `AVeyraStructure`, a pawn with its own Ability System Component, and the tower attack.
+- `Fluxborn/`: `AVeyraFluxborn` and its server-only `AVeyraFluxbornController`, which follows its lane's waypoints and fights by `VeyraFluxbornRules` (ADR-011 §7).
+- `Rules/`: pure rules over data — tower targeting and ramp, structure vulnerability and backdoor protection, Fluxborn targeting, and the wave schedule.
+- `UVeyraBattlegroundSubsystem` spawns the structures and waves on the server, runs their timers, routes hostile damage to the towers and Fluxborn nearby, and reports deaths only it can describe to Economy's rewards.
+
 ### VeyraVision
 
 - ordinary map vision and fog of war;
@@ -197,6 +209,8 @@ Since M4 it also owns how a hosted match admits and ends (ADR-007):
 - the Ended phase, the developer end-match request, and abandonment.
 
 Since M6 it adds an assigned practice match's bots, whose behaviour is `Bots/` (ADR-010 §7): for now they wander near the middle of the map as targets.
+
+Since M8 it routes the shop and holds Recall ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §7–§8): the fountain check tells `UVeyraShopSubsystem` who stands at their fountain, deaths deliver the queue, and the player controller forwards buy, sell, undo, cancel and item-slot requests. `Recall/` holds the channel on each PlayerState; the game mode starts it (B), ends it on every order the Vanguard takes, and brings the Vanguard home.
 
 It knows nothing about the backend; `VeyraServices` connects the two.
 
@@ -250,6 +264,8 @@ M6 added the menus, UMG widgets built entirely in C++ with no widget Blueprints 
 - the style and the menu key, as validated settings in `DefaultGame.ini` and `DefaultInput.ini`.
 
 The grey-box HUD draws through an overlay actor the local player's HUD renders (`Hud/`), so the menus cover it.
+
+M8 added `Shop/` ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §11): the shop screen, which P opens beside the game, and its model, which prices every item by the inventory rule the server uses. The HUD gained the item bar (keys 1–6) and Recall's channel bar, and the string table gained item names and descriptions.
 
 ### VeyraDeveloper
 
