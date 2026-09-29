@@ -173,6 +173,12 @@ void AVeyraGameMode::Logout(AController* Exiting)
 		UE_LOG(LogVeyraMatch, Log, TEXT("%s left; %d rostered participant(s) connected."), *PlayerState->GetPlayerName(), Roster->NumConnected());
 		NoteConnectedParticipants();
 	}
+	// Its PlayerState goes with it, and rejoining waits for reconnect: the scoreboard keeps its line
+	// as it left (ADR-017 §5).
+	if (UVeyraMatchStatisticsSubsystem* Statistics = PlayerState ? GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>() : nullptr)
+	{
+		Statistics->NoteLeaving(*PlayerState);
+	}
 	Super::Logout(Exiting);
 }
 
@@ -265,6 +271,11 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 		Result.MatchId = Roster->GetAssignment().MatchId;
 		Result.Participants = Roster->BuildParticipantResults();
 	}
+	Result.Players = BuildScoreboard();
+	if (const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>())
+	{
+		Result.Wells = Statistics->GetWellCaptures();
+	}
 	// Game/Scripts/Smoke.ps1 checks this line.
 	UE_LOG(LogVeyraMatch, Display, TEXT("The match ended (%s) after %.1f s of match clock%s."), LexToString(Reason), Result.DurationSeconds,
 		Winner == EVeyraTeam::None ? TEXT("") : *FString::Printf(TEXT("; team %s won"), *StaticEnum<EVeyraTeam>()->GetNameStringByValue(static_cast<int64>(Winner))));
@@ -273,6 +284,13 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	{
 		Host->OnMatchEnded.Broadcast(Result);
 	}
+}
+
+TArray<FVeyraPlayerResult> AVeyraGameMode::BuildScoreboard() const
+{
+	// From the statistics service's records, not the PlayerStates still here: one who left has none.
+	const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>();
+	return Statistics ? Statistics->BuildScoreboard() : TArray<FVeyraPlayerResult>();
 }
 
 EVeyraEndCustomMatchRefusal AVeyraGameMode::HandleEndCustomMatch(const APlayerController& Requester)

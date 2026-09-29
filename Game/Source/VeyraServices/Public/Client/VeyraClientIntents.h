@@ -51,4 +51,11 @@ public:
 	virtual bool ContinueFromResults() = 0;
 	virtual bool Retry() = 0;
 	virtual bool Quit() = 0;
+	/** Reads Match History's first page with Filter, replacing what was read. */
+	virtual bool LoadHistory(const VeyraBackendProtocol::FHistoryFilter& Filter) = 0;
+	/** Reads the next page, after those read. */
+	virtual bool LoadMoreHistory() = 0;
+	/** Opens MatchId, one of the listed matches, into its verified result. */
+	virtual bool OpenHistoryMatch(const FString& MatchId) = 0;
+	virtual bool CloseHistoryMatch() = 0;
 };

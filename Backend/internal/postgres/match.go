@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -134,9 +135,17 @@ func (t matchTx) SaveMatch(m match.Match) error {
 		return nil
 	}
 	r := m.Result
-	tag, err = t.q.Exec(t.ctx, `INSERT INTO match.results (match_id, end_reason, winner, duration_seconds)
-		VALUES ($1::uuid, $2, $3, $4) ON CONFLICT (match_id) DO NOTHING`,
-		m.ID, string(r.EndReason), nullableText(string(r.Winner)), r.DurationSeconds)
+	players, err := jsonOrNull(r.Players, r.Players != nil)
+	if err != nil {
+		return err
+	}
+	wells, err := jsonOrNull(r.Wells, r.Wells != nil)
+	if err != nil {
+		return err
+	}
+	tag, err = t.q.Exec(t.ctx, `INSERT INTO match.results (match_id, end_reason, winner, duration_seconds, players, wells)
+		VALUES ($1::uuid, $2, $3, $4, $5, $6) ON CONFLICT (match_id) DO NOTHING`,
+		m.ID, string(r.EndReason), nullableText(string(r.Winner)), r.DurationSeconds, players, wells)
 	if err != nil || tag.RowsAffected() == 0 {
 		return err
 	}
@@ -147,6 +156,67 @@ func (t matchTx) SaveMatch(m match.Match) error {
 		}
 	}
 	return nil
+}
+
+// MatchHistory lists an account's completed matches newest first. A match
+// is completed when it ended with a result; each is the account's own side,
+// Vanguard and outcome in it.
+func (s *MatchStore) MatchHistory(ctx context.Context, accountID string, filter match.HistoryFilter, after *match.HistoryCursor, limit int) ([]match.HistoryEntry, error) {
+	var afterAt *time.Time
+	var afterID *string
+	if after != nil {
+		afterAt, afterID = &after.EndedAt, &after.MatchID
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT m.id::text, m.mode, m.rules, m.ended_at, r.duration_seconds, p.side, coalesce(p.vanguard_id, ''), r.winner
+		FROM match.participants p
+		JOIN match.matches m ON m.id = p.match_id
+		JOIN match.results r ON r.match_id = m.id
+		WHERE p.account_id = $1::uuid AND m.state = 'ended'
+			AND ($2 = '' OR p.vanguard_id = $2)
+			AND ($3 = '' OR m.mode = $3)
+			AND ($4 = ''
+				OR ($4 = 'win' AND r.winner = p.side)
+				OR ($4 = 'loss' AND r.winner IS NOT NULL AND r.winner <> p.side)
+				OR ($4 = 'no_contest' AND r.winner IS NULL))
+			AND ($5::timestamptz IS NULL OR (m.ended_at, m.id) < ($5::timestamptz, $6::uuid))
+		ORDER BY m.ended_at DESC, m.id DESC
+		LIMIT $7`,
+		accountID, filter.VanguardID, filter.Mode, string(filter.Outcome), afterAt, afterID, limit)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (match.HistoryEntry, error) {
+		var e match.HistoryEntry
+		var rules, side string
+		var winner *string
+		err := row.Scan(&e.MatchID, &e.Mode, &rules, &e.EndedAt, &e.DurationSeconds, &side, &e.VanguardID, &winner)
+		e.Rules, e.Side = match.Rules(rules), match.Side(side)
+		e.Outcome = match.OutcomeFor(e.Side, match.Side(deref(winner)))
+		return e, err
+	})
+}
+
+// HistoryModes lists the modes of an account's completed matches, sorted.
+func (s *MatchStore) HistoryModes(ctx context.Context, accountID string) ([]string, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT DISTINCT m.mode
+		FROM match.participants p
+		JOIN match.matches m ON m.id = p.match_id
+		JOIN match.results r ON r.match_id = m.id
+		WHERE p.account_id = $1::uuid AND m.state = 'ended'
+		ORDER BY m.mode`, accountID)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowTo[string])
+}
+
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 func (s *MatchStore) ActiveMatchFor(ctx context.Context, accountID string) (match.Match, error) {
@@ -303,8 +373,9 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	var r match.Result
 	var reason string
 	var winner *string
-	err = q.QueryRow(ctx, `SELECT end_reason, winner, duration_seconds FROM match.results WHERE match_id = $1::uuid`, id).
-		Scan(&reason, &winner, &r.DurationSeconds)
+	var players, wells []byte
+	err = q.QueryRow(ctx, `SELECT end_reason, winner, duration_seconds, players, wells FROM match.results WHERE match_id = $1::uuid`, id).
+		Scan(&reason, &winner, &r.DurationSeconds, &players, &wells)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return m, nil
 	}
@@ -314,6 +385,16 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	r.EndReason = match.EndReason(reason)
 	if winner != nil {
 		r.Winner = match.Side(*winner)
+	}
+	if players != nil {
+		if err := json.Unmarshal(players, &r.Players); err != nil {
+			return match.Match{}, err
+		}
+	}
+	if wells != nil {
+		if err := json.Unmarshal(wells, &r.Wells); err != nil {
+			return match.Match{}, err
+		}
 	}
 	rows, err = q.Query(ctx, `SELECT account_id::text, joined, connected_at_end FROM match.result_participants
 		WHERE match_id = $1::uuid ORDER BY account_id`, id)
@@ -330,6 +411,14 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	}
 	m.Result = &r
 	return m, nil
+}
+
+// jsonOrNull is v as a JSON document, or nil (SQL NULL) when present is false.
+func jsonOrNull(v any, present bool) ([]byte, error) {
+	if !present {
+		return nil, nil
+	}
+	return json.Marshal(v)
 }
 
 func nullableTime(t time.Time) *time.Time {

@@ -60,6 +60,7 @@ func newMatchFixture(t *testing.T, names ...string) *matchFixture {
 		HostPortMax:       testPortMax,
 		PublicHost:        "127.0.0.1",
 		BackendURL:        "http://backend:8080",
+		HistoryPageSize:   1,
 	}, func() time.Time { return f.now })
 	return f
 }
@@ -207,6 +208,9 @@ func TestVictoryInPostgres(t *testing.T) {
 	if err != nil || ended.Result == nil || ended.Result.EndReason != match.EndPrimeWellDestroyed || ended.Result.Winner != match.SideA || p.Side != match.SideB {
 		t.Fatalf("the loser's view of the ended match: %+v %+v %v", ended, p, err)
 	}
+	if ended.Result.Players != nil {
+		t.Fatalf("a result sent without a scoreboard keeps none: %+v", ended.Result.Players)
+	}
 
 	if _, err := f.store.pool.Exec(ctx, `UPDATE match.results SET end_reason = 'abandoned' WHERE match_id = $1`, m.ID); err == nil {
 		t.Fatal("the schema must refuse a winner beside another end")
@@ -297,5 +301,111 @@ func TestAFailedStartLeavesNothingActiveInPostgres(t *testing.T) {
 	f.alloc.FailStarts(nil)
 	if m, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{"DevOne": match.SideA}))); err != nil || m.Server.HostPort != testPortMin {
 		t.Fatalf("the failed match's port must be free: %+v %v", m, err)
+	}
+}
+
+// A practice match's scoreboard, its host and its bots, is stored as the
+// server reported it and read back the same, so a replay is recognised
+// (ADR-017 §5).
+func TestAScoreboardInPostgres(t *testing.T) {
+	f := newMatchFixture(t, "DevOne")
+	ctx := context.Background()
+	host := f.ids["DevOne"]
+	m, err := f.svc.Create(ctx, match.Spec{Mode: "custom_practice", Rules: match.RulesPractice, HostAccountID: host,
+		Seats: []match.Seat{{AccountID: host, Side: match.SideA, VanguardID: "oriel"}}})
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	cred := f.credential(t, m.ID)
+	if err := f.svc.ServerReady(ctx, cred, m.ID); err != nil {
+		t.Fatalf("ServerReady: %v", err)
+	}
+	line := func(side match.Side, name, account, vanguard string, kills int) match.PlayerResult {
+		return match.PlayerResult{Side: side, Name: name, AccountID: account, VanguardID: vanguard,
+			Statistics: match.PlayerStatistics{Kills: kills, Level: 6, VanguardDamage: 2210.75, DamageDealt: match.DamageByType{Physical: 5000.5},
+				CrowdControl: match.CrowdControl{Slow: 2.25}, GoldEarned: 2150, GoldBySource: match.GoldBySource{Starting: 500, Minions: 1650}, MinionKills: 70},
+			Items: []string{"timing_coil", "", "", "", "", ""}, FluxSpells: [2]string{"blink", "mend"}}
+	}
+	report := func() match.Result {
+		return match.Result{EndReason: match.EndHostEnded, DurationSeconds: 600.5,
+			Participants: []match.ParticipantResult{{AccountID: host, Joined: true, ConnectedAtEnd: true}},
+			Players:      []match.PlayerResult{line(match.SideA, "DevOne", host, "oriel", 3), line(match.SideB, "Bot 1", "", "cairn", 1), line(match.SideB, "Bot 2", "", "bryn", 0)},
+			Wells:        []match.WellCapture{{Site: 1, Side: match.SideB, AtSeconds: 312.25}}}
+	}
+	if err := f.svc.ServerResult(ctx, cred, m.ID, report()); err != nil {
+		t.Fatalf("ServerResult: %v", err)
+	}
+	stored, err := f.store.Match().MatchByID(ctx, m.ID)
+	if err != nil || stored.Result == nil || len(stored.Result.Players) != 3 {
+		t.Fatalf("the stored scoreboard: %+v %v", stored.Result, err)
+	}
+	got := stored.Result.Players
+	if got[0].AccountID != host || got[1].AccountID != "" || got[2].Name != "Bot 2" || got[0].Statistics != report().Players[0].Statistics ||
+		got[0].Items[0] != "timing_coil" || got[0].FluxSpells != [2]string{"blink", "mend"} ||
+		len(stored.Result.Wells) != 1 || stored.Result.Wells[0] != (match.WellCapture{Site: 1, Side: match.SideB, AtSeconds: 312.25}) {
+		t.Fatalf("the scoreboard as read back: %+v", got)
+	}
+	// The server's retry of the same report is the same result; a different scoreboard is not.
+	if err := f.svc.ServerResult(ctx, cred, m.ID, report()); err != nil {
+		t.Fatalf("a replayed report: %v", err)
+	}
+	different := report()
+	different.Players[1].Statistics.Kills = 2
+	if err := f.svc.ServerResult(ctx, cred, m.ID, different); !errors.Is(err, match.ErrResultConflict) {
+		t.Fatalf("a different scoreboard: want a conflict, got %v", err)
+	}
+	if _, err := f.store.pool.Exec(ctx, `UPDATE match.results SET players = '{}'::jsonb WHERE match_id = $1`, m.ID); err == nil {
+		t.Fatal("the schema must refuse a scoreboard that is not a list")
+	}
+}
+
+// Match History reads a player's completed matches from Postgres newest
+// first, with their outcome, filtered and paged (ADR-017 §6).
+func TestMatchHistoryInPostgres(t *testing.T) {
+	f := newMatchFixture(t, "DevOne", "DevTwo")
+	ctx := context.Background()
+	end := func(r match.Result) string {
+		t.Helper()
+		m, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{"DevOne": match.SideA, "DevTwo": match.SideB})))
+		if err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+		cred := f.credential(t, m.ID)
+		if err := f.svc.ServerReady(ctx, cred, m.ID); err != nil {
+			t.Fatalf("ServerReady: %v", err)
+		}
+		stored, _ := f.store.Match().MatchByID(ctx, m.ID)
+		for _, p := range stored.Participants {
+			r.Participants = append(r.Participants, match.ParticipantResult{AccountID: p.AccountID, Joined: true, ConnectedAtEnd: true})
+		}
+		if err := f.svc.ServerResult(ctx, cred, m.ID, r); err != nil {
+			t.Fatalf("ServerResult: %v", err)
+		}
+		f.now = f.now.Add(time.Minute)
+		return m.ID
+	}
+	drawn := end(match.Result{EndReason: match.EndDeveloperRequest, DurationSeconds: 300})
+	won := end(match.Result{EndReason: match.EndPrimeWellDestroyed, Winner: match.SideA, DurationSeconds: 1500.5})
+
+	one := f.ids["DevOne"]
+	page, next, err := f.svc.History(ctx, one, match.HistoryFilter{}, "")
+	if err != nil || len(page) != 1 || page[0].MatchID != won || page[0].Outcome != match.OutcomeWin || page[0].DurationSeconds != 1500.5 || page[0].VanguardID != "cairn" || next == "" {
+		t.Fatalf("the newest first: %+v %q %v", page, next, err)
+	}
+	page, next, err = f.svc.History(ctx, one, match.HistoryFilter{}, next)
+	if err != nil || len(page) != 1 || page[0].MatchID != drawn || page[0].Outcome != match.OutcomeNoContest || next != "" {
+		t.Fatalf("then the older: %+v %q %v", page, next, err)
+	}
+	if page, _, err := f.svc.History(ctx, f.ids["DevTwo"], match.HistoryFilter{Outcome: match.OutcomeLoss}, ""); err != nil || len(page) != 1 || page[0].MatchID != won || page[0].Side != match.SideB {
+		t.Fatalf("the other side's loss: %+v %v", page, err)
+	}
+	if page, _, err := f.svc.History(ctx, one, match.HistoryFilter{Mode: "casual", VanguardID: "cairn", Outcome: match.OutcomeNoContest}, ""); err != nil || len(page) != 1 || page[0].MatchID != drawn {
+		t.Fatalf("combined filters: %+v %v", page, err)
+	}
+	if page, _, err := f.svc.History(ctx, one, match.HistoryFilter{VanguardID: "oriel"}, ""); err != nil || len(page) != 0 {
+		t.Fatalf("a Vanguard never played: %+v %v", page, err)
+	}
+	if modes, err := f.svc.HistoryModes(ctx, one); err != nil || len(modes) != 1 || modes[0] != "casual" {
+		t.Fatalf("every mode with a saved match: %v %v", modes, err)
 	}
 }

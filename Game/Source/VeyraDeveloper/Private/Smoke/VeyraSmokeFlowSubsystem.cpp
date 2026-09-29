@@ -2,6 +2,7 @@
 
 #include "Smoke/VeyraSmokeFlowSubsystem.h"
 
+#include "Algo/Count.h"
 #include "Algo/Find.h"
 #include "Client/VeyraClientFlowSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -209,10 +210,10 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		{
 			TickMatchmadeShell(Flow);
 		}
-		else if (bSawResults)
+		else if (bSawResults && !TickHistory(Flow))
 		{
 			Finish(true, FString::Printf(TEXT("clicked through the starter choice, Play and Practice, locked %s, %sbought %s in the shop, recalled home, ")
-										 TEXT("ended the match from its menu as its host, saw its verified result and returned to the shell"),
+										 TEXT("ended the match from its menu as its host, saw its verified result, returned to the shell and found the match in Match History"),
 				*LockedVanguard, bSieges ? TEXT("sieged the enemy Prime Well down, played on, ") : TEXT(""), *BoughtItem));
 		}
 		else if (bStartedPractice && !Snapshot.Notice.IsEmpty())
@@ -905,6 +906,7 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 		Finish(false, FString::Printf(TEXT("match %s has no verified result"), *Snapshot.MatchId));
 		return;
 	}
+	PlayedMatchId = Result->MatchId;
 	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the verified result of match %s: %s, %s rules, winner %s, %.1f s, as %s, %s, %s at the end."),
 		*Result->MatchId, *Result->EndReason, *Result->Rules, Result->Winner.IsEmpty() ? TEXT("none") : *Result->Winner, Result->DurationSeconds,
 		*Result->VanguardId, Result->bJoined ? TEXT("joined") : TEXT("never joined"), Result->bConnectedAtEnd ? TEXT("connected") : TEXT("disconnected"));
@@ -920,6 +922,19 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 			ExpectedRules, ExpectedEndReason, !bVictory ? TEXT("with no winner") : bSieges ? TEXT("won by this side") : TEXT("lost by this side")));
 		return;
 	}
+	// The verified scoreboard (ADR-017 §5): the player's own line, with its Vanguard and its starting Gold
+	// at least, and in practice each bot beside it.
+	const VeyraBackendProtocol::FPlayerOutcome* You = Result->Players.FindByPredicate([](const VeyraBackendProtocol::FPlayerOutcome& Line) { return Line.bYou; });
+	const int32 Bots = Algo::CountIf(Result->Players, [](const VeyraBackendProtocol::FPlayerOutcome& Line) { return Line.Name.StartsWith(TEXT("Bot ")); });
+	if (!Result->bHasScoreboard || !You || You->VanguardId != LockedVanguard || !(You->Statistics.GoldBySource.Starting > 0.0) || You->Statistics.Level < 1
+		|| (bPractice && Bots == 0))
+	{
+		Finish(false, TEXT("the verified result has no scoreboard with the player's own line, and in practice its bots"));
+		return;
+	}
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the verified scoreboard lists %d player(s) (%d bot(s)) and %d Flux Well capture(s); this player went %d/%d/%d, earned %.0f Gold, dealt %.0f to towers."),
+		Result->Players.Num(), Bots, Result->Wells.Num(), You->Statistics.Kills, You->Statistics.Deaths, You->Statistics.Assists, You->Statistics.GoldEarned,
+		You->Statistics.TowerDamage);
 #if WITH_VEYRA_UI
 	// The results screen says so (ADR-011 §13).
 	if (bVictory)
@@ -1004,6 +1019,57 @@ FString UVeyraSmokeFlowSubsystem::SpellLabel(const FVeyraContentId& SpellId)
 #else
 	return SpellId.ToString();
 #endif
+}
+
+bool UVeyraSmokeFlowSubsystem::TickHistory(const IVeyraClientIntents& Flow)
+{
+	if (bCheckedHistory)
+	{
+		return false;
+	}
+	const FVeyraMatchHistory& History = Flow.GetSnapshot().History;
+	if (Flow.GetSnapshot().bBusy)
+	{
+		return true;
+	}
+	if (!bOpenedHistory)
+	{
+		// As a player does: the shell's Match History, newest first (UX-51).
+		bOpenedHistory = Click(TEXT("Match History"));
+		return true;
+	}
+	if (!History.bLoaded)
+	{
+		return true;
+	}
+	if (!History.Opened.IsSet())
+	{
+		if (History.Entries.IsEmpty() || History.Entries[0].MatchId != PlayedMatchId)
+		{
+			Finish(false, TEXT("Match History does not list the match just played first"));
+			return true;
+		}
+		if (Capture(TEXT("History")))
+		{
+			return true;
+		}
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: Match History lists %d match(es), newest %s, a %s."), History.Entries.Num(),
+			*History.Entries[0].MatchId, *History.Entries[0].Outcome);
+		Click(TEXT("Open"));
+		return true;
+	}
+	if (!History.Opened->bHasScoreboard || History.Opened->MatchId != PlayedMatchId)
+	{
+		Finish(false, TEXT("the match opened from Match History has no saved scoreboard"));
+		return true;
+	}
+	if (Capture(TEXT("HistoryRecord")))
+	{
+		return true;
+	}
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: opened it from Match History, with its scoreboard of %d player(s)."), History.Opened->Players.Num());
+	bCheckedHistory = Click(TEXT("Back to Match History"));
+	return !bCheckedHistory;
 }
 
 bool UVeyraSmokeFlowSubsystem::Click(const FString& Label, int32 Occurrence)

@@ -4,11 +4,13 @@
 
 #include "Algo/Find.h"
 #include "Dom/JsonObject.h"
+#include "GenericPlatform/GenericPlatformHttp.h"
 #include "Internationalization/Regex.h"
 #include "Policies/CondensedJsonPrintPolicy.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
+#include "Slots/VeyraAbilitySlot.h"
 
 namespace VeyraBackendProtocol
 {
@@ -34,6 +36,10 @@ namespace
 	const TCHAR* const WordPattern = TEXT("^[a-z_]{1,64}$");
 	/** One of the battleground's two teams. */
 	const TCHAR* const SidePattern = TEXT("^[AB]$");
+	/** A player's outcome in a completed match (Backend/internal/match/history.go). */
+	const TCHAR* const OutcomePattern = TEXT("^(win|loss|no_contest)$");
+	/** Match History's cursor: unpadded base64url, opaque. */
+	const TCHAR* const CursorPattern = TEXT("^[A-Za-z0-9_-]{1,256}$");
 
 	/** The highest TCP or UDP port. */
 	constexpr int32 MaxPort = 65535;
@@ -113,6 +119,200 @@ namespace
 	{
 		const TSharedPtr<FJsonObject>* Field = nullptr;
 		return Object.HasTypedField<EJson::Object>(Name) && Object.TryGetObjectField(Name, Field) && Field->IsValid() ? Field->Get() : nullptr;
+	}
+
+	/**
+	 * The scoreboard's statistics as the backend names them (Backend/internal/match/scoreboard.go;
+	 * ADR-017 §5): each a count or an amount, at the top of "statistics" or in one of its groups.
+	 * The result body and the verified result both use this one table, so they cannot disagree.
+	 */
+	struct FStatisticCount
+	{
+		const TCHAR* Name;
+		int32& (*Of)(FVeyraPlayerStatistics&);
+	};
+
+	struct FStatisticAmount
+	{
+		/** The group object it sits in, such as "damageDealt"; null at the top. */
+		const TCHAR* Group;
+		const TCHAR* Name;
+		double& (*Of)(FVeyraPlayerStatistics&);
+	};
+
+	using FStats = FVeyraPlayerStatistics;
+
+	const FStatisticCount StatisticCounts[] = {
+		{ TEXT("kills"), [](FStats& S) -> int32& { return S.Kills; } },
+		{ TEXT("deaths"), [](FStats& S) -> int32& { return S.Deaths; } },
+		{ TEXT("assists"), [](FStats& S) -> int32& { return S.Assists; } },
+		{ TEXT("level"), [](FStats& S) -> int32& { return S.Level; } },
+		{ TEXT("minionKills"), [](FStats& S) -> int32& { return S.MinionKills; } },
+		{ TEXT("jungleKills"), [](FStats& S) -> int32& { return S.JungleKills; } },
+		{ TEXT("wellsSecured"), [](FStats& S) -> int32& { return S.WellsSecured; } },
+		{ TEXT("wellFinalHits"), [](FStats& S) -> int32& { return S.WellFinalHits; } },
+		{ TEXT("wardsPlaced"), [](FStats& S) -> int32& { return S.WardsPlaced; } },
+		{ TEXT("wardsDestroyed"), [](FStats& S) -> int32& { return S.WardsDestroyed; } },
+	};
+
+	const FStatisticAmount StatisticAmounts[] = {
+		{ nullptr, TEXT("vanguardDamage"), [](FStats& S) -> double& { return S.VanguardDamage; } },
+		{ nullptr, TEXT("damageShielded"), [](FStats& S) -> double& { return S.DamageShielded; } },
+		{ nullptr, TEXT("selfHealing"), [](FStats& S) -> double& { return S.SelfHealing; } },
+		{ nullptr, TEXT("teammateHealing"), [](FStats& S) -> double& { return S.TeammateHealing; } },
+		{ nullptr, TEXT("goldEarned"), [](FStats& S) -> double& { return S.GoldEarned; } },
+		{ nullptr, TEXT("towerDamage"), [](FStats& S) -> double& { return S.TowerDamage; } },
+		{ nullptr, TEXT("wellDamage"), [](FStats& S) -> double& { return S.WellDamage; } },
+		{ TEXT("damageDealt"), TEXT("physical"), [](FStats& S) -> double& { return S.DamageDealt.Physical; } },
+		{ TEXT("damageDealt"), TEXT("magic"), [](FStats& S) -> double& { return S.DamageDealt.Magic; } },
+		{ TEXT("damageDealt"), TEXT("true"), [](FStats& S) -> double& { return S.DamageDealt.TrueDamage; } },
+		{ TEXT("damageTaken"), TEXT("physical"), [](FStats& S) -> double& { return S.DamageTaken.Physical; } },
+		{ TEXT("damageTaken"), TEXT("magic"), [](FStats& S) -> double& { return S.DamageTaken.Magic; } },
+		{ TEXT("damageTaken"), TEXT("true"), [](FStats& S) -> double& { return S.DamageTaken.TrueDamage; } },
+		{ TEXT("crowdControl"), TEXT("stun"), [](FStats& S) -> double& { return S.CrowdControl.Stun; } },
+		{ TEXT("crowdControl"), TEXT("slow"), [](FStats& S) -> double& { return S.CrowdControl.Slow; } },
+		{ TEXT("crowdControl"), TEXT("total"), [](FStats& S) -> double& { return S.CrowdControl.Total; } },
+		{ TEXT("goldBySource"), TEXT("starting"), [](FStats& S) -> double& { return S.GoldBySource.Starting; } },
+		{ TEXT("goldBySource"), TEXT("kills"), [](FStats& S) -> double& { return S.GoldBySource.Kills; } },
+		{ TEXT("goldBySource"), TEXT("assists"), [](FStats& S) -> double& { return S.GoldBySource.Assists; } },
+		{ TEXT("goldBySource"), TEXT("minions"), [](FStats& S) -> double& { return S.GoldBySource.Minions; } },
+		{ TEXT("goldBySource"), TEXT("jungle"), [](FStats& S) -> double& { return S.GoldBySource.Jungle; } },
+		{ TEXT("goldBySource"), TEXT("objectives"), [](FStats& S) -> double& { return S.GoldBySource.Objectives; } },
+		{ TEXT("goldBySource"), TEXT("wards"), [](FStats& S) -> double& { return S.GoldBySource.Wards; } },
+		{ TEXT("goldBySource"), TEXT("passive"), [](FStats& S) -> double& { return S.GoldBySource.Passive; } },
+	};
+
+	/** The groups "statistics" holds, in the order the body writes them. */
+	const TCHAR* const StatisticGroups[] = { TEXT("damageDealt"), TEXT("damageTaken"), TEXT("crowdControl"), TEXT("goldBySource") };
+
+	/** The spell slots a line carries, which the backend requires exactly (ADR-015 §1). */
+	constexpr int32 SpellSlotCount = UE_ARRAY_COUNT(VeyraAbilitySlots::Spells);
+
+	using FBodyWriter = TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>;
+
+	void WriteStatistics(FBodyWriter& Writer, FVeyraPlayerStatistics Values)
+	{
+		Writer.WriteObjectStart(TEXT("statistics"));
+		for (const FStatisticCount& Count : StatisticCounts)
+		{
+			Writer.WriteValue(Count.Name, Count.Of(Values));
+		}
+		for (const FStatisticAmount& Amount : StatisticAmounts)
+		{
+			if (!Amount.Group)
+			{
+				Writer.WriteValue(Amount.Name, Amount.Of(Values));
+			}
+		}
+		for (const TCHAR* Group : StatisticGroups)
+		{
+			Writer.WriteObjectStart(Group);
+			for (const FStatisticAmount& Amount : StatisticAmounts)
+			{
+				if (Amount.Group && FCString::Strcmp(Amount.Group, Group) == 0)
+				{
+					Writer.WriteValue(Amount.Name, Amount.Of(Values));
+				}
+			}
+			Writer.WriteObjectEnd();
+		}
+		Writer.WriteObjectEnd();
+	}
+
+	/** Slots as the backend takes them: a content ID, or "" for an empty slot, at least MinSlots of them. */
+	void WriteSlots(FBodyWriter& Writer, const TCHAR* Name, TConstArrayView<FVeyraContentId> Slots, int32 MinSlots)
+	{
+		Writer.WriteArrayStart(Name);
+		for (int32 Index = 0; Index < FMath::Max(Slots.Num(), MinSlots); ++Index)
+		{
+			Writer.WriteValue(Slots.IsValidIndex(Index) && Slots[Index].IsValid() ? Slots[Index].ToString() : FString());
+		}
+		Writer.WriteArrayEnd();
+	}
+
+	/** A number field that is a whole count, not negative. */
+	bool CountField(const FJsonObject& Object, FStringView Name, int32& Out)
+	{
+		double Value = 0.0;
+		if (!DurationField(Object, Name, Value) || Value != FMath::FloorToDouble(Value) || Value > MAX_int32)
+		{
+			return false;
+		}
+		Out = static_cast<int32>(Value);
+		return true;
+	}
+
+	bool ParseStatistics(const FJsonObject& Object, FVeyraPlayerStatistics& Out)
+	{
+		for (const FStatisticCount& Count : StatisticCounts)
+		{
+			if (!CountField(Object, Count.Name, Count.Of(Out)))
+			{
+				return false;
+			}
+		}
+		for (const FStatisticAmount& Amount : StatisticAmounts)
+		{
+			const FJsonObject* Group = Amount.Group ? ObjectField(Object, Amount.Group) : &Object;
+			if (!Group || !DurationField(*Group, Amount.Name, Amount.Of(Out)))
+			{
+				return false;
+			}
+		}
+		return true;
+	}
+
+	/** Slots from an array of strings, each a content ID or "" for an empty slot. */
+	bool SlotsField(const FJsonObject& Object, FStringView Name, TArray<FVeyraContentId>& Out)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+		if (!Object.HasTypedField<EJson::Array>(Name) || !Object.TryGetArrayField(Name, Values))
+		{
+			return false;
+		}
+		Out.Reset();
+		for (const TSharedPtr<FJsonValue>& Value : *Values)
+		{
+			FString Text;
+			if (!Value.IsValid() || Value->Type != EJson::String || !Value->TryGetString(Text))
+			{
+				return false;
+			}
+			const TOptional<FVeyraContentId> Slot = Text.IsEmpty() ? TOptional<FVeyraContentId>(FVeyraContentId()) : FVeyraContentId::FromText(Text);
+			if (!Slot.IsSet())
+			{
+				return false;
+			}
+			Out.Add(Slot.GetValue());
+		}
+		return true;
+	}
+
+	/** A verified result's scoreboard line (Backend/internal/httpapi/match.go, scoreboardPlayerJSON). */
+	bool ParsePlayerOutcome(const FJsonValue& Value, FPlayerOutcome& Out)
+	{
+		const TSharedPtr<FJsonObject>* Object = nullptr;
+		if (Value.Type != EJson::Object || !Value.TryGetObject(Object) || !Object->IsValid())
+		{
+			return false;
+		}
+		const FJsonObject& Line = **Object;
+		const FJsonObject* Statistics = ObjectField(Line, TEXT("statistics"));
+		return StringField(Line, TEXT("side"), SidePattern, Out.Side) && StringField(Line, TEXT("name"), Out.Name) && !Out.Name.IsEmpty()
+			&& StringField(Line, TEXT("vanguardId"), ContentIdPattern, Out.VanguardId) && BoolField(Line, TEXT("you"), Out.bYou) && Statistics
+			&& ParseStatistics(*Statistics, Out.Statistics) && SlotsField(Line, TEXT("items"), Out.Statistics.Items)
+			&& SlotsField(Line, TEXT("fluxSpells"), Out.Statistics.FluxSpells) && Out.Statistics.FluxSpells.Num() == SpellSlotCount;
+	}
+
+	/** A Flux Well secured, as the backend returns it: its site, its side and when. */
+	bool ParseWellOutcome(const FJsonValue& Value, FWellOutcome& Out)
+	{
+		const TSharedPtr<FJsonObject>* Object = nullptr;
+		double AtSeconds = 0.0;
+		const bool bParsed = Value.Type == EJson::Object && Value.TryGetObject(Object) && Object->IsValid() && CountField(**Object, TEXT("site"), Out.Site)
+			&& StringField(**Object, TEXT("side"), SidePattern, Out.Side) && DurationField(**Object, TEXT("atSeconds"), AtSeconds);
+		Out.AtSeconds = AtSeconds;
+		return bParsed;
 	}
 
 	bool ParseSelectState(const FString& Text, ESelectState& Out)
@@ -423,6 +623,43 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 			return false;
 		}
 		Outcome.bHasResult = true;
+		// The scoreboard: null, or absent from an older backend, when the server sent none (ADR-017 §5).
+		const TArray<TSharedPtr<FJsonValue>>* Players = nullptr;
+		if (Result->HasTypedField<EJson::Array>(TEXT("players")) && Result->TryGetArrayField(TEXT("players"), Players))
+		{
+			for (const TSharedPtr<FJsonValue>& Line : *Players)
+			{
+				if (!Line.IsValid() || !ParsePlayerOutcome(*Line, Outcome.Players.AddDefaulted_GetRef()))
+				{
+					OutProblem = TEXT("the match's scoreboard is not in the expected format");
+					return false;
+				}
+			}
+			Outcome.bHasScoreboard = true;
+		}
+		else if (Result->HasField(TEXT("players")) && !Result->HasTypedField<EJson::Null>(TEXT("players")))
+		{
+			OutProblem = TEXT("the match's scoreboard is neither null nor a list");
+			return false;
+		}
+		// The Flux Wells secured: null, or absent, when the server sent none.
+		const TArray<TSharedPtr<FJsonValue>>* Wells = nullptr;
+		if (Result->HasTypedField<EJson::Array>(TEXT("wells")) && Result->TryGetArrayField(TEXT("wells"), Wells))
+		{
+			for (const TSharedPtr<FJsonValue>& Capture : *Wells)
+			{
+				if (!Capture.IsValid() || !ParseWellOutcome(*Capture, Outcome.Wells.AddDefaulted_GetRef()))
+				{
+					OutProblem = TEXT("the match's Flux Wells are not in the expected format");
+					return false;
+				}
+			}
+		}
+		else if (Result->HasField(TEXT("wells")) && !Result->HasTypedField<EJson::Null>(TEXT("wells")))
+		{
+			OutProblem = TEXT("the match's Flux Wells are neither null nor a list");
+			return false;
+		}
 	}
 	else if (!Object->HasTypedField<EJson::Null>(TEXT("result")))
 	{
@@ -430,6 +667,72 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 		return false;
 	}
 	Out = MoveTemp(Outcome);
+	return true;
+}
+
+FString HistoryPath(const FHistoryFilter& Filter, const FString& Cursor)
+{
+	TArray<FString> Query;
+	const TPair<const TCHAR*, const FString*> Fields[] = {
+		{ TEXT("vanguard"), &Filter.VanguardId },
+		{ TEXT("mode"), &Filter.Mode },
+		{ TEXT("outcome"), &Filter.Outcome },
+		{ TEXT("cursor"), &Cursor },
+	};
+	for (const TPair<const TCHAR*, const FString*>& Field : Fields)
+	{
+		if (!Field.Value->IsEmpty())
+		{
+			Query.Add(FString::Printf(TEXT("%s=%s"), Field.Key, *FGenericPlatformHttp::UrlEncode(*Field.Value)));
+		}
+	}
+	return Query.IsEmpty() ? FString(TEXT("/v1/me/matches")) : TEXT("/v1/me/matches?") + FString::Join(Query, TEXT("&"));
+}
+
+bool ParseHistoryPage(const FString& Body, FHistoryPage& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	const TArray<TSharedPtr<FJsonValue>>* Matches = nullptr;
+	FHistoryPage Page;
+	if (!Root.IsValid() || !Root->HasTypedField<EJson::Array>(TEXT("matches")) || !Root->TryGetArrayField(TEXT("matches"), Matches)
+		|| !NullableStringField(*Root, TEXT("next"), CursorPattern, Page.Next))
+	{
+		OutProblem = TEXT("the match history's list or cursor is missing or not in the expected format");
+		return false;
+	}
+	const TArray<TSharedPtr<FJsonValue>>* Modes = nullptr;
+	if (!Root->HasTypedField<EJson::Array>(TEXT("modes")) || !Root->TryGetArrayField(TEXT("modes"), Modes))
+	{
+		OutProblem = TEXT("the match history's modes are missing");
+		return false;
+	}
+	for (const TSharedPtr<FJsonValue>& Value : *Modes)
+	{
+		FString Mode;
+		if (!Value.IsValid() || !Value->TryGetString(Mode) || !MatchesWhole(ContentIdPattern, Mode))
+		{
+			OutProblem = TEXT("a mode in the match history is not a content ID");
+			return false;
+		}
+		Page.Modes.Add(MoveTemp(Mode));
+	}
+	for (const TSharedPtr<FJsonValue>& Value : *Matches)
+	{
+		const TSharedPtr<FJsonObject>* Object = nullptr;
+		FHistoryEntry& Entry = Page.Entries.AddDefaulted_GetRef();
+		FString EndedAt;
+		if (!Value.IsValid() || Value->Type != EJson::Object || !Value->TryGetObject(Object) || !Object->IsValid()
+			|| !StringField(**Object, TEXT("id"), IdPattern, Entry.MatchId) || !StringField(**Object, TEXT("mode"), ContentIdPattern, Entry.Mode)
+			|| !StringField(**Object, TEXT("rules"), WordPattern, Entry.Rules) || !StringField(**Object, TEXT("endedAt"), EndedAt)
+			|| !FDateTime::ParseIso8601(*EndedAt, Entry.EndedAt) || !DurationField(**Object, TEXT("durationSeconds"), Entry.DurationSeconds)
+			|| !StringField(**Object, TEXT("side"), SidePattern, Entry.Side) || !NullableStringField(**Object, TEXT("vanguardId"), ContentIdPattern, Entry.VanguardId)
+			|| !StringField(**Object, TEXT("outcome"), OutcomePattern, Entry.Outcome))
+		{
+			OutProblem = TEXT("a match in the history is not in the expected format");
+			return false;
+		}
+	}
+	Out = MoveTemp(Page);
 	return true;
 }
 
@@ -639,6 +942,47 @@ FString BuildResultBody(const FVeyraMatchResult& Result)
 		Writer->WriteValue(TEXT("accountId"), Participant.AccountId);
 		Writer->WriteValue(TEXT("joined"), Participant.bJoined);
 		Writer->WriteValue(TEXT("connectedAtEnd"), Participant.bConnectedAtEnd);
+		Writer->WriteObjectEnd();
+	}
+	Writer->WriteArrayEnd();
+	// The scoreboard (ADR-017 §5): every player, a bot with no account. With nobody recorded, as when a
+	// match is abandoned before it prepares anyone, there is none: null, never two empty teams.
+	if (Result.Players.IsEmpty())
+	{
+		Writer->WriteNull(TEXT("players"));
+	}
+	else
+	{
+		Writer->WriteArrayStart(TEXT("players"));
+		for (const FVeyraPlayerResult& Player : Result.Players)
+		{
+			Writer->WriteObjectStart();
+			Writer->WriteValue(TEXT("side"), Player.Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"));
+			Writer->WriteValue(TEXT("name"), Player.DisplayName);
+			if (Player.AccountId.IsEmpty())
+			{
+				Writer->WriteNull(TEXT("accountId"));
+			}
+			else
+			{
+				Writer->WriteValue(TEXT("accountId"), Player.AccountId);
+			}
+			Writer->WriteValue(TEXT("vanguardId"), Player.VanguardId.ToString());
+			WriteStatistics(*Writer, Player.Statistics);
+			WriteSlots(*Writer, TEXT("items"), Player.Statistics.Items, 0);
+			WriteSlots(*Writer, TEXT("fluxSpells"), Player.Statistics.FluxSpells, SpellSlotCount);
+			Writer->WriteObjectEnd();
+		}
+		Writer->WriteArrayEnd();
+	}
+	// Each Flux Well secured, once per capture (Match Statistics Bible §5).
+	Writer->WriteArrayStart(TEXT("wells"));
+	for (const FVeyraWellCapture& Capture : Result.Wells)
+	{
+		Writer->WriteObjectStart();
+		Writer->WriteValue(TEXT("site"), Capture.Site);
+		Writer->WriteValue(TEXT("side"), Capture.Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"));
+		Writer->WriteValue(TEXT("atSeconds"), Capture.AtSeconds);
 		Writer->WriteObjectEnd();
 	}
 	Writer->WriteArrayEnd();

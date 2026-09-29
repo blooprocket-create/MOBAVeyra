@@ -32,6 +32,17 @@ namespace VeyraPlayerApiTests
 			MatchId, State, VanguardId, FailureReason, Result);
 	}
 
+	/** A verified result's scoreboard line, as the backend returns it. */
+	const TCHAR* const ScoreboardLine = TEXT("{\"side\":\"A\",\"name\":\"DevOne\",\"vanguardId\":\"cairn\",\"you\":true,\"statistics\":{\"kills\":1,\"deaths\":0,\"assists\":2,\"level\":7,\"minionKills\":40,\"jungleKills\":0,\"wellsSecured\":0,\"wellFinalHits\":0,\"wardsPlaced\":1,\"wardsDestroyed\":0,\"vanguardDamage\":900.5,\"damageShielded\":0,\"selfHealing\":0,\"teammateHealing\":0,\"goldEarned\":2100,\"towerDamage\":0,\"wellDamage\":0,\"damageDealt\":{\"physical\":3000,\"magic\":0,\"true\":0},\"damageTaken\":{\"physical\":800,\"magic\":0,\"true\":0},\"crowdControl\":{\"stun\":1.5,\"slow\":0,\"total\":1.5},\"goldBySource\":{\"starting\":500,\"kills\":300,\"assists\":0,\"minions\":1200,\"jungle\":0,\"objectives\":0,\"wards\":0,\"passive\":100}},\"items\":[\"timing_coil\",\"\"],\"fluxSpells\":[\"blink\",\"\"]}");
+
+	/** An ended match whose result's scoreboard is the one line Line. */
+	FString ScoredOutcome(const FString& Line)
+	{
+		const FString Result = FString::Printf(
+			TEXT("{\"endReason\":\"host_ended\",\"winner\":null,\"durationSeconds\":1,\"joined\":true,\"connectedAtEnd\":true,\"players\":[%s]}"), *Line);
+		return Outcome(TEXT("ended"), TEXT("\"oriel\""), TEXT("null"), *Result);
+	}
+
 	// Veyra.Services.PlayerApi.*: reading the player routes the client-state coordinator uses
 	// (ADR-010 §3, §6–8). A problem never quotes the body.
 	TEST_CLASS(PlayerApi, "Veyra.Services")
@@ -159,9 +170,55 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(IsTrue(Read.DurationSeconds == 42.5));
 			ASSERT_THAT(IsTrue(Read.bJoined && !Read.bConnectedAtEnd));
 			ASSERT_THAT(AreEqual(Read.Rules, FString(TEXT("practice"))));
+			ASSERT_THAT(IsFalse(Read.bHasScoreboard, TEXT("an older backend's result has no scoreboard")));
+
+			// With a scoreboard (ADR-017 §5).
+			const FString Scored = FString::Printf(TEXT("{\"endReason\":\"host_ended\",\"winner\":null,\"durationSeconds\":42.5,\"joined\":true,\"connectedAtEnd\":true,\"players\":[%s]}"), ScoreboardLine);
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseMatchOutcome(Outcome(TEXT("ended"), TEXT("\"oriel\""), TEXT("null"), *Scored), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read.bHasScoreboard && Read.Players.Num() == 1 && Read.Players[0].bYou && Read.Players[0].Name == TEXT("DevOne")));
+			const FVeyraPlayerStatistics& Statistics = Read.Players[0].Statistics;
+			ASSERT_THAT(IsTrue(Statistics.Kills == 1 && Statistics.Assists == 2 && Statistics.Level == 7 && Statistics.CrowdControl.Stun == 1.5 && Statistics.GoldBySource.Passive == 100.0));
+			ASSERT_THAT(IsTrue(Statistics.Items.Num() == 2 && Statistics.Items[0].ToString() == TEXT("timing_coil") && !Statistics.Items[1].IsValid()));
+			ASSERT_THAT(IsTrue(Statistics.FluxSpells.Num() == 2 && !Statistics.FluxSpells[1].IsValid()));
+			const FString Unscored = TEXT("{\"endReason\":\"host_ended\",\"winner\":null,\"durationSeconds\":42.5,\"joined\":true,\"connectedAtEnd\":true,\"players\":null}");
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseMatchOutcome(Outcome(TEXT("ended"), TEXT("\"oriel\""), TEXT("null"), *Unscored), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(!Read.bHasScoreboard && Read.Players.IsEmpty()));
 
 			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseMatchOutcome(Outcome(TEXT("failed"), TEXT("\"oriel\""), TEXT("\"server_exited\""), TEXT("null")), Read, Problem), Problem));
 			ASSERT_THAT(AreEqual(Read.FailureReason, FString(TEXT("server_exited"))));
+		}
+
+		TEST_METHOD(ReadsMatchHistoryAndBuildsItsPath)
+		{
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::HistoryPath({}, FString()), FString(TEXT("/v1/me/matches"))));
+			VeyraBackendProtocol::FHistoryFilter Filter;
+			Filter.VanguardId = TEXT("cairn");
+			Filter.Mode = TEXT("casual_select");
+			Filter.Outcome = TEXT("no_contest");
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::HistoryPath(Filter, TEXT("abc_-1")),
+				FString(TEXT("/v1/me/matches?vanguard=cairn&mode=casual_select&outcome=no_contest&cursor=abc_-1"))));
+
+			const FString Body = TEXT("{\"matches\":[{\"id\":\"33333333-4444-4555-8666-777777777777\",\"mode\":\"custom_practice\",\"rules\":\"practice\",")
+				TEXT("\"endedAt\":\"2026-09-29T10:03:12Z\",\"durationSeconds\":95,\"side\":\"A\",\"vanguardId\":null,\"outcome\":\"no_contest\"}],\"next\":\"bmV4dA\",")
+				TEXT("\"modes\":[\"casual_select\",\"custom_practice\"]}");
+			VeyraBackendProtocol::FHistoryPage Page;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseHistoryPage(Body, Page, Problem), Problem));
+			ASSERT_THAT(IsTrue(Page.Entries.Num() == 1 && Page.Entries[0].Rules == TEXT("practice") && Page.Entries[0].VanguardId.IsEmpty() && Page.Next == TEXT("bmV4dA")));
+			ASSERT_THAT(IsTrue(Page.Entries[0].EndedAt == FDateTime(2026, 9, 29, 10, 3, 12)));
+			ASSERT_THAT(IsTrue(Page.Modes == TArray<FString>{ TEXT("casual_select"), TEXT("custom_practice") }));
+
+			for (const FString& Bad : TArray<FString>{
+					 TEXT("{\"matches\":null,\"next\":null}"),
+					 Body.Replace(TEXT("no_contest"), TEXT("draw")),
+					 Body.Replace(TEXT("2026-09-29T10:03:12Z"), TEXT("yesterday")),
+					 Body.Replace(TEXT("\"bmV4dA\""), TEXT("\"not a cursor!\"")),
+					 Body.Replace(TEXT(",\"modes\":[\"casual_select\",\"custom_practice\"]"), TEXT("")),
+					 Body.Replace(TEXT("[\"casual_select\",\"custom_practice\"]"), TEXT("[\"Casual Select\"]")),
+				 })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseHistoryPage(Bad, Page, Problem), Bad));
+			}
 		}
 
 		TEST_METHOD(RefusesAnythingElseAsAMatchOutcome)
@@ -172,6 +229,15 @@ namespace VeyraPlayerApiTests
 				Outcome(TEXT("ended"), TEXT("\"oriel\""), TEXT("null"), TEXT("{\"endReason\":\"host_ended\"}")),
 				Outcome(TEXT("ended"), TEXT("\"oriel\""), TEXT("null"), TEXT("{\"endReason\":\"host_ended\",\"winner\":\"C\",\"durationSeconds\":1,\"joined\":true,\"connectedAtEnd\":true}")),
 				Outcome(TEXT("ended"), TEXT("\"oriel\""), TEXT("null"), TEXT("[]")),
+				ScoredOutcome(TEXT("{}")),
+				ScoredOutcome(FString(ScoreboardLine).Replace(TEXT("\"kills\":1"), TEXT("\"kills\":-1"))),
+				ScoredOutcome(FString(ScoreboardLine).Replace(TEXT("\"level\":7"), TEXT("\"level\":7.5"))),
+				ScoredOutcome(FString(ScoreboardLine).Replace(TEXT("\"slow\":0"), TEXT("\"slow\":\"0\""))),
+				ScoredOutcome(FString(ScoreboardLine).Replace(TEXT("\"fluxSpells\":[\"blink\",\"\"]"), TEXT("\"fluxSpells\":[\"blink\"]"))),
+				ScoredOutcome(FString(ScoreboardLine).Replace(TEXT("\"timing_coil\""), TEXT("\"Timing Coil\""))),
+				ScoredOutcome(FString(ScoreboardLine).Replace(TEXT("\"name\":\"DevOne\""), TEXT("\"name\":\"\""))),
+				Outcome(TEXT("ended"), TEXT("\"oriel\""), TEXT("null"),
+					TEXT("{\"endReason\":\"host_ended\",\"winner\":null,\"durationSeconds\":1,\"joined\":true,\"connectedAtEnd\":true,\"players\":{}}")),
 			};
 			for (const FString& Body : Bodies)
 			{

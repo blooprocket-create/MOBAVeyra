@@ -208,7 +208,9 @@ namespace VeyraServicesTests
 			Result.Participants = { { TEXT("a"), true, true }, { TEXT("b"), true, false } };
 			const TSharedPtr<FJsonObject> Body = Parse(VeyraBackendProtocol::BuildResultBody(Result));
 			ASSERT_THAT(IsTrue(Body.IsValid()));
-			ASSERT_THAT(AreEqual(Body->Values.Num(), 4));
+			ASSERT_THAT(AreEqual(Body->Values.Num(), 6));
+			ASSERT_THAT(IsTrue(Body->HasTypedField<EJson::Null>(TEXT("players")), TEXT("nobody recorded: no scoreboard, not two empty teams")));
+			ASSERT_THAT(IsTrue(Body->GetArrayField(TEXT("wells")).IsEmpty(), TEXT("no Flux Well secured")));
 			ASSERT_THAT(AreEqual(Body->GetStringField(TEXT("endReason")), FString(TEXT("developer_request"))));
 			ASSERT_THAT(IsTrue(Body->HasTypedField<EJson::Null>(TEXT("winner"))));
 			ASSERT_THAT(IsTrue(Body->GetNumberField(TEXT("durationSeconds")) == 12.5));
@@ -250,6 +252,149 @@ namespace VeyraServicesTests
 			ASSERT_THAT(IsTrue(Body.IsValid()));
 			ASSERT_THAT(AreEqual(Body->GetStringField(TEXT("endReason")), FString(TEXT("host_ended"))));
 			ASSERT_THAT(IsTrue(Body->HasTypedField<EJson::Null>(TEXT("winner"))));
+		}
+	};
+
+	// Veyra.Services.ResultContract.*: the result body the match server sends is the one the backend's
+	// test reads (Backend/internal/httpapi/result_contract_test.go), and what the backend returns of
+	// it reads back to the same statistics (ADR-017 §5).
+	TEST_CLASS(ResultContract, "Veyra.Services")
+	{
+		/** A fixed result: two rostered players and a bot, every statistic set, each to its own value. */
+		static FVeyraMatchResult ContractResult()
+		{
+			FVeyraMatchResult Result;
+			Result.MatchId = ExampleId;
+			Result.EndReason = EVeyraMatchEndReason::DeveloperRequest;
+			Result.DurationSeconds = 1510.5;
+			Result.Participants = { { TEXT("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"), true, true }, { TEXT("bbbbbbbb-cccc-4ddd-8eee-ffffffffffff"), true, false } };
+			const auto Line = [](EVeyraTeam Side, const TCHAR* Name, const TCHAR* AccountId, const TCHAR* Vanguard, int32 Seed) {
+				FVeyraPlayerResult Player;
+				Player.Side = Side;
+				Player.DisplayName = Name;
+				Player.AccountId = AccountId;
+				Player.VanguardId = FVeyraContentId::FromText(Vanguard).GetValue();
+				FVeyraPlayerStatistics& S = Player.Statistics;
+				S.Kills = Seed + 1;
+				S.Deaths = Seed + 2;
+				S.Assists = Seed + 3;
+				S.Level = Seed + 4;
+				S.MinionKills = Seed + 5;
+				S.JungleKills = Seed + 6;
+				S.WellsSecured = Seed + 7;
+				S.WellFinalHits = Seed + 8;
+				S.WardsPlaced = Seed + 9;
+				S.WardsDestroyed = Seed + 10;
+				S.VanguardDamage = Seed + 1100.5;
+				S.DamageDealt.Physical = Seed + 9000.25;
+				S.DamageDealt.Magic = Seed + 1200.5;
+				S.DamageDealt.TrueDamage = Seed + 300.75;
+				S.DamageTaken.Physical = Seed + 4000.5;
+				S.DamageTaken.Magic = Seed + 2500.25;
+				S.DamageTaken.TrueDamage = Seed + 150.5;
+				S.DamageShielded = Seed + 320.5;
+				S.SelfHealing = Seed + 410.25;
+				S.TeammateHealing = Seed + 95.5;
+				S.CrowdControl.Stun = Seed + 2.5;
+				S.CrowdControl.Slow = Seed + 6.25;
+				S.CrowdControl.Total = Seed + 7.5;
+				S.GoldBySource.Starting = Seed + 500.0;
+				S.GoldBySource.Kills = Seed + 900.0;
+				S.GoldBySource.Assists = Seed + 250.5;
+				S.GoldBySource.Minions = Seed + 3900.25;
+				S.GoldBySource.Jungle = Seed + 480.0;
+				S.GoldBySource.Objectives = Seed + 400.0;
+				S.GoldBySource.Wards = Seed + 30.0;
+				S.GoldBySource.Passive = Seed + 1670.5;
+				S.GoldEarned = S.GoldBySource.Total();
+				S.TowerDamage = Seed + 2400.5;
+				S.WellDamage = Seed + 800.25;
+				S.Items = { FVeyraContentId::FromText(TEXT("timing_coil")).GetValue(), FVeyraContentId(), FVeyraContentId::FromText(TEXT("basic_boots")).GetValue(),
+					FVeyraContentId(), FVeyraContentId(), FVeyraContentId() };
+				S.FluxSpells = { FVeyraContentId::FromText(TEXT("blink")).GetValue(), FVeyraContentId::FromText(TEXT("mend")).GetValue() };
+				return Player;
+			};
+			Result.Players = { Line(EVeyraTeam::A, TEXT("DevOne"), TEXT("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"), TEXT("cairn"), 0),
+				Line(EVeyraTeam::B, TEXT("DevTwo"), TEXT("bbbbbbbb-cccc-4ddd-8eee-ffffffffffff"), TEXT("oriel"), 10),
+				Line(EVeyraTeam::B, TEXT("Bot 1"), TEXT(""), TEXT("bryn"), 20) };
+			Result.Wells = { { 0, EVeyraTeam::A, 612.5 }, { 1, EVeyraTeam::B, 905.25 } };
+			return Result;
+		}
+
+#if WITH_EDITOR
+		// The example is a file in the project folder, which exists only in editor builds.
+		TEST_METHOD(TheBodyIsTheBackendsExample)
+		{
+			const FString Body = VeyraBackendProtocol::BuildResultBody(ContractResult());
+			const FString ExamplePath = FPaths::Combine(FPaths::ProjectDir(), TEXT("Source/VeyraDeveloper/TestData/MatchResult.example.json"));
+			// After an intended change to the body, rewrite the example with VEYRA_UPDATE_CONTRACT=1.
+			if (FPlatformMisc::GetEnvironmentVariable(TEXT("VEYRA_UPDATE_CONTRACT")) == TEXT("1"))
+			{
+				ASSERT_THAT(IsTrue(FFileHelper::SaveStringToFile(Body + TEXT("\n"), *ExamplePath, FFileHelper::EEncodingOptions::ForceUTF8WithoutBOM), ExamplePath));
+				return;
+			}
+			FString Example;
+			ASSERT_THAT(IsTrue(FFileHelper::LoadFileToString(Example, *ExamplePath), ExamplePath));
+			Example.TrimEndInline();
+			ASSERT_THAT(AreEqual(Example, Body, TEXT("the result body changed: rewrite the example with VEYRA_UPDATE_CONTRACT=1 and run the backend's contract test")));
+		}
+#endif
+
+		TEST_METHOD(WhatTheBackendReturnsReadsBackTheSame)
+		{
+			const FVeyraMatchResult Result = ContractResult();
+			// The backend returns each line without its account and with whether it is the viewer's.
+			TSharedPtr<FJsonObject> Body;
+			ASSERT_THAT(IsTrue(FJsonSerializer::Deserialize(TJsonReaderFactory<>::Create(VeyraBackendProtocol::BuildResultBody(Result)), Body) && Body.IsValid()));
+			TArray<TSharedPtr<FJsonValue>> Players = Body->GetArrayField(TEXT("players"));
+			for (int32 Index = 0; Index < Players.Num(); ++Index)
+			{
+				const TSharedPtr<FJsonObject> Line = Players[Index]->AsObject();
+				Line->RemoveField(TEXT("accountId"));
+				Line->SetBoolField(TEXT("you"), Index == 1);
+			}
+			const TSharedRef<FJsonObject> Verified = MakeShared<FJsonObject>();
+			Verified->SetStringField(TEXT("endReason"), TEXT("developer_request"));
+			Verified->SetField(TEXT("winner"), MakeShared<FJsonValueNull>());
+			Verified->SetNumberField(TEXT("durationSeconds"), Result.DurationSeconds);
+			Verified->SetBoolField(TEXT("joined"), true);
+			Verified->SetBoolField(TEXT("connectedAtEnd"), true);
+			Verified->SetArrayField(TEXT("players"), Players);
+			// The backend returns the captures as the server sent them.
+			Verified->SetArrayField(TEXT("wells"), Body->GetArrayField(TEXT("wells")));
+			const TSharedRef<FJsonObject> Match = MakeShared<FJsonObject>();
+			Match->SetStringField(TEXT("id"), ExampleId);
+			Match->SetStringField(TEXT("mode"), TEXT("casual_select"));
+			Match->SetStringField(TEXT("rules"), TEXT("standard"));
+			Match->SetStringField(TEXT("state"), TEXT("ended"));
+			Match->SetStringField(TEXT("side"), TEXT("B"));
+			Match->SetStringField(TEXT("vanguardId"), TEXT("oriel"));
+			Match->SetField(TEXT("failureReason"), MakeShared<FJsonValueNull>());
+			Match->SetObjectField(TEXT("result"), Verified);
+			const TSharedRef<FJsonObject> Root = MakeShared<FJsonObject>();
+			Root->SetObjectField(TEXT("match"), Match);
+			FString Reply;
+			FJsonSerializer::Serialize(Root, TJsonWriterFactory<>::Create(&Reply));
+
+			VeyraBackendProtocol::FMatchOutcome Read;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseMatchOutcome(Reply, Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read.bHasScoreboard && Read.Players.Num() == Result.Players.Num()));
+			for (int32 Index = 0; Index < Read.Players.Num(); ++Index)
+			{
+				const VeyraBackendProtocol::FPlayerOutcome& Line = Read.Players[Index];
+				const FVeyraPlayerResult& Sent = Result.Players[Index];
+				ASSERT_THAT(IsTrue(Line.Name == Sent.DisplayName && Line.VanguardId == Sent.VanguardId.ToString() && Line.bYou == (Index == 1)));
+				ASSERT_THAT(IsTrue(Line.Side == (Sent.Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"))));
+				ASSERT_THAT(IsTrue(FVeyraPlayerStatistics::StaticStruct()->CompareScriptStruct(&Line.Statistics, &Sent.Statistics, PPF_None),
+					TEXT("every statistic, item and spell reads back as it was written")));
+			}
+			ASSERT_THAT(AreEqual(Read.Wells.Num(), Result.Wells.Num()));
+			for (int32 Index = 0; Index < Read.Wells.Num(); ++Index)
+			{
+				ASSERT_THAT(IsTrue(Read.Wells[Index].Site == Result.Wells[Index].Site && Read.Wells[Index].AtSeconds == Result.Wells[Index].AtSeconds
+					&& Read.Wells[Index].Side == (Result.Wells[Index].Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"))));
+			}
 		}
 	};
 

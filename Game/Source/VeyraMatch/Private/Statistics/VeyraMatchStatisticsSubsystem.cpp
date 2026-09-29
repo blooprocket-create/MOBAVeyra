@@ -13,6 +13,7 @@
 #include "Structures/VeyraStructure.h"
 #include "Teams/VeyraTeam.h"
 #include "Units/VeyraUnit.h"
+#include "VeyraGameState.h"
 #include "VeyraMatchLog.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVisionSubsystem.h"
@@ -120,11 +121,16 @@ void UVeyraMatchStatisticsSubsystem::Stop()
 			Gold->OnGoldGranted.Remove(Record.GoldHandle);
 		}
 		// Game/Scripts/Smoke.ps1 reads these lines.
-		const TOptional<FVeyraPlayerStatistics> Final = Record.Participant.IsValid() ? Snapshot(*Record.Participant) : TOptional<FVeyraPlayerStatistics>();
-		UE_CLOG(Final.IsSet(), LogVeyraMatch, Display,
+		const TOptional<FVeyraPlayerResult> Line = LineOf(Record);
+		if (!Line.IsSet())
+		{
+			continue;
+		}
+		const FVeyraPlayerStatistics& Final = Line->Statistics;
+		UE_LOG(LogVeyraMatch, Display,
 			TEXT("Statistics for %s: %d/%d/%d, level %d, %d minion and %d jungle last hits, %.0f damage to Vanguards, %.0f to towers, %.0f Gold earned, %d ward(s) placed."),
-			*Record.Participant->GetPlayerName(), Final->Kills, Final->Deaths, Final->Assists, Final->Level, Final->MinionKills, Final->JungleKills,
-			Final->VanguardDamage, Final->TowerDamage, Final->GoldEarned, Final->WardsPlaced);
+			*Line->DisplayName, Final.Kills, Final.Deaths, Final.Assists, Final.Level, Final.MinionKills, Final.JungleKills, Final.VanguardDamage, Final.TowerDamage,
+			Final.GoldEarned, Final.WardsPlaced);
 	}
 }
 
@@ -136,6 +142,7 @@ void UVeyraMatchStatisticsSubsystem::AddParticipant(AVeyraPlayerState& Participa
 	}
 	FRecord& Record = Records.AddDefaulted_GetRef();
 	Record.Participant = &Participant;
+	Record.PlayerId = Participant.GetPlayerId();
 	Record.Unit = Participant.GetAbilitySystemComponent();
 	if (UVeyraGoldComponent* Gold = Participant.FindComponentByClass<UVeyraGoldComponent>())
 	{
@@ -195,6 +202,56 @@ TOptional<FVeyraPlayerStatistics> UVeyraMatchStatisticsSubsystem::Snapshot(const
 		Statistics.FluxSpells.Add(Entry ? Entry->Ability : FVeyraContentId());
 	}
 	return Statistics;
+}
+
+void UVeyraMatchStatisticsSubsystem::NoteLeaving(const AVeyraPlayerState& Participant)
+{
+	FRecord* Record = Find(&Participant);
+	if (!Record)
+	{
+		return;
+	}
+	Record->Left = LineOf(*Record);
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s left; their statistics as they left stay on the scoreboard."), *Participant.GetPlayerName());
+}
+
+TOptional<FVeyraPlayerResult> UVeyraMatchStatisticsSubsystem::LineOf(const FRecord& Record) const
+{
+	const AVeyraPlayerState* Participant = Record.Participant.Get();
+	if (!Participant)
+	{
+		return Record.Left;
+	}
+	FVeyraPlayerResult Line;
+	Line.Side = Participant->GetVeyraTeam();
+	Line.DisplayName = Participant->GetPlayerName();
+	Line.AccountId = Participant->GetAccountId();
+	Line.VanguardId = Participant->GetVanguardId();
+	Line.Statistics = Snapshot(*Participant).Get(FVeyraPlayerStatistics());
+	return Line;
+}
+
+TArray<FVeyraPlayerResult> UVeyraMatchStatisticsSubsystem::BuildScoreboard() const
+{
+	TArray<TPair<int32, FVeyraPlayerResult>> Lines;
+	for (const FRecord& Record : Records)
+	{
+		// Every participant given a side, bots too: the replay recorder's spectator has none.
+		TOptional<FVeyraPlayerResult> Line = LineOf(Record);
+		if (Line.IsSet() && Line->Side != EVeyraTeam::None)
+		{
+			Lines.Emplace(Record.PlayerId, MoveTemp(Line.GetValue()));
+		}
+	}
+	Lines.StableSort([](const TPair<int32, FVeyraPlayerResult>& A, const TPair<int32, FVeyraPlayerResult>& B) {
+		return A.Value.Side != B.Value.Side ? A.Value.Side == EVeyraTeam::A : A.Key < B.Key;
+	});
+	TArray<FVeyraPlayerResult> Scoreboard;
+	for (TPair<int32, FVeyraPlayerResult>& Line : Lines)
+	{
+		Scoreboard.Add(MoveTemp(Line.Value));
+	}
+	return Scoreboard;
 }
 
 void UVeyraMatchStatisticsSubsystem::Deinitialize()
@@ -375,6 +432,9 @@ void UVeyraMatchStatisticsSubsystem::OnWardPlaced(const AVeyraWard& /*Ward*/, AP
 
 void UVeyraMatchStatisticsSubsystem::OnFluxWellSecured(const FVeyraFluxWellSecuredEvent& Event)
 {
+	// Which side secured it and when, once per capture, for the team summary (UX Bible 53).
+	const AVeyraGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AVeyraGameState>() : nullptr;
+	WellCaptures.Add({ Event.Site, Event.Team, GameState ? GameState->GetMatchClockSeconds() : 0.0 });
 	// Secured with participation: each Vanguard of the securing side at the Well (§5).
 	for (const TWeakObjectPtr<UAbilitySystemComponent>& Capturer : Event.Capturers)
 	{

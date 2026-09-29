@@ -8,6 +8,7 @@ import (
 	"errors"
 	"math"
 	"regexp"
+	"slices"
 	"sort"
 	"time"
 )
@@ -152,6 +153,11 @@ type Result struct {
 	// DurationSeconds is the match clock, which excludes pauses.
 	DurationSeconds float64
 	Participants    []ParticipantResult
+	// Players is the scoreboard: every player's statistics and final
+	// equipment, humans and bots (ADR-017 §5). Nil when the server sent none.
+	Players []PlayerResult
+	// Wells are the Flux Wells secured, in order; nil when the server sent none.
+	Wells []WellCapture
 }
 
 // Server is the match server a match was given.
@@ -330,6 +336,8 @@ func (m *Match) End(r Result, now time.Time) error {
 	}
 	stored := r
 	stored.Participants = sortedResults(r.Participants)
+	stored.Players = copyPlayers(r.Players)
+	stored.Wells = slices.Clone(r.Wells)
 	m.State = Ended
 	m.EndedAt = now
 	m.JoinKey = nil
@@ -389,7 +397,10 @@ func (m *Match) validateResult(r Result) error {
 			return ErrInvalidResult
 		}
 	}
-	return nil
+	if err := validateWells(r.Wells, r.DurationSeconds); err != nil {
+		return err
+	}
+	return m.validatePlayers(r.Players)
 }
 
 func sortedResults(in []ParticipantResult) []ParticipantResult {
@@ -411,5 +422,5 @@ func sameResult(a, b Result) bool {
 			return false
 		}
 	}
-	return true
+	return samePlayers(a.Players, b.Players) && (a.Wells == nil) == (b.Wells == nil) && slices.Equal(a.Wells, b.Wells)
 }

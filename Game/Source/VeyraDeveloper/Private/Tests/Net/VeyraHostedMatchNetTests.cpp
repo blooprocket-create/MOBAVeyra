@@ -195,6 +195,15 @@ namespace VeyraNetTests
 					{
 						ASSERT_THAT(IsTrue(Participant.bJoined && Participant.bConnectedAtEnd));
 					}
+					// The scoreboard: each rostered player, with the side and Vanguard the roster gave it,
+					// recorded from its starting Gold (ADR-017 §5).
+					ASSERT_THAT(AreEqual(Result->Players.Num(), MatchClientCount));
+					for (const FVeyraAssignedParticipant& Rostered : Assignment->Assignment.Participants)
+					{
+						const FVeyraPlayerResult* Player = Result->Players.FindByPredicate([&Rostered](const FVeyraPlayerResult& Line) { return Line.AccountId == Rostered.AccountId; });
+						ASSERT_THAT(IsTrue(Player && Player->Side == Rostered.Side && Player->VanguardId == Rostered.VanguardId && Player->DisplayName == Rostered.DisplayName));
+						ASSERT_THAT(IsTrue(Player->Statistics.Level >= 1 && Player->Statistics.GoldBySource.Starting > 0.0 && Player->Statistics.FluxSpells.Num() == 2));
+					}
 					ASSERT_THAT(IsTrue(GameModeOf(State.World)->CheckOrdersAllowed() == EVeyraOrderRejection::WrongPhase));
 				});
 		}
@@ -293,6 +302,15 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(Result->EndReason == EVeyraMatchEndReason::HostEnded));
 					ASSERT_THAT(IsTrue(Result->Winner == EVeyraTeam::None));
 					ASSERT_THAT(AreEqual(Result->Participants.Num(), MatchClientCount));
+					// Its scoreboard has the bots too, with no account, side A first (ADR-017 §5).
+					ASSERT_THAT(AreEqual(Result->Players.Num(), MatchClientCount + PracticeBots.Num()));
+					ASSERT_THAT(IsTrue(Result->Players[0].Side == EVeyraTeam::A));
+					for (const FVeyraAssignedBot& Bot : PracticeBots)
+					{
+						ASSERT_THAT(IsTrue(Result->Players.ContainsByPredicate([&Bot](const FVeyraPlayerResult& Line) {
+							return Line.AccountId.IsEmpty() && Line.Side == Bot.Side && Line.VanguardId == Bot.VanguardId;
+						})));
+					}
 				});
 		}
 

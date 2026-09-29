@@ -3,6 +3,7 @@ package match
 import (
 	"bytes"
 	"context"
+	"slices"
 	"sort"
 	"sync"
 )
@@ -28,6 +29,8 @@ func copyMatch(m Match) Match {
 	if m.Result != nil {
 		r := *m.Result
 		r.Participants = append([]ParticipantResult(nil), r.Participants...)
+		r.Players = copyPlayers(r.Players)
+		r.Wells = slices.Clone(r.Wells)
 		m.Result = &r
 	}
 	return m
@@ -116,6 +119,40 @@ func (s *MemStore) LastFluxSpells(_ context.Context, accountID, vanguardID strin
 		}
 	}
 	return spells, nil
+}
+
+func (s *MemStore) MatchHistory(_ context.Context, accountID string, filter HistoryFilter, after *HistoryCursor, limit int) ([]HistoryEntry, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []HistoryEntry
+	for _, m := range s.matches {
+		if e, ok := historyEntryFor(m, accountID, filter); ok && (after == nil || after.before(e)) {
+			out = append(out, e)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if !out[i].EndedAt.Equal(out[j].EndedAt) {
+			return out[i].EndedAt.After(out[j].EndedAt)
+		}
+		return out[i].MatchID > out[j].MatchID
+	})
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
+func (s *MemStore) HistoryModes(_ context.Context, accountID string) ([]string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []string
+	for _, m := range s.matches {
+		if e, ok := historyEntryFor(m, accountID, HistoryFilter{}); ok && !slices.Contains(out, e.Mode) {
+			out = append(out, e.Mode)
+		}
+	}
+	slices.Sort(out)
+	return out, nil
 }
 
 func (s *MemStore) MatchesNeedingAttention(_ context.Context) ([]Match, error) {

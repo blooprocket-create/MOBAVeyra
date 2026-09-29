@@ -4,6 +4,7 @@
 
 #include "Content/VeyraContentId.h"
 #include "CoreMinimal.h"
+#include "Statistics/VeyraMatchStatistics.h"
 #include "Teams/VeyraTeam.h"
 #include "VeyraMatchTypes.h"
 
@@ -82,6 +83,18 @@ struct FVeyraParticipantResult
 	bool bConnectedAtEnd = false;
 };
 
+/** One player's line on the result's scoreboard, a human's or a bot's (ADR-017 §5). */
+struct FVeyraPlayerResult
+{
+	EVeyraTeam Side = EVeyraTeam::None;
+	FString DisplayName;
+	/** The rostered account; empty for a bot. */
+	FString AccountId;
+	FVeyraContentId VanguardId;
+	/** Its statistics and final equipment, as the match recorded them. */
+	FVeyraPlayerStatistics Statistics;
+};
+
 /** How a match ended, as its server reports it (ADR-007 §7). */
 struct FVeyraMatchResult
 {
@@ -93,4 +106,8 @@ struct FVeyraMatchResult
 	/** The match clock, which excludes pauses; 0 if the match never went live. */
 	double DurationSeconds = 0.0;
 	TArray<FVeyraParticipantResult> Participants;
+	/** The scoreboard: every player who took part, side A first, in seat order (ADR-017 §5). */
+	TArray<FVeyraPlayerResult> Players;
+	/** Every Flux Well secured, in order (Match Statistics Bible §5). */
+	TArray<FVeyraWellCapture> Wells;
 };

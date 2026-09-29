@@ -5,6 +5,7 @@
 #include "Containers/Array.h"
 #include "Containers/StringView.h"
 #include "Containers/UnrealString.h"
+#include "Misc/DateTime.h"
 #include "Join/VeyraMatchAssignment.h"
 #include "Misc/Optional.h"
 
@@ -147,6 +148,29 @@ namespace VeyraBackendProtocol
 	 */
 	VEYRASERVICES_API bool ParseSelect(const FString& Body, TOptional<FSelect>& OutSelect, FString& OutProblem);
 
+	/** One player's line on a verified result's scoreboard (ADR-017 §5), with no account. */
+	struct FPlayerOutcome
+	{
+		/** "A" or "B". */
+		FString Side;
+		FString Name;
+		FString VanguardId;
+		/** Whether this is the player who asked. */
+		bool bYou = false;
+		/** The recorded statistics, with the final items and Flux Spells. */
+		FVeyraPlayerStatistics Statistics;
+	};
+
+	/** A Flux Well secured, on a verified result (Match Statistics Bible §5). */
+	struct FWellOutcome
+	{
+		int32 Site = 0;
+		/** "A" or "B". */
+		FString Side;
+		/** On the match clock. */
+		double AtSeconds = 0.0;
+	};
+
 	/** How the player's match went, as GET /v1/me/matches/{id} reports it (ADR-010 §3). */
 	struct FMatchOutcome
 	{
@@ -169,6 +193,12 @@ namespace VeyraBackendProtocol
 		double DurationSeconds = 0.0;
 		bool bJoined = false;
 		bool bConnectedAtEnd = false;
+		/** Whether the result carries a scoreboard: a result from an older server, or one nobody played, has none. */
+		bool bHasScoreboard = false;
+		/** The scoreboard's lines, as the server reported them: side A first, in seat order. */
+		TArray<FPlayerOutcome> Players;
+		/** Every Flux Well secured, in order; empty when none was, or the server sent none. */
+		TArray<FWellOutcome> Wells;
 
 		/** Whether the match still holds its players: allocating or ready. */
 		VEYRASERVICES_API bool IsActive() const;
@@ -176,6 +206,49 @@ namespace VeyraBackendProtocol
 
 	/** Reads the answer to GET /v1/me/matches/{id}. False, with the problem, if it is not one. */
 	VEYRASERVICES_API bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProblem);
+
+	/**
+	 * What Match History lists (Pre-Game Client UX Bible 64): each empty field matches every match. Outcome
+	 * is "win", "loss" or "no_contest".
+	 */
+	struct FHistoryFilter
+	{
+		FString VanguardId;
+		FString Mode;
+		FString Outcome;
+
+		bool operator==(const FHistoryFilter&) const = default;
+	};
+
+	/** One completed match as Match History lists it (UX-51). */
+	struct FHistoryEntry
+	{
+		FString MatchId;
+		FString Mode;
+		FString Rules;
+		FDateTime EndedAt;
+		double DurationSeconds = 0.0;
+		FString Side;
+		/** Empty for a match from before matches carried Vanguards. */
+		FString VanguardId;
+		/** "win", "loss" or "no_contest": the player's own. */
+		FString Outcome;
+	};
+
+	/** A page of Match History, newest first, and the cursor of the next; Next is empty on the last page. */
+	struct FHistoryPage
+	{
+		TArray<FHistoryEntry> Entries;
+		FString Next;
+		/** Every mode the player has a completed match in, whatever the filter: the mode filter's choices (UX-67). */
+		TArray<FString> Modes;
+	};
+
+	/** GET /v1/me/matches with Filter, from Cursor (empty for the first page). */
+	VEYRASERVICES_API FString HistoryPath(const FHistoryFilter& Filter, const FString& Cursor);
+
+	/** Reads the answer to GET /v1/me/matches. False, with the problem, if it is not one. */
+	VEYRASERVICES_API bool ParseHistoryPage(const FString& Body, FHistoryPage& Out, FString& OutProblem);
 
 	/** A mode the Play screen offers, as GET /v1/modes reports it (ADR-010 §10). */
 	struct FModeInfo

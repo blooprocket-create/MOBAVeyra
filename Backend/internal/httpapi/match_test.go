@@ -14,7 +14,17 @@ import (
 
 func newMatchTestServer(t *testing.T, devMatches bool) (*httptest.Server, *match.FakeAllocator) {
 	t.Helper()
+	return newMatchTestServerWithLimit(t, devMatches, testBodyLimit)
+}
+
+// scoreboardBodyLimit is the production request limit (config/local.json),
+// which a result with a scoreboard needs.
+const scoreboardBodyLimit = 64 << 10
+
+func newMatchTestServerWithLimit(t *testing.T, devMatches bool, bodyLimit int64) (*httptest.Server, *match.FakeAllocator) {
+	t.Helper()
 	d := newTestDeps(t, true)
+	d.BodyLimitBytes = bodyLimit
 	alloc := match.NewFakeAllocator()
 	accounts := match.AccountsFunc(func(ctx context.Context, ids []string) (map[string]string, error) {
 		found, err := d.Identity.Accounts(ctx, ids)
@@ -38,6 +48,7 @@ func newMatchTestServer(t *testing.T, devMatches bool) (*httptest.Server, *match
 		HostPortMax:       7789,
 		PublicHost:        "127.0.0.1",
 		BackendURL:        "http://backend:8080",
+		HistoryPageSize:   2,
 	}, time.Now)
 	d.DevMatches = devMatches
 	return serve(t, d), alloc
@@ -268,5 +279,189 @@ func TestMatchRoutesRejectBadRequests(t *testing.T) {
 	}
 	if status, body := call(t, srv, "POST", "/v1/server/matches/"+matchID+"/result", "vms_wrong", early); status != http.StatusUnauthorized {
 		t.Fatalf("a wrong credential: %d %v", status, body)
+	}
+}
+
+// scoreboardLine is one line of a reported scoreboard, as a match server sends it.
+func scoreboardLine(side, name string, accountID any, vanguardID string) map[string]any {
+	return map[string]any{
+		"side": side, "name": name, "accountId": accountID, "vanguardId": vanguardID,
+		"statistics": map[string]any{
+			"kills": 3, "deaths": 1, "assists": 2, "level": 11, "vanguardDamage": 5120.5,
+			"damageDealt":    map[string]any{"physical": 14000.25, "magic": 300, "true": 45},
+			"damageTaken":    map[string]any{"physical": 6000, "magic": 2100, "true": 0},
+			"damageShielded": 150, "selfHealing": 420, "teammateHealing": 0,
+			"crowdControl": map[string]any{"stun": 2.5, "slow": 4, "total": 5},
+			"goldEarned":   7650,
+			"goldBySource": map[string]any{"starting": 500, "kills": 900, "assists": 250, "minions": 3900, "jungle": 0, "objectives": 400, "wards": 30, "passive": 1670},
+			"minionKills":  160, "jungleKills": 0, "towerDamage": 2400, "wellsSecured": 1, "wellDamage": 800, "wellFinalHits": 0, "wardsPlaced": 4, "wardsDestroyed": 1,
+		},
+		"items":      []string{"timing_coil", "basic_boots", "", "", "", ""},
+		"fluxSpells": []string{"blink", "mend"},
+	}
+}
+
+func TestAResultsScoreboardOverHTTP(t *testing.T) {
+	srv, alloc := newMatchTestServerWithLimit(t, true, scoreboardBodyLimit)
+	one, oneID := gameSession(t, srv, "DevOne")
+	two, twoID := gameSession(t, srv, "DevTwo")
+	_, created := call(t, srv, "POST", "/v1/dev/matches", "", map[string]any{
+		"mode":         "casual_select",
+		"participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}, {"accountId": twoID, "side": "B", "vanguardId": "oriel"}},
+	})
+	matchID := created["match"].(map[string]any)["id"].(string)
+	cred := serverCredential(t, alloc, matchID)
+	call(t, srv, "POST", "/v1/server/matches/"+matchID+"/ready", cred, map[string]any{})
+
+	result := map[string]any{
+		"endReason": "developer_request", "winner": nil, "durationSeconds": 1510.5,
+		"participants": []map[string]any{
+			{"accountId": oneID, "joined": true, "connectedAtEnd": true},
+			{"accountId": twoID, "joined": true, "connectedAtEnd": true},
+		},
+	}
+	// A line the domain cannot hold is refused before anything is recorded.
+	oneSpell := scoreboardLine("A", "DevOne", oneID, "cairn")
+	oneSpell["fluxSpells"] = []string{"blink"}
+	result["players"] = []map[string]any{oneSpell}
+	if status, body := call(t, srv, "POST", "/v1/server/matches/"+matchID+"/result", cred, result); status != http.StatusBadRequest || body["error"] != "invalid_result" {
+		t.Fatalf("one spell slot: %d %v", status, body)
+	}
+	stranger := scoreboardLine("A", "DevOne", "00000000-0000-4000-8000-000000000000", "cairn")
+	result["players"] = []map[string]any{stranger}
+	if status, body := call(t, srv, "POST", "/v1/server/matches/"+matchID+"/result", cred, result); status != http.StatusBadRequest || body["error"] != "invalid_result" {
+		t.Fatalf("a stranger's line: %d %v", status, body)
+	}
+	extra := scoreboardLine("A", "DevOne", oneID, "cairn")
+	extra["statistics"].(map[string]any)["visionScore"] = 12
+	result["players"] = []map[string]any{extra}
+	if status, body := call(t, srv, "POST", "/v1/server/matches/"+matchID+"/result", cred, result); status != http.StatusBadRequest {
+		t.Fatalf("an unknown statistic: %d %v", status, body)
+	}
+
+	result["players"] = []map[string]any{scoreboardLine("A", "DevOne", oneID, "cairn"), scoreboardLine("B", "DevTwo", twoID, "oriel")}
+	result["wells"] = []map[string]any{{"site": 0, "side": "B", "atSeconds": 700.5}}
+	if status, body := call(t, srv, "POST", "/v1/server/matches/"+matchID+"/result", cred, result); status != http.StatusOK {
+		t.Fatalf("result: %d %v", status, body)
+	}
+
+	for _, viewer := range []struct {
+		token string
+		you   int
+	}{{one, 0}, {two, 1}} {
+		status, view := call(t, srv, "GET", "/v1/me/matches/"+matchID, viewer.token, nil)
+		verified, _ := view["match"].(map[string]any)["result"].(map[string]any)
+		players, _ := verified["players"].([]any)
+		if status != http.StatusOK || len(players) != 2 {
+			t.Fatalf("the verified scoreboard: %d %v", status, view)
+		}
+		for i, line := range players {
+			p := line.(map[string]any)
+			if p["you"] != (i == viewer.you) {
+				t.Fatalf("line %d for viewer %d: %v", i, viewer.you, p)
+			}
+			if _, ok := p["accountId"]; ok {
+				t.Fatalf("a participant sees no account IDs: %v", p)
+			}
+		}
+		first := players[0].(map[string]any)
+		stats := first["statistics"].(map[string]any)
+		if first["name"] != "DevOne" || first["vanguardId"] != "cairn" || stats["kills"] != float64(3) || stats["goldBySource"].(map[string]any)["passive"] != float64(1670) ||
+			first["items"].([]any)[1] != "basic_boots" || first["fluxSpells"].([]any)[1] != "mend" {
+			t.Fatalf("the scoreboard as recorded: %v", first)
+		}
+		wells, _ := verified["wells"].([]any)
+		if len(wells) != 1 || wells[0].(map[string]any)["side"] != "B" || wells[0].(map[string]any)["atSeconds"] != 700.5 {
+			t.Fatalf("the Flux Wells secured: %v", verified["wells"])
+		}
+	}
+}
+
+func TestAResultWithoutAScoreboardShowsNone(t *testing.T) {
+	srv, alloc := newMatchTestServer(t, true)
+	one, oneID := gameSession(t, srv, "DevOne")
+	_, created := call(t, srv, "POST", "/v1/dev/matches", "", map[string]any{
+		"mode": "casual_select", "participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}},
+	})
+	matchID := created["match"].(map[string]any)["id"].(string)
+	cred := serverCredential(t, alloc, matchID)
+	call(t, srv, "POST", "/v1/server/matches/"+matchID+"/ready", cred, map[string]any{})
+	result := map[string]any{"endReason": "abandoned", "winner": nil, "durationSeconds": 0.0,
+		"participants": []map[string]any{{"accountId": oneID, "joined": false, "connectedAtEnd": false}}}
+	if status, body := call(t, srv, "POST", "/v1/server/matches/"+matchID+"/result", cred, result); status != http.StatusOK {
+		t.Fatalf("result: %d %v", status, body)
+	}
+	_, view := call(t, srv, "GET", "/v1/me/matches/"+matchID, one, nil)
+	verified := view["match"].(map[string]any)["result"].(map[string]any)
+	if players, ok := verified["players"]; !ok || players != nil {
+		t.Fatalf("no scoreboard is null: %v", verified)
+	}
+	if wells, ok := verified["wells"]; !ok || wells != nil {
+		t.Fatalf("no captures sent is null: %v", verified)
+	}
+}
+
+func TestMatchHistoryOverHTTP(t *testing.T) {
+	srv, alloc := newMatchTestServer(t, true)
+	one, oneID := gameSession(t, srv, "DevOne")
+	_, twoID := gameSession(t, srv, "DevTwo")
+	play := func(winner any) string {
+		t.Helper()
+		_, created := call(t, srv, "POST", "/v1/dev/matches", "", map[string]any{
+			"mode":         "casual_select",
+			"participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}, {"accountId": twoID, "side": "B", "vanguardId": "oriel"}},
+		})
+		matchID := created["match"].(map[string]any)["id"].(string)
+		cred := serverCredential(t, alloc, matchID)
+		call(t, srv, "POST", "/v1/server/matches/"+matchID+"/ready", cred, map[string]any{})
+		reason := "developer_request"
+		if winner != nil {
+			reason = "prime_well_destroyed"
+		}
+		result := map[string]any{"endReason": reason, "winner": winner, "durationSeconds": 600.5,
+			"participants": []map[string]any{{"accountId": oneID, "joined": true, "connectedAtEnd": true}, {"accountId": twoID, "joined": true, "connectedAtEnd": true}}}
+		if status, body := call(t, srv, "POST", "/v1/server/matches/"+matchID+"/result", cred, result); status != http.StatusOK {
+			t.Fatalf("result: %d %v", status, body)
+		}
+		return matchID
+	}
+	first := play(nil)
+	time.Sleep(2 * time.Millisecond)
+	second := play("B")
+	time.Sleep(2 * time.Millisecond)
+	third := play("A")
+
+	status, body := call(t, srv, "GET", "/v1/me/matches", one, nil)
+	matches, _ := body["matches"].([]any)
+	next, _ := body["next"].(string)
+	if status != http.StatusOK || len(matches) != 2 || next == "" {
+		t.Fatalf("the first page: %d %v", status, body)
+	}
+	newest := matches[0].(map[string]any)
+	if newest["id"] != third || newest["outcome"] != "win" || newest["mode"] != "casual_select" || newest["vanguardId"] != "cairn" || newest["side"] != "A" ||
+		newest["durationSeconds"] != 600.5 || newest["endedAt"] == nil || matches[1].(map[string]any)["outcome"] != "loss" {
+		t.Fatalf("newest first, with the player's own outcome: %v", matches)
+	}
+	status, body = call(t, srv, "GET", "/v1/me/matches?cursor="+next, one, nil)
+	matches, _ = body["matches"].([]any)
+	if status != http.StatusOK || len(matches) != 1 || matches[0].(map[string]any)["id"] != first || matches[0].(map[string]any)["outcome"] != "no_contest" || body["next"] != nil {
+		t.Fatalf("Load More: %d %v", status, body)
+	}
+	status, body = call(t, srv, "GET", "/v1/me/matches?outcome=loss&vanguard=cairn&mode=casual_select", one, nil)
+	matches, _ = body["matches"].([]any)
+	if status != http.StatusOK || len(matches) != 1 || matches[0].(map[string]any)["id"] != second {
+		t.Fatalf("filtered: %d %v", status, body)
+	}
+	// The mode filter's choices cover every record, whatever the filter (UX-67).
+	if modes, _ := body["modes"].([]any); len(modes) != 1 || modes[0] != "casual_select" {
+		t.Fatalf("modes: %v", body["modes"])
+	}
+	for query, code := range map[string]string{"?outcome=draw": "invalid_filter", "?vanguard=Cairn": "invalid_filter", "?cursor=nope": "invalid_cursor"} {
+		if status, body := call(t, srv, "GET", "/v1/me/matches"+query, one, nil); status != http.StatusBadRequest || body["error"] != code {
+			t.Fatalf("%s: %d %v", query, status, body)
+		}
+	}
+	if status, _ := call(t, srv, "GET", "/v1/me/matches", "", nil); status != http.StatusUnauthorized {
+		t.Fatalf("without a session: want 401, got %d", status)
 	}
 }

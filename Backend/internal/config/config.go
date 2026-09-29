@@ -172,6 +172,10 @@ type Selection struct {
 	StartingTimeout time.Duration
 }
 
+// maxHistoryPageSize bounds a page of Match History, so one request stays
+// small whatever the configuration.
+const maxHistoryPageSize = 100
+
 // Matches configures match lifecycles (ADR-007 §8, §10).
 type Matches struct {
 	// DevCreate enables the development-only match-creation endpoint.
@@ -180,6 +184,9 @@ type Matches struct {
 	MaxDuration       time.Duration
 	ReapInterval      time.Duration
 	RemoveServerAfter time.Duration
+	// HistoryPageSize is how many matches a page of Match History holds
+	// (Pre-Game Client UX Bible 67).
+	HistoryPageSize int
 	// Maps are the maps match servers load (ADR-011 §12).
 	Maps Maps
 }
@@ -360,6 +367,7 @@ type fileConfig struct {
 		MaxDuration       *Duration `json:"maxDuration"`
 		ReapInterval      *Duration `json:"reapInterval"`
 		RemoveServerAfter *Duration `json:"removeServerAfter"`
+		HistoryPageSize   *int      `json:"historyPageSize"`
 		Maps              *struct {
 			Play        *string `json:"play"`
 			Development *string `json:"development"`
@@ -775,6 +783,14 @@ func Parse(raw []byte) (Config, error) {
 		c.Matches.MaxDuration = positive("matches.maxDuration", f.Matches.MaxDuration)
 		c.Matches.ReapInterval = positive("matches.reapInterval", f.Matches.ReapInterval)
 		c.Matches.RemoveServerAfter = positive("matches.removeServerAfter", f.Matches.RemoveServerAfter)
+		switch {
+		case f.Matches.HistoryPageSize == nil:
+			missing("matches.historyPageSize")
+		case *f.Matches.HistoryPageSize < 1 || *f.Matches.HistoryPageSize > maxHistoryPageSize:
+			problems = append(problems, fmt.Sprintf("matches.historyPageSize must be from 1 to %d", maxHistoryPageSize))
+		default:
+			c.Matches.HistoryPageSize = *f.Matches.HistoryPageSize
+		}
 		if f.Matches.Maps == nil {
 			missing("matches.maps")
 		} else {

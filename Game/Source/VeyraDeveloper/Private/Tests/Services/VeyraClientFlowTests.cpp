@@ -494,6 +494,42 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::CancelQueue)));
 		}
 
+		TEST_METHOD(MatchHistoryLoadsMoreFiltersAndOpensARecord)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ASSERT_THAT(IsTrue(Rig.Flow->LoadHistory({})));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/matches"), 200, HistoryBody({ HistoryEntry(MatchId, TEXT("win")) }, TEXT("\"cursor_1\"")))));
+			const FVeyraMatchHistory& History = Rig.Flow->GetSnapshot().History;
+			ASSERT_THAT(IsTrue(History.bLoaded && History.Entries.Num() == 1 && History.Entries[0].Outcome == TEXT("win") && History.Next == TEXT("cursor_1")));
+			ASSERT_THAT(IsTrue(FMath::Abs((History.Entries[0].EndedAt - FDateTime(2026, 9, 29, 10, 3, 12, 123)).GetTotalMilliseconds()) <= 1.0 && History.Entries[0].DurationSeconds == 1510.5));
+
+			// Older records come in batches, after those read (UX-67).
+			ASSERT_THAT(IsTrue(Rig.Flow->CanIssue(EVeyraClientIntent::LoadMoreHistory) && Rig.Flow->LoadMoreHistory()));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/matches?cursor=cursor_1"), 200, HistoryBody({ HistoryEntry(OlderMatchId, TEXT("loss")) }, TEXT("null")))));
+			ASSERT_THAT(IsTrue(History.Entries.Num() == 2 && History.Entries[1].MatchId == OlderMatchId && History.Next.IsEmpty()));
+			ASSERT_THAT(IsFalse(Rig.Flow->CanIssue(EVeyraClientIntent::LoadMoreHistory), TEXT("the last page")));
+
+			// A filter reads the first page afresh (UX-64).
+			VeyraBackendProtocol::FHistoryFilter Losses;
+			Losses.Outcome = TEXT("loss");
+			Losses.VanguardId = TEXT("cairn");
+			ASSERT_THAT(IsTrue(Rig.Flow->LoadHistory(Losses)));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/matches?vanguard=cairn&outcome=loss"), 200, HistoryBody({ HistoryEntry(OlderMatchId, TEXT("loss")) }, TEXT("null")))));
+			ASSERT_THAT(IsTrue(History.Filter == Losses && History.Entries.Num() == 1));
+
+			// A listed match opens into its verified result; nothing else does.
+			ASSERT_THAT(IsFalse(Rig.Flow->OpenHistoryMatch(MatchId), TEXT("not listed under this filter")));
+			ASSERT_THAT(IsTrue(Rig.Flow->OpenHistoryMatch(OlderMatchId)));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), FString(TEXT("/v1/me/matches/")) + OlderMatchId, 200, ScoredOutcomeBody())));
+			ASSERT_THAT(IsTrue(History.Opened.IsSet() && History.Opened->bHasScoreboard && !Rig.Flow->CanIssue(EVeyraClientIntent::LoadMoreHistory)));
+			ASSERT_THAT(IsTrue(Rig.Flow->CloseHistoryMatch() && !History.Opened.IsSet()));
+
+			// Not through Match Found, a committed select or Reconnect-only (UX-51).
+			ASSERT_THAT(IsFalse(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::Selecting, EVeyraClientIntent::LoadHistory)));
+			ASSERT_THAT(IsFalse(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::MatchFound, EVeyraClientIntent::OpenHistoryMatch)));
+			ASSERT_THAT(IsFalse(FVeyraClientFlow::IsIntentAllowed(EVeyraClientState::ReconnectOnly, EVeyraClientIntent::LoadHistory)));
+		}
+
 		TEST_METHOD(APracticeSelectCannotBeLeft)
 		{
 			ASSERT_THAT(IsTrue(ReachSelect()));

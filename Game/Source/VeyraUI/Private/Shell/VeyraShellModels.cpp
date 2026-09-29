@@ -531,14 +531,28 @@ FVeyraMatchFoundModel DescribeMatchFound(const FVeyraClientSnapshot& Snapshot, d
 FVeyraResultsModel DescribeResults(const FVeyraClientSnapshot& Snapshot)
 {
 	FVeyraResultsModel Model;
-	const TOptional<VeyraBackendProtocol::FMatchOutcome>& Outcome = Snapshot.Result;
-	if (!Outcome.IsSet())
+	if (!Snapshot.Result.IsSet())
 	{
 		// Pending, not fabricated (UX-15, UX-17).
 		Model.Headline = LOCTEXT("ResultPending", "Result Not Available Yet");
 		Model.Lines.Add(LOCTEXT("ResultPendingDetail", "Veyra's services have not confirmed how this match ended."));
 	}
-	else if (!Outcome->bHasResult)
+	else
+	{
+		Model = DescribeOutcome(*Snapshot.Result);
+	}
+	if (const FText Notice = DescribeNotice(Snapshot.Notice); !Notice.IsEmpty())
+	{
+		Model.Lines.Add(Notice);
+	}
+	return Model;
+}
+
+FVeyraResultsModel DescribeOutcome(const VeyraBackendProtocol::FMatchOutcome& InOutcome)
+{
+	FVeyraResultsModel Model;
+	const VeyraBackendProtocol::FMatchOutcome* Outcome = &InOutcome;
+	if (!Outcome->bHasResult)
 	{
 		Model.bVerified = true;
 		Model.Headline = LOCTEXT("ResultFailed", "The Match Did Not Finish");
@@ -567,10 +581,7 @@ FVeyraResultsModel DescribeResults(const FVeyraClientSnapshot& Snapshot)
 			Model.Lines.Add(FText::Format(LOCTEXT("ResultVanguard", "Your Vanguard: {0}"), VanguardNameOf(Outcome->VanguardId)));
 		}
 		Model.Lines.Add(FText::Format(LOCTEXT("ResultDuration", "Duration: {0}"), FormatCountdown(Outcome->DurationSeconds)));
-	}
-	if (const FText Notice = DescribeNotice(Snapshot.Notice); !Notice.IsEmpty())
-	{
-		Model.Lines.Add(Notice);
+		Model.Report = VeyraMatchReportModel::Describe(*Outcome);
 	}
 	return Model;
 }
@@ -615,10 +626,18 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 		Text << TEXT("|found:") << Found.Id << TEXT(":") << Found.State << TEXT(":") << Found.You << TEXT(":") << Found.Accepted << TEXT("/") << Found.Total;
 	}
 	Text << TEXT("|match:") << Snapshot.MatchId;
+	const FVeyraMatchHistory& History = Snapshot.History;
+	Text << TEXT("|history:") << History.Filter.VanguardId << TEXT(":") << History.Filter.Mode << TEXT(":") << History.Filter.Outcome << TEXT(":")
+		 << (History.bLoaded ? TEXT("loaded") : TEXT("unread")) << TEXT(":") << History.Next << TEXT(":") << (History.Opened.IsSet() ? *History.Opened->MatchId : TEXT(""));
+	for (const VeyraBackendProtocol::FHistoryEntry& Entry : History.Entries)
+	{
+		Text << TEXT(";") << Entry.MatchId;
+	}
 	if (Snapshot.Result.IsSet())
 	{
 		const VeyraBackendProtocol::FMatchOutcome& Outcome = *Snapshot.Result;
-		Text << TEXT("|result:") << Outcome.State << TEXT(":") << Outcome.EndReason << TEXT(":") << Outcome.FailureReason;
+		Text << TEXT("|result:") << Outcome.State << TEXT(":") << Outcome.EndReason << TEXT(":") << Outcome.FailureReason << TEXT(":") << Outcome.Players.Num()
+			 << TEXT(":") << Outcome.Wells.Num();
 	}
 	return FString(Text.ToString());
 }

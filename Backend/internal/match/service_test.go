@@ -51,6 +51,7 @@ func newFixture(t *testing.T) *fixture {
 		HostPortMax:       fixturePortMax,
 		PublicHost:        "127.0.0.1",
 		BackendURL:        "http://backend:8080",
+		HistoryPageSize:   2,
 	}, func() time.Time { return f.now })
 	return f
 }

@@ -8,6 +8,7 @@
 #include "VeyraShellScreen.generated.h"
 
 class IVeyraClientIntents;
+struct FVeyraHistoryOption;
 class UImage;
 class UOverlay;
 class UPanelWidget;
@@ -19,11 +20,20 @@ class UVerticalBox;
 class UVeyraShellButton;
 class UWidget;
 
+/** A match report's two views (UX-50): the two-team Scoreboard, and Detailed Statistics by category. */
+enum class EVeyraReportView : uint8
+{
+	Scoreboard,
+	Details,
+};
+
 /** The ordinary pre-game pages the shell's navigation moves between (UX §1). */
 enum class EVeyraShellPage : uint8
 {
 	Home,
 	Play,
+	/** The player's completed matches (UX-51). */
+	History,
 };
 
 /**
@@ -59,6 +69,9 @@ public:
 	/** The Flux Spell slot whose picker champion select shows, or INDEX_NONE. */
 	int32 GetOpenSpellSlot() const { return OpenSpellSlot; }
 
+	/** Which view of a match report the screen shows. */
+	EVeyraReportView GetReportView() const { return ReportView; }
+
 	/** The art behind the screen: the Vanguard champion select shows, or null. */
 	UTexture2D* GetBackdrop() const;
 
@@ -92,6 +105,11 @@ private:
 	void BuildShell(const FVeyraClientSnapshot& Snapshot);
 	void BuildHome(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	void BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** Match History: its filters and list, or an opened match's report (UX-51, UX-64, UX-67). */
+	void BuildHistory(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** A filter's choices as a row of buttons; choosing one reads the first page again with it. */
+	void AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options,
+		TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply);
 	/** The party panel, on every page of the shell while the player has a party (UX §3). */
 	void BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	void BuildMatchFound(const FVeyraClientSnapshot& Snapshot);
@@ -112,6 +130,13 @@ private:
 	void UpdatePickBars();
 	void BuildReconnectOnly(const FVeyraClientSnapshot& Snapshot);
 	void BuildResults(const FVeyraClientSnapshot& Snapshot);
+	/** A match's Scoreboard or Detailed Statistics, as the report view says, with the switch between them (UX-50). */
+	void BuildReport(const FVeyraMatchReport& Report, UPanelWidget& Parent);
+	void BuildScoreboard(const FVeyraMatchReport& Report, UPanelWidget& Parent);
+	void BuildDetails(const FVeyraMatchReport& Report, UPanelWidget& Parent);
+	/** A text in a column Width wide. */
+	UTextBlock* AddCell(UPanelWidget& Row, const FText& Text, float Width, uint8 Role);
+	void ShowReportView(EVeyraReportView NewView);
 	/** The problem on screen and its Retry, if any. */
 	void BuildProblem(const FVeyraClientSnapshot& Snapshot);
 
@@ -161,4 +186,5 @@ private:
 	double PickSeconds = 0.0;
 	int32 OpenSpellSlot = INDEX_NONE;
 	bool bShowAbilities = false;
+	EVeyraReportView ReportView = EVeyraReportView::Scoreboard;
 };

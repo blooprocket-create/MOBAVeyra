@@ -152,6 +152,14 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("Retry");
 	case EVeyraClientIntent::Quit:
 		return TEXT("Quit");
+	case EVeyraClientIntent::LoadHistory:
+		return TEXT("LoadHistory");
+	case EVeyraClientIntent::LoadMoreHistory:
+		return TEXT("LoadMoreHistory");
+	case EVeyraClientIntent::OpenHistoryMatch:
+		return TEXT("OpenHistoryMatch");
+	case EVeyraClientIntent::CloseHistoryMatch:
+		return TEXT("CloseHistoryMatch");
 	}
 	return TEXT("Unknown");
 }
@@ -264,6 +272,12 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::Retry:
 	case EVeyraClientIntent::Quit:
 		return true;
+	// The ordinary client only: not through Match Found, a committed select or Reconnect-only (UX-51).
+	case EVeyraClientIntent::LoadHistory:
+	case EVeyraClientIntent::LoadMoreHistory:
+	case EVeyraClientIntent::OpenHistoryMatch:
+	case EVeyraClientIntent::CloseHistoryMatch:
+		return State == EVeyraClientState::Shell;
 	}
 	return false;
 }
@@ -316,6 +330,12 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 	case EVeyraClientIntent::ChooseFluxSpell:
 		// Spells stay free to change after lock-in, until the match starts (Pre-Game Client UX Bible 36).
 		return Snapshot.Select.State == ESelectState::Picking && Snapshot.Select.FindYou() != nullptr;
+	case EVeyraClientIntent::LoadMoreHistory:
+		return Snapshot.History.bLoaded && !Snapshot.History.Next.IsEmpty() && !Snapshot.History.Opened.IsSet();
+	case EVeyraClientIntent::OpenHistoryMatch:
+		return Snapshot.History.bLoaded && !Snapshot.History.Opened.IsSet();
+	case EVeyraClientIntent::CloseHistoryMatch:
+		return Snapshot.History.Opened.IsSet();
 	default:
 		return true;
 	}
@@ -1561,6 +1581,114 @@ void FVeyraClientFlow::ShowRefusal(const FVeyraBackendResponse& Response, const 
 void FVeyraClientFlow::ShowBadAnswer(const TCHAR* What, const FString& Problem, TFunction<void()> RetryStep)
 {
 	ShowProblem(TEXT("bad_answer"), FString::Printf(TEXT("the backend's answer about %s was not understood: %s"), What, *Problem), MoveTemp(RetryStep));
+}
+
+bool FVeyraClientFlow::LoadHistory(const VeyraBackendProtocol::FHistoryFilter& Filter)
+{
+	if (!CanIssue(EVeyraClientIntent::LoadHistory))
+	{
+		return false;
+	}
+	Log(TEXT("reading the match history."));
+	SetBusy(true);
+	Call(EVerb::Get, VeyraBackendProtocol::HistoryPath(Filter, FString()), FString(), [this, Filter](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		VeyraBackendProtocol::FHistoryPage Page;
+		FString Problem;
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("the match history"), [this, Filter] { LoadHistory(Filter); });
+		}
+		else if (!VeyraBackendProtocol::ParseHistoryPage(Response.Body, Page, Problem))
+		{
+			ShowBadAnswer(TEXT("the match history"), Problem, [this, Filter] { LoadHistory(Filter); });
+		}
+		else
+		{
+			FVeyraMatchHistory& History = Snapshot.History;
+			History.Filter = Filter;
+			History.Entries = MoveTemp(Page.Entries);
+			History.Next = MoveTemp(Page.Next);
+			History.Modes = MoveTemp(Page.Modes);
+			History.bLoaded = true;
+			History.Opened.Reset();
+			Broadcast();
+		}
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::LoadMoreHistory()
+{
+	if (!CanIssue(EVeyraClientIntent::LoadMoreHistory))
+	{
+		return false;
+	}
+	Log(TEXT("reading more of the match history."));
+	SetBusy(true);
+	const VeyraBackendProtocol::FHistoryFilter Filter = Snapshot.History.Filter;
+	Call(EVerb::Get, VeyraBackendProtocol::HistoryPath(Filter, Snapshot.History.Next), FString(), [this, Filter](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		VeyraBackendProtocol::FHistoryPage Page;
+		FString Problem;
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("more of the match history"), [this] { LoadMoreHistory(); });
+		}
+		else if (!VeyraBackendProtocol::ParseHistoryPage(Response.Body, Page, Problem))
+		{
+			ShowBadAnswer(TEXT("more of the match history"), Problem, [this] { LoadMoreHistory(); });
+		}
+		else if (Snapshot.History.Filter == Filter)
+		{
+			Snapshot.History.Entries.Append(MoveTemp(Page.Entries));
+			Snapshot.History.Next = MoveTemp(Page.Next);
+			Snapshot.History.Modes = MoveTemp(Page.Modes);
+			Broadcast();
+		}
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::OpenHistoryMatch(const FString& MatchId)
+{
+	const bool bListed = Snapshot.History.Entries.ContainsByPredicate([&MatchId](const VeyraBackendProtocol::FHistoryEntry& Entry) { return Entry.MatchId == MatchId; });
+	if (!CanIssue(EVeyraClientIntent::OpenHistoryMatch) || !bListed)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("opening match %s from the history."), *MatchId));
+	SetBusy(true);
+	Call(EVerb::Get, MatchOutcomePath(MatchId), FString(), [this, MatchId](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		VeyraBackendProtocol::FMatchOutcome Outcome;
+		FString Problem;
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("the match"), [this, MatchId] { OpenHistoryMatch(MatchId); });
+		}
+		else if (!VeyraBackendProtocol::ParseMatchOutcome(Response.Body, Outcome, Problem))
+		{
+			ShowBadAnswer(TEXT("the match"), Problem, [this, MatchId] { OpenHistoryMatch(MatchId); });
+		}
+		else
+		{
+			Snapshot.History.Opened = MoveTemp(Outcome);
+			Broadcast();
+		}
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::CloseHistoryMatch()
+{
+	if (!CanIssue(EVeyraClientIntent::CloseHistoryMatch))
+	{
+		return false;
+	}
+	Snapshot.History.Opened.Reset();
+	Broadcast();
+	return true;
 }
 
 void FVeyraClientFlow::SetBusy(bool bBusy)

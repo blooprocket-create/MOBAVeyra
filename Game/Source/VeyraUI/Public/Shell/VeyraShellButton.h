@@ -34,6 +34,12 @@ public:
 	/** Clicks it as the player would: runs its action only if it is enabled. For tests and scripts. */
 	void Press();
 
+	/**
+	 * Keeps a text button's label on one line. Shell text wraps, and UMG wraps text in an auto-sized
+	 * slot at its narrowest, so a short label would break at every space. Returns the button.
+	 */
+	UVeyraShellButton& KeepLabelOnOneLine();
+
 private:
 	/** A button labelled Label that runs Action, before its style and content are set. */
 	static UVeyraShellButton* Create(UWidgetTree& Tree, const FText& Label, TFunction<void()> Action, bool bEnabled);

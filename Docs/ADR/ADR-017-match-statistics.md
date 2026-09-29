@@ -50,12 +50,12 @@ A key held (default Tab, rebindable; the Toggle mode arrives with the Settings s
 
 ### 5. The result carries a scoreboard
 
-`FVeyraMatchResult.Players` lists every player, human or bot: side, name, Vanguard, account (or none for a bot), the statistics and the final equipment. The server's result body sends it; the backend validates its shape (known fields, finite non-negative numbers, one entry per roster account plus bots, sides that exist) and stores it as a document on `match.results` (migration 0014), returned with the verified result. A result may still arrive without a scoreboard (an abandoned match before anyone played); the client then shows its statistics as pending.
+`FVeyraMatchResult.Players` lists every player, human or bot, including one who left before the end with what they had as they left: side, name, Vanguard, account (or none for a bot), the statistics and the final equipment. `FVeyraMatchResult.Wells` lists each Flux Well secured: its site, the side and the match-clock time (Match Statistics Bible §5), so the team summary counts each capture once. The server's result body sends it; the backend validates its shape (known fields, finite non-negative numbers, one entry per roster account plus bots, sides that exist) and stores it as a document on `match.results` (migrations 0014 and 0015), returned with the verified result without account IDs, with `you` on the viewer's line. A result may still arrive without a scoreboard (an abandoned match before anyone played): the server sends `null`, never an empty list, and the backend reads an empty list as none; the client then shows its statistics as pending.
 
 ### 6. Results and Match History in the shell
 
 - **Results** read the verified record: a Scoreboard per team, Detailed Statistics grouped as Combat, Objectives, Economy and Vision, and a team summary (kills, gold earned, Wells counted once per capture).
-- **Match History:** `GET /v1/me/matches` lists the player's completed matches newest first, filtered by Vanguard, mode and personal outcome, with a cursor for "Load More"; opening one shows the same Scoreboard and Detailed Statistics.
+- **Match History:** `GET /v1/me/matches` lists the player's completed matches newest first, filtered by Vanguard, mode and personal outcome, with a cursor for "Load More" and every mode the player has a saved match in, so the mode filter reaches every record; opening one shows the same Scoreboard and Detailed Statistics.
 
 ### 7. Values
 
