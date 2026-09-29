@@ -114,6 +114,12 @@ public:
 	/** What Slot holds now: its override while one lasts, else its own ability. */
 	const FVeyraLoadoutEntry* FindSlot(EVeyraAbilitySlot Slot) const;
 
+	/** Slot's own ability, whatever override holds it now. */
+	const FVeyraLoadoutEntry* FindOwnSlot(EVeyraAbilitySlot Slot) const;
+
+	/** Slot's override now, if one holds it. */
+	const FVeyraSlotOverride* FindOverride(EVeyraAbilitySlot Slot) const;
+
 	/** Ability's entry, its own or an override's: an override shares its slot's rank (ADR-018 §1). */
 	const FVeyraLoadoutEntry* FindAbility(const FVeyraContentId& Ability) const;
 	const FVeyraLoadoutEntry* FindHandle(FGameplayAbilitySpecHandle Handle) const;

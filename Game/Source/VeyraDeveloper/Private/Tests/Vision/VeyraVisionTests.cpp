@@ -263,6 +263,26 @@ namespace VeyraVisionTests
 			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("Dense Fog overrides a tether's vision")));
 		}
 
+		TEST_METHOD(TrueSightShowsACamouflagedEnemyToALookoutInTheSameFog)
+		{
+			// A bush of half a Vanguard's sight, the enemy just inside its edge, and a teammate inside it
+			// too, within sight but beyond the detection radius.
+			const double S = SightRadius();
+			const FVector2D Bush(S * 2.0, 0.0);
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, FVector(Bush.X + S * 7.0 / 16.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Inside = SpawnVanguard(EVeyraTeam::A, FVector(Bush.X - S / 4.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Enemy, DetectionRadius())));
+			Vision().Start();
+			Vision().SetDenseFog({ FVeyraFogCircle{ Bush, S / 2.0 } });
+			ASSERT_THAT(IsFalse(VeyraTargeting::CanAcquire(&Inside, Enemy), TEXT("in the same fog, beyond its radius")));
+			// Fixture value: longer than the test.
+			constexpr double TrueSightSeconds = 60.0;
+			Vision().AddTrueSight(EVeyraTeam::A, Inside, SightRadius(), TrueSightSeconds);
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(VeyraTargeting::CanAcquire(&Inside, Enemy), TEXT("True Sight shows it once the fog's volume is shared")));
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("a sighting in fog is still not shared")));
+		}
+
 		TEST_METHOD(AShapedRevealIsOrdinaryVisionInsideItsShape)
 		{
 			// A corridor lit far beyond the side's sight, along +X (ADR-018 §5).

@@ -104,7 +104,24 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(FVector::Dist(Movement->GetForcedMoveDestination().GetValue(), Expected) <= Tolerance));
 			// Who moved whom, and how far after resistance (ADR-018 §3).
 			ASSERT_THAT(IsTrue(Displaced.Num() == 1 && Displaced[0].Source.Get() == Enemy && Displaced[0].Target.Get() == Unit));
-			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Displaced[0].Distance, Distance * (1.0 - Resistance))));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Displaced[0].Distance, Distance * (1.0 - Resistance), Tolerance)));
+		}
+
+		TEST_METHOD(ItReportsTheDistanceTerrainLetsTheUnitGo)
+		{
+			TArray<FVeyraDisplacementEvent> Displaced;
+			Spawner.GetWorld().GetSubsystem<UVeyraCombatEventSubsystem>()->OnDisplaced.AddLambda(
+				[&Displaced](const FVeyraDisplacementEvent& Event) { Displaced.Add(Event); });
+			// Toward the wall: it stops where the body meets it, short of the whole distance.
+			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::ForwardVector))));
+			const double Room = WallFaceX - Radius() - Start.X;
+			ASSERT_THAT(IsTrue(Displaced.Num() == 1 && FMath::IsNearlyEqual(Displaced[0].Distance, Room, Tolerance),
+				FString::Printf(TEXT("reported %g of %g"), Displaced.IsEmpty() ? 0.0 : Displaced[0].Distance, Room)));
+			// Against the wall already, it cannot move at all: no displacement to report.
+			AActor& Body = *Movement->GetOwner();
+			Body.SetActorLocation(FVector(WallFaceX - Radius(), Start.Y, Start.Z));
+			VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::ForwardVector));
+			ASSERT_THAT(IsTrue(Displaced.Num() == 1, TEXT("a unit that cannot move is not displaced")));
 		}
 
 		TEST_METHOD(TheUnstoppableAndTheImmuneStayPut)

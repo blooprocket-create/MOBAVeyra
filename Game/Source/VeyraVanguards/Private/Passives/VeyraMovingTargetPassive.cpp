@@ -2,6 +2,7 @@
 
 #include "Passives/VeyraMovingTargetPassive.h"
 
+#include "Tuning/VeyraVanguardsTuning.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
@@ -21,8 +22,6 @@ namespace VeyraMovingTarget
 {
 	// A passive has no ranks; its one amounts apply at every level.
 	constexpr int32 PassiveRank = 1;
-	// Dead Reckoning's ratio is per this many units banked (Roster Bible §2's "per 100 units").
-	constexpr double UnitsPerStep = 100.0;
 }
 
 void UVeyraMovingTargetPassive::Start(UAbilitySystemComponent& Owner, const FVeyraContentId& InPassiveId)
@@ -98,7 +97,7 @@ void UVeyraMovingTargetPassive::OnModifyAttack(FVeyraAttackPlan& Plan)
 	{
 		const double Power = Owner->GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute());
 		const double Amount = VeyraEffectDelivery::DamageAmount(*Owner, Reckoning.Damage, VeyraMovingTarget::PassiveRank)
-			+ Power * Reckoning.PhysicalPowerRatioPerHundredUnits * (Banked / VeyraMovingTarget::UnitsPerStep);
+			+ Power * VeyraVanguardRules::DeadReckoningRatio(Reckoning, Banked);
 		Plan.AddDamage(Reckoning.Damage.Type, Amount);
 		Banked = 0.0;
 	}

@@ -48,6 +48,18 @@ namespace VeyraAbilitiesTests
 			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_stance")), Stance);
 			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_strong_stance")), Stance);
 
+			// A stance in two forms, the stronger an ultimate's variant, each ended by its recast.
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_planted")), StatusOf(EVeyraStatusKind::Planted, 0.0, LongSeconds));
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_reach")), StatusOf(EVeyraStatusKind::AttackRange, Reach / 2.0, LongSeconds));
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_far_reach")), StatusOf(EVeyraStatusKind::AttackRange, Reach, LongSeconds));
+			FVeyraSelfBuffAbilityTuning Dig;
+			Dig.Cast = InstantCast(0.0, LongSeconds, 0.0);
+			Dig.Recast = EVeyraRecast::EndsEarly;
+			Dig.Statuses = { ArchetypeTestId(TEXT("test_planted")), ArchetypeTestId(TEXT("test_reach")) };
+			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_dig")), Dig);
+			Dig.Statuses = { ArchetypeTestId(TEXT("test_planted")), ArchetypeTestId(TEXT("test_far_reach")) };
+			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_dig_far")), Dig);
+
 			// A cone that spends the caster's stacks.
 			FVeyraAreaAbilityTuning Break;
 			Break.Cast = InstantCast(0.0, LongSeconds, 0.0);
@@ -95,6 +107,35 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Holds(EVeyraAbilitySlot::W, TEXT("test_strong_stance"))));
 			AdvanceWorld(VariantSeconds + WorldStep);
 			ASSERT_THAT(IsTrue(Holds(EVeyraAbilitySlot::W, TEXT("test_stance")), TEXT("it ends with its time")));
+		}
+
+		bool Has(const TCHAR* Status) const
+		{
+			return FArchetypeTestWorld::Has(*Caster, Status);
+		}
+
+		TEST_METHOD(AStancesFormsNeverStackAndAVariantFormEndsWithItsVariant)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_dig")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector::ZeroVector) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(Has(TEXT("test_planted")) && Has(TEXT("test_reach"))));
+			// An ultimate's variant: W holds the stronger form for a while, as The Last Volley does.
+			FVeyraOverrideSpec Variant;
+			Variant.Ability = ArchetypeTestId(TEXT("test_dig_far"));
+			Variant.DurationSeconds = VariantSeconds;
+			Variant.Use = EVeyraOverrideUse::WhileActive;
+			ASSERT_THAT(IsTrue(Loadout->Override(*Caster->GetAbilitySystemComponent(), EVeyraAbilitySlot::W, Variant)));
+			ASSERT_THAT(IsTrue(Holds(EVeyraAbilitySlot::W, TEXT("test_dig_far"))));
+			// Its stronger form, pressed while the stance stands, ends the stance: every form of it.
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector::ZeroVector) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsFalse(Has(TEXT("test_planted")) || Has(TEXT("test_reach")) || Has(TEXT("test_far_reach")), TEXT("no form's bonus outlasts the stance")));
+			// Taken again in the stronger form, it ends as the variant does.
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector::ZeroVector) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(Has(TEXT("test_planted")) && Has(TEXT("test_far_reach")) && !Has(TEXT("test_reach"))));
+			AdvanceWorld(VariantSeconds + WorldStep);
+			ASSERT_THAT(IsTrue(Holds(EVeyraAbilitySlot::W, TEXT("test_dig"))));
+			ASSERT_THAT(IsFalse(Has(TEXT("test_planted")) || Has(TEXT("test_far_reach")), TEXT("the stronger form lasts no longer than its variant")));
 		}
 
 		TEST_METHOD(AnAreaSpendsItsCastersStatusesWholly)

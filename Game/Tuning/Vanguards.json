@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -413,7 +413,8 @@
         "thresholdUnits": 600,
         "capUnits": 1500,
         "damage": { "type": "Physical", "amountByRank": [40], "physicalPowerRatio": 0, "magicPowerRatio": 0 },
-        "physicalPowerRatioPerHundredUnits": 0.1
+        "physicalPowerRatioPerStep": 0.1,
+        "stepUnits": 100
       }
     }
   },

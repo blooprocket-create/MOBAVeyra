@@ -217,9 +217,13 @@ struct FVeyraDeadReckoningTuning
 	UPROPERTY()
 	FVeyraDamageTuning Damage;
 
-	/** And this much more Physical Power ratio for each 100 units spent. */
+	/** And this much more Physical Power ratio for each StepUnits spent (Roster Bible §2's "per 100 units"). */
 	UPROPERTY()
-	double PhysicalPowerRatioPerHundredUnits = 0.0;
+	double PhysicalPowerRatioPerStep = 0.0;
+
+	/** The units each step of the ratio counts; above 0. */
+	UPROPERTY()
+	double StepUnits = 0.0;
 };
 
 /**
@@ -413,7 +417,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 7;
+	static constexpr int32 SchemaVersion = 8;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -451,4 +455,7 @@ namespace VeyraVanguardRules
 	 */
 	VEYRAVANGUARDS_API TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, int32 BasicAbilityMaxRank,
 		int32 UltimateMaxRank);
+
+	/** The Physical Power ratio Dead Reckoning adds for Banked units (Roster Bible §2): its ratio per step, by the steps banked. */
+	VEYRAVANGUARDS_API double DeadReckoningRatio(const FVeyraDeadReckoningTuning& Reckoning, double Banked);
 }

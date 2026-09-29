@@ -130,6 +130,16 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsTrue(Dealt > Plain + Tolerance, FString::Printf(TEXT("Tracked %g, plain %g"), Dealt, Plain)));
 		}
 
+		TEST_METHOD(DeadReckoningsRatioGrowsByItsTunedStep)
+		{
+			FVeyraDeadReckoningTuning Reckoning = Tuning().DeadReckoning;
+			const double Banked = Reckoning.StepUnits * 3.0;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraVanguardRules::DeadReckoningRatio(Reckoning, Banked), Reckoning.PhysicalPowerRatioPerStep * 3.0)));
+			Reckoning.StepUnits /= 2.0;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraVanguardRules::DeadReckoningRatio(Reckoning, Banked), Reckoning.PhysicalPowerRatioPerStep * 6.0),
+				TEXT("a shorter step counts twice as many")));
+		}
+
 		TEST_METHOD(DeadReckoningSpendsWhatIsBankedOnATrackedTarget)
 		{
 			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
