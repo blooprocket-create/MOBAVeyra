@@ -1,10 +1,12 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "CQTest.h"
+
+// VeyraUI is client only: a server build has neither it nor these tests.
+#if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
+
 #include "Components/ActorTestSpawner.h"
 #include "Hud/VeyraMinimapModel.h"
-
-#if WITH_AUTOMATION_WORKER
 
 namespace VeyraMinimapTests
 {
@@ -44,4 +46,4 @@ namespace VeyraMinimapTests
 	};
 }
 
-#endif // WITH_AUTOMATION_WORKER
+#endif // WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
