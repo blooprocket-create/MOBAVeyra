@@ -23,6 +23,10 @@ class UWorld;
  * gate never heard of reaches nobody.
  *
  * Server only; does nothing where the world replicates without Iris, or not at all.
+ *
+ * The replication system belongs to the world's net driver, which a game engine shuts down before it
+ * cleans the world up: the gate holds it weakly, and once it is gone the gate is inert and Stop only
+ * forgets the groups, which went with it.
  */
 class FVeyraFogGate
 {
@@ -35,7 +39,8 @@ public:
 	/** Removes the gate's groups; everything it opened closes. */
 	void Stop();
 
-	bool IsStarted() const { return System != nullptr; }
+	/** Whether it gates now: started, and its replication system still exists. */
+	bool IsStarted() const { return System.IsValid(); }
 
 	/**
 	 * Puts Unit in Team's group, so its own side receives it. False while it has not begun
@@ -64,7 +69,7 @@ private:
 
 	UE::Net::FNetRefHandle HandleOf(const AActor& Actor) const;
 
-	UReplicationSystem* System = nullptr;
+	TWeakObjectPtr<UReplicationSystem> System;
 	TMap<EVeyraTeam, UE::Net::FNetObjectGroupHandle> SideGroups;
 	TSet<UE::Net::FNetRefHandle> InSideGroups;
 	TMap<TWeakObjectPtr<const APlayerController>, FPlayerGroup> Players;
