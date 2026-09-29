@@ -230,7 +230,7 @@ FLinearColor UVeyraGreyboxSubsystem::BodyColorOf(const AActor& Unit) const
 	const auto Has = [&Statuses](EVeyraStatusKind Kind) {
 		return Statuses.ContainsByPredicate([Kind](const FVeyraHudStatus& Status) { return Status.Kind == Kind; });
 	};
-	// A stun matters more than a slow.
+	// A stun matters more than a slow, and either more than a Camouflage.
 	if (Has(EVeyraStatusKind::Stun))
 	{
 		return FLinearColor::LerpUsingHSV(Side, Settings.StunColor, Settings.StatusTintStrength);
@@ -238,6 +238,10 @@ FLinearColor UVeyraGreyboxSubsystem::BodyColorOf(const AActor& Unit) const
 	if (Has(EVeyraStatusKind::Slow))
 	{
 		return FLinearColor::LerpUsingHSV(Side, Settings.SlowColor, Settings.StatusTintStrength);
+	}
+	if (Has(EVeyraStatusKind::Camouflage))
+	{
+		return FLinearColor::LerpUsingHSV(Side, Settings.CamouflageColor, Settings.StatusTintStrength);
 	}
 	return Side;
 }

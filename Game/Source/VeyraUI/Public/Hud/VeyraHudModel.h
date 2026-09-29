@@ -35,6 +35,8 @@ struct FVeyraHudStatus
 	FVeyraContentId Id;
 	EVeyraStatusKind Kind = EVeyraStatusKind::Stun;
 	double RemainingSeconds = 0.0;
+	/** Its stacks, as Cadence's or Hex's count (ADR-018 §2). */
+	int32 Stacks = 1;
 };
 
 /** One ability slot on the player's panel. */

@@ -19,7 +19,7 @@
     "abilityUse": {
       "description": "What an ability is for, which tells a bot when to cast it (EVeyraBotAbilityUse).",
       "type": "string",
-      "enum": ["Damage", "Engage", "Defend", "Escape", "Empower", "Secure"]
+      "enum": ["Damage", "Engage", "Defend", "Escape", "Empower", "Secure", "Never"]
     },
         "difficulty": {
       "description": "One behaviour (Custom Matches Bible §3). It changes how a bot plays, never the rules (Modes & Access Bible §4).",

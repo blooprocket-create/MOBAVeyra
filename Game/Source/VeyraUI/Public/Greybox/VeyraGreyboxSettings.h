@@ -62,6 +62,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Statuses")
 	FLinearColor SlowColor = FLinearColor::Transparent;
 
+	/** The tint of a Camouflaged unit, which only its own side and those who detect it see. */
+	UPROPERTY(Config, EditAnywhere, Category = "Statuses")
+	FLinearColor CamouflageColor = FLinearColor::Transparent;
+
 	/** How far a status tint moves a body from its side's colour: above 0, at most 1. */
 	UPROPERTY(Config, EditAnywhere, Category = "Statuses", meta = (ClampMin = "0", ClampMax = "1"))
 	float StatusTintStrength = 0.0f;

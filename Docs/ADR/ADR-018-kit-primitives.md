@@ -187,3 +187,4 @@ The values live in `Game/Tuning/Vanguards.json`, `Abilities.json` and `Bots.json
 - Terrain gaps for Gorraveth's leap.
 - Mirroring the turn rate on clients (ADR-009 §6 keeps no prediction).
 - HUD meters for Cadence, Hex and Momentum beyond status stacks.
+- Bots that leave a stance before they move: until then Bots.json marks Vera's Dig In `Never`, so bots do not cast it.

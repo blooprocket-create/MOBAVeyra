@@ -238,7 +238,7 @@
     },
     "kade": {
       "provenance": "Provisional",
-      "availability": "Developer",
+      "availability": "Playable",
       "resource": "Mana",
       "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 600 },
       "baseStats": {
@@ -280,7 +280,7 @@
     },
     "vera": {
       "provenance": "Provisional",
-      "availability": "Developer",
+      "availability": "Playable",
       "resource": "Mana",
       "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 600 },
       "baseStats": {
@@ -322,7 +322,7 @@
     },
     "mimzi": {
       "provenance": "Provisional",
-      "availability": "Developer",
+      "availability": "Playable",
       "resource": "Mana",
       "body": { "capsuleRadius": 34, "capsuleHalfHeight": 70, "turnRateDegreesPerSecond": 600 },
       "baseStats": {
