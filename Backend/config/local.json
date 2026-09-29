@@ -33,7 +33,7 @@
   ],
   "vanguards": {
     "released": ["cairn", "qazharr", "oriel", "bryn", "kade", "vera", "mimzi"],
-    "starters": ["cairn", "qazharr", "oriel", "bryn", "kade", "vera", "mimzi"],
+    "starters": ["cairn", "qazharr", "oriel", "bryn"],
     "rotation": {"slots": 12, "standIn": "allReleased"}
   },
   "fluxSpells": {
