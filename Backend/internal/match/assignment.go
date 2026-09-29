@@ -9,8 +9,9 @@ import (
 // AssignmentSchemaVersion is the version of the assignment document this
 // backend writes. The match server reads exactly one version (ADR-007 §5).
 // Version 2 adds the mode, the rules, the practice host, each participant's
-// Vanguard and the bots (ADR-010 §7, §9).
-const AssignmentSchemaVersion = 2
+// Vanguard and the bots (ADR-010 §7, §9); version 3 adds each bot's
+// difficulty (ADR-013 §6).
+const AssignmentSchemaVersion = 3
 
 // Assignment is what a match server receives on its standard input when it
 // starts: its match, where to report, its credential, the rules it plays by
@@ -36,6 +37,9 @@ type Assignment struct {
 type AssignedBot struct {
 	Side       Side   `json:"side"`
 	VanguardID string `json:"vanguardId"`
+	// Difficulty is the game's name for the bot's difficulty: "Beginner" or
+	// "Intermediate".
+	Difficulty string `json:"difficulty"`
 }
 
 // AssignedParticipant is one roster entry in an Assignment.
@@ -49,6 +53,9 @@ type AssignedParticipant struct {
 
 // assignedRules maps rules to the names the game's schema uses.
 var assignedRules = map[Rules]string{RulesStandard: "Standard", RulesPractice: "Practice"}
+
+// assignedDifficulties maps bot difficulties to the names the game's schema uses.
+var assignedDifficulties = map[BotDifficulty]string{BotBeginner: "Beginner", BotIntermediate: "Intermediate"}
 
 // BuildAssignment returns the assignment for a match as one line of JSON,
 // ending in a newline. The match must still hold its join key.
@@ -83,7 +90,11 @@ func BuildAssignment(m Match, serverCredential, backendURL string) ([]byte, erro
 		})
 	}
 	for _, b := range m.Bots {
-		a.Bots = append(a.Bots, AssignedBot{Side: b.Side, VanguardID: b.VanguardID})
+		difficulty, ok := assignedDifficulties[b.Difficulty]
+		if !ok {
+			return nil, fmt.Errorf("match has a bot of unknown difficulty %q", b.Difficulty)
+		}
+		a.Bots = append(a.Bots, AssignedBot{Side: b.Side, VanguardID: b.VanguardID, Difficulty: difficulty})
 	}
 	line, err := json.Marshal(a)
 	if err != nil {

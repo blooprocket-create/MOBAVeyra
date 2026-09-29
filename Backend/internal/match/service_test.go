@@ -59,7 +59,7 @@ var ctx = context.Background()
 
 // fixturePractice is practice as the fixture configures it.
 var fixturePractice = PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: SideA,
-	Bots: []Bot{{Side: SideB, VanguardID: "cairn"}, {Side: SideB, VanguardID: "bryn"}}}
+	Bots: []Bot{{Side: SideB, VanguardID: "cairn", Difficulty: BotBeginner}, {Side: SideB, VanguardID: "bryn", Difficulty: BotIntermediate}}}
 
 // standard asks for a casual match with these seats.
 func standard(seats ...Seat) Spec {
@@ -212,7 +212,7 @@ func TestTheAssignmentCarriesTheModeRulesAndVanguards(t *testing.T) {
 	seats := []Seat{{AccountID: "acc-1", Side: SideA, VanguardID: "oriel"}, {AccountID: "acc-2", Side: SideB, VanguardID: "bryn"}}
 	m := f.create(t, seats...)
 	a := f.assignment(t, m.ID)
-	if a.SchemaVersion != 2 || a.Mode != "casual_select" || a.Rules != "Standard" || len(a.HostAccountID) != 0 {
+	if a.SchemaVersion != AssignmentSchemaVersion || a.Mode != "casual_select" || a.Rules != "Standard" || len(a.HostAccountID) != 0 {
 		t.Fatalf("wrong assignment header: %+v", a)
 	}
 	if a.Bots == nil || len(a.Bots) != 0 {
@@ -243,7 +243,7 @@ func TestAPracticeMatchIsItsHostAndTheConfiguredBots(t *testing.T) {
 	if a.Rules != "Practice" || len(a.HostAccountID) != 1 || a.HostAccountID[0] != "acc-1" || a.Participants[0].VanguardID != "qazharr" {
 		t.Fatalf("practice assignment: %+v", a)
 	}
-	want := []AssignedBot{{Side: SideB, VanguardID: "cairn"}, {Side: SideB, VanguardID: "bryn"}}
+	want := []AssignedBot{{Side: SideB, VanguardID: "cairn", Difficulty: "Beginner"}, {Side: SideB, VanguardID: "bryn", Difficulty: "Intermediate"}}
 	if len(a.Participants) != 1 || len(a.Bots) != len(want) || a.Bots[0] != want[0] || a.Bots[1] != want[1] {
 		t.Fatalf("the bots are no participants, and go to the server in order: %+v %+v", a.Participants, a.Bots)
 	}

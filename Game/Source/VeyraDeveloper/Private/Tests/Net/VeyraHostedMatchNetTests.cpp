@@ -5,12 +5,13 @@
 
 #if ENABLE_PIE_NETWORK_TEST
 
-#include "Bots/VeyraBotWanderComponent.h"
+#include "Brain/VeyraBotBrainComponent.h"
 #include "EngineUtils.h"
 #include "Join/VeyraMatchHostSubsystem.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "Tests/Net/VeyraVanguardNetTestHelpers.h"
+#include "Tuning/VeyraBotsTuningSubsystem.h"
 #include "Tuning/VeyraTuning.h"
 #include "VeyraJoinRules.h"
 #include "VeyraPlayerState.h"
@@ -192,7 +193,7 @@ namespace VeyraNetTests
 
 	// Veyra.Net.HostedPractice.*: a practice match's host, and only its host, ends it; it ends
 	// host-ended with no winner, and every client sees the phase change (ADR-010 §3, §7). Its bots join
-	// their sides as their Vanguards and wander near the middle. The second client stands in for anyone
+	// their sides as their Vanguards, each with a brain for its seat's lane and its difficulty. The second client stands in for anyone
 	// who is not the host.
 	NETWORK_TEST_CLASS(HostedPractice, "Veyra.Net")
 	{
@@ -222,7 +223,8 @@ namespace VeyraNetTests
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
 			Tickets = MakeUnique<FScopedTestTickets>();
-			PracticeBots = { { EVeyraTeam::B, ContentId(TEXT("cairn")) }, { EVeyraTeam::B, ContentId(TEXT("bryn")) } };
+			PracticeBots = { { EVeyraTeam::B, ContentId(TEXT("cairn")), EVeyraBotDifficulty::Beginner },
+				{ EVeyraTeam::B, ContentId(TEXT("bryn")), EVeyraBotDifficulty::Intermediate } };
 			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::B }, EVeyraMatchRules::Practice,
 				TArray<FVeyraContentId>{}, PracticeBots);
 			ASSERT_THAT(IsTrue(Assignment->Problems.IsEmpty(), FString::Join(Assignment->Problems, TEXT(" | "))));
@@ -282,35 +284,24 @@ namespace VeyraNetTests
 			return Bots;
 		}
 
-		TEST_METHOD(ItsBotsJoinTheirSideAsTheirVanguardsAndWanderNearTheMiddle)
+		TEST_METHOD(ItsBotsJoinTheirSideAsTheirVanguardsWithTheirBrains)
 		{
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
 				.UntilServer(TEXT("Each bot's Vanguard is on the map"), [this](FState& State) {
 					const TArray<const AVeyraPlayerState*> Bots = BotsOf(State.World);
 					return Bots.Num() == PracticeBots.Num() && !Bots.ContainsByPredicate([](const AVeyraPlayerState* Bot) { return !Bot->GetPawn(); });
 				})
-				.ThenServer(TEXT("They play their sides and Vanguards, and walk toward a point near the middle"), [this](FState& State) {
+				.ThenServer(TEXT("They play their sides and Vanguards, each with a brain for its seat"), [this](FState& State) {
 					const TArray<const AVeyraPlayerState*> Bots = BotsOf(State.World);
+					const TArray<EVeyraLane>& Lanes = UVeyraBotsTuningSubsystem::Get().Lanes;
 					for (int32 Index = 0; Index < Bots.Num(); ++Index)
 					{
 						ASSERT_THAT(IsTrue(Bots[Index]->GetVeyraTeam() == PracticeBots[Index].Side));
 						ASSERT_THAT(IsTrue(Bots[Index]->GetVanguardId() == PracticeBots[Index].VanguardId));
+						const UVeyraBotBrainComponent* Brain = Bots[Index]->GetVanguardController()->FindComponentByClass<UVeyraBotBrainComponent>();
+						ASSERT_THAT(IsNotNull(Brain));
+						ASSERT_THAT(IsTrue(Brain->GetDifficulty() == PracticeBots[Index].Difficulty && Brain->GetLane() == Lanes[Index % Lanes.Num()]));
 					}
-					FVector Middle = FVector::ZeroVector;
-					int32 Starts = 0;
-					for (TActorIterator<AVeyraTeamStart> It(State.World); It; ++It)
-					{
-						Middle += It->GetActorLocation();
-						++Starts;
-					}
-					Middle /= Starts;
-					AVeyraVanguardController* Controller = Bots[0]->GetVanguardController();
-					UVeyraBotWanderComponent* Wander = Controller->FindComponentByClass<UVeyraBotWanderComponent>();
-					ASSERT_THAT(IsNotNull(Wander));
-					const TOptional<FVector> Point = Wander->Wander();
-					ASSERT_THAT(IsTrue(Point.IsSet()));
-					ASSERT_THAT(IsTrue(FVector::Dist2D(Point.GetValue(), Middle) <= Tuning->Tuning.Bots.WanderRadius));
-					ASSERT_THAT(IsTrue(Controller->GetMoveOrder().IsSet(), TEXT("the point lies on the walkable floor")));
 				})
 				.UntilClients(TEXT("Every client sees the bots' Vanguards"), [this](FState& State) {
 					int32 Seen = 0;

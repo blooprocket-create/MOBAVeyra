@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "senses": {
+    "provenance": "Provisional",
+    "sightRadius": 1400,
+    "safeRadius": 1600,
+    "towerMargin": 200
+  },
+  "positioning": {
+    "provenance": "Provisional",
+    "followDistance": 200,
+    "holdTolerance": 150,
+    "pushRange": 500,
+    "leaveFountainHealthFraction": 0.9
+  },
+  "difficulties": {
+    "beginner": {
+      "provenance": "Provisional",
+      "thinkSeconds": 0.5,
+      "reactionSeconds": 1.0,
+      "lastHitChance": 0.5,
+      "lastHitLead": 1.2,
+      "pushChance": 0.5,
+      "castChance": 0.35,
+      "aim": "AtTarget",
+      "retreatHealthFraction": 0.35,
+      "fightHealthMargin": -0.1,
+      "shopRecallGold": 900,
+      "fluxbornTolerance": 1
+    },
+    "intermediate": {
+      "provenance": "Provisional",
+      "thinkSeconds": 0.25,
+      "reactionSeconds": 0.4,
+      "lastHitChance": 0.85,
+      "lastHitLead": 1.5,
+      "pushChance": 0.8,
+      "castChance": 0.75,
+      "aim": "Lead",
+      "retreatHealthFraction": 0.25,
+      "fightHealthMargin": -0.2,
+      "shopRecallGold": 800,
+      "fluxbornTolerance": 2
+    }
+  },
+  "lanes": ["Mid", "Top", "Bottom", "Bottom", "Top"],
+  "vanguards": {
+    "cairn": {
+      "provenance": "Provisional",
+      "build": ["swift_boots", "colossus_temper", "reinforced_chassis", "siege_frame", "spellguard_plate"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "cairn_iron_grasp": "Engage",
+        "cairn_crushing_hold": "Damage",
+        "cairn_immovable": "Defend",
+        "cairn_burden_of_the_depths": "Damage"
+      }
+    },
+    "qazharr": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "cycler_core", "colossus_temper", "razorwheel", "striker_assembly"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "qazharr_heavy_hand": "Empower",
+        "qazharr_weather_it": "Defend",
+        "qazharr_boarding_rush": "Engage",
+        "qazharr_no_quarter": "Damage"
+      }
+    },
+    "oriel": {
+      "provenance": "Provisional",
+      "build": ["swift_boots", "crown_of_the_crucible", "arc_reactor", "nullglass_shard", "spellguard_plate"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "oriel_splinter_lance": "Damage",
+        "oriel_shattered_sky": "Damage",
+        "oriel_mirror_veil": "Defend",
+        "oriel_final_radiance": "Damage"
+      }
+    },
+    "bryn": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "cycler_core", "razorwheel", "striker_assembly", "colossus_temper"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "bryn_breach_round": "Empower",
+        "bryn_sounding_flare": "Damage",
+        "bryn_kickback": "Escape",
+        "bryn_last_broadside": "Damage"
+      }
+    }
+  }
+}

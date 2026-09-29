@@ -24,6 +24,7 @@ Source/
 ├── VeyraWorld/
 ├── VeyraVision/
 ├── VeyraMatch/
+├── VeyraBots/
 ├── VeyraVanguards/
 ├── VeyraServices/
 ├── VeyraUI/
@@ -208,11 +209,21 @@ Since M4 it also owns how a hosted match admits and ends (ADR-007):
 - `UVeyraMatchHostSubsystem`, whose input is the server's assignment and whose outputs are "accepting players" and "match ended";
 - the Ended phase, the developer end-match request, and abandonment.
 
-Since M6 it adds an assigned practice match's bots, whose behaviour is `Bots/` (ADR-010 §7): for now they wander near the middle of the map as targets.
+Since M6 it adds an assigned practice match's bots (ADR-010 §7). Since M9 it seats them as playing bots with their difficulty and announces each through `UVeyraMatchEvents::OnBotAdded` (`Bots/`), so VeyraBots can give it a brain; its order paths take the participant, so a bot orders as a player does ([ADR-013](Docs/ADR/ADR-013-ai-vanguards.md) §2–§3).
 
 Since M8 it routes the shop and holds Recall ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §7–§8): the fountain check tells `UVeyraShopSubsystem` who stands at their fountain, deaths deliver the queue, and the player controller forwards buy, sell, undo, cancel and item-slot requests. `Recall/` holds the channel on each PlayerState; the game mode starts it (B), ends it on every order the Vanguard takes, and brings the Vanguard home.
 
 It knows nothing about the backend; `VeyraServices` connects the two.
+
+### VeyraBots
+
+AI Vanguards ([ADR-013](Docs/ADR/ADR-013-ai-vanguards.md)), in their own Autonomy layer above Match; nothing depends on them.
+
+- `Brain/`: what a bot knows (`VeyraBotSenses` into `FVeyraBotView`, plain data), how it decides (`VeyraBotRules`, pure and tested per priority: shop, rank, retreat and recall, fight, last-hit, siege, hold in lane), how each ability is aimed from its archetype (`VeyraBotAbilities`), where it stands in its lane (`VeyraBotLane`), and the brain component that thinks on a world-time timer and orders through the game mode;
+- `UVeyraBotSubsystem`, which gives each bot Match announces its brain;
+- `Tuning/`: `Game/Tuning/Bots.json`, the Beginner and Intermediate behaviours, the lane of each seat, and each released Vanguard's build, skill priority and ability uses.
+
+Bots think only on the server.
 
 ### VeyraVanguards
 
@@ -298,6 +309,8 @@ Abilities / Items / Flux / World / Vision
 Vanguards (content)
    ↓
 Match
+   ↓
+Bots (AI Vanguards)
    ↓
 Services (the backend client)
    ↓

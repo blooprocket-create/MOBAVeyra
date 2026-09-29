@@ -271,7 +271,7 @@ if (-not $Direct) {
         Write-Host '  1. Choose a development account and press Play. The launcher closes once the game has signed in.'
         Write-Host '  2. A new account chooses its starter Vanguard, once.'
         Write-Host '  3. Play, Custom, Practice; then pick a Vanguard and Lock In before the countdown ends.'
-        Write-Host '  4. In the match: practice bots wander near the middle of the map as targets; they do not fight back.'
+        Write-Host '  4. In the match: the practice bots play their lanes as Beginner AI: they last-hit, fight, retreat, recall and buy items.'
         Write-Host '     The panel at the bottom left says what your passive and each ability do. Controls:'
         Write-MatchControls -Indent '       '
         Write-Host '       Esc                  the menu: Resume, or End Custom Match to leave'

@@ -73,6 +73,10 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Items", "/items/*/attunement/*", "Items", ("/weightOfWar", "/overcharge", "/spoolUp", "/overcycle")),
     ("Items", "/items/*/active/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Items", "/consumables/#", "Items", ("/items",)),
+    # Bots play Vanguards, build from the catalog and know what each ability of the kit is for.
+    ("Bots", "/vanguards/#", "Vanguards", ("/vanguards",)),
+    ("Bots", "/vanguards/*/build/*", "Items", ("/items",)),
+    ("Bots", "/vanguards/*/abilities/#", "Abilities", ABILITY_ARCHETYPE_MAPS),
 ]
 
 # Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.

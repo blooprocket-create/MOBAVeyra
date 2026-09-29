@@ -52,7 +52,7 @@ func newMatchFixture(t *testing.T, names ...string) *matchFixture {
 		Modes: map[string]match.Mode{"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5}},
 		Maps:  match.FakeMaps,
 		Practice: match.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA,
-			Bots: []match.Bot{{Side: match.SideB, VanguardID: "cairn"}, {Side: match.SideB, VanguardID: "bryn"}}},
+			Bots: []match.Bot{{Side: match.SideB, VanguardID: "cairn", Difficulty: match.BotBeginner}, {Side: match.SideB, VanguardID: "bryn", Difficulty: match.BotIntermediate}}},
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,
 		RemoveServerAfter: time.Minute,
@@ -161,7 +161,7 @@ func TestPracticeMatchInPostgres(t *testing.T) {
 	if err != nil || stored.Rules != match.RulesPractice || stored.HostAccountID != host || stored.Participants[0].VanguardID != "oriel" {
 		t.Fatalf("stored practice match: %+v %v", stored, err)
 	}
-	if len(stored.Bots) != 2 || stored.Bots[0] != (match.Bot{Side: match.SideB, VanguardID: "cairn"}) || stored.Bots[1].VanguardID != "bryn" {
+	if len(stored.Bots) != 2 || stored.Bots[0] != (match.Bot{Side: match.SideB, VanguardID: "cairn", Difficulty: match.BotBeginner}) || stored.Bots[1].Difficulty != match.BotIntermediate {
 		t.Fatalf("stored bots, in order: %+v", stored.Bots)
 	}
 	cred := f.credential(t, m.ID)

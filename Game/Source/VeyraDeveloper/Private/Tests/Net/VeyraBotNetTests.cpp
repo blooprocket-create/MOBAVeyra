@@ -6,6 +6,7 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "AbilitySystemComponent.h"
+#include "Bots/VeyraMatchEvents.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "VeyraPlayerState.h"
@@ -64,6 +65,29 @@ namespace VeyraNetTests
 				.UntilClients(TEXT("Every client sees the bot and its Vanguard"), [this](FState& State) {
 					const AVeyraVanguardCharacter* Body = FindVanguard(State.World, BotId);
 					return Body && Body->GetPlayerState() && Body->GetPlayerState()->IsABot();
+				});
+		}
+
+		TEST_METHOD(PlayingBotsAreAnnouncedWithTheirSeats)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Seat two playing bots on one side"), [this](FState& State) {
+					TArray<TPair<AVeyraPlayerState*, FVeyraBotSeat>> Announced;
+					UVeyraMatchEvents* Events = State.World->GetSubsystem<UVeyraMatchEvents>();
+					ASSERT_THAT(IsNotNull(Events));
+					const FDelegateHandle Handle = Events->OnBotAdded.AddLambda([&Announced](AVeyraPlayerState& Bot, const FVeyraBotSeat& Seat) {
+						Announced.Emplace(&Bot, Seat);
+					});
+					const FVeyraContentId Vanguard = TestVanguardId();
+					AVeyraPlayerState* First = GameModeOf(State.World)->AddPlayingBot(TEXT("First"), EVeyraTeam::B, Vanguard, EVeyraBotDifficulty::Beginner);
+					AVeyraPlayerState* Second = GameModeOf(State.World)->AddPlayingBot(TEXT("Second"), EVeyraTeam::B, Vanguard, EVeyraBotDifficulty::Intermediate);
+					// A target seated by AddBotParticipant is not announced: it gets no brain.
+					const AVeyraPlayerState* Target = GameModeOf(State.World)->AddBotParticipant(TEXT("Target"));
+					Events->OnBotAdded.Remove(Handle);
+					ASSERT_THAT(IsTrue(First && Second && Target && Announced.Num() == 2));
+					ASSERT_THAT(IsTrue(Announced[0].Key == First && Announced[0].Value.Seat == 0 && Announced[0].Value.Difficulty == EVeyraBotDifficulty::Beginner));
+					ASSERT_THAT(IsTrue(Announced[1].Key == Second && Announced[1].Value.Seat == 1 && Announced[1].Value.Difficulty == EVeyraBotDifficulty::Intermediate));
+					ASSERT_THAT(IsTrue(Announced[1].Value.Side == EVeyraTeam::B && Announced[1].Value.Vanguard == Vanguard));
 				});
 		}
 

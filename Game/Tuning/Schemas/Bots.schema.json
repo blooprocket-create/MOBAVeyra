@@ -1,0 +1,127 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Bots tuning",
+  "description": "How AI Vanguards play, owned by the Bots domain (ADR-013 §5). Canon leaves AI logic open (Modes & Access Bible §4) and names two behaviours, Beginner and Intermediate (Custom Matches Bible §3); every value here is a League-like answer for playtests. VeyraBots binds it to FVeyraBotsTuning and checks what the schema cannot express.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "senses", "positioning", "difficulties", "lanes", "vanguards"],
+  "definitions": {
+    "provenance": {
+      "description": "Where these values come from (ADR-008 §7).",
+      "type": "string",
+      "enum": ["Provisional", "Canon", "Reviewed"]
+    },
+    "contentId": {
+      "description": "A content ID.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+    },
+        "difficulty": {
+      "description": "One behaviour (Custom Matches Bible §3). It changes how a bot plays, never the rules (Modes & Access Bible §4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "thinkSeconds", "reactionSeconds", "lastHitChance", "lastHitLead", "pushChance", "castChance", "aim", "retreatHealthFraction", "fightHealthMargin", "shopRecallGold", "fluxbornTolerance"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "thinkSeconds": { "description": "Seconds between a bot's decisions, on match time.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "reactionSeconds": { "description": "How long an enemy Vanguard must be in sight before the bot fights it.", "type": "number", "minimum": 0 },
+        "lastHitChance": { "description": "The chance, at each decision, that the bot goes for a Fluxborn its basic attack would kill.", "type": "number", "minimum": 0, "maximum": 1 },
+        "lastHitLead": { "description": "How many basic attacks' damage a Fluxborn may have left when the bot goes for the last hit: at least 1, and more to cover walking up and winding up.", "type": "number", "minimum": 1 },
+        "pushChance": { "description": "The chance, at each decision with nothing to last-hit, that the bot shoves its wave by attacking the weakest enemy Fluxborn near it.", "type": "number", "minimum": 0, "maximum": 1 },
+        "castChance": { "description": "The chance, at each decision, that the bot casts an ability that is ready and useful.", "type": "number", "minimum": 0, "maximum": 1 },
+        "aim": { "description": "Where the bot aims a skillshot or area at a moving target: where it is (AtTarget), or where it will be (Lead).", "type": "string", "enum": ["AtTarget", "Lead"] },
+        "retreatHealthFraction": { "description": "Below this fraction of Max Health the bot retreats, and recalls once it is safe.", "type": "number", "minimum": 0, "maximum": 1 },
+        "fightHealthMargin": { "description": "The bot fights an enemy Vanguard only while its own Health fraction is at least the enemy's plus this margin.", "type": "number", "minimum": -1, "maximum": 1 },
+        "shopRecallGold": { "description": "With this much Gold and its next purchase affordable, a bot recalls to shop when no enemy Vanguard is near (League's 'back to spend').", "type": "number", "minimum": 0 },
+        "fluxbornTolerance": { "description": "The most Fluxborn of an enemy Vanguard's side within their aggression response range (World.json fluxborn.ai) of it when the bot starts a fight with it; with more, the hit would turn them on the bot (Battleground Bible §19).", "type": "integer", "minimum": 0 }
+      }
+    },
+    "vanguard": {
+      "description": "How bots play one Vanguard.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "build", "skillPriority", "abilities"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "build": {
+          "description": "The items the bot works toward, in order. It buys the next one when it can afford it, or the dearest affordable part of its recipe. None may be part of another's recipe, or the later would take it apart.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/contentId" }
+        },
+        "skillPriority": {
+          "description": "The order in which the bot ranks Q, W and E; it ranks R whenever it may.",
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "string", "enum": ["Q", "W", "E"] }
+        },
+        "abilities": {
+          "description": "What each ability of the kit is for: Damage (cast at an enemy Vanguard in reach while fighting), Engage (open a favourable fight), Defend (cast on itself while fighting), Escape (cast at the threat while retreating) or Empower (cast before a basic attack on an enemy Vanguard).",
+          "type": "object",
+          "patternProperties": {
+            "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "type": "string", "enum": ["Damage", "Engage", "Defend", "Escape", "Empower"] }
+          },
+          "additionalProperties": false
+        }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [1]
+    },
+    "senses": {
+      "description": "What a bot notices (ADR-013 §4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "sightRadius", "safeRadius", "towerMargin"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "sightRadius": { "description": "How far, in units, a bot sees units around it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "safeRadius": { "description": "A bot recalls only when no enemy Vanguard is this near, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "towerMargin": { "description": "How far outside an enemy tower's range, in units, a bot stays when it may not dive.", "type": "number", "minimum": 0 }
+      }
+    },
+    "positioning": {
+      "description": "Where a bot stands in its lane (ADR-013 §4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "followDistance", "holdTolerance", "pushRange", "leaveFountainHealthFraction"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "followDistance": { "description": "How far behind its wave's front, toward its own base, a bot holds, in units.", "type": "number", "minimum": 0 },
+        "holdTolerance": { "description": "How far from its spot a bot may stand before it walks back, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "pushRange": { "description": "How near, edge to edge, an enemy Fluxborn must be for a bot to push with it, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "leaveFountainHealthFraction": { "description": "A bot that retreated heals at its fountain to this fraction of Max Health before it goes back.", "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "difficulties": {
+      "description": "The two behaviours canon defines (Custom Matches Bible §3).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["beginner", "intermediate"],
+      "properties": {
+        "beginner": { "$ref": "#/definitions/difficulty" },
+        "intermediate": { "$ref": "#/definitions/difficulty" }
+      }
+    },
+    "lanes": {
+      "description": "The lane each seat plays, by the bot's place among its side's bots (League's one top, one mid, two bottom; the fifth plays top while there is no jungle).",
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "enum": ["Top", "Mid", "Bottom"] }
+    },
+    "vanguards": {
+      "description": "How bots play each Vanguard, by Vanguard ID. Every released Vanguard needs an entry.",
+      "type": "object",
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/vanguard" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

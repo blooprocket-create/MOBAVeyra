@@ -472,7 +472,7 @@ namespace VeyraServicesTests
 			const FString Practice = Example
 				.Replace(TEXT("\"rules\":\"Standard\",\"hostAccountId\":[]"), TEXT("\"rules\":\"Practice\",\"hostAccountId\":[\"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee\"]"),
 					ESearchCase::CaseSensitive)
-				.Replace(TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"bryn\"},{\"side\":\"A\",\"vanguardId\":\"qazharr\"}]"),
+				.Replace(TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"bryn\",\"difficulty\":\"Intermediate\"},{\"side\":\"A\",\"vanguardId\":\"qazharr\",\"difficulty\":\"Beginner\"}]"),
 					ESearchCase::CaseSensitive);
 			ASSERT_THAT(IsTrue(Practice.Contains(TEXT("\"Practice\"")) && Practice.Contains(TEXT("\"bryn\""))));
 			FVeyraServerAssignment Parsed;
@@ -481,15 +481,17 @@ namespace VeyraServicesTests
 			ASSERT_THAT(IsTrue(Parsed.Match.Rules == EVeyraMatchRules::Practice));
 			ASSERT_THAT(AreEqual(Parsed.Match.HostAccountId, FString(TEXT("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"))));
 			ASSERT_THAT(AreEqual(Parsed.Match.Bots.Num(), 2));
-			ASSERT_THAT(IsTrue(Parsed.Match.Bots[0].Side == EVeyraTeam::B && Parsed.Match.Bots[0].VanguardId.ToString() == TEXT("bryn")));
-			ASSERT_THAT(IsTrue(Parsed.Match.Bots[1].Side == EVeyraTeam::A && Parsed.Match.Bots[1].VanguardId.ToString() == TEXT("qazharr")));
+			ASSERT_THAT(IsTrue(Parsed.Match.Bots[0].Side == EVeyraTeam::B && Parsed.Match.Bots[0].VanguardId.ToString() == TEXT("bryn")
+				&& Parsed.Match.Bots[0].Difficulty == EVeyraBotDifficulty::Intermediate));
+			ASSERT_THAT(IsTrue(Parsed.Match.Bots[1].Side == EVeyraTeam::A && Parsed.Match.Bots[1].VanguardId.ToString() == TEXT("qazharr")
+				&& Parsed.Match.Bots[1].Difficulty == EVeyraBotDifficulty::Beginner));
 		}
 
 		TEST_METHOD(RefusesABrokenAssignment)
 		{
 			const TArray<TPair<const TCHAR*, const TCHAR*>> Breaks = {
-				// A version 1 assignment carries no Vanguards; this build reads version 2 only.
-				{ TEXT("\"schemaVersion\":2"), TEXT("\"schemaVersion\":1") },
+				// A version 2 assignment carries no bot difficulties; this build reads version 3 only.
+				{ TEXT("\"schemaVersion\":3"), TEXT("\"schemaVersion\":2") },
 				{ TEXT("\"rules\":\"Standard\""), TEXT("\"rules\":\"Draft\"") },
 				{ TEXT("\"mode\":\"casual_select\""), TEXT("\"mode\":\"Casual Select\"") },
 				{ TEXT("\"hostAccountId\":[]"), TEXT("\"hostAccountId\":[\"a\",\"b\"]") },
@@ -500,8 +502,10 @@ namespace VeyraServicesTests
 				{ TEXT("\"backendUrl\":\"http://backend:8080\""), TEXT("\"backendUrl\":\"http://backend:8080/v1\"") },
 				{ TEXT("\"displayName\":\"DevOne\""), TEXT("\"displayName\":\"Dev\\u0007One\"") },
 				{ TEXT("\"matchId\""), TEXT("\"extra\":1,\"matchId\"") },
-				{ TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"Cairn\"}]") },
-				{ TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"C\",\"vanguardId\":\"cairn\"}]") },
+				{ TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"Cairn\",\"difficulty\":\"Beginner\"}]") },
+				{ TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"C\",\"vanguardId\":\"cairn\",\"difficulty\":\"Beginner\"}]") },
+				{ TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"cairn\"}]") },
+				{ TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"cairn\",\"difficulty\":\"Expert\"}]") },
 				{ TEXT(",\"bots\":[]"), TEXT("") },
 			};
 			for (const TPair<const TCHAR*, const TCHAR*>& Break : Breaks)

@@ -51,6 +51,19 @@ enum class EVeyraOrderRejection : uint8
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraOrderRejection Rejection);
 
+/**
+ * How an AI Vanguard plays (Custom Matches Bible §3; ADR-013 §5–§6). Difficulty changes behaviour,
+ * never the rules (Modes & Access Bible §4).
+ */
+UENUM()
+enum class EVeyraBotDifficulty : uint8
+{
+	Beginner,
+	Intermediate,
+};
+
+VEYRAMATCH_API const TCHAR* LexToString(EVeyraBotDifficulty Difficulty);
+
 /** Which rules a match plays by (ADR-010 §7, §9). */
 UENUM()
 enum class EVeyraMatchRules : uint8

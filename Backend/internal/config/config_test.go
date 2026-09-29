@@ -25,7 +25,7 @@ const validJSON = `{
   ],
   "vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},
   "customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A", "pickDuration": "30s", "playersPerSide": 5,
-    "bots": [{"side": "B", "vanguardId": "cairn"}, {"side": "B", "vanguardId": "bryn"}]},
+    "bots": [{"side": "B", "vanguardId": "cairn", "difficulty": "beginner"}, {"side": "B", "vanguardId": "bryn", "difficulty": "intermediate"}]},
   "matchmaking": {"interval": "1s", "searchLimit": 10000},
   "matchFound": {"acceptDuration": "15s"},
   "casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},
@@ -57,7 +57,7 @@ func TestParseValid(t *testing.T) {
 	if c.Matches.Maps != (Maps{Play: "/Game/Maps/L_Play", Development: "/Game/Maps/L_Dev"}) {
 		t.Fatalf("maps not parsed: %+v", c.Matches.Maps)
 	}
-	if p := c.CustomPractice; p.PlayersPerSide != 5 || len(p.Bots) != 2 || p.Bots[1] != (PracticeBot{Side: "B", VanguardID: "bryn"}) {
+	if p := c.CustomPractice; p.PlayersPerSide != 5 || len(p.Bots) != 2 || p.Bots[1] != (PracticeBot{Side: "B", VanguardID: "bryn", Difficulty: "intermediate"}) {
 		t.Fatalf("practice bots not parsed: %+v", p)
 	}
 	if c.Matchmaking.Interval != time.Second || c.Matchmaking.SearchLimit != 10000 {
@@ -117,18 +117,20 @@ func TestParseRejects(t *testing.T) {
 		"no rotation slots":         {`"slots": 12`, `"slots": 0`, "vanguards.rotation.slots must be at least 1"},
 		"bad stand-in":              {`"standIn": "allReleased"`, `"standIn": "everything"`, "vanguards.rotation.standIn must be"},
 		"no custom practice": {`"customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A", "pickDuration": "30s", "playersPerSide": 5,
-    "bots": [{"side": "B", "vanguardId": "cairn"}, {"side": "B", "vanguardId": "bryn"}]},`, ``, "customPractice is required"},
+    "bots": [{"side": "B", "vanguardId": "cairn", "difficulty": "beginner"}, {"side": "B", "vanguardId": "bryn", "difficulty": "intermediate"}]},`, ``, "customPractice is required"},
 		"practice missing side":   {`"hostSide": "A", `, ``, "customPractice.hostSide is required"},
 		"practice no pick time":   {`, "pickDuration": "30s"`, ``, "customPractice.pickDuration is required"},
 		"practice no side size":   {`, "playersPerSide": 5`, ``, "customPractice.playersPerSide is required"},
 		"practice zero side size": {`"playersPerSide": 5`, `"playersPerSide": 0`, "customPractice.playersPerSide must be at least 1"},
 		"practice no bot list": {`,
-    "bots": [{"side": "B", "vanguardId": "cairn"}, {"side": "B", "vanguardId": "bryn"}]`, ``, "customPractice.bots is required"},
-		"bot on no side":            {`{"side": "B", "vanguardId": "cairn"}`, `{"side": "C", "vanguardId": "cairn"}`, "customPractice.bots[0].side must be"},
-		"bot without a Vanguard":    {`{"side": "B", "vanguardId": "cairn"}`, `{"side": "B"}`, "customPractice.bots[0].vanguardId is required"},
+    "bots": [{"side": "B", "vanguardId": "cairn", "difficulty": "beginner"}, {"side": "B", "vanguardId": "bryn", "difficulty": "intermediate"}]`, ``, "customPractice.bots is required"},
+		"bot on no side":            {`{"side": "B", "vanguardId": "cairn"`, `{"side": "C", "vanguardId": "cairn"`, "customPractice.bots[0].side must be"},
+		"bot without a Vanguard":    {`{"side": "B", "vanguardId": "cairn", `, `{"side": "B", `, "customPractice.bots[0].vanguardId is required"},
+		"bot without a difficulty":  {`, "difficulty": "beginner"`, ``, "customPractice.bots[0].difficulty is required"},
+		"bot unknown difficulty":    {`"difficulty": "intermediate"`, `"difficulty": "expert"`, "customPractice.bots[1].difficulty must be"},
 		"bot unreleased Vanguard":   {`"vanguardId": "bryn"`, `"vanguardId": "raska"`, "customPractice.bots[1].vanguardId must be in vanguards.released"},
 		"bots overfill a side":      {`"playersPerSide": 5`, `"playersPerSide": 1`, "put 2 Vanguards on side B, the host included, more than customPractice.playersPerSide (1)"},
-		"bot with extra field":      {`{"side": "B", "vanguardId": "cairn"}`, `{"side": "B", "vanguardId": "cairn", "level": 3}`, "unknown field"},
+		"bot with extra field":      {`"difficulty": "beginner"}`, `"difficulty": "beginner", "level": 3}`, "unknown field"},
 		"no selection":              {`"selection": {"tickInterval": "1s", "startingTimeout": "60s"},`, ``, "selection is required"},
 		"zero tick":                 {`"tickInterval": "1s"`, `"tickInterval": "0s"`, "selection.tickInterval must be positive"},
 		"starting before allocator": {`"startingTimeout": "60s"`, `"startingTimeout": "30s"`, "must exceed allocator.docker.requestTimeout"},

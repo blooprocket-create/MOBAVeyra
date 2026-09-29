@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Content/VeyraContentId.h"
+#include "Engine/TimerHandle.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "Teams/VeyraTeam.h"
@@ -44,6 +45,13 @@ public:
 	 */
 	void RewardStructureDestroyed(const FVeyraDeathEvent& Death, EVeyraTeam Team);
 
+	/**
+	 * Server: starts every participant's passive Gold as the match goes live (author ruling,
+	 * 2026-09-28): from Economy.json passiveGold.startSeconds on, a payment each interval, dead or
+	 * alive, until Stop. It runs on world time, so a pause holds it.
+	 */
+	void StartPassiveGold();
+
 	/** Server: pays nothing more, as when the match ends (§8.2). */
 	void Stop();
 
@@ -65,6 +73,7 @@ private:
 
 	void OnDeath(const FVeyraDeathEvent& Death);
 	void RewardVanguardKill(const FVeyraDeathEvent& Death);
+	void PayPassiveGold();
 
 	/** Every participant: the PlayerStates with Gold and progression. */
 	TArray<FRecipient> Recipients() const;
@@ -80,6 +89,7 @@ private:
 	bool IsServer() const;
 
 	FDelegateHandle DeathHandle;
+	FTimerHandle PassiveGoldTimer;
 	bool bFirstBloodTaken = false;
 	bool bFirstStructureTaken = false;
 	bool bStopped = false;

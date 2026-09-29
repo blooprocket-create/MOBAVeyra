@@ -34,5 +34,13 @@ public class VeyraTarget : TargetRules
 		// Push-model replication (ADR-006 §5). The engine compiles it only into editor builds
 		// unless a target asks for it.
 		Target.bWithPushModel = true;
+
+		// A monolithic Win64 link outgrew the linker's default 4 KB PDB pages (LNK1318, "LIMIT (12)"),
+		// as UnrealBuildTool warns monolithic game builds may. Larger pages allow a larger PDB; the
+		// option is the linker's alone, so nothing recompiles.
+		if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			Target.WindowsPlatform.PdbPageSize = 8192;
+		}
 	}
 }

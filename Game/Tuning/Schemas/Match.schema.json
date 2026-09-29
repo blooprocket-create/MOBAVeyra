@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Match domain (Match Flow Bible, Battleground Bible). VeyraMatch binds it to FVeyraMatchTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "orders", "bots", "developerMatch"],
+  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "orders", "developerMatch"],
   "properties": {
     "schemaVersion": {
-      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery; version 5 adds Recall.",
+      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery; version 5 adds Recall; version 6 moves how bots play to Bots.json (ADR-013 §5).",
       "type": "integer",
       "minimum": 1,
-      "enum": [5]
+      "enum": [6]
     },
     "teams": {
       "description": "The two sides of a match.",
@@ -177,26 +177,6 @@
           "description": "How close, in units, a Vanguard must come to its destination to have arrived.",
           "type": "number",
           "minimum": 0
-        }
-      }
-    },
-    "bots": {
-      "description": "How a match's AI participants behave (Custom Matches Bible §1; ADR-010 §7). A practice match's bots are targets: they wander near the middle of the map and do not fight back. Provisional values.",
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["wanderIntervalSeconds", "wanderRadius"],
-      "properties": {
-        "wanderIntervalSeconds": {
-          "description": "Seconds between a bot's choices of where to walk.",
-          "type": "number",
-          "minimum": 0,
-          "exclusiveMinimum": true
-        },
-        "wanderRadius": {
-          "description": "How far, in units, from the point midway between the two sides' starts a bot may walk.",
-          "type": "number",
-          "minimum": 0,
-          "exclusiveMinimum": true
         }
       }
     },

@@ -83,8 +83,8 @@ func (t matchTx) CreateMatch(m match.Match) error {
 		}
 	}
 	for i, b := range m.Bots {
-		if _, err := t.q.Exec(t.ctx, `INSERT INTO match.bots (match_id, bot_order, side, vanguard_id) VALUES ($1::uuid, $2, $3, $4)`,
-			m.ID, i, string(b.Side), b.VanguardID); err != nil {
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO match.bots (match_id, bot_order, side, vanguard_id, difficulty) VALUES ($1::uuid, $2, $3, $4, $5)`,
+			m.ID, i, string(b.Side), b.VanguardID, string(b.Difficulty)); err != nil {
 			return err
 		}
 	}
@@ -261,15 +261,16 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	if err != nil {
 		return match.Match{}, err
 	}
-	rows, err = q.Query(ctx, `SELECT side, vanguard_id FROM match.bots WHERE match_id = $1::uuid ORDER BY bot_order`, id)
+	rows, err = q.Query(ctx, `SELECT side, vanguard_id, difficulty FROM match.bots WHERE match_id = $1::uuid ORDER BY bot_order`, id)
 	if err != nil {
 		return match.Match{}, err
 	}
 	m.Bots, err = pgx.CollectRows(rows, func(r pgx.CollectableRow) (match.Bot, error) {
 		var b match.Bot
-		var side string
-		err := r.Scan(&side, &b.VanguardID)
+		var side, difficulty string
+		err := r.Scan(&side, &b.VanguardID, &difficulty)
 		b.Side = match.Side(side)
+		b.Difficulty = match.BotDifficulty(difficulty)
 		return b, err
 	})
 	if err != nil {
