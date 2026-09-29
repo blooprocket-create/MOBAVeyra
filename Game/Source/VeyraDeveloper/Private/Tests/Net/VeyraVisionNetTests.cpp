@@ -5,13 +5,17 @@
 
 #if ENABLE_PIE_NETWORK_TEST
 
+#include "AbilitySystemComponent.h"
 #include "Algo/AllOf.h"
 #include "Algo/Count.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "EngineUtils.h"
 #include "Targeting/VeyraVisibility.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
+#include "VeyraCombatVerbs.h"
+#include "VeyraGameState.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
 #include "VeyraVisionSubsystem.h"
@@ -93,6 +97,30 @@ namespace VeyraNetTests
 				}
 			}
 			return false;
+		}
+
+		/** The Health this machine holds for the participant with PlayerId, or -1 if it has no participant. */
+		static double SeenHealth(const UWorld* World, int32 PlayerId)
+		{
+			const AVeyraGameState* GameState = GameStateOf(World);
+			for (const APlayerState* Candidate : GameState ? GameState->PlayerArray : TArray<TObjectPtr<APlayerState>>())
+			{
+				if (const AVeyraPlayerState* Participant = Cast<AVeyraPlayerState>(Candidate); Participant && Participant->GetPlayerId() == PlayerId)
+				{
+					return Participant->GetAbilitySystemComponent()->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute());
+				}
+			}
+			return -1.0;
+		}
+
+		/** Hits the enemy for Amount of True damage, from the observer, on the server. */
+		void HitEnemy(const FState& State, double Amount)
+		{
+			FVeyraRawDamageEvent Hit;
+			Hit.Components.Add({ EVeyraDamageType::TrueDamage, Amount });
+			AVeyraPlayerState* Attacker = ServerControllerOf(State, ObserverIndex)->GetPlayerState<AVeyraPlayerState>();
+			AVeyraPlayerState* Enemy = ServerControllerOf(State, EnemyIndex)->GetPlayerState<AVeyraPlayerState>();
+			ASSERT_THAT(IsTrue(Attacker && Enemy && VeyraCombat::DealDamage(*Attacker->GetAbilitySystemComponent(), *Enemy->GetAbilitySystemComponent(), Hit)));
 		}
 
 		/** Records each client's participant and picks the observer, bystander and enemy. */
@@ -218,6 +246,60 @@ namespace VeyraNetTests
 						ASSERT_THAT(IsFalse(HasVanguard(State.World, Participants[EnemyIndex].PlayerId)));
 					}
 				});
+		}
+
+		TEST_METHOD(AnEnemysHealthReachesOnlyThoseWhoSeeIt)
+		{
+			// A participant's data behind the fog (ADR-006 §5, ADR-016 §3): its PlayerState reaches everyone,
+			// its Health only those who see its Vanguard; out of sight, a viewer keeps what it last saw.
+			const FVector2D Observer(-SightRadius(), 0.0);
+			const FVector2D Bystander(-SightRadius(), SightRadius() / 3.0);
+			const FVector2D Far(SightRadius() * 1.5, 0.0);
+			const FVector2D Near(-SightRadius() / 2.0, 0.0);
+			const double MaxHealth = TestVanguard().BaseStats.MaxHealth;
+			constexpr double HitAmount = 50.0;
+			const auto EnemyUnseen = [this](FState& State) {
+				const AVeyraVanguardCharacter* Enemy = FindVanguard(State.World, Participants[EnemyIndex].PlayerId);
+				return Enemy && !VeyraVisibility::IsVisibleToTeam(Participants[ObserverIndex].Team, *Enemy);
+			};
+			const auto Hold = [this](FPIENetworkComponent<FState>& Chain) -> FPIENetworkComponent<FState>& {
+				return Chain.ThenServer([this](FState& State) { HoldStartRealTime = State.World->GetRealTimeSeconds(); })
+					.UntilServer(TEXT("Give it time to leak"), [this](FState& State) { return State.World->GetRealTimeSeconds() - HoldStartRealTime >= NegativeCheckRealSeconds; });
+			};
+			FPIENetworkComponent<FState>& Hidden = IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("Part the sides"), [this, Observer, Bystander, Far](FState& State) {
+					Place(State, ObserverIndex, Observer);
+					Place(State, BystanderIndex, Bystander);
+					Place(State, EnemyIndex, Far);
+				})
+				.UntilServer(TEXT("Vision loses the enemy"), EnemyUnseen)
+				.ThenServer(TEXT("Hit it out of sight"), [this, HitAmount](FState& State) { HitEnemy(State, HitAmount); })
+				.UntilClients(TEXT("Its own client sees its Health fall"), [this, MaxHealth, HitAmount](FState& State) {
+					return State.ClientIndex != EnemyIndex || SeenHealth(State.World, Participants[EnemyIndex].PlayerId) == MaxHealth - HitAmount;
+				});
+			FPIENetworkComponent<FState>& Seen = Hold(Hidden)
+				.ThenClients(TEXT("Nobody who cannot see it learned its Health"), [this, MaxHealth, HitAmount](FState& State) {
+					if (State.ClientIndex != EnemyIndex)
+					{
+						ASSERT_THAT(IsTrue(SeenHealth(State.World, Participants[EnemyIndex].PlayerId) != MaxHealth - HitAmount));
+					}
+				})
+				.ThenServer(TEXT("It walks into sight"), [this, Near](FState& State) { Place(State, EnemyIndex, Near); })
+				.UntilClients(TEXT("Every client now has its Health"), [this, MaxHealth, HitAmount](FState& State) {
+					return SeenHealth(State.World, Participants[EnemyIndex].PlayerId) == MaxHealth - HitAmount;
+				})
+				.ThenServer(TEXT("It walks away"), [this, Far](FState& State) { Place(State, EnemyIndex, Far); })
+				.UntilServer(TEXT("Vision loses it again"), EnemyUnseen)
+				.ThenServer(TEXT("Hit it again"), [this, HitAmount](FState& State) { HitEnemy(State, HitAmount); })
+				.UntilClients(TEXT("Its own client sees the second hit"), [this, MaxHealth, HitAmount](FState& State) {
+					return State.ClientIndex != EnemyIndex || SeenHealth(State.World, Participants[EnemyIndex].PlayerId) == MaxHealth - 2.0 * HitAmount;
+				});
+			Hold(Seen).ThenClients(TEXT("The others keep the Health they last saw"), [this, MaxHealth, HitAmount](FState& State) {
+				if (State.ClientIndex != EnemyIndex)
+				{
+					ASSERT_THAT(IsTrue(SeenHealth(State.World, Participants[EnemyIndex].PlayerId) == MaxHealth - HitAmount));
+				}
+			});
 		}
 	};
 }

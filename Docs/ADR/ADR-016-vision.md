@@ -70,7 +70,8 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
   - The attribute sets and the status, combat-state, cast-state and basic-attack components replicate with `COND_NetGroup`.
   - An ability-system component subclass registers the sets before their first send.
   - Each participant's group holds its teammates and its current observers. An observer who loses sight keeps the last value it saw.
-  - Gated subobjects also join the replay group, since the replay driver ignores Iris filters.
+  - Gated subobjects also join the owner's group, so the participant always has its own data, and the replay group, since the replay driver ignores Iris filters.
+  - Iris learns a subobject's groups only once the subobject replicates. The PlayerState applies them as it starts replicating (`OnReplicationStartedForIris`); until then gated data reaches nobody, so a mistake fails closed.
 
 ### 4. Dense Fog volumes are layout data and a runtime API
 
@@ -156,7 +157,7 @@ Canon gives the three carried charges; every other value is Provisional.
   - The PlayerState gains an ability-system component subclass.
   - The item keys move.
 - **Bandwidth falls:** a client no longer receives the enemy's Fluxborn and Vanguards it cannot see (ADR-006 §5's second lever).
-- **Tests:** tests and development matches without Vision see everything, so existing tests keep their meaning. Vision's own tests register it.
+- **Tests:** Vision runs in every match. Network tests that are not about fog widen every unit's sight past any test map (`FScopedMatchTuning`), so they keep their meaning; fog tests restore the committed sight.
 
 ## Amendments to earlier records
 

@@ -64,6 +64,7 @@ Dashes, displacement, skillshots, ground areas, channels and basic attacks are *
 
 - All new replicated state is plain reflected properties.
 - New per-participant state (statuses, cast state, progression, passives) replicates to everyone until Vision exists. When Vision lands, it must adopt the per-player fog gate (`COND_NetGroup`, ADR-006 §5 amendment) like the rest of the PlayerState.
+  - **Done in M11 (ADR-016 §3):** the attribute sets and the status, combat-state, cast-state and basic-attack components replicate behind the fog. Progression stays public, as League's scoreboard shows every level.
 - `VeyraTargeting::CanAcquire` is the hook Vision will implement. Until then it allows every target, so the Vision-dependent parts of Bryn W and Oriel's passive are deferred (ADR-008).
 
 ## Consequences

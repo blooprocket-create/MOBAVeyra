@@ -31,6 +31,9 @@ public:
 	UVeyraBasicAttackComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	/** Behind the fog on a participant: its own, its teammates' and its observers' (ADR-016 §3). */
+	virtual ELifetimeCondition GetReplicationCondition() const override;
+	virtual void ReadyForReplication() override;
 
 	/** Server: the unit's basic attacks from now on. Refused, returning false, if Profile is invalid. */
 	bool SetProfile(const FVeyraBasicAttackProfile& InProfile);

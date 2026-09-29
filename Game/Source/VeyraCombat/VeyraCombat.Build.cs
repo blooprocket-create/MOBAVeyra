@@ -26,6 +26,12 @@ public class VeyraCombat : ModuleRules
 		// Forced movement ends on walkable ground (ADR-009 §2).
 		PrivateDependencyModuleNames.Add("NavigationSystem");
 
+		// UVeyraAbilitySystemComponent derives from the gameplay tasks component.
+		PrivateDependencyModuleNames.Add("GameplayTasks");
+
+		// A participant's data replicates behind the fog through net condition groups (ADR-016 §3).
+		SetupIrisSupport(Target);
+
 		// The Combat domain's tuning ships with every build that runs combat (ADR-006 §6).
 		RuntimeDependencies.Add("$(ProjectDir)/Tuning/Combat.json", StagedFileType.UFS);
 		RuntimeDependencies.Add("$(ProjectDir)/Tuning/Schemas/Combat.schema.json", StagedFileType.UFS);

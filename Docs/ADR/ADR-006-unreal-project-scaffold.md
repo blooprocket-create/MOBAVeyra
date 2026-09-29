@@ -218,7 +218,7 @@ Modules are created **only when they receive real content**, as Project Structur
   - **Why not one exclusion group per observer.** Exclusion groups allow everything by default, so a unit Vision forgot would leak. Filter-out plus inclusion groups deny by default.
   - **What production needs, with Vision:**
     - **Register before the first send.** GAS registers attribute sets for every connection. The spike re-registered them while replicating; production registers them with `COND_NetGroup` before the first send, through an ASC subclass hook.
-    - **Push memberships to Iris explicitly.** A subobject's net condition groups reach Iris only when game code calls `FReplicationSystemUtil::UpdateSubObjectGroupMemberships` after registering it.
+    - **Push memberships to Iris explicitly.** A subobject's net condition groups reach Iris only when game code calls `FReplicationSystemUtil::UpdateSubObjectGroupMemberships` after registering it, and only once the subobject replicates: before that the call does nothing. Production calls it as the PlayerState starts replicating (ADR-016 §3).
     - **Replays.** The replay driver uses legacy replication and ignores Iris filters. Gated subobjects also join the replay group so replays record them.
     - **Subobjects need net condition groups.** Iris ignores subobjects in inclusion groups, so subobject gating always uses net condition groups.
   - Presence pings and outlines remain separate channels (Vision §2, §4).

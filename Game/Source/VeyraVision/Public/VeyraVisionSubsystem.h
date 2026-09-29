@@ -10,6 +10,7 @@
 
 #include "VeyraVisionSubsystem.generated.h"
 
+class APlayerController;
 class FVeyraFogGate;
 
 /**
@@ -61,6 +62,12 @@ private:
 
 	void OnActorSpawned(AActor* Actor);
 
+	/**
+	 * Puts each player in the net condition groups of the participants they may see: their teammates',
+	 * and those whose Vanguards they see now (ADR-016 §3). Out of sight, a player keeps the last values.
+	 */
+	void UpdateParticipantData(UWorld& World);
+
 	/** What each side saw at the last pass: its enemies' and neutral units it may see and target. */
 	TMap<EVeyraTeam, TSet<TWeakObjectPtr<const AActor>>> Seen;
 	/**
@@ -77,6 +84,8 @@ private:
 	TMap<TWeakObjectPtr<const AActor>, int32> Fogged;
 	/** What each Vanguard sees inside its own fog volume, which its team does not share (Vision Bible §2). */
 	TMap<TWeakObjectPtr<const AActor>, TSet<TWeakObjectPtr<const AActor>>> FogSightings;
+	/** The participants' groups each player is in now, so only changes are sent. */
+	TMap<TWeakObjectPtr<APlayerController>, TSet<FName>> JoinedGroups;
 	/** Shared rather than unique so this header need not know it (Private/Gate). */
 	TSharedPtr<FVeyraFogGate> Gate;
 	FTimerHandle Timer;

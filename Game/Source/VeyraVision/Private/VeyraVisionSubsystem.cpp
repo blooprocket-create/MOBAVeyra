@@ -11,6 +11,8 @@
 #include "GameFramework/PlayerState.h"
 #include "Gate/VeyraFogGate.h"
 #include "Rules/VeyraVisionRules.h"
+#include "GameFramework/GameStateBase.h"
+#include "Targeting/VeyraParticipantData.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -147,6 +149,7 @@ void UVeyraVisionSubsystem::Stop()
 	Sources.Reset();
 	Fogged.Reset();
 	FogSightings.Reset();
+	JoinedGroups.Reset();
 }
 
 void UVeyraVisionSubsystem::Deinitialize()
@@ -286,6 +289,82 @@ void UVeyraVisionSubsystem::UpdateNow()
 			Gate->SyncPlayer(*Controller, Team, Receives);
 		}
 		Gate->ForgetPlayersExcept(Present);
+	}
+	UpdateParticipantData(*World);
+}
+
+void UVeyraVisionSubsystem::UpdateParticipantData(UWorld& World)
+{
+	const AGameStateBase* GameState = World.GetGameState();
+	if (!GameState)
+	{
+		return;
+	}
+	TMap<APlayerController*, TSet<FName>> Wanted;
+	for (FConstPlayerControllerIterator It = World.GetPlayerControllerIterator(); It; ++It)
+	{
+		if (APlayerController* Controller = It->Get(); Controller && IsSide(SideOf(*Controller)))
+		{
+			Wanted.Add(Controller);
+		}
+	}
+	for (const APlayerState* Participant : GameState->PlayerArray)
+	{
+		const EVeyraTeam Team = Participant ? VeyraTeams::TeamOf(Participant) : EVeyraTeam::None;
+		if (!IsSide(Team))
+		{
+			continue;
+		}
+		const FName Group = VeyraParticipantData::GroupOf(*Participant);
+		const APawn* Body = Participant->GetPawn();
+		for (TPair<APlayerController*, TSet<FName>>& Viewer : Wanted)
+		{
+			// A player's own data reaches them through the owner group.
+			if (Viewer.Key->PlayerState == Participant)
+			{
+				continue;
+			}
+			const EVeyraTeam ViewerTeam = SideOf(*Viewer.Key);
+			bool bSees = ViewerTeam == Team;
+			if (!bSees && Body)
+			{
+				const TSet<TWeakObjectPtr<const AActor>>* SideSeen = Seen.Find(ViewerTeam);
+				const AActor* ViewerBody = ObserverBody(*Viewer.Key);
+				const TSet<TWeakObjectPtr<const AActor>>* Sighted = ViewerBody ? FogSightings.Find(ViewerBody) : nullptr;
+				bSees = (SideSeen && SideSeen->Contains(Body)) || (Sighted && Sighted->Contains(Body));
+			}
+			if (bSees)
+			{
+				Viewer.Value.Add(Group);
+			}
+		}
+	}
+	for (TPair<APlayerController*, TSet<FName>>& Viewer : Wanted)
+	{
+		TSet<FName>& Joined = JoinedGroups.FindOrAdd(Viewer.Key);
+		for (auto It = Joined.CreateIterator(); It; ++It)
+		{
+			if (!Viewer.Value.Contains(*It))
+			{
+				Viewer.Key->RemoveFromNetConditionGroup(*It);
+				It.RemoveCurrent();
+			}
+		}
+		for (const FName& Group : Viewer.Value)
+		{
+			if (!Joined.Contains(Group))
+			{
+				Viewer.Key->IncludeInNetConditionGroup(Group);
+				Joined.Add(Group);
+			}
+		}
+	}
+	for (auto It = JoinedGroups.CreateIterator(); It; ++It)
+	{
+		if (!It.Key().IsValid())
+		{
+			It.RemoveCurrent();
+		}
 	}
 }
 

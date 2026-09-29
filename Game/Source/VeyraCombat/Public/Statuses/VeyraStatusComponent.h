@@ -29,6 +29,9 @@ public:
 	UVeyraStatusComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	/** Behind the fog on a participant: its own, its teammates' and its observers' (ADR-016 §3). */
+	virtual ELifetimeCondition GetReplicationCondition() const override;
+	virtual void ReadyForReplication() override;
 
 	/** Follows the Ability System Component's effects, so each status ends with its effect. Called once. */
 	void BindTo(UAbilitySystemComponent& AbilitySystem);
