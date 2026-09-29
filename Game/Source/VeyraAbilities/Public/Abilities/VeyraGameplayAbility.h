@@ -6,6 +6,7 @@
 #include "Content/VeyraContentId.h"
 #include "Engine/TimerHandle.h"
 #include "Misc/Optional.h"
+#include "Units/VeyraUnit.h"
 #include "VeyraAbilityTypes.h"
 
 #include "VeyraGameplayAbility.generated.h"
@@ -114,6 +115,18 @@ protected:
 
 	/** Whether Target carries a ground point that can be used: present and finite. */
 	static bool HasUsablePoint(const FVeyraCastTarget& Target);
+
+	/**
+	 * Whether Caster may target Target as an enemy unit at CastRange, of one of Kinds when it names any
+	 * (Combat Bible §29, §30): Combat's targeting rules, as a cast's rejection.
+	 */
+	static EVeyraCastRejection CheckEnemyUnit(const AActor& Caster, const AActor* Target, double CastRange, TConstArrayView<EVeyraUnitKind> Kinds);
+
+	/**
+	 * Ends the follow-up Ability's cast opened in its slot, if the slot still holds it, because the state
+	 * the follow-up acts on ended first, as a hold let go (ADR-018 §1).
+	 */
+	void EndRecastWindow(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
 
 	/** Ability's rank for Caster: its slot's rank in Progression, 0 when not learned. */
 	int32 GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;

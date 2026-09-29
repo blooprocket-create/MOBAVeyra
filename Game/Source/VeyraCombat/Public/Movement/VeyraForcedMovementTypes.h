@@ -63,3 +63,26 @@ struct FVeyraDashEnd
 	/** The enemy it stopped at, for EnemyContact. */
 	TWeakObjectPtr<AActor> Contact;
 };
+
+/** Why a unit let go of the body it held on to (ADR-018 §2). */
+enum class EVeyraAttachEndReason : uint8
+{
+	/** Its time ran out. */
+	Expired,
+	/** It let go itself, as a recast does. */
+	Released,
+	/** The host died or is gone. */
+	HostLost,
+	/** The unit itself died. */
+	Died,
+	/** A displacement, a Fear or another attach took over its movement. */
+	Replaced,
+};
+
+struct FVeyraAttachEnd
+{
+	EVeyraAttachEndReason Reason = EVeyraAttachEndReason::Expired;
+
+	/** The body it held on to. */
+	TWeakObjectPtr<AActor> Host;
+};

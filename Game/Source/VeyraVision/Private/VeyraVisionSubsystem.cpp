@@ -21,6 +21,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "Targeting/VeyraParticipantData.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Tethers/VeyraTetherSubsystem.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraVisionLog.h"
@@ -690,6 +691,13 @@ bool UVeyraVisionSubsystem::IsVisibleToTeam(EVeyraTeam Team, const AActor& Targe
 bool UVeyraVisionSubsystem::JudgeSight(EVeyraTeam Side, const AActor& Unit) const
 {
 	const FVector2D Where(Unit.GetActorLocation());
+	// A tether one of the side's units holds shows its target through fog, stealth and Camouflage;
+	// Dense Fog, judged before this, still hides it (Combat Bible §43).
+	const UVeyraTetherSubsystem* Tethers = GetWorld() ? GetWorld()->GetSubsystem<UVeyraTetherSubsystem>() : nullptr;
+	if (Tethers && Tethers->IsTetheredBy(Unit, Side))
+	{
+		return true;
+	}
 	if (IsInvisible(Unit))
 	{
 		return IsInTrueSight(Side, Unit);

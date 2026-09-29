@@ -288,6 +288,53 @@ namespace
 			CheckZones(Pointer + TEXT("/startZones"), Dash.StartZones);
 			CheckEffects(Pointer + TEXT("/contactEffects"), Dash.ContactEffects);
 			CheckStatusIds(Pointer + TEXT("/contactSelfStatuses"), Dash.ContactSelfStatuses);
+			CheckEffects(Pointer + TEXT("/hostEffects"), Dash.HostEffects);
+			const FVeyraEffectBundleTuning& Host = Dash.HostEffects;
+			const bool bHasHostEffects = !Host.Damage.IsEmpty() || !Host.Statuses.IsEmpty() || !Host.Displacement.IsEmpty() || !Host.MissingHealthDamage.IsEmpty();
+			if (bHasHostEffects && Dash.Direction != EVeyraDashDirection::AwayFromHost)
+			{
+				Problem(Pointer + TEXT("/hostEffects"), TEXT("only an AwayFromHost dash has a host to affect; leave it empty"));
+			}
+		}
+
+		/** The kinds a targeted ability names: never a structure (Combat Bible §33). */
+		void CheckTargetKinds(const FString& Pointer, TConstArrayView<EVeyraUnitKind> Kinds)
+		{
+			if (Kinds.Contains(EVeyraUnitKind::Structure))
+			{
+				Problem(Pointer, TEXT("an ability does not target structures (Combat Bible §33)"));
+			}
+		}
+
+		void CheckTether(const FString& Pointer, const FVeyraTetherAbilityTuning& Tether)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Tether.Cast);
+			CheckTargetKinds(Pointer + TEXT("/targetKinds"), Tether.TargetKinds);
+			CheckStatusIds(Pointer + TEXT("/targetStatuses"), Tether.TargetStatuses);
+			if (!(Tether.MaxRange > 0.0) || !(Tether.DurationSeconds > 0.0))
+			{
+				Problem(Pointer, TEXT("maxRange and durationSeconds are above 0"));
+			}
+			if (Tether.MaxRange < Tether.Cast.CastRange)
+			{
+				Problem(Pointer + TEXT("/maxRange"), TEXT("is at least the cast's range, or the tether would stretch as it lands"));
+			}
+			if (Tether.SnapDistance > 0.0 ? !(Tether.SnapSpeed > 0.0) : Tether.SnapSpeed != 0.0)
+			{
+				Problem(Pointer + TEXT("/snapSpeed"), TEXT("is above 0 with a snap, and 0 without one"));
+			}
+		}
+
+		void CheckAttach(const FString& Pointer, const FVeyraAttachAbilityTuning& Attach)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Attach.Cast);
+			CheckTargetKinds(Pointer + TEXT("/targetKinds"), Attach.TargetKinds);
+			CheckStatusIds(Pointer + TEXT("/hostStatuses"), Attach.HostStatuses);
+			CheckEffects(Pointer + TEXT("/hostEffects"), Attach.HostEffects);
+			if (!(Attach.LeapSpeed > 0.0) || !(Attach.AttachSeconds > 0.0))
+			{
+				Problem(Pointer, TEXT("leapSpeed and attachSeconds are above 0"));
+			}
 		}
 
 		void CheckVolley(const FString& Pointer, const FVeyraVolleyAbilityTuning& Volley)
@@ -388,6 +435,14 @@ namespace
 			{
 				Note(Entry.Key, TEXT("volley"));
 			}
+			for (const TPair<FVeyraContentId, FVeyraTetherAbilityTuning>& Entry : Tuning.Tether)
+			{
+				Note(Entry.Key, TEXT("tether"));
+			}
+			for (const TPair<FVeyraContentId, FVeyraAttachAbilityTuning>& Entry : Tuning.Attach)
+			{
+				Note(Entry.Key, TEXT("attach"));
+			}
 		}
 	};
 }
@@ -462,6 +517,14 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	{
 		Checker.CheckVolley(TEXT("/volley/") + Entry.Key.ToString(), Entry.Value);
 	}
+	for (const TPair<FVeyraContentId, FVeyraTetherAbilityTuning>& Entry : Tuning.Tether)
+	{
+		Checker.CheckTether(TEXT("/tether/") + Entry.Key.ToString(), Entry.Value);
+	}
+	for (const TPair<FVeyraContentId, FVeyraAttachAbilityTuning>& Entry : Tuning.Attach)
+	{
+		Checker.CheckAttach(TEXT("/attach/") + Entry.Key.ToString(), Entry.Value);
+	}
 	Checker.CheckEachIdInOneArchetype();
 	Checker.CheckFluxSpells();
 	return Checker.Problems;
@@ -475,7 +538,8 @@ FVector DashHeading(const FVeyraDashAbilityTuning& Dash, const FVector& CastDire
 bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
 {
 	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)
-		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability);
+		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability)
+		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability);
 }
 
 double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
@@ -509,6 +573,14 @@ double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentI
 	{
 		Cast = &Volley->Cast;
 	}
+	else if (const FVeyraTetherAbilityTuning* Tether = Tuning.Tether.Find(Ability))
+	{
+		Cast = &Tether->Cast;
+	}
+	else if (const FVeyraAttachAbilityTuning* Attach = Tuning.Attach.Find(Ability))
+	{
+		Cast = &Attach->Cast;
+	}
 	return Cast ? ValueAtRank(Cast->CooldownSecondsByRank, Rank) : 0.0;
 }
 
@@ -540,6 +612,14 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	if (const FVeyraVolleyAbilityTuning* Volley = Tuning.Volley.Find(Ability))
 	{
 		Checker.CheckVolley(TEXT("/volley/") + Key, *Volley);
+	}
+	if (const FVeyraTetherAbilityTuning* Tether = Tuning.Tether.Find(Ability))
+	{
+		Checker.CheckTether(TEXT("/tether/") + Key, *Tether);
+	}
+	if (const FVeyraAttachAbilityTuning* Attach = Tuning.Attach.Find(Ability))
+	{
+		Checker.CheckAttach(TEXT("/attach/") + Key, *Attach);
 	}
 	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;

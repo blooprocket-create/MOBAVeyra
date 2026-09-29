@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -1268,7 +1268,8 @@
         "displacement": [],
         "missingHealthDamage": []
       },
-      "contactSelfStatuses": ["qazharr_boarding_rush_haste"]
+      "contactSelfStatuses": ["qazharr_boarding_rush_haste"],
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [] }
     },
     "bryn_kickback": {
       "provenance": "Provisional",
@@ -1304,7 +1305,8 @@
         "displacement": [],
         "missingHealthDamage": []
       },
-      "contactSelfStatuses": []
+      "contactSelfStatuses": [],
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [] }
     },
     "blink": {
       "provenance": "Provisional",
@@ -1328,7 +1330,8 @@
         "displacement": [],
         "missingHealthDamage": []
       },
-      "contactSelfStatuses": []
+      "contactSelfStatuses": [],
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [] }
     }
   },
   "empoweredAttack": {
@@ -1396,6 +1399,8 @@
       "bonus": [{ "status": "kade_tracked", "maxShots": 2 }]
     }
   },
+  "tether": {},
+  "attach": {},
   "fluxSpells": {
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]

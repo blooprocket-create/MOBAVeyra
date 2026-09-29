@@ -715,7 +715,39 @@ EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)
 {
 	const AActor* Owner = Unit.GetOwner();
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
-	return Statuses ? Statuses->GetActionBlocks() : EVeyraActionBlocks::None;
+	EVeyraActionBlocks Blocks = Statuses ? Statuses->GetActionBlocks() : EVeyraActionBlocks::None;
+	// Holding on to a host, it goes where the host goes and does not attack; it may still cast (ADR-018 §8).
+	const UVeyraMovementComponent* Movement = FindMovement(Unit);
+	if (Movement && Movement->IsAttached())
+	{
+		Blocks |= EVeyraActionBlocks::Move | EVeyraActionBlocks::Attack;
+	}
+	return Blocks;
+}
+
+bool Attach(UAbilitySystemComponent& Unit, AActor& Host, double Seconds)
+{
+	UVeyraMovementComponent* Movement = FindMovement(Unit);
+	if (!Movement || IsDeadUnit(Unit) || !VeyraTargeting::IsAlive(&Host))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("%s could not hold on to %s: it has no body, or one of them is dead."), *GetNameSafe(Unit.GetOwner()), *GetNameSafe(&Host));
+		return false;
+	}
+	return Movement->StartAttach(Host, Seconds);
+}
+
+void Detach(UAbilitySystemComponent& Unit)
+{
+	if (UVeyraMovementComponent* Movement = FindMovement(Unit))
+	{
+		Movement->EndAttach(EVeyraAttachEndReason::Released);
+	}
+}
+
+AActor* GetAttachHost(const UAbilitySystemComponent& Unit)
+{
+	const UVeyraMovementComponent* Movement = FindMovement(Unit);
+	return Movement ? Movement->GetAttachHost() : nullptr;
 }
 
 bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraDisplacement& Displacement)

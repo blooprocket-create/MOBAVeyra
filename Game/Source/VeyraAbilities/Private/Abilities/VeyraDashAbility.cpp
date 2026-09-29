@@ -2,6 +2,7 @@
 
 #include "Abilities/VeyraDashAbility.h"
 
+#include "AbilitySystemGlobals.h"
 #include "AbilitySystemComponent.h"
 #include "Delivery/VeyraAreaDelivery.h"
 #include "Engine/World.h"
@@ -27,11 +28,18 @@ double UVeyraDashAbility::GetCooldownSeconds(const FVeyraContentId& Ability, int
 	return Dash ? VeyraAbilityRules::ValueAtRank(Dash->Cast.CooldownSecondsByRank, Rank) : 0.0;
 }
 
-EVeyraCastRejection UVeyraDashAbility::CheckTarget(const AActor& /*Caster*/, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const
+EVeyraCastRejection UVeyraDashAbility::CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const
 {
-	if (!UVeyraAbilitiesTuningSubsystem::FindDash(Ability))
+	const FVeyraDashAbilityTuning* Dash = UVeyraAbilitiesTuningSubsystem::FindDash(Ability);
+	if (!Dash)
 	{
 		return EVeyraCastRejection::UnknownAbility;
+	}
+	if (Dash->Direction == EVeyraDashDirection::AwayFromHost)
+	{
+		// It throws its caster off the unit it holds on to, which gives the dash its direction.
+		const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Caster);
+		return AbilitySystem && VeyraCombat::GetAttachHost(*AbilitySystem) ? EVeyraCastRejection::None : EVeyraCastRejection::InvalidTarget;
 	}
 	// The point gives the dash its direction.
 	return HasUsablePoint(Target) ? EVeyraCastRejection::None : EVeyraCastRejection::InvalidLocation;
@@ -65,7 +73,28 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 			FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	}
 
-	const FVector Heading = VeyraAbilityRules::DashHeading(*Dash, Cast.Direction);
+	FVector Heading = VeyraAbilityRules::DashHeading(*Dash, Cast.Direction);
+	if (Dash->Direction == EVeyraDashDirection::AwayFromHost)
+	{
+		// Straight back from its host, letting go; the host takes the host effects, pushed from the caster.
+		AActor* Host = VeyraCombat::GetAttachHost(*Caster);
+		if (!Host)
+		{
+			return FVeyraChannelPlan();
+		}
+		Heading = (Body->GetActorLocation() - Host->GetActorLocation()).GetSafeNormal2D();
+		if (Heading.IsNearlyZero())
+		{
+			Heading = -Host->GetActorForwardVector().GetSafeNormal2D();
+		}
+		const FVeyraPreparedEffects HostEffects = VeyraEffectDelivery::Prepare(*Caster, Dash->HostEffects, Cast.Rank);
+		VeyraCombat::Detach(*Caster);
+		FVeyraEffectFrame Frame;
+		Frame.Origin = Body->GetActorLocation();
+		Frame.Direction = -Heading;
+		Frame.bOriginIsCaster = true;
+		VeyraEffectDelivery::Apply(*Caster, *Host, HostEffects, Frame, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
+	}
 	StopWatching();
 	UVeyraMovementComponent* Movement = Body->FindComponentByClass<UVeyraMovementComponent>();
 	if (Dash->Contact == EVeyraDashContact::StopAtFirstEnemy && Movement)
@@ -128,8 +157,9 @@ void UVeyraDashAbility::StopWatching()
 
 bool UVeyraDashAbility::IsOffensive(const FVeyraContentId& Ability) const
 {
-	// A dash is offensive only if what it passes through or lands on takes its effects.
+	// A dash is offensive only if what it passes through, lands on or lets go of takes its effects.
 	const FVeyraDashAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindDash(Ability);
 	return Tuning && (!Tuning->StartZones.IsEmpty() || !Tuning->ContactEffects.Damage.IsEmpty() || !Tuning->ContactEffects.Statuses.IsEmpty()
-		|| !Tuning->ContactEffects.Displacement.IsEmpty());
+		|| !Tuning->ContactEffects.Displacement.IsEmpty() || !Tuning->HostEffects.Damage.IsEmpty() || !Tuning->HostEffects.Statuses.IsEmpty()
+		|| !Tuning->HostEffects.Displacement.IsEmpty());
 }

@@ -65,8 +65,8 @@ void UVeyraMovementComponent::RefreshBody()
 	// It changes only what it shaped itself, as that changes: whoever sized the body or set its
 	// collision, such as the character from its data, keeps what they set.
 	const UVeyraStatusComponent* Statuses = FollowedStatuses.Get();
-	// Ghosted, it passes through units, never terrain (Combat Bible §24).
-	const bool bPassesThrough = Statuses && Statuses->Has(EVeyraStatusKind::Ghosted);
+	// Ghosted, it passes through units, never terrain (Combat Bible §24); so does a body holding on to another.
+	const bool bPassesThrough = (Statuses && Statuses->Has(EVeyraStatusKind::Ghosted)) || IsAttached();
 	if (bPassesThrough != PassThroughFrom.IsSet())
 	{
 		if (bPassesThrough)
@@ -183,6 +183,97 @@ bool UVeyraMovementComponent::IsFleeing() const
 	return ForcedMove.IsSet() && ForcedMove->Mode == EVeyraCustomMovementMode::Fleeing;
 }
 
+bool UVeyraMovementComponent::StartAttach(AActor& Host, double Seconds)
+{
+	const UWorld* World = GetWorld();
+	const UVeyraStatusComponent* Statuses = FollowedStatuses.Get();
+	const bool bHeld = Statuses && EnumHasAnyFlags(Statuses->GetActionBlocks(), EVeyraActionBlocks::Move);
+	if (!World || !UpdatedComponent || &Host == GetOwner() || !(Seconds > 0.0) || !FMath::IsFinite(Seconds) || IsDisplaced() || bHeld)
+	{
+		return false;
+	}
+	const bool bInterruptsDash = IsDashing();
+	FForcedMove Move;
+	Move.Mode = EVeyraCustomMovementMode::Attached;
+	Move.Destination = UpdatedComponent->GetComponentLocation();
+	Move.Host = &Host;
+	Move.EndsAt = World->GetTimeSeconds() + Seconds;
+	BeginForcedMove(Move);
+	if (bInterruptsDash)
+	{
+		OnDashEnded.Broadcast(FVeyraDashEnd{ EVeyraDashEndReason::Interrupted, nullptr });
+	}
+	// It takes its seat at once rather than on its next step.
+	MoveUpdatedComponent(AttachSeat(Host) - UpdatedComponent->GetComponentLocation(), Host.GetActorQuat(), /*bSweep*/ false);
+	return true;
+}
+
+void UVeyraMovementComponent::EndAttach(EVeyraAttachEndReason Reason)
+{
+	if (!IsAttached())
+	{
+		return;
+	}
+	const FVeyraAttachEnd End{ Reason, ForcedMove->Host };
+	EndForcedMove();
+	OnAttachEnded.Broadcast(End);
+}
+
+bool UVeyraMovementComponent::IsAttached() const
+{
+	return ForcedMove.IsSet() && ForcedMove->Mode == EVeyraCustomMovementMode::Attached;
+}
+
+AActor* UVeyraMovementComponent::GetAttachHost() const
+{
+	return IsAttached() ? ForcedMove->Host.Get() : nullptr;
+}
+
+void UVeyraMovementComponent::PhysAttached(float DeltaTime)
+{
+	const AActor* Host = ForcedMove->Host.Get();
+	const UWorld* World = GetWorld();
+	if (!Host || !VeyraTargeting::IsAlive(Host))
+	{
+		EndAttach(EVeyraAttachEndReason::HostLost);
+		return;
+	}
+	if (!VeyraTargeting::IsAlive(GetOwner()))
+	{
+		EndAttach(EVeyraAttachEndReason::Died);
+		return;
+	}
+	if (!World || World->GetTimeSeconds() >= ForcedMove->EndsAt)
+	{
+		EndAttach(EVeyraAttachEndReason::Expired);
+		return;
+	}
+	const FVector Current = UpdatedComponent->GetComponentLocation();
+	const FVector Seat = AttachSeat(*Host);
+	MoveUpdatedComponent(Seat - Current, Host->GetActorQuat(), /*bSweep*/ false);
+	Velocity = (Seat - Current) / DeltaTime;
+}
+
+FVector UVeyraMovementComponent::AttachSeat(const AActor& Host) const
+{
+	// At the host's back, the two bodies touching, standing on the host's ground.
+	const ACharacter* HostCharacter = Cast<ACharacter>(&Host);
+	const UCapsuleComponent* HostCapsule = HostCharacter ? HostCharacter->GetCapsuleComponent() : nullptr;
+	const UCapsuleComponent* Own = CharacterOwner ? CharacterOwner->GetCapsuleComponent() : nullptr;
+	const double HostRadius = HostCapsule ? HostCapsule->GetScaledCapsuleRadius() : 0.0;
+	const double HostHalfHeight = HostCapsule ? HostCapsule->GetScaledCapsuleHalfHeight() : 0.0;
+	const double OwnRadius = Own ? Own->GetScaledCapsuleRadius() : 0.0;
+	const double OwnHalfHeight = Own ? Own->GetScaledCapsuleHalfHeight() : 0.0;
+	FVector Back = -Host.GetActorForwardVector().GetSafeNormal2D();
+	if (Back.IsNearlyZero())
+	{
+		Back = FVector::BackwardVector;
+	}
+	FVector Seat = Host.GetActorLocation() + Back * (HostRadius + OwnRadius);
+	Seat.Z = Host.GetActorLocation().Z - HostHalfHeight + OwnHalfHeight;
+	return Seat;
+}
+
 bool UVeyraMovementComponent::StartDash(const FVeyraDash& Dash)
 {
 	if (!IsForcedMoveValid(Dash.Direction, Dash.Distance, Dash.Speed) || !UpdatedComponent || IsMovementLocked())
@@ -280,6 +371,11 @@ void UVeyraMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 	{
 		return;
 	}
+	if (ForcedMove->Mode == EVeyraCustomMovementMode::Attached)
+	{
+		PhysAttached(DeltaTime);
+		return;
+	}
 
 	// The path was cleared of terrain when it was planned, and forced movement passes through units,
 	// so the body moves along it without sweeping.
@@ -313,9 +409,17 @@ void UVeyraMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 
 void UVeyraMovementComponent::BeginForcedMove(const FForcedMove& Move)
 {
+	// What takes over an attach ends it first, so the one who attached hears before the new move begins.
+	if (IsAttached())
+	{
+		const FVeyraAttachEnd Replaced{ EVeyraAttachEndReason::Replaced, ForcedMove->Host };
+		ForcedMove.Reset();
+		OnAttachEnded.Broadcast(Replaced);
+	}
 	ForcedMove = Move;
 	SetMovementMode(MOVE_Custom, static_cast<uint8>(Move.Mode));
 	RefreshMovementLock();
+	RefreshBody();
 }
 
 void UVeyraMovementComponent::EndForcedMove()
@@ -324,6 +428,7 @@ void UVeyraMovementComponent::EndForcedMove()
 	Velocity = FVector::ZeroVector;
 	SetMovementMode(MOVE_Walking);
 	RefreshMovementLock();
+	RefreshBody();
 }
 
 void UVeyraMovementComponent::EndDash(EVeyraDashEndReason Reason, AActor* Contact)

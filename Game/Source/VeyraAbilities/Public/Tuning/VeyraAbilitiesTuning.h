@@ -676,6 +676,11 @@ enum class EVeyraDashDirection : uint8
 	TowardPoint,
 	/** Straight back from it, as a recoil (Bryn's Kickback). */
 	AwayFromPoint,
+	/**
+	 * Straight back from the unit its caster holds on to, letting go of it (ADR-018 §2), as Patch's
+	 * Bear Hug throw. Refused unless the caster holds on to one; the cast's point does not matter.
+	 */
+	AwayFromHost,
 };
 
 /** An ability that moves its caster, with effects as it sets off and where it stops (ADR-008 §3; Combat Bible §9). */
@@ -715,6 +720,13 @@ struct FVeyraDashAbilityTuning
 	/** Status IDs put on the caster when it stops at an enemy. */
 	UPROPERTY()
 	TArray<FVeyraContentId> ContactSelfStatuses;
+
+	/**
+	 * On the unit an AwayFromHost dash lets go of, from where the caster sets off, as the throw's
+	 * stumble; no effects for any other dash.
+	 */
+	UPROPERTY()
+	FVeyraEffectBundleTuning HostEffects;
 };
 
 /** The other enemies an empowered attack hits, in the attacker's cleave shape (ADR-009 §5). */
@@ -874,13 +886,96 @@ struct FVeyraVolleyAbilityTuning
 	TArray<FVeyraVolleyBonusTuning> Bonus;
 };
 
+/**
+ * An ability that tethers an enemy to its caster (Combat Bible §43; ADR-018), as Patch's Don't Leave
+ * Me: while it holds, the caster's side sees the target; stretched beyond its range, it may snap the
+ * target back toward the caster once, and ends.
+ */
+USTRUCT()
+struct FVeyraTetherAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	/** The kinds of unit it may tether; empty for any hostile unit. Never Structure (Combat Bible §33). */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> TargetKinds;
+
+	/** Edge to edge, in units; beyond it the tether stretches. Above 0. */
+	UPROPERTY()
+	double MaxRange = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** Stretched, the pull toward the caster, in units before Displacement Resistance; 0 for none. */
+	UPROPERTY()
+	double SnapDistance = 0.0;
+
+	/** The pull's units per second: above 0 with a pull, 0 without. */
+	UPROPERTY()
+	double SnapSpeed = 0.0;
+
+	/** Status IDs held on the target while the tether lasts. */
+	UPROPERTY()
+	TArray<FVeyraContentId> TargetStatuses;
+};
+
+/**
+ * An ability that leaps its caster at an enemy and holds on to it (ADR-018 §2), as Patch's Bear Hug:
+ * the leap is a dash toward the target; ending within reach of it, the caster attaches for a while,
+ * and the host takes the host effects and holds the host statuses meanwhile. A leap that ends out of
+ * reach does nothing more.
+ */
+USTRUCT()
+struct FVeyraAttachAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	/** The kinds of unit it may hold on to; empty for any hostile unit. Never Structure (Combat Bible §33). */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> TargetKinds;
+
+	/** The leap's units per second; above 0. */
+	UPROPERTY()
+	double LeapSpeed = 0.0;
+
+	/** Edge to edge, in units, how near the target must be as the leap ends for the caster to take hold. */
+	UPROPERTY()
+	double ReachOnArrival = 0.0;
+
+	/** How long it holds on, in seconds; above 0. */
+	UPROPERTY()
+	double AttachSeconds = 0.0;
+
+	/** Status IDs held on the host while the caster holds on. */
+	UPROPERTY()
+	TArray<FVeyraContentId> HostStatuses;
+
+	/** On the host as the caster takes hold. */
+	UPROPERTY()
+	FVeyraEffectBundleTuning HostEffects;
+};
+
 USTRUCT()
 struct FVeyraAbilitiesTuning
 {
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 7;
+	static constexpr int32 SchemaVersion = 8;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;
@@ -908,6 +1003,12 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVolleyAbilityTuning> Volley;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraTetherAbilityTuning> Tether;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraAttachAbilityTuning> Attach;
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;

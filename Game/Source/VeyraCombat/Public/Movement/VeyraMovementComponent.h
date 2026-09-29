@@ -23,6 +23,8 @@ enum class EVeyraCustomMovementMode : uint8
 	Dashing,
 	/** A Fear owns it: the unit walks away from its source (Combat Bible §8). */
 	Fleeing,
+	/** It holds on to another unit's body and goes where it goes (ADR-018 §2), as Patch's Bear Hug. */
+	Attached,
 };
 
 /**
@@ -64,6 +66,22 @@ public:
 	bool IsFleeing() const;
 
 	/**
+	 * Server only: the body holds on to Host's back for Seconds, following it, and passes through
+	 * units meanwhile (ADR-018 §2). Refused, returning false, while a displacement holds it, while its
+	 * statuses stop it moving, or for its own body. It ends when its time runs out, when either body
+	 * dies, when a displacement, Fear or another attach takes over, or on EndAttach.
+	 */
+	bool StartAttach(AActor& Host, double Seconds);
+
+	/** Server only: lets go of the host, for Reason, if it holds one. */
+	void EndAttach(EVeyraAttachEndReason Reason);
+
+	bool IsAttached() const;
+
+	/** The body it holds on to now; nullptr if none. */
+	AActor* GetAttachHost() const;
+
+	/**
 	 * Where a forced movement of Distance along Direction from the unit's position ends: terrain stops
 	 * it at the nearest point the body fits (Combat Bible §9), and so does the end of walkable ground;
 	 * the end then moves to the nearest walkable point within the tuned extent. With none that close,
@@ -98,6 +116,9 @@ public:
 	/** Server only: raised when a dash ends, and why. */
 	TMulticastDelegate<void(const FVeyraDashEnd&)> OnDashEnded;
 
+	/** Server only: raised when it lets go of its host, and why. */
+	TMulticastDelegate<void(const FVeyraAttachEnd&)> OnAttachEnded;
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
@@ -109,9 +130,16 @@ private:
 		FVector Destination = FVector::ZeroVector;
 		double Speed = 0.0;
 		EVeyraDashContact Contact = EVeyraDashContact::None;
+		/** An attach's host, and when it lets go (world seconds). */
+		TWeakObjectPtr<AActor> Host;
+		double EndsAt = 0.0;
 	};
 
 	void BeginForcedMove(const FForcedMove& Move);
+
+	/** An attach's step: the body takes its seat at the host's back, or lets go. */
+	void PhysAttached(float DeltaTime);
+	FVector AttachSeat(const AActor& Host) const;
 	void EndForcedMove();
 	void EndDash(EVeyraDashEndReason Reason, AActor* Contact);
 

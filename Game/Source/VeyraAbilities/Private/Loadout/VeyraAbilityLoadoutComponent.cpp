@@ -5,11 +5,13 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Abilities/VeyraAreaAbility.h"
+#include "Abilities/VeyraAttachAbility.h"
 #include "Abilities/VeyraDashAbility.h"
 #include "Abilities/VeyraEmpoweredAttackAbility.h"
 #include "Abilities/VeyraSelfBuffAbility.h"
 #include "Abilities/VeyraSkillshotAbility.h"
 #include "Abilities/VeyraTargetedDamageAbility.h"
+#include "Abilities/VeyraTetherAbility.h"
 #include "Abilities/VeyraVolleyAbility.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
@@ -54,6 +56,14 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindVolley(Ability))
 		{
 			return UVeyraVolleyAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindTether(Ability))
+		{
+			return UVeyraTetherAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindAttach(Ability))
+		{
+			return UVeyraAttachAbility::StaticClass();
 		}
 		return nullptr;
 	}

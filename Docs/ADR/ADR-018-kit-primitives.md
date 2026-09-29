@@ -90,8 +90,8 @@ Vision enforces Camouflage as it does wards' Invisibility, with these rules:
 ### 6. New delivery and archetype options
 
 - **Volley (a new archetype).** A cast locks a lane and roots the caster. Each shot is a recast, fired at intervals, up to a count that events may raise.
-- **Tether.** A tether links source and target and, beyond its break range, pulls once and ends (§43). Combat keeps the tether ledger. Vision gives the source's side sight of a tethered target, which Dense Fog still overrides (§43).
-- **Attach.** The caster rides its target's position for a duration, owning none of the target's movement. The cast's data says what the caster may do while attached.
+- **Tether (a new archetype).** A tether links source and target and, beyond its break range, pulls once and ends (§43). Combat keeps the tether ledger and judges it on a world timer (`Combat.json tethers.checkSeconds`): death, its time or stretching ends it; losing sight of the target or its Camouflage does not. A newer tether of the same ability from the same source replaces the older. Statuses the tether declares are held on the target while it lasts. Vision gives the source's side sight of a tethered target, which Dense Fog still overrides (§43).
+- **Attach (a new archetype).** The caster leaps at its target and, ending within reach, holds on to its back for a duration, owning none of the target's movement; a leap that ends out of reach does nothing more. It is a movement mode of the caster's body: it passes through units meanwhile, cannot attack and may cast. It ends with its time, either unit's death, a displacement or Fear of the caster, or its release. Statuses the attach declares are held on the host while it lasts. A dash may throw its caster straight back from its host (`AwayFromHost`), with effects on the host, as Bear Hug's recast; the recast ends early if the hold does.
 - **Options on existing archetypes:**
   - a caster recoil on skillshots;
   - consuming the caster's statuses;
@@ -195,4 +195,5 @@ The values live in `Game/Tuning/Vanguards.json`, `Abilities.json` and `Bots.json
 - Terrain gaps for Gorraveth's leap.
 - Mirroring the turn rate on clients (ADR-009 §6 keeps no prediction).
 - HUD meters for Cadence, Hex and Momentum beyond status stacks.
+- Tethers breaking on Untargetability (§43): Combat has no Untargetable state yet.
 - Bots that leave a stance before they move: until then Bots.json marks Vera's Dig In `Never`, so bots do not cast it.
