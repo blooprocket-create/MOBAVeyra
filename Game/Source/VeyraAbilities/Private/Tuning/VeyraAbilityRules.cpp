@@ -80,9 +80,53 @@ namespace
 		{
 			for (const TPair<FVeyraContentId, FVeyraStatusTuning>& Status : Tuning.Statuses)
 			{
+				const FString Pointer = FString::Printf(TEXT("/statuses/%s"), *Status.Key.ToString());
+				const bool bTicks = Status.Value.Kind == EVeyraStatusKind::DamageOverTime;
+				if (Status.Value.DamageOverTime.Num() != (bTicks ? 1 : 0))
+				{
+					Problem(Pointer + TEXT("/damageOverTime"), TEXT("holds one entry for a DamageOverTime status, and none for any other kind"));
+					continue;
+				}
 				for (const FString& StatusProblem : VeyraStatuses::Validate(ToStatusSpec(Status.Key, Status.Value)))
 				{
-					Problem(FString::Printf(TEXT("/statuses/%s"), *Status.Key.ToString()), StatusProblem);
+					Problem(Pointer, StatusProblem);
+				}
+			}
+		}
+
+		void CheckTargetedDamage(const FString& Pointer, const FVeyraTargetedDamageAbilityTuning& Targeted)
+		{
+			CheckStatusIds(Pointer + TEXT("/statuses"), Targeted.Statuses);
+			if (!(Targeted.DamageAmount > 0.0) && !(Targeted.DamagePerLevel > 0.0) && Targeted.Statuses.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/damageAmount"), TEXT("deals no damage and applies no status, so it does nothing"));
+			}
+			if (Targeted.TargetKinds.Contains(EVeyraUnitKind::Structure))
+			{
+				Problem(Pointer + TEXT("/targetKinds"), TEXT("an ability does not target structures (Combat Bible §33)"));
+			}
+		}
+
+		void CheckFluxSpells()
+		{
+			const FVeyraFluxSpellsTuning& Spells = Tuning.FluxSpells;
+			for (int32 Index = 0; Index < Spells.Roster.Num(); ++Index)
+			{
+				const FVeyraContentId& Spell = Spells.Roster[Index];
+				const FString Pointer = FString::Printf(TEXT("/fluxSpells/roster/%d"), Index);
+				if (!Defines(Tuning, Spell))
+				{
+					Problem(Pointer, FString::Printf(TEXT("names \"%s\", which no archetype map defines"), *Spell.ToString()));
+					continue;
+				}
+				if (Spells.Roster.IndexOfByKey(Spell) != Index)
+				{
+					Problem(Pointer, FString::Printf(TEXT("lists \"%s\" twice"), *Spell.ToString()));
+				}
+				// A spell has no ranks (ADR-015 §1): its every rank list holds one value.
+				for (const FString& RankProblem : ValidateRanks(Tuning, Spell, 1))
+				{
+					Problem(Pointer, FString::Printf(TEXT("\"%s\" has ranks: %s"), *Spell.ToString(), *RankProblem));
 				}
 			}
 		}
@@ -118,6 +162,10 @@ namespace
 					Problem(AuraPointer + TEXT("/refreshSeconds"), TEXT("must be at most the aura's duration"));
 				}
 				CheckStatusIds(AuraPointer + TEXT("/allyStatuses"), Aura.AllyStatuses);
+			}
+			for (int32 Index = 0; Index < Buff.Heal.Num(); ++Index)
+			{
+				CheckStatusIds(FString::Printf(TEXT("%s/heal/%d/statuses"), *Pointer, Index), Buff.Heal[Index].Statuses);
 			}
 		}
 
@@ -249,7 +297,7 @@ double ValueAtRank(TConstArrayView<double> ByRank, int32 Rank)
 	return ByRank.IsValidIndex(Rank - 1) ? ByRank[Rank - 1] : 0.0;
 }
 
-FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTuning& Status)
+FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTuning& Status, int32 SourceLevel)
 {
 	FVeyraStatusSpec Spec;
 	Spec.Id = Id;
@@ -260,13 +308,29 @@ FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTunin
 	Spec.MaxStacks = Status.MaxStacks;
 	Spec.TakedownExtensionSeconds = Status.TakedownExtensionSeconds;
 	Spec.TakedownExtensionMaxSeconds = Status.TakedownExtensionMaxSeconds;
+	if (!Status.DamageOverTime.IsEmpty())
+	{
+		const FVeyraDamageOverTimeTuning& Ticks = Status.DamageOverTime[0];
+		Spec.DamageType = Ticks.DamageType;
+		Spec.TickSeconds = Ticks.TickSeconds;
+		Spec.Magnitude = AtLevel(Status.Magnitude, Ticks.DamagePerLevel, SourceLevel);
+	}
 	return Spec;
+}
+
+double AtLevel(double Base, double PerLevel, int32 Level)
+{
+	return Base + PerLevel * FMath::Max(0, Level - 1);
 }
 
 TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<int32> RankCounts)
 {
 	FAbilityTuningChecker Checker{ Tuning, RankCounts };
 	Checker.CheckStatuses();
+	for (const TPair<FVeyraContentId, FVeyraTargetedDamageAbilityTuning>& Entry : Tuning.TargetedDamage)
+	{
+		Checker.CheckTargetedDamage(TEXT("/targetedDamage/") + Entry.Key.ToString(), Entry.Value);
+	}
 	for (const TPair<FVeyraContentId, FVeyraAreaAbilityTuning>& Entry : Tuning.Area)
 	{
 		Checker.CheckArea(TEXT("/area/") + Entry.Key.ToString(), Entry.Value);
@@ -288,6 +352,7 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 		Checker.CheckEmpoweredAttack(TEXT("/empoweredAttack/") + Entry.Key.ToString(), Entry.Value);
 	}
 	Checker.CheckEachIdInOneArchetype();
+	Checker.CheckFluxSpells();
 	return Checker.Problems;
 }
 

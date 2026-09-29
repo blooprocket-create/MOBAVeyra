@@ -10,6 +10,7 @@
 #include "Statuses/VeyraStatusTypes.h"
 #include "Tuning/VeyraTuningProvenance.h"
 #include "UObject/ObjectMacros.h"
+#include "Units/VeyraUnit.h"
 
 #include "VeyraAbilitiesTuning.generated.h"
 
@@ -17,7 +18,10 @@
 // schema holds every range; a 0 here only means "not loaded". A field whose name ends "ByRank" holds
 // one value for every rank, or one per rank (VeyraAbilityRules::ValueAtRank).
 
-/** One targeted, instant ability that deals one damage component (Combat Bible §29). */
+/**
+ * One targeted, instant ability that deals one damage component, and may put statuses on its target
+ * (Combat Bible §29; ADR-015 §3).
+ */
 USTRUCT()
 struct FVeyraTargetedDamageAbilityTuning
 {
@@ -35,8 +39,21 @@ struct FVeyraTargetedDamageAbilityTuning
 	UPROPERTY()
 	EVeyraDamageType DamageType = EVeyraDamageType::Physical;
 
+	/** At the caster's first Level. 0 for an ability that only applies statuses. */
 	UPROPERTY()
 	double DamageAmount = 0.0;
+
+	/** Added for each Level of the caster's beyond the first, read at Commit. */
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	/** Status IDs from the statuses map, put on the target it hits. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	/** The kinds of unit it may target; empty for any hostile unit. */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> TargetKinds;
 };
 
 /** Whether a caster may move during a phase of its cast (Combat Bible §48). */
@@ -170,6 +187,23 @@ struct FVeyraEffectBundleTuning
 	TArray<FVeyraMissingHealthDamageTuning> MissingHealthDamage;
 };
 
+/** How a DamageOverTime status ticks (Combat Bible §14; ADR-015 §3). */
+USTRUCT()
+struct FVeyraDamageOverTimeTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraDamageType DamageType = EVeyraDamageType::Physical;
+
+	UPROPERTY()
+	double TickSeconds = 0.0;
+
+	/** Added to each tick's damage (the status's magnitude) for each Level of its source's beyond the first, as it lands. */
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+};
+
 /** One status an ability applies, keyed by its ID (Combat Bible §8, §46; FVeyraStatusSpec). */
 USTRUCT()
 struct FVeyraStatusTuning
@@ -199,6 +233,10 @@ struct FVeyraStatusTuning
 
 	UPROPERTY()
 	double TakedownExtensionMaxSeconds = 0.0;
+
+	/** Exactly one for a DamageOverTime status, and none for any other kind. */
+	UPROPERTY()
+	TArray<FVeyraDamageOverTimeTuning> DamageOverTime;
 };
 
 /** Where an area is placed. */
@@ -343,6 +381,32 @@ struct FVeyraAuraTuning
 	TArray<FVeyraContentId> AllyStatuses;
 };
 
+/**
+ * Health a buff restores to its caster and to one allied Vanguard, the one near it that lacks the most
+ * of its Health (ADR-015 §3), never above Max Health.
+ */
+USTRUCT()
+struct FVeyraHealTuning
+{
+	GENERATED_BODY()
+
+	/** At the caster's first Level. */
+	UPROPERTY()
+	double Amount = 0.0;
+
+	/** Added for each Level of the caster's beyond the first, read at Commit. */
+	UPROPERTY()
+	double AmountPerLevel = 0.0;
+
+	/** Units from the caster's centre to an ally's edge; 0 heals the caster alone. */
+	UPROPERTY()
+	double AllyRange = 0.0;
+
+	/** Status IDs from the statuses map, put on each unit it heals. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
 /** What casting a buff again does while it lasts. */
 UENUM()
 enum class EVeyraRecast : uint8
@@ -376,6 +440,10 @@ struct FVeyraSelfBuffAbilityTuning
 	/** At most one. */
 	UPROPERTY()
 	TArray<FVeyraAuraTuning> Aura;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraHealTuning> Heal;
 
 	UPROPERTY()
 	EVeyraRecast Recast = EVeyraRecast::None;
@@ -575,13 +643,29 @@ struct FVeyraCastingTuning
 	double InterruptedCooldownFraction = 0.0;
 };
 
+/**
+ * The Flux Spells a player may put in a spell slot (Battleground Bible §14; ADR-015 §3). Each is an
+ * ordinary entry of one archetype map, with one value for its every rank list.
+ */
+USTRUCT()
+struct FVeyraFluxSpellsTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	TArray<FVeyraContentId> Roster;
+};
+
 USTRUCT()
 struct FVeyraAbilitiesTuning
 {
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 3;
+	static constexpr int32 SchemaVersion = 4;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;
@@ -606,6 +690,9 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraEmpoweredAttackAbilityTuning> EmpoweredAttack;
+
+	UPROPERTY()
+	FVeyraFluxSpellsTuning FluxSpells;
 };
 
 /** The Abilities domain's rules for its tuning (ADR-008 §3, §7). */
@@ -614,8 +701,14 @@ namespace VeyraAbilityRules
 	/** A "ByRank" value at Rank (from 1): the one value for every rank, or the rank's own. 0 outside the list. */
 	VEYRAABILITIES_API double ValueAtRank(TConstArrayView<double> ByRank, int32 Rank);
 
-	/** Status Id as Combat applies it. */
-	VEYRAABILITIES_API FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTuning& Status);
+	/**
+	 * Status Id as Combat applies it, from a source at SourceLevel: a damage-over-time status's ticks
+	 * are fixed as it lands (Combat Bible §14's snapshot).
+	 */
+	VEYRAABILITIES_API FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTuning& Status, int32 SourceLevel = 1);
+
+	/** An amount at Level: Base, plus PerLevel for each Level beyond the first (ADR-015 §3). */
+	VEYRAABILITIES_API double AtLevel(double Base, double PerLevel, int32 Level);
 
 	/**
 	 * Problems with Tuning that a schema cannot express, each a JSON pointer and a message: rank lists

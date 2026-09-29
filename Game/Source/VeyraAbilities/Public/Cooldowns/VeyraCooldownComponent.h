@@ -15,6 +15,8 @@ enum class EVeyraCooldownHaste : uint8
 	Ability,
 	/** An item's Active: Item Haste's, which nothing grants yet; Ability Haste leaves it alone. */
 	Item,
+	/** A Flux Spell's: fixed, as no Haste of any kind shortens it (Combat Bible §21; ADR-015 §2). */
+	Fixed,
 };
 
 /** One ability's cooldown: when it is ready again, in server gameplay time, and how long it was. */

@@ -64,6 +64,8 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/vanguards/*/passive/*", "Vanguards", PASSIVE_MAPS),
     ("Vanguards", "/hitChain/*/status", "Abilities", ("/statuses",)),
     ("Vanguards", "/breach/*/impact/statuses/*", "Abilities", ("/statuses",)),
+    # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).
+    ("Abilities", "/fluxSpells/roster/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     # Every Fluxborn Economy pays for is one World defines, and every one World defines is paid for.
     ("Economy", "/gold/fluxborn/#", "World", ("/fluxborn/units",)),
     ("Economy", "/experience/fluxborn/#", "World", ("/fluxborn/units",)),

@@ -5,8 +5,11 @@
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "CQTest.h"
+#include "Engine/World.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
+#include "TimerManager.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -136,6 +139,90 @@ namespace VeyraCombatTests
 			// Amplification adds; none, or more than doubling in all, is refused.
 			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("tusk"), EVeyraStatusKind::DamageAmplification, 0.0, LongSeconds)).IsEmpty()));
 			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("tusk"), EVeyraStatusKind::DamageAmplification, 0.6, LongSeconds, EVeyraStackingPolicy::Stacking, 2)).IsEmpty()));
+		}
+
+		/** Two frames on the world's timers, the second Seconds long: world time stands still in a test, and the first frame only activates timers. */
+		void AdvanceTimers(double Seconds)
+		{
+			FTimerManager& Timers = Spawner.GetWorld().GetTimerManager();
+			++GFrameCounter;
+			Timers.Tick(0.0f);
+			++GFrameCounter;
+			Timers.Tick(static_cast<float>(Seconds));
+		}
+
+		double HealthLost() const
+		{
+			return Value(UVeyraVitalsSet::GetMaxHealthAttribute()) - Value(UVeyraVitalsSet::GetHealthAttribute());
+		}
+
+		static FVeyraStatusSpec Burn(double PerTick, double TickSeconds, double DurationSeconds)
+		{
+			FVeyraStatusSpec Spec = TestStatus(TEXT("burn"), EVeyraStatusKind::DamageOverTime, PerTick, DurationSeconds);
+			Spec.DamageType = EVeyraDamageType::TrueDamage;
+			Spec.TickSeconds = TickSeconds;
+			return Spec;
+		}
+
+		TEST_METHOD(DamageOverTimeTicksWholeTicksAndNoneAsItLands)
+		{
+			// Fixture values: 10 True damage a second for 3 s, and a moment beyond.
+			constexpr double PerTick = 10.0;
+			constexpr double TickSeconds = 1.0;
+			constexpr double Lasts = 3.0;
+			constexpr double Margin = 0.1;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
+			ASSERT_THAT(IsTrue(HealthLost() == 0.0, TEXT("no tick as it lands (Combat Bible §14)")));
+			AdvanceTimers(Lasts + Margin);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick * Lasts / TickSeconds, 1e-3),
+				FString::Printf(TEXT("three ticks, the last as it ends: lost %.1f"), HealthLost())));
+			// Its effect ends on the world's clock, which a test holds still; its ticks are counted.
+			AdvanceTimers(Lasts);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick * Lasts / TickSeconds, 1e-3), TEXT("and no more")));
+		}
+
+		TEST_METHOD(ARefreshRestartsTheTicksAndRemovalStopsThem)
+		{
+			constexpr double PerTick = 10.0;
+			constexpr double TickSeconds = 1.0;
+			constexpr double Lasts = 3.0;
+			constexpr double Margin = 0.1;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
+			AdvanceTimers(TickSeconds + Margin);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3)));
+			// Reapplied from the same source: its duration and its ticks start again (§14).
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
+			AdvanceTimers(TickSeconds / 2.0);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3), TEXT("no tick half a second into the new application")));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, FVeyraContentId::FromText(TEXT("burn")).GetValue())));
+			AdvanceTimers(Lasts + Margin);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3), TEXT("removed early, it ticks no more")));
+		}
+
+		TEST_METHOD(ALethalTickKillsInItsSourcesName)
+		{
+			constexpr double TickSeconds = 1.0;
+			constexpr double Margin = 0.1;
+			TWeakObjectPtr<UAbilitySystemComponent> Killer;
+			Spawner.GetWorld().GetSubsystem<UVeyraCombatEventSubsystem>()->OnDeath.AddLambda([&Killer](const FVeyraDeathEvent& Death) { Killer = Death.Killer; });
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(ExampleStats().MaxHealth, TickSeconds, TickSeconds * 2.0))));
+			AdvanceTimers(TickSeconds + Margin);
+			ASSERT_THAT(IsTrue(Killer.Get() == Caster, TEXT("the burn's source killed it")));
+			ASSERT_THAT(IsNull(Find(TEXT("burn")), TEXT("death ends it")));
+		}
+
+		TEST_METHOD(WeakenCutsTheDamageTheUnitDeals)
+		{
+			constexpr double Cut = 0.35;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("frail"), EVeyraStatusKind::Weaken, Cut, LongSeconds))));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Value(UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute()), 1.0 - Cut, 1e-5)));
+			// A cut of all of it, or a tick on any kind but a damage over time, is refused.
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("frail"), EVeyraStatusKind::Weaken, 1.0, LongSeconds)).IsEmpty()));
+			FVeyraStatusSpec TickingSlow = TestStatus(TEXT("mire"), EVeyraStatusKind::Slow, 0.2, LongSeconds);
+			TickingSlow.TickSeconds = 1.0;
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TickingSlow).IsEmpty()));
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(Burn(10.0, 0.0, LongSeconds)).IsEmpty(), TEXT("a damage over time needs its tick")));
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(Burn(10.0, LongSeconds * 2.0, LongSeconds)).IsEmpty(), TEXT("and at least one in its duration")));
 		}
 
 		TEST_METHOD(IndependentSourcesKeepOneInstanceEach)

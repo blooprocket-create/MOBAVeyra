@@ -30,6 +30,10 @@ const FKey& UVeyraInputSettings::GetAbilityKey(EVeyraAbilitySlot Slot) const
 		return Item5Key;
 	case EVeyraAbilitySlot::Item6:
 		return Item6Key;
+	case EVeyraAbilitySlot::Spell1:
+		return Spell1Key;
+	case EVeyraAbilitySlot::Spell2:
+		return Spell2Key;
 	}
 	return EKeys::Invalid;
 }
@@ -48,6 +52,11 @@ UInputAction* FVeyraInputObjects::GetAbilityAction(EVeyraAbilitySlot Slot) const
 		return AbilityR;
 	default:
 		break;
+	}
+	if (VeyraAbilitySlots::IsSpellSlot(Slot))
+	{
+		const int32 SpellIndex = VeyraAbilitySlots::SpellIndexOf(Slot);
+		return SpellSlots.IsValidIndex(SpellIndex) ? SpellSlots[SpellIndex].Get() : nullptr;
 	}
 	const int32 Index = VeyraAbilitySlots::ItemIndexOf(Slot);
 	return ItemSlots.IsValidIndex(Index) ? ItemSlots[Index].Get() : nullptr;
@@ -101,6 +110,11 @@ FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer)
 	}
 	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
 	{
+		Objects.MappingContext->MapKey(Objects.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
+	}
+	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Spells)
+	{
+		Objects.SpellSlots.Add(NewCastAction(Outer, TEXT("VeyraSpellSlot")));
 		Objects.MappingContext->MapKey(Objects.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
 	}
 	Objects.Recall = NewCastAction(Outer, TEXT("VeyraRecall"));

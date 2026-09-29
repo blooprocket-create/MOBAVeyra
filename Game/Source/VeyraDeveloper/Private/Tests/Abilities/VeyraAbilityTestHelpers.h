@@ -99,6 +99,18 @@ namespace VeyraAbilitiesTests
 				&& Progression->AllocateRank(Slot) == EVeyraRankRefusal::None;
 		}
 
+		/** Grants Ability in a slot that takes no ranks, such as a Flux Spell's (ADR-015 §1), at Level 1. */
+		static bool Equip(AVeyraVanguardCharacter& Vanguard, EVeyraAbilitySlot Slot, const FVeyraContentId& Ability)
+		{
+			APlayerState* PlayerState = Vanguard.GetPlayerState();
+			UVeyraProgressionComponent* Progression = PlayerState->FindComponentByClass<UVeyraProgressionComponent>();
+			if (!Progression->IsInitialized())
+			{
+				Progression->Initialize(FVeyraStatGrowth(), 0.0);
+			}
+			return PlayerState->FindComponentByClass<UVeyraAbilityLoadoutComponent>()->Grant(*Vanguard.GetAbilitySystemComponent(), Slot, Ability);
+		}
+
 		static EVeyraCastRejection CastAt(AVeyraVanguardCharacter& Caster, EVeyraAbilitySlot Slot, const FVector& Point)
 		{
 			FVeyraCastTarget Target;

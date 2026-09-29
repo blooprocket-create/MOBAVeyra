@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -13,7 +13,8 @@
       "durationSeconds": 90,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "stonehorn_trait": {
       "provenance": "Provisional",
@@ -23,7 +24,8 @@
       "durationSeconds": 90,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "skittermaw_trait": {
       "provenance": "Provisional",
@@ -33,7 +35,8 @@
       "durationSeconds": 90,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "miremother_trait": {
       "provenance": "Provisional",
@@ -43,7 +46,8 @@
       "durationSeconds": 90,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "razorback_trait": {
       "provenance": "Provisional",
@@ -53,7 +57,8 @@
       "durationSeconds": 90,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "cairn_crushing_hold_stun": {
       "provenance": "Provisional",
@@ -63,7 +68,8 @@
       "durationSeconds": 1.0,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "cairn_crushing_hold_slow": {
       "provenance": "Provisional",
@@ -73,7 +79,8 @@
       "durationSeconds": 1.5,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "cairn_immovable_guard": {
       "provenance": "Provisional",
@@ -83,7 +90,8 @@
       "durationSeconds": 4,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "cairn_immovable_anchor": {
       "provenance": "Provisional",
@@ -93,7 +101,8 @@
       "durationSeconds": 4,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "cairn_immovable_burden": {
       "provenance": "Provisional",
@@ -103,7 +112,8 @@
       "durationSeconds": 4,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "cairn_immovable_cover": {
       "provenance": "Provisional",
@@ -113,7 +123,8 @@
       "durationSeconds": 1.0,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "cairn_burden_stun": {
       "provenance": "Provisional",
@@ -123,7 +134,8 @@
       "durationSeconds": 1.25,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "cairn_burden_slow": {
       "provenance": "Provisional",
@@ -133,7 +145,8 @@
       "durationSeconds": 2.0,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "qazharr_sea_dog": {
       "provenance": "Provisional",
@@ -143,7 +156,8 @@
       "durationSeconds": 6,
       "maxStacks": 5,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "qazharr_heavy_hand_slow": {
       "provenance": "Provisional",
@@ -153,7 +167,8 @@
       "durationSeconds": 1.25,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "qazharr_weather_it_tenacity": {
       "provenance": "Provisional",
@@ -163,7 +178,8 @@
       "durationSeconds": 3,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "qazharr_boarding_rush_haste": {
       "provenance": "Provisional",
@@ -173,7 +189,8 @@
       "durationSeconds": 1.5,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "qazharr_no_quarter_frenzy": {
       "provenance": "Provisional",
@@ -183,7 +200,8 @@
       "durationSeconds": 6,
       "maxStacks": 1,
       "takedownExtensionSeconds": 1.5,
-      "takedownExtensionMaxSeconds": 3
+      "takedownExtensionMaxSeconds": 3,
+      "damageOverTime": []
     },
     "qazharr_no_quarter_pursuit": {
       "provenance": "Provisional",
@@ -193,7 +211,8 @@
       "durationSeconds": 6,
       "maxStacks": 1,
       "takedownExtensionSeconds": 1.5,
-      "takedownExtensionMaxSeconds": 3
+      "takedownExtensionMaxSeconds": 3,
+      "damageOverTime": []
     },
     "qazharr_no_quarter_tenacity": {
       "provenance": "Provisional",
@@ -203,7 +222,8 @@
       "durationSeconds": 6,
       "maxStacks": 1,
       "takedownExtensionSeconds": 1.5,
-      "takedownExtensionMaxSeconds": 3
+      "takedownExtensionMaxSeconds": 3,
+      "damageOverTime": []
     },
     "qazharr_no_quarter_cleave": {
       "provenance": "Provisional",
@@ -213,7 +233,8 @@
       "durationSeconds": 6,
       "maxStacks": 1,
       "takedownExtensionSeconds": 1.5,
-      "takedownExtensionMaxSeconds": 3
+      "takedownExtensionMaxSeconds": 3,
+      "damageOverTime": []
     },
     "oriel_shattered_sky_slow": {
       "provenance": "Provisional",
@@ -223,7 +244,8 @@
       "durationSeconds": 1.25,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "oriel_mirror_veil_haste": {
       "provenance": "Provisional",
@@ -233,7 +255,8 @@
       "durationSeconds": 1.5,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     }
 ,
     "bryn_flare_slow": {
@@ -244,7 +267,8 @@
       "durationSeconds": 1.5,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     },
     "bryn_kickback_slow": {
       "provenance": "Provisional",
@@ -254,7 +278,53 @@
       "durationSeconds": 1,
       "maxStacks": 1,
       "takedownExtensionSeconds": 0,
-      "takedownExtensionMaxSeconds": 0
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
+    }
+,
+    "mend_haste": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
+    },
+    "scorch_burn": {
+      "provenance": "Provisional",
+      "kind": "DamageOverTime",
+      "stacking": "IndependentSources",
+      "magnitude": 18,
+      "durationSeconds": 5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [{ "damageType": "TrueDamage", "tickSeconds": 1, "damagePerLevel": 4 }]
+    },
+    "enfeeble_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 2.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
+    },
+    "enfeeble_weaken": {
+      "provenance": "Provisional",
+      "kind": "Weaken",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.35,
+      "durationSeconds": 2.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": []
     }
   },
   "targetedDamage": {
@@ -263,7 +333,40 @@
       "cooldownSeconds": 4,
       "resourceCost": 40,
       "damageType": "Magic",
-      "damageAmount": 120
+      "damageAmount": 120,
+      "damagePerLevel": 0,
+      "statuses": [],
+      "targetKinds": []
+    },
+    "scorch": {
+      "castRange": 600,
+      "cooldownSeconds": 180,
+      "resourceCost": 0,
+      "damageType": "TrueDamage",
+      "damageAmount": 0,
+      "damagePerLevel": 0,
+      "statuses": ["scorch_burn"],
+      "targetKinds": ["Vanguard"]
+    },
+    "enfeeble": {
+      "castRange": 650,
+      "cooldownSeconds": 240,
+      "resourceCost": 0,
+      "damageType": "TrueDamage",
+      "damageAmount": 0,
+      "damagePerLevel": 0,
+      "statuses": ["enfeeble_slow", "enfeeble_weaken"],
+      "targetKinds": ["Vanguard"]
+    },
+    "wildstrike": {
+      "castRange": 500,
+      "cooldownSeconds": 90,
+      "resourceCost": 0,
+      "damageType": "TrueDamage",
+      "damageAmount": 600,
+      "damagePerLevel": 0,
+      "statuses": [],
+      "targetKinds": ["Wildlife", "Objective", "Fluxborn"]
     }
   },
   "area": {
@@ -551,6 +654,7 @@
       "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
       "shields": [],
       "aura": [{ "radius": 600, "durationSeconds": 4, "refreshSeconds": 0.5, "allyStatuses": ["cairn_immovable_cover"] }],
+      "heal": [],
       "recast": "EndsEarly"
     },
     "qazharr_weather_it": {
@@ -578,6 +682,7 @@
         }
       ],
       "aura": [],
+      "heal": [],
       "recast": "None"
     },
     "oriel_mirror_veil": {
@@ -605,6 +710,23 @@
         }
       ],
       "aura": [],
+      "heal": [],
+      "recast": "None"
+    },
+    "mend": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [240],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "statuses": [],
+      "shields": [],
+      "aura": [],
+      "heal": [{ "amount": 80, "amountPerLevel": 14, "allyRange": 850, "statuses": ["mend_haste"] }],
       "recast": "None"
     }
   },
@@ -718,6 +840,29 @@
         "missingHealthDamage": []
       },
       "contactSelfStatuses": []
+    },
+    "blink": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [300],
+        "resourceCostByRank": [0],
+        "castRange": 400,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0
+      },
+      "direction": "TowardPoint",
+      "distance": 400,
+      "speed": 4000,
+      "contact": "None",
+      "startZones": [],
+      "contactEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": []
+      },
+      "contactSelfStatuses": []
     }
   },
   "empoweredAttack": {
@@ -762,5 +907,9 @@
         }
       ]
     }
+  },
+  "fluxSpells": {
+    "provenance": "Provisional",
+    "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]
   }
 }

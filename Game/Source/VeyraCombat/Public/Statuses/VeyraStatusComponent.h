@@ -5,6 +5,7 @@
 #include "ActiveGameplayEffectHandle.h"
 #include "Components/ActorComponent.h"
 #include "Containers/Map.h"
+#include "Engine/TimerHandle.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "UObject/WeakObjectPtr.h"
 
@@ -81,6 +82,12 @@ private:
 		double TakedownExtensionMaxSeconds = 0.0;
 		/** How much takedowns have extended the current application so far. */
 		double ExtendedSeconds = 0.0;
+		/** A DamageOverTime status's ticks (Combat Bible §14): what each deals, and those still to come. */
+		FTimerHandle TickTimer;
+		EVeyraDamageType TickDamageType = EVeyraDamageType::Physical;
+		double TickDamage = 0.0;
+		double TickSeconds = 0.0;
+		int32 TicksLeft = 0;
 	};
 
 	UFUNCTION()
@@ -91,6 +98,23 @@ private:
 		double Magnitude, int32 Stacks, double DurationSeconds) const;
 	int32 FindActive(const FVeyraStatusSpec& Spec, const UAbilitySystemComponent& Source) const;
 	void MarkLedgerChanged();
+
+	/** Starts entry Sequence's ticks afresh: the first comes TickSeconds after now (§14: none as it lands). */
+	void StartTicking(int32 Sequence, FServerEntry& Server);
+
+	/** Deals entry Sequence's next tick in its source's name, if it still has one to deal. */
+	void DealTick(int32 Sequence);
+
+	/**
+	 * Stops an entry's ticks. An entry whose effect ends with one tick still to come deals it first:
+	 * that tick falls on the same moment, whichever timer runs first (§14: its last tick counts). One
+	 * removed early deals nothing more. The entry must be out of the ledger already, since a lethal
+	 * tick changes it.
+	 */
+	void StopTicking(FServerEntry& Server, bool bDealDueTick);
+
+	/** Deals one tick of Amount of Type from Source to this unit, delivered as Periodic. */
+	void DealTickDamage(const TWeakObjectPtr<UAbilitySystemComponent>& Source, EVeyraDamageType Type, double Amount) const;
 
 	/** Server world time, which the ledger's times are in (see UVeyraCooldownComponent). */
 	double GetServerNow() const;

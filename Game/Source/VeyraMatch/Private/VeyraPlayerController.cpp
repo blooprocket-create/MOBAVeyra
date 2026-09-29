@@ -136,6 +136,10 @@ void AVeyraPlayerController::SetupInputComponent()
 		{
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
 		}
+		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Spells)
+		{
+			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+		}
 	}
 }
 
@@ -207,7 +211,7 @@ void AVeyraPlayerController::MoveToCursor(bool bSteer)
 void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 {
 	// With the rank-up modifier held, a kit slot's key spends a skill point on it instead.
-	if (!VeyraAbilitySlots::IsItemSlot(Slot) && IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
+	if (!VeyraAbilitySlots::IsItemSlot(Slot) && !VeyraAbilitySlots::IsSpellSlot(Slot) && IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
 	{
 		RequestRankUp(Slot);
 		return;

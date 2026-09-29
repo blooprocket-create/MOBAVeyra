@@ -9,7 +9,8 @@ namespace
 	/** Kinds whose Magnitude is a fraction removed per stack, where every stack together stays below 1. */
 	bool IsReductionKind(EVeyraStatusKind Kind)
 	{
-		return Kind == EVeyraStatusKind::Tenacity || Kind == EVeyraStatusKind::DamageReduction || Kind == EVeyraStatusKind::DisplacementResistance;
+		return Kind == EVeyraStatusKind::Tenacity || Kind == EVeyraStatusKind::DamageReduction || Kind == EVeyraStatusKind::DisplacementResistance
+			|| Kind == EVeyraStatusKind::Weaken;
 	}
 
 	/** Kinds whose Magnitude is a signed change per stack, where the stat always stays above 0. */
@@ -71,18 +72,37 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::Tenacity:
 	case EVeyraStatusKind::DamageReduction:
 	case EVeyraStatusKind::DisplacementResistance:
+	case EVeyraStatusKind::Weaken:
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
 		break;
 	case EVeyraStatusKind::AttackCleave:
 	case EVeyraStatusKind::MoveSpeedTowardEnemyVanguards:
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks <= 1.0;
 		break;
+	case EVeyraStatusKind::DamageOverTime:
+		bMagnitudeValid &= Magnitude > 0.0;
+		break;
 	}
 	if (!bMagnitudeValid)
 	{
 		Problems.Add(TEXT("magnitude: out of range for the status's kind (EVeyraStatusKind)"));
 	}
+	// Only a damage-over-time status ticks, at least once in its duration (§14).
+	const bool bTicks = Spec.Kind == EVeyraStatusKind::DamageOverTime;
+	const bool bTickValid = bTicks ? FMath::IsFinite(Spec.TickSeconds) && Spec.TickSeconds > 0.0 && Spec.TickSeconds <= Spec.DurationSeconds
+								   : Spec.TickSeconds == 0.0;
+	if (!bTickValid)
+	{
+		Problems.Add(TEXT("tickSeconds: a damage-over-time status ticks every tickSeconds, above 0 and at most its duration; any other kind has none"));
+	}
 	return Problems;
+}
+
+int32 TickCount(double DurationSeconds, double TickSeconds)
+{
+	// A tick that falls on the last moment still counts, however the seconds round.
+	constexpr double Tolerance = 1e-6;
+	return TickSeconds > 0.0 ? FMath::FloorToInt32(DurationSeconds / TickSeconds + Tolerance) : 0;
 }
 
 bool IsTenacityReducible(EVeyraStatusKind Kind)

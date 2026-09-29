@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "fluxSpells"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -185,7 +185,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [3]
+      "enum": [4]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -210,12 +210,12 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds"],
+          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -223,27 +223,43 @@
               "enum": ["UniqueRefresh", "UniqueReplaceStrongest", "Stacking", "IndependentSources"]
             },
             "magnitude": {
-              "description": "Read as the kind says (EVeyraStatusKind): 0 for a Stun, the fraction of speed removed for a Slow, a signed change for Move Speed and Attack Speed, the fraction removed for the others.",
+              "description": "Read as the kind says (EVeyraStatusKind): 0 for a Stun, the fraction of speed removed for a Slow, a signed change for Move Speed and Attack Speed, one tick's damage at its source's first Level for DamageOverTime, the fraction removed for the others.",
               "type": "number",
               "minimum": -1
             },
             "durationSeconds": { "description": "Before Tenacity, which shortens crowd control only.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "maxStacks": { "type": "integer", "minimum": 1 },
             "takedownExtensionSeconds": { "description": "Seconds each takedown adds; 0 for none.", "type": "number", "minimum": 0 },
-            "takedownExtensionMaxSeconds": { "description": "The most takedowns add in all.", "type": "number", "minimum": 0 }
+            "takedownExtensionMaxSeconds": { "description": "The most takedowns add in all.", "type": "number", "minimum": 0 },
+            "damageOverTime": {
+              "description": "How a DamageOverTime status ticks (Combat Bible §14): one entry for that kind, none for any other.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["damageType", "tickSeconds", "damagePerLevel"],
+                "properties": {
+                  "damageType": { "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+                  "tickSeconds": { "description": "Seconds between ticks; the first comes this long after it lands.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "damagePerLevel": { "description": "Added to each tick for each Level of its source's beyond the first, fixed as it lands.", "type": "number", "minimum": 0 }
+                }
+              }
+            }
           }
         }
       }
     },
     "targetedDamage": {
-      "description": "Abilities cast at one enemy that resolve at once and deal one damage component (Combat Bible §29 targeted, instant). test_bolt is the developer test ability (ADR-006 M3); its values are provisional.",
+      "description": "Abilities cast at one enemy that resolve at once and deal one damage component and may put statuses on it (Combat Bible §29 targeted, instant; ADR-015 §3). test_bolt is the developer test ability (ADR-006 M3); its values are provisional.",
       "type": "object",
       "additionalProperties": false,
       "patternProperties": {
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["castRange", "cooldownSeconds", "resourceCost", "damageType", "damageAmount"],
+          "required": ["castRange", "cooldownSeconds", "resourceCost", "damageType", "damageAmount", "damagePerLevel", "statuses", "targetKinds"],
           "properties": {
             "castRange": {
               "description": "Cast range in units, measured edge to edge (Combat Bible §40).",
@@ -267,9 +283,18 @@
               "enum": ["Physical", "Magic", "TrueDamage"]
             },
             "damageAmount": {
-              "description": "Raw damage before any modifier (Combat Bible §25, step 2).",
+              "description": "Raw damage before any modifier (Combat Bible §25, step 2), at the caster's first Level; 0 for an ability that only applies statuses.",
               "type": "number",
               "minimum": 0
+            },
+            "damagePerLevel": { "description": "Added for each Level of the caster's beyond the first, read at Commit.", "type": "number", "minimum": 0 },
+            "statuses": { "description": "Put on the target it hits.", "$ref": "#/definitions/statusIds" },
+            "targetKinds": {
+              "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 5,
+              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective"] }
             }
           }
         }
@@ -313,7 +338,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "recast"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -339,6 +364,23 @@
                   "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "refreshSeconds": { "description": "How often allies in range get the statuses again; the statuses should outlast it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "allyStatuses": { "$ref": "#/definitions/statusIds" }
+                }
+              }
+            },
+            "heal": {
+              "description": "At most one heal for the caster and its most wounded allied Vanguard in range (ADR-015 §3), never above Max Health.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["amount", "amountPerLevel", "allyRange", "statuses"],
+                "properties": {
+                  "amount": { "description": "Health restored at the caster's first Level.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "amountPerLevel": { "description": "Added for each Level of the caster's beyond the first.", "type": "number", "minimum": 0 },
+                  "allyRange": { "description": "Units from the caster's centre to an ally's edge; 0 heals the caster alone.", "type": "number", "minimum": 0 },
+                  "statuses": { "description": "Put on each unit it heals.", "$ref": "#/definitions/statusIds" }
                 }
               }
             },
@@ -476,6 +518,20 @@
               }
             }
           }
+        }
+      }
+    },
+    "fluxSpells": {
+      "description": "The Flux Spells a player may put in a spell slot (Battleground Bible §14; ADR-015 §3): ordinary abilities of the maps above, each with one value for every rank.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "roster"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "roster": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
         }
       }
     }
