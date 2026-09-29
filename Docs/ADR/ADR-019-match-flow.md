@@ -35,7 +35,7 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
 ### 2. Autopilot moves only
 
 - A disconnected or AFK Vanguard is walked by its own Vanguard controller:
-  - First, to a point behind the nearest standing allied tower, `autopilot.behindTowerDistance` along that tower's lane toward home.
+  - First, to a point behind the nearest standing allied tower, `autopilot.behindTowerDistance` from it toward its fountain.
   - After `autopilot.fountainAfterSeconds`, to its fountain.
   - With no allied tower standing, straight to the fountain.
 - It never attacks, casts, shops, ranks or recalls, and it gets no immunity.
@@ -43,15 +43,15 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
 
 ### 3. Activity, absence and personal loss belong to Match
 
-- **Meaningful activity** is an accepted move, attack, cast, rank-up or recall order through the game mode. A move counts only if it lands more than `afk.minimumMoveDistance` from the last counted one. Shopping and chat never count, and bots are never absent.
-- **AFK:** after `afk.afterSeconds` without activity, the player is warned and autopilot begins. `afk.penaltyAfterSeconds` later, a personal loss is triggered.
-- **Disconnect:** autopilot begins at once. After `disconnect.penaltyAfterSeconds` without returning, a personal loss is triggered.
+- **Meaningful activity** is an accepted move, attack, attack-move, cast, Recall or vision-tool order through the game mode. A move counts only if it lands more than `activity.minimumMoveDistance` from the last counted one; skill ranks do not count. Shopping and chat never count, and bots are never absent.
+- **AFK:** after `absence.afkAfterSeconds` without activity, the player is warned and autopilot begins. `absence.afkPenaltyAfterSeconds` later, a personal loss is triggered.
+- **Disconnect:** autopilot begins at once. After `absence.disconnectPenaltyAfterSeconds` without returning, a personal loss is triggered.
 - **Absence clocks run on the match clock, so they stop during a pause.**
   - The continuous clock resets on return.
   - The cumulative total never resets.
 - **Forgiveness (§6):** a personal loss is cleared only when all three hold:
   - the team won;
-  - cumulative absence is at most `forgiveness.maxAbsentFraction` of the active duration;
+  - cumulative absence is at most `absence.maxForgivenAbsentFraction` of the active duration;
   - the record shows a contribution after the player's last return: a takedown, an assist, damage to an enemy Vanguard or structure, or a Well secured.
 
   The contribution rule is Provisional; canon says it is still to be designed.
@@ -71,7 +71,7 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
 - A recorded vote is locked.
 - A vote fails as soon as it can no longer pass.
 - Votes and the intermission run on real time, since a pause stops world time.
-- The intermission lasts `votes.intermissionSeconds`, then play resumes by itself.
+- The intermission lasts `votes.pause.intermissionSeconds`, then play resumes by itself.
 
 ### 5. Results
 
@@ -86,7 +86,7 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
 
 ### 6. Values
 
-The Match Flow Bible gives every value, as initial tuning, in `Game/Tuning/Match.json` (schema 7): `afk`, `disconnect`, `autopilot`, `forgiveness` and `votes`. `autopilot.behindTowerDistance` and `afk.minimumMoveDistance` are Provisional additions.
+The Match Flow Bible gives every value, as initial tuning, in `Game/Tuning/Match.json` (schema 7): `absence`, `activity`, `autopilot` and `votes`. `autopilot` and `activity.minimumMoveDistance` are Provisional: the behind-tower distance and the move threshold are Veyra's, and the fountain delay is the bible's.
 
 ### 7. Presentation
 

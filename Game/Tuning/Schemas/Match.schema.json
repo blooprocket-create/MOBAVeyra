@@ -193,7 +193,7 @@
       }
     },
     "activity": {
-      "description": "What counts as meaningful activity (Match Flow Bible §5.1; ADR-019 §3): accepted move, attack, cast, rank-up and Recall orders; never shopping or chat.",
+      "description": "What counts as meaningful activity (Match Flow Bible §5.1; ADR-019 §3): accepted move, attack, attack-move, cast, Recall and vision-tool orders; never shopping, chat or skill ranks.",
       "type": "object",
       "additionalProperties": false,
       "required": ["provenance", "minimumMoveDistance"],
