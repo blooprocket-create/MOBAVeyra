@@ -53,3 +53,12 @@ void UVeyraShellButton::HandleClicked()
 		Run();
 	}
 }
+
+UVeyraShellButton& UVeyraShellButton::KeepLabelOnOneLine()
+{
+	if (UTextBlock* Text = Cast<UTextBlock>(GetChildAt(0)))
+	{
+		Text->SetAutoWrapText(false);
+	}
+	return *this;
+}

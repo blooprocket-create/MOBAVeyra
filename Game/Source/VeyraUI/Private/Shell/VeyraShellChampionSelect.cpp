@@ -105,15 +105,6 @@ namespace
 		return Block;
 	}
 
-	/** A text button's label on one line, as AddLine's are. */
-	void KeepOnOneLine(UVeyraShellButton& Button)
-	{
-		if (UTextBlock* Label = Cast<UTextBlock>(Button.GetChildAt(0)))
-		{
-			Label->SetAutoWrapText(false);
-		}
-	}
-
 	/** One of the countdown's draining bars, emptying toward the countdown in the middle. */
 	UProgressBar* MakePickBar(UWidgetTree& Tree, EProgressBarFillType::Type Fill)
 	{
@@ -328,7 +319,7 @@ UWidget& UVeyraShellScreen::MakeCentre(const FVeyraSelectModel& Model)
 			Refresh();
 		});
 		Cast<UVerticalBoxSlot>(Toggle->Slot)->SetHorizontalAlignment(HAlign_Center);
-		KeepOnOneLine(*Toggle);
+		Toggle->KeepLabelOnOneLine();
 	}
 	return *Centre;
 }
@@ -384,7 +375,7 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 	{
 		UVeyraShellButton* Leave = AddButton(*Mode, LOCTEXT("LeaveSelect", "Leave"), [this] { Client->LeaveSelect(); }, Model.bCanLeave);
 		Cast<UVerticalBoxSlot>(Leave->Slot)->SetHorizontalAlignment(HAlign_Right);
-		KeepOnOneLine(*Leave);
+		Leave->KeepLabelOnOneLine();
 	}
 	AddLine(*WidgetTree, *Mode, Model.ModeLabel, EVeyraShellText::Heading, HAlign_Right);
 	UHorizontalBoxSlot* ModeSlot = Footer->AddChildToHorizontalBox(Mode);

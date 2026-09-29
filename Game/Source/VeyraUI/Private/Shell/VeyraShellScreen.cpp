@@ -291,8 +291,8 @@ void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPane
 	{
 		UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 		const FString MatchId = Row.MatchId;
-		AddButton(*Line, LOCTEXT("OpenMatch", "Open"), [this, MatchId] { Client->OpenHistoryMatch(MatchId); }, bCanOpen);
-		AddText(*Line, Row.Summary, static_cast<uint8>(EVeyraShellText::Body));
+		AddButton(*Line, LOCTEXT("OpenMatch", "Open"), [this, MatchId] { Client->OpenHistoryMatch(MatchId); }, bCanOpen)->KeepLabelOnOneLine();
+		AddText(*Line, Row.Summary, static_cast<uint8>(EVeyraShellText::Body))->SetAutoWrapText(false);
 		List->AddChild(Line);
 	}
 	// Older records come in batches (UX-67).
@@ -314,7 +314,7 @@ void UVeyraShellScreen::AddHistoryFilter(UPanelWidget& Parent, const TArray<FVey
 			VeyraBackendProtocol::FHistoryFilter Filter = Client->GetSnapshot().History.Filter;
 			Apply(Filter, Value);
 			Client->LoadHistory(Filter);
-		}, bCanLoad, Option.bSelected);
+		}, bCanLoad, Option.bSelected)->KeepLabelOnOneLine();
 	}
 	VeyraShellStyle::AddSpaced(Parent, *Row);
 }
@@ -474,9 +474,9 @@ void UVeyraShellScreen::BuildReport(const FVeyraMatchReport& Report, UPanelWidge
 	}
 	UHorizontalBox* Views = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	AddButton(*Views, LOCTEXT("ScoreboardView", "Scoreboard"), [this] { ShowReportView(EVeyraReportView::Scoreboard); }, true,
-		ReportView == EVeyraReportView::Scoreboard);
+		ReportView == EVeyraReportView::Scoreboard)->KeepLabelOnOneLine();
 	AddButton(*Views, LOCTEXT("DetailsView", "Detailed Statistics"), [this] { ShowReportView(EVeyraReportView::Details); }, true,
-		ReportView == EVeyraReportView::Details);
+		ReportView == EVeyraReportView::Details)->KeepLabelOnOneLine();
 	VeyraShellStyle::AddSpaced(Parent, *Views);
 	// The report scrolls within what is left of the screen.
 	UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
