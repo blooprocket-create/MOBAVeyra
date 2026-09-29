@@ -51,20 +51,64 @@ bool UVeyraSelfBuffAbility::EndsEarlyOnRecast(const UAbilitySystemComponent& Cas
 	{
 		return true;
 	}
+	// Any form of its stance standing counts.
 	const AActor* Owner = Caster.GetOwner();
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
-	return Statuses && Statuses->GetLedger().Entries.ContainsByPredicate([Buff](const FVeyraStatusEntry& Entry) { return Buff->Statuses.Contains(Entry.Id); });
+	for (const FVeyraContentId& Form : FormsOf(Caster, Ability))
+	{
+		const FVeyraSelfBuffAbilityTuning* FormBuff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Form);
+		if (Statuses && FormBuff && Statuses->GetLedger().Entries.ContainsByPredicate([FormBuff](const FVeyraStatusEntry& Entry) { return FormBuff->Statuses.Contains(Entry.Id); }))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+TArray<FVeyraContentId> UVeyraSelfBuffAbility::FormsOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
+{
+	TArray<FVeyraContentId> Forms = { Ability };
+	const AActor* Owner = Caster.GetOwner();
+	const UVeyraAbilityLoadoutComponent* Loadout = Owner ? Owner->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindAbility(Ability) : nullptr;
+	const auto IsStance = [](const FVeyraContentId& Id) {
+		const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Id);
+		return Buff && Buff->Recast == EVeyraRecast::EndsEarly;
+	};
+	if (!Entry || !IsStance(Ability))
+	{
+		return Forms;
+	}
+	const FVeyraLoadoutEntry* Own = Loadout->FindOwnSlot(Entry->Slot);
+	const FVeyraSlotOverride* Override = Loadout->FindOverride(Entry->Slot);
+	for (const FVeyraLoadoutEntry* Form : { Own, Override ? &Override->Entry : nullptr })
+	{
+		if (Form && IsStance(Form->Ability))
+		{
+			Forms.AddUnique(Form->Ability);
+		}
+	}
+	return Forms;
+}
+
+void UVeyraSelfBuffAbility::EndForms(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraContentId> Forms)
+{
+	for (const FVeyraContentId& Form : Forms)
+	{
+		if (const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Form))
+		{
+			for (const FVeyraContentId& Status : Buff->Statuses)
+			{
+				VeyraCombat::RemoveStatus(Caster, Status);
+			}
+		}
+	}
 }
 
 void UVeyraSelfBuffAbility::EndEarly(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
 {
-	if (const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability))
-	{
-		for (const FVeyraContentId& Status : Buff->Statuses)
-		{
-			VeyraCombat::RemoveStatus(Caster, Status);
-		}
-	}
+	// Every form of the stance ends with it.
+	EndForms(Caster, FormsOf(Caster, Ability));
 	StopAura();
 }
 
@@ -77,10 +121,24 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 	{
 		return FVeyraChannelPlan();
 	}
+	// Taking one form of a stance ends the others', so their bonuses never stack.
+	TArray<FVeyraContentId> Others = FormsOf(*Caster, Cast.Ability);
+	Others.Remove(Cast.Ability);
+	EndForms(*Caster, Others);
+	// A form an override holds lasts no longer than the override (ADR-018 §1).
+	const UVeyraAbilityLoadoutComponent* Slots = Caster->GetOwner() ? Caster->GetOwner()->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	const FVeyraLoadoutEntry* Entry = Slots ? Slots->FindAbility(Cast.Ability) : nullptr;
+	const FVeyraSlotOverride* Holding = Entry ? Slots->FindOverride(Entry->Slot) : nullptr;
+	const bool bHeldForAWhile = Holding && Holding->Entry.Ability == Cast.Ability && Holding->EndsAt > 0.0;
+	const double HeldFor = bHeldForAWhile ? FMath::Max(0.0, Holding->EndsAt - World->GetTimeSeconds()) : 0.0;
 	for (const FVeyraContentId& StatusId : Buff->Statuses)
 	{
-		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+		if (TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
 		{
+			if (bHeldForAWhile)
+			{
+				Status->DurationSeconds = FMath::Min(Status->DurationSeconds, HeldFor);
+			}
 			VeyraCombat::ApplyStatus(*Caster, *Caster, Status.GetValue());
 		}
 	}

@@ -39,6 +39,8 @@ The ability loadout can override what a slot holds, in four shapes. Each is data
 
 An override ends when its window, status or state ends, and the slot shows its own ability again.
 
+**A stance's forms.** When a slot's own ability and its variant are both stances their recast ends (Vera's Dig In and its volley form), they are one stance: taking either form ends the other's statuses, recasting either ends every form, and a form the variant holds lasts no longer than the variant.
+
 ### 2. Status kinds (amends ADR-009 §1)
 
 New kinds in Combat's one status ledger. Each is defined by its canon section, with its magnitude as data:
@@ -186,5 +188,6 @@ The values live in `Game/Tuning/Vanguards.json`, `Abilities.json` and `Bots.json
 - Redlined forms beyond canon.
 - Terrain gaps for Gorraveth's leap.
 - Mirroring the turn rate on clients (ADR-009 §6 keeps no prediction).
+- A displacement a newer one cuts short still reports the path it resolved, so Dead Reckoning may count more than the unit travelled; reporting on arrival would delay Tracked until the knockback ends.
 - HUD meters for Cadence, Hex and Momentum beyond status stacks.
 - Bots that leave a stance before they move: until then Bots.json marks Vera's Dig In `Never`, so bots do not cast it.

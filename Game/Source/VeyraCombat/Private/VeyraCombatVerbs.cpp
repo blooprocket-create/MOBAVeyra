@@ -678,6 +678,8 @@ bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, 
 	}
 	// §9: Displacement Resistance shortens the path; each source keeps less than all of it, so some remains.
 	const double Retained = Target.GetSet<UVeyraDefenceSet>() ? Target.GetNumericAttribute(UVeyraDefenceSet::GetDisplacementRetainedAttribute()) : 1.0;
+	const AActor* Body = Movement->GetOwner();
+	const FVector From = Body ? Body->GetActorLocation() : FVector::ZeroVector;
 	if (!Movement->StartDisplacement(Displacement.Direction, Displacement.Distance * Retained, Displacement.Speed))
 	{
 		UE_LOG(LogVeyraCombat, Error, TEXT("Refused a displacement of %s by %g at %g: it needs a horizontal direction and a finite distance and speed above 0."),
@@ -690,11 +692,15 @@ bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, 
 	{
 		Statuses->NotifyInterrupted();
 	}
-	// Who moved whom, and how far, for passives such as Kade's (ADR-018 §3).
+	// Who moved whom, and how far terrain lets it go, for passives such as Kade's (ADR-018 §3); a unit
+	// that cannot move at all is not displaced.
+	const TOptional<FVector> To = Movement->GetForcedMoveDestination();
+	const double Travelled = To.IsSet() ? FVector::Dist2D(From, To.GetValue()) : 0.0;
 	UWorld* World = Owner ? Owner->GetWorld() : nullptr;
-	if (UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
+	UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+	if (Events && !FMath::IsNearlyZero(Travelled, UE_KINDA_SMALL_NUMBER))
 	{
-		Events->OnDisplaced.Broadcast(FVeyraDisplacementEvent{ &Source, &Target, Displacement.Distance * Retained });
+		Events->OnDisplaced.Broadcast(FVeyraDisplacementEvent{ &Source, &Target, Travelled });
 	}
 	return true;
 }

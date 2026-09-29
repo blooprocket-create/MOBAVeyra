@@ -83,6 +83,13 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("/deepFoundation/cairn_deep_foundation/shield/amountByRank:")), All));
 		}
 
+		TEST_METHOD(DeadReckoningNeedsAStep)
+		{
+			FVeyraVanguardsTuning Tuning = UVeyraVanguardsTuningSubsystem::Get();
+			Tuning.MovingTarget.FindChecked(VanguardTestId(TEXT("kade_moving_target"))).DeadReckoning.StepUnits = 0.0;
+			ASSERT_THAT(IsTrue(Mentions(ValidateAgainstCommitted(Tuning), TEXT("/movingTarget/kade_moving_target/deadReckoning"))));
+		}
+
 		TEST_METHOD(EachPassiveRunsByTheMapThatDefinesIt)
 		{
 			ASSERT_THAT(IsTrue(VeyraVanguards::PassiveClassFor(VanguardTestId(TEXT("cairn_deep_foundation"))) == UVeyraDeepFoundationPassive::StaticClass()));

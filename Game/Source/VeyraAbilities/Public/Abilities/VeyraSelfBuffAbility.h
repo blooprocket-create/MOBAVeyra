@@ -31,6 +31,17 @@ protected:
 	virtual bool IsOffensive(const FVeyraContentId& Ability) const override;
 
 private:
+	/**
+	 * The forms of Ability's stance: its slot's own ability and the override that holds the slot, each
+	 * a self-buff its recast ends early (ADR-018 §1), as Vera's Dig In and its volley form. They share
+	 * one stance: casting one ends the others', and recasting any ends them all. Only Ability itself
+	 * for any other.
+	 */
+	TArray<FVeyraContentId> FormsOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
+
+	/** Removes the statuses of each of Forms. */
+	static void EndForms(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraContentId> Forms);
+
 	void RefreshAura();
 	void StopAura();
 

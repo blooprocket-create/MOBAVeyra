@@ -143,6 +143,16 @@ const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindSlot(EVeyraAbilityS
 	return Entries.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; });
 }
 
+const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindOwnSlot(EVeyraAbilitySlot Slot) const
+{
+	return Entries.FindByPredicate([Slot](const FVeyraLoadoutEntry& Entry) { return Entry.Slot == Slot; });
+}
+
+const FVeyraSlotOverride* UVeyraAbilityLoadoutComponent::FindOverride(EVeyraAbilitySlot Slot) const
+{
+	return Overrides.FindByPredicate([Slot](const FVeyraSlotOverride& Override) { return Override.Entry.Slot == Slot; });
+}
+
 const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindAbility(const FVeyraContentId& Ability) const
 {
 	if (const FVeyraLoadoutEntry* Own = Entries.FindByPredicate([&Ability](const FVeyraLoadoutEntry& Candidate) { return Candidate.Ability == Ability; }))

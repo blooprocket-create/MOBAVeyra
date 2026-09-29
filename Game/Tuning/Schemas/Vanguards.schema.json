@@ -166,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [7]
+      "enum": [8]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -395,12 +395,13 @@
             "deadReckoning": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["thresholdUnits", "capUnits", "damage", "physicalPowerRatioPerHundredUnits"],
+              "required": ["thresholdUnits", "capUnits", "damage", "physicalPowerRatioPerStep", "stepUnits"],
               "properties": {
                 "thresholdUnits": { "description": "Units of displacement banked before the next attack on a Tracked target spends them.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                 "capUnits": { "description": "The most that bank.", "type": "number", "minimum": 0 },
                 "damage": { "$ref": "#/definitions/damage" },
-                "physicalPowerRatioPerHundredUnits": { "type": "number", "minimum": 0 }
+                "physicalPowerRatioPerStep": { "description": "Physical Power ratio added for each stepUnits banked.", "type": "number", "minimum": 0 },
+                "stepUnits": { "description": "The units each step of the ratio counts (Roster Bible §2: per 100 units).", "type": "number", "minimum": 0, "exclusiveMinimum": true }
               }
             }
           }

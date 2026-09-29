@@ -4,6 +4,11 @@
 
 namespace VeyraVanguardRules
 {
+double DeadReckoningRatio(const FVeyraDeadReckoningTuning& Reckoning, double Banked)
+{
+	return Reckoning.StepUnits > 0.0 ? Reckoning.PhysicalPowerRatioPerStep * (Banked / Reckoning.StepUnits) : 0.0;
+}
+
 TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, int32 BasicAbilityMaxRank, int32 UltimateMaxRank)
 {
 	TArray<FString> Problems;
@@ -121,9 +126,10 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 			Problem(Pointer, TEXT("a passive has no ranks: trackedDamage and deadReckoning's damage each have one amount"));
 		}
 		const FVeyraDeadReckoningTuning& Reckoning = Moving.DeadReckoning;
-		if (!(Reckoning.ThresholdUnits > 0.0) || Reckoning.CapUnits < Reckoning.ThresholdUnits || Reckoning.PhysicalPowerRatioPerHundredUnits < 0.0)
+		if (!(Reckoning.ThresholdUnits > 0.0) || Reckoning.CapUnits < Reckoning.ThresholdUnits || Reckoning.PhysicalPowerRatioPerStep < 0.0
+			|| !(Reckoning.StepUnits > 0.0))
 		{
-			Problem(Pointer + TEXT("/deadReckoning"), TEXT("thresholdUnits is above 0, capUnits at least thresholdUnits, and the ratio at least 0"));
+			Problem(Pointer + TEXT("/deadReckoning"), TEXT("thresholdUnits is above 0, capUnits at least thresholdUnits, the ratio at least 0, and stepUnits above 0"));
 		}
 	}
 

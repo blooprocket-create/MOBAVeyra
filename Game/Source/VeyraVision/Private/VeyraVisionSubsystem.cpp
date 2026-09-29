@@ -505,10 +505,13 @@ void UVeyraVisionSubsystem::UpdateNow()
 		const TOptional<double> Detection = CamouflageRadiusOf(*Unit);
 		for (const TPair<const AActor*, double>& Lookout : Lookouts)
 		{
+			const EVeyraTeam LookoutSide = VeyraTeams::TeamOf(Lookout.Key);
 			const bool bInside = VeyraVisionRules::VolumeAt(Fog, FogVolumes, FVector2D(Lookout.Key->GetActorLocation())) == Volume;
-			const bool bEnemy = VeyraTeams::TeamOf(Lookout.Key) != VeyraTeams::TeamOf(Unit);
-			const double Reach = Detection.IsSet() ? FMath::Min(Lookout.Value, Detection.GetValue()) : Lookout.Value;
-			if (bInside && bEnemy && FVector2D::DistSquared(FVector2D(Lookout.Key->GetActorLocation()), FVector2D(Unit->GetActorLocation())) <= FMath::Square(Reach))
+			const bool bEnemy = LookoutSide != VeyraTeams::TeamOf(Unit);
+			const double Apart = FVector2D::DistSquared(FVector2D(Lookout.Key->GetActorLocation()), FVector2D(Unit->GetActorLocation()));
+			// Within its sight, and within the Camouflage's detection radius or its side's True Sight.
+			const bool bDetected = !Detection.IsSet() || Apart <= FMath::Square(Detection.GetValue()) || IsInTrueSight(LookoutSide, *Unit);
+			if (bInside && bEnemy && Apart <= FMath::Square(Lookout.Value) && bDetected)
 			{
 				FogSightings.FindOrAdd(Lookout.Key).Add(Unit);
 			}
