@@ -160,6 +160,16 @@ namespace VeyraBackendProtocol
 		FVeyraPlayerStatistics Statistics;
 	};
 
+	/** A Flux Well secured, on a verified result (Match Statistics Bible §5). */
+	struct FWellOutcome
+	{
+		int32 Site = 0;
+		/** "A" or "B". */
+		FString Side;
+		/** On the match clock. */
+		double AtSeconds = 0.0;
+	};
+
 	/** How the player's match went, as GET /v1/me/matches/{id} reports it (ADR-010 §3). */
 	struct FMatchOutcome
 	{
@@ -186,6 +196,8 @@ namespace VeyraBackendProtocol
 		bool bHasScoreboard = false;
 		/** The scoreboard's lines, as the server reported them: side A first, in seat order. */
 		TArray<FPlayerOutcome> Players;
+		/** Every Flux Well secured, in order; empty when none was, or the server sent none. */
+		TArray<FWellOutcome> Wells;
 
 		/** Whether the match still holds its players: allocating or ready. */
 		VEYRASERVICES_API bool IsActive() const;

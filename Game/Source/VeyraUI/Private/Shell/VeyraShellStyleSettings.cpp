@@ -78,6 +78,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("LockInWidth"), LockInWidth },
 		{ TEXT("PickerWidth"), PickerWidth },
 		{ TEXT("PickerTileWidth"), PickerTileWidth },
+		{ TEXT("ReportLabelWidth"), ReportLabelWidth },
+		{ TEXT("ReportColumnWidth"), ReportColumnWidth },
 	};
 	for (const TPair<const TCHAR*, float>& Length : Lengths)
 	{

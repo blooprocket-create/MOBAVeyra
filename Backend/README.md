@@ -154,9 +154,9 @@ How a client joins its assigned match is [ADR-007](../Docs/ADR/ADR-007-match-joi
 | `POST /v1/dev/matches` | — | `{"mode", "rules": "standard"\|"practice", "map": "development"\|"play", "hostAccountId", "participants": [{"accountId", "side": "A"\|"B", "vanguardId"}]}`; `rules` defaults to standard, `map` to the development grey box, and only practice names a host | `201` and the match; the backend starts its server. **Local only**; the route does not exist unless `matches.devCreate.enabled`. It stands in for champion select in scripts, so any Vanguard the game defines is accepted |
 | `GET /v1/dev/matches/{matchId}` | — | — | the match, its rules, Vanguards, server port and result. **Local only**; never returns a secret |
 | `GET /v1/me/match` | `Bearer <game token>` | — | `{"match": null}`, or the player's match: `id`, `mode`, `rules`, `state`, `side`, `vanguardId`, and once it is ready, `server` (`host`, `port`) and the join `ticket` |
-| `GET /v1/me/matches/{matchId}` | `Bearer <game token>` | — | a match the player was in: `id`, `mode`, `rules`, `state`, `side`, `vanguardId`, `failureReason`, and once it has ended the verified `result` (`endReason`, `winner`, `durationSeconds`, the player's own `joined` and `connectedAtEnd`, and `players`: the scoreboard, or `null` when the server sent none). Each scoreboard line is `side`, `name`, `vanguardId`, `you`, `statistics`, `items` and `fluxSpells`, with no account IDs. Anyone else's match is `match_not_found` |
+| `GET /v1/me/matches/{matchId}` | `Bearer <game token>` | — | a match the player was in: `id`, `mode`, `rules`, `state`, `side`, `vanguardId`, `failureReason`, and once it has ended the verified `result` (`endReason`, `winner`, `durationSeconds`, the player's own `joined` and `connectedAtEnd`, `players`: the scoreboard, or `null` when the server sent none, and `wells`: each Flux Well secured, or `null`). Each scoreboard line is `side`, `name`, `vanguardId`, `you`, `statistics`, `items` and `fluxSpells`, with no account IDs. Anyone else's match is `match_not_found` |
 | `POST /v1/server/matches/{matchId}/ready` | `Bearer <server credential>` | `{}` | the server accepts players |
-| `POST /v1/server/matches/{matchId}/result` | `Bearer <server credential>` | `{"endReason", "winner", "durationSeconds", "participants": [{"accountId", "joined", "connectedAtEnd"}], "players": [{"side", "name", "accountId", "vanguardId", "statistics", "items", "fluxSpells"}]}`; `players` is optional, and a bot's `accountId` is `null` | the result is recorded |
+| `POST /v1/server/matches/{matchId}/result` | `Bearer <server credential>` | `{"endReason", "winner", "durationSeconds", "participants": [{"accountId", "joined", "connectedAtEnd"}], "players": [{"side", "name", "accountId", "vanguardId", "statistics", "items", "fluxSpells"}], "wells": [{"site", "side", "atSeconds"}]}`; `players` and `wells` are optional, and a bot's `accountId` is `null` | the result is recorded |
 
 Error codes include `already_in_match`, `invalid_roster`, `invalid_rules`, `invalid_map`, `invalid_vanguard`, `no_server_capacity`, `allocation_failed`, `invalid_state`, `invalid_result` and `result_conflict`.
 
@@ -176,6 +176,8 @@ Rules the code enforces:
   - a rostered account at most once, on its side with its Vanguard, or one of the match's bots;
   - every statistic a finite amount or count, never negative;
   - every item and Flux Spell slot empty (`""`) or a content ID, with two spell slots.
+
+  The Flux Wells secured, each a site, a side and a match-clock time within the match, are kept on `match.results.wells` (migration 0015); the results' team summary counts each capture once.
 
   `Game/Source/VeyraDeveloper/TestData/MatchResult.example.json` is the game's result body, which a Go test posts, so the two agree.
 - A match whose server does not report ready within `matches.readyTimeout`, runs past `matches.maxDuration`, or whose server stops without a result is failed. A finished match's server is removed after `matches.removeServerAfter`, and its port is reused only after that.

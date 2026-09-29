@@ -339,6 +339,7 @@ func TestAResultsScoreboardOverHTTP(t *testing.T) {
 	}
 
 	result["players"] = []map[string]any{scoreboardLine("A", "DevOne", oneID, "cairn"), scoreboardLine("B", "DevTwo", twoID, "oriel")}
+	result["wells"] = []map[string]any{{"site": 0, "side": "B", "atSeconds": 700.5}}
 	if status, body := call(t, srv, "POST", "/v1/server/matches/"+matchID+"/result", cred, result); status != http.StatusOK {
 		t.Fatalf("result: %d %v", status, body)
 	}
@@ -368,6 +369,10 @@ func TestAResultsScoreboardOverHTTP(t *testing.T) {
 			first["items"].([]any)[1] != "basic_boots" || first["fluxSpells"].([]any)[1] != "mend" {
 			t.Fatalf("the scoreboard as recorded: %v", first)
 		}
+		wells, _ := verified["wells"].([]any)
+		if len(wells) != 1 || wells[0].(map[string]any)["side"] != "B" || wells[0].(map[string]any)["atSeconds"] != 700.5 {
+			t.Fatalf("the Flux Wells secured: %v", verified["wells"])
+		}
 	}
 }
 
@@ -389,5 +394,8 @@ func TestAResultWithoutAScoreboardShowsNone(t *testing.T) {
 	verified := view["match"].(map[string]any)["result"].(map[string]any)
 	if players, ok := verified["players"]; !ok || players != nil {
 		t.Fatalf("no scoreboard is null: %v", verified)
+	}
+	if wells, ok := verified["wells"]; !ok || wells != nil {
+		t.Fatalf("no captures sent is null: %v", verified)
 	}
 }

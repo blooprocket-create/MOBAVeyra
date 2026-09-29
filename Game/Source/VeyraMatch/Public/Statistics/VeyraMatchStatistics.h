@@ -4,6 +4,7 @@
 
 #include "Content/VeyraContentId.h"
 #include "Gold/VeyraGoldComponent.h"
+#include "Teams/VeyraTeam.h"
 
 #include "VeyraMatchStatistics.generated.h"
 
@@ -172,6 +173,16 @@ struct VEYRAMATCH_API FVeyraPlayerStatistics
 	/** Each Flux Spell slot's spell, in order; invalid for an empty slot. */
 	UPROPERTY()
 	TArray<FVeyraContentId> FluxSpells;
+};
+
+/** A Flux Well secured: which of its sites, by which side, when on the match clock (Match Statistics Bible §5). */
+struct FVeyraWellCapture
+{
+	int32 Site = INDEX_NONE;
+	EVeyraTeam Side = EVeyraTeam::None;
+	double AtSeconds = 0.0;
+
+	bool operator==(const FVeyraWellCapture&) const = default;
 };
 
 /** A time span, in server world time. */

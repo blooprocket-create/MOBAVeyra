@@ -44,6 +44,8 @@ type resultJSON struct {
 	Participants    []participantResultJSON `json:"participants"`
 	// Players is the scoreboard (ADR-017 §5); absent from servers that send none.
 	Players []scoreboardLineJSON `json:"players"`
+	// Wells are the Flux Wells secured, in order; absent from servers that send none.
+	Wells []match.WellCapture `json:"wells"`
 }
 
 // scoreboardLineJSON is one player's line as the match server reports it. A
@@ -258,6 +260,8 @@ func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor str
 		ConnectedAtEnd  bool    `json:"connectedAtEnd"`
 		// Players is the scoreboard, null when the server sent none (ADR-017 §5).
 		Players []scoreboardPlayerJSON `json:"players"`
+		// Wells are the Flux Wells secured, null when the server sent none.
+		Wells []match.WellCapture `json:"wells"`
 	}
 	out := struct {
 		ID            string            `json:"id"`
@@ -272,7 +276,7 @@ func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor str
 		FailureReason: textOrNil(string(m.FailureReason))}
 	if res := m.Result; res != nil {
 		out.Result = &playerResultJSON{EndReason: string(res.EndReason), Winner: textOrNil(string(res.Winner)), DurationSeconds: res.DurationSeconds,
-			Players: scoreboardFor(res.Players, actor)}
+			Players: scoreboardFor(res.Players, actor), Wells: res.Wells}
 		for _, pr := range res.Participants {
 			if pr.AccountID == actor {
 				out.Result.Joined, out.Result.ConnectedAtEnd = pr.Joined, pr.ConnectedAtEnd
@@ -326,6 +330,7 @@ func (s *Server) serverResult(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	result.Players = players
+	result.Wells = req.Wells
 	if err := s.Match.ServerResult(r.Context(), credential, r.PathValue("matchId"), result); err != nil {
 		s.fail(w, err)
 		return

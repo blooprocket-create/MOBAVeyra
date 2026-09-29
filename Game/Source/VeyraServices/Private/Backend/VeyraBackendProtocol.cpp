@@ -298,6 +298,17 @@ namespace
 			&& SlotsField(Line, TEXT("fluxSpells"), Out.Statistics.FluxSpells) && Out.Statistics.FluxSpells.Num() == SpellSlotCount;
 	}
 
+	/** A Flux Well secured, as the backend returns it: its site, its side and when. */
+	bool ParseWellOutcome(const FJsonValue& Value, FWellOutcome& Out)
+	{
+		const TSharedPtr<FJsonObject>* Object = nullptr;
+		double AtSeconds = 0.0;
+		const bool bParsed = Value.Type == EJson::Object && Value.TryGetObject(Object) && Object->IsValid() && CountField(**Object, TEXT("site"), Out.Site)
+			&& StringField(**Object, TEXT("side"), SidePattern, Out.Side) && DurationField(**Object, TEXT("atSeconds"), AtSeconds);
+		Out.AtSeconds = AtSeconds;
+		return bParsed;
+	}
+
 	bool ParseSelectState(const FString& Text, ESelectState& Out)
 	{
 		static const TPair<const TCHAR*, ESelectState> States[] = {
@@ -625,6 +636,24 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 			OutProblem = TEXT("the match's scoreboard is neither null nor a list");
 			return false;
 		}
+		// The Flux Wells secured: null, or absent, when the server sent none.
+		const TArray<TSharedPtr<FJsonValue>>* Wells = nullptr;
+		if (Result->HasTypedField<EJson::Array>(TEXT("wells")) && Result->TryGetArrayField(TEXT("wells"), Wells))
+		{
+			for (const TSharedPtr<FJsonValue>& Capture : *Wells)
+			{
+				if (!Capture.IsValid() || !ParseWellOutcome(*Capture, Outcome.Wells.AddDefaulted_GetRef()))
+				{
+					OutProblem = TEXT("the match's Flux Wells are not in the expected format");
+					return false;
+				}
+			}
+		}
+		else if (Result->HasField(TEXT("wells")) && !Result->HasTypedField<EJson::Null>(TEXT("wells")))
+		{
+			OutProblem = TEXT("the match's Flux Wells are neither null nor a list");
+			return false;
+		}
 	}
 	else if (!Object->HasTypedField<EJson::Null>(TEXT("result")))
 	{
@@ -863,6 +892,17 @@ FString BuildResultBody(const FVeyraMatchResult& Result)
 		WriteStatistics(*Writer, Player.Statistics);
 		WriteSlots(*Writer, TEXT("items"), Player.Statistics.Items, 0);
 		WriteSlots(*Writer, TEXT("fluxSpells"), Player.Statistics.FluxSpells, SpellSlotCount);
+		Writer->WriteObjectEnd();
+	}
+	Writer->WriteArrayEnd();
+	// Each Flux Well secured, once per capture (Match Statistics Bible §5).
+	Writer->WriteArrayStart(TEXT("wells"));
+	for (const FVeyraWellCapture& Capture : Result.Wells)
+	{
+		Writer->WriteObjectStart();
+		Writer->WriteValue(TEXT("site"), Capture.Site);
+		Writer->WriteValue(TEXT("side"), Capture.Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"));
+		Writer->WriteValue(TEXT("atSeconds"), Capture.AtSeconds);
 		Writer->WriteObjectEnd();
 	}
 	Writer->WriteArrayEnd();

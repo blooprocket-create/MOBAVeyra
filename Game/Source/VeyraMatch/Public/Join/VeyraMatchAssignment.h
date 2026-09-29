@@ -108,4 +108,6 @@ struct FVeyraMatchResult
 	TArray<FVeyraParticipantResult> Participants;
 	/** The scoreboard: every player who took part, side A first, in seat order (ADR-017 §5). */
 	TArray<FVeyraPlayerResult> Players;
+	/** Every Flux Well secured, in order (Match Statistics Bible §5). */
+	TArray<FVeyraWellCapture> Wells;
 };

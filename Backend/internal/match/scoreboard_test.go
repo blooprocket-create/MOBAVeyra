@@ -108,6 +108,37 @@ func TestTheScoreboardMustFitTheMatch(t *testing.T) {
 	}
 }
 
+func TestWellCapturesMustFitTheMatch(t *testing.T) {
+	m := scoredMatch()
+	r := resultFor(m)
+	r.Wells = []WellCapture{{Site: 0, Side: SideA, AtSeconds: 12}, {Site: 1, Side: SideB, AtSeconds: r.DurationSeconds}}
+	if err := m.End(r, t0); err != nil || len(m.Result.Wells) != 2 {
+		t.Fatalf("End: %v %+v", err, m.Result)
+	}
+	for name, capture := range map[string]WellCapture{
+		"no such side":      {Site: 0, Side: "C", AtSeconds: 1},
+		"no site":           {Site: -1, Side: SideA, AtSeconds: 1},
+		"before the start":  {Site: 0, Side: SideA, AtSeconds: -1},
+		"after the end":     {Site: 0, Side: SideA, AtSeconds: 43},
+		"not a time at all": {Site: 0, Side: SideA, AtSeconds: math.NaN()},
+	} {
+		t.Run(name, func(t *testing.T) {
+			m := scoredMatch()
+			r := resultFor(m)
+			r.Wells = []WellCapture{capture}
+			if err := m.End(r, t0); !errors.Is(err, ErrInvalidResult) {
+				t.Fatalf("want ErrInvalidResult, got %v", err)
+			}
+		})
+	}
+	// A different list of captures is a different result.
+	different := resultFor(m)
+	different.Wells = []WellCapture{{Site: 0, Side: SideA, AtSeconds: 12}}
+	if err := m.End(different, t0); !errors.Is(err, ErrResultConflict) {
+		t.Fatalf("want a conflict, got %v", err)
+	}
+}
+
 func TestAScoreboardMayLackThoseWhoNeverPlayed(t *testing.T) {
 	// A rostered player who never joined, and a bot that could not be seated, have no line.
 	m := scoredMatch()

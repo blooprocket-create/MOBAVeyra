@@ -47,7 +47,10 @@ func TestTheGamesResultBodyIsAccepted(t *testing.T) {
 	if !ok || len(players) != 3 {
 		t.Fatalf("the game's scoreboard: %v %+v", ok, req.Players)
 	}
-	r := match.Result{EndReason: match.EndReason(req.EndReason), DurationSeconds: req.DurationSeconds, Players: players}
+	if len(req.Wells) != 2 || req.Wells[1] != (match.WellCapture{Site: 1, Side: match.SideB, AtSeconds: 905.25}) {
+		t.Fatalf("the game's Flux Well captures: %+v", req.Wells)
+	}
+	r := match.Result{EndReason: match.EndReason(req.EndReason), DurationSeconds: req.DurationSeconds, Players: players, Wells: req.Wells}
 	if req.Winner != nil {
 		r.Winner = match.Side(*req.Winner)
 	}

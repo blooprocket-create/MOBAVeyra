@@ -319,6 +319,46 @@ namespace VeyraShellTests
 			ASSERT_THAT(AreEqual(Model.Headline.ToString(), FString(TEXT("Defeat"))));
 		}
 
+		TEST_METHOD(AMatchReportIsTheScoreboardTheTeamSummaryAndDetailedStatistics)
+		{
+			VeyraBackendProtocol::FMatchOutcome Outcome;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseMatchOutcome(ScoredOutcomeBody(), Outcome, Problem), Problem));
+			// Seen from side B, whose players lost.
+			Outcome.Side = TEXT("B");
+			const FVeyraMatchReport Report = VeyraMatchReportModel::Describe(Outcome);
+			ASSERT_THAT(IsTrue(Report.bHasScoreboard && Report.Teams.Num() == 2));
+			const FVeyraReportTeam& Ours = Report.Teams[0];
+			ASSERT_THAT(AreEqual(Ours.Title.ToString(), FString(TEXT("Your Team: Defeat"))));
+			ASSERT_THAT(IsTrue(Ours.Lines.Num() == 2 && Ours.Lines[0].Vanguard.ToString() == TEXT("Oriel") && Ours.Lines[1].Name.ToString() == TEXT("Bot 1")));
+			// The team's kills and Gold add up; its Flux Wells count each capture once (UX-53).
+			ASSERT_THAT(AreEqual(Ours.Summary.ToString(), FString(TEXT("1 kills, 10,643 Gold earned, 1 Flux Wells secured"))));
+			const FVeyraReportLine& Winner = Report.Teams[1].Lines[0];
+			ASSERT_THAT(AreEqual(Report.Teams[1].Title.ToString(), FString(TEXT("Enemy Team: Victory"))));
+			ASSERT_THAT(IsTrue(Winner.bYou && Winner.Name.ToString() == TEXT("DevOne (you)") && Winner.Kda.ToString() == TEXT("3 / 1 / 2")));
+			ASSERT_THAT(IsTrue(Winner.Gold.ToString() == TEXT("5,321 Gold") && Winner.LastHits.ToString() == TEXT("80 minions, 4 monsters"), Winner.Gold.ToString()));
+			ASSERT_THAT(IsTrue(Winner.Items.ToString().StartsWith(TEXT("Timing Coil | -")) && Winner.FluxSpells.ToString() == TEXT("Flux Spells: Blink, Mend"),
+				Winner.Items.ToString() + TEXT(" / ") + Winner.FluxSpells.ToString()));
+
+			// Detailed Statistics: a column for each player in the scoreboard's order, grouped as UX-50 approves.
+			ASSERT_THAT(AreEqual(Report.Columns.Num(), 3));
+			TArray<FString> Groups;
+			for (const FVeyraReportGroup& Group : Report.Groups)
+			{
+				Groups.Add(Group.Title.ToString());
+			}
+			ASSERT_THAT(IsTrue(Groups == (TArray<FString>{ TEXT("Combat"), TEXT("Objectives"), TEXT("Economy"), TEXT("Vision") })));
+			const FVeyraReportRow* Stun = Report.Groups[0].Rows.FindByPredicate([](const FVeyraReportRow& Row) { return Row.Label.ToString() == TEXT("Stun on Enemy Vanguards"); });
+			ASSERT_THAT(IsTrue(Stun && Stun->Values.Num() == 3 && Stun->Values[1].ToString() == TEXT("1.3 s") && Stun->Values[2].ToString() == TEXT("2.5 s"),
+				Stun ? FText::Join(FText::FromString(TEXT(",")), Stun->Values).ToString() : FString()));
+
+			// Pending while unrecorded, and said plainly when never recorded (UX-50).
+			Outcome.bHasScoreboard = false;
+			ASSERT_THAT(IsTrue(!VeyraMatchReportModel::Describe(Outcome).bHasScoreboard && VeyraMatchReportModel::Describe(Outcome).Pending.ToString().Contains(TEXT("No statistics"))));
+			Outcome.bHasResult = false;
+			ASSERT_THAT(IsTrue(VeyraMatchReportModel::Describe(Outcome).Pending.ToString().Contains(TEXT("Pending"))));
+		}
+
 		TEST_METHOD(NamesAndTheSignature)
 		{
 			ASSERT_THAT(AreEqual(VeyraShellModels::NameOf(TEXT("custom_practice")).ToString(), FString(TEXT("Custom Practice"))));
@@ -570,6 +610,24 @@ namespace VeyraShellTests
 			Button(TEXT("Continue"))->Press();
 			ASSERT_THAT(IsTrue(Rig.State() == EVeyraClientState::Loading));
 			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::Status));
+		}
+
+		TEST_METHOD(ResultsShowTheScoreboardThenDetailedStatistics)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachResults(ScoredOutcomeBody())));
+			ShowScreen();
+			FString Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Victory")) && Text.Contains(TEXT("Your Team: Victory")) && Text.Contains(TEXT("Enemy Team: Defeat"))
+				&& Text.Contains(TEXT("3 kills, 5,321 Gold earned, 1 Flux Wells secured")) && Text.Contains(TEXT("DevOne (you)")), Text));
+			ASSERT_THAT(IsTrue(Screen->GetReportView() == EVeyraReportView::Scoreboard && Button(TEXT("Scoreboard")) && Button(TEXT("Detailed Statistics"))));
+			Button(TEXT("Detailed Statistics"))->Press();
+			Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Screen->GetReportView() == EVeyraReportView::Details));
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Combat")) && Text.Contains(TEXT("Objectives")) && Text.Contains(TEXT("Economy")) && Text.Contains(TEXT("Vision"))
+				&& Text.Contains(TEXT("Damage to Towers")) && Text.Contains(TEXT("Gold from Minions")), Text));
+			ASSERT_THAT(IsFalse(Text.Contains(TEXT("Your Team: Victory")), TEXT("one view at a time")));
+			Button(TEXT("Continue"))->Press();
+			ASSERT_THAT(IsTrue(Rig.State() == EVeyraClientState::Loading));
 		}
 
 		TEST_METHOD(AProblemOffersRetry)

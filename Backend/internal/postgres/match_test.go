@@ -328,7 +328,8 @@ func TestAScoreboardInPostgres(t *testing.T) {
 	report := func() match.Result {
 		return match.Result{EndReason: match.EndHostEnded, DurationSeconds: 600.5,
 			Participants: []match.ParticipantResult{{AccountID: host, Joined: true, ConnectedAtEnd: true}},
-			Players:      []match.PlayerResult{line(match.SideA, "DevOne", host, "oriel", 3), line(match.SideB, "Bot 1", "", "cairn", 1), line(match.SideB, "Bot 2", "", "bryn", 0)}}
+			Players:      []match.PlayerResult{line(match.SideA, "DevOne", host, "oriel", 3), line(match.SideB, "Bot 1", "", "cairn", 1), line(match.SideB, "Bot 2", "", "bryn", 0)},
+			Wells:        []match.WellCapture{{Site: 1, Side: match.SideB, AtSeconds: 312.25}}}
 	}
 	if err := f.svc.ServerResult(ctx, cred, m.ID, report()); err != nil {
 		t.Fatalf("ServerResult: %v", err)
@@ -339,7 +340,8 @@ func TestAScoreboardInPostgres(t *testing.T) {
 	}
 	got := stored.Result.Players
 	if got[0].AccountID != host || got[1].AccountID != "" || got[2].Name != "Bot 2" || got[0].Statistics != report().Players[0].Statistics ||
-		got[0].Items[0] != "timing_coil" || got[0].FluxSpells != [2]string{"blink", "mend"} {
+		got[0].Items[0] != "timing_coil" || got[0].FluxSpells != [2]string{"blink", "mend"} ||
+		len(stored.Result.Wells) != 1 || stored.Result.Wells[0] != (match.WellCapture{Site: 1, Side: match.SideB, AtSeconds: 312.25}) {
 		t.Fatalf("the scoreboard as read back: %+v", got)
 	}
 	// The server's retry of the same report is the same result; a different scoreboard is not.

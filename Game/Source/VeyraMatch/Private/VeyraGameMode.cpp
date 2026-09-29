@@ -266,6 +266,10 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 		Result.Participants = Roster->BuildParticipantResults();
 	}
 	Result.Players = BuildScoreboard();
+	if (const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>())
+	{
+		Result.Wells = Statistics->GetWellCaptures();
+	}
 	// Game/Scripts/Smoke.ps1 checks this line.
 	UE_LOG(LogVeyraMatch, Display, TEXT("The match ended (%s) after %.1f s of match clock%s."), LexToString(Reason), Result.DurationSeconds,
 		Winner == EVeyraTeam::None ? TEXT("") : *FString::Printf(TEXT("; team %s won"), *StaticEnum<EVeyraTeam>()->GetNameStringByValue(static_cast<int64>(Winner))));

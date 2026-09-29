@@ -5,6 +5,7 @@
 #include "Client/VeyraClientFlowTypes.h"
 #include "Containers/Array.h"
 #include "Internationalization/Text.h"
+#include "Shell/VeyraMatchReportModel.h"
 
 /** Which screen the shell shows for a client state (ADR-010 §2, §4). */
 enum class EVeyraShellScreen : uint8
@@ -196,6 +197,8 @@ struct FVeyraResultsModel
 	bool bVerified = false;
 	FText Headline;
 	TArray<FText> Lines;
+	/** The Scoreboard and Detailed Statistics, once the result is verified (UX-50). */
+	FVeyraMatchReport Report;
 };
 
 /** A title and a line of detail. */

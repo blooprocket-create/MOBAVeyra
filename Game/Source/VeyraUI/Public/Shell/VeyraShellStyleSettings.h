@@ -209,6 +209,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
 	float PickerTileWidth = 0.0f;
 
+	/** A match report's name and label columns, and each of its other columns, in slate units (UX-50). */
+	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
+	float ReportLabelWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
+	float ReportColumnWidth = 0.0f;
+
 	/** Where the Vanguards' hero textures are imported, such as "/Game/Veyra/UI/Vanguards" (VeyraShellArt). */
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	FString VanguardArtFolder;

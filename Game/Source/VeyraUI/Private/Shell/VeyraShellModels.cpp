@@ -567,6 +567,7 @@ FVeyraResultsModel DescribeResults(const FVeyraClientSnapshot& Snapshot)
 			Model.Lines.Add(FText::Format(LOCTEXT("ResultVanguard", "Your Vanguard: {0}"), VanguardNameOf(Outcome->VanguardId)));
 		}
 		Model.Lines.Add(FText::Format(LOCTEXT("ResultDuration", "Duration: {0}"), FormatCountdown(Outcome->DurationSeconds)));
+		Model.Report = VeyraMatchReportModel::Describe(*Outcome);
 	}
 	if (const FText Notice = DescribeNotice(Snapshot.Notice); !Notice.IsEmpty())
 	{
@@ -618,7 +619,8 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	if (Snapshot.Result.IsSet())
 	{
 		const VeyraBackendProtocol::FMatchOutcome& Outcome = *Snapshot.Result;
-		Text << TEXT("|result:") << Outcome.State << TEXT(":") << Outcome.EndReason << TEXT(":") << Outcome.FailureReason;
+		Text << TEXT("|result:") << Outcome.State << TEXT(":") << Outcome.EndReason << TEXT(":") << Outcome.FailureReason << TEXT(":") << Outcome.Players.Num()
+			 << TEXT(":") << Outcome.Wells.Num();
 	}
 	return FString(Text.ToString());
 }

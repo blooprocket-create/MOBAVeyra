@@ -64,6 +64,26 @@ type GoldBySource struct {
 	Passive    float64 `json:"passive"`
 }
 
+// WellCapture is a Flux Well secured: which of its sites, by which side, and
+// when on the match clock (Match Statistics Bible §5). The team summary counts
+// each capture once (Pre-Game Client UX Bible 53).
+type WellCapture struct {
+	Site      int     `json:"site"`
+	Side      Side    `json:"side"`
+	AtSeconds float64 `json:"atSeconds"`
+}
+
+// validateWells checks that each capture is on a side that exists, at a site,
+// within the match.
+func validateWells(wells []WellCapture, durationSeconds float64) error {
+	for _, w := range wells {
+		if (w.Side != SideA && w.Side != SideB) || w.Site < 0 || math.IsNaN(w.AtSeconds) || w.AtSeconds < 0 || w.AtSeconds > durationSeconds {
+			return ErrInvalidResult
+		}
+	}
+	return nil
+}
+
 // PlayerResult is one player's line on a result's scoreboard, a human's or a
 // bot's (ADR-017 §5).
 type PlayerResult struct {

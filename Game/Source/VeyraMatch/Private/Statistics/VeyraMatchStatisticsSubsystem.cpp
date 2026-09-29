@@ -13,6 +13,7 @@
 #include "Structures/VeyraStructure.h"
 #include "Teams/VeyraTeam.h"
 #include "Units/VeyraUnit.h"
+#include "VeyraGameState.h"
 #include "VeyraMatchLog.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVisionSubsystem.h"
@@ -366,6 +367,9 @@ void UVeyraMatchStatisticsSubsystem::OnWardPlaced(const AVeyraWard& /*Ward*/, AP
 
 void UVeyraMatchStatisticsSubsystem::OnFluxWellSecured(const FVeyraFluxWellSecuredEvent& Event)
 {
+	// Which side secured it and when, once per capture, for the team summary (UX Bible 53).
+	const AVeyraGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AVeyraGameState>() : nullptr;
+	WellCaptures.Add({ Event.Site, Event.Team, GameState ? GameState->GetMatchClockSeconds() : 0.0 });
 	// Secured with participation: each Vanguard of the securing side at the Well (§5).
 	for (const TWeakObjectPtr<UAbilitySystemComponent>& Capturer : Event.Capturers)
 	{

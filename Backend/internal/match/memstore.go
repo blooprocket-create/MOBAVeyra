@@ -3,6 +3,7 @@ package match
 import (
 	"bytes"
 	"context"
+	"slices"
 	"sort"
 	"sync"
 )
@@ -29,6 +30,7 @@ func copyMatch(m Match) Match {
 		r := *m.Result
 		r.Participants = append([]ParticipantResult(nil), r.Participants...)
 		r.Players = copyPlayers(r.Players)
+		r.Wells = slices.Clone(r.Wells)
 		m.Result = &r
 	}
 	return m

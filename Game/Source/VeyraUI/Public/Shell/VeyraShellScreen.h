@@ -19,6 +19,13 @@ class UVerticalBox;
 class UVeyraShellButton;
 class UWidget;
 
+/** A match report's two views (UX-50): the two-team Scoreboard, and Detailed Statistics by category. */
+enum class EVeyraReportView : uint8
+{
+	Scoreboard,
+	Details,
+};
+
 /** The ordinary pre-game pages the shell's navigation moves between (UX §1). */
 enum class EVeyraShellPage : uint8
 {
@@ -58,6 +65,9 @@ public:
 
 	/** The Flux Spell slot whose picker champion select shows, or INDEX_NONE. */
 	int32 GetOpenSpellSlot() const { return OpenSpellSlot; }
+
+	/** Which view of a match report the screen shows. */
+	EVeyraReportView GetReportView() const { return ReportView; }
 
 	/** The art behind the screen: the Vanguard champion select shows, or null. */
 	UTexture2D* GetBackdrop() const;
@@ -112,6 +122,13 @@ private:
 	void UpdatePickBars();
 	void BuildReconnectOnly(const FVeyraClientSnapshot& Snapshot);
 	void BuildResults(const FVeyraClientSnapshot& Snapshot);
+	/** A match's Scoreboard or Detailed Statistics, as the report view says, with the switch between them (UX-50). */
+	void BuildReport(const FVeyraMatchReport& Report, UPanelWidget& Parent);
+	void BuildScoreboard(const FVeyraMatchReport& Report, UPanelWidget& Parent);
+	void BuildDetails(const FVeyraMatchReport& Report, UPanelWidget& Parent);
+	/** A text in a column Width wide. */
+	UTextBlock* AddCell(UPanelWidget& Row, const FText& Text, float Width, uint8 Role);
+	void ShowReportView(EVeyraReportView NewView);
 	/** The problem on screen and its Retry, if any. */
 	void BuildProblem(const FVeyraClientSnapshot& Snapshot);
 
@@ -161,4 +178,5 @@ private:
 	double PickSeconds = 0.0;
 	int32 OpenSpellSlot = INDEX_NONE;
 	bool bShowAbilities = false;
+	EVeyraReportView ReportView = EVeyraReportView::Scoreboard;
 };

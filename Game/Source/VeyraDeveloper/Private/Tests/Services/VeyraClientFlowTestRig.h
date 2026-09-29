@@ -95,6 +95,32 @@ namespace VeyraClientFlowTests
 			MatchId, State, *Result);
 	}
 
+	/** One line of a verified scoreboard, as the backend returns it (ADR-017 §5). */
+	inline FString ScoreboardLine(const TCHAR* Side, const TCHAR* Name, const TCHAR* Vanguard, bool bYou, int32 Kills, double StunSeconds)
+	{
+		return FString::Printf(TEXT("{\"side\":\"%s\",\"name\":\"%s\",\"vanguardId\":\"%s\",\"you\":%s,\"statistics\":{\"kills\":%d,\"deaths\":1,\"assists\":2,")
+								   TEXT("\"level\":9,\"minionKills\":80,\"jungleKills\":4,\"wellsSecured\":1,\"wellFinalHits\":0,\"wardsPlaced\":3,\"wardsDestroyed\":1,")
+								   TEXT("\"vanguardDamage\":4200.4,\"damageShielded\":0,\"selfHealing\":150,\"teammateHealing\":0,\"goldEarned\":5321.9,")
+								   TEXT("\"towerDamage\":1800,\"wellDamage\":600,\"damageDealt\":{\"physical\":9000,\"magic\":0,\"true\":45},")
+								   TEXT("\"damageTaken\":{\"physical\":3000,\"magic\":1000,\"true\":0},\"crowdControl\":{\"stun\":%g,\"slow\":0},")
+								   TEXT("\"goldBySource\":{\"starting\":500,\"kills\":600,\"assists\":100,\"minions\":2400,\"jungle\":80,\"objectives\":400,")
+								   TEXT("\"wards\":30,\"passive\":1211.9}},\"items\":[\"timing_coil\",\"\",\"\",\"\",\"\",\"\"],\"fluxSpells\":[\"blink\",\"mend\"]}"),
+			Side, Name, Vanguard, bYou ? TEXT("true") : TEXT("false"), Kills, StunSeconds);
+	}
+
+	/** An ended casual match the player won on side A, with its scoreboard and one Flux Well each side secured. */
+	inline FString ScoredOutcomeBody()
+	{
+		const FString Result = FString::Printf(TEXT("{\"endReason\":\"prime_well_destroyed\",\"winner\":\"A\",\"durationSeconds\":1510.5,\"joined\":true,")
+												   TEXT("\"connectedAtEnd\":true,\"players\":[%s,%s,%s],\"wells\":[{\"site\":0,\"side\":\"A\",\"atSeconds\":600},")
+												   TEXT("{\"site\":1,\"side\":\"B\",\"atSeconds\":900}]}"),
+			*ScoreboardLine(TEXT("A"), TEXT("DevOne"), TEXT("cairn"), true, 3, 2.5), *ScoreboardLine(TEXT("B"), TEXT("DevTwo"), TEXT("oriel"), false, 1, 0.0),
+			*ScoreboardLine(TEXT("B"), TEXT("Bot 1"), TEXT("bryn"), false, 0, 1.3));
+		return FString::Printf(TEXT("{\"match\":{\"id\":\"%s\",\"mode\":\"casual_select\",\"rules\":\"standard\",\"state\":\"ended\",\"side\":\"A\",")
+								   TEXT("\"vanguardId\":\"cairn\",\"failureReason\":null,\"result\":%s}}"),
+			MatchId, *Result);
+	}
+
 	/** A matchmade select: the player on side A, an opponent on side B. */
 	inline FString CasualSelectBody(const TCHAR* State, const FString& CancelReason = FString())
 	{
@@ -351,7 +377,7 @@ namespace VeyraClientFlowTests
 		}
 
 		/** From a match that ended to its verified result. */
-		bool ReachResults()
+		bool ReachResults(const FString& Outcome = OutcomeBody(TEXT("ended"), true))
 		{
 			if (!ReachMatch())
 			{
@@ -359,7 +385,7 @@ namespace VeyraClientFlowTests
 			}
 			Flow->NotifyMatchPhase(EVeyraMatchPhase::Ended);
 			Flow->NotifyWorld(EVeyraClientWorld::FrontEnd);
-			return Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, OutcomeBody(TEXT("ended"), true)) && State() == EVeyraClientState::Results;
+			return Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, Outcome) && State() == EVeyraClientState::Results;
 		}
 
 		/** Signs in to find a live match: Reconnect-only. */

@@ -2,6 +2,7 @@
 
 #include "Smoke/VeyraSmokeFlowSubsystem.h"
 
+#include "Algo/Count.h"
 #include "Algo/Find.h"
 #include "Client/VeyraClientFlowSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -920,6 +921,19 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 			ExpectedRules, ExpectedEndReason, !bVictory ? TEXT("with no winner") : bSieges ? TEXT("won by this side") : TEXT("lost by this side")));
 		return;
 	}
+	// The verified scoreboard (ADR-017 §5): the player's own line, with its Vanguard and its starting Gold
+	// at least, and in practice each bot beside it.
+	const VeyraBackendProtocol::FPlayerOutcome* You = Result->Players.FindByPredicate([](const VeyraBackendProtocol::FPlayerOutcome& Line) { return Line.bYou; });
+	const int32 Bots = Algo::CountIf(Result->Players, [](const VeyraBackendProtocol::FPlayerOutcome& Line) { return Line.Name.StartsWith(TEXT("Bot ")); });
+	if (!Result->bHasScoreboard || !You || You->VanguardId != LockedVanguard || !(You->Statistics.GoldBySource.Starting > 0.0) || You->Statistics.Level < 1
+		|| (bPractice && Bots == 0))
+	{
+		Finish(false, TEXT("the verified result has no scoreboard with the player's own line, and in practice its bots"));
+		return;
+	}
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the verified scoreboard lists %d player(s) (%d bot(s)) and %d Flux Well capture(s); this player went %d/%d/%d, earned %.0f Gold, dealt %.0f to towers."),
+		Result->Players.Num(), Bots, Result->Wells.Num(), You->Statistics.Kills, You->Statistics.Deaths, You->Statistics.Assists, You->Statistics.GoldEarned,
+		You->Statistics.TowerDamage);
 #if WITH_VEYRA_UI
 	// The results screen says so (ADR-011 §13).
 	if (bVictory)

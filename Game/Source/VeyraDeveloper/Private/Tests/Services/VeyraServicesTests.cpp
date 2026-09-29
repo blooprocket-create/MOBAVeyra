@@ -208,8 +208,9 @@ namespace VeyraServicesTests
 			Result.Participants = { { TEXT("a"), true, true }, { TEXT("b"), true, false } };
 			const TSharedPtr<FJsonObject> Body = Parse(VeyraBackendProtocol::BuildResultBody(Result));
 			ASSERT_THAT(IsTrue(Body.IsValid()));
-			ASSERT_THAT(AreEqual(Body->Values.Num(), 5));
+			ASSERT_THAT(AreEqual(Body->Values.Num(), 6));
 			ASSERT_THAT(IsTrue(Body->GetArrayField(TEXT("players")).IsEmpty(), TEXT("no players, an empty scoreboard")));
+			ASSERT_THAT(IsTrue(Body->GetArrayField(TEXT("wells")).IsEmpty(), TEXT("no Flux Well secured")));
 			ASSERT_THAT(AreEqual(Body->GetStringField(TEXT("endReason")), FString(TEXT("developer_request"))));
 			ASSERT_THAT(IsTrue(Body->HasTypedField<EJson::Null>(TEXT("winner"))));
 			ASSERT_THAT(IsTrue(Body->GetNumberField(TEXT("durationSeconds")) == 12.5));
@@ -315,6 +316,7 @@ namespace VeyraServicesTests
 			Result.Players = { Line(EVeyraTeam::A, TEXT("DevOne"), TEXT("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"), TEXT("cairn"), 0),
 				Line(EVeyraTeam::B, TEXT("DevTwo"), TEXT("bbbbbbbb-cccc-4ddd-8eee-ffffffffffff"), TEXT("oriel"), 10),
 				Line(EVeyraTeam::B, TEXT("Bot 1"), TEXT(""), TEXT("bryn"), 20) };
+			Result.Wells = { { 0, EVeyraTeam::A, 612.5 }, { 1, EVeyraTeam::B, 905.25 } };
 			return Result;
 		}
 
@@ -357,6 +359,8 @@ namespace VeyraServicesTests
 			Verified->SetBoolField(TEXT("joined"), true);
 			Verified->SetBoolField(TEXT("connectedAtEnd"), true);
 			Verified->SetArrayField(TEXT("players"), Players);
+			// The backend returns the captures as the server sent them.
+			Verified->SetArrayField(TEXT("wells"), Body->GetArrayField(TEXT("wells")));
 			const TSharedRef<FJsonObject> Match = MakeShared<FJsonObject>();
 			Match->SetStringField(TEXT("id"), ExampleId);
 			Match->SetStringField(TEXT("mode"), TEXT("casual_select"));
@@ -383,6 +387,12 @@ namespace VeyraServicesTests
 				ASSERT_THAT(IsTrue(Line.Side == (Sent.Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"))));
 				ASSERT_THAT(IsTrue(FVeyraPlayerStatistics::StaticStruct()->CompareScriptStruct(&Line.Statistics, &Sent.Statistics, PPF_None),
 					TEXT("every statistic, item and spell reads back as it was written")));
+			}
+			ASSERT_THAT(AreEqual(Read.Wells.Num(), Result.Wells.Num()));
+			for (int32 Index = 0; Index < Read.Wells.Num(); ++Index)
+			{
+				ASSERT_THAT(IsTrue(Read.Wells[Index].Site == Result.Wells[Index].Site && Read.Wells[Index].AtSeconds == Result.Wells[Index].AtSeconds
+					&& Read.Wells[Index].Side == (Result.Wells[Index].Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"))));
 			}
 		}
 	};

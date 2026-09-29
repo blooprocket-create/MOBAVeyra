@@ -54,6 +54,9 @@ public:
 	 */
 	TOptional<FVeyraPlayerStatistics> Snapshot(const AVeyraPlayerState& Participant) const;
 
+	/** Server: every Flux Well secured while recording, in order (Match Statistics Bible §5). */
+	const TArray<FVeyraWellCapture>& GetWellCaptures() const { return WellCaptures; }
+
 	virtual void Deinitialize() override;
 
 private:
@@ -90,6 +93,7 @@ private:
 	double RecordedUntil() const;
 
 	TArray<FRecord> Records;
+	TArray<FVeyraWellCapture> WellCaptures;
 	double StoppedAt = 0.0;
 	bool bRecording = false;
 	bool bStopped = false;

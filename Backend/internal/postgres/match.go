@@ -135,15 +135,17 @@ func (t matchTx) SaveMatch(m match.Match) error {
 		return nil
 	}
 	r := m.Result
-	var players []byte
-	if r.Players != nil {
-		if players, err = json.Marshal(r.Players); err != nil {
-			return err
-		}
+	players, err := jsonOrNull(r.Players, r.Players != nil)
+	if err != nil {
+		return err
 	}
-	tag, err = t.q.Exec(t.ctx, `INSERT INTO match.results (match_id, end_reason, winner, duration_seconds, players)
-		VALUES ($1::uuid, $2, $3, $4, $5) ON CONFLICT (match_id) DO NOTHING`,
-		m.ID, string(r.EndReason), nullableText(string(r.Winner)), r.DurationSeconds, players)
+	wells, err := jsonOrNull(r.Wells, r.Wells != nil)
+	if err != nil {
+		return err
+	}
+	tag, err = t.q.Exec(t.ctx, `INSERT INTO match.results (match_id, end_reason, winner, duration_seconds, players, wells)
+		VALUES ($1::uuid, $2, $3, $4, $5, $6) ON CONFLICT (match_id) DO NOTHING`,
+		m.ID, string(r.EndReason), nullableText(string(r.Winner)), r.DurationSeconds, players, wells)
 	if err != nil || tag.RowsAffected() == 0 {
 		return err
 	}
@@ -310,9 +312,9 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	var r match.Result
 	var reason string
 	var winner *string
-	var players []byte
-	err = q.QueryRow(ctx, `SELECT end_reason, winner, duration_seconds, players FROM match.results WHERE match_id = $1::uuid`, id).
-		Scan(&reason, &winner, &r.DurationSeconds, &players)
+	var players, wells []byte
+	err = q.QueryRow(ctx, `SELECT end_reason, winner, duration_seconds, players, wells FROM match.results WHERE match_id = $1::uuid`, id).
+		Scan(&reason, &winner, &r.DurationSeconds, &players, &wells)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return m, nil
 	}
@@ -325,6 +327,11 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	}
 	if players != nil {
 		if err := json.Unmarshal(players, &r.Players); err != nil {
+			return match.Match{}, err
+		}
+	}
+	if wells != nil {
+		if err := json.Unmarshal(wells, &r.Wells); err != nil {
 			return match.Match{}, err
 		}
 	}
@@ -343,6 +350,14 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	}
 	m.Result = &r
 	return m, nil
+}
+
+// jsonOrNull is v as a JSON document, or nil (SQL NULL) when present is false.
+func jsonOrNull(v any, present bool) ([]byte, error) {
+	if !present {
+		return nil, nil
+	}
+	return json.Marshal(v)
 }
 
 func nullableTime(t time.Time) *time.Time {
