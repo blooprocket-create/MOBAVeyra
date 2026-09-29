@@ -16,6 +16,8 @@
 #include "Misc/Paths.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "Structures/VeyraStructure.h"
+#include "Slots/VeyraAbilitySlot.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "UnrealClient.h"
 #include "VeyraGameState.h"
@@ -30,6 +32,7 @@
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellUISubsystem.h"
 #include "Shop/VeyraShopScreen.h"
+#include "Text/VeyraContentText.h"
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogVeyraSmokeFlow, Log, All);
@@ -254,6 +257,10 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 			{
 				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: hovering %s with %.0f s on the timer."), *Pick, Flow.GetRemainingPickSeconds());
 				Click(VanguardLabel(Pick));
+			}
+			else if (!ChooseFluxSpells(Snapshot, Flow))
+			{
+				// One choice a tick: each waits for the backend's answer.
 			}
 			else if (!Capture(TEXT("ChampionSelect")))
 			{
@@ -876,12 +883,42 @@ FString UVeyraSmokeFlowSubsystem::VanguardLabel(const FString& VanguardId)
 #endif
 }
 
-bool UVeyraSmokeFlowSubsystem::Click(const FString& Label)
+bool UVeyraSmokeFlowSubsystem::ChooseFluxSpells(const FVeyraClientSnapshot& Snapshot, IVeyraClientIntents& Flow)
+{
+	const VeyraBackendProtocol::FSelectSeat* You = Snapshot.Select.FindYou();
+	const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
+	for (int32 Slot = 0; You && Slot < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)) && Roster.IsValidIndex(Slot); ++Slot)
+	{
+		const FString Wanted = Roster[Slot].ToString();
+		if (!You->FluxSpells.IsValidIndex(Slot) || You->FluxSpells[Slot] != Wanted)
+		{
+			if (Flow.CanIssue(EVeyraClientIntent::ChooseFluxSpell))
+			{
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: choosing Flux Spell %s for slot %d."), *Wanted, Slot + 1);
+				// Each slot offers every spell: the Slot-th button of that name is this slot's.
+				Click(SpellLabel(Roster[Slot]), Slot);
+			}
+			return false;
+		}
+	}
+	return true;
+}
+
+FString UVeyraSmokeFlowSubsystem::SpellLabel(const FVeyraContentId& SpellId)
+{
+#if WITH_VEYRA_UI
+	return VeyraContentText::AbilityName(SpellId).ToString();
+#else
+	return SpellId.ToString();
+#endif
+}
+
+bool UVeyraSmokeFlowSubsystem::Click(const FString& Label, int32 Occurrence)
 {
 #if WITH_VEYRA_UI
 	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
 	UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr;
-	UVeyraShellButton* Button = Screen ? Screen->FindButton(FText::FromString(Label)) : nullptr;
+	UVeyraShellButton* Button = Screen ? Screen->FindButton(FText::FromString(Label), Occurrence) : nullptr;
 	if (!Button || !Button->GetIsEnabled())
 	{
 		Finish(false, FString::Printf(TEXT("the shell shows no enabled \"%s\" button%s"), *Label, Screen ? TEXT("") : TEXT(": it shows no screen at all")));

@@ -191,6 +191,33 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsFalse(Host.bQuit));
 		}
 
+		TEST_METHOD(FluxSpellsAreChosenFreelyAndMoveBetweenSlots)
+		{
+			ASSERT_THAT(IsTrue(ReachSelect()));
+			const auto Spells = [this] { return Flow->GetSnapshot().Select.FindYou()->FluxSpells; };
+			ASSERT_THAT(IsTrue(Flow->ChooseFluxSpell(0, TEXT("blink"))));
+			ASSERT_THAT(AreEqual(Backend.Find(TEXT("PUT"), TEXT("/v1/me/select/spells"))->Body, FString(TEXT("{\"fluxSpells\":[\"blink\",\"\"]}"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/select/spells"), 200,
+				SelectBody(TEXT("picking"), FString(), FString(), FString(), FString(), 29.0, TEXT("[\"blink\",\"\"]")))));
+			ASSERT_THAT(IsTrue(Spells() == TArray<FString>{ TEXT("blink"), FString() }));
+
+			// The first slot's spell chosen for the second moves over, as League's picker does. Here the backend refuses it.
+			TestRunner->AddExpectedMessagePlain(TEXT("the backend refused the Flux Spells"), ELogVerbosity::Warning, EAutomationExpectedMessageFlags::Contains, 1);
+			ASSERT_THAT(IsTrue(Flow->ChooseFluxSpell(1, TEXT("blink"))));
+			ASSERT_THAT(AreEqual(Backend.Find(TEXT("PUT"), TEXT("/v1/me/select/spells"))->Body, FString(TEXT("{\"fluxSpells\":[\"\",\"blink\"]}"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/select/spells"), 400, TEXT("{\"error\":\"invalid_flux_spells\"}"))));
+			ASSERT_THAT(IsTrue(Flow->GetSnapshot().Problem.IsSet(), TEXT("a refusal is shown")));
+
+			// Locked in, the spells stay open to change until the match starts (Pre-Game Client UX Bible 36).
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200,
+				SelectBody(TEXT("picking"), TEXT("oriel"), TEXT("oriel"), FString(), FString(), 20.0, TEXT("[\"blink\",\"\"]")))));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::HoverVanguard)));
+			ASSERT_THAT(IsFalse(Flow->ChooseFluxSpell(2, TEXT("mend")), TEXT("there are two slots")));
+			ASSERT_THAT(IsTrue(Flow->ChooseFluxSpell(1, TEXT("mend"))));
+			ASSERT_THAT(AreEqual(Backend.Find(TEXT("PUT"), TEXT("/v1/me/select/spells"))->Body, FString(TEXT("{\"fluxSpells\":[\"blink\",\"mend\"]}"))));
+		}
+
 		TEST_METHOD(ACancelledSelectReturnsToTheShell)
 		{
 			ASSERT_THAT(IsTrue(ReachSelect()));

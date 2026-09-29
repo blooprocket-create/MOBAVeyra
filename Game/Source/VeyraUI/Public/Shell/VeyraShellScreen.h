@@ -53,8 +53,11 @@ public:
 	/** Every button on screen, in the order built. For tests and scripts. */
 	TArray<UVeyraShellButton*> GetButtons() const;
 
-	/** The button labelled Label, or null. */
-	UVeyraShellButton* FindButton(const FText& Label) const;
+	/**
+	 * The button labelled Label, or null; Occurrence picks a later one where several share the label,
+	 * as each Flux Spell slot's choices do.
+	 */
+	UVeyraShellButton* FindButton(const FText& Label, int32 Occurrence = 0) const;
 
 	/** Every text on screen, joined by new lines, for tests. */
 	FString DescribeText() const;

@@ -116,6 +116,7 @@ public:
 	virtual bool HoverVanguard(const FString& VanguardId) override;
 	virtual bool LockVanguard(const FString& VanguardId) override;
 	virtual bool LeaveSelect() override;
+	virtual bool ChooseFluxSpell(int32 Slot, const FString& SpellId) override;
 	virtual bool Reconnect() override;
 	virtual bool ContinueFromResults() override;
 	virtual bool Retry() override;

@@ -112,6 +112,11 @@ namespace VeyraBackendProtocol
 		FString Hover;
 		/** The locked Vanguard; empty until locked. */
 		FString Locked;
+		/**
+		 * The seat's starting Flux Spells in slot order, an empty string for an empty slot (ADR-015 §5);
+		 * only the reading player's own seat carries them.
+		 */
+		TArray<FString> FluxSpells;
 	};
 
 	/** A champion select, as one of its players sees it. */
@@ -253,6 +258,9 @@ namespace VeyraBackendProtocol
 
 	/** The body of POST /v1/me/starter, PUT /v1/me/select/hover and POST /v1/me/select/lock. */
 	VEYRASERVICES_API FString BuildVanguardBody(const FString& VanguardId);
+
+	/** The body of PUT /v1/me/select/spells: the starting Flux Spells in slot order, "" for an empty slot. */
+	VEYRASERVICES_API FString BuildFluxSpellsBody(TConstArrayView<FString> Spells);
 
 	/** The body of POST /v1/server/matches/{id}/result (ADR-007 §7). */
 	VEYRASERVICES_API FString BuildResultBody(const FVeyraMatchResult& Result);

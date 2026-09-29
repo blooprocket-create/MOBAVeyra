@@ -63,6 +63,8 @@ enum class EVeyraClientIntent : uint8
 	LockVanguard,
 	/** Leaves a matchmade champion select, which cancels it for everyone (a dodge). */
 	LeaveSelect,
+	/** Chooses a starting Flux Spell for one slot, before or after lock-in (ADR-015 §5). */
+	ChooseFluxSpell,
 	Reconnect,
 	ContinueFromResults,
 	/** Repeats the step whose problem is showing. */

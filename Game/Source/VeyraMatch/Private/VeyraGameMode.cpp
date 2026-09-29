@@ -867,6 +867,15 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 			UE_LOG(LogVeyraMatch, Error, TEXT("Could not equip %s's Flux Spell %s."), *PlayerState.GetPlayerName(), *Spells[Index].ToString());
 		}
 	}
+	if (Spells.ContainsByPredicate([](const FVeyraContentId& Spell) { return Spell.IsValid(); }))
+	{
+		TArray<FString> Names;
+		for (const FVeyraContentId& Spell : Spells)
+		{
+			Names.Add(Spell.IsValid() ? Spell.ToString() : TEXT("(empty)"));
+		}
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s takes Flux Spells %s into the match."), *PlayerState.GetPlayerName(), *FString::Join(Names, TEXT(", ")));
+	}
 
 	// A developer match may spend the level-1 skill point for the player, so the Vanguard can cast at once.
 	UVeyraProgressionComponent* Progression = PlayerState.FindComponentByClass<UVeyraProgressionComponent>();

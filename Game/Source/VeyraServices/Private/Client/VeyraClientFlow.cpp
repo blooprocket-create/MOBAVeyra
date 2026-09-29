@@ -3,6 +3,7 @@
 #include "Client/VeyraClientFlow.h"
 
 #include "Backend/VeyraBackendProtocol.h"
+#include "Slots/VeyraAbilitySlot.h"
 #include "VeyraServicesLog.h"
 #include "VeyraServicesSettings.h"
 
@@ -22,6 +23,7 @@ namespace
 	const TCHAR* const PracticePath = TEXT("/v1/practice");
 	const TCHAR* const HoverPath = TEXT("/v1/me/select/hover");
 	const TCHAR* const LockPath = TEXT("/v1/me/select/lock");
+	const TCHAR* const FluxSpellsPath = TEXT("/v1/me/select/spells");
 	const TCHAR* const LeaveSelectPath = TEXT("/v1/me/select/leave");
 	const TCHAR* const ModesPath = TEXT("/v1/modes");
 	const TCHAR* const PartyPath = TEXT("/v1/party");
@@ -140,6 +142,8 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("LockVanguard");
 	case EVeyraClientIntent::LeaveSelect:
 		return TEXT("LeaveSelect");
+	case EVeyraClientIntent::ChooseFluxSpell:
+		return TEXT("ChooseFluxSpell");
 	case EVeyraClientIntent::Reconnect:
 		return TEXT("Reconnect");
 	case EVeyraClientIntent::ContinueFromResults:
@@ -251,6 +255,7 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::HoverVanguard:
 	case EVeyraClientIntent::LockVanguard:
 	case EVeyraClientIntent::LeaveSelect:
+	case EVeyraClientIntent::ChooseFluxSpell:
 		return State == EVeyraClientState::Selecting;
 	case EVeyraClientIntent::Reconnect:
 		return State == EVeyraClientState::ReconnectOnly;
@@ -308,6 +313,9 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 	case EVeyraClientIntent::LeaveSelect:
 		// Practice has no one to dodge; only its timer ends it (ADR-010).
 		return Snapshot.Select.Kind == CasualSelectKind && Snapshot.Select.State == ESelectState::Picking;
+	case EVeyraClientIntent::ChooseFluxSpell:
+		// Spells stay free to change after lock-in, until the match starts (Pre-Game Client UX Bible 36).
+		return Snapshot.Select.State == ESelectState::Picking && Snapshot.Select.FindYou() != nullptr;
 	default:
 		return true;
 	}
@@ -1074,6 +1082,45 @@ bool FVeyraClientFlow::LockVanguard(const FString& VanguardId)
 			ShowRefusal(Response, TEXT("the lock"), nullptr);
 		}
 		// Otherwise, such as a lock that an earlier attempt already made, the next read shows where the select is.
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::ChooseFluxSpell(int32 Slot, const FString& SpellId)
+{
+	constexpr int32 SlotCount = static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells));
+	const VeyraBackendProtocol::FSelectSeat* You = Snapshot.Select.FindYou();
+	if (!CanIssue(EVeyraClientIntent::ChooseFluxSpell) || !You || Slot < 0 || Slot >= SlotCount)
+	{
+		return false;
+	}
+	TArray<FString> Spells = You->FluxSpells;
+	Spells.SetNum(SlotCount);
+	// The other slot's spell moves over to this slot's old place.
+	const int32 Elsewhere = SpellId.IsEmpty() ? INDEX_NONE : Spells.IndexOfByKey(SpellId);
+	if (Elsewhere != INDEX_NONE && Elsewhere != Slot)
+	{
+		Spells[Elsewhere] = Spells[Slot];
+	}
+	Spells[Slot] = SpellId;
+	SetBusy(true);
+	Call(EVerb::Put, FluxSpellsPath, VeyraBackendProtocol::BuildFluxSpellsBody(Spells), [this](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		TOptional<VeyraBackendProtocol::FSelect> Select;
+		FString Problem;
+		if (Response.IsSuccess() && VeyraBackendProtocol::ParseSelect(Response.Body, Select, Problem) && Select.IsSet() && Select->Id == SelectId)
+		{
+			ApplySelect(*Select);
+		}
+		else if (Response.IsSuccess())
+		{
+			ShowBadAnswer(TEXT("the Flux Spells"), Problem.IsEmpty() ? FString(TEXT("it is not the player's select")) : Problem, nullptr);
+		}
+		else if (IsRefusal(Response, TEXT("invalid_flux_spells")))
+		{
+			ShowRefusal(Response, TEXT("the Flux Spells"), nullptr);
+		}
+		// Otherwise the select moved on, and the next read shows where.
 	});
 	return true;
 }
