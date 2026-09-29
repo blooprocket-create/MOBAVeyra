@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -166,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [4]
+      "enum": [5]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -284,6 +284,34 @@
             "hitsToBreach": { "description": "Which consecutive hit breaches; canon gives the third.", "type": "integer", "minimum": 1 },
             "bonusDamage": { "description": "Added to the breaching attack's own damage.", "$ref": "#/definitions/damage" },
             "impact": { "description": "The explosion behind the target; a higher-priority impact such as Breach Round's replaces it.", "$ref": "#/definitions/secondaryImpact" }
+          }
+        }
+      }
+    },
+    "movingTarget": {
+      "description": "Passives that Track enemy Vanguards their owner or an ally displaces, for range and bonus damage against them, and bank the displacement toward an empowered attack (Kade's Moving Target and Dead Reckoning, Roster Bible §2).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "trackedStatus", "trackedDamage", "deadReckoning"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "trackedStatus": { "description": "From Abilities.json's statuses, applied by the owner: a source-relative range.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "trackedDamage": { "description": "Added to the owner's attacks on a target it has Tracked.", "$ref": "#/definitions/damage" },
+            "deadReckoning": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["thresholdUnits", "capUnits", "damage", "physicalPowerRatioPerHundredUnits"],
+              "properties": {
+                "thresholdUnits": { "description": "Units of displacement banked before the next attack on a Tracked target spends them.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                "capUnits": { "description": "The most that bank.", "type": "number", "minimum": 0 },
+                "damage": { "$ref": "#/definitions/damage" },
+                "physicalPowerRatioPerHundredUnits": { "type": "number", "minimum": 0 }
+              }
+            }
           }
         }
       }

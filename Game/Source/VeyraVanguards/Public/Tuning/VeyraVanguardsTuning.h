@@ -199,13 +199,62 @@ struct FVeyraBreachTuning
 	FVeyraSecondaryImpactTuning Impact;
 };
 
+/** Dead Reckoning: displacement banked toward an empowered attack on a Tracked target (Roster Bible §2). */
+USTRUCT()
+struct FVeyraDeadReckoningTuning
+{
+	GENERATED_BODY()
+
+	/** Units banked before the next attack on a Tracked target spends them. */
+	UPROPERTY()
+	double ThresholdUnits = 0.0;
+
+	/** The most that bank. */
+	UPROPERTY()
+	double CapUnits = 0.0;
+
+	/** The empowered attack's bonus; one amount, since a passive has no ranks. */
+	UPROPERTY()
+	FVeyraDamageTuning Damage;
+
+	/** And this much more Physical Power ratio for each 100 units spent. */
+	UPROPERTY()
+	double PhysicalPowerRatioPerHundredUnits = 0.0;
+};
+
+/**
+ * Kade's Moving Target (Roster Bible §2). An enemy Vanguard that Kade or an ally displaces becomes
+ * Tracked: a status from Kade that lengthens his range against it, and his attacks on it deal bonus
+ * damage. The displacement also banks toward Dead Reckoning. It reads Combat's OnDisplaced; no core
+ * system names it. Its data is an entry in Vanguards.json's movingTarget map.
+ */
+USTRUCT()
+struct FVeyraMovingTargetTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: a source-relative range, so only Kade's reach grows (ADR-018 §2). */
+	UPROPERTY()
+	FVeyraContentId TrackedStatus;
+
+	/** Added to his attacks on a target he has Tracked; one amount. */
+	UPROPERTY()
+	FVeyraDamageTuning TrackedDamage;
+
+	UPROPERTY()
+	FVeyraDeadReckoningTuning DeadReckoning;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 4;
+	static constexpr int32 SchemaVersion = 5;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -221,6 +270,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraBreachTuning> Breach;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraMovingTargetTuning> MovingTarget;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

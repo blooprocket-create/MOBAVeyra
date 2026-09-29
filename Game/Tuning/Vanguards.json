@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -235,6 +235,48 @@
         "r": []
       },
       "passive": []
+    },
+    "kade": {
+      "provenance": "Provisional",
+      "availability": "Developer",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 580,
+        "healthRegen": 0.7,
+        "maxResource": 300,
+        "resourceRegen": 3.3,
+        "armor": 24,
+        "magicResist": 30,
+        "physicalPower": 60,
+        "magicPower": 0,
+        "attackSpeed": 0.625,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 95,
+        "healthRegen": 0.1,
+        "maxResource": 45,
+        "resourceRegen": 0.3,
+        "armor": 4.2,
+        "magicResist": 1.3,
+        "physicalPower": 3.2,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.025
+      },
+      "basicAttack": {
+        "range": 600,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 750,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 2500, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["kade_throughline"], "w": ["kade_sightline"], "e": ["kade_reposition"], "r": ["kade_kill_corridor"] },
+      "passive": ["kade_moving_target"]
     }
   },
   "deepFoundation": {
@@ -275,6 +317,19 @@
         "shape": { "kind": "Circle", "radius": 125, "arcDegrees": 0, "length": 0, "width": 0 },
         "damage": [{ "type": "Physical", "amountByRank": [40], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }],
         "statuses": []
+      }
+    }
+  },
+  "movingTarget": {
+    "kade_moving_target": {
+      "provenance": "Provisional",
+      "trackedStatus": "kade_tracked",
+      "trackedDamage": { "type": "Physical", "amountByRank": [20], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 },
+      "deadReckoning": {
+        "thresholdUnits": 600,
+        "capUnits": 1500,
+        "damage": { "type": "Physical", "amountByRank": [40], "physicalPowerRatio": 0, "magicPowerRatio": 0 },
+        "physicalPowerRatioPerHundredUnits": 0.1
       }
     }
   }

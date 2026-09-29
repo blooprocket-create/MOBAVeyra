@@ -73,6 +73,11 @@ const FVeyraEmpoweredAttackAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindEm
 	return Get().EmpoweredAttack.Find(Ability);
 }
 
+const FVeyraVolleyAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindVolley(const FVeyraContentId& Ability)
+{
+	return Get().Volley.Find(Ability);
+}
+
 TOptional<FVeyraStatusSpec> UVeyraAbilitiesTuningSubsystem::FindStatus(const FVeyraContentId& Id, int32 SourceLevel)
 {
 	const FVeyraStatusTuning* Status = Get().Statuses.Find(Id);

@@ -35,6 +35,25 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 	{
 		RegisterPassive(Entry.Key, TEXT("breach"));
 	}
+	for (const TPair<FVeyraContentId, FVeyraMovingTargetTuning>& Entry : Tuning.MovingTarget)
+	{
+		RegisterPassive(Entry.Key, TEXT("movingTarget"));
+		const FString Pointer = TEXT("/movingTarget/") + Entry.Key.ToString();
+		const FVeyraMovingTargetTuning& Moving = Entry.Value;
+		if (!Abilities.Statuses.Contains(Moving.TrackedStatus))
+		{
+			Problem(Pointer + TEXT("/trackedStatus"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Moving.TrackedStatus.ToString()));
+		}
+		if (Moving.TrackedDamage.AmountByRank.Num() != 1 || Moving.DeadReckoning.Damage.AmountByRank.Num() != 1)
+		{
+			Problem(Pointer, TEXT("a passive has no ranks: trackedDamage and deadReckoning's damage each have one amount"));
+		}
+		const FVeyraDeadReckoningTuning& Reckoning = Moving.DeadReckoning;
+		if (!(Reckoning.ThresholdUnits > 0.0) || Reckoning.CapUnits < Reckoning.ThresholdUnits || Reckoning.PhysicalPowerRatioPerHundredUnits < 0.0)
+		{
+			Problem(Pointer + TEXT("/deadReckoning"), TEXT("thresholdUnits is above 0, capUnits at least thresholdUnits, and the ratio at least 0"));
+		}
+	}
 
 	for (const TPair<FVeyraContentId, FVeyraVanguardDefinition>& Entry : Tuning.Vanguards)
 	{

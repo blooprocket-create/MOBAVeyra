@@ -296,6 +296,14 @@ double UVeyraStatusComponent::GetTotalFrom(EVeyraStatusKind Kind, const UAbility
 	return Sum;
 }
 
+bool UVeyraStatusComponent::HasFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const
+{
+	return Ledger.Entries.ContainsByPredicate([this, &Id, &Source](const FVeyraStatusEntry& Entry) {
+		const FServerEntry* Server = Entry.Id == Id ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		return Server && Server->Source.Get() == &Source;
+	});
+}
+
 EVeyraActionBlocks UVeyraStatusComponent::GetActionBlocks() const
 {
 	return VeyraStatuses::ActionBlocks(Ledger.Entries);

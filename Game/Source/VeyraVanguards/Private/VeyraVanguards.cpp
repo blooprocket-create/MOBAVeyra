@@ -8,6 +8,7 @@
 #include "Passives/VeyraBreachPassive.h"
 #include "Passives/VeyraDeepFoundationPassive.h"
 #include "Passives/VeyraGatheringLightPassive.h"
+#include "Passives/VeyraMovingTargetPassive.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Shared/VeyraHitChainPassive.h"
 #include "Slots/VeyraAbilitySlot.h"
@@ -34,6 +35,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindBreach(PassiveId))
 	{
 		return UVeyraBreachPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindMovingTarget(PassiveId))
+	{
+		return UVeyraMovingTargetPassive::StaticClass();
 	}
 	return nullptr;
 }

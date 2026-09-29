@@ -81,6 +81,16 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 		Profile.CostByRank = Empowered->Cast.ResourceCostByRank;
 		return Profile;
 	}
+	if (const FVeyraVolleyAbilityTuning* Volley = UVeyraAbilitiesTuningSubsystem::FindVolley(Ability))
+	{
+		// A lane is opened toward an enemy its shots can reach.
+		const FVeyraSkillshotAbilityTuning* Shot = UVeyraAbilitiesTuningSubsystem::FindSkillshot(Volley->Shot);
+		Profile.Targeting = EVeyraBotTargeting::Point;
+		Profile.Reach = Shot ? Shot->Projectile.Range : 0.0;
+		Profile.LeadSeconds = Volley->Cast.WindupSeconds;
+		Profile.CostByRank = Volley->Cast.ResourceCostByRank;
+		return Profile;
+	}
 	return {};
 }
 }

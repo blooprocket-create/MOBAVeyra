@@ -53,8 +53,8 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # name content too. An ID is valid when any of the maps defines it (ADR-008 §7). The game checks
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
-ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack")
-PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach")
+ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley")
+PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
     ("Vanguards", "/vanguards/*/abilities/q/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
@@ -64,6 +64,10 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/vanguards/*/passive/*", "Vanguards", PASSIVE_MAPS),
     ("Vanguards", "/hitChain/*/status", "Abilities", ("/statuses",)),
     ("Vanguards", "/breach/*/impact/statuses/*", "Abilities", ("/statuses",)),
+    ("Vanguards", "/movingTarget/*/trackedStatus", "Abilities", ("/statuses",)),
+    # A volley's shot is a skillshot, and its bonus names the status an ally's displacement must find (ADR-018 §6).
+    ("Abilities", "/volley/*/shot", "Abilities", ("/skillshot",)),
+    ("Abilities", "/volley/*/bonus/*/status", "Abilities", ("/statuses",)),
     # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).
     ("Abilities", "/fluxSpells/roster/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     # Every Fluxborn Economy pays for is one World defines, and every one World defines is paid for.

@@ -69,6 +69,9 @@ public:
 	/** Server only: the unit's statuses of Kind from Source, added together, such as a source-relative range. */
 	double GetTotalFrom(EVeyraStatusKind Kind, const UAbilitySystemComponent& Source) const;
 
+	/** Server: whether the unit has status Id from Source, as a mark only its applier reads (ADR-018 §2). */
+	bool HasFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
+
 	/** The actions the unit's statuses stop it taking. */
 	EVeyraActionBlocks GetActionBlocks() const;
 

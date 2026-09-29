@@ -10,6 +10,7 @@
 #include "Abilities/VeyraSelfBuffAbility.h"
 #include "Abilities/VeyraSkillshotAbility.h"
 #include "Abilities/VeyraTargetedDamageAbility.h"
+#include "Abilities/VeyraVolleyAbility.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
@@ -49,6 +50,10 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindEmpoweredAttack(Ability))
 		{
 			return UVeyraEmpoweredAttackAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindVolley(Ability))
+		{
+			return UVeyraVolleyAbility::StaticClass();
 		}
 		return nullptr;
 	}

@@ -125,7 +125,9 @@ Every value is Provisional data, a League stand-in:
   - Q in Jhin W's range;
   - E is Caitlyn E, which is how his Reposition "interacts with trajectory control";
   - R is Jhin R's volley: 3 shots, up to 2 more when allies displace a Tracked target;
-  - **Tracked** comes only from forced displacement, not dashes.
+  - **Tracked** comes only from forced displacement, not dashes;
+  - **Dead Reckoning** banks each displacement's distance, up to 1500; at 600 or more, his next attack on a Tracked target spends it all for +40 and +0.1 Physical Power ratio per 100 banked;
+  - Sightline's Attack Speed is one value, +45%, since statuses do not yet scale by rank (canon asks only for "an attack-speed benefit").
 - **Vera:**
   - range 575, Physical attacks (her design sheet);
   - Cadence: 8 stacks of +7% Attack Speed, decaying one at a time;

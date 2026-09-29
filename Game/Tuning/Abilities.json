@@ -354,7 +354,11 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0
-    }
+    },
+    "kade_tracked": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 200, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "kade_sightline_fervor": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "kade_sightline_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "kade_kill_corridor_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 10, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 }
   },
   "targetedDamage": {
     "test_bolt": {
@@ -691,6 +695,41 @@
         }
       ],
       "linger": []
+    },
+    "kade_sightline": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [18, 16, 14, 12, 10],
+        "resourceCostByRank": [60],
+        "castRange": 0,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [
+        {
+          "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 1400, "width": 220 },
+          "effects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [] },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 5,
+          "pulseSeconds": 0.25,
+          "casterStatuses": ["kade_sightline_fervor"],
+          "allyStatuses": ["kade_sightline_stride"],
+          "enemyStatuses": [],
+          "sight": "Ordinary"
+        }
+      ]
     }
   },
   "selfBuff": {
@@ -812,7 +851,8 @@
         "statuses": [],
         "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900 }],
         "missingHealthDamage": []
-      }
+      },
+      "casterDash": []
     },
     "oriel_splinter_lance": {
       "provenance": "Provisional",
@@ -838,7 +878,74 @@
         "statuses": [],
         "displacement": [],
         "missingHealthDamage": []
-      }
+      },
+      "casterDash": []
+    },
+    "kade_throughline": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [10, 9, 8, 7, 6],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 1300,
+        "windupSeconds": 0.4,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.2,
+        "recastWindow": []
+      },
+      "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
+      "collision": "Pierce",
+      "effects": {
+        "damage": [{ "type": "Physical", "amountByRank": [60, 100, 140, 180, 220], "physicalPowerRatio": 0.9, "magicPowerRatio": 0 }],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": []
+      },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [] },
+      "casterDash": []
+    },
+    "kade_reposition": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 14, 12, 10, 8],
+        "resourceCostByRank": [75],
+        "castRange": 750,
+        "windupSeconds": 0.15,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "projectile": { "speed": 1600, "radius": 60, "range": 750 },
+      "collision": "FirstEnemy",
+      "effects": {
+        "damage": [{ "type": "Physical", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }],
+        "statuses": [],
+        "displacement": [{ "direction": "AwayFromOrigin", "distance": 100, "speed": 800 }],
+        "missingHealthDamage": []
+      },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [] },
+      "casterDash": [{ "distance": 400, "speed": 1000 }]
+    },
+    "kade_kill_corridor_shot": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [1],
+        "resourceCostByRank": [0],
+        "castRange": 3000,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "projectile": { "speed": 5000, "radius": 60, "range": 3000 },
+      "collision": "Pierce",
+      "effects": {
+        "damage": [{ "type": "Physical", "amountByRank": [200, 325, 450], "physicalPowerRatio": 1, "magicPowerRatio": 0 }],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": []
+      },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [] },
+      "casterDash": []
     }
   },
   "dash": {
@@ -970,6 +1077,26 @@
           "statuses": []
         }
       ]
+    }
+  },
+  "volley": {
+    "kade_kill_corridor": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 100, 80],
+        "resourceCostByRank": [100],
+        "castRange": 3000,
+        "windupSeconds": 0.5,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "shot": "kade_kill_corridor_shot",
+      "shots": 3,
+      "laneHalfAngleDegrees": 20,
+      "durationSeconds": 10,
+      "casterStatuses": ["kade_kill_corridor_stance"],
+      "bonus": [{ "status": "kade_tracked", "maxShots": 2 }]
     }
   },
   "fluxSpells": {

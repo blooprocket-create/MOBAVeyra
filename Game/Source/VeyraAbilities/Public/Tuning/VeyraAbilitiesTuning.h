@@ -577,6 +577,19 @@ enum class EVeyraSkillshotCollision : uint8
 	Pierce,
 };
 
+/** The caster's own movement as a skillshot fires: a recoil away from its aim (ADR-018 §6). */
+USTRUCT()
+struct FVeyraCasterDashTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double Distance = 0.0;
+
+	UPROPERTY()
+	double Speed = 0.0;
+};
+
 /** An ability that fires a line projectile toward the cast's point (ADR-008 §3). Terrain stops it (ADR-008 §9). */
 USTRUCT()
 struct FVeyraSkillshotAbilityTuning
@@ -602,6 +615,10 @@ struct FVeyraSkillshotAbilityTuning
 	/** On each unit a FirstEnemyVanguard projectile passes through; empty otherwise. */
 	UPROPERTY()
 	FVeyraEffectBundleTuning PassThroughEffects;
+
+	/** At most one: the caster recoils away from the aim as it fires, as Kade's Reposition does. */
+	UPROPERTY()
+	TArray<FVeyraCasterDashTuning> CasterDash;
 };
 
 /** Which way a dash goes. */
@@ -756,6 +773,60 @@ struct FVeyraFluxSpellsTuning
 	TArray<FVeyraContentId> Roster;
 };
 
+/** A volley's extra shot, earned while it lasts (ADR-018 §6). */
+USTRUCT()
+struct FVeyraVolleyBonusTuning
+{
+	GENERATED_BODY()
+
+	/** An ally displacing an enemy that carries this status from the caster earns a shot, as Tracked does. */
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	/** At most this many, however many are earned. */
+	UPROPERTY()
+	int32 MaxShots = 0;
+};
+
+/**
+ * A lane its caster fires into, shot by shot (ADR-018 §6): Kade's Kill Corridor. As it commits, its
+ * slot holds its shot for a while; each shot is a skillshot fired within the lane, at its own cooldown.
+ */
+USTRUCT()
+struct FVeyraVolleyAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	/** Each shot: a skillshot, whose cooldown is the time between shots. */
+	UPROPERTY()
+	FVeyraContentId Shot;
+
+	UPROPERTY()
+	int32 Shots = 0;
+
+	/** How far either side of the lane's direction a shot may aim, in degrees. */
+	UPROPERTY()
+	double LaneHalfAngleDegrees = 0.0;
+
+	/** How long the lane lasts, whatever shots are left. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** For the caster while the lane lasts, as a stance that plants it. */
+	UPROPERTY()
+	TArray<FVeyraContentId> CasterStatuses;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraVolleyBonusTuning> Bonus;
+};
+
 USTRUCT()
 struct FVeyraAbilitiesTuning
 {
@@ -787,6 +858,9 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraEmpoweredAttackAbilityTuning> EmpoweredAttack;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraVolleyAbilityTuning> Volley;
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;
