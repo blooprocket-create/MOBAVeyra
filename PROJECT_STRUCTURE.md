@@ -282,6 +282,8 @@ The grey-box HUD draws through an overlay actor the local player's HUD renders (
 
 M8 added `Shop/` ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §11): the shop screen, which P opens beside the game, and its model, which prices every item by the inventory rule the server uses. The HUD gained the item bar (keys 1–6) and Recall's channel bar, and the string table gained item names and descriptions.
 
+M12 added `Scoreboard/` ([ADR-017](Docs/ADR/ADR-017-match-statistics.md) §4): the in-match scoreboard, open while Tab is held. It has both teams, the viewer's first, and each player's Vanguard, level, K/D/A, creep score and items. Its model reads only what every client receives: each PlayerState's public score, level and inventory.
+
 ### VeyraDeveloper
 
 Non-shipping or development-facing utilities.

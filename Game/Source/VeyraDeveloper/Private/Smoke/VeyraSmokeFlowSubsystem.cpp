@@ -27,6 +27,7 @@
 #if WITH_VEYRA_UI
 #include "Match/VeyraMatchMenu.h"
 #include "Match/VeyraMatchMenuSubsystem.h"
+#include "Scoreboard/VeyraScoreboard.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
@@ -585,6 +586,10 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 	{
 		return;
 	}
+	if (Script == EScript::Practice && TickScoreboard(*Controller))
+	{
+		return;
+	}
 	if (!bOrderedMove)
 	{
 		// Play a little: walk toward the lane centre.
@@ -761,6 +766,44 @@ bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
 	return false;
 #else
 	Finish(false, TEXT("this build has no shop"));
+	return true;
+#endif
+}
+
+bool UVeyraSmokeFlowSubsystem::TickScoreboard(AVeyraPlayerController& /*Controller*/)
+{
+	if (bScoreboardChecked)
+	{
+		return false;
+	}
+#if WITH_VEYRA_UI
+	UVeyraMatchMenuSubsystem* Screens = GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>();
+	if (!Screens)
+	{
+		Finish(false, TEXT("the game has no scoreboard"));
+		return true;
+	}
+	if (!Screens->GetScoreboard())
+	{
+		// As holding its key does; it shows once its key is bound to this match's controller.
+		Screens->ShowScoreboard();
+		return true;
+	}
+	// The players' scores, levels and Vanguards replicate a moment after the match goes live.
+	const FVeyraScoreboardView& View = Screens->GetScoreboard()->GetView();
+	const bool bShowsThePlayer = View.Sides.Num() == 2 && View.Sides[0].bAllies
+		&& View.Sides[0].Rows.ContainsByPredicate([](const FVeyraScoreboardRow& Row) { return Row.bLocal && Row.Vanguard.IsValid() && Row.Level >= 1; });
+	if (!bShowsThePlayer || Capture(TEXT("Scoreboard")))
+	{
+		return true;
+	}
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the scoreboard shows %d ally and %d enemy player(s); let go of it."), View.Sides[0].Rows.Num(),
+		View.Sides[1].Rows.Num());
+	Screens->HideScoreboard();
+	bScoreboardChecked = true;
+	return false;
+#else
+	Finish(false, TEXT("this build has no scoreboard"));
 	return true;
 #endif
 }

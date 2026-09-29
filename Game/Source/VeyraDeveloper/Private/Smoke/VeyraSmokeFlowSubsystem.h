@@ -95,6 +95,13 @@ private:
 	bool TickShop(AVeyraPlayerController& Controller);
 
 	/**
+	 * Practice: shows the in-match scoreboard as holding its key does, waits until it shows the player
+	 * on its own team with a Vanguard and a level, captures it and lets it go (ADR-017 §4). True while
+	 * it waits.
+	 */
+	bool TickScoreboard(AVeyraPlayerController& Controller);
+
+	/**
 	 * Practice: once the Vanguard has walked away from its fountain, recalls home and waits for it to
 	 * arrive (ADR-012 §8). True while it recalls.
 	 */
@@ -165,6 +172,8 @@ private:
 	FString BoughtItem;
 	FString SwappedSpell;
 	bool bShopped = false;
+	/** Practice: whether the scoreboard was shown, checked and let go. */
+	bool bScoreboardChecked = false;
 	/** Practice: whether the script asked to recall, saw the channel, and saw the Vanguard home. */
 	bool bAskedToRecall = false;
 	bool bSawRecall = false;

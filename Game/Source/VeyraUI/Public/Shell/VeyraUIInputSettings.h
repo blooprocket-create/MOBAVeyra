@@ -27,4 +27,8 @@ public:
 	/** Opens and closes the shop (ADR-012 §11), as P does in League. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey ShopKey;
+
+	/** Shows the in-match scoreboard while held (Settings Bible #56; ADR-017 §4), as Tab does in League. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey ScoreboardKey;
 };

@@ -126,6 +126,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
 	float ShopHeight = 0.0f;
 
+	/** The in-match scoreboard, both teams side by side, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
+	float ScoreboardWidth = 0.0f;
+
 	/** Champion select's names under portraits and statuses. */
 	UPROPERTY(Config, EditAnywhere, Category = "Text", meta = (ClampMin = "1"))
 	int32 SmallFontSize = 0;

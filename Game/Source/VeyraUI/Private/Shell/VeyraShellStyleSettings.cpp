@@ -61,6 +61,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("MenuWidth"), MenuWidth },
 		{ TEXT("ShopWidth"), ShopWidth },
 		{ TEXT("ShopHeight"), ShopHeight },
+		{ TEXT("ScoreboardWidth"), ScoreboardWidth },
 		{ TEXT("TilePadding"), TilePadding },
 		{ TEXT("TileCornerRadius"), TileCornerRadius },
 		{ TEXT("FrameWidth"), FrameWidth },

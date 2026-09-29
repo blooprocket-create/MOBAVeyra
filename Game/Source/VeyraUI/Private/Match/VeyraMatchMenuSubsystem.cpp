@@ -11,6 +11,7 @@
 #include "InputAction.h"
 #include "InputMappingContext.h"
 #include "Match/VeyraMatchMenu.h"
+#include "Scoreboard/VeyraScoreboard.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Shop/VeyraShopScreen.h"
 #include "Shell/VeyraUIInputSettings.h"
@@ -52,6 +53,7 @@ void UVeyraMatchMenuSubsystem::Deinitialize()
 		Shop->RemoveFromParent();
 		Shop = nullptr;
 	}
+	HideScoreboard();
 	Super::Deinitialize();
 }
 
@@ -71,18 +73,25 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	// actions and their mapping are built at runtime, so no binary input asset exists.
 	Menu = nullptr;
 	Shop = nullptr;
+	Scoreboard = nullptr;
 	const UVeyraUIInputSettings& Keys = *GetDefault<UVeyraUIInputSettings>();
 	MenuAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
 	MenuAction->ValueType = EInputActionValueType::Boolean;
 	ShopAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
 	ShopAction->ValueType = EInputActionValueType::Boolean;
+	ScoreboardAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
+	ScoreboardAction->ValueType = EInputActionValueType::Boolean;
 	MenuMapping = NewObject<UInputMappingContext>(this, NAME_None, RF_Transient);
 	MenuMapping->MapKey(MenuAction, Keys.MatchMenuKey);
 	MenuMapping->MapKey(ShopAction, Keys.ShopKey);
+	MenuMapping->MapKey(ScoreboardAction, Keys.ScoreboardKey);
 	Input->AddMappingContext(MenuMapping, /*Priority*/ 1);
 	UEnhancedInputComponent* Component = NewObject<UEnhancedInputComponent>(Controller, NAME_None, RF_Transient);
 	Component->BindAction(MenuAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleMenu);
 	Component->BindAction(ShopAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleShop);
+	// Held, as League's Tab (Settings Bible #56); the Toggle mode arrives with the Settings screen.
+	Component->BindAction(ScoreboardAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ShowScoreboard);
+	Component->BindAction(ScoreboardAction, ETriggerEvent::Completed, this, &UVeyraMatchMenuSubsystem::HideScoreboard);
 	Controller->PushInputComponent(Component);
 	MenuInput = Component;
 	BoundController = Controller;
@@ -150,6 +159,32 @@ void UVeyraMatchMenuSubsystem::CloseShop()
 		Shop = nullptr;
 	}
 	UpdateInputMode();
+}
+
+void UVeyraMatchMenuSubsystem::ShowScoreboard()
+{
+	AVeyraPlayerController* Controller = BoundController.Get();
+	if (Scoreboard || !Controller || !Controller->IsLocalController())
+	{
+		return;
+	}
+	Scoreboard = CreateWidget<UVeyraScoreboard>(Controller);
+	if (!Scoreboard)
+	{
+		return;
+	}
+	Scoreboard->Show(*Controller);
+	// Under the menu; it takes no input, so the game keeps it.
+	Scoreboard->AddToViewport();
+}
+
+void UVeyraMatchMenuSubsystem::HideScoreboard()
+{
+	if (Scoreboard)
+	{
+		Scoreboard->RemoveFromParent();
+		Scoreboard = nullptr;
+	}
 }
 
 void UVeyraMatchMenuSubsystem::OpenMenu()

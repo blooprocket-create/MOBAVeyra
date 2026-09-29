@@ -1,0 +1,156 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#include "Scoreboard/VeyraScoreboard.h"
+
+#include "Blueprint/WidgetTree.h"
+#include "Components/Border.h"
+#include "Components/HorizontalBox.h"
+#include "Components/HorizontalBoxSlot.h"
+#include "Components/Overlay.h"
+#include "Components/OverlaySlot.h"
+#include "Components/SizeBox.h"
+#include "Components/TextBlock.h"
+#include "Components/VerticalBox.h"
+#include "Engine/World.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerState.h"
+#include "Shell/VeyraShellStyle.h"
+#include "Shell/VeyraShellStyleSettings.h"
+#include "Text/VeyraContentText.h"
+
+#define LOCTEXT_NAMESPACE "VeyraScoreboard"
+
+bool UVeyraScoreboard::Initialize()
+{
+	const bool bFirst = Super::Initialize();
+	if (bFirst && WidgetTree && !WidgetTree->RootWidget)
+	{
+		// Centred over the match, which stays in play: clicks pass through to it.
+		SetVisibility(ESlateVisibility::HitTestInvisible);
+		const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+		UOverlay* Screen = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Size->SetWidthOverride(Style.ScoreboardWidth);
+		UBorder* Panel = VeyraShellStyle::MakeBorder(*WidgetTree, Style.PanelColor, Style.Spacing);
+		Columns = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		Panel->SetContent(Columns);
+		Size->AddChild(Panel);
+		if (UOverlaySlot* Centred = Screen->AddChildToOverlay(Size))
+		{
+			Centred->SetHorizontalAlignment(HAlign_Center);
+			Centred->SetVerticalAlignment(VAlign_Center);
+		}
+		WidgetTree->RootWidget = Screen;
+	}
+	return bFirst;
+}
+
+void UVeyraScoreboard::Show(const APlayerController& InController)
+{
+	Controller = &InController;
+	bBuilt = false;
+	Refresh();
+}
+
+void UVeyraScoreboard::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	Refresh();
+}
+
+void UVeyraScoreboard::Refresh()
+{
+	const APlayerController* Viewer = Controller.Get();
+	const UWorld* World = Viewer ? Viewer->GetWorld() : nullptr;
+	const AGameStateBase* GameState = World ? World->GetGameState() : nullptr;
+	if (!GameState)
+	{
+		return;
+	}
+	TArray<const APlayerState*> Participants;
+	for (const APlayerState* Member : GameState->PlayerArray)
+	{
+		Participants.Add(Member);
+	}
+	FVeyraScoreboardView Latest = VeyraScoreboardModel::Describe(Participants, Viewer->PlayerState);
+	if (bBuilt && Latest == View)
+	{
+		return;
+	}
+	View = MoveTemp(Latest);
+	Rebuild();
+}
+
+void UVeyraScoreboard::Rebuild()
+{
+	bBuilt = true;
+	if (!Columns)
+	{
+		return;
+	}
+	Columns->ClearChildren();
+	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+	for (const FVeyraScoreboardSide& Side : View.Sides)
+	{
+		UVerticalBox* Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		UTextBlock* Heading = VeyraShellStyle::MakeText(*WidgetTree, SideHeading(Side), VeyraShellStyle::EVeyraShellText::Heading);
+		Heading->SetColorAndOpacity(Side.bAllies ? Style.AllyColor : Style.EnemyColor);
+		VeyraShellStyle::AddSpaced(*Column, *Heading);
+		for (const FVeyraScoreboardRow& Row : Side.Rows)
+		{
+			UTextBlock* Line = VeyraShellStyle::MakeText(*WidgetTree, RowLine(Row), VeyraShellStyle::EVeyraShellText::Body);
+			if (Row.bLocal)
+			{
+				Line->SetColorAndOpacity(Style.AccentColor);
+			}
+			Column->AddChild(Line);
+			VeyraShellStyle::AddSpaced(*Column, *VeyraShellStyle::MakeText(*WidgetTree, ItemsLine(Row), VeyraShellStyle::EVeyraShellText::Small));
+		}
+		if (UHorizontalBoxSlot* ColumnSlot = Columns->AddChildToHorizontalBox(Column))
+		{
+			// The two teams share the width evenly.
+			ColumnSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			ColumnSlot->SetPadding(FMargin(Style.Spacing, 0.0f));
+		}
+	}
+}
+
+TArray<FString> UVeyraScoreboard::GetLines() const
+{
+	TArray<FString> Lines;
+	if (WidgetTree)
+	{
+		WidgetTree->ForEachWidget([&Lines](UWidget* Widget) {
+			if (const UTextBlock* Text = Cast<UTextBlock>(Widget))
+			{
+				Lines.Add(Text->GetText().ToString());
+			}
+		});
+	}
+	return Lines;
+}
+
+FText UVeyraScoreboard::SideHeading(const FVeyraScoreboardSide& Side)
+{
+	return FText::Format(Side.bAllies ? LOCTEXT("Allies", "Your team   {0} kills") : LOCTEXT("Enemies", "Enemy team   {0} kills"), FText::AsNumber(Side.Kills));
+}
+
+FText UVeyraScoreboard::RowLine(const FVeyraScoreboardRow& Row)
+{
+	const FText Vanguard = Row.Vanguard.IsValid() ? VeyraContentText::VanguardName(Row.Vanguard) : LOCTEXT("NoVanguard", "No Vanguard");
+	return FText::Format(LOCTEXT("Row", "{0}  {1}   Lv {2}   {3}   CS {4}"), Vanguard, FText::FromString(Row.Name), FText::AsNumber(Row.Level),
+		VeyraScoreboardModel::KdaText(Row), FText::AsNumber(Row.CreepScore));
+}
+
+FText UVeyraScoreboard::ItemsLine(const FVeyraScoreboardRow& Row)
+{
+	TArray<FText> Names;
+	for (const FVeyraContentId& Item : Row.Items)
+	{
+		Names.Add(Item.IsValid() ? VeyraContentText::ItemName(Item) : LOCTEXT("EmptySlot", "-"));
+	}
+	return Names.IsEmpty() ? LOCTEXT("NoItems", "No items") : FText::Join(LOCTEXT("ItemSeparator", "  |  "), Names);
+}
+
+#undef LOCTEXT_NAMESPACE
