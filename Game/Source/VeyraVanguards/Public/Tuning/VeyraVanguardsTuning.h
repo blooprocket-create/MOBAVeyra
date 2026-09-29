@@ -248,13 +248,94 @@ struct FVeyraMovingTargetTuning
 	FVeyraDeadReckoningTuning DeadReckoning;
 };
 
+/** Firing Line: at full Cadence, a spectral echo repeats each attack (Roster Bible §7). */
+USTRUCT()
+struct FVeyraFiringLineTuning
+{
+	GENERATED_BODY()
+
+	/** Seconds after the attack's Commit before its echo fires. */
+	UPROPERTY()
+	double DelaySeconds = 0.0;
+
+	/** The echo deals this fraction of the attack's own damage... */
+	UPROPERTY()
+	double AttackDamageFraction = 0.0;
+
+	/** ...as this type, plus this amount and these ratios; one amount. It is proc damage with no On-Hit (Combat Bible §16). */
+	UPROPERTY()
+	FVeyraDamageTuning Damage;
+
+	UPROPERTY()
+	FVeyraAttackProjectileTuning Projectile;
+};
+
+/** The Last Volley's spectral rank: every Nth attack fires an area from Vera through her target (Roster Bible §7). */
+USTRUCT()
+struct FVeyraSpectralRankTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	int32 EveryAttacks = 0;
+
+	/** From Vera toward the target: a rectangle runs through it. */
+	UPROPERTY()
+	FVeyraShape Shape;
+
+	/** One amount each. */
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> Damage;
+};
+
+/**
+ * Vera's Cadence (Roster Bible §7). Each basic attack adds a stack of its Attack Speed status, which
+ * decays one stack at a time once she stops (ADR-018 §2). At full stacks she is in Firing Line.
+ * While her ultimate's status lasts, Cadence is full and cannot fall, and every Nth attack fires the
+ * spectral rank. Its data is an entry in Vanguards.json's cadence map.
+ */
+USTRUCT()
+struct FVeyraCadenceTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: a Stacking Attack Speed that decays one stack at a time. */
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	/** An attack on a target that has this status from Vera adds a second stack (Range Found's Ranged). */
+	UPROPERTY()
+	FVeyraContentId ExtraStackOn;
+
+	/** While Vera has this status, her stacks decay this many times more slowly (Dig In). */
+	UPROPERTY()
+	FVeyraContentId SteadyStatus;
+
+	UPROPERTY()
+	double SteadyDecayMultiplier = 1.0;
+
+	/** While Vera has this status, Cadence is full and cannot fall (The Last Volley). */
+	UPROPERTY()
+	FVeyraContentId FullStatus;
+
+	UPROPERTY()
+	FVeyraFiringLineTuning FiringLine;
+
+	/** Fires while FullStatus lasts. */
+	UPROPERTY()
+	FVeyraSpectralRankTuning SpectralRank;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 5;
+	static constexpr int32 SchemaVersion = 6;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -273,6 +354,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraMovingTargetTuning> MovingTarget;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraCadenceTuning> Cadence;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

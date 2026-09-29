@@ -133,7 +133,10 @@ Every value is Provisional data, a League stand-in:
   - Cadence: 8 stacks of +7% Attack Speed, decaying one at a time;
   - her Firing Line echo is **proc damage without On-Hit** (Combat §16; League's Rageblade phantom hit does apply On-Hit);
   - R's "every third attack" counts every attack;
-  - Dig In plants her: movement blocked, not crowd control.
+  - Dig In plants her: movement blocked, not crowd control;
+  - "attacking the target refreshes Cadence" (Range Found): an attack on a Ranged target adds a second stack;
+  - Dig In's "slower Cadence decay": each stack lasts twice as long while she is dug in;
+  - during R, W is Dig In's volley form, which reaches +225 and gives +45% Attack Speed instead of +150 and +30%.
 - **Mimzi:**
   - range 550, Magic attacks (her design sheet);
   - Camouflage's detection radius is 400;

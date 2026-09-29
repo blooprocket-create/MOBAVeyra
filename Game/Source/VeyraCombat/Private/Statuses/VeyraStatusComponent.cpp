@@ -190,7 +190,7 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 	// What was applied, for statistics (ADR-017 §1).
 	if (UVeyraCombatEventSubsystem* Events = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
 	{
-		Events->OnStatusApplied.Broadcast(FVeyraStatusApplied{ &Source, Target, Spec.Kind, Now, EndsAt });
+		Events->OnStatusApplied.Broadcast(FVeyraStatusApplied{ &Source, Target, Spec.Kind, Now, EndsAt, Spec.Id });
 	}
 	if (Spec.Kind == EVeyraStatusKind::Stun)
 	{

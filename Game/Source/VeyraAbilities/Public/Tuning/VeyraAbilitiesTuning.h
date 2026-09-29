@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Absorption/VeyraAbsorptionLedger.h"
+#include "Slots/VeyraAbilitySlot.h"
 #include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "Movement/VeyraForcedMovementTypes.h"
@@ -454,6 +455,10 @@ struct FVeyraAreaAbilityTuning
 	/** At most one: after it hits, the area lasts in its outermost zone's shape (ADR-018 §5). */
 	UPROPERTY()
 	TArray<FVeyraLingerTuning> Linger;
+
+	/** Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6). */
+	UPROPERTY()
+	TArray<FVeyraContentId> ConsumesCasterStatuses;
 };
 
 /** Statuses a buff gives nearby allied Vanguards while it lasts (ADR-008 §9). */
@@ -514,6 +519,36 @@ enum class EVeyraRecast : uint8
 	EndsEarly,
 };
 
+/** Whether a variant keeps its own cooldown or shares its slot's (ADR-018 §1). */
+UENUM()
+enum class EVeyraVariantCooldown : uint8
+{
+	/** Its own: casting it leaves the slot's own ability ready. */
+	Own,
+	/** One cooldown with the slot's own ability. */
+	Shared,
+};
+
+/** While a buff lasts, a slot holds another ability (ADR-018 §1), as Dig In under The Last Volley. */
+USTRUCT()
+struct FVeyraVariantTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraAbilitySlot Slot = EVeyraAbilitySlot::Q;
+
+	/** The variant: another ability's ID. It takes the slot's rank. */
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	UPROPERTY()
+	EVeyraVariantCooldown Cooldown = EVeyraVariantCooldown::Own;
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+};
+
 /** An ability that buffs its caster, and optionally nearby allies (ADR-008 §3). */
 USTRUCT()
 struct FVeyraSelfBuffAbilityTuning
@@ -544,6 +579,10 @@ struct FVeyraSelfBuffAbilityTuning
 
 	UPROPERTY()
 	EVeyraRecast Recast = EVeyraRecast::None;
+
+	/** Slots that hold another ability while the buff lasts (ADR-018 §1). */
+	UPROPERTY()
+	TArray<FVeyraVariantTuning> Variants;
 };
 
 /** How a projectile flies (Combat Bible §13). */

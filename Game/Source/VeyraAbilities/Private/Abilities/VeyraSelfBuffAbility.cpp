@@ -7,6 +7,7 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/World.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Shapes/VeyraShapes.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
@@ -100,6 +101,19 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 	for (const FVeyraHealTuning& Heal : Buff->Heal)
 	{
 		DeliverHeal(*Caster, Heal);
+	}
+	// While it lasts, its variants hold their slots (ADR-018 §1).
+	if (UVeyraAbilityLoadoutComponent* Loadout = Caster->GetOwner() ? Caster->GetOwner()->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr)
+	{
+		for (const FVeyraVariantTuning& Variant : Buff->Variants)
+		{
+			FVeyraOverrideSpec Spec;
+			Spec.Ability = Variant.Ability;
+			Spec.DurationSeconds = Variant.DurationSeconds;
+			Spec.Use = EVeyraOverrideUse::WhileActive;
+			Spec.bSharesCooldown = Variant.Cooldown == EVeyraVariantCooldown::Shared;
+			Loadout->Override(*Caster, Variant.Slot, Spec);
+		}
 	}
 	return FVeyraChannelPlan();
 }

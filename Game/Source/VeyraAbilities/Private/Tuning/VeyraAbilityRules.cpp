@@ -164,6 +164,7 @@ namespace
 				Problem(Pointer + TEXT("/reveal"), TEXT("radius and durationSeconds are both above 0, or both 0 for no reveal"));
 			}
 			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
+			CheckStatusIds(Pointer + TEXT("/consumesCasterStatuses"), Area.ConsumesCasterStatuses);
 			if (Area.Linger.Num() > 1)
 			{
 				Problem(Pointer + TEXT("/linger"), TEXT("holds at most one lingering area (ADR-018 §5)"));
@@ -189,6 +190,23 @@ namespace
 		void CheckSelfBuff(const FString& Pointer, const FVeyraSelfBuffAbilityTuning& Buff)
 		{
 			CheckCast(Pointer + TEXT("/cast"), Buff.Cast);
+			for (int32 Index = 0; Index < Buff.Variants.Num(); ++Index)
+			{
+				const FVeyraVariantTuning& Variant = Buff.Variants[Index];
+				const FString VariantPointer = FString::Printf(TEXT("%s/variants/%d"), *Pointer, Index);
+				if (!Defines(Tuning, Variant.Ability))
+				{
+					Problem(VariantPointer + TEXT("/ability"), FString::Printf(TEXT("names ability \"%s\", which no archetype defines"), *Variant.Ability.ToString()));
+				}
+				if (!(Variant.DurationSeconds > 0.0))
+				{
+					Problem(VariantPointer + TEXT("/durationSeconds"), TEXT("must be above 0"));
+				}
+				if (Variant.Slot != EVeyraAbilitySlot::Q && Variant.Slot != EVeyraAbilitySlot::W && Variant.Slot != EVeyraAbilitySlot::E && Variant.Slot != EVeyraAbilitySlot::R)
+				{
+					Problem(VariantPointer + TEXT("/slot"), TEXT("must be Q, W, E or R: a variant holds an ability's slot"));
+				}
+			}
 			CheckStatusIds(Pointer + TEXT("/statuses"), Buff.Statuses);
 			for (int32 Index = 0; Index < Buff.Shields.Num(); ++Index)
 			{

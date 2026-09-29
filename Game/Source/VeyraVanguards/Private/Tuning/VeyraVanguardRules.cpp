@@ -35,6 +35,45 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 	{
 		RegisterPassive(Entry.Key, TEXT("breach"));
 	}
+	for (const TPair<FVeyraContentId, FVeyraCadenceTuning>& Entry : Tuning.Cadence)
+	{
+		RegisterPassive(Entry.Key, TEXT("cadence"));
+		const FString Pointer = TEXT("/cadence/") + Entry.Key.ToString();
+		const FVeyraCadenceTuning& Cadence = Entry.Value;
+		for (const TPair<const TCHAR*, const FVeyraContentId*> Named : { TPair<const TCHAR*, const FVeyraContentId*>{ TEXT("status"), &Cadence.Status },
+				 { TEXT("extraStackOn"), &Cadence.ExtraStackOn }, { TEXT("steadyStatus"), &Cadence.SteadyStatus }, { TEXT("fullStatus"), &Cadence.FullStatus } })
+		{
+			if (!Abilities.Statuses.Contains(*Named.Value))
+			{
+				Problem(Pointer + TEXT("/") + Named.Key, FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Named.Value->ToString()));
+			}
+		}
+		const FVeyraStatusTuning* Stacks = Abilities.Statuses.Find(Cadence.Status);
+		if (Stacks && (Stacks->Kind != EVeyraStatusKind::AttackSpeed || Stacks->Stacking != EVeyraStackingPolicy::Stacking))
+		{
+			Problem(Pointer + TEXT("/status"), TEXT("must be a Stacking Attack Speed status"));
+		}
+		if (!(Cadence.SteadyDecayMultiplier >= 1.0) || !(Cadence.FiringLine.DelaySeconds >= 0.0) || !(Cadence.FiringLine.AttackDamageFraction >= 0.0)
+			|| Cadence.FiringLine.Damage.AmountByRank.Num() != 1 || !(Cadence.FiringLine.Projectile.Speed > 0.0))
+		{
+			Problem(Pointer, TEXT("steadyDecayMultiplier is at least 1; the echo's delay and fraction at least 0, its damage one amount, and its speed above 0"));
+		}
+		if (Cadence.SpectralRank.EveryAttacks < 1)
+		{
+			Problem(Pointer + TEXT("/spectralRank/everyAttacks"), TEXT("must be at least 1"));
+		}
+		for (const FString& ShapeProblem : VeyraShapes::Validate(Cadence.SpectralRank.Shape))
+		{
+			Problem(Pointer + TEXT("/spectralRank/shape"), ShapeProblem);
+		}
+		for (const FVeyraDamageTuning& Damage : Cadence.SpectralRank.Damage)
+		{
+			if (Damage.AmountByRank.Num() != 1)
+			{
+				Problem(Pointer + TEXT("/spectralRank/damage"), TEXT("a passive has no ranks: one amount each"));
+			}
+		}
+	}
 	for (const TPair<FVeyraContentId, FVeyraMovingTargetTuning>& Entry : Tuning.MovingTarget)
 	{
 		RegisterPassive(Entry.Key, TEXT("movingTarget"));

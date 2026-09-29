@@ -335,7 +335,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger"],
+          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger", "consumesCasterStatuses"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -385,7 +385,8 @@
                   }
                 }
               }
-            }
+            },
+            "consumesCasterStatuses": { "description": "Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6).", "$ref": "#/definitions/statusIds" }
           }
         }
       }
@@ -398,7 +399,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -448,6 +449,22 @@
               "description": "EndsEarly: casting again while the buff lasts ends it, at no cost.",
               "type": "string",
               "enum": ["None", "EndsEarly"]
+            },
+            "variants": {
+              "description": "Slots that hold another ability for a while as the buff lands (ADR-018 §1), as Dig In's volley form during The Last Volley. A variant takes its slot's rank.",
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["slot", "ability", "cooldown", "durationSeconds"],
+                "properties": {
+                  "slot": { "description": "Q, W, E or R: a basic ability's slot or the ultimate's.", "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] },
+                  "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "cooldown": { "description": "Own keeps its own cooldown; Shared is one cooldown with the slot's own ability.", "type": "string", "enum": ["Own", "Shared"] },
+                  "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                }
+              }
             }
           }
         }

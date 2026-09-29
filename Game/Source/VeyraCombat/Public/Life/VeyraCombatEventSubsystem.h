@@ -103,6 +103,9 @@ struct FVeyraStatusApplied
 	/** When it began and ends, in server gameplay time. */
 	double StartsAt = 0.0;
 	double EndsAt = 0.0;
+
+	/** Which status: a passive may wait for one, as Cadence waits for The Last Volley (ADR-018 §3). */
+	FVeyraContentId Id;
 };
 
 /** A cast as it begins or commits (ADR-018 §3). */

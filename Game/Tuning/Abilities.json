@@ -358,7 +358,17 @@
     "kade_tracked": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 200, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
     "kade_sightline_fervor": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
     "kade_sightline_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
-    "kade_kill_corridor_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 10, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 }
+    "kade_kill_corridor_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 10, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "vera_cadence": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "Stacking", "magnitude": 0.07, "durationSeconds": 2.5, "maxStacks": 8, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0.5 },
+    "vera_ranged": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 125, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "vera_dig_in_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "vera_dig_in_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 150, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "vera_dig_in_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "vera_dig_in_footing": { "provenance": "Provisional", "kind": "SlowResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "vera_dig_in_anchor": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "vera_dig_in_volley_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 225, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "vera_dig_in_volley_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 },
+    "vera_last_volley": { "provenance": "Provisional", "kind": "AttackSpeedCap", "stacking": "UniqueRefresh", "magnitude": 3.0, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0 }
   },
   "targetedDamage": {
     "test_bolt": {
@@ -432,7 +442,8 @@
           "casterStatusesPerVanguard": []
         }
       ],
-      "linger": []
+      "linger": [],
+      "consumesCasterStatuses": []
     },
     "cairn_crushing_hold": {
       "provenance": "Provisional",
@@ -474,7 +485,8 @@
           "casterStatusesPerVanguard": []
         }
       ],
-      "linger": []
+      "linger": [],
+      "consumesCasterStatuses": []
     },
     "cairn_burden_of_the_depths": {
       "provenance": "Provisional",
@@ -528,7 +540,8 @@
           "casterStatusesPerVanguard": []
         }
       ],
-      "linger": []
+      "linger": [],
+      "consumesCasterStatuses": []
     },
     "qazharr_no_quarter": {
       "provenance": "Provisional",
@@ -559,7 +572,8 @@
           "casterStatusesPerVanguard": ["qazharr_no_quarter_frenzy", "qazharr_no_quarter_pursuit", "qazharr_no_quarter_tenacity", "qazharr_no_quarter_cleave"]
         }
       ],
-      "linger": []
+      "linger": [],
+      "consumesCasterStatuses": []
     },
     "oriel_shattered_sky": {
       "provenance": "Provisional",
@@ -590,7 +604,8 @@
           "casterStatusesPerVanguard": []
         }
       ],
-      "linger": []
+      "linger": [],
+      "consumesCasterStatuses": []
     },
     "oriel_final_radiance": {
       "provenance": "Provisional",
@@ -621,7 +636,8 @@
           "casterStatusesPerVanguard": []
         }
       ],
-      "linger": []
+      "linger": [],
+      "consumesCasterStatuses": []
     },
     "bryn_sounding_flare": {
       "provenance": "Provisional",
@@ -652,7 +668,8 @@
           "casterStatusesPerVanguard": []
         }
       ],
-      "linger": []
+      "linger": [],
+      "consumesCasterStatuses": []
     },
     "bryn_last_broadside": {
       "provenance": "Provisional",
@@ -694,7 +711,8 @@
           "casterStatusesPerVanguard": []
         }
       ],
-      "linger": []
+      "linger": [],
+      "consumesCasterStatuses": []
     },
     "kade_sightline": {
       "provenance": "Provisional",
@@ -729,7 +747,40 @@
           "enemyStatuses": [],
           "sight": "Ordinary"
         }
-      ]
+      ],
+      "consumesCasterStatuses": []
+    },
+    "vera_break_the_line": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [70],
+        "castRange": 0,
+        "windupSeconds": 0.2,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.15,
+        "recastWindow": []
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [
+        {
+          "shape": { "kind": "Sector", "radius": 400, "arcDegrees": 70, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }],
+            "statuses": [],
+            "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1200 }],
+            "missingHealthDamage": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "linger": [],
+      "consumesCasterStatuses": ["vera_cadence"]
     }
   },
   "selfBuff": {
@@ -748,7 +799,8 @@
       "shields": [],
       "aura": [{ "radius": 600, "durationSeconds": 4, "refreshSeconds": 0.5, "allyStatuses": ["cairn_immovable_cover"] }],
       "heal": [],
-      "recast": "EndsEarly"
+      "recast": "EndsEarly",
+      "variants": []
     },
     "qazharr_weather_it": {
       "provenance": "Provisional",
@@ -777,7 +829,8 @@
       ],
       "aura": [],
       "heal": [],
-      "recast": "None"
+      "recast": "None",
+      "variants": []
     },
     "oriel_mirror_veil": {
       "provenance": "Provisional",
@@ -806,7 +859,8 @@
       ],
       "aura": [],
       "heal": [],
-      "recast": "None"
+      "recast": "None",
+      "variants": []
     },
     "mend": {
       "provenance": "Provisional",
@@ -823,7 +877,62 @@
       "shields": [],
       "aura": [],
       "heal": [{ "amount": 80, "amountPerLevel": 14, "allyRange": 850, "statuses": ["mend_haste"] }],
-      "recast": "None"
+      "recast": "None",
+      "variants": []
+    },
+    "vera_dig_in": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [4],
+        "resourceCostByRank": [40],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "statuses": ["vera_dig_in_stance", "vera_dig_in_reach", "vera_dig_in_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
+      "shields": [],
+      "aura": [],
+      "heal": [],
+      "recast": "EndsEarly",
+      "variants": []
+    },
+    "vera_dig_in_volley": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [2],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "statuses": ["vera_dig_in_stance", "vera_dig_in_volley_reach", "vera_dig_in_volley_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
+      "shields": [],
+      "aura": [],
+      "heal": [],
+      "recast": "EndsEarly",
+      "variants": []
+    },
+    "vera_the_last_volley": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [110, 95, 80],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "statuses": ["vera_last_volley"],
+      "shields": [],
+      "aura": [],
+      "heal": [],
+      "recast": "None",
+      "variants": [{ "slot": "W", "ability": "vera_dig_in_volley", "cooldown": "Own", "durationSeconds": 8 }]
     }
   },
   "skillshot": {
@@ -941,6 +1050,28 @@
       "effects": {
         "damage": [{ "type": "Physical", "amountByRank": [200, 325, 450], "physicalPowerRatio": 1, "magicPowerRatio": 0 }],
         "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": []
+      },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [] },
+      "casterDash": []
+    },
+    "vera_range_found": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [9, 8, 7, 6, 5],
+        "resourceCostByRank": [60],
+        "castRange": 1300,
+        "windupSeconds": 0.35,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.2,
+        "recastWindow": []
+      },
+      "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
+      "collision": "FirstEnemy",
+      "effects": {
+        "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }],
+        "statuses": ["vera_ranged"],
         "displacement": [],
         "missingHealthDamage": []
       },

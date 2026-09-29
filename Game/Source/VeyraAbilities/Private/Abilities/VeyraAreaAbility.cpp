@@ -2,6 +2,7 @@
 
 #include "Abilities/VeyraAreaAbility.h"
 
+#include "VeyraCombatVerbs.h"
 #include "AbilitySystemComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraLingeringArea.h"
@@ -62,6 +63,11 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 	const AActor* Body = Caster->GetAvatarActor();
 	const FVeyraEffectFrame Placement = VeyraAreaDelivery::Place(*Area, Body ? Body->GetActorLocation() : Cast.CasterLocation, Cast.Point, Cast.Direction);
 	TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, Area->Zones, Cast.Rank);
+	// What it spends of its caster's own, as it commits (ADR-018 §6).
+	for (const FVeyraContentId& Spent : Area->ConsumesCasterStatuses)
+	{
+		VeyraCombat::RemoveStatus(*Caster, Spent);
+	}
 
 	// It lights its area for its caster's side as it commits (ADR-016 §5).
 	if (Area->Reveal.Radius > 0.0)

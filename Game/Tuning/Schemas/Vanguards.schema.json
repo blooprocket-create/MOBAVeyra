@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -166,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [5]
+      "enum": [6]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -284,6 +284,47 @@
             "hitsToBreach": { "description": "Which consecutive hit breaches; canon gives the third.", "type": "integer", "minimum": 1 },
             "bonusDamage": { "description": "Added to the breaching attack's own damage.", "$ref": "#/definitions/damage" },
             "impact": { "description": "The explosion behind the target; a higher-priority impact such as Breach Round's replaces it.", "$ref": "#/definitions/secondaryImpact" }
+          }
+        }
+      }
+    },
+    "cadence": {
+      "description": "Passives that stack Attack Speed from basic attacks, decaying a stack at a time, echo each attack at full stacks, and hold full while an ultimate lasts, firing a rank every Nth attack (Vera's Cadence, Roster Bible §7).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "status", "extraStackOn", "steadyStatus", "steadyDecayMultiplier", "fullStatus", "firingLine", "spectralRank"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "status": { "description": "From Abilities.json: a Stacking Attack Speed status that decays a stack at a time.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "extraStackOn": { "description": "An attack on a target with this status from the owner adds a second stack.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "steadyStatus": { "description": "While the owner has it, stacks decay more slowly.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "steadyDecayMultiplier": { "type": "number", "minimum": 1 },
+            "fullStatus": { "description": "While the owner has it, Cadence is full and cannot fall.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "firingLine": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["delaySeconds", "attackDamageFraction", "damage", "projectile"],
+              "properties": {
+                "delaySeconds": { "type": "number", "minimum": 0 },
+                "attackDamageFraction": { "description": "Of the attack's own damage.", "type": "number", "minimum": 0 },
+                "damage": { "description": "The echo's type, and an amount and ratios added: proc damage, no On-Hit.", "$ref": "#/definitions/damage" },
+                "projectile": { "$ref": "#/definitions/homingProjectile" }
+              }
+            },
+            "spectralRank": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["everyAttacks", "shape", "damage"],
+              "properties": {
+                "everyAttacks": { "type": "integer", "minimum": 1 },
+                "shape": { "$ref": "#/definitions/shape" },
+                "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } }
+              }
+            }
           }
         }
       }

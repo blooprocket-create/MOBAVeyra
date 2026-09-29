@@ -43,6 +43,7 @@ public:
 	/** A Breach passive's tuning, or null. */
 	static const FVeyraBreachTuning* FindBreach(const FVeyraContentId& Passive);
 	static const FVeyraMovingTargetTuning* FindMovingTarget(const FVeyraContentId& Passive);
+	static const FVeyraCadenceTuning* FindCadence(const FVeyraContentId& Passive);
 
 	/** Reads and validates the file again, replacing the loaded tuning only when it is valid. */
 	VeyraTuning::FErrors Reload();
