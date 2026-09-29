@@ -47,6 +47,8 @@ enum class EVeyraOrderRejection : uint8
 	CrowdControlled,
 	/** Another cast holds the Vanguard, in its windup, channel or recovery, so it cannot begin a Recall. */
 	Casting,
+	/** The vision tool has no charge to spend (Vision Bible §4). */
+	NotReady,
 };
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraOrderRejection Rejection);

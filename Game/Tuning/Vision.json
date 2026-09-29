@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "update": {
     "provenance": "Provisional",
     "updateSeconds": 0.2
@@ -8,6 +8,20 @@
     "provenance": "Provisional",
     "vanguard": 1350,
     "fluxborn": 1100,
-    "structure": 1350
+    "structure": 1350,
+    "ward": 900
+  },
+  "wardCharges": {
+    "provenance": "Canon",
+    "max": 3
+  },
+  "persistentWard": {
+    "provenance": "Provisional",
+    "rechargeSeconds": 120,
+    "lifetimeSeconds": 120,
+    "placementRange": 600,
+    "hitsToDestroy": 3,
+    "bodyRadius": 25,
+    "bodyHalfHeight": 60
   }
 }

@@ -111,6 +111,19 @@ void UVeyraRewardSubsystem::RewardFluxWellSecured(TConstArrayView<UAbilitySystem
 	}
 }
 
+void UVeyraRewardSubsystem::RewardWardDestroyed(const FVeyraDeathEvent& Death)
+{
+	if (bStopped || !IsServer())
+	{
+		return;
+	}
+	const TArray<FRecipient> All = Recipients();
+	if (const FRecipient* Destroyer = FindRecipient(All, Death.CreditedKiller.Get()))
+	{
+		Destroyer->Gold->Grant(UVeyraEconomyTuningSubsystem::Get().VisionTools.WardBounty, EVeyraGoldReason::WardDestroyed);
+	}
+}
+
 void UVeyraRewardSubsystem::ShareExperience(TConstArrayView<FRecipient> All, EVeyraTeam Side, const FVector& Where, double Experience) const
 {
 	TArray<const FRecipient*> Leveling;

@@ -28,6 +28,8 @@ enum class EVeyraTargetValidity : uint8
 	 * caster is not inside (Vision Bible §1, §2; Combat Bible §11; ADR-016 §2).
 	 */
 	NotVisible,
+	/** A ward, for an ability: only basic attacks strike wards (ADR-016 §6). */
+	Ward,
 };
 
 /** Whether a targeted action may pick a structure (Combat Bible §33). */
@@ -71,7 +73,8 @@ namespace VeyraTargeting
 
 	/**
 	 * Whether Caster may target Target with a targeted action against enemies, at CastRange. A
-	 * structure is valid only when Structures allows it.
+	 * structure is valid only when Structures allows it, and so is a ward, which of those actions
+	 * only a Vanguard's basic attack harms.
 	 */
 	VEYRACOMBAT_API EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target, double CastRange,
 		EVeyraStructureTargeting Structures = EVeyraStructureTargeting::Refuse);

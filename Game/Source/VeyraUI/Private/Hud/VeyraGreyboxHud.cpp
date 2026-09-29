@@ -282,6 +282,18 @@ namespace
 			Lines.Add({ MoveTemp(Bar), Settings.TextColor });
 		}
 
+		// The vision tool, by its key: the ward charges carried, and when the next comes back (ADR-016 §8).
+		if (Player.VisionTool.bPresent)
+		{
+			FString Tool = FString::Printf(TEXT("[%s] Ward %d/%d"), *Input.GetAbilityKey(EVeyraAbilitySlot::VisionTool).GetDisplayName(false).ToString(),
+				Player.VisionTool.WardCharges, Player.VisionTool.MaxWardCharges);
+			if (Player.VisionTool.NextChargeSeconds > 0.0)
+			{
+				Tool += FString::Printf(TEXT(", next in %.0f s"), FMath::CeilToDouble(Player.VisionTool.NextChargeSeconds));
+			}
+			Lines.Add({ MoveTemp(Tool), Settings.TextColor });
+		}
+
 		float Y = Canvas.ClipY - Settings.HudMargin - Lines.Num() * HudLineHeight();
 		for (const FHudLine& Line : Lines)
 		{

@@ -21,9 +21,11 @@
 #include "State/VeyraTeamFluxState.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Structures/VeyraStructure.h"
+#include "Tools/VeyraVisionToolComponent.h"
 #include "Wildlife/VeyraWildlife.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
+#include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "VeyraPlayerState.h"
 
 namespace
@@ -216,6 +218,13 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 				Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow) : 0.0;
 			}
 		}
+	}
+	if (const UVeyraVisionToolComponent* Tool = Participant.FindComponentByClass<UVeyraVisionToolComponent>())
+	{
+		Player.VisionTool.bPresent = true;
+		Player.VisionTool.WardCharges = Tool->GetWardCharges();
+		Player.VisionTool.MaxWardCharges = UVeyraVisionTuningSubsystem::Get().WardCharges.Max;
+		Player.VisionTool.NextChargeSeconds = Tool->GetNextChargeAt() < 0.0 ? 0.0 : FMath::Max(0.0, Tool->GetNextChargeAt() - ServerNow);
 	}
 	return Player;
 }

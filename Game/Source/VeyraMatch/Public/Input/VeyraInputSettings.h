@@ -45,7 +45,8 @@ public:
 
 	/**
 	 * Each uses the item in its inventory slot, 1 to 6 (author ruling 2026-09-28; ADR-012 §1): a
-	 * consumable is used up, and an Active is cast at the cursor, as Quick Cast casts.
+	 * consumable is used up, and an Active is cast at the cursor, as Quick Cast casts. By default
+	 * they sit on League's keys, around the vision tool's (ADR-016 §6).
 	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey Item1Key;
@@ -71,6 +72,10 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey Spell2Key;
+
+	/** Uses the vision tool toward the cursor: a Persistent Ward is placed there (ADR-016 §6). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey VisionToolKey;
 
 	/** Channels the Vanguard home to its fountain (Economy & Progression Bible §10; ADR-012 §8). */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
@@ -125,6 +130,9 @@ struct VEYRAMATCH_API FVeyraInputObjects
 	/** One per Flux Spell slot, in slot order. */
 	UPROPERTY()
 	TArray<TObjectPtr<UInputAction>> SpellSlots;
+
+	UPROPERTY()
+	TObjectPtr<UInputAction> VisionTool;
 
 	UPROPERTY()
 	TObjectPtr<UInputAction> Recall;

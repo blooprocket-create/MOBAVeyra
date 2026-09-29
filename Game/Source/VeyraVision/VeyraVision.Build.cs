@@ -21,12 +21,17 @@ public class VeyraVision : ModuleRules
 
 		PublicDependencyModuleNames.Add("VeyraCombat");
 
+		// A ward is a unit with its own Ability System Component (ADR-016 §6).
+		PublicDependencyModuleNames.Add("GameplayAbilities");
+
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
 			// Projectiles and telegraphed areas are gated like units.
 			"VeyraAbilities",
 			// The fog gate's groups (ADR-006 §5).
 			"NetCore",
+			// A destroyed ward pays its destroyer (Vision Bible §8; ADR-016 §6).
+			"VeyraEconomy",
 		});
 
 		SetupIrisSupport(Target);

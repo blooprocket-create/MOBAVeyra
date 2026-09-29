@@ -22,6 +22,12 @@ bool IsStructure(const UObject* Object)
 	return Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Structure;
 }
 
+bool IsWard(const UObject* Object)
+{
+	const TOptional<EVeyraUnitKind> Kind = KindOf(Object);
+	return Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Ward;
+}
+
 bool IsNeutral(const UObject* Object)
 {
 	const TOptional<EVeyraUnitKind> Kind = KindOf(Object);

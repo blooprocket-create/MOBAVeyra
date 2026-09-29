@@ -99,6 +99,11 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
   - its owner and team, its sight radius, its lifetime, Invisibility, and its sensor radius;
   - destroyed by a number of hits from enemy Vanguards' basic attacks, and by nothing else;
   - its destroyer is paid through Economy's `RewardWardDestroyed`.
+- **A ward is a unit of its own kind** (`EVeyraUnitKind::Ward`), so Combat can hold its rules without naming it:
+  - **It counts hits, not damage.** Only a basic attack from a Vanguard reaches it, and each lands as one point of its Health, whatever the attack's damage and modifiers. Its Max Health is the data's hit count, and its death is an ordinary death, so the credited killer is its destroyer.
+  - **Abilities pass it by.** Statuses ignore it, and area and skillshot gathering skip it, as League's wards stop no skillshot. Fluxborn and towers never choose it.
+  - **It stops no one.** Its body is on its own collision object channel, which every other body ignores. It still blocks the cursor's unit trace, so a player can click a ward they see.
+  - **Enemies see it only under True Sight** (§5, M11b G8). Its own side always receives it.
 - **Tools:**
   - **Persistent Ward:** places a ward within range, spending a charge.
   - **Sweeper:** grants True Sight around its owner for its duration.

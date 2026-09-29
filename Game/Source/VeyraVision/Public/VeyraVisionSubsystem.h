@@ -11,7 +11,10 @@
 #include "VeyraVisionSubsystem.generated.h"
 
 class APlayerController;
+class APlayerState;
+class AVeyraWard;
 class FVeyraFogGate;
+struct FVeyraDeathEvent;
 
 /**
  * A match's vision (ADR-016 §2, §3), on the server. Every pass (Vision.json's updateSeconds) it works
@@ -50,6 +53,12 @@ public:
 	 */
 	void SetDenseFog(TArray<FVeyraFogCircle> Circles);
 
+	/**
+	 * Server: places a ward for Placer's side at Where (Vision Bible §4), which its side receives at
+	 * once and the enemy never, unless True Sight covers it. Null if it could not be placed.
+	 */
+	AVeyraWard* PlaceWard(APlayerState& Placer, const FVector& Where);
+
 	// IVeyraVisibility
 	virtual bool CanSee(const UObject& Observer, const AActor& Target) const override;
 	virtual bool IsVisibleToTeam(EVeyraTeam Team, const AActor& Target) const override;
@@ -59,6 +68,12 @@ public:
 private:
 	/** Whether Unit is hidden from those who cannot see it: every unit but structures and Flux Wells. */
 	static bool IsGated(const AActor& Unit);
+
+	/** Whether ordinary sight never shows Unit to its enemies, as a ward's Invisibility (Vision Bible §4). */
+	static bool IsInvisible(const AActor& Unit);
+
+	/** A destroyed ward pays its destroyer and leaves the battleground (§8). */
+	void OnDeath(const FVeyraDeathEvent& Death);
 
 	void OnActorSpawned(AActor* Actor);
 
@@ -90,5 +105,6 @@ private:
 	TSharedPtr<FVeyraFogGate> Gate;
 	FTimerHandle Timer;
 	FDelegateHandle SpawnedHandle;
+	FDelegateHandle DeathHandle;
 	bool bStarted = false;
 };

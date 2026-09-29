@@ -37,7 +37,8 @@ namespace
 	/**
 	 * Visits each living unit in World that Include accepts. Structures are among them only when
 	 * Structures allows: areas, skillshots, cleaves and secondary impacts do not hit structures
-	 * (Combat Bible §33).
+	 * (Combat Bible §33). Wards never are: only a basic attack aimed at one strikes it, and no
+	 * gathering picks one, as League's attack-move and skillshots pass wards by (ADR-016 §6).
 	 */
 	template <typename VisitorType>
 	void ForEachUnit(const UWorld& World, TFunctionRef<bool(const AActor&)> Include, EVeyraStructureTargeting Structures, VisitorType&& Visit)
@@ -46,7 +47,8 @@ namespace
 		{
 			APawn* Unit = *It;
 			const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Unit);
-			const bool bExcluded = Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Structure && Structures == EVeyraStructureTargeting::Refuse;
+			const bool bExcluded = Kind.IsSet()
+				&& ((Kind.GetValue() == EVeyraUnitKind::Structure && Structures == EVeyraStructureTargeting::Refuse) || Kind.GetValue() == EVeyraUnitKind::Ward);
 			if (Kind.IsSet() && !bExcluded && VeyraTargeting::IsAlive(Unit) && Include(*Unit))
 			{
 				Visit(*Unit);

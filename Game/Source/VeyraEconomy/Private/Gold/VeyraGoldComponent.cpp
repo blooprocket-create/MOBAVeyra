@@ -38,6 +38,8 @@ const TCHAR* LexToString(EVeyraGoldReason Reason)
 		return TEXT("a jungle creature");
 	case EVeyraGoldReason::FluxWell:
 		return TEXT("a share of a Flux Well");
+	case EVeyraGoldReason::WardDestroyed:
+		return TEXT("a ward destroyed");
 	}
 	return TEXT("unknown");
 }

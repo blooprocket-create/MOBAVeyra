@@ -42,16 +42,19 @@ namespace VeyraMatchTests
 			Settings->Spell1Key = EKeys::F5;
 			Settings->Spell2Key = EKeys::F6;
 			Settings->RecallKey = EKeys::F4;
+			Settings->VisionToolKey = EKeys::F7;
 
 			const FVeyraInputObjects Objects = VeyraInput::Build(*Settings, *GetTransientPackage());
 			ASSERT_THAT(IsNotNull(Objects.MappingContext.Get()));
-			// Move, attack-move and Recall, then one per ability slot, item slot and Flux Spell slot.
-			constexpr int32 OrderBindings = 3;
+			// Move, attack-move, Recall and the vision tool, then one per ability slot, item slot and Flux Spell slot.
+			constexpr int32 OrderBindings = 4;
 			ASSERT_THAT(AreEqual(Objects.MappingContext->GetMappings().Num(),
 				OrderBindings + static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::All) + UE_ARRAY_COUNT(VeyraAbilitySlots::Items) + UE_ARRAY_COUNT(VeyraAbilitySlots::Spells))));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.MoveOrder) == EKeys::LeftMouseButton));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.AttackMove) == EKeys::X));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.Recall) == EKeys::F4));
+			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.VisionTool) == EKeys::F7));
+			ASSERT_THAT(IsTrue(Objects.GetAbilityAction(EVeyraAbilitySlot::VisionTool) == Objects.VisionTool));
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 			{
 				ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.GetAbilityAction(Slot)) == Settings->GetAbilityKey(Slot)));
@@ -80,7 +83,7 @@ namespace VeyraMatchTests
 		TEST_METHOD(TheShippedDefaultsAreUsable)
 		{
 			const UVeyraInputSettings& Settings = *GetDefault<UVeyraInputSettings>();
-			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey, Settings.RecallKey, Settings.RankUpModifierKey };
+			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey, Settings.RecallKey, Settings.RankUpModifierKey, Settings.VisionToolKey };
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 			{
 				Keys.Add(Settings.GetAbilityKey(Slot));
@@ -98,6 +101,8 @@ namespace VeyraMatchTests
 				ASSERT_THAT(IsTrue(Keys[Index].IsValid()));
 				ASSERT_THAT(IsFalse(Keys.Find(Keys[Index]) != Index, TEXT("two actions share a default key")));
 			}
+			// League's layout: the items around the vision tool's 4 (ADR-016 §6).
+			ASSERT_THAT(IsTrue(Settings.VisionToolKey == EKeys::Four && Settings.Item4Key == EKeys::Five && Settings.Item6Key == EKeys::Seven));
 			ASSERT_THAT(IsTrue(Settings.HeldMoveOrderIntervalSeconds > 0.0f));
 			// A held move order repeats no faster than the server accepts orders.
 			const double HeldOrdersPerSecond = 1.0 / Settings.HeldMoveOrderIntervalSeconds;

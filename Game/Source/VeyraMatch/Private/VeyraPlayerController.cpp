@@ -140,6 +140,7 @@ void AVeyraPlayerController::SetupInputComponent()
 		{
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
 		}
+		Enhanced->BindAction(Input.VisionTool, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, EVeyraAbilitySlot::VisionTool);
 	}
 }
 
@@ -211,7 +212,8 @@ void AVeyraPlayerController::MoveToCursor(bool bSteer)
 void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 {
 	// With the rank-up modifier held, a kit slot's key spends a skill point on it instead.
-	if (!VeyraAbilitySlots::IsItemSlot(Slot) && !VeyraAbilitySlots::IsSpellSlot(Slot) && IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
+	if (!VeyraAbilitySlots::IsItemSlot(Slot) && !VeyraAbilitySlots::IsSpellSlot(Slot) && !VeyraAbilitySlots::IsVisionToolSlot(Slot)
+		&& IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
 	{
 		RequestRankUp(Slot);
 		return;
@@ -239,6 +241,18 @@ void AVeyraPlayerController::ServerIssueCastOrder_Implementation(EVeyraAbilitySl
 		RejectOrder(EVeyraOrderRejection::TooFrequent);
 		return;
 	}
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	// The vision tool's key orders Vision's tool, which is no ability (ADR-016 §6).
+	if (VeyraAbilitySlots::IsVisionToolSlot(Slot))
+	{
+		const EVeyraOrderRejection Refusal = !Target.bHasLocation ? EVeyraOrderRejection::InvalidOrder
+			: GameMode ? GameMode->HandleVisionToolOrder(GetPlayerState<AVeyraPlayerState>(), Target.Location) : EVeyraOrderRejection::WrongPhase;
+		if (Refusal != EVeyraOrderRejection::None)
+		{
+			RejectOrder(Refusal);
+		}
+		return;
+	}
 	// An item slot's key uses its item (ADR-012 §1): a consumable through the shop, an Active as a cast.
 	const int32 ItemIndex = VeyraAbilitySlots::ItemIndexOf(Slot);
 	const EVeyraItemUse Use = PlayerState && ItemIndex != INDEX_NONE ? UVeyraShopSubsystem::GetUse(*PlayerState, ItemIndex) : EVeyraItemUse::None;
@@ -248,7 +262,6 @@ void AVeyraPlayerController::ServerIssueCastOrder_Implementation(EVeyraAbilitySl
 		ApplyShopRequest([ItemIndex](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.UseConsumable(Participant, ItemIndex); });
 		return;
 	}
-	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
 	EVeyraCastRejection Rejection = EVeyraCastRejection::UnknownAbility;
 	if (ItemIndex == INDEX_NONE || Use == EVeyraItemUse::Active)
 	{

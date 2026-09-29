@@ -96,6 +96,12 @@ public:
 	 */
 	EVeyraOrderRejection HandleRecallOrder(AVeyraPlayerState* Participant);
 
+	/**
+	 * Uses the player's vision tool toward Point (Vision Bible §3; ADR-016 §6): Vision decides the
+	 * rest. Refused while orders are, while dead, and under crowd control that stops casting.
+	 */
+	EVeyraOrderRejection HandleVisionToolOrder(AVeyraPlayerState* Participant, const FVector& Point);
+
 	/** Why the match refuses rank-ups now, or None: they need preparation or the live phase, and no pause. */
 	EVeyraOrderRejection CheckRankUpAllowed() const;
 

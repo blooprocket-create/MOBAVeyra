@@ -2,6 +2,7 @@
 
 #include "VeyraVisionSubsystem.h"
 
+#include "AbilitySystemComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/World.h"
@@ -10,6 +11,8 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
 #include "Gate/VeyraFogGate.h"
+#include "Life/VeyraCombatEventSubsystem.h"
+#include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraVisionRules.h"
 #include "GameFramework/GameStateBase.h"
 #include "Targeting/VeyraParticipantData.h"
@@ -17,6 +20,7 @@
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraVisionLog.h"
+#include "Wards/VeyraWard.h"
 
 namespace
 {
@@ -83,6 +87,8 @@ namespace
 			return Sight.Fluxborn;
 		case EVeyraUnitKind::Structure:
 			return Sight.Structure;
+		case EVeyraUnitKind::Ward:
+			return Sight.Ward;
 		case EVeyraUnitKind::Wildlife:
 		case EVeyraUnitKind::Objective:
 			return 0.0;
@@ -104,7 +110,14 @@ bool UVeyraVisionSubsystem::IsGated(const AActor& Unit)
 	// A unit's body, which moves about the battleground; a PlayerState replicates to everyone (ADR-016 §3).
 	const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
 	return Kind.IsSet() && Unit.IsA<APawn>()
-		&& (Kind.GetValue() == EVeyraUnitKind::Vanguard || Kind.GetValue() == EVeyraUnitKind::Fluxborn || Kind.GetValue() == EVeyraUnitKind::Wildlife);
+		&& (Kind.GetValue() == EVeyraUnitKind::Vanguard || Kind.GetValue() == EVeyraUnitKind::Fluxborn || Kind.GetValue() == EVeyraUnitKind::Wildlife
+			|| Kind.GetValue() == EVeyraUnitKind::Ward);
+}
+
+bool UVeyraVisionSubsystem::IsInvisible(const AActor& Unit)
+{
+	// Only True Sight reveals an Invisible unit, and Sweeper alone grants it (Vision Bible §5).
+	return VeyraUnits::IsWard(&Unit);
 }
 
 void UVeyraVisionSubsystem::Start()
@@ -122,6 +135,10 @@ void UVeyraVisionSubsystem::Start()
 	Gate = MakeShared<FVeyraFogGate>();
 	Gate->Start(*World);
 	SpawnedHandle = World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UVeyraVisionSubsystem::OnActorSpawned));
+	if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
+	{
+		DeathHandle = Events->OnDeath.AddUObject(this, &UVeyraVisionSubsystem::OnDeath);
+	}
 	World->GetTimerManager().SetTimer(Timer, FTimerDelegate::CreateUObject(this, &UVeyraVisionSubsystem::UpdateNow), UVeyraVisionTuningSubsystem::Get().Update.UpdateSeconds,
 		/*bLoop*/ true);
 	UpdateNow();
@@ -138,6 +155,10 @@ void UVeyraVisionSubsystem::Stop()
 	{
 		World->GetTimerManager().ClearTimer(Timer);
 		World->RemoveOnActorSpawnedHandler(SpawnedHandle);
+		if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
+		{
+			Events->OnDeath.Remove(DeathHandle);
+		}
 		if (UVeyraVisibilityRegistry* Registry = World->GetSubsystem<UVeyraVisibilityRegistry>())
 		{
 			Registry->Unregister(*this);
@@ -169,6 +190,51 @@ void UVeyraVisionSubsystem::OnActorSpawned(AActor* Actor)
 			Gate->AddToSide(*Actor, Team);
 		}
 	}
+}
+
+AVeyraWard* UVeyraVisionSubsystem::PlaceWard(APlayerState& Placer, const FVector& Where)
+{
+	UWorld* World = GetWorld();
+	const EVeyraTeam Team = VeyraTeams::TeamOf(&Placer);
+	if (!World || World->GetNetMode() == NM_Client || !IsSide(Team))
+	{
+		return nullptr;
+	}
+	FActorSpawnParameters Parameters;
+	Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	AVeyraWard* Ward = World->SpawnActor<AVeyraWard>(Where, FRotator::ZeroRotator, Parameters);
+	if (!Ward || !Ward->Place(Team, Placer))
+	{
+		if (Ward)
+		{
+			Ward->Destroy();
+		}
+		return nullptr;
+	}
+	// Its side receives it from its first send; it spawned before it had a side to join.
+	if (Gate)
+	{
+		Gate->AddToSide(*Ward, Team);
+	}
+	UE_LOG(LogVeyraVision, Log, TEXT("%s places a ward at %s."), *Placer.GetPlayerName(), *Where.ToCompactString());
+	return Ward;
+}
+
+void UVeyraVisionSubsystem::OnDeath(const FVeyraDeathEvent& Death)
+{
+	const UAbilitySystemComponent* Victim = Death.Victim.Get();
+	AVeyraWard* Ward = Victim ? Cast<AVeyraWard>(Victim->GetOwner()) : nullptr;
+	if (!Ward)
+	{
+		return;
+	}
+	if (UVeyraRewardSubsystem* Rewards = GetWorld()->GetSubsystem<UVeyraRewardSubsystem>())
+	{
+		Rewards->RewardWardDestroyed(Death);
+	}
+	UE_LOG(LogVeyraVision, Log, TEXT("%s is destroyed."), *Ward->GetName());
+	// After every other listener has heard of its death.
+	GetWorld()->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateWeakLambda(Ward, [Ward]() { Ward->Destroy(); }));
 }
 
 void UVeyraVisionSubsystem::SetDenseFog(TArray<FVeyraFogCircle> Circles)
@@ -246,7 +312,7 @@ void UVeyraVisionSubsystem::UpdateNow()
 		TSet<TWeakObjectPtr<const AActor>>& SideSeen = Seen.Add(Side);
 		for (const AActor* Unit : Gated)
 		{
-			if (VeyraTeams::TeamOf(Unit) != Side && !Fogged.Contains(Unit) && VeyraVisionRules::IsSeenBy(Side, Sources, FVector2D(Unit->GetActorLocation())))
+			if (VeyraTeams::TeamOf(Unit) != Side && !Fogged.Contains(Unit) && !IsInvisible(*Unit) && VeyraVisionRules::IsSeenBy(Side, Sources, FVector2D(Unit->GetActorLocation())))
 			{
 				SideSeen.Add(Unit);
 			}
@@ -399,6 +465,10 @@ bool UVeyraVisionSubsystem::IsVisibleToTeam(EVeyraTeam Team, const AActor& Targe
 	if (SideSeen && SideSeen->Contains(Body))
 	{
 		return true;
+	}
+	if (IsInvisible(*Body))
+	{
+		return false;
 	}
 	// Spawned since the last pass: judged now, against that pass's sources.
 	return !Known.Contains(Body) && VeyraVisionRules::IsSeenBy(Team, Sources, FVector2D(Body->GetActorLocation()));

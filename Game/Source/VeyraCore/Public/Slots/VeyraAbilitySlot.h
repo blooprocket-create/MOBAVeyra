@@ -8,9 +8,10 @@
 
 /**
  * A Vanguard's ability slots (Settings Bible §1.2: Q/W/E/R), the six item slots, whose keys use the
- * item in that inventory slot (author ruling 2026-09-28; ADR-012 §1), and the two Flux Spell slots
- * (Battleground Bible §14; ADR-015 §1). Abilities, Progression (ranks) and Match (intents) all name
- * them, so the vocabulary lives here (ADR-008 §1). Basic attacks get theirs later.
+ * item in that inventory slot (author ruling 2026-09-28; ADR-012 §1), the two Flux Spell slots
+ * (Battleground Bible §14; ADR-015 §1), and the vision-tool slot (Vision Bible §3; ADR-016 §6).
+ * Abilities, Progression (ranks) and Match (intents) all name them, so the vocabulary lives here
+ * (ADR-008 §1). Basic attacks get theirs later.
  */
 UENUM()
 enum class EVeyraAbilitySlot : uint8
@@ -30,6 +31,11 @@ enum class EVeyraAbilitySlot : uint8
 	/** The two Flux Spell slots: no ranks, fixed cooldowns, locked until permanent Team Flux opens them (ADR-015). */
 	Spell1,
 	Spell2,
+	/**
+	 * The vision tool: Persistent Ward, Sweeper or Quick Sight. Not an ability: its key orders
+	 * Vision's tool, whose charges and cooldowns are Vision's (ADR-016 §6).
+	 */
+	VisionTool,
 };
 
 namespace VeyraAbilitySlots
@@ -60,6 +66,12 @@ namespace VeyraAbilitySlots
 	inline constexpr bool IsSpellSlot(EVeyraAbilitySlot Slot)
 	{
 		return Slot == EVeyraAbilitySlot::Spell1 || Slot == EVeyraAbilitySlot::Spell2;
+	}
+
+	/** Whether Slot is the vision tool's, which no ability fills (ADR-016 §6). */
+	inline constexpr bool IsVisionToolSlot(EVeyraAbilitySlot Slot)
+	{
+		return Slot == EVeyraAbilitySlot::VisionTool;
 	}
 
 	/** Spell slot index, from 0, of a Flux Spell slot; INDEX_NONE for any other. */

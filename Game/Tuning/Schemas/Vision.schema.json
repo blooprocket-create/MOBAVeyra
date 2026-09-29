@@ -1,13 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Vision tuning",
-  "description": "Gameplay tuning owned by the Vision domain (Vision Bible; ADR-016 §9): how often the server works out what each team and player sees, and how far each kind of unit sees. VeyraVision binds it to FVeyraVisionTuning.",
+  "description": "Gameplay tuning owned by the Vision domain (Vision Bible; ADR-016 §9): how often the server works out what each team and player sees, how far each kind of unit sees, and the vision tools. VeyraVision binds it to FVeyraVisionTuning.",
   "type": "object",
   "additionalProperties": false,
   "required": [
     "schemaVersion",
     "update",
-    "sight"
+    "sight",
+    "wardCharges",
+    "persistentWard"
   ],
   "properties": {
     "schemaVersion": {
@@ -15,7 +17,7 @@
       "type": "integer",
       "minimum": 1,
       "enum": [
-        1
+        2
       ]
     },
     "update": {
@@ -52,7 +54,8 @@
         "provenance",
         "vanguard",
         "fluxborn",
-        "structure"
+        "structure",
+        "ward"
       ],
       "properties": {
         "provenance": {
@@ -78,6 +81,97 @@
         },
         "structure": {
           "description": "A structure's sight radius: Spires, base towers, inhibitors and the Prime Well.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "ward": {
+          "description": "A placed ward's sight radius (Vision Bible §4). Inside Dense Fog it sees no enemy Vanguard; it senses presence instead.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "wardCharges": {
+      "description": "The Persistent Ward's carried charges (Vision Bible §4): a cap on charges carried, not on wards placed.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provenance",
+        "max"
+      ],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives three.",
+          "type": "string",
+          "enum": [
+            "Provisional",
+            "Canon",
+            "Reviewed"
+          ]
+        },
+        "max": {
+          "description": "Charges carried at most; a Vanguard starts with them all.",
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "persistentWard": {
+      "description": "The Persistent Ward and the wards it places (Vision Bible §4, §9; ADR-016 §6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provenance",
+        "rechargeSeconds",
+        "lifetimeSeconds",
+        "placementRange",
+        "hitsToDestroy",
+        "bodyRadius",
+        "bodyHalfHeight"
+      ],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "type": "string",
+          "enum": [
+            "Provisional",
+            "Canon",
+            "Reviewed"
+          ]
+        },
+        "rechargeSeconds": {
+          "description": "Seconds for one charge to come back while fewer than the most are carried.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "lifetimeSeconds": {
+          "description": "Seconds a placed ward lasts unless it is destroyed first.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "placementRange": {
+          "description": "How far from its Vanguard a ward is placed; a point further away is brought back within it.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "hitsToDestroy": {
+          "description": "Basic attacks from enemy Vanguards that destroy a ward, whatever their damage.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "bodyRadius": {
+          "description": "The radius of a ward's body, which a player clicks to attack it.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "bodyHalfHeight": {
+          "description": "Half the height of a ward's body; at least its radius.",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true

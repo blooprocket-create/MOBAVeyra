@@ -46,6 +46,8 @@ public class VeyraUI : ModuleRules
 			"VeyraFlux",
 			// The grey-box draws the battleground's lanes, river and bases from its layout.
 			"VeyraWorld",
+			// The HUD shows the vision tool and its ward charges (ADR-016 §8).
+			"VeyraVision",
 		});
 
 		// What players read about Vanguards, abilities and passives (VeyraContentText).

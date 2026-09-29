@@ -90,6 +90,10 @@ EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target
 	{
 		return EVeyraTargetValidity::Structure;
 	}
+	if (Structures == EVeyraStructureTargeting::Refuse && VeyraUnits::IsWard(Target))
+	{
+		return EVeyraTargetValidity::Ward;
+	}
 	// Knowing where a unit is does not permit targeting it (Vision Bible §1).
 	if (!CanAcquire(&Caster, *Target))
 	{

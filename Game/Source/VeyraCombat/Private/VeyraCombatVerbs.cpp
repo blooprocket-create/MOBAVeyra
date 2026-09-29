@@ -85,6 +85,12 @@ namespace
 		return VeyraUnits::IsStructure(AbilitySystem.GetOwner());
 	}
 
+	/** Whether the unit is a ward, which only a Vanguard's basic attack reaches, and no status (ADR-016 §6). */
+	bool IsWardUnit(const UAbilitySystemComponent& AbilitySystem)
+	{
+		return VeyraUnits::IsWard(AbilitySystem.GetOwner());
+	}
+
 	/** The movement of the unit's body, its avatar; none before it has one. */
 	UVeyraMovementComponent* FindMovement(const UAbilitySystemComponent& AbilitySystem)
 	{
@@ -485,6 +491,12 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 			*GetNameSafe(Target.GetOwner()));
 		return false;
 	}
+	if (IsWardUnit(Target) && (Damage.Delivery != EVeyraDamageDelivery::BasicAttack || !VeyraUnits::IsVanguard(Source->GetOwner())))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored damage to %s: it is a ward, which only a Vanguard's basic attack reaches (ADR-016 §6)."),
+			*GetNameSafe(Target.GetOwner()));
+		return false;
+	}
 	if (!Source->ApplyGameplayEffectSpecToTarget(*Damage.Spec.Data, &Target).WasSuccessfullyApplied())
 	{
 		return false;
@@ -588,6 +600,11 @@ bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Targe
 		// A neutral objective ignores them too, as League's objectives ignore crowd control (ADR-014 §4).
 		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: enemy statuses do not affect structures (Combat Bible §33) or objectives."),
 			*Status.Id.ToString(), *GetNameSafe(TargetOwner));
+		return false;
+	}
+	if (IsWardUnit(Target))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: no status affects a ward (ADR-016 §6)."), *Status.Id.ToString(), *GetNameSafe(TargetOwner));
 		return false;
 	}
 	return Statuses->Apply(Source, Status);

@@ -79,3 +79,8 @@ AVeyraTestWildlife::AVeyraTestWildlife(const FObjectInitializer& ObjectInitializ
 	: Super(ObjectInitializer)
 {
 }
+
+AVeyraTestWard::AVeyraTestWard(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}

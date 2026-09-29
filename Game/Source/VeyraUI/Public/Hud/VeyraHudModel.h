@@ -87,6 +87,17 @@ struct FVeyraHudSpellSlot
 	double CooldownSeconds = 0.0;
 };
 
+/** The vision-tool slot on the HUD (ADR-016 §8): the Persistent Ward's charges, and when the next comes back. */
+struct FVeyraHudVisionTool
+{
+	bool bPresent = false;
+	int32 WardCharges = 0;
+	int32 MaxWardCharges = 0;
+
+	/** Seconds until the next charge comes back; 0 while none is coming. */
+	double NextChargeSeconds = 0.0;
+};
+
 /** The player's own panel. */
 struct FVeyraHudPlayer
 {
@@ -120,6 +131,8 @@ struct FVeyraHudPlayer
 
 	/** The two Flux Spell slots, in order. */
 	TArray<FVeyraHudSpellSlot> Spells;
+
+	FVeyraHudVisionTool VisionTool;
 
 	/** Purchases waiting for the fountain (Economy & Progression Bible §11). */
 	int32 PendingPurchases = 0;
