@@ -168,6 +168,7 @@ Canon gives the three carried charges; every other value is Provisional.
   - The item keys move.
 - **Bandwidth falls:** a client no longer receives the enemy's Fluxborn and Vanguards it cannot see (ADR-006 §5's second lever).
   - **Measured (M11a gate, 2026-09-29):** the packaged Linux server with 8 load-test bots and 2 clients on the battleground, the waves and jungle running, sent each client 7.8–10.2 KB/s at steady state (peak 11.4), with a server frame of 3–4 ms on average. ADR-011 §7 measured 9.6–13.6 KB/s without the fog, before the jungle and its Wells added their units.
+  - **Measured again with the vision tools (M11b gate, 2026-09-29):** 9.6–11.7 KB/s per client (peak 12.7), a server frame of 3–4 ms. That is within ADR-011's range and a little above M11a's run; the difference between runs is the waves' timing. In the 8-bot match, bots placed 5 wards, and both junglers levelled and cleared 16 camps.
 - **Tests:** Vision runs in every match. Network tests that are not about fog widen every unit's sight past any test map (`FScopedMatchTuning`), so they keep their meaning; fog tests restore the committed sight.
 
 ## Amendments to earlier records
