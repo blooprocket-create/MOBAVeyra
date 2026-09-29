@@ -201,6 +201,22 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		}
 		Player.PendingPurchases = Inventory->GetQueue().Num();
 	}
+	if (Loadout)
+	{
+		const TArray<double>& Thresholds = UVeyraFluxTuningSubsystem::Get().SpellSlots.Thresholds;
+		for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)); ++Index)
+		{
+			FVeyraHudSpellSlot& Shown = Player.Spells.AddDefaulted_GetRef();
+			Shown.Slot = VeyraAbilitySlots::Spells[Index];
+			Shown.bLocked = Loadout->IsLocked(Shown.Slot);
+			Shown.UnlockFlux = Thresholds.IsValidIndex(Index) ? Thresholds[Index] : 0.0;
+			if (const FVeyraLoadoutEntry* Entry = Loadout->FindSlot(Shown.Slot))
+			{
+				Shown.Spell = Entry->Ability;
+				Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow) : 0.0;
+			}
+		}
+	}
 	return Player;
 }
 

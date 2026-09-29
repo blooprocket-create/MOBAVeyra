@@ -85,6 +85,9 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Bots", "/vanguards/#", "Vanguards", ("/vanguards",)),
     ("Bots", "/vanguards/*/build/*", "Items", ("/items",)),
     ("Bots", "/vanguards/*/abilities/#", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    # Bot seats take Flux Spells, and know what each is for (ADR-015 §8).
+    ("Bots", "/seats/*/fluxSpells/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Bots", "/fluxSpells/#", "Abilities", ABILITY_ARCHETYPE_MAPS),
 ]
 
 # Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.

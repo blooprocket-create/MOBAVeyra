@@ -319,14 +319,22 @@ namespace VeyraNetTests
 				})
 				.ThenServer(TEXT("They play their sides and Vanguards, each with a brain for its seat"), [this](FState& State) {
 					const TArray<const AVeyraPlayerState*> Bots = BotsOf(State.World);
-					const TArray<EVeyraBotRole>& Roles = UVeyraBotsTuningSubsystem::Get().Roles;
+					const TArray<FVeyraBotSeatTuning>& Seats = UVeyraBotsTuningSubsystem::Get().Seats;
 					for (int32 Index = 0; Index < Bots.Num(); ++Index)
 					{
 						ASSERT_THAT(IsTrue(Bots[Index]->GetVeyraTeam() == PracticeBots[Index].Side));
 						ASSERT_THAT(IsTrue(Bots[Index]->GetVanguardId() == PracticeBots[Index].VanguardId));
 						const UVeyraBotBrainComponent* Brain = Bots[Index]->GetVanguardController()->FindComponentByClass<UVeyraBotBrainComponent>();
 						ASSERT_THAT(IsNotNull(Brain));
-						ASSERT_THAT(IsTrue(Brain->GetDifficulty() == PracticeBots[Index].Difficulty && Brain->GetRole() == Roles[Index % Roles.Num()]));
+						const FVeyraBotSeatTuning& Seat = Seats[Index % Seats.Num()];
+						ASSERT_THAT(IsTrue(Brain->GetDifficulty() == PracticeBots[Index].Difficulty && Brain->GetRole() == Seat.Role));
+						// Its seat's Flux Spells, equipped though it spawned before it was seated (ADR-015 §8).
+						const UVeyraAbilityLoadoutComponent* Loadout = Bots[Index]->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+						for (int32 Spell = 0; Spell < Seat.FluxSpells.Num(); ++Spell)
+						{
+							const FVeyraLoadoutEntry* Equipped = Loadout->FindSlot(VeyraAbilitySlots::Spells[Spell]);
+							ASSERT_THAT(IsTrue(Equipped && Equipped->Ability == Seat.FluxSpells[Spell], *Bots[Index]->GetPlayerName()));
+						}
 					}
 				})
 				.UntilClients(TEXT("Every client sees the bots' Vanguards"), [this](FState& State) {

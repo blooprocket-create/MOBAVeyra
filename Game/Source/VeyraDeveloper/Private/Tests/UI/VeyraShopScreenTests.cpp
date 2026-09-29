@@ -18,6 +18,7 @@
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
@@ -136,6 +137,24 @@ namespace VeyraItemsTests
 			Stats.AttackSpeed = Fraction;
 			ASSERT_THAT(AreEqual(FString(TEXT("+10 Physical Power, +25% Attack Speed")), VeyraShopModel::DescribeStats(Stats).ToString()));
 			ASSERT_THAT(IsTrue(VeyraShopModel::DescribeStats(FVeyraItemStatsTuning()).IsEmpty()));
+		}
+
+		TEST_METHOD(TheHudShowsEachSpellSlotLockedUntilItsFluxThenReady)
+		{
+			const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
+			const TArray<double>& Thresholds = UVeyraFluxTuningSubsystem::Get().SpellSlots.Thresholds;
+			UVeyraAbilityLoadoutComponent& Loadout = *Participant->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+			ASSERT_THAT(IsTrue(Loadout.Grant(*Participant->GetAbilitySystemComponent(), EVeyraAbilitySlot::Spell1, Roster[0])));
+			FVeyraHudPlayer Player = VeyraHud::DescribePlayer(*Participant, Spawner.GetWorld().GetTimeSeconds());
+			ASSERT_THAT(AreEqual(2, Player.Spells.Num()));
+			ASSERT_THAT(IsTrue(Player.Spells[0].Slot == EVeyraAbilitySlot::Spell1 && Player.Spells[0].Spell == Roster[0] && Player.Spells[0].bLocked));
+			ASSERT_THAT(IsTrue(Player.Spells[0].UnlockFlux == Thresholds[0] && Player.Spells[1].UnlockFlux == Thresholds[1]));
+			ASSERT_THAT(IsTrue(!Player.Spells[1].Spell.IsValid() && Player.Spells[1].bLocked));
+
+			Loadout.SetUnlockedSpellSlots(1);
+			Player = VeyraHud::DescribePlayer(*Participant, Spawner.GetWorld().GetTimeSeconds());
+			ASSERT_THAT(IsTrue(!Player.Spells[0].bLocked && Player.Spells[0].CooldownSeconds == 0.0, TEXT("unlocked, and ready")));
+			ASSERT_THAT(IsTrue(Player.Spells[1].bLocked));
 		}
 
 		TEST_METHOD(TheHudShowsTheItemBarAndWhatWaits)

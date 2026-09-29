@@ -3,6 +3,7 @@
 #include "Tuning/VeyraBotsTuning.h"
 
 #include "Algo/Count.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuning.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
@@ -89,6 +90,30 @@ TArray<FString> Validate(const FVeyraBotsTuning& Tuning)
 				{
 					Problems.Add(FString::Printf(TEXT("/vanguards/%s/abilities: says nothing of %s, in its kit"), *Pair.Key.ToString(), *Ability.ToString()));
 				}
+			}
+		}
+	}
+
+	// Each seat takes roster spells, none twice, and knows what each is for (ADR-015 §8).
+	const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
+	for (int32 Index = 0; Index < Tuning.Seats.Num(); ++Index)
+	{
+		const FString Pointer = FString::Printf(TEXT("/seats/%d/fluxSpells"), Index);
+		const TArray<FVeyraContentId>& Spells = Tuning.Seats[Index].FluxSpells;
+		for (int32 SpellIndex = 0; SpellIndex < Spells.Num(); ++SpellIndex)
+		{
+			const FVeyraContentId& Spell = Spells[SpellIndex];
+			if (!Roster.Contains(Spell))
+			{
+				Problems.Add(FString::Printf(TEXT("%s: %s is not on Abilities.json's roster"), *Pointer, *Spell.ToString()));
+			}
+			else if (Spells.IndexOfByKey(Spell) != SpellIndex)
+			{
+				Problems.Add(FString::Printf(TEXT("%s: takes %s twice"), *Pointer, *Spell.ToString()));
+			}
+			else if (!Tuning.FluxSpells.Contains(Spell))
+			{
+				Problems.Add(FString::Printf(TEXT("/fluxSpells: says nothing of %s, which seat %d takes"), *Spell.ToString(), Index));
 			}
 		}
 	}

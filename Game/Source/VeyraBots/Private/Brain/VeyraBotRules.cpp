@@ -340,8 +340,20 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 				{
 					// Cast at the threat, to be carried away from it; no attack follows.
 					FVeyraBotIntent Escape = CastOf(View, *Slot, *Threat, EVeyraBotAim::AtTarget, TEXT("escaping"));
+					if (Slot->Profile.Targeting == EVeyraBotTargeting::Point && !Slot->Profile.bAwayFromPoint)
+					{
+						// A dash toward its point, as a Blink is: aimed home, away from the threat.
+						const FVector Homeward = (View.Home - View.Self.Location).GetSafeNormal2D();
+						Escape.CastTarget.Location = View.Self.Location + Homeward * Slot->Profile.Reach;
+					}
 					Escape.Target = nullptr;
 					return Escape;
+				}
+				if (Slot->Use == EVeyraBotAbilityUse::Defend && Slot->bReady && Slot->Profile.Targeting == EVeyraBotTargeting::Self
+					&& Random.FRand() < Difficulty.CastChance)
+				{
+					// A heal or guard on itself helps it get away, as League's bots Heal as they run.
+					return CastOf(View, *Slot, View.Self, EVeyraBotAim::AtTarget, TEXT("hurt: defending itself"));
 				}
 			}
 			return MoveTo(EVeyraBotAction::Retreat, View.Home, TEXT("hurt: retreating"));
@@ -352,6 +364,39 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 	if (View.EnemyStructure.IsSet() && View.EnemyStructure->bTargetsBot)
 	{
 		return MoveTo(EVeyraBotAction::Retreat, View.LaneHold, TEXT("under tower fire: backing off"));
+	}
+
+	// A creature or Flux Well in reach that a Secure spell would finish: take it before anyone else
+	// can, the largest first, as League's junglers Smite (ADR-015 §8).
+	for (const FVeyraBotSlot* Slot : CastOrder(View))
+	{
+		if (Slot->Use != EVeyraBotAbilityUse::Secure || !Slot->bReady)
+		{
+			continue;
+		}
+		const FVeyraBotUnit* Finish = nullptr;
+		const auto Consider = [&View, Slot, &Finish](const FVeyraBotUnit& Unit) {
+			const double Dealt = Slot->Profile.Damage * (Slot->Profile.bTrueDamage ? 1.0 : Unit.DamageTaken);
+			if (Unit.Health > 0.0 && Unit.Health <= Dealt && EdgeDistance(View.Self, Unit) <= Slot->Profile.Reach && (!Finish || Unit.MaxHealth > Finish->MaxHealth))
+			{
+				Finish = &Unit;
+			}
+		};
+		for (const FVeyraBotUnit& Well : View.Wells)
+		{
+			Consider(Well);
+		}
+		for (const FVeyraBotCamp& Camp : View.Camps)
+		{
+			for (const FVeyraBotUnit& Creature : Camp.Creatures)
+			{
+				Consider(Creature);
+			}
+		}
+		if (Finish)
+		{
+			return CastOf(View, *Slot, *Finish, EVeyraBotAim::AtTarget, TEXT("securing"));
+		}
 	}
 
 	// Fight the weakest enemy Vanguard it has watched long enough, if the trade favours it, no enemy
@@ -386,13 +431,15 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 			{
 			case EVeyraBotAbilityUse::Damage:
 			case EVeyraBotAbilityUse::Engage:
-				bUseful = Distance <= Slot->Profile.Reach;
+				// Only one that may target a Vanguard.
+				bUseful = Distance <= Slot->Profile.Reach && (Slot->Profile.TargetKinds.IsEmpty() || Slot->Profile.TargetKinds.Contains(EVeyraUnitKind::Vanguard));
 				break;
 			case EVeyraBotAbilityUse::Empower:
 			case EVeyraBotAbilityUse::Defend:
 				bUseful = Distance <= View.AttackRange;
 				break;
 			case EVeyraBotAbilityUse::Escape:
+			case EVeyraBotAbilityUse::Secure:
 				break;
 			}
 			if (bUseful && Random.FRand() < Difficulty.CastChance)

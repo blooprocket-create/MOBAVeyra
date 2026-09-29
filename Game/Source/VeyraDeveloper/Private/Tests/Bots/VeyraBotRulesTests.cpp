@@ -124,10 +124,69 @@ namespace VeyraBotsTests
 		{
 			FVeyraBotView View = AliveAt(0.0, 0.2);
 			View.EnemyVanguards.Add(Unit(Near));
-			View.Slots.Add(Slot(EVeyraAbilitySlot::E, EVeyraBotAbilityUse::Escape, EVeyraBotTargeting::Point, Near * 2.0));
+			// A dash that carries its caster away from its point, as Bryn's Kickback does.
+			FVeyraBotSlot Kickback = Slot(EVeyraAbilitySlot::E, EVeyraBotAbilityUse::Escape, EVeyraBotTargeting::Point, Near * 2.0);
+			Kickback.Profile.bAwayFromPoint = true;
+			View.Slots.Add(Kickback);
 			const FVeyraBotIntent Intent = Decide(View);
 			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.Slot == EVeyraAbilitySlot::E && !Intent.Target.IsValid()));
 			ASSERT_THAT(IsTrue(Intent.CastTarget.bHasLocation && Intent.CastTarget.Location == View.EnemyVanguards[0].Location));
+		}
+
+		TEST_METHOD(ABlinkEscapesHomewardAndAHealIsCastWhileRetreating)
+		{
+			// Fixture value: a Blink's distance.
+			constexpr double BlinkDistance = 400.0;
+			FVeyraBotView View = AliveAt(0.0, 0.2);
+			View.EnemyVanguards.Add(Unit(Near));
+			View.Slots.Add(Slot(EVeyraAbilitySlot::Spell1, EVeyraBotAbilityUse::Escape, EVeyraBotTargeting::Point, BlinkDistance));
+			FVeyraBotIntent Intent = Decide(View);
+			// Chased from away from home: a Blink at the threat would jump into it, so it blinks homeward.
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.Slot == EVeyraAbilitySlot::Spell1));
+			ASSERT_THAT(IsTrue(Intent.CastTarget.Location.Equals(FVector(-BlinkDistance, 0.0, 0.0)), Intent.CastTarget.Location.ToString()));
+
+			View.Slots.Reset();
+			View.Slots.Add(Slot(EVeyraAbilitySlot::Spell2, EVeyraBotAbilityUse::Defend, EVeyraBotTargeting::Self, 0.0));
+			Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.Slot == EVeyraAbilitySlot::Spell2, TEXT("a heal as it runs")));
+		}
+
+		TEST_METHOD(ASecureSpellFinishesTheLargestCreatureOrWellItWouldKill)
+		{
+			// Fixture values: a Smite's True damage and reach.
+			constexpr double SmiteDamage = 600.0;
+			constexpr double SmiteReach = 500.0;
+			FVeyraBotView View = AliveAt(0.0);
+			FVeyraBotSlot Smite = Slot(EVeyraAbilitySlot::Spell2, EVeyraBotAbilityUse::Secure, EVeyraBotTargeting::Unit, SmiteReach);
+			Smite.Profile.Damage = SmiteDamage;
+			Smite.Profile.bTrueDamage = true;
+			View.Slots.Add(Smite);
+			FVeyraBotCamp& Camp = View.Camps.AddDefaulted_GetRef();
+			Camp.Creatures.Add(Unit(Near, 0.7));
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Cast, TEXT("700 Health: the Smite would not finish it")));
+
+			Camp.Creatures.Add(Unit(Near, 0.5));
+			FVeyraBotUnit Well = Unit(Near, 0.1);
+			Well.MaxHealth *= 4.0;
+			Well.Health = SmiteDamage;
+			View.Wells.Add(Well);
+			const FVeyraBotIntent Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.Slot == EVeyraAbilitySlot::Spell2 && Intent.CastTarget.Actor == Well.Actor.Get(),
+				TEXT("the Well first: a steal")));
+
+			View.Wells[0].Location = FVector(SmiteReach * 2.0, 0.0, 0.0);
+			ASSERT_THAT(IsTrue(Decide(View).CastTarget.Actor == View.Camps[0].Creatures[1].Actor.Get(), TEXT("out of reach: the creature it would finish")));
+		}
+
+		TEST_METHOD(ASpellForOtherKindsIsNeverCastAtAVanguard)
+		{
+			FVeyraBotView View = AliveAt(0.0);
+			View.EnemyVanguards.Add(Unit(Near, 0.5));
+			Memory.FirstSeen.Add(View.EnemyVanguards[0].Actor, -Far);
+			FVeyraBotSlot Smite = Slot(EVeyraAbilitySlot::Spell2, EVeyraBotAbilityUse::Damage, EVeyraBotTargeting::Unit, Near * 2.0);
+			Smite.Profile.TargetKinds = { EVeyraUnitKind::Wildlife, EVeyraUnitKind::Objective };
+			View.Slots.Add(Smite);
+			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Attack, TEXT("it fights with basic attacks")));
 		}
 
 		TEST_METHOD(ABotBacksOutOfATowerShootingIt)

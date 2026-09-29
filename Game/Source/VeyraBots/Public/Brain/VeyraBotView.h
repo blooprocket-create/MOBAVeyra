@@ -8,6 +8,7 @@
 #include "Slots/VeyraAbilitySlot.h"
 #include "Tuning/VeyraBotsTuning.h"
 #include "UObject/WeakObjectPtr.h"
+#include "Units/VeyraUnit.h"
 #include "VeyraAbilityTypes.h"
 
 class AActor;
@@ -39,6 +40,15 @@ struct FVeyraBotAbilityProfile
 
 	/** A dash that carries the caster away from its point, not toward it. */
 	bool bAwayFromPoint = false;
+
+	/** A targeted ability's damage at its caster's first Level, all of one type; 0 for anything else. */
+	double Damage = 0.0;
+
+	/** Whether that damage is True, so no resistance lessens it. */
+	bool bTrueDamage = false;
+
+	/** The kinds of unit a targeted ability may target; empty for any hostile unit. */
+	TArray<EVeyraUnitKind> TargetKinds;
 
 	/** Its resource cost, one value for every rank or one per rank. */
 	TArray<double> CostByRank;
