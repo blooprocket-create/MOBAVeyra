@@ -46,9 +46,9 @@
     "pickDuration": "30s",
     "playersPerSide": 5,
     "bots": [
-      {"side": "B", "vanguardId": "cairn", "difficulty": "beginner"},
-      {"side": "B", "vanguardId": "qazharr", "difficulty": "beginner"},
       {"side": "B", "vanguardId": "oriel", "difficulty": "beginner"},
+      {"side": "B", "vanguardId": "qazharr", "difficulty": "beginner"},
+      {"side": "B", "vanguardId": "gorraveth", "difficulty": "beginner"},
       {"side": "B", "vanguardId": "bryn", "difficulty": "beginner"}
     ]
   },
