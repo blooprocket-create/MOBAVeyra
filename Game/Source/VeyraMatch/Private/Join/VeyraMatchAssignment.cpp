@@ -14,6 +14,10 @@ const TCHAR* LexToString(EVeyraMatchEndReason Reason)
 		return TEXT("host ended");
 	case EVeyraMatchEndReason::PrimeWellDestroyed:
 		return TEXT("prime well destroyed");
+	case EVeyraMatchEndReason::Surrender:
+		return TEXT("surrender");
+	case EVeyraMatchEndReason::Remake:
+		return TEXT("remake");
 	}
 	return TEXT("unknown");
 }
@@ -23,6 +27,6 @@ namespace VeyraMatchResults
 bool IsWinnerConsistent(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 {
 	const bool bHasWinner = Winner == EVeyraTeam::A || Winner == EVeyraTeam::B;
-	return (Reason == EVeyraMatchEndReason::PrimeWellDestroyed) == bHasWinner;
+	return (Reason == EVeyraMatchEndReason::PrimeWellDestroyed || Reason == EVeyraMatchEndReason::Surrender) == bHasWinner;
 }
 }

@@ -18,6 +18,28 @@ void AVeyraGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, MatchClockAtEnd, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, bMatchPaused, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, PausedAtServerTime, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, Vote, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, IntermissionSecondsLeft, Params);
+}
+
+void AVeyraGameState::SetVote(const FVeyraVoteState& InVote)
+{
+	if (Vote == InVote)
+	{
+		return;
+	}
+	Vote = InVote;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraGameState, Vote, this);
+}
+
+void AVeyraGameState::SetIntermissionSecondsLeft(int32 Seconds)
+{
+	if (IntermissionSecondsLeft == Seconds)
+	{
+		return;
+	}
+	IntermissionSecondsLeft = Seconds;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraGameState, IntermissionSecondsLeft, this);
 }
 
 double AVeyraGameState::GetGameplayServerTime() const

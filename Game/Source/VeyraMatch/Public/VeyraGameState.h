@@ -4,6 +4,7 @@
 
 #include "GameFramework/GameStateBase.h"
 #include "VeyraMatchTypes.h"
+#include "Votes/VeyraVoteTypes.h"
 
 #include "VeyraGameState.generated.h"
 
@@ -55,6 +56,16 @@ public:
 	/** Server only: the GameMode pauses and resumes the match. */
 	void SetMatchPaused(bool bPaused);
 
+	/** The open vote, if any, as every player sees it (ADR-019 §4). */
+	const FVeyraVoteState& GetVote() const { return Vote; }
+
+	/** Real seconds until a voted pause resumes by itself; 0 when none holds the match. */
+	int32 GetIntermissionSecondsLeft() const { return IntermissionSecondsLeft; }
+
+	/** Server only: the vote owner shows the vote and the intermission. */
+	void SetVote(const FVeyraVoteState& InVote);
+	void SetIntermissionSecondsLeft(int32 Seconds);
+
 private:
 	UFUNCTION()
 	void OnRep_Phase();
@@ -82,4 +93,10 @@ private:
 	/** Server gameplay time when the pause began. */
 	UPROPERTY(Replicated)
 	double PausedAtServerTime = 0.0;
+
+	UPROPERTY(Replicated)
+	FVeyraVoteState Vote;
+
+	UPROPERTY(Replicated)
+	int32 IntermissionSecondsLeft = 0;
 };

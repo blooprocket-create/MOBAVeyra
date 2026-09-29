@@ -63,13 +63,17 @@ enum class EVeyraMatchEndReason : uint8
 	Abandoned,
 	/** The host ended a practice match (Custom Matches Bible §4). */
 	HostEnded,
-	/** A side destroyed the other's Prime Well and won a standard match (Battleground Bible §18). The one end with a winner. */
+	/** A side destroyed the other's Prime Well and won a standard match (Battleground Bible §18). */
 	PrimeWellDestroyed,
+	/** A side surrendered a standard match by vote; the other side won (Match Flow Bible §8; ADR-019 §5). */
+	Surrender,
+	/** A standard match's players voted to remake it: no contest (Match Flow Bible §7; ADR-019 §5). */
+	Remake,
 };
 
 namespace VeyraMatchResults
 {
-	/** Whether a match that ended for Reason names Winner rightly: a side exactly when a Prime Well fell. */
+	/** Whether a match that ended for Reason names Winner rightly: a side exactly when a Prime Well fell or a side surrendered. */
 	VEYRAMATCH_API bool IsWinnerConsistent(EVeyraMatchEndReason Reason, EVeyraTeam Winner);
 }
 

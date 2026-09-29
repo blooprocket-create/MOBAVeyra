@@ -8,6 +8,7 @@
 #include "Teams/VeyraTeam.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
+#include "Votes/VeyraVoteTypes.h"
 
 #include "VeyraGameMode.generated.h"
 
@@ -212,12 +213,19 @@ private:
 	/** Restores each living Vanguard standing at its own fountain (Battleground Bible §12; ADR-011 §11). */
 	void RecoverAtFountains();
 
+	/** A vote passed (ADR-019 §4): a remake or surrender ends the match; a pause opens the intermission; a resume ends it. */
+	void OnVotePassed(EVeyraVoteKind Kind, EVeyraTeam Team);
+	/** The intermission ran its full time: play resumes. */
+	void OnIntermissionOver();
+
 	/** Starts or stops the abandonment clock as rostered participants come and go. */
 	void NoteConnectedParticipants();
 	/** Ends an assigned match that nobody has been connected to for the tuned time (ADR-007 §8). */
 	bool TickAbandonment(float DeltaSeconds);
 
 	FDelegateHandle DeathHandle;
+	FDelegateHandle VotePassedHandle;
+	FDelegateHandle IntermissionOverHandle;
 
 	/** Connects the battleground's World and Flux while the match runs (ADR-011 §3). */
 	TSharedPtr<FVeyraBattlegroundLink> Battleground;

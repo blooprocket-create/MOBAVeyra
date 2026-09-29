@@ -3,6 +3,7 @@
 #include "VeyraGameMode.h"
 
 #include "Absence/VeyraAbsenceSubsystem.h"
+#include "Votes/VeyraVoteSubsystem.h"
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
@@ -251,7 +252,7 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	}
 	if (!VeyraMatchResults::IsWinnerConsistent(Reason, Winner))
 	{
-		UE_LOG(LogVeyraMatch, Error, TEXT("Refused to end the match (%s) with winner %s: only a destroyed Prime Well has a winner."), LexToString(Reason),
+		UE_LOG(LogVeyraMatch, Error, TEXT("Refused to end the match (%s) with winner %s: only a destroyed Prime Well or a surrender has a winner."), LexToString(Reason),
 			*StaticEnum<EVeyraTeam>()->GetNameStringByValue(static_cast<int64>(Winner)));
 		return;
 	}
@@ -268,6 +269,12 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	if (UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>())
 	{
 		Absence->Stop();
+	}
+	if (UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>())
+	{
+		Votes->OnVotePassed.Remove(VotePassedHandle);
+		Votes->OnIntermissionOver.Remove(IntermissionOverHandle);
+		Votes->Stop();
 	}
 	if (UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>())
 	{
@@ -626,6 +633,42 @@ bool AVeyraGameMode::PauseMatch(APlayerController& Requester)
 	return true;
 }
 
+void AVeyraGameMode::OnVotePassed(EVeyraVoteKind Kind, EVeyraTeam Team)
+{
+	UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>();
+	switch (Kind)
+	{
+	case EVeyraVoteKind::Remake:
+		EndMatch(EVeyraMatchEndReason::Remake);
+		break;
+	case EVeyraVoteKind::Surrender:
+		EndMatch(EVeyraMatchEndReason::Surrender, VeyraTeams::Opposing(Team));
+		break;
+	case EVeyraVoteKind::Pause:
+	{
+		// The engine's pause names a player; any connected one stands for the vote.
+		APlayerController* Requester = GetWorld()->GetFirstPlayerController();
+		if (Requester && PauseMatch(*Requester) && Votes)
+		{
+			Votes->BeginIntermission();
+		}
+		break;
+	}
+	case EVeyraVoteKind::Resume:
+		OnIntermissionOver();
+		break;
+	}
+}
+
+void AVeyraGameMode::OnIntermissionOver()
+{
+	ResumeMatch();
+	if (UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>())
+	{
+		Votes->EndIntermission();
+	}
+}
+
 bool AVeyraGameMode::ResumeMatch()
 {
 	if (!GetVeyraGameState().IsMatchPaused() || !ClearPause())
@@ -975,6 +1018,13 @@ void AVeyraGameMode::BeginLive()
 	// Absence counts from 0:00 in a standard match (Match Flow Bible §3–§5); a practice match's host
 	// ends it instead (Custom Matches Bible §4).
 	UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>();
+	// Votes are taken while it runs (Match Flow Bible §7–§10); their rules refuse a practice match's.
+	if (UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>())
+	{
+		VotePassedHandle = Votes->OnVotePassed.AddUObject(this, &AVeyraGameMode::OnVotePassed);
+		IntermissionOverHandle = Votes->OnIntermissionOver.AddUObject(this, &AVeyraGameMode::OnIntermissionOver);
+		Votes->Start();
+	}
 	if (Absence && GetVeyraGameState().GetMatchRules() == EVeyraMatchRules::Standard)
 	{
 		Absence->Start();

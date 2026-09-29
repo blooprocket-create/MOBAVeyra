@@ -2,6 +2,7 @@
 
 #include "VeyraPlayerController.h"
 
+#include "Votes/VeyraVoteSubsystem.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "EnhancedInputComponent.h"
@@ -340,6 +341,45 @@ void AVeyraPlayerController::ServerRequestEndCustomMatch_Implementation()
 	{
 		ClientEndCustomMatchRefused(Refusal);
 	}
+}
+
+void AVeyraPlayerController::RequestVote(EVeyraVoteKind Kind)
+{
+	ServerRequestVote(Kind);
+}
+
+void AVeyraPlayerController::CastVote(bool bYes)
+{
+	ServerCastVote(bYes);
+}
+
+void AVeyraPlayerController::ServerRequestVote_Implementation(EVeyraVoteKind Kind)
+{
+	UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>();
+	const AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>();
+	const EVeyraVoteRefusal Refusal = Votes && Participant ? Votes->Request(*Participant, Kind) : EVeyraVoteRefusal::NotAVoter;
+	if (Refusal != EVeyraVoteRefusal::None)
+	{
+		ClientVoteRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ServerCastVote_Implementation(bool bYes)
+{
+	UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>();
+	const AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>();
+	const EVeyraVoteRefusal Refusal = Votes && Participant ? Votes->CastBallot(*Participant, bYes) : EVeyraVoteRefusal::NotAVoter;
+	if (Refusal != EVeyraVoteRefusal::None)
+	{
+		ClientVoteRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ClientVoteRefused_Implementation(EVeyraVoteRefusal Refusal)
+{
+	LastVoteRefusal = Refusal;
+	++VoteRefusalCount;
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused the vote: %s."), *StaticEnum<EVeyraVoteRefusal>()->GetNameStringByValue(static_cast<int64>(Refusal)));
 }
 
 void AVeyraPlayerController::ClientEndCustomMatchRefused_Implementation(EVeyraEndCustomMatchRefusal Refusal)
