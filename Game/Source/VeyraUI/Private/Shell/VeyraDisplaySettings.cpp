@@ -63,6 +63,19 @@ TOptional<EVeyraDisplayMode> ParseDisplayMode(const FString& Text)
 	return {};
 }
 
+FIntPoint MonitorSizeAt(TConstArrayView<FMonitorInfo> Monitors, const FVector2D& Point, const FIntPoint& Fallback)
+{
+	for (const FMonitorInfo& Monitor : Monitors)
+	{
+		const FPlatformRect& Rect = Monitor.DisplayRect;
+		if (Point.X >= Rect.Left && Point.X < Rect.Right && Point.Y >= Rect.Top && Point.Y < Rect.Bottom)
+		{
+			return FIntPoint(Rect.Right - Rect.Left, Rect.Bottom - Rect.Top);
+		}
+	}
+	return Fallback;
+}
+
 EWindowMode::Type ToWindowMode(EVeyraDisplayMode Mode)
 {
 	switch (Mode)

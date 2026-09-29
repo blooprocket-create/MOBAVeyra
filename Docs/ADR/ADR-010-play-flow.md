@@ -337,7 +337,7 @@ The author asked for champion select to look like League's. §4 still holds: the
 
 The author asked for the game to go fullscreen for a match and come back to its window for the results, as League's client and game do. Canon has only the Display Mode setting (Settings & Accessibility Bible 166: Windowed, Borderless Fullscreen, Fullscreen), so:
 - **The pre-game client keeps its window**, which the launcher opens with `-windowed`.
-- **A match takes the screen** from the loading after champion select (Match Starting) through Connecting and the match itself. It uses `UVeyraDisplaySettings`' `MatchDisplayMode` (Borderless Fullscreen by default) at the monitor's resolution, ignoring the launch's `-windowed`.
+- **A match takes the screen** from the loading after champion select (Match Starting) through Connecting and the match itself. It uses `UVeyraDisplaySettings`' `MatchDisplayMode` (Borderless Fullscreen by default) at the resolution of the monitor its window is on, ignoring the launch's `-windowed`.
 - **The window comes back** when the match is over (Returning, then the results), at the size, mode and position it had.
 - **Ownership:** `UVeyraMatchDisplaySubsystem` in VeyraUI follows the coordinator's state and decides nothing about the flow. It does nothing without a window.
 - **For scripts:** `-VeyraMatchDisplay=<mode>` overrides the setting for one run. The smoke tests stay Windowed unless asked; `Smoke.ps1 -MatchDisplay BorderlessFullscreen` checks the switch both ways.

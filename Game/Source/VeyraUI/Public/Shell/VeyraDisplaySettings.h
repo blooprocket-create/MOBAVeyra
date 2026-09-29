@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/DeveloperSettings.h"
+#include "GenericPlatform/GenericApplication.h"
 #include "GenericPlatform/GenericWindow.h"
 
 #include "VeyraDisplaySettings.generated.h"
@@ -53,4 +54,10 @@ namespace VeyraMatchDisplay
 
 	/** The engine's window mode for Mode. */
 	VEYRAUI_API EWindowMode::Type ToWindowMode(EVeyraDisplayMode Mode);
+
+	/**
+	 * The size of the monitor that holds Point, in desktop coordinates, so a match fills the monitor its
+	 * window is on; Fallback where no monitor holds it.
+	 */
+	VEYRAUI_API FIntPoint MonitorSizeAt(TConstArrayView<FMonitorInfo> Monitors, const FVector2D& Point, const FIntPoint& Fallback);
 }

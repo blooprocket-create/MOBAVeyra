@@ -40,6 +40,21 @@ namespace VeyraMatchDisplayTests
 			// A match takes the whole screen unless the player chooses otherwise.
 			ASSERT_THAT(IsTrue(GetDefault<UVeyraDisplaySettings>()->MatchDisplayMode == EVeyraDisplayMode::BorderlessFullscreen));
 		}
+
+		TEST_METHOD(AMatchFillsTheMonitorItsWindowIsOn)
+		{
+			// A primary 1440p monitor, and a 1080p one to its right (PR #31 review).
+			FMonitorInfo Primary;
+			Primary.DisplayRect = FPlatformRect(0, 0, 2560, 1440);
+			Primary.bIsPrimary = true;
+			FMonitorInfo Secondary;
+			Secondary.DisplayRect = FPlatformRect(2560, 0, 4480, 1080);
+			const FMonitorInfo Monitors[] = { Primary, Secondary };
+			const FIntPoint Fallback(1, 1);
+			ASSERT_THAT(IsTrue(VeyraMatchDisplay::MonitorSizeAt(Monitors, FVector2D(3200.0, 500.0), Fallback) == FIntPoint(1920, 1080)));
+			ASSERT_THAT(IsTrue(VeyraMatchDisplay::MonitorSizeAt(Monitors, FVector2D(100.0, 100.0), Fallback) == FIntPoint(2560, 1440)));
+			ASSERT_THAT(IsTrue(VeyraMatchDisplay::MonitorSizeAt(Monitors, FVector2D(-500.0, 0.0), Fallback) == Fallback, TEXT("off every monitor")));
+		}
 	};
 }
 

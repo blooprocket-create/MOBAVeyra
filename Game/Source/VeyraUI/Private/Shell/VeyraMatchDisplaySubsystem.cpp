@@ -99,8 +99,11 @@ void UVeyraMatchDisplaySubsystem::TakeTheScreen()
 		UE_LOG(LogVeyraUI, Log, TEXT("The match keeps the client's window (%dx%d)."), Saved->Size.X, Saved->Size.Y);
 		return;
 	}
-	// A fullscreen match fills the monitor it is on.
-	const FIntPoint Desktop = Settings->GetDesktopResolution();
+	// A fullscreen match fills the monitor its window is on, which need not be the primary one.
+	FDisplayMetrics Metrics;
+	FDisplayMetrics::RebuildDisplayMetrics(Metrics);
+	const FVector2D Centre = Saved->Position + FVector2D(Saved->Size) / 2.0;
+	const FIntPoint Desktop = VeyraMatchDisplay::MonitorSizeAt(Metrics.MonitorInfo, Centre, Settings->GetDesktopResolution());
 	Saved->bChanged = true;
 	Apply(*Settings, VeyraMatchDisplay::ToWindowMode(Mode), Desktop);
 	UE_LOG(LogVeyraUI, Log, TEXT("The match takes the screen: %s at %dx%d."), *UEnum::GetValueAsString(Mode), Desktop.X, Desktop.Y);
