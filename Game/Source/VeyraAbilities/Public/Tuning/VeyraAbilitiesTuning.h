@@ -196,6 +196,20 @@ struct FVeyraMissingHealthDamageTuning
 	double MissingHealthRatio = 0.0;
 };
 
+/** An effect bundle's damage against one kind of unit, multiplied (ADR-018 §6). */
+USTRUCT()
+struct FVeyraUnitKindMultiplierTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraUnitKind Kind = EVeyraUnitKind::Wildlife;
+
+	/** At least 1: extra effectiveness only; never against structures. */
+	UPROPERTY()
+	double Multiplier = 1.0;
+};
+
 /** What happens to each unit an area hits (ADR-008 §3). */
 USTRUCT()
 struct FVeyraEffectBundleTuning
@@ -217,6 +231,10 @@ struct FVeyraEffectBundleTuning
 	/** At most one, and only beside Damage: it joins that hit. */
 	UPROPERTY()
 	TArray<FVeyraMissingHealthDamageTuning> MissingHealthDamage;
+
+	/** Damage multiplied against some kinds of unit (ADR-018 §6), as Gorraveth's against wildlife; one entry per kind. */
+	UPROPERTY()
+	TArray<FVeyraUnitKindMultiplierTuning> UnitKindMultipliers;
 };
 
 /** How a DamageOverTime status ticks (Combat Bible §14; ADR-015 §3). */
@@ -427,6 +445,28 @@ struct FVeyraLingerTuning
 	EVeyraLingerSight Sight = EVeyraLingerSight::None;
 };
 
+/**
+ * Health an area's caster restores from the units it hits (ADR-018 §6), as Gorraveth's Furnace Rake
+ * from wildlife: a share of its Max Health per unit hit, up to a share for the whole cast.
+ */
+USTRUCT()
+struct FVeyraHealOnHitTuning
+{
+	GENERATED_BODY()
+
+	/** The kinds of unit that count; empty for every kind. */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> UnitKinds;
+
+	/** Of the caster's Max Health, for each unit hit; above 0. */
+	UPROPERTY()
+	double MaxHealthRatioPerHit = 0.0;
+
+	/** Of the caster's Max Health, the most one cast restores; at least MaxHealthRatioPerHit. */
+	UPROPERTY()
+	double CapMaxHealthRatio = 0.0;
+};
+
 /** An ability that hits the enemies in shapes at the caster or a ground point (ADR-008 §3). */
 USTRUCT()
 struct FVeyraAreaAbilityTuning
@@ -467,6 +507,21 @@ struct FVeyraAreaAbilityTuning
 	/** Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6). */
 	UPROPERTY()
 	TArray<FVeyraContentId> ConsumesCasterStatuses;
+
+	/**
+	 * Whether the caster may move while it channels (ADR-018 §6), as Gorraveth's Furnace Rake: Free
+	 * places each tick of a caster-centred area where the caster stands then, facing its way.
+	 */
+	UPROPERTY()
+	EVeyraCastMovement ChannelMovement = EVeyraCastMovement::Locked;
+
+	/** Status IDs put on the caster as it commits, such as the Slow it channels under. */
+	UPROPERTY()
+	TArray<FVeyraContentId> CasterStatuses;
+
+	/** At most one: Health the caster restores from the units it hits, capped for the cast. */
+	UPROPERTY()
+	TArray<FVeyraHealOnHitTuning> HealOnHit;
 };
 
 /**
@@ -796,6 +851,10 @@ struct FVeyraDashAbilityTuning
 	 */
 	UPROPERTY()
 	FVeyraEffectBundleTuning HostEffects;
+
+	/** Areas where the dash lands, facing its way, as Ravine Bound's; innermost first. None when a displacement cuts it short. */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> EndZones;
 };
 
 /** The other enemies an empowered attack hits, in the attacker's cleave shape (ADR-009 §5). */
@@ -1044,7 +1103,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 9;
+	static constexpr int32 SchemaVersion = 10;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

@@ -91,6 +91,18 @@ namespace
 			{
 				Problem(Pointer + TEXT("/missingHealthDamage"), TEXT("joins the hit's damage, so the effects need damage too"));
 			}
+			TArray<EVeyraUnitKind> Kinds;
+			for (int32 Index = 0; Index < Effects.UnitKindMultipliers.Num(); ++Index)
+			{
+				const FVeyraUnitKindMultiplierTuning& Entry = Effects.UnitKindMultipliers[Index];
+				const bool bRepeated = Kinds.Contains(Entry.Kind);
+				Kinds.Add(Entry.Kind);
+				if (!(Entry.Multiplier >= 1.0) || !FMath::IsFinite(Entry.Multiplier) || Entry.Kind == EVeyraUnitKind::Structure || bRepeated)
+				{
+					Problem(FString::Printf(TEXT("%s/unitKindMultipliers/%d"), *Pointer, Index),
+						TEXT("a finite multiplier of at least 1, once per kind, never against structures (Combat Bible §33)"));
+				}
+			}
 		}
 
 		void CheckStatuses()
@@ -165,6 +177,23 @@ namespace
 			}
 			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
 			CheckStatusIds(Pointer + TEXT("/consumesCasterStatuses"), Area.ConsumesCasterStatuses);
+			CheckStatusIds(Pointer + TEXT("/casterStatuses"), Area.CasterStatuses);
+			if (Area.ChannelMovement == EVeyraCastMovement::Free && Area.ChannelTicks < 2)
+			{
+				Problem(Pointer + TEXT("/channelMovement"), TEXT("only a channel of two ticks or more lets its caster move"));
+			}
+			if (Area.HealOnHit.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/healOnHit"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Area.HealOnHit.Num(); ++Index)
+			{
+				const FVeyraHealOnHitTuning& Heal = Area.HealOnHit[Index];
+				if (!(Heal.MaxHealthRatioPerHit > 0.0) || Heal.CapMaxHealthRatio < Heal.MaxHealthRatioPerHit)
+				{
+					Problem(FString::Printf(TEXT("%s/healOnHit/%d"), *Pointer, Index), TEXT("maxHealthRatioPerHit is above 0 and capMaxHealthRatio at least it"));
+				}
+			}
 			if (Area.Linger.Num() > 1)
 			{
 				Problem(Pointer + TEXT("/linger"), TEXT("holds at most one lingering area (ADR-018 §5)"));
@@ -315,6 +344,7 @@ namespace
 			CheckEffects(Pointer + TEXT("/contactEffects"), Dash.ContactEffects);
 			CheckStatusIds(Pointer + TEXT("/contactSelfStatuses"), Dash.ContactSelfStatuses);
 			CheckEffects(Pointer + TEXT("/hostEffects"), Dash.HostEffects);
+			CheckZones(Pointer + TEXT("/endZones"), Dash.EndZones);
 			const FVeyraEffectBundleTuning& Host = Dash.HostEffects;
 			const bool bHasHostEffects = !Host.Damage.IsEmpty() || !Host.Statuses.IsEmpty() || !Host.Displacement.IsEmpty() || !Host.MissingHealthDamage.IsEmpty();
 			if (bHasHostEffects && Dash.Direction != EVeyraDashDirection::AwayFromHost)

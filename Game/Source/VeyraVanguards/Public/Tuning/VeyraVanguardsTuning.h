@@ -253,6 +253,37 @@ struct FVeyraMovingTargetTuning
 };
 
 /**
+ * Gorraveth's No Time to Bleed (Roster Bible §23): helping clear a whole jungle camp restores a share
+ * of his Max Health and more, and gives statuses such as a burst of Movement Speed, once per cleared
+ * camp; an enemy Vanguard takedown gives the same on its own cooldown. It reads World's
+ * OnCampCleared and Combat's OnDeath. Its data is an entry in Vanguards.json's campReward map.
+ */
+USTRUCT()
+struct FVeyraCampRewardTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Of his Max Health, restored; at least 0. */
+	UPROPERTY()
+	double HealthRatio = 0.0;
+
+	/** And this much more; at least 0. */
+	UPROPERTY()
+	double HealthAmount = 0.0;
+
+	/** From Abilities.json's statuses, put on him. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	/** Seconds between two rewards from takedowns; at least 0. */
+	UPROPERTY()
+	double TakedownCooldownSeconds = 0.0;
+};
+
+/**
  * Patch's Haunted Attachment (Roster Bible §5): an enemy Vanguard that damages Patch is Haunted for a
  * while, once per its own cooldown; a Haunted enemy that damages one of his allied Vanguards near him
  * instead is lashed by the spirit, and the Haunt is spent. It reads Combat's OnHostileDamage; no core
@@ -452,7 +483,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 9;
+	static constexpr int32 SchemaVersion = 10;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -480,6 +511,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraHauntTuning> Haunt;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraCampRewardTuning> CampReward;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

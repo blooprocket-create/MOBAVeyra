@@ -6,6 +6,7 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Passives/VeyraBreachPassive.h"
+#include "Passives/VeyraCampRewardPassive.h"
 #include "Passives/VeyraCadencePassive.h"
 #include "Passives/VeyraDeepFoundationPassive.h"
 #include "Passives/VeyraGatheringLightPassive.h"
@@ -54,6 +55,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindHaunt(PassiveId))
 	{
 		return UVeyraHauntPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindCampReward(PassiveId))
+	{
+		return UVeyraCampRewardPassive::StaticClass();
 	}
 	return nullptr;
 }

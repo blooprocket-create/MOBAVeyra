@@ -97,7 +97,7 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 	}
 	StopWatching();
 	UVeyraMovementComponent* Movement = Body->FindComponentByClass<UVeyraMovementComponent>();
-	if (Dash->Contact == EVeyraDashContact::StopAtFirstEnemy && Movement)
+	if ((Dash->Contact == EVeyraDashContact::StopAtFirstEnemy || !Dash->EndZones.IsEmpty()) && Movement)
 	{
 		FPendingContact& Pending = Contact.Emplace();
 		Pending.Caster = Caster;
@@ -111,6 +111,7 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 				Pending.SelfStatuses.Add(Status.GetValue());
 			}
 		}
+		Pending.EndZones = VeyraAreaDelivery::PrepareZones(*Caster, Dash->EndZones, Cast.Rank);
 		Watched = Movement;
 		DashEndedHandle = Movement->OnDashEnded.AddUObject(this, &UVeyraDashAbility::OnDashEnded);
 	}
@@ -127,12 +128,21 @@ void UVeyraDashAbility::OnDashEnded(const FVeyraDashEnd& End)
 	const TOptional<FPendingContact> Pending = Contact;
 	StopWatching();
 	UAbilitySystemComponent* Caster = Pending.IsSet() ? Pending->Caster.Get() : nullptr;
+	const AActor* Body = Caster ? Caster->GetAvatarActor() : nullptr;
+	// Where it lands, unless a displacement cut it short (ADR-018 §6).
+	if (Body && End.Reason != EVeyraDashEndReason::Interrupted && !Pending->EndZones.IsEmpty() && GetWorld())
+	{
+		FVeyraEffectFrame Landing;
+		Landing.Origin = Body->GetActorLocation();
+		Landing.Direction = Pending->Direction;
+		Landing.bOriginIsCaster = true;
+		VeyraAreaDelivery::Resolve(*GetWorld(), *Caster, Landing, Pending->EndZones, Pending->Source);
+	}
 	AActor* Enemy = End.Contact.Get();
 	if (End.Reason != EVeyraDashEndReason::EnemyContact || !Caster || !Enemy)
 	{
 		return;
 	}
-	const AActor* Body = Caster->GetAvatarActor();
 	FVeyraEffectFrame Frame;
 	Frame.Origin = Body ? Body->GetActorLocation() : Enemy->GetActorLocation();
 	Frame.Direction = Pending->Direction;
@@ -161,5 +171,5 @@ bool UVeyraDashAbility::IsOffensive(const FVeyraContentId& Ability) const
 	const FVeyraDashAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindDash(Ability);
 	return Tuning && (!Tuning->StartZones.IsEmpty() || !Tuning->ContactEffects.Damage.IsEmpty() || !Tuning->ContactEffects.Statuses.IsEmpty()
 		|| !Tuning->ContactEffects.Displacement.IsEmpty() || !Tuning->HostEffects.Damage.IsEmpty() || !Tuning->HostEffects.Statuses.IsEmpty()
-		|| !Tuning->HostEffects.Displacement.IsEmpty());
+		|| !Tuning->HostEffects.Displacement.IsEmpty() || !Tuning->EndZones.IsEmpty());
 }

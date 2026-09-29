@@ -40,6 +40,24 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 	{
 		RegisterPassive(Entry.Key, TEXT("breach"));
 	}
+	for (const TPair<FVeyraContentId, FVeyraCampRewardTuning>& Entry : Tuning.CampReward)
+	{
+		RegisterPassive(Entry.Key, TEXT("campReward"));
+		const FString Pointer = TEXT("/campReward/") + Entry.Key.ToString();
+		const FVeyraCampRewardTuning& Reward = Entry.Value;
+		for (const FVeyraContentId& Status : Reward.Statuses)
+		{
+			if (!Abilities.Statuses.Contains(Status))
+			{
+				Problem(Pointer + TEXT("/statuses"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Status.ToString()));
+			}
+		}
+		if (Reward.HealthRatio < 0.0 || Reward.HealthAmount < 0.0 || Reward.TakedownCooldownSeconds < 0.0)
+		{
+			Problem(Pointer, TEXT("healthRatio, healthAmount and takedownCooldownSeconds are at least 0"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraHauntTuning>& Entry : Tuning.Haunt)
 	{
 		RegisterPassive(Entry.Key, TEXT("haunt"));

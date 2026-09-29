@@ -23,6 +23,10 @@ struct FVeyraPreparedEffects
 
 	/** Damage for the target's missing Health, read when the hit lands; it joins Damage. */
 	TOptional<FVeyraMissingHealthDamageTuning> MissingHealthDamage;
+
+	/** Damage's components as prepared, and what multiplies them against a kind of unit as the hit lands. */
+	FVeyraDamageComponents RawDamage;
+	TArray<FVeyraUnitKindMultiplierTuning> UnitKindMultipliers;
 };
 
 /** Where effects are applied from: the point displacements are measured from, and the way they face. */

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Abilities/VeyraGameplayAbility.h"
+#include "Delivery/VeyraAreaDelivery.h"
 #include "Delivery/VeyraEffectDelivery.h"
 
 #include "VeyraDashAbility.generated.h"
@@ -31,7 +32,7 @@ protected:
 	virtual bool IsOffensive(const FVeyraContentId& Ability) const override;
 
 private:
-	/** What a dash that stops at an enemy does there, prepared at Commit (Combat Bible §50). */
+	/** What a dash does at the enemy it stops at and where it lands, prepared at Commit (Combat Bible §50). */
 	struct FPendingContact
 	{
 		TWeakObjectPtr<UAbilitySystemComponent> Caster;
@@ -39,6 +40,7 @@ private:
 		FVector Direction = FVector::ForwardVector;
 		FVeyraPreparedEffects Effects;
 		TArray<FVeyraStatusSpec> SelfStatuses;
+		TArray<FVeyraPreparedZone> EndZones;
 	};
 
 	void OnDashEnded(const FVeyraDashEnd& End);

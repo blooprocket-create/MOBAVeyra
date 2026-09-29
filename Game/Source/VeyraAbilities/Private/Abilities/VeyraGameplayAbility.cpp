@@ -376,7 +376,7 @@ void UVeyraGameplayAbility::OnWindupEnded()
 	Run.Channel = Deliver(Run.Cast);
 	if (Run.Channel.Ticks > 0 && Run.Channel.Seconds > 0.0)
 	{
-		VeyraCombat::SetCastLocksMovement(*Caster, true);
+		VeyraCombat::SetCastLocksMovement(*Caster, Run.Channel.bLocksMovement);
 		EnterPhase(EVeyraCastPhase::Channel, Run.Channel.Seconds);
 		GetWorld()->GetTimerManager().SetTimer(PhaseTimer, FTimerDelegate::CreateUObject(this, &UVeyraGameplayAbility::OnChannelTick),
 			static_cast<float>(Run.Channel.Seconds / Run.Channel.Ticks), /*bLoop*/ true);

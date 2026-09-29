@@ -166,6 +166,10 @@ Every value is Provisional data, a League stand-in:
 - **Gorraveth:**
   - "helping finish a camp" means he damaged any creature of it and is alive when it clears;
   - Ravine Bound's landing need not be visible, and it crosses no walls (the map has none yet).
+  - a camp he helped clear, or a takedown on its 20-second cooldown, restores 6% of his Max Health and 40, with +25% Movement Speed for 2 seconds;
+  - Rip Through's area is its whole path, and Q and W deal 1.5 times their damage to wildlife;
+  - Furnace Rake's two sweeps are circles around him wherever he stands; each wildlife hit restores 4% of his Max Health, at most 12% per cast;
+  - during R, a Q or W hit on an enemy Vanguard gives +30% Movement Speed toward enemy Vanguards, not that one alone, for 2 seconds, refreshed; the frenzy's statuses gain 2 seconds per takedown up to 6, while its Q and W forms keep their 6 seconds.
 - **Raska:**
   - Momentum counts her own dashes, not forced movement, and resets on death;
   - canon gives Redlined forms only for Q and W, so E and the mounted set have none yet;

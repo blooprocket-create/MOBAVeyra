@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 9,
+  "schemaVersion": 10,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -403,6 +403,48 @@
       },
       "abilities": { "q": ["patch_bear_hug"], "w": ["patch_play_dead"], "e": ["patch_dont_leave_me"], "r": ["patch_the_thing_inside"] },
       "passive": ["patch_haunted_attachment"]
+    },
+    "gorraveth": {
+      "provenance": "Provisional",
+      "availability": "Developer",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 60, "capsuleHalfHeight": 110, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 640,
+        "healthRegen": 1.6,
+        "maxResource": 280,
+        "resourceRegen": 3,
+        "armor": 33,
+        "magicResist": 32,
+        "physicalPower": 62,
+        "magicPower": 0,
+        "attackSpeed": 0.66,
+        "moveSpeed": 345
+      },
+      "growth": {
+        "maxHealth": 105,
+        "healthRegen": 0.15,
+        "maxResource": 40,
+        "resourceRegen": 0.2,
+        "armor": 4.2,
+        "magicResist": 2.05,
+        "physicalPower": 3.5,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 175,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": { "q": ["gorraveth_rip_through"], "w": ["gorraveth_furnace_rake"], "e": ["gorraveth_ravine_bound"], "r": ["gorraveth_tear_them_apart"] },
+      "passive": ["gorraveth_no_time_to_bleed"]
     }
   },
   "deepFoundation": {
@@ -513,6 +555,15 @@
       "allyRadius": 800,
       "damage": { "type": "Magic", "amountByRank": [40], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 },
       "statuses": ["patch_haunt_chill"]
+    }
+  },
+  "campReward": {
+    "gorraveth_no_time_to_bleed": {
+      "provenance": "Provisional",
+      "healthRatio": 0.06,
+      "healthAmount": 40,
+      "statuses": ["gorraveth_rush"],
+      "takedownCooldownSeconds": 20
     }
   }
 }

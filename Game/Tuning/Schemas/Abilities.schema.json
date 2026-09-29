@@ -106,7 +106,7 @@
       "description": "What happens to each unit hit.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["damage", "statuses", "displacement", "missingHealthDamage"],
+      "required": ["damage", "statuses", "displacement", "missingHealthDamage", "unitKindMultipliers"],
       "properties": {
         "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
         "statuses": { "$ref": "#/definitions/statusIds" },
@@ -125,7 +125,8 @@
               "missingHealthRatio": { "description": "Of the target's missing Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
             }
           }
-        }
+        },
+        "unitKindMultipliers": { "description": "Damage multiplied against some kinds of unit, at least 1, once per kind, never structures (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "object", "additionalProperties": false, "required": ["kind", "multiplier"], "properties": { "kind": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }, "multiplier": { "type": "number", "minimum": 1 } } } }
       }
     },
     "zone": {
@@ -207,7 +208,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [9]
+      "enum": [10]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -343,7 +344,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger", "consumesCasterStatuses"],
+          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger", "consumesCasterStatuses", "channelMovement", "casterStatuses", "healOnHit"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -394,7 +395,10 @@
                 }
               }
             },
-            "consumesCasterStatuses": { "description": "Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6).", "$ref": "#/definitions/statusIds" }
+            "consumesCasterStatuses": { "description": "Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6).", "$ref": "#/definitions/statusIds" },
+            "channelMovement": { "description": "Locked holds the caster in place while it channels; Free lets it move, each tick placed where it stands (ADR-018 §6).", "type": "string", "enum": ["Free", "Locked"] },
+            "casterStatuses": { "description": "Put on the caster as it commits.", "$ref": "#/definitions/statusIds" },
+            "healOnHit": { "description": "At most one: Health the caster restores from the units it hits, capped for the cast (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["unitKinds", "maxHealthRatioPerHit", "capMaxHealthRatio"], "properties": { "unitKinds": { "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] } }, "maxHealthRatioPerHit": { "type": "number", "minimum": 0, "exclusiveMinimum": true }, "capMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } }
           }
         }
       }
@@ -565,7 +569,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses", "hostEffects"],
+          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses", "hostEffects", "endZones"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -589,7 +593,8 @@
             },
             "contactEffects": { "description": "On the enemy a StopAtFirstEnemy dash stops at.", "$ref": "#/definitions/effects" },
             "contactSelfStatuses": { "description": "Put on the caster when it stops at an enemy.", "$ref": "#/definitions/statusIds" },
-            "hostEffects": { "description": "On the unit an AwayFromHost dash lets go of, as the throw's stumble; no effects for any other dash.", "$ref": "#/definitions/effects" }
+            "hostEffects": { "description": "On the unit an AwayFromHost dash lets go of, as the throw's stumble; no effects for any other dash.", "$ref": "#/definitions/effects" },
+            "endZones": {"description": "Areas at the caster, facing the cast's point, as the dash sets off; innermost first.", "type": "array", "minItems": 0, "items": {"$ref": "#/definitions/zone"}}
           }
         }
       }

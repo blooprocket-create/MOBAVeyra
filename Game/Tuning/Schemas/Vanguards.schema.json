@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -166,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [9]
+      "enum": [10]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -354,6 +354,25 @@
             "allyRadius": { "description": "Units between the owner's centre and the damaged ally's for the spirit to lash out.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "damage": { "description": "The lash's proc damage.", "$ref": "#/definitions/damage" },
             "statuses": { "description": "From Abilities.json's statuses, put on the lashed enemy.", "$ref": "#/definitions/contentIds" }
+          }
+        }
+      }
+    },
+    "campReward": {
+      "description": "Passives that reward their owner for helping clear a whole jungle camp, once per clear, and for enemy Vanguard takedowns on their own cooldown (Gorraveth's No Time to Bleed, Roster Bible §23).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "healthRatio", "healthAmount", "statuses", "takedownCooldownSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "healthRatio": { "description": "Of the owner's Max Health, restored.", "type": "number", "minimum": 0 },
+            "healthAmount": { "description": "And this much more.", "type": "number", "minimum": 0 },
+            "statuses": { "description": "From Abilities.json's statuses, put on the owner.", "$ref": "#/definitions/contentIds" },
+            "takedownCooldownSeconds": { "description": "Seconds between two rewards from takedowns.", "type": "number", "minimum": 0 }
           }
         }
       }

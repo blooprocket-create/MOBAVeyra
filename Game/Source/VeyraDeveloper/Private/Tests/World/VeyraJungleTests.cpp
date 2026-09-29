@@ -195,6 +195,26 @@ namespace VeyraWorldTests
 			ASSERT_THAT(AreEqual(Pack, Jungle->GetCamps()[0].Alive));
 		}
 
+		TEST_METHOD(AClearedCampNamesEachVanguardThatHelpedOnce)
+		{
+			Jungle->Start();
+			Jungle->SpawnCamp(0);
+			TArray<FVeyraCampCleared> Cleared;
+			Jungle->OnCampCleared.AddLambda([&Cleared](const FVeyraCampCleared& Event) { Cleared.Add(Event); });
+			AVeyraVanguardCharacter& Hunter = SpawnHunter(FVector(CampX, CampY + Spacing * 2.0, 100.0));
+			AVeyraVanguardCharacter& Helper = SpawnHunter(FVector(CampX, CampY - Spacing * 2.0, 100.0));
+			SpawnHunter(FVector(CampX + Spacing * 2.0, CampY, 100.0));
+			const TArray<AVeyraWildlife*> Creatures = Jungle->GetCreatures(0);
+			Hit(*Helper.GetAbilitySystemComponent(), *Creatures[0]->GetAbilitySystemComponent(), Scratch);
+			for (AVeyraWildlife* Creature : Creatures)
+			{
+				Hit(*Hunter.GetAbilitySystemComponent(), *Creature->GetAbilitySystemComponent(), HealthOf(*Creature, UVeyraVitalsSet::GetMaxHealthAttribute()));
+			}
+			ASSERT_THAT(IsTrue(Cleared.Num() == 1 && Cleared[0].Index == 0 && Cleared[0].Species == Skittermaw(), TEXT("once, for the whole camp")));
+			ASSERT_THAT(IsTrue(Cleared[0].Contributors.Num() == 2 && Cleared[0].Contributors.Contains(Hunter.GetAbilitySystemComponent())
+				&& Cleared[0].Contributors.Contains(Helper.GetAbilitySystemComponent()), TEXT("the two that hurt it, not the one that stood by")));
+		}
+
 		TEST_METHOD(BeyondItsLeashACreatureGoesHomeAndHeals)
 		{
 			Jungle->Start();

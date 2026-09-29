@@ -90,6 +90,11 @@ const FVeyraHauntTuning* UVeyraVanguardsTuningSubsystem::FindHaunt(const FVeyraC
 	return Get().Haunt.Find(Passive);
 }
 
+const FVeyraCampRewardTuning* UVeyraVanguardsTuningSubsystem::FindCampReward(const FVeyraContentId& Passive)
+{
+	return Get().CampReward.Find(Passive);
+}
+
 VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 {
 	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.

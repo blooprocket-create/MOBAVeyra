@@ -45,6 +45,9 @@ struct FVeyraChannelPlan
 {
 	int32 Ticks = 0;
 	double Seconds = 0.0;
+
+	/** Whether the caster is held in place meanwhile, as it is by default. */
+	bool bLocksMovement = true;
 };
 
 /**
