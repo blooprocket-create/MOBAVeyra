@@ -241,8 +241,21 @@ AActor* AVeyraPlayerController::FindEnemyUnderCursor() const
 	return VeyraUnits::KindOf(Candidate).IsSet() && VeyraTargeting::AreHostile(PlayerState, Candidate) ? Candidate : nullptr;
 }
 
+TOptional<FVector> AVeyraPlayerController::MinimapPointUnderCursor(EMinimapClick Purpose) const
+{
+	FVector2D Mouse;
+	return MinimapHitTest && GetMousePosition(Mouse.X, Mouse.Y) ? MinimapHitTest(Mouse, Purpose) : TOptional<FVector>();
+}
+
 void AVeyraPlayerController::MoveToCursor(bool bSteer)
 {
+	// A right click on the minimap moves the Vanguard to where it points (Settings Bible §3.2).
+	if (const TOptional<FVector> OnMap = MinimapPointUnderCursor(EMinimapClick::Move))
+	{
+		LastHeldMoveOrderTime = GetWorld()->GetRealTimeSeconds();
+		IssueMoveOrder(OnMap.GetValue());
+		return;
+	}
 	FHitResult Ground;
 	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
 	{
@@ -782,6 +795,15 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 		LastDragMouse.Reset();
 	}
 	CameraInput.bHoldCenter = IsInputKeyDown(Keys.HoldToCenterKey);
+	// Held on the minimap, the camera looks where it points.
+	if (IsInputKeyDown(Keys.MinimapCameraKey))
+	{
+		if (const TOptional<FVector> OnMap = MinimapPointUnderCursor(EMinimapClick::Camera))
+		{
+			CameraRig->LookAt(FVector(OnMap->X, OnMap->Y, CameraRig->GetFocus().Z));
+			return;
+		}
+	}
 	if (const AVeyraVanguardCharacter* Vanguard = GetVanguard())
 	{
 		CameraInput.Vanguard = Vanguard->GetActorLocation();

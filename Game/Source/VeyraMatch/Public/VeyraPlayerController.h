@@ -180,6 +180,24 @@ public:
 	 */
 	virtual void GetPlayerViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
+	/** What a click on the minimap is for (ADR-020 §2). */
+	enum class EMinimapClick : uint8
+	{
+		/** A left click or drag: the camera looks there. */
+		Camera,
+		/** A right click: the Vanguard moves there. */
+		Move,
+	};
+
+	/**
+	 * Owning client: the ground point a screen pixel on the minimap stands for, for a click of the given
+	 * purpose, or nothing if the click is not on the minimap or the player turned that click off. The
+	 * UI, which draws the minimap, sets it; the controller never calls the UI (ADR-006 §3).
+	 */
+	using FMinimapHitTest = TFunction<TOptional<FVector>(const FVector2D& /*Screen*/, EMinimapClick /*Purpose*/)>;
+	void SetMinimapHitTest(FMinimapHitTest InHitTest) { MinimapHitTest = MoveTemp(InHitTest); }
+	bool HasMinimapHitTest() const { return static_cast<bool>(MinimapHitTest); }
+
 	/** Owning client: the local camera, once the controller has made it (ADR-020 §1). */
 	class AVeyraCameraRig* GetCameraRig() const { return CameraRig; }
 
@@ -303,6 +321,11 @@ private:
 
 	/** Where the cursor was on the last frame of a middle-mouse drag. */
 	TOptional<FVector2D> LastDragMouse;
+
+	FMinimapHitTest MinimapHitTest;
+
+	/** The minimap's ground point under the cursor for Purpose, if the cursor is on it. */
+	TOptional<FVector> MinimapPointUnderCursor(EMinimapClick Purpose) const;
 
 	void RejectOrder(EVeyraOrderRejection Rejection);
 

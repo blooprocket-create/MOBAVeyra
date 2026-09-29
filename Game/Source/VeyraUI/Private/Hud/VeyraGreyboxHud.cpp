@@ -13,14 +13,19 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraHudModel.h"
+#include "Hud/VeyraMinimapModel.h"
 #include "Input/VeyraInputSettings.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "Text/VeyraContentText.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
+#include "Tuning/VeyraWorldTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
+#include "Camera/VeyraCameraRig.h"
+#include "Engine/GameViewportClient.h"
+#include "Engine/LocalPlayer.h"
 
 namespace
 {
@@ -134,6 +139,96 @@ namespace
 			const FString Count = Status.Stacks > 1 ? FString::Printf(TEXT(" x%d"), Status.Stacks) : FString();
 			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("%s%s %.1f s"), *HudEnumName(Status.Kind), *Count, Status.RemainingSeconds), Settings.TextColor);
 		}
+	}
+
+	/** The minimap's frame on a Viewport-sized screen. */
+	FVeyraMinimapFrame MinimapFrame(const UVeyraGreyboxSettings& Settings, const FVector2D& Viewport)
+	{
+		return VeyraMinimap::FrameFor(Viewport, Settings.MinimapSize, Settings.HudMargin, UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent);
+	}
+
+	FLinearColor MinimapColor(const UVeyraGreyboxSettings& Settings, EVeyraMinimapSide Side)
+	{
+		switch (Side)
+		{
+		case EVeyraMinimapSide::Own:
+			return Settings.OwnColor;
+		case EVeyraMinimapSide::Ally:
+			return Settings.AllyColor;
+		case EVeyraMinimapSide::Enemy:
+			return Settings.EnemyColor;
+		case EVeyraMinimapSide::Neutral:
+			break;
+		}
+		return Settings.NeutralColor;
+	}
+
+	/** A square outline of Side pixels around Centre. */
+	void DrawHudOutline(UCanvas& Canvas, const FVector2D& Centre, double Side, const FLinearColor& Color)
+	{
+		FCanvasBoxItem Box(Centre - FVector2D(Side / 2.0), FVector2D(Side));
+		Box.SetColor(Color);
+		Canvas.DrawItem(Box);
+	}
+
+	/**
+	 * The minimap, bottom-right (Settings Bible §3.2; ADR-020 §2): the lanes, every unit this client has
+	 * (so only what its side sees), its side's presence pings, and where the camera looks.
+	 */
+	void DrawMinimap(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraMinimapView& View)
+	{
+		const FVeyraMinimapFrame& Frame = View.Frame;
+		DrawHudRect(Canvas, Frame.Origin, FVector2D(Frame.Size), Settings.MinimapBackgroundColor);
+		for (const FVeyraMinimapLane& Lane : View.Lanes)
+		{
+			for (int32 Index = 1; Index < Lane.Points.Num(); ++Index)
+			{
+				FCanvasLineItem Line(Lane.Points[Index - 1], Lane.Points[Index]);
+				Line.SetColor(Settings.LaneColor);
+				Canvas.DrawItem(Line);
+			}
+		}
+		for (const FVeyraMinimapPing& Ping : View.Pings)
+		{
+			DrawHudOutline(Canvas, Ping.Centre, 2.0 * Ping.Radius, Settings.PresencePingColor.CopyWithNewOpacity(Ping.Fade));
+		}
+		for (const FVeyraMinimapDot& Dot : View.Dots)
+		{
+			const double Side = Dot.Kind == EVeyraMinimapDot::Vanguard ? Settings.MinimapVanguardIcon
+				: Dot.Kind == EVeyraMinimapDot::Structure					  ? Settings.MinimapStructureIcon
+																			  : Settings.MinimapUnitIcon;
+			DrawHudRect(Canvas, Dot.Position - FVector2D(Side / 2.0), FVector2D(Side), MinimapColor(Settings, Dot.Side));
+		}
+		if (View.Focus.IsSet())
+		{
+			DrawHudOutline(Canvas, View.Focus.GetValue(), Settings.MinimapVanguardIcon * 2.0, Settings.TextColor);
+		}
+	}
+
+	/**
+	 * Gives the local controller the minimap's hit test (ADR-020 §2): the controller, below the UI, asks
+	 * it where a click on the minimap points, and the player's toggles decide whether each click counts.
+	 */
+	void BindMinimapClicks(AVeyraPlayerController& Controller)
+	{
+		if (Controller.HasMinimapHitTest())
+		{
+			return;
+		}
+		Controller.SetMinimapHitTest([WeakController = TWeakObjectPtr<AVeyraPlayerController>(&Controller)](
+			const FVector2D& Screen, AVeyraPlayerController::EMinimapClick Purpose) -> TOptional<FVector> {
+			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+			const bool bOn = Purpose == AVeyraPlayerController::EMinimapClick::Camera ? Settings.bMinimapClickMovesCamera : Settings.bMinimapRightClickMoves;
+			const AVeyraPlayerController* Owner = WeakController.Get();
+			const UGameViewportClient* Viewport = Owner && Owner->GetLocalPlayer() ? Owner->GetLocalPlayer()->ViewportClient : nullptr;
+			if (!bOn || !Viewport)
+			{
+				return {};
+			}
+			FVector2D Size;
+			Viewport->GetViewportSize(Size);
+			return VeyraMinimap::ToWorld(MinimapFrame(Settings, Size), Screen);
+		});
 	}
 
 	/** One line centred at the top, Row lines under the first. */
@@ -407,6 +502,16 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 	if (const AVeyraGameState* GameState = Greybox.GetWorld()->GetGameState<AVeyraGameState>())
 	{
 		DrawMatchClock(Canvas, Settings, *GameState, Viewer);
+		const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);
+		const AVeyraPlayerState* Own = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr;
+		if (Player && Own)
+		{
+			BindMinimapClicks(*const_cast<AVeyraPlayerController*>(Player));
+			const AVeyraCameraRig* Rig = Player->GetCameraRig();
+			const TOptional<FVector> Focus = Rig ? TOptional<FVector>(Rig->GetFocus()) : TOptional<FVector>();
+			DrawMinimap(Canvas, Settings, VeyraMinimap::Describe(*Greybox.GetWorld(), MinimapFrame(Settings, FVector2D(Canvas.ClipX, Canvas.ClipY)),
+				Own->GetVeyraTeam(), Own->GetPawn(), Focus, Now));
+		}
 	}
 	if (const AVeyraPlayerState* Participant = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr)
 	{

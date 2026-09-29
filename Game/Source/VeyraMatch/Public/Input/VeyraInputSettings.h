@@ -103,6 +103,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Camera")
 	FKey CameraDragKey;
 
+	/** Held on the minimap, moves the camera there (ADR-020 §2). */
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey MinimapCameraKey;
+
 	/** Answer the open vote YES or NO (Match Flow Bible §7–§10; ADR-019 §7). */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey VoteYesKey;

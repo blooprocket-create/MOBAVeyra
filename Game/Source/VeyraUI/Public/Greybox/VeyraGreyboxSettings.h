@@ -92,6 +92,30 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor EmpoweredColor = FLinearColor::Transparent;
 
+	/** The minimap (Settings Bible §3.2; ADR-020 §2): its side, in pixels, bottom-right inside the HUD margin. */
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap", meta = (ClampMin = "1"))
+	float MinimapSize = 0.0f;
+
+	/** Its icons' sides, in pixels: Vanguards, structures and everything else. */
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap", meta = (ClampMin = "1"))
+	float MinimapVanguardIcon = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap", meta = (ClampMin = "1"))
+	float MinimapStructureIcon = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap", meta = (ClampMin = "1"))
+	float MinimapUnitIcon = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
+	FLinearColor MinimapBackgroundColor = FLinearColor::Transparent;
+
+	/** Whether a left click or drag on the minimap moves the camera, and a right click there moves the Vanguard. */
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
+	bool bMinimapClickMovesCamera = true;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
+	bool bMinimapRightClickMoves = true;
+
 	/** A warning to the player, such as that the server counts it AFK. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor WarningColor = FLinearColor::Transparent;
