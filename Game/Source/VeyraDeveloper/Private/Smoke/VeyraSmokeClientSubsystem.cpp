@@ -41,9 +41,11 @@ namespace
 	// How long the paused world must stay paused before this client asks to resume. Long enough for
 	// a replay, which samples a few times a second, to record the pause.
 	constexpr double PauseHoldRealSeconds = 1.0;
-	// -VeyraSmokeKit: how many times one ability may be refused for a passing reason before the
-	// script gives up.
-	constexpr int32 KitCastAttemptLimit = 20;
+	// -VeyraSmokeKit: how long, in real seconds, one ability may be refused for a passing reason before
+	// the script gives up. Time rather than a count of tries, since it tries each frame: long enough for
+	// the Vanguards to close to a targeted ability's range, or for a state that holds a caster, such as
+	// Patch's Play Dead, to end.
+	constexpr double KitCastPatienceRealSeconds = 10.0;
 
 	/** -VeyraSmokeKit: whether a refused cast may succeed if tried again a moment later. */
 	bool IsPassingKitRejection(EVeyraCastRejection Rejection)
@@ -437,6 +439,7 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s committed after %d attempt(s)."), *Entry->Ability.ToString(), KitCastAttempts);
 			bKitCastPending = false;
 			KitCastAttempts = 0;
+			KitFirstRefusedAt.Reset();
 			if (++KitSlotIndex == UE_ARRAY_COUNT(VeyraAbilitySlots::All))
 			{
 				KitRejectionsBefore = Controller.GetOrderRejectionCount();
@@ -447,7 +450,12 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 		else if (Controller.GetCastRejectionCount() > KitRejectionsBefore)
 		{
 			const EVeyraCastRejection Rejection = Controller.GetLastCastRejection();
-			if (!IsPassingKitRejection(Rejection) || KitCastAttempts >= KitCastAttemptLimit)
+			const double Now = FPlatformTime::Seconds();
+			if (!KitFirstRefusedAt.IsSet())
+			{
+				KitFirstRefusedAt = Now;
+			}
+			if (!IsPassingKitRejection(Rejection) || Now - KitFirstRefusedAt.GetValue() >= KitCastPatienceRealSeconds)
 			{
 				Finish(false, FString::Printf(TEXT("the server refused %s %d time(s), last: %s"), *Entry->Ability.ToString(), KitCastAttempts, LexToString(Rejection)));
 				return;
