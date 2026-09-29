@@ -8,6 +8,7 @@
 #include "Algo/AllOf.h"
 #include "Algo/Count.h"
 #include "EngineUtils.h"
+#include "Targeting/VeyraVisibility.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
@@ -150,6 +151,41 @@ namespace VeyraNetTests
 					return Algo::AllOf(Participants, [&State, MySide](const FParticipant& Other) {
 						return HasVanguard(State.World, Other.PlayerId) == (Other.Team == MySide);
 					});
+				});
+		}
+
+		TEST_METHOD(AnEnemyNobodySeesCannotBeOrderedAttacked)
+		{
+			const FVector2D Observer(-SightRadius(), 0.0);
+			const FVector2D Bystander(-SightRadius(), SightRadius() / 3.0);
+			const FVector2D Far(SightRadius() * 1.5, 0.0);
+			const FVector2D Near(-SightRadius() / 2.0, 0.0);
+			IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("Part the sides"), [this, Observer, Bystander, Far](FState& State) {
+					Place(State, ObserverIndex, Observer);
+					Place(State, BystanderIndex, Bystander);
+					Place(State, EnemyIndex, Far);
+				})
+				.UntilServer(TEXT("Vision loses the enemy"), [this](FState& State) {
+					const AVeyraVanguardCharacter* Enemy = FindVanguard(State.World, Participants[EnemyIndex].PlayerId);
+					return Enemy && !VeyraVisibility::IsVisibleToTeam(Participants[ObserverIndex].Team, *Enemy);
+				})
+				.ThenServer(TEXT("An attack order on it is refused, and it walks into sight"), [this, Near](FState& State) {
+					AVeyraPlayerState* Attacker = ServerControllerOf(State, ObserverIndex)->GetPlayerState<AVeyraPlayerState>();
+					AVeyraVanguardCharacter* Enemy = FindVanguard(State.World, Participants[EnemyIndex].PlayerId);
+					ASSERT_THAT(IsTrue(Attacker && Enemy));
+					// Nobody may target what they cannot see (Vision Bible §1).
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->HandleAttackOrder(Attacker, Enemy) == EVeyraOrderRejection::CannotAttack));
+					Place(State, EnemyIndex, Near);
+				})
+				.UntilServer(TEXT("Vision sees it"), [this](FState& State) {
+					const AVeyraVanguardCharacter* Enemy = FindVanguard(State.World, Participants[EnemyIndex].PlayerId);
+					return Enemy && VeyraVisibility::IsVisibleToTeam(Participants[ObserverIndex].Team, *Enemy);
+				})
+				.ThenServer(TEXT("Now the order stands"), [this](FState& State) {
+					AVeyraPlayerState* Attacker = ServerControllerOf(State, ObserverIndex)->GetPlayerState<AVeyraPlayerState>();
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->HandleAttackOrder(Attacker, FindVanguard(State.World, Participants[EnemyIndex].PlayerId))
+						== EVeyraOrderRejection::None));
 				});
 		}
 	};
