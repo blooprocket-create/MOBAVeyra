@@ -173,6 +173,7 @@ private:
 	bool bReconnects = false;
 	bool bLeft = false;
 	bool bCameBack = false;
+	double LeftAtRealSeconds = 0.0;
 	/** Casual: this game ends the match only once another player left and came back, and what it saw. */
 	bool bAwaitsReturn = false;
 	bool bSawAway = false;
