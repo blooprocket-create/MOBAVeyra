@@ -104,6 +104,13 @@ struct FVeyraAbsorptionLedger
 	TArray<FVeyraTemporaryHealthGrant> TemporaryHealth;
 };
 
+/** What one ledger entry absorbed of a damage component. */
+struct FVeyraAbsorbedShare
+{
+	int32 Sequence = 0;
+	double Amount = 0.0;
+};
+
 /** What one damage component did in steps 7–9. */
 struct FVeyraAbsorptionResult
 {
@@ -116,6 +123,9 @@ struct FVeyraAbsorptionResult
 
 	/** Damage beyond the remaining ordinary Health. */
 	double Overkill = 0.0;
+
+	/** What each shield absorbed, oldest first, by its Sequence; they sum to ShieldAbsorbed. */
+	TArray<FVeyraAbsorbedShare> ShieldShares;
 
 	/** Shields and grants this component emptied. They have been removed from the ledger. */
 	TArray<int32> DepletedShields;

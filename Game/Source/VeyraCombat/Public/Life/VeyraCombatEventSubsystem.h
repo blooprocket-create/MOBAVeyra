@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Damage/VeyraDamageTypes.h"
+#include "Statuses/VeyraStatusTypes.h"
 #include "Subsystems/WorldSubsystem.h"
 
 #include "VeyraCombatEventSubsystem.generated.h"
@@ -56,6 +57,53 @@ struct FVeyraDeathEvent
 	TOptional<FVector> Location;
 };
 
+/** What one shield absorbed of a damage component, by its provider (Match Statistics Bible §3). */
+struct FVeyraShieldShare
+{
+	TWeakObjectPtr<UAbilitySystemComponent> Provider;
+	double Absorbed = 0.0;
+};
+
+/**
+ * One damage component as it resolved against a unit (Combat Bible §25 steps 7–9): what it cost the
+ * unit, and whose shields took it. Statistics read it; Combat keeps none (ADR-017 §1).
+ */
+struct FVeyraDamageResolution
+{
+	TWeakObjectPtr<UAbilitySystemComponent> Source;
+	TWeakObjectPtr<UAbilitySystemComponent> Target;
+	EVeyraDamageType Type = EVeyraDamageType::Physical;
+
+	/** Health actually removed: never what shields or Temporary Health took, nor overkill. */
+	double HealthLost = 0.0;
+
+	double TemporaryHealthSpent = 0.0;
+
+	/** What each shield absorbed, oldest first, by the shield's provider. */
+	TArray<FVeyraShieldShare> Shields;
+};
+
+/** Health actually restored to a unit, never above its Max Health (Combat Bible §6). */
+struct FVeyraHealthRestored
+{
+	/** The unit that healed it, when one did: none for regeneration, the fountain or a Well. */
+	TWeakObjectPtr<UAbilitySystemComponent> Provider;
+	TWeakObjectPtr<UAbilitySystemComponent> Target;
+	double Restored = 0.0;
+};
+
+/** A status as it was applied, after Tenacity (Combat Bible §8–§14). */
+struct FVeyraStatusApplied
+{
+	TWeakObjectPtr<UAbilitySystemComponent> Source;
+	TWeakObjectPtr<UAbilitySystemComponent> Target;
+	EVeyraStatusKind Kind = EVeyraStatusKind::Slow;
+
+	/** When it began and ends, in server gameplay time. */
+	double StartsAt = 0.0;
+	double EndsAt = 0.0;
+};
+
 /** Damage dealt by a unit to a unit on the opposing side, as it lands. */
 struct FVeyraHostileDamageEvent
 {
@@ -78,9 +126,24 @@ class VEYRACOMBAT_API UVeyraCombatEventSubsystem : public UWorldSubsystem
 public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDeath, const FVeyraDeathEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnHostileDamage, const FVeyraHostileDamageEvent&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDamageResolved, const FVeyraDamageResolution&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnHealthRestored, const FVeyraHealthRestored&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnStatusApplied, const FVeyraStatusApplied&);
 
 	FOnDeath OnDeath;
 
 	/** Hostile damage that was dealt, shields included (Battleground Bible §19: tower and Fluxborn aggro). */
 	FOnHostileDamage OnHostileDamage;
+
+	/**
+	 * Every damage component that cost a unit something, before any death it causes (ADR-017 §1):
+	 * Health, Temporary Health or a shield.
+	 */
+	FOnDamageResolved OnDamageResolved;
+
+	/** Health actually restored, with the unit that healed it when one did. */
+	FOnHealthRestored OnHealthRestored;
+
+	/** A status applied or refreshed on a unit. */
+	FOnStatusApplied OnStatusApplied;
 };

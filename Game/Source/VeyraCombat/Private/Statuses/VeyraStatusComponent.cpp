@@ -6,6 +6,7 @@
 #include "Attributes/VeyraDefenceSet.h"
 #include "Effects/VeyraCombatEffects.h"
 #include "Engine/World.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "GameFramework/GameStateBase.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
@@ -179,6 +180,11 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 	MarkLedgerChanged();
 
 	VeyraCombatRecords::NoteHostileAction(&Source, *Target);
+	// What was applied, for statistics (ADR-017 §1).
+	if (UVeyraCombatEventSubsystem* Events = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
+	{
+		Events->OnStatusApplied.Broadcast(FVeyraStatusApplied{ &Source, Target, Spec.Kind, Now, EndsAt });
+	}
 	if (Spec.Kind == EVeyraStatusKind::Stun)
 	{
 		NotifyInterrupted();

@@ -30,7 +30,8 @@ namespace
 	 * Returns what is left of Amount.
 	 */
 	template <typename EntryType, typename PredicateType>
-	double SpendOldestFirst(TArray<EntryType>& Entries, double Amount, PredicateType IsEligible, double& OutSpent, TArray<int32>& OutDepleted)
+	double SpendOldestFirst(TArray<EntryType>& Entries, double Amount, PredicateType IsEligible, double& OutSpent, TArray<int32>& OutDepleted,
+		TArray<FVeyraAbsorbedShare>* OutShares = nullptr)
 	{
 		TArray<int32, TInlineAllocator<8>> Order;
 		for (int32 Index = 0; Index < Entries.Num(); ++Index)
@@ -54,6 +55,10 @@ namespace
 			Entry.Remaining -= Spent;
 			Amount -= Spent;
 			OutSpent += Spent;
+			if (OutShares && Spent > 0.0)
+			{
+				OutShares->Add(FVeyraAbsorbedShare{ Entry.Sequence, Spent });
+			}
 			if (Entry.Remaining <= 0.0)
 			{
 				Emptied.Add(Entry.Sequence);
@@ -84,7 +89,7 @@ FVeyraAbsorptionResult Absorb(EVeyraDamageType Type, double Amount, bool bInvuln
 	{
 		Remaining = SpendOldestFirst(Ledger.Shields, Remaining,
 			[Category](const FVeyraShieldEntry& Shield) { return Shield.Category == Category; },
-			Result.ShieldAbsorbed, Result.DepletedShields);
+			Result.ShieldAbsorbed, Result.DepletedShields, &Result.ShieldShares);
 	}
 
 	// Step 9: Temporary Health for every damage type, then ordinary Health.

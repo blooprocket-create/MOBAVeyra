@@ -115,8 +115,8 @@ void UVeyraSelfBuffAbility::DeliverHeal(UAbilitySystemComponent& Caster, const F
 	}
 	for (UAbilitySystemComponent* Unit : Healed)
 	{
-		// Never above Max Health (Combat Bible §6).
-		VeyraCombat::RestoreHealth(*Unit, Amount);
+		// Never above Max Health (Combat Bible §6); the caster's healing, for statistics (ADR-017 §1).
+		VeyraCombat::RestoreHealthFrom(Caster, *Unit, Amount);
 		for (const FVeyraContentId& StatusId : Heal.Statuses)
 		{
 			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId, Level))
