@@ -102,10 +102,10 @@ namespace VeyraClientFlowTests
 								   TEXT("\"level\":9,\"minionKills\":80,\"jungleKills\":4,\"wellsSecured\":1,\"wellFinalHits\":0,\"wardsPlaced\":3,\"wardsDestroyed\":1,")
 								   TEXT("\"vanguardDamage\":4200.4,\"damageShielded\":0,\"selfHealing\":150,\"teammateHealing\":0,\"goldEarned\":5321.9,")
 								   TEXT("\"towerDamage\":1800,\"wellDamage\":600,\"damageDealt\":{\"physical\":9000,\"magic\":0,\"true\":45},")
-								   TEXT("\"damageTaken\":{\"physical\":3000,\"magic\":1000,\"true\":0},\"crowdControl\":{\"stun\":%g,\"slow\":0},")
+								   TEXT("\"damageTaken\":{\"physical\":3000,\"magic\":1000,\"true\":0},\"crowdControl\":{\"stun\":%g,\"slow\":0,\"total\":%g},")
 								   TEXT("\"goldBySource\":{\"starting\":500,\"kills\":600,\"assists\":100,\"minions\":2400,\"jungle\":80,\"objectives\":400,")
 								   TEXT("\"wards\":30,\"passive\":1211.9}},\"items\":[\"timing_coil\",\"\",\"\",\"\",\"\",\"\"],\"fluxSpells\":[\"blink\",\"mend\"]}"),
-			Side, Name, Vanguard, bYou ? TEXT("true") : TEXT("false"), Kills, StunSeconds);
+			Side, Name, Vanguard, bYou ? TEXT("true") : TEXT("false"), Kills, StunSeconds, StunSeconds);
 	}
 
 	/** An ended casual match the player won on side A, with its scoreboard and one Flux Well each side secured. */

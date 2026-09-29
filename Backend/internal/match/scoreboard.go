@@ -45,10 +45,11 @@ type DamageByType struct {
 }
 
 // CrowdControl is the effective seconds of each kind applied to enemy
-// Vanguards.
+// Vanguards, and of any kind: a stun and a slow at once count once in Total.
 type CrowdControl struct {
-	Stun float64 `json:"stun"`
-	Slow float64 `json:"slow"`
+	Stun  float64 `json:"stun"`
+	Slow  float64 `json:"slow"`
+	Total float64 `json:"total"`
 }
 
 // GoldBySource is the Gold earned, by where it came from (Match Statistics
@@ -147,7 +148,7 @@ func (s PlayerStatistics) valid() bool {
 		s.DamageDealt.Physical, s.DamageDealt.Magic, s.DamageDealt.True,
 		s.DamageTaken.Physical, s.DamageTaken.Magic, s.DamageTaken.True,
 		s.DamageShielded, s.SelfHealing, s.TeammateHealing,
-		s.CrowdControl.Stun, s.CrowdControl.Slow,
+		s.CrowdControl.Stun, s.CrowdControl.Slow, s.CrowdControl.Total,
 		s.GoldEarned,
 		s.GoldBySource.Starting, s.GoldBySource.Kills, s.GoldBySource.Assists, s.GoldBySource.Minions,
 		s.GoldBySource.Jungle, s.GoldBySource.Objectives, s.GoldBySource.Wards, s.GoldBySource.Passive,

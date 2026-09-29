@@ -291,7 +291,7 @@ func scoreboardLine(side, name string, accountID any, vanguardID string) map[str
 			"damageDealt":    map[string]any{"physical": 14000.25, "magic": 300, "true": 45},
 			"damageTaken":    map[string]any{"physical": 6000, "magic": 2100, "true": 0},
 			"damageShielded": 150, "selfHealing": 420, "teammateHealing": 0,
-			"crowdControl": map[string]any{"stun": 2.5, "slow": 4},
+			"crowdControl": map[string]any{"stun": 2.5, "slow": 4, "total": 5},
 			"goldEarned":   7650,
 			"goldBySource": map[string]any{"starting": 500, "kills": 900, "assists": 250, "minions": 3900, "jungle": 0, "objectives": 400, "wards": 30, "passive": 1670},
 			"minionKills":  160, "jungleKills": 0, "towerDamage": 2400, "wellsSecured": 1, "wellDamage": 800, "wellFinalHits": 0, "wardsPlaced": 4, "wardsDestroyed": 1,

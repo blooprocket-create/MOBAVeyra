@@ -149,6 +149,8 @@ FVeyraMatchReport Describe(const VeyraBackendProtocol::FMatchOutcome& Outcome)
 	AddRow(Combat, Ordered, LOCTEXT("TeammateHealing", "Healing (Teammates)"), [](const FVeyraPlayerStatistics& S) { return PointsText(S.TeammateHealing); });
 	AddRow(Combat, Ordered, LOCTEXT("Stun", "Stun on Enemy Vanguards"), [](const FVeyraPlayerStatistics& S) { return SecondsText(S.CrowdControl.Stun); });
 	AddRow(Combat, Ordered, LOCTEXT("Slow", "Slow on Enemy Vanguards"), [](const FVeyraPlayerStatistics& S) { return SecondsText(S.CrowdControl.Slow); });
+	// A stun and a slow at once count once here (§4).
+	AddRow(Combat, Ordered, LOCTEXT("CrowdControlTotal", "Crowd Control, Total"), [](const FVeyraPlayerStatistics& S) { return SecondsText(S.CrowdControl.Total); });
 
 	FVeyraReportGroup& Objectives = Report.Groups.AddDefaulted_GetRef();
 	Objectives.Title = LOCTEXT("Objectives", "Objectives");

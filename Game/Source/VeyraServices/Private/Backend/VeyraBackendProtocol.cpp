@@ -171,6 +171,7 @@ namespace
 		{ TEXT("damageTaken"), TEXT("true"), [](FStats& S) -> double& { return S.DamageTaken.TrueDamage; } },
 		{ TEXT("crowdControl"), TEXT("stun"), [](FStats& S) -> double& { return S.CrowdControl.Stun; } },
 		{ TEXT("crowdControl"), TEXT("slow"), [](FStats& S) -> double& { return S.CrowdControl.Slow; } },
+		{ TEXT("crowdControl"), TEXT("total"), [](FStats& S) -> double& { return S.CrowdControl.Total; } },
 		{ TEXT("goldBySource"), TEXT("starting"), [](FStats& S) -> double& { return S.GoldBySource.Starting; } },
 		{ TEXT("goldBySource"), TEXT("kills"), [](FStats& S) -> double& { return S.GoldBySource.Kills; } },
 		{ TEXT("goldBySource"), TEXT("assists"), [](FStats& S) -> double& { return S.GoldBySource.Assists; } },

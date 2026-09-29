@@ -297,6 +297,7 @@ namespace VeyraServicesTests
 				S.TeammateHealing = Seed + 95.5;
 				S.CrowdControl.Stun = Seed + 2.5;
 				S.CrowdControl.Slow = Seed + 6.25;
+				S.CrowdControl.Total = Seed + 7.5;
 				S.GoldBySource.Starting = Seed + 500.0;
 				S.GoldBySource.Kills = Seed + 900.0;
 				S.GoldBySource.Assists = Seed + 250.5;
