@@ -53,6 +53,15 @@ public:
 	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Vanguard; }
 	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+	/**
+	 * Server: whether its player has left the match, or never came (ADR-019 §1). It sets the engine's
+	 * inactive flag and replicates it to every client, which the engine's flag does only as a player
+	 * state is first sent (COND_InitialOnly): the engine replaces a leaver's player state with a new
+	 * one, where Veyra keeps the same one for its player's return.
+	 */
+	void SetAway(bool bNewAway);
+
 	/** Its combat data replicates behind the fog from its first send (ADR-016 §3). */
 	virtual void OnReplicationStartedForIris(const FOnReplicationStartedParams& Params) override;
 
@@ -115,6 +124,7 @@ protected:
 	 * known from the roster (ADR-007); giving it this PlayerState back arrives with reconnect.
 	 */
 	virtual void OnDeactivated() override;
+
 
 private:
 	/** Replicated in Mixed mode: full effect data to the owning client, the minimum to everyone else. */
@@ -200,6 +210,12 @@ private:
 
 	UFUNCTION()
 	void OnRep_VanguardId();
+
+	UFUNCTION()
+	void OnRep_Away();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Away)
+	bool bAway = false;
 
 	UPROPERTY(ReplicatedUsing = OnRep_VanguardId)
 	FVeyraContentId VanguardId;
