@@ -26,6 +26,7 @@ namespace VeyraCombatTests
 
 		virtual bool CanSee(const UObject& /*Observer*/, const AActor& Target) const override { return &Target != Hidden; }
 		virtual bool IsVisibleToTeam(EVeyraTeam /*Team*/, const AActor& Target) const override { return &Target != Hidden; }
+		virtual void RevealArea(EVeyraTeam /*Team*/, const FVector& /*Centre*/, double /*Radius*/, double /*DurationSeconds*/) override {}
 
 	private:
 		const AActor* Hidden;

@@ -12,6 +12,10 @@ enum class EVeyraVisionTool : uint8
 {
 	/** Places long-lived wards, invisible to the enemy, from regenerating charges (§4). */
 	PersistentWard,
+	/** True Sight around its owner for a while: enemy wards and Vanguards in fog, outlined (§5). */
+	Sweeper,
+	/** Ordinary vision over an area for a moment; over Dense Fog, a presence sensor (§6). */
+	QuickSight,
 };
 
 /** Why a vision tool was not used, or None. */
@@ -25,6 +29,8 @@ enum class EVeyraVisionToolRejection : uint8
 	CrowdControlled,
 	/** No ward charge is carried. */
 	NoCharge,
+	/** The equipped tool is cooling down. */
+	CoolingDown,
 	/** The point is not usable, for example not finite. */
 	InvalidPoint,
 };
@@ -56,11 +62,21 @@ public:
 	/** When the next ward charge comes back, in the server's world time; below 0 while none is coming. */
 	double GetNextChargeAt() const { return NextChargeAt; }
 
+	/** When Tool is ready again, in the server's world time: its cooldown survives swaps and deaths (§7). */
+	double GetReadyAt(EVeyraVisionTool Tool) const;
+
 	/**
 	 * Server: uses the equipped tool toward Point, from the participant's Vanguard. A Persistent Ward
-	 * spends a charge and places a ward at Point, brought within its placement range.
+	 * spends a charge and places a ward at Point, brought within its placement range; Sweeper grants
+	 * True Sight around the Vanguard; Quick Sight lights Point, brought within its range.
 	 */
 	EVeyraVisionToolRejection Use(const FVector& Point);
+
+	/**
+	 * Server: puts Tool in the slot (the fountain swap routes here, ADR-016 §6). Persistent Ward comes
+	 * with all its charges; the others keep their cooldowns.
+	 */
+	void Equip(EVeyraVisionTool Tool);
 
 	/** Server: the fountain, a respawn or equipping Persistent Ward fills the charges (§4, §7). */
 	void RefillWardCharges();
@@ -79,6 +95,12 @@ private:
 
 	UPROPERTY(Replicated)
 	double NextChargeAt = -1.0;
+
+	UPROPERTY(Replicated)
+	double SweeperReadyAt = 0.0;
+
+	UPROPERTY(Replicated)
+	double QuickSightReadyAt = 0.0;
 
 	FTimerHandle RechargeTimer;
 };

@@ -84,10 +84,11 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 ### 5. Presence is a channel, not vision
 
 - **Sensors:** a ward's sensor inside fog, Quick Sight's area over fog, and Bryn's Sounding Flare each report "an enemy Vanguard is present in this fog zone".
-  - Pings come from a team-only replicated channel on Vision's team state: the zone and a time, never a unit or a position.
-  - The cadence is data.
-- **Sweeper's outline** is its own channel: the position of an enemy Vanguard inside fog that True Sight covers, to that team only, lingering for the data's time. It grants no targeting.
-- **Abilities below Vision report presence through Combat's contract:** `IVeyraVisibility`'s presence query, called by the ability, answers whether its area overlaps a zone holding an enemy Vanguard. Bryn's W uses it.
+  - A sensor covers its own area: a ward, its `sensorRadius` inside the fog it stands in; a lit area, its radius. Never the whole fog volume (Vision Bible §4).
+  - A ping names the fog circle the enemy stands in, and a time, never a unit or a position. A new sensor pings at once, then at the data's cadence while the enemy stays.
+  - Pings travel on `AVeyraVisionTeamState`, one per side, which the fog gate lets reach that side alone.
+- **Sweeper's outline** is its own channel on the same team state: where an enemy Vanguard inside fog stands while True Sight covers it, then where it was last covered until it fades after the data's linger. It grants no targeting.
+- **One primitive lights an area:** a timed sight area, ordinary vision for its side while it lasts, and over fog a presence sensor. Quick Sight places one. Abilities below Vision ask for one through Combat's contract, `IVeyraVisibility::RevealArea`: the area archetype's `reveal` (radius and duration) calls it as the cast commits, and Bryn's Sounding Flare has one.
 
 ### 6. The vision tools are Vision's actions, in a slot of their own
 
@@ -125,7 +126,8 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 
 ### 9. Values are data
 
-- `Vision.json`: sight radii, the update cadence, the tools, the ward, the ping cadence.
+- `Vision.json` v3: sight radii, the update cadence, the ward and its charges, Sweeper, Quick Sight, the ping cadence.
+- `Abilities.json` v5: an area's `reveal`.
 - `World.json` v3: `denseFog`.
 - `Economy.json` v5: the ward reward and the swap cost.
 - `Bots.json` v4: ward spots.

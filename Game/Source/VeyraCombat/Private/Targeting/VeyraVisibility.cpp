@@ -38,4 +38,13 @@ bool IsVisibleToTeam(EVeyraTeam Team, const AActor& Target)
 	const IVeyraVisibility* Visibility = Find(Target.GetWorld());
 	return !Visibility || Visibility->IsVisibleToTeam(Team, Target);
 }
+
+void RevealArea(const UWorld& World, EVeyraTeam Team, const FVector& Centre, double Radius, double DurationSeconds)
+{
+	const UVeyraVisibilityRegistry* Registry = World.GetSubsystem<UVeyraVisibilityRegistry>();
+	if (IVeyraVisibility* Visibility = Registry ? Registry->GetMutable() : nullptr)
+	{
+		Visibility->RevealArea(Team, Centre, Radius, DurationSeconds);
+	}
+}
 }

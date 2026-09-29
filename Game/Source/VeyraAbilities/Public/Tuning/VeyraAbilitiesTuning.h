@@ -328,6 +328,22 @@ struct FVeyraAreaZoneTuning
 	TArray<FVeyraContentId> CasterStatusesPerVanguard;
 };
 
+/**
+ * Ordinary vision an area lights for its caster's side as it commits, which over Dense Fog senses
+ * presence instead (ADR-016 §5), as Bryn's Sounding Flare's. 0 and 0 for an area that lights nothing.
+ */
+USTRUCT()
+struct FVeyraAreaRevealTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double Radius = 0.0;
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+};
+
 /** An ability that hits the enemies in shapes at the caster or a ground point (ADR-008 §3). */
 USTRUCT()
 struct FVeyraAreaAbilityTuning
@@ -353,6 +369,9 @@ struct FVeyraAreaAbilityTuning
 
 	UPROPERTY()
 	double ChannelSeconds = 0.0;
+
+	UPROPERTY()
+	FVeyraAreaRevealTuning Reveal;
 
 	/** Innermost first: a unit takes the first zone that touches it, and no other. */
 	UPROPERTY()
@@ -665,7 +684,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 4;
+	static constexpr int32 SchemaVersion = 5;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

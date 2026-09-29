@@ -28,6 +28,13 @@ public:
 
 	/** Whether Team's shared vision holds Target now; Dense Fog sightings are not shared (Vision Bible §2). */
 	virtual bool IsVisibleToTeam(EVeyraTeam Team, const AActor& Target) const = 0;
+
+	/**
+	 * Lights Radius around Centre for Team for DurationSeconds (ADR-016 §5): ordinary vision, which over
+	 * Dense Fog senses presence instead of showing what is inside (Vision Bible §6). An ability that
+	 * lights an area, as Bryn's Sounding Flare does, asks for it here.
+	 */
+	virtual void RevealArea(EVeyraTeam Team, const FVector& Centre, double Radius, double DurationSeconds) = 0;
 };
 
 /**
@@ -45,6 +52,7 @@ public:
 	void Unregister(const IVeyraVisibility& InVisibility);
 
 	const IVeyraVisibility* Get() const { return Visibility; }
+	IVeyraVisibility* GetMutable() const { return Visibility; }
 
 private:
 	IVeyraVisibility* Visibility = nullptr;
@@ -61,4 +69,7 @@ namespace VeyraVisibility
 
 	/** Whether Team sees Target now: its world's vision says so, or no vision governs it. */
 	VEYRACOMBAT_API bool IsVisibleToTeam(EVeyraTeam Team, const AActor& Target);
+
+	/** Server: lights an area for Team in World's vision; a world without vision already sees everything. */
+	VEYRACOMBAT_API void RevealArea(const UWorld& World, EVeyraTeam Team, const FVector& Centre, double Radius, double DurationSeconds);
 }

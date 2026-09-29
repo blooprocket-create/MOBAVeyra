@@ -499,6 +499,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleVisionToolOrder(AVeyraPlayerState* Pl
 	case EVeyraVisionToolRejection::CrowdControlled:
 		return EVeyraOrderRejection::CrowdControlled;
 	case EVeyraVisionToolRejection::NoCharge:
+	case EVeyraVisionToolRejection::CoolingDown:
 		return EVeyraOrderRejection::NotReady;
 	case EVeyraVisionToolRejection::InvalidPoint:
 		return EVeyraOrderRejection::InvalidOrder;

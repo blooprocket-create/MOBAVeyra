@@ -652,6 +652,8 @@ namespace VeyraAbilitiesTests
 			Slam.Cast.CooldownSecondsByRank = { 1.0, 2.0 };
 			Slam.Zones[0].Effects.Statuses.Add(ArchetypeTestId(TEXT("no_such_status")));
 			Slam.Zones[0].Shape.Radius = 0.0;
+			// A reveal needs both a radius and a time (ADR-016 §5).
+			Slam.Reveal.Radius = 400.0;
 			Broken.SelfBuff.Add(ArchetypeTestId(TEXT("test_slam")), FVeyraSelfBuffAbilityTuning());
 			Broken.Statuses.Add(ArchetypeTestId(TEXT("bad_stun")), StatusOf(EVeyraStatusKind::Stun, 0.5, 1.0));
 			const TArray<FString> Problems = VeyraAbilityRules::Validate(Broken, RankCounts);
@@ -659,6 +661,7 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("/area/test_slam/cast/cooldownSecondsByRank:")), All));
 			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("no_such_status")), All));
 			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("/area/test_slam/zones/0/shape:")), All));
+			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("/area/test_slam/reveal:")), All));
 			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("an ability has one archetype")), All));
 			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("/statuses/bad_stun:")), All));
 		}

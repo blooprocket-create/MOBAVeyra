@@ -10,6 +10,7 @@
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Teams/VeyraTeam.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -28,6 +29,8 @@ const TCHAR* LexToString(EVeyraVisionToolRejection Rejection)
 		return TEXT("crowd controlled");
 	case EVeyraVisionToolRejection::NoCharge:
 		return TEXT("no ward charge");
+	case EVeyraVisionToolRejection::CoolingDown:
+		return TEXT("cooling down");
 	case EVeyraVisionToolRejection::InvalidPoint:
 		return TEXT("not a usable point");
 	}
@@ -71,6 +74,39 @@ void UVeyraVisionToolComponent::GetLifetimeReplicatedProps(TArray<FLifetimePrope
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraVisionToolComponent, Equipped, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraVisionToolComponent, WardCharges, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraVisionToolComponent, NextChargeAt, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraVisionToolComponent, SweeperReadyAt, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraVisionToolComponent, QuickSightReadyAt, Params);
+}
+
+double UVeyraVisionToolComponent::GetReadyAt(EVeyraVisionTool Tool) const
+{
+	switch (Tool)
+	{
+	case EVeyraVisionTool::PersistentWard:
+		return NextChargeAt;
+	case EVeyraVisionTool::Sweeper:
+		return SweeperReadyAt;
+	case EVeyraVisionTool::QuickSight:
+		return QuickSightReadyAt;
+	}
+	return 0.0;
+}
+
+void UVeyraVisionToolComponent::Equip(EVeyraVisionTool Tool)
+{
+	if (Equipped != Tool)
+	{
+		Equipped = Tool;
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraVisionToolComponent, Equipped, this);
+	}
+	if (Tool == EVeyraVisionTool::PersistentWard)
+	{
+		RefillWardCharges();
+		return;
+	}
+	// Charges come back only while Persistent Ward is in the slot (§4).
+	GetWorld()->GetTimerManager().ClearTimer(RechargeTimer);
+	SetNextChargeAt(-1.0);
 }
 
 EVeyraVisionToolRejection UVeyraVisionToolComponent::Use(const FVector& Point)
@@ -117,6 +153,49 @@ EVeyraVisionToolRejection UVeyraVisionToolComponent::Use(const FVector& Point)
 		}
 		SetWardCharges(WardCharges - 1);
 		ScheduleRecharge();
+		return EVeyraVisionToolRejection::None;
+	}
+	case EVeyraVisionTool::Sweeper:
+	{
+		const double Now = GetWorld()->GetTimeSeconds();
+		if (Now < SweeperReadyAt)
+		{
+			return EVeyraVisionToolRejection::CoolingDown;
+		}
+		const FVeyraSweeperTuning& Tuning = UVeyraVisionTuningSubsystem::Get().Sweeper;
+		UVeyraVisionSubsystem* Vision = GetWorld()->GetSubsystem<UVeyraVisionSubsystem>();
+		if (!Vision)
+		{
+			return EVeyraVisionToolRejection::InvalidPoint;
+		}
+		Vision->AddTrueSight(VeyraTeams::TeamOf(Participant), *Body, Tuning.Radius, Tuning.DurationSeconds);
+		SweeperReadyAt = Now + Tuning.CooldownSeconds;
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraVisionToolComponent, SweeperReadyAt, this);
+		return EVeyraVisionToolRejection::None;
+	}
+	case EVeyraVisionTool::QuickSight:
+	{
+		const double Now = GetWorld()->GetTimeSeconds();
+		if (Now < QuickSightReadyAt)
+		{
+			return EVeyraVisionToolRejection::CoolingDown;
+		}
+		// A point beyond its reach is brought back within it, as a cast's is (ADR-008 §9).
+		const FVeyraQuickSightTuning& Tuning = UVeyraVisionTuningSubsystem::Get().QuickSight;
+		const FVector From = Body->GetActorLocation();
+		FVector2D Offset(Point.X - From.X, Point.Y - From.Y);
+		if (Offset.Size() > Tuning.Range)
+		{
+			Offset = Offset.GetSafeNormal() * Tuning.Range;
+		}
+		UVeyraVisionSubsystem* Vision = GetWorld()->GetSubsystem<UVeyraVisionSubsystem>();
+		if (!Vision)
+		{
+			return EVeyraVisionToolRejection::InvalidPoint;
+		}
+		Vision->RevealArea(VeyraTeams::TeamOf(Participant), FVector(From.X + Offset.X, From.Y + Offset.Y, From.Z), Tuning.Radius, Tuning.DurationSeconds);
+		QuickSightReadyAt = Now + Tuning.CooldownSeconds;
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraVisionToolComponent, QuickSightReadyAt, this);
 		return EVeyraVisionToolRejection::None;
 	}
 	}

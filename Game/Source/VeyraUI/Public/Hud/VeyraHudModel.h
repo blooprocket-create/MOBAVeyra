@@ -8,6 +8,7 @@
 #include "Content/VeyraContentId.h"
 #include "Misc/Optional.h"
 #include "Slots/VeyraAbilitySlot.h"
+#include "Tools/VeyraVisionToolComponent.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Teams/VeyraTeam.h"
 
@@ -87,10 +88,18 @@ struct FVeyraHudSpellSlot
 	double CooldownSeconds = 0.0;
 };
 
-/** The vision-tool slot on the HUD (ADR-016 §8): the Persistent Ward's charges, and when the next comes back. */
+/**
+ * The vision-tool slot on the HUD (ADR-016 §8): the tool in it; for Persistent Ward, its charges and
+ * when the next comes back; for the others, their cooldown.
+ */
 struct FVeyraHudVisionTool
 {
 	bool bPresent = false;
+	EVeyraVisionTool Tool = EVeyraVisionTool::PersistentWard;
+
+	/** Seconds until Sweeper or Quick Sight is ready; 0 when it is. */
+	double CooldownSeconds = 0.0;
+
 	int32 WardCharges = 0;
 	int32 MaxWardCharges = 0;
 

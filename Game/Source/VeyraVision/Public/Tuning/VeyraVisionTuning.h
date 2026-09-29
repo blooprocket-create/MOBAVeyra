@@ -90,6 +90,72 @@ struct FVeyraPersistentWardTuning
 
 	UPROPERTY()
 	double BodyHalfHeight = 0.0;
+
+	/** Inside Dense Fog, how far around it an enemy Vanguard sets off its presence ping: its own coverage. */
+	UPROPERTY()
+	double SensorRadius = 0.0;
+};
+
+/** Sweeper (Vision Bible §5): True Sight around its owner, for all its team. */
+USTRUCT()
+struct FVeyraSweeperTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double Radius = 0.0;
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** Swaps and deaths never shorten it (§7). */
+	UPROPERTY()
+	double CooldownSeconds = 0.0;
+
+	/** How long an outline lingers after True Sight stops covering it. */
+	UPROPERTY()
+	double OutlineLingerSeconds = 0.0;
+};
+
+/** Quick Sight (Vision Bible §6): ordinary vision over an area for a moment; over Dense Fog, a presence sensor. */
+USTRUCT()
+struct FVeyraQuickSightTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How far from its Vanguard it reaches; a point further away is brought within it. */
+	UPROPERTY()
+	double Range = 0.0;
+
+	UPROPERTY()
+	double Radius = 0.0;
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** Swaps and deaths never shorten it (§7). */
+	UPROPERTY()
+	double CooldownSeconds = 0.0;
+};
+
+/** Presence pings (Vision Bible §4, §6; ADR-016 §5). */
+USTRUCT()
+struct FVeyraPresenceTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How often a sensor pings again while an enemy Vanguard stays in its coverage. */
+	UPROPERTY()
+	double PingEverySeconds = 0.0;
 };
 
 /** The Vision domain's tuning, bound from Game/Tuning/Vision.json (ADR-006 §6, ADR-016 §9). */
@@ -99,7 +165,7 @@ struct FVeyraVisionTuning
 	GENERATED_BODY()
 
 	/** The Vision.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraVisionUpdateTuning Update;
@@ -112,6 +178,15 @@ struct FVeyraVisionTuning
 
 	UPROPERTY()
 	FVeyraPersistentWardTuning PersistentWard;
+
+	UPROPERTY()
+	FVeyraSweeperTuning Sweeper;
+
+	UPROPERTY()
+	FVeyraQuickSightTuning QuickSight;
+
+	UPROPERTY()
+	FVeyraPresenceTuning Presence;
 };
 
 /** The Vision domain's checks that a schema cannot express. */

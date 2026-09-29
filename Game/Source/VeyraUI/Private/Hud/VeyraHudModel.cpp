@@ -222,6 +222,11 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 	if (const UVeyraVisionToolComponent* Tool = Participant.FindComponentByClass<UVeyraVisionToolComponent>())
 	{
 		Player.VisionTool.bPresent = true;
+		Player.VisionTool.Tool = Tool->GetEquipped();
+		if (Tool->GetEquipped() != EVeyraVisionTool::PersistentWard)
+		{
+			Player.VisionTool.CooldownSeconds = FMath::Max(0.0, Tool->GetReadyAt(Tool->GetEquipped()) - ServerNow);
+		}
 		Player.VisionTool.WardCharges = Tool->GetWardCharges();
 		Player.VisionTool.MaxWardCharges = UVeyraVisionTuningSubsystem::Get().WardCharges.Max;
 		Player.VisionTool.NextChargeSeconds = Tool->GetNextChargeAt() < 0.0 ? 0.0 : FMath::Max(0.0, Tool->GetNextChargeAt() - ServerNow);

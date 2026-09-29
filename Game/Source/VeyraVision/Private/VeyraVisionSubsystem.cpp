@@ -14,6 +14,7 @@
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraVisionRules.h"
+#include "State/VeyraVisionTeamState.h"
 #include "GameFramework/GameStateBase.h"
 #include "Targeting/VeyraParticipantData.h"
 #include "Targeting/VeyraTargeting.h"
@@ -56,6 +57,18 @@ namespace
 	bool IsSide(EVeyraTeam Team)
 	{
 		return Team == EVeyraTeam::A || Team == EVeyraTeam::B;
+	}
+
+	/** A sensor's key in the ping cadence: a ward by its object ID, an area by its own, apart. */
+	uint64 WardSensorKey(const AActor& Ward)
+	{
+		return Ward.GetUniqueID();
+	}
+
+	uint64 AreaSensorKey(int32 AreaId)
+	{
+		constexpr uint64 AreaKeys = 1ull << 32;
+		return AreaKeys | static_cast<uint32>(AreaId);
 	}
 
 	/**
@@ -134,6 +147,7 @@ void UVeyraVisionSubsystem::Start()
 	}
 	Gate = MakeShared<FVeyraFogGate>();
 	Gate->Start(*World);
+	SpawnTeamStates(*World);
 	SpawnedHandle = World->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UVeyraVisionSubsystem::OnActorSpawned));
 	if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
 	{
@@ -171,6 +185,133 @@ void UVeyraVisionSubsystem::Stop()
 	Fogged.Reset();
 	FogSightings.Reset();
 	JoinedGroups.Reset();
+	SightAreas.Reset();
+	TrueSights.Reset();
+	Outlined.Reset();
+	LastPings.Reset();
+	TeamStates.Reset();
+}
+
+void UVeyraVisionSubsystem::SpawnTeamStates(UWorld& World)
+{
+	for (const EVeyraTeam Side : { EVeyraTeam::A, EVeyraTeam::B })
+	{
+		AVeyraVisionTeamState* State = AVeyraVisionTeamState::Find(&World, Side);
+		if (!State)
+		{
+			FActorSpawnParameters Parameters;
+			Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			State = World.SpawnActor<AVeyraVisionTeamState>(Parameters);
+			if (State)
+			{
+				State->SetVeyraTeam(Side);
+			}
+		}
+		TeamStates.Add(Side, State);
+	}
+}
+
+void UVeyraVisionSubsystem::AddTrueSight(EVeyraTeam Team, const AActor& Follow, double Radius, double DurationSeconds)
+{
+	const UWorld* World = GetWorld();
+	if (World && IsSide(Team))
+	{
+		TrueSights.Add(FTrueSight{ Team, &Follow, Radius, World->GetTimeSeconds() + DurationSeconds });
+	}
+}
+
+void UVeyraVisionSubsystem::RevealArea(EVeyraTeam Team, const FVector& Centre, double Radius, double DurationSeconds)
+{
+	const UWorld* World = GetWorld();
+	if (World && IsSide(Team))
+	{
+		SightAreas.Add(FSightArea{ NextSightAreaId++, Team, FVector2D(Centre), Radius, World->GetTimeSeconds() + DurationSeconds });
+	}
+}
+
+bool UVeyraVisionSubsystem::IsInTrueSight(EVeyraTeam Side, const AActor& Unit) const
+{
+	const FVector2D Where(Unit.GetActorLocation());
+	return TrueSights.ContainsByPredicate([Side, &Where](const FTrueSight& Sight) {
+		const AActor* Around = Sight.Follow.Get();
+		return Sight.Team == Side && Around && FVector2D::DistSquared(FVector2D(Around->GetActorLocation()), Where) <= FMath::Square(Sight.Radius);
+	});
+}
+
+void UVeyraVisionSubsystem::UpdateSensors(const TArray<const AActor*>& Gated, double Now)
+{
+	const FVeyraVisionTuning& Tuning = UVeyraVisionTuningSubsystem::Get();
+	for (const EVeyraTeam Side : { EVeyraTeam::A, EVeyraTeam::B })
+	{
+		AVeyraVisionTeamState* State = TeamStates.FindRef(Side).Get();
+		// Presence (Vision Bible §4, §6): an enemy Vanguard inside Dense Fog within a sensor's own
+		// coverage (a ward of this side inside the same fog, or an area this side lights) pings the
+		// fog circle it is in, never where it stands. A new sensor pings at once, then at its cadence.
+		const auto Ping = [this, State, Now, &Tuning](uint64 Sensor, const AActor& Enemy) {
+			const int32 Circle = VeyraVisionRules::CircleAt(Fog, FVector2D(Enemy.GetActorLocation()));
+			if (Circle == INDEX_NONE)
+			{
+				return;
+			}
+			const TPair<uint64, int32> Key(Sensor, Circle);
+			const double* Last = LastPings.Find(Key);
+			if (Last && Now - *Last < Tuning.Presence.PingEverySeconds)
+			{
+				return;
+			}
+			LastPings.Add(Key, Now);
+			if (State)
+			{
+				State->AddPing(FVeyraPresencePing{ Fog[Circle].Center, Fog[Circle].Radius, Now }, Now, Tuning.Presence.PingEverySeconds);
+			}
+		};
+		TMap<TWeakObjectPtr<const AActor>, FKeptOutline>& Kept = Outlined.FindOrAdd(Side);
+		for (const TPair<TWeakObjectPtr<const AActor>, int32>& Hidden : Fogged)
+		{
+			const AActor* Enemy = Hidden.Key.Get();
+			if (!Enemy || VeyraTeams::TeamOf(Enemy) == Side)
+			{
+				continue;
+			}
+			const FVector2D Where(Enemy->GetActorLocation());
+			for (const AActor* Unit : Gated)
+			{
+				if (VeyraUnits::IsWard(Unit) && VeyraTeams::TeamOf(Unit) == Side && VeyraTargeting::IsAlive(Unit)
+					&& VeyraVisionRules::VolumeAt(Fog, FogVolumes, FVector2D(Unit->GetActorLocation())) == Hidden.Value
+					&& FVector2D::DistSquared(FVector2D(Unit->GetActorLocation()), Where) <= FMath::Square(Tuning.PersistentWard.SensorRadius))
+				{
+					Ping(WardSensorKey(*Unit), *Enemy);
+				}
+			}
+			for (const FSightArea& Area : SightAreas)
+			{
+				if (Area.Team == Side && FVector2D::DistSquared(Area.Centre, Where) <= FMath::Square(Area.Radius))
+				{
+					Ping(AreaSensorKey(Area.Id), *Enemy);
+				}
+			}
+			// Sweeper's outline (§5): where it stands while True Sight covers it, then where it was last
+			// covered until the outline fades. No tracking after that.
+			if (IsInTrueSight(Side, *Enemy))
+			{
+				Kept.Add(Hidden.Key, FKeptOutline{ Enemy->GetActorLocation(), Now + Tuning.Sweeper.OutlineLingerSeconds });
+			}
+		}
+		TArray<FVeyraOutline> Shown;
+		for (auto It = Kept.CreateIterator(); It; ++It)
+		{
+			if (It.Value().Until <= Now)
+			{
+				It.RemoveCurrent();
+				continue;
+			}
+			Shown.Add(FVeyraOutline{ It.Value().Location, It.Value().Until });
+		}
+		if (State)
+		{
+			State->SetOutlines(MoveTemp(Shown));
+		}
+	}
 }
 
 void UVeyraVisionSubsystem::Deinitialize()
@@ -253,6 +394,9 @@ void UVeyraVisionSubsystem::UpdateNow()
 		return;
 	}
 	const FVeyraSightTuning& Sight = UVeyraVisionTuningSubsystem::Get().Sight;
+	const double Now = World->GetTimeSeconds();
+	SightAreas.RemoveAll([Now](const FSightArea& Area) { return Area.Until <= Now; });
+	TrueSights.RemoveAll([Now](const FTrueSight& Sight) { return Sight.Until <= Now || !Sight.Follow.IsValid(); });
 	Sources.Reset();
 	Known.Reset();
 	TArray<const AActor*> Gated;
@@ -284,6 +428,19 @@ void UVeyraVisionSubsystem::UpdateNow()
 		}
 	}
 
+	// A lit area is ordinary vision for its side while it lasts (Vision Bible §6).
+	for (const FSightArea& Area : SightAreas)
+	{
+		Sources.Add(FVeyraSightSource{ Area.Team, Area.Centre, Area.Radius });
+	}
+	for (const TPair<EVeyraTeam, TWeakObjectPtr<AVeyraVisionTeamState>>& State : TeamStates)
+	{
+		if (Gate && State.Value.IsValid())
+		{
+			Gate->AddToSide(*State.Value, State.Key);
+		}
+	}
+
 	// A Vanguard inside Dense Fog is hidden from all but the Vanguards inside the same volume, and a
 	// teammate's sighting there is not shared (Vision Bible §2). Everything else is ordinary vision.
 	Fogged.Reset();
@@ -312,12 +469,19 @@ void UVeyraVisionSubsystem::UpdateNow()
 		TSet<TWeakObjectPtr<const AActor>>& SideSeen = Seen.Add(Side);
 		for (const AActor* Unit : Gated)
 		{
-			if (VeyraTeams::TeamOf(Unit) != Side && !Fogged.Contains(Unit) && !IsInvisible(*Unit) && VeyraVisionRules::IsSeenBy(Side, Sources, FVector2D(Unit->GetActorLocation())))
+			if (VeyraTeams::TeamOf(Unit) == Side || Fogged.Contains(Unit))
+			{
+				continue;
+			}
+			// An Invisible unit shows only under True Sight (Vision Bible §5); the rest, to ordinary sight.
+			const bool bSeen = IsInvisible(*Unit) ? IsInTrueSight(Side, *Unit) : VeyraVisionRules::IsSeenBy(Side, Sources, FVector2D(Unit->GetActorLocation()));
+			if (bSeen)
 			{
 				SideSeen.Add(Unit);
 			}
 		}
 	}
+	UpdateSensors(Gated, Now);
 
 	if (Gate && Gate->IsStarted())
 	{

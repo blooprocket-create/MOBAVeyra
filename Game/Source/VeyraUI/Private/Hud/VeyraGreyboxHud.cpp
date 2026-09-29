@@ -282,14 +282,26 @@ namespace
 			Lines.Add({ MoveTemp(Bar), Settings.TextColor });
 		}
 
-		// The vision tool, by its key: the ward charges carried, and when the next comes back (ADR-016 §8).
+		// The vision tool, by its key: the ward charges carried and when the next comes back, or the
+		// tool's cooldown (ADR-016 §8).
 		if (Player.VisionTool.bPresent)
 		{
-			FString Tool = FString::Printf(TEXT("[%s] Ward %d/%d"), *Input.GetAbilityKey(EVeyraAbilitySlot::VisionTool).GetDisplayName(false).ToString(),
-				Player.VisionTool.WardCharges, Player.VisionTool.MaxWardCharges);
-			if (Player.VisionTool.NextChargeSeconds > 0.0)
+			const FString Key = Input.GetAbilityKey(EVeyraAbilitySlot::VisionTool).GetDisplayName(false).ToString();
+			FString Tool;
+			if (Player.VisionTool.Tool == EVeyraVisionTool::PersistentWard)
 			{
-				Tool += FString::Printf(TEXT(", next in %.0f s"), FMath::CeilToDouble(Player.VisionTool.NextChargeSeconds));
+				Tool = FString::Printf(TEXT("[%s] Ward %d/%d"), *Key, Player.VisionTool.WardCharges, Player.VisionTool.MaxWardCharges);
+				if (Player.VisionTool.NextChargeSeconds > 0.0)
+				{
+					Tool += FString::Printf(TEXT(", next in %.0f s"), FMath::CeilToDouble(Player.VisionTool.NextChargeSeconds));
+				}
+			}
+			else
+			{
+				const TCHAR* ToolName = Player.VisionTool.Tool == EVeyraVisionTool::Sweeper ? TEXT("Sweeper") : TEXT("Quick Sight");
+				Tool = Player.VisionTool.CooldownSeconds > 0.0
+					? FString::Printf(TEXT("[%s] %s %.0f s"), *Key, ToolName, FMath::CeilToDouble(Player.VisionTool.CooldownSeconds))
+					: FString::Printf(TEXT("[%s] %s ready"), *Key, ToolName);
 			}
 			Lines.Add({ MoveTemp(Tool), Settings.TextColor });
 		}

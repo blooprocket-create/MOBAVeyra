@@ -12,6 +12,7 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "EngineUtils.h"
 #include "Recall/VeyraRecallComponent.h"
+#include "State/VeyraVisionTeamState.h"
 #include "Targeting/VeyraVisibility.h"
 #include "Tools/VeyraVisionToolComponent.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
@@ -398,6 +399,67 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsFalse(HasWard(State.World)));
 					ASSERT_THAT(IsTrue(SeenWardCharges(State.World, Participants[EnemyIndex].PlayerId) == 0, TEXT("a tool's state is its owner's alone")));
 				}
+			});
+		}
+
+		TEST_METHOD(SweeperShowsItsSideAnEnemyWardToDestroy)
+		{
+			// True Sight (Vision Bible §5): the enemy's ward reaches the Sweeper's whole side, which may
+			// then attack it. Each side's pings and outlines reach that side alone.
+			const FVeyraVisionTuning& Vision = UVeyraVisionTuningSubsystem::Get();
+			const FVector2D Observer(-2500.0, 0.0);
+			const FVector2D Bystander(-2500.0, 450.0);
+			const FVector2D Enemy(2500.0, 0.0);
+			const double WardX = Enemy.X - Vision.PersistentWard.PlacementRange;
+			const FVector2D EnemyAside(2900.0, 700.0);
+			const FVector2D BesideTheWard(WardX - Vision.Sweeper.Radius / 2.0, 0.0);
+			FPIENetworkComponent<FState>& Warded = IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("Part the sides"), [this, Observer, Bystander, Enemy](FState& State) {
+					Place(State, ObserverIndex, Observer);
+					Place(State, BystanderIndex, Bystander);
+					Place(State, EnemyIndex, Enemy);
+				})
+				.ThenClients(TEXT("The enemy wards toward the other side"), [this, Enemy](FState& State) {
+					if (State.ClientIndex == EnemyIndex)
+					{
+						AVeyraPlayerController* Controller = Cast<AVeyraPlayerController>(State.World->GetFirstPlayerController());
+						ASSERT_THAT(IsNotNull(Controller));
+						FVeyraCastTarget Aim;
+						Aim.bHasLocation = true;
+						Aim.Location = FVector(Enemy.X - 10000.0, Enemy.Y, 0.0);
+						Controller->IssueCastOrder(EVeyraAbilitySlot::VisionTool, Aim);
+					}
+				})
+				.UntilServer(TEXT("The ward stands"), [](FState& State) { return HasWard(State.World); })
+				.ThenServer(TEXT("The enemy steps aside; the observer walks up and takes Sweeper"), [this, EnemyAside, BesideTheWard](FState& State) {
+					Place(State, EnemyIndex, EnemyAside);
+					Place(State, ObserverIndex, BesideTheWard);
+					UVeyraVisionToolComponent* Tool = ServerControllerOf(State, ObserverIndex)->GetPlayerState<AVeyraPlayerState>()->FindComponentByClass<UVeyraVisionToolComponent>();
+					ASSERT_THAT(IsNotNull(Tool));
+					Tool->Equip(EVeyraVisionTool::Sweeper);
+				})
+				.ThenClients(TEXT("The observer presses its vision tool's key"), [this, BesideTheWard](FState& State) {
+					if (State.ClientIndex == ObserverIndex)
+					{
+						AVeyraPlayerController* Controller = Cast<AVeyraPlayerController>(State.World->GetFirstPlayerController());
+						ASSERT_THAT(IsNotNull(Controller));
+						FVeyraCastTarget Aim;
+						Aim.bHasLocation = true;
+						Aim.Location = FVector(BesideTheWard.X, BesideTheWard.Y, 0.0);
+						Controller->IssueCastOrder(EVeyraAbilitySlot::VisionTool, Aim);
+					}
+				})
+				.UntilClients(TEXT("The observer's whole side receives the ward"), [](FState& State) { return HasWard(State.World); });
+			Warded.ThenServer(TEXT("Now it may be attacked"), [this](FState& State) {
+				TActorIterator<AVeyraWard> Ward(State.World);
+				ASSERT_THAT(IsTrue(static_cast<bool>(Ward)));
+				AVeyraPlayerState* Attacker = ServerControllerOf(State, ObserverIndex)->GetPlayerState<AVeyraPlayerState>();
+				ASSERT_THAT(IsTrue(GameModeOf(State.World)->HandleAttackOrder(Attacker, *Ward) == EVeyraOrderRejection::None));
+			})
+			.ThenClients(TEXT("Each client holds its own side's team state alone"), [this](FState& State) {
+				const EVeyraTeam MySide = Participants[State.ClientIndex].Team;
+				ASSERT_THAT(IsNotNull(AVeyraVisionTeamState::Find(State.World, MySide)));
+				ASSERT_THAT(IsNull(AVeyraVisionTeamState::Find(State.World, VeyraTeams::Opposing(MySide))));
 			});
 		}
 

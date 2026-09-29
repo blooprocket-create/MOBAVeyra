@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "update": {
     "provenance": "Provisional",
     "updateSeconds": 0.2
@@ -22,6 +22,25 @@
     "placementRange": 600,
     "hitsToDestroy": 3,
     "bodyRadius": 25,
-    "bodyHalfHeight": 60
+    "bodyHalfHeight": 60,
+    "sensorRadius": 500
+  },
+  "sweeper": {
+    "provenance": "Provisional",
+    "radius": 600,
+    "durationSeconds": 10,
+    "cooldownSeconds": 90,
+    "outlineLingerSeconds": 1
+  },
+  "quickSight": {
+    "provenance": "Provisional",
+    "range": 3500,
+    "radius": 500,
+    "durationSeconds": 4,
+    "cooldownSeconds": 120
+  },
+  "presence": {
+    "provenance": "Provisional",
+    "pingEverySeconds": 2
   }
 }

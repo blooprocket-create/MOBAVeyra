@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Vision tuning",
-  "description": "Gameplay tuning owned by the Vision domain (Vision Bible; ADR-016 §9): how often the server works out what each team and player sees, how far each kind of unit sees, and the vision tools. VeyraVision binds it to FVeyraVisionTuning.",
+  "description": "Gameplay tuning owned by the Vision domain (Vision Bible; ADR-016 §9): how often the server works out what each team and player sees, how far each kind of unit sees, the vision tools and presence pings. VeyraVision binds it to FVeyraVisionTuning.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -9,7 +9,10 @@
     "update",
     "sight",
     "wardCharges",
-    "persistentWard"
+    "persistentWard",
+    "sweeper",
+    "quickSight",
+    "presence"
   ],
   "properties": {
     "schemaVersion": {
@@ -17,7 +20,7 @@
       "type": "integer",
       "minimum": 1,
       "enum": [
-        2
+        3
       ]
     },
     "update": {
@@ -129,7 +132,8 @@
         "placementRange",
         "hitsToDestroy",
         "bodyRadius",
-        "bodyHalfHeight"
+        "bodyHalfHeight",
+        "sensorRadius"
       ],
       "properties": {
         "provenance": {
@@ -172,6 +176,132 @@
         },
         "bodyHalfHeight": {
           "description": "Half the height of a ward's body; at least its radius.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "sensorRadius": {
+          "description": "Inside Dense Fog, how far around a ward an enemy Vanguard sets off its presence ping (Vision Bible §4): its own coverage, not the whole fog.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "sweeper": {
+      "description": "Sweeper (Vision Bible §5): True Sight around its owner, for all its team.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provenance",
+        "radius",
+        "durationSeconds",
+        "cooldownSeconds",
+        "outlineLingerSeconds"
+      ],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "type": "string",
+          "enum": [
+            "Provisional",
+            "Canon",
+            "Reviewed"
+          ]
+        },
+        "radius": {
+          "description": "How far around its owner it reveals Invisible units and outlines Vanguards in Dense Fog.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "durationSeconds": {
+          "description": "How long it lasts.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "cooldownSeconds": {
+          "description": "Seconds before it can be used again; swaps and deaths never shorten it (§7).",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "outlineLingerSeconds": {
+          "description": "How long an outline lingers after True Sight stops covering it.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "quickSight": {
+      "description": "Quick Sight (Vision Bible §6): ordinary vision over an area for a moment; over Dense Fog, a presence sensor.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provenance",
+        "range",
+        "radius",
+        "durationSeconds",
+        "cooldownSeconds"
+      ],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "type": "string",
+          "enum": [
+            "Provisional",
+            "Canon",
+            "Reviewed"
+          ]
+        },
+        "range": {
+          "description": "How far from its Vanguard it reaches; a point further away is brought within it.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "radius": {
+          "description": "The area it lights.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "durationSeconds": {
+          "description": "How long it lights it.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "cooldownSeconds": {
+          "description": "Seconds before it can be used again; swaps and deaths never shorten it (§7).",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "presence": {
+      "description": "Presence pings (Vision Bible §4, §6; ADR-016 §5): what a sensor reports of an enemy Vanguard in Dense Fog.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provenance",
+        "pingEverySeconds"
+      ],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "type": "string",
+          "enum": [
+            "Provisional",
+            "Canon",
+            "Reviewed"
+          ]
+        },
+        "pingEverySeconds": {
+          "description": "How often a sensor pings again while an enemy Vanguard stays in its coverage.",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
