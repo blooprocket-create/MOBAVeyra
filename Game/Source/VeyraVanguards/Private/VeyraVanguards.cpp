@@ -6,10 +6,13 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Passives/VeyraBreachPassive.h"
+#include "Passives/VeyraCadencePassive.h"
 #include "Passives/VeyraDeepFoundationPassive.h"
 #include "Passives/VeyraGatheringLightPassive.h"
+#include "Passives/VeyraMovingTargetPassive.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Shared/VeyraHitChainPassive.h"
+#include "Shared/VeyraMarkProcPassive.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -34,6 +37,18 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindBreach(PassiveId))
 	{
 		return UVeyraBreachPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindMovingTarget(PassiveId))
+	{
+		return UVeyraMovingTargetPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindCadence(PassiveId))
+	{
+		return UVeyraCadencePassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindMarkProc(PassiveId))
+	{
+		return UVeyraMarkProcPassive::StaticClass();
 	}
 	return nullptr;
 }

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Absorption/VeyraAbsorptionLedger.h"
+#include "Slots/VeyraAbilitySlot.h"
 #include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "Movement/VeyraForcedMovementTypes.h"
@@ -65,6 +66,33 @@ enum class EVeyraCastMovement : uint8
 };
 
 /** How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4). */
+/** What a recast window does if its time runs out unused (ADR-018 §1). */
+UENUM()
+enum class EVeyraRecastExpiry : uint8
+{
+	/** The follow-up is lost. */
+	Lapse,
+	/** The follow-up casts itself, as NO BRAKES' Last Exit does. */
+	Cast,
+};
+
+/** After a cast commits, its slot holds a follow-up for a while (ADR-018 §1). */
+USTRUCT()
+struct FVeyraRecastTuning
+{
+	GENERATED_BODY()
+
+	/** The follow-up the slot holds: another ability's ID. */
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	UPROPERTY()
+	EVeyraRecastExpiry OnExpiry = EVeyraRecastExpiry::Lapse;
+};
+
 USTRUCT()
 struct FVeyraCastTuning
 {
@@ -92,6 +120,10 @@ struct FVeyraCastTuning
 	/** Seconds after delivery before the caster may cast again. */
 	UPROPERTY()
 	double RecoverySeconds = 0.0;
+
+	/** At most one: the follow-up its slot holds once this cast commits. */
+	UPROPERTY()
+	TArray<FVeyraRecastTuning> RecastWindow;
 };
 
 /** One damage component, from the caster's rank and power at Commit (Combat Bible §25, §50). */
@@ -237,6 +269,10 @@ struct FVeyraStatusTuning
 	/** Exactly one for a DamageOverTime status, and none for any other kind. */
 	UPROPERTY()
 	TArray<FVeyraDamageOverTimeTuning> DamageOverTime;
+
+	/** Seconds each remaining stack lasts once its duration runs out, for a status that loses one at a time; 0 for none. */
+	UPROPERTY()
+	double StackDecaySeconds = 0.0;
 };
 
 /** Where an area is placed. */
@@ -344,6 +380,45 @@ struct FVeyraAreaRevealTuning
 	double DurationSeconds = 0.0;
 };
 
+/** What a lingering area shows its caster's side (ADR-018 §5). */
+UENUM()
+enum class EVeyraLingerSight : uint8
+{
+	/** Nothing. */
+	None,
+	/** Its shape is ordinary vision while it lasts: never True Sight, and nothing in Dense Fog. */
+	Ordinary,
+};
+
+/** A delivered area that lasts, giving those inside it statuses by side (ADR-018 §5). */
+USTRUCT()
+struct FVeyraLingerTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** Seconds between the statuses it gives; it gives them first as it lands. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/** For its caster, while inside. */
+	UPROPERTY()
+	TArray<FVeyraContentId> CasterStatuses;
+
+	/** For the allied Vanguards inside, its caster apart. */
+	UPROPERTY()
+	TArray<FVeyraContentId> AllyStatuses;
+
+	/** For the enemy units inside. */
+	UPROPERTY()
+	TArray<FVeyraContentId> EnemyStatuses;
+
+	UPROPERTY()
+	EVeyraLingerSight Sight = EVeyraLingerSight::None;
+};
+
 /** An ability that hits the enemies in shapes at the caster or a ground point (ADR-008 §3). */
 USTRUCT()
 struct FVeyraAreaAbilityTuning
@@ -376,6 +451,14 @@ struct FVeyraAreaAbilityTuning
 	/** Innermost first: a unit takes the first zone that touches it, and no other. */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> Zones;
+
+	/** At most one: after it hits, the area lasts in its outermost zone's shape (ADR-018 §5). */
+	UPROPERTY()
+	TArray<FVeyraLingerTuning> Linger;
+
+	/** Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6). */
+	UPROPERTY()
+	TArray<FVeyraContentId> ConsumesCasterStatuses;
 };
 
 /** Statuses a buff gives nearby allied Vanguards while it lasts (ADR-008 §9). */
@@ -436,6 +519,36 @@ enum class EVeyraRecast : uint8
 	EndsEarly,
 };
 
+/** Whether a variant keeps its own cooldown or shares its slot's (ADR-018 §1). */
+UENUM()
+enum class EVeyraVariantCooldown : uint8
+{
+	/** Its own: casting it leaves the slot's own ability ready. */
+	Own,
+	/** One cooldown with the slot's own ability. */
+	Shared,
+};
+
+/** While a buff lasts, a slot holds another ability (ADR-018 §1), as Dig In under The Last Volley. */
+USTRUCT()
+struct FVeyraVariantTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraAbilitySlot Slot = EVeyraAbilitySlot::Q;
+
+	/** The variant: another ability's ID. It takes the slot's rank. */
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	UPROPERTY()
+	EVeyraVariantCooldown Cooldown = EVeyraVariantCooldown::Own;
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+};
+
 /** An ability that buffs its caster, and optionally nearby allies (ADR-008 §3). */
 USTRUCT()
 struct FVeyraSelfBuffAbilityTuning
@@ -466,6 +579,10 @@ struct FVeyraSelfBuffAbilityTuning
 
 	UPROPERTY()
 	EVeyraRecast Recast = EVeyraRecast::None;
+
+	/** Slots that hold another ability while the buff lasts (ADR-018 §1). */
+	UPROPERTY()
+	TArray<FVeyraVariantTuning> Variants;
 };
 
 /** How a projectile flies (Combat Bible §13). */
@@ -499,6 +616,19 @@ enum class EVeyraSkillshotCollision : uint8
 	Pierce,
 };
 
+/** The caster's own movement as a skillshot fires: a recoil away from its aim (ADR-018 §6). */
+USTRUCT()
+struct FVeyraCasterDashTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double Distance = 0.0;
+
+	UPROPERTY()
+	double Speed = 0.0;
+};
+
 /** An ability that fires a line projectile toward the cast's point (ADR-008 §3). Terrain stops it (ADR-008 §9). */
 USTRUCT()
 struct FVeyraSkillshotAbilityTuning
@@ -524,6 +654,10 @@ struct FVeyraSkillshotAbilityTuning
 	/** On each unit a FirstEnemyVanguard projectile passes through; empty otherwise. */
 	UPROPERTY()
 	FVeyraEffectBundleTuning PassThroughEffects;
+
+	/** At most one: the caster recoils away from the aim as it fires, as Kade's Reposition does. */
+	UPROPERTY()
+	TArray<FVeyraCasterDashTuning> CasterDash;
 };
 
 /** Which way a dash goes. */
@@ -678,13 +812,67 @@ struct FVeyraFluxSpellsTuning
 	TArray<FVeyraContentId> Roster;
 };
 
+/** A volley's extra shot, earned while it lasts (ADR-018 §6). */
+USTRUCT()
+struct FVeyraVolleyBonusTuning
+{
+	GENERATED_BODY()
+
+	/** An ally displacing an enemy that carries this status from the caster earns a shot, as Tracked does. */
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	/** At most this many, however many are earned. */
+	UPROPERTY()
+	int32 MaxShots = 0;
+};
+
+/**
+ * A lane its caster fires into, shot by shot (ADR-018 §6): Kade's Kill Corridor. As it commits, its
+ * slot holds its shot for a while; each shot is a skillshot fired within the lane, at its own cooldown.
+ */
+USTRUCT()
+struct FVeyraVolleyAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	/** Each shot: a skillshot, whose cooldown is the time between shots. */
+	UPROPERTY()
+	FVeyraContentId Shot;
+
+	UPROPERTY()
+	int32 Shots = 0;
+
+	/** How far either side of the lane's direction a shot may aim, in degrees. */
+	UPROPERTY()
+	double LaneHalfAngleDegrees = 0.0;
+
+	/** How long the lane lasts, whatever shots are left. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** For the caster while the lane lasts, as a stance that plants it. */
+	UPROPERTY()
+	TArray<FVeyraContentId> CasterStatuses;
+
+	/** At most one. */
+	UPROPERTY()
+	TArray<FVeyraVolleyBonusTuning> Bonus;
+};
+
 USTRUCT()
 struct FVeyraAbilitiesTuning
 {
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 5;
+	static constexpr int32 SchemaVersion = 6;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;
@@ -709,6 +897,9 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraEmpoweredAttackAbilityTuning> EmpoweredAttack;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraVolleyAbilityTuning> Volley;
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;

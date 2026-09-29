@@ -8,7 +8,26 @@ bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const
 {
 	for (const FVeyraSightSource& Source : Sources)
 	{
-		if (Source.Team == Team && FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Source.Radius))
+		if (Source.Team != Team)
+		{
+			continue;
+		}
+		const bool bInside = Source.Shape.IsSet() ? VeyraShapes::Touches(Source.Shape.GetValue(), FVector(Point, 0.0), 0.0)
+												  : FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Source.Radius);
+		if (bInside)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+bool IsDetectedBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point, double DetectionRadius)
+{
+	for (const FVeyraSightSource& Source : Sources)
+	{
+		const double Reach = FMath::Min(Source.Radius, DetectionRadius);
+		if (Source.Team == Team && Source.bDetects && FVector2D::DistSquared(Source.Position, Point) <= FMath::Square(Reach))
 		{
 			return true;
 		}

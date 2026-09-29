@@ -2,6 +2,8 @@
 
 #include "Abilities/VeyraSkillshotAbility.h"
 
+#include "VeyraCombatVerbs.h"
+#include "Delivery/VeyraVolleySubsystem.h"
 #include "AbilitySystemComponent.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/World.h"
@@ -51,13 +53,27 @@ FVeyraChannelPlan UVeyraSkillshotAbility::Deliver(const FVeyraCast& Cast)
 		return FVeyraChannelPlan();
 	}
 
+	// A volley's shot keeps to its lane (ADR-018 §6), and counts against it.
+	UVeyraVolleySubsystem* Volleys = World->GetSubsystem<UVeyraVolleySubsystem>();
+	const FVector Direction = Volleys ? Volleys->AimWithin(*Caster, Cast.Ability, Cast.Direction) : Cast.Direction;
+
 	// It sets off from where the caster is at Commit, which a free windup may have moved.
-	const FTransform Launch(Cast.Direction.Rotation(), Body->GetActorLocation());
+	const FTransform Launch(Direction.Rotation(), Body->GetActorLocation());
 	if (AVeyraProjectile* Projectile = World->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), Launch))
 	{
-		Projectile->LaunchLine(*Caster, Cast.Direction, Skillshot->Projectile, Skillshot->Collision,
+		Projectile->LaunchLine(*Caster, Direction, Skillshot->Projectile, Skillshot->Collision,
 			VeyraEffectDelivery::Prepare(*Caster, Skillshot->Effects, Cast.Rank), VeyraEffectDelivery::Prepare(*Caster, Skillshot->PassThroughEffects, Cast.Rank),
 			Cast.Ability, Cast.CastId);
+	}
+	if (Volleys)
+	{
+		Volleys->NoteShot(*Caster, Cast.Ability);
+	}
+	// A recoil away from the aim, as the shot leaves (Kade's Reposition).
+	if (!Skillshot->CasterDash.IsEmpty())
+	{
+		const FVeyraCasterDashTuning& Recoil = Skillshot->CasterDash[0];
+		VeyraCombat::Dash(*Caster, FVeyraDash{ -Direction.GetSafeNormal2D(), Recoil.Distance, Recoil.Speed, EVeyraDashContact::None });
 	}
 	return FVeyraChannelPlan();
 }

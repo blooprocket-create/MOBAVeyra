@@ -205,6 +205,12 @@ namespace VeyraCombat
 	/** Ends Target's status Id early, from every source, as when a recast ends a buff. Returns whether it had one. */
 	VEYRACOMBAT_API bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id);
 
+	/**
+	 * Server: ends every Camouflage on Unit, which attacked or cast something offensive (Combat Bible
+	 * §11; ADR-018 §4). Damage taken does not end it.
+	 */
+	VEYRACOMBAT_API void EndCamouflage(UAbilitySystemComponent& Unit);
+
 	/** The actions Unit's statuses stop it taking now (Combat Bible §8). None when it has no status ledger. */
 	VEYRACOMBAT_API EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit);
 

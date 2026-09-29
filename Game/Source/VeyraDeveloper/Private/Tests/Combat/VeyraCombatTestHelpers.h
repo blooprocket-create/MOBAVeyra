@@ -3,14 +3,37 @@
 #pragma once
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Components/ActorTestSpawner.h"
 #include "GameplayEffect.h"
 #include "Stats/VeyraStatBlock.h"
+#include "Statuses/VeyraStatusTypes.h"
 #include "UObject/Package.h"
+#include "VeyraCombatVerbs.h"
 #include "VeyraPlayerState.h"
 
 namespace VeyraCombatTests
 {
+	/** A Camouflage status with DetectionRadius (Combat Bible §11). Fixture values. */
+	inline FVeyraStatusSpec CamouflageSpec(double DetectionRadius)
+	{
+		// Longer than any of these tests runs.
+		constexpr double LongSeconds = 60.0;
+		FVeyraStatusSpec Spec;
+		Spec.Id = FVeyraContentId::FromText(TEXT("test_camouflage")).GetValue();
+		Spec.Kind = EVeyraStatusKind::Camouflage;
+		Spec.Magnitude = DetectionRadius;
+		Spec.DurationSeconds = LongSeconds;
+		return Spec;
+	}
+
+	/** Camouflages Unit, a unit with an Ability System Component, with DetectionRadius. */
+	inline bool Camouflage(AActor& Unit, double DetectionRadius)
+	{
+		UAbilitySystemComponent* Abilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+		return Abilities && VeyraCombat::ApplyStatus(*Abilities, *Abilities, CamouflageSpec(DetectionRadius));
+	}
+
 	// Test effects are built at runtime and take their magnitudes as plain values, so every
 	// application uses the Gameplay Ability System's default effect level.
 	static constexpr float TestEffectLevel = 1.0f;

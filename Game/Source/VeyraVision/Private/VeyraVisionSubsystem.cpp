@@ -3,7 +3,9 @@
 #include "VeyraVisionSubsystem.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Delivery/VeyraDelayedArea.h"
+#include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -15,6 +17,7 @@
 #include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraVisionRules.h"
 #include "State/VeyraVisionTeamState.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "GameFramework/GameStateBase.h"
 #include "Targeting/VeyraParticipantData.h"
 #include "Targeting/VeyraTargeting.h"
@@ -84,6 +87,37 @@ namespace
 		return &Actor;
 	}
 
+	/** Whether Unit detects Camouflage around it: a Vanguard or a standing structure, never a ward (ADR-018 §4). */
+	bool DetectsCamouflage(const AActor& Unit)
+	{
+		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
+		return Kind.IsSet() && (Kind.GetValue() == EVeyraUnitKind::Vanguard || Kind.GetValue() == EVeyraUnitKind::Structure);
+	}
+
+	/**
+	 * How near Unit's enemies must be to see it, if it is Camouflaged: the smallest detection radius
+	 * among its Camouflage statuses (Combat Bible §11; ADR-018 §4). Unset if it is not.
+	 */
+	TOptional<double> CamouflageRadiusOf(const AActor& Unit)
+	{
+		const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+		const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
+		const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+		if (!Statuses)
+		{
+			return {};
+		}
+		TOptional<double> Radius;
+		for (const FVeyraStatusEntry& Entry : Statuses->GetLedger().Entries)
+		{
+			if (Entry.Kind == EVeyraStatusKind::Camouflage)
+			{
+				Radius = Radius.IsSet() ? FMath::Min(Radius.GetValue(), Entry.Magnitude) : Entry.Magnitude;
+			}
+		}
+		return Radius;
+	}
+
 	/** How far Unit sees, or 0 when it gives no vision (wildlife, objectives, anything dead, anything with no body). */
 	double SightOf(const AActor& Unit, const FVeyraSightTuning& Sight)
 	{
@@ -116,7 +150,7 @@ UVeyraVisionSubsystem::~UVeyraVisionSubsystem() = default;
 
 bool UVeyraVisionSubsystem::IsGated(const AActor& Unit)
 {
-	if (Unit.IsA<AVeyraProjectile>() || Unit.IsA<AVeyraDelayedArea>())
+	if (Unit.IsA<AVeyraProjectile>() || Unit.IsA<AVeyraDelayedArea>() || Unit.IsA<AVeyraLingeringArea>())
 	{
 		return true;
 	}
@@ -229,6 +263,17 @@ void UVeyraVisionSubsystem::RevealArea(EVeyraTeam Team, const FVector& Centre, d
 	}
 }
 
+void UVeyraVisionSubsystem::RevealShape(EVeyraTeam Team, const FVeyraPlacedShape& Placed, double DurationSeconds)
+{
+	const UWorld* World = GetWorld();
+	if (World && IsSide(Team))
+	{
+		FSightArea& Area = SightAreas.Add_GetRef(FSightArea{ NextSightAreaId++, Team, FVector2D(Placed.Origin), VeyraShapes::Reach(Placed.Shape),
+			World->GetTimeSeconds() + DurationSeconds });
+		Area.Shape = Placed;
+	}
+}
+
 bool UVeyraVisionSubsystem::IsInTrueSight(EVeyraTeam Side, const AActor& Unit) const
 {
 	const FVector2D Where(Unit.GetActorLocation());
@@ -285,7 +330,8 @@ void UVeyraVisionSubsystem::UpdateSensors(const TArray<const AActor*>& Gated, do
 			}
 			for (const FSightArea& Area : SightAreas)
 			{
-				if (Area.Team == Side && FVector2D::DistSquared(Area.Centre, Where) <= FMath::Square(Area.Radius))
+				// A lit shape senses nothing in the fog (ADR-018 §5); a lit circle senses presence.
+				if (Area.Team == Side && !Area.Shape.IsSet() && FVector2D::DistSquared(Area.Centre, Where) <= FMath::Square(Area.Radius))
 				{
 					Ping(AreaSensorKey(Area.Id), *Enemy);
 				}
@@ -411,7 +457,7 @@ void UVeyraVisionSubsystem::UpdateNow()
 		{
 			if (const double Radius = SightOf(Actor, Sight); Radius > 0.0)
 			{
-				Sources.Add(FVeyraSightSource{ Team, FVector2D(Actor.GetActorLocation()), Radius });
+				Sources.Add(FVeyraSightSource{ Team, FVector2D(Actor.GetActorLocation()), Radius, DetectsCamouflage(Actor) });
 				if (IsVanguardBody(Actor))
 				{
 					Lookouts.Add({ &Actor, Radius });
@@ -432,7 +478,8 @@ void UVeyraVisionSubsystem::UpdateNow()
 	// A lit area is ordinary vision for its side while it lasts (Vision Bible §6).
 	for (const FSightArea& Area : SightAreas)
 	{
-		Sources.Add(FVeyraSightSource{ Area.Team, Area.Centre, Area.Radius });
+		FVeyraSightSource& Lit = Sources.Add_GetRef(FVeyraSightSource{ Area.Team, Area.Centre, Area.Radius });
+		Lit.Shape = Area.Shape;
 	}
 	for (const TPair<EVeyraTeam, TWeakObjectPtr<AVeyraVisionTeamState>>& State : TeamStates)
 	{
@@ -454,11 +501,17 @@ void UVeyraVisionSubsystem::UpdateNow()
 			continue;
 		}
 		Fogged.Add(Unit, Volume);
+		// Camouflaged in the fog, it is seen only within its detection radius too (ADR-018 §4).
+		const TOptional<double> Detection = CamouflageRadiusOf(*Unit);
 		for (const TPair<const AActor*, double>& Lookout : Lookouts)
 		{
+			const EVeyraTeam LookoutSide = VeyraTeams::TeamOf(Lookout.Key);
 			const bool bInside = VeyraVisionRules::VolumeAt(Fog, FogVolumes, FVector2D(Lookout.Key->GetActorLocation())) == Volume;
-			const bool bEnemy = VeyraTeams::TeamOf(Lookout.Key) != VeyraTeams::TeamOf(Unit);
-			if (bInside && bEnemy && FVector2D::DistSquared(FVector2D(Lookout.Key->GetActorLocation()), FVector2D(Unit->GetActorLocation())) <= FMath::Square(Lookout.Value))
+			const bool bEnemy = LookoutSide != VeyraTeams::TeamOf(Unit);
+			const double Apart = FVector2D::DistSquared(FVector2D(Lookout.Key->GetActorLocation()), FVector2D(Unit->GetActorLocation()));
+			// Within its sight, and within the Camouflage's detection radius or its side's True Sight.
+			const bool bDetected = !Detection.IsSet() || Apart <= FMath::Square(Detection.GetValue()) || IsInTrueSight(LookoutSide, *Unit);
+			if (bInside && bEnemy && Apart <= FMath::Square(Lookout.Value) && bDetected)
 			{
 				FogSightings.FindOrAdd(Lookout.Key).Add(Unit);
 			}
@@ -474,9 +527,7 @@ void UVeyraVisionSubsystem::UpdateNow()
 			{
 				continue;
 			}
-			// An Invisible unit shows only under True Sight (Vision Bible §5); the rest, to ordinary sight.
-			const bool bSeen = IsInvisible(*Unit) ? IsInTrueSight(Side, *Unit) : VeyraVisionRules::IsSeenBy(Side, Sources, FVector2D(Unit->GetActorLocation()));
-			if (bSeen)
+			if (JudgeSight(Side, *Unit))
 			{
 				SideSeen.Add(Unit);
 			}
@@ -636,5 +687,19 @@ bool UVeyraVisionSubsystem::IsVisibleToTeam(EVeyraTeam Team, const AActor& Targe
 		return false;
 	}
 	// Spawned since the last pass: judged now, against that pass's sources.
-	return !Known.Contains(Body) && VeyraVisionRules::IsSeenBy(Team, Sources, FVector2D(Body->GetActorLocation()));
+	return !Known.Contains(Body) && JudgeSight(Team, *Body);
+}
+
+bool UVeyraVisionSubsystem::JudgeSight(EVeyraTeam Side, const AActor& Unit) const
+{
+	const FVector2D Where(Unit.GetActorLocation());
+	if (IsInvisible(Unit))
+	{
+		return IsInTrueSight(Side, Unit);
+	}
+	if (const TOptional<double> Detection = CamouflageRadiusOf(Unit))
+	{
+		return IsInTrueSight(Side, Unit) || VeyraVisionRules::IsDetectedBy(Side, Sources, Where, Detection.GetValue());
+	}
+	return VeyraVisionRules::IsSeenBy(Side, Sources, Where);
 }

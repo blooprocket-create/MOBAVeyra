@@ -72,3 +72,9 @@ FVeyraChannelPlan UVeyraEmpoweredAttackAbility::Deliver(const FVeyraCast& Cast)
 	Attacks->Empower(MoveTemp(Empowerment));
 	return FVeyraChannelPlan();
 }
+
+bool UVeyraEmpoweredAttackAbility::IsOffensive(const FVeyraContentId& /*Ability*/) const
+{
+	// Empowering is not attacking: the attack it empowers is what ends stealth.
+	return false;
+}

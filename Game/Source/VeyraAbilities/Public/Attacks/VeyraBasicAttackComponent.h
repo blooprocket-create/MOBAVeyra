@@ -68,6 +68,12 @@ public:
 	/** The timing an attack starting now would have (Combat Bible §22). */
 	FVeyraAttackTiming GetTiming() const;
 
+	/**
+	 * How far the unit's basic attacks reach now (ADR-018 §2): its profile's range, its AttackRange
+	 * statuses and, against Target, what Target's statuses from this unit add. Null for any target.
+	 */
+	double GetRange(const AActor* Target) const;
+
 	const FVeyraAttackState& GetState() const { return State; }
 
 	/** Server: when the next attack may start, in the server's world time. */

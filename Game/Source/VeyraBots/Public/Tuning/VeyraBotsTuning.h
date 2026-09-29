@@ -37,6 +37,11 @@ enum class EVeyraBotAbilityUse : uint8
 	 * it before anyone else can: League's Smite (ADR-015 §8).
 	 */
 	Secure,
+	/**
+	 * Never cast: a bot leaves it alone, as a stance it cannot yet leave before it moves (Vera's Dig
+	 * In; ADR-018 §8). The kit is still complete in the data.
+	 */
+	Never,
 };
 
 /** Where a bot aims a skillshot or area at a moving target. */

@@ -24,6 +24,7 @@
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
 #include "VeyraVisionSubsystem.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Wards/VeyraWard.h"
 
 namespace VeyraNetTests
@@ -225,6 +226,42 @@ namespace VeyraNetTests
 					return Algo::AllOf(Participants, [&State, MySide](const FParticipant& Other) {
 						return HasVanguard(State.World, Other.PlayerId) == (Other.Team == MySide);
 					});
+				});
+		}
+
+		TEST_METHOD(ACamouflagedEnemyReachesTheOtherSideOnlyWithinItsDetectionRadius)
+		{
+			// The observer's side together; the enemy in the observer's sight, beyond its detection radius.
+			const double Detection = SightRadius() / 4.0;
+			const FVector2D Observer(-SightRadius(), 0.0);
+			const FVector2D Bystander(-SightRadius(), SightRadius() / 3.0);
+			const FVector2D InSight(-SightRadius() / 2.0, 0.0);
+			const FVector2D Close(-SightRadius() + Detection / 2.0, 0.0);
+			IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("The enemy stands in the observer's sight"), [this, Observer, Bystander, InSight](FState& State) {
+					Place(State, ObserverIndex, Observer);
+					Place(State, BystanderIndex, Bystander);
+					Place(State, EnemyIndex, InSight);
+				})
+				.UntilClients(TEXT("Every client has every Vanguard"), [this](FState& State) {
+					return Algo::AllOf(Participants, [&State](const FParticipant& Other) { return HasVanguard(State.World, Other.PlayerId); });
+				})
+				.ThenServer(TEXT("The enemy camouflages"), [this, Detection](FState& State) {
+					AVeyraPlayerState* Enemy = ServerControllerOf(State, EnemyIndex)->GetPlayerState<AVeyraPlayerState>();
+					ASSERT_THAT(IsTrue(Enemy && VeyraCombatTests::Camouflage(*Enemy, Detection)));
+				})
+				.UntilClients(TEXT("It leaves the observer's side's clients, and still sees them"), [this](FState& State) {
+					const FParticipant& Enemy = Participants[EnemyIndex];
+					if (Participants[State.ClientIndex].Team != Enemy.Team)
+					{
+						return !HasVanguard(State.World, Enemy.PlayerId);
+					}
+					// One way only: the Camouflaged enemy's own sight is untouched.
+					return HasVanguard(State.World, Participants[ObserverIndex].PlayerId);
+				})
+				.ThenServer(TEXT("It walks within its detection radius of the observer"), [this, Close](FState& State) { Place(State, EnemyIndex, Close); })
+				.UntilClients(TEXT("It reaches the observer's whole side again"), [this](FState& State) {
+					return Algo::AllOf(Participants, [&State](const FParticipant& Other) { return HasVanguard(State.World, Other.PlayerId); });
 				});
 		}
 

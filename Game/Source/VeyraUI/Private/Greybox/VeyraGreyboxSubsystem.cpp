@@ -9,6 +9,7 @@
 #include "Components/LineBatchComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
+#include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
@@ -229,7 +230,7 @@ FLinearColor UVeyraGreyboxSubsystem::BodyColorOf(const AActor& Unit) const
 	const auto Has = [&Statuses](EVeyraStatusKind Kind) {
 		return Statuses.ContainsByPredicate([Kind](const FVeyraHudStatus& Status) { return Status.Kind == Kind; });
 	};
-	// A stun matters more than a slow.
+	// A stun matters more than a slow, and either more than a Camouflage.
 	if (Has(EVeyraStatusKind::Stun))
 	{
 		return FLinearColor::LerpUsingHSV(Side, Settings.StunColor, Settings.StatusTintStrength);
@@ -237,6 +238,10 @@ FLinearColor UVeyraGreyboxSubsystem::BodyColorOf(const AActor& Unit) const
 	if (Has(EVeyraStatusKind::Slow))
 	{
 		return FLinearColor::LerpUsingHSV(Side, Settings.SlowColor, Settings.StatusTintStrength);
+	}
+	if (Has(EVeyraStatusKind::Camouflage))
+	{
+		return FLinearColor::LerpUsingHSV(Side, Settings.CamouflageColor, Settings.StatusTintStrength);
 	}
 	return Side;
 }
@@ -500,6 +505,12 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 			Telegraphs.Add(FVeyraTelegraph{ FVeyraPlacedShape{ Shape, Area.GetActorLocation(), Area.GetDirection() }, EVeyraTelegraphSource::DelayedArea,
 				Area.GetVeyraTeam(), Remaining });
 		}
+	}
+	for (TActorIterator<AVeyraLingeringArea> It(GetWorld()); It; ++It)
+	{
+		const AVeyraLingeringArea& Area = **It;
+		Telegraphs.Add(FVeyraTelegraph{ Area.GetPlacedShape(), EVeyraTelegraphSource::LingeringArea, Area.GetVeyraTeam(),
+			FMath::Max(0.0, Area.GetEndsAt() - Now) });
 	}
 }
 

@@ -60,6 +60,21 @@ public:
 	/** The largest magnitude among the unit's statuses of Kind; 0 when it has none. */
 	double GetStrongest(EVeyraStatusKind Kind) const;
 
+	/** The unit's statuses of Kind added together, each its magnitude times its stacks; 0 when it has none. */
+	double GetTotal(EVeyraStatusKind Kind) const;
+
+	/** What the unit's reductions of Kind leave, multiplied together; 1 when it has none. */
+	double GetRetained(EVeyraStatusKind Kind) const;
+
+	/** Server only: the unit's statuses of Kind from Source, added together, such as a source-relative range. */
+	double GetTotalFrom(EVeyraStatusKind Kind, const UAbilitySystemComponent& Source) const;
+
+	/** Server: whether the unit has status Id from Source, as a mark only its applier reads (ADR-018 §2). */
+	bool HasFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
+
+	/** Server: the stacks of status Id the unit has from Source; 0 for none. */
+	int32 GetStacksFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
+
 	/** The actions the unit's statuses stop it taking. */
 	EVeyraActionBlocks GetActionBlocks() const;
 
@@ -91,7 +106,12 @@ private:
 		double TickDamage = 0.0;
 		double TickSeconds = 0.0;
 		int32 TicksLeft = 0;
+		/** A status that loses one stack at a time: how long each remaining stack lasts; 0 for none. */
+		double StackDecaySeconds = 0.0;
 	};
+
+	/** Entry Sequence's effect Ended ran out: loses one stack and runs again if it decays so. Returns whether it did. */
+	bool DecayOneStack(int32 Sequence, const FActiveGameplayEffect& Ended);
 
 	UFUNCTION()
 	void OnRep_Ledger();

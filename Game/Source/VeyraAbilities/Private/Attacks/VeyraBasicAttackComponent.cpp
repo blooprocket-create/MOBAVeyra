@@ -173,7 +173,7 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::CheckAttack(const AActor* Targ
 	}
 	// The target before the interval, so an order chases a target out of range while the interval runs.
 	// Basic attacks are what damages structures (Combat Bible §33).
-	switch (VeyraTargeting::CheckEnemyTarget(*Body, Target, Profile.Range, EVeyraStructureTargeting::Allow))
+	switch (VeyraTargeting::CheckEnemyTarget(*Body, Target, GetRange(Target), EVeyraStructureTargeting::Allow))
 	{
 	case EVeyraTargetValidity::Valid:
 		break;
@@ -201,6 +201,8 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::StartAttack(AActor& Target)
 	}
 	// A backswing still running ends as the next attack begins.
 	GetWorld()->GetTimerManager().ClearTimer(PhaseTimer);
+	// Attacking ends Camouflage (Combat Bible §11; ADR-018 §4).
+	VeyraCombat::EndCamouflage(*GetAbilitySystem());
 
 	const double Now = GetServerNow();
 	FRunningAttack& Attack = Running.Emplace();
@@ -245,7 +247,7 @@ void UVeyraBasicAttackComponent::Commit()
 	// The target must still be valid and in range, and the attacker free to attack (Combat Bible §4).
 	const bool bBlocked = Attacker && EnumHasAnyFlags(VeyraCombat::GetActionBlocks(*Attacker), EVeyraActionBlocks::Attack);
 	if (!Body || !Target || bBlocked
-		|| VeyraTargeting::CheckEnemyTarget(*Body, Target, Profile.Range, EVeyraStructureTargeting::Allow) != EVeyraTargetValidity::Valid)
+		|| VeyraTargeting::CheckEnemyTarget(*Body, Target, GetRange(Target), EVeyraStructureTargeting::Allow) != EVeyraTargetValidity::Valid)
 	{
 		EndAttack();
 		return;
@@ -463,7 +465,29 @@ FVeyraAttackTiming UVeyraBasicAttackComponent::GetTiming() const
 {
 	const UAbilitySystemComponent* Attacker = GetAbilitySystem();
 	const double AttackSpeed = Attacker ? Attacker->GetNumericAttribute(UVeyraOffenceSet::GetAttackSpeedAttribute()) : 0.0;
-	return VeyraAttackSpeed::Resolve(AttackSpeed, UVeyraCombatTuningSubsystem::Get().AttackSpeed, Profile.MinimumIntervalSeconds);
+	// A status may raise the cap for a while (§22).
+	const UVeyraStatusComponent* Statuses = GetOwner() ? GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	const double RaisedCap = Statuses ? Statuses->GetStrongest(EVeyraStatusKind::AttackSpeedCap) : 0.0;
+	return VeyraAttackSpeed::Resolve(AttackSpeed, UVeyraCombatTuningSubsystem::Get().AttackSpeed, Profile.MinimumIntervalSeconds, RaisedCap);
+}
+
+double UVeyraBasicAttackComponent::GetRange(const AActor* Target) const
+{
+	double Range = Profile.Range;
+	const UVeyraStatusComponent* Statuses = GetOwner() ? GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (Statuses)
+	{
+		Range += Statuses->GetTotal(EVeyraStatusKind::AttackRange);
+	}
+	// What the target's statuses from this unit add, such as a Tracked or Ranged mark.
+	const UAbilitySystemComponent* Attacker = GetAbilitySystem();
+	const UAbilitySystemComponent* TargetUnit = Target ? UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target) : nullptr;
+	const UVeyraStatusComponent* TargetStatuses = TargetUnit && TargetUnit->GetOwner() ? TargetUnit->GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (Attacker && TargetStatuses)
+	{
+		Range += TargetStatuses->GetTotalFrom(EVeyraStatusKind::SourceAttackRange, *Attacker);
+	}
+	return Range;
 }
 
 void UVeyraBasicAttackComponent::EndBackswing()

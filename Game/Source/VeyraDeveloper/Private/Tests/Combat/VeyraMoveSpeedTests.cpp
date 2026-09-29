@@ -125,6 +125,37 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(LockChanges == TArray<bool>{ true, false }));
 		}
 
+		TEST_METHOD(SlowResistanceWeakensTheSlowAndPlantedStopsTheUnit)
+		{
+			constexpr double Slow = 0.4;
+			constexpr double Resistance = 0.5;
+			constexpr double LongSeconds = 60.0;
+			UAbilitySystemComponent& Unit = SpawnCombatant(Spawner);
+			ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(Unit, ExampleStats())));
+			AVeyraVanguardCharacter& Vanguard = Spawner.SpawnActor<AVeyraVanguardCharacter>();
+			Vanguard.SetPlayerState(CastChecked<APlayerState>(Unit.GetOwner()));
+			UVeyraMovementComponent& Movement = *Vanguard.GetVeyraMovement();
+			Movement.SetMovementMode(MOVE_Walking);
+			const FVeyraMovementTuning& Committed = UVeyraCombatTuningSubsystem::Get().Movement;
+			const auto Status = [LongSeconds](const TCHAR* Id, EVeyraStatusKind Kind, double Magnitude) {
+				FVeyraStatusSpec Spec;
+				Spec.Id = FVeyraContentId::FromText(Id).GetValue();
+				Spec.Kind = Kind;
+				Spec.Magnitude = Magnitude;
+				Spec.DurationSeconds = LongSeconds;
+				return Spec;
+			};
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Unit, Unit, Status(TEXT("chill"), EVeyraStatusKind::Slow, Slow))));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Unit, Unit, Status(TEXT("steady"), EVeyraStatusKind::SlowResistance, Resistance))));
+			// A 40% Slow against 50% Slow Resistance slows by 20% (ADR-018 §2).
+			const double Expected = VeyraMovementRules::EffectiveSpeed(SpeedInputs(ExampleStats().MoveSpeed, Slow * (1.0 - Resistance)), Committed);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Movement.GetMaxSpeed(), Expected, 1e-3)));
+
+			// A firing stance: the unit stands still by its own choice.
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Unit, Unit, Status(TEXT("dig_in"), EVeyraStatusKind::Planted, 0.0))));
+			ASSERT_THAT(IsTrue(Movement.GetMaxSpeed() == 0.0f && Movement.IsMovementLocked()));
+		}
+
 		TEST_METHOD(HeadingTowardAUnitMeansItLiesWithinTheAngle)
 		{
 			// Fixture values: a unit heading along +X, and a 60-degree allowance either side.

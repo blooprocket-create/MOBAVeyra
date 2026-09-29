@@ -10,13 +10,19 @@
 
     The textures are lockable Git LFS files (ADR-006 §9): lock them before committing new versions.
     The log goes to Game/Saved/Logs/BuildVanguardArt.log.
+.PARAMETER Vanguards
+    Only these Vanguards' art, such as those newly released: the textures already committed are
+    read-only until locked, so leave them out unless their art changed and they are locked.
 .PARAMETER EngineRoot
     Engine folder to use instead of the one registered for the project's EngineAssociation.
 .EXAMPLE
     ./Game/Scripts/BuildVanguardArt.ps1
+.EXAMPLE
+    ./Game/Scripts/BuildVanguardArt.ps1 -Vanguards kade, vera, mimzi
 #>
 [CmdletBinding()]
 param(
+    [string[]]$Vanguards = @(),
     [string]$EngineRoot
 )
 
@@ -54,6 +60,9 @@ $arguments = @(
     '-nosound'
 ) -join ' '
 
+if ($Vanguards.Count -gt 0) {
+    Get-ChildItem -LiteralPath $converted -Filter '*.png' | Where-Object { $_.BaseName -notin $Vanguards } | Remove-Item -Force
+}
 Write-Host 'Importing the Vanguard art.'
 $process = Start-Process -FilePath $editor -ArgumentList $arguments -NoNewWindow -PassThru -Wait
 if ($process.ExitCode -ne 0) {

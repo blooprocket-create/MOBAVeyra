@@ -50,11 +50,11 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsTrue(Problems.IsEmpty(), FString::Join(Problems, TEXT(" | "))));
 		}
 
-		TEST_METHOD(TheFourKitsArePlayableAndTheTestVanguardIsNot)
+		TEST_METHOD(TheSevenKitsArePlayableAndTheTestVanguardIsNot)
 		{
 			// Only Playable Vanguards are released: the backend's catalog lists them, and a Shipping
 			// match server hosts nothing else (ADR-010 §6).
-			for (const TCHAR* Released : { TEXT("cairn"), TEXT("qazharr"), TEXT("oriel"), TEXT("bryn") })
+			for (const TCHAR* Released : { TEXT("cairn"), TEXT("qazharr"), TEXT("oriel"), TEXT("bryn"), TEXT("kade"), TEXT("vera"), TEXT("mimzi") })
 			{
 				const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(VanguardTestId(Released));
 				ASSERT_THAT(IsTrue(Definition && Definition->Availability == EVeyraVanguardAvailability::Playable, Released));
@@ -81,6 +81,13 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("/vanguards/cairn/passive/0:")), All));
 			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("/vanguards/cairn/body/capsuleHalfHeight:")), All));
 			ASSERT_THAT(IsTrue(Mentions(Problems, TEXT("/deepFoundation/cairn_deep_foundation/shield/amountByRank:")), All));
+		}
+
+		TEST_METHOD(DeadReckoningNeedsAStep)
+		{
+			FVeyraVanguardsTuning Tuning = UVeyraVanguardsTuningSubsystem::Get();
+			Tuning.MovingTarget.FindChecked(VanguardTestId(TEXT("kade_moving_target"))).DeadReckoning.StepUnits = 0.0;
+			ASSERT_THAT(IsTrue(Mentions(ValidateAgainstCommitted(Tuning), TEXT("/movingTarget/kade_moving_target/deadReckoning"))));
 		}
 
 		TEST_METHOD(EachPassiveRunsByTheMapThatDefinesIt)

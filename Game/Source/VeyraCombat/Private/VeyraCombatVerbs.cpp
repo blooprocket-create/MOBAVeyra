@@ -639,6 +639,28 @@ bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id)
 	return Statuses && Statuses->Remove(Id);
 }
 
+void EndCamouflage(UAbilitySystemComponent& Unit)
+{
+	const AActor* Owner = Unit.GetOwner();
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (!Statuses)
+	{
+		return;
+	}
+	TArray<FVeyraContentId, TInlineAllocator<2>> Camouflage;
+	for (const FVeyraStatusEntry& Entry : Statuses->GetLedger().Entries)
+	{
+		if (Entry.Kind == EVeyraStatusKind::Camouflage)
+		{
+			Camouflage.AddUnique(Entry.Id);
+		}
+	}
+	for (const FVeyraContentId& Id : Camouflage)
+	{
+		RemoveStatus(Unit, Id);
+	}
+}
+
 EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)
 {
 	const AActor* Owner = Unit.GetOwner();
@@ -656,6 +678,8 @@ bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, 
 	}
 	// §9: Displacement Resistance shortens the path; each source keeps less than all of it, so some remains.
 	const double Retained = Target.GetSet<UVeyraDefenceSet>() ? Target.GetNumericAttribute(UVeyraDefenceSet::GetDisplacementRetainedAttribute()) : 1.0;
+	const AActor* Body = Movement->GetOwner();
+	const FVector From = Body ? Body->GetActorLocation() : FVector::ZeroVector;
 	if (!Movement->StartDisplacement(Displacement.Direction, Displacement.Distance * Retained, Displacement.Speed))
 	{
 		UE_LOG(LogVeyraCombat, Error, TEXT("Refused a displacement of %s by %g at %g: it needs a horizontal direction and a finite distance and speed above 0."),
@@ -667,6 +691,16 @@ bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, 
 	if (UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr)
 	{
 		Statuses->NotifyInterrupted();
+	}
+	// Who moved whom, and how far terrain lets it go, for passives such as Kade's (ADR-018 §3); a unit
+	// that cannot move at all is not displaced.
+	const TOptional<FVector> To = Movement->GetForcedMoveDestination();
+	const double Travelled = To.IsSet() ? FVector::Dist2D(From, To.GetValue()) : 0.0;
+	UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+	UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+	if (Events && !FMath::IsNearlyZero(Travelled, UE_KINDA_SMALL_NUMBER))
+	{
+		Events->OnDisplaced.Broadcast(FVeyraDisplacementEvent{ &Source, &Target, Travelled });
 	}
 	return true;
 }

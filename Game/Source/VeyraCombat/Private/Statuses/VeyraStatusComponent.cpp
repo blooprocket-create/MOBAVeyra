@@ -47,6 +47,13 @@ namespace
 		case EVeyraStatusKind::AttackCleave:
 		case EVeyraStatusKind::MoveSpeedTowardEnemyVanguards:
 		case EVeyraStatusKind::DamageOverTime:
+		case EVeyraStatusKind::AttackRange:
+		case EVeyraStatusKind::AttackSpeedCap:
+		case EVeyraStatusKind::SlowResistance:
+		case EVeyraStatusKind::Planted:
+		case EVeyraStatusKind::Camouflage:
+		case EVeyraStatusKind::SourceAttackRange:
+		case EVeyraStatusKind::Counter:
 			break;
 		}
 		return NAME_None;
@@ -160,6 +167,7 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 		StopTicking(*Earlier, /*bDealDueTick*/ false);
 	}
 	FServerEntry& Server = ServerEntries.Add(Entry->Sequence, FServerEntry{ Effect, &Source, Spec.TakedownExtensionSeconds, Spec.TakedownExtensionMaxSeconds });
+	Server.StackDecaySeconds = Spec.StackDecaySeconds;
 	if (Spec.Kind == EVeyraStatusKind::DamageOverTime)
 	{
 		Server.TickDamageType = Spec.DamageType;
@@ -183,7 +191,7 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 	// What was applied, for statistics (ADR-017 §1).
 	if (UVeyraCombatEventSubsystem* Events = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
 	{
-		Events->OnStatusApplied.Broadcast(FVeyraStatusApplied{ &Source, Target, Spec.Kind, Now, EndsAt });
+		Events->OnStatusApplied.Broadcast(FVeyraStatusApplied{ &Source, Target, Spec.Kind, Now, EndsAt, Spec.Id });
 	}
 	if (Spec.Kind == EVeyraStatusKind::Stun)
 	{
@@ -265,6 +273,52 @@ double UVeyraStatusComponent::GetStrongest(EVeyraStatusKind Kind) const
 	return VeyraStatuses::Strongest(Ledger.Entries, Kind);
 }
 
+double UVeyraStatusComponent::GetTotal(EVeyraStatusKind Kind) const
+{
+	return VeyraStatuses::Total(Ledger.Entries, Kind);
+}
+
+double UVeyraStatusComponent::GetRetained(EVeyraStatusKind Kind) const
+{
+	return VeyraStatuses::Retained(Ledger.Entries, Kind);
+}
+
+double UVeyraStatusComponent::GetTotalFrom(EVeyraStatusKind Kind, const UAbilitySystemComponent& Source) const
+{
+	double Sum = 0.0;
+	for (const FVeyraStatusEntry& Entry : Ledger.Entries)
+	{
+		const FServerEntry* Server = Entry.Kind == Kind ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		if (Server && Server->Source.Get() == &Source)
+		{
+			Sum += Entry.Magnitude * Entry.Stacks;
+		}
+	}
+	return Sum;
+}
+
+bool UVeyraStatusComponent::HasFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const
+{
+	return Ledger.Entries.ContainsByPredicate([this, &Id, &Source](const FVeyraStatusEntry& Entry) {
+		const FServerEntry* Server = Entry.Id == Id ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		return Server && Server->Source.Get() == &Source;
+	});
+}
+
+int32 UVeyraStatusComponent::GetStacksFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const
+{
+	int32 Stacks = 0;
+	for (const FVeyraStatusEntry& Entry : Ledger.Entries)
+	{
+		const FServerEntry* Server = Entry.Id == Id ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		if (Server && Server->Source.Get() == &Source)
+		{
+			Stacks += Entry.Stacks;
+		}
+	}
+	return Stacks;
+}
+
 EVeyraActionBlocks UVeyraStatusComponent::GetActionBlocks() const
 {
 	return VeyraStatuses::ActionBlocks(Ledger.Entries);
@@ -287,6 +341,12 @@ void UVeyraStatusComponent::OnEffectRemoved(const FActiveGameplayEffect& Effect)
 		}
 	}
 	if (Ended == INDEX_NONE)
+	{
+		return;
+	}
+	// A status that decays a stack at a time loses one as its time runs out and runs again, until its
+	// last stack goes (ADR-018 §2). Removed early, or its unit dead, it ends at once.
+	if (DecayOneStack(Ended, Effect))
 	{
 		return;
 	}
@@ -410,4 +470,34 @@ double UVeyraStatusComponent::GetServerNow() const
 	const UWorld* World = GetWorld();
 	const AGameStateBase* GameState = World ? World->GetGameState() : nullptr;
 	return GameState ? GameState->GetServerWorldTimeSeconds() : (World ? World->GetTimeSeconds() : 0.0);
+}
+
+bool UVeyraStatusComponent::DecayOneStack(int32 Sequence, const FActiveGameplayEffect& Ended)
+{
+	FServerEntry* Server = ServerEntries.Find(Sequence);
+	FVeyraStatusEntry* Entry = Ledger.Entries.FindByPredicate([Sequence](const FVeyraStatusEntry& Candidate) { return Candidate.Sequence == Sequence; });
+	UAbilitySystemComponent* Target = BoundAbilitySystem.Get();
+	UAbilitySystemComponent* Source = Server ? Server->Source.Get() : nullptr;
+	const UWorld* World = GetWorld();
+	if (!Server || !Entry || !Target || !Source || !World || Server->StackDecaySeconds <= 0.0 || Entry->Stacks <= 1)
+	{
+		return false;
+	}
+	// Only a status whose time ran out decays; one removed early ends at once.
+	constexpr double ExpiryTolerance = 1e-3;
+	if (Ended.GetEndTime() > World->GetTimeSeconds() + ExpiryTolerance)
+	{
+		return false;
+	}
+	const FActiveGameplayEffectHandle Next = ApplyEffect(*Source, *Target, Entry->Kind, Entry->Magnitude, Entry->Stacks - 1, Server->StackDecaySeconds);
+	if (!Next.IsValid())
+	{
+		return false;
+	}
+	Server->Effect = Next;
+	Entry->Stacks -= 1;
+	Entry->StartedAt = GetServerNow();
+	Entry->EndsAt = Entry->StartedAt + Server->StackDecaySeconds;
+	MarkLedgerChanged();
+	return true;
 }

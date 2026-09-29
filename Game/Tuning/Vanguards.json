@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 8,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -235,6 +235,132 @@
         "r": []
       },
       "passive": []
+    },
+    "kade": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 580,
+        "healthRegen": 0.7,
+        "maxResource": 300,
+        "resourceRegen": 3.3,
+        "armor": 24,
+        "magicResist": 30,
+        "physicalPower": 60,
+        "magicPower": 0,
+        "attackSpeed": 0.625,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 95,
+        "healthRegen": 0.1,
+        "maxResource": 45,
+        "resourceRegen": 0.3,
+        "armor": 4.2,
+        "magicResist": 1.3,
+        "physicalPower": 3.2,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.025
+      },
+      "basicAttack": {
+        "range": 600,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 750,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 2500, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["kade_throughline"], "w": ["kade_sightline"], "e": ["kade_reposition"], "r": ["kade_kill_corridor"] },
+      "passive": ["kade_moving_target"]
+    },
+    "vera": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 560,
+        "healthRegen": 0.7,
+        "maxResource": 320,
+        "resourceRegen": 3.4,
+        "armor": 25,
+        "magicResist": 30,
+        "physicalPower": 58,
+        "magicPower": 0,
+        "attackSpeed": 0.64,
+        "moveSpeed": 325
+      },
+      "growth": {
+        "maxHealth": 90,
+        "healthRegen": 0.1,
+        "maxResource": 40,
+        "resourceRegen": 0.3,
+        "armor": 4,
+        "magicResist": 1.3,
+        "physicalPower": 2.8,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.03
+      },
+      "basicAttack": {
+        "range": 575,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 2600, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["vera_range_found"], "w": ["vera_dig_in"], "e": ["vera_break_the_line"], "r": ["vera_the_last_volley"] },
+      "passive": ["vera_cadence"]
+    },
+    "mimzi": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 34, "capsuleHalfHeight": 70, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 540,
+        "healthRegen": 0.7,
+        "maxResource": 350,
+        "resourceRegen": 3.6,
+        "armor": 22,
+        "magicResist": 30,
+        "physicalPower": 52,
+        "magicPower": 0,
+        "attackSpeed": 0.65,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 88,
+        "healthRegen": 0.1,
+        "maxResource": 45,
+        "resourceRegen": 0.3,
+        "armor": 4,
+        "magicResist": 1.3,
+        "physicalPower": 2.6,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.025
+      },
+      "basicAttack": {
+        "range": 550,
+        "damageType": "Magic",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0.25,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 2000, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["mimzi_twinklebolt"], "w": ["mimzi_winkbomb"], "e": ["mimzi_now_you_see_me"], "r": ["mimzi_grand_prank"] },
+      "passive": ["mimzi_pocket_hex"]
     }
   },
   "deepFoundation": {
@@ -276,6 +402,65 @@
         "damage": [{ "type": "Physical", "amountByRank": [40], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }],
         "statuses": []
       }
+    }
+  },
+  "movingTarget": {
+    "kade_moving_target": {
+      "provenance": "Provisional",
+      "trackedStatus": "kade_tracked",
+      "trackedDamage": { "type": "Physical", "amountByRank": [20], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 },
+      "deadReckoning": {
+        "thresholdUnits": 600,
+        "capUnits": 1500,
+        "damage": { "type": "Physical", "amountByRank": [40], "physicalPowerRatio": 0, "magicPowerRatio": 0 },
+        "physicalPowerRatioPerStep": 0.1,
+        "stepUnits": 100
+      }
+    }
+  },
+  "cadence": {
+    "vera_cadence": {
+      "provenance": "Provisional",
+      "status": "vera_cadence",
+      "extraStackOn": "vera_ranged",
+      "steadyStatus": "vera_dig_in_stance",
+      "steadyDecayMultiplier": 2,
+      "fullStatus": "vera_last_volley",
+      "firingLine": {
+        "delaySeconds": 0.15,
+        "attackDamageFraction": 0.3,
+        "damage": { "type": "Magic", "amountByRank": [0], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 },
+        "projectile": { "speed": 2600, "radius": 20 }
+      },
+      "spectralRank": {
+        "everyAttacks": 3,
+        "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 700, "width": 150 },
+        "damage": [{ "type": "Physical", "amountByRank": [60], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }]
+      }
+    }
+  },
+  "markProc": {
+    "mimzi_pocket_hex": {
+      "provenance": "Provisional",
+      "mark": "mimzi_hex",
+      "procDamage": { "type": "Magic", "amountByRank": [30], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 },
+      "procDamagePerLevel": 8,
+      "emergence": [
+        {
+          "status": "mimzi_camouflage",
+          "windowSeconds": 3,
+          "bonusDamage": { "type": "Magic", "amountByRank": [25], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }
+        }
+      ],
+      "procBolts": [
+        {
+          "ability": "mimzi_grand_prank",
+          "windowSeconds": 6,
+          "radius": 600,
+          "damage": { "type": "Magic", "amountByRank": [20], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 },
+          "projectile": { "speed": 1800, "radius": 20 }
+        }
+      ]
     }
   }
 }

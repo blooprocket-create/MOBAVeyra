@@ -108,6 +108,40 @@
         "bryn_kickback": "Escape",
         "bryn_last_broadside": "Damage"
       }
+    },
+    "kade": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "cycler_core", "razorwheel", "striker_assembly", "colossus_temper"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "kade_throughline": "Damage",
+        "kade_sightline": "Damage",
+        "kade_reposition": "Escape",
+        "kade_kill_corridor": "Damage",
+        "kade_kill_corridor_shot": "Damage"
+      }
+    },
+    "vera": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "cycler_core", "striker_assembly", "razorwheel", "colossus_temper"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "vera_range_found": "Damage",
+        "vera_dig_in": "Never",
+        "vera_break_the_line": "Escape",
+        "vera_the_last_volley": "Empower"
+      }
+    },
+    "mimzi": {
+      "provenance": "Provisional",
+      "build": ["swift_boots", "crown_of_the_crucible", "arc_reactor", "nullglass_shard", "spellguard_plate"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "mimzi_twinklebolt": "Damage",
+        "mimzi_winkbomb": "Damage",
+        "mimzi_now_you_see_me": "Escape",
+        "mimzi_grand_prank": "Damage"
+      }
     }
   }
 }

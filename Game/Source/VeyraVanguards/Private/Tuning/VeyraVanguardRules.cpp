@@ -4,6 +4,11 @@
 
 namespace VeyraVanguardRules
 {
+double DeadReckoningRatio(const FVeyraDeadReckoningTuning& Reckoning, double Banked)
+{
+	return Reckoning.StepUnits > 0.0 ? Reckoning.PhysicalPowerRatioPerStep * (Banked / Reckoning.StepUnits) : 0.0;
+}
+
 TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, int32 BasicAbilityMaxRank, int32 UltimateMaxRank)
 {
 	TArray<FString> Problems;
@@ -34,6 +39,98 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 	for (const TPair<FVeyraContentId, FVeyraBreachTuning>& Entry : Tuning.Breach)
 	{
 		RegisterPassive(Entry.Key, TEXT("breach"));
+	}
+	for (const TPair<FVeyraContentId, FVeyraMarkProcTuning>& Entry : Tuning.MarkProc)
+	{
+		RegisterPassive(Entry.Key, TEXT("markProc"));
+		const FString Pointer = TEXT("/markProc/") + Entry.Key.ToString();
+		const FVeyraMarkProcTuning& MarkProc = Entry.Value;
+		const FVeyraStatusTuning* Mark = Abilities.Statuses.Find(MarkProc.Mark);
+		if (!Mark)
+		{
+			Problem(Pointer + TEXT("/mark"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *MarkProc.Mark.ToString()));
+		}
+		else if (Mark->Stacking != EVeyraStackingPolicy::Stacking || Mark->MaxStacks < 2)
+		{
+			Problem(Pointer + TEXT("/mark"), TEXT("must be a Stacking status of at least two stacks, whose most prime the proc"));
+		}
+		if (MarkProc.ProcDamage.AmountByRank.Num() != 1 || MarkProc.ProcDamagePerLevel < 0.0 || MarkProc.Emergence.Num() > 1 || MarkProc.ProcBolts.Num() > 1)
+		{
+			Problem(Pointer, TEXT("procDamage has one amount and a per-Level amount of at least 0; emergence and procBolts hold at most one each"));
+		}
+		for (const FVeyraEmergenceTuning& Emergence : MarkProc.Emergence)
+		{
+			if (!Abilities.Statuses.Contains(Emergence.Status) || !(Emergence.WindowSeconds >= 0.0) || Emergence.BonusDamage.AmountByRank.Num() != 1)
+			{
+				Problem(Pointer + TEXT("/emergence/0"), TEXT("names a status Abilities.json defines, with a window of at least 0 and one amount"));
+			}
+		}
+		for (const FVeyraProcBoltTuning& Bolt : MarkProc.ProcBolts)
+		{
+			if (!(Bolt.WindowSeconds > 0.0) || !(Bolt.Radius > 0.0) || Bolt.Damage.AmountByRank.Num() != 1 || !(Bolt.Projectile.Speed > 0.0))
+			{
+				Problem(Pointer + TEXT("/procBolts/0"), TEXT("its window and radius are above 0, its damage one amount, and its speed above 0"));
+			}
+		}
+	}
+	for (const TPair<FVeyraContentId, FVeyraCadenceTuning>& Entry : Tuning.Cadence)
+	{
+		RegisterPassive(Entry.Key, TEXT("cadence"));
+		const FString Pointer = TEXT("/cadence/") + Entry.Key.ToString();
+		const FVeyraCadenceTuning& Cadence = Entry.Value;
+		for (const TPair<const TCHAR*, const FVeyraContentId*> Named : { TPair<const TCHAR*, const FVeyraContentId*>{ TEXT("status"), &Cadence.Status },
+				 { TEXT("extraStackOn"), &Cadence.ExtraStackOn }, { TEXT("steadyStatus"), &Cadence.SteadyStatus }, { TEXT("fullStatus"), &Cadence.FullStatus } })
+		{
+			if (!Abilities.Statuses.Contains(*Named.Value))
+			{
+				Problem(Pointer + TEXT("/") + Named.Key, FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Named.Value->ToString()));
+			}
+		}
+		const FVeyraStatusTuning* Stacks = Abilities.Statuses.Find(Cadence.Status);
+		if (Stacks && (Stacks->Kind != EVeyraStatusKind::AttackSpeed || Stacks->Stacking != EVeyraStackingPolicy::Stacking))
+		{
+			Problem(Pointer + TEXT("/status"), TEXT("must be a Stacking Attack Speed status"));
+		}
+		if (!(Cadence.SteadyDecayMultiplier >= 1.0) || !(Cadence.FiringLine.DelaySeconds >= 0.0) || !(Cadence.FiringLine.AttackDamageFraction >= 0.0)
+			|| Cadence.FiringLine.Damage.AmountByRank.Num() != 1 || !(Cadence.FiringLine.Projectile.Speed > 0.0))
+		{
+			Problem(Pointer, TEXT("steadyDecayMultiplier is at least 1; the echo's delay and fraction at least 0, its damage one amount, and its speed above 0"));
+		}
+		if (Cadence.SpectralRank.EveryAttacks < 1)
+		{
+			Problem(Pointer + TEXT("/spectralRank/everyAttacks"), TEXT("must be at least 1"));
+		}
+		for (const FString& ShapeProblem : VeyraShapes::Validate(Cadence.SpectralRank.Shape))
+		{
+			Problem(Pointer + TEXT("/spectralRank/shape"), ShapeProblem);
+		}
+		for (const FVeyraDamageTuning& Damage : Cadence.SpectralRank.Damage)
+		{
+			if (Damage.AmountByRank.Num() != 1)
+			{
+				Problem(Pointer + TEXT("/spectralRank/damage"), TEXT("a passive has no ranks: one amount each"));
+			}
+		}
+	}
+	for (const TPair<FVeyraContentId, FVeyraMovingTargetTuning>& Entry : Tuning.MovingTarget)
+	{
+		RegisterPassive(Entry.Key, TEXT("movingTarget"));
+		const FString Pointer = TEXT("/movingTarget/") + Entry.Key.ToString();
+		const FVeyraMovingTargetTuning& Moving = Entry.Value;
+		if (!Abilities.Statuses.Contains(Moving.TrackedStatus))
+		{
+			Problem(Pointer + TEXT("/trackedStatus"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Moving.TrackedStatus.ToString()));
+		}
+		if (Moving.TrackedDamage.AmountByRank.Num() != 1 || Moving.DeadReckoning.Damage.AmountByRank.Num() != 1)
+		{
+			Problem(Pointer, TEXT("a passive has no ranks: trackedDamage and deadReckoning's damage each have one amount"));
+		}
+		const FVeyraDeadReckoningTuning& Reckoning = Moving.DeadReckoning;
+		if (!(Reckoning.ThresholdUnits > 0.0) || Reckoning.CapUnits < Reckoning.ThresholdUnits || Reckoning.PhysicalPowerRatioPerStep < 0.0
+			|| !(Reckoning.StepUnits > 0.0))
+		{
+			Problem(Pointer + TEXT("/deadReckoning"), TEXT("thresholdUnits is above 0, capUnits at least thresholdUnits, the ratio at least 0, and stepUnits above 0"));
+		}
 	}
 
 	for (const TPair<FVeyraContentId, FVeyraVanguardDefinition>& Entry : Tuning.Vanguards)

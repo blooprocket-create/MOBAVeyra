@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -166,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [4]
+      "enum": [8]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -284,6 +284,126 @@
             "hitsToBreach": { "description": "Which consecutive hit breaches; canon gives the third.", "type": "integer", "minimum": 1 },
             "bonusDamage": { "description": "Added to the breaching attack's own damage.", "$ref": "#/definitions/damage" },
             "impact": { "description": "The explosion behind the target; a higher-priority impact such as Breach Round's replaces it.", "$ref": "#/definitions/secondaryImpact" }
+          }
+        }
+      }
+    },
+    "markProc": {
+      "description": "Passives whose basic attacks on enemy Vanguards stack a mark from the owner, and spend it primed at its most stacks for proc damage; optionally an empowered first attack out of a Camouflage, and a window after an ability in which each proc sends a bolt (Mimzi's Pocket Hex, Roster Bible §21).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "mark", "procDamage", "procDamagePerLevel", "emergence", "procBolts"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "mark": { "description": "From Abilities.json: a Stacking status whose most stacks prime the proc.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "procDamage": { "$ref": "#/definitions/damage" },
+            "procDamagePerLevel": { "description": "Added for each Level past the first.", "type": "number", "minimum": 0 },
+            "emergence": {
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["status", "windowSeconds", "bonusDamage"],
+                "properties": {
+                  "status": { "description": "The Camouflage the attack comes out of.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "windowSeconds": { "description": "How long after it ends the first attack still counts.", "type": "number", "minimum": 0 },
+                  "bonusDamage": { "$ref": "#/definitions/damage" }
+                }
+              }
+            },
+            "procBolts": {
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["ability", "windowSeconds", "radius", "damage", "projectile"],
+                "properties": {
+                  "ability": { "description": "Whose commit opens the window.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "windowSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "radius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "damage": { "$ref": "#/definitions/damage" },
+                  "projectile": { "$ref": "#/definitions/homingProjectile" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "cadence": {
+      "description": "Passives that stack Attack Speed from basic attacks, decaying a stack at a time, echo each attack at full stacks, and hold full while an ultimate lasts, firing a rank every Nth attack (Vera's Cadence, Roster Bible §7).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "status", "extraStackOn", "steadyStatus", "steadyDecayMultiplier", "fullStatus", "firingLine", "spectralRank"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "status": { "description": "From Abilities.json: a Stacking Attack Speed status that decays a stack at a time.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "extraStackOn": { "description": "An attack on a target with this status from the owner adds a second stack.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "steadyStatus": { "description": "While the owner has it, stacks decay more slowly.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "steadyDecayMultiplier": { "type": "number", "minimum": 1 },
+            "fullStatus": { "description": "While the owner has it, Cadence is full and cannot fall.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "firingLine": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["delaySeconds", "attackDamageFraction", "damage", "projectile"],
+              "properties": {
+                "delaySeconds": { "type": "number", "minimum": 0 },
+                "attackDamageFraction": { "description": "Of the attack's own damage.", "type": "number", "minimum": 0 },
+                "damage": { "description": "The echo's type, and an amount and ratios added: proc damage, no On-Hit.", "$ref": "#/definitions/damage" },
+                "projectile": { "$ref": "#/definitions/homingProjectile" }
+              }
+            },
+            "spectralRank": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["everyAttacks", "shape", "damage"],
+              "properties": {
+                "everyAttacks": { "type": "integer", "minimum": 1 },
+                "shape": { "$ref": "#/definitions/shape" },
+                "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "movingTarget": {
+      "description": "Passives that Track enemy Vanguards their owner or an ally displaces, for range and bonus damage against them, and bank the displacement toward an empowered attack (Kade's Moving Target and Dead Reckoning, Roster Bible §2).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "trackedStatus", "trackedDamage", "deadReckoning"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "trackedStatus": { "description": "From Abilities.json's statuses, applied by the owner: a source-relative range.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "trackedDamage": { "description": "Added to the owner's attacks on a target it has Tracked.", "$ref": "#/definitions/damage" },
+            "deadReckoning": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["thresholdUnits", "capUnits", "damage", "physicalPowerRatioPerStep", "stepUnits"],
+              "properties": {
+                "thresholdUnits": { "description": "Units of displacement banked before the next attack on a Tracked target spends them.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                "capUnits": { "description": "The most that bank.", "type": "number", "minimum": 0 },
+                "damage": { "$ref": "#/definitions/damage" },
+                "physicalPowerRatioPerStep": { "description": "Physical Power ratio added for each stepUnits banked.", "type": "number", "minimum": 0 },
+                "stepUnits": { "description": "The units each step of the ratio counts (Roster Bible §2: per 100 units).", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+              }
+            }
           }
         }
       }

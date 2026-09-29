@@ -445,6 +445,7 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 				break;
 			case EVeyraBotAbilityUse::Escape:
 			case EVeyraBotAbilityUse::Secure:
+			case EVeyraBotAbilityUse::Never:
 				break;
 			}
 			if (bUseful && Random.FRand() < Difficulty.CastChance)

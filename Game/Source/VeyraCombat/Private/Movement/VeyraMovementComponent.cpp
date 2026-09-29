@@ -55,7 +55,8 @@ float UVeyraMovementComponent::GetMaxSpeed() const
 	FVeyraSpeedInputs Inputs;
 	Inputs.MoveSpeed = Combatant->GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
 	Inputs.BaseMoveSpeed = Combatant->GetNumericAttributeBase(UVeyraMobilitySet::GetMoveSpeedAttribute());
-	Inputs.StrongestSlow = Statuses ? Statuses->GetStrongestSlow() : 0.0;
+	// Slow Resistance weakens the Slow that controls the unit's speed (ADR-018 §2).
+	Inputs.StrongestSlow = Statuses ? Statuses->GetStrongestSlow() * Statuses->GetRetained(EVeyraStatusKind::SlowResistance) : 0.0;
 	Inputs.bStunned = Statuses && EnumHasAnyFlags(Statuses->GetActionBlocks(), EVeyraActionBlocks::Move);
 	// A bonus toward enemy Vanguards holds only while the body heads for one (§23 conditional bonus).
 	const double Pursuit = Statuses ? Statuses->GetStrongest(EVeyraStatusKind::MoveSpeedTowardEnemyVanguards) : 0.0;

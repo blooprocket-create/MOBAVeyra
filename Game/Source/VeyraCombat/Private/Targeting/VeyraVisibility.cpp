@@ -47,4 +47,13 @@ void RevealArea(const UWorld& World, EVeyraTeam Team, const FVector& Centre, dou
 		Visibility->RevealArea(Team, Centre, Radius, DurationSeconds);
 	}
 }
+
+void RevealShape(const UWorld& World, EVeyraTeam Team, const FVeyraPlacedShape& Placed, double DurationSeconds)
+{
+	const UVeyraVisibilityRegistry* Registry = World.GetSubsystem<UVeyraVisibilityRegistry>();
+	if (IVeyraVisibility* Visibility = Registry ? Registry->GetMutable() : nullptr)
+	{
+		Visibility->RevealShape(Team, Placed, DurationSeconds);
+	}
+}
 }

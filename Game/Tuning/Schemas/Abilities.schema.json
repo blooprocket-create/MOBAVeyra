@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "fluxSpells"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "fluxSpells"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -27,7 +27,7 @@
       "description": "How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds"],
+      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow"],
       "properties": {
         "cooldownSecondsByRank": { "description": "Cooldown in seconds, starting at Commit.", "$ref": "#/definitions/byRank" },
         "resourceCostByRank": { "description": "Resource paid at Commit.", "$ref": "#/definitions/byRank" },
@@ -50,6 +50,28 @@
           "description": "Seconds after delivery before the caster may cast again.",
           "type": "number",
           "minimum": 0
+        },
+        "recastWindow": {
+          "description": "At most one: the follow-up its slot holds once this cast commits, for a while (ADR-018 §1). Empty for none.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "$ref": "#/definitions/recastWindow" }
+        }
+      }
+    },
+    "recastWindow": {
+      "description": "A recast window: the slot holds another ability until it is cast or its time runs out (ADR-018 §1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ability", "windowSeconds", "onExpiry"],
+      "properties": {
+        "ability": { "description": "The follow-up: another ability's ID.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+        "windowSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "onExpiry": {
+          "description": "Lapse loses the follow-up; Cast casts it where the caster faces.",
+          "type": "string",
+          "enum": ["Lapse", "Cast"]
         }
       }
     },
@@ -185,7 +207,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [5]
+      "enum": [6]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -210,12 +232,12 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime"],
+          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -246,6 +268,11 @@
                   "damagePerLevel": { "description": "Added to each tick for each Level of its source's beyond the first, fixed as it lands.", "type": "number", "minimum": 0 }
                 }
               }
+            },
+            "stackDecaySeconds": {
+              "description": "For a stacking status: once its duration runs out it loses one stack and lasts this long again, until the last stack goes (ADR-018 §2). 0 to end at once.",
+              "type": "number",
+              "minimum": 0
             }
           }
         }
@@ -308,7 +335,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones"],
+          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger", "consumesCasterStatuses"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -335,7 +362,31 @@
               "type": "array",
               "minItems": 1,
               "items": { "$ref": "#/definitions/zone" }
-            }
+            },
+            "linger": {
+              "description": "At most one: after it hits at once, the area lasts in its outermost zone's shape, giving those inside it statuses by side (ADR-018 §5), as Kade's Sightline does.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["durationSeconds", "pulseSeconds", "casterStatuses", "allyStatuses", "enemyStatuses", "sight"],
+                "properties": {
+                  "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "pulseSeconds": { "description": "Seconds between the statuses it gives; it gives them first as it lands.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "casterStatuses": { "description": "For its caster, while inside.", "$ref": "#/definitions/statusIds" },
+                  "allyStatuses": { "description": "For the allied Vanguards inside, its caster apart.", "$ref": "#/definitions/statusIds" },
+                  "enemyStatuses": { "description": "For the enemy units inside.", "$ref": "#/definitions/statusIds" },
+                  "sight": {
+                    "description": "Ordinary: its shape is ordinary vision for its caster's side while it lasts, never True Sight and nothing in Dense Fog.",
+                    "type": "string",
+                    "enum": ["None", "Ordinary"]
+                  }
+                }
+              }
+            },
+            "consumesCasterStatuses": { "description": "Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6).", "$ref": "#/definitions/statusIds" }
           }
         }
       }
@@ -348,7 +399,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -398,6 +449,22 @@
               "description": "EndsEarly: casting again while the buff lasts ends it, at no cost.",
               "type": "string",
               "enum": ["None", "EndsEarly"]
+            },
+            "variants": {
+              "description": "Slots that hold another ability for a while as the buff lands (ADR-018 §1), as Dig In's volley form during The Last Volley. A variant takes its slot's rank.",
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["slot", "ability", "cooldown", "durationSeconds"],
+                "properties": {
+                  "slot": { "description": "Q, W, E or R: a basic ability's slot or the ultimate's.", "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] },
+                  "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "cooldown": { "description": "Own keeps its own cooldown; Shared is one cooldown with the slot's own ability.", "type": "string", "enum": ["Own", "Shared"] },
+                  "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                }
+              }
             }
           }
         }
@@ -411,7 +478,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "projectile", "collision", "effects", "passThroughEffects"],
+          "required": ["provenance", "cast", "projectile", "collision", "effects", "passThroughEffects", "casterDash"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -432,7 +499,22 @@
               "enum": ["FirstEnemy", "FirstEnemyVanguard", "Pierce"]
             },
             "effects": { "description": "On each unit it hits.", "$ref": "#/definitions/effects" },
-            "passThroughEffects": { "description": "On each unit a FirstEnemyVanguard projectile passes through; empty lists otherwise.", "$ref": "#/definitions/effects" }
+            "passThroughEffects": { "description": "On each unit a FirstEnemyVanguard projectile passes through; empty lists otherwise.", "$ref": "#/definitions/effects" },
+            "casterDash": {
+              "description": "At most one: the caster recoils away from the aim as the shot leaves (ADR-018 §6), as Kade's Reposition does.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["distance", "speed"],
+                "properties": {
+                  "distance": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "speed": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                }
+              }
+            }
           }
         }
       }
@@ -524,6 +606,42 @@
                   "shape": { "$ref": "#/definitions/shape" },
                   "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
                   "statuses": { "$ref": "#/definitions/statusIds" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "volley": {
+      "description": "Abilities that open a lane their caster fires into shot by shot (ADR-018 §6), as Kade's Kill Corridor: the slot holds the shot for a while, and each shot keeps within the lane.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "shot", "shots", "laneHalfAngleDegrees", "durationSeconds", "casterStatuses", "bonus"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "shot": { "description": "Each shot: a skillshot, whose cooldown is the time between shots.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "shots": { "type": "integer", "minimum": 1 },
+            "laneHalfAngleDegrees": { "description": "How far either side of the lane a shot may aim.", "type": "number", "minimum": 0, "maximum": 180 },
+            "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "casterStatuses": { "description": "For the caster while the lane lasts, as a stance that plants it.", "$ref": "#/definitions/statusIds" },
+            "bonus": {
+              "description": "At most one: an ally displacing an enemy that carries status from the caster earns a shot, up to maxShots.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["status", "maxShots"],
+                "properties": {
+                  "status": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "maxShots": { "type": "integer", "minimum": 1 }
                 }
               }
             }

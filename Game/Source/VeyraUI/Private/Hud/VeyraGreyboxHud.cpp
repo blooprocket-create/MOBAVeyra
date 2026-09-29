@@ -130,7 +130,8 @@ namespace
 		for (const FVeyraHudStatus& Status : VeyraHud::StatusesOf(Unit, Now))
 		{
 			Y -= HudLineHeight();
-			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("%s %.1f s"), *HudEnumName(Status.Kind), Status.RemainingSeconds), Settings.TextColor);
+			const FString Count = Status.Stacks > 1 ? FString::Printf(TEXT(" x%d"), Status.Stacks) : FString();
+			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("%s%s %.1f s"), *HudEnumName(Status.Kind), *Count, Status.RemainingSeconds), Settings.TextColor);
 		}
 	}
 

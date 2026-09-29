@@ -73,7 +73,7 @@ TArray<FVeyraHudStatus> VeyraHud::StatusesOf(const AActor& Unit, double ServerNo
 	{
 		for (const FVeyraStatusEntry& Entry : Ledger->GetLedger().Entries)
 		{
-			Statuses.Add(FVeyraHudStatus{ Entry.Id, Entry.Kind, FMath::Max(0.0, Entry.EndsAt - ServerNow) });
+			Statuses.Add(FVeyraHudStatus{ Entry.Id, Entry.Kind, FMath::Max(0.0, Entry.EndsAt - ServerNow), Entry.Stacks });
 		}
 	}
 	return Statuses;
@@ -171,7 +171,7 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr)
 		{
 			Shown.Ability = Entry->Ability;
-			Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow) : 0.0;
+			Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Loadout->CooldownIdOf(Entry->Ability), ServerNow) : 0.0;
 			if (Attacks && Attacks->GetEmpowermentView().Ability == Entry->Ability)
 			{
 				Shown.EmpoweredSeconds = FMath::Max(0.0, Attacks->GetEmpowermentView().ExpiresAt - ServerNow);

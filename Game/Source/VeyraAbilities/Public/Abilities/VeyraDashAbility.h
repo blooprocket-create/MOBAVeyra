@@ -28,6 +28,7 @@ protected:
 	virtual EVeyraCastRejection CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const override;
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const override;
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast) override;
+	virtual bool IsOffensive(const FVeyraContentId& Ability) const override;
 
 private:
 	/** What a dash that stops at an enemy does there, prepared at Commit (Combat Bible §50). */

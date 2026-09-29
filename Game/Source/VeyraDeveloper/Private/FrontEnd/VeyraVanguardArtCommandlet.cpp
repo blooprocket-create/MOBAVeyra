@@ -61,8 +61,16 @@ int32 UVeyraVanguardArtCommandlet::Main(const FString& Params)
 		Image.ChangeFormat(ERawImageFormat::BGRA8, EGammaSpace::sRGB);
 
 		const FString PackageName = VeyraShellArt::HeroPackageName(Vanguard);
+		// An existing texture is loaded whole and baked again in place; a package only partly loaded
+		// cannot be saved.
 		UPackage* Package = CreatePackage(*PackageName);
-		UTexture2D* Texture = NewObject<UTexture2D>(Package, FName(FPackageName::GetShortName(PackageName)), RF_Public | RF_Standalone);
+		Package->FullyLoad();
+		const FName TextureName(FPackageName::GetShortName(PackageName));
+		UTexture2D* Texture = FindObject<UTexture2D>(Package, *TextureName.ToString());
+		if (!Texture)
+		{
+			Texture = NewObject<UTexture2D>(Package, TextureName, RF_Public | RF_Standalone);
+		}
 		Texture->Source.Init(Image.SizeX, Image.SizeY, /*NumSlices*/ 1, /*NumMips*/ 1, TSF_BGRA8, Image.RawData.GetData());
 		// Screen art: shown whole at once, so no mips and no streaming, in the UI's texture group.
 		Texture->SRGB = true;

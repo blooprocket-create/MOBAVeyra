@@ -24,9 +24,10 @@ namespace VeyraAttackSpeed
 {
 	/**
 	 * The timing of a unit whose uncapped Attack Speed is UncappedAttacksPerSecond. The interval is
-	 * never shorter than MinimumIntervalSeconds, a kit's personal floor (0 for none). Overflow is
-	 * always measured from the cap, the permanent reference, so a personal floor never creates
-	 * overflow of its own.
+	 * never shorter than MinimumIntervalSeconds, a kit's personal floor (0 for none). A temporary
+	 * RaisedCap above the ordinary one lets it attack faster (0 for none). Overflow is always measured
+	 * from the ordinary cap, the permanent reference (§22), so neither creates overflow of its own.
 	 */
-	VEYRACOMBAT_API FVeyraAttackTiming Resolve(double UncappedAttacksPerSecond, const FVeyraAttackSpeedTuning& Tuning, double MinimumIntervalSeconds);
+	VEYRACOMBAT_API FVeyraAttackTiming Resolve(double UncappedAttacksPerSecond, const FVeyraAttackSpeedTuning& Tuning, double MinimumIntervalSeconds,
+		double RaisedCap = 0.0);
 }

@@ -79,6 +79,7 @@ public:
 	virtual bool CanSee(const UObject& Observer, const AActor& Target) const override;
 	virtual bool IsVisibleToTeam(EVeyraTeam Team, const AActor& Target) const override;
 	virtual void RevealArea(EVeyraTeam Team, const FVector& Centre, double Radius, double DurationSeconds) override;
+	virtual void RevealShape(EVeyraTeam Team, const FVeyraPlacedShape& Placed, double DurationSeconds) override;
 
 	virtual void Deinitialize() override;
 
@@ -100,6 +101,8 @@ private:
 		FVector2D Centre = FVector2D::ZeroVector;
 		double Radius = 0.0;
 		double Until = 0.0;
+		/** A lit shape instead of the circle: it senses nothing in Dense Fog (ADR-018 §5). */
+		TOptional<FVeyraPlacedShape> Shape;
 	};
 
 	/** True Sight around a unit, for a while. */
@@ -120,6 +123,14 @@ private:
 
 	/** Whether Side's True Sight covers Unit now. */
 	bool IsInTrueSight(EVeyraTeam Side, const AActor& Unit) const;
+
+	/**
+	 * Whether Side sees Unit, outside Dense Fog, by the last pass's sources: an Invisible unit only
+	 * under True Sight (Vision Bible §5); a Camouflaged one under True Sight or within its detection
+	 * radius of Side's Vanguards and standing structures (Combat Bible §11; ADR-018 §4); the rest, by
+	 * ordinary sight.
+	 */
+	bool JudgeSight(EVeyraTeam Side, const AActor& Unit) const;
 
 	/** Tells each side the presence its sensors feel and the outlines its True Sight draws (ADR-016 §5). */
 	void UpdateSensors(const TArray<const AActor*>& Gated, double Now);

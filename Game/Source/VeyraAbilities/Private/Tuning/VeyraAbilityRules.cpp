@@ -48,6 +48,23 @@ namespace
 		{
 			CheckByRank(Pointer + TEXT("/cooldownSecondsByRank"), Cast.CooldownSecondsByRank);
 			CheckByRank(Pointer + TEXT("/resourceCostByRank"), Cast.ResourceCostByRank);
+			if (Cast.RecastWindow.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/recastWindow"), TEXT("holds at most one follow-up (ADR-018 §1)"));
+			}
+			for (int32 Index = 0; Index < Cast.RecastWindow.Num(); ++Index)
+			{
+				const FVeyraRecastTuning& Recast = Cast.RecastWindow[Index];
+				const FString RecastPointer = FString::Printf(TEXT("%s/recastWindow/%d"), *Pointer, Index);
+				if (!Defines(Tuning, Recast.Ability))
+				{
+					Problem(RecastPointer + TEXT("/ability"), FString::Printf(TEXT("names ability \"%s\", which no archetype defines"), *Recast.Ability.ToString()));
+				}
+				if (!(Recast.WindowSeconds > 0.0))
+				{
+					Problem(RecastPointer + TEXT("/windowSeconds"), TEXT("must be above 0"));
+				}
+			}
 		}
 
 		void CheckDamage(const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList)
@@ -147,11 +164,49 @@ namespace
 				Problem(Pointer + TEXT("/reveal"), TEXT("radius and durationSeconds are both above 0, or both 0 for no reveal"));
 			}
 			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
+			CheckStatusIds(Pointer + TEXT("/consumesCasterStatuses"), Area.ConsumesCasterStatuses);
+			if (Area.Linger.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/linger"), TEXT("holds at most one lingering area (ADR-018 §5)"));
+			}
+			for (int32 Index = 0; Index < Area.Linger.Num(); ++Index)
+			{
+				const FVeyraLingerTuning& Linger = Area.Linger[Index];
+				const FString LingerPointer = FString::Printf(TEXT("%s/linger/%d"), *Pointer, Index);
+				if (Area.DelaySeconds > 0.0 || Area.ChannelTicks > 1)
+				{
+					Problem(LingerPointer, TEXT("lingers after an area that hits at once, not a delayed or channelled one"));
+				}
+				if (!(Linger.DurationSeconds > 0.0) || !(Linger.PulseSeconds > 0.0) || Linger.PulseSeconds > Linger.DurationSeconds)
+				{
+					Problem(LingerPointer, TEXT("durationSeconds and pulseSeconds are above 0, and a pulse is no longer than the area lasts"));
+				}
+				CheckStatusIds(LingerPointer + TEXT("/casterStatuses"), Linger.CasterStatuses);
+				CheckStatusIds(LingerPointer + TEXT("/allyStatuses"), Linger.AllyStatuses);
+				CheckStatusIds(LingerPointer + TEXT("/enemyStatuses"), Linger.EnemyStatuses);
+			}
 		}
 
 		void CheckSelfBuff(const FString& Pointer, const FVeyraSelfBuffAbilityTuning& Buff)
 		{
 			CheckCast(Pointer + TEXT("/cast"), Buff.Cast);
+			for (int32 Index = 0; Index < Buff.Variants.Num(); ++Index)
+			{
+				const FVeyraVariantTuning& Variant = Buff.Variants[Index];
+				const FString VariantPointer = FString::Printf(TEXT("%s/variants/%d"), *Pointer, Index);
+				if (!Defines(Tuning, Variant.Ability))
+				{
+					Problem(VariantPointer + TEXT("/ability"), FString::Printf(TEXT("names ability \"%s\", which no archetype defines"), *Variant.Ability.ToString()));
+				}
+				if (!(Variant.DurationSeconds > 0.0))
+				{
+					Problem(VariantPointer + TEXT("/durationSeconds"), TEXT("must be above 0"));
+				}
+				if (Variant.Slot != EVeyraAbilitySlot::Q && Variant.Slot != EVeyraAbilitySlot::W && Variant.Slot != EVeyraAbilitySlot::E && Variant.Slot != EVeyraAbilitySlot::R)
+				{
+					Problem(VariantPointer + TEXT("/slot"), TEXT("must be Q, W, E or R: a variant holds an ability's slot"));
+				}
+			}
 			CheckStatusIds(Pointer + TEXT("/statuses"), Buff.Statuses);
 			for (int32 Index = 0; Index < Buff.Shields.Num(); ++Index)
 			{
@@ -205,6 +260,17 @@ namespace
 
 		void CheckSkillshot(const FString& Pointer, const FVeyraSkillshotAbilityTuning& Skillshot)
 		{
+			if (Skillshot.CasterDash.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/casterDash"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Skillshot.CasterDash.Num(); ++Index)
+			{
+				if (!(Skillshot.CasterDash[Index].Distance > 0.0) || !(Skillshot.CasterDash[Index].Speed > 0.0))
+				{
+					Problem(FString::Printf(TEXT("%s/casterDash/%d"), *Pointer, Index), TEXT("distance and speed are above 0"));
+				}
+			}
 			CheckCast(Pointer + TEXT("/cast"), Skillshot.Cast);
 			CheckEffects(Pointer + TEXT("/effects"), Skillshot.Effects);
 			CheckEffects(Pointer + TEXT("/passThroughEffects"), Skillshot.PassThroughEffects);
@@ -222,6 +288,36 @@ namespace
 			CheckZones(Pointer + TEXT("/startZones"), Dash.StartZones);
 			CheckEffects(Pointer + TEXT("/contactEffects"), Dash.ContactEffects);
 			CheckStatusIds(Pointer + TEXT("/contactSelfStatuses"), Dash.ContactSelfStatuses);
+		}
+
+		void CheckVolley(const FString& Pointer, const FVeyraVolleyAbilityTuning& Volley)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Volley.Cast);
+			if (!Tuning.Skillshot.Contains(Volley.Shot))
+			{
+				Problem(Pointer + TEXT("/shot"), FString::Printf(TEXT("names \"%s\", which /skillshot does not define"), *Volley.Shot.ToString()));
+			}
+			if (Volley.Shots < 1)
+			{
+				Problem(Pointer + TEXT("/shots"), TEXT("must be at least 1"));
+			}
+			if (!(Volley.DurationSeconds > 0.0) || !(Volley.LaneHalfAngleDegrees >= 0.0) || Volley.LaneHalfAngleDegrees > 180.0)
+			{
+				Problem(Pointer, TEXT("durationSeconds is above 0, and laneHalfAngleDegrees within [0, 180]"));
+			}
+			CheckStatusIds(Pointer + TEXT("/casterStatuses"), Volley.CasterStatuses);
+			if (Volley.Bonus.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/bonus"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Volley.Bonus.Num(); ++Index)
+			{
+				CheckStatusIds(FString::Printf(TEXT("%s/bonus/%d/status"), *Pointer, Index), { Volley.Bonus[Index].Status });
+				if (Volley.Bonus[Index].MaxShots < 1)
+				{
+					Problem(FString::Printf(TEXT("%s/bonus/%d/maxShots"), *Pointer, Index), TEXT("must be at least 1"));
+				}
+			}
 		}
 
 		void CheckEmpoweredAttack(const FString& Pointer, const FVeyraEmpoweredAttackAbilityTuning& Empowered)
@@ -288,6 +384,10 @@ namespace
 			{
 				Note(Entry.Key, TEXT("empoweredAttack"));
 			}
+			for (const TPair<FVeyraContentId, FVeyraVolleyAbilityTuning>& Entry : Tuning.Volley)
+			{
+				Note(Entry.Key, TEXT("volley"));
+			}
 		}
 	};
 }
@@ -310,6 +410,7 @@ FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTunin
 	Spec.Magnitude = Status.Magnitude;
 	Spec.DurationSeconds = Status.DurationSeconds;
 	Spec.MaxStacks = Status.MaxStacks;
+	Spec.StackDecaySeconds = Status.StackDecaySeconds;
 	Spec.TakedownExtensionSeconds = Status.TakedownExtensionSeconds;
 	Spec.TakedownExtensionMaxSeconds = Status.TakedownExtensionMaxSeconds;
 	if (!Status.DamageOverTime.IsEmpty())
@@ -355,6 +456,10 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	{
 		Checker.CheckEmpoweredAttack(TEXT("/empoweredAttack/") + Entry.Key.ToString(), Entry.Value);
 	}
+	for (const TPair<FVeyraContentId, FVeyraVolleyAbilityTuning>& Entry : Tuning.Volley)
+	{
+		Checker.CheckVolley(TEXT("/volley/") + Entry.Key.ToString(), Entry.Value);
+	}
 	Checker.CheckEachIdInOneArchetype();
 	Checker.CheckFluxSpells();
 	return Checker.Problems;
@@ -368,7 +473,7 @@ FVector DashHeading(const FVeyraDashAbilityTuning& Dash, const FVector& CastDire
 bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
 {
 	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)
-		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability);
+		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability);
 }
 
 double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
@@ -398,6 +503,10 @@ double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentI
 	{
 		Cast = &Empowered->Cast;
 	}
+	else if (const FVeyraVolleyAbilityTuning* Volley = Tuning.Volley.Find(Ability))
+	{
+		Cast = &Volley->Cast;
+	}
 	return Cast ? ValueAtRank(Cast->CooldownSecondsByRank, Rank) : 0.0;
 }
 
@@ -425,6 +534,10 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	if (const FVeyraEmpoweredAttackAbilityTuning* Empowered = Tuning.EmpoweredAttack.Find(Ability))
 	{
 		Checker.CheckEmpoweredAttack(TEXT("/empoweredAttack/") + Key, *Empowered);
+	}
+	if (const FVeyraVolleyAbilityTuning* Volley = Tuning.Volley.Find(Ability))
+	{
+		Checker.CheckVolley(TEXT("/volley/") + Key, *Volley);
 	}
 	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;

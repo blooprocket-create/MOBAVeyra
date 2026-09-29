@@ -69,6 +69,20 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(Beyond.IntervalSeconds == FloorSeconds && Beyond.OverflowDamageMultiplier > 1.0, TEXT("past the cap it still overflows")));
 		}
 
+		TEST_METHOD(ARaisedCapAttacksFasterButOverflowStillCountsFromTheOrdinaryCap)
+		{
+			const FVeyraAttackSpeedTuning& Tuning = UVeyraCombatTuningSubsystem::Get().AttackSpeed;
+			const double Uncapped = Tuning.Cap * 1.4;
+			const double Raised = Tuning.Cap * 1.2;
+			const FVeyraAttackTiming Ordinary = VeyraAttackSpeed::Resolve(Uncapped, Tuning, 0.0);
+			const FVeyraAttackTiming Lifted = VeyraAttackSpeed::Resolve(Uncapped, Tuning, 0.0, Raised);
+			ASSERT_THAT(IsTrue(Ordinary.AttacksPerSecond == Tuning.Cap && FMath::IsNearlyEqual(Lifted.AttacksPerSecond, Raised)));
+			// §22: the ordinary cap stays the reference, so the overflow damage is the same.
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Lifted.OverflowDamageMultiplier, Ordinary.OverflowDamageMultiplier)));
+			// A "raised" cap below the ordinary one changes nothing.
+			ASSERT_THAT(IsTrue(VeyraAttackSpeed::Resolve(Uncapped, Tuning, 0.0, Tuning.Cap / 2.0).AttacksPerSecond == Tuning.Cap));
+		}
+
 		TEST_METHOD(ValidationKeepsTheMinimumBelowTheCap)
 		{
 			FVeyraCombatTuning Tuning = UVeyraCombatTuningSubsystem::Get();
