@@ -117,7 +117,7 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 
 - Bot senses read `IVeyraVisibility`, so a bot never reacts to what its team cannot see. The jungler's gank range still applies, but to seen enemies only.
 - A jungler still knows which of its own camps are up, as League players keep camp timers. It walks to a camp whose creatures it cannot see yet, and attacks only those its side sees.
-- Supports and junglers carry Persistent Ward and place wards at `Bots.json` ward spots as they pass.
+- The warding seats (`Bots.json` `warding.seats`: League's jungler and support) ward the Dense Fog patches they pass, League's bushes. A patch qualifies within `spotReach` of its centre, when no ward of their side stands within `spotSpacing`, with a charge in hand and no enemy Vanguard near.
 
 ### 8. The HUD
 
@@ -131,7 +131,7 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 - `Abilities.json` v5: an area's `reveal`.
 - `World.json` v3: `denseFog`.
 - `Economy.json` v5: the ward reward and the swap cost.
-- `Bots.json` v4: ward spots.
+- `Bots.json` v4: `warding` (seats, reach and spacing).
 - Input keys.
 
 Canon gives the three carried charges; every other value is Provisional.

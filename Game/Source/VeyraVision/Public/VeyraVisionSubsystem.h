@@ -54,6 +54,9 @@ public:
 	 */
 	void SetDenseFog(TArray<FVeyraFogCircle> Circles);
 
+	/** The battleground's Dense Fog: a place every player knows (the fog itself is always seen). */
+	TConstArrayView<FVeyraFogCircle> GetDenseFog() const { return Fog; }
+
 	/**
 	 * Server: places a ward for Placer's side at Where (Vision Bible §4), which its side receives at
 	 * once and the enemy never, unless True Sight covers it. Null if it could not be placed.

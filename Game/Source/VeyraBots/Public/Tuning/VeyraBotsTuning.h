@@ -227,6 +227,28 @@ struct FVeyraBotJungleTuning
 	double WellRange = 0.0;
 };
 
+/** How bots ward (ADR-016 §7): League's jungler and support ward the bushes they pass, here Dense Fog. */
+USTRUCT()
+struct FVeyraBotWardingTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The seats that ward, by their place in Seats, from 0. */
+	UPROPERTY()
+	TArray<int32> Seats;
+
+	/** How near a Dense Fog patch's centre a bot passes to ward it, in units. */
+	UPROPERTY()
+	double SpotReach = 0.0;
+
+	/** A patch an allied ward stands this near is warded already, in units. */
+	UPROPERTY()
+	double SpotSpacing = 0.0;
+};
+
 /** One bot seat: what it plays, and the starting Flux Spells it chooses, as League's bots do (ADR-015 §8). */
 USTRUCT()
 struct FVeyraBotSeatTuning
@@ -248,7 +270,7 @@ struct FVeyraBotsTuning
 	GENERATED_BODY()
 
 	/** The Bots.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 3;
+	static constexpr int32 SchemaVersion = 4;
 
 	UPROPERTY()
 	FVeyraBotSensesTuning Senses;
@@ -269,6 +291,9 @@ struct FVeyraBotsTuning
 
 	UPROPERTY()
 	FVeyraBotJungleTuning Jungle;
+
+	UPROPERTY()
+	FVeyraBotWardingTuning Warding;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraBotVanguardTuning> Vanguards;

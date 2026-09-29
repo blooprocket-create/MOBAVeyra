@@ -48,6 +48,14 @@ namespace VeyraBotsTests
 					ASSERT_THAT(IsNotNull(UVeyraBotsTuningSubsystem::FindVanguard(Pair.Key), *Pair.Key.ToString()));
 				}
 			}
+			// League's jungler and support ward: the warding seats are seats, each named once (ADR-016 §7).
+			ASSERT_THAT(IsTrue(Tuning.Warding.Seats.ContainsByPredicate([&Tuning](int32 Seat) { return Tuning.Seats[Seat].Role == EVeyraBotRole::Jungle; })));
+			Broken = Tuning;
+			Broken.Warding.Seats.Add(Tuning.Seats.Num());
+			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/warding/seats"))));
+			Broken = Tuning;
+			Broken.Warding.Seats.Add(Tuning.Warding.Seats[0]);
+			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/warding/seats"))));
 			// Intermediate plays sharper than Beginner.
 			const FVeyraBotDifficultyTuning& Beginner = UVeyraBotsTuningSubsystem::GetDifficulty(EVeyraBotDifficulty::Beginner);
 			const FVeyraBotDifficultyTuning& Intermediate = UVeyraBotsTuningSubsystem::GetDifficulty(EVeyraBotDifficulty::Intermediate);

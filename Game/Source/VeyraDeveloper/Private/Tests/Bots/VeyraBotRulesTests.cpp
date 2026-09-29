@@ -42,6 +42,8 @@ namespace VeyraBotsTests
 			Tuning.Jungle.GankRange = 3000.0;
 			Tuning.Jungle.GankHealthFraction = 0.5;
 			Tuning.Jungle.WellRange = 7000.0;
+			Tuning.Warding.SpotReach = 500.0;
+			Tuning.Warding.SpotSpacing = 900.0;
 			Difficulty.ThinkSeconds = 0.25;
 			Difficulty.ReactionSeconds = 0.5;
 			Difficulty.LastHitChance = 1.0;
@@ -402,6 +404,30 @@ namespace VeyraBotsTests
 			ASSERT_THAT(IsTrue(Walk.Action == EVeyraBotAction::Move && Walk.Destination.Equals(Camp.Center)));
 			View.Camps[0].Creatures = { Unit(Far) };
 			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Attack));
+		}
+
+		TEST_METHOD(AWardingSeatWardsTheFogItPassesThatNoWardOfItsSideCovers)
+		{
+			// As League's jungler and support ward the bushes they pass (ADR-016 §7).
+			FVeyraBotView View = AliveAt(0.0);
+			View.bWards = true;
+			View.WardCharges = 1;
+			const FVector Spot(Tuning.Warding.SpotReach / 2.0, 0.0, 0.0);
+			View.WardSpots = { FVector(Far, 0.0, 0.0), Spot };
+			const FVeyraBotIntent Ward = Decide(View);
+			ASSERT_THAT(IsTrue(Ward.Action == EVeyraBotAction::Ward && Ward.Destination.Equals(Spot), TEXT("the patch within reach, not the far one")));
+
+			View.AlliedWards = { Spot + FVector(Tuning.Warding.SpotSpacing / 2.0, 0.0, 0.0) };
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Ward, TEXT("its side has it covered")));
+			View.AlliedWards.Reset();
+			View.WardCharges = 0;
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Ward, TEXT("no charge")));
+			View.WardCharges = 1;
+			View.EnemyVanguards = { Unit(Near) };
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Ward, TEXT("never with an enemy near")));
+			View.EnemyVanguards.Reset();
+			View.bWards = false;
+			ASSERT_THAT(IsTrue(Decide(View).Action != EVeyraBotAction::Ward, TEXT("only the warding seats")));
 		}
 
 		TEST_METHOD(AJunglerWaitsAtTheCampBackSoonest)
