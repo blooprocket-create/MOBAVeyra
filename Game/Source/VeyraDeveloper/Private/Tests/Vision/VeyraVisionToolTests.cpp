@@ -177,6 +177,29 @@ namespace VeyraVisionTests
 			ASSERT_THAT(IsTrue(!State->GetPings().IsEmpty() && State->GetPings().Last().At > FirstAt, TEXT("again while it stays")));
 		}
 
+		TEST_METHOD(AnEnemyEnteringAWardsEmptiedCoveragePingsAtOnce)
+		{
+			// The enemy is sensed, steps out of the ward's coverage, and steps back in before the cadence.
+			const FVeyraVisionTuning& Tuning = UVeyraVisionTuningSubsystem::Get();
+			const FVector2D Bush(Scout->GetActorLocation());
+			Vision().SetDenseFog({ FVeyraFogCircle{ Bush, Tuning.PersistentWard.SensorRadius * 3.0 } });
+			ASSERT_THAT(IsTrue(ToolOf(*Scout).Use(Scout->GetActorLocation()) == EVeyraVisionToolRejection::None));
+			Scout->SetActorLocation(FVector(Far(), Far(), 0.0));
+			const AVeyraVisionTeamState* State = AVeyraVisionTeamState::Find(&Spawner.GetWorld(), EVeyraTeam::A);
+			ASSERT_THAT(IsNotNull(State));
+			const FVector Within(Bush.X + Tuning.PersistentWard.SensorRadius / 2.0, Bush.Y, 0.0);
+			Enemy->SetActorLocation(Within);
+			Vision().UpdateNow();
+			ASSERT_THAT(AreEqual(State->GetPings().Num(), 1));
+
+			Enemy->SetActorLocation(FVector(Bush.X + Tuning.PersistentWard.SensorRadius * 2.0, Bush.Y, 0.0));
+			Vision().UpdateNow();
+			ASSERT_THAT(AreEqual(State->GetPings().Num(), 1, TEXT("nothing while its coverage is empty")));
+			Enemy->SetActorLocation(Within);
+			Vision().UpdateNow();
+			ASSERT_THAT(AreEqual(State->GetPings().Num(), 2, TEXT("a new entry pings at once, whatever the cadence")));
+		}
+
 		TEST_METHOD(SweeperOutlinesAnEnemyInFogWithoutRevealingIt)
 		{
 			const FVeyraVisionTuning& Tuning = UVeyraVisionTuningSubsystem::Get();
