@@ -21,6 +21,10 @@ enum class EVeyraCustomMovementMode : uint8
 	Displaced,
 	/** The unit's own dash owns it. */
 	Dashing,
+	/** A Fear owns it: the unit walks away from its source (Combat Bible §8). */
+	Fleeing,
+	/** It holds on to another unit's body and goes where it goes (ADR-018 §2), as Patch's Bear Hug. */
+	Attached,
 };
 
 /**
@@ -51,6 +55,60 @@ public:
 
 	/** Server only: starts a dash. Refused, returning false, while the unit's movement is locked. */
 	bool StartDash(const FVeyraDash& Dash);
+
+	/**
+	 * Server: the unit flees Distance along Direction at Speed, as a Fear makes it, unless a
+	 * displacement holds it; it ends a dash (Combat Bible §8). False if it cannot.
+	 */
+	bool StartFleeing(const FVector& Direction, double Distance, double Speed);
+
+	/** Whether a Fear moves the unit now. */
+	bool IsFleeing() const;
+
+	/**
+	 * Server only: the body holds on to Host's back for Seconds, following it, and passes through
+	 * units meanwhile (ADR-018 §2). Refused, returning false, while a displacement holds it, while its
+	 * statuses stop it moving, or for its own body. It ends when its time runs out, when either body
+	 * dies, when a displacement, Fear or another attach takes over, or on EndAttach.
+	 */
+	bool StartAttach(AActor& Host, double Seconds);
+
+	/** Server only: lets go of the host, for Reason, if it holds one. */
+	void EndAttach(EVeyraAttachEndReason Reason);
+
+	bool IsAttached() const;
+
+	/** The body it holds on to now; nullptr if none. */
+	AActor* GetAttachHost() const;
+
+	/**
+	 * Server only: the body rides (Combat Bible §56): its Movement Speed is Ride's set speed, its
+	 * heading turns no faster than Ride's rate while it keeps its speed through the arc, and it passes
+	 * through units. It stays under its own orders; displacement and crowd control apply as ever and
+	 * never end it. A newer ride replaces an older. False for invalid values.
+	 */
+	bool StartRide(const FVeyraRide& Ride);
+
+	/** Server only: the ride ends, for Reason; the body slows back to its ordinary speed across the ride's decay window. */
+	void EndRide(EVeyraRideEndReason Reason);
+
+	bool IsRiding() const { return Ride.IsSet(); }
+
+	/** The tightest circle a rider can turn at its set speed, in units; 0 when not riding. */
+	double GetRideTurnRadius() const;
+
+	/** Which way the rider is heading; its facing when not riding. */
+	FVector GetRideHeading() const;
+
+	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
+
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+
+	/**
+	 * Server: the distance the body has moved itself since the last call, walking, riding or dashing,
+	 * never displaced, fleeing or held on, as Raska's Momentum counts it (ADR-018 §7), and starts again.
+	 */
+	double TakeTravelled();
 
 	/**
 	 * Where a forced movement of Distance along Direction from the unit's position ends: terrain stops
@@ -87,6 +145,12 @@ public:
 	/** Server only: raised when a dash ends, and why. */
 	TMulticastDelegate<void(const FVeyraDashEnd&)> OnDashEnded;
 
+	/** Server only: raised when it lets go of its host, and why. */
+	TMulticastDelegate<void(const FVeyraAttachEnd&)> OnAttachEnded;
+
+	/** Server only: raised as a ride ends, and why. */
+	TMulticastDelegate<void(const FVeyraRideEnd&)> OnRideEnded;
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
@@ -98,9 +162,16 @@ private:
 		FVector Destination = FVector::ZeroVector;
 		double Speed = 0.0;
 		EVeyraDashContact Contact = EVeyraDashContact::None;
+		/** An attach's host, and when it lets go (world seconds). */
+		TWeakObjectPtr<AActor> Host;
+		double EndsAt = 0.0;
 	};
 
 	void BeginForcedMove(const FForcedMove& Move);
+
+	/** An attach's step: the body takes its seat at the host's back, or lets go. */
+	void PhysAttached(float DeltaTime);
+	FVector AttachSeat(const AActor& Host) const;
 	void EndForcedMove();
 	void EndDash(EVeyraDashEndReason Reason, AActor* Contact);
 
@@ -108,6 +179,32 @@ private:
 	AActor* FindEnemyContact(const FVector& From, const FVector& To, FVector& OutContactLocation) const;
 
 	void RefreshMovementLock();
+
+	/** Its statuses changed: its lock, and the body they shape (Ghosted, BodyScale; ADR-018 §2). */
+	void OnFollowedStatusesChanged();
+	void RefreshBody();
+
+	/** While it passes through units, the response to them it had before; unset otherwise. */
+	TOptional<ECollisionResponse> PassThroughFrom;
+
+	/** The BodyScale its radius carries now; 1 for none. */
+	double AppliedBodyScale = 1.0;
+
+	/** The ride under way, and the heading its turns are measured from. */
+	TOptional<FVeyraRide> Ride;
+	FVector RideHeading = FVector::ForwardVector;
+
+	/** After a ride: the speed it left at, when, and over how long it slows to its ordinary speed. */
+	struct FRideDecay
+	{
+		double FromSpeed = 0.0;
+		double StartedAt = 0.0;
+		double Seconds = 0.0;
+	};
+	TOptional<FRideDecay> RideDecay;
+
+	/** How far it has moved itself since TakeTravelled last read it. */
+	double Travelled = 0.0;
 
 	TWeakObjectPtr<UAbilitySystemComponent> FollowedCombatant;
 	TWeakObjectPtr<UVeyraStatusComponent> FollowedStatuses;

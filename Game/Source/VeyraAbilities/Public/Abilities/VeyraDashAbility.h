@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Abilities/VeyraGameplayAbility.h"
+#include "Delivery/VeyraAreaDelivery.h"
 #include "Delivery/VeyraEffectDelivery.h"
 
 #include "VeyraDashAbility.generated.h"
@@ -31,7 +32,11 @@ protected:
 	virtual bool IsOffensive(const FVeyraContentId& Ability) const override;
 
 private:
-	/** What a dash that stops at an enemy does there, prepared at Commit (Combat Bible §50). */
+	/**
+	 * What a dash does at the enemy it stops at and where it lands, prepared at Commit (Combat Bible
+	 * §50). It outlives the ability that set off, which a used-once follow-up's removal may end mid-dash,
+	 * so a lambda bound to the caster holds it (ADR-018 §1).
+	 */
 	struct FPendingContact
 	{
 		TWeakObjectPtr<UAbilitySystemComponent> Caster;
@@ -39,13 +44,13 @@ private:
 		FVector Direction = FVector::ForwardVector;
 		FVeyraPreparedEffects Effects;
 		TArray<FVeyraStatusSpec> SelfStatuses;
+		TArray<FVeyraPreparedZone> EndZones;
+		/** Whether it leaves its caster's ride as it lands. */
+		bool bLeavesRide = false;
+		TWeakObjectPtr<UVeyraMovementComponent> Movement;
+		FDelegateHandle Handle;
 	};
 
-	void OnDashEnded(const FVeyraDashEnd& End);
-	void StopWatching();
-
-	/** The dash in progress that may stop at an enemy, and the movement running it. */
-	TOptional<FPendingContact> Contact;
-	TWeakObjectPtr<UVeyraMovementComponent> Watched;
-	FDelegateHandle DashEndedHandle;
+	/** The dash ended: its landing, its ride's end, and its effects on the enemy it stopped at. */
+	static void Land(const FPendingContact& Pending, const FVeyraDashEnd& End);
 };

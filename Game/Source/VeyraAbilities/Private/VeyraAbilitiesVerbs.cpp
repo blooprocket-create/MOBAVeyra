@@ -45,11 +45,14 @@ EVeyraCastRejection TryCast(UAbilitySystemComponent& Caster, EVeyraAbilitySlot S
 		Point->TargetLocation.LiteralTransform = FTransform(Target.Location);
 		Payload.TargetData.Add(Point);
 	}
+	// Copied: a used-once override leaves the loadout as it commits, inside the activation, and the
+	// entry's place in it with it.
+	const FVeyraContentId Cast = Entry->Ability;
 	const bool bActivated = Caster.TriggerAbilityFromGameplayEvent(Entry->Handle, Caster.AbilityActorInfo.Get(), FGameplayTag(), &Payload, Caster);
 	UE_CLOG(!bActivated, LogVeyraAbilities, Warning, TEXT("%s passed validation but the ability system did not activate %s."),
-		*GetNameSafe(Caster.GetAvatarActor()), *Entry->Ability.ToString());
+		*GetNameSafe(Caster.GetAvatarActor()), *Cast.ToString());
 	UE_CLOG(bActivated, LogVeyraAbilities, Verbose, TEXT("%s cast %s at %s."),
-		*GetNameSafe(Caster.GetAvatarActor()), *Entry->Ability.ToString(), *GetNameSafe(Target.Actor));
+		*GetNameSafe(Caster.GetAvatarActor()), *Cast.ToString(), *GetNameSafe(Target.Actor));
 	return bActivated ? EVeyraCastRejection::None : EVeyraCastRejection::ActivationFailed;
 }
 }

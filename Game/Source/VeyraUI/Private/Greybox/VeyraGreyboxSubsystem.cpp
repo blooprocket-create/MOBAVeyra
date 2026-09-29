@@ -230,8 +230,8 @@ FLinearColor UVeyraGreyboxSubsystem::BodyColorOf(const AActor& Unit) const
 	const auto Has = [&Statuses](EVeyraStatusKind Kind) {
 		return Statuses.ContainsByPredicate([Kind](const FVeyraHudStatus& Status) { return Status.Kind == Kind; });
 	};
-	// A stun matters more than a slow, and either more than a Camouflage.
-	if (Has(EVeyraStatusKind::Stun))
+	// A stun matters more than a slow, and either more than a Camouflage; a Fear or a Knockup reads as a stun.
+	if (Has(EVeyraStatusKind::Stun) || Has(EVeyraStatusKind::Fear) || Has(EVeyraStatusKind::Knockup))
 	{
 		return FLinearColor::LerpUsingHSV(Side, Settings.StunColor, Settings.StatusTintStrength);
 	}

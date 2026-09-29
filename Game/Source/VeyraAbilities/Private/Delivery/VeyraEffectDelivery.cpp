@@ -2,6 +2,8 @@
 
 #include "Delivery/VeyraEffectDelivery.h"
 
+#include "Statuses/VeyraStatusComponent.h"
+#include "Units/VeyraUnit.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraOffenceSet.h"
@@ -86,7 +88,10 @@ FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffec
 			Raw.Components.Add({ Damage.Type, DamageAmount(Caster, Damage, Rank) });
 		}
 		Prepared.Damage = VeyraCombat::PrepareDamage(Caster, Raw);
+		Prepared.RawDamage = Raw.Components;
 	}
+	Prepared.UnitKindMultipliers = Effects.UnitKindMultipliers;
+	Prepared.DisplacementUnlessStatuses = Effects.DisplacementUnlessStatuses;
 	Prepared.Statuses = StatusSpecs(Effects.Statuses);
 	if (!Effects.Displacement.IsEmpty())
 	{
@@ -160,6 +165,18 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 			const FVeyraMissingHealthDamageTuning& Missing = Effects.MissingHealthDamage.GetValue();
 			AddedAtImpact.Add({ Missing.Type, Missing.MissingHealthRatio * VeyraCombat::GetMissingHealth(*Target) });
 		}
+		// More against some kinds of unit: the extra share of each prepared component joins the hit (ADR-018 §6).
+		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
+		const FVeyraUnitKindMultiplierTuning* Multiplier = Kind.IsSet()
+			? Effects.UnitKindMultipliers.FindByPredicate([&Kind](const FVeyraUnitKindMultiplierTuning& Entry) { return Entry.Kind == Kind.GetValue(); })
+			: nullptr;
+		if (Multiplier && Multiplier->Multiplier > 1.0)
+		{
+			for (const FVeyraDamageComponent& Component : Effects.RawDamage)
+			{
+				AddedAtImpact.Add({ Component.Type, Component.Amount * (Multiplier->Multiplier - 1.0) });
+			}
+		}
 		VeyraCombat::DealPreparedDamage(Effects.Damage, *Target, AddedAtImpact);
 	}
 	for (const FVeyraStatusSpec& Status : Effects.Statuses)
@@ -167,7 +184,12 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 		const bool bApplied = VeyraCombat::ApplyStatus(Caster, *Target, Status);
 		Hit.bStunned |= bApplied && Status.Kind == EVeyraStatusKind::Stun;
 	}
-	if (Effects.Displacement.IsSet())
+	// One displacement per target per cast: a unit carrying a sparing status is not moved again (Roster Bible §1).
+	const UVeyraStatusComponent* Held = Target->GetOwner() ? Target->GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	const bool bSpared = Held && Effects.DisplacementUnlessStatuses.ContainsByPredicate([Held](const FVeyraContentId& Id) {
+		return Held->GetLedger().Entries.ContainsByPredicate([&Id](const FVeyraStatusEntry& Entry) { return Entry.Id == Id; });
+	});
+	if (Effects.Displacement.IsSet() && !bSpared)
 	{
 		const AActor* CasterBody = Caster.GetAvatarActor();
 		const double CasterRadius = CasterBody ? CasterBody->GetSimpleCollisionRadius() : 0.0;

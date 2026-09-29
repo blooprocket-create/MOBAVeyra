@@ -78,6 +78,21 @@ const FVeyraVolleyAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindVolley(cons
 	return Get().Volley.Find(Ability);
 }
 
+const FVeyraTetherAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindTether(const FVeyraContentId& Ability)
+{
+	return Get().Tether.Find(Ability);
+}
+
+const FVeyraAttachAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindAttach(const FVeyraContentId& Ability)
+{
+	return Get().Attach.Find(Ability);
+}
+
+const FVeyraRideAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindRide(const FVeyraContentId& Ability)
+{
+	return Get().Ride.Find(Ability);
+}
+
 TOptional<FVeyraStatusSpec> UVeyraAbilitiesTuningSubsystem::FindStatus(const FVeyraContentId& Id, int32 SourceLevel)
 {
 	const FVeyraStatusTuning* Status = Get().Statuses.Find(Id);

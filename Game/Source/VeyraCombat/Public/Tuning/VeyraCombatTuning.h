@@ -216,6 +216,20 @@ struct FVeyraPursuitTuning
 	double MaxAngleDegrees = 0.0;
 };
 
+/** How the server keeps its tethers (Combat Bible §43; ADR-018). */
+USTRUCT()
+struct FVeyraTetherCombatTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How often each tether's range, time and units are judged, in seconds; above 0. */
+	UPROPERTY()
+	double CheckSeconds = 0.0;
+};
+
 /** The Combat domain's tuning, bound from Game/Tuning/Combat.json (ADR-006 §6). */
 USTRUCT()
 struct FVeyraCombatTuning
@@ -223,7 +237,7 @@ struct FVeyraCombatTuning
 	GENERATED_BODY()
 
 	/** The Combat.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 4;
+	static constexpr int32 SchemaVersion = 5;
 
 	UPROPERTY()
 	FVeyraResistanceTuning Resistance;
@@ -260,6 +274,9 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraPursuitTuning Pursuit;
+
+	UPROPERTY()
+	FVeyraTetherCombatTuning Tethers;
 };
 
 /** The Combat domain's checks that a schema cannot express. */

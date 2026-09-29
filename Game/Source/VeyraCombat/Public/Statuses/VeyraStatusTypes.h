@@ -5,6 +5,7 @@
 #include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "Misc/EnumClassFlags.h"
+#include "Units/VeyraUnit.h"
 #include "UObject/ObjectMacros.h"
 
 #include "VeyraStatusTypes.generated.h"
@@ -96,6 +97,36 @@ enum class EVeyraStatusKind : uint8
 	 * later Raska's Momentum. Not crowd control. Magnitude: 0.
 	 */
 	Counter,
+	/**
+	 * The unit's own choice to take no action, as Patch's Play Dead (ADR-018 §2): it cannot move,
+	 * attack or cast. Not crowd control; Tenacity and Cleanse ignore it. Magnitude: 0.
+	 */
+	Dormant,
+	/** Ordinary crowd control and displacement from enemies cannot affect the unit (Combat Bible §8, §9). Magnitude: 0. */
+	Unstoppable,
+	/** No displacement or Knockup affects the unit (Combat Bible §9). Magnitude: 0. */
+	DisplacementImmunity,
+	/**
+	 * Crowd control: the unit walks away from the status's source and cannot attack or cast (Combat
+	 * Bible §8). Magnitude: the Slow it walks under, in [0, 1).
+	 */
+	Fear,
+	/** Crowd control: airborne, taking no action (Combat Bible §8, §9). Tenacity does not shorten it. Magnitude: 0. */
+	Knockup,
+	/** The unit passes through other units, never terrain (Combat Bible §24). Magnitude: 0. */
+	Ghosted,
+	/** The unit's body is this many times as wide (Combat Bible §13). Magnitude: the scale, above 0; one stack. */
+	BodyScale,
+	/**
+	 * Damage from a source within ArcDegrees of the unit's facing is reduced (ADR-018 §2), as Raska's
+	 * Countersteer. Magnitude: the fraction removed per stack, below 1 in all.
+	 */
+	DirectionalDamageReduction,
+	/**
+	 * The unit's basic attacks deal more (ADR-018 §2), against UnitKinds only when it names any.
+	 * Magnitude: the fraction added per stack, above 0.
+	 */
+	AttackDamageAmplification,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */
@@ -177,6 +208,14 @@ struct VEYRACOMBAT_API FVeyraStatusSpec
 	 */
 	UPROPERTY()
 	double StackDecaySeconds = 0.0;
+
+	/** DirectionalDamageReduction: the arc of the unit's facing it guards, in degrees; 0 for any other kind. */
+	UPROPERTY()
+	double ArcDegrees = 0.0;
+
+	/** AttackDamageAmplification: the unit kinds it amplifies attacks against, empty for all; empty for any other kind. */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> UnitKinds;
 };
 
 /** One active status as every machine sees it. Replicated for presentation. */
@@ -228,6 +267,9 @@ namespace VeyraStatuses
 
 	/** Whether Tenacity shortens the kind: crowd control does, buffs and speed changes do not (§8). */
 	VEYRACOMBAT_API bool IsTenacityReducible(EVeyraStatusKind Kind);
+
+	/** Whether the kind is ordinary crowd control, which Unstoppable refuses (§8): Stun, Slow, Fear and Knockup. */
+	VEYRACOMBAT_API bool IsCrowdControl(EVeyraStatusKind Kind);
 
 	/**
 	 * A reducible duration after Tenacity: DurationSeconds times TenacityRetained, but never below

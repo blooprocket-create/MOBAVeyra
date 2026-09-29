@@ -2,6 +2,8 @@
 
 #include "Abilities/VeyraAreaAbility.h"
 
+#include "Attributes/VeyraVitalsSet.h"
+#include "Units/VeyraUnit.h"
 #include "VeyraCombatVerbs.h"
 #include "AbilitySystemComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
@@ -68,6 +70,15 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 	{
 		VeyraCombat::RemoveStatus(*Caster, Spent);
 	}
+	// What it puts on its caster as it commits, such as the Slow it channels under (ADR-018 §6).
+	for (const FVeyraContentId& StatusId : Area->CasterStatuses)
+	{
+		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId, GetCasterLevel(*Caster)))
+		{
+			VeyraCombat::ApplyStatus(*Caster, *Caster, Status.GetValue());
+		}
+	}
+	HealedThisCast = 0.0;
 
 	// It lights its area for its caster's side as it commits (ADR-016 §5).
 	if (Area->Reveal.Radius > 0.0)
@@ -88,9 +99,12 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 	{
 		ChannelPlacement = Placement;
 		ChannelZones = MoveTemp(Zones);
-		return FVeyraChannelPlan{ Area->ChannelTicks, Area->ChannelSeconds };
+		FVeyraChannelPlan Plan{ Area->ChannelTicks, Area->ChannelSeconds };
+		Plan.bLocksMovement = Area->ChannelMovement == EVeyraCastMovement::Locked;
+		return Plan;
 	}
-	VeyraAreaDelivery::Resolve(*World, *Caster, Placement, Zones, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
+	const TArray<AActor*> Hit = VeyraAreaDelivery::Resolve(*World, *Caster, Placement, Zones, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
+	HealFromHits(*Caster, *Area, Hit);
 	if (!Area->Linger.IsEmpty() && !Area->Zones.IsEmpty())
 	{
 		Linger(*Caster, Placement, *Area, Cast);
@@ -133,8 +147,43 @@ void UVeyraAreaAbility::Linger(UAbilitySystemComponent& Caster, const FVeyraEffe
 void UVeyraAreaAbility::DeliverChannelTick(const FVeyraCast& Cast, int32 /*Tick*/)
 {
 	UAbilitySystemComponent* Caster = Cast.Caster.Get();
-	if (Caster && GetWorld())
+	const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(Cast.Ability);
+	if (!Caster || !Area || !GetWorld())
 	{
-		VeyraAreaDelivery::Resolve(*GetWorld(), *Caster, ChannelPlacement, ChannelZones, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
+		return;
+	}
+	// A caster free to move sweeps where it stands now, the way it faces (ADR-018 §6).
+	const AActor* Body = Caster->GetAvatarActor();
+	if (Body && Area->ChannelMovement == EVeyraCastMovement::Free && Area->Origin == EVeyraAreaOrigin::Caster)
+	{
+		ChannelPlacement.Origin = Body->GetActorLocation();
+		const FVector Facing = Body->GetActorForwardVector().GetSafeNormal2D();
+		ChannelPlacement.Direction = Facing.IsNearlyZero() ? ChannelPlacement.Direction : Facing;
+	}
+	const TArray<AActor*> Hit = VeyraAreaDelivery::Resolve(*GetWorld(), *Caster, ChannelPlacement, ChannelZones, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
+	HealFromHits(*Caster, *Area, Hit);
+}
+
+void UVeyraAreaAbility::HealFromHits(UAbilitySystemComponent& Caster, const FVeyraAreaAbilityTuning& Area, TConstArrayView<AActor*> Hit)
+{
+	if (Area.HealOnHit.IsEmpty())
+	{
+		return;
+	}
+	const FVeyraHealOnHitTuning& Heal = Area.HealOnHit[0];
+	int32 Counted = 0;
+	for (const AActor* Unit : Hit)
+	{
+		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Unit);
+		Counted += Heal.UnitKinds.IsEmpty() || (Kind.IsSet() && Heal.UnitKinds.Contains(Kind.GetValue())) ? 1 : 0;
+	}
+	// A share of Max Health per unit hit, never past the cast's cap (Roster Bible §23: "bounded Health up to a cap per cast").
+	const double MaxHealth = Caster.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+	const double Room = FMath::Max(0.0, Heal.CapMaxHealthRatio * MaxHealth - HealedThisCast);
+	const double Amount = FMath::Min(Counted * Heal.MaxHealthRatioPerHit * MaxHealth, Room);
+	if (Amount > 0.0)
+	{
+		HealedThisCast += Amount;
+		VeyraCombat::RestoreHealthFrom(Caster, Caster, Amount);
 	}
 }

@@ -19,6 +19,7 @@ public class VeyraVanguards : ModuleRules
 			"VeyraCombat",
 			"VeyraCore",
 			"VeyraEconomy",
+			"VeyraWorld",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

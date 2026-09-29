@@ -53,8 +53,8 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # name content too. An ID is valid when any of the maps defines it (ADR-008 §7). The game checks
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
-ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley")
-PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc")
+ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride")
+PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
     ("Vanguards", "/vanguards/*/abilities/q/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
@@ -72,12 +72,30 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/markProc/*/mark", "Abilities", ("/statuses",)),
     ("Vanguards", "/markProc/*/emergence/*/status", "Abilities", ("/statuses",)),
     ("Vanguards", "/markProc/*/procBolts/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/haunt/*/hauntStatus", "Abilities", ("/statuses",)),
+    ("Vanguards", "/haunt/*/statuses/*", "Abilities", ("/statuses",)),
+    ("Vanguards", "/campReward/*/statuses/*", "Abilities", ("/statuses",)),
+    ("Vanguards", "/momentum/*/meter", "Abilities", ("/statuses",)),
+    ("Vanguards", "/momentum/*/redlined/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Vanguards", "/momentum/*/holdFullStatuses/*", "Abilities", ("/statuses",)),
+    ("Vanguards", "/momentum/*/roadhouse/reachStatus", "Abilities", ("/statuses",)),
+    ("Abilities", "/area/*/casterStatuses/*", "Abilities", ("/statuses",)),
     # A variant is an ability of any archetype, and what an area spends is a status (ADR-018 §1, §6).
     ("Abilities", "/selfBuff/*/variants/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Abilities", "/area/*/consumesCasterStatuses/*", "Abilities", ("/statuses",)),
     # A volley's shot is a skillshot, and its bonus names the status an ally's displacement must find (ADR-018 §6).
     ("Abilities", "/volley/*/shot", "Abilities", ("/skillshot",)),
     ("Abilities", "/volley/*/bonus/*/status", "Abilities", ("/statuses",)),
+    # A tether holds statuses on its target, and an attach on its host, while they last (ADR-018 §2).
+    ("Abilities", "/tether/*/targetStatuses/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/attach/*/hostStatuses/*", "Abilities", ("/statuses",)),
+    # A ride holds statuses on its rider, mounted actions of any archetype, and a skillshot vehicle (Combat Bible §56).
+    ("Abilities", "/ride/*/riderStatuses/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/ride/*/mounted/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Abilities", "/ride/*/vehicle/*", "Abilities", ("/skillshot",)),
+    # What a buff's end and its aura put on enemies are statuses (ADR-018 §6).
+    ("Abilities", "/selfBuff/*/endPayload/*/status", "Abilities", ("/statuses",)),
+    ("Abilities", "/selfBuff/*/aura/*/enemyStatuses/*", "Abilities", ("/statuses",)),
     # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).
     ("Abilities", "/fluxSpells/roster/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     # Every Fluxborn Economy pays for is one World defines, and every one World defines is paid for.

@@ -112,6 +112,7 @@ int32 UVeyraJungleSubsystem::SpawnCamp(int32 Index)
 	}
 	World->GetTimerManager().ClearTimer(Camp.Timer);
 	Camp.SpawnsAt = 0.0;
+	Camp.Contributors.Reset();
 	int32 Spawned = 0;
 	for (const FVector2D& Spot : VeyraWildlifeRules::Positions(Camp.Center, CampTuning.Count, CampTuning.Spacing))
 	{
@@ -184,6 +185,11 @@ void UVeyraJungleSubsystem::OnHostileDamage(const FVeyraHostileDamageEvent& Even
 	{
 		return;
 	}
+	// A Vanguard that hurt it helps clear its camp (ADR-018 §3).
+	if (Camps.IsValidIndex(Hurt->GetCamp()) && VeyraUnits::IsVanguard(Source->GetOwner()))
+	{
+		Camps[Hurt->GetCamp()].Contributors.AddUnique(Event.Source);
+	}
 	// The whole camp answers, as League's camps do.
 	for (AVeyraWildlife* Creature : GetCreatures(Hurt->GetCamp()))
 	{
@@ -240,9 +246,12 @@ void UVeyraJungleSubsystem::OnCreatureDied(AVeyraWildlife& Creature, const FVeyr
 			}
 		}
 	}
-	const FCamp& Camp = Camps[Index];
+	FCamp& Camp = Camps[Index];
 	UE_LOG(LogVeyraWorld, Log, TEXT("Camp %d, %s on %s's half, was cleared%s."), Index, *Creature.GetSpecies().ToString(), *UEnum::GetValueAsString(Camp.Half),
 		Killer ? *FString::Printf(TEXT(" by %s"), *GetNameSafe(Killer->GetOwner())) : TEXT(""));
+	// Once per clear, with who helped (ADR-018 §3).
+	OnCampCleared.Broadcast(FVeyraCampCleared{ Index, Creature.GetSpecies(), Camp.Contributors });
+	Camp.Contributors.Reset();
 	if (!bStopped)
 	{
 		ScheduleSpawn(Index, Tuning.Wildlife.Camps[Camp.TuningIndex].RespawnSeconds);

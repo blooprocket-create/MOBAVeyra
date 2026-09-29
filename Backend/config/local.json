@@ -32,7 +32,7 @@
     {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
   ],
   "vanguards": {
-    "released": ["cairn", "qazharr", "oriel", "bryn", "kade", "vera", "mimzi"],
+    "released": ["cairn", "qazharr", "oriel", "bryn", "kade", "vera", "mimzi", "patch", "gorraveth", "raska"],
     "starters": ["cairn", "qazharr", "oriel", "bryn"],
     "rotation": {"slots": 12, "standIn": "allReleased"}
   },
@@ -46,9 +46,9 @@
     "pickDuration": "30s",
     "playersPerSide": 5,
     "bots": [
-      {"side": "B", "vanguardId": "cairn", "difficulty": "beginner"},
-      {"side": "B", "vanguardId": "qazharr", "difficulty": "beginner"},
       {"side": "B", "vanguardId": "oriel", "difficulty": "beginner"},
+      {"side": "B", "vanguardId": "qazharr", "difficulty": "beginner"},
+      {"side": "B", "vanguardId": "gorraveth", "difficulty": "beginner"},
       {"side": "B", "vanguardId": "bryn", "difficulty": "beginner"}
     ]
   },

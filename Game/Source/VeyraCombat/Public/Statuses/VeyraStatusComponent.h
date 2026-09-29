@@ -78,6 +78,18 @@ public:
 	/** The actions the unit's statuses stop it taking. */
 	EVeyraActionBlocks GetActionBlocks() const;
 
+	/** Whether the unit has a status of Kind now. */
+	bool Has(EVeyraStatusKind Kind) const;
+
+	/**
+	 * Server: what the unit's directional reductions leave of damage from a source lying ToSource of
+	 * it, the unit facing Facing (ADR-018 §2); 1 when none guards that way.
+	 */
+	double GetDirectionalRetained(const FVector& Facing, const FVector& ToSource) const;
+
+	/** Server: what the unit's basic attacks against a unit of TargetKind add, as a fraction (ADR-018 §2); 0 for none. */
+	double GetAttackAmplification(TOptional<EVeyraUnitKind> TargetKind) const;
+
 	/** Raised on every machine when the statuses change. */
 	TMulticastDelegate<void()> OnStatusesChanged;
 
@@ -108,6 +120,9 @@ private:
 		int32 TicksLeft = 0;
 		/** A status that loses one stack at a time: how long each remaining stack lasts; 0 for none. */
 		double StackDecaySeconds = 0.0;
+		/** A DirectionalDamageReduction's arc, and an AttackDamageAmplification's unit kinds. */
+		double ArcDegrees = 0.0;
+		TArray<EVeyraUnitKind> UnitKinds;
 	};
 
 	/** Entry Sequence's effect Ended ran out: loses one stack and runs again if it decays so. Returns whether it did. */

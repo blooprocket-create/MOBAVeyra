@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 8,
+  "schemaVersion": 11,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -361,6 +361,132 @@
       },
       "abilities": { "q": ["mimzi_twinklebolt"], "w": ["mimzi_winkbomb"], "e": ["mimzi_now_you_see_me"], "r": ["mimzi_grand_prank"] },
       "passive": ["mimzi_pocket_hex"]
+    },
+    "patch": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 45, "capsuleHalfHeight": 70, "turnRateDegreesPerSecond": 540 },
+      "baseStats": {
+        "maxHealth": 650,
+        "healthRegen": 1.8,
+        "maxResource": 300,
+        "resourceRegen": 3.2,
+        "armor": 36,
+        "magicResist": 32,
+        "physicalPower": 56,
+        "magicPower": 0,
+        "attackSpeed": 0.64,
+        "moveSpeed": 335
+      },
+      "growth": {
+        "maxHealth": 100,
+        "healthRegen": 0.15,
+        "maxResource": 40,
+        "resourceRegen": 0.22,
+        "armor": 4,
+        "magicResist": 2.05,
+        "physicalPower": 3,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.015
+      },
+      "basicAttack": {
+        "range": 125,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": { "q": ["patch_bear_hug"], "w": ["patch_play_dead"], "e": ["patch_dont_leave_me"], "r": ["patch_the_thing_inside"] },
+      "passive": ["patch_haunted_attachment"]
+    },
+    "gorraveth": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 60, "capsuleHalfHeight": 110, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 640,
+        "healthRegen": 1.6,
+        "maxResource": 280,
+        "resourceRegen": 3,
+        "armor": 33,
+        "magicResist": 32,
+        "physicalPower": 62,
+        "magicPower": 0,
+        "attackSpeed": 0.66,
+        "moveSpeed": 345
+      },
+      "growth": {
+        "maxHealth": 105,
+        "healthRegen": 0.15,
+        "maxResource": 40,
+        "resourceRegen": 0.2,
+        "armor": 4.2,
+        "magicResist": 2.05,
+        "physicalPower": 3.5,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 175,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": { "q": ["gorraveth_rip_through"], "w": ["gorraveth_furnace_rake"], "e": ["gorraveth_ravine_bound"], "r": ["gorraveth_tear_them_apart"] },
+      "passive": ["gorraveth_no_time_to_bleed"]
+    },
+    "raska": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 50, "capsuleHalfHeight": 95, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 620,
+        "healthRegen": 1.4,
+        "maxResource": 300,
+        "resourceRegen": 3,
+        "armor": 34,
+        "magicResist": 32,
+        "physicalPower": 58,
+        "magicPower": 0,
+        "attackSpeed": 0.65,
+        "moveSpeed": 340
+      },
+      "growth": {
+        "maxHealth": 112,
+        "healthRegen": 0.14,
+        "maxResource": 40,
+        "resourceRegen": 0.22,
+        "armor": 4.4,
+        "magicResist": 2.05,
+        "physicalPower": 3.2,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 150,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": { "q": ["raska_breakneck"], "w": ["raska_countersteer"], "e": ["raska_kickstart"], "r": ["raska_no_brakes"] },
+      "passive": ["raska_redline"]
     }
   },
   "deepFoundation": {
@@ -461,6 +587,44 @@
           "projectile": { "speed": 1800, "radius": 20 }
         }
       ]
+    }
+  },
+  "haunt": {
+    "patch_haunted_attachment": {
+      "provenance": "Provisional",
+      "hauntStatus": "patch_haunted",
+      "perEnemyCooldownSeconds": 10,
+      "allyRadius": 800,
+      "damage": { "type": "Magic", "amountByRank": [40], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 },
+      "statuses": ["patch_haunt_chill"]
+    }
+  },
+  "campReward": {
+    "gorraveth_no_time_to_bleed": {
+      "provenance": "Provisional",
+      "healthRatio": 0.06,
+      "healthAmount": 40,
+      "statuses": ["gorraveth_rush"],
+      "takedownCooldownSeconds": 20
+    }
+  },
+  "momentum": {
+    "raska_redline": {
+      "provenance": "Provisional",
+      "meter": "raska_momentum",
+      "unitsPerPoint": 40,
+      "pointsPerAttack": 5,
+      "pointsPerCast": 8,
+      "sampleSeconds": 0.25,
+      "redlined": [{ "slot": "Q", "ability": "raska_breakneck_redlined" }, { "slot": "W", "ability": "raska_countersteer_redlined" }],
+      "holdFullStatuses": ["raska_no_brakes"],
+      "roadhouse": {
+        "reachStatus": "raska_roadhouse_reach",
+        "damage": { "type": "Physical", "amountByRank": [30], "physicalPowerRatio": 0, "magicPowerRatio": 0 },
+        "missingHealthRatio": 0.1,
+        "bonusHealthRatio": 0.03,
+        "lungeSpeed": 1400
+      }
     }
   }
 }

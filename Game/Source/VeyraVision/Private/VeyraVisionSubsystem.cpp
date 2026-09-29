@@ -21,6 +21,7 @@
 #include "GameFramework/GameStateBase.h"
 #include "Targeting/VeyraParticipantData.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Tethers/VeyraTetherSubsystem.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraVisionLog.h"
@@ -286,19 +287,24 @@ bool UVeyraVisionSubsystem::IsInTrueSight(EVeyraTeam Side, const AActor& Unit) c
 void UVeyraVisionSubsystem::UpdateSensors(const TArray<const AActor*>& Gated, double Now)
 {
 	const FVeyraVisionTuning& Tuning = UVeyraVisionTuningSubsystem::Get();
+	// What each sensor senses this pass: coverage that empties forgets its cadence, so the next enemy
+	// to enter pings at once (Vision Bible §4).
+	TSet<TPair<uint64, int32>> Sensing;
 	for (const EVeyraTeam Side : { EVeyraTeam::A, EVeyraTeam::B })
 	{
 		AVeyraVisionTeamState* State = TeamStates.FindRef(Side).Get();
 		// Presence (Vision Bible §4, §6): an enemy Vanguard inside Dense Fog within a sensor's own
 		// coverage (a ward of this side inside the same fog, or an area this side lights) pings the
-		// fog circle it is in, never where it stands. A new sensor pings at once, then at its cadence.
-		const auto Ping = [this, State, Now, &Tuning](uint64 Sensor, const AActor& Enemy) {
+		// fog circle it is in, never where it stands. An entry pings at once, then at its cadence
+		// while anything stays.
+		const auto Ping = [this, State, Now, &Tuning, &Sensing](uint64 Sensor, const AActor& Enemy) {
 			const int32 Circle = VeyraVisionRules::CircleAt(Fog, FVector2D(Enemy.GetActorLocation()));
 			if (Circle == INDEX_NONE)
 			{
 				return;
 			}
 			const TPair<uint64, int32> Key(Sensor, Circle);
+			Sensing.Add(Key);
 			const double* Last = LastPings.Find(Key);
 			if (Last && Now - *Last < Tuning.Presence.PingEverySeconds)
 			{
@@ -356,6 +362,13 @@ void UVeyraVisionSubsystem::UpdateSensors(const TArray<const AActor*>& Gated, do
 		if (State)
 		{
 			State->SetOutlines(MoveTemp(Shown));
+		}
+	}
+	for (auto It = LastPings.CreateIterator(); It; ++It)
+	{
+		if (!Sensing.Contains(It.Key()))
+		{
+			It.RemoveCurrent();
 		}
 	}
 }
@@ -693,6 +706,13 @@ bool UVeyraVisionSubsystem::IsVisibleToTeam(EVeyraTeam Team, const AActor& Targe
 bool UVeyraVisionSubsystem::JudgeSight(EVeyraTeam Side, const AActor& Unit) const
 {
 	const FVector2D Where(Unit.GetActorLocation());
+	// A tether one of the side's units holds shows its target through fog, stealth and Camouflage;
+	// Dense Fog, judged before this, still hides it (Combat Bible §43).
+	const UVeyraTetherSubsystem* Tethers = GetWorld() ? GetWorld()->GetSubsystem<UVeyraTetherSubsystem>() : nullptr;
+	if (Tethers && Tethers->IsTetheredBy(Unit, Side))
+	{
+		return true;
+	}
 	if (IsInvisible(Unit))
 	{
 		return IsInTrueSight(Side, Unit);

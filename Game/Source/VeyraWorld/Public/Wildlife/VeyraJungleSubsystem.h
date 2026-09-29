@@ -31,6 +31,16 @@ struct FVeyraCampState
 	double SpawnsAt = 0.0;
 };
 
+/** A camp whose last creature fell (Battleground Bible §17; ADR-018 §3), and who helped clear it. */
+struct FVeyraCampCleared
+{
+	int32 Index = INDEX_NONE;
+	FVeyraContentId Species;
+
+	/** Each Vanguard that damaged any of its creatures since it last spawned, living or not. */
+	TArray<TWeakObjectPtr<UAbilitySystemComponent>> Contributors;
+};
+
 /**
  * The jungle on the server (Battleground Bible §7, §8, §17; ADR-014 §2). Once Match starts it as the
  * match goes live, it spawns each camp at its spawn time on the match clock, on Team A's half as
@@ -64,6 +74,9 @@ public:
 	/** Camp Index's living creatures. */
 	TArray<AVeyraWildlife*> GetCreatures(int32 Index) const;
 
+	/** Server: raised as each camp's last creature dies, once per clear, for passives such as Gorraveth's (ADR-018 §3). */
+	TMulticastDelegate<void(const FVeyraCampCleared&)> OnCampCleared;
+
 private:
 	/** A camp on the server. */
 	struct FCamp
@@ -74,6 +87,8 @@ private:
 		TArray<TWeakObjectPtr<AVeyraWildlife>> Creatures;
 		FTimerHandle Timer;
 		double SpawnsAt = 0.0;
+		/** The Vanguards that have damaged its creatures since it spawned. */
+		TArray<TWeakObjectPtr<UAbilitySystemComponent>> Contributors;
 	};
 
 	void OnDeath(const FVeyraDeathEvent& Death);

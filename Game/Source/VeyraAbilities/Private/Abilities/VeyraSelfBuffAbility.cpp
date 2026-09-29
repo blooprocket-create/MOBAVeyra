@@ -7,6 +7,7 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/World.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Shapes/VeyraShapes.h"
 #include "Statuses/VeyraStatusComponent.h"
@@ -152,13 +153,31 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 		AuraCaster = Caster;
 		AuraAbility = Cast.Ability;
 		AuraEndsAt = World->GetTimeSeconds() + Aura.DurationSeconds;
-		World->GetTimerManager().SetTimer(AuraTimer, FTimerDelegate::CreateUObject(this, &UVeyraSelfBuffAbility::RefreshAura),
-			static_cast<float>(Aura.RefreshSeconds), /*bLoop*/ true);
+		// Bound to the caster, not to this ability: GAS clears an ability's own timers as its cast ends,
+		// and the aura outlasts the cast.
+		TWeakObjectPtr<UVeyraSelfBuffAbility> Self(this);
+		World->GetTimerManager().SetTimer(AuraTimer, FTimerDelegate::CreateWeakLambda(Caster, [Self]() {
+			if (UVeyraSelfBuffAbility* Ability = Self.Get())
+			{
+				Ability->RefreshAura();
+			}
+		}), static_cast<float>(Aura.RefreshSeconds), /*bLoop*/ true);
 		RefreshAura();
 	}
 	for (const FVeyraHealTuning& Heal : Buff->Heal)
 	{
 		DeliverHeal(*Caster, Heal);
+	}
+	for (const FVeyraTemporaryHealthTuning& Temporary : Buff->TemporaryHealth)
+	{
+		// Its amount by rank and a share of the caster's Max Health (Combat Bible §7).
+		const double MaxHealth = Caster->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+		VeyraCombat::GrantTemporaryHealth(*Caster, *Caster, VeyraAbilityRules::ValueAtRank(Temporary.AmountByRank, Cast.Rank) + MaxHealth * Temporary.MaxHealthRatio,
+			Temporary.DurationSeconds);
+	}
+	if (!Buff->EndPayload.IsEmpty())
+	{
+		StartPayload(*Caster, Cast.Ability);
 	}
 	// While it lasts, its variants hold their slots (ADR-018 §1).
 	if (UVeyraAbilityLoadoutComponent* Loadout = Caster->GetOwner() ? Caster->GetOwner()->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr)
@@ -263,6 +282,114 @@ void UVeyraSelfBuffAbility::RefreshAura()
 			}
 		}
 	}
+	if (Aura.EnemyStatuses.IsEmpty())
+	{
+		return;
+	}
+	// The living enemy units in range take its enemy statuses; Combat refuses them for structures and wards.
+	const TArray<AActor*> Enemies = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Circle, Body->GetActorLocation(), Body->GetActorForwardVector() },
+		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit) && VeyraTargeting::IsAlive(&Unit); });
+	for (AActor* Enemy : Enemies)
+	{
+		UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Enemy);
+		for (const FVeyraContentId& StatusId : Aura.EnemyStatuses)
+		{
+			const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId);
+			if (Target && Status.IsSet())
+			{
+				VeyraCombat::ApplyStatus(*Caster, *Target, Status.GetValue());
+			}
+		}
+	}
+}
+
+void UVeyraSelfBuffAbility::StartPayload(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
+{
+	UWorld* World = GetWorld();
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability);
+	UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+	if (!World || !Buff || Buff->EndPayload.IsEmpty() || !Events)
+	{
+		return;
+	}
+	StopPayload();
+	PayloadCaster = &Caster;
+	PayloadAbility = Ability;
+	PayloadHits = 0;
+	HostileDamageHandle = Events->OnHostileDamage.AddUObject(this, &UVeyraSelfBuffAbility::OnHostileDamage);
+	// Bound to the caster, as the aura's is: the payload comes after the cast has ended.
+	TWeakObjectPtr<UVeyraSelfBuffAbility> Self(this);
+	World->GetTimerManager().SetTimer(PayloadTimer, FTimerDelegate::CreateWeakLambda(&Caster, [Self]() {
+		if (UVeyraSelfBuffAbility* Ability = Self.Get())
+		{
+			Ability->FirePayload();
+		}
+	}), static_cast<float>(Buff->EndPayload[0].AfterSeconds), /*bLoop*/ false);
+}
+
+void UVeyraSelfBuffAbility::OnHostileDamage(const FVeyraHostileDamageEvent& Event)
+{
+	// Each hostile hit its caster takes while the buff lasts agitates it (Roster Bible §5).
+	if (PayloadCaster.IsValid() && Event.Target.Get() == PayloadCaster.Get())
+	{
+		++PayloadHits;
+	}
+}
+
+void UVeyraSelfBuffAbility::FirePayload()
+{
+	UWorld* World = GetWorld();
+	UAbilitySystemComponent* Caster = PayloadCaster.Get();
+	const AActor* Body = Caster ? Caster->GetAvatarActor() : nullptr;
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(PayloadAbility);
+	const int32 Hits = PayloadHits;
+	StopPayload();
+	if (!World || !Body || !Buff || Buff->EndPayload.IsEmpty() || !VeyraTargeting::IsAlive(Body))
+	{
+		return;
+	}
+	const FVeyraEndPayloadTuning& Payload = Buff->EndPayload[0];
+	// A payload that needs hits comes only after that many (Roster Bible §1: Countersteer's counter).
+	if (Hits < Payload.MinHits)
+	{
+		return;
+	}
+	TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(Payload.Status, GetCasterLevel(*Caster));
+	if (!Status.IsSet())
+	{
+		return;
+	}
+	// Longer for each hit it took, up to its most (ADR-018 §6).
+	Status->DurationSeconds = FMath::Min(Payload.BaseSeconds + Payload.SecondsPerHit * Hits, Payload.MaxSeconds);
+	FVeyraShape Circle;
+	Circle.Kind = EVeyraShapeKind::Circle;
+	Circle.Radius = Payload.Radius;
+	const TArray<AActor*> Enemies = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Circle, Body->GetActorLocation(), Body->GetActorForwardVector() },
+		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit) && VeyraTargeting::IsAlive(&Unit); });
+	for (AActor* Enemy : Enemies)
+	{
+		if (UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Enemy))
+		{
+			VeyraCombat::ApplyStatus(*Caster, *Target, Status.GetValue());
+		}
+	}
+}
+
+void UVeyraSelfBuffAbility::StopPayload()
+{
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		World->GetTimerManager().ClearTimer(PayloadTimer);
+	}
+	if (UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
+	{
+		Events->OnHostileDamage.Remove(HostileDamageHandle);
+	}
+	HostileDamageHandle.Reset();
+	PayloadCaster.Reset();
+	PayloadAbility = FVeyraContentId();
+	PayloadHits = 0;
 }
 
 void UVeyraSelfBuffAbility::StopAura()
