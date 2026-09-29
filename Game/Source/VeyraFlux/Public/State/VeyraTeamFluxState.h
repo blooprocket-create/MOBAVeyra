@@ -37,7 +37,7 @@ struct FVeyraTeamFluxView
 	TArray<FVeyraTemporaryFluxView> Temporary;
 
 	/** Permanent Flux plus the temporary grants still counting at the server's world time Now. */
-	double ActiveAt(double Now) const;
+	VEYRAFLUX_API double ActiveAt(double Now) const;
 };
 
 /**

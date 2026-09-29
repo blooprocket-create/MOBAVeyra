@@ -45,7 +45,8 @@ namespace VeyraNetTests
 
 	/**
 	 * Match tuning a test may change. Get() returns it while this object lives. Every participant
-	 * plays the test Vanguard, with Q learned at level 1, unless the test chooses otherwise.
+	 * plays the test Vanguard, with Q learned at level 1, and recovers nothing at its fountain, where
+	 * it starts, unless the test chooses otherwise.
 	 */
 	struct FScopedMatchTuning
 	{
@@ -56,6 +57,8 @@ namespace VeyraNetTests
 		{
 			Tuning.DeveloperMatch.Vanguards = { TestVanguardId() };
 			Tuning.DeveloperMatch.StartingRank = EVeyraDeveloperStartingRank::Q;
+			Tuning.Fountain.HealthFractionPerSecond = 0.0;
+			Tuning.Fountain.ResourceFractionPerSecond = 0.0;
 			UVeyraMatchTuningSubsystem::SetTestOverride(&Tuning);
 		}
 

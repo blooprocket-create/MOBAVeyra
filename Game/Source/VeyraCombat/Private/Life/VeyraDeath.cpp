@@ -6,6 +6,7 @@
 #include "Attribution/VeyraAttributionComponent.h"
 #include "CombatState/VeyraCombatStateComponent.h"
 #include "Engine/World.h"
+#include "GameFramework/Pawn.h"
 #include "GameplayEffect.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Life/VeyraKillCredit.h"
@@ -38,6 +39,11 @@ void FinalizeDeath(UAbilitySystemComponent& Victim, UAbilitySystemComponent* Kil
 	Death.Victim = &Victim;
 	Death.Killer = Killer;
 	Death.DiedAtSeconds = Now;
+	// A unit's body is a pawn; a participant without one has none.
+	if (const APawn* Body = Cast<APawn>(Victim.GetAvatarActor()))
+	{
+		Death.Location = Body->GetActorLocation();
+	}
 	const AActor* KillerUnit = Killer ? Killer->GetOwner() : nullptr;
 	const bool bKillerIsEnemyVanguard = KillerUnit && VeyraUnits::IsVanguard(KillerUnit) && VeyraTargeting::AreHostile(KillerUnit, Owner);
 	if (UVeyraAttributionComponent* Attribution = Owner->FindComponentByClass<UVeyraAttributionComponent>())

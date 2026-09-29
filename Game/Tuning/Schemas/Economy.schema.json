@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Economy tuning",
+  "description": "Gold and XP rewards owned by the Economy domain (Economy & Progression Bible §1–§8; ADR-011 §11, §17): starting Gold, what lane Fluxborn, Vanguard kills and structures pay, the Team Flux farm bonus, and who is near enough to share. VeyraEconomy binds it to FVeyraEconomyTuning. The XP curve stays in Progression.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "gold", "experience", "fluxBonus", "eligibility"],
+  "definitions": {
+    "provenance": {
+      "description": "Where these values come from (ADR-008 §7).",
+      "type": "string",
+      "enum": ["Provisional", "Canon", "Reviewed"]
+    },
+    "perFluxborn": {
+      "description": "A value for each kind of Fluxborn, keyed by its ID in World.json fluxborn.units.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "type": "number", "minimum": 0 } }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [1]
+    },
+    "gold": {
+      "description": "Individual Gold (§1, §3, §5, §8).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "starting", "fluxborn", "participationFraction", "vanguardKill", "assistPoolFraction", "firstBloodFraction", "structurePool", "firstStructureBonus"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "starting": { "description": "Every participant's one guaranteed grant, when the match prepares (§1, §10).", "type": "number", "minimum": 0 },
+        "fluxborn": { "$ref": "#/definitions/perFluxborn", "description": "Each kind's listed Gold: all of it to the Vanguard who lands the last hit (§3.1)." },
+        "participationFraction": { "description": "The share of a Fluxborn's Gold each other nearby living ally gets when an allied Vanguard damaged it recently (§3.2: 10%).", "type": "number", "minimum": 0, "maximum": 1 },
+        "vanguardKill": { "description": "A Vanguard's base kill Gold, whatever its level (§5.1).", "type": "number", "minimum": 0 },
+        "assistPoolFraction": { "description": "The Assist Gold pool, as a fraction of the base kill Gold, split among the assisters (§5.1: 50%).", "type": "number", "minimum": 0 },
+        "firstBloodFraction": { "description": "The match's first kill adds this fraction of the base kill Gold for the killer (§5.2: 50%).", "type": "number", "minimum": 0 },
+        "structurePool": { "description": "A lane Spire's or base-defense tower's Gold, split among its recent contributors (§8.1).", "type": "number", "minimum": 0 },
+        "firstStructureBonus": { "description": "The first Spire or base tower to fall adds this for every member of the destroying team (§8.1).", "type": "number", "minimum": 0 }
+      }
+    },
+    "experience": {
+      "description": "Individual XP (§3.3, §6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "fluxborn", "sharedPoolFraction", "killBase", "killPerLevel", "participantBonus", "higherLevelVictimMultiplier"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "fluxborn": { "$ref": "#/definitions/perFluxborn", "description": "Each kind's base XP for the nearby living allies (§3.3)." },
+        "sharedPoolFraction": { "description": "With two or more to share, one pool of this much of the base XP split equally (§3.3: 120%).", "type": "number", "minimum": 1 },
+        "killBase": { "description": "A level-1 victim's base kill XP (§6).", "type": "number", "minimum": 0 },
+        "killPerLevel": { "description": "Base kill XP added for each level of the victim above 1.", "type": "number", "minimum": 0 },
+        "participantBonus": { "description": "The kill XP pool grows by this much of the base for each qualifying participant after the first (§6: 20%).", "type": "number", "minimum": 0 },
+        "higherLevelVictimMultiplier": { "description": "Applied once to the pool when the victim outlevels the killer (§6).", "type": "number", "minimum": 1 }
+      }
+    },
+    "fluxBonus": {
+      "description": "Enemy Fluxborn strengthened by Team Flux pay a little more (§4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "fluxPerStep", "bonusPerStep", "maxBonus"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "fluxPerStep": { "description": "Each this much of the Fluxborn's team's active Flux adds a step (§4: 25).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "bonusPerStep": { "description": "The Gold and XP each step adds (§4: 1%).", "type": "number", "minimum": 0 },
+        "maxBonus": { "description": "The most the steps add (§4: 10%).", "type": "number", "minimum": 0 }
+      }
+    },
+    "eligibility": {
+      "description": "Who is near enough, and recent enough, to share (§2, §3, §8).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "radius", "fluxbornParticipationSeconds", "structureContributionSeconds"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "radius": { "description": "How near a death a Vanguard must be for farm XP, participation Gold and kill XP, in units; walls and fog never block it (§2).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "fluxbornParticipationSeconds": { "description": "How recently an allied Vanguard must have damaged a Fluxborn for nearby allies to share its Gold (§3.2).", "type": "number", "minimum": 0 },
+        "structureContributionSeconds": { "description": "How recently a Vanguard must have damaged a structure to share its pool (§8.1).", "type": "number", "minimum": 0 }
+      }
+    }
+  }
+}

@@ -6,11 +6,19 @@
 #include "CoreMinimal.h"
 #include "VeyraMatchTypes.h"
 
+struct FVeyraRespawnTuning;
 struct FVeyraVanguardDefinition;
 
 /** Rules for how a match is played and ended, as pure functions the game mode applies. */
 namespace VeyraMatchRules
 {
+	/**
+	 * Seconds from a Vanguard's death at Level to its respawn, with the match clock at
+	 * MatchClockSeconds (Economy & Progression Bible §14): the level's timer, lengthened by a fraction
+	 * for each minute past the curve's start, up to its cap. 0 respawns at once.
+	 */
+	VEYRAMATCH_API double RespawnDelaySeconds(int32 Level, double MatchClockSeconds, const FVeyraRespawnTuning& Respawn);
+
 	/**
 	 * Whether a player may end the match now as its custom match's host (Custom Matches Bible §4;
 	 * ADR-010 §7). Only practice has a host; only the host may end it; an ended match stays ended.

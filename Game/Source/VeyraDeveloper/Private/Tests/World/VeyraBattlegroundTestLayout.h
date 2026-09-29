@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Tuning/VeyraWorldTuning.h"
+#include "Tuning/VeyraWorldTuningSubsystem.h"
 
 namespace VeyraWorldTests
 {
@@ -20,7 +21,9 @@ namespace VeyraWorldTests
 		Lane.Points = { { -1500.0, -1500.0 }, { 1500.0, 1500.0 } };
 		Lane.Width = 400.0;
 		Lane.InhibitorDistance = 0.0;
-		Lane.SpireDistances = { 300.0, 600.0, 900.0 };
+		Lane.SpireDistances = { 400.0, 700.0, 1000.0 };
+		// Clear of the inhibitor behind it and the inner Spire ahead.
+		Lane.FluxbornSpawnDistance = 220.0;
 		Layout.Base.PrimeWell = { -2400.0, -2400.0 };
 		Layout.Base.BaseTowers = { { -1800.0, -2300.0 }, { -2300.0, -1800.0 } };
 		Layout.Base.Fountain = { -2750.0, -2750.0 };
@@ -28,4 +31,23 @@ namespace VeyraWorldTests
 		Layout.Base.FountainRadius = 300.0;
 		return Layout;
 	}
+
+	/** World tuning a test may change, starting from the committed one. Get() returns it while this object lives. */
+	struct FScopedWorldTuning
+	{
+		FVeyraWorldTuning Tuning;
+
+		FScopedWorldTuning()
+			: Tuning(UVeyraWorldTuningSubsystem::Get())
+		{
+			UVeyraWorldTuningSubsystem::SetTestOverride(&Tuning);
+		}
+
+		~FScopedWorldTuning()
+		{
+			UVeyraWorldTuningSubsystem::SetTestOverride(nullptr);
+		}
+
+		UE_NONCOPYABLE(FScopedWorldTuning);
+	};
 }

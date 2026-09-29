@@ -59,6 +59,26 @@ TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
 			}
 			Previous = Distance;
 		}
+		if (Lane.FluxbornSpawnDistance >= VeyraLayout::Length(Lane.Points) / 2.0)
+		{
+			Problems.Add(Pointer + TEXT("/fluxbornSpawnDistance: Team A's Fluxborn must spawn on its half of the lane"));
+		}
+		// The widest Fluxborn must fit between the lane's structures where they spawn, or it starts inside one.
+		double WidestFluxborn = 0.0;
+		for (const TPair<FVeyraContentId, FVeyraFluxbornDefinition>& Unit : Tuning.Fluxborn.Units)
+		{
+			WidestFluxborn = FMath::Max(WidestFluxborn, Unit.Value.CapsuleRadius);
+		}
+		const bool bClearOfInhibitor = FMath::Abs(Lane.FluxbornSpawnDistance - Lane.InhibitorDistance) > Tuning.Structures.Inhibitor.CapsuleRadius + WidestFluxborn;
+		bool bClearOfSpires = true;
+		for (const double Distance : Lane.SpireDistances)
+		{
+			bClearOfSpires &= FMath::Abs(Lane.FluxbornSpawnDistance - (Lane.InhibitorDistance + Distance)) > Tuning.Structures.LaneSpire.CapsuleRadius + WidestFluxborn;
+		}
+		if (!bClearOfInhibitor || !bClearOfSpires)
+		{
+			Problems.Add(Pointer + TEXT("/fluxbornSpawnDistance: Fluxborn would spawn inside the lane's inhibitor or a Spire"));
+		}
 		const double Outermost = Lane.InhibitorDistance + (Lane.SpireDistances.IsEmpty() ? 0.0 : Lane.SpireDistances.Last());
 		if (Outermost >= VeyraLayout::Length(Lane.Points) / 2.0)
 		{
@@ -82,6 +102,50 @@ TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
 	{
 		Problems.Add(TEXT("/layout/base/baseTowers: the Prime Well needs its base-defense towers (Battleground Bible §18)"));
 	}
+
+	// Every Fluxborn attacks with the profile Vanguards use, so the same rules check it.
+	if (Tuning.Fluxborn.Units.IsEmpty())
+	{
+		Problems.Add(TEXT("/fluxborn/units: needs at least one kind of Fluxborn"));
+	}
+	for (const TPair<FVeyraContentId, FVeyraFluxbornDefinition>& Unit : Tuning.Fluxborn.Units)
+	{
+		const FString Pointer = TEXT("/fluxborn/units/") + Unit.Key.ToString();
+		for (const FString& AttackProblem : VeyraBasicAttacks::Validate(Unit.Value.BasicAttack))
+		{
+			Problems.Add(Pointer + TEXT("/basicAttack: ") + AttackProblem);
+		}
+		if (Unit.Value.CapsuleHalfHeight < Unit.Value.CapsuleRadius)
+		{
+			Problems.Add(Pointer + TEXT("/capsuleHalfHeight: must be at least capsuleRadius"));
+		}
+	}
+
+	// Waves: phases in order from 0, and every unit a kind of Fluxborn (Battleground Bible §17).
+	const FVeyraWavesTuning& Waves = Tuning.Waves;
+	if (Waves.Phases.IsEmpty() || Waves.Phases[0].FromSeconds != 0.0)
+	{
+		Problems.Add(TEXT("/waves/phases: the first phase must begin at 0"));
+	}
+	for (int32 Index = 1; Index < Waves.Phases.Num(); ++Index)
+	{
+		if (Waves.Phases[Index].FromSeconds <= Waves.Phases[Index - 1].FromSeconds)
+		{
+			Problems.Add(FString::Printf(TEXT("/waves/phases/%d/fromSeconds: phases must begin in order"), Index));
+		}
+	}
+	const auto CheckUnits = [&Problems, &Tuning](const TArray<FVeyraWaveUnitTuning>& Units, const TCHAR* Field) {
+		for (int32 Index = 0; Index < Units.Num(); ++Index)
+		{
+			if (!Tuning.FindFluxborn(Units[Index].Unit))
+			{
+				Problems.Add(FString::Printf(TEXT("/waves/%s/%d/unit: %s is no kind of Fluxborn"), Field, Index, *Units[Index].Unit.ToString()));
+			}
+		}
+	};
+	CheckUnits(Waves.Units, TEXT("units"));
+	CheckUnits(Waves.SiegeUnits, TEXT("siegeUnits"));
+	CheckUnits(Waves.InhibitorDownUnits, TEXT("inhibitorDownUnits"));
 	return Problems;
 }
 }

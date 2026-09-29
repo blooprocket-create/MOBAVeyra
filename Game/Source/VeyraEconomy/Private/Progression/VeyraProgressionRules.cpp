@@ -31,11 +31,12 @@ int32 ExperienceToNextLevel(int32 Level, const FVeyraProgressionTuning& Tuning)
 	return Level < Tuning.MaxLevel && Tuning.Experience.ToNextLevel.IsValidIndex(Index) ? Tuning.Experience.ToNextLevel[Index] : 0;
 }
 
-FExperienceState AddExperience(const FExperienceState& State, int32 Amount, const FVeyraProgressionTuning& Tuning, int32& LevelsGained)
+FExperienceState AddExperience(const FExperienceState& State, double Amount, const FVeyraProgressionTuning& Tuning, int32& LevelsGained)
 {
 	FExperienceState Result = State;
 	LevelsGained = 0;
-	int64 Pool = static_cast<int64>(Result.Experience) + FMath::Max(Amount, 0);
+	// Full fractional precision (§1): a shared reward's share is kept whole.
+	double Pool = Result.Experience + (FMath::IsFinite(Amount) ? FMath::Max(Amount, 0.0) : 0.0);
 	while (Result.Level < Tuning.MaxLevel)
 	{
 		const int32 Needed = ExperienceToNextLevel(Result.Level, Tuning);
@@ -48,7 +49,7 @@ FExperienceState AddExperience(const FExperienceState& State, int32 Amount, cons
 		++LevelsGained;
 	}
 	// XP past the cap is discarded (§9).
-	Result.Experience = Result.Level >= Tuning.MaxLevel ? 0 : static_cast<int32>(Pool);
+	Result.Experience = Result.Level >= Tuning.MaxLevel ? 0.0 : Pool;
 	return Result;
 }
 

@@ -87,6 +87,21 @@ namespace
 		}
 
 		float Y = TopLeft.Y;
+		// A structure says what it is, and whether the structures before it still protect it.
+		if (const TOptional<FVeyraHudStructure> Structure = VeyraHud::StructureOf(Unit, Now))
+		{
+			FString Label = HudEnumName(Structure->Kind);
+			if (Structure->bInvulnerable)
+			{
+				Label += TEXT("  invulnerable");
+			}
+			if (Structure->RebuildSeconds > 0.0)
+			{
+				Label += FString::Printf(TEXT("  rebuilds in %d s"), FMath::CeilToInt32(Structure->RebuildSeconds));
+			}
+			Y -= HudLineHeight();
+			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), Label, Settings.TextColor);
+		}
 		for (const FVeyraHudStatus& Status : VeyraHud::StatusesOf(Unit, Now))
 		{
 			Y -= HudLineHeight();
@@ -142,8 +157,8 @@ namespace
 		{
 			Name += TEXT(", ") + Title.ToString();
 		}
-		Lines.Add({ FString::Printf(TEXT("%s   Level %d   XP %d / %d   Skill points %d"), *Name, Player.Level, Player.Experience,
-			Player.ExperienceToNextLevel, Player.UnspentSkillPoints), Settings.TextColor });
+		Lines.Add({ FString::Printf(TEXT("%s   Level %d   XP %d / %d   Skill points %d   Gold %d"), *Name, Player.Level, Player.Experience,
+			Player.ExperienceToNextLevel, Player.UnspentSkillPoints, Player.Gold), Settings.TextColor });
 		Lines.Add({ FString::Printf(TEXT("Health %.0f / %.0f   Shield %.0f   %s %.0f / %.0f"), Player.Vitals.Health, Player.Vitals.MaxHealth, Player.Vitals.Shield,
 			*Resource, Player.Vitals.Resource, Player.Vitals.MaxResource), Settings.TextColor });
 		if (Player.Passive.IsValid())
@@ -193,6 +208,39 @@ namespace
 			DrawHudText(Canvas, FVector2D(Settings.HudMargin, Y), Line.Text, Line.Color);
 			Y += HudLineHeight();
 		}
+
+		// While dead, the wait for the fountain, under the match clock (Economy & Progression Bible §14).
+		if (Player.bDead)
+		{
+			const FString Respawn = FString::Printf(TEXT("Respawning in %d s"), FMath::CeilToInt32(Player.RespawnSeconds));
+			float Width = 0.0f;
+			float Height = 0.0f;
+			Canvas.TextSize(HudFont(), Respawn, Width, Height);
+			DrawHudText(Canvas, FVector2D((Canvas.ClipX - Width) / 2.0f, Settings.HudMargin + HudLineHeight()), Respawn, Settings.TextColor);
+		}
+	}
+
+	/**
+	 * Each team's Team Flux, the viewer's own first: active and permanent Flux, what it gives their
+	 * Fluxborn, and the time left on each temporary grant. Top left (ADR-011 §10).
+	 */
+	void DrawTeamFlux(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UWorld* World, EVeyraTeam Viewer, double Now)
+	{
+		TArray<FVeyraHudTeamFlux> Teams = VeyraHud::DescribeTeamFlux(World, Now);
+		Teams.StableSort([Viewer](const FVeyraHudTeamFlux& A, const FVeyraHudTeamFlux& B) { return A.Team == Viewer && B.Team != Viewer; });
+		constexpr double Percent = 100.0;
+		float Y = Settings.HudMargin;
+		for (const FVeyraHudTeamFlux& Team : Teams)
+		{
+			FString Line = FString::Printf(TEXT("%s Team Flux %.0f (%.0f permanent)   Fluxborn +%.0f%%"), Team.Team == Viewer ? TEXT("Your") : TEXT("Enemy"),
+				Team.Active, Team.Permanent, Team.FluxbornBonus * Percent);
+			for (const double Seconds : Team.TemporarySeconds)
+			{
+				Line += FString::Printf(TEXT("   %d s"), FMath::CeilToInt32(Seconds));
+			}
+			DrawHudText(Canvas, FVector2D(Settings.HudMargin, Y), Line, Settings.TextColor);
+			Y += HudLineHeight();
+		}
 	}
 }
 
@@ -214,5 +262,6 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 	if (const AVeyraPlayerState* Participant = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr)
 	{
 		DrawPlayerPanel(Canvas, Settings, *Participant, Now);
+		DrawTeamFlux(Canvas, Settings, Greybox.GetWorld(), Participant->GetVeyraTeam(), Now);
 	}
 }

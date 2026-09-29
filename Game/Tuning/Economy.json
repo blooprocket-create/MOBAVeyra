@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "gold": {
+    "provenance": "Provisional",
+    "starting": 500,
+    "fluxborn": { "strider": 21, "spark": 14, "breaker": 60 },
+    "participationFraction": 0.1,
+    "vanguardKill": 300,
+    "assistPoolFraction": 0.5,
+    "firstBloodFraction": 0.5,
+    "structurePool": 250,
+    "firstStructureBonus": 100
+  },
+  "experience": {
+    "provenance": "Provisional",
+    "fluxborn": { "strider": 60, "spark": 30, "breaker": 93 },
+    "sharedPoolFraction": 1.2,
+    "killBase": 60,
+    "killPerLevel": 30,
+    "participantBonus": 0.2,
+    "higherLevelVictimMultiplier": 1.2
+  },
+  "fluxBonus": {
+    "provenance": "Canon",
+    "fluxPerStep": 25,
+    "bonusPerStep": 0.01,
+    "maxBonus": 0.1
+  },
+  "eligibility": {
+    "provenance": "Provisional",
+    "radius": 1400,
+    "fluxbornParticipationSeconds": 10,
+    "structureContributionSeconds": 15
+  }
+}

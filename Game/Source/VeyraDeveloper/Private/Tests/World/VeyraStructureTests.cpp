@@ -1,8 +1,10 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "AbilitySystemComponent.h"
+#include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Components/ActorTestSpawner.h"
+#include "Fluxborn/VeyraFluxborn.h"
 #include "CQTest.h"
 #include "Rules/VeyraStructureRules.h"
 #include "Structures/VeyraStructure.h"
@@ -92,6 +94,20 @@ namespace VeyraWorldTests
 			}
 			ASSERT_THAT(IsTrue(Order == TArray<int32>({ 0, 1, 2, 3, 4, 5, 6, 7 }), TEXT("the mid lane, the base towers, the Well, then the other lanes")));
 			ASSERT_THAT(IsFalse(VeyraStructureRules::NextToSiege(EVeyraTeam::B, OneTeam()).IsSet(), TEXT("team B has nothing here")));
+		}
+
+		TEST_METHOD(BackdoorProtectionClimbsAndDropsAtOnce)
+		{
+			// Fixture values: two thirds at most, over 5 s.
+			constexpr double Max = 0.66;
+			constexpr double Ramp = 5.0;
+			double Protection = VeyraStructureRules::NextBackdoorProtection(0.0, false, Max, Ramp, Ramp / 2.0);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Protection, Max / 2.0)));
+			Protection = VeyraStructureRules::NextBackdoorProtection(Protection, false, Max, Ramp, Ramp * 2.0);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Protection, Max), TEXT("it stops at the maximum")));
+			ASSERT_THAT(IsTrue(VeyraStructureRules::NextBackdoorProtection(Protection, true, Max, Ramp, Ramp) == 0.0, TEXT("an attacking Fluxborn lifts it at once")));
+			ASSERT_THAT(IsTrue(VeyraStructureRules::HasBackdoorProtection(EVeyraStructureKind::PrimeWell)
+				&& !VeyraStructureRules::HasBackdoorProtection(EVeyraStructureKind::Inhibitor)));
 		}
 
 		TEST_METHOD(OneTeamsStructuresNeverGateTheOthers)
@@ -193,6 +209,24 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsTrue(VeyraCombat::GetMissingHealth(*Inhibitor->GetAbilitySystemComponent()) == 0.0, TEXT("at full Health")));
 			ASSERT_THAT(IsTrue(Find(EVeyraStructureKind::BaseTower, {}, 0)->IsInvulnerable(), TEXT("and the base towers close again")));
 			ASSERT_THAT(IsFalse(Inhibitor->IsInvulnerable(), TEXT("it stands behind fallen Spires, so it can be hit again")));
+		}
+
+		TEST_METHOD(BackdoorProtectionHoldsUntilAnAttackingFluxbornArrives)
+		{
+			const FVeyraBackdoorTuning& Backdoor = UVeyraWorldTuningSubsystem::Get().Backdoor;
+			AVeyraStructure* Outer = Find(EVeyraStructureKind::LaneSpire, EVeyraLane::Mid, 0);
+			Battleground->UpdateBackdoorProtection(Backdoor.RampSeconds);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Outer->GetBackdoorProtection(), Backdoor.MaxReduction, Tolerance)));
+			const double Taken = Outer->GetAbilitySystemComponent()->GetNumericAttribute(UVeyraDefenceSet::GetIncomingDamageMultiplierAttribute());
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Taken, 1.0 - Backdoor.MaxReduction, Tolerance), TEXT("it is Combat's damage reduction")));
+			ASSERT_THAT(IsTrue(Find(EVeyraStructureKind::Inhibitor, EVeyraLane::Mid, 3)->GetBackdoorProtection() == 0.0, TEXT("inhibitors have none")));
+
+			// Team A's Fluxborn, the attackers of team B's Spire, arrive beside it.
+			AVeyraFluxborn* Minion = Battleground->SpawnFluxborn(FVeyraContentId::FromText(TEXT("strider")).GetValue(), EVeyraTeam::A, EVeyraLane::Mid);
+			ASSERT_THAT(IsNotNull(Minion));
+			Minion->SetActorLocation(Outer->GetActorLocation() - FVector(Outer->GetSimpleCollisionRadius() * 2.0, 0.0, 0.0));
+			Battleground->UpdateBackdoorProtection(Backdoor.UpdateSeconds);
+			ASSERT_THAT(IsTrue(Outer->GetBackdoorProtection() == 0.0, TEXT("it drops at once")));
 		}
 
 		TEST_METHOD(ThePrimeWellRegeneratesOnlyWhileEveryInhibitorStands)

@@ -5,6 +5,7 @@
 #include "Join/VeyraMatchAssignment.h"
 #include "Join/VeyraMatchHostSubsystem.h"
 #include "Join/VeyraMatchRoster.h"
+#include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Rules/VeyraMatchRules.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
@@ -250,8 +251,8 @@ namespace VeyraMatchTests
 		}
 	};
 
-	// Veyra.Match.MatchRules.*: who may end a custom match, and which Vanguards a server hosts
-	// (ADR-010 §6–7).
+	// Veyra.Match.MatchRules.*: who may end a custom match, which Vanguards a server hosts (ADR-010
+	// §6–7), who wins, and how long the dead wait (Economy & Progression Bible §14).
 	TEST_CLASS(MatchRules, "Veyra.Match")
 	{
 		TEST_METHOD(OnlyThePracticeHostEndsAPracticeMatch)
@@ -294,6 +295,33 @@ namespace VeyraMatchTests
 			ASSERT_THAT(IsFalse(IsWinnerConsistent(EVeyraMatchEndReason::PrimeWellDestroyed, EVeyraTeam::None)));
 			ASSERT_THAT(IsTrue(IsWinnerConsistent(EVeyraMatchEndReason::HostEnded, EVeyraTeam::None)));
 			ASSERT_THAT(IsFalse(IsWinnerConsistent(EVeyraMatchEndReason::DeveloperRequest, EVeyraTeam::A)));
+		}
+
+		TEST_METHOD(TheRespawnTimerGrowsWithLevelAndMatchTime)
+		{
+			// Fixture values in the curve's shape (Economy & Progression Bible §14).
+			using namespace VeyraMatchRules;
+			FVeyraRespawnTuning Respawn;
+			Respawn.SecondsByLevel = { 6.0, 10.0, 20.0 };
+			Respawn.Elapsed.StartSeconds = 600.0;
+			Respawn.Elapsed.FractionPerMinute = 0.1;
+			Respawn.Elapsed.MaxFraction = 0.25;
+			ASSERT_THAT(IsTrue(RespawnDelaySeconds(1, 0.0, Respawn) == 6.0));
+			ASSERT_THAT(IsTrue(RespawnDelaySeconds(2, 600.0, Respawn) == 10.0, TEXT("nothing added until the curve's start")));
+			ASSERT_THAT(IsTrue(RespawnDelaySeconds(18, 0.0, Respawn) == 20.0, TEXT("a level past the curve uses its last entry")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(RespawnDelaySeconds(2, 720.0, Respawn), 12.0), TEXT("two minutes past: +20%")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(RespawnDelaySeconds(2, 3600.0, Respawn), 12.5), TEXT("capped at +25%")));
+		}
+
+		TEST_METHOD(TheCommittedRespawnCurveCoversEveryLevel)
+		{
+			// Each level up to the cap has its own timer, rising with the level.
+			const TArray<double>& Seconds = UVeyraMatchTuningSubsystem::Get().Respawn.SecondsByLevel;
+			ASSERT_THAT(AreEqual(UVeyraProgressionTuningSubsystem::Get().MaxLevel, Seconds.Num()));
+			for (int32 Index = 1; Index < Seconds.Num(); ++Index)
+			{
+				ASSERT_THAT(IsTrue(Seconds[Index] >= Seconds[Index - 1], FString::Printf(TEXT("/respawn/secondsByLevel/%d"), Index)));
+			}
 		}
 	};
 }

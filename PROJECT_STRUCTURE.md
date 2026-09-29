@@ -112,7 +112,12 @@ UI and items request transactions; they do not mutate gold directly.
 
 **Progression** (XP balances, levels, level-up stat increments and skill points) lives in this module for now as a **separate owner** with its own state, per the Economy & Progression Bible. It shares the module, not code paths: Gold and XP are never mixed in one class.
 
-Progression arrived first, in M5 (ADR-008 §6): the module holds only it until Gold's first feature. It sits in its own Economy layer, above Combat, whose verbs apply level-up growth, and below Abilities, which reads ranks.
+Progression arrived first, in M5 (ADR-008 §6). It sits in its own Economy layer, above Combat, whose verbs apply level-up growth, and below Abilities, which reads ranks.
+
+Gold and the rewards arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §11):
+
+- `Gold/`: `UVeyraGoldComponent` on the PlayerState, a fractional balance replicated to its owner, changed only by explained grants.
+- `Rewards/`: `UVeyraRewardSubsystem` decides who qualifies for each death's Gold and XP and pays through the Gold and progression components; the arithmetic is the pure `VeyraRewards` functions, and the values are `Game/Tuning/Economy.json`'s. It follows Combat's deaths for Vanguard kills; World reports Fluxborn deaths, with their team's active Flux, and fallen structures, so Economy never reads Flux or World.
 
 ### VeyraItems
 
@@ -161,6 +166,11 @@ VeyraFlux arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2
 World actors report outcomes to the authoritative owning systems rather than reaching directly into UI or champion code.
 
 VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2, §12) in the **Battleground** layer, above Abilities, whose attacks and projectiles its units use. `Game/Tuning/World.json` holds the battleground's layout (Team A's half; Team B's is its mirror across the river's diagonal) and its structures; `VeyraLayout` turns the layout into lanes, waypoints and structure placements for the map commandlet and the server alike.
+
+- `Structures/`: `AVeyraStructure`, a pawn with its own Ability System Component, and the tower attack.
+- `Fluxborn/`: `AVeyraFluxborn` and its server-only `AVeyraFluxbornController`, which follows its lane's waypoints and fights by `VeyraFluxbornRules` (ADR-011 §7).
+- `Rules/`: pure rules over data — tower targeting and ramp, structure vulnerability and backdoor protection, Fluxborn targeting, and the wave schedule.
+- `UVeyraBattlegroundSubsystem` spawns the structures and waves on the server, runs their timers, routes hostile damage to the towers and Fluxborn nearby, and reports deaths only it can describe to Economy's rewards.
 
 ### VeyraVision
 

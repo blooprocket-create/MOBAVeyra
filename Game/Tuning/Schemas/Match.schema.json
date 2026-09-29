@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Match domain (Match Flow Bible, Battleground Bible). VeyraMatch binds it to FVeyraMatchTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "teams", "phases", "respawn", "lifecycle", "orders", "bots", "developerMatch"],
+  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "lifecycle", "orders", "bots", "developerMatch"],
   "properties": {
     "schemaVersion": {
-      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots.",
+      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery.",
       "type": "integer",
       "minimum": 1,
-      "enum": [3]
+      "enum": [4]
     },
     "teams": {
       "description": "The two sides of a match.",
@@ -46,15 +46,79 @@
       }
     },
     "respawn": {
-      "description": "When a dead Vanguard returns at its fountain (Combat Bible §18).",
+      "description": "When a dead Vanguard returns at its fountain (Combat Bible §18): a curve over the Vanguard's level and the elapsed match time (Economy & Progression Bible §14; ADR-011 §11). The curve's values are provisional (Battleground Bible §16).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["delaySeconds"],
+      "required": ["provenance", "secondsByLevel", "elapsed"],
       "properties": {
-        "delaySeconds": {
-          "description": "Seconds from a death to the respawn; 0 respawns at once. A placeholder: canon's respawn curve, which grows with level and match time (Economy Bible §14), is not yet ruled (Battleground Bible §16).",
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "secondsByLevel": {
+          "description": "Seconds from a death to the respawn at each level, from Level 1; a level past the last item uses the last. 0 respawns at once.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "number", "minimum": 0 }
+        },
+        "elapsed": {
+          "description": "How the timer lengthens as the match goes on.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["startSeconds", "fractionPerMinute", "maxFraction"],
+          "properties": {
+            "startSeconds": {
+              "description": "The match clock, in seconds, from which the timer starts to lengthen.",
+              "type": "number",
+              "minimum": 0
+            },
+            "fractionPerMinute": {
+              "description": "What each minute past startSeconds adds, as a fraction of the level's timer.",
+              "type": "number",
+              "minimum": 0
+            },
+            "maxFraction": {
+              "description": "The most the elapsed time adds, as a fraction.",
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "fountain": {
+      "description": "How quickly a living Vanguard recovers at its own fountain (Battleground Bible §12; ADR-011 §11). With no recall yet, it is how a Vanguard comes back to strength.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "radius", "healthFractionPerSecond", "resourceFractionPerSecond", "intervalSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "radius": {
+          "description": "How near its side's start, in units, a Vanguard must stand.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "healthFractionPerSecond": {
+          "description": "Max Health restored each second, as a fraction.",
           "type": "number",
           "minimum": 0
+        },
+        "resourceFractionPerSecond": {
+          "description": "Max resource restored each second, as a fraction.",
+          "type": "number",
+          "minimum": 0
+        },
+        "intervalSeconds": {
+          "description": "Seconds between restorations.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
         }
       }
     },

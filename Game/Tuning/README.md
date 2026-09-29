@@ -12,10 +12,11 @@ Every gameplay balance, timing, range, cost and cap value lives here as validate
 |---|---|---|
 | `Combat.json` | `VeyraCombat` | Resistance mitigation, targeting, regeneration, movement and forced movement, crowd control, Combat State, assist attribution, kill credit, Structure Effectiveness, Attack Speed, and moving toward enemy Vanguards. |
 | `Progression.json` | `VeyraEconomy` | Levels, the XP curve, skill points, maximum ranks and the levels that open ultimate ranks. |
+| `Economy.json` | `VeyraEconomy` | Starting Gold, and the Gold and XP that Fluxborn, Vanguard kills and structures pay: last hits, participation, assists, First Blood, structure pools, the Team Flux bonus, and who is near and recent enough to share (ADR-011 §11, §17). |
 | `Abilities.json` | `VeyraAbilities` | Casting rules, statuses, and one map per ability archetype ([ADR-008](../../Docs/ADR/ADR-008-vanguard-definitions-and-ability-composition.md) §3). |
 | `Vanguards.json` | `VeyraVanguards` | Vanguard definitions, and one map per unique passive (ADR-008 §2, §5). |
 | `Flux.json` | `VeyraFlux` | What each source of Team Flux grants, and how active Team Flux strengthens Fluxborn ([ADR-011](../../Docs/ADR/ADR-011-battleground-runtime.md) §10). |
-| `World.json` | `VeyraWorld` | The battleground's grey-box layout, which the map commandlet bakes and the server spawns from; structures, inhibitor rebuilds, Prime Well regeneration, and tower attacks (ADR-011 §12, §17). |
+| `World.json` | `VeyraWorld` | The battleground's grey-box layout, which the map commandlet bakes and the server spawns from; structures, inhibitor rebuilds, Prime Well regeneration, tower attacks and backdoor protection; the Fluxborn, how they think, and the wave schedule (ADR-011 §7–§9, §12, §17). |
 | `Match.json` | `VeyraMatch` | Teams, phases, respawn, abandonment, order limits, how bots wander, and the developer match. |
 
 What players read about Vanguards, their abilities and passives is text, not tuning: it lives in `Game/Text/VeyraText.csv`, a string table VeyraUI reads, and carries no numbers.
@@ -63,7 +64,7 @@ Schemas use a strict subset of JSON Schema draft-04:
 
 When tuning refers to content (a Vanguard, an item, a status), it uses a stable content ID: lowercase ASCII snake_case matching `^[a-z][a-z0-9]*(_[a-z0-9]+)*$`, such as `raska` or `code_black_zone`. IDs never change when display names do. In C++ the type is `FVeyraContentId` (VeyraCore).
 
-A reference from one domain's file to content another domain defines is checked by the loading domain in the game and by the reference table in `scripts/check_tuning.py` ([ADR-008](../../Docs/ADR/ADR-008-vanguard-definitions-and-ability-composition.md) §7). For example, each Vanguard in `Match.json`'s developer order must be one `Vanguards.json` defines, and each ability in a Vanguard's kit must be defined by one of `Abilities.json`'s archetype maps. In the table, a `*` in a pointer stands for every key or item there, and a reference may name several maps, any of which may define the ID.
+A reference from one domain's file to content another domain defines is checked by the loading domain in the game and by the reference table in `scripts/check_tuning.py` ([ADR-008](../../Docs/ADR/ADR-008-vanguard-definitions-and-ability-composition.md) §7). For example, each Vanguard in `Match.json`'s developer order must be one `Vanguards.json` defines, and each ability in a Vanguard's kit must be defined by one of `Abilities.json`'s archetype maps. In the table, a `*` in a pointer stands for every key or item there, a final `#` stands for every key of a map (so `Economy.json`'s Fluxborn prices must name Fluxborn `World.json` defines), and a reference may name several maps, any of which may define the ID. When the loading domain's layer cannot see the other domain, as Economy cannot see World, a test of the committed tuning checks the reference in the game instead.
 
 An ability is defined in exactly one archetype map, and a passive in exactly one passive map, since the map chooses the code that runs it.
 

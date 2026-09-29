@@ -385,14 +385,14 @@ void AVeyraPlayerController::ServerRequestDeveloperLevels_Implementation(int32 L
 	// The XP from here to the level Levels above this one, or to the cap.
 	const FVeyraProgressionTuning& Tuning = UVeyraProgressionTuningSubsystem::Get();
 	const int32 Target = FMath::Min(Progression->GetLevel() + Levels, Tuning.MaxLevel);
-	int64 Needed = -static_cast<int64>(Progression->GetExperience());
+	double Needed = -Progression->GetExperience();
 	for (int32 Level = Progression->GetLevel(); Level < Target; ++Level)
 	{
 		Needed += Tuning.Experience.ToNextLevel[Level - 1];
 	}
-	if (Needed > 0)
+	if (Needed > 0.0)
 	{
-		const int32 Gained = Progression->AddExperience(static_cast<int32>(FMath::Min<int64>(Needed, MAX_int32)));
+		const int32 Gained = Progression->AddExperience(Needed);
 		UE_LOG(LogVeyraMatch, Log, TEXT("%s took developer XP for %d level(s)."), *GetNameSafe(PlayerState), Gained);
 	}
 #endif

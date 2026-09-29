@@ -27,7 +27,7 @@ namespace VeyraNetTests
 
 		BEFORE_EACH()
 		{
-			IgnoreLoginViewTargetRpc(*TestRunner);
+			IgnoreKnownIrisWarnings(*TestRunner);
 			FNetworkComponentBuilder<FState>()
 				.WithGameInstanceClass(UGameInstance::StaticClass())
 				.WithGameMode(AGameModeBase::StaticClass())

@@ -4,6 +4,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraResourceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Battleground/VeyraBattlegroundLink.h"
 #include "Bots/VeyraBotWanderComponent.h"
 #include "EngineUtils.h"
@@ -15,6 +17,7 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "NavigationSystem.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Rewards/VeyraRewardSubsystem.h"
 #include "Rules/VeyraMatchRules.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
@@ -222,6 +225,7 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	SetActorTickEnabled(false);
 	GetWorldTimerManager().ClearTimer(LoadingTimeout);
 	GetWorldTimerManager().ClearTimer(PreparationTimer);
+	GetWorldTimerManager().ClearTimer(FountainTimer);
 	FTSTicker::GetCoreTicker().RemoveTicker(AbandonmentTicker);
 	// Nothing on the battleground happens after the end: no rebuilds, no regeneration (Economy Bible §8.2).
 	if (Battleground)
@@ -687,12 +691,20 @@ void AVeyraGameMode::BeginPreparation()
 	}
 	GetWorldTimerManager().SetTimer(PreparationTimer, this, &AVeyraGameMode::BeginLive,
 		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Phases.PreparationSeconds));
+	// A world-time timer, so a pause holds it.
+	GetWorldTimerManager().SetTimer(FountainTimer, this, &AVeyraGameMode::RecoverAtFountains,
+		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Fountain.IntervalSeconds), /*bLoop*/ true);
 }
 
 void AVeyraGameMode::BeginLive()
 {
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Live);
 	UE_LOG(LogVeyraMatch, Log, TEXT("The match is live."));
+	// The Fluxborn waves begin with the match clock (Battleground Bible §17).
+	if (Battleground)
+	{
+		Battleground->StartWaves();
+	}
 }
 
 void AVeyraGameMode::SpawnVanguard(AVeyraPlayerState& PlayerState)
@@ -758,6 +770,8 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 	case EVeyraDeveloperStartingRank::None:
 		break;
 	}
+	// The one guaranteed Gold, once per match (Economy & Progression Bible §1).
+	UVeyraRewardSubsystem::GrantStartingGold(PlayerState);
 	PlayerState.MarkStatsInitialized();
 	return true;
 }
@@ -785,8 +799,12 @@ void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
 	// The body leaves the map; the PlayerState, with its cooldowns and permanent effects, stays. The
 	// death arrives from inside the damage that caused it, so the body goes on the next tick. The
 	// timer manager ignores a delay of 0, so an immediate respawn follows the body out on that tick.
-	const double Delay = UVeyraMatchTuningSubsystem::Get().Respawn.DelaySeconds;
-	UE_LOG(LogVeyraMatch, Log, TEXT("%s died; respawning in %g s."), *PlayerState->GetPlayerName(), Delay);
+	// The timer grows with the Vanguard's level and the match clock (Economy & Progression Bible §14).
+	const UVeyraProgressionComponent* Progression = PlayerState->FindComponentByClass<UVeyraProgressionComponent>();
+	const int32 Level = Progression && Progression->IsInitialized() ? Progression->GetLevel() : 1;
+	const double Delay = VeyraMatchRules::RespawnDelaySeconds(Level, GetVeyraGameState().GetMatchClockSeconds(), UVeyraMatchTuningSubsystem::Get().Respawn);
+	PlayerState->SetRespawnAt(GetWorld()->GetTimeSeconds() + Delay);
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s died at level %d; respawning in %g s."), *PlayerState->GetPlayerName(), Level, Delay);
 	const TWeakObjectPtr<AVeyraPlayerState> Participant(PlayerState);
 	const TWeakObjectPtr<APawn> Body(PlayerState->GetPawn());
 	const bool bRespawnAtOnce = Delay <= 0.0;
@@ -804,6 +822,30 @@ void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
 	{
 		FTimerHandle Timer;
 		GetWorldTimerManager().SetTimer(Timer, FTimerDelegate::CreateUObject(this, &AVeyraGameMode::Respawn, Participant), static_cast<float>(Delay), /*bLoop*/ false);
+	}
+}
+
+void AVeyraGameMode::RecoverAtFountains()
+{
+	const FVeyraFountainTuning& Fountain = UVeyraMatchTuningSubsystem::Get().Fountain;
+	for (APlayerState* Member : GameState->PlayerArray)
+	{
+		AVeyraPlayerState* PlayerState = Cast<AVeyraPlayerState>(Member);
+		const APawn* Body = PlayerState ? PlayerState->GetPawn() : nullptr;
+		const AActor* Start = Body ? FindTeamStart(PlayerState->GetVeyraTeam()) : nullptr;
+		UAbilitySystemComponent* AbilitySystem = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
+		if (!Start || !AbilitySystem || FVector::Dist2D(Body->GetActorLocation(), Start->GetActorLocation()) > Fountain.Radius)
+		{
+			continue;
+		}
+		// The restore verbs refuse the dead and never overfill.
+		VeyraCombat::RestoreHealth(*AbilitySystem,
+			AbilitySystem->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) * Fountain.HealthFractionPerSecond * Fountain.IntervalSeconds);
+		if (AbilitySystem->HasAttributeSetForAttribute(UVeyraResourceSet::GetMaxResourceAttribute()))
+		{
+			VeyraCombat::RestoreResource(*AbilitySystem,
+				AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()) * Fountain.ResourceFractionPerSecond * Fountain.IntervalSeconds);
+		}
 	}
 }
 

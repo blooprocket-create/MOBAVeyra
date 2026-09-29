@@ -42,14 +42,14 @@ void UVeyraProgressionComponent::Initialize(const FVeyraStatGrowth& InGrowth, do
 	Ranks.Init(0, UE_ARRAY_COUNT(VeyraAbilitySlots::All));
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraProgressionComponent, Ranks, this);
 	SetLevel(1);
-	SetExperience(0);
+	SetExperience(0.0);
 	SetUnspentSkillPoints(VeyraProgression::SkillPointsEarned(1, Tuning));
 }
 
-int32 UVeyraProgressionComponent::AddExperience(int32 Amount)
+int32 UVeyraProgressionComponent::AddExperience(double Amount)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
-	if (!IsInitialized() || Amount <= 0)
+	if (!IsInitialized() || !FMath::IsFinite(Amount) || !(Amount > 0.0))
 	{
 		return 0;
 	}
@@ -117,7 +117,7 @@ void UVeyraProgressionComponent::SetLevel(int32 NewLevel)
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraProgressionComponent, Level, this);
 }
 
-void UVeyraProgressionComponent::SetExperience(int32 NewExperience)
+void UVeyraProgressionComponent::SetExperience(double NewExperience)
 {
 	Experience = NewExperience;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraProgressionComponent, Experience, this);
