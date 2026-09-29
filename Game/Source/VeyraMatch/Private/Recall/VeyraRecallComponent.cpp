@@ -11,11 +11,26 @@
 #include "Statuses/VeyraStatusComponent.h"
 #include "TimerManager.h"
 #include "VeyraMatchLog.h"
+#include "Targeting/VeyraParticipantData.h"
 
 UVeyraRecallComponent::UVeyraRecallComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+}
+
+ELifetimeCondition UVeyraRecallComponent::GetReplicationCondition() const
+{
+	return VeyraParticipantData::ConditionFor(*this, Super::GetReplicationCondition());
+}
+
+void UVeyraRecallComponent::ReadyForReplication()
+{
+	Super::ReadyForReplication();
+	if (VeyraParticipantData::IsParticipantData(*this) && GetOwner()->HasAuthority())
+	{
+		VeyraParticipantData::Gate(*this, *GetOwner());
+	}
 }
 
 void UVeyraRecallComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

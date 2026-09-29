@@ -21,6 +21,7 @@
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraAbilitiesLog.h"
+#include "Targeting/VeyraParticipantData.h"
 
 namespace
 {
@@ -60,11 +61,25 @@ UVeyraBasicAttackComponent::UVeyraBasicAttackComponent()
 	bWantsInitializeComponent = true;
 }
 
+ELifetimeCondition UVeyraBasicAttackComponent::GetReplicationCondition() const
+{
+	return VeyraParticipantData::ConditionFor(*this, Super::GetReplicationCondition());
+}
+
+void UVeyraBasicAttackComponent::ReadyForReplication()
+{
+	Super::ReadyForReplication();
+	if (VeyraParticipantData::IsParticipantData(*this) && GetOwner()->HasAuthority())
+	{
+		VeyraParticipantData::Gate(*this, *GetOwner());
+	}
+}
+
 void UVeyraBasicAttackComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	// Every machine sees every unit's attacks until Vision gates them (ADR-009 §7).
+	// A participant's reach those who see it; a unit's, those its body reaches (ADR-016 §3).
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraBasicAttackComponent, State, Params);
@@ -164,6 +179,8 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::CheckAttack(const AActor* Targ
 		break;
 	case EVeyraTargetValidity::OutOfRange:
 		return EVeyraAttackRejection::OutOfRange;
+	case EVeyraTargetValidity::NotVisible:
+		return EVeyraAttackRejection::NotVisible;
 	case EVeyraTargetValidity::NotACombatant:
 	case EVeyraTargetValidity::Caster:
 	case EVeyraTargetValidity::Dead:

@@ -7,6 +7,7 @@
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
+#include "Targeting/VeyraParticipantData.h"
 
 UVeyraCombatStateComponent::UVeyraCombatStateComponent()
 {
@@ -14,11 +15,25 @@ UVeyraCombatStateComponent::UVeyraCombatStateComponent()
 	SetIsReplicatedByDefault(true);
 }
 
+ELifetimeCondition UVeyraCombatStateComponent::GetReplicationCondition() const
+{
+	return VeyraParticipantData::ConditionFor(*this, Super::GetReplicationCondition());
+}
+
+void UVeyraCombatStateComponent::ReadyForReplication()
+{
+	Super::ReadyForReplication();
+	if (VeyraParticipantData::IsParticipantData(*this) && GetOwner()->HasAuthority())
+	{
+		VeyraParticipantData::Gate(*this, *GetOwner());
+	}
+}
+
 void UVeyraCombatStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	// Every machine sees it until Vision gates per-participant state (ADR-009 §7).
+	// A participant's reaches those who see it; a unit's, those its body reaches (ADR-016 §3).
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraCombatStateComponent, bInCombat, Params);

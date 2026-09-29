@@ -4,11 +4,26 @@
 
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
+#include "Targeting/VeyraParticipantData.h"
 
 UVeyraCastStateComponent::UVeyraCastStateComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+}
+
+ELifetimeCondition UVeyraCastStateComponent::GetReplicationCondition() const
+{
+	return VeyraParticipantData::ConditionFor(*this, Super::GetReplicationCondition());
+}
+
+void UVeyraCastStateComponent::ReadyForReplication()
+{
+	Super::ReadyForReplication();
+	if (VeyraParticipantData::IsParticipantData(*this) && GetOwner()->HasAuthority())
+	{
+		VeyraParticipantData::Gate(*this, *GetOwner());
+	}
 }
 
 void UVeyraCastStateComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

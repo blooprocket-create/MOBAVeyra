@@ -21,6 +21,9 @@ public:
 	UVeyraCombatStateComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	/** Behind the fog on a participant: its own, its teammates' and its observers' (ADR-016 §3). */
+	virtual ELifetimeCondition GetReplicationCondition() const override;
+	virtual void ReadyForReplication() override;
 
 	/** Server only: the unit fought an enemy Vanguard now, so it stays in combat for the tuned delay. */
 	void NoteCombat();

@@ -23,6 +23,11 @@ enum class EVeyraTargetValidity : uint8
 	OutOfRange,
 	/** A structure, for an ability that cannot damage structures (Combat Bible §33). */
 	Structure,
+	/**
+	 * Hidden from the caster: in fog of war, stealthed, or an enemy Vanguard inside Dense Fog the
+	 * caster is not inside (Vision Bible §1, §2; Combat Bible §11; ADR-016 §2).
+	 */
+	NotVisible,
 };
 
 /** Whether a targeted action may pick a structure (Combat Bible §33). */
@@ -36,7 +41,8 @@ enum class EVeyraStructureTargeting : uint8
 
 /**
  * Combat's rules for who may target whom (Combat Bible §29, §30, §40). Abilities ask them; they
- * never re-derive range or hostility. Whether the caster can see the target is Vision's to add.
+ * never re-derive range or hostility. Whether the caster can see the target is Vision's, read
+ * through Core's visibility contract (ADR-016 §2).
  */
 namespace VeyraTargeting
 {
@@ -52,8 +58,8 @@ namespace VeyraTargeting
 	VEYRACOMBAT_API bool AreHostile(const UObject* A, const UObject* B);
 
 	/**
-	 * Whether Acquirer, a unit or its side, may acquire Target as a target now: the hook Vision
-	 * implements for Dense Fog and stealth (ADR-009 §7). Until Vision exists, every target may be.
+	 * Whether Acquirer, a unit or anything with a side, may acquire Target as a target now: whether
+	 * the world's vision lets it see Target (ADR-016 §2). A world without vision allows every target.
 	 */
 	VEYRACOMBAT_API bool CanAcquire(const UObject* Acquirer, const AActor& Target);
 

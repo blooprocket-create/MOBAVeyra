@@ -23,8 +23,9 @@ struct FVeyraStructureDestroyedEvent;
  * kind gives; every change to a team's Flux reaches World, whose Fluxborn follow it; and a destroyed
  * Prime Well is reported to the game mode, which decides victory; a secured Flux Well grants its side
  * that source's Team Flux. A team's permanent Flux unlocks its participants' Flux Spell slots
- * (ADR-015 §4). It starts the battleground's waves, jungle and Wells as the match goes live, and stops
- * them when it ends (ADR-014 §6). The game mode owns one; server only.
+ * (ADR-015 §4). It starts Vision, which runs until the world ends (ADR-016 §2), and it starts the
+ * battleground's waves, jungle and Wells as the match goes live, and stops them when it ends
+ * (ADR-014 §6). The game mode owns one; server only.
  */
 class FVeyraBattlegroundLink
 {

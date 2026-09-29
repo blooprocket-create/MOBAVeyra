@@ -39,8 +39,8 @@ struct FVeyraCastState
 
 /**
  * The cast that holds a combatant, if any: its windup, channel or recovery (ADR-008 §4). It lives
- * beside the Ability System Component and replicates to every machine until Vision gates it
- * (ADR-009 §7).
+ * beside the Ability System Component; a participant's replicates behind the fog, to those who see
+ * it (ADR-016 §3).
  */
 UCLASS(ClassGroup = Abilities)
 class VEYRAABILITIES_API UVeyraCastStateComponent : public UActorComponent
@@ -51,6 +51,9 @@ public:
 	UVeyraCastStateComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	/** Behind the fog on a participant: its own, its teammates' and its observers' (ADR-016 §3). */
+	virtual ELifetimeCondition GetReplicationCondition() const override;
+	virtual void ReadyForReplication() override;
 
 	/** Server only. */
 	void SetState(const FVeyraCastState& NewState);

@@ -14,6 +14,7 @@
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatVerbs.h"
+#include "Targeting/VeyraParticipantData.h"
 
 namespace
 {
@@ -57,11 +58,25 @@ UVeyraStatusComponent::UVeyraStatusComponent()
 	SetIsReplicatedByDefault(true);
 }
 
+ELifetimeCondition UVeyraStatusComponent::GetReplicationCondition() const
+{
+	return VeyraParticipantData::ConditionFor(*this, Super::GetReplicationCondition());
+}
+
+void UVeyraStatusComponent::ReadyForReplication()
+{
+	Super::ReadyForReplication();
+	if (VeyraParticipantData::IsParticipantData(*this) && GetOwner()->HasAuthority())
+	{
+		VeyraParticipantData::Gate(*this, *GetOwner());
+	}
+}
+
 void UVeyraStatusComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	// Every machine sees every unit's statuses until Vision gates them (ADR-009 §7).
+	// A participant's reach those who see it; a unit's, those its body reaches (ADR-016 §3).
 	FDoRepLifetimeParams Params;
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraStatusComponent, Ledger, Params);

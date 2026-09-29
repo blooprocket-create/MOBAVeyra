@@ -15,6 +15,7 @@
 #include "Gold/VeyraGoldComponent.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraHudModel.h"
+#include "Layout/VeyraLayout.h"
 #include "Ledger/VeyraFluxLedger.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Interfaces/IProjectManager.h"
@@ -194,7 +195,8 @@ namespace VeyraAbilitiesTests
 			Battleground->SpawnStructures(VeyraWorldTests::CompactBattleground());
 			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
 
-			// The river, each stretch of each lane's road, and both bases' pads, from World.json's layout.
+			// The river, each stretch of each lane's road, both bases' pads, and both halves' Dense Fog, from
+			// World.json's layout.
 			const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
 			int32 Stretches = 0;
 			for (const FVeyraLaneLayout& Lane : Layout.Lanes)
@@ -205,7 +207,7 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsNotNull(Ground));
 			TArray<UStaticMeshComponent*> Markings;
 			Ground->GetComponents(Markings);
-			ASSERT_THAT(AreEqual(1 + Stretches + 2, Markings.Num()));
+			ASSERT_THAT(AreEqual(1 + Stretches + 2 + VeyraLayout::DenseFog(Layout).Num(), Markings.Num()));
 			for (const UStaticMeshComponent* Marking : Markings)
 			{
 				ASSERT_THAT(IsTrue(Marking->GetCollisionEnabled() == ECollisionEnabled::NoCollision && !Marking->CanEverAffectNavigation(),

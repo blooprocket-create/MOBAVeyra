@@ -51,6 +51,8 @@ public:
 	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Vanguard; }
 	virtual void PostInitializeComponents() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	/** Its combat data replicates behind the fog from its first send (ADR-016 §3). */
+	virtual void OnReplicationStartedForIris(const FOnReplicationStartedParams& Params) override;
 
 	/** Server only: the GameMode assigns each participant a side once. */
 	void SetVeyraTeam(EVeyraTeam NewTeam);

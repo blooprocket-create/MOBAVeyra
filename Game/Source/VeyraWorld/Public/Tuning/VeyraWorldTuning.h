@@ -88,6 +88,23 @@ struct FVeyraBaseLayout
 };
 
 /**
+ * One Dense Fog circle of Team A's half (Battleground Bible §11, Vision Bible §2): the battleground's
+ * bush. Team B's is its mirror; circles that touch are one fog volume.
+ */
+USTRUCT()
+struct FVeyraFogLayout
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraMapPoint Center;
+
+	/** In units; above 0. */
+	UPROPERTY()
+	double Radius = 0.0;
+};
+
+/**
  * The battleground's grey-box layout (ADR-011 §12): the one source for the generated map and the
  * server's spawning. Team B's half is Team A's reflected across the river's diagonal, the line
  * Y = -X, which maps every lane onto itself and swaps the bases, so both teams' distances match.
@@ -113,6 +130,10 @@ struct FVeyraBattlegroundLayout
 
 	UPROPERTY()
 	FVeyraBaseLayout Base;
+
+	/** Team A's Dense Fog, where League's map has its brush (ADR-016 §4, §11); Team B's is its mirror. */
+	UPROPERTY()
+	TArray<FVeyraFogLayout> DenseFog;
 };
 
 /** One kind of structure's stats and body (Combat Bible §33: structures have their own Armor and MR). */
@@ -658,7 +679,7 @@ struct FVeyraWorldTuning
 	GENERATED_BODY()
 
 	/** The World.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraBattlegroundLayout Layout;

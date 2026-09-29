@@ -95,6 +95,8 @@ enum class EVeyraAttackRejection : uint8
 	InvalidTarget,
 	/** The target is beyond attack range, edge to edge (Combat Bible §40). */
 	OutOfRange,
+	/** The attacker cannot see the target: fog, stealth or Dense Fog (Vision Bible §1, §2; ADR-016 §2). */
+	NotVisible,
 };
 
 VEYRAABILITIES_API const TCHAR* LexToString(EVeyraAttackRejection Rejection);

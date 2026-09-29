@@ -27,7 +27,7 @@ AVeyraFluxborn::AVeyraFluxborn(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UVeyraMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	bReplicates = true;
-	// Every machine sees every Fluxborn until Vision gates them (ADR-011 §7).
+	// Always relevant, so replays record it; Vision's fog gate decides which clients receive it (ADR-016 §3).
 	bAlwaysRelevant = true;
 	// Its server controller moves it; clients only draw it.
 	AutoPossessAI = EAutoPossessAI::Spawned;

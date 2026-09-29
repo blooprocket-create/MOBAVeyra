@@ -113,7 +113,13 @@ struct FVeyraBotCamp
 {
 	FVector Center = FVector::ZeroVector;
 
-	/** Its living creatures; none while it waits to respawn. */
+	/**
+	 * How many of its creatures stand, seen or not: a jungler knows its own camps are up, as League
+	 * players keep their timers. None while it waits to respawn.
+	 */
+	int32 Standing = 0;
+
+	/** The standing creatures its side sees, which alone it may attack (ADR-016 §7). */
 	TArray<FVeyraBotUnit> Creatures;
 
 	/** When it spawns next, in match time; 0 while its creatures stand. */

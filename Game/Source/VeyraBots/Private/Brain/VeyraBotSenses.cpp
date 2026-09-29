@@ -196,7 +196,13 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVey
 		{
 			continue;
 		}
-		(VeyraTargeting::AreHostile(&Bot, Member) ? View.EnemyVanguards : View.AllyVanguards).Add(UnitOf(*Other));
+		// A bot knows only what its side sees, as a player does (ADR-016 §7).
+		const bool bEnemy = VeyraTargeting::AreHostile(&Bot, Member);
+		if (bEnemy && !VeyraTargeting::CanAcquire(&Bot, *Other))
+		{
+			continue;
+		}
+		(bEnemy ? View.EnemyVanguards : View.AllyVanguards).Add(UnitOf(*Other));
 	}
 
 	// Fluxborn in sight, each with how much of its attack it takes; and where the bot's wave stands.
@@ -224,7 +230,7 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVey
 				WaveFront = FMath::Max(WaveFront.Get(Along), Along);
 			}
 		}
-		else if (InSight(Fluxborn->GetActorLocation()))
+		else if (InSight(Fluxborn->GetActorLocation()) && VeyraTargeting::CanAcquire(&Bot, *Fluxborn))
 		{
 			FVeyraBotUnit& Seen = View.EnemyFluxborn.Add_GetRef(UnitOf(*Fluxborn));
 			const UAbilitySystemComponent* Defender = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Fluxborn);
@@ -318,7 +324,11 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVey
 			Seen.SpawnsAt = Camp.SpawnsAt;
 			for (const AVeyraWildlife* Creature : Jungle->GetCreatures(Camp.Index))
 			{
-				Seen.Creatures.Add(UnitOf(*Creature));
+				++Seen.Standing;
+				if (VeyraTargeting::CanAcquire(&Bot, *Creature))
+				{
+					Seen.Creatures.Add(UnitOf(*Creature));
+				}
 			}
 		}
 	}
@@ -338,7 +348,7 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVey
 		{
 			const APawn* Other = Member ? Member->GetPawn() : nullptr;
 			if (Other && VeyraTargeting::IsAlive(Member) && VeyraTargeting::AreHostile(&Bot, Member)
-				&& FVector::Dist2D(View.Self.Location, Other->GetActorLocation()) <= Tuning.Jungle.GankRange)
+				&& FVector::Dist2D(View.Self.Location, Other->GetActorLocation()) <= Tuning.Jungle.GankRange && VeyraTargeting::CanAcquire(&Bot, *Other))
 			{
 				View.GankTargets.Add(UnitOf(*Other));
 			}

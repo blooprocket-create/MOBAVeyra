@@ -7,6 +7,7 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attribution/VeyraAttributionComponent.h"
 #include "CombatState/VeyraCombatStateComponent.h"
+#include "Attributes/VeyraAbilitySystemComponent.h"
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraOffenceSet.h"
@@ -25,6 +26,7 @@
 #include "Passives/VeyraPassive.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
+#include "Targeting/VeyraParticipantData.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraMatchLog.h"
 #include "VeyraVanguardCharacter.h"
@@ -32,7 +34,8 @@
 AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	AbilitySystem = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystem"));
+	// Its attribute sets replicate behind the fog (ADR-016 §3).
+	AbilitySystem = CreateDefaultSubobject<UVeyraAbilitySystemComponent>(TEXT("AbilitySystem"));
 	AbilitySystem->SetIsReplicated(true);
 	AbilitySystem->SetReplicationMode(EGameplayEffectReplicationMode::Mixed);
 
@@ -73,6 +76,12 @@ void AVeyraPlayerState::PostInitializeComponents()
 	// given this PlayerState (AVeyraVanguardCharacter::OnPlayerStateChanged).
 	AbilitySystem->InitAbilityActorInfo(this, GetPawn() ? static_cast<AActor*>(GetPawn()) : this);
 	VeyraCombat::ConfigureCombatant(*AbilitySystem, *DamageAbsorption, *Statuses);
+}
+
+void AVeyraPlayerState::OnReplicationStartedForIris(const FOnReplicationStartedParams& Params)
+{
+	Super::OnReplicationStartedForIris(Params);
+	VeyraParticipantData::ApplyGates(*this);
 }
 
 void AVeyraPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const

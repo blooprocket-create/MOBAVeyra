@@ -23,7 +23,7 @@ AVeyraFluxWell::AVeyraFluxWell(const FObjectInitializer& ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
-	// Every machine sees both Wells until Vision gates them, as it sees structures (ADR-011 §7).
+	// Every machine sees both Wells, as it sees structures: objectives are public (ADR-011 §7, ADR-016 §11).
 	bAlwaysRelevant = true;
 	SetReplicatingMovement(false);
 	AutoPossessAI = EAutoPossessAI::Disabled;

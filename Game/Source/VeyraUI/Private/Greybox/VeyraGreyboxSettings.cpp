@@ -41,6 +41,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("RiverColor"), RiverColor },
 		{ TEXT("AllyBaseColor"), AllyBaseColor },
 		{ TEXT("EnemyBaseColor"), EnemyBaseColor },
+		{ TEXT("DenseFogColor"), DenseFogColor },
 	};
 	for (const FNamedColor& Named : Colors)
 	{
@@ -61,9 +62,9 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(GroundProbeDistance >= 1.0f, TEXT("GroundProbeDistance"), TEXT("must be at least 1 unit."));
 	Require(GroundMarkingThickness > 0.0f, TEXT("GroundMarkingThickness"), TEXT("must be above 0."));
 	Require(GroundMarkingLift > 0.0f, TEXT("GroundMarkingLift"), TEXT("must be above 0."));
-	// The river, the lanes and the pads, each a lift above the last, all under the telegraphs.
-	constexpr int32 GroundMarkingLayers = 3;
+	// The river, the lanes, the pads and the fog, each a lift above the last, all under the telegraphs.
+	constexpr int32 GroundMarkingLayers = 4;
 	Require(GroundMarkingThickness + GroundMarkingLift * GroundMarkingLayers < TelegraphLift, TEXT("GroundMarkingLift"),
-		TEXT("the thickness and three lifts must stay under TelegraphLift, or the ground hides telegraphs."));
+		TEXT("the thickness and four lifts must stay under TelegraphLift, or the ground hides telegraphs."));
 	return Problems;
 }

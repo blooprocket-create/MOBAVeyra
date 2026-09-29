@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "update": {
+    "provenance": "Provisional",
+    "updateSeconds": 0.2
+  },
+  "sight": {
+    "provenance": "Provisional",
+    "vanguard": 1350,
+    "fluxborn": 1100,
+    "structure": 1350
+  }
+}

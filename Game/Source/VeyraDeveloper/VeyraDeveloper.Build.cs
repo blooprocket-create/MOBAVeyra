@@ -33,6 +33,7 @@ public class VeyraDeveloper : ModuleRules
 			"VeyraBots",
 			"VeyraFlux",
 			"VeyraWorld",
+			"VeyraVision",
 			"VeyraVanguards",
 			"VeyraMatch",
 			"VeyraServices",

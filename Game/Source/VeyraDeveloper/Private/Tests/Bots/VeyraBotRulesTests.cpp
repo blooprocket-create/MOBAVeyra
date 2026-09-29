@@ -376,15 +376,32 @@ namespace VeyraBotsTests
 			FVeyraBotCamp Distant;
 			Distant.Center = FVector(Far, 0.0, 0.0);
 			Distant.Creatures = { Unit(Far) };
+			Distant.Standing = Distant.Creatures.Num();
 			FVeyraBotCamp Close;
 			Close.Center = FVector(Near, 0.0, 0.0);
 			Close.Creatures = { Unit(Near, 0.5), Unit(Near, 1.0) };
+			Close.Standing = Close.Creatures.Num();
 			View.Camps = { Distant, Close };
 			FVeyraBotIntent Intent = Decide(View);
 			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Close.Creatures[0].Actor, TEXT("the weakest of the nearest camp")));
 			// Another becomes weaker: it keeps at the one it chose.
 			View.Camps[1].Creatures[1].Health = 1.0;
 			ASSERT_THAT(IsTrue(Decide(View).Target == Close.Creatures[0].Actor));
+		}
+
+		TEST_METHOD(AJunglerWalksToACampItCannotSeeYet)
+		{
+			// Its camp is up, but out of its side's sight: it walks there, and attacks once it sees them.
+			FVeyraBotView View = AliveAt(0.0);
+			View.bJungle = true;
+			FVeyraBotCamp Camp;
+			Camp.Center = FVector(Far, 0.0, 0.0);
+			Camp.Standing = 2;
+			View.Camps = { Camp };
+			const FVeyraBotIntent Walk = Decide(View);
+			ASSERT_THAT(IsTrue(Walk.Action == EVeyraBotAction::Move && Walk.Destination.Equals(Camp.Center)));
+			View.Camps[0].Creatures = { Unit(Far) };
+			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Attack));
 		}
 
 		TEST_METHOD(AJunglerWaitsAtTheCampBackSoonest)
@@ -411,6 +428,7 @@ namespace VeyraBotsTests
 			FVeyraBotCamp Camp;
 			Camp.Center = FVector(Near, 0.0, 0.0);
 			Camp.Creatures = { Unit(Near) };
+			Camp.Standing = Camp.Creatures.Num();
 			View.Camps = { Camp };
 			const FVeyraBotUnit Hurt = Unit(Far / 2.0, 0.3);
 			View.GankTargets = { Hurt };

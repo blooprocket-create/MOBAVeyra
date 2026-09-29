@@ -78,6 +78,12 @@ EVeyraOrderRejection AVeyraVanguardController::AttackUnit(AActor& Target)
 	{
 		return EVeyraOrderRejection::CannotAttack;
 	}
+	// An order for a unit the player's side cannot see, such as one sent just as it slipped into fog,
+	// is refused: nobody may target what they cannot see (Vision Bible §1).
+	if (!VeyraTargeting::CanAcquire(Body, Target))
+	{
+		return EVeyraOrderRejection::CannotAttack;
+	}
 
 	// A new target takes over from an attack still winding up; the same one again changes nothing.
 	if (AttackTarget.Get() != &Target && Attacks->GetState().Phase == EVeyraAttackPhase::Windup)
@@ -216,6 +222,8 @@ void AVeyraVanguardController::UpdateAttackOrder()
 		StopForAttack();
 		break;
 	case EVeyraAttackRejection::InvalidTarget:
+	// A target that slips out of sight is dropped: nobody may target what they cannot see (Vision Bible §1).
+	case EVeyraAttackRejection::NotVisible:
 		AttackTarget.Reset();
 		if (!AttackMoveDestination.IsSet())
 		{
@@ -280,7 +288,7 @@ AActor* AVeyraVanguardController::FindAttackMoveTarget(const UVeyraBasicAttackCo
 	Reach.Radius = Attacks.GetProfile().AcquisitionRadius + Body->GetSimpleCollisionRadius();
 	// Like any basic attack, an attack-move may pick a structure (Combat Bible §33).
 	const TArray<AActor*> Enemies = VeyraShapes::GatherUnits(*GetWorld(), FVeyraPlacedShape{ Reach, Body->GetActorLocation(), Body->GetActorForwardVector() },
-		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit); }, EVeyraStructureTargeting::Allow);
+		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit) && VeyraTargeting::CanAcquire(Body, Unit); }, EVeyraStructureTargeting::Allow);
 	return Enemies.IsEmpty() ? nullptr : Enemies[0];
 }
 

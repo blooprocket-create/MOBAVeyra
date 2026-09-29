@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "layout": {
     "provenance": "Provisional",
     "halfExtent": 9000,
@@ -36,7 +36,17 @@
       "fountain": { "x": -7800, "y": -7800 },
       "padRadius": 4200,
       "fountainRadius": 700
-    }
+    },
+    "denseFog": [
+      { "center": { "x": 1200, "y": -5600 }, "radius": 350 },
+      { "center": { "x": 5300, "y": -5900 }, "radius": 300 },
+      { "center": { "x": 2100, "y": -3500 }, "radius": 300 },
+      { "center": { "x": -5600, "y": 1200 }, "radius": 350 },
+      { "center": { "x": -5900, "y": 5300 }, "radius": 300 },
+      { "center": { "x": -3500, "y": 2100 }, "radius": 300 },
+      { "center": { "x": -1000, "y": 300 }, "radius": 300 },
+      { "center": { "x": 300, "y": -1000 }, "radius": 300 }
+    ]
   },
   "structures": {
     "provenance": "Provisional",

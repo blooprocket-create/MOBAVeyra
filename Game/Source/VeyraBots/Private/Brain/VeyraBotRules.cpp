@@ -178,15 +178,20 @@ namespace
 		const FVeyraBotCamp* Soonest = nullptr;
 		for (const FVeyraBotCamp& Camp : View.Camps)
 		{
-			if (!Camp.Creatures.IsEmpty()
+			if (Camp.Standing > 0
 				&& (!ClosestCamp || FVector::Dist2D(View.Self.Location, Camp.Center) < FVector::Dist2D(View.Self.Location, ClosestCamp->Center)))
 			{
 				ClosestCamp = &Camp;
 			}
-			if (Camp.Creatures.IsEmpty() && Camp.SpawnsAt > 0.0 && (!Soonest || Camp.SpawnsAt < Soonest->SpawnsAt))
+			if (Camp.Standing == 0 && Camp.SpawnsAt > 0.0 && (!Soonest || Camp.SpawnsAt < Soonest->SpawnsAt))
 			{
 				Soonest = &Camp;
 			}
+		}
+		// A camp it cannot see yet it walks to: nobody may attack what they cannot see (Vision Bible §1).
+		if (ClosestCamp && ClosestCamp->Creatures.IsEmpty())
+		{
+			return MoveTo(EVeyraBotAction::Move, ClosestCamp->Center, TEXT("walking to its camp"));
 		}
 		if (ClosestCamp)
 		{

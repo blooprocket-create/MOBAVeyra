@@ -7,6 +7,7 @@
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
+#include "Layout/VeyraLayout.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Rewards/VeyraRewardSubsystem.h"
 #include "Structures/VeyraStructure.h"
@@ -14,6 +15,7 @@
 #include "VeyraBattlegroundSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraTeamFluxSubsystem.h"
+#include "VeyraVisionSubsystem.h"
 #include "Wells/VeyraFluxWellSubsystem.h"
 #include "Wildlife/VeyraJungleSubsystem.h"
 
@@ -45,6 +47,13 @@ FVeyraBattlegroundLink::~FVeyraBattlegroundLink()
 void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrimeWellDestroyed)
 {
 	MatchWorld = &World;
+	// Vision governs the match from before its first player joins, so no unit ever reaches a client that
+	// may not see it; it runs until the world ends, through the match's end (ADR-016 §2, §3).
+	UVeyraVisionSubsystem* Vision = World.GetSubsystem<UVeyraVisionSubsystem>();
+	if (Vision)
+	{
+		Vision->Start();
+	}
 	Battleground = World.GetSubsystem<UVeyraBattlegroundSubsystem>();
 	Flux = World.GetSubsystem<UVeyraTeamFluxSubsystem>();
 	Rewards = World.GetSubsystem<UVeyraRewardSubsystem>();
@@ -58,6 +67,16 @@ void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrim
 	if (UVeyraBattlegroundSubsystem* Subsystem = Battleground.Get())
 	{
 		DestroyedHandle = Subsystem->OnStructureDestroyed.AddRaw(this, &FVeyraBattlegroundLink::OnStructureDestroyed);
+		// World places the battleground's Dense Fog; Vision rules what it hides (ADR-016 §4).
+		if (const FVeyraBattlegroundLayout* Layout = Subsystem->GetLayout(); Layout && Vision)
+		{
+			TArray<FVeyraFogCircle> Circles;
+			for (const FVeyraFogPlacement& Placement : VeyraLayout::DenseFog(*Layout))
+			{
+				Circles.Add(FVeyraFogCircle{ Placement.Center, Placement.Radius });
+			}
+			Vision->SetDenseFog(MoveTemp(Circles));
+		}
 	}
 	if (UVeyraTeamFluxSubsystem* TeamFlux = Flux.Get())
 	{

@@ -134,6 +134,33 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsTrue(Mentions(TEXT("/wildlife/camps/2/species: unicorn is no species")), All));
 			ASSERT_THAT(IsTrue(Mentions(TEXT("/fluxWells/sites/0: must lie on the river")), All));
 		}
+
+		TEST_METHOD(DenseFogLiesInTeamAsHalfAndTeamBsMirrorsIt)
+		{
+			// The battleground's bush (Battleground Bible §11): Team A's circles, then their mirrors.
+			const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
+			ASSERT_THAT(IsFalse(Layout.DenseFog.IsEmpty()));
+			const TArray<FVeyraFogPlacement> Fog = VeyraLayout::DenseFog(Layout);
+			ASSERT_THAT(AreEqual(Fog.Num(), Layout.DenseFog.Num() * 2));
+			for (int32 Index = 0; Index < Layout.DenseFog.Num(); ++Index)
+			{
+				const FVeyraFogPlacement& A = Fog[Index];
+				const FVeyraFogPlacement& B = Fog[Index + Layout.DenseFog.Num()];
+				ASSERT_THAT(IsTrue(VeyraLayout::DepthInTeamAHalf(Layout, A.Center) > A.Radius));
+				ASSERT_THAT(IsTrue(B.Center.Equals(VeyraLayout::Mirror(A.Center)) && B.Radius == A.Radius));
+			}
+
+			// Across the river, off the floor, or touching the dividing line (and so its mirror) is refused.
+			FVeyraWorldTuning Broken = UVeyraWorldTuningSubsystem::Get();
+			Broken.Layout.DenseFog[0].Center = { 2000.0, 2000.0 };
+			Broken.Layout.DenseFog[1].Center = { -Broken.Layout.HalfExtent, -3000.0 };
+			FVeyraFogLayout& Tangent = Broken.Layout.DenseFog[2];
+			Tangent.Radius = VeyraLayout::DepthInTeamAHalf(Broken.Layout, VeyraLayout::ToVector(Tangent.Center));
+			const FString All = FString::Join(VeyraWorld::Validate(Broken), TEXT(" | "));
+			ASSERT_THAT(IsTrue(All.Contains(TEXT("/layout/denseFog/0: the fog must lie wholly in Team A's half")), All));
+			ASSERT_THAT(IsTrue(All.Contains(TEXT("/layout/denseFog/1: the fog must lie on the floor")), All));
+			ASSERT_THAT(IsTrue(All.Contains(TEXT("/layout/denseFog/2: the fog must lie wholly in Team A's half")), All));
+		}
 	};
 
 	// Veyra.Flux.FluxTuning.*: the committed Flux.json loads, and a grant's duration matches its kind.
