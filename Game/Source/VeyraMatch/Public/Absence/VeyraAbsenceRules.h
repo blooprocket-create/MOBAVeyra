@@ -92,8 +92,8 @@ namespace VeyraAbsence
 
 	/**
 	 * Whether a personal loss is forgiven at the end (Match Flow Bible §6): the team won, the total
-	 * absence is within the tuned share of the active duration, and it contributed after it last
-	 * returned.
+	 * absence, counting any it is still in at the end, is within the tuned share of the active
+	 * duration, and it contributed after it came back from the absence that cost it.
 	 */
 	VEYRAMATCH_API bool IsForgiven(const FVeyraAbsenceRecord& Record, bool bTeamWon, double ActiveSeconds, bool bContributedSinceReturn,
 		const FVeyraAbsenceTuning& Tuning);

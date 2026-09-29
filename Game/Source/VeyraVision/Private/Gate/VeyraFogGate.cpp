@@ -106,6 +106,16 @@ void FVeyraFogGate::SyncPlayer(const APlayerController& Controller, EVeyraTeam T
 		{
 			System->DestroyGroup(Player->Group);
 		}
+		// A player who reconnects at once may get back the connection its old controller had, before a
+		// pass forgot that one: its group would still let what that player saw through, under this name.
+		for (auto It = Players.CreateIterator(); It; ++It)
+		{
+			if (It.Key() != &Controller && It.Value().Connection == Connection)
+			{
+				System->DestroyGroup(It.Value().Group);
+				It.RemoveCurrent();
+			}
+		}
 		Player = &Players.Add(&Controller);
 		Player->Connection = Connection;
 		Player->Team = Team;

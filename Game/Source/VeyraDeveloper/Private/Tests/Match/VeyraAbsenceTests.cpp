@@ -108,6 +108,21 @@ namespace VeyraAbsenceTests
 			FVeyraAbsenceRecord Present;
 			ASSERT_THAT(IsTrue(VeyraAbsence::IsForgiven(Present, false, LongMatch, false, Tuning), TEXT("nothing to forgive")));
 		}
+
+		TEST_METHOD(AnAbsenceAtTheEndCountsInTheTotalButDoesNotBarForgiveness)
+		{
+			FVeyraAbsenceRecord Record;
+			VeyraAbsence::NoteDisconnected(Record, 100.0);
+			VeyraAbsence::Update(Record, 250.0, Tuning);
+			VeyraAbsence::NoteConnected(Record, 250.0);
+			const double LongMatch = 2000.0;
+			FVeyraAbsenceRecord Brief = Record;
+			VeyraAbsence::NoteDisconnected(Brief, 1990.0);
+			ASSERT_THAT(IsTrue(VeyraAbsence::IsForgiven(Brief, true, LongMatch, true, Tuning), TEXT("150 s and then 10 s: within a tenth of the match")));
+			FVeyraAbsenceRecord Long = Record;
+			VeyraAbsence::NoteDisconnected(Long, 1940.0);
+			ASSERT_THAT(IsFalse(VeyraAbsence::IsForgiven(Long, true, LongMatch, true, Tuning), TEXT("150 s and then 60 s: past it")));
+		}
 	};
 }
 

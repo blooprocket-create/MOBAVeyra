@@ -26,6 +26,12 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
 ### 1. Rejoin gives back the same Vanguard
 
 - A rostered account that has joined and is not connected may join again until the match ends.
+- **A no-show keeps its seat (Match Flow Bible §3).** When preparation begins, the game mode seats each rostered account that never connected:
+  - an inactive PlayerState with its account, side, Vanguard and Flux Spells;
+  - a Vanguard spawned with everyone else's;
+  - tracked as disconnected from 0:00, so the autopilot, the personal-loss clock and the votes treat it as any disconnected player.
+
+  Its player's late first login takes that seat as a returning player's does, even into a full match.
 - On login the game mode finds the account's kept PlayerState:
   - It gives that PlayerState to the new PlayerController, reactivates it and destroys the fresh one.
   - The Vanguard controller keeps its pawn. No second Vanguard spawns.
@@ -51,8 +57,8 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
   - The cumulative total never resets.
 - **Forgiveness (§6):** a personal loss is cleared only when all three hold:
   - the team won;
-  - cumulative absence is at most `absence.maxForgivenAbsentFraction` of the active duration;
-  - the record shows a contribution after the player's last return: a takedown, an assist, damage to an enemy Vanguard or structure, or a Well secured.
+  - cumulative absence is at most `absence.maxForgivenAbsentFraction` of the active duration, counting any absence still open at the end (being away at the end is no bar of its own);
+  - the record shows a contribution since the player first came back after the absence that cost it: a takedown, an assist, damage to an enemy Vanguard or structure, or a Well secured.
 
   The contribution rule is Provisional; canon says it is still to be designed.
 

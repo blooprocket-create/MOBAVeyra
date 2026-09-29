@@ -121,7 +121,7 @@ bool IsForgiven(const FVeyraAbsenceRecord& Record, bool bTeamWon, double ActiveS
 	{
 		return true;
 	}
-	return bTeamWon && bContributedSinceReturn && Record.Absence == EVeyraAbsence::Present
-		&& AbsentSeconds(Record, ActiveSeconds) <= Tuning.MaxForgivenAbsentFraction * ActiveSeconds;
+	// Being away at the very end is no bar of its own: that absence counts in the total like any other.
+	return bTeamWon && bContributedSinceReturn && AbsentSeconds(Record, ActiveSeconds) <= Tuning.MaxForgivenAbsentFraction * ActiveSeconds;
 }
 }
