@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Match domain (Match Flow Bible, Battleground Bible). VeyraMatch binds it to FVeyraMatchTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "orders", "developerMatch"],
+  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "absence", "activity", "autopilot", "votes", "orders", "developerMatch"],
   "properties": {
     "schemaVersion": {
-      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery; version 5 adds Recall; version 6 moves how bots play to Bots.json (ADR-013 §5).",
+      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery; version 5 adds Recall; version 6 moves how bots play to Bots.json (ADR-013 §5); version 7 adds absence, activity, autopilot and votes (ADR-019).",
       "type": "integer",
       "minimum": 1,
-      "enum": [6]
+      "enum": [7]
     },
     "teams": {
       "description": "The two sides of a match.",
@@ -152,6 +152,187 @@
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
+        }
+      }
+    },
+    "absence": {
+      "description": "Absence from a live match (Match Flow Bible §4–§6; ADR-019 §3): when a connected player counts as AFK, when absence becomes a personal loss, and how much absence a win may forgive. Every clock runs on the match clock, so a pause stops it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "afkAfterSeconds", "afkPenaltyAfterSeconds", "disconnectPenaltyAfterSeconds", "maxForgivenAbsentFraction"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "afkAfterSeconds": {
+          "description": "Seconds of match time without meaningful activity before a connected player is warned, counted as absent, and walked to safety.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "afkPenaltyAfterSeconds": {
+          "description": "Seconds after that warning, still inactive, before the player's personal loss is triggered.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "disconnectPenaltyAfterSeconds": {
+          "description": "Seconds of continuous disconnection before the player's personal loss is triggered.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "maxForgivenAbsentFraction": {
+          "description": "The largest share of the active match duration a player may have been absent, in total, for a win to forgive their personal loss.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      }
+    },
+    "activity": {
+      "description": "What counts as meaningful activity (Match Flow Bible §5.1; ADR-019 §3): accepted move, attack, cast, rank-up and Recall orders; never shopping or chat.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "minimumMoveDistance"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "minimumMoveDistance": {
+          "description": "How far, in units, a move order's destination must be from the last one counted for the move to count, so repeated input in place does not.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "autopilot": {
+      "description": "Where an absent Vanguard is walked (Match Flow Bible §4; ADR-019 §2): behind the nearest standing allied tower, then home to its fountain. It only moves.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "fountainAfterSeconds", "behindTowerDistance"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "fountainAfterSeconds": {
+          "description": "Seconds of match time after it starts before the autopilot turns for the fountain.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "behindTowerDistance": {
+          "description": "How far behind the tower, in units along its lane toward home, the autopilot stops.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "votes": {
+      "description": "Remake, surrender and pause votes (Match Flow Bible §7–§10; ADR-019 §4). Windows, cooldowns and the intermission are real seconds; the start conditions are match time.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "remake", "surrender", "pause"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "remake": {
+          "description": "Either team may start one before startBeforeSeconds; only it votes; a disconnected teammate votes YES.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["startBeforeSeconds", "yesVotes", "windowSeconds", "cooldownSeconds"],
+          "properties": {
+            "startBeforeSeconds": {
+              "description": "Match seconds after which no remake vote may start; one already started may finish.",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "yesVotes": {
+              "description": "YES votes that pass it: a majority of teams.maxTeamSize.",
+              "type": "integer",
+              "minimum": 1
+            },
+            "windowSeconds": {
+              "description": "Seconds the vote stays open.",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "cooldownSeconds": {
+              "description": "Seconds after a failed vote before the same team may start another.",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            }
+          }
+        },
+        "surrender": {
+          "description": "Either team may start one from startAfterSeconds; only it votes; a disconnected teammate abstains.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["startAfterSeconds", "yesVotes", "windowSeconds", "cooldownSeconds"],
+          "properties": {
+            "startAfterSeconds": {
+              "description": "Match seconds before which no surrender vote may start.",
+              "type": "number",
+              "minimum": 0
+            },
+            "yesVotes": {
+              "description": "YES votes that pass it: a majority of teams.maxTeamSize.",
+              "type": "integer",
+              "minimum": 1
+            },
+            "windowSeconds": {
+              "description": "Seconds the vote stays open.",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "cooldownSeconds": {
+              "description": "Seconds after a failed vote before the same team may start another.",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            }
+          }
+        },
+        "pause": {
+          "description": "Anyone may start one while the match is live; it passes only when every player votes YES, and an AFK or disconnected player votes YES. The intermission it opens resumes by itself, or early on another unanimous vote.",
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["windowSeconds", "cooldownSeconds", "intermissionSeconds"],
+          "properties": {
+            "windowSeconds": {
+              "description": "Seconds the vote stays open.",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "cooldownSeconds": {
+              "description": "Seconds after a failed pause vote before another may start.",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            },
+            "intermissionSeconds": {
+              "description": "Real seconds a passed pause lasts before play resumes by itself.",
+              "type": "number",
+              "minimum": 0,
+              "exclusiveMinimum": true
+            }
+          }
         }
       }
     },

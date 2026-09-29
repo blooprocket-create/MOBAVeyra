@@ -63,8 +63,27 @@ VeyraTuning::FErrors UVeyraMatchTuningSubsystem::Reload()
 	}
 	if (Errors.IsEmpty())
 	{
+		Errors = ValidateRules(Loaded);
+	}
+	if (Errors.IsEmpty())
+	{
 		Tuning = Loaded;
 		DocumentHash = Hash;
 	}
+	return Errors;
+}
+
+VeyraTuning::FErrors UVeyraMatchTuningSubsystem::ValidateRules(const FVeyraMatchTuning& Checked)
+{
+	VeyraTuning::FErrors Errors;
+	const int32 TeamSize = Checked.Teams.MaxTeamSize;
+	const auto RequireMajority = [&Errors, TeamSize](const TCHAR* Pointer, int32 YesVotes) {
+		if (YesVotes * 2 <= TeamSize || YesVotes > TeamSize)
+		{
+			Errors.Add(FString::Printf(TEXT("%s: %d YES votes is not a majority of a team of %d (teams.maxTeamSize)"), Pointer, YesVotes, TeamSize));
+		}
+	};
+	RequireMajority(TEXT("/votes/remake/yesVotes"), Checked.Votes.Remake.YesVotes);
+	RequireMajority(TEXT("/votes/surrender/yesVotes"), Checked.Votes.Surrender.YesVotes);
 	return Errors;
 }

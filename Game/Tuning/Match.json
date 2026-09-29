@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 6,
+  "schemaVersion": 7,
   "teams": {
     "maxTeamSize": 5
   },
@@ -29,6 +29,28 @@
   },
   "lifecycle": {
     "abandonAfterSeconds": 60
+  },
+  "absence": {
+    "provenance": "Canon",
+    "afkAfterSeconds": 90,
+    "afkPenaltyAfterSeconds": 60,
+    "disconnectPenaltyAfterSeconds": 150,
+    "maxForgivenAbsentFraction": 0.1
+  },
+  "activity": {
+    "provenance": "Provisional",
+    "minimumMoveDistance": 300
+  },
+  "autopilot": {
+    "provenance": "Provisional",
+    "fountainAfterSeconds": 60,
+    "behindTowerDistance": 700
+  },
+  "votes": {
+    "provenance": "Canon",
+    "remake": { "startBeforeSeconds": 300, "yesVotes": 3, "windowSeconds": 30, "cooldownSeconds": 60 },
+    "surrender": { "startAfterSeconds": 900, "yesVotes": 3, "windowSeconds": 30, "cooldownSeconds": 180 },
+    "pause": { "windowSeconds": 60, "cooldownSeconds": 180, "intermissionSeconds": 600 }
   },
   "orders": {
     "maxPerSecond": 20,

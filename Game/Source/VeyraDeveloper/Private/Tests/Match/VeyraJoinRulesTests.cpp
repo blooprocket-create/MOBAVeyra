@@ -77,6 +77,17 @@ namespace VeyraMatchTests
 		{
 			ASSERT_THAT(IsTrue(GEngine->GetEngineSubsystem<UVeyraMatchTuningSubsystem>()->IsLoaded()));
 		}
+
+		TEST_METHOD(ATeamVotePassesOnAMajorityOfAFullTeam)
+		{
+			FVeyraMatchTuning Tuning = UVeyraMatchTuningSubsystem::Get();
+			ASSERT_THAT(IsTrue(UVeyraMatchTuningSubsystem::ValidateRules(Tuning).IsEmpty()));
+			Tuning.Votes.Surrender.YesVotes = Tuning.Teams.MaxTeamSize / 2;
+			ASSERT_THAT(IsTrue(UVeyraMatchTuningSubsystem::ValidateRules(Tuning).ContainsByPredicate(
+				[](const FString& Error) { return Error.StartsWith(TEXT("/votes/surrender/yesVotes")); }), TEXT("half a team is no majority")));
+			Tuning.Votes.Surrender.YesVotes = Tuning.Teams.MaxTeamSize + 1;
+			ASSERT_THAT(IsFalse(UVeyraMatchTuningSubsystem::ValidateRules(Tuning).IsEmpty(), TEXT("nor more votes than a team holds")));
+		}
 	};
 
 	// Veyra.Match.GreyboxLayout.*: the grey-box test map's layout file is valid.
