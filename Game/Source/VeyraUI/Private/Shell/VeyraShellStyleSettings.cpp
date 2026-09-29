@@ -36,6 +36,16 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("FrameColor"), FrameColor },
 		{ TEXT("AllyColor"), AllyColor },
 		{ TEXT("EnemyColor"), EnemyColor },
+		{ TEXT("SurfaceColor"), SurfaceColor },
+		{ TEXT("SurfaceRaisedColor"), SurfaceRaisedColor },
+		{ TEXT("HairlineColor"), HairlineColor },
+		{ TEXT("PrimaryColor"), PrimaryColor },
+		{ TEXT("PrimaryHoveredColor"), PrimaryHoveredColor },
+		{ TEXT("PrimaryTextColor"), PrimaryTextColor },
+		{ TEXT("ScrimColor"), ScrimColor },
+		{ TEXT("ShowcaseTint"), ShowcaseTint },
+		{ TEXT("VictoryColor"), VictoryColor },
+		{ TEXT("DefeatColor"), DefeatColor },
 	};
 	for (const FNamedColor& Named : Colors)
 	{
@@ -47,6 +57,9 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("BodyFontSize"), BodyFontSize },
 		{ TEXT("CountdownFontSize"), CountdownFontSize },
 		{ TEXT("SmallFontSize"), SmallFontSize },
+		{ TEXT("DisplayFontSize"), DisplayFontSize },
+		{ TEXT("EyebrowFontSize"), EyebrowFontSize },
+		{ TEXT("ButtonFontSize"), ButtonFontSize },
 	};
 	for (const TPair<const TCHAR*, int32>& Size : FontSizes)
 	{
@@ -78,6 +91,11 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("LockInWidth"), LockInWidth },
 		{ TEXT("PickerWidth"), PickerWidth },
 		{ TEXT("PickerTileWidth"), PickerTileWidth },
+		{ TEXT("PrimaryButtonWidth"), PrimaryButtonWidth },
+		{ TEXT("HomeColumnWidth"), HomeColumnWidth },
+		{ TEXT("ModeCardWidth"), ModeCardWidth },
+		{ TEXT("ModeCardHeight"), ModeCardHeight },
+		{ TEXT("DialogWidth"), DialogWidth },
 		{ TEXT("ReportLabelWidth"), ReportLabelWidth },
 		{ TEXT("ReportColumnWidth"), ReportColumnWidth },
 	};
@@ -102,5 +120,19 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		Seen.Add(Portrait.Vanguard, &bAlreadySeen);
 		Require(!Portrait.Vanguard.IsEmpty() && !bAlreadySeen, TEXT("VanguardPortraits"), TEXT("each entry names a different Vanguard."));
 	}
+	Require(!HomeVanguard.IsEmpty(), TEXT("HomeVanguard"), TEXT("names the Vanguard whose art fills Home."));
+	TSet<FString> Modes;
+	for (const FVeyraModeArt& Art : ModeArt)
+	{
+		bool bAlreadySeen = false;
+		Modes.Add(Art.Mode, &bAlreadySeen);
+		Require(!Art.Mode.IsEmpty() && !Art.Vanguard.IsEmpty() && !bAlreadySeen, TEXT("ModeArt"), TEXT("each entry names a different mode and a Vanguard."));
+	}
 	return Problems;
+}
+
+FString UVeyraShellStyleSettings::ModeArtOf(const FString& Mode) const
+{
+	const FVeyraModeArt* Art = ModeArt.FindByPredicate([&Mode](const FVeyraModeArt& Entry) { return Entry.Mode == Mode; });
+	return Art ? Art->Vanguard : HomeVanguard;
 }

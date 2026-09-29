@@ -10,6 +10,8 @@ const STATUS_INTERVAL_MS = 200;
 const ACCOUNT_KEY = "veyra.launcher.account";
 
 const sections = ["loading", "sign-in", "progress", "problem"];
+// The Vanguards whose art the launcher carries (art/, launcher.css); one fills the window each time it opens.
+const FEATURED = ["bryn", "cairn", "gorraveth", "kade", "mimzi", "oriel", "patch", "qazharr", "raska", "vera"];
 const element = (id) => document.getElementById(id);
 
 function show(id) {
@@ -22,6 +24,10 @@ function showProblem(text, retry) {
   element("problem-text").textContent = text;
   element("retry").onclick = retry;
   show("problem");
+}
+
+function feature() {
+  document.querySelector(".art").dataset.vanguard = FEATURED[Math.floor(Math.random() * FEATURED.length)];
 }
 
 async function start() {
@@ -75,4 +81,7 @@ async function follow() {
 }
 
 element("play").addEventListener("click", play);
-window.addEventListener("DOMContentLoaded", start);
+window.addEventListener("DOMContentLoaded", () => {
+  feature();
+  start();
+});

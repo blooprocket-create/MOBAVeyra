@@ -6,6 +6,21 @@
 
 #include "VeyraShellStyleSettings.generated.h"
 
+/** The art on a mode's card: a Vanguard's illustration, until modes have key art of their own. */
+USTRUCT()
+struct FVeyraModeArt
+{
+	GENERATED_BODY()
+
+	/** The mode's ID, such as "casual_select". */
+	UPROPERTY(Config, EditAnywhere, Category = "Art")
+	FString Mode;
+
+	/** The Vanguard whose illustration its card shows, such as "raska". */
+	UPROPERTY(Config, EditAnywhere, Category = "Art")
+	FString Vanguard;
+};
+
 /** Where a Vanguard's face is in its hero illustration, for the portraits cropped from it. */
 USTRUCT()
 struct FVeyraVanguardPortrait
@@ -227,4 +242,103 @@ public:
 	/** Where each Vanguard's face is in its hero illustration; one entry per Vanguard at most. */
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	TArray<FVeyraVanguardPortrait> VanguardPortraits;
+
+	// The design system (Art Bible v0.1 §4): surfaces, the primary action, and the display and label
+	// tiers of type. Where the bible leaves UI geometry and fonts open, these are provisional.
+
+	/** A smoked, translucent panel or card over the world behind it (Art Bible §4.2). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor SurfaceColor = FLinearColor::Transparent;
+
+	/** A surface that stands out: a bar, a table's header, a highlighted row. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor SurfaceRaisedColor = FLinearColor::Transparent;
+
+	/** The thin outline around surfaces and the rules between groups. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor HairlineColor = FLinearColor::Transparent;
+
+	/** The one action a screen leads to: Play, Accept, Find Match, Lock In, Continue. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor PrimaryColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor PrimaryHoveredColor = FLinearColor::Transparent;
+
+	/** A primary action's label, dark on the primary colour. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor PrimaryTextColor = FLinearColor::Transparent;
+
+	/** The dark that scrims fade art to, so text reads over it. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor ScrimColor = FLinearColor::Transparent;
+
+	/** Multiplies a showcase's art (Home, Play's cards, the results), which scrims darken where text sits. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor ShowcaseTint = FLinearColor::Transparent;
+
+	/** Victory's and defeat's headlines on the results (Art Bible §6.5: different, and never humiliating). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor VictoryColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FLinearColor DefeatColor = FLinearColor::Transparent;
+
+	/** A screen's headline, the display tier. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	int32 DisplayFontSize = 0;
+
+	/** The small tracked labels above titles and over table columns. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	int32 EyebrowFontSize = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	int32 ButtonFontSize = 0;
+
+	/** Tracking, in thousandths of an em, for the display tier, eyebrows and button labels. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0"))
+	int32 DisplayLetterSpacing = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0"))
+	int32 EyebrowLetterSpacing = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0"))
+	int32 ButtonLetterSpacing = 0;
+
+	/** Surfaces' and buttons' rounded corners, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0"))
+	float PanelCornerRadius = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "0"))
+	float ButtonCornerRadius = 0.0f;
+
+	/** The primary action's least width, so it reads as the way forward, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float PrimaryButtonWidth = 0.0f;
+
+	/** Home's column of text and actions, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float HomeColumnWidth = 0.0f;
+
+	/** A mode's card on Play, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ModeCardWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ModeCardHeight = 0.0f;
+
+	/** Match Found's and the status screens' centred panel, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float DialogWidth = 0.0f;
+
+	/** The Vanguard whose illustration fills Home until its scene is designed (Art Bible §6.1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	FString HomeVanguard;
+
+	/** Each mode card's art; a mode not listed shows HomeVanguard's. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	TArray<FVeyraModeArt> ModeArt;
+
+	/** The Vanguard whose illustration a mode's card shows. */
+	FString ModeArtOf(const FString& Mode) const;
 };

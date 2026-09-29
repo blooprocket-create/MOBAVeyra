@@ -2,6 +2,9 @@
 
 #include "Greybox/VeyraGreyboxSubsystem.h"
 
+#include "Engine/Font.h"
+#include "Styling/CoreStyle.h"
+
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Casting/VeyraCastStateComponent.h"
@@ -61,6 +64,10 @@ bool UVeyraGreyboxSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 void UVeyraGreyboxSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	// The shell's type, from the engine's own font files; they load as the HUD first draws with them.
+	HudFont = NewObject<UFont>(this);
+	HudFont->FontCacheType = EFontCacheType::Runtime;
+	HudFont->GetMutableInternalCompositeFont() = *FCoreStyle::GetDefaultFont();
 	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
 	TArray<FString> Problems = Settings.Validate();
 	if (Problems.IsEmpty())

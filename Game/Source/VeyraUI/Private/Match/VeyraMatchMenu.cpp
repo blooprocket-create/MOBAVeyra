@@ -51,7 +51,7 @@ bool UVeyraMatchMenu::Initialize()
 		Scrim->SetVerticalAlignment(VAlign_Center);
 		USizeBox* Width = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 		Width->SetWidthOverride(Style.MenuWidth);
-		UBorder* Panel = VeyraShellStyle::MakeBorder(*WidgetTree, Style.PanelColor, Style.ScreenPadding);
+		UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, VeyraShellStyle::EVeyraShellSurface::Raised, FMargin(Style.ScreenPadding));
 		Content = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		Panel->SetContent(Content);
 		Width->AddChild(Panel);

@@ -401,7 +401,7 @@ void UVeyraShellScreen::BuildSpellPicker(const FVeyraSelectModel& Model)
 	ScrimSlot->SetHorizontalAlignment(HAlign_Fill);
 	ScrimSlot->SetVerticalAlignment(VAlign_Fill);
 
-	UBorder* Panel = VeyraShellStyle::MakeBorder(*WidgetTree, Settings.PanelColor, Settings.Spacing * 2.0f);
+	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, VeyraShellStyle::EVeyraShellSurface::Raised, FMargin(Settings.Spacing * 2.0f));
 	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	Panel->SetContent(Rows);
 	USizeBox* PanelBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
