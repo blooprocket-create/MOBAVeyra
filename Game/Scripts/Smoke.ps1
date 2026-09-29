@@ -87,7 +87,9 @@
     box (ADR-011 §12). The -Flow paths always play on the battleground, as every player-made match does.
 
     Client logs, the server log and a summary go to Game/Saved/Smoke/<timestamp>. The server is
-    stopped at the end unless -KeepServer is given.
+    stopped at the end unless -KeepServer is given; the container is stopped gracefully first, as a
+    match's end stops it. A crash in any client's or the server's log fails the run, even one after
+    the client's verdict or the reported result.
 
     Exit codes: 0 passed; 1 a client or the server did not do its part; 2 infrastructure error.
 .PARAMETER Clients
@@ -367,6 +369,23 @@ function Invoke-Compose {
     # Plain progress: Docker's live display fails in a terminal once its output is piped.
     & docker compose --progress plain --project-directory $repositoryDir --profile match-server @Arguments | Out-Host
     return $LASTEXITCODE
+}
+
+function Get-LogCrash {
+    # The crash a log records, as its error and first frame, or $null if there is none. A crash fails
+    # the run even after a PASS verdict or a reported result: both come before the process shuts down.
+    # Frames read '[Callstack] 0x... Module!Function' on Windows and '0x... Module!Function' on Linux.
+    param([string]$Path)
+    $lines = @(if (Test-Path -LiteralPath $Path) { Get-Content -LiteralPath $Path })
+    $at = [Array]::FindIndex([string[]]$lines, [Predicate[string]] { param($line) $line.Contains('=== Critical error: ===') })
+    if ($at -lt 0) {
+        return $null
+    }
+    $after = $lines[$at..($lines.Count - 1)]
+    $cause = $after | Select-String -Pattern '(Unhandled Exception|Assertion failed|Fatal error): .*' | Select-Object -First 1
+    $frame = $after | Select-String -Pattern '0x[0-9A-Fa-f]+ (\S+!\S+)' | Select-Object -First 1
+    $summary = $(if ($cause) { $cause.Matches[0].Value.Trim() } else { 'a critical error' })
+    return $(if ($frame) { "$summary, in $($frame.Matches[0].Groups[1].Value)" } else { $summary })
 }
 
 if ($Handoff -or $Flow) {
@@ -682,9 +701,9 @@ if ($Handoff -or $Flow) {
                 }
                 # The client must also close cleanly: a crash after its verdict still fails. A client the
                 # launcher CLI started is not this script's child, so its log is where a crash shows.
-                if (Select-String -LiteralPath $client.Log -SimpleMatch '=== Critical error: ===' -Quiet) {
-                    $frame = Select-String -LiteralPath $client.Log -Pattern '\[Callstack\] \S+ (\S+)' | Select-Object -First 1
-                    Write-Host "  It crashed$(if ($frame) { " in $($frame.Matches[0].Groups[1].Value)" })."
+                $crash = Get-LogCrash -Path $client.Log
+                if ($crash) {
+                    Write-Host "  It crashed: $crash."
                     $failed = $true
                 }
             }
@@ -807,6 +826,12 @@ if ($Handoff -or $Flow) {
             Write-Host "The server logged an error: $($serverError.Matches[0].Value)"
             $failed = $true
         }
+        # The server quits once it has reported the result; it must also shut down cleanly.
+        $crash = Get-LogCrash -Path $serverLogPath
+        if ($crash) {
+            Write-Host "The server crashed: $crash."
+            $failed = $true
+        }
         if (-not $isPractice -and -not $Flow) {
             $abilityQ = @($vanguardDefinitions.$SmokeVanguard.abilities.q)[0]
             $casts = @(Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $abilityQ at ").Count
@@ -882,9 +907,12 @@ function Stop-Server {
         }
         return
     }
-    if ($RecordReplay) {
-        # A graceful stop lets the server finish the replay before it is copied out.
+    # A graceful stop shuts the server down as a match's end does, so its log shows a crash on the way
+    # out; it also lets the server finish the replay before it is copied out.
+    if ($RecordReplay -or -not $KeepServer) {
         $null = Invoke-Compose -Arguments @('stop', 'match-server')
+    }
+    if ($RecordReplay) {
         $demosDir = Join-Path $reportDir 'Demos'
         New-Item -ItemType Directory -Force -Path $demosDir | Out-Null
         & docker compose --progress plain --project-directory $repositoryDir --profile match-server cp "match-server:$ReplayContainerDir/." $demosDir | Out-Host
@@ -980,6 +1008,12 @@ foreach ($process in $clientProcesses) {
             $failed = $true
         }
     }
+    # Its exit code fails a crash; its log says where.
+    $crash = Get-LogCrash -Path $log
+    if ($crash) {
+        Write-Host "Client $index crashed: $crash."
+        $failed = $true
+    }
 }
 if ($Screenshot) {
     if (Test-Path -LiteralPath $screenshotPath) {
@@ -1005,6 +1039,12 @@ foreach ($expected in $expectedServerLines) {
 $serverErrors = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyra\w*: Error: .*')
 foreach ($serverError in $serverErrors) {
     Write-Host "The server logged an error: $($serverError.Matches[0].Value)"
+    $failed = $true
+}
+# Nor may it crash, during the match or as the container stops it (an editor server is killed instead).
+$crash = Get-LogCrash -Path $serverLogPath
+if ($crash) {
+    Write-Host "The server crashed: $crash."
     $failed = $true
 }
 # Each client's casts, as the server resolved them (VeyraAbilities logs them at Verbose).
