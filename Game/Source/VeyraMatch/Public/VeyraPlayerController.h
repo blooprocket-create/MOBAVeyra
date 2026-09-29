@@ -8,6 +8,7 @@
 #include "Inventory/VeyraInventoryRules.h"
 #include "Progression/VeyraProgressionTypes.h"
 #include "Templates/Function.h"
+#include "Tools/VeyraVisionToolComponent.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
 
@@ -122,6 +123,12 @@ public:
 	 */
 	void RequestSwapFluxSpell(int32 Slot, const FVeyraContentId& Spell);
 
+	/**
+	 * Owning client: asks to put Tool in the vision-tool slot, at the fountain, for Economy.json's
+	 * swap cost; the tool already there cannot be bought again (Vision Bible §3; ADR-016 §6).
+	 */
+	void RequestSwapVisionTool(EVeyraVisionTool Tool);
+
 	/** Owning client: the reason the server gave for the last refused shop request, and how many it refused. */
 	EVeyraShopRefusal GetLastShopRefusal() const { return LastShopRefusal; }
 	int32 GetShopRefusalCount() const { return ShopRefusalCount; }
@@ -208,6 +215,9 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerSwapFluxSpell(int32 Slot, FVeyraContentId Spell);
+
+	UFUNCTION(Server, Reliable)
+	void ServerSwapVisionTool(EVeyraVisionTool Tool);
 
 	UFUNCTION(Client, Unreliable)
 	void ClientShopRefused(EVeyraShopRefusal Refusal);

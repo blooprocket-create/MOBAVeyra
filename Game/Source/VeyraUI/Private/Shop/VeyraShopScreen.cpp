@@ -126,6 +126,20 @@ FText UVeyraShopScreen::CancelLabel(int32 Index)
 	return FText::Format(LOCTEXT("Cancel", "Cancel {0}"), FText::AsNumber(Index + 1));
 }
 
+FText UVeyraShopScreen::VisionToolName(EVeyraVisionTool Tool)
+{
+	switch (Tool)
+	{
+	case EVeyraVisionTool::PersistentWard:
+		return LOCTEXT("PersistentWard", "Persistent Ward");
+	case EVeyraVisionTool::Sweeper:
+		return LOCTEXT("Sweeper", "Sweeper");
+	case EVeyraVisionTool::QuickSight:
+		return LOCTEXT("QuickSight", "Quick Sight");
+	}
+	return FText::GetEmpty();
+}
+
 FText UVeyraShopScreen::SwapLabel(int32 Slot, const FVeyraContentId& Spell)
 {
 	return FText::Format(LOCTEXT("Swap", "Slot {0}: {1}"), FText::AsNumber(Slot + 1), VeyraContentText::AbilityName(Spell));
@@ -253,6 +267,32 @@ void UVeyraShopScreen::Rebuild()
 			SpellRow->AddChildToHorizontalBox(Cell)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 		}
 		VeyraShellStyle::AddSpaced(*Content, *SpellRow);
+	}
+
+	// The vision tool: each swap costs Gold, at the fountain only (ADR-016 §6).
+	if (View.bHasVisionTool)
+	{
+		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
+			FText::Format(LOCTEXT("VisionTools", "Vision tool (each swap {0})"), GoldText(View.VisionToolSwapCost)), EVeyraShellText::Heading));
+		UHorizontalBox* ToolRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		VeyraShellStyle::AddSpaced(*ToolRow, *VeyraShellStyle::MakeText(*WidgetTree,
+			FText::Format(LOCTEXT("VisionToolHeld", "In the slot: {0}"), VisionToolName(View.VisionTool)), EVeyraShellText::Body));
+		for (const FVeyraShopVisionToolOffer& Offer : View.VisionToolOffers)
+		{
+			if (Offer.Tool == View.VisionTool)
+			{
+				continue;
+			}
+			UVerticalBox* Cell = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			AddButton(*Cell, VisionToolName(Offer.Tool), [this, Tool = Offer.Tool] {
+				if (AVeyraPlayerController* Player = Controller.Get())
+				{
+					Player->RequestSwapVisionTool(Tool);
+				}
+			}, Offer.Refusal == EVeyraShopRefusal::None);
+			VeyraShellStyle::AddSpaced(*ToolRow, *Cell);
+		}
+		VeyraShellStyle::AddSpaced(*Content, *ToolRow);
 	}
 
 	// Every item, a column per tier, each with its price now and its stats.

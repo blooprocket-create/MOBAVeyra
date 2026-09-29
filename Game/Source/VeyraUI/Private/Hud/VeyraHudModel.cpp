@@ -19,6 +19,7 @@
 #include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "State/VeyraTeamFluxState.h"
+#include "State/VeyraVisionTeamState.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Structures/VeyraStructure.h"
 #include "Tools/VeyraVisionToolComponent.h"
@@ -232,6 +233,33 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		Player.VisionTool.NextChargeSeconds = Tool->GetNextChargeAt() < 0.0 ? 0.0 : FMath::Max(0.0, Tool->GetNextChargeAt() - ServerNow);
 	}
 	return Player;
+}
+
+FVeyraHudVision VeyraHud::DescribeVision(const UWorld* World, EVeyraTeam Viewer, double ServerNow)
+{
+	FVeyraHudVision Vision;
+	const AVeyraVisionTeamState* State = AVeyraVisionTeamState::Find(World, Viewer);
+	if (!State)
+	{
+		return Vision;
+	}
+	const double Cadence = UVeyraVisionTuningSubsystem::Get().Presence.PingEverySeconds;
+	for (const FVeyraPresencePing& Ping : State->GetPings())
+	{
+		const double Fade = Cadence > 0.0 ? 1.0 - (ServerNow - Ping.At) / Cadence : 0.0;
+		if (Fade > 0.0)
+		{
+			Vision.Pings.Add(FVeyraHudPing{ Ping.Centre, Ping.Radius, FMath::Min(Fade, 1.0) });
+		}
+	}
+	for (const FVeyraOutline& Outline : State->GetOutlines())
+	{
+		if (Outline.Until > ServerNow)
+		{
+			Vision.Outlines.Add(Outline.Location);
+		}
+	}
+	return Vision;
 }
 
 TArray<FVeyraHudTeamFlux> VeyraHud::DescribeTeamFlux(const UWorld* World, double ServerNow)

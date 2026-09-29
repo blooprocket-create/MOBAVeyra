@@ -91,6 +91,30 @@ FVeyraShopView Describe(const AActor& Participant)
 			}
 		}
 	}
+	// The vision tool: any other tool, at the fountain, for the same cost each time (Vision Bible §3).
+	if (const UVeyraVisionToolComponent* Tool = Participant.FindComponentByClass<UVeyraVisionToolComponent>())
+	{
+		View.bHasVisionTool = true;
+		View.VisionTool = Tool->GetEquipped();
+		View.VisionToolSwapCost = UVeyraEconomyTuningSubsystem::Get().VisionTools.SwapCost;
+		for (const EVeyraVisionTool Each : { EVeyraVisionTool::PersistentWard, EVeyraVisionTool::Sweeper, EVeyraVisionTool::QuickSight })
+		{
+			EVeyraShopRefusal Refusal = EVeyraShopRefusal::None;
+			if (Each == View.VisionTool)
+			{
+				Refusal = EVeyraShopRefusal::AlreadyEquipped;
+			}
+			else if (!View.bAtShop)
+			{
+				Refusal = EVeyraShopRefusal::NotAtFountain;
+			}
+			else if (View.VisionToolSwapCost > View.Gold)
+			{
+				Refusal = EVeyraShopRefusal::NotEnoughGold;
+			}
+			View.VisionToolOffers.Add(FVeyraShopVisionToolOffer{ Each, Refusal });
+		}
+	}
 	View.Offers.Sort([](const FVeyraShopOffer& A, const FVeyraShopOffer& B) {
 		if (A.Tier != B.Tier)
 		{

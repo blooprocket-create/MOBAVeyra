@@ -10,6 +10,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
@@ -431,6 +432,33 @@ void AVeyraPlayerController::RequestSwapFluxSpell(int32 Slot, const FVeyraConten
 void AVeyraPlayerController::ServerSwapFluxSpell_Implementation(int32 Slot, FVeyraContentId Spell)
 {
 	RunShopRequest([Slot, &Spell](UVeyraShopSubsystem& Shop, APlayerState& Participant) { return Shop.SwapFluxSpell(Participant, Slot, Spell); });
+}
+
+void AVeyraPlayerController::RequestSwapVisionTool(EVeyraVisionTool Tool)
+{
+	ServerSwapVisionTool(Tool);
+}
+
+void AVeyraPlayerController::ServerSwapVisionTool_Implementation(EVeyraVisionTool Tool)
+{
+	RunShopRequest([Tool](UVeyraShopSubsystem& Shop, APlayerState& Participant) {
+		UVeyraVisionToolComponent* Slot = Participant.FindComponentByClass<UVeyraVisionToolComponent>();
+		if (!Slot)
+		{
+			return EVeyraShopRefusal::NotNow;
+		}
+		if (Slot->GetEquipped() == Tool)
+		{
+			return EVeyraShopRefusal::AlreadyEquipped;
+		}
+		// Every swap costs the same, returning to a tool too (Vision Bible §3); the shop takes the Gold, Vision equips.
+		const EVeyraShopRefusal Refusal = Shop.ChargeAtFountain(Participant, UVeyraEconomyTuningSubsystem::Get().VisionTools.SwapCost, TEXT("a vision tool"));
+		if (Refusal == EVeyraShopRefusal::None)
+		{
+			Slot->Equip(Tool);
+		}
+		return Refusal;
+	});
 }
 
 void AVeyraPlayerController::RunShopRequest(TFunctionRef<EVeyraShopRefusal(UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request)

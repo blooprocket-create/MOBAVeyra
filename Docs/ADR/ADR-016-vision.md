@@ -110,7 +110,8 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
   - **Persistent Ward:** places a ward within range, spending a charge.
   - **Sweeper:** grants True Sight around its owner for its duration.
   - **Quick Sight:** places a timed sight area within range.
-- **The swap:** a shop row, routed by Match to Vision for the equip and to Economy for the Gold (`Economy.json` `visionTools.swapCost`), at the fountain only.
+- **The swap:** a shop row. Match's controller asks. The shop takes the Gold (`UVeyraShopSubsystem::ChargeAtFountain`, the fountain rule its own purchases follow; `Economy.json` `visionTools.swapCost`), and Vision equips. The tool already in the slot is refused, and so is anything away from the fountain unless its owner is dead.
+- **The HUD** (§8): the tool line names the tool, with its charges or cooldown. Presence pings are rings over their fog circle, fading until the next, and outlines are small rings, both drawn from the viewer's side's team state.
 
 ### 7. Bots see what their team sees
 

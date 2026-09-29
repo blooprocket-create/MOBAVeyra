@@ -27,6 +27,8 @@ public class VeyraMatch : ModuleRules
 			// ...and shop refusals; the PlayerState holds the inventory (ADR-012 §7).
 			"VeyraItems",
 			"VeyraVanguards",
+			// ...and asks for vision-tool swaps; the PlayerState holds the tool (ADR-016 §6).
+			"VeyraVision",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]
@@ -37,7 +39,6 @@ public class VeyraMatch : ModuleRules
 			// The battleground's peers, which Match connects (ADR-011 §3).
 			"VeyraFlux",
 			"VeyraWorld",
-			"VeyraVision",
 		});
 
 		// The Match domain's tuning ships with every build that runs a match (ADR-006 §6).

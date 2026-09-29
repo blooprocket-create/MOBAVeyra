@@ -190,6 +190,25 @@ struct FVeyraHudTeamFlux
  * gameplay supplies and calculates none of it). Plain functions, so tests check them without a
  * canvas.
  */
+/** A presence ping on the HUD (ADR-016 §8): a ring over the fog circle an enemy is present in. */
+struct FVeyraHudPing
+{
+	FVector2D Centre = FVector2D::ZeroVector;
+	double Radius = 0.0;
+
+	/** How much of it is left, from 1 as it arrives to 0 as the next would come. */
+	double Fade = 0.0;
+};
+
+/** What the viewer's side's vision tells it (ADR-016 §8): its presence pings and Sweeper's outlines. */
+struct FVeyraHudVision
+{
+	TArray<FVeyraHudPing> Pings;
+
+	/** Where each outlined enemy stands, or was last covered. */
+	TArray<FVector> Outlines;
+};
+
 namespace VeyraHud
 {
 	/** Unit's bars, from its Ability System Component and shields; nothing when it has neither Health nor an Ability System Component. */
@@ -212,4 +231,7 @@ namespace VeyraHud
 
 	/** Each team's Team Flux at ServerNow, as the replicated Flux state holds it; empty before it arrives. */
 	VEYRAUI_API TArray<FVeyraHudTeamFlux> DescribeTeamFlux(const UWorld* World, double ServerNow);
+
+	/** What Viewer's side's vision tells it at ServerNow; empty before its team state arrives. */
+	VEYRAUI_API FVeyraHudVision DescribeVision(const UWorld* World, EVeyraTeam Viewer, double ServerNow);
 }

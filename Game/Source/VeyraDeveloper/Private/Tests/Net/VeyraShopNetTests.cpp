@@ -10,6 +10,7 @@
 #include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Life/VeyraLifeComponent.h"
+#include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
@@ -122,6 +123,31 @@ namespace VeyraNetTests
 				.UntilServer(TEXT("It is gone, and some Gold is back"), [](FState& State) {
 					const AVeyraPlayerState& Participant = ServerParticipant(State);
 					return !HoldsGrip(Participant) && Participant.FindComponentByClass<UVeyraGoldComponent>()->GetGold() > State.GoldBeforeSale;
+				});
+		}
+
+		TEST_METHOD(AVisionToolSwapsAtTheFountainForGold)
+		{
+			// Vision Bible §3; ADR-016 §6: the shop takes the Gold, Vision equips; the tool already there is refused.
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.UntilServer(TEXT("At the fountain"), [](FState& State) { return IsAtFountain(State); })
+				.ThenServer(TEXT("Note the Gold before"), [](FState& State) {
+					State.GoldBeforeSale = ServerParticipant(State).FindComponentByClass<UVeyraGoldComponent>()->GetGold();
+				})
+				.ThenClient(TEXT("Swap to Sweeper"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestSwapVisionTool(EVeyraVisionTool::Sweeper); })
+				.UntilServer(TEXT("It is in the slot, for the swap's cost"), [](FState& State) {
+					const AVeyraPlayerState& Participant = ServerParticipant(State);
+					const double Cost = UVeyraEconomyTuningSubsystem::Get().VisionTools.SwapCost;
+					return Participant.FindComponentByClass<UVeyraVisionToolComponent>()->GetEquipped() == EVeyraVisionTool::Sweeper
+						&& FMath::IsNearlyEqual(Participant.FindComponentByClass<UVeyraGoldComponent>()->GetGold(), State.GoldBeforeSale - Cost);
+				})
+				.UntilClient(TEXT("Its owner sees Sweeper in its slot"), 0, [](FState& State) {
+					const AVeyraPlayerState& Own = *LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>();
+					return Own.FindComponentByClass<UVeyraVisionToolComponent>()->GetEquipped() == EVeyraVisionTool::Sweeper;
+				})
+				.ThenClient(TEXT("Buy it again"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestSwapVisionTool(EVeyraVisionTool::Sweeper); })
+				.UntilClient(TEXT("The shop refuses it"), 0, [](FState& State) {
+					return LocalControllerOf(State.World)->GetLastShopRefusal() == EVeyraShopRefusal::AlreadyEquipped;
 				});
 		}
 
