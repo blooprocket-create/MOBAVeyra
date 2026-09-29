@@ -42,8 +42,8 @@ bool FVeyraFogGate::Start(UWorld& World)
 	System = Found;
 	for (const EVeyraTeam Side : { EVeyraTeam::A, EVeyraTeam::B })
 	{
-		const UE::Net::FNetObjectGroupHandle Group = System->CreateGroup(SideGroupName(Side));
-		System->AddInclusionFilterGroup(Group);
+		const UE::Net::FNetObjectGroupHandle Group = Found->CreateGroup(SideGroupName(Side));
+		Found->AddInclusionFilterGroup(Group);
 		SideGroups.Add(Side, Group);
 	}
 	UE_LOG(LogVeyraVision, Log, TEXT("The fog gate is up: a client receives its side's units and what its player sees."));
@@ -52,34 +52,36 @@ bool FVeyraFogGate::Start(UWorld& World)
 
 void FVeyraFogGate::Stop()
 {
-	if (!System)
+	// A replication system already destroyed, with its net driver, took the groups with it.
+	if (UReplicationSystem* Replication = System.Get())
 	{
-		return;
-	}
-	for (const TPair<TWeakObjectPtr<const APlayerController>, FPlayerGroup>& Player : Players)
-	{
-		System->DestroyGroup(Player.Value.Group);
-	}
-	for (const TPair<EVeyraTeam, UE::Net::FNetObjectGroupHandle>& Side : SideGroups)
-	{
-		System->DestroyGroup(Side.Value);
+		for (const TPair<TWeakObjectPtr<const APlayerController>, FPlayerGroup>& Player : Players)
+		{
+			Replication->DestroyGroup(Player.Value.Group);
+		}
+		for (const TPair<EVeyraTeam, UE::Net::FNetObjectGroupHandle>& Side : SideGroups)
+		{
+			Replication->DestroyGroup(Side.Value);
+		}
 	}
 	Players.Reset();
 	SideGroups.Reset();
 	InSideGroups.Reset();
-	System = nullptr;
+	System.Reset();
 }
 
 UE::Net::FNetRefHandle FVeyraFogGate::HandleOf(const AActor& Actor) const
 {
-	return System && System->GetReplicationBridge() ? System->GetReplicationBridge()->GetReplicatedRefHandle(&Actor) : UE::Net::FNetRefHandle();
+	const UReplicationSystem* Replication = System.Get();
+	return Replication && Replication->GetReplicationBridge() ? Replication->GetReplicationBridge()->GetReplicatedRefHandle(&Actor) : UE::Net::FNetRefHandle();
 }
 
 bool FVeyraFogGate::AddToSide(const AActor& Unit, EVeyraTeam Team)
 {
+	UReplicationSystem* Replication = System.Get();
 	const UE::Net::FNetObjectGroupHandle* Group = SideGroups.Find(Team);
 	const UE::Net::FNetRefHandle Handle = HandleOf(Unit);
-	if (!Group || !Handle.IsValid())
+	if (!Replication || !Group || !Handle.IsValid())
 	{
 		return false;
 	}
@@ -87,15 +89,16 @@ bool FVeyraFogGate::AddToSide(const AActor& Unit, EVeyraTeam Team)
 	InSideGroups.Add(Handle, &bAlreadyIn);
 	if (!bAlreadyIn)
 	{
-		System->AddToGroup(*Group, Handle);
+		Replication->AddToGroup(*Group, Handle);
 	}
 	return true;
 }
 
 void FVeyraFogGate::SyncPlayer(const APlayerController& Controller, EVeyraTeam Team, const TSet<const AActor*>& Seen)
 {
+	UReplicationSystem* Replication = System.Get();
 	const uint32 Connection = ConnectionOf(Controller);
-	if (!System || Connection == 0 || !SideGroups.Contains(Team))
+	if (!Replication || Connection == 0 || !SideGroups.Contains(Team))
 	{
 		return;
 	}
@@ -104,17 +107,17 @@ void FVeyraFogGate::SyncPlayer(const APlayerController& Controller, EVeyraTeam T
 	{
 		if (Player)
 		{
-			System->DestroyGroup(Player->Group);
+			Replication->DestroyGroup(Player->Group);
 		}
 		Player = &Players.Add(&Controller);
 		Player->Connection = Connection;
 		Player->Team = Team;
-		Player->Group = System->CreateGroup(FName(*FString::Printf(TEXT("Veyra.Sightings.%u"), Connection)));
-		System->AddInclusionFilterGroup(Player->Group);
-		System->SetGroupFilterStatus(Player->Group, Connection, UE::Net::ENetFilterStatus::Allow);
+		Player->Group = Replication->CreateGroup(FName(*FString::Printf(TEXT("Veyra.Sightings.%u"), Connection)));
+		Replication->AddInclusionFilterGroup(Player->Group);
+		Replication->SetGroupFilterStatus(Player->Group, Connection, UE::Net::ENetFilterStatus::Allow);
 		for (const TPair<EVeyraTeam, UE::Net::FNetObjectGroupHandle>& Side : SideGroups)
 		{
-			System->SetGroupFilterStatus(Side.Value, Connection, Side.Key == Team ? UE::Net::ENetFilterStatus::Allow : UE::Net::ENetFilterStatus::Disallow);
+			Replication->SetGroupFilterStatus(Side.Value, Connection, Side.Key == Team ? UE::Net::ENetFilterStatus::Allow : UE::Net::ENetFilterStatus::Disallow);
 		}
 	}
 
@@ -130,7 +133,7 @@ void FVeyraFogGate::SyncPlayer(const APlayerController& Controller, EVeyraTeam T
 	{
 		if (!Wanted.Contains(*It))
 		{
-			System->RemoveFromGroup(Player->Group, *It);
+			Replication->RemoveFromGroup(Player->Group, *It);
 			It.RemoveCurrent();
 		}
 	}
@@ -140,21 +143,22 @@ void FVeyraFogGate::SyncPlayer(const APlayerController& Controller, EVeyraTeam T
 		Player->Members.Add(Handle, &bAlreadyIn);
 		if (!bAlreadyIn)
 		{
-			System->AddToGroup(Player->Group, Handle);
+			Replication->AddToGroup(Player->Group, Handle);
 		}
 	}
 }
 
 void FVeyraFogGate::ForgetPlayersExcept(const TSet<const APlayerController*>& Present)
 {
+	UReplicationSystem* Replication = System.Get();
 	for (auto It = Players.CreateIterator(); It; ++It)
 	{
 		const APlayerController* Controller = It.Key().Get();
 		if (!Controller || !Present.Contains(Controller))
 		{
-			if (System)
+			if (Replication)
 			{
-				System->DestroyGroup(It.Value().Group);
+				Replication->DestroyGroup(It.Value().Group);
 			}
 			It.RemoveCurrent();
 		}
