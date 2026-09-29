@@ -10,8 +10,9 @@ import (
 // backend writes. The match server reads exactly one version (ADR-007 §5).
 // Version 2 adds the mode, the rules, the practice host, each participant's
 // Vanguard and the bots (ADR-010 §7, §9); version 3 adds each bot's
-// difficulty (ADR-013 §6).
-const AssignmentSchemaVersion = 3
+// difficulty (ADR-013 §6); version 4 adds each participant's starting Flux
+// Spells (ADR-015 §5).
+const AssignmentSchemaVersion = 4
 
 // Assignment is what a match server receives on its standard input when it
 // starts: its match, where to report, its credential, the rules it plays by
@@ -49,6 +50,9 @@ type AssignedParticipant struct {
 	Side        Side   `json:"side"`
 	TicketHash  string `json:"ticketHash"`
 	VanguardID  string `json:"vanguardId"`
+	// FluxSpells are the participant's starting Flux Spells, two in slot
+	// order, "" for an empty slot.
+	FluxSpells []string `json:"fluxSpells"`
 }
 
 // assignedRules maps rules to the names the game's schema uses.
@@ -87,6 +91,7 @@ func BuildAssignment(m Match, serverCredential, backendURL string) ([]byte, erro
 			Side:        p.Side,
 			TicketHash:  TicketHash(DeriveTicket(m.JoinKey, m.ID, p.AccountID)),
 			VanguardID:  p.VanguardID,
+			FluxSpells:  append([]string(nil), p.FluxSpells[:]...),
 		})
 	}
 	for _, b := range m.Bots {

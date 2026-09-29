@@ -681,6 +681,7 @@ void AVeyraGameMode::AssignVanguard(AVeyraPlayerState& PlayerState)
 			TEXT("%s asked for Vanguard %s, but an assigned match plays the Vanguard its roster names."), *PlayerState.GetPlayerName(),
 			*PlayerState.GetRequestedVanguardId().ToString());
 		PlayerState.SetVanguardId(Participant->VanguardId);
+		PlayerState.SetStartingFluxSpells(Participant->FluxSpells);
 		UE_LOG(LogVeyraMatch, Log, TEXT("%s plays %s."), *PlayerState.GetPlayerName(), *Participant->VanguardId.ToString());
 		return;
 	}
@@ -855,6 +856,17 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 		return false;
 	}
 	PlayerState.SetPassive(Prepared.Passive);
+
+	// The Flux Spells it chose, equipped in its spell slots, locked until its team's Flux opens them (ADR-015 §5).
+	UVeyraAbilityLoadoutComponent* Loadout = PlayerState.FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+	const TArray<FVeyraContentId>& Spells = PlayerState.GetStartingFluxSpells();
+	for (int32 Index = 0; Loadout && Index < Spells.Num() && Index < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)); ++Index)
+	{
+		if (Spells[Index].IsValid() && !Loadout->Grant(AbilitySystem, VeyraAbilitySlots::Spells[Index], Spells[Index]))
+		{
+			UE_LOG(LogVeyraMatch, Error, TEXT("Could not equip %s's Flux Spell %s."), *PlayerState.GetPlayerName(), *Spells[Index].ToString());
+		}
+	}
 
 	// A developer match may spend the level-1 skill point for the player, so the Vanguard can cast at once.
 	UVeyraProgressionComponent* Progression = PlayerState.FindComponentByClass<UVeyraProgressionComponent>();

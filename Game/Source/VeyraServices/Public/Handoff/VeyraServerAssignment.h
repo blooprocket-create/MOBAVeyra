@@ -34,6 +34,10 @@ struct FVeyraAssignmentParticipantDocument
 
 	UPROPERTY()
 	FVeyraContentId VanguardId;
+
+	/** The starting Flux Spells in slot order; an empty string is an empty slot (ADR-015 §5). */
+	UPROPERTY()
+	TArray<FString> FluxSpells;
 };
 
 /** One AI participant in the assignment document. */
@@ -97,7 +101,7 @@ struct FVeyraServerAssignment
 namespace VeyraServerAssignment
 {
 	/** The only assignment version this build reads (AssignmentSchemaVersion in Backend/internal/match). */
-	constexpr int32 SchemaVersion = 3;
+	constexpr int32 SchemaVersion = 4;
 
 	/** Where the assignment's schema is, in the project folder or the packaged build. */
 	VEYRASERVICES_API FString SchemaPath();

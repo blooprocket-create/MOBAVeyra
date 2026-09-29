@@ -51,8 +51,13 @@ TArray<FString> Parse(FStringView Line, FStringView SchemaText, FVeyraServerAssi
 	const auto SideOf = [](EVeyraAssignedSide Side) { return Side == EVeyraAssignedSide::A ? EVeyraTeam::A : EVeyraTeam::B; };
 	for (FVeyraAssignmentParticipantDocument& Participant : Document.Participants)
 	{
-		Assignment.Match.Participants.Add({ MoveTemp(Participant.AccountId), MoveTemp(Participant.DisplayName), SideOf(Participant.Side),
-			MoveTemp(Participant.TicketHash), Participant.VanguardId });
+		FVeyraAssignedParticipant& Assigned = Assignment.Match.Participants.Add_GetRef({ MoveTemp(Participant.AccountId), MoveTemp(Participant.DisplayName),
+			SideOf(Participant.Side), MoveTemp(Participant.TicketHash), Participant.VanguardId });
+		// The schema holds each to a content ID or empty, and an empty slot has no ID.
+		for (const FString& Spell : Participant.FluxSpells)
+		{
+			Assigned.FluxSpells.Add(Spell.IsEmpty() ? FVeyraContentId() : FVeyraContentId::FromText(Spell).Get(FVeyraContentId()));
+		}
 	}
 	for (const FVeyraAssignmentBotDocument& Bot : Document.Bots)
 	{

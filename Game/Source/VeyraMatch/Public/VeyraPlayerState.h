@@ -81,6 +81,14 @@ public:
 	void SetRequestedVanguardId(const FVeyraContentId& InVanguardId) { RequestedVanguardId = InVanguardId; }
 
 	/**
+	 * Server only: the Flux Spells this participant takes into the match, chosen in champion select,
+	 * one per spell slot in slot order; an invalid ID is an empty slot (ADR-015 §5). Its first spawn
+	 * grants them.
+	 */
+	const TArray<FVeyraContentId>& GetStartingFluxSpells() const { return StartingFluxSpells; }
+	void SetStartingFluxSpells(TArray<FVeyraContentId> InSpells) { StartingFluxSpells = MoveTemp(InSpells); }
+
+	/**
 	 * Server only: the backend account this participant joined as, from the match's roster
 	 * (ADR-007). Empty for bots and on developer servers without an assignment. Not replicated.
 	 */
@@ -192,6 +200,8 @@ private:
 	TObjectPtr<UVeyraPassive> Passive;
 
 	FVeyraContentId RequestedVanguardId;
+
+	TArray<FVeyraContentId> StartingFluxSpells;
 
 	UPROPERTY(Transient)
 	TObjectPtr<AVeyraVanguardController> VanguardController;

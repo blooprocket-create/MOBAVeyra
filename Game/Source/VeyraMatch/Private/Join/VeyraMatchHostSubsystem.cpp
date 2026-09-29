@@ -4,6 +4,7 @@
 
 #include "Engine/Engine.h"
 #include "Rules/VeyraMatchRules.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraMatchLog.h"
@@ -98,6 +99,11 @@ TArray<FString> UVeyraMatchHostSubsystem::SetAssignment(FVeyraMatchAssignment In
 		if (!VanguardProblem.IsEmpty())
 		{
 			Problems.Add(Where + TEXT(": ") + VanguardProblem);
+		}
+		const FString SpellsProblem = VeyraMatchRules::CheckAssignedFluxSpells(Participant.FluxSpells, UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster);
+		if (!SpellsProblem.IsEmpty())
+		{
+			Problems.Add(Where + TEXT(": ") + SpellsProblem);
 		}
 	}
 	// Bots are practice targets for now (ADR-010 §7); they take places on their sides like anyone.

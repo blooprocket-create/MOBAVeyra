@@ -43,6 +43,7 @@ func newSelectionFixture(t *testing.T) (*selection.Service, *match.Service, stri
 	svc := selection.NewService(f.store.Selection(), accounts, names, f.svc, notQueued, social.NewService(f.store.Social()), selection.Settings{
 		Practice:        selection.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA, PickDuration: time.Minute},
 		StartingTimeout: time.Minute,
+		FluxSpells:      []string{"blink", "scorch"},
 	}, func() time.Time { return f.now }, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	return svc, f.svc, f.ids["DevOne"]
 }
@@ -60,13 +61,25 @@ func TestPracticeSelectInPostgres(t *testing.T) {
 	if _, err := svc.Hover(ctx, id, "oriel"); err != nil {
 		t.Fatalf("Hover: %v", err)
 	}
+	if chosen, err := svc.SetFluxSpells(ctx, id, [2]string{"", "scorch"}); err != nil || chosen.Seats[0].FluxSpells != [2]string{"", "scorch"} ||
+		!chosen.Seats[0].FluxSpellsEdited {
+		t.Fatalf("SetFluxSpells: %+v %v", chosen, err)
+	}
 	locked, err := svc.Lock(ctx, id, "oriel")
 	if err != nil || locked.State != selection.Started || locked.MatchID == "" {
 		t.Fatalf("Lock: %+v %v", locked, err)
 	}
 	m, found, err := matches.BySelect(ctx, s.ID)
-	if err != nil || !found || m.ID != locked.MatchID || m.SelectID != s.ID || m.Participants[0].VanguardID != "oriel" {
+	if err != nil || !found || m.ID != locked.MatchID || m.SelectID != s.ID || m.Participants[0].VanguardID != "oriel" ||
+		m.Participants[0].FluxSpells != [2]string{"", "scorch"} {
 		t.Fatalf("the select's match: %+v %v %v", m, found, err)
+	}
+	// The spells the account took into a match with Oriel are its saved loadout for Oriel only.
+	if saved, err := matches.LastFluxSpells(ctx, id, "oriel"); err != nil || saved != [2]string{"", "scorch"} {
+		t.Fatalf("Oriel's saved loadout: %v %v", saved, err)
+	}
+	if saved, err := matches.LastFluxSpells(ctx, id, "cairn"); err != nil || saved != ([2]string{}) {
+		t.Fatalf("Cairn's saved loadout: %v %v", saved, err)
 	}
 	final, err := svc.ForParticipant(ctx, id, s.ID)
 	if err != nil || final.State != selection.Started || final.Seats[0].Locked != "oriel" || final.Seats[0].LockedAt.IsZero() {

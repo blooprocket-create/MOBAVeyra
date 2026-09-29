@@ -37,10 +37,11 @@ func (t selectionTx) CreateSession(s selection.Session) error {
 		return err
 	}
 	for i, seat := range s.Seats {
-		if _, err := t.q.Exec(t.ctx, `INSERT INTO selection.seats (session_id, account_id, display_name, side, seat_order, hover, locked, locked_at, last_seen)
-			VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9)`,
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO selection.seats (session_id, account_id, display_name, side, seat_order, hover, locked, locked_at, last_seen,
+			flux_spells, flux_spells_edited)
+			VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
 			s.ID, seat.AccountID, seat.DisplayName, string(seat.Side), i, nullableText(seat.Hover), nullableText(seat.Locked), nullableTime(seat.LockedAt),
-			nullableTime(seat.LastSeen)); err != nil {
+			nullableTime(seat.LastSeen), seat.FluxSpells[:], seat.FluxSpellsEdited); err != nil {
 			return err
 		}
 	}
@@ -78,9 +79,11 @@ func (t selectionTx) SaveSession(s selection.Session) error {
 		return selection.ErrSelectNotFound
 	}
 	for _, seat := range s.Seats {
-		if _, err := t.q.Exec(t.ctx, `UPDATE selection.seats SET hover = $3, locked = $4, locked_at = $5, last_seen = $6
+		if _, err := t.q.Exec(t.ctx, `UPDATE selection.seats SET hover = $3, locked = $4, locked_at = $5, last_seen = $6, flux_spells = $7,
+			flux_spells_edited = $8
 			WHERE session_id = $1::uuid AND account_id = $2::uuid`,
-			s.ID, seat.AccountID, nullableText(seat.Hover), nullableText(seat.Locked), nullableTime(seat.LockedAt), nullableTime(seat.LastSeen)); err != nil {
+			s.ID, seat.AccountID, nullableText(seat.Hover), nullableText(seat.Locked), nullableTime(seat.LockedAt), nullableTime(seat.LastSeen),
+			seat.FluxSpells[:], seat.FluxSpellsEdited); err != nil {
 			return err
 		}
 	}
@@ -154,7 +157,8 @@ func loadSession(ctx context.Context, q querier, id string, lock bool) (selectio
 	}
 	s.Kind, s.State, s.CancelReason = selection.Kind(kind), selection.State(state), selection.CancelReason(reason)
 	s.StartingAt, s.EndedAt = timeOrZero(startingAt), timeOrZero(endedAt)
-	rows, err := q.Query(ctx, `SELECT account_id::text, display_name, side, coalesce(hover, ''), coalesce(locked, ''), locked_at, last_seen
+	rows, err := q.Query(ctx, `SELECT account_id::text, display_name, side, coalesce(hover, ''), coalesce(locked, ''), locked_at, last_seen,
+		flux_spells, flux_spells_edited
 		FROM selection.seats WHERE session_id = $1::uuid ORDER BY seat_order`, id)
 	if err != nil {
 		return selection.Session{}, err
@@ -163,8 +167,10 @@ func loadSession(ctx context.Context, q querier, id string, lock bool) (selectio
 		var seat selection.Seat
 		var side string
 		var lockedAt, lastSeen *time.Time
-		err := r.Scan(&seat.AccountID, &seat.DisplayName, &side, &seat.Hover, &seat.Locked, &lockedAt, &lastSeen)
+		var spells []string
+		err := r.Scan(&seat.AccountID, &seat.DisplayName, &side, &seat.Hover, &seat.Locked, &lockedAt, &lastSeen, &spells, &seat.FluxSpellsEdited)
 		seat.Side, seat.LockedAt, seat.LastSeen = match.Side(side), timeOrZero(lockedAt), timeOrZero(lastSeen)
+		copy(seat.FluxSpells[:], spells)
 		return seat, err
 	})
 	if err != nil {

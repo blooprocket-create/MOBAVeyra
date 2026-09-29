@@ -37,4 +37,11 @@ namespace VeyraMatchRules
 	 * Vanguards (ADR-010 §6).
 	 */
 	VEYRAMATCH_API FString CheckAssignedVanguard(const FVeyraContentId& Vanguard, const FVeyraVanguardDefinition* Definition, bool bShipping);
+
+	/**
+	 * Why a server may not give a participant these starting Flux Spells; empty when it may. Each slot
+	 * holds a spell of Roster or is empty (an invalid ID), no spell twice, and no more slots than a
+	 * Vanguard has (ADR-015 §5).
+	 */
+	VEYRAMATCH_API FString CheckAssignedFluxSpells(TConstArrayView<FVeyraContentId> Spells, TConstArrayView<FVeyraContentId> Roster);
 }

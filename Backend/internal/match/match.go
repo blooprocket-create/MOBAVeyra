@@ -85,21 +85,24 @@ const (
 
 // Errors describing rule violations. Callers map them to response codes.
 var (
-	ErrUnknownMode      = errors.New("unknown or unavailable mode")
-	ErrInvalidRules     = errors.New("unknown match rules")
-	ErrInvalidMap       = errors.New("unknown map kind")
-	ErrInvalidRoster    = errors.New("invalid roster")
-	ErrInvalidVanguard  = errors.New("invalid Vanguard")
-	ErrAccountNotFound  = errors.New("account not found")
-	ErrAlreadyInMatch   = errors.New("an account is already in an active match")
-	ErrSelectHasMatch   = errors.New("the champion select already created its match")
-	ErrNoServerCapacity = errors.New("no match-server port is free")
-	ErrAllocationFailed = errors.New("the match server could not be started")
-	ErrMatchNotFound    = errors.New("match not found")
-	ErrUnauthorized     = errors.New("invalid match-server credential")
-	ErrInvalidState     = errors.New("the match is not in a state that allows this")
-	ErrInvalidResult    = errors.New("invalid result")
-	ErrResultConflict   = errors.New("a different result was already reported")
+	ErrUnknownMode     = errors.New("unknown or unavailable mode")
+	ErrInvalidRules    = errors.New("unknown match rules")
+	ErrInvalidMap      = errors.New("unknown map kind")
+	ErrInvalidRoster   = errors.New("invalid roster")
+	ErrInvalidVanguard = errors.New("invalid Vanguard")
+	// ErrInvalidFluxSpells: a starting loadout off the roster, malformed, or
+	// holding one spell twice (ADR-015 §5).
+	ErrInvalidFluxSpells = errors.New("invalid Flux Spells")
+	ErrAccountNotFound   = errors.New("account not found")
+	ErrAlreadyInMatch    = errors.New("an account is already in an active match")
+	ErrSelectHasMatch    = errors.New("the champion select already created its match")
+	ErrNoServerCapacity  = errors.New("no match-server port is free")
+	ErrAllocationFailed  = errors.New("the match server could not be started")
+	ErrMatchNotFound     = errors.New("match not found")
+	ErrUnauthorized      = errors.New("invalid match-server credential")
+	ErrInvalidState      = errors.New("the match is not in a state that allows this")
+	ErrInvalidResult     = errors.New("invalid result")
+	ErrResultConflict    = errors.New("a different result was already reported")
 )
 
 // Participant is one rostered account.
@@ -110,6 +113,9 @@ type Participant struct {
 	// VanguardID is the content ID of the Vanguard the participant plays. It
 	// is empty only for matches created before matches carried Vanguards.
 	VanguardID string
+	// FluxSpells are the participant's starting Flux Spells in slot order,
+	// each a content ID or empty for an empty slot (ADR-015 §5).
+	FluxSpells [2]string
 }
 
 // contentIDPattern is the content ID format the game's tuning uses
@@ -118,6 +124,17 @@ var contentIDPattern = regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`)
 
 // IsContentID reports whether s has the content ID format.
 func IsContentID(s string) bool { return contentIDPattern.MatchString(s) }
+
+// ValidFluxSpells reports whether spells has the shape of a starting loadout:
+// each slot a content ID or empty, and no spell in both (ADR-015 §5).
+func ValidFluxSpells(spells [2]string) bool {
+	for _, spell := range spells {
+		if spell != "" && !IsContentID(spell) {
+			return false
+		}
+	}
+	return spells[0] == "" || spells[0] != spells[1]
+}
 
 // ParticipantResult is what the server reports about one participant.
 type ParticipantResult struct {

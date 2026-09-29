@@ -2,6 +2,7 @@
 
 #include "Rules/VeyraMatchRules.h"
 
+#include "Slots/VeyraAbilitySlot.h"
 #include "Tuning/VeyraMatchTuning.h"
 #include "Tuning/VeyraVanguardsTuning.h"
 
@@ -50,6 +51,31 @@ FString CheckAssignedVanguard(const FVeyraContentId& Vanguard, const FVeyraVangu
 	if (bShipping && Definition->Availability != EVeyraVanguardAvailability::Playable)
 	{
 		return FString::Printf(TEXT("%s is a developer Vanguard, which Shipping servers do not host"), *Vanguard.ToString());
+	}
+	return FString();
+}
+
+FString CheckAssignedFluxSpells(TConstArrayView<FVeyraContentId> Spells, TConstArrayView<FVeyraContentId> Roster)
+{
+	if (Spells.Num() > static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)))
+	{
+		return FString::Printf(TEXT("%d Flux Spells, but a Vanguard has %d spell slots"), Spells.Num(), static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)));
+	}
+	for (int32 Index = 0; Index < Spells.Num(); ++Index)
+	{
+		const FVeyraContentId& Spell = Spells[Index];
+		if (!Spell.IsValid())
+		{
+			continue;
+		}
+		if (!Roster.Contains(Spell))
+		{
+			return FString::Printf(TEXT("Flux Spell %s is not on Abilities.json's roster"), *Spell.ToString());
+		}
+		if (Spells.IndexOfByKey(Spell) != Index)
+		{
+			return FString::Printf(TEXT("Flux Spell %s is in two slots"), *Spell.ToString());
+		}
 	}
 	return FString();
 }

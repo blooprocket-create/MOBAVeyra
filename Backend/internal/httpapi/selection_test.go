@@ -50,6 +50,7 @@ func newPracticeTestServer(t *testing.T) *httptest.Server {
 	d.Selection = selection.NewService(selection.NewMemStore(), d.Account, names, d.Match, notQueued, d.Social, selection.Settings{
 		Practice:        selection.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA, PickDuration: time.Minute},
 		StartingTimeout: time.Minute,
+		FluxSpells:      []string{"blink", "scorch"},
 	}, time.Now, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	return serve(t, d)
 }
@@ -88,6 +89,15 @@ func TestPracticeSelectOverHTTP(t *testing.T) {
 	_, hovered := call(t, srv, "PUT", "/v1/me/select/hover", one, map[string]string{"vanguardId": "bryn"})
 	if hovered["select"].(map[string]any)["seats"].([]any)[0].(map[string]any)["hover"] != "bryn" {
 		t.Fatalf("the rotation's Vanguard is pickable: %v", hovered)
+	}
+	if status, body := call(t, srv, "PUT", "/v1/me/select/spells", one, map[string][]string{"fluxSpells": {"blink"}}); status != http.StatusBadRequest ||
+		body["error"] != "invalid_flux_spells" {
+		t.Fatalf("one slot of two: %d %v", status, body)
+	}
+	_, chosen := call(t, srv, "PUT", "/v1/me/select/spells", one, map[string][]string{"fluxSpells": {"scorch", ""}})
+	if spells, _ := chosen["select"].(map[string]any)["seats"].([]any)[0].(map[string]any)["fluxSpells"].([]any); len(spells) != 2 || spells[0] != "scorch" ||
+		spells[1] != "" {
+		t.Fatalf("the player's spells: %v", chosen)
 	}
 	status, locked := call(t, srv, "POST", "/v1/me/select/lock", one, map[string]string{"vanguardId": "bryn"})
 	started, _ := locked["select"].(map[string]any)

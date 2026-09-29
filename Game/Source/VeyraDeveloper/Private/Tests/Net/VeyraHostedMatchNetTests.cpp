@@ -8,6 +8,7 @@
 #include "Brain/VeyraBotBrainComponent.h"
 #include "EngineUtils.h"
 #include "Join/VeyraMatchHostSubsystem.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "Tests/Net/VeyraVanguardNetTestHelpers.h"
@@ -51,8 +52,10 @@ namespace VeyraNetTests
 			Tickets = MakeUnique<FScopedTestTickets>();
 			// Both on Team A: joining the smaller side would split them, so the roster must decide. Their
 			// Vanguards differ from the developer order's, so the roster must decide those too.
+			// The first chose two Flux Spells, the second one and an empty slot (ADR-015 §5).
 			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::A }, EVeyraMatchRules::Standard,
-				TArray<FVeyraContentId>{ ContentId(TEXT("cairn")), ContentId(TEXT("oriel")) });
+				TArray<FVeyraContentId>{ ContentId(TEXT("cairn")), ContentId(TEXT("oriel")) }, TArray<FVeyraAssignedBot>(),
+				TArray<TArray<FVeyraContentId>>{ { ContentId(TEXT("blink")), ContentId(TEXT("scorch")) }, { FVeyraContentId(), ContentId(TEXT("mend")) } });
 			ASSERT_THAT(IsTrue(Assignment->Problems.IsEmpty(), FString::Join(Assignment->Problems, TEXT(" | "))));
 			EndedHandle = UVeyraMatchHostSubsystem::Get()->OnMatchEnded.AddLambda([this](const FVeyraMatchResult& Ended) { Result = Ended; });
 			// A client that disconnects returns to the default map in this same process, and starting
@@ -104,6 +107,29 @@ namespace VeyraNetTests
 						Accounts.Add(AccountId);
 					}
 					ASSERT_THAT(AreEqual(Accounts.Num(), MatchClientCount));
+				});
+		}
+
+		TEST_METHOD(ParticipantsEquipTheFluxSpellsTheyChose)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Each Vanguard spawned with its chosen spells in their slots"), [this](FState& State) {
+					for (int32 Client = 0; Client < MatchClientCount; ++Client)
+					{
+						const AVeyraPlayerState* Player = ServerControllerOf(State, Client)->GetPlayerState<AVeyraPlayerState>();
+						const FString AccountId = Player->GetAccountId();
+						const FVeyraAssignedParticipant* Rostered = Assignment->Assignment.Participants.FindByPredicate(
+							[&AccountId](const FVeyraAssignedParticipant& Candidate) { return Candidate.AccountId == AccountId; });
+						ASSERT_THAT(IsNotNull(Rostered));
+						const UVeyraAbilityLoadoutComponent* Loadout = Player->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+						for (int32 Index = 0; Index < Rostered->FluxSpells.Num(); ++Index)
+						{
+							const FVeyraLoadoutEntry* Equipped = Loadout->FindSlot(VeyraAbilitySlots::Spells[Index]);
+							const FVeyraContentId& Chosen = Rostered->FluxSpells[Index];
+							ASSERT_THAT(IsTrue(Chosen.IsValid() ? Equipped && Equipped->Ability == Chosen : !Equipped,
+								FString::Printf(TEXT("%s's spell slot %d"), *Player->GetPlayerName(), Index + 1)));
+						}
+					}
 				});
 		}
 
