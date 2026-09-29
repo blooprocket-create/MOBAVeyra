@@ -9,6 +9,7 @@
 #include "Teams/VeyraTeam.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
+#include "Targeting/VeyraVisibility.h"
 
 namespace VeyraTargeting
 {
@@ -51,10 +52,9 @@ bool AreHostile(const UObject* A, const UObject* B)
 	return !SidedKind.IsSet() || (SidedKind.GetValue() != EVeyraUnitKind::Fluxborn && SidedKind.GetValue() != EVeyraUnitKind::Structure);
 }
 
-bool CanAcquire(const UObject* /*Acquirer*/, const AActor& /*Target*/)
+bool CanAcquire(const UObject* Acquirer, const AActor& Target)
 {
-	// Everything is visible until Vision arrives; Dense Fog and stealth will refuse here.
-	return true;
+	return !Acquirer || VeyraVisibility::CanSee(*Acquirer, Target);
 }
 
 double EdgeToEdgeDistance(const AActor& A, const AActor& B)
@@ -89,6 +89,11 @@ EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target
 	if (Structures == EVeyraStructureTargeting::Refuse && VeyraUnits::IsStructure(Target))
 	{
 		return EVeyraTargetValidity::Structure;
+	}
+	// Knowing where a unit is does not permit targeting it (Vision Bible §1).
+	if (!CanAcquire(&Caster, *Target))
+	{
+		return EVeyraTargetValidity::NotVisible;
 	}
 	return IsWithinCastRange(Caster, *Target, CastRange) ? EVeyraTargetValidity::Valid : EVeyraTargetValidity::OutOfRange;
 }

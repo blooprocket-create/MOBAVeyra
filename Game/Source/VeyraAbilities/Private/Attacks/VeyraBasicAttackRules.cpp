@@ -22,6 +22,8 @@ const TCHAR* LexToString(EVeyraAttackRejection Rejection)
 		return TEXT("InvalidTarget");
 	case EVeyraAttackRejection::OutOfRange:
 		return TEXT("OutOfRange");
+	case EVeyraAttackRejection::NotVisible:
+		return TEXT("NotVisible");
 	}
 	return TEXT("Unknown");
 }

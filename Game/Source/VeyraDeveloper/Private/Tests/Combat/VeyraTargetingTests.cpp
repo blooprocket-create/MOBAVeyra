@@ -9,11 +9,28 @@
 #include "VeyraCombatVerbs.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
+#include "Targeting/VeyraVisibility.h"
 
 #if WITH_AUTOMATION_WORKER
 
 namespace VeyraCombatTests
 {
+	/** A world's vision that hides one unit from everyone, as fog or stealth would. */
+	class FHidingVisibility final : public IVeyraVisibility
+	{
+	public:
+		explicit FHidingVisibility(const AActor& InHidden)
+			: Hidden(&InHidden)
+		{
+		}
+
+		virtual bool CanSee(const UObject& /*Observer*/, const AActor& Target) const override { return &Target != Hidden; }
+		virtual bool IsVisibleToTeam(EVeyraTeam /*Team*/, const AActor& Target) const override { return &Target != Hidden; }
+
+	private:
+		const AActor* Hidden;
+	};
+
 	// Veyra.Combat.TargetRules.*: who may target whom, measured edge to edge with the server's latency
 	// tolerance (Combat Bible §29, §30, §40).
 	TEST_CLASS(TargetRules, "Veyra.Combat")
@@ -71,6 +88,27 @@ namespace VeyraCombatTests
 
 			Enemy.GetPlayerState()->FindComponentByClass<UVeyraLifeComponent>()->SetState(EVeyraLifeState::Dead);
 			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Enemy, Range) == EVeyraTargetValidity::Dead));
+		}
+
+		TEST_METHOD(AnEnemyItCannotSeeIsNotATarget)
+		{
+			AVeyraVanguardCharacter& Caster = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Hidden = SpawnVanguard(EVeyraTeam::B, FVector(Separation, 0.0, 0.0));
+			AVeyraVanguardCharacter& Seen = SpawnVanguard(EVeyraTeam::B, FVector(0.0, Separation, 0.0));
+			UVeyraVisibilityRegistry* Registry = Spawner.GetWorld().GetSubsystem<UVeyraVisibilityRegistry>();
+			ASSERT_THAT(IsNotNull(Registry));
+			// Without vision in the world, everything is visible (unit tests and development maps).
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Hidden, Separation) == EVeyraTargetValidity::Valid));
+
+			// Knowing where a unit is does not permit targeting it (Vision Bible §1).
+			FHidingVisibility Vision(Hidden);
+			Registry->Register(Vision);
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Hidden, Separation) == EVeyraTargetValidity::NotVisible));
+			ASSERT_THAT(IsFalse(VeyraTargeting::CanAcquire(&Caster, Hidden)));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Seen, Separation) == EVeyraTargetValidity::Valid));
+			ASSERT_THAT(IsFalse(VeyraVisibility::IsVisibleToTeam(EVeyraTeam::A, Hidden)));
+			Registry->Unregister(Vision);
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Hidden, Separation) == EVeyraTargetValidity::Valid));
 		}
 
 		TEST_METHOD(NoSideIsNeverAnImplicitEnemy)

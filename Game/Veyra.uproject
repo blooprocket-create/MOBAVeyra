@@ -40,6 +40,11 @@
 			"LoadingPhase": "Default"
 		},
 		{
+			"Name": "VeyraVision",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
 			"Name": "VeyraWorld",
 			"Type": "Runtime",
 			"LoadingPhase": "Default"

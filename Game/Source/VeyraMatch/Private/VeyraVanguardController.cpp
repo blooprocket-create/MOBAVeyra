@@ -216,6 +216,8 @@ void AVeyraVanguardController::UpdateAttackOrder()
 		StopForAttack();
 		break;
 	case EVeyraAttackRejection::InvalidTarget:
+	// A target that slips out of sight is dropped: nobody may target what they cannot see (Vision Bible §1).
+	case EVeyraAttackRejection::NotVisible:
 		AttackTarget.Reset();
 		if (!AttackMoveDestination.IsSet())
 		{

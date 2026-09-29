@@ -164,6 +164,8 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::CheckAttack(const AActor* Targ
 		break;
 	case EVeyraTargetValidity::OutOfRange:
 		return EVeyraAttackRejection::OutOfRange;
+	case EVeyraTargetValidity::NotVisible:
+		return EVeyraAttackRejection::NotVisible;
 	case EVeyraTargetValidity::NotACombatant:
 	case EVeyraTargetValidity::Caster:
 	case EVeyraTargetValidity::Dead:

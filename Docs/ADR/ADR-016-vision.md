@@ -46,10 +46,10 @@ What the code has (surveyed 2026-09-28):
 
 A new module, **VeyraVision**, joins Flux and World in the Battleground layer. It depends downward on Core, Combat, Abilities and Economy. Match routes what crosses peers, as it does for Flux and World.
 
-### 2. Visibility is one Core contract, written only by Vision
+### 2. Visibility is one contract beside Combat's targeting, written only by Vision
 
-- **The contract:** Core declares `IVeyraVisibility`: `CanSee(Observer, Target)`, `IsVisibleToTeam(Team, Target)`, and a presence query over a fog zone. A world holds at most one implementation, registered by Vision's server subsystem.
-- **Callers below Vision ask Core:**
+- **The contract:** Combat declares `IVeyraVisibility` beside its targeting rules: `CanSee(Observer, Target)`, `IsVisibleToTeam(Team, Target)`, and a presence query over a fog zone. A world holds at most one implementation, registered by Vision's server subsystem in a world subsystem, `UVeyraVisibilityRegistry`. Core cannot hold it: the Foundation layer has no Engine dependency, and Combat already owns targetability (PROJECT_STRUCTURE §VeyraVision).
+- **Callers below Vision ask Combat:**
   - `VeyraCombat::CanAcquire` returns `CanSee`.
   - `CheckEnemyTarget` gains `EVeyraTargetValidity::NotVisible`.
   - Attack orders, attack-move and bot senses use the same query.
@@ -85,7 +85,7 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
   - Pings come from a team-only replicated channel on Vision's team state: the zone and a time, never a unit or a position.
   - The cadence is data.
 - **Sweeper's outline** is its own channel: the position of an enemy Vanguard inside fog that True Sight covers, to that team only, lingering for the data's time. It grants no targeting.
-- **Abilities below Vision report presence through Core:** `IVeyraVisibility`'s presence query, called by the ability, answers whether its area overlaps a zone holding an enemy Vanguard. Bryn's W uses it.
+- **Abilities below Vision report presence through Combat's contract:** `IVeyraVisibility`'s presence query, called by the ability, answers whether its area overlaps a zone holding an enemy Vanguard. Bryn's W uses it.
 
 ### 6. The vision tools are Vision's actions, in a slot of their own
 

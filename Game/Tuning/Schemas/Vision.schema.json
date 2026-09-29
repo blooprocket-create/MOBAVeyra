@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Vision tuning",
+  "description": "Gameplay tuning owned by the Vision domain (Vision Bible; ADR-016 §9): how often the server works out what each team and player sees, and how far each kind of unit sees. VeyraVision binds it to FVeyraVisionTuning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "update",
+    "sight"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [
+        1
+      ]
+    },
+    "update": {
+      "description": "How often vision is worked out on the server (ADR-016 §2). Targeting and replication read the same pass, so they always agree.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provenance",
+        "updateSeconds"
+      ],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "type": "string",
+          "enum": [
+            "Provisional",
+            "Canon",
+            "Reviewed"
+          ]
+        },
+        "updateSeconds": {
+          "description": "Seconds between two passes; a unit stepping into sight shows at most this late.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "sight": {
+      "description": "How far each kind of unit sees, in units (Vision Bible §1). Wildlife gives no vision.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provenance",
+        "vanguard",
+        "fluxborn",
+        "structure"
+      ],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon gives none; League's answers stand in (ADR-016 §11).",
+          "type": "string",
+          "enum": [
+            "Provisional",
+            "Canon",
+            "Reviewed"
+          ]
+        },
+        "vanguard": {
+          "description": "A Vanguard's sight radius.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "fluxborn": {
+          "description": "A lane Fluxborn's sight radius.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "structure": {
+          "description": "A structure's sight radius: Spires, base towers, inhibitors and the Prime Well.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    }
+  }
+}

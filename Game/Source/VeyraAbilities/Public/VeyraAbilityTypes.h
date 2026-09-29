@@ -59,6 +59,8 @@ enum class EVeyraCastRejection : uint8
 	ActivationFailed,
 	/** A Flux Spell slot its team's permanent Flux has not unlocked yet (Battleground Bible §14; ADR-015 §4). */
 	Locked,
+	/** The caster cannot see the target: fog, stealth or Dense Fog (Vision Bible §1, §2; ADR-016 §2). */
+	NotVisible,
 };
 
 VEYRAABILITIES_API const TCHAR* LexToString(EVeyraCastRejection Rejection);
