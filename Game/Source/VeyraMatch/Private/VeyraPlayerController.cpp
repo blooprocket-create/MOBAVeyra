@@ -9,6 +9,8 @@
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerState.h"
 #include "HAL/IConsoleManager.h"
+#include "Net/Core/PushModel/PushModel.h"
+#include "Net/UnrealNetwork.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
@@ -17,6 +19,7 @@
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraGameMode.h"
+#include "VeyraGameState.h"
 #include "VeyraMatchLog.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
@@ -359,6 +362,30 @@ void AVeyraPlayerController::ServerRequestEndCustomMatch_Implementation()
 	{
 		ClientEndCustomMatchRefused(Refusal);
 	}
+}
+
+void AVeyraPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	FDoRepLifetimeParams Params;
+	Params.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerController, TeamVote, Params);
+}
+
+const FVeyraVoteState& AVeyraPlayerController::GetOpenVote() const
+{
+	const AVeyraGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AVeyraGameState>() : nullptr;
+	return GameState && GameState->GetVote().bOpen ? GameState->GetVote() : TeamVote;
+}
+
+void AVeyraPlayerController::SetTeamVote(const FVeyraVoteState& InVote)
+{
+	if (TeamVote == InVote)
+	{
+		return;
+	}
+	TeamVote = InVote;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerController, TeamVote, this);
 }
 
 void AVeyraPlayerController::RequestVote(EVeyraVoteKind Kind)

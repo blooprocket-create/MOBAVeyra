@@ -175,9 +175,11 @@ void UVeyraMatchMenu::Rebuild()
 				Close();
 			}
 		};
-		const FVeyraVoteState& Vote = GameState->GetVote();
+		const AVeyraPlayerController* Voter = Controller.Get();
+		const FVeyraVoteState& Vote = Voter ? Voter->GetOpenVote() : GameState->GetVote();
 		const AVeyraPlayerState* Own = Owner->GetPlayerState<AVeyraPlayerState>();
-		const bool bMayAnswer = Vote.bOpen && Own && (Vote.Team == EVeyraTeam::None || Vote.Team == Own->GetVeyraTeam()) && !Vote.Voted.Contains(Own->GetPlayerId());
+		// A team's vote reaches only that team (AVeyraPlayerController::GetOpenVote).
+		const bool bMayAnswer = Vote.bOpen && Own && !Vote.Voted.Contains(Own->GetPlayerId());
 		if (bMayAnswer)
 		{
 			AddButton(LOCTEXT("VoteYes", "Vote Yes"), [Answer] { Answer(true); });

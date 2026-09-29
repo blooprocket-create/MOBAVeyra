@@ -162,9 +162,10 @@ namespace
 		DrawCentredLine(Canvas, Settings, Text, 0, Settings.TextColor);
 		int32 Row = 1;
 		const AVeyraPlayerState* Own = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr;
-		const FVeyraVoteState& Vote = GameState.GetVote();
-		// A team's vote shows only to that team, as League shows a surrender.
-		if (Vote.bOpen && Own && (Vote.Team == EVeyraTeam::None || Vote.Team == Own->GetVeyraTeam()))
+		const AVeyraPlayerController* Voter = Cast<AVeyraPlayerController>(Viewer);
+		const FVeyraVoteState& Vote = Voter ? Voter->GetOpenVote() : GameState.GetVote();
+		// A team's vote reaches only that team, as League shows a surrender.
+		if (Vote.bOpen && Own)
 		{
 			const UVeyraInputSettings& Input = *GetDefault<UVeyraInputSettings>();
 			const bool bVoted = Vote.Voted.Contains(Own->GetPlayerId());

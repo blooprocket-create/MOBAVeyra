@@ -8,6 +8,7 @@
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "VeyraGameState.h"
 #include "VeyraMatchLog.h"
+#include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
 
 void UVeyraVoteSubsystem::Deinitialize()
@@ -68,7 +69,7 @@ EVeyraVoteRefusal UVeyraVoteSubsystem::Request(const AVeyraPlayerState& Requeste
 	FVeyraBallotBox& Opened = Box.Emplace();
 	Opened.Kind = Kind;
 	Opened.Team = VeyraVotes::IsUnanimous(Kind) ? EVeyraTeam::None : Requester.GetVeyraTeam();
-	Opened.EndsAt = Context.Now + VeyraVotes::WindowSeconds(Kind, Tuning);
+	Opened.EndsAt = VeyraVotes::ClosesAt(Kind, Context.Now, IntermissionEndsAt, Tuning);
 	// Starting a vote is voting for it.
 	Opened.Ballots.Add(Requester.GetPlayerId(), true);
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s started a %s vote."), *Requester.GetPlayerName(), *StaticEnum<EVeyraVoteKind>()->GetNameStringByValue(static_cast<int64>(Kind)));
@@ -213,7 +214,19 @@ void UVeyraVoteSubsystem::Publish(TConstArrayView<FVeyraVoter> Voters, double No
 		}
 		State.Voted.Sort();
 	}
-	GameState->SetVote(State);
+	// A team's vote is its own business, as League keeps a surrender to the team: it goes to that team's
+	// controllers, which replicate to their own players alone. The game state carries only a vote for everyone.
+	const bool bTeamVote = State.bOpen && State.Team != EVeyraTeam::None;
+	GameState->SetVote(bTeamVote ? FVeyraVoteState() : State);
+	for (FConstPlayerControllerIterator It = GetWorld()->GetPlayerControllerIterator(); It; ++It)
+	{
+		AVeyraPlayerController* Controller = Cast<AVeyraPlayerController>(It->Get());
+		const AVeyraPlayerState* Member = Controller ? Controller->GetPlayerState<AVeyraPlayerState>() : nullptr;
+		if (Member)
+		{
+			Controller->SetTeamVote(bTeamVote && Member->GetVeyraTeam() == State.Team ? State : FVeyraVoteState());
+		}
+	}
 	GameState->SetIntermissionSecondsLeft(IntermissionEndsAt.IsSet() ? FMath::CeilToInt(FMath::Max(0.0, IntermissionEndsAt.GetValue() - Now)) : 0);
 }
 

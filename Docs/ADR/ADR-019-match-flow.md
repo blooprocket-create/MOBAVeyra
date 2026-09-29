@@ -71,9 +71,11 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
 | Remake | either team | 0:00–5:00, to start | 3 of 5 | votes YES | 30 s | 60 s, that team |
 | Surrender | either team | from 15:00 | 3 of 5 | abstains | 30 s | 180 s, that team |
 | Pause | anyone | live | all 10 | votes YES (AFK too) | 60 s | 180 s |
-| Early resume | anyone | intermission | all 10 | votes YES | — | — |
+| Early resume | anyone | intermission | all 10 | votes YES | the rest of the intermission | — |
 
 - Only the starting team votes, except on pause and resume.
+- **A team's vote reaches only that team.** Its state goes to each of the team's PlayerControllers, which replicate to their own players alone; the game state carries only a vote for everyone (pause and resume). The HUD and match menu read `AVeyraPlayerController::GetOpenVote`.
+- The voters are every seated participant, a no-show's kept seat included (§1), so its automatic ballot counts.
 - A recorded vote is locked.
 - A vote fails as soon as it can no longer pass.
 - Votes and the intermission run on real time, since a pause stops world time.

@@ -87,8 +87,12 @@ namespace VeyraVotes
 	 */
 	VEYRAMATCH_API EVeyraVoteOutcome Tally(const FVeyraBallotBox& Box, TConstArrayView<FVeyraVoter> Voters, double Now, const FVeyraVotesTuning& Tuning);
 
-	/** The window a vote of Kind stays open for, in real seconds. */
-	VEYRAMATCH_API double WindowSeconds(EVeyraVoteKind Kind, const FVeyraVotesTuning& Tuning);
+	/**
+	 * When a vote of Kind started at Now closes, in real seconds: an early-resume vote stays open for
+	 * what is left of the intermission ending at IntermissionEndsAt (Match Flow Bible §10.3); any other
+	 * for its tuned window.
+	 */
+	VEYRAMATCH_API double ClosesAt(EVeyraVoteKind Kind, double Now, const TOptional<double>& IntermissionEndsAt, const FVeyraVotesTuning& Tuning);
 
 	/** Starts the cooldown a failed vote leaves behind. */
 	VEYRAMATCH_API void NoteFailed(const FVeyraBallotBox& Box, double Now, const FVeyraVotesTuning& Tuning, FVeyraVoteCooldowns& Cooldowns);

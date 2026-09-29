@@ -56,7 +56,10 @@ public:
 	/** Server only: the GameMode pauses and resumes the match. */
 	void SetMatchPaused(bool bPaused);
 
-	/** The open vote, if any, as every player sees it (ADR-019 §4). */
+	/**
+	 * The open vote for everyone, if any, as every player sees it (ADR-019 §4). A team's vote is not
+	 * here: it reaches only that team (AVeyraPlayerController::GetOpenVote).
+	 */
 	const FVeyraVoteState& GetVote() const { return Vote; }
 
 	/** Real seconds until a voted pause resumes by itself; 0 when none holds the match. */
