@@ -11,6 +11,7 @@
 #include "Casting/VeyraCastStateComponent.h"
 #include "Bots/VeyraMatchEvents.h"
 #include "EngineUtils.h"
+#include "GameFramework/GameSession.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformTime.h"
 #include "Join/VeyraMatchHostSubsystem.h"
@@ -112,9 +113,9 @@ void AVeyraGameMode::PreLogin(const FString& Options, const FString& Address, co
 	{
 		FString AccountId;
 		ErrorMessage = VeyraJoinRules::CheckTicket(Options, *Roster, AccountId);
-		bReturning = ErrorMessage.IsEmpty() && Roster->HasJoined(AccountId);
+		bReturning = ErrorMessage.IsEmpty() && (Roster->HasJoined(AccountId) || FindKeptPlayerState(AccountId));
 	}
-	// A returning participant takes back its own seat.
+	// A returning participant, or a late one whose seat the match kept, takes back its own seat.
 	if (ErrorMessage.IsEmpty() && !bReturning && IsFull())
 	{
 		ErrorMessage = TEXT("The match is full.");
@@ -157,7 +158,8 @@ FString AVeyraGameMode::InitNewPlayer(APlayerController* NewPlayerController, co
 		UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a login: %s"), *ErrorMessage);
 		return ErrorMessage;
 	}
-	if (AVeyraPlayerState* Kept = Roster->HasJoined(AccountId) ? FindKeptPlayerState(AccountId) : nullptr)
+	// One who left, or who never came before the match began without it, takes back its seat.
+	if (AVeyraPlayerState* Kept = FindKeptPlayerState(AccountId))
 	{
 		GiveBackPlayerState(*NewPlayerController, *Kept);
 		PlayerState = Kept;
@@ -924,6 +926,46 @@ void AVeyraGameMode::OnLoadingTimedOut()
 	UE_CLOG(!IsMapReady(), LogVeyraMatch, Error, TEXT("Loading timed out, but the map is not ready: it needs a start for each side on built navigation."));
 }
 
+void AVeyraGameMode::SeatNoShows()
+{
+	if (!Roster)
+	{
+		return;
+	}
+	// A rostered player who never connected still has its Vanguard: it starts the match disconnected,
+	// follows the ordinary retreat and reconnect rules, and is there for its player to take late
+	// (Match Flow Bible §3; ADR-019 §1).
+	UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>();
+	for (const FVeyraAssignedParticipant& Participant : Roster->GetAssignment().Participants)
+	{
+		if (FindParticipant(Participant.AccountId))
+		{
+			continue;
+		}
+		FActorSpawnParameters Parameters;
+		Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Parameters.ObjectFlags |= RF_Transient;
+		AVeyraPlayerState* Seat = GetWorld()->SpawnActor<AVeyraPlayerState>(PlayerStateClass.Get(), Parameters);
+		if (!Seat)
+		{
+			UE_LOG(LogVeyraMatch, Error, TEXT("Could not keep a seat for %s, who never connected."), *Participant.DisplayName);
+			continue;
+		}
+		Seat->SetPlayerId(GameSession->GetNextPlayerID());
+		Seat->SetAccountId(Participant.AccountId);
+		Seat->SetPlayerName(Participant.DisplayName);
+		// Kept as a disconnected participant's PlayerState is (AVeyraPlayerState::OnDeactivated).
+		Seat->SetIsInactive(true);
+		AssignTeam(*Seat);
+		AssignVanguard(*Seat);
+		if (Absence)
+		{
+			Absence->Track(*Seat);
+		}
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s never connected; its Vanguard starts the match disconnected."), *Participant.DisplayName);
+	}
+}
+
 void AVeyraGameMode::AddAssignedBots()
 {
 	if (!Roster)
@@ -946,7 +988,8 @@ void AVeyraGameMode::BeginPreparation()
 {
 	SetActorTickEnabled(false);
 	GetWorldTimerManager().ClearTimer(LoadingTimeout);
-	// Before the phase changes, so each bot gets its Vanguard below with everyone else.
+	// Before the phase changes, so each no-show and each bot gets its Vanguard below with everyone else.
+	SeatNoShows();
 	AddAssignedBots();
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Preparation);
 	UE_LOG(LogVeyraMatch, Log, TEXT("Preparation begins with %d player(s)."), GetNumPlayers());
