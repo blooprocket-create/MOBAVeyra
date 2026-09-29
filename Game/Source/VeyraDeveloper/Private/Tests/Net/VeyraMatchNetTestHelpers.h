@@ -18,6 +18,7 @@
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
+#include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "VeyraGameMode.h"
 #include "VeyraGameState.h"
 #include "VeyraLocalPlayer.h"
@@ -48,13 +49,53 @@ namespace VeyraNetTests
 	 * plays the test Vanguard, with Q learned at level 1, and recovers nothing at its fountain, where
 	 * it starts, unless the test chooses otherwise.
 	 */
+	/**
+	 * Vision tuning a test may change, starting from the committed one; Get() returns it while this
+	 * object lives. Committed keeps the file's values for a test that restores them.
+	 */
+	struct FScopedVisionTuning
+	{
+		const FVeyraVisionTuning Committed;
+		FVeyraVisionTuning Tuning;
+
+		FScopedVisionTuning()
+			: Committed(UVeyraVisionTuningSubsystem::Get())
+			, Tuning(Committed)
+		{
+			UVeyraVisionTuningSubsystem::SetTestOverride(&Tuning);
+		}
+
+		~FScopedVisionTuning()
+		{
+			UVeyraVisionTuningSubsystem::SetTestOverride(nullptr);
+		}
+
+		/** Every unit sees across any test map: for tests that are not about fog (ADR-016). */
+		void SeeEverything()
+		{
+			// Far beyond any map a test builds; a fixture value, not tuning.
+			constexpr double AcrossAnyTestMap = 1.0e7;
+			Tuning.Sight.Vanguard = AcrossAnyTestMap;
+			Tuning.Sight.Fluxborn = AcrossAnyTestMap;
+			Tuning.Sight.Structure = AcrossAnyTestMap;
+		}
+
+		UE_NONCOPYABLE(FScopedVisionTuning);
+	};
+
 	struct FScopedMatchTuning
 	{
 		FVeyraMatchTuning Tuning;
+		/**
+		 * A match's vision, which sees everything so a test that is not about fog keeps every client
+		 * receiving every unit; a fog test restores Vision.Committed.
+		 */
+		FScopedVisionTuning Vision;
 
 		FScopedMatchTuning()
 			: Tuning(UVeyraMatchTuningSubsystem::Get())
 		{
+			Vision.SeeEverything();
 			Tuning.DeveloperMatch.Vanguards = { TestVanguardId() };
 			Tuning.DeveloperMatch.StartingRank = EVeyraDeveloperStartingRank::Q;
 			Tuning.Fountain.HealthFractionPerSecond = 0.0;

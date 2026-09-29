@@ -24,18 +24,12 @@
 
 namespace VeyraNetTests
 {
-	// Veyra.Net.FogGate.*: the ADR-006 §5 spike. How Iris expresses the per-player fog gate: an enemy
-	// reaches a player's client only while that player sees it. Vision does not exist yet, so the
-	// test drives Iris the way Vision would. Three players, so one side has two: a sighting by one
-	// of them must not reach the other.
-	//
-	// Two mechanisms are under test:
-	// - Units (root objects): the engine's filter-out dynamic filter hides them from everyone by
-	//   default. Inclusion groups override it: one per side, allowed for that side's connections, and
-	//   one per observer, allowed only for that observer's connection, holding what it sights.
-	// - Data on the always-relevant PlayerState (its attribute sets): subobjects replicated with
-	//   COND_NetGroup, which Iris sends to a connection only through a net condition group that
-	//   allows it. One group per participant; teammates and current observers are members.
+	// Veyra.Net.FogGate.*: what is left of the ADR-006 §5 spike. The units' half is production now
+	// (Vision's fog gate, Veyra.Net.Vision); this is the other mechanism, until ADR-016 §3 makes it
+	// production too: data on the always-relevant PlayerState (its attribute sets), replicated with
+	// COND_NetGroup, which Iris sends to a connection only through a net condition group that allows
+	// it. One group per participant; teammates and current observers are members. Three players, so
+	// one side has two: a sighting by one of them must not reach the other.
 	NETWORK_TEST_CLASS(FogGate, "Veyra.Net")
 	{
 		struct FState : public FBasePIENetworkComponentState
@@ -66,9 +60,7 @@ namespace VeyraNetTests
 		int32 BystanderIndex = INDEX_NONE;
 		int32 EnemyIndex = INDEX_NONE;
 
-		// Server-side gate state.
-		TMap<EVeyraTeam, UE::Net::FNetObjectGroupHandle> SideGroups;
-		TMap<int32, UE::Net::FNetObjectGroupHandle> SightingGroups;
+		// Fixture state.
 		double HoldStartRealTime = 0.0;
 		double MaxHealth = 0.0;
 
@@ -130,20 +122,6 @@ namespace VeyraNetTests
 
 		// Client helpers.
 
-		/** Whether this machine has the Vanguard of the participant with PlayerId. */
-		static bool SeesVanguard(const UWorld* World, int32 PlayerId)
-		{
-			for (TActorIterator<AVeyraVanguardCharacter> It(World); It; ++It)
-			{
-				const APlayerState* Owner = It->GetPlayerState();
-				if (Owner && Owner->GetPlayerId() == PlayerId)
-				{
-					return true;
-				}
-			}
-			return false;
-		}
-
 		/** The Health this machine holds for the participant with PlayerId, or -1 if it has no participant. */
 		static double SeenHealth(const UWorld* World, int32 PlayerId)
 		{
@@ -194,61 +172,6 @@ namespace VeyraNetTests
 			return Chain
 				.ThenServer([this](FState& State) { HoldStartRealTime = State.World->GetRealTimeSeconds(); })
 				.UntilServer(Description, [this](FState& State) { return State.World->GetRealTimeSeconds() - HoldStartRealTime >= NegativeCheckRealSeconds; });
-		}
-
-		TEST_METHOD(EnemyVanguardsReachOnlyThePlayersWhoSeeThem)
-		{
-			FPIENetworkComponent<FState>& Chain = IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
-				.ThenServer(TEXT("Gate every Vanguard"), [this](FState& State) {
-					UReplicationSystem& System = ReplicationSystemOf(State);
-					const UE::Net::FNetObjectFilterHandle FilterOut = System.GetFilterHandle(TEXT("NotRouted"));
-					ASSERT_THAT(IsTrue(FilterOut != UE::Net::InvalidNetObjectFilterHandle));
-					for (const EVeyraTeam Side : { EVeyraTeam::A, EVeyraTeam::B })
-					{
-						const UE::Net::FNetObjectGroupHandle Group = System.CreateGroup(Side == EVeyraTeam::A ? TEXT("Veyra.Side.A") : TEXT("Veyra.Side.B"));
-						ASSERT_THAT(IsTrue(System.AddInclusionFilterGroup(Group)));
-						SideGroups.Add(Side, Group);
-					}
-					for (int32 Index = 0; Index < PlayerCount; ++Index)
-					{
-						const uint32 Connection = ConnectionIdOf(State, Index);
-						for (const TPair<EVeyraTeam, UE::Net::FNetObjectGroupHandle>& Side : SideGroups)
-						{
-							System.SetGroupFilterStatus(Side.Value, Connection,
-								Side.Key == Participants[Index].Team ? UE::Net::ENetFilterStatus::Allow : UE::Net::ENetFilterStatus::Disallow);
-						}
-						const UE::Net::FNetObjectGroupHandle Sightings = System.CreateGroup(FName(*FString::Printf(TEXT("Veyra.Sightings.%u"), Connection)));
-						ASSERT_THAT(IsTrue(System.AddInclusionFilterGroup(Sightings)));
-						System.SetGroupFilterStatus(Sightings, Connection, UE::Net::ENetFilterStatus::Allow);
-						SightingGroups.Add(Index, Sightings);
-
-						const UE::Net::FNetRefHandle Vanguard = HandleOf(State, ServerParticipant(State, Index).GetPawn());
-						ASSERT_THAT(IsTrue(System.SetFilter(Vanguard, FilterOut)));
-						System.AddToGroup(SideGroups[Participants[Index].Team], Vanguard);
-					}
-				})
-				.UntilClients(TEXT("Each client has its own side's Vanguards and no enemy's"), [this](FState& State) {
-					const EVeyraTeam MySide = Participants[State.ClientIndex].Team;
-					return Algo::AllOf(Participants, [&State, MySide](const FParticipant& Other) {
-						return SeesVanguard(State.World, Other.PlayerId) == (Other.Team == MySide);
-					});
-				})
-				.ThenServer(TEXT("The observer sights the enemy"), [this](FState& State) {
-					ReplicationSystemOf(State).AddToGroup(SightingGroups[ObserverIndex], HandleOf(State, ServerParticipant(State, EnemyIndex).GetPawn()));
-				})
-				.UntilClients(TEXT("The observer receives the enemy"), [this](FState& State) {
-					return State.ClientIndex != ObserverIndex || SeesVanguard(State.World, Participants[EnemyIndex].PlayerId);
-				});
-			HoldBriefly(Chain, TEXT("Give the sighting time to leak"))
-				.ThenClients(TEXT("Only the observer has the enemy"), [this](FState& State) {
-					ASSERT_THAT(IsTrue(SeesVanguard(State.World, Participants[EnemyIndex].PlayerId) == (State.ClientIndex != BystanderIndex)));
-				})
-				.ThenServer(TEXT("The observer loses sight"), [this](FState& State) {
-					ReplicationSystemOf(State).RemoveFromGroup(SightingGroups[ObserverIndex], HandleOf(State, ServerParticipant(State, EnemyIndex).GetPawn()));
-				})
-				.UntilClients(TEXT("The enemy leaves the observer's client"), [this](FState& State) {
-					return State.ClientIndex != ObserverIndex || !SeesVanguard(State.World, Participants[EnemyIndex].PlayerId);
-				});
 		}
 
 		TEST_METHOD(EnemyVitalsReachOnlyThePlayersWhoSeeThem)

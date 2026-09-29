@@ -20,7 +20,7 @@ AVeyraProjectile::AVeyraProjectile()
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.bStartWithTickEnabled = false;
 	bReplicates = true;
-	// Every machine sees it until Vision decides who sees what (ADR-009 §7).
+	// Always relevant, so replays record it; Vision's fog gate decides which clients receive it (ADR-016 §3).
 	bAlwaysRelevant = true;
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 }

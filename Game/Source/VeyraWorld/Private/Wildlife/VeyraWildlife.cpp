@@ -27,7 +27,7 @@ AVeyraWildlife::AVeyraWildlife(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UVeyraMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	bReplicates = true;
-	// Every machine sees every creature until Vision gates them, as it sees Fluxborn (ADR-011 §7).
+	// Always relevant, so replays record it; Vision's fog gate decides which clients receive it (ADR-016 §3).
 	bAlwaysRelevant = true;
 	// Its server controller keeps it to its camp; clients only draw it.
 	AutoPossessAI = EAutoPossessAI::Spawned;

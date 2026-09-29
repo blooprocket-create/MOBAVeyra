@@ -19,10 +19,17 @@ public class VeyraVision : ModuleRules
 			"VeyraCore",
 		});
 
+		PublicDependencyModuleNames.Add("VeyraCombat");
+
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{
-			"VeyraCombat",
+			// Projectiles and telegraphed areas are gated like units.
+			"VeyraAbilities",
+			// The fog gate's groups (ADR-006 §5).
+			"NetCore",
 		});
+
+		SetupIrisSupport(Target);
 
 		// The Vision tuning ships with every build that runs a match (ADR-006 §6).
 		RuntimeDependencies.Add("$(ProjectDir)/Tuning/Vision.json", StagedFileType.UFS);

@@ -12,7 +12,7 @@ AVeyraDelayedArea::AVeyraDelayedArea()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	bReplicates = true;
-	// Every machine telegraphs it until Vision decides who sees what (ADR-009 §7).
+	// Always relevant, so replays record it; Vision's fog gate decides which clients receive it (ADR-016 §3).
 	bAlwaysRelevant = true;
 	RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 }

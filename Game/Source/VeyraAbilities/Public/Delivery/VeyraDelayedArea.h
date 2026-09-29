@@ -20,7 +20,7 @@ class UAbilitySystemComponent;
  * Guaranteed Resolution).
  */
 UCLASS(NotPlaceable)
-class VEYRAABILITIES_API AVeyraDelayedArea : public AActor
+class VEYRAABILITIES_API AVeyraDelayedArea : public AActor, public IVeyraTeamMember
 {
 	GENERATED_BODY()
 
@@ -39,7 +39,8 @@ public:
 	/** When it hits, in the server's world time. */
 	double GetResolvesAt() const { return ResolvesAt; }
 
-	EVeyraTeam GetVeyraTeam() const { return Team; }
+	/** Its caster's side, so Vision shows it to that side and to those who see it (ADR-016 §3). */
+	virtual EVeyraTeam GetVeyraTeam() const override { return Team; }
 	const FVeyraContentId& GetAbility() const { return Ability; }
 	int32 GetCastId() const { return CastId; }
 

@@ -14,6 +14,7 @@
 #include "VeyraBattlegroundSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraTeamFluxSubsystem.h"
+#include "VeyraVisionSubsystem.h"
 #include "Wells/VeyraFluxWellSubsystem.h"
 #include "Wildlife/VeyraJungleSubsystem.h"
 
@@ -45,6 +46,12 @@ FVeyraBattlegroundLink::~FVeyraBattlegroundLink()
 void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrimeWellDestroyed)
 {
 	MatchWorld = &World;
+	// Vision governs the match from before its first player joins, so no unit ever reaches a client that
+	// may not see it; it runs until the world ends, through the match's end (ADR-016 §2, §3).
+	if (UVeyraVisionSubsystem* Vision = World.GetSubsystem<UVeyraVisionSubsystem>())
+	{
+		Vision->Start();
+	}
 	Battleground = World.GetSubsystem<UVeyraBattlegroundSubsystem>();
 	Flux = World.GetSubsystem<UVeyraTeamFluxSubsystem>();
 	Rewards = World.GetSubsystem<UVeyraRewardSubsystem>();

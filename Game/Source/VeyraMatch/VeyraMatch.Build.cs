@@ -37,6 +37,7 @@ public class VeyraMatch : ModuleRules
 			// The battleground's peers, which Match connects (ADR-011 §3).
 			"VeyraFlux",
 			"VeyraWorld",
+			"VeyraVision",
 		});
 
 		// The Match domain's tuning ships with every build that runs a match (ADR-006 §6).
