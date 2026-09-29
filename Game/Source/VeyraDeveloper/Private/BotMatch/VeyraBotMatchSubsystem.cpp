@@ -24,6 +24,7 @@ namespace
 {
 	const TCHAR* const PlayingBotsOption = TEXT("VeyraPlayingBots=");
 	const TCHAR* const BotDifficultyOption = TEXT("VeyraBotDifficulty=");
+	const TCHAR* const BotVanguardsOption = TEXT("VeyraBotVanguards=");
 	// Harness settings, not tuning: how often the match's state is logged, in seconds of match clock.
 	constexpr double BotMatchReportSeconds = 60.0;
 }
@@ -40,6 +41,23 @@ void UVeyraBotMatchSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	BotCount = Count ? FMath::Max(0, FCString::Atoi(Count)) : 0;
 	const TCHAR* Named = InWorld.URL.GetOption(BotDifficultyOption, nullptr);
 	Difficulty = Named && FCString::Stricmp(Named, TEXT("Intermediate")) == 0 ? EVeyraBotDifficulty::Intermediate : EVeyraBotDifficulty::Beginner;
+	if (const TCHAR* Listed = InWorld.URL.GetOption(BotVanguardsOption, nullptr))
+	{
+		TArray<FString> Parts;
+		FString(Listed).ParseIntoArray(Parts, TEXT(","));
+		for (const FString& Part : Parts)
+		{
+			const TOptional<FVeyraContentId> Vanguard = FVeyraContentId::FromText(Part.TrimStartAndEnd());
+			if (Vanguard.IsSet() && UVeyraBotsTuningSubsystem::FindVanguard(Vanguard.GetValue()))
+			{
+				ChosenVanguards.Add(Vanguard.GetValue());
+			}
+			else
+			{
+				UE_LOG(LogVeyraBotMatch, Warning, TEXT("VeyraBotMatch: no bot plays \"%s\"; leaving it out."), *Part);
+			}
+		}
+	}
 	if (BotCount > 0)
 	{
 		UE_LOG(LogVeyraBotMatch, Display, TEXT("VeyraBotMatch: will seat %d %s bot(s) when preparation begins."), BotCount, LexToString(Difficulty));
@@ -75,10 +93,13 @@ void UVeyraBotMatchSubsystem::Seat(UWorld& World)
 	{
 		return;
 	}
-	// The released Vanguards bots know, in a fixed order, taken in turn.
-	TArray<FVeyraContentId> Vanguards;
-	UVeyraBotsTuningSubsystem::Get().Vanguards.GenerateKeyArray(Vanguards);
-	Vanguards.Sort([](const FVeyraContentId& A, const FVeyraContentId& B) { return A.ToString() < B.ToString(); });
+	// The Vanguards the URL names, or else the released Vanguards bots know in a fixed order, taken in turn.
+	TArray<FVeyraContentId> Vanguards = ChosenVanguards;
+	if (Vanguards.IsEmpty())
+	{
+		UVeyraBotsTuningSubsystem::Get().Vanguards.GenerateKeyArray(Vanguards);
+		Vanguards.Sort([](const FVeyraContentId& A, const FVeyraContentId& B) { return A.ToString() < B.ToString(); });
+	}
 	int32 Seated = 0;
 	for (int32 Index = 0; Index < BotCount && !Vanguards.IsEmpty(); ++Index)
 	{

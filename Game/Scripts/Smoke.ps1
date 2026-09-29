@@ -113,6 +113,9 @@
     the end.
 .PARAMETER BotDifficulty
     How the playing bots play: Beginner (default) or Intermediate.
+.PARAMETER BotVanguards
+    With -PlayingBots: the Vanguards the bots take in turn, from Bots.json, instead of every released
+    one in alphabetical order.
 .PARAMETER ClientStaySeconds
     Seconds each client stays connected after its script before quitting.
 .PARAMETER Screenshot
@@ -182,6 +185,8 @@ param(
 
     [ValidateSet('Beginner', 'Intermediate')]
     [string]$BotDifficulty = 'Beginner',
+
+    [string[]]$BotVanguards = @(),
 
     [ValidateRange(0, 3600)]
     [int]$ClientStaySeconds = 0,
@@ -253,6 +258,10 @@ if ($LoadTestStandInHz -gt 0) {
 }
 if ($PlayingBots -gt 0) {
     $urlOptions += "?VeyraPlayingBots=${PlayingBots}?VeyraBotDifficulty=${BotDifficulty}"
+    $BotVanguards = @($BotVanguards | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    if ($BotVanguards.Count -gt 0) {
+        $urlOptions += "?VeyraBotVanguards=$($BotVanguards -join ',')"
+    }
 }
 
 # The editor server's map and options; compose.yaml gives the container the same ones.
