@@ -121,6 +121,14 @@ private:
 	/** Whether Side's True Sight covers Unit now. */
 	bool IsInTrueSight(EVeyraTeam Side, const AActor& Unit) const;
 
+	/**
+	 * Whether Side sees Unit, outside Dense Fog, by the last pass's sources: an Invisible unit only
+	 * under True Sight (Vision Bible §5); a Camouflaged one under True Sight or within its detection
+	 * radius of Side's Vanguards and standing structures (Combat Bible §11; ADR-018 §4); the rest, by
+	 * ordinary sight.
+	 */
+	bool JudgeSight(EVeyraTeam Side, const AActor& Unit) const;
+
 	/** Tells each side the presence its sensors feel and the outlines its True Sight draws (ADR-016 §5). */
 	void UpdateSensors(const TArray<const AActor*>& Gated, double Now);
 

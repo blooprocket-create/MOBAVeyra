@@ -100,6 +100,15 @@ protected:
 	/** Whether Ability has an effect on enemies: casting it ends the caster's stealth (Combat Bible §11; ADR-018 §3). */
 	virtual bool IsOffensive(const FVeyraContentId& Ability) const;
 
+	/** Server: Caster began a cast of Ability. It is announced, and an offensive one ends Camouflage (ADR-018 §3, §4). */
+	void NoteCastStarted(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
+
+	/**
+	 * Server: Caster's cast of Ability committed. It is announced; a used-once override of it ends, and
+	 * its recast window, if it has one, opens in its slot (ADR-018 §1, §3).
+	 */
+	void NoteCastCommitted(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
+
 	/** Delivers one tick of a channel; Tick counts from 1. */
 	virtual void DeliverChannelTick(const FVeyraCast& Cast, int32 Tick);
 

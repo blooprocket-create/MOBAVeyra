@@ -74,13 +74,21 @@ void UVeyraTargetedDamageAbility::ActivateAbility(const FGameplayAbilitySpecHand
 
 	// A targeted instant ability validates as it resolves (Combat Bible §30), and this is that moment.
 	// Nothing is paid unless it commits (§26).
-	if (!Tuning || !Caster || CheckTarget(*Caster, Ability, Target) != EVeyraCastRejection::None || !CommitAbility(Handle, ActorInfo, ActivationInfo))
+	if (!Tuning || !Caster || CheckTarget(*Caster, Ability, Target) != EVeyraCastRejection::None)
 	{
 		EndAbility(Handle, ActorInfo, ActivationInfo, /*bReplicateEndAbility*/ true, /*bWasCancelled*/ true);
 		return;
 	}
-
 	UAbilitySystemComponent& CasterAbilitySystem = *ActorInfo->AbilitySystemComponent;
+	// It begins and commits in one moment (ADR-018 §3).
+	NoteCastStarted(CasterAbilitySystem, Ability);
+	if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, /*bReplicateEndAbility*/ true, /*bWasCancelled*/ true);
+		return;
+	}
+	NoteCastCommitted(CasterAbilitySystem, Ability);
+
 	UAbilitySystemComponent* TargetAbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target.Actor);
 	const int32 Level = GetCasterLevel(CasterAbilitySystem);
 	const double Amount = VeyraAbilityRules::AtLevel(Tuning->DamageAmount, Tuning->DamagePerLevel, Level);

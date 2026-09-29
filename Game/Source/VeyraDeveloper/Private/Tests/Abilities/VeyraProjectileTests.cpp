@@ -2,6 +2,7 @@
 
 #include "Components/StaticMeshComponent.h"
 #include "CQTest.h"
+#include "VeyraVisionSubsystem.h"
 #include "Delivery/VeyraEffectDelivery.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
@@ -293,6 +294,21 @@ namespace VeyraAbilitiesTests
 			Fly(ShotRange / ShotSpeed);
 			ASSERT_THAT(IsTrue(World.HealthLost(Target) == Damage));
 			ASSERT_THAT(IsTrue(InFlight() == nullptr));
+		}
+
+		TEST_METHOD(AHomingProjectileKeepsGoingAfterItsTargetVanishes)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Target = World.Spawn(EVeyraTeam::B, FVector(ShotRange / 2.0, 0.0, 0.0));
+			UVeyraVisionSubsystem& Vision = *Spawner.GetWorld().GetSubsystem<UVeyraVisionSubsystem>();
+			Vision.Start();
+			LaunchHomingAt(Target);
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Target, ShotRadius)));
+			Vision.UpdateNow();
+			ASSERT_THAT(IsFalse(Vision.IsVisibleToTeam(EVeyraTeam::A, Target)));
+			// A Camouflaged unit is not Untargetable: what was already launched still arrives (ADR-018 §4).
+			Fly(ShotRange / ShotSpeed);
+			ASSERT_THAT(IsTrue(World.HealthLost(Target) == Damage));
 		}
 
 		TEST_METHOD(AHomingProjectileFizzlesIfItsTargetDies)

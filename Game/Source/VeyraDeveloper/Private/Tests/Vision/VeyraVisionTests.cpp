@@ -5,6 +5,8 @@
 #include "Life/VeyraLifeComponent.h"
 #include "Rules/VeyraVisionRules.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Tests/Abilities/VeyraTestFluxborn.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraPlayerState.h"
@@ -156,6 +158,86 @@ namespace VeyraVisionTests
 			Enemy.SetActorLocation(FVector(Bush.X + 500.0, 0.0, 0.0));
 			Vision().UpdateNow();
 			ASSERT_THAT(IsTrue(VeyraTargeting::CanAcquire(&Outside, Enemy) && Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy)));
+		}
+
+		/** A Camouflage's detection radius: well inside a Vanguard's sight. */
+		static double DetectionRadius()
+		{
+			return SightRadius() / 4.0;
+		}
+
+		template <typename UnitType>
+		UnitType& SpawnUnit(EVeyraTeam Team, const FVector& Location)
+		{
+			UnitType& Unit = Spawner.SpawnActorAt<UnitType>(Location, FRotator::ZeroRotator);
+			Unit.SetVeyraTeam(Team);
+			VeyraCombat::InitializeVitals(*Unit.GetAbilitySystemComponent(), StartingMaxHealth);
+			return Unit;
+		}
+
+		TEST_METHOD(ACamouflagedEnemyIsSeenOnlyWithinItsDetectionRadius)
+		{
+			AVeyraVanguardCharacter& Caster = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, FVector(SightRadius() / 2.0, 0.0, 0.0));
+			Vision().Start();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy)));
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Enemy, DetectionRadius())));
+			Vision().UpdateNow();
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("in sight, beyond its detection radius")));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Enemy, SightRadius()) == EVeyraTargetValidity::NotVisible));
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::B, Enemy), TEXT("its own side still sees it")));
+
+			Enemy.SetActorLocation(FVector(DetectionRadius() / 2.0, 0.0, 0.0));
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("within its radius of an enemy Vanguard")));
+		}
+
+		TEST_METHOD(OnlyVanguardsAndStandingStructuresDetectCamouflage)
+		{
+			const FVector Hideout(SightRadius() * 3.0, 0.0, 0.0);
+			SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, Hideout);
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Enemy, DetectionRadius())));
+			SpawnUnit<AVeyraTestFluxborn>(EVeyraTeam::A, Hideout - FVector(DetectionRadius() / 2.0, 0.0, 0.0));
+			Vision().Start();
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("a Fluxborn beside it does not detect it")));
+			SpawnUnit<AVeyraTestStructure>(EVeyraTeam::A, Hideout + FVector(0.0, DetectionRadius() / 2.0, 0.0));
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("a standing structure does")));
+		}
+
+		TEST_METHOD(TrueSightShowsACamouflagedEnemy)
+		{
+			AVeyraVanguardCharacter& Caster = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, FVector(SightRadius() / 2.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Enemy, DetectionRadius())));
+			Vision().Start();
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy)));
+			// Fixture value: longer than the test.
+			constexpr double TrueSightSeconds = 60.0;
+			Vision().AddTrueSight(EVeyraTeam::A, Caster, SightRadius(), TrueSightSeconds);
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy)));
+		}
+
+		TEST_METHOD(DenseFogStillComesFirstForTheCamouflaged)
+		{
+			// A bush of half a Vanguard's sight, the enemy just inside its edge, and a teammate just outside,
+			// within its detection radius but out of the fog.
+			const double S = SightRadius();
+			const FVector2D Bush(S * 2.0, 0.0);
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, FVector(Bush.X + S * 7.0 / 16.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Outside = SpawnVanguard(EVeyraTeam::A, FVector(Bush.X + S * 9.0 / 16.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Inside = SpawnVanguard(EVeyraTeam::A, FVector(Bush.X - S / 4.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Enemy, DetectionRadius())));
+			Vision().Start();
+			Vision().SetDenseFog({ FVeyraFogCircle{ Bush, S / 2.0 } });
+			ASSERT_THAT(IsFalse(VeyraTargeting::CanAcquire(&Outside, Enemy), TEXT("within its radius, but the fog comes first")));
+			ASSERT_THAT(IsFalse(VeyraTargeting::CanAcquire(&Inside, Enemy), TEXT("in the same fog, beyond its radius")));
+			Inside.SetActorLocation(FVector(Bush.X + S * 5.0 / 16.0, 0.0, 0.0));
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(VeyraTargeting::CanAcquire(&Inside, Enemy), TEXT("in the same fog, within its radius")));
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("a sighting in fog is still not shared")));
 		}
 
 		TEST_METHOD(AWorldWithoutAMatchSeesEverything)

@@ -3,6 +3,7 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "CombatState/VeyraCombatStateComponent.h"
 #include "CQTest.h"
+#include "VeyraVisionSubsystem.h"
 #include "Delivery/VeyraProjectile.h"
 #include "EngineUtils.h"
 #include "Life/VeyraLifeComponent.h"
@@ -188,6 +189,21 @@ namespace VeyraAbilitiesTests
 			// Its own AttackRange reaches every target further.
 			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Self, Self, Mark(TEXT("test_reach"), EVeyraStatusKind::AttackRange, Extra))));
 			ASSERT_THAT(IsTrue(Attacks->CheckAttack(&Enemy) == EVeyraAttackRejection::None && FMath::IsNearlyEqual(Attacks->GetRange(nullptr), Range + Extra)));
+		}
+
+		TEST_METHOD(AnAttackOnATargetThatVanishesBeforeCommitIsCancelled)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Range / 2.0, 0.0, 0.0));
+			UVeyraVisionSubsystem& Vision = *Spawner.GetWorld().GetSubsystem<UVeyraVisionSubsystem>();
+			Vision.Start();
+			ASSERT_THAT(IsTrue(Attacks->StartAttack(Enemy) == EVeyraAttackRejection::None));
+			// Camouflaged during the windup, beyond its detection radius: at Commit it is NotVisible (ADR-018 §4).
+			ASSERT_THAT(IsTrue(VeyraCombatTests::Camouflage(Enemy, Range / 4.0)));
+			Vision.UpdateNow();
+			Attacks->Commit();
+			ASSERT_THAT(IsTrue(World.HealthLost(Enemy) == 0.0 && Attacks->GetState().Phase == EVeyraAttackPhase::None));
+			ASSERT_THAT(IsTrue(Attacks->GetNextAttackAt() == 0.0, TEXT("a cancelled attack spends nothing")));
 		}
 
 		TEST_METHOD(OnlyALivingEnemyUnitCanBeAttacked)

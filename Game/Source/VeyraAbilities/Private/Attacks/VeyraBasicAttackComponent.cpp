@@ -201,6 +201,8 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::StartAttack(AActor& Target)
 	}
 	// A backswing still running ends as the next attack begins.
 	GetWorld()->GetTimerManager().ClearTimer(PhaseTimer);
+	// Attacking ends Camouflage (Combat Bible §11; ADR-018 §4).
+	VeyraCombat::EndCamouflage(*GetAbilitySystem());
 
 	const double Now = GetServerNow();
 	FRunningAttack& Attack = Running.Emplace();

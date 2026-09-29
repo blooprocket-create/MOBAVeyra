@@ -639,6 +639,28 @@ bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id)
 	return Statuses && Statuses->Remove(Id);
 }
 
+void EndCamouflage(UAbilitySystemComponent& Unit)
+{
+	const AActor* Owner = Unit.GetOwner();
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (!Statuses)
+	{
+		return;
+	}
+	TArray<FVeyraContentId, TInlineAllocator<2>> Camouflage;
+	for (const FVeyraStatusEntry& Entry : Statuses->GetLedger().Entries)
+	{
+		if (Entry.Kind == EVeyraStatusKind::Camouflage)
+		{
+			Camouflage.AddUnique(Entry.Id);
+		}
+	}
+	for (const FVeyraContentId& Id : Camouflage)
+	{
+		RemoveStatus(Unit, Id);
+	}
+}
+
 EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)
 {
 	const AActor* Owner = Unit.GetOwner();

@@ -155,6 +155,48 @@ bool UVeyraGameplayAbility::IsOffensive(const FVeyraContentId& /*Ability*/) cons
 	return true;
 }
 
+void UVeyraGameplayAbility::NoteCastStarted(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
+{
+	const bool bOffensive = IsOffensive(Ability);
+	if (UVeyraCombatEventSubsystem* Events = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
+	{
+		Events->OnCastStarted.Broadcast(FVeyraCastEvent{ &Caster, Ability, bOffensive });
+	}
+	if (bOffensive)
+	{
+		VeyraCombat::EndCamouflage(Caster);
+	}
+}
+
+void UVeyraGameplayAbility::NoteCastCommitted(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
+{
+	if (UVeyraCombatEventSubsystem* Events = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
+	{
+		Events->OnCastCommitted.Broadcast(FVeyraCastEvent{ &Caster, Ability, IsOffensive(Ability) });
+	}
+	UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
+	if (!Loadout)
+	{
+		return;
+	}
+	// Read before NoteCommitted, which may end the override that holds it.
+	const FVeyraLoadoutEntry* Entry = Loadout->FindAbility(Ability);
+	const TOptional<EVeyraAbilitySlot> Slot = Entry ? TOptional<EVeyraAbilitySlot>(Entry->Slot) : TOptional<EVeyraAbilitySlot>();
+	// A follow-up is used once; this cast may open one of its own in its slot.
+	Loadout->NoteCommitted(Caster, Ability);
+	const FVeyraCastTuning* CastTuning = GetCastTuning(Ability);
+	if (Slot.IsSet() && CastTuning && !CastTuning->RecastWindow.IsEmpty())
+	{
+		const FVeyraRecastTuning& Recast = CastTuning->RecastWindow[0];
+		FVeyraOverrideSpec FollowUp;
+		FollowUp.Ability = Recast.Ability;
+		FollowUp.DurationSeconds = Recast.WindowSeconds;
+		FollowUp.Use = EVeyraOverrideUse::Once;
+		FollowUp.bCastOnExpiry = Recast.OnExpiry == EVeyraRecastExpiry::Cast;
+		Loadout->Override(Caster, Slot.GetValue(), FollowUp);
+	}
+}
+
 void UVeyraGameplayAbility::DeliverChannelTick(const FVeyraCast& /*Cast*/, int32 /*Tick*/)
 {
 }
@@ -253,10 +295,7 @@ void UVeyraGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 		InterruptedHandle = Statuses->OnInterrupted.AddUObject(this, &UVeyraGameplayAbility::OnCasterInterrupted);
 	}
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s begins %s at rank %d (cast %d)."), *GetNameSafe(Avatar), *Ability.ToString(), Cast.Rank, Cast.CastId);
-	if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
-	{
-		Events->OnCastStarted.Broadcast(FVeyraCastEvent{ Caster, Ability, IsOffensive(Ability) });
-	}
+	NoteCastStarted(*Caster, Ability);
 	if (Tuning->WindupSeconds > 0.0)
 	{
 		VeyraCombat::SetCastLocksMovement(*Caster, Tuning->WindupMovement == EVeyraCastMovement::Locked);
@@ -286,29 +325,7 @@ void UVeyraGameplayAbility::OnWindupEnded()
 		return;
 	}
 
-	if (UVeyraCombatEventSubsystem* Events = GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>())
-	{
-		Events->OnCastCommitted.Broadcast(FVeyraCastEvent{ Caster, Run.Cast.Ability, IsOffensive(Run.Cast.Ability) });
-	}
-	// A follow-up is used once; this cast may open one of its own in its slot (ADR-018 §1).
-	if (UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(*Caster))
-	{
-		// Read before NoteCommitted, which may end the override that holds it.
-		const FVeyraLoadoutEntry* Entry = Loadout->FindAbility(Run.Cast.Ability);
-		const TOptional<EVeyraAbilitySlot> Slot = Entry ? TOptional<EVeyraAbilitySlot>(Entry->Slot) : TOptional<EVeyraAbilitySlot>();
-		Loadout->NoteCommitted(*Caster, Run.Cast.Ability);
-		const FVeyraCastTuning* CastTuning = GetCastTuning(Run.Cast.Ability);
-		if (Slot.IsSet() && CastTuning && !CastTuning->RecastWindow.IsEmpty())
-		{
-			const FVeyraRecastTuning& Recast = CastTuning->RecastWindow[0];
-			FVeyraOverrideSpec FollowUp;
-			FollowUp.Ability = Recast.Ability;
-			FollowUp.DurationSeconds = Recast.WindowSeconds;
-			FollowUp.Use = EVeyraOverrideUse::Once;
-			FollowUp.bCastOnExpiry = Recast.OnExpiry == EVeyraRecastExpiry::Cast;
-			Loadout->Override(*Caster, Slot.GetValue(), FollowUp);
-		}
-	}
+	NoteCastCommitted(*Caster, Run.Cast.Ability);
 
 	Run.Channel = Deliver(Run.Cast);
 	if (Run.Channel.Ticks > 0 && Run.Channel.Seconds > 0.0)
