@@ -67,7 +67,8 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 - **Groups:** one inclusion group per side holds that side's own units. One per observer holds the enemy and neutral units that player currently sees. Vision is their only writer.
 - **Always visible:** structures and Flux Wells, as League shows towers and objective state; the Team Flux state is public.
 - **PlayerState data:**
-  - The attribute sets and the status, combat-state, cast-state and basic-attack components replicate with `COND_NetGroup`.
+  - The attribute sets and the status, combat-state, cast-state, basic-attack, shield (absorption) and Recall components replicate with `COND_NetGroup`.
+  - What League's scoreboard shows stays public: whether a participant is alive, its level and its items. Cooldowns, the loadout and Gold are its owner's alone.
   - An ability-system component subclass registers the sets before their first send.
   - Each participant's group holds its teammates and its current observers. An observer who loses sight keeps the last value it saw.
   - Gated subobjects also join the owner's group, so the participant always has its own data, and the replay group, since the replay driver ignores Iris filters.

@@ -10,6 +10,7 @@
 #include "Tags/VeyraHealthTags.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatTagMapping.h"
+#include "Targeting/VeyraParticipantData.h"
 
 namespace
 {
@@ -29,6 +30,20 @@ UVeyraDamageAbsorptionComponent::UVeyraDamageAbsorptionComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 	SetIsReplicatedByDefault(true);
+}
+
+ELifetimeCondition UVeyraDamageAbsorptionComponent::GetReplicationCondition() const
+{
+	return VeyraParticipantData::ConditionFor(*this, Super::GetReplicationCondition());
+}
+
+void UVeyraDamageAbsorptionComponent::ReadyForReplication()
+{
+	Super::ReadyForReplication();
+	if (VeyraParticipantData::IsParticipantData(*this) && GetOwner()->HasAuthority())
+	{
+		VeyraParticipantData::Gate(*this, *GetOwner());
+	}
 }
 
 void UVeyraDamageAbsorptionComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
