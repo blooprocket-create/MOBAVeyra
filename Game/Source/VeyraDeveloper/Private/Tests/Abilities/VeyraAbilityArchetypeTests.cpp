@@ -458,11 +458,18 @@ namespace VeyraAbilitiesTests
 
 			FArchetypeTestWorld World{ Spawner };
 			Caster = &World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			// Its team's permanent Flux has opened both slots, as Match would set it (ADR-015 §4).
+			LoadoutOf(*Caster).SetUnlockedSpellSlots(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells));
 		}
 
 		AFTER_EACH()
 		{
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
+		}
+
+		static UVeyraAbilityLoadoutComponent& LoadoutOf(AVeyraVanguardCharacter& Vanguard)
+		{
+			return *Vanguard.GetPlayerState()->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
 		}
 
 		EVeyraCastRejection CastAtUnit(EVeyraAbilitySlot Slot, AActor& Unit) const
@@ -495,6 +502,22 @@ namespace VeyraAbilitiesTests
 			const UVeyraCooldownComponent& Cooldowns = *Caster->GetPlayerState()->FindComponentByClass<UVeyraCooldownComponent>();
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Cooldowns.GetDurationSeconds(ArchetypeTestId(TEXT("test_smite"))), Cooldown),
 				FString::Printf(TEXT("cooldown %.1f s"), Cooldowns.GetDurationSeconds(ArchetypeTestId(TEXT("test_smite"))))));
+		}
+
+		TEST_METHOD(ALockedSpellSlotRefusesWhateverItHolds)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Newcomer = World.Spawn(EVeyraTeam::A, FVector(0.0, Near, 0.0));
+			ASSERT_THAT(IsTrue(World.Equip(Newcomer, EVeyraAbilitySlot::Spell1, ArchetypeTestId(TEXT("test_mend")))));
+			ASSERT_THAT(IsTrue(World.Equip(Newcomer, EVeyraAbilitySlot::Spell2, ArchetypeTestId(TEXT("test_smite")))));
+			const auto CastMend = [&Newcomer](EVeyraAbilitySlot Slot) { return VeyraAbilities::TryCast(*Newcomer.GetAbilitySystemComponent(), Slot, FVeyraCastTarget()); };
+			ASSERT_THAT(IsTrue(CastMend(EVeyraAbilitySlot::Spell1) == EVeyraCastRejection::Locked, TEXT("no permanent Flux yet")));
+			UVeyraAbilityLoadoutComponent& Loadout = LoadoutOf(Newcomer);
+			Loadout.SetUnlockedSpellSlots(1);
+			ASSERT_THAT(IsTrue(CastMend(EVeyraAbilitySlot::Spell1) == EVeyraCastRejection::None, TEXT("the first slot opens first")));
+			ASSERT_THAT(IsTrue(CastMend(EVeyraAbilitySlot::Spell2) == EVeyraCastRejection::Locked, TEXT("locked whatever it holds, target or none")));
+			Loadout.SetUnlockedSpellSlots(0);
+			ASSERT_THAT(AreEqual(1, Loadout.GetUnlockedSpellSlots(), TEXT("an unlock lasts the match")));
 		}
 
 		TEST_METHOD(ATargetedSpellHitsOnlyTheKindsItNames)

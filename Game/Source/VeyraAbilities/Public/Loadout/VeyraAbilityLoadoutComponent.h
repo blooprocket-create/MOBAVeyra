@@ -56,7 +56,21 @@ public:
 	const FVeyraLoadoutEntry* FindAbility(const FVeyraContentId& Ability) const;
 	const FVeyraLoadoutEntry* FindHandle(FGameplayAbilitySpecHandle Handle) const;
 
+	/**
+	 * Server only: how many Flux Spell slots, in slot order, its team's permanent Flux has unlocked
+	 * (Battleground Bible §14; ADR-015 §4). Match sets it; a slot stays unlocked once it is.
+	 */
+	void SetUnlockedSpellSlots(int32 Count);
+
+	int32 GetUnlockedSpellSlots() const { return UnlockedSpellSlots; }
+
+	/** Whether Slot is a Flux Spell slot not unlocked yet, whatever it holds. */
+	bool IsLocked(EVeyraAbilitySlot Slot) const;
+
 private:
 	UPROPERTY(Replicated)
 	TArray<FVeyraLoadoutEntry> Entries;
+
+	UPROPERTY(Replicated)
+	int32 UnlockedSpellSlots = 0;
 };

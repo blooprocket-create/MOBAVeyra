@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Flux domain (Battleground Bible §4, §5, §9, §10, §18; ADR-011 §10): what each source of Team Flux grants, and how active Team Flux strengthens a team's lane Fluxborn. VeyraFlux binds it to FVeyraFluxTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "grants", "fluxbornScaling"],
+  "required": ["schemaVersion", "grants", "fluxbornScaling", "spellSlots"],
   "definitions": {
     "grant": {
       "description": "What one source grants the team that secured it.",
@@ -36,7 +36,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [2]
+      "enum": [3]
     },
     "grants": {
       "description": "Team Flux from destroyed enemy structures and secured Flux Wells (Battleground Bible §6).",
@@ -81,6 +81,26 @@
           "description": "Damage added per step, as a fraction; 0.05 is 5%.",
           "type": "number",
           "minimum": 0
+        }
+      }
+    },
+    "spellSlots": {
+      "description": "The permanent Team Flux that unlocks each Flux Spell slot, in slot order (Battleground Bible §14; ADR-015 §4). Temporary Flux never counts.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "thresholds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Battleground Bible §14 gives the current prototype thresholds.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "thresholds": {
+          "description": "One per spell slot, rising.",
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
         }
       }
     }

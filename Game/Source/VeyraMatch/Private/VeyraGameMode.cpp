@@ -875,6 +875,11 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 	// The one guaranteed Gold, once per match (Economy & Progression Bible §1), and empty slots to spend it on (§10).
 	UVeyraRewardSubsystem::GrantStartingGold(PlayerState);
 	UVeyraShopSubsystem::InitializeInventory(PlayerState);
+	// Its spell slots start as open as its team's permanent Flux has made them (ADR-015 §4).
+	if (Battleground)
+	{
+		Battleground->UnlockSpellSlots(PlayerState);
+	}
 	PlayerState.MarkStatsInitialized();
 	return true;
 }

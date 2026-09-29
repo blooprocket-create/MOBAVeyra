@@ -86,6 +86,23 @@ struct FVeyraFluxbornScalingTuning
 	double DamagePerStep = 0.0;
 };
 
+/**
+ * The permanent Team Flux that unlocks each Flux Spell slot (Battleground Bible §14; ADR-015 §4):
+ * one threshold per slot, in slot order. Temporary Flux never counts.
+ */
+USTRUCT()
+struct FVeyraSpellSlotsTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Rising: a later slot never opens before an earlier one. */
+	UPROPERTY()
+	TArray<double> Thresholds;
+};
+
 /** The Flux domain's tuning, bound from Game/Tuning/Flux.json (ADR-006 §6, ADR-011 §10). */
 USTRUCT()
 struct FVeyraFluxTuning
@@ -93,18 +110,24 @@ struct FVeyraFluxTuning
 	GENERATED_BODY()
 
 	/** The Flux.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraFluxGrantsTuning Grants;
 
 	UPROPERTY()
 	FVeyraFluxbornScalingTuning FluxbornScaling;
+
+	UPROPERTY()
+	FVeyraSpellSlotsTuning SpellSlots;
 };
 
-/** The Flux domain's checks that a schema cannot express. */
+/** The Flux domain's checks that a schema cannot express, and its rules. */
 namespace VeyraFlux
 {
 	/** Problems with Tuning, each a JSON pointer and a message; empty when it is consistent. */
 	VEYRAFLUX_API TArray<FString> Validate(const FVeyraFluxTuning& Tuning);
+
+	/** How many Flux Spell slots Permanent Team Flux unlocks: the thresholds it has reached (§14). */
+	VEYRAFLUX_API int32 UnlockedSpellSlots(double Permanent, TConstArrayView<double> Thresholds);
 }

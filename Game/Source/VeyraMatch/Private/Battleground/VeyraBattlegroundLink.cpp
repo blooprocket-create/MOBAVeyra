@@ -5,8 +5,12 @@
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Engine/World.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Rewards/VeyraRewardSubsystem.h"
 #include "Structures/VeyraStructure.h"
+#include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "VeyraBattlegroundSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraTeamFluxSubsystem.h"
@@ -40,6 +44,7 @@ FVeyraBattlegroundLink::~FVeyraBattlegroundLink()
 
 void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrimeWellDestroyed)
 {
+	MatchWorld = &World;
 	Battleground = World.GetSubsystem<UVeyraBattlegroundSubsystem>();
 	Flux = World.GetSubsystem<UVeyraTeamFluxSubsystem>();
 	Rewards = World.GetSubsystem<UVeyraRewardSubsystem>();
@@ -57,7 +62,7 @@ void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrim
 	if (UVeyraTeamFluxSubsystem* TeamFlux = Flux.Get())
 	{
 		FluxChangedHandle = TeamFlux->OnTeamFluxChanged.AddRaw(this, &FVeyraBattlegroundLink::OnTeamFluxChanged);
-		// World starts from each team's Flux as it stands.
+		// World and the spell slots start from each team's Flux as it stands.
 		OnTeamFluxChanged(EVeyraTeam::A);
 		OnTeamFluxChanged(EVeyraTeam::B);
 	}
@@ -66,8 +71,23 @@ void FVeyraBattlegroundLink::Start(UWorld& World, FOnPrimeWellDestroyed InOnPrim
 void FVeyraBattlegroundLink::OnTeamFluxChanged(EVeyraTeam Team)
 {
 	UVeyraTeamFluxSubsystem* TeamFlux = Flux.Get();
+	if (!TeamFlux)
+	{
+		return;
+	}
+	// The team's spell slots open as its permanent Flux reaches them, anywhere (Battleground Bible §14).
+	if (const AGameStateBase* GameState = MatchWorld.IsValid() ? MatchWorld->GetGameState() : nullptr)
+	{
+		for (APlayerState* Participant : GameState->PlayerArray)
+		{
+			if (Participant && VeyraTeams::TeamOf(Participant) == Team)
+			{
+				UnlockSpellSlots(*Participant);
+			}
+		}
+	}
 	UVeyraBattlegroundSubsystem* Subsystem = Battleground.Get();
-	if (!TeamFlux || !Subsystem)
+	if (!Subsystem)
 	{
 		return;
 	}
@@ -77,6 +97,18 @@ void FVeyraBattlegroundLink::OnTeamFluxChanged(EVeyraTeam Team)
 	View.HealthMultiplier = Strength.HealthMultiplier;
 	View.DamageMultiplier = Strength.DamageMultiplier;
 	Subsystem->SetTeamFlux(Team, View);
+}
+
+void FVeyraBattlegroundLink::UnlockSpellSlots(APlayerState& Participant) const
+{
+	const UVeyraTeamFluxSubsystem* TeamFlux = Flux.Get();
+	UVeyraAbilityLoadoutComponent* Loadout = Participant.FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+	const EVeyraTeam Team = VeyraTeams::TeamOf(&Participant);
+	if (!TeamFlux || !Loadout || Team == EVeyraTeam::None)
+	{
+		return;
+	}
+	Loadout->SetUnlockedSpellSlots(VeyraFlux::UnlockedSpellSlots(TeamFlux->GetPermanent(Team), UVeyraFluxTuningSubsystem::Get().SpellSlots.Thresholds));
 }
 
 void FVeyraBattlegroundLink::Stop()
@@ -112,6 +144,7 @@ void FVeyraBattlegroundLink::Stop()
 	FluxChangedHandle.Reset();
 	Battleground.Reset();
 	Flux.Reset();
+	MatchWorld.Reset();
 }
 
 void FVeyraBattlegroundLink::StartLive()
