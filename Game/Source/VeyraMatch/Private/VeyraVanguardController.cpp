@@ -104,6 +104,11 @@ EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Desti
 	{
 		return EVeyraOrderRejection::NoVanguard;
 	}
+	// A rider cannot attack, so its attack-move is an ordinary move (Combat Bible §56).
+	if (const UVeyraMovementComponent* Movement = GetPawn()->FindComponentByClass<UVeyraMovementComponent>(); Movement && Movement->IsRiding())
+	{
+		return MoveToDestination(Destination);
+	}
 	UVeyraBasicAttackComponent* Attacks = GetBasicAttack();
 	if (!Attacks || !Attacks->HasProfile())
 	{
@@ -144,7 +149,34 @@ void AVeyraVanguardController::Tick(float DeltaSeconds)
 	if (HasAuthority())
 	{
 		UpdateAttackOrder();
+		UpdateRideArrival();
 	}
+}
+
+void AVeyraVanguardController::UpdateRideArrival()
+{
+	// A rider cannot pivot, so a destination inside its turning circle is reached at its closest
+	// approach: once within that circle it stops as soon as it starts moving away (ADR-018 §8).
+	const APawn* Body = GetPawn();
+	const UVeyraMovementComponent* Movement = Body ? Body->FindComponentByClass<UVeyraMovementComponent>() : nullptr;
+	if (!MoveOrder.IsSet() || !Movement || !Movement->IsRiding())
+	{
+		RideClosest.Reset();
+		return;
+	}
+	const double Distance = FVector::Dist2D(Body->GetActorLocation(), MoveOrder.GetValue());
+	if (Distance > Movement->GetRideTurnRadius())
+	{
+		RideClosest.Reset();
+		return;
+	}
+	if (RideClosest.IsSet() && Distance > RideClosest.GetValue())
+	{
+		RideClosest.Reset();
+		StopOrders();
+		return;
+	}
+	RideClosest = Distance;
 }
 
 void AVeyraVanguardController::UpdateAttackOrder()

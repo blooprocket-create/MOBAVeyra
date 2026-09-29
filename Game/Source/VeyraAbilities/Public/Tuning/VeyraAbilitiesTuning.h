@@ -807,6 +807,16 @@ enum class EVeyraDashDirection : uint8
 	AwayFromHost,
 };
 
+/** Whether a dash leaves its caster's ride first (Combat Bible §56, "Leaving"). */
+UENUM()
+enum class EVeyraRideExit : uint8
+{
+	/** It rides on, if it rides. */
+	Stay,
+	/** It separates rider and vehicle first, as Bail Out and Last Exit do; the vehicle goes on without it. */
+	Leave,
+};
+
 /** An ability that moves its caster, with effects as it sets off and where it stops (ADR-008 §3; Combat Bible §9). */
 USTRUCT()
 struct FVeyraDashAbilityTuning
@@ -855,6 +865,9 @@ struct FVeyraDashAbilityTuning
 	/** Areas where the dash lands, facing its way, as Ravine Bound's; innermost first. None when a displacement cuts it short. */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> EndZones;
+
+	UPROPERTY()
+	EVeyraRideExit RideExit = EVeyraRideExit::Stay;
 };
 
 /** The other enemies an empowered attack hits, in the attacker's cleave shape (ADR-009 §5). */
@@ -1097,13 +1110,74 @@ struct FVeyraAttachAbilityTuning
 	FVeyraEffectBundleTuning HostEffects;
 };
 
+/** One slot a ride holds for its duration, and the mounted action it holds (Combat Bible §56). */
+USTRUCT()
+struct FVeyraRideSlotTuning
+{
+	GENERATED_BODY()
+
+	/** Q, W or E: a basic ability's slot, whose rank the mounted action shares. */
+	UPROPERTY()
+	EVeyraAbilitySlot Slot = EVeyraAbilitySlot::Q;
+
+	UPROPERTY()
+	FVeyraContentId Ability;
+};
+
+/**
+ * An ability that puts its caster in a ride state (Combat Bible §56; ADR-018 §7), as Raska's Kickstart
+ * and NO BRAKES: a set Movement Speed and a limited turn rate, passing through units and unable to
+ * attack, its mounted actions in their slots with their own cooldowns, and statuses held meanwhile.
+ * It ends with its time, its rider's death, or a dash that leaves it; on every end its vehicle, if it
+ * has one, goes on without its rider as a skillshot along the rider's heading.
+ */
+USTRUCT()
+struct FVeyraRideAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	/** The rider's Movement Speed, set rather than added; above 0. */
+	UPROPERTY()
+	double SetSpeed = 0.0;
+
+	/** How fast its heading turns, in degrees per second; above 0. */
+	UPROPERTY()
+	double TurnRateDegreesPerSecond = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** Seconds over which the rider slows back to its ordinary speed after; at least 0. */
+	UPROPERTY()
+	double DecaySeconds = 0.0;
+
+	/** Status IDs held on the rider while it rides, such as its larger body. */
+	UPROPERTY()
+	TArray<FVeyraContentId> RiderStatuses;
+
+	/** The mounted actions, one per slot. */
+	UPROPERTY()
+	TArray<FVeyraRideSlotTuning> Mounted;
+
+	/** At most one: the skillshot its vehicle goes on as, along the rider's heading, as the ride ends. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Vehicle;
+};
+
 USTRUCT()
 struct FVeyraAbilitiesTuning
 {
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 10;
+	static constexpr int32 SchemaVersion = 11;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;
@@ -1137,6 +1211,9 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraAttachAbilityTuning> Attach;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraRideAbilityTuning> Ride;
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;

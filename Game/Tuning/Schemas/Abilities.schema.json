@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "fluxSpells"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "fluxSpells"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -208,7 +208,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [10]
+      "enum": [11]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -569,7 +569,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses", "hostEffects", "endZones"],
+          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses", "hostEffects", "endZones", "rideExit"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -594,7 +594,8 @@
             "contactEffects": { "description": "On the enemy a StopAtFirstEnemy dash stops at.", "$ref": "#/definitions/effects" },
             "contactSelfStatuses": { "description": "Put on the caster when it stops at an enemy.", "$ref": "#/definitions/statusIds" },
             "hostEffects": { "description": "On the unit an AwayFromHost dash lets go of, as the throw's stumble; no effects for any other dash.", "$ref": "#/definitions/effects" },
-            "endZones": {"description": "Areas at the caster, facing the cast's point, as the dash sets off; innermost first.", "type": "array", "minItems": 0, "items": {"$ref": "#/definitions/zone"}}
+            "endZones": {"description": "Areas at the caster, facing the cast's point, as the dash sets off; innermost first.", "type": "array", "minItems": 0, "items": {"$ref": "#/definitions/zone"}},
+            "rideExit": { "description": "Stay: it rides on, if it rides. Leave: it separates rider and vehicle first, as Bail Out and Last Exit do (Combat Bible §56).", "type": "string", "enum": ["Stay", "Leave"] }
           }
         }
       }
@@ -733,6 +734,30 @@
             "attachSeconds": { "description": "How long it holds on.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "hostStatuses": { "description": "Held on the host while the caster holds on.", "$ref": "#/definitions/statusIds" },
             "hostEffects": { "description": "On the host as the caster takes hold.", "$ref": "#/definitions/effects" }
+          }
+        }
+      }
+    },
+    "ride": {
+      "description": "Abilities that put their caster in a ride state (Combat Bible §56; ADR-018 §7), as Raska's Kickstart and NO BRAKES: a set speed and a limited turn rate, mounted actions in their slots, statuses held meanwhile, and a vehicle that goes on without its rider as the ride ends.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "setSpeed", "turnRateDegreesPerSecond", "durationSeconds", "decaySeconds", "riderStatuses", "mounted", "vehicle"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "setSpeed": { "description": "The rider's Movement Speed, set rather than added.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "turnRateDegreesPerSecond": { "description": "How fast its heading turns.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "decaySeconds": { "description": "Seconds over which the rider slows back to its ordinary speed after.", "type": "number", "minimum": 0 },
+            "riderStatuses": { "description": "Held on the rider while it rides.", "$ref": "#/definitions/statusIds" },
+            "mounted": { "description": "The mounted actions, one per basic ability's slot.", "type": "array", "minItems": 0, "maxItems": 3,
+              "items": { "type": "object", "additionalProperties": false, "required": ["slot", "ability"], "properties": { "slot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] }, "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } } } },
+            "vehicle": { "description": "At most one: the skillshot its vehicle goes on as along the rider's heading as the ride ends.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
           }
         }
       }

@@ -110,12 +110,13 @@ Vision enforces Camouflage as it does wards' Invisibility, with these rules:
 ### 7. Ride states (ADR-003's separate decision, made here; Combat §56)
 
 A ride state is a movement mode on `UVeyraMovementComponent`, owned by Combat:
-- **Movement:** Movement Speed is **set**, never added. Soft caps do not apply; Slows and the floor do. Facing turns at a limited rate, which the server owns; the arrival rule is the widest permitted arc, never slowing to pivot.
-- **Presence:** the rider is Ghosted, with one combined, larger hitbox.
+- **Movement:** Movement Speed is **set**, never added. Soft caps do not apply; Slows and the floor do. The heading turns at a limited rate, which the server owns: the rider keeps its speed through the widest permitted arc, never slowing to pivot. A move order to a point inside its turning circle ends at the closest approach, as soon as it starts moving away again (Match's controller). After the ride its speed falls linearly to ordinary across the ride's decay window.
+- **Presence:** the rider passes through units as a Ghosted unit does; its combined, larger hitbox is a BodyScale status the ride holds.
 - **Blocked actions:** attacks (attack-move becomes move), damaging structures, recall and the fountain shop. Match refuses those.
 - **Kept:** an earned empowered attack survives until after the ride.
 - **The ability set:** the replacement set of §1.
 - **The vehicle:** it exists only from the entry cast to the end of any separated phase. On every exit, death included, it continues as a projectile along the rider's heading, and its damage is still the rider's.
+- **The ride archetype** (`ride` map) enters it: set speed, turn rate, duration, decay, statuses held on the rider, mounted actions by slot and the vehicle's skillshot. A dash may leave the ride first (`rideExit: Leave`), as Bail Out and Last Exit do. As the ride's time runs out, a recast that fires at expiry fires first, so Last Exit's payoff never loses a race with the ride's own end.
 
 Combat also counts the **distance a unit moves itself** (Raska's Momentum), excluding forced movement.
 

@@ -53,7 +53,7 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # name content too. An ID is valid when any of the maps defines it (ADR-008 §7). The game checks
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
-ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach")
+ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride")
 PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
@@ -85,6 +85,10 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     # A tether holds statuses on its target, and an attach on its host, while they last (ADR-018 §2).
     ("Abilities", "/tether/*/targetStatuses/*", "Abilities", ("/statuses",)),
     ("Abilities", "/attach/*/hostStatuses/*", "Abilities", ("/statuses",)),
+    # A ride holds statuses on its rider, mounted actions of any archetype, and a skillshot vehicle (Combat Bible §56).
+    ("Abilities", "/ride/*/riderStatuses/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/ride/*/mounted/*/ability", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Abilities", "/ride/*/vehicle/*", "Abilities", ("/skillshot",)),
     # What a buff's end and its aura put on enemies are statuses (ADR-018 §6).
     ("Abilities", "/selfBuff/*/endPayload/*/status", "Abilities", ("/statuses",)),
     ("Abilities", "/selfBuff/*/aura/*/enemyStatuses/*", "Abilities", ("/statuses",)),

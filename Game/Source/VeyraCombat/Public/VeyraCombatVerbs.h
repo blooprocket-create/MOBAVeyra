@@ -228,6 +228,18 @@ namespace VeyraCombat
 	VEYRACOMBAT_API AActor* GetAttachHost(const UAbilitySystemComponent& Unit);
 
 	/**
+	 * Server only: Unit rides (Combat Bible §56): its speed is set, its turns limited, it passes through
+	 * units, and it cannot attack meanwhile. False for a dead unit, one without a body, or invalid values.
+	 */
+	VEYRACOMBAT_API bool StartRide(UAbilitySystemComponent& Unit, const FVeyraRide& Ride);
+
+	/** Server only: Unit's ride ends, for Reason, if it rides. */
+	VEYRACOMBAT_API void EndRide(UAbilitySystemComponent& Unit, EVeyraRideEndReason Reason);
+
+	/** Whether Unit rides now. */
+	VEYRACOMBAT_API bool IsRiding(const UAbilitySystemComponent& Unit);
+
+	/**
 	 * Displaces Target's body, a Knockback or a Pull from Source (Combat Bible §8, §9; ADR-009 §2).
 	 * Displacement Resistance shortens it; it interrupts the target and replaces an older displacement
 	 * or a dash. The displacement lands even when terrain leaves no room to move. A target whose death

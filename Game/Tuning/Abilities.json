@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 10,
+  "schemaVersion": 11,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -1445,7 +1445,8 @@
       },
       "contactSelfStatuses": ["qazharr_boarding_rush_haste"],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] },
-      "endZones": []
+      "endZones": [],
+      "rideExit": "Stay"
     },
     "bryn_kickback": {
       "provenance": "Provisional",
@@ -1483,7 +1484,8 @@
       },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] },
-      "endZones": []
+      "endZones": [],
+      "rideExit": "Stay"
     },
     "blink": {
       "provenance": "Provisional",
@@ -1509,7 +1511,8 @@
       },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] },
-      "endZones": []
+      "endZones": [],
+      "rideExit": "Stay"
     },
     "patch_bear_hug_throw": {
       "provenance": "Provisional",
@@ -1530,7 +1533,8 @@
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 75, "speed": 600 }], "missingHealthDamage": [], "unitKindMultipliers": [] },
-      "endZones": []
+      "endZones": [],
+      "rideExit": "Stay"
     },
     "gorraveth_rip_through": {
       "provenance": "Provisional",
@@ -1551,7 +1555,8 @@
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] },
-      "endZones": []
+      "endZones": [],
+      "rideExit": "Stay"
     },
     "gorraveth_rip_through_hunt": {
       "provenance": "Provisional",
@@ -1572,7 +1577,8 @@
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] },
-      "endZones": []
+      "endZones": [],
+      "rideExit": "Stay"
     },
     "gorraveth_ravine_bound": {
       "provenance": "Provisional",
@@ -1593,7 +1599,8 @@
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] },
-      "endZones": [{ "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }]
+      "endZones": [{ "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "rideExit": "Stay"
     }
   },
   "empoweredAttack": {
@@ -1719,6 +1726,7 @@
       "hostEffects": { "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200, 250, 300], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [] }
     }
   },
+  "ride": {},
   "fluxSpells": {
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]

@@ -82,6 +82,27 @@ public:
 	AActor* GetAttachHost() const;
 
 	/**
+	 * Server only: the body rides (Combat Bible §56): its Movement Speed is Ride's set speed, its
+	 * heading turns no faster than Ride's rate while it keeps its speed through the arc, and it passes
+	 * through units. It stays under its own orders; displacement and crowd control apply as ever and
+	 * never end it. A newer ride replaces an older. False for invalid values.
+	 */
+	bool StartRide(const FVeyraRide& Ride);
+
+	/** Server only: the ride ends, for Reason; the body slows back to its ordinary speed across the ride's decay window. */
+	void EndRide(EVeyraRideEndReason Reason);
+
+	bool IsRiding() const { return Ride.IsSet(); }
+
+	/** The tightest circle a rider can turn at its set speed, in units; 0 when not riding. */
+	double GetRideTurnRadius() const;
+
+	/** Which way the rider is heading; its facing when not riding. */
+	FVector GetRideHeading() const;
+
+	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
+
+	/**
 	 * Where a forced movement of Distance along Direction from the unit's position ends: terrain stops
 	 * it at the nearest point the body fits (Combat Bible §9), and so does the end of walkable ground;
 	 * the end then moves to the nearest walkable point within the tuned extent. With none that close,
@@ -118,6 +139,9 @@ public:
 
 	/** Server only: raised when it lets go of its host, and why. */
 	TMulticastDelegate<void(const FVeyraAttachEnd&)> OnAttachEnded;
+
+	/** Server only: raised as a ride ends, and why. */
+	TMulticastDelegate<void(const FVeyraRideEnd&)> OnRideEnded;
 
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -157,6 +181,19 @@ private:
 
 	/** The BodyScale its radius carries now; 1 for none. */
 	double AppliedBodyScale = 1.0;
+
+	/** The ride under way, and the heading its turns are measured from. */
+	TOptional<FVeyraRide> Ride;
+	FVector RideHeading = FVector::ForwardVector;
+
+	/** After a ride: the speed it left at, when, and over how long it slows to its ordinary speed. */
+	struct FRideDecay
+	{
+		double FromSpeed = 0.0;
+		double StartedAt = 0.0;
+		double Seconds = 0.0;
+	};
+	TOptional<FRideDecay> RideDecay;
 
 	TWeakObjectPtr<UAbilitySystemComponent> FollowedCombatant;
 	TWeakObjectPtr<UVeyraStatusComponent> FollowedStatuses;

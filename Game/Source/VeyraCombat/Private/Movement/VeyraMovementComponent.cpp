@@ -65,8 +65,9 @@ void UVeyraMovementComponent::RefreshBody()
 	// It changes only what it shaped itself, as that changes: whoever sized the body or set its
 	// collision, such as the character from its data, keeps what they set.
 	const UVeyraStatusComponent* Statuses = FollowedStatuses.Get();
-	// Ghosted, it passes through units, never terrain (Combat Bible §24); so does a body holding on to another.
-	const bool bPassesThrough = (Statuses && Statuses->Has(EVeyraStatusKind::Ghosted)) || IsAttached();
+	// Ghosted, it passes through units, never terrain (Combat Bible §24); so does a body holding on to
+	// another, and a rider (§56).
+	const bool bPassesThrough = (Statuses && Statuses->Has(EVeyraStatusKind::Ghosted)) || IsAttached() || IsRiding();
 	if (bPassesThrough != PassThroughFrom.IsSet())
 	{
 		if (bPassesThrough)
@@ -111,6 +112,19 @@ float UVeyraMovementComponent::GetMaxSpeed() const
 	if (Pursuit > 0.0 && IsMovingTowardEnemyVanguard())
 	{
 		Inputs.ConditionalBonus = Pursuit;
+	}
+	// A rider's speed is set (§56); after the ride it slows back to its ordinary speed across the decay window.
+	if (IsRiding())
+	{
+		Inputs.SetSpeed = Ride->SetSpeed;
+	}
+	else if (const UWorld* World = GetWorld(); World && RideDecay.IsSet() && RideDecay->Seconds > 0.0)
+	{
+		const double Alpha = (World->GetTimeSeconds() - RideDecay->StartedAt) / RideDecay->Seconds;
+		if (Alpha < 1.0)
+		{
+			Inputs.SetSpeed = FMath::Max(Inputs.MoveSpeed, FMath::Lerp(RideDecay->FromSpeed, Inputs.MoveSpeed, Alpha));
+		}
 	}
 	return static_cast<float>(VeyraMovementRules::EffectiveSpeed(Inputs, UVeyraCombatTuningSubsystem::Get().Movement));
 }
@@ -217,6 +231,81 @@ void UVeyraMovementComponent::EndAttach(EVeyraAttachEndReason Reason)
 	const FVeyraAttachEnd End{ Reason, ForcedMove->Host };
 	EndForcedMove();
 	OnAttachEnded.Broadcast(End);
+}
+
+bool UVeyraMovementComponent::StartRide(const FVeyraRide& InRide)
+{
+	const bool bValid = InRide.SetSpeed > 0.0 && FMath::IsFinite(InRide.SetSpeed) && InRide.TurnRateDegreesPerSecond > 0.0
+		&& FMath::IsFinite(InRide.TurnRateDegreesPerSecond) && InRide.DecaySeconds >= 0.0 && FMath::IsFinite(InRide.DecaySeconds);
+	if (!bValid || !UpdatedComponent)
+	{
+		return false;
+	}
+	if (!IsRiding())
+	{
+		const FVector Moving = Velocity.GetSafeNormal2D();
+		RideHeading = Moving.IsNearlyZero() ? GetOwner()->GetActorForwardVector().GetSafeNormal2D() : Moving;
+	}
+	Ride = InRide;
+	RideDecay.Reset();
+	RefreshBody();
+	return true;
+}
+
+void UVeyraMovementComponent::EndRide(EVeyraRideEndReason Reason)
+{
+	if (!IsRiding())
+	{
+		return;
+	}
+	const FVeyraRideEnd End{ Reason, UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector, RideHeading };
+	// It keeps its speed, slowing to its ordinary speed across the ride's window (§56, "Leaving").
+	if (const UWorld* World = GetWorld(); World && Ride->DecaySeconds > 0.0)
+	{
+		RideDecay = FRideDecay{ Ride->SetSpeed, World->GetTimeSeconds(), Ride->DecaySeconds };
+	}
+	Ride.Reset();
+	RefreshBody();
+	OnRideEnded.Broadcast(End);
+}
+
+double UVeyraMovementComponent::GetRideTurnRadius() const
+{
+	return IsRiding() ? Ride->SetSpeed / FMath::DegreesToRadians(Ride->TurnRateDegreesPerSecond) : 0.0;
+}
+
+FVector UVeyraMovementComponent::GetRideHeading() const
+{
+	return IsRiding() ? RideHeading : GetOwner()->GetActorForwardVector().GetSafeNormal2D();
+}
+
+void UVeyraMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
+{
+	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
+	if (!IsRiding() || ForcedMove.IsSet() || DeltaTime <= 0.0f)
+	{
+		return;
+	}
+	const FVector Desired = Velocity.GetSafeNormal2D();
+	if (Desired.IsNearlyZero())
+	{
+		return;
+	}
+	// Its heading turns no faster than the ride's rate, and it keeps its speed through the arc rather
+	// than slowing to pivot (§56).
+	const double MaxTurn = FMath::DegreesToRadians(Ride->TurnRateDegreesPerSecond) * DeltaTime;
+	const double Angle = FMath::Acos(FMath::Clamp(FVector::DotProduct(RideHeading, Desired), -1.0, 1.0));
+	if (Angle > MaxTurn)
+	{
+		const double Side = FVector::CrossProduct(RideHeading, Desired).Z >= 0.0 ? 1.0 : -1.0;
+		RideHeading = RideHeading.RotateAngleAxis(FMath::RadiansToDegrees(MaxTurn) * Side, FVector::UpVector).GetSafeNormal2D();
+	}
+	else
+	{
+		RideHeading = Desired;
+	}
+	// At its set speed, less its Slows, from the moment it has somewhere to go: a vehicle does not wind up.
+	Velocity = RideHeading * GetMaxSpeed() + FVector(0.0, 0.0, Velocity.Z);
 }
 
 bool UVeyraMovementComponent::IsAttached() const

@@ -73,6 +73,11 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 			FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	}
 
+	// Leaving the ride first, the vehicle goes on without its rider (Combat Bible §56).
+	if (Dash->RideExit == EVeyraRideExit::Leave)
+	{
+		VeyraCombat::EndRide(*Caster, EVeyraRideEndReason::Dismounted);
+	}
 	FVector Heading = VeyraAbilityRules::DashHeading(*Dash, Cast.Direction);
 	if (Dash->Direction == EVeyraDashDirection::AwayFromHost)
 	{

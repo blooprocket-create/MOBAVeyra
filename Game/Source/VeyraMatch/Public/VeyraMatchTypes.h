@@ -49,6 +49,8 @@ enum class EVeyraOrderRejection : uint8
 	Casting,
 	/** The vision tool has no charge to spend, or is cooling down (Vision Bible §4–§6). */
 	NotReady,
+	/** The Vanguard rides and must leave the ride first (Combat Bible §56). */
+	Mounted,
 };
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraOrderRejection Rejection);

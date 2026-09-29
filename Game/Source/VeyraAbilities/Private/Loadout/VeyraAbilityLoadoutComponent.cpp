@@ -7,6 +7,7 @@
 #include "Abilities/VeyraAreaAbility.h"
 #include "Abilities/VeyraAttachAbility.h"
 #include "Abilities/VeyraDashAbility.h"
+#include "Abilities/VeyraRideAbility.h"
 #include "Abilities/VeyraEmpoweredAttackAbility.h"
 #include "Abilities/VeyraSelfBuffAbility.h"
 #include "Abilities/VeyraSkillshotAbility.h"
@@ -64,6 +65,10 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindAttach(Ability))
 		{
 			return UVeyraAttachAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindRide(Ability))
+		{
+			return UVeyraRideAbility::StaticClass();
 		}
 		return nullptr;
 	}

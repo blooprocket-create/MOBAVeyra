@@ -722,7 +722,32 @@ EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)
 	{
 		Blocks |= EVeyraActionBlocks::Move | EVeyraActionBlocks::Attack;
 	}
+	// A rider cannot basic-attack (§56).
+	if (Movement && Movement->IsRiding())
+	{
+		Blocks |= EVeyraActionBlocks::Attack;
+	}
 	return Blocks;
+}
+
+bool StartRide(UAbilitySystemComponent& Unit, const FVeyraRide& Ride)
+{
+	UVeyraMovementComponent* Movement = FindMovement(Unit);
+	return Movement && !IsDeadUnit(Unit) && Movement->StartRide(Ride);
+}
+
+void EndRide(UAbilitySystemComponent& Unit, EVeyraRideEndReason Reason)
+{
+	if (UVeyraMovementComponent* Movement = FindMovement(Unit))
+	{
+		Movement->EndRide(Reason);
+	}
+}
+
+bool IsRiding(const UAbilitySystemComponent& Unit)
+{
+	const UVeyraMovementComponent* Movement = FindMovement(Unit);
+	return Movement && Movement->IsRiding();
 }
 
 bool Attach(UAbilitySystemComponent& Unit, AActor& Host, double Seconds)

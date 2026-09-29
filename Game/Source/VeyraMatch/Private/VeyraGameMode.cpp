@@ -483,6 +483,11 @@ EVeyraOrderRejection AVeyraGameMode::HandleRecallOrder(AVeyraPlayerState* Player
 	{
 		return EVeyraOrderRejection::NoVanguard;
 	}
+	// A rider leaves the ride before it may recall (Combat Bible §56).
+	if (const UAbilitySystemComponent* Rider = PlayerState->GetAbilitySystemComponent(); Rider && VeyraCombat::IsRiding(*Rider))
+	{
+		return EVeyraOrderRejection::Mounted;
+	}
 	// Recall is cast like an ability, so what stops casting stops it beginning.
 	const UVeyraStatusComponent* Statuses = PlayerState->FindComponentByClass<UVeyraStatusComponent>();
 	if (Statuses && EnumHasAnyFlags(Statuses->GetActionBlocks(), EVeyraActionBlocks::Cast))
@@ -1055,7 +1060,9 @@ void AVeyraGameMode::RecoverAtFountains()
 		const APawn* Body = PlayerState ? PlayerState->GetPawn() : nullptr;
 		const AActor* Start = Body ? FindTeamStart(PlayerState->GetVeyraTeam()) : nullptr;
 		UAbilitySystemComponent* AbilitySystem = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
-		const bool bAtFountain = Start && FVector::Dist2D(Body->GetActorLocation(), Start->GetActorLocation()) <= Fountain.Radius;
+		// A rider uses the fountain only once it leaves the ride (Combat Bible §56).
+		const bool bRiding = AbilitySystem && VeyraCombat::IsRiding(*AbilitySystem);
+		const bool bAtFountain = Start && !bRiding && FVector::Dist2D(Body->GetActorLocation(), Start->GetActorLocation()) <= Fountain.Radius;
 		// The shop receives, sells and undoes only here (Economy & Progression Bible §10, §12; ADR-012 §7).
 		// The dead shop as if here (ADR-012 §9), and respawn here, so death never ends undo.
 		if (Shop && PlayerState)

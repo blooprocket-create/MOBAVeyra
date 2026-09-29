@@ -381,6 +381,43 @@ namespace
 			}
 		}
 
+		void CheckRide(const FString& Pointer, const FVeyraRideAbilityTuning& Ride)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Ride.Cast);
+			CheckStatusIds(Pointer + TEXT("/riderStatuses"), Ride.RiderStatuses);
+			if (!(Ride.SetSpeed > 0.0) || !(Ride.TurnRateDegreesPerSecond > 0.0) || !(Ride.DurationSeconds > 0.0) || Ride.DecaySeconds < 0.0)
+			{
+				Problem(Pointer, TEXT("setSpeed, turnRateDegreesPerSecond and durationSeconds are above 0, and decaySeconds at least 0"));
+			}
+			TArray<EVeyraAbilitySlot> Slots;
+			for (int32 Index = 0; Index < Ride.Mounted.Num(); ++Index)
+			{
+				const FVeyraRideSlotTuning& Mounted = Ride.Mounted[Index];
+				const FString MountedPointer = FString::Printf(TEXT("%s/mounted/%d"), *Pointer, Index);
+				const bool bBasic = Mounted.Slot == EVeyraAbilitySlot::Q || Mounted.Slot == EVeyraAbilitySlot::W || Mounted.Slot == EVeyraAbilitySlot::E;
+				if (!bBasic || Slots.Contains(Mounted.Slot))
+				{
+					Problem(MountedPointer + TEXT("/slot"), TEXT("a basic ability's slot, Q, W or E, once each (Combat Bible §56)"));
+				}
+				Slots.Add(Mounted.Slot);
+				if (!Defines(Tuning, Mounted.Ability))
+				{
+					Problem(MountedPointer + TEXT("/ability"), FString::Printf(TEXT("names ability \"%s\", which no archetype defines"), *Mounted.Ability.ToString()));
+				}
+			}
+			if (Ride.Vehicle.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/vehicle"), TEXT("holds at most one"));
+			}
+			for (const FVeyraContentId& Vehicle : Ride.Vehicle)
+			{
+				if (!Tuning.Skillshot.Contains(Vehicle))
+				{
+					Problem(Pointer + TEXT("/vehicle"), FString::Printf(TEXT("names \"%s\", which /skillshot does not define"), *Vehicle.ToString()));
+				}
+			}
+		}
+
 		void CheckAttach(const FString& Pointer, const FVeyraAttachAbilityTuning& Attach)
 		{
 			CheckCast(Pointer + TEXT("/cast"), Attach.Cast);
@@ -499,6 +536,10 @@ namespace
 			{
 				Note(Entry.Key, TEXT("attach"));
 			}
+			for (const TPair<FVeyraContentId, FVeyraRideAbilityTuning>& Entry : Tuning.Ride)
+			{
+				Note(Entry.Key, TEXT("ride"));
+			}
 		}
 	};
 }
@@ -581,6 +622,10 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	{
 		Checker.CheckAttach(TEXT("/attach/") + Entry.Key.ToString(), Entry.Value);
 	}
+	for (const TPair<FVeyraContentId, FVeyraRideAbilityTuning>& Entry : Tuning.Ride)
+	{
+		Checker.CheckRide(TEXT("/ride/") + Entry.Key.ToString(), Entry.Value);
+	}
 	Checker.CheckEachIdInOneArchetype();
 	Checker.CheckFluxSpells();
 	return Checker.Problems;
@@ -595,7 +640,7 @@ bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability
 {
 	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)
 		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability)
-		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability);
+		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability) || Tuning.Ride.Contains(Ability);
 }
 
 double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
@@ -637,6 +682,10 @@ double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentI
 	{
 		Cast = &Attach->Cast;
 	}
+	else if (const FVeyraRideAbilityTuning* Ride = Tuning.Ride.Find(Ability))
+	{
+		Cast = &Ride->Cast;
+	}
 	return Cast ? ValueAtRank(Cast->CooldownSecondsByRank, Rank) : 0.0;
 }
 
@@ -676,6 +725,10 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	if (const FVeyraAttachAbilityTuning* Attach = Tuning.Attach.Find(Ability))
 	{
 		Checker.CheckAttach(TEXT("/attach/") + Key, *Attach);
+	}
+	if (const FVeyraRideAbilityTuning* Ride = Tuning.Ride.Find(Ability))
+	{
+		Checker.CheckRide(TEXT("/ride/") + Key, *Ride);
 	}
 	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;
