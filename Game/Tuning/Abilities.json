@@ -407,7 +407,8 @@
         "castRange": 0,
         "windupSeconds": 0,
         "windupMovement": "Free",
-        "recoverySeconds": 0
+        "recoverySeconds": 0,
+        "recastWindow": []
       },
       "origin": "Caster",
       "delaySeconds": 0,
@@ -436,7 +437,8 @@
         "castRange": 0,
         "windupSeconds": 0.45,
         "windupMovement": "Locked",
-        "recoverySeconds": 0.3
+        "recoverySeconds": 0.3,
+        "recastWindow": []
       },
       "origin": "Caster",
       "delaySeconds": 0,
@@ -476,7 +478,8 @@
         "castRange": 0,
         "windupSeconds": 1.0,
         "windupMovement": "Locked",
-        "recoverySeconds": 0.4
+        "recoverySeconds": 0.4,
+        "recastWindow": []
       },
       "origin": "Caster",
       "delaySeconds": 0,
@@ -528,7 +531,8 @@
         "castRange": 0,
         "windupSeconds": 0.6,
         "windupMovement": "Locked",
-        "recoverySeconds": 0.3
+        "recoverySeconds": 0.3,
+        "recastWindow": []
       },
       "origin": "Caster",
       "delaySeconds": 0,
@@ -557,7 +561,8 @@
         "castRange": 850,
         "windupSeconds": 0.25,
         "windupMovement": "Locked",
-        "recoverySeconds": 0.2
+        "recoverySeconds": 0.2,
+        "recastWindow": []
       },
       "origin": "TargetPoint",
       "delaySeconds": 0.9,
@@ -586,7 +591,8 @@
         "castRange": 0,
         "windupSeconds": 0.75,
         "windupMovement": "Locked",
-        "recoverySeconds": 0.3
+        "recoverySeconds": 0.3,
+        "recastWindow": []
       },
       "origin": "Caster",
       "delaySeconds": 0,
@@ -615,7 +621,8 @@
         "castRange": 900,
         "windupSeconds": 0.2,
         "windupMovement": "Free",
-        "recoverySeconds": 0.2
+        "recoverySeconds": 0.2,
+        "recastWindow": []
       },
       "origin": "TargetPoint",
       "delaySeconds": 0,
@@ -644,7 +651,8 @@
         "castRange": 3000,
         "windupSeconds": 1.25,
         "windupMovement": "Locked",
-        "recoverySeconds": 0.4
+        "recoverySeconds": 0.4,
+        "recastWindow": []
       },
       "origin": "TargetPoint",
       "delaySeconds": 1.2,
@@ -686,7 +694,8 @@
         "castRange": 0,
         "windupSeconds": 0,
         "windupMovement": "Free",
-        "recoverySeconds": 0
+        "recoverySeconds": 0,
+        "recastWindow": []
       },
       "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
       "shields": [],
@@ -702,7 +711,8 @@
         "castRange": 0,
         "windupSeconds": 0,
         "windupMovement": "Free",
-        "recoverySeconds": 0
+        "recoverySeconds": 0,
+        "recastWindow": []
       },
       "statuses": ["qazharr_weather_it_tenacity"],
       "shields": [
@@ -730,7 +740,8 @@
         "castRange": 0,
         "windupSeconds": 0,
         "windupMovement": "Free",
-        "recoverySeconds": 0
+        "recoverySeconds": 0,
+        "recastWindow": []
       },
       "statuses": ["oriel_mirror_veil_haste"],
       "shields": [
@@ -758,7 +769,8 @@
         "castRange": 0,
         "windupSeconds": 0,
         "windupMovement": "Free",
-        "recoverySeconds": 0
+        "recoverySeconds": 0,
+        "recastWindow": []
       },
       "statuses": [],
       "shields": [],
@@ -776,7 +788,8 @@
         "castRange": 1050,
         "windupSeconds": 0.35,
         "windupMovement": "Locked",
-        "recoverySeconds": 0.25
+        "recoverySeconds": 0.25,
+        "recastWindow": []
       },
       "projectile": { "speed": 1650, "radius": 55, "range": 1050 },
       "collision": "FirstEnemyVanguard",
@@ -801,7 +814,8 @@
         "castRange": 1000,
         "windupSeconds": 0.25,
         "windupMovement": "Locked",
-        "recoverySeconds": 0.2
+        "recoverySeconds": 0.2,
+        "recastWindow": []
       },
       "projectile": { "speed": 1800, "radius": 40, "range": 1000 },
       "collision": "FirstEnemy",
@@ -828,7 +842,8 @@
         "castRange": 450,
         "windupSeconds": 0,
         "windupMovement": "Free",
-        "recoverySeconds": 0
+        "recoverySeconds": 0,
+        "recastWindow": []
       },
       "direction": "TowardPoint",
       "distance": 450,
@@ -851,7 +866,8 @@
         "castRange": 500,
         "windupSeconds": 0,
         "windupMovement": "Free",
-        "recoverySeconds": 0
+        "recoverySeconds": 0,
+        "recastWindow": []
       },
       "direction": "AwayFromPoint",
       "distance": 350,
@@ -886,7 +902,8 @@
         "castRange": 400,
         "windupSeconds": 0,
         "windupMovement": "Free",
-        "recoverySeconds": 0
+        "recoverySeconds": 0,
+        "recastWindow": []
       },
       "direction": "TowardPoint",
       "distance": 400,
@@ -911,7 +928,8 @@
         "castRange": 0,
         "windupSeconds": 0,
         "windupMovement": "Free",
-        "recoverySeconds": 0
+        "recoverySeconds": 0,
+        "recastWindow": []
       },
       "durationSeconds": 5,
       "damage": [{ "type": "Physical", "amountByRank": [30, 55, 80, 105, 130], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }],
@@ -928,7 +946,8 @@
         "castRange": 0,
         "windupSeconds": 0,
         "windupMovement": "Free",
-        "recoverySeconds": 0
+        "recoverySeconds": 0,
+        "recastWindow": []
       },
       "durationSeconds": 6,
       "damage": [{ "type": "Physical", "amountByRank": [40, 70, 100, 130, 160], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],

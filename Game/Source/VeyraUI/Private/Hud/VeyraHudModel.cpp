@@ -171,7 +171,7 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr)
 		{
 			Shown.Ability = Entry->Ability;
-			Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow) : 0.0;
+			Shown.CooldownSeconds = Cooldowns ? Cooldowns->GetRemainingSeconds(Loadout->CooldownIdOf(Entry->Ability), ServerNow) : 0.0;
 			if (Attacks && Attacks->GetEmpowermentView().Ability == Entry->Ability)
 			{
 				Shown.EmpoweredSeconds = FMath::Max(0.0, Attacks->GetEmpowermentView().ExpiresAt - ServerNow);

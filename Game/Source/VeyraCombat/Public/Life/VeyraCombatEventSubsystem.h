@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Subsystems/WorldSubsystem.h"
@@ -104,6 +105,24 @@ struct FVeyraStatusApplied
 	double EndsAt = 0.0;
 };
 
+/** A cast as it begins or commits (ADR-018 §3). */
+struct FVeyraCastEvent
+{
+	TWeakObjectPtr<UAbilitySystemComponent> Caster;
+	FVeyraContentId Ability;
+
+	/** Whether it has an effect on enemies: offensive casts end stealth (Combat Bible §11). */
+	bool bOffensive = false;
+};
+
+/** A forced displacement as it starts (ADR-018 §3): who moved whom, and how far after resistance. */
+struct FVeyraDisplacementEvent
+{
+	TWeakObjectPtr<UAbilitySystemComponent> Source;
+	TWeakObjectPtr<UAbilitySystemComponent> Target;
+	double Distance = 0.0;
+};
+
 /** Damage dealt by a unit to a unit on the opposing side, as it lands. */
 struct FVeyraHostileDamageEvent
 {
@@ -129,6 +148,8 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDamageResolved, const FVeyraDamageResolution&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnHealthRestored, const FVeyraHealthRestored&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnStatusApplied, const FVeyraStatusApplied&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCast, const FVeyraCastEvent&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDisplaced, const FVeyraDisplacementEvent&);
 
 	FOnDeath OnDeath;
 
@@ -146,4 +167,13 @@ public:
 
 	/** A status applied or refreshed on a unit. */
 	FOnStatusApplied OnStatusApplied;
+
+	/** A cast began: its windup starts, or it commits at once (ADR-018 §3). */
+	FOnCast OnCastStarted;
+
+	/** A cast reached its Commit and was paid for (Combat Bible §26). */
+	FOnCast OnCastCommitted;
+
+	/** A unit forced another to move: a Knockback, Pull or Knockup's travel (Combat Bible §9). */
+	FOnDisplaced OnDisplaced;
 };

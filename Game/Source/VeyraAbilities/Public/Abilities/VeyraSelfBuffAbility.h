@@ -28,6 +28,7 @@ protected:
 	virtual bool EndsEarlyOnRecast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const override;
 	virtual void EndEarly(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) override;
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast) override;
+	virtual bool IsOffensive(const FVeyraContentId& Ability) const override;
 
 private:
 	void RefreshAura();

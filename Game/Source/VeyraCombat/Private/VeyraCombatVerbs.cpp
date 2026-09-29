@@ -668,6 +668,12 @@ bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, 
 	{
 		Statuses->NotifyInterrupted();
 	}
+	// Who moved whom, and how far, for passives such as Kade's (ADR-018 §3).
+	UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+	if (UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
+	{
+		Events->OnDisplaced.Broadcast(FVeyraDisplacementEvent{ &Source, &Target, Displacement.Distance * Retained });
+	}
 	return true;
 }
 

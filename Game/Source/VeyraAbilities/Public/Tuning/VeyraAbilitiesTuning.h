@@ -65,6 +65,33 @@ enum class EVeyraCastMovement : uint8
 };
 
 /** How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4). */
+/** What a recast window does if its time runs out unused (ADR-018 §1). */
+UENUM()
+enum class EVeyraRecastExpiry : uint8
+{
+	/** The follow-up is lost. */
+	Lapse,
+	/** The follow-up casts itself, as NO BRAKES' Last Exit does. */
+	Cast,
+};
+
+/** After a cast commits, its slot holds a follow-up for a while (ADR-018 §1). */
+USTRUCT()
+struct FVeyraRecastTuning
+{
+	GENERATED_BODY()
+
+	/** The follow-up the slot holds: another ability's ID. */
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	UPROPERTY()
+	EVeyraRecastExpiry OnExpiry = EVeyraRecastExpiry::Lapse;
+};
+
 USTRUCT()
 struct FVeyraCastTuning
 {
@@ -92,6 +119,10 @@ struct FVeyraCastTuning
 	/** Seconds after delivery before the caster may cast again. */
 	UPROPERTY()
 	double RecoverySeconds = 0.0;
+
+	/** At most one: the follow-up its slot holds once this cast commits. */
+	UPROPERTY()
+	TArray<FVeyraRecastTuning> RecastWindow;
 };
 
 /** One damage component, from the caster's rank and power at Commit (Combat Bible §25, §50). */

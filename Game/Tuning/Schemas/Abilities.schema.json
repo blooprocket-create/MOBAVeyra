@@ -27,7 +27,7 @@
       "description": "How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds"],
+      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow"],
       "properties": {
         "cooldownSecondsByRank": { "description": "Cooldown in seconds, starting at Commit.", "$ref": "#/definitions/byRank" },
         "resourceCostByRank": { "description": "Resource paid at Commit.", "$ref": "#/definitions/byRank" },
@@ -50,6 +50,28 @@
           "description": "Seconds after delivery before the caster may cast again.",
           "type": "number",
           "minimum": 0
+        },
+        "recastWindow": {
+          "description": "At most one: the follow-up its slot holds once this cast commits, for a while (ADR-018 §1). Empty for none.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "$ref": "#/definitions/recastWindow" }
+        }
+      }
+    },
+    "recastWindow": {
+      "description": "A recast window: the slot holds another ability until it is cast or its time runs out (ADR-018 §1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ability", "windowSeconds", "onExpiry"],
+      "properties": {
+        "ability": { "description": "The follow-up: another ability's ID.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+        "windowSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "onExpiry": {
+          "description": "Lapse loses the follow-up; Cast casts it where the caster faces.",
+          "type": "string",
+          "enum": ["Lapse", "Cast"]
         }
       }
     },

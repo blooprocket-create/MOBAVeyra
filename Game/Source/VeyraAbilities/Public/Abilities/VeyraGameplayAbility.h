@@ -97,6 +97,9 @@ protected:
 	/** Delivers the cast at Commit, and says how long to channel it; no channel by default. */
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast);
 
+	/** Whether Ability has an effect on enemies: casting it ends the caster's stealth (Combat Bible §11; ADR-018 §3). */
+	virtual bool IsOffensive(const FVeyraContentId& Ability) const;
+
 	/** Delivers one tick of a channel; Tick counts from 1. */
 	virtual void DeliverChannelTick(const FVeyraCast& Cast, int32 Tick);
 

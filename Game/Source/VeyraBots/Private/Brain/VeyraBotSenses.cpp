@@ -113,7 +113,7 @@ namespace
 			Seen.Use = *Use;
 			Seen.Profile = Profile.GetValue();
 			const int32 Rank = Progression->IsInitialized() ? Progression->GetRank(Slot) : 0;
-			Seen.bReady = Rank >= 1 && !bBusy && Cooldowns->GetRemainingSeconds(Entry->Ability, View.Now) <= 0.0
+			Seen.bReady = Rank >= 1 && !bBusy && Cooldowns->GetRemainingSeconds(Loadout->CooldownIdOf(Entry->Ability), View.Now) <= 0.0
 				&& VeyraCombat::CanAffordResource(*AbilitySystem, VeyraAbilityRules::ValueAtRank(Seen.Profile.CostByRank, Rank));
 		}
 		// Its Flux Spells: no ranks, what each is for from its seat's data.

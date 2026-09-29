@@ -9,6 +9,7 @@
 #include "Casting/VeyraCastSubsystem.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Engine/World.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
@@ -47,6 +48,13 @@ namespace
 			return EVeyraCooldownHaste::Fixed;
 		}
 		return Entry && VeyraAbilitySlots::IsItemSlot(Entry->Slot) ? EVeyraCooldownHaste::Item : EVeyraCooldownHaste::Ability;
+	}
+
+	/** The ID Ability cools down under: its slot's own ability's, for a variant that shares it (ADR-018 §1). */
+	FVeyraContentId CooldownIdOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
+	{
+		const UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
+		return Loadout ? Loadout->CooldownIdOf(Ability) : Ability;
 	}
 
 	/** The cast's target from its activation's event data, where VeyraAbilities::TryCast put it. */
@@ -107,7 +115,7 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 		return EVeyraCastRejection::Busy;
 	}
 	const UVeyraCooldownComponent* Cooldowns = FindBesideAbilitySystem<UVeyraCooldownComponent>(Caster);
-	if (!Cooldowns || Cooldowns->GetRemainingSecondsNow(Ability) > 0.0)
+	if (!Cooldowns || Cooldowns->GetRemainingSecondsNow(CooldownIdOf(Caster, Ability)) > 0.0)
 	{
 		return EVeyraCastRejection::OnCooldown;
 	}
@@ -140,6 +148,11 @@ void UVeyraGameplayAbility::EndEarly(UAbilitySystemComponent& /*Caster*/, const 
 FVeyraChannelPlan UVeyraGameplayAbility::Deliver(const FVeyraCast& /*Cast*/)
 {
 	return FVeyraChannelPlan();
+}
+
+bool UVeyraGameplayAbility::IsOffensive(const FVeyraContentId& /*Ability*/) const
+{
+	return true;
 }
 
 void UVeyraGameplayAbility::DeliverChannelTick(const FVeyraCast& /*Cast*/, int32 /*Tick*/)
@@ -240,6 +253,10 @@ void UVeyraGameplayAbility::ActivateAbility(const FGameplayAbilitySpecHandle Han
 		InterruptedHandle = Statuses->OnInterrupted.AddUObject(this, &UVeyraGameplayAbility::OnCasterInterrupted);
 	}
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s begins %s at rank %d (cast %d)."), *GetNameSafe(Avatar), *Ability.ToString(), Cast.Rank, Cast.CastId);
+	if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
+	{
+		Events->OnCastStarted.Broadcast(FVeyraCastEvent{ Caster, Ability, IsOffensive(Ability) });
+	}
 	if (Tuning->WindupSeconds > 0.0)
 	{
 		VeyraCombat::SetCastLocksMovement(*Caster, Tuning->WindupMovement == EVeyraCastMovement::Locked);
@@ -267,6 +284,30 @@ void UVeyraGameplayAbility::OnWindupEnded()
 	{
 		FinishCast(/*bCancelled*/ true);
 		return;
+	}
+
+	if (UVeyraCombatEventSubsystem* Events = GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>())
+	{
+		Events->OnCastCommitted.Broadcast(FVeyraCastEvent{ Caster, Run.Cast.Ability, IsOffensive(Run.Cast.Ability) });
+	}
+	// A follow-up is used once; this cast may open one of its own in its slot (ADR-018 §1).
+	if (UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(*Caster))
+	{
+		// Read before NoteCommitted, which may end the override that holds it.
+		const FVeyraLoadoutEntry* Entry = Loadout->FindAbility(Run.Cast.Ability);
+		const TOptional<EVeyraAbilitySlot> Slot = Entry ? TOptional<EVeyraAbilitySlot>(Entry->Slot) : TOptional<EVeyraAbilitySlot>();
+		Loadout->NoteCommitted(*Caster, Run.Cast.Ability);
+		const FVeyraCastTuning* CastTuning = GetCastTuning(Run.Cast.Ability);
+		if (Slot.IsSet() && CastTuning && !CastTuning->RecastWindow.IsEmpty())
+		{
+			const FVeyraRecastTuning& Recast = CastTuning->RecastWindow[0];
+			FVeyraOverrideSpec FollowUp;
+			FollowUp.Ability = Recast.Ability;
+			FollowUp.DurationSeconds = Recast.WindowSeconds;
+			FollowUp.Use = EVeyraOverrideUse::Once;
+			FollowUp.bCastOnExpiry = Recast.OnExpiry == EVeyraRecastExpiry::Cast;
+			Loadout->Override(*Caster, Slot.GetValue(), FollowUp);
+		}
 	}
 
 	Run.Channel = Deliver(Run.Cast);
@@ -327,7 +368,7 @@ void UVeyraGameplayAbility::OnCasterInterrupted()
 		UVeyraCooldownComponent* Cooldowns = Caster ? FindBesideAbilitySystem<UVeyraCooldownComponent>(*Caster) : nullptr;
 		if (Cooldowns)
 		{
-			Cooldowns->StartCooldown(Cast.Ability, GetCooldownSeconds(Cast.Ability, Cast.Rank) * UVeyraAbilitiesTuningSubsystem::Get().Casting.InterruptedCooldownFraction,
+			Cooldowns->StartCooldown(CooldownIdOf(*Caster, Cast.Ability), GetCooldownSeconds(Cast.Ability, Cast.Rank) * UVeyraAbilitiesTuningSubsystem::Get().Casting.InterruptedCooldownFraction,
 				HasteOf(*Caster, Cast.Ability));
 		}
 		FinishCast(/*bCancelled*/ true);
@@ -401,7 +442,7 @@ bool UVeyraGameplayAbility::CheckCooldown(const FGameplayAbilitySpecHandle Handl
 		return true;
 	}
 	const UVeyraCooldownComponent* Cooldowns = FindBesideAbilitySystem<UVeyraCooldownComponent>(ActorInfo);
-	return Cooldowns && Cooldowns->GetRemainingSecondsNow(Ability) <= 0.0;
+	return Cooldowns && Caster && Cooldowns->GetRemainingSecondsNow(CooldownIdOf(*Caster, Ability)) <= 0.0;
 }
 
 void UVeyraGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -412,7 +453,7 @@ void UVeyraGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handl
 	const FVeyraContentId Ability = GetContentId(Handle, ActorInfo);
 	if (Cooldowns && Caster && Ability.IsValid())
 	{
-		Cooldowns->StartCooldown(Ability, GetCooldownSeconds(Ability, GetCommitRank(*Caster, Ability)), HasteOf(*Caster, Ability));
+		Cooldowns->StartCooldown(CooldownIdOf(*Caster, Ability), GetCooldownSeconds(Ability, GetCommitRank(*Caster, Ability)), HasteOf(*Caster, Ability));
 	}
 }
 
@@ -420,7 +461,8 @@ void UVeyraGameplayAbility::GetCooldownTimeRemainingAndDuration(FGameplayAbility
 	float& TimeRemaining, float& CooldownDuration) const
 {
 	const UVeyraCooldownComponent* Cooldowns = FindBesideAbilitySystem<UVeyraCooldownComponent>(ActorInfo);
-	const FVeyraContentId Ability = GetContentId(Handle, ActorInfo);
+	const UAbilitySystemComponent* Caster = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
+	const FVeyraContentId Ability = Caster ? CooldownIdOf(*Caster, GetContentId(Handle, ActorInfo)) : GetContentId(Handle, ActorInfo);
 	TimeRemaining = Cooldowns ? static_cast<float>(Cooldowns->GetRemainingSecondsNow(Ability)) : 0.0f;
 	CooldownDuration = Cooldowns ? static_cast<float>(Cooldowns->GetDurationSeconds(Ability)) : 0.0f;
 }

@@ -6,6 +6,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/StaticMeshActor.h"
 #include "Greybox/VeyraGreyboxLayout.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "Movement/VeyraMovementComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
@@ -94,10 +95,16 @@ namespace VeyraCombatTests
 			Anchor.Magnitude = Resistance;
 			Anchor.DurationSeconds = 60.0;
 			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, Anchor)));
+			TArray<FVeyraDisplacementEvent> Displaced;
+			Spawner.GetWorld().GetSubsystem<UVeyraCombatEventSubsystem>()->OnDisplaced.AddLambda(
+				[&Displaced](const FVeyraDisplacementEvent& Event) { Displaced.Add(Event); });
 			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::BackwardVector))));
 			ASSERT_THAT(IsTrue(Movement->IsDisplaced() && Movement->IsMovementLocked()));
 			const FVector Expected = Start - FVector(Distance * (1.0 - Resistance), 0.0, 0.0);
 			ASSERT_THAT(IsTrue(FVector::Dist(Movement->GetForcedMoveDestination().GetValue(), Expected) <= Tolerance));
+			// Who moved whom, and how far after resistance (ADR-018 §3).
+			ASSERT_THAT(IsTrue(Displaced.Num() == 1 && Displaced[0].Source.Get() == Enemy && Displaced[0].Target.Get() == Unit));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Displaced[0].Distance, Distance * (1.0 - Resistance))));
 		}
 
 		TEST_METHOD(ANewerDisplacementReplacesTheOlder)

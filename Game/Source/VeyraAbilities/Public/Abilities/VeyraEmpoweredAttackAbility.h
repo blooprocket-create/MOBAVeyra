@@ -23,4 +23,5 @@ protected:
 	virtual double GetCooldownSeconds(const FVeyraContentId& Ability, int32 Rank) const override;
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const override;
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast) override;
+	virtual bool IsOffensive(const FVeyraContentId& Ability) const override;
 };

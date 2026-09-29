@@ -48,6 +48,23 @@ namespace
 		{
 			CheckByRank(Pointer + TEXT("/cooldownSecondsByRank"), Cast.CooldownSecondsByRank);
 			CheckByRank(Pointer + TEXT("/resourceCostByRank"), Cast.ResourceCostByRank);
+			if (Cast.RecastWindow.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/recastWindow"), TEXT("holds at most one follow-up (ADR-018 §1)"));
+			}
+			for (int32 Index = 0; Index < Cast.RecastWindow.Num(); ++Index)
+			{
+				const FVeyraRecastTuning& Recast = Cast.RecastWindow[Index];
+				const FString RecastPointer = FString::Printf(TEXT("%s/recastWindow/%d"), *Pointer, Index);
+				if (!Defines(Tuning, Recast.Ability))
+				{
+					Problem(RecastPointer + TEXT("/ability"), FString::Printf(TEXT("names ability \"%s\", which no archetype defines"), *Recast.Ability.ToString()));
+				}
+				if (!(Recast.WindowSeconds > 0.0))
+				{
+					Problem(RecastPointer + TEXT("/windowSeconds"), TEXT("must be above 0"));
+				}
+			}
 		}
 
 		void CheckDamage(const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList)

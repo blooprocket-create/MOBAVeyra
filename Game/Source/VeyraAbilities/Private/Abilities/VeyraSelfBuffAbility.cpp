@@ -208,3 +208,9 @@ bool UVeyraSelfBuffAbility::IsAuraRunning() const
 	const UWorld* World = GetWorld();
 	return World && World->GetTimerManager().IsTimerActive(AuraTimer);
 }
+
+bool UVeyraSelfBuffAbility::IsOffensive(const FVeyraContentId& /*Ability*/) const
+{
+	// It acts on its caster alone.
+	return false;
+}

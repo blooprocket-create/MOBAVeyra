@@ -125,3 +125,11 @@ void UVeyraDashAbility::StopWatching()
 	DashEndedHandle.Reset();
 	Contact.Reset();
 }
+
+bool UVeyraDashAbility::IsOffensive(const FVeyraContentId& Ability) const
+{
+	// A dash is offensive only if what it passes through or lands on takes its effects.
+	const FVeyraDashAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindDash(Ability);
+	return Tuning && (!Tuning->StartZones.IsEmpty() || !Tuning->ContactEffects.Damage.IsEmpty() || !Tuning->ContactEffects.Statuses.IsEmpty()
+		|| !Tuning->ContactEffects.Displacement.IsEmpty());
+}
