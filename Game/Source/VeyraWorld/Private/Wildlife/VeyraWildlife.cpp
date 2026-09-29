@@ -92,11 +92,12 @@ void AVeyraWildlife::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLi
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraWildlife, Species, Params);
 }
 
-void AVeyraWildlife::Configure(const FVeyraContentId& InSpecies, int32 InCamp, const FVector& InHome, double InLeashRadius)
+void AVeyraWildlife::Configure(const FVeyraContentId& InSpecies, int32 InCamp, const FVector& InHome, const FVector2D& InLeashCenter, double InLeashRadius)
 {
 	Species = InSpecies;
 	Camp = InCamp;
 	Home = InHome;
+	LeashCenter = InLeashCenter;
 	LeashRadius = InLeashRadius;
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraWildlife, Species, this);
 	ApplyBody();

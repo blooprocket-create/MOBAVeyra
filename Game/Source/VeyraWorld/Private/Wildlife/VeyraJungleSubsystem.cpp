@@ -124,7 +124,8 @@ int32 UVeyraJungleSubsystem::SpawnCamp(int32 Index)
 		{
 			continue;
 		}
-		Creature->Configure(CampTuning.Species, Index, Home, CampTuning.LeashRadius);
+		// Each keeps to its own spot, but a pack shares its camp's leash (ADR-014 §2).
+		Creature->Configure(CampTuning.Species, Index, Home, Camp.Center, CampTuning.LeashRadius);
 		Creature->FinishSpawning(FTransform(Facing, Home));
 		if (!Creature->InitializeStats())
 		{

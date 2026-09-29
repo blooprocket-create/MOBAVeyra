@@ -62,7 +62,7 @@ void AVeyraWildlifeController::NoteAggression(AActor& Attacker)
 		return;
 	}
 	// Walking home, it answers only an attacker within its leash, or it would be drawn straight back out.
-	if (bReturning && !VeyraWildlifeRules::IsWithinLeash(FVector2D(Body->GetHome()), Body->GetLeashRadius(), FVector2D(Attacker.GetActorLocation())))
+	if (bReturning && !VeyraWildlifeRules::IsWithinLeash(Body->GetLeashCenter(), Body->GetLeashRadius(), FVector2D(Attacker.GetActorLocation())))
 	{
 		return;
 	}
@@ -97,7 +97,7 @@ void AVeyraWildlifeController::Think()
 		return;
 	}
 	const bool bValid = VeyraTargeting::IsAlive(Enemy) && VeyraTargeting::AreHostile(Body, Enemy);
-	if (!VeyraWildlifeRules::KeepsFighting(FVector2D(Body->GetHome()), Body->GetLeashRadius(), FVector2D(Body->GetActorLocation()),
+	if (!VeyraWildlifeRules::KeepsFighting(Body->GetLeashCenter(), Body->GetLeashRadius(), FVector2D(Body->GetActorLocation()),
 			FVector2D(Enemy->GetActorLocation()), bValid))
 	{
 		// It gives up: home, to heal (Battleground Bible §17).

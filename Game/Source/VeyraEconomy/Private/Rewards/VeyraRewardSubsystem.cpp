@@ -72,13 +72,14 @@ void UVeyraRewardSubsystem::RewardWildlifeDeath(const FVeyraDeathEvent& Death, c
 	}
 	const FVeyraEconomyTuning& Tuning = UVeyraEconomyTuningSubsystem::Get();
 	const TArray<FRecipient> All = Recipients();
-	// All its Gold to the Vanguard whose blow killed it, wherever they stand; none to anyone else (§7).
-	const FRecipient* Killer = FindRecipient(All, Death.Killer.Get());
+	// All its Gold to the Vanguard credited with its killing blow, wherever they stand; none to anyone
+	// else (§7). Without that credit the Gold is unclaimed.
+	const FRecipient* Killer = FindRecipient(All, Death.CreditedKiller.Get());
 	if (Killer)
 	{
 		Killer->Gold->Grant(Tuning.Gold.Wildlife.FindRef(Species), EVeyraGoldReason::Wildlife);
 	}
-	// Its XP for the killing side's living Vanguards near it; with no Vanguard's blow, each side's (§7).
+	// Its XP for the credited side's living Vanguards near it; with no Vanguard credited, each side's (§7).
 	const double Experience = Tuning.Experience.Wildlife.FindRef(Species);
 	for (const EVeyraTeam Side : { EVeyraTeam::A, EVeyraTeam::B })
 	{

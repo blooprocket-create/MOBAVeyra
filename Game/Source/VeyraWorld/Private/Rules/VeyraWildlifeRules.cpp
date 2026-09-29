@@ -20,13 +20,13 @@ TArray<FVector2D> Positions(const FVector2D& Center, int32 Count, double Spacing
 	return Out;
 }
 
-bool IsWithinLeash(const FVector2D& Home, double LeashRadius, const FVector2D& Point)
+bool IsWithinLeash(const FVector2D& Center, double LeashRadius, const FVector2D& Point)
 {
-	return FVector2D::Distance(Home, Point) <= LeashRadius;
+	return FVector2D::Distance(Center, Point) <= LeashRadius;
 }
 
-bool KeepsFighting(const FVector2D& Home, double LeashRadius, const FVector2D& Self, const FVector2D& Target, bool bTargetValid)
+bool KeepsFighting(const FVector2D& Center, double LeashRadius, const FVector2D& Self, const FVector2D& Target, bool bTargetValid)
 {
-	return bTargetValid && IsWithinLeash(Home, LeashRadius, Self) && IsWithinLeash(Home, LeashRadius, Target);
+	return bTargetValid && IsWithinLeash(Center, LeashRadius, Self) && IsWithinLeash(Center, LeashRadius, Target);
 }
 }

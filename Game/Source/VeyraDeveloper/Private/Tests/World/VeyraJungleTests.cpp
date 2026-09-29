@@ -215,6 +215,26 @@ namespace VeyraWorldTests
 			ASSERT_THAT(IsFalse(Controller.IsReturning()));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthOf(Creature, UVeyraVitalsSet::GetHealthAttribute()), HealthOf(Creature, UVeyraVitalsSet::GetMaxHealthAttribute()), Tolerance)));
 		}
+
+		TEST_METHOD(APacksLeashIsTheCampsNotEachCreaturesSpot)
+		{
+			Jungle->Start();
+			Jungle->SpawnCamp(0);
+			// A pack's creatures stand round the camp's centre: this one Spacing out from it.
+			const FVector2D Center(CampX, CampY);
+			AVeyraWildlife& Creature = *Jungle->GetCreatures(0).Last();
+			const FVector2D Out = (FVector2D(Creature.GetHome()) - Center).GetSafeNormal();
+			ASSERT_THAT(IsFalse(Out.IsNearlyZero(), TEXT("an outer creature")));
+			// Within the leash of its own spot, but beyond the camp's, which validation keeps clear.
+			const FVector2D Beyond = Center + Out * (Leash + Spacing / 2.0);
+			AVeyraVanguardCharacter& Hunter = SpawnHunter(FVector(Beyond, 100.0));
+			Hit(*Hunter.GetAbilitySystemComponent(), *Creature.GetAbilitySystemComponent(), Scratch);
+			// Drawn in to the camp's centre, off its own spot (at home it would be whole again at once).
+			Creature.SetActorLocation(FVector(Center, Creature.GetHome().Z));
+			AVeyraWildlifeController& Controller = *Cast<AVeyraWildlifeController>(Creature.GetController());
+			Controller.Think();
+			ASSERT_THAT(IsTrue(Controller.IsReturning() && Controller.GetTarget() == nullptr, TEXT("it will not chase beyond its camp's leash")));
+		}
 	};
 }
 

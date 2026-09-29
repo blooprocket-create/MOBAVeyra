@@ -49,8 +49,11 @@ public:
 	virtual EVeyraTeam GetVeyraTeam() const override { return EVeyraTeam::None; }
 	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Wildlife; }
 
-	/** Server, before FinishSpawning: its species, its camp, and the spot it keeps to and the leash around it. */
-	void Configure(const FVeyraContentId& InSpecies, int32 InCamp, const FVector& InHome, double InLeashRadius);
+	/**
+	 * Server, before FinishSpawning: its species, its camp, the spot it keeps to, and its camp's leash:
+	 * a radius round the camp's centre, which a pack's creatures share (ADR-014 §2).
+	 */
+	void Configure(const FVeyraContentId& InSpecies, int32 InCamp, const FVector& InHome, const FVector2D& InLeashCenter, double InLeashRadius);
 
 	/** Server, once spawned: its species' stats and basic attack from World.json. Returns false if refused. */
 	bool InitializeStats();
@@ -58,8 +61,11 @@ public:
 	const FVeyraContentId& GetSpecies() const { return Species; }
 	int32 GetCamp() const { return Camp; }
 
-	/** Server: the spot it stands at, and fights no farther from than its leash. */
+	/** Server: the spot it stands at, and walks back to. */
 	const FVector& GetHome() const { return Home; }
+
+	/** Server: its camp's leash, which it fights no farther out than: the camp's centre, and the radius round it. */
+	const FVector2D& GetLeashCenter() const { return LeashCenter; }
 	double GetLeashRadius() const { return LeashRadius; }
 
 	/** Its species' definition in World.json, or null for an unknown species. */
@@ -82,6 +88,7 @@ private:
 	/** Server only. */
 	int32 Camp = INDEX_NONE;
 	FVector Home = FVector::ZeroVector;
+	FVector2D LeashCenter = FVector2D::ZeroVector;
 	double LeashRadius = 0.0;
 
 	UPROPERTY()

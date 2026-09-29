@@ -231,7 +231,7 @@ namespace VeyraAbilitiesTests
 			constexpr double UntilOpen = 10.0;
 			AVeyraWildlife& Creature = Spawner.SpawnActor<AVeyraWildlife>();
 			const FVeyraContentId Species = FVeyraContentId::FromText(TEXT("ashfang")).GetValue();
-			Creature.Configure(Species, 0, Creature.GetActorLocation(), OuterRadius);
+			Creature.Configure(Species, 0, Creature.GetActorLocation(), FVector2D(Creature.GetActorLocation()), OuterRadius);
 			AVeyraFluxWell& Well = Spawner.SpawnActor<AVeyraFluxWell>();
 			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
 			const FLinearColor Neutral = GetDefault<UVeyraGreyboxSettings>()->NeutralColor;
