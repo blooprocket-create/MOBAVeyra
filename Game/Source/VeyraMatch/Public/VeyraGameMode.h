@@ -155,6 +155,16 @@ private:
 	bool IsFull() const;
 	void AssignTeam(AVeyraPlayerState& PlayerState) const;
 
+	/** The PlayerState a rostered account left behind when it disconnected, or null. */
+	AVeyraPlayerState* FindKeptPlayerState(FStringView AccountId) const;
+
+	/**
+	 * A returning participant takes back the PlayerState it left, and with it its Vanguard, Gold, items,
+	 * cooldowns and record; the one its new PlayerController came with goes (Match Flow Bible §3;
+	 * ADR-019 §1).
+	 */
+	void GiveBackPlayerState(APlayerController& Controller, AVeyraPlayerState& Kept);
+
 	/**
 	 * Chooses the participant's Vanguard: a rostered participant plays the one the assignment names
 	 * (ADR-010 §9); anyone else its development request, or the next in the developer order (ADR-008 §8).

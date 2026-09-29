@@ -106,12 +106,15 @@ void AVeyraGameMode::PreLogin(const FString& Options, const FString& Address, co
 	{
 		ErrorMessage = VeyraJoinRules::CheckTuningHash(Options, VeyraTuning::GetCompositeHash());
 	}
+	bool bReturning = false;
 	if (ErrorMessage.IsEmpty() && Roster)
 	{
 		FString AccountId;
 		ErrorMessage = VeyraJoinRules::CheckTicket(Options, *Roster, AccountId);
+		bReturning = ErrorMessage.IsEmpty() && Roster->HasJoined(AccountId);
 	}
-	if (ErrorMessage.IsEmpty() && IsFull())
+	// A returning participant takes back its own seat.
+	if (ErrorMessage.IsEmpty() && !bReturning && IsFull())
 	{
 		ErrorMessage = TEXT("The match is full.");
 	}
@@ -153,6 +156,11 @@ FString AVeyraGameMode::InitNewPlayer(APlayerController* NewPlayerController, co
 		UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a login: %s"), *ErrorMessage);
 		return ErrorMessage;
 	}
+	if (AVeyraPlayerState* Kept = Roster->HasJoined(AccountId) ? FindKeptPlayerState(AccountId) : nullptr)
+	{
+		GiveBackPlayerState(*NewPlayerController, *Kept);
+		PlayerState = Kept;
+	}
 	PlayerState->SetAccountId(AccountId);
 	PlayerState->SetPlayerName(Roster->FindByAccount(AccountId)->DisplayName);
 	if (AccountId == Roster->GetAssignment().HostAccountId)
@@ -173,8 +181,8 @@ void AVeyraGameMode::Logout(AController* Exiting)
 		UE_LOG(LogVeyraMatch, Log, TEXT("%s left; %d rostered participant(s) connected."), *PlayerState->GetPlayerName(), Roster->NumConnected());
 		NoteConnectedParticipants();
 	}
-	// Its PlayerState goes with it, and rejoining waits for reconnect: the scoreboard keeps its line
-	// as it left (ADR-017 §5).
+	// Its PlayerState stays for its return (ADR-019 §1); the record also keeps its line as it left, in
+	// case the PlayerState goes (ADR-017 §5).
 	if (UVeyraMatchStatisticsSubsystem* Statistics = PlayerState ? GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>() : nullptr)
 	{
 		Statistics->NoteLeaving(*PlayerState);
@@ -598,12 +606,53 @@ void AVeyraGameMode::HandleStartingNewPlayer_Implementation(APlayerController* N
 		UE_LOG(LogVeyraMatch, Error, TEXT("%s has no Veyra PlayerState and cannot join the match."), *GetNameSafe(NewPlayer));
 		return;
 	}
-	AssignTeam(*PlayerState);
-	AssignVanguard(*PlayerState);
-	if (GetVeyraGameState().GetPhase() != EVeyraMatchPhase::Loading)
+	// A participant with a side already is one returning, to the Vanguard it left (ADR-019 §1).
+	const bool bReturning = PlayerState->GetVeyraTeam() != EVeyraTeam::None;
+	if (!bReturning)
+	{
+		AssignTeam(*PlayerState);
+		AssignVanguard(*PlayerState);
+	}
+	const AVeyraVanguardController* Controller = PlayerState->GetVanguardController();
+	if (GetVeyraGameState().GetPhase() != EVeyraMatchPhase::Loading && !(Controller && Controller->GetPawn()))
 	{
 		SpawnVanguard(*PlayerState);
 	}
+}
+
+AVeyraPlayerState* AVeyraGameMode::FindKeptPlayerState(FStringView AccountId) const
+{
+	for (APlayerState* Member : GameState->PlayerArray)
+	{
+		AVeyraPlayerState* Candidate = Cast<AVeyraPlayerState>(Member);
+		if (Candidate && Candidate->IsInactive() && Candidate->GetAccountId() == AccountId)
+		{
+			return Candidate;
+		}
+	}
+	return nullptr;
+}
+
+void AVeyraGameMode::GiveBackPlayerState(APlayerController& Controller, AVeyraPlayerState& Kept)
+{
+	APlayerState* Fresh = Controller.PlayerState;
+	if (Fresh)
+	{
+		Kept.SetUniqueId(Fresh->GetUniqueId());
+	}
+	Controller.SetPlayerState(&Kept);
+	Kept.SetOwner(&Controller);
+	Kept.SetIsInactive(false);
+	// Its abilities act for the new controller, whose connection now owns what only its owner sees.
+	if (UAbilitySystemComponent* AbilitySystem = Kept.GetAbilitySystemComponent())
+	{
+		AbilitySystem->RefreshAbilityActorInfo();
+	}
+	if (Fresh)
+	{
+		Fresh->Destroy();
+	}
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s returned to the match, to the Vanguard it left."), *Kept.GetPlayerName());
 }
 
 bool AVeyraGameMode::PlayerCanRestart_Implementation(APlayerController* /*Player*/)

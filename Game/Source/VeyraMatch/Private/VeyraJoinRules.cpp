@@ -50,10 +50,7 @@ FString CheckTicket(const FString& Options, const FVeyraMatchRoster& Roster, FSt
 	{
 		return FString::Printf(TEXT("%s is already connected."), *Participant->DisplayName);
 	}
-	if (Roster.HasJoined(Participant->AccountId))
-	{
-		return FString::Printf(TEXT("%s left the match, and rejoining waits for reconnect."), *Participant->DisplayName);
-	}
+	// One who left may come back, to the Vanguard it left (Match Flow Bible §3; ADR-019 §1).
 	OutAccountId = Participant->AccountId;
 	return FString();
 }
