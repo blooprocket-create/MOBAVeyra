@@ -44,6 +44,9 @@ public class VeyraDeveloper : ModuleRules
 		{
 			PrivateDependencyModuleNames.AddRange(new string[]
 			{
+				// The Vanguard art commandlet decodes the hero illustrations.
+				"ImageCore",
+				"ImageWrapper",
 				"LevelEditor",
 				"UnrealEd",
 			});

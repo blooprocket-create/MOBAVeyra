@@ -22,6 +22,8 @@ namespace VeyraShellStyle
 		Body,
 		Muted,
 		Countdown,
+		/** Names under portraits and statuses in champion select. */
+		Small,
 	};
 
 	/** A text block for Text in Role's size and colour. */
@@ -33,6 +35,6 @@ namespace VeyraShellStyle
 	/** Adds Child to Parent, a vertical or horizontal box, followed by the shell's spacing. */
 	void AddSpaced(UPanelWidget& Parent, UWidget& Child);
 
-	/** A button style whose background is Base, lighter when hovered and pressed. */
-	FButtonStyle ButtonStyle(const FLinearColor& Base);
+	/** A button style whose background is Base, lighter when hovered and pressed, with Padding around its content. */
+	FButtonStyle ButtonStyle(const FLinearColor& Base, float Padding);
 }

@@ -21,7 +21,7 @@ namespace VeyraPlayerApiTests
 	FString Select(const TCHAR* State, const FString& Seats, const TCHAR* Match, const TCHAR* CancelReason, const TCHAR* Remaining = TEXT("12.5"))
 	{
 		return FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"practice\",\"mode\":\"custom_practice\",\"state\":\"%s\",")
-							   TEXT("\"deadline\":\"2026-09-27T12:00:30Z\",\"remainingSeconds\":%s,\"seats\":[%s],\"matchId\":%s,\"cancelReason\":%s}}"),
+							   TEXT("\"deadline\":\"2026-09-27T12:00:30Z\",\"remainingSeconds\":%s,\"pickSeconds\":30,\"seats\":[%s],\"matchId\":%s,\"cancelReason\":%s}}"),
 			SelectId, State, Remaining, *Seats, Match, CancelReason);
 	}
 
@@ -100,6 +100,7 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(AreEqual(Read->Id, FString(SelectId)));
 			ASSERT_THAT(IsTrue(Read->State == VeyraBackendProtocol::ESelectState::Picking));
 			ASSERT_THAT(IsTrue(Read->RemainingSeconds == 12.5));
+			ASSERT_THAT(IsTrue(Read->PickSeconds == 30.0, TEXT("the pick timer's full length, for its bars")));
 			ASSERT_THAT(AreEqual(Read->Seats.Num(), 2));
 			ASSERT_THAT(AreEqual(Read->FindYou()->Hover, FString(TEXT("oriel"))));
 			ASSERT_THAT(AreEqual(Read->Seats[1].Locked, FString(TEXT("cairn"))));
@@ -128,6 +129,7 @@ namespace VeyraPlayerApiTests
 				Select(TEXT("picking"), You, *Match, TEXT("null")),
 				Select(TEXT("cancelled"), You, TEXT("null"), TEXT("null")),
 				Select(TEXT("picking"), You, TEXT("null"), TEXT("null"), TEXT("-1")),
+				Select(TEXT("picking"), You, TEXT("null"), TEXT("null")).Replace(TEXT("\"pickSeconds\":30,"), TEXT("")),
 				Select(TEXT("picking"), Seat(TEXT("DevOne"), TEXT("C"), true, TEXT("null"), TEXT("null")), TEXT("null"), TEXT("null")),
 				Select(TEXT("picking"), Seat(TEXT("DevOne"), TEXT("A"), true, TEXT("\"../x\""), TEXT("null")), TEXT("null"), TEXT("null")),
 			};

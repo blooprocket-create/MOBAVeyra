@@ -117,6 +117,12 @@ private:
 	/** The label of a Flux Spell's button. */
 	static FString SpellLabel(const FVeyraContentId& SpellId);
 
+	/** The label of the tile that opens Flux Spell slot Slot's picker, from 0. */
+	static FString SpellSlotLabel(int32 Slot);
+
+	/** The Flux Spell slot whose picker the shell shows, or INDEX_NONE. */
+	int32 OpenSpellSlot() const;
+
 	/** The label of a Vanguard's button. */
 	static FString VanguardLabel(const FString& VanguardId);
 

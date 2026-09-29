@@ -917,14 +917,41 @@ bool UVeyraSmokeFlowSubsystem::ChooseFluxSpells(const FVeyraClientSnapshot& Snap
 		{
 			if (Flow.CanIssue(EVeyraClientIntent::ChooseFluxSpell))
 			{
-				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: choosing Flux Spell %s for slot %d."), *Wanted, Slot + 1);
-				// Each slot offers every spell: the Slot-th button of that name is this slot's.
-				Click(SpellLabel(Roster[Slot]), Slot);
+				// As League's summoner spells: the slot's tile opens its picker, whose button of that name chooses it.
+				if (OpenSpellSlot() != Slot)
+				{
+					Click(SpellSlotLabel(Slot));
+				}
+				else
+				{
+					UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: choosing Flux Spell %s for slot %d."), *Wanted, Slot + 1);
+					Click(SpellLabel(Roster[Slot]));
+				}
 			}
 			return false;
 		}
 	}
 	return true;
+}
+
+FString UVeyraSmokeFlowSubsystem::SpellSlotLabel(int32 Slot)
+{
+#if WITH_VEYRA_UI
+	return VeyraShellModels::SpellSlotTitle(Slot).ToString();
+#else
+	return FString::FromInt(Slot + 1);
+#endif
+}
+
+int32 UVeyraSmokeFlowSubsystem::OpenSpellSlot() const
+{
+#if WITH_VEYRA_UI
+	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
+	const UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr;
+	return Screen ? Screen->GetOpenSpellSlot() : INDEX_NONE;
+#else
+	return INDEX_NONE;
+#endif
 }
 
 FString UVeyraSmokeFlowSubsystem::SpellLabel(const FVeyraContentId& SpellId)

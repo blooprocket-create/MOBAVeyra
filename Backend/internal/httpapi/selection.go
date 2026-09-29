@@ -41,11 +41,14 @@ type selectJSON struct {
 	State string `json:"state"`
 	// Deadline is the server's; RemainingSeconds is what is left of it by the
 	// server's clock, so a client counts down without trusting its own.
-	Deadline         time.Time        `json:"deadline"`
-	RemainingSeconds float64          `json:"remainingSeconds"`
-	Seats            []selectSeatJSON `json:"seats"`
-	MatchID          *string          `json:"matchId"`
-	CancelReason     *string          `json:"cancelReason"`
+	Deadline         time.Time `json:"deadline"`
+	RemainingSeconds float64   `json:"remainingSeconds"`
+	// PickSeconds is the pick timer's full length, so a client can draw how
+	// much of it is left.
+	PickSeconds  float64          `json:"pickSeconds"`
+	Seats        []selectSeatJSON `json:"seats"`
+	MatchID      *string          `json:"matchId"`
+	CancelReason *string          `json:"cancelReason"`
 }
 
 // toSelectJSON is a select as one of its players sees it.
@@ -57,6 +60,7 @@ func (s *Server) toSelectJSON(session selection.Session, actor string) selectJSO
 		State:            string(session.State),
 		Deadline:         session.Deadline,
 		RemainingSeconds: s.Selection.RemainingPick(session).Seconds(),
+		PickSeconds:      session.Deadline.Sub(session.CreatedAt).Seconds(),
 		Seats:            []selectSeatJSON{},
 		MatchID:          textOrNil(session.MatchID),
 		CancelReason:     textOrNil(string(session.CancelReason)),

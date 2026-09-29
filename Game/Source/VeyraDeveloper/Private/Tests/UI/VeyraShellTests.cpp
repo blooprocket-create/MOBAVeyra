@@ -8,6 +8,8 @@
 #include "Components/ActorTestSpawner.h"
 #include "GameFramework/PlayerState.h"
 #include "Match/VeyraMatchMenu.h"
+#include "Engine/Texture2D.h"
+#include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
@@ -18,6 +20,7 @@
 #include "Text/VeyraContentText.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "UObject/Package.h"
 #include "VeyraPlayerController.h"
 
@@ -96,6 +99,9 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(!Model.SpellSlots[0].Choices[0].bChosen && Model.SpellSlots[0].Choices[1].bChosen));
 			ASSERT_THAT(IsTrue(Model.SpellSlots[1].Choices[0].bChosen, TEXT("an empty slot has None chosen")));
 			ASSERT_THAT(IsTrue(Model.Setup.IsEmpty(), TEXT("Your Match Setup comes with lock-in")));
+			// Beside the player's portrait, as League shows summoner spells.
+			ASSERT_THAT(AreEqual(Model.Seats[0].Spells.Num(), 2));
+			ASSERT_THAT(IsTrue(Model.Seats[0].Spells[0].ToString() == VeyraContentText::AbilityName(Roster[0]).ToString() && Model.Seats[0].Spells[1].IsEmpty()));
 
 			Snapshot.Select.Seats[0].Locked = TEXT("oriel");
 			Model = VeyraShellModels::DescribeSelect(Snapshot, 10.0, false, false, false, true);
@@ -118,10 +124,24 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(!Model.Cards[0].bChosen && Model.Cards[1].bChosen));
 			ASSERT_THAT(AreEqual(Model.LockInVanguardId, FString(TEXT("oriel"))));
 			ASSERT_THAT(IsTrue(Model.bCanLockIn));
+			// The large art shows the hover (UX 27), with its name, title and kit: the passive, then Q, W, E, R.
+			ASSERT_THAT(AreEqual(Model.ShownVanguardId, FString(TEXT("oriel"))));
+			ASSERT_THAT(AreEqual(Model.ShownName.ToString(), FString(TEXT("Oriel"))));
+			ASSERT_THAT(AreEqual(Model.ShownTitle.ToString(), VeyraContentText::VanguardTitle(*FVeyraContentId::FromText(TEXT("oriel"))).ToString()));
+			ASSERT_THAT(AreEqual(Model.Abilities.Num(), 5));
+			ASSERT_THAT(IsTrue(Model.Abilities[0].Key.ToString() == TEXT("Passive") && Model.Abilities[1].Key.ToString() == TEXT("Q")
+				&& Model.Abilities[4].Key.ToString() == TEXT("R")));
+			ASSERT_THAT(IsFalse(Model.Abilities[1].Name.IsEmpty() || Model.Abilities[1].Description.IsEmpty()));
+			ASSERT_THAT(AreEqual(Model.ModeLabel.ToString(), FString(TEXT("CUSTOM PRACTICE"))));
+			ASSERT_THAT(AreEqual(Model.Seats[0].VanguardId, FString(TEXT("oriel"))));
 
-			// With nothing hovered there is nothing to lock.
-			Model = VeyraShellModels::DescribeSelect(SelectSnapshot(FString(), FString()), 30.0, true, true, false);
+			// With nothing hovered there is nothing to lock, and no art to show.
+			FVeyraClientSnapshot Nothing = SelectSnapshot(FString(), FString());
+			Nothing.Select.PickSeconds = 30.0;
+			Model = VeyraShellModels::DescribeSelect(Nothing, 30.0, true, true, false);
 			ASSERT_THAT(IsTrue(Model.Seats[0].Status == EVeyraSeatStatus::Waiting && !Model.bCanLockIn));
+			ASSERT_THAT(IsTrue(Model.ShownVanguardId.IsEmpty() && Model.Abilities.IsEmpty()));
+			ASSERT_THAT(IsTrue(Model.PickSeconds == 30.0, TEXT("the timer's full length, for its bars")));
 
 			// A lock is final.
 			Model = VeyraShellModels::DescribeSelect(SelectSnapshot(TEXT("oriel"), TEXT("oriel")), 12.0, false, false, false);
@@ -327,12 +347,43 @@ namespace VeyraShellTests
 			Missing->CardWidth = 0.0f;
 			Missing->MenuWidth = 0.0f;
 			Missing->ShopHeight = 0.0f;
+			Missing->FrameColor = FLinearColor::Transparent;
+			Missing->SmallFontSize = 0;
+			Missing->SplashWidth = 0.0f;
+			Missing->VanguardArtFolder = TEXT("Veyra/UI/");
+			Missing->DefaultPortrait.CropHeight = 1.5f;
+			Missing->VanguardPortraits.Add(FVeyraVanguardPortrait{ TEXT("cairn"), FVector2D(0.5, 0.5), 0.5f });
 			const FString Named = FString::Join(Missing->Validate(), TEXT(" | "));
 			for (const TCHAR* Field : { TEXT("BackgroundColor"), TEXT("MenuScrimColor"), TEXT("TitleFontSize"), TEXT("CountdownFontSize"), TEXT("CardWidth"), TEXT("MenuWidth"),
-					 TEXT("ShopHeight") })
+					 TEXT("ShopHeight"), TEXT("FrameColor"), TEXT("SmallFontSize"), TEXT("SplashWidth"), TEXT("VanguardArtFolder"), TEXT("DefaultPortrait"),
+					 TEXT("VanguardPortraits") })
 			{
 				ASSERT_THAT(IsTrue(Named.Contains(Field), FString::Printf(TEXT("%s is not named in: %s"), Field, *Named)));
 			}
+		}
+
+		TEST_METHOD(PortraitsCropAroundTheFaceWithinTheIllustration)
+		{
+			const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+			const FVeyraVanguardPortrait* Oriel = Style.VanguardPortraits.FindByPredicate([](const FVeyraVanguardPortrait& Portrait) { return Portrait.Vanguard == TEXT("oriel"); });
+			ASSERT_THAT(IsNotNull(Oriel));
+			constexpr int32 Width = 1600;
+			constexpr int32 Height = 900;
+			// A square portrait: CropHeight of the height, around the face, pushed inside at the edges.
+			const FBox2f Square = VeyraShellArt::Crop(TEXT("oriel"), Width, Height, 1.0f, /*bPortrait*/ true);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Square.GetSize().Y * Height, Oriel->CropHeight * Height, 0.5f)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Square.GetSize().X * Width, Square.GetSize().Y * Height, 0.5f), TEXT("square in pixels")));
+			ASSERT_THAT(IsTrue(Square.Min.X >= 0.0f && Square.Min.Y >= 0.0f && Square.Max.X <= 1.0f && Square.Max.Y <= 1.0f));
+			ASSERT_THAT(IsTrue(Square.IsInside(FVector2f(Oriel->Focus.X, Oriel->Focus.Y)), TEXT("the face is in it")));
+			// A banner is as large as the illustration allows: the full width at 4:1.
+			const FBox2f Banner = VeyraShellArt::Crop(TEXT("oriel"), Width, Height, 4.0f, /*bPortrait*/ false);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Banner.GetSize().X, 1.0f) && FMath::IsNearlyEqual(Banner.GetSize().Y * Height, Width / 4.0f, 0.5f)));
+			// A Vanguard with no entry uses the default; no size shows the whole illustration.
+			const FBox2f Default = VeyraShellArt::Crop(TEXT("test_vanguard"), Width, Height, 1.0f, true);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Default.GetSize().Y, Style.DefaultPortrait.CropHeight)));
+			ASSERT_THAT(IsTrue(VeyraShellArt::Crop(TEXT("oriel"), 0, 0, 1.0f, true) == FBox2f(FVector2f::ZeroVector, FVector2f::UnitVector)));
+			ASSERT_THAT(IsNull(VeyraShellArt::HeroOf(FString())));
+			ASSERT_THAT(IsNull(VeyraShellArt::HeroOf(TEXT("test_vanguard")), TEXT("a developer Vanguard has no art")));
 		}
 
 		TEST_METHOD(InputSettings)
@@ -408,24 +459,19 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.ReachSelect()));
 			ShowScreen();
 			ASSERT_THAT(IsTrue(Screen->GetShownScreen() == EVeyraShellScreen::ChampionSelect));
-			// No navigation leaves a committed select (UX-4): the Vanguards, each Flux Spell slot's choices, and Lock In.
-			TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn") };
-			for (int32 SpellSlot = 0; SpellSlot < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)); ++SpellSlot)
-			{
-				Expected.Add(TEXT("None"));
-				for (const FVeyraContentId& Spell : UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster)
-				{
-					Expected.Add(VeyraContentText::AbilityName(Spell).ToString());
-				}
-			}
-			Expected.Add(TEXT("Lock In"));
+			// No navigation leaves a committed select (UX-4): the roster across the top, each Flux Spell slot's
+			// tile, and Lock In.
+			const TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Flux Spell 1"), TEXT("Flux Spell 2"), TEXT("Lock In") };
 			ASSERT_THAT(IsTrue(LabelsOf(Screen->GetButtons()) == Expected, FString::Join(LabelsOf(Screen->GetButtons()), TEXT(", "))));
 			ASSERT_THAT(IsFalse(Button(TEXT("Lock In"))->GetIsEnabled(), TEXT("nothing is hovered yet")));
-			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("DevOne (you): Waiting"))));
+			FString Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("DevOne (you)")) && Text.Contains(TEXT("Waiting")) && Text.Contains(TEXT("Choose a Vanguard")), Text));
+			ASSERT_THAT(IsNull(Screen->GetBackdrop(), TEXT("no Vanguard is shown yet")));
 
 			Button(TEXT("Oriel"))->Press();
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/me/select/hover"), 200, SelectBody(TEXT("picking"), TEXT("oriel")))));
-			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("DevOne (you): Oriel, Not Locked In"))));
+			Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Oriel")) && Text.Contains(TEXT("Not Locked In")), Text));
 			ASSERT_THAT(IsTrue(Button(TEXT("Lock In"))->GetIsEnabled()));
 			Button(TEXT("Lock In"))->Press();
 			ASSERT_THAT(AreEqual(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/select/lock"))->Body, FString(TEXT("{\"vanguardId\":\"oriel\"}"))));
@@ -439,6 +485,69 @@ namespace VeyraShellTests
 			Rig.Advance(0.5);
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, SelectBody(TEXT("picking"), FString(), FString(), FString(), FString(), 29.0))));
 			ASSERT_THAT(IsTrue(Button(TEXT("Oriel")) == Before, TEXT("a click in progress is not interrupted")));
+		}
+
+		TEST_METHOD(ASpellSlotsTileOpensItsPickerAndAChoiceClosesIt)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachSelect()));
+			ShowScreen();
+			const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
+			ASSERT_THAT(IsTrue(Roster.Num() >= 2));
+			ASSERT_THAT(IsNull(Button(*VeyraContentText::AbilityName(Roster[0]).ToString()), TEXT("the spells wait in their picker")));
+
+			// League's summoner spell picker: None and every roster spell, each described, and the slot's threshold.
+			Screen->FindButton(VeyraShellModels::SpellSlotTitle(1))->Press();
+			ASSERT_THAT(AreEqual(Screen->GetOpenSpellSlot(), 1));
+			TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Flux Spell 1"), TEXT("Flux Spell 2"), TEXT("Lock In"), TEXT("None") };
+			for (const FVeyraContentId& Spell : Roster)
+			{
+				Expected.Add(VeyraContentText::AbilityName(Spell).ToString());
+			}
+			Expected.Add(TEXT("Close"));
+			ASSERT_THAT(IsTrue(LabelsOf(Screen->GetButtons()) == Expected, FString::Join(LabelsOf(Screen->GetButtons()), TEXT(", "))));
+			const FString Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("75 permanent Team Flux")) && Text.Contains(VeyraContentText::AbilityDescription(Roster[1]).ToString()), Text));
+
+			Button(*VeyraContentText::AbilityName(Roster[1]).ToString())->Press();
+			ASSERT_THAT(AreEqual(Screen->GetOpenSpellSlot(), static_cast<int32>(INDEX_NONE), TEXT("a choice closes the picker")));
+			const FString Chosen = FString::Printf(TEXT("[\"\",\"%s\"]"), *Roster[1].ToString());
+			ASSERT_THAT(AreEqual(Rig.Backend.Find(TEXT("PUT"), TEXT("/v1/me/select/spells"))->Body, FString::Printf(TEXT("{\"fluxSpells\":%s}"), *Chosen)));
+			// The tiles wait for the backend's answer, as every intent does.
+			ASSERT_THAT(IsFalse(Screen->FindButton(VeyraShellModels::SpellSlotTitle(0))->GetIsEnabled()));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/me/select/spells"), 200,
+				SelectBody(TEXT("picking"), FString(), FString(), FString(), FString(), 30.0, *Chosen))));
+
+			// Close shuts it without choosing; the tile opens and shuts it too.
+			UVeyraShellButton* Tile = Screen->FindButton(VeyraShellModels::SpellSlotTitle(0));
+			ASSERT_THAT(IsTrue(Tile && Tile->GetIsEnabled()));
+			Tile->Press();
+			ASSERT_THAT(IsNotNull(Button(TEXT("Close"))));
+			Button(TEXT("Close"))->Press();
+			ASSERT_THAT(AreEqual(Screen->GetOpenSpellSlot(), static_cast<int32>(INDEX_NONE)));
+			Screen->FindButton(VeyraShellModels::SpellSlotTitle(0))->Press();
+			ASSERT_THAT(AreEqual(Screen->GetOpenSpellSlot(), 0));
+			Screen->FindButton(VeyraShellModels::SpellSlotTitle(0))->Press();
+			ASSERT_THAT(AreEqual(Screen->GetOpenSpellSlot(), static_cast<int32>(INDEX_NONE)));
+		}
+
+		TEST_METHOD(TheShownVanguardsArtFillsTheScreenAndItsAbilitiesLieOverIt)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachSelect()));
+			ShowScreen();
+			Button(TEXT("Oriel"))->Press();
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/me/select/hover"), 200, SelectBody(TEXT("picking"), TEXT("oriel")))));
+			// The imported hero illustration (Game/Scripts/BuildVanguardArt.ps1) behind everything.
+			UTexture2D* Hero = VeyraShellArt::HeroOf(TEXT("oriel"));
+			ASSERT_THAT(IsNotNull(Hero, TEXT("every playable Vanguard's art is imported")));
+			ASSERT_THAT(IsTrue(Screen->GetBackdrop() == Hero));
+
+			Button(*UVeyraShellScreen::AbilitiesLabel(false).ToString())->Press();
+			const FVeyraVanguardDefinition* Oriel = UVeyraVanguardsTuningSubsystem::FindVanguard(*FVeyraContentId::FromText(TEXT("oriel")));
+			ASSERT_THAT(IsTrue(Oriel && !Oriel->Passive.IsEmpty() && !Oriel->Abilities.R.IsEmpty()));
+			const FString Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Text.Contains(VeyraContentText::PassiveName(Oriel->Passive[0]).ToString())
+				&& Text.Contains(VeyraContentText::AbilityDescription(Oriel->Abilities.R[0]).ToString()), Text));
+			ASSERT_THAT(IsNotNull(Button(*UVeyraShellScreen::AbilitiesLabel(true).ToString())));
 		}
 
 		TEST_METHOD(ReconnectOnlyOffersNothingButReconnect)
@@ -528,7 +637,8 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.ReachCasualSelect()));
 			ShowScreen();
 			const FString Text = Screen->DescribeText();
-			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Your Team")) && Text.Contains(TEXT("Enemy Team")) && Text.Contains(TEXT("DevTwo: Waiting")), Text));
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Your Team")) && Text.Contains(TEXT("Enemy Team")) && Text.Contains(TEXT("DevTwo")), Text));
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("CASUAL")), TEXT("the mode, in the corner")));
 			ASSERT_THAT(IsTrue(Button(TEXT("Leave"))->GetIsEnabled()));
 			Button(TEXT("Leave"))->Press();
 			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/select/leave"))));

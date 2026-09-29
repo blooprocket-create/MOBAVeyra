@@ -46,6 +46,10 @@ struct FVeyraSelectSeatModel
 	FText Name;
 	/** The hovered or locked Vanguard; empty when neither is known. */
 	FText Vanguard;
+	/** Its content ID, for its portrait; empty when neither is known. */
+	FString VanguardId;
+	/** The seat's starting Flux Spells' names in slot order, empty for an empty slot; only the player's own are known (ADR-015 §5). */
+	TArray<FText> Spells;
 	EVeyraSeatStatus Status = EVeyraSeatStatus::Waiting;
 	FText StatusText;
 	bool bYou = false;
@@ -89,6 +93,14 @@ struct FVeyraSpellSlotModel
 };
 
 /** Champion select as the screen shows it. */
+/** One of the shown Vanguard's abilities, as View Abilities lists them. */
+struct FVeyraAbilityLineModel
+{
+	/** "Passive", "Q", "W", "E" or "R". */
+	FText Key;
+	FText Name;
+	FText Description;
+};
 struct FVeyraSelectModel
 {
 	FText Title;
@@ -113,6 +125,17 @@ struct FVeyraSelectModel
 	bool bCanChooseSpells = false;
 	/** "Your Match Setup" once locked in (UX 38): the Vanguard and both spells with their thresholds. Empty before. */
 	FText Setup;
+	/** The Vanguard the large art shows: the player's lock, else their hover (UX 27). Empty for none. */
+	FString ShownVanguardId;
+	FText ShownName;
+	/** Such as "The River's Grasp". */
+	FText ShownTitle;
+	/** The shown Vanguard's passive, then Q, W, E and R. */
+	TArray<FVeyraAbilityLineModel> Abilities;
+	/** The mode, in capitals, as League names it in the corner. */
+	FText ModeLabel;
+	/** The pick timer's full length, for its bars; 0 when the backend does not say. */
+	double PickSeconds = 0.0;
 };
 
 /** A mode card on the Play page (UX-12). */
@@ -207,6 +230,9 @@ namespace VeyraShellModels
 
 	/** "m:ss", rounded up to the whole second. */
 	VEYRAUI_API FText FormatCountdown(double Seconds);
+
+	/** "Flux Spell 1": a Flux Spell slot's name, from 0. */
+	VEYRAUI_API FText SpellSlotTitle(int32 Slot);
 
 	VEYRAUI_API FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock, bool bCanLeave,
 		bool bCanChooseSpells = false);

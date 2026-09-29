@@ -6,6 +6,7 @@
 #include "Text/VeyraContentText.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
+#include "Tuning/VeyraVanguardsTuningSubsystem.h"
 
 #define LOCTEXT_NAMESPACE "VeyraShell"
 
@@ -276,8 +277,44 @@ FText FormatCountdown(double Seconds)
 	return FormatClock(FMath::CeilToInt(Seconds));
 }
 
+FText SpellSlotTitle(int32 Slot)
+{
+	return FText::Format(LOCTEXT("SpellSlotTitle", "Flux Spell {0}"), FText::AsNumber(Slot + 1));
+}
+
 namespace
 {
+	/** The shown Vanguard's passive, then its Q, W, E and R: the first ability each key casts. */
+	TArray<FVeyraAbilityLineModel> DescribeAbilities(const FString& VanguardId)
+	{
+		TArray<FVeyraAbilityLineModel> Lines;
+		const TOptional<FVeyraContentId> Id = FVeyraContentId::FromText(VanguardId);
+		const FVeyraVanguardDefinition* Definition = Id.IsSet() ? UVeyraVanguardsTuningSubsystem::FindVanguard(Id.GetValue()) : nullptr;
+		if (!Definition)
+		{
+			return Lines;
+		}
+		for (const FVeyraContentId& Passive : Definition->Passive)
+		{
+			Lines.Add(FVeyraAbilityLineModel{ LOCTEXT("PassiveKey", "Passive"), VeyraContentText::PassiveName(Passive), VeyraContentText::PassiveDescription(Passive) });
+		}
+		const TPair<FText, const TArray<FVeyraContentId>*> Keys[] = {
+			{ LOCTEXT("QKey", "Q"), &Definition->Abilities.Q },
+			{ LOCTEXT("WKey", "W"), &Definition->Abilities.W },
+			{ LOCTEXT("EKey", "E"), &Definition->Abilities.E },
+			{ LOCTEXT("RKey", "R"), &Definition->Abilities.R },
+		};
+		for (const TPair<FText, const TArray<FVeyraContentId>*>& Key : Keys)
+		{
+			if (!Key.Value->IsEmpty())
+			{
+				const FVeyraContentId& Ability = (*Key.Value)[0];
+				Lines.Add(FVeyraAbilityLineModel{ Key.Key, VeyraContentText::AbilityName(Ability), VeyraContentText::AbilityDescription(Ability) });
+			}
+		}
+		return Lines;
+	}
+
 	FText SpellNameOf(const FString& SpellId)
 	{
 		const TOptional<FVeyraContentId> Id = FVeyraContentId::FromText(SpellId);
@@ -295,7 +332,7 @@ namespace
 			const FString Chosen = You.FluxSpells.IsValidIndex(Slot) ? You.FluxSpells[Slot] : FString();
 			FVeyraSpellSlotModel& SlotModel = Model.SpellSlots.AddDefaulted_GetRef();
 			SlotModel.Slot = Slot;
-			SlotModel.Title = FText::Format(LOCTEXT("SpellSlotTitle", "Flux Spell {0}"), FText::AsNumber(Slot + 1));
+			SlotModel.Title = SpellSlotTitle(Slot);
 			const FText Threshold = Thresholds.IsValidIndex(Slot) ? FText::AsNumber(Thresholds[Slot]) : FText::GetEmpty();
 			SlotModel.Unlock = FText::Format(LOCTEXT("SpellSlotUnlock", "Unlocks at {0} permanent Team Flux"), Threshold);
 			SlotModel.Chosen = Chosen.IsEmpty() ? LOCTEXT("SpellSlotEmpty", "Empty") : SpellNameOf(Chosen);
@@ -348,6 +385,11 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 		SeatModel.StatusText = SeatStatusText(SeatModel.Status);
 		const FString& Shown = !Seat.Locked.IsEmpty() ? Seat.Locked : Seat.Hover;
 		SeatModel.Vanguard = Shown.IsEmpty() ? FText::GetEmpty() : VanguardNameOf(Shown);
+		SeatModel.VanguardId = Shown;
+		for (const FString& Spell : Seat.FluxSpells)
+		{
+			SeatModel.Spells.Add(Spell.IsEmpty() ? FText::GetEmpty() : SpellNameOf(Spell));
+		}
 		Model.Seats.Add(MoveTemp(SeatModel));
 	}
 
@@ -372,6 +414,16 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 		DescribeFluxSpells(*You, Model);
 	}
 	Model.bCanChooseSpells = bCanChooseSpells && You;
+	Model.ShownVanguardId = Chosen;
+	if (!Chosen.IsEmpty())
+	{
+		Model.ShownName = VanguardNameOf(Chosen);
+		const TOptional<FVeyraContentId> ChosenId = FVeyraContentId::FromText(Chosen);
+		Model.ShownTitle = ChosenId.IsSet() ? VeyraContentText::VanguardTitle(ChosenId.GetValue()) : FText::GetEmpty();
+		Model.Abilities = DescribeAbilities(Chosen);
+	}
+	Model.ModeLabel = NameOf(Select.Mode).ToUpper();
+	Model.PickSeconds = Select.PickSeconds;
 	return Model;
 }
 

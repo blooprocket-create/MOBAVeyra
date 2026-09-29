@@ -70,7 +70,7 @@ namespace VeyraClientFlowTests
 		const FString& CancelReason = FString(), double Remaining = 30.0, const TCHAR* FluxSpells = TEXT("[\"\",\"\"]"))
 	{
 		return FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"practice\",\"mode\":\"custom_practice\",\"state\":\"%s\",")
-							   TEXT("\"deadline\":\"2026-09-27T12:00:30Z\",\"remainingSeconds\":%g,")
+							   TEXT("\"deadline\":\"2026-09-27T12:00:30Z\",\"remainingSeconds\":%g,\"pickSeconds\":30,")
 							   TEXT("\"seats\":[{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,\"hover\":%s,\"locked\":%s,\"fluxSpells\":%s}],")
 							   TEXT("\"matchId\":%s,\"cancelReason\":%s}}"),
 			SelectId, State, Remaining, *Quoted(Hover), *Quoted(Locked), FluxSpells, *Quoted(StartedMatch), *Quoted(CancelReason));
@@ -99,7 +99,7 @@ namespace VeyraClientFlowTests
 	inline FString CasualSelectBody(const TCHAR* State, const FString& CancelReason = FString())
 	{
 		return FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"casual\",\"mode\":\"casual_select\",\"state\":\"%s\",")
-							   TEXT("\"deadline\":\"2026-09-27T12:01:00Z\",\"remainingSeconds\":60,")
+							   TEXT("\"deadline\":\"2026-09-27T12:01:00Z\",\"remainingSeconds\":60,\"pickSeconds\":60,")
 							   TEXT("\"seats\":[{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,\"hover\":null,\"locked\":null},")
 							   TEXT("{\"displayName\":\"DevTwo\",\"side\":\"B\",\"you\":false,\"hover\":null,\"locked\":null}],")
 							   TEXT("\"matchId\":null,\"cancelReason\":%s}}"),

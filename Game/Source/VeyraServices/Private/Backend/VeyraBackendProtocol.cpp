@@ -344,6 +344,7 @@ bool ParseSelect(const FString& Body, TOptional<FSelect>& OutSelect, FString& Ou
 	if (!Object || !StringField(*Object, TEXT("id"), IdPattern, Select.Id) || !StringField(*Object, TEXT("kind"), WordPattern, Select.Kind)
 		|| !StringField(*Object, TEXT("mode"), ContentIdPattern, Select.Mode) || !StringField(*Object, TEXT("state"), State)
 		|| !ParseSelectState(State, Select.State) || !DurationField(*Object, TEXT("remainingSeconds"), Select.RemainingSeconds)
+		|| !DurationField(*Object, TEXT("pickSeconds"), Select.PickSeconds)
 		|| !NullableStringField(*Object, TEXT("matchId"), IdPattern, Select.MatchId)
 		|| !NullableStringField(*Object, TEXT("cancelReason"), WordPattern, Select.CancelReason)
 		|| !Object->HasTypedField<EJson::Array>(TEXT("seats")) || !Object->TryGetArrayField(TEXT("seats"), Seats))

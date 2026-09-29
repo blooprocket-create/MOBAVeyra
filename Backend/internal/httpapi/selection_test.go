@@ -70,6 +70,10 @@ func TestPracticeSelectOverHTTP(t *testing.T) {
 	if status != http.StatusCreated || sel["state"] != "picking" || sel["kind"] != "practice" || sel["remainingSeconds"].(float64) <= 0 {
 		t.Fatalf("practice: %d %v", status, opened)
 	}
+	// The timer's full length, for a client's countdown bar: never less than what is left of it.
+	if pick, ok := sel["pickSeconds"].(float64); !ok || pick <= 0 || pick < sel["remainingSeconds"].(float64) {
+		t.Fatalf("pickSeconds: %v", sel)
+	}
 	seats := sel["seats"].([]any)
 	if len(seats) != 1 || seats[0].(map[string]any)["you"] != true || seats[0].(map[string]any)["displayName"] != "DevOne" {
 		t.Fatalf("seats: %v", seats)

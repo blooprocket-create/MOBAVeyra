@@ -46,6 +46,9 @@ UTextBlock* MakeText(UWidgetTree& Tree, const FText& Text, EVeyraShellText Role)
 		Color = Style.AccentColor;
 		Typeface = TEXT("Bold");
 		break;
+	case EVeyraShellText::Small:
+		Size = Style.SmallFontSize;
+		break;
 	}
 	UTextBlock* Block = Tree.ConstructWidget<UTextBlock>(UTextBlock::StaticClass());
 	Block->SetText(Text);
@@ -91,7 +94,7 @@ void AddSpaced(UPanelWidget& Parent, UWidget& Child)
 	}
 }
 
-FButtonStyle ButtonStyle(const FLinearColor& Base)
+FButtonStyle ButtonStyle(const FLinearColor& Base, float Padding)
 {
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 	FButtonStyle Button;
@@ -99,8 +102,8 @@ FButtonStyle ButtonStyle(const FLinearColor& Base)
 	Button.SetHovered(FSlateColorBrush(Style.ButtonHoveredColor));
 	Button.SetPressed(FSlateColorBrush(Style.ButtonPressedColor));
 	Button.SetDisabled(FSlateColorBrush(Style.ButtonDisabledColor));
-	Button.SetNormalPadding(FMargin(Style.ButtonPadding));
-	Button.SetPressedPadding(FMargin(Style.ButtonPadding));
+	Button.SetNormalPadding(FMargin(Padding));
+	Button.SetPressedPadding(FMargin(Padding));
 	return Button;
 }
 }
