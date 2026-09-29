@@ -4,6 +4,7 @@
 
 #include "Algo/Find.h"
 #include "Dom/JsonObject.h"
+#include "GenericPlatform/GenericPlatformHttp.h"
 #include "Internationalization/Regex.h"
 #include "Policies/CondensedJsonPrintPolicy.h"
 #include "Serialization/JsonReader.h"
@@ -35,6 +36,10 @@ namespace
 	const TCHAR* const WordPattern = TEXT("^[a-z_]{1,64}$");
 	/** One of the battleground's two teams. */
 	const TCHAR* const SidePattern = TEXT("^[AB]$");
+	/** A player's outcome in a completed match (Backend/internal/match/history.go). */
+	const TCHAR* const OutcomePattern = TEXT("^(win|loss|no_contest)$");
+	/** Match History's cursor: unpadded base64url, opaque. */
+	const TCHAR* const CursorPattern = TEXT("^[A-Za-z0-9_-]{1,256}$");
 
 	/** The highest TCP or UDP port. */
 	constexpr int32 MaxPort = 65535;
@@ -661,6 +666,56 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 		return false;
 	}
 	Out = MoveTemp(Outcome);
+	return true;
+}
+
+FString HistoryPath(const FHistoryFilter& Filter, const FString& Cursor)
+{
+	TArray<FString> Query;
+	const TPair<const TCHAR*, const FString*> Fields[] = {
+		{ TEXT("vanguard"), &Filter.VanguardId },
+		{ TEXT("mode"), &Filter.Mode },
+		{ TEXT("outcome"), &Filter.Outcome },
+		{ TEXT("cursor"), &Cursor },
+	};
+	for (const TPair<const TCHAR*, const FString*>& Field : Fields)
+	{
+		if (!Field.Value->IsEmpty())
+		{
+			Query.Add(FString::Printf(TEXT("%s=%s"), Field.Key, *FGenericPlatformHttp::UrlEncode(*Field.Value)));
+		}
+	}
+	return Query.IsEmpty() ? FString(TEXT("/v1/me/matches")) : TEXT("/v1/me/matches?") + FString::Join(Query, TEXT("&"));
+}
+
+bool ParseHistoryPage(const FString& Body, FHistoryPage& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	const TArray<TSharedPtr<FJsonValue>>* Matches = nullptr;
+	FHistoryPage Page;
+	if (!Root.IsValid() || !Root->HasTypedField<EJson::Array>(TEXT("matches")) || !Root->TryGetArrayField(TEXT("matches"), Matches)
+		|| !NullableStringField(*Root, TEXT("next"), CursorPattern, Page.Next))
+	{
+		OutProblem = TEXT("the match history's list or cursor is missing or not in the expected format");
+		return false;
+	}
+	for (const TSharedPtr<FJsonValue>& Value : *Matches)
+	{
+		const TSharedPtr<FJsonObject>* Object = nullptr;
+		FHistoryEntry& Entry = Page.Entries.AddDefaulted_GetRef();
+		FString EndedAt;
+		if (!Value.IsValid() || Value->Type != EJson::Object || !Value->TryGetObject(Object) || !Object->IsValid()
+			|| !StringField(**Object, TEXT("id"), IdPattern, Entry.MatchId) || !StringField(**Object, TEXT("mode"), ContentIdPattern, Entry.Mode)
+			|| !StringField(**Object, TEXT("rules"), WordPattern, Entry.Rules) || !StringField(**Object, TEXT("endedAt"), EndedAt)
+			|| !FDateTime::ParseIso8601(*EndedAt, Entry.EndedAt) || !DurationField(**Object, TEXT("durationSeconds"), Entry.DurationSeconds)
+			|| !StringField(**Object, TEXT("side"), SidePattern, Entry.Side) || !NullableStringField(**Object, TEXT("vanguardId"), ContentIdPattern, Entry.VanguardId)
+			|| !StringField(**Object, TEXT("outcome"), OutcomePattern, Entry.Outcome))
+		{
+			OutProblem = TEXT("a match in the history is not in the expected format");
+			return false;
+		}
+	}
+	Out = MoveTemp(Page);
 	return true;
 }
 

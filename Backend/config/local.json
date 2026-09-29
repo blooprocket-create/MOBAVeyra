@@ -73,6 +73,7 @@
     "maxDuration": "4h",
     "reapInterval": "5s",
     "removeServerAfter": "2m",
+    "historyPageSize": 20,
     "maps": {
       "play": "/Game/Veyra/World/Maps/L_Battleground",
       "development": "/Game/Veyra/Developer/Maps/L_Greybox"

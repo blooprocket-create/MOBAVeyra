@@ -32,7 +32,7 @@ const validJSON = `{
   "matchFound": {"acceptDuration": "15s"},
   "casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},
   "selection": {"tickInterval": "1s", "startingTimeout": "60s"},
-  "matches": {"devCreate": {"enabled": true}, "readyTimeout": "120s", "maxDuration": "4h", "reapInterval": "5s", "removeServerAfter": "2m",
+  "matches": {"devCreate": {"enabled": true}, "readyTimeout": "120s", "maxDuration": "4h", "reapInterval": "5s", "removeServerAfter": "2m", "historyPageSize": 20,
     "maps": {"play": "/Game/Maps/L_Play", "development": "/Game/Maps/L_Dev"}},
   "allocator": {"kind": "docker", "docker": {
     "endpoint": "unix:///var/run/docker.sock", "apiVersion": "1.44", "requestTimeout": "30s",

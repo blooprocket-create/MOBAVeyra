@@ -121,6 +121,11 @@ public:
 	virtual bool ContinueFromResults() override;
 	virtual bool Retry() override;
 	virtual bool Quit() override;
+	virtual bool LoadHistory(const VeyraBackendProtocol::FHistoryFilter& Filter) override;
+	virtual bool LoadMoreHistory() override;
+	/** Only a listed match is on offer. */
+	virtual bool OpenHistoryMatch(const FString& MatchId) override;
+	virtual bool CloseHistoryMatch() override;
 
 	/** Which intents a state allows at all, before the snapshot's details: a pure table. */
 	static bool IsIntentAllowed(EVeyraClientState State, EVeyraClientIntent Intent);

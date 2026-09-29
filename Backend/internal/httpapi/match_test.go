@@ -48,6 +48,7 @@ func newMatchTestServerWithLimit(t *testing.T, devMatches bool, bodyLimit int64)
 		HostPortMax:       7789,
 		PublicHost:        "127.0.0.1",
 		BackendURL:        "http://backend:8080",
+		HistoryPageSize:   2,
 	}, time.Now)
 	d.DevMatches = devMatches
 	return serve(t, d), alloc
@@ -397,5 +398,66 @@ func TestAResultWithoutAScoreboardShowsNone(t *testing.T) {
 	}
 	if wells, ok := verified["wells"]; !ok || wells != nil {
 		t.Fatalf("no captures sent is null: %v", verified)
+	}
+}
+
+func TestMatchHistoryOverHTTP(t *testing.T) {
+	srv, alloc := newMatchTestServer(t, true)
+	one, oneID := gameSession(t, srv, "DevOne")
+	_, twoID := gameSession(t, srv, "DevTwo")
+	play := func(winner any) string {
+		t.Helper()
+		_, created := call(t, srv, "POST", "/v1/dev/matches", "", map[string]any{
+			"mode":         "casual_select",
+			"participants": []map[string]string{{"accountId": oneID, "side": "A", "vanguardId": "cairn"}, {"accountId": twoID, "side": "B", "vanguardId": "oriel"}},
+		})
+		matchID := created["match"].(map[string]any)["id"].(string)
+		cred := serverCredential(t, alloc, matchID)
+		call(t, srv, "POST", "/v1/server/matches/"+matchID+"/ready", cred, map[string]any{})
+		reason := "developer_request"
+		if winner != nil {
+			reason = "prime_well_destroyed"
+		}
+		result := map[string]any{"endReason": reason, "winner": winner, "durationSeconds": 600.5,
+			"participants": []map[string]any{{"accountId": oneID, "joined": true, "connectedAtEnd": true}, {"accountId": twoID, "joined": true, "connectedAtEnd": true}}}
+		if status, body := call(t, srv, "POST", "/v1/server/matches/"+matchID+"/result", cred, result); status != http.StatusOK {
+			t.Fatalf("result: %d %v", status, body)
+		}
+		return matchID
+	}
+	first := play(nil)
+	time.Sleep(2 * time.Millisecond)
+	second := play("B")
+	time.Sleep(2 * time.Millisecond)
+	third := play("A")
+
+	status, body := call(t, srv, "GET", "/v1/me/matches", one, nil)
+	matches, _ := body["matches"].([]any)
+	next, _ := body["next"].(string)
+	if status != http.StatusOK || len(matches) != 2 || next == "" {
+		t.Fatalf("the first page: %d %v", status, body)
+	}
+	newest := matches[0].(map[string]any)
+	if newest["id"] != third || newest["outcome"] != "win" || newest["mode"] != "casual_select" || newest["vanguardId"] != "cairn" || newest["side"] != "A" ||
+		newest["durationSeconds"] != 600.5 || newest["endedAt"] == nil || matches[1].(map[string]any)["outcome"] != "loss" {
+		t.Fatalf("newest first, with the player's own outcome: %v", matches)
+	}
+	status, body = call(t, srv, "GET", "/v1/me/matches?cursor="+next, one, nil)
+	matches, _ = body["matches"].([]any)
+	if status != http.StatusOK || len(matches) != 1 || matches[0].(map[string]any)["id"] != first || matches[0].(map[string]any)["outcome"] != "no_contest" || body["next"] != nil {
+		t.Fatalf("Load More: %d %v", status, body)
+	}
+	status, body = call(t, srv, "GET", "/v1/me/matches?outcome=loss&vanguard=cairn&mode=casual_select", one, nil)
+	matches, _ = body["matches"].([]any)
+	if status != http.StatusOK || len(matches) != 1 || matches[0].(map[string]any)["id"] != second {
+		t.Fatalf("filtered: %d %v", status, body)
+	}
+	for query, code := range map[string]string{"?outcome=draw": "invalid_filter", "?vanguard=Cairn": "invalid_filter", "?cursor=nope": "invalid_cursor"} {
+		if status, body := call(t, srv, "GET", "/v1/me/matches"+query, one, nil); status != http.StatusBadRequest || body["error"] != code {
+			t.Fatalf("%s: %d %v", query, status, body)
+		}
+	}
+	if status, _ := call(t, srv, "GET", "/v1/me/matches", "", nil); status != http.StatusUnauthorized {
+		t.Fatalf("without a session: want 401, got %d", status)
 	}
 }

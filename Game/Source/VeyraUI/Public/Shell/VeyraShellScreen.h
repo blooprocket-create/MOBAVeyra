@@ -8,6 +8,7 @@
 #include "VeyraShellScreen.generated.h"
 
 class IVeyraClientIntents;
+struct FVeyraHistoryOption;
 class UImage;
 class UOverlay;
 class UPanelWidget;
@@ -31,6 +32,8 @@ enum class EVeyraShellPage : uint8
 {
 	Home,
 	Play,
+	/** The player's completed matches (UX-51). */
+	History,
 };
 
 /**
@@ -102,6 +105,11 @@ private:
 	void BuildShell(const FVeyraClientSnapshot& Snapshot);
 	void BuildHome(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	void BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** Match History: its filters and list, or an opened match's report (UX-51, UX-64, UX-67). */
+	void BuildHistory(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** A filter's choices as a row of buttons; choosing one reads the first page again with it. */
+	void AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options,
+		TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply);
 	/** The party panel, on every page of the shell while the player has a party (UX §3). */
 	void BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 	void BuildMatchFound(const FVeyraClientSnapshot& Snapshot);

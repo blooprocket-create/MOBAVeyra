@@ -106,6 +106,12 @@ private:
 	 * arrive (ADR-012 §8). True while it recalls.
 	 */
 	bool TickRecall(AVeyraPlayerController& Controller, const AActor& Vanguard);
+
+	/**
+	 * Practice, back in the shell: opens Match History as a player does, checks the match just played is
+	 * listed first, opens it into its saved scoreboard and goes back (UX-51). True while it looks.
+	 */
+	bool TickHistory(const IVeyraClientIntents& Flow);
 	void CheckResults(const FVeyraClientSnapshot& Snapshot);
 	bool IsMatchmade() const { return Script == EScript::Casual || Script == EScript::Decline || Script == EScript::Requeue; }
 
@@ -174,6 +180,11 @@ private:
 	bool bShopped = false;
 	/** Practice: whether the scoreboard was shown, checked and let go. */
 	bool bScoreboardChecked = false;
+	/** Practice: whether Match History was opened, and the match found and opened in it. */
+	bool bOpenedHistory = false;
+	bool bCheckedHistory = false;
+	/** The match whose verified result the script saw. */
+	FString PlayedMatchId;
 	/** Practice: whether the script asked to recall, saw the channel, and saw the Vanguard home. */
 	bool bAskedToRecall = false;
 	bool bSawRecall = false;

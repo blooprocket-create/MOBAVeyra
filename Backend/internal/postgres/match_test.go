@@ -60,6 +60,7 @@ func newMatchFixture(t *testing.T, names ...string) *matchFixture {
 		HostPortMax:       testPortMax,
 		PublicHost:        "127.0.0.1",
 		BackendURL:        "http://backend:8080",
+		HistoryPageSize:   1,
 	}, func() time.Time { return f.now })
 	return f
 }
@@ -355,5 +356,53 @@ func TestAScoreboardInPostgres(t *testing.T) {
 	}
 	if _, err := f.store.pool.Exec(ctx, `UPDATE match.results SET players = '{}'::jsonb WHERE match_id = $1`, m.ID); err == nil {
 		t.Fatal("the schema must refuse a scoreboard that is not a list")
+	}
+}
+
+// Match History reads a player's completed matches from Postgres newest
+// first, with their outcome, filtered and paged (ADR-017 §6).
+func TestMatchHistoryInPostgres(t *testing.T) {
+	f := newMatchFixture(t, "DevOne", "DevTwo")
+	ctx := context.Background()
+	end := func(r match.Result) string {
+		t.Helper()
+		m, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{"DevOne": match.SideA, "DevTwo": match.SideB})))
+		if err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+		cred := f.credential(t, m.ID)
+		if err := f.svc.ServerReady(ctx, cred, m.ID); err != nil {
+			t.Fatalf("ServerReady: %v", err)
+		}
+		stored, _ := f.store.Match().MatchByID(ctx, m.ID)
+		for _, p := range stored.Participants {
+			r.Participants = append(r.Participants, match.ParticipantResult{AccountID: p.AccountID, Joined: true, ConnectedAtEnd: true})
+		}
+		if err := f.svc.ServerResult(ctx, cred, m.ID, r); err != nil {
+			t.Fatalf("ServerResult: %v", err)
+		}
+		f.now = f.now.Add(time.Minute)
+		return m.ID
+	}
+	drawn := end(match.Result{EndReason: match.EndDeveloperRequest, DurationSeconds: 300})
+	won := end(match.Result{EndReason: match.EndPrimeWellDestroyed, Winner: match.SideA, DurationSeconds: 1500.5})
+
+	one := f.ids["DevOne"]
+	page, next, err := f.svc.History(ctx, one, match.HistoryFilter{}, "")
+	if err != nil || len(page) != 1 || page[0].MatchID != won || page[0].Outcome != match.OutcomeWin || page[0].DurationSeconds != 1500.5 || page[0].VanguardID != "cairn" || next == "" {
+		t.Fatalf("the newest first: %+v %q %v", page, next, err)
+	}
+	page, next, err = f.svc.History(ctx, one, match.HistoryFilter{}, next)
+	if err != nil || len(page) != 1 || page[0].MatchID != drawn || page[0].Outcome != match.OutcomeNoContest || next != "" {
+		t.Fatalf("then the older: %+v %q %v", page, next, err)
+	}
+	if page, _, err := f.svc.History(ctx, f.ids["DevTwo"], match.HistoryFilter{Outcome: match.OutcomeLoss}, ""); err != nil || len(page) != 1 || page[0].MatchID != won || page[0].Side != match.SideB {
+		t.Fatalf("the other side's loss: %+v %v", page, err)
+	}
+	if page, _, err := f.svc.History(ctx, one, match.HistoryFilter{Mode: "casual", VanguardID: "cairn", Outcome: match.OutcomeNoContest}, ""); err != nil || len(page) != 1 || page[0].MatchID != drawn {
+		t.Fatalf("combined filters: %+v %v", page, err)
+	}
+	if page, _, err := f.svc.History(ctx, one, match.HistoryFilter{VanguardID: "oriel"}, ""); err != nil || len(page) != 0 {
+		t.Fatalf("a Vanguard never played: %+v %v", page, err)
 	}
 }

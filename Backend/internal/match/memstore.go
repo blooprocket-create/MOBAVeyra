@@ -121,6 +121,27 @@ func (s *MemStore) LastFluxSpells(_ context.Context, accountID, vanguardID strin
 	return spells, nil
 }
 
+func (s *MemStore) MatchHistory(_ context.Context, accountID string, filter HistoryFilter, after *HistoryCursor, limit int) ([]HistoryEntry, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []HistoryEntry
+	for _, m := range s.matches {
+		if e, ok := historyEntryFor(m, accountID, filter); ok && (after == nil || after.before(e)) {
+			out = append(out, e)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if !out[i].EndedAt.Equal(out[j].EndedAt) {
+			return out[i].EndedAt.After(out[j].EndedAt)
+		}
+		return out[i].MatchID > out[j].MatchID
+	})
+	if len(out) > limit {
+		out = out[:limit]
+	}
+	return out, nil
+}
+
 func (s *MemStore) MatchesNeedingAttention(_ context.Context) ([]Match, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

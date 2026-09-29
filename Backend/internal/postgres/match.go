@@ -158,6 +158,52 @@ func (t matchTx) SaveMatch(m match.Match) error {
 	return nil
 }
 
+// MatchHistory lists an account's completed matches newest first. A match
+// is completed when it ended with a result; each is the account's own side,
+// Vanguard and outcome in it.
+func (s *MatchStore) MatchHistory(ctx context.Context, accountID string, filter match.HistoryFilter, after *match.HistoryCursor, limit int) ([]match.HistoryEntry, error) {
+	var afterAt *time.Time
+	var afterID *string
+	if after != nil {
+		afterAt, afterID = &after.EndedAt, &after.MatchID
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT m.id::text, m.mode, m.rules, m.ended_at, r.duration_seconds, p.side, coalesce(p.vanguard_id, ''), r.winner
+		FROM match.participants p
+		JOIN match.matches m ON m.id = p.match_id
+		JOIN match.results r ON r.match_id = m.id
+		WHERE p.account_id = $1::uuid AND m.state = 'ended'
+			AND ($2 = '' OR p.vanguard_id = $2)
+			AND ($3 = '' OR m.mode = $3)
+			AND ($4 = ''
+				OR ($4 = 'win' AND r.winner = p.side)
+				OR ($4 = 'loss' AND r.winner IS NOT NULL AND r.winner <> p.side)
+				OR ($4 = 'no_contest' AND r.winner IS NULL))
+			AND ($5::timestamptz IS NULL OR (m.ended_at, m.id) < ($5::timestamptz, $6::uuid))
+		ORDER BY m.ended_at DESC, m.id DESC
+		LIMIT $7`,
+		accountID, filter.VanguardID, filter.Mode, string(filter.Outcome), afterAt, afterID, limit)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (match.HistoryEntry, error) {
+		var e match.HistoryEntry
+		var rules, side string
+		var winner *string
+		err := row.Scan(&e.MatchID, &e.Mode, &rules, &e.EndedAt, &e.DurationSeconds, &side, &e.VanguardID, &winner)
+		e.Rules, e.Side = match.Rules(rules), match.Side(side)
+		e.Outcome = match.OutcomeFor(e.Side, match.Side(deref(winner)))
+		return e, err
+	})
+}
+
+func deref(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
 func (s *MatchStore) ActiveMatchFor(ctx context.Context, accountID string) (match.Match, error) {
 	if !uuidPattern.MatchString(accountID) {
 		return match.Match{}, match.ErrMatchNotFound

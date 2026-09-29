@@ -232,6 +232,7 @@ func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Ser
 		ReadyTimeout:      cfg.Matches.ReadyTimeout,
 		MaxDuration:       cfg.Matches.MaxDuration,
 		RemoveServerAfter: cfg.Matches.RemoveServerAfter,
+		HistoryPageSize:   cfg.Matches.HistoryPageSize,
 	}
 	for _, m := range cfg.Modes {
 		settings.Modes[m.ID] = match.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam}

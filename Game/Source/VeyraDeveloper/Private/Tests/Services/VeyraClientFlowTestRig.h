@@ -121,6 +121,23 @@ namespace VeyraClientFlowTests
 			MatchId, *Result);
 	}
 
+	/** Another completed match of the player's, for Match History. */
+	inline const TCHAR* const OlderMatchId = TEXT("66666666-7777-4888-8999-aaaaaaaaaaaa");
+
+	/** One completed match as Match History lists it. */
+	inline FString HistoryEntry(const TCHAR* Id, const TCHAR* Outcome)
+	{
+		return FString::Printf(TEXT("{\"id\":\"%s\",\"mode\":\"casual_select\",\"rules\":\"standard\",\"endedAt\":\"2026-09-29T10:03:12.123456Z\",")
+								   TEXT("\"durationSeconds\":1510.5,\"side\":\"A\",\"vanguardId\":\"cairn\",\"outcome\":\"%s\"}"),
+			Id, Outcome);
+	}
+
+	/** A page of Match History; Next is JSON: a quoted cursor, or null. */
+	inline FString HistoryBody(const TArray<FString>& Entries, const TCHAR* Next)
+	{
+		return FString::Printf(TEXT("{\"matches\":[%s],\"next\":%s}"), *FString::Join(Entries, TEXT(",")), Next);
+	}
+
 	/** A matchmade select: the player on side A, an opponent on side B. */
 	inline FString CasualSelectBody(const TCHAR* State, const FString& CancelReason = FString())
 	{

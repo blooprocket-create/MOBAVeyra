@@ -253,6 +253,9 @@ namespace VeyraShellModels
 
 	VEYRAUI_API FVeyraResultsModel DescribeResults(const FVeyraClientSnapshot& Snapshot);
 
+	/** A verified match's headline, lines and report, as the results screen and Match History show it. */
+	VEYRAUI_API FVeyraResultsModel DescribeOutcome(const VeyraBackendProtocol::FMatchOutcome& Outcome);
+
 	/**
 	 * Everything the screens show except the countdown, as text: the shell rebuilds its widgets only
 	 * when this changes, so a poll that changes nothing never interrupts a click.

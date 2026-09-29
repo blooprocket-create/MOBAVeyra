@@ -5,6 +5,7 @@
 #include "Containers/Array.h"
 #include "Containers/StringView.h"
 #include "Containers/UnrealString.h"
+#include "Misc/DateTime.h"
 #include "Join/VeyraMatchAssignment.h"
 #include "Misc/Optional.h"
 
@@ -205,6 +206,47 @@ namespace VeyraBackendProtocol
 
 	/** Reads the answer to GET /v1/me/matches/{id}. False, with the problem, if it is not one. */
 	VEYRASERVICES_API bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProblem);
+
+	/**
+	 * What Match History lists (Pre-Game Client UX Bible 64): each empty field matches every match. Outcome
+	 * is "win", "loss" or "no_contest".
+	 */
+	struct FHistoryFilter
+	{
+		FString VanguardId;
+		FString Mode;
+		FString Outcome;
+
+		bool operator==(const FHistoryFilter&) const = default;
+	};
+
+	/** One completed match as Match History lists it (UX-51). */
+	struct FHistoryEntry
+	{
+		FString MatchId;
+		FString Mode;
+		FString Rules;
+		FDateTime EndedAt;
+		double DurationSeconds = 0.0;
+		FString Side;
+		/** Empty for a match from before matches carried Vanguards. */
+		FString VanguardId;
+		/** "win", "loss" or "no_contest": the player's own. */
+		FString Outcome;
+	};
+
+	/** A page of Match History, newest first, and the cursor of the next; Next is empty on the last page. */
+	struct FHistoryPage
+	{
+		TArray<FHistoryEntry> Entries;
+		FString Next;
+	};
+
+	/** GET /v1/me/matches with Filter, from Cursor (empty for the first page). */
+	VEYRASERVICES_API FString HistoryPath(const FHistoryFilter& Filter, const FString& Cursor);
+
+	/** Reads the answer to GET /v1/me/matches. False, with the problem, if it is not one. */
+	VEYRASERVICES_API bool ParseHistoryPage(const FString& Body, FHistoryPage& Out, FString& OutProblem);
 
 	/** A mode the Play screen offers, as GET /v1/modes reports it (ADR-010 §10). */
 	struct FModeInfo

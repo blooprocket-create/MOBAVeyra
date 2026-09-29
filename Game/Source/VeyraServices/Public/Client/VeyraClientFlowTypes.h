@@ -71,6 +71,14 @@ enum class EVeyraClientIntent : uint8
 	Retry,
 	/** Always allowed: the game never quits by itself. */
 	Quit,
+	/** Reads Match History's first page with a filter (UX-51, UX-64). */
+	LoadHistory,
+	/** Reads Match History's next page (UX-67). */
+	LoadMoreHistory,
+	/** Opens a listed match into its Scoreboard and Detailed Statistics. */
+	OpenHistoryMatch,
+	/** Goes back from an opened match to the list. */
+	CloseHistoryMatch,
 };
 
 /** Which kind of world the client just loaded. */
@@ -98,6 +106,20 @@ struct FVeyraClientProblem
 	FString Message;
 	/** Whether Retry repeats the failed step. */
 	bool bCanRetry = false;
+};
+
+/** Match History as the player has read it (Pre-Game Client UX Bible 51, 64, 67). */
+struct FVeyraMatchHistory
+{
+	VeyraBackendProtocol::FHistoryFilter Filter;
+	/** The pages read so far for Filter, newest first. */
+	TArray<VeyraBackendProtocol::FHistoryEntry> Entries;
+	/** The next page's cursor; empty on the last page. */
+	FString Next;
+	/** Whether the first page for Filter has been read. */
+	bool bLoaded = false;
+	/** A match opened from the list; unset while none is. */
+	TOptional<VeyraBackendProtocol::FMatchOutcome> Opened;
 };
 
 /** Everything the presentation shows about the flow. Only the flow changes it. */
@@ -148,4 +170,6 @@ struct FVeyraClientSnapshot
 	FString MatchId;
 	/** Results: the verified result, or unset when none arrived in time. */
 	TOptional<VeyraBackendProtocol::FMatchOutcome> Result;
+	/** Shell: Match History, once the player opens it. */
+	FVeyraMatchHistory History;
 };

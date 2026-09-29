@@ -32,6 +32,9 @@ type Settings struct {
 	PublicHost string
 	// BackendURL is the backend's address as match servers reach it.
 	BackendURL string
+	// HistoryPageSize is how many matches a page of Match History holds
+	// (Pre-Game Client UX Bible 67).
+	HistoryPageSize int
 }
 
 // Accounts answers the account questions match rules need. The identity

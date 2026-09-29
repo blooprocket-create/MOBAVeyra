@@ -288,6 +288,8 @@ var errorStatus = []struct {
 	{match.ErrInvalidState, http.StatusConflict, "invalid_state"},
 	{match.ErrInvalidResult, http.StatusBadRequest, "invalid_result"},
 	{match.ErrResultConflict, http.StatusConflict, "result_conflict"},
+	{match.ErrInvalidFilter, http.StatusBadRequest, "invalid_filter"},
+	{match.ErrInvalidCursor, http.StatusBadRequest, "invalid_cursor"},
 }
 
 func (s *Server) fail(w http.ResponseWriter, err error) {

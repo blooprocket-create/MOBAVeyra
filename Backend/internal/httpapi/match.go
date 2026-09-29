@@ -19,6 +19,7 @@ func (s *Server) routeMatch(mux *http.ServeMux) {
 		mux.HandleFunc("GET /v1/dev/matches/{matchId}", s.getDevMatch)
 	}
 	mux.HandleFunc("GET /v1/me/match", s.authed(s.myMatch))
+	mux.HandleFunc("GET /v1/me/matches", s.authed(s.myMatchHistory))
 	mux.HandleFunc("GET /v1/me/matches/{matchId}", s.authed(s.myMatchResult))
 	mux.HandleFunc("POST /v1/server/matches/{matchId}/ready", s.serverReady)
 	mux.HandleFunc("POST /v1/server/matches/{matchId}/result", s.serverResult)
@@ -284,6 +285,36 @@ func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor str
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"match": out})
+}
+
+// myMatchHistory lists the player's completed matches newest first (Pre-Game
+// Client UX Bible 51, 64, 67): each match's date, mode, duration, the player's
+// Vanguard and personal outcome. The query's vanguard, mode and outcome filter
+// it; cursor continues from the previous page's next.
+func (s *Server) myMatchHistory(w http.ResponseWriter, r *http.Request, actor string) {
+	q := r.URL.Query()
+	filter := match.HistoryFilter{VanguardID: q.Get("vanguard"), Mode: q.Get("mode"), Outcome: match.Outcome(q.Get("outcome"))}
+	entries, next, err := s.Match.History(r.Context(), actor, filter, q.Get("cursor"))
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	type entryJSON struct {
+		ID              string    `json:"id"`
+		Mode            string    `json:"mode"`
+		Rules           string    `json:"rules"`
+		EndedAt         time.Time `json:"endedAt"`
+		DurationSeconds float64   `json:"durationSeconds"`
+		Side            string    `json:"side"`
+		VanguardID      *string   `json:"vanguardId"`
+		Outcome         string    `json:"outcome"`
+	}
+	out := make([]entryJSON, 0, len(entries))
+	for _, e := range entries {
+		out = append(out, entryJSON{ID: e.MatchID, Mode: e.Mode, Rules: string(e.Rules), EndedAt: e.EndedAt.UTC(), DurationSeconds: e.DurationSeconds,
+			Side: string(e.Side), VanguardID: textOrNil(e.VanguardID), Outcome: string(e.Outcome)})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"matches": out, "next": textOrNil(next)})
 }
 
 func (s *Server) serverReady(w http.ResponseWriter, r *http.Request) {

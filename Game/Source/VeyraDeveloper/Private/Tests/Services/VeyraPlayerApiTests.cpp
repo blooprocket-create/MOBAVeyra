@@ -188,6 +188,35 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(AreEqual(Read.FailureReason, FString(TEXT("server_exited"))));
 		}
 
+		TEST_METHOD(ReadsMatchHistoryAndBuildsItsPath)
+		{
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::HistoryPath({}, FString()), FString(TEXT("/v1/me/matches"))));
+			VeyraBackendProtocol::FHistoryFilter Filter;
+			Filter.VanguardId = TEXT("cairn");
+			Filter.Mode = TEXT("casual_select");
+			Filter.Outcome = TEXT("no_contest");
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::HistoryPath(Filter, TEXT("abc_-1")),
+				FString(TEXT("/v1/me/matches?vanguard=cairn&mode=casual_select&outcome=no_contest&cursor=abc_-1"))));
+
+			const FString Body = TEXT("{\"matches\":[{\"id\":\"33333333-4444-4555-8666-777777777777\",\"mode\":\"custom_practice\",\"rules\":\"practice\",")
+				TEXT("\"endedAt\":\"2026-09-29T10:03:12Z\",\"durationSeconds\":95,\"side\":\"A\",\"vanguardId\":null,\"outcome\":\"no_contest\"}],\"next\":\"bmV4dA\"}");
+			VeyraBackendProtocol::FHistoryPage Page;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseHistoryPage(Body, Page, Problem), Problem));
+			ASSERT_THAT(IsTrue(Page.Entries.Num() == 1 && Page.Entries[0].Rules == TEXT("practice") && Page.Entries[0].VanguardId.IsEmpty() && Page.Next == TEXT("bmV4dA")));
+			ASSERT_THAT(IsTrue(Page.Entries[0].EndedAt == FDateTime(2026, 9, 29, 10, 3, 12)));
+
+			for (const FString& Bad : TArray<FString>{
+					 TEXT("{\"matches\":null,\"next\":null}"),
+					 Body.Replace(TEXT("no_contest"), TEXT("draw")),
+					 Body.Replace(TEXT("2026-09-29T10:03:12Z"), TEXT("yesterday")),
+					 Body.Replace(TEXT("\"bmV4dA\""), TEXT("\"not a cursor!\"")),
+				 })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseHistoryPage(Bad, Page, Problem), Bad));
+			}
+		}
+
 		TEST_METHOD(RefusesAnythingElseAsAMatchOutcome)
 		{
 			const TArray<FString> Bodies = {

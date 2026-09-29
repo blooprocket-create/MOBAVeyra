@@ -630,6 +630,37 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.State() == EVeyraClientState::Loading));
 		}
 
+		TEST_METHOD(MatchHistoryListsFiltersAndOpensARecord)
+		{
+			ASSERT_THAT(IsTrue(Rig.ReachShell()));
+			ShowScreen();
+			Button(TEXT("Match History"))->Press();
+			ASSERT_THAT(IsTrue(Screen->GetPage() == EVeyraShellPage::History));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/matches"), 200,
+				HistoryBody({ HistoryEntry(MatchId, TEXT("win")), HistoryEntry(OlderMatchId, TEXT("no_contest")) }, TEXT("\"more\"")))));
+			FString Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Casual Select")) && Text.Contains(TEXT("Victory")) && Text.Contains(TEXT("No Contest")) && Text.Contains(TEXT("25:11")), Text));
+			ASSERT_THAT(IsNotNull(Button(TEXT("Load More"))));
+			ASSERT_THAT(IsTrue(Button(TEXT("All Vanguards")) && Button(TEXT("Oriel")) && Button(TEXT("All Modes")) && Button(TEXT("Defeat")), TEXT("each filter's choices")));
+
+			// A filter reads the first page again (UX-64).
+			Button(TEXT("Defeat"))->Press();
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/matches?outcome=loss"), 200, HistoryBody({}, TEXT("null")))));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("No completed matches fit these filters.")) && !Button(TEXT("Load More"))));
+			Button(TEXT("All Outcomes"))->Press();
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/matches"), 200, HistoryBody({ HistoryEntry(MatchId, TEXT("win")) }, TEXT("null")))));
+
+			// Opening one shows its saved Scoreboard and Detailed Statistics (UX-51).
+			Button(TEXT("Open"))->Press();
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), FString(TEXT("/v1/me/matches/")) + MatchId, 200, ScoredOutcomeBody())));
+			Text = Screen->DescribeText();
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Your Team: Victory")) && Text.Contains(TEXT("DevOne (you)")), Text));
+			Button(TEXT("Detailed Statistics"))->Press();
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Gold from Minions"))));
+			Button(TEXT("Back to Match History"))->Press();
+			ASSERT_THAT(IsTrue(Screen->GetPage() == EVeyraShellPage::History && Button(TEXT("Open")) != nullptr));
+		}
+
 		TEST_METHOD(AProblemOffersRetry)
 		{
 			TestRunner->AddExpectedMessagePlain(TEXT("VeyraClientFlow: problem in Loading (backend_unreachable)"), ELogVerbosity::Warning,

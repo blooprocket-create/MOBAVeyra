@@ -16,6 +16,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
+#include "Shell/VeyraMatchHistoryModel.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
@@ -219,10 +220,15 @@ void UVeyraShellScreen::BuildStarterChoice(const FVeyraClientSnapshot& Snapshot)
 
 void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 {
-	// Navigation between ordinary pages (UX §1). Only Home and Play exist so far.
+	// Navigation between ordinary pages (UX §1).
 	UHorizontalBox* Pages = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	AddButton(*Pages, LOCTEXT("NavHome", "Home"), [this] { ShowPage(EVeyraShellPage::Home); }, true, Page == EVeyraShellPage::Home);
 	AddButton(*Pages, LOCTEXT("NavPlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); }, true, Page == EVeyraShellPage::Play);
+	// Opening Match History reads its first page afresh, with the filters last used.
+	AddButton(*Pages, LOCTEXT("NavHistory", "Match History"), [this] {
+		ShowPage(EVeyraShellPage::History);
+		Client->LoadHistory(Client->GetSnapshot().History.Filter);
+	}, true, Page == EVeyraShellPage::History);
 	AddButton(*Pages, LOCTEXT("Quit", "Quit"), [this] { Client->Quit(); });
 	VeyraShellStyle::AddSpaced(*Content, *Pages);
 	AddText(*Content, FText::Format(LOCTEXT("SignedInAs", "Signed in as {0}"), FText::FromString(Snapshot.DisplayName)), static_cast<uint8>(EVeyraShellText::Muted));
@@ -235,10 +241,82 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 	{
 		BuildPlay(Snapshot, *Content);
 	}
+	else if (Page == EVeyraShellPage::History)
+	{
+		BuildHistory(Snapshot, *Content);
+	}
 	else
 	{
 		BuildHome(Snapshot, *Content);
 	}
+}
+
+void UVeyraShellScreen::BuildHistory(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
+{
+	const FVeyraHistoryModel Model = VeyraMatchHistoryModel::Describe(Snapshot, Client->CanIssue(EVeyraClientIntent::LoadMoreHistory));
+	if (Model.Opened.IsSet())
+	{
+		// A saved record: the same Scoreboard and Detailed Statistics as the results screen (UX-51).
+		AddButton(Parent, LOCTEXT("BackToHistory", "Back to Match History"), [this] { Client->CloseHistoryMatch(); },
+			Client->CanIssue(EVeyraClientIntent::CloseHistoryMatch));
+		AddText(Parent, Model.Opened->Headline, static_cast<uint8>(EVeyraShellText::Title));
+		for (const FText& Line : Model.Opened->Lines)
+		{
+			AddText(Parent, Line, static_cast<uint8>(EVeyraShellText::Body));
+		}
+		BuildReport(Model.Opened->Report, Parent);
+		return;
+	}
+	AddText(Parent, LOCTEXT("HistoryTitle", "Match History"), static_cast<uint8>(EVeyraShellText::Title));
+	AddHistoryFilter(Parent, Model.Vanguards, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.VanguardId = Value; });
+	AddHistoryFilter(Parent, Model.Modes, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Mode = Value; });
+	AddHistoryFilter(Parent, Model.Outcomes, [](VeyraBackendProtocol::FHistoryFilter& Filter, const FString& Value) { Filter.Outcome = Value; });
+	if (!Model.Empty.IsEmpty())
+	{
+		AddText(Parent, Model.Empty, static_cast<uint8>(EVeyraShellText::Muted));
+	}
+	UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+	UVerticalBox* List = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Scroll->AddChild(List);
+	if (UVerticalBox* Column = Cast<UVerticalBox>(&Parent))
+	{
+		Column->AddChildToVerticalBox(Scroll)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	}
+	else
+	{
+		Parent.AddChild(Scroll);
+	}
+	const bool bCanOpen = Client->CanIssue(EVeyraClientIntent::OpenHistoryMatch);
+	for (const FVeyraHistoryRow& Row : Model.Rows)
+	{
+		UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		const FString MatchId = Row.MatchId;
+		AddButton(*Line, LOCTEXT("OpenMatch", "Open"), [this, MatchId] { Client->OpenHistoryMatch(MatchId); }, bCanOpen);
+		AddText(*Line, Row.Summary, static_cast<uint8>(EVeyraShellText::Body));
+		List->AddChild(Line);
+	}
+	// Older records come in batches (UX-67).
+	if (Model.bOffersLoadMore)
+	{
+		AddButton(*List, LOCTEXT("LoadMore", "Load More"), [this] { Client->LoadMoreHistory(); });
+	}
+}
+
+void UVeyraShellScreen::AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options,
+	TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply)
+{
+	UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	const bool bCanLoad = Client->CanIssue(EVeyraClientIntent::LoadHistory);
+	for (const FVeyraHistoryOption& Option : Options)
+	{
+		const FString Value = Option.Value;
+		AddButton(*Row, Option.Label, [this, Value, Apply] {
+			VeyraBackendProtocol::FHistoryFilter Filter = Client->GetSnapshot().History.Filter;
+			Apply(Filter, Value);
+			Client->LoadHistory(Filter);
+		}, bCanLoad, Option.bSelected);
+	}
+	VeyraShellStyle::AddSpaced(Parent, *Row);
 }
 
 void UVeyraShellScreen::BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
@@ -446,8 +524,8 @@ void UVeyraShellScreen::BuildScoreboard(const FVeyraMatchReport& Report, UPanelW
 			Parent.AddChild(Row);
 			UHorizontalBox* Build = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 			AddCell(*Build, FText::GetEmpty(), Style.ReportColumnWidth, static_cast<uint8>(EVeyraShellText::Small));
-			AddText(*Build, Line.Items, static_cast<uint8>(EVeyraShellText::Small));
-			AddText(*Build, Line.FluxSpells, static_cast<uint8>(EVeyraShellText::Small));
+			// One line, so neither half wraps in a column of its own.
+			AddText(*Build, FText::Format(LOCTEXT("ReportBuild", "{0}      {1}"), Line.Items, Line.FluxSpells), static_cast<uint8>(EVeyraShellText::Small));
 			VeyraShellStyle::AddSpaced(Parent, *Build);
 		}
 	}
