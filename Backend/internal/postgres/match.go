@@ -150,8 +150,8 @@ func (t matchTx) SaveMatch(m match.Match) error {
 		return err
 	}
 	for _, p := range r.Participants {
-		if _, err := t.q.Exec(t.ctx, `INSERT INTO match.result_participants (match_id, account_id, joined, connected_at_end)
-			VALUES ($1::uuid, $2::uuid, $3, $4)`, m.ID, p.AccountID, p.Joined, p.ConnectedAtEnd); err != nil {
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO match.result_participants (match_id, account_id, joined, connected_at_end, personal_loss, absent_seconds)
+			VALUES ($1::uuid, $2::uuid, $3, $4, $5, $6)`, m.ID, p.AccountID, p.Joined, p.ConnectedAtEnd, p.PersonalLoss, p.AbsentSeconds); err != nil {
 			return err
 		}
 	}
@@ -168,17 +168,19 @@ func (s *MatchStore) MatchHistory(ctx context.Context, accountID string, filter 
 		afterAt, afterID = &after.EndedAt, &after.MatchID
 	}
 	rows, err := s.pool.Query(ctx, `
-		SELECT m.id::text, m.mode, m.rules, m.ended_at, r.duration_seconds, p.side, coalesce(p.vanguard_id, ''), r.winner
+		SELECT m.id::text, m.mode, m.rules, m.ended_at, r.duration_seconds, p.side, coalesce(p.vanguard_id, ''), r.winner,
+			coalesce(rp.personal_loss, false)
 		FROM match.participants p
 		JOIN match.matches m ON m.id = p.match_id
 		JOIN match.results r ON r.match_id = m.id
+		LEFT JOIN match.result_participants rp ON rp.match_id = m.id AND rp.account_id = p.account_id
 		WHERE p.account_id = $1::uuid AND m.state = 'ended'
 			AND ($2 = '' OR p.vanguard_id = $2)
 			AND ($3 = '' OR m.mode = $3)
 			AND ($4 = ''
-				OR ($4 = 'win' AND r.winner = p.side)
-				OR ($4 = 'loss' AND r.winner IS NOT NULL AND r.winner <> p.side)
-				OR ($4 = 'no_contest' AND r.winner IS NULL))
+				OR ($4 = 'win' AND r.winner = p.side AND NOT coalesce(rp.personal_loss, false))
+				OR ($4 = 'loss' AND (coalesce(rp.personal_loss, false) OR (r.winner IS NOT NULL AND r.winner <> p.side)))
+				OR ($4 = 'no_contest' AND r.winner IS NULL AND NOT coalesce(rp.personal_loss, false)))
 			AND ($5::timestamptz IS NULL OR (m.ended_at, m.id) < ($5::timestamptz, $6::uuid))
 		ORDER BY m.ended_at DESC, m.id DESC
 		LIMIT $7`,
@@ -190,9 +192,9 @@ func (s *MatchStore) MatchHistory(ctx context.Context, accountID string, filter 
 		var e match.HistoryEntry
 		var rules, side string
 		var winner *string
-		err := row.Scan(&e.MatchID, &e.Mode, &rules, &e.EndedAt, &e.DurationSeconds, &side, &e.VanguardID, &winner)
+		err := row.Scan(&e.MatchID, &e.Mode, &rules, &e.EndedAt, &e.DurationSeconds, &side, &e.VanguardID, &winner, &e.PersonalLoss)
 		e.Rules, e.Side = match.Rules(rules), match.Side(side)
-		e.Outcome = match.OutcomeFor(e.Side, match.Side(deref(winner)))
+		e.Outcome = match.OutcomeFor(e.Side, match.Side(deref(winner)), e.PersonalLoss)
 		return e, err
 	})
 }
@@ -396,14 +398,14 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 			return match.Match{}, err
 		}
 	}
-	rows, err = q.Query(ctx, `SELECT account_id::text, joined, connected_at_end FROM match.result_participants
+	rows, err = q.Query(ctx, `SELECT account_id::text, joined, connected_at_end, personal_loss, absent_seconds FROM match.result_participants
 		WHERE match_id = $1::uuid ORDER BY account_id`, id)
 	if err != nil {
 		return match.Match{}, err
 	}
 	r.Participants, err = pgx.CollectRows(rows, func(row pgx.CollectableRow) (match.ParticipantResult, error) {
 		var p match.ParticipantResult
-		err := row.Scan(&p.AccountID, &p.Joined, &p.ConnectedAtEnd)
+		err := row.Scan(&p.AccountID, &p.Joined, &p.ConnectedAtEnd, &p.PersonalLoss, &p.AbsentSeconds)
 		return p, err
 	})
 	if err != nil {

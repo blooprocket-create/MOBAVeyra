@@ -409,3 +409,44 @@ func TestMatchHistoryInPostgres(t *testing.T) {
 		t.Fatalf("every mode with a saved match: %v %v", modes, err)
 	}
 }
+
+// A surrender is won by the other side, and a personal loss for absence
+// overrides the team's win in the player's history (ADR-019 §5).
+func TestSurrenderAndPersonalLossInPostgres(t *testing.T) {
+	f := newMatchFixture(t, "DevOne", "DevTwo")
+	ctx := context.Background()
+	m, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{"DevOne": match.SideA, "DevTwo": match.SideB})))
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	cred := f.credential(t, m.ID)
+	if err := f.svc.ServerReady(ctx, cred, m.ID); err != nil {
+		t.Fatalf("ServerReady: %v", err)
+	}
+	one, two := f.ids["DevOne"], f.ids["DevTwo"]
+	r := match.Result{EndReason: match.EndSurrender, Winner: match.SideA, DurationSeconds: 1200, Participants: []match.ParticipantResult{
+		{AccountID: one, Joined: true, ConnectedAtEnd: false, PersonalLoss: true, AbsentSeconds: 400},
+		{AccountID: two, Joined: true, ConnectedAtEnd: true},
+	}}
+	if err := f.svc.ServerResult(ctx, cred, m.ID, r); err != nil {
+		t.Fatalf("ServerResult: %v", err)
+	}
+	stored, err := f.store.Match().MatchByID(ctx, m.ID)
+	if err != nil || stored.Result == nil || stored.Result.EndReason != match.EndSurrender || stored.Result.Winner != match.SideA {
+		t.Fatalf("the stored result: %+v %v", stored.Result, err)
+	}
+	for _, p := range stored.Result.Participants {
+		if p.AccountID == one && (!p.PersonalLoss || p.AbsentSeconds != 400) {
+			t.Fatalf("the absent player's result: %+v", p)
+		}
+	}
+	if page, _, err := f.svc.History(ctx, one, match.HistoryFilter{Outcome: match.OutcomeLoss}, ""); err != nil || len(page) != 1 || !page[0].PersonalLoss {
+		t.Fatalf("a personal loss on the winning side is a loss: %+v %v", page, err)
+	}
+	if page, _, err := f.svc.History(ctx, one, match.HistoryFilter{Outcome: match.OutcomeWin}, ""); err != nil || len(page) != 0 {
+		t.Fatalf("and not a win: %+v %v", page, err)
+	}
+	if page, _, err := f.svc.History(ctx, two, match.HistoryFilter{Outcome: match.OutcomeLoss}, ""); err != nil || len(page) != 1 || page[0].PersonalLoss {
+		t.Fatalf("the surrendering side loses: %+v %v", page, err)
+	}
+}

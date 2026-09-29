@@ -313,6 +313,14 @@ namespace VeyraShellTests
 			ASSERT_THAT(AreEqual(Model.Headline.ToString(), FString(TEXT("Victory"))));
 			ASSERT_THAT(IsTrue(FText::Join(FText::FromString(TEXT("|")), Model.Lines).ToString().Contains(TEXT("A Prime Well was destroyed."))));
 
+			// A personal loss for absence is the player's own Defeat, beside its team's win (UX-51).
+			Outcome.bPersonalLoss = true;
+			Snapshot.Result = Outcome;
+			Model = VeyraShellModels::DescribeResults(Snapshot);
+			ASSERT_THAT(AreEqual(Model.Headline.ToString(), FString(TEXT("Defeat"))));
+			ASSERT_THAT(IsTrue(Model.Lines[0].ToString().Contains(TEXT("Personal loss")) && Model.Lines[0].ToString().Contains(TEXT("Your team won"))));
+			Outcome.bPersonalLoss = false;
+
 			Outcome.Side = TEXT("B");
 			Snapshot.Result = Outcome;
 			Model = VeyraShellModels::DescribeResults(Snapshot);

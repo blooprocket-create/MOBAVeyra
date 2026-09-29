@@ -288,6 +288,19 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	{
 		Result.MatchId = Roster->GetAssignment().MatchId;
 		Result.Participants = Roster->BuildParticipantResults();
+		// Each one's own outcome besides its team's (Match Flow Bible §6; ADR-019 §3).
+		const UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>();
+		for (FVeyraParticipantResult& Participant : Result.Participants)
+		{
+			const AVeyraPlayerState* Player = FindParticipant(Participant.AccountId);
+			if (Absence && Player)
+			{
+				const UVeyraAbsenceSubsystem::FPersonalResult Personal = Absence->Adjudicate(*Player, Winner != EVeyraTeam::None && Winner == Player->GetVeyraTeam(),
+					Result.DurationSeconds);
+				Participant.bPersonalLoss = Personal.bPersonalLoss;
+				Participant.AbsentSeconds = Personal.AbsentSeconds;
+			}
+		}
 	}
 	Result.Players = BuildScoreboard();
 	if (const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>())
@@ -654,6 +667,19 @@ void AVeyraGameMode::HandleStartingNewPlayer_Implementation(APlayerController* N
 	{
 		SpawnVanguard(*PlayerState);
 	}
+}
+
+AVeyraPlayerState* AVeyraGameMode::FindParticipant(FStringView AccountId) const
+{
+	for (APlayerState* Member : GameState->PlayerArray)
+	{
+		AVeyraPlayerState* Candidate = Cast<AVeyraPlayerState>(Member);
+		if (Candidate && Candidate->GetAccountId() == AccountId)
+		{
+			return Candidate;
+		}
+	}
+	return nullptr;
 }
 
 AVeyraPlayerState* AVeyraGameMode::FindKeptPlayerState(FStringView AccountId) const

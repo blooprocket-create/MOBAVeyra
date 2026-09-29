@@ -92,6 +92,26 @@ func TestHostEndedNeedsPracticeRules(t *testing.T) {
 	}
 }
 
+func TestSurrenderAndRemakeEndOnlyAStandardMatch(t *testing.T) {
+	for _, c := range []struct {
+		reason EndReason
+		winner Side
+	}{{EndSurrender, SideB}, {EndRemake, ""}} {
+		practice := readyMatch()
+		practice.Rules = RulesPractice
+		r := resultFor(practice)
+		r.EndReason, r.Winner = c.reason, c.winner
+		if err := practice.End(r, t0); !errors.Is(err, ErrInvalidResult) {
+			t.Fatalf("%s: practice takes no votes, got %v", c.reason, err)
+		}
+		m := readyMatch()
+		r.Participants[0].PersonalLoss, r.Participants[0].AbsentSeconds = true, 30
+		if err := m.End(r, t0); err != nil || m.Result.EndReason != c.reason || m.Result.Winner != c.winner || !m.Result.Participants[0].PersonalLoss {
+			t.Fatalf("%s: %v %+v", c.reason, err, m.Result)
+		}
+	}
+}
+
 func TestPrimeWellDestroyedNeedsAWinnerAndStandardRules(t *testing.T) {
 	m := readyMatch()
 	r := resultFor(m)
@@ -166,7 +186,15 @@ func TestEndIsIdempotentAndRejectsAConflict(t *testing.T) {
 func TestEndRejectsInvalidResults(t *testing.T) {
 	base := readyMatch()
 	cases := map[string]func(*Result){
-		"unknown reason":     func(r *Result) { r.EndReason = "surrender" },
+		"unknown reason":       func(r *Result) { r.EndReason = "forfeit" },
+		"surrender, no winner": func(r *Result) { r.EndReason = EndSurrender },
+		"remake with winner":   func(r *Result) { r.EndReason, r.Winner = EndRemake, SideA },
+		"negative absence":     func(r *Result) { r.Participants[0].AbsentSeconds = -1 },
+		"absence past the end": func(r *Result) { r.Participants[0].AbsentSeconds = r.DurationSeconds + 1 },
+		"NaN absence":          func(r *Result) { r.Participants[0].AbsentSeconds = math.NaN() },
+		"loss, never joined": func(r *Result) {
+			r.Participants[1].Joined, r.Participants[1].ConnectedAtEnd, r.Participants[1].PersonalLoss = false, false, true
+		},
 		"unknown winner":     func(r *Result) { r.Winner = "C" },
 		"winner, no victory": func(r *Result) { r.Winner = SideA },
 		"negative duration":  func(r *Result) { r.DurationSeconds = -1 },

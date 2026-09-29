@@ -205,7 +205,7 @@ namespace VeyraServicesTests
 			Result.MatchId = ExampleId;
 			Result.EndReason = EVeyraMatchEndReason::DeveloperRequest;
 			Result.DurationSeconds = 12.5;
-			Result.Participants = { { TEXT("a"), true, true }, { TEXT("b"), true, false } };
+			Result.Participants = { { TEXT("a"), true, true }, { TEXT("b"), true, false, true, 175.5 } };
 			const TSharedPtr<FJsonObject> Body = Parse(VeyraBackendProtocol::BuildResultBody(Result));
 			ASSERT_THAT(IsTrue(Body.IsValid()));
 			ASSERT_THAT(AreEqual(Body->Values.Num(), 6));
@@ -217,10 +217,13 @@ namespace VeyraServicesTests
 			const TArray<TSharedPtr<FJsonValue>>& Participants = Body->GetArrayField(TEXT("participants"));
 			ASSERT_THAT(AreEqual(Participants.Num(), 2));
 			const TSharedPtr<FJsonObject>& Second = Participants[1]->AsObject();
-			ASSERT_THAT(AreEqual(Second->Values.Num(), 3));
+			ASSERT_THAT(AreEqual(Second->Values.Num(), 5));
 			ASSERT_THAT(AreEqual(Second->GetStringField(TEXT("accountId")), FString(TEXT("b"))));
 			ASSERT_THAT(IsTrue(Second->GetBoolField(TEXT("joined"))));
 			ASSERT_THAT(IsFalse(Second->GetBoolField(TEXT("connectedAtEnd"))));
+			// Its own outcome for absence (ADR-019 §5).
+			ASSERT_THAT(IsTrue(Second->GetBoolField(TEXT("personalLoss")) && Second->GetNumberField(TEXT("absentSeconds")) == 175.5));
+			ASSERT_THAT(IsFalse(Participants[0]->AsObject()->GetBoolField(TEXT("personalLoss"))));
 		}
 
 		TEST_METHOD(NamesAnAbandonedMatch)
@@ -267,7 +270,8 @@ namespace VeyraServicesTests
 			Result.MatchId = ExampleId;
 			Result.EndReason = EVeyraMatchEndReason::DeveloperRequest;
 			Result.DurationSeconds = 1510.5;
-			Result.Participants = { { TEXT("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"), true, true }, { TEXT("bbbbbbbb-cccc-4ddd-8eee-ffffffffffff"), true, false } };
+			// The second left for good: a personal loss for its absence (ADR-019 §5).
+			Result.Participants = { { TEXT("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee"), true, true }, { TEXT("bbbbbbbb-cccc-4ddd-8eee-ffffffffffff"), true, false, true, 640.25 } };
 			const auto Line = [](EVeyraTeam Side, const TCHAR* Name, const TCHAR* AccountId, const TCHAR* Vanguard, int32 Seed) {
 				FVeyraPlayerResult Player;
 				Player.Side = Side;

@@ -37,10 +37,12 @@ func (o Outcome) Valid() bool {
 }
 
 // OutcomeFor is the personal outcome of a player on side for a match won by
-// winner, or by no one when winner is empty. There is no personal loss
-// override yet (UX-51): a player's outcome is their team's.
-func OutcomeFor(side, winner Side) Outcome {
+// winner, or by no one when winner is empty. A personal loss overrides the
+// team's outcome, a win or a no contest alike (Match Flow Bible §6–§7; UX-51).
+func OutcomeFor(side, winner Side, personalLoss bool) Outcome {
 	switch {
+	case personalLoss:
+		return OutcomeLoss
 	case winner == "":
 		return OutcomeNoContest
 	case winner == side:
@@ -105,6 +107,8 @@ type HistoryEntry struct {
 	Side            Side
 	VanguardID      string
 	Outcome         Outcome
+	// PersonalLoss says the outcome is the player's own loss, not their team's.
+	PersonalLoss bool
 }
 
 // History lists accountID's completed matches newest first: a page of the
@@ -150,8 +154,14 @@ func historyEntryFor(m Match, accountID string, filter HistoryFilter) (HistoryEn
 	if !ok || m.State != Ended || m.Result == nil {
 		return HistoryEntry{}, false
 	}
+	personalLoss := false
+	for _, pr := range m.Result.Participants {
+		if pr.AccountID == accountID {
+			personalLoss = pr.PersonalLoss
+		}
+	}
 	e := HistoryEntry{MatchID: m.ID, Mode: m.Mode, Rules: m.Rules, EndedAt: m.EndedAt, DurationSeconds: m.Result.DurationSeconds, Side: p.Side,
-		VanguardID: p.VanguardID, Outcome: OutcomeFor(p.Side, m.Result.Winner)}
+		VanguardID: p.VanguardID, Outcome: OutcomeFor(p.Side, m.Result.Winner, personalLoss), PersonalLoss: personalLoss}
 	if (filter.VanguardID != "" && e.VanguardID != filter.VanguardID) || (filter.Mode != "" && e.Mode != filter.Mode) || (filter.Outcome != "" && e.Outcome != filter.Outcome) {
 		return HistoryEntry{}, false
 	}

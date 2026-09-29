@@ -70,8 +70,14 @@ const (
 	// EndHostEnded is a practice match its host ended (ADR-010 §7).
 	EndHostEnded EndReason = "host_ended"
 	// EndPrimeWellDestroyed is a standard match won by destroying the other
-	// side's Prime Well (ADR-011 §13), the one end with a winner.
+	// side's Prime Well (ADR-011 §13).
 	EndPrimeWellDestroyed EndReason = "prime_well_destroyed"
+	// EndSurrender is a standard match a side surrendered: the other side
+	// wins (Match Flow Bible §8; ADR-019 §5).
+	EndSurrender EndReason = "surrender"
+	// EndRemake is a standard match its players voted to remake: no contest,
+	// no winner (Match Flow Bible §7; ADR-019 §5).
+	EndRemake EndReason = "remake"
 )
 
 // FailureReason says why a match ended without a result.
@@ -142,6 +148,12 @@ type ParticipantResult struct {
 	AccountID      string
 	Joined         bool
 	ConnectedAtEnd bool
+	// PersonalLoss is a loss the player's own absence earned them, whatever
+	// their team's result (Match Flow Bible §6; ADR-019 §3).
+	PersonalLoss bool
+	// AbsentSeconds is the player's total absence, AFK and disconnected, in
+	// match seconds.
+	AbsentSeconds float64
 }
 
 // Result is a match server's report of how its match ended (ADR-007 §7).
@@ -365,16 +377,18 @@ func (m *Match) validateResult(r Result) error {
 		if m.Rules != RulesPractice {
 			return ErrInvalidResult
 		}
-	case EndPrimeWellDestroyed:
-		// Practice has no victory condition (ADR-011 §14).
+	case EndPrimeWellDestroyed, EndSurrender, EndRemake:
+		// Practice has no victory condition (ADR-011 §14) and takes no votes
+		// (ADR-019 §9).
 		if m.Rules != RulesStandard {
 			return ErrInvalidResult
 		}
 	default:
 		return ErrInvalidResult
 	}
-	// A side wins exactly when it destroyed the other's Prime Well.
-	if (r.EndReason == EndPrimeWellDestroyed) != (r.Winner != "") {
+	// A side wins exactly when it destroyed the other's Prime Well or the
+	// other side surrendered.
+	if (r.EndReason == EndPrimeWellDestroyed || r.EndReason == EndSurrender) != (r.Winner != "") {
 		return ErrInvalidResult
 	}
 	if r.Winner != "" && r.Winner != SideA && r.Winner != SideB {
@@ -394,6 +408,10 @@ func (m *Match) validateResult(r Result) error {
 		}
 		seen[p.AccountID] = true
 		if p.ConnectedAtEnd && !p.Joined {
+			return ErrInvalidResult
+		}
+		// Only one who joined can be absent, and never longer than the match.
+		if math.IsNaN(p.AbsentSeconds) || p.AbsentSeconds < 0 || p.AbsentSeconds > r.DurationSeconds || (p.PersonalLoss && !p.Joined) {
 			return ErrInvalidResult
 		}
 	}

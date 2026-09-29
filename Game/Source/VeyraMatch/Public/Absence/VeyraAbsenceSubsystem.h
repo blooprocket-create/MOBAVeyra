@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Absence/VeyraAbsenceRules.h"
+#include "Statistics/VeyraMatchStatistics.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "UObject/WeakObjectPtrTemplates.h"
 
@@ -41,6 +42,21 @@ public:
 	/** The participant's record, or null if it is not tracked. */
 	const FVeyraAbsenceRecord* Find(const AVeyraPlayerState& Participant) const;
 
+	/** A participant's own outcome besides its team's. */
+	struct FPersonalResult
+	{
+		bool bPersonalLoss = false;
+		double AbsentSeconds = 0.0;
+	};
+
+	/**
+	 * Server, at the end of a match of ActiveSeconds that Participant's team won or not: a personal loss
+	 * unless a win forgives it, and its total absence (Match Flow Bible §6; ADR-019 §3). A contribution
+	 * after its last return is a takedown, an assist, or damage, shielding, healing or a Well its record
+	 * gained since. An untracked participant has neither.
+	 */
+	FPersonalResult Adjudicate(const AVeyraPlayerState& Participant, bool bTeamWon, double ActiveSeconds) const;
+
 	/** Called when a participant becomes AFK or triggers a personal loss. */
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAbsenceChanged, AVeyraPlayerState& /*Participant*/, const FVeyraAbsenceRecord& /*Record*/);
 	FOnAbsenceChanged OnBecameAfk;
@@ -60,7 +76,12 @@ private:
 		/** The stage the autopilot last walked toward, and the destination it chose. */
 		EVeyraAutopilotStage Stage = EVeyraAutopilotStage::None;
 		TOptional<FVector> Heading;
+		/** Its record as it last came back from an absence, to tell what it did after. */
+		TOptional<FVeyraPlayerStatistics> AtReturn;
 	};
+
+	/** Notes what Participant's record holds as it comes back. */
+	void NoteComeBack(const AVeyraPlayerState& Participant, FTracked& Entry) const;
 
 	TMap<TWeakObjectPtr<AVeyraPlayerState>, FTracked> Tracked;
 	bool bRunning = false;

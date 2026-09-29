@@ -33,9 +33,11 @@ type participantJSON struct {
 }
 
 type participantResultJSON struct {
-	AccountID      string `json:"accountId"`
-	Joined         bool   `json:"joined"`
-	ConnectedAtEnd bool   `json:"connectedAtEnd"`
+	AccountID      string  `json:"accountId"`
+	Joined         bool    `json:"joined"`
+	ConnectedAtEnd bool    `json:"connectedAtEnd"`
+	PersonalLoss   bool    `json:"personalLoss"`
+	AbsentSeconds  float64 `json:"absentSeconds"`
 }
 
 type resultJSON struct {
@@ -261,6 +263,9 @@ func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor str
 		DurationSeconds float64 `json:"durationSeconds"`
 		Joined          bool    `json:"joined"`
 		ConnectedAtEnd  bool    `json:"connectedAtEnd"`
+		// PersonalLoss is the player's own loss for absence, apart from the
+		// team's outcome (UX-51).
+		PersonalLoss bool `json:"personalLoss"`
 		// Players is the scoreboard, null when the server sent none (ADR-017 §5).
 		Players []scoreboardPlayerJSON `json:"players"`
 		// Wells are the Flux Wells secured, null when the server sent none.
@@ -282,7 +287,7 @@ func (s *Server) myMatchResult(w http.ResponseWriter, r *http.Request, actor str
 			Players: scoreboardFor(res.Players, actor), Wells: res.Wells}
 		for _, pr := range res.Participants {
 			if pr.AccountID == actor {
-				out.Result.Joined, out.Result.ConnectedAtEnd = pr.Joined, pr.ConnectedAtEnd
+				out.Result.Joined, out.Result.ConnectedAtEnd, out.Result.PersonalLoss = pr.Joined, pr.ConnectedAtEnd, pr.PersonalLoss
 			}
 		}
 	}
@@ -319,11 +324,12 @@ func (s *Server) myMatchHistory(w http.ResponseWriter, r *http.Request, actor st
 		Side            string    `json:"side"`
 		VanguardID      *string   `json:"vanguardId"`
 		Outcome         string    `json:"outcome"`
+		PersonalLoss    bool      `json:"personalLoss"`
 	}
 	out := make([]entryJSON, 0, len(entries))
 	for _, e := range entries {
 		out = append(out, entryJSON{ID: e.MatchID, Mode: e.Mode, Rules: string(e.Rules), EndedAt: e.EndedAt.UTC(), DurationSeconds: e.DurationSeconds,
-			Side: string(e.Side), VanguardID: textOrNil(e.VanguardID), Outcome: string(e.Outcome)})
+			Side: string(e.Side), VanguardID: textOrNil(e.VanguardID), Outcome: string(e.Outcome), PersonalLoss: e.PersonalLoss})
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"matches": out, "next": textOrNil(next), "modes": modes})
 }

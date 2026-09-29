@@ -73,11 +73,11 @@ Every credential is a prefix followed by the base64url encoding (no padding) of 
 - `endReason`: `developer_request` or `abandoned`.
 - `winner`: `A`, `B` or null. It is always null in M4, because no victory condition exists yet.
 - `durationSeconds`: the match clock, which excludes pauses; 0 if the match never went live.
-- `participants`: each rostered account with `joined` and `connectedAtEnd`. The backend checks that the list matches the roster exactly.
+- `participants`: each rostered account with `joined` and `connectedAtEnd`, and since [ADR-019](ADR-019-match-flow.md) §5 `personalLoss` and `absentSeconds`. The backend checks that the list matches the roster exactly.
 
 Statistics, rewards and outcome adjudication (Match Flow §11, Match Statistics Bible) build on this record later.
 
-**Amended:** [ADR-010](ADR-010-play-flow.md) §7 adds `host_ended`, for practice only. [ADR-011](ADR-011-battleground-runtime.md) §13 adds `prime_well_destroyed`, for standard matches only: a side destroyed the other's Prime Well. It is the one end with a `winner`, and every other end must leave `winner` null; the backend and its schema keep the two together.
+**Amended:** [ADR-010](ADR-010-play-flow.md) §7 adds `host_ended`, for practice only. [ADR-011](ADR-011-battleground-runtime.md) §13 adds `prime_well_destroyed`, for standard matches only: a side destroyed the other's Prime Well. It is the one end with a `winner`, and every other end must leave `winner` null; the backend and its schema keep the two together. [ADR-019](ADR-019-match-flow.md) §5 adds `surrender`, which the other side wins, and `remake`, which nobody wins, both for standard matches only.
 
 ### 8. How a match ends in M4
 

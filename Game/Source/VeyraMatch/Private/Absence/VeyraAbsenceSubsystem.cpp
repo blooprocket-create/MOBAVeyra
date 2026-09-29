@@ -4,6 +4,7 @@
 
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Statistics/VeyraMatchStatisticsSubsystem.h"
 #include "Structures/VeyraStructure.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
@@ -73,6 +74,7 @@ void UVeyraAbsenceSubsystem::NoteReturned(const AVeyraPlayerState& Participant)
 	if (bRunning)
 	{
 		VeyraAbsence::NoteConnected(Entry->Record, Now());
+		NoteComeBack(Participant, *Entry);
 	}
 	else
 	{
@@ -97,8 +99,13 @@ void UVeyraAbsenceSubsystem::NoteActivity(const AVeyraPlayerState& Participant, 
 	{
 		return;
 	}
+	const bool bWasAfk = Entry->Record.Absence == EVeyraAbsence::Afk;
 	if (VeyraAbsence::NoteActivity(Entry->Record, Now(), MoveDestination, UVeyraMatchTuningSubsystem::Get().Activity))
 	{
+		if (bWasAfk)
+		{
+			NoteComeBack(Participant, *Entry);
+		}
 		// The order itself already replaced the autopilot's walk.
 		Entry->Stage = EVeyraAutopilotStage::None;
 		Entry->Heading.Reset();
@@ -109,6 +116,36 @@ const FVeyraAbsenceRecord* UVeyraAbsenceSubsystem::Find(const AVeyraPlayerState&
 {
 	const FTracked* Entry = Tracked.Find(&Participant);
 	return Entry ? &Entry->Record : nullptr;
+}
+
+void UVeyraAbsenceSubsystem::NoteComeBack(const AVeyraPlayerState& Participant, FTracked& Entry) const
+{
+	const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>();
+	Entry.AtReturn = Statistics ? Statistics->Snapshot(Participant) : TOptional<FVeyraPlayerStatistics>();
+}
+
+UVeyraAbsenceSubsystem::FPersonalResult UVeyraAbsenceSubsystem::Adjudicate(const AVeyraPlayerState& Participant, bool bTeamWon, double ActiveSeconds) const
+{
+	FPersonalResult Result;
+	const FTracked* Entry = Tracked.Find(&Participant);
+	if (!Entry)
+	{
+		return Result;
+	}
+	bool bContributed = false;
+	const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>();
+	const TOptional<FVeyraPlayerStatistics> Final = Statistics ? Statistics->Snapshot(Participant) : TOptional<FVeyraPlayerStatistics>();
+	if (Entry->AtReturn.IsSet() && Final.IsSet())
+	{
+		const FVeyraPlayerStatistics& Then = Entry->AtReturn.GetValue();
+		const FVeyraPlayerStatistics& End = Final.GetValue();
+		bContributed = End.Kills > Then.Kills || End.Assists > Then.Assists || End.VanguardDamage > Then.VanguardDamage
+			|| End.TowerDamage > Then.TowerDamage || End.WellDamage > Then.WellDamage || End.WellsSecured > Then.WellsSecured
+			|| End.DamageShielded > Then.DamageShielded || End.TeammateHealing > Then.TeammateHealing;
+	}
+	Result.AbsentSeconds = FMath::Min(VeyraAbsence::AbsentSeconds(Entry->Record, ActiveSeconds), ActiveSeconds);
+	Result.bPersonalLoss = !VeyraAbsence::IsForgiven(Entry->Record, bTeamWon, ActiveSeconds, bContributed, UVeyraMatchTuningSubsystem::Get().Absence);
+	return Result;
 }
 
 void UVeyraAbsenceSubsystem::Tick(float /*DeltaSeconds*/)

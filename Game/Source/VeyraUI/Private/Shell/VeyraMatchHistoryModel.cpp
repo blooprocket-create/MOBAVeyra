@@ -8,8 +8,12 @@
 
 namespace VeyraMatchHistoryModel
 {
-FText OutcomeText(const FString& Outcome)
+FText OutcomeText(const FString& Outcome, bool bPersonalLoss)
 {
+	if (bPersonalLoss)
+	{
+		return LOCTEXT("PersonalLoss", "Defeat (personal)");
+	}
 	if (Outcome == TEXT("win"))
 	{
 		return LOCTEXT("Win", "Victory");
@@ -81,7 +85,7 @@ FVeyraHistoryModel Describe(const FVeyraClientSnapshot& Snapshot, bool bCanLoadM
 		Row.Summary = FText::Format(LOCTEXT("Row", "{0}   {1}   {2}   {3}   {4}"), FText::AsDateTime(Entry.EndedAt, EDateTimeStyle::Medium, EDateTimeStyle::Short),
 			VeyraShellModels::NameOf(Entry.Mode), VeyraShellModels::FormatCountdown(Entry.DurationSeconds),
 			Entry.VanguardId.IsEmpty() ? LOCTEXT("UnknownVanguard", "Unknown Vanguard") : VeyraShellModels::VanguardNameOf(Entry.VanguardId),
-			OutcomeText(Entry.Outcome));
+			OutcomeText(Entry.Outcome, Entry.bPersonalLoss));
 	}
 	if (Model.Rows.IsEmpty())
 	{

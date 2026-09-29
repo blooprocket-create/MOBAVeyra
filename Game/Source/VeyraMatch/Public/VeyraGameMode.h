@@ -155,6 +155,9 @@ private:
 	bool IsFull() const;
 	void AssignTeam(AVeyraPlayerState& PlayerState) const;
 
+	/** The PlayerState of a rostered account, connected or kept since it left, or null. */
+	AVeyraPlayerState* FindParticipant(FStringView AccountId) const;
+
 	/** The PlayerState a rostered account left behind when it disconnected, or null. */
 	AVeyraPlayerState* FindKeptPlayerState(FStringView AccountId) const;
 
