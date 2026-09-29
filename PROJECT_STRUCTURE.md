@@ -374,6 +374,8 @@ Content/Veyra/
 
 `World/Maps/L_Battleground`, the server's default map where every player-made match plays (ADR-011 §12), is generated from the layout in `Game/Tuning/World.json` by `Game/Scripts/BuildBattlegroundMap.ps1`: the floor, each team's start at its fountain, navigation bounds, a sun, and the marker that has the server spawn the structures. Development matches keep `L_Greybox`.
 
+`UI/Vanguards/T_<id>_Hero`, each Playable Vanguard's champion-select art (ADR-010, amendment of 2026-09-28), is imported from its `ConceptArt/Vanguards/<id>/hero.webp` by `Game/Scripts/BuildVanguardArt.ps1`, never edited by hand; portraits are crops of it, placed by the shell style's data.
+
 Do not create cross-project junk drawers such as `Misc`, `Stuff`, or `Temp` as permanent homes. Temporary work should have an explicit cleanup path.
 
 ## 4. Content versus code

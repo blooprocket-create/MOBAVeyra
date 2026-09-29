@@ -2,6 +2,8 @@
 
 #include "Shell/VeyraShellStyleSettings.h"
 
+#include "Containers/Set.h"
+
 TArray<FString> UVeyraShellStyleSettings::Validate() const
 {
 	TArray<FString> Problems;
@@ -30,6 +32,10 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("ButtonDisabledColor"), ButtonDisabledColor },
 		{ TEXT("SelectedColor"), SelectedColor },
 		{ TEXT("MenuScrimColor"), MenuScrimColor },
+		{ TEXT("BackdropTint"), BackdropTint },
+		{ TEXT("FrameColor"), FrameColor },
+		{ TEXT("AllyColor"), AllyColor },
+		{ TEXT("EnemyColor"), EnemyColor },
 	};
 	for (const FNamedColor& Named : Colors)
 	{
@@ -40,6 +46,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("HeadingFontSize"), HeadingFontSize },
 		{ TEXT("BodyFontSize"), BodyFontSize },
 		{ TEXT("CountdownFontSize"), CountdownFontSize },
+		{ TEXT("SmallFontSize"), SmallFontSize },
 	};
 	for (const TPair<const TCHAR*, int32>& Size : FontSizes)
 	{
@@ -54,10 +61,43 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("MenuWidth"), MenuWidth },
 		{ TEXT("ShopWidth"), ShopWidth },
 		{ TEXT("ShopHeight"), ShopHeight },
+		{ TEXT("TilePadding"), TilePadding },
+		{ TEXT("TileCornerRadius"), TileCornerRadius },
+		{ TEXT("FrameWidth"), FrameWidth },
+		{ TEXT("RosterTileSize"), RosterTileSize },
+		{ TEXT("PickBarWidth"), PickBarWidth },
+		{ TEXT("PickBarHeight"), PickBarHeight },
+		{ TEXT("SeatColumnWidth"), SeatColumnWidth },
+		{ TEXT("PortraitSize"), PortraitSize },
+		{ TEXT("SeatSpellSize"), SeatSpellSize },
+		{ TEXT("SplashWidth"), SplashWidth },
+		{ TEXT("SplashHeight"), SplashHeight },
+		{ TEXT("SplashCornerRadius"), SplashCornerRadius },
+		{ TEXT("SpellTileSize"), SpellTileSize },
+		{ TEXT("LockInWidth"), LockInWidth },
+		{ TEXT("PickerWidth"), PickerWidth },
+		{ TEXT("PickerTileWidth"), PickerTileWidth },
 	};
 	for (const TPair<const TCHAR*, float>& Length : Lengths)
 	{
 		Require(Length.Value > 0.0f, Length.Key, TEXT("must be above 0."));
+	}
+	// The art is imported as packages under the game's content (VeyraShellArt).
+	Require(VanguardArtFolder.StartsWith(TEXT("/Game/")) && !VanguardArtFolder.EndsWith(TEXT("/")), TEXT("VanguardArtFolder"),
+		TEXT("must be a folder under /Game, without a trailing slash."));
+	const auto CheckPortrait = [&Require](const FVeyraVanguardPortrait& Portrait, const TCHAR* Field) {
+		const bool bInside = Portrait.Focus.X >= 0.0 && Portrait.Focus.X <= 1.0 && Portrait.Focus.Y >= 0.0 && Portrait.Focus.Y <= 1.0;
+		Require(bInside, Field, TEXT("Focus must be from 0 to 1 across and down."));
+		Require(Portrait.CropHeight > 0.0f && Portrait.CropHeight <= 1.0f, Field, TEXT("CropHeight must be above 0 and at most 1."));
+	};
+	CheckPortrait(DefaultPortrait, TEXT("DefaultPortrait"));
+	TSet<FString> Seen;
+	for (const FVeyraVanguardPortrait& Portrait : VanguardPortraits)
+	{
+		CheckPortrait(Portrait, TEXT("VanguardPortraits"));
+		bool bAlreadySeen = false;
+		Seen.Add(Portrait.Vanguard, &bAlreadySeen);
+		Require(!Portrait.Vanguard.IsEmpty() && !bAlreadySeen, TEXT("VanguardPortraits"), TEXT("each entry names a different Vanguard."));
 	}
 	return Problems;
 }

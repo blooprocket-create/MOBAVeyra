@@ -129,6 +129,8 @@ namespace VeyraBackendProtocol
 		ESelectState State = ESelectState::Picking;
 		/** What was left of the pick timer when the backend answered, by the backend's clock. */
 		double RemainingSeconds = 0.0;
+		/** The pick timer's full length, for a countdown bar. */
+		double PickSeconds = 0.0;
 		TArray<FSelectSeat> Seats;
 		/** Set once started. */
 		FString MatchId;

@@ -310,6 +310,29 @@ Every configuration is parsed strictly: each field is required, and an unknown f
 - **Party answers are numbered**, so a poll overtaken by an intent's answer is not shown.
 - **`Package.ps1` stages the client binary last built**, so a client change needs `Build.ps1 -Target VeyraClient` first.
 
+## Amendment (2026-09-28): champion select in League's layout
+
+The author asked for champion select to look like League's. §4 still holds: the screen is UMG built in C++, with no widget Blueprint. What changed:
+
+- **The layout, League's:**
+  - The roster runs across the top as a bench of portraits.
+  - The countdown sits between two bars that drain toward it; the backend's select now carries `pickSeconds`, the timer's full length (`Deadline − CreatedAt`).
+  - The player's team runs down the left: each seat shows a round portrait, the Vanguard, the player and the status, with your own starting Flux Spells beside your portrait.
+  - The enemy team runs down the right, showing only its locks, as the backend already rules.
+  - The shown Vanguard (your lock, else your hover) is large in the middle, framed. It also fills the screen behind everything, dimmed (UX 27). Its name and title sit under it, with **View Abilities**, which lays the passive and Q, W, E and R over the art.
+  - Along the bottom: Your Match Setup (UX 38) where League keeps its chat, the two Flux Spell tiles and Lock In in the middle, and the mode in the corner.
+  - Each spell tile opens a picker over everything, as League's summoner spells do. It lists None and each roster spell with its description, and the slot's threshold (UX 36).
+- **The art is imported, not hand-made:**
+  - `Game/Scripts/BuildVanguardArt.ps1` converts each Playable Vanguard's `ConceptArt/Vanguards/<id>/hero.webp` to PNG, since the engine decodes no WebP.
+  - It then runs `UVeyraVanguardArtCommandlet`, which saves `/Game/Veyra/UI/Vanguards/T_<id>_Hero`: a UI texture with no mips and no streaming, BC7.
+  - The textures are lockable LFS assets, reproducible from the illustrations, like the generated maps.
+  - `/Game/Veyra/UI` is always cooked, because the shell loads the art by path (`VeyraShellArt`).
+- **Portraits are crops, not separate images:**
+  - A round portrait is the hero texture drawn as a `RoundedBox` brush at half-height radius, with a UV crop around the Vanguard's face.
+  - Each face's position and crop size are presentation data in the shell style (`VanguardPortraits`, with a `DefaultPortrait`), validated like the rest.
+  - A Vanguard whose art is not imported shows an empty disc and its name.
+- **Nothing gameplay moved.** The screen still shows the coordinator's snapshot and asks through its intents. The picker and View Abilities are the screen's own state, as its page is.
+
 ## Amendments to earlier records
 
 - **ADR-004:** the coordinator is `FVeyraClientFlow` in VeyraServices. The front end is a generated map with absolute travel, and menus are UMG built in C++.
