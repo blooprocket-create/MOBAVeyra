@@ -324,7 +324,11 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVey
 			Seen.SpawnsAt = Camp.SpawnsAt;
 			for (const AVeyraWildlife* Creature : Jungle->GetCreatures(Camp.Index))
 			{
-				Seen.Creatures.Add(UnitOf(*Creature));
+				++Seen.Standing;
+				if (VeyraTargeting::CanAcquire(&Bot, *Creature))
+				{
+					Seen.Creatures.Add(UnitOf(*Creature));
+				}
 			}
 		}
 	}

@@ -108,6 +108,7 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 ### 7. Bots see what their team sees
 
 - Bot senses read `IVeyraVisibility`, so a bot never reacts to what its team cannot see. The jungler's gank range still applies, but to seen enemies only.
+- A jungler still knows which of its own camps are up, as League players keep camp timers. It walks to a camp whose creatures it cannot see yet, and attacks only those its side sees.
 - Supports and junglers carry Persistent Ward and place wards at `Bots.json` ward spots as they pass.
 
 ### 8. The HUD
@@ -157,6 +158,7 @@ Canon gives the three carried charges; every other value is Provisional.
   - The PlayerState gains an ability-system component subclass.
   - The item keys move.
 - **Bandwidth falls:** a client no longer receives the enemy's Fluxborn and Vanguards it cannot see (ADR-006 §5's second lever).
+  - **Measured (M11a gate, 2026-09-29):** the packaged Linux server with 8 load-test bots and 2 clients on the battleground, the waves and jungle running, sent each client 7.8–10.2 KB/s at steady state (peak 11.4), with a server frame of 3–4 ms on average. ADR-011 §7 measured 9.6–13.6 KB/s without the fog, before the jungle and its Wells added their units.
 - **Tests:** Vision runs in every match. Network tests that are not about fog widen every unit's sight past any test map (`FScopedMatchTuning`), so they keep their meaning; fog tests restore the committed sight.
 
 ## Amendments to earlier records
