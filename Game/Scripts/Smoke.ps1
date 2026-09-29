@@ -74,6 +74,11 @@
     the match. The backend must record prime_well_destroyed with the side the matchmaker gave the
     first client as the winner; the first client's results must say Victory and the second's Defeat.
 
+    -Flow CasualReconnect plays the Casual path, but the second client leaves the live match and
+    presses Reconnect, and must come back to the Vanguard it locked (Match Flow Bible §3; ADR-019
+    §1); the first ends the match only once it has seen the other leave and come back. Both must be
+    connected at the end, and neither has a personal loss.
+
     -Flow CasualDecline plays a match found that does not go ahead: both clients queue; the second
     declines once the first has accepted. The decliner must be back in the shell out of the queue;
     the first must be queued again in its place, then leaves the queue. No match is created.
@@ -200,7 +205,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualDecline')]
+    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -427,7 +432,7 @@ if ($Handoff -or $Flow) {
     # -Flow Casual: picks are unique in a matchmade select, so each player locks its own.
     $CasualVanguards = @('cairn', 'oriel')
     $isPractice = $Practice -or $Flow -eq 'Practice'
-    $isMatchmade = $Flow -in 'Casual', 'CasualVictory', 'CasualDecline'
+    $isMatchmade = $Flow -in 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline'
     $isVictory = $Flow -eq 'CasualVictory'
     # Every run but a declined match found plays a match.
     $expectsMatch = $Flow -ne 'CasualDecline'
@@ -545,6 +550,7 @@ if ($Handoff -or $Flow) {
             $clientArguments += $(if ($Flow -and $Screenshot -and $index -eq 0) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=$quote$reportDir$quote" } else { @('-nullrhi') })
             $clientArguments += $(if ($Flow -eq 'Practice') { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard", '-VeyraSmokeFlowSieges') }
                 elseif ($Flow -eq 'Casual') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch') } else { @() }) }
+                elseif ($Flow -eq 'CasualReconnect') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch', '-VeyraSmokeFlowAwaitsReturn') } else { @('-VeyraSmokeFlowReconnects') }) }
                 elseif ($isVictory) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
                 elseif ($Flow -eq 'CasualDecline') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=requeue' } else { '-VeyraSmokeFlow=decline' })) }
                 elseif ($isPractice) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeEndCustomMatch') }
@@ -689,6 +695,7 @@ if ($Handoff -or $Flow) {
             $screens = switch ($Flow) {
                 'Practice' { 'StarterChoice', 'Home', 'Play', 'ChampionSelect', 'MatchMenu', 'Results' }
                 'Casual' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'MatchMenu', 'Results' }
+                'CasualReconnect' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'MatchMenu', 'Results' }
                 'CasualVictory' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'CasualDecline' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'Requeued' }
             }
@@ -767,13 +774,17 @@ if ($Handoff -or $Flow) {
         if (-not $expectsMatch) {
             $expectedServerLines = @()
         }
+        # The returning player took back the Vanguard it left (ADR-019 §1).
+        if ($Flow -eq 'CasualReconnect') {
+            $expectedServerLines += "$($participants[1].Name) returned to the match, to the Vanguard it left."
+        }
         # The practice flow sieges the Prime Well down, and its match goes on (ADR-011 §14).
         if ($Flow -eq 'Practice') {
             $expectedServerLines += "destroyed the other side's Prime Well"
         }
         # Each scripted player chooses the roster's first Flux Spells in champion select and takes them
         # into the match (ADR-015 §5).
-        if ($Flow -in @('Practice', 'Casual', 'CasualVictory')) {
+        if ($Flow -in @('Practice', 'Casual', 'CasualVictory', 'CasualReconnect')) {
             $spellRoster = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Abilities.json') -Raw | ConvertFrom-Json).fluxSpells.roster)
             $expectedServerLines += @($participants | ForEach-Object { "$($_.Name) takes Flux Spells $($spellRoster[0]), $($spellRoster[1]) into the match." })
             # The practice player then swaps slot 1 at the fountain, for Gold, to the first spell neither slot holds (ADR-015 §7).

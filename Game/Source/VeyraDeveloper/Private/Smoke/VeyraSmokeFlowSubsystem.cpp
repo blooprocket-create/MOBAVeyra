@@ -23,6 +23,7 @@
 #include "UnrealClient.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
+#include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
 
 #if WITH_VEYRA_UI
@@ -49,6 +50,8 @@ namespace
 	const TCHAR* const EndsMatchSwitch = TEXT("VeyraSmokeFlowEndsMatch");
 	const TCHAR* const SiegesSwitch = TEXT("VeyraSmokeFlowSieges");
 	const TCHAR* const VictorySwitch = TEXT("VeyraSmokeFlowVictory");
+	const TCHAR* const ReconnectsSwitch = TEXT("VeyraSmokeFlowReconnects");
+	const TCHAR* const AwaitsReturnSwitch = TEXT("VeyraSmokeFlowAwaitsReturn");
 	// Harness settings for the siege: how often it asks, leaving time for each fall to replicate, and
 	// how many asks mean something is wrong, well above the structures on the way to a Prime Well.
 	constexpr double SiegeIntervalRealSeconds = 1.0;
@@ -105,6 +108,8 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	bEndsMatch = FParse::Param(FCommandLine::Get(), EndsMatchSwitch);
 	bSieges = FParse::Param(FCommandLine::Get(), SiegesSwitch);
 	bVictory = FParse::Param(FCommandLine::Get(), VictorySwitch);
+	bReconnects = FParse::Param(FCommandLine::Get(), ReconnectsSwitch);
+	bAwaitsReturn = FParse::Param(FCommandLine::Get(), AwaitsReturnSwitch);
 	StartRealTime = FPlatformTime::Seconds();
 	const TPair<const TCHAR*, EScript> Scripts[] = {
 		{ TEXT("join"), EScript::Join },
@@ -188,6 +193,16 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 	switch (Snapshot.State)
 	{
 	case EVeyraClientState::ReconnectOnly:
+		// It left on purpose, and goes back as a player would (UX-17).
+		if (bReconnects && bLeft && !bCameBack)
+		{
+			if (Flow.CanIssue(EVeyraClientIntent::Reconnect))
+			{
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: pressed Reconnect."));
+				Flow.Reconnect();
+			}
+			break;
+		}
 		Finish(false, FString::Printf(TEXT("the player is still in match %s from an earlier run; try again once it ends"), *Snapshot.MatchId));
 		break;
 
@@ -293,7 +308,10 @@ void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
 	if (bSawResults)
 	{
 		Finish(true, FString::Printf(TEXT("queued, accepted the match found, locked %s, %s, saw its verified result and returned to the shell"), *LockedVanguard,
-			bEndsMatch ? TEXT("ended the match from its menu as a developer")
+			bReconnects && bEndsMatch ? TEXT("left the match, came back to its Vanguard and ended the match from its menu as a developer")
+			: bReconnects ? TEXT("left the match, came back to its Vanguard and waited for the match to end")
+			: bAwaitsReturn ? TEXT("saw the other player leave and come back, and ended the match from its menu as a developer")
+			: bEndsMatch ? TEXT("ended the match from its menu as a developer")
 			: bSieges  ? TEXT("won the match by siege")
 					   : TEXT("waited for the match to end")));
 		return;
@@ -565,17 +583,25 @@ void UVeyraSmokeFlowSubsystem::TickOpponent(IVeyraClientIntents& Flow)
 
 void UVeyraSmokeFlowSubsystem::TickInMatch()
 {
+	UWorld* World = GetGameInstance()->GetWorld();
+	AVeyraPlayerController* Controller = Cast<AVeyraPlayerController>(GetGameInstance()->GetFirstLocalPlayerController());
+	const AVeyraGameState* GameState = World ? World->GetGameState<AVeyraGameState>() : nullptr;
+	const AActor* Vanguard = Controller ? Controller->GetVanguard() : nullptr;
+	if (!Controller || !GameState || !Vanguard || GameState->GetPhase() != EVeyraMatchPhase::Live)
+	{
+		return;
+	}
+	if (bReconnects && TickReconnect(*Controller, *World))
+	{
+		return;
+	}
 	// The practice host ends its match; of a standard match's players, the one told to, or the one
 	// that sieges.
 	if (Script == EScript::Casual && !bEndsMatch && !bSieges)
 	{
 		return;
 	}
-	const UWorld* World = GetGameInstance()->GetWorld();
-	AVeyraPlayerController* Controller = Cast<AVeyraPlayerController>(GetGameInstance()->GetFirstLocalPlayerController());
-	const AVeyraGameState* GameState = World ? World->GetGameState<AVeyraGameState>() : nullptr;
-	const AActor* Vanguard = Controller ? Controller->GetVanguard() : nullptr;
-	if (!Controller || !GameState || !Vanguard || GameState->GetPhase() != EVeyraMatchPhase::Live)
+	if (bAwaitsReturn && TickAwaitReturn(*Controller, *GameState))
 	{
 		return;
 	}
@@ -894,6 +920,51 @@ bool UVeyraSmokeFlowSubsystem::TickSiege(AVeyraPlayerController& Controller, con
 	return true;
 }
 
+bool UVeyraSmokeFlowSubsystem::TickReconnect(AVeyraPlayerController& Controller, UWorld& World)
+{
+	if (!bLeft)
+	{
+		bLeft = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the match is live; leaving it."));
+		GEngine->Exec(&World, TEXT("disconnect"));
+		return true;
+	}
+	if (!bCameBack)
+	{
+		// Back in the match: the same Vanguard it locked, not a new one (Match Flow Bible §3).
+		const AVeyraPlayerState* Own = Controller.GetPlayerState<AVeyraPlayerState>();
+		if (!Own || Own->GetVanguardId().ToString() != LockedVanguard)
+		{
+			Finish(false, FString::Printf(TEXT("came back to %s, not the %s it locked"), Own ? *Own->GetVanguardId().ToString() : TEXT("nothing"), *LockedVanguard));
+			return true;
+		}
+		bCameBack = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: back in the match, as %s."), *LockedVanguard);
+	}
+	return false;
+}
+
+bool UVeyraSmokeFlowSubsystem::TickAwaitReturn(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState)
+{
+	const APlayerState* Own = Controller.PlayerState;
+	bool bAnyAway = false;
+	for (const APlayerState* Member : GameState.PlayerArray)
+	{
+		bAnyAway |= Member && Member != Own && Member->IsInactive();
+	}
+	if (bAnyAway && !bSawAway)
+	{
+		bSawAway = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the other player left the match."));
+	}
+	if (bSawAway && !bAnyAway && !bSawReturn)
+	{
+		bSawReturn = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the other player came back."));
+	}
+	return !bSawReturn;
+}
+
 void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot)
 {
 	if (bSawResults)
@@ -915,8 +986,9 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 	const TCHAR* const ExpectedRules = bPractice ? PracticeRules : StandardRules;
 	// Only a won match has a winner: the sieging player's side, which the other lost to.
 	const bool bWinnerRight = bVictory ? !Result->Winner.IsEmpty() && (Result->Winner == Result->Side) == bSieges : Result->Winner.IsEmpty();
+	// A player back within the grace has no personal loss (Match Flow Bible §5.2).
 	if (Result->EndReason != ExpectedEndReason || Result->Rules != ExpectedRules || !bWinnerRight || Result->VanguardId != LockedVanguard
-		|| !Result->bJoined || !Result->bConnectedAtEnd || Result->MatchId != Snapshot.MatchId)
+		|| !Result->bJoined || !Result->bConnectedAtEnd || Result->bPersonalLoss || Result->MatchId != Snapshot.MatchId)
 	{
 		Finish(false, FString::Printf(TEXT("the verified result is not a %s match ended by %s, %s, of the locked Vanguard, joined and connected at the end"),
 			ExpectedRules, ExpectedEndReason, !bVictory ? TEXT("with no winner") : bSieges ? TEXT("won by this side") : TEXT("lost by this side")));

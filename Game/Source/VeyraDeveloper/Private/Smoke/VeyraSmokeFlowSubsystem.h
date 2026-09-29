@@ -9,6 +9,7 @@
 
 #include "VeyraSmokeFlowSubsystem.generated.h"
 
+class AVeyraGameState;
 class AVeyraPlayerController;
 class IVeyraClientIntents;
 struct FVeyraClientSnapshot;
@@ -34,7 +35,10 @@ struct FVeyraClientSnapshot;
  *   result. With -VeyraSmokeFlowEndsMatch it walks and ends the match from the in-match menu's
  *   developer end; otherwise it waits for the end. With -VeyraSmokeFlowVictory the match must end in
  *   a win (Smoke.ps1 -Flow CasualVictory, ADR-011 §13): -VeyraSmokeFlowSieges wins it with
- *   Veyra.Dev.Siege and must see Victory; the other must see Defeat.
+ *   Veyra.Dev.Siege and must see Victory; the other must see Defeat. With -VeyraSmokeFlowReconnects
+ *   it leaves the live match and presses Reconnect, and must come back to the Vanguard it locked
+ *   (Smoke.ps1 -Flow CasualReconnect, ADR-019 §1); with -VeyraSmokeFlowAwaitsReturn it ends the match
+ *   only once it has seen the other player leave and come back.
  * - decline declines the match found, and passes once it is back in the shell out of the queue.
  * - requeue accepts; when another player declines, it must be back in the queue. It cancels the
  *   queue and passes.
@@ -79,6 +83,12 @@ private:
 	/** The sparring partner: every state, through the intents. */
 	void TickOpponent(IVeyraClientIntents& Flow);
 	void TickInMatch();
+
+	/** -VeyraSmokeFlowReconnects: leaves the live match once, then checks it came back to its Vanguard. True while it does. */
+	bool TickReconnect(AVeyraPlayerController& Controller, UWorld& World);
+
+	/** -VeyraSmokeFlowAwaitsReturn: true until it has seen another player's PlayerState go inactive and come back. */
+	bool TickAwaitReturn(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState);
 
 	/**
 	 * With -VeyraSmokeFlowSieges: asks for a developer siege at a steady pace. A match that ends by it
@@ -159,6 +169,14 @@ private:
 	double NextSiegeAt = 0.0;
 	/** Casual: the match must end in a win, this game's if it sieges. */
 	bool bVictory = false;
+	/** Casual: this game leaves the live match and comes back, and whether it has done each. */
+	bool bReconnects = false;
+	bool bLeft = false;
+	bool bCameBack = false;
+	/** Casual: this game ends the match only once another player left and came back, and what it saw. */
+	bool bAwaitsReturn = false;
+	bool bSawAway = false;
+	bool bSawReturn = false;
 	FString WantedVanguard;
 	FString LockedVanguard;
 	FString ScreenshotFolder;
