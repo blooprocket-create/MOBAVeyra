@@ -23,6 +23,7 @@ Several facts in the code shape the design:
 - The shop and inventory: six slots; the Item Bible's T1 components (not Keensteel), Swift and War Boots, twelve T2 assemblies, four T3 Masterworks whose Attunements need no new combat hook (Weight of War, Overcharge, Spool Up, Overcycle), and Field Tonic.
 - Buying, the remote queue, cancellation and revalidation, delivery at the fountain and on death, selling and undo.
 - Item use by inventory slot (author ruling, 2026-09-28): keys 1–6 use the item in slots 1–6, as in League. A consumable is used up (Field Tonic); an item with an Active casts it (Razorwheel's Cleave) through Abilities by the ability's ID, not through the Q/W/E/R slots. An item Active's cooldown belongs to the item and uses Item Haste, never Ability Haste (Combat §21).
+  - **Amendment (2026-09-29, M11; ADR-016 §6):** the default keys become League's 1 2 3 5 6 7, as the vision tool takes 4. The slots are unchanged, and every key stays rebindable. ADR-016 §11 lists this among the League answers for the author to overturn.
 - Recall.
 - **Deferred:** crit and its items; Arcane Boots (its amplification model is open); Flux Flask (needs Flux Wells); the remaining Attunements; Tier 4; buyback; vision-tool and Flux Spell swaps; Item Haste; Lifesteal and Omnivamp (they need Combat §6's healing categories).
 

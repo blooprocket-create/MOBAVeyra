@@ -19,11 +19,14 @@
 #include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "State/VeyraTeamFluxState.h"
+#include "State/VeyraVisionTeamState.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Structures/VeyraStructure.h"
+#include "Tools/VeyraVisionToolComponent.h"
 #include "Wildlife/VeyraWildlife.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
+#include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "VeyraPlayerState.h"
 
 namespace
@@ -217,7 +220,46 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 			}
 		}
 	}
+	if (const UVeyraVisionToolComponent* Tool = Participant.FindComponentByClass<UVeyraVisionToolComponent>())
+	{
+		Player.VisionTool.bPresent = true;
+		Player.VisionTool.Tool = Tool->GetEquipped();
+		if (Tool->GetEquipped() != EVeyraVisionTool::PersistentWard)
+		{
+			Player.VisionTool.CooldownSeconds = FMath::Max(0.0, Tool->GetReadyAt(Tool->GetEquipped()) - ServerNow);
+		}
+		Player.VisionTool.WardCharges = Tool->GetWardCharges();
+		Player.VisionTool.MaxWardCharges = UVeyraVisionTuningSubsystem::Get().WardCharges.Max;
+		Player.VisionTool.NextChargeSeconds = Tool->GetNextChargeAt() < 0.0 ? 0.0 : FMath::Max(0.0, Tool->GetNextChargeAt() - ServerNow);
+	}
 	return Player;
+}
+
+FVeyraHudVision VeyraHud::DescribeVision(const UWorld* World, EVeyraTeam Viewer, double ServerNow)
+{
+	FVeyraHudVision Vision;
+	const AVeyraVisionTeamState* State = AVeyraVisionTeamState::Find(World, Viewer);
+	if (!State)
+	{
+		return Vision;
+	}
+	const double Cadence = UVeyraVisionTuningSubsystem::Get().Presence.PingEverySeconds;
+	for (const FVeyraPresencePing& Ping : State->GetPings())
+	{
+		const double Fade = Cadence > 0.0 ? 1.0 - (ServerNow - Ping.At) / Cadence : 0.0;
+		if (Fade > 0.0)
+		{
+			Vision.Pings.Add(FVeyraHudPing{ Ping.Centre, Ping.Radius, FMath::Min(Fade, 1.0) });
+		}
+	}
+	for (const FVeyraOutline& Outline : State->GetOutlines())
+	{
+		if (Outline.Until > ServerNow)
+		{
+			Vision.Outlines.Add(Outline.Location);
+		}
+	}
+	return Vision;
 }
 
 TArray<FVeyraHudTeamFlux> VeyraHud::DescribeTeamFlux(const UWorld* World, double ServerNow)

@@ -1024,15 +1024,23 @@ if ($PlayingBots -gt 0) {
     $fallen = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraWorld: .* was destroyed\.')
     $cleared = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraWorld: Camp \d+, .* was cleared')
     $secured = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraWorld: Flux Well \d+ was secured by .*')
+    $warded = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraVision: \S+ places a ward at ')
+    $unwarded = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraVision: VeyraWard\S* is destroyed\.')
     $ended = Select-String -LiteralPath $serverLogPath -Pattern 'The match ended \(.*' | Select-Object -Last 1
-    Write-Host ("  {0}; {1} purchase(s), {2} death(s), {3} bot recall(s), {4} structure(s) destroyed, {5} camp(s) cleared, {6} Flux Well(s) secured." -f $(if ($seated) { $seated.Matches[0].Value } else { 'none seated' }),
-        $bought.Count, $deaths.Count, $recalls.Count, $fallen.Count, $cleared.Count, $secured.Count)
+    Write-Host ("  {0}; {1} purchase(s), {2} death(s), {3} bot recall(s), {4} structure(s) destroyed, {5} camp(s) cleared, {6} Flux Well(s) secured, {7} ward(s) placed, {8} destroyed." -f $(if ($seated) { $seated.Matches[0].Value } else { 'none seated' }),
+        $bought.Count, $deaths.Count, $recalls.Count, $fallen.Count, $cleared.Count, $secured.Count, $warded.Count, $unwarded.Count)
     $reports | Select-Object -Last 3 | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
     $fallen | Select-Object -First 12 | ForEach-Object { Write-Host "  $($_.Line -replace '^.*LogVeyraWorld: ', '')" }
     $secured | Select-Object -First 6 | ForEach-Object { Write-Host "  $($_.Matches[0].Value -replace '^LogVeyraWorld: ', '')" }
     if ($ended) { Write-Host "  $($ended.Matches[0].Value)" }
     if (-not $seated -or $seated.Matches[0].Groups[1].Value -ne "$PlayingBots") {
         Write-Host "  Expected all $PlayingBots bot(s) seated."
+        $failed = $true
+    }
+    # A bot still at Level 1 at the last report played nothing, as the M11a gate's stuck junglers did.
+    $lastReport = $reports | Select-Object -Last 1
+    if ($lastReport -and $lastReport.Line -match 'Bot\d+\(L1,') {
+        Write-Host '  A bot never left Level 1.'
         $failed = $true
     }
     if ($bought.Count -eq 0) {

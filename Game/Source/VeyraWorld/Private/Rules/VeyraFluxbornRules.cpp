@@ -25,9 +25,10 @@ namespace
 		case EVeyraUnitKind::Fluxborn:
 			return ERank::Fluxborn;
 		case EVeyraUnitKind::Vanguard:
-		// Fluxborn never choose neutral units (ADR-014 §1); were one offered, it would come last.
+		// Fluxborn never choose neutral units (ADR-014 §1) or wards (ADR-016 §6); were one offered, it would come last.
 		case EVeyraUnitKind::Wildlife:
 		case EVeyraUnitKind::Objective:
+		case EVeyraUnitKind::Ward:
 			return ERank::Vanguard;
 		}
 		return ERank::Vanguard;

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "senses": {
     "provenance": "Provisional",
     "sightRadius": 1400,
@@ -57,6 +57,12 @@
     "gankRange": 3000,
     "gankHealthFraction": 0.5,
     "wellRange": 7000
+  },
+  "warding": {
+    "provenance": "Provisional",
+    "seats": [2, 4],
+    "spotReach": 500,
+    "spotSpacing": 900
   },
   "vanguards": {
     "cairn": {

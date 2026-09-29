@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -384,6 +384,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -412,6 +413,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [
         {
           "shape": { "kind": "Sector", "radius": 225, "arcDegrees": 100, "length": 0, "width": 0 },
@@ -451,6 +453,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 275, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -502,6 +505,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [
         {
           "shape": { "kind": "Sector", "radius": 400, "arcDegrees": 160, "length": 0, "width": 0 },
@@ -530,6 +534,7 @@
       "delaySeconds": 0.9,
       "channelTicks": 1,
       "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -558,6 +563,7 @@
       "delaySeconds": 0,
       "channelTicks": 5,
       "channelSeconds": 2.0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [
         {
           "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 1300, "width": 180 },
@@ -586,6 +592,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
+      "reveal": { "radius": 400, "durationSeconds": 3 },
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -614,6 +621,7 @@
       "delaySeconds": 1.2,
       "channelTicks": 1,
       "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },

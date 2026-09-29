@@ -161,6 +161,18 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
 	FLinearColor DenseFogColor = FLinearColor::Transparent;
 
+	/** A presence ping: a ring over the fog an enemy is present in, fading until the next (ADR-016 §8). */
+	UPROPERTY(Config, EditAnywhere, Category = "Vision")
+	FLinearColor PresencePingColor = FLinearColor::Transparent;
+
+	/** Sweeper's outline of an enemy in fog: a small ring where it stands. */
+	UPROPERTY(Config, EditAnywhere, Category = "Vision")
+	FLinearColor OutlineColor = FLinearColor::Transparent;
+
+	/** The outline ring's radius, in units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Vision", meta = (ClampMin = "1"))
+	float OutlineMarkerRadius = 0.0f;
+
 	/** How thick each marking is, in units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground", meta = (ClampMin = "0"))
 	float GroundMarkingThickness = 0.0f;

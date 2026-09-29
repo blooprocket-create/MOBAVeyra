@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "gold": {
     "provenance": "Provisional",
     "starting": 500,
@@ -44,5 +44,10 @@
   "fluxSpells": {
     "provenance": "Provisional",
     "swapCost": 150
+  },
+  "visionTools": {
+    "provenance": "Provisional",
+    "swapCost": 50,
+    "wardBounty": 30
   }
 }

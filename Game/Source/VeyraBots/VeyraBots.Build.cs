@@ -30,6 +30,8 @@ public class VeyraBots : ModuleRules
 			"VeyraEconomy",
 			"VeyraItems",
 			"VeyraWorld",
+			// ...the fog and its side's wards, and its vision tool (ADR-016 §7).
+			"VeyraVision",
 			"VeyraVanguards",
 		});
 

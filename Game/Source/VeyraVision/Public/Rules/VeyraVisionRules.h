@@ -36,4 +36,7 @@ namespace VeyraVisionRules
 
 	/** The volume holding Point, as numbered by ConnectVolumes (Volumes), or INDEX_NONE outside every circle. */
 	VEYRAVISION_API int32 VolumeAt(TConstArrayView<FVeyraFogCircle> Circles, TConstArrayView<int32> Volumes, const FVector2D& Point);
+
+	/** The first of Circles holding Point, or INDEX_NONE: the circle a presence ping names (ADR-016 §5). */
+	VEYRAVISION_API int32 CircleAt(TConstArrayView<FVeyraFogCircle> Circles, const FVector2D& Point);
 }

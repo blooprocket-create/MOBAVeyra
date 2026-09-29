@@ -25,8 +25,9 @@ UVeyraBotBrainComponent::UVeyraBotBrainComponent()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-void UVeyraBotBrainComponent::Configure(AVeyraPlayerState& InBot, EVeyraBotRole InRole, EVeyraBotDifficulty InDifficulty, int32 Seed)
+void UVeyraBotBrainComponent::Configure(AVeyraPlayerState& InBot, EVeyraBotRole InRole, EVeyraBotDifficulty InDifficulty, bool bInWards, int32 Seed)
 {
+	bWards = bInWards;
 	Bot = &InBot;
 	Role = InRole;
 	Difficulty = InDifficulty;
@@ -61,7 +62,7 @@ FVeyraBotIntent UVeyraBotBrainComponent::Think()
 		return {};
 	}
 	const FVeyraBotsTuning& Tuning = UVeyraBotsTuningSubsystem::Get();
-	const FVeyraBotView View = VeyraBotSenses::Sense(*Participant, Role, Tuning);
+	const FVeyraBotView View = VeyraBotSenses::Sense(*Participant, Role, bWards, Tuning);
 	// Shopping and skill points work in preparation too, and while dead, as a player's do.
 	Shop(View, *GameMode);
 	RankUp(*GameMode);
@@ -162,6 +163,12 @@ void UVeyraBotBrainComponent::Act(const FVeyraBotIntent& Intent, AVeyraGameMode&
 		{
 			GameMode.HandleAttackOrder(Participant, Target);
 		}
+		break;
+	}
+	case EVeyraBotAction::Ward:
+	{
+		const EVeyraOrderRejection Rejection = GameMode.HandleVisionToolOrder(Participant, Intent.Destination);
+		UE_LOG(LogVeyraBots, Verbose, TEXT("%s wards: %s."), *Participant->GetPlayerName(), LexToString(Rejection));
 		break;
 	}
 	}

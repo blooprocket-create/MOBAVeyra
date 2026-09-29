@@ -33,6 +33,8 @@ enum class EVeyraGoldReason : uint8
 	Wildlife,
 	/** A share of a secured Flux Well's pool (§8.2). */
 	FluxWell,
+	/** An enemy ward destroyed (§8.3). */
+	WardDestroyed,
 };
 
 VEYRAECONOMY_API const TCHAR* LexToString(EVeyraGoldReason Reason);

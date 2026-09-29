@@ -53,6 +53,18 @@ TArray<int32> ConnectVolumes(TConstArrayView<FVeyraFogCircle> Circles)
 	return Volumes;
 }
 
+int32 CircleAt(TConstArrayView<FVeyraFogCircle> Circles, const FVector2D& Point)
+{
+	for (int32 Index = 0; Index < Circles.Num(); ++Index)
+	{
+		if (FVector2D::DistSquared(Circles[Index].Center, Point) <= FMath::Square(Circles[Index].Radius))
+		{
+			return Index;
+		}
+	}
+	return INDEX_NONE;
+}
+
 int32 VolumeAt(TConstArrayView<FVeyraFogCircle> Circles, TConstArrayView<int32> Volumes, const FVector2D& Point)
 {
 	for (int32 Index = 0; Index < Circles.Num() && Index < Volumes.Num(); ++Index)

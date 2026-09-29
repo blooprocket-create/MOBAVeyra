@@ -26,6 +26,8 @@ const TCHAR* LexToString(EVeyraOrderRejection Rejection)
 		return TEXT("CrowdControlled");
 	case EVeyraOrderRejection::Casting:
 		return TEXT("Casting");
+	case EVeyraOrderRejection::NotReady:
+		return TEXT("NotReady");
 	}
 	return TEXT("Unknown");
 }

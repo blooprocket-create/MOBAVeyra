@@ -25,6 +25,7 @@
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "TimerManager.h"
+#include "Tools/VeyraVisionToolComponent.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraTuning.h"
@@ -475,6 +476,35 @@ EVeyraOrderRejection AVeyraGameMode::HandleRecallOrder(AVeyraPlayerState* Player
 	Recall->Start(UVeyraMatchTuningSubsystem::Get().Recall.ChannelSeconds,
 		FSimpleDelegate::CreateUObject(this, &AVeyraGameMode::CompleteRecall, TWeakObjectPtr<AVeyraPlayerState>(PlayerState)));
 	return EVeyraOrderRejection::None;
+}
+
+EVeyraOrderRejection AVeyraGameMode::HandleVisionToolOrder(AVeyraPlayerState* PlayerState, const FVector& Point)
+{
+	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
+	if (Allowed != EVeyraOrderRejection::None)
+	{
+		return Allowed;
+	}
+	UVeyraVisionToolComponent* Tool = PlayerState ? PlayerState->FindComponentByClass<UVeyraVisionToolComponent>() : nullptr;
+	if (!Tool)
+	{
+		return EVeyraOrderRejection::NoVanguard;
+	}
+	switch (Tool->Use(Point))
+	{
+	case EVeyraVisionToolRejection::None:
+		return EVeyraOrderRejection::None;
+	case EVeyraVisionToolRejection::NoVanguard:
+		return EVeyraOrderRejection::NoVanguard;
+	case EVeyraVisionToolRejection::CrowdControlled:
+		return EVeyraOrderRejection::CrowdControlled;
+	case EVeyraVisionToolRejection::NoCharge:
+	case EVeyraVisionToolRejection::CoolingDown:
+		return EVeyraOrderRejection::NotReady;
+	case EVeyraVisionToolRejection::InvalidPoint:
+		return EVeyraOrderRejection::InvalidOrder;
+	}
+	return EVeyraOrderRejection::InvalidOrder;
 }
 
 void AVeyraGameMode::CompleteRecall(TWeakObjectPtr<AVeyraPlayerState> PlayerState)
@@ -1003,6 +1033,11 @@ void AVeyraGameMode::RecoverAtFountains()
 		{
 			continue;
 		}
+		// The fountain fills the ward charges at once (Vision Bible §4).
+		if (UVeyraVisionToolComponent* Tool = PlayerState->FindComponentByClass<UVeyraVisionToolComponent>())
+		{
+			Tool->RefillWardCharges();
+		}
 		// The restore verbs refuse the dead and never overfill.
 		VeyraCombat::RestoreHealth(*AbilitySystem,
 			AbilitySystem->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) * Fountain.HealthFractionPerSecond * Fountain.IntervalSeconds);
@@ -1021,8 +1056,12 @@ void AVeyraGameMode::Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState)
 	{
 		return;
 	}
-	// What it bought while dead takes effect now (ADR-012 §9).
+	// What it bought while dead takes effect now (ADR-012 §9), and it comes back with its ward charges (Vision Bible §4).
 	UVeyraShopSubsystem::ApplyItems(*PlayerState);
+	if (UVeyraVisionToolComponent* Tool = PlayerState->FindComponentByClass<UVeyraVisionToolComponent>())
+	{
+		Tool->RefillWardCharges();
+	}
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s respawns."), *PlayerState->GetPlayerName());
 	SpawnVanguard(*PlayerState);
 }

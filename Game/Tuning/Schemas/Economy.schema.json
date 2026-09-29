@@ -4,7 +4,7 @@
   "description": "Gold and XP rewards owned by the Economy domain (Economy & Progression Bible §1–§8; ADR-011 §11, §17): starting and passive Gold, what lane Fluxborn, Vanguard kills and structures pay, the Team Flux farm bonus, and who is near enough to share. VeyraEconomy binds it to FVeyraEconomyTuning. The XP curve stays in Progression.json.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "gold", "passiveGold", "experience", "fluxBonus", "eligibility", "fluxSpells"],
+  "required": ["schemaVersion", "gold", "passiveGold", "experience", "fluxBonus", "eligibility", "fluxSpells", "visionTools"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -23,7 +23,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [4]
+      "enum": [5]
     },
     "gold": {
       "description": "Individual Gold (§1, §3, §5, §8).",
@@ -104,6 +104,17 @@
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "swapCost": { "description": "Gold a swap costs, for filling an empty slot too; never refunded.", "type": "number", "minimum": 0 }
+      }
+    },
+    "visionTools": {
+      "description": "The vision tools' Gold (§8.3, §13.3; Vision Bible §3, §8; ADR-016 §6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "swapCost", "wardBounty"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "swapCost": { "description": "Gold each swap at the fountain costs, returning to a tool before too; never refunded.", "type": "number", "minimum": 0 },
+        "wardBounty": { "description": "Gold for destroying an enemy ward, to its destroyer alone; no XP and no share.", "type": "number", "minimum": 0 }
       }
     }
   }

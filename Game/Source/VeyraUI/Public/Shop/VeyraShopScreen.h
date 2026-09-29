@@ -53,6 +53,9 @@ public:
 	/** The label of the button that swaps Spell into Flux Spell slot Slot, from 0. */
 	static FText SwapLabel(int32 Slot, const FVeyraContentId& Spell);
 
+	/** A vision tool's name, as the shop and HUD show it. */
+	static FText VisionToolName(EVeyraVisionTool Tool);
+
 	/** The line that says why the server refused the last request; empty when none has been. */
 	FText GetMessage() const;
 

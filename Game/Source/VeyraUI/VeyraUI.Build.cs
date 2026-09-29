@@ -28,6 +28,8 @@ public class VeyraUI : ModuleRules
 			"VeyraItems",
 			"VeyraMatch",
 			"VeyraServices",
+			// The HUD model shows the vision tool in the slot (ADR-016 §8).
+			"VeyraVision",
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[]

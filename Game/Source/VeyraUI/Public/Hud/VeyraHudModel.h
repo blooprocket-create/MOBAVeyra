@@ -8,6 +8,7 @@
 #include "Content/VeyraContentId.h"
 #include "Misc/Optional.h"
 #include "Slots/VeyraAbilitySlot.h"
+#include "Tools/VeyraVisionToolComponent.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Teams/VeyraTeam.h"
 
@@ -87,6 +88,25 @@ struct FVeyraHudSpellSlot
 	double CooldownSeconds = 0.0;
 };
 
+/**
+ * The vision-tool slot on the HUD (ADR-016 §8): the tool in it; for Persistent Ward, its charges and
+ * when the next comes back; for the others, their cooldown.
+ */
+struct FVeyraHudVisionTool
+{
+	bool bPresent = false;
+	EVeyraVisionTool Tool = EVeyraVisionTool::PersistentWard;
+
+	/** Seconds until Sweeper or Quick Sight is ready; 0 when it is. */
+	double CooldownSeconds = 0.0;
+
+	int32 WardCharges = 0;
+	int32 MaxWardCharges = 0;
+
+	/** Seconds until the next charge comes back; 0 while none is coming. */
+	double NextChargeSeconds = 0.0;
+};
+
 /** The player's own panel. */
 struct FVeyraHudPlayer
 {
@@ -120,6 +140,8 @@ struct FVeyraHudPlayer
 
 	/** The two Flux Spell slots, in order. */
 	TArray<FVeyraHudSpellSlot> Spells;
+
+	FVeyraHudVisionTool VisionTool;
 
 	/** Purchases waiting for the fountain (Economy & Progression Bible §11). */
 	int32 PendingPurchases = 0;
@@ -168,6 +190,25 @@ struct FVeyraHudTeamFlux
  * gameplay supplies and calculates none of it). Plain functions, so tests check them without a
  * canvas.
  */
+/** A presence ping on the HUD (ADR-016 §8): a ring over the fog circle an enemy is present in. */
+struct FVeyraHudPing
+{
+	FVector2D Centre = FVector2D::ZeroVector;
+	double Radius = 0.0;
+
+	/** How much of it is left, from 1 as it arrives to 0 as the next would come. */
+	double Fade = 0.0;
+};
+
+/** What the viewer's side's vision tells it (ADR-016 §8): its presence pings and Sweeper's outlines. */
+struct FVeyraHudVision
+{
+	TArray<FVeyraHudPing> Pings;
+
+	/** Where each outlined enemy stands, or was last covered. */
+	TArray<FVector> Outlines;
+};
+
 namespace VeyraHud
 {
 	/** Unit's bars, from its Ability System Component and shields; nothing when it has neither Health nor an Ability System Component. */
@@ -190,4 +231,7 @@ namespace VeyraHud
 
 	/** Each team's Team Flux at ServerNow, as the replicated Flux state holds it; empty before it arrives. */
 	VEYRAUI_API TArray<FVeyraHudTeamFlux> DescribeTeamFlux(const UWorld* World, double ServerNow);
+
+	/** What Viewer's side's vision tells it at ServerNow; empty before its team state arrives. */
+	VEYRAUI_API FVeyraHudVision DescribeVision(const UWorld* World, EVeyraTeam Viewer, double ServerNow);
 }

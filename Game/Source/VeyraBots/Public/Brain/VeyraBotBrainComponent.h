@@ -28,8 +28,11 @@ class VEYRABOTS_API UVeyraBotBrainComponent : public UActorComponent
 public:
 	UVeyraBotBrainComponent();
 
-	/** Before registering: the participant it plays, its role and difficulty, and the seed of its chances. */
-	void Configure(AVeyraPlayerState& InBot, EVeyraBotRole InRole, EVeyraBotDifficulty InDifficulty, int32 Seed);
+	/**
+	 * Before registering: the participant it plays, its role and difficulty, whether its seat wards
+	 * (Bots.json warding), and the seed of its chances.
+	 */
+	void Configure(AVeyraPlayerState& InBot, EVeyraBotRole InRole, EVeyraBotDifficulty InDifficulty, bool bInWards, int32 Seed);
 
 	/** One decision now, acted on. The timer calls it; tests call it directly. */
 	FVeyraBotIntent Think();
@@ -53,6 +56,7 @@ private:
 	TWeakObjectPtr<AVeyraPlayerState> Bot;
 	EVeyraBotRole Role = EVeyraBotRole::Mid;
 	EVeyraBotDifficulty Difficulty = EVeyraBotDifficulty::Beginner;
+	bool bWards = false;
 	FVeyraBotMemory Memory;
 	FRandomStream Random;
 	FVeyraBotIntent LastIntent;

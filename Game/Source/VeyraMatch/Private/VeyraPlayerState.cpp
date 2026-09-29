@@ -27,6 +27,7 @@
 #include "Recall/VeyraRecallComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraParticipantData.h"
+#include "Tools/VeyraVisionToolComponent.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraMatchLog.h"
 #include "VeyraVanguardCharacter.h"
@@ -53,6 +54,7 @@ AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer
 	Gold = CreateDefaultSubobject<UVeyraGoldComponent>(TEXT("Gold"));
 	Inventory = CreateDefaultSubobject<UVeyraInventoryComponent>(TEXT("Inventory"));
 	Recall = CreateDefaultSubobject<UVeyraRecallComponent>(TEXT("Recall"));
+	VisionTool = CreateDefaultSubobject<UVeyraVisionToolComponent>(TEXT("VisionTool"));
 
 	// Attribute Sets created as default subobjects of the owner register with its Ability System
 	// Component when the component initializes.

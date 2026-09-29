@@ -47,7 +47,8 @@ void UVeyraBotSubsystem::OnBotAdded(AVeyraPlayerState& Bot, const FVeyraBotSeat&
 		GameMode->EquipStartingFluxSpells(Bot, Place.FluxSpells);
 	}
 	UVeyraBotBrainComponent* Brain = NewObject<UVeyraBotBrainComponent>(Controller);
-	Brain->Configure(Bot, Role, Seat.Difficulty, static_cast<int32>(HashCombine(GetTypeHash(Bot.GetPlayerId()), GetTypeHash(Seat.Seat))));
+	const bool bWards = UVeyraBotsTuningSubsystem::Get().Warding.Seats.Contains(Seat.Seat % Seats.Num());
+	Brain->Configure(Bot, Role, Seat.Difficulty, bWards, static_cast<int32>(HashCombine(GetTypeHash(Bot.GetPlayerId()), GetTypeHash(Seat.Seat))));
 	Brain->RegisterComponent();
 	UE_LOG(LogVeyraBots, Log, TEXT("%s plays %s as a %s bot."), *Bot.GetPlayerName(), *StaticEnum<EVeyraBotRole>()->GetNameStringByValue(static_cast<int64>(Role)), LexToString(Seat.Difficulty));
 }

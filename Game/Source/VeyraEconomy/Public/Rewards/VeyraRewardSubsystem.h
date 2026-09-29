@@ -65,6 +65,12 @@ public:
 	 */
 	void RewardFluxWellSecured(TConstArrayView<UAbilitySystemComponent*> Capturers);
 
+	/**
+	 * Server: an enemy ward was destroyed (§8.3). Its bounty goes to the Vanguard credited with its
+	 * killing blow alone; no one else shares it, and it gives no XP.
+	 */
+	void RewardWardDestroyed(const FVeyraDeathEvent& Death);
+
 	/** Server: pays nothing more, as when the match ends (§8.2). */
 	void Stop();
 

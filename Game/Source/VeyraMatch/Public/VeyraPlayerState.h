@@ -31,6 +31,7 @@ class UVeyraRegenerationComponent;
 class UVeyraResourceSet;
 class UVeyraPassive;
 class UVeyraStatusComponent;
+class UVeyraVisionToolComponent;
 class UVeyraVitalsSet;
 
 /**
@@ -169,6 +170,10 @@ private:
 	/** Recall home to the fountain (ADR-012 §8). */
 	UPROPERTY(VisibleAnywhere, Category = "Match")
 	TObjectPtr<UVeyraRecallComponent> Recall;
+
+	/** The vision tool and its ward charges, which survive death (Vision Bible §7; ADR-016 §6). */
+	UPROPERTY(VisibleAnywhere, Category = "Vision")
+	TObjectPtr<UVeyraVisionToolComponent> VisionTool;
 
 	UPROPERTY()
 	TObjectPtr<UVeyraVitalsSet> VitalsSet;

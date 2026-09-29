@@ -34,6 +34,8 @@ const FKey& UVeyraInputSettings::GetAbilityKey(EVeyraAbilitySlot Slot) const
 		return Spell1Key;
 	case EVeyraAbilitySlot::Spell2:
 		return Spell2Key;
+	case EVeyraAbilitySlot::VisionTool:
+		return VisionToolKey;
 	}
 	return EKeys::Invalid;
 }
@@ -50,6 +52,8 @@ UInputAction* FVeyraInputObjects::GetAbilityAction(EVeyraAbilitySlot Slot) const
 		return AbilityE;
 	case EVeyraAbilitySlot::R:
 		return AbilityR;
+	case EVeyraAbilitySlot::VisionTool:
+		return VisionTool;
 	default:
 		break;
 	}
@@ -117,6 +121,8 @@ FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer)
 		Objects.SpellSlots.Add(NewCastAction(Outer, TEXT("VeyraSpellSlot")));
 		Objects.MappingContext->MapKey(Objects.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
 	}
+	Objects.VisionTool = NewCastAction(Outer, TEXT("VeyraVisionTool"));
+	Objects.MappingContext->MapKey(Objects.VisionTool, Settings.VisionToolKey);
 	Objects.Recall = NewCastAction(Outer, TEXT("VeyraRecall"));
 	Objects.MappingContext->MapKey(Objects.Recall, Settings.RecallKey);
 	return Objects;

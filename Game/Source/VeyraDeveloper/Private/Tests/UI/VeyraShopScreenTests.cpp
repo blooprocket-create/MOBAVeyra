@@ -15,11 +15,13 @@
 #include "Shop/VeyraShopModel.h"
 #include "Shop/VeyraShopScreen.h"
 #include "Shop/VeyraShopSubsystem.h"
+#include "State/VeyraVisionTeamState.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
+#include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
 
@@ -126,6 +128,52 @@ namespace VeyraItemsTests
 			const UVeyraShellButton* Swap = Screen->FindButton(UVeyraShopScreen::SwapLabel(1, Roster[1]));
 			ASSERT_THAT(IsTrue(Swap && Swap->GetIsEnabled()));
 			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShopScreen::SwapLabel(0, Roster[0]))));
+		}
+
+		TEST_METHOD(TheModelOffersEachOtherVisionToolAndTheScreenItsSwaps)
+		{
+			// Any other tool, at the fountain, for the same cost each time (Vision Bible §3; ADR-016 §6).
+			FVeyraShopView View = VeyraShopModel::Describe(*Participant);
+			ASSERT_THAT(IsTrue(View.bHasVisionTool && View.VisionTool == EVeyraVisionTool::PersistentWard));
+			ASSERT_THAT(IsTrue(View.VisionToolSwapCost == UVeyraEconomyTuningSubsystem::Get().VisionTools.SwapCost));
+			ASSERT_THAT(AreEqual(View.VisionToolOffers.Num(), 3));
+			ASSERT_THAT(IsTrue(View.VisionToolOffers[0].Refusal == EVeyraShopRefusal::AlreadyEquipped));
+			ASSERT_THAT(IsTrue(View.VisionToolOffers[1].Refusal == EVeyraShopRefusal::NotAtFountain, TEXT("never from afar")));
+
+			Subsystem->SetAtFountain(*Participant, true);
+			View = VeyraShopModel::Describe(*Participant);
+			ASSERT_THAT(IsTrue(View.VisionToolOffers[1].Refusal == EVeyraShopRefusal::None && View.VisionToolOffers[2].Refusal == EVeyraShopRefusal::None));
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			Controller.PlayerState = Participant;
+			UVeyraShopScreen* Screen = CreateWidget<UVeyraShopScreen>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Screen));
+			Screen->Show(Controller, [] {});
+			const UVeyraShellButton* Sweeper = Screen->FindButton(UVeyraShopScreen::VisionToolName(EVeyraVisionTool::Sweeper));
+			ASSERT_THAT(IsTrue(Sweeper && Sweeper->GetIsEnabled()));
+			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShopScreen::VisionToolName(EVeyraVisionTool::PersistentWard)), TEXT("not the tool in the slot")));
+		}
+
+		TEST_METHOD(TheHudShowsItsSidesPingsFadingAndItsOutlines)
+		{
+			const double Cadence = UVeyraVisionTuningSubsystem::Get().Presence.PingEverySeconds;
+			// Fixture values: a fog circle, a moment, and where an outlined enemy stands.
+			const FVector2D Bush(1000.0, 500.0);
+			constexpr double BushRadius = 300.0;
+			constexpr double Now = 100.0;
+			const FVector Outlined(1100.0, 500.0, 0.0);
+			AVeyraVisionTeamState& State = Spawner.SpawnActor<AVeyraVisionTeamState>();
+			State.SetVeyraTeam(EVeyraTeam::A);
+			State.AddPing(FVeyraPresencePing{ Bush, BushRadius, Now }, Now, Cadence);
+			State.SetOutlines({ FVeyraOutline{ Outlined, Now + Cadence } });
+
+			FVeyraHudVision Vision = VeyraHud::DescribeVision(&Spawner.GetWorld(), EVeyraTeam::A, Now);
+			ASSERT_THAT(IsTrue(Vision.Pings.Num() == 1 && Vision.Pings[0].Centre.Equals(Bush) && Vision.Pings[0].Radius == BushRadius && Vision.Pings[0].Fade == 1.0));
+			ASSERT_THAT(IsTrue(Vision.Outlines.Num() == 1 && Vision.Outlines[0].Equals(Outlined)));
+			Vision = VeyraHud::DescribeVision(&Spawner.GetWorld(), EVeyraTeam::A, Now + Cadence / 2.0);
+			ASSERT_THAT(IsTrue(Vision.Pings.Num() == 1 && FMath::IsNearlyEqual(Vision.Pings[0].Fade, 0.5), TEXT("it fades until the next")));
+			Vision = VeyraHud::DescribeVision(&Spawner.GetWorld(), EVeyraTeam::A, Now + Cadence);
+			ASSERT_THAT(IsTrue(Vision.Pings.IsEmpty() && Vision.Outlines.IsEmpty(), TEXT("gone by then")));
+			ASSERT_THAT(IsTrue(VeyraHud::DescribeVision(&Spawner.GetWorld(), EVeyraTeam::B, Now).Pings.IsEmpty(), TEXT("another side's state is not the viewer's")));
 		}
 
 		TEST_METHOD(StatsReadAsTheShopListsThem)

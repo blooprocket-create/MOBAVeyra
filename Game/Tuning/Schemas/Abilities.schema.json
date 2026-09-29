@@ -185,7 +185,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [4]
+      "enum": [5]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -293,8 +293,8 @@
               "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).",
               "type": "array",
               "minItems": 0,
-              "maxItems": 5,
-              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective"] }
+              "maxItems": 6,
+              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }
             }
           }
         }
@@ -308,7 +308,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "zones"],
+          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -320,6 +320,16 @@
             "delaySeconds": { "description": "Seconds between Commit and the hit, with the area telegraphed; the caster is free meanwhile.", "type": "number", "minimum": 0 },
             "channelTicks": { "description": "How many times the area hits over channelSeconds, the caster held in place.", "type": "integer", "minimum": 1 },
             "channelSeconds": { "type": "number", "minimum": 0 },
+            "reveal": {
+              "description": "Ordinary vision the area lights for its caster's side as it commits, which over Dense Fog reports presence instead (ADR-016 §5), as Sounding Flare's; 0 and 0 for none.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["radius", "durationSeconds"],
+              "properties": {
+                "radius": { "type": "number", "minimum": 0 },
+                "durationSeconds": { "type": "number", "minimum": 0 }
+              }
+            },
             "zones": {
               "description": "Innermost first: a unit takes the first zone that touches it, and no other.",
               "type": "array",

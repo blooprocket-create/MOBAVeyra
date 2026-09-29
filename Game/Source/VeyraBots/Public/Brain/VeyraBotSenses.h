@@ -14,5 +14,5 @@ class AVeyraPlayerState;
 namespace VeyraBotSenses
 {
 	/** What Bot knows now, playing Role. */
-	VEYRABOTS_API FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVeyraBotsTuning& Tuning);
+	VEYRABOTS_API FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWards, const FVeyraBotsTuning& Tuning);
 }

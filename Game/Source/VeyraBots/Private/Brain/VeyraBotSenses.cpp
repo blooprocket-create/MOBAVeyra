@@ -39,6 +39,9 @@
 #include "Wells/VeyraFluxWellSubsystem.h"
 #include "Wildlife/VeyraJungleSubsystem.h"
 #include "Wildlife/VeyraWildlife.h"
+#include "Tools/VeyraVisionToolComponent.h"
+#include "VeyraVisionSubsystem.h"
+#include "Wards/VeyraWard.h"
 
 namespace VeyraBotSenses
 {
@@ -135,11 +138,12 @@ namespace
 	}
 }
 
-FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVeyraBotsTuning& Tuning)
+FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWards, const FVeyraBotsTuning& Tuning)
 {
 	const EVeyraLane Lane = VeyraBots::LaneOf(Role);
 	FVeyraBotView View;
 	View.bJungle = Role == EVeyraBotRole::Jungle;
+	View.bWards = bWards;
 	const UWorld* World = Bot.GetWorld();
 	const APawn* Body = Bot.GetPawn();
 	if (!World)
@@ -329,6 +333,26 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVey
 				{
 					Seen.Creatures.Add(UnitOf(*Creature));
 				}
+			}
+		}
+	}
+	// What a warding seat needs (ADR-016 §7): its charges, the fog patches, and where its side's wards stand.
+	if (View.bWards)
+	{
+		const UVeyraVisionToolComponent* Tool = Bot.FindComponentByClass<UVeyraVisionToolComponent>();
+		View.WardCharges = Tool && Tool->GetEquipped() == EVeyraVisionTool::PersistentWard ? Tool->GetWardCharges() : 0;
+		if (const UVeyraVisionSubsystem* Vision = World->GetSubsystem<UVeyraVisionSubsystem>())
+		{
+			for (const FVeyraFogCircle& Patch : Vision->GetDenseFog())
+			{
+				View.WardSpots.Add(FVector(Patch.Center, View.Self.Location.Z));
+			}
+		}
+		for (TActorIterator<AVeyraWard> It(World); It; ++It)
+		{
+			if (It->IsAlive() && It->GetVeyraTeam() == Team)
+			{
+				View.AlliedWards.Add(It->GetActorLocation());
 			}
 		}
 	}

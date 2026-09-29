@@ -28,6 +28,11 @@ enum class EVeyraUnitKind : uint8
 	Wildlife,
 	/** A neutral objective, such as a Flux Well (Battleground Bible §6). On no side, and not a structure (ADR-014 §4). */
 	Objective,
+	/**
+	 * A placed ward (Vision Bible §4). It counts hits, not damage: only a Vanguard's basic attack
+	 * reaches it, one point of Health each; abilities, areas and skillshots pass it by (ADR-016 §6).
+	 */
+	Ward,
 };
 
 UINTERFACE(MinimalAPI, NotBlueprintable)
@@ -61,4 +66,7 @@ namespace VeyraUnits
 
 	/** Whether Object is a structure. */
 	VEYRACORE_API bool IsStructure(const UObject* Object);
+
+	/** Whether Object is a ward. */
+	VEYRACORE_API bool IsWard(const UObject* Object);
 }

@@ -84,10 +84,11 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 ### 5. Presence is a channel, not vision
 
 - **Sensors:** a ward's sensor inside fog, Quick Sight's area over fog, and Bryn's Sounding Flare each report "an enemy Vanguard is present in this fog zone".
-  - Pings come from a team-only replicated channel on Vision's team state: the zone and a time, never a unit or a position.
-  - The cadence is data.
-- **Sweeper's outline** is its own channel: the position of an enemy Vanguard inside fog that True Sight covers, to that team only, lingering for the data's time. It grants no targeting.
-- **Abilities below Vision report presence through Combat's contract:** `IVeyraVisibility`'s presence query, called by the ability, answers whether its area overlaps a zone holding an enemy Vanguard. Bryn's W uses it.
+  - A sensor covers its own area: a ward, its `sensorRadius` inside the fog it stands in; a lit area, its radius. Never the whole fog volume (Vision Bible §4).
+  - A ping names the fog circle the enemy stands in, and a time, never a unit or a position. A new sensor pings at once, then at the data's cadence while the enemy stays.
+  - Pings travel on `AVeyraVisionTeamState`, one per side, which the fog gate lets reach that side alone.
+- **Sweeper's outline** is its own channel on the same team state: where an enemy Vanguard inside fog stands while True Sight covers it, then where it was last covered until it fades after the data's linger. It grants no targeting.
+- **One primitive lights an area:** a timed sight area, ordinary vision for its side while it lasts, and over fog a presence sensor. Quick Sight places one. Abilities below Vision ask for one through Combat's contract, `IVeyraVisibility::RevealArea`: the area archetype's `reveal` (radius and duration) calls it as the cast commits, and Bryn's Sounding Flare has one.
 
 ### 6. The vision tools are Vision's actions, in a slot of their own
 
@@ -100,17 +101,23 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
   - its owner and team, its sight radius, its lifetime, Invisibility, and its sensor radius;
   - destroyed by a number of hits from enemy Vanguards' basic attacks, and by nothing else;
   - its destroyer is paid through Economy's `RewardWardDestroyed`.
+- **A ward is a unit of its own kind** (`EVeyraUnitKind::Ward`), so Combat can hold its rules without naming it:
+  - **It counts hits, not damage.** Only a basic attack from a Vanguard reaches it, and each lands as one point of its Health, whatever the attack's damage and modifiers. Its Max Health is the data's hit count, and its death is an ordinary death, so the credited killer is its destroyer.
+  - **Abilities pass it by.** Statuses ignore it, and area and skillshot gathering skip it, as League's wards stop no skillshot. Fluxborn and towers never choose it.
+  - **It stops no one.** Its body is on its own collision object channel, which every other body ignores. It still blocks the cursor's unit trace, so a player can click a ward they see.
+  - **Enemies see it only under True Sight** (§5, M11b G8). Its own side always receives it.
 - **Tools:**
   - **Persistent Ward:** places a ward within range, spending a charge.
   - **Sweeper:** grants True Sight around its owner for its duration.
   - **Quick Sight:** places a timed sight area within range.
-- **The swap:** a shop row, routed by Match to Vision for the equip and to Economy for the Gold (`Economy.json` `visionTools.swapCost`), at the fountain only.
+- **The swap:** a shop row. Match's controller asks. The shop takes the Gold (`UVeyraShopSubsystem::ChargeAtFountain`, the fountain rule its own purchases follow; `Economy.json` `visionTools.swapCost`), and Vision equips. The tool already in the slot is refused, and so is anything away from the fountain unless its owner is dead.
+- **The HUD** (§8): the tool line names the tool, with its charges or cooldown. Presence pings are rings over their fog circle, fading until the next, and outlines are small rings, both drawn from the viewer's side's team state.
 
 ### 7. Bots see what their team sees
 
 - Bot senses read `IVeyraVisibility`, so a bot never reacts to what its team cannot see. The jungler's gank range still applies, but to seen enemies only.
 - A jungler still knows which of its own camps are up, as League players keep camp timers. It walks to a camp whose creatures it cannot see yet, and attacks only those its side sees.
-- Supports and junglers carry Persistent Ward and place wards at `Bots.json` ward spots as they pass.
+- The warding seats (`Bots.json` `warding.seats`: League's jungler and support) ward the Dense Fog patches they pass, League's bushes. A patch qualifies within `spotReach` of its centre, when no ward of their side stands within `spotSpacing`, with a charge in hand and no enemy Vanguard near.
 
 ### 8. The HUD
 
@@ -120,10 +127,11 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 
 ### 9. Values are data
 
-- `Vision.json`: sight radii, the update cadence, the tools, the ward, the ping cadence.
+- `Vision.json` v3: sight radii, the update cadence, the ward and its charges, Sweeper, Quick Sight, the ping cadence.
+- `Abilities.json` v5: an area's `reveal`.
 - `World.json` v3: `denseFog`.
 - `Economy.json` v5: the ward reward and the swap cost.
-- `Bots.json` v4: ward spots.
+- `Bots.json` v4: `warding` (seats, reach and spacing).
 - Input keys.
 
 Canon gives the three carried charges; every other value is Provisional.
@@ -160,6 +168,7 @@ Canon gives the three carried charges; every other value is Provisional.
   - The item keys move.
 - **Bandwidth falls:** a client no longer receives the enemy's Fluxborn and Vanguards it cannot see (ADR-006 §5's second lever).
   - **Measured (M11a gate, 2026-09-29):** the packaged Linux server with 8 load-test bots and 2 clients on the battleground, the waves and jungle running, sent each client 7.8–10.2 KB/s at steady state (peak 11.4), with a server frame of 3–4 ms on average. ADR-011 §7 measured 9.6–13.6 KB/s without the fog, before the jungle and its Wells added their units.
+  - **Measured again with the vision tools (M11b gate, 2026-09-29):** 9.6–11.7 KB/s per client (peak 12.7), a server frame of 3–4 ms. That is within ADR-011's range and a little above M11a's run; the difference between runs is the waves' timing. In the 8-bot match, bots placed 5 wards, and both junglers levelled and cleared 16 camps.
 - **Tests:** Vision runs in every match. Network tests that are not about fog widen every unit's sight past any test map (`FScopedMatchTuning`), so they keep their meaning; fog tests restore the committed sight.
 
 ## Amendments to earlier records

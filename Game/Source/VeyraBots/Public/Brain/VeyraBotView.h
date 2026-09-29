@@ -170,6 +170,12 @@ struct FVeyraBotView
 	/** Whether it plays the jungle (ADR-014 §7). */
 	bool bJungle = false;
 
+	/** Whether its seat wards (Bots.json warding), its ward charges, the Dense Fog patches' centres, and its side's wards. */
+	bool bWards = false;
+	int32 WardCharges = 0;
+	TArray<FVector> WardSpots;
+	TArray<FVector> AlliedWards;
+
 	/** Its side's camps. */
 	TArray<FVeyraBotCamp> Camps;
 
@@ -195,6 +201,8 @@ enum class EVeyraBotAction : uint8
 	Attack,
 	/** Cast Slot at CastTarget. */
 	Cast,
+	/** Use the vision tool at Destination: a Persistent Ward placed there (ADR-016 §7). */
+	Ward,
 };
 
 struct FVeyraBotIntent

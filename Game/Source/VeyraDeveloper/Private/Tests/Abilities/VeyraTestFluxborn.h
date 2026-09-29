@@ -101,3 +101,16 @@ public:
 
 	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Wildlife; }
 };
+
+// A ward for Combat's tests: the test unit, reporting itself a ward, so the ward rules apply to it
+// without Vision (ADR-016 §6).
+UCLASS(NotBlueprintable, NotPlaceable, Transient)
+class AVeyraTestWard : public AVeyraTestFluxborn
+{
+	GENERATED_BODY()
+
+public:
+	AVeyraTestWard(const FObjectInitializer& ObjectInitializer);
+
+	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Ward; }
+};

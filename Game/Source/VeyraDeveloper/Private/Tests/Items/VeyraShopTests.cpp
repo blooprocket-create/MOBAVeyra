@@ -124,6 +124,25 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 1, Roster[0]) == EVeyraShopRefusal::NotEnoughGold));
 		}
 
+		TEST_METHOD(AFountainChargeTakesGoldOnlyAtTheFountain)
+		{
+			// What the vision-tool swap pays with (ADR-016 §6): the shop takes the Gold, Match makes the change.
+			constexpr double Charge = 50.0;
+			const TCHAR* ForWhat = TEXT("a test charge");
+			ASSERT_THAT(IsTrue(Subsystem->ChargeAtFountain(*Participant, Charge, ForWhat) == EVeyraShopRefusal::NotAtFountain));
+			ASSERT_THAT(IsTrue(Gold->GetGold() == Purse, TEXT("a refusal costs nothing")));
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->ChargeAtFountain(*Participant, Charge, ForWhat) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Gold->GetGold(), Purse - Charge)));
+			Gold->Spend(Gold->GetGold());
+			ASSERT_THAT(IsTrue(Subsystem->ChargeAtFountain(*Participant, Charge, ForWhat) == EVeyraShopRefusal::NotEnoughGold));
+			// The dead shop as if at the fountain (ADR-012 §9).
+			Subsystem->SetAtFountain(*Participant, false);
+			Gold->Grant(Charge, EVeyraGoldReason::Developer);
+			Die();
+			ASSERT_THAT(IsTrue(Subsystem->ChargeAtFountain(*Participant, Charge, ForWhat) == EVeyraShopRefusal::None));
+		}
+
 		TEST_METHOD(AtTheFountainAPurchaseArrivesAtOnceWithItsStats)
 		{
 			const double Before = PhysicalPower();

@@ -465,6 +465,25 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 		}
 	}
 
+	// A warding seat wards the fog patches it passes that no ward of its side covers, with a charge
+	// and no enemy Vanguard near, as League's jungler and support ward the bushes (ADR-016 §7).
+	if (View.bWards && View.WardCharges > 0)
+	{
+		const FVeyraBotUnit* Near = Nearest(View.Self, View.EnemyVanguards);
+		if (!Near || EdgeDistance(View.Self, *Near) > Tuning.Senses.SafeRadius)
+		{
+			for (const FVector& Spot : View.WardSpots)
+			{
+				const bool bCovered = View.AlliedWards.ContainsByPredicate(
+					[&Spot, &Tuning](const FVector& Ward) { return FVector::Dist2D(Ward, Spot) <= Tuning.Warding.SpotSpacing; });
+				if (!bCovered && FVector::Dist2D(View.Self.Location, Spot) <= Tuning.Warding.SpotReach)
+				{
+					return MoveTo(EVeyraBotAction::Ward, Spot, TEXT("warding"));
+				}
+			}
+		}
+	}
+
 	// An open Flux Well within its reach and no enemy Vanguard near: take it (ADR-014 §7), as League's
 	// bots take an objective when their lane allows.
 	const FVeyraBotUnit* Well = Nearest(View.Self, View.Wells);

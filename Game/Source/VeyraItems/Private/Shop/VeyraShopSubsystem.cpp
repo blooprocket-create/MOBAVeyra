@@ -149,6 +149,26 @@ EVeyraShopRefusal UVeyraShopSubsystem::Sell(AActor& Participant, int32 Slot)
 	return EVeyraShopRefusal::None;
 }
 
+EVeyraShopRefusal UVeyraShopSubsystem::ChargeAtFountain(AActor& Participant, double Cost, const TCHAR* ForWhat)
+{
+	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
+	UVeyraGoldComponent* Gold = Participant.FindComponentByClass<UVeyraGoldComponent>();
+	if (!Inventory || !Gold)
+	{
+		return EVeyraShopRefusal::NotNow;
+	}
+	if (!IsAtShop(Participant, *Inventory))
+	{
+		return EVeyraShopRefusal::NotAtFountain;
+	}
+	if (!Gold->Spend(Cost))
+	{
+		return EVeyraShopRefusal::NotEnoughGold;
+	}
+	UE_LOG(LogVeyraItems, Log, TEXT("%s paid %.0f Gold for %s."), *GetNameSafe(&Participant), Cost, ForWhat);
+	return EVeyraShopRefusal::None;
+}
+
 EVeyraShopRefusal UVeyraShopSubsystem::SwapFluxSpell(AActor& Participant, int32 Slot, const FVeyraContentId& Spell)
 {
 	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();

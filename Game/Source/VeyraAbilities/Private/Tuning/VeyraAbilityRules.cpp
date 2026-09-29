@@ -142,6 +142,10 @@ namespace
 			{
 				Problem(Pointer + TEXT("/channelSeconds"), TEXT("must be above 0 when the area hits more than once"));
 			}
+			if ((Area.Reveal.Radius > 0.0) != (Area.Reveal.DurationSeconds > 0.0))
+			{
+				Problem(Pointer + TEXT("/reveal"), TEXT("radius and durationSeconds are both above 0, or both 0 for no reveal"));
+			}
 			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
 		}
 

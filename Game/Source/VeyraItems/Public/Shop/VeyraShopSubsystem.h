@@ -62,6 +62,12 @@ public:
 	EVeyraShopRefusal SwapFluxSpell(AActor& Participant, int32 Slot, const FVeyraContentId& Spell);
 
 	/**
+	 * Takes Cost Gold from Participant for a change the shop does not own, such as the vision tool
+	 * (ADR-016 §6), at its fountain only, or dead (ADR-012 §9). Match makes the change once it is paid.
+	 */
+	EVeyraShopRefusal ChargeAtFountain(AActor& Participant, double Cost, const TCHAR* ForWhat);
+
+	/**
 	 * Match reports Participant arriving at or leaving its own fountain. Arriving delivers the queue
 	 * (§11.2); leaving ends undo (§12).
 	 */

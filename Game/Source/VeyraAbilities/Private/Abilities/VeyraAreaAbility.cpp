@@ -5,6 +5,8 @@
 #include "AbilitySystemComponent.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Engine/World.h"
+#include "Targeting/VeyraVisibility.h"
+#include "Teams/VeyraTeam.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 
 bool UVeyraAreaAbility::Defines(const FVeyraContentId& Ability) const
@@ -59,6 +61,12 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 	const AActor* Body = Caster->GetAvatarActor();
 	const FVeyraEffectFrame Placement = VeyraAreaDelivery::Place(*Area, Body ? Body->GetActorLocation() : Cast.CasterLocation, Cast.Point, Cast.Direction);
 	TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, Area->Zones, Cast.Rank);
+
+	// It lights its area for its caster's side as it commits (ADR-016 §5).
+	if (Area->Reveal.Radius > 0.0)
+	{
+		VeyraVisibility::RevealArea(*World, VeyraTeams::TeamOf(Caster->GetOwner()), Placement.Origin, Area->Reveal.Radius, Area->Reveal.DurationSeconds);
+	}
 
 	if (Area->DelaySeconds > 0.0)
 	{

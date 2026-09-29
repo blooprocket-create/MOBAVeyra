@@ -166,6 +166,16 @@ void UVeyraDamageExecution::Execute_Implementation(const FGameplayEffectCustomEx
 		return;
 	}
 
+	// A ward counts hits, not damage: every blow that reaches it takes one point of its Health, whatever
+	// its amount and modifiers (ADR-016 §6). Only a Vanguard's basic attack gets this far.
+	if (VeyraUnits::IsWard(Defender->GetOwner()))
+	{
+		constexpr float OneHit = 1.0f;
+		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(UVeyraVitalsSet::GetIncomingDamageAttribute(EVeyraDamageType::TrueDamage),
+			EGameplayModOp::AddBase, OneHit));
+		return;
+	}
+
 	// §33: a structure's Armor and Magic Resist are its own; penetration and resistance reduction do
 	// not touch them.
 	if (VeyraUnits::IsStructure(Defender->GetOwner()))

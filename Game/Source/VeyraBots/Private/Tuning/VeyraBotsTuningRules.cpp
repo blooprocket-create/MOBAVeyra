@@ -94,6 +94,20 @@ TArray<FString> Validate(const FVeyraBotsTuning& Tuning)
 		}
 	}
 
+	// Each warding seat is a seat, named once (ADR-016 §7).
+	for (int32 Index = 0; Index < Tuning.Warding.Seats.Num(); ++Index)
+	{
+		const int32 Seat = Tuning.Warding.Seats[Index];
+		if (!Tuning.Seats.IsValidIndex(Seat))
+		{
+			Problems.Add(FString::Printf(TEXT("/warding/seats/%d: seat %d is not one of the %d seats"), Index, Seat, Tuning.Seats.Num()));
+		}
+		else if (Tuning.Warding.Seats.IndexOfByKey(Seat) != Index)
+		{
+			Problems.Add(FString::Printf(TEXT("/warding/seats/%d: names seat %d twice"), Index, Seat));
+		}
+	}
+
 	// Each seat takes roster spells, none twice, and knows what each is for (ADR-015 §8).
 	const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
 	for (int32 Index = 0; Index < Tuning.Seats.Num(); ++Index)

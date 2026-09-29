@@ -4,9 +4,14 @@
 
 namespace VeyraVision
 {
-TArray<FString> Validate(const FVeyraVisionTuning& /*Tuning*/)
+TArray<FString> Validate(const FVeyraVisionTuning& Tuning)
 {
-	// The schema bounds every value; the vision tools bring the domain's cross-checks (ADR-016 §6).
-	return TArray<FString>();
+	TArray<FString> Problems;
+	// A capsule is never shorter than it is wide.
+	if (Tuning.PersistentWard.BodyHalfHeight < Tuning.PersistentWard.BodyRadius)
+	{
+		Problems.Add(TEXT("/persistentWard/bodyHalfHeight: at least bodyRadius"));
+	}
+	return Problems;
 }
 }

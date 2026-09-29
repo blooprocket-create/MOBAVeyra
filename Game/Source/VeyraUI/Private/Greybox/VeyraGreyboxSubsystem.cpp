@@ -138,6 +138,7 @@ void UVeyraGreyboxSubsystem::Refresh()
 	RefreshProjectiles();
 	RefreshTelegraphs();
 	DrawTelegraphs();
+	DrawVisionMarks();
 	AttachHudOverlay();
 }
 
@@ -514,6 +515,37 @@ FVector UVeyraGreyboxSubsystem::GroundUnder(const FVector& Location) const
 	const FVector End = Location - FVector::UpVector * Settings.GroundProbeDistance;
 	const bool bFound = GetWorld()->LineTraceSingleByObjectType(Hit, Start, End, Ground, FCollisionQueryParams(SCENE_QUERY_STAT(VeyraGreyboxGround), false));
 	return (bFound ? FVector(Hit.ImpactPoint) : Location) + Lift;
+}
+
+void UVeyraGreyboxSubsystem::DrawVisionMarks()
+{
+	// DrawTelegraphs made the line batch and flushed it this refresh; these join it.
+	if (!TelegraphLines)
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	const FVeyraHudVision Vision = VeyraHud::DescribeVision(GetWorld(), GetViewerTeam(), GetServerNow());
+	const auto DrawRing = [this, &Settings](const FVector& Centre, double Radius, const FLinearColor& Color) {
+		FVeyraShape Circle;
+		Circle.Kind = EVeyraShapeKind::Circle;
+		Circle.Radius = Radius;
+		const FVeyraPlacedShape OnGround{ Circle, GroundUnder(Centre), FVector::ForwardVector };
+		for (const FVeyraOutlineSegment& Segment : VeyraGreyboxOutline::Of(OnGround, Settings.CircleSegments))
+		{
+			TelegraphLines->DrawLine(Segment.Start, Segment.End, Color, SDPG_World, Settings.TelegraphThickness, 0.0f);
+		}
+	};
+	for (const FVeyraHudPing& Ping : Vision.Pings)
+	{
+		FLinearColor Color = Settings.PresencePingColor;
+		Color.A *= static_cast<float>(Ping.Fade);
+		DrawRing(FVector(Ping.Centre, 0.0), Ping.Radius, Color);
+	}
+	for (const FVector& Outline : Vision.Outlines)
+	{
+		DrawRing(Outline, Settings.OutlineMarkerRadius, Settings.OutlineColor);
+	}
 }
 
 void UVeyraGreyboxSubsystem::DrawTelegraphs()

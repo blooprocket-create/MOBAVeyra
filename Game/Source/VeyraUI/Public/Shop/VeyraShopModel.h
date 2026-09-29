@@ -5,6 +5,7 @@
 #include "Content/VeyraContentId.h"
 #include "Internationalization/Text.h"
 #include "Inventory/VeyraInventoryRules.h"
+#include "Tools/VeyraVisionToolComponent.h"
 
 class AActor;
 struct FVeyraItemStatsTuning;
@@ -69,6 +70,14 @@ struct FVeyraShopSpellSlot
 	bool operator==(const FVeyraShopSpellSlot&) const = default;
 };
 
+/** A vision tool as a swap into the slot, or why it cannot be now (ADR-016 §6). */
+struct FVeyraShopVisionToolOffer
+{
+	EVeyraVisionTool Tool = EVeyraVisionTool::PersistentWard;
+	EVeyraShopRefusal Refusal = EVeyraShopRefusal::None;
+	bool operator==(const FVeyraShopVisionToolOffer&) const = default;
+};
+
 /** What the shop shows its participant. */
 struct FVeyraShopView
 {
@@ -91,6 +100,12 @@ struct FVeyraShopView
 	/** The two Flux Spell slots, in slot order, and what a swap costs (Economy & Progression Bible §13.2). */
 	TArray<FVeyraShopSpellSlot> SpellSlots;
 	double SpellSwapCost = 0.0;
+
+	/** The vision tool in the slot, and each tool as a swap, for the same cost each time (Vision Bible §3). */
+	bool bHasVisionTool = false;
+	EVeyraVisionTool VisionTool = EVeyraVisionTool::PersistentWard;
+	TArray<FVeyraShopVisionToolOffer> VisionToolOffers;
+	double VisionToolSwapCost = 0.0;
 
 	bool operator==(const FVeyraShopView&) const = default;
 };

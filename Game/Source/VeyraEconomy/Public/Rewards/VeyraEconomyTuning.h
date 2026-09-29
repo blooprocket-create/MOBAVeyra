@@ -178,6 +178,24 @@ struct FVeyraFluxSpellEconomyTuning
 	double SwapCost = 0.0;
 };
 
+/** The Gold of the vision tools (Economy & Progression Bible §8.3, §13.3; Vision Bible §3, §8; ADR-016 §6). */
+USTRUCT()
+struct FVeyraVisionToolEconomyTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Gold each swap costs at the fountain, returning to a tool before too; never refunded. */
+	UPROPERTY()
+	double SwapCost = 0.0;
+
+	/** Gold for destroying an enemy ward, to its destroyer alone; no XP, and no share (§8.3). */
+	UPROPERTY()
+	double WardBounty = 0.0;
+};
+
 /** The Economy domain's tuning, bound from Game/Tuning/Economy.json (ADR-006 §6, ADR-011 §11). */
 USTRUCT()
 struct FVeyraEconomyTuning
@@ -185,7 +203,7 @@ struct FVeyraEconomyTuning
 	GENERATED_BODY()
 
 	/** The Economy.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 4;
+	static constexpr int32 SchemaVersion = 5;
 
 	UPROPERTY()
 	FVeyraGoldTuning Gold;
@@ -204,4 +222,7 @@ struct FVeyraEconomyTuning
 
 	UPROPERTY()
 	FVeyraFluxSpellEconomyTuning FluxSpells;
+
+	UPROPERTY()
+	FVeyraVisionToolEconomyTuning VisionTools;
 };
