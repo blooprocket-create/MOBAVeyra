@@ -103,6 +103,30 @@ namespace
 			Y -= HudLineHeight();
 			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), Label, Settings.TextColor);
 		}
+		// A Flux Well says where it stands in its cycle; a creature, what it is (ADR-014).
+		if (const TOptional<FVeyraHudFluxWell> Well = VeyraHud::FluxWellOf(Unit, Now))
+		{
+			FString Label = TEXT("Flux Well");
+			switch (Well->State)
+			{
+			case EVeyraFluxWellState::Closed:
+				Label += FString::Printf(TEXT("  opens in %d s"), FMath::CeilToInt32(Well->OpensInSeconds));
+				break;
+			case EVeyraFluxWellState::Open:
+				Label += TEXT("  open");
+				break;
+			case EVeyraFluxWellState::Respawning:
+				Label += FString::Printf(TEXT("  returns in %d s"), FMath::CeilToInt32(Well->OpensInSeconds));
+				break;
+			}
+			Y -= HudLineHeight();
+			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), Label, Settings.TextColor);
+		}
+		if (const TOptional<FVeyraContentId> Species = VeyraHud::SpeciesOf(Unit))
+		{
+			Y -= HudLineHeight();
+			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), Species->ToString(), Settings.TextColor);
+		}
 		for (const FVeyraHudStatus& Status : VeyraHud::StatusesOf(Unit, Now))
 		{
 			Y -= HudLineHeight();

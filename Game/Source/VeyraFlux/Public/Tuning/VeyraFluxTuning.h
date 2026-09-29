@@ -35,7 +35,7 @@ struct FVeyraFluxGrantTuning
 	double DurationSeconds = 0.0;
 };
 
-/** What each source of Team Flux grants (Battleground Bible §5, §10, §18). Flux Wells join later. */
+/** What each source of Team Flux grants (Battleground Bible §5, §6, §10, §18). */
 USTRUCT()
 struct FVeyraFluxGrantsTuning
 {
@@ -55,6 +55,10 @@ struct FVeyraFluxGrantsTuning
 	/** A destroyed enemy inhibitor. */
 	UPROPERTY()
 	FVeyraFluxGrantTuning Inhibitor;
+
+	/** A secured Flux Well (§6: +50 temporary Team Flux for 3 minutes). */
+	UPROPERTY()
+	FVeyraFluxGrantTuning FluxWell;
 };
 
 /**
@@ -89,7 +93,7 @@ struct FVeyraFluxTuning
 	GENERATED_BODY()
 
 	/** The Flux.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
 
 	UPROPERTY()
 	FVeyraFluxGrantsTuning Grants;

@@ -38,6 +38,10 @@ namespace VeyraBotsTests
 			Tuning.Positioning.HoldTolerance = 150.0;
 			Tuning.Positioning.LeaveFountainHealthFraction = 0.9;
 			Tuning.Positioning.PushRange = 500.0;
+			Tuning.Positioning.WellRange = 4500.0;
+			Tuning.Jungle.GankRange = 3000.0;
+			Tuning.Jungle.GankHealthFraction = 0.5;
+			Tuning.Jungle.WellRange = 7000.0;
 			Difficulty.ThinkSeconds = 0.25;
 			Difficulty.ReactionSeconds = 0.5;
 			Difficulty.LastHitChance = 1.0;
@@ -283,6 +287,79 @@ namespace VeyraBotsTests
 			// Once it is gone, it chooses afresh.
 			View.EnemyFluxborn = { Weaker };
 			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Move));
+		}
+
+		TEST_METHOD(ItTakesAnOpenWellInReachWhenNoEnemyIsNear)
+		{
+			FVeyraBotView View = AliveAt(0.0);
+			View.LaneHold = FVector(-Far, 0.0, 0.0);
+			const FVeyraBotUnit Well = Unit(Near);
+			View.Wells = { Well };
+			FVeyraBotIntent Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Well.Actor));
+			// An enemy near: it leaves the Well alone.
+			View.EnemyVanguards.Add(Unit(Near));
+			Intent = Decide(View);
+			ASSERT_THAT(IsFalse(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Well.Actor));
+			// Beyond a laner's reach, it stays in its lane; a jungler's reaches farther.
+			View.EnemyVanguards.Reset();
+			const FVeyraBotUnit Distant = Unit(Tuning.Positioning.WellRange * 1.2);
+			View.Wells = { Distant };
+			ASSERT_THAT(IsFalse(Decide(View).Target == Distant.Actor));
+			View.bJungle = true;
+			ASSERT_THAT(IsTrue(Decide(View).Target == Distant.Actor));
+		}
+
+		TEST_METHOD(AJunglerClearsItsNearestCampKeepingAtItsCreature)
+		{
+			FVeyraBotView View = AliveAt(0.0);
+			View.bJungle = true;
+			FVeyraBotCamp Distant;
+			Distant.Center = FVector(Far, 0.0, 0.0);
+			Distant.Creatures = { Unit(Far) };
+			FVeyraBotCamp Close;
+			Close.Center = FVector(Near, 0.0, 0.0);
+			Close.Creatures = { Unit(Near, 0.5), Unit(Near, 1.0) };
+			View.Camps = { Distant, Close };
+			FVeyraBotIntent Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Close.Creatures[0].Actor, TEXT("the weakest of the nearest camp")));
+			// Another becomes weaker: it keeps at the one it chose.
+			View.Camps[1].Creatures[1].Health = 1.0;
+			ASSERT_THAT(IsTrue(Decide(View).Target == Close.Creatures[0].Actor));
+		}
+
+		TEST_METHOD(AJunglerWaitsAtTheCampBackSoonest)
+		{
+			FVeyraBotView View = AliveAt(0.0);
+			View.bJungle = true;
+			FVeyraBotCamp Later;
+			Later.Center = FVector(Far, 0.0, 0.0);
+			Later.SpawnsAt = 50.0;
+			FVeyraBotCamp Sooner;
+			Sooner.Center = FVector(-Far, 0.0, 0.0);
+			Sooner.SpawnsAt = 20.0;
+			View.Camps = { Later, Sooner };
+			const FVeyraBotIntent Walk = Decide(View);
+			ASSERT_THAT(IsTrue(Walk.Action == EVeyraBotAction::Move && Walk.Destination.Equals(Sooner.Center)));
+			View.Self.Location = Sooner.Center;
+			ASSERT_THAT(IsTrue(Decide(View).Action == EVeyraBotAction::Wait));
+		}
+
+		TEST_METHOD(AJunglerGanksAHurtEnemyNear)
+		{
+			FVeyraBotView View = AliveAt(0.0);
+			View.bJungle = true;
+			FVeyraBotCamp Camp;
+			Camp.Center = FVector(Near, 0.0, 0.0);
+			Camp.Creatures = { Unit(Near) };
+			View.Camps = { Camp };
+			const FVeyraBotUnit Hurt = Unit(Far / 2.0, 0.3);
+			View.GankTargets = { Hurt };
+			const FVeyraBotIntent Gank = Decide(View);
+			ASSERT_THAT(IsTrue(Gank.Action == EVeyraBotAction::Move && Gank.Destination.Equals(Hurt.Location)));
+			// A healthy one is no gank: it clears its camp.
+			View.GankTargets = { Unit(Far / 2.0, 0.9) };
+			ASSERT_THAT(IsTrue(Decide(View).Target == Camp.Creatures[0].Actor));
 		}
 
 		TEST_METHOD(OtherwiseItTakesItsPlaceInLane)

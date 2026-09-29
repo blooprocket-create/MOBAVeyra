@@ -19,6 +19,8 @@ const FName UVeyraStatusEffect::AttackSpeedMultiplierName(TEXT("AttackSpeedMulti
 const FName UVeyraStatusEffect::TenacityMultiplierName(TEXT("TenacityMultiplier"));
 const FName UVeyraStatusEffect::IncomingDamageMultiplierName(TEXT("IncomingDamageMultiplier"));
 const FName UVeyraStatusEffect::DisplacementMultiplierName(TEXT("DisplacementMultiplier"));
+const FName UVeyraStatusEffect::HealthRegenMultiplierName(TEXT("HealthRegenMultiplier"));
+const FName UVeyraStatusEffect::OutgoingDamageMultiplierName(TEXT("OutgoingDamageMultiplier"));
 
 UVeyraStatusEffect::UVeyraStatusEffect()
 {
@@ -30,6 +32,8 @@ UVeyraStatusEffect::UVeyraStatusEffect()
 		{ UVeyraDefenceSet::GetTenacityRetainedAttribute(), TenacityMultiplierName },
 		{ UVeyraDefenceSet::GetIncomingDamageMultiplierAttribute(), IncomingDamageMultiplierName },
 		{ UVeyraDefenceSet::GetDisplacementRetainedAttribute(), DisplacementMultiplierName },
+		{ UVeyraVitalsSet::GetHealthRegenAttribute(), HealthRegenMultiplierName },
+		{ UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute(), OutgoingDamageMultiplierName },
 	};
 	for (const TPair<FGameplayAttribute, FName>& Line : Lines)
 	{

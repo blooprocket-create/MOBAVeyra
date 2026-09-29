@@ -86,6 +86,20 @@ namespace VeyraEconomyTests
 			{
 				ASSERT_THAT(IsTrue(UVeyraEconomyTuningSubsystem::Get().Gold.Fluxborn.Contains(Unit.Key), Unit.Key.ToString()));
 			}
+			// And every species of wildlife (Economy §7).
+			for (const TPair<FVeyraContentId, FVeyraWildlifeSpecies>& Species : UVeyraWorldTuningSubsystem::Get().Wildlife.Species)
+			{
+				ASSERT_THAT(IsTrue(UVeyraEconomyTuningSubsystem::Get().Gold.Wildlife.Contains(Species.Key), Species.Key.ToString()));
+			}
+		}
+
+		TEST_METHOD(WildlifeGoldAndXpComeInPairs)
+		{
+			FVeyraEconomyTuning Broken = UVeyraEconomyTuningSubsystem::Get();
+			const FVeyraContentId Lone = FVeyraContentId::FromText(TEXT("lone_creature")).GetValue();
+			Broken.Gold.Wildlife.Add(Lone, 1.0);
+			const TArray<FString> Problems = VeyraRewards::Validate(Broken);
+			ASSERT_THAT(IsTrue(Problems.Num() == 1 && Problems[0].StartsWith(TEXT("/experience/wildlife: lone_creature has Gold but no XP")), FString::Join(Problems, TEXT(" | "))));
 		}
 	};
 
@@ -164,6 +178,26 @@ namespace VeyraEconomyTests
 			ASSERT_THAT(IsTrue(GoldOf(*Killer) == 0.0, TEXT("no Vanguard fought it: no Gold at all")));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(XpOf(*Killer), UVeyraEconomyTuningSubsystem::Get().Experience.Fluxborn[Strider()], Tolerance),
 				TEXT("alone nearby: all of it")));
+		}
+
+		TEST_METHOD(ACreaturesGoldGoesToTheVanguardCreditedWithItsKill)
+		{
+			// Something on no side landed the blow, after the killer's hit within the kill-credit window:
+			// the credit, the Gold and the XP are the killer's side's (Economy Bible §7).
+			const FVeyraContentId Skittermaw = FVeyraContentId::FromText(TEXT("skittermaw")).GetValue();
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = Spawn(World, EVeyraTeam::B, FVector::ZeroVector);
+			FVeyraDeathEvent Death;
+			Death.Victim = &VeyraCombatTests::SpawnCombatant(Spawner);
+			Death.CreditedKiller = Killer->GetAbilitySystemComponent();
+			Death.Location = Killer->GetActorLocation();
+			Spawner.GetWorld().GetSubsystem<UVeyraRewardSubsystem>()->RewardWildlifeDeath(Death, Skittermaw);
+
+			const FVeyraEconomyTuning& Tuning = UVeyraEconomyTuningSubsystem::Get();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(GoldOf(*Killer), Tuning.Gold.Wildlife[Skittermaw], Tolerance), TEXT("the credited killer's Gold")));
+			const double Xp = Tuning.Experience.Wildlife[Skittermaw] * Tuning.Experience.SharedPoolFraction / 2.0;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(XpOf(*Killer), Xp, Tolerance) && FMath::IsNearlyEqual(XpOf(*Ally), Xp, Tolerance), TEXT("its side shares the XP")));
+			ASSERT_THAT(IsTrue(XpOf(Enemy) == 0.0 && GoldOf(Enemy) == 0.0, TEXT("the other side, near as it is, takes nothing")));
 		}
 
 		TEST_METHOD(AKillPaysTheKillerFirstBloodAndTheAssisters)

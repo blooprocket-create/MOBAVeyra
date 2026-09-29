@@ -10,7 +10,6 @@
 /**
  * What kind of unit something is. Rules that name a kind, such as Vanguard Combat State (Combat
  * Bible §28) or a skillshot that passes through minions (ADR-008 §9), ask this rather than a class.
- * Kinds arrive with their first unit: wildlife comes later.
  */
 UENUM()
 enum class EVeyraUnitKind : uint8
@@ -25,6 +24,10 @@ enum class EVeyraUnitKind : uint8
 	 * do not unless they say so (ADR-011 §5).
 	 */
 	Structure,
+	/** A creature of a jungle camp (Battleground Bible §8). Neutral: on no side (ADR-014 §1). */
+	Wildlife,
+	/** A neutral objective, such as a Flux Well (Battleground Bible §6). On no side, and not a structure (ADR-014 §4). */
+	Objective,
 };
 
 UINTERFACE(MinimalAPI, NotBlueprintable)
@@ -49,6 +52,12 @@ namespace VeyraUnits
 
 	/** Whether Object is a Vanguard. */
 	VEYRACORE_API bool IsVanguard(const UObject* Object);
+
+	/**
+	 * Whether Object is a neutral unit, wildlife or an objective: on no side, and hostile to what is on
+	 * a side except Fluxborn and structures (ADR-014 §1).
+	 */
+	VEYRACORE_API bool IsNeutral(const UObject* Object);
 
 	/** Whether Object is a structure. */
 	VEYRACORE_API bool IsStructure(const UObject* Object);

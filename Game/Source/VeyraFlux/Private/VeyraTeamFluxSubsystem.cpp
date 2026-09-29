@@ -20,6 +20,8 @@ namespace
 			return Grants.BaseTower;
 		case EVeyraFluxSource::Inhibitor:
 			return Grants.Inhibitor;
+		case EVeyraFluxSource::FluxWell:
+			return Grants.FluxWell;
 		}
 		return Grants.LaneSpire;
 	}

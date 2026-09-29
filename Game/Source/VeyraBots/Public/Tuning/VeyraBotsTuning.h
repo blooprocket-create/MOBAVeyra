@@ -44,6 +44,17 @@ enum class EVeyraBotAim : uint8
 	Lead,
 };
 
+/** What a seat plays (ADR-013 §8.1; ADR-014 §7): a lane, or the jungle, as League's five roles. */
+UENUM()
+enum class EVeyraBotRole : uint8
+{
+	Top,
+	Mid,
+	Bottom,
+	/** Clears its side's camps, takes Flux Wells and ganks (League's jungler). */
+	Jungle,
+};
+
 /** What a bot notices. */
 USTRUCT()
 struct FVeyraBotSensesTuning
@@ -90,6 +101,10 @@ struct FVeyraBotPositioningTuning
 	/** A bot that retreated heals at its fountain to this fraction of Max Health before it goes back. */
 	UPROPERTY()
 	double LeaveFountainHealthFraction = 0.0;
+
+	/** How near an open Flux Well must be for a laner in a quiet lane to take it, in units (ADR-014 §7). */
+	UPROPERTY()
+	double WellRange = 0.0;
 };
 
 /** One behaviour (Custom Matches Bible §3): how a bot plays, never the rules. */
@@ -185,6 +200,28 @@ struct FVeyraBotVanguardTuning
 	TMap<FVeyraContentId, EVeyraBotAbilityUse> Abilities;
 };
 
+/** How a jungler plays (ADR-014 §7). */
+USTRUCT()
+struct FVeyraBotJungleTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How near an enemy Vanguard must be for a jungler to gank it, in units. */
+	UPROPERTY()
+	double GankRange = 0.0;
+
+	/** How hurt that enemy must be: below this fraction of its Health. */
+	UPROPERTY()
+	double GankHealthFraction = 0.0;
+
+	/** How near an open Flux Well must be for a jungler to take it, in units. */
+	UPROPERTY()
+	double WellRange = 0.0;
+};
+
 /** The Bots domain's tuning, bound from Game/Tuning/Bots.json (ADR-006 §6, ADR-013 §5). */
 USTRUCT()
 struct FVeyraBotsTuning
@@ -192,7 +229,7 @@ struct FVeyraBotsTuning
 	GENERATED_BODY()
 
 	/** The Bots.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
 
 	UPROPERTY()
 	FVeyraBotSensesTuning Senses;
@@ -203,9 +240,12 @@ struct FVeyraBotsTuning
 	UPROPERTY()
 	FVeyraBotDifficultiesTuning Difficulties;
 
-	/** The lane each seat plays, by the bot's place among its side's bots; later seats wrap around. */
+	/** What each seat plays, by the bot's place among its side's bots; later seats wrap around. */
 	UPROPERTY()
-	TArray<EVeyraLane> Lanes;
+	TArray<EVeyraBotRole> Roles;
+
+	UPROPERTY()
+	FVeyraBotJungleTuning Jungle;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraBotVanguardTuning> Vanguards;
@@ -213,6 +253,22 @@ struct FVeyraBotsTuning
 
 namespace VeyraBots
 {
+	/** The lane a role plays; a jungler keeps Mid's for the moments it holds a place. */
+	inline EVeyraLane LaneOf(EVeyraBotRole Role)
+	{
+		switch (Role)
+		{
+		case EVeyraBotRole::Top:
+			return EVeyraLane::Top;
+		case EVeyraBotRole::Bottom:
+			return EVeyraLane::Bottom;
+		case EVeyraBotRole::Mid:
+		case EVeyraBotRole::Jungle:
+			break;
+		}
+		return EVeyraLane::Mid;
+	}
+
 	/**
 	 * The checks the schema cannot express: each build is items the catalog sells, none part of
 	 * another's recipe; each skill priority names Q, W and E once; and every released Vanguard has

@@ -1,10 +1,11 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "grants": {
     "provenance": "Canon",
     "laneSpire": { "duration": "Permanent", "amount": 25, "durationSeconds": 0 },
     "baseTower": { "duration": "Permanent", "amount": 25, "durationSeconds": 0 },
-    "inhibitor": { "duration": "Temporary", "amount": 25, "durationSeconds": 180 }
+    "inhibitor": { "duration": "Temporary", "amount": 25, "durationSeconds": 180 },
+    "fluxWell": { "duration": "Temporary", "amount": 50, "durationSeconds": 180 }
   },
   "fluxbornScaling": {
     "provenance": "Canon",

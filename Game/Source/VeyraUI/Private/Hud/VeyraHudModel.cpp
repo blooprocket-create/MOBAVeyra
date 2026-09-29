@@ -21,6 +21,7 @@
 #include "State/VeyraTeamFluxState.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Structures/VeyraStructure.h"
+#include "Wildlife/VeyraWildlife.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "VeyraPlayerState.h"
@@ -90,6 +91,28 @@ TOptional<FVeyraHudStructure> VeyraHud::StructureOf(const AActor& Unit, double S
 		Shown.RebuildSeconds = FMath::Max(0.0, Structure->GetRebuildsAt() - ServerNow);
 	}
 	return Shown;
+}
+
+TOptional<FVeyraHudFluxWell> VeyraHud::FluxWellOf(const AActor& Unit, double ServerNow)
+{
+	const AVeyraFluxWell* Well = Cast<AVeyraFluxWell>(&Unit);
+	if (!Well)
+	{
+		return {};
+	}
+	FVeyraHudFluxWell Shown;
+	Shown.State = Well->GetState();
+	if (Well->GetState() != EVeyraFluxWellState::Open)
+	{
+		Shown.OpensInSeconds = FMath::Max(0.0, Well->GetOpensAt() - ServerNow);
+	}
+	return Shown;
+}
+
+TOptional<FVeyraContentId> VeyraHud::SpeciesOf(const AActor& Unit)
+{
+	const AVeyraWildlife* Creature = Cast<AVeyraWildlife>(&Unit);
+	return Creature && Creature->GetSpecies().IsValid() ? TOptional<FVeyraContentId>(Creature->GetSpecies()) : TOptional<FVeyraContentId>();
 }
 
 FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, double ServerNow)

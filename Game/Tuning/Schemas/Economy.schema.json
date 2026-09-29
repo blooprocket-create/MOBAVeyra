@@ -23,13 +23,13 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [2]
+      "enum": [3]
     },
     "gold": {
       "description": "Individual Gold (§1, §3, §5, §8).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "starting", "fluxborn", "participationFraction", "vanguardKill", "assistPoolFraction", "firstBloodFraction", "structurePool", "firstStructureBonus"],
+      "required": ["provenance", "starting", "fluxborn", "participationFraction", "vanguardKill", "assistPoolFraction", "firstBloodFraction", "structurePool", "firstStructureBonus", "wildlife", "fluxWellPool"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "starting": { "description": "Every participant's one guaranteed grant, when the match prepares (§1, §10).", "type": "number", "minimum": 0 },
@@ -39,7 +39,9 @@
         "assistPoolFraction": { "description": "The Assist Gold pool, as a fraction of the base kill Gold, split among the assisters (§5.1: 50%).", "type": "number", "minimum": 0 },
         "firstBloodFraction": { "description": "The match's first kill adds this fraction of the base kill Gold for the killer (§5.2: 50%).", "type": "number", "minimum": 0 },
         "structurePool": { "description": "A lane Spire's or base-defense tower's Gold, split among its recent contributors (§8.1).", "type": "number", "minimum": 0 },
-        "firstStructureBonus": { "description": "The first Spire or base tower to fall adds this for every member of the destroying team (§8.1).", "type": "number", "minimum": 0 }
+        "firstStructureBonus": { "description": "The first Spire or base tower to fall adds this for every member of the destroying team (§8.1).", "type": "number", "minimum": 0 },
+        "wildlife": { "$ref": "#/definitions/perFluxborn", "description": "Each species of wildlife's Gold, keyed by its ID in World.json wildlife.species: all of it to the Vanguard credited with the creature's kill (§7)." },
+        "fluxWellPool": { "description": "A secured Flux Well's pool, split evenly among the capturers present at that moment (§8.2: about one large creature's Gold).", "type": "number", "minimum": 0 }
       }
     },
     "passiveGold": {
@@ -58,10 +60,11 @@
       "description": "Individual XP (§3.3, §6).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "fluxborn", "sharedPoolFraction", "killBase", "killPerLevel", "participantBonus", "higherLevelVictimMultiplier"],
+      "required": ["provenance", "fluxborn", "wildlife", "sharedPoolFraction", "killBase", "killPerLevel", "participantBonus", "higherLevelVictimMultiplier"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "fluxborn": { "$ref": "#/definitions/perFluxborn", "description": "Each kind's base XP for the nearby living allies (§3.3)." },
+        "wildlife": { "$ref": "#/definitions/perFluxborn", "description": "Each species of wildlife's base XP for the killing team's nearby living Vanguards (§7)." },
         "sharedPoolFraction": { "description": "With two or more to share, one pool of this much of the base XP split equally (§3.3: 120%).", "type": "number", "minimum": 1 },
         "killBase": { "description": "A level-1 victim's base kill XP (§6).", "type": "number", "minimum": 0 },
         "killPerLevel": { "description": "Base kill XP added for each level of the victim above 1.", "type": "number", "minimum": 0 },

@@ -8,16 +8,21 @@
 
 class UAbilitySystemComponent;
 class UVeyraBattlegroundSubsystem;
+class UVeyraFluxWellSubsystem;
+class UVeyraJungleSubsystem;
 class UVeyraRewardSubsystem;
 class UVeyraTeamFluxSubsystem;
 class UWorld;
+struct FVeyraFluxWellSecuredEvent;
 struct FVeyraStructureDestroyedEvent;
 
 /**
  * Match's side of the battleground (ADR-011 §2, §3): World and Flux are peers that never call each
  * other, so this routes between them. A destroyed structure grants its destroyers the Team Flux its
  * kind gives; every change to a team's Flux reaches World, whose Fluxborn follow it; and a destroyed
- * Prime Well is reported to the game mode, which decides victory. The game mode owns one; server only.
+ * Prime Well is reported to the game mode, which decides victory; a secured Flux Well grants its side
+ * that source's Team Flux. It starts the battleground's waves, jungle and Wells as the match goes
+ * live, and stops them when it ends (ADR-014 §6). The game mode owns one; server only.
  */
 class FVeyraBattlegroundLink
 {
@@ -33,8 +38,8 @@ public:
 	/** Disconnects, and stops the battleground's timers and its rewards, as when the match ends. */
 	void Stop();
 
-	/** Starts the battleground's Fluxborn waves, as the match goes live (Battleground Bible §17). */
-	void StartWaves();
+	/** Starts the battleground's Fluxborn waves, its jungle and its Flux Wells, as the match goes live (Battleground Bible §6, §17). */
+	void StartLive();
 
 	/**
 	 * Developer builds: Source, on Team, destroys the enemies' next structure in siege order with a
@@ -44,6 +49,7 @@ public:
 
 private:
 	void OnStructureDestroyed(const FVeyraStructureDestroyedEvent& Event);
+	void OnFluxWellSecured(const FVeyraFluxWellSecuredEvent& Event);
 
 	/** Team's Flux changed, by a grant or an expiry: World's Fluxborn follow it (ADR-011 §3, §10). */
 	void OnTeamFluxChanged(EVeyraTeam Team);
@@ -51,6 +57,9 @@ private:
 	TWeakObjectPtr<UVeyraBattlegroundSubsystem> Battleground;
 	TWeakObjectPtr<UVeyraTeamFluxSubsystem> Flux;
 	TWeakObjectPtr<UVeyraRewardSubsystem> Rewards;
+	TWeakObjectPtr<UVeyraJungleSubsystem> Jungle;
+	TWeakObjectPtr<UVeyraFluxWellSubsystem> FluxWells;
+	FDelegateHandle SecuredHandle;
 	FDelegateHandle DestroyedHandle;
 	FDelegateHandle FluxChangedHandle;
 	FOnPrimeWellDestroyed OnPrimeWellDestroyed;

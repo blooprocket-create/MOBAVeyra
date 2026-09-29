@@ -11,6 +11,7 @@ TArray<FString> Validate(const FVeyraFluxTuning& Tuning)
 		{ TEXT("/grants/laneSpire"), &Tuning.Grants.LaneSpire },
 		{ TEXT("/grants/baseTower"), &Tuning.Grants.BaseTower },
 		{ TEXT("/grants/inhibitor"), &Tuning.Grants.Inhibitor },
+		{ TEXT("/grants/fluxWell"), &Tuning.Grants.FluxWell },
 	};
 	for (const TPair<const TCHAR*, const FVeyraFluxGrantTuning*>& Grant : Grants)
 	{

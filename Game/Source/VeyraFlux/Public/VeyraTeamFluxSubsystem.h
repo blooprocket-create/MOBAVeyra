@@ -11,13 +11,15 @@
 
 class AVeyraTeamFluxState;
 
-/** A source of Team Flux (Battleground Bible §5, §10, §18). Flux Wells join later. */
+/** A source of Team Flux (Battleground Bible §5, §6, §10, §18). */
 UENUM()
 enum class EVeyraFluxSource : uint8
 {
 	LaneSpire,
 	BaseTower,
 	Inhibitor,
+	/** A secured Flux Well (§6). */
+	FluxWell,
 };
 
 /**

@@ -44,8 +44,10 @@ namespace VeyraTargeting
 	VEYRACOMBAT_API bool IsAlive(const AActor* Unit);
 
 	/**
-	 * Whether A and B are on opposing sides. Something on no side is hostile to nothing: neutral units
-	 * are explicit targeting categories, not implicit enemies (Combat Bible §29).
+	 * Whether A and B are hostile: on opposing sides, or one a neutral unit (wildlife or an objective)
+	 * and the other on a side but neither a Fluxborn nor a structure (ADR-014 §1). Anything else on no
+	 * side is hostile to nothing: neutral units are an explicit targeting category, not implicit
+	 * enemies (Combat Bible §29).
 	 */
 	VEYRACOMBAT_API bool AreHostile(const UObject* A, const UObject* B);
 

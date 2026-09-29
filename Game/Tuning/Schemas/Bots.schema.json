@@ -4,7 +4,7 @@
   "description": "How AI Vanguards play, owned by the Bots domain (ADR-013 §5). Canon leaves AI logic open (Modes & Access Bible §4) and names two behaviours, Beginner and Intermediate (Custom Matches Bible §3); every value here is a League-like answer for playtests. VeyraBots binds it to FVeyraBotsTuning and checks what the schema cannot express.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "senses", "positioning", "difficulties", "lanes", "vanguards"],
+  "required": ["schemaVersion", "senses", "positioning", "difficulties", "roles", "jungle", "vanguards"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -72,7 +72,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "senses": {
       "description": "What a bot notices (ADR-013 §4).",
@@ -90,13 +90,14 @@
       "description": "Where a bot stands in its lane (ADR-013 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["provenance", "followDistance", "holdTolerance", "pushRange", "leaveFountainHealthFraction"],
+      "required": ["provenance", "followDistance", "holdTolerance", "pushRange", "leaveFountainHealthFraction", "wellRange"],
       "properties": {
         "provenance": { "$ref": "#/definitions/provenance" },
         "followDistance": { "description": "How far behind its wave's front, toward its own base, a bot holds, in units.", "type": "number", "minimum": 0 },
         "holdTolerance": { "description": "How far from its spot a bot may stand before it walks back, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
         "pushRange": { "description": "How near, edge to edge, an enemy Fluxborn must be for a bot to push with it, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-        "leaveFountainHealthFraction": { "description": "A bot that retreated heals at its fountain to this fraction of Max Health before it goes back.", "type": "number", "minimum": 0, "maximum": 1 }
+        "leaveFountainHealthFraction": { "description": "A bot that retreated heals at its fountain to this fraction of Max Health before it goes back.", "type": "number", "minimum": 0, "maximum": 1 },
+        "wellRange": { "description": "How near an open Flux Well must be for a laner in a quiet lane to take it (ADR-014 §7).", "type": "number", "minimum": 0 }
       }
     },
     "difficulties": {
@@ -109,11 +110,23 @@
         "intermediate": { "$ref": "#/definitions/difficulty" }
       }
     },
-    "lanes": {
-      "description": "The lane each seat plays, by the bot's place among its side's bots (League's one top, one mid, two bottom; the fifth plays top while there is no jungle).",
+    "roles": {
+      "description": "What each seat plays, by the bot's place among its side's bots (League's roles: mid, top, the jungler, then bottom and its support, so a side of three or more bots has a jungler).",
       "type": "array",
       "minItems": 1,
-      "items": { "type": "string", "enum": ["Top", "Mid", "Bottom"] }
+      "items": { "type": "string", "enum": ["Top", "Mid", "Bottom", "Jungle"] }
+    },
+    "jungle": {
+      "description": "How a jungler plays (ADR-014 §7).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "gankRange", "gankHealthFraction", "wellRange"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "gankRange": { "description": "How near an enemy Vanguard must be for a jungler to gank it.", "type": "number", "minimum": 0 },
+        "gankHealthFraction": { "description": "How hurt that enemy must be: below this fraction of its Health.", "type": "number", "minimum": 0, "maximum": 1 },
+        "wellRange": { "description": "How near an open Flux Well must be for a jungler to take it.", "type": "number", "minimum": 0 }
+      }
     },
     "vanguards": {
       "description": "How bots play each Vanguard, by Vanguard ID. Every released Vanguard needs an entry.",

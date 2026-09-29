@@ -31,15 +31,15 @@ void UVeyraBotSubsystem::Deinitialize()
 void UVeyraBotSubsystem::OnBotAdded(AVeyraPlayerState& Bot, const FVeyraBotSeat& Seat)
 {
 	AVeyraVanguardController* Controller = Bot.GetVanguardController();
-	const TArray<EVeyraLane>& Lanes = UVeyraBotsTuningSubsystem::Get().Lanes;
-	if (!Controller || Lanes.IsEmpty())
+	const TArray<EVeyraBotRole>& Roles = UVeyraBotsTuningSubsystem::Get().Roles;
+	if (!Controller || Roles.IsEmpty())
 	{
 		return;
 	}
-	// Later seats than the lanes list wrap around it.
-	const EVeyraLane Lane = Lanes[Seat.Seat % Lanes.Num()];
+	// Later seats than the roles list wrap around it.
+	const EVeyraBotRole Role = Roles[Seat.Seat % Roles.Num()];
 	UVeyraBotBrainComponent* Brain = NewObject<UVeyraBotBrainComponent>(Controller);
-	Brain->Configure(Bot, Lane, Seat.Difficulty, static_cast<int32>(HashCombine(GetTypeHash(Bot.GetPlayerId()), GetTypeHash(Seat.Seat))));
+	Brain->Configure(Bot, Role, Seat.Difficulty, static_cast<int32>(HashCombine(GetTypeHash(Bot.GetPlayerId()), GetTypeHash(Seat.Seat))));
 	Brain->RegisterComponent();
-	UE_LOG(LogVeyraBots, Log, TEXT("%s plays %s lane as a %s bot."), *Bot.GetPlayerName(), *StaticEnum<EVeyraLane>()->GetNameStringByValue(static_cast<int64>(Lane)), LexToString(Seat.Difficulty));
+	UE_LOG(LogVeyraBots, Log, TEXT("%s plays %s as a %s bot."), *Bot.GetPlayerName(), *StaticEnum<EVeyraBotRole>()->GetNameStringByValue(static_cast<int64>(Role)), LexToString(Seat.Difficulty));
 }

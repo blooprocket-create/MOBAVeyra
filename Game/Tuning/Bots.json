@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "senses": {
     "provenance": "Provisional",
     "sightRadius": 1400,
@@ -11,7 +11,8 @@
     "followDistance": 200,
     "holdTolerance": 150,
     "pushRange": 500,
-    "leaveFountainHealthFraction": 0.9
+    "leaveFountainHealthFraction": 0.9,
+    "wellRange": 4500
   },
   "difficulties": {
     "beginner": {
@@ -43,7 +44,13 @@
       "fluxbornTolerance": 2
     }
   },
-  "lanes": ["Mid", "Top", "Bottom", "Bottom", "Top"],
+  "roles": ["Mid", "Top", "Jungle", "Bottom", "Bottom"],
+  "jungle": {
+    "provenance": "Provisional",
+    "gankRange": 3000,
+    "gankHealthFraction": 0.5,
+    "wellRange": 7000
+  },
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",

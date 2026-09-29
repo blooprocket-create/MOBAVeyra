@@ -48,6 +48,28 @@ FVector2D PointAlong(TConstArrayView<FVeyraMapPoint> Points, double Distance)
 	return ToVector(Points.Last());
 }
 
+double DistanceToPath(TConstArrayView<FVeyraMapPoint> Points, const FVector2D& Point)
+{
+	if (Points.Num() == 1)
+	{
+		return FVector2D::Distance(Point, ToVector(Points[0]));
+	}
+	double Nearest = TNumericLimits<double>::Max();
+	for (int32 Index = 1; Index < Points.Num(); ++Index)
+	{
+		const FVector2D Closest = FMath::ClosestPointOnSegment2D(Point, ToVector(Points[Index - 1]), ToVector(Points[Index]));
+		Nearest = FMath::Min(Nearest, FVector2D::Distance(Point, Closest));
+	}
+	return Nearest;
+}
+
+double DepthInTeamAHalf(const FVeyraBattlegroundLayout& Layout, const FVector2D& Point)
+{
+	// The distance from the line X + Y = 0, signed so Team A's Prime Well lies on the positive side.
+	const double TeamASide = FMath::Sign(Layout.Base.PrimeWell.X + Layout.Base.PrimeWell.Y);
+	return TeamASide * (Point.X + Point.Y) / UE_SQRT_2;
+}
+
 TArray<FVector2D> Waypoints(const FVeyraLaneLayout& Lane, EVeyraTeam Team)
 {
 	TArray<FVector2D> Path;

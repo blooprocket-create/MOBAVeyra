@@ -108,8 +108,9 @@
 .PARAMETER PlayingBots
     Playing bots the server seats when preparation begins, each on the smaller side, taking the
     released Vanguards in turn (ADR-013). With -ClientStaySeconds the match runs on while the clients
-    stay; the server's minute-by-minute report of the match, the bots' purchases, deaths, recalls and
-    the structures that fell are summarised at the end.
+    stay; the server's minute-by-minute report of the match, the bots' purchases, deaths, recalls,
+    the structures that fell, the jungle camps cleared and the Flux Wells secured are summarised at
+    the end.
 .PARAMETER BotDifficulty
     How the playing bots play: Beginner (default) or Intermediate.
 .PARAMETER ClientStaySeconds
@@ -995,11 +996,14 @@ if ($PlayingBots -gt 0) {
     $deaths = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraMatch: \S+ died at level ')
     $recalls = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraMatch: Bot\d+ recalls to its fountain')
     $fallen = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraWorld: .* was destroyed\.')
+    $cleared = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraWorld: Camp \d+, .* was cleared')
+    $secured = @(Select-String -LiteralPath $serverLogPath -Pattern 'LogVeyraWorld: Flux Well \d+ was secured by .*')
     $ended = Select-String -LiteralPath $serverLogPath -Pattern 'The match ended \(.*' | Select-Object -Last 1
-    Write-Host ("  {0}; {1} purchase(s), {2} death(s), {3} bot recall(s), {4} structure(s) destroyed." -f $(if ($seated) { $seated.Matches[0].Value } else { 'none seated' }),
-        $bought.Count, $deaths.Count, $recalls.Count, $fallen.Count)
+    Write-Host ("  {0}; {1} purchase(s), {2} death(s), {3} bot recall(s), {4} structure(s) destroyed, {5} camp(s) cleared, {6} Flux Well(s) secured." -f $(if ($seated) { $seated.Matches[0].Value } else { 'none seated' }),
+        $bought.Count, $deaths.Count, $recalls.Count, $fallen.Count, $cleared.Count, $secured.Count)
     $reports | Select-Object -Last 3 | ForEach-Object { Write-Host "  $($_.Matches[0].Value)" }
     $fallen | Select-Object -First 12 | ForEach-Object { Write-Host "  $($_.Line -replace '^.*LogVeyraWorld: ', '')" }
+    $secured | Select-Object -First 6 | ForEach-Object { Write-Host "  $($_.Matches[0].Value -replace '^LogVeyraWorld: ', '')" }
     if ($ended) { Write-Host "  $($ended.Matches[0].Value)" }
     if (-not $seated -or $seated.Matches[0].Groups[1].Value -ne "$PlayingBots") {
         Write-Host "  Expected all $PlayingBots bot(s) seated."

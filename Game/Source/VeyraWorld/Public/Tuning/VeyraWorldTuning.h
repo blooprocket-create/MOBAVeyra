@@ -431,6 +431,212 @@ struct FVeyraWavesTuning
 	double UnitIntervalSeconds = 0.0;
 };
 
+/** One species of jungle wildlife (Battleground Bible §8; ADR-014 §2). */
+USTRUCT()
+struct FVeyraWildlifeSpecies
+{
+	GENERATED_BODY()
+
+	/** Its stats. No resource; nothing scales them over the match (§17: camps never evolve). */
+	UPROPERTY()
+	FVeyraStatBlock Stats;
+
+	/** The same attack component and profile as Vanguards use. */
+	UPROPERTY()
+	FVeyraBasicAttackProfile BasicAttack;
+
+	/** The body's capsule, in units. */
+	UPROPERTY()
+	double CapsuleRadius = 0.0;
+
+	UPROPERTY()
+	double CapsuleHalfHeight = 0.0;
+
+	/**
+	 * The trait its camp's clear grants the Vanguard credited with the last kill (§8): at most one
+	 * status from Abilities.json, or none.
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> Traits;
+};
+
+/** How every creature's server controller behaves (ADR-014 §2). */
+USTRUCT()
+struct FVeyraWildlifeAiTuning
+{
+	GENERATED_BODY()
+
+	/** How often it reconsiders its target, in seconds of world time. */
+	UPROPERTY()
+	double ThinkSeconds = 0.0;
+
+	/** How long a fallen creature's body stays before it is removed, in seconds. */
+	UPROPERTY()
+	double CorpseSeconds = 0.0;
+
+	/** How close to its spot a creature walking home must come to be home, in units. */
+	UPROPERTY()
+	double HomeAcceptance = 0.0;
+};
+
+/** One of Team A's camps; Team B's is its mirror (Battleground Bible §7, §8, §17). */
+USTRUCT()
+struct FVeyraCampTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraContentId Species;
+
+	/** How many creatures of its species it holds. */
+	UPROPERTY()
+	int32 Count = 0;
+
+	/** Where it sits: its leash's centre. */
+	UPROPERTY()
+	FVeyraMapPoint Center;
+
+	/** When it first spawns, in match-clock seconds (§17: two spawn groups). */
+	UPROPERTY()
+	double SpawnSeconds = 0.0;
+
+	/** How long after its last creature dies it spawns again, in seconds (§17: each camp on its own timer). */
+	UPROPERTY()
+	double RespawnSeconds = 0.0;
+
+	/** How far from its centre its creatures fight before they give up, walk home and heal (§17), in units. */
+	UPROPERTY()
+	double LeashRadius = 0.0;
+
+	/** With several creatures, how far from the centre each stands, in units. */
+	UPROPERTY()
+	double Spacing = 0.0;
+};
+
+/** The jungle's wildlife (Battleground Bible §7, §8, §17; ADR-014 §2). */
+USTRUCT()
+struct FVeyraWildlifeTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Every species, by its stable ID, such as ashfang. */
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraWildlifeSpecies> Species;
+
+	UPROPERTY()
+	FVeyraWildlifeAiTuning Ai;
+
+	/** Team A's camps. */
+	UPROPERTY()
+	TArray<FVeyraCampTuning> Camps;
+};
+
+/** A Flux Well's opening and cycle (Battleground Bible §6). */
+USTRUCT()
+struct FVeyraFluxWellTimingTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** When the Wells first open, in match-clock seconds. */
+	UPROPERTY()
+	double OpenSeconds = 0.0;
+
+	/** How long after its secure a Well opens again, in seconds. */
+	UPROPERTY()
+	double RespawnSeconds = 0.0;
+};
+
+/** How allied Vanguards standing at an open Well drain it (Battleground Bible §6; ADR-014 §4). */
+USTRUCT()
+struct FVeyraFluxWellPresenceTuning
+{
+	GENERATED_BODY()
+
+	/** How often presence drains it, in seconds of world time. */
+	UPROPERTY()
+	double TickSeconds = 0.0;
+
+	/** Health drained per second by one Vanguard alone. */
+	UPROPERTY()
+	double DrainPerSecond = 0.0;
+
+	/** Added per second by each further Vanguard counted. */
+	UPROPERTY()
+	double DrainPerAdditional = 0.0;
+
+	/** The most Vanguards of one side that count (§6: a dogpile is not required). */
+	UPROPERTY()
+	int32 MaxCounted = 0;
+
+	/** Contested, the side with more drains at this fraction of the rate for its lead; equal sides stall it. */
+	UPROPERTY()
+	double ContestedFactor = 0.0;
+};
+
+/** An open Well nobody works on heals (ADR-014 §9). */
+USTRUCT()
+struct FVeyraFluxWellRegenerationTuning
+{
+	GENERATED_BODY()
+
+	/** How long without damage or presence before it heals, in seconds. */
+	UPROPERTY()
+	double IdleSeconds = 0.0;
+
+	/** Health restored per second, as a fraction of its Max Health. */
+	UPROPERTY()
+	double FractionPerSecond = 0.0;
+};
+
+/** The North and South Flux Wells (Battleground Bible §6; ADR-014 §4). */
+USTRUCT()
+struct FVeyraFluxWellsTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Where each Well stands: on the river's diagonal, so each is its own mirror. */
+	UPROPERTY()
+	TArray<FVeyraMapPoint> Sites;
+
+	UPROPERTY()
+	FVeyraFluxWellTimingTuning Timing;
+
+	UPROPERTY()
+	double MaxHealth = 0.0;
+
+	UPROPERTY()
+	double Armor = 0.0;
+
+	UPROPERTY()
+	double MagicResist = 0.0;
+
+	/** The body's capsule, in units. */
+	UPROPERTY()
+	double CapsuleRadius = 0.0;
+
+	UPROPERTY()
+	double CapsuleHalfHeight = 0.0;
+
+	/** How near its centre a Vanguard must stand to count as present, in units. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	UPROPERTY()
+	FVeyraFluxWellPresenceTuning Presence;
+
+	UPROPERTY()
+	FVeyraFluxWellRegenerationTuning Regeneration;
+};
+
 /** How often the battleground's units replicate (ADR-011 §7; amends ADR-006 §5). */
 USTRUCT()
 struct FVeyraWorldReplicationTuning
@@ -452,7 +658,7 @@ struct FVeyraWorldTuning
 	GENERATED_BODY()
 
 	/** The World.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
 
 	UPROPERTY()
 	FVeyraBattlegroundLayout Layout;
@@ -484,8 +690,17 @@ struct FVeyraWorldTuning
 	UPROPERTY()
 	FVeyraWorldReplicationTuning Replication;
 
+	UPROPERTY()
+	FVeyraWildlifeTuning Wildlife;
+
+	UPROPERTY()
+	FVeyraFluxWellsTuning FluxWells;
+
 	/** The kind of Fluxborn with Id, or null. */
 	const FVeyraFluxbornDefinition* FindFluxborn(const FVeyraContentId& Id) const { return Fluxborn.Units.Find(Id); }
+
+	/** The species of wildlife with Id, or null. */
+	const FVeyraWildlifeSpecies* FindSpecies(const FVeyraContentId& Id) const { return Wildlife.Species.Find(Id); }
 };
 
 /** The World domain's checks that a schema cannot express. */
@@ -494,7 +709,8 @@ namespace VeyraWorld
 	/**
 	 * Problems with Tuning, each a JSON pointer and a message; empty when it is consistent: one lane
 	 * of each kind, each mirroring onto itself, its structures on Team A's half, every point on the
-	 * floor.
+	 * floor; each camp of a known species, on Team A's half with its leash on the floor and clear of
+	 * the river and every lane; each Flux Well on the river and clear of every lane.
 	 */
 	VEYRAWORLD_API TArray<FString> Validate(const FVeyraWorldTuning& Tuning);
 }

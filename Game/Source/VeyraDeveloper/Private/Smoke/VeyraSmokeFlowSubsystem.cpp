@@ -54,10 +54,9 @@ namespace
 	constexpr double FlowTimeoutRealSeconds = 300.0;
 	constexpr double MoveProofDistance = 100.0;
 	constexpr double ScreenshotHoldRealSeconds = 1.0;
-	// Practice: how far the Vanguard walks from its fountain before it recalls, and how near its
-	// start it must be afterwards: well inside the walk, so arriving is told apart from staying.
+	// Practice: how far the Vanguard walks from where it shopped before it recalls: beyond the
+	// fountain, so arriving home is told apart from staying.
 	constexpr double RecallWalkDistance = 800.0;
-	constexpr double HomeTolerance = 150.0;
 	// The sparring partner locks its pick once the other team has locked, or with this much of the
 	// pick timer left, so it never takes the Vanguard the person was about to lock.
 	constexpr double OpponentLockSeconds = 15.0;
@@ -771,7 +770,10 @@ bool UVeyraSmokeFlowSubsystem::TickRecall(AVeyraPlayerController& Controller, co
 		Capture(TEXT("Recall"));
 		return true;
 	}
-	if (!bSawRecall || FromHome > HomeTolerance)
+	// Home is the game's own fountain, where its shop opens: the arrival may land beside the start when
+	// someone stands on it, so a distance from where the walk began says too little.
+	const UVeyraInventoryComponent* Inventory = Controller.PlayerState ? Controller.PlayerState->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
+	if (!bSawRecall || !Inventory || !Inventory->IsAtFountain())
 	{
 		return true;
 	}

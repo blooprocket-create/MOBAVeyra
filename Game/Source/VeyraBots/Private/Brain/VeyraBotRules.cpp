@@ -153,6 +153,61 @@ namespace
 		return Out;
 	}
 
+	/**
+	 * A jungler's move once no fight, Well or shopping calls it (ADR-014 §7; League's jungler): gank a
+	 * hurt enemy near and clear of an enemy tower; else clear its side's nearest standing camp, keeping
+	 * at the creature it chose; else walk to the camp back soonest and wait there.
+	 */
+	FVeyraBotIntent DecideJungle(const FVeyraBotView& View, const FVeyraBotsTuning& Tuning, FVeyraBotMemory& Memory)
+	{
+		const FVeyraBotUnit* Prey = nullptr;
+		for (const FVeyraBotUnit& Enemy : View.GankTargets)
+		{
+			if (Enemy.HealthFraction() < Tuning.Jungle.GankHealthFraction && !IsCoveredByTower(View, Enemy, Tuning.Senses.TowerMargin)
+				&& (!Prey || EdgeDistance(View.Self, Enemy) < EdgeDistance(View.Self, *Prey)))
+			{
+				Prey = &Enemy;
+			}
+		}
+		if (Prey)
+		{
+			return MoveTo(EVeyraBotAction::Move, Prey->Location, TEXT("ganking"));
+		}
+
+		const FVeyraBotCamp* ClosestCamp = nullptr;
+		const FVeyraBotCamp* Soonest = nullptr;
+		for (const FVeyraBotCamp& Camp : View.Camps)
+		{
+			if (!Camp.Creatures.IsEmpty()
+				&& (!ClosestCamp || FVector::Dist2D(View.Self.Location, Camp.Center) < FVector::Dist2D(View.Self.Location, ClosestCamp->Center)))
+			{
+				ClosestCamp = &Camp;
+			}
+			if (Camp.Creatures.IsEmpty() && Camp.SpawnsAt > 0.0 && (!Soonest || Camp.SpawnsAt < Soonest->SpawnsAt))
+			{
+				Soonest = &Camp;
+			}
+		}
+		if (ClosestCamp)
+		{
+			const FVeyraBotUnit* Chosen = ClosestCamp->Creatures.FindByPredicate([&Memory](const FVeyraBotUnit& Creature) { return Creature.Actor == Memory.FarmTarget; });
+			if (!Chosen)
+			{
+				for (const FVeyraBotUnit& Creature : ClosestCamp->Creatures)
+				{
+					Chosen = !Chosen || Creature.Health < Chosen->Health ? &Creature : Chosen;
+				}
+			}
+			Memory.FarmTarget = Chosen->Actor;
+			return AttackOf(*Chosen, TEXT("clearing its camp"));
+		}
+		if (Soonest && FVector::Dist2D(View.Self.Location, Soonest->Center) > Tuning.Positioning.HoldTolerance)
+		{
+			return MoveTo(EVeyraBotAction::Move, Soonest->Center, TEXT("walking to its next camp"));
+		}
+		return Intent(EVeyraBotAction::Wait, TEXT("waiting for its camp"));
+	}
+
 	/** Slots in the order a bot tries them: its ultimate first, then Q, W and E. */
 	TArray<const FVeyraBotSlot*> CastOrder(const FVeyraBotView& View)
 	{
@@ -356,6 +411,21 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 		{
 			return Intent(EVeyraBotAction::Recall, TEXT("Gold to spend: recalling to shop"));
 		}
+	}
+
+	// An open Flux Well within its reach and no enemy Vanguard near: take it (ADR-014 §7), as League's
+	// bots take an objective when their lane allows.
+	const FVeyraBotUnit* Well = Nearest(View.Self, View.Wells);
+	const double WellReach = View.bJungle ? Tuning.Jungle.WellRange : Tuning.Positioning.WellRange;
+	const FVeyraBotUnit* Threat = Nearest(View.Self, View.EnemyVanguards);
+	if (Well && EdgeDistance(View.Self, *Well) <= WellReach && (!Threat || EdgeDistance(View.Self, *Threat) > Tuning.Senses.SafeRadius))
+	{
+		return AttackOf(*Well, TEXT("taking a Flux Well"));
+	}
+
+	if (View.bJungle)
+	{
+		return DecideJungle(View, Tuning, Memory);
 	}
 
 	// Last-hit a Fluxborn about to die: within a lead of one basic attack, which covers walking up

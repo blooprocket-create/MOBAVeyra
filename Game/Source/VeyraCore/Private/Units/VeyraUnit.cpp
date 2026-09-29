@@ -21,4 +21,10 @@ bool IsStructure(const UObject* Object)
 	const TOptional<EVeyraUnitKind> Kind = KindOf(Object);
 	return Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Structure;
 }
+
+bool IsNeutral(const UObject* Object)
+{
+	const TOptional<EVeyraUnitKind> Kind = KindOf(Object);
+	return Kind.IsSet() && (Kind.GetValue() == EVeyraUnitKind::Wildlife || Kind.GetValue() == EVeyraUnitKind::Objective);
+}
 }

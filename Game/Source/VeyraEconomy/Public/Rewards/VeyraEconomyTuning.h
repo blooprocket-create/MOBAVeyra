@@ -48,6 +48,14 @@ struct FVeyraGoldTuning
 	/** The first Spire or base tower to fall adds this for every member of the destroying team (§8.1). */
 	UPROPERTY()
 	double FirstStructureBonus = 0.0;
+
+	/** Each species of wildlife's Gold: all of it to the Vanguard credited with the creature's kill (§7). */
+	UPROPERTY()
+	TMap<FVeyraContentId, double> Wildlife;
+
+	/** A secured Flux Well's pool, split evenly among the capturers present at that moment (§8.2). */
+	UPROPERTY()
+	double FluxWellPool = 0.0;
 };
 
 /**
@@ -87,6 +95,10 @@ struct FVeyraExperienceRewardTuning
 	/** Each kind of Fluxborn's base XP for the nearby living allies (§3.3). */
 	UPROPERTY()
 	TMap<FVeyraContentId, double> Fluxborn;
+
+	/** Each species of wildlife's base XP for the killing team's nearby living Vanguards (§7). */
+	UPROPERTY()
+	TMap<FVeyraContentId, double> Wildlife;
 
 	/** With two or more to share, one pool of this much of the base XP, split equally (§3.3). */
 	UPROPERTY()
@@ -159,7 +171,7 @@ struct FVeyraEconomyTuning
 	GENERATED_BODY()
 
 	/** The Economy.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraGoldTuning Gold;

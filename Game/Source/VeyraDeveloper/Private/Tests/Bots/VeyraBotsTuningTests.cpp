@@ -26,7 +26,9 @@ namespace VeyraBotsTests
 		{
 			const FVeyraBotsTuning& Tuning = UVeyraBotsTuningSubsystem::Get();
 			ASSERT_THAT(IsTrue(VeyraBots::Validate(Tuning).IsEmpty()));
-			ASSERT_THAT(IsFalse(Tuning.Lanes.IsEmpty()));
+			ASSERT_THAT(IsFalse(Tuning.Roles.IsEmpty()));
+			// League's five roles: a seat of five plays the jungle (ADR-014 §7).
+			ASSERT_THAT(IsTrue(Tuning.Roles.Contains(EVeyraBotRole::Jungle)));
 			for (const TPair<FVeyraContentId, FVeyraVanguardDefinition>& Pair : UVeyraVanguardsTuningSubsystem::Get().Vanguards)
 			{
 				if (Pair.Value.Availability == EVeyraVanguardAvailability::Playable)

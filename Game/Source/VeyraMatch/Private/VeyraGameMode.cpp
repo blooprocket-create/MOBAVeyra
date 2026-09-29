@@ -802,10 +802,10 @@ void AVeyraGameMode::BeginLive()
 	{
 		Rewards->StartPassiveGold();
 	}
-	// The Fluxborn waves begin with the match clock (Battleground Bible §17).
+	// The Fluxborn waves and the jungle's camps begin with the match clock (Battleground Bible §17).
 	if (Battleground)
 	{
-		Battleground->StartWaves();
+		Battleground->StartLive();
 	}
 }
 

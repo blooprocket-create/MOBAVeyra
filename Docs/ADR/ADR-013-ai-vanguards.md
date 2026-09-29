@@ -53,7 +53,7 @@ The targeting kind of each ability comes from the archetype map that defines it 
 
 `Game/Tuning/Bots.json` (owner VeyraBots, with a schema) holds:
 - **`difficulties.beginner` and `.intermediate`:** think and reaction times, last-hit, push and cast chances, the last-hit lead, whether skillshots lead, how many enemy Fluxborn a fight may provoke, and the retreat, recall and fight thresholds.
-- **`lanes`:** which lane each seat plays.
+- **`roles`:** what each seat plays: a lane, or the jungle (ADR-014 §7), with `jungle` holding how a jungler plays.
 - **`vanguards.<id>`:** each Vanguard's build order (item IDs), skill priority and cast conditions.
 
 `check_tuning.py` checks the item and Vanguard references. Randomness (a missed last hit, a withheld cast) draws from a stream seeded by the participant and its seat, so a bot's choices repeat for the same seating.
@@ -69,7 +69,7 @@ The targeting kind of each ability comes from the archetype map that defines it 
 
 ### 8. League answers where canon is silent (for the author to overturn)
 
-1. Lanes: one top, one mid, two bottom; with no jungle, the fifth plays top.
+1. Roles: one top, one mid, two bottom, and the fifth jungles (ADR-014 §7; until M10a it played top).
 2. Retreat below a Health fraction, then recall once no enemy is near; with Gold past a threshold (`shopRecallGold`) and the next purchase affordable, recall to spend it when no enemy is near.
 3. Bots buy when dead or at the fountain, from their Vanguard's build order, as League's bots follow fixed builds.
 4. Bots never dive towers: they fight only outside an enemy tower's range unless allied Fluxborn hold its aggro.

@@ -35,6 +35,10 @@
 #include "VeyraCombatVerbs.h"
 #include "VeyraPlayerState.h"
 #include "VeyraTeamStart.h"
+#include "Wells/VeyraFluxWell.h"
+#include "Wells/VeyraFluxWellSubsystem.h"
+#include "Wildlife/VeyraJungleSubsystem.h"
+#include "Wildlife/VeyraWildlife.h"
 
 namespace VeyraBotSenses
 {
@@ -109,9 +113,11 @@ namespace
 	}
 }
 
-FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraLane Lane, const FVeyraBotsTuning& Tuning)
+FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, const FVeyraBotsTuning& Tuning)
 {
+	const EVeyraLane Lane = VeyraBots::LaneOf(Role);
 	FVeyraBotView View;
+	View.bJungle = Role == EVeyraBotRole::Jungle;
 	const UWorld* World = Bot.GetWorld();
 	const APawn* Body = Bot.GetPawn();
 	if (!World)
@@ -274,6 +280,47 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraLane Lane, const FVeyraB
 		const AActor* EnemyStart = FindStart(*World, VeyraTeams::Opposing(Team));
 		View.LaneHold = EnemyStart ? (View.Home + EnemyStart->GetActorLocation()) / 2.0 : View.Self.Location;
 		View.LaneHold.Z = View.Self.Location.Z;
+	}
+
+	// Its side's camps and the open Flux Wells (ADR-014 §7); and for a jungler, the hurt enemies it might gank.
+	if (const UVeyraJungleSubsystem* Jungle = World->GetSubsystem<UVeyraJungleSubsystem>())
+	{
+		for (const FVeyraCampState& Camp : Jungle->GetCamps())
+		{
+			if (Camp.Half != Team)
+			{
+				continue;
+			}
+			FVeyraBotCamp& Seen = View.Camps.AddDefaulted_GetRef();
+			Seen.Center = FVector(Camp.Center, View.Self.Location.Z);
+			Seen.SpawnsAt = Camp.SpawnsAt;
+			for (const AVeyraWildlife* Creature : Jungle->GetCreatures(Camp.Index))
+			{
+				Seen.Creatures.Add(UnitOf(*Creature));
+			}
+		}
+	}
+	if (const UVeyraFluxWellSubsystem* Wells = World->GetSubsystem<UVeyraFluxWellSubsystem>())
+	{
+		for (const AVeyraFluxWell* Well : Wells->GetWells())
+		{
+			if (Well && Well->GetState() == EVeyraFluxWellState::Open && Well->IsStanding())
+			{
+				View.Wells.Add(UnitOf(*Well));
+			}
+		}
+	}
+	if (View.bJungle)
+	{
+		for (const APlayerState* Member : World->GetGameState() ? World->GetGameState()->PlayerArray : TArray<TObjectPtr<APlayerState>>())
+		{
+			const APawn* Other = Member ? Member->GetPawn() : nullptr;
+			if (Other && VeyraTargeting::IsAlive(Member) && VeyraTargeting::AreHostile(&Bot, Member)
+				&& FVector::Dist2D(View.Self.Location, Other->GetActorLocation()) <= Tuning.Jungle.GankRange)
+			{
+				View.GankTargets.Add(UnitOf(*Other));
+			}
+		}
 	}
 
 	SenseSlots(Bot, Behaviour, View);

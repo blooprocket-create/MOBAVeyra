@@ -64,6 +64,70 @@ void UVeyraRewardSubsystem::PayPassiveGold()
 	}
 }
 
+void UVeyraRewardSubsystem::RewardWildlifeDeath(const FVeyraDeathEvent& Death, const FVeyraContentId& Species)
+{
+	if (bStopped || !IsServer() || !Death.Victim.IsValid() || !Death.Location.IsSet())
+	{
+		return;
+	}
+	const FVeyraEconomyTuning& Tuning = UVeyraEconomyTuningSubsystem::Get();
+	const TArray<FRecipient> All = Recipients();
+	// All its Gold to the Vanguard credited with its killing blow, wherever they stand; none to anyone
+	// else (§7). Without that credit the Gold is unclaimed.
+	const FRecipient* Killer = FindRecipient(All, Death.CreditedKiller.Get());
+	if (Killer)
+	{
+		Killer->Gold->Grant(Tuning.Gold.Wildlife.FindRef(Species), EVeyraGoldReason::Wildlife);
+	}
+	// Its XP for the credited side's living Vanguards near it; with no Vanguard credited, each side's (§7).
+	const double Experience = Tuning.Experience.Wildlife.FindRef(Species);
+	for (const EVeyraTeam Side : { EVeyraTeam::A, EVeyraTeam::B })
+	{
+		if (!Killer || Killer->Team == Side)
+		{
+			ShareExperience(All, Side, Death.Location.GetValue(), Experience);
+		}
+	}
+}
+
+void UVeyraRewardSubsystem::RewardFluxWellSecured(TConstArrayView<UAbilitySystemComponent*> Capturers)
+{
+	if (bStopped || !IsServer() || Capturers.IsEmpty())
+	{
+		return;
+	}
+	const TArray<FRecipient> All = Recipients();
+	TArray<const FRecipient*> Paid;
+	for (const UAbilitySystemComponent* Capturer : Capturers)
+	{
+		if (const FRecipient* Recipient = FindRecipient(All, Capturer))
+		{
+			Paid.AddUnique(Recipient);
+		}
+	}
+	for (const FRecipient* Recipient : Paid)
+	{
+		Recipient->Gold->Grant(UVeyraEconomyTuningSubsystem::Get().Gold.FluxWellPool / Paid.Num(), EVeyraGoldReason::FluxWell);
+	}
+}
+
+void UVeyraRewardSubsystem::ShareExperience(TConstArrayView<FRecipient> All, EVeyraTeam Side, const FVector& Where, double Experience) const
+{
+	TArray<const FRecipient*> Leveling;
+	for (const FRecipient& Recipient : All)
+	{
+		if (Recipient.Team == Side && Recipient.bAlive && IsNear(Recipient, Where) && CanGainExperience(Recipient))
+		{
+			Leveling.Add(&Recipient);
+		}
+	}
+	const double Share = VeyraRewards::FarmXpShare(Experience, Leveling.Num(), UVeyraEconomyTuningSubsystem::Get().Experience.SharedPoolFraction);
+	for (const FRecipient* Recipient : Leveling)
+	{
+		GrantExperience(*Recipient, Share);
+	}
+}
+
 void UVeyraRewardSubsystem::Stop()
 {
 	bStopped = true;

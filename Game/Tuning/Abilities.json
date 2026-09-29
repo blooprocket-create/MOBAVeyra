@@ -5,6 +5,56 @@
     "interruptedCooldownFraction": 0.2
   },
   "statuses": {
+    "ashfang_trait": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.1,
+      "durationSeconds": 90,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "stonehorn_trait": {
+      "provenance": "Provisional",
+      "kind": "DamageReduction",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.08,
+      "durationSeconds": 90,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "skittermaw_trait": {
+      "provenance": "Provisional",
+      "kind": "AttackSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.15,
+      "durationSeconds": 90,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "miremother_trait": {
+      "provenance": "Provisional",
+      "kind": "HealthRegeneration",
+      "stacking": "UniqueRefresh",
+      "magnitude": 1.0,
+      "durationSeconds": 90,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
+    "razorback_trait": {
+      "provenance": "Provisional",
+      "kind": "DamageAmplification",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.06,
+      "durationSeconds": 90,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0
+    },
     "cairn_crushing_hold_stun": {
       "provenance": "Provisional",
       "kind": "Stun",

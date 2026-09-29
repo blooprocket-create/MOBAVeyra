@@ -3,6 +3,7 @@
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "CQTest.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
@@ -114,6 +115,27 @@ namespace VeyraCombatTests
 			}
 			ASSERT_THAT(AreEqual(MaxStacks, Find(TEXT("fervour"))->Stacks));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Value(UVeyraOffenceSet::GetAttackSpeedAttribute()), ExampleStats().AttackSpeed * (1.0 + PerStack * MaxStacks), 1e-5)));
+		}
+
+		TEST_METHOD(TraitsChangeHealthRegenerationAndDamageDealt)
+		{
+			// The jungle's sustain and impact traits (ADR-014 §2). Fixture values.
+			constexpr double Regeneration = 5.0;
+			constexpr double Doubled = 1.0;
+			constexpr double Amplified = 0.1;
+			FVeyraStatBlock Stats = ExampleStats();
+			Stats.HealthRegen = Regeneration;
+			UAbilitySystemComponent& Regenerating = SpawnCombatant(Spawner);
+			ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(Regenerating, Stats)));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, Regenerating, TestStatus(TEXT("mire"), EVeyraStatusKind::HealthRegeneration, Doubled, LongSeconds))));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Regenerating.GetNumericAttribute(UVeyraVitalsSet::GetHealthRegenAttribute()), Regeneration * (1.0 + Doubled), 1e-4)));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, Regenerating, TestStatus(TEXT("tusk"), EVeyraStatusKind::DamageAmplification, Amplified, LongSeconds))));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Regenerating.GetNumericAttribute(UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute()), 1.0 + Amplified, 1e-5)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Regenerating.GetNumericAttribute(UVeyraVitalsSet::GetHealthRegenAttribute()), Regeneration * (1.0 + Doubled), 1e-4),
+				TEXT("each status changes its own stat only")));
+			// Amplification adds; none, or more than doubling in all, is refused.
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("tusk"), EVeyraStatusKind::DamageAmplification, 0.0, LongSeconds)).IsEmpty()));
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("tusk"), EVeyraStatusKind::DamageAmplification, 0.6, LongSeconds, EVeyraStackingPolicy::Stacking, 2)).IsEmpty()));
 		}
 
 		TEST_METHOD(IndependentSourcesKeepOneInstanceEach)

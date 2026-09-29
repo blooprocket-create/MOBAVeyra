@@ -15,7 +15,8 @@ namespace
 	/** Kinds whose Magnitude is a signed change per stack, where the stat always stays above 0. */
 	bool IsChangeKind(EVeyraStatusKind Kind)
 	{
-		return Kind == EVeyraStatusKind::MoveSpeed || Kind == EVeyraStatusKind::AttackSpeed;
+		return Kind == EVeyraStatusKind::MoveSpeed || Kind == EVeyraStatusKind::AttackSpeed || Kind == EVeyraStatusKind::HealthRegeneration
+			|| Kind == EVeyraStatusKind::DamageAmplification;
 	}
 }
 
@@ -61,7 +62,11 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 		break;
 	case EVeyraStatusKind::MoveSpeed:
 	case EVeyraStatusKind::AttackSpeed:
+	case EVeyraStatusKind::HealthRegeneration:
 		bMagnitudeValid &= Magnitude != 0.0 && AllStacks > -1.0;
+		break;
+	case EVeyraStatusKind::DamageAmplification:
+		bMagnitudeValid &= Magnitude > 0.0 && AllStacks <= 1.0;
 		break;
 	case EVeyraStatusKind::Tenacity:
 	case EVeyraStatusKind::DamageReduction:

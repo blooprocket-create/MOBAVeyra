@@ -41,6 +41,12 @@ enum class EVeyraDamageDelivery : uint8
 	Proc,
 	/** A developer command's damage, which reaches structures so tests and smokes can exercise them. */
 	Developer,
+	/**
+	 * A neutral objective drained by the presence of a side's Vanguards (Battleground Bible §6; ADR-014
+	 * §4), dealt in the name of one of them so a presence tick can land the last hit. It does not
+	 * damage structures.
+	 */
+	Presence,
 };
 
 namespace VeyraDamageDelivery
