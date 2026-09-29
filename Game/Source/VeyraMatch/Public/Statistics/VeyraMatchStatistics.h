@@ -77,7 +77,12 @@ struct VEYRAMATCH_API FVeyraCrowdControlByKind
 	UPROPERTY()
 	double Slow = 0.0;
 
-	double Total() const { return Stun + Slow; }
+	/**
+	 * Effective seconds of any crowd control: a stun and a slow on one target at once count once, so it
+	 * may be less than Stun and Slow together (§4).
+	 */
+	UPROPERTY()
+	double Total = 0.0;
 };
 
 /**

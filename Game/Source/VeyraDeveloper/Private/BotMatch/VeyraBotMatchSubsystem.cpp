@@ -131,7 +131,7 @@ void UVeyraBotMatchSubsystem::Report(UWorld& World) const
 		if (const TOptional<FVeyraPlayerStatistics> Record = Statistics ? Statistics->Snapshot(*Participant) : TOptional<FVeyraPlayerStatistics>())
 		{
 			Participants += FString::Printf(TEXT(", %d/%d/%d, %d CS, %.0f to Vanguards, %.1f s CC, %.0f healed, %.0f shielded"), Record->Kills, Record->Deaths,
-				Record->Assists, Record->MinionKills + Record->JungleKills, Record->VanguardDamage, Record->CrowdControl.Total(),
+				Record->Assists, Record->MinionKills + Record->JungleKills, Record->VanguardDamage, Record->CrowdControl.Total,
 				Record->SelfHealing + Record->TeammateHealing, Record->DamageShielded);
 		}
 		// For a bot, its Health and what it is doing, so a stalled one shows why.

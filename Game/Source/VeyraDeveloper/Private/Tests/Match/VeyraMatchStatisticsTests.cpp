@@ -73,6 +73,8 @@ namespace VeyraMatchStatisticsTests
 		static constexpr double SlowSeconds = 3.0;
 		static constexpr float Step = 0.1f;
 		static constexpr double Apart = 500.0;
+		static constexpr double ShortStunSeconds = 1.0;
+		static constexpr double TemporaryHealth = 40.0;
 
 		FActorTestSpawner Spawner;
 		UVeyraMatchStatisticsSubsystem* Statistics = nullptr;
@@ -218,6 +220,27 @@ namespace VeyraMatchStatisticsTests
 			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(Abilities(*Attacker), Abilities(*Target), TrueDamage(Lethal))));
 			Wait(SlowSeconds);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Of(*Helper).CrowdControl.Slow, DiedAt - SlowStart, 1e-3)));
+		}
+
+		TEST_METHOD(AStunAndASlowAtOnceCountOnceInTheTotal)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Abilities(*Attacker), Abilities(*Target), Status(TEXT("test_stun"), EVeyraStatusKind::Stun, 0.0, ShortStunSeconds))));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Abilities(*Attacker), Abilities(*Target), Status(TEXT("test_slow"), EVeyraStatusKind::Slow, 0.3, StunSeconds))));
+			Wait(StunSeconds * 2.0);
+			const FVeyraCrowdControlByKind CrowdControl = Of(*Attacker).CrowdControl;
+			// By kind, each its own; in total, the slow covers the stun (§4).
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(CrowdControl.Stun, ShortStunSeconds, 1e-3) && FMath::IsNearlyEqual(CrowdControl.Slow, StunSeconds, 1e-3)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(CrowdControl.Total, StunSeconds, 1e-3), FString::Printf(TEXT("total %g"), CrowdControl.Total)));
+		}
+
+		TEST_METHOD(TemporaryHealthIsHealthSoWhatItTakesIsDamage)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::GrantTemporaryHealth(Abilities(*TargetAlly), Abilities(*Target), TemporaryHealth, LongSeconds).IsValid()));
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(Abilities(*Attacker), Abilities(*Target), TrueDamage(Hit))));
+			// Temporary Health is not a shield (Combat Bible §7): the whole hit is damage, and no one shielded it.
+			const FVeyraPlayerStatistics Dealt = Of(*Attacker);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Dealt.DamageDealt.TrueDamage, Hit) && FMath::IsNearlyEqual(Dealt.VanguardDamage, Hit), FString::Printf(TEXT("dealt %g"), Dealt.VanguardDamage)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Of(*Target).DamageTaken.Total(), Hit) && Of(*TargetAlly).DamageShielded == 0.0));
 		}
 
 		TEST_METHOD(LastHitsCountFluxbornAndJungleApart)
