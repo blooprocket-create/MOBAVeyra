@@ -155,8 +155,10 @@ TOptional<FVeyraPlayerStatistics> UVeyraMatchStatisticsSubsystem::Snapshot(const
 	// Earned Gold is the sum of its sources, so the two always reconcile (§7).
 	Statistics.GoldEarned = Statistics.GoldBySource.Total();
 
-	// Each source's crowd control on each target counts once where its applications overlap (§4).
+	// Each source's crowd control on each target counts once where its applications overlap (§4): by
+	// kind, and in total across kinds, so a stun and a slow at once count once there.
 	const double Until = RecordedUntil();
+	TMap<FObjectKey, TArray<FVeyraSpan>> AnyKind;
 	for (const TPair<TPair<FObjectKey, uint8>, TArray<FVeyraSpan>>& Entry : Record->CrowdControl)
 	{
 		TArray<FVeyraSpan> Spans = Entry.Value;
@@ -164,8 +166,13 @@ TOptional<FVeyraPlayerStatistics> UVeyraMatchStatisticsSubsystem::Snapshot(const
 		{
 			Span.End = FMath::Min(Span.End, Until);
 		}
+		AnyKind.FindOrAdd(Entry.Key.Key).Append(Spans);
 		const double Seconds = VeyraStatisticsRules::UnionSeconds(MoveTemp(Spans));
 		(static_cast<EVeyraStatusKind>(Entry.Key.Value) == EVeyraStatusKind::Stun ? Statistics.CrowdControl.Stun : Statistics.CrowdControl.Slow) += Seconds;
+	}
+	for (TPair<FObjectKey, TArray<FVeyraSpan>>& Target : AnyKind)
+	{
+		Statistics.CrowdControl.Total += VeyraStatisticsRules::UnionSeconds(MoveTemp(Target.Value));
 	}
 
 	// Its level and equipment as they are now (§8).
@@ -290,14 +297,16 @@ void UVeyraMatchStatisticsSubsystem::OnDamageResolved(const FVeyraDamageResoluti
 			Provider->Statistics.DamageShielded += Share.Absorbed;
 		}
 	}
-	// Damage is Health actually removed: what shields took is not also damage (§3).
-	if (!(Event.HealthLost > 0.0))
+	// Damage is Health actually removed: what shields took is not also damage (§3). Temporary Health is
+	// Health, not a shield (Combat Bible §7), so what it took is.
+	const double Removed = Event.HealthLost + Event.TemporaryHealthSpent;
+	if (!(Removed > 0.0))
 	{
 		return;
 	}
 	if (FRecord* Taker = Find(Target))
 	{
-		VeyraStatisticsService::AddByType(Taker->Statistics.DamageTaken, Event.Type, Event.HealthLost);
+		VeyraStatisticsService::AddByType(Taker->Statistics.DamageTaken, Event.Type, Removed);
 	}
 	FRecord* Dealer = Find(Event.Source.Get());
 	if (!Dealer || Event.Source.Get() == Target)
@@ -305,22 +314,22 @@ void UVeyraMatchStatisticsSubsystem::OnDamageResolved(const FVeyraDamageResoluti
 		return;
 	}
 	FVeyraPlayerStatistics& Statistics = Dealer->Statistics;
-	VeyraStatisticsService::AddByType(Statistics.DamageDealt, Event.Type, Event.HealthLost);
+	VeyraStatisticsService::AddByType(Statistics.DamageDealt, Event.Type, Removed);
 	const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(TargetUnit);
 	if (Kind == EVeyraUnitKind::Objective)
 	{
 		// A Flux Well belongs to no side (ADR-014 §4).
-		Statistics.WellDamage += Event.HealthLost;
+		Statistics.WellDamage += Removed;
 	}
 	else if (VeyraStatisticsService::AreEnemies(Dealer->Participant.Get(), TargetUnit))
 	{
 		if (Kind == EVeyraUnitKind::Vanguard)
 		{
-			Statistics.VanguardDamage += Event.HealthLost;
+			Statistics.VanguardDamage += Removed;
 		}
 		else if (VeyraStatisticsService::IsTower(TargetUnit))
 		{
-			Statistics.TowerDamage += Event.HealthLost;
+			Statistics.TowerDamage += Removed;
 		}
 	}
 }
