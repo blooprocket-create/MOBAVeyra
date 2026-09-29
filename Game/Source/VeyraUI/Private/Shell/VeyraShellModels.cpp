@@ -56,6 +56,10 @@ namespace
 		{
 			return LOCTEXT("EndAbandoned", "The match was abandoned.");
 		}
+		if (EndReason == TEXT("prime_well_destroyed"))
+		{
+			return LOCTEXT("EndPrimeWellDestroyed", "A Prime Well was destroyed.");
+		}
 		return FText::Format(LOCTEXT("EndOther", "The match ended ({0})."), FText::FromString(EndReason));
 	}
 
@@ -439,8 +443,19 @@ FVeyraResultsModel DescribeResults(const FVeyraClientSnapshot& Snapshot)
 	else
 	{
 		Model.bVerified = true;
-		Model.Headline = Outcome->Winner.IsEmpty() ? LOCTEXT("ResultNoWinner", "Match Over: No Winner")
-												   : FText::Format(LOCTEXT("ResultWinner", "Match Over: Side {0} Won"), FText::FromString(Outcome->Winner));
+		// The player's own side against the winner's (ADR-011 §13).
+		if (Outcome->Winner.IsEmpty())
+		{
+			Model.Headline = LOCTEXT("ResultNoWinner", "Match Over: No Winner");
+		}
+		else if (Outcome->Side.IsEmpty())
+		{
+			Model.Headline = FText::Format(LOCTEXT("ResultWinner", "Match Over: Side {0} Won"), FText::FromString(Outcome->Winner));
+		}
+		else
+		{
+			Model.Headline = Outcome->Winner == Outcome->Side ? LOCTEXT("ResultVictory", "Victory") : LOCTEXT("ResultDefeat", "Defeat");
+		}
 		Model.Lines.Add(EndReasonText(Outcome->EndReason));
 		Model.Lines.Add(FText::Format(LOCTEXT("ResultMode", "Mode: {0}"), NameOf(Outcome->Mode)));
 		if (!Outcome->VanguardId.IsEmpty())

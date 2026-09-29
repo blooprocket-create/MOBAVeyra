@@ -8,6 +8,7 @@
 #include "Life/VeyraLifeComponent.h"
 #include "Teams/VeyraTeam.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
+#include "Units/VeyraUnit.h"
 
 namespace VeyraTargeting
 {
@@ -54,7 +55,7 @@ bool IsWithinCastRange(const AActor& Caster, const AActor& Target, double CastRa
 	return EdgeToEdgeDistance(Caster, Target) <= CastRange + UVeyraCombatTuningSubsystem::Get().Targeting.ServerRangeTolerance;
 }
 
-EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target, double CastRange)
+EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target, double CastRange, EVeyraStructureTargeting Structures)
 {
 	if (!Target || !FindLife(Target))
 	{
@@ -71,6 +72,10 @@ EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target
 	if (!AreHostile(&Caster, Target))
 	{
 		return EVeyraTargetValidity::NotHostile;
+	}
+	if (Structures == EVeyraStructureTargeting::Refuse && VeyraUnits::IsStructure(Target))
+	{
+		return EVeyraTargetValidity::Structure;
 	}
 	return IsWithinCastRange(Caster, *Target, CastRange) ? EVeyraTargetValidity::Valid : EVeyraTargetValidity::OutOfRange;
 }

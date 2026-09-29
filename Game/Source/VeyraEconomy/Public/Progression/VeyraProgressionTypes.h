@@ -20,6 +20,9 @@ struct VEYRAECONOMY_API FVeyraStatGrowth
 	double MaxHealth = 0.0;
 
 	UPROPERTY()
+	double HealthRegen = 0.0;
+
+	UPROPERTY()
 	double MaxResource = 0.0;
 
 	UPROPERTY()

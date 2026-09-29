@@ -15,4 +15,10 @@ bool IsVanguard(const UObject* Object)
 	const TOptional<EVeyraUnitKind> Kind = KindOf(Object);
 	return Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Vanguard;
 }
+
+bool IsStructure(const UObject* Object)
+{
+	const TOptional<EVeyraUnitKind> Kind = KindOf(Object);
+	return Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Structure;
+}
 }

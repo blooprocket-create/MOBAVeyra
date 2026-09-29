@@ -33,6 +33,7 @@ func newPracticeTestServer(t *testing.T) *httptest.Server {
 	})
 	d.Match = match.NewService(match.NewMemStore(), names, match.NewFakeAllocator(), match.Settings{
 		Modes:             map[string]match.Mode{},
+		Maps:              match.FakeMaps,
 		Practice:          match.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA},
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,

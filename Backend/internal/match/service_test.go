@@ -42,6 +42,7 @@ func newFixture(t *testing.T) *fixture {
 	})
 	f.svc = NewService(f.store, accounts, f.alloc, Settings{
 		Modes:             map[string]Mode{"casual_select": fiveAll, "ranked": {ID: "ranked", HumanPlayersPerTeam: 5}},
+		Maps:              FakeMaps,
 		Practice:          fixturePractice,
 		ReadyTimeout:      fixtureReadyTimeout,
 		MaxDuration:       fixtureMaxDuration,
@@ -125,6 +126,35 @@ func TestCreateStartsAServerWithTheRoster(t *testing.T) {
 	}
 	if bytes.Equal(stored.ServerCredentialHash, []byte(a.ServerCredential)) {
 		t.Fatal("the server credential must be stored only as a hash")
+	}
+}
+
+func TestEachMatchLoadsItsKindsMap(t *testing.T) {
+	loads := func(t *testing.T, spec Spec) string {
+		t.Helper()
+		f := newFixture(t)
+		m, err := f.svc.Create(ctx, spec)
+		if err != nil {
+			t.Fatalf("Create: %v", err)
+		}
+		server, _ := f.alloc.Spec(m.ID)
+		return server.Map
+	}
+	if got := loads(t, standard(twoSeats...)); got != FakeMaps[MapPlay] {
+		t.Fatalf("a match with no map kind loads %q; want the battleground", got)
+	}
+	if got := loads(t, practice("oriel")); got != FakeMaps[MapPlay] {
+		t.Fatalf("practice loads %q; want the battleground", got)
+	}
+	dev := standard(twoSeats...)
+	dev.Map = MapDevelopment
+	if got := loads(t, dev); got != FakeMaps[MapDevelopment] {
+		t.Fatalf("a development match loads %q", got)
+	}
+	unknown := standard(twoSeats...)
+	unknown.Map = "arena"
+	if _, err := newFixture(t).svc.Create(ctx, unknown); !errors.Is(err, ErrInvalidMap) {
+		t.Fatalf("an unknown map kind: got %v", err)
 	}
 }
 

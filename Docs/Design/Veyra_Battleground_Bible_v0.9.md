@@ -59,6 +59,18 @@ A Vanguard who attunes to one of the Crucible's Prime Wells can project a tempor
 
 A veteran MOBA player should understand the macro map quickly, but should not be able to overlay another game's wall, brush, river, or gank geometry and instantly know every route.
 
+### Macro shape (ruled 2026-09-28)
+
+- At the macro scale the map should **look like a familiar League of Legends-style battleground**:
+  - the two Prime Wells in opposite corners;
+  - top lane running up one side and across the top;
+  - bot lane running along the bottom and up the other side;
+  - mid lane on the diagonal between the bases;
+  - a river crossing the other diagonal;
+  - inner jungle between the lanes.
+- The Veyra difference is the **outer jungle** beyond top and bot (§7), so those lanes are not the edge of the map.
+- Walls, jungle routes and fog placement stay Veyra's own, per the design intent above.
+
 ### Ability-created terrain (ruled 2026-09-23)
 
 - **Abilities may change pathing for both teams at runtime.** Temporary impassable terrain created by an ability (currently the cooled black-iron wall from Varkesh's **Forge Divide**) is **real terrain** while it exists: it blocks movement for every unit, both teams and neutral wildlife alike, and pathing units route around it. It is not a collision volume that only some units respect.
@@ -230,6 +242,13 @@ Each destroyed Spire grants **+25 permanent Team Flux** at current prototype tun
 Permanent Flux never expires during the match.
 
 This means structural success on one Fluxway helps all three lanes because every allied lane Fluxborn benefits from the team's global Flux total.
+
+### Lane structures fall in order (ruled 2026-09-28)
+
+- Each Fluxway's structures must be destroyed **in order**, from the outermost Spire inward: outer Spire, then middle Spire, then inner Spire, then that lane's inhibitor.
+- A structure whose predecessor in its lane still stands is **invulnerable**. Damage already dealt to it stays, as with every structure invulnerability.
+- Destroyed Spires never rebuild, so an inhibitor that reconstructs is at once attackable again, because its lane's Spires are already down.
+- This ordering is separate from backdoor protection (§19), which still applies to every lane Spire, and from the base-tower and Prime Well prerequisites (§18).
 
 ### Inhibitors
 

@@ -22,6 +22,9 @@ struct FVeyraPreparedDamage
 {
 	FGameplayEffectSpecHandle Spec;
 
+	/** How it is delivered, which decides whether it can damage a structure (Combat Bible §33). */
+	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
+
 	bool IsValid() const { return Spec.IsValid(); }
 };
 
@@ -41,6 +44,12 @@ namespace VeyraCombat
 
 	/** Sets a unit's base Max Health from its data and fills its Health. Returns false if refused. */
 	VEYRACOMBAT_API bool InitializeVitals(UAbilitySystemComponent& AbilitySystem, double MaxHealth);
+
+	/**
+	 * Sets a unit's base Armor and Magic Resist from its data, as a structure's own defences
+	 * (Combat Bible §33). Both must be finite and at least 0. Returns false if refused.
+	 */
+	VEYRACOMBAT_API bool InitializeResistances(UAbilitySystemComponent& AbilitySystem, double Armor, double MagicResist);
 
 	/** Sets a unit's base Move Speed from its data. Returns false if refused. */
 	VEYRACOMBAT_API bool InitializeMoveSpeed(UAbilitySystemComponent& AbilitySystem, double MoveSpeed);
@@ -73,6 +82,27 @@ namespace VeyraCombat
 	 */
 	VEYRACOMBAT_API bool RestoreResource(UAbilitySystemComponent& AbilitySystem, double Amount);
 
+	/**
+	 * Restores Amount of the unit's Health, never above its Max Health (Combat Bible §6: restoration
+	 * never overheals). Health Regeneration, the Prime Well's regeneration and fountain recovery use
+	 * it (ADR-011 §9, §11). A unit whose death is final restores nothing. Returns false if refused:
+	 * Amount must be finite and at least 0, and the unit needs a UVeyraVitalsSet.
+	 */
+	VEYRACOMBAT_API bool RestoreHealth(UAbilitySystemComponent& AbilitySystem, double Amount);
+
+	/**
+	 * Makes the unit invulnerable (Combat Bible §10) until a matching RevokeInvulnerability. Grants
+	 * count, so each grant needs its own revoke; statuses that make a unit invulnerable count
+	 * separately. Structures use it for their prerequisites (Battleground Bible §18). Server only.
+	 */
+	VEYRACOMBAT_API void GrantInvulnerability(UAbilitySystemComponent& AbilitySystem);
+
+	/** Ends one GrantInvulnerability. */
+	VEYRACOMBAT_API void RevokeInvulnerability(UAbilitySystemComponent& AbilitySystem);
+
+	/** Whether the unit is invulnerable now, by a grant or a status. */
+	VEYRACOMBAT_API bool IsInvulnerable(const UAbilitySystemComponent& AbilitySystem);
+
 	/** Whether the unit has at least Amount of its resource. A cost of 0 is always affordable. */
 	VEYRACOMBAT_API bool CanAffordResource(const UAbilitySystemComponent& AbilitySystem, double Amount);
 
@@ -99,8 +129,8 @@ namespace VeyraCombat
 
 	/**
 	 * Deals prepared damage to Target through the canonical pipeline (Combat Bible §25). One
-	 * preparation can be dealt to several targets. A target whose death is final takes no damage.
-	 * Returns false if refused.
+	 * preparation can be dealt to several targets. A target whose death is final takes no damage, and
+	 * a structure takes none unless its delivery can damage structures (§33). Returns false if refused.
 	 */
 	VEYRACOMBAT_API bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemComponent& Target);
 
@@ -135,7 +165,8 @@ namespace VeyraCombat
 	/**
 	 * Applies Status from Source to Target under its stacking policy (Combat Bible §8, §46;
 	 * UVeyraStatusComponent::Apply). A target whose death is final, or that has no status ledger,
-	 * refuses it. Returns false if refused.
+	 * refuses it, and a structure refuses statuses from its enemies (§33: crowd control and debuffs
+	 * do not affect structures). Returns false if refused.
 	 */
 	VEYRACOMBAT_API bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraStatusSpec& Status);
 

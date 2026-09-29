@@ -30,6 +30,19 @@ TArray<UAbilitySystemComponent*> UVeyraAttributionComponent::GetAssisters(const 
 	return Assisters;
 }
 
+TArray<FVeyraContribution> UVeyraAttributionComponent::GetContributions() const
+{
+	TArray<FVeyraContribution> Contributions;
+	for (const TPair<TWeakObjectPtr<UAbilitySystemComponent>, double>& Contribution : LastContributions)
+	{
+		if (Contribution.Key.IsValid())
+		{
+			Contributions.Add({ Contribution.Key, Contribution.Value });
+		}
+	}
+	return Contributions;
+}
+
 void UVeyraAttributionComponent::Clear()
 {
 	LastContributions.Reset();

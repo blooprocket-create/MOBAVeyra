@@ -20,8 +20,12 @@
 #include "ProjectDescriptor.h"
 #include "Progression/VeyraProgressionRules.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Structures/VeyraStructure.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
+#include "Tests/World/VeyraBattlegroundTestLayout.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "Tuning/VeyraWorldTuningSubsystem.h"
+#include "VeyraBattlegroundSubsystem.h"
 
 namespace VeyraAbilitiesTests
 {
@@ -173,6 +177,36 @@ namespace VeyraAbilitiesTests
 			// With no player to view it, side A stands in for the viewer's allies.
 			ASSERT_THAT(IsTrue(ColorShownBy(*Presentation.FindBody(*Caster)).Equals(Settings.AllyColor)));
 			ASSERT_THAT(IsTrue(ColorShownBy(*Presentation.FindBody(Enemy)).Equals(Settings.EnemyColor)));
+		}
+
+		TEST_METHOD(TheBattlegroundsGroundAndStructuresAreDrawn)
+		{
+			ASSERT_THAT(IsNull(RefreshedGreybox().GetGround(), TEXT("a world with no battleground draws none")));
+			UVeyraBattlegroundSubsystem* Battleground = Spawner.GetWorld().GetSubsystem<UVeyraBattlegroundSubsystem>();
+			Battleground->SpawnStructures(VeyraWorldTests::CompactBattleground());
+			UVeyraGreyboxSubsystem& Presentation = RefreshedGreybox();
+
+			// The river, each stretch of each lane's road, and both bases' pads, from World.json's layout.
+			const FVeyraBattlegroundLayout& Layout = UVeyraWorldTuningSubsystem::Get().Layout;
+			int32 Stretches = 0;
+			for (const FVeyraLaneLayout& Lane : Layout.Lanes)
+			{
+				Stretches += Lane.Points.Num() - 1;
+			}
+			const AActor* Ground = Presentation.GetGround();
+			ASSERT_THAT(IsNotNull(Ground));
+			TArray<UStaticMeshComponent*> Markings;
+			Ground->GetComponents(Markings);
+			ASSERT_THAT(AreEqual(1 + Stretches + 2, Markings.Num()));
+			for (const UStaticMeshComponent* Marking : Markings)
+			{
+				ASSERT_THAT(IsTrue(Marking->GetCollisionEnabled() == ECollisionEnabled::NoCollision && !Marking->CanEverAffectNavigation(),
+					TEXT("the ground decides nothing")));
+			}
+			for (const AVeyraStructure* Structure : Battleground->GetStructures())
+			{
+				ASSERT_THAT(IsNotNull(Presentation.FindBody(*Structure), TEXT("every structure has a body")));
+			}
 		}
 
 		TEST_METHOD(AStunnedUnitIsTinted)

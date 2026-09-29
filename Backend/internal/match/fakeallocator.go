@@ -5,6 +5,12 @@ import (
 	"sync"
 )
 
+// FakeMaps are map paths for tests' match settings, one for each kind.
+var FakeMaps = map[MapKind]string{
+	MapPlay:        "/Game/Test/Maps/L_Play",
+	MapDevelopment: "/Game/Test/Maps/L_Development",
+}
+
 // FakeAllocator is an in-memory Allocator for tests. It is not used in any
 // deployed environment. Servers it "starts" run until a test says otherwise.
 type FakeAllocator struct {

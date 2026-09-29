@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Battleground/VeyraBattlegroundLink.h"
 #include "Bots/VeyraBotWanderComponent.h"
 #include "EngineUtils.h"
 #include "HAL/IConsoleManager.h"
@@ -177,6 +178,8 @@ void AVeyraGameMode::StartPlay()
 	{
 		DeathHandle = Events->OnDeath.AddUObject(this, &AVeyraGameMode::OnDeath);
 	}
+	Battleground = MakeShared<FVeyraBattlegroundLink>();
+	Battleground->Start(*GetWorld(), FVeyraBattlegroundLink::FOnPrimeWellDestroyed::CreateUObject(this, &AVeyraGameMode::OnPrimeWellDestroyed));
 	if (Roster)
 	{
 		NoteConnectedParticipants();
@@ -199,20 +202,32 @@ void AVeyraGameMode::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		Events->OnDeath.Remove(DeathHandle);
 	}
+	Battleground.Reset();
 	Super::EndPlay(EndPlayReason);
 }
 
-void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason)
+void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 {
 	AVeyraGameState& State = GetVeyraGameState();
 	if (State.GetPhase() == EVeyraMatchPhase::Ended)
 	{
 		return;
 	}
+	if (!VeyraMatchResults::IsWinnerConsistent(Reason, Winner))
+	{
+		UE_LOG(LogVeyraMatch, Error, TEXT("Refused to end the match (%s) with winner %s: only a destroyed Prime Well has a winner."), LexToString(Reason),
+			*StaticEnum<EVeyraTeam>()->GetNameStringByValue(static_cast<int64>(Winner)));
+		return;
+	}
 	SetActorTickEnabled(false);
 	GetWorldTimerManager().ClearTimer(LoadingTimeout);
 	GetWorldTimerManager().ClearTimer(PreparationTimer);
 	FTSTicker::GetCoreTicker().RemoveTicker(AbandonmentTicker);
+	// Nothing on the battleground happens after the end: no rebuilds, no regeneration (Economy Bible §8.2).
+	if (Battleground)
+	{
+		Battleground->Stop();
+	}
 	State.SetPhase(EVeyraMatchPhase::Ended);
 	// The clock is frozen now; an ended match need not stay paused.
 	if (State.IsMatchPaused())
@@ -222,6 +237,7 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason)
 
 	FVeyraMatchResult Result;
 	Result.EndReason = Reason;
+	Result.Winner = Winner;
 	Result.DurationSeconds = State.GetMatchClockSeconds();
 	if (Roster)
 	{
@@ -229,7 +245,8 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason)
 		Result.Participants = Roster->BuildParticipantResults();
 	}
 	// Game/Scripts/Smoke.ps1 checks this line.
-	UE_LOG(LogVeyraMatch, Display, TEXT("The match ended (%s) after %.1f s of match clock."), LexToString(Reason), Result.DurationSeconds);
+	UE_LOG(LogVeyraMatch, Display, TEXT("The match ended (%s) after %.1f s of match clock%s."), LexToString(Reason), Result.DurationSeconds,
+		Winner == EVeyraTeam::None ? TEXT("") : *FString::Printf(TEXT("; team %s won"), *StaticEnum<EVeyraTeam>()->GetNameStringByValue(static_cast<int64>(Winner))));
 	UVeyraMatchHostSubsystem* Host = UVeyraMatchHostSubsystem::Get();
 	if (Host && GetNetMode() == NM_DedicatedServer)
 	{
@@ -250,6 +267,34 @@ EVeyraEndCustomMatchRefusal AVeyraGameMode::HandleEndCustomMatch(const APlayerCo
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s, the host, ended the custom match."), *GetNameSafe(Requester.PlayerState));
 	EndMatch(EVeyraMatchEndReason::HostEnded);
 	return Refusal;
+}
+
+void AVeyraGameMode::OnPrimeWellDestroyed(EVeyraTeam Winner)
+{
+	// Game/Scripts/Smoke.ps1 checks this line.
+	UE_LOG(LogVeyraMatch, Display, TEXT("Team %s destroyed the other side's Prime Well."), *StaticEnum<EVeyraTeam>()->GetNameStringByValue(static_cast<int64>(Winner)));
+	const AVeyraGameState& State = GetVeyraGameState();
+	if (VeyraMatchRules::DoesPrimeWellWin(State.GetMatchRules(), State.GetPhase()))
+	{
+		EndMatch(EVeyraMatchEndReason::PrimeWellDestroyed, Winner);
+	}
+	else
+	{
+		// Practice has no victory: the Well stays destroyed and the match goes on (ADR-011 §14).
+		UE_LOG(LogVeyraMatch, Log, TEXT("The %s match goes on: it has no victory condition now."),
+			State.GetMatchRules() == EVeyraMatchRules::Practice ? TEXT("practice") : TEXT("standard"));
+	}
+}
+
+bool AVeyraGameMode::HandleDeveloperSiege(const APlayerController& Requester)
+{
+	const AVeyraPlayerState* PlayerState = Requester.GetPlayerState<AVeyraPlayerState>();
+	UAbilitySystemComponent* Source = PlayerState ? PlayerState->GetAbilitySystemComponent() : nullptr;
+	if (!Source || !Battleground || CheckOrdersAllowed() != EVeyraOrderRejection::None)
+	{
+		return false;
+	}
+	return Battleground->DeveloperSiege(*Source, PlayerState->GetVeyraTeam());
 }
 
 void AVeyraGameMode::NoteConnectedParticipants()

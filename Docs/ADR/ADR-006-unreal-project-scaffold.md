@@ -114,7 +114,11 @@ Modules are created **only when they receive real content**, as Project Structur
   - The layer order is now Foundation → Rules → Economy → Abilities → Content → Orchestration → Services → Presentation → Composition (sealed), Developer (sealed).
   - Presentation is client only. `VeyraUI` is `ClientOnly` in `Veyra.uproject`, so servers neither build nor load it. The layer check requires that, and lets a module outside the layer add it only for targets that are not servers.
   - `EVeyraAbilitySlot` moves to `VeyraCore`, because Progression, below Abilities, names slots.
-- Later modules (Items, Flux, World, Vision) follow Project Structure as their first feature lands.
+- **Amendment (2026-09-28, M7): the Battleground layer** ([ADR-011](ADR-011-battleground-runtime.md) §2).
+  - `VeyraFlux` (Team Flux) and `VeyraWorld` (the battleground's layout, lanes, structures and Fluxborn) arrive as peers in a new **Battleground** layer between Abilities and Content. World composes Abilities' attacks and projectiles, so the two cannot share the Abilities layer; the peers meet only through Match.
+  - The layer order is now Foundation → Rules → Economy → Abilities → Battleground → Content → Orchestration → Services → Presentation → Composition (sealed), Developer (sealed). Vision joins the Battleground layer when it arrives.
+  - `VeyraCore` gains the battleground vocabulary: the Structure unit kind, the structure kinds and the lanes.
+- Later modules (Items, Vision) follow Project Structure as their first feature lands.
 - **The layer graph is enforced by a check, not just by convention.** A repository script reads every `*.Build.cs`, compares the dependencies against a declared layer map, and fails on an upward, sideways or circular edge. It runs in GitHub Actions without Unreal, alongside the existing documentation check.
 
 ### 4. Gameplay Ability System placement

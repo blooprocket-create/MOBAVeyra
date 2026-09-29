@@ -48,6 +48,18 @@ const (
 	RulesPractice Rules = "practice"
 )
 
+// MapKind names which map a match's server loads (ADR-011 §12). Configuration
+// gives each kind its map, so a request never names a map path itself.
+type MapKind string
+
+const (
+	// MapPlay is the battleground, where every player-made match plays.
+	MapPlay MapKind = "play"
+	// MapDevelopment is the one-lane grey box development matches keep, so the
+	// smoke runs built on it keep their meaning.
+	MapDevelopment MapKind = "development"
+)
+
 // EndReason says why a match ended with a result (ADR-007 §7–8).
 type EndReason string
 
@@ -56,6 +68,9 @@ const (
 	EndAbandoned        EndReason = "abandoned"
 	// EndHostEnded is a practice match its host ended (ADR-010 §7).
 	EndHostEnded EndReason = "host_ended"
+	// EndPrimeWellDestroyed is a standard match won by destroying the other
+	// side's Prime Well (ADR-011 §13), the one end with a winner.
+	EndPrimeWellDestroyed EndReason = "prime_well_destroyed"
 )
 
 // FailureReason says why a match ended without a result.
@@ -72,6 +87,7 @@ const (
 var (
 	ErrUnknownMode      = errors.New("unknown or unavailable mode")
 	ErrInvalidRules     = errors.New("unknown match rules")
+	ErrInvalidMap       = errors.New("unknown map kind")
 	ErrInvalidRoster    = errors.New("invalid roster")
 	ErrInvalidVanguard  = errors.New("invalid Vanguard")
 	ErrAccountNotFound  = errors.New("account not found")
@@ -113,7 +129,8 @@ type ParticipantResult struct {
 // Result is a match server's report of how its match ended (ADR-007 §7).
 type Result struct {
 	EndReason EndReason
-	// Winner is "" when no side won. No victory condition exists yet.
+	// Winner is the side that destroyed the other's Prime Well, and "" for
+	// every other end.
 	Winner Side
 	// DurationSeconds is the match clock, which excludes pauses.
 	DurationSeconds float64
@@ -307,7 +324,16 @@ func (m *Match) validateResult(r Result) error {
 		if m.Rules != RulesPractice {
 			return ErrInvalidResult
 		}
+	case EndPrimeWellDestroyed:
+		// Practice has no victory condition (ADR-011 §14).
+		if m.Rules != RulesStandard {
+			return ErrInvalidResult
+		}
 	default:
+		return ErrInvalidResult
+	}
+	// A side wins exactly when it destroyed the other's Prime Well.
+	if (r.EndReason == EndPrimeWellDestroyed) != (r.Winner != "") {
 		return ErrInvalidResult
 	}
 	if r.Winner != "" && r.Winner != SideA && r.Winner != SideB {

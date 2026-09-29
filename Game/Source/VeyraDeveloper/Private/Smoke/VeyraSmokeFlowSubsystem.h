@@ -8,6 +8,7 @@
 
 #include "VeyraSmokeFlowSubsystem.generated.h"
 
+class AVeyraPlayerController;
 class IVeyraClientIntents;
 struct FVeyraClientSnapshot;
 
@@ -22,14 +23,17 @@ struct FVeyraClientSnapshot;
  * clicking the shell's buttons, as a player would: it chooses a starter if asked, goes to Play and
  * starts practice, hovers and locks a Vanguard, and once its match is live walks toward the lane
  * centre, opens the in-match menu and ends the match as its host. It then checks the verified result,
- * continues to the shell and quits.
+ * continues to the shell and quits. With -VeyraSmokeFlowSieges it first sieges the bots' side with
+ * Veyra.Dev.Siege until their Prime Well falls, and the match must go on (ADR-011 §14).
  *
  * The matchmade scripts (Smoke.ps1 -Flow Casual and -Flow CasualDecline) run in two games at once.
  * Each chooses a starter if asked, chooses the first matchmade mode in Play, readies up and finds a
  * match. Then:
  * - casual accepts, hovers and locks its Vanguard, plays the standard match and checks its verified
  *   result. With -VeyraSmokeFlowEndsMatch it walks and ends the match from the in-match menu's
- *   developer end; otherwise it waits for the end.
+ *   developer end; otherwise it waits for the end. With -VeyraSmokeFlowVictory the match must end in
+ *   a win (Smoke.ps1 -Flow CasualVictory, ADR-011 §13): -VeyraSmokeFlowSieges wins it with
+ *   Veyra.Dev.Siege and must see Victory; the other must see Defeat.
  * - decline declines the match found, and passes once it is back in the shell out of the queue.
  * - requeue accepts; when another player declines, it must be back in the queue. It cancels the
  *   queue and passes.
@@ -74,6 +78,13 @@ private:
 	/** The sparring partner: every state, through the intents. */
 	void TickOpponent(IVeyraClientIntents& Flow);
 	void TickInMatch();
+
+	/**
+	 * With -VeyraSmokeFlowSieges: asks for a developer siege at a steady pace. A match that ends by it
+	 * leaves the match; a practice match stops at the enemy Prime Well. True while it sieges, so the
+	 * rest of the match script waits.
+	 */
+	bool TickSiege(AVeyraPlayerController& Controller, const UWorld& World);
 	void CheckResults(const FVeyraClientSnapshot& Snapshot);
 	bool IsMatchmade() const { return Script == EScript::Casual || Script == EScript::Decline || Script == EScript::Requeue; }
 
@@ -96,6 +107,13 @@ private:
 	EScript Script = EScript::Join;
 	/** Casual: this game ends the match; the other waits for the end. */
 	bool bEndsMatch = false;
+	/** This game sieges with Veyra.Dev.Siege, and whether it has finished, how often it asked and when it asks next. */
+	bool bSieges = false;
+	bool bSiegeDone = false;
+	int32 SiegeRequests = 0;
+	double NextSiegeAt = 0.0;
+	/** Casual: the match must end in a win, this game's if it sieges. */
+	bool bVictory = false;
 	FString WantedVanguard;
 	FString LockedVanguard;
 	FString ScreenshotFolder;

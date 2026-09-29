@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraResourceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Engine/World.h"
 #include "Life/VeyraLifeComponent.h"
 #include "TimerManager.h"
@@ -47,13 +48,24 @@ void UVeyraRegenerationComponent::ApplyTick(double Seconds)
 	AActor* Owner = GetOwner();
 	UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Owner);
 	const UVeyraLifeComponent* Life = Owner ? Owner->FindComponentByClass<UVeyraLifeComponent>() : nullptr;
-	if (!AbilitySystem || !AbilitySystem->GetSet<UVeyraResourceSet>() || (Life && !Life->IsAlive()))
+	if (!AbilitySystem || (Life && !Life->IsAlive()) || !(Seconds > 0.0))
 	{
 		return;
 	}
-	const double Regeneration = AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetResourceRegenAttribute());
-	if (Regeneration > 0.0 && Seconds > 0.0)
+	if (AbilitySystem->GetSet<UVeyraResourceSet>())
 	{
-		VeyraCombat::RestoreResource(*AbilitySystem, Regeneration * Seconds);
+		const double Regeneration = AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetResourceRegenAttribute());
+		if (Regeneration > 0.0)
+		{
+			VeyraCombat::RestoreResource(*AbilitySystem, Regeneration * Seconds);
+		}
+	}
+	if (AbilitySystem->GetSet<UVeyraVitalsSet>())
+	{
+		const double Regeneration = AbilitySystem->GetNumericAttribute(UVeyraVitalsSet::GetHealthRegenAttribute());
+		if (Regeneration > 0.0 && VeyraCombat::GetMissingHealth(*AbilitySystem) > 0.0)
+		{
+			VeyraCombat::RestoreHealth(*AbilitySystem, Regeneration * Seconds);
+		}
 	}
 }

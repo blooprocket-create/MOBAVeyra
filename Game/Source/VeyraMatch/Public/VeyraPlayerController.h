@@ -81,6 +81,13 @@ public:
 	void RequestDeveloperExperience(int32 Amount);
 	void RequestDeveloperLevels(int32 Levels);
 
+	/**
+	 * Owning client, developer builds: asks the server to destroy the next enemy structure in siege
+	 * order, as Veyra.Dev.Siege does (ADR-011 §15), so a match can be won in minutes. Shipping servers
+	 * refuse it.
+	 */
+	void RequestDeveloperSiege();
+
 	/** Owning client: the reason the server gave for the last refused rank-up, and how many it refused. */
 	EVeyraRankRefusal GetLastRankUpRefusal() const { return LastRankUpRefusal; }
 	int32 GetRankUpRefusalCount() const { return RankUpRefusalCount; }
@@ -155,6 +162,9 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void ServerRequestDeveloperLevels(int32 Levels);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestDeveloperSiege();
 
 	/** Server, developer builds: the participant's progression, if its XP may be granted. */
 	class UVeyraProgressionComponent* FindDeveloperProgression() const;

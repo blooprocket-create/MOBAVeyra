@@ -10,10 +10,12 @@ Every gameplay balance, timing, range, cost and cap value lives here as validate
 
 | File | Owner | Holds |
 |---|---|---|
-| `Combat.json` | `VeyraCombat` | Resistance mitigation, targeting, regeneration, movement and forced movement, crowd control, Combat State, assist attribution, Attack Speed, and moving toward enemy Vanguards. |
+| `Combat.json` | `VeyraCombat` | Resistance mitigation, targeting, regeneration, movement and forced movement, crowd control, Combat State, assist attribution, kill credit, Structure Effectiveness, Attack Speed, and moving toward enemy Vanguards. |
 | `Progression.json` | `VeyraEconomy` | Levels, the XP curve, skill points, maximum ranks and the levels that open ultimate ranks. |
 | `Abilities.json` | `VeyraAbilities` | Casting rules, statuses, and one map per ability archetype ([ADR-008](../../Docs/ADR/ADR-008-vanguard-definitions-and-ability-composition.md) §3). |
 | `Vanguards.json` | `VeyraVanguards` | Vanguard definitions, and one map per unique passive (ADR-008 §2, §5). |
+| `Flux.json` | `VeyraFlux` | What each source of Team Flux grants, and how active Team Flux strengthens Fluxborn ([ADR-011](../../Docs/ADR/ADR-011-battleground-runtime.md) §10). |
+| `World.json` | `VeyraWorld` | The battleground's grey-box layout, which the map commandlet bakes and the server spawns from; structures, inhibitor rebuilds, Prime Well regeneration, and tower attacks (ADR-011 §12, §17). |
 | `Match.json` | `VeyraMatch` | Teams, phases, respawn, abandonment, order limits, how bots wander, and the developer match. |
 
 What players read about Vanguards, their abilities and passives is text, not tuning: it lives in `Game/Text/VeyraText.csv`, a string table VeyraUI reads, and carries no numbers.

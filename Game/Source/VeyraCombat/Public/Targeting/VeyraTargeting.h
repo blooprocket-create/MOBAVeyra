@@ -21,6 +21,17 @@ enum class EVeyraTargetValidity : uint8
 	NotHostile,
 	/** Further than the cast range, plus the server's tolerance, edge to edge. */
 	OutOfRange,
+	/** A structure, for an ability that cannot damage structures (Combat Bible §33). */
+	Structure,
+};
+
+/** Whether a targeted action may pick a structure (Combat Bible §33). */
+enum class EVeyraStructureTargeting : uint8
+{
+	/** An ordinary ability: structures are not valid targets. */
+	Refuse,
+	/** A basic attack or a structure-enabled ability. */
+	Allow,
 };
 
 /**
@@ -50,6 +61,10 @@ namespace VeyraTargeting
 	/** Whether Target is within CastRange of Caster, with the server's tuned latency tolerance (§30). */
 	VEYRACOMBAT_API bool IsWithinCastRange(const AActor& Caster, const AActor& Target, double CastRange);
 
-	/** Whether Caster may target Target with a targeted ability against enemies, at CastRange. */
-	VEYRACOMBAT_API EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target, double CastRange);
+	/**
+	 * Whether Caster may target Target with a targeted action against enemies, at CastRange. A
+	 * structure is valid only when Structures allows it.
+	 */
+	VEYRACOMBAT_API EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target, double CastRange,
+		EVeyraStructureTargeting Structures = EVeyraStructureTargeting::Refuse);
 }

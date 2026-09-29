@@ -2,6 +2,7 @@
 
 #include "CQTest.h"
 #include "Hash/VeyraSha256.h"
+#include "Join/VeyraMatchAssignment.h"
 #include "Join/VeyraMatchHostSubsystem.h"
 #include "Join/VeyraMatchRoster.h"
 #include "Rules/VeyraMatchRules.h"
@@ -276,6 +277,23 @@ namespace VeyraMatchTests
 			ASSERT_THAT(IsTrue(CheckAssignedVanguard(TestVanguard, Developer, /*bShipping*/ false).IsEmpty()));
 			ASSERT_THAT(IsTrue(CheckAssignedVanguard(TestVanguard, Developer, /*bShipping*/ true).Contains(TEXT("developer Vanguard"))));
 			ASSERT_THAT(IsFalse(CheckAssignedVanguard(RosterContentId(TEXT("no_such_vanguard")), nullptr, /*bShipping*/ false).IsEmpty()));
+		}
+
+		TEST_METHOD(APrimeWellWinsOnlyALiveStandardMatch)
+		{
+			using namespace VeyraMatchRules;
+			ASSERT_THAT(IsTrue(DoesPrimeWellWin(EVeyraMatchRules::Standard, EVeyraMatchPhase::Live)));
+			ASSERT_THAT(IsFalse(DoesPrimeWellWin(EVeyraMatchRules::Practice, EVeyraMatchPhase::Live), TEXT("practice has no victory condition")));
+			ASSERT_THAT(IsFalse(DoesPrimeWellWin(EVeyraMatchRules::Standard, EVeyraMatchPhase::Ended), TEXT("an ended match stays ended")));
+		}
+
+		TEST_METHOD(OnlyAWonMatchHasAWinner)
+		{
+			using namespace VeyraMatchResults;
+			ASSERT_THAT(IsTrue(IsWinnerConsistent(EVeyraMatchEndReason::PrimeWellDestroyed, EVeyraTeam::B)));
+			ASSERT_THAT(IsFalse(IsWinnerConsistent(EVeyraMatchEndReason::PrimeWellDestroyed, EVeyraTeam::None)));
+			ASSERT_THAT(IsTrue(IsWinnerConsistent(EVeyraMatchEndReason::HostEnded, EVeyraTeam::None)));
+			ASSERT_THAT(IsFalse(IsWinnerConsistent(EVeyraMatchEndReason::DeveloperRequest, EVeyraTeam::A)));
 		}
 	};
 }

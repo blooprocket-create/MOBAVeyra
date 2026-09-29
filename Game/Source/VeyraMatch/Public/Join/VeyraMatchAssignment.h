@@ -47,7 +47,7 @@ struct FVeyraMatchAssignment
 	TArray<FVeyraAssignedBot> Bots;
 };
 
-/** Why a match ended (ADR-007 §7–8, ADR-010 §7). */
+/** Why a match ended (ADR-007 §7–8, ADR-010 §7, ADR-011 §13). */
 enum class EVeyraMatchEndReason : uint8
 {
 	/** A developer ended it; Shipping builds refuse this. */
@@ -56,7 +56,15 @@ enum class EVeyraMatchEndReason : uint8
 	Abandoned,
 	/** The host ended a practice match (Custom Matches Bible §4). */
 	HostEnded,
+	/** A side destroyed the other's Prime Well and won a standard match (Battleground Bible §18). The one end with a winner. */
+	PrimeWellDestroyed,
 };
+
+namespace VeyraMatchResults
+{
+	/** Whether a match that ended for Reason names Winner rightly: a side exactly when a Prime Well fell. */
+	VEYRAMATCH_API bool IsWinnerConsistent(EVeyraMatchEndReason Reason, EVeyraTeam Winner);
+}
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraMatchEndReason Reason);
 
@@ -74,7 +82,7 @@ struct FVeyraMatchResult
 	/** Empty for a developer match that has no assignment. */
 	FString MatchId;
 	EVeyraMatchEndReason EndReason = EVeyraMatchEndReason::DeveloperRequest;
-	/** None when no side won. No victory condition exists yet. */
+	/** The side that destroyed the other's Prime Well; None for every other end. */
 	EVeyraTeam Winner = EVeyraTeam::None;
 	/** The match clock, which excludes pauses; 0 if the match never went live. */
 	double DurationSeconds = 0.0;

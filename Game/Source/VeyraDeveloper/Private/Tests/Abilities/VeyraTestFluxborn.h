@@ -10,6 +10,7 @@
 #include "VeyraTestFluxborn.generated.h"
 
 class UAbilitySystemComponent;
+class UVeyraAttributionComponent;
 class UVeyraDamageAbsorptionComponent;
 class UVeyraDefenceSet;
 class UVeyraLifeComponent;
@@ -57,6 +58,9 @@ private:
 	TObjectPtr<UVeyraLifeComponent> Life;
 
 	UPROPERTY()
+	TObjectPtr<UVeyraAttributionComponent> Attribution;
+
+	UPROPERTY()
 	TObjectPtr<UVeyraVitalsSet> VitalsSet;
 
 	UPROPERTY()
@@ -70,4 +74,17 @@ private:
 
 	UPROPERTY()
 	TObjectPtr<UVeyraResourceSet> ResourceSet;
+};
+
+// A structure for the tests until structures exist: the test unit, reporting itself a structure, so
+// Combat Bible §33's rules apply to it.
+UCLASS(NotBlueprintable, NotPlaceable, Transient)
+class AVeyraTestStructure : public AVeyraTestFluxborn
+{
+	GENERATED_BODY()
+
+public:
+	AVeyraTestStructure(const FObjectInitializer& ObjectInitializer);
+
+	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Structure; }
 };

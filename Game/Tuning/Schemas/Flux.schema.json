@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Flux tuning",
+  "description": "Gameplay tuning owned by the Flux domain (Battleground Bible §4, §5, §9, §10, §18; ADR-011 §10): what each source of Team Flux grants, and how active Team Flux strengthens a team's lane Fluxborn. VeyraFlux binds it to FVeyraFluxTuning.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "grants", "fluxbornScaling"],
+  "definitions": {
+    "grant": {
+      "description": "What one source grants the team that secured it.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["duration", "amount", "durationSeconds"],
+      "properties": {
+        "duration": {
+          "description": "Permanent Flux never expires; temporary Flux expires on its own timer, independently of every other grant (Battleground Bible §10).",
+          "type": "string",
+          "enum": ["Permanent", "Temporary"]
+        },
+        "amount": {
+          "description": "Team Flux granted.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "durationSeconds": {
+          "description": "How long a temporary grant lasts, in seconds; 0 for a permanent one.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [1]
+    },
+    "grants": {
+      "description": "Team Flux from destroyed enemy structures. Flux Wells join when they are built.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "laneSpire", "baseTower", "inhibitor"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Battleground Bible §5, §10 and §18 give them at current prototype tuning.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "laneSpire": { "$ref": "#/definitions/grant", "description": "A destroyed lane Spire: +25 permanent (Battleground Bible §5)." },
+        "baseTower": { "$ref": "#/definitions/grant", "description": "A destroyed base-defense tower: the same as a lane Spire (Battleground Bible §18)." },
+        "inhibitor": { "$ref": "#/definitions/grant", "description": "A destroyed inhibitor: +25 temporary for 3 minutes (Battleground Bible §10)." }
+      }
+    },
+    "fluxbornScaling": {
+      "description": "Every full step of active Team Flux strengthens all of the team's lane Fluxborn on every lane (Battleground Bible §4). Temporary Flux counts while it lasts.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "stepFlux", "healthPerStep", "damagePerStep"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Battleground Bible §4 gives the current prototype scaling.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "stepFlux": {
+          "description": "Active Team Flux per step.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "healthPerStep": {
+          "description": "Max Health added per step, as a fraction of the Fluxborn's own; 0.05 is 5%.",
+          "type": "number",
+          "minimum": 0
+        },
+        "damagePerStep": {
+          "description": "Damage added per step, as a fraction; 0.05 is 5%.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

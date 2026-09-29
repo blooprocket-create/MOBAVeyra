@@ -69,7 +69,11 @@
     "readyTimeout": "120s",
     "maxDuration": "4h",
     "reapInterval": "5s",
-    "removeServerAfter": "2m"
+    "removeServerAfter": "2m",
+    "maps": {
+      "play": "/Game/Veyra/World/Maps/L_Battleground",
+      "development": "/Game/Veyra/Developer/Maps/L_Greybox"
+    }
   },
   "allocator": {
     "kind": "docker",
@@ -85,7 +89,7 @@
       "hostIp": "127.0.0.1",
       "publicHost": "127.0.0.1",
       "backendUrl": "http://backend:8080",
-      "serverArgs": ["/Game/Veyra/Developer/Maps/L_Greybox", "-port=7777", "-log", "-stdout", "-FullStdOutLogOutput", "-LogCmds=LogVeyraAbilities Verbose"],
+      "serverArgs": ["-port=7777", "-log", "-stdout", "-FullStdOutLogOutput", "-LogCmds=LogVeyraAbilities Verbose"],
       "stopTimeout": "10s"
     }
   }

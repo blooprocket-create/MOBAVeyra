@@ -99,4 +99,16 @@ TArray<FString> Validate(const FVeyraBasicAttackProfile& Profile)
 	}
 	return Problems;
 }
+
+FVeyraRawDamageEvent AgainstStructure(const FVeyraAttackPlan& Plan, double Effectiveness)
+{
+	FVeyraRawDamageEvent Damage = Plan.Damage;
+	for (FVeyraDamageComponent& Component : Damage.Components)
+	{
+		const FVeyraDamageComponent* Base = Plan.BaseDamage.FindByPredicate([&Component](const FVeyraDamageComponent& Own) { return Own.Type == Component.Type; });
+		const double Own = Base ? FMath::Min(Base->Amount, Component.Amount) : 0.0;
+		Component.Amount = Own + (Component.Amount - Own) * Effectiveness;
+	}
+	return Damage;
+}
 }

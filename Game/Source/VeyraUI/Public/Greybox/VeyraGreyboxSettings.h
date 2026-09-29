@@ -122,4 +122,33 @@ public:
 	/** How far above and below a telegraph's origin the ground is looked for, in units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "1"))
 	float GroundProbeDistance = 0.0f;
+
+	/** The battleground's lanes and river, flat on its floor: stretched to each stretch of road or water. */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	TSoftObjectPtr<UStaticMesh> GroundMesh;
+
+	/** Each base's pad around its Prime Well: a disc. */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	TSoftObjectPtr<UStaticMesh> PadMesh;
+
+	/** The lanes' road, the river, and each side's base as the viewer sees it. */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FLinearColor LaneColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FLinearColor RiverColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FLinearColor AllyBaseColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FLinearColor EnemyBaseColor = FLinearColor::Transparent;
+
+	/** How thick each marking is, in units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground", meta = (ClampMin = "0"))
+	float GroundMarkingThickness = 0.0f;
+
+	/** How far each layer of markings sits above the one below (river, then lanes, then pads), so none flickers through another. */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground", meta = (ClampMin = "0"))
+	float GroundMarkingLift = 0.0f;
 };

@@ -46,6 +46,15 @@ namespace
 				Controller->RequestDeveloperLevels(FCString::Atoi(*Args[0]));
 			}
 		}));
+
+	FAutoConsoleCommandWithWorld SiegeCommand(TEXT("Veyra.Dev.Siege"),
+		TEXT("Development builds: asks the server to destroy the next enemy structure in siege order, the Prime Well last (ADR-011 §15)."),
+		FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World) {
+			if (AVeyraPlayerController* Controller = ConsoleController(World))
+			{
+				Controller->RequestDeveloperSiege();
+			}
+		}));
 }
 #endif
 
@@ -331,6 +340,22 @@ void AVeyraPlayerController::RequestDeveloperExperience(int32 Amount)
 void AVeyraPlayerController::RequestDeveloperLevels(int32 Levels)
 {
 	ServerRequestDeveloperLevels(Levels);
+}
+
+void AVeyraPlayerController::RequestDeveloperSiege()
+{
+	ServerRequestDeveloperSiege();
+}
+
+void AVeyraPlayerController::ServerRequestDeveloperSiege_Implementation()
+{
+#if UE_BUILD_SHIPPING
+	UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a developer siege from %s: Shipping builds destroy structures only through play."), *GetNameSafe(PlayerState));
+#else
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	const bool bFell = GameMode && GameMode->HandleDeveloperSiege(*this);
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s asked for a developer siege: %s."), *GetNameSafe(PlayerState), bFell ? TEXT("a structure fell") : TEXT("nothing fell"));
+#endif
 }
 
 void AVeyraPlayerController::ServerRequestDeveloperExperience_Implementation(int32 Amount)

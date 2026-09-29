@@ -1,0 +1,66 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#pragma once
+
+#include "Battleground/VeyraBattlegroundTypes.h"
+#include "Containers/ArrayView.h"
+#include "Math/Vector2D.h"
+#include "Misc/Optional.h"
+#include "Teams/VeyraTeam.h"
+
+struct FVeyraBattlegroundLayout;
+struct FVeyraLaneLayout;
+struct FVeyraMapPoint;
+
+/** Where one structure stands (Battleground Bible §5, §10, §18). */
+struct FVeyraStructurePlacement
+{
+	EVeyraStructureKind Kind = EVeyraStructureKind::LaneSpire;
+	EVeyraTeam Team = EVeyraTeam::None;
+
+	/** The lane of a Spire or inhibitor; none for the base's structures. */
+	TOptional<EVeyraLane> Lane;
+
+	/**
+	 * For a lane's structures, the order they must fall in (author ruling 2026-09-28, Battleground
+	 * §10): 0 for the outer Spire, rising inward, the inhibitor last. For the base's structures, the
+	 * index among their kind.
+	 */
+	int32 Order = 0;
+
+	/** On the floor, in world units. */
+	FVector2D Location = FVector2D::ZeroVector;
+};
+
+/**
+ * The battleground's geometry as pure functions of its layout (ADR-011 §12), so the map commandlet,
+ * the server's spawning and the tests agree. Team A's half is authored; Team B's is its mirror.
+ */
+namespace VeyraLayout
+{
+	VEYRAWORLD_API FVector2D ToVector(const FVeyraMapPoint& Point);
+
+	/** Team A's point as Team B's: reflected across the river's diagonal, Y = -X. */
+	VEYRAWORLD_API FVector2D Mirror(const FVector2D& Point);
+
+	/** The length of the path through Points. */
+	VEYRAWORLD_API double Length(TConstArrayView<FVeyraMapPoint> Points);
+
+	/** The point Distance along the path through Points, clamped to its ends. */
+	VEYRAWORLD_API FVector2D PointAlong(TConstArrayView<FVeyraMapPoint> Points, double Distance);
+
+	/** The lane's path as Team walks it toward the enemy base: forward for Team A, reversed for Team B. */
+	VEYRAWORLD_API TArray<FVector2D> Waypoints(const FVeyraLaneLayout& Lane, EVeyraTeam Team);
+
+	/** Where Team's Vanguards start and respawn. */
+	VEYRAWORLD_API FVector2D Fountain(const FVeyraBattlegroundLayout& Layout, EVeyraTeam Team);
+
+	/** A point of Team A's base, as it stands for Team. */
+	VEYRAWORLD_API FVector2D ForTeam(const FVector2D& TeamAPoint, EVeyraTeam Team);
+
+	/** Every structure of both teams: each lane's Spires and inhibitor, the base towers and the Prime Well. */
+	VEYRAWORLD_API TArray<FVeyraStructurePlacement> Structures(const FVeyraBattlegroundLayout& Layout);
+
+	/** Whether the lane's path is its own mirror, reversed, so both teams walk the same distances. */
+	VEYRAWORLD_API bool MirrorsOntoItself(const FVeyraLaneLayout& Lane);
+}

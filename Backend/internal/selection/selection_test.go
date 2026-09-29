@@ -83,6 +83,7 @@ func newFixture(t *testing.T) *fixture {
 	})
 	f.matches = match.NewService(match.NewMemStore(), names, f.alloc, match.Settings{
 		Modes:             map[string]match.Mode{casualMode: {ID: casualMode, Enabled: true, HumanPlayersPerTeam: 1}},
+		Maps:              match.FakeMaps,
 		Practice:          match.PracticeSettings{Enabled: true, Mode: fixturePractice.Mode, HostSide: fixturePractice.HostSide},
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,

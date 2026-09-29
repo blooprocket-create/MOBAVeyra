@@ -12,11 +12,16 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Effects/VeyraCombatEffects.h"
 #include "Effects/VeyraResourceSpendExecution.h"
+#include "Engine/World.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Movement/VeyraMovementComponent.h"
 #include "Records/VeyraCombatRecords.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Tags/VeyraHealthTags.h"
+#include "Tags/VeyraStatusTags.h"
+#include "Targeting/VeyraTargeting.h"
+#include "Units/VeyraUnit.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatTagMapping.h"
 
@@ -45,10 +50,11 @@ namespace
 		double Value;
 	};
 
-	TArray<FStatEntry, TInlineAllocator<9>> StatEntries(const FVeyraStatBlock& Stats)
+	TArray<FStatEntry, TInlineAllocator<10>> StatEntries(const FVeyraStatBlock& Stats)
 	{
 		return {
 			{ UVeyraVitalsSet::GetMaxHealthAttribute(), Stats.MaxHealth },
+			{ UVeyraVitalsSet::GetHealthRegenAttribute(), Stats.HealthRegen },
 			{ UVeyraResourceSet::GetMaxResourceAttribute(), Stats.MaxResource },
 			{ UVeyraResourceSet::GetResourceRegenAttribute(), Stats.ResourceRegen },
 			{ UVeyraDefenceSet::GetArmorAttribute(), Stats.Armor },
@@ -71,6 +77,12 @@ namespace
 		const AActor* Owner = AbilitySystem.GetOwner();
 		const UVeyraLifeComponent* Life = Owner ? Owner->FindComponentByClass<UVeyraLifeComponent>() : nullptr;
 		return Life && !Life->IsAlive();
+	}
+
+	/** Whether the unit is a structure, which only some damage and no enemy status reaches (Combat Bible §33). */
+	bool IsStructureUnit(const UAbilitySystemComponent& AbilitySystem)
+	{
+		return VeyraUnits::IsStructure(AbilitySystem.GetOwner());
 	}
 
 	/** The movement of the unit's body, its avatar; none before it has one. */
@@ -118,6 +130,19 @@ bool InitializeVitals(UAbilitySystemComponent& AbilitySystem, double MaxHealth)
 	}
 	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetMaxHealthAttribute(), static_cast<float>(MaxHealth));
 	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), AbilitySystem.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()));
+	return true;
+}
+
+bool InitializeResistances(UAbilitySystemComponent& AbilitySystem, double Armor, double MagicResist)
+{
+	if (!AbilitySystem.GetSet<UVeyraDefenceSet>() || !IsNonNegativeFinite(Armor) || !IsNonNegativeFinite(MagicResist))
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to initialize the resistances of %s with Armor %g and Magic Resist %g: it needs a UVeyraDefenceSet, and both finite and at least 0."),
+			*GetNameSafe(AbilitySystem.GetOwner()), Armor, MagicResist);
+		return false;
+	}
+	AbilitySystem.SetNumericAttributeBase(UVeyraDefenceSet::GetArmorAttribute(), static_cast<float>(Armor));
+	AbilitySystem.SetNumericAttributeBase(UVeyraDefenceSet::GetMagicResistAttribute(), static_cast<float>(MagicResist));
 	return true;
 }
 
@@ -220,6 +245,40 @@ bool RestoreResource(UAbilitySystemComponent& AbilitySystem, double Amount)
 	return true;
 }
 
+bool RestoreHealth(UAbilitySystemComponent& AbilitySystem, double Amount)
+{
+	if (!AbilitySystem.GetSet<UVeyraVitalsSet>() || !IsNonNegativeFinite(Amount))
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused to restore %g Health on %s: it needs a UVeyraVitalsSet and an amount that is finite and at least 0."),
+			Amount, *GetNameSafe(AbilitySystem.GetOwner()));
+		return false;
+	}
+	if (IsDeadUnit(AbilitySystem))
+	{
+		return false;
+	}
+	// The vitals set keeps Health within [0, Max Health], so restoration never overheals (Combat Bible §6).
+	const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
+	AbilitySystem.SetNumericAttributeBase(Health, AbilitySystem.GetNumericAttributeBase(Health) + static_cast<float>(Amount));
+	return true;
+}
+
+void GrantInvulnerability(UAbilitySystemComponent& AbilitySystem)
+{
+	// A loose tag counts each grant; the vitals set asks for the tag, whoever granted it.
+	AbilitySystem.AddLooseGameplayTag(VeyraTags::Status_Invulnerable);
+}
+
+void RevokeInvulnerability(UAbilitySystemComponent& AbilitySystem)
+{
+	AbilitySystem.RemoveLooseGameplayTag(VeyraTags::Status_Invulnerable);
+}
+
+bool IsInvulnerable(const UAbilitySystemComponent& AbilitySystem)
+{
+	return AbilitySystem.HasMatchingGameplayTag(VeyraTags::Status_Invulnerable);
+}
+
 bool CanAffordResource(const UAbilitySystemComponent& AbilitySystem, double Amount)
 {
 	return Amount <= 0.0 || (AbilitySystem.GetSet<UVeyraResourceSet>() && AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute()) >= Amount);
@@ -289,6 +348,7 @@ FVeyraPreparedDamage PrepareDamage(UAbilitySystemComponent& Source, const FVeyra
 
 	// Making the spec captures the source's offence now (UVeyraDamageExecution snapshots it).
 	FVeyraPreparedDamage Prepared;
+	Prepared.Delivery = Damage.Delivery;
 	Prepared.Spec = Source.MakeOutgoingSpec(UVeyraDamageEffect::StaticClass(), UnscaledEffectLevel, Source.MakeEffectContext());
 	if (!Prepared.IsValid())
 	{
@@ -325,7 +385,24 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored damage to %s: its death is final."), *GetNameSafe(Target.GetOwner()));
 		return false;
 	}
-	return Source->ApplyGameplayEffectSpecToTarget(*Damage.Spec.Data, &Target).WasSuccessfullyApplied();
+	if (IsStructureUnit(Target) && !VeyraDamageDelivery::DamagesStructures(Damage.Delivery))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored damage to %s: it is a structure, and this damage cannot reach structures (Combat Bible §33)."),
+			*GetNameSafe(Target.GetOwner()));
+		return false;
+	}
+	if (!Source->ApplyGameplayEffectSpecToTarget(*Damage.Spec.Data, &Target).WasSuccessfullyApplied())
+	{
+		return false;
+	}
+	// Towers and Fluxborn react to who hurts whom (Battleground Bible §19; ADR-011 §6).
+	UWorld* World = Target.GetWorld();
+	UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+	if (Events && VeyraTargeting::AreHostile(Source->GetOwner(), Target.GetOwner()))
+	{
+		Events->OnHostileDamage.Broadcast(FVeyraHostileDamageEvent{ Source, &Target, Damage.Delivery });
+	}
+	return true;
 }
 
 bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemComponent& Target, TConstArrayView<FVeyraDamageComponent> AddedAtImpact)
@@ -344,6 +421,7 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	}
 	// A copy, so the preparation stays the same for every other target it reaches.
 	FVeyraPreparedDamage Landing;
+	Landing.Delivery = Damage.Delivery;
 	Landing.Spec = FGameplayEffectSpecHandle(new FGameplayEffectSpec(*Damage.Spec.Data));
 	for (const FVeyraDamageComponent& Added : AddedAtImpact)
 	{
@@ -406,6 +484,12 @@ bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Targe
 	if (!Statuses || IsDeadUnit(Target))
 	{
 		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: it has no status ledger, or its death is final."),
+			*Status.Id.ToString(), *GetNameSafe(TargetOwner));
+		return false;
+	}
+	if (IsStructureUnit(Target) && VeyraTargeting::AreHostile(Source.GetOwner(), TargetOwner))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: enemy statuses do not affect structures (Combat Bible §33)."),
 			*Status.Id.ToString(), *GetNameSafe(TargetOwner));
 		return false;
 	}

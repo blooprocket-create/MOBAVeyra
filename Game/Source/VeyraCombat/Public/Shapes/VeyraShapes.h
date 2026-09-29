@@ -4,6 +4,7 @@
 
 #include "Math/Vector.h"
 #include "Misc/Optional.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Templates/Function.h"
 #include "UObject/ObjectMacros.h"
 
@@ -78,9 +79,12 @@ namespace VeyraShapes
 
 	/**
 	 * The living units whose bodies touch Placed and that Include accepts, nearest the origin first,
-	 * then in a stable order (ADR-009 §4). Server only.
+	 * then in a stable order (ADR-009 §4). Structures are gathered only when Structures allows them:
+	 * areas, cleaves and impacts never hit them (Combat Bible §33), but an attack-move may pick one.
+	 * Server only.
 	 */
-	VEYRACOMBAT_API TArray<AActor*> GatherUnits(const UWorld& World, const FVeyraPlacedShape& Placed, TFunctionRef<bool(const AActor&)> Include);
+	VEYRACOMBAT_API TArray<AActor*> GatherUnits(const UWorld& World, const FVeyraPlacedShape& Placed, TFunctionRef<bool(const AActor&)> Include,
+		EVeyraStructureTargeting Structures = EVeyraStructureTargeting::Refuse);
 
 	/**
 	 * How far along the path from Start to End a circle of Radius moving along it first touches a body
@@ -90,7 +94,8 @@ namespace VeyraShapes
 
 	/**
 	 * The living units that a circle of Radius touches moving from Start to End and that Include
-	 * accepts, in the order it reaches them, then in a stable order (ADR-009 §4). Server only.
+	 * accepts, in the order it reaches them, then in a stable order (ADR-009 §4). Structures are never
+	 * gathered (Combat Bible §33). Server only.
 	 */
 	VEYRACOMBAT_API TArray<FVeyraPathHit> GatherUnitsAlong(const UWorld& World, const FVector& Start, const FVector& End, double Radius,
 		TFunctionRef<bool(const AActor&)> Include);

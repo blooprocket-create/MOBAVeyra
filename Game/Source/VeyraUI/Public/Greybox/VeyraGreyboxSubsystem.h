@@ -44,6 +44,7 @@ struct FVeyraTelegraph
 /**
  * The grey-box presentation of one client world (ADR-008 §1). Engine shapes show replicated state
  * and decide nothing:
+ * - the battleground's lanes, river and bases are drawn on its floor from its layout;
  * - every unit gets a body in its side's colour, tinted while crowd controlled;
  * - projectiles are drawn from their launch data and the server's clock (ADR-009 §4);
  * - casts, channels and delayed areas are telegraphed from the ability tuning (VeyraCastTelegraphs);
@@ -73,6 +74,9 @@ public:
 
 	/** The sphere drawn for Projectile, once it has one. */
 	UStaticMeshComponent* FindProjectileVisual(const AVeyraProjectile& Projectile) const;
+
+	/** The actor holding the battleground's drawn ground, once the world shows the battleground. */
+	AActor* GetGround() const { return GroundMarkings.Get(); }
 
 	/** What the last refresh telegraphed. */
 	const TArray<FVeyraTelegraph>& GetTelegraphs() const { return Telegraphs; }
@@ -110,6 +114,24 @@ private:
 	};
 
 	void RefreshBodies();
+
+	/**
+	 * Once the world shows the battleground (its structures have arrived), draws its ground from
+	 * World.json's layout: the river, the lanes' road and each base's pad. It decides nothing:
+	 * nothing collides with it or shapes navigation.
+	 */
+	void RefreshBattleground();
+
+	/**
+	 * A flat marking of Mesh in Color, centred on Centre, turned by Yaw, with half extents HalfSize on
+	 * the ground, Layer lifts up. Returns its material instance, or null.
+	 */
+	UMaterialInstanceDynamic* AddGroundMarking(AActor& Owner, UStaticMesh& Mesh, const FLinearColor& Color, const FVector2D& Centre, double Yaw,
+		const FVector2D& HalfSize, int32 Layer) const;
+
+	/** The colour of Team's base as the viewer sees it. */
+	FLinearColor BaseColorOf(EVeyraTeam Team) const;
+
 	void RefreshProjectiles();
 	void RefreshTelegraphs();
 	void DrawTelegraphs();
@@ -134,6 +156,19 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UMaterialInterface> ShapeMaterial;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMesh> GroundMesh;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UStaticMesh> PadMesh;
+
+	/** The actor holding the battleground's ground markings, once drawn. */
+	TWeakObjectPtr<AActor> GroundMarkings;
+
+	/** Each base's pad, and the viewer's side they were coloured for. */
+	TMap<EVeyraTeam, TWeakObjectPtr<UMaterialInstanceDynamic>> PadMaterials;
+	EVeyraTeam PadsDrawnFor = EVeyraTeam::None;
 
 	UPROPERTY(Transient)
 	TObjectPtr<ULineBatchComponent> TelegraphLines;

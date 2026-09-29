@@ -48,6 +48,7 @@ EVeyraCastRejection UVeyraTargetedDamageAbility::CheckTarget(const AActor& Caste
 		return EVeyraCastRejection::OutOfRange;
 	case EVeyraTargetValidity::NotACombatant:
 	case EVeyraTargetValidity::Caster:
+	case EVeyraTargetValidity::Structure:
 		return EVeyraCastRejection::InvalidTarget;
 	}
 	return EVeyraCastRejection::InvalidTarget;

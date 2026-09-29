@@ -8,10 +8,10 @@
 #include "VeyraRegenerationComponent.generated.h"
 
 /**
- * Restores a unit's resource over time at its Resource Regeneration stat (Combat Bible §28:
- * regeneration continues in and out of combat). It sits beside the unit's Ability System Component
- * and runs on the server on a world-time timer, so it freezes with the match during a pause
- * (ADR-006 §8). Health regeneration joins it with healing.
+ * Restores a unit's resource and Health over time at its Resource Regeneration and Health
+ * Regeneration stats, in and out of combat (Combat Bible §6, §28; ADR-011 §11). It sits beside the
+ * unit's Ability System Component and runs on the server on a world-time timer, so it freezes with
+ * the match during a pause (ADR-006 §8).
  */
 UCLASS()
 class VEYRACOMBAT_API UVeyraRegenerationComponent : public UActorComponent

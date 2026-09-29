@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "resistance": {
     "mitigationConstant": 100
   },
@@ -33,6 +33,14 @@
   "attribution": {
     "provenance": "Canon",
     "assistWindowSeconds": 10
+  },
+  "killCredit": {
+    "provenance": "Provisional",
+    "windowSeconds": 10
+  },
+  "structures": {
+    "provenance": "Canon",
+    "effectiveness": 0.5
   },
   "attackSpeed": {
     "provenance": "Canon",

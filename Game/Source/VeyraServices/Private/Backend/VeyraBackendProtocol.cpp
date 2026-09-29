@@ -144,6 +144,8 @@ namespace
 			return TEXT("abandoned");
 		case EVeyraMatchEndReason::HostEnded:
 			return TEXT("host_ended");
+		case EVeyraMatchEndReason::PrimeWellDestroyed:
+			return TEXT("prime_well_destroyed");
 		}
 		checkNoEntry();
 		return TEXT("");

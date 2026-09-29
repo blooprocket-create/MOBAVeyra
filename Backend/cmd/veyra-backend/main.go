@@ -219,6 +219,10 @@ func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Ser
 	var allocator match.Allocator = noAllocator{}
 	settings := match.Settings{
 		Modes: map[string]match.Mode{},
+		Maps: map[match.MapKind]string{
+			match.MapPlay:        cfg.Matches.Maps.Play,
+			match.MapDevelopment: cfg.Matches.Maps.Development,
+		},
 		Practice: match.PracticeSettings{
 			Enabled:  cfg.CustomPractice.Enabled,
 			Mode:     cfg.CustomPractice.Mode,

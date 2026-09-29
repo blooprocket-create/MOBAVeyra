@@ -8,9 +8,11 @@
 #include "Engine/World.h"
 #include "GameplayEffect.h"
 #include "Life/VeyraCombatEventSubsystem.h"
+#include "Life/VeyraKillCredit.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatLog.h"
 
@@ -30,15 +32,33 @@ void FinalizeDeath(UAbilitySystemComponent& Victim, UAbilitySystemComponent* Kil
 		return;
 	}
 
-	// §18: the assisters are read before death clears the victim's records.
-	FVeyraDeathEvent Death{ &Victim, Killer };
+	// §18: credit and assists are read before death clears the victim's records.
+	const double Now = Owner->GetWorld()->GetTimeSeconds();
+	FVeyraDeathEvent Death;
+	Death.Victim = &Victim;
+	Death.Killer = Killer;
+	Death.DiedAtSeconds = Now;
+	const AActor* KillerUnit = Killer ? Killer->GetOwner() : nullptr;
+	const bool bKillerIsEnemyVanguard = KillerUnit && VeyraUnits::IsVanguard(KillerUnit) && VeyraTargeting::AreHostile(KillerUnit, Owner);
 	if (UVeyraAttributionComponent* Attribution = Owner->FindComponentByClass<UVeyraAttributionComponent>())
 	{
-		for (UAbilitySystemComponent* Assister : Attribution->GetAssisters(Killer, Owner->GetWorld()->GetTimeSeconds()))
+		Death.Contributions = Attribution->GetContributions();
+		UAbilitySystemComponent* Credited = VeyraKillCredit::Resolve(Killer, bKillerIsEnemyVanguard, Death.Contributions, Now,
+			UVeyraCombatTuningSubsystem::Get().KillCredit.WindowSeconds);
+		Death.CreditedKiller = Credited;
+		// Kills and assists are Vanguard terms (§18): other victims have contributors, not assisters.
+		if (VeyraUnits::IsVanguard(Owner))
 		{
-			Death.Assisters.Add(Assister);
+			for (UAbilitySystemComponent* Assister : Attribution->GetAssisters(Credited, Now))
+			{
+				Death.Assisters.Add(Assister);
+			}
 		}
 		Attribution->Clear();
+	}
+	else if (bKillerIsEnemyVanguard)
+	{
+		Death.CreditedKiller = Killer;
 	}
 	// §28: death clears Combat State.
 	if (UVeyraCombatStateComponent* CombatState = Owner->FindComponentByClass<UVeyraCombatStateComponent>())
@@ -62,17 +82,19 @@ void FinalizeDeath(UAbilitySystemComponent& Victim, UAbilitySystemComponent* Kil
 		Victim.RemoveActiveGameplayEffect(Handle);
 	}
 
-	// A takedown is a kill or an assist by an enemy Vanguard (§18). It extends the statuses that say
-	// so (ADR-009 §1).
+	// A takedown is a kill or an assist on an enemy Vanguard (§18; ADR-011 §6). It extends the
+	// statuses that say so (ADR-009 §1); killing a Fluxborn or a structure is no takedown.
 	TArray<UAbilitySystemComponent*, TInlineAllocator<5>> Takedown;
-	const AActor* KillerUnit = Killer ? Killer->GetOwner() : nullptr;
-	if (KillerUnit && VeyraUnits::IsVanguard(KillerUnit) && VeyraTargeting::AreHostile(KillerUnit, Owner))
+	if (VeyraUnits::IsVanguard(Owner))
 	{
-		Takedown.Add(Killer);
-	}
-	for (const TWeakObjectPtr<UAbilitySystemComponent>& Assister : Death.Assisters)
-	{
-		Takedown.Add(Assister.Get());
+		if (UAbilitySystemComponent* Credited = Death.CreditedKiller.Get())
+		{
+			Takedown.Add(Credited);
+		}
+		for (const TWeakObjectPtr<UAbilitySystemComponent>& Assister : Death.Assisters)
+		{
+			Takedown.Add(Assister.Get());
+		}
 	}
 	for (UAbilitySystemComponent* Participant : Takedown)
 	{
@@ -83,7 +105,9 @@ void FinalizeDeath(UAbilitySystemComponent& Victim, UAbilitySystemComponent* Kil
 		}
 	}
 
-	UE_LOG(LogVeyraCombat, Log, TEXT("%s died (killed by %s, %d assist(s))."), *GetNameSafe(Owner), *GetNameSafe(KillerUnit), Death.Assisters.Num());
+	const UAbilitySystemComponent* CreditedKiller = Death.CreditedKiller.Get();
+	UE_LOG(LogVeyraCombat, Log, TEXT("%s died (killed by %s, credited to %s, %d assist(s))."), *GetNameSafe(Owner), *GetNameSafe(KillerUnit),
+		*GetNameSafe(CreditedKiller ? CreditedKiller->GetOwner() : nullptr), Death.Assisters.Num());
 	if (UVeyraCombatEventSubsystem* Events = Owner->GetWorld() ? Owner->GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
 	{
 		Events->OnDeath.Broadcast(Death);

@@ -15,6 +15,8 @@ import (
 // Settings are the validated settings the match service needs.
 type Settings struct {
 	Modes map[string]Mode
+	// Maps are the server maps, by kind: the path the server loads first.
+	Maps map[MapKind]string
 	// Practice configures solo Custom practice matches.
 	Practice PracticeSettings
 	// ReadyTimeout fails a match whose server has not reported ready.
@@ -67,6 +69,8 @@ type Spec struct {
 	// SelectID is the champion select creating the match; a select creates at
 	// most one (ErrSelectHasMatch). Development matches have none.
 	SelectID string
+	// Map is which map the server loads; MapPlay when empty.
+	Map MapKind
 }
 
 // PlayerMatch is a player's view of their active match. The server address
@@ -104,6 +108,14 @@ func NewService(store Store, accounts Accounts, allocator Allocator, settings Se
 // what the player may pick; Create checks only the roster's shape. The
 // returned match carries no secrets.
 func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
+	mapKind := spec.Map
+	if mapKind == "" {
+		mapKind = MapPlay
+	}
+	mapPath, ok := s.settings.Maps[mapKind]
+	if !ok {
+		return Match{}, ErrInvalidMap
+	}
 	participants := make([]Participant, len(spec.Seats))
 	ids := make([]string, len(spec.Seats))
 	for i, seat := range spec.Seats {
@@ -181,7 +193,7 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 	// leaves a record the reaper fails at its ready timeout.
 	assignment, err := BuildAssignment(m, credential, s.settings.BackendURL)
 	if err == nil {
-		err = s.allocator.Start(ctx, ServerSpec{MatchID: m.ID, HostPort: m.Server.HostPort, Assignment: assignment})
+		err = s.allocator.Start(ctx, ServerSpec{MatchID: m.ID, HostPort: m.Server.HostPort, Map: mapPath, Assignment: assignment})
 	}
 	if err != nil {
 		return Match{}, s.failAllocation(ctx, m.ID, err)

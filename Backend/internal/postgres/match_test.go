@@ -50,6 +50,7 @@ func newMatchFixture(t *testing.T, names ...string) *matchFixture {
 	})
 	f.svc = match.NewService(store.Match(), accounts, f.alloc, match.Settings{
 		Modes: map[string]match.Mode{"casual": {ID: "casual", Enabled: true, HumanPlayersPerTeam: 5}},
+		Maps:  match.FakeMaps,
 		Practice: match.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA,
 			Bots: []match.Bot{{Side: match.SideB, VanguardID: "cairn"}, {Side: match.SideB, VanguardID: "bryn"}}},
 		ReadyTimeout:      time.Minute,
@@ -175,6 +176,40 @@ func TestPracticeMatchInPostgres(t *testing.T) {
 	ended, p, err := f.svc.ForParticipant(ctx, host, m.ID)
 	if err != nil || ended.Result == nil || ended.Result.EndReason != match.EndHostEnded || p.VanguardID != "oriel" {
 		t.Fatalf("the host's view of the ended match: %+v %+v %v", ended, p, err)
+	}
+}
+
+// A standard match won by destroying a Prime Well keeps its winner, and the
+// schema refuses a winner beside any other end (ADR-011 §13).
+func TestVictoryInPostgres(t *testing.T) {
+	f := newMatchFixture(t, "DevOne", "DevTwo")
+	ctx := context.Background()
+	m, err := f.svc.Create(ctx, f.casual(f.seats(map[string]match.Side{"DevOne": match.SideA, "DevTwo": match.SideB})))
+	if err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+	stored, err := f.store.Match().MatchByID(ctx, m.ID)
+	if err != nil {
+		t.Fatalf("MatchByID: %v", err)
+	}
+	cred := f.credential(t, m.ID)
+	if err := f.svc.ServerReady(ctx, cred, m.ID); err != nil {
+		t.Fatalf("ServerReady: %v", err)
+	}
+	r := match.Result{EndReason: match.EndPrimeWellDestroyed, Winner: match.SideA, DurationSeconds: 1500}
+	for _, p := range stored.Participants {
+		r.Participants = append(r.Participants, match.ParticipantResult{AccountID: p.AccountID, Joined: true, ConnectedAtEnd: true})
+	}
+	if err := f.svc.ServerResult(ctx, cred, m.ID, r); err != nil {
+		t.Fatalf("ServerResult: %v", err)
+	}
+	ended, p, err := f.svc.ForParticipant(ctx, f.ids["DevTwo"], m.ID)
+	if err != nil || ended.Result == nil || ended.Result.EndReason != match.EndPrimeWellDestroyed || ended.Result.Winner != match.SideA || p.Side != match.SideB {
+		t.Fatalf("the loser's view of the ended match: %+v %+v %v", ended, p, err)
+	}
+
+	if _, err := f.store.pool.Exec(ctx, `UPDATE match.results SET end_reason = 'abandoned' WHERE match_id = $1`, m.ID); err == nil {
+		t.Fatal("the schema must refuse a winner beside another end")
 	}
 }
 

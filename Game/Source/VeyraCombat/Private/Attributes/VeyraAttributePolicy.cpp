@@ -27,6 +27,7 @@ namespace
 		static const TArray<FRule> Table = {
 			{ UVeyraVitalsSet::GetHealthAttribute(), EVeyraModifierRule::None },
 			{ UVeyraVitalsSet::GetMaxHealthAttribute(), EVeyraModifierRule::Stat },
+			{ UVeyraVitalsSet::GetHealthRegenAttribute(), EVeyraModifierRule::Stat },
 			{ UVeyraVitalsSet::GetIncomingPhysicalDamageAttribute(), EVeyraModifierRule::None },
 			{ UVeyraVitalsSet::GetIncomingMagicDamageAttribute(), EVeyraModifierRule::None },
 			{ UVeyraVitalsSet::GetIncomingTrueDamageAttribute(), EVeyraModifierRule::None },

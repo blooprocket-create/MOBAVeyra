@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution", "attackSpeed", "pursuit"],
+  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution", "killCredit", "structures", "attackSpeed", "pursuit"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [3]
+      "enum": [4]
     },
     "resistance": {
       "description": "Armor and Magic Resistance mitigation (Combat Bible §3).",
@@ -173,6 +173,44 @@
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true
+        }
+      }
+    },
+    "killCredit": {
+      "description": "Who is credited with a kill the environment finishes (Combat Bible §18: an enemy Vanguard may still receive kill credit if they meaningfully contributed within the configured kill-credit window; otherwise the death is an Execution).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "windowSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Canon names the window but gives no length (ADR-011 §6).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "windowSeconds": {
+          "description": "How recently an enemy Vanguard must have contributed to a death that something else finished to be credited with the kill, in seconds.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "structures": {
+      "description": "Basic attacks against structures (Combat Bible §33).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "effectiveness"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Combat Bible §33 gives the prototype value.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "effectiveness": {
+          "description": "Structure Effectiveness: the fraction of a basic attack's secondary riders (crit bonus, on-hit damage, empowered bonus damage) that applies to a structure. The attack's own damage stays at full effectiveness.",
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
         }
       }
     },

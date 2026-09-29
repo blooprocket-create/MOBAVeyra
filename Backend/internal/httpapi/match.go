@@ -93,11 +93,14 @@ func toDevMatchJSON(m match.Match) devMatchJSON {
 // createDevMatch creates a match from a roster in development, standing in
 // for champion select in scripts (ADR-010 §9). Rules default to standard; a
 // practice match names its host. Any Vanguard the game defines is accepted,
-// including developer ones: the match server refuses unknown Vanguards.
+// including developer ones: the match server refuses unknown Vanguards. The
+// map defaults to the development grey box; "play" asks for the battleground
+// (ADR-011 §12).
 func (s *Server) createDevMatch(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		Mode          string `json:"mode"`
 		Rules         string `json:"rules"`
+		Map           string `json:"map"`
 		HostAccountID string `json:"hostAccountId"`
 		Participants  []struct {
 			AccountID  string `json:"accountId"`
@@ -108,9 +111,12 @@ func (s *Server) createDevMatch(w http.ResponseWriter, r *http.Request) {
 	if !s.decode(w, r, &req) {
 		return
 	}
-	spec := match.Spec{Mode: req.Mode, Rules: match.Rules(req.Rules), HostAccountID: req.HostAccountID}
+	spec := match.Spec{Mode: req.Mode, Rules: match.Rules(req.Rules), HostAccountID: req.HostAccountID, Map: match.MapKind(req.Map)}
 	if spec.Rules == "" {
 		spec.Rules = match.RulesStandard
+	}
+	if spec.Map == "" {
+		spec.Map = match.MapDevelopment
 	}
 	for _, p := range req.Participants {
 		spec.Seats = append(spec.Seats, match.Seat{AccountID: p.AccountID, Side: match.Side(p.Side), VanguardID: p.VanguardID})

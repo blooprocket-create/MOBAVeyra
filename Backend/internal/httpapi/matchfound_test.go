@@ -64,6 +64,7 @@ func newMatchmakingTestServer(t *testing.T) (*httptest.Server, *matchmaking.Serv
 	})
 	d.Match = match.NewService(match.NewMemStore(), names, match.NewFakeAllocator(), match.Settings{
 		Modes:             map[string]match.Mode{"casual_select": {ID: "casual_select", Enabled: true, HumanPlayersPerTeam: 1}},
+		Maps:              match.FakeMaps,
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,
 		RemoveServerAfter: time.Minute,

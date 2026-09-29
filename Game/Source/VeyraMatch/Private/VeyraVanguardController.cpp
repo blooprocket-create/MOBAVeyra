@@ -267,8 +267,9 @@ AActor* AVeyraVanguardController::FindAttackMoveTarget(const UVeyraBasicAttackCo
 	FVeyraShape Reach;
 	Reach.Kind = EVeyraShapeKind::Circle;
 	Reach.Radius = Attacks.GetProfile().AcquisitionRadius + Body->GetSimpleCollisionRadius();
+	// Like any basic attack, an attack-move may pick a structure (Combat Bible §33).
 	const TArray<AActor*> Enemies = VeyraShapes::GatherUnits(*GetWorld(), FVeyraPlacedShape{ Reach, Body->GetActorLocation(), Body->GetActorForwardVector() },
-		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit); });
+		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit); }, EVeyraStructureTargeting::Allow);
 	return Enemies.IsEmpty() ? nullptr : Enemies[0];
 }
 

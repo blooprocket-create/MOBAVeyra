@@ -170,6 +170,16 @@ type Matches struct {
 	MaxDuration       time.Duration
 	ReapInterval      time.Duration
 	RemoveServerAfter time.Duration
+	// Maps are the maps match servers load (ADR-011 §12).
+	Maps Maps
+}
+
+// Maps name the map each kind of match loads, as /Game/ paths.
+type Maps struct {
+	// Play is the battleground, for every match players make.
+	Play string
+	// Development is the grey box development matches keep by default.
+	Development string
 }
 
 // Allocator configures how match servers are started (ADR-007 §11).
@@ -336,6 +346,10 @@ type fileConfig struct {
 		MaxDuration       *Duration `json:"maxDuration"`
 		ReapInterval      *Duration `json:"reapInterval"`
 		RemoveServerAfter *Duration `json:"removeServerAfter"`
+		Maps              *struct {
+			Play        *string `json:"play"`
+			Development *string `json:"development"`
+		} `json:"maps"`
 	} `json:"matches"`
 	Allocator *struct {
 		Kind   *string           `json:"kind"`
@@ -376,6 +390,10 @@ var (
 
 	// contentIDPattern is the game's content ID format (Game/Tuning/README.md).
 	contentIDPattern = regexp.MustCompile(`^[a-z][a-z0-9]*(_[a-z0-9]+)*$`)
+
+	// mapPathPattern is an Unreal map's package path, which a server loads
+	// first on its command line.
+	mapPathPattern = regexp.MustCompile(`^/Game/[A-Za-z0-9_/]+$`)
 )
 
 // Load reads and validates the configuration file at path.
@@ -720,6 +738,23 @@ func Parse(raw []byte) (Config, error) {
 		c.Matches.MaxDuration = positive("matches.maxDuration", f.Matches.MaxDuration)
 		c.Matches.ReapInterval = positive("matches.reapInterval", f.Matches.ReapInterval)
 		c.Matches.RemoveServerAfter = positive("matches.removeServerAfter", f.Matches.RemoveServerAfter)
+		if f.Matches.Maps == nil {
+			missing("matches.maps")
+		} else {
+			mapPath := func(field string, v *string) string {
+				switch {
+				case v == nil:
+					missing("matches.maps." + field)
+				case !mapPathPattern.MatchString(*v):
+					problems = append(problems, "matches.maps."+field+" must be a map path such as /Game/Veyra/World/Maps/L_Battleground")
+				default:
+					return *v
+				}
+				return ""
+			}
+			c.Matches.Maps.Play = mapPath("play", f.Matches.Maps.Play)
+			c.Matches.Maps.Development = mapPath("development", f.Matches.Maps.Development)
+		}
 	}
 
 	// A select waits for its match's creation, which waits for the allocator.
@@ -812,6 +847,9 @@ func parseDocker(f *fileDockerConfig, missing func(string), positive func(string
 	for _, arg := range f.ServerArgs {
 		if strings.TrimSpace(arg) == "" {
 			problem(prefix + "serverArgs must not contain blank arguments")
+		}
+		if mapPathPattern.MatchString(arg) {
+			problem(prefix + "serverArgs must not name a map; matches.maps does, and the allocator puts it first")
 		}
 		d.ServerArgs = append(d.ServerArgs, arg)
 	}

@@ -18,6 +18,12 @@ namespace VeyraMatchRules
 	VEYRAMATCH_API EVeyraEndCustomMatchRefusal CheckEndCustomMatch(EVeyraMatchRules Rules, EVeyraMatchPhase Phase, bool bRequesterIsHost);
 
 	/**
+	 * Whether a destroyed Prime Well wins the match now (Battleground Bible §18; ADR-011 §13, §14):
+	 * in a standard match that is live. Practice has no victory condition, and an ended match stays ended.
+	 */
+	VEYRAMATCH_API bool DoesPrimeWellWin(EVeyraMatchRules Rules, EVeyraMatchPhase Phase);
+
+	/**
 	 * Why a server may not host a participant as Vanguard; empty when it may. Definition is what
 	 * Vanguards.json defines for it, or null. A Shipping server (bShipping) hosts only Playable
 	 * Vanguards (ADR-010 §6).

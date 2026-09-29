@@ -24,7 +24,7 @@
 
 namespace
 {
-	/** Damage scaled by Fraction, keeping its penetration: a cleave's share of the attack. */
+	/** Damage scaled by Fraction, keeping its penetration: a cleave's share of the attack, dealt as a proc. */
 	FVeyraRawDamageEvent ScaledDamage(const FVeyraRawDamageEvent& Damage, double Fraction)
 	{
 		FVeyraRawDamageEvent Scaled = Damage;
@@ -32,7 +32,16 @@ namespace
 		{
 			Component.Amount *= Fraction;
 		}
+		Scaled.Delivery = EVeyraDamageDelivery::Proc;
 		return Scaled;
+	}
+
+	/** Damage an attack spreads to others, such as a secondary impact's: a proc (ADR-009 §5). */
+	FVeyraRawDamageEvent AsProc(const FVeyraRawDamageEvent& Damage)
+	{
+		FVeyraRawDamageEvent Proc = Damage;
+		Proc.Delivery = EVeyraDamageDelivery::Proc;
+		return Proc;
 	}
 
 	/** On the ground, from the attacker toward the target; the attacker's facing when they coincide. */
@@ -148,7 +157,8 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::CheckAttack(const AActor* Targ
 		return EVeyraAttackRejection::Busy;
 	}
 	// The target before the interval, so an order chases a target out of range while the interval runs.
-	switch (VeyraTargeting::CheckEnemyTarget(*Body, Target, Profile.Range))
+	// Basic attacks are what damages structures (Combat Bible §33).
+	switch (VeyraTargeting::CheckEnemyTarget(*Body, Target, Profile.Range, EVeyraStructureTargeting::Allow))
 	{
 	case EVeyraTargetValidity::Valid:
 		break;
@@ -158,6 +168,7 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::CheckAttack(const AActor* Targ
 	case EVeyraTargetValidity::Caster:
 	case EVeyraTargetValidity::Dead:
 	case EVeyraTargetValidity::NotHostile:
+	case EVeyraTargetValidity::Structure:
 		return EVeyraAttackRejection::InvalidTarget;
 	}
 	return GetServerNow() < NextAttackAt ? EVeyraAttackRejection::OnCooldown : EVeyraAttackRejection::None;
@@ -215,7 +226,8 @@ void UVeyraBasicAttackComponent::Commit()
 
 	// The target must still be valid and in range, and the attacker free to attack (Combat Bible §4).
 	const bool bBlocked = Attacker && EnumHasAnyFlags(VeyraCombat::GetActionBlocks(*Attacker), EVeyraActionBlocks::Attack);
-	if (!Body || !Target || bBlocked || VeyraTargeting::CheckEnemyTarget(*Body, Target, Profile.Range) != EVeyraTargetValidity::Valid)
+	if (!Body || !Target || bBlocked
+		|| VeyraTargeting::CheckEnemyTarget(*Body, Target, Profile.Range, EVeyraStructureTargeting::Allow) != EVeyraTargetValidity::Valid)
 	{
 		EndAttack();
 		return;
@@ -281,6 +293,8 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 	const double Base = Attacker.GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute()) * Profile.PhysicalPowerRatio
 		+ Attacker.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Profile.MagicPowerRatio;
 	Plan.AddDamage(Profile.DamageType, Base * Timing.OverflowDamageMultiplier);
+	Plan.Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
+	Plan.BaseDamage = Plan.Damage.Components;
 
 	if (Empowerment.IsSet() && GetServerNow() <= EmpowermentExpiresAt)
 	{
@@ -312,7 +326,10 @@ UVeyraBasicAttackComponent::FLandingAttack UVeyraBasicAttackComponent::Prepare(U
 	Landing.Event.Chain = Plan.Chain;
 	Landing.Event.bEmpowered = Plan.bEmpowered;
 	Landing.AttackerLocation = Body.GetActorLocation();
-	Landing.Damage = VeyraCombat::PrepareDamage(Attacker, Plan.Damage);
+	// A structure takes the attack's own damage in full and its riders at Structure Effectiveness (§33).
+	Landing.Damage = VeyraCombat::PrepareDamage(Attacker, VeyraUnits::IsStructure(Plan.Target.Get())
+		? VeyraBasicAttacks::AgainstStructure(Plan, UVeyraCombatTuningSubsystem::Get().Structures.Effectiveness)
+		: Plan.Damage);
 	Landing.TargetStatuses = Plan.TargetStatuses;
 	if (Plan.Cleave.IsSet() && !Profile.Cleave.IsEmpty())
 	{
@@ -325,7 +342,7 @@ UVeyraBasicAttackComponent::FLandingAttack UVeyraBasicAttackComponent::Prepare(U
 		Landing.ImpactShape = Plan.SecondaryImpact->Shape;
 		if (!Plan.SecondaryImpact->Damage.Components.IsEmpty())
 		{
-			Landing.ImpactDamage = VeyraCombat::PrepareDamage(Attacker, Plan.SecondaryImpact->Damage);
+			Landing.ImpactDamage = VeyraCombat::PrepareDamage(Attacker, AsProc(Plan.SecondaryImpact->Damage));
 		}
 		Landing.ImpactStatuses = Plan.SecondaryImpact->Statuses;
 	}

@@ -221,16 +221,25 @@ namespace VeyraServicesTests
 			ASSERT_THAT(IsFalse(Second->GetBoolField(TEXT("connectedAtEnd"))));
 		}
 
-		TEST_METHOD(NamesAnAbandonedMatchAndAWinner)
+		TEST_METHOD(NamesAnAbandonedMatch)
 		{
 			FVeyraMatchResult Result;
 			Result.EndReason = EVeyraMatchEndReason::Abandoned;
-			Result.Winner = EVeyraTeam::B;
 			const TSharedPtr<FJsonObject> Body = Parse(VeyraBackendProtocol::BuildResultBody(Result));
 			ASSERT_THAT(IsTrue(Body.IsValid()));
 			ASSERT_THAT(AreEqual(Body->GetStringField(TEXT("endReason")), FString(TEXT("abandoned"))));
-			ASSERT_THAT(AreEqual(Body->GetStringField(TEXT("winner")), FString(TEXT("B"))));
 			ASSERT_THAT(AreEqual(Body->GetArrayField(TEXT("participants")).Num(), 0));
+		}
+
+		TEST_METHOD(NamesAWonMatchAndItsWinner)
+		{
+			FVeyraMatchResult Result;
+			Result.EndReason = EVeyraMatchEndReason::PrimeWellDestroyed;
+			Result.Winner = EVeyraTeam::B;
+			const TSharedPtr<FJsonObject> Body = Parse(VeyraBackendProtocol::BuildResultBody(Result));
+			ASSERT_THAT(IsTrue(Body.IsValid()));
+			ASSERT_THAT(AreEqual(Body->GetStringField(TEXT("endReason")), FString(TEXT("prime_well_destroyed"))));
+			ASSERT_THAT(AreEqual(Body->GetStringField(TEXT("winner")), FString(TEXT("B"))));
 		}
 
 		TEST_METHOD(NamesAHostEndedMatch)

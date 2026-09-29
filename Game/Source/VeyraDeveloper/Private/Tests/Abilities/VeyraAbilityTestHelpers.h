@@ -80,6 +80,15 @@ namespace VeyraAbilitiesTests
 			return Fluxborn;
 		}
 
+		/** A structure (Combat Bible §33), with the example stats. */
+		AVeyraTestStructure& SpawnStructure(EVeyraTeam Team, const FVector& Location)
+		{
+			AVeyraTestStructure& Structure = Spawner.SpawnActorAt<AVeyraTestStructure>(Location, FRotator::ZeroRotator);
+			Structure.SetVeyraTeam(Team);
+			VeyraCombat::InitializeStats(*Structure.GetAbilitySystemComponent(), VeyraCombatTests::ExampleStats());
+			return Structure;
+		}
+
 		/** Grants Ability in Slot and spends the level-1 skill point on it. */
 		static bool Learn(AVeyraVanguardCharacter& Vanguard, EVeyraAbilitySlot Slot, const FVeyraContentId& Ability)
 		{

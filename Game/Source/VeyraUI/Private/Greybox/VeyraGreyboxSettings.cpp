@@ -15,6 +15,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(!ProjectileMesh.IsNull(), TEXT("ProjectileMesh"), TEXT("a static mesh is required."));
 	Require(!ShapeMaterial.IsNull(), TEXT("ShapeMaterial"), TEXT("a material is required."));
 	Require(!ColorParameter.IsNone(), TEXT("ColorParameter"), TEXT("the material's colour parameter is required."));
+	Require(!GroundMesh.IsNull(), TEXT("GroundMesh"), TEXT("a static mesh is required."));
+	Require(!PadMesh.IsNull(), TEXT("PadMesh"), TEXT("a static mesh is required."));
 	// A colour of zero alpha draws nothing, so every colour must be visible.
 	struct FNamedColor
 	{
@@ -34,6 +36,10 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("TextColor"), TextColor },
 		{ TEXT("DescriptionColor"), DescriptionColor },
 		{ TEXT("EmpoweredColor"), EmpoweredColor },
+		{ TEXT("LaneColor"), LaneColor },
+		{ TEXT("RiverColor"), RiverColor },
+		{ TEXT("AllyBaseColor"), AllyBaseColor },
+		{ TEXT("EnemyBaseColor"), EnemyBaseColor },
 	};
 	for (const FNamedColor& Named : Colors)
 	{
@@ -49,5 +55,11 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(CircleSegments >= 3, TEXT("CircleSegments"), TEXT("must be at least 3."));
 	Require(TelegraphLift >= 0.0f, TEXT("TelegraphLift"), TEXT("must not be negative."));
 	Require(GroundProbeDistance >= 1.0f, TEXT("GroundProbeDistance"), TEXT("must be at least 1 unit."));
+	Require(GroundMarkingThickness > 0.0f, TEXT("GroundMarkingThickness"), TEXT("must be above 0."));
+	Require(GroundMarkingLift > 0.0f, TEXT("GroundMarkingLift"), TEXT("must be above 0."));
+	// The river, the lanes and the pads, each a lift above the last, all under the telegraphs.
+	constexpr int32 GroundMarkingLayers = 3;
+	Require(GroundMarkingThickness + GroundMarkingLift * GroundMarkingLayers < TelegraphLift, TEXT("GroundMarkingLift"),
+		TEXT("the thickness and three lifts must stay under TelegraphLift, or the ground hides telegraphs."));
 	return Problems;
 }
