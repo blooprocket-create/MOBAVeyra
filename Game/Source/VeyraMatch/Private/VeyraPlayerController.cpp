@@ -6,6 +6,7 @@
 #include "Engine/GameViewportClient.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
+#include "Ending/VeyraMatchEnding.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerState.h"
@@ -13,7 +14,10 @@
 #include "Input/VeyraCameraSettings.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
+#include "Pings/VeyraPingRules.h"
+#include "Pings/VeyraPingSubsystem.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Structures/VeyraStructure.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Shop/VeyraShopSubsystem.h"
@@ -437,6 +441,84 @@ void AVeyraPlayerController::CastVote(bool bYes)
 	ServerCastVote(bYes);
 }
 
+bool AVeyraPlayerController::TickEndPan(double /*DeltaSeconds*/)
+{
+	const AVeyraGameState* GameState = GetWorld()->GetGameState<AVeyraGameState>();
+	if (!GameState || GameState->GetPhase() != EVeyraMatchPhase::Ended)
+	{
+		return false;
+	}
+	// The one game-driven pan (ADR-020 §1): play is over, so the player's camera input waits.
+	const double Now = GetWorld()->GetRealTimeSeconds();
+	FEndPan& Pan = EndPan.IsSet() ? EndPan.GetValue() : EndPan.Emplace();
+	if (!Pan.To.IsSet())
+	{
+		Pan.From = CameraRig->GetFocus();
+		Pan.StartedAt = Now;
+		// The Well's fall may reach this client a moment after the match's end does.
+		if (const AVeyraStructure* Fallen = VeyraMatchEnding::FindFallenPrimeWell(*GetWorld()))
+		{
+			Pan.To = FVector(Fallen->GetActorLocation().X, Fallen->GetActorLocation().Y, Pan.From.Z);
+		}
+	}
+	const double PanSeconds = GetDefault<UVeyraCameraSettings>()->EndPanSeconds;
+	CameraRig->LookAt(Pan.To.IsSet() ? VeyraCamera::PanToward(Pan.From, Pan.To.GetValue(), Now - Pan.StartedAt, PanSeconds) : Pan.From);
+	return true;
+}
+
+bool AVeyraPlayerController::IsPinging() const
+{
+	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
+	return IsInputKeyDown(Keys.PingKey) || IsInputKeyDown(Keys.DangerPingKey);
+}
+
+void AVeyraPlayerController::TickPings()
+{
+	VeyraPings::Forget(Pings, FPlatformTime::Seconds(), UVeyraMatchTuningSubsystem::Get().Pings);
+	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
+	if (!IsPinging() || !WasInputKeyJustPressed(Keys.PingClickKey))
+	{
+		return;
+	}
+	// On the minimap, where it points; otherwise the ground under the cursor.
+	TOptional<FVector> Point = MinimapPointUnderCursor(EMinimapClick::Ping);
+	FHitResult Ground;
+	if (!Point.IsSet() && GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
+	{
+		Point = Ground.Location;
+	}
+	if (Point.IsSet())
+	{
+		RequestPing(Point.GetValue(), IsInputKeyDown(Keys.DangerPingKey) ? EVeyraPingKind::Danger : EVeyraPingKind::Look);
+	}
+}
+
+void AVeyraPlayerController::RequestPing(const FVector& Point, EVeyraPingKind Kind)
+{
+	ServerPing(Point, Kind);
+}
+
+void AVeyraPlayerController::ServerPing_Implementation(FVector Point, EVeyraPingKind Kind)
+{
+	UVeyraPingSubsystem* PingOwner = GetWorld()->GetSubsystem<UVeyraPingSubsystem>();
+	const AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>();
+	const EVeyraPingRefusal Refusal = PingOwner && Participant ? PingOwner->Ping(*Participant, Point, Kind) : EVeyraPingRefusal::NotAPlayer;
+	if (Refusal != EVeyraPingRefusal::None)
+	{
+		ClientPingRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ClientPinged_Implementation(const FVeyraPing& Ping)
+{
+	Pings.Add({ Ping, FPlatformTime::Seconds() });
+}
+
+void AVeyraPlayerController::ClientPingRefused_Implementation(EVeyraPingRefusal Refusal)
+{
+	LastPingRefusal = Refusal;
+}
+
 void AVeyraPlayerController::ServerRequestVote_Implementation(EVeyraVoteKind Kind)
 {
 	UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>();
@@ -751,6 +833,10 @@ void AVeyraPlayerController::OnVanguardSet(APlayerState* /*Participant*/, APawn*
 void AVeyraPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
+	if (IsLocalController())
+	{
+		TickPings();
+	}
 	if (IsLocalController() && CameraRig)
 	{
 		TickCamera(DeltaTime);
@@ -761,6 +847,10 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 {
 	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
 	const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
+	if (TickEndPan(DeltaTime))
+	{
+		return;
+	}
 	if (WasInputKeyJustPressed(Keys.CameraModeKey))
 	{
 		CameraRig->SetMode(VeyraCamera::Next(CameraRig->GetMode()));
@@ -795,8 +885,8 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 		LastDragMouse.Reset();
 	}
 	CameraInput.bHoldCenter = IsInputKeyDown(Keys.HoldToCenterKey);
-	// Held on the minimap, the camera looks where it points.
-	if (IsInputKeyDown(Keys.MinimapCameraKey))
+	// Held on the minimap, the camera looks where it points; with a ping key held, the click pings instead.
+	if (IsInputKeyDown(Keys.MinimapCameraKey) && !IsPinging())
 	{
 		if (const TOptional<FVector> OnMap = MinimapPointUnderCursor(EMinimapClick::Camera))
 		{

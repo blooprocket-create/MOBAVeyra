@@ -81,4 +81,10 @@ namespace VeyraCamera
 
 	/** A screen-space pan or drag as world units along the ground: the screen's top is +X, its right +Y. */
 	VEYRAMATCH_API FVector ScreenToGround(const FVector2D& Screen);
+
+	/**
+	 * Where a pan from From to To looks Elapsed seconds into its Seconds, easing in and out; at To from
+	 * then on. The end-of-match pan to the fallen Prime Well (ADR-020 §1).
+	 */
+	VEYRAMATCH_API FVector PanToward(const FVector& From, const FVector& To, double Elapsed, double Seconds);
 }

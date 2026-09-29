@@ -286,6 +286,9 @@ namespace VeyraClientFlowTests
 		FFlowTestHost Host;
 		TUniquePtr<FVeyraClientFlow> Flow;
 
+		/** Fixture value: how long a player watches its match end. */
+		static constexpr double EndingShowSeconds = 6.0;
+
 		FClientFlowTestRig()
 		{
 			// Fixture values: short waits, and two attempts at an unanswered request.
@@ -302,6 +305,7 @@ namespace VeyraClientFlowTests
 			Config.ReconnectPollIntervalSeconds = 5.0;
 			Config.PartyPollIntervalSeconds = 1.0;
 			Config.MatchFoundPollIntervalSeconds = 0.5;
+			Config.EndingShowSeconds = EndingShowSeconds;
 			Flow = MakeUnique<FVeyraClientFlow>(Backend, Host, Config);
 		}
 
@@ -401,6 +405,7 @@ namespace VeyraClientFlowTests
 				return false;
 			}
 			Flow->NotifyMatchPhase(EVeyraMatchPhase::Ended);
+			Advance(EndingShowSeconds);
 			Flow->NotifyWorld(EVeyraClientWorld::FrontEnd);
 			return Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, Outcome) && State() == EVeyraClientState::Results;
 		}

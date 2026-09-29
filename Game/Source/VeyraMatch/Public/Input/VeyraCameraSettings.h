@@ -47,4 +47,8 @@ public:
 	/** How far off the Vanguard a Semi-Locked camera may look, in units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Movement", meta = (ClampMin = "0"))
 	float SemiLockedMaxOffset = 0.0f;
+
+	/** How long the end-of-match pan to the fallen Prime Well takes, in seconds (ADR-020 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Movement", meta = (ClampMin = "0"))
+	float EndPanSeconds = 0.0f;
 };

@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Match domain (Match Flow Bible, Battleground Bible). VeyraMatch binds it to FVeyraMatchTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "absence", "activity", "autopilot", "votes", "orders", "developerMatch"],
+  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "absence", "activity", "autopilot", "votes", "pings", "ending", "orders", "developerMatch"],
   "properties": {
     "schemaVersion": {
-      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery; version 5 adds Recall; version 6 moves how bots play to Bots.json (ADR-013 §5); version 7 adds absence, activity, autopilot and votes (ADR-019).",
+      "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery; version 5 adds Recall; version 6 moves how bots play to Bots.json (ADR-013 §5); version 7 adds absence, activity, autopilot and votes (ADR-019); version 8 adds pings and the ending (ADR-020).",
       "type": "integer",
       "minimum": 1,
-      "enum": [7]
+      "enum": [8]
     },
     "teams": {
       "description": "The two sides of a match.",
@@ -333,6 +333,54 @@
               "exclusiveMinimum": true
             }
           }
+        }
+      }
+    },
+    "pings": {
+      "description": "Team pings (ADR-020 §2): a player's spam limit, and how long a client keeps a ping. Real seconds.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "maxPerWindow", "windowSeconds", "keepSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "maxPerWindow": {
+          "description": "Most pings one player may send in any windowSeconds; more are refused.",
+          "type": "integer",
+          "minimum": 1
+        },
+        "windowSeconds": {
+          "description": "The spam limit's window.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "keepSeconds": {
+          "description": "The most a client keeps a ping it received: the top of the player's ping-persistence setting (Settings Bible §3.2).",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        }
+      }
+    },
+    "ending": {
+      "description": "How a match ends on screen (ADR-020 §1). Real seconds.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "showSeconds"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "showSeconds": {
+          "description": "How long an ended match stays up, its players watching the end, before they leave for the results and its server quits.",
+          "type": "number",
+          "minimum": 0
         }
       }
     },

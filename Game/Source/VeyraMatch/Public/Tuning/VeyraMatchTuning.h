@@ -265,6 +265,45 @@ struct FVeyraVotesTuning
 	FVeyraPauseVoteTuning Pause;
 };
 
+/**
+ * Team pings (ADR-020 §2): how many one player may send, and how long a client keeps one. Real seconds,
+ * so a pause holds neither.
+ */
+USTRUCT()
+struct FVeyraPingsTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	int32 MaxPerWindow = 0;
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	/** The most a client keeps a ping: the top of the player's ping-persistence setting (Settings Bible §3.2). */
+	UPROPERTY()
+	double KeepSeconds = 0.0;
+};
+
+/**
+ * How a match ends on screen (ADR-020 §1): how long an ended match stays up, its players watching the end
+ * (the camera on the fallen Prime Well), before they leave for the results. Real seconds.
+ */
+USTRUCT()
+struct FVeyraEndingTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double ShowSeconds = 0.0;
+};
+
 /** How the server accepts a player's move orders (ADR-006 §7). */
 USTRUCT()
 struct FVeyraOrdersTuning
@@ -312,7 +351,7 @@ struct FVeyraMatchTuning
 	GENERATED_BODY()
 
 	/** The Match.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 7;
+	static constexpr int32 SchemaVersion = 8;
 
 	UPROPERTY()
 	FVeyraTeamsTuning Teams;
@@ -343,6 +382,12 @@ struct FVeyraMatchTuning
 
 	UPROPERTY()
 	FVeyraVotesTuning Votes;
+
+	UPROPERTY()
+	FVeyraPingsTuning Pings;
+
+	UPROPERTY()
+	FVeyraEndingTuning Ending;
 
 	UPROPERTY()
 	FVeyraOrdersTuning Orders;

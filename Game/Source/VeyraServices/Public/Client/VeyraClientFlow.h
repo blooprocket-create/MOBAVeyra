@@ -53,6 +53,8 @@ struct FVeyraClientFlowConfig
 	double ReconnectPollIntervalSeconds = 0.0;
 	double PartyPollIntervalSeconds = 0.0;
 	double MatchFoundPollIntervalSeconds = 0.0;
+	/** How long the player stays in a match that ended, watching the end, before it leaves for the results (ADR-020 §1). */
+	double EndingShowSeconds = 0.0;
 
 	static VEYRASERVICES_API FVeyraClientFlowConfig FromSettings(const UVeyraServicesSettings& Settings, const FString& BuildVersion);
 };
@@ -260,4 +262,6 @@ private:
 	double ResultDeadline = 0.0;
 	/** The player left their match because it ended, not because the connection failed. */
 	bool bMatchEnded = false;
+	/** The match ended; the player watches the end before it leaves for the results. */
+	bool bWatchingEnd = false;
 };

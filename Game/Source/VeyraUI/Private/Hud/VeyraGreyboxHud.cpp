@@ -13,7 +13,9 @@
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraHudModel.h"
+#include "Ending/VeyraMatchEnding.h"
 #include "Hud/VeyraMinimapModel.h"
+#include "Structures/VeyraStructure.h"
 #include "Input/VeyraInputSettings.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "Text/VeyraContentText.h"
@@ -199,9 +201,41 @@ namespace
 																			  : Settings.MinimapUnitIcon;
 			DrawHudRect(Canvas, Dot.Position - FVector2D(Side / 2.0), FVector2D(Side), MinimapColor(Settings, Dot.Side));
 		}
+		for (const FVeyraMinimapTeamPing& Ping : View.TeamPings)
+		{
+			const FLinearColor Color = Ping.Kind == EVeyraPingKind::Danger ? Settings.DangerPingColor : Settings.LookPingColor;
+			DrawHudOutline(Canvas, Ping.Centre, Settings.MinimapVanguardIcon * 2.0, Color.CopyWithNewOpacity(Ping.Fade));
+		}
 		if (View.Focus.IsSet())
 		{
 			DrawHudOutline(Canvas, View.Focus.GetValue(), Settings.MinimapVanguardIcon * 2.0, Settings.TextColor);
+		}
+	}
+
+	/** Its side's pings where they point on the ground, fading as they age; labelled when the player asks (SET-68). */
+	void DrawWorldPings(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, TConstArrayView<FVeyraReceivedPing> Pings, double Now)
+	{
+		for (const FVeyraReceivedPing& Held : Pings)
+		{
+			const double Age = Now - Held.ReceivedAt;
+			if (Age >= Settings.PingSeconds)
+			{
+				continue;
+			}
+			const FVector OnScreen = Canvas.Project(Held.Ping.Point);
+			if (OnScreen.Z <= 0.0)
+			{
+				continue;
+			}
+			const FLinearColor Color = (Held.Ping.Kind == EVeyraPingKind::Danger ? Settings.DangerPingColor : Settings.LookPingColor)
+				.CopyWithNewOpacity(1.0 - FMath::Max(0.0, Age) / Settings.PingSeconds);
+			const FVector2D Centre(OnScreen.X, OnScreen.Y);
+			DrawHudOutline(Canvas, Centre, Settings.WorldPingSize, Color);
+			DrawHudOutline(Canvas, Centre, Settings.WorldPingSize / 2.0, Color);
+			if (Settings.bPingTextLabels)
+			{
+				DrawHudText(Canvas, Centre + FVector2D(Settings.WorldPingSize, -Settings.WorldPingSize / 2.0), HudEnumName(Held.Ping.Kind), Color);
+			}
 		}
 	}
 
@@ -218,7 +252,9 @@ namespace
 		Controller.SetMinimapHitTest([WeakController = TWeakObjectPtr<AVeyraPlayerController>(&Controller)](
 			const FVector2D& Screen, AVeyraPlayerController::EMinimapClick Purpose) -> TOptional<FVector> {
 			const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
-			const bool bOn = Purpose == AVeyraPlayerController::EMinimapClick::Camera ? Settings.bMinimapClickMovesCamera : Settings.bMinimapRightClickMoves;
+			const bool bOn = Purpose == AVeyraPlayerController::EMinimapClick::Camera ? Settings.bMinimapClickMovesCamera
+				: Purpose == AVeyraPlayerController::EMinimapClick::Move			  ? Settings.bMinimapRightClickMoves
+																					  : true;
 			const AVeyraPlayerController* Owner = WeakController.Get();
 			const UGameViewportClient* Viewport = Owner && Owner->GetLocalPlayer() ? Owner->GetLocalPlayer()->ViewportClient : nullptr;
 			if (!bOn || !Viewport)
@@ -502,6 +538,17 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 	if (const AVeyraGameState* GameState = Greybox.GetWorld()->GetGameState<AVeyraGameState>())
 	{
 		DrawMatchClock(Canvas, Settings, *GameState, Viewer);
+		// How the match ended, while its players watch the end (ADR-020 §1).
+		if (GameState->GetPhase() == EVeyraMatchPhase::Ended)
+		{
+			const AVeyraStructure* Fallen = VeyraMatchEnding::FindFallenPrimeWell(*Greybox.GetWorld());
+			const AVeyraPlayerState* Watching = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr;
+			const EVeyraEndingHeadline Headline = VeyraMatchEnding::Headline(Fallen ? TOptional<EVeyraTeam>(Fallen->GetVeyraTeam()) : TOptional<EVeyraTeam>(),
+				Watching ? Watching->GetVeyraTeam() : EVeyraTeam::None);
+			// Under the clock, where an open vote would be: none is, once the match has ended.
+			constexpr int32 HeadlineRow = 1;
+			DrawCentredLine(Canvas, Settings, HudEnumName(Headline), HeadlineRow, Headline == EVeyraEndingHeadline::Defeat ? Settings.WarningColor : Settings.TextColor);
+		}
 		const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);
 		const AVeyraPlayerState* Own = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr;
 		if (Player && Own)
@@ -509,8 +556,12 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 			BindMinimapClicks(*const_cast<AVeyraPlayerController*>(Player));
 			const AVeyraCameraRig* Rig = Player->GetCameraRig();
 			const TOptional<FVector> Focus = Rig ? TOptional<FVector>(Rig->GetFocus()) : TOptional<FVector>();
-			DrawMinimap(Canvas, Settings, VeyraMinimap::Describe(*Greybox.GetWorld(), MinimapFrame(Settings, FVector2D(Canvas.ClipX, Canvas.ClipY)),
-				Own->GetVeyraTeam(), Own->GetPawn(), Focus, Now));
+			const FVeyraMinimapFrame Frame = MinimapFrame(Settings, FVector2D(Canvas.ClipX, Canvas.ClipY));
+			FVeyraMinimapView View = VeyraMinimap::Describe(*Greybox.GetWorld(), Frame, Own->GetVeyraTeam(), Own->GetPawn(), Focus, Now);
+			const double RealNow = FPlatformTime::Seconds();
+			View.TeamPings = VeyraMinimap::DescribeTeamPings(Frame, Player->GetPings(), RealNow, Settings.PingSeconds);
+			DrawWorldPings(Canvas, Settings, Player->GetPings(), RealNow);
+			DrawMinimap(Canvas, Settings, View);
 		}
 	}
 	if (const AVeyraPlayerState* Participant = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr)

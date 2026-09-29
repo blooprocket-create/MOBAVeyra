@@ -64,4 +64,13 @@ FVector ScreenToGround(const FVector2D& Screen)
 {
 	return FVector(Screen.Y, Screen.X, 0.0);
 }
+
+FVector PanToward(const FVector& From, const FVector& To, double Elapsed, double Seconds)
+{
+	if (Seconds <= 0.0 || Elapsed >= Seconds)
+	{
+		return To;
+	}
+	return FMath::Lerp(From, To, FMath::SmoothStep(0.0, 1.0, FMath::Clamp(Elapsed / Seconds, 0.0, 1.0)));
+}
 }

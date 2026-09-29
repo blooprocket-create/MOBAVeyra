@@ -4,6 +4,7 @@
 
 #include "Backend/VeyraBackendProtocol.h"
 #include "Slots/VeyraAbilitySlot.h"
+#include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "VeyraServicesLog.h"
 #include "VeyraServicesSettings.h"
 
@@ -179,6 +180,8 @@ FVeyraClientFlowConfig FVeyraClientFlowConfig::FromSettings(const UVeyraServices
 	Config.ReconnectPollIntervalSeconds = Settings.ReconnectPollIntervalSeconds;
 	Config.PartyPollIntervalSeconds = Settings.PartyPollIntervalSeconds;
 	Config.MatchFoundPollIntervalSeconds = Settings.MatchFoundPollIntervalSeconds;
+	// Match data, so the client stays as long as the server does.
+	Config.EndingShowSeconds = UVeyraMatchTuningSubsystem::Get().Ending.ShowSeconds;
 	return Config;
 }
 
@@ -1284,15 +1287,23 @@ void FVeyraClientFlow::NotifyWorld(EVeyraClientWorld World)
 
 void FVeyraClientFlow::NotifyMatchPhase(EVeyraMatchPhase Phase)
 {
-	if (Phase == EVeyraMatchPhase::Ended && (Snapshot.State == EVeyraClientState::InMatch || Snapshot.State == EVeyraClientState::Connecting))
+	if (Phase == EVeyraMatchPhase::Ended && !bWatchingEnd && (Snapshot.State == EVeyraClientState::InMatch || Snapshot.State == EVeyraClientState::Connecting))
 	{
-		// The replicated end is not the result: the backend's verified one is (UX-15).
-		LeaveMatch(/*bEnded*/ true, FString());
+		// The replicated end is not the result: the backend's verified one is (UX-15). The player first
+		// watches the match end, while its server stays up for it (ADR-020 §1).
+		bWatchingEnd = true;
+		After(Config.EndingShowSeconds, [this] { LeaveMatch(/*bEnded*/ true, FString()); });
 	}
 }
 
 void FVeyraClientFlow::NotifyConnectionFailed(const FString& Reason)
 {
+	// A server that quits as its players finish watching the end ended the match; nothing failed.
+	if (bWatchingEnd && Snapshot.State == EVeyraClientState::InMatch)
+	{
+		LeaveMatch(/*bEnded*/ true, FString());
+		return;
+	}
 	if (Snapshot.State == EVeyraClientState::InMatch || Snapshot.State == EVeyraClientState::Connecting)
 	{
 		UE_LOG(LogVeyraServices, Warning, TEXT("VeyraClientFlow: the connection to match %s failed: %s."), *Snapshot.MatchId,
@@ -1303,6 +1314,7 @@ void FVeyraClientFlow::NotifyConnectionFailed(const FString& Reason)
 
 void FVeyraClientFlow::LeaveMatch(bool bEnded, const FString& Notice)
 {
+	bWatchingEnd = false;
 	bMatchEnded = bEnded;
 	Enter(EVeyraClientState::Returning, Notice);
 	Log(FString::Printf(TEXT("leaving match %s%s."), *Snapshot.MatchId, bEnded ? TEXT(", which ended") : TEXT(", whose connection failed")));

@@ -116,6 +116,27 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
 	bool bMinimapRightClickMoves = true;
 
+	/**
+	 * How long a teammate's ping shows on the minimap and the ground (Settings Bible §3.2, "within tested
+	 * bounds"; Match.json pings.keepSeconds is the most a client keeps one).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Pings", meta = (ClampMin = "1", ClampMax = "8"))
+	float PingSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	FLinearColor LookPingColor = FLinearColor::White;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	FLinearColor DangerPingColor = FLinearColor::Red;
+
+	/** A ping's marker on the ground, in pixels. */
+	UPROPERTY(Config, EditAnywhere, Category = "Pings", meta = (ClampMin = "1"))
+	float WorldPingSize = 0.0f;
+
+	/** Short type labels on pings (Settings Bible SET-68), off by default. */
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	bool bPingTextLabels = false;
+
 	/** A warning to the player, such as that the server counts it AFK. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor WarningColor = FLinearColor::Transparent;

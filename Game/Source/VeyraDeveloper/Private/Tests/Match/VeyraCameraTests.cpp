@@ -69,6 +69,17 @@ namespace VeyraCameraTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(FVector::Dist2D(Followed, Input.Vanguard.GetValue()), Limits.SemiLockedMaxOffset)));
 		}
 
+		TEST_METHOD(TheEndOfMatchPanEasesToTheFallenWell)
+		{
+			const FVector From(0.0, 0.0, 0.0);
+			const FVector To(1000.0, 0.0, 0.0);
+			const double Seconds = 2.0;
+			ASSERT_THAT(IsTrue(VeyraCamera::PanToward(From, To, 0.0, Seconds).Equals(From)));
+			ASSERT_THAT(IsTrue(VeyraCamera::PanToward(From, To, Seconds / 4.0, Seconds).X < To.X / 4.0, TEXT("it eases in")));
+			ASSERT_THAT(IsTrue(VeyraCamera::PanToward(From, To, Seconds / 2.0, Seconds).Equals(FVector(500.0, 0.0, 0.0))));
+			ASSERT_THAT(IsTrue(VeyraCamera::PanToward(From, To, Seconds * 2.0, Seconds).Equals(To), TEXT("and stays")));
+		}
+
 		TEST_METHOD(TheEdgesPanAndTheModeKeyCycles)
 		{
 			const FVector2D Screen(1920.0, 1080.0);

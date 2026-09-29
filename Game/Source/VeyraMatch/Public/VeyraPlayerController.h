@@ -11,6 +11,7 @@
 #include "Tools/VeyraVisionToolComponent.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
+#include "Pings/VeyraPingTypes.h"
 #include "Votes/VeyraVoteTypes.h"
 
 #include "VeyraPlayerController.generated.h"
@@ -187,7 +188,24 @@ public:
 		Camera,
 		/** A right click: the Vanguard moves there. */
 		Move,
+		/** A ping: always, when the cursor is on the minimap. */
+		Ping,
 	};
+
+	/**
+	 * Owning client: pings Point for its side (ADR-020 §2). A refusal arrives through GetLastPingRefusal.
+	 * With the ping key or the danger-ping key held, a click pings where the cursor points.
+	 */
+	void RequestPing(const FVector& Point, EVeyraPingKind Kind);
+
+	/** Server: tells this player of a ping from its side. */
+	void DeliverPing(const FVeyraPing& Ping) { ClientPinged(Ping); }
+
+	/** Owning client: its side's pings it holds, oldest first, each for at most pings.keepSeconds. */
+	const TArray<FVeyraReceivedPing>& GetPings() const { return Pings; }
+
+	/** Owning client: the reason the server gave for the last refused ping. */
+	EVeyraPingRefusal GetLastPingRefusal() const { return LastPingRefusal; }
 
 	/**
 	 * Owning client: the ground point a screen pixel on the minimap stands for, for a click of the given
@@ -263,6 +281,15 @@ private:
 	void ClientVoteRefused(EVeyraVoteRefusal Refusal);
 
 	UFUNCTION(Server, Reliable)
+	void ServerPing(FVector Point, EVeyraPingKind Kind);
+
+	UFUNCTION(Client, Reliable)
+	void ClientPinged(const FVeyraPing& Ping);
+
+	UFUNCTION(Client, Reliable)
+	void ClientPingRefused(EVeyraPingRefusal Refusal);
+
+	UFUNCTION(Server, Reliable)
 	void ServerRankUp(EVeyraAbilitySlot Slot);
 
 	UFUNCTION(Client, Unreliable)
@@ -312,6 +339,24 @@ private:
 
 	/** Owning client: this frame's camera input from the keys, the screen's edges and the drag. */
 	void TickCamera(float DeltaTime);
+
+	/** Owning client: lets go of old pings, and pings where the player clicks with a ping key held. */
+	void TickPings();
+
+	/** Whether the player holds a ping key, so a click pings instead of steering the camera. */
+	bool IsPinging() const;
+
+	/** The end-of-match pan: from where the camera looked, to the fallen Prime Well once this client has it. */
+	struct FEndPan
+	{
+		FVector From = FVector::ZeroVector;
+		TOptional<FVector> To;
+		double StartedAt = 0.0;
+	};
+	TOptional<FEndPan> EndPan;
+
+	/** Owning client: once the match has ended, the camera pans to the fallen Prime Well; true while it does. */
+	bool TickEndPan(double DeltaSeconds);
 
 	UPROPERTY(Transient)
 	TObjectPtr<class AVeyraCameraRig> CameraRig;
@@ -372,6 +417,9 @@ private:
 
 	EVeyraVoteRefusal LastVoteRefusal = EVeyraVoteRefusal::None;
 	int32 VoteRefusalCount = 0;
+
+	TArray<FVeyraReceivedPing> Pings;
+	EVeyraPingRefusal LastPingRefusal = EVeyraPingRefusal::None;
 
 	/** Its team's open vote; a controller replicates to its own player only. */
 	UPROPERTY(Replicated)

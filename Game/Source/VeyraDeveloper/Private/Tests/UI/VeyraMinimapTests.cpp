@@ -34,6 +34,22 @@ namespace VeyraMinimapTests
 			ASSERT_THAT(IsTrue(VeyraMinimap::SideOf(EVeyraTeam::A, EVeyraTeam::None, false) == EVeyraMinimapSide::Neutral));
 		}
 
+		TEST_METHOD(ATeammatesPingFadesOverThePlayersPersistenceThenGoes)
+		{
+			const FVeyraMinimapFrame Frame = VeyraMinimap::FrameFor(FVector2D(1920.0, 1080.0), 200.0, 20.0, 5000.0);
+			FVeyraReceivedPing Fresh;
+			Fresh.Ping.Point = FVector(5000.0, 0.0, 0.0);
+			Fresh.Ping.Kind = EVeyraPingKind::Danger;
+			Fresh.ReceivedAt = 9.0;
+			FVeyraReceivedPing Old;
+			Old.ReceivedAt = 5.0;
+			const double Persistence = 4.0;
+			const TArray<FVeyraMinimapTeamPing> Drawn = VeyraMinimap::DescribeTeamPings(Frame, { Fresh, Old }, 10.0, Persistence);
+			ASSERT_THAT(AreEqual(Drawn.Num(), 1, TEXT("one past the player's persistence is gone")));
+			ASSERT_THAT(IsTrue(Drawn[0].Centre.Equals(FVector2D(1800.0, 860.0)) && Drawn[0].Kind == EVeyraPingKind::Danger));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Drawn[0].Fade, 0.75)));
+		}
+
 		TEST_METHOD(ItDrawsTheLanesAndWhereTheCameraLooks)
 		{
 			FActorTestSpawner Spawner;

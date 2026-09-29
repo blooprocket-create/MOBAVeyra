@@ -11,6 +11,7 @@
 #include "Join/VeyraMatchHostSubsystem.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Modules/ModuleManager.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "VeyraServicesLog.h"
@@ -52,6 +53,7 @@ void UVeyraMatchServerSubsystem::Deinitialize()
 		Host->OnMatchEnded.Remove(EndedHandle);
 	}
 	FTSTicker::GetCoreTicker().RemoveTicker(RetryTicker);
+	FTSTicker::GetCoreTicker().RemoveTicker(QuitTicker);
 	Super::Deinitialize();
 }
 
@@ -158,17 +160,24 @@ void UVeyraMatchServerSubsystem::OnMatchEnded(const FVeyraMatchResult& Result)
 		return;
 	}
 	bResultSent = true;
+	const double EndedAt = FPlatformTime::Seconds();
 	UE_LOG(LogVeyraServices, Display, TEXT("VeyraHandoff: match %s ended (%s after %.1f s); reporting the result."), *MatchId,
 		LexToString(Result.EndReason), Result.DurationSeconds);
 	Report(TEXT("result"), FString::Printf(TEXT("/v1/server/matches/%s/result"), *MatchId), VeyraBackendProtocol::BuildResultBody(Result), 1,
-		[this](bool bReported) {
+		[this, EndedAt](bool bReported) {
 			if (!bReported)
 			{
 				Fail(TEXT("the backend did not take the result"));
 				return;
 			}
-			UE_LOG(LogVeyraServices, Display, TEXT("VeyraHandoff: the match server's work is done; quitting."));
-			FPlatformMisc::RequestExit(/*bForce*/ false, TEXT("VeyraHandoff"));
+			// Its players watch the match end before they leave for the results (ADR-020 §1).
+			const double Left = FMath::Max(0.0, EndedAt + UVeyraMatchTuningSubsystem::Get().Ending.ShowSeconds - FPlatformTime::Seconds());
+			UE_LOG(LogVeyraServices, Display, TEXT("VeyraHandoff: the result is in; the match stays up %.1f s while its players watch the end."), Left);
+			QuitTicker = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([](float /*DeltaSeconds*/) {
+				UE_LOG(LogVeyraServices, Display, TEXT("VeyraHandoff: the match server's work is done; quitting."));
+				FPlatformMisc::RequestExit(/*bForce*/ false, TEXT("VeyraHandoff"));
+				return false;
+			}), static_cast<float>(Left));
 		});
 }
 

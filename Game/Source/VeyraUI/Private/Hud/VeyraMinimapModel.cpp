@@ -42,6 +42,21 @@ TOptional<FVector> ToWorld(const FVeyraMinimapFrame& Frame, const FVector2D& Scr
 	return FVector(Frame.HalfExtent - Local.Y * Span, Local.X * Span - Frame.HalfExtent, 0.0);
 }
 
+TArray<FVeyraMinimapTeamPing> DescribeTeamPings(const FVeyraMinimapFrame& Frame, TConstArrayView<FVeyraReceivedPing> Pings, double Now, double Seconds)
+{
+	TArray<FVeyraMinimapTeamPing> Drawn;
+	for (const FVeyraReceivedPing& Held : Pings)
+	{
+		const double Age = Now - Held.ReceivedAt;
+		if (Seconds <= 0.0 || Age >= Seconds)
+		{
+			continue;
+		}
+		Drawn.Add({ ToMap(Frame, Held.Ping.Point), Held.Ping.Kind, 1.0 - FMath::Max(0.0, Age) / Seconds });
+	}
+	return Drawn;
+}
+
 EVeyraMinimapSide SideOf(EVeyraTeam Viewer, EVeyraTeam Team, bool bOwn)
 {
 	if (bOwn)

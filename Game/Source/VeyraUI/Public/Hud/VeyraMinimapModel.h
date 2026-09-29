@@ -5,6 +5,7 @@
 #include "Math/Vector.h"
 #include "Math/Vector2D.h"
 #include "Misc/Optional.h"
+#include "Pings/VeyraPingTypes.h"
 #include "Teams/VeyraTeam.h"
 
 class UWorld;
@@ -62,6 +63,15 @@ struct FVeyraMinimapPing
 	double Fade = 0.0;
 };
 
+/** A teammate's ping as the map draws it (ADR-020 §2). */
+struct FVeyraMinimapTeamPing
+{
+	FVector2D Centre = FVector2D::ZeroVector;
+	EVeyraPingKind Kind = EVeyraPingKind::Look;
+	/** 1 as it arrives, down to 0 as the player's ping persistence runs out. */
+	double Fade = 0.0;
+};
+
 /** Everything the minimap draws this frame, in screen pixels. */
 struct FVeyraMinimapView
 {
@@ -69,6 +79,7 @@ struct FVeyraMinimapView
 	TArray<FVeyraMinimapLane> Lanes;
 	TArray<FVeyraMinimapDot> Dots;
 	TArray<FVeyraMinimapPing> Pings;
+	TArray<FVeyraMinimapTeamPing> TeamPings;
 	/** The camera's focus, where the player is looking. */
 	TOptional<FVector2D> Focus;
 };
@@ -91,6 +102,12 @@ namespace VeyraMinimap
 
 	/** How Viewer's side stands to Team; the viewer's own unit is Own. */
 	VEYRAUI_API EVeyraMinimapSide SideOf(EVeyraTeam Viewer, EVeyraTeam Team, bool bOwn);
+
+	/**
+	 * Its side's pings, each where it points, fading over the player's ping persistence of Seconds; one
+	 * older than that is not drawn. Now is in the same real seconds the pings arrived in.
+	 */
+	VEYRAUI_API TArray<FVeyraMinimapTeamPing> DescribeTeamPings(const FVeyraMinimapFrame& Frame, TConstArrayView<FVeyraReceivedPing> Pings, double Now, double Seconds);
 
 	/** Gathers what World's client has for the minimap, for a viewer on Viewer's side whose Vanguard is Own. */
 	VEYRAUI_API FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame, EVeyraTeam Viewer, const AActor* Own,

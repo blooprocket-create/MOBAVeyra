@@ -40,6 +40,11 @@
 - **Settings:** its speeds and edge are presentation settings in `DefaultGame.ini`, not gameplay tuning.
 - **No sight:** it grants none. The fog gate already decides what a client has.
 - **The one game-driven pan:** at the end of a match the camera pans to the Prime Well that fell (§2, Proposal 16).
+- **Watching the end (Provisional, as League shows its Nexus fall):**
+  - An ended match stays up `ending.showSeconds` (Match.json) after it ends. The server reports its result at once, then quits once that time has passed, and each client leaves for the results after the same time.
+  - A client whose server quits first leaves as from an ended match, not a lost connection.
+  - Meanwhile the camera eases to the fallen Prime Well over `EndPanSeconds` (a presentation setting) and ignores the player's camera input.
+  - The HUD's headline reads Victory or Defeat by whose Well fell. A match that ended another way reads Match Over; so does a practice match, where a Well decides nothing.
 
 ### 2. The minimap is drawn from what the client already has
 
@@ -58,6 +63,15 @@
 This follows the layering (ADR-006 §3): UI registers, Match never calls UI.
 
 **Settings.** Its scale, icon size and the two click toggles are presentation settings.
+
+**Team pings (Provisional).** The Chat & Communication Bible leaves the ping system to be designed. The Settings Bible already assumes pings exist: ping persistence, ping sounds, and text labels (SET-68). So League's two basic pings stand in until that design:
+- **Sending:** holding `PingKey` (G) or `DangerPingKey` (V) and clicking pings "look here" or "danger" where the cursor points, on the ground or on the minimap.
+- **The server** (`UVeyraPingSubsystem`, Match) refuses three kinds of ping:
+  - one from a player who is not seated;
+  - one outside preparation and live play (a pause stops play, not talk);
+  - more than `pings.maxPerWindow` in any `pings.windowSeconds`.
+- **Delivery:** it hands each ping to the controllers of the sender's side only, so the other side never receives one.
+- **Keeping:** a client keeps a ping at most `pings.keepSeconds`. The player's ping persistence (`PingSeconds`, Settings Bible §3.2) decides how long it shows on the minimap and on the ground. Type labels are off by default (SET-68).
 
 ### 3. The kill economy (Economy owns the rules; Match orchestrates)
 
@@ -81,7 +95,8 @@ This follows the layering (ADR-006 §3): UI registers, Match never calls UI.
 ### 4. Values
 
 - **Economy.json** (schema bump): `bounty`, `killGold.devaluationSteps` and `buyback`. Each is Provisional unless the bible gives it: the devaluation steps are the bible's own illustration.
-- **DefaultGame.ini:** the camera and minimap presentation values.
+- **Match.json** (schema 8): `pings` and `ending`, both Provisional.
+- **DefaultGame.ini:** the camera, minimap and ping presentation values.
 
 ### 5. Delivery
 

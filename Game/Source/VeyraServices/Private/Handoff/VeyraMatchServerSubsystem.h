@@ -55,6 +55,8 @@ private:
 	FDelegateHandle AcceptingHandle;
 	FDelegateHandle EndedHandle;
 	FTSTicker::FDelegateHandle RetryTicker;
+	/** Quits once the ended match's players have watched its end. */
+	FTSTicker::FDelegateHandle QuitTicker;
 	bool bReadySent = false;
 	bool bResultSent = false;
 };

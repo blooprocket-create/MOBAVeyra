@@ -107,6 +107,17 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Camera")
 	FKey MinimapCameraKey;
 
+	/** Held with a click, pings "look here" or "danger" for the player's side (ADR-020 §2). */
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	FKey PingKey;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	FKey DangerPingKey;
+
+	/** The click that pings while a ping key is held. */
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	FKey PingClickKey;
+
 	/** Answer the open vote YES or NO (Match Flow Bible §7–§10; ADR-019 §7). */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey VoteYesKey;
