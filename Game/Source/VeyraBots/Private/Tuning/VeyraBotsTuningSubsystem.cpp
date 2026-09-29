@@ -3,6 +3,7 @@
 #include "Tuning/VeyraBotsTuningSubsystem.h"
 
 #include "Engine/Engine.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 
@@ -22,7 +23,8 @@ void UVeyraBotsTuningSubsystem::SetTestOverride(const FVeyraBotsTuning* Override
 void UVeyraBotsTuningSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
-	// Builds name items, and every released Vanguard needs its entry.
+	// Builds name items, every released Vanguard needs its entry, and each ability named one a bot can aim.
+	Collection.InitializeDependency<UVeyraAbilitiesTuningSubsystem>();
 	Collection.InitializeDependency<UVeyraItemsTuningSubsystem>();
 	Collection.InitializeDependency<UVeyraVanguardsTuningSubsystem>();
 	const VeyraTuning::FErrors Errors = Reload();

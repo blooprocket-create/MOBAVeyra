@@ -190,6 +190,11 @@ The values live in `Game/Tuning/Vanguards.json`, `Abilities.json` and `Bots.json
 - **M13a:** Kade, Vera and Mimzi, with slot overrides, the first status kinds, Camouflage, lingering areas, volleys and their options.
 - **M13b:** Patch, Gorraveth and Raska, with the second status kinds, tethers, attach, camp-cleared, ride states and their options.
 - Each Vanguard is released with bot data, its portrait, its text and the backend's released list.
+- Bots aim the new archetypes as ADR-013 §4 does the rest:
+  - a tether or a leap to hold on is cast at a unit in its cast range;
+  - a ride is cast on itself and reaches as far as it carries its rider, and its mounted actions are aimed as the slots' own abilities;
+  - a dash reaches as far as its landing's areas;
+  - a bot entry names every ability its slots come to hold (follow-ups, variants, mounted actions, Redlined forms), and each must be one a bot can aim.
 
 ## Consequences
 
@@ -204,6 +209,7 @@ The values live in `Game/Tuning/Vanguards.json`, `Abilities.json` and `Bots.json
 - **ADR-008:** slots may be overridden (§1).
 - **ADR-009:** the new status kinds, source-relative statuses, the decay mode, and the events of §3.
 - **ADR-016:** Camouflage (§4) and shaped reveals (§5).
+- **ADR-013:** bot profiles for tethers, attach and rides, and bot entries that name every ability a slot comes to hold (§9).
 
 ## Open items
 

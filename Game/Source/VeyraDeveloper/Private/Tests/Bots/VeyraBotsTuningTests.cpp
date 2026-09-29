@@ -92,6 +92,15 @@ namespace VeyraBotsTests
 				FString::Join(Problems, TEXT(" | "))));
 			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/vanguards/qazharr/abilities"))));
 		}
+
+		TEST_METHOD(EachAbilityNamedIsOneABotCanAim)
+		{
+			// A follow-up, variant or mounted action a slot comes to hold is named with its kit; one no
+			// archetype defines would never be cast.
+			FVeyraBotsTuning Broken = UVeyraBotsTuningSubsystem::Get();
+			Broken.Vanguards[BotsId(TEXT("raska"))].Abilities.Add(BotsId(TEXT("no_such_ability")), EVeyraBotAbilityUse::Damage);
+			ASSERT_THAT(IsTrue(HasProblem(VeyraBots::Validate(Broken), TEXT("/vanguards/raska/abilities"))));
+		}
 	};
 }
 

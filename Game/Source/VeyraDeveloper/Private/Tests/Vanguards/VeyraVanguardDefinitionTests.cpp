@@ -50,11 +50,12 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsTrue(Problems.IsEmpty(), FString::Join(Problems, TEXT(" | "))));
 		}
 
-		TEST_METHOD(TheSevenKitsArePlayableAndTheTestVanguardIsNot)
+		TEST_METHOD(TheTenKitsArePlayableAndTheTestVanguardIsNot)
 		{
 			// Only Playable Vanguards are released: the backend's catalog lists them, and a Shipping
 			// match server hosts nothing else (ADR-010 §6).
-			for (const TCHAR* Released : { TEXT("cairn"), TEXT("qazharr"), TEXT("oriel"), TEXT("bryn"), TEXT("kade"), TEXT("vera"), TEXT("mimzi") })
+			for (const TCHAR* Released : { TEXT("cairn"), TEXT("qazharr"), TEXT("oriel"), TEXT("bryn"), TEXT("kade"), TEXT("vera"), TEXT("mimzi"),
+					 TEXT("patch"), TEXT("gorraveth"), TEXT("raska") })
 			{
 				const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(VanguardTestId(Released));
 				ASSERT_THAT(IsTrue(Definition && Definition->Availability == EVeyraVanguardAvailability::Playable, Released));

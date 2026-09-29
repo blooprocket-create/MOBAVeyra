@@ -29,7 +29,7 @@ struct FVeyraBotAbilityProfile
 {
 	EVeyraBotTargeting Targeting = EVeyraBotTargeting::Self;
 
-	/** How far from the caster an enemy may be for the cast to reach it; 0 for Self. */
+	/** How far from the caster an enemy may be for the cast to reach it; for Self, how far it carries the caster, 0 if nowhere. */
 	double Reach = 0.0;
 
 	/** Seconds from the cast until it lands, before any travel: windups and delays. */

@@ -364,7 +364,7 @@
     },
     "patch": {
       "provenance": "Provisional",
-      "availability": "Developer",
+      "availability": "Playable",
       "resource": "Mana",
       "body": { "capsuleRadius": 45, "capsuleHalfHeight": 70, "turnRateDegreesPerSecond": 540 },
       "baseStats": {
@@ -406,7 +406,7 @@
     },
     "gorraveth": {
       "provenance": "Provisional",
-      "availability": "Developer",
+      "availability": "Playable",
       "resource": "Mana",
       "body": { "capsuleRadius": 60, "capsuleHalfHeight": 110, "turnRateDegreesPerSecond": 600 },
       "baseStats": {
@@ -448,7 +448,7 @@
     },
     "raska": {
       "provenance": "Provisional",
-      "availability": "Developer",
+      "availability": "Playable",
       "resource": "Mana",
       "body": { "capsuleRadius": 50, "capsuleHalfHeight": 95, "turnRateDegreesPerSecond": 600 },
       "baseStats": {
