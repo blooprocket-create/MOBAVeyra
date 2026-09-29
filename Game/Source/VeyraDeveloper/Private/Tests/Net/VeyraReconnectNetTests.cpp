@@ -70,8 +70,9 @@ namespace VeyraNetTests
 
 		// Fixture values.
 		static constexpr double ShortPreparationSeconds = 0.1;
-		// The client in this PIE instance leaves and comes back.
+		// The client in this PIE instance leaves and comes back; the other client stays.
 		static constexpr int32 ReturningInstance = 1;
+		static constexpr int32 StayingIndex = 1;
 
 		BEFORE_EACH()
 		{
@@ -107,6 +108,20 @@ namespace VeyraNetTests
 				})
 				.ThenServer(TEXT("It leaves"), [](FState& /*State*/) { GEngine->Exec(CurrentWorldOf(ReturningInstance), TEXT("disconnect")); })
 				.UntilServer(TEXT("The server keeps its PlayerState, inactive"), [this](FState& /*State*/) { return Left.IsValid() && Left->IsInactive(); })
+				.UntilClient(TEXT("The one who stayed sees it away"), StayingIndex, [this](FState& State) {
+					for (TActorIterator<AVeyraPlayerState> It(State.World); It; ++It)
+					{
+						if (Left.IsValid() && It->GetPlayerId() == Left->GetPlayerId())
+						{
+							return It->IsInactive();
+						}
+					}
+					return false;
+				})
+				.UntilClient(TEXT("The one who stayed no longer lists it"), StayingIndex, [](FState& State) {
+					const AVeyraGameState* GameState = GameStateOf(State.World);
+					return GameState && GameState->PlayerArray.Num() == MatchClientCount - 1;
+				})
 				.ThenServer(TEXT("Its Vanguard stays in the match"), [this](FState& State) {
 					ASSERT_THAT(IsTrue(LeftVanguard.IsValid() && LeftVanguard->GetPlayerState() == Left.Get()));
 					ASSERT_THAT(AreEqual(CountOf<AVeyraVanguardCharacter>(State.World), MatchClientCount));
@@ -115,6 +130,10 @@ namespace VeyraNetTests
 				.UntilServer(TEXT("A new controller holds the PlayerState it left"), [this](FState& /*State*/) {
 					const APlayerController* Owner = Left.IsValid() ? Cast<APlayerController>(Left->GetOwner()) : nullptr;
 					return IsValid(Owner) && Owner->PlayerState == Left.Get() && !Left->IsInactive();
+				})
+				.UntilClient(TEXT("The one who stayed lists it again"), StayingIndex, [](FState& State) {
+					const AVeyraGameState* GameState = GameStateOf(State.World);
+					return GameState && GameState->PlayerArray.Num() == MatchClientCount;
 				})
 				.ThenServer(TEXT("Nothing was made twice"), [this](FState& State) {
 					ASSERT_THAT(AreEqual(CountOf<AVeyraVanguardCharacter>(State.World), MatchClientCount));
