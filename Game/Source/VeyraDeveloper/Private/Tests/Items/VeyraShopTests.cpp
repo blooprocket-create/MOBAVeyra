@@ -114,6 +114,11 @@ namespace VeyraItemsTests
 			// A spell swapped in for a ready one is ready.
 			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 1, Roster[3]) == EVeyraShopRefusal::None));
 			ASSERT_THAT(IsTrue(Cooldowns.GetRemainingSecondsNow(Roster[3]) == 0.0));
+			// Swapped back in for a ready spell, a spell forgets the cooldown it left with: the ledger keys
+			// cooldowns by spell, so it would otherwise still be cooling (PR #29 review).
+			ASSERT_THAT(IsTrue(Cooldowns.GetRemainingSecondsNow(Roster[1]) > 0.0, TEXT("the spell swapped out earlier still has its cooldown")));
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 1, Roster[1]) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Cooldowns.GetRemainingSecondsNow(Roster[1]) == 0.0));
 
 			Gold->Spend(Gold->GetGold());
 			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 1, Roster[0]) == EVeyraShopRefusal::NotEnoughGold));

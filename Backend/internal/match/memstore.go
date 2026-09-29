@@ -110,7 +110,7 @@ func (s *MemStore) LastFluxSpells(_ context.Context, accountID, vanguardID strin
 	var spells [2]string
 	for _, m := range s.matches {
 		for _, p := range m.Participants {
-			if p.AccountID == accountID && p.VanguardID == vanguardID && (last.ID == "" || m.CreatedAt.After(last.CreatedAt)) {
+			if p.AccountID == accountID && p.VanguardID == vanguardID && !m.ReadyAt.IsZero() && (last.ID == "" || m.CreatedAt.After(last.CreatedAt)) {
 				last, spells = m, p.FluxSpells
 			}
 		}

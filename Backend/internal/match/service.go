@@ -273,7 +273,8 @@ func (s *Service) BySelect(ctx context.Context, selectID string) (Match, bool, e
 
 // LastFluxSpells returns the starting Flux Spells the account last took into a
 // match with the Vanguard, or two empty slots: its saved loadout for that
-// Vanguard (Pre-Game Client UX Bible 37).
+// Vanguard (Pre-Game Client UX Bible 37). Only a match whose server became
+// ready was taken into; one that failed to start saves nothing.
 func (s *Service) LastFluxSpells(ctx context.Context, accountID, vanguardID string) ([2]string, error) {
 	return s.store.LastFluxSpells(ctx, accountID, vanguardID)
 }

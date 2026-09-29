@@ -209,7 +209,7 @@ func (s *MatchStore) LastFluxSpells(ctx context.Context, accountID, vanguardID s
 	var spells []string
 	err := querierFor(ctx, s.pool).QueryRow(ctx, `SELECT p.flux_spells FROM match.participants p
 		JOIN match.matches m ON m.id = p.match_id
-		WHERE p.account_id = $1::uuid AND p.vanguard_id = $2
+		WHERE p.account_id = $1::uuid AND p.vanguard_id = $2 AND m.ready_at IS NOT NULL
 		ORDER BY m.created_at DESC, m.id DESC LIMIT 1`, accountID, vanguardID).Scan(&spells)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return out, nil

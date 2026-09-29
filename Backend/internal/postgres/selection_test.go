@@ -18,7 +18,7 @@ import (
 
 // newSelectionFixture wires the account, match and selection services to
 // Postgres, with DevOne onboarded as Oriel.
-func newSelectionFixture(t *testing.T) (*selection.Service, *match.Service, string) {
+func newSelectionFixture(t *testing.T) (*selection.Service, *matchFixture, string) {
 	t.Helper()
 	f := newMatchFixture(t, "DevOne")
 	ctx := context.Background()
@@ -45,11 +45,12 @@ func newSelectionFixture(t *testing.T) (*selection.Service, *match.Service, stri
 		StartingTimeout: time.Minute,
 		FluxSpells:      []string{"blink", "scorch"},
 	}, func() time.Time { return f.now }, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	return svc, f.svc, f.ids["DevOne"]
+	return svc, f, f.ids["DevOne"]
 }
 
 func TestPracticeSelectInPostgres(t *testing.T) {
-	svc, matches, id := newSelectionFixture(t)
+	svc, fixture, id := newSelectionFixture(t)
+	matches := fixture.svc
 	ctx := context.Background()
 	s, err := svc.StartPractice(ctx, id)
 	if err != nil {
@@ -73,6 +74,13 @@ func TestPracticeSelectInPostgres(t *testing.T) {
 	if err != nil || !found || m.ID != locked.MatchID || m.SelectID != s.ID || m.Participants[0].VanguardID != "oriel" ||
 		m.Participants[0].FluxSpells != [2]string{"", "scorch"} {
 		t.Fatalf("the select's match: %+v %v %v", m, found, err)
+	}
+	// Spells count as taken into a match once its server is ready (Pre-Game Client UX Bible 37).
+	if saved, err := matches.LastFluxSpells(ctx, id, "oriel"); err != nil || saved != ([2]string{}) {
+		t.Fatalf("before the server is ready: %v %v", saved, err)
+	}
+	if err := matches.ServerReady(ctx, fixture.credential(t, m.ID), m.ID); err != nil {
+		t.Fatalf("ServerReady: %v", err)
 	}
 	// The spells the account took into a match with Oriel are its saved loadout for Oriel only.
 	if saved, err := matches.LastFluxSpells(ctx, id, "oriel"); err != nil || saved != [2]string{"", "scorch"} {

@@ -50,6 +50,9 @@ namespace VeyraCooldowns
 	VEYRAABILITIES_API void Start(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability, double DurationSeconds, double Now,
 		bool bAbilityHaste = true);
 
+	/** Forgets Ability's cooldown, so it is ready. False if it had none. */
+	VEYRAABILITIES_API bool Clear(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability);
+
 	/**
 	 * Scales every Ability-Haste cooldown still running at time Now by Factor, what remains and what it
 	 * started with alike, as when Ability Haste changes mid-cooldown (Combat Bible §21). Finished ones
@@ -82,6 +85,9 @@ public:
 	 * remains; an item's Active is not.
 	 */
 	void StartCooldown(const FVeyraContentId& Ability, double BaseSeconds, EVeyraCooldownHaste Haste = EVeyraCooldownHaste::Ability);
+
+	/** Server only: makes Ability ready now, forgetting any cooldown it still has. */
+	void ClearCooldown(const FVeyraContentId& Ability);
 
 	/**
 	 * Seconds until Ability is ready at server gameplay time Now. The server passes its world time;

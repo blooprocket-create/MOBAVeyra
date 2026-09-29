@@ -2,6 +2,7 @@ package selection
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
@@ -228,9 +229,35 @@ func TestStartingFluxSpellsAreFreeAndFollowTheSavedLoadout(t *testing.T) {
 		t.Fatalf("the match takes the spells: %+v %v", m.Participants, err)
 	}
 
-	// The match never readies and fails, freeing its player for another select, which
-	// prefills Oriel's saved loadout until the player chooses (Pre-Game Client UX Bible 37).
+	// The match never readies and fails, freeing its player for another select. The spells never
+	// went into a match, so nothing is saved (Pre-Game Client UX Bible 37).
 	f.now = f.now.Add(2 * time.Minute)
+	if err := f.matches.Reap(ctx); err != nil {
+		t.Fatal(err)
+	}
+	f.practice(t, "acc-1")
+	if hovered, err := f.svc.Hover(ctx, "acc-1", "oriel"); err != nil || hovered.Seats[0].FluxSpells != ([2]string{}) {
+		t.Fatalf("a match that failed to start saves nothing: %+v %v", hovered, err)
+	}
+
+	// This time the server becomes ready: the player took the spells into a match, which later ends.
+	// The next select prefills them until the player chooses.
+	if _, err := f.svc.SetFluxSpells(ctx, "acc-1", [2]string{"", "scorch"}); err != nil {
+		t.Fatal(err)
+	}
+	locked, err = f.svc.Lock(ctx, "acc-1", "oriel")
+	if err != nil || locked.State != Started {
+		t.Fatalf("Lock: %+v %v", locked, err)
+	}
+	spec, ok := f.alloc.Spec(locked.MatchID)
+	var assignment match.Assignment
+	if !ok || json.Unmarshal(spec.Assignment, &assignment) != nil {
+		t.Fatalf("no assignment for %s", locked.MatchID)
+	}
+	if err := f.matches.ServerReady(ctx, assignment.ServerCredential, locked.MatchID); err != nil {
+		t.Fatalf("ServerReady: %v", err)
+	}
+	f.now = f.now.Add(2 * time.Hour)
 	if err := f.matches.Reap(ctx); err != nil {
 		t.Fatal(err)
 	}

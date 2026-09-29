@@ -192,9 +192,15 @@ EVeyraShopRefusal UVeyraShopSubsystem::SwapFluxSpell(AActor& Participant, int32 
 	UVeyraCooldownComponent* Cooldowns = Participant.FindComponentByClass<UVeyraCooldownComponent>();
 	const bool bWasCooling = Previous.IsValid() && Cooldowns && Cooldowns->GetRemainingSecondsNow(Previous) > 0.0;
 	Loadout->Grant(*AbilitySystem, Target, Spell);
+	// A swap never resets a cooldown and never inherits one: the new spell takes the slot's state. The
+	// ledger keys cooldowns by spell, so a spell swapped back in forgets what it had before (ADR-015 §6).
 	if (bWasCooling)
 	{
 		Cooldowns->StartCooldown(Spell, VeyraAbilityRules::CooldownSeconds(Abilities, Spell, 1), EVeyraCooldownHaste::Fixed);
+	}
+	else if (Cooldowns)
+	{
+		Cooldowns->ClearCooldown(Spell);
 	}
 	UE_LOG(LogVeyraItems, Log, TEXT("%s swapped Flux Spell slot %d from %s to %s for %.0f Gold."), *GetNameSafe(&Participant), Slot + 1,
 		Previous.IsValid() ? *Previous.ToString() : TEXT("(empty)"), *Spell.ToString(), Cost);
