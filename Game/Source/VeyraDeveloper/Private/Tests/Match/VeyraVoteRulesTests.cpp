@@ -135,6 +135,17 @@ namespace VeyraVoteRulesTests
 			ASSERT_THAT(IsTrue(VeyraVotes::Tally(Box, Voters, 1.0, Tuning) == EVeyraVoteOutcome::Failed, TEXT("abstentions leave it short")));
 		}
 
+		TEST_METHOD(AnEarlyResumeVoteStaysOpenForTheRestOfTheIntermission)
+		{
+			const double Now = 100.0;
+			const TOptional<double> IntermissionEndsAt = Now + Tuning.Pause.IntermissionSeconds - 50.0;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraVotes::ClosesAt(EVeyraVoteKind::Resume, Now, IntermissionEndsAt, Tuning), IntermissionEndsAt.GetValue()),
+				TEXT("not the pause vote's window")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraVotes::ClosesAt(EVeyraVoteKind::Pause, Now, {}, Tuning), Now + Tuning.Pause.WindowSeconds)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraVotes::ClosesAt(EVeyraVoteKind::Surrender, Now, IntermissionEndsAt, Tuning), Now + Tuning.Surrender.WindowSeconds)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraVotes::ClosesAt(EVeyraVoteKind::Remake, Now, {}, Tuning), Now + Tuning.Remake.WindowSeconds)));
+		}
+
 		TEST_METHOD(APauseNeedsEveryPlayerAndFailsOnAnyNo)
 		{
 			const TArray<FVeyraVoter> Voters = FiveAgainstFive();

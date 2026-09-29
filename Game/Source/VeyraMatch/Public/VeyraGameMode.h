@@ -161,7 +161,7 @@ private:
 	/** The PlayerState of a rostered account, connected or kept since it left, or null. */
 	AVeyraPlayerState* FindParticipant(FStringView AccountId) const;
 
-	/** The PlayerState a rostered account left behind when it disconnected, or null. */
+	/** The PlayerState a rostered account left behind when it disconnected, or the seat kept for it as a no-show, or null. */
 	AVeyraPlayerState* FindKeptPlayerState(FStringView AccountId) const;
 
 	/**
@@ -184,6 +184,12 @@ private:
 	bool HaveExpectedPlayersJoined();
 
 	void OnLoadingTimedOut();
+
+	/**
+	 * Keeps a seat for each rostered participant who never connected: an inactive PlayerState on its
+	 * side as its Vanguard, tracked as absent from the start (Match Flow Bible §3).
+	 */
+	void SeatNoShows();
 
 	/** Adds the assignment's bots on their sides as playing bots, each with its difficulty (ADR-010 §7, ADR-013 §2). */
 	void AddAssignedBots();

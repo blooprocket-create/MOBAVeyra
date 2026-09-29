@@ -79,11 +79,11 @@ private:
 		/** The stage the autopilot last walked toward, and the destination it chose. */
 		EVeyraAutopilotStage Stage = EVeyraAutopilotStage::None;
 		TOptional<FVector> Heading;
-		/** Its record as it last came back from an absence, to tell what it did after. */
+		/** Its record as it first came back after the absence that cost it, to tell what it did after. */
 		TOptional<FVeyraPlayerStatistics> AtReturn;
 	};
 
-	/** Notes what Participant's record holds as it comes back. */
+	/** Tells OnCameBack that Participant is back, and keeps its record as it first comes back after a personal loss. */
 	void NoteComeBack(const AVeyraPlayerState& Participant, FTracked& Entry) const;
 
 	TMap<TWeakObjectPtr<AVeyraPlayerState>, FTracked> Tracked;

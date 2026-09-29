@@ -26,6 +26,12 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
 ### 1. Rejoin gives back the same Vanguard
 
 - A rostered account that has joined and is not connected may join again until the match ends.
+- **A no-show keeps its seat (Match Flow Bible §3).** When preparation begins, the game mode seats each rostered account that never connected:
+  - an inactive PlayerState with its account, side, Vanguard and Flux Spells;
+  - a Vanguard spawned with everyone else's;
+  - tracked as disconnected from 0:00, so the autopilot, the personal-loss clock and the votes treat it as any disconnected player.
+
+  Its player's late first login takes that seat as a returning player's does, even into a full match.
 - On login the game mode finds the account's kept PlayerState:
   - It gives that PlayerState to the new PlayerController, reactivates it and destroys the fresh one.
   - The Vanguard controller keeps its pawn. No second Vanguard spawns.
@@ -51,8 +57,8 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
   - The cumulative total never resets.
 - **Forgiveness (§6):** a personal loss is cleared only when all three hold:
   - the team won;
-  - cumulative absence is at most `absence.maxForgivenAbsentFraction` of the active duration;
-  - the record shows a contribution after the player's last return: a takedown, an assist, damage to an enemy Vanguard or structure, or a Well secured.
+  - cumulative absence is at most `absence.maxForgivenAbsentFraction` of the active duration, counting any absence still open at the end (being away at the end is no bar of its own);
+  - the record shows a contribution since the player first came back after the absence that cost it: a takedown, an assist, damage to an enemy Vanguard or structure, or a Well secured.
 
   The contribution rule is Provisional; canon says it is still to be designed.
 
@@ -65,9 +71,11 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
 | Remake | either team | 0:00–5:00, to start | 3 of 5 | votes YES | 30 s | 60 s, that team |
 | Surrender | either team | from 15:00 | 3 of 5 | abstains | 30 s | 180 s, that team |
 | Pause | anyone | live | all 10 | votes YES (AFK too) | 60 s | 180 s |
-| Early resume | anyone | intermission | all 10 | votes YES | — | — |
+| Early resume | anyone | intermission | all 10 | votes YES | the rest of the intermission | — |
 
 - Only the starting team votes, except on pause and resume.
+- **A team's vote reaches only that team.** Its state goes to each of the team's PlayerControllers, which replicate to their own players alone; the game state carries only a vote for everyone (pause and resume). The HUD and match menu read `AVeyraPlayerController::GetOpenVote`.
+- The voters are every seated participant, a no-show's kept seat included (§1), so its automatic ballot counts.
 - A recorded vote is locked.
 - A vote fails as soon as it can no longer pass.
 - Votes and the intermission run on real time, since a pause stops world time.

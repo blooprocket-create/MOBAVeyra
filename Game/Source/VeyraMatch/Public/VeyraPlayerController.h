@@ -85,6 +85,15 @@ public:
 	void CastVote(bool bYes);
 
 	/**
+	 * Owning client: the open vote this player sees, if any: one for everyone from the game state, or
+	 * its own team's, which reaches no one else (Match Flow Bible §9; ADR-019 §4).
+	 */
+	const FVeyraVoteState& GetOpenVote() const;
+
+	/** Server only: the vote owner shows this player its team's open vote, or none. */
+	void SetTeamVote(const FVeyraVoteState& InVote);
+
+	/**
 	 * Owning client: whether the server counts this player AFK, its Vanguard walked to safety until its
 	 * next order (Match Flow Bible §5.1; ADR-019 §3).
 	 */
@@ -175,6 +184,7 @@ public:
 	class AVeyraCameraRig* GetCameraRig() const { return CameraRig; }
 
 	virtual void PlayerTick(float DeltaTime) override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -339,6 +349,10 @@ private:
 
 	EVeyraVoteRefusal LastVoteRefusal = EVeyraVoteRefusal::None;
 	int32 VoteRefusalCount = 0;
+
+	/** Its team's open vote; a controller replicates to its own player only. */
+	UPROPERTY(Replicated)
+	FVeyraVoteState TeamVote;
 
 	bool bWarnedAfk = false;
 

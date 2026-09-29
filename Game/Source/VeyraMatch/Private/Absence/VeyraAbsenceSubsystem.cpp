@@ -120,8 +120,13 @@ const FVeyraAbsenceRecord* UVeyraAbsenceSubsystem::Find(const AVeyraPlayerState&
 
 void UVeyraAbsenceSubsystem::NoteComeBack(const AVeyraPlayerState& Participant, FTracked& Entry) const
 {
-	const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>();
-	Entry.AtReturn = Statistics ? Statistics->Snapshot(Participant) : TOptional<FVeyraPlayerStatistics>();
+	// Its contribution counts from its first return after the absence that cost it a personal loss
+	// (Match Flow Bible §6); a later brief absence does not start the count again.
+	if (Entry.Record.bPersonalLoss && !Entry.AtReturn.IsSet())
+	{
+		const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>();
+		Entry.AtReturn = Statistics ? Statistics->Snapshot(Participant) : TOptional<FVeyraPlayerStatistics>();
+	}
 	OnCameBack.Broadcast(Participant);
 }
 

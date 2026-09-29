@@ -143,19 +143,25 @@ EVeyraVoteOutcome Tally(const FVeyraBallotBox& Box, TConstArrayView<FVeyraVoter>
 	return EVeyraVoteOutcome::Open;
 }
 
-double WindowSeconds(EVeyraVoteKind Kind, const FVeyraVotesTuning& Tuning)
+double ClosesAt(EVeyraVoteKind Kind, double Now, const TOptional<double>& IntermissionEndsAt, const FVeyraVotesTuning& Tuning)
 {
 	switch (Kind)
 	{
 	case EVeyraVoteKind::Remake:
-		return Tuning.Remake.WindowSeconds;
+		return Now + Tuning.Remake.WindowSeconds;
 	case EVeyraVoteKind::Surrender:
-		return Tuning.Surrender.WindowSeconds;
-	case EVeyraVoteKind::Pause:
+		return Now + Tuning.Surrender.WindowSeconds;
 	case EVeyraVoteKind::Resume:
+		// Its ballots hold while the intermission lasts; when that ends, play resumes anyway.
+		if (IntermissionEndsAt.IsSet())
+		{
+			return FMath::Max(Now, IntermissionEndsAt.GetValue());
+		}
+		break;
+	case EVeyraVoteKind::Pause:
 		break;
 	}
-	return Tuning.Pause.WindowSeconds;
+	return Now + Tuning.Pause.WindowSeconds;
 }
 
 void NoteFailed(const FVeyraBallotBox& Box, double Now, const FVeyraVotesTuning& Tuning, FVeyraVoteCooldowns& Cooldowns)
