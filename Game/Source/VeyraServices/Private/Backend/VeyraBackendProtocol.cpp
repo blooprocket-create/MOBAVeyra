@@ -700,6 +700,22 @@ bool ParseHistoryPage(const FString& Body, FHistoryPage& Out, FString& OutProble
 		OutProblem = TEXT("the match history's list or cursor is missing or not in the expected format");
 		return false;
 	}
+	const TArray<TSharedPtr<FJsonValue>>* Modes = nullptr;
+	if (!Root->HasTypedField<EJson::Array>(TEXT("modes")) || !Root->TryGetArrayField(TEXT("modes"), Modes))
+	{
+		OutProblem = TEXT("the match history's modes are missing");
+		return false;
+	}
+	for (const TSharedPtr<FJsonValue>& Value : *Modes)
+	{
+		FString Mode;
+		if (!Value.IsValid() || !Value->TryGetString(Mode) || !MatchesWhole(ContentIdPattern, Mode))
+		{
+			OutProblem = TEXT("a mode in the match history is not a content ID");
+			return false;
+		}
+		Page.Modes.Add(MoveTemp(Mode));
+	}
 	for (const TSharedPtr<FJsonValue>& Value : *Matches)
 	{
 		const TSharedPtr<FJsonObject>* Object = nullptr;
@@ -929,28 +945,36 @@ FString BuildResultBody(const FVeyraMatchResult& Result)
 		Writer->WriteObjectEnd();
 	}
 	Writer->WriteArrayEnd();
-	// The scoreboard (ADR-017 §5): every player, a bot with no account.
-	Writer->WriteArrayStart(TEXT("players"));
-	for (const FVeyraPlayerResult& Player : Result.Players)
+	// The scoreboard (ADR-017 §5): every player, a bot with no account. With nobody recorded, as when a
+	// match is abandoned before it prepares anyone, there is none: null, never two empty teams.
+	if (Result.Players.IsEmpty())
 	{
-		Writer->WriteObjectStart();
-		Writer->WriteValue(TEXT("side"), Player.Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"));
-		Writer->WriteValue(TEXT("name"), Player.DisplayName);
-		if (Player.AccountId.IsEmpty())
-		{
-			Writer->WriteNull(TEXT("accountId"));
-		}
-		else
-		{
-			Writer->WriteValue(TEXT("accountId"), Player.AccountId);
-		}
-		Writer->WriteValue(TEXT("vanguardId"), Player.VanguardId.ToString());
-		WriteStatistics(*Writer, Player.Statistics);
-		WriteSlots(*Writer, TEXT("items"), Player.Statistics.Items, 0);
-		WriteSlots(*Writer, TEXT("fluxSpells"), Player.Statistics.FluxSpells, SpellSlotCount);
-		Writer->WriteObjectEnd();
+		Writer->WriteNull(TEXT("players"));
 	}
-	Writer->WriteArrayEnd();
+	else
+	{
+		Writer->WriteArrayStart(TEXT("players"));
+		for (const FVeyraPlayerResult& Player : Result.Players)
+		{
+			Writer->WriteObjectStart();
+			Writer->WriteValue(TEXT("side"), Player.Side == EVeyraTeam::A ? TEXT("A") : TEXT("B"));
+			Writer->WriteValue(TEXT("name"), Player.DisplayName);
+			if (Player.AccountId.IsEmpty())
+			{
+				Writer->WriteNull(TEXT("accountId"));
+			}
+			else
+			{
+				Writer->WriteValue(TEXT("accountId"), Player.AccountId);
+			}
+			Writer->WriteValue(TEXT("vanguardId"), Player.VanguardId.ToString());
+			WriteStatistics(*Writer, Player.Statistics);
+			WriteSlots(*Writer, TEXT("items"), Player.Statistics.Items, 0);
+			WriteSlots(*Writer, TEXT("fluxSpells"), Player.Statistics.FluxSpells, SpellSlotCount);
+			Writer->WriteObjectEnd();
+		}
+		Writer->WriteArrayEnd();
+	}
 	// Each Flux Well secured, once per capture (Match Statistics Bible §5).
 	Writer->WriteArrayStart(TEXT("wells"));
 	for (const FVeyraWellCapture& Capture : Result.Wells)

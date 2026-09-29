@@ -47,15 +47,16 @@ FVeyraHistoryModel Describe(const FVeyraClientSnapshot& Snapshot, bool bCanLoadM
 		Model.Vanguards.Add({ Vanguard, VeyraShellModels::VanguardNameOf(Vanguard), History.Filter.VanguardId == Vanguard });
 	}
 
-	// The modes the Play screen offers, and any a listed match was played in, such as practice.
+	// The modes the Play screen offers, and every mode the player has a saved match in, such as
+	// practice, whichever pages are read (UX-67).
 	TArray<FString> Modes;
 	for (const VeyraBackendProtocol::FModeInfo& Mode : Snapshot.Modes)
 	{
 		Modes.AddUnique(Mode.Id);
 	}
-	for (const VeyraBackendProtocol::FHistoryEntry& Entry : History.Entries)
+	for (const FString& Mode : History.Modes)
 	{
-		Modes.AddUnique(Entry.Mode);
+		Modes.AddUnique(Mode);
 	}
 	if (!History.Filter.Mode.IsEmpty())
 	{

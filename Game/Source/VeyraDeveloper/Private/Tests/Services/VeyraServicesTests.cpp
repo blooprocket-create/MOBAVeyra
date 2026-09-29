@@ -209,7 +209,7 @@ namespace VeyraServicesTests
 			const TSharedPtr<FJsonObject> Body = Parse(VeyraBackendProtocol::BuildResultBody(Result));
 			ASSERT_THAT(IsTrue(Body.IsValid()));
 			ASSERT_THAT(AreEqual(Body->Values.Num(), 6));
-			ASSERT_THAT(IsTrue(Body->GetArrayField(TEXT("players")).IsEmpty(), TEXT("no players, an empty scoreboard")));
+			ASSERT_THAT(IsTrue(Body->HasTypedField<EJson::Null>(TEXT("players")), TEXT("nobody recorded: no scoreboard, not two empty teams")));
 			ASSERT_THAT(IsTrue(Body->GetArrayField(TEXT("wells")).IsEmpty(), TEXT("no Flux Well secured")));
 			ASSERT_THAT(AreEqual(Body->GetStringField(TEXT("endReason")), FString(TEXT("developer_request"))));
 			ASSERT_THAT(IsTrue(Body->HasTypedField<EJson::Null>(TEXT("winner"))));

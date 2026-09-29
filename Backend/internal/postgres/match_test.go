@@ -405,4 +405,7 @@ func TestMatchHistoryInPostgres(t *testing.T) {
 	if page, _, err := f.svc.History(ctx, one, match.HistoryFilter{VanguardID: "oriel"}, ""); err != nil || len(page) != 0 {
 		t.Fatalf("a Vanguard never played: %+v %v", page, err)
 	}
+	if modes, err := f.svc.HistoryModes(ctx, one); err != nil || len(modes) != 1 || modes[0] != "casual" {
+		t.Fatalf("every mode with a saved match: %v %v", modes, err)
+	}
 }

@@ -132,10 +132,10 @@ namespace VeyraClientFlowTests
 			Id, Outcome);
 	}
 
-	/** A page of Match History; Next is JSON: a quoted cursor, or null. */
-	inline FString HistoryBody(const TArray<FString>& Entries, const TCHAR* Next)
+	/** A page of Match History; Next is JSON: a quoted cursor, or null. Modes is JSON too: every mode with a saved match. */
+	inline FString HistoryBody(const TArray<FString>& Entries, const TCHAR* Next, const TCHAR* Modes = TEXT("[\"casual_select\",\"custom_practice\"]"))
 	{
-		return FString::Printf(TEXT("{\"matches\":[%s],\"next\":%s}"), *FString::Join(Entries, TEXT(",")), Next);
+		return FString::Printf(TEXT("{\"matches\":[%s],\"next\":%s,\"modes\":%s}"), *FString::Join(Entries, TEXT(",")), Next, Modes);
 	}
 
 	/** A matchmade select: the player on side A, an opponent on side B. */

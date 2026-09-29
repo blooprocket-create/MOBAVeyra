@@ -1609,6 +1609,7 @@ bool FVeyraClientFlow::LoadHistory(const VeyraBackendProtocol::FHistoryFilter& F
 			History.Filter = Filter;
 			History.Entries = MoveTemp(Page.Entries);
 			History.Next = MoveTemp(Page.Next);
+			History.Modes = MoveTemp(Page.Modes);
 			History.bLoaded = true;
 			History.Opened.Reset();
 			Broadcast();
@@ -1642,6 +1643,7 @@ bool FVeyraClientFlow::LoadMoreHistory()
 		{
 			Snapshot.History.Entries.Append(MoveTemp(Page.Entries));
 			Snapshot.History.Next = MoveTemp(Page.Next);
+			Snapshot.History.Modes = MoveTemp(Page.Modes);
 			Broadcast();
 		}
 	});

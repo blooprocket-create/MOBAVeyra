@@ -89,3 +89,11 @@ func zeroFields(v reflect.Value, path string) []string {
 	}
 	return zero
 }
+
+// TestAnEmptyScoreboardIsNone: a server that recorded nobody sends no
+// scoreboard, and an empty one reads the same (ADR-017 §5).
+func TestAnEmptyScoreboardIsNone(t *testing.T) {
+	if players, ok := playersFrom([]scoreboardLineJSON{}); !ok || players != nil {
+		t.Fatalf("an empty scoreboard: want none, got %v %v", players, ok)
+	}
+}

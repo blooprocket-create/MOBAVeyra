@@ -197,6 +197,21 @@ func (s *MatchStore) MatchHistory(ctx context.Context, accountID string, filter 
 	})
 }
 
+// HistoryModes lists the modes of an account's completed matches, sorted.
+func (s *MatchStore) HistoryModes(ctx context.Context, accountID string) ([]string, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT DISTINCT m.mode
+		FROM match.participants p
+		JOIN match.matches m ON m.id = p.match_id
+		JOIN match.results r ON r.match_id = m.id
+		WHERE p.account_id = $1::uuid AND m.state = 'ended'
+		ORDER BY m.mode`, accountID)
+	if err != nil {
+		return nil, err
+	}
+	return pgx.CollectRows(rows, pgx.RowTo[string])
+}
+
 func deref(s *string) string {
 	if s == nil {
 		return ""

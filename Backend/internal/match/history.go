@@ -137,6 +137,12 @@ func (s *Service) History(ctx context.Context, accountID string, filter HistoryF
 	return entries, HistoryCursor{EndedAt: last.EndedAt, MatchID: last.MatchID}.Encode(), nil
 }
 
+// HistoryModes lists every mode accountID has a completed match in, sorted:
+// the history's mode filter offers each, whichever pages are loaded (UX-67).
+func (s *Service) HistoryModes(ctx context.Context, accountID string) ([]string, error) {
+	return s.store.HistoryModes(ctx, accountID)
+}
+
 // historyEntryFor is m as accountID's history lists it, if it belongs there:
 // completed with a result, with the account on its roster, and matching filter.
 func historyEntryFor(m Match, accountID string, filter HistoryFilter) (HistoryEntry, bool) {

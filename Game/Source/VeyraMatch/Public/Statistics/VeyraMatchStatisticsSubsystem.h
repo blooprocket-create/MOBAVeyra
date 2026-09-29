@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Gold/VeyraGoldComponent.h"
+#include "Join/VeyraMatchAssignment.h"
 #include "Statistics/VeyraMatchStatistics.h"
 #include "Subsystems/WorldSubsystem.h"
 #include "UObject/ObjectKey.h"
@@ -54,6 +55,18 @@ public:
 	 */
 	TOptional<FVeyraPlayerStatistics> Snapshot(const AVeyraPlayerState& Participant) const;
 
+	/**
+	 * Server: Participant leaves for good, as rejoining waits for reconnect: its record keeps who it
+	 * was and what it had as it left, so the scoreboard still has its line (ADR-017 §5).
+	 */
+	void NoteLeaving(const AVeyraPlayerState& Participant);
+
+	/**
+	 * Server: the scoreboard (ADR-017 §5): a line for every participant recorded, one who left with
+	 * what it had as it left; side A first, then in the order they joined.
+	 */
+	TArray<FVeyraPlayerResult> BuildScoreboard() const;
+
 	/** Server: every Flux Well secured while recording, in order (Match Statistics Bible §5). */
 	const TArray<FVeyraWellCapture>& GetWellCaptures() const { return WellCaptures; }
 
@@ -63,6 +76,12 @@ private:
 	struct FRecord
 	{
 		TWeakObjectPtr<AVeyraPlayerState> Participant;
+
+		/** Its PlayerId, for the scoreboard's order. */
+		int32 PlayerId = 0;
+
+		/** Its scoreboard line as it left, once it has: its PlayerState goes with it. */
+		TOptional<FVeyraPlayerResult> Left;
 		/** Its Vanguard's Ability System Component, which every combat event names. */
 		TWeakObjectPtr<const UAbilitySystemComponent> Unit;
 		FVeyraPlayerStatistics Statistics;
@@ -82,6 +101,9 @@ private:
 	void OnWardPlaced(const AVeyraWard& Ward, APlayerState& Placer);
 	void OnFluxWellSecured(const FVeyraFluxWellSecuredEvent& Event);
 	void OnGoldGranted(double Amount, EVeyraGoldReason Reason, TWeakObjectPtr<AVeyraPlayerState> Participant);
+
+	/** Record's scoreboard line: as it stands, or as it was when its participant left. Unset if neither. */
+	TOptional<FVeyraPlayerResult> LineOf(const FRecord& Record) const;
 
 	/** Publishes Record's public part on its PlayerState's score. */
 	static void Publish(const FRecord& Record);

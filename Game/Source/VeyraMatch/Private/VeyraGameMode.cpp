@@ -173,6 +173,12 @@ void AVeyraGameMode::Logout(AController* Exiting)
 		UE_LOG(LogVeyraMatch, Log, TEXT("%s left; %d rostered participant(s) connected."), *PlayerState->GetPlayerName(), Roster->NumConnected());
 		NoteConnectedParticipants();
 	}
+	// Its PlayerState goes with it, and rejoining waits for reconnect: the scoreboard keeps its line
+	// as it left (ADR-017 §5).
+	if (UVeyraMatchStatisticsSubsystem* Statistics = PlayerState ? GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>() : nullptr)
+	{
+		Statistics->NoteLeaving(*PlayerState);
+	}
 	Super::Logout(Exiting);
 }
 
@@ -282,37 +288,9 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 
 TArray<FVeyraPlayerResult> AVeyraGameMode::BuildScoreboard() const
 {
-	// Every participant given a side, bots too: the replay recorder's spectator has none.
-	TArray<const AVeyraPlayerState*> Seated;
-	for (const APlayerState* Member : GameState->PlayerArray)
-	{
-		const AVeyraPlayerState* Participant = Cast<AVeyraPlayerState>(Member);
-		if (Participant && Participant->GetVeyraTeam() != EVeyraTeam::None)
-		{
-			Seated.Add(Participant);
-		}
-	}
-	Seated.Sort([](const AVeyraPlayerState& A, const AVeyraPlayerState& B) {
-		return A.GetVeyraTeam() != B.GetVeyraTeam() ? A.GetVeyraTeam() == EVeyraTeam::A : A.GetPlayerId() < B.GetPlayerId();
-	});
+	// From the statistics service's records, not the PlayerStates still here: one who left has none.
 	const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>();
-	TArray<FVeyraPlayerResult> Players;
-	for (const AVeyraPlayerState* Participant : Seated)
-	{
-		// Only a participant the match prepared has a record; one who arrived too late to play has none.
-		const TOptional<FVeyraPlayerStatistics> Record = Statistics ? Statistics->Snapshot(*Participant) : TOptional<FVeyraPlayerStatistics>();
-		if (!Record.IsSet())
-		{
-			continue;
-		}
-		FVeyraPlayerResult& Player = Players.AddDefaulted_GetRef();
-		Player.Side = Participant->GetVeyraTeam();
-		Player.DisplayName = Participant->GetPlayerName();
-		Player.AccountId = Participant->GetAccountId();
-		Player.VanguardId = Participant->GetVanguardId();
-		Player.Statistics = Record.GetValue();
-	}
-	return Players;
+	return Statistics ? Statistics->BuildScoreboard() : TArray<FVeyraPlayerResult>();
 }
 
 EVeyraEndCustomMatchRefusal AVeyraGameMode::HandleEndCustomMatch(const APlayerController& Requester)

@@ -342,6 +342,21 @@ namespace VeyraMatchStatisticsTests
 			ASSERT_THAT(IsTrue(Of(*Helper).WellsSecured == 1 && Of(*Helper).WellFinalHits == 1));
 		}
 
+		TEST_METHOD(OneWhoLeavesKeepsTheirLineOnTheScoreboard)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(Abilities(*Attacker), Abilities(*Target), TrueDamage(Lethal))));
+			Attacker->SetPlayerName(TEXT("Leaver"));
+			Statistics->NoteLeaving(*Attacker);
+			// As Logout does: the PlayerState goes with its controller.
+			Attacker->Destroy();
+			const TArray<FVeyraPlayerResult> Scoreboard = Statistics->BuildScoreboard();
+			ASSERT_THAT(AreEqual(4, Scoreboard.Num()));
+			const FVeyraPlayerResult* Leaver = Scoreboard.FindByPredicate([](const FVeyraPlayerResult& Line) { return Line.DisplayName == TEXT("Leaver"); });
+			ASSERT_THAT(IsTrue(Leaver && Leaver->Side == EVeyraTeam::A && Leaver->Statistics.Kills == 1, TEXT("with what it had as it left")));
+			ASSERT_THAT(IsTrue(Scoreboard[0].Side == EVeyraTeam::A && Scoreboard[1].Side == EVeyraTeam::A && Scoreboard[2].Side == EVeyraTeam::B
+				&& Scoreboard[3].Side == EVeyraTeam::B, TEXT("side A first")));
+		}
+
 		TEST_METHOD(EachParticipantIsRecordedOnce)
 		{
 			Statistics->AddParticipant(*Attacker);

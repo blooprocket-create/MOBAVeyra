@@ -116,6 +116,8 @@ struct FVeyraMatchHistory
 	TArray<VeyraBackendProtocol::FHistoryEntry> Entries;
 	/** The next page's cursor; empty on the last page. */
 	FString Next;
+	/** Every mode the player has a completed match in, from the backend: the mode filter's choices. */
+	TArray<FString> Modes;
 	/** Whether the first page for Filter has been read. */
 	bool bLoaded = false;
 	/** A match opened from the list; unset while none is. */

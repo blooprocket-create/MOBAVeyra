@@ -94,7 +94,9 @@ func scoreboardFor(players []match.PlayerResult, actor string) []scoreboardPlaye
 // playersFrom reads a reported scoreboard. It refuses a line whose shape the
 // domain cannot hold: an empty account, or other than two spell slots.
 func playersFrom(lines []scoreboardLineJSON) ([]match.PlayerResult, bool) {
-	if lines == nil {
+	// A scoreboard with nobody on it is none: the results say no statistics
+	// were recorded rather than showing two empty teams (ADR-017 §5).
+	if len(lines) == 0 {
 		return nil, true
 	}
 	out := make([]match.PlayerResult, 0, len(lines))
@@ -299,6 +301,15 @@ func (s *Server) myMatchHistory(w http.ResponseWriter, r *http.Request, actor st
 		s.fail(w, err)
 		return
 	}
+	// Every mode with a saved match, whatever the filter and the pages read (UX-67).
+	modes, err := s.Match.HistoryModes(r.Context(), actor)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	if modes == nil {
+		modes = []string{}
+	}
 	type entryJSON struct {
 		ID              string    `json:"id"`
 		Mode            string    `json:"mode"`
@@ -314,7 +325,7 @@ func (s *Server) myMatchHistory(w http.ResponseWriter, r *http.Request, actor st
 		out = append(out, entryJSON{ID: e.MatchID, Mode: e.Mode, Rules: string(e.Rules), EndedAt: e.EndedAt.UTC(), DurationSeconds: e.DurationSeconds,
 			Side: string(e.Side), VanguardID: textOrNil(e.VanguardID), Outcome: string(e.Outcome)})
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"matches": out, "next": textOrNil(next)})
+	writeJSON(w, http.StatusOK, map[string]any{"matches": out, "next": textOrNil(next), "modes": modes})
 }
 
 func (s *Server) serverReady(w http.ResponseWriter, r *http.Request) {
