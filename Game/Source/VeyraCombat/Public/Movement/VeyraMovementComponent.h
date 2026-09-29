@@ -124,9 +124,11 @@ private:
 	void OnFollowedStatusesChanged();
 	void RefreshBody();
 
-	/** The body as it was before any status shaped it; unset until the first refresh. */
-	TOptional<float> BaseCapsuleRadius;
-	TOptional<ECollisionResponse> BasePawnResponse;
+	/** While it passes through units, the response to them it had before; unset otherwise. */
+	TOptional<ECollisionResponse> PassThroughFrom;
+
+	/** The BodyScale its radius carries now; 1 for none. */
+	double AppliedBodyScale = 1.0;
 
 	TWeakObjectPtr<UAbilitySystemComponent> FollowedCombatant;
 	TWeakObjectPtr<UVeyraStatusComponent> FollowedStatuses;

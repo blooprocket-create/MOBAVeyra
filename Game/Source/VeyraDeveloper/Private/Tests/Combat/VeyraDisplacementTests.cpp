@@ -177,6 +177,24 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Big.Id) && FMath::IsNearlyEqual(Capsule->GetUnscaledCapsuleRadius(), Width, 0.01)));
 		}
 
+		TEST_METHOD(AStatusLeavesTheBodyItsCharacterSized)
+		{
+			// A Vanguard's character sizes its body from its data after its movement binds; a status
+			// that shapes no body must leave that size, and the collision, as they are.
+			UCapsuleComponent* Capsule = CastChecked<ACharacter>(Movement->GetOwner())->GetCapsuleComponent();
+			const float Sized = Capsule->GetUnscaledCapsuleRadius() * 1.5f;
+			Capsule->SetCapsuleRadius(Sized);
+			const ECollisionResponse Response = Capsule->GetCollisionResponseToChannel(ECC_Pawn);
+			FVeyraStatusSpec Daze;
+			Daze.Id = FVeyraContentId::FromText(TEXT("daze")).GetValue();
+			Daze.Kind = EVeyraStatusKind::Stun;
+			Daze.DurationSeconds = 60.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy, *Unit, Daze)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Capsule->GetUnscaledCapsuleRadius(), Sized), FString::Printf(TEXT("radius %g"), Capsule->GetUnscaledCapsuleRadius())));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, Daze.Id)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Capsule->GetUnscaledCapsuleRadius(), Sized) && Capsule->GetCollisionResponseToChannel(ECC_Pawn) == Response));
+		}
+
 		TEST_METHOD(ANewerDisplacementReplacesTheOlder)
 		{
 			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::BackwardVector))));

@@ -62,18 +62,32 @@ void UVeyraMovementComponent::RefreshBody()
 	{
 		return;
 	}
-	if (!BaseCapsuleRadius.IsSet())
-	{
-		BaseCapsuleRadius = Capsule->GetUnscaledCapsuleRadius();
-		BasePawnResponse = Capsule->GetCollisionResponseToChannel(ECC_Pawn);
-	}
+	// It changes only what it shaped itself, as that changes: whoever sized the body or set its
+	// collision, such as the character from its data, keeps what they set.
 	const UVeyraStatusComponent* Statuses = FollowedStatuses.Get();
 	// Ghosted, it passes through units, never terrain (Combat Bible §24).
-	const bool bGhosted = Statuses && Statuses->Has(EVeyraStatusKind::Ghosted);
-	Capsule->SetCollisionResponseToChannel(ECC_Pawn, bGhosted ? ECR_Ignore : BasePawnResponse.GetValue());
-	// Its body is wider or narrower for its hits (§13).
+	const bool bPassesThrough = Statuses && Statuses->Has(EVeyraStatusKind::Ghosted);
+	if (bPassesThrough != PassThroughFrom.IsSet())
+	{
+		if (bPassesThrough)
+		{
+			PassThroughFrom = Capsule->GetCollisionResponseToChannel(ECC_Pawn);
+			Capsule->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+		}
+		else
+		{
+			Capsule->SetCollisionResponseToChannel(ECC_Pawn, PassThroughFrom.GetValue());
+			PassThroughFrom.Reset();
+		}
+	}
+	// Its body is wider or narrower for its hits while a BodyScale lasts (§13).
 	const double Scale = Statuses && Statuses->Has(EVeyraStatusKind::BodyScale) ? Statuses->GetStrongest(EVeyraStatusKind::BodyScale) : 1.0;
-	Capsule->SetCapsuleRadius(static_cast<float>(BaseCapsuleRadius.GetValue() * Scale), /*bUpdateOverlaps*/ true);
+	if (Scale != AppliedBodyScale)
+	{
+		const double Unscaled = Capsule->GetUnscaledCapsuleRadius() / AppliedBodyScale;
+		Capsule->SetCapsuleRadius(static_cast<float>(Unscaled * Scale), /*bUpdateOverlaps*/ true);
+		AppliedBodyScale = Scale;
+	}
 }
 
 float UVeyraMovementComponent::GetMaxSpeed() const
