@@ -68,6 +68,11 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Economy", "/gold/fluxborn/#", "World", ("/fluxborn/units",)),
     ("Economy", "/experience/fluxborn/#", "World", ("/fluxborn/units",)),
     ("World", "/fluxborn/units/#", "Economy", ("/gold/fluxborn",)),
+    # Recipes name items, Attunements their maps, Actives the abilities; consumables are items.
+    ("Items", "/items/*/components/*", "Items", ("/items",)),
+    ("Items", "/items/*/attunement/*", "Items", ("/weightOfWar", "/overcharge", "/spoolUp", "/overcycle")),
+    ("Items", "/items/*/active/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
+    ("Items", "/consumables/#", "Items", ("/items",)),
 ]
 
 # Documents that are not tuning but use its dialect, each as (schema, example), relative to Game/.

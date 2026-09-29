@@ -94,6 +94,11 @@ EVeyraRankRefusal UVeyraProgressionComponent::AllocateRank(EVeyraAbilitySlot Slo
 		return EVeyraRankRefusal::NotInitialized;
 	}
 	const int32 Index = static_cast<int32>(Slot);
+	if (!Ranks.IsValidIndex(Index))
+	{
+		// Only the kit's slots take ranks: an item's Active has none (ADR-012 §1).
+		return EVeyraRankRefusal::MaxRank;
+	}
 	const EVeyraRankRefusal Refusal = VeyraProgression::CheckRankUp(Slot, Ranks[Index], Level, UnspentSkillPoints, UVeyraProgressionTuningSubsystem::Get());
 	if (Refusal != EVeyraRankRefusal::None)
 	{

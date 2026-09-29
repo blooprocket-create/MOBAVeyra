@@ -23,4 +23,8 @@ public:
 	/** Opens and closes the in-match menu (ADR-010 §4). */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey MatchMenuKey;
+
+	/** Opens and closes the shop (ADR-012 §11), as P does in League. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey ShopKey;
 };

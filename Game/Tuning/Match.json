@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 4,
+  "schemaVersion": 5,
   "teams": {
     "maxTeamSize": 5
   },
@@ -22,6 +22,10 @@
     "healthFractionPerSecond": 0.1,
     "resourceFractionPerSecond": 0.1,
     "intervalSeconds": 0.25
+  },
+  "recall": {
+    "provenance": "Provisional",
+    "channelSeconds": 8
   },
   "lifecycle": {
     "abandonAfterSeconds": 60

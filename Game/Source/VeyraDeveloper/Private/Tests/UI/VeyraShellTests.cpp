@@ -296,8 +296,10 @@ namespace VeyraShellTests
 			Missing->CountdownFontSize = 0;
 			Missing->CardWidth = 0.0f;
 			Missing->MenuWidth = 0.0f;
+			Missing->ShopHeight = 0.0f;
 			const FString Named = FString::Join(Missing->Validate(), TEXT(" | "));
-			for (const TCHAR* Field : { TEXT("BackgroundColor"), TEXT("MenuScrimColor"), TEXT("TitleFontSize"), TEXT("CountdownFontSize"), TEXT("CardWidth"), TEXT("MenuWidth") })
+			for (const TCHAR* Field : { TEXT("BackgroundColor"), TEXT("MenuScrimColor"), TEXT("TitleFontSize"), TEXT("CountdownFontSize"), TEXT("CardWidth"), TEXT("MenuWidth"),
+					 TEXT("ShopHeight") })
 			{
 				ASSERT_THAT(IsTrue(Named.Contains(Field), FString::Printf(TEXT("%s is not named in: %s"), Field, *Named)));
 			}
@@ -309,6 +311,9 @@ namespace VeyraShellTests
 			UVeyraUIInputSettings* Missing = NewObject<UVeyraUIInputSettings>(GetTransientPackage());
 			Missing->MatchMenuKey = FKey();
 			ASSERT_THAT(IsFalse(Missing->Validate().IsEmpty()));
+			UVeyraUIInputSettings* Shared = NewObject<UVeyraUIInputSettings>(GetTransientPackage());
+			Shared->ShopKey = Shared->MatchMenuKey;
+			ASSERT_THAT(IsTrue(FString::Join(Shared->Validate(), TEXT(" ")).Contains(TEXT("ShopKey")), TEXT("the shop needs its own key")));
 		}
 	};
 
@@ -515,6 +520,14 @@ namespace VeyraShellTests
 		{
 			const TArray<FString> Missing = VeyraContentText::FindMissingPlayableText();
 			ASSERT_THAT(IsTrue(Missing.IsEmpty(), FString::Printf(TEXT("Game/Text/VeyraText.csv lacks %s"), *FString::Join(Missing, TEXT(", ")))));
+		}
+
+		TEST_METHOD(EveryItemHasItsText)
+		{
+			const TArray<FString> Missing = VeyraContentText::FindMissingItemText();
+			ASSERT_THAT(IsTrue(Missing.IsEmpty(), FString::Printf(TEXT("Game/Text/VeyraText.csv lacks %s"), *FString::Join(Missing, TEXT(", ")))));
+			ASSERT_THAT(AreEqual(VeyraContentText::ItemName(IdOf(TEXT("colossus_temper"))).ToString(), FString(TEXT("Colossus Temper"))));
+			ASSERT_THAT(IsTrue(VeyraContentText::ItemDescription(IdOf(TEXT("iron_grip"))).IsEmpty(), TEXT("a plain component needs no description")));
 		}
 
 		TEST_METHOD(NamesComeFromTheTableAndDeveloperContentShowsItsId)

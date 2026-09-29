@@ -99,4 +99,11 @@ public:
 	/** The in-match menu's width, in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
 	float MenuWidth = 0.0f;
+
+	/** The shop's size, in slate units; it scrolls when its lists are longer. */
+	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
+	float ShopWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
+	float ShopHeight = 0.0f;
 };

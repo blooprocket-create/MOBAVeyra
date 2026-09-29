@@ -1,0 +1,154 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Items tuning",
+  "description": "The shop's catalog and rules, owned by the Items domain (Item Bible v0.3; Economy & Progression Bible §10–§12; ADR-012 §3). VeyraItems binds it to FVeyraItemsTuning and checks the tier rules the schema cannot express. Prices and stats are prototype data (Item Bible §3).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "shop", "items", "consumables", "weightOfWar", "overcharge", "spoolUp", "overcycle"],
+  "definitions": {
+    "provenance": {
+      "description": "Where these values come from (ADR-008 §7).",
+      "type": "string",
+      "enum": ["Provisional", "Canon", "Reviewed"]
+    },
+    "contentId": {
+      "description": "A content ID.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+    },
+    "stats": {
+      "description": "What an item adds to its holder while it is delivered and the holder lives (Item Bible §3). Flat amounts, except attackSpeed, a fraction of the Vanguard's base Attack Speed added to its level growth (ADR-012 §6).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["health", "healthRegeneration", "physicalPower", "magicPower", "attackSpeed", "abilityHaste", "moveSpeed", "magicPenetrationFlat"],
+      "properties": {
+        "health": { "description": "Max Health.", "type": "number", "minimum": 0 },
+        "healthRegeneration": { "description": "Health restored per second.", "type": "number", "minimum": 0 },
+        "physicalPower": { "description": "Physical Power.", "type": "number", "minimum": 0 },
+        "magicPower": { "description": "Magic Power.", "type": "number", "minimum": 0 },
+        "attackSpeed": { "description": "Bonus Attack Speed, as a fraction of base Attack Speed; 0.12 is 12%.", "type": "number", "minimum": 0 },
+        "abilityHaste": { "description": "Ability Haste: cooldowns last 100 / (100 + Ability Haste) of their base (ADR-012 §6).", "type": "number", "minimum": 0 },
+        "moveSpeed": { "description": "Movement Speed.", "type": "number", "minimum": 0 },
+        "magicPenetrationFlat": { "description": "Flat Magic Penetration (Combat Bible §3).", "type": "number", "minimum": 0 }
+      }
+    },
+    "stacking": {
+      "description": "A buff that stacks on each qualifying hit and refreshes its duration, up to a cap.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "perStack", "maxStacks", "durationSeconds"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "perStack": { "description": "What each stack adds, in the stat's own unit.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "maxStacks": { "description": "The most stacks held at once.", "type": "integer", "minimum": 1 },
+        "durationSeconds": { "description": "How long the stacks last after the latest qualifying hit.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [1]
+    },
+    "shop": {
+      "description": "The shop's own rules (Economy & Progression Bible §10, §12; ADR-012 §9).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "inventorySlots", "resaleFraction", "uniqueFromTier", "maxBoots"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "inventorySlots": { "description": "Normal inventory slots, shared by equipment, Boots, components and consumables (§10: six).", "type": "integer", "minimum": 1 },
+        "resaleFraction": { "description": "What selling a used or carried-away item returns, as a fraction of the Gold spent on its present form (§12: 70%).", "type": "number", "minimum": 0, "maximum": 1 },
+        "uniqueFromTier": { "description": "Items of this tier and above may be held once each (League's unique legendaries; ADR-012 §9).", "type": "integer", "minimum": 1 },
+        "maxBoots": { "description": "The most Boots one Vanguard may hold (ADR-012 §9).", "type": "integer", "minimum": 1 }
+      }
+    },
+    "items": {
+      "description": "Every item the shop sells, by content ID (Item Bible §4–§10).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "tier", "category", "components", "cost", "stackLimit", "stats", "active", "attunement"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "tier": { "description": "1 components, 2 assemblies, 3 Masterworks (Item Bible §2).", "type": "integer", "minimum": 1, "maximum": 3 },
+            "category": { "description": "Boots are limited per Vanguard; a consumable is used up.", "type": "string", "enum": ["Equipment", "Boots", "Consumable"] },
+            "components": { "description": "The items its recipe consumes, in any order; empty for a component. Each is an item this file defines.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/contentId" } },
+            "cost": { "description": "A component's price, or a recipe's completion cost beyond its components (items never auto-combine, Item Bible §1).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "stackLimit": { "description": "How many share one slot; 1 for equipment.", "type": "integer", "minimum": 1 },
+            "stats": { "$ref": "#/definitions/stats" },
+            "active": { "description": "The Active it grants, an ability Abilities.json defines; [] for none (Item Bible §2).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/contentId" } },
+            "attunement": { "description": "Its Attunement, which one of this file's Attunement maps defines; exactly one on a Masterwork, none below (Item Bible §2).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/contentId" } }
+          }
+        }
+      }
+    },
+    "consumables": {
+      "description": "What each consumable does when used, by its item's ID (Item Bible §10).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "healthRestored", "durationSeconds", "resaleFraction"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "healthRestored": { "description": "Health restored over the duration, in equal parts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "durationSeconds": { "description": "How long the restoration lasts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "resaleFraction": { "description": "What selling an unused one returns, as a fraction of its cost (Economy §12: a consumable defines its own).", "type": "number", "minimum": 0, "maximum": 1 }
+          }
+        }
+      }
+    },
+    "weightOfWar": {
+      "description": "Weight of War Attunements (Colossus Temper, Item Bible §8): Physical Power from bonus Health.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "bonusHealthFraction"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "bonusHealthFraction": { "description": "Physical Power gained per point of bonus Health (Max Health beyond base and level growth).", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "overcharge": {
+      "description": "Overcharge Attunements (Crown of the Crucible, Item Bible §9): a percentage of total Magic Power.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "magicPowerFraction"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "magicPowerFraction": { "description": "Total Magic Power increase; 0.3 is 30%, a percentage bonus under Combat Bible §41.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "spoolUp": {
+      "description": "Spool Up Attunements (Cycler Core, Item Bible §8): basic attacks against enemy Vanguards stack bonus Attack Speed.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/stacking" } }
+    },
+    "overcycle": {
+      "description": "Overcycle Attunements (Arc Reactor, Item Bible §9): ability damage against enemy Vanguards stacks Ability Haste.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/stacking" } }
+    }
+  }
+}

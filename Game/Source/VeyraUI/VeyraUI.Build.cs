@@ -24,6 +24,8 @@ public class VeyraUI : ModuleRules
 			"VeyraCombat",
 			"VeyraCore",
 			"VeyraEconomy",
+			// The shop screen shows the inventory and prices it by the inventory rules.
+			"VeyraItems",
 			"VeyraMatch",
 			"VeyraServices",
 		});

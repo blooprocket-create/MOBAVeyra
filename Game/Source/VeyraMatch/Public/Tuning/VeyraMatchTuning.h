@@ -74,7 +74,7 @@ struct FVeyraRespawnTuning
 
 /**
  * How quickly a living Vanguard recovers at its own fountain (Battleground Bible §12; ADR-011 §11,
- * provisional answer 8). There is no recall yet, so this is how a Vanguard comes back to strength.
+ * provisional answer 8).
  */
 USTRUCT()
 struct FVeyraFountainTuning
@@ -99,6 +99,23 @@ struct FVeyraFountainTuning
 	/** Seconds between restorations. */
 	UPROPERTY()
 	double IntervalSeconds = 0.0;
+};
+
+/**
+ * Recall (Economy & Progression Bible §10; ADR-012 §8): a channel that brings a living Vanguard home
+ * to its fountain.
+ */
+USTRUCT()
+struct FVeyraRecallTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Seconds the channel lasts, on match time. */
+	UPROPERTY()
+	double ChannelSeconds = 0.0;
 };
 
 /** How a hosted match's server ends a match on its own (ADR-007 §8). */
@@ -177,7 +194,7 @@ struct FVeyraMatchTuning
 	GENERATED_BODY()
 
 	/** The Match.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 4;
+	static constexpr int32 SchemaVersion = 5;
 
 	UPROPERTY()
 	FVeyraTeamsTuning Teams;
@@ -190,6 +207,9 @@ struct FVeyraMatchTuning
 
 	UPROPERTY()
 	FVeyraFountainTuning Fountain;
+
+	UPROPERTY()
+	FVeyraRecallTuning Recall;
 
 	UPROPERTY()
 	FVeyraMatchLifecycleTuning Lifecycle;

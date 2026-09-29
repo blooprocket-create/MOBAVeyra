@@ -132,6 +132,8 @@ Gold and the rewards arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runt
 
 Depends on combat/abilities/economy through approved contracts. It does not own the underlying damage or gold formulas.
 
+VeyraItems arrived in M8 ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §2) in its own **Items** layer, above Abilities, whose archetypes run item Actives, and below Battleground. Its catalog is `Game/Tuning/Items.json`; `VeyraItems::Validate` holds the tier rules the schema cannot (Item Bible §2, §11). It spends and refunds Gold through Economy and applies equipment through `VeyraCombat::SetEquipmentStats`; Match routes the fountain and the player's shop requests to it.
+
 ### VeyraFlux
 
 - authoritative shared team Flux;
@@ -208,6 +210,8 @@ Since M4 it also owns how a hosted match admits and ends (ADR-007):
 
 Since M6 it adds an assigned practice match's bots, whose behaviour is `Bots/` (ADR-010 §7): for now they wander near the middle of the map as targets.
 
+Since M8 it routes the shop and holds Recall ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §7–§8): the fountain check tells `UVeyraShopSubsystem` who stands at their fountain, deaths deliver the queue, and the player controller forwards buy, sell, undo, cancel and item-slot requests. `Recall/` holds the channel on each PlayerState; the game mode starts it (B), ends it on every order the Vanguard takes, and brings the Vanguard home.
+
 It knows nothing about the backend; `VeyraServices` connects the two.
 
 ### VeyraVanguards
@@ -260,6 +264,8 @@ M6 added the menus, UMG widgets built entirely in C++ with no widget Blueprints 
 - the style and the menu key, as validated settings in `DefaultGame.ini` and `DefaultInput.ini`.
 
 The grey-box HUD draws through an overlay actor the local player's HUD renders (`Hud/`), so the menus cover it.
+
+M8 added `Shop/` ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §11): the shop screen, which P opens beside the game, and its model, which prices every item by the inventory rule the server uses. The HUD gained the item bar (keys 1–6) and Recall's channel bar, and the string table gained item names and descriptions.
 
 ### VeyraDeveloper
 

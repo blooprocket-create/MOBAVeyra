@@ -22,6 +22,10 @@ const TCHAR* LexToString(EVeyraOrderRejection Rejection)
 		return TEXT("Unreachable");
 	case EVeyraOrderRejection::CannotAttack:
 		return TEXT("CannotAttack");
+	case EVeyraOrderRejection::CrowdControlled:
+		return TEXT("CrowdControlled");
+	case EVeyraOrderRejection::Casting:
+		return TEXT("Casting");
 	}
 	return TEXT("Unknown");
 }

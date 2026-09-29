@@ -28,6 +28,7 @@ public:
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, PhysicalPower)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, MagicPower)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, AttackSpeed)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, AbilityHaste)
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;
@@ -56,6 +57,9 @@ protected:
 
 	UFUNCTION()
 	void OnRep_AttackSpeed(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_AbilityHaste(const FGameplayAttributeData& OldValue);
 
 private:
 	/** Generic Damage Amplification (§15): the product of every source's 1 + x. */
@@ -92,4 +96,11 @@ private:
 	 */
 	UPROPERTY(ReplicatedUsing = OnRep_AttackSpeed)
 	FGameplayAttributeData AttackSpeed;
+
+	/**
+	 * Shortens ability cooldowns to 100 / (100 + Ability Haste) of their length (Combat Bible §21); read
+	 * floored at 0 (§39). A §41 stat.
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_AbilityHaste)
+	FGameplayAttributeData AbilityHaste;
 };

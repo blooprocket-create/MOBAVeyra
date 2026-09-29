@@ -12,11 +12,13 @@ class UInputAction;
 class UInputComponent;
 class UInputMappingContext;
 class UVeyraMatchMenu;
+class UVeyraShopScreen;
 
 /**
- * Opens and closes the in-match menu with its key (UVeyraUIInputSettings, ADR-010 §4) in any match
- * a Veyra player controller plays. While the menu is open, the player's input reaches both the menu
- * and the game; when it closes, only the game.
+ * Opens and closes the in-match screens with their keys (UVeyraUIInputSettings) in any match a Veyra
+ * player controller plays: the menu (ADR-010 §4) and the shop (ADR-012 §11). While either is open,
+ * the player's input reaches both it and the game; when both close, only the game. The menu's key
+ * closes an open shop first, as Escape does in League.
  */
 UCLASS()
 class VEYRAUI_API UVeyraMatchMenuSubsystem : public UGameInstanceSubsystem
@@ -36,11 +38,24 @@ public:
 	/** The open menu, or null. */
 	UVeyraMatchMenu* GetMenu() const { return Menu; }
 
+	bool IsShopOpen() const { return Shop != nullptr; }
+
+	/** Opens the shop if it is closed, and closes it if it is open, as its key does. */
+	void ToggleShop();
+
+	/** The open shop, or null. */
+	UVeyraShopScreen* GetShop() const { return Shop; }
+
 private:
 	/** Binds the menu key for each new match controller. */
 	bool Tick(float DeltaSeconds);
 	void OpenMenu();
 	void CloseMenu();
+	void OpenShop();
+	void CloseShop();
+
+	/** Gives the open screens the player's input beside the game, or the game alone when none is open. */
+	void UpdateInputMode();
 
 	TWeakObjectPtr<AVeyraPlayerController> BoundController;
 
@@ -55,6 +70,12 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVeyraMatchMenu> Menu;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> ShopAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UVeyraShopScreen> Shop;
 
 	FTSTicker::FDelegateHandle TickHandle;
 	/** Whether the input settings are usable; the menu is off otherwise. */

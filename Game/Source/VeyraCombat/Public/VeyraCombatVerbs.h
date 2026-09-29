@@ -7,6 +7,7 @@
 #include "Damage/VeyraDamageTypes.h"
 #include "GameplayEffectTypes.h"
 #include "Movement/VeyraForcedMovementTypes.h"
+#include "Stats/VeyraEquipmentStats.h"
 #include "Stats/VeyraStatBlock.h"
 #include "Statuses/VeyraStatusTypes.h"
 
@@ -91,6 +92,14 @@ namespace VeyraCombat
 	 * (§25). Fraction must be finite, at least 0 and below 1. Returns false, changing nothing, if refused.
 	 */
 	VEYRACOMBAT_API bool SetBaseDamageReduction(UAbilitySystemComponent& AbilitySystem, double Fraction);
+
+	/**
+	 * Sets what a unit's equipment adds to its stats (ADR-012 §6), replacing whatever it added before,
+	 * so a change of equipment needs no bookkeeping. Health keeps its percentage of Max Health (Combat
+	 * Bible §41); a dead unit stays at 0. All-zero stats remove the equipment's effect. Every value must
+	 * be finite and at least 0. Returns false, changing nothing, if refused.
+	 */
+	VEYRACOMBAT_API bool SetEquipmentStats(UAbilitySystemComponent& AbilitySystem, const FVeyraEquipmentStats& Stats);
 
 	/**
 	 * Restores Amount of the unit's resource, never above its maximum (Combat Bible §27). Returns false

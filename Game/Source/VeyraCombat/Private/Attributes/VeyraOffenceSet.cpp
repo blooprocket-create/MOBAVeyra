@@ -17,6 +17,7 @@ UVeyraOffenceSet::UVeyraOffenceSet()
 	InitPhysicalPower(0.0f);
 	InitMagicPower(0.0f);
 	InitAttackSpeed(0.0f);
+	InitAbilityHaste(0.0f);
 }
 
 void UVeyraOffenceSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -36,14 +37,16 @@ void UVeyraOffenceSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, PhysicalPower, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, MagicPower, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, AttackSpeed, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, AbilityHaste, Params);
 }
 
 void UVeyraOffenceSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const
 {
-	// Power and Attack Speed are never negative in data; a negative base would be a caller's bug.
+	// Power, Attack Speed and Haste are never negative in data; a negative base would be a caller's bug.
 	const FGameplayAttributeData* Data = Attribute == GetPhysicalPowerAttribute() ? &PhysicalPower
 		: Attribute == GetMagicPowerAttribute()                                   ? &MagicPower
 		: Attribute == GetAttackSpeedAttribute()                                  ? &AttackSpeed
+		: Attribute == GetAbilityHasteAttribute()                                 ? &AbilityHaste
 																				  : nullptr;
 	if (Data && NewValue < 0.0f)
 	{
@@ -91,4 +94,9 @@ void UVeyraOffenceSet::OnRep_MagicPower(const FGameplayAttributeData& OldValue)
 void UVeyraOffenceSet::OnRep_AttackSpeed(const FGameplayAttributeData& OldValue)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraOffenceSet, AttackSpeed, OldValue);
+}
+
+void UVeyraOffenceSet::OnRep_AbilityHaste(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraOffenceSet, AbilityHaste, OldValue);
 }

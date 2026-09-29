@@ -10,12 +10,14 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Gold/VeyraGoldComponent.h"
+#include "Inventory/VeyraInventoryComponent.h"
 #include "Ledger/VeyraFluxLedger.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionRules.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Recall/VeyraRecallComponent.h"
 #include "State/VeyraTeamFluxState.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Structures/VeyraStructure.h"
@@ -118,6 +120,14 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 		Player.bDead = true;
 		Player.RespawnSeconds = FMath::Max(0.0, Participant.GetRespawnAt() - ServerNow);
 	}
+	if (const UVeyraRecallComponent* Recall = Participant.FindComponentByClass<UVeyraRecallComponent>(); Recall && Recall->IsRecalling())
+	{
+		const FVeyraRecallChannel& Channel = Recall->GetChannel();
+		const double Length = Channel.EndsAt - Channel.StartedAt;
+		Player.bRecalling = true;
+		Player.RecallSeconds = FMath::Max(0.0, Channel.EndsAt - ServerNow);
+		Player.RecallProgress = Length > 0.0 ? FMath::Clamp((ServerNow - Channel.StartedAt) / Length, 0.0, 1.0) : 1.0;
+	}
 
 	if (const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(Player.Vanguard); Definition && !Definition->Passive.IsEmpty())
 	{
@@ -146,6 +156,27 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 			Shown.Rank = Progression->GetRank(Slot);
 			Shown.bCanRankUp = VeyraProgression::CheckRankUp(Slot, Shown.Rank, Player.Level, Player.UnspentSkillPoints, Tuning) == EVeyraRankRefusal::None;
 		}
+	}
+	if (const UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>())
+	{
+		const TArray<FVeyraInventorySlot>& Held = Inventory->GetSlots();
+		for (int32 Index = 0; Index < Held.Num() && Index < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Items)); ++Index)
+		{
+			FVeyraHudItemSlot& Shown = Player.Items.AddDefaulted_GetRef();
+			Shown.Slot = VeyraAbilitySlots::Items[Index];
+			if (Held[Index].IsEmpty())
+			{
+				continue;
+			}
+			Shown.Item = Held[Index].Item;
+			Shown.Count = Held[Index].Count;
+			// An item's Active sits in its slot's loadout entry, and cools down under its own ID.
+			if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Shown.Slot) : nullptr; Entry && Cooldowns)
+			{
+				Shown.CooldownSeconds = Cooldowns->GetRemainingSeconds(Entry->Ability, ServerNow);
+			}
+		}
+		Player.PendingPurchases = Inventory->GetQueue().Num();
 	}
 	return Player;
 }

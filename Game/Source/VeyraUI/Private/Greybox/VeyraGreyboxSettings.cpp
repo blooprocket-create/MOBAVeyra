@@ -36,6 +36,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("TextColor"), TextColor },
 		{ TEXT("DescriptionColor"), DescriptionColor },
 		{ TEXT("EmpoweredColor"), EmpoweredColor },
+		{ TEXT("ChannelColor"), ChannelColor },
 		{ TEXT("LaneColor"), LaneColor },
 		{ TEXT("RiverColor"), RiverColor },
 		{ TEXT("AllyBaseColor"), AllyBaseColor },
@@ -50,6 +51,9 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(BarHeight >= 1.0f, TEXT("BarHeight"), TEXT("must be at least 1 pixel."));
 	Require(ResourceBarHeight >= 1.0f, TEXT("ResourceBarHeight"), TEXT("must be at least 1 pixel."));
 	Require(BarLift >= 0.0f, TEXT("BarLift"), TEXT("must not be negative."));
+	Require(ChannelBarWidth >= 1.0f, TEXT("ChannelBarWidth"), TEXT("must be at least 1 pixel."));
+	Require(ChannelBarHeight >= 1.0f, TEXT("ChannelBarHeight"), TEXT("must be at least 1 pixel."));
+	Require(ChannelBarLift >= 0.0f, TEXT("ChannelBarLift"), TEXT("must not be negative."));
 	Require(HudMargin >= 0.0f, TEXT("HudMargin"), TEXT("must not be negative."));
 	Require(TelegraphThickness > 0.0f, TEXT("TelegraphThickness"), TEXT("must be above 0."));
 	Require(CircleSegments >= 3, TEXT("CircleSegments"), TEXT("must be at least 3."));

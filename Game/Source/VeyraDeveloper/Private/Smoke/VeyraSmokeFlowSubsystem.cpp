@@ -10,10 +10,13 @@
 #include "GameFramework/PlayerState.h"
 #include "HAL/PlatformMisc.h"
 #include "HAL/PlatformTime.h"
+#include "Inventory/VeyraInventoryComponent.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
 #include "Misc/Paths.h"
+#include "Recall/VeyraRecallComponent.h"
 #include "Structures/VeyraStructure.h"
+#include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "UnrealClient.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
@@ -26,6 +29,7 @@
 #include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
 #include "Shell/VeyraShellUISubsystem.h"
+#include "Shop/VeyraShopScreen.h"
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogVeyraSmokeFlow, Log, All);
@@ -50,6 +54,10 @@ namespace
 	constexpr double FlowTimeoutRealSeconds = 300.0;
 	constexpr double MoveProofDistance = 100.0;
 	constexpr double ScreenshotHoldRealSeconds = 1.0;
+	// Practice: how far the Vanguard walks from its fountain before it recalls, and how near its
+	// start it must be afterwards: well inside the walk, so arriving is told apart from staying.
+	constexpr double RecallWalkDistance = 800.0;
+	constexpr double HomeTolerance = 150.0;
 	// The sparring partner locks its pick once the other team has locked, or with this much of the
 	// pick timer left, so it never takes the Vanguard the person was about to lock.
 	constexpr double OpponentLockSeconds = 15.0;
@@ -200,9 +208,9 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		}
 		else if (bSawResults)
 		{
-			Finish(true, FString::Printf(TEXT("clicked through the starter choice, Play and Practice, locked %s, %sended the match from its menu as its host, ")
-										 TEXT("saw its verified result and returned to the shell"),
-				*LockedVanguard, bSieges ? TEXT("sieged the enemy Prime Well down, played on, ") : TEXT("")));
+			Finish(true, FString::Printf(TEXT("clicked through the starter choice, Play and Practice, locked %s, %sbought %s in the shop, recalled home, ")
+										 TEXT("ended the match from its menu as its host, saw its verified result and returned to the shell"),
+				*LockedVanguard, bSieges ? TEXT("sieged the enemy Prime Well down, played on, ") : TEXT(""), *BoughtItem));
 		}
 		else if (bStartedPractice && !Snapshot.Notice.IsEmpty())
 		{
@@ -567,6 +575,10 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 	{
 		return;
 	}
+	if (Script == EScript::Practice && TickShop(*Controller))
+	{
+		return;
+	}
 	if (!bOrderedMove)
 	{
 		// Play a little: walk toward the lane centre.
@@ -589,7 +601,12 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 		}
 		return;
 	}
-	if (FVector::Dist2D(Vanguard->GetActorLocation(), MoveStart) < MoveProofDistance)
+	// Once a Recall is asked for, the walk has been proved, and the Vanguard is meant to come home.
+	if (!bAskedToRecall && FVector::Dist2D(Vanguard->GetActorLocation(), MoveStart) < MoveProofDistance)
+	{
+		return;
+	}
+	if (Script == EScript::Practice && TickRecall(*Controller, *Vanguard))
 	{
 		return;
 	}
@@ -641,6 +658,126 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 #else
 	Finish(false, TEXT("this build has no in-match menu"));
 #endif
+}
+
+bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
+{
+	if (bShopped)
+	{
+		return false;
+	}
+#if WITH_VEYRA_UI
+	UVeyraMatchMenuSubsystem* Screens = GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>();
+	const UVeyraInventoryComponent* Inventory = Controller.PlayerState ? Controller.PlayerState->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
+	if (!Screens || !Inventory)
+	{
+		Finish(false, TEXT("the game has no shop"));
+		return true;
+	}
+	if (!Screens->IsShopOpen())
+	{
+		if (!BoughtItem.IsEmpty())
+		{
+			Finish(false, TEXT("the shop closed before the purchase arrived"));
+			return true;
+		}
+		// As its key does; the shop opens once its key is bound to this match's controller.
+		Screens->ToggleShop();
+		if (Screens->IsShopOpen())
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the match is live; opened the shop with %.0f Gold."), Screens->GetShop()->GetView().Gold);
+		}
+		return true;
+	}
+	UVeyraShopScreen& Shop = *Screens->GetShop();
+	const FVeyraShopView& View = Shop.GetView();
+	if (BoughtItem.IsEmpty())
+	{
+		// The shop reads the owner's inventory: it arrives, and the shop learns it is at the fountain, a moment after the match goes live.
+		if (!View.bAtShop || Capture(TEXT("Shop")))
+		{
+			return true;
+		}
+		const FVeyraShopOffer* Offer = Algo::FindByPredicate(View.Offers, [](const FVeyraShopOffer& Candidate) {
+			const FVeyraItemDefinition* Definition = UVeyraItemsTuningSubsystem::FindItem(Candidate.Item);
+			return Candidate.Refusal == EVeyraShopRefusal::None && Definition && Definition->Category == EVeyraItemCategory::Equipment;
+		});
+		UVeyraShellButton* Buy = Offer ? Shop.FindButton(UVeyraShopScreen::BuyLabel(Offer->Item, Offer->Price)) : nullptr;
+		if (!Buy || !Buy->GetIsEnabled())
+		{
+			Finish(false, TEXT("the shop offers no equipment the starting Gold affords"));
+			return true;
+		}
+		BoughtItem = Offer->Item.ToString();
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: buying %s for %.0f Gold."), *BoughtItem, Offer->Price);
+		Buy->Press();
+		return true;
+	}
+	if (Controller.GetShopRefusalCount() > 0)
+	{
+		Finish(false, FString::Printf(TEXT("the server refused the purchase: %s"), LexToString(Controller.GetLastShopRefusal())));
+		return true;
+	}
+	const bool bArrived = Algo::FindByPredicate(Inventory->GetSlots(), [this](const FVeyraInventorySlot& Slot) {
+		return !Slot.IsEmpty() && Slot.Item.ToString() == BoughtItem;
+	}) != nullptr;
+	if (!bArrived || Capture(TEXT("ShopBought")))
+	{
+		return true;
+	}
+	const double GoldLeft = View.Gold;
+	Screens->ToggleShop();
+	bShopped = true;
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s arrived in the inventory, leaving %.0f Gold; closed the shop."), *BoughtItem, GoldLeft);
+	return false;
+#else
+	Finish(false, TEXT("this build has no shop"));
+	return true;
+#endif
+}
+
+bool UVeyraSmokeFlowSubsystem::TickRecall(AVeyraPlayerController& Controller, const AActor& Vanguard)
+{
+	if (bRecalled)
+	{
+		return false;
+	}
+	const UVeyraRecallComponent* Recall = Controller.PlayerState ? Controller.PlayerState->FindComponentByClass<UVeyraRecallComponent>() : nullptr;
+	if (!Recall)
+	{
+		Finish(false, TEXT("the participant cannot recall"));
+		return true;
+	}
+	const double FromHome = FVector::Dist2D(Vanguard.GetActorLocation(), MoveStart);
+	if (!bAskedToRecall)
+	{
+		if (FromHome < RecallWalkDistance)
+		{
+			return true;
+		}
+		bAskedToRecall = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %.0f units from the fountain; recalling."), FromHome);
+		Controller.RequestRecall();
+		return true;
+	}
+	if (Controller.GetOrderRejectionCount() > 0)
+	{
+		Finish(false, FString::Printf(TEXT("the server refused the Recall: %s"), LexToString(Controller.GetLastOrderRejection())));
+		return true;
+	}
+	if (Recall->IsRecalling())
+	{
+		bSawRecall = true;
+		Capture(TEXT("Recall"));
+		return true;
+	}
+	if (!bSawRecall || FromHome > HomeTolerance)
+	{
+		return true;
+	}
+	bRecalled = true;
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the Recall brought the Vanguard home."));
+	return false;
 }
 
 bool UVeyraSmokeFlowSubsystem::TickSiege(AVeyraPlayerController& Controller, const UWorld& World)

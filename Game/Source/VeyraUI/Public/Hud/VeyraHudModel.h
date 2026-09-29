@@ -56,6 +56,19 @@ struct FVeyraHudSlot
 	double EmpoweredSeconds = 0.0;
 };
 
+/** One inventory slot on the HUD's item bar, used by its key (ADR-012 §1). */
+struct FVeyraHudItemSlot
+{
+	EVeyraAbilitySlot Slot = EVeyraAbilitySlot::Item1;
+
+	/** Invalid when the slot is empty. */
+	FVeyraContentId Item;
+	int32 Count = 0;
+
+	/** Seconds until its Active is ready; 0 when it is, or it has none. */
+	double CooldownSeconds = 0.0;
+};
+
 /** The player's own panel. */
 struct FVeyraHudPlayer
 {
@@ -76,8 +89,19 @@ struct FVeyraHudPlayer
 	bool bDead = false;
 	double RespawnSeconds = 0.0;
 
+	/** Whether a Recall channel runs (ADR-012 §8): the seconds it has left, and how much of it has passed, from 0 to 1. */
+	bool bRecalling = false;
+	double RecallSeconds = 0.0;
+	double RecallProgress = 0.0;
+
 	/** Q, W, E and R, in order. */
 	TArray<FVeyraHudSlot> Slots;
+
+	/** The inventory's slots, 1 to 6, in order. */
+	TArray<FVeyraHudItemSlot> Items;
+
+	/** Purchases waiting for the fountain (Economy & Progression Bible §11). */
+	int32 PendingPurchases = 0;
 
 	/** The Vanguard's passive, as its definition names it; invalid when it has none. */
 	FVeyraContentId Passive;

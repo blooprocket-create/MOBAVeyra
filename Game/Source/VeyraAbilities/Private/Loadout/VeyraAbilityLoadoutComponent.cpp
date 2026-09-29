@@ -93,6 +93,19 @@ bool UVeyraAbilityLoadoutComponent::Grant(UAbilitySystemComponent& AbilitySystem
 	return Entry->Handle.IsValid();
 }
 
+void UVeyraAbilityLoadoutComponent::Clear(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+	const int32 Index = Entries.IndexOfByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; });
+	if (Index == INDEX_NONE)
+	{
+		return;
+	}
+	AbilitySystem.ClearAbility(Entries[Index].Handle);
+	Entries.RemoveAt(Index);
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraAbilityLoadoutComponent, Entries, this);
+}
+
 const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindSlot(EVeyraAbilitySlot Slot) const
 {
 	return Entries.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; });

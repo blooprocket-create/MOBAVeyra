@@ -6,8 +6,10 @@
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "CQTest.h"
+#include "Effects/VeyraCombatEffects.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Regeneration/VeyraRegenerationComponent.h"
+#include "Stats/VeyraHaste.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "VeyraCombatVerbs.h"
 
@@ -173,6 +175,109 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(Unit->GetOwner()->FindComponentByClass<UVeyraLifeComponent>()->SetState(EVeyraLifeState::Dead)));
 			Regenerator->ApplyTick(2.0);
 			ASSERT_THAT(IsTrue(Resource() == Before));
+		}
+	};
+
+	// Veyra.Combat.EquipmentStats.*: what equipment adds to a unit, replaced whole with each change
+	// (ADR-012 §6; Combat Bible §41).
+	TEST_CLASS(EquipmentStats, "Veyra.Combat")
+	{
+		// Fixture values.
+		static constexpr double HealthLost = 100.0;
+		static constexpr double Tolerance = 1e-3;
+
+		FActorTestSpawner Spawner;
+		UAbilitySystemComponent* Unit = nullptr;
+		FVeyraStatBlock Base;
+
+		BEFORE_EACH()
+		{
+			Unit = &SpawnCombatant(Spawner);
+			Base = ExampleStats();
+			ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(*Unit, Base)));
+			Unit->SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), static_cast<float>(Base.MaxHealth - HealthLost));
+		}
+
+		double Value(const FGameplayAttribute& Attribute) const
+		{
+			return Unit->GetNumericAttribute(Attribute);
+		}
+
+		bool Near(double A, double B) const
+		{
+			return FMath::IsNearlyEqual(A, B, Tolerance);
+		}
+
+		TEST_METHOD(EquipmentAddsFlatStatsAndAPercentageOfMagicPower)
+		{
+			FVeyraEquipmentStats Equipment;
+			Equipment.MaxHealth = 200.0;
+			Equipment.PhysicalPower = 15.0;
+			Equipment.MagicPower = 30.0;
+			Equipment.MagicPowerFraction = 0.5;
+			Equipment.AttackSpeed = 0.1;
+			Equipment.AbilityHaste = 20.0;
+			Equipment.MoveSpeed = 25.0;
+			Equipment.MagicPenetrationFlat = 10.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::SetEquipmentStats(*Unit, Equipment)));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraVitalsSet::GetMaxHealthAttribute()), Base.MaxHealth + Equipment.MaxHealth)));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetPhysicalPowerAttribute()), Base.PhysicalPower + Equipment.PhysicalPower)));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetMagicPowerAttribute()), (Base.MagicPower + Equipment.MagicPower) * (1.0 + Equipment.MagicPowerFraction)),
+				TEXT("flat bonuses first, then the percentage (§41)")));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetAttackSpeedAttribute()), Base.AttackSpeed + Equipment.AttackSpeed)));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetAbilityHasteAttribute()), Equipment.AbilityHaste)));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraMobilitySet::GetMoveSpeedAttribute()), Base.MoveSpeed + Equipment.MoveSpeed)));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetMagicPenetrationFlatAttribute()), Equipment.MagicPenetrationFlat)));
+		}
+
+		TEST_METHOD(HealthKeepsItsPercentage)
+		{
+			const double Fraction = (Base.MaxHealth - HealthLost) / Base.MaxHealth;
+			FVeyraEquipmentStats Equipment;
+			Equipment.MaxHealth = 300.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::SetEquipmentStats(*Unit, Equipment)));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraVitalsSet::GetHealthAttribute()), (Base.MaxHealth + Equipment.MaxHealth) * Fraction)));
+			ASSERT_THAT(IsTrue(VeyraCombat::SetEquipmentStats(*Unit, FVeyraEquipmentStats())));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraVitalsSet::GetHealthAttribute()), Base.MaxHealth * Fraction), TEXT("and keeps it as the equipment goes")));
+		}
+
+		TEST_METHOD(EachChangeReplacesTheLast)
+		{
+			FVeyraEquipmentStats First;
+			First.PhysicalPower = 30.0;
+			First.AbilityHaste = 10.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::SetEquipmentStats(*Unit, First)));
+			FVeyraEquipmentStats Second;
+			Second.PhysicalPower = 5.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::SetEquipmentStats(*Unit, Second)));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetPhysicalPowerAttribute()), Base.PhysicalPower + Second.PhysicalPower)));
+			ASSERT_THAT(IsTrue(Value(UVeyraOffenceSet::GetAbilityHasteAttribute()) == 0.0));
+
+			ASSERT_THAT(IsTrue(VeyraCombat::SetEquipmentStats(*Unit, FVeyraEquipmentStats())));
+			FGameplayEffectQuery Equipment;
+			Equipment.EffectDefinition = UVeyraEquipmentEffect::StaticClass();
+			ASSERT_THAT(IsTrue(Unit->GetActiveEffects(Equipment).IsEmpty(), TEXT("no equipment, no effect")));
+		}
+
+		TEST_METHOD(RefusesNegativeStats)
+		{
+			TestRunner->AddExpectedMessagePlain(TEXT("Refused equipment stats"), ELogVerbosity::Error, EAutomationExpectedMessageFlags::Contains, 1);
+			FVeyraEquipmentStats Negative;
+			Negative.PhysicalPower = -1.0;
+			ASSERT_THAT(IsFalse(VeyraCombat::SetEquipmentStats(*Unit, Negative)));
+			ASSERT_THAT(IsTrue(Value(UVeyraOffenceSet::GetPhysicalPowerAttribute()) == Base.PhysicalPower));
+		}
+	};
+
+	// Veyra.Combat.Haste.*: Haste's cooldown arithmetic (Combat Bible §21, §39).
+	TEST_CLASS(Haste, "Veyra.Combat")
+	{
+		TEST_METHOD(HasteShortensCooldownsWithAFloorOfZero)
+		{
+			ASSERT_THAT(IsTrue(VeyraHaste::CooldownMultiplier(0.0) == 1.0));
+			ASSERT_THAT(IsTrue(VeyraHaste::CooldownMultiplier(100.0) == 0.5, TEXT("the bible's 100 Haste halves a cooldown")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraHaste::CooldownMultiplier(25.0), 0.8)));
+			ASSERT_THAT(IsTrue(VeyraHaste::CooldownMultiplier(-50.0) == 1.0, TEXT("never a longer cooldown")));
 		}
 	};
 }

@@ -19,9 +19,11 @@
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "Gold/VeyraGoldComponent.h"
+#include "Inventory/VeyraInventoryComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Regeneration/VeyraRegenerationComponent.h"
 #include "Passives/VeyraPassive.h"
+#include "Recall/VeyraRecallComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraMatchLog.h"
@@ -46,6 +48,8 @@ AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer
 	Regeneration = CreateDefaultSubobject<UVeyraRegenerationComponent>(TEXT("Regeneration"));
 	Progression = CreateDefaultSubobject<UVeyraProgressionComponent>(TEXT("Progression"));
 	Gold = CreateDefaultSubobject<UVeyraGoldComponent>(TEXT("Gold"));
+	Inventory = CreateDefaultSubobject<UVeyraInventoryComponent>(TEXT("Inventory"));
+	Recall = CreateDefaultSubobject<UVeyraRecallComponent>(TEXT("Recall"));
 
 	// Attribute Sets created as default subobjects of the owner register with its Ability System
 	// Component when the component initializes.

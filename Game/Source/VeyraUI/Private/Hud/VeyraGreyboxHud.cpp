@@ -14,6 +14,7 @@
 #include "Greybox/VeyraGreyboxSubsystem.h"
 #include "Hud/VeyraHudModel.h"
 #include "Input/VeyraInputSettings.h"
+#include "Shell/VeyraUIInputSettings.h"
 #include "Text/VeyraContentText.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -202,6 +203,33 @@ namespace
 			AddDescription(Lines, VeyraContentText::AbilityDescription(Slot.Ability));
 		}
 
+		// The item bar: each inventory slot by its key, what it holds and its Active's cooldown (ADR-012 §1).
+		if (!Player.Items.IsEmpty())
+		{
+			FString Bar;
+			for (const FVeyraHudItemSlot& Item : Player.Items)
+			{
+				FString Held = TEXT("-");
+				if (Item.Item.IsValid())
+				{
+					Held = VeyraContentText::ItemName(Item.Item).ToString();
+					if (Item.Count > 1)
+					{
+						Held += FString::Printf(TEXT(" x%d"), Item.Count);
+					}
+					if (Item.CooldownSeconds > 0.0)
+					{
+						Held += FString::Printf(TEXT(" %.1f s"), Item.CooldownSeconds);
+					}
+				}
+				Bar += FString::Printf(TEXT("[%s] %s   "), *Input.GetAbilityKey(Item.Slot).GetDisplayName(false).ToString(), *Held);
+			}
+			const FString ShopKey = GetDefault<UVeyraUIInputSettings>()->ShopKey.GetDisplayName(false).ToString();
+			Bar += Player.PendingPurchases > 0 ? FString::Printf(TEXT("Shop [%s]: %d waiting for the fountain"), *ShopKey, Player.PendingPurchases)
+											   : FString::Printf(TEXT("Shop [%s]"), *ShopKey);
+			Lines.Add({ MoveTemp(Bar), Settings.TextColor });
+		}
+
 		float Y = Canvas.ClipY - Settings.HudMargin - Lines.Num() * HudLineHeight();
 		for (const FHudLine& Line : Lines)
 		{
@@ -217,6 +245,19 @@ namespace
 			float Height = 0.0f;
 			Canvas.TextSize(HudFont(), Respawn, Width, Height);
 			DrawHudText(Canvas, FVector2D((Canvas.ClipX - Width) / 2.0f, Settings.HudMargin + HudLineHeight()), Respawn, Settings.TextColor);
+		}
+
+		// While recalling, the channel's bar filling toward home, with the time it has left (ADR-012 §8).
+		if (Player.bRecalling)
+		{
+			const FVector2D TopLeft((Canvas.ClipX - Settings.ChannelBarWidth) / 2.0f, Canvas.ClipY - Settings.ChannelBarLift);
+			DrawHudRect(Canvas, TopLeft, FVector2D(Settings.ChannelBarWidth, Settings.ChannelBarHeight), Settings.BarBackgroundColor);
+			DrawHudRect(Canvas, TopLeft, FVector2D(Settings.ChannelBarWidth * Player.RecallProgress, Settings.ChannelBarHeight), Settings.ChannelColor);
+			const FString Recall = FString::Printf(TEXT("Recall   %.1f s"), Player.RecallSeconds);
+			float Width = 0.0f;
+			float Height = 0.0f;
+			Canvas.TextSize(HudFont(), Recall, Width, Height);
+			DrawHudText(Canvas, FVector2D((Canvas.ClipX - Width) / 2.0f, TopLeft.Y - HudLineHeight()), Recall, Settings.TextColor);
 		}
 	}
 
