@@ -12,6 +12,7 @@
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
@@ -72,6 +73,15 @@ void UVeyraScoreboard::Refresh()
 	for (const APlayerState* Member : GameState->PlayerArray)
 	{
 		Participants.Add(Member);
+	}
+	// A client's player list leaves out players who left, whose PlayerStates the server keeps for their
+	// return; they keep their line, marked (Match Flow Bible §3; ADR-019 §1).
+	for (TActorIterator<APlayerState> It(World); It; ++It)
+	{
+		if (It->IsInactive() && !Participants.Contains(*It))
+		{
+			Participants.Add(*It);
+		}
 	}
 	FVeyraScoreboardView Latest = VeyraScoreboardModel::Describe(Participants, Viewer->PlayerState);
 	if (bBuilt && Latest == View)
@@ -139,8 +149,9 @@ FText UVeyraScoreboard::SideHeading(const FVeyraScoreboardSide& Side)
 FText UVeyraScoreboard::RowLine(const FVeyraScoreboardRow& Row)
 {
 	const FText Vanguard = Row.Vanguard.IsValid() ? VeyraContentText::VanguardName(Row.Vanguard) : LOCTEXT("NoVanguard", "No Vanguard");
-	return FText::Format(LOCTEXT("Row", "{0}  {1}   Lv {2}   {3}   CS {4}"), Vanguard, FText::FromString(Row.Name), FText::AsNumber(Row.Level),
+	const FText Line = FText::Format(LOCTEXT("Row", "{0}  {1}   Lv {2}   {3}   CS {4}"), Vanguard, FText::FromString(Row.Name), FText::AsNumber(Row.Level),
 		VeyraScoreboardModel::KdaText(Row), FText::AsNumber(Row.CreepScore));
+	return Row.bAway ? FText::Format(LOCTEXT("RowAway", "{0}   (disconnected)"), Line) : Line;
 }
 
 FText UVeyraScoreboard::ItemsLine(const FVeyraScoreboardRow& Row)

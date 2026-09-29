@@ -87,7 +87,7 @@ private:
 	/** -VeyraSmokeFlowReconnects: leaves the live match once, then checks it came back to its Vanguard. True while it does. */
 	bool TickReconnect(AVeyraPlayerController& Controller, UWorld& World);
 
-	/** -VeyraSmokeFlowAwaitsReturn: true until it has seen another player's PlayerState go inactive and come back. */
+	/** -VeyraSmokeFlowAwaitsReturn: true until it has seen another player leave the match and come back. */
 	bool TickAwaitReturn(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState);
 
 	/**
@@ -178,6 +178,8 @@ private:
 	bool bAwaitsReturn = false;
 	bool bSawAway = false;
 	bool bSawReturn = false;
+	/** The most other players it has seen in the match at once. */
+	int32 MostOthers = 0;
 	FString WantedVanguard;
 	FString LockedVanguard;
 	FString ScreenshotFolder;

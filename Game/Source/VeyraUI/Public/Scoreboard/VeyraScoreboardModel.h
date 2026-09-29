@@ -28,6 +28,9 @@ struct FVeyraScoreboardRow
 	/** Whether this is the viewing player. */
 	bool bLocal = false;
 
+	/** Whether the player has left the match; it may come back (Match Flow Bible §3). */
+	bool bAway = false;
+
 	bool operator==(const FVeyraScoreboardRow&) const = default;
 };
 

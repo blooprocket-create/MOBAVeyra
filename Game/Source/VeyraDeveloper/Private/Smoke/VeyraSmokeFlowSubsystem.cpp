@@ -950,12 +950,12 @@ bool UVeyraSmokeFlowSubsystem::TickReconnect(AVeyraPlayerController& Controller,
 
 bool UVeyraSmokeFlowSubsystem::TickAwaitReturn(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState)
 {
+	// A client's GameState lists only active players: one who left drops out of it, and returns to it
+	// when it comes back (APlayerState::OnRep_bIsInactive).
 	const APlayerState* Own = Controller.PlayerState;
-	bool bAnyAway = false;
-	for (const APlayerState* Member : GameState.PlayerArray)
-	{
-		bAnyAway |= Member && Member != Own && Member->IsInactive();
-	}
+	const int32 Others = Algo::CountIf(GameState.PlayerArray, [Own](const APlayerState* Member) { return Member && Member != Own; });
+	MostOthers = FMath::Max(MostOthers, Others);
+	const bool bAnyAway = Others < MostOthers;
 	if (bAnyAway && !bSawAway)
 	{
 		bSawAway = true;
