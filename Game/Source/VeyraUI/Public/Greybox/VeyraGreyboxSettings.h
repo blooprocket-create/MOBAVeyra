@@ -157,11 +157,15 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
 	FLinearColor EnemyBaseColor = FLinearColor::Transparent;
 
+	/** The battleground's Dense Fog, its bush (Battleground Bible §11): a dark patch on the floor. */
+	UPROPERTY(Config, EditAnywhere, Category = "Battleground")
+	FLinearColor DenseFogColor = FLinearColor::Transparent;
+
 	/** How thick each marking is, in units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground", meta = (ClampMin = "0"))
 	float GroundMarkingThickness = 0.0f;
 
-	/** How far each layer of markings sits above the one below (river, then lanes, then pads), so none flickers through another. */
+	/** How far each layer of markings sits above the one below (river, lanes, pads, then fog), so none flickers through another. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground", meta = (ClampMin = "0"))
 	float GroundMarkingLift = 0.0f;
 };

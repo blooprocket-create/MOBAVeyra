@@ -31,6 +31,24 @@ namespace VeyraVisionTests
 			ASSERT_THAT(IsFalse(VeyraVisionRules::IsSeenBy(EVeyraTeam::A, Sources, FVector2D(5000.0, 0.0)), TEXT("the other side's source")));
 			ASSERT_THAT(IsFalse(VeyraVisionRules::IsSeenBy(EVeyraTeam::None, Sources, FVector2D(0.0, 0.0))));
 		}
+
+		TEST_METHOD(FogCirclesThatTouchAreOneVolume)
+		{
+			// Two touching circles, one apart, and a third touching the second (Vision Bible §2).
+			const FVeyraFogCircle Circles[] = {
+				{ FVector2D(0.0, 0.0), 100.0 },
+				{ FVector2D(1000.0, 0.0), 100.0 },
+				{ FVector2D(150.0, 0.0), 50.0 },
+				{ FVector2D(1150.0, 0.0), 50.0 },
+				{ FVector2D(1250.0, 0.0), 50.0 },
+			};
+			const TArray<int32> Volumes = VeyraVisionRules::ConnectVolumes(Circles);
+			ASSERT_THAT(IsTrue(Volumes.Num() == 5 && Volumes[0] == Volumes[2] && Volumes[1] == Volumes[3] && Volumes[3] == Volumes[4]));
+			ASSERT_THAT(IsTrue(Volumes[0] != Volumes[1], TEXT("apart, two volumes")));
+			ASSERT_THAT(IsTrue(VeyraVisionRules::VolumeAt(Circles, Volumes, FVector2D(190.0, 0.0)) == Volumes[0]));
+			ASSERT_THAT(IsTrue(VeyraVisionRules::VolumeAt(Circles, Volumes, FVector2D(1290.0, 0.0)) == Volumes[1]));
+			ASSERT_THAT(IsTrue(VeyraVisionRules::VolumeAt(Circles, Volumes, FVector2D(500.0, 0.0)) == INDEX_NONE, TEXT("between them, no fog")));
+		}
 	};
 
 	// Veyra.Vision.Sight.*: a match's vision, worked out from its units (ADR-016 §2).
@@ -115,6 +133,29 @@ namespace VeyraVisionTests
 			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Near)));
 			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Far)));
 			ASSERT_THAT(IsTrue(VeyraTargeting::CanAcquire(Caster.GetPlayerState(), Near), TEXT("a participant looks from its side")));
+		}
+
+		TEST_METHOD(OnlyAVanguardInsideTheSameFogSeesAnEnemyInIt)
+		{
+			// The bush: an enemy inside Dense Fog is hidden from all but those inside the same volume, and a
+			// teammate's sighting there is not shared (Vision Bible §2).
+			const FVector2D Bush(SightRadius() * 2.0, 0.0);
+			AVeyraVanguardCharacter& Inside = SpawnVanguard(EVeyraTeam::A, FVector(Bush.X - 100.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Outside = SpawnVanguard(EVeyraTeam::A, FVector(Bush.X - 500.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, FVector(Bush.X + 100.0, 0.0, 0.0));
+			Vision().Start();
+			Vision().SetDenseFog({ FVeyraFogCircle{ Bush, 300.0 } });
+			ASSERT_THAT(IsTrue(VeyraTargeting::CanAcquire(&Inside, Enemy)));
+			ASSERT_THAT(IsFalse(VeyraTargeting::CanAcquire(&Outside, Enemy), TEXT("its teammate, a few steps out of the fog")));
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("team vision does not carry it")));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Outside, &Enemy, SightRadius()) == EVeyraTargetValidity::NotVisible));
+			// The enemy sees both: the one in its fog with it, and the one outside by ordinary vision.
+			ASSERT_THAT(IsTrue(VeyraTargeting::CanAcquire(&Enemy, Inside) && VeyraTargeting::CanAcquire(&Enemy, Outside)));
+
+			// Out of the fog, the enemy is seen by the whole team again.
+			Enemy.SetActorLocation(FVector(Bush.X + 500.0, 0.0, 0.0));
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(VeyraTargeting::CanAcquire(&Outside, Enemy) && Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy)));
 		}
 
 		TEST_METHOD(AWorldWithoutAMatchSeesEverything)

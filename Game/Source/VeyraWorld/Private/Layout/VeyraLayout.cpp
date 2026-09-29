@@ -94,6 +94,19 @@ FVector2D Fountain(const FVeyraBattlegroundLayout& Layout, EVeyraTeam Team)
 	return ForTeam(ToVector(Layout.Base.Fountain), Team);
 }
 
+TArray<FVeyraFogPlacement> DenseFog(const FVeyraBattlegroundLayout& Layout)
+{
+	TArray<FVeyraFogPlacement> Fog;
+	for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+	{
+		for (const FVeyraFogLayout& Circle : Layout.DenseFog)
+		{
+			Fog.Add(FVeyraFogPlacement{ ForTeam(ToVector(Circle.Center), Team), Circle.Radius });
+		}
+	}
+	return Fog;
+}
+
 TArray<FVeyraStructurePlacement> Structures(const FVeyraBattlegroundLayout& Layout)
 {
 	TArray<FVeyraStructurePlacement> Placements;

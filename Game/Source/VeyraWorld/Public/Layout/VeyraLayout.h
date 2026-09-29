@@ -12,6 +12,13 @@ struct FVeyraBattlegroundLayout;
 struct FVeyraLaneLayout;
 struct FVeyraMapPoint;
 
+/** One Dense Fog circle of either team's half (Battleground Bible §11). */
+struct FVeyraFogPlacement
+{
+	FVector2D Center = FVector2D::ZeroVector;
+	double Radius = 0.0;
+};
+
 /** Where one structure stands (Battleground Bible §5, §10, §18). */
 struct FVeyraStructurePlacement
 {
@@ -66,6 +73,9 @@ namespace VeyraLayout
 
 	/** A point of Team A's base, as it stands for Team. */
 	VEYRAWORLD_API FVector2D ForTeam(const FVector2D& TeamAPoint, EVeyraTeam Team);
+
+	/** Both teams' Dense Fog: Team A's circles, then their mirrors. */
+	VEYRAWORLD_API TArray<FVeyraFogPlacement> DenseFog(const FVeyraBattlegroundLayout& Layout);
 
 	/** Every structure of both teams: each lane's Spires and inhibitor, the base towers and the Prime Well. */
 	VEYRAWORLD_API TArray<FVeyraStructurePlacement> Structures(const FVeyraBattlegroundLayout& Layout);

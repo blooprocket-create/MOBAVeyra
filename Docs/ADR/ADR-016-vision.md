@@ -144,8 +144,9 @@ Canon gives the three carried charges; every other value is Provisional.
 5. **Economy:** a swap costs 50 Gold; destroying a ward pays 30 Gold (League's).
 6. **Presence pings** every 2 s while an enemy Vanguard stays.
 7. **Keys:** the tool on 4, the items on 1 2 3 5 6 7 (League's).
-8. **Dense Fog spots, League's brush:** both river entrances on each side, the tri-brush spots beside top and bottom lanes, and the two brushes flanking mid.
+8. **Dense Fog spots, League's brush:** both river entrances on each side, the tri-brush spots beside top and bottom lanes, the brush where each of those lanes meets the river, and the two brushes flanking mid on each side. The author confirmed (2026-09-29) that Dense Fog is Veyra's replacement for League's bush.
 9. **Structures and Wells stay visible to both sides**, as League shows towers and the objective timers.
+10. **Only Vanguards hide in fog.** Canon's fog rules name enemy Vanguards (Vision Bible §2), so Fluxborn and wildlife inside fog stay under ordinary vision. League's bush hides minions too; the author may choose that instead.
 
 ## Consequences
 
@@ -171,3 +172,4 @@ Canon gives the three carried charges; every other value is Provisional.
 - Terrain line of sight: the grey-box map has no walls.
 - Camouflage and Invisibility statuses for Vanguards (Tavi, Mimzi) use §2's rules when those Vanguards arrive.
 - A minimap, and pings on it.
+- Replicating fog that abilities create, so clients draw it; the map's own fog is drawn from the layout every machine has.

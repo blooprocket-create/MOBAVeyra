@@ -371,6 +371,11 @@ void UVeyraGreyboxSubsystem::RefreshBattleground()
 			AddGroundMarking(*Owner, *PadMesh, BaseColorOf(Team), VeyraLayout::ForTeam(PrimeWell, Team), 0.0, FVector2D(Layout.Base.PadRadius), 3);
 		PadMaterials.Add(Team, Material);
 	}
+	// The Dense Fog, the battleground's bush, on top: a player sees where it lies, not who is in it.
+	for (const FVeyraFogPlacement& Fog : VeyraLayout::DenseFog(Layout))
+	{
+		AddGroundMarking(*Owner, *PadMesh, Settings.DenseFogColor, Fog.Center, 0.0, FVector2D(Fog.Radius), 4);
+	}
 }
 
 FLinearColor UVeyraGreyboxSubsystem::BaseColorOf(EVeyraTeam Team) const

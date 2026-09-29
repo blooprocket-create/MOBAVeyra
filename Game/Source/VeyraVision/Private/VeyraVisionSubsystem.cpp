@@ -28,6 +28,25 @@ namespace
 		return VeyraTeams::TeamOf(&Observer);
 	}
 
+	/** The body Observer looks from: its own, a participant's Vanguard, or a controller's player's Vanguard. */
+	const AActor* ObserverBody(const UObject& Observer)
+	{
+		if (const AController* Controller = Cast<AController>(&Observer))
+		{
+			return Controller->PlayerState ? Controller->PlayerState->GetPawn() : nullptr;
+		}
+		if (const APlayerState* Participant = Cast<APlayerState>(&Observer))
+		{
+			return Participant->GetPawn();
+		}
+		return Cast<AActor>(&Observer);
+	}
+
+	bool IsVanguardBody(const AActor& Actor)
+	{
+		return VeyraUnits::IsVanguard(&Actor) && Actor.IsA<APawn>();
+	}
+
 	bool IsSide(EVeyraTeam Team)
 	{
 		return Team == EVeyraTeam::A || Team == EVeyraTeam::B;
@@ -126,6 +145,8 @@ void UVeyraVisionSubsystem::Stop()
 	Seen.Reset();
 	Known.Reset();
 	Sources.Reset();
+	Fogged.Reset();
+	FogSightings.Reset();
 }
 
 void UVeyraVisionSubsystem::Deinitialize()
@@ -147,6 +168,14 @@ void UVeyraVisionSubsystem::OnActorSpawned(AActor* Actor)
 	}
 }
 
+void UVeyraVisionSubsystem::SetDenseFog(TArray<FVeyraFogCircle> Circles)
+{
+	Fog = MoveTemp(Circles);
+	FogVolumes = VeyraVisionRules::ConnectVolumes(Fog);
+	UE_LOG(LogVeyraVision, Log, TEXT("Dense Fog: %d circle(s) in %d volume(s)."), Fog.Num(), FogVolumes.IsEmpty() ? 0 : FMath::Max(FogVolumes) + 1);
+	UpdateNow();
+}
+
 void UVeyraVisionSubsystem::UpdateNow()
 {
 	UWorld* World = GetWorld();
@@ -158,6 +187,8 @@ void UVeyraVisionSubsystem::UpdateNow()
 	Sources.Reset();
 	Known.Reset();
 	TArray<const AActor*> Gated;
+	// The Vanguards who look into fog: each side's living Vanguards, with their sight.
+	TArray<TPair<const AActor*, double>> Lookouts;
 	for (TActorIterator<AActor> It(World); It; ++It)
 	{
 		const AActor& Actor = **It;
@@ -167,6 +198,10 @@ void UVeyraVisionSubsystem::UpdateNow()
 			if (const double Radius = SightOf(Actor, Sight); Radius > 0.0)
 			{
 				Sources.Add(FVeyraSightSource{ Team, FVector2D(Actor.GetActorLocation()), Radius });
+				if (IsVanguardBody(Actor))
+				{
+					Lookouts.Add({ &Actor, Radius });
+				}
 			}
 		}
 		if (IsGated(Actor))
@@ -180,13 +215,35 @@ void UVeyraVisionSubsystem::UpdateNow()
 		}
 	}
 
+	// A Vanguard inside Dense Fog is hidden from all but the Vanguards inside the same volume, and a
+	// teammate's sighting there is not shared (Vision Bible §2). Everything else is ordinary vision.
+	Fogged.Reset();
+	FogSightings.Reset();
+	for (const AActor* Unit : Gated)
+	{
+		const int32 Volume = IsVanguardBody(*Unit) ? VeyraVisionRules::VolumeAt(Fog, FogVolumes, FVector2D(Unit->GetActorLocation())) : INDEX_NONE;
+		if (Volume == INDEX_NONE)
+		{
+			continue;
+		}
+		Fogged.Add(Unit, Volume);
+		for (const TPair<const AActor*, double>& Lookout : Lookouts)
+		{
+			const bool bInside = VeyraVisionRules::VolumeAt(Fog, FogVolumes, FVector2D(Lookout.Key->GetActorLocation())) == Volume;
+			const bool bEnemy = VeyraTeams::TeamOf(Lookout.Key) != VeyraTeams::TeamOf(Unit);
+			if (bInside && bEnemy && FVector2D::DistSquared(FVector2D(Lookout.Key->GetActorLocation()), FVector2D(Unit->GetActorLocation())) <= FMath::Square(Lookout.Value))
+			{
+				FogSightings.FindOrAdd(Lookout.Key).Add(Unit);
+			}
+		}
+	}
 	Seen.Reset();
 	for (const EVeyraTeam Side : { EVeyraTeam::A, EVeyraTeam::B })
 	{
 		TSet<TWeakObjectPtr<const AActor>>& SideSeen = Seen.Add(Side);
 		for (const AActor* Unit : Gated)
 		{
-			if (VeyraTeams::TeamOf(Unit) != Side && VeyraVisionRules::IsSeenBy(Side, Sources, FVector2D(Unit->GetActorLocation())))
+			if (VeyraTeams::TeamOf(Unit) != Side && !Fogged.Contains(Unit) && VeyraVisionRules::IsSeenBy(Side, Sources, FVector2D(Unit->GetActorLocation())))
 			{
 				SideSeen.Add(Unit);
 			}
@@ -214,6 +271,18 @@ void UVeyraVisionSubsystem::UpdateNow()
 					Receives.Add(Alive);
 				}
 			}
+			// And what the player's own Vanguard sees inside its fog, which reaches only them.
+			const AActor* Body = ObserverBody(*Controller);
+			if (const TSet<TWeakObjectPtr<const AActor>>* Sighted = Body ? FogSightings.Find(Body) : nullptr)
+			{
+				for (const TWeakObjectPtr<const AActor>& Unit : *Sighted)
+				{
+					if (const AActor* Alive = Unit.Get())
+					{
+						Receives.Add(Alive);
+					}
+				}
+			}
 			Gate->SyncPlayer(*Controller, Team, Receives);
 		}
 		Gate->ForgetPlayersExcept(Present);
@@ -224,7 +293,19 @@ bool UVeyraVisionSubsystem::CanSee(const UObject& Observer, const AActor& Target
 {
 	const EVeyraTeam Side = SideOf(Observer);
 	// Something on no side, such as a creature answering its attacker, sees what it fights.
-	return !IsSide(Side) || IsVisibleToTeam(Side, Target);
+	if (!IsSide(Side))
+	{
+		return true;
+	}
+	// An enemy Vanguard inside Dense Fog: only a Vanguard inside the same volume sees it (Vision Bible §2).
+	const AActor* Body = BodyOf(Target);
+	if (bStarted && Body && Fogged.Contains(Body) && VeyraTeams::TeamOf(Body) != Side)
+	{
+		const AActor* Looker = ObserverBody(Observer);
+		const TSet<TWeakObjectPtr<const AActor>>* Sighted = Looker ? FogSightings.Find(Looker) : nullptr;
+		return Sighted && Sighted->Contains(Body);
+	}
+	return IsVisibleToTeam(Side, Target);
 }
 
 bool UVeyraVisionSubsystem::IsVisibleToTeam(EVeyraTeam Team, const AActor& Target) const

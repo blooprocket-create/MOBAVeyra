@@ -14,9 +14,26 @@ struct FVeyraSightSource
 	double Radius = 0.0;
 };
 
+/** A Dense Fog circle (Vision Bible §2): the battleground's bush, authored on the map or made by an ability. */
+struct FVeyraFogCircle
+{
+	FVector2D Center = FVector2D::ZeroVector;
+	/** In units; above 0. */
+	double Radius = 0.0;
+};
+
 /** Vision's rules, as plain functions of positions (ADR-016 §2). */
 namespace VeyraVisionRules
 {
 	/** Whether one of Team's Sources has Point within its sight. */
 	VEYRAVISION_API bool IsSeenBy(EVeyraTeam Team, TConstArrayView<FVeyraSightSource> Sources, const FVector2D& Point);
+
+	/**
+	 * The fog volumes: circles that overlap or touch are one volume while they do (Vision Bible §2).
+	 * For each circle, its volume's number, from 0, in the order volumes first appear.
+	 */
+	VEYRAVISION_API TArray<int32> ConnectVolumes(TConstArrayView<FVeyraFogCircle> Circles);
+
+	/** The volume holding Point, as numbered by ConnectVolumes (Volumes), or INDEX_NONE outside every circle. */
+	VEYRAVISION_API int32 VolumeAt(TConstArrayView<FVeyraFogCircle> Circles, TConstArrayView<int32> Volumes, const FVector2D& Point);
 }

@@ -14,6 +14,7 @@
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
+#include "VeyraVisionSubsystem.h"
 
 namespace VeyraNetTests
 {
@@ -33,6 +34,8 @@ namespace VeyraNetTests
 
 		static constexpr int32 PlayerCount = 3;
 		static constexpr double ShortPreparationSeconds = 0.1;
+		static constexpr double NegativeCheckRealSeconds = 0.5;
+		double HoldStartRealTime = 0.0;
 
 		struct FParticipant
 		{
@@ -186,6 +189,34 @@ namespace VeyraNetTests
 					AVeyraPlayerState* Attacker = ServerControllerOf(State, ObserverIndex)->GetPlayerState<AVeyraPlayerState>();
 					ASSERT_THAT(IsTrue(GameModeOf(State.World)->HandleAttackOrder(Attacker, FindVanguard(State.World, Participants[EnemyIndex].PlayerId))
 						== EVeyraOrderRejection::None));
+				});
+		}
+
+		TEST_METHOD(ADenseFogSightingReachesOnlyThePlayerInsideIt)
+		{
+			// The bush (Vision Bible §2; ADR-016 §3): the observer steps into the fog beside the enemy; its
+			// teammate stays a few steps out, well within sight, and still never receives it.
+			const FVector2D Bush(-SightRadius(), 0.0);
+			const double BushRadius = 300.0;
+			IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("Grow a bush; the observer and the enemy go in, the bystander stays out"), [this, Bush, BushRadius](FState& State) {
+					UVeyraVisionSubsystem* Vision = State.World->GetSubsystem<UVeyraVisionSubsystem>();
+					ASSERT_THAT(IsTrue(Vision && Vision->IsStarted()));
+					Vision->SetDenseFog({ FVeyraFogCircle{ Bush, BushRadius } });
+					Place(State, ObserverIndex, Bush - FVector2D(100.0, 0.0));
+					Place(State, EnemyIndex, Bush + FVector2D(100.0, 0.0));
+					Place(State, BystanderIndex, Bush - FVector2D(BushRadius * 2.0, 0.0));
+				})
+				.UntilClients(TEXT("The observer receives the enemy in the fog"), [this](FState& State) {
+					return State.ClientIndex != ObserverIndex || HasVanguard(State.World, Participants[EnemyIndex].PlayerId);
+				})
+				.ThenServer([this](FState& State) { HoldStartRealTime = State.World->GetRealTimeSeconds(); })
+				.UntilServer(TEXT("Give the sighting time to leak"), [this](FState& State) { return State.World->GetRealTimeSeconds() - HoldStartRealTime >= NegativeCheckRealSeconds; })
+				.ThenClients(TEXT("Its teammate outside the fog never has it"), [this](FState& State) {
+					if (State.ClientIndex == BystanderIndex)
+					{
+						ASSERT_THAT(IsFalse(HasVanguard(State.World, Participants[EnemyIndex].PlayerId)));
+					}
 				});
 		}
 	};

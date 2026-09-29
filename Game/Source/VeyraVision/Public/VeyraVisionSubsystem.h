@@ -42,6 +42,13 @@ public:
 	/** Works vision out now rather than at the next pass. For tests and for Start. */
 	void UpdateNow();
 
+	/**
+	 * The battleground's Dense Fog, both teams' circles (Battleground Bible §11): an enemy Vanguard
+	 * inside a volume is seen only by Vanguards inside the same volume (Vision Bible §2). Match gives
+	 * it World's layout; abilities will add their own.
+	 */
+	void SetDenseFog(TArray<FVeyraFogCircle> Circles);
+
 	// IVeyraVisibility
 	virtual bool CanSee(const UObject& Observer, const AActor& Target) const override;
 	virtual bool IsVisibleToTeam(EVeyraTeam Team, const AActor& Target) const override;
@@ -62,6 +69,14 @@ private:
 	 */
 	TSet<TWeakObjectPtr<const AActor>> Known;
 	TArray<FVeyraSightSource> Sources;
+
+	/** The fog, and each circle's volume (VeyraVisionRules::ConnectVolumes). */
+	TArray<FVeyraFogCircle> Fog;
+	TArray<int32> FogVolumes;
+	/** The enemy Vanguards inside fog at the last pass, and the volume each is in. */
+	TMap<TWeakObjectPtr<const AActor>, int32> Fogged;
+	/** What each Vanguard sees inside its own fog volume, which its team does not share (Vision Bible §2). */
+	TMap<TWeakObjectPtr<const AActor>, TSet<TWeakObjectPtr<const AActor>>> FogSightings;
 	/** Shared rather than unique so this header need not know it (Private/Gate). */
 	TSharedPtr<FVeyraFogGate> Gate;
 	FTimerHandle Timer;
