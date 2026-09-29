@@ -64,6 +64,9 @@ namespace
 	// -VeyraSmokeFlowReconnects: how long, in real seconds, it stays away before pressing Reconnect, so
 	// the other player sees its PlayerState go inactive, as it would after a real drop.
 	constexpr double AwayRealSeconds = 5.0;
+	// -VeyraSmokeFlowReconnects: how long, in match seconds, it plays before leaving, so the other
+	// player has seen it in the match first.
+	constexpr double LeaveAfterMatchSeconds = 10.0;
 	constexpr double ScreenshotHoldRealSeconds = 1.0;
 	// Practice: how far the Vanguard walks from where it shopped before it recalls: beyond the
 	// fountain, so arriving home is told apart from staying.
@@ -927,6 +930,11 @@ bool UVeyraSmokeFlowSubsystem::TickReconnect(AVeyraPlayerController& Controller,
 {
 	if (!bLeft)
 	{
+		const AVeyraGameState* GameState = World.GetGameState<AVeyraGameState>();
+		if (!GameState || GameState->GetMatchClockSeconds() < LeaveAfterMatchSeconds)
+		{
+			return true;
+		}
 		bLeft = true;
 		LeftAtRealSeconds = FPlatformTime::Seconds();
 		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the match is live; leaving it."));
