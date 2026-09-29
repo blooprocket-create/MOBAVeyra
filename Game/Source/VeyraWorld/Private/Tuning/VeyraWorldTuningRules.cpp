@@ -102,7 +102,9 @@ TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
 	{
 		Problems.Add(TEXT("/layout/base/baseTowers: the Prime Well needs its base-defense towers (Battleground Bible §18)"));
 	}
-	// Each fog circle lies wholly on the floor and in Team A's half, so it and its mirror are apart.
+	// Each fog circle lies wholly on the floor and in Team A's half, so it and its mirror are apart: a
+	// circle touching the dividing line would touch its mirror there, and touching circles are one
+	// volume (ADR-016 §4).
 	for (int32 Index = 0; Index < Layout.DenseFog.Num(); ++Index)
 	{
 		const FVeyraFogLayout& Circle = Layout.DenseFog[Index];
@@ -112,9 +114,9 @@ TArray<FString> Validate(const FVeyraWorldTuning& Tuning)
 		{
 			Problems.Add(Pointer + TEXT(": the fog must lie on the floor"));
 		}
-		if (VeyraLayout::DepthInTeamAHalf(Layout, Center) < Circle.Radius)
+		if (VeyraLayout::DepthInTeamAHalf(Layout, Center) <= Circle.Radius)
 		{
-			Problems.Add(Pointer + TEXT(": the fog must lie wholly in Team A's half; Team B's is its mirror"));
+			Problems.Add(Pointer + TEXT(": the fog must lie wholly in Team A's half, clear of the dividing line; Team B's is its mirror"));
 		}
 	}
 

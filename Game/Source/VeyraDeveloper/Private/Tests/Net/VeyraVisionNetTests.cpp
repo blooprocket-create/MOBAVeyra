@@ -5,11 +5,13 @@
 
 #if ENABLE_PIE_NETWORK_TEST
 
+#include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "AbilitySystemComponent.h"
 #include "Algo/AllOf.h"
 #include "Algo/Count.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "EngineUtils.h"
+#include "Recall/VeyraRecallComponent.h"
 #include "Targeting/VeyraVisibility.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
@@ -97,6 +99,22 @@ namespace VeyraNetTests
 				}
 			}
 			return false;
+		}
+
+		/** Whether this machine knows the participant with PlayerId holds a shield, and is recalling. */
+		static TPair<bool, bool> SeenShieldAndRecall(const UWorld* World, int32 PlayerId)
+		{
+			const AVeyraGameState* GameState = GameStateOf(World);
+			for (const APlayerState* Candidate : GameState ? GameState->PlayerArray : TArray<TObjectPtr<APlayerState>>())
+			{
+				if (Candidate && Candidate->GetPlayerId() == PlayerId)
+				{
+					const UVeyraDamageAbsorptionComponent* Absorption = Candidate->FindComponentByClass<UVeyraDamageAbsorptionComponent>();
+					const UVeyraRecallComponent* Recall = Candidate->FindComponentByClass<UVeyraRecallComponent>();
+					return { Absorption && !Absorption->GetLedger().Shields.IsEmpty(), Recall && Recall->IsRecalling() };
+				}
+			}
+			return { false, false };
 		}
 
 		/** The Health this machine holds for the participant with PlayerId, or -1 if it has no participant. */
@@ -298,6 +316,48 @@ namespace VeyraNetTests
 				if (State.ClientIndex != EnemyIndex)
 				{
 					ASSERT_THAT(IsTrue(SeenHealth(State.World, Participants[EnemyIndex].PlayerId) == MaxHealth - HitAmount));
+				}
+			});
+		}
+
+		TEST_METHOD(AnEnemysShieldAndRecallReachOnlyThoseWhoSeeIt)
+		{
+			// Like its Health (ADR-016 §3): out of sight, nobody learns that it shields itself or goes home.
+			const FVector2D Observer(-SightRadius(), 0.0);
+			const FVector2D Bystander(-SightRadius(), SightRadius() / 3.0);
+			const FVector2D Far(SightRadius() * 1.5, 0.0);
+			// Fixture values: a shield that outlasts the test.
+			constexpr double ShieldAmount = 100.0;
+			constexpr double LongSeconds = 60.0;
+			FPIENetworkComponent<FState>& Hidden = IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("Part the sides"), [this, Observer, Bystander, Far](FState& State) {
+					Place(State, ObserverIndex, Observer);
+					Place(State, BystanderIndex, Bystander);
+					Place(State, EnemyIndex, Far);
+				})
+				.UntilServer(TEXT("Vision loses the enemy"), [this](FState& State) {
+					const AVeyraVanguardCharacter* Enemy = FindVanguard(State.World, Participants[EnemyIndex].PlayerId);
+					return Enemy && !VeyraVisibility::IsVisibleToTeam(Participants[ObserverIndex].Team, *Enemy);
+				})
+				.ThenServer(TEXT("Out of sight, it shields itself and begins its Recall"), [this, ShieldAmount, LongSeconds](FState& State) {
+					AVeyraPlayerState* Enemy = ServerControllerOf(State, EnemyIndex)->GetPlayerState<AVeyraPlayerState>();
+					ASSERT_THAT(IsNotNull(Enemy));
+					UAbilitySystemComponent& Abilities = *Enemy->GetAbilitySystemComponent();
+					ASSERT_THAT(IsTrue(VeyraCombat::GrantShield(Abilities, Abilities, EVeyraShieldCategory::Universal, ShieldAmount, LongSeconds).IsValid()));
+					ASSERT_THAT(IsTrue(GameModeOf(State.World)->HandleRecallOrder(Enemy) == EVeyraOrderRejection::None));
+				})
+				.UntilClients(TEXT("Its own client sees both"), [this](FState& State) {
+					const TPair<bool, bool> Seen = SeenShieldAndRecall(State.World, Participants[EnemyIndex].PlayerId);
+					return State.ClientIndex != EnemyIndex || (Seen.Key && Seen.Value);
+				})
+				.ThenServer([this](FState& State) { HoldStartRealTime = State.World->GetRealTimeSeconds(); })
+				.UntilServer(TEXT("Give them time to leak"), [this](FState& State) { return State.World->GetRealTimeSeconds() - HoldStartRealTime >= NegativeCheckRealSeconds; });
+			Hidden.ThenClients(TEXT("Nobody who cannot see it learned of either"), [this](FState& State) {
+				if (State.ClientIndex != EnemyIndex)
+				{
+					const TPair<bool, bool> Seen = SeenShieldAndRecall(State.World, Participants[EnemyIndex].PlayerId);
+					ASSERT_THAT(IsFalse(Seen.Key, TEXT("its shield")));
+					ASSERT_THAT(IsFalse(Seen.Value, TEXT("its Recall")));
 				}
 			});
 		}

@@ -43,6 +43,9 @@ public:
 	UVeyraRecallComponent();
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	/** Behind the fog on a participant: its own, its teammates' and its observers' (ADR-016 §3). */
+	virtual ELifetimeCondition GetReplicationCondition() const override;
+	virtual void ReadyForReplication() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	/**
