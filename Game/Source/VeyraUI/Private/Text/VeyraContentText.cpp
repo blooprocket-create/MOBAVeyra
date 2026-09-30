@@ -8,6 +8,7 @@
 #include "Tuning/VeyraItemsTuning.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
+#include "VeyraSettingsRegistry.h"
 
 namespace VeyraContentText
 {
@@ -21,6 +22,14 @@ namespace
 	const TCHAR* const NameField = TEXT("name");
 	const TCHAR* const TitleField = TEXT("title");
 	const TCHAR* const DescriptionField = TEXT("description");
+	const TCHAR* const SettingKind = TEXT("setting");
+	const TCHAR* const TermsField = TEXT("terms");
+
+	/** setting.<id>.option.<option> */
+	FString OptionField(const FString& Option)
+	{
+		return TEXT("option.") + Option;
+	}
 
 	FString KeyOf(const TCHAR* Kind, const FVeyraContentId& Id, const TCHAR* Field)
 	{
@@ -108,6 +117,51 @@ TArray<FString> FindMissingItemText()
 		for (const TCHAR* Field : Fields)
 		{
 			const FString Key = KeyOf(ItemKind, Pair.Key, Field);
+			if (!HasKey(Key))
+			{
+				Missing.Add(Key);
+			}
+		}
+	}
+	return Missing;
+}
+
+FText SettingName(const FVeyraContentId& Setting)
+{
+	return TextOr(SettingKind, Setting, NameField, Setting.ToString());
+}
+
+FText SettingDescription(const FVeyraContentId& Setting)
+{
+	return TextOr(SettingKind, Setting, DescriptionField, FString());
+}
+
+FText SettingTerms(const FVeyraContentId& Setting)
+{
+	return TextOr(SettingKind, Setting, TermsField, FString());
+}
+
+FText SettingOption(const FVeyraContentId& Setting, const FString& Option)
+{
+	return TextOr(SettingKind, Setting, *OptionField(Option), Option);
+}
+
+TArray<FString> FindMissingSettingText(const FVeyraSettingsRegistry& Registry)
+{
+	TArray<FString> Missing;
+	for (const FVeyraSettingInfo& Setting : VeyraSettings::All(Registry))
+	{
+		TArray<FString> Fields = { NameField, DescriptionField, TermsField };
+		if (Setting.Choice)
+		{
+			for (const FString& Option : Setting.Choice->Options)
+			{
+				Fields.Add(OptionField(Option));
+			}
+		}
+		for (const FString& Field : Fields)
+		{
+			const FString Key = KeyOf(SettingKind, Setting.Id, *Field);
 			if (!HasKey(Key))
 			{
 				Missing.Add(Key);

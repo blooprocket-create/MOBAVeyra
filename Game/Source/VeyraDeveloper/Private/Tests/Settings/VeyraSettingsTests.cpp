@@ -43,6 +43,12 @@ namespace VeyraSettingsTests
 		Mode.Scope = EVeyraSettingScope::Device;
 		Mode.Options = { TEXT("Windowed"), TEXT("Borderless") };
 		Mode.Default = TEXT("Borderless");
+		Registry.Layout = {
+			{ EVeyraSettingCategory::Controls, { SettingId(TEXT("test_choice")) } },
+			{ EVeyraSettingCategory::Camera, { SettingId(TEXT("test_toggle")) } },
+			{ EVeyraSettingCategory::Interface, { SettingId(TEXT("test_range")) } },
+			{ EVeyraSettingCategory::GraphicsDisplay, { SettingId(TEXT("test_mode")) } },
+		};
 		return Registry;
 	}
 
@@ -89,6 +95,25 @@ namespace VeyraSettingsTests
 			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/ranges/test_toggle")), TEXT("one ID, one setting")));
 			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/ranges/test_toggle/maximum"))));
 			ASSERT_THAT(IsTrue(VeyraSettings::Validate(FixtureRegistry()).IsEmpty()));
+		}
+
+		TEST_METHOD(TheLayoutShowsEverySettingOnceInItsOwnCategory)
+		{
+			FVeyraSettingsRegistry Broken = FixtureRegistry();
+			Broken.Layout[0].Settings.Add(SettingId(TEXT("test_range")));
+			Broken.Layout.RemoveAt(3);
+			Broken.Layout.Add({ EVeyraSettingCategory::Controls, { SettingId(TEXT("test_unknown")) } });
+			const TArray<FString> Problems = VeyraSettings::Validate(Broken);
+			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/layout/0/settings/1: test_range belongs to another category")), FString::Join(Problems, TEXT(" | "))));
+			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/layout/2/settings/0: test_range is listed twice"))));
+			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/layout: test_mode is in no section"))));
+			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/layout/3/category"))));
+			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/layout/3/settings/0: no setting is test_unknown"))));
+
+			// The screen reads the sections in the layout's order.
+			const TArray<FVeyraSettingsSectionInfo> Sections = VeyraSettings::Sections(FixtureRegistry());
+			ASSERT_THAT(IsTrue(Sections.Num() == 4 && Sections[1].Category == EVeyraSettingCategory::Camera && Sections[1].Settings.Num() == 1
+				&& Sections[1].Settings[0].Id == SettingId(TEXT("test_toggle"))));
 		}
 
 		TEST_METHOD(ASettingTakesOnlyItsOwnValues)

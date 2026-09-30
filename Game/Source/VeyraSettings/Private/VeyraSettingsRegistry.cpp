@@ -127,6 +127,47 @@ TArray<FString> Validate(const FVeyraSettingsRegistry& Registry)
 			Problems.Add(Pointer + TEXT("/default: must be one of the options"));
 		}
 	}
+	TSet<EVeyraSettingCategory> Categories;
+	TSet<FVeyraContentId> Listed;
+	for (int32 Index = 0; Index < Registry.Layout.Num(); ++Index)
+	{
+		const FVeyraSettingsSection& Section = Registry.Layout[Index];
+		const FString Pointer = FString::Printf(TEXT("/layout/%d"), Index);
+		bool bCategoryAlready = false;
+		Categories.Add(Section.Category, &bCategoryAlready);
+		if (bCategoryAlready)
+		{
+			Problems.Add(Pointer + TEXT("/category: another section shows this category"));
+		}
+		for (int32 Entry = 0; Entry < Section.Settings.Num(); ++Entry)
+		{
+			const FVeyraContentId& Id = Section.Settings[Entry];
+			const FString EntryPointer = FString::Printf(TEXT("%s/settings/%d"), *Pointer, Entry);
+			const TOptional<FVeyraSettingInfo> Setting = Find(Registry, Id);
+			if (!Setting.IsSet())
+			{
+				Problems.Add(FString::Printf(TEXT("%s: no setting is %s"), *EntryPointer, *Id.ToString()));
+				continue;
+			}
+			if (Setting->Category != Section.Category)
+			{
+				Problems.Add(FString::Printf(TEXT("%s: %s belongs to another category"), *EntryPointer, *Id.ToString()));
+			}
+			bool bListedAlready = false;
+			Listed.Add(Id, &bListedAlready);
+			if (bListedAlready)
+			{
+				Problems.Add(FString::Printf(TEXT("%s: %s is listed twice"), *EntryPointer, *Id.ToString()));
+			}
+		}
+	}
+	for (const FVeyraSettingInfo& Setting : All(Registry))
+	{
+		if (!Listed.Contains(Setting.Id))
+		{
+			Problems.Add(FString::Printf(TEXT("/layout: %s is in no section, so the screen would never show it"), *Setting.Id.ToString()));
+		}
+	}
 	return Problems;
 }
 
@@ -163,6 +204,29 @@ TArray<FVeyraSettingInfo> All(const FVeyraSettingsRegistry& Registry)
 		Settings.Add(DescribeChoice(Id, Registry.Choices[Id]));
 	}
 	return Settings;
+}
+
+bool IsChangeable(const FVeyraSettingInfo& Setting, bool bInLiveMatch)
+{
+	return !bInLiveMatch || Setting.Availability == EVeyraSettingAvailability::Anywhere;
+}
+
+TArray<FVeyraSettingsSectionInfo> Sections(const FVeyraSettingsRegistry& Registry)
+{
+	TArray<FVeyraSettingsSectionInfo> Sections;
+	for (const FVeyraSettingsSection& Section : Registry.Layout)
+	{
+		FVeyraSettingsSectionInfo& Described = Sections.AddDefaulted_GetRef();
+		Described.Category = Section.Category;
+		for (const FVeyraContentId& Id : Section.Settings)
+		{
+			if (const TOptional<FVeyraSettingInfo> Setting = Find(Registry, Id))
+			{
+				Described.Settings.Add(*Setting);
+			}
+		}
+	}
+	return Sections;
 }
 
 TOptional<FString> Normalize(const FVeyraSettingInfo& Setting, FStringView Value)

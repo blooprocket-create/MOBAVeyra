@@ -12,6 +12,7 @@ class UInputAction;
 class UInputComponent;
 class UInputMappingContext;
 class UVeyraMatchMenu;
+class UVeyraSettingsScreen;
 class UVeyraScoreboard;
 class UVeyraShopScreen;
 
@@ -19,7 +20,8 @@ class UVeyraShopScreen;
  * Opens and closes the in-match screens with their keys (UVeyraUIInputSettings) in any match a Veyra
  * player controller plays: the menu (ADR-010 §4) and the shop (ADR-012 §11). While either is open,
  * the player's input reaches both it and the game; when both close, only the game. The menu's key
- * closes an open shop first, as Escape does in League. The scoreboard (ADR-017 §4) shows while its
+ * closes open Settings or an open shop first, as Escape does in League. Settings (ADR-024 §4) open
+ * from the menu, in its place, over the match, which goes on. The scoreboard (ADR-017 §4) shows while its
  * key is held and takes no input.
  */
 UCLASS()
@@ -39,6 +41,13 @@ public:
 
 	/** The open menu, or null. */
 	UVeyraMatchMenu* GetMenu() const { return Menu; }
+
+	/** Opens Settings in the menu's place, as its Settings button does; the menu's key closes them. */
+	void OpenSettings();
+	void CloseSettings();
+
+	/** Open Settings, or null. */
+	UVeyraSettingsScreen* GetSettings() const { return Settings; }
 
 	bool IsShopOpen() const { return Shop != nullptr; }
 
@@ -79,6 +88,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVeyraMatchMenu> Menu;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UVeyraSettingsScreen> Settings;
 
 	UPROPERTY(Transient)
 	TObjectPtr<UInputAction> ShopAction;

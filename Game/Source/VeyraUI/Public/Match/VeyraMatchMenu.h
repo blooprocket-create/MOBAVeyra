@@ -51,8 +51,14 @@ public:
 	/** Builds the menu's frame, before anything shows it. */
 	virtual bool Initialize() override;
 
-	/** Shows the menu for Controller's match. Close runs when the menu should close. */
-	void Show(AVeyraPlayerController& InController, TFunction<void()> InClose);
+	/**
+	 * Shows the menu for Controller's match. Close runs when the menu should close; OpenSettings, when
+	 * given, is its Settings button's (ADR-024 §4).
+	 */
+	void Show(AVeyraPlayerController& InController, TFunction<void()> InClose, TFunction<void()> InOpenSettings = nullptr);
+
+	/** The button that opens Settings. */
+	static FText SettingsLabel();
 
 	/** Every button on the menu, in the order built. For tests and scripts. */
 	TArray<UVeyraShellButton*> GetButtons() const;
@@ -76,6 +82,7 @@ private:
 
 	TWeakObjectPtr<AVeyraPlayerController> Controller;
 	TFunction<void()> Close;
+	TFunction<void()> OpenSettings;
 	EConfirming Confirming = EConfirming::Nothing;
 
 	UPROPERTY(Transient)

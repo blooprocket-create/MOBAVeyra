@@ -145,13 +145,26 @@ struct FVeyraChoiceSetting
  * Every player setting (ADR-024 §2), bound from Game/Settings/Settings.json. Presentation data: the
  * server never reads it, and it is outside the tuning hash.
  */
+/** One category of the Settings screen and its settings, in the order the screen lists them (Settings Bible §13). */
+USTRUCT()
+struct FVeyraSettingsSection
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraSettingCategory Category = EVeyraSettingCategory::Controls;
+
+	UPROPERTY()
+	TArray<FVeyraContentId> Settings;
+};
+
 USTRUCT()
 struct FVeyraSettingsRegistry
 {
 	GENERATED_BODY()
 
 	/** The Settings.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraToggleSetting> Toggles;
@@ -161,6 +174,13 @@ struct FVeyraSettingsRegistry
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraChoiceSetting> Choices;
+
+	/**
+	 * The Settings screen's categories in order, each with its settings in order. Only categories with
+	 * settings appear (ADR-024 §5), so every setting is listed once, in its own category's section.
+	 */
+	UPROPERTY()
+	TArray<FVeyraSettingsSection> Layout;
 };
 
 /** A setting's kind. */
@@ -187,6 +207,13 @@ struct FVeyraSettingInfo
 	const FVeyraChoiceSetting* Choice = nullptr;
 };
 
+/** A section of the Settings screen with its settings described, in order. */
+struct FVeyraSettingsSectionInfo
+{
+	EVeyraSettingCategory Category = EVeyraSettingCategory::Controls;
+	TArray<FVeyraSettingInfo> Settings;
+};
+
 /**
  * The registry's rules (ADR-024 §2). A setting's value is text: "On" or "Off" for a toggle, the
  * number for a range, the option for a choice.
@@ -200,7 +227,8 @@ namespace VeyraSettings
 	/**
 	 * Problems the schema cannot catch, each a JSON pointer and a message; empty when consistent. A
 	 * setting ID is used once across the kinds; a range's maximum is above its minimum and its default
-	 * lies within them on a step; a choice's options are distinct and its default is one of them.
+	 * lies within them on a step; a choice's options are distinct and its default is one of them. The
+	 * layout lists each category once and every setting once, in its own category's section.
 	 */
 	VEYRASETTINGS_API TArray<FString> Validate(const FVeyraSettingsRegistry& Registry);
 
@@ -209,6 +237,12 @@ namespace VeyraSettings
 
 	/** Every setting, toggles then ranges then choices, each kind in ID order. */
 	VEYRASETTINGS_API TArray<FVeyraSettingInfo> All(const FVeyraSettingsRegistry& Registry);
+
+	/** Whether Setting may change now: in a live match, only one available Anywhere (Settings Bible §6.2). */
+	VEYRASETTINGS_API bool IsChangeable(const FVeyraSettingInfo& Setting, bool bInLiveMatch);
+
+	/** The Settings screen's sections in the layout's order, each setting described; IDs the registry lacks are left out. */
+	VEYRASETTINGS_API TArray<FVeyraSettingsSectionInfo> Sections(const FVeyraSettingsRegistry& Registry);
 
 	/**
 	 * Value as the setting's canonical text, or nothing when it is not a value the setting takes: a

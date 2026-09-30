@@ -364,6 +364,23 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float DialogWidth = 0.0f;
 
+	/** The Settings screen's window over the client or the match (ADR-024 §4), in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsHeight = 0.0f;
+
+	/** Its categories' column, its search field, and the column of each setting's controls, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsNavWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsSearchWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float SettingsControlWidth = 0.0f;
+
 	/** The friends panel down the right of the shell and the lobby, as League's social panel is (Art Bible §7), in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float FriendsPanelWidth = 0.0f;

@@ -4,7 +4,7 @@
   "description": "Every player setting the Settings screen offers (Settings & Accessibility Bible; ADR-024 §2): its category and store, when it may change, and its kind, bounds and default. Presentation data, never gameplay truth: the server does not read it and it is outside the tuning hash.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "toggles", "ranges", "choices"],
+  "required": ["schemaVersion", "toggles", "ranges", "choices", "layout"],
   "definitions": {
     "provenance": {
       "description": "Where the default and bounds come from (ADR-008 §7): Canon when the bible states them, Provisional for League's answers (ADR-024 §9).",
@@ -30,6 +30,11 @@
       "description": "When a change takes effect (Settings Bible §6.3): AtOnce, or AfterRestart.",
       "type": "string",
       "enum": ["AtOnce", "AfterRestart"]
+    },
+    "settingId": {
+      "description": "A setting's ID, a content ID.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
     },
     "option": {
       "description": "A choice's option, as the code that applies it spells it.",
@@ -85,7 +90,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "toggles": {
       "description": "Settings that are On or Off, by setting ID.",
@@ -104,6 +109,20 @@
       "type": "object",
       "additionalProperties": false,
       "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/choice" } }
+    },
+    "layout": {
+      "description": "The Settings screen's categories in the order it shows them, each with its settings in order (Settings Bible §13). Only categories with settings appear (ADR-024 §5): every setting is listed once, in its own category's section.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "settings"],
+        "properties": {
+          "category": { "$ref": "#/definitions/category" },
+          "settings": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/settingId" } }
+        }
+      }
     }
   }
 }

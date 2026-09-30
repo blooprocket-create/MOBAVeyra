@@ -46,7 +46,9 @@ A survey of the code (2026-09-30) found:
 - `availability`: Anywhere, or OutsideMatches (§6.2);
 - `applies`: AtOnce, or AfterRestart (§6.3).
 
-Its label and plain-language description (§6.3) are text rows keyed by its ID. Bindings join as a fourth map with the Controls gate. `scripts/check_tuning.py` validates the file against its schema, beside the other documents that use the tuning dialect.
+A `layout` lists the screen's categories in order, each with its settings in order (§13). Only categories with settings appear, and validation requires every setting in exactly one section, its own category's.
+
+Its label, plain-language description (§6.3), search words (SET-102) and each choice's option names are rows in `Game/Text/VeyraText.csv`, keyed `setting.<id>.name`, `.description`, `.terms` and `.option.<option>`; a test finds any that are missing. Bindings join as a fourth map with the Controls gate. `scripts/check_tuning.py` validates the file against its schema, beside the other documents that use the tuning dialect.
 
 It is presentation data, not gameplay tuning. The server never reads it, and it is outside the tuning hash, so settings never decide a match (Settings Bible §9: "Settings never establish combat truth").
 

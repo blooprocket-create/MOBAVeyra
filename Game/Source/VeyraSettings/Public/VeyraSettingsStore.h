@@ -48,9 +48,12 @@ public:
 	/** Returns Id to its default, as a change Undo can take back. */
 	EVeyraSettingChange Reset(const FVeyraContentId& Id, bool bInLiveMatch = false);
 
-	/** Returns every setting of Category, or every setting, to its default. Undo does not take these back. */
-	void ResetCategory(EVeyraSettingCategory Category);
-	void ResetAll();
+	/**
+	 * Returns every setting of Category, or every setting, to its default; in a live match, those that
+	 * change only outside matches stay (Settings Bible §6.2). Undo does not take these back.
+	 */
+	void ResetCategory(EVeyraSettingCategory Category, bool bInLiveMatch = false);
+	void ResetAll(bool bInLiveMatch = false);
 
 	/** Takes back the most recent single change, once (Settings Bible §6.1). */
 	bool CanUndo() const { return LastChange.IsSet(); }

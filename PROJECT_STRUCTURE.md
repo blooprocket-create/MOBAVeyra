@@ -292,6 +292,8 @@ UI observes/queries gameplay state and emits user intent. No gameplay module dep
 
 It arrived in M5 with grey-box presentation (`Greybox/`: engine shapes for bodies, projectiles and cast telegraphs) and a Canvas HUD (`Hud/`), both placeholders (ADR-008 §1). It is `ClientOnly`, so servers neither build nor load it, and the layer check enforces that.
 
+The Settings screen (`Settings/`, [ADR-024](Docs/ADR/ADR-024-player-settings.md) §4–§5) is `UVeyraSettingsScreen` over `VeyraSettingsModels`, which reads the registry's layout and the player's store. It opens from the shell's top bar and the results, over the shell, and from the in-match menu, over the live match (`UVeyraMatchMenuSubsystem`). It never opens in champion select, Match Found or Reconnect-only.
+
 M6 added the menus, UMG widgets built entirely in C++ with no widget Blueprints (ADR-010 §4):
 
 - `Shell/`: the screen for each client state (starter choice, Home, Play, champion select, results, Reconnect-only, problems), built from pure view models over the coordinator's snapshot. Buttons ask the coordinator's intents and are enabled only when it allows them;

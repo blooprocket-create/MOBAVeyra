@@ -35,7 +35,7 @@ EVeyraSettingChange FVeyraSettingsStore::Set(const FVeyraContentId& Id, FStringV
 	{
 		return EVeyraSettingChange::UnknownSetting;
 	}
-	if (bInLiveMatch && Setting->Availability == EVeyraSettingAvailability::OutsideMatches)
+	if (!VeyraSettings::IsChangeable(*Setting, bInLiveMatch))
 	{
 		return EVeyraSettingChange::NotInMatch;
 	}
@@ -61,24 +61,24 @@ EVeyraSettingChange FVeyraSettingsStore::Reset(const FVeyraContentId& Id, bool b
 	return Setting.IsSet() ? Set(Id, Setting->Default, bInLiveMatch) : EVeyraSettingChange::UnknownSetting;
 }
 
-void FVeyraSettingsStore::ResetCategory(EVeyraSettingCategory Category)
+void FVeyraSettingsStore::ResetCategory(EVeyraSettingCategory Category, bool bInLiveMatch)
 {
 	LastChange.Reset();
 	for (const FVeyraSettingInfo& Setting : VeyraSettings::All(*Registry))
 	{
-		if (Setting.Category == Category && Store(Setting.Id, {}))
+		if (Setting.Category == Category && VeyraSettings::IsChangeable(Setting, bInLiveMatch) && Store(Setting.Id, {}))
 		{
 			OnChanged.Broadcast(Setting.Id);
 		}
 	}
 }
 
-void FVeyraSettingsStore::ResetAll()
+void FVeyraSettingsStore::ResetAll(bool bInLiveMatch)
 {
 	LastChange.Reset();
 	for (const FVeyraSettingInfo& Setting : VeyraSettings::All(*Registry))
 	{
-		if (Store(Setting.Id, {}))
+		if (VeyraSettings::IsChangeable(Setting, bInLiveMatch) && Store(Setting.Id, {}))
 		{
 			OnChanged.Broadcast(Setting.Id);
 		}
