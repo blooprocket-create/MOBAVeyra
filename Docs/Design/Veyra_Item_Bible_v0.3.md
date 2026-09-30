@@ -266,6 +266,21 @@ Critical strikes deal increased damage.
 
 This is intentionally a simple crit capstone rather than a proc-heavy item.
 
+### Blackreef Bell
+
+**Recipe:** Canyonward + Resonant Wardstone + Tier 3 recipe  
+**Stat identity:** High Health + very high Magic Resistance.
+
+**Attunement — Quieting Chime**
+
+After avoiding enemy-Vanguard damage for a short period, gain **Spellward**. The next hostile enemy ability that would successfully affect the holder is negated, breaking Spellward. Spellward reforms after another period without taking enemy-Vanguard damage.
+
+Quieting Chime blocks the qualifying ability impact as a whole, including its damage and attached crowd control or status from that impact. It does not block basic attacks, ordinary item procs by themselves, or damage/effects that were already successfully applied before Spellward formed.
+
+Exact reform timing and stat values are prototype tuning values.
+
+Blackreef Bell draws from the Drowned Cantons' black reefs, tuned bells, sea-glass, resonance, and fog-guiding traditions. It is a general anti-magic defensive Masterwork rather than equipment exclusive to any one Vanguard.
+
 ### Doombringer Bow
 
 **Recipe:** Killstring Assembly + Titansteel Grip + Tier 3 recipe  
