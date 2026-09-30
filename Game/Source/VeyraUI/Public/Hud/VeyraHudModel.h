@@ -75,6 +75,10 @@ struct FVeyraHudItemSlot
 	/** A Quest Item's progress and threshold (ADR-025 §3); unset for other items. */
 	TOptional<FIntPoint> Quest;
 
+	/** The Current and the Reserve its Attunements keep, whole (ADR-025 §7); unset for an item that keeps none. */
+	TOptional<int32> Current;
+	TOptional<int32> Reserve;
+
 	/** Seconds until its Active is ready; 0 when it is, or it has none. */
 	double CooldownSeconds = 0.0;
 };

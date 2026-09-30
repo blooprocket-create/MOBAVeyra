@@ -275,6 +275,8 @@ namespace VeyraItemsTests
 			Attack(false);
 			Attack(true);
 			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 3.0 && Procs() == 0, TEXT("a hit and a crit: Doomed, nothing dealt yet")));
+			const FVeyraStatusEntry* Mark = EnemyStatuses().GetLedger().Entries.FindByPredicate([](const FVeyraStatusEntry& Entry) { return Entry.Id == ItemId(TEXT("test_doom")); });
+			ASSERT_THAT(IsTrue(Mark && Mark->Kind == EVeyraStatusKind::Counter && Mark->Stacks == 3, TEXT("every machine sees the Doom as a mark")));
 			const double MissingBefore = VeyraCombat::GetMissingHealth(*Enemy);
 			Attack(false);
 			ASSERT_THAT(AreEqual(1, Procs(), TEXT("the next attack consumes it")));
@@ -282,6 +284,8 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraCombat::GetMissingHealth(*Enemy), Expected, 1e-3),
 				FString::Printf(TEXT("missing %g, expected %g: the share of the missing Health after the hit"), VeyraCombat::GetMissingHealth(*Enemy), Expected)));
 			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 0.0, TEXT("the consuming hit adds none (ADR-025 §8.5)")));
+			ASSERT_THAT(IsFalse(EnemyStatuses().GetLedger().Entries.ContainsByPredicate([](const FVeyraStatusEntry& Entry) { return Entry.Id == ItemId(TEXT("test_doom")); }),
+				TEXT("and the mark goes with it")));
 
 			Attack(true);
 			RunFor(Expiry + WorldStep);

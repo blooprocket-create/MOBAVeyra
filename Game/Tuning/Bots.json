@@ -67,7 +67,7 @@
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
-      "build": ["swift_boots", "siegeheart_core", "colossus_temper", "spellguard_plate", "impact_aegis"],
+      "build": ["swift_boots", "siegeheart_core", "riverhold_bastion", "blackreef_bell", "colossus_temper"],
       "skillPriority": ["Q", "W", "E"],
       "abilities": {
         "cairn_iron_grasp": "Engage",
@@ -100,7 +100,7 @@
     },
     "bryn": {
       "provenance": "Provisional",
-      "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "striker_assembly"],
+      "build": ["war_boots", "doombringer_bow", "cycler_core", "sovereign_edge", "striker_assembly"],
       "skillPriority": ["Q", "E", "W"],
       "abilities": {
         "bryn_breach_round": "Empower",
@@ -123,7 +123,7 @@
     },
     "vera": {
       "provenance": "Provisional",
-      "build": ["war_boots", "cycler_core", "sovereign_edge", "striker_assembly", "razorwheel"],
+      "build": ["war_boots", "cycler_core", "doombringer_bow", "sovereign_edge", "razorwheel"],
       "skillPriority": ["Q", "E", "W"],
       "abilities": {
         "vera_range_found": "Damage",
@@ -145,7 +145,7 @@
     },
     "patch": {
       "provenance": "Provisional",
-      "build": ["swift_boots", "siegeheart_core", "colossus_temper", "impact_aegis", "spellguard_plate"],
+      "build": ["swift_boots", "siegeheart_core", "blackreef_bell", "riverhold_bastion", "impact_aegis"],
       "skillPriority": ["Q", "E", "W"],
       "abilities": {
         "patch_bear_hug": "Engage",
@@ -158,7 +158,7 @@
     },
     "gorraveth": {
       "provenance": "Provisional",
-      "build": ["war_boots", "cycler_core", "impact_aegis", "colossus_temper", "razorwheel"],
+      "build": ["flux_reclaimer", "war_boots", "the_last_harbor", "cycler_core", "impact_aegis"],
       "skillPriority": ["Q", "W", "E"],
       "abilities": {
         "gorraveth_rip_through": "Damage",

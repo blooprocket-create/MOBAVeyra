@@ -9,18 +9,38 @@ namespace VeyraBotRules
 {
 namespace
 {
-	bool Holds(TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Item)
+	/** Whether Made is Item, or grew from it by evolution or recipe, at any depth. */
+	bool GrewFrom(const FVeyraItemsTuning& Items, const FVeyraContentId& Made, const FVeyraContentId& Item)
 	{
-		return Slots.ContainsByPredicate([&Item](const FVeyraInventorySlot& Slot) { return !Slot.IsEmpty() && Slot.Item == Item; })
-			|| Queue.ContainsByPredicate([&Item](const FVeyraPendingPurchase& Entry) { return Entry.Item == Item; });
+		if (Made == Item)
+		{
+			return true;
+		}
+		if (const FVeyraContentId* Base = VeyraItems::EvolvesFrom(Items, Made); Base && GrewFrom(Items, *Base, Item))
+		{
+			return true;
+		}
+		const FVeyraItemDefinition* Definition = Items.Items.Find(Made);
+		return Definition && Definition->Components.ContainsByPredicate([&Items, &Item](const FVeyraContentId& Part) { return GrewFrom(Items, Part, Item); });
+	}
+
+	/**
+	 * Whether the bot holds or awaits Item. A Quest Item also counts once what it became is held, or
+	 * what was made from that: its quest is done, and buying it again would start over (ADR-025 §3).
+	 */
+	bool Holds(const FVeyraItemsTuning& Items, TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Item)
+	{
+		const bool bQuestItem = VeyraItems::QuestLine(Items, Item).IsValid();
+		const auto Counts = [&Items, &Item, bQuestItem](const FVeyraContentId& Held) { return Held == Item || (bQuestItem && GrewFrom(Items, Held, Item)); };
+		return Slots.ContainsByPredicate([&Counts](const FVeyraInventorySlot& Slot) { return !Slot.IsEmpty() && Counts(Slot.Item); })
+			|| Queue.ContainsByPredicate([&Counts](const FVeyraPendingPurchase& Entry) { return Counts(Entry.Item); });
 	}
 
 	/** Refusals no amount of Gold overcomes. */
 	bool NeverBuyable(EVeyraShopRefusal Refusal)
 	{
 		return Refusal == EVeyraShopRefusal::UnknownItem || Refusal == EVeyraShopRefusal::Unique || Refusal == EVeyraShopRefusal::BootsLimit
-			|| Refusal == EVeyraShopRefusal::InventoryFull || Refusal == EVeyraShopRefusal::MythicalTaken || Refusal == EVeyraShopRefusal::NotForSale
-			|| Refusal == EVeyraShopRefusal::QuestLineHeld;
+			|| Refusal == EVeyraShopRefusal::InventoryFull || Refusal == EVeyraShopRefusal::MythicalTaken || Refusal == EVeyraShopRefusal::QuestLineHeld;
 	}
 
 	/** Each held item and queued purchase, by count: what a recipe's parts draw on, each copy once. */
@@ -233,7 +253,7 @@ TOptional<FVeyraContentId> NextPurchase(const FVeyraItemsTuning& Items, TConstAr
 {
 	for (const FVeyraContentId& Item : Build)
 	{
-		if (Holds(Slots, Queue, Item))
+		if (Holds(Items, Slots, Queue, Item))
 		{
 			continue;
 		}
@@ -250,6 +270,11 @@ TOptional<FVeyraContentId> NextPurchase(const FVeyraItemsTuning& Items, TConstAr
 		double PartPrice = 0.0;
 		TMap<FVeyraContentId, int32> Unheld = HeldCounts(Slots, Queue);
 		FindAffordablePart(Items, Item, Slots, Queue, Mythical, Gold, Unheld, Part, PartPrice);
+		// A recipe waiting for a quest's evolution is no reason to save: with no part to buy, move on (ADR-025 §3).
+		if (!Part.IsSet() && Quote.Refusal == EVeyraShopRefusal::NotForSale)
+		{
+			continue;
+		}
 		// Nothing affordable toward it: save for it rather than skip ahead.
 		return Part;
 	}

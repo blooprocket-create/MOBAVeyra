@@ -304,6 +304,18 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsFalse(Player.Items[1].Quest.IsSet()));
 		}
 
+		TEST_METHOD(TheHudShowsWhatAnItemKeeps)
+		{
+			Tuning = WithQuest(Tuning);
+			ASSERT_THAT(IsTrue(Subsystem->GrantItem(*Participant, ItemId(TEXT("test_reservoir"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->GrantItem(*Participant, ItemId(TEXT("test_grip"))) == EVeyraShopRefusal::None));
+			Subsystem->SetStored(*Participant, ItemId(TEXT("test_current")), EVeyraItemStore::Current, 4.5);
+			const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(*Participant, Spawner.GetWorld().GetTimeSeconds());
+			ASSERT_THAT(IsTrue(Player.Items[0].Current.IsSet() && Player.Items[0].Current.GetValue() == 4, TEXT("Residual Current's store, whole (ADR-025 §7)")));
+			ASSERT_THAT(IsFalse(Player.Items[0].Reserve.IsSet(), TEXT("it keeps no Reserve")));
+			ASSERT_THAT(IsFalse(Player.Items[1].Current.IsSet() || Player.Items[1].Reserve.IsSet(), TEXT("a grip keeps nothing")));
+		}
+
 		TEST_METHOD(TheHudShowsARefillablesChargesEvenWhenEmpty)
 		{
 			// Fixture values: the tonic made refillable, with one charge (ADR-023 §6).

@@ -14,6 +14,7 @@ namespace VeyraBotsTests
 	using VeyraItemsTests::ItemId;
 	using VeyraItemsTests::TestCatalog;
 	using VeyraItemsTests::WithMythicals;
+	using VeyraItemsTests::WithQuest;
 
 	// Veyra.Bots.BotRules.*: how a bot decides, one priority at a time (ADR-013 §4, §8), as pure rules.
 	TEST_CLASS(BotRules, "Veyra.Bots")
@@ -544,6 +545,30 @@ namespace VeyraBotsTests
 			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, ItemId(TEXT("test_harbor")), 400.0) == ItemId(TEXT("test_grip"))));
 			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 400.0) == ItemId(TEXT("test_plate")),
 				TEXT("before any choice, the rival's dearest affordable part")));
+		}
+
+		TEST_METHOD(AQuestItemIsBoughtOnceAndARecipeWaitingForItsEvolutionMovesOn)
+		{
+			// The build: the reclaimer, the haven built on its evolution, then a grip (ADR-025 §3).
+			const FVeyraItemsTuning Items = WithQuest(TestCatalog());
+			TArray<FVeyraInventorySlot> Slots;
+			Slots.SetNum(Items.Shop.InventorySlots);
+			const TArray<FVeyraContentId> Build = { ItemId(TEXT("test_reclaimer")), ItemId(TEXT("test_haven")), ItemId(TEXT("test_grip")) };
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_reclaimer"))));
+			Slots[0].Item = ItemId(TEXT("test_reclaimer"));
+			Slots[0].Count = 1;
+			// The haven waits for the reservoir: its plate is bought, and with the plate held, the grip.
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_plate"))));
+			Slots[1].Item = ItemId(TEXT("test_plate"));
+			Slots[1].Count = 1;
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_grip")), TEXT("it moves on, not saving")));
+			// Evolved, the reservoir counts as the reclaimer, and the haven is bought.
+			Slots[0].Item = ItemId(TEXT("test_reservoir"));
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_haven"))));
+			// Built into the haven, it still does: no second reclaimer.
+			Slots[0].Item = ItemId(TEXT("test_haven"));
+			Slots[1] = FVeyraInventorySlot();
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_grip"))));
 		}
 
 		TEST_METHOD(TheLaneMeasuresDistanceAlongItsPath)

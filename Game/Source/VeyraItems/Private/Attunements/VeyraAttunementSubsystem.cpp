@@ -218,6 +218,7 @@ void UVeyraAttunementSubsystem::MarkedForDoom(const FVeyraContentId& Attunement,
 	{
 		// A Doomed target's next basic attack consumes it for its missing Health after the hit, and adds none (ADR-025 §8.5).
 		Dooms.RemoveAtSwap(static_cast<int32>(Entry - Dooms.GetData()));
+		VeyraCombat::RemoveStatus(Target, Attunement);
 		FVeyraRawDamageEvent Doom;
 		Doom.Components.Add({ EVeyraDamageType::Physical, Tuning.MissingHealthRatio * VeyraCombat::GetMissingHealth(Target) });
 		Doom.Delivery = EVeyraDamageDelivery::Proc;
@@ -233,6 +234,18 @@ void UVeyraAttunementSubsystem::MarkedForDoom(const FVeyraContentId& Attunement,
 	}
 	Entry->Doom += Event.bCritical ? Tuning.DoomPerCrit : Tuning.DoomPerHit;
 	Entry->ExpiresAt = Now + Tuning.ExpirySeconds;
+	// Every machine sees it on the target as a mark of its whole Doom, lapsing with it (ADR-025 §7).
+	FVeyraStatusSpec Mark;
+	Mark.Id = Attunement;
+	Mark.Kind = EVeyraStatusKind::Counter;
+	Mark.Stacking = EVeyraStackingPolicy::Stacking;
+	Mark.MaxStacks = FMath::Max(1, FMath::CeilToInt32(Tuning.DoomedAt));
+	Mark.DurationSeconds = Tuning.ExpirySeconds;
+	VeyraCombat::RemoveStatus(Target, Attunement);
+	for (int32 Stack = 0; Stack < FMath::Min(FMath::FloorToInt32(Entry->Doom), Mark.MaxStacks); ++Stack)
+	{
+		VeyraCombat::ApplyStatus(Holder, Target, Mark);
+	}
 }
 
 double UVeyraAttunementSubsystem::GetDoom(const UAbilitySystemComponent& Holder, const UAbilitySystemComponent& Target) const
