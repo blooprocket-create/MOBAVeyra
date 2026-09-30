@@ -28,6 +28,8 @@ public class VeyraUI : ModuleRules
 			"VeyraItems",
 			"VeyraMatch",
 			"VeyraServices",
+			// The Settings screen shows and edits the player's settings (ADR-024 §3).
+			"VeyraSettings",
 			// The HUD model shows the vision tool in the slot (ADR-016 §8).
 			"VeyraVision",
 		});

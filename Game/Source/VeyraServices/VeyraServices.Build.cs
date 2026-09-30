@@ -18,6 +18,8 @@ public class VeyraServices : ModuleRules
 			"Engine",
 			"DeveloperSettings",
 			"VeyraMatch",
+			// The client flow syncs the player's account settings (ADR-024 §1).
+			"VeyraSettings",
 		});
 		PrivateDependencyModuleNames.AddRange(new string[]
 		{

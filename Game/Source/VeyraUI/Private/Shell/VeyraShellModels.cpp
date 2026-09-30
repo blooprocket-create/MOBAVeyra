@@ -985,6 +985,10 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	{
 		Text << TEXT("|problem:") << Snapshot.Problem->Code << TEXT(":") << Snapshot.Problem->Message << (Snapshot.Problem->bCanRetry ? TEXT(":retry") : TEXT(""));
 	}
+	if (Snapshot.bSettingsConflict)
+	{
+		Text << TEXT("|settings conflict");
+	}
 	Text << TEXT("|starters:") << FString::Join(Snapshot.Starters, TEXT(",")) << TEXT("|available:") << FString::Join(Snapshot.AvailableVanguards, TEXT(","));
 	if (Snapshot.State == EVeyraClientState::Selecting)
 	{

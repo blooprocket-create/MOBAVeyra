@@ -5,8 +5,9 @@
 #include "Client/VeyraClientFlowTypes.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Settings/VeyraDisplayRules.h"
 
-EVeyraDisplayMode UVeyraDisplaySettings::GetMatchDisplayMode() const
+EVeyraDisplayMode UVeyraDisplaySettings::GetMatchDisplayMode(const FVeyraSettingsStore* Store) const
 {
 	FString Override;
 	if (FParse::Value(FCommandLine::Get(), TEXT("VeyraMatchDisplay="), Override))
@@ -16,7 +17,7 @@ EVeyraDisplayMode UVeyraDisplaySettings::GetMatchDisplayMode() const
 			return Mode.GetValue();
 		}
 	}
-	return MatchDisplayMode;
+	return Store ? VeyraDisplayRules::Resolve(*Store, /*bForeground*/ true).MatchMode : MatchDisplayMode;
 }
 
 namespace VeyraMatchDisplay

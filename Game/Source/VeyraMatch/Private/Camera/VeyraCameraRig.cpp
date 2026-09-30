@@ -33,12 +33,12 @@ void AVeyraCameraRig::PostInitializeComponents()
 	Mode = View.DefaultMode;
 }
 
-void AVeyraCameraRig::Step(const FVeyraCameraInput& Input, double DeltaSeconds)
+void AVeyraCameraRig::Step(const FVeyraCameraInput& Input, double DeltaSeconds, const FVeyraCameraPreferences* Preferences)
 {
 	const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
 	FVeyraCameraLimits Limits;
-	Limits.PanSpeed = View.PanSpeed;
-	Limits.EdgeScrollSpeed = View.EdgeScrollSpeed;
+	Limits.PanSpeed = Preferences ? Preferences->PanSpeed : View.PanSpeed;
+	Limits.EdgeScrollSpeed = Preferences ? Preferences->EdgeScrollSpeed : View.EdgeScrollSpeed;
 	Limits.SemiLockedMaxOffset = View.SemiLockedMaxOffset;
 	// The battleground's floor bounds the view.
 	Limits.HalfExtent = UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent;

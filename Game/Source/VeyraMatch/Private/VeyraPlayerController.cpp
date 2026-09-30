@@ -2,6 +2,7 @@
 
 #include "VeyraPlayerController.h"
 
+#include "Camera/VeyraCameraPreferences.h"
 #include "Camera/VeyraCameraRig.h"
 #include "Developer/VeyraDeveloperCommandRoute.h"
 #include "Engine/Console.h"
@@ -30,6 +31,7 @@
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
 #include "Votes/VeyraVoteSubsystem.h"
+#include "VeyraSettingsSubsystem.h"
 
 AVeyraPlayerController::AVeyraPlayerController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -87,6 +89,8 @@ void AVeyraPlayerController::BeginPlay()
 		Parameters.Owner = this;
 		Parameters.ObjectFlags |= RF_Transient;
 		CameraRig = GetWorld()->SpawnActor<AVeyraCameraRig>(Parameters);
+		// The mode the player left the camera in last match (SET-5; League keeps its camera lock too).
+		CameraRig->SetMode(CameraPreferences().DefaultMode);
 		if (APawn* Vanguard = GetVanguard())
 		{
 			OnVanguardSet(PlayerState, Vanguard, nullptr);
@@ -99,10 +103,56 @@ void AVeyraPlayerController::BeginPlay()
 	{
 		Subsystem->AddMappingContext(Input.MappingContext, /*Priority*/ 0);
 	}
+	// A binding changed in Settings, in the shell or during the match, applies at once (ADR-024 §6).
+	if (UVeyraSettingsSubsystem* Settings = IsLocalController() ? UVeyraSettingsSubsystem::Get(this) : nullptr)
+	{
+		SettingsHandle = Settings->GetStore().OnChanged.AddUObject(this, &AVeyraPlayerController::OnPlayerSettingChanged);
+	}
+}
+
+const UVeyraInputSettings& AVeyraPlayerController::GetKeys() const
+{
+	return PlayerKeys ? *PlayerKeys : *GetDefault<UVeyraInputSettings>();
+}
+
+void AVeyraPlayerController::OnPlayerSettingChanged(const FVeyraContentId& Id)
+{
+	const UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this);
+	if (Settings && Settings->GetStore().GetRegistry().Bindings.Contains(Id))
+	{
+		RefreshKeys();
+	}
+}
+
+void AVeyraPlayerController::RefreshKeys()
+{
+	// A fresh copy takes the developer's keys from the class defaults; the player's go over them.
+	PlayerKeys = NewObject<UVeyraInputSettings>(this, NAME_None, RF_Transient);
+	if (const UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
+	{
+		VeyraSettings::ApplyBindings(*PlayerKeys, Settings->GetStore());
+	}
+	if (!Input.MappingContext)
+	{
+		// The first time, Build maps the actions.
+		return;
+	}
+	UInputMappingContext* Previous = Input.MappingContext;
+	Input.MappingContext = VeyraInput::MapKeys(*PlayerKeys, Input, *this);
+	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = IsLocalController() ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()) : nullptr)
+	{
+		Subsystem->RemoveMappingContext(Previous);
+		Subsystem->AddMappingContext(Input.MappingContext, /*Priority*/ 0);
+	}
 }
 
 void AVeyraPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
+	{
+		Settings->GetStore().OnChanged.Remove(SettingsHandle);
+	}
+	SettingsHandle.Reset();
 	if (CameraRig)
 	{
 		CameraRig->Destroy();
@@ -115,7 +165,8 @@ void AVeyraPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	Input = VeyraInput::Build(*GetDefault<UVeyraInputSettings>(), *this);
+	RefreshKeys();
+	Input = VeyraInput::Build(GetKeys(), *this);
 	if (UEnhancedInputComponent* Enhanced = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Started, this, &AVeyraPlayerController::OnMoveOrderStarted);
@@ -238,7 +289,7 @@ void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 {
 	// With the rank-up modifier held, a kit slot's key spends a skill point on it instead.
 	if (!VeyraAbilitySlots::IsItemSlot(Slot) && !VeyraAbilitySlots::IsSpellSlot(Slot) && !VeyraAbilitySlots::IsVisionToolSlot(Slot)
-		&& IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
+		&& IsInputKeyDown(GetKeys().RankUpModifierKey))
 	{
 		RequestRankUp(Slot);
 		return;
@@ -427,14 +478,14 @@ bool AVeyraPlayerController::TickEndPan(double /*DeltaSeconds*/)
 
 bool AVeyraPlayerController::IsPinging() const
 {
-	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
+	const UVeyraInputSettings& Keys = GetKeys();
 	return IsInputKeyDown(Keys.PingKey) || IsInputKeyDown(Keys.DangerPingKey);
 }
 
 void AVeyraPlayerController::TickPings()
 {
 	VeyraPings::Forget(Pings, FPlatformTime::Seconds(), UVeyraMatchTuningSubsystem::Get().Pings);
-	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
+	const UVeyraInputSettings& Keys = GetKeys();
 	if (!IsPinging() || !WasInputKeyJustPressed(Keys.PingClickKey))
 	{
 		return;
@@ -761,10 +812,21 @@ void AVeyraPlayerController::OnVanguardSet(APlayerState* /*Participant*/, APawn*
 		SetViewTarget(NewPawn);
 		return;
 	}
-	// The camera goes to each new body, the first and each respawn, as League's does; between them it
-	// goes where the player takes it.
-	CameraRig->CenterOn(NewPawn->GetActorLocation());
+	// The camera goes to the first body, and to each respawn unless the player turned that off (SET-156);
+	// between them it goes where the player takes it, as far as the camera's mode allows.
+	const bool bRespawn = bHadVanguard;
+	bHadVanguard = true;
+	if (!bRespawn || CameraPreferences().bReturnOnRespawn)
+	{
+		CameraRig->CenterOn(NewPawn->GetActorLocation());
+	}
 	SetViewTarget(CameraRig);
+}
+
+FVeyraCameraPreferences AVeyraPlayerController::CameraPreferences() const
+{
+	const UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this);
+	return VeyraCameraPreferences::Resolve(*GetDefault<UVeyraCameraSettings>(), Settings ? &Settings->GetStore() : nullptr);
 }
 
 void AVeyraPlayerController::PlayerTick(float DeltaTime)
@@ -782,8 +844,8 @@ void AVeyraPlayerController::PlayerTick(float DeltaTime)
 
 void AVeyraPlayerController::TickCamera(float DeltaTime)
 {
-	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
-	const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
+	const UVeyraInputSettings& Keys = GetKeys();
+	const FVeyraCameraPreferences View = CameraPreferences();
 	if (TickEndPan(DeltaTime))
 	{
 		return;
@@ -791,6 +853,11 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 	if (WasInputKeyJustPressed(Keys.CameraModeKey))
 	{
 		CameraRig->SetMode(VeyraCamera::Next(CameraRig->GetMode()));
+		// Kept for the next match, as League keeps its camera lock.
+		if (UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
+		{
+			Settings->GetStore().Set(VeyraCameraPreferences::DefaultMode(), VeyraCameraPreferences::ModeName(CameraRig->GetMode()), /*bInLiveMatch*/ true);
+		}
 	}
 	FVeyraCameraInput CameraInput;
 	CameraInput.Pan.X = (IsInputKeyDown(Keys.CameraRightKey) ? 1.0 : 0.0) - (IsInputKeyDown(Keys.CameraLeftKey) ? 1.0 : 0.0);
@@ -805,6 +872,7 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 		Viewport->GetViewportSize(Size);
 		CameraInput.EdgePan = VeyraCamera::EdgePan(Mouse, Size, View.EdgeScrollPixels);
 	}
+	CameraInput.EdgePan = VeyraCamera::DelayEdgePan(CameraInput.EdgePan, DeltaTime, View.EdgeDelaySeconds, EdgeHeldSeconds);
 	// Dragging moves the ground with the cursor, so the view moves against it.
 	if (bHasMouse && IsInputKeyDown(Keys.CameraDragKey))
 	{
@@ -833,7 +901,14 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 	{
 		CameraInput.Vanguard = Vanguard->GetActorLocation();
 	}
-	CameraRig->Step(CameraInput, DeltaTime);
+	else if (!View.bFreeWhileDead && CameraRig->GetMode() != EVeyraCameraMode::Free)
+	{
+		// Waiting to respawn, a Locked or Semi-Locked camera keeps its mode's ordinary control (SET-157).
+		CameraInput.Pan = FVector2D::ZeroVector;
+		CameraInput.EdgePan = FVector2D::ZeroVector;
+		CameraInput.Drag = FVector2D::ZeroVector;
+	}
+	CameraRig->Step(CameraInput, DeltaTime, &View);
 }
 
 void AVeyraPlayerController::ServerIssueMoveOrder_Implementation(FVector Destination)

@@ -22,12 +22,14 @@
 #include "Components/WrapBox.h"
 #include "Engine/Texture2D.h"
 #include "Misc/ScopeExit.h"
+#include "Settings/VeyraSettingsScreen.h"
 #include "Shell/VeyraMatchHistoryModel.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
+#include "VeyraSettingsSubsystem.h"
 
 #define LOCTEXT_NAMESPACE "VeyraShell"
 
@@ -134,6 +136,9 @@ bool UVeyraShellScreen::Initialize()
 		// Empty, it lets clicks through to the content under it.
 		Popup->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
 		Fill(Popup);
+		SettingsLayer = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass());
+		SettingsLayer->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+		Fill(SettingsLayer);
 		WidgetTree->RootWidget = Root;
 		// The shell's input mode gives the screen keyboard focus.
 		SetIsFocusable(true);
@@ -219,6 +224,13 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 	Countdown = nullptr;
 	QueueStatus = nullptr;
 	Shown = VeyraShellModels::ScreenFor(Snapshot.State);
+	// Settings belong to the shell, the lobby and the results, never to champion select, Match Found or
+	// Reconnect-only (ADR-024 §4); the choice between this device's settings and the account's comes first.
+	const bool bSettingsHere = Shown == EVeyraShellScreen::Shell || Shown == EVeyraShellScreen::Lobby || Shown == EVeyraShellScreen::Results;
+	if (!bSettingsHere || Snapshot.bSettingsConflict)
+	{
+		CloseSettings();
+	}
 	if (Shown != EVeyraShellScreen::ChampionSelect)
 	{
 		// The picker and the abilities belong to one select.
@@ -276,6 +288,7 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		break;
 	}
 	BuildProblem(Snapshot);
+	BuildSettingsConflict(Snapshot);
 }
 
 void UVeyraShellScreen::ShowShowcase(const FString& VanguardId)
@@ -403,6 +416,7 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 	AddStretch(*WidgetTree, *Bar);
 	UTextBlock* Player = AddText(*Bar, FText::Format(LOCTEXT("SignedInAs", "Signed in as {0}"), FText::FromString(Snapshot.DisplayName)), RoleOf(EVeyraShellText::Muted));
 	Player->SetAutoWrapText(false);
+	AddSettingsButton(*Bar);
 	AddKindButton(*Bar, EVeyraShellButtonKind::Quiet, LOCTEXT("Quit", "Quit"), [this] { Client->Quit(); })->KeepLabelOnOneLine();
 	Parent.AddChild(Bar);
 	AddGap(*WidgetTree, Parent, Style.Spacing);
@@ -740,6 +754,7 @@ void UVeyraShellScreen::BuildResults(const FVeyraClientSnapshot& Snapshot)
 	}
 	VeyraShellStyle::AddSpaced(*Outcome, *Facts);
 	AddFilling(*Header, *Outcome);
+	AddSettingsButton(*Header);
 	UVeyraShellButton* Continue = UVeyraShellButton::MakeKind(*WidgetTree, EVeyraShellButtonKind::Primary, LOCTEXT("Continue", "Continue"),
 		[this] { Client->ContinueFromResults(); }, Client->CanIssue(EVeyraClientIntent::ContinueFromResults));
 	Buttons.Add(Continue);
@@ -900,6 +915,92 @@ void UVeyraShellScreen::BuildProblem(const FVeyraClientSnapshot& Snapshot)
 		AddButton(*Row, LOCTEXT("Retry", "Retry"), [this] { Client->Retry(); })->KeepLabelOnOneLine();
 	}
 	VeyraShellStyle::AddSpaced(*Content, *Banner);
+}
+
+void UVeyraShellScreen::BuildSettingsConflict(const FVeyraClientSnapshot& Snapshot)
+{
+	if (!Snapshot.bSettingsConflict)
+	{
+		return;
+	}
+	const UVeyraShellStyleSettings& Style = ShellStyle();
+	// Over everything, a picker included: neither copy is overwritten until the player says which (Settings & Accessibility §7).
+	UBorder* Scrim = VeyraShellStyle::MakeBorder(*WidgetTree, Style.MenuScrimColor, 0.0f);
+	Scrim->SetHorizontalAlignment(HAlign_Center);
+	Scrim->SetVerticalAlignment(VAlign_Center);
+	UOverlaySlot* ScrimSlot = Popup->AddChildToOverlay(Scrim);
+	ScrimSlot->SetHorizontalAlignment(HAlign_Fill);
+	ScrimSlot->SetVerticalAlignment(VAlign_Fill);
+	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.Spacing * 2.0f));
+	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Panel->SetContent(Rows);
+	USizeBox* PanelBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	PanelBox->SetWidthOverride(Style.DialogWidth);
+	PanelBox->AddChild(Panel);
+	Scrim->SetContent(PanelBox);
+
+	AddText(*Rows, LOCTEXT("SettingsConflictTitle", "Your settings changed on another device"), RoleOf(EVeyraShellText::Heading));
+	AddText(*Rows,
+		LOCTEXT("SettingsConflictDetail", "Your account's settings were saved from another device after this one changed them too. Which settings do you want to keep?"),
+		RoleOf(EVeyraShellText::Body));
+	UHorizontalBox* Choices = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	AddKindButton(*Choices, EVeyraShellButtonKind::Primary, SettingsChoiceLabel(/*bThisDevice*/ true), [this] { Client->ResolveSettingsConflict(true); })
+		->KeepLabelOnOneLine();
+	AddButton(*Choices, SettingsChoiceLabel(/*bThisDevice*/ false), [this] { Client->ResolveSettingsConflict(false); })->KeepLabelOnOneLine();
+	Rows->AddChildToVerticalBox(Choices);
+}
+
+FText UVeyraShellScreen::SettingsChoiceLabel(bool bThisDevice)
+{
+	return bThisDevice ? LOCTEXT("KeepThisDevice", "This device") : LOCTEXT("KeepYourAccount", "Your account");
+}
+
+UVeyraSettingsSubsystem* UVeyraShellScreen::FindSettings() const
+{
+	if (UVeyraSettingsSubsystem* Settings = TestSettings.Get())
+	{
+		return Settings;
+	}
+	return UVeyraSettingsSubsystem::Get(this);
+}
+
+void UVeyraShellScreen::SetSettingsForTests(UVeyraSettingsSubsystem* Settings)
+{
+	TestSettings = Settings;
+}
+
+void UVeyraShellScreen::AddSettingsButton(UPanelWidget& Parent)
+{
+	AddKindButton(Parent, EVeyraShellButtonKind::Quiet, SettingsLabel(), [this] { OpenSettings(); }, FindSettings() != nullptr)->KeepLabelOnOneLine();
+}
+
+FText UVeyraShellScreen::SettingsLabel()
+{
+	return LOCTEXT("Settings", "Settings");
+}
+
+void UVeyraShellScreen::OpenSettings()
+{
+	UVeyraSettingsSubsystem* Settings = FindSettings();
+	const bool bSettingsHere = Shown == EVeyraShellScreen::Shell || Shown == EVeyraShellScreen::Lobby || Shown == EVeyraShellScreen::Results;
+	if (SettingsScreen || !Settings || !SettingsLayer || !bSettingsHere)
+	{
+		return;
+	}
+	SettingsScreen = WidgetTree->ConstructWidget<UVeyraSettingsScreen>(UVeyraSettingsScreen::StaticClass());
+	UOverlaySlot* Layered = SettingsLayer->AddChildToOverlay(SettingsScreen);
+	Layered->SetHorizontalAlignment(HAlign_Fill);
+	Layered->SetVerticalAlignment(VAlign_Fill);
+	SettingsScreen->Show(*Settings, /*bInLiveMatch*/ false, [this] { CloseSettings(); });
+}
+
+void UVeyraShellScreen::CloseSettings()
+{
+	if (SettingsLayer)
+	{
+		SettingsLayer->ClearChildren();
+	}
+	SettingsScreen = nullptr;
 }
 
 UTextBlock* UVeyraShellScreen::AddText(UPanelWidget& Parent, const FText& Text, uint8 Role)

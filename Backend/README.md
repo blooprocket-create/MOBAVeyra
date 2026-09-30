@@ -119,6 +119,17 @@ Rules the code enforces:
 - Launching needs the host and at least one human, each finished with the tutorial and in no match, select or queue. The select is blind: the humans pick what they own or the rotation offers, each Vanguard once per side, the bots' included, while the same Vanguard may play on both sides. Leaving it, or its timer lapsing unfilled, returns everyone to the lobby; its match starting closes the lobby. The match is `custom`: the host may end it (`host_ended`), and it can be won (`prime_well_destroyed`, `surrender`) only with victory on.
 - Errors: `not_host`, `lobby_full`, `lobby_locked`, `seat_taken`, `no_such_seat`, `not_a_bot`, `vanguard_taken`, `invalid_vanguard`, `invalid_difficulty`, `starting_gold_out_of_range`, `victory_needs_both_sides`, `already_in_lobby`, `member_busy`, `not_friends`, `blocked`, `invite_not_found`, `no_human`, `tutorial_required`.
 
+### Account settings
+
+The player's account-level settings, one opaque document per account ([ADR-024](../Docs/ADR/ADR-024-player-settings.md) §1; Settings & Accessibility §7). Device settings never come here. Both routes need `Authorization: Bearer <game session token>`.
+
+| Endpoint | Body | What it does |
+|---|---|---|
+| `GET /v1/account/settings` | — | `{"schemaVersion": 1, "revision", "values"}`: revision `0` and no values before the first save |
+| `PUT /v1/account/settings` | `{"schemaVersion": 1, "revision", "values"}` | saves `values` over the revision the client based them on, answering the new document |
+
+`values` maps setting IDs (content IDs) to text; the backend never interprets them. A save whose revision is not the stored one answers `409 {"error": "settings_conflict", "current": <document>}`, so the client can ask the player which to keep. Other errors: `bad_settings` (another `schemaVersion`, or a key that is not a content ID) and `settings_too_large` (over `settings.maxDocumentBytes`).
+
 ### Matchmaking and Match Found
 
 The matchmaker forms matches from queued parties every `matchmaking.interval`; every player must then accept before champion select opens ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §10; Parties & Social Bible §2–3, §6).

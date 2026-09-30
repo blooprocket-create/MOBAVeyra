@@ -83,6 +83,12 @@ namespace VeyraCamera
 	 */
 	VEYRAMATCH_API FVector2D EdgePan(const FVector2D& Mouse, const FVector2D& Viewport, double EdgePixels);
 
+	/**
+	 * The edges' pan once the cursor has rested in the edge zone for Delay seconds, zero before (SET-87):
+	 * HeldSeconds carries the rest between frames, and leaving the zone cancels it.
+	 */
+	VEYRAMATCH_API FVector2D DelayEdgePan(const FVector2D& EdgePan, double DeltaSeconds, double Delay, double& HeldSeconds);
+
 	/** A screen-space pan or drag as world units along the ground: the screen's top is +X, its right +Y. */
 	VEYRAMATCH_API FVector ScreenToGround(const FVector2D& Screen);
 

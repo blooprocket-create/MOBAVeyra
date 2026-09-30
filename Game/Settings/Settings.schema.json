@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Veyra player settings registry",
+  "description": "Every player setting the Settings screen offers (Settings & Accessibility Bible; ADR-024 §2): its category and store, when it may change, and its kind, bounds and default. Presentation data, never gameplay truth: the server does not read it and it is outside the tuning hash.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "toggles", "ranges", "choices", "bindings", "layout"],
+  "definitions": {
+    "provenance": {
+      "description": "Where the default and bounds come from (ADR-008 §7): Canon when the bible states them, Provisional for League's answers (ADR-024 §9).",
+      "type": "string",
+      "enum": ["Provisional", "Canon", "Reviewed"]
+    },
+    "category": {
+      "description": "The Settings screen's category (Settings Bible §13).",
+      "type": "string",
+      "enum": ["Controls", "Camera", "Interface", "Accessibility", "Audio", "GraphicsDisplay", "Communication", "LanguageAccount"]
+    },
+    "scope": {
+      "description": "Which store keeps it (Settings Bible §7): Device, local to this machine, or Account, synced to the player's account.",
+      "type": "string",
+      "enum": ["Device", "Account"]
+    },
+    "availability": {
+      "description": "Whether it may change in a live match (Settings Bible §6.2): Anywhere, or OutsideMatches.",
+      "type": "string",
+      "enum": ["Anywhere", "OutsideMatches"]
+    },
+    "applies": {
+      "description": "When a change takes effect (Settings Bible §6.3): AtOnce, or AfterRestart.",
+      "type": "string",
+      "enum": ["AtOnce", "AfterRestart"]
+    },
+    "binding": {
+      "description": "A key binding (Settings Bible §1.1): its default is the developer's key in the named property, so the default lives in one place.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "category", "scope", "availability", "applies", "property", "need", "sharing"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "category": { "$ref": "#/definitions/category" },
+        "scope": { "$ref": "#/definitions/scope" },
+        "availability": { "$ref": "#/definitions/availability" },
+        "applies": { "$ref": "#/definitions/applies" },
+        "property": { "description": "The FKey property of UVeyraInputSettings or UVeyraUIInputSettings whose key it replaces.", "type": "string", "pattern": "^[A-Za-z0-9]+$" },
+        "need": { "description": "Essential actions warn when left without a key (SET-133).", "type": "string", "enum": ["Essential", "Optional"] },
+        "sharing": { "description": "Exclusive keys ask before taking a key another binding has (SET-81); Shared ones, a click or a modifier used with another key, never do.", "type": "string", "enum": ["Exclusive", "Shared"] }
+      }
+    },
+    "settingId": {
+      "description": "A setting's ID, a content ID.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
+    },
+    "option": {
+      "description": "A choice's option, as the code that applies it spells it.",
+      "type": "string",
+      "pattern": "^[A-Za-z0-9]+$"
+    },
+    "toggle": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "category", "scope", "availability", "applies", "default"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "category": { "$ref": "#/definitions/category" },
+        "scope": { "$ref": "#/definitions/scope" },
+        "availability": { "$ref": "#/definitions/availability" },
+        "applies": { "$ref": "#/definitions/applies" },
+        "default": { "description": "On or Off.", "type": "string", "enum": ["Off", "On"] }
+      }
+    },
+    "range": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "category", "scope", "availability", "applies", "minimum", "maximum", "step", "default"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "category": { "$ref": "#/definitions/category" },
+        "scope": { "$ref": "#/definitions/scope" },
+        "availability": { "$ref": "#/definitions/availability" },
+        "applies": { "$ref": "#/definitions/applies" },
+        "minimum": { "description": "The lowest value the slider offers.", "type": "number", "minimum": 0 },
+        "maximum": { "description": "The highest value the slider offers; above the minimum.", "type": "number", "minimum": 0 },
+        "step": { "description": "The slider's step; the default lies on a step from the minimum.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "default": { "description": "Within the bounds, on a step.", "type": "number", "minimum": 0 }
+      }
+    },
+    "choice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "category", "scope", "availability", "applies", "options", "default"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "category": { "$ref": "#/definitions/category" },
+        "scope": { "$ref": "#/definitions/scope" },
+        "availability": { "$ref": "#/definitions/availability" },
+        "applies": { "$ref": "#/definitions/applies" },
+        "options": { "description": "Each option, once, in the order the screen offers them.", "type": "array", "minItems": 2, "items": { "$ref": "#/definitions/option" } },
+        "default": { "description": "One of the options.", "$ref": "#/definitions/option" }
+      }
+    }
+  },
+  "properties": {
+    "schemaVersion": {
+      "description": "Version of this file's format. A build reads exactly one version.",
+      "type": "integer",
+      "minimum": 1,
+      "enum": [3]
+    },
+    "toggles": {
+      "description": "Settings that are On or Off, by setting ID.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/toggle" } }
+    },
+    "ranges": {
+      "description": "Settings on a slider, by setting ID.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/range" } }
+    },
+    "choices": {
+      "description": "Settings that take one of several options, by setting ID.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/choice" } }
+    },
+    "bindings": {
+      "description": "Key bindings, by setting ID.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/binding" } }
+    },
+    "layout": {
+      "description": "The Settings screen's categories in the order it shows them, each with its settings in order (Settings Bible §13). Only categories with settings appear (ADR-024 §5): every setting is listed once, in its own category's section.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["category", "settings"],
+        "properties": {
+          "category": { "$ref": "#/definitions/category" },
+          "settings": { "type": "array", "minItems": 1, "items": { "$ref": "#/definitions/settingId" } }
+        }
+      }
+    }
+  }
+}

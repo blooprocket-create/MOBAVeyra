@@ -81,6 +81,7 @@ type Config struct {
 	FluxSpells            FluxSpells
 	CustomPractice        CustomPractice
 	CustomLobby           CustomLobby
+	Settings              Settings
 	Matchmaking           Matchmaking
 	MatchFound            MatchFound
 	CasualSelect          CasualSelect
@@ -145,6 +146,13 @@ type CustomLobby struct {
 	// StartingGold bounds the starting Gold a host may set. A lobby that sets
 	// none plays with the game's own (Economy.json gold.starting).
 	StartingGold GoldRange
+}
+
+// Settings configures the account settings documents (ADR-024 §1).
+type Settings struct {
+	// MaxDocumentBytes is the most JSON one account's settings may take. It
+	// stays under RequestBodyLimitBytes, so a document that fits can be sent.
+	MaxDocumentBytes int
 }
 
 // GoldRange is an inclusive range of Gold.
@@ -369,6 +377,9 @@ type fileConfig struct {
 			Difficulty *string `json:"difficulty"`
 		} `json:"bots"`
 	} `json:"customPractice"`
+	Settings *struct {
+		MaxDocumentBytes *int `json:"maxDocumentBytes"`
+	} `json:"settings"`
 	CustomLobby *struct {
 		Enabled        *bool     `json:"enabled"`
 		Mode           *string   `json:"mode"`
@@ -747,6 +758,17 @@ func Parse(raw []byte) (Config, error) {
 				}
 			}
 		}
+	}
+
+	switch {
+	case f.Settings == nil || f.Settings.MaxDocumentBytes == nil:
+		missing("settings.maxDocumentBytes")
+	case *f.Settings.MaxDocumentBytes <= 0:
+		problems = append(problems, "settings.maxDocumentBytes must be above 0")
+	case c.RequestBodyLimitBytes > 0 && int64(*f.Settings.MaxDocumentBytes) >= c.RequestBodyLimitBytes:
+		problems = append(problems, "settings.maxDocumentBytes must stay under requestBodyLimitBytes, so a document that fits can be sent")
+	default:
+		c.Settings.MaxDocumentBytes = *f.Settings.MaxDocumentBytes
 	}
 
 	if f.CustomLobby == nil {

@@ -90,6 +90,11 @@
     Veyra.Dev.Siege until the other side's Prime Well falls. The backend must record a custom match
     won by the first client's side, and its scoreboard the starting Gold the host chose.
 
+    -Flow Settings starts one packaged client twice (ADR-024 §8). The first time it opens Settings from
+    the shell's top bar, chooses Windowed for the match's Display Mode (kept on this machine) and T for
+    the first ability (kept with the account), and waits for the backend to take the binding. The
+    second time it must find both, then puts them back. No match is created.
+
     -Map Battleground plays a direct or -Handoff match on the battleground instead of the one-lane grey
     box (ADR-011 §12). The -Flow paths always play on the battleground, as every player-made match does.
 
@@ -146,7 +151,8 @@
 .PARAMETER Flow
     Plays a path through the client-state coordinator: Practice, the solo path; Casual, a matchmade
     1v1; CasualVictory, a matchmade 1v1 won by siege; CasualDecline, a declined match found; Custom, a
-    custom lobby with friends and bots won by siege. Packaged clients and container only.
+    custom lobby with friends and bots won by siege; Settings, the Settings screen's changes kept across
+    a restart. Packaged clients and container only.
 .PARAMETER Launcher
     With -Flow: who plays the launcher's part. Script: this script. Cli: veyra-launch-cli, the launcher's
     headless twin (Launcher/), built in release, with Launcher/config/local.json.
@@ -214,7 +220,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom')]
+    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Settings')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -462,11 +468,13 @@ if ($Handoff -or $Flow) {
     # -Flow Custom: a custom lobby the first client hosts and the second joins (ADR-021), won by siege.
     $isCustom = $Flow -eq 'Custom'
     $isVictory = $Flow -in 'CasualVictory', 'Custom'
+    # -Flow Settings: one player, two starts, no match.
+    $isSettings = $Flow -eq 'Settings'
     # Its bots, one on each side: side A's, then side B's. Neither is a Vanguard a player locks.
     $CustomBots = @('bryn', 'qazharr')
     # Every run but a declined match found plays a match.
-    $expectsMatch = $Flow -ne 'CasualDecline'
-    $playerCount = $(if ($isPractice) { 1 } else { 2 })
+    $expectsMatch = $Flow -notin 'CasualDecline', 'Settings'
+    $playerCount = $(if ($isPractice -or $isSettings) { 1 } else { 2 })
     $mode = $(if ($isPractice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
     if ($isMatchmade) {
         # Two players make one match only with the local 1v1 team size (ADR-010, provisional).
@@ -538,6 +546,9 @@ if ($Handoff -or $Flow) {
         # and its champion select create the match.
         Write-Host "Seating $($participants.Name -join ' and ') in a custom lobby for $mode."
     }
+    elseif ($isSettings) {
+        Write-Host "Starting $($participants[0].Name)'s client twice: to change settings, then to find them kept."
+    }
     elseif ($Flow) {
         # The matchmade flows keep the accounts' onboarding; a new player chooses a starter on the way.
         # Matchmaking and the clients' champion select create any match.
@@ -582,94 +593,113 @@ if ($Handoff -or $Flow) {
         # Reconnect, which -VeyraSmokeFlow=join presses; -VeyraSmokeFlow=practice plays the whole flow.
         # None uses -log, which on Windows can replace the standard handles. Not $clients: PowerShell
         # names ignore case, and that is the -Clients parameter.
-        $handoffClients = foreach ($index in 0..($playerCount - 1)) {
-            $log = Join-Path $reportDir "Client$($index + 1).log"
-            # The script quotes paths for a command line of its own; the launcher CLI passes each
-            # argument as it is.
-            $quote = $(if ($Launcher -eq 'Cli') { '' } else { '"' })
-            # With -Flow -Screenshot the first client renders in a window and saves each screen it passes.
-            $clientArguments = @('-nosound', '-nosplash', '-unattended', "-ABSLOG=$quote$log$quote", "-VeyraMatchDisplay=$MatchDisplay")
-            $clientArguments += $(if ($Flow -and $Screenshot -and $index -eq 0) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=$quote$reportDir$quote" } else { @('-nullrhi') })
-            $clientArguments += $(if ($Flow -eq 'Practice') { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard", '-VeyraSmokeFlowSieges') }
-                elseif ($Flow -eq 'Casual') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch') } else { @() }) }
-                elseif ($Flow -eq 'CasualReconnect') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch', '-VeyraSmokeFlowAwaitsReturn') } else { @('-VeyraSmokeFlowReconnects') }) }
-                elseif ($isCustom) {
-                    $friend = $participants[1 - $index].Name
-                    @($(if ($index -eq 0) { '-VeyraSmokeFlow=customhost' } else { '-VeyraSmokeFlow=customguest' }), "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)",
-                        "-VeyraSmokeFlowFriend=$friend", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges', "-VeyraSmokeFlowBots=$($CustomBots -join ',')") } else { @() }) }
-                elseif ($isVictory) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
-                elseif ($Flow -eq 'CasualDecline') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=requeue' } else { '-VeyraSmokeFlow=decline' })) }
-                elseif ($isPractice) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeEndCustomMatch') }
-                elseif ($index -eq 0) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokePause', '-VeyraSmokeEndMatch') }
-                else { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeWaitForEnd') })
-            if ($Launcher -eq 'Cli') {
-                # The launcher's headless twin does the launcher's part (ADR-010 §5): it signs in, starts
-                # the game its configuration names (the package's VeyraBuild.json) with the launch-code
-                # switch, hands it a code and exits once it signed in. The game runs on.
-                $launcherLog = Join-Path $reportDir "Launcher$($index + 1).log"
-                $said = @(& $launchCli '--config' $launcherConfig '--account' $participants[$index].Name '--' @clientArguments 2>&1 | ForEach-Object { "$_" })
-                $said | Set-Content -LiteralPath $launcherLog -Encoding utf8NoBOM
-                $signedIn = $said | Select-String -Pattern '^veyra-launch signed-in pid (\d+)$' | Select-Object -First 1
-                $process = $null
-                if ($LASTEXITCODE -eq 0 -and $signedIn) {
-                    $process = Get-Process -Id ([int]$signedIn.Matches[0].Groups[1].Value) -ErrorAction SilentlyContinue
+        # -Flow Settings starts the client twice, signed in afresh the second time: once to change
+        # settings, once to find them kept. Every other run starts its clients once.
+        $runs = $(if ($isSettings) { @('settingschange', 'settingscheck') } else { @('') })
+        $allClients = @()
+        foreach ($run in $runs) {
+            if ($run -eq 'settingscheck') {
+                foreach ($participant in $participants) {
+                    $login = Invoke-Backend -Method Post -Path '/v1/dev/login' -Body @{ accountName = $participant.Name }
+                    if ($login.Status -ne 200) {
+                        Write-Host "Dev login as $($participant.Name) failed: HTTP $($login.Status) ($(Get-ErrorCode $login))."
+                        $failed = $true
+                    }
+                    $participant.LauncherSession = $login.Body.token
                 }
-                if (-not $process) {
-                    $said | Select-String -Pattern '^veyra-launch: ' | Select-Object -Last 1 | ForEach-Object { Write-Host "Launcher CLI, client $($index + 1): $($_.Line)" }
-                }
-                [pscustomobject]@{ Number = $index + 1; Participant = $participants[$index]; Log = $log; Process = $process
-                    Handshake = [pscustomobject]@{ State = $(if ($process) { 'SignedIn' } else { 'Failed' }); Failure = 'the launcher CLI did not launch it' } }
-                continue
             }
-            $handshake = Start-VeyraHandshakeClient -Executable $clientExecutable -Arguments (@('-VeyraLaunchCode=stdin') + $clientArguments)
-            [pscustomobject]@{ Number = $index + 1; Participant = $participants[$index]; Log = $log; Process = $handshake.Process; Handshake = $handshake }
-        }
+            $handoffClients = foreach ($index in 0..($playerCount - 1)) {
+                $log = Join-Path $reportDir "Client$($index + 1)$(if ($run -eq 'settingscheck') { '-Restart' }).log"
+                # The script quotes paths for a command line of its own; the launcher CLI passes each
+                # argument as it is.
+                $quote = $(if ($Launcher -eq 'Cli') { '' } else { '"' })
+                # With -Flow -Screenshot the first client renders in a window and saves each screen it passes.
+                $clientArguments = @('-nosound', '-nosplash', '-unattended', "-ABSLOG=$quote$log$quote", "-VeyraMatchDisplay=$MatchDisplay")
+                $clientArguments += $(if ($Flow -and $Screenshot -and $index -eq 0) { $ScreenshotWindow + "-VeyraSmokeFlowScreenshots=$quote$reportDir$quote" } else { @('-nullrhi') })
+                $clientArguments += $(if ($Flow -eq 'Practice') { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard", '-VeyraSmokeFlowSieges') }
+                    elseif ($isSettings) { @("-VeyraSmokeFlow=$run") }
+                    elseif ($Flow -eq 'Casual') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch') } else { @() }) }
+                    elseif ($Flow -eq 'CasualReconnect') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch', '-VeyraSmokeFlowAwaitsReturn') } else { @('-VeyraSmokeFlowReconnects') }) }
+                    elseif ($isCustom) {
+                        $friend = $participants[1 - $index].Name
+                        @($(if ($index -eq 0) { '-VeyraSmokeFlow=customhost' } else { '-VeyraSmokeFlow=customguest' }), "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)",
+                            "-VeyraSmokeFlowFriend=$friend", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges', "-VeyraSmokeFlowBots=$($CustomBots -join ',')") } else { @() }) }
+                    elseif ($isVictory) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
+                    elseif ($Flow -eq 'CasualDecline') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=requeue' } else { '-VeyraSmokeFlow=decline' })) }
+                    elseif ($isPractice) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeEndCustomMatch') }
+                    elseif ($index -eq 0) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokePause', '-VeyraSmokeEndMatch') }
+                    else { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeWaitForEnd') })
+                if ($Launcher -eq 'Cli') {
+                    # The launcher's headless twin does the launcher's part (ADR-010 §5): it signs in, starts
+                    # the game its configuration names (the package's VeyraBuild.json) with the launch-code
+                    # switch, hands it a code and exits once it signed in. The game runs on.
+                    $launcherLog = Join-Path $reportDir "Launcher$($index + 1).log"
+                    $said = @(& $launchCli '--config' $launcherConfig '--account' $participants[$index].Name '--' @clientArguments 2>&1 | ForEach-Object { "$_" })
+                    $said | Set-Content -LiteralPath $launcherLog -Encoding utf8NoBOM
+                    $signedIn = $said | Select-String -Pattern '^veyra-launch signed-in pid (\d+)$' | Select-Object -First 1
+                    $process = $null
+                    if ($LASTEXITCODE -eq 0 -and $signedIn) {
+                        $process = Get-Process -Id ([int]$signedIn.Matches[0].Groups[1].Value) -ErrorAction SilentlyContinue
+                    }
+                    if (-not $process) {
+                        $said | Select-String -Pattern '^veyra-launch: ' | Select-Object -Last 1 | ForEach-Object { Write-Host "Launcher CLI, client $($index + 1): $($_.Line)" }
+                    }
+                    [pscustomobject]@{ Number = $index + 1; Participant = $participants[$index]; Log = $log; Process = $process
+                        Handshake = [pscustomobject]@{ State = $(if ($process) { 'SignedIn' } else { 'Failed' }); Failure = 'the launcher CLI did not launch it' } }
+                    continue
+                }
+                $handshake = Start-VeyraHandshakeClient -Executable $clientExecutable -Arguments (@('-VeyraLaunchCode=stdin') + $clientArguments)
+                [pscustomobject]@{ Number = $index + 1; Participant = $participants[$index]; Log = $log; Process = $handshake.Process; Handshake = $handshake }
+            }
 
-        # The launch handshake (ADR-010 §5): a launch code lives only seconds, so each is issued when its
-        # client says it is ready to read one, and the client then says whether it signed in.
-        $deadline = (Get-Date).AddSeconds($LaunchCodeWaitSeconds)
-        do {
-            if ($Launcher -eq 'Cli') { break }
-            $unsettled = 0
+            # The launch handshake (ADR-010 §5): a launch code lives only seconds, so each is issued when its
+            # client says it is ready to read one, and the client then says whether it signed in.
+            $deadline = (Get-Date).AddSeconds($LaunchCodeWaitSeconds)
+            do {
+                if ($Launcher -eq 'Cli') { break }
+                $unsettled = 0
+                foreach ($client in $handoffClients) {
+                    # The block runs here, in this script's scope, while $client is this client.
+                    $state = Step-VeyraHandshake -Client $client.Handshake -IssueCode {
+                        $issued = Invoke-Backend -Method Post -Path '/v1/launch-codes' -Body @{ buildVersion = $buildVersion } -Credential $client.Participant.LauncherSession
+                        if ($issued.Status -ne 200) { throw "HTTP $($issued.Status) ($(Get-ErrorCode $issued))" }
+                        $issued.Body.token
+                    }
+                    if ($state -in 'Starting', 'AwaitingSignIn') { $unsettled++ }
+                }
+                if ($unsettled -gt 0) { Start-Sleep -Milliseconds 100 }
+            } while ($unsettled -gt 0 -and (Get-Date) -lt $deadline)
             foreach ($client in $handoffClients) {
-                # The block runs here, in this script's scope, while $client is this client.
-                $state = Step-VeyraHandshake -Client $client.Handshake -IssueCode {
-                    $issued = Invoke-Backend -Method Post -Path '/v1/launch-codes' -Body @{ buildVersion = $buildVersion } -Credential $client.Participant.LauncherSession
-                    if ($issued.Status -ne 200) { throw "HTTP $($issued.Status) ($(Get-ErrorCode $issued))" }
-                    $issued.Body.token
+                switch ($client.Handshake.State) {
+                    'SignedIn' { }
+                    'Failed' { Write-Host "Client $($client.Number) did not sign in: $($client.Handshake.Failure)."; $failed = $true }
+                    default { Write-Host "Client $($client.Number) did not finish the launch handshake within $LaunchCodeWaitSeconds s ($($client.Handshake.State))."; $failed = $true }
                 }
-                if ($state -in 'Starting', 'AwaitingSignIn') { $unsettled++ }
             }
-            if ($unsettled -gt 0) { Start-Sleep -Milliseconds 100 }
-        } while ($unsettled -gt 0 -and (Get-Date) -lt $deadline)
-        foreach ($client in $handoffClients) {
-            switch ($client.Handshake.State) {
-                'SignedIn' { }
-                'Failed' { Write-Host "Client $($client.Number) did not sign in: $($client.Handshake.Failure)."; $failed = $true }
-                default { Write-Host "Client $($client.Number) did not finish the launch handshake within $LaunchCodeWaitSeconds s ($($client.Handshake.State))."; $failed = $true }
-            }
-        }
-        $participants | ForEach-Object { $_.LauncherSession = $null }
+            $participants | ForEach-Object { $_.LauncherSession = $null }
 
-        # -Flow: the match exists once the client's select starts it; its server's log is followed
-        # from then.
-        $clientDeadline = (Get-Date).AddMinutes($TimeoutMinutes)
-        while ($Flow -and $expectsMatch -and -not $matchId -and $handoffClients[0].Process -and -not $handoffClients[0].Process.HasExited -and (Get-Date) -lt $clientDeadline) {
-            Start-Sleep -Milliseconds $MatchIdWaitPollMilliseconds
-            $joining = if (Test-Path -LiteralPath $handoffClients[0].Log) { Select-String -LiteralPath $handoffClients[0].Log -Pattern $JoiningLinePattern | Select-Object -First 1 } else { $null }
-            if ($joining) {
-                $matchId = $joining.Matches[0].Groups[1].Value
-                $container = $backendConfig.allocator.docker.containerNamePrefix + $matchId
-                Write-Host "Match ${matchId}, created by the client's champion select: server container $container."
-                $serverLogProcess = Start-ServerLog
+            # -Flow: the match exists once the client's select starts it; its server's log is followed
+            # from then.
+            $clientDeadline = (Get-Date).AddMinutes($TimeoutMinutes)
+            while ($Flow -and $expectsMatch -and -not $matchId -and $handoffClients[0].Process -and -not $handoffClients[0].Process.HasExited -and (Get-Date) -lt $clientDeadline) {
+                Start-Sleep -Milliseconds $MatchIdWaitPollMilliseconds
+                $joining = if (Test-Path -LiteralPath $handoffClients[0].Log) { Select-String -LiteralPath $handoffClients[0].Log -Pattern $JoiningLinePattern | Select-Object -First 1 } else { $null }
+                if ($joining) {
+                    $matchId = $joining.Matches[0].Groups[1].Value
+                    $container = $backendConfig.allocator.docker.containerNamePrefix + $matchId
+                    Write-Host "Match ${matchId}, created by the client's champion select: server container $container."
+                    $serverLogProcess = Start-ServerLog
+                }
             }
-        }
-        foreach ($client in @($handoffClients | Where-Object Process)) {
-            if (-not $client.Process.WaitForExit([int][Math]::Max(0, ($clientDeadline - (Get-Date)).TotalMilliseconds))) {
-                $client.Process.Kill($true)
-                $failed = $true
+            foreach ($client in @($handoffClients | Where-Object Process)) {
+                if (-not $client.Process.WaitForExit([int][Math]::Max(0, ($clientDeadline - (Get-Date)).TotalMilliseconds))) {
+                    $client.Process.Kill($true)
+                    $failed = $true
+                }
             }
+            $allClients += $handoffClients
         }
+        $handoffClients = $allClients
         if ($expectsMatch -and -not $matchId) {
             Write-Host 'The client never joined a match.'
             $failed = $true
@@ -745,6 +775,7 @@ if ($Handoff -or $Flow) {
                 'CasualVictory' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'CasualDecline' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'Requeued' }
                 'Custom' { 'Home', 'Play', 'Lobby', 'LobbyReady', 'ChampionSelect', 'Results' }
+                'Settings' { 'SettingsHome', 'SettingsDisplay', 'SettingsControls' }
             }
             foreach ($screen in $screens) {
                 $shot = Join-Path $reportDir "Flow-$screen.png"

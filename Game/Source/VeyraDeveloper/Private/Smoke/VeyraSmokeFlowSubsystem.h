@@ -89,6 +89,10 @@ private:
 		Opponent,
 		CustomHost,
 		CustomGuest,
+		/** Settings (ADR-024 §8): changes the match's Display Mode and a binding in the Settings screen, and waits for the account to take them. */
+		SettingsChange,
+		/** The next start: finds both kept, the device's and the account's, and puts them back. */
+		SettingsCheck,
 	};
 
 	bool Tick(float DeltaSeconds);
@@ -153,6 +157,11 @@ private:
 	bool TickHistory(const IVeyraClientIntents& Flow);
 	void CheckResults(const FVeyraClientSnapshot& Snapshot);
 	bool IsMatchmade() const { return Script == EScript::Casual || Script == EScript::Decline || Script == EScript::Requeue; }
+
+	/** The settings scripts in the shell, one step a tick. */
+	void TickSettings();
+	bool IsSettings() const { return Script == EScript::SettingsChange || Script == EScript::SettingsCheck; }
+	int32 SettingsStep = 0;
 
 	/**
 	 * Clicks the shell's button labelled Label, the Occurrence-th where several share it. False, having

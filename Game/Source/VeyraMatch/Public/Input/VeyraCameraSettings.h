@@ -8,8 +8,9 @@
 #include "VeyraCameraSettings.generated.h"
 
 /**
- * The local camera (Settings Bible §2; ADR-020 §1). Presentation, stored in Config/DefaultGame.ini;
- * players' own camera settings arrive with the settings screen.
+ * The local camera (Settings Bible §2; ADR-020 §1). Presentation, stored in Config/DefaultGame.ini.
+ * These are the developer's defaults; the player's camera settings (ADR-024 §6) scale and replace them
+ * through VeyraCameraPreferences.
  */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Veyra Camera"))
 class VEYRAMATCH_API UVeyraCameraSettings : public UDeveloperSettings
@@ -47,6 +48,24 @@ public:
 	/** How far the view moves per pixel of middle-mouse drag, in units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Movement", meta = (ClampMin = "0"))
 	float DragUnitsPerPixel = 0.0f;
+
+	/**
+	 * What the player's speed sliders reach at their ends, as multiples of the speeds above: the
+	 * slider's minimum is Slowest, its default 1, its maximum Fastest (ADR-024 §9.1).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Player settings", meta = (ClampMin = "0.01", ClampMax = "1"))
+	float SpeedSettingSlowest = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Player settings", meta = (ClampMin = "1"))
+	float SpeedSettingFastest = 0.0f;
+
+	/** The Edge-Scroll Activation Zone's options in pixels from the edge (SET-86; ADR-024 §9.2), by option. */
+	UPROPERTY(Config, EditAnywhere, Category = "Player settings")
+	TMap<FString, float> EdgeZonePixels;
+
+	/** The Edge-Scroll Delay's options in seconds the cursor rests at the edge first (SET-87; ADR-024 §9.2), by option. */
+	UPROPERTY(Config, EditAnywhere, Category = "Player settings")
+	TMap<FString, float> EdgeDelaySeconds;
 
 	/** How far off the Vanguard a Semi-Locked camera may look, in units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Movement", meta = (ClampMin = "0"))

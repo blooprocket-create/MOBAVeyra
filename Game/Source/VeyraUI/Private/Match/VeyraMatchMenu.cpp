@@ -69,12 +69,18 @@ bool UVeyraMatchMenu::Initialize()
 	return bFirst;
 }
 
-void UVeyraMatchMenu::Show(AVeyraPlayerController& InController, TFunction<void()> InClose)
+void UVeyraMatchMenu::Show(AVeyraPlayerController& InController, TFunction<void()> InClose, TFunction<void()> InOpenSettings)
 {
 	Controller = &InController;
 	Close = MoveTemp(InClose);
+	OpenSettings = MoveTemp(InOpenSettings);
 	Confirming = EConfirming::Nothing;
 	Rebuild();
+}
+
+FText UVeyraMatchMenu::SettingsLabel()
+{
+	return LOCTEXT("Settings", "Settings");
 }
 
 void UVeyraMatchMenu::Rebuild()
@@ -164,6 +170,11 @@ void UVeyraMatchMenu::Rebuild()
 			Close();
 		}
 	});
+	// Settings open over the live match, which goes on (Settings Bible §6.2).
+	if (OpenSettings)
+	{
+		AddButton(SettingsLabel(), [this] { OpenSettings(); });
+	}
 	if (bVotes)
 	{
 		const auto Ask = [this](EVeyraVoteKind Kind) {

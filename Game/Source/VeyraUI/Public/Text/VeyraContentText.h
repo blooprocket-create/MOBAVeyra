@@ -7,13 +7,15 @@
 #include "Content/VeyraContentId.h"
 #include "Internationalization/Text.h"
 
+struct FVeyraSettingsRegistry;
+
 /**
  * What players read about Vanguards, their abilities and passives: names, titles and one-line
  * descriptions (ADR-010 §4). They live in a string table read from Game/Text/VeyraText.csv, so the
  * text is reviewable, localisable data and no screen shows a content ID. Its keys are
  * vanguard.<id>.name and .title, ability.<id>.name and .description, passive.<id>.name and
- * .description, and item.<id>.name and .description. Developer content without text shows its
- * content ID.
+ * .description, item.<id>.name and .description, and setting.<id>.name, .description, .terms and
+ * .option.<option>. Developer content without text shows its content ID.
  */
 namespace VeyraContentText
 {
@@ -48,4 +50,20 @@ namespace VeyraContentText
 	 * each whose Active, Attunement or use the shop must explain. Empty when the catalog has its text.
 	 */
 	VEYRAUI_API TArray<FString> FindMissingItemText();
+
+	/** A setting's name and its plain-language description (Settings Bible §6.3). */
+	VEYRAUI_API FText SettingName(const FVeyraContentId& Setting);
+	VEYRAUI_API FText SettingDescription(const FVeyraContentId& Setting);
+
+	/** Other words players may search for it by, comma-separated (SET-102); empty for none. */
+	VEYRAUI_API FText SettingTerms(const FVeyraContentId& Setting);
+
+	/** A choice's option as players read it; the option itself where the table has none. */
+	VEYRAUI_API FText SettingOption(const FVeyraContentId& Setting, const FString& Option);
+
+	/**
+	 * The keys Registry's settings need that the table lacks: each setting's name, description and
+	 * search words, and each choice's options. Empty when every setting has its text.
+	 */
+	VEYRAUI_API TArray<FString> FindMissingSettingText(const FVeyraSettingsRegistry& Registry);
 }

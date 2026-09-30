@@ -36,6 +36,8 @@ public class VeyraMatch : ModuleRules
 			"NavigationSystem",
 			"NetCore",
 			"VeyraCombat",
+			// The player's camera settings (ADR-024 §3); the camera reads them, never the server.
+			"VeyraSettings",
 			// The battleground's peers, which Match connects (ADR-011 §3).
 			"VeyraFlux",
 			"VeyraWorld",

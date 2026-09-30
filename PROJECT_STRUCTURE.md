@@ -16,6 +16,7 @@ A likely long-term shape is:
 ```text
 Source/
 ├── VeyraCore/
+├── VeyraSettings/
 ├── VeyraCombat/
 ├── VeyraAbilities/
 ├── VeyraEconomy/
@@ -46,6 +47,15 @@ Appropriate responsibilities:
 - shared serialization/version helpers where needed.
 
 Must not depend on higher gameplay modules.
+
+### VeyraSettings
+
+The player's settings ([ADR-024](Docs/ADR/ADR-024-player-settings.md)), in the Preferences layer directly above VeyraCore:
+- the registry of every setting the Settings screen offers (`Game/Settings/Settings.json`, outside the tuning hash);
+- `FVeyraSettingsStore` and the account document;
+- `UVeyraSettingsSubsystem`, which keeps device settings in `UVeyraUserSettings` (the engine's `GameUserSettings.ini`) and account settings in a per-account cache the services sync.
+
+Presentation only: it never decides a match. The systems that apply a setting read the store and listen to its change event; the developer defaults in `Default*.ini` stay the source of every default until a setting replaces one.
 
 ### VeyraCombat
 
@@ -261,6 +271,7 @@ The trusted-services client (ADR-007 §12): the only module that talks to the ba
 - the client-state coordinator (`Client/`, [ADR-010](Docs/ADR/ADR-010-play-flow.md) §2): `FVeyraClientFlow` is plain C++ that owns the game session, the client's state (signing in, starter choice, shell with the party and its queue, Match Found, champion select, match, results, Reconnect-only and the rest) and the player's intents, and reaches the backend and the engine only through injected interfaces. `UVeyraClientFlowSubsystem` hosts it in a client's GameInstance. The UI observes its snapshot and asks through `IVeyraClientIntents`; the coordinator and the backend decide;
 - the game's side of the session handoff: it reads the launch code from standard input once it has said it is ready (the launch handshake, `Contracts/LaunchHandshake.json`), and redeems it;
 - the front end (`FrontEnd/`, ADR-010 §3): `AVeyraShellGameMode`, the pawnless game mode of the generated `L_FrontEnd` map where the shell runs;
+- the account settings sync (`Settings/`, [ADR-024](Docs/ADR/ADR-024-player-settings.md) §1): `FVeyraAccountSettingsSync` reads the player's account settings on sign-in, sends their changes once they settle, and raises the choice between this device's and the account's when both changed. The coordinator owns it, and `VeyraSettings` keeps the values behind `IVeyraAccountSettingsCache`;
 - the match server's side: it reads the assignment from standard input, hands the roster to `VeyraMatch`, and reports ready and the result;
 - the backend's address, waits and polling, as validated settings.
 
@@ -280,6 +291,8 @@ Presentation only.
 UI observes/queries gameplay state and emits user intent. No gameplay module depends on UI.
 
 It arrived in M5 with grey-box presentation (`Greybox/`: engine shapes for bodies, projectiles and cast telegraphs) and a Canvas HUD (`Hud/`), both placeholders (ADR-008 §1). It is `ClientOnly`, so servers neither build nor load it, and the layer check enforces that.
+
+The Settings screen (`Settings/`, [ADR-024](Docs/ADR/ADR-024-player-settings.md) §4–§5) is `UVeyraSettingsScreen` over `VeyraSettingsModels`, which reads the registry's layout and the player's store. It opens from the shell's top bar and the results, over the shell, and from the in-match menu, over the live match (`UVeyraMatchMenuSubsystem`). It never opens in champion select, Match Found or Reconnect-only. `UVeyraDisplayApplier` applies the Graphics & Display settings to the engine as they change (frame caps in front and behind, VSync, render scale, quality groups under their preset, the client's window size), and holds a disruptive display change until the player keeps it (SET-92); its rules are `VeyraDisplayRules`, apart from the engine. `UVeyraMatchDisplaySubsystem` gives a match the screen in the player's Display Mode. `VeyraInterfacePreferences` puts the player's HUD, minimap, ping, readout, scoreboard and cursor settings over the Greybox developer settings, and the HUD and `UVeyraMatchMenuSubsystem` read it; `VeyraCameraPreferences` (VeyraMatch) does the same for the camera. Key bindings reach the controller as a copy of `UVeyraInputSettings` with the player's keys over the developer's (`AVeyraPlayerController::GetKeys`), remapped when one changes; the menu, shop and scoreboard keys do the same in `UVeyraMatchMenuSubsystem`.
 
 M6 added the menus, UMG widgets built entirely in C++ with no widget Blueprints (ADR-010 §4):
 
@@ -356,7 +369,7 @@ This is a guide, not a license for arbitrary sideways dependencies. Prefer contr
 
 ### Backend (outside Unreal)
 
-The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity, social, party, matchmaking with Match Found, the Vanguard catalog, accounts with onboarding and entitlements, champion select, and match allocation and results). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; only `VeyraServices` talks to it, over HTTP.
+The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity, social, party, matchmaking with Match Found, the Vanguard catalog, accounts with onboarding and entitlements, champion select, match allocation and results, and the account's settings document). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; only `VeyraServices` talks to it, over HTTP.
 
 ### Launcher (outside Unreal)
 

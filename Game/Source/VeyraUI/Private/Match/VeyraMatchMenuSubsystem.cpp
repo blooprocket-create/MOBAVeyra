@@ -12,11 +12,16 @@
 #include "InputMappingContext.h"
 #include "Match/VeyraMatchMenu.h"
 #include "Scoreboard/VeyraScoreboard.h"
+#include "Engine/GameViewportClient.h"
+#include "Greybox/VeyraGreyboxSettings.h"
+#include "Settings/VeyraInterfacePreferences.h"
+#include "Settings/VeyraSettingsScreen.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Shop/VeyraShopScreen.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
+#include "VeyraSettingsSubsystem.h"
 #include "VeyraUILog.h"
 
 bool UVeyraMatchMenuSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -27,6 +32,11 @@ bool UVeyraMatchMenuSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 void UVeyraMatchMenuSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	if (UVeyraSettingsSubsystem* Player = Collection.InitializeDependency<UVeyraSettingsSubsystem>(); Player && Player->IsReady())
+	{
+		SettingsHandle = Player->GetStore().OnChanged.AddUObject(this, &UVeyraMatchMenuSubsystem::OnPlayerSettingChanged);
+	}
+	RefreshKeys();
 	TArray<FString> Problems = GetDefault<UVeyraUIInputSettings>()->Validate();
 	Problems.Append(GetDefault<UVeyraShellStyleSettings>()->Validate());
 	for (const FString& Problem : Problems)
@@ -43,10 +53,20 @@ void UVeyraMatchMenuSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void UVeyraMatchMenuSubsystem::Deinitialize()
 {
 	FTSTicker::GetCoreTicker().RemoveTicker(TickHandle);
+	// Settings that ended first took their change event with them.
+	if (UVeyraSettingsSubsystem* Player = GetGameInstance()->GetSubsystem<UVeyraSettingsSubsystem>(); Player && Player->IsReady())
+	{
+		Player->GetStore().OnChanged.Remove(SettingsHandle);
+	}
 	if (Menu)
 	{
 		Menu->RemoveFromParent();
 		Menu = nullptr;
+	}
+	if (Settings)
+	{
+		Settings->RemoveFromParent();
+		Settings = nullptr;
 	}
 	if (Shop)
 	{
@@ -74,7 +94,8 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	Menu = nullptr;
 	Shop = nullptr;
 	Scoreboard = nullptr;
-	const UVeyraUIInputSettings& Keys = *GetDefault<UVeyraUIInputSettings>();
+	Settings = nullptr;
+	const UVeyraUIInputSettings& Keys = GetKeys();
 	MenuAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
 	MenuAction->ValueType = EInputActionValueType::Boolean;
 	ShopAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
@@ -89,18 +110,72 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	UEnhancedInputComponent* Component = NewObject<UEnhancedInputComponent>(Controller, NAME_None, RF_Transient);
 	Component->BindAction(MenuAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleMenu);
 	Component->BindAction(ShopAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleShop);
-	// Held, as League's Tab (Settings Bible #56); the Toggle mode arrives with the Settings screen.
-	Component->BindAction(ScoreboardAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ShowScoreboard);
-	Component->BindAction(ScoreboardAction, ETriggerEvent::Completed, this, &UVeyraMatchMenuSubsystem::HideScoreboard);
+	// Held, as League's Tab, or toggled, as the player chooses (Settings Bible #56).
+	Component->BindAction(ScoreboardAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::PressScoreboardKey);
+	Component->BindAction(ScoreboardAction, ETriggerEvent::Completed, this, &UVeyraMatchMenuSubsystem::ReleaseScoreboardKey);
 	Controller->PushInputComponent(Component);
 	MenuInput = Component;
 	BoundController = Controller;
 	return true;
 }
 
+const UVeyraUIInputSettings& UVeyraMatchMenuSubsystem::GetKeys() const
+{
+	return PlayerKeys ? *PlayerKeys : *GetDefault<UVeyraUIInputSettings>();
+}
+
+void UVeyraMatchMenuSubsystem::OnPlayerSettingChanged(const FVeyraContentId& Id)
+{
+	const UVeyraSettingsSubsystem* Player = GetGameInstance()->GetSubsystem<UVeyraSettingsSubsystem>();
+	if (Player && Player->IsReady() && Player->GetStore().GetRegistry().Bindings.Contains(Id))
+	{
+		RefreshKeys();
+	}
+}
+
+void UVeyraMatchMenuSubsystem::RefreshKeys()
+{
+	PlayerKeys = NewObject<UVeyraUIInputSettings>(this, NAME_None, RF_Transient);
+	const UVeyraSettingsSubsystem* Player = GetGameInstance()->GetSubsystem<UVeyraSettingsSubsystem>();
+	if (Player && Player->IsReady())
+	{
+		VeyraSettings::ApplyBindings(*PlayerKeys, Player->GetStore());
+	}
+	AVeyraPlayerController* Controller = BoundController.Get();
+	UEnhancedInputLocalPlayerSubsystem* Input = Controller && Controller->GetLocalPlayer() ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(Controller->GetLocalPlayer()) : nullptr;
+	if (!Input || !MenuMapping)
+	{
+		// The next match's controller maps them.
+		return;
+	}
+	// The same actions on the new keys, so what they are bound to stays.
+	Input->RemoveMappingContext(MenuMapping);
+	MenuMapping = NewObject<UInputMappingContext>(this, NAME_None, RF_Transient);
+	const UVeyraUIInputSettings& Keys = GetKeys();
+	const TPair<UInputAction*, FKey> Mapped[] = { { MenuAction, Keys.MatchMenuKey }, { ShopAction, Keys.ShopKey }, { ScoreboardAction, Keys.ScoreboardKey } };
+	for (const TPair<UInputAction*, FKey>& Pair : Mapped)
+	{
+		if (Pair.Key && Pair.Value.IsValid())
+		{
+			MenuMapping->MapKey(Pair.Key, Pair.Value);
+		}
+	}
+	Input->AddMappingContext(MenuMapping, /*Priority*/ 1);
+}
+
 void UVeyraMatchMenuSubsystem::ToggleMenu()
 {
-	if (Shop && !Menu)
+	if (Settings)
+	{
+		// The menu's key closes Settings first.
+		CloseSettings();
+	}
+	else if (Scoreboard && Preferences().bScoreboardToggles)
+	{
+		// And a scoreboard toggled open (SET-56: Escape closes).
+		HideScoreboard();
+	}
+	else if (Shop && !Menu)
 	{
 		// The menu's key closes the shop first.
 		CloseShop();
@@ -199,7 +274,7 @@ void UVeyraMatchMenuSubsystem::OpenMenu()
 	{
 		return;
 	}
-	Menu->Show(*Controller, [this] { CloseMenu(); });
+	Menu->Show(*Controller, [this] { CloseMenu(); }, [this] { OpenSettings(); });
 	// Above the shop, if it is open.
 	Menu->AddToViewport(/*ZOrder*/ 1);
 	UpdateInputMode();
@@ -215,6 +290,60 @@ void UVeyraMatchMenuSubsystem::CloseMenu()
 	UpdateInputMode();
 }
 
+void UVeyraMatchMenuSubsystem::OpenSettings()
+{
+	AVeyraPlayerController* Controller = BoundController.Get();
+	UVeyraSettingsSubsystem* PlayerSettings = UVeyraSettingsSubsystem::Get(Controller);
+	if (Settings || !Controller || !Controller->IsLocalController() || !PlayerSettings)
+	{
+		return;
+	}
+	CloseMenu();
+	Settings = CreateWidget<UVeyraSettingsScreen>(Controller);
+	if (!Settings)
+	{
+		return;
+	}
+	Settings->Show(*PlayerSettings, /*bInLiveMatch*/ true, [this] { CloseSettings(); });
+	// Above the shop and where the menu was.
+	Settings->AddToViewport(/*ZOrder*/ 2);
+	UpdateInputMode();
+}
+
+void UVeyraMatchMenuSubsystem::CloseSettings()
+{
+	if (Settings)
+	{
+		Settings->RemoveFromParent();
+		Settings = nullptr;
+	}
+	UpdateInputMode();
+}
+
+FVeyraInterfacePreferences UVeyraMatchMenuSubsystem::Preferences() const
+{
+	const UVeyraSettingsSubsystem* Player = GetGameInstance()->GetSubsystem<UVeyraSettingsSubsystem>();
+	return VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), Player && Player->IsReady() ? &Player->GetStore() : nullptr);
+}
+
+void UVeyraMatchMenuSubsystem::PressScoreboardKey()
+{
+	if (Preferences().bScoreboardToggles && Scoreboard)
+	{
+		HideScoreboard();
+		return;
+	}
+	ShowScoreboard();
+}
+
+void UVeyraMatchMenuSubsystem::ReleaseScoreboardKey()
+{
+	if (!Preferences().bScoreboardToggles)
+	{
+		HideScoreboard();
+	}
+}
+
 void UVeyraMatchMenuSubsystem::UpdateInputMode()
 {
 	AVeyraPlayerController* Controller = BoundController.Get();
@@ -222,15 +351,22 @@ void UVeyraMatchMenuSubsystem::UpdateInputMode()
 	{
 		return;
 	}
-	if (Menu || Shop)
+	// The cursor stays in the window during a match unless the player lets it go (SET-83).
+	const EMouseLockMode Lock = Preferences().bConfineCursor ? EMouseLockMode::LockAlways : EMouseLockMode::DoNotLock;
+	if (Menu || Shop || Settings)
 	{
-		// The menu takes the keyboard; the shop leaves it to the game, so abilities and items still work.
+		// The menu and Settings take the keyboard; the shop leaves it to the game, so abilities and items still work.
 		FInputModeGameAndUI Mode;
-		if (Menu)
+		if (Settings)
+		{
+			Mode.SetWidgetToFocus(Settings->TakeWidget());
+		}
+		else if (Menu)
 		{
 			Mode.SetWidgetToFocus(Menu->TakeWidget());
 		}
 		Mode.SetHideCursorDuringCapture(false);
+		Mode.SetLockMouseToViewportBehavior(Lock);
 		Controller->SetInputMode(Mode);
 	}
 	else
@@ -238,5 +374,9 @@ void UVeyraMatchMenuSubsystem::UpdateInputMode()
 		FInputModeGameOnly Mode;
 		Mode.SetConsumeCaptureMouseDown(false);
 		Controller->SetInputMode(Mode);
+		if (UGameViewportClient* Viewport = Controller->GetLocalPlayer() ? Controller->GetLocalPlayer()->ViewportClient.Get() : nullptr)
+		{
+			Viewport->SetMouseLockMode(Lock);
+		}
 	}
 }

@@ -19,6 +19,8 @@ class UScaleBox;
 class UTextBlock;
 class UTexture2D;
 class UVerticalBox;
+class UVeyraSettingsScreen;
+class UVeyraSettingsSubsystem;
 class UVeyraShellButton;
 enum class EVeyraShellButtonKind : uint8;
 class UWidget;
@@ -75,6 +77,21 @@ public:
 	/** Which view of a match report the screen shows. */
 	EVeyraReportView GetReportView() const { return ReportView; }
 
+	/**
+	 * Opens the Settings screen over the shell, where the top bar or the results offer it: in the shell,
+	 * the lobby and the results, never in champion select, Match Found or Reconnect-only (ADR-024 §4).
+	 */
+	void OpenSettings();
+	void CloseSettings();
+	bool IsSettingsOpen() const { return SettingsScreen != nullptr; }
+	UVeyraSettingsScreen* GetSettingsScreen() const { return SettingsScreen; }
+
+	/** The button that opens Settings. */
+	static FText SettingsLabel();
+
+	/** Tests: the settings the screen opens, in place of its game instance's. */
+	void SetSettingsForTests(UVeyraSettingsSubsystem* Settings);
+
 	/** Whether the lobby's bot picker shows, for one of its seats. */
 	bool IsBotPickerOpen() const { return BotPickerIndex != INDEX_NONE; }
 
@@ -86,6 +103,9 @@ public:
 
 	/** Champion select's toggle that lays the shown Vanguard's abilities over its art. */
 	static FText AbilitiesLabel(bool bShowing);
+
+	/** The settings choice's buttons: keep this device's settings, or the account's. */
+	static FText SettingsChoiceLabel(bool bThisDevice);
 
 	/** Every button on screen, in the order built. For tests and scripts. */
 	TArray<UVeyraShellButton*> GetButtons() const;
@@ -195,6 +215,8 @@ private:
 	void ShowReportView(EVeyraReportView NewView);
 	/** The problem on screen and its Retry, if any. */
 	void BuildProblem(const FVeyraClientSnapshot& Snapshot);
+	/** The choice between this device's settings and the account's, over everything, while it waits (ADR-024 §1). */
+	void BuildSettingsConflict(const FVeyraClientSnapshot& Snapshot);
 
 	UTextBlock* AddText(UPanelWidget& Parent, const FText& Text, uint8 Role);
 	UVeyraShellButton* AddButton(UPanelWidget& Parent, const FText& Label, TFunction<void()> Action, bool bEnabled = true, bool bSelected = false);
@@ -243,6 +265,21 @@ private:
 	/** Over everything: champion select's Flux Spell picker. */
 	UPROPERTY(Transient)
 	TObjectPtr<UOverlay> Popup;
+
+	/** Over the popups: the Settings screen, which a rebuild of the rest leaves open. */
+	UPROPERTY(Transient)
+	TObjectPtr<UOverlay> SettingsLayer;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UVeyraSettingsScreen> SettingsScreen;
+
+	TWeakObjectPtr<UVeyraSettingsSubsystem> TestSettings;
+
+	/** The settings Settings opens: the game instance's, or a test's; null where there are none. */
+	UVeyraSettingsSubsystem* FindSettings() const;
+
+	/** The Settings button, where the screen offers it. */
+	void AddSettingsButton(UPanelWidget& Parent);
 
 	/** The champion-select countdown's two draining bars, updated every frame. */
 	UPROPERTY(Transient)

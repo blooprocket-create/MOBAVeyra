@@ -10,10 +10,14 @@
 #include "Fonts/FontMeasure.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Hud/VeyraHudModel.h"
 #include "Input/VeyraInputSettings.h"
 #include "Rendering/SlateRenderer.h"
+#include "Engine/GameInstance.h"
+#include "Match/VeyraMatchMenuSubsystem.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "Statistics/VeyraScoreComponent.h"
@@ -23,6 +27,9 @@
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
+
+// The engine keeps a smoothed frame rate, declared only where it is defined.
+extern ENGINE_API float GAverageFPS;
 
 namespace
 {
@@ -36,11 +43,11 @@ namespace
 		const UFont* FontAsset = nullptr;
 		float Scale = 1.0f;
 
-		FPainter(UCanvas& InCanvas, const UVeyraGreyboxSettings& InSettings, const UFont* InFont)
+		FPainter(UCanvas& InCanvas, const UVeyraGreyboxSettings& InSettings, const UFont* InFont, float HudScale = 1.0f)
 			: Canvas(InCanvas)
 			, Settings(InSettings)
 			, FontAsset(InFont)
-			, Scale(InSettings.HudReferenceHeight > 0.0f ? InCanvas.ClipY / InSettings.HudReferenceHeight : 1.0f)
+			, Scale((InSettings.HudReferenceHeight > 0.0f ? InCanvas.ClipY / InSettings.HudReferenceHeight : 1.0f) * HudScale)
 		{
 		}
 
@@ -247,6 +254,23 @@ namespace
 		Paint.TextCentred(FVector2D(TopLeft.X + Width * 0.86f, Middle), FString::FromInt(EnemyKills), KillFont, Settings.EnemyColor);
 	}
 
+	/** The frame rate and ping the player asked to see, top right (Settings Bible §3.6). */
+	void DrawReadouts(const FPainter& Paint, const FVeyraInterfacePreferences& Preferences, const APlayerController* Viewer)
+	{
+		const APlayerState* Participant = Viewer ? Viewer->PlayerState.Get() : nullptr;
+		// A server's own player has no ping to show.
+		const float Ping = Participant ? Participant->GetPingInMilliseconds() : 0.0f;
+		const FString Text = VeyraInterfacePreferences::DescribeReadouts(Preferences, GAverageFPS, Ping > 0.0f ? TOptional<float>(Ping) : TOptional<float>());
+		if (Text.IsEmpty())
+		{
+			return;
+		}
+		const FSlateFontInfo Font = Paint.Font(TEXT("Bold"), Paint.Settings.HudSmallFontSize);
+		const FVector2D Size = Paint.Measure(Text, Font);
+		const float Gap = Paint.S(Paint.Settings.DeckGap);
+		Paint.Text(FVector2D(Paint.Canvas.ClipX - Gap - Size.X, Gap), Text, Font, Paint.Settings.TextColor, true);
+	}
+
 	/** Each side's Team Flux, the viewer's first, top left (ADR-011 §10). */
 	void DrawTeamFlux(const FPainter& Paint, const UWorld& World, EVeyraTeam Viewer, double Now)
 	{
@@ -300,7 +324,7 @@ namespace
 		// A team's vote reaches only that team, as League shows a surrender.
 		if (Vote.bOpen && Own)
 		{
-			const UVeyraInputSettings& Input = *GetDefault<UVeyraInputSettings>();
+			const UVeyraInputSettings& Input = Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>();
 			const bool bVoted = Vote.Voted.Contains(Own->GetPlayerId());
 			const FString Answer = bVoted ? FString(TEXT("you voted")) : FString::Printf(TEXT("%s yes   %s no"), *KeyName(Input.VoteYesKey), *KeyName(Input.VoteNoKey));
 			Notices.Add({ FString::Printf(TEXT("%s vote   %d of %d yes, %d no   %.0f s   %s"), *StaticEnum<EVeyraVoteKind>()->GetNameStringByValue(static_cast<int64>(Vote.Kind)),
@@ -378,10 +402,10 @@ namespace
 	}
 
 	/** The deck along the bottom; returns its top edge, and what the cursor rests on. */
-	float DrawDeck(const FPainter& Paint, const AVeyraPlayerState& Participant, const TOptional<FVector2D>& Mouse, double Now, TOptional<FHover>& Hover)
+	float DrawDeck(const FPainter& Paint, const AVeyraPlayerState& Participant, const UVeyraInputSettings& Input, const FString& ShopKey, const TOptional<FVector2D>& Mouse,
+		double Now, TOptional<FHover>& Hover)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
-		const UVeyraInputSettings& Input = *GetDefault<UVeyraInputSettings>();
 		const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
 		const float Gap = Paint.S(Settings.DeckGap);
 		const float Pad = Paint.S(Settings.DeckPadding);
@@ -601,7 +625,6 @@ namespace
 			Paint.Outline(At, FVector2D(Item), Settings.HudHairlineColor);
 			Paint.KeyCap(At, KeyName(Input.GetAbilityKey(Held.Slot)));
 		}
-		const FString ShopKey = KeyName(GetDefault<UVeyraUIInputSettings>()->ShopKey);
 		const FString Gold = FString::Printf(TEXT("%s"), *FText::AsNumber(Player.Gold).ToString());
 		const float GoldY = ItemsTop + 2.0f * Item + Gap * 1.5f;
 		Paint.Text(FVector2D(ItemsLeft, GoldY), Gold, Paint.Font(TEXT("Black"), Settings.HudBodyFontSize), Settings.GoldColor);
@@ -635,12 +658,13 @@ namespace
 
 namespace VeyraHudDeck
 {
-void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, const UWorld& World, const AVeyraGameState& GameState,
-	const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow)
+void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font, const UWorld& World,
+	const AVeyraGameState& GameState, const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow)
 {
-	const FPainter Paint(Canvas, Settings, Font);
+	const FPainter Paint(Canvas, Settings, Font, Preferences.HudScale);
 	const EVeyraTeam Side = Own ? Own->GetVeyraTeam() : EVeyraTeam::None;
 	DrawTopStrip(Paint, GameState, Side);
+	DrawReadouts(Paint, Preferences, Viewer);
 	DrawNotices(Paint, GameState, Viewer);
 	DrawTeamFlux(Paint, World, Side, ServerNow);
 	if (!Own)
@@ -654,7 +678,11 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* F
 		Mouse = At;
 	}
 	TOptional<FHover> Hover;
-	const float DeckTop = DrawDeck(Paint, *Own, Mouse, ServerNow, Hover);
+	// The player's own keys on the key caps (ADR-024 §6).
+	const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);
+	const UVeyraMatchMenuSubsystem* Screens = World.GetGameInstance() ? World.GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr;
+	const FString ShopKey = KeyName(Screens ? Screens->GetKeys().ShopKey : GetDefault<UVeyraUIInputSettings>()->ShopKey);
+	const float DeckTop = DrawDeck(Paint, *Own, Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, Hover);
 	if (Hover.IsSet())
 	{
 		DrawTooltip(Paint, Hover.GetValue(), DeckTop);

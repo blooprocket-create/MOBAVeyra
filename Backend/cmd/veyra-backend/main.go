@@ -27,6 +27,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/postgres"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/selection"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/settings"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/social"
 )
 
@@ -174,6 +175,7 @@ func run(log *slog.Logger) error {
 			Account:        accounts,
 			Selection:      selects,
 			Matchmaking:    matchmaker,
+			Settings:       settings.NewService(store.Settings(), cfg.Settings.MaxDocumentBytes),
 			Modes:          modes,
 			Ready:          store,
 			Atomic:         store.Atomic,
