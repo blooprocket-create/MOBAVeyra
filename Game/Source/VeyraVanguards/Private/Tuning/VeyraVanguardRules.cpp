@@ -170,6 +170,21 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraReclaimTuning>& Entry : Tuning.Reclaim)
+	{
+		RegisterPassive(Entry.Key, TEXT("reclaim"));
+		const FString Pointer = TEXT("/reclaim/") + Entry.Key.ToString();
+		const FVeyraReclaimTuning& Reclaim = Entry.Value;
+		if (!Abilities.Statuses.Contains(Reclaim.Mark))
+		{
+			Problem(Pointer + TEXT("/mark"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Reclaim.Mark.ToString()));
+		}
+		if (Reclaim.HealAmount < 0.0 || Reclaim.HealPerLevel < 0.0 || Reclaim.MagicPowerRatio < 0.0 || !(Reclaim.LockoutSeconds > 0.0))
+		{
+			Problem(Pointer, TEXT("healAmount, healPerLevel and magicPowerRatio are at least 0, and lockoutSeconds above 0"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraHauntTuning>& Entry : Tuning.Haunt)
 	{
 		RegisterPassive(Entry.Key, TEXT("haunt"));

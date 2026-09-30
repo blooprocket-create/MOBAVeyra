@@ -15,6 +15,7 @@
 #include "Passives/VeyraKitStatusesPassive.h"
 #include "Passives/VeyraMomentumPassive.h"
 #include "Passives/VeyraMovingTargetPassive.h"
+#include "Passives/VeyraReclaimPassive.h"
 #include "Passives/VeyraSlipstreamPassive.h"
 #include "Passives/VeyraWildDominionPassive.h"
 #include "Progression/VeyraProgressionComponent.h"
@@ -84,6 +85,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindSlipstream(PassiveId))
 	{
 		return UVeyraSlipstreamPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindReclaim(PassiveId))
+	{
+		return UVeyraReclaimPassive::StaticClass();
 	}
 	return nullptr;
 }

@@ -665,6 +665,39 @@ struct FVeyraSlipstreamTuning
 	TArray<FVeyraContentId> Statuses;
 };
 
+/**
+ * Silt's Reclaim (Roster Bible §3; ADR-028 §4): each of its owner's basic attacks that lands on an enemy
+ * Vanguard holding the owner's mark consumes the mark and heals the owner, once per lockout per target.
+ * Its data is an entry in Vanguards.json's reclaim map.
+ */
+USTRUCT()
+struct FVeyraReclaimTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: the mark its owner's damaging abilities apply. */
+	UPROPERTY()
+	FVeyraContentId Mark;
+
+	/** The heal at Level 1, and what each Level after adds; at least 0. */
+	UPROPERTY()
+	double HealAmount = 0.0;
+
+	UPROPERTY()
+	double HealPerLevel = 0.0;
+
+	/** Of its owner's Magic Power, added to the heal; at least 0. */
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	/** Seconds before the same target can be reclaimed from again; above 0. */
+	UPROPERTY()
+	double LockoutSeconds = 0.0;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
@@ -717,6 +750,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraSlipstreamTuning> Slipstream;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraReclaimTuning> Reclaim;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

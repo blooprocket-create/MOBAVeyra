@@ -181,6 +181,17 @@
         "korruk_shatterfield": "Damage"
       }
     },
+    "silt": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "silt_scattershot": "Damage",
+        "silt_sink": "Damage",
+        "silt_sandstorm": "Damage",
+        "silt_buried_alive": "Damage"
+      }
+    },
     "aurelisse": {
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],

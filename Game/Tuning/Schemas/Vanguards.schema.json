@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -419,6 +419,26 @@
                 "lungeSpeed": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
               }
             }
+          }
+        }
+      }
+    },
+    "reclaim": {
+      "description": "Passives whose owner's basic attacks consume its mark on an enemy Vanguard to heal it, once per lockout per target (Silt's Reclaim, Roster Bible §3; ADR-028 §4).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "mark", "healAmount", "healPerLevel", "magicPowerRatio", "lockoutSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "mark": { "description": "From Abilities.json's statuses: the mark its owner's damaging abilities apply.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "healAmount": { "type": "number", "minimum": 0 },
+            "healPerLevel": { "type": "number", "minimum": 0 },
+            "magicPowerRatio": { "type": "number", "minimum": 0 },
+            "lockoutSeconds": { "description": "Seconds before the same target can be reclaimed from again.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
           }
         }
       }

@@ -120,6 +120,11 @@ const FVeyraSlipstreamTuning* UVeyraVanguardsTuningSubsystem::FindSlipstream(con
 	return Get().Slipstream.Find(Passive);
 }
 
+const FVeyraReclaimTuning* UVeyraVanguardsTuningSubsystem::FindReclaim(const FVeyraContentId& Passive)
+{
+	return Get().Reclaim.Find(Passive);
+}
+
 VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 {
 	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.

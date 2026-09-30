@@ -697,6 +697,48 @@
       },
       "abilities": { "q": ["aurelisse_crosswind"], "w": ["aurelisse_rising_current"], "e": ["aurelisse_windward"], "r": ["aurelisse_room_to_breathe"] },
       "passive": ["aurelisse_slipstream"]
+    },
+    "silt": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 42, "capsuleHalfHeight": 92, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 550,
+        "healthRegen": 0.6,
+        "maxResource": 400,
+        "resourceRegen": 4,
+        "armor": 21,
+        "magicResist": 30,
+        "physicalPower": 50,
+        "magicPower": 0,
+        "attackSpeed": 0.625,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 90,
+        "healthRegen": 0.1,
+        "maxResource": 50,
+        "resourceRegen": 0.4,
+        "armor": 4,
+        "magicResist": 1.3,
+        "physicalPower": 2.6,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 525,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 1500, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["silt_scattershot"], "w": ["silt_sink"], "e": ["silt_sandstorm"], "r": ["silt_buried_alive"] },
+      "passive": ["silt_reclaim"]
     }
   },
   "deepFoundation": {
@@ -871,6 +913,16 @@
       "durationSeconds": 2,
       "pulseSeconds": 0.25,
       "statuses": ["aurelisse_slipstream_haste"]
+    }
+  },
+  "reclaim": {
+    "silt_reclaim": {
+      "provenance": "Provisional",
+      "mark": "silt_sandy",
+      "healAmount": 18,
+      "healPerLevel": 4,
+      "magicPowerRatio": 0.15,
+      "lockoutSeconds": 3
     }
   }
 }
