@@ -1042,7 +1042,9 @@ bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
 		}
 		return true;
 	}
+	// The shop refreshes as it is painted, and a -nullrhi client paints nothing: read what it shows now.
 	UVeyraShopScreen& Shop = *Screens->GetShop();
+	Shop.Refresh();
 	const FVeyraShopView& View = Shop.GetView();
 	if (BoughtItem.IsEmpty())
 	{
@@ -1197,8 +1199,11 @@ bool UVeyraSmokeFlowSubsystem::TickScoreboard(AVeyraPlayerController& /*Controll
 		Screens->ShowScoreboard();
 		return true;
 	}
-	// The players' scores, levels and Vanguards replicate a moment after the match goes live.
-	const FVeyraScoreboardView& View = Screens->GetScoreboard()->GetView();
+	// The players' scores, levels and Vanguards replicate a moment after the match goes live. The
+	// scoreboard refreshes as it is painted, and a -nullrhi client paints nothing: read what it shows now.
+	UVeyraScoreboard& Scoreboard = *Screens->GetScoreboard();
+	Scoreboard.Refresh();
+	const FVeyraScoreboardView& View = Scoreboard.GetView();
 	const bool bShowsThePlayer = View.Sides.Num() == 2 && View.Sides[0].bAllies
 		&& View.Sides[0].Rows.ContainsByPredicate([](const FVeyraScoreboardRow& Row) { return Row.bLocal && Row.Vanguard.IsValid() && Row.Level >= 1; });
 	if (!bShowsThePlayer || Capture(TEXT("Scoreboard")))

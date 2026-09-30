@@ -132,6 +132,34 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShopScreen::SwapLabel(0, Roster[0]))));
 		}
 
+		TEST_METHOD(AnUnpaintedScreenFollowsTheParticipantWhenRefreshed)
+		{
+			// A -nullrhi client never paints, so its shop never ticks: a script refreshes it before
+			// reading it (Smoke.ps1 -Flow Practice).
+			const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
+			ASSERT_THAT(IsTrue(Roster.Num() >= 2));
+			UVeyraAbilityLoadoutComponent& Loadout = *Participant->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+			ASSERT_THAT(IsTrue(Loadout.Grant(*Participant->GetAbilitySystemComponent(), EVeyraAbilitySlot::Spell1, Roster[0])));
+			Subsystem->SetAtFountain(*Participant, true);
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			Controller.PlayerState = Participant;
+			UVeyraShopScreen* Screen = CreateWidget<UVeyraShopScreen>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Screen));
+			Screen->Show(Controller, [] {});
+
+			// What the server changes while the shop is open: a purchase, then a Flux Spell swap.
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_grip"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 0, Roster[1]) == EVeyraShopRefusal::None));
+			Screen->Refresh();
+			const FVeyraShopView& View = Screen->GetView();
+			ASSERT_THAT(IsTrue(View == VeyraShopModel::Describe(*Participant)));
+			ASSERT_THAT(IsTrue(View.Slots[0].Item == ItemId(TEXT("test_grip")) && View.SpellSlots[0].Spell == Roster[1]));
+			ASSERT_THAT(IsTrue(View.Gold == Purse - Tuning.Items[ItemId(TEXT("test_grip"))].Cost - View.SpellSwapCost));
+			// And its buttons with it: the spell the slot gave up is on offer again.
+			Screen->FindButton(UVeyraShopScreen::SpellsTabLabel())->Press();
+			ASSERT_THAT(IsNotNull(Screen->FindButton(UVeyraShopScreen::SwapLabel(0, Roster[0]))));
+		}
+
 		TEST_METHOD(TheModelOffersEachOtherVisionToolAndTheScreenItsSwaps)
 		{
 			// Any other tool, at the fountain, for the same cost each time (Vision Bible §3; ADR-016 §6).

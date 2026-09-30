@@ -133,9 +133,10 @@ namespace VeyraScoreboardTests
 				}
 			}
 
-			// A kill the server reports shows at once.
+			// A kill the server reports shows at the next refresh, as each paint runs, or a script where
+			// nothing paints.
 			Enemy->FindComponentByClass<UVeyraScoreComponent>()->SetScore(MakeScore(1, 1, 0, 25, 0));
-			Screen->Show(Controller);
+			Screen->Refresh();
 			ASSERT_THAT(IsTrue(Screen->GetView().Sides[1].Kills == 1));
 			ASSERT_THAT(IsTrue(Screen->GetLines().Contains(UVeyraScoreboard::RowLine(Screen->GetView().Sides[1].Rows[0]).ToString())));
 		}

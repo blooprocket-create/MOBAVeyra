@@ -40,6 +40,13 @@ public:
 	/** Shows the shop for Controller's participant. Close runs when the shop should close. */
 	void Show(AVeyraPlayerController& InController, TFunction<void()> InClose);
 
+	/**
+	 * Reads the participant's state, and rebuilds the shop when what it shows has changed. The shop does
+	 * so each frame it is painted; a script that reads it where nothing paints (a -nullrhi client) calls
+	 * this first.
+	 */
+	void Refresh();
+
 	/** What the shop shows now. */
 	const FVeyraShopView& GetView() const { return View; }
 
@@ -93,8 +100,6 @@ private:
 		Spells,
 	};
 
-	/** Reads the participant's state, and rebuilds the shop when what it shows has changed. */
-	void Refresh();
 	void Rebuild();
 	void BuildHeading();
 	void BuildQuickBuy();

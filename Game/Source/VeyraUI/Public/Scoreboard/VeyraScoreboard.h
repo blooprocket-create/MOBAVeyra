@@ -28,6 +28,12 @@ public:
 	/** Shows the match as Controller's player sees it. */
 	void Show(const APlayerController& InController);
 
+	/**
+	 * Reads the game state, and rebuilds when what it shows has changed. The scoreboard does so each frame
+	 * it is painted; a script that reads it where nothing paints (a -nullrhi client) calls this first.
+	 */
+	void Refresh();
+
 	/** What it shows now. */
 	const FVeyraScoreboardView& GetView() const { return View; }
 
@@ -47,8 +53,6 @@ protected:
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
-	/** Reads the game state, and rebuilds when what it shows has changed. */
-	void Refresh();
 	void Rebuild();
 
 	TWeakObjectPtr<const APlayerController> Controller;
