@@ -205,7 +205,15 @@ void AVeyraGameMode::StartPlay()
 {
 	Super::StartPlay();
 
-	GetVeyraGameState().SetMatchRules(Roster ? Roster->GetAssignment().Rules : EVeyraMatchRules::Standard);
+	if (Roster)
+	{
+		const FVeyraMatchAssignment& Assigned = Roster->GetAssignment();
+		GetVeyraGameState().SetMatchRules(Assigned.Rules, VeyraMatchRules::HasVictory(Assigned.Rules, Assigned.Custom));
+	}
+	else
+	{
+		GetVeyraGameState().SetMatchRules(EVeyraMatchRules::Standard);
+	}
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Loading);
 	GetWorldTimerManager().SetTimer(LoadingTimeout, this, &AVeyraGameMode::OnLoadingTimedOut,
 		static_cast<float>(UVeyraMatchTuningSubsystem::Get().Phases.LoadingTimeoutSeconds));
@@ -357,15 +365,16 @@ void AVeyraGameMode::OnPrimeWellDestroyed(EVeyraTeam Winner)
 	// Game/Scripts/Smoke.ps1 checks this line.
 	UE_LOG(LogVeyraMatch, Display, TEXT("Team %s destroyed the other side's Prime Well."), *StaticEnum<EVeyraTeam>()->GetNameStringByValue(static_cast<int64>(Winner)));
 	const AVeyraGameState& State = GetVeyraGameState();
-	if (VeyraMatchRules::DoesPrimeWellWin(State.GetMatchRules(), State.GetPhase()))
+	if (VeyraMatchRules::DoesPrimeWellWin(State.HasVictory(), State.GetPhase()))
 	{
 		EndMatch(EVeyraMatchEndReason::PrimeWellDestroyed, Winner);
 	}
 	else
 	{
-		// Practice has no victory: the Well stays destroyed and the match goes on (ADR-011 §14).
+		// Practice, and a custom match with victory off, have none: the Well stays destroyed and the
+		// match goes on (ADR-011 §14; ADR-021 §3).
 		UE_LOG(LogVeyraMatch, Log, TEXT("The %s match goes on: it has no victory condition now."),
-			State.GetMatchRules() == EVeyraMatchRules::Practice ? TEXT("practice") : TEXT("standard"));
+			*StaticEnum<EVeyraMatchRules>()->GetNameStringByValue(static_cast<int64>(State.GetMatchRules())));
 	}
 }
 
@@ -1178,7 +1187,9 @@ bool AVeyraGameMode::InitializeCombatant(AVeyraPlayerState& PlayerState, UAbilit
 		Statistics->AddParticipant(PlayerState);
 	}
 	// The one guaranteed Gold, once per match (Economy & Progression Bible §1), and empty slots to spend it on (§10).
-	UVeyraRewardSubsystem::GrantStartingGold(PlayerState);
+	// A custom match's host may set its own starting Gold (ADR-021 §3).
+	const TOptional<FVeyraCustomSettings> Custom = Roster ? Roster->GetAssignment().Custom : TOptional<FVeyraCustomSettings>();
+	UVeyraRewardSubsystem::GrantStartingGold(PlayerState, Custom.IsSet() ? Custom->StartingGold : TOptional<double>());
 	UVeyraShopSubsystem::InitializeInventory(PlayerState);
 	// Its spell slots start as open as its team's permanent Flux has made them (ADR-015 §4).
 	if (Battleground)
@@ -1289,7 +1300,7 @@ EVeyraBuybackRefusal AVeyraGameMode::HandleBuybackOrder(AVeyraPlayerState* Playe
 	UVeyraBuybackComponent* Buyback = PlayerState ? PlayerState->FindComponentByClass<UVeyraBuybackComponent>() : nullptr;
 	UVeyraGoldComponent* Gold = PlayerState ? PlayerState->FindComponentByClass<UVeyraGoldComponent>() : nullptr;
 	// Practice has none (ADR-020, open items), and like the shop it waits out a pause (Match Flow Bible §10.2).
-	if (!Buyback || !Gold || State.GetMatchRules() != EVeyraMatchRules::Standard || State.GetPhase() != EVeyraMatchPhase::Live || GetWorld()->IsPaused())
+	if (!Buyback || !Gold || !VeyraMatchRules::AllowsBuyback(State.GetMatchRules()) || State.GetPhase() != EVeyraMatchPhase::Live || GetWorld()->IsPaused())
 	{
 		return EVeyraBuybackRefusal::Unavailable;
 	}

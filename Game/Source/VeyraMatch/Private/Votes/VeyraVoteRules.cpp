@@ -8,7 +8,7 @@ namespace VeyraVotes
 {
 EVeyraVoteRefusal CheckStart(const FStartContext& Context, const FVeyraVoteCooldowns& Cooldowns, const FVeyraVotesTuning& Tuning)
 {
-	if (!Context.bStandard)
+	if (!Context.bVotes || (!Context.bMatchmade && Context.Kind != EVeyraVoteKind::Surrender))
 	{
 		return EVeyraVoteRefusal::NotStandard;
 	}

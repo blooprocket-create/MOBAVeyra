@@ -40,7 +40,9 @@ type Assignment struct {
 
 // AssignedSettings are a custom match's session rules in an Assignment.
 type AssignedSettings struct {
-	VictoryEnabled bool `json:"victoryEnabled"`
+	// Victory is "Enabled" or "Disabled": the assignment's dialect has no
+	// booleans.
+	Victory string `json:"victory"`
 	// StartingGold holds the session's starting Gold, or nothing for the
 	// game's own: at most one.
 	StartingGold []float64 `json:"startingGold"`
@@ -98,7 +100,10 @@ func BuildAssignment(m Match, serverCredential, backendURL string) ([]byte, erro
 		return nil, fmt.Errorf("match %s has rules %q and custom settings %v", m.ID, m.Rules, m.Custom != nil)
 	}
 	if m.Custom != nil {
-		settings := AssignedSettings{VictoryEnabled: m.Custom.VictoryEnabled, StartingGold: []float64{}}
+		settings := AssignedSettings{Victory: "Disabled", StartingGold: []float64{}}
+		if m.Custom.VictoryEnabled {
+			settings.Victory = "Enabled"
+		}
 		if m.Custom.StartingGold != nil {
 			settings.StartingGold = append(settings.StartingGold, *m.Custom.StartingGold)
 		}

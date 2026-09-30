@@ -12,6 +12,7 @@
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "VeyraGameState.h"
+#include "Rules/VeyraMatchRules.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
 
@@ -21,12 +22,17 @@ namespace VeyraMatchMenuModel
 {
 bool CanEndCustomMatch(EVeyraMatchRules Rules, const APlayerState* Host, const APlayerState* Self)
 {
-	return Rules == EVeyraMatchRules::Practice && Host && Host == Self;
+	return VeyraMatchRules::HasHost(Rules) && Host && Host == Self;
 }
 
 bool OffersVotes(EVeyraMatchRules Rules)
 {
 	return Rules == EVeyraMatchRules::Standard;
+}
+
+bool OffersSurrender(bool bHasVictory)
+{
+	return bHasVictory;
 }
 
 bool OffersDeveloperEnd(EVeyraMatchRules Rules)
@@ -88,8 +94,10 @@ void UVeyraMatchMenu::Rebuild()
 
 	const bool bConfirmingCustom = Confirming == EConfirming::EndCustomMatch && bCanEnd;
 	const bool bConfirmingDeveloper = Confirming == EConfirming::DeveloperEnd && bCanEndAsDeveloper;
-	const bool bVotes = GameState && VeyraMatchMenuModel::OffersVotes(GameState->GetMatchRules());
-	if (bVotes && (Confirming == EConfirming::Surrender || Confirming == EConfirming::Remake))
+	const bool bMatchmadeVotes = GameState && VeyraMatchMenuModel::OffersVotes(GameState->GetMatchRules());
+	const bool bOffersSurrender = GameState && VeyraMatchMenuModel::OffersSurrender(GameState->HasVictory());
+	const bool bVotes = bMatchmadeVotes || bOffersSurrender;
+	if ((bOffersSurrender && Confirming == EConfirming::Surrender) || (bMatchmadeVotes && Confirming == EConfirming::Remake))
 	{
 		const bool bSurrender = Confirming == EConfirming::Surrender;
 		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
@@ -117,7 +125,10 @@ void UVeyraMatchMenu::Rebuild()
 	}
 	if (bConfirmingCustom || bConfirmingDeveloper)
 	{
-		const FText Title = bConfirmingCustom ? LOCTEXT("ConfirmTitle", "End this practice match?") : LOCTEXT("ConfirmDeveloperTitle", "End this match for everyone?");
+		const bool bPractice = GameState && GameState->GetMatchRules() == EVeyraMatchRules::Practice;
+		const FText Title = !bConfirmingCustom ? LOCTEXT("ConfirmDeveloperTitle", "End this match for everyone?")
+			: bPractice						   ? LOCTEXT("ConfirmTitle", "End this practice match?")
+											   : LOCTEXT("ConfirmCustomTitle", "End this custom match?");
 		const FText Detail = bConfirmingCustom ? LOCTEXT("ConfirmDetail", "It ends now, with no winner.")
 											   : LOCTEXT("ConfirmDeveloperDetail", "A development build's shortcut: it ends now, with no winner.");
 		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, Title, VeyraShellStyle::EVeyraShellText::Heading));
@@ -187,19 +198,31 @@ void UVeyraMatchMenu::Rebuild()
 		}
 		if (GameState->IsMatchPaused())
 		{
-			AddButton(LOCTEXT("ResumeEarly", "Resume Early"), [Ask] { Ask(EVeyraVoteKind::Resume); });
+			if (bMatchmadeVotes)
+			{
+				AddButton(LOCTEXT("ResumeEarly", "Resume Early"), [Ask] { Ask(EVeyraVoteKind::Resume); });
+			}
 		}
 		else
 		{
-			AddButton(LOCTEXT("RequestPause", "Request Pause"), [Ask] { Ask(EVeyraVoteKind::Pause); });
-			AddButton(LOCTEXT("Surrender", "Surrender"), [this] {
-				Confirming = EConfirming::Surrender;
-				Rebuild();
-			});
-			AddButton(LOCTEXT("Remake", "Remake"), [this] {
-				Confirming = EConfirming::Remake;
-				Rebuild();
-			});
+			if (bMatchmadeVotes)
+			{
+				AddButton(LOCTEXT("RequestPause", "Request Pause"), [Ask] { Ask(EVeyraVoteKind::Pause); });
+			}
+			if (bOffersSurrender)
+			{
+				AddButton(LOCTEXT("Surrender", "Surrender"), [this] {
+					Confirming = EConfirming::Surrender;
+					Rebuild();
+				});
+			}
+			if (bMatchmadeVotes)
+			{
+				AddButton(LOCTEXT("Remake", "Remake"), [this] {
+					Confirming = EConfirming::Remake;
+					Rebuild();
+				});
+			}
 		}
 	}
 	if (bCanEnd)

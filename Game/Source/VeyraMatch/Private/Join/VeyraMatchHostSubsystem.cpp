@@ -51,17 +51,28 @@ TArray<FString> UVeyraMatchHostSubsystem::SetAssignment(FVeyraMatchAssignment In
 	{
 		Problems.Add(TEXT("the assignment has no mode"));
 	}
-	// A practice match has a host who plays in it; a standard match has none (ADR-010 §7).
-	const bool bPractice = InAssignment.Rules == EVeyraMatchRules::Practice;
-	if (bPractice && !InAssignment.Participants.ContainsByPredicate([&InAssignment](const FVeyraAssignedParticipant& Participant) {
+	// A practice or custom match has a host who plays in it; a standard match has none (ADR-010 §7; ADR-021 §3).
+	const bool bHosted = VeyraMatchRules::HasHost(InAssignment.Rules);
+	if (bHosted && !InAssignment.Participants.ContainsByPredicate([&InAssignment](const FVeyraAssignedParticipant& Participant) {
 			return Participant.AccountId == InAssignment.HostAccountId;
 		}))
 	{
-		Problems.Add(TEXT("a practice match's host must be on its roster"));
+		Problems.Add(TEXT("a practice or custom match's host must be on its roster"));
 	}
-	if (!bPractice && !InAssignment.HostAccountId.IsEmpty())
+	if (!bHosted && !InAssignment.HostAccountId.IsEmpty())
 	{
-		Problems.Add(TEXT("only a practice match has a host"));
+		Problems.Add(TEXT("only a practice or custom match has a host"));
+	}
+	// A custom match, and only one, carries its session's rules; its starting Gold is Gold (ADR-021 §3).
+	const bool bCustom = InAssignment.Rules == EVeyraMatchRules::Custom;
+	if (bCustom != InAssignment.Custom.IsSet())
+	{
+		Problems.Add(TEXT("a custom match, and only a custom match, has session settings"));
+	}
+	if (InAssignment.Custom.IsSet() && InAssignment.Custom->StartingGold.IsSet()
+		&& (!FMath::IsFinite(*InAssignment.Custom->StartingGold) || *InAssignment.Custom->StartingGold < 0.0))
+	{
+		Problems.Add(TEXT("the session's starting Gold is not a finite amount of at least 0"));
 	}
 
 	const int32 MaxTeamSize = UVeyraMatchTuningSubsystem::Get().Teams.MaxTeamSize;
@@ -106,10 +117,10 @@ TArray<FString> UVeyraMatchHostSubsystem::SetAssignment(FVeyraMatchAssignment In
 			Problems.Add(Where + TEXT(": ") + SpellsProblem);
 		}
 	}
-	// Bots are practice targets for now (ADR-010 §7); they take places on their sides like anyone.
-	if (!bPractice && !InAssignment.Bots.IsEmpty())
+	// Bots play in hosted matches only (ADR-010 §7; ADR-021 §2); they take places on their sides like anyone.
+	if (!bHosted && !InAssignment.Bots.IsEmpty())
 	{
-		Problems.Add(TEXT("only a practice match has bots"));
+		Problems.Add(TEXT("only a practice or custom match has bots"));
 	}
 	for (int32 Index = 0; Index < InAssignment.Bots.Num(); ++Index)
 	{
@@ -143,7 +154,8 @@ TArray<FString> UVeyraMatchHostSubsystem::SetAssignment(FVeyraMatchAssignment In
 		Assignment.Reset();
 		return Problems;
 	}
-	UE_LOG(LogVeyraMatch, Log, TEXT("Hosting %s match %s (%s) with %d participant(s) and %d bot(s)."), bPractice ? TEXT("practice") : TEXT("standard"),
+	UE_LOG(LogVeyraMatch, Log, TEXT("Hosting %s match %s (%s) with %d participant(s) and %d bot(s)."),
+		*StaticEnum<EVeyraMatchRules>()->GetNameStringByValue(static_cast<int64>(InAssignment.Rules)),
 		*InAssignment.MatchId, *InAssignment.Mode.ToString(), InAssignment.Participants.Num(), InAssignment.Bots.Num());
 	Assignment = MoveTemp(InAssignment);
 	return Problems;

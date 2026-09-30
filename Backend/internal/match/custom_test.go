@@ -43,7 +43,7 @@ func TestACustomMatchIsItsHumansItsBotsAndItsSettings(t *testing.T) {
 	if len(a.Bots) != 2 || a.Bots[0] != want[0] || a.Bots[1] != want[1] {
 		t.Fatalf("the host's bots, in seat order: %+v", a.Bots)
 	}
-	if len(a.Settings) != 1 || !a.Settings[0].VictoryEnabled || len(a.Settings[0].StartingGold) != 1 || a.Settings[0].StartingGold[0] != 3000 {
+	if len(a.Settings) != 1 || a.Settings[0].Victory != "Enabled" || len(a.Settings[0].StartingGold) != 1 || a.Settings[0].StartingGold[0] != 3000 {
 		t.Fatalf("custom settings: %+v", a.Settings)
 	}
 }

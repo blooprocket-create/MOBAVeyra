@@ -22,7 +22,7 @@ double RespawnDelaySeconds(int32 Level, double MatchClockSeconds, const FVeyraRe
 
 EVeyraEndCustomMatchRefusal CheckEndCustomMatch(EVeyraMatchRules Rules, EVeyraMatchPhase Phase, bool bRequesterIsHost)
 {
-	if (Rules != EVeyraMatchRules::Practice)
+	if (!HasHost(Rules))
 	{
 		return EVeyraEndCustomMatchRefusal::NotCustomMatch;
 	}
@@ -33,9 +33,33 @@ EVeyraEndCustomMatchRefusal CheckEndCustomMatch(EVeyraMatchRules Rules, EVeyraMa
 	return bRequesterIsHost ? EVeyraEndCustomMatchRefusal::None : EVeyraEndCustomMatchRefusal::NotHost;
 }
 
-bool DoesPrimeWellWin(EVeyraMatchRules Rules, EVeyraMatchPhase Phase)
+bool HasHost(EVeyraMatchRules Rules)
 {
-	return Rules == EVeyraMatchRules::Standard && Phase == EVeyraMatchPhase::Live;
+	return Rules == EVeyraMatchRules::Practice || Rules == EVeyraMatchRules::Custom;
+}
+
+bool HasVictory(EVeyraMatchRules Rules, const TOptional<FVeyraCustomSettings>& Custom)
+{
+	switch (Rules)
+	{
+	case EVeyraMatchRules::Standard:
+		return true;
+	case EVeyraMatchRules::Custom:
+		return Custom.IsSet() && Custom->bVictoryEnabled;
+	case EVeyraMatchRules::Practice:
+		return false;
+	}
+	return false;
+}
+
+bool AllowsBuyback(EVeyraMatchRules Rules)
+{
+	return Rules == EVeyraMatchRules::Standard || Rules == EVeyraMatchRules::Custom;
+}
+
+bool DoesPrimeWellWin(bool bHasVictory, EVeyraMatchPhase Phase)
+{
+	return bHasVictory && Phase == EVeyraMatchPhase::Live;
 }
 
 FString CheckAssignedVanguard(const FVeyraContentId& Vanguard, const FVeyraVanguardDefinition* Definition, bool bShipping)

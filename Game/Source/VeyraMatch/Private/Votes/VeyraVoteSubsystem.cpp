@@ -57,7 +57,8 @@ EVeyraVoteRefusal UVeyraVoteSubsystem::Request(const AVeyraPlayerState& Requeste
 	Context.Team = Requester.GetVeyraTeam();
 	Context.MatchClock = GameState->GetMatchClockSeconds();
 	Context.Now = RealNow();
-	Context.bStandard = GameState->GetMatchRules() == EVeyraMatchRules::Standard;
+	Context.bVotes = GameState->HasVictory();
+	Context.bMatchmade = GameState->GetMatchRules() == EVeyraMatchRules::Standard;
 	Context.bLive = GameState->GetPhase() == EVeyraMatchPhase::Live;
 	Context.bPaused = GameState->IsMatchPaused();
 	Context.bVoteOpen = Box.IsSet();

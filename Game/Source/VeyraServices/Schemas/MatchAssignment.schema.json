@@ -110,9 +110,9 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["victoryEnabled", "startingGold"],
+        "required": ["victory", "startingGold"],
         "properties": {
-          "victoryEnabled": { "type": "boolean", "description": "Whether a fallen Prime Well wins; with a Vanguard on each side only." },
+          "victory": { "type": "string", "description": "Whether a fallen Prime Well wins: Enabled only with a Vanguard on each side.", "enum": ["Enabled", "Disabled"] },
           "startingGold": {
             "type": "array",
             "description": "Each Vanguard's starting Gold, or empty for Economy.json's gold.starting. The backend bounds it (customLobby.startingGold).",

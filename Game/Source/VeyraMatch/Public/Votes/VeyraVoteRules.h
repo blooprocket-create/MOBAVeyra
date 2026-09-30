@@ -58,7 +58,10 @@ namespace VeyraVotes
 		double MatchClock = 0.0;
 		/** Real seconds now. */
 		double Now = 0.0;
-		bool bStandard = false;
+		/** Whether the match takes votes at all: one that can be won (ADR-021 §3). */
+		bool bVotes = false;
+		/** Whether it takes remake and pause votes too: a matchmade (standard) one (ADR-019 §9). */
+		bool bMatchmade = false;
 		bool bLive = false;
 		bool bPaused = false;
 		bool bVoteOpen = false;

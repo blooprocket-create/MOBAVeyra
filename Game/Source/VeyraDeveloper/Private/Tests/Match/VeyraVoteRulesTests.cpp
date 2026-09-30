@@ -37,7 +37,8 @@ namespace VeyraVoteRulesTests
 			Out.Team = EVeyraTeam::A;
 			Out.MatchClock = Clock;
 			Out.Now = 1000.0;
-			Out.bStandard = true;
+			Out.bVotes = true;
+			Out.bMatchmade = true;
 			Out.bLive = true;
 			Out.bPaused = bPaused;
 			return Out;
@@ -63,8 +64,17 @@ namespace VeyraVoteRulesTests
 			ASSERT_THAT(IsTrue(VeyraVotes::CheckStart(Context(EVeyraVoteKind::Resume, 1.0), Cooldowns, Tuning) == EVeyraVoteRefusal::NotPaused));
 			ASSERT_THAT(IsTrue(VeyraVotes::CheckStart(Context(EVeyraVoteKind::Resume, 1.0, true), Cooldowns, Tuning) == EVeyraVoteRefusal::None));
 			VeyraVotes::FStartContext Practice = Context(EVeyraVoteKind::Pause, 1.0);
-			Practice.bStandard = false;
+			Practice.bVotes = Practice.bMatchmade = false;
 			ASSERT_THAT(IsTrue(VeyraVotes::CheckStart(Practice, Cooldowns, Tuning) == EVeyraVoteRefusal::NotStandard, TEXT("a practice match's host ends it")));
+			// A custom match that can be won takes surrender votes, not remake or pause (ADR-021 §3).
+			VeyraVotes::FStartContext Custom = Context(EVeyraVoteKind::Surrender, 900.0);
+			Custom.bMatchmade = false;
+			ASSERT_THAT(IsTrue(VeyraVotes::CheckStart(Custom, Cooldowns, Tuning) == EVeyraVoteRefusal::None, TEXT("a custom surrender")));
+			Custom.Kind = EVeyraVoteKind::Remake;
+			Custom.MatchClock = 0.0;
+			ASSERT_THAT(IsTrue(VeyraVotes::CheckStart(Custom, Cooldowns, Tuning) == EVeyraVoteRefusal::NotStandard, TEXT("no custom remake")));
+			Custom.Kind = EVeyraVoteKind::Pause;
+			ASSERT_THAT(IsTrue(VeyraVotes::CheckStart(Custom, Cooldowns, Tuning) == EVeyraVoteRefusal::NotStandard, TEXT("no custom pause")));
 			VeyraVotes::FStartContext Busy = Context(EVeyraVoteKind::Pause, 1.0);
 			Busy.bVoteOpen = true;
 			ASSERT_THAT(IsTrue(VeyraVotes::CheckStart(Busy, Cooldowns, Tuning) == EVeyraVoteRefusal::AnotherVote, TEXT("one vote at a time")));
