@@ -18,6 +18,19 @@ enum class EVeyraItemCategory : uint8
 	Boots,
 	/** Used up; it may stack in one slot. */
 	Consumable,
+	/**
+	 * A Quest Item (Item Bible §2.5; ADR-025 §3): bought, or evolved from one, and evolved by play at
+	 * no cost. A participant holds one item of a quest line at a time.
+	 */
+	Quest,
+};
+
+/** What advances a quest (ADR-025 §3). */
+UENUM()
+enum class EVeyraQuestObjective : uint8
+{
+	/** The holder's credited last hits on enemy lane Fluxborn (Item Bible §10, Reclamation). */
+	LaneFluxbornLastHits,
 };
 
 /** What an item adds to its holder while delivered (Item Bible §3). */
@@ -343,6 +356,57 @@ struct FVeyraTemperedByConflictTuning
 	double CooldownSeconds = 0.0;
 };
 
+/** A Quest Item's quest (Item Bible §2.5, §10; ADR-025 §3). */
+USTRUCT()
+struct FVeyraQuestTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	EVeyraQuestObjective Objective = EVeyraQuestObjective::LaneFluxbornLastHits;
+
+	/** The progress at which it evolves. */
+	UPROPERTY()
+	int32 Threshold = 0;
+
+	/** The Quest Item it becomes, at no cost; the shop never sells it. */
+	UPROPERTY()
+	FVeyraContentId EvolvesInto;
+};
+
+/**
+ * Residual Current (Wayline Reservoir, Item Bible §10; ADR-025 §7): last hits on enemy lane Fluxborn
+ * store Current, which a quiet holder missing Health spends to amplify its Health Regeneration.
+ */
+USTRUCT()
+struct FVeyraResidualCurrentTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double CurrentPerLastHit = 0.0;
+
+	UPROPERTY()
+	double CurrentCap = 0.0;
+
+	/** How long without enemy-Vanguard damage before Current is spent. */
+	UPROPERTY()
+	double QuietSeconds = 0.0;
+
+	UPROPERTY()
+	double CurrentPerSecond = 0.0;
+
+	/** What Health Regeneration is multiplied by while Current is spent; 3 triples it. */
+	UPROPERTY()
+	double RegenerationAmplification = 0.0;
+};
+
 /** The Items domain's tuning, bound from Game/Tuning/Items.json (ADR-006 §6, ADR-012 §3). */
 USTRUCT()
 struct FVeyraItemsTuning
@@ -360,6 +424,10 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraConsumableTuning> Consumables;
+
+	/** Each Quest Item's quest, by the item's ID. */
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraQuestTuning> Quests;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraWeightOfWarTuning> WeightOfWar;
@@ -394,6 +462,9 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraTemperedByConflictTuning> TemperedByConflict;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraResidualCurrentTuning> ResidualCurrent;
 };
 
 /** The Items domain's checks that a schema cannot express (ADR-012 §3). */
@@ -404,7 +475,9 @@ namespace VeyraItems
 	 * no recipe and no Attunement; Tier 2 has a recipe and no Attunement; Tier 3 has a recipe and
 	 * exactly one Attunement; Tier 4 has a recipe and exactly two (Item Bible §2, §11; ADR-025 §2);
 	 * Boots stop at Tier 2 (§5); every component is a
-	 * lower tier than its recipe, so recipes never loop; a consumable is a Tier 1 item with its own
+	 * lower tier than its recipe, so recipes never loop; an item a quest evolves into is a Quest Item
+	 * with no recipe that costs 0, and every Quest Item has a quest or is one's evolution, with at most
+	 * one passive (ADR-025 §3); a consumable is a Tier 1 item with its own
 	 * entry, and only a consumable stacks; every Attunement is defined in exactly one map; Fracture's
 	 * stacks together never remove all of a Magic Resistance.
 	 */
@@ -421,4 +494,16 @@ namespace VeyraItems
 	{
 		return Item.Tier == MythicalTier;
 	}
+
+	/** The Quest Item whose quest evolves into Item, or null: then the shop sells Item, if it sells it at all (ADR-025 §3). */
+	VEYRAITEMS_API const FVeyraContentId* EvolvesFrom(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item);
+
+	/** Whether the shop never sells Item: a quest evolves into it. */
+	VEYRAITEMS_API bool IsEvolutionOnly(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item);
+
+	/**
+	 * The quest line Item belongs to, named by its first form, or invalid for an item not a Quest Item.
+	 * A participant holds one item of a line at a time (Item Bible §2.5).
+	 */
+	VEYRAITEMS_API FVeyraContentId QuestLine(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item);
 }

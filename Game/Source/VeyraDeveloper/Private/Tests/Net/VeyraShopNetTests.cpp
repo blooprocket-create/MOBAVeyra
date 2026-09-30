@@ -15,6 +15,9 @@
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "Slots/VeyraAbilitySlot.h"
+#include "Teams/VeyraTeam.h"
+#include "Tests/Abilities/VeyraTestFluxborn.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraPlayerController.h"
@@ -36,6 +39,7 @@ namespace VeyraNetTests
 		TUniquePtr<FScopedExpectedPlayers> ExpectedPlayers;
 		TUniquePtr<FScopedMatchTuning> Tuning;
 		FVeyraGreyboxLayout Layout;
+		FVeyraItemsTuning Items;
 
 		// Fixture values.
 		static constexpr double ShortPreparationSeconds = 0.1;
@@ -54,6 +58,7 @@ namespace VeyraNetTests
 
 		AFTER_EACH()
 		{
+			UVeyraItemsTuningSubsystem::SetTestOverride(nullptr);
 			Tuning.Reset();
 			ExpectedPlayers.Reset();
 		}
@@ -189,6 +194,57 @@ namespace VeyraNetTests
 					LocalControllerOf(State.World)->IssueCastOrder(VeyraAbilitySlots::Items[0], nullptr);
 				})
 				.UntilServer(TEXT("It is drunk"), [](FState& State) { return CountOf(ServerParticipant(State), Tonic()) == 0; });
+		}
+
+		/** The committed catalog's Quest Item and its evolution (Item Bible §10). */
+		static FVeyraContentId Reclaimer()
+		{
+			return FVeyraContentId::FromText(TEXT("flux_reclaimer")).GetValue();
+		}
+
+		static FVeyraContentId Reservoir()
+		{
+			return FVeyraContentId::FromText(TEXT("wayline_reservoir")).GetValue();
+		}
+
+		/** The buyer's Vanguard last-hits a lane Fluxborn of the other side, on the server. */
+		void LastHitEnemyFluxborn(FState& State)
+		{
+			AVeyraPlayerState& Buyer = ServerParticipant(State);
+			FActorSpawnParameters Params;
+			Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+			AVeyraTestFluxborn* Unit = State.World->SpawnActor<AVeyraTestFluxborn>(AVeyraTestFluxborn::StaticClass(), FTransform::Identity, Params);
+			ASSERT_THAT(IsNotNull(Unit));
+			Unit->SetVeyraTeam(VeyraTeams::TeamOf(&Buyer) == EVeyraTeam::A ? EVeyraTeam::B : EVeyraTeam::A);
+			ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(*Unit->GetAbilitySystemComponent(), VeyraCombatTests::ExampleStats())));
+			FVeyraRawDamageEvent Lethal;
+			Lethal.Components.Add({ EVeyraDamageType::TrueDamage, VeyraCombatTests::ExampleStats().MaxHealth });
+			Lethal.Delivery = EVeyraDamageDelivery::BasicAttack;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Buyer.GetAbilitySystemComponent(), *Unit->GetAbilitySystemComponent(), Lethal)));
+		}
+
+		TEST_METHOD(AQuestItemsProgressReachesItsHolderAndItEvolves)
+		{
+			// Fixture value: two last hits complete Reclamation here; the catalog's threshold is play tuning.
+			constexpr int32 ShortQuest = 2;
+			Items = UVeyraItemsTuningSubsystem::Get();
+			Items.Quests[Reclaimer()].Threshold = ShortQuest;
+			UVeyraItemsTuningSubsystem::SetTestOverride(&Items);
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.UntilServer(TEXT("The player stands at its fountain"), [](FState& State) { return IsAtFountain(State); })
+				.ThenClient(TEXT("Buy Flux Reclaimer"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestBuyItem(Reclaimer()); })
+				.UntilServer(TEXT("It arrives"), [](FState& State) { return CountOf(ServerParticipant(State), Reclaimer()) == 1; })
+				.ThenServer(TEXT("A last hit on an enemy lane Fluxborn"), [this](FState& State) { LastHitEnemyFluxborn(State); })
+				.UntilClient(TEXT("The buyer sees its quest advance"), 0, [](FState& State) {
+					const AVeyraPlayerState& Own = *LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>();
+					return Own.FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().ContainsByPredicate(
+						[](const FVeyraInventorySlot& Slot) { return Slot.Item == Reclaimer() && Slot.QuestProgress == 1; });
+				})
+				.ThenServer(TEXT("Another"), [this](FState& State) { LastHitEnemyFluxborn(State); })
+				.UntilClient(TEXT("It becomes Wayline Reservoir on the buyer's machine"), 0, [](FState& State) {
+					const AVeyraPlayerState& Own = *LocalControllerOf(State.World)->GetPlayerState<AVeyraPlayerState>();
+					return CountOf(Own, Reservoir()) == 1 && CountOf(Own, Reclaimer()) == 0;
+				});
 		}
 	};
 }

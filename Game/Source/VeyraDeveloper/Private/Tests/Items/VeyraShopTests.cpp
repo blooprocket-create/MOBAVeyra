@@ -17,6 +17,8 @@
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
+#include "Tests/Abilities/VeyraTestFluxborn.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
@@ -252,6 +254,60 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::None));
 			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid(), TEXT("the plate's step came before the choice")));
 			ASSERT_THAT(IsTrue(Gold->GetGold() == Purse));
+		}
+
+		/** Kills a fixture unit of Team with a lethal hit from the participant. */
+		template <typename TUnit>
+		void KillOne(EVeyraTeam Team)
+		{
+			constexpr double Lethal = 1.0e6;
+			TUnit& Unit = Spawner.SpawnActorAt<TUnit>(FVector(300.0, 0.0, 0.0), FRotator::ZeroRotator);
+			if constexpr (std::is_same_v<TUnit, AVeyraTestFluxborn>)
+			{
+				Unit.SetVeyraTeam(Team);
+			}
+			UAbilitySystemComponent& Target = *Unit.GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(Target, VeyraCombatTests::ExampleStats())));
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Lethal });
+			Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Participant->GetAbilitySystemComponent(), Target, Damage)));
+		}
+
+		int32 ProgressOf(const TCHAR* Item) const
+		{
+			const int32 Slot = SlotOf(Item);
+			return Slot == INDEX_NONE ? INDEX_NONE : Inventory->GetSlots()[Slot].QuestProgress;
+		}
+
+		TEST_METHOD(LastHitsOnEnemyLaneFluxbornAdvanceTheQuestUntilItEvolves)
+		{
+			Tuning = WithQuest(Tuning);
+			// Fixture value: the evolution's stats show it arrived.
+			constexpr double ReservoirHealth = 250.0;
+			Tuning.Items[ItemId(TEXT("test_reservoir"))].Stats.Health = ReservoirHealth;
+			const FVeyraContentId Reclaimer = ItemId(TEXT("test_reclaimer"));
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Reclaimer) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Reclaimer) == EVeyraShopRefusal::QuestLineHeld));
+			const double MaxHealth = Participant->GetAbilitySystemComponent()->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+
+			// Only a last hit on an enemy lane Fluxborn counts (Item Bible §10).
+			KillOne<AVeyraTestFluxborn>(EVeyraTeam::A);
+			KillOne<AVeyraTestWildlife>(EVeyraTeam::None);
+			ASSERT_THAT(AreEqual(0, ProgressOf(TEXT("test_reclaimer")), TEXT("not an ally, nor wildlife")));
+			KillOne<AVeyraTestFluxborn>(EVeyraTeam::B);
+			ASSERT_THAT(AreEqual(1, ProgressOf(TEXT("test_reclaimer"))));
+			KillOne<AVeyraTestFluxborn>(EVeyraTeam::B);
+			ASSERT_THAT(IsTrue(CountOf(TEXT("test_reclaimer")) == 0 && CountOf(TEXT("test_reservoir")) == 1, TEXT("it evolved in place")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Participant->GetAbilitySystemComponent()->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()),
+				MaxHealth + ReservoirHealth), TEXT("with its stats")));
+
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::AlreadyUsed, TEXT("the evolution was benefit")));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Reclaimer) == EVeyraShopRefusal::QuestLineHeld, TEXT("the line is held")));
+			const double Before = Gold->GetGold();
+			ASSERT_THAT(IsTrue(Subsystem->Sell(*Participant, SlotOf(TEXT("test_reservoir"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Gold->GetGold() - Before, 450.0 * Tuning.Shop.ResaleFraction), TEXT("it sells as its base form did")));
 		}
 
 		TEST_METHOD(SellingHappensAtTheFountainForTheResaleValue)

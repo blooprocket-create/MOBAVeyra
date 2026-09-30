@@ -67,4 +67,39 @@ namespace VeyraItemsTests
 		Add(TEXT("test_rival"), TEXT("test_harness"));
 		return Tuning;
 	}
+
+	/**
+	 * Tuning with a quest line (Item Bible §10; ADR-025 §3): test_reclaimer, a Quest Item, evolves after
+	 * two last hits into test_reservoir, which the shop never sells and which carries Residual Current
+	 * (test_current); test_haven is a Masterwork built on the reservoir. Fixture values.
+	 */
+	inline FVeyraItemsTuning WithQuest(FVeyraItemsTuning Tuning)
+	{
+		const auto Add = [&Tuning](const TCHAR* Id, int32 Tier, double Cost) -> FVeyraItemDefinition& {
+			FVeyraItemDefinition& Item = Tuning.Items.Add(ItemId(Id));
+			Item.Tier = Tier;
+			Item.Cost = Cost;
+			Item.StackLimit = 1;
+			Item.Category = EVeyraItemCategory::Quest;
+			return Item;
+		};
+		Add(TEXT("test_reclaimer"), 1, 450.0);
+		Add(TEXT("test_reservoir"), 2, 0.0).Attunement = { ItemId(TEXT("test_current")) };
+		FVeyraQuestTuning& Quest = Tuning.Quests.Add(ItemId(TEXT("test_reclaimer")));
+		Quest.Threshold = 2;
+		Quest.EvolvesInto = ItemId(TEXT("test_reservoir"));
+		FVeyraResidualCurrentTuning& Current = Tuning.ResidualCurrent.Add(ItemId(TEXT("test_current")));
+		Current.CurrentPerLastHit = 2.0;
+		Current.CurrentCap = 5.0;
+		Current.QuietSeconds = 1.0;
+		Current.CurrentPerSecond = 1.0;
+		Current.RegenerationAmplification = 3.0;
+		FVeyraItemDefinition& Haven = Tuning.Items.Add(ItemId(TEXT("test_haven")));
+		Haven.Tier = 3;
+		Haven.Cost = 500.0;
+		Haven.StackLimit = 1;
+		Haven.Components = { ItemId(TEXT("test_reservoir")), ItemId(TEXT("test_plate")) };
+		Haven.Attunement = { ItemId(TEXT("test_weight")) };
+		return Tuning;
+	}
 }

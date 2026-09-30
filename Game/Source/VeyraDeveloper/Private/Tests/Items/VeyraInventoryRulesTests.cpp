@@ -3,6 +3,7 @@
 #include "CQTest.h"
 #include "Inventory/VeyraEquipmentRules.h"
 #include "Inventory/VeyraInventoryRules.h"
+#include "Quests/VeyraQuestRules.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
 #include "Tuning/VeyraItemsTuning.h"
 
@@ -148,6 +149,52 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Mythicals, Slots, Queue, Harbor, Harbor).Refusal == EVeyraShopRefusal::None, TEXT("its own, again")));
 			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Mythicals, Slots, Queue, Harbor, ItemId(TEXT("test_temper"))).Refusal == EVeyraShopRefusal::None,
 				TEXT("the choice binds only Mythicals")));
+		}
+
+		TEST_METHOD(AnEvolvedQuestItemIsNeverSoldNorBoughtForARecipe)
+		{
+			const FVeyraItemsTuning Quest = WithQuest(Tuning);
+			const FVeyraContentId Reservoir = ItemId(TEXT("test_reservoir"));
+			const FVeyraContentId Haven = ItemId(TEXT("test_haven"));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Reservoir).Refusal == EVeyraShopRefusal::NotForSale));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Haven).Refusal == EVeyraShopRefusal::NotForSale,
+				TEXT("a recipe that needs it waits for it (ADR-025 §3)")));
+			Slots[0].Item = Reservoir;
+			Slots[0].Count = 1;
+			const FVeyraPurchaseQuote Built = VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Haven);
+			ASSERT_THAT(IsTrue(Built.Refusal == EVeyraShopRefusal::None && Built.Needs.Contains(Reservoir)));
+			ASSERT_THAT(IsTrue(Built.Price == Quest.Items[ItemId(TEXT("test_plate"))].Cost + Quest.Items[Haven].Cost, TEXT("held, it is consumed")));
+		}
+
+		TEST_METHOD(OneItemOfAQuestLineAtATime)
+		{
+			const FVeyraItemsTuning Quest = WithQuest(Tuning);
+			const FVeyraContentId Reclaimer = ItemId(TEXT("test_reclaimer"));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Reclaimer).Refusal == EVeyraShopRefusal::None));
+			FVeyraPendingPurchase& Waiting = Queue.AddDefaulted_GetRef();
+			Waiting.Item = Reclaimer;
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Reclaimer).Refusal == EVeyraShopRefusal::QuestLineHeld,
+				TEXT("one waiting counts (Item Bible §2.5)")));
+			Queue.Reset();
+			Slots[0].Item = ItemId(TEXT("test_reservoir"));
+			Slots[0].Count = 1;
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Reclaimer).Refusal == EVeyraShopRefusal::QuestLineHeld,
+				TEXT("and so does its evolution")));
+		}
+
+		TEST_METHOD(EachLastHitAdvancesTheQuestThenItEvolvesInPlace)
+		{
+			const FVeyraItemsTuning Quest = WithQuest(Tuning);
+			Slots[1].Item = ItemId(TEXT("test_reclaimer"));
+			Slots[1].Count = 1;
+			Slots[1].PaidEach = 450.0;
+			ASSERT_THAT(IsTrue(VeyraQuests::Advance(Quest, Slots, EVeyraQuestObjective::LaneFluxbornLastHits).IsEmpty() && Slots[1].QuestProgress == 1));
+			ASSERT_THAT(IsFalse(Slots[1].bBenefited, TEXT("progress alone is no benefit")));
+			const TArray<FVeyraContentId> Evolved = VeyraQuests::Advance(Quest, Slots, EVeyraQuestObjective::LaneFluxbornLastHits);
+			ASSERT_THAT(IsTrue(Evolved.Num() == 1 && Slots[1].Item == ItemId(TEXT("test_reservoir")) && Slots[1].QuestProgress == 0));
+			ASSERT_THAT(IsTrue(Slots[1].PaidEach == 450.0 && Slots[1].bBenefited, TEXT("it keeps its Gold, and undo cannot take it back")));
+			ASSERT_THAT(IsTrue(VeyraInventory::ResaleValue(Quest, Slots[1]) == 450.0 * Quest.Shop.ResaleFraction, TEXT("it resells as its base form")));
+			ASSERT_THAT(IsTrue(VeyraQuests::Advance(Quest, Slots, EVeyraQuestObjective::LaneFluxbornLastHits).IsEmpty(), TEXT("the evolution has no quest")));
 		}
 
 		TEST_METHOD(OnePairOfBootsWhichUpgrade)

@@ -44,6 +44,10 @@ const TCHAR* LexToString(EVeyraShopRefusal Refusal)
 		return TEXT("no charges left");
 	case EVeyraShopRefusal::MythicalTaken:
 		return TEXT("another Mythical is chosen");
+	case EVeyraShopRefusal::NotForSale:
+		return TEXT("only a quest makes it");
+	case EVeyraShopRefusal::QuestLineHeld:
+		return TEXT("an item of its quest line is held");
 	}
 	return TEXT("unknown");
 }
@@ -72,9 +76,11 @@ namespace
 
 	/**
 	 * Gold to obtain Item from Slots, consuming owned items where it can, recursively as League does,
-	 * and recording each one consumed in Needs. Item itself is never taken: it is being bought.
+	 * and recording each one consumed in Needs. Item itself is never taken: it is being bought. A
+	 * missing part the shop never sells sets bNeedsUnsold, and is not bought (ADR-025 §3).
 	 */
-	double Resolve(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventorySlot>& Slots, const FVeyraItemDefinition& Definition, TArray<FVeyraContentId>& Needs)
+	double Resolve(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventorySlot>& Slots, const FVeyraItemDefinition& Definition, TArray<FVeyraContentId>& Needs,
+		bool& bNeedsUnsold)
 	{
 		double Price = Definition.Cost;
 		for (const FVeyraContentId& Component : Definition.Components)
@@ -83,9 +89,13 @@ namespace
 			{
 				Needs.Add(Component);
 			}
+			else if (VeyraItems::IsEvolutionOnly(Tuning, Component))
+			{
+				bNeedsUnsold = true;
+			}
 			else if (const FVeyraItemDefinition* ComponentDefinition = Tuning.Items.Find(Component))
 			{
-				Price += Resolve(Tuning, Slots, *ComponentDefinition, Needs);
+				Price += Resolve(Tuning, Slots, *ComponentDefinition, Needs, bNeedsUnsold);
 			}
 		}
 		return Price;
@@ -103,6 +113,8 @@ namespace
 		bool bHeld = false;
 		bool bRoomInStack = false;
 		bool bFreeSlot = false;
+		bool bLineHeld = false;
+		const FVeyraContentId Line = VeyraItems::QuestLine(Tuning, Item);
 		for (const FVeyraInventorySlot& Slot : Slots)
 		{
 			if (Slot.IsEmpty())
@@ -114,6 +126,12 @@ namespace
 			Boots += Held && Held->Category == EVeyraItemCategory::Boots ? Slot.Count : 0;
 			bHeld |= Slot.Item == Item;
 			bRoomInStack |= Slot.Item == Item && Slot.Count < Definition->StackLimit;
+			bLineHeld |= Line.IsValid() && VeyraItems::QuestLine(Tuning, Slot.Item) == Line;
+		}
+		// One item of a quest line at a time, so its progress is never duplicated (Item Bible §2.5).
+		if (bLineHeld)
+		{
+			return EVeyraShopRefusal::QuestLineHeld;
 		}
 		// A Masterwork is held once (ADR-012 §9), and so is a refillable consumable (Item Bible §12).
 		const FVeyraConsumableTuning* Consumable = Tuning.Consumables.Find(Item);
@@ -206,10 +224,15 @@ FVeyraPurchaseQuote Quote(const FVeyraItemsTuning& Tuning, TConstArrayView<FVeyr
 	}
 	TArray<FVeyraInventorySlot> After;
 	Simulate(Tuning, Slots, Queue, After);
-	Result.Price = Resolve(Tuning, After, *Definition, Result.Needs);
+	bool bNeedsUnsold = false;
+	Result.Price = Resolve(Tuning, After, *Definition, Result.Needs, bNeedsUnsold);
 	// One Mythical per participant per match: the first bought stays theirs, even once sold (ADR-025 §2).
 	const bool bMythicalTaken = VeyraItems::IsMythical(*Definition) && Mythical.IsValid() && Mythical != Item;
-	Result.Refusal = bMythicalTaken ? EVeyraShopRefusal::MythicalTaken : RefusalToHold(Tuning, After, Item);
+	// An evolved Quest Item comes only from its quest, and a recipe that needs one waits for it (ADR-025 §3).
+	const bool bNotForSale = bNeedsUnsold || VeyraItems::IsEvolutionOnly(Tuning, Item);
+	Result.Refusal = bMythicalTaken ? EVeyraShopRefusal::MythicalTaken
+		: bNotForSale              ? EVeyraShopRefusal::NotForSale
+								   : RefusalToHold(Tuning, After, Item);
 	return Result;
 }
 

@@ -17,6 +17,8 @@
 #include "Shop/VeyraShopSubsystem.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Quests/VeyraQuestRules.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatVerbs.h"
@@ -28,6 +30,7 @@ void UVeyraAttunementSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (UVeyraCombatEventSubsystem* Events = Collection.InitializeDependency<UVeyraCombatEventSubsystem>())
 	{
 		DamageDealtHandle = Events->OnDamageDealt.AddUObject(this, &UVeyraAttunementSubsystem::OnDamageDealt);
+		DeathHandle = Events->OnDeath.AddUObject(this, &UVeyraAttunementSubsystem::OnDeath);
 	}
 }
 
@@ -52,9 +55,11 @@ void UVeyraAttunementSubsystem::Deinitialize()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(TemperingTimer);
+		World->GetTimerManager().ClearTimer(CurrentTimer);
 		if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
 		{
 			Events->OnDamageDealt.Remove(DamageDealtHandle);
+			Events->OnDeath.Remove(DeathHandle);
 		}
 	}
 	Super::Deinitialize();
@@ -64,6 +69,11 @@ void UVeyraAttunementSubsystem::OnDamageDealt(const FVeyraDamageDealtEvent& Even
 {
 	UAbilitySystemComponent* Holder = Event.Source.Get();
 	UAbilitySystemComponent* Target = Event.Target.Get();
+	// The target's side: when a unit last took damage from an enemy Vanguard (ADR-025 §5).
+	if (Holder && Target && Event.Total() > 0.0 && VeyraUnits::IsVanguard(Holder->GetOwner()) && VeyraTargeting::AreHostile(Holder->GetOwner(), Target->GetOwner()))
+	{
+		VanguardDamageTakenAt.Add(Target, GetWorld()->GetTimeSeconds());
+	}
 	const AActor* Participant = Holder ? Holder->GetOwner() : nullptr;
 	const UVeyraInventoryComponent* Inventory = Participant ? Participant->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
 	// Each acts on damage that reached an enemy; all but Endless Cleave only on an enemy Vanguard (Item Bible §8–§9).
@@ -119,6 +129,125 @@ void UVeyraAttunementSubsystem::OnDamageDealt(const FVeyraDamageDealtEvent& Even
 		{
 			TemperedByConflict(Attunement, Event, *Holder, *Target, Now);
 		}
+	}
+}
+
+TOptional<double> UVeyraAttunementSubsystem::GetVanguardDamageTakenAt(const UAbilitySystemComponent& Holder) const
+{
+	const double* At = VanguardDamageTakenAt.Find(&Holder);
+	return At ? TOptional<double>(*At) : TOptional<double>();
+}
+
+void UVeyraAttunementSubsystem::OnDeath(const FVeyraDeathEvent& Death)
+{
+	AActor* Participant = VeyraQuests::LaneFluxbornLastHitter(Death);
+	const UVeyraInventoryComponent* Inventory = Participant ? Participant->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
+	UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>();
+	if (!Inventory || !Shop || !Participant->HasAuthority())
+	{
+		return;
+	}
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	TArray<TPair<FVeyraContentId, double>, TInlineAllocator<2>> Stored;
+	for (const FVeyraInventorySlot& Slot : Inventory->GetSlots())
+	{
+		const FVeyraItemDefinition* Item = Slot.IsEmpty() ? nullptr : Tuning.Items.Find(Slot.Item);
+		if (!Item)
+		{
+			continue;
+		}
+		for (const FVeyraContentId& Attunement : Item->Attunement)
+		{
+			if (const FVeyraResidualCurrentTuning* Residual = Tuning.ResidualCurrent.Find(Attunement))
+			{
+				Stored.Emplace(Attunement, FMath::Min(Slot.Current + Residual->CurrentPerLastHit, Residual->CurrentCap));
+			}
+		}
+	}
+	for (const TPair<FVeyraContentId, double>& Entry : Stored)
+	{
+		Shop->SetCurrent(*Participant, Entry.Key, Entry.Value);
+	}
+	if (!Stored.IsEmpty() && !GetWorld()->GetTimerManager().IsTimerActive(CurrentTimer))
+	{
+		GetWorld()->GetTimerManager().SetTimer(CurrentTimer, FTimerDelegate::CreateUObject(this, &UVeyraAttunementSubsystem::UpdateCurrent),
+			static_cast<float>(UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds), /*bLoop*/ true);
+	}
+}
+
+void UVeyraAttunementSubsystem::UpdateCurrent()
+{
+	UWorld* World = GetWorld();
+	UVeyraShopSubsystem* Shop = World ? World->GetSubsystem<UVeyraShopSubsystem>() : nullptr;
+	if (!Shop)
+	{
+		return;
+	}
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	const double Now = World->GetTimeSeconds();
+	// Each call pays for the tick to come, and the amplification outlasts it until the next call renews it.
+	const double TickSeconds = UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds;
+	constexpr double StatusTicks = 2.0;
+	bool bAnyStored = false;
+	TArray<APlayerState*, TInlineAllocator<10>> Participants;
+	for (TActorIterator<APlayerState> It(World); It; ++It)
+	{
+		Participants.Add(*It);
+	}
+	for (APlayerState* Participant : Participants)
+	{
+		const UVeyraInventoryComponent* Inventory = Participant->FindComponentByClass<UVeyraInventoryComponent>();
+		UAbilitySystemComponent* Holder = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Participant);
+		if (!Inventory || !Holder)
+		{
+			continue;
+		}
+		TArray<TPair<FVeyraContentId, double>, TInlineAllocator<2>> Held;
+		for (const FVeyraInventorySlot& Slot : Inventory->GetSlots())
+		{
+			const FVeyraItemDefinition* Item = Slot.IsEmpty() ? nullptr : Tuning.Items.Find(Slot.Item);
+			if (!Item)
+			{
+				continue;
+			}
+			for (const FVeyraContentId& Attunement : Item->Attunement)
+			{
+				if (Tuning.ResidualCurrent.Contains(Attunement))
+				{
+					Held.Emplace(Attunement, Slot.Current);
+				}
+			}
+		}
+		const double* TakenAt = VanguardDamageTakenAt.Find(Holder);
+		const bool bMissingHealth = Holder->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) < Holder->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+		for (const TPair<FVeyraContentId, double>& Entry : Held)
+		{
+			const FVeyraResidualCurrentTuning& Residual = Tuning.ResidualCurrent.FindChecked(Entry.Key);
+			const bool bQuiet = !TakenAt || Now - *TakenAt >= Residual.QuietSeconds;
+			// Spent only while it restores something: a holder at full Health keeps its Current (ADR-025 §8).
+			if (bQuiet && bMissingHealth && Entry.Value > 0.0 && VeyraTargeting::IsAlive(Participant))
+			{
+				const double Left = Entry.Value - FMath::Min(Entry.Value, Residual.CurrentPerSecond * TickSeconds);
+				Shop->SetCurrent(*Participant, Entry.Key, Left);
+				FVeyraStatusSpec Amplified;
+				Amplified.Id = Entry.Key;
+				Amplified.Kind = EVeyraStatusKind::HealthRegeneration;
+				Amplified.Magnitude = Residual.RegenerationAmplification - 1.0;
+				Amplified.DurationSeconds = TickSeconds * StatusTicks;
+				VeyraCombat::ApplyStatus(*Holder, *Holder, Amplified);
+				bAnyStored |= Left > 0.0;
+			}
+			else
+			{
+				// Enemy-Vanguard damage, full Health or death suspends it; the Current keeps (Item Bible §10).
+				VeyraCombat::RemoveStatus(*Holder, Entry.Key);
+				bAnyStored |= Entry.Value > 0.0;
+			}
+		}
+	}
+	if (!bAnyStored)
+	{
+		World->GetTimerManager().ClearTimer(CurrentTimer);
 	}
 }
 

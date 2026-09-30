@@ -12,6 +12,7 @@
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
+#include "Quests/VeyraQuestRules.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Stats/VeyraEquipmentStats.h"
 #include "Targeting/VeyraTargeting.h"
@@ -116,9 +117,11 @@ EVeyraShopRefusal UVeyraShopSubsystem::GrantItem(AActor& Participant, const FVey
 		return EVeyraShopRefusal::NotNow;
 	}
 	// A purchase's rules without its price: the same slots, limits and recipe, its owned components consumed.
+	// Only an evolved Quest Item, which no purchase makes, may be given outright (ADR-025 §3).
 	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
 	const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->Slots, Inventory->Queue, Inventory->Mythical, Item);
-	if (Quote.Refusal != EVeyraShopRefusal::None)
+	const bool bEvolvedGrant = Quote.Refusal == EVeyraShopRefusal::NotForSale && VeyraItems::IsEvolutionOnly(Tuning, Item);
+	if (Quote.Refusal != EVeyraShopRefusal::None && !bEvolvedGrant)
 	{
 		return Quote.Refusal;
 	}
@@ -341,6 +344,33 @@ void UVeyraShopSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	if (UVeyraCombatEventSubsystem* Events = Collection.InitializeDependency<UVeyraCombatEventSubsystem>())
 	{
 		HostileDamageHandle = Events->OnHostileDamage.AddUObject(this, &UVeyraShopSubsystem::OnHostileDamage);
+		DeathHandle = Events->OnDeath.AddUObject(this, &UVeyraShopSubsystem::OnDeath);
+	}
+}
+
+void UVeyraShopSubsystem::OnDeath(const FVeyraDeathEvent& Death)
+{
+	AActor* Participant = VeyraQuests::LaneFluxbornLastHitter(Death);
+	UVeyraInventoryComponent* Inventory = Participant ? Participant->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
+	if (!Inventory || !Participant->HasAuthority())
+	{
+		return;
+	}
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
+	const TArray<FVeyraContentId> Evolved = VeyraQuests::Advance(Tuning, Slots, EVeyraQuestObjective::LaneFluxbornLastHits);
+	if (Slots == Inventory->Slots)
+	{
+		return;
+	}
+	Inventory->SetSlots(MoveTemp(Slots));
+	for (const FVeyraContentId& Item : Evolved)
+	{
+		UE_LOG(LogVeyraItems, Log, TEXT("%s's quest is complete: it holds %s."), *GetNameSafe(Participant), *Item.ToString());
+	}
+	if (!Evolved.IsEmpty())
+	{
+		ApplyItems(*Participant);
 	}
 }
 
@@ -606,6 +636,30 @@ void UVeyraShopSubsystem::GrowHealth(AActor& Participant, const FVeyraContentId&
 	UE_LOG(LogVeyraItems, Log, TEXT("%s's %s grew %g Max Health."), *GetNameSafe(&Participant), *Attunement.ToString(), Health);
 }
 
+void UVeyraShopSubsystem::SetCurrent(AActor& Participant, const FVeyraContentId& Attunement, double Current)
+{
+	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
+	if (!Inventory || !FMath::IsFinite(Current))
+	{
+		return;
+	}
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
+	FVeyraInventorySlot* Holding = Slots.FindByPredicate([&Tuning, &Attunement](const FVeyraInventorySlot& Slot) {
+		const FVeyraItemDefinition* Item = Slot.IsEmpty() ? nullptr : Tuning.Items.Find(Slot.Item);
+		return Item && Item->Attunement.Contains(Attunement);
+	});
+	const double Stored = FMath::Max(0.0, Current);
+	if (!Holding || Holding->Current == Stored)
+	{
+		return;
+	}
+	// Spending it has given benefit: no undo takes the item back (§12).
+	Holding->bBenefited |= Stored < Holding->Current;
+	Holding->Current = Stored;
+	Inventory->SetSlots(MoveTemp(Slots));
+}
+
 void UVeyraShopSubsystem::NoteActiveUsed(AActor& Participant, int32 Index)
 {
 	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
@@ -654,6 +708,7 @@ void UVeyraShopSubsystem::Deinitialize()
 		if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
 		{
 			Events->OnHostileDamage.Remove(HostileDamageHandle);
+			Events->OnDeath.Remove(DeathHandle);
 		}
 	}
 	Restorations.Reset();

@@ -68,6 +68,16 @@
       "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 25, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
+    "flux_reclaimer": {
+      "provenance": "Provisional", "tier": 1, "category": "Quest", "components": [], "cost": 450, "stackLimit": 1,
+      "stats": { "health": 100, "healthRegeneration": 1, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "wayline_reservoir": {
+      "provenance": "Provisional", "tier": 2, "category": "Quest", "components": [], "cost": 0, "stackLimit": 1,
+      "stats": { "health": 250, "healthRegeneration": 3, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["residual_current"]
+    },
     "field_tonic": {
       "provenance": "Provisional", "tier": 1, "category": "Consumable", "components": [], "cost": 50, "stackLimit": 5,
       "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
@@ -254,6 +264,9 @@
       "active": [], "attunement": ["tempered_by_conflict"]
     }
   },
+  "quests": {
+    "flux_reclaimer": { "provenance": "Provisional", "objective": "LaneFluxbornLastHits", "threshold": 40, "evolvesInto": "wayline_reservoir" }
+  },
   "consumables": {
     "field_tonic": { "provenance": "Provisional", "healthRestored": 120, "durationSeconds": 15, "resaleFraction": 0.4, "charges": 0 },
     "flux_flask": { "provenance": "Provisional", "healthRestored": 90, "durationSeconds": 12, "resaleFraction": 0.4, "charges": 2 }
@@ -290,5 +303,8 @@
   },
   "temperedByConflict": {
     "tempered_by_conflict": { "provenance": "Provisional", "radius": 700, "chargeSeconds": 3, "checkSeconds": 0.25, "baseDamage": 50, "maxHealthFraction": 0.08, "healthGainFraction": 0.1, "cooldownSeconds": 30 }
+  },
+  "residualCurrent": {
+    "residual_current": { "provenance": "Provisional", "currentPerLastHit": 1, "currentCap": 30, "quietSeconds": 5, "currentPerSecond": 1, "regenerationAmplification": 3 }
   }
 }

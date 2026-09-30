@@ -15,6 +15,9 @@
 #include "Shop/VeyraShopSubsystem.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
+#include "Tests/Abilities/VeyraTestFluxborn.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -111,6 +114,73 @@ namespace VeyraItemsTests
 			{
 				World.Tick(LEVELTICK_TimeOnly, WorldStep);
 			}
+		}
+
+		void KillEnemyFluxborn()
+		{
+			constexpr double Lethal = 1.0e6;
+			AVeyraTestFluxborn& Minion = Spawner.SpawnActorAt<AVeyraTestFluxborn>(FVector(300.0, 0.0, 0.0), FRotator::ZeroRotator);
+			Minion.SetVeyraTeam(EVeyraTeam::B);
+			ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(*Minion.GetAbilitySystemComponent(), VeyraCombatTests::ExampleStats())));
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Lethal });
+			Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(Holder(), *Minion.GetAbilitySystemComponent(), Damage)));
+		}
+
+		double StoredCurrent() const
+		{
+			const FVeyraInventorySlot* Slot = Participant->FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().FindByPredicate(
+				[](const FVeyraInventorySlot& Each) { return Each.Item == ItemId(TEXT("test_reservoir")); });
+			return Slot ? Slot->Current : -1.0;
+		}
+
+		bool Amplified() const
+		{
+			return Participant->FindComponentByClass<UVeyraStatusComponent>()->Has(EVeyraStatusKind::HealthRegeneration);
+		}
+
+		TEST_METHOD(ResidualCurrentStoresLastHitsAndAmplifiesRegenerationOnceQuiet)
+		{
+			Tuning = WithQuest(Tuning);
+			const FVeyraResidualCurrentTuning& Residual = Tuning.ResidualCurrent[ItemId(TEXT("test_current"))];
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+			ASSERT_THAT(IsTrue(Shop->GrantItem(*Participant, ItemId(TEXT("test_reservoir"))) == EVeyraShopRefusal::None));
+
+			// Each last hit stores Current, up to the cap (Item Bible §10).
+			KillEnemyFluxborn();
+			ASSERT_THAT(IsTrue(StoredCurrent() == Residual.CurrentPerLastHit));
+			KillEnemyFluxborn();
+			KillEnemyFluxborn();
+			ASSERT_THAT(IsTrue(StoredCurrent() == Residual.CurrentCap, FString::SanitizeFloat(StoredCurrent())));
+
+			// At full Health it keeps its Current (ADR-025 §8).
+			Attunements.UpdateCurrent();
+			ASSERT_THAT(IsTrue(StoredCurrent() == Residual.CurrentCap && !Amplified()));
+
+			// Missing Health and clear of enemy Vanguards, it spends a tick's Current to amplify regeneration.
+			const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
+			Holder().SetNumericAttributeBase(Health, Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) / 2.0f);
+			Attunements.UpdateCurrent();
+			const double Tick = UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StoredCurrent(), Residual.CurrentCap - Residual.CurrentPerSecond * Tick), FString::SanitizeFloat(StoredCurrent())));
+			ASSERT_THAT(IsTrue(Amplified()));
+
+			// An enemy Vanguard's damage suspends it and keeps the Current.
+			FVeyraRawDamageEvent Poke;
+			Poke.Components.Add({ EVeyraDamageType::TrueDamage, 1.0 });
+			Poke.Delivery = EVeyraDamageDelivery::BasicAttack;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Enemy, Holder(), Poke)));
+			ASSERT_THAT(IsTrue(Attunements.GetVanguardDamageTakenAt(Holder()).IsSet()));
+			const double Kept = StoredCurrent();
+			Attunements.UpdateCurrent();
+			ASSERT_THAT(IsTrue(StoredCurrent() == Kept && !Amplified()));
+
+			// After its quiet time it spends again.
+			RunFor(Residual.QuietSeconds + WorldStep);
+			Holder().SetNumericAttributeBase(Health, Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) / 2.0f);
+			Attunements.UpdateCurrent();
+			ASSERT_THAT(IsTrue(StoredCurrent() < Kept && Amplified()));
 		}
 
 		TEST_METHOD(ReprisalGuardShieldsAShareOfTheHitThenWaits)

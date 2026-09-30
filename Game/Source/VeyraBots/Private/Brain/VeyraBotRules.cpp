@@ -19,7 +19,8 @@ namespace
 	bool NeverBuyable(EVeyraShopRefusal Refusal)
 	{
 		return Refusal == EVeyraShopRefusal::UnknownItem || Refusal == EVeyraShopRefusal::Unique || Refusal == EVeyraShopRefusal::BootsLimit
-			|| Refusal == EVeyraShopRefusal::InventoryFull || Refusal == EVeyraShopRefusal::MythicalTaken;
+			|| Refusal == EVeyraShopRefusal::InventoryFull || Refusal == EVeyraShopRefusal::MythicalTaken || Refusal == EVeyraShopRefusal::NotForSale
+			|| Refusal == EVeyraShopRefusal::QuestLineHeld;
 	}
 
 	/** Each held item and queued purchase, by count: what a recipe's parts draw on, each copy once. */

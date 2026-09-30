@@ -258,6 +258,10 @@ FText DescribeRefusal(EVeyraShopRefusal Refusal)
 		return LOCTEXT("NoCharges", "It is empty: it refills at your fountain, and when your side secures a Flux Well.");
 	case EVeyraShopRefusal::MythicalTaken:
 		return LOCTEXT("MythicalTaken", "You have chosen another Mythical this match: one Mythical per match.");
+	case EVeyraShopRefusal::NotForSale:
+		return LOCTEXT("NotForSale", "Only a quest makes it, or a part it needs: complete the quest, then buy it.");
+	case EVeyraShopRefusal::QuestLineHeld:
+		return LOCTEXT("QuestLineHeld", "You hold an item of its quest already: one at a time.");
 	}
 	return FText::GetEmpty();
 }

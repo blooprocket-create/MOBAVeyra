@@ -52,17 +52,20 @@ A survey of the code (2026-09-30) found:
 ### 3. Quest Items
 
 - **Category.** `category` gains `Quest`.
-- **Quests.** A Quest Item names its quest in a `quest` map entry:
+- **Quests.** `quests` maps a Quest Item's ID to its quest:
   - `objective`: `LaneFluxbornLastHits`, the only one today;
   - `threshold`;
-  - `evolvesInto`: the item it becomes.
-- **Evolution-only items.** `sale: EvolutionOnly` marks an item the shop never sells, such as Wayline Reservoir. Validation lets such an item sit above Tier 1 without a recipe. A recipe that needs it waits until the player holds it; the shop never buys it for them (`NotForSale`).
+  - `evolvesInto`: the Quest Item it becomes.
+- **Evolution-only items.** An item a quest evolves into, such as Wayline Reservoir, is never sold. No field marks it: being some quest's `evolvesInto` is what makes it so, and the data cannot sell one by mistake.
+  - It has no recipe, whatever its tier, and costs 0. Its Gold is its base form's, which `TotalCost` counts for a recipe built on it.
+  - A recipe that needs it waits until the player holds it; the shop never buys it for them (`NotForSale`).
+  - Flux Reclaimer is Tier 1 and Wayline Reservoir Tier 2, so The Last Harbor's recipe stays below Tier 4.
 - **One quest line at a time.** An item evolved from a Quest Item belongs to the same line. Holding any item of a line refuses buying another.
 - **Progress.** Progress lives on the holding slot (`FVeyraInventorySlot::QuestProgress`), replicated for the HUD.
   - A credited last hit on an enemy lane Fluxborn advances it, through Combat's `OnDeath` with the holder's unit as killer.
   - Reaching the threshold evolves the item in place. It keeps the Gold paid, so it resells at the base form's price. It ends the purchase's undo, as any benefit does.
   - Selling or undoing loses the progress. Nothing pays Gold on completion, so the shop cannot farm it.
-- **Passives.** A non-Attunement passive on a Quest Item, such as Residual Current, is an Attunement-kind map entry named by the item's `passive` field. Validation allows `passive` only on Quest Items and their evolutions.
+- **Passives.** A Quest Item's passive, such as Residual Current, sits in its `attunement` list and is defined in an Attunement-kind map, like any Attunement. Validation allows at most one on a Quest Item.
 
 ### 4. Spell Shields (Combat §19)
 
@@ -129,6 +132,7 @@ Numbers are prototype tuning in `Items.json`, provisional per §8.
    - Flux Reclaimer: 450, evolving after 40 last hits.
    - The Last Harbor: about 4300 in total.
 9. **Icons.** The 19 items show generated placeholder icons until the author's art arrives.
+10. **Current is spent only while its holder is missing Health.** A holder at full Health keeps its stored Current for later.
 
 ## Consequences
 

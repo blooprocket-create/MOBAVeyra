@@ -40,7 +40,20 @@ struct FVeyraInventorySlot
 	UPROPERTY()
 	double GrownHealth = 0.0;
 
+	/** Progress toward its quest (Item Bible §2.5; ADR-025 §3): lost if the item is sold, reset when it evolves. */
+	UPROPERTY()
+	int32 QuestProgress = 0;
+
+	/**
+	 * Current its Residual Current stores (ADR-025 §7): part of the item, so it survives death and
+	 * leaves with the item.
+	 */
+	UPROPERTY()
+	double Current = 0.0;
+
 	bool IsEmpty() const { return !Item.IsValid() || Count <= 0; }
+
+	bool operator==(const FVeyraInventorySlot&) const = default;
 };
 
 /**
@@ -107,6 +120,10 @@ enum class EVeyraShopRefusal : uint8
 	NoCharges,
 	/** Another Mythical is the participant's for this match (Item Bible §11; ADR-025 §2). */
 	MythicalTaken,
+	/** The shop never sells it, or a part the recipe still needs: only a quest makes it (ADR-025 §3). */
+	NotForSale,
+	/** An item of its quest line is held or waiting already: one at a time (Item Bible §2.5). */
+	QuestLineHeld,
 };
 
 VEYRAITEMS_API const TCHAR* LexToString(EVeyraShopRefusal Refusal);

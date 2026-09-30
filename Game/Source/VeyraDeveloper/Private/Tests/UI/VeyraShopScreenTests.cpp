@@ -295,6 +295,15 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsFalse(Player.Items[0].Charges.IsSet(), TEXT("only a refillable shows charges")));
 		}
 
+		TEST_METHOD(TheHudShowsAQuestItemsProgress)
+		{
+			Tuning = WithQuest(Tuning);
+			ASSERT_THAT(IsTrue(Subsystem->GrantItem(*Participant, ItemId(TEXT("test_reclaimer"))) == EVeyraShopRefusal::None));
+			const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(*Participant, Spawner.GetWorld().GetTimeSeconds());
+			ASSERT_THAT(IsTrue(Player.Items[0].Quest.IsSet() && Player.Items[0].Quest.GetValue() == FIntPoint(0, 2), TEXT("0 of 2 last hits (ADR-025 §3)")));
+			ASSERT_THAT(IsFalse(Player.Items[1].Quest.IsSet()));
+		}
+
 		TEST_METHOD(TheHudShowsARefillablesChargesEvenWhenEmpty)
 		{
 			// Fixture values: the tonic made refillable, with one charge (ADR-023 §6).

@@ -9,6 +9,7 @@
 
 class UAbilitySystemComponent;
 struct FVeyraDamageDealtEvent;
+struct FVeyraDeathEvent;
 
 /**
  * The Attunements a hit sets off (Item Bible §8–§9; ADR-023 §3–§4): Reprisal Guard, Drag, Convergence,
@@ -38,6 +39,20 @@ public:
 
 	/** Whether Holder has tempered Target, ready for its next basic attack. */
 	bool IsTempered(const UAbilitySystemComponent& Holder, const UAbilitySystemComponent& Target) const;
+
+	/** A last hit on an enemy lane Fluxborn stores Residual Current in the last hitter's item (ADR-025 §7). */
+	void OnDeath(const FVeyraDeathEvent& Death);
+
+	/**
+	 * Residual Current's spending (Item Bible §10; ADR-025 §7): a holder that has gone its quiet time
+	 * without enemy-Vanguard damage, and is missing Health, spends a tick's Current to amplify its
+	 * Health Regeneration until the next tick; otherwise the amplification stops and the Current keeps.
+	 * A timer calls it on the server each regeneration tick while any Current is stored.
+	 */
+	void UpdateCurrent();
+
+	/** When Holder last took damage from an enemy Vanguard, in world time; unset if it never has. */
+	TOptional<double> GetVanguardDamageTakenAt(const UAbilitySystemComponent& Holder) const;
 
 private:
 	/** A holder's Attunement that waits, or a target it primed, until a world time. */
@@ -82,4 +97,9 @@ private:
 
 	FTimerHandle TemperingTimer;
 	FDelegateHandle DamageDealtHandle;
+	FDelegateHandle DeathHandle;
+
+	/** Each holder's latest enemy-Vanguard damage taken, in world time (ADR-025 §5). */
+	TMap<TWeakObjectPtr<const UAbilitySystemComponent>, double> VanguardDamageTakenAt;
+	FTimerHandle CurrentTimer;
 };

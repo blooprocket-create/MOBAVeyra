@@ -46,6 +46,35 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(HasProblem(VeyraItems::Validate(Mythicals), TEXT("/items/test_harbor/attunement")), TEXT("and three too many")));
 		}
 
+		TEST_METHOD(AQuestEvolvesItsItemIntoAnotherTheShopNeverSells)
+		{
+			const FVeyraContentId Reclaimer = ItemId(TEXT("test_reclaimer"));
+			const FVeyraContentId Reservoir = ItemId(TEXT("test_reservoir"));
+			const FVeyraItemsTuning Quest = WithQuest(TestCatalog());
+			const TArray<FString> Problems = VeyraItems::Validate(Quest);
+			ASSERT_THAT(IsTrue(Problems.IsEmpty(), FString::Join(Problems, TEXT(" | "))));
+			ASSERT_THAT(IsTrue(VeyraItems::IsEvolutionOnly(Quest, Reservoir) && !VeyraItems::IsEvolutionOnly(Quest, Reclaimer)));
+			ASSERT_THAT(IsTrue(VeyraItems::QuestLine(Quest, Reservoir) == Reclaimer && VeyraItems::QuestLine(Quest, Reclaimer) == Reclaimer));
+			ASSERT_THAT(IsFalse(VeyraItems::QuestLine(Quest, ItemId(TEXT("test_grip"))).IsValid()));
+			ASSERT_THAT(IsTrue(VeyraItems::TotalCost(Quest, Reservoir) == 450.0, TEXT("its Gold is its base form's (ADR-025 §3)")));
+			ASSERT_THAT(IsTrue(VeyraItems::TotalCost(Quest, ItemId(TEXT("test_haven"))) == 450.0 + 400.0 + 500.0));
+
+			FVeyraItemsTuning Priced = Quest;
+			Priced.Items[Reservoir].Cost = 100.0;
+			ASSERT_THAT(IsTrue(HasProblem(VeyraItems::Validate(Priced), TEXT("/items/test_reservoir/cost")), TEXT("an evolution costs nothing")));
+			FVeyraItemsTuning TwoPassives = Quest;
+			TwoPassives.Items[Reservoir].Attunement.Add(ItemId(TEXT("test_weight")));
+			ASSERT_THAT(IsTrue(HasProblem(VeyraItems::Validate(TwoPassives), TEXT("/items/test_reservoir/attunement")), TEXT("one passive at most")));
+			FVeyraItemsTuning IntoEquipment = Quest;
+			IntoEquipment.Quests[Reclaimer].EvolvesInto = ItemId(TEXT("test_grip"));
+			ASSERT_THAT(IsTrue(HasProblem(VeyraItems::Validate(IntoEquipment), TEXT("/quests/test_reclaimer/evolvesInto")), TEXT("into another Quest Item")));
+			FVeyraItemsTuning NoQuest = Quest;
+			NoQuest.Quests.Reset();
+			const TArray<FString> Orphaned = VeyraItems::Validate(NoQuest);
+			ASSERT_THAT(IsTrue(HasProblem(Orphaned, TEXT("/items/test_reclaimer/category")), FString::Join(Orphaned, TEXT(" | "))));
+			ASSERT_THAT(IsTrue(HasProblem(Orphaned, TEXT("/items/test_reservoir/components")), TEXT("with no quest, the reservoir needs a recipe")));
+		}
+
 		TEST_METHOD(RecipesNeverLoopAndBootsStopAtTierTwo)
 		{
 			FVeyraItemsTuning Broken = TestCatalog();
@@ -156,6 +185,21 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Stats(TEXT("resonant_wardstone")).MagicResist >= 2 * Stats(TEXT("shatterdeep_crystal")).MagicResist));
 			ASSERT_THAT(IsTrue(Stats(TEXT("foundation_plate")).Armor >= 2 * Stats(TEXT("marchplate")).Armor));
 			ASSERT_THAT(IsTrue(Stats(TEXT("waymark_weave")).HealthRegeneration >= 2 * Stats(TEXT("renewal_mesh")).HealthRegeneration));
+		}
+
+		TEST_METHOD(TheCommittedQuestEvolvesFluxReclaimerIntoWaylineReservoir)
+		{
+			// Item Bible §10: Reclamation's last hits evolve Flux Reclaimer; Wayline Reservoir improves both its stats.
+			const FVeyraItemsTuning& Catalog = UVeyraItemsTuningSubsystem::Get();
+			const FVeyraQuestTuning* Reclamation = Catalog.Quests.Find(ItemId(TEXT("flux_reclaimer")));
+			ASSERT_THAT(IsNotNull(Reclamation));
+			ASSERT_THAT(IsTrue(Reclamation->Objective == EVeyraQuestObjective::LaneFluxbornLastHits && Reclamation->EvolvesInto == ItemId(TEXT("wayline_reservoir"))));
+			ASSERT_THAT(IsTrue(VeyraItems::IsEvolutionOnly(Catalog, ItemId(TEXT("wayline_reservoir")))));
+			const FVeyraItemStatsTuning& Base = UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("flux_reclaimer")))->Stats;
+			const FVeyraItemDefinition* Evolved = UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("wayline_reservoir")));
+			ASSERT_THAT(IsTrue(Base.Health > 0.0 && Base.HealthRegeneration > 0.0));
+			ASSERT_THAT(IsTrue(Evolved->Stats.Health > Base.Health && Evolved->Stats.HealthRegeneration > Base.HealthRegeneration));
+			ASSERT_THAT(IsTrue(Evolved->Attunement.Num() == 1 && Catalog.ResidualCurrent.Contains(Evolved->Attunement[0]), TEXT("Residual Current")));
 		}
 
 		TEST_METHOD(TheCommittedCatalogLoads)

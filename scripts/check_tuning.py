@@ -108,12 +108,15 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("World", "/wildlife/species/#", "Economy", ("/gold/wildlife",)),
     ("World", "/wildlife/camps/*/species", "World", ("/wildlife/species",)),
     ("World", "/wildlife/species/*/traits/*", "Abilities", ("/statuses",)),
-    # Recipes name items, Attunements their maps, Actives the abilities; consumables are items.
+    # Recipes name items, Attunements their maps, Actives the abilities; consumables and quests are items.
     ("Items", "/items/*/components/*", "Items", ("/items",)),
     ("Items", "/items/*/attunement/*", "Items", ("/weightOfWar", "/overcharge", "/spoolUp", "/overcycle", "/perfectCut",
-                                                 "/reprisalGuard", "/drag", "/convergence", "/fracture", "/endlessCleave", "/temperedByConflict")),
+                                                 "/reprisalGuard", "/drag", "/convergence", "/fracture", "/endlessCleave", "/temperedByConflict",
+                                                 "/residualCurrent")),
     ("Items", "/items/*/active/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Items", "/consumables/#", "Items", ("/items",)),
+    ("Items", "/quests/#", "Items", ("/items",)),
+    ("Items", "/quests/*/evolvesInto", "Items", ("/items",)),
     # Bots play Vanguards, build from the catalog and know what each ability of the kit is for.
     ("Bots", "/vanguards/#", "Vanguards", ("/vanguards",)),
     ("Bots", "/vanguards/*/build/*", "Items", ("/items",)),

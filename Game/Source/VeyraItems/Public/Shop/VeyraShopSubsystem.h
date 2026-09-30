@@ -96,6 +96,19 @@ public:
 	 */
 	void GrowHealth(AActor& Participant, const FVeyraContentId& Attunement, double Health);
 
+	/**
+	 * Sets the Current that Participant's item holding Attunement stores (Residual Current; ADR-025
+	 * §7), at least 0. Spending it is benefit, which ends undo. The Attunements call it.
+	 */
+	void SetCurrent(AActor& Participant, const FVeyraContentId& Attunement, double Current);
+
+	/**
+	 * A unit died: a last hit on an enemy lane Fluxborn advances the last hitter's quests, which evolve
+	 * at their thresholds (Item Bible §10; ADR-025 §3). Server only. Public for tests; Combat's event
+	 * calls it in a match.
+	 */
+	void OnDeath(const struct FVeyraDeathEvent& Death);
+
 	/** Sets Participant's slot count, empty, as its match prepares. */
 	static void InitializeInventory(AActor& Participant);
 
@@ -148,6 +161,7 @@ private:
 	TArray<TWeakObjectPtr<AActor>> Stacked;
 	FTimerHandle StackTimer;
 	FDelegateHandle HostileDamageHandle;
+	FDelegateHandle DeathHandle;
 
 	/** Whether Participant may receive, sell and undo now: at its fountain, or dead (ADR-012 §9). */
 	static bool IsAtShop(const AActor& Participant, const UVeyraInventoryComponent& Inventory);

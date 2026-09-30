@@ -4,7 +4,7 @@
   "description": "The shop's catalog and rules, owned by the Items domain (Item Bible v0.3; Economy & Progression Bible §10–§12; ADR-012 §3). VeyraItems binds it to FVeyraItemsTuning and checks the tier rules the schema cannot express. Prices and stats are prototype data (Item Bible §3).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "shop", "items", "consumables", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict"],
+  "required": ["schemaVersion", "shop", "items", "consumables", "quests", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict", "residualCurrent"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -81,13 +81,31 @@
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "tier": { "description": "1 components, 2 assemblies, 3 Masterworks, 4 Mythicals (Item Bible §2, §11; ADR-025 §2).", "type": "integer", "minimum": 1, "maximum": 4 },
-            "category": { "description": "Boots are limited per Vanguard; a consumable is used up.", "type": "string", "enum": ["Equipment", "Boots", "Consumable"] },
-            "components": { "description": "The items its recipe consumes, in any order; empty for a component. Each is an item this file defines.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/contentId" } },
-            "cost": { "description": "A component's price, or a recipe's completion cost beyond its components (items never auto-combine, Item Bible §1).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "category": { "description": "Boots are limited per Vanguard; a consumable is used up; a Quest Item evolves by play (Item Bible §2.5; ADR-025 §3).", "type": "string", "enum": ["Equipment", "Boots", "Consumable", "Quest"] },
+            "components": { "description": "The items its recipe consumes, in any order; empty for a component and for an item a quest evolves into. Each is an item this file defines.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/contentId" } },
+            "cost": { "description": "A component's price, or a recipe's completion cost beyond its components (items never auto-combine, Item Bible §1). Above 0, except 0 for an item a quest evolves into, whose Gold is its base form's (ADR-025 §3).", "type": "number", "minimum": 0 },
             "stackLimit": { "description": "How many share one slot; 1 for equipment.", "type": "integer", "minimum": 1 },
             "stats": { "$ref": "#/definitions/stats" },
             "active": { "description": "The Active it grants, an ability Abilities.json defines; [] for none (Item Bible §2).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/contentId" } },
-            "attunement": { "description": "Its Attunement, which one of this file's Attunement maps defines; exactly one on a Masterwork, none below (Item Bible §2).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/contentId" } }
+            "attunement": { "description": "Its Attunements, which this file's Attunement maps define: exactly one on a Masterwork, two on a Mythical, none below (Item Bible §2, §11); a Quest Item's passive, at most one, sits here too (ADR-025 §3).", "type": "array", "minItems": 0, "maxItems": 2, "items": { "$ref": "#/definitions/contentId" } }
+          }
+        }
+      }
+    },
+    "quests": {
+      "description": "Each Quest Item's quest, by its item's ID (Item Bible §2.5, §10; ADR-025 §3): what advances it, how far, and the Quest Item it becomes, which the shop never sells.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "objective", "threshold", "evolvesInto"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "objective": { "description": "What advances it: LaneFluxbornLastHits, the holder's credited last hits on enemy lane Fluxborn.", "type": "string", "enum": ["LaneFluxbornLastHits"] },
+            "threshold": { "description": "The progress at which it evolves.", "type": "integer", "minimum": 1 },
+            "evolvesInto": { "description": "The Quest Item it becomes, at no cost.", "$ref": "#/definitions/contentId" }
           }
         }
       }
@@ -267,6 +285,26 @@
             "maxHealthFraction": { "description": "The bonus Physical damage per point of the holder's Max Health.", "type": "number", "minimum": 0 },
             "healthGainFraction": { "description": "The share of the bonus damage kept as Max Health.", "type": "number", "minimum": 0 },
             "cooldownSeconds": { "description": "Each enemy's own wait after it is consumed.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "residualCurrent": {
+      "description": "Residual Current (Wayline Reservoir, Item Bible §10; ADR-025 §7): the holder's last hits on enemy lane Fluxborn store Current; once it has gone a while without enemy-Vanguard damage, it spends Current to amplify its Health Regeneration. That damage suspends the spending and keeps the Current.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "currentPerLastHit", "currentCap", "quietSeconds", "currentPerSecond", "regenerationAmplification"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "currentPerLastHit": { "description": "Current each last hit stores.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "currentCap": { "description": "The most Current stored.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "quietSeconds": { "description": "How long without enemy-Vanguard damage before Current is spent.", "type": "number", "minimum": 0 },
+            "currentPerSecond": { "description": "Current spent each second while it amplifies.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "regenerationAmplification": { "description": "What Health Regeneration is multiplied by while Current is spent; 3 triples it.", "type": "number", "minimum": 1, "exclusiveMinimum": true }
           }
         }
       }

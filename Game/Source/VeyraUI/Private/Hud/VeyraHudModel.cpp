@@ -201,6 +201,10 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 			{
 				Shown.Charges = Held[Index].Charges;
 			}
+			if (const FVeyraQuestTuning* Quest = UVeyraItemsTuningSubsystem::Get().Quests.Find(Held[Index].Item))
+			{
+				Shown.Quest = FIntPoint(Held[Index].QuestProgress, Quest->Threshold);
+			}
 			// An item's Active sits in its slot's loadout entry, and cools down under its own ID.
 			if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Shown.Slot) : nullptr; Entry && Cooldowns)
 			{
