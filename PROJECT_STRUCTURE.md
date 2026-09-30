@@ -111,6 +111,8 @@ M5 added ([ADR-008](Docs/ADR/ADR-008-vanguard-definitions-and-ability-compositio
 - basic attacks;
 - the telegraphs presentation draws for a cast.
 
+M20 added ([ADR-026](Docs/ADR/ADR-026-reactive-kit-primitives.md)): reactions, which let an effect depend on the statuses its target holds; lingering areas that hit at their pulses and as they end, and delayed areas that land sooner inside one; and `Statuses/`, whose `UVeyraStackConversionSubsystem` turns a status at its most stacks into the one its tuning names.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy
@@ -189,7 +191,7 @@ VeyraFlux arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2
 
 World actors report outcomes to the authoritative owning systems rather than reaching directly into UI or champion code.
 
-VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2, §12) in the **Battleground** layer, above Abilities, whose attacks and projectiles its units use. `Game/Tuning/World.json` holds the battleground's layout (Team A's half; Team B's is its mirror across the river's diagonal) and its structures; `VeyraLayout` turns the layout into lanes, waypoints and structure placements for the map commandlet and the server alike.
+VeyraWorld arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runtime.md) §2, §12) in the **Battleground** layer, above Abilities, whose attacks and projectiles its units use. `Game/Tuning/World.json` holds the battleground's layout (Team A's half; Team B's is its mirror across the river's diagonal) and its structures; `VeyraLayout` turns the layout into lanes, waypoints, structure placements and jungle terrain (ADR-026 §5) for the map commandlet and the server alike.
 
 - `Structures/`: `AVeyraStructure`, a pawn with its own Ability System Component, and the tower attack.
 - `Fluxborn/`: `AVeyraFluxborn` and its server-only `AVeyraFluxbornController`, which follows its lane's waypoints and fights by `VeyraFluxbornRules` (ADR-011 §7).
@@ -258,7 +260,8 @@ A kit is data: `Game/Tuning/Vanguards.json` defines each Vanguard, and its abili
 
 ```text
 VeyraVanguards/
-├── Passives/   one class per unique passive (Deep Foundation, Gathering Light, Breach)
+├── Passives/   one class per unique passive (Deep Foundation, Gathering Light, Breach, Wild Dominion),
+│               and the kit-statuses passive, which runs nothing (Embedded, Hazard Exposure)
 ├── Shared/     generic passives any Vanguard's data can use (the hit chain)
 └── Tuning/     the Vanguards.json binding and its rules
 ```
