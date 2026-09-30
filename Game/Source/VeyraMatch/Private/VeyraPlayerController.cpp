@@ -103,10 +103,56 @@ void AVeyraPlayerController::BeginPlay()
 	{
 		Subsystem->AddMappingContext(Input.MappingContext, /*Priority*/ 0);
 	}
+	// A binding changed in Settings, in the shell or during the match, applies at once (ADR-024 §6).
+	if (UVeyraSettingsSubsystem* Settings = IsLocalController() ? UVeyraSettingsSubsystem::Get(this) : nullptr)
+	{
+		SettingsHandle = Settings->GetStore().OnChanged.AddUObject(this, &AVeyraPlayerController::OnPlayerSettingChanged);
+	}
+}
+
+const UVeyraInputSettings& AVeyraPlayerController::GetKeys() const
+{
+	return PlayerKeys ? *PlayerKeys : *GetDefault<UVeyraInputSettings>();
+}
+
+void AVeyraPlayerController::OnPlayerSettingChanged(const FVeyraContentId& Id)
+{
+	const UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this);
+	if (Settings && Settings->GetStore().GetRegistry().Bindings.Contains(Id))
+	{
+		RefreshKeys();
+	}
+}
+
+void AVeyraPlayerController::RefreshKeys()
+{
+	// A fresh copy takes the developer's keys from the class defaults; the player's go over them.
+	PlayerKeys = NewObject<UVeyraInputSettings>(this, NAME_None, RF_Transient);
+	if (const UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
+	{
+		VeyraSettings::ApplyBindings(*PlayerKeys, Settings->GetStore());
+	}
+	if (!Input.MappingContext)
+	{
+		// The first time, Build maps the actions.
+		return;
+	}
+	UInputMappingContext* Previous = Input.MappingContext;
+	Input.MappingContext = VeyraInput::MapKeys(*PlayerKeys, Input, *this);
+	if (UEnhancedInputLocalPlayerSubsystem* Subsystem = IsLocalController() ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer()) : nullptr)
+	{
+		Subsystem->RemoveMappingContext(Previous);
+		Subsystem->AddMappingContext(Input.MappingContext, /*Priority*/ 0);
+	}
 }
 
 void AVeyraPlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
+	if (UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
+	{
+		Settings->GetStore().OnChanged.Remove(SettingsHandle);
+	}
+	SettingsHandle.Reset();
 	if (CameraRig)
 	{
 		CameraRig->Destroy();
@@ -119,7 +165,8 @@ void AVeyraPlayerController::SetupInputComponent()
 {
 	Super::SetupInputComponent();
 
-	Input = VeyraInput::Build(*GetDefault<UVeyraInputSettings>(), *this);
+	RefreshKeys();
+	Input = VeyraInput::Build(GetKeys(), *this);
 	if (UEnhancedInputComponent* Enhanced = Cast<UEnhancedInputComponent>(InputComponent))
 	{
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Started, this, &AVeyraPlayerController::OnMoveOrderStarted);
@@ -242,7 +289,7 @@ void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 {
 	// With the rank-up modifier held, a kit slot's key spends a skill point on it instead.
 	if (!VeyraAbilitySlots::IsItemSlot(Slot) && !VeyraAbilitySlots::IsSpellSlot(Slot) && !VeyraAbilitySlots::IsVisionToolSlot(Slot)
-		&& IsInputKeyDown(GetDefault<UVeyraInputSettings>()->RankUpModifierKey))
+		&& IsInputKeyDown(GetKeys().RankUpModifierKey))
 	{
 		RequestRankUp(Slot);
 		return;
@@ -431,14 +478,14 @@ bool AVeyraPlayerController::TickEndPan(double /*DeltaSeconds*/)
 
 bool AVeyraPlayerController::IsPinging() const
 {
-	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
+	const UVeyraInputSettings& Keys = GetKeys();
 	return IsInputKeyDown(Keys.PingKey) || IsInputKeyDown(Keys.DangerPingKey);
 }
 
 void AVeyraPlayerController::TickPings()
 {
 	VeyraPings::Forget(Pings, FPlatformTime::Seconds(), UVeyraMatchTuningSubsystem::Get().Pings);
-	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
+	const UVeyraInputSettings& Keys = GetKeys();
 	if (!IsPinging() || !WasInputKeyJustPressed(Keys.PingClickKey))
 	{
 		return;
@@ -797,7 +844,7 @@ void AVeyraPlayerController::PlayerTick(float DeltaTime)
 
 void AVeyraPlayerController::TickCamera(float DeltaTime)
 {
-	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
+	const UVeyraInputSettings& Keys = GetKeys();
 	const FVeyraCameraPreferences View = CameraPreferences();
 	if (TickEndPan(DeltaTime))
 	{

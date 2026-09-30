@@ -15,6 +15,8 @@ public class VeyraSettings : ModuleRules
 			"Core",
 			"CoreUObject",
 			"Engine",
+			// Key bindings are keys (ADR-024 §2).
+			"InputCore",
 			// Content IDs, provenance and the tuning dialect's binder.
 			"VeyraCore",
 		});

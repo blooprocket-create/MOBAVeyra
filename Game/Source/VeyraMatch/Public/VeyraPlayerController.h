@@ -379,6 +379,16 @@ private:
 	/** The player's camera settings over the developer's (ADR-024 §6). */
 	FVeyraCameraPreferences CameraPreferences() const;
 
+	/** Makes PlayerKeys the developer's keys with the player's bindings, and maps the actions to them anew. */
+	void RefreshKeys();
+	void OnPlayerSettingChanged(const FVeyraContentId& Id);
+
+	/** The player's keys: the developer's, with the player's bindings in place (ADR-024 §6). */
+	UPROPERTY(Transient)
+	TObjectPtr<UVeyraInputSettings> PlayerKeys;
+
+	FDelegateHandle SettingsHandle;
+
 	FMinimapHitTest MinimapHitTest;
 
 	/** The minimap's ground point under the cursor for Purpose, if the cursor is on it. */
@@ -405,6 +415,12 @@ private:
 
 	UPROPERTY(Transient)
 	FVeyraInputObjects Input;
+
+public:
+	/** The keys this player plays with: their bindings over the developer's; the developer's before any are read. */
+	const UVeyraInputSettings& GetKeys() const;
+
+private:
 
 	double LastHeldMoveOrderTime = 0.0;
 

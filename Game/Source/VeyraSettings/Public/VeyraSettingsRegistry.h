@@ -4,7 +4,14 @@
 
 #include "Content/VeyraContentId.h"
 #include "Tuning/VeyraTuningProvenance.h"
+#include "InputCoreTypes.h"
+
 #include "VeyraSettingsRegistry.generated.h"
+
+class FStructProperty;
+class FVeyraSettingsStore;
+class UClass;
+class UObject;
 
 /** The Settings screen's categories (Settings & Accessibility Bible §13). */
 UENUM()
@@ -145,6 +152,57 @@ struct FVeyraChoiceSetting
  * Every player setting (ADR-024 §2), bound from Game/Settings/Settings.json. Presentation data: the
  * server never reads it, and it is outside the tuning hash.
  */
+/** Whether an action must have a key: an essential one left without warns (SET-133). */
+UENUM()
+enum class EVeyraBindingNeed : uint8
+{
+	Essential,
+	Optional,
+};
+
+/** Whether a binding's key is its own (SET-81 asks before taking it), or a click or modifier used with others. */
+UENUM()
+enum class EVeyraBindingSharing : uint8
+{
+	Exclusive,
+	Shared,
+};
+
+/**
+ * A key binding (Settings Bible §1.1). Its default is the developer's key in Property, a key field of
+ * the developer's input settings, so the default lives in one place; the player's value is a key name,
+ * or None for no key.
+ */
+USTRUCT()
+struct FVeyraBindingSetting
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	EVeyraSettingCategory Category = EVeyraSettingCategory::Controls;
+
+	UPROPERTY()
+	EVeyraSettingScope Scope = EVeyraSettingScope::Account;
+
+	UPROPERTY()
+	EVeyraSettingAvailability Availability = EVeyraSettingAvailability::Anywhere;
+
+	UPROPERTY()
+	EVeyraSettingApplies Applies = EVeyraSettingApplies::AtOnce;
+
+	UPROPERTY()
+	FString Property;
+
+	UPROPERTY()
+	EVeyraBindingNeed Need = EVeyraBindingNeed::Optional;
+
+	UPROPERTY()
+	EVeyraBindingSharing Sharing = EVeyraBindingSharing::Exclusive;
+};
+
 /** One category of the Settings screen and its settings, in the order the screen lists them (Settings Bible §13). */
 USTRUCT()
 struct FVeyraSettingsSection
@@ -164,7 +222,7 @@ struct FVeyraSettingsRegistry
 	GENERATED_BODY()
 
 	/** The Settings.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraToggleSetting> Toggles;
@@ -174,6 +232,9 @@ struct FVeyraSettingsRegistry
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraChoiceSetting> Choices;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraBindingSetting> Bindings;
 
 	/**
 	 * The Settings screen's categories in order, each with its settings in order. Only categories with
@@ -189,6 +250,7 @@ enum class EVeyraSettingKind : uint8
 	Toggle,
 	Range,
 	Choice,
+	Binding,
 };
 
 /** One setting as the store and the screen see it, whatever its kind. */
@@ -205,6 +267,8 @@ struct FVeyraSettingInfo
 	/** The range's bounds, or the choice's options; empty for the other kinds. */
 	const FVeyraRangeSetting* Range = nullptr;
 	const FVeyraChoiceSetting* Choice = nullptr;
+	/** A binding's property, need and sharing; null for the other kinds. */
+	const FVeyraBindingSetting* Binding = nullptr;
 };
 
 /** A section of the Settings screen with its settings described, in order. */
@@ -223,6 +287,22 @@ namespace VeyraSettings
 	/** The toggle values as text. */
 	VEYRASETTINGS_API const FString& On();
 	VEYRASETTINGS_API const FString& Off();
+
+	/** A binding's value for no key at all. Its unset value, empty, is the developer's key. */
+	VEYRASETTINGS_API const FString& Unbound();
+
+	/**
+	 * Puts the player's keys from Store on Target, one of the developer's input settings: for each
+	 * binding whose property is a key field of Target's class, its key, or none when unbound. Returns
+	 * how many it set.
+	 */
+	VEYRASETTINGS_API int32 ApplyBindings(UObject& Target, const FVeyraSettingsStore& Store);
+
+	/** Id's key now: the player's, or the developer's in Defaults; unset when Defaults has no such key field. */
+	VEYRASETTINGS_API TOptional<FKey> BindingKey(const UObject& Defaults, const FVeyraSettingsStore& Store, const FVeyraContentId& Id);
+
+	/** The key field of Class named Property; null when it has none. */
+	VEYRASETTINGS_API FStructProperty* FindKeyProperty(const UClass& Class, const FString& Property);
 
 	/**
 	 * Problems the schema cannot catch, each a JSON pointer and a message; empty when consistent. A

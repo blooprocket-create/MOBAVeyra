@@ -18,6 +18,8 @@
 #include "Settings/VeyraDisplayApplier.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
+#include "Text/VeyraContentText.h"
+#include "UObject/UnrealType.h"
 #include "VeyraSettingsStore.h"
 #include "VeyraSettingsSubsystem.h"
 
@@ -158,6 +160,8 @@ void UVeyraSettingsScreen::ShowCategory(EVeyraSettingCategory InCategory)
 {
 	Category = InCategory;
 	Confirming = EConfirming::None;
+	Capturing.Reset();
+	PendingRebind.Reset();
 	if (!Search.IsEmpty())
 	{
 		// Setting the field's text asks for a rebuild itself.
@@ -221,6 +225,66 @@ void UVeyraSettingsScreen::NativeTick(const FGeometry& MyGeometry, float InDelta
 	}
 }
 
+FReply UVeyraSettingsScreen::NativeOnKeyDown(const FGeometry& InGeometry, const FKeyEvent& InKeyEvent)
+{
+	if (Capturing.IsSet())
+	{
+		// Captured, so the key never reaches the game (Settings Bible §6.2).
+		CaptureKey(InKeyEvent.GetKey());
+		return FReply::Handled();
+	}
+	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
+}
+
+FReply UVeyraSettingsScreen::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+{
+	if (Capturing.IsSet())
+	{
+		CaptureKey(InMouseEvent.GetEffectingButton());
+		return FReply::Handled();
+	}
+	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
+}
+
+void UVeyraSettingsScreen::CaptureKey(const FKey& Key)
+{
+	if (!Capturing.IsSet())
+	{
+		return;
+	}
+	const FVeyraContentId Id = Capturing.GetValue();
+	Capturing.Reset();
+	const FVeyraSettingsStore* Store = GetStore();
+	if (!Store || Key == EKeys::Escape || !Key.IsValid())
+	{
+		Rebuild();
+		return;
+	}
+	if (const TOptional<FVeyraContentId> Other = VeyraSettingsModels::FindConflict(*Store, Id, Key))
+	{
+		PendingRebind = FPendingRebind{ Id, Key, Other.GetValue() };
+		Rebuild();
+		return;
+	}
+	Rebind(Id, Key);
+	// A key that was already the binding's changes nothing, so no change event rebuilds.
+	Rebuild();
+}
+
+void UVeyraSettingsScreen::Rebind(const FVeyraContentId& Id, const FKey& Key)
+{
+	FVeyraSettingsStore* Store = GetStore();
+	const FVeyraBindingSetting* Binding = Store ? Store->GetRegistry().Bindings.Find(Id) : nullptr;
+	const UObject* Defaults = Binding ? VeyraSettingsModels::BindingDefaults(*Binding) : nullptr;
+	if (!Store || !Defaults)
+	{
+		return;
+	}
+	const FStructProperty* Property = VeyraSettings::FindKeyProperty(*Defaults->GetClass(), Binding->Property);
+	const bool bDeveloperKey = Property && *Property->ContainerPtrToValuePtr<FKey>(Defaults) == Key;
+	Store->Set(Id, bDeveloperKey ? FString() : Key.GetFName().ToString(), bInMatch);
+}
+
 void UVeyraSettingsScreen::Change(const FVeyraContentId& Id, const FString& Value)
 {
 	FVeyraSettingsStore* Store = GetStore();
@@ -281,6 +345,14 @@ void UVeyraSettingsScreen::Rebuild()
 	}
 
 	Rows->ClearChildren();
+	if (!Model.UnboundEssentials.IsEmpty() && (Model.bSearching || Model.Category == EVeyraSettingCategory::Controls))
+	{
+		// The game cannot be played well without them (SET-133).
+		UTextBlock* Warning = VeyraSettingsLayout::AddText(*WidgetTree, *Rows,
+			FText::Format(LOCTEXT("UnboundEssentials", "No key for {0}. You need these to play."), FText::Join(FText::FromString(TEXT(", ")), Model.UnboundEssentials)),
+			VeyraShellStyle::EVeyraShellText::Body);
+		Warning->SetColorAndOpacity(FSlateColor(VeyraSettingsLayout::Style().EnemyColor));
+	}
 	if (Model.bSearching && Model.Rows.IsEmpty())
 	{
 		VeyraSettingsLayout::AddText(*WidgetTree, *Rows, FText::Format(LOCTEXT("NoResults", "No setting matches \"{0}\"."), FText::FromString(Search)), VeyraShellStyle::EVeyraShellText::Muted);
@@ -323,7 +395,26 @@ void UVeyraSettingsScreen::BuildRow(const FVeyraSettingRowModel& Row)
 	Controls->SetExplicitWrapSize(true);
 	Controls->SetWrapSize(VeyraSettingsLayout::Style().SettingsControlWidth);
 	const FVeyraContentId Id = Row.Id;
-	if (Row.Kind == EVeyraSettingKind::Range)
+	if (Row.Kind == EVeyraSettingKind::Binding)
+	{
+		if (Capturing.IsSet() && Capturing.GetValue() == Id)
+		{
+			UTextBlock* Hint = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("PressAKey", "Press a key or a mouse button. Escape cancels."), VeyraShellStyle::EVeyraShellText::Body);
+			VeyraShellStyle::AddSpaced(*Controls, *Hint);
+		}
+		else
+		{
+			AddButton(*Controls, EVeyraShellButtonKind::Secondary, ChangeLabel(Row), Row.ValueText, [this, Id] {
+				Capturing = Id;
+				PendingRebind.Reset();
+				Confirming = EConfirming::None;
+				Rebuild();
+				// The next key comes here, not to the game.
+				SetKeyboardFocus();
+			}, !Row.bLocked);
+		}
+	}
+	else if (Row.Kind == EVeyraSettingKind::Range)
 	{
 		AddButton(*Controls, EVeyraShellButtonKind::Secondary, StepLabel(Row, false), LOCTEXT("Lower", "-"), [this, Id, Value = Row.Lower.Get(FString())] {
 			Change(Id, Value);
@@ -380,6 +471,29 @@ void UVeyraSettingsScreen::BuildFooter()
 			{
 				Found->RevertChange();
 			}
+		});
+		return;
+	}
+	if (PendingRebind.IsSet())
+	{
+		const FPendingRebind& Pending = PendingRebind.GetValue();
+		VeyraSettingsLayout::AddFilling(*Footer, *VeyraShellStyle::MakeText(*WidgetTree,
+			FText::Format(LOCTEXT("KeyTaken", "{0} is already {1}. Put it on {2} instead, leaving {1} without a key?"), Pending.Key.GetDisplayName(),
+				VeyraContentText::SettingName(Pending.Other), VeyraContentText::SettingName(Pending.Id)),
+			VeyraShellStyle::EVeyraShellText::Body));
+		AddButton(*Footer, EVeyraShellButtonKind::Primary, ReplaceLabel(), ReplaceLabel(), [this] {
+			const FPendingRebind Replacing = PendingRebind.GetValue();
+			PendingRebind.Reset();
+			if (FVeyraSettingsStore* Store = GetStore())
+			{
+				Store->Set(Replacing.Other, VeyraSettings::Unbound(), bInMatch);
+			}
+			Rebind(Replacing.Id, Replacing.Key);
+			Rebuild();
+		});
+		AddButton(*Footer, EVeyraShellButtonKind::Quiet, CancelLabel(), CancelLabel(), [this] {
+			PendingRebind.Reset();
+			Rebuild();
 		});
 		return;
 	}
@@ -507,6 +621,16 @@ FText UVeyraSettingsScreen::ConfirmResetLabel()
 FText UVeyraSettingsScreen::CancelLabel()
 {
 	return LOCTEXT("Cancel", "Cancel");
+}
+
+FText UVeyraSettingsScreen::ChangeLabel(const FVeyraSettingRowModel& Row)
+{
+	return FText::Format(LOCTEXT("ChangeLabel", "{0}: Change"), Row.Name);
+}
+
+FText UVeyraSettingsScreen::ReplaceLabel()
+{
+	return LOCTEXT("Replace", "Replace");
 }
 
 FText UVeyraSettingsScreen::KeepChangesLabel()

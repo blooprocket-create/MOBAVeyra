@@ -21,6 +21,8 @@
 #include "VeyraSettingsStore.h"
 #include "VeyraSettingsSubsystem.h"
 #include "VeyraUserSettings.h"
+#include "Input/VeyraInputSettings.h"
+#include "Shell/VeyraUIInputSettings.h"
 
 namespace VeyraSettingsScreenTests
 {
@@ -232,6 +234,94 @@ namespace VeyraSettingsScreenTests
 			Settings->Store().Set(Setting(TEXT("interface_show_fps")), VeyraSettings::On());
 			ASSERT_THAT(IsTrue(Row(TEXT("interface_show_fps")).Options[0].bSelected, TEXT("the account's sync or Undo shows at once")));
 			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::CloseLabel()) && Closes == 1));
+		}
+	};
+
+	// Veyra.UI.SettingsBindings.*: rebinding in the Settings screen (Settings Bible §1.1; SET-81, SET-133).
+	TEST_CLASS(SettingsBindings, "Veyra.UI")
+	{
+		FActorTestSpawner Spawner;
+		const FVeyraSettingsRegistry Registry = CommittedRegistry();
+		TUniquePtr<FScopedTestSettings> Settings;
+		UVeyraSettingsScreen* Screen = nullptr;
+
+		BEFORE_EACH()
+		{
+			Settings = MakeUnique<FScopedTestSettings>(Registry);
+			Screen = CreateWidget<UVeyraSettingsScreen>(&Spawner.GetWorld());
+			Screen->Show(*Settings->Settings, /*bInLiveMatch*/ false, [] {});
+			Screen->ShowCategory(EVeyraSettingCategory::Controls);
+		}
+
+		AFTER_EACH()
+		{
+			Screen->RemoveFromParent();
+			Settings.Reset();
+		}
+
+		const FVeyraSettingRowModel& Row(const TCHAR* Id) const
+		{
+			return *FindRow(Screen->GetModel(), Id);
+		}
+
+		/** Presses a binding's button, then Key, as the player would. */
+		bool Bind(const TCHAR* Id, const FKey& Key)
+		{
+			UVeyraShellButton* Change = Screen->FindButton(UVeyraSettingsScreen::ChangeLabel(Row(Id)));
+			if (!Change)
+			{
+				return false;
+			}
+			Change->Press();
+			if (!Screen->GetCapturing().IsSet())
+			{
+				return false;
+			}
+			Screen->CaptureKey(Key);
+			return true;
+		}
+
+		TEST_METHOD(EveryBindingNamesAKeyOfTheDevelopersInputSettings)
+		{
+			for (const TPair<FVeyraContentId, FVeyraBindingSetting>& Binding : Registry.Bindings)
+			{
+				const bool bMatch = VeyraSettings::FindKeyProperty(*UVeyraInputSettings::StaticClass(), Binding.Value.Property) != nullptr;
+				const bool bInterface = VeyraSettings::FindKeyProperty(*UVeyraUIInputSettings::StaticClass(), Binding.Value.Property) != nullptr;
+				ASSERT_THAT(IsTrue(bMatch != bInterface, FString::Printf(TEXT("%s: %s is a key of exactly one input settings class"), *Binding.Key.ToString(), *Binding.Value.Property)));
+			}
+		}
+
+		TEST_METHOD(ACapturedKeyBecomesTheBindingAndEscapeCancels)
+		{
+			ASSERT_THAT(AreEqual(FString(TEXT("Q")), Row(TEXT("controls_bind_ability_q")).ValueText.ToString(), TEXT("the developer's key shows until the player's")));
+			ASSERT_THAT(IsTrue(Bind(TEXT("controls_bind_ability_q"), EKeys::T)));
+			ASSERT_THAT(IsTrue(Settings->Store().Get(Setting(TEXT("controls_bind_ability_q"))) == TEXT("T") && !Screen->GetCapturing().IsSet()));
+			ASSERT_THAT(AreEqual(FString(TEXT("T")), Row(TEXT("controls_bind_ability_q")).ValueText.ToString()));
+
+			ASSERT_THAT(IsTrue(Bind(TEXT("controls_bind_ability_q"), EKeys::Escape)));
+			ASSERT_THAT(IsTrue(Settings->Store().Get(Setting(TEXT("controls_bind_ability_q"))) == TEXT("T"), TEXT("Escape cancels")));
+			ASSERT_THAT(IsTrue(Bind(TEXT("controls_bind_ability_q"), EKeys::Q)));
+			ASSERT_THAT(IsFalse(Settings->Store().IsChanged(Setting(TEXT("controls_bind_ability_q"))), TEXT("the developer's key is the default again")));
+		}
+
+		TEST_METHOD(ATakenKeyAsksBeforeLeavingTheOtherWithoutAndEssentialsWarn)
+		{
+			ASSERT_THAT(IsTrue(Bind(TEXT("controls_bind_ability_q"), EKeys::B)));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("B is already Recall")), Screen->DescribeText()));
+			ASSERT_THAT(IsFalse(Settings->Store().IsChanged(Setting(TEXT("controls_bind_ability_q"))), TEXT("nothing changes before the answer")));
+			Screen->FindButton(UVeyraSettingsScreen::CancelLabel())->Press();
+			ASSERT_THAT(IsFalse(Settings->Store().IsChanged(Setting(TEXT("controls_bind_recall")))));
+
+			ASSERT_THAT(IsTrue(Bind(TEXT("controls_bind_ability_q"), EKeys::B)));
+			Screen->FindButton(UVeyraSettingsScreen::ReplaceLabel())->Press();
+			ASSERT_THAT(IsTrue(Settings->Store().Get(Setting(TEXT("controls_bind_ability_q"))) == TEXT("B") && Settings->Store().Get(Setting(TEXT("controls_bind_recall"))) == VeyraSettings::Unbound()));
+			ASSERT_THAT(IsTrue(Screen->GetModel().UnboundEssentials.Num() == 1 && Screen->DescribeText().Contains(TEXT("No key for Recall")), TEXT("SET-133")));
+		}
+
+		TEST_METHOD(ASharedClickNeverConflicts)
+		{
+			ASSERT_THAT(IsTrue(Bind(TEXT("controls_bind_ping_click"), EKeys::RightMouseButton)));
+			ASSERT_THAT(IsTrue(Settings->Store().Get(Setting(TEXT("controls_bind_ping_click"))) == TEXT("RightMouseButton"), TEXT("used with a ping key, it shares Move's button")));
 		}
 	};
 

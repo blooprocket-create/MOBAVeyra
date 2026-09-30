@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Content/VeyraContentId.h"
+#include "InputCoreTypes.h"
 #include "Internationalization/Text.h"
 #include "Misc/Optional.h"
 #include "VeyraSettingsRegistry.h"
@@ -38,6 +39,10 @@ struct FVeyraSettingRowModel
 	/** A range's values one step down and one step up; unset at its bounds. */
 	TOptional<FString> Lower;
 	TOptional<FString> Higher;
+	/** A binding's key now, the player's or the developer's; invalid when it has none. */
+	FKey Key;
+	/** A binding the game needs to be played (SET-133). */
+	bool bEssential = false;
 };
 
 /** The Settings screen: its categories, the settings it shows, and what it offers. */
@@ -55,6 +60,8 @@ struct FVeyraSettingsModel
 	/** A setting the shown category's reset, or the reset of everything, would change. */
 	bool bCategoryChanged = false;
 	bool bAnyChanged = false;
+	/** Essential actions without a key, in any category, for the warning (SET-133). */
+	TArray<FText> UnboundEssentials;
 };
 
 /** The Settings screen's model, apart from its widgets, so tests can read it (ADR-024 §5). */
@@ -71,4 +78,13 @@ namespace VeyraSettingsModels
 	 * outside matches are locked.
 	 */
 	VEYRAUI_API FVeyraSettingsModel Describe(const FVeyraSettingsStore& Store, EVeyraSettingCategory Category, const FString& Search, bool bInLiveMatch);
+
+	/** The developer's input settings that hold Binding's default key; null when neither has its property. */
+	VEYRAUI_API const UObject* BindingDefaults(const FVeyraBindingSetting& Binding);
+
+	/** The binding Id's key now: the player's, or the developer's; invalid when it has none. */
+	VEYRAUI_API FKey BindingKey(const FVeyraSettingsStore& Store, const FVeyraContentId& Id);
+
+	/** Another binding whose own key is Key, which binding Id to Key would take from it (SET-81); unset when none, or Id shares its key. */
+	VEYRAUI_API TOptional<FVeyraContentId> FindConflict(const FVeyraSettingsStore& Store, const FVeyraContentId& Id, const FKey& Key);
 }

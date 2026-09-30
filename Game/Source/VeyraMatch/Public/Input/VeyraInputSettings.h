@@ -13,7 +13,8 @@ class UInputMappingContext;
 
 /**
  * The default bindings for a Vanguard's controls (Settings Bible §1.1: every gameplay action is
- * rebindable; these are the default profile). Stored in Config/DefaultInput.ini. Move or attack,
+ * rebindable; these are the default profile). Stored in Config/DefaultInput.ini. The player's own keys
+ * (ADR-024 §6) are a copy of these with their bindings put in place (VeyraSettings::ApplyBindings). Move or attack,
  * attack-move, and the four ability slots with Quick Cast (§1.2); casting modes and profiles follow.
  */
 UCLASS(Config = Input, DefaultConfig, meta = (DisplayName = "Veyra Input"))
@@ -195,4 +196,10 @@ namespace VeyraInput
 {
 	/** Builds the actions and their mapping context from Settings. Outer keeps them alive. */
 	VEYRAMATCH_API FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer);
+
+	/**
+	 * A new mapping context putting Actions on Settings' keys, as after the player rebinds one: the
+	 * actions, and so what they are bound to, stay. An action without a key is left unmapped.
+	 */
+	VEYRAMATCH_API UInputMappingContext* MapKeys(const UVeyraInputSettings& Settings, const FVeyraInputObjects& Actions, UObject& Outer);
 }

@@ -2,6 +2,8 @@
 
 #include "Settings/VeyraSettingsModels.h"
 
+#include "Input/VeyraInputSettings.h"
+#include "Shell/VeyraUIInputSettings.h"
 #include "Text/VeyraContentText.h"
 #include "VeyraSettingsStore.h"
 
@@ -48,6 +50,11 @@ namespace
 				Row.Options.Add({ Option, VeyraContentText::SettingOption(Setting.Id, Option), Value == Option });
 			}
 			break;
+		case EVeyraSettingKind::Binding:
+			Row.Key = BindingKey(Store, Setting.Id);
+			Row.bEssential = Setting.Binding && Setting.Binding->Need == EVeyraBindingNeed::Essential;
+			Row.ValueText = Row.Key.IsValid() ? Row.Key.GetDisplayName() : LOCTEXT("NoKey", "No key");
+			break;
 		case EVeyraSettingKind::Range:
 		{
 			const double Number = Store.GetNumber(Setting.Id);
@@ -65,6 +72,42 @@ namespace
 		}
 		return Row;
 	}
+}
+
+const UObject* BindingDefaults(const FVeyraBindingSetting& Binding)
+{
+	for (const UObject* Defaults : { static_cast<const UObject*>(GetDefault<UVeyraInputSettings>()), static_cast<const UObject*>(GetDefault<UVeyraUIInputSettings>()) })
+	{
+		if (VeyraSettings::FindKeyProperty(*Defaults->GetClass(), Binding.Property))
+		{
+			return Defaults;
+		}
+	}
+	return nullptr;
+}
+
+FKey BindingKey(const FVeyraSettingsStore& Store, const FVeyraContentId& Id)
+{
+	const FVeyraBindingSetting* Binding = Store.GetRegistry().Bindings.Find(Id);
+	const UObject* Defaults = Binding ? BindingDefaults(*Binding) : nullptr;
+	return Defaults ? VeyraSettings::BindingKey(*Defaults, Store, Id).Get(EKeys::Invalid) : EKeys::Invalid;
+}
+
+TOptional<FVeyraContentId> FindConflict(const FVeyraSettingsStore& Store, const FVeyraContentId& Id, const FKey& Key)
+{
+	const FVeyraBindingSetting* Binding = Store.GetRegistry().Bindings.Find(Id);
+	if (!Binding || Binding->Sharing == EVeyraBindingSharing::Shared || !Key.IsValid())
+	{
+		return {};
+	}
+	for (const TPair<FVeyraContentId, FVeyraBindingSetting>& Other : Store.GetRegistry().Bindings)
+	{
+		if (Other.Key != Id && Other.Value.Sharing == EVeyraBindingSharing::Exclusive && BindingKey(Store, Other.Key) == Key)
+		{
+			return Other.Key;
+		}
+	}
+	return {};
 }
 
 FText CategoryName(EVeyraSettingCategory Category)
@@ -128,6 +171,10 @@ FVeyraSettingsModel Describe(const FVeyraSettingsStore& Store, EVeyraSettingCate
 			if (Model.bSearching ? Matches(Setting, Search) : Section.Category == Model.Category)
 			{
 				Model.Rows.Add(DescribeRow(Store, Setting, bInLiveMatch));
+			}
+			if (Setting.Binding && Setting.Binding->Need == EVeyraBindingNeed::Essential && !BindingKey(Store, Setting.Id).IsValid())
+			{
+				Model.UnboundEssentials.Add(VeyraContentText::SettingName(Setting.Id));
 			}
 		}
 	}

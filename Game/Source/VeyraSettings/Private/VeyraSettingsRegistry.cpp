@@ -2,6 +2,10 @@
 
 #include "VeyraSettingsRegistry.h"
 
+#include "InputCoreTypes.h"
+#include "UObject/UnrealType.h"
+#include "VeyraSettingsStore.h"
+
 namespace VeyraSettings
 {
 namespace
@@ -42,6 +46,15 @@ namespace
 		FVeyraSettingInfo Info = Describe(Id, EVeyraSettingKind::Choice, Setting);
 		Info.Default = Setting.Default;
 		Info.Choice = &Setting;
+		return Info;
+	}
+
+	FVeyraSettingInfo DescribeBinding(const FVeyraContentId& Id, const FVeyraBindingSetting& Setting)
+	{
+		FVeyraSettingInfo Info = Describe(Id, EVeyraSettingKind::Binding, Setting);
+		// Unset: the developer's key.
+		Info.Default = FString();
+		Info.Binding = &Setting;
 		return Info;
 	}
 
@@ -106,6 +119,10 @@ TArray<FString> Validate(const FVeyraSettingsRegistry& Registry)
 		{
 			Problems.Add(Pointer + TEXT("/default: must lie on a step from the minimum"));
 		}
+	}
+	for (const TPair<FVeyraContentId, FVeyraBindingSetting>& Entry : Registry.Bindings)
+	{
+		Once(TEXT("bindings"), Entry.Key);
 	}
 	for (const TPair<FVeyraContentId, FVeyraChoiceSetting>& Entry : Registry.Choices)
 	{
@@ -185,6 +202,10 @@ TOptional<FVeyraSettingInfo> Find(const FVeyraSettingsRegistry& Registry, const 
 	{
 		return DescribeChoice(Id, *Choice);
 	}
+	if (const FVeyraBindingSetting* Binding = Registry.Bindings.Find(Id))
+	{
+		return DescribeBinding(Id, *Binding);
+	}
 	return {};
 }
 
@@ -203,7 +224,55 @@ TArray<FVeyraSettingInfo> All(const FVeyraSettingsRegistry& Registry)
 	{
 		Settings.Add(DescribeChoice(Id, Registry.Choices[Id]));
 	}
+	for (const FVeyraContentId& Id : SortedIds(Registry.Bindings))
+	{
+		Settings.Add(DescribeBinding(Id, Registry.Bindings[Id]));
+	}
 	return Settings;
+}
+
+const FString& Unbound()
+{
+	static const FString Text = EKeys::Invalid.GetFName().ToString();
+	return Text;
+}
+
+FStructProperty* FindKeyProperty(const UClass& Class, const FString& Property)
+{
+	FStructProperty* Found = FindFProperty<FStructProperty>(&Class, FName(*Property));
+	return Found && Found->Struct == FKey::StaticStruct() ? Found : nullptr;
+}
+
+int32 ApplyBindings(UObject& Target, const FVeyraSettingsStore& Store)
+{
+	int32 Applied = 0;
+	for (const TPair<FVeyraContentId, FVeyraBindingSetting>& Entry : Store.GetRegistry().Bindings)
+	{
+		const FString Value = Store.Get(Entry.Key);
+		FStructProperty* Property = Value.IsEmpty() ? nullptr : FindKeyProperty(*Target.GetClass(), Entry.Value.Property);
+		if (Property)
+		{
+			*Property->ContainerPtrToValuePtr<FKey>(&Target) = Value == Unbound() ? EKeys::Invalid : FKey(FName(*Value));
+			++Applied;
+		}
+	}
+	return Applied;
+}
+
+TOptional<FKey> BindingKey(const UObject& Defaults, const FVeyraSettingsStore& Store, const FVeyraContentId& Id)
+{
+	const FVeyraBindingSetting* Binding = Store.GetRegistry().Bindings.Find(Id);
+	const FStructProperty* Property = Binding ? FindKeyProperty(*Defaults.GetClass(), Binding->Property) : nullptr;
+	if (!Property)
+	{
+		return {};
+	}
+	const FString Value = Store.Get(Id);
+	if (Value.IsEmpty())
+	{
+		return *Property->ContainerPtrToValuePtr<FKey>(&Defaults);
+	}
+	return Value == Unbound() ? EKeys::Invalid : FKey(FName(*Value));
 }
 
 bool IsChangeable(const FVeyraSettingInfo& Setting, bool bInLiveMatch)
@@ -268,6 +337,20 @@ TOptional<FString> Normalize(const FVeyraSettingInfo& Setting, FStringView Value
 			}
 		}
 		return {};
+	case EVeyraSettingKind::Binding:
+	{
+		// Empty is the developer's key; None no key; anything else a key the engine knows, not an axis.
+		if (Text.IsEmpty() || Text.Equals(Unbound(), ESearchCase::IgnoreCase))
+		{
+			return Text.IsEmpty() ? FString() : Unbound();
+		}
+		const FKey Key{ FName(*Text) };
+		if (!Key.IsValid() || Key.IsAxis1D() || Key.IsAxis2D() || Key.IsAxis3D())
+		{
+			return {};
+		}
+		return Key.GetFName().ToString();
+	}
 	}
 	return {};
 }

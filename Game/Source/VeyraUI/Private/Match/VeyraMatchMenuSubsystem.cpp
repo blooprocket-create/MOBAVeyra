@@ -32,6 +32,11 @@ bool UVeyraMatchMenuSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 void UVeyraMatchMenuSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	if (UVeyraSettingsSubsystem* Player = Collection.InitializeDependency<UVeyraSettingsSubsystem>(); Player && Player->IsReady())
+	{
+		SettingsHandle = Player->GetStore().OnChanged.AddUObject(this, &UVeyraMatchMenuSubsystem::OnPlayerSettingChanged);
+	}
+	RefreshKeys();
 	TArray<FString> Problems = GetDefault<UVeyraUIInputSettings>()->Validate();
 	Problems.Append(GetDefault<UVeyraShellStyleSettings>()->Validate());
 	for (const FString& Problem : Problems)
@@ -48,6 +53,11 @@ void UVeyraMatchMenuSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 void UVeyraMatchMenuSubsystem::Deinitialize()
 {
 	FTSTicker::GetCoreTicker().RemoveTicker(TickHandle);
+	// Settings that ended first took their change event with them.
+	if (UVeyraSettingsSubsystem* Player = GetGameInstance()->GetSubsystem<UVeyraSettingsSubsystem>(); Player && Player->IsReady())
+	{
+		Player->GetStore().OnChanged.Remove(SettingsHandle);
+	}
 	if (Menu)
 	{
 		Menu->RemoveFromParent();
@@ -85,7 +95,7 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	Shop = nullptr;
 	Scoreboard = nullptr;
 	Settings = nullptr;
-	const UVeyraUIInputSettings& Keys = *GetDefault<UVeyraUIInputSettings>();
+	const UVeyraUIInputSettings& Keys = GetKeys();
 	MenuAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
 	MenuAction->ValueType = EInputActionValueType::Boolean;
 	ShopAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
@@ -107,6 +117,50 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	MenuInput = Component;
 	BoundController = Controller;
 	return true;
+}
+
+const UVeyraUIInputSettings& UVeyraMatchMenuSubsystem::GetKeys() const
+{
+	return PlayerKeys ? *PlayerKeys : *GetDefault<UVeyraUIInputSettings>();
+}
+
+void UVeyraMatchMenuSubsystem::OnPlayerSettingChanged(const FVeyraContentId& Id)
+{
+	const UVeyraSettingsSubsystem* Player = GetGameInstance()->GetSubsystem<UVeyraSettingsSubsystem>();
+	if (Player && Player->IsReady() && Player->GetStore().GetRegistry().Bindings.Contains(Id))
+	{
+		RefreshKeys();
+	}
+}
+
+void UVeyraMatchMenuSubsystem::RefreshKeys()
+{
+	PlayerKeys = NewObject<UVeyraUIInputSettings>(this, NAME_None, RF_Transient);
+	const UVeyraSettingsSubsystem* Player = GetGameInstance()->GetSubsystem<UVeyraSettingsSubsystem>();
+	if (Player && Player->IsReady())
+	{
+		VeyraSettings::ApplyBindings(*PlayerKeys, Player->GetStore());
+	}
+	AVeyraPlayerController* Controller = BoundController.Get();
+	UEnhancedInputLocalPlayerSubsystem* Input = Controller && Controller->GetLocalPlayer() ? ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(Controller->GetLocalPlayer()) : nullptr;
+	if (!Input || !MenuMapping)
+	{
+		// The next match's controller maps them.
+		return;
+	}
+	// The same actions on the new keys, so what they are bound to stays.
+	Input->RemoveMappingContext(MenuMapping);
+	MenuMapping = NewObject<UInputMappingContext>(this, NAME_None, RF_Transient);
+	const UVeyraUIInputSettings& Keys = GetKeys();
+	const TPair<UInputAction*, FKey> Mapped[] = { { MenuAction, Keys.MatchMenuKey }, { ShopAction, Keys.ShopKey }, { ScoreboardAction, Keys.ScoreboardKey } };
+	for (const TPair<UInputAction*, FKey>& Pair : Mapped)
+	{
+		if (Pair.Key && Pair.Value.IsValid())
+		{
+			MenuMapping->MapKey(Pair.Key, Pair.Value);
+		}
+	}
+	Input->AddMappingContext(MenuMapping, /*Priority*/ 1);
 }
 
 void UVeyraMatchMenuSubsystem::ToggleMenu()

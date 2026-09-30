@@ -90,16 +90,10 @@ namespace
 FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer)
 {
 	FVeyraInputObjects Objects;
-	Objects.MappingContext = NewInputObject<UInputMappingContext>(Outer, TEXT("VeyraMappingContext"));
-
 	// Move repeats while held; the controller paces it.
 	Objects.MoveOrder = NewInputObject<UInputAction>(Outer, TEXT("VeyraMoveOrder"));
 	Objects.MoveOrder->ValueType = EInputActionValueType::Boolean;
-	Objects.MappingContext->MapKey(Objects.MoveOrder, Settings.MoveOrderKey);
-
 	Objects.AttackMove = NewCastAction(Outer, TEXT("VeyraAttackMove"));
-	Objects.MappingContext->MapKey(Objects.AttackMove, Settings.AttackMoveKey);
-
 	Objects.AbilityQ = NewCastAction(Outer, TEXT("VeyraAbilityQ"));
 	Objects.AbilityW = NewCastAction(Outer, TEXT("VeyraAbilityW"));
 	Objects.AbilityE = NewCastAction(Outer, TEXT("VeyraAbilityE"));
@@ -108,27 +102,46 @@ FVeyraInputObjects Build(const UVeyraInputSettings& Settings, UObject& Outer)
 	{
 		Objects.ItemSlots.Add(NewCastAction(Outer, TEXT("VeyraItemSlot")));
 	}
+	for (int32 Index = 0; Index < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)); ++Index)
+	{
+		Objects.SpellSlots.Add(NewCastAction(Outer, TEXT("VeyraSpellSlot")));
+	}
+	Objects.VisionTool = NewCastAction(Outer, TEXT("VeyraVisionTool"));
+	Objects.Recall = NewCastAction(Outer, TEXT("VeyraRecall"));
+	Objects.VoteYes = NewCastAction(Outer, TEXT("VeyraVoteYes"));
+	Objects.VoteNo = NewCastAction(Outer, TEXT("VeyraVoteNo"));
+	Objects.MappingContext = MapKeys(Settings, Objects, Outer);
+	return Objects;
+}
+
+UInputMappingContext* MapKeys(const UVeyraInputSettings& Settings, const FVeyraInputObjects& Actions, UObject& Outer)
+{
+	UInputMappingContext* Context = NewInputObject<UInputMappingContext>(Outer, TEXT("VeyraMappingContext"));
+	const auto Map = [Context](const UInputAction* Action, const FKey& Key) {
+		// A binding the player cleared maps nothing.
+		if (Action && Key.IsValid())
+		{
+			Context->MapKey(Action, Key);
+		}
+	};
+	Map(Actions.MoveOrder, Settings.MoveOrderKey);
+	Map(Actions.AttackMove, Settings.AttackMoveKey);
 	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 	{
-		Objects.MappingContext->MapKey(Objects.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
+		Map(Actions.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
 	}
 	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
 	{
-		Objects.MappingContext->MapKey(Objects.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
+		Map(Actions.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
 	}
 	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Spells)
 	{
-		Objects.SpellSlots.Add(NewCastAction(Outer, TEXT("VeyraSpellSlot")));
-		Objects.MappingContext->MapKey(Objects.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
+		Map(Actions.GetAbilityAction(Slot), Settings.GetAbilityKey(Slot));
 	}
-	Objects.VisionTool = NewCastAction(Outer, TEXT("VeyraVisionTool"));
-	Objects.MappingContext->MapKey(Objects.VisionTool, Settings.VisionToolKey);
-	Objects.Recall = NewCastAction(Outer, TEXT("VeyraRecall"));
-	Objects.MappingContext->MapKey(Objects.Recall, Settings.RecallKey);
-	Objects.VoteYes = NewCastAction(Outer, TEXT("VeyraVoteYes"));
-	Objects.MappingContext->MapKey(Objects.VoteYes, Settings.VoteYesKey);
-	Objects.VoteNo = NewCastAction(Outer, TEXT("VeyraVoteNo"));
-	Objects.MappingContext->MapKey(Objects.VoteNo, Settings.VoteNoKey);
-	return Objects;
+	Map(Actions.VisionTool, Settings.VisionToolKey);
+	Map(Actions.Recall, Settings.RecallKey);
+	Map(Actions.VoteYes, Settings.VoteYesKey);
+	Map(Actions.VoteNo, Settings.VoteNoKey);
+	return Context;
 }
 }

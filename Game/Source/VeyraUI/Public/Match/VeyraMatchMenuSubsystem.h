@@ -13,6 +13,8 @@ class UInputComponent;
 class UInputMappingContext;
 class UVeyraMatchMenu;
 class UVeyraSettingsScreen;
+class UVeyraUIInputSettings;
+struct FVeyraContentId;
 struct FVeyraInterfacePreferences;
 class UVeyraScoreboard;
 class UVeyraShopScreen;
@@ -84,6 +86,20 @@ private:
 
 	/** The player's interface settings over the developer's. */
 	FVeyraInterfacePreferences Preferences() const;
+
+public:
+	/** The keys of the menu, the shop and the scoreboard: the player's bindings over the developer's. */
+	const UVeyraUIInputSettings& GetKeys() const;
+
+private:
+	/** Makes PlayerKeys the developer's keys with the player's bindings, and maps the screens' actions to them anew. */
+	void RefreshKeys();
+	void OnPlayerSettingChanged(const FVeyraContentId& Id);
+
+	UPROPERTY(Transient)
+	TObjectPtr<UVeyraUIInputSettings> PlayerKeys;
+
+	FDelegateHandle SettingsHandle;
 
 	TWeakObjectPtr<AVeyraPlayerController> BoundController;
 

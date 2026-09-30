@@ -15,6 +15,8 @@
 #include "Hud/VeyraHudModel.h"
 #include "Input/VeyraInputSettings.h"
 #include "Rendering/SlateRenderer.h"
+#include "Engine/GameInstance.h"
+#include "Match/VeyraMatchMenuSubsystem.h"
 #include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraUIInputSettings.h"
@@ -322,7 +324,7 @@ namespace
 		// A team's vote reaches only that team, as League shows a surrender.
 		if (Vote.bOpen && Own)
 		{
-			const UVeyraInputSettings& Input = *GetDefault<UVeyraInputSettings>();
+			const UVeyraInputSettings& Input = Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>();
 			const bool bVoted = Vote.Voted.Contains(Own->GetPlayerId());
 			const FString Answer = bVoted ? FString(TEXT("you voted")) : FString::Printf(TEXT("%s yes   %s no"), *KeyName(Input.VoteYesKey), *KeyName(Input.VoteNoKey));
 			Notices.Add({ FString::Printf(TEXT("%s vote   %d of %d yes, %d no   %.0f s   %s"), *StaticEnum<EVeyraVoteKind>()->GetNameStringByValue(static_cast<int64>(Vote.Kind)),
@@ -400,10 +402,10 @@ namespace
 	}
 
 	/** The deck along the bottom; returns its top edge, and what the cursor rests on. */
-	float DrawDeck(const FPainter& Paint, const AVeyraPlayerState& Participant, const TOptional<FVector2D>& Mouse, double Now, TOptional<FHover>& Hover)
+	float DrawDeck(const FPainter& Paint, const AVeyraPlayerState& Participant, const UVeyraInputSettings& Input, const FString& ShopKey, const TOptional<FVector2D>& Mouse,
+		double Now, TOptional<FHover>& Hover)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
-		const UVeyraInputSettings& Input = *GetDefault<UVeyraInputSettings>();
 		const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(Participant, Now);
 		const float Gap = Paint.S(Settings.DeckGap);
 		const float Pad = Paint.S(Settings.DeckPadding);
@@ -623,7 +625,6 @@ namespace
 			Paint.Outline(At, FVector2D(Item), Settings.HudHairlineColor);
 			Paint.KeyCap(At, KeyName(Input.GetAbilityKey(Held.Slot)));
 		}
-		const FString ShopKey = KeyName(GetDefault<UVeyraUIInputSettings>()->ShopKey);
 		const FString Gold = FString::Printf(TEXT("%s"), *FText::AsNumber(Player.Gold).ToString());
 		const float GoldY = ItemsTop + 2.0f * Item + Gap * 1.5f;
 		Paint.Text(FVector2D(ItemsLeft, GoldY), Gold, Paint.Font(TEXT("Black"), Settings.HudBodyFontSize), Settings.GoldColor);
@@ -677,7 +678,11 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 		Mouse = At;
 	}
 	TOptional<FHover> Hover;
-	const float DeckTop = DrawDeck(Paint, *Own, Mouse, ServerNow, Hover);
+	// The player's own keys on the key caps (ADR-024 §6).
+	const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);
+	const UVeyraMatchMenuSubsystem* Screens = World.GetGameInstance() ? World.GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr;
+	const FString ShopKey = KeyName(Screens ? Screens->GetKeys().ShopKey : GetDefault<UVeyraUIInputSettings>()->ShopKey);
+	const float DeckTop = DrawDeck(Paint, *Own, Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, Hover);
 	if (Hover.IsSet())
 	{
 		DrawTooltip(Paint, Hover.GetValue(), DeckTop);
