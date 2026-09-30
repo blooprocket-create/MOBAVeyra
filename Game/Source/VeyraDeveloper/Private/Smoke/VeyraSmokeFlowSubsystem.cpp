@@ -1144,9 +1144,20 @@ bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
 			}
 			return true;
 		}
-		// As a player does: choose the item's tile, then buy it with the one purchase button.
+		// As a player does: back to the items tab the swap left, choose the item's tile, then buy it with the
+		// one purchase button.
 		UVeyraShellButton* Tile = Shop.FindButton(UVeyraShopScreen::TileLabel(Offer->Item));
-		if (Tile && Shop.GetSelectedItem() != Offer->Item)
+		if (!Tile)
+		{
+			if (UVeyraShellButton* ItemsTab = Shop.FindButton(UVeyraShopScreen::ItemsTabLabel()))
+			{
+				ItemsTab->Press();
+				return true;
+			}
+			Finish(false, FString::Printf(TEXT("the shop shows no tile for %s"), *Offer->Item.ToString()));
+			return true;
+		}
+		if (Shop.GetSelectedItem() != Offer->Item)
 		{
 			Tile->Press();
 			return true;
