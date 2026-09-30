@@ -124,7 +124,7 @@ struct FVeyraShopTuning
 	int32 MaxBoots = 0;
 };
 
-/** What a consumable does when used (Item Bible §10). */
+/** What a consumable does when used (Item Bible §12). */
 USTRUCT()
 struct FVeyraConsumableTuning
 {
@@ -145,7 +145,7 @@ struct FVeyraConsumableTuning
 	double ResaleFraction = 0.0;
 
 	/**
-	 * 0 for one that is used up. Above 0, it is refillable (Item Bible §10; ADR-023 §6): bought with
+	 * 0 for one that is used up. Above 0, it is refillable (Item Bible §12; ADR-023 §6): bought with
 	 * this many charges, it spends one on each use and never goes, refills at its holder's fountain
 	 * and when its holder's side secures a Flux Well, and is held once.
 	 */

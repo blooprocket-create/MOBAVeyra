@@ -29,7 +29,7 @@ struct FVeyraInventorySlot
 	UPROPERTY()
 	bool bBenefited = false;
 
-	/** A refillable consumable's charges left (Item Bible §10; ADR-023 §6); 0 for everything else. */
+	/** A refillable consumable's charges left (Item Bible §12; ADR-023 §6); 0 for everything else. */
 	UPROPERTY()
 	int32 Charges = 0;
 

@@ -91,7 +91,7 @@
       }
     },
     "consumables": {
-      "description": "What each consumable does when used, by its item's ID (Item Bible §10).",
+      "description": "What each consumable does when used, by its item's ID (Item Bible §12).",
       "type": "object",
       "additionalProperties": false,
       "patternProperties": {
@@ -104,7 +104,7 @@
             "healthRestored": { "description": "Health restored over the duration, in equal parts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "durationSeconds": { "description": "How long the restoration lasts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "resaleFraction": { "description": "What selling an unused one returns, as a fraction of its cost (Economy §12: a consumable defines its own).", "type": "number", "minimum": 0, "maximum": 1 },
-            "charges": { "description": "0 for one that is used up; above 0, a refillable one: bought with this many charges, it spends one a use, refills at the fountain and from a secured Flux Well, and is held once (Item Bible §10; ADR-023 §6).", "type": "integer", "minimum": 0 }
+            "charges": { "description": "0 for one that is used up; above 0, a refillable one: bought with this many charges, it spends one a use, refills at the fountain and from a secured Flux Well, and is held once (Item Bible §12; ADR-023 §6).", "type": "integer", "minimum": 0 }
           }
         }
       }

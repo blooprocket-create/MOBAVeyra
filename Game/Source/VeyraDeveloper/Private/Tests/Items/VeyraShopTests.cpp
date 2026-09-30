@@ -326,7 +326,7 @@ namespace VeyraItemsTests
 		TEST_METHOD(ARefillableConsumableSpendsChargesAndRefills)
 		{
 			// Fixture values: the tonic made refillable, with two charges of 10 Health over 1 second
-			// (Item Bible §10; ADR-023 §6).
+			// (Item Bible §12; ADR-023 §6).
 			constexpr int32 Charges = 2;
 			constexpr double Duration = 1.0;
 			const TCHAR* Flask = TEXT("test_tonic");

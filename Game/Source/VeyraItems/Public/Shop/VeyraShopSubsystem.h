@@ -84,7 +84,7 @@ public:
 	void DeliverOnDeath(AActor& Participant);
 
 	/**
-	 * Fills Participant's refillable consumables to their charges (Item Bible §10; ADR-023 §6): its
+	 * Fills Participant's refillable consumables to their charges (Item Bible §12; ADR-023 §6): its
 	 * arrival at its fountain does, and Match calls it for each of a side's participants when the
 	 * side secures a Flux Well.
 	 */
@@ -109,7 +109,7 @@ public:
 	static EVeyraItemUse GetUse(const AActor& Participant, int32 Index);
 
 	/**
-	 * Uses one of the consumable in inventory slot Index (Item Bible §10): Field Tonic restores its
+	 * Uses one of the consumable in inventory slot Index (Item Bible §12): Field Tonic restores its
 	 * Health over its duration. Refused while dead, or while one is still restoring.
 	 */
 	EVeyraShopRefusal UseConsumable(AActor& Participant, int32 Index);

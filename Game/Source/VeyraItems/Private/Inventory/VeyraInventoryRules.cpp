@@ -113,7 +113,7 @@ namespace
 			bHeld |= Slot.Item == Item;
 			bRoomInStack |= Slot.Item == Item && Slot.Count < Definition->StackLimit;
 		}
-		// A Masterwork is held once (ADR-012 §9), and so is a refillable consumable (Item Bible §10).
+		// A Masterwork is held once (ADR-012 §9), and so is a refillable consumable (Item Bible §12).
 		const FVeyraConsumableTuning* Consumable = Tuning.Consumables.Find(Item);
 		if (bHeld && (Definition->Tier >= Tuning.Shop.UniqueFromTier || (Consumable && Consumable->Charges > 0)))
 		{

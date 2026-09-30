@@ -505,7 +505,7 @@ EVeyraShopRefusal UVeyraShopSubsystem::UseConsumable(AActor& Participant, int32 
 	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
 	if (Consumable->Charges > 0)
 	{
-		// A refillable one spends a charge and stays (Item Bible §10).
+		// A refillable one spends a charge and stays (Item Bible §12).
 		if (Slots[Index].Charges <= 0)
 		{
 			return EVeyraShopRefusal::NoCharges;

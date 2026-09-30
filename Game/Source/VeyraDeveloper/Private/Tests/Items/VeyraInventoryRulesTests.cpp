@@ -237,7 +237,7 @@ namespace VeyraItemsTests
 
 		TEST_METHOD(ARefillableConsumableIsHeldOnceAndArrivesFull)
 		{
-			// Fixture values: the tonic made refillable, with two charges (Item Bible §10; ADR-023 §6).
+			// Fixture values: the tonic made refillable, with two charges (Item Bible §12; ADR-023 §6).
 			constexpr int32 Charges = 2;
 			const FVeyraContentId Flask = ItemId(TEXT("test_tonic"));
 			FVeyraItemsTuning Refillable = Tuning;
