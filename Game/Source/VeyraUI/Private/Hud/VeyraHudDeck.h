@@ -12,6 +12,7 @@ class UFont;
 class UWorld;
 class UVeyraGreyboxSettings;
 struct FSlateFontInfo;
+struct FVeyraInterfacePreferences;
 
 /**
  * The in-match HUD's deck and strips, drawn on the canvas (ADR-008 §1). The Art Bible leaves the
@@ -26,9 +27,12 @@ struct FSlateFontInfo;
  */
 namespace VeyraHudDeck
 {
-	/** Draws the deck, the top strip, Team Flux and the death shade for Viewer, whose participant is Own. */
-	void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, const UWorld& World, const AVeyraGameState& GameState,
-		const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow);
+	/**
+	 * Draws the deck, the top strip, Team Flux, the readouts the player asked for and the death shade for
+	 * Viewer, whose participant is Own, at the player's HUD scale.
+	 */
+	void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font, const UWorld& World,
+		const AVeyraGameState& GameState, const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow);
 
 	/** Draws Text large and centred a third of the way down, in Color: the match's end, for one. */
 	void DrawHeadline(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, const FString& Text, const FLinearColor& Color);

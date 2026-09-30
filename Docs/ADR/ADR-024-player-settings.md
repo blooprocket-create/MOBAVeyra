@@ -135,12 +135,13 @@ The developer defaults in `Default*.ini` remain the fallback for every system. A
 
 Every value here is Provisional data in `Settings.json`.
 
-1. **Speed sliders** show 0–100 and map to 0.5× to 2× the developer default, with 50 as the default, as League's camera speed slider does.
-2. **Edge zones** Narrow / Standard / Wide are 6 / 12 / 24 pixels. **Edge delays** Immediate / Short / Long are 0 / 0.15 / 0.3 s.
-3. **HUD scales** run 50–150% in steps of 5, with 100% as the default. Minimap scale and icon scale use the same range.
-4. **Frame caps** are 30 / 60 / 120 / 144 / 240 / Uncapped, with the foreground default Uncapped and the background default 30 (SET-109). Render scale runs 50–100%, default 100%.
-5. **The account document** is at most 32 KiB (`Backend/config settings.maxDocumentBytes`), under the backend's 64 KiB request body limit so a document that fits can always be sent. The backend keeps the latest revision only.
-6. **The conflict choice** is asked once after sign-in, before the shell shows, like League's settings conflict dialog.
+1. **Speed sliders** show 0–100 and map to 0.5× to 2× the developer default, with 50 as the default, as League's camera speed slider does: evenly in ratio, so each step multiplies the speed alike (`UVeyraCameraSettings::SpeedSettingSlowest` and `SpeedSettingFastest`).
+2. **Edge zones** Narrow / Standard / Wide are 6 / 12 / 24 pixels. **Edge delays** Immediate / Short / Long are 0 / 0.15 / 0.3 s (`EdgeZonePixels` and `EdgeDelaySeconds` in `DefaultGame.ini`).
+3. **The camera key's mode is kept.** Pressing it sets the Default Camera Mode, so the next match starts where the player left it, as League keeps its camera lock.
+4. **HUD scales** run 50–150% in steps of 5, with 100% as the default. Minimap scale and icon scale use the same range.
+5. **Frame caps** are 30 / 60 / 120 / 144 / 240 / Uncapped, with the foreground default Uncapped and the background default 30 (SET-109). Render scale runs 50–100%, default 100%.
+6. **The account document** is at most 32 KiB (`Backend/config settings.maxDocumentBytes`), under the backend's 64 KiB request body limit so a document that fits can always be sent. The backend keeps the latest revision only.
+7. **The conflict choice** is asked once after sign-in, before the shell shows, like League's settings conflict dialog.
 
 ## Consequences
 

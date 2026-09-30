@@ -10,10 +10,12 @@
 #include "Fonts/FontMeasure.h"
 #include "Framework/Application/SlateApplication.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Hud/VeyraHudModel.h"
 #include "Input/VeyraInputSettings.h"
 #include "Rendering/SlateRenderer.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraUIInputSettings.h"
 #include "Statistics/VeyraScoreComponent.h"
@@ -23,6 +25,9 @@
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
+
+// The engine keeps a smoothed frame rate, declared only where it is defined.
+extern ENGINE_API float GAverageFPS;
 
 namespace
 {
@@ -36,11 +41,11 @@ namespace
 		const UFont* FontAsset = nullptr;
 		float Scale = 1.0f;
 
-		FPainter(UCanvas& InCanvas, const UVeyraGreyboxSettings& InSettings, const UFont* InFont)
+		FPainter(UCanvas& InCanvas, const UVeyraGreyboxSettings& InSettings, const UFont* InFont, float HudScale = 1.0f)
 			: Canvas(InCanvas)
 			, Settings(InSettings)
 			, FontAsset(InFont)
-			, Scale(InSettings.HudReferenceHeight > 0.0f ? InCanvas.ClipY / InSettings.HudReferenceHeight : 1.0f)
+			, Scale((InSettings.HudReferenceHeight > 0.0f ? InCanvas.ClipY / InSettings.HudReferenceHeight : 1.0f) * HudScale)
 		{
 		}
 
@@ -245,6 +250,23 @@ namespace
 		Paint.TextCentred(FVector2D(Paint.Canvas.ClipX / 2.0f, Middle), ClockText, ClockFont, Settings.TextColor);
 		Paint.TextCentred(FVector2D(TopLeft.X + Width * 0.14f, Middle), FString::FromInt(OwnKills), KillFont, Settings.AllyColor);
 		Paint.TextCentred(FVector2D(TopLeft.X + Width * 0.86f, Middle), FString::FromInt(EnemyKills), KillFont, Settings.EnemyColor);
+	}
+
+	/** The frame rate and ping the player asked to see, top right (Settings Bible §3.6). */
+	void DrawReadouts(const FPainter& Paint, const FVeyraInterfacePreferences& Preferences, const APlayerController* Viewer)
+	{
+		const APlayerState* Participant = Viewer ? Viewer->PlayerState.Get() : nullptr;
+		// A server's own player has no ping to show.
+		const float Ping = Participant ? Participant->GetPingInMilliseconds() : 0.0f;
+		const FString Text = VeyraInterfacePreferences::DescribeReadouts(Preferences, GAverageFPS, Ping > 0.0f ? TOptional<float>(Ping) : TOptional<float>());
+		if (Text.IsEmpty())
+		{
+			return;
+		}
+		const FSlateFontInfo Font = Paint.Font(TEXT("Bold"), Paint.Settings.HudSmallFontSize);
+		const FVector2D Size = Paint.Measure(Text, Font);
+		const float Gap = Paint.S(Paint.Settings.DeckGap);
+		Paint.Text(FVector2D(Paint.Canvas.ClipX - Gap - Size.X, Gap), Text, Font, Paint.Settings.TextColor, true);
 	}
 
 	/** Each side's Team Flux, the viewer's first, top left (ADR-011 §10). */
@@ -635,12 +657,13 @@ namespace
 
 namespace VeyraHudDeck
 {
-void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const UFont* Font, const UWorld& World, const AVeyraGameState& GameState,
-	const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow)
+void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraInterfacePreferences& Preferences, const UFont* Font, const UWorld& World,
+	const AVeyraGameState& GameState, const APlayerController* Viewer, const AVeyraPlayerState* Own, double ServerNow)
 {
-	const FPainter Paint(Canvas, Settings, Font);
+	const FPainter Paint(Canvas, Settings, Font, Preferences.HudScale);
 	const EVeyraTeam Side = Own ? Own->GetVeyraTeam() : EVeyraTeam::None;
 	DrawTopStrip(Paint, GameState, Side);
+	DrawReadouts(Paint, Preferences, Viewer);
 	DrawNotices(Paint, GameState, Viewer);
 	DrawTeamFlux(Paint, World, Side, ServerNow);
 	if (!Own)

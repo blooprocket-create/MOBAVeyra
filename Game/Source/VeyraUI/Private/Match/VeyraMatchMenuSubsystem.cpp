@@ -12,6 +12,9 @@
 #include "InputMappingContext.h"
 #include "Match/VeyraMatchMenu.h"
 #include "Scoreboard/VeyraScoreboard.h"
+#include "Engine/GameViewportClient.h"
+#include "Greybox/VeyraGreyboxSettings.h"
+#include "Settings/VeyraInterfacePreferences.h"
 #include "Settings/VeyraSettingsScreen.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Shop/VeyraShopScreen.h"
@@ -97,9 +100,9 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	UEnhancedInputComponent* Component = NewObject<UEnhancedInputComponent>(Controller, NAME_None, RF_Transient);
 	Component->BindAction(MenuAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleMenu);
 	Component->BindAction(ShopAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleShop);
-	// Held, as League's Tab (Settings Bible #56); the Toggle mode arrives with the Settings screen.
-	Component->BindAction(ScoreboardAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ShowScoreboard);
-	Component->BindAction(ScoreboardAction, ETriggerEvent::Completed, this, &UVeyraMatchMenuSubsystem::HideScoreboard);
+	// Held, as League's Tab, or toggled, as the player chooses (Settings Bible #56).
+	Component->BindAction(ScoreboardAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::PressScoreboardKey);
+	Component->BindAction(ScoreboardAction, ETriggerEvent::Completed, this, &UVeyraMatchMenuSubsystem::ReleaseScoreboardKey);
 	Controller->PushInputComponent(Component);
 	MenuInput = Component;
 	BoundController = Controller;
@@ -112,6 +115,11 @@ void UVeyraMatchMenuSubsystem::ToggleMenu()
 	{
 		// The menu's key closes Settings first.
 		CloseSettings();
+	}
+	else if (Scoreboard && Preferences().bScoreboardToggles)
+	{
+		// And a scoreboard toggled open (SET-56: Escape closes).
+		HideScoreboard();
 	}
 	else if (Shop && !Menu)
 	{
@@ -258,6 +266,30 @@ void UVeyraMatchMenuSubsystem::CloseSettings()
 	UpdateInputMode();
 }
 
+FVeyraInterfacePreferences UVeyraMatchMenuSubsystem::Preferences() const
+{
+	const UVeyraSettingsSubsystem* Player = GetGameInstance()->GetSubsystem<UVeyraSettingsSubsystem>();
+	return VeyraInterfacePreferences::Resolve(*GetDefault<UVeyraGreyboxSettings>(), Player && Player->IsReady() ? &Player->GetStore() : nullptr);
+}
+
+void UVeyraMatchMenuSubsystem::PressScoreboardKey()
+{
+	if (Preferences().bScoreboardToggles && Scoreboard)
+	{
+		HideScoreboard();
+		return;
+	}
+	ShowScoreboard();
+}
+
+void UVeyraMatchMenuSubsystem::ReleaseScoreboardKey()
+{
+	if (!Preferences().bScoreboardToggles)
+	{
+		HideScoreboard();
+	}
+}
+
 void UVeyraMatchMenuSubsystem::UpdateInputMode()
 {
 	AVeyraPlayerController* Controller = BoundController.Get();
@@ -265,6 +297,8 @@ void UVeyraMatchMenuSubsystem::UpdateInputMode()
 	{
 		return;
 	}
+	// The cursor stays in the window during a match unless the player lets it go (SET-83).
+	const EMouseLockMode Lock = Preferences().bConfineCursor ? EMouseLockMode::LockAlways : EMouseLockMode::DoNotLock;
 	if (Menu || Shop || Settings)
 	{
 		// The menu and Settings take the keyboard; the shop leaves it to the game, so abilities and items still work.
@@ -278,6 +312,7 @@ void UVeyraMatchMenuSubsystem::UpdateInputMode()
 			Mode.SetWidgetToFocus(Menu->TakeWidget());
 		}
 		Mode.SetHideCursorDuringCapture(false);
+		Mode.SetLockMouseToViewportBehavior(Lock);
 		Controller->SetInputMode(Mode);
 	}
 	else
@@ -285,5 +320,9 @@ void UVeyraMatchMenuSubsystem::UpdateInputMode()
 		FInputModeGameOnly Mode;
 		Mode.SetConsumeCaptureMouseDown(false);
 		Controller->SetInputMode(Mode);
+		if (UGameViewportClient* Viewport = Controller->GetLocalPlayer() ? Controller->GetLocalPlayer()->ViewportClient.Get() : nullptr)
+		{
+			Viewport->SetMouseLockMode(Lock);
+		}
 	}
 }

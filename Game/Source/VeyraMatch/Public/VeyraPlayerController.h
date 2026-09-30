@@ -18,6 +18,7 @@
 #include "VeyraPlayerController.generated.h"
 
 class AVeyraVanguardCharacter;
+struct FVeyraCameraPreferences;
 
 /**
  * A human player's connection to the match. It possesses nothing: it sends the player's intents to
@@ -368,6 +369,15 @@ private:
 
 	/** Where the cursor was on the last frame of a middle-mouse drag. */
 	TOptional<FVector2D> LastDragMouse;
+
+	/** How long the cursor has rested in the screen's edge zone, for the Edge-Scroll Delay (SET-87). */
+	double EdgeHeldSeconds = 0.0;
+
+	/** The Vanguard has had a body: the next one is a respawn, which Return Camera on Respawn governs (SET-156). */
+	bool bHadVanguard = false;
+
+	/** The player's camera settings over the developer's (ADR-024 §6). */
+	FVeyraCameraPreferences CameraPreferences() const;
 
 	FMinimapHitTest MinimapHitTest;
 

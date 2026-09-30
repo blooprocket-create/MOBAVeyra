@@ -2,6 +2,7 @@
 
 #include "VeyraPlayerController.h"
 
+#include "Camera/VeyraCameraPreferences.h"
 #include "Camera/VeyraCameraRig.h"
 #include "Developer/VeyraDeveloperCommandRoute.h"
 #include "Engine/Console.h"
@@ -30,6 +31,7 @@
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
 #include "Votes/VeyraVoteSubsystem.h"
+#include "VeyraSettingsSubsystem.h"
 
 AVeyraPlayerController::AVeyraPlayerController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -87,6 +89,8 @@ void AVeyraPlayerController::BeginPlay()
 		Parameters.Owner = this;
 		Parameters.ObjectFlags |= RF_Transient;
 		CameraRig = GetWorld()->SpawnActor<AVeyraCameraRig>(Parameters);
+		// The mode the player left the camera in last match (SET-5; League keeps its camera lock too).
+		CameraRig->SetMode(CameraPreferences().DefaultMode);
 		if (APawn* Vanguard = GetVanguard())
 		{
 			OnVanguardSet(PlayerState, Vanguard, nullptr);
@@ -761,10 +765,21 @@ void AVeyraPlayerController::OnVanguardSet(APlayerState* /*Participant*/, APawn*
 		SetViewTarget(NewPawn);
 		return;
 	}
-	// The camera goes to each new body, the first and each respawn, as League's does; between them it
-	// goes where the player takes it.
-	CameraRig->CenterOn(NewPawn->GetActorLocation());
+	// The camera goes to the first body, and to each respawn unless the player turned that off (SET-156);
+	// between them it goes where the player takes it, as far as the camera's mode allows.
+	const bool bRespawn = bHadVanguard;
+	bHadVanguard = true;
+	if (!bRespawn || CameraPreferences().bReturnOnRespawn)
+	{
+		CameraRig->CenterOn(NewPawn->GetActorLocation());
+	}
 	SetViewTarget(CameraRig);
+}
+
+FVeyraCameraPreferences AVeyraPlayerController::CameraPreferences() const
+{
+	const UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this);
+	return VeyraCameraPreferences::Resolve(*GetDefault<UVeyraCameraSettings>(), Settings ? &Settings->GetStore() : nullptr);
 }
 
 void AVeyraPlayerController::PlayerTick(float DeltaTime)
@@ -783,7 +798,7 @@ void AVeyraPlayerController::PlayerTick(float DeltaTime)
 void AVeyraPlayerController::TickCamera(float DeltaTime)
 {
 	const UVeyraInputSettings& Keys = *GetDefault<UVeyraInputSettings>();
-	const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
+	const FVeyraCameraPreferences View = CameraPreferences();
 	if (TickEndPan(DeltaTime))
 	{
 		return;
@@ -791,6 +806,11 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 	if (WasInputKeyJustPressed(Keys.CameraModeKey))
 	{
 		CameraRig->SetMode(VeyraCamera::Next(CameraRig->GetMode()));
+		// Kept for the next match, as League keeps its camera lock.
+		if (UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
+		{
+			Settings->GetStore().Set(VeyraCameraPreferences::DefaultMode(), VeyraCameraPreferences::ModeName(CameraRig->GetMode()), /*bInLiveMatch*/ true);
+		}
 	}
 	FVeyraCameraInput CameraInput;
 	CameraInput.Pan.X = (IsInputKeyDown(Keys.CameraRightKey) ? 1.0 : 0.0) - (IsInputKeyDown(Keys.CameraLeftKey) ? 1.0 : 0.0);
@@ -805,6 +825,7 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 		Viewport->GetViewportSize(Size);
 		CameraInput.EdgePan = VeyraCamera::EdgePan(Mouse, Size, View.EdgeScrollPixels);
 	}
+	CameraInput.EdgePan = VeyraCamera::DelayEdgePan(CameraInput.EdgePan, DeltaTime, View.EdgeDelaySeconds, EdgeHeldSeconds);
 	// Dragging moves the ground with the cursor, so the view moves against it.
 	if (bHasMouse && IsInputKeyDown(Keys.CameraDragKey))
 	{
@@ -833,7 +854,14 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 	{
 		CameraInput.Vanguard = Vanguard->GetActorLocation();
 	}
-	CameraRig->Step(CameraInput, DeltaTime);
+	else if (!View.bFreeWhileDead && CameraRig->GetMode() != EVeyraCameraMode::Free)
+	{
+		// Waiting to respawn, a Locked or Semi-Locked camera keeps its mode's ordinary control (SET-157).
+		CameraInput.Pan = FVector2D::ZeroVector;
+		CameraInput.EdgePan = FVector2D::ZeroVector;
+		CameraInput.Drag = FVector2D::ZeroVector;
+	}
+	CameraRig->Step(CameraInput, DeltaTime, &View);
 }
 
 void AVeyraPlayerController::ServerIssueMoveOrder_Implementation(FVector Destination)

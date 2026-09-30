@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Camera/VeyraCameraPreferences.h"
 #include "Camera/VeyraCameraRules.h"
 #include "GameFramework/Actor.h"
 
@@ -26,8 +27,8 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
-	/** Moves the focus for one frame. */
-	void Step(const FVeyraCameraInput& Input, double DeltaSeconds);
+	/** Moves the focus for one frame, at the speeds Preferences give, or the developer's without them. */
+	void Step(const FVeyraCameraInput& Input, double DeltaSeconds, const FVeyraCameraPreferences* Preferences = nullptr);
 
 	/** Puts the focus on Point at once, as a minimap click or the end-of-match pan does. */
 	void LookAt(const FVector& Point);

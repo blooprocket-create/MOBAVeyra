@@ -61,6 +61,17 @@ FVector2D EdgePan(const FVector2D& Mouse, const FVector2D& Viewport, double Edge
 	return Pan;
 }
 
+FVector2D DelayEdgePan(const FVector2D& EdgePan, double DeltaSeconds, double Delay, double& HeldSeconds)
+{
+	if (EdgePan.IsZero())
+	{
+		HeldSeconds = 0.0;
+		return FVector2D::ZeroVector;
+	}
+	HeldSeconds += DeltaSeconds;
+	return HeldSeconds >= Delay ? EdgePan : FVector2D::ZeroVector;
+}
+
 FVector ScreenToGround(const FVector2D& Screen)
 {
 	return FVector(Screen.Y, Screen.X, 0.0);
