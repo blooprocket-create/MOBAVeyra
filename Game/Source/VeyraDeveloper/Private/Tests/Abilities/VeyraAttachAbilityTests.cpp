@@ -5,6 +5,7 @@
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tethers/VeyraTetherSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "VeyraCombatVerbs.h"
 
 #if WITH_AUTOMATION_WORKER
 
@@ -190,6 +191,25 @@ namespace VeyraAbilitiesTests
 			const UVeyraTetherSubsystem& Tethers = *Spawner.GetWorld().GetSubsystem<UVeyraTetherSubsystem>();
 			ASSERT_THAT(IsTrue(Tethers.IsTethered(*Caster.GetAbilitySystemComponent(), ArchetypeTestId(TEXT("test_thread")))));
 			ASSERT_THAT(IsTrue(Tethers.IsTetheredBy(Enemy, EVeyraTeam::A) && FArchetypeTestWorld::Has(Enemy, TEXT("test_threaded"))));
+		}
+
+		TEST_METHOD(ASpellShieldBlocksTheTether)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Caster = World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Range / 2.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(Caster, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_thread")))));
+			FVeyraStatusSpec Ward;
+			Ward.Id = ArchetypeTestId(TEXT("test_ward"));
+			Ward.Kind = EVeyraStatusKind::SpellShield;
+			Ward.DurationSeconds = LongSeconds;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy.GetAbilitySystemComponent(), *Enemy.GetAbilitySystemComponent(), Ward)));
+			FVeyraCastTarget Target;
+			Target.Actor = &Enemy;
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Caster.GetAbilitySystemComponent(), EVeyraAbilitySlot::E, Target) == EVeyraCastRejection::None));
+			const UVeyraTetherSubsystem& Tethers = *Spawner.GetWorld().GetSubsystem<UVeyraTetherSubsystem>();
+			ASSERT_THAT(IsFalse(Tethers.IsTethered(*Caster.GetAbilitySystemComponent(), ArchetypeTestId(TEXT("test_thread"))), TEXT("no tether (Combat Bible §19)")));
+			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(Enemy, TEXT("test_threaded")) || FArchetypeTestWorld::Has(Enemy, TEXT("test_ward"))));
 		}
 	};
 }

@@ -13,6 +13,7 @@
 #include "Targeting/VeyraTargeting.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "VeyraCombatVerbs.h"
 
 #if WITH_AUTOMATION_WORKER
 
@@ -226,6 +227,28 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(World.Has(Middle, TEXT("test_slow")) && !World.Has(Middle, TEXT("test_stun"))));
 			ASSERT_THAT(IsTrue(World.HealthLost(Middle) == 0.0));
 			ASSERT_THAT(IsFalse(World.Has(Away, TEXT("test_slow")) || World.Has(Friend, TEXT("test_slow")) || World.Has(Friend, TEXT("test_stun"))));
+		}
+
+		TEST_METHOD(ASpellShieldBlocksTheWholeHitAndTheNextLands)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_slam")))));
+			// A second caster's hit follows the first.
+			AVeyraVanguardCharacter& Second = World.Spawn(EVeyraTeam::A, FVector(0.0, -InnerRadius, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(Second, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_mortar")))));
+			AVeyraVanguardCharacter& Shielded = World.Spawn(EVeyraTeam::B, FVector(InnerRadius / 2.0, 0.0, 0.0));
+			FVeyraStatusSpec Ward;
+			Ward.Id = ArchetypeTestId(TEXT("test_ward"));
+			Ward.Kind = EVeyraStatusKind::SpellShield;
+			Ward.DurationSeconds = LongSeconds;
+			UAbilitySystemComponent& Target = *Shielded.GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Target, Target, Ward)));
+
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, Shielded.GetActorLocation()) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(World.HealthLost(Shielded) == 0.0 && !World.Has(Shielded, TEXT("test_stun")), TEXT("no damage and no status (Combat Bible §19)")));
+			ASSERT_THAT(IsFalse(World.Has(Shielded, TEXT("test_ward")), TEXT("the shield is spent")));
+			ASSERT_THAT(IsTrue(World.CastAt(Second, EVeyraAbilitySlot::W, Shielded.GetActorLocation()) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(World.HealthLost(Shielded) > 0.0 && World.Has(Shielded, TEXT("test_stun")), TEXT("the next hit lands")));
 		}
 
 		TEST_METHOD(APointBeyondRangeIsBroughtWithinIt)
@@ -531,6 +554,22 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(CastAtUnit(EVeyraAbilitySlot::Spell2, Minion) == EVeyraCastRejection::InvalidTarget, TEXT("an ignite is for Vanguards")));
 			ASSERT_THAT(IsTrue(CastAtUnit(EVeyraAbilitySlot::Spell1, Minion) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Minion), SmiteDamage, 1e-3)));
+		}
+
+		TEST_METHOD(ASpellShieldBlocksATargetedSpellWhichStaysSpent)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Equip(*Caster, EVeyraAbilitySlot::Spell2, ArchetypeTestId(TEXT("test_ignite")))));
+			FVeyraStatusSpec Ward;
+			Ward.Id = ArchetypeTestId(TEXT("test_ward"));
+			Ward.Kind = EVeyraStatusKind::SpellShield;
+			Ward.DurationSeconds = LongSeconds;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy.GetAbilitySystemComponent(), *Enemy.GetAbilitySystemComponent(), Ward)));
+			ASSERT_THAT(IsTrue(CastAtUnit(EVeyraAbilitySlot::Spell2, Enemy) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsFalse(World.Has(Enemy, TEXT("test_burn")) || World.Has(Enemy, TEXT("test_ward")), TEXT("blocked, and the shield spent")));
+			const UVeyraCooldownComponent& Cooldowns = *Caster->GetPlayerState()->FindComponentByClass<UVeyraCooldownComponent>();
+			ASSERT_THAT(IsTrue(Cooldowns.GetRemainingSecondsNow(ArchetypeTestId(TEXT("test_ignite"))) > 0.0, TEXT("the cast stays spent (Combat Bible §54)")));
 		}
 
 		TEST_METHOD(AnIgniteBurnsByItsCastersLevel)

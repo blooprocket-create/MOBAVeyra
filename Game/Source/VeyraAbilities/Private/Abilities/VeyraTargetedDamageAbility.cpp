@@ -67,6 +67,12 @@ void UVeyraTargetedDamageAbility::ActivateAbility(const FGameplayAbilitySpecHand
 	NoteCastCommitted(CasterAbilitySystem, Ability);
 
 	UAbilitySystemComponent* TargetAbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target.Actor);
+	// A Spell Shield blocks the whole hit, and the cast stays spent (Combat Bible §19, §54).
+	if (TargetAbilitySystem && VeyraCombat::BlockAbilityHit(*TargetAbilitySystem, CasterAbilitySystem))
+	{
+		EndAbility(Handle, ActorInfo, ActivationInfo, /*bReplicateEndAbility*/ true, /*bWasCancelled*/ false);
+		return;
+	}
 	const int32 Level = GetCasterLevel(CasterAbilitySystem);
 	const double Amount = VeyraAbilityRules::AtLevel(Tuning->DamageAmount, Tuning->DamagePerLevel, Level);
 	bool bLanded = TargetAbilitySystem != nullptr;

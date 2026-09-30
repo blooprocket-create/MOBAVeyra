@@ -407,6 +407,42 @@ struct FVeyraResidualCurrentTuning
 	double RegenerationAmplification = 0.0;
 };
 
+/**
+ * Drag the Tempo (Riverhold Bastion, Item Bible §8; ADR-025 §7): an enemy Vanguard's basic attack that
+ * damages the holder slows the attacker's Attack Speed, refreshed and never stacked.
+ */
+USTRUCT()
+struct FVeyraDragTheTempoTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The fraction of the attacker's Attack Speed removed. */
+	UPROPERTY()
+	double AttackSpeedReduction = 0.0;
+
+	UPROPERTY()
+	double Seconds = 0.0;
+};
+
+/**
+ * Quieting Chime (Blackreef Bell, Item Bible §8; ADR-025 §7): the holder holds a Spell Shield, which
+ * forms again once ReformSeconds pass after its last consumption and its last enemy-Vanguard damage.
+ */
+USTRUCT()
+struct FVeyraQuietingChimeTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double ReformSeconds = 0.0;
+};
+
 /** The Items domain's tuning, bound from Game/Tuning/Items.json (ADR-006 §6, ADR-012 §3). */
 USTRUCT()
 struct FVeyraItemsTuning
@@ -465,6 +501,12 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraResidualCurrentTuning> ResidualCurrent;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraDragTheTempoTuning> DragTheTempo;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraQuietingChimeTuning> QuietingChime;
 };
 
 /** The Items domain's checks that a schema cannot express (ADR-012 §3). */

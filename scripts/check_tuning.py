@@ -112,7 +112,7 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Items", "/items/*/components/*", "Items", ("/items",)),
     ("Items", "/items/*/attunement/*", "Items", ("/weightOfWar", "/overcharge", "/spoolUp", "/overcycle", "/perfectCut",
                                                  "/reprisalGuard", "/drag", "/convergence", "/fracture", "/endlessCleave", "/temperedByConflict",
-                                                 "/residualCurrent")),
+                                                 "/residualCurrent", "/dragTheTempo", "/quietingChime")),
     ("Items", "/items/*/active/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Items", "/consumables/#", "Items", ("/items",)),
     ("Items", "/quests/#", "Items", ("/items",)),

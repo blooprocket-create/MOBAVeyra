@@ -206,6 +206,15 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id);
 
 	/**
+	 * Whether a Spell Shield Target holds blocks a hostile ability hit from Source (Combat Bible §19;
+	 * ADR-025 §4). If so, the shield is consumed and announced, and the hit must deal no damage, apply
+	 * no status or displacement, and count as no hit. Every site that lands a discrete hostile ability
+	 * hit asks first: effect delivery, targeted damage and tethers. Basic attacks, Procs and effects
+	 * that apply over time do not. False for an ally's hit, and on a machine without authority.
+	 */
+	VEYRACOMBAT_API bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& Source);
+
+	/**
 	 * Server: ends every Camouflage on Unit, which attacked or cast something offensive (Combat Bible
 	 * §11; ADR-018 §4). Damage taken does not end it.
 	 */

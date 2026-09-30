@@ -131,7 +131,7 @@ namespace VeyraItemsTests
 
 		TEST_METHOD(TheRevisionsItemsKeepTheBiblesRecipesAndStats)
 		{
-			// Item Bible §4 and §6 (2026-09-30): each new item's recipe and the stats its identity names. Their
+			// Item Bible §4, §6 and §8 (2026-09-30): each new item's recipe and the stats its identity names. Their
 			// amounts are provisional tuning (ADR-025 §8); which stats they are is canon.
 			struct FExpected
 			{
@@ -152,6 +152,8 @@ namespace VeyraItemsTests
 				{ TEXT("waymark_weave"), { TEXT("renewal_mesh"), TEXT("renewal_mesh") }, { TEXT("HealthRegeneration") } },
 				{ TEXT("rescue_rig"), { TEXT("quickcoil"), TEXT("vital_plate") }, { TEXT("AttackSpeed"), TEXT("Health") } },
 				{ TEXT("killstring_assembly"), { TEXT("keensteel"), TEXT("quickcoil") }, { TEXT("AttackSpeed"), TEXT("CritChance") } },
+				{ TEXT("riverhold_bastion"), { TEXT("foundation_plate"), TEXT("marchplate"), TEXT("picket_plating") }, { TEXT("Armor"), TEXT("Health") } },
+				{ TEXT("blackreef_bell"), { TEXT("canyonward"), TEXT("resonant_wardstone") }, { TEXT("Health"), TEXT("MagicResist") } },
 			};
 			for (const FExpected& Expected : Revision)
 			{
@@ -185,6 +187,11 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Stats(TEXT("resonant_wardstone")).MagicResist >= 2 * Stats(TEXT("shatterdeep_crystal")).MagicResist));
 			ASSERT_THAT(IsTrue(Stats(TEXT("foundation_plate")).Armor >= 2 * Stats(TEXT("marchplate")).Armor));
 			ASSERT_THAT(IsTrue(Stats(TEXT("waymark_weave")).HealthRegeneration >= 2 * Stats(TEXT("renewal_mesh")).HealthRegeneration));
+
+			// The Masterworks' Attunements (§8).
+			const FVeyraItemsTuning& Catalog = UVeyraItemsTuningSubsystem::Get();
+			ASSERT_THAT(IsTrue(Catalog.DragTheTempo.Contains(UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("riverhold_bastion")))->Attunement[0])));
+			ASSERT_THAT(IsTrue(Catalog.QuietingChime.Contains(UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("blackreef_bell")))->Attunement[0])));
 		}
 
 		TEST_METHOD(TheCommittedQuestEvolvesFluxReclaimerIntoWaylineReservoir)

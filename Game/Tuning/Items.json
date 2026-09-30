@@ -208,6 +208,16 @@
       "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0.18, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.15, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
+    "riverhold_bastion": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["picket_plating", "foundation_plate", "marchplate"], "cost": 800, "stackLimit": 1,
+      "stats": { "health": 350, "healthRegeneration": 0, "armor": 75, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["drag_the_tempo"]
+    },
+    "blackreef_bell": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["canyonward", "resonant_wardstone"], "cost": 700, "stackLimit": 1,
+      "stats": { "health": 350, "healthRegeneration": 0, "armor": 0, "magicResist": 70, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["quieting_chime"]
+    },
     "colossus_temper": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["war_harness", "bloodforged_bracer", "vital_plate"], "cost": 600, "stackLimit": 1,
       "stats": { "health": 400, "healthRegeneration": 4, "armor": 0, "magicResist": 0, "physicalPower": 35, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
@@ -306,5 +316,11 @@
   },
   "residualCurrent": {
     "residual_current": { "provenance": "Provisional", "currentPerLastHit": 1, "currentCap": 30, "quietSeconds": 5, "currentPerSecond": 1, "regenerationAmplification": 3 }
+  },
+  "dragTheTempo": {
+    "drag_the_tempo": { "provenance": "Provisional", "attackSpeedReduction": 0.15, "seconds": 3 }
+  },
+  "quietingChime": {
+    "quieting_chime": { "provenance": "Provisional", "reformSeconds": 40 }
   }
 }

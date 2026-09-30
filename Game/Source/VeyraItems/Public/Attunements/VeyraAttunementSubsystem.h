@@ -10,6 +10,7 @@
 class UAbilitySystemComponent;
 struct FVeyraDamageDealtEvent;
 struct FVeyraDeathEvent;
+struct FVeyraSpellShieldBlocked;
 
 /**
  * The Attunements a hit sets off (Item Bible §8–§9; ADR-023 §3–§4): Reprisal Guard, Drag, Convergence,
@@ -43,13 +44,20 @@ public:
 	/** A last hit on an enemy lane Fluxborn stores Residual Current in the last hitter's item (ADR-025 §7). */
 	void OnDeath(const FVeyraDeathEvent& Death);
 
+	/** A Spell Shield was consumed: a Quieting Chime's waits to form again (ADR-025 §7). */
+	void OnSpellShieldBlocked(const FVeyraSpellShieldBlocked& Blocked);
+
 	/**
-	 * Residual Current's spending (Item Bible §10; ADR-025 §7): a holder that has gone its quiet time
-	 * without enemy-Vanguard damage, and is missing Health, spends a tick's Current to amplify its
-	 * Health Regeneration until the next tick; otherwise the amplification stops and the Current keeps.
-	 * A timer calls it on the server each regeneration tick while any Current is stored.
+	 * What holders' Attunements do over time (Item Bible §8, §10; ADR-025 §7), each call for the
+	 * regeneration tick to come:
+	 * - Residual Current: a holder that has gone its quiet time without enemy-Vanguard damage, and is
+	 *   missing Health, spends a tick's Current to amplify its Health Regeneration until the next call;
+	 *   otherwise the amplification stops and the Current keeps.
+	 * - Quieting Chime: a formed Spell Shield is kept; a consumed one forms again once ReformSeconds
+	 *   have passed since both its consumption and the holder's last enemy-Vanguard damage.
+	 * A timer calls it on the server each regeneration tick.
 	 */
-	void UpdateCurrent();
+	void UpdateHeld();
 
 	/** When Holder last took damage from an enemy Vanguard, in world time; unset if it never has. */
 	TOptional<double> GetVanguardDamageTakenAt(const UAbilitySystemComponent& Holder) const;
@@ -86,6 +94,9 @@ private:
 	void TemperedByConflict(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder,
 		UAbilitySystemComponent& Target, double Now);
 
+	/** Drag the Tempo: an enemy Vanguard's basic attack damaged Holder, so Attacker's Attack Speed slows (ADR-025 §7). */
+	void DragTheTempo(UAbilitySystemComponent& Holder, UAbilitySystemComponent& Attacker);
+
 	/** Reprisal Guard's cooldowns, by holder. */
 	TArray<FTimed> Cooldowns;
 
@@ -98,8 +109,15 @@ private:
 	FTimerHandle TemperingTimer;
 	FDelegateHandle DamageDealtHandle;
 	FDelegateHandle DeathHandle;
+	FDelegateHandle SpellShieldBlockedHandle;
+
+	/** When each holder's Quieting Chime was last consumed, in world time. */
+	TMap<TWeakObjectPtr<const UAbilitySystemComponent>, double> ChimeConsumedAt;
+
+	/** Starts the timer that calls UpdateHeld, if it is not running. Server only. */
+	void EnsureHeldTimer();
 
 	/** Each holder's latest enemy-Vanguard damage taken, in world time (ADR-025 §5). */
 	TMap<TWeakObjectPtr<const UAbilitySystemComponent>, double> VanguardDamageTakenAt;
-	FTimerHandle CurrentTimer;
+	FTimerHandle HeldTimer;
 };

@@ -155,13 +155,13 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(StoredCurrent() == Residual.CurrentCap, FString::SanitizeFloat(StoredCurrent())));
 
 			// At full Health it keeps its Current (ADR-025 §8).
-			Attunements.UpdateCurrent();
+			Attunements.UpdateHeld();
 			ASSERT_THAT(IsTrue(StoredCurrent() == Residual.CurrentCap && !Amplified()));
 
 			// Missing Health and clear of enemy Vanguards, it spends a tick's Current to amplify regeneration.
 			const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
 			Holder().SetNumericAttributeBase(Health, Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) / 2.0f);
-			Attunements.UpdateCurrent();
+			Attunements.UpdateHeld();
 			const double Tick = UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds;
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StoredCurrent(), Residual.CurrentCap - Residual.CurrentPerSecond * Tick), FString::SanitizeFloat(StoredCurrent())));
 			ASSERT_THAT(IsTrue(Amplified()));
@@ -173,14 +173,73 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Enemy, Holder(), Poke)));
 			ASSERT_THAT(IsTrue(Attunements.GetVanguardDamageTakenAt(Holder()).IsSet()));
 			const double Kept = StoredCurrent();
-			Attunements.UpdateCurrent();
+			Attunements.UpdateHeld();
 			ASSERT_THAT(IsTrue(StoredCurrent() == Kept && !Amplified()));
 
 			// After its quiet time it spends again.
 			RunFor(Residual.QuietSeconds + WorldStep);
 			Holder().SetNumericAttributeBase(Health, Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) / 2.0f);
-			Attunements.UpdateCurrent();
+			Attunements.UpdateHeld();
 			ASSERT_THAT(IsTrue(StoredCurrent() < Kept && Amplified()));
+		}
+
+		/** An enemy Vanguard's hit on the holder. */
+		void StrikeHolder(EVeyraDamageDelivery Delivery)
+		{
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, 1.0 });
+			Damage.Delivery = Delivery;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Enemy, Holder(), Damage)));
+		}
+
+		bool HolderShielded() const
+		{
+			return Participant->FindComponentByClass<UVeyraStatusComponent>()->Has(EVeyraStatusKind::SpellShield);
+		}
+
+		TEST_METHOD(QuietingChimeFormsBlocksAnAbilityAndFormsAgainOnceQuiet)
+		{
+			// Fixture value: a short wait to form again.
+			constexpr double Reform = 2.0;
+			Tuning.QuietingChime.Add(ItemId(TEXT("test_chime"))).ReformSeconds = Reform;
+			Hold(TEXT("test_chime"));
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(HolderShielded(), TEXT("it forms at once when nothing has hurt the holder")));
+			StrikeHolder(EVeyraDamageDelivery::BasicAttack);
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(HolderShielded(), TEXT("a formed shield keeps through damage")));
+
+			ASSERT_THAT(IsTrue(VeyraCombat::BlockAbilityHit(Holder(), *Enemy)));
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsFalse(HolderShielded(), TEXT("consumed, it waits")));
+			RunFor(Reform * 0.6);
+			StrikeHolder(EVeyraDamageDelivery::Ability);
+			RunFor(Reform * 0.6);
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsFalse(HolderShielded(), TEXT("enemy-Vanguard damage starts the wait again (ADR-025 §7)")));
+			RunFor(Reform * 0.6);
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(HolderShielded()));
+		}
+
+		TEST_METHOD(DragTheTempoSlowsAnEnemyVanguardsAttacksOnTheHolder)
+		{
+			// Fixture values: a fifth of the attacker's Attack Speed for 3 s.
+			constexpr double Reduction = 0.2;
+			constexpr double Seconds = 3.0;
+			FVeyraDragTheTempoTuning& Tempo = Tuning.DragTheTempo.Add(ItemId(TEXT("test_tempo")));
+			Tempo.AttackSpeedReduction = Reduction;
+			Tempo.Seconds = Seconds;
+			Hold(TEXT("test_tempo"));
+			StrikeHolder(EVeyraDamageDelivery::Ability);
+			ASSERT_THAT(IsFalse(EnemyStatuses().Has(EVeyraStatusKind::AttackSpeed), TEXT("only a basic attack")));
+			StrikeHolder(EVeyraDamageDelivery::BasicAttack);
+			StrikeHolder(EVeyraDamageDelivery::BasicAttack);
+			const TArray<FVeyraStatusEntry> Slows = EnemyStatuses().GetLedger().Entries.FilterByPredicate(
+				[](const FVeyraStatusEntry& Entry) { return Entry.Id == ItemId(TEXT("test_tempo")); });
+			ASSERT_THAT(IsTrue(Slows.Num() == 1 && Slows[0].Stacks == 1 && FMath::IsNearlyEqual(Slows[0].Magnitude, -Reduction),
+				TEXT("refreshed, never stacked (ADR-025 §7)")));
 		}
 
 		TEST_METHOD(ReprisalGuardShieldsAShareOfTheHitThenWaits)

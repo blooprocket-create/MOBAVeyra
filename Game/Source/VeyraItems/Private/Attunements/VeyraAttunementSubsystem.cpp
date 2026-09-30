@@ -15,6 +15,7 @@
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Shapes/VeyraShapes.h"
 #include "Shop/VeyraShopSubsystem.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Quests/VeyraQuestRules.h"
@@ -31,6 +32,7 @@ void UVeyraAttunementSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	{
 		DamageDealtHandle = Events->OnDamageDealt.AddUObject(this, &UVeyraAttunementSubsystem::OnDamageDealt);
 		DeathHandle = Events->OnDeath.AddUObject(this, &UVeyraAttunementSubsystem::OnDeath);
+		SpellShieldBlockedHandle = Events->OnSpellShieldBlocked.AddUObject(this, &UVeyraAttunementSubsystem::OnSpellShieldBlocked);
 	}
 }
 
@@ -48,6 +50,20 @@ void UVeyraAttunementSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 		InWorld.GetTimerManager().SetTimer(TemperingTimer, FTimerDelegate::CreateUObject(this, &UVeyraAttunementSubsystem::UpdateTempering),
 			static_cast<float>(CheckSeconds), /*bLoop*/ true);
 	}
+	if (InWorld.GetNetMode() != NM_Client)
+	{
+		EnsureHeldTimer();
+	}
+}
+
+void UVeyraAttunementSubsystem::EnsureHeldTimer()
+{
+	UWorld* World = GetWorld();
+	if (World && !World->GetTimerManager().IsTimerActive(HeldTimer))
+	{
+		World->GetTimerManager().SetTimer(HeldTimer, FTimerDelegate::CreateUObject(this, &UVeyraAttunementSubsystem::UpdateHeld),
+			static_cast<float>(UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds), /*bLoop*/ true);
+	}
 }
 
 void UVeyraAttunementSubsystem::Deinitialize()
@@ -55,11 +71,12 @@ void UVeyraAttunementSubsystem::Deinitialize()
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(TemperingTimer);
-		World->GetTimerManager().ClearTimer(CurrentTimer);
+		World->GetTimerManager().ClearTimer(HeldTimer);
 		if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
 		{
 			Events->OnDamageDealt.Remove(DamageDealtHandle);
 			Events->OnDeath.Remove(DeathHandle);
+			Events->OnSpellShieldBlocked.Remove(SpellShieldBlockedHandle);
 		}
 	}
 	Super::Deinitialize();
@@ -73,6 +90,10 @@ void UVeyraAttunementSubsystem::OnDamageDealt(const FVeyraDamageDealtEvent& Even
 	if (Holder && Target && Event.Total() > 0.0 && VeyraUnits::IsVanguard(Holder->GetOwner()) && VeyraTargeting::AreHostile(Holder->GetOwner(), Target->GetOwner()))
 	{
 		VanguardDamageTakenAt.Add(Target, GetWorld()->GetTimeSeconds());
+		if (Event.Delivery == EVeyraDamageDelivery::BasicAttack)
+		{
+			DragTheTempo(*Target, *Holder);
+		}
 	}
 	const AActor* Participant = Holder ? Holder->GetOwner() : nullptr;
 	const UVeyraInventoryComponent* Inventory = Participant ? Participant->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
@@ -138,6 +159,48 @@ TOptional<double> UVeyraAttunementSubsystem::GetVanguardDamageTakenAt(const UAbi
 	return At ? TOptional<double>(*At) : TOptional<double>();
 }
 
+void UVeyraAttunementSubsystem::DragTheTempo(UAbilitySystemComponent& Holder, UAbilitySystemComponent& Attacker)
+{
+	const AActor* Participant = Holder.GetOwner();
+	const UVeyraInventoryComponent* Inventory = Participant ? Participant->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
+	if (!Inventory || !Participant->HasAuthority())
+	{
+		return;
+	}
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	for (const FVeyraInventorySlot& Slot : Inventory->GetSlots())
+	{
+		const FVeyraItemDefinition* Item = Slot.IsEmpty() ? nullptr : Tuning.Items.Find(Slot.Item);
+		if (!Item)
+		{
+			continue;
+		}
+		for (const FVeyraContentId& Attunement : Item->Attunement)
+		{
+			if (const FVeyraDragTheTempoTuning* Tempo = Tuning.DragTheTempo.Find(Attunement))
+			{
+				// Under the Attunement's ID, so a second hit refreshes it rather than stacking (ADR-025 §7).
+				FVeyraStatusSpec Slowed;
+				Slowed.Id = Attunement;
+				Slowed.Kind = EVeyraStatusKind::AttackSpeed;
+				Slowed.Stacking = EVeyraStackingPolicy::UniqueRefresh;
+				Slowed.Magnitude = -Tempo->AttackSpeedReduction;
+				Slowed.DurationSeconds = Tempo->Seconds;
+				VeyraCombat::ApplyStatus(Holder, Attacker, Slowed);
+			}
+		}
+	}
+}
+
+void UVeyraAttunementSubsystem::OnSpellShieldBlocked(const FVeyraSpellShieldBlocked& Blocked)
+{
+	const UAbilitySystemComponent* Target = Blocked.Target.Get();
+	if (Target && UVeyraItemsTuningSubsystem::Get().QuietingChime.Contains(Blocked.Shield))
+	{
+		ChimeConsumedAt.Add(Target, GetWorld()->GetTimeSeconds());
+	}
+}
+
 void UVeyraAttunementSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 {
 	AActor* Participant = VeyraQuests::LaneFluxbornLastHitter(Death);
@@ -168,14 +231,13 @@ void UVeyraAttunementSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 	{
 		Shop->SetCurrent(*Participant, Entry.Key, Entry.Value);
 	}
-	if (!Stored.IsEmpty() && !GetWorld()->GetTimerManager().IsTimerActive(CurrentTimer))
+	if (!Stored.IsEmpty())
 	{
-		GetWorld()->GetTimerManager().SetTimer(CurrentTimer, FTimerDelegate::CreateUObject(this, &UVeyraAttunementSubsystem::UpdateCurrent),
-			static_cast<float>(UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds), /*bLoop*/ true);
+		EnsureHeldTimer();
 	}
 }
 
-void UVeyraAttunementSubsystem::UpdateCurrent()
+void UVeyraAttunementSubsystem::UpdateHeld()
 {
 	UWorld* World = GetWorld();
 	UVeyraShopSubsystem* Shop = World ? World->GetSubsystem<UVeyraShopSubsystem>() : nullptr;
@@ -188,7 +250,6 @@ void UVeyraAttunementSubsystem::UpdateCurrent()
 	// Each call pays for the tick to come, and the amplification outlasts it until the next call renews it.
 	const double TickSeconds = UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds;
 	constexpr double StatusTicks = 2.0;
-	bool bAnyStored = false;
 	TArray<APlayerState*, TInlineAllocator<10>> Participants;
 	for (TActorIterator<APlayerState> It(World); It; ++It)
 	{
@@ -203,6 +264,7 @@ void UVeyraAttunementSubsystem::UpdateCurrent()
 			continue;
 		}
 		TArray<TPair<FVeyraContentId, double>, TInlineAllocator<2>> Held;
+		TArray<FVeyraContentId, TInlineAllocator<2>> Chimes;
 		for (const FVeyraInventorySlot& Slot : Inventory->GetSlots())
 		{
 			const FVeyraItemDefinition* Item = Slot.IsEmpty() ? nullptr : Tuning.Items.Find(Slot.Item);
@@ -215,6 +277,10 @@ void UVeyraAttunementSubsystem::UpdateCurrent()
 				if (Tuning.ResidualCurrent.Contains(Attunement))
 				{
 					Held.Emplace(Attunement, Slot.Current);
+				}
+				else if (Tuning.QuietingChime.Contains(Attunement))
+				{
+					Chimes.AddUnique(Attunement);
 				}
 			}
 		}
@@ -235,19 +301,29 @@ void UVeyraAttunementSubsystem::UpdateCurrent()
 				Amplified.Magnitude = Residual.RegenerationAmplification - 1.0;
 				Amplified.DurationSeconds = TickSeconds * StatusTicks;
 				VeyraCombat::ApplyStatus(*Holder, *Holder, Amplified);
-				bAnyStored |= Left > 0.0;
 			}
 			else
 			{
 				// Enemy-Vanguard damage, full Health or death suspends it; the Current keeps (Item Bible §10).
 				VeyraCombat::RemoveStatus(*Holder, Entry.Key);
-				bAnyStored |= Entry.Value > 0.0;
 			}
 		}
-	}
-	if (!bAnyStored)
-	{
-		World->GetTimerManager().ClearTimer(CurrentTimer);
+		const UVeyraStatusComponent* Statuses = Participant->FindComponentByClass<UVeyraStatusComponent>();
+		const double* ConsumedAt = ChimeConsumedAt.Find(Holder);
+		for (const FVeyraContentId& Chime : Chimes)
+		{
+			// A formed Spell Shield keeps; a consumed one forms again once quiet since both (ADR-025 §8.6).
+			const bool bFormed = Statuses && Statuses->GetLedger().Entries.ContainsByPredicate([&Chime](const FVeyraStatusEntry& Entry) { return Entry.Id == Chime; });
+			const double Since = FMath::Max(TakenAt ? *TakenAt : -UE_DOUBLE_BIG_NUMBER, ConsumedAt ? *ConsumedAt : -UE_DOUBLE_BIG_NUMBER);
+			if (bFormed || Now - Since >= Tuning.QuietingChime.FindChecked(Chime).ReformSeconds)
+			{
+				FVeyraStatusSpec Shield;
+				Shield.Id = Chime;
+				Shield.Kind = EVeyraStatusKind::SpellShield;
+				Shield.DurationSeconds = TickSeconds * StatusTicks;
+				VeyraCombat::ApplyStatus(*Holder, *Holder, Shield);
+			}
+		}
 	}
 }
 

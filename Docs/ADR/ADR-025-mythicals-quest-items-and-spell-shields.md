@@ -70,17 +70,17 @@ A survey of the code (2026-09-30) found:
 ### 4. Spell Shields (Combat §19)
 
 - **The primitive.** Combat gains a **Spellward**: a status kind (`SpellShield`) that blocks the next hostile ability hit on its holder.
-- **Checked at impact.** Every site that lands a hostile ability hit on a unit asks `VeyraCombat::BlockAbilityHit(Target, Source)` first:
-  - effect delivery;
+- **Checked at impact.** Every site that lands a discrete hostile ability hit on a unit asks `VeyraCombat::BlockAbilityHit(Target, Source)` first:
+  - effect delivery, which every area, skillshot, projectile, dash impact, grab and displacement goes through;
   - targeted damage;
-  - lingering areas;
-  - aura statuses;
-  - tethers;
-  - displacement.
+  - tethers.
+
+  Effects that apply while a unit stays in them, a lingering area's ticks and an aura's statuses, pass through as damage over time does; League's spell shields ignore them too.
 
   A blocked hit deals no damage, applies no crowd control or status, and raises no hit event. The Spellward is consumed.
 - **What it ignores.** Basic attacks, Procs and damage over time already applied pass through, as §19 says.
 - **Multi-hit abilities.** Only the first hit is blocked; later hits land.
+- **The event.** Combat announces each block (`OnSpellShieldBlocked`) for what a consumption starts, such as Quieting Chime's reform.
 - **Tests.** The Combat tests cover each impact site.
 
 ### 5. Attunements that react to damage taken

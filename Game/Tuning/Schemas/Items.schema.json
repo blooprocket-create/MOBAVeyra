@@ -4,7 +4,7 @@
   "description": "The shop's catalog and rules, owned by the Items domain (Item Bible v0.3; Economy & Progression Bible §10–§12; ADR-012 §3). VeyraItems binds it to FVeyraItemsTuning and checks the tier rules the schema cannot express. Prices and stats are prototype data (Item Bible §3).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "shop", "items", "consumables", "quests", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict", "residualCurrent"],
+  "required": ["schemaVersion", "shop", "items", "consumables", "quests", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict", "residualCurrent", "dragTheTempo", "quietingChime"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -305,6 +305,39 @@
             "quietSeconds": { "description": "How long without enemy-Vanguard damage before Current is spent.", "type": "number", "minimum": 0 },
             "currentPerSecond": { "description": "Current spent each second while it amplifies.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "regenerationAmplification": { "description": "What Health Regeneration is multiplied by while Current is spent; 3 triples it.", "type": "number", "minimum": 1, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "dragTheTempo": {
+      "description": "Drag the Tempo (Riverhold Bastion, Item Bible §8; ADR-025 §7): an enemy Vanguard's basic attack that damages the holder slows the attacker's Attack Speed, refreshed and never stacked.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "attackSpeedReduction", "seconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "attackSpeedReduction": { "description": "The fraction of the attacker's Attack Speed removed.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1, "exclusiveMaximum": true },
+            "seconds": { "description": "How long the slow lasts after the latest such attack.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "quietingChime": {
+      "description": "Quieting Chime (Blackreef Bell, Item Bible §8; ADR-025 §7): the holder holds a Spell Shield (Combat Bible §19), which forms again once reformSeconds pass after both its consumption and the holder's last enemy-Vanguard damage.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "reformSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "reformSeconds": { "description": "How long it takes to form again.", "type": "number", "minimum": 0 }
           }
         }
       }

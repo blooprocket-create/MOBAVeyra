@@ -145,7 +145,8 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 	const FVeyraAbilityHitSource& Source)
 {
 	UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
-	if (!Target)
+	// A Spell Shield blocks the whole hit: no damage, status or displacement, and no hit (Combat Bible §19).
+	if (!Target || VeyraCombat::BlockAbilityHit(*Target, Caster))
 	{
 		return;
 	}

@@ -702,6 +702,30 @@ bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id)
 	return Statuses && Statuses->Remove(Id);
 }
 
+bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& Source)
+{
+	AActor* TargetOwner = Target.GetOwner();
+	const UVeyraStatusComponent* Statuses = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (!Statuses || !TargetOwner->HasAuthority() || !VeyraTargeting::AreHostile(Source.GetOwner(), TargetOwner))
+	{
+		return false;
+	}
+	const FVeyraStatusEntry* Shield = Statuses->GetLedger().Entries.FindByPredicate([](const FVeyraStatusEntry& Entry) { return Entry.Kind == EVeyraStatusKind::SpellShield; });
+	if (!Shield)
+	{
+		return false;
+	}
+	const FVeyraContentId Consumed = Shield->Id;
+	RemoveStatus(Target, Consumed);
+	UE_LOG(LogVeyraCombat, Log, TEXT("%s's %s blocked an ability hit from %s."), *GetNameSafe(Target.GetAvatarActor()), *Consumed.ToString(), *GetNameSafe(Source.GetAvatarActor()));
+	UWorld* World = TargetOwner->GetWorld();
+	if (UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
+	{
+		Events->OnSpellShieldBlocked.Broadcast(FVeyraSpellShieldBlocked{ &Target, &Source, Consumed });
+	}
+	return true;
+}
+
 void EndCamouflage(UAbilitySystemComponent& Unit)
 {
 	const AActor* Owner = Unit.GetOwner();
