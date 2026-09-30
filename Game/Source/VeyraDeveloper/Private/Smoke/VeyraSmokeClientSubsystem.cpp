@@ -8,6 +8,7 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "DevCommands/VeyraDevCommands.h"
 #include "Engine/Engine.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
@@ -179,7 +180,7 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 				break;
 			}
 			KitLevel = UltimateLevels[0];
-			Controller->RequestDeveloperLevels(KitLevel - Progression->GetLevel());
+			VeyraDevCommands::Request(*Controller, TEXT("GrantLevels"), { FString::FromInt(KitLevel - Progression->GetLevel()) });
 			Advance(EStep::WaitForLevels, TEXT("the match is live; asked for developer levels"));
 		}
 		else if (GameState->GetPhase() == EVeyraMatchPhase::Live && bEndCustomMatch)

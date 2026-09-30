@@ -3,6 +3,8 @@
 #include "VeyraPlayerController.h"
 
 #include "Camera/VeyraCameraRig.h"
+#include "Developer/VeyraDeveloperCommandRoute.h"
+#include "Engine/Console.h"
 #include "Engine/GameViewportClient.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
@@ -10,7 +12,6 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerState.h"
-#include "HAL/IConsoleManager.h"
 #include "Input/VeyraCameraSettings.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
@@ -18,7 +19,6 @@
 #include "Pings/VeyraPingSubsystem.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Structures/VeyraStructure.h"
-#include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Targeting/VeyraTargeting.h"
@@ -30,47 +30,6 @@
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
 #include "Votes/VeyraVoteSubsystem.h"
-
-#if !UE_BUILD_SHIPPING
-namespace
-{
-	/** The world's local player's controller, which a console command speaks for. */
-	AVeyraPlayerController* ConsoleController(const UWorld* World)
-	{
-		return World ? Cast<AVeyraPlayerController>(World->GetFirstPlayerController()) : nullptr;
-	}
-
-	// Developer XP until minions give it (ADR-008 §6). The server refuses them in Shipping.
-	FAutoConsoleCommandWithWorldAndArgs GrantExperienceCommand(TEXT("Veyra.Dev.GrantXp"),
-		TEXT("Development builds: asks the server to give your Vanguard this much XP. Usage: Veyra.Dev.GrantXp <amount>"),
-		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World) {
-			AVeyraPlayerController* Controller = ConsoleController(World);
-			if (Controller && Args.Num() == 1)
-			{
-				Controller->RequestDeveloperExperience(FCString::Atoi(*Args[0]));
-			}
-		}));
-
-	FAutoConsoleCommandWithWorldAndArgs GrantLevelsCommand(TEXT("Veyra.Dev.GrantLevels"),
-		TEXT("Development builds: asks the server for enough XP to raise your Vanguard this many levels. Usage: Veyra.Dev.GrantLevels <levels>"),
-		FConsoleCommandWithWorldAndArgsDelegate::CreateLambda([](const TArray<FString>& Args, UWorld* World) {
-			AVeyraPlayerController* Controller = ConsoleController(World);
-			if (Controller && Args.Num() == 1)
-			{
-				Controller->RequestDeveloperLevels(FCString::Atoi(*Args[0]));
-			}
-		}));
-
-	FAutoConsoleCommandWithWorld SiegeCommand(TEXT("Veyra.Dev.Siege"),
-		TEXT("Development builds: asks the server to destroy the next enemy structure in siege order, the Prime Well last (ADR-011 §15)."),
-		FConsoleCommandWithWorldDelegate::CreateLambda([](UWorld* World) {
-			if (AVeyraPlayerController* Controller = ConsoleController(World))
-			{
-				Controller->RequestDeveloperSiege();
-			}
-		}));
-}
-#endif
 
 AVeyraPlayerController::AVeyraPlayerController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -725,81 +684,34 @@ void AVeyraPlayerController::ClientBuybackRefused_Implementation(EVeyraBuybackRe
 	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused a buyback: %s."), LexToString(Refusal));
 }
 
-void AVeyraPlayerController::RequestDeveloperExperience(int32 Amount)
+void AVeyraPlayerController::RequestDeveloperCommand(const FString& Command, const TArray<FString>& Args)
 {
-	ServerRequestDeveloperExperience(Amount);
+	ServerRequestDeveloperCommand(Command, Args);
 }
 
-void AVeyraPlayerController::RequestDeveloperLevels(int32 Levels)
-{
-	ServerRequestDeveloperLevels(Levels);
-}
-
-void AVeyraPlayerController::RequestDeveloperSiege()
-{
-	ServerRequestDeveloperSiege();
-}
-
-void AVeyraPlayerController::ServerRequestDeveloperSiege_Implementation()
+void AVeyraPlayerController::ServerRequestDeveloperCommand_Implementation(const FString& Command, const TArray<FString>& Args)
 {
 #if UE_BUILD_SHIPPING
-	UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a developer siege from %s: Shipping builds destroy structures only through play."), *GetNameSafe(PlayerState));
+	UE_LOG(LogVeyraMatch, Warning, TEXT("Refused developer command %s from %s: Shipping builds run none."), *Command, *GetNameSafe(PlayerState));
 #else
-	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
-	const bool bFell = GameMode && GameMode->HandleDeveloperSiege(*this);
-	UE_LOG(LogVeyraMatch, Log, TEXT("%s asked for a developer siege: %s."), *GetNameSafe(PlayerState), bFell ? TEXT("a structure fell") : TEXT("nothing fell"));
+	const FString Reply = VeyraDeveloperCommandRoute::Run(*this, Command, Args);
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s ran Veyra.Dev.%s %s: %s"), *GetNameSafe(PlayerState), *Command, *FString::Join(Args, TEXT(" ")), *Reply);
+	ClientDeveloperCommandReply(Reply);
 #endif
 }
 
-void AVeyraPlayerController::ServerRequestDeveloperExperience_Implementation(int32 Amount)
+void AVeyraPlayerController::ClientDeveloperCommandReply_Implementation(const FString& Reply)
 {
-#if UE_BUILD_SHIPPING
-	UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a developer XP request from %s: Shipping builds grant XP only through play."), *GetNameSafe(PlayerState));
-#else
-	UVeyraProgressionComponent* Progression = FindDeveloperProgression();
-	if (Progression && Amount > 0)
-	{
-		const int32 Gained = Progression->AddExperience(Amount);
-		UE_LOG(LogVeyraMatch, Log, TEXT("%s took %d developer XP and gained %d level(s)."), *GetNameSafe(PlayerState), Amount, Gained);
-	}
-#endif
-}
+	LastDeveloperCommandReply = Reply;
+	++DeveloperCommandReplyCount;
+	UE_LOG(LogVeyraMatch, Display, TEXT("Developer command: %s"), *Reply);
 
-void AVeyraPlayerController::ServerRequestDeveloperLevels_Implementation(int32 Levels)
-{
-#if UE_BUILD_SHIPPING
-	UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a developer level request from %s: Shipping builds grant XP only through play."), *GetNameSafe(PlayerState));
-#else
-	UVeyraProgressionComponent* Progression = FindDeveloperProgression();
-	if (!Progression || Levels <= 0)
+	// The console the command was typed in shows the reply too.
+	const ULocalPlayer* LocalPlayer = GetLocalPlayer();
+	if (LocalPlayer && LocalPlayer->ViewportClient && LocalPlayer->ViewportClient->ViewportConsole)
 	{
-		return;
+		LocalPlayer->ViewportClient->ViewportConsole->OutputText(Reply);
 	}
-	// The XP from here to the level Levels above this one, or to the cap.
-	const FVeyraProgressionTuning& Tuning = UVeyraProgressionTuningSubsystem::Get();
-	const int32 Target = FMath::Min(Progression->GetLevel() + Levels, Tuning.MaxLevel);
-	double Needed = -Progression->GetExperience();
-	for (int32 Level = Progression->GetLevel(); Level < Target; ++Level)
-	{
-		Needed += Tuning.Experience.ToNextLevel[Level - 1];
-	}
-	if (Needed > 0.0)
-	{
-		const int32 Gained = Progression->AddExperience(Needed);
-		UE_LOG(LogVeyraMatch, Log, TEXT("%s took developer XP for %d level(s)."), *GetNameSafe(PlayerState), Gained);
-	}
-#endif
-}
-
-UVeyraProgressionComponent* AVeyraPlayerController::FindDeveloperProgression() const
-{
-	const AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
-	if (!GameMode || GameMode->CheckRankUpAllowed() != EVeyraOrderRejection::None)
-	{
-		return nullptr;
-	}
-	UVeyraProgressionComponent* Progression = PlayerState ? PlayerState->FindComponentByClass<UVeyraProgressionComponent>() : nullptr;
-	return Progression && Progression->IsInitialized() ? Progression : nullptr;
 }
 
 AVeyraVanguardCharacter* AVeyraPlayerController::GetVanguard() const

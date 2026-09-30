@@ -5,6 +5,7 @@
 #include "Algo/Count.h"
 #include "Algo/Find.h"
 #include "Client/VeyraClientFlowSubsystem.h"
+#include "DevCommands/VeyraDevCommands.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -1246,7 +1247,7 @@ bool UVeyraSmokeFlowSubsystem::TickSiege(AVeyraPlayerController& Controller, con
 		NextSiegeAt = Now + SiegeIntervalRealSeconds;
 		++SiegeRequests;
 		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: asked for developer siege %d."), SiegeRequests);
-		Controller.RequestDeveloperSiege();
+		VeyraDevCommands::Request(Controller, TEXT("Siege"));
 	}
 	return true;
 }

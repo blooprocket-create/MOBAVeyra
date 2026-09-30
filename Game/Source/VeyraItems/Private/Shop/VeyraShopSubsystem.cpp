@@ -99,6 +99,38 @@ EVeyraShopRefusal UVeyraShopSubsystem::Buy(AActor& Participant, const FVeyraCont
 	return EVeyraShopRefusal::None;
 }
 
+EVeyraShopRefusal UVeyraShopSubsystem::GrantItem(AActor& Participant, const FVeyraContentId& Item)
+{
+	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
+	UVeyraGoldComponent* Gold = Participant.FindComponentByClass<UVeyraGoldComponent>();
+	if (!Inventory || !Gold)
+	{
+		return EVeyraShopRefusal::NotNow;
+	}
+	// A purchase's rules without its price: the same slots, limits and recipe, its owned components consumed.
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->Slots, Inventory->Queue, Item);
+	if (Quote.Refusal != EVeyraShopRefusal::None)
+	{
+		return Quote.Refusal;
+	}
+	FVeyraPendingPurchase Entry;
+	Entry.Item = Item;
+	Entry.Needs = Quote.Needs;
+	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
+	if (const EVeyraShopRefusal Refusal = VeyraInventory::Apply(Tuning, Slots, Entry); Refusal != EVeyraShopRefusal::None)
+	{
+		return Refusal;
+	}
+	Inventory->SetSlots(MoveTemp(Slots));
+	// The grant changes what an undo would restore: the steps no longer describe the slots.
+	Inventory->ResetUndoSteps();
+	Revalidate(*Inventory, *Gold);
+	ApplyItems(Participant);
+	UE_LOG(LogVeyraItems, Log, TEXT("%s was given %s."), *GetNameSafe(&Participant), *Item.ToString());
+	return EVeyraShopRefusal::None;
+}
+
 EVeyraShopRefusal UVeyraShopSubsystem::Cancel(AActor& Participant, int32 Index)
 {
 	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();

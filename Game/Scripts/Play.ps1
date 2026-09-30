@@ -149,7 +149,7 @@ function Write-MatchControls([string]$Indent = '  ') {
     Write-Host "${Indent}A                    attack-move toward the cursor"
     Write-Host "${Indent}Q W E R              cast at the cursor"
     Write-Host "${Indent}Ctrl + Q/W/E/R       spend a skill point on that ability (R opens at level 6)"
-    Write-Host "${Indent}~ (tilde)            console; `"Veyra.Dev.GrantLevels 5`" reaches level 6"
+    Write-Host "${Indent}~ (tilde)            console; `"Veyra.Dev.Help`" lists the developer commands"
 }
 
 if (-not $Direct) {

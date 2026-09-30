@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Algo/Count.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Engine/World.h"
 #include "GameFramework/GameStateBase.h"
@@ -104,6 +105,19 @@ void UVeyraCooldownComponent::ClearCooldown(const FVeyraContentId& Ability)
 	{
 		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
 	}
+}
+
+int32 UVeyraCooldownComponent::ClearAllCooldowns()
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+	const double Now = GetServerNow();
+	const int32 Running = Algo::CountIf(Entries, [Now](const FVeyraCooldownEntry& Entry) { return Entry.ReadyAt > Now; });
+	if (!Entries.IsEmpty())
+	{
+		Entries.Reset();
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraCooldownComponent, Entries, this);
+	}
+	return Running;
 }
 
 void UVeyraCooldownComponent::OnAbilityHasteChanged(const FOnAttributeChangeData& Change)

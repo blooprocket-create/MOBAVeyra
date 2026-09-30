@@ -44,6 +44,13 @@ public:
 	 */
 	EVeyraShopRefusal Buy(AActor& Participant, const FVeyraContentId& Item);
 
+	/**
+	 * Puts Item in Participant's inventory now and for no Gold, wherever it stands, by a purchase's
+	 * slot, limit and recipe rules, so the owned items its recipe needs are consumed. Nothing is left
+	 * to undo. The developer command Veyra.Dev.GiveItem uses it.
+	 */
+	EVeyraShopRefusal GrantItem(AActor& Participant, const FVeyraContentId& Item);
+
 	/** Cancels the pending purchase at Index, from anywhere, for all its Gold, with whatever needed it (§11.3). */
 	EVeyraShopRefusal Cancel(AActor& Participant, int32 Index);
 
