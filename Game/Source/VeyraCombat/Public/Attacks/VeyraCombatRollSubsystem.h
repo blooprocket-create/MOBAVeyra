@@ -12,7 +12,7 @@
 class UAbilitySystemComponent;
 
 /**
- * The match's random source for combat (ADR-022 §1, §10). Each unit's independent sources of chance,
+ * The match's random source for combat (ADR-023 §1, §10). Each unit's independent sources of chance,
  * such as its basic attacks' crits or an ability's own, draw from outcome bags of their own
  * (FVeyraOutcomeBag), each seeded from the match's stream when first used. The stream is seeded when
  * the world begins play and says its seed in the log, so a match's outcomes can be reproduced; tests

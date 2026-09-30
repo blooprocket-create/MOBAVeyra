@@ -68,7 +68,7 @@ It also owns each combatant's life state and the death event that other domains 
 
 M5 added the runtime primitives the first kits use ([ADR-009](Docs/ADR/ADR-009-runtime-combat-primitives.md)): the status ledger, the movement component with its displacement and dash modes, shields with identity and caps, Combat State and assist attribution, and damage prepared at Commit.
 
-M17 added critical strikes and combat's random source ([ADR-022](Docs/ADR/ADR-022-crit-and-the-full-item-catalog.md) §1, §4, §10):
+M17 added critical strikes and combat's random source ([ADR-023](Docs/ADR/ADR-023-crit-and-the-full-item-catalog.md) §1, §4, §10):
 - `Attacks/VeyraCrit` is the crit rule. `UVeyraCombatRollSubsystem` keeps one outcome bag (`Random/VeyraOutcomeBag`) per unit and channel, so chance is drawn rather than rolled. Any chance-based mechanic draws through it, never `FMath::FRand`.
 - `OnDamageDealt` reports what each damage instance cost an enemy, by type.
 
@@ -140,7 +140,7 @@ Depends on combat/abilities/economy through approved contracts. It does not own 
 
 VeyraItems arrived in M8 ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §2) in its own **Items** layer, above Abilities, whose archetypes run item Actives, and below Battleground. Its catalog is `Game/Tuning/Items.json`; `VeyraItems::Validate` holds the tier rules the schema cannot (Item Bible §2, §11). It spends and refunds Gold through Economy and applies equipment through `VeyraCombat::SetEquipmentStats`; Match routes the fountain and the player's shop requests to it.
 
-Where the Attunements live ([ADR-022](Docs/ADR/ADR-022-crit-and-the-full-item-catalog.md) §3–§4):
+Where the Attunements live ([ADR-023](Docs/ADR/ADR-023-crit-and-the-full-item-catalog.md) §3–§4):
 - Static ones fold into `VeyraEquipment::StatsFor`.
 - Stacking buffs live in the shop subsystem.
 - The ones a hit or nearness sets off live in `Attunements/UVeyraAttunementSubsystem`, on Combat's `OnDamageDealt`: Reprisal Guard, Drag, Convergence, Fracture, Endless Cleave and Tempered by Conflict.
@@ -353,7 +353,18 @@ The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-lo
 
 ### Launcher (outside Unreal)
 
-The launcher from ADR-005 L1–L4 and [ADR-010](Docs/ADR/ADR-010-play-flow.md) §5 lives in [`Launcher/`](Launcher/README.md): a Tauri v2 app built with plain `cargo`. `core/` holds everything it does (its configuration, the build manifest, the backend client and the launch handshake), so the window (`app/`, `ui/`) and the headless `veyra-launch-cli` (`cli/`) are thin. It signs the player in, starts the packaged game and hands it a launch code, then closes; it never links to the game. `Game/Scripts/Play.ps1` opens it.
+The launcher from ADR-005 L1–L5, [ADR-010](Docs/ADR/ADR-010-play-flow.md) §5 and [ADR-022](Docs/ADR/ADR-022-installer-and-game-patching.md) lives in [`Launcher/`](Launcher/README.md): a Tauri v2 app built with plain `cargo`. It installs, updates and repairs the game, signs the player in, starts the game and hands it a launch code, then closes; it never links to the game. `Game/Scripts/Play.ps1` opens it.
+
+`core/` holds everything it does, so the window and the headless tools are thin:
+- its configuration and the build manifest;
+- the backend client and the launch handshake;
+- the release format and the install engine.
+
+Around it:
+- **The window:** `app/` and `ui/`.
+- **Headless tools** (`cli/`): `veyra-launch-cli` launches and `veyra-install` installs.
+- **`publish/`:** `veyra-publish`, which turns a packaged client into a release (`Game/Scripts/Publish.ps1`).
+- **`setup/`:** Veyra Setup, the NSIS installer for the launcher, built by `Launcher/Package.ps1`.
 
 ## 3. Content directory
 

@@ -27,7 +27,7 @@ namespace
 TArray<FString> Validate(const FVeyraItemsTuning& Tuning)
 {
 	TArray<FString> Problems;
-	// A Magic Resist Reduction always leaves some of the resistance (ADR-022 §5).
+	// A Magic Resist Reduction always leaves some of the resistance (ADR-023 §5).
 	for (const TPair<FVeyraContentId, FVeyraStackingAttunementTuning>& Entry : Tuning.Fracture)
 	{
 		if (Entry.Value.PerStack * Entry.Value.MaxStacks >= 1.0)

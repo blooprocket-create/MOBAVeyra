@@ -1,8 +1,11 @@
-//! A fake backend for the launcher's tests: the three routes a launcher uses, served over plain HTTP
-//! on a local port, recording each request and when it came.
+//! Fakes for the launcher's tests, served over plain HTTP on a local port: a backend with the three
+//! routes a launcher uses, recording each request and when it came; and a static file server for a
+//! release store, recording each path asked for. Each test binary uses its own part of this.
+#![allow(dead_code)]
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::{TcpListener, TcpStream};
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Instant;
@@ -111,4 +114,68 @@ fn serve(stream: TcpStream, recorded: &Mutex<Vec<Received>>) {
         "HTTP/1.1 {status} X\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{text}",
         text.len()
     );
+}
+
+/// A release store served over HTTP, as the local `releases` service serves Game/Saved/Releases.
+pub struct FileServer {
+    pub url: String,
+    pub requested: Arc<Mutex<Vec<String>>>,
+}
+
+impl FileServer {
+    pub fn start(root: &Path) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").expect("bind a local port");
+        let url = format!("http://{}", listener.local_addr().expect("a local address"));
+        let requested = Arc::new(Mutex::new(Vec::new()));
+        let recorded = requested.clone();
+        let root = root.to_path_buf();
+        thread::spawn(move || {
+            for stream in listener.incoming().flatten() {
+                let (root, recorded) = (root.clone(), recorded.clone());
+                thread::spawn(move || serve_file(stream, &root, &recorded));
+            }
+        });
+        Self { url, requested }
+    }
+
+    /// How many chunks were asked for since the server started.
+    pub fn chunk_requests(&self) -> usize {
+        self.requested.lock().unwrap().iter().filter(|path| path.starts_with("/chunks/")).count()
+    }
+}
+
+/// A URL where nothing answers.
+pub fn nothing_listening() -> String {
+    let listener = TcpListener::bind("127.0.0.1:0").expect("bind a local port");
+    format!("http://{}", listener.local_addr().expect("a local address"))
+}
+
+fn serve_file(stream: TcpStream, root: &Path, recorded: &Mutex<Vec<String>>) {
+    let mut reader = BufReader::new(stream.try_clone().expect("clone the stream"));
+    let mut request_line = String::new();
+    if reader.read_line(&mut request_line).is_err() {
+        return;
+    }
+    loop {
+        let mut header = String::new();
+        if reader.read_line(&mut header).is_err() || header.trim().is_empty() {
+            break;
+        }
+    }
+    let path = request_line.split_whitespace().nth(1).unwrap_or("/").to_string();
+    recorded.lock().unwrap().push(path.clone());
+    let file: Option<PathBuf> = path
+        .split('/')
+        .skip(1)
+        .try_fold(root.to_path_buf(), |joined, part| (!part.is_empty() && part != "..").then(|| joined.join(part)));
+    let mut stream = stream;
+    match file.and_then(|file| std::fs::read(file).ok()) {
+        Some(body) => {
+            let _ = write!(stream, "HTTP/1.1 200 OK\r\nContent-Length: {}\r\nConnection: close\r\n\r\n", body.len());
+            let _ = stream.write_all(&body);
+        }
+        None => {
+            let _ = write!(stream, "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+        }
+    }
 }

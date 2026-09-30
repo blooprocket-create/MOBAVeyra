@@ -119,7 +119,7 @@ private:
 	UPROPERTY(ReplicatedUsing = OnRep_CritChance)
 	FGameplayAttributeData CritChance;
 
-	/** Added to Combat.json's crit damage, as a fraction of the attack's damage (ADR-022 §1). */
+	/** Added to Combat.json's crit damage, as a fraction of the attack's damage (ADR-023 §1). */
 	UPROPERTY(ReplicatedUsing = OnRep_CritDamageBonus)
 	FGameplayAttributeData CritDamageBonus;
 };

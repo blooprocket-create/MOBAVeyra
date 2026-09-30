@@ -29,12 +29,12 @@ struct FVeyraInventorySlot
 	UPROPERTY()
 	bool bBenefited = false;
 
-	/** A refillable consumable's charges left (Item Bible §10; ADR-022 §6); 0 for everything else. */
+	/** A refillable consumable's charges left (Item Bible §10; ADR-023 §6); 0 for everything else. */
 	UPROPERTY()
 	int32 Charges = 0;
 
 	/**
-	 * Max Health an Attunement grew into this item, as Tempered by Conflict does (ADR-022 §3): part of
+	 * Max Health an Attunement grew into this item, as Tempered by Conflict does (ADR-023 §3): part of
 	 * the item's stats, so it leaves with the item.
 	 */
 	UPROPERTY()
@@ -99,7 +99,7 @@ enum class EVeyraShopRefusal : uint8
 	NoSuchSpellSlot,
 	/** One of the Vanguard's slots holds that spell already. */
 	AlreadyEquipped,
-	/** A refillable consumable with no charge left: it refills at the fountain and from a Flux Well (ADR-022 §6). */
+	/** A refillable consumable with no charge left: it refills at the fountain and from a Flux Well (ADR-023 §6). */
 	NoCharges,
 };
 

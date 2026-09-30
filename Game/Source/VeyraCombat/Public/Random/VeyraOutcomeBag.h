@@ -5,7 +5,7 @@
 #include "Math/RandomStream.h"
 
 /**
- * One independent source of chance, drawn as a shuffled bag (ADR-022 §10): the author's
+ * One independent source of chance, drawn as a shuffled bag (ADR-023 §10): the author's
  * pseudo-random rule for crits, and for any other chance-based check that wants it.
  *
  * A bag holds Draws uniform values, one from each equal slice of [0, 1), in shuffled order. A check

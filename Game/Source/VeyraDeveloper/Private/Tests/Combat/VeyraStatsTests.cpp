@@ -222,7 +222,7 @@ namespace VeyraCombatTests
 			Equipment.CritChance = 0.35;
 			Equipment.CritDamageBonus = 0.4;
 			ASSERT_THAT(IsTrue(VeyraCombat::SetEquipmentStats(*Unit, Equipment)));
-			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetCritChanceAttribute()), Equipment.CritChance), TEXT("crit adds (ADR-022 §2)")));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetCritChanceAttribute()), Equipment.CritChance), TEXT("crit adds (ADR-023 §2)")));
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetCritDamageBonusAttribute()), Equipment.CritDamageBonus)));
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraVitalsSet::GetMaxHealthAttribute()), Base.MaxHealth + Equipment.MaxHealth)));
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetPhysicalPowerAttribute()), Base.PhysicalPower + Equipment.PhysicalPower)));

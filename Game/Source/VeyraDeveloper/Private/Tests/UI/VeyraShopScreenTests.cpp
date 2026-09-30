@@ -228,7 +228,7 @@ namespace VeyraItemsTests
 
 		TEST_METHOD(TheHudShowsARefillablesChargesEvenWhenEmpty)
 		{
-			// Fixture values: the tonic made refillable, with one charge (ADR-022 §6).
+			// Fixture values: the tonic made refillable, with one charge (ADR-023 §6).
 			Tuning.Items[ItemId(TEXT("test_tonic"))].StackLimit = 1;
 			Tuning.Consumables[ItemId(TEXT("test_tonic"))].Charges = 1;
 			Subsystem->SetAtFountain(*Participant, true);

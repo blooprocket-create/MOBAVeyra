@@ -169,7 +169,8 @@ select {
 }
 
 select:focus-visible,
-button:focus-visible {
+button:focus-visible,
+.link:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(79, 216, 207, 0.25);
 }
@@ -188,7 +189,8 @@ button:hover {
   background: rgba(33, 42, 55, 0.95);
 }
 
-#play {
+/* The one action a card asks for: Play, Install, Repair. */
+.primary {
   height: 48px;
   margin-top: 6px;
   border-color: transparent;
@@ -197,8 +199,76 @@ button:hover {
   font-weight: 700;
 }
 
-#play:hover {
+.primary:hover {
   background: var(--primary-hover);
+}
+
+/* A smaller action beside what it changes. */
+.quiet {
+  flex: none;
+  height: 36px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+/* The install location: the path, cut short from the left so its end shows, and Change. */
+.folder {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folder output {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--hairline);
+  border-radius: 3px;
+  background: var(--field);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 34px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+  user-select: text;
+}
+
+/* An install's progress: a line of Flux filling toward brass as it completes. */
+.bar {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--hairline);
+}
+
+.bar .fill {
+  width: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--primary));
+  transition: width 200ms linear;
+}
+
+.figures {
+  display: flex;
+  justify-content: space-between;
+  margin-top: -4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.figures span:first-child {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.warning {
+  color: var(--primary);
 }
 
 /* Something is under way: a thin line of Flux running along the card, quiet as the Art Bible asks (§4.4). */
@@ -235,8 +305,35 @@ footer {
   position: absolute;
   right: 40px;
   bottom: 20px;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
   color: var(--muted);
   font-size: 11px;
   letter-spacing: 0.08em;
   text-align: right;
+}
+
+/* Repair: there when it may be needed, never in the way. */
+.link {
+  height: auto;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: none;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.link:hover {
+  border: none;
+  background: none;
+  color: var(--text);
+}
+
+[hidden] {
+  display: none !important;
 }

@@ -22,7 +22,7 @@ namespace VeyraNetTests
 {
 	// Veyra.Net.FluxWellSecure.*: a Vanguard standing at an open Flux Well drains it by presence and
 	// secures it; Match grants its side the Well's Team Flux and refills its side's Flux Flasks, and
-	// every client sees the Well's cycle (Battleground Bible §6; ADR-014 §4, §6; ADR-022 §6).
+	// every client sees the Well's cycle (Battleground Bible §6; ADR-014 §4, §6; ADR-023 §6).
 	NETWORK_TEST_CLASS(FluxWellSecure, "Veyra.Net")
 	{
 		struct FState : public FBasePIENetworkComponentState

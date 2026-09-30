@@ -77,7 +77,7 @@ public:
 	void DeliverOnDeath(AActor& Participant);
 
 	/**
-	 * Fills Participant's refillable consumables to their charges (Item Bible §10; ADR-022 §6): its
+	 * Fills Participant's refillable consumables to their charges (Item Bible §10; ADR-023 §6): its
 	 * arrival at its fountain does, and Match calls it for each of a side's participants when the
 	 * side secures a Flux Well.
 	 */
@@ -85,7 +85,7 @@ public:
 
 	/**
 	 * Grows the Max Health of Participant's item that holds Attunement by Health, for as long as it
-	 * holds the item (Tempered by Conflict; ADR-022 §3). The Attunements call it.
+	 * holds the item (Tempered by Conflict; ADR-023 §3). The Attunements call it.
 	 */
 	void GrowHealth(AActor& Participant, const FVeyraContentId& Attunement, double Health);
 

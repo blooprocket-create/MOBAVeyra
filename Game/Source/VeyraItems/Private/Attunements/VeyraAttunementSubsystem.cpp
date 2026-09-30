@@ -155,7 +155,7 @@ void UVeyraAttunementSubsystem::Drag(const FVeyraContentId& Attunement, const FV
 	UAbilitySystemComponent& Target)
 {
 	// Damaging abilities briefly slow (Item Bible §9), their damage over time too, as League's Rylai's
-	// Crystal Scepter (ADR-022 §9).
+	// Crystal Scepter (ADR-023 §9).
 	const bool bAbilityDamage = Event.Delivery == EVeyraDamageDelivery::Ability || Event.Delivery == EVeyraDamageDelivery::Periodic;
 	if (!bAbilityDamage || !VeyraTargeting::IsAlive(Target.GetOwner()))
 	{
@@ -194,7 +194,7 @@ void UVeyraAttunementSubsystem::Convergence(const FVeyraContentId& Attunement, c
 		return;
 	}
 	Primes.RemoveAtSwap(Primed);
-	// A proc, which neither primes nor consumes (ADR-022 §3).
+	// A proc, which neither primes nor consumes (ADR-023 §3).
 	FVeyraRawDamageEvent Bonus;
 	Bonus.Components.Add({ EVeyraDamageType::Magic, Tuning.BaseDamage + Tuning.MagicPowerRatio * Holder.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) });
 	Bonus.Delivery = EVeyraDamageDelivery::Proc;
@@ -234,7 +234,7 @@ void UVeyraAttunementSubsystem::EndlessCleave(const FVeyraContentId& Attunement,
 	{
 		return;
 	}
-	// A share of the attack's base damage as Physical damage, a smaller share from a ranged holder (ADR-022 §3).
+	// A share of the attack's base damage as Physical damage, a smaller share from a ranged holder (ADR-023 §3).
 	const FVeyraEndlessCleaveTuning& Tuning = UVeyraItemsTuningSubsystem::Get().EndlessCleave.FindChecked(Attunement);
 	const FVeyraBasicAttackProfile& Profile = Attacks->GetProfile();
 	const double Share = Profile.Projectile.IsEmpty() ? Tuning.MeleeFraction : Tuning.RangedFraction;
@@ -365,7 +365,7 @@ void UVeyraAttunementSubsystem::TemperedByConflict(const FVeyraContentId& Attune
 	Entry->NearSince = -1.0;
 	Entry->ReadyAt = Now + Tuning.CooldownSeconds;
 	// Bonus Physical damage, as a proc, from the holder's Max Health; a share of it becomes permanent Max
-	// Health on the item, which leaves with it (ADR-022 §3).
+	// Health on the item, which leaves with it (ADR-023 §3).
 	const double Bonus = Tuning.BaseDamage + Tuning.MaxHealthFraction * Holder.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
 	FVeyraRawDamageEvent Damage;
 	Damage.Components.Add({ EVeyraDamageType::Physical, Bonus });

@@ -234,7 +234,7 @@ namespace VeyraCombatTests
 
 		TEST_METHOD(MagicResistReductionCutsTheRetainedResistanceUpToItsStacks)
 		{
-			// Fixture values: 5% a stack, three at most (ADR-022 §5).
+			// Fixture values: 5% a stack, three at most (ADR-023 §5).
 			constexpr double PerStack = 0.05;
 			constexpr int32 MaxStacks = 3;
 			const FVeyraStatusSpec Shred = TestStatus(TEXT("shred"), EVeyraStatusKind::MagicResistReduction, PerStack, LongSeconds, EVeyraStackingPolicy::Stacking, MaxStacks);

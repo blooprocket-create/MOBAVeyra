@@ -169,7 +169,7 @@ struct FVeyraStructureCombatTuning
 	double Effectiveness = 0.0;
 };
 
-/** Critical strikes (Combat Bible §5; ADR-022 §1). */
+/** Critical strikes (Combat Bible §5; ADR-023 §1). */
 USTRUCT()
 struct FVeyraCritTuning
 {
@@ -191,7 +191,7 @@ struct FVeyraCritTuning
 	double OverflowDamagePerChance = 0.0;
 };
 
-/** An outcome bag's size (ADR-022 §10): how many draws one shuffled bag holds before it refills. */
+/** An outcome bag's size (ADR-023 §10): how many draws one shuffled bag holds before it refills. */
 USTRUCT()
 struct FVeyraOutcomeBagTuning
 {
@@ -311,7 +311,7 @@ struct FVeyraCombatTuning
 	UPROPERTY()
 	FVeyraCritTuning Crit;
 
-	/** The bag every crit channel draws from (ADR-022 §10). */
+	/** The bag every crit channel draws from (ADR-023 §10). */
 	UPROPERTY()
 	FVeyraOutcomeBagTuning CritBag;
 

@@ -25,7 +25,7 @@
 namespace VeyraItemsTests
 {
 	// Veyra.Items.Attunements.*: the Attunements a hit on an enemy Vanguard sets off, through Combat's
-	// dealt-damage event and verbs (Item Bible §8–§9; ADR-022 §3–§5). Each test gives the fixture
+	// dealt-damage event and verbs (Item Bible §8–§9; ADR-023 §3–§5). Each test gives the fixture
 	// catalog's Masterwork the Attunement under test.
 	TEST_CLASS(Attunements, "Veyra.Items")
 	{

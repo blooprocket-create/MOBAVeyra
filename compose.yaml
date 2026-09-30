@@ -19,6 +19,12 @@
 # image without running the direct-connect server:
 #
 #   docker compose --profile match-server build match-server
+#
+# The releases service is the local stand-in for the download CDN (ADR-022 §8):
+# it serves the release store in Game/Saved/Releases, which
+# Game/Scripts/Publish.ps1 fills, to the launcher Setup installs.
+#
+#   docker compose up -d releases
 
 name: veyra
 
@@ -55,6 +61,13 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  releases:
+    image: nginx:stable-alpine
+    volumes:
+      - ./Game/Saved/Releases:/usr/share/nginx/html:ro
+    ports:
+      - "127.0.0.1:8090:80"
 
   match-server:
     profiles: ["match-server"]

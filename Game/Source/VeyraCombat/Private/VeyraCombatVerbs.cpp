@@ -549,7 +549,7 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 			*GetNameSafe(Target.GetOwner()));
 		return false;
 	}
-	// What each component costs the target while the instance applies is what it dealt (ADR-022 §4).
+	// What each component costs the target while the instance applies is what it dealt (ADR-023 §4).
 	UWorld* World = Target.GetWorld();
 	UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
 	if (Events)
@@ -563,7 +563,7 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 		return false;
 	}
 	// Towers and Fluxborn react to who hurts whom (Battleground Bible §19; ADR-011 §6), and Attunements
-	// to what a hit dealt (ADR-022 §4).
+	// to what a hit dealt (ADR-023 §4).
 	if (Events && VeyraTargeting::AreHostile(Source->GetOwner(), Target.GetOwner()))
 	{
 		Events->OnHostileDamage.Broadcast(FVeyraHostileDamageEvent{ Source, &Target, Damage.Delivery });

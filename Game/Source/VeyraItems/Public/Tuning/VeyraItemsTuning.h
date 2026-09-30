@@ -51,11 +51,11 @@ struct FVeyraItemStatsTuning
 	UPROPERTY()
 	double MagicPenetrationFlat = 0.0;
 
-	/** Crit Chance, as a fraction; items' add (Combat Bible §5; ADR-022 §2). */
+	/** Crit Chance, as a fraction; items' add (Combat Bible §5; ADR-023 §2). */
 	UPROPERTY()
 	double CritChance = 0.0;
 
-	/** A percentage of total Magic Power, as a fraction, multiplying with every other (Combat Bible §41; ADR-022 §2). */
+	/** A percentage of total Magic Power, as a fraction, multiplying with every other (Combat Bible §41; ADR-023 §2). */
 	UPROPERTY()
 	double MagicPowerFraction = 0.0;
 };
@@ -145,7 +145,7 @@ struct FVeyraConsumableTuning
 	double ResaleFraction = 0.0;
 
 	/**
-	 * 0 for one that is used up. Above 0, it is refillable (Item Bible §10; ADR-022 §6): bought with
+	 * 0 for one that is used up. Above 0, it is refillable (Item Bible §10; ADR-023 §6): bought with
 	 * this many charges, it spends one on each use and never goes, refills at its holder's fountain
 	 * and when its holder's side secures a Flux Well, and is held once.
 	 */
@@ -179,7 +179,7 @@ struct FVeyraOverchargeTuning
 	double MagicPowerFraction = 0.0;
 };
 
-/** Perfect Cut: critical strikes deal more damage (Item Bible §8; ADR-022 §3). */
+/** Perfect Cut: critical strikes deal more damage (Item Bible §8; ADR-023 §3). */
 USTRUCT()
 struct FVeyraPerfectCutTuning
 {
@@ -215,7 +215,7 @@ struct FVeyraStackingAttunementTuning
 	double DurationSeconds = 0.0;
 };
 
-/** Reprisal Guard: damaging an enemy Vanguard shields the holder, then waits (Item Bible §8; ADR-022 §3). */
+/** Reprisal Guard: damaging an enemy Vanguard shields the holder, then waits (Item Bible §8; ADR-023 §3). */
 USTRUCT()
 struct FVeyraReprisalGuardTuning
 {
@@ -240,7 +240,7 @@ struct FVeyraReprisalGuardTuning
 	double CooldownSeconds = 0.0;
 };
 
-/** Drag: damaging abilities briefly slow enemy Vanguards (Item Bible §9; ADR-022 §3). */
+/** Drag: damaging abilities briefly slow enemy Vanguards (Item Bible §9; ADR-023 §3). */
 USTRUCT()
 struct FVeyraDragTuning
 {
@@ -257,7 +257,7 @@ struct FVeyraDragTuning
 	double DurationSeconds = 0.0;
 };
 
-/** Convergence: one damaging ability primes an enemy Vanguard, and the next consumes it (Item Bible §9; ADR-022 §3). */
+/** Convergence: one damaging ability primes an enemy Vanguard, and the next consumes it (Item Bible §9; ADR-023 §3). */
 USTRUCT()
 struct FVeyraConvergenceTuning
 {
@@ -278,7 +278,7 @@ struct FVeyraConvergenceTuning
 	double MagicPowerRatio = 0.0;
 };
 
-/** Endless Cleave: basic attacks also strike the enemies around their target (Item Bible §8; ADR-022 §3). */
+/** Endless Cleave: basic attacks also strike the enemies around their target (Item Bible §8; ADR-023 §3). */
 USTRUCT()
 struct FVeyraEndlessCleaveTuning
 {
@@ -300,7 +300,7 @@ struct FVeyraEndlessCleaveTuning
 	double Radius = 0.0;
 };
 
-/** Tempered by Conflict: staying near an enemy Vanguard charges the next basic attack on it (Item Bible §8; ADR-022 §3). */
+/** Tempered by Conflict: staying near an enemy Vanguard charges the next basic attack on it (Item Bible §8; ADR-023 §3). */
 USTRUCT()
 struct FVeyraTemperedByConflictTuning
 {
@@ -379,7 +379,7 @@ struct FVeyraItemsTuning
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraConvergenceTuning> Convergence;
 
-	/** Fracture: PerStack is the fraction of Magic Resistance each stack removes (Item Bible §9; ADR-022 §5). */
+	/** Fracture: PerStack is the fraction of Magic Resistance each stack removes (Item Bible §9; ADR-023 §5). */
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraStackingAttunementTuning> Fracture;
 

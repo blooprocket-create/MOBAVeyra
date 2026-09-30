@@ -1,4 +1,4 @@
-# ADR-022: Critical strikes and the rest of the Item Bible's catalog
+# ADR-023: Critical strikes and the rest of the Item Bible's catalog
 
 **Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent. §9 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M17 pull request that adds it.
 **Date:** 2026-09-30

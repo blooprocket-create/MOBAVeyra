@@ -215,7 +215,7 @@
       }
     },
     "crit": {
-      "description": "Critical strikes on basic attacks (Combat Bible §5; ADR-022 §1).",
+      "description": "Critical strikes on basic attacks (Combat Bible §5; ADR-023 §1).",
       "type": "object",
       "additionalProperties": false,
       "required": ["provenance", "damage", "chanceCap", "overflowDamagePerChance"],
@@ -245,7 +245,7 @@
       }
     },
     "critBag": {
-      "description": "Crits are drawn, not rolled (ADR-022 §10): each unit's crit channel, such as its basic attacks, draws from a shuffled bag holding one value from each equal slice of [0, 1), and crits when the value is below its Crit Chance at that moment.",
+      "description": "Crits are drawn, not rolled (ADR-023 §10): each unit's crit channel, such as its basic attacks, draws from a shuffled bag holding one value from each equal slice of [0, 1), and crits when the value is below its Crit Chance at that moment.",
       "type": "object",
       "additionalProperties": false,
       "required": ["provenance", "draws"],

@@ -13,7 +13,7 @@
 namespace VeyraCombatTests
 {
 	// Veyra.Combat.OutcomeBags.*: chance drawn from shuffled bags, not rolled afresh (author ruling
-	// 2026-09-30; ADR-022 §10). Every seed, size and chance here is a fixture value; the seeds make
+	// 2026-09-30; ADR-023 §10). Every seed, size and chance here is a fixture value; the seeds make
 	// each run the same.
 	TEST_CLASS(OutcomeBags, "Veyra.Combat")
 	{

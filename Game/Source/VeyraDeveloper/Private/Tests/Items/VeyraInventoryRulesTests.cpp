@@ -209,7 +209,7 @@ namespace VeyraItemsTests
 		TEST_METHOD(CritAddsAndMagicPowerPercentagesMultiply)
 		{
 			// Fixture values: a grip with Crit Chance, two held, and a Masterwork with a Perfect Cut and a
-			// Magic Power percentage beside an Overcharge (ADR-022 §2-§3).
+			// Magic Power percentage beside an Overcharge (ADR-023 §2-§3).
 			constexpr double BaseAttackSpeed = 0.625;
 			FVeyraItemsTuning WithCrit = Tuning;
 			WithCrit.Items[ItemId(TEXT("test_grip"))].Stats.CritChance = 0.15;
@@ -237,7 +237,7 @@ namespace VeyraItemsTests
 
 		TEST_METHOD(ARefillableConsumableIsHeldOnceAndArrivesFull)
 		{
-			// Fixture values: the tonic made refillable, with two charges (Item Bible §10; ADR-022 §6).
+			// Fixture values: the tonic made refillable, with two charges (Item Bible §10; ADR-023 §6).
 			constexpr int32 Charges = 2;
 			const FVeyraContentId Flask = ItemId(TEXT("test_tonic"));
 			FVeyraItemsTuning Refillable = Tuning;

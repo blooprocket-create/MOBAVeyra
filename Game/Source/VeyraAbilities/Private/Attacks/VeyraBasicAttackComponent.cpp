@@ -318,7 +318,7 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 	Plan.BaseDamage = Plan.Damage.Components;
 
 	// A basic attack may crit, drawn once here on the server from the attacker's basic-attack bag (Combat
-	// Bible §5; ADR-022 §1, §10). Its bonus is a rider on the base damage, so an empowerment's and a
+	// Bible §5; ADR-023 §1, §10). Its bonus is a rider on the base damage, so an empowerment's and a
 	// modifier's riders never inherit it (§17) and a structure takes it at Structure Effectiveness (§33).
 	const FVeyraCritOutcome Crit = VeyraCrit::Check(GetWorld(), Attacker, VeyraCrit::BasicAttackChannel(),
 		Attacker.GetNumericAttribute(UVeyraOffenceSet::GetCritChanceAttribute()), Attacker.GetNumericAttribute(UVeyraOffenceSet::GetCritDamageBonusAttribute()));

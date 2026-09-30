@@ -18,7 +18,7 @@ struct FVeyraCritOutcome
 	double Multiplier = 1.0;
 };
 
-/** Combat's critical-strike rule (Combat Bible §5; ADR-022 §1), as one plain function. */
+/** Combat's critical-strike rule (Combat Bible §5; ADR-023 §1), as one plain function. */
 namespace VeyraCrit
 {
 	/**
@@ -29,11 +29,11 @@ namespace VeyraCrit
 	 */
 	VEYRACOMBAT_API FVeyraCritOutcome Resolve(double Chance, double DamageBonus, const FVeyraCritTuning& Tuning, double Roll);
 
-	/** The channel every basic attack of a unit draws its crits from (ADR-022 §10): an identity, not tuning. */
+	/** The channel every basic attack of a unit draws its crits from (ADR-023 §10): an identity, not tuning. */
 	VEYRACOMBAT_API const FVeyraContentId& BasicAttackChannel();
 
 	/**
-	 * Whether one of Unit's crit-capable actions crits (ADR-022 §10). The action names its own
+	 * Whether one of Unit's crit-capable actions crits (ADR-023 §10). The action names its own
 	 * Channel, its independent source of chance, and the Chance that governs it now: Unit's next
 	 * outcome on Channel is drawn from a bag of the crit tuning's size, not rolled afresh, so a chance
 	 * lands in its proportion over each bag without long streaks. Resolved as Resolve does, on the

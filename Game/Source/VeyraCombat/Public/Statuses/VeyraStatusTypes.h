@@ -128,7 +128,7 @@ enum class EVeyraStatusKind : uint8
 	 */
 	AttackDamageAmplification,
 	/**
-	 * Reduces the unit's Magic Resistance by a percentage (Combat Bible §3; ADR-022 §5), as Fracture
+	 * Reduces the unit's Magic Resistance by a percentage (Combat Bible §3; ADR-023 §5), as Fracture
 	 * does; entries multiply, as other percentage reductions do, and flat reduction comes after. Not
 	 * crowd control. Magnitude: the fraction removed per stack, above 0, every stack together below 1.
 	 */

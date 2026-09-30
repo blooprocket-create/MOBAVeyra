@@ -30,8 +30,8 @@
         "abilityHaste": { "description": "Ability Haste: cooldowns last 100 / (100 + Ability Haste) of their base (ADR-012 §6).", "type": "number", "minimum": 0 },
         "moveSpeed": { "description": "Movement Speed.", "type": "number", "minimum": 0 },
         "magicPenetrationFlat": { "description": "Flat Magic Penetration (Combat Bible §3).", "type": "number", "minimum": 0 },
-        "critChance": { "description": "Crit Chance, as a fraction; items' add (Combat Bible §5; ADR-022 §2).", "type": "number", "minimum": 0, "maximum": 1 },
-        "magicPowerFraction": { "description": "A percentage of total Magic Power, as a fraction, multiplying with every other (Combat Bible §41; ADR-022 §2).", "type": "number", "minimum": 0 }
+        "critChance": { "description": "Crit Chance, as a fraction; items' add (Combat Bible §5; ADR-023 §2).", "type": "number", "minimum": 0, "maximum": 1 },
+        "magicPowerFraction": { "description": "A percentage of total Magic Power, as a fraction, multiplying with every other (Combat Bible §41; ADR-023 §2).", "type": "number", "minimum": 0 }
       }
     },
     "stacking": {
@@ -104,7 +104,7 @@
             "healthRestored": { "description": "Health restored over the duration, in equal parts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "durationSeconds": { "description": "How long the restoration lasts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "resaleFraction": { "description": "What selling an unused one returns, as a fraction of its cost (Economy §12: a consumable defines its own).", "type": "number", "minimum": 0, "maximum": 1 },
-            "charges": { "description": "0 for one that is used up; above 0, a refillable one: bought with this many charges, it spends one a use, refills at the fountain and from a secured Flux Well, and is held once (Item Bible §10; ADR-022 §6).", "type": "integer", "minimum": 0 }
+            "charges": { "description": "0 for one that is used up; above 0, a refillable one: bought with this many charges, it spends one a use, refills at the fountain and from a secured Flux Well, and is held once (Item Bible §10; ADR-023 §6).", "type": "integer", "minimum": 0 }
           }
         }
       }
@@ -154,7 +154,7 @@
       "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/stacking" } }
     },
     "perfectCut": {
-      "description": "Perfect Cut: critical strikes deal increased damage (Item Bible §8; ADR-022 §3).",
+      "description": "Perfect Cut: critical strikes deal increased damage (Item Bible §8; ADR-023 §3).",
       "type": "object",
       "additionalProperties": false,
       "patternProperties": {
@@ -170,7 +170,7 @@
       }
     },
     "reprisalGuard": {
-      "description": "Reprisal Guard (Impact Aegis, Item Bible §8; ADR-022 §3): a basic attack or ability that damages an enemy Vanguard shields the holder for a fraction of what it dealt, then the Attunement waits.",
+      "description": "Reprisal Guard (Impact Aegis, Item Bible §8; ADR-023 §3): a basic attack or ability that damages an enemy Vanguard shields the holder for a fraction of what it dealt, then the Attunement waits.",
       "type": "object",
       "additionalProperties": false,
       "patternProperties": {
@@ -189,7 +189,7 @@
       }
     },
     "drag": {
-      "description": "Drag (Gravitic Seal, Item Bible §9; ADR-022 §3): ability damage to an enemy Vanguard slows it briefly.",
+      "description": "Drag (Gravitic Seal, Item Bible §9; ADR-023 §3): ability damage to an enemy Vanguard slows it briefly.",
       "type": "object",
       "additionalProperties": false,
       "patternProperties": {
@@ -206,7 +206,7 @@
       }
     },
     "convergence": {
-      "description": "Convergence (Starfall Prism, Item Bible §9; ADR-022 §3): ability damage to an enemy Vanguard primes it; the holder's next damaging ability on it within the window consumes the prime for bonus magic damage.",
+      "description": "Convergence (Starfall Prism, Item Bible §9; ADR-023 §3): ability damage to an enemy Vanguard primes it; the holder's next damaging ability on it within the window consumes the prime for bonus magic damage.",
       "type": "object",
       "additionalProperties": false,
       "patternProperties": {
@@ -224,13 +224,13 @@
       }
     },
     "fracture": {
-      "description": "Fracture (Nullglass Lens, Item Bible §9; ADR-022 §3, §5): each instance of magic damage to an enemy Vanguard adds a stack of Magic Resist Reduction, perStack of its Magic Resistance each; the stacks refresh and end together.",
+      "description": "Fracture (Nullglass Lens, Item Bible §9; ADR-023 §3, §5): each instance of magic damage to an enemy Vanguard adds a stack of Magic Resist Reduction, perStack of its Magic Resistance each; the stacks refresh and end together.",
       "type": "object",
       "additionalProperties": false,
       "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/stacking" } }
     },
     "endlessCleave": {
-      "description": "Endless Cleave (Razorwheel Prime, Item Bible §8; ADR-022 §3): each basic attack also deals a share of its base damage as Physical damage to the other enemies around its target, never structures.",
+      "description": "Endless Cleave (Razorwheel Prime, Item Bible §8; ADR-023 §3): each basic attack also deals a share of its base damage as Physical damage to the other enemies around its target, never structures.",
       "type": "object",
       "additionalProperties": false,
       "patternProperties": {
@@ -248,7 +248,7 @@
       }
     },
     "temperedByConflict": {
-      "description": "Tempered by Conflict (Siegeheart Core, Item Bible §8; ADR-022 §3): an enemy Vanguard that stays near the holder becomes Tempered; the holder's next basic attack on it consumes it for bonus Physical damage, part of which the holder keeps as Max Health while it holds the item. Each enemy has its own cooldown.",
+      "description": "Tempered by Conflict (Siegeheart Core, Item Bible §8; ADR-023 §3): an enemy Vanguard that stays near the holder becomes Tempered; the holder's next basic attack on it consumes it for bonus Physical damage, part of which the holder keeps as Max Health while it holds the item. Each enemy has its own cooldown.",
       "type": "object",
       "additionalProperties": false,
       "patternProperties": {

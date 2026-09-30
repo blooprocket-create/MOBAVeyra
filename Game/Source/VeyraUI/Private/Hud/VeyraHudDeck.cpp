@@ -586,7 +586,7 @@ namespace
 				{
 					Paint.TextCentred(At + FVector2D(Item / 2.0f), Monogram(Name), Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor);
 				}
-				// A stack shows how many; a refillable consumable its charges, even none (ADR-022 §6).
+				// A stack shows how many; a refillable consumable its charges, even none (ADR-023 §6).
 				if (Held.Charges.IsSet() || Held.Count > 1)
 				{
 					Paint.Text(At + FVector2D(Item - Paint.S(14.0f), Item - Paint.S(16.0f)), FString::FromInt(Held.Charges.Get(Held.Count)),

@@ -1,7 +1,9 @@
-//! The launcher's configuration (Launcher/config/local.json): where the backend is, how long to wait,
-//! and which game build to launch. Parsed strictly: every field is required and an unknown field is
-//! an error (ADR-010 §12), and the values are validated before anything uses them.
+//! The launcher's configuration (Launcher/config/local.json, and `VeyraLauncher.json` beside an
+//! installed launcher): where the backend is, how long to wait, and where the game comes from: a
+//! packaged build or a release store (ADR-022 §6). Parsed strictly: every field is required and an
+//! unknown field is an error (ADR-010 §12), and the values are validated before anything uses them.
 
+use crate::release;
 use serde::Deserialize;
 use std::fmt;
 use std::fs;
@@ -9,7 +11,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 /// The configuration format this launcher reads.
-pub const SCHEMA_VERSION: u32 = 1;
+pub const SCHEMA_VERSION: u32 = 2;
 
 /// The switch the launcher gives the game itself; configuration never sets it (ADR-005 L3).
 pub const LAUNCH_CODE_SWITCH: &str = "-VeyraLaunchCode=stdin";
@@ -47,21 +49,66 @@ pub struct LaunchConfig {
     pub await_sign_in_seconds: f64,
 }
 
+/// Where the game comes from: exactly one of `build_manifest` and `install`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub struct GameConfig {
-    /// The game build's manifest (VeyraBuild.json, which Game/Scripts/Package.ps1 writes), relative to
-    /// this configuration file.
-    pub build_manifest: String,
+    /// A packaged build, for development: its manifest (VeyraBuild.json, which
+    /// Game/Scripts/Package.ps1 writes), relative to this configuration file.
+    pub build_manifest: Option<String>,
+    /// The game installed from a release store (ADR-022).
+    pub install: Option<InstallConfig>,
     /// More arguments for the game, after the launch-code switch the launcher adds itself.
     pub arguments: Vec<String>,
 }
 
-/// A configuration that parsed and validated, with its manifest's path resolved.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields, rename_all = "camelCase")]
+pub struct InstallConfig {
+    /// The release store, such as http://127.0.0.1:8090: a scheme, a host, an optional port and an
+    /// optional path.
+    pub releases_url: String,
+    /// The channel whose release the launcher installs.
+    pub channel: String,
+    /// Where the game goes unless the player chooses, relative to this configuration file.
+    pub default_folder: String,
+    /// The launcher's own state (the folder the player chose), relative to this configuration file.
+    pub state_file: String,
+    /// Chunks downloaded at once.
+    pub parallel_downloads: u32,
+    /// Times a chunk is downloaded before the install fails.
+    pub download_attempts: u32,
+    /// Seconds one request to the release store may take.
+    pub download_timeout_seconds: f64,
+}
+
+/// The largest `parallelDownloads`: a bound on the threads the launcher starts, not a tuning value.
+pub const MAX_PARALLEL_DOWNLOADS: u32 = 64;
+
+/// Where the game comes from, with its paths resolved against the configuration file.
+#[derive(Debug, Clone)]
+pub enum GameSource {
+    /// A packaged build: the path of its manifest.
+    Packaged(PathBuf),
+    Install(InstallSource),
+}
+
+#[derive(Debug, Clone)]
+pub struct InstallSource {
+    pub releases_url: String,
+    pub channel: String,
+    pub default_folder: PathBuf,
+    pub state_file: PathBuf,
+    pub parallel_downloads: usize,
+    pub download_attempts: u32,
+    pub download_timeout: Duration,
+}
+
+/// A configuration that parsed and validated, with its paths resolved.
 #[derive(Debug, Clone)]
 pub struct LoadedConfig {
     pub config: LauncherConfig,
-    pub manifest_path: PathBuf,
+    pub game: GameSource,
 }
 
 impl LoadedConfig {
@@ -101,9 +148,26 @@ pub fn load(path: &Path) -> Result<LoadedConfig, ConfigError> {
     };
     let text = fs::read_to_string(path).map_err(|error| fail(vec![format!("it could not be read: {error}")]))?;
     let config = parse(&text).map_err(fail)?;
-    let directory = path.parent().unwrap_or_else(|| Path::new("."));
-    let manifest_path = directory.join(&config.game.build_manifest);
-    Ok(LoadedConfig { config, manifest_path })
+    // Paths in the configuration are relative to its file, and resolved to absolute ones: the window
+    // shows them, and a game folder must not move with the working directory.
+    let directory = std::path::absolute(path)
+        .ok()
+        .and_then(|absolute| absolute.parent().map(Path::to_path_buf))
+        .unwrap_or_else(|| path.parent().unwrap_or_else(|| Path::new(".")).to_path_buf());
+    let game = match (&config.game.build_manifest, &config.game.install) {
+        (Some(manifest), _) => GameSource::Packaged(directory.join(manifest)),
+        (None, Some(install)) => GameSource::Install(InstallSource {
+            releases_url: install.releases_url.trim_end_matches('/').to_string(),
+            channel: install.channel.clone(),
+            default_folder: directory.join(&install.default_folder),
+            state_file: directory.join(&install.state_file),
+            parallel_downloads: install.parallel_downloads as usize,
+            download_attempts: install.download_attempts,
+            download_timeout: Duration::from_secs_f64(install.download_timeout_seconds),
+        }),
+        (None, None) => unreachable!("validate requires a source"),
+    };
+    Ok(LoadedConfig { config, game })
 }
 
 /// Parses and validates a configuration's text. Every problem is reported, not just the first.
@@ -135,8 +199,13 @@ pub fn validate(config: &LauncherConfig) -> Vec<String> {
             problems.push(format!("{name} must be a positive number of seconds"));
         }
     }
-    if config.game.build_manifest.trim().is_empty() {
-        problems.push("game.buildManifest must name the game build's VeyraBuild.json".to_string());
+    match (&config.game.build_manifest, &config.game.install) {
+        (Some(_), Some(_)) | (None, None) => {
+            problems.push("game must have exactly one of buildManifest (a packaged build) and install (a release store)".to_string())
+        }
+        (Some(manifest), None) if manifest.trim().is_empty() => problems.push("game.buildManifest must name the game build's VeyraBuild.json".to_string()),
+        (Some(_), None) => {}
+        (None, Some(install)) => problems.extend(validate_install(install)),
     }
     if config
         .game
@@ -149,6 +218,52 @@ pub fn validate(config: &LauncherConfig) -> Vec<String> {
         ));
     }
     problems
+}
+
+/// Every problem with the `game.install` section.
+fn validate_install(install: &InstallConfig) -> Vec<String> {
+    let mut problems = Vec::new();
+    if !is_releases_url(&install.releases_url) {
+        problems.push("game.install.releasesUrl must be an http or https URL with no query, such as http://127.0.0.1:8090".to_string());
+    }
+    if !release::is_channel_name(&install.channel) {
+        problems.push("game.install.channel must be 1 to 32 lowercase letters, digits or '-'".to_string());
+    }
+    for (name, value) in [
+        ("game.install.defaultFolder", &install.default_folder),
+        ("game.install.stateFile", &install.state_file),
+    ] {
+        if value.trim().is_empty() {
+            problems.push(format!("{name} must name a path"));
+        }
+    }
+    if !(1..=MAX_PARALLEL_DOWNLOADS).contains(&install.parallel_downloads) {
+        problems.push(format!("game.install.parallelDownloads must be 1 to {MAX_PARALLEL_DOWNLOADS}"));
+    }
+    if install.download_attempts == 0 {
+        problems.push("game.install.downloadAttempts must be at least 1".to_string());
+    }
+    if !(install.download_timeout_seconds.is_finite() && install.download_timeout_seconds > 0.0) {
+        problems.push("game.install.downloadTimeoutSeconds must be a positive number of seconds".to_string());
+    }
+    problems
+}
+
+/// A base URL (`is_base_url`) with an optional path of plain segments, as a CDN may need.
+pub fn is_releases_url(text: &str) -> bool {
+    let Some(scheme_end) = text.find("://") else {
+        return false;
+    };
+    let after_host = text[scheme_end + 3..].find('/').map(|index| scheme_end + 3 + index);
+    let (base, path) = match after_host {
+        Some(index) => text.split_at(index),
+        None => (text, ""),
+    };
+    is_base_url(base)
+        && path.split('/').skip(1).all(|segment| {
+            segment.is_empty()
+                || (segment != "." && segment != ".." && segment.bytes().all(|byte| byte.is_ascii_alphanumeric() || matches!(byte, b'.' | b'_' | b'-')))
+        })
 }
 
 /// An http or https URL with a host, an optional port and nothing else.
@@ -170,7 +285,7 @@ mod tests {
     use super::*;
 
     const VALID: &str = r#"{
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "backend": { "baseUrl": "http://127.0.0.1:8080" },
         "http": { "timeoutSeconds": 10 },
         "launch": { "awaitReadySeconds": 180, "awaitSignInSeconds": 30 },
@@ -204,10 +319,95 @@ mod tests {
         let bad = VALID
             .replace("http://127.0.0.1:8080", "http://127.0.0.1:8080/v1")
             .replace(r#""awaitReadySeconds": 180"#, r#""awaitReadySeconds": 0"#)
-            .replace(r#""schemaVersion": 1"#, r#""schemaVersion": 2"#)
+            .replace(r#""schemaVersion": 2"#, r#""schemaVersion": 1"#)
             .replace(r#"["-windowed"]"#, r#"["-VeyraLaunchCode=vlc_x"]"#);
         let problems = parse(&bad).expect_err("four problems");
         assert_eq!(problems.len(), 4, "{problems:?}");
+    }
+
+    const INSTALL: &str = r#""install": {
+            "releasesUrl": "http://127.0.0.1:8090",
+            "channel": "local",
+            "defaultFolder": "Game",
+            "stateFile": "LauncherState.json",
+            "parallelDownloads": 4,
+            "downloadAttempts": 3,
+            "downloadTimeoutSeconds": 60
+        }"#;
+
+    fn installed() -> String {
+        VALID.replace(r#""buildManifest": "../build/VeyraBuild.json""#, INSTALL)
+    }
+
+    #[test]
+    fn the_game_comes_from_exactly_one_source() {
+        let config = parse(&installed()).expect("an installed game is valid");
+        let install = config.game.install.expect("the install source");
+        assert!(config.game.build_manifest.is_none());
+        assert_eq!(install.channel, "local");
+        assert_eq!(install.parallel_downloads, 4);
+
+        let both = VALID.replace(r#""arguments""#, &format!("{INSTALL}, \"arguments\""));
+        assert!(parse(&both).unwrap_err()[0].contains("exactly one"));
+        let neither = VALID.replace(r#""buildManifest": "../build/VeyraBuild.json","#, "");
+        assert!(parse(&neither).unwrap_err()[0].contains("exactly one"));
+    }
+
+    #[test]
+    fn install_values_are_validated() {
+        let bad = installed()
+            .replace("http://127.0.0.1:8090", "http://127.0.0.1:8090/../x")
+            .replace(r#""local""#, r#""Local Channel""#)
+            .replace(r#""parallelDownloads": 4"#, r#""parallelDownloads": 0"#)
+            .replace(r#""downloadAttempts": 3"#, r#""downloadAttempts": 0"#)
+            .replace(r#""downloadTimeoutSeconds": 60"#, r#""downloadTimeoutSeconds": -1"#)
+            .replace(r#""stateFile": "LauncherState.json""#, r#""stateFile": " ""#);
+        let problems = parse(&bad).expect_err("six problems");
+        assert_eq!(problems.len(), 6, "{problems:?}");
+    }
+
+    #[test]
+    fn install_paths_resolve_beside_the_configuration() {
+        let folder = std::env::temp_dir().join(format!("veyra-config-install-{}", std::process::id()));
+        fs::create_dir_all(&folder).unwrap();
+        let path = folder.join("VeyraLauncher.json");
+        fs::write(&path, installed()).unwrap();
+        let loaded = load(&path).expect("loads");
+        let GameSource::Install(install) = loaded.game else {
+            panic!("an install source")
+        };
+        assert_eq!(install.default_folder, folder.join("Game"));
+        assert_eq!(install.state_file, folder.join("LauncherState.json"));
+        assert_eq!(install.download_timeout, Duration::from_secs(60));
+
+        // A relative configuration path still gives absolute paths.
+        let relative = Path::new("veyra-relative-config.json");
+        let _ = fs::remove_file(relative);
+        fs::write(relative, installed()).unwrap();
+        let loaded = load(relative);
+        fs::remove_file(relative).unwrap();
+        let GameSource::Install(install) = loaded.expect("loads").game else {
+            panic!("an install source")
+        };
+        assert!(install.default_folder.is_absolute(), "{}", install.default_folder.display());
+    }
+
+    #[test]
+    fn a_releases_url_may_have_a_plain_path() {
+        assert!(is_releases_url("http://127.0.0.1:8090"));
+        assert!(is_releases_url("https://cdn.example.com/veyra/live/"));
+        for bad in ["ftp://cdn", "https://cdn/a?b", "https://cdn/../x", "https://user@cdn/x", "https://cdn/a b"] {
+            assert!(!is_releases_url(bad), "{bad}");
+        }
+    }
+
+    #[test]
+    fn the_committed_configurations_are_valid() {
+        let folder = Path::new(env!("CARGO_MANIFEST_DIR")).join("../config");
+        let local = load(&folder.join("local.json")).expect("config/local.json");
+        assert!(matches!(local.game, GameSource::Packaged(_)), "development launches the packaged build");
+        let installed = load(&folder.join("installed.json")).expect("config/installed.json, which Setup installs");
+        assert!(matches!(installed.game, GameSource::Install(_)), "Setup's launcher installs the game");
     }
 
     #[test]

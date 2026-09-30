@@ -135,7 +135,7 @@ struct FVeyraHostileDamageEvent
 };
 
 /**
- * One damage instance a unit dealt to an enemy, as it resolved (ADR-022 §4): what each of its types
+ * One damage instance a unit dealt to an enemy, as it resolved (ADR-023 §4): what each of its types
  * cost the target after mitigation, in Health, Temporary Health and shields, never overkill. A
  * damage-over-time tick is its own instance, with the Periodic delivery.
  */
@@ -191,7 +191,7 @@ public:
 	FOnHostileDamage OnHostileDamage;
 
 	/**
-	 * Each damage instance dealt to an enemy, with what it cost by type (ADR-022 §4), after
+	 * Each damage instance dealt to an enemy, with what it cost by type (ADR-023 §4), after
 	 * OnHostileDamage: Attunements that act on a hit read it.
 	 */
 	FOnDamageDealt OnDamageDealt;

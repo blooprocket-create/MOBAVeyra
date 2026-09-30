@@ -13,7 +13,7 @@ namespace VeyraCombatEventTests
 	using VeyraAbilitiesTests::FArchetypeTestWorld;
 
 	// Veyra.Combat.CombatEvents.*: what Combat reports for statistics (ADR-017 §1) and Attunements
-	// (ADR-022 §4). A resolved hit says what it cost and whose shields took it; a dealt one what each
+	// (ADR-023 §4). A resolved hit says what it cost and whose shields took it; a dealt one what each
 	// type cost an enemy; a heal what it restored and who gave it; a status when it began and ends.
 	TEST_CLASS(CombatEvents, "Veyra.Combat")
 	{

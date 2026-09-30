@@ -9,7 +9,7 @@
 
 namespace VeyraCritTests
 {
-	// Veyra.Combat.CritRule.*: the critical-strike rule (Combat Bible §5; ADR-022 §1).
+	// Veyra.Combat.CritRule.*: the critical-strike rule (Combat Bible §5; ADR-023 §1).
 	TEST_CLASS(CritRule, "Veyra.Combat")
 	{
 		// Fixture values: Combat Bible §5's prototype baseline, restated so the examples below hold.

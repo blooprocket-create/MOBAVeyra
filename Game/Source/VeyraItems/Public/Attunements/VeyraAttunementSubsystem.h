@@ -11,7 +11,7 @@ class UAbilitySystemComponent;
 struct FVeyraDamageDealtEvent;
 
 /**
- * The Attunements a hit sets off (Item Bible §8–§9; ADR-022 §3–§4): Reprisal Guard, Drag, Convergence,
+ * The Attunements a hit sets off (Item Bible §8–§9; ADR-023 §3–§4): Reprisal Guard, Drag, Convergence,
  * Fracture, Endless Cleave and Tempered by Conflict. It listens to Combat's dealt-damage event and acts
  * through Combat's verbs, with every number from Items.json. Static Attunements fold into the holder's
  * stats (VeyraEquipment::StatsFor), and stacking buffs into the shop's; this owns only what a hit, or

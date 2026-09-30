@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 2,
+  "backend": {
+    "baseUrl": "http://127.0.0.1:8080"
+  },
+  "http": {
+    "timeoutSeconds": 10
+  },
+  "launch": {
+    "awaitReadySeconds": 180,
+    "awaitSignInSeconds": 30
+  },
+  "game": {
+    "install": {
+      "releasesUrl": "http://127.0.0.1:8090",
+      "channel": "local",
+      "defaultFolder": "Game",
+      "stateFile": "LauncherState.json",
+      "parallelDownloads": 4,
+      "downloadAttempts": 3,
+      "downloadTimeoutSeconds": 60
+    },
+    "arguments": []
+  }
+}
