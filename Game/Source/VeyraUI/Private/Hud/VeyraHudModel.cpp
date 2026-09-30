@@ -2,6 +2,9 @@
 
 #include "Hud/VeyraHudModel.h"
 
+#include "Entities/VeyraPlacedMarker.h"
+#include "GameFramework/PlayerState.h"
+
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
@@ -42,9 +45,16 @@ namespace
 	}
 }
 
+const AActor& VeyraHud::PresentedUnitOf(const AActor& Unit)
+{
+	const AVeyraPlacedMarker* Marker = Cast<AVeyraPlacedMarker>(&Unit);
+	const APlayerState* Owner = Marker ? Marker->GetPresentedAs() : nullptr;
+	return Owner ? static_cast<const AActor&>(*Owner) : Unit;
+}
+
 TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit)
 {
-	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&PresentedUnitOf(Unit));
 	if (!AbilitySystem || !AbilitySystem->HasAttributeSetForAttribute(UVeyraVitalsSet::GetHealthAttribute()))
 	{
 		return {};
@@ -57,7 +67,7 @@ TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit)
 		Vitals.Resource = AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
 		Vitals.MaxResource = AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute());
 	}
-	if (const UVeyraDamageAbsorptionComponent* Absorption = FindBesideHudAbilitySystem<UVeyraDamageAbsorptionComponent>(Unit))
+	if (const UVeyraDamageAbsorptionComponent* Absorption = FindBesideHudAbilitySystem<UVeyraDamageAbsorptionComponent>(PresentedUnitOf(Unit)))
 	{
 		for (const FVeyraShieldEntry& Shield : Absorption->GetLedger().Shields)
 		{
@@ -70,10 +80,17 @@ TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit)
 TArray<FVeyraHudStatus> VeyraHud::StatusesOf(const AActor& Unit, double ServerNow)
 {
 	TArray<FVeyraHudStatus> Statuses;
-	if (const UVeyraStatusComponent* Ledger = FindBesideHudAbilitySystem<UVeyraStatusComponent>(Unit))
+	// A decoy shows its owner's statuses, but never the stealth its owner hides in.
+	const AActor& Shown = PresentedUnitOf(Unit);
+	const bool bDecoy = &Shown != &Unit;
+	if (const UVeyraStatusComponent* Ledger = FindBesideHudAbilitySystem<UVeyraStatusComponent>(Shown))
 	{
 		for (const FVeyraStatusEntry& Entry : Ledger->GetLedger().Entries)
 		{
+			if (bDecoy && (Entry.Kind == EVeyraStatusKind::Invisible || Entry.Kind == EVeyraStatusKind::Camouflage))
+			{
+				continue;
+			}
 			Statuses.Add(FVeyraHudStatus{ Entry.Id, Entry.Kind, FMath::Max(0.0, Entry.EndsAt - ServerNow), Entry.Stacks });
 		}
 	}

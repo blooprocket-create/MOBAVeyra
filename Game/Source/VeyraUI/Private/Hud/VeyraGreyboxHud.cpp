@@ -94,7 +94,8 @@ namespace
 		constexpr float LeastTickGap = 3.0f;
 		const double TickGap = Settings.BarWidth * HealthPerTick / Total;
 		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
-		if (Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Vanguard && TickGap >= LeastTickGap)
+		const bool bVanguardBar = (Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Vanguard) || &VeyraHud::PresentedUnitOf(Unit) != &Unit;
+		if (bVanguardBar && TickGap >= LeastTickGap)
 		{
 			for (int32 Tick = 1; Tick * HealthPerTick < Total; ++Tick)
 			{

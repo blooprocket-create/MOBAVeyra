@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Content/VeyraContentId.h"
+#include "Entities/VeyraMarkerTypes.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Subsystems/WorldSubsystem.h"
@@ -204,6 +205,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCast, const FVeyraCastEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDisplaced, const FVeyraDisplacementEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSpellShieldBlocked, const FVeyraSpellShieldBlocked&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMarkerEnded, const FVeyraMarkerEnd&);
 
 	FOnDeath OnDeath;
 
@@ -239,6 +241,9 @@ public:
 
 	/** A unit forced another to move: a Knockback, Pull or Knockup's travel (Combat Bible §9). */
 	FOnDisplaced OnDisplaced;
+
+	/** A placed marker ended: expired, destroyed, recalled, or its owner died (ADR-030 §5). */
+	FOnMarkerEnded OnMarkerEnded;
 
 	/** Broadcasts OnDamageResolved, and counts what the component cost toward the instance being dealt. */
 	void ResolveDamage(const FVeyraDamageResolution& Resolution);

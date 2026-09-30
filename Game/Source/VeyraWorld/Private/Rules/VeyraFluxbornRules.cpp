@@ -29,6 +29,7 @@ namespace
 		case EVeyraUnitKind::Wildlife:
 		case EVeyraUnitKind::Objective:
 		case EVeyraUnitKind::Ward:
+		case EVeyraUnitKind::Marker:
 			return ERank::Vanguard;
 		}
 		return ERank::Vanguard;

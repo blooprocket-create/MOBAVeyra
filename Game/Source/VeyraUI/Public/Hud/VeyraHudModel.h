@@ -223,6 +223,12 @@ struct FVeyraHudVision
 
 namespace VeyraHud
 {
+	/**
+	 * What a unit's bars and statuses show: a placed marker that presents as its owner shows its owner's
+	 * participant (ADR-030 §5); anything else shows itself.
+	 */
+	VEYRAUI_API const AActor& PresentedUnitOf(const AActor& Unit);
+
 	/** Unit's bars, from its Ability System Component and shields; nothing when it has neither Health nor an Ability System Component. */
 	VEYRAUI_API TOptional<FVeyraHudVitals> VitalsOf(const AActor& Unit);
 

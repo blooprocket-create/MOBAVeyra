@@ -681,9 +681,10 @@ bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Targe
 			*Status.Id.ToString(), *GetNameSafe(TargetOwner));
 		return false;
 	}
-	if (IsWardUnit(Target))
+	if (IsWardUnit(Target) || VeyraUnits::IsMarker(TargetOwner))
 	{
-		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: no status affects a ward (ADR-016 §6)."), *Status.Id.ToString(), *GetNameSafe(TargetOwner));
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: no status affects a ward or a placed marker (ADR-016 §6; ADR-030 §5)."),
+			*Status.Id.ToString(), *GetNameSafe(TargetOwner));
 		return false;
 	}
 	if (!Status.LandsOn.IsEmpty() && !(TargetKind.IsSet() && Status.LandsOn.Contains(TargetKind.GetValue())))

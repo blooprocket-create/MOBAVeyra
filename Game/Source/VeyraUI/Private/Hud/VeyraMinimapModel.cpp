@@ -2,6 +2,8 @@
 
 #include "Hud/VeyraMinimapModel.h"
 
+#include "Entities/VeyraPlacedMarker.h"
+
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
 #include "Hud/VeyraHudModel.h"
@@ -113,6 +115,12 @@ FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame,
 		case EVeyraUnitKind::Ward:
 			Dot.Kind = EVeyraMinimapDot::Ward;
 			break;
+		case EVeyraUnitKind::Marker:
+		{
+			const AVeyraPlacedMarker* Marker = Cast<AVeyraPlacedMarker>(Unit);
+			Dot.Kind = Marker && Marker->GetPresentedAs() ? EVeyraMinimapDot::Vanguard : EVeyraMinimapDot::Ward;
+			break;
+		}
 		}
 		View.Dots.Add(Dot);
 	}

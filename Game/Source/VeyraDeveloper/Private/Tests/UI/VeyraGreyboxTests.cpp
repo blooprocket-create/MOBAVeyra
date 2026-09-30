@@ -11,6 +11,7 @@
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
+#include "Entities/VeyraPlacedMarker.h"
 #include "Greybox/VeyraGreyboxOutline.h"
 #include "Greybox/VeyraGreyboxSettings.h"
 #include "Gold/VeyraGoldComponent.h"
@@ -410,6 +411,32 @@ namespace VeyraAbilitiesTests
 			Player = VeyraHud::DescribePlayer(Participant, Now);
 			ASSERT_THAT(IsTrue(Player.Level == 2 && Player.UnspentSkillPoints == 1));
 			ASSERT_THAT(IsTrue(Player.Slots[0].bCanRankUp && Player.Slots[1].bCanRankUp && !Player.Slots[3].bCanRankUp));
+		}
+
+		TEST_METHOD(ADecoyShowsItsOwnersBarsAndStatusesButNotTheirStealth)
+		{
+			UAbilitySystemComponent& Own = *Caster->GetAbilitySystemComponent();
+			FVeyraMarkerSpec Spec;
+			Spec.Id = ArchetypeTestId(TEXT("test_illusion"));
+			Spec.LifetimeSeconds = 60.0;
+			Spec.HitsToDestroy = 1;
+			Spec.bPresentsAsOwner = true;
+			AVeyraPlacedMarker* Decoy = AVeyraPlacedMarker::Place(Spawner.GetWorld(), Own, Spec, FTransform(FVector(CastRange, 0.0, 0.0)));
+			ASSERT_THAT(IsNotNull(Decoy));
+			ASSERT_THAT(IsTrue(&VeyraHud::PresentedUnitOf(*Decoy) == Caster->GetPlayerState()));
+			FVeyraStatusSpec Hide;
+			Hide.Id = ArchetypeTestId(TEXT("test_hidden"));
+			Hide.Kind = EVeyraStatusKind::Invisible;
+			Hide.DurationSeconds = 60.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Own, Own, Hide)));
+			const TOptional<FVeyraHudVitals> Shown = VeyraHud::VitalsOf(*Decoy);
+			const TOptional<FVeyraHudVitals> Real = VeyraHud::VitalsOf(*Caster);
+			ASSERT_THAT(IsTrue(Shown.IsSet() && Real.IsSet() && Shown->MaxHealth == Real->MaxHealth && Shown->Health == Real->Health,
+				TEXT("its owner's Health, not its own single point")));
+			const double Now = RefreshedGreybox().GetServerNow();
+			ASSERT_THAT(IsTrue(VeyraHud::StatusesOf(*Caster, Now).ContainsByPredicate([](const FVeyraHudStatus& Each) { return Each.Kind == EVeyraStatusKind::Invisible; })));
+			ASSERT_THAT(IsFalse(VeyraHud::StatusesOf(*Decoy, Now).ContainsByPredicate([](const FVeyraHudStatus& Each) { return Each.Kind == EVeyraStatusKind::Invisible; }),
+				TEXT("the stealth it covers for stays hidden")));
 		}
 
 		TEST_METHOD(TheHudShowsGoldTheRespawnWaitAndTeamFlux)

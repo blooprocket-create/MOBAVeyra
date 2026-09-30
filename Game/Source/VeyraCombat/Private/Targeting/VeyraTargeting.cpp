@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "GameFramework/Actor.h"
+#include "Entities/VeyraPlacedMarker.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Teams/VeyraTeam.h"
@@ -64,6 +65,10 @@ bool CanAcquire(const UObject* Acquirer, const AActor& Target)
 
 bool IsUntargetable(const AActor& Unit)
 {
+	if (const AVeyraPlacedMarker* Marker = Cast<AVeyraPlacedMarker>(&Unit); Marker && !Marker->IsTargetable())
+	{
+		return true;
+	}
 	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
 	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
