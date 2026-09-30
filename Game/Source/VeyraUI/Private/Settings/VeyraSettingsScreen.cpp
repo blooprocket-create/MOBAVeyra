@@ -16,6 +16,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
 #include "Settings/VeyraDisplayApplier.h"
+#include "Settings/VeyraDisplayRules.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Text/VeyraContentText.h"
@@ -292,18 +293,34 @@ void UVeyraSettingsScreen::Rebind(const FVeyraContentId& Id, const FKey& Key)
 
 void UVeyraSettingsScreen::Change(const FVeyraContentId& Id, const FString& Value)
 {
+	ChangeStore([this, &Id, &Value](FVeyraSettingsStore& Store) { Store.Set(Id, Value, bInMatch); });
+}
+
+void UVeyraSettingsScreen::ChangeStore(TFunctionRef<void(FVeyraSettingsStore&)> Change)
+{
 	FVeyraSettingsStore* Store = GetStore();
 	if (!Store)
 	{
 		return;
 	}
-	const FString Previous = Store->Get(Id);
+	// A change that could leave the player unable to see waits for Keep (SET-92): the window's size
+	// outside a match, or a match's display mode in one, whether set or reset.
 	UVeyraDisplayApplier* Applier = Display.Get();
-	// A change that could leave the player unable to see waits for Keep (SET-92).
-	const bool bConfirm = Applier && Applier->NeedsConfirmation(Id);
-	if (Store->Set(Id, Value, bInMatch) == EVeyraSettingChange::Changed && bConfirm)
+	TArray<TPair<FVeyraContentId, FString>, TInlineAllocator<2>> Disruptive;
+	for (const FVeyraContentId& Id : { VeyraDisplayRules::WindowSize(), VeyraDisplayRules::MatchMode() })
 	{
-		Applier->AwaitConfirmation(Id, Previous);
+		if (Applier && Applier->NeedsConfirmation(Id))
+		{
+			Disruptive.Emplace(Id, Store->Get(Id));
+		}
+	}
+	Change(*Store);
+	for (const TPair<FVeyraContentId, FString>& Before : Disruptive)
+	{
+		if (Store->Get(Before.Key) != Before.Value)
+		{
+			Applier->AwaitConfirmation(Before.Key, Before.Value);
+		}
 	}
 }
 
@@ -446,10 +463,7 @@ void UVeyraSettingsScreen::BuildRow(const FVeyraSettingRowModel& Row)
 	if (Row.bChanged && !Row.bLocked)
 	{
 		AddButton(*Line, EVeyraShellButtonKind::Quiet, ResetLabel(Row), LOCTEXT("ResetOne", "Reset"), [this, Id] {
-			if (FVeyraSettingsStore* Store = GetStore())
-			{
-				Store->Reset(Id, bInMatch);
-			}
+			ChangeStore([this, &Id](FVeyraSettingsStore& Store) { Store.Reset(Id, bInMatch); });
 		});
 	}
 	Lines->AddChild(Line);
@@ -512,17 +526,16 @@ void UVeyraSettingsScreen::BuildFooter()
 		VeyraSettingsLayout::AddFilling(*Footer, *VeyraShellStyle::MakeText(*WidgetTree, Question, VeyraShellStyle::EVeyraShellText::Body));
 		AddButton(*Footer, EVeyraShellButtonKind::Primary, ConfirmResetLabel(), ConfirmResetLabel(), [this, bAll] {
 			Confirming = EConfirming::None;
-			if (FVeyraSettingsStore* Store = GetStore())
-			{
+			ChangeStore([this, bAll](FVeyraSettingsStore& Store) {
 				if (bAll)
 				{
-					Store->ResetAll(bInMatch);
+					Store.ResetAll(bInMatch);
 				}
 				else
 				{
-					Store->ResetCategory(Model.Category, bInMatch);
+					Store.ResetCategory(Model.Category, bInMatch);
 				}
-			}
+			});
 			// A reset that changed nothing sends no change to rebuild on.
 			Rebuild();
 		});

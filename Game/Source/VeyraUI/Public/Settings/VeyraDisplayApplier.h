@@ -30,8 +30,11 @@ public:
 	virtual void Initialize(FSubsystemCollectionBase& Collection) override;
 	virtual void Deinitialize() override;
 
-	/** The game instance's applier, or null where there is none. */
+	/** The game instance's applier, or null where there is none; the test override while one is set. */
 	static UVeyraDisplayApplier* Get(const UObject* WorldContext);
+
+	/** Tests only: Get returns Applier until reset with null. */
+	static void SetTestOverride(UVeyraDisplayApplier* Applier);
 
 	/** Whether a change to Id now takes effect on the screen at once, so it needs the player to keep it. */
 	bool NeedsConfirmation(const FVeyraContentId& Id) const;

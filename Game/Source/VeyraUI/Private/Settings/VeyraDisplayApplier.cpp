@@ -71,8 +71,22 @@ void UVeyraDisplayApplier::Deinitialize()
 	Super::Deinitialize();
 }
 
+namespace
+{
+	TWeakObjectPtr<UVeyraDisplayApplier> TestApplier;
+}
+
+void UVeyraDisplayApplier::SetTestOverride(UVeyraDisplayApplier* Applier)
+{
+	TestApplier = Applier;
+}
+
 UVeyraDisplayApplier* UVeyraDisplayApplier::Get(const UObject* WorldContext)
 {
+	if (UVeyraDisplayApplier* Override = TestApplier.Get())
+	{
+		return Override;
+	}
 	const UWorld* World = WorldContext ? WorldContext->GetWorld() : nullptr;
 	const UGameInstance* GameInstance = World ? World->GetGameInstance() : nullptr;
 	return GameInstance ? GameInstance->GetSubsystem<UVeyraDisplayApplier>() : nullptr;
