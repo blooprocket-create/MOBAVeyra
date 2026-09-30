@@ -125,6 +125,12 @@ private:
 		TWeakObjectPtr<AActor> Target;
 		double StartedAt = 0.0;
 		FVeyraAttackTiming Timing;
+
+		/**
+		 * Whether an empowerment waited as it started: its windup and its payload both follow it, so one
+		 * that lapses mid-windup still empowers the attack it quickened (ADR-027 §2).
+		 */
+		bool bEmpowered = false;
 	};
 
 	/** What a committed attack does when it lands, prepared at Commit. */
@@ -142,7 +148,7 @@ private:
 		TArray<FVeyraStatusSpec> ImpactStatuses;
 	};
 
-	FVeyraAttackPlan BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing);
+	FVeyraAttackPlan BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing, bool bEmpoweredAtStart);
 	FLandingAttack Prepare(UAbilitySystemComponent& Attacker, const AActor& Body, const FVeyraAttackPlan& Plan) const;
 	void Land(const FLandingAttack& Landing);
 

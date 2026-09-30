@@ -42,6 +42,7 @@ namespace VeyraAbilitiesTests
 		static constexpr int32 TripleAttacks = 3;
 		static constexpr double QuickWindup = 0.5;
 		static constexpr double PierceSeconds = 3.0;
+		static constexpr double BriefSeconds = 0.2;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -90,6 +91,12 @@ namespace VeyraAbilitiesTests
 			Triple.Damage.Add(FVeyraDamageTuning{ EVeyraDamageType::TrueDamage, { BonusDamage }, 0.0, 0.0 });
 			Triple.ArmorPenetrationByRank = { 0.0 };
 			Tuning.EmpoweredAttack.Add(ArchetypeTestId(TEXT("test_triple")), Triple);
+
+			// A quick empowerment that lapses soon.
+			FVeyraEmpoweredAttackAbilityTuning Brief = Triple;
+			Brief.DurationSeconds = BriefSeconds;
+			Brief.Attacks = 1;
+			Tuning.EmpoweredAttack.Add(ArchetypeTestId(TEXT("test_brief")), Brief);
 
 			// A buff whose attacks pierce behind their target for a while, as OPEN ROAD!'s (ADR-027 §3).
 			FVeyraSelfBuffAbilityTuning Road;
@@ -332,6 +339,20 @@ namespace VeyraAbilitiesTests
 				ASSERT_THAT(AreEqual(FMath::Max(TripleAttacks - Attack, 0), Attacks->GetEmpowermentView().Attacks, FString::Printf(TEXT("left after attack %d"), Attack)));
 			}
 			ASSERT_THAT(IsFalse(Attacks->IsEmpowered(), TEXT("the last empowered attack spent it")));
+		}
+
+		TEST_METHOD(AnEmpowermentThatLapsesMidWindupStillEmpowersTheAttackItQuickened)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(*Attacker, EVeyraAbilitySlot::Q, ArchetypeTestId(TEXT("test_brief")))));
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Attacker->GetAbilitySystemComponent(), EVeyraAbilitySlot::Q, FVeyraCastTarget()) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(Attacks->StartAttack(Enemy) == EVeyraAttackRejection::None));
+			Wait(BriefSeconds * 2.0);
+			ASSERT_THAT(IsFalse(Attacks->IsEmpowered(), TEXT("its time ran out during the windup")));
+			Attacks->Commit();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Enemy), BaseDamage() + BonusDamage, Tolerance),
+				FString::Printf(TEXT("the quickened attack keeps its bonus: lost %g"), World.HealthLost(Enemy))));
 		}
 
 		TEST_METHOD(ABuffsSecondaryImpactRidesItsCastersAttacksWhileItLasts)

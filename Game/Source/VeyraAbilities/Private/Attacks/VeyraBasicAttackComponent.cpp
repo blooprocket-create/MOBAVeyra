@@ -212,7 +212,8 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::StartAttack(AActor& Target)
 	Attack.StartedAt = Now;
 	Attack.Timing = GetTiming();
 	// An empowerment may shorten the windups it empowers, never the interval (ADR-027 §2).
-	const double WindupSeconds = Attack.Timing.IntervalSeconds * Profile.WindupFraction * (IsEmpowered() ? Empowerment->WindupScale : 1.0);
+	Attack.bEmpowered = IsEmpowered();
+	const double WindupSeconds = Attack.Timing.IntervalSeconds * Profile.WindupFraction * (Attack.bEmpowered ? Empowerment->WindupScale : 1.0);
 
 	// The attacker turns to face its target.
 	if (AActor* Body = GetAbilitySystem()->GetAvatarActor())
@@ -257,7 +258,7 @@ void UVeyraBasicAttackComponent::Commit()
 	}
 
 	NextAttackAt = Running->StartedAt + Running->Timing.IntervalSeconds;
-	const FVeyraAttackPlan Plan = BuildPlan(*Attacker, *Target, Running->Timing);
+	const FVeyraAttackPlan Plan = BuildPlan(*Attacker, *Target, Running->Timing, Running->bEmpowered);
 	const FLandingAttack Landing = Prepare(*Attacker, *Body, Plan);
 	OnAttack.Broadcast(Landing.Event);
 
@@ -291,7 +292,7 @@ void UVeyraBasicAttackComponent::Commit()
 	}
 }
 
-FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing)
+FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing, bool bEmpoweredAtStart)
 {
 	FVeyraAttackPlan Plan;
 	Plan.Target = &Target;
@@ -333,7 +334,8 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 		}
 	}
 
-	if (Empowerment.IsSet() && GetServerNow() <= EmpowermentExpiresAt)
+	// One that waited as the attack started stays its, even if its time runs out during the windup.
+	if (Empowerment.IsSet() && (bEmpoweredAtStart || GetServerNow() <= EmpowermentExpiresAt))
 	{
 		Plan.bEmpowered = true;
 		if (Empowerment->Apply)
