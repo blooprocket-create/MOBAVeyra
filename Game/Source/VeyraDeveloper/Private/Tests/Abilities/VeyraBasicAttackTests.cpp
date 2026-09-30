@@ -7,6 +7,7 @@
 #include "VeyraVisionSubsystem.h"
 #include "Delivery/VeyraProjectile.h"
 #include "EngineUtils.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
@@ -283,6 +284,10 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Attacker->GetAbilitySystemComponent(), EVeyraAbilitySlot::W, FVeyraCastTarget()) == EVeyraCastRejection::None));
 			bool bCritical = false;
 			Attacks->OnHit.AddLambda([&bCritical](const FVeyraAttackEvent& Event) { bCritical = Event.bCritical; });
+			bool bDealtCritical = false;
+			Spawner.GetWorld().GetSubsystem<UVeyraCombatEventSubsystem>()->OnDamageDealt.AddLambda([&bDealtCritical](const FVeyraDamageDealtEvent& Event) {
+				bDealtCritical |= Event.Delivery == EVeyraDamageDelivery::BasicAttack && Event.bCritical;
+			});
 
 			ASSERT_THAT(IsTrue(AttackNow(Enemy) == EVeyraAttackRejection::None));
 			// The empowerment's bonus damage is a rider (§17): it does not crit.
@@ -290,6 +295,7 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Enemy), BaseDamage() * CritDamage + BonusDamage, Tolerance),
 				FString::Printf(TEXT("lost %g"), World.HealthLost(Enemy))));
 			ASSERT_THAT(IsTrue(bCritical, TEXT("the hit says it crit")));
+			ASSERT_THAT(IsTrue(bDealtCritical, TEXT("and so does the damage it dealt (ADR-025 §6)")));
 		}
 
 		TEST_METHOD(AStructureTakesACritsBonusAtStructureEffectiveness)

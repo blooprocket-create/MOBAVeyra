@@ -9,6 +9,15 @@
 
 struct FVeyraItemsTuning;
 
+/** What an item's Attunements keep on its slot (ADR-025 §7). */
+enum class EVeyraItemStore : uint8
+{
+	/** Residual Current's and High Tide's Current. */
+	Current,
+	/** Safe Harbor's Reserve. */
+	Reserve,
+};
+
 /** One inventory slot: an item, or a stack of a consumable, and the Gold its present form cost. Empty when Item is invalid. */
 USTRUCT()
 struct FVeyraInventorySlot
@@ -50,6 +59,13 @@ struct FVeyraInventorySlot
 	 */
 	UPROPERTY()
 	double Current = 0.0;
+
+	/** Reserve its Safe Harbor banks (ADR-025 §7): part of the item, like Current. */
+	UPROPERTY()
+	double Reserve = 0.0;
+
+	double Stored(EVeyraItemStore Store) const { return Store == EVeyraItemStore::Current ? Current : Reserve; }
+	double& Stored(EVeyraItemStore Store) { return Store == EVeyraItemStore::Current ? Current : Reserve; }
 
 	bool IsEmpty() const { return !Item.IsValid() || Count <= 0; }
 

@@ -25,7 +25,8 @@ namespace
 			+ static_cast<int32>(Tuning.Drag.Contains(Id)) + static_cast<int32>(Tuning.Convergence.Contains(Id))
 			+ static_cast<int32>(Tuning.Fracture.Contains(Id)) + static_cast<int32>(Tuning.EndlessCleave.Contains(Id))
 			+ static_cast<int32>(Tuning.TemperedByConflict.Contains(Id)) + static_cast<int32>(Tuning.ResidualCurrent.Contains(Id))
-			+ static_cast<int32>(Tuning.DragTheTempo.Contains(Id)) + static_cast<int32>(Tuning.QuietingChime.Contains(Id));
+			+ static_cast<int32>(Tuning.DragTheTempo.Contains(Id)) + static_cast<int32>(Tuning.QuietingChime.Contains(Id))
+			+ static_cast<int32>(Tuning.MarkedForDoom.Contains(Id)) + static_cast<int32>(Tuning.SafeHarbor.Contains(Id));
 	}
 }
 

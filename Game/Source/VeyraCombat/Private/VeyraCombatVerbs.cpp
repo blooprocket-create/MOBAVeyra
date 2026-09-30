@@ -559,7 +559,8 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 		Events->BeginDealing(*Source, Target, Damage.Delivery);
 	}
 	const bool bApplied = Source->ApplyGameplayEffectSpecToTarget(*Damage.Spec.Data, &Target).WasSuccessfullyApplied();
-	const FVeyraDamageDealtEvent Dealt = Events ? Events->EndDealing() : FVeyraDamageDealtEvent();
+	FVeyraDamageDealtEvent Dealt = Events ? Events->EndDealing() : FVeyraDamageDealtEvent();
+	Dealt.bCritical = Damage.bCritical;
 	if (!bApplied)
 	{
 		return false;
@@ -591,6 +592,7 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	// A copy, so the preparation stays the same for every other target it reaches.
 	FVeyraPreparedDamage Landing;
 	Landing.Delivery = Damage.Delivery;
+	Landing.bCritical = Damage.bCritical;
 	Landing.Spec = FGameplayEffectSpecHandle(new FGameplayEffectSpec(*Damage.Spec.Data));
 	for (const FVeyraDamageComponent& Added : AddedAtImpact)
 	{

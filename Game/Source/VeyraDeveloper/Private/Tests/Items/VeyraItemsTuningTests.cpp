@@ -154,6 +154,9 @@ namespace VeyraItemsTests
 				{ TEXT("killstring_assembly"), { TEXT("keensteel"), TEXT("quickcoil") }, { TEXT("AttackSpeed"), TEXT("CritChance") } },
 				{ TEXT("riverhold_bastion"), { TEXT("foundation_plate"), TEXT("marchplate"), TEXT("picket_plating") }, { TEXT("Armor"), TEXT("Health") } },
 				{ TEXT("blackreef_bell"), { TEXT("canyonward"), TEXT("resonant_wardstone") }, { TEXT("Health"), TEXT("MagicResist") } },
+				{ TEXT("harborline_harness"), { TEXT("rescue_rig"), TEXT("warforged_grip"), TEXT("waymark_weave") },
+					{ TEXT("AttackSpeed"), TEXT("Health"), TEXT("HealthRegeneration"), TEXT("PhysicalPower") } },
+				{ TEXT("doombringer_bow"), { TEXT("killstring_assembly"), TEXT("titansteel_grip") }, { TEXT("AttackSpeed"), TEXT("CritChance"), TEXT("PhysicalPower") } },
 			};
 			for (const FExpected& Expected : Revision)
 			{
@@ -192,6 +195,8 @@ namespace VeyraItemsTests
 			const FVeyraItemsTuning& Catalog = UVeyraItemsTuningSubsystem::Get();
 			ASSERT_THAT(IsTrue(Catalog.DragTheTempo.Contains(UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("riverhold_bastion")))->Attunement[0])));
 			ASSERT_THAT(IsTrue(Catalog.QuietingChime.Contains(UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("blackreef_bell")))->Attunement[0])));
+			ASSERT_THAT(IsTrue(Catalog.SafeHarbor.Contains(UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("harborline_harness")))->Attunement[0])));
+			ASSERT_THAT(IsTrue(Catalog.MarkedForDoom.Contains(UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("doombringer_bow")))->Attunement[0])));
 		}
 
 		TEST_METHOD(TheCommittedQuestEvolvesFluxReclaimerIntoWaylineReservoir)

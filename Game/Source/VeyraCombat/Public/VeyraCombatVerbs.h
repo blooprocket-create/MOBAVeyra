@@ -26,6 +26,9 @@ struct FVeyraPreparedDamage
 	/** How it is delivered, which decides whether it can damage a structure (Combat Bible §33). */
 	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
 
+	/** Whether it is a basic attack that crit (Combat Bible §5), which its dealt-damage event carries (ADR-025 §6). */
+	bool bCritical = false;
+
 	bool IsValid() const { return Spec.IsValid(); }
 };
 

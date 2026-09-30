@@ -6,6 +6,7 @@
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Attunements/VeyraAttunementSubsystem.h"
+#include "CombatState/VeyraCombatStateComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Components/ActorTestSpawner.h"
 #include "CQTest.h"
@@ -240,6 +241,94 @@ namespace VeyraItemsTests
 				[](const FVeyraStatusEntry& Entry) { return Entry.Id == ItemId(TEXT("test_tempo")); });
 			ASSERT_THAT(IsTrue(Slows.Num() == 1 && Slows[0].Stacks == 1 && FMath::IsNearlyEqual(Slows[0].Magnitude, -Reduction),
 				TEXT("refreshed, never stacked (ADR-025 §7)")));
+		}
+
+		/** The holder's basic attack on the enemy, a crit or not. */
+		void Attack(bool bCritical)
+		{
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Blow });
+			Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
+			FVeyraPreparedDamage Prepared = VeyraCombat::PrepareDamage(Holder(), Damage);
+			Prepared.bCritical = bCritical;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealPreparedDamage(Prepared, *Enemy)));
+		}
+
+		TEST_METHOD(MarkedForDoomBuildsOnAttacksThenTheNextAttackOnTheDoomedConsumesIt)
+		{
+			// Fixture values: 1 Doom a hit, 2 a crit, Doomed at 3; a fifth of missing Health; 5 s to lapse.
+			constexpr double Ratio = 0.2;
+			constexpr double Expiry = 5.0;
+			FVeyraMarkedForDoomTuning& Doom = Tuning.MarkedForDoom.Add(ItemId(TEXT("test_doom")));
+			Doom.DoomPerHit = 1.0;
+			Doom.DoomPerCrit = 2.0;
+			Doom.DoomedAt = 3.0;
+			Doom.ExpirySeconds = Expiry;
+			Doom.MissingHealthRatio = Ratio;
+			Hold(TEXT("test_doom"));
+			// No Armor, so the Physical Proc lands whole.
+			Enemy->SetNumericAttributeBase(UVeyraDefenceSet::GetArmorAttribute(), 0.0f);
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+
+			Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::Ability);
+			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 0.0, TEXT("only basic attacks build it")));
+			Attack(false);
+			Attack(true);
+			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 3.0 && Procs() == 0, TEXT("a hit and a crit: Doomed, nothing dealt yet")));
+			const double MissingBefore = VeyraCombat::GetMissingHealth(*Enemy);
+			Attack(false);
+			ASSERT_THAT(AreEqual(1, Procs(), TEXT("the next attack consumes it")));
+			const double Expected = MissingBefore + Blow + Ratio * (MissingBefore + Blow);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraCombat::GetMissingHealth(*Enemy), Expected, 1e-3),
+				FString::Printf(TEXT("missing %g, expected %g: the share of the missing Health after the hit"), VeyraCombat::GetMissingHealth(*Enemy), Expected)));
+			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 0.0, TEXT("the consuming hit adds none (ADR-025 §8.5)")));
+
+			Attack(true);
+			RunFor(Expiry + WorldStep);
+			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 0.0, TEXT("it lapses")));
+		}
+
+		double StoredReserve() const
+		{
+			const FVeyraInventorySlot* Slot = Participant->FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().FindByPredicate(
+				[](const FVeyraInventorySlot& Each) { return Each.Item == ItemId(TEXT("test_temper")); });
+			return Slot ? Slot->Reserve : -1.0;
+		}
+
+		TEST_METHOD(SafeHarborBanksReserveFromHitsAndHealsWithItOutOfCombat)
+		{
+			// Fixture values: half of each hit banks, up to a tenth of Max Health; 5% of Max Health a second.
+			constexpr double Fraction = 0.5;
+			constexpr double CapFraction = 0.1;
+			FVeyraSafeHarborTuning& Harbor = Tuning.SafeHarbor.Add(ItemId(TEXT("test_reserve")));
+			Harbor.ReserveFraction = Fraction;
+			Harbor.CapMaxHealthFraction = CapFraction;
+			Harbor.ConversionMaxHealthFractionPerSecond = 0.05;
+			Hold(TEXT("test_reserve"));
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+			const double MaxHealth = Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+
+			Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::Proc);
+			ASSERT_THAT(IsTrue(StoredReserve() == 0.0, TEXT("item damage banks nothing (ADR-025 §8.7)")));
+			Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::BasicAttack);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StoredReserve(), Blow * Fraction), FString::SanitizeFloat(StoredReserve())));
+			for (int32 Index = 0; Index < 3; ++Index)
+			{
+				Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::Ability);
+			}
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StoredReserve(), MaxHealth * CapFraction), TEXT("up to its cap")));
+
+			// In Vanguard combat it keeps; out of it, it heals what is missing.
+			const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
+			Holder().SetNumericAttributeBase(Health, static_cast<float>(MaxHealth / 2.0));
+			UVeyraCombatStateComponent& CombatState = *Participant->FindComponentByClass<UVeyraCombatStateComponent>();
+			CombatState.NoteCombat();
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StoredReserve(), MaxHealth * CapFraction), TEXT("none in combat")));
+			CombatState.Clear();
+			Attunements.UpdateHeld();
+			const double Healed = Holder().GetNumericAttribute(Health) - MaxHealth / 2.0;
+			ASSERT_THAT(IsTrue(Healed > 0.0 && FMath::IsNearlyEqual(StoredReserve(), MaxHealth * CapFraction - Healed, 1e-3), TEXT("what heals is spent")));
 		}
 
 		TEST_METHOD(ReprisalGuardShieldsAShareOfTheHitThenWaits)

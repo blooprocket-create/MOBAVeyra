@@ -4,7 +4,7 @@
   "description": "The shop's catalog and rules, owned by the Items domain (Item Bible v0.3; Economy & Progression Bible §10–§12; ADR-012 §3). VeyraItems binds it to FVeyraItemsTuning and checks the tier rules the schema cannot express. Prices and stats are prototype data (Item Bible §3).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "shop", "items", "consumables", "quests", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict", "residualCurrent", "dragTheTempo", "quietingChime"],
+  "required": ["schemaVersion", "shop", "items", "consumables", "quests", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict", "residualCurrent", "dragTheTempo", "quietingChime", "markedForDoom", "safeHarbor"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -338,6 +338,44 @@
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "reformSeconds": { "description": "How long it takes to form again.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "markedForDoom": {
+      "description": "Marked for Doom (Doombringer Bow, Item Bible §8; ADR-025 §7): the holder's basic attacks on an enemy Vanguard build Doom on it; once Doomed, its next basic attack on it consumes the Doom for a share of its missing Health, as a Physical Proc.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "doomPerHit", "doomPerCrit", "doomedAt", "expirySeconds", "missingHealthRatio"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "doomPerHit": { "description": "Doom a basic attack adds.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "doomPerCrit": { "description": "Doom a crit adds in its place.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "doomedAt": { "description": "The Doom at which the target is Doomed.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "expirySeconds": { "description": "How long Doom lasts after it was last added.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "missingHealthRatio": { "description": "The Proc's Physical damage per point of the target's missing Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "safeHarbor": {
+      "description": "Safe Harbor (Harborline Harness, Item Bible §8; ADR-025 §7): a share of the damage the holder's attacks and abilities deal enemy Vanguards banks as Reserve, up to a share of Max Health; out of Vanguard combat it converts into Health.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "reserveFraction", "capMaxHealthFraction", "conversionMaxHealthFractionPerSecond"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "reserveFraction": { "description": "The share of post-mitigation damage banked.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "capMaxHealthFraction": { "description": "The most Reserve, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "conversionMaxHealthFractionPerSecond": { "description": "Reserve converted each second, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
           }
         }
       }

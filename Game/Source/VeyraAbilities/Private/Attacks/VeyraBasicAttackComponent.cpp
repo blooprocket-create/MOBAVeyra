@@ -375,6 +375,7 @@ UVeyraBasicAttackComponent::FLandingAttack UVeyraBasicAttackComponent::Prepare(U
 	Landing.Damage = VeyraCombat::PrepareDamage(Attacker, VeyraUnits::IsStructure(Plan.Target.Get())
 		? VeyraBasicAttacks::AgainstStructure(Plan, UVeyraCombatTuningSubsystem::Get().Structures.Effectiveness)
 		: Plan.Damage);
+	Landing.Damage.bCritical = Plan.bCritical;
 	Landing.TargetStatuses = Plan.TargetStatuses;
 	if (Plan.Cleave.IsSet() && !Profile.Cleave.IsEmpty())
 	{

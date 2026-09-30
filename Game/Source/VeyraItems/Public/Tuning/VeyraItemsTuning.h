@@ -443,6 +443,65 @@ struct FVeyraQuietingChimeTuning
 	double ReformSeconds = 0.0;
 };
 
+/**
+ * Marked for Doom (Doombringer Bow, Item Bible §8; ADR-025 §7): the holder's basic attacks on an
+ * enemy Vanguard build Doom on it; once Doomed, the holder's next basic attack on it consumes the
+ * Doom for a share of its missing Health as a Physical Proc.
+ */
+USTRUCT()
+struct FVeyraMarkedForDoomTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double DoomPerHit = 0.0;
+
+	/** Doom a crit adds in place of DoomPerHit. */
+	UPROPERTY()
+	double DoomPerCrit = 0.0;
+
+	/** The Doom at which the target is Doomed. */
+	UPROPERTY()
+	double DoomedAt = 0.0;
+
+	/** How long Doom lasts after it was last added. */
+	UPROPERTY()
+	double ExpirySeconds = 0.0;
+
+	/** The Proc's Physical damage per point of the target's missing Health, after the consuming hit. */
+	UPROPERTY()
+	double MissingHealthRatio = 0.0;
+};
+
+/**
+ * Safe Harbor (Harborline Harness, Item Bible §8; ADR-025 §7): a share of the damage the holder deals
+ * enemy Vanguards banks as Reserve, which converts into Health while the holder is out of Vanguard
+ * combat.
+ */
+USTRUCT()
+struct FVeyraSafeHarborTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The share of post-mitigation damage banked. */
+	UPROPERTY()
+	double ReserveFraction = 0.0;
+
+	/** The most Reserve, as a share of the holder's Max Health. */
+	UPROPERTY()
+	double CapMaxHealthFraction = 0.0;
+
+	/** Reserve converted each second, as a share of the holder's Max Health. */
+	UPROPERTY()
+	double ConversionMaxHealthFractionPerSecond = 0.0;
+};
+
 /** The Items domain's tuning, bound from Game/Tuning/Items.json (ADR-006 §6, ADR-012 §3). */
 USTRUCT()
 struct FVeyraItemsTuning
@@ -507,6 +566,12 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraQuietingChimeTuning> QuietingChime;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraMarkedForDoomTuning> MarkedForDoom;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraSafeHarborTuning> SafeHarbor;
 };
 
 /** The Items domain's checks that a schema cannot express (ADR-012 §3). */

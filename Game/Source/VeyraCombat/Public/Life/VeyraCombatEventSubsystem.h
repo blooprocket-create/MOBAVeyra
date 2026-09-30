@@ -155,6 +155,8 @@ struct FVeyraDamageDealtEvent
 	TWeakObjectPtr<UAbilitySystemComponent> Source;
 	TWeakObjectPtr<UAbilitySystemComponent> Target;
 	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
+	/** Whether a basic attack that crit dealt it (ADR-025 §6). */
+	bool bCritical = false;
 	/** By type, each type at most once; a type that cost nothing is absent. */
 	FVeyraDamageComponents Dealt;
 

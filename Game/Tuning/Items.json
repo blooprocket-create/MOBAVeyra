@@ -218,6 +218,16 @@
       "stats": { "health": 350, "healthRegeneration": 0, "armor": 0, "magicResist": 70, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["quieting_chime"]
     },
+    "harborline_harness": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["rescue_rig", "waymark_weave", "warforged_grip"], "cost": 425, "stackLimit": 1,
+      "stats": { "health": 300, "healthRegeneration": 5, "armor": 0, "magicResist": 0, "physicalPower": 30, "magicPower": 0, "attackSpeed": 0.25, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["safe_harbor"]
+    },
+    "doombringer_bow": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["killstring_assembly", "titansteel_grip"], "cost": 800, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 55, "magicPower": 0, "attackSpeed": 0.25, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.25, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["marked_for_doom"]
+    },
     "colossus_temper": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["war_harness", "bloodforged_bracer", "vital_plate"], "cost": 600, "stackLimit": 1,
       "stats": { "health": 400, "healthRegeneration": 4, "armor": 0, "magicResist": 0, "physicalPower": 35, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
@@ -322,5 +332,11 @@
   },
   "quietingChime": {
     "quieting_chime": { "provenance": "Provisional", "reformSeconds": 40 }
+  },
+  "markedForDoom": {
+    "marked_for_doom": { "provenance": "Provisional", "doomPerHit": 1, "doomPerCrit": 2, "doomedAt": 3, "expirySeconds": 5, "missingHealthRatio": 0.12 }
+  },
+  "safeHarbor": {
+    "safe_harbor": { "provenance": "Provisional", "reserveFraction": 0.15, "capMaxHealthFraction": 0.15, "conversionMaxHealthFractionPerSecond": 0.02 }
   }
 }

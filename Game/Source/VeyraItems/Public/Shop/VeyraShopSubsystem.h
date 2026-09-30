@@ -97,10 +97,10 @@ public:
 	void GrowHealth(AActor& Participant, const FVeyraContentId& Attunement, double Health);
 
 	/**
-	 * Sets the Current that Participant's item holding Attunement stores (Residual Current; ADR-025
-	 * §7), at least 0. Spending it is benefit, which ends undo. The Attunements call it.
+	 * Sets what Participant's item holding Attunement stores, its Current or its Reserve (ADR-025 §7),
+	 * at least 0. Spending it is benefit, which ends undo. The Attunements call it.
 	 */
-	void SetCurrent(AActor& Participant, const FVeyraContentId& Attunement, double Current);
+	void SetStored(AActor& Participant, const FVeyraContentId& Attunement, EVeyraItemStore Store, double Amount);
 
 	/**
 	 * A unit died: a last hit on an enemy lane Fluxborn advances the last hitter's quests, which evolve

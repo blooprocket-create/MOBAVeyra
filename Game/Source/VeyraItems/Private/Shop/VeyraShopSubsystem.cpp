@@ -636,10 +636,10 @@ void UVeyraShopSubsystem::GrowHealth(AActor& Participant, const FVeyraContentId&
 	UE_LOG(LogVeyraItems, Log, TEXT("%s's %s grew %g Max Health."), *GetNameSafe(&Participant), *Attunement.ToString(), Health);
 }
 
-void UVeyraShopSubsystem::SetCurrent(AActor& Participant, const FVeyraContentId& Attunement, double Current)
+void UVeyraShopSubsystem::SetStored(AActor& Participant, const FVeyraContentId& Attunement, EVeyraItemStore Store, double Amount)
 {
 	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
-	if (!Inventory || !FMath::IsFinite(Current))
+	if (!Inventory || !FMath::IsFinite(Amount))
 	{
 		return;
 	}
@@ -649,14 +649,14 @@ void UVeyraShopSubsystem::SetCurrent(AActor& Participant, const FVeyraContentId&
 		const FVeyraItemDefinition* Item = Slot.IsEmpty() ? nullptr : Tuning.Items.Find(Slot.Item);
 		return Item && Item->Attunement.Contains(Attunement);
 	});
-	const double Stored = FMath::Max(0.0, Current);
-	if (!Holding || Holding->Current == Stored)
+	const double Stored = FMath::Max(0.0, Amount);
+	if (!Holding || Holding->Stored(Store) == Stored)
 	{
 		return;
 	}
 	// Spending it has given benefit: no undo takes the item back (§12).
-	Holding->bBenefited |= Stored < Holding->Current;
-	Holding->Current = Stored;
+	Holding->bBenefited |= Stored < Holding->Stored(Store);
+	Holding->Stored(Store) = Stored;
 	Inventory->SetSlots(MoveTemp(Slots));
 }
 

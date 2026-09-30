@@ -41,6 +41,9 @@ public:
 	/** Whether Holder has tempered Target, ready for its next basic attack. */
 	bool IsTempered(const UAbilitySystemComponent& Holder, const UAbilitySystemComponent& Target) const;
 
+	/** The Doom Holder has built on Target, 0 when none or expired (ADR-025 §7). */
+	double GetDoom(const UAbilitySystemComponent& Holder, const UAbilitySystemComponent& Target) const;
+
 	/** A last hit on an enemy lane Fluxborn stores Residual Current in the last hitter's item (ADR-025 §7). */
 	void OnDeath(const FVeyraDeathEvent& Death);
 
@@ -55,6 +58,7 @@ public:
 	 *   otherwise the amplification stops and the Current keeps.
 	 * - Quieting Chime: a formed Spell Shield is kept; a consumed one forms again once ReformSeconds
 	 *   have passed since both its consumption and the holder's last enemy-Vanguard damage.
+	 * - Safe Harbor: out of Vanguard combat and missing Health, a tick's Reserve converts into Health.
 	 * A timer calls it on the server each regeneration tick.
 	 */
 	void UpdateHeld();
@@ -96,6 +100,20 @@ private:
 
 	/** Drag the Tempo: an enemy Vanguard's basic attack damaged Holder, so Attacker's Attack Speed slows (ADR-025 §7). */
 	void DragTheTempo(UAbilitySystemComponent& Holder, UAbilitySystemComponent& Attacker);
+	void MarkedForDoom(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target,
+		double Now);
+	void SafeHarbor(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder);
+
+	/** One holder's Doom on one enemy Vanguard (ADR-025 §7). */
+	struct FDoom
+	{
+		TWeakObjectPtr<const UAbilitySystemComponent> Holder;
+		TWeakObjectPtr<const UAbilitySystemComponent> Target;
+		FVeyraContentId Attunement;
+		double Doom = 0.0;
+		double ExpiresAt = 0.0;
+	};
+	TArray<FDoom> Dooms;
 
 	/** Reprisal Guard's cooldowns, by holder. */
 	TArray<FTimed> Cooldowns;
