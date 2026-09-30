@@ -55,6 +55,8 @@ const FName UVeyraEquipmentEffect::AbilityHasteName(TEXT("EquipmentAbilityHaste"
 const FName UVeyraEquipmentEffect::MoveSpeedName(TEXT("EquipmentMoveSpeed"));
 const FName UVeyraEquipmentEffect::MagicPenetrationFlatName(TEXT("EquipmentMagicPenetrationFlat"));
 const FName UVeyraEquipmentEffect::MagicPowerMultiplierName(TEXT("EquipmentMagicPowerMultiplier"));
+const FName UVeyraEquipmentEffect::CritChanceName(TEXT("EquipmentCritChance"));
+const FName UVeyraEquipmentEffect::CritDamageBonusName(TEXT("EquipmentCritDamageBonus"));
 
 UVeyraEquipmentEffect::UVeyraEquipmentEffect()
 {
@@ -76,6 +78,8 @@ UVeyraEquipmentEffect::UVeyraEquipmentEffect()
 		{ UVeyraMobilitySet::GetMoveSpeedAttribute(), MoveSpeedName, EGameplayModOp::AddBase },
 		{ UVeyraOffenceSet::GetMagicPenetrationFlatAttribute(), MagicPenetrationFlatName, EGameplayModOp::AddBase },
 		{ UVeyraOffenceSet::GetMagicPowerAttribute(), MagicPowerMultiplierName, EGameplayModOp::MultiplyCompound },
+		{ UVeyraOffenceSet::GetCritChanceAttribute(), CritChanceName, EGameplayModOp::AddBase },
+		{ UVeyraOffenceSet::GetCritDamageBonusAttribute(), CritDamageBonusName, EGameplayModOp::AddBase },
 	};
 	for (const FLine& Line : Lines)
 	{

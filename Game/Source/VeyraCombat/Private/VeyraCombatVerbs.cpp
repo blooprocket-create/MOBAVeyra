@@ -311,6 +311,8 @@ bool SetEquipmentStats(UAbilitySystemComponent& AbilitySystem, const FVeyraEquip
 		{ UVeyraEquipmentEffect::AbilityHasteName, Stats.AbilityHaste },
 		{ UVeyraEquipmentEffect::MoveSpeedName, Stats.MoveSpeed },
 		{ UVeyraEquipmentEffect::MagicPenetrationFlatName, Stats.MagicPenetrationFlat },
+		{ UVeyraEquipmentEffect::CritChanceName, Stats.CritChance },
+		{ UVeyraEquipmentEffect::CritDamageBonusName, Stats.CritDamageBonus },
 	};
 	bool bValid = HasEveryStatSet(AbilitySystem) && IsNonNegativeFinite(Stats.MagicPowerFraction);
 	bool bAnything = Stats.MagicPowerFraction > 0.0;

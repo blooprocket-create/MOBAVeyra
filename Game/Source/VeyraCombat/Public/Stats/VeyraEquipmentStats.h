@@ -25,4 +25,8 @@ struct FVeyraEquipmentStats
 
 	/** Magic Power's percentage bonus, as a fraction: 0.3 is +30% (§41, step 3). */
 	double MagicPowerFraction = 0.0;
+
+	/** Crit Chance and Crit Damage Bonus, as fractions (Combat Bible §5; ADR-022 §2). */
+	double CritChance = 0.0;
+	double CritDamageBonus = 0.0;
 };

@@ -120,10 +120,10 @@ The rule that a build never lists an item another consumes still holds.
 
 | Item or rule | Values |
 |---|---|
-| Keensteel | 300 Gold; Crit Chance 0.15 |
-| Deadeye Edge | + 300 recipe; Physical Power 15, Crit Chance 0.2 |
-| Sovereign Edge | + 700 recipe; Physical Power 55, Crit Chance 0.25; Perfect Cut +0.4 Crit Damage |
-| Arcane Boots | + 600 recipe; Movement Speed 45, Magic Power fraction 0.08 |
+| Keensteel | 400 Gold; Crit Chance 0.15 |
+| Deadeye Edge | + 350 recipe; Physical Power 20, Crit Chance 0.2 |
+| Sovereign Edge | + 700 recipe; Physical Power 60, Crit Chance 0.25; Perfect Cut +0.4 Crit Damage |
+| Arcane Boots | + 700 recipe; Movement Speed 45, Magic Power fraction 0.08 |
 | Flux Flask | 150 Gold; 2 charges; 90 Health over 12 s each; resale 0.4 |
 | Impact Aegis | + 800 recipe; Health 300, Physical Power 30, Ability Haste 15; Reprisal Guard 0.2 of the hit, cap 250, cooldown 8 s |
 | Gravitic Seal | + 750 recipe; Magic Power 60, Health 250, Ability Haste 15; Drag 30% for 1 s |

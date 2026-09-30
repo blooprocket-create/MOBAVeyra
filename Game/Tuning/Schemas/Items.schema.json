@@ -4,7 +4,7 @@
   "description": "The shop's catalog and rules, owned by the Items domain (Item Bible v0.3; Economy & Progression Bible §10–§12; ADR-012 §3). VeyraItems binds it to FVeyraItemsTuning and checks the tier rules the schema cannot express. Prices and stats are prototype data (Item Bible §3).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "shop", "items", "consumables", "weightOfWar", "overcharge", "spoolUp", "overcycle"],
+  "required": ["schemaVersion", "shop", "items", "consumables", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -20,7 +20,7 @@
       "description": "What an item adds to its holder while it is delivered and the holder lives (Item Bible §3). Flat amounts, except attackSpeed, a fraction of the Vanguard's base Attack Speed added to its level growth (ADR-012 §6).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["health", "healthRegeneration", "physicalPower", "magicPower", "attackSpeed", "abilityHaste", "moveSpeed", "magicPenetrationFlat"],
+      "required": ["health", "healthRegeneration", "physicalPower", "magicPower", "attackSpeed", "abilityHaste", "moveSpeed", "magicPenetrationFlat", "critChance", "magicPowerFraction"],
       "properties": {
         "health": { "description": "Max Health.", "type": "number", "minimum": 0 },
         "healthRegeneration": { "description": "Health restored per second.", "type": "number", "minimum": 0 },
@@ -29,7 +29,9 @@
         "attackSpeed": { "description": "Bonus Attack Speed, as a fraction of base Attack Speed; 0.12 is 12%.", "type": "number", "minimum": 0 },
         "abilityHaste": { "description": "Ability Haste: cooldowns last 100 / (100 + Ability Haste) of their base (ADR-012 §6).", "type": "number", "minimum": 0 },
         "moveSpeed": { "description": "Movement Speed.", "type": "number", "minimum": 0 },
-        "magicPenetrationFlat": { "description": "Flat Magic Penetration (Combat Bible §3).", "type": "number", "minimum": 0 }
+        "magicPenetrationFlat": { "description": "Flat Magic Penetration (Combat Bible §3).", "type": "number", "minimum": 0 },
+        "critChance": { "description": "Crit Chance, as a fraction; items' add (Combat Bible §5; ADR-022 §2).", "type": "number", "minimum": 0, "maximum": 1 },
+        "magicPowerFraction": { "description": "A percentage of total Magic Power, as a fraction, multiplying with every other (Combat Bible §41; ADR-022 §2).", "type": "number", "minimum": 0 }
       }
     },
     "stacking": {
@@ -50,7 +52,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "shop": {
       "description": "The shop's own rules (Economy & Progression Bible §10, §12; ADR-012 §9).",
@@ -149,6 +151,22 @@
       "type": "object",
       "additionalProperties": false,
       "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/stacking" } }
+    },
+    "perfectCut": {
+      "description": "Perfect Cut: critical strikes deal increased damage (Item Bible §8; ADR-022 §3).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "critDamageBonus"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "critDamageBonus": { "description": "Added to the holder's Crit Damage, as a fraction of the attack's damage.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
     }
   }
 }

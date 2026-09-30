@@ -50,6 +50,14 @@ struct FVeyraItemStatsTuning
 
 	UPROPERTY()
 	double MagicPenetrationFlat = 0.0;
+
+	/** Crit Chance, as a fraction; items' add (Combat Bible §5; ADR-022 §2). */
+	UPROPERTY()
+	double CritChance = 0.0;
+
+	/** A percentage of total Magic Power, as a fraction, multiplying with every other (Combat Bible §41; ADR-022 §2). */
+	UPROPERTY()
+	double MagicPowerFraction = 0.0;
 };
 
 /** One item the shop sells (Item Bible §2, §4–§10). */
@@ -163,6 +171,20 @@ struct FVeyraOverchargeTuning
 	double MagicPowerFraction = 0.0;
 };
 
+/** Perfect Cut: critical strikes deal more damage (Item Bible §8; ADR-022 §3). */
+USTRUCT()
+struct FVeyraPerfectCutTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Added to the holder's Crit Damage, as a fraction of the attack's damage. */
+	UPROPERTY()
+	double CritDamageBonus = 0.0;
+};
+
 /** A buff that stacks on each qualifying hit and refreshes, up to a cap: Spool Up and Overcycle (Item Bible §8, §9). */
 USTRUCT()
 struct FVeyraStackingAttunementTuning
@@ -189,7 +211,7 @@ struct FVeyraItemsTuning
 	GENERATED_BODY()
 
 	/** The Items.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
 
 	UPROPERTY()
 	FVeyraShopTuning Shop;
@@ -211,6 +233,9 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraStackingAttunementTuning> Overcycle;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraPerfectCutTuning> PerfectCut;
 };
 
 /** The Items domain's checks that a schema cannot express (ADR-012 §3). */

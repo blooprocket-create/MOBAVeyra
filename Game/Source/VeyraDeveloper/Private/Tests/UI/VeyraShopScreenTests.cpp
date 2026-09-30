@@ -187,6 +187,10 @@ namespace VeyraItemsTests
 			Stats.AttackSpeed = Fraction;
 			ASSERT_THAT(AreEqual(FString(TEXT("+10 Physical Power, +25% Attack Speed")), VeyraShopModel::DescribeStats(Stats).ToString()));
 			ASSERT_THAT(IsTrue(VeyraShopModel::DescribeStats(FVeyraItemStatsTuning()).IsEmpty()));
+			FVeyraItemStatsTuning Crit;
+			Crit.CritChance = 0.15;
+			Crit.MagicPowerFraction = 0.08;
+			ASSERT_THAT(AreEqual(FString(TEXT("+15% Crit Chance, +8% Magic Power")), VeyraShopModel::DescribeStats(Crit).ToString()));
 		}
 
 		TEST_METHOD(TheHudShowsEachSpellSlotLockedUntilItsFluxThenReady)

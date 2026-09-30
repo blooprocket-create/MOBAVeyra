@@ -16,7 +16,8 @@ namespace
 	int32 AttunementDefinitions(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Id)
 	{
 		return static_cast<int32>(Tuning.WeightOfWar.Contains(Id)) + static_cast<int32>(Tuning.Overcharge.Contains(Id))
-			+ static_cast<int32>(Tuning.SpoolUp.Contains(Id)) + static_cast<int32>(Tuning.Overcycle.Contains(Id));
+			+ static_cast<int32>(Tuning.SpoolUp.Contains(Id)) + static_cast<int32>(Tuning.Overcycle.Contains(Id))
+			+ static_cast<int32>(Tuning.PerfectCut.Contains(Id));
 	}
 }
 
