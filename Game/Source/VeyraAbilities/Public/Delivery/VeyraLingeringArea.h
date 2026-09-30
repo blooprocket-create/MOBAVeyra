@@ -96,8 +96,8 @@ private:
 	/** Its end effects, then its end. */
 	void End();
 
-	/** Hits the enemies inside with Zones, measured from its centre. */
-	void Deal(TConstArrayView<FVeyraPreparedZone> Zones);
+	/** Hits the enemies inside with Zones, measured from its centre: a pulse's as a tick, which Spell Shields let pass. */
+	void Deal(TConstArrayView<FVeyraPreparedZone> Zones, bool bTick);
 
 	UPROPERTY(Replicated)
 	FVeyraShape Shape;

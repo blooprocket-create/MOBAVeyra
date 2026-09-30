@@ -154,6 +154,27 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(World.HealthLost(Outside) == 0.0));
 		}
 
+		TEST_METHOD(ItsPulsesPassASpellShieldAndItsEndDoesNot)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Warden = World.Spawn(EVeyraTeam::A, FVector(0.0, Length, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(Warden, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_field")))));
+			AVeyraVanguardCharacter& Inside = World.Spawn(EVeyraTeam::B, FVector(Width / 2.0, Length, 0.0));
+			FVeyraStatusSpec Ward;
+			Ward.Id = ArchetypeTestId(TEXT("test_ward"));
+			Ward.Kind = EVeyraStatusKind::SpellShield;
+			Ward.DurationSeconds = FieldSeconds * 4.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Inside.GetAbilitySystemComponent(), *Inside.GetAbilitySystemComponent(), Ward)));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(Warden, EVeyraAbilitySlot::W, FVector(Length, Length, 0.0)) == EVeyraCastRejection::None));
+			AdvanceWorld(PulseSeconds + WorldStep);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Inside), PulseDamage, 1e-3) && World.Has(Inside, TEXT("test_ward")),
+				TEXT("a pulse is a tick: it lands, and the shield stays (ADR-025 §4)")));
+			AdvanceWorld(FieldSeconds);
+			const double Pulses = FMath::FloorToDouble(FieldSeconds / PulseSeconds);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Inside), Pulses * PulseDamage, 1e-3) && !World.Has(Inside, TEXT("test_ward")),
+				TEXT("its end is a hit the shield blocks, and spends it")));
+		}
+
 		TEST_METHOD(ADelayedAreaInsideItsCastersFieldLandsSooner)
 		{
 			FArchetypeTestWorld World{ Spawner };

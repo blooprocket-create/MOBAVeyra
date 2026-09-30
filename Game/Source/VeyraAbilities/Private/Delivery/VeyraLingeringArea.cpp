@@ -69,16 +69,16 @@ void AVeyraLingeringArea::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AVeyraLingeringArea::Pulse()
 {
 	GiveStatuses();
-	Deal(Effects.Pulse);
+	Deal(Effects.Pulse, /*bTick*/ true);
 }
 
 void AVeyraLingeringArea::End()
 {
-	Deal(Effects.End);
+	Deal(Effects.End, /*bTick*/ false);
 	Destroy();
 }
 
-void AVeyraLingeringArea::Deal(TConstArrayView<FVeyraPreparedZone> Zones)
+void AVeyraLingeringArea::Deal(TConstArrayView<FVeyraPreparedZone> Zones, bool bTick)
 {
 	UAbilitySystemComponent* Source = Caster.Get();
 	UWorld* World = GetWorld();
@@ -90,7 +90,10 @@ void AVeyraLingeringArea::Deal(TConstArrayView<FVeyraPreparedZone> Zones)
 	FVeyraEffectFrame Frame;
 	Frame.Origin = GetActorLocation();
 	Frame.Direction = Direction;
-	VeyraAreaDelivery::Resolve(*World, *Source, Frame, Zones, FVeyraAbilityHitSource{ Ability, Effects.CastId });
+	// A pulse is a tick, which passes a Spell Shield as damage over time does; the end is a hit it blocks (ADR-025 §4).
+	FVeyraAbilityHitSource HitSource{ Ability, Effects.CastId };
+	HitSource.bSkipSpellShield = bTick;
+	VeyraAreaDelivery::Resolve(*World, *Source, Frame, Zones, HitSource);
 }
 
 void AVeyraLingeringArea::GiveStatuses()

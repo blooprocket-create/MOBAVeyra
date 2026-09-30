@@ -48,7 +48,7 @@ Combat gains `EVeyraStatusKind::Root`: the unit cannot move, nor cast an ability
 ### 4. Lingering areas that act
 
 A lingering area gains:
-- `pulseEffects`, at most one bundle, dealt to the enemy units inside each pulse, reactions included.
+- `pulseEffects`, at most one bundle, dealt to the enemy units inside each pulse, reactions included. A pulse is a tick, so it passes a Spell Shield as a lingering area's statuses do (ADR-025 §4); the end effects are a hit the shield blocks.
 - `endEffects`, at most one bundle, dealt to the enemy units inside as it ends, measured from its centre, so a displacement toward the origin pulls them in.
 - `endWarningSeconds`: the presentation marks the area this long before its end effects land. A rupture must be readable (Roster Bible §17).
 

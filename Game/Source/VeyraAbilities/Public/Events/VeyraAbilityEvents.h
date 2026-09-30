@@ -24,7 +24,8 @@ struct FVeyraAbilityHitSource
 
 	/**
 	 * Whether the impact skips the Spell Shield check (ADR-025 §4): a grab asked already, before it took
-	 * hold, so one decision covers the hold, the hit and the statuses.
+	 * hold, so one decision covers the hold, the hit and the statuses; a lingering area's pulse is a
+	 * tick, which a Spell Shield lets pass.
 	 */
 	bool bSkipSpellShield = false;
 };
