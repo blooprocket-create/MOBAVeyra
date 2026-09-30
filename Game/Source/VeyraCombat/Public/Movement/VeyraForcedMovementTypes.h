@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Math/Vector.h"
+#include "Statuses/VeyraStatusTypes.h"
 #include "UObject/ObjectMacros.h"
 #include "UObject/WeakObjectPtr.h"
 
@@ -34,6 +35,13 @@ struct FVeyraDisplacement
 
 	/** Units per second; above 0. */
 	double Speed = 0.0;
+
+	/**
+	 * Given the unit, from the displacing source, if the displacement collides (ADR-028 §3): terrain
+	 * shortens its path, or its body meets another Vanguard or a structure on the way, where it stops.
+	 * Empty for one that collides with nothing.
+	 */
+	TArray<FVeyraStatusSpec> CollisionStatuses;
 };
 
 /** One dash: a unit's own movement (Combat Bible §9). Terrain stops it; it never crosses terrain. */

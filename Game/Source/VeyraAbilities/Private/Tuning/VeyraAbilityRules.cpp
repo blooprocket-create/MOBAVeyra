@@ -88,6 +88,10 @@ namespace
 			CheckDamage(Pointer + TEXT("/damage"), Effects.Damage);
 			CheckStatusIds(Pointer + TEXT("/statuses"), Effects.Statuses);
 			CheckStatusIds(Pointer + TEXT("/displacementUnlessStatuses"), Effects.DisplacementUnlessStatuses);
+			for (int32 Index = 0; Index < Effects.Displacement.Num(); ++Index)
+			{
+				CheckStatusIds(FString::Printf(TEXT("%s/displacement/%d/collisionStatuses"), *Pointer, Index), Effects.Displacement[Index].CollisionStatuses);
+			}
 			if (!Effects.DisplacementUnlessStatuses.IsEmpty() && Effects.Displacement.IsEmpty())
 			{
 				Problem(Pointer + TEXT("/displacementUnlessStatuses"), TEXT("spares units a displacement, so the effects need one"));

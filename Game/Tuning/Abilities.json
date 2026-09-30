@@ -737,7 +737,7 @@
           "effects": {
             "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],
             "statuses": ["cairn_burden_stun"],
-            "displacement": [{ "direction": "TowardOrigin", "distance": 150, "speed": 900 }],
+            "displacement": [{ "direction": "TowardOrigin", "distance": 150, "speed": 900, "collisionStatuses": [] }],
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [
@@ -797,7 +797,7 @@
           "effects": {
             "damage": [{ "type": "Physical", "amountByRank": [150, 250, 350], "physicalPowerRatio": 0.9, "magicPowerRatio": 0 }],
             "statuses": [],
-            "displacement": [{ "direction": "AcrossCastLeft", "distance": 250, "speed": 1200 }],
+            "displacement": [{ "direction": "AcrossCastLeft", "distance": 250, "speed": 1200, "collisionStatuses": [] }],
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
@@ -1031,7 +1031,7 @@
           "effects": {
             "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }],
             "statuses": [],
-            "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1200 }],
+            "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1200, "collisionStatuses": [] }],
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
@@ -1206,7 +1206,7 @@
       "channelSeconds": 0,
       "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [{ "shape": { "kind": "Circle", "radius": 650, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 4.5, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_code_black_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_code_black_stun"], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_code_black_knockdown"], "displacement": [{ "direction": "TowardOrigin", "distance": 200, "speed": 800 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 1 }],
+      "linger": [{ "durationSeconds": 4.5, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_code_black_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_code_black_stun"], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_code_black_knockdown"], "displacement": [{ "direction": "TowardOrigin", "distance": 200, "speed": 800, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 1 }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -1993,7 +1993,7 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "CasterOrAlly",
-      "recipientZones": [{ "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }]
+      "recipientZones": [{ "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }]
     }
   },
   "skillshot": {
@@ -2013,13 +2013,13 @@
       "effects": {
         "damage": [{ "type": "Physical", "amountByRank": [50, 80, 110, 140, 170], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }],
         "statuses": [],
-        "displacement": [{ "direction": "TowardOrigin", "distance": 1050, "speed": 1800 }],
+        "displacement": [{ "direction": "TowardOrigin", "distance": 1050, "speed": 1800, "collisionStatuses": [] }],
         "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "passThroughEffects": {
         "damage": [],
         "statuses": [],
-        "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900 }],
+        "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900, "collisionStatuses": [] }],
         "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "casterDash": []
@@ -2089,7 +2089,7 @@
       "effects": {
         "damage": [{ "type": "Physical", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }],
         "statuses": [],
-        "displacement": [{ "direction": "AwayFromOrigin", "distance": 100, "speed": 800 }],
+        "displacement": [{ "direction": "AwayFromOrigin", "distance": 100, "speed": 800, "collisionStatuses": [] }],
         "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
@@ -2191,7 +2191,7 @@
       },
       "projectile": { "speed": 1400, "radius": 90, "range": 1000 },
       "collision": "Pierce",
-      "effects": { "damage": [{ "type": "Physical", "amountByRank": [80, 120, 160, 200, 240], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 200, "speed": 1000 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "effects": { "damage": [{ "type": "Physical", "amountByRank": [80, 120, 160, 200, 240], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 200, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": []
     },
@@ -2208,7 +2208,7 @@
       },
       "projectile": { "speed": 1500, "radius": 120, "range": 1100 },
       "collision": "Pierce",
-      "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": ["raska_last_exit_knockup"], "reactions": [] },
+      "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": ["raska_last_exit_knockup"], "reactions": [] },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": []
     },
@@ -2225,7 +2225,7 @@
       },
       "projectile": { "speed": 1400, "radius": 110, "range": 900 },
       "collision": "Pierce",
-      "effects": { "damage": [{ "type": "Magic", "amountByRank": [50, 80, 110, 140, 170], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": [], "displacement": [{ "direction": "AsideFromPath", "distance": 225, "speed": 900 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "effects": { "damage": [{ "type": "Magic", "amountByRank": [50, 80, 110, 140, 170], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": [], "displacement": [{ "direction": "AsideFromPath", "distance": 225, "speed": 900, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": []
     }
@@ -2342,7 +2342,7 @@
       "startZones": [],
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 75, "speed": 600 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 75, "speed": 600, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
     },
@@ -2494,7 +2494,7 @@
       "speed": 1600,
       "contact": "StopAtFirstEnemy",
       "startZones": [],
-      "contactEffects": { "damage": [{ "type": "Physical", "amountByRank": [100, 140, 180, 220, 260], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 250, "speed": 1000 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "contactEffects": { "damage": [{ "type": "Physical", "amountByRank": [100, 140, 180, 220, 260], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 250, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],

@@ -212,6 +212,60 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Capsule->GetUnscaledCapsuleRadius(), Sized) && Capsule->GetCollisionResponseToChannel(ECC_Pawn) == Response));
 		}
 
+		/** Moves any forced move on to its end, in steps, as its physics would. */
+		void Settle() const
+		{
+			// Fixture values: a step, and more steps than any displacement here needs.
+			constexpr float StepSeconds = 0.05f;
+			constexpr int32 MaxSteps = 200;
+			for (int32 Step = 0; Step < MaxSteps && Movement->IsDisplaced(); ++Step)
+			{
+				Movement->AdvanceForcedMove(StepSeconds);
+			}
+		}
+
+		bool Stunned() const
+		{
+			return Unit->GetOwner()->FindComponentByClass<UVeyraStatusComponent>()->Has(EVeyraStatusKind::Stun);
+		}
+
+		static FVeyraDisplacement Colliding(const FVector& Direction)
+		{
+			FVeyraStatusSpec Stun;
+			Stun.Id = FVeyraContentId::FromText(TEXT("collision_stun")).GetValue();
+			Stun.Kind = EVeyraStatusKind::Stun;
+			Stun.DurationSeconds = 60.0;
+			FVeyraDisplacement Out = KnockbackAlong(Direction);
+			Out.CollisionStatuses = { Stun };
+			return Out;
+		}
+
+		TEST_METHOD(AKnockbackIntoTerrainStunsWithItsCollisionStatuses)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, Colliding(FVector::ForwardVector))));
+			Settle();
+			ASSERT_THAT(IsTrue(!Movement->IsDisplaced() && Stunned(), TEXT("the wall stops it, and it is stunned (ADR-028 §3)")));
+		}
+
+		TEST_METHOD(AKnockbackIntoAVanguardStopsThereAndStuns)
+		{
+			UAbilitySystemComponent& Other = SpawnCombatant(Spawner);
+			ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(Other, ExampleStats())));
+			AVeyraVanguardCharacter& Blocker = Spawner.SpawnActorAt<AVeyraVanguardCharacter>(FVector(-Distance / 2.0, 0.0, Start.Z), FRotator::ZeroRotator);
+			Blocker.SetPlayerState(CastChecked<APlayerState>(Other.GetOwner()));
+			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, Colliding(FVector::BackwardVector))));
+			Settle();
+			const double Reached = Movement->GetOwner()->GetActorLocation().X;
+			ASSERT_THAT(IsTrue(Reached > -Distance / 2.0 && Stunned(), *FString::Printf(TEXT("it stops at the Vanguard behind it: X %g"), Reached)));
+		}
+
+		TEST_METHOD(AKnockbackOverOpenGroundCollidesWithNothing)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, Colliding(FVector::BackwardVector))));
+			Settle();
+			ASSERT_THAT(IsTrue(FVector::Dist(Movement->GetOwner()->GetActorLocation(), Start - FVector(Distance, 0.0, 0.0)) <= Tolerance && !Stunned()));
+		}
+
 		TEST_METHOD(ANewerDisplacementReplacesTheOlder)
 		{
 			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::BackwardVector))));

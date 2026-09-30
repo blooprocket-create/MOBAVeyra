@@ -91,7 +91,7 @@
       "description": "A Knockback or Pull of each unit hit (Combat Bible §9). Displacement Resistance shortens it.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["direction", "distance", "speed"],
+      "required": ["direction", "distance", "speed", "collisionStatuses"],
       "properties": {
         "direction": {
           "description": "TowardOrigin pulls toward the area's origin or the caster; AwayFromOrigin knocks back from it; AcrossCastLeft and AcrossCastRight push sideways to the cast; AsideFromPath pushes out of a projectile's path.",
@@ -99,7 +99,8 @@
           "enum": ["TowardOrigin", "AwayFromOrigin", "AcrossCastLeft", "AcrossCastRight", "AsideFromPath"]
         },
         "distance": { "description": "Units; a Pull toward the origin stops there.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-        "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+        "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "collisionStatuses": { "description": "Given a unit whose displacement collides with terrain, a Vanguard or a structure, where it stops (ADR-028 §3).", "$ref": "#/definitions/statusIds" }
       }
     },
     "effects": {

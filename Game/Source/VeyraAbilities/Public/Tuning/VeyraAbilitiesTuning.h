@@ -177,6 +177,13 @@ struct FVeyraDisplacementTuning
 	/** Units per second. */
 	UPROPERTY()
 	double Speed = 0.0;
+
+	/**
+	 * From Abilities.json's statuses: given a unit whose displacement collides with terrain, a Vanguard
+	 * or a structure, where it stops (ADR-028 §3), as Battering Mass stuns.
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> CollisionStatuses;
 };
 
 /**
