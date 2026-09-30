@@ -126,6 +126,12 @@ Breaker Aegis draws its name from the Breaker Fluxborn tradition associated with
 
 Resonant Wardstone is the concentrated anti-magic Assembly: the Tier 2 raw-Magic-Resistance specialization built from two Shatterdeep Crystals. It has no Active or Attunement and exists to feed heavier anti-magic Masterworks.
 
+### Foundation Plate
+**Recipe:** Marchplate + Marchplate + recipe  
+**Stats:** High Armor.
+
+Foundation Plate is the concentrated anti-physical Assembly: the Tier 2 raw-Armor specialization built from two Marchplates. Its name draws from the buried bridge foundations, masonry, and ancient iron of the Buried Riverlands. It has no Active or Attunement.
+
 ### Siege Frame
 **Recipe:** Vital Plate + Timing Coil + recipe  
 **Stats:** Health + Ability Haste.
@@ -265,6 +271,17 @@ The Active is distinct from the item's single Attunement.
 Critical strikes deal increased damage.
 
 This is intentionally a simple crit capstone rather than a proc-heavy item.
+
+### Riverhold Bastion
+
+**Recipe:** Picket Plating + Foundation Plate + Marchplate + Tier 3 recipe  
+**Stat identity:** Very high Armor + high Health.
+
+**Attunement — Drag the Tempo**
+
+When an enemy Vanguard hits the holder with a basic attack, that enemy's Attack Speed is reduced for a short duration. Further basic attacks from that Vanguard refresh the duration rather than stacking the reduction.
+
+Riverhold Bastion is the dedicated anti-basic-attack / anti-Attack-Speed defensive Masterwork. Its name draws from the Buried Riverlands' ancient bridge foundations, buried iron, and hold-the-line identity. Exact Attack Speed reduction, duration, Health, and Armor values are prototype tuning values.
 
 ### Blackreef Bell
 
