@@ -115,6 +115,12 @@ private:
 	FDelegateHandle ChangedHandle;
 	/** Applies display settings, and holds a change that waits for Keep; null where there is none (a test). */
 	TWeakObjectPtr<UVeyraDisplayApplier> Display;
+
+	/**
+	 * Makes the player's change through Change, a reset as much as a new value: a disruptive display
+	 * setting it moved waits for Keep and reverts without it (SET-92).
+	 */
+	void ChangeStore(TFunctionRef<void(FVeyraSettingsStore&)> Change);
 	FDelegateHandle ConfirmationHandle;
 	bool bInMatch = false;
 	TFunction<void()> Close;

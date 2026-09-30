@@ -11,6 +11,8 @@
 #include "Match/VeyraMatchMenu.h"
 #include "Misc/Guid.h"
 #include "Misc/Paths.h"
+#include "Misc/ScopeExit.h"
+#include "Settings/VeyraDisplayApplier.h"
 #include "Settings/VeyraSettingsModels.h"
 #include "Settings/VeyraSettingsScreen.h"
 #include "Shell/VeyraShellButton.h"
@@ -224,6 +226,33 @@ namespace VeyraSettingsScreenTests
 			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::ResetAllLabel()) && Press(UVeyraSettingsScreen::ConfirmResetLabel())));
 			ASSERT_THAT(IsFalse(Settings->Store().IsChanged(Setting(TEXT("interface_hud_scale")))));
 			ASSERT_THAT(IsFalse(Screen->FindButton(UVeyraSettingsScreen::ResetAllLabel())->GetIsEnabled(), TEXT("nothing left to reset")));
+		}
+
+		TEST_METHOD(AResetWaitsForKeepAsAChangeDoes)
+		{
+			// An applier of the screen's own: outside a match, the window's size takes effect at once (SET-92).
+			UVeyraDisplayApplier* Applier = NewObject<UVeyraDisplayApplier>(NewObject<UGameInstance>());
+			UVeyraDisplayApplier::SetTestOverride(Applier);
+			ON_SCOPE_EXIT
+			{
+				UVeyraDisplayApplier::SetTestOverride(nullptr);
+			};
+			Screen->Show(*Settings->Settings, /*bInLiveMatch*/ false, [this] { ++Closes; });
+			const FVeyraContentId Size = Setting(TEXT("display_window_size"));
+			Settings->Store().Set(Size, TEXT("1600x900"));
+			Screen->ShowCategory(EVeyraSettingCategory::GraphicsDisplay);
+			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::ResetLabel(Row(TEXT("display_window_size"))))));
+			ASSERT_THAT(IsTrue(!Settings->Store().IsChanged(Size) && Applier->IsAwaitingConfirmation(), TEXT("a reset of the window's size waits for Keep")));
+
+			Applier->KeepChange();
+			Settings->Store().Set(Size, TEXT("1600x900"));
+			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::ResetCategoryLabel()) && Press(UVeyraSettingsScreen::ConfirmResetLabel())));
+			ASSERT_THAT(IsTrue(Applier->IsAwaitingConfirmation(), TEXT("so does a category's reset")));
+
+			Applier->KeepChange();
+			Settings->Store().Set(Size, TEXT("1600x900"));
+			ASSERT_THAT(IsTrue(Press(UVeyraSettingsScreen::ResetAllLabel()) && Press(UVeyraSettingsScreen::ConfirmResetLabel())));
+			ASSERT_THAT(IsTrue(Applier->IsAwaitingConfirmation(), TEXT("and everything's")));
 		}
 
 		TEST_METHOD(ASearchListsResultsWithTheirCategory)
