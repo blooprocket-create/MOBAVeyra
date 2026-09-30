@@ -120,6 +120,8 @@ M20b added ([ADR-027](Docs/ADR/ADR-027-mobile-attacks-and-ally-casts.md)):
 - delayed areas that linger where they land, their lingering area prepared in `VeyraAreaDelivery`;
 - `Delivery/VeyraShieldRewardSubsystem`, which rewards a shield's holder once the shield has absorbed its share.
 
+M22 added ([ADR-028](Docs/ADR/ADR-028-blind-grounding-and-collision.md)): blinded attacks that miss; areas that land on their caster's own lingering area and end it; end payloads that push. Combat's movement gives a displacement's collision statuses when terrain, a Vanguard or a structure stops it.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy
@@ -268,8 +270,8 @@ A kit is data: `Game/Tuning/Vanguards.json` defines each Vanguard, and its abili
 ```text
 VeyraVanguards/
 ├── Passives/   one class per unique passive (Deep Foundation, Gathering Light, Breach, Wild Dominion,
-│               Never Break Stride, Slipstream), and the kit-statuses passive, which runs nothing
-│               (Embedded, Hazard Exposure)
+│               Never Break Stride, Slipstream, Reclaim, Unreturned), and the kit-statuses passive,
+│               which runs nothing (Embedded, Hazard Exposure)
 ├── Shared/     generic passives any Vanguard's data can use (the hit chain)
 └── Tuning/     the Vanguards.json binding and its rules
 ```
