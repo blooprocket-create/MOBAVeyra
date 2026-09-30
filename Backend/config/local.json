@@ -52,6 +52,17 @@
       {"side": "B", "vanguardId": "bryn", "difficulty": "beginner"}
     ]
   },
+  "customLobby": {
+    "enabled": true,
+    "mode": "custom_game",
+    "playersPerSide": 5,
+    "pickDuration": "60s",
+    "inviteLifetime": "2m",
+    "startingGold": {
+      "min": 0,
+      "max": 20000
+    }
+  },
   "matchmaking": {
     "interval": "1s",
     "searchLimit": 10000

@@ -80,6 +80,7 @@ type Config struct {
 	Vanguards             Vanguards
 	FluxSpells            FluxSpells
 	CustomPractice        CustomPractice
+	CustomLobby           CustomLobby
 	Matchmaking           Matchmaking
 	MatchFound            MatchFound
 	CasualSelect          CasualSelect
@@ -126,6 +127,30 @@ type CustomPractice struct {
 	// has targets (ADR-010 §7). Until custom lobbies let the host choose them,
 	// they come from here.
 	Bots []PracticeBot
+}
+
+// CustomLobby configures invite-only custom lobbies (ADR-021 §1). A custom
+// match is not a matchmade mode, so its mode ID must not be one of modes.
+type CustomLobby struct {
+	Enabled bool
+	// Mode is the mode ID custom matches record.
+	Mode string
+	// PlayersPerSide is how many Vanguards, humans and bots together, one side
+	// of a lobby holds.
+	PlayersPerSide int
+	// PickDuration is how long the humans have to lock their Vanguards.
+	PickDuration time.Duration
+	// InviteLifetime is how long an invitation to a lobby stands.
+	InviteLifetime time.Duration
+	// StartingGold bounds the starting Gold a host may set. A lobby that sets
+	// none plays with the game's own (Economy.json gold.starting).
+	StartingGold GoldRange
+}
+
+// GoldRange is an inclusive range of Gold.
+type GoldRange struct {
+	Min float64
+	Max float64
 }
 
 // PracticeBot is one AI participant in a practice match.
@@ -344,6 +369,17 @@ type fileConfig struct {
 			Difficulty *string `json:"difficulty"`
 		} `json:"bots"`
 	} `json:"customPractice"`
+	CustomLobby *struct {
+		Enabled        *bool     `json:"enabled"`
+		Mode           *string   `json:"mode"`
+		PlayersPerSide *int      `json:"playersPerSide"`
+		PickDuration   *Duration `json:"pickDuration"`
+		InviteLifetime *Duration `json:"inviteLifetime"`
+		StartingGold   *struct {
+			Min *float64 `json:"min"`
+			Max *float64 `json:"max"`
+		} `json:"startingGold"`
+	} `json:"customLobby"`
 	Matchmaking *struct {
 		Interval    *Duration `json:"interval"`
 		SearchLimit *int      `json:"searchLimit"`
@@ -710,6 +746,46 @@ func Parse(raw []byte) (Config, error) {
 						perSide[side], side, limit))
 				}
 			}
+		}
+	}
+
+	if f.CustomLobby == nil {
+		missing("customLobby")
+	} else {
+		if f.CustomLobby.Enabled == nil {
+			missing("customLobby.enabled")
+		} else {
+			c.CustomLobby.Enabled = *f.CustomLobby.Enabled
+		}
+		switch {
+		case f.CustomLobby.Mode == nil:
+			missing("customLobby.mode")
+		case !contentIDPattern.MatchString(*f.CustomLobby.Mode):
+			problems = append(problems, "customLobby.mode must be a content ID such as custom_game")
+		case seenModes[*f.CustomLobby.Mode]:
+			problems = append(problems, "customLobby.mode must not be a matchmade mode's id, so parties can never queue for it")
+		case c.CustomPractice.Mode != "" && *f.CustomLobby.Mode == c.CustomPractice.Mode:
+			problems = append(problems, "customLobby.mode must differ from customPractice.mode, so results tell them apart")
+		default:
+			c.CustomLobby.Mode = *f.CustomLobby.Mode
+		}
+		switch {
+		case f.CustomLobby.PlayersPerSide == nil:
+			missing("customLobby.playersPerSide")
+		case *f.CustomLobby.PlayersPerSide < 1:
+			problems = append(problems, "customLobby.playersPerSide must be at least 1")
+		default:
+			c.CustomLobby.PlayersPerSide = *f.CustomLobby.PlayersPerSide
+		}
+		c.CustomLobby.PickDuration = positive("customLobby.pickDuration", f.CustomLobby.PickDuration)
+		c.CustomLobby.InviteLifetime = positive("customLobby.inviteLifetime", f.CustomLobby.InviteLifetime)
+		switch {
+		case f.CustomLobby.StartingGold == nil || f.CustomLobby.StartingGold.Min == nil || f.CustomLobby.StartingGold.Max == nil:
+			missing("customLobby.startingGold.min and .max")
+		case *f.CustomLobby.StartingGold.Min < 0 || *f.CustomLobby.StartingGold.Max < *f.CustomLobby.StartingGold.Min:
+			problems = append(problems, "customLobby.startingGold must have 0 <= min <= max")
+		default:
+			c.CustomLobby.StartingGold = GoldRange{Min: *f.CustomLobby.StartingGold.Min, Max: *f.CustomLobby.StartingGold.Max}
 		}
 	}
 

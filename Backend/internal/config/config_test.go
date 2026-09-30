@@ -28,6 +28,7 @@ const validJSON = `{
   "fluxSpells": {"roster": ["blink", "mend"]},
   "customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A", "pickDuration": "30s", "playersPerSide": 5,
     "bots": [{"side": "B", "vanguardId": "cairn", "difficulty": "beginner"}, {"side": "B", "vanguardId": "bryn", "difficulty": "intermediate"}]},
+  "customLobby": {"enabled": true, "mode": "custom_game", "playersPerSide": 5, "pickDuration": "60s", "inviteLifetime": "2m", "startingGold": {"min": 0, "max": 20000}},
   "matchmaking": {"interval": "1s", "searchLimit": 10000},
   "matchFound": {"acceptDuration": "15s"},
   "casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},
@@ -61,6 +62,10 @@ func TestParseValid(t *testing.T) {
 	}
 	if p := c.CustomPractice; p.PlayersPerSide != 5 || len(p.Bots) != 2 || p.Bots[1] != (PracticeBot{Side: "B", VanguardID: "bryn", Difficulty: "intermediate"}) {
 		t.Fatalf("practice bots not parsed: %+v", p)
+	}
+	if l := c.CustomLobby; !l.Enabled || l.Mode != "custom_game" || l.PlayersPerSide != 5 || l.PickDuration != time.Minute || l.InviteLifetime != 2*time.Minute ||
+		l.StartingGold != (GoldRange{Min: 0, Max: 20000}) {
+		t.Fatalf("custom lobby not parsed: %+v", l)
 	}
 	if c.Matchmaking.Interval != time.Second || c.Matchmaking.SearchLimit != 10000 {
 		t.Fatalf("matchmaking not parsed: %+v", c.Matchmaking)
@@ -129,6 +134,13 @@ func TestParseRejects(t *testing.T) {
 		"practice zero side size": {`"playersPerSide": 5`, `"playersPerSide": 0`, "customPractice.playersPerSide must be at least 1"},
 		"practice no bot list": {`,
     "bots": [{"side": "B", "vanguardId": "cairn", "difficulty": "beginner"}, {"side": "B", "vanguardId": "bryn", "difficulty": "intermediate"}]`, ``, "customPractice.bots is required"},
+		"no custom lobby":           {`"customLobby": {"enabled": true, "mode": "custom_game", "playersPerSide": 5, "pickDuration": "60s", "inviteLifetime": "2m", "startingGold": {"min": 0, "max": 20000}},`, ``, "customLobby is required"},
+		"lobby mode is matchmade":   {`"mode": "custom_game"`, `"mode": "casual_select"`, "customLobby.mode must not be a matchmade mode's id"},
+		"lobby mode is practice's":  {`"mode": "custom_game"`, `"mode": "custom_practice"`, "customLobby.mode must differ from customPractice.mode"},
+		"lobby zero side size":      {`"playersPerSide": 5, "pickDuration": "60s"`, `"playersPerSide": 0, "pickDuration": "60s"`, "customLobby.playersPerSide must be at least 1"},
+		"lobby no invite lifetime":  {`, "inviteLifetime": "2m", "startingGold"`, `, "startingGold"`, "customLobby.inviteLifetime is required"},
+		"lobby gold range reversed": {`{"min": 0, "max": 20000}`, `{"min": 500, "max": 100}`, "customLobby.startingGold must have 0 <= min <= max"},
+		"lobby negative gold":       {`{"min": 0, "max": 20000}`, `{"min": -1, "max": 100}`, "customLobby.startingGold must have 0 <= min <= max"},
 		"bot on no side":            {`{"side": "B", "vanguardId": "cairn"`, `{"side": "C", "vanguardId": "cairn"`, "customPractice.bots[0].side must be"},
 		"bot without a Vanguard":    {`{"side": "B", "vanguardId": "cairn", `, `{"side": "B", `, "customPractice.bots[0].vanguardId is required"},
 		"bot without a difficulty":  {`, "difficulty": "beginner"`, ``, "customPractice.bots[0].difficulty is required"},
@@ -224,6 +236,10 @@ func TestTeamSizesFitTheGamesMatchJSON(t *testing.T) {
 	if cfg.CustomPractice.PlayersPerSide > limit {
 		t.Fatalf("customPractice.playersPerSide is %d, but the match server holds at most %d a side (Match.json teams.maxTeamSize)",
 			cfg.CustomPractice.PlayersPerSide, limit)
+	}
+	if cfg.CustomLobby.PlayersPerSide > limit {
+		t.Fatalf("customLobby.playersPerSide is %d, but the match server holds at most %d a side (Match.json teams.maxTeamSize)",
+			cfg.CustomLobby.PlayersPerSide, limit)
 	}
 	for _, m := range cfg.Modes {
 		if m.HumanPlayersPerTeam > limit {
