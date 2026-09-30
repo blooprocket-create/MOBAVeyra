@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Chat/VeyraChatTypes.h"
 #include "Containers/Ticker.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 
@@ -16,6 +17,7 @@ class UVeyraSettingsScreen;
 class UVeyraUIInputSettings;
 struct FVeyraContentId;
 struct FVeyraInterfacePreferences;
+class UVeyraChatComposer;
 class UVeyraScoreboard;
 class UVeyraShopScreen;
 
@@ -23,11 +25,12 @@ class UVeyraShopScreen;
  * Opens and closes the in-match screens with their keys (UVeyraUIInputSettings) in any match a Veyra
  * player controller plays: the menu (ADR-010 §4) and the shop (ADR-012 §11). While either is open,
  * the player's input reaches both it and the game; when both close, only the game. The menu's key
- * closes open Settings, a scoreboard the player toggled open, or an open shop first, as Escape does in
- * League. Settings (ADR-024 §4) open from the menu, in its place, over the match, which goes on. The
+ * closes open Settings, a scoreboard the player toggled open, or an open shop first. Settings (ADR-024
+ * §4) open from the menu, in its place, over the match, which goes on. The
  * scoreboard shows while its key is held, or switches with each press, as the player chose (SET-56),
  * and the cursor stays in the window unless the player lets it go (SET-83). The scoreboard (ADR-017 §4) shows while its
- * key is held and takes no input.
+ * key is held and takes no input. The chat key opens the chat composer (ADR-029 §5), on All with Shift
+ * held, and the composer keeps the keyboard until it sends or closes.
  */
 UCLASS()
 class VEYRAUI_API UVeyraMatchMenuSubsystem : public UGameInstanceSubsystem
@@ -73,6 +76,18 @@ public:
 	/** The scoreboard while shown, or null. */
 	UVeyraScoreboard* GetScoreboard() const { return Scoreboard; }
 
+	bool IsChatOpen() const { return Chat != nullptr; }
+
+	/** Opens the chat composer on Channel, as the chat key does; not over the menu or Settings. */
+	void OpenChat(EVeyraChatChannel Channel);
+	void CloseChat();
+
+	/** The open chat composer, or null. */
+	UVeyraChatComposer* GetChat() const { return Chat; }
+
+	/** Carries out a line the player sent from the composer: a message, or a mute (ADR-029 §3). */
+	void SubmitChat(EVeyraChatChannel Channel, const FString& Typed);
+
 private:
 	/** Binds the menu key for each new match controller. */
 	bool Tick(float DeltaSeconds);
@@ -80,6 +95,8 @@ private:
 	void CloseMenu();
 	void OpenShop();
 	void CloseShop();
+	/** The chat key: Team Chat, or All with Shift held. */
+	void PressChatKey();
 
 	/** Gives the open screens the player's input beside the game, or the game alone when none is open. */
 	void UpdateInputMode();
@@ -129,6 +146,12 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UVeyraScoreboard> Scoreboard;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UInputAction> ChatAction;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UVeyraChatComposer> Chat;
 
 	FTSTicker::FDelegateHandle TickHandle;
 	/** Whether the input settings are usable; the menu is off otherwise. */

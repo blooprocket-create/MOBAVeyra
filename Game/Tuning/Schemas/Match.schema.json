@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Match domain (Match Flow Bible, Battleground Bible). VeyraMatch binds it to FVeyraMatchTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "absence", "activity", "autopilot", "votes", "pings", "ending", "orders", "developerMatch"],
+  "required": ["schemaVersion", "teams", "phases", "respawn", "fountain", "recall", "lifecycle", "absence", "activity", "autopilot", "votes", "pings", "chat", "ending", "orders", "developerMatch"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version. Version 3 adds bots; version 4 replaces the fixed respawn delay with a curve and adds fountain recovery; version 5 adds Recall; version 6 moves how bots play to Bots.json (ADR-013 §5); version 7 adds absence, activity, autopilot and votes (ADR-019); version 8 adds pings and the ending (ADR-020).",
       "type": "integer",
       "minimum": 1,
-      "enum": [8]
+      "enum": [9]
     },
     "teams": {
       "description": "The two sides of a match.",
@@ -334,6 +334,19 @@
             }
           }
         }
+      }
+    },
+    "chat": {
+      "description": "In-match chat (ADR-029 §2): the longest message, a player's spam limit in real seconds, and how many messages a client keeps.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "maxCharacters", "maxPerWindow", "windowSeconds", "keepMessages"],
+      "properties": {
+        "provenance": { "type": "string", "enum": ["Provisional", "Canon", "Reviewed"] },
+        "maxCharacters": { "description": "The longest message, in characters, once cleaned.", "type": "integer", "minimum": 1 },
+        "maxPerWindow": { "description": "Most messages one player may send in any windowSeconds; more are refused.", "type": "integer", "minimum": 1 },
+        "windowSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+        "keepMessages": { "description": "How many messages a client keeps to show.", "type": "integer", "minimum": 1 }
       }
     },
     "pings": {

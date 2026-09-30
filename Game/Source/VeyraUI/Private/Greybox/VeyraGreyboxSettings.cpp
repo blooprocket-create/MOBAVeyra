@@ -51,6 +51,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("PresencePingColor"), PresencePingColor },
 		{ TEXT("OutlineColor"), OutlineColor },
 		{ TEXT("EndingColor"), EndingColor },
+		{ TEXT("ChatBackdropColor"), ChatBackdropColor },
+		{ TEXT("ChatHighContrastBackdropColor"), ChatHighContrastBackdropColor },
 	};
 	for (const FNamedColor& Named : Colors)
 	{
@@ -65,6 +67,14 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 	Require(ChannelBarHeight >= 1.0f, TEXT("ChannelBarHeight"), TEXT("must be at least 1 pixel."));
 	Require(ChannelBarLift >= 0.0f, TEXT("ChannelBarLift"), TEXT("must not be negative."));
 	Require(HudMargin >= 0.0f, TEXT("HudMargin"), TEXT("must not be negative."));
+	Require(ChatWidth >= 1.0f, TEXT("ChatWidth"), TEXT("must be at least 1 pixel."));
+	Require(ChatInputHeight >= 1.0f, TEXT("ChatInputHeight"), TEXT("must be at least 1 pixel."));
+	Require(ChatBottomOffset >= 0.0f, TEXT("ChatBottomOffset"), TEXT("must not be negative."));
+	Require(ChatLines >= 1, TEXT("ChatLines"), TEXT("must be at least 1."));
+	Require(ChatFontSize >= 1 && ChatLargeFontSize > ChatFontSize && ChatExtraLargeFontSize > ChatLargeFontSize, TEXT("ChatFontSize"),
+		TEXT("the three chat sizes must be at least 1 and grow from Standard to Extra Large."));
+	Require(ChatFadeSeconds > 0.0f, TEXT("ChatFadeSeconds"), TEXT("must be above 0."));
+	Require(ChatFadeOutSeconds >= 0.0f, TEXT("ChatFadeOutSeconds"), TEXT("must not be negative."));
 	Require(TelegraphThickness > 0.0f, TEXT("TelegraphThickness"), TEXT("must be above 0."));
 	Require(CircleSegments >= 3, TEXT("CircleSegments"), TEXT("must be at least 3."));
 	Require(OutlineMarkerRadius >= 1.0f, TEXT("OutlineMarkerRadius"), TEXT("must be at least 1 unit."));

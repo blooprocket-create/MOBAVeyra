@@ -288,6 +288,32 @@ struct FVeyraPingsTuning
 	double KeepSeconds = 0.0;
 };
 
+/** In-match chat's limits (Chat & Communication Bible §2; ADR-029 §2). */
+USTRUCT()
+struct FVeyraChatTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The longest message, in characters, once cleaned; at least 1. */
+	UPROPERTY()
+	int32 MaxCharacters = 0;
+
+	/** At most this many messages in any window, per player; at least 1. */
+	UPROPERTY()
+	int32 MaxPerWindow = 0;
+
+	/** Real seconds; above 0. */
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	/** How many messages a client keeps to show; at least 1. */
+	UPROPERTY()
+	int32 KeepMessages = 0;
+};
+
 /**
  * How a match ends on screen (ADR-020 §1): how long an ended match stays up, its players watching the end
  * (the camera on the fallen Prime Well), before they leave for the results. Real seconds.
@@ -351,7 +377,7 @@ struct FVeyraMatchTuning
 	GENERATED_BODY()
 
 	/** The Match.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 8;
+	static constexpr int32 SchemaVersion = 9;
 
 	UPROPERTY()
 	FVeyraTeamsTuning Teams;
@@ -385,6 +411,9 @@ struct FVeyraMatchTuning
 
 	UPROPERTY()
 	FVeyraPingsTuning Pings;
+
+	UPROPERTY()
+	FVeyraChatTuning Chat;
 
 	UPROPERTY()
 	FVeyraEndingTuning Ending;

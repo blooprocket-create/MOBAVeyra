@@ -3,6 +3,10 @@
 #include "Match/VeyraMatchMenuSubsystem.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Chat/VeyraChatCommands.h"
+#include "Chat/VeyraChatComposer.h"
+#include "Framework/Application/SlateApplication.h"
+#include "GameFramework/PlayerState.h"
 #include "Engine/GameInstance.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
@@ -19,6 +23,7 @@
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Shop/VeyraShopScreen.h"
 #include "Shell/VeyraUIInputSettings.h"
+#include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
 #include "VeyraSettingsSubsystem.h"
@@ -73,6 +78,11 @@ void UVeyraMatchMenuSubsystem::Deinitialize()
 		Shop->RemoveFromParent();
 		Shop = nullptr;
 	}
+	if (Chat)
+	{
+		Chat->RemoveFromParent();
+		Chat = nullptr;
+	}
 	HideScoreboard();
 	Super::Deinitialize();
 }
@@ -95,6 +105,7 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	Shop = nullptr;
 	Scoreboard = nullptr;
 	Settings = nullptr;
+	Chat = nullptr;
 	const UVeyraUIInputSettings& Keys = GetKeys();
 	MenuAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
 	MenuAction->ValueType = EInputActionValueType::Boolean;
@@ -102,10 +113,13 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	ShopAction->ValueType = EInputActionValueType::Boolean;
 	ScoreboardAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
 	ScoreboardAction->ValueType = EInputActionValueType::Boolean;
+	ChatAction = NewObject<UInputAction>(this, NAME_None, RF_Transient);
+	ChatAction->ValueType = EInputActionValueType::Boolean;
 	MenuMapping = NewObject<UInputMappingContext>(this, NAME_None, RF_Transient);
 	MenuMapping->MapKey(MenuAction, Keys.MatchMenuKey);
 	MenuMapping->MapKey(ShopAction, Keys.ShopKey);
 	MenuMapping->MapKey(ScoreboardAction, Keys.ScoreboardKey);
+	MenuMapping->MapKey(ChatAction, Keys.ChatKey);
 	Input->AddMappingContext(MenuMapping, /*Priority*/ 1);
 	UEnhancedInputComponent* Component = NewObject<UEnhancedInputComponent>(Controller, NAME_None, RF_Transient);
 	Component->BindAction(MenuAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::ToggleMenu);
@@ -113,6 +127,7 @@ bool UVeyraMatchMenuSubsystem::Tick(float /*DeltaSeconds*/)
 	// Held, as League's Tab, or toggled, as the player chooses (Settings Bible #56).
 	Component->BindAction(ScoreboardAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::PressScoreboardKey);
 	Component->BindAction(ScoreboardAction, ETriggerEvent::Completed, this, &UVeyraMatchMenuSubsystem::ReleaseScoreboardKey);
+	Component->BindAction(ChatAction, ETriggerEvent::Started, this, &UVeyraMatchMenuSubsystem::PressChatKey);
 	Controller->PushInputComponent(Component);
 	MenuInput = Component;
 	BoundController = Controller;
@@ -152,7 +167,8 @@ void UVeyraMatchMenuSubsystem::RefreshKeys()
 	Input->RemoveMappingContext(MenuMapping);
 	MenuMapping = NewObject<UInputMappingContext>(this, NAME_None, RF_Transient);
 	const UVeyraUIInputSettings& Keys = GetKeys();
-	const TPair<UInputAction*, FKey> Mapped[] = { { MenuAction, Keys.MatchMenuKey }, { ShopAction, Keys.ShopKey }, { ScoreboardAction, Keys.ScoreboardKey } };
+	const TPair<UInputAction*, FKey> Mapped[] = { { MenuAction, Keys.MatchMenuKey }, { ShopAction, Keys.ShopKey }, { ScoreboardAction, Keys.ScoreboardKey },
+		{ ChatAction, Keys.ChatKey } };
 	for (const TPair<UInputAction*, FKey>& Pair : Mapped)
 	{
 		if (Pair.Key && Pair.Value.IsValid())
@@ -344,6 +360,91 @@ void UVeyraMatchMenuSubsystem::ReleaseScoreboardKey()
 	}
 }
 
+void UVeyraMatchMenuSubsystem::PressChatKey()
+{
+	// With Shift held, the composer opens on All (ADR-029 §8).
+	const bool bAll = FSlateApplication::IsInitialized() && FSlateApplication::Get().GetModifierKeys().IsShiftDown();
+	OpenChat(bAll ? EVeyraChatChannel::All : EVeyraChatChannel::Team);
+}
+
+void UVeyraMatchMenuSubsystem::OpenChat(EVeyraChatChannel Channel)
+{
+	AVeyraPlayerController* Controller = BoundController.Get();
+	if (Chat || Menu || Settings || !Controller || !Controller->IsLocalController())
+	{
+		return;
+	}
+	Chat = CreateWidget<UVeyraChatComposer>(Controller);
+	if (!Chat)
+	{
+		return;
+	}
+	Chat->Show(Channel, UVeyraMatchTuningSubsystem::Get().Chat.MaxCharacters, [this](EVeyraChatChannel Sent, const FString& Typed) { SubmitChat(Sent, Typed); },
+		[this] { CloseChat(); });
+	// Under the shop, the menu and Settings; placed once in the viewport, as the shop is.
+	Chat->AddToViewport();
+	Chat->Place();
+	UpdateInputMode();
+}
+
+void UVeyraMatchMenuSubsystem::CloseChat()
+{
+	if (Chat)
+	{
+		Chat->RemoveFromParent();
+		Chat = nullptr;
+	}
+	UpdateInputMode();
+}
+
+void UVeyraMatchMenuSubsystem::SubmitChat(EVeyraChatChannel Channel, const FString& Typed)
+{
+	AVeyraPlayerController* Controller = BoundController.Get();
+	if (!Controller)
+	{
+		return;
+	}
+	const FVeyraChatCommand Command = VeyraChatCommands::Parse(Typed, Channel);
+	switch (Command.Kind)
+	{
+	case EVeyraChatCommandKind::Nothing:
+		break;
+	case EVeyraChatCommandKind::Send:
+		Controller->RequestChat(Command.Channel, Command.Text);
+		break;
+	case EVeyraChatCommandKind::Mute:
+	case EVeyraChatCommandKind::Unmute:
+	{
+		// Anyone else in the match, by the name the scoreboard shows.
+		TArray<FVeyraChatParticipant> Participants;
+		if (const AGameStateBase* Match = Controller->GetWorld() ? Controller->GetWorld()->GetGameState() : nullptr)
+		{
+			for (const APlayerState* Participant : Match->PlayerArray)
+			{
+				if (Participant && Participant != Controller->PlayerState)
+				{
+					Participants.Add({ Participant->GetPlayerId(), Participant->GetPlayerName() });
+				}
+			}
+		}
+		const TOptional<int32> Found = VeyraChatCommands::FindPlayer(Command.Name, Participants);
+		if (!Found.IsSet())
+		{
+			Controller->NoteChat(EVeyraChatNotice::NoSuchPlayer, Command.Name);
+			break;
+		}
+		const bool bMute = Command.Kind == EVeyraChatCommandKind::Mute;
+		const FVeyraChatParticipant* Named = Participants.FindByPredicate([&Found](const FVeyraChatParticipant& Each) { return Each.PlayerId == Found.GetValue(); });
+		Controller->RequestMute(Found.GetValue(), bMute);
+		Controller->NoteChat(bMute ? EVeyraChatNotice::Muted : EVeyraChatNotice::Unmuted, Named ? Named->Name : Command.Name);
+		break;
+	}
+	case EVeyraChatCommandKind::Unknown:
+		Controller->NoteChat(EVeyraChatNotice::UnknownCommand, Command.Name);
+		break;
+	}
+}
+
 void UVeyraMatchMenuSubsystem::UpdateInputMode()
 {
 	AVeyraPlayerController* Controller = BoundController.Get();
@@ -353,9 +454,10 @@ void UVeyraMatchMenuSubsystem::UpdateInputMode()
 	}
 	// The cursor stays in the window during a match unless the player lets it go (SET-83).
 	const EMouseLockMode Lock = Preferences().bConfineCursor ? EMouseLockMode::LockAlways : EMouseLockMode::DoNotLock;
-	if (Menu || Shop || Settings)
+	if (Menu || Shop || Settings || Chat)
 	{
-		// The menu and Settings take the keyboard; the shop leaves it to the game, so abilities and items still work.
+		// The menu, Settings and the chat composer take the keyboard; the shop leaves it to the game, so
+		// abilities and items still work.
 		FInputModeGameAndUI Mode;
 		if (Settings)
 		{
@@ -364,6 +466,10 @@ void UVeyraMatchMenuSubsystem::UpdateInputMode()
 		else if (Menu)
 		{
 			Mode.SetWidgetToFocus(Menu->TakeWidget());
+		}
+		else if (Chat)
+		{
+			Mode.SetWidgetToFocus(Chat->GetFocusTarget());
 		}
 		Mode.SetHideCursorDuringCapture(false);
 		Mode.SetLockMouseToViewportBehavior(Lock);

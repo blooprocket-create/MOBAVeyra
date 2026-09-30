@@ -25,6 +25,12 @@ namespace
 
 	/** The scoreboard mode's option that switches it with each press (SET-56). */
 	const TCHAR* const Toggle = TEXT("Toggle");
+
+	/** The chat's text sizes and backdrops, as the registry names their options (SET-66, SET-67). */
+	const TCHAR* const Large = TEXT("Large");
+	const TCHAR* const ExtraLarge = TEXT("ExtraLarge");
+	const TCHAR* const Transparent = TEXT("Transparent");
+	const TCHAR* const HighContrast = TEXT("HighContrast");
 }
 
 const FVeyraContentId& HudScale()
@@ -87,6 +93,30 @@ const FVeyraContentId& ConfineCursor()
 	return Id;
 }
 
+const FVeyraContentId& ChatTextSize()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("communication_chat_text_size"));
+	return Id;
+}
+
+const FVeyraContentId& ChatBackdrop()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("communication_chat_backdrop"));
+	return Id;
+}
+
+const FVeyraContentId& ChatFadeSeconds()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("communication_chat_fade_seconds"));
+	return Id;
+}
+
+const FVeyraContentId& ChatTimestamps()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("communication_chat_timestamps"));
+	return Id;
+}
+
 FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyraSettingsStore* Store)
 {
 	FVeyraInterfacePreferences Preferences;
@@ -97,6 +127,9 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.bMinimapClickMovesCamera = Hud.bMinimapClickMovesCamera;
 	Preferences.bMinimapRightClickMoves = Hud.bMinimapRightClickMoves;
 	Preferences.PingSeconds = Hud.PingSeconds;
+	Preferences.ChatFontSize = Hud.ChatFontSize;
+	Preferences.ChatBackdrop = Hud.ChatBackdropColor;
+	Preferences.ChatFadeSeconds = Hud.ChatFadeSeconds;
 	if (!Store)
 	{
 		return Preferences;
@@ -115,6 +148,12 @@ FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyr
 	Preferences.bShowPing = Store->IsOn(ShowPing());
 	Preferences.bScoreboardToggles = Store->Get(ScoreboardMode()) == Toggle;
 	Preferences.bConfineCursor = Store->IsOn(ConfineCursor());
+	const FString Size = Store->Get(ChatTextSize());
+	Preferences.ChatFontSize = Size == Large ? Hud.ChatLargeFontSize : Size == ExtraLarge ? Hud.ChatExtraLargeFontSize : Hud.ChatFontSize;
+	const FString Backdrop = Store->Get(ChatBackdrop());
+	Preferences.ChatBackdrop = Backdrop == Transparent ? FLinearColor::Transparent : Backdrop == HighContrast ? Hud.ChatHighContrastBackdropColor : Hud.ChatBackdropColor;
+	Preferences.ChatFadeSeconds = static_cast<float>(Store->GetNumber(ChatFadeSeconds()));
+	Preferences.bChatTimestamps = Store->IsOn(ChatTimestamps());
 	return Preferences;
 }
 

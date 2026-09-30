@@ -25,5 +25,13 @@ TArray<FString> UVeyraUIInputSettings::Validate() const
 	{
 		Problems.Add(TEXT("ScoreboardKey: the menu or the shop already uses that key."));
 	}
+	if (!ChatKey.IsValid())
+	{
+		Problems.Add(TEXT("ChatKey: a key is required."));
+	}
+	else if (ChatKey == MatchMenuKey || ChatKey == ShopKey || ChatKey == ScoreboardKey)
+	{
+		Problems.Add(TEXT("ChatKey: the menu, the shop or the scoreboard already uses that key."));
+	}
 	return Problems;
 }

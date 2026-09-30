@@ -31,4 +31,8 @@ public:
 	/** Shows the in-match scoreboard while held (Settings Bible #56; ADR-017 §4), as Tab does in League. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey ScoreboardKey;
+
+	/** Opens the chat composer (ADR-029 §5); Enter by default. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey ChatKey;
 };

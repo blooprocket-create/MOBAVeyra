@@ -12,6 +12,7 @@
 #include "Tools/VeyraVisionToolComponent.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
+#include "Chat/VeyraChatTypes.h"
 #include "Pings/VeyraPingTypes.h"
 #include "Votes/VeyraVoteTypes.h"
 
@@ -213,6 +214,30 @@ public:
 	/** Owning client: the reason the server gave for the last refused ping. */
 	EVeyraPingRefusal GetLastPingRefusal() const { return LastPingRefusal; }
 
+	/** Owning client: sends Text on Channel (ADR-029 §1). A refusal arrives through GetLastChatRefusal. */
+	void RequestChat(EVeyraChatChannel Channel, const FString& Text);
+
+	/** Owning client: stops, or starts again, receiving PlayerId's chat for this match (ADR-029 §3). */
+	void RequestMute(int32 PlayerId, bool bMuted);
+
+	/** Owning client: whether it takes part in All Chat, as its setting says (ADR-029 §4). */
+	void RequestAllChat(bool bOn);
+
+	/** Server: tells this player of a chat message it may read. */
+	void DeliverChat(const FVeyraChatMessage& Message) { ClientChatted(Message); }
+
+	/** Owning client: the chat it holds, oldest first, at most chat.keepMessages. */
+	const TArray<FVeyraReceivedChat>& GetChat() const { return Chat; }
+
+	/** Owning client: whether it muted PlayerId. */
+	bool IsChatMuted(int32 PlayerId) const { return ChatMuted.Contains(PlayerId); }
+
+	/** Owning client: the reason the server gave for the last refused message. */
+	EVeyraChatRefusal GetLastChatRefusal() const { return LastChatRefusal; }
+
+	/** Owning client: adds a line of its own to its chat, such as a mute's confirmation; Subject names whom it is about. */
+	void NoteChat(EVeyraChatNotice Notice, const FString& Subject);
+
 	/**
 	 * Owning client: the ground point a screen pixel on the minimap stands for, for a click of the given
 	 * purpose, or nothing if the click is not on the minimap or the player turned that click off. The
@@ -294,6 +319,21 @@ private:
 
 	UFUNCTION(Client, Reliable)
 	void ClientPingRefused(EVeyraPingRefusal Refusal);
+
+	UFUNCTION(Server, Reliable)
+	void ServerChat(EVeyraChatChannel Channel, const FString& Text);
+
+	UFUNCTION(Client, Reliable)
+	void ClientChatted(const FVeyraChatMessage& Message);
+
+	UFUNCTION(Client, Reliable)
+	void ClientChatRefused(EVeyraChatRefusal Refusal);
+
+	UFUNCTION(Server, Reliable)
+	void ServerMuteChat(int32 PlayerId, bool bMuted);
+
+	UFUNCTION(Server, Reliable)
+	void ServerAllChat(bool bOn);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRankUp(EVeyraAbilitySlot Slot);
@@ -447,6 +487,13 @@ private:
 	int32 VoteRefusalCount = 0;
 
 	TArray<FVeyraReceivedPing> Pings;
+	TArray<FVeyraReceivedChat> Chat;
+	/** Adds Line to the chat it holds, stamped now, keeping only the newest. */
+	void KeepChat(FVeyraReceivedChat&& Line);
+	/** Tells the server whether the player keeps All Chat on, as their setting says (ADR-029 §4). */
+	void ReportAllChat();
+	TSet<int32> ChatMuted;
+	EVeyraChatRefusal LastChatRefusal = EVeyraChatRefusal::None;
 	EVeyraPingRefusal LastPingRefusal = EVeyraPingRefusal::None;
 
 	/** Its team's open vote; a controller replicates to its own player only. */

@@ -17,6 +17,8 @@
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "Pings/VeyraPingRules.h"
+#include "Chat/VeyraChatRules.h"
+#include "Chat/VeyraChatSubsystem.h"
 #include "Pings/VeyraPingSubsystem.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Structures/VeyraStructure.h"
@@ -78,6 +80,16 @@ void AVeyraPlayerController::IssueCastOrder(EVeyraAbilitySlot Slot, const FVeyra
 	ServerIssueCastOrder(Slot, Target);
 }
 
+namespace
+{
+	/** The All Chat preference (Chat & Communication Bible §2; ADR-029 §4). The registry's tests keep it real. */
+	const FVeyraContentId& AllChatSetting()
+	{
+		static const FVeyraContentId Id = FVeyraContentId::FromText(TEXT("communication_all_chat")).GetValue();
+		return Id;
+	}
+}
+
 void AVeyraPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -108,6 +120,8 @@ void AVeyraPlayerController::BeginPlay()
 	{
 		SettingsHandle = Settings->GetStore().OnChanged.AddUObject(this, &AVeyraPlayerController::OnPlayerSettingChanged);
 	}
+	// As the player joins the match, and again whenever they change it.
+	ReportAllChat();
 }
 
 const UVeyraInputSettings& AVeyraPlayerController::GetKeys() const
@@ -121,6 +135,10 @@ void AVeyraPlayerController::OnPlayerSettingChanged(const FVeyraContentId& Id)
 	if (Settings && Settings->GetStore().GetRegistry().Bindings.Contains(Id))
 	{
 		RefreshKeys();
+	}
+	if (Id == AllChatSetting())
+	{
+		ReportAllChat();
 	}
 }
 
@@ -527,6 +545,107 @@ void AVeyraPlayerController::ClientPinged_Implementation(const FVeyraPing& Ping)
 void AVeyraPlayerController::ClientPingRefused_Implementation(EVeyraPingRefusal Refusal)
 {
 	LastPingRefusal = Refusal;
+}
+
+void AVeyraPlayerController::RequestChat(EVeyraChatChannel Channel, const FString& Text)
+{
+	ServerChat(Channel, Text);
+}
+
+void AVeyraPlayerController::ServerChat_Implementation(EVeyraChatChannel Channel, const FString& Text)
+{
+	UVeyraChatSubsystem* ChatOwner = GetWorld()->GetSubsystem<UVeyraChatSubsystem>();
+	const AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>();
+	const EVeyraChatRefusal Refusal = ChatOwner && Participant ? ChatOwner->Send(*Participant, Channel, Text) : EVeyraChatRefusal::NotAPlayer;
+	if (Refusal != EVeyraChatRefusal::None)
+	{
+		ClientChatRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ClientChatted_Implementation(const FVeyraChatMessage& Message)
+{
+	FVeyraReceivedChat Line;
+	Line.Message = Message;
+	KeepChat(MoveTemp(Line));
+}
+
+void AVeyraPlayerController::ClientChatRefused_Implementation(EVeyraChatRefusal Refusal)
+{
+	LastChatRefusal = Refusal;
+	FVeyraReceivedChat Line;
+	Line.Notice = EVeyraChatNotice::Refused;
+	Line.Refusal = Refusal;
+	KeepChat(MoveTemp(Line));
+}
+
+void AVeyraPlayerController::NoteChat(EVeyraChatNotice Notice, const FString& Subject)
+{
+	FVeyraReceivedChat Line;
+	Line.Notice = Notice;
+	if (Notice == EVeyraChatNotice::UnknownCommand)
+	{
+		Line.Message.Text = Subject;
+	}
+	else
+	{
+		Line.Message.SenderName = Subject;
+	}
+	KeepChat(MoveTemp(Line));
+}
+
+void AVeyraPlayerController::KeepChat(FVeyraReceivedChat&& Line)
+{
+	Line.ReceivedAt = FPlatformTime::Seconds();
+	const AVeyraGameState* Match = GetWorld() ? GetWorld()->GetGameState<AVeyraGameState>() : nullptr;
+	Line.MatchSeconds = Match ? Match->GetMatchClockSeconds() : 0.0;
+	Chat.Add(MoveTemp(Line));
+	VeyraChat::Forget(Chat, UVeyraMatchTuningSubsystem::Get().Chat);
+}
+
+void AVeyraPlayerController::ReportAllChat()
+{
+	if (const UVeyraSettingsSubsystem* Settings = IsLocalController() ? UVeyraSettingsSubsystem::Get(this) : nullptr; Settings && Settings->IsReady())
+	{
+		RequestAllChat(Settings->GetStore().IsOn(AllChatSetting()));
+	}
+}
+
+void AVeyraPlayerController::RequestMute(int32 PlayerId, bool bMuted)
+{
+	// Kept here for the scoreboard's mute toggles; the server enforces it at delivery (ADR-029 §3).
+	if (bMuted)
+	{
+		ChatMuted.Add(PlayerId);
+	}
+	else
+	{
+		ChatMuted.Remove(PlayerId);
+	}
+	ServerMuteChat(PlayerId, bMuted);
+}
+
+void AVeyraPlayerController::ServerMuteChat_Implementation(int32 PlayerId, bool bMuted)
+{
+	UVeyraChatSubsystem* ChatOwner = GetWorld()->GetSubsystem<UVeyraChatSubsystem>();
+	if (const AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>(); ChatOwner && Participant)
+	{
+		ChatOwner->SetMuted(*Participant, PlayerId, bMuted);
+	}
+}
+
+void AVeyraPlayerController::RequestAllChat(bool bOn)
+{
+	ServerAllChat(bOn);
+}
+
+void AVeyraPlayerController::ServerAllChat_Implementation(bool bOn)
+{
+	UVeyraChatSubsystem* ChatOwner = GetWorld()->GetSubsystem<UVeyraChatSubsystem>();
+	if (const AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>(); ChatOwner && Participant)
+	{
+		ChatOwner->SetAllChat(*Participant, bOn);
+	}
 }
 
 void AVeyraPlayerController::ServerRequestVote_Implementation(EVeyraVoteKind Kind)

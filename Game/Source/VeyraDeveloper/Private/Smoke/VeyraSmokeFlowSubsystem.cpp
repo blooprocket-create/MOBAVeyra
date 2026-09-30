@@ -28,6 +28,7 @@
 #include "VeyraVanguardCharacter.h"
 
 #if WITH_VEYRA_UI
+#include "Chat/VeyraChatComposer.h"
 #include "Match/VeyraMatchMenu.h"
 #include "Match/VeyraMatchMenuSubsystem.h"
 #include "Scoreboard/VeyraScoreboard.h"
@@ -942,6 +943,10 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 	{
 		return;
 	}
+	if (Script == EScript::Practice && TickChat(*Controller))
+	{
+		return;
+	}
 	if (!bOrderedMove)
 	{
 		// Play a little: walk toward the lane centre.
@@ -1287,6 +1292,68 @@ bool UVeyraSmokeFlowSubsystem::TickRecall(AVeyraPlayerController& Controller, co
 	bRecalled = true;
 	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the Recall brought the Vanguard home."));
 	return false;
+}
+
+bool UVeyraSmokeFlowSubsystem::TickChat(AVeyraPlayerController& Controller)
+{
+	if (bChatChecked)
+	{
+		return false;
+	}
+#if WITH_VEYRA_UI
+	// Harness settings: the line practice says to its team, and how long it waits to read it back.
+	const FString ChatLine = TEXT("smoke: Team Chat reaches the team");
+	constexpr double ChatReplyRealSeconds = 10.0;
+	const double Now = FPlatformTime::Seconds();
+	if (ChatSentAt <= 0.0)
+	{
+		UVeyraMatchMenuSubsystem* Screens = GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>();
+		if (!Screens)
+		{
+			Finish(false, TEXT("the game has no chat"));
+			return true;
+		}
+		// As the chat key does, then typing the line and pressing Enter.
+		Screens->OpenChat(EVeyraChatChannel::Team);
+		UVeyraChatComposer* Composer = Screens->GetChat();
+		if (!Composer)
+		{
+			Finish(false, TEXT("the chat key opened no composer"));
+			return true;
+		}
+		Composer->SetTyped(ChatLine);
+		Composer->Send();
+		if (Screens->IsChatOpen())
+		{
+			Finish(false, TEXT("the chat composer stayed open after sending"));
+			return true;
+		}
+		ChatSentAt = Now;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: said \"%s\" in Team Chat."), *ChatLine);
+		return true;
+	}
+	const bool bBack = Controller.GetChat().ContainsByPredicate([&ChatLine](const FVeyraReceivedChat& Line) {
+		return Line.Notice == EVeyraChatNotice::None && Line.Message.Channel == EVeyraChatChannel::Team && Line.Message.Text == ChatLine;
+	});
+	if (!bBack)
+	{
+		if (Now - ChatSentAt > ChatReplyRealSeconds)
+		{
+			Finish(false, FString::Printf(TEXT("the Team Chat line never came back (last refusal: %s)"), *UEnum::GetValueAsString(Controller.GetLastChatRefusal())));
+		}
+		return true;
+	}
+	if (Capture(TEXT("Chat")))
+	{
+		return true;
+	}
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the server delivered the Team Chat line back to its sender."));
+	bChatChecked = true;
+	return false;
+#else
+	Finish(false, TEXT("this build has no chat"));
+	return true;
+#endif
 }
 
 bool UVeyraSmokeFlowSubsystem::TickSiege(AVeyraPlayerController& Controller, const UWorld& World)
