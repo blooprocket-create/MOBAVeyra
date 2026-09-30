@@ -4,6 +4,8 @@
 
 **Version:** 0.3 — Mage Foundation + Consumables + Crit Capstone
 
+**Revision 2026-09-30:** Added the Warforged Grip and Titansteel Grip Physical Power components, Killstring Assembly, and Doombringer Bow. Doombringer's exact stack counts, damage ratio, and stat values are prototype tuning; its no-cooldown Doom cycle is the intended mechanic.
+
 ## 1. Core philosophy
 
 Build backward from useful finished items. Design the Tier 2 and Tier 3 outcomes players actually need, then let those recipes reveal the Tier 1 component pool.
@@ -62,6 +64,8 @@ Final public-facing terminology and exact formulas remain open where not otherwi
 | **Renewal Mesh** | Health Regeneration |
 | **Timing Coil** | Ability Haste |
 | **Iron Grip** | Physical Power |
+| **Warforged Grip** | Physical Power; stronger, more slot-efficient raw component than Iron Grip |
+| **Titansteel Grip** | Physical Power; strongest current raw Physical Power component |
 | **Quickcoil** | Attack Speed |
 | **Keensteel** | Critical Strike Chance |
 | **Arc Crystal** | Magic Power |
@@ -127,6 +131,12 @@ Razorwheel is the explicit example proving that Tier 2 may contain a simple Acti
 ### Deadeye Edge
 **Recipe:** Iron Grip + Keensteel + recipe  
 **Stats:** Physical Power + Critical Strike Chance.
+
+### Killstring Assembly
+**Recipe:** Quickcoil + Keensteel + recipe  
+**Stats:** Attack Speed + Critical Strike Chance.
+
+Killstring Assembly is the clean Attack-Speed/Crit Assembly. It has no Attunement; its purpose is to communicate a sustained basic-attack/crit build direction and feed later Masterworks such as Doombringer Bow.
 
 ## 7. Mage Tier 2 assemblies
 
@@ -225,6 +235,24 @@ The Active is distinct from the item's single Attunement.
 Critical strikes deal increased damage.
 
 This is intentionally a simple crit capstone rather than a proc-heavy item.
+
+### Doombringer Bow
+
+**Recipe:** Killstring Assembly + Titansteel Grip + Tier 3 recipe  
+**Stat identity:** High Physical Power + Attack Speed + Critical Strike Chance.
+
+**Attunement — Marked for Doom**
+
+Basic attacks against an enemy Vanguard apply Doom to that target. The prototype starting behavior is:
+
+- a normal basic attack applies **1 Doom**;
+- a critical basic attack applies **2 Doom**;
+- at **4 Doom**, the target becomes **Doomed**;
+- the user's next basic attack against a Doomed target consumes the Doom and deals bonus physical damage based on that target's missing Health.
+
+There is **no internal or per-target cooldown** after Marked for Doom is consumed. The user may immediately begin applying Doom again, so the item's intended loop is sustained attacks → Doom payoff → immediately rebuild Doom.
+
+The Doom amounts, threshold, bonus-damage ratio, and item stat values are prototype tuning values. Balance should adjust those levers rather than adding a cooldown unless a later design ruling explicitly changes the mechanic.
 
 ## 9. Mage Masterworks
 
