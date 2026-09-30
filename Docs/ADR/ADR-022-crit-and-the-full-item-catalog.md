@@ -110,9 +110,10 @@ The damage pipeline opens an instance around its application, and the event subs
 ### 7. Bots
 
 Bots do not use Actives or consumables (ADR-013, unchanged). Their builds (`Bots.json`):
-- **Marksmen** (Kade, Vera, Bryn) build Deadeye Edge and then Sovereign Edge in place of their second Physical Masterwork.
-- **Mages** keep Crown of the Crucible first, then take Starfall Prism or Nullglass Lens where Arc Reactor stood second.
-- **Fighters** swap one Masterwork for Razorwheel Prime or Impact Aegis.
+- **Marksmen** (Kade, Vera, Bryn) build Sovereign Edge, through Deadeye Edge, in place of their second Physical Masterwork.
+- **Mages** (Oriel, Mimzi) keep Crown of the Crucible first, then take Starfall Prism or Nullglass Lens where Arc Reactor stood second, on Arcane Boots.
+- **Fighters** (Qazharr, Gorraveth, Raska) swap one Masterwork for Razorwheel Prime or Impact Aegis.
+- **Tanks** (Cairn, Patch) finish Siegeheart Core from the Reinforced Chassis and Siege Frame they already bought, and take Impact Aegis last.
 
 The rule that a build never lists an item another consumes still holds.
 

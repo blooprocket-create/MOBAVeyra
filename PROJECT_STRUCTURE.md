@@ -68,6 +68,10 @@ It also owns each combatant's life state and the death event that other domains 
 
 M5 added the runtime primitives the first kits use ([ADR-009](Docs/ADR/ADR-009-runtime-combat-primitives.md)): the status ledger, the movement component with its displacement and dash modes, shields with identity and caps, Combat State and assist attribution, and damage prepared at Commit.
 
+M17 added critical strikes and combat's random source ([ADR-022](Docs/ADR/ADR-022-crit-and-the-full-item-catalog.md) §1, §4, §10):
+- `Attacks/VeyraCrit` is the crit rule. `UVeyraCombatRollSubsystem` keeps one outcome bag (`Random/VeyraOutcomeBag`) per unit and channel, so chance is drawn rather than rolled. Any chance-based mechanic draws through it, never `FMath::FRand`.
+- `OnDamageDealt` reports what each damage instance cost an enemy, by type.
+
 ### VeyraAbilities
 
 Owns reusable ability execution behavior and Veyra's C++ integration layer around Unreal Gameplay Ability System (GAS).
@@ -135,6 +139,11 @@ Gold and the rewards arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runt
 Depends on combat/abilities/economy through approved contracts. It does not own the underlying damage or gold formulas.
 
 VeyraItems arrived in M8 ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §2) in its own **Items** layer, above Abilities, whose archetypes run item Actives, and below Battleground. Its catalog is `Game/Tuning/Items.json`; `VeyraItems::Validate` holds the tier rules the schema cannot (Item Bible §2, §11). It spends and refunds Gold through Economy and applies equipment through `VeyraCombat::SetEquipmentStats`; Match routes the fountain and the player's shop requests to it.
+
+Where the Attunements live ([ADR-022](Docs/ADR/ADR-022-crit-and-the-full-item-catalog.md) §3–§4):
+- Static ones fold into `VeyraEquipment::StatsFor`.
+- Stacking buffs live in the shop subsystem.
+- The ones a hit or nearness sets off live in `Attunements/UVeyraAttunementSubsystem`, on Combat's `OnDamageDealt`: Reprisal Guard, Drag, Convergence, Fracture, Endless Cleave and Tempered by Conflict.
 
 ### VeyraFlux
 
