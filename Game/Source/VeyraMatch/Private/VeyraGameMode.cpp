@@ -3,6 +3,7 @@
 #include "VeyraGameMode.h"
 
 #include "Absence/VeyraAbsenceSubsystem.h"
+#include "Votes/VeyraVoteSubsystem.h"
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
@@ -253,7 +254,7 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	}
 	if (!VeyraMatchResults::IsWinnerConsistent(Reason, Winner))
 	{
-		UE_LOG(LogVeyraMatch, Error, TEXT("Refused to end the match (%s) with winner %s: only a destroyed Prime Well has a winner."), LexToString(Reason),
+		UE_LOG(LogVeyraMatch, Error, TEXT("Refused to end the match (%s) with winner %s: only a destroyed Prime Well or a surrender has a winner."), LexToString(Reason),
 			*StaticEnum<EVeyraTeam>()->GetNameStringByValue(static_cast<int64>(Winner)));
 		return;
 	}
@@ -269,7 +270,15 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	}
 	if (UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>())
 	{
+		Absence->OnBecameAfk.Remove(BecameAfkHandle);
+		Absence->OnCameBack.Remove(CameBackHandle);
 		Absence->Stop();
+	}
+	if (UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>())
+	{
+		Votes->OnVotePassed.Remove(VotePassedHandle);
+		Votes->OnIntermissionOver.Remove(IntermissionOverHandle);
+		Votes->Stop();
 	}
 	if (UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>())
 	{
@@ -626,6 +635,58 @@ bool AVeyraGameMode::PauseMatch(APlayerController& Requester)
 	GetVeyraGameState().SetMatchPaused(true);
 	UE_LOG(LogVeyraMatch, Log, TEXT("Match paused by %s."), *GetNameSafe(Requester.PlayerState));
 	return true;
+}
+
+void AVeyraGameMode::OnVotePassed(EVeyraVoteKind Kind, EVeyraTeam Team)
+{
+	UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>();
+	switch (Kind)
+	{
+	case EVeyraVoteKind::Remake:
+		EndMatch(EVeyraMatchEndReason::Remake);
+		break;
+	case EVeyraVoteKind::Surrender:
+		EndMatch(EVeyraMatchEndReason::Surrender, VeyraTeams::Opposing(Team));
+		break;
+	case EVeyraVoteKind::Pause:
+	{
+		// The engine's pause names a player; any connected one stands for the vote.
+		APlayerController* Requester = GetWorld()->GetFirstPlayerController();
+		if (Requester && PauseMatch(*Requester) && Votes)
+		{
+			Votes->BeginIntermission();
+		}
+		break;
+	}
+	case EVeyraVoteKind::Resume:
+		OnIntermissionOver();
+		break;
+	}
+}
+
+void AVeyraGameMode::OnBecameAfk(AVeyraPlayerState& Participant, const FVeyraAbsenceRecord& /*Record*/)
+{
+	if (AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Participant.GetOwner()))
+	{
+		Player->WarnAfk(true);
+	}
+}
+
+void AVeyraGameMode::OnCameBack(const AVeyraPlayerState& Participant)
+{
+	if (AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Participant.GetOwner()))
+	{
+		Player->WarnAfk(false);
+	}
+}
+
+void AVeyraGameMode::OnIntermissionOver()
+{
+	ResumeMatch();
+	if (UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>())
+	{
+		Votes->EndIntermission();
+	}
 }
 
 bool AVeyraGameMode::ResumeMatch()
@@ -1018,8 +1079,17 @@ void AVeyraGameMode::BeginLive()
 	// Absence counts from 0:00 in a standard match (Match Flow Bible §3–§5); a practice match's host
 	// ends it instead (Custom Matches Bible §4).
 	UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>();
+	// Votes are taken while it runs (Match Flow Bible §7–§10); their rules refuse a practice match's.
+	if (UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>())
+	{
+		VotePassedHandle = Votes->OnVotePassed.AddUObject(this, &AVeyraGameMode::OnVotePassed);
+		IntermissionOverHandle = Votes->OnIntermissionOver.AddUObject(this, &AVeyraGameMode::OnIntermissionOver);
+		Votes->Start();
+	}
 	if (Absence && GetVeyraGameState().GetMatchRules() == EVeyraMatchRules::Standard)
 	{
+		BecameAfkHandle = Absence->OnBecameAfk.AddUObject(this, &AVeyraGameMode::OnBecameAfk);
+		CameBackHandle = Absence->OnCameBack.AddUObject(this, &AVeyraGameMode::OnCameBack);
 		Absence->Start();
 	}
 	// Passive Gold runs with the live match (author ruling, 2026-09-28); the battleground link stops

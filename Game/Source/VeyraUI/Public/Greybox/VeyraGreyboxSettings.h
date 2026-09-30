@@ -92,6 +92,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor EmpoweredColor = FLinearColor::Transparent;
 
+	/** A warning to the player, such as that the server counts it AFK. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor WarningColor = FLinearColor::Transparent;
+
 	/** The overhead Health bar's size, in pixels. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars", meta = (ClampMin = "1"))
 	float BarWidth = 0.0f;

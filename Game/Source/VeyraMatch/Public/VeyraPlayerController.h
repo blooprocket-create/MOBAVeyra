@@ -11,6 +11,7 @@
 #include "Tools/VeyraVisionToolComponent.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
+#include "Votes/VeyraVoteTypes.h"
 
 #include "VeyraPlayerController.generated.h"
 
@@ -75,6 +76,35 @@ public:
 	 * ADR-010 §7). The server refuses anyone but a practice match's host.
 	 */
 	void RequestEndCustomMatch();
+
+	/**
+	 * Owning client: starts a vote of Kind, which counts as its YES, or answers the open vote (Match
+	 * Flow Bible §7–§10; ADR-019 §4). A refusal arrives through GetLastVoteRefusal.
+	 */
+	void RequestVote(EVeyraVoteKind Kind);
+	void CastVote(bool bYes);
+
+	/**
+	 * Owning client: the open vote this player sees, if any: one for everyone from the game state, or
+	 * its own team's, which reaches no one else (Match Flow Bible §9; ADR-019 §4).
+	 */
+	const FVeyraVoteState& GetOpenVote() const;
+
+	/** Server only: the vote owner shows this player its team's open vote, or none. */
+	void SetTeamVote(const FVeyraVoteState& InVote);
+
+	/**
+	 * Owning client: whether the server counts this player AFK, its Vanguard walked to safety until its
+	 * next order (Match Flow Bible §5.1; ADR-019 §3).
+	 */
+	bool IsWarnedAfk() const { return bWarnedAfk; }
+
+	/** Server: tells the owning client whether it is AFK. */
+	void WarnAfk(bool bAfk) { ClientAbsenceWarning(bAfk); }
+
+	/** Owning client: the reason the server gave for the last refused vote or ballot, and how many it refused. */
+	EVeyraVoteRefusal GetLastVoteRefusal() const { return LastVoteRefusal; }
+	int32 GetVoteRefusalCount() const { return VoteRefusalCount; }
 
 	/** Owning client: the reason the server gave for the last refused End Custom Match, and how many it refused. */
 	EVeyraEndCustomMatchRefusal GetLastEndCustomMatchRefusal() const { return LastEndCustomMatchRefusal; }
@@ -150,6 +180,8 @@ public:
 	 */
 	virtual void GetPlayerViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
@@ -194,6 +226,18 @@ private:
 
 	UFUNCTION(Client, Reliable)
 	void ClientEndCustomMatchRefused(EVeyraEndCustomMatchRefusal Refusal);
+
+	UFUNCTION(Client, Reliable)
+	void ClientAbsenceWarning(bool bAfk);
+
+	UFUNCTION(Server, Reliable)
+	void ServerRequestVote(EVeyraVoteKind Kind);
+
+	UFUNCTION(Server, Reliable)
+	void ServerCastVote(bool bYes);
+
+	UFUNCTION(Client, Reliable)
+	void ClientVoteRefused(EVeyraVoteRefusal Refusal);
 
 	UFUNCTION(Server, Reliable)
 	void ServerRankUp(EVeyraAbilitySlot Slot);
@@ -251,6 +295,8 @@ private:
 	void OnMoveOrderHeld();
 	void OnAttackMovePressed();
 	void OnRecallPressed();
+	void OnVoteYesPressed();
+	void OnVoteNoPressed();
 	void OnAbilityPressed(EVeyraAbilitySlot Slot);
 	void MoveToCursor(bool bSteer);
 
@@ -283,6 +329,15 @@ private:
 
 	EVeyraEndCustomMatchRefusal LastEndCustomMatchRefusal = EVeyraEndCustomMatchRefusal::None;
 	int32 EndCustomMatchRefusalCount = 0;
+
+	EVeyraVoteRefusal LastVoteRefusal = EVeyraVoteRefusal::None;
+	int32 VoteRefusalCount = 0;
+
+	/** Its team's open vote; a controller replicates to its own player only. */
+	UPROPERTY(Replicated)
+	FVeyraVoteState TeamVote;
+
+	bool bWarnedAfk = false;
 
 	EVeyraShopRefusal LastShopRefusal = EVeyraShopRefusal::None;
 	int32 ShopRefusalCount = 0;

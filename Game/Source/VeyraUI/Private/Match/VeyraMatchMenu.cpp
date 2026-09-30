@@ -13,6 +13,7 @@
 #include "Shell/VeyraShellStyleSettings.h"
 #include "VeyraGameState.h"
 #include "VeyraPlayerController.h"
+#include "VeyraPlayerState.h"
 
 #define LOCTEXT_NAMESPACE "VeyraMatchMenu"
 
@@ -21,6 +22,11 @@ namespace VeyraMatchMenuModel
 bool CanEndCustomMatch(EVeyraMatchRules Rules, const APlayerState* Host, const APlayerState* Self)
 {
 	return Rules == EVeyraMatchRules::Practice && Host && Host == Self;
+}
+
+bool OffersVotes(EVeyraMatchRules Rules)
+{
+	return Rules == EVeyraMatchRules::Standard;
 }
 
 bool OffersDeveloperEnd(EVeyraMatchRules Rules)
@@ -82,6 +88,33 @@ void UVeyraMatchMenu::Rebuild()
 
 	const bool bConfirmingCustom = Confirming == EConfirming::EndCustomMatch && bCanEnd;
 	const bool bConfirmingDeveloper = Confirming == EConfirming::DeveloperEnd && bCanEndAsDeveloper;
+	const bool bVotes = GameState && VeyraMatchMenuModel::OffersVotes(GameState->GetMatchRules());
+	if (bVotes && (Confirming == EConfirming::Surrender || Confirming == EConfirming::Remake))
+	{
+		const bool bSurrender = Confirming == EConfirming::Surrender;
+		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
+			bSurrender ? LOCTEXT("ConfirmSurrender", "Start a surrender vote?") : LOCTEXT("ConfirmRemake", "Start a remake vote?"),
+			VeyraShellStyle::EVeyraShellText::Heading));
+		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
+			bSurrender ? LOCTEXT("ConfirmSurrenderDetail", "Your team votes; if enough agree, your team loses now.")
+					   : LOCTEXT("ConfirmRemakeDetail", "Your team votes; if enough agree, the match ends with no contest."),
+			VeyraShellStyle::EVeyraShellText::Body));
+		AddButton(bSurrender ? LOCTEXT("StartSurrender", "Vote to Surrender") : LOCTEXT("StartRemake", "Vote to Remake"), [this, bSurrender] {
+			if (AVeyraPlayerController* Player = Controller.Get())
+			{
+				Player->RequestVote(bSurrender ? EVeyraVoteKind::Surrender : EVeyraVoteKind::Remake);
+			}
+			if (Close)
+			{
+				Close();
+			}
+		});
+		AddButton(LOCTEXT("CancelVote", "Cancel"), [this] {
+			Confirming = EConfirming::Nothing;
+			Rebuild();
+		});
+		return;
+	}
 	if (bConfirmingCustom || bConfirmingDeveloper)
 	{
 		const FText Title = bConfirmingCustom ? LOCTEXT("ConfirmTitle", "End this practice match?") : LOCTEXT("ConfirmDeveloperTitle", "End this match for everyone?");
@@ -120,6 +153,55 @@ void UVeyraMatchMenu::Rebuild()
 			Close();
 		}
 	});
+	if (bVotes)
+	{
+		const auto Ask = [this](EVeyraVoteKind Kind) {
+			if (AVeyraPlayerController* Player = Controller.Get())
+			{
+				Player->RequestVote(Kind);
+			}
+			if (Close)
+			{
+				Close();
+			}
+		};
+		const auto Answer = [this](bool bYes) {
+			if (AVeyraPlayerController* Player = Controller.Get())
+			{
+				Player->CastVote(bYes);
+			}
+			if (Close)
+			{
+				Close();
+			}
+		};
+		const AVeyraPlayerController* Voter = Controller.Get();
+		const FVeyraVoteState& Vote = Voter ? Voter->GetOpenVote() : GameState->GetVote();
+		const AVeyraPlayerState* Own = Owner->GetPlayerState<AVeyraPlayerState>();
+		// A team's vote reaches only that team (AVeyraPlayerController::GetOpenVote).
+		const bool bMayAnswer = Vote.bOpen && Own && !Vote.Voted.Contains(Own->GetPlayerId());
+		if (bMayAnswer)
+		{
+			AddButton(LOCTEXT("VoteYes", "Vote Yes"), [Answer] { Answer(true); });
+			AddButton(LOCTEXT("VoteNo", "Vote No"), [Answer] { Answer(false); });
+		}
+		if (GameState->IsMatchPaused())
+		{
+			AddButton(LOCTEXT("ResumeEarly", "Resume Early"), [Ask] { Ask(EVeyraVoteKind::Resume); });
+		}
+		else
+		{
+			AddButton(LOCTEXT("RequestPause", "Request Pause"), [Ask] { Ask(EVeyraVoteKind::Pause); });
+			AddButton(LOCTEXT("Surrender", "Surrender"), [this] {
+				Confirming = EConfirming::Surrender;
+				Rebuild();
+			});
+			AddButton(LOCTEXT("Remake", "Remake"), [this] {
+				Confirming = EConfirming::Remake;
+				Rebuild();
+			});
+		}
+	}
 	if (bCanEnd)
 	{
 		AddButton(EndCustomLabel, [this] {

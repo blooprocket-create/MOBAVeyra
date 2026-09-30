@@ -43,17 +43,21 @@ namespace VeyraMatchTests
 			Settings->Spell2Key = EKeys::F6;
 			Settings->RecallKey = EKeys::F4;
 			Settings->VisionToolKey = EKeys::F7;
+			Settings->VoteYesKey = EKeys::F8;
+			Settings->VoteNoKey = EKeys::F9;
 
 			const FVeyraInputObjects Objects = VeyraInput::Build(*Settings, *GetTransientPackage());
 			ASSERT_THAT(IsNotNull(Objects.MappingContext.Get()));
-			// Move, attack-move, Recall and the vision tool, then one per ability slot, item slot and Flux Spell slot.
-			constexpr int32 OrderBindings = 4;
+			// Move, attack-move, Recall, the vision tool and the two vote answers, then one per ability slot,
+			// item slot and Flux Spell slot.
+			constexpr int32 OrderBindings = 6;
 			ASSERT_THAT(AreEqual(Objects.MappingContext->GetMappings().Num(),
 				OrderBindings + static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::All) + UE_ARRAY_COUNT(VeyraAbilitySlots::Items) + UE_ARRAY_COUNT(VeyraAbilitySlots::Spells))));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.MoveOrder) == EKeys::LeftMouseButton));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.AttackMove) == EKeys::X));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.Recall) == EKeys::F4));
 			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.VisionTool) == EKeys::F7));
+			ASSERT_THAT(IsTrue(KeyFor(*Objects.MappingContext, Objects.VoteYes) == EKeys::F8 && KeyFor(*Objects.MappingContext, Objects.VoteNo) == EKeys::F9));
 			ASSERT_THAT(IsTrue(Objects.GetAbilityAction(EVeyraAbilitySlot::VisionTool) == Objects.VisionTool));
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 			{

@@ -178,6 +178,9 @@ namespace VeyraNetTests
 		// The client in this PIE instance, on side B, leaves and comes back as side B's no-show.
 		static constexpr int32 LateInstance = 2;
 		static constexpr int32 LateSeatInstance = FirstNoShowInstance + 1;
+		// A remake needs both of a side's two votes: the one present's, and the no-show's automatic YES.
+		static constexpr int32 WholeTeam = FullTeamSize;
+		static constexpr int32 FirstClientIndex = 0;
 
 		BEFORE_EACH()
 		{
@@ -239,6 +242,18 @@ namespace VeyraNetTests
 					const FVeyraAbsenceRecord* Record = State.World->GetSubsystem<UVeyraAbsenceSubsystem>()->Find(*Seat);
 					ASSERT_THAT(IsTrue(Record && Record->Absence == EVeyraAbsence::Present && Record->ClosedAbsentSeconds > 0.0,
 						TEXT("its absence counted from the start")));
+				});
+		}
+
+		TEST_METHOD(ANoShowsAutomaticYesCountsTowardItsTeamsRemake)
+		{
+			Tuning->Tuning.Votes.Remake.YesVotes = WholeTeam;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenClient(TEXT("The one player of its side who came asks for a remake"), FirstClientIndex, [](FState& State) {
+					LocalControllerOf(State.World)->RequestVote(EVeyraVoteKind::Remake);
+				})
+				.UntilServer(TEXT("With the no-show's YES, the match ends as a remake"), [](FState& State) {
+					return GameStateOf(State.World)->GetPhase() == EVeyraMatchPhase::Ended;
 				});
 		}
 	};

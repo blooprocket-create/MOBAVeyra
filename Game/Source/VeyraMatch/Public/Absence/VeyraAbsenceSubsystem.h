@@ -61,6 +61,9 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAbsenceChanged, AVeyraPlayerState& /*Participant*/, const FVeyraAbsenceRecord& /*Record*/);
 	FOnAbsenceChanged OnBecameAfk;
 	FOnAbsenceChanged OnPersonalLoss;
+	/** Called when an AFK participant acts again, or a disconnected one returns. */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCameBack, const AVeyraPlayerState& /*Participant*/);
+	FOnCameBack OnCameBack;
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual bool IsTickable() const override { return bRunning; }
@@ -80,7 +83,7 @@ private:
 		TOptional<FVeyraPlayerStatistics> AtReturn;
 	};
 
-	/** Notes what Participant's record holds as it first comes back after a personal loss. */
+	/** Tells OnCameBack that Participant is back, and keeps its record as it first comes back after a personal loss. */
 	void NoteComeBack(const AVeyraPlayerState& Participant, FTracked& Entry) const;
 
 	TMap<TWeakObjectPtr<AVeyraPlayerState>, FTracked> Tracked;

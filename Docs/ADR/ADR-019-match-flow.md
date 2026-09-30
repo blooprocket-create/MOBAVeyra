@@ -71,9 +71,11 @@ A match can be won, but it has none of the Match Flow Bible's safety valves:
 | Remake | either team | 0:00–5:00, to start | 3 of 5 | votes YES | 30 s | 60 s, that team |
 | Surrender | either team | from 15:00 | 3 of 5 | abstains | 30 s | 180 s, that team |
 | Pause | anyone | live | all 10 | votes YES (AFK too) | 60 s | 180 s |
-| Early resume | anyone | intermission | all 10 | votes YES | — | — |
+| Early resume | anyone | intermission | all 10 | votes YES | the rest of the intermission | — |
 
 - Only the starting team votes, except on pause and resume.
+- **A team's vote reaches only that team.** Its state goes to each of the team's PlayerControllers, which replicate to their own players alone; the game state carries only a vote for everyone (pause and resume). The HUD and match menu read `AVeyraPlayerController::GetOpenVote`.
+- The voters are every seated participant, a no-show's kept seat included (§1), so its automatic ballot counts.
 - A recorded vote is locked.
 - A vote fails as soon as it can no longer pass.
 - Votes and the intermission run on real time, since a pause stops world time.
@@ -98,9 +100,10 @@ The Match Flow Bible gives every value, as initial tuning, in `Game/Tuning/Match
 
 The UX Bible approves no layouts for these screens, so they stay grey-box:
 - **AFK warning:** a banner under the match clock.
-- **Vote panel:** under the match clock, with the kind, the tally, the time left, and Yes and No.
+- **Vote panel:** under the match clock, with the kind, the tally, the time left, and Yes and No on F1 and F2 (`VoteYesKey`, `VoteNoKey`). A team's vote shows only to that team, as League shows a surrender.
 - **Match menu:** Surrender, Remake and Request Pause. Each is refused with the reason its rule gives.
-- **Intermission:** "Paused — resumes in m:ss", with Resume Early.
+- **Intermission:** "Paused, resumes in m:ss", with Resume Early.
+- **Scoreboard:** a player who left keeps its line, marked disconnected, since a client's own player list drops inactive PlayerStates.
 
 ### 8. Delivery
 

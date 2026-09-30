@@ -346,6 +346,10 @@ namespace
 			return TEXT("host_ended");
 		case EVeyraMatchEndReason::PrimeWellDestroyed:
 			return TEXT("prime_well_destroyed");
+		case EVeyraMatchEndReason::Surrender:
+			return TEXT("surrender");
+		case EVeyraMatchEndReason::Remake:
+			return TEXT("remake");
 		}
 		checkNoEntry();
 		return TEXT("");

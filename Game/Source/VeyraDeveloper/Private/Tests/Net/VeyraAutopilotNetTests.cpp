@@ -169,13 +169,15 @@ namespace VeyraNetTests
 					const AVeyraVanguardController* Controller = Watched->GetVanguardController();
 					return Record && Record->Absence == EVeyraAbsence::Afk && Controller && Controller->GetMoveOrder().IsSet();
 				})
+				.UntilClients(TEXT("Each player is warned it is AFK"), [](FState& State) { return LocalControllerOf(State.World)->IsWarnedAfk(); })
 				.ThenClients(TEXT("Each player orders a move"), [](FState& State) {
 					LocalControllerOf(State.World)->IssueMoveOrder(FVector::ZeroVector);
 				})
 				.UntilServer(TEXT("It is present again"), [this](FState& State) {
 					const FVeyraAbsenceRecord* Record = State.World->GetSubsystem<UVeyraAbsenceSubsystem>()->Find(*Watched);
 					return Record && Record->Absence == EVeyraAbsence::Present && Record->ReturnedAt.IsSet();
-				});
+				})
+				.UntilClients(TEXT("And is told it is back in control"), [](FState& State) { return !LocalControllerOf(State.World)->IsWarnedAfk(); });
 		}
 	};
 }

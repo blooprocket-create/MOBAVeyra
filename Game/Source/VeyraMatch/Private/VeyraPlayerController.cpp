@@ -2,12 +2,15 @@
 
 #include "VeyraPlayerController.h"
 
+#include "Votes/VeyraVoteSubsystem.h"
 #include "Engine/LocalPlayer.h"
 #include "Engine/World.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "GameFramework/PlayerState.h"
 #include "HAL/IConsoleManager.h"
+#include "Net/Core/PushModel/PushModel.h"
+#include "Net/UnrealNetwork.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
@@ -16,6 +19,7 @@
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraGameMode.h"
+#include "VeyraGameState.h"
 #include "VeyraMatchLog.h"
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
@@ -129,6 +133,8 @@ void AVeyraPlayerController::SetupInputComponent()
 		Enhanced->BindAction(Input.MoveOrder, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnMoveOrderHeld);
 		Enhanced->BindAction(Input.AttackMove, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAttackMovePressed);
 		Enhanced->BindAction(Input.Recall, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnRecallPressed);
+		Enhanced->BindAction(Input.VoteYes, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteYesPressed);
+		Enhanced->BindAction(Input.VoteNo, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteNoPressed);
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 		{
 			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
@@ -180,6 +186,22 @@ void AVeyraPlayerController::OnAttackMovePressed()
 void AVeyraPlayerController::OnRecallPressed()
 {
 	RequestRecall();
+}
+
+void AVeyraPlayerController::OnVoteYesPressed()
+{
+	CastVote(true);
+}
+
+void AVeyraPlayerController::OnVoteNoPressed()
+{
+	CastVote(false);
+}
+
+void AVeyraPlayerController::ClientAbsenceWarning_Implementation(bool bAfk)
+{
+	bWarnedAfk = bAfk;
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s"), bAfk ? TEXT("The server counts this player AFK; the Vanguard walks to safety.") : TEXT("This player is back in control."));
 }
 
 AActor* AVeyraPlayerController::FindEnemyUnderCursor() const
@@ -340,6 +362,69 @@ void AVeyraPlayerController::ServerRequestEndCustomMatch_Implementation()
 	{
 		ClientEndCustomMatchRefused(Refusal);
 	}
+}
+
+void AVeyraPlayerController::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+	FDoRepLifetimeParams Params;
+	Params.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerController, TeamVote, Params);
+}
+
+const FVeyraVoteState& AVeyraPlayerController::GetOpenVote() const
+{
+	const AVeyraGameState* GameState = GetWorld() ? GetWorld()->GetGameState<AVeyraGameState>() : nullptr;
+	return GameState && GameState->GetVote().bOpen ? GameState->GetVote() : TeamVote;
+}
+
+void AVeyraPlayerController::SetTeamVote(const FVeyraVoteState& InVote)
+{
+	if (TeamVote == InVote)
+	{
+		return;
+	}
+	TeamVote = InVote;
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerController, TeamVote, this);
+}
+
+void AVeyraPlayerController::RequestVote(EVeyraVoteKind Kind)
+{
+	ServerRequestVote(Kind);
+}
+
+void AVeyraPlayerController::CastVote(bool bYes)
+{
+	ServerCastVote(bYes);
+}
+
+void AVeyraPlayerController::ServerRequestVote_Implementation(EVeyraVoteKind Kind)
+{
+	UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>();
+	const AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>();
+	const EVeyraVoteRefusal Refusal = Votes && Participant ? Votes->Request(*Participant, Kind) : EVeyraVoteRefusal::NotAVoter;
+	if (Refusal != EVeyraVoteRefusal::None)
+	{
+		ClientVoteRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ServerCastVote_Implementation(bool bYes)
+{
+	UVeyraVoteSubsystem* Votes = GetWorld()->GetSubsystem<UVeyraVoteSubsystem>();
+	const AVeyraPlayerState* Participant = GetPlayerState<AVeyraPlayerState>();
+	const EVeyraVoteRefusal Refusal = Votes && Participant ? Votes->CastBallot(*Participant, bYes) : EVeyraVoteRefusal::NotAVoter;
+	if (Refusal != EVeyraVoteRefusal::None)
+	{
+		ClientVoteRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ClientVoteRefused_Implementation(EVeyraVoteRefusal Refusal)
+{
+	LastVoteRefusal = Refusal;
+	++VoteRefusalCount;
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused the vote: %s."), *StaticEnum<EVeyraVoteRefusal>()->GetNameStringByValue(static_cast<int64>(Refusal)));
 }
 
 void AVeyraPlayerController::ClientEndCustomMatchRefused_Implementation(EVeyraEndCustomMatchRefusal Refusal)

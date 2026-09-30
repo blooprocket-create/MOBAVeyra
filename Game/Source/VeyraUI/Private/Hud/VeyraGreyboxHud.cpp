@@ -19,6 +19,7 @@
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraGameState.h"
+#include "VeyraPlayerController.h"
 #include "VeyraPlayerState.h"
 
 namespace
@@ -135,19 +136,49 @@ namespace
 		}
 	}
 
-	/** The phase and match clock, top centre; "Paused" while a pause holds the match. */
-	void DrawMatchClock(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const AVeyraGameState& GameState)
+	/** One line centred at the top, Row lines under the first. */
+	void DrawCentredLine(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FString& Text, int32 Row, const FLinearColor& Color)
+	{
+		float Width = 0.0f;
+		float Height = 0.0f;
+		Canvas.TextSize(HudFont(), Text, Width, Height);
+		DrawHudText(Canvas, FVector2D((Canvas.ClipX - Width) / 2.0f, Settings.HudMargin + Row * HudLineHeight()), Text, Color);
+	}
+
+	/**
+	 * The phase and match clock, top centre; "Paused" while a pause holds the match, with the time left
+	 * of a voted intermission. Under it, the open vote the viewer may answer, and the viewer's AFK
+	 * warning (ADR-019 §7).
+	 */
+	void DrawMatchClock(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const AVeyraGameState& GameState, const APlayerController* Viewer)
 	{
 		const int32 Seconds = FMath::FloorToInt32(GameState.GetMatchClockSeconds());
 		FString Text = FString::Printf(TEXT("%s  %02d:%02d"), *HudEnumName(GameState.GetPhase()), Seconds / SecondsPerMinute, Seconds % SecondsPerMinute);
 		if (GameState.IsMatchPaused())
 		{
-			Text += TEXT("  Paused");
+			const int32 Left = GameState.GetIntermissionSecondsLeft();
+			Text += Left > 0 ? FString::Printf(TEXT("  Paused, resumes in %d:%02d"), Left / SecondsPerMinute, Left % SecondsPerMinute) : FString(TEXT("  Paused"));
 		}
-		float Width = 0.0f;
-		float Height = 0.0f;
-		Canvas.TextSize(HudFont(), Text, Width, Height);
-		DrawHudText(Canvas, FVector2D((Canvas.ClipX - Width) / 2.0f, Settings.HudMargin), Text, Settings.TextColor);
+		DrawCentredLine(Canvas, Settings, Text, 0, Settings.TextColor);
+		int32 Row = 1;
+		const AVeyraPlayerState* Own = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr;
+		const AVeyraPlayerController* Voter = Cast<AVeyraPlayerController>(Viewer);
+		const FVeyraVoteState& Vote = Voter ? Voter->GetOpenVote() : GameState.GetVote();
+		// A team's vote reaches only that team, as League shows a surrender.
+		if (Vote.bOpen && Own)
+		{
+			const UVeyraInputSettings& Input = *GetDefault<UVeyraInputSettings>();
+			const bool bVoted = Vote.Voted.Contains(Own->GetPlayerId());
+			const FString Answer = bVoted ? FString(TEXT("you voted"))
+				: FString::Printf(TEXT("%s Yes, %s No"), *Input.VoteYesKey.GetDisplayName().ToString(), *Input.VoteNoKey.GetDisplayName().ToString());
+			DrawCentredLine(Canvas, Settings, FString::Printf(TEXT("%s vote: %d of %d yes, %d no, %.0f s   %s"), *HudEnumName(Vote.Kind), Vote.Yes, Vote.Needed, Vote.No,
+				Vote.SecondsLeft, *Answer), Row++, Settings.TextColor);
+		}
+		const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);
+		if (Player && Player->IsWarnedAfk())
+		{
+			DrawCentredLine(Canvas, Settings, TEXT("You are AFK: your Vanguard walks to safety. Give an order to take control back."), Row++, Settings.WarningColor);
+		}
 	}
 
 	/** One line of the player's panel, in its colour. */
@@ -375,7 +406,7 @@ void VeyraGreyboxHud::Draw(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybo
 	}
 	if (const AVeyraGameState* GameState = Greybox.GetWorld()->GetGameState<AVeyraGameState>())
 	{
-		DrawMatchClock(Canvas, Settings, *GameState);
+		DrawMatchClock(Canvas, Settings, *GameState, Viewer);
 	}
 	if (const AVeyraPlayerState* Participant = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr)
 	{
