@@ -26,7 +26,7 @@ namespace VeyraItemsTests
 		/** Buys Item into the slots at once, as at the fountain. */
 		FVeyraPurchaseQuote BuyHere(const TCHAR* Item)
 		{
-			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Slots, Queue, ItemId(Item));
+			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Slots, Queue, FVeyraContentId(), ItemId(Item));
 			if (Quote.Refusal == EVeyraShopRefusal::None)
 			{
 				FVeyraPendingPurchase Entry;
@@ -41,7 +41,7 @@ namespace VeyraItemsTests
 		/** Buys Item into the queue, as away from the fountain. */
 		FVeyraPurchaseQuote BuyAway(const TCHAR* Item)
 		{
-			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Slots, Queue, ItemId(Item));
+			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Slots, Queue, FVeyraContentId(), ItemId(Item));
 			if (Quote.Refusal == EVeyraShopRefusal::None)
 			{
 				FVeyraPendingPurchase& Entry = Queue.AddDefaulted_GetRef();
@@ -136,6 +136,18 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(BuyHere(TEXT("test_temper")).Refusal == EVeyraShopRefusal::Unique));
 			BuyHere(TEXT("test_wheel"));
 			ASSERT_THAT(IsTrue(BuyHere(TEXT("test_wheel")).Refusal == EVeyraShopRefusal::None));
+		}
+
+		TEST_METHOD(OneMythicalPerMatchAndOnlyThatOneAgain)
+		{
+			const FVeyraItemsTuning Mythicals = WithMythicals(Tuning);
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			const FVeyraContentId Rival = ItemId(TEXT("test_rival"));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Mythicals, Slots, Queue, FVeyraContentId(), Rival).Refusal == EVeyraShopRefusal::None, TEXT("none chosen yet")));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Mythicals, Slots, Queue, Harbor, Rival).Refusal == EVeyraShopRefusal::MythicalTaken));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Mythicals, Slots, Queue, Harbor, Harbor).Refusal == EVeyraShopRefusal::None, TEXT("its own, again")));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Mythicals, Slots, Queue, Harbor, ItemId(TEXT("test_temper"))).Refusal == EVeyraShopRefusal::None,
+				TEXT("the choice binds only Mythicals")));
 		}
 
 		TEST_METHOD(OnePairOfBootsWhichUpgrade)
@@ -261,18 +273,18 @@ namespace VeyraItemsTests
 
 			FVeyraPendingPurchase Entry;
 			Entry.Item = Flask;
-			Entry.Paid = VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Price;
+			Entry.Paid = VeyraInventory::Quote(Refillable, Slots, Queue, FVeyraContentId(), Flask).Price;
 			ASSERT_THAT(IsTrue(VeyraInventory::Apply(Refillable, Slots, Entry) == EVeyraShopRefusal::None));
 			const FVeyraInventorySlot* Held = Slots.FindByPredicate([&Flask](const FVeyraInventorySlot& Slot) { return Slot.Item == Flask; });
 			ASSERT_THAT(IsTrue(Held && Held->Count == 1 && Held->Charges == Charges, TEXT("it arrives full")));
-			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::Unique, TEXT("held once")));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, FVeyraContentId(), Flask).Refusal == EVeyraShopRefusal::Unique, TEXT("held once")));
 
 			// One waiting in the queue is held too.
 			Slots.Reset();
 			Slots.SetNum(Tuning.Shop.InventorySlots);
 			Queue.Add(Entry);
-			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::Unique));
-			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Tuning, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::None, TEXT("one used up stacks as before")));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, FVeyraContentId(), Flask).Refusal == EVeyraShopRefusal::Unique));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Tuning, Slots, Queue, FVeyraContentId(), Flask).Refusal == EVeyraShopRefusal::None, TEXT("one used up stacks as before")));
 		}
 
 		TEST_METHOD(ResaleIsTheShopsFractionOrTheConsumablesOwn)

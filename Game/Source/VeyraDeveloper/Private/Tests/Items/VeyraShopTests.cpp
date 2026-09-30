@@ -185,6 +185,75 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(CountOf(TEXT("test_plate")) == 1 && Inventory->GetQueue().IsEmpty()));
 		}
 
+		int32 SlotOf(const TCHAR* Item) const
+		{
+			return Inventory->GetSlots().IndexOfByPredicate([Id = ItemId(Item)](const FVeyraInventorySlot& Slot) { return !Slot.IsEmpty() && Slot.Item == Id; });
+		}
+
+		TEST_METHOD(BuyingAMythicalChoosesItUntilThatPurchaseIsUndone)
+		{
+			Tuning = WithMythicals(Tuning);
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			const FVeyraContentId Rival = ItemId(TEXT("test_rival"));
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid()));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetMythical() == Harbor));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Rival) == EVeyraShopRefusal::MythicalTaken, TEXT("one per match (Item Bible §11)")));
+			// Undo takes the purchase back whole, the choice with it (ADR-025 §2).
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid()));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Rival) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetMythical() == Rival));
+		}
+
+		TEST_METHOD(SellingAMythicalKeepsTheChoiceAndItMayBeBoughtAgain)
+		{
+			Tuning = WithMythicals(Tuning);
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Sell(*Participant, SlotOf(TEXT("test_harbor"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetMythical() == Harbor, TEXT("selling does not release it (ADR-025 §8.1)")));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_rival"))) == EVeyraShopRefusal::MythicalTaken));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None, TEXT("the same one, again")));
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetMythical() == Harbor, TEXT("undoing the purchase again leaves the choice that selling kept")));
+		}
+
+		TEST_METHOD(AQueuedMythicalChoosesItAndCancellingReleasesIt)
+		{
+			Tuning = WithMythicals(Tuning);
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetQueue().Num() == 1 && Inventory->GetMythical() == Harbor, TEXT("queuing chooses it")));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_rival"))) == EVeyraShopRefusal::MythicalTaken));
+			ASSERT_THAT(IsTrue(Subsystem->Cancel(*Participant, 0) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid()));
+
+			// A queued Mythical dropped because a part it needed went away releases the choice too.
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_temper"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Cancel(*Participant, 0) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetQueue().IsEmpty() && !Inventory->GetMythical().IsValid()));
+		}
+
+		TEST_METHOD(UndoingDeliveredPurchasesReleasesTheMythicalOnlyWithItsOwn)
+		{
+			Tuning = WithMythicals(Tuning);
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			// Away, a plate and then the Mythical wait; the fountain delivers both as two undo steps.
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_plate"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None));
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(CountOf(TEXT("test_harbor")) == 1 && Inventory->GetUndoStepCount() == 2));
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid()));
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid(), TEXT("the plate's step came before the choice")));
+			ASSERT_THAT(IsTrue(Gold->GetGold() == Purse));
+		}
+
 		TEST_METHOD(SellingHappensAtTheFountainForTheResaleValue)
 		{
 			Subsystem->SetAtFountain(*Participant, true);

@@ -80,7 +80,7 @@
           "required": ["provenance", "tier", "category", "components", "cost", "stackLimit", "stats", "active", "attunement"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
-            "tier": { "description": "1 components, 2 assemblies, 3 Masterworks (Item Bible §2).", "type": "integer", "minimum": 1, "maximum": 3 },
+            "tier": { "description": "1 components, 2 assemblies, 3 Masterworks, 4 Mythicals (Item Bible §2, §11; ADR-025 §2).", "type": "integer", "minimum": 1, "maximum": 4 },
             "category": { "description": "Boots are limited per Vanguard; a consumable is used up.", "type": "string", "enum": ["Equipment", "Boots", "Consumable"] },
             "components": { "description": "The items its recipe consumes, in any order; empty for a component. Each is an item this file defines.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/contentId" } },
             "cost": { "description": "A component's price, or a recipe's completion cost beyond its components (items never auto-combine, Item Bible §1).", "type": "number", "minimum": 0, "exclusiveMinimum": true },

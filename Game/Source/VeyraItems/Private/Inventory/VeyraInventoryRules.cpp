@@ -42,6 +42,8 @@ const TCHAR* LexToString(EVeyraShopRefusal Refusal)
 		return TEXT("already equipped");
 	case EVeyraShopRefusal::NoCharges:
 		return TEXT("no charges left");
+	case EVeyraShopRefusal::MythicalTaken:
+		return TEXT("another Mythical is chosen");
 	}
 	return TEXT("unknown");
 }
@@ -193,7 +195,7 @@ TArray<int32> Simulate(const FVeyraItemsTuning& Tuning, TConstArrayView<FVeyraIn
 }
 
 FVeyraPurchaseQuote Quote(const FVeyraItemsTuning& Tuning, TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue,
-	const FVeyraContentId& Item)
+	const FVeyraContentId& Mythical, const FVeyraContentId& Item)
 {
 	FVeyraPurchaseQuote Result;
 	const FVeyraItemDefinition* Definition = Tuning.Items.Find(Item);
@@ -205,7 +207,9 @@ FVeyraPurchaseQuote Quote(const FVeyraItemsTuning& Tuning, TConstArrayView<FVeyr
 	TArray<FVeyraInventorySlot> After;
 	Simulate(Tuning, Slots, Queue, After);
 	Result.Price = Resolve(Tuning, After, *Definition, Result.Needs);
-	Result.Refusal = RefusalToHold(Tuning, After, Item);
+	// One Mythical per participant per match: the first bought stays theirs, even once sold (ADR-025 §2).
+	const bool bMythicalTaken = VeyraItems::IsMythical(*Definition) && Mythical.IsValid() && Mythical != Item;
+	Result.Refusal = bMythicalTaken ? EVeyraShopRefusal::MythicalTaken : RefusalToHold(Tuning, After, Item);
 	return Result;
 }
 

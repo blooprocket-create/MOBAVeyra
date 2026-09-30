@@ -67,7 +67,7 @@ FVeyraShopView Describe(const AActor& Participant)
 		Offer.Category = Pair.Value.Category;
 		Offer.TotalCost = VeyraItems::TotalCost(Tuning, Pair.Key);
 		// The rules the server prices a purchase by, from the same slots and queue.
-		const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->GetSlots(), Inventory->GetQueue(), Pair.Key);
+		const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->GetSlots(), Inventory->GetQueue(), Inventory->GetMythical(), Pair.Key);
 		Offer.Price = Quote.Price;
 		Offer.Refusal = Quote.Refusal;
 		if (Offer.Refusal == EVeyraShopRefusal::None && Offer.Price > View.Gold)
@@ -256,6 +256,8 @@ FText DescribeRefusal(EVeyraShopRefusal Refusal)
 		return LOCTEXT("AlreadyEquipped", "That Flux Spell is equipped already.");
 	case EVeyraShopRefusal::NoCharges:
 		return LOCTEXT("NoCharges", "It is empty: it refills at your fountain, and when your side secures a Flux Well.");
+	case EVeyraShopRefusal::MythicalTaken:
+		return LOCTEXT("MythicalTaken", "You have chosen another Mythical this match: one Mythical per match.");
 	}
 	return FText::GetEmpty();
 }

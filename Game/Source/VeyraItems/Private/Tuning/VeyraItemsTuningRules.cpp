@@ -6,9 +6,12 @@ namespace VeyraItems
 {
 namespace
 {
-	// The tier rules (Item Bible §2): components, assemblies, Masterworks. Their meaning, not tuning.
+	// The tier rules (Item Bible §2, §11): components, assemblies, Masterworks, Mythicals. Their meaning, not tuning.
 	constexpr int32 ComponentTier = 1;
 	constexpr int32 MasterworkTier = 3;
+	// How many Attunements a Masterwork and a Mythical carry (§2, §11; ADR-025 §2).
+	constexpr int32 MasterworkAttunements = 1;
+	constexpr int32 MythicalAttunements = 2;
 	// Boots stop at Tier 2 in the initial item system (Item Bible §5).
 	constexpr int32 HighestBootsTier = 2;
 
@@ -53,9 +56,10 @@ TArray<FString> Validate(const FVeyraItemsTuning& Tuning)
 		{
 			Problems.Add(FString::Printf(TEXT("%s/components: a Tier 1 component has no recipe, and every higher tier has one"), *Pointer));
 		}
-		if ((Item.Tier == MasterworkTier ? 1 : 0) != Item.Attunement.Num())
+		const int32 Attunements = Item.Tier == MasterworkTier ? MasterworkAttunements : IsMythical(Item) ? MythicalAttunements : 0;
+		if (Attunements != Item.Attunement.Num())
 		{
-			Problems.Add(FString::Printf(TEXT("%s/attunement: a Masterwork has exactly one Attunement, and no lower tier has one"), *Pointer));
+			Problems.Add(FString::Printf(TEXT("%s/attunement: a Masterwork has exactly one Attunement, a Mythical exactly two, and no lower tier has one"), *Pointer));
 		}
 		if (Item.Category == EVeyraItemCategory::Boots && Item.Tier > HighestBootsTier)
 		{

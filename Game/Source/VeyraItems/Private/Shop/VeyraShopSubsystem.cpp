@@ -56,7 +56,7 @@ EVeyraShopRefusal UVeyraShopSubsystem::Buy(AActor& Participant, const FVeyraCont
 		Deliver(Participant);
 	}
 	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
-	const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->Slots, Inventory->Queue, Item);
+	const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->Slots, Inventory->Queue, Inventory->Mythical, Item);
 	if (Quote.Refusal != EVeyraShopRefusal::None)
 	{
 		return Quote.Refusal;
@@ -65,6 +65,9 @@ EVeyraShopRefusal UVeyraShopSubsystem::Buy(AActor& Participant, const FVeyraCont
 	Entry.Item = Item;
 	Entry.Paid = Quote.Price;
 	Entry.Needs = Quote.Needs;
+	// The first Mythical bought or queued is the participant's for the match (ADR-025 §2).
+	const bool bSetsMythical = !Inventory->Mythical.IsValid() && VeyraItems::IsMythical(Tuning.Items.FindChecked(Item));
+	Entry.bSetsMythical = bSetsMythical;
 
 	if (bAtShop)
 	{
@@ -75,6 +78,7 @@ EVeyraShopRefusal UVeyraShopSubsystem::Buy(AActor& Participant, const FVeyraCont
 		FVeyraUndoStep Step;
 		Step.Paid = Quote.Price;
 		Step.SlotsBefore = Inventory->Slots;
+		Step.MythicalBefore = Inventory->Mythical;
 		TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
 		const EVeyraShopRefusal Refusal = VeyraInventory::Apply(Tuning, Slots, Entry);
 		check(Refusal == EVeyraShopRefusal::None);
@@ -94,6 +98,10 @@ EVeyraShopRefusal UVeyraShopSubsystem::Buy(AActor& Participant, const FVeyraCont
 		Queue.Add(MoveTemp(Entry));
 		Inventory->SetQueue(MoveTemp(Queue));
 	}
+	if (bSetsMythical)
+	{
+		Inventory->SetMythical(Item);
+	}
 	UE_LOG(LogVeyraItems, Log, TEXT("%s bought %s for %.0f Gold%s."), *GetNameSafe(&Participant), *Item.ToString(), Quote.Price,
 		bAtShop ? TEXT("") : TEXT(", waiting for the fountain"));
 	return EVeyraShopRefusal::None;
@@ -109,7 +117,7 @@ EVeyraShopRefusal UVeyraShopSubsystem::GrantItem(AActor& Participant, const FVey
 	}
 	// A purchase's rules without its price: the same slots, limits and recipe, its owned components consumed.
 	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
-	const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->Slots, Inventory->Queue, Item);
+	const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->Slots, Inventory->Queue, Inventory->Mythical, Item);
 	if (Quote.Refusal != EVeyraShopRefusal::None)
 	{
 		return Quote.Refusal;
@@ -123,6 +131,10 @@ EVeyraShopRefusal UVeyraShopSubsystem::GrantItem(AActor& Participant, const FVey
 		return Refusal;
 	}
 	Inventory->SetSlots(MoveTemp(Slots));
+	if (!Inventory->Mythical.IsValid() && VeyraItems::IsMythical(Tuning.Items.FindChecked(Item)))
+	{
+		Inventory->SetMythical(Item);
+	}
 	// The grant changes what an undo would restore: the steps no longer describe the slots.
 	Inventory->ResetUndoSteps();
 	Revalidate(*Inventory, *Gold);
@@ -144,6 +156,10 @@ EVeyraShopRefusal UVeyraShopSubsystem::Cancel(AActor& Participant, int32 Index)
 	Queue.RemoveAt(Index);
 	Inventory->SetQueue(MoveTemp(Queue));
 	Gold->ReleaseHold(Cancelled.GoldHold);
+	if (Cancelled.bSetsMythical)
+	{
+		Inventory->SetMythical(FVeyraContentId());
+	}
 	Revalidate(*Inventory, *Gold);
 	return EVeyraShopRefusal::None;
 }
@@ -282,6 +298,7 @@ EVeyraShopRefusal UVeyraShopSubsystem::Undo(AActor& Participant)
 	}
 	const double Paid = Step.Paid;
 	Inventory->SetSlots(Step.SlotsBefore);
+	Inventory->SetMythical(Step.MythicalBefore);
 	Inventory->PopUndoStep();
 	Gold->Grant(Paid, EVeyraGoldReason::Undo);
 	ApplyItems(Participant);
@@ -421,6 +438,7 @@ void UVeyraShopSubsystem::InitializeInventory(AActor& Participant)
 		TArray<FVeyraInventorySlot> Slots;
 		Slots.SetNum(UVeyraItemsTuningSubsystem::Get().Shop.InventorySlots);
 		Inventory->SetSlots(MoveTemp(Slots));
+		Inventory->SetMythical(FVeyraContentId());
 	}
 }
 
@@ -659,12 +677,17 @@ void UVeyraShopSubsystem::Deliver(AActor& Participant)
 	Revalidate(*Inventory, *Gold);
 	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
 	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
+	// The Mythical as each purchase found it: none before the one that chose it, if it waits here.
+	const bool bChoosesMythical = Inventory->Queue.ContainsByPredicate([](const FVeyraPendingPurchase& Entry) { return Entry.bSetsMythical; });
+	FVeyraContentId Mythical = bChoosesMythical ? FVeyraContentId() : Inventory->Mythical;
 	for (const FVeyraPendingPurchase& Entry : Inventory->Queue)
 	{
 		// Each delivered purchase can be undone at the fountain like one bought there (§12).
 		FVeyraUndoStep Step;
 		Step.Paid = Entry.Paid;
 		Step.SlotsBefore = Slots;
+		Step.MythicalBefore = Mythical;
+		Mythical = Entry.bSetsMythical ? Entry.Item : Mythical;
 		const EVeyraShopRefusal Refusal = VeyraInventory::Apply(Tuning, Slots, Entry);
 		check(Refusal == EVeyraShopRefusal::None);
 		Gold->SettleHold(Entry.GoldHold);
@@ -689,8 +712,12 @@ void UVeyraShopSubsystem::Revalidate(UVeyraInventoryComponent& Inventory, UVeyra
 		{
 			break;
 		}
-		// The first invalid entry; replaying again shows what depended on it.
+		// The first invalid entry; replaying again shows what depended on it. A Mythical it chose is released.
 		Gold.ReleaseHold(Queue[Invalid[0]].GoldHold);
+		if (Queue[Invalid[0]].bSetsMythical)
+		{
+			Inventory.SetMythical(FVeyraContentId());
+		}
 		Queue.RemoveAt(Invalid[0]);
 		bChanged = true;
 	}

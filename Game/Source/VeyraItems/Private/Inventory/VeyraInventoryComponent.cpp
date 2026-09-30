@@ -18,6 +18,7 @@ void UVeyraInventoryComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProper
 	FDoRepLifetimeParams Everyone;
 	Everyone.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraInventoryComponent, Slots, Everyone);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraInventoryComponent, Mythical, Everyone);
 
 	FDoRepLifetimeParams Owner;
 	Owner.bIsPushBased = true;
@@ -53,6 +54,15 @@ void UVeyraInventoryComponent::SetAtFountainState(bool bNewAtFountain)
 {
 	bAtFountain = bNewAtFountain;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraInventoryComponent, bAtFountain, this);
+}
+
+void UVeyraInventoryComponent::SetMythical(const FVeyraContentId& NewMythical)
+{
+	if (Mythical != NewMythical)
+	{
+		Mythical = NewMythical;
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraInventoryComponent, Mythical, this);
+	}
 }
 
 void UVeyraInventoryComponent::AddUndoStep(FVeyraUndoStep Step)

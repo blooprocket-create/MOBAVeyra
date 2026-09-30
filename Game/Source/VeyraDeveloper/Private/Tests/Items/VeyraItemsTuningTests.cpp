@@ -35,6 +35,17 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/items/test_temper/attunement")), TEXT("a Masterwork has one")));
 		}
 
+		TEST_METHOD(AMythicalCarriesExactlyTwoAttunements)
+		{
+			FVeyraItemsTuning Mythicals = WithMythicals(TestCatalog());
+			const TArray<FString> Problems = VeyraItems::Validate(Mythicals);
+			ASSERT_THAT(IsTrue(Problems.IsEmpty(), FString::Join(Problems, TEXT(" | "))));
+			Mythicals.Items[ItemId(TEXT("test_harbor"))].Attunement.Pop();
+			ASSERT_THAT(IsTrue(HasProblem(VeyraItems::Validate(Mythicals), TEXT("/items/test_harbor/attunement")), TEXT("one is too few (ADR-025 §2)")));
+			Mythicals.Items[ItemId(TEXT("test_harbor"))].Attunement = { ItemId(TEXT("test_weight")), ItemId(TEXT("test_charge")), ItemId(TEXT("test_weight")) };
+			ASSERT_THAT(IsTrue(HasProblem(VeyraItems::Validate(Mythicals), TEXT("/items/test_harbor/attunement")), TEXT("and three too many")));
+		}
+
 		TEST_METHOD(RecipesNeverLoopAndBootsStopAtTierTwo)
 		{
 			FVeyraItemsTuning Broken = TestCatalog();

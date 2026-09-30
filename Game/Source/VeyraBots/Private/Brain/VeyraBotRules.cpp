@@ -19,7 +19,7 @@ namespace
 	bool NeverBuyable(EVeyraShopRefusal Refusal)
 	{
 		return Refusal == EVeyraShopRefusal::UnknownItem || Refusal == EVeyraShopRefusal::Unique || Refusal == EVeyraShopRefusal::BootsLimit
-			|| Refusal == EVeyraShopRefusal::InventoryFull;
+			|| Refusal == EVeyraShopRefusal::InventoryFull || Refusal == EVeyraShopRefusal::MythicalTaken;
 	}
 
 	/** Each held item and queued purchase, by count: what a recipe's parts draw on, each copy once. */
@@ -46,7 +46,8 @@ namespace
 	 * copies not yet spoken for).
 	 */
 	void FindAffordablePart(const FVeyraItemsTuning& Items, const FVeyraContentId& Item, TConstArrayView<FVeyraInventorySlot> Slots,
-		TConstArrayView<FVeyraPendingPurchase> Queue, double Gold, TMap<FVeyraContentId, int32>& Unheld, TOptional<FVeyraContentId>& Best, double& BestPrice)
+		TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Mythical, double Gold, TMap<FVeyraContentId, int32>& Unheld,
+		TOptional<FVeyraContentId>& Best, double& BestPrice)
 	{
 		const FVeyraItemDefinition* Definition = Items.Items.Find(Item);
 		if (!Definition)
@@ -60,13 +61,13 @@ namespace
 				--*Copies;
 				continue;
 			}
-			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Items, Slots, Queue, Part);
+			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Items, Slots, Queue, Mythical, Part);
 			if (Quote.Refusal == EVeyraShopRefusal::None && Quote.Price <= Gold && Quote.Price > BestPrice)
 			{
 				Best = Part;
 				BestPrice = Quote.Price;
 			}
-			FindAffordablePart(Items, Part, Slots, Queue, Gold, Unheld, Best, BestPrice);
+			FindAffordablePart(Items, Part, Slots, Queue, Mythical, Gold, Unheld, Best, BestPrice);
 		}
 	}
 
@@ -227,7 +228,7 @@ namespace
 }
 
 TOptional<FVeyraContentId> NextPurchase(const FVeyraItemsTuning& Items, TConstArrayView<FVeyraContentId> Build,
-	TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue, double Gold)
+	TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Mythical, double Gold)
 {
 	for (const FVeyraContentId& Item : Build)
 	{
@@ -235,7 +236,7 @@ TOptional<FVeyraContentId> NextPurchase(const FVeyraItemsTuning& Items, TConstAr
 		{
 			continue;
 		}
-		const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Items, Slots, Queue, Item);
+		const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Items, Slots, Queue, Mythical, Item);
 		if (NeverBuyable(Quote.Refusal))
 		{
 			continue;
@@ -247,7 +248,7 @@ TOptional<FVeyraContentId> NextPurchase(const FVeyraItemsTuning& Items, TConstAr
 		TOptional<FVeyraContentId> Part;
 		double PartPrice = 0.0;
 		TMap<FVeyraContentId, int32> Unheld = HeldCounts(Slots, Queue);
-		FindAffordablePart(Items, Item, Slots, Queue, Gold, Unheld, Part, PartPrice);
+		FindAffordablePart(Items, Item, Slots, Queue, Mythical, Gold, Unheld, Part, PartPrice);
 		// Nothing affordable toward it: save for it rather than skip ahead.
 		return Part;
 	}

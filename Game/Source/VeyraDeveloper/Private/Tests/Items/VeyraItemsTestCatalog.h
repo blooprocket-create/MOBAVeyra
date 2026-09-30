@@ -44,4 +44,27 @@ namespace VeyraItemsTests
 		Tuning.WeightOfWar.Add(ItemId(TEXT("test_weight")));
 		return Tuning;
 	}
+
+	/**
+	 * Tuning with two Tier 4 Mythicals built on the Masterwork, each with two Attunements: Weight of War,
+	 * carried on from the Masterwork as The Last Harbor carries Safe Harbor, and an Overcharge (Item Bible
+	 * §11; ADR-025 §2). Fixture values.
+	 */
+	inline FVeyraItemsTuning WithMythicals(FVeyraItemsTuning Tuning)
+	{
+		const FVeyraContentId Weight = ItemId(TEXT("test_weight"));
+		const FVeyraContentId Charge = ItemId(TEXT("test_charge"));
+		Tuning.Overcharge.Add(Charge).MagicPowerFraction = 0.1;
+		const auto Add = [&Tuning, &Weight, &Charge](const TCHAR* Id, const TCHAR* Second) {
+			FVeyraItemDefinition& Item = Tuning.Items.Add(ItemId(Id));
+			Item.Tier = 4;
+			Item.Cost = 500.0;
+			Item.StackLimit = 1;
+			Item.Components = { ItemId(TEXT("test_temper")), ItemId(Second) };
+			Item.Attunement = { Weight, Charge };
+		};
+		Add(TEXT("test_harbor"), TEXT("test_wheel"));
+		Add(TEXT("test_rival"), TEXT("test_harness"));
+		return Tuning;
+	}
 }

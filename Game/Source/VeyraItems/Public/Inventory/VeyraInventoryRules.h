@@ -65,6 +65,10 @@ struct FVeyraPendingPurchase
 	/** The Gold hold that paid for it, in Economy. */
 	UPROPERTY()
 	int32 GoldHold = 0;
+
+	/** Whether this purchase chose the participant's Mythical: cancelling it releases the choice (ADR-025 §2). */
+	UPROPERTY()
+	bool bSetsMythical = false;
 };
 
 /** Why the shop refuses a request. */
@@ -101,6 +105,8 @@ enum class EVeyraShopRefusal : uint8
 	AlreadyEquipped,
 	/** A refillable consumable with no charge left: it refills at the fountain and from a Flux Well (ADR-023 §6). */
 	NoCharges,
+	/** Another Mythical is the participant's for this match (Item Bible §11; ADR-025 §2). */
+	MythicalTaken,
 };
 
 VEYRAITEMS_API const TCHAR* LexToString(EVeyraShopRefusal Refusal);
@@ -133,10 +139,11 @@ namespace VeyraInventory
 
 	/**
 	 * What buying Item costs once Queue delivers (§11.1): its recipe, buying each missing component as
-	 * part of it and consuming the owned ones the queue leaves, as deep as the recipe goes.
+	 * part of it and consuming the owned ones the queue leaves, as deep as the recipe goes. Mythical is
+	 * the participant's Mythical this match, invalid until one is bought: no other can be (ADR-025 §2).
 	 */
 	VEYRAITEMS_API FVeyraPurchaseQuote Quote(const FVeyraItemsTuning& Tuning, TConstArrayView<FVeyraInventorySlot> Slots,
-		TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Item);
+		TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Mythical, const FVeyraContentId& Item);
 
 	/** What selling one of Slot's items returns (§12): its consumable's own fraction, else the shop's, of what it cost. */
 	VEYRAITEMS_API double ResaleValue(const FVeyraItemsTuning& Tuning, const FVeyraInventorySlot& Slot);

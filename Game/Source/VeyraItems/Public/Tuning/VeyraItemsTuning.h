@@ -75,7 +75,7 @@ struct FVeyraItemDefinition
 	UPROPERTY()
 	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
 
-	/** 1 components, 2 assemblies, 3 Masterworks. */
+	/** 1 components, 2 assemblies, 3 Masterworks, 4 Mythicals (Item Bible §2, §11). */
 	UPROPERTY()
 	int32 Tier = 0;
 
@@ -101,7 +101,7 @@ struct FVeyraItemDefinition
 	UPROPERTY()
 	TArray<FVeyraContentId> Active;
 
-	/** Exactly one on a Masterwork, none below: an ID one of the Attunement maps defines. */
+	/** Exactly one on a Masterwork, two on a Mythical, none below: IDs the Attunement maps define. */
 	UPROPERTY()
 	TArray<FVeyraContentId> Attunement;
 };
@@ -402,7 +402,8 @@ namespace VeyraItems
 	/**
 	 * Problems with Tuning, each a JSON pointer and a message; empty when it is consistent. Tier 1 has
 	 * no recipe and no Attunement; Tier 2 has a recipe and no Attunement; Tier 3 has a recipe and
-	 * exactly one Attunement (Item Bible §2, §11); Boots stop at Tier 2 (§5); every component is a
+	 * exactly one Attunement; Tier 4 has a recipe and exactly two (Item Bible §2, §11; ADR-025 §2);
+	 * Boots stop at Tier 2 (§5); every component is a
 	 * lower tier than its recipe, so recipes never loop; a consumable is a Tier 1 item with its own
 	 * entry, and only a consumable stacks; every Attunement is defined in exactly one map; Fracture's
 	 * stacks together never remove all of a Magic Resistance.
@@ -411,4 +412,13 @@ namespace VeyraItems
 
 	/** The Gold an item costs from nothing: its cost and every component's, all the way down (Economy §12's "present form"). */
 	VEYRAITEMS_API double TotalCost(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item);
+
+	/** The Mythicals' tier (Item Bible §11): its meaning, not tuning. */
+	inline constexpr int32 MythicalTier = 4;
+
+	/** Whether Item is a Tier 4 Mythical, of which a participant buys one per match (ADR-025 §2). */
+	inline bool IsMythical(const FVeyraItemDefinition& Item)
+	{
+		return Item.Tier == MythicalTier;
+	}
 }

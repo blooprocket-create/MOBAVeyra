@@ -5,7 +5,9 @@
 #if WITH_AUTOMATION_WORKER && WITH_VEYRA_UI
 
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetTree.h"
 #include "Components/ActorTestSpawner.h"
+#include "Components/TextBlock.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Hud/VeyraHudModel.h"
 #include "Inventory/VeyraInventoryComponent.h"
@@ -61,6 +63,40 @@ namespace VeyraItemsTests
 		static const FVeyraShopOffer* OfferFor(const FVeyraShopView& View, const TCHAR* Item)
 		{
 			return View.Offers.FindByPredicate([Id = ItemId(Item)](const FVeyraShopOffer& Offer) { return Offer.Item == Id; });
+		}
+
+		/** Whether any text on Screen reads Text. */
+		static bool ShowsText(const UUserWidget& Screen, const FString& Text)
+		{
+			bool bShown = false;
+			Screen.WidgetTree->ForEachWidget([&bShown, &Text](UWidget* Widget) {
+				const UTextBlock* Block = Cast<UTextBlock>(Widget);
+				bShown |= Block && Block->GetText().ToString() == Text;
+			});
+			return bShown;
+		}
+
+		TEST_METHOD(MythicalsHaveTheirOwnGroupAndTheOthersLockOnceOneIsChosen)
+		{
+			Tuning = WithMythicals(Tuning);
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			Controller.PlayerState = Participant;
+			UVeyraShopScreen* Screen = CreateWidget<UVeyraShopScreen>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Screen));
+			Screen->Show(Controller, [] {});
+			ASSERT_THAT(IsTrue(ShowsText(*Screen, TEXT("Mythicals")), TEXT("Tier 4's heading (Item Bible §11)")));
+			ASSERT_THAT(IsFalse(ShowsText(*Screen, TEXT("Locked"))));
+
+			ASSERT_THAT(IsTrue(Subsystem->GrantItem(*Participant, ItemId(TEXT("test_harbor"))) == EVeyraShopRefusal::None));
+			Screen->Refresh();
+			const FVeyraShopOffer* Rival = OfferFor(Screen->GetView(), TEXT("test_rival"));
+			ASSERT_THAT(IsTrue(Rival && Rival->Refusal == EVeyraShopRefusal::MythicalTaken));
+			ASSERT_THAT(IsTrue(ShowsText(*Screen, TEXT("Locked")), TEXT("the rival's tile shows it locked, not a price")));
+			Screen->FindButton(UVeyraShopScreen::TileLabel(Rival->Item))->Press();
+			const UVeyraShellButton* Buy = Screen->FindButton(UVeyraShopScreen::BuyLabel(Rival->Item, Rival->Price));
+			ASSERT_THAT(IsTrue(Buy && !Buy->GetIsEnabled()));
+			ASSERT_THAT(IsTrue(ShowsText(*Screen, TEXT("Mythical Locked"))));
+			ASSERT_THAT(IsTrue(ShowsText(*Screen, VeyraShopModel::DescribeRefusal(EVeyraShopRefusal::MythicalTaken).ToString()), TEXT("and says why")));
 		}
 
 		TEST_METHOD(TheModelPricesEachItemFromWhatIsHeld)
