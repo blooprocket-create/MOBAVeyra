@@ -75,6 +75,19 @@ namespace
 		return Image;
 	}
 
+	/** Icon at Size with the tiles' rounded corners, outlined thinly; null when there is no icon. */
+	UImage* MakeIcon(UWidgetTree& Tree, UTexture2D* Icon, float Size)
+	{
+		if (!Icon)
+		{
+			return nullptr;
+		}
+		UImage* Image = Tree.ConstructWidget<UImage>(UImage::StaticClass());
+		Image->SetBrush(VeyraShellArt::Brush(Icon, FBox2f(FVector2f::ZeroVector, FVector2f::UnitVector), FVector2D(Size), Style().ButtonCornerRadius,
+			Style().PanelColor, Style().HairlineColor, 1.0f));
+		return Image;
+	}
+
 	/** Child in a box of exactly Size. */
 	USizeBox* Sized(UWidgetTree& Tree, UWidget& Child, const FVector2D& Size)
 	{
@@ -308,9 +321,19 @@ UWidget& UVeyraShellScreen::MakeCentre(const FVeyraSelectModel& Model)
 		Kit->SetContent(Lines);
 		for (const FVeyraAbilityLineModel& Ability : Model.Abilities)
 		{
-			AddLine(*WidgetTree, *Lines, FText::Format(LOCTEXT("AbilityLine", "{0}: {1}"), Ability.Key, Ability.Name), EVeyraShellText::Heading);
-			UTextBlock* Description = AddLine(*WidgetTree, *Lines, Ability.Description, EVeyraShellText::Muted, HAlign_Left, /*bWrap*/ true);
-			Cast<UVerticalBoxSlot>(Description->Slot)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, Settings.Spacing / 2.0f));
+			// Each ability's icon beside its name and what it does, as League's ability list reads.
+			UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+			if (UImage* Icon = MakeIcon(*WidgetTree, VeyraShellArt::AbilityIconOf(Ability.AbilityId), Settings.AbilityIconSize))
+			{
+				UHorizontalBoxSlot* IconSlot = Line->AddChildToHorizontalBox(Sized(*WidgetTree, *Icon, FVector2D(Settings.AbilityIconSize)));
+				IconSlot->SetVerticalAlignment(VAlign_Top);
+				IconSlot->SetPadding(FMargin(0.0f, 0.0f, Settings.Spacing, 0.0f));
+			}
+			UVerticalBox* Texts = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			AddLine(*WidgetTree, *Texts, FText::Format(LOCTEXT("AbilityLine", "{0}: {1}"), Ability.Key, Ability.Name), EVeyraShellText::Heading);
+			AddLine(*WidgetTree, *Texts, Ability.Description, EVeyraShellText::Muted, HAlign_Left, /*bWrap*/ true);
+			Line->AddChildToHorizontalBox(Texts)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			Lines->AddChildToVerticalBox(Line)->SetPadding(FMargin(0.0f, 0.0f, 0.0f, Settings.Spacing / 2.0f));
 		}
 		UOverlaySlot* KitSlot = Frame->AddChildToOverlay(Kit);
 		KitSlot->SetHorizontalAlignment(HAlign_Fill);
@@ -357,13 +380,20 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 	UHorizontalBox* Loadout = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	for (const FVeyraSpellSlotModel& SlotModel : Model.SpellSlots)
 	{
-		UVerticalBox* Tile = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		AddLine(*WidgetTree, *Tile, SlotModel.Title, EVeyraShellText::Small, HAlign_Center);
-		AddLine(*WidgetTree, *Tile, SlotModel.Chosen, EVeyraShellText::Body, HAlign_Center);
-		USizeBox* Box = Sized(*WidgetTree, *Tile, FVector2D(Settings.SpellTileSize, Settings.SpellTileSize));
+		// The chosen spell's icon fills its tile, as League shows summoner spells; its name until it has one.
+		UWidget* TileContent = MakeIcon(*WidgetTree, VeyraShellArt::AbilityIconOf(SlotModel.ChosenId), Settings.SpellTileSize);
+		if (!TileContent)
+		{
+			UVerticalBox* Tile = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+			AddLine(*WidgetTree, *Tile, SlotModel.Title, EVeyraShellText::Small, HAlign_Center);
+			AddLine(*WidgetTree, *Tile, SlotModel.Chosen, EVeyraShellText::Body, HAlign_Center);
+			TileContent = Tile;
+		}
+		USizeBox* Box = Sized(*WidgetTree, *TileContent, FVector2D(Settings.SpellTileSize, Settings.SpellTileSize));
 		const int32 SpellSlot = SlotModel.Slot;
-		AddContentButton(*Loadout, SlotModel.Title, *Box, [this, SpellSlot] { OpenSpellPicker(SpellSlot); }, Model.bCanChooseSpells,
-			OpenSpellSlot == SpellSlot);
+		UVeyraShellButton* SpellButton = AddContentButton(*Loadout, SlotModel.Title, *Box, [this, SpellSlot] { OpenSpellPicker(SpellSlot); },
+			Model.bCanChooseSpells, OpenSpellSlot == SpellSlot);
+		SpellButton->SetToolTipText(FText::Format(LOCTEXT("SpellTileTip", "{0}: {1}"), SlotModel.Title, SlotModel.Chosen));
 	}
 	const FString LockInId = Model.LockInVanguardId;
 	UTextBlock* LockInText = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("LockInTile", "LOCK IN"), EVeyraShellText::Heading);
@@ -423,12 +453,20 @@ void UVeyraShellScreen::BuildSpellPicker(const FVeyraSelectModel& Model)
 	UWrapBox* Choices = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass());
 	for (const FVeyraSpellChoiceModel& Choice : SlotModel.Choices)
 	{
-		UVerticalBox* Tile = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		AddLine(*WidgetTree, *Tile, Choice.Name, EVeyraShellText::Heading);
+		UHorizontalBox* Tile = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		if (UImage* Icon = MakeIcon(*WidgetTree, VeyraShellArt::AbilityIconOf(Choice.SpellId), Settings.AbilityIconSize))
+		{
+			UHorizontalBoxSlot* IconSlot = Tile->AddChildToHorizontalBox(Sized(*WidgetTree, *Icon, FVector2D(Settings.AbilityIconSize)));
+			IconSlot->SetVerticalAlignment(VAlign_Top);
+			IconSlot->SetPadding(FMargin(0.0f, 0.0f, Settings.Spacing / 2.0f, 0.0f));
+		}
+		UVerticalBox* Texts = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		AddLine(*WidgetTree, *Texts, Choice.Name, EVeyraShellText::Heading);
 		if (!Choice.Description.IsEmpty())
 		{
-			AddLine(*WidgetTree, *Tile, Choice.Description, EVeyraShellText::Small, HAlign_Left, /*bWrap*/ true);
+			AddLine(*WidgetTree, *Texts, Choice.Description, EVeyraShellText::Small, HAlign_Left, /*bWrap*/ true);
 		}
+		Tile->AddChildToHorizontalBox(Texts)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
 		USizeBox* Box = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 		Box->SetWidthOverride(Settings.PickerTileWidth);
 		Box->AddChild(Tile);

@@ -235,6 +235,22 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	FString VanguardArtFolder;
 
+	/** Where the items' icons are imported, such as "/Game/Veyra/UI/Items" (VeyraShellArt). */
+	UPROPERTY(Config, EditAnywhere, Category = "Art")
+	FString ItemArtFolder;
+
+	/** Where the abilities' and Flux Spells' icons are imported, such as "/Game/Veyra/UI/Abilities" (VeyraShellArt). */
+	UPROPERTY(Config, EditAnywhere, Category = "Art")
+	FString AbilityArtFolder;
+
+	/** An ability's icon beside its name and description, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Art", meta = (ClampMin = "1"))
+	float AbilityIconSize = 0.0f;
+
+	/** How an item's icon is tinted while it cannot be bought, as League greys its unaffordable items. */
+	UPROPERTY(Config, EditAnywhere, Category = "Art")
+	FLinearColor ItemDimTint = FLinearColor::Transparent;
+
 	/** Where a Vanguard's face is when VanguardPortraits does not say. */
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	FVeyraVanguardPortrait DefaultPortrait;

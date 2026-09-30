@@ -8,6 +8,7 @@
 #include "Components/ButtonSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
+#include "Components/Image.h"
 #include "Components/ScrollBox.h"
 #include "Components/SizeBox.h"
 #include "Components/Spacer.h"
@@ -16,6 +17,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
 #include "GameFramework/PlayerState.h"
+#include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
@@ -401,7 +403,8 @@ void UVeyraShopScreen::BuildQuickBuy()
 		const bool bHeld = Shown.Item.IsValid();
 		const FText Under = bHeld && Shown.Count > 1 ? FText::Format(LOCTEXT("Stack", "x{0}"), FText::AsNumber(Shown.Count)) : FText::GetEmpty();
 		AddTile(*Slots, SlotLabel(Index), bHeld ? VeyraContentText::ItemName(Shown.Item) : FText::GetEmpty(), Under, Tile, bHeld, SelectedSlot == Index,
-			[this, Index, Item = Shown.Item] { Select(Item.IsValid() ? Item : SelectedItem, Index); });
+			[this, Index, Item = Shown.Item] { Select(Item.IsValid() ? Item : SelectedItem, Index); },
+			bHeld ? VeyraShellArt::ItemIconOf(Shown.Item.ToString()) : nullptr);
 	}
 	VeyraShellStyle::AddSpaced(*QuickBuy, *Slots);
 }
@@ -450,12 +453,23 @@ void UVeyraShopScreen::BuildSpells()
 			{
 				continue;
 			}
-			AddKindButton(*Swaps, EVeyraShellButtonKind::Secondary, SwapLabel(Index, Offer.Spell), [this, Index, Spell = Offer.Spell] {
+			const bool bAllowed = Offer.Refusal == EVeyraShopRefusal::None;
+			const TFunction<void()> Swap = [this, Index, Spell = Offer.Spell] {
 				if (AVeyraPlayerController* Player = Controller.Get())
 				{
 					Player->RequestSwapFluxSpell(Index, Spell);
 				}
-			}, Offer.Refusal == EVeyraShopRefusal::None);
+			};
+			// A spell with an icon shows it, as a tile named for the swap; one without, its name.
+			const FText Name = VeyraContentText::AbilityName(Offer.Spell);
+			if (UTexture2D* Icon = VeyraShellArt::AbilityIconOf(Offer.Spell.ToString()))
+			{
+				AddTile(*Swaps, SwapLabel(Index, Offer.Spell), Name, Name, ShopStyle().ShopTileSize, bAllowed, false, Swap, Icon)->SetIsEnabled(bAllowed);
+			}
+			else
+			{
+				AddKindButton(*Swaps, EVeyraShellButtonKind::Secondary, SwapLabel(Index, Offer.Spell), Swap, bAllowed);
+			}
 		}
 		VeyraShellStyle::AddSpaced(*Catalog, *Swaps);
 	}
@@ -586,7 +600,8 @@ void UVeyraShopScreen::BuildFoot()
 		for (int32 Index = 0; Index < View.Pending.Num(); ++Index)
 		{
 			const FVeyraShopPending& Entry = View.Pending[Index];
-			VeyraShellStyle::AddSpaced(*Foot, MakeMark(VeyraContentText::ItemName(Entry.Item), Settings.ShopMarkSize, true, Settings.HairlineColor));
+			VeyraShellStyle::AddSpaced(*Foot, MakeMark(VeyraContentText::ItemName(Entry.Item), Settings.ShopMarkSize, true, Settings.HairlineColor,
+				VeyraShellArt::ItemIconOf(Entry.Item.ToString())));
 			AddKindButton(*Foot, EVeyraShellButtonKind::Quiet, CancelLabel(Index), [this, Index] {
 				if (AVeyraPlayerController* Player = Controller.Get())
 				{
@@ -617,7 +632,8 @@ UVeyraShellButton* UVeyraShopScreen::AddItemTile(UPanelWidget& Parent, const FVe
 	// Outlined when chosen from the catalog; a slot chosen in the inventory is outlined there instead.
 	const bool bSelected = Item == SelectedItem && !View.Slots.IsValidIndex(SelectedSlot);
 	const FText Name = VeyraContentText::ItemName(Item);
-	UVeyraShellButton* Tile = AddTile(Parent, TileLabel(Item), Name, Price, Size, bLit, bSelected, [this, Item] { Select(Item, INDEX_NONE); });
+	UVeyraShellButton* Tile = AddTile(Parent, TileLabel(Item), Name, Price, Size, bLit, bSelected, [this, Item] { Select(Item, INDEX_NONE); },
+		VeyraShellArt::ItemIconOf(Item.ToString()));
 	// Hovering names the item and what it gives, as League's tooltips do: initials alone can be alike.
 	const FVeyraItemDefinition* Definition = UVeyraItemsTuningSubsystem::Get().Items.Find(Item);
 	const FText Stats = Definition ? VeyraShopModel::DescribeStats(Definition->Stats) : FText::GetEmpty();
@@ -626,13 +642,13 @@ UVeyraShellButton* UVeyraShopScreen::AddItemTile(UPanelWidget& Parent, const FVe
 }
 
 UVeyraShellButton* UVeyraShopScreen::AddTile(UPanelWidget& Parent, const FText& Label, const FText& Name, const FText& Under, float Size, bool bLit,
-	bool bSelected, TFunction<void()> Action)
+	bool bSelected, TFunction<void()> Action, UTexture2D* Icon)
 {
 	// League's tile: the icon framed thinly, the frame lit when chosen, the price beneath in Gold's colour
 	// while it can be bought and dimmed while it cannot.
 	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	UVerticalBox* Stack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	Stack->AddChildToVerticalBox(&MakeMark(Name, Size, bLit, bSelected ? Settings.AccentColor : Settings.HairlineColor))->SetHorizontalAlignment(HAlign_Center);
+	Stack->AddChildToVerticalBox(&MakeMark(Name, Size, bLit, bSelected ? Settings.AccentColor : Settings.HairlineColor, Icon))->SetHorizontalAlignment(HAlign_Center);
 	UTextBlock* Line = MakeLine(*WidgetTree, Under, EVeyraShellText::Small);
 	Line->SetJustification(ETextJustify::Center);
 	Line->SetColorAndOpacity(FSlateColor(bLit ? Settings.PrimaryColor : Settings.MutedTextColor));
@@ -658,9 +674,25 @@ UVeyraShellButton* UVeyraShopScreen::AddTile(UPanelWidget& Parent, const FText& 
 	return Button;
 }
 
-UWidget& UVeyraShopScreen::MakeMark(const FText& Name, float Size, bool bLit, const FLinearColor& Edge)
+UWidget& UVeyraShopScreen::MakeMark(const FText& Name, float Size, bool bLit, const FLinearColor& Edge, UTexture2D* Icon)
 {
 	const UVeyraShellStyleSettings& Settings = ShopStyle();
+	if (Icon)
+	{
+		// The icon whole, its corners rounded like a tile's, and greyed while it cannot be had.
+		UImage* Image = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+		Image->SetBrush(VeyraShellArt::Brush(Icon, FBox2f(FVector2f::ZeroVector, FVector2f::UnitVector), FVector2D(Size), Settings.ButtonCornerRadius,
+			Settings.SurfaceRaisedColor, Edge, 1.0f));
+		if (!bLit)
+		{
+			Image->SetColorAndOpacity(Settings.ItemDimTint);
+		}
+		USizeBox* Square = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		Square->SetWidthOverride(Size);
+		Square->SetHeightOverride(Size);
+		Square->AddChild(Image);
+		return *Square;
+	}
 	UBorder* Mark = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
 	Mark->SetBrush(FSlateRoundedBoxBrush(Settings.SurfaceRaisedColor, Settings.ButtonCornerRadius, Edge, 1.0f));
 	Mark->SetPadding(FMargin(0.0f));

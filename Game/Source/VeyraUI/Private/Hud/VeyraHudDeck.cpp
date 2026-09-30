@@ -164,6 +164,18 @@ namespace
 		return Value >= 10.0 ? FString::Printf(TEXT("%d"), FMath::CeilToInt32(Value)) : FString::Printf(TEXT("%.1f"), Value);
 	}
 
+	/** Draws Icon whole in the square at At, Size across; false when there is none to draw. */
+	bool DrawIcon(const FPainter& Paint, UTexture2D* Icon, const FVector2D& At, float Size)
+	{
+		if (!Icon || !Icon->GetResource())
+		{
+			return false;
+		}
+		FCanvasTileItem Tile(At, Icon->GetResource(), FVector2D(Size), FLinearColor::White);
+		Paint.Canvas.DrawItem(Tile);
+		return true;
+	}
+
 	/** Two letters that stand for Name on a tile without an icon: its words' initials. */
 	FString Monogram(const FString& Name)
 	{
@@ -433,7 +445,10 @@ namespace
 		Paint.Rect(PassiveAt, FVector2D(Small), Settings.BarBackgroundColor);
 		Paint.Outline(PassiveAt, FVector2D(Small), Settings.HudHairlineColor);
 		const FString PassiveName = Player.Passive.IsValid() ? VeyraContentText::PassiveName(Player.Passive).ToString() : FString();
-		Paint.TextCentred(PassiveAt + FVector2D(Small / 2.0f), Monogram(PassiveName), Paint.Font(TEXT("Bold"), Settings.HudBodyFontSize), Settings.DescriptionColor);
+		if (!DrawIcon(Paint, VeyraShellArt::AbilityIconOf(Player.Passive.ToString()), PassiveAt, Small))
+		{
+			Paint.TextCentred(PassiveAt + FVector2D(Small / 2.0f), Monogram(PassiveName), Paint.Font(TEXT("Bold"), Settings.HudBodyFontSize), Settings.DescriptionColor);
+		}
 		if (Player.Passive.IsValid() && Contains(PassiveAt, FVector2D(Small), Mouse))
 		{
 			Hover = FHover{ PassiveName, TEXT("Passive"), VeyraContentText::PassiveDescription(Player.Passive).ToString() };
@@ -446,14 +461,18 @@ namespace
 			const bool bLearned = Slot.Rank > 0;
 			const FString Name = Slot.Ability.IsValid() ? VeyraContentText::AbilityName(Slot.Ability).ToString() : FString();
 			Paint.Rect(At, FVector2D(Ability), Settings.BarBackgroundColor);
-			float LineY = At.Y + Ability / 2.0f;
-			const TArray<FString> Lines = Paint.Wrap(Name, NameFont, Ability - Paint.S(8.0f), 2);
-			const float LineHeight = Paint.Measure(TEXT("Ag"), NameFont).Y;
-			LineY -= LineHeight * Lines.Num() / 2.0f - LineHeight / 2.0f;
-			for (const FString& Line : Lines)
+			if (!DrawIcon(Paint, VeyraShellArt::AbilityIconOf(Slot.Ability.ToString()), At, Ability))
 			{
-				Paint.TextCentred(FVector2D(At.X + Ability / 2.0f, LineY), Line, NameFont, bLearned ? Settings.TextColor : Settings.DescriptionColor);
-				LineY += LineHeight;
+				// Until it has an icon, its name.
+				float LineY = At.Y + Ability / 2.0f;
+				const TArray<FString> Lines = Paint.Wrap(Name, NameFont, Ability - Paint.S(8.0f), 2);
+				const float LineHeight = Paint.Measure(TEXT("Ag"), NameFont).Y;
+				LineY -= LineHeight * Lines.Num() / 2.0f - LineHeight / 2.0f;
+				for (const FString& Line : Lines)
+				{
+					Paint.TextCentred(FVector2D(At.X + Ability / 2.0f, LineY), Line, NameFont, bLearned ? Settings.TextColor : Settings.DescriptionColor);
+					LineY += LineHeight;
+				}
 			}
 			if (!bLearned)
 			{
@@ -519,7 +538,10 @@ namespace
 			const FVector2D At(X, SpellTop);
 			const FString Name = Spell.Spell.IsValid() ? VeyraContentText::AbilityName(Spell.Spell).ToString() : FString();
 			Paint.Rect(At, FVector2D(Small), Settings.BarBackgroundColor);
-			Paint.TextCentred(At + FVector2D(Small / 2.0f), Monogram(Name), Paint.Font(TEXT("Bold"), Settings.HudBodyFontSize), Settings.TextColor);
+			if (!DrawIcon(Paint, VeyraShellArt::AbilityIconOf(Spell.Spell.ToString()), At, Small))
+			{
+				Paint.TextCentred(At + FVector2D(Small / 2.0f), Monogram(Name), Paint.Font(TEXT("Bold"), Settings.HudBodyFontSize), Settings.TextColor);
+			}
 			if (Spell.bLocked)
 			{
 				Paint.Rect(At, FVector2D(Small), Settings.ShadeColor);
@@ -560,7 +582,10 @@ namespace
 			if (Held.Item.IsValid())
 			{
 				const FString Name = VeyraContentText::ItemName(Held.Item).ToString();
-				Paint.TextCentred(At + FVector2D(Item / 2.0f), Monogram(Name), Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor);
+				if (!DrawIcon(Paint, VeyraShellArt::ItemIconOf(Held.Item.ToString()), At, Item))
+				{
+					Paint.TextCentred(At + FVector2D(Item / 2.0f), Monogram(Name), Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor);
+				}
 				if (Held.Count > 1)
 				{
 					Paint.Text(At + FVector2D(Item - Paint.S(14.0f), Item - Paint.S(16.0f)), FString::FromInt(Held.Count), Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize),

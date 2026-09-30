@@ -89,6 +89,8 @@ struct FVeyraSpellSlotModel
 	FText Unlock;
 	/** The chosen spell's name, or "Empty". */
 	FText Chosen;
+	/** The chosen spell's ID; empty for none. */
+	FString ChosenId;
 	/** None first, then every roster spell. */
 	TArray<FVeyraSpellChoiceModel> Choices;
 };
@@ -101,6 +103,8 @@ struct FVeyraAbilityLineModel
 	FText Key;
 	FText Name;
 	FText Description;
+	/** The ability's or passive's ID, which its icon is found by. */
+	FString AbilityId;
 };
 struct FVeyraSelectModel
 {

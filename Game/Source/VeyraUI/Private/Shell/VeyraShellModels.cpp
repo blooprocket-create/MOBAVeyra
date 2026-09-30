@@ -304,7 +304,8 @@ namespace
 		}
 		for (const FVeyraContentId& Passive : Definition->Passive)
 		{
-			Lines.Add(FVeyraAbilityLineModel{ LOCTEXT("PassiveKey", "Passive"), VeyraContentText::PassiveName(Passive), VeyraContentText::PassiveDescription(Passive) });
+			Lines.Add(FVeyraAbilityLineModel{ LOCTEXT("PassiveKey", "Passive"), VeyraContentText::PassiveName(Passive), VeyraContentText::PassiveDescription(Passive),
+				Passive.ToString() });
 		}
 		const TPair<FText, const TArray<FVeyraContentId>*> Keys[] = {
 			{ LOCTEXT("QKey", "Q"), &Definition->Abilities.Q },
@@ -317,7 +318,7 @@ namespace
 			if (!Key.Value->IsEmpty())
 			{
 				const FVeyraContentId& Ability = (*Key.Value)[0];
-				Lines.Add(FVeyraAbilityLineModel{ Key.Key, VeyraContentText::AbilityName(Ability), VeyraContentText::AbilityDescription(Ability) });
+				Lines.Add(FVeyraAbilityLineModel{ Key.Key, VeyraContentText::AbilityName(Ability), VeyraContentText::AbilityDescription(Ability), Ability.ToString() });
 			}
 		}
 		return Lines;
@@ -344,6 +345,7 @@ namespace
 			const FText Threshold = Thresholds.IsValidIndex(Slot) ? FText::AsNumber(Thresholds[Slot]) : FText::GetEmpty();
 			SlotModel.Unlock = FText::Format(LOCTEXT("SpellSlotUnlock", "Unlocks at {0} permanent Team Flux"), Threshold);
 			SlotModel.Chosen = Chosen.IsEmpty() ? LOCTEXT("SpellSlotEmpty", "Empty") : SpellNameOf(Chosen);
+			SlotModel.ChosenId = Chosen;
 			SlotModel.Choices.Add(FVeyraSpellChoiceModel{ FString(), LOCTEXT("SpellNone", "None"), FText::GetEmpty(), Chosen.IsEmpty() });
 			for (const FVeyraContentId& Spell : Roster)
 			{

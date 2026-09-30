@@ -10,7 +10,10 @@
  * Saves each playable Vanguard's champion-select art: every <id>.png in the -Source folder becomes the
  * UI texture VeyraShellArt::HeroPackageName(<id>), replacing it. Game/Scripts/BuildVanguardArt.ps1
  * converts the hero illustrations in ConceptArt/Vanguards to those PNGs and runs it, so the art stays
- * reproducible from its source like the maps. It needs the editor; other builds report an error.
+ * reproducible from its source like the maps. With -Kind=Items each <id>.png becomes the item icon
+ * VeyraShellArt::ItemIconPackageName(<id>) instead, and with -Kind=Abilities the ability icon
+ * VeyraShellArt::AbilityIconPackageName(<id>) (Game/Scripts/BuildIconArt.ps1, from ConceptArt/Items
+ * and ConceptArt/Skills). It needs the editor; other builds report an error.
  */
 UCLASS()
 class UVeyraVanguardArtCommandlet : public UCommandlet
