@@ -209,7 +209,7 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick * Lasts / TickSeconds, 1e-3), TEXT("and no more")));
 		}
 
-		TEST_METHOD(ARefreshRestartsTheTicksAndRemovalStopsThem)
+		TEST_METHOD(ARefreshRenewsTheDurationAndRemovalStopsTheTicks)
 		{
 			constexpr double PerTick = 10.0;
 			constexpr double TickSeconds = 1.0;
@@ -218,13 +218,34 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
 			AdvanceTimers(TickSeconds + Margin);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3)));
-			// Reapplied from the same source: its duration and its ticks start again (§14).
+			// Reapplied from the same source: its duration starts again (§14), its next tick still a second after the last.
 			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
 			AdvanceTimers(TickSeconds / 2.0);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3), TEXT("no tick half a second into the new application")));
 			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, FVeyraContentId::FromText(TEXT("burn")).GetValue())));
 			AdvanceTimers(Lasts + Margin);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3), TEXT("removed early, it ticks no more")));
+		}
+
+		TEST_METHOD(ARefreshKeepsTheTickCadence)
+		{
+			constexpr double PerTick = 10.0;
+			constexpr double TickSeconds = 1.0;
+			constexpr double Lasts = 3.0;
+			constexpr double Early = 0.6;
+			constexpr double Margin = 0.1;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
+			AdvanceTimers(Early);
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
+			AdvanceTimers(TickSeconds - Early + Margin);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3), TEXT("the tick came when it would have (ADR-026 §7)")));
+			// Refreshed before every tick is due, it still ticks once a second.
+			for (int32 Refresh = 0; Refresh < 4; ++Refresh)
+			{
+				AdvanceTimers(Early);
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
+			}
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), 3.0 * PerTick, 1e-3), FString::SanitizeFloat(HealthLost())));
 		}
 
 		TEST_METHOD(ALethalTickKillsInItsSourcesName)

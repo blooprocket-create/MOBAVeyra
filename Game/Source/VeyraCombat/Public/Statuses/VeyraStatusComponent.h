@@ -137,8 +137,11 @@ private:
 	int32 FindActive(const FVeyraStatusSpec& Spec, const UAbilitySystemComponent& Source) const;
 	void MarkLedgerChanged();
 
-	/** Starts entry Sequence's ticks afresh: the first comes TickSeconds after now (§14: none as it lands). */
-	void StartTicking(int32 Sequence, FServerEntry& Server);
+	/**
+	 * Starts entry Sequence's ticks: the first FirstTickSeconds after now, TickSeconds for a new status
+	 * (§14: none as it lands) and what was left for a refreshed one (ADR-026 §7), then every TickSeconds.
+	 */
+	void StartTicking(int32 Sequence, FServerEntry& Server, double FirstTickSeconds);
 
 	/** Deals entry Sequence's next tick in its source's name, if it still has one to deal. */
 	void DealTick(int32 Sequence);

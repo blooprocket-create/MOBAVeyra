@@ -90,6 +90,7 @@ Every number is provisional tuning in `Abilities.json` and `Vanguards.json`.
 5. **Wild Dominion heals a share of the damage** dealt to wildlife, as League's jungle sustain does.
 6. **Jungle terrain** is everything between the lanes that is not river or base, as League's jungle is.
 7. **Splinters and Exposure land only on enemy Vanguards**, as the bible's passives say. Contaminated, a damage over time, lands on every unit, as League's damage over time does.
+8. **A refreshed damage over time keeps its cadence**: its next tick comes when it would have, and only its duration starts again (Combat Bible §14 renews the duration and says nothing of the ticks). Before, a refresh restarted the ticks, so Contaminated, refreshed by residue and clouds, could stop ticking altogether.
 
 ## Consequences
 
