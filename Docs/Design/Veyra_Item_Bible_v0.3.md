@@ -120,6 +120,12 @@ Canyonward takes its name from protective gear and traditions associated with Sh
 
 Breaker Aegis draws its name from the Breaker Fluxborn tradition associated with Torr's origin. Its identity is mixed defense plus faster ability cycling; it has no Active or Attunement.
 
+### Resonant Wardstone
+**Recipe:** Shatterdeep Crystal + Shatterdeep Crystal + recipe  
+**Stats:** High Magic Resistance.
+
+Resonant Wardstone is the concentrated anti-magic Assembly: the Tier 2 raw-Magic-Resistance specialization built from two Shatterdeep Crystals. It has no Active or Attunement and exists to feed heavier anti-magic Masterworks.
+
 ### Siege Frame
 **Recipe:** Vital Plate + Timing Coil + recipe  
 **Stats:** Health + Ability Haste.
