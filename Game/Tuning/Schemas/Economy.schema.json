@@ -4,7 +4,7 @@
   "description": "Gold and XP rewards owned by the Economy domain (Economy & Progression Bible §1–§8; ADR-011 §11, §17): starting and passive Gold, what lane Fluxborn, Vanguard kills and structures pay, the Team Flux farm bonus, and who is near enough to share. VeyraEconomy binds it to FVeyraEconomyTuning. The XP curve stays in Progression.json.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "gold", "passiveGold", "experience", "fluxBonus", "eligibility", "fluxSpells", "visionTools"],
+  "required": ["schemaVersion", "gold", "bounty", "killGold", "buyback", "passiveGold", "experience", "fluxBonus", "eligibility", "fluxSpells", "visionTools"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -20,10 +20,58 @@
   },
   "properties": {
     "schemaVersion": {
-      "description": "Version of this file's format. A build reads exactly one version.",
+      "description": "Version of this file's format. A build reads exactly one version. Version 6 adds the bounty, devaluation and buyback (ADR-020 §3).",
       "type": "integer",
       "minimum": 1,
-      "enum": [5]
+      "enum": [6]
+    },
+    "bounty": {
+      "description": "The visible kill-streak bounty (§5.3): paid to a Vanguard's next enemy-credited killer alone.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "byStreak"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "byStreak": {
+          "description": "The bounty at each streak of consecutive kills, from none; past the list, its last value. Never falls as the streak grows.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "number", "minimum": 0 }
+        }
+      }
+    },
+    "killGold": {
+      "description": "Death-streak devaluation of base kill Gold (§5.4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "devaluationSteps"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "devaluationSteps": {
+          "description": "Base kill Gold's multiplier at each death streak, from none: 1 first, then falling to the minimum, the last.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 }
+        }
+      }
+    },
+    "buyback": {
+      "description": "Buyback (§15): a dead Vanguard's early respawn, for Gold that rises with match time and with each purchase, behind a personal cooldown.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "availableFromSeconds", "baseCost", "costPerMinute", "costPerPurchase", "cooldownSeconds"],
+      "properties": {
+        "provenance": { "$ref": "#/definitions/provenance" },
+        "availableFromSeconds": {
+          "description": "The match time from which a dead Vanguard may buy back (§15: 10:00).",
+          "type": "number",
+          "minimum": 0
+        },
+        "baseCost": { "description": "The cost at availableFromSeconds, before any purchase.", "type": "number", "minimum": 0 },
+        "costPerMinute": { "description": "Added for each whole minute past availableFromSeconds.", "type": "number", "minimum": 0 },
+        "costPerPurchase": { "description": "Added for each buyback the same Vanguard has already bought.", "type": "number", "minimum": 0 },
+        "cooldownSeconds": { "description": "From a purchase until the next may be bought, in match seconds.", "type": "number", "minimum": 0 }
+      }
     },
     "gold": {
       "description": "Individual Gold (§1, §3, §5, §8).",

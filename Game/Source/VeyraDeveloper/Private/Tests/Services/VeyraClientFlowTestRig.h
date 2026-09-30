@@ -99,7 +99,7 @@ namespace VeyraClientFlowTests
 	inline FString ScoreboardLine(const TCHAR* Side, const TCHAR* Name, const TCHAR* Vanguard, bool bYou, int32 Kills, double StunSeconds)
 	{
 		return FString::Printf(TEXT("{\"side\":\"%s\",\"name\":\"%s\",\"vanguardId\":\"%s\",\"you\":%s,\"statistics\":{\"kills\":%d,\"deaths\":1,\"assists\":2,")
-								   TEXT("\"level\":9,\"minionKills\":80,\"jungleKills\":4,\"wellsSecured\":1,\"wellFinalHits\":0,\"wardsPlaced\":3,\"wardsDestroyed\":1,")
+								   TEXT("\"level\":9,\"minionKills\":80,\"jungleKills\":4,\"wellsSecured\":1,\"wellFinalHits\":0,\"wardsPlaced\":3,\"wardsDestroyed\":1,\"buybacks\":0,")
 								   TEXT("\"vanguardDamage\":4200.4,\"damageShielded\":0,\"selfHealing\":150,\"teammateHealing\":0,\"goldEarned\":5321.9,")
 								   TEXT("\"towerDamage\":1800,\"wellDamage\":600,\"damageDealt\":{\"physical\":9000,\"magic\":0,\"true\":45},")
 								   TEXT("\"damageTaken\":{\"physical\":3000,\"magic\":1000,\"true\":0},\"crowdControl\":{\"stun\":%g,\"slow\":0,\"total\":%g},")

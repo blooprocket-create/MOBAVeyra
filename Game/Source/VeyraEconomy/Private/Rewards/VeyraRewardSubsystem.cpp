@@ -244,8 +244,15 @@ void UVeyraRewardSubsystem::RewardVanguardKill(const FVeyraDeathEvent& Death)
 		return;
 	}
 	const FVeyraEconomyTuning& Tuning = UVeyraEconomyTuningSubsystem::Get();
-	const double KillGold = Tuning.Gold.VanguardKill;
+	// The victim's standing sets what its kill is worth (§5.4), and its streak built a bounty (§5.3).
+	const double KillGold = VeyraRewards::DevaluedKillGold(Tuning.Gold.VanguardKill, Victim->Gold->GetDeathStreak(), Tuning.KillGold);
+	const double Bounty = Victim->Gold->GetBounty();
 	Killer->Gold->Grant(KillGold, EVeyraGoldReason::Kill);
+	if (Bounty > 0.0)
+	{
+		// To the credited killer alone, beside the kill Gold, and never devalued (§5.3).
+		Killer->Gold->Grant(Bounty, EVeyraGoldReason::Bounty);
+	}
 	if (!bFirstBloodTaken)
 	{
 		// The match's first enemy-credited kill; one per match (§5.2).
@@ -264,6 +271,14 @@ void UVeyraRewardSubsystem::RewardVanguardKill(const FVeyraDeathEvent& Death)
 	for (const FRecipient* Assister : Assisters)
 	{
 		Assister->Gold->Grant(AssistGold, EVeyraGoldReason::Assist);
+	}
+	// The streaks move once the Gold is paid: the victim's kill streak ends and its death streak grows;
+	// the killer's kill streak grows; every takedown restores one step of devaluation (§5.3–5.4).
+	Victim->Gold->SetStreaks(0, VeyraRewards::DeathStreakAfterDeath(Victim->Gold->GetDeathStreak(), Tuning.KillGold));
+	Killer->Gold->SetStreaks(Killer->Gold->GetKillStreak() + 1, VeyraRewards::DeathStreakAfterTakedown(Killer->Gold->GetDeathStreak()));
+	for (const FRecipient* Assister : Assisters)
+	{
+		Assister->Gold->SetStreaks(Assister->Gold->GetKillStreak(), VeyraRewards::DeathStreakAfterTakedown(Assister->Gold->GetDeathStreak()));
 	}
 
 	// Kill XP (§6): the killer always takes part; assisters only while living and near the death.

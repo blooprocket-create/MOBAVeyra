@@ -15,6 +15,7 @@ class UAbilitySystemComponent;
 class UVeyraAbilityLoadoutComponent;
 class UVeyraAttributionComponent;
 class UVeyraBasicAttackComponent;
+class UVeyraBuybackComponent;
 class UVeyraCastStateComponent;
 class UVeyraCombatStateComponent;
 class UVeyraCooldownComponent;
@@ -173,6 +174,10 @@ private:
 	/** Gold survives death too (Economy & Progression Bible §14). */
 	UPROPERTY(VisibleAnywhere, Category = "Progression")
 	TObjectPtr<UVeyraGoldComponent> Gold;
+
+	/** And its buybacks and their cooldown (§15). */
+	UPROPERTY(VisibleAnywhere, Category = "Progression")
+	TObjectPtr<UVeyraBuybackComponent> Buyback;
 
 	/** So do items, and purchases waiting for the fountain (§10–§11). */
 	UPROPERTY(VisibleAnywhere, Category = "Items")

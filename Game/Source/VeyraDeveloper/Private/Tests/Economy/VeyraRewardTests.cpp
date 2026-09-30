@@ -78,6 +78,24 @@ namespace VeyraEconomyTests
 			ASSERT_THAT(IsTrue(VeyraRewards::AssistShare(300.0, 0, 0.5) == 0.0, TEXT("no assisters, no pool")));
 		}
 
+		TEST_METHOD(AStreaksBountyGrowsToItsCapAndDevaluationStepsDownToItsFloor)
+		{
+			FVeyraBountyTuning Bounty;
+			Bounty.ByStreak = { 0.0, 0.0, 0.0, 150.0, 300.0 };
+			ASSERT_THAT(IsTrue(VeyraRewards::Bounty(2, Bounty) == 0.0));
+			ASSERT_THAT(IsTrue(VeyraRewards::Bounty(3, Bounty) == 150.0));
+			ASSERT_THAT(IsTrue(VeyraRewards::Bounty(9, Bounty) == 300.0, TEXT("past the list, the cap")));
+
+			FVeyraKillGoldTuning KillGold;
+			KillGold.DevaluationSteps = { 1.0, 0.85, 0.7, 0.55, 0.4 };
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraRewards::DevaluedKillGold(300.0, 2, KillGold), 210.0)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraRewards::DevaluedKillGold(300.0, 7, KillGold), 120.0), TEXT("the floor")));
+			ASSERT_THAT(AreEqual(VeyraRewards::DeathStreakAfterDeath(4, KillGold), 4, TEXT("never past the floor")));
+			ASSERT_THAT(AreEqual(VeyraRewards::DeathStreakAfterTakedown(VeyraRewards::DeathStreakAfterDeath(4, KillGold)), 3,
+				TEXT("so one takedown restores one step")));
+			ASSERT_THAT(AreEqual(VeyraRewards::DeathStreakAfterTakedown(0), 0));
+		}
+
 		TEST_METHOD(TheCommittedEconomyLoads)
 		{
 			ASSERT_THAT(IsTrue(VeyraRewards::Validate(UVeyraEconomyTuningSubsystem::Get()).IsEmpty()));
@@ -216,6 +234,71 @@ namespace VeyraEconomyTests
 			// Killer and a living, nearby assister share one pool.
 			const double Pool = VeyraRewards::KillExperiencePool(VeyraRewards::KillExperience(1, Tuning.Experience), 2, false, Tuning.Experience);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(XpOf(*Killer), Pool / 2.0, Tolerance)));
+		}
+
+		static UVeyraGoldComponent& GoldComponentOf(const AVeyraVanguardCharacter& Vanguard)
+		{
+			return *Vanguard.GetPlayerState()->FindComponentByClass<UVeyraGoldComponent>();
+		}
+
+		TEST_METHOD(AKillStreaksBountyGoesToTheKillerWhoEndsIt)
+		{
+			const FVeyraEconomyTuning& Tuning = UVeyraEconomyTuningSubsystem::Get();
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			const int32 Streak = 3;
+			for (int32 Victim = 0; Victim < Streak; ++Victim)
+			{
+				AVeyraVanguardCharacter& Enemy = Spawn(World, EVeyraTeam::B, FVector(200.0, 0.0, 0.0));
+				Kill(*Killer->GetAbilitySystemComponent(), *Enemy.GetAbilitySystemComponent());
+			}
+			ASSERT_THAT(AreEqual(GoldComponentOf(*Killer).GetKillStreak(), Streak));
+			const double Bounty = VeyraRewards::Bounty(Streak, Tuning.Bounty);
+			ASSERT_THAT(IsTrue(Bounty > 0.0, TEXT("the committed bounty pays at this streak")));
+
+			AVeyraVanguardCharacter& Avenger = Spawn(World, EVeyraTeam::B, FVector(200.0, 0.0, 0.0));
+			const double Before = GoldOf(Avenger);
+			Kill(*Avenger.GetAbilitySystemComponent(), *Killer->GetAbilitySystemComponent());
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(GoldOf(Avenger) - Before, Tuning.Gold.VanguardKill + Bounty, Tolerance), TEXT("kill Gold and the bounty")));
+			ASSERT_THAT(AreEqual(GoldComponentOf(*Killer).GetKillStreak(), 0, TEXT("and the streak is over")));
+			ASSERT_THAT(AreEqual(GoldComponentOf(*Killer).GetDeathStreak(), 1));
+			ASSERT_THAT(AreEqual(GoldComponentOf(Avenger).GetKillStreak(), 1));
+		}
+
+		TEST_METHOD(AnExecutionNeitherPaysNorClearsTheBounty)
+		{
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			GoldComponentOf(*Killer).SetStreaks(4, 2);
+			AVeyraFluxborn* Minion = Battleground->SpawnFluxborn(Strider(), EVeyraTeam::B, EVeyraLane::Mid);
+			ASSERT_THAT(IsNotNull(Minion));
+			Kill(*Minion->GetAbilitySystemComponent(), *Killer->GetAbilitySystemComponent());
+			ASSERT_THAT(AreEqual(GoldComponentOf(*Killer).GetKillStreak(), 4, TEXT("no enemy Vanguard is credited: an Execution")));
+			ASSERT_THAT(AreEqual(GoldComponentOf(*Killer).GetDeathStreak(), 2, TEXT("nor does it change the devaluation")));
+		}
+
+		TEST_METHOD(ADevaluedVanguardIsWorthLessAndATakedownRestoresAStep)
+		{
+			const FVeyraEconomyTuning& Tuning = UVeyraEconomyTuningSubsystem::Get();
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Victim = Spawn(World, EVeyraTeam::B, FVector(200.0, 0.0, 0.0));
+			const int32 Deaths = 2;
+			GoldComponentOf(Victim).SetStreaks(0, Deaths);
+			GoldComponentOf(*Killer).SetStreaks(0, Deaths);
+			GoldComponentOf(*Ally).SetStreaks(0, 1);
+			FVeyraRawDamageEvent Chip;
+			Chip.Components.Add({ EVeyraDamageType::TrueDamage, 1.0 });
+			VeyraCombat::DealDamage(*Ally->GetAbilitySystemComponent(), *Victim.GetAbilitySystemComponent(), Chip);
+			const double KillerBefore = GoldOf(*Killer);
+			const double AllyBefore = GoldOf(*Ally);
+			Kill(*Killer->GetAbilitySystemComponent(), *Victim.GetAbilitySystemComponent());
+
+			const double Devalued = VeyraRewards::DevaluedKillGold(Tuning.Gold.VanguardKill, Deaths, Tuning.KillGold);
+			ASSERT_THAT(IsTrue(Devalued < Tuning.Gold.VanguardKill));
+			const double FirstBlood = Devalued * Tuning.Gold.FirstBloodFraction;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(GoldOf(*Killer) - KillerBefore, Devalued + FirstBlood, Tolerance)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(GoldOf(*Ally) - AllyBefore, Devalued * Tuning.Gold.AssistPoolFraction, Tolerance), TEXT("the pool follows")));
+			ASSERT_THAT(AreEqual(GoldComponentOf(Victim).GetDeathStreak(), Deaths + 1));
+			ASSERT_THAT(AreEqual(GoldComponentOf(*Killer).GetDeathStreak(), Deaths - 1, TEXT("a kill restores a step")));
+			ASSERT_THAT(AreEqual(GoldComponentOf(*Ally).GetDeathStreak(), 0, TEXT("as does an assist")));
 		}
 
 		TEST_METHOD(AFallenSpirePaysItsContributorsAndTheFirstPaysTheTeam)

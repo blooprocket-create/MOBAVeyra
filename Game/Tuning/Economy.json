@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "gold": {
     "provenance": "Provisional",
     "starting": 500,
@@ -12,6 +12,22 @@
     "firstStructureBonus": 100,
     "wildlife": { "ashfang": 80, "stonehorn": 80, "skittermaw": 28, "miremother": 80, "razorback": 80, "gloomwing": 80 },
     "fluxWellPool": 80
+  },
+  "bounty": {
+    "provenance": "Provisional",
+    "byStreak": [0, 0, 0, 150, 300, 450, 600, 750, 900, 1000]
+  },
+  "killGold": {
+    "provenance": "Canon",
+    "devaluationSteps": [1.0, 0.85, 0.7, 0.55, 0.4]
+  },
+  "buyback": {
+    "provenance": "Provisional",
+    "availableFromSeconds": 600,
+    "baseCost": 300,
+    "costPerMinute": 25,
+    "costPerPurchase": 150,
+    "cooldownSeconds": 240
   },
   "passiveGold": {
     "provenance": "Provisional",

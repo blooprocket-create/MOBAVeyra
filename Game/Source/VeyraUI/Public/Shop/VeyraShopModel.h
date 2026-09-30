@@ -2,10 +2,12 @@
 
 #pragma once
 
+#include "Buyback/VeyraBuybackRules.h"
 #include "Content/VeyraContentId.h"
 #include "Internationalization/Text.h"
 #include "Inventory/VeyraInventoryRules.h"
 #include "Tools/VeyraVisionToolComponent.h"
+#include "Tuning/VeyraItemsTuning.h"
 
 class AActor;
 struct FVeyraItemStatsTuning;
@@ -15,6 +17,9 @@ struct FVeyraShopOffer
 {
 	FVeyraContentId Item;
 	int32 Tier = 0;
+
+	/** Equipment, boots or a consumable: the quick-buy panels gather the last two (ADR-012 §11). */
+	EVeyraItemCategory Category = EVeyraItemCategory::Equipment;
 
 	/** Its whole recipe's cost, which orders the shop's lists. */
 	double TotalCost = 0.0;
@@ -107,6 +112,10 @@ struct FVeyraShopView
 	TArray<FVeyraShopVisionToolOffer> VisionToolOffers;
 	double VisionToolSwapCost = 0.0;
 
+	/** Shown while the Vanguard is dead in a match that has buyback: its price now, and why not if not (§15). */
+	bool bBuybackShown = false;
+	FVeyraBuybackQuote Buyback;
+
 	bool operator==(const FVeyraShopView&) const = default;
 };
 
@@ -125,4 +134,10 @@ namespace VeyraShopModel
 
 	/** Why the shop refuses, in the player's words. */
 	VEYRAUI_API FText DescribeRefusal(EVeyraShopRefusal Refusal);
+
+	/** The items Item is a component of, by tier, then whole cost, then ID, as the shop lists them. */
+	VEYRAUI_API TArray<FVeyraContentId> BuildsInto(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item);
+
+	/** Why a buyback cannot be bought, as the shop says it. Empty for None. */
+	VEYRAUI_API FText DescribeBuybackRefusal(EVeyraBuybackRefusal Refusal);
 }

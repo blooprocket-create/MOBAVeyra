@@ -89,6 +89,7 @@ private:
 		/** Crowd control it applied to enemy Vanguards, by target and kind, for the union of each (§4). */
 		TMap<TPair<FObjectKey, uint8>, TArray<FVeyraSpan>> CrowdControl;
 		FDelegateHandle GoldHandle;
+		FDelegateHandle BuybackHandle;
 	};
 
 	FRecord* Find(const UAbilitySystemComponent* Unit);
@@ -102,6 +103,7 @@ private:
 	void OnWardPlaced(const AVeyraWard& Ward, APlayerState& Placer);
 	void OnFluxWellSecured(const FVeyraFluxWellSecuredEvent& Event);
 	void OnGoldGranted(double Amount, EVeyraGoldReason Reason, TWeakObjectPtr<AVeyraPlayerState> Participant);
+	void OnBoughtBack(double Cost, TWeakObjectPtr<AVeyraPlayerState> Participant);
 
 	/** Record's scoreboard line: as it stands, or as it was when its participant left. Unset if neither. */
 	TOptional<FVeyraPlayerResult> LineOf(const FRecord& Record) const;

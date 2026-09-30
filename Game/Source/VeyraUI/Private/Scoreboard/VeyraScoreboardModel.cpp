@@ -3,6 +3,7 @@
 #include "Scoreboard/VeyraScoreboardModel.h"
 
 #include "GameFramework/PlayerState.h"
+#include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Statistics/VeyraScoreComponent.h"
@@ -52,6 +53,10 @@ FVeyraScoreboardView Describe(TConstArrayView<const APlayerState*> Participants,
 				Row.Deaths = Public.Deaths;
 				Row.Assists = Public.Assists;
 				Row.CreepScore = Public.MinionKills + Public.JungleKills;
+			}
+			if (const UVeyraGoldComponent* Gold = Participant->FindComponentByClass<UVeyraGoldComponent>())
+			{
+				Row.Bounty = FMath::FloorToInt32(Gold->GetBounty());
 			}
 			if (const UVeyraInventoryComponent* Inventory = Participant->FindComponentByClass<UVeyraInventoryComponent>())
 			{

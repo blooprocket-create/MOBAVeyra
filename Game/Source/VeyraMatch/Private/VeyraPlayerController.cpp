@@ -697,6 +697,34 @@ void AVeyraPlayerController::ClientShopRefused_Implementation(EVeyraShopRefusal 
 	UE_LOG(LogVeyraMatch, Verbose, TEXT("The shop refused a request: %s."), LexToString(Refusal));
 }
 
+void AVeyraPlayerController::RequestBuyback()
+{
+	ServerBuyback();
+}
+
+void AVeyraPlayerController::ServerBuyback_Implementation()
+{
+	if (!TakeOrderAllowance())
+	{
+		RejectOrder(EVeyraOrderRejection::TooFrequent);
+		return;
+	}
+	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
+	const EVeyraBuybackRefusal Refusal = GameMode ? GameMode->HandleBuybackOrder(GetPlayerState<AVeyraPlayerState>()) : EVeyraBuybackRefusal::Unavailable;
+	if (Refusal != EVeyraBuybackRefusal::None)
+	{
+		UE_LOG(LogVeyraMatch, Verbose, TEXT("Refused a buyback from %s: %s."), *GetNameSafe(PlayerState), LexToString(Refusal));
+		ClientBuybackRefused(Refusal);
+	}
+}
+
+void AVeyraPlayerController::ClientBuybackRefused_Implementation(EVeyraBuybackRefusal Refusal)
+{
+	LastBuybackRefusal = Refusal;
+	++BuybackRefusalCount;
+	UE_LOG(LogVeyraMatch, Verbose, TEXT("The server refused a buyback: %s."), LexToString(Refusal));
+}
+
 void AVeyraPlayerController::RequestDeveloperExperience(int32 Amount)
 {
 	ServerRequestDeveloperExperience(Amount);
@@ -821,12 +849,9 @@ void AVeyraPlayerController::OnVanguardSet(APlayerState* /*Participant*/, APawn*
 		SetViewTarget(NewPawn);
 		return;
 	}
-	// The camera starts on the Vanguard; after that it goes where the player takes it.
-	if (!bCameraPlaced)
-	{
-		bCameraPlaced = true;
-		CameraRig->LookAt(NewPawn->GetActorLocation());
-	}
+	// The camera goes to each new body, the first and each respawn, as League's does; between them it
+	// goes where the player takes it.
+	CameraRig->LookAt(NewPawn->GetActorLocation());
 	SetViewTarget(CameraRig);
 }
 

@@ -35,6 +35,8 @@ enum class EVeyraGoldReason : uint8
 	FluxWell,
 	/** An enemy ward destroyed (§8.3). */
 	WardDestroyed,
+	/** A shut-down kill streak's bounty, to its credited killer alone (§5.3). */
+	Bounty,
 };
 
 VEYRAECONOMY_API const TCHAR* LexToString(EVeyraGoldReason Reason);
@@ -103,6 +105,18 @@ public:
 	/** Owner and server only: the Gold held for purchases not yet delivered. */
 	const TArray<FVeyraGoldHold>& GetHolds() const { return Holds; }
 
+	/** Every machine: consecutive kills since its last enemy-credited death (§5.3); an Execution keeps them. */
+	int32 GetKillStreak() const { return KillStreak; }
+
+	/** Every machine: the bounty its kill streak has built, which its next enemy-credited killer takes (§5.3). */
+	double GetBounty() const;
+
+	/** Every machine: its death streak, the devaluation step its kill Gold is at (§5.4). */
+	int32 GetDeathStreak() const { return DeathStreak; }
+
+	/** Server only: its standing after a kill, a takedown or an enemy-credited death. */
+	void SetStreaks(int32 NewKillStreak, int32 NewDeathStreak);
+
 private:
 	void SetGold(double NewGold);
 
@@ -111,6 +125,13 @@ private:
 
 	UPROPERTY(Replicated)
 	TArray<FVeyraGoldHold> Holds;
+
+	/** Public: everyone sees a bounty (§5.3). */
+	UPROPERTY(Replicated)
+	int32 KillStreak = 0;
+
+	UPROPERTY(Replicated)
+	int32 DeathStreak = 0;
 
 	int32 NextHoldId = 1;
 };

@@ -35,6 +35,8 @@ type PlayerStatistics struct {
 	WellFinalHits  int     `json:"wellFinalHits"`
 	WardsPlaced    int     `json:"wardsPlaced"`
 	WardsDestroyed int     `json:"wardsDestroyed"`
+	// Buybacks is how many times the player bought back (ADR-020 §3).
+	Buybacks int `json:"buybacks"`
 }
 
 // DamageByType is Health removed, by damage type.
@@ -142,7 +144,7 @@ func (m *Match) validatePlayers(players []PlayerResult) error {
 
 // valid reports whether every count and amount is finite and not negative.
 func (s PlayerStatistics) valid() bool {
-	counts := []int{s.Kills, s.Deaths, s.Assists, s.Level, s.MinionKills, s.JungleKills, s.WellsSecured, s.WellFinalHits, s.WardsPlaced, s.WardsDestroyed}
+	counts := []int{s.Kills, s.Deaths, s.Assists, s.Level, s.MinionKills, s.JungleKills, s.WellsSecured, s.WellFinalHits, s.WardsPlaced, s.WardsDestroyed, s.Buybacks}
 	amounts := []float64{
 		s.VanguardDamage,
 		s.DamageDealt.Physical, s.DamageDealt.Magic, s.DamageDealt.True,

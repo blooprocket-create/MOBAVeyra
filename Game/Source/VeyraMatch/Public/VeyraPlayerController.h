@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/PlayerController.h"
+#include "Buyback/VeyraBuybackRules.h"
 #include "Content/VeyraContentId.h"
 #include "Input/VeyraInputSettings.h"
 #include "Inventory/VeyraInventoryRules.h"
@@ -164,6 +165,13 @@ public:
 	EVeyraShopRefusal GetLastShopRefusal() const { return LastShopRefusal; }
 	int32 GetShopRefusalCount() const { return ShopRefusalCount; }
 
+	/** Owning client: asks the server to buy the dead Vanguard back, from the shop (Economy & Progression Bible §15). */
+	void RequestBuyback();
+
+	/** Owning client: the reason the server gave for the last refused buyback, and how many it refused. */
+	EVeyraBuybackRefusal GetLastBuybackRefusal() const { return LastBuybackRefusal; }
+	int32 GetBuybackRefusalCount() const { return BuybackRefusalCount; }
+
 	/** This player's Vanguard, on the server and on every client, or null before it spawns. */
 	AVeyraVanguardCharacter* GetVanguard() const;
 
@@ -316,6 +324,12 @@ private:
 	UFUNCTION(Client, Unreliable)
 	void ClientShopRefused(EVeyraShopRefusal Refusal);
 
+	UFUNCTION(Server, Reliable)
+	void ServerBuyback();
+
+	UFUNCTION(Client, Unreliable)
+	void ClientBuybackRefused(EVeyraBuybackRefusal Refusal);
+
 	/** Server: runs a shop request if the order allowance and the match allow it, and tells the client why it was refused. */
 	void RunShopRequest(TFunctionRef<EVeyraShopRefusal(class UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request);
 
@@ -360,9 +374,6 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<class AVeyraCameraRig> CameraRig;
-
-	/** Whether the camera has been put on the Vanguard once; after that it moves as the player moves it. */
-	bool bCameraPlaced = false;
 
 	/** Where the cursor was on the last frame of a middle-mouse drag. */
 	TOptional<FVector2D> LastDragMouse;
@@ -429,4 +440,7 @@ private:
 
 	EVeyraShopRefusal LastShopRefusal = EVeyraShopRefusal::None;
 	int32 ShopRefusalCount = 0;
+
+	EVeyraBuybackRefusal LastBuybackRefusal = EVeyraBuybackRefusal::None;
+	int32 BuybackRefusalCount = 0;
 };

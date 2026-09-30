@@ -170,6 +170,10 @@ struct VEYRAMATCH_API FVeyraPlayerStatistics
 	UPROPERTY()
 	int32 WardsDestroyed = 0;
 
+	/** Buybacks bought (Economy & Progression Bible §15; ADR-020 §3). */
+	UPROPERTY()
+	int32 Buybacks = 0;
+
 	// The final equipment (§8).
 	/** Each inventory slot's item, in order; invalid for an empty slot. */
 	UPROPERTY()

@@ -6,6 +6,8 @@
 #include "GameFramework/GameModeBase.h"
 #include "Join/VeyraMatchRoster.h"
 #include "Teams/VeyraTeam.h"
+#include "Buyback/VeyraBuybackRules.h"
+#include "UObject/ObjectKey.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
 #include "Votes/VeyraVoteTypes.h"
@@ -98,6 +100,13 @@ public:
 	 * carries on. Refused while orders are, while dead, and under crowd control that stops casting.
 	 */
 	EVeyraOrderRejection HandleRecallOrder(AVeyraPlayerState* Participant);
+
+	/**
+	 * A dead Vanguard buys back (Economy & Progression Bible §15; ADR-020 §3): Economy takes the Gold and
+	 * starts the cooldown, and the Vanguard respawns at its fountain now, its waiting respawn spent.
+	 * Nothing about its death is undone. Standard matches only, while live and not paused.
+	 */
+	EVeyraBuybackRefusal HandleBuybackOrder(AVeyraPlayerState* Participant);
 
 	/**
 	 * Uses the player's vision tool toward Point (Vision Bible §3; ADR-016 §6): Vision decides the
@@ -266,4 +275,7 @@ private:
 	FTimerHandle LoadingTimeout;
 	FTimerHandle PreparationTimer;
 	FTimerHandle FountainTimer;
+
+	/** Each dead participant's waiting respawn, which a buyback spends. */
+	TMap<TObjectKey<AVeyraPlayerState>, FTimerHandle> RespawnTimers;
 };

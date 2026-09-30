@@ -183,7 +183,8 @@ FText UVeyraScoreboard::RowLine(const FVeyraScoreboardRow& Row)
 	const FText Vanguard = Row.Vanguard.IsValid() ? VeyraContentText::VanguardName(Row.Vanguard) : LOCTEXT("NoVanguard", "No Vanguard");
 	const FText Line = FText::Format(LOCTEXT("Row", "{0}  {1}   Lv {2}   {3}   CS {4}"), Vanguard, FText::FromString(Row.Name), FText::AsNumber(Row.Level),
 		VeyraScoreboardModel::KdaText(Row), FText::AsNumber(Row.CreepScore));
-	return Row.bAway ? FText::Format(LOCTEXT("RowAway", "{0}   (disconnected)"), Line) : Line;
+	const FText WithBounty = Row.Bounty > 0 ? FText::Format(LOCTEXT("RowBounty", "{0}   Bounty {1}"), Line, FText::AsNumber(Row.Bounty)) : Line;
+	return Row.bAway ? FText::Format(LOCTEXT("RowAway", "{0}   (disconnected)"), WithBounty) : WithBounty;
 }
 
 FText UVeyraScoreboard::ItemsLine(const FVeyraScoreboardRow& Row)

@@ -2,14 +2,19 @@
 
 #include "Shop/VeyraShopModel.h"
 
+#include "Buyback/VeyraBuybackComponent.h"
+#include "Engine/World.h"
 #include "GameFramework/Actor.h"
 #include "Gold/VeyraGoldComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
+#include "Life/VeyraLifeComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuning.h"
+#include "Shell/VeyraShellModels.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
+#include "VeyraGameState.h"
 
 #define LOCTEXT_NAMESPACE "VeyraShopModel"
 
@@ -27,6 +32,17 @@ FVeyraShopView Describe(const AActor& Participant)
 	}
 	View.Gold = Gold->GetGold();
 	View.bAtShop = Inventory->IsAtFountain();
+	// A dead Vanguard's buyback, in a standard match: priced by the rules the server uses, from the
+	// replicated match clock and the owner's buybacks (§15; ADR-020 §3).
+	const UWorld* World = Participant.GetWorld();
+	const AVeyraGameState* Match = World ? World->GetGameState<AVeyraGameState>() : nullptr;
+	const UVeyraLifeComponent* Life = Participant.FindComponentByClass<UVeyraLifeComponent>();
+	const UVeyraBuybackComponent* Buyback = Participant.FindComponentByClass<UVeyraBuybackComponent>();
+	if (Match && Match->GetMatchRules() == EVeyraMatchRules::Standard && Life && !Life->IsAlive() && Buyback)
+	{
+		View.bBuybackShown = true;
+		View.Buyback = Buyback->Quote(Match->GetMatchClockSeconds(), Match->GetServerWorldTimeSeconds(), /*bDead*/ true, *Gold);
+	}
 	View.UndoSteps = View.bAtShop ? Inventory->GetUndoStepCount() : 0;
 	for (const FVeyraInventorySlot& Slot : Inventory->GetSlots())
 	{
@@ -47,6 +63,7 @@ FVeyraShopView Describe(const AActor& Participant)
 		FVeyraShopOffer& Offer = View.Offers.AddDefaulted_GetRef();
 		Offer.Item = Pair.Key;
 		Offer.Tier = Pair.Value.Tier;
+		Offer.Category = Pair.Value.Category;
 		Offer.TotalCost = VeyraItems::TotalCost(Tuning, Pair.Key);
 		// The rules the server prices a purchase by, from the same slots and queue.
 		const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->GetSlots(), Inventory->GetQueue(), Pair.Key);
@@ -149,6 +166,51 @@ FText DescribeStats(const FVeyraItemStatsTuning& Stats)
 	Add(Stats.MoveSpeed, LOCTEXT("MoveSpeed", "+{0} Movement Speed"));
 	Add(Stats.MagicPenetrationFlat, LOCTEXT("MagicPenetrationFlat", "+{0} Magic Penetration"));
 	return FText::Join(LOCTEXT("StatSeparator", ", "), Lines);
+}
+
+TArray<FVeyraContentId> BuildsInto(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item)
+{
+	TArray<FVeyraContentId> Out;
+	for (const TPair<FVeyraContentId, FVeyraItemDefinition>& Pair : Tuning.Items)
+	{
+		if (Pair.Value.Components.Contains(Item))
+		{
+			Out.Add(Pair.Key);
+		}
+	}
+	Out.Sort([&Tuning](const FVeyraContentId& A, const FVeyraContentId& B) {
+		const FVeyraItemDefinition& First = Tuning.Items[A];
+		const FVeyraItemDefinition& Second = Tuning.Items[B];
+		if (First.Tier != Second.Tier)
+		{
+			return First.Tier < Second.Tier;
+		}
+		const double FirstCost = VeyraItems::TotalCost(Tuning, A);
+		const double SecondCost = VeyraItems::TotalCost(Tuning, B);
+		return FirstCost != SecondCost ? FirstCost < SecondCost : A.ToString() < B.ToString();
+	});
+	return Out;
+}
+
+FText DescribeBuybackRefusal(EVeyraBuybackRefusal Refusal)
+{
+	switch (Refusal)
+	{
+	case EVeyraBuybackRefusal::None:
+		return FText::GetEmpty();
+	case EVeyraBuybackRefusal::Unavailable:
+		return LOCTEXT("BuybackUnavailable", "Buyback is not available now.");
+	case EVeyraBuybackRefusal::TooEarly:
+		return FText::Format(LOCTEXT("BuybackTooEarly", "Buyback opens at {0}."),
+			VeyraShellModels::FormatCountdown(UVeyraEconomyTuningSubsystem::Get().Buyback.AvailableFromSeconds));
+	case EVeyraBuybackRefusal::Alive:
+		return LOCTEXT("BuybackAlive", "Only the dead buy back.");
+	case EVeyraBuybackRefusal::CoolingDown:
+		return LOCTEXT("BuybackCoolingDown", "Buyback is cooling down.");
+	case EVeyraBuybackRefusal::NotEnoughGold:
+		return LOCTEXT("BuybackGold", "Not enough Gold to buy back.");
+	}
+	return FText::GetEmpty();
 }
 
 FText DescribeRefusal(EVeyraShopRefusal Refusal)
