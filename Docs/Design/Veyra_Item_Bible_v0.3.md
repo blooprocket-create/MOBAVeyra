@@ -134,6 +134,18 @@ Resonant Wardstone is the concentrated anti-magic Assembly: the Tier 2 raw-Magic
 
 Foundation Plate is the concentrated anti-physical Assembly: the Tier 2 raw-Armor specialization built from two Marchplates. Its name draws from the buried bridge foundations, masonry, and ancient iron of the Buried Riverlands. It has no Active or Attunement.
 
+### Waymark Weave
+**Recipe:** Renewal Mesh + Renewal Mesh + recipe  
+**Stats:** High Health Regeneration.
+
+Waymark Weave is the concentrated Health Regeneration Assembly. Its name draws from the regenerative safe-harbor identity of the Drowned Cantons' wayfinding traditions. It has no Active or Attunement.
+
+### Rescue Rig
+**Recipe:** Vital Plate + Quickcoil + recipe  
+**Stats:** Health + Attack Speed.
+
+Rescue Rig draws from the practical harnesses, lines, and working rescue equipment used around the Drowned Cantons. It is a general Health/Attack-Speed Assembly and has no Active or Attunement.
+
 ### Siege Frame
 **Recipe:** Vital Plate + Timing Coil + recipe  
 **Stats:** Health + Ability Haste.
@@ -299,6 +311,25 @@ Quieting Chime blocks the qualifying ability impact as a whole, including its da
 Exact reform timing and stat values are prototype tuning values.
 
 Blackreef Bell draws from the Drowned Cantons' black reefs, tuned bells, sea-glass, resonance, and fog-guiding traditions. It is a general anti-magic defensive Masterwork rather than equipment exclusive to any one Vanguard.
+
+### Harborline Harness
+
+**Recipe:** Rescue Rig + Waymark Weave + Warforged Grip + Tier 3 recipe  
+**Stat identity:** Physical Power + Attack Speed + Health + high Health Regeneration.
+
+**Attunement — Safe Harbor**
+
+Damaging enemy Vanguards with attacks or abilities stores a percentage of the actual post-mitigation damage dealt as **Reserve**, up to a cap based on the holder's maximum Health.
+
+After leaving Vanguard combat for a short period, stored Reserve begins converting into Health over time.
+
+Re-entering Vanguard combat stops the recovery. Remaining Reserve is retained, subject to its cap.
+
+Damage against minions, Fluxborn, jungle wildlife, structures, and other non-Vanguard targets does not generate Reserve. Item damage does not recursively generate Reserve. AoE and DoT Reserve generation may use reduced effectiveness if required by playtesting.
+
+Harborline Harness is a cross-class physical sustain Masterwork rather than a tank-only item. It trades some pure offensive specialization for the ability to bank combat contribution as later recovery, creating a fight → disengage → recover → re-enter loop for bruisers, frontliners, and carries.
+
+Exact Reserve percentage, cap, out-of-combat delay, conversion rate, and stat values are prototype tuning values.
 
 ### Doombringer Bow
 
