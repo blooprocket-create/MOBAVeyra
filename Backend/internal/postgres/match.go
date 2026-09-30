@@ -62,14 +62,30 @@ func (t matchTx) FreePort(lo, hi int) (int, error) {
 	return 0, match.ErrNoServerCapacity
 }
 
+// customVictory and customGold are a custom match's settings as columns; NULL
+// for other rules.
+func customVictory(c *match.CustomSettings) *bool {
+	if c == nil {
+		return nil
+	}
+	return &c.VictoryEnabled
+}
+
+func customGold(c *match.CustomSettings) *float64 {
+	if c == nil {
+		return nil
+	}
+	return c.StartingGold
+}
+
 func (t matchTx) CreateMatch(m match.Match) error {
 	_, err := t.q.Exec(t.ctx, `
 		INSERT INTO match.matches (id, mode, rules, host_account_id, select_id, state, created_at, ready_at, ended_at, join_key,
-			server_credential_hash, host_port, server_removed_at, failure_reason)
-		VALUES ($1::uuid, $2, $3, $4::uuid, $5::uuid, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+			server_credential_hash, host_port, server_removed_at, failure_reason, custom_victory_enabled, custom_starting_gold)
+		VALUES ($1::uuid, $2, $3, $4::uuid, $5::uuid, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)`,
 		m.ID, m.Mode, string(m.Rules), nullableText(m.HostAccountID), nullableText(m.SelectID), string(m.State), m.CreatedAt,
 		nullableTime(m.ReadyAt), nullableTime(m.EndedAt), m.JoinKey, m.ServerCredentialHash, m.Server.HostPort,
-		nullableTime(m.Server.RemovedAt), nullableText(string(m.FailureReason)))
+		nullableTime(m.Server.RemovedAt), nullableText(string(m.FailureReason)), customVictory(m.Custom), customGold(m.Custom))
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == uniqueViolation && pgErr.ConstraintName == matchSelectConstraint {
 		return match.ErrSelectHasMatch
@@ -316,7 +332,8 @@ func (s *MatchStore) MatchesNeedingAttention(ctx context.Context) ([]match.Match
 
 func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Match, error) {
 	sql := `SELECT id::text, mode, rules, coalesce(host_account_id::text, ''), coalesce(select_id::text, ''), state, created_at,
-		ready_at, ended_at, join_key, server_credential_hash, host_port, server_removed_at, coalesce(failure_reason, '')
+		ready_at, ended_at, join_key, server_credential_hash, host_port, server_removed_at, coalesce(failure_reason, ''),
+		custom_victory_enabled, custom_starting_gold
 		FROM match.matches WHERE id = $1::uuid`
 	if lock {
 		sql += ` FOR UPDATE`
@@ -325,8 +342,10 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 	var rules, state, failure string
 	var readyAt, endedAt, removedAt *time.Time
 	var port int32
+	var victory *bool
+	var gold *float64
 	err := q.QueryRow(ctx, sql, id).Scan(&m.ID, &m.Mode, &rules, &m.HostAccountID, &m.SelectID, &state, &m.CreatedAt, &readyAt,
-		&endedAt, &m.JoinKey, &m.ServerCredentialHash, &port, &removedAt, &failure)
+		&endedAt, &m.JoinKey, &m.ServerCredentialHash, &port, &removedAt, &failure, &victory, &gold)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return match.Match{}, match.ErrMatchNotFound
 	}
@@ -334,6 +353,9 @@ func loadMatch(ctx context.Context, q querier, id string, lock bool) (match.Matc
 		return match.Match{}, err
 	}
 	m.Rules = match.Rules(rules)
+	if victory != nil {
+		m.Custom = &match.CustomSettings{VictoryEnabled: *victory, StartingGold: gold}
+	}
 	m.State = match.State(state)
 	m.FailureReason = match.FailureReason(failure)
 	m.ReadyAt, m.EndedAt = timeOrZero(readyAt), timeOrZero(endedAt)

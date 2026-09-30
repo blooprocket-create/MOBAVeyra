@@ -30,11 +30,19 @@ type selectionTx struct {
 
 func (t selectionTx) CreateSession(s selection.Session) error {
 	if _, err := t.q.Exec(t.ctx, `
-		INSERT INTO selection.sessions (id, kind, mode, host_account_id, state, created_at, deadline, starting_at, ended_at, match_id, cancel_reason, left_by)
-		VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6, $7, $8, $9, $10::uuid, $11, $12::uuid)`,
+		INSERT INTO selection.sessions (id, kind, mode, host_account_id, state, created_at, deadline, starting_at, ended_at, match_id, cancel_reason, left_by,
+			lobby_id, custom_victory_enabled, custom_starting_gold)
+		VALUES ($1::uuid, $2, $3, $4::uuid, $5, $6, $7, $8, $9, $10::uuid, $11, $12::uuid, $13::uuid, $14, $15)`,
 		s.ID, string(s.Kind), s.Mode, nullableText(s.HostAccountID), string(s.State), s.CreatedAt, s.Deadline, nullableTime(s.StartingAt),
-		nullableTime(s.EndedAt), nullableText(s.MatchID), nullableText(string(s.CancelReason)), nullableText(s.LeftBy)); err != nil {
+		nullableTime(s.EndedAt), nullableText(s.MatchID), nullableText(string(s.CancelReason)), nullableText(s.LeftBy),
+		nullableText(s.LobbyID), customVictory(s.Custom), customGold(s.Custom)); err != nil {
 		return err
+	}
+	for i, b := range s.Bots {
+		if _, err := t.q.Exec(t.ctx, `INSERT INTO selection.bots (session_id, bot_order, side, vanguard_id, difficulty) VALUES ($1::uuid, $2, $3, $4, $5)`,
+			s.ID, i, string(b.Side), b.VanguardID, string(b.Difficulty)); err != nil {
+			return err
+		}
 	}
 	for i, seat := range s.Seats {
 		if _, err := t.q.Exec(t.ctx, `INSERT INTO selection.seats (session_id, account_id, display_name, side, seat_order, hover, locked, locked_at, last_seen,
@@ -140,15 +148,18 @@ func (s *SelectionStore) Active(ctx context.Context) ([]selection.Session, error
 
 func loadSession(ctx context.Context, q querier, id string, lock bool) (selection.Session, error) {
 	sql := `SELECT id::text, kind, mode, coalesce(host_account_id::text, ''), state, created_at, deadline, starting_at, ended_at,
-		coalesce(match_id::text, ''), coalesce(cancel_reason, ''), coalesce(left_by::text, '') FROM selection.sessions WHERE id = $1::uuid`
+		coalesce(match_id::text, ''), coalesce(cancel_reason, ''), coalesce(left_by::text, ''), coalesce(lobby_id::text, ''),
+		custom_victory_enabled, custom_starting_gold FROM selection.sessions WHERE id = $1::uuid`
 	if lock {
 		sql += ` FOR UPDATE`
 	}
 	var s selection.Session
 	var kind, state, reason string
 	var startingAt, endedAt *time.Time
+	var victory *bool
+	var gold *float64
 	err := q.QueryRow(ctx, sql, id).Scan(&s.ID, &kind, &s.Mode, &s.HostAccountID, &state, &s.CreatedAt, &s.Deadline, &startingAt, &endedAt,
-		&s.MatchID, &reason, &s.LeftBy)
+		&s.MatchID, &reason, &s.LeftBy, &s.LobbyID, &victory, &gold)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return selection.Session{}, selection.ErrSelectNotFound
 	}
@@ -157,6 +168,23 @@ func loadSession(ctx context.Context, q querier, id string, lock bool) (selectio
 	}
 	s.Kind, s.State, s.CancelReason = selection.Kind(kind), selection.State(state), selection.CancelReason(reason)
 	s.StartingAt, s.EndedAt = timeOrZero(startingAt), timeOrZero(endedAt)
+	if victory != nil {
+		s.Custom = &match.CustomSettings{VictoryEnabled: *victory, StartingGold: gold}
+	}
+	botRows, err := q.Query(ctx, `SELECT side, vanguard_id, difficulty FROM selection.bots WHERE session_id = $1::uuid ORDER BY bot_order`, id)
+	if err != nil {
+		return selection.Session{}, err
+	}
+	s.Bots, err = pgx.CollectRows(botRows, func(r pgx.CollectableRow) (match.Bot, error) {
+		var b match.Bot
+		var side, difficulty string
+		err := r.Scan(&side, &b.VanguardID, &difficulty)
+		b.Side, b.Difficulty = match.Side(side), match.BotDifficulty(difficulty)
+		return b, err
+	})
+	if err != nil {
+		return selection.Session{}, err
+	}
 	rows, err := q.Query(ctx, `SELECT account_id::text, display_name, side, coalesce(hover, ''), coalesce(locked, ''), locked_at, last_seen,
 		flux_spells, flux_spells_edited
 		FROM selection.seats WHERE session_id = $1::uuid ORDER BY seat_order`, id)

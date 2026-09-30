@@ -19,6 +19,7 @@ func (s *Server) routeLobby(mux *http.ServeMux) {
 	mux.HandleFunc("PUT /v1/lobby/seats/{side}/{index}/bot", s.authed(s.setLobbyBot))
 	mux.HandleFunc("DELETE /v1/lobby/seats/{side}/{index}/bot", s.authed(s.removeLobbyBot))
 	mux.HandleFunc("PUT /v1/lobby/settings", s.authed(s.setLobbySettings))
+	mux.HandleFunc("POST /v1/lobby/launch", s.authed(s.launchLobby))
 	mux.HandleFunc("GET /v1/lobby/invites", s.authed(s.listLobbyInvites))
 	mux.HandleFunc("POST /v1/lobby/invites", s.authed(s.inviteToLobby))
 	mux.HandleFunc("POST /v1/lobby/invites/{inviteId}/accept", s.authed(s.acceptLobbyInvite))
@@ -201,6 +202,13 @@ func (s *Server) setLobbySettings(w http.ResponseWriter, r *http.Request, actor 
 		return
 	}
 	l, err := s.Lobby.SetSettings(r.Context(), actor, *req.VictoryEnabled, req.StartingGold)
+	s.respondLobbyOrFail(w, r, l, err)
+}
+
+// launchLobby is the host starting the match. The lobby, now selecting,
+// comes back; every member finds the select at GET /v1/me/select.
+func (s *Server) launchLobby(w http.ResponseWriter, r *http.Request, actor string) {
+	l, err := s.Lobby.Launch(r.Context(), actor)
 	s.respondLobbyOrFail(w, r, l, err)
 }
 

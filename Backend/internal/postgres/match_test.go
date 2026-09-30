@@ -53,6 +53,7 @@ func newMatchFixture(t *testing.T, names ...string) *matchFixture {
 		Maps:  match.FakeMaps,
 		Practice: match.PracticeSettings{Enabled: true, Mode: "custom_practice", HostSide: match.SideA,
 			Bots: []match.Bot{{Side: match.SideB, VanguardID: "cairn", Difficulty: match.BotBeginner}, {Side: match.SideB, VanguardID: "bryn", Difficulty: match.BotIntermediate}}},
+		Custom:            match.CustomModeSettings{Enabled: true, Mode: "custom_game", PlayersPerSide: 5, StartingGoldMax: 20000},
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,
 		RemoveServerAfter: time.Minute,

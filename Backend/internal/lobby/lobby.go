@@ -61,6 +61,7 @@ var (
 	ErrInviteNotFound    = errors.New("invitation not found or expired")
 	ErrBusy              = errors.New("in a match, champion select or queue")
 	ErrNoHuman           = errors.New("a custom match needs a human player")
+	ErrLaunchUnavailable = errors.New("custom matches cannot be launched")
 )
 
 // Seat is a place on a side: its side and its index there, from 0.
@@ -419,6 +420,21 @@ func (l *Lobby) CheckLaunch(hostID string) error {
 		return ErrNoHuman
 	}
 	return nil
+}
+
+// launch is what the lobby hands champion select: its humans and bots each
+// in side, then seat, order, and its rules.
+func (l *Lobby) launch() Launch {
+	out := Launch{LobbyID: l.ID, HostID: l.HostID, Members: append([]Member(nil), l.Members...), Bots: append([]Bot(nil), l.Bots...), Settings: l.Settings}
+	bySeat := func(a, b Seat) bool {
+		if a.Side != b.Side {
+			return a.Side < b.Side
+		}
+		return a.Index < b.Index
+	}
+	sort.SliceStable(out.Members, func(i, j int) bool { return bySeat(out.Members[i].Seat, out.Members[j].Seat) })
+	sort.SliceStable(out.Bots, func(i, j int) bool { return bySeat(out.Bots[i].Seat, out.Bots[j].Seat) })
+	return out
 }
 
 // BeginSelecting fixes the lobby while the champion select it launched runs.

@@ -128,6 +128,10 @@ func run(log *slog.Logger) error {
 			PickDuration:    cfg.CasualSelect.PickDuration,
 			PresenceTimeout: cfg.CasualSelect.PresenceTimeout,
 		},
+		Custom: selection.CustomSettings{
+			Mode:         cfg.CustomLobby.Mode,
+			PickDuration: cfg.CustomLobby.PickDuration,
+		},
 		StartingTimeout: cfg.Selection.StartingTimeout,
 		FluxSpells:      cfg.FluxSpells.Roster,
 	}, time.Now, log)
@@ -145,6 +149,8 @@ func run(log *slog.Logger) error {
 		StartingGoldMin: cfg.CustomLobby.StartingGold.Min,
 		StartingGoldMax: cfg.CustomLobby.StartingGold.Max,
 	}, cfg.CustomLobby.InviteLifetime, time.Now)
+	lobbies.SetLauncher(customSelects{selects})
+	selects.SetLobbies(lobbies)
 	busy := activity{matches: matches, selects: selects, lobbies: lobbies}
 	parties.SetActivity(busy)
 	mmSettings := matchmaking.Settings{AcceptDuration: cfg.MatchFound.AcceptDuration, SearchLimit: cfg.Matchmaking.SearchLimit}
@@ -256,6 +262,33 @@ func customLobbies(cfg config.Config, lobbies *lobby.Service) *lobby.Service {
 	return lobbies
 }
 
+// customSelects opens a launched custom lobby's champion select.
+type customSelects struct{ selects *selection.Service }
+
+func (c customSelects) OpenCustom(ctx context.Context, launch lobby.Launch) error {
+	seats := make([]selection.CasualSeat, len(launch.Members))
+	for i, m := range launch.Members {
+		seats[i] = selection.CasualSeat{AccountID: m.AccountID, Side: match.Side(m.Seat.Side)}
+	}
+	bots := make([]match.Bot, len(launch.Bots))
+	for i, b := range launch.Bots {
+		bots[i] = match.Bot{Side: match.Side(b.Seat.Side), VanguardID: b.VanguardID, Difficulty: match.BotDifficulty(b.Difficulty)}
+	}
+	var gold *float64
+	if launch.Settings.StartingGold != nil {
+		g := *launch.Settings.StartingGold
+		gold = &g
+	}
+	_, err := c.selects.OpenCustom(ctx, selection.CustomLaunch{
+		LobbyID:       launch.LobbyID,
+		HostAccountID: launch.HostID,
+		Seats:         seats,
+		Bots:          bots,
+		Settings:      match.CustomSettings{VictoryEnabled: launch.Settings.VictoryEnabled, StartingGold: gold},
+	})
+	return err
+}
+
 // casualSelects opens the matchmaker's Casual Selects.
 type casualSelects struct{ selects *selection.Service }
 
@@ -280,6 +313,13 @@ func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Ser
 			Enabled:  cfg.CustomPractice.Enabled,
 			Mode:     cfg.CustomPractice.Mode,
 			HostSide: match.Side(cfg.CustomPractice.HostSide),
+		},
+		Custom: match.CustomModeSettings{
+			Enabled:         cfg.CustomLobby.Enabled,
+			Mode:            cfg.CustomLobby.Mode,
+			PlayersPerSide:  cfg.CustomLobby.PlayersPerSide,
+			StartingGoldMin: cfg.CustomLobby.StartingGold.Min,
+			StartingGoldMax: cfg.CustomLobby.StartingGold.Max,
 		},
 		ReadyTimeout:      cfg.Matches.ReadyTimeout,
 		MaxDuration:       cfg.Matches.MaxDuration,

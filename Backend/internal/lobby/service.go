@@ -68,11 +68,28 @@ type Activity interface {
 	Busy(ctx context.Context, accounts []string) (bool, error)
 }
 
+// Launch is what a lobby hands champion select when its host launches: its
+// humans and bots in each side's seat order, and its rules (ADR-021 §2).
+type Launch struct {
+	LobbyID  string
+	HostID   string
+	Members  []Member
+	Bots     []Bot
+	Settings Settings
+}
+
+// Launcher opens a launched lobby's champion select, inside the lobby's
+// transaction. The selection package implements it, through cmd/veyra-backend.
+type Launcher interface {
+	OpenCustom(ctx context.Context, launch Launch) error
+}
+
 // Service applies lobby rules for an acting account.
 type Service struct {
 	store          Store
 	social         SocialGraph
 	activity       Activity
+	launcher       Launcher
 	limits         Limits
 	inviteLifetime time.Duration
 	now            func() time.Time
@@ -85,6 +102,58 @@ func NewService(store Store, social SocialGraph, activity Activity, limits Limit
 
 // Limits returns the configuration the rules apply.
 func (s *Service) Limits() Limits { return s.limits }
+
+// SetLauncher connects champion select, which in turn tells the lobby how its
+// select ended; each needs the other, so this is set after both exist.
+func (s *Service) SetLauncher(l Launcher) { s.launcher = l }
+
+// Launch is the host starting the match: every human must be free, and the
+// lobby is fixed while the champion select it opens runs (ADR-021 §2).
+func (s *Service) Launch(ctx context.Context, actor string) (Lobby, error) {
+	var out Lobby
+	err := s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
+		l, err := s.lockOwn(tx, actor)
+		if err != nil {
+			return err
+		}
+		if err := l.CheckLaunch(actor); err != nil {
+			return err
+		}
+		if err := s.requireFree(ctx, l.MemberIDs()...); err != nil {
+			return err
+		}
+		if s.launcher == nil {
+			return ErrLaunchUnavailable
+		}
+		if err := s.launcher.OpenCustom(ctx, l.launch()); err != nil {
+			return err
+		}
+		l.BeginSelecting()
+		out = l
+		return tx.SaveLobby(l)
+	})
+	return out, err
+}
+
+// SelectEnded settles a lobby after its champion select: a match that started
+// closes it, and anything else returns everyone to it. A lobby already gone is
+// nothing to settle.
+func (s *Service) SelectEnded(ctx context.Context, lobbyID string, started bool) error {
+	return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
+		l, err := tx.LockLobby(lobbyID)
+		if errors.Is(err, ErrLobbyNotFound) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if started {
+			return tx.DeleteLobby(l.ID)
+		}
+		l.Reopen()
+		return tx.SaveLobby(l)
+	})
+}
 
 // Get returns the actor's lobby.
 func (s *Service) Get(ctx context.Context, actor string) (Lobby, error) {

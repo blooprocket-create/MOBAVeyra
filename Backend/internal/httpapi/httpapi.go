@@ -280,6 +280,7 @@ var errorStatus = []struct {
 	{lobby.ErrInviteNotFound, http.StatusNotFound, "invite_not_found"},
 	{lobby.ErrBusy, http.StatusConflict, "member_busy"},
 	{lobby.ErrNoHuman, http.StatusConflict, "no_human"},
+	{lobby.ErrLaunchUnavailable, http.StatusConflict, "launch_unavailable"},
 
 	{matchmaking.ErrFoundNotFound, http.StatusNotFound, "match_found_not_found"},
 	{matchmaking.ErrAlreadyDecided, http.StatusConflict, "already_answered"},

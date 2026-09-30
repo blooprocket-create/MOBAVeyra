@@ -19,6 +19,8 @@ type Settings struct {
 	Maps map[MapKind]string
 	// Practice configures solo Custom practice matches.
 	Practice PracticeSettings
+	// Custom configures custom lobbies' matches.
+	Custom CustomModeSettings
 	// ReadyTimeout fails a match whose server has not reported ready.
 	ReadyTimeout time.Duration
 	// MaxDuration fails a ready match that has not ended.
@@ -77,6 +79,24 @@ type Spec struct {
 	SelectID string
 	// Map is which map the server loads; MapPlay when empty.
 	Map MapKind
+	// Bots are a custom match's AI participants, in each side's seat order,
+	// which sets their lanes (ADR-013). Other rules take none from the spec.
+	Bots []Bot
+	// Custom is a custom match's session rules; nil for other rules.
+	Custom *CustomSettings
+}
+
+// copyCustom returns a copy the caller cannot change through the original.
+func copyCustom(c *CustomSettings) *CustomSettings {
+	if c == nil {
+		return nil
+	}
+	out := *c
+	if c.StartingGold != nil {
+		g := *c.StartingGold
+		out.StartingGold = &g
+	}
+	return &out
 }
 
 // PlayerMatch is a player's view of their active match. The server address
@@ -150,6 +170,12 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 		}
 		// Practice gives its player targets: the configured bots (ADR-010 §7).
 		bots = append([]Bot(nil), s.settings.Practice.Bots...)
+	case RulesCustom:
+		if err := ValidateCustom(s.settings.Custom, spec.Mode, spec.HostAccountID, participants, spec.Bots, spec.Custom); err != nil {
+			return Match{}, err
+		}
+		// The host placed its bots, in each side's seat order (ADR-021 §2).
+		bots = append([]Bot(nil), spec.Bots...)
 	default:
 		return Match{}, ErrInvalidRules
 	}
@@ -182,6 +208,7 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 		State:                Allocating,
 		Participants:         participants,
 		Bots:                 bots,
+		Custom:               copyCustom(spec.Custom),
 		CreatedAt:            s.now(),
 		JoinKey:              key,
 		ServerCredentialHash: credentialHash,

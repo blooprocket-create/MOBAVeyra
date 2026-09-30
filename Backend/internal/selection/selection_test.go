@@ -29,6 +29,11 @@ var fixturePractice = PracticeSettings{Enabled: true, Mode: "custom_practice", H
 
 var fixtureCasual = CasualSettings{PickDuration: 2 * fixturePick, PresenceTimeout: 10 * time.Second}
 
+// fixtureCustomMode is the mode the fixture's custom matches record.
+const fixtureCustomMode = "custom_game"
+
+var fixtureCustom = CustomSettings{Mode: fixtureCustomMode, PickDuration: fixturePick}
+
 // fixtureFluxSpells is the roster of Flux Spells the fixture offers.
 var fixtureFluxSpells = []string{"blink", "mend", "scorch"}
 
@@ -89,6 +94,7 @@ func newFixture(t *testing.T) *fixture {
 		Modes:             map[string]match.Mode{casualMode: {ID: casualMode, Enabled: true, HumanPlayersPerTeam: 1}},
 		Maps:              match.FakeMaps,
 		Practice:          match.PracticeSettings{Enabled: true, Mode: fixturePractice.Mode, HostSide: fixturePractice.HostSide},
+		Custom:            match.CustomModeSettings{Enabled: true, Mode: fixtureCustomMode, PlayersPerSide: 5, StartingGoldMax: 20000},
 		ReadyTimeout:      time.Minute,
 		MaxDuration:       time.Hour,
 		RemoveServerAfter: time.Minute,
@@ -102,7 +108,7 @@ func newFixture(t *testing.T) *fixture {
 	f.accounts = account.NewService(account.NewMemStore(), vanguards, clock)
 	parties := PartiesFunc(func(_ context.Context, id string) (bool, error) { return f.queued[id], nil })
 	f.svc = NewService(f.store, f.accounts, names, f.matches, parties, f.blocks,
-		Settings{Practice: fixturePractice, Casual: fixtureCasual, StartingTimeout: fixtureStarting, FluxSpells: fixtureFluxSpells}, clock,
+		Settings{Practice: fixturePractice, Casual: fixtureCasual, Custom: fixtureCustom, StartingTimeout: fixtureStarting, FluxSpells: fixtureFluxSpells}, clock,
 		slog.New(slog.NewTextHandler(io.Discard, nil)))
 	f.svc.SetMatchmaking(f.ends)
 	return f

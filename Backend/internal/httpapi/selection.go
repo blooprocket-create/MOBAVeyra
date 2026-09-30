@@ -45,10 +45,19 @@ type selectJSON struct {
 	RemainingSeconds float64   `json:"remainingSeconds"`
 	// PickSeconds is the pick timer's full length, so a client can draw how
 	// much of it is left.
-	PickSeconds  float64          `json:"pickSeconds"`
-	Seats        []selectSeatJSON `json:"seats"`
-	MatchID      *string          `json:"matchId"`
-	CancelReason *string          `json:"cancelReason"`
+	PickSeconds float64          `json:"pickSeconds"`
+	Seats       []selectSeatJSON `json:"seats"`
+	// Bots are a custom select's bots, chosen in the lobby: seats already
+	// locked, in each side's seat order. Empty for other kinds.
+	Bots         []selectBotJSON `json:"bots"`
+	MatchID      *string         `json:"matchId"`
+	CancelReason *string         `json:"cancelReason"`
+}
+
+type selectBotJSON struct {
+	Side       string `json:"side"`
+	VanguardID string `json:"vanguardId"`
+	Difficulty string `json:"difficulty"`
 }
 
 // toSelectJSON is a select as one of its players sees it.
@@ -62,10 +71,14 @@ func (s *Server) toSelectJSON(session selection.Session, actor string) selectJSO
 		RemainingSeconds: s.Selection.RemainingPick(session).Seconds(),
 		PickSeconds:      session.Deadline.Sub(session.CreatedAt).Seconds(),
 		Seats:            []selectSeatJSON{},
+		Bots:             []selectBotJSON{},
 		MatchID:          textOrNil(session.MatchID),
 		CancelReason:     textOrNil(string(session.CancelReason)),
 	}
 	var actorSide string
+	for _, bot := range session.Bots {
+		out.Bots = append(out.Bots, selectBotJSON{Side: string(bot.Side), VanguardID: bot.VanguardID, Difficulty: string(bot.Difficulty)})
+	}
 	for _, seat := range session.Seats {
 		if seat.AccountID == actor {
 			actorSide = string(seat.Side)

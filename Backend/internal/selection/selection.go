@@ -40,6 +40,10 @@ const (
 	// KindCasual is Casual Select (Battleground Bible §15): the players of a
 	// match everyone accepted pick at once, with no bans.
 	KindCasual Kind = "casual"
+	// KindCustom is a custom lobby's select (ADR-021 §2): its humans pick at
+	// once, blind, beside the bots the host placed; each Vanguard once per
+	// side, bots included. It ends back in the lobby unless it starts a match.
+	KindCustom Kind = "custom"
 )
 
 // CancelReason says why a select ended without a match.
@@ -138,11 +142,19 @@ type Session struct {
 	Kind Kind
 	// Mode is the mode the match will record.
 	Mode string
-	// HostAccountID is the practice host; empty otherwise.
+	// HostAccountID is the host of a practice or custom select; empty
+	// otherwise.
 	HostAccountID string
-	State         State
-	Seats         []Seat
-	CreatedAt     time.Time
+	// LobbyID is the custom lobby that launched the select; empty otherwise.
+	LobbyID string
+	// Bots are a custom select's bots, which the host chose in the lobby, in
+	// each side's seat order.
+	Bots []match.Bot
+	// Custom is a custom select's session rules, for its match.
+	Custom    *match.CustomSettings
+	State     State
+	Seats     []Seat
+	CreatedAt time.Time
 	// Deadline is when the pick timer ends, in server time.
 	Deadline   time.Time
 	StartingAt time.Time
@@ -190,10 +202,19 @@ func (s *Session) checkPicking(accountID string, now time.Time) (*Seat, error) {
 }
 
 // Taken reports whether a player other than accountID has locked the
-// Vanguard. Picks are unique across both teams in PvP (Battleground Bible §15).
+// Vanguard. Picks are unique across both teams in PvP (Battleground Bible §15);
+// in a custom select, within the picker's side, where its bots count too
+// (ADR-021 §2).
 func (s *Session) Taken(vanguardID, accountID string) bool {
+	own, _ := s.seat(accountID)
+	perSide := s.Kind == KindCustom && own != nil
 	for _, seat := range s.Seats {
-		if seat.AccountID != accountID && seat.Locked == vanguardID {
+		if seat.AccountID != accountID && seat.Locked == vanguardID && (!perSide || seat.Side == own.Side) {
+			return true
+		}
+	}
+	for _, bot := range s.Bots {
+		if bot.VanguardID == vanguardID && (!perSide || bot.Side == own.Side) {
 			return true
 		}
 	}
@@ -268,13 +289,14 @@ func (s *Session) Accounts() []string {
 }
 
 // Leave cancels a Casual Select because a player left it: a dodge (Match Flow
-// Bible §2). A practice select cannot be left; only its timer ends it
-// (ADR-010 §11).
+// Bible §2). Leaving a custom select returns everyone to its lobby (ADR-021
+// §2). A practice select cannot be left; only its timer ends it (ADR-010
+// §11).
 func (s *Session) Leave(accountID string, now time.Time) error {
 	if _, ok := s.seat(accountID); !ok {
 		return ErrSelectNotFound
 	}
-	if s.Kind != KindCasual {
+	if s.Kind != KindCasual && s.Kind != KindCustom {
 		return ErrCannotLeave
 	}
 	if s.State != Picking {

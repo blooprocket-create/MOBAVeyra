@@ -11,8 +11,9 @@ import (
 // Version 2 adds the mode, the rules, the practice host, each participant's
 // Vanguard and the bots (ADR-010 §7, §9); version 3 adds each bot's
 // difficulty (ADR-013 §6); version 4 adds each participant's starting Flux
-// Spells (ADR-015 §5).
-const AssignmentSchemaVersion = 4
+// Spells (ADR-015 §5); version 5 adds custom rules, bots for every hosted
+// match and the custom session's settings (ADR-021 §3).
+const AssignmentSchemaVersion = 5
 
 // Assignment is what a match server receives on its standard input when it
 // starts: its match, where to report, its credential, the rules it plays by
@@ -23,7 +24,8 @@ type Assignment struct {
 	BackendURL       string `json:"backendUrl"`
 	ServerCredential string `json:"serverCredential"`
 	Mode             string `json:"mode"`
-	// Rules is the game's name for the match rules: "Standard" or "Practice".
+	// Rules is the game's name for the match rules: "Standard", "Practice" or
+	// "Custom".
 	Rules string `json:"rules"`
 	// HostAccountID holds the practice host, or nothing: the assignment's
 	// dialect writes an optional value as an array of at most one.
@@ -32,6 +34,16 @@ type Assignment struct {
 	// Bots are the AI participants the server adds when the match starts;
 	// always a list, empty for a standard match.
 	Bots []AssignedBot `json:"bots"`
+	// Settings holds a custom match's session rules, or nothing: at most one.
+	Settings []AssignedSettings `json:"settings"`
+}
+
+// AssignedSettings are a custom match's session rules in an Assignment.
+type AssignedSettings struct {
+	VictoryEnabled bool `json:"victoryEnabled"`
+	// StartingGold holds the session's starting Gold, or nothing for the
+	// game's own: at most one.
+	StartingGold []float64 `json:"startingGold"`
 }
 
 // AssignedBot is one AI participant in an Assignment.
@@ -56,7 +68,7 @@ type AssignedParticipant struct {
 }
 
 // assignedRules maps rules to the names the game's schema uses.
-var assignedRules = map[Rules]string{RulesStandard: "Standard", RulesPractice: "Practice"}
+var assignedRules = map[Rules]string{RulesStandard: "Standard", RulesPractice: "Practice", RulesCustom: "Custom"}
 
 // assignedDifficulties maps bot difficulties to the names the game's schema uses.
 var assignedDifficulties = map[BotDifficulty]string{BotBeginner: "Beginner", BotIntermediate: "Intermediate"}
@@ -80,6 +92,17 @@ func BuildAssignment(m Match, serverCredential, backendURL string) ([]byte, erro
 		Rules:            rules,
 		HostAccountID:    []string{},
 		Bots:             []AssignedBot{},
+		Settings:         []AssignedSettings{},
+	}
+	if (m.Rules == RulesCustom) != (m.Custom != nil) {
+		return nil, fmt.Errorf("match %s has rules %q and custom settings %v", m.ID, m.Rules, m.Custom != nil)
+	}
+	if m.Custom != nil {
+		settings := AssignedSettings{VictoryEnabled: m.Custom.VictoryEnabled, StartingGold: []float64{}}
+		if m.Custom.StartingGold != nil {
+			settings.StartingGold = append(settings.StartingGold, *m.Custom.StartingGold)
+		}
+		a.Settings = append(a.Settings, settings)
 	}
 	if m.HostAccountID != "" {
 		a.HostAccountID = append(a.HostAccountID, m.HostAccountID)
