@@ -164,7 +164,9 @@ UWidget& UVeyraShellScreen::MakeLobbySeat(const FVeyraLobbySeatModel& Seat)
 	PortraitSlot->SetVerticalAlignment(VAlign_Center);
 	PortraitSlot->SetPadding(FMargin(0.0f, 0.0f, Style.Spacing, 0.0f));
 
+	// A long name is cut at the seat's actions rather than running under them.
 	UVerticalBox* Texts = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Texts->SetClipping(EWidgetClipping::ClipToBounds);
 	UTextBlock* Name = VeyraShellStyle::MakeText(*WidgetTree, Seat.Name, bEmpty ? EVeyraShellText::Muted : EVeyraShellText::Heading);
 	Name->SetAutoWrapText(false);
 	Texts->AddChildToVerticalBox(Name);
@@ -203,7 +205,7 @@ UWidget& UVeyraShellScreen::MakeLobbySeat(const FVeyraLobbySeatModel& Seat)
 	case ELobbySeatKind::Human:
 		if (Seat.bCanSwitchSide)
 		{
-			AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, VeyraShellModels::SwitchSideLabel(Seat.PlayerName, Seat.SwitchToSide), LOCTEXT("SwitchSide", "Switch Side"),
+			AddNamedButton(*Line, EVeyraShellButtonKind::Quiet, VeyraShellModels::SwitchSideLabel(Seat.PlayerName, Seat.SwitchToSide), LOCTEXT("SwitchSide", "Swap"),
 				[this, AccountId = Seat.AccountId, ToSide = Seat.SwitchToSide, ToIndex = Seat.SwitchToIndex] { Client->MoveInLobby(AccountId, ToSide, ToIndex); });
 		}
 		if (Seat.bCanKick)
@@ -241,13 +243,14 @@ void UVeyraShellScreen::BuildLobbyRules(const FVeyraLobbyModel& Model, UPanelWid
 	AddText(*Rows, Model.StartingGold, LobbyRole(EVeyraShellText::Body));
 	if (Model.bHost)
 	{
-		UWrapBox* Choices = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass());
+		// One row, like tabs: the chosen one lit, and choosing it again changes nothing.
+		UHorizontalBox* Choices = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 		for (const FVeyraGoldChoiceModel& Choice : Model.GoldChoices)
 		{
 			AddKindButton(*Choices, EVeyraShellButtonKind::Tab, Choice.Label, [this, Gold = Choice.Gold] {
 				const TOptional<VeyraBackendProtocol::FLobby>& Lobby = Client->GetSnapshot().Lobby;
 				Client->SetLobbySettings(Lobby.IsSet() && Lobby->bVictoryEnabled, Gold);
-			}, Model.bCanSetGold && !Choice.bChosen, Choice.bChosen)->KeepLabelOnOneLine();
+			}, Model.bCanSetGold, Choice.bChosen)->KeepLabelOnOneLine();
 		}
 		Rows->AddChildToVerticalBox(Choices);
 	}
