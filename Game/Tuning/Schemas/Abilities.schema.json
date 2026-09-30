@@ -252,7 +252,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds", "arcDegrees", "unitKinds", "atMaxStacks"],
+          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds", "arcDegrees", "unitKinds", "atMaxStacks", "landsOn"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
@@ -302,7 +302,8 @@
               "minItems": 0,
               "maxItems": 6,
               "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }
-            }
+            },
+            "landsOn": { "description": "The kinds of unit it lands on (EVeyraUnitKind), empty for every kind, as Splinters embed only in Vanguards (ADR-026 §2).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] } }
           }
         }
       }

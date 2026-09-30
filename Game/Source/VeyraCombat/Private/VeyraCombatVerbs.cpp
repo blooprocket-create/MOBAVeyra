@@ -686,6 +686,11 @@ bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Targe
 		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: no status affects a ward (ADR-016 §6)."), *Status.Id.ToString(), *GetNameSafe(TargetOwner));
 		return false;
 	}
+	if (!Status.LandsOn.IsEmpty() && !(TargetKind.IsSet() && Status.LandsOn.Contains(TargetKind.GetValue())))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored status %s on %s: it lands only on some kinds of unit (ADR-026 §2)."), *Status.Id.ToString(), *GetNameSafe(TargetOwner));
+		return false;
+	}
 	// Unstoppable refuses an enemy's crowd control; immunity to displacement refuses a Knockup (§8, §9).
 	const bool bHostile = VeyraTargeting::AreHostile(Source.GetOwner(), TargetOwner);
 	const bool bUnstoppable = VeyraStatuses::IsCrowdControl(Status.Kind) && Statuses->Has(EVeyraStatusKind::Unstoppable);

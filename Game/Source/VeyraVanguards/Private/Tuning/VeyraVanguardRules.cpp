@@ -115,6 +115,23 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraKitStatusesTuning>& Entry : Tuning.KitStatuses)
+	{
+		RegisterPassive(Entry.Key, TEXT("kitStatuses"));
+		const FString Pointer = TEXT("/kitStatuses/") + Entry.Key.ToString();
+		if (Entry.Value.Statuses.IsEmpty())
+		{
+			Problem(Pointer + TEXT("/statuses"), TEXT("names at least one status: the passive is its kit's statuses"));
+		}
+		for (const FVeyraContentId& Status : Entry.Value.Statuses)
+		{
+			if (!Abilities.Statuses.Contains(Status))
+			{
+				Problem(Pointer + TEXT("/statuses"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Status.ToString()));
+			}
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraHauntTuning>& Entry : Tuning.Haunt)
 	{
 		RegisterPassive(Entry.Key, TEXT("haunt"));

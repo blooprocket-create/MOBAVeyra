@@ -638,6 +638,7 @@ FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTunin
 	Spec.StackDecaySeconds = Status.StackDecaySeconds;
 	Spec.ArcDegrees = Status.ArcDegrees;
 	Spec.UnitKinds = Status.UnitKinds;
+	Spec.LandsOn = Status.LandsOn;
 	Spec.TakedownExtensionSeconds = Status.TakedownExtensionSeconds;
 	Spec.TakedownExtensionMaxSeconds = Status.TakedownExtensionMaxSeconds;
 	if (!Status.DamageOverTime.IsEmpty())

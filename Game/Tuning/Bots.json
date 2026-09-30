@@ -169,6 +169,17 @@
         "gorraveth_tear_them_apart": "Empower"
       }
     },
+    "korruk": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "sovereign_edge", "striker_assembly", "cycler_core", "razorwheel"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "korruk_spineburst": "Damage",
+        "korruk_pressure_mine": "Damage",
+        "korruk_rupture": "Damage",
+        "korruk_shatterfield": "Damage"
+      }
+    },
     "moro": {
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "arc_reactor", "nullglass_lens", "spellguard_plate"],

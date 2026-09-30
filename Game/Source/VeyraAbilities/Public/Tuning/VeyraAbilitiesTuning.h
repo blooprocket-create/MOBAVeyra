@@ -365,6 +365,10 @@ struct FVeyraStatusTuning
 	 */
 	UPROPERTY()
 	TArray<FVeyraContentId> AtMaxStacks;
+
+	/** The kinds of unit it lands on, empty for every kind (ADR-026 §2). */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> LandsOn;
 };
 
 /** Where an area is placed. */

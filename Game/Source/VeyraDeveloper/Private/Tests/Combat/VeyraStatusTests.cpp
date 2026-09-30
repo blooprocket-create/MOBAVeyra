@@ -82,6 +82,17 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("root"), EVeyraStatusKind::Root, Half, LongSeconds)).IsEmpty(), TEXT("a root has no magnitude")));
 		}
 
+		TEST_METHOD(AStatusLandsOnlyOnTheKindsOfUnitItNames)
+		{
+			// The unit is a Vanguard's participant.
+			FVeyraStatusSpec Splinter = TestStatus(TEXT("splinter"), EVeyraStatusKind::Counter, 0.0, LongSeconds);
+			Splinter.LandsOn = { EVeyraUnitKind::Fluxborn };
+			ASSERT_THAT(IsFalse(VeyraCombat::ApplyStatus(*Caster, *Unit, Splinter), TEXT("not on a Vanguard (ADR-026 §2)")));
+			ASSERT_THAT(IsTrue(Find(TEXT("splinter")) == nullptr));
+			Splinter.LandsOn = { EVeyraUnitKind::Vanguard };
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Splinter)));
+		}
+
 		const FVeyraStatusEntry* Find(const TCHAR* Id) const
 		{
 			const FVeyraContentId StatusId = FVeyraContentId::FromText(Id).GetValue();

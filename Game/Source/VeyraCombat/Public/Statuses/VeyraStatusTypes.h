@@ -235,6 +235,10 @@ struct VEYRACOMBAT_API FVeyraStatusSpec
 	/** AttackDamageAmplification: the unit kinds it amplifies attacks against, empty for all; empty for any other kind. */
 	UPROPERTY()
 	TArray<EVeyraUnitKind> UnitKinds;
+
+	/** The kinds of unit it lands on, as Korruk's Splinters embed only in Vanguards (ADR-026 §2); empty for every kind. */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> LandsOn;
 };
 
 /** One active status as every machine sees it. Replicated for presentation. */

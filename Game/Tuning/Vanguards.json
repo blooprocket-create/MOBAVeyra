@@ -529,6 +529,48 @@
       },
       "abilities": { "q": ["moro_arc_bolt"], "w": ["moro_bursting_ground"], "e": ["moro_pounce"], "r": ["moro_wildstorm"] },
       "passive": ["moro_wild_dominion"]
+    },
+    "korruk": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 55, "capsuleHalfHeight": 70, "turnRateDegreesPerSecond": 540 },
+      "baseStats": {
+        "maxHealth": 570,
+        "healthRegen": 1.1,
+        "maxResource": 320,
+        "resourceRegen": 3,
+        "armor": 26,
+        "magicResist": 30,
+        "physicalPower": 58,
+        "magicPower": 0,
+        "attackSpeed": 0.64,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 90,
+        "healthRegen": 0.1,
+        "maxResource": 40,
+        "resourceRegen": 0.25,
+        "armor": 4,
+        "magicResist": 1.3,
+        "physicalPower": 3.2,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 525,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 1800, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["korruk_spineburst"], "w": ["korruk_pressure_mine"], "e": ["korruk_rupture"], "r": ["korruk_shatterfield"] },
+      "passive": ["korruk_embedded"]
     }
   },
   "deepFoundation": {
@@ -667,6 +709,12 @@
         "bonusHealthRatio": 0.03,
         "lungeSpeed": 1400
       }
+    }
+  },
+  "kitStatuses": {
+    "korruk_embedded": {
+      "provenance": "Provisional",
+      "statuses": ["korruk_splinter", "korruk_fractured"]
     }
   },
   "wildDominion": {

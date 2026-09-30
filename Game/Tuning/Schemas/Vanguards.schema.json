@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -407,6 +407,22 @@
                 "lungeSpeed": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
               }
             }
+          }
+        }
+      }
+    },
+    "kitStatuses": {
+      "description": "Passives made wholly of the statuses their kit applies and the reactions to them, which run nothing of their own (Korruk's Embedded, Roster Bible §8; ADR-026 §1–§2).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "statuses"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "statuses": { "description": "From Abilities.json's statuses: those the passive consists of.", "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
           }
         }
       }

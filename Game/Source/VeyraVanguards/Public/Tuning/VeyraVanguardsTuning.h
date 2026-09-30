@@ -590,6 +590,25 @@ struct FVeyraWildDominionTuning
 	double WildlifeHealFraction = 0.0;
 };
 
+/**
+ * A passive made wholly of the statuses its kit applies and the reactions to them (ADR-026 §1–§2), as
+ * Korruk's Embedded: Splinters build to Fractured, which his abilities detonate. It names those
+ * statuses, which must exist, for its description and checks, and runs nothing of its own. Its data
+ * is an entry in Vanguards.json's kitStatuses map.
+ */
+USTRUCT()
+struct FVeyraKitStatusesTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses; at least one. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
@@ -633,6 +652,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraWildDominionTuning> WildDominion;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraKitStatusesTuning> KitStatuses;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

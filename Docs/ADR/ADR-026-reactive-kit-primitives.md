@@ -38,6 +38,8 @@ Reactions resolve in their order, against the statuses the target held as the hi
 A status in `Abilities.json` gains `atMaxStacks`: at most one status. When an application brings the status to its maximum stacks, it is removed and that status is applied in its place, from the same source.
 - Splinters becomes Fractured; Exposure becomes Unstable.
 - An Abilities-level listener on Combat's status-applied event does it, so every site that applies a status is covered. Combat keeps no knowledge of the Abilities catalog.
+- A status also gains `landsOn`: the kinds of unit it lands on, empty for every kind. Splinters and Exposure land only on Vanguards, as the bible says they build "in enemy Vanguards". Combat's status spec carries the field, so `ApplyStatus` refuses such a status on any other unit wherever it comes from.
+- A passive made wholly of such statuses and the reactions to them, as Korruk's Embedded, is an entry in a new `kitStatuses` passive map. It names its statuses, for its description and its checks, and runs nothing of its own.
 
 ### 3. Root
 
@@ -87,6 +89,7 @@ Every number is provisional tuning in `Abilities.json` and `Vanguards.json`.
 4. **Root stops dashes and leaps** as League's roots do; it does not stop attacks or other casts.
 5. **Wild Dominion heals a share of the damage** dealt to wildlife, as League's jungle sustain does.
 6. **Jungle terrain** is everything between the lanes that is not river or base, as League's jungle is.
+7. **Splinters and Exposure land only on enemy Vanguards**, as the bible's passives say. Contaminated, a damage over time, lands on every unit, as League's damage over time does.
 
 ## Consequences
 
