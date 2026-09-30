@@ -102,6 +102,12 @@ The exact Magic Power amplification model remains open until playtesting; it is 
 **Recipe:** Vital Plate + Renewal Mesh + recipe  
 **Stats:** Health + Health Regeneration.
 
+### Picket Plating
+**Recipe:** Vital Plate + Marchplate + recipe  
+**Stats:** Health + Armor.
+
+Picket Plating takes its name from the heavy defensive construction associated with Eudora Blackbridge's Picket machine and the Iron March engineering tradition around it. It is a general defensive Assembly, not equipment exclusive to Eudora.
+
 ### Siege Frame
 **Recipe:** Vital Plate + Timing Coil + recipe  
 **Stats:** Health + Ability Haste.
