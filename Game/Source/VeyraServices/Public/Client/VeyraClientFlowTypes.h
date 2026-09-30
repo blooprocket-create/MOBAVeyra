@@ -224,4 +224,10 @@ struct FVeyraClientSnapshot
 	TOptional<VeyraBackendProtocol::FLobby> Lobby;
 	/** Shell and Lobby: friends, requests and invitations. */
 	FVeyraSocial Social;
+
+	/**
+	 * Whether the backend serves custom lobbies: the lobby route's 404 says it does not (ADR-021 §1),
+	 * and then no Custom Game is offered.
+	 */
+	bool bCustomLobbies = true;
 };

@@ -81,7 +81,10 @@ namespace VeyraVotes
 	 */
 	VEYRAMATCH_API TOptional<bool> AutomaticBallot(EVeyraVoteKind Kind, const FVeyraVoter& Voter);
 
-	/** The YES votes that pass it: the tuned majority of a full team, or every voter. */
+	/**
+	 * The YES votes that pass it: the tuned majority of a full team, capped at the team's human players
+	 * since bots abstain (ADR-021 §3); or every voter in a unanimous vote.
+	 */
 	VEYRAMATCH_API int32 YesNeeded(const FVeyraBallotBox& Box, TConstArrayView<FVeyraVoter> Voters, const FVeyraVotesTuning& Tuning);
 
 	/**
