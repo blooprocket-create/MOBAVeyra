@@ -27,7 +27,7 @@ Items do **not** auto-combine. Owning the components is not enough; the player m
 | **Tier 1** | Components | Cheap, readable base stats. No Attunements. |
 | **Tier 2** | Assemblies | Improved stat combinations or specialized stats. No Attunements. Simple Active abilities are allowed. |
 | **Tier 3** | Masterworks | Finished build-defining items. Exactly **one Attunement** per item. A distinct Active may coexist with that Attunement. |
-| **Tier 4** | Future Ascension | Not designed yet. A player may eventually own exactly one Tier 4; purchasing one permanently locks all other Tier 4s for that player for the match. |
+| **Tier 4** | Mythicals | Apex items. A player may own exactly one Tier 4 per match; purchasing one permanently locks all other Tier 4s for that player. Tier 4 Mythicals may contain exactly **two Attunements** and may combine or evolve mechanics established by their prerequisite items. |
 
 Tier 3 recipes are not locked to one formula. A Masterwork can reasonably use two Tier 2s, three Tier 2s, Tier 2s plus Tier 1 components, or another logical combination.
 
@@ -412,7 +412,64 @@ Increase total Magic Power by a percentage.
 
 This is the intentionally straightforward raw-Magic-Power capstone.
 
-## 10. Consumables
+## 10. Quest Items
+
+Quest Items are purchased normally but evolve through match-specific gameplay objectives rather than by paying an upgrade recipe cost. The general Quest Item rules are defined in §2.5.
+
+### Flux Reclaimer
+
+**Quest Item — base form**  
+**Stat identity:** Health + Health Regeneration.
+
+**Quest — Reclamation**
+
+Personally last-hit enemy lane Fluxborn to gain quest progress. Only credited killing blows against enemy lane Fluxborn count; jungle wildlife, structures, and other targets do not advance Reclamation.
+
+At a data-driven completion threshold, Flux Reclaimer automatically evolves at no additional Gold cost into **Wayline Reservoir**.
+
+### Wayline Reservoir
+
+**Quest Item — evolved form**  
+**Stat identity:** Improved Health + improved Health Regeneration.
+
+**Passive — Residual Current**
+
+Last-hitting an enemy lane Fluxborn stores a small amount of **Current**, up to a cap.
+
+After avoiding enemy-Vanguard damage for a short period, stored Current is gradually consumed to substantially increase Health Regeneration.
+
+Taking enemy-Vanguard damage suspends the enhanced regeneration but does not delete stored Current.
+
+Exact quest threshold, Current gain, Current cap, combat-exit delay, regeneration amplification, and stat values are prototype tuning values.
+
+Wayline Reservoir may be used as an ingredient in later item recipes.
+
+## 11. Tier 4 Mythicals
+
+A player may purchase exactly **one** Tier 4 Mythical per match. Purchasing one permanently locks every other Tier 4 Mythical for that player for the remainder of the match.
+
+Tier 4 Mythicals may contain exactly **two Attunements**. They should represent an apex build commitment rather than a generic numerical upgrade and may preserve, combine, or evolve mechanics established by prerequisite items.
+
+### The Last Harbor
+
+**Recipe:** Harborline Harness + Wayline Reservoir + Tier 4 completion cost  
+**Stat identity:** High Physical Power + Attack Speed + very high Health + very high Health Regeneration.
+
+**Attunement I — Safe Harbor**
+
+The Last Harbor retains and carries forward Harborline Harness's **Safe Harbor** Attunement: damaging enemy Vanguards with attacks or abilities stores a percentage of actual post-mitigation damage dealt as **Reserve**, up to a cap based on maximum Health. After leaving Vanguard combat for a short period, Reserve converts into Health over time. Re-entering Vanguard combat stops the recovery while preserving remaining Reserve, subject to its cap.
+
+**Attunement II — High Tide**
+
+Last-hitting enemy lane Fluxborn stores **Current**, up to a cap. While out of Vanguard combat, stored Current is gradually consumed to amplify Health Regeneration and accelerate Safe Harbor's Reserve conversion.
+
+If **High Tide** and **Safe Harbor** restore the holder to full Health while both still have stored energy remaining, a portion of the remaining recovery is converted into **Temporary Health**, up to a cap based on maximum Health. Temporary Health follows the Combat Bible's ordinary Temporary Health rules.
+
+The Last Harbor therefore combines two progression paths: lane farming builds Current through Wayline Reservoir, while Vanguard combat builds Reserve through Harborline Harness. The intended apex loop is farm → bank Current → fight → bank Reserve → disengage → recover rapidly → potentially re-enter with a limited Temporary Health buffer.
+
+Exact Current gain, caps, conversion rates, acceleration, Temporary Health conversion, delays, and stat values are prototype tuning values.
+
+## 12. Consumables
 
 ### Field Tonic
 
@@ -435,7 +492,7 @@ Flux Flask refills when:
 
 The Flask should be non-stackable. Its purpose is weaker reusable sustain that connects personal map endurance to Flux objective control.
 
-## 11. Locked item-system rules
+## 13. Locked item-system rules
 
 - Tier 1 is intentionally boring and readable.
 - Tier 2 communicates build direction through stats and may contain simple Actives.
@@ -445,12 +502,12 @@ The Flask should be non-stackable. Its purpose is weaker reusable sustain that c
 - Tier 3 recipe complexity may vary.
 - Items never auto-combine; completion/recipe gold must be purchased.
 - Boots currently stop at Tier 2.
-- Tier 4 is future-facing and has no designed items yet.
-- If Tier 4 is introduced, one purchased Tier 4 permanently locks all other Tier 4s for that player during that match.
+- Tier 4 Mythicals are apex items and may contain exactly two Attunements.
+- A player may own exactly one Tier 4 Mythical per match; purchasing one permanently locks all other Tier 4s for that player during that match.
 - Work backward from useful completed items instead of inventing a giant component catalog in isolation.
 - A Vanguard may own only one copy of a given Quest Item at a time; Quest completion cannot be duplicated through multiple copies or shop manipulation.
 
-## 12. Current gaps
+## 14. Current gaps
 
 The initial shop still needs significant expansion. Likely future families include:
 
