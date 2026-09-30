@@ -72,6 +72,7 @@ public:
 	static const FName DisplacementMultiplierName;
 	static const FName HealthRegenMultiplierName;
 	static const FName OutgoingDamageMultiplierName;
+	static const FName MagicResistRetainedMultiplierName;
 };
 
 /**
@@ -109,6 +110,8 @@ public:
 	static const FName MoveSpeedName;
 	static const FName MagicPenetrationFlatName;
 	static const FName MagicPowerMultiplierName;
+	static const FName CritChanceName;
+	static const FName CritDamageBonusName;
 };
 
 /** One resource cost (Combat Bible §27): an instant effect whose execution spends the cost from the spec. */

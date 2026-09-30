@@ -219,7 +219,11 @@ namespace VeyraCombatTests
 			Equipment.AbilityHaste = 20.0;
 			Equipment.MoveSpeed = 25.0;
 			Equipment.MagicPenetrationFlat = 10.0;
+			Equipment.CritChance = 0.35;
+			Equipment.CritDamageBonus = 0.4;
 			ASSERT_THAT(IsTrue(VeyraCombat::SetEquipmentStats(*Unit, Equipment)));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetCritChanceAttribute()), Equipment.CritChance), TEXT("crit adds (ADR-023 §2)")));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetCritDamageBonusAttribute()), Equipment.CritDamageBonus)));
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraVitalsSet::GetMaxHealthAttribute()), Base.MaxHealth + Equipment.MaxHealth)));
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetPhysicalPowerAttribute()), Base.PhysicalPower + Equipment.PhysicalPower)));
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetMagicPowerAttribute()), (Base.MagicPower + Equipment.MagicPower) * (1.0 + Equipment.MagicPowerFraction)),

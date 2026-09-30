@@ -169,6 +169,42 @@ struct FVeyraStructureCombatTuning
 	double Effectiveness = 0.0;
 };
 
+/** Critical strikes (Combat Bible §5; ADR-023 §1). */
+USTRUCT()
+struct FVeyraCritTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** What a crit multiplies the attack's base damage by before bonuses: Normal Crit Damage. */
+	UPROPERTY()
+	double Damage = 0.0;
+
+	/** The most effective Crit Chance, as a fraction. */
+	UPROPERTY()
+	double ChanceCap = 0.0;
+
+	/** The Crit Damage each 1 of Crit Chance above the cap adds. */
+	UPROPERTY()
+	double OverflowDamagePerChance = 0.0;
+};
+
+/** An outcome bag's size (ADR-023 §10): how many draws one shuffled bag holds before it refills. */
+USTRUCT()
+struct FVeyraOutcomeBagTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Smaller is steadier; 1 is an ordinary independent roll. */
+	UPROPERTY()
+	int32 Draws = 0;
+};
+
 /** Attack Speed limits and overflow (Combat Bible §22, §39). */
 USTRUCT()
 struct FVeyraAttackSpeedTuning
@@ -237,7 +273,7 @@ struct FVeyraCombatTuning
 	GENERATED_BODY()
 
 	/** The Combat.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 5;
+	static constexpr int32 SchemaVersion = 6;
 
 	UPROPERTY()
 	FVeyraResistanceTuning Resistance;
@@ -271,6 +307,13 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraAttackSpeedTuning AttackSpeed;
+
+	UPROPERTY()
+	FVeyraCritTuning Crit;
+
+	/** The bag every crit channel draws from (ADR-023 §10). */
+	UPROPERTY()
+	FVeyraOutcomeBagTuning CritBag;
 
 	UPROPERTY()
 	FVeyraPursuitTuning Pursuit;

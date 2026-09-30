@@ -68,6 +68,10 @@ It also owns each combatant's life state and the death event that other domains 
 
 M5 added the runtime primitives the first kits use ([ADR-009](Docs/ADR/ADR-009-runtime-combat-primitives.md)): the status ledger, the movement component with its displacement and dash modes, shields with identity and caps, Combat State and assist attribution, and damage prepared at Commit.
 
+M17 added critical strikes and combat's random source ([ADR-023](Docs/ADR/ADR-023-crit-and-the-full-item-catalog.md) §1, §4, §10):
+- `Attacks/VeyraCrit` is the crit rule. `UVeyraCombatRollSubsystem` keeps one outcome bag (`Random/VeyraOutcomeBag`) per unit and channel, so chance is drawn rather than rolled. Any chance-based mechanic draws through it, never `FMath::FRand`.
+- `OnDamageDealt` reports what each damage instance cost an enemy, by type.
+
 ### VeyraAbilities
 
 Owns reusable ability execution behavior and Veyra's C++ integration layer around Unreal Gameplay Ability System (GAS).
@@ -135,6 +139,11 @@ Gold and the rewards arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runt
 Depends on combat/abilities/economy through approved contracts. It does not own the underlying damage or gold formulas.
 
 VeyraItems arrived in M8 ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §2) in its own **Items** layer, above Abilities, whose archetypes run item Actives, and below Battleground. Its catalog is `Game/Tuning/Items.json`; `VeyraItems::Validate` holds the tier rules the schema cannot (Item Bible §2, §11). It spends and refunds Gold through Economy and applies equipment through `VeyraCombat::SetEquipmentStats`; Match routes the fountain and the player's shop requests to it.
+
+Where the Attunements live ([ADR-023](Docs/ADR/ADR-023-crit-and-the-full-item-catalog.md) §3–§4):
+- Static ones fold into `VeyraEquipment::StatsFor`.
+- Stacking buffs live in the shop subsystem.
+- The ones a hit or nearness sets off live in `Attunements/UVeyraAttunementSubsystem`, on Combat's `OnDamageDealt`: Reprisal Guard, Drag, Convergence, Fracture, Endless Cleave and Tempered by Conflict.
 
 ### VeyraFlux
 
@@ -297,6 +306,13 @@ Non-shipping or development-facing utilities.
 - bot/test drivers.
 
 Developer tooling may depend on production systems. Production systems must never require developer tooling.
+
+The debug commands are the `Veyra.Dev.*` console commands in `DevCommands/`, one catalog of them; `Veyra.Dev.Help` lists it, and a test checks that no `Veyra.Dev.*` command lives anywhere else.
+
+- A **server command** is typed on a player's machine and runs on the server for that player's own participant. It travels through `AVeyraPlayerController::RequestDeveloperCommand`, and the reply prints in the player's console.
+- The match knows only `VeyraDeveloperCommandRoute`, the handler this module installs at startup, so no production module depends on this one.
+- Shipping servers refuse every command, and Shipping builds leave this module out.
+- Each command acts through its owner's verbs, never by writing that owner's state: Developer Gold through Economy, damage through Combat's pipeline, items through the shop's rules. Amounts come from the typed arguments or the tuning.
 
 Its scripted players drive the game from the command line for `Game/Scripts/Smoke.ps1`: one plays a match's script, one plays a Vanguard's whole kit, and since M6 one plays the play flow by clicking the same shell and menu buttons a player would. It plays practice alone (`-Flow Practice`), and a matchmade 1v1 in two games at once (`-Flow Casual`, `-Flow CasualDecline`). The same scripted player is also a sparring partner for a person playing the matchmade path (`Game/Scripts/Play.ps1 -Opponent`).
 

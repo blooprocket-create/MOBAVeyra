@@ -397,6 +397,11 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 	{
 		return false;
 	}
+	// A backend with custom lobbies switched off offers none to open or join (ADR-021 §1).
+	if ((Intent == EVeyraClientIntent::CreateLobby || Intent == EVeyraClientIntent::AcceptLobbyInvite) && !Snapshot.bCustomLobbies)
+	{
+		return false;
+	}
 	const TOptional<VeyraBackendProtocol::FParty>& Party = Snapshot.Party;
 	switch (Intent)
 	{
@@ -951,9 +956,10 @@ bool FVeyraClientFlow::CancelQueue()
 void FVeyraClientFlow::LoadLobby(const FString& Notice)
 {
 	Call(EVerb::Get, LobbyPath, FString(), [this, Notice](const FVeyraBackendResponse& Response) {
-		if (Response.Status == NotFoundStatus)
+		// A backend with custom lobbies switched off serves no lobby routes; "no lobby" is a 200.
+		Snapshot.bCustomLobbies = Response.Status != NotFoundStatus;
+		if (!Snapshot.bCustomLobbies)
 		{
-			// A backend with custom lobbies switched off serves no lobby routes.
 			EnterShell(Notice);
 			return;
 		}

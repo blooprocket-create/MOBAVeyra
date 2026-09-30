@@ -188,7 +188,7 @@ namespace VeyraItemsTests
 			const FVeyraContentId Stacking = ItemId(TEXT("test_stacking"));
 			Temper.Attunement = { Stacking };
 			WithAttunements.Overcharge.Add(Stacking).MagicPowerFraction = 0.3;
-			ASSERT_THAT(IsTrue(VeyraEquipment::StatsFor(WithAttunements, Slots, BaseAttackSpeed, {}).MagicPowerFraction == 0.3, TEXT("Overcharge")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraEquipment::StatsFor(WithAttunements, Slots, BaseAttackSpeed, {}).MagicPowerFraction, 0.3), TEXT("Overcharge")));
 
 			WithAttunements.Overcharge.Reset();
 			FVeyraStackingAttunementTuning& SpoolUp = WithAttunements.SpoolUp.Add(Stacking);
@@ -204,6 +204,60 @@ namespace VeyraItemsTests
 			Overcycle.MaxStacks = 5;
 			const TMap<FVeyraContentId, int32> Two = { { Stacking, 2 } };
 			ASSERT_THAT(IsTrue(VeyraEquipment::StatsFor(WithAttunements, Slots, BaseAttackSpeed, Two).AbilityHaste == 8.0, TEXT("Overcycle: Ability Haste per stack")));
+		}
+
+		TEST_METHOD(CritAddsAndMagicPowerPercentagesMultiply)
+		{
+			// Fixture values: a grip with Crit Chance, two held, and a Masterwork with a Perfect Cut and a
+			// Magic Power percentage beside an Overcharge (ADR-023 §2-§3).
+			constexpr double BaseAttackSpeed = 0.625;
+			FVeyraItemsTuning WithCrit = Tuning;
+			WithCrit.Items[ItemId(TEXT("test_grip"))].Stats.CritChance = 0.15;
+			FVeyraItemDefinition& Temper = WithCrit.Items[ItemId(TEXT("test_temper"))];
+			Temper.Stats.MagicPowerFraction = 0.08;
+			const FVeyraContentId Cut = ItemId(TEXT("test_cut"));
+			Temper.Attunement = { Cut };
+			WithCrit.WeightOfWar.Reset();
+			WithCrit.PerfectCut.Add(Cut).CritDamageBonus = 0.4;
+			// The Masterwork first: bought after the grips, its recipe would take one of them.
+			BuyHere(TEXT("test_temper"));
+			BuyHere(TEXT("test_grip"));
+			BuyHere(TEXT("test_grip"));
+			FVeyraEquipmentStats Stats = VeyraEquipment::StatsFor(WithCrit, Slots, BaseAttackSpeed, {});
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Stats.CritChance, 0.3), TEXT("each grip's Crit Chance adds")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Stats.CritDamageBonus, 0.4), TEXT("Perfect Cut")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Stats.MagicPowerFraction, 0.08)));
+
+			// A second source of a Magic Power percentage multiplies with the first (Combat Bible §41).
+			WithCrit.PerfectCut.Reset();
+			WithCrit.Overcharge.Add(Cut).MagicPowerFraction = 0.3;
+			Stats = VeyraEquipment::StatsFor(WithCrit, Slots, BaseAttackSpeed, {});
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Stats.MagicPowerFraction, 1.08 * 1.3 - 1.0), FString::SanitizeFloat(Stats.MagicPowerFraction)));
+		}
+
+		TEST_METHOD(ARefillableConsumableIsHeldOnceAndArrivesFull)
+		{
+			// Fixture values: the tonic made refillable, with two charges (Item Bible §10; ADR-023 §6).
+			constexpr int32 Charges = 2;
+			const FVeyraContentId Flask = ItemId(TEXT("test_tonic"));
+			FVeyraItemsTuning Refillable = Tuning;
+			Refillable.Items[Flask].StackLimit = 1;
+			Refillable.Consumables[Flask].Charges = Charges;
+
+			FVeyraPendingPurchase Entry;
+			Entry.Item = Flask;
+			Entry.Paid = VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Price;
+			ASSERT_THAT(IsTrue(VeyraInventory::Apply(Refillable, Slots, Entry) == EVeyraShopRefusal::None));
+			const FVeyraInventorySlot* Held = Slots.FindByPredicate([&Flask](const FVeyraInventorySlot& Slot) { return Slot.Item == Flask; });
+			ASSERT_THAT(IsTrue(Held && Held->Count == 1 && Held->Charges == Charges, TEXT("it arrives full")));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::Unique, TEXT("held once")));
+
+			// One waiting in the queue is held too.
+			Slots.Reset();
+			Slots.SetNum(Tuning.Shop.InventorySlots);
+			Queue.Add(Entry);
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::Unique));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Tuning, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::None, TEXT("one used up stacks as before")));
 		}
 
 		TEST_METHOD(ResaleIsTheShopsFractionOrTheConsumablesOwn)

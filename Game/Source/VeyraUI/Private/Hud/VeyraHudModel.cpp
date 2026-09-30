@@ -25,6 +25,7 @@
 #include "Tools/VeyraVisionToolComponent.h"
 #include "Wildlife/VeyraWildlife.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
+#include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "VeyraPlayerState.h"
@@ -196,6 +197,10 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 			}
 			Shown.Item = Held[Index].Item;
 			Shown.Count = Held[Index].Count;
+			if (const FVeyraConsumableTuning* Consumable = UVeyraItemsTuningSubsystem::Get().Consumables.Find(Held[Index].Item); Consumable && Consumable->Charges > 0)
+			{
+				Shown.Charges = Held[Index].Charges;
+			}
 			// An item's Active sits in its slot's loadout entry, and cools down under its own ID.
 			if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Shown.Slot) : nullptr; Entry && Cooldowns)
 			{

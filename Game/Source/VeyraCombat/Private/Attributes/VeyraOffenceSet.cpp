@@ -18,6 +18,8 @@ UVeyraOffenceSet::UVeyraOffenceSet()
 	InitMagicPower(0.0f);
 	InitAttackSpeed(0.0f);
 	InitAbilityHaste(0.0f);
+	InitCritChance(0.0f);
+	InitCritDamageBonus(0.0f);
 }
 
 void UVeyraOffenceSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -38,15 +40,19 @@ void UVeyraOffenceSet::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, MagicPower, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, AttackSpeed, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, AbilityHaste, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, CritChance, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraOffenceSet, CritDamageBonus, Params);
 }
 
 void UVeyraOffenceSet::PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const
 {
-	// Power, Attack Speed and Haste are never negative in data; a negative base would be a caller's bug.
+	// Power, Attack Speed, Haste and crit are never negative in data; a negative base would be a caller's bug.
 	const FGameplayAttributeData* Data = Attribute == GetPhysicalPowerAttribute() ? &PhysicalPower
 		: Attribute == GetMagicPowerAttribute()                                   ? &MagicPower
 		: Attribute == GetAttackSpeedAttribute()                                  ? &AttackSpeed
 		: Attribute == GetAbilityHasteAttribute()                                 ? &AbilityHaste
+		: Attribute == GetCritChanceAttribute()                                   ? &CritChance
+		: Attribute == GetCritDamageBonusAttribute()                              ? &CritDamageBonus
 																				  : nullptr;
 	if (Data && NewValue < 0.0f)
 	{
@@ -99,4 +105,14 @@ void UVeyraOffenceSet::OnRep_AttackSpeed(const FGameplayAttributeData& OldValue)
 void UVeyraOffenceSet::OnRep_AbilityHaste(const FGameplayAttributeData& OldValue)
 {
 	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraOffenceSet, AbilityHaste, OldValue);
+}
+
+void UVeyraOffenceSet::OnRep_CritChance(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraOffenceSet, CritChance, OldValue);
+}
+
+void UVeyraOffenceSet::OnRep_CritDamageBonus(const FGameplayAttributeData& OldValue)
+{
+	GAMEPLAYATTRIBUTE_REPNOTIFY(UVeyraOffenceSet, CritDamageBonus, OldValue);
 }

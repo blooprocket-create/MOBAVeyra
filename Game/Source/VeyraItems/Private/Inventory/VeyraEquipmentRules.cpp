@@ -12,6 +12,8 @@ FVeyraEquipmentStats StatsFor(const FVeyraItemsTuning& Tuning, TConstArrayView<F
 {
 	FVeyraEquipmentStats Stats;
 	double AttackSpeedFraction = 0.0;
+	// Percentages of Magic Power from separate sources multiply (Combat Bible §41).
+	double MagicPowerMultiplier = 1.0;
 	TArray<FVeyraContentId, TInlineAllocator<6>> Attunements;
 	for (const FVeyraInventorySlot& Slot : Slots)
 	{
@@ -20,13 +22,15 @@ FVeyraEquipmentStats StatsFor(const FVeyraItemsTuning& Tuning, TConstArrayView<F
 		{
 			continue;
 		}
-		Stats.MaxHealth += Item->Stats.Health * Slot.Count;
+		Stats.MaxHealth += Item->Stats.Health * Slot.Count + Slot.GrownHealth;
 		Stats.HealthRegen += Item->Stats.HealthRegeneration * Slot.Count;
 		Stats.PhysicalPower += Item->Stats.PhysicalPower * Slot.Count;
 		Stats.MagicPower += Item->Stats.MagicPower * Slot.Count;
 		Stats.AbilityHaste += Item->Stats.AbilityHaste * Slot.Count;
 		Stats.MoveSpeed += Item->Stats.MoveSpeed * Slot.Count;
 		Stats.MagicPenetrationFlat += Item->Stats.MagicPenetrationFlat * Slot.Count;
+		Stats.CritChance += Item->Stats.CritChance * Slot.Count;
+		MagicPowerMultiplier *= FMath::Pow(1.0 + Item->Stats.MagicPowerFraction, Slot.Count);
 		AttackSpeedFraction += Item->Stats.AttackSpeed * Slot.Count;
 		// A Masterwork is held once, so each Attunement counts once (ADR-012 §9).
 		for (const FVeyraContentId& Attunement : Item->Attunement)
@@ -46,7 +50,11 @@ FVeyraEquipmentStats StatsFor(const FVeyraItemsTuning& Tuning, TConstArrayView<F
 		}
 		if (const FVeyraOverchargeTuning* Overcharge = Tuning.Overcharge.Find(Attunement))
 		{
-			Stats.MagicPowerFraction += Overcharge->MagicPowerFraction;
+			MagicPowerMultiplier *= 1.0 + Overcharge->MagicPowerFraction;
+		}
+		if (const FVeyraPerfectCutTuning* PerfectCut = Tuning.PerfectCut.Find(Attunement))
+		{
+			Stats.CritDamageBonus += PerfectCut->CritDamageBonus;
 		}
 		if (const FVeyraStackingAttunementTuning* SpoolUp = Tuning.SpoolUp.Find(Attunement))
 		{
@@ -58,6 +66,7 @@ FVeyraEquipmentStats StatsFor(const FVeyraItemsTuning& Tuning, TConstArrayView<F
 		}
 	}
 	Stats.AttackSpeed = BaseAttackSpeed * AttackSpeedFraction;
+	Stats.MagicPowerFraction = MagicPowerMultiplier - 1.0;
 	return Stats;
 }
 }

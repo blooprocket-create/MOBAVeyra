@@ -4,13 +4,13 @@
   "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution", "killCredit", "structures", "attackSpeed", "pursuit", "tethers"],
+  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution", "killCredit", "structures", "crit", "critBag", "attackSpeed", "pursuit", "tethers"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [5]
+      "enum": [6]
     },
     "resistance": {
       "description": "Armor and Magic Resistance mitigation (Combat Bible §3).",
@@ -211,6 +211,54 @@
           "type": "number",
           "minimum": 0,
           "maximum": 1
+        }
+      }
+    },
+    "crit": {
+      "description": "Critical strikes on basic attacks (Combat Bible §5; ADR-023 §1).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "damage", "chanceCap", "overflowDamagePerChance"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7). Combat Bible §5 gives the prototype values.",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "damage": {
+          "description": "Normal Crit Damage: what a crit multiplies the attack's base damage by, before Crit Damage bonuses.",
+          "type": "number",
+          "minimum": 1
+        },
+        "chanceCap": {
+          "description": "The most effective Crit Chance, as a fraction; Crit Chance above it becomes Crit Damage.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true,
+          "maximum": 1
+        },
+        "overflowDamagePerChance": {
+          "description": "The Crit Damage each 1 of Crit Chance above the cap adds.",
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "critBag": {
+      "description": "Crits are drawn, not rolled (ADR-023 §10): each unit's crit channel, such as its basic attacks, draws from a shuffled bag holding one value from each equal slice of [0, 1), and crits when the value is below its Crit Chance at that moment.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "draws"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "draws": {
+          "description": "How many draws one bag holds before it refills: smaller is steadier, and 1 is an ordinary independent roll.",
+          "type": "integer",
+          "minimum": 1
         }
       }
     },

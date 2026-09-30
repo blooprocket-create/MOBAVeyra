@@ -157,7 +157,7 @@ void UVeyraVitalsSet::PostGameplayEffectExecute(const FGameplayEffectModCallback
 	UVeyraCombatEventSubsystem* Events = Owner->GetWorld() ? Owner->GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
 	if (Events && (Result.HealthLost > 0.0 || Result.ShieldAbsorbed > 0.0 || Result.TemporaryHealthSpent > 0.0))
 	{
-		Events->OnDamageResolved.Broadcast(FVeyraDamageResolution{ Source, AbilitySystem, Type.GetValue(), Result.HealthLost, Result.TemporaryHealthSpent, MoveTemp(ShieldShares) });
+		Events->ResolveDamage(FVeyraDamageResolution{ Source, AbilitySystem, Type.GetValue(), Result.HealthLost, Result.TemporaryHealthSpent, MoveTemp(ShieldShares) });
 	}
 	// Nothing yet prevents a death once Health reaches 0, so the death is final (Combat Bible §18).
 	if (Result.HealthLost > 0.0 && GetHealth() <= 0.0f)

@@ -10,7 +10,7 @@ namespace
 	bool IsReductionKind(EVeyraStatusKind Kind)
 	{
 		return Kind == EVeyraStatusKind::Tenacity || Kind == EVeyraStatusKind::DamageReduction || Kind == EVeyraStatusKind::DisplacementResistance
-			|| Kind == EVeyraStatusKind::Weaken;
+			|| Kind == EVeyraStatusKind::Weaken || Kind == EVeyraStatusKind::MagicResistReduction;
 	}
 
 	/** Kinds whose Magnitude is a signed change per stack, where the stat always stays above 0. */
@@ -73,6 +73,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::DamageReduction:
 	case EVeyraStatusKind::DisplacementResistance:
 	case EVeyraStatusKind::Weaken:
+	case EVeyraStatusKind::MagicResistReduction:
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
 		break;
 	case EVeyraStatusKind::AttackCleave:

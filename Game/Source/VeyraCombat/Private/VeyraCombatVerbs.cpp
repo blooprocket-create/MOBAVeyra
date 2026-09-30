@@ -311,6 +311,8 @@ bool SetEquipmentStats(UAbilitySystemComponent& AbilitySystem, const FVeyraEquip
 		{ UVeyraEquipmentEffect::AbilityHasteName, Stats.AbilityHaste },
 		{ UVeyraEquipmentEffect::MoveSpeedName, Stats.MoveSpeed },
 		{ UVeyraEquipmentEffect::MagicPenetrationFlatName, Stats.MagicPenetrationFlat },
+		{ UVeyraEquipmentEffect::CritChanceName, Stats.CritChance },
+		{ UVeyraEquipmentEffect::CritDamageBonusName, Stats.CritDamageBonus },
 	};
 	bool bValid = HasEveryStatSet(AbilitySystem) && IsNonNegativeFinite(Stats.MagicPowerFraction);
 	bool bAnything = Stats.MagicPowerFraction > 0.0;
@@ -547,16 +549,25 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 			*GetNameSafe(Target.GetOwner()));
 		return false;
 	}
-	if (!Source->ApplyGameplayEffectSpecToTarget(*Damage.Spec.Data, &Target).WasSuccessfullyApplied())
+	// What each component costs the target while the instance applies is what it dealt (ADR-023 §4).
+	UWorld* World = Target.GetWorld();
+	UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+	if (Events)
+	{
+		Events->BeginDealing(*Source, Target, Damage.Delivery);
+	}
+	const bool bApplied = Source->ApplyGameplayEffectSpecToTarget(*Damage.Spec.Data, &Target).WasSuccessfullyApplied();
+	const FVeyraDamageDealtEvent Dealt = Events ? Events->EndDealing() : FVeyraDamageDealtEvent();
+	if (!bApplied)
 	{
 		return false;
 	}
-	// Towers and Fluxborn react to who hurts whom (Battleground Bible §19; ADR-011 §6).
-	UWorld* World = Target.GetWorld();
-	UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+	// Towers and Fluxborn react to who hurts whom (Battleground Bible §19; ADR-011 §6), and Attunements
+	// to what a hit dealt (ADR-023 §4).
 	if (Events && VeyraTargeting::AreHostile(Source->GetOwner(), Target.GetOwner()))
 	{
 		Events->OnHostileDamage.Broadcast(FVeyraHostileDamageEvent{ Source, &Target, Damage.Delivery });
+		Events->OnDamageDealt.Broadcast(Dealt);
 	}
 	return true;
 }

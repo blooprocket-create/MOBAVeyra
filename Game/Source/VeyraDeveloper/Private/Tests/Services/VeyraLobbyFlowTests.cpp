@@ -54,6 +54,9 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 404, TEXT("404 page not found"))));
 			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Shell));
 			ASSERT_THAT(IsFalse(Snapshot().Problem.IsSet()));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::CreateLobby), TEXT("no Custom Game where no lobby can open")));
+			ASSERT_THAT(IsFalse(Flow->CreateLobby(), TEXT("and none is asked for")));
+			ASSERT_THAT(IsNull(Backend.Find(TEXT("POST"), TEXT("/v1/lobby"))));
 		}
 
 		TEST_METHOD(TheHostInvitesSeatsABotSetsTheRulesAndStarts)

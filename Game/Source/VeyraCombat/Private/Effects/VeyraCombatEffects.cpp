@@ -21,6 +21,7 @@ const FName UVeyraStatusEffect::IncomingDamageMultiplierName(TEXT("IncomingDamag
 const FName UVeyraStatusEffect::DisplacementMultiplierName(TEXT("DisplacementMultiplier"));
 const FName UVeyraStatusEffect::HealthRegenMultiplierName(TEXT("HealthRegenMultiplier"));
 const FName UVeyraStatusEffect::OutgoingDamageMultiplierName(TEXT("OutgoingDamageMultiplier"));
+const FName UVeyraStatusEffect::MagicResistRetainedMultiplierName(TEXT("MagicResistRetainedMultiplier"));
 
 UVeyraStatusEffect::UVeyraStatusEffect()
 {
@@ -34,6 +35,7 @@ UVeyraStatusEffect::UVeyraStatusEffect()
 		{ UVeyraDefenceSet::GetDisplacementRetainedAttribute(), DisplacementMultiplierName },
 		{ UVeyraVitalsSet::GetHealthRegenAttribute(), HealthRegenMultiplierName },
 		{ UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute(), OutgoingDamageMultiplierName },
+		{ UVeyraDefenceSet::GetMagicResistReductionRetainedAttribute(), MagicResistRetainedMultiplierName },
 	};
 	for (const TPair<FGameplayAttribute, FName>& Line : Lines)
 	{
@@ -55,6 +57,8 @@ const FName UVeyraEquipmentEffect::AbilityHasteName(TEXT("EquipmentAbilityHaste"
 const FName UVeyraEquipmentEffect::MoveSpeedName(TEXT("EquipmentMoveSpeed"));
 const FName UVeyraEquipmentEffect::MagicPenetrationFlatName(TEXT("EquipmentMagicPenetrationFlat"));
 const FName UVeyraEquipmentEffect::MagicPowerMultiplierName(TEXT("EquipmentMagicPowerMultiplier"));
+const FName UVeyraEquipmentEffect::CritChanceName(TEXT("EquipmentCritChance"));
+const FName UVeyraEquipmentEffect::CritDamageBonusName(TEXT("EquipmentCritDamageBonus"));
 
 UVeyraEquipmentEffect::UVeyraEquipmentEffect()
 {
@@ -76,6 +80,8 @@ UVeyraEquipmentEffect::UVeyraEquipmentEffect()
 		{ UVeyraMobilitySet::GetMoveSpeedAttribute(), MoveSpeedName, EGameplayModOp::AddBase },
 		{ UVeyraOffenceSet::GetMagicPenetrationFlatAttribute(), MagicPenetrationFlatName, EGameplayModOp::AddBase },
 		{ UVeyraOffenceSet::GetMagicPowerAttribute(), MagicPowerMultiplierName, EGameplayModOp::MultiplyCompound },
+		{ UVeyraOffenceSet::GetCritChanceAttribute(), CritChanceName, EGameplayModOp::AddBase },
+		{ UVeyraOffenceSet::GetCritDamageBonusAttribute(), CritDamageBonusName, EGameplayModOp::AddBase },
 	};
 	for (const FLine& Line : Lines)
 	{

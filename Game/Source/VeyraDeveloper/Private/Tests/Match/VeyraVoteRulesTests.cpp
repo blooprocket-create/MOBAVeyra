@@ -115,6 +115,29 @@ namespace VeyraVoteRulesTests
 			ASSERT_THAT(IsTrue(VeyraVotes::Tally(Box, Voters, 30.0, Tuning) == EVeyraVoteOutcome::Failed, TEXT("the window closed")));
 		}
 
+		TEST_METHOD(ACustomSideWithBotsSurrendersOnItsHumansAlone)
+		{
+			// One human and four bots on Team A, as a custom lobby may seat them (ADR-021 §2).
+			TArray<FVeyraVoter> Voters = FiveAgainstFive();
+			for (FVeyraVoter& Voter : Voters)
+			{
+				Voter.bBot = Voter.Team == EVeyraTeam::A && Voter.PlayerId != 0;
+			}
+			FVeyraBallotBox Box;
+			Box.Kind = EVeyraVoteKind::Surrender;
+			Box.Team = EVeyraTeam::A;
+			Box.EndsAt = 30.0;
+			ASSERT_THAT(AreEqual(1, VeyraVotes::YesNeeded(Box, Voters, Tuning)));
+			Box.Ballots = { { 0, true } };
+			ASSERT_THAT(IsTrue(VeyraVotes::Tally(Box, Voters, 1.0, Tuning) == EVeyraVoteOutcome::Passed, TEXT("its one human decides")));
+
+			// Two humans need both; a full human team still needs the tuned majority.
+			Voters[1].bBot = false;
+			ASSERT_THAT(AreEqual(2, VeyraVotes::YesNeeded(Box, Voters, Tuning)));
+			ASSERT_THAT(IsTrue(VeyraVotes::Tally(Box, Voters, 1.0, Tuning) == EVeyraVoteOutcome::Open));
+			ASSERT_THAT(AreEqual(Tuning.Surrender.YesVotes, VeyraVotes::YesNeeded(Box, FiveAgainstFive(), Tuning)));
+		}
+
 		TEST_METHOD(ADisconnectedPlayerVotesYesOnARemakeAndAbstainsOnASurrender)
 		{
 			FVeyraVoter Away{ 3, EVeyraTeam::A };

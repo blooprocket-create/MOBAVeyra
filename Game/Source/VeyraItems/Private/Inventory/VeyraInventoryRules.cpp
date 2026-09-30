@@ -40,6 +40,8 @@ const TCHAR* LexToString(EVeyraShopRefusal Refusal)
 		return TEXT("no such spell slot");
 	case EVeyraShopRefusal::AlreadyEquipped:
 		return TEXT("already equipped");
+	case EVeyraShopRefusal::NoCharges:
+		return TEXT("no charges left");
 	}
 	return TEXT("unknown");
 }
@@ -111,7 +113,9 @@ namespace
 			bHeld |= Slot.Item == Item;
 			bRoomInStack |= Slot.Item == Item && Slot.Count < Definition->StackLimit;
 		}
-		if (bHeld && Definition->Tier >= Tuning.Shop.UniqueFromTier)
+		// A Masterwork is held once (ADR-012 §9), and so is a refillable consumable (Item Bible §10).
+		const FVeyraConsumableTuning* Consumable = Tuning.Consumables.Find(Item);
+		if (bHeld && (Definition->Tier >= Tuning.Shop.UniqueFromTier || (Consumable && Consumable->Charges > 0)))
 		{
 			return EVeyraShopRefusal::Unique;
 		}
@@ -141,6 +145,9 @@ namespace
 				Slot.Item = Item;
 				Slot.Count = 1;
 				Slot.PaidEach = PaidEach;
+				// A refillable consumable arrives full.
+				const FVeyraConsumableTuning* Consumable = Tuning.Consumables.Find(Item);
+				Slot.Charges = Consumable ? Consumable->Charges : 0;
 				return;
 			}
 		}

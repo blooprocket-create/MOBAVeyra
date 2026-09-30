@@ -92,20 +92,25 @@ TOptional<bool> AutomaticBallot(EVeyraVoteKind Kind, const FVeyraVoter& Voter)
 
 int32 YesNeeded(const FVeyraBallotBox& Box, TConstArrayView<FVeyraVoter> Voters, const FVeyraVotesTuning& Tuning)
 {
+	int32 Everyone = 0;
+	int32 Humans = 0;
+	for (const FVeyraVoter& Voter : Voters)
+	{
+		const bool bVotes = IsVoter(Box, Voter);
+		Everyone += bVotes ? 1 : 0;
+		Humans += bVotes && !Voter.bBot ? 1 : 0;
+	}
+	// A team vote needs the tuned majority of a full team, and never more than the team's humans:
+	// its bots abstain, so a custom side of one or two humans decides alone (ADR-021 §3).
 	switch (Box.Kind)
 	{
 	case EVeyraVoteKind::Remake:
-		return Tuning.Remake.YesVotes;
+		return FMath::Min(Tuning.Remake.YesVotes, Humans);
 	case EVeyraVoteKind::Surrender:
-		return Tuning.Surrender.YesVotes;
+		return FMath::Min(Tuning.Surrender.YesVotes, Humans);
 	case EVeyraVoteKind::Pause:
 	case EVeyraVoteKind::Resume:
 		break;
-	}
-	int32 Everyone = 0;
-	for (const FVeyraVoter& Voter : Voters)
-	{
-		Everyone += IsVoter(Box, Voter) ? 1 : 0;
 	}
 	return Everyone;
 }

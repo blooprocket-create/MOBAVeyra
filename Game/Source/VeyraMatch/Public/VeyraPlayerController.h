@@ -116,19 +116,16 @@ public:
 	void RequestRankUp(EVeyraAbilitySlot Slot);
 
 	/**
-	 * Owning client, developer builds: asks the server for Amount XP, or for enough XP to gain Levels
-	 * levels, until minions give XP (ADR-008 §6). Shipping servers refuse them. The console commands
-	 * Veyra.Dev.GrantXp and Veyra.Dev.GrantLevels send them.
+	 * Owning client, developer builds: asks the server to run developer command Command, the name
+	 * after "Veyra.Dev.", with Args for this player. VeyraDeveloper runs it on the server through
+	 * VeyraDeveloperCommandRoute, and its reply arrives through GetLastDeveloperCommandReply and in the
+	 * console. Shipping servers refuse every one. Veyra.Dev.Help lists them.
 	 */
-	void RequestDeveloperExperience(int32 Amount);
-	void RequestDeveloperLevels(int32 Levels);
+	void RequestDeveloperCommand(const FString& Command, const TArray<FString>& Args);
 
-	/**
-	 * Owning client, developer builds: asks the server to destroy the next enemy structure in siege
-	 * order, as Veyra.Dev.Siege does (ADR-011 §15), so a match can be won in minutes. Shipping servers
-	 * refuse it.
-	 */
-	void RequestDeveloperSiege();
+	/** Owning client: what the server said about the last developer command, and how many it answered. */
+	const FString& GetLastDeveloperCommandReply() const { return LastDeveloperCommandReply; }
+	int32 GetDeveloperCommandReplyCount() const { return DeveloperCommandReplyCount; }
 
 	/** Owning client: the reason the server gave for the last refused rank-up, and how many it refused. */
 	EVeyraRankRefusal GetLastRankUpRefusal() const { return LastRankUpRefusal; }
@@ -337,16 +334,10 @@ private:
 	void ApplyShopRequest(TFunctionRef<EVeyraShopRefusal(class UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request);
 
 	UFUNCTION(Server, Reliable)
-	void ServerRequestDeveloperExperience(int32 Amount);
+	void ServerRequestDeveloperCommand(const FString& Command, const TArray<FString>& Args);
 
-	UFUNCTION(Server, Reliable)
-	void ServerRequestDeveloperLevels(int32 Levels);
-
-	UFUNCTION(Server, Reliable)
-	void ServerRequestDeveloperSiege();
-
-	/** Server, developer builds: the participant's progression, if its XP may be granted. */
-	class UVeyraProgressionComponent* FindDeveloperProgression() const;
+	UFUNCTION(Client, Reliable)
+	void ClientDeveloperCommandReply(const FString& Reply);
 
 	UFUNCTION()
 	void OnVanguardSet(APlayerState* Participant, APawn* NewPawn, APawn* OldPawn);
@@ -443,4 +434,7 @@ private:
 
 	EVeyraBuybackRefusal LastBuybackRefusal = EVeyraBuybackRefusal::None;
 	int32 BuybackRefusalCount = 0;
+
+	FString LastDeveloperCommandReply;
+	int32 DeveloperCommandReplyCount = 0;
 };

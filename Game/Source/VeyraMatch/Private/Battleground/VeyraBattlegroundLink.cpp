@@ -10,6 +10,7 @@
 #include "Layout/VeyraLayout.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Rewards/VeyraRewardSubsystem.h"
+#include "Shop/VeyraShopSubsystem.h"
 #include "Structures/VeyraStructure.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
 #include "VeyraBattlegroundSubsystem.h"
@@ -188,6 +189,20 @@ void FVeyraBattlegroundLink::OnFluxWellSecured(const FVeyraFluxWellSecuredEvent&
 	if (UVeyraTeamFluxSubsystem* TeamFlux = Flux.Get())
 	{
 		TeamFlux->Grant(Event.Team, EVeyraFluxSource::FluxWell);
+	}
+	// And refills each of its participants' Flux Flasks (Item Bible §10; ADR-023 §6).
+	UWorld* World = MatchWorld.Get();
+	UVeyraShopSubsystem* Shop = World ? World->GetSubsystem<UVeyraShopSubsystem>() : nullptr;
+	const AGameStateBase* GameState = World ? World->GetGameState() : nullptr;
+	if (Shop && GameState)
+	{
+		for (APlayerState* Participant : GameState->PlayerArray)
+		{
+			if (Participant && VeyraTeams::TeamOf(Participant) == Event.Team)
+			{
+				Shop->RefillCharges(*Participant);
+			}
+		}
 	}
 }
 

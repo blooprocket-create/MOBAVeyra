@@ -44,6 +44,13 @@ public:
 	 */
 	EVeyraShopRefusal Buy(AActor& Participant, const FVeyraContentId& Item);
 
+	/**
+	 * Puts Item in Participant's inventory now and for no Gold, wherever it stands, by a purchase's
+	 * slot, limit and recipe rules, so the owned items its recipe needs are consumed. Nothing is left
+	 * to undo. The developer command Veyra.Dev.GiveItem uses it.
+	 */
+	EVeyraShopRefusal GrantItem(AActor& Participant, const FVeyraContentId& Item);
+
 	/** Cancels the pending purchase at Index, from anywhere, for all its Gold, with whatever needed it (§11.3). */
 	EVeyraShopRefusal Cancel(AActor& Participant, int32 Index);
 
@@ -75,6 +82,19 @@ public:
 
 	/** Match reports Participant's death: its queue is delivered, to use once it respawns (§11.2). */
 	void DeliverOnDeath(AActor& Participant);
+
+	/**
+	 * Fills Participant's refillable consumables to their charges (Item Bible §10; ADR-023 §6): its
+	 * arrival at its fountain does, and Match calls it for each of a side's participants when the
+	 * side secures a Flux Well.
+	 */
+	void RefillCharges(AActor& Participant);
+
+	/**
+	 * Grows the Max Health of Participant's item that holds Attunement by Health, for as long as it
+	 * holds the item (Tempered by Conflict; ADR-023 §3). The Attunements call it.
+	 */
+	void GrowHealth(AActor& Participant, const FVeyraContentId& Attunement, double Health);
 
 	/** Sets Participant's slot count, empty, as its match prepares. */
 	static void InitializeInventory(AActor& Participant);

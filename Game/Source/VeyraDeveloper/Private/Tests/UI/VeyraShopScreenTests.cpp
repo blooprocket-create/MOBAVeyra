@@ -132,6 +132,34 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShopScreen::SwapLabel(0, Roster[0]))));
 		}
 
+		TEST_METHOD(AnUnpaintedScreenFollowsTheParticipantWhenRefreshed)
+		{
+			// A -nullrhi client never paints, so its shop never ticks: a script refreshes it before
+			// reading it (Smoke.ps1 -Flow Practice).
+			const TArray<FVeyraContentId>& Roster = UVeyraAbilitiesTuningSubsystem::Get().FluxSpells.Roster;
+			ASSERT_THAT(IsTrue(Roster.Num() >= 2));
+			UVeyraAbilityLoadoutComponent& Loadout = *Participant->FindComponentByClass<UVeyraAbilityLoadoutComponent>();
+			ASSERT_THAT(IsTrue(Loadout.Grant(*Participant->GetAbilitySystemComponent(), EVeyraAbilitySlot::Spell1, Roster[0])));
+			Subsystem->SetAtFountain(*Participant, true);
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			Controller.PlayerState = Participant;
+			UVeyraShopScreen* Screen = CreateWidget<UVeyraShopScreen>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Screen));
+			Screen->Show(Controller, [] {});
+
+			// What the server changes while the shop is open: a purchase, then a Flux Spell swap.
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_grip"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->SwapFluxSpell(*Participant, 0, Roster[1]) == EVeyraShopRefusal::None));
+			Screen->Refresh();
+			const FVeyraShopView& View = Screen->GetView();
+			ASSERT_THAT(IsTrue(View == VeyraShopModel::Describe(*Participant)));
+			ASSERT_THAT(IsTrue(View.Slots[0].Item == ItemId(TEXT("test_grip")) && View.SpellSlots[0].Spell == Roster[1]));
+			ASSERT_THAT(IsTrue(View.Gold == Purse - Tuning.Items[ItemId(TEXT("test_grip"))].Cost - View.SpellSwapCost));
+			// And its buttons with it: the spell the slot gave up is on offer again.
+			Screen->FindButton(UVeyraShopScreen::SpellsTabLabel())->Press();
+			ASSERT_THAT(IsNotNull(Screen->FindButton(UVeyraShopScreen::SwapLabel(0, Roster[0]))));
+		}
+
 		TEST_METHOD(TheModelOffersEachOtherVisionToolAndTheScreenItsSwaps)
 		{
 			// Any other tool, at the fountain, for the same cost each time (Vision Bible §3; ADR-016 §6).
@@ -187,6 +215,10 @@ namespace VeyraItemsTests
 			Stats.AttackSpeed = Fraction;
 			ASSERT_THAT(AreEqual(FString(TEXT("+10 Physical Power, +25% Attack Speed")), VeyraShopModel::DescribeStats(Stats).ToString()));
 			ASSERT_THAT(IsTrue(VeyraShopModel::DescribeStats(FVeyraItemStatsTuning()).IsEmpty()));
+			FVeyraItemStatsTuning Crit;
+			Crit.CritChance = 0.15;
+			Crit.MagicPowerFraction = 0.08;
+			ASSERT_THAT(AreEqual(FString(TEXT("+15% Crit Chance, +8% Magic Power")), VeyraShopModel::DescribeStats(Crit).ToString()));
 		}
 
 		TEST_METHOD(TheHudShowsEachSpellSlotLockedUntilItsFluxThenReady)
@@ -219,6 +251,19 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Player.Items[0].Slot == EVeyraAbilitySlot::Item1 && Player.Items[0].Item == ItemId(TEXT("test_grip")) && Player.Items[0].Count == 1));
 			ASSERT_THAT(IsTrue(Player.Items[5].Slot == EVeyraAbilitySlot::Item6 && !Player.Items[5].Item.IsValid()));
 			ASSERT_THAT(AreEqual(1, Player.PendingPurchases, TEXT("the tonic waits for the fountain")));
+			ASSERT_THAT(IsFalse(Player.Items[0].Charges.IsSet(), TEXT("only a refillable shows charges")));
+		}
+
+		TEST_METHOD(TheHudShowsARefillablesChargesEvenWhenEmpty)
+		{
+			// Fixture values: the tonic made refillable, with one charge (ADR-023 §6).
+			Tuning.Items[ItemId(TEXT("test_tonic"))].StackLimit = 1;
+			Tuning.Consumables[ItemId(TEXT("test_tonic"))].Charges = 1;
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_tonic"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None));
+			const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(*Participant, Spawner.GetWorld().GetTimeSeconds());
+			ASSERT_THAT(IsTrue(Player.Items[0].Charges.IsSet() && Player.Items[0].Charges.GetValue() == 0, TEXT("an empty one shows 0")));
 		}
 
 		TEST_METHOD(TheScreenOffersWhatTheModelAllowsAndShowsRefusals)

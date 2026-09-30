@@ -67,7 +67,7 @@
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
-      "build": ["swift_boots", "colossus_temper", "reinforced_chassis", "siege_frame", "spellguard_plate"],
+      "build": ["swift_boots", "siegeheart_core", "colossus_temper", "spellguard_plate", "impact_aegis"],
       "skillPriority": ["Q", "W", "E"],
       "abilities": {
         "cairn_iron_grasp": "Engage",
@@ -78,7 +78,7 @@
     },
     "qazharr": {
       "provenance": "Provisional",
-      "build": ["war_boots", "cycler_core", "colossus_temper", "razorwheel", "striker_assembly"],
+      "build": ["war_boots", "razorwheel_prime", "colossus_temper", "striker_assembly", "siege_frame"],
       "skillPriority": ["Q", "E", "W"],
       "abilities": {
         "qazharr_heavy_hand": "Empower",
@@ -89,7 +89,7 @@
     },
     "oriel": {
       "provenance": "Provisional",
-      "build": ["swift_boots", "crown_of_the_crucible", "arc_reactor", "nullglass_shard", "spellguard_plate"],
+      "build": ["arcane_boots", "crown_of_the_crucible", "starfall_prism", "nullglass_shard", "spellguard_plate"],
       "skillPriority": ["Q", "W", "E"],
       "abilities": {
         "oriel_splinter_lance": "Damage",
@@ -100,7 +100,7 @@
     },
     "bryn": {
       "provenance": "Provisional",
-      "build": ["war_boots", "cycler_core", "razorwheel", "striker_assembly", "colossus_temper"],
+      "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "striker_assembly"],
       "skillPriority": ["Q", "E", "W"],
       "abilities": {
         "bryn_breach_round": "Empower",
@@ -111,7 +111,7 @@
     },
     "kade": {
       "provenance": "Provisional",
-      "build": ["war_boots", "cycler_core", "razorwheel", "striker_assembly", "colossus_temper"],
+      "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "striker_assembly"],
       "skillPriority": ["Q", "E", "W"],
       "abilities": {
         "kade_throughline": "Damage",
@@ -123,7 +123,7 @@
     },
     "vera": {
       "provenance": "Provisional",
-      "build": ["war_boots", "cycler_core", "striker_assembly", "razorwheel", "colossus_temper"],
+      "build": ["war_boots", "cycler_core", "sovereign_edge", "striker_assembly", "razorwheel"],
       "skillPriority": ["Q", "E", "W"],
       "abilities": {
         "vera_range_found": "Damage",
@@ -134,7 +134,7 @@
     },
     "mimzi": {
       "provenance": "Provisional",
-      "build": ["swift_boots", "crown_of_the_crucible", "arc_reactor", "nullglass_shard", "spellguard_plate"],
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
       "skillPriority": ["Q", "W", "E"],
       "abilities": {
         "mimzi_twinklebolt": "Damage",
@@ -145,7 +145,7 @@
     },
     "patch": {
       "provenance": "Provisional",
-      "build": ["swift_boots", "colossus_temper", "reinforced_chassis", "siege_frame", "spellguard_plate"],
+      "build": ["swift_boots", "siegeheart_core", "colossus_temper", "impact_aegis", "spellguard_plate"],
       "skillPriority": ["Q", "E", "W"],
       "abilities": {
         "patch_bear_hug": "Engage",
@@ -158,7 +158,7 @@
     },
     "gorraveth": {
       "provenance": "Provisional",
-      "build": ["war_boots", "cycler_core", "colossus_temper", "razorwheel", "striker_assembly"],
+      "build": ["war_boots", "cycler_core", "impact_aegis", "colossus_temper", "razorwheel"],
       "skillPriority": ["Q", "W", "E"],
       "abilities": {
         "gorraveth_rip_through": "Damage",
@@ -171,7 +171,7 @@
     },
     "raska": {
       "provenance": "Provisional",
-      "build": ["war_boots", "colossus_temper", "cycler_core", "reinforced_chassis", "razorwheel"],
+      "build": ["war_boots", "colossus_temper", "razorwheel_prime", "cycler_core", "reinforced_chassis"],
       "skillPriority": ["Q", "E", "W"],
       "abilities": {
         "raska_breakneck": "Engage",

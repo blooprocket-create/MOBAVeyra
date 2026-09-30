@@ -1,5 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Components/ActorTestSpawner.h"
@@ -244,6 +245,31 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsNull(Loadout->FindSlot(EVeyraAbilitySlot::Item1), TEXT("the Active leaves with its item")));
 		}
 
+		TEST_METHOD(SeizeMomentumSlowsWhatItHitsAndSpeedsTheUserForEachVanguard)
+		{
+			// The committed Abilities.json's Seize Momentum, on the test wheel, among two enemy Vanguards and a Fluxborn.
+			const FVeyraContentId Seize = ItemId(TEXT("seize_momentum"));
+			Tuning.Items[ItemId(TEXT("test_wheel"))].Active = { Seize };
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_wheel"))) == EVeyraShopRefusal::None));
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& First = World.Spawn(EVeyraTeam::B, FVector(200.0, 0.0, 0.0));
+			World.Spawn(EVeyraTeam::B, FVector(-200.0, 0.0, 0.0));
+			World.SpawnFluxborn(EVeyraTeam::B, FVector(0.0, 200.0, 0.0));
+			UAbilitySystemComponent& Abilities = *Participant->GetAbilitySystemComponent();
+			const double Speed = Abilities.GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
+
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(Abilities, EVeyraAbilitySlot::Item1, FVeyraCastTarget()) == EVeyraCastRejection::None));
+			const FVeyraAbilitiesTuning& AbilityTuning = UVeyraAbilitiesTuningSubsystem::Get();
+			const double Slow = AbilityTuning.Statuses.FindChecked(ItemId(TEXT("seize_momentum_slow"))).Magnitude;
+			const double Haste = AbilityTuning.Statuses.FindChecked(ItemId(TEXT("seize_momentum_haste"))).Magnitude;
+			const UVeyraStatusComponent* Struck = First.GetPlayerState()->FindComponentByClass<UVeyraStatusComponent>();
+			ASSERT_THAT(IsTrue(Struck && FMath::IsNearlyEqual(Struck->GetStrongestSlow(), Slow), TEXT("what it hits is slowed")));
+			const double Hasted = Abilities.GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Hasted, Speed * (1.0 + 2.0 * Haste), 1e-2),
+				FString::Printf(TEXT("a stack for each Vanguard, none for the Fluxborn: %g from %g"), Hasted, Speed)));
+		}
+
 		TEST_METHOD(ATonicRestoresHealthOverTimeOneAtATime)
 		{
 			// Fixture values: 100 Health over 1 second.
@@ -278,6 +304,58 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Health, Max - Restored, 1.0),
 				FString::Printf(TEXT("all of it, and no more: Health %.1f of %.1f, expected %.1f"), Health, Max, Max - Restored)));
 			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None, TEXT("the next may start")));
+		}
+
+		/** Runs world time past Seconds, so a running restoration ends (see the tonic's test). */
+		void RunPast(double Seconds)
+		{
+			constexpr float Margin = 0.1f;
+			FTimerManager& Timers = Spawner.GetWorld().GetTimerManager();
+			++GFrameCounter;
+			Timers.Tick(0.0f);
+			++GFrameCounter;
+			Timers.Tick(static_cast<float>(Seconds) + Margin);
+		}
+
+		int32 ChargesLeft(const TCHAR* Item) const
+		{
+			const FVeyraInventorySlot* Held = Inventory->GetSlots().FindByPredicate([Item](const FVeyraInventorySlot& Slot) { return Slot.Item == ItemId(Item); });
+			return Held ? Held->Charges : INDEX_NONE;
+		}
+
+		TEST_METHOD(ARefillableConsumableSpendsChargesAndRefills)
+		{
+			// Fixture values: the tonic made refillable, with two charges of 10 Health over 1 second
+			// (Item Bible §10; ADR-023 §6).
+			constexpr int32 Charges = 2;
+			constexpr double Duration = 1.0;
+			const TCHAR* Flask = TEXT("test_tonic");
+			Tuning.Items[ItemId(Flask)].StackLimit = 1;
+			FVeyraConsumableTuning& Refillable = Tuning.Consumables[ItemId(Flask)];
+			Refillable.Charges = Charges;
+			Refillable.HealthRestored = 10.0;
+			Refillable.DurationSeconds = Duration;
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(Flask)) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(Flask)) == EVeyraShopRefusal::Unique, TEXT("held once")));
+			ASSERT_THAT(AreEqual(Charges, ChargesLeft(Flask), TEXT("it arrives full")));
+
+			for (int32 Used = 1; Used <= Charges; ++Used)
+			{
+				ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None));
+				ASSERT_THAT(AreEqual(Charges - Used, ChargesLeft(Flask), TEXT("a use spends a charge")));
+				ASSERT_THAT(AreEqual(1, CountOf(Flask), TEXT("and the flask stays")));
+				RunPast(Duration);
+			}
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::NoCharges));
+
+			// Arriving at the fountain refills it; so does Match, when its side secures a Flux Well.
+			Subsystem->SetAtFountain(*Participant, false);
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(AreEqual(Charges, ChargesLeft(Flask), TEXT("the fountain")));
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None));
+			Subsystem->RefillCharges(*Participant);
+			ASSERT_THAT(AreEqual(Charges, ChargesLeft(Flask), TEXT("a secured Well")));
 		}
 
 		TEST_METHOD(BasicAttacksOnVanguardsStackSpoolUpUntilItLapses)

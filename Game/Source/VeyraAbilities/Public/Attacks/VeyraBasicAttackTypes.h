@@ -168,6 +168,9 @@ struct VEYRAABILITIES_API FVeyraAttackPlan
 	/** Whether the attack consumed an empowerment (Combat Bible §17). */
 	bool bEmpowered = false;
 
+	/** Whether the attack crits (Combat Bible §5): its crit bonus is already in Damage, as a rider. */
+	bool bCritical = false;
+
 	FVeyraRawDamageEvent Damage;
 
 	/**
@@ -194,6 +197,7 @@ struct FVeyraAttackEvent
 	TWeakObjectPtr<AActor> Target;
 	int32 Chain = 0;
 	bool bEmpowered = false;
+	bool bCritical = false;
 };
 
 /** What presentation sees of an empowerment waiting for the next attack: which ability, and until when. */

@@ -99,6 +99,38 @@ EVeyraShopRefusal UVeyraShopSubsystem::Buy(AActor& Participant, const FVeyraCont
 	return EVeyraShopRefusal::None;
 }
 
+EVeyraShopRefusal UVeyraShopSubsystem::GrantItem(AActor& Participant, const FVeyraContentId& Item)
+{
+	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
+	UVeyraGoldComponent* Gold = Participant.FindComponentByClass<UVeyraGoldComponent>();
+	if (!Inventory || !Gold)
+	{
+		return EVeyraShopRefusal::NotNow;
+	}
+	// A purchase's rules without its price: the same slots, limits and recipe, its owned components consumed.
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->Slots, Inventory->Queue, Item);
+	if (Quote.Refusal != EVeyraShopRefusal::None)
+	{
+		return Quote.Refusal;
+	}
+	FVeyraPendingPurchase Entry;
+	Entry.Item = Item;
+	Entry.Needs = Quote.Needs;
+	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
+	if (const EVeyraShopRefusal Refusal = VeyraInventory::Apply(Tuning, Slots, Entry); Refusal != EVeyraShopRefusal::None)
+	{
+		return Refusal;
+	}
+	Inventory->SetSlots(MoveTemp(Slots));
+	// The grant changes what an undo would restore: the steps no longer describe the slots.
+	Inventory->ResetUndoSteps();
+	Revalidate(*Inventory, *Gold);
+	ApplyItems(Participant);
+	UE_LOG(LogVeyraItems, Log, TEXT("%s was given %s."), *GetNameSafe(&Participant), *Item.ToString());
+	return EVeyraShopRefusal::None;
+}
+
 EVeyraShopRefusal UVeyraShopSubsystem::Cancel(AActor& Participant, int32 Index)
 {
 	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
@@ -267,6 +299,7 @@ void UVeyraShopSubsystem::SetAtFountain(AActor& Participant, bool bAtFountain)
 	if (bAtFountain)
 	{
 		Deliver(Participant);
+		RefillCharges(Participant);
 	}
 	else
 	{
@@ -470,7 +503,17 @@ EVeyraShopRefusal UVeyraShopSubsystem::UseConsumable(AActor& Participant, int32 
 		return EVeyraShopRefusal::UnknownItem;
 	}
 	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
-	if (--Slots[Index].Count == 0)
+	if (Consumable->Charges > 0)
+	{
+		// A refillable one spends a charge and stays (Item Bible §10).
+		if (Slots[Index].Charges <= 0)
+		{
+			return EVeyraShopRefusal::NoCharges;
+		}
+		--Slots[Index].Charges;
+		Slots[Index].bBenefited = true;
+	}
+	else if (--Slots[Index].Count == 0)
 	{
 		Slots[Index] = FVeyraInventorySlot();
 	}
@@ -492,6 +535,57 @@ EVeyraShopRefusal UVeyraShopSubsystem::UseConsumable(AActor& Participant, int32 
 	ApplyItems(Participant);
 	UE_LOG(LogVeyraItems, Log, TEXT("%s used %s."), *GetNameSafe(&Participant), *Used.ToString());
 	return EVeyraShopRefusal::None;
+}
+
+void UVeyraShopSubsystem::RefillCharges(AActor& Participant)
+{
+	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
+	if (!Inventory)
+	{
+		return;
+	}
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
+	bool bRefilled = false;
+	for (FVeyraInventorySlot& Slot : Slots)
+	{
+		const FVeyraConsumableTuning* Consumable = Slot.IsEmpty() ? nullptr : Tuning.Consumables.Find(Slot.Item);
+		if (Consumable && Consumable->Charges > Slot.Charges)
+		{
+			Slot.Charges = Consumable->Charges;
+			bRefilled = true;
+		}
+	}
+	if (bRefilled)
+	{
+		Inventory->SetSlots(MoveTemp(Slots));
+		UE_LOG(LogVeyraItems, Log, TEXT("%s refilled its charges."), *GetNameSafe(&Participant));
+	}
+}
+
+void UVeyraShopSubsystem::GrowHealth(AActor& Participant, const FVeyraContentId& Attunement, double Health)
+{
+	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
+	if (!Inventory || !(Health > 0.0))
+	{
+		return;
+	}
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
+	FVeyraInventorySlot* Holding = Slots.FindByPredicate([&Tuning, &Attunement](const FVeyraInventorySlot& Slot) {
+		const FVeyraItemDefinition* Item = Slot.IsEmpty() ? nullptr : Tuning.Items.Find(Slot.Item);
+		return Item && Item->Attunement.Contains(Attunement);
+	});
+	if (!Holding)
+	{
+		return;
+	}
+	Holding->GrownHealth += Health;
+	// It has given benefit: no undo takes it back (§12).
+	Holding->bBenefited = true;
+	Inventory->SetSlots(MoveTemp(Slots));
+	ApplyItems(Participant);
+	UE_LOG(LogVeyraItems, Log, TEXT("%s's %s grew %g Max Health."), *GetNameSafe(&Participant), *Attunement.ToString(), Health);
 }
 
 void UVeyraShopSubsystem::NoteActiveUsed(AActor& Participant, int32 Index)

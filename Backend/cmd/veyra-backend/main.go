@@ -151,7 +151,7 @@ func run(log *slog.Logger) error {
 	}, cfg.CustomLobby.InviteLifetime, time.Now)
 	lobbies.SetLauncher(customSelects{selects})
 	selects.SetLobbies(lobbies)
-	busy := activity{matches: matches, selects: selects, lobbies: lobbies}
+	busy := busyChecker(cfg, matches, selects, lobbies)
 	parties.SetActivity(busy)
 	mmSettings := matchmaking.Settings{AcceptDuration: cfg.MatchFound.AcceptDuration, SearchLimit: cfg.Matchmaking.SearchLimit}
 	for _, m := range cfg.Modes {
@@ -255,6 +255,13 @@ func (a lobbyActivity) Busy(ctx context.Context, accounts []string) (bool, error
 
 // customLobbies is the lobby service the routes serve, or nil while custom
 // lobbies are disabled.
+// busyChecker is what keeps an account from parties and queues. A lobby keeps its
+// members busy only while lobbies are served: with them switched off, a member of
+// a lobby persisted before could neither see nor leave it.
+func busyChecker(cfg config.Config, matches *match.Service, selects *selection.Service, lobbies *lobby.Service) activity {
+	return activity{matches: matches, selects: selects, lobbies: customLobbies(cfg, lobbies)}
+}
+
 func customLobbies(cfg config.Config, lobbies *lobby.Service) *lobby.Service {
 	if !cfg.CustomLobby.Enabled {
 		return nil

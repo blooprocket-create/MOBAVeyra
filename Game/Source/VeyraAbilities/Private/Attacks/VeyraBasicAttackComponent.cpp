@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Attacks/VeyraCrit.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "CombatState/VeyraCombatStateComponent.h"
@@ -316,6 +317,20 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 	Plan.Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
 	Plan.BaseDamage = Plan.Damage.Components;
 
+	// A basic attack may crit, drawn once here on the server from the attacker's basic-attack bag (Combat
+	// Bible §5; ADR-023 §1, §10). Its bonus is a rider on the base damage, so an empowerment's and a
+	// modifier's riders never inherit it (§17) and a structure takes it at Structure Effectiveness (§33).
+	const FVeyraCritOutcome Crit = VeyraCrit::Check(GetWorld(), Attacker, VeyraCrit::BasicAttackChannel(),
+		Attacker.GetNumericAttribute(UVeyraOffenceSet::GetCritChanceAttribute()), Attacker.GetNumericAttribute(UVeyraOffenceSet::GetCritDamageBonusAttribute()));
+	if (Crit.bCritical)
+	{
+		Plan.bCritical = true;
+		for (const FVeyraDamageComponent& Component : Plan.BaseDamage)
+		{
+			Plan.AddDamage(Component.Type, Component.Amount * (Crit.Multiplier - 1.0));
+		}
+	}
+
 	if (Empowerment.IsSet() && GetServerNow() <= EmpowermentExpiresAt)
 	{
 		Plan.bEmpowered = true;
@@ -354,6 +369,7 @@ UVeyraBasicAttackComponent::FLandingAttack UVeyraBasicAttackComponent::Prepare(U
 	Landing.Event.Target = Plan.Target;
 	Landing.Event.Chain = Plan.Chain;
 	Landing.Event.bEmpowered = Plan.bEmpowered;
+	Landing.Event.bCritical = Plan.bCritical;
 	Landing.AttackerLocation = Body.GetActorLocation();
 	// A structure takes the attack's own damage in full and its riders at Structure Effectiveness (§33).
 	Landing.Damage = VeyraCombat::PrepareDamage(Attacker, VeyraUnits::IsStructure(Plan.Target.Get())
