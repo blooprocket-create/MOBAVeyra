@@ -76,6 +76,13 @@ public:
 	/** Match reports Participant's death: its queue is delivered, to use once it respawns (§11.2). */
 	void DeliverOnDeath(AActor& Participant);
 
+	/**
+	 * Fills Participant's refillable consumables to their charges (Item Bible §10; ADR-022 §6): its
+	 * arrival at its fountain does, and Match calls it for each of a side's participants when the
+	 * side secures a Flux Well.
+	 */
+	void RefillCharges(AActor& Participant);
+
 	/** Sets Participant's slot count, empty, as its match prepares. */
 	static void InitializeInventory(AActor& Participant);
 

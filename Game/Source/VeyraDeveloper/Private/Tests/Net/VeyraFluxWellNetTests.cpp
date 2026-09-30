@@ -6,10 +6,13 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "EngineUtils.h"
+#include "Inventory/VeyraInventoryComponent.h"
+#include "Shop/VeyraShopSubsystem.h"
 #include "Tests/Net/VeyraBattlegroundNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
 #include "Tests/World/VeyraBattlegroundTestLayout.h"
 #include "Tuning/VeyraFluxTuningSubsystem.h"
+#include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "VeyraPlayerState.h"
 #include "VeyraTeamFluxSubsystem.h"
 #include "Wells/VeyraFluxWell.h"
@@ -18,8 +21,8 @@
 namespace VeyraNetTests
 {
 	// Veyra.Net.FluxWellSecure.*: a Vanguard standing at an open Flux Well drains it by presence and
-	// secures it; Match grants its side the Well's Team Flux, and every client sees the Well's cycle
-	// (Battleground Bible §6; ADR-014 §4, §6).
+	// secures it; Match grants its side the Well's Team Flux and refills its side's Flux Flasks, and
+	// every client sees the Well's cycle (Battleground Bible §6; ADR-014 §4, §6; ADR-022 §6).
 	NETWORK_TEST_CLASS(FluxWellSecure, "Veyra.Net")
 	{
 		struct FState : public FBasePIENetworkComponentState
@@ -76,12 +79,36 @@ namespace VeyraNetTests
 			return nullptr;
 		}
 
+		static FVeyraContentId Flask()
+		{
+			return FVeyraContentId::FromText(TEXT("flux_flask")).GetValue();
+		}
+
+		static int32 FlaskCharges(const AVeyraPlayerState& Participant)
+		{
+			const FVeyraInventorySlot* Held = Participant.FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().FindByPredicate(
+				[](const FVeyraInventorySlot& Slot) { return Slot.Item == Flask(); });
+			return Held ? Held->Charges : INDEX_NONE;
+		}
+
 		TEST_METHOD(PresenceSecuresTheWellAndItsSideTakesTheFlux)
 		{
 			StartBattleground(Network, Greybox, EVeyraMatchPhase::Live)
 				.UntilClients(TEXT("Every client sees the Well open"), [](FState& State) {
 					const AVeyraFluxWell* Well = SeenWell(State.World);
 					return Well && Well->GetState() == EVeyraFluxWellState::Open;
+				})
+				.ThenServer(TEXT("Each Vanguard buys a Flux Flask at its fountain and drinks from it"), [this](FState& State) {
+					UVeyraShopSubsystem* Shop = State.World->GetSubsystem<UVeyraShopSubsystem>();
+					for (int32 Client = 0; Client < MatchClientCount; ++Client)
+					{
+						AVeyraPlayerState& Participant = *ServerControllerOf(State, Client)->GetPlayerState<AVeyraPlayerState>();
+						Shop->SetAtFountain(Participant, true);
+						ASSERT_THAT(IsTrue(Shop->Buy(Participant, Flask()) == EVeyraShopRefusal::None, TEXT("the committed catalog's Flux Flask")));
+						const int32 Slot = Participant.FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().IndexOfByPredicate(
+							[](const FVeyraInventorySlot& Held) { return Held.Item == Flask(); });
+						ASSERT_THAT(IsTrue(Shop->UseConsumable(Participant, Slot) == EVeyraShopRefusal::None));
+					}
 				})
 				.ThenServer(TEXT("Team A's Vanguard stands at the Well"), [](FState& State) {
 					APawn* Body = ServerControllerOf(State, 0)->GetPlayerState<AVeyraPlayerState>()->GetPawn();
@@ -93,6 +120,14 @@ namespace VeyraNetTests
 					const EVeyraTeam Side = ServerControllerOf(State, 0)->GetPlayerState<AVeyraPlayerState>()->GetVeyraTeam();
 					const double Granted = UVeyraFluxTuningSubsystem::Get().Grants.FluxWell.Amount;
 					return Well->GetState() == EVeyraFluxWellState::Respawning && State.World->GetSubsystem<UVeyraTeamFluxSubsystem>()->GetActive(Side) >= Granted;
+				})
+				.ThenServer(TEXT("Its side's Flux Flask is full again; the other side's is not"), [this](FState& State) {
+					const int32 Full = UVeyraItemsTuningSubsystem::Get().Consumables.FindChecked(Flask()).Charges;
+					const AVeyraPlayerState& Securer = *ServerControllerOf(State, 0)->GetPlayerState<AVeyraPlayerState>();
+					const AVeyraPlayerState& Other = *ServerControllerOf(State, 1)->GetPlayerState<AVeyraPlayerState>();
+					ASSERT_THAT(IsTrue(Securer.GetVeyraTeam() != Other.GetVeyraTeam()));
+					ASSERT_THAT(AreEqual(Full, FlaskCharges(Securer)));
+					ASSERT_THAT(AreEqual(Full - 1, FlaskCharges(Other), TEXT("still at its fountain, it has not arrived again")));
 				})
 				.UntilClients(TEXT("Every client sees it wait out its cycle"), [](FState& State) {
 					const AVeyraFluxWell* Well = SeenWell(State.World);

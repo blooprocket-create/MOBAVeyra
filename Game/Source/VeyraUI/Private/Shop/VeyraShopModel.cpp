@@ -252,6 +252,8 @@ FText DescribeRefusal(EVeyraShopRefusal Refusal)
 		return LOCTEXT("NoSuchSpellSlot", "There is no such spell slot.");
 	case EVeyraShopRefusal::AlreadyEquipped:
 		return LOCTEXT("AlreadyEquipped", "That Flux Spell is equipped already.");
+	case EVeyraShopRefusal::NoCharges:
+		return LOCTEXT("NoCharges", "It is empty: it refills at your fountain, and when your side secures a Flux Well.");
 	}
 	return FText::GetEmpty();
 }

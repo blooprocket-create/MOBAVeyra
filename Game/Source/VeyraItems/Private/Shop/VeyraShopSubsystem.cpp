@@ -267,6 +267,7 @@ void UVeyraShopSubsystem::SetAtFountain(AActor& Participant, bool bAtFountain)
 	if (bAtFountain)
 	{
 		Deliver(Participant);
+		RefillCharges(Participant);
 	}
 	else
 	{
@@ -470,7 +471,17 @@ EVeyraShopRefusal UVeyraShopSubsystem::UseConsumable(AActor& Participant, int32 
 		return EVeyraShopRefusal::UnknownItem;
 	}
 	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
-	if (--Slots[Index].Count == 0)
+	if (Consumable->Charges > 0)
+	{
+		// A refillable one spends a charge and stays (Item Bible §10).
+		if (Slots[Index].Charges <= 0)
+		{
+			return EVeyraShopRefusal::NoCharges;
+		}
+		--Slots[Index].Charges;
+		Slots[Index].bBenefited = true;
+	}
+	else if (--Slots[Index].Count == 0)
 	{
 		Slots[Index] = FVeyraInventorySlot();
 	}
@@ -492,6 +503,32 @@ EVeyraShopRefusal UVeyraShopSubsystem::UseConsumable(AActor& Participant, int32 
 	ApplyItems(Participant);
 	UE_LOG(LogVeyraItems, Log, TEXT("%s used %s."), *GetNameSafe(&Participant), *Used.ToString());
 	return EVeyraShopRefusal::None;
+}
+
+void UVeyraShopSubsystem::RefillCharges(AActor& Participant)
+{
+	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
+	if (!Inventory)
+	{
+		return;
+	}
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
+	bool bRefilled = false;
+	for (FVeyraInventorySlot& Slot : Slots)
+	{
+		const FVeyraConsumableTuning* Consumable = Slot.IsEmpty() ? nullptr : Tuning.Consumables.Find(Slot.Item);
+		if (Consumable && Consumable->Charges > Slot.Charges)
+		{
+			Slot.Charges = Consumable->Charges;
+			bRefilled = true;
+		}
+	}
+	if (bRefilled)
+	{
+		Inventory->SetSlots(MoveTemp(Slots));
+		UE_LOG(LogVeyraItems, Log, TEXT("%s refilled its charges."), *GetNameSafe(&Participant));
+	}
 }
 
 void UVeyraShopSubsystem::NoteActiveUsed(AActor& Participant, int32 Index)

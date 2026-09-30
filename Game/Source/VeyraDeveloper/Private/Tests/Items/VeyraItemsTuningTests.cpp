@@ -55,6 +55,16 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/items/test_tonic/category"))));
 		}
 
+		TEST_METHOD(ARefillableConsumableDoesNotStack)
+		{
+			FVeyraItemsTuning Broken = TestCatalog();
+			Broken.Consumables[ItemId(TEXT("test_tonic"))].Charges = 2;
+			const TArray<FString> Problems = VeyraItems::Validate(Broken);
+			ASSERT_THAT(IsTrue(HasProblem(Problems, TEXT("/items/test_tonic/stackLimit")), FString::Join(Problems, TEXT(" | "))));
+			Broken.Items[ItemId(TEXT("test_tonic"))].StackLimit = 1;
+			ASSERT_THAT(IsTrue(VeyraItems::Validate(Broken).IsEmpty(), TEXT("held one at a time, it is valid")));
+		}
+
 		TEST_METHOD(TotalCostCountsEveryComponentAllTheWayDown)
 		{
 			const FVeyraItemsTuning Tuning = TestCatalog();

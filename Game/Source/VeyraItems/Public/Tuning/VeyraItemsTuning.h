@@ -143,6 +143,14 @@ struct FVeyraConsumableTuning
 	/** What selling an unused one returns, as a fraction of its cost. */
 	UPROPERTY()
 	double ResaleFraction = 0.0;
+
+	/**
+	 * 0 for one that is used up. Above 0, it is refillable (Item Bible §10; ADR-022 §6): bought with
+	 * this many charges, it spends one on each use and never goes, refills at its holder's fountain
+	 * and when its holder's side secures a Flux Well, and is held once.
+	 */
+	UPROPERTY()
+	int32 Charges = 0;
 };
 
 /** Weight of War: Physical Power from bonus Health (Item Bible §8). */

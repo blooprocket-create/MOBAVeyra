@@ -29,6 +29,10 @@ struct FVeyraInventorySlot
 	UPROPERTY()
 	bool bBenefited = false;
 
+	/** A refillable consumable's charges left (Item Bible §10; ADR-022 §6); 0 for everything else. */
+	UPROPERTY()
+	int32 Charges = 0;
+
 	bool IsEmpty() const { return !Item.IsValid() || Count <= 0; }
 };
 
@@ -88,6 +92,8 @@ enum class EVeyraShopRefusal : uint8
 	NoSuchSpellSlot,
 	/** One of the Vanguard's slots holds that spell already. */
 	AlreadyEquipped,
+	/** A refillable consumable with no charge left: it refills at the fountain and from a Flux Well (ADR-022 §6). */
+	NoCharges,
 };
 
 VEYRAITEMS_API const TCHAR* LexToString(EVeyraShopRefusal Refusal);

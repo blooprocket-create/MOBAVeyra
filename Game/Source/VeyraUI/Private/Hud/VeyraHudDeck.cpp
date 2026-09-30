@@ -586,10 +586,11 @@ namespace
 				{
 					Paint.TextCentred(At + FVector2D(Item / 2.0f), Monogram(Name), Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor);
 				}
-				if (Held.Count > 1)
+				// A stack shows how many; a refillable consumable its charges, even none (ADR-022 §6).
+				if (Held.Charges.IsSet() || Held.Count > 1)
 				{
-					Paint.Text(At + FVector2D(Item - Paint.S(14.0f), Item - Paint.S(16.0f)), FString::FromInt(Held.Count), Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize),
-						Settings.TextColor, true);
+					Paint.Text(At + FVector2D(Item - Paint.S(14.0f), Item - Paint.S(16.0f)), FString::FromInt(Held.Charges.Get(Held.Count)),
+						Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor, true);
 				}
 				DrawCooldown(Paint, At, Item, Held.CooldownSeconds);
 				if (Contains(At, FVector2D(Item), Mouse))

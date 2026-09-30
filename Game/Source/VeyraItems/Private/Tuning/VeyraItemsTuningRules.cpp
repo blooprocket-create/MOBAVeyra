@@ -24,6 +24,14 @@ namespace
 TArray<FString> Validate(const FVeyraItemsTuning& Tuning)
 {
 	TArray<FString> Problems;
+	for (const TPair<FVeyraContentId, FVeyraConsumableTuning>& Entry : Tuning.Consumables)
+	{
+		const FVeyraItemDefinition* Item = Tuning.Items.Find(Entry.Key);
+		if (Entry.Value.Charges > 0 && Item && Item->StackLimit != 1)
+		{
+			Problems.Add(FString::Printf(TEXT("/items/%s/stackLimit: a refillable consumable does not stack (Item Bible §10)"), *Entry.Key.ToString()));
+		}
+	}
 	for (const TPair<FVeyraContentId, FVeyraItemDefinition>& Entry : Tuning.Items)
 	{
 		const FString Pointer = FString::Printf(TEXT("/items/%s"), *Entry.Key.ToString());

@@ -53,6 +53,11 @@
       "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
+    "flux_flask": {
+      "provenance": "Provisional", "tier": 1, "category": "Consumable", "components": [], "cost": 150, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
     "swift_boots": {
       "provenance": "Provisional", "tier": 2, "category": "Boots", "components": ["basic_boots"], "cost": 700, "stackLimit": 1,
       "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 60, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
@@ -160,7 +165,8 @@
     }
   },
   "consumables": {
-    "field_tonic": { "provenance": "Provisional", "healthRestored": 120, "durationSeconds": 15, "resaleFraction": 0.4 }
+    "field_tonic": { "provenance": "Provisional", "healthRestored": 120, "durationSeconds": 15, "resaleFraction": 0.4, "charges": 0 },
+    "flux_flask": { "provenance": "Provisional", "healthRestored": 90, "durationSeconds": 12, "resaleFraction": 0.4, "charges": 2 }
   },
   "weightOfWar": {
     "weight_of_war": { "provenance": "Provisional", "bonusHealthFraction": 0.025 }

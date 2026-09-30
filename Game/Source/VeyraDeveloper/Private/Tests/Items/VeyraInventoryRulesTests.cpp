@@ -235,6 +235,31 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Stats.MagicPowerFraction, 1.08 * 1.3 - 1.0), FString::SanitizeFloat(Stats.MagicPowerFraction)));
 		}
 
+		TEST_METHOD(ARefillableConsumableIsHeldOnceAndArrivesFull)
+		{
+			// Fixture values: the tonic made refillable, with two charges (Item Bible §10; ADR-022 §6).
+			constexpr int32 Charges = 2;
+			const FVeyraContentId Flask = ItemId(TEXT("test_tonic"));
+			FVeyraItemsTuning Refillable = Tuning;
+			Refillable.Items[Flask].StackLimit = 1;
+			Refillable.Consumables[Flask].Charges = Charges;
+
+			FVeyraPendingPurchase Entry;
+			Entry.Item = Flask;
+			Entry.Paid = VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Price;
+			ASSERT_THAT(IsTrue(VeyraInventory::Apply(Refillable, Slots, Entry) == EVeyraShopRefusal::None));
+			const FVeyraInventorySlot* Held = Slots.FindByPredicate([&Flask](const FVeyraInventorySlot& Slot) { return Slot.Item == Flask; });
+			ASSERT_THAT(IsTrue(Held && Held->Count == 1 && Held->Charges == Charges, TEXT("it arrives full")));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::Unique, TEXT("held once")));
+
+			// One waiting in the queue is held too.
+			Slots.Reset();
+			Slots.SetNum(Tuning.Shop.InventorySlots);
+			Queue.Add(Entry);
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::Unique));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Tuning, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::None, TEXT("one used up stacks as before")));
+		}
+
 		TEST_METHOD(ResaleIsTheShopsFractionOrTheConsumablesOwn)
 		{
 			BuyHere(TEXT("test_harness"));

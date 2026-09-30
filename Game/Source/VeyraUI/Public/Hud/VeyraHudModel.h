@@ -69,6 +69,9 @@ struct FVeyraHudItemSlot
 	FVeyraContentId Item;
 	int32 Count = 0;
 
+	/** A refillable consumable's charges left, which the bar always shows; unset for other items. */
+	TOptional<int32> Charges;
+
 	/** Seconds until its Active is ready; 0 when it is, or it has none. */
 	double CooldownSeconds = 0.0;
 };

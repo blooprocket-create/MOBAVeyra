@@ -101,11 +101,11 @@ Every value below is Provisional data in `Items.json` and its Attunement maps; �
 
 ### 6. Flux Flask
 
-- **State.** A slot's `FVeyraInventorySlot` gains `Charges`. A Flask is bought full and never stacks: at most one per inventory (Item §10: "non-stackable").
-- **Use.** Using it spends a charge and restores Health over time through the same restoration as Field Tonic. One restoration runs at a time (ADR-012 §9.3): while one runs, the key does nothing and spends nothing.
-- **Refill to full:**
-  - on arrival at the side's fountain, respawn included, through the shop's `SetAtFountain`;
-  - when the holder's side secures a Flux Well. Match's battleground link calls a new `UVeyraShopSubsystem::RefillFlasks(Team)` from the Well-secured event.
+- **State.** A slot's `FVeyraInventorySlot` gains `Charges`. The rule is generic: a consumable whose `charges` is above 0 is refillable, and nothing names the Flask. It is bought full and never stacks, at most one per inventory, queued ones included (Item §10: "non-stackable"). Validation refuses a refillable consumable whose `stackLimit` is not 1.
+- **Use.** Using it spends a charge and restores Health over time through the same restoration as Field Tonic. One restoration runs at a time (ADR-012 §9.3): while one runs, the key does nothing and spends nothing. An empty one keeps its slot and refuses with `NoCharges`; the HUD shows its charges, even none.
+- **Refill to full** (`UVeyraShopSubsystem::RefillCharges(Participant)`):
+  - on arrival at the side's fountain, respawn and death included (the dead shop as at the fountain), through the shop's `SetAtFountain`. Standing there does not refill again; arriving does;
+  - when the holder's side secures a Flux Well. Match's battleground link calls it for each of the side's participants from the Well-secured event.
 
 ### 7. Bots
 

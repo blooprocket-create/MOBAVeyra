@@ -280,6 +280,58 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None, TEXT("the next may start")));
 		}
 
+		/** Runs world time past Seconds, so a running restoration ends (see the tonic's test). */
+		void RunPast(double Seconds)
+		{
+			constexpr float Margin = 0.1f;
+			FTimerManager& Timers = Spawner.GetWorld().GetTimerManager();
+			++GFrameCounter;
+			Timers.Tick(0.0f);
+			++GFrameCounter;
+			Timers.Tick(static_cast<float>(Seconds) + Margin);
+		}
+
+		int32 ChargesLeft(const TCHAR* Item) const
+		{
+			const FVeyraInventorySlot* Held = Inventory->GetSlots().FindByPredicate([Item](const FVeyraInventorySlot& Slot) { return Slot.Item == ItemId(Item); });
+			return Held ? Held->Charges : INDEX_NONE;
+		}
+
+		TEST_METHOD(ARefillableConsumableSpendsChargesAndRefills)
+		{
+			// Fixture values: the tonic made refillable, with two charges of 10 Health over 1 second
+			// (Item Bible §10; ADR-022 §6).
+			constexpr int32 Charges = 2;
+			constexpr double Duration = 1.0;
+			const TCHAR* Flask = TEXT("test_tonic");
+			Tuning.Items[ItemId(Flask)].StackLimit = 1;
+			FVeyraConsumableTuning& Refillable = Tuning.Consumables[ItemId(Flask)];
+			Refillable.Charges = Charges;
+			Refillable.HealthRestored = 10.0;
+			Refillable.DurationSeconds = Duration;
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(Flask)) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(Flask)) == EVeyraShopRefusal::Unique, TEXT("held once")));
+			ASSERT_THAT(AreEqual(Charges, ChargesLeft(Flask), TEXT("it arrives full")));
+
+			for (int32 Used = 1; Used <= Charges; ++Used)
+			{
+				ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None));
+				ASSERT_THAT(AreEqual(Charges - Used, ChargesLeft(Flask), TEXT("a use spends a charge")));
+				ASSERT_THAT(AreEqual(1, CountOf(Flask), TEXT("and the flask stays")));
+				RunPast(Duration);
+			}
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::NoCharges));
+
+			// Arriving at the fountain refills it; so does Match, when its side secures a Flux Well.
+			Subsystem->SetAtFountain(*Participant, false);
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(AreEqual(Charges, ChargesLeft(Flask), TEXT("the fountain")));
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None));
+			Subsystem->RefillCharges(*Participant);
+			ASSERT_THAT(AreEqual(Charges, ChargesLeft(Flask), TEXT("a secured Well")));
+		}
+
 		TEST_METHOD(BasicAttacksOnVanguardsStackSpoolUpUntilItLapses)
 		{
 			// Fixture values: the Masterwork gains a Spool Up of 10% of base Attack Speed a stack, three at most, for 2 s.

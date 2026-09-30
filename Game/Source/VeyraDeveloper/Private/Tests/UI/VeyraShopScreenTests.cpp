@@ -223,6 +223,19 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Player.Items[0].Slot == EVeyraAbilitySlot::Item1 && Player.Items[0].Item == ItemId(TEXT("test_grip")) && Player.Items[0].Count == 1));
 			ASSERT_THAT(IsTrue(Player.Items[5].Slot == EVeyraAbilitySlot::Item6 && !Player.Items[5].Item.IsValid()));
 			ASSERT_THAT(AreEqual(1, Player.PendingPurchases, TEXT("the tonic waits for the fountain")));
+			ASSERT_THAT(IsFalse(Player.Items[0].Charges.IsSet(), TEXT("only a refillable shows charges")));
+		}
+
+		TEST_METHOD(TheHudShowsARefillablesChargesEvenWhenEmpty)
+		{
+			// Fixture values: the tonic made refillable, with one charge (ADR-022 §6).
+			Tuning.Items[ItemId(TEXT("test_tonic"))].StackLimit = 1;
+			Tuning.Consumables[ItemId(TEXT("test_tonic"))].Charges = 1;
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_tonic"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->UseConsumable(*Participant, 0) == EVeyraShopRefusal::None));
+			const FVeyraHudPlayer Player = VeyraHud::DescribePlayer(*Participant, Spawner.GetWorld().GetTimeSeconds());
+			ASSERT_THAT(IsTrue(Player.Items[0].Charges.IsSet() && Player.Items[0].Charges.GetValue() == 0, TEXT("an empty one shows 0")));
 		}
 
 		TEST_METHOD(TheScreenOffersWhatTheModelAllowsAndShowsRefusals)
