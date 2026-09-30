@@ -7,6 +7,7 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Brain/VeyraBotAbilities.h"
 #include "Brain/VeyraBotLane.h"
@@ -180,6 +181,8 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWard
 
 	// Its basic attack: reach, and what one does before the target's resistance.
 	const UAbilitySystemComponent* AbilitySystem = Bot.GetAbilitySystemComponent();
+	const double MaxResource = AttributeOf(AbilitySystem, UVeyraResourceSet::GetMaxResourceAttribute());
+	View.ResourceFraction = MaxResource > 0.0 ? AttributeOf(AbilitySystem, UVeyraResourceSet::GetResourceAttribute()) / MaxResource : 1.0;
 	const UVeyraBasicAttackComponent* Attacks = Bot.FindComponentByClass<UVeyraBasicAttackComponent>();
 	const bool bPhysicalAttack = !Attacks || Attacks->GetProfile().DamageType != EVeyraDamageType::Magic;
 	if (Attacks && Attacks->HasProfile())

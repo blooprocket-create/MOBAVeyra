@@ -41,6 +41,12 @@ struct FVeyraBotAbilityProfile
 	/** A dash that carries the caster away from its point, not toward it. */
 	bool bAwayFromPoint = false;
 
+	/**
+	 * For a buff it may cast at an allied Vanguard (ADR-027 §4): how far, edge to edge; 0 for one that
+	 * buffs only its caster.
+	 */
+	double AllyReach = 0.0;
+
 	/** A targeted ability's damage at its caster's first Level, all of one type; 0 for anything else. */
 	double Damage = 0.0;
 
@@ -146,6 +152,9 @@ struct FVeyraBotView
 	bool bPurchaseWaiting = false;
 
 	FVeyraBotUnit Self;
+
+	/** Its resource as a share of its most; 1 for a unit without one. */
+	double ResourceFraction = 1.0;
 
 	/** Its basic attack's reach, edge to edge, and what one does to a Fluxborn, before mitigation. */
 	double AttackRange = 0.0;

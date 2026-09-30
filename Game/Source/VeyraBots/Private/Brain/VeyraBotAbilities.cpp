@@ -73,6 +73,7 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 	{
 		Profile.Targeting = EVeyraBotTargeting::Self;
 		Profile.CostByRank = SelfBuff->Cast.ResourceCostByRank;
+		Profile.AllyReach = SelfBuff->Recipient == EVeyraBuffRecipient::CasterOrAlly ? SelfBuff->Cast.CastRange : 0.0;
 		return Profile;
 	}
 	if (const FVeyraEmpoweredAttackAbilityTuning* Empowered = UVeyraAbilitiesTuningSubsystem::FindEmpoweredAttack(Ability))

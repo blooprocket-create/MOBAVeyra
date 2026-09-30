@@ -44,6 +44,7 @@ namespace VeyraBotsTests
 			Tuning.Jungle.GankRange = 3000.0;
 			Tuning.Jungle.GankHealthFraction = 0.5;
 			Tuning.Jungle.WellRange = 7000.0;
+			Tuning.Jungle.AbilityResourceFloor = 0.4;
 			Tuning.Warding.SpotReach = 500.0;
 			Tuning.Warding.SpotSpacing = 900.0;
 			Difficulty.ThinkSeconds = 0.25;
@@ -391,6 +392,56 @@ namespace VeyraBotsTests
 			// Another becomes weaker: it keeps at the one it chose.
 			View.Camps[1].Creatures[1].Health = 1.0;
 			ASSERT_THAT(IsTrue(Decide(View).Target == Close.Creatures[0].Actor));
+		}
+
+		TEST_METHOD(AJunglerClearsWithItsAbilitiesAboveItsResourceFloor)
+		{
+			FVeyraBotView View = AliveAt(0.0);
+			View.bJungle = true;
+			FVeyraBotCamp Close;
+			Close.Center = FVector(Near, 0.0, 0.0);
+			Close.Creatures = { Unit(Near) };
+			Close.Standing = 1;
+			View.Camps = { Close };
+			View.Slots.Add(Slot(EVeyraAbilitySlot::R, EVeyraBotAbilityUse::Damage, EVeyraBotTargeting::Point, Far));
+			FVeyraBotSlot ForVanguards = Slot(EVeyraAbilitySlot::Q, EVeyraBotAbilityUse::Damage, EVeyraBotTargeting::Unit, Far);
+			ForVanguards.Profile.TargetKinds = { EVeyraUnitKind::Vanguard };
+			View.Slots.Add(ForVanguards);
+			View.Slots.Add(Slot(EVeyraAbilitySlot::W, EVeyraBotAbilityUse::Damage, EVeyraBotTargeting::Point, Far));
+			FVeyraBotIntent Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.Slot == EVeyraAbilitySlot::W,
+				TEXT("its basic ability that may hit wildlife, not its ultimate nor one only for Vanguards")));
+			View.ResourceFraction = Tuning.Jungle.AbilityResourceFloor;
+			Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Close.Creatures[0].Actor, TEXT("at its floor it keeps its resource")));
+		}
+
+		TEST_METHOD(AnAllyTargetedGuardGoesToTheAllyTheFightHurtsMost)
+		{
+			// Fixture value: a guard's reach, and how hurt the ally is.
+			constexpr double GuardReach = 600.0;
+			constexpr double Hurt = 0.2;
+			Difficulty.ReactionSeconds = 0.0;
+			FVeyraBotView View = AliveAt(0.0);
+			View.EnemyVanguards.Add(Unit(Near, 0.5));
+			View.AllyVanguards.Add(Unit(-Near, 0.6));
+			FVeyraBotSlot Guard = Slot(EVeyraAbilitySlot::E, EVeyraBotAbilityUse::Defend, EVeyraBotTargeting::Self, 0.0);
+			Guard.Profile.AllyReach = GuardReach;
+			View.Slots.Add(Guard);
+			View.AttackRange = Near * 2.0;
+			FVeyraBotIntent Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.CastTarget.Actor == View.AllyVanguards[0].Actor.Get(),
+				TEXT("in a fight, the ally it hurts more than the bot")));
+
+			// Out of the fight: an ally below its retreat line, chased, is guarded.
+			View.EnemyVanguards[0] = Unit(-Near * 2.0, 1.0);
+			View.AllyVanguards[0].Health = View.AllyVanguards[0].MaxHealth * Hurt;
+			Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.CastTarget.Actor == View.AllyVanguards[0].Actor.Get(), TEXT("guarding a chased ally")));
+
+			// Beyond its reach, no.
+			View.AllyVanguards[0].Location = FVector(-GuardReach * 3.0, 0.0, 0.0);
+			ASSERT_THAT(IsFalse(Decide(View).CastTarget.Actor == View.AllyVanguards[0].Actor.Get()));
 		}
 
 		TEST_METHOD(AJunglerWalksToACampItCannotSeeYet)

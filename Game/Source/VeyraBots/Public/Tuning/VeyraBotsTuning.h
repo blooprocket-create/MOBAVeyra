@@ -230,6 +230,13 @@ struct FVeyraBotJungleTuning
 	/** How near an open Flux Well must be for a jungler to take it, in units. */
 	UPROPERTY()
 	double WellRange = 0.0;
+
+	/**
+	 * The share of its resource a jungler keeps for ganks and fights: it casts its basic abilities at
+	 * its camp only while it holds more than this fraction of its most, as League's junglers clear.
+	 */
+	UPROPERTY()
+	double AbilityResourceFloor = 0.0;
 };
 
 /** How bots ward (ADR-016 §7): League's jungler and support ward the bushes they pass, here Dense Fog. */
@@ -275,7 +282,7 @@ struct FVeyraBotsTuning
 	GENERATED_BODY()
 
 	/** The Bots.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 4;
+	static constexpr int32 SchemaVersion = 5;
 
 	UPROPERTY()
 	FVeyraBotSensesTuning Senses;
