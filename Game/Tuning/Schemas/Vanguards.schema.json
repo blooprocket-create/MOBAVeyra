@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -166,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [11]
+      "enum": [12]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -407,6 +407,24 @@
                 "lungeSpeed": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
               }
             }
+          }
+        }
+      }
+    },
+    "wildDominion": {
+      "description": "Passives that hold statuses while their owner stands on jungle terrain, given again at each check, and restore a share of the Health their damage takes from wildlife (Moro's Wild Dominion, Roster Bible §12; ADR-026 §5).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "statuses", "checkSeconds", "wildlifeHealFraction"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "statuses": { "description": "From Abilities.json's statuses, put on the owner at each check it stands in the jungle; each outlasts a check.", "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+            "checkSeconds": { "description": "Seconds between checks.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "wildlifeHealFraction": { "description": "Of the Health its damage takes from wildlife, the share restored to the owner.", "type": "number", "minimum": 0, "maximum": 1 }
           }
         }
       }

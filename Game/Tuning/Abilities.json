@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 12,
+  "schemaVersion": 13,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -502,6 +502,11 @@
     "patch_inside_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.8, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
     "patch_inside_footing": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
     "patch_inside_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
+    "moro_wild_dominion_power": { "provenance": "Provisional", "kind": "DamageAmplification", "stacking": "UniqueRefresh", "magnitude": 0.1, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
+    "moro_wild_dominion_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
+    "moro_bursting_ground_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
+    "moro_pounce_rush": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
+    "moro_wildstorm_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
     "gorraveth_rush": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 2, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
     "gorraveth_rake_drag": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
     "gorraveth_frenzy_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 2, "takedownExtensionMaxSeconds": 6, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [] },
@@ -1080,6 +1085,54 @@
       "healOnHit": [],
       "delayWithin": []
     },
+    "moro_bursting_ground": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [11, 10, 9, 8, 7],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 900,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 0.75,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Circle", "radius": 260, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["moro_bursting_ground_slow"], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "moro_wildstorm": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 100, 80],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 8,
+      "channelSeconds": 4,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Circle", "radius": 400, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [35, 55, 75], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Free",
+      "casterStatuses": ["moro_wildstorm_stride"],
+      "healOnHit": [],
+      "delayWithin": []
+    },
     "gorraveth_furnace_rake": {
       "provenance": "Provisional",
       "cast": {
@@ -1582,6 +1635,23 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": []
     },
+    "moro_arc_bolt": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [7, 6.5, 6, 5.5, 5],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 1100,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "projectile": { "speed": 1600, "radius": 60, "range": 1100 },
+      "collision": "FirstEnemy",
+      "effects": { "damage": [{ "type": "Magic", "amountByRank": [80, 125, 170, 215, 260], "physicalPowerRatio": 0, "magicPowerRatio": 0.7 }], "statuses": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "casterDash": []
+    },
     "mimzi_twinklebolt": {
       "provenance": "Provisional",
       "cast": {
@@ -1797,6 +1867,28 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
+      "rideExit": "Stay"
+    },
+    "moro_pounce": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [60],
+        "castRange": 650,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "direction": "TowardPoint",
+      "distance": 650,
+      "speed": 1500,
+      "contact": "None",
+      "startZones": [],
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "contactSelfStatuses": [],
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "endZones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["moro_pounce_rush"] }],
       "rideExit": "Stay"
     },
     "gorraveth_ravine_bound": {

@@ -227,7 +227,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [12]
+      "enum": [13]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",

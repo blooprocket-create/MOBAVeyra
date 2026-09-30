@@ -95,6 +95,26 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraWildDominionTuning>& Entry : Tuning.WildDominion)
+	{
+		RegisterPassive(Entry.Key, TEXT("wildDominion"));
+		const FString Pointer = TEXT("/wildDominion/") + Entry.Key.ToString();
+		const FVeyraWildDominionTuning& Dominion = Entry.Value;
+		// Each status outlasts a check, so it holds while its owner stays in the jungle and lapses soon after it leaves.
+		for (const FVeyraContentId& Status : Dominion.Statuses)
+		{
+			const FVeyraStatusTuning* Given = Abilities.Statuses.Find(Status);
+			if (!Given || !(Given->DurationSeconds > Dominion.CheckSeconds))
+			{
+				Problem(Pointer + TEXT("/statuses"), FString::Printf(TEXT("names status \"%s\", which Abilities.json must define lasting longer than a check"), *Status.ToString()));
+			}
+		}
+		if (!(Dominion.CheckSeconds > 0.0) || Dominion.WildlifeHealFraction < 0.0 || Dominion.WildlifeHealFraction > 1.0)
+		{
+			Problem(Pointer, TEXT("checkSeconds is above 0 and wildlifeHealFraction from 0 to 1"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraHauntTuning>& Entry : Tuning.Haunt)
 	{
 		RegisterPassive(Entry.Key, TEXT("haunt"));

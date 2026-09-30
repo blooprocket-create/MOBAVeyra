@@ -169,6 +169,17 @@
         "gorraveth_tear_them_apart": "Empower"
       }
     },
+    "moro": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "arc_reactor", "nullglass_lens", "spellguard_plate"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "moro_arc_bolt": "Damage",
+        "moro_bursting_ground": "Damage",
+        "moro_pounce": "Engage",
+        "moro_wildstorm": "Damage"
+      }
+    },
     "raska": {
       "provenance": "Provisional",
       "build": ["war_boots", "colossus_temper", "razorwheel_prime", "cycler_core", "reinforced_chassis"],

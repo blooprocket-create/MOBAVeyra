@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -487,6 +487,48 @@
       },
       "abilities": { "q": ["raska_breakneck"], "w": ["raska_countersteer"], "e": ["raska_kickstart"], "r": ["raska_no_brakes"] },
       "passive": ["raska_redline"]
+    },
+    "moro": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 55, "capsuleHalfHeight": 95, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 600,
+        "healthRegen": 1.4,
+        "maxResource": 330,
+        "resourceRegen": 3.2,
+        "armor": 30,
+        "magicResist": 30,
+        "physicalPower": 58,
+        "magicPower": 0,
+        "attackSpeed": 0.66,
+        "moveSpeed": 340
+      },
+      "growth": {
+        "maxHealth": 98,
+        "healthRegen": 0.12,
+        "maxResource": 42,
+        "resourceRegen": 0.25,
+        "armor": 4,
+        "magicResist": 1.8,
+        "physicalPower": 3,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.022
+      },
+      "basicAttack": {
+        "range": 175,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": { "q": ["moro_arc_bolt"], "w": ["moro_bursting_ground"], "e": ["moro_pounce"], "r": ["moro_wildstorm"] },
+      "passive": ["moro_wild_dominion"]
     }
   },
   "deepFoundation": {
@@ -625,6 +667,14 @@
         "bonusHealthRatio": 0.03,
         "lungeSpeed": 1400
       }
+    }
+  },
+  "wildDominion": {
+    "moro_wild_dominion": {
+      "provenance": "Provisional",
+      "statuses": ["moro_wild_dominion_power", "moro_wild_dominion_haste"],
+      "checkSeconds": 0.25,
+      "wildlifeHealFraction": 0.15
     }
   }
 }

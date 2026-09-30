@@ -80,6 +80,12 @@ namespace VeyraLayout
 	/** Every structure of both teams: each lane's Spires and inhibitor, the base towers and the Prime Well. */
 	VEYRAWORLD_API TArray<FVeyraStructurePlacement> Structures(const FVeyraBattlegroundLayout& Layout);
 
+	/**
+	 * Whether Point is jungle terrain (ADR-026 §5): on the floor, and on no lane's road, the river or
+	 * either base's pad, each as wide as the layout draws it, so a new layout needs no extra authoring.
+	 */
+	VEYRAWORLD_API bool IsJungle(const FVeyraBattlegroundLayout& Layout, const FVector2D& Point);
+
 	/** Whether the lane's path is its own mirror, reversed, so both teams walk the same distances. */
 	VEYRAWORLD_API bool MirrorsOntoItself(const FVeyraLaneLayout& Lane);
 }
