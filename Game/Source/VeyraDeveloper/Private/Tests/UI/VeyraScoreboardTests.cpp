@@ -92,7 +92,7 @@ namespace VeyraScoreboardTests
 			const FVeyraScoreboardRow& Row = View.Sides[0].Rows[0];
 			ASSERT_THAT(IsTrue(Row.Vanguard == FVeyraContentId::FromText(TEXT("cairn")).GetValue() && Row.Level == 1));
 			ASSERT_THAT(IsTrue(Row.Kills == 1 && Row.Deaths == 0 && Row.Assists == 2));
-			ASSERT_THAT(IsTrue(Row.CreepScore == 34, TEXT("minions and monsters together, as League counts CS")));
+			ASSERT_THAT(IsTrue(Row.CreepScore == 34, TEXT("minions and monsters together")));
 			ASSERT_THAT(IsTrue(Row.Items.Num() == 6 && !Row.Items[0].IsValid()));
 			ASSERT_THAT(AreEqual(FString(TEXT("1 / 0 / 2")), VeyraScoreboardModel::KdaText(Row).ToString()));
 		}
@@ -143,7 +143,7 @@ namespace VeyraScoreboardTests
 
 		TEST_METHOD(ItHasItsOwnKeyTabByDefault)
 		{
-			ASSERT_THAT(IsTrue(GetDefault<UVeyraUIInputSettings>()->ScoreboardKey == EKeys::Tab, TEXT("League's key")));
+			ASSERT_THAT(IsTrue(GetDefault<UVeyraUIInputSettings>()->ScoreboardKey == EKeys::Tab, TEXT("the default key")));
 			UVeyraUIInputSettings* Settings = NewObject<UVeyraUIInputSettings>();
 			Settings->MatchMenuKey = EKeys::Escape;
 			Settings->ShopKey = EKeys::P;

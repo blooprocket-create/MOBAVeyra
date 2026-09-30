@@ -123,7 +123,7 @@ struct FVeyraBotCamp
 	FVector Center = FVector::ZeroVector;
 
 	/**
-	 * How many of its creatures stand, seen or not: a jungler knows its own camps are up, as League
+	 * How many of its creatures stand, seen or not: a jungler knows its own camps are up, as
 	 * players keep their timers. None while it waits to respawn.
 	 */
 	int32 Standing = 0;

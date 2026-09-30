@@ -18,7 +18,7 @@
 namespace VeyraNetTests
 {
 	// Veyra.Net.Statistics.*: the match records every participant from its preparation, and each one's
-	// K/D/A and last hits reach every client, seen or not, as League's scoreboard shows them (ADR-017 §3).
+	// K/D/A and last hits reach every client, seen or not, as the scoreboard shows them (ADR-017 §3).
 	NETWORK_TEST_CLASS(Statistics, "Veyra.Net")
 	{
 		struct FState : public FBasePIENetworkComponentState

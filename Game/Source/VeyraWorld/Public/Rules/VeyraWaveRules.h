@@ -28,7 +28,7 @@ namespace VeyraWaveRules
 	/**
 	 * One lane's wave for one team, in the order its units leave the base: the extra units a downed
 	 * enemy inhibitor adds (bInhibitorDown), the first kind of the ordinary units, the siege units
-	 * (bSiege), then the rest of the ordinary units, as League's waves walk out.
+	 * (bSiege), then the rest of the ordinary units.
 	 */
 	VEYRAWORLD_API TArray<FVeyraContentId> Composition(const FVeyraWavesTuning& Waves, bool bSiege, bool bInhibitorDown);
 }

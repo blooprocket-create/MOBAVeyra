@@ -1,6 +1,6 @@
 # ADR-018: Kit primitives for six more Vanguards: Kade, Vera, Mimzi, Patch, Gorraveth, Raska
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent. §8 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M13 pull requests that add it.  
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §8 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M13 pull requests that add it.  
 **Date:** 2026-09-29  
 **Related:**
 - ADRs: [ADR-003](ADR-003-owned-field-entities.md) (owned field entities, world volumes, the ride decision), [ADR-008](ADR-008-vanguard-definitions-and-ability-composition.md) (definitions and ability composition), [ADR-009](ADR-009-runtime-combat-primitives.md) (runtime combat primitives, the status ledger), [ADR-013](ADR-013-ai-vanguards.md) (bots), [ADR-014](ADR-014-jungle-and-flux-wells.md) (camps), [ADR-016](ADR-016-vision.md) (vision, stealth, True Sight).
@@ -121,29 +121,29 @@ A ride state is a movement mode on `UVeyraMovementComponent`, owned by Combat:
 
 Combat also counts the **distance a unit moves itself** (Raska's Momentum), excluding forced movement.
 
-### 8. League answers where canon is silent (for the author to overturn)
+### 8. Provisional answers where canon is silent (for the author to overturn)
 
-Every value is Provisional data, a League stand-in:
+Every value is Provisional data:
 - **The second status kinds:**
   - Unstoppable refuses an enemy's Stun, Slow, Fear and Knockup, and every displacement; debuffs that are not crowd control, such as Weaken, still land;
   - DisplacementImmunity refuses Knockups and displacements, but not Stuns;
-  - a Knockup holds the unit where it stands for its time, and Tenacity does not shorten it (League's airborne); an ability that also moves the unit pairs it with a displacement;
+  - a Knockup holds the unit where it stands for its time, and Tenacity does not shorten it; an ability that also moves the unit pairs it with a displacement;
   - a Fear walks the unit straight away from its source for the Fear's time, under the Fear's Slow; terrain ends the walk, a displacement replaces it, and a Fear cleansed early ends it;
   - a directional reduction judges the attacker from where it stands as the damage lands, projectiles included; several multiply;
   - an attack amplification scales every component of the attack, including what passives add to it;
   - the match statistics count a Fear or a Knockup as stun time, since each is hard crowd control.
 - **Kade:**
   - range 600;
-  - Q in Jhin W's range;
-  - E is Caitlyn E, which is how his Reposition "interacts with trajectory control";
-  - R is Jhin R's volley: 3 shots, up to 2 more when allies displace a Tracked target;
+  - Q is a long-range line shot;
+  - E fires a shot that knocks back the first enemy hit while Kade recoils away from his aim, which is how his Reposition "interacts with trajectory control";
+  - R is a long-range volley: 3 shots, up to 2 more when allies displace a Tracked target;
   - **Tracked** comes only from forced displacement, not dashes;
   - **Dead Reckoning** banks each displacement's distance, up to 1500; at 600 or more, his next attack on a Tracked target spends it all for +40 and +0.1 Physical Power ratio per 100 banked;
   - Sightline's Attack Speed is one value, +45%, since statuses do not yet scale by rank (canon asks only for "an attack-speed benefit").
 - **Vera:**
   - range 575, Physical attacks (her design sheet);
   - Cadence: 8 stacks of +7% Attack Speed, decaying one at a time;
-  - her Firing Line echo is **proc damage without On-Hit** (Combat §16; League's Rageblade phantom hit does apply On-Hit);
+  - her Firing Line echo is **proc damage without On-Hit** (Combat §16);
   - R's "every third attack" counts every attack;
   - Dig In plants her: movement blocked, not crowd control;
   - "attacking the target refreshes Cadence" (Range Found): an attack on a Ranged target adds a second stack;

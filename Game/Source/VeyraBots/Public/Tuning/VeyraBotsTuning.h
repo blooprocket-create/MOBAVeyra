@@ -34,7 +34,7 @@ enum class EVeyraBotAbilityUse : uint8
 	Empower,
 	/**
 	 * Cast at a jungle creature or a Flux Well in reach that the cast's damage would finish, to take
-	 * it before anyone else can: League's Smite (ADR-015 §8).
+	 * it before anyone else can: Wildstrike's use (ADR-015 §8).
 	 */
 	Secure,
 	/**
@@ -54,14 +54,14 @@ enum class EVeyraBotAim : uint8
 	Lead,
 };
 
-/** What a seat plays (ADR-013 §8.1; ADR-014 §7): a lane, or the jungle, as League's five roles. */
+/** What a seat plays (ADR-013 §8.1; ADR-014 §7): a lane, or the jungle. */
 UENUM()
 enum class EVeyraBotRole : uint8
 {
 	Top,
 	Mid,
 	Bottom,
-	/** Clears its side's camps, takes Flux Wells and ganks (League's jungler). */
+	/** Clears its side's camps, takes Flux Wells and ganks: the jungler. */
 	Jungle,
 };
 
@@ -233,13 +233,13 @@ struct FVeyraBotJungleTuning
 
 	/**
 	 * The share of its resource a jungler keeps for ganks and fights: it casts its basic abilities at
-	 * its camp only while it holds more than this fraction of its most, as League's junglers clear.
+	 * its camp only while it holds more than this fraction of its most.
 	 */
 	UPROPERTY()
 	double AbilityResourceFloor = 0.0;
 };
 
-/** How bots ward (ADR-016 §7): League's jungler and support ward the bushes they pass, here Dense Fog. */
+/** How bots ward (ADR-016 §7): the warding seats ward the Dense Fog they pass. */
 USTRUCT()
 struct FVeyraBotWardingTuning
 {
@@ -261,7 +261,7 @@ struct FVeyraBotWardingTuning
 	double SpotSpacing = 0.0;
 };
 
-/** One bot seat: what it plays, and the starting Flux Spells it chooses, as League's bots do (ADR-015 §8). */
+/** One bot seat: what it plays, and the starting Flux Spells it chooses (ADR-015 §8). */
 USTRUCT()
 struct FVeyraBotSeatTuning
 {

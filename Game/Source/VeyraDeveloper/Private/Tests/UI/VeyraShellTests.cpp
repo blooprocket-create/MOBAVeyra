@@ -101,7 +101,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(!Model.SpellSlots[0].Choices[0].bChosen && Model.SpellSlots[0].Choices[1].bChosen));
 			ASSERT_THAT(IsTrue(Model.SpellSlots[1].Choices[0].bChosen, TEXT("an empty slot has None chosen")));
 			ASSERT_THAT(IsTrue(Model.Setup.IsEmpty(), TEXT("Your Match Setup comes with lock-in")));
-			// Beside the player's portrait, as League shows summoner spells.
+			// Beside the player's portrait.
 			ASSERT_THAT(AreEqual(Model.Seats[0].Spells.Num(), 2));
 			ASSERT_THAT(IsTrue(Model.Seats[0].Spells[0].ToString() == VeyraContentText::AbilityName(Roster[0]).ToString() && Model.Seats[0].Spells[1].IsEmpty()));
 
@@ -547,7 +547,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Roster.Num() >= 2));
 			ASSERT_THAT(IsNull(Button(*VeyraContentText::AbilityName(Roster[0]).ToString()), TEXT("the spells wait in their picker")));
 
-			// League's summoner spell picker: None and every roster spell, each described, and the slot's threshold.
+			// The spell picker: None and every roster spell, each described, and the slot's threshold.
 			Screen->FindButton(VeyraShellModels::SpellSlotTitle(1))->Press();
 			ASSERT_THAT(AreEqual(Screen->GetOpenSpellSlot(), 1));
 			TArray<FString> Expected = { TEXT("Cairn"), TEXT("Qazharr"), TEXT("Oriel"), TEXT("Bryn"), TEXT("Flux Spell 1"), TEXT("Flux Spell 2"), TEXT("Lock In"), TEXT("None") };

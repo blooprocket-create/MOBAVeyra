@@ -245,7 +245,7 @@ func (l *Lobby) firstEmpty(side string, limits Limits) (Seat, bool) {
 
 // Join seats a new human who accepted an invitation: on the side with fewer
 // humans, side A on a tie, at its first empty seat; the other side's when that
-// one is full (ADR-021 §8, as League's custom lobbies seat a newcomer).
+// one is full (ADR-021 §8).
 func (l *Lobby) Join(accountID string, limits Limits, now time.Time) error {
 	if err := l.requireOpen(); err != nil {
 		return err

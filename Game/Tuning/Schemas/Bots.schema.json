@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Bots tuning",
-  "description": "How AI Vanguards play, owned by the Bots domain (ADR-013 §5). Canon leaves AI logic open (Modes & Access Bible §4) and names two behaviours, Beginner and Intermediate (Custom Matches Bible §3); every value here is a League-like answer for playtests. VeyraBots binds it to FVeyraBotsTuning and checks what the schema cannot express.",
+  "description": "How AI Vanguards play, owned by the Bots domain (ADR-013 §5). Canon leaves AI logic open (Modes & Access Bible §4) and names two behaviours, Beginner and Intermediate (Custom Matches Bible §3); every value here is a provisional answer for playtests. VeyraBots binds it to FVeyraBotsTuning and checks what the schema cannot express.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schemaVersion", "senses", "positioning", "difficulties", "seats", "fluxSpells", "jungle", "warding", "vanguards"],
@@ -37,7 +37,7 @@
         "aim": { "description": "Where the bot aims a skillshot or area at a moving target: where it is (AtTarget), or where it will be (Lead).", "type": "string", "enum": ["AtTarget", "Lead"] },
         "retreatHealthFraction": { "description": "Below this fraction of Max Health the bot retreats, and recalls once it is safe.", "type": "number", "minimum": 0, "maximum": 1 },
         "fightHealthMargin": { "description": "The bot fights an enemy Vanguard only while its own Health fraction is at least the enemy's plus this margin.", "type": "number", "minimum": -1, "maximum": 1 },
-        "shopRecallGold": { "description": "With this much Gold and its next purchase affordable, a bot recalls to shop when no enemy Vanguard is near (League's 'back to spend').", "type": "number", "minimum": 0 },
+        "shopRecallGold": { "description": "With this much Gold and its next purchase affordable, a bot recalls to shop when no enemy Vanguard is near.", "type": "number", "minimum": 0 },
         "fluxbornTolerance": { "description": "The most Fluxborn of an enemy Vanguard's side within their aggression response range (World.json fluxborn.ai) of it when the bot starts a fight with it; with more, the hit would turn them on the bot (Battleground Bible §19).", "type": "integer", "minimum": 0 }
       }
     },
@@ -116,7 +116,7 @@
       }
     },
     "seats": {
-      "description": "What each seat plays and the Flux Spells it takes, by the bot's place among its side's bots (League's roles: mid, top, the jungler, then bottom and its support, so a side of three or more bots has a jungler; ADR-015 §8).",
+      "description": "What each seat plays and the Flux Spells it takes, by the bot's place among its side's bots (the roles: mid, top, the jungler, then bottom and its support, so a side of three or more bots has a jungler; ADR-015 §8).",
       "type": "array",
       "minItems": 1,
       "items": {
@@ -157,7 +157,7 @@
       }
     },
     "warding": {
-      "description": "How bots ward (ADR-016 §7): the seats that carry Persistent Ward's charges into use, as League's jungler and support do, and the Dense Fog patches they ward as they pass.",
+      "description": "How bots ward (ADR-016 §7): the seats that carry Persistent Ward's charges into use, and the Dense Fog patches they ward as they pass.",
       "type": "object",
       "additionalProperties": false,
       "required": ["provenance", "seats", "spotReach", "spotSpacing"],

@@ -7,7 +7,7 @@
   "required": ["schemaVersion", "toggles", "ranges", "choices", "bindings", "layout"],
   "definitions": {
     "provenance": {
-      "description": "Where the default and bounds come from (ADR-008 §7): Canon when the bible states them, Provisional for League's answers (ADR-024 §9).",
+      "description": "Where the default and bounds come from (ADR-008 §7): Canon when the bible states them, Provisional for the answers chosen where canon is open (ADR-024 §9).",
       "type": "string",
       "enum": ["Provisional", "Canon", "Reviewed"]
     },

@@ -160,7 +160,7 @@ int32 TickCount(double DurationSeconds, double TickSeconds)
 
 bool IsTenacityReducible(EVeyraStatusKind Kind)
 {
-	// A Knockup is crowd control Tenacity does not shorten, as League's airborne (§8).
+	// A Knockup is crowd control Tenacity does not shorten (§8).
 	return Kind == EVeyraStatusKind::Stun || Kind == EVeyraStatusKind::Slow || Kind == EVeyraStatusKind::Fear || Kind == EVeyraStatusKind::Root
 		|| Kind == EVeyraStatusKind::Blind || Kind == EVeyraStatusKind::Grounded;
 }

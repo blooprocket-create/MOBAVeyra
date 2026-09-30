@@ -538,8 +538,8 @@ void UVeyraAttunementSubsystem::ReprisalGuard(const FVeyraContentId& Attunement,
 void UVeyraAttunementSubsystem::Drag(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder,
 	UAbilitySystemComponent& Target)
 {
-	// Damaging abilities briefly slow (Item Bible §9), their damage over time too, as League's Rylai's
-	// Crystal Scepter (ADR-023 §9).
+	// Damaging abilities briefly slow (Item Bible §9), their damage over time too
+	// (ADR-023 §9).
 	const bool bAbilityDamage = Event.Delivery == EVeyraDamageDelivery::Ability || Event.Delivery == EVeyraDamageDelivery::Periodic;
 	if (!bAbilityDamage || !VeyraTargeting::IsAlive(Target.GetOwner()))
 	{

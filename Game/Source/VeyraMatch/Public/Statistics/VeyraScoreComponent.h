@@ -6,7 +6,7 @@
 
 #include "VeyraScoreComponent.generated.h"
 
-/** What League's in-match scoreboard shows of a player (ADR-017 §3, §9.4): public to everyone. */
+/** What the in-match scoreboard shows of a player (ADR-017 §3, §9.4): public to everyone. */
 USTRUCT()
 struct FVeyraScore
 {
@@ -34,7 +34,7 @@ struct FVeyraScore
 
 /**
  * A participant's public score, on its PlayerState: every client receives it, whatever it sees, as
- * League's in-match scoreboard does. Only the statistics service sets it; the rest of the record stays
+ * the in-match scoreboard shows it. Only the statistics service sets it; the rest of the record stays
  * on the server until the result (ADR-017 §3).
  */
 UCLASS()

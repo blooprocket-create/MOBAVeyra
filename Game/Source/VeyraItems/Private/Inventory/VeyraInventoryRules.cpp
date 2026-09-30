@@ -75,7 +75,7 @@ namespace
 	}
 
 	/**
-	 * Gold to obtain Item from Slots, consuming owned items where it can, recursively as League does,
+	 * Gold to obtain Item from Slots, consuming owned items where it can, recursively,
 	 * and recording each one consumed in Needs. Item itself is never taken: it is being bought. A
 	 * missing part the shop never sells sets bNeedsUnsold, and is not bought (ADR-025 §3).
 	 */

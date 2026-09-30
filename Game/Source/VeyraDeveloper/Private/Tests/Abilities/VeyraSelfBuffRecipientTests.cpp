@@ -100,7 +100,7 @@ namespace VeyraAbilitiesTests
 			FArchetypeTestWorld World{ Spawner };
 			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(CastRange / 2.0, 0.0, 0.0));
 			ASSERT_THAT(IsTrue(CastAt(&Enemy) == EVeyraCastRejection::None));
-			ASSERT_THAT(IsTrue(World.Has(*Caster, TEXT("test_gust")) && !World.Has(Enemy, TEXT("test_gust")), TEXT("the caster, as League's smart self-cast")));
+			ASSERT_THAT(IsTrue(World.Has(*Caster, TEXT("test_gust")) && !World.Has(Enemy, TEXT("test_gust")), TEXT("the caster, as Smart Self-Cast")));
 		}
 
 		TEST_METHOD(NamingNothingBuffsTheCaster)

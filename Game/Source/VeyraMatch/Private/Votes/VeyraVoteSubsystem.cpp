@@ -215,7 +215,7 @@ void UVeyraVoteSubsystem::Publish(TConstArrayView<FVeyraVoter> Voters, double No
 		}
 		State.Voted.Sort();
 	}
-	// A team's vote is its own business, as League keeps a surrender to the team: it goes to that team's
+	// A team's vote is its own business: it goes to that team's
 	// controllers, which replicate to their own players alone. The game state carries only a vote for everyone.
 	const bool bTeamVote = State.bOpen && State.Team != EVeyraTeam::None;
 	GameState->SetVote(bTeamVote ? FVeyraVoteState() : State);

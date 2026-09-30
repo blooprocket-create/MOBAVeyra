@@ -322,7 +322,7 @@ namespace
 		const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);
 		const AVeyraPlayerState* Own = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr;
 		const FVeyraVoteState& Vote = Player ? Player->GetOpenVote() : GameState.GetVote();
-		// A team's vote reaches only that team, as League shows a surrender.
+		// A team's vote reaches only that team.
 		if (Vote.bOpen && Own)
 		{
 			const UVeyraInputSettings& Input = Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>();

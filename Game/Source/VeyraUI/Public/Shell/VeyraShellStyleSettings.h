@@ -247,7 +247,7 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Art", meta = (ClampMin = "1"))
 	float AbilityIconSize = 0.0f;
 
-	/** How an item's icon is tinted while it cannot be bought, as League greys its unaffordable items. */
+	/** How an item's icon is tinted while it cannot be bought. */
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	FLinearColor ItemDimTint = FLinearColor::Transparent;
 
@@ -344,7 +344,7 @@ public:
 	float ModeCardHeight = 0.0f;
 
 	/**
-	 * The shop, laid out as League's is (ADR-012 §11): a catalog tile, the smaller tiles of the quick-buy
+	 * The shop (ADR-012 §11): a catalog tile, the smaller tiles of the quick-buy
 	 * panels, recipes and upgrades, and the widths of the quick-buy column and the selected item's pane,
 	 * in slate units.
 	 */
@@ -381,7 +381,7 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float SettingsControlWidth = 0.0f;
 
-	/** The friends panel down the right of the shell and the lobby, as League's social panel is (Art Bible §7), in slate units. */
+	/** The friends panel down the right of the shell and the lobby (Art Bible §7), in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float FriendsPanelWidth = 0.0f;
 

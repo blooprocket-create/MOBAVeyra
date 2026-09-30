@@ -88,7 +88,7 @@ namespace
 		DrawHudRect(Canvas, TopLeft, FVector2D(HealthWidth, Settings.BarHeight), Greybox.SideColorOf(Unit));
 		DrawHudRect(Canvas, TopLeft + FVector2D(HealthWidth, 0.0f), FVector2D(Settings.BarWidth * Vitals->Shield / Total, Settings.BarHeight), Settings.ShieldColor);
 		// Ticks every HealthPerTick along a Vanguard's bar, a longer one every tenth, so its Health reads at
-		// a glance, as League's do; never so close that they blur.
+		// a glance; never so close that they blur.
 		constexpr double HealthPerTick = 100.0;
 		constexpr int32 TicksPerLongTick = 10;
 		constexpr float LeastTickGap = 3.0f;
