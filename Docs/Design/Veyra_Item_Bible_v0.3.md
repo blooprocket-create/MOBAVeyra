@@ -73,6 +73,8 @@ Final public-facing terminology and exact formulas remain open where not otherwi
 | **Quickcoil** | Attack Speed |
 | **Keensteel** | Critical Strike Chance |
 | **Arc Crystal** | Magic Power |
+| **Marchplate** | Armor |
+| **Shatterdeep Crystal** | Magic Resistance |
 
 Future Tier 1 components for Armor, Magic Resistance, and other raw stats should be added only as finished-item recipes require them.
 
@@ -348,8 +350,8 @@ The Flask should be non-stackable. Its purpose is weaker reusable sustain that c
 
 The initial shop still needs significant expansion. Likely future families include:
 
-- Armor and anti-physical defense;
-- Magic Resistance and anti-magic defense;
+- expanded Armor and anti-physical defense beyond the new Marchplate foundation;
+- expanded Magic Resistance and anti-magic defense beyond the new Shatterdeep Crystal foundation;
 - healing reduction;
 - universal damage-based sustain / omnivamp;
 - support/enchanter utility;
