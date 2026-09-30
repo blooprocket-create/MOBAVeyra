@@ -3,6 +3,8 @@
 #include "CQTest.h"
 #include "Delivery/VeyraEffectDelivery.h"
 #include "Passives/VeyraKitStatusesPassive.h"
+#include "Progression/VeyraProgressionComponent.h"
+#include "Progression/VeyraProgressionTuningSubsystem.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -79,6 +81,29 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsTrue(Exposure(Enemy) == MostExposure() - 1 && !FArchetypeTestWorld::Has(Enemy, TEXT("mavra_unstable"))));
 			Hit(Enemy, Line);
 			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Has(Enemy, TEXT("mavra_unstable")) && Exposure(Enemy) == 0 && FArchetypeTestWorld::Has(Enemy, TEXT("mavra_contaminated"))));
+		}
+
+		TEST_METHOD(ContaminatedHitsHarderAsMavraLevels)
+		{
+			// Fixture value: a Level well above the first.
+			constexpr int32 Higher = 5;
+			UVeyraProgressionComponent* Progression = Mavra->GetPlayerState()->FindComponentByClass<UVeyraProgressionComponent>();
+			const TArray<int32>& ToNext = UVeyraProgressionTuningSubsystem::Get().Experience.ToNextLevel;
+			int32 Experience = 0;
+			for (int32 Level = 1; Level < Higher; ++Level)
+			{
+				Experience += ToNext[Level - 1];
+			}
+			Progression->AddExperience(Experience);
+			ASSERT_THAT(AreEqual(Higher, Progression->GetLevel()));
+			UAbilitySystemComponent& Self = *Mavra->GetAbilitySystemComponent();
+			const FVeyraPreparedEffects Line = VeyraEffectDelivery::Prepare(Self, Area(TEXT("mavra_caustic_line")).Zones[0].Effects, 1);
+			const FVeyraStatusSpec* Contaminated = Line.Statuses.FindByPredicate([](const FVeyraStatusSpec& Each) { return Each.Id == Id(TEXT("mavra_contaminated")); });
+			const TOptional<FVeyraStatusSpec> AtHigher = UVeyraAbilitiesTuningSubsystem::FindStatus(Id(TEXT("mavra_contaminated")), Higher);
+			const TOptional<FVeyraStatusSpec> AtFirst = UVeyraAbilitiesTuningSubsystem::FindStatus(Id(TEXT("mavra_contaminated")), 1);
+			ASSERT_THAT(IsTrue(Contaminated && AtHigher.IsSet() && AtFirst.IsSet() && AtHigher->Magnitude > AtFirst->Magnitude));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Contaminated->Magnitude, AtHigher->Magnitude, 1e-6),
+				*FString::Printf(TEXT("ticks for %g at Level %d, as its data scales it"), Contaminated->Magnitude, Higher)));
 		}
 
 		TEST_METHOD(FlashCureStunsAnUnstableTargetAndRootsTheRest)

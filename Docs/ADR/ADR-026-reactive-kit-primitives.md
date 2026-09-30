@@ -43,7 +43,7 @@ A status in `Abilities.json` gains `atMaxStacks`: at most one status. When an ap
 
 ### 3. Root
 
-Combat gains `EVeyraStatusKind::Root`: the unit cannot move, nor cast an ability that moves it (a dash, a leap or an attach), and may attack and cast the rest. It is crowd control: Tenacity shortens it, and Unstoppable refuses it (Combat Bible §8).
+Combat gains `EVeyraStatusKind::Root`: the unit cannot move, nor cast an ability that moves it (a dash, a leap or an attach), and may attack and cast the rest. It is crowd control: Tenacity shortens it, and Unstoppable refuses it (Combat Bible §8). A dash or leap already under way is not stopped: as in League, only a displacement interrupts a dash (Combat Bible §9), and the Root holds the unit where the dash ends.
 
 ### 4. Lingering areas that act
 

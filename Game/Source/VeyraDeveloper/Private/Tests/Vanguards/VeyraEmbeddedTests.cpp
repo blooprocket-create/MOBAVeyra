@@ -1,5 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Attributes/VeyraOffenceSet.h"
 #include "CQTest.h"
 #include "Delivery/VeyraEffectDelivery.h"
 #include "Passives/VeyraKitStatusesPassive.h"
@@ -106,7 +107,30 @@ namespace VeyraVanguardsTests
 			const double Middle = FArchetypeTestWorld::HealthLost(Splintered);
 			const double High = FArchetypeTestWorld::HealthLost(Fractured);
 			ASSERT_THAT(IsTrue(Low > 0.0 && Middle > Low && High > Middle, *FString::Printf(TEXT("%g, %g, %g"), Low, Middle, High)));
-			ASSERT_THAT(IsTrue(Splinters(Splintered) == 0 && !FArchetypeTestWorld::Has(Fractured, TEXT("korruk_fractured")), TEXT("it spends what it detonates")));
+			ASSERT_THAT(IsTrue(!FArchetypeTestWorld::Has(Fractured, TEXT("korruk_fractured")), TEXT("it spends what it detonates")));
+			// Then, a damaging ability, it embeds one afresh (Roster Bible §8).
+			ASSERT_THAT(IsTrue(Splinters(Clean) == 1 && Splinters(Splintered) == 1 && Splinters(Fractured) == 1,
+				*FString::Printf(TEXT("%d, %d, %d"), Splinters(Clean), Splinters(Splintered), Splinters(Fractured))));
+		}
+
+		TEST_METHOD(ShatterfieldsLastWaveKeepsTheStrengthOfItsCast)
+		{
+			// Fixture value: an outgoing damage boost that lands while the field lasts.
+			constexpr double Boosted = 1.5;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& First = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			AVeyraVanguardCharacter& Second = World.Spawn(EVeyraTeam::B, FVector(-Near, 0.0, 0.0));
+			Embed(First, Splinter().MaxStacks);
+			Embed(Second, Splinter().MaxStacks);
+			const FVeyraAreaAbilityTuning& Shatterfield = UVeyraAbilitiesTuningSubsystem::Get().Area.FindChecked(Id(TEXT("korruk_shatterfield")));
+			// Prepared at Commit, as the field's end is (Combat Bible §50).
+			const FVeyraPreparedEffects LastWave = VeyraEffectDelivery::Prepare(Self(), Shatterfield.Linger[0].EndEffects[0], 1);
+			VeyraEffectDelivery::Apply(Self(), First, LastWave, FVeyraEffectFrame(), FVeyraAbilityHitSource());
+			Self().SetNumericAttributeBase(UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute(), Boosted);
+			VeyraEffectDelivery::Apply(Self(), Second, LastWave, FVeyraEffectFrame(), FVeyraAbilityHitSource());
+			const double Before = FArchetypeTestWorld::HealthLost(First);
+			const double After = FArchetypeTestWorld::HealthLost(Second);
+			ASSERT_THAT(IsTrue(Before > 0.0 && FMath::IsNearlyEqual(Before, After, 1e-3), *FString::Printf(TEXT("%g, then %g"), Before, After)));
 		}
 
 		TEST_METHOD(PressureMineKnocksUpAndDetonatesAFracturedTarget)
