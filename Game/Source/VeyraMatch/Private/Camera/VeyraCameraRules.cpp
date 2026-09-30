@@ -6,7 +6,8 @@ namespace VeyraCamera
 {
 FVeyraCameraState Step(const FVeyraCameraState& State, EVeyraCameraMode Mode, const FVeyraCameraInput& Input, const FVeyraCameraLimits& Limits, double DeltaSeconds)
 {
-	const FVector Moved = ScreenToGround(Input.Pan) * Limits.PanSpeed * DeltaSeconds + ScreenToGround(Input.Drag);
+	const FVector Moved = (ScreenToGround(Input.Pan) * Limits.PanSpeed + ScreenToGround(Input.EdgePan) * Limits.EdgeScrollSpeed) * DeltaSeconds
+		+ ScreenToGround(Input.Drag);
 	FVeyraCameraState Next = State;
 	if (Input.Vanguard.IsSet() && (Input.bHoldCenter || Mode == EVeyraCameraMode::Locked))
 	{

@@ -29,9 +29,13 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Movement")
 	EVeyraCameraMode DefaultMode = EVeyraCameraMode::Free;
 
-	/** How fast the camera pans at the screen's edge or on its keys, in units per second. */
+	/** Camera Movement Speed: how fast the camera keys pan it, in units per second (Settings Bible §12.3). */
 	UPROPERTY(Config, EditAnywhere, Category = "Movement", meta = (ClampMin = "0"))
 	float PanSpeed = 0.0f;
+
+	/** Edge-Scroll Speed: how fast the screen's edges pan it, in units per second (Settings Bible §12.3). */
+	UPROPERTY(Config, EditAnywhere, Category = "Movement", meta = (ClampMin = "0"))
+	float EdgeScrollSpeed = 0.0f;
 
 	/** Whether the screen's edges pan the camera, and how near an edge the cursor must be, in pixels. */
 	UPROPERTY(Config, EditAnywhere, Category = "Movement")

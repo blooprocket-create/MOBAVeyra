@@ -38,6 +38,7 @@ void AVeyraCameraRig::Step(const FVeyraCameraInput& Input, double DeltaSeconds)
 	const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
 	FVeyraCameraLimits Limits;
 	Limits.PanSpeed = View.PanSpeed;
+	Limits.EdgeScrollSpeed = View.EdgeScrollSpeed;
 	Limits.SemiLockedMaxOffset = View.SemiLockedMaxOffset;
 	// The battleground's floor bounds the view.
 	Limits.HalfExtent = UVeyraWorldTuningSubsystem::Get().Layout.HalfExtent;
@@ -52,4 +53,10 @@ void AVeyraCameraRig::Step(const FVeyraCameraInput& Input, double DeltaSeconds)
 void AVeyraCameraRig::LookAt(const FVector& Point)
 {
 	SetActorLocation(Point);
+}
+
+void AVeyraCameraRig::CenterOn(const FVector& Point)
+{
+	SetActorLocation(Point);
+	Offset = FVector::ZeroVector;
 }
