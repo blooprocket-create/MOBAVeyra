@@ -16,6 +16,8 @@ Recipes should explain the finished item's stats and purpose.
 
 **Lore-naming principle:** Item names should draw from Veyra's established regions, peoples, materials, technologies, weapons, artifacts, events, and institutions where that connection feels natural. Some shop items may reference or derive from equipment used by Vanguards, provided the item remains a general systemic item rather than a mechanically exclusive item for that Vanguard. Functional names remain valid when a lore reference would be forced.
 
+**External-inspiration rule:** Existing games may be used to identify useful item roles, counterplay needs, or broad strategic niches, but they are inspiration only. Veyra items should not be direct mechanical copies or simple renamed equivalents. Their recipes, Attunements, interactions, and lore identity should be designed around Veyra's own combat rules, current Vanguard roster, and worldbuilding.
+
 Items do **not** auto-combine. Owning the components is not enough; the player must purchase the item's recipe/completion cost.
 
 ## 2. Tier architecture
