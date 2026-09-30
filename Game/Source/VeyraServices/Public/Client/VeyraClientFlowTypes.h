@@ -24,6 +24,8 @@ enum class EVeyraClientState : uint8
 	StarterChoice,
 	/** Home, Play and the mode choice, the party, and its queue. */
 	Shell,
+	/** A custom lobby (ADR-021): its seats, bots and rules, until its host starts champion select. */
+	Lobby,
 	/** Matchmaking found a match, and every player must accept it (Parties & Social Bible §3). */
 	MatchFound,
 	/** Champion select. */
@@ -79,6 +81,30 @@ enum class EVeyraClientIntent : uint8
 	OpenHistoryMatch,
 	/** Goes back from an opened match to the list. */
 	CloseHistoryMatch,
+	/** Opens a custom lobby the player hosts (ADR-021). */
+	CreateLobby,
+	/** Joins the lobby an invitation is from. */
+	AcceptLobbyInvite,
+	DeclineLobbyInvite,
+	/** The host's: invites a friend into the lobby. */
+	InviteToLobby,
+	LeaveLobby,
+	/** The host's: removes another human from the lobby. */
+	KickFromLobby,
+	/** The host's: puts a human in an empty seat (Custom Matches Bible §1). */
+	MoveInLobby,
+	/** The host's: puts a bot in a seat, or changes the bot there (§2–§3). */
+	SetLobbyBot,
+	RemoveLobbyBot,
+	/** The host's: victory and starting Gold (§4). */
+	SetLobbySettings,
+	/** The host's: starts champion select for everyone in the lobby. */
+	LaunchLobby,
+	/** Asks a player, by display name, to be friends (Parties & Social Bible §1). */
+	SendFriendRequest,
+	/** Accepts or declines a friend request to the player. */
+	AnswerFriendRequest,
+	RemoveFriend,
 };
 
 /** Which kind of world the client just loaded. */
@@ -122,6 +148,26 @@ struct FVeyraMatchHistory
 	bool bLoaded = false;
 	/** A match opened from the list; unset while none is. */
 	TOptional<VeyraBackendProtocol::FMatchOutcome> Opened;
+};
+
+/**
+ * The player's friends, friend requests and lobby invitations as last read (Parties & Social Bible §1),
+ * in the shell and the lobby. Reading them never stops the flow: a failed read is tried again later.
+ */
+struct FVeyraSocial
+{
+	/** Whether they have been read at all. */
+	bool bLoaded = false;
+	VeyraBackendProtocol::FFriends Friends;
+	TArray<VeyraBackendProtocol::FLobbyInvite> LobbyInvites;
+	/**
+	 * What came of the player's last friend request, for the friends panel rather than the screen's
+	 * problem: "friend_requested", "friend_added", or the backend's refusal, such as "account_not_found"
+	 * or "already_friends". Empty for none.
+	 */
+	FString Feedback;
+	/** The name that request was for. */
+	FString FeedbackName;
 };
 
 /** Everything the presentation shows about the flow. Only the flow changes it. */
@@ -174,4 +220,8 @@ struct FVeyraClientSnapshot
 	TOptional<VeyraBackendProtocol::FMatchOutcome> Result;
 	/** Shell: Match History, once the player opens it. */
 	FVeyraMatchHistory History;
+	/** Lobby: the player's custom lobby as last read; unset elsewhere. */
+	TOptional<VeyraBackendProtocol::FLobby> Lobby;
+	/** Shell and Lobby: friends, requests and invitations. */
+	FVeyraSocial Social;
 };

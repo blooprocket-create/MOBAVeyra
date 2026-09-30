@@ -120,11 +120,21 @@ namespace VeyraBackendProtocol
 		TArray<FString> FluxSpells;
 	};
 
+	/** A bot a custom lobby put in its select: a seat locked from the start (ADR-021 §3). */
+	struct FSelectBot
+	{
+		/** "A" or "B". */
+		FString Side;
+		FString VanguardId;
+		/** "beginner" or "intermediate". */
+		FString Difficulty;
+	};
+
 	/** A champion select, as one of its players sees it. */
 	struct FSelect
 	{
 		FString Id;
-		/** "practice"; M6b adds the queued kinds. */
+		/** "practice", "casual" (matchmade) or "custom" (a custom lobby's). */
 		FString Kind;
 		FString Mode;
 		ESelectState State = ESelectState::Picking;
@@ -133,6 +143,8 @@ namespace VeyraBackendProtocol
 		/** The pick timer's full length, for a countdown bar. */
 		double PickSeconds = 0.0;
 		TArray<FSelectSeat> Seats;
+		/** A custom select's bots, in each side's seat order; empty for the other kinds. */
+		TArray<FSelectBot> Bots;
 		/** Set once started. */
 		FString MatchId;
 		/** Set once cancelled, such as "timed_out". */
@@ -176,7 +188,7 @@ namespace VeyraBackendProtocol
 	{
 		FString MatchId;
 		FString Mode;
-		/** "standard" or "practice". */
+		/** "standard", "practice" or "custom". */
 		FString Rules;
 		/** "allocating", "ready", "ended" or "failed". */
 		FString State;
@@ -328,6 +340,126 @@ namespace VeyraBackendProtocol
 
 	/** Reads {"matchFound": ...}. OutFound is unset when it is null. False, with the problem, if it is not one. */
 	VEYRASERVICES_API bool ParseMatchFound(const FString& Body, TOptional<FMatchFound>& OutFound, FString& OutProblem);
+
+	/** An account as the social routes name it. */
+	struct FAccount
+	{
+		FString Id;
+		FString DisplayName;
+
+		bool operator==(const FAccount&) const = default;
+	};
+
+	/** GET /v1/accounts for the account whose display name is exactly DisplayName. */
+	VEYRASERVICES_API FString AccountLookupPath(const FString& DisplayName);
+
+	/** Reads the answer to GET /v1/accounts. False, with the problem, if it is not an account. */
+	VEYRASERVICES_API bool ParseAccount(const FString& Body, FAccount& Out, FString& OutProblem);
+
+	/** The player's friends and friend requests, as GET /v1/friends reports them (Parties & Social Bible §1), each by name. */
+	struct FFriends
+	{
+		TArray<FAccount> Friends;
+		/** Requests to the player, which they may accept or decline. */
+		TArray<FAccount> Incoming;
+		/** The player's own requests, not answered yet. */
+		TArray<FAccount> Outgoing;
+
+		bool operator==(const FFriends&) const = default;
+	};
+
+	VEYRASERVICES_API bool ParseFriends(const FString& Body, FFriends& Out, FString& OutProblem);
+
+	/**
+	 * Reads the answer to POST /v1/friends/requests: "requested", or "friends" when the other player had
+	 * already asked, which makes them friends at once.
+	 */
+	VEYRASERVICES_API bool ParseFriendRequestOutcome(const FString& Body, FString& OutOutcome, FString& OutProblem);
+
+	/** The body of POST /v1/friends/requests and POST /v1/lobby/invites. */
+	VEYRASERVICES_API FString BuildAccountBody(const FString& AccountId);
+
+	/** What sits in a custom lobby's seat. */
+	enum class ELobbySeatKind : uint8
+	{
+		Empty,
+		Human,
+		Bot,
+	};
+
+	/** One seat of a custom lobby (ADR-021 §2): empty, a human, or a bot. */
+	struct FLobbySeat
+	{
+		/** "A" or "B". */
+		FString Side;
+		/** From 0, on its side. */
+		int32 Index = 0;
+		ELobbySeatKind Kind = ELobbySeatKind::Empty;
+		/** A human's; empty otherwise. */
+		FString AccountId;
+		FString DisplayName;
+		bool bHost = false;
+		/** A bot's; empty otherwise. */
+		FString VanguardId;
+		/** A bot's: "beginner" or "intermediate". */
+		FString Difficulty;
+	};
+
+	/** The player's custom lobby, as the lobby routes report it (ADR-021; Custom Matches Bible §1–§4). */
+	struct FLobby
+	{
+		FString Id;
+		FString HostAccountId;
+		/** In the champion select its launch opened, and fixed until that ends. */
+		bool bSelecting = false;
+		int32 PlayersPerSide = 0;
+		/** Whether destroying a Prime Well wins (§4); off while a side has nobody. */
+		bool bVictoryEnabled = false;
+		/** The starting Gold the host set; unset plays the game's own. */
+		TOptional<double> StartingGold;
+		/** The range starting Gold may be set in. */
+		double StartingGoldMin = 0.0;
+		double StartingGoldMax = 0.0;
+		/** Side A's seats, then side B's, each in order: PlayersPerSide on each side. */
+		TArray<FLobbySeat> Seats;
+		/** What a bot may be: the released Vanguards, sorted, and the difficulties, easiest first. */
+		TArray<FString> BotVanguards;
+		TArray<FString> BotDifficulties;
+
+		/** AccountId's seat; null if they are not in the lobby. */
+		VEYRASERVICES_API const FLobbySeat* FindMember(const FString& AccountId) const;
+	};
+
+	/**
+	 * Reads {"lobby": ...}, the answer of the lobby routes. OutLobby is unset when the lobby is null: the
+	 * player is in none. False, with the problem, if the answer is not a lobby.
+	 */
+	VEYRASERVICES_API bool ParseLobby(const FString& Body, TOptional<FLobby>& OutLobby, FString& OutProblem);
+
+	/** An invitation into another player's custom lobby. */
+	struct FLobbyInvite
+	{
+		FString Id;
+		FString LobbyId;
+		FAccount Inviter;
+
+		bool operator==(const FLobbyInvite&) const = default;
+	};
+
+	/** Reads the answer to GET /v1/lobby/invites. False, with the problem, if it is not that. */
+	VEYRASERVICES_API bool ParseLobbyInvites(const FString& Body, TArray<FLobbyInvite>& Out, FString& OutProblem);
+
+	/** PUT and DELETE /v1/lobby/seats/{side}/{index}/bot. */
+	VEYRASERVICES_API FString LobbyBotPath(const FString& Side, int32 Index);
+
+	/** The body of PUT /v1/lobby/members/{accountId}/seat. */
+	VEYRASERVICES_API FString BuildSeatBody(const FString& Side, int32 Index);
+
+	/** The body of PUT /v1/lobby/seats/{side}/{index}/bot. */
+	VEYRASERVICES_API FString BuildBotBody(const FString& VanguardId, const FString& Difficulty);
+
+	/** The body of PUT /v1/lobby/settings; an unset StartingGold plays the game's own. */
+	VEYRASERVICES_API FString BuildLobbySettingsBody(bool bVictoryEnabled, TOptional<double> StartingGold);
 
 	/** The body of PUT /v1/party/mode. */
 	VEYRASERVICES_API FString BuildModeBody(const FString& ModeId);

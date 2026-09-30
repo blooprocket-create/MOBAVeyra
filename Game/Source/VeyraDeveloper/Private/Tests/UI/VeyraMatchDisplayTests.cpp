@@ -20,7 +20,7 @@ namespace VeyraMatchDisplayTests
 				ASSERT_THAT(IsTrue(VeyraMatchDisplay::TakesTheScreen(State), LexToString(State)));
 			}
 			// Champion select and the results are the client's; so is everything before and after.
-			for (const EVeyraClientState State : { EVeyraClientState::Shell, EVeyraClientState::MatchFound, EVeyraClientState::Selecting,
+			for (const EVeyraClientState State : { EVeyraClientState::Shell, EVeyraClientState::Lobby, EVeyraClientState::MatchFound, EVeyraClientState::Selecting,
 					 EVeyraClientState::Returning, EVeyraClientState::AwaitingResults, EVeyraClientState::Results, EVeyraClientState::ReconnectOnly })
 			{
 				ASSERT_THAT(IsFalse(VeyraMatchDisplay::TakesTheScreen(State), LexToString(State)));

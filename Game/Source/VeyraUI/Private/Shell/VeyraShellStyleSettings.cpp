@@ -98,6 +98,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("ModeCardWidth"), ModeCardWidth },
 		{ TEXT("ModeCardHeight"), ModeCardHeight },
 		{ TEXT("DialogWidth"), DialogWidth },
+		{ TEXT("FriendsPanelWidth"), FriendsPanelWidth },
+		{ TEXT("LobbySeatWidth"), LobbySeatWidth },
 		{ TEXT("ShopTileSize"), ShopTileSize },
 		{ TEXT("ShopMarkSize"), ShopMarkSize },
 		{ TEXT("ShopQuickWidth"), ShopQuickWidth },
@@ -131,6 +133,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		Require(!Portrait.Vanguard.IsEmpty() && !bAlreadySeen, TEXT("VanguardPortraits"), TEXT("each entry names a different Vanguard."));
 	}
 	Require(!HomeVanguard.IsEmpty(), TEXT("HomeVanguard"), TEXT("names the Vanguard whose art fills Home."));
+	Require(!LobbyStartingGoldChoices.IsEmpty() && !LobbyStartingGoldChoices.ContainsByPredicate([](float Gold) { return !(Gold >= 0.0f); }),
+		TEXT("LobbyStartingGoldChoices"), TEXT("lists at least one amount, none of them negative."));
 	TSet<FString> Modes;
 	for (const FVeyraModeArt& Art : ModeArt)
 	{

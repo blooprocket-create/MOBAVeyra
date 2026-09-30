@@ -6,6 +6,7 @@
 #include "Brushes/SlateRoundedBoxBrush.h"
 #include "Client/VeyraClientIntents.h"
 #include "Components/Border.h"
+#include "Components/EditableTextBox.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/Image.h"
@@ -20,6 +21,7 @@
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
 #include "Engine/Texture2D.h"
+#include "Misc/ScopeExit.h"
 #include "Shell/VeyraMatchHistoryModel.h"
 #include "Shell/VeyraShellArt.h"
 #include "Shell/VeyraShellButton.h"
@@ -194,8 +196,8 @@ void UVeyraShellScreen::Refresh()
 		return;
 	}
 	const FVeyraClientSnapshot& Snapshot = Client->GetSnapshot();
-	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|"), static_cast<int32>(Page), OpenSpellSlot, bShowAbilities ? 1 : 0,
-								  static_cast<int32>(ReportView)) +
+	const FString Signature = FString::Printf(TEXT("page %d|spells %d|abilities %d|report %d|bots %s%d:%s|"), static_cast<int32>(Page), OpenSpellSlot,
+								  bShowAbilities ? 1 : 0, static_cast<int32>(ReportView), *BotPickerSide, BotPickerIndex, *BotDifficulty) +
 		VeyraShellModels::Signature(Snapshot);
 	if (Signature == ShownSignature)
 	{
@@ -207,6 +209,9 @@ void UVeyraShellScreen::Refresh()
 
 void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 {
+	// A player typing a friend's name keeps typing across a rebuild, into the field that replaces it.
+	const bool bRefocusFriendName = FriendNameBox && FriendNameBox->HasKeyboardFocus();
+	FriendNameBox = nullptr;
 	Content->ClearChildren();
 	Popup->ClearChildren();
 	Buttons.Reset();
@@ -220,6 +225,18 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		OpenSpellSlot = INDEX_NONE;
 		bShowAbilities = false;
 	}
+	if (Shown != EVeyraShellScreen::Lobby)
+	{
+		// The bot picker belongs to one lobby.
+		BotPickerIndex = INDEX_NONE;
+	}
+	ON_SCOPE_EXIT
+	{
+		if (bRefocusFriendName && FriendNameBox)
+		{
+			FriendNameBox->SetKeyboardFocus();
+		}
+	};
 	// Each screen chooses its own art; champion select shows the Vanguard it is looking at.
 	ShowBackdrop(nullptr);
 	for (UImage* Scrim : { ScrimLeft.Get(), ScrimBottom.Get(), ScrimTop.Get() })
@@ -241,6 +258,9 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		break;
 	case EVeyraShellScreen::Shell:
 		BuildShell(Snapshot);
+		break;
+	case EVeyraShellScreen::Lobby:
+		BuildLobby(Snapshot);
 		break;
 	case EVeyraShellScreen::MatchFound:
 		BuildMatchFound(Snapshot);
@@ -354,7 +374,7 @@ void UVeyraShellScreen::BuildStarterChoice(const FVeyraClientSnapshot& Snapshot)
 	VeyraShellStyle::AddSpaced(*Content, *Cards);
 }
 
-void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent)
+void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent, bool bPages)
 {
 	const UVeyraShellStyleSettings& Style = ShellStyle();
 	UHorizontalBox* Bar = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
@@ -367,16 +387,19 @@ void UVeyraShellScreen::BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanel
 	Mark->SetAutoWrapText(false);
 	VeyraShellStyle::AddSpaced(*Bar, *Mark);
 	AddGap(*WidgetTree, *Bar, Style.ScreenPadding);
-	// Navigation between ordinary pages (UX §1).
-	AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHome", "Home"), [this] { ShowPage(EVeyraShellPage::Home); }, true, Page == EVeyraShellPage::Home)
-		->KeepLabelOnOneLine();
-	AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavPlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); }, true, Page == EVeyraShellPage::Play)
-		->KeepLabelOnOneLine();
-	// Opening Match History reads its first page afresh, with the filters last used.
-	AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHistory", "Match History"), [this] {
-		ShowPage(EVeyraShellPage::History);
-		Client->LoadHistory(Client->GetSnapshot().History.Filter);
-	}, true, Page == EVeyraShellPage::History)->KeepLabelOnOneLine();
+	// Navigation between ordinary pages (UX §1); a lobby holds the player until they leave it.
+	if (bPages)
+	{
+		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHome", "Home"), [this] { ShowPage(EVeyraShellPage::Home); }, true, Page == EVeyraShellPage::Home)
+			->KeepLabelOnOneLine();
+		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavPlay", "Play"), [this] { ShowPage(EVeyraShellPage::Play); }, true, Page == EVeyraShellPage::Play)
+			->KeepLabelOnOneLine();
+		// Opening Match History reads its first page afresh, with the filters last used.
+		AddKindButton(*Bar, EVeyraShellButtonKind::Tab, LOCTEXT("NavHistory", "Match History"), [this] {
+			ShowPage(EVeyraShellPage::History);
+			Client->LoadHistory(Client->GetSnapshot().History.Filter);
+		}, true, Page == EVeyraShellPage::History)->KeepLabelOnOneLine();
+	}
 	AddStretch(*WidgetTree, *Bar);
 	UTextBlock* Player = AddText(*Bar, FText::Format(LOCTEXT("SignedInAs", "Signed in as {0}"), FText::FromString(Snapshot.DisplayName)), RoleOf(EVeyraShellText::Muted));
 	Player->SetAutoWrapText(false);
@@ -396,8 +419,13 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 		Banner->SetContent(VeyraShellStyle::MakeText(*WidgetTree, Notice, EVeyraShellText::Body));
 		VeyraShellStyle::AddSpaced(*Content, *Banner);
 	}
+	// The page, and the friends panel down the right, as League's social panel is (Art Bible §7).
+	UHorizontalBox* Split = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	AddFilling(*Content, *Split);
 	UVerticalBox* Body = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	AddFilling(*Content, *Body);
+	Split->AddChildToHorizontalBox(Body)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	AddGap(*WidgetTree, *Split, ShellStyle().Spacing * 2.0f);
+	BuildFriends(Snapshot, *Split);
 	if (Page == EVeyraShellPage::Play)
 	{
 		BuildPlay(Snapshot, *Body);
@@ -621,12 +649,20 @@ void UVeyraShellScreen::BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWi
 	// Custom practice is not a matchmade mode: it starts at once, with no party or queue (ADR-010 §7).
 	const TArray<TPair<FText, uint8>> Custom = {
 		{ LOCTEXT("CustomPlayers", "1 player"), RoleOf(EVeyraShellText::Eyebrow) },
-		{ LOCTEXT("CustomTitle", "Custom"), RoleOf(EVeyraShellText::Heading) },
-		{ LOCTEXT("CustomDetail", "Your own match. Practice puts you alone on the battleground to try a Vanguard; it ends when you end it."),
+		{ LOCTEXT("CustomTitle", "Practice"), RoleOf(EVeyraShellText::Heading) },
+		{ LOCTEXT("CustomDetail", "Alone on the battleground against a few bots, to try a Vanguard; it ends when you end it."),
 			RoleOf(EVeyraShellText::Muted) },
 	};
 	AddArtCard(*Cards, LOCTEXT("Practice", "Practice"), ShellStyle().ModeArtOf(TEXT("practice")), Custom, [this] { Client->StartPractice(); },
 		Client->CanIssue(EVeyraClientIntent::StartPractice), false);
+	// A custom game is a lobby the player hosts: friends and bots on either side, and its own rules (ADR-021).
+	const TArray<TPair<FText, uint8>> CustomGame = {
+		{ LOCTEXT("CustomGamePlayers", "Friends and bots"), RoleOf(EVeyraShellText::Eyebrow) },
+		{ LOCTEXT("CustomGameTitle", "Custom Game"), RoleOf(EVeyraShellText::Heading) },
+		{ LOCTEXT("CustomGameDetail", "Your own lobby: invite friends, seat bots on either side and set the rules."), RoleOf(EVeyraShellText::Muted) },
+	};
+	AddArtCard(*Cards, LOCTEXT("CustomGame", "Custom Game"), ShellStyle().ModeArtOf(TEXT("custom_game")), CustomGame, [this] { Client->CreateLobby(); },
+		Client->CanIssue(EVeyraClientIntent::CreateLobby), false);
 	VeyraShellStyle::AddSpaced(Parent, *Cards);
 }
 

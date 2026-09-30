@@ -27,6 +27,9 @@ const (
 	Intermediate = "intermediate"
 )
 
+// Difficulties lists them in order, easiest first, for a client's choices.
+var Difficulties = []string{Beginner, Intermediate}
+
 // Status is where the lobby is on its way to a match.
 type Status string
 
@@ -113,6 +116,19 @@ type Limits struct {
 	Released        map[string]bool
 	StartingGoldMin float64
 	StartingGoldMax float64
+}
+
+// BotVanguards lists the Vanguards a bot may play, sorted, for a client's
+// choices.
+func (l Limits) BotVanguards() []string {
+	out := make([]string, 0, len(l.Released))
+	for id, ok := range l.Released {
+		if ok {
+			out = append(out, id)
+		}
+	}
+	sort.Strings(out)
+	return out
 }
 
 // New is a lobby its host has just created, seated first on side A.

@@ -74,6 +74,14 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Client")
 	float MatchFoundPollIntervalSeconds = 0.0f;
 
+	/** Client: seconds between reads of the player's custom lobby, which is how its changes and its start arrive (ADR-021). */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float LobbyPollIntervalSeconds = 0.0f;
+
+	/** Client: seconds between reads of the player's friends, friend requests and lobby invitations in the shell and the lobby. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float SocialPollIntervalSeconds = 0.0f;
+
 	/**
 	 * Match server: seconds to wait for its assignment on standard input. The server waits before
 	 * its first map loads, because the map's game mode reads the roster.

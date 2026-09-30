@@ -428,6 +428,8 @@ namespace VeyraServicesTests
 			Candidate->ReconnectPollIntervalSeconds = 0.0f;
 			Candidate->PartyPollIntervalSeconds = 0.0f;
 			Candidate->MatchFoundPollIntervalSeconds = 0.0f;
+			Candidate->LobbyPollIntervalSeconds = 0.0f;
+			Candidate->SocialPollIntervalSeconds = 0.0f;
 			Candidate->AssignmentReadTimeoutSeconds = 0.0f;
 			Candidate->AssignmentPollIntervalSeconds = 0.0f;
 			Candidate->ReportAttempts = 0;
@@ -437,7 +439,7 @@ namespace VeyraServicesTests
 					 TEXT("MatchPollIntervalSeconds"), TEXT("MatchWaitTimeoutSeconds"), TEXT("ClientRequestAttempts"), TEXT("ClientRetryIntervalSeconds"),
 					 TEXT("SelectPollIntervalSeconds"), TEXT("ResultPollIntervalSeconds"), TEXT("ResultWaitTimeoutSeconds"),
 					 TEXT("ReconnectPollIntervalSeconds"), TEXT("PartyPollIntervalSeconds"), TEXT("MatchFoundPollIntervalSeconds"),
-					 TEXT("AssignmentReadTimeoutSeconds"), TEXT("AssignmentPollIntervalSeconds"),
+					 TEXT("LobbyPollIntervalSeconds"), TEXT("SocialPollIntervalSeconds"), TEXT("AssignmentReadTimeoutSeconds"), TEXT("AssignmentPollIntervalSeconds"),
 					 TEXT("ReportAttempts"), TEXT("ReportRetryIntervalSeconds") })
 			{
 				ASSERT_THAT(IsTrue(Problems.Contains(Name), FString::Printf(TEXT("%s is not named in: %s"), Name, *Problems)));

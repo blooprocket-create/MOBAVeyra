@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -52,6 +53,10 @@ func TestACustomLobbyOverHTTP(t *testing.T) {
 	}
 	if l := body["lobby"].(map[string]any); l["settings"].(map[string]any)["startingGold"] != nil || l["startingGoldRange"].(map[string]any)["max"] != 20000.0 {
 		t.Fatalf("settings: %v", l)
+	}
+	// What a bot may be: every released Vanguard, sorted, at either difficulty.
+	if l := body["lobby"].(map[string]any); fmt.Sprint(l["botVanguards"]) != "[cairn oriel]" || fmt.Sprint(l["botDifficulties"]) != "[beginner intermediate]" {
+		t.Fatalf("bot choices: %v %v", l["botVanguards"], l["botDifficulties"])
 	}
 
 	if status, body := call(t, srv, "POST", "/v1/lobby/invites", one, map[string]string{"accountId": twoID}); status != http.StatusForbidden || body["error"] != "not_friends" {

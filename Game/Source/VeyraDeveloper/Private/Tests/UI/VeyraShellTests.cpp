@@ -63,6 +63,7 @@ namespace VeyraShellTests
 				{ EVeyraClientState::Loading, EVeyraShellScreen::Status },
 				{ EVeyraClientState::StarterChoice, EVeyraShellScreen::StarterChoice },
 				{ EVeyraClientState::Shell, EVeyraShellScreen::Shell },
+				{ EVeyraClientState::Lobby, EVeyraShellScreen::Lobby },
 				{ EVeyraClientState::MatchFound, EVeyraShellScreen::MatchFound },
 				{ EVeyraClientState::Selecting, EVeyraShellScreen::ChampionSelect },
 				{ EVeyraClientState::MatchStarting, EVeyraShellScreen::Status },
@@ -214,7 +215,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsFalse(VeyraShellModels::DescribeNotice(TEXT("match_found_requeued")).ToString().Contains(TEXT("player"))));
 			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("no_longer_matched")).ToString().Contains(TEXT("can no longer go ahead"))));
 			ASSERT_THAT(AreEqual(VeyraShellModels::DescribeProblem(FVeyraClientProblem{ TEXT("member_busy"), TEXT("raw"), false }).ToString(),
-				FString(TEXT("Someone in your party is still in a match or champion select."))));
+				FString(TEXT("Someone is still in a match, champion select or queue."))));
 		}
 
 		TEST_METHOD(PartyAndModeModels)

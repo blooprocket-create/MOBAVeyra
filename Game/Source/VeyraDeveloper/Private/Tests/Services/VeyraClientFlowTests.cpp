@@ -30,7 +30,7 @@ namespace VeyraClientFlowTests
 		{
 			return State() == EVeyraClientState::Loading && Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch)
 				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, ProfileBody(true))
-				&& State() == EVeyraClientState::Shell;
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby) && State() == EVeyraClientState::Shell;
 		}
 
 		TEST_METHOD(Transitions)
@@ -50,7 +50,20 @@ namespace VeyraClientFlowTests
 				{ EVeyraClientIntent::LeaveSelect, EVeyraClientState::Selecting },
 				{ EVeyraClientIntent::Reconnect, EVeyraClientState::ReconnectOnly },
 				{ EVeyraClientIntent::ContinueFromResults, EVeyraClientState::Results },
+				{ EVeyraClientIntent::CreateLobby, EVeyraClientState::Shell },
+				{ EVeyraClientIntent::AcceptLobbyInvite, EVeyraClientState::Shell },
+				{ EVeyraClientIntent::InviteToLobby, EVeyraClientState::Lobby },
+				{ EVeyraClientIntent::LeaveLobby, EVeyraClientState::Lobby },
+				{ EVeyraClientIntent::KickFromLobby, EVeyraClientState::Lobby },
+				{ EVeyraClientIntent::MoveInLobby, EVeyraClientState::Lobby },
+				{ EVeyraClientIntent::SetLobbyBot, EVeyraClientState::Lobby },
+				{ EVeyraClientIntent::RemoveLobbyBot, EVeyraClientState::Lobby },
+				{ EVeyraClientIntent::SetLobbySettings, EVeyraClientState::Lobby },
+				{ EVeyraClientIntent::LaunchLobby, EVeyraClientState::Lobby },
 			};
+			// The friends panel's intents belong to the shell and the lobby alike.
+			const EVeyraClientIntent Social[] = { EVeyraClientIntent::DeclineLobbyInvite, EVeyraClientIntent::SendFriendRequest,
+				EVeyraClientIntent::AnswerFriendRequest, EVeyraClientIntent::RemoveFriend };
 			for (uint8 Index = 0; Index <= static_cast<uint8>(EVeyraClientState::SessionEnded); ++Index)
 			{
 				const EVeyraClientState Candidate = static_cast<EVeyraClientState>(Index);
@@ -58,6 +71,11 @@ namespace VeyraClientFlowTests
 				{
 					ASSERT_THAT(AreEqual(FVeyraClientFlow::IsIntentAllowed(Candidate, Owner.Key), Candidate == Owner.Value,
 						FString::Printf(TEXT("%s in %s"), LexToString(Owner.Key), LexToString(Candidate))));
+				}
+				for (const EVeyraClientIntent Intent : Social)
+				{
+					const bool bPanel = Candidate == EVeyraClientState::Shell || Candidate == EVeyraClientState::Lobby;
+					ASSERT_THAT(AreEqual(FVeyraClientFlow::IsIntentAllowed(Candidate, Intent), bPanel, FString::Printf(TEXT("%s in %s"), LexToString(Intent), LexToString(Candidate))));
 				}
 				ASSERT_THAT(IsTrue(FVeyraClientFlow::IsIntentAllowed(Candidate, EVeyraClientIntent::Retry)));
 				ASSERT_THAT(IsTrue(FVeyraClientFlow::IsIntentAllowed(Candidate, EVeyraClientIntent::Quit)));
@@ -283,6 +301,7 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch)));
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, NoSelect)));
 			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, ProfileBody(true))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby)));
 			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Shell));
 			ASSERT_THAT(IsFalse(Flow->GetSnapshot().Result.IsSet()));
 		}

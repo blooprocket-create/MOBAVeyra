@@ -173,6 +173,80 @@ namespace VeyraClientFlowTests
 			FoundId, State, Remaining, Accepted, You, *Quoted(OpenedSelect), *Quoted(AbandonReason));
 	}
 
+	// The custom lobby (ADR-021) and the friends panel.
+	inline const TCHAR* const LobbyId = TEXT("77777777-8888-4999-8aaa-bbbbbbbbbbbb");
+	inline const TCHAR* const InviteId = TEXT("99999999-aaaa-4bbb-8ccc-dddddddddddd");
+	/** DevTwo: the player's friend in the lobby tests. */
+	inline const TCHAR* const FriendId = TEXT("aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee");
+
+	inline const TCHAR* const NoLobby = TEXT("{\"lobby\":null}");
+
+	/** A lobby seat as the backend writes it: Kind is "empty", "human" or "bot", and the fields that do not apply are empty. */
+	inline FString LobbySeat(const TCHAR* Side, int32 Index, const TCHAR* Kind = TEXT("empty"), const TCHAR* Account = TEXT(""), const TCHAR* Name = TEXT(""),
+		bool bHost = false, const TCHAR* Vanguard = TEXT(""), const TCHAR* Difficulty = TEXT(""))
+	{
+		return FString::Printf(TEXT("{\"side\":\"%s\",\"index\":%d,\"kind\":\"%s\",\"accountId\":\"%s\",\"displayName\":\"%s\",\"host\":%s,\"vanguardId\":\"%s\",\"difficulty\":\"%s\"}"),
+			Side, Index, Kind, Account, Name, bHost ? TEXT("true") : TEXT("false"), Vanguard, Difficulty);
+	}
+
+	/** A lobby of two seats a side: Seats are A's then B's; StartingGold is JSON, a number or null. */
+	inline FString LobbyBody(const TArray<FString>& Seats, const TCHAR* Host = AccountId, const TCHAR* Status = TEXT("open"), bool bVictory = false,
+		const TCHAR* StartingGold = TEXT("null"))
+	{
+		return FString::Printf(TEXT("{\"lobby\":{\"id\":\"%s\",\"hostAccountId\":\"%s\",\"status\":\"%s\",\"playersPerSide\":2,")
+								   TEXT("\"settings\":{\"victoryEnabled\":%s,\"startingGold\":%s},\"startingGoldRange\":{\"min\":0,\"max\":20000},\"seats\":[%s],")
+								   TEXT("\"botVanguards\":[\"bryn\",\"cairn\",\"oriel\",\"qazharr\"],\"botDifficulties\":[\"beginner\",\"intermediate\"]}}"),
+			LobbyId, Host, Status, bVictory ? TEXT("true") : TEXT("false"), StartingGold, *FString::Join(Seats, TEXT(",")));
+	}
+
+	/** The player's own lobby: hosting from side A's first seat, with B1 as given. */
+	inline FString HostedLobbyBody(const TCHAR* Status = TEXT("open"), const FString& SeatB1 = LobbySeat(TEXT("B"), 1))
+	{
+		return LobbyBody({ LobbySeat(TEXT("A"), 0, TEXT("human"), AccountId, TEXT("DevOne"), true), LobbySeat(TEXT("A"), 1), LobbySeat(TEXT("B"), 0), SeatB1 },
+			AccountId, Status);
+	}
+
+	/** DevTwo's lobby, with the player seated on side B as a guest. */
+	inline FString GuestLobbyBody(const TCHAR* Status = TEXT("open"))
+	{
+		return LobbyBody({ LobbySeat(TEXT("A"), 0, TEXT("human"), FriendId, TEXT("DevTwo"), true), LobbySeat(TEXT("A"), 1),
+							 LobbySeat(TEXT("B"), 0, TEXT("human"), AccountId, TEXT("DevOne")), LobbySeat(TEXT("B"), 1) },
+			FriendId, Status);
+	}
+
+	inline FString AccountJson(const TCHAR* Id, const TCHAR* Name)
+	{
+		return FString::Printf(TEXT("{\"id\":\"%s\",\"displayName\":\"%s\"}"), Id, Name);
+	}
+
+	/** GET /v1/friends: each list is JSON. */
+	inline FString FriendsBody(const FString& Friends = TEXT("[]"), const FString& Incoming = TEXT("[]"), const FString& Outgoing = TEXT("[]"))
+	{
+		return FString::Printf(TEXT("{\"friends\":%s,\"incomingRequests\":%s,\"outgoingRequests\":%s}"), *Friends, *Incoming, *Outgoing);
+	}
+
+	/** DevTwo, as a one-account list. */
+	inline FString FriendList() { return TEXT("[") + AccountJson(FriendId, TEXT("DevTwo")) + TEXT("]"); }
+
+	/** GET /v1/lobby/invites, with DevTwo's invitation or none. */
+	inline FString InvitesBody(bool bInvited)
+	{
+		const FString Invite = FString::Printf(TEXT("{\"id\":\"%s\",\"lobbyId\":\"%s\",\"inviter\":%s,\"expiresAt\":\"2026-09-29T12:02:00Z\"}"), InviteId, LobbyId,
+			*AccountJson(FriendId, TEXT("DevTwo")));
+		return FString::Printf(TEXT("{\"invites\":[%s]}"), bInvited ? *Invite : TEXT(""));
+	}
+
+	/** A custom lobby's select: the player on side A, DevTwo on side B beside a Beginner Cairn bot. */
+	inline FString CustomSelectBody(const TCHAR* State, const FString& CancelReason = FString())
+	{
+		return FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"custom\",\"mode\":\"custom_game\",\"state\":\"%s\",")
+								   TEXT("\"deadline\":\"2026-09-27T12:01:00Z\",\"remainingSeconds\":60,\"pickSeconds\":60,")
+								   TEXT("\"seats\":[{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,\"hover\":null,\"locked\":null},")
+								   TEXT("{\"displayName\":\"DevTwo\",\"side\":\"B\",\"you\":false,\"hover\":null,\"locked\":null}],")
+								   TEXT("\"bots\":[{\"side\":\"B\",\"vanguardId\":\"cairn\",\"difficulty\":\"beginner\"}],\"matchId\":null,\"cancelReason\":%s}}"),
+			SelectId, State, *Quoted(CancelReason));
+	}
+
 	inline FString MatchOutcomePath() { return FString(TEXT("/v1/me/matches/")) + MatchId; }
 	inline FString SelectPath() { return FString(TEXT("/v1/me/selects/")) + SelectId; }
 
@@ -305,6 +379,8 @@ namespace VeyraClientFlowTests
 			Config.ReconnectPollIntervalSeconds = 5.0;
 			Config.PartyPollIntervalSeconds = 1.0;
 			Config.MatchFoundPollIntervalSeconds = 0.5;
+			Config.LobbyPollIntervalSeconds = 1.0;
+			Config.SocialPollIntervalSeconds = 3.0;
 			Config.EndingShowSeconds = EndingShowSeconds;
 			Flow = MakeUnique<FVeyraClientFlow>(Backend, Host, Config);
 		}
@@ -333,10 +409,30 @@ namespace VeyraClientFlowTests
 				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/profile"), 200, ProfileBody(bCompleted));
 		}
 
-		/** Signs in with no match, no select and the tutorial completed. The shell's reads of the modes and the party wait. */
+		/**
+		 * Signs in with no match, no select, the tutorial completed and no lobby. The shell's reads of the
+		 * modes, the party and the friends wait.
+		 */
 		bool ReachShell()
 		{
-			return ReachProfile(true) && State() == EVeyraClientState::Shell;
+			return ReachProfile(true) && Backend.Answer(TEXT("GET"), TEXT("/v1/lobby"), 200, NoLobby) && State() == EVeyraClientState::Shell;
+		}
+
+		/** From the shell, the friends read: DevTwo a friend, and with DevTwo's lobby invitation or not. */
+		bool ReadSocial(bool bInvited = false)
+		{
+			return Backend.Answer(TEXT("GET"), TEXT("/v1/friends"), 200, FriendsBody(FriendList()))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/lobby/invites"), 200, InvitesBody(bInvited)) && Flow->GetSnapshot().Social.bLoaded;
+		}
+
+		/**
+		 * From the shell, its friends read, into a new lobby the player hosts. The lobby's own read of the
+		 * friends waits.
+		 */
+		bool ReachLobby()
+		{
+			return ReachShell() && ReadSocial() && Flow->CreateLobby() && Backend.Answer(TEXT("POST"), TEXT("/v1/lobby"), 200, HostedLobbyBody())
+				&& State() == EVeyraClientState::Lobby;
 		}
 
 		/** From the shell into the queue: the modes read, no party, then casual select chosen, Ready, and Find Match. */

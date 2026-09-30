@@ -60,6 +60,11 @@ type lobbyJSON struct {
 	StartingGoldRange goldRangeJSON     `json:"startingGoldRange"`
 	// Seats are side A's, then side B's, each in order.
 	Seats []lobbySeatJSON `json:"seats"`
+	// BotVanguards and BotDifficulties are what the host may give a bot
+	// (Custom Matches Bible §2–§3): every released Vanguard, sorted, and the
+	// difficulties, easiest first.
+	BotVanguards    []string `json:"botVanguards"`
+	BotDifficulties []string `json:"botDifficulties"`
 }
 
 type lobbyInviteJSON struct {
@@ -83,6 +88,8 @@ func (s *Server) lobbyJSON(ctx context.Context, l lobby.Lobby) (lobbyJSON, error
 		Settings:          lobbySettingsJSON{VictoryEnabled: l.Settings.VictoryEnabled, StartingGold: l.Settings.StartingGold},
 		StartingGoldRange: goldRangeJSON{Min: limits.StartingGoldMin, Max: limits.StartingGoldMax},
 		Seats:             []lobbySeatJSON{},
+		BotVanguards:      limits.BotVanguards(),
+		BotDifficulties:   lobby.Difficulties,
 	}
 	for _, side := range lobby.Sides {
 		for i := 0; i < limits.PlayersPerSide; i++ {

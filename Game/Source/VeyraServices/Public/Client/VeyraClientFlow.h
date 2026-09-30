@@ -53,6 +53,8 @@ struct FVeyraClientFlowConfig
 	double ReconnectPollIntervalSeconds = 0.0;
 	double PartyPollIntervalSeconds = 0.0;
 	double MatchFoundPollIntervalSeconds = 0.0;
+	double LobbyPollIntervalSeconds = 0.0;
+	double SocialPollIntervalSeconds = 0.0;
 	/** How long the player stays in a match that ended, watching the end, before it leaves for the results (ADR-020 §1). */
 	double EndingShowSeconds = 0.0;
 
@@ -69,7 +71,11 @@ struct FVeyraClientFlowConfig
  * the shell the flow also reads the modes and keeps reading the player's party: the leader chooses
  * a matchmade mode, everyone readies up, and the leader queues it. A match found blocks everything
  * else until it is answered: once every player accepts, its champion select opens; otherwise the
- * player returns to the shell, queued again or not as the backend decided. Once every pick is
+ * player returns to the shell, queued again or not as the backend decided. A custom lobby (ADR-021)
+ * is its own state, kept up to date by reading it: its host seats humans and bots, sets its rules and
+ * starts its champion select, which returns to the lobby if it ends without a match. The shell and the
+ * lobby also read the player's friends and invitations, and those reads never stop the flow when they
+ * fail. Once every pick is
  * locked the flow waits for the match's server, joins it with the join ticket, and when the match
  * ends travels back to the front end and waits for the backend's verified result. A lost
  * connection leads back through the backend: Reconnect-only while the match still runs, otherwise
@@ -128,6 +134,24 @@ public:
 	/** Only a listed match is on offer. */
 	virtual bool OpenHistoryMatch(const FString& MatchId) override;
 	virtual bool CloseHistoryMatch() override;
+	virtual bool CreateLobby() override;
+	/** Only one of the player's invitations is on offer. */
+	virtual bool AcceptLobbyInvite(const FString& InviteId) override;
+	virtual bool DeclineLobbyInvite(const FString& InviteId) override;
+	/** Only a friend not already in the lobby is on offer. */
+	virtual bool InviteToLobby(const FString& AccountId) override;
+	virtual bool LeaveLobby() override;
+	virtual bool KickFromLobby(const FString& AccountId) override;
+	/** Only another human in the lobby, and an empty seat of it, are on offer. */
+	virtual bool MoveInLobby(const FString& AccountId, const FString& Side, int32 Index) override;
+	/** Only a seat no human holds, and a Vanguard and difficulty the lobby offers bots, are on offer. */
+	virtual bool SetLobbyBot(const FString& Side, int32 Index, const FString& VanguardId, const FString& Difficulty) override;
+	virtual bool RemoveLobbyBot(const FString& Side, int32 Index) override;
+	virtual bool SetLobbySettings(bool bVictoryEnabled, TOptional<double> StartingGold) override;
+	virtual bool LaunchLobby() override;
+	virtual bool SendFriendRequest(const FString& DisplayName) override;
+	virtual bool AnswerFriendRequest(const FString& AccountId, bool bAccept) override;
+	virtual bool RemoveFriend(const FString& AccountId) override;
 
 	/** Which intents a state allows at all, before the snapshot's details: a pure table. */
 	static bool IsIntentAllowed(EVeyraClientState State, EVeyraClientIntent Intent);
@@ -182,6 +206,40 @@ private:
 	void FollowParty();
 	const VeyraBackendProtocol::FModeInfo* FindMode(const FString& ModeId) const;
 	bool LeadsIdleParty() const;
+
+	// The custom lobby.
+	/** After the profile: into the player's lobby if they are in one, otherwise the shell. Notice is kept for either. */
+	void LoadLobby(const FString& Notice);
+	void EnterLobby(VeyraBackendProtocol::FLobby Lobby, const FString& Notice);
+	void PollLobby();
+	/** Sends a lobby request whose answer is the lobby, shown unless a later request's answer already was. */
+	void CallLobby(EVerb Verb, const FString& Path, const FString& Body, const TCHAR* What);
+	/** Shows a lobby read by the request numbered Sequence. False if a later request's answer was already shown. */
+	bool ApplyLobby(uint32 Sequence, TOptional<VeyraBackendProtocol::FLobby> Lobby);
+	/** The lobby is in its champion select: into it. */
+	void FollowLobby();
+	bool HostsOpenLobby() const;
+	/** The seat Index of Side in the lobby; null if there is none. */
+	const VeyraBackendProtocol::FLobbySeat* FindLobbySeat(const FString& Side, int32 Index) const;
+
+	// Friends and invitations.
+	/** Reads them, then again after SocialPollIntervalSeconds, for as long as the state lasts. */
+	void PollSocial();
+	/** Reads them once, now, as after the player changed them. */
+	void ReadSocial(bool bThenPoll);
+	/** Sends a social request; a refusal shows in the friends panel, not as the screen's problem. Either way the lists are read again. */
+	void CallSocial(EVerb Verb, const FString& Path, const FString& Body, const FString& Name, TFunction<void(const FVeyraBackendResponse&)> OnSuccess);
+	/** Shows what came of a social request in the friends panel. */
+	void ShowSocialFeedback(const FString& Code, const FString& Name);
+
+	/**
+	 * Sends a request once, for reads that must never stop the flow: an answer that arrives after the
+	 * state changed is ignored and a refused session ends it, but anything else, even no answer at all,
+	 * goes to OnAnswer.
+	 */
+	void Probe(EVerb Verb, const FString& Path, FAnswer OnAnswer);
+	/** Sends Verb to the backend with the game session. */
+	void Send(EVerb Verb, const FString& Path, const FString& Body, FVeyraBackendCallback OnDone);
 
 	// A match found.
 	void EnterMatchFound(const VeyraBackendProtocol::FMatchFound& Found);
@@ -256,6 +314,11 @@ private:
 	/** Numbers party requests, so an answer overtaken by a later one is not shown. */
 	uint32 PartySequence = 0;
 	uint32 ShownPartySequence = 0;
+	/** The same for lobby requests, and for reads of friends and invitations. */
+	uint32 LobbySequence = 0;
+	uint32 ShownLobbySequence = 0;
+	uint32 SocialSequence = 0;
+	uint32 ShownSocialSequence = 0;
 	/** The shell's next read of the party says whether a match found that did not go ahead left the party queued. */
 	bool bExplainQueue = false;
 	double MatchDeadline = 0.0;

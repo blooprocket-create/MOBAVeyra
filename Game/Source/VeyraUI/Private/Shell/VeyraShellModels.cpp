@@ -2,6 +2,7 @@
 
 #include "Shell/VeyraShellModels.h"
 
+#include "Shell/VeyraShellStyleSettings.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Text/VeyraContentText.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -21,6 +22,8 @@ namespace
 	constexpr int32 SecondsPerMinute = 60;
 	/** The kind of champion select matchmaking opens, which a player may leave. */
 	const TCHAR* const MatchmadeSelectKind = TEXT("casual");
+	/** A custom lobby's champion select, which a player may leave too, back to the lobby. */
+	const TCHAR* const CustomSelectKind = TEXT("custom");
 	/** A player's answer to a match found, once given. */
 	const TCHAR* const AcceptedAnswer = TEXT("accepted");
 	const TCHAR* const DeclinedAnswer = TEXT("declined");
@@ -110,6 +113,8 @@ EVeyraShellScreen ScreenFor(EVeyraClientState State)
 		return EVeyraShellScreen::StarterChoice;
 	case EVeyraClientState::Shell:
 		return EVeyraShellScreen::Shell;
+	case EVeyraClientState::Lobby:
+		return EVeyraShellScreen::Lobby;
 	case EVeyraClientState::MatchFound:
 		return EVeyraShellScreen::MatchFound;
 	case EVeyraClientState::Selecting:
@@ -227,6 +232,14 @@ FText DescribeNotice(const FString& Notice)
 	{
 		return LOCTEXT("NoticeNoLongerMatched", "Champion select ended: this match can no longer go ahead. You are back in the queue.");
 	}
+	if (Notice == TEXT("you_left_custom"))
+	{
+		return LOCTEXT("NoticeYouLeftCustom", "You left champion select, which ended it for everyone. The lobby is open again.");
+	}
+	if (Notice == TEXT("lobby_gone"))
+	{
+		return LOCTEXT("NoticeLobbyGone", "You are no longer in the custom lobby: the host removed you, or it closed.");
+	}
 	return FText::Format(LOCTEXT("NoticeOther", "Notice: {0}"), FText::FromString(Notice));
 }
 
@@ -274,7 +287,36 @@ FText DescribeProblem(const FVeyraClientProblem& Problem)
 	}
 	if (Problem.Code == TEXT("member_busy"))
 	{
-		return LOCTEXT("ProblemMemberBusy", "Someone in your party is still in a match or champion select.");
+		return LOCTEXT("ProblemMemberBusy", "Someone is still in a match, champion select or queue.");
+	}
+	// The custom lobby's (ADR-021).
+	if (Problem.Code == TEXT("vanguard_taken"))
+	{
+		return LOCTEXT("ProblemVanguardTaken", "A bot on that side already plays that Vanguard.");
+	}
+	if (Problem.Code == TEXT("seat_taken"))
+	{
+		return LOCTEXT("ProblemSeatTaken", "That seat is taken.");
+	}
+	if (Problem.Code == TEXT("victory_needs_both_sides"))
+	{
+		return LOCTEXT("ProblemVictoryNeedsSides", "Victory needs a Vanguard on each side.");
+	}
+	if (Problem.Code == TEXT("not_host"))
+	{
+		return LOCTEXT("ProblemNotHost", "Only the lobby's host can do that.");
+	}
+	if (Problem.Code == TEXT("lobby_full"))
+	{
+		return LOCTEXT("ProblemLobbyFull", "The lobby has no empty seat.");
+	}
+	if (Problem.Code == TEXT("starting_gold_out_of_range"))
+	{
+		return LOCTEXT("ProblemGoldRange", "That starting Gold is outside what custom matches allow.");
+	}
+	if (Problem.Code == TEXT("launch_unavailable"))
+	{
+		return LOCTEXT("ProblemLaunchUnavailable", "Custom matches cannot be started right now.");
 	}
 	// Anything else is shown as the flow reported it; the message never holds a credential.
 	return FText::FromString(Problem.Message);
@@ -402,10 +444,32 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 		}
 		Model.Seats.Add(MoveTemp(SeatModel));
 	}
+	// A custom lobby's bots sit locked from the start (ADR-021 §3).
+	for (const VeyraBackendProtocol::FSelectBot& Bot : Select.Bots)
+	{
+		FVeyraSelectSeatModel SeatModel;
+		SeatModel.bAlly = !You || Bot.Side == You->Side;
+		Model.bTeams |= !SeatModel.bAlly;
+		SeatModel.Name = FText::Format(LOCTEXT("SeatBot", "{0} Bot"), DifficultyName(Bot.Difficulty));
+		SeatModel.Status = EVeyraSeatStatus::LockedIn;
+		SeatModel.StatusText = SeatStatusText(SeatModel.Status);
+		SeatModel.Vanguard = VanguardNameOf(Bot.VanguardId);
+		SeatModel.VanguardId = Bot.VanguardId;
+		Model.Seats.Add(MoveTemp(SeatModel));
+	}
 
 	const FString Chosen = You ? (!You->Locked.IsEmpty() ? You->Locked : You->Hover) : FString();
-	const auto IsTaken = [&Select](const FString& Id) {
-		return Select.Seats.ContainsByPredicate([&Id](const FSelectSeat& Seat) { return !Seat.bYou && Seat.Locked == Id; });
+	// A matchmade select's Vanguards are unique across both teams; a custom select's on each side, bots too,
+	// so both sides may play the same one (ADR-021 §8).
+	const bool bPerSide = Select.Kind == CustomSelectKind;
+	const auto IsTaken = [&Select, You, bPerSide](const FString& Id) {
+		const bool bBySeat = Select.Seats.ContainsByPredicate([&Id, You, bPerSide](const FSelectSeat& Seat) {
+			return !Seat.bYou && Seat.Locked == Id && (!bPerSide || (You && Seat.Side == You->Side));
+		});
+		const bool bByBot = Select.Bots.ContainsByPredicate([&Id, You](const VeyraBackendProtocol::FSelectBot& Bot) {
+			return Bot.VanguardId == Id && You && Bot.Side == You->Side;
+		});
+		return bBySeat || bByBot;
 	};
 	for (const FString& Id : Snapshot.AvailableVanguards)
 	{
@@ -417,7 +481,7 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 		Model.LockInVanguardId = You->Hover;
 	}
 	Model.bCanLockIn = bCanLock && !Model.LockInVanguardId.IsEmpty() && !IsTaken(Model.LockInVanguardId);
-	Model.bOffersLeave = Select.Kind == MatchmadeSelectKind && Select.State == ESelectState::Picking;
+	Model.bOffersLeave = (Select.Kind == MatchmadeSelectKind || Select.Kind == CustomSelectKind) && Select.State == ESelectState::Picking;
 	Model.bCanLeave = bCanLeave;
 	if (You)
 	{
@@ -605,6 +669,314 @@ FVeyraResultsModel DescribeOutcome(const VeyraBackendProtocol::FMatchOutcome& In
 	return Model;
 }
 
+FText SideName(const FString& Side)
+{
+	return FText::Format(LOCTEXT("SideName", "Side {0}"), FText::FromString(Side));
+}
+
+FText DifficultyName(const FString& Difficulty)
+{
+	if (Difficulty == TEXT("beginner"))
+	{
+		return LOCTEXT("DifficultyBeginner", "Beginner");
+	}
+	if (Difficulty == TEXT("intermediate"))
+	{
+		return LOCTEXT("DifficultyIntermediate", "Intermediate");
+	}
+	return NameOf(Difficulty);
+}
+
+namespace
+{
+	/** "Side B, Seat 2": a seat, from its side and its index from 0. */
+	FText SeatName(const FString& Side, int32 Index)
+	{
+		return FText::Format(LOCTEXT("SeatName", "{0}, Seat {1}"), SideName(Side), FText::AsNumber(Index + 1));
+	}
+
+	const TCHAR* OtherSide(const FString& Side)
+	{
+		return Side == TEXT("A") ? TEXT("B") : TEXT("A");
+	}
+}
+
+FText AddBotLabel(const FString& Side, int32 Index)
+{
+	return FText::Format(LOCTEXT("AddBotLabel", "Add Bot: {0}"), SeatName(Side, Index));
+}
+
+FText ChangeBotLabel(const FString& Side, int32 Index)
+{
+	return FText::Format(LOCTEXT("ChangeBotLabel", "Change Bot: {0}"), SeatName(Side, Index));
+}
+
+FText RemoveBotLabel(const FString& Side, int32 Index)
+{
+	return FText::Format(LOCTEXT("RemoveBotLabel", "Remove Bot: {0}"), SeatName(Side, Index));
+}
+
+FText KickLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("KickLabel", "Remove {0}"), FText::FromString(Name));
+}
+
+FText SwitchSideLabel(const FString& Name, const FString& ToSide)
+{
+	return FText::Format(LOCTEXT("SwitchSideLabel", "Move {0} to {1}"), FText::FromString(Name), SideName(ToSide));
+}
+
+FText InviteLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("InviteLabel", "Invite {0}"), FText::FromString(Name));
+}
+
+FText AcceptRequestLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("AcceptRequestLabel", "Accept {0}"), FText::FromString(Name));
+}
+
+FText DeclineRequestLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("DeclineRequestLabel", "Decline {0}"), FText::FromString(Name));
+}
+
+FText JoinLobbyLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("JoinLobbyLabel", "Join {0}'s Lobby"), FText::FromString(Name));
+}
+
+FText DeclineInviteLabel(const FString& Name)
+{
+	return FText::Format(LOCTEXT("DeclineInviteLabel", "Decline {0}'s Invite"), FText::FromString(Name));
+}
+
+FText StartingGoldLabel(TOptional<double> Gold)
+{
+	return Gold.IsSet() ? FText::Format(LOCTEXT("GoldChoice", "{0} Gold"), FText::AsNumber(FMath::RoundToInt64(Gold.GetValue())))
+						: LOCTEXT("GoldDefault", "Default Gold");
+}
+
+FText BotChoiceLabel(const FString& VanguardId)
+{
+	return FText::Format(LOCTEXT("BotChoiceLabel", "Bot: {0}"), VanguardNameOf(VanguardId));
+}
+
+FVeyraLobbyModel DescribeLobby(const FVeyraClientSnapshot& Snapshot, bool bHosts, bool bCanStart, bool bCanLeave)
+{
+	using VeyraBackendProtocol::ELobbySeatKind;
+	FVeyraLobbyModel Model;
+	if (!Snapshot.Lobby.IsSet())
+	{
+		return Model;
+	}
+	const VeyraBackendProtocol::FLobby& Lobby = *Snapshot.Lobby;
+	Model.bHost = Lobby.HostAccountId == Snapshot.AccountId;
+	const VeyraBackendProtocol::FLobbySeat* Host = Lobby.FindMember(Lobby.HostAccountId);
+	Model.Title = FText::Format(LOCTEXT("LobbyTitle", "{0}'s Lobby"), FText::FromString(Host ? Host->DisplayName : FString()));
+	const auto FirstEmpty = [&Lobby](const FString& Side) {
+		return Lobby.Seats.FindByPredicate([&Side](const VeyraBackendProtocol::FLobbySeat& Seat) { return Seat.Side == Side && Seat.Kind == ELobbySeatKind::Empty; });
+	};
+	const auto Occupied = [&Lobby](const FString& Side) {
+		return Lobby.Seats.ContainsByPredicate([&Side](const VeyraBackendProtocol::FLobbySeat& Seat) { return Seat.Side == Side && Seat.Kind != ELobbySeatKind::Empty; });
+	};
+	for (const VeyraBackendProtocol::FLobbySeat& Seat : Lobby.Seats)
+	{
+		FVeyraLobbySeatModel SeatModel;
+		SeatModel.Side = Seat.Side;
+		SeatModel.Index = Seat.Index;
+		SeatModel.Kind = Seat.Kind;
+		switch (Seat.Kind)
+		{
+		case ELobbySeatKind::Human:
+		{
+			SeatModel.AccountId = Seat.AccountId;
+			SeatModel.PlayerName = Seat.DisplayName;
+			SeatModel.bYou = Seat.AccountId == Snapshot.AccountId;
+			SeatModel.Name = SeatModel.bYou ? FText::Format(LOCTEXT("LobbyYou", "{0} (you)"), FText::FromString(Seat.DisplayName)) : FText::FromString(Seat.DisplayName);
+			SeatModel.Detail = Seat.bHost ? LOCTEXT("LobbyHost", "Host") : LOCTEXT("LobbyPlayer", "Player");
+			SeatModel.bCanKick = bHosts && !SeatModel.bYou;
+			// The host places every human (§1): across to the other side's first empty seat.
+			if (const VeyraBackendProtocol::FLobbySeat* Empty = FirstEmpty(OtherSide(Seat.Side)))
+			{
+				SeatModel.bCanSwitchSide = bHosts;
+				SeatModel.SwitchToSide = Empty->Side;
+				SeatModel.SwitchToIndex = Empty->Index;
+			}
+			break;
+		}
+		case ELobbySeatKind::Bot:
+			SeatModel.VanguardId = Seat.VanguardId;
+			SeatModel.Difficulty = Seat.Difficulty;
+			SeatModel.Name = VanguardNameOf(Seat.VanguardId);
+			SeatModel.Detail = FText::Format(LOCTEXT("LobbyBot", "{0} Bot"), DifficultyName(Seat.Difficulty));
+			SeatModel.bCanSetBot = bHosts;
+			SeatModel.bCanRemoveBot = bHosts;
+			break;
+		case ELobbySeatKind::Empty:
+			SeatModel.Name = LOCTEXT("LobbyEmpty", "Empty");
+			SeatModel.bCanSetBot = bHosts && !Lobby.BotVanguards.IsEmpty() && !Lobby.BotDifficulties.IsEmpty();
+			break;
+		}
+		(Seat.Side == TEXT("A") ? Model.SideA : Model.SideB).Add(MoveTemp(SeatModel));
+	}
+	// Victory needs a Vanguard on each side: a side with none could never lose (§1).
+	Model.bVictoryEnabled = Lobby.bVictoryEnabled;
+	Model.Victory = Lobby.bVictoryEnabled ? LOCTEXT("LobbyVictoryOn", "Victory: on. Destroying a Prime Well wins the match.")
+										  : LOCTEXT("LobbyVictoryOff", "Victory: off. The match runs until the host ends it.");
+	Model.bCanToggleVictory = bHosts && (Lobby.bVictoryEnabled || (Occupied(TEXT("A")) && Occupied(TEXT("B"))));
+	Model.StartingGold = Lobby.StartingGold.IsSet()
+		? FText::Format(LOCTEXT("LobbyGold", "Starting Gold: {0}."), FText::AsNumber(FMath::RoundToInt64(Lobby.StartingGold.GetValue())))
+		: LOCTEXT("LobbyGoldDefault", "Starting Gold: the game's own.");
+	Model.bCanSetGold = bHosts;
+	Model.GoldChoices.Add(FVeyraGoldChoiceModel{ {}, StartingGoldLabel({}), !Lobby.StartingGold.IsSet() });
+	for (const float Choice : GetDefault<UVeyraShellStyleSettings>()->LobbyStartingGoldChoices)
+	{
+		// Only what the lobby's range allows is offered.
+		if (Choice >= Lobby.StartingGoldMin && Choice <= Lobby.StartingGoldMax)
+		{
+			const bool bChosen = Lobby.StartingGold.IsSet() && FMath::IsNearlyEqual(Lobby.StartingGold.GetValue(), static_cast<double>(Choice));
+			Model.GoldChoices.Add(FVeyraGoldChoiceModel{ static_cast<double>(Choice), StartingGoldLabel(static_cast<double>(Choice)), bChosen });
+		}
+	}
+	Model.bCanStart = bCanStart;
+	Model.bCanLeave = bCanLeave;
+	Model.Status = Lobby.bSelecting ? LOCTEXT("LobbySelecting", "Champion select is opening.")
+		: Model.bHost				? LOCTEXT("LobbyHostStarts", "Seat your players and bots, then start the game.")
+									: LOCTEXT("LobbyGuestWaits", "Waiting for the host to start the game.");
+	return Model;
+}
+
+FVeyraBotPickerModel DescribeBotPicker(const FVeyraClientSnapshot& Snapshot, const FString& Side, int32 Index)
+{
+	using VeyraBackendProtocol::ELobbySeatKind;
+	FVeyraBotPickerModel Model;
+	if (!Snapshot.Lobby.IsSet())
+	{
+		return Model;
+	}
+	const VeyraBackendProtocol::FLobby& Lobby = *Snapshot.Lobby;
+	Model.Title = FText::Format(LOCTEXT("BotPickerTitle", "Bot for {0}"), SeatName(Side, Index));
+	const VeyraBackendProtocol::FLobbySeat* This =
+		Lobby.Seats.FindByPredicate([&Side, Index](const VeyraBackendProtocol::FLobbySeat& Seat) { return Seat.Side == Side && Seat.Index == Index; });
+	// A side plays each Vanguard once, bots included (ADR-021 §8).
+	for (const FString& Vanguard : Lobby.BotVanguards)
+	{
+		const bool bTaken = Lobby.Seats.ContainsByPredicate([&Side, Index, &Vanguard](const VeyraBackendProtocol::FLobbySeat& Seat) {
+			return Seat.Side == Side && Seat.Index != Index && Seat.Kind == ELobbySeatKind::Bot && Seat.VanguardId == Vanguard;
+		});
+		const bool bChosen = This && This->Kind == ELobbySeatKind::Bot && This->VanguardId == Vanguard;
+		Model.Vanguards.Add(FVeyraBotChoiceModel{ Vanguard, VanguardNameOf(Vanguard), bTaken, bChosen });
+	}
+	for (const FString& Difficulty : Lobby.BotDifficulties)
+	{
+		Model.Difficulties.Add({ Difficulty, DifficultyName(Difficulty) });
+	}
+	return Model;
+}
+
+FText DescribeSocialFeedback(const FString& Code, const FString& Name)
+{
+	const FText Who = FText::FromString(Name);
+	if (Code.IsEmpty())
+	{
+		return FText::GetEmpty();
+	}
+	if (Code == TEXT("friend_requested"))
+	{
+		return FText::Format(LOCTEXT("SocialRequested", "Friend request sent to {0}."), Who);
+	}
+	if (Code == TEXT("friend_added"))
+	{
+		return FText::Format(LOCTEXT("SocialAdded", "You and {0} are now friends."), Who);
+	}
+	if (Code == TEXT("lobby_invited"))
+	{
+		return FText::Format(LOCTEXT("SocialInvited", "Invited {0} to your lobby."), Who);
+	}
+	if (Code == TEXT("account_not_found"))
+	{
+		return FText::Format(LOCTEXT("SocialNotFound", "No player is named {0}."), Who);
+	}
+	if (Code == TEXT("already_friends"))
+	{
+		return FText::Format(LOCTEXT("SocialAlreadyFriends", "You and {0} are already friends."), Who);
+	}
+	if (Code == TEXT("cannot_target_self"))
+	{
+		return LOCTEXT("SocialSelf", "That is you.");
+	}
+	if (Code == TEXT("blocked") || Code == TEXT("not_friends"))
+	{
+		// A block is never revealed (Parties & Social Bible §6).
+		return FText::Format(LOCTEXT("SocialUnavailable", "{0} cannot be asked."), Who);
+	}
+	if (Code == TEXT("invite_not_found"))
+	{
+		return FText::Format(LOCTEXT("SocialInviteGone", "{0}'s invitation has expired."), Who);
+	}
+	if (Code == TEXT("lobby_full"))
+	{
+		return FText::Format(LOCTEXT("SocialLobbyFull", "{0}'s lobby is full."), Who);
+	}
+	if (Code == TEXT("lobby_locked"))
+	{
+		return FText::Format(LOCTEXT("SocialLobbyStarted", "{0}'s lobby has already started."), Who);
+	}
+	if (Code == TEXT("member_busy"))
+	{
+		return FText::Format(LOCTEXT("SocialBusy", "{0} is in a match, champion select or queue."), Who);
+	}
+	if (Code == TEXT("already_in_lobby"))
+	{
+		return FText::Format(LOCTEXT("SocialInLobby", "{0} is already in a lobby."), Who);
+	}
+	if (Code == TEXT("friend_request_not_found"))
+	{
+		return FText::Format(LOCTEXT("SocialRequestGone", "{0}'s friend request is gone."), Who);
+	}
+	return FText::Format(LOCTEXT("SocialOther", "That did not work ({0})."), FText::FromString(Code));
+}
+
+FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bCanAdd, bool bCanAnswerRequests, bool bCanJoin, bool bCanAnswerInvitations,
+	bool bCanInvite)
+{
+	const FVeyraSocial& Social = Snapshot.Social;
+	FVeyraFriendsModel Model;
+	Model.bLoaded = Social.bLoaded;
+	Model.bCanAdd = bCanAdd;
+	Model.Feedback = DescribeSocialFeedback(Social.Feedback, Social.FeedbackName);
+	for (const VeyraBackendProtocol::FLobbyInvite& Invite : Social.LobbyInvites)
+	{
+		const FText Name = FText::FromString(Invite.Inviter.DisplayName);
+		Model.Invitations.Add(FVeyraSocialRequestModel{ Invite.Id, Name, FText::Format(LOCTEXT("InviteLine", "{0} invites you to a custom game."), Name) });
+	}
+	Model.bCanJoin = bCanJoin;
+	Model.bCanAnswerInvitations = bCanAnswerInvitations;
+	for (const VeyraBackendProtocol::FAccount& From : Social.Friends.Incoming)
+	{
+		const FText Name = FText::FromString(From.DisplayName);
+		Model.Requests.Add(FVeyraSocialRequestModel{ From.Id, Name, FText::Format(LOCTEXT("RequestLine", "{0} wants to be friends."), Name) });
+	}
+	Model.bCanAnswerRequests = bCanAnswerRequests;
+	// In the lobby its host invites friends who are not in it yet (Custom Matches Bible §1).
+	const bool bInLobby = Snapshot.State == EVeyraClientState::Lobby && Snapshot.Lobby.IsSet();
+	for (const VeyraBackendProtocol::FAccount& Friend : Social.Friends.Friends)
+	{
+		FVeyraFriendModel FriendModel;
+		FriendModel.AccountId = Friend.Id;
+		FriendModel.Name = FText::FromString(Friend.DisplayName);
+		FriendModel.bOffersInvite = bInLobby && Snapshot.Lobby->HostAccountId == Snapshot.AccountId;
+		FriendModel.bCanInvite = FriendModel.bOffersInvite && bCanInvite && !Snapshot.Lobby->FindMember(Friend.Id);
+		Model.Friends.Add(MoveTemp(FriendModel));
+	}
+	for (const VeyraBackendProtocol::FAccount& To : Social.Friends.Outgoing)
+	{
+		Model.Pending.Add(FText::Format(LOCTEXT("PendingLine", "{0}: request sent"), FText::FromString(To.DisplayName)));
+	}
+	return Model;
+}
+
 FString Signature(const FVeyraClientSnapshot& Snapshot)
 {
 	TStringBuilder<1024> Text;
@@ -657,6 +1029,31 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 		const VeyraBackendProtocol::FMatchOutcome& Outcome = *Snapshot.Result;
 		Text << TEXT("|result:") << Outcome.State << TEXT(":") << Outcome.EndReason << TEXT(":") << Outcome.FailureReason << TEXT(":") << Outcome.Players.Num()
 			 << TEXT(":") << Outcome.Wells.Num();
+	}
+	if (Snapshot.State == EVeyraClientState::Lobby && Snapshot.Lobby.IsSet())
+	{
+		const VeyraBackendProtocol::FLobby& Lobby = *Snapshot.Lobby;
+		Text << TEXT("|lobby:") << Lobby.Id << TEXT(":") << Lobby.HostAccountId << TEXT(":") << (Lobby.bSelecting ? TEXT("selecting") : TEXT("open")) << TEXT(":")
+			 << (Lobby.bVictoryEnabled ? TEXT("victory") : TEXT("sandbox")) << TEXT(":") << (Lobby.StartingGold.IsSet() ? FString::SanitizeFloat(*Lobby.StartingGold) : FString());
+		for (const VeyraBackendProtocol::FLobbySeat& Seat : Lobby.Seats)
+		{
+			Text << TEXT(";") << static_cast<int32>(Seat.Kind) << Seat.AccountId << Seat.DisplayName << Seat.VanguardId << Seat.Difficulty;
+		}
+	}
+	// The friends panel shows in the shell and the lobby.
+	const FVeyraSocial& Social = Snapshot.Social;
+	Text << TEXT("|social:") << (Social.bLoaded ? TEXT("read") : TEXT("unread")) << TEXT(":") << Social.Feedback << TEXT(":") << Social.FeedbackName;
+	for (const TArray<VeyraBackendProtocol::FAccount>* List : { &Social.Friends.Friends, &Social.Friends.Incoming, &Social.Friends.Outgoing })
+	{
+		Text << TEXT(";");
+		for (const VeyraBackendProtocol::FAccount& Account : *List)
+		{
+			Text << Account.Id << TEXT(",");
+		}
+	}
+	for (const VeyraBackendProtocol::FLobbyInvite& Invite : Social.LobbyInvites)
+	{
+		Text << TEXT(";invite:") << Invite.Id;
 	}
 	return FString(Text.ToString());
 }

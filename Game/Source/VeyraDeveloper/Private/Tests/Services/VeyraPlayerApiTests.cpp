@@ -399,6 +399,134 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildReadyBody(false), FString(TEXT("{\"ready\":false}"))));
 		}
 	};
+
+	const TCHAR* const LobbyId = TEXT("77777777-8888-4999-8aaa-bbbbbbbbbbbb");
+
+	FString LobbySeatJson(const TCHAR* Side, int32 Index, const TCHAR* Kind, const TCHAR* Account, const TCHAR* Name, bool bHost, const TCHAR* Vanguard,
+		const TCHAR* Difficulty)
+	{
+		return FString::Printf(TEXT("{\"side\":\"%s\",\"index\":%d,\"kind\":\"%s\",\"accountId\":\"%s\",\"displayName\":\"%s\",\"host\":%s,\"vanguardId\":\"%s\",\"difficulty\":\"%s\"}"),
+			Side, Index, Kind, Account, Name, bHost ? TEXT("true") : TEXT("false"), Vanguard, Difficulty);
+	}
+
+	FString EmptySeatJson(const TCHAR* Side, int32 Index)
+	{
+		return LobbySeatJson(Side, Index, TEXT("empty"), TEXT(""), TEXT(""), false, TEXT(""), TEXT(""));
+	}
+
+	/** A one-seat-a-side lobby: its host on A, and B as given. */
+	FString LobbyJson(const FString& SeatB, const TCHAR* Status = TEXT("open"), const TCHAR* Gold = TEXT("null"), int32 PlayersPerSide = 1)
+	{
+		const FString SeatA = LobbySeatJson(TEXT("A"), 0, TEXT("human"), AccountId, TEXT("DevOne"), true, TEXT(""), TEXT(""));
+		return FString::Printf(TEXT("{\"lobby\":{\"id\":\"%s\",\"hostAccountId\":\"%s\",\"status\":\"%s\",\"playersPerSide\":%d,")
+								   TEXT("\"settings\":{\"victoryEnabled\":true,\"startingGold\":%s},\"startingGoldRange\":{\"min\":0,\"max\":20000},")
+								   TEXT("\"seats\":[%s,%s],\"botVanguards\":[\"cairn\",\"oriel\"],\"botDifficulties\":[\"beginner\",\"intermediate\"]}}"),
+			LobbyId, AccountId, Status, PlayersPerSide, Gold, *SeatA, *SeatB);
+	}
+
+	// Veyra.Services.LobbyApi.*: the custom lobby's and the friends panel's wire format (ADR-021), as
+	// Backend/internal/httpapi/lobby.go and social.go write it.
+	TEST_CLASS(LobbyApi, "Veyra.Services")
+	{
+		TEST_METHOD(ReadsALobby)
+		{
+			TOptional<VeyraBackendProtocol::FLobby> Read;
+			FString Problem;
+			const FString Bot = LobbySeatJson(TEXT("B"), 0, TEXT("bot"), TEXT(""), TEXT(""), false, TEXT("oriel"), TEXT("intermediate"));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseLobby(LobbyJson(Bot, TEXT("selecting"), TEXT("1500")), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read.IsSet() && Read->Id == LobbyId && Read->bSelecting && Read->bVictoryEnabled && Read->PlayersPerSide == 1));
+			ASSERT_THAT(IsTrue(Read->StartingGold.IsSet() && Read->StartingGold.GetValue() == 1500.0 && Read->StartingGoldMax == 20000.0));
+			ASSERT_THAT(IsTrue(Read->Seats.Num() == 2 && Read->Seats[1].Kind == VeyraBackendProtocol::ELobbySeatKind::Bot && Read->Seats[1].Difficulty == TEXT("intermediate")));
+			ASSERT_THAT(IsTrue(Read->FindMember(AccountId) == &Read->Seats[0] && Read->Seats[0].bHost));
+			ASSERT_THAT(IsTrue(Read->BotVanguards == (TArray<FString>{ TEXT("cairn"), TEXT("oriel") })));
+
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseLobby(LobbyJson(EmptySeatJson(TEXT("B"), 0)), Read, Problem), Problem));
+			ASSERT_THAT(IsFalse(Read->StartingGold.IsSet(), TEXT("null plays the game's own")));
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseLobby(TEXT("{\"lobby\":null}"), Read, Problem), Problem));
+			ASSERT_THAT(IsFalse(Read.IsSet()));
+		}
+
+		TEST_METHOD(RefusesALobbyThatDoesNotFit)
+		{
+			TOptional<VeyraBackendProtocol::FLobby> Read;
+			FString Problem;
+			const FString Empty = EmptySeatJson(TEXT("B"), 0);
+			for (const FString& Bad : {
+					 FString(TEXT("{}")),
+					 LobbyJson(Empty, TEXT("started")),
+					 LobbyJson(Empty, TEXT("open"), TEXT("\"lots\"")),
+					 // Two seats a side, but only one each given.
+					 LobbyJson(Empty, TEXT("open"), TEXT("null"), 2),
+					 // A second host; a bot with an account; an empty seat with a name; a human without an ID.
+					 LobbyJson(LobbySeatJson(TEXT("B"), 0, TEXT("human"), TEXT("66666666-7777-4888-8999-aaaaaaaaaaaa"), TEXT("DevTwo"), true, TEXT(""), TEXT(""))),
+					 LobbyJson(LobbySeatJson(TEXT("B"), 0, TEXT("bot"), AccountId, TEXT(""), false, TEXT("oriel"), TEXT("beginner"))),
+					 LobbyJson(LobbySeatJson(TEXT("B"), 0, TEXT("empty"), TEXT(""), TEXT("Ghost"), false, TEXT(""), TEXT(""))),
+					 LobbyJson(LobbySeatJson(TEXT("B"), 0, TEXT("human"), TEXT(""), TEXT("DevTwo"), false, TEXT(""), TEXT(""))),
+					 // Out of order: side B's seat where side A's belongs.
+					 LobbyJson(EmptySeatJson(TEXT("A"), 1)),
+				 })
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseLobby(Bad, Read, Problem), Bad));
+				ASSERT_THAT(IsFalse(Problem.IsEmpty()));
+			}
+		}
+
+		TEST_METHOD(ReadsFriendsInvitationsAndAccounts)
+		{
+			const FString Friend = FString::Printf(TEXT("{\"id\":\"%s\",\"displayName\":\"DevTwo\"}"), OtherAccountId);
+			VeyraBackendProtocol::FFriends Friends;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFriends(FString::Printf(TEXT("{\"friends\":[%s],\"incomingRequests\":[],\"outgoingRequests\":[%s]}"), *Friend, *Friend),
+				Friends, Problem), Problem));
+			ASSERT_THAT(IsTrue(Friends.Friends.Num() == 1 && Friends.Friends[0].DisplayName == TEXT("DevTwo") && Friends.Incoming.IsEmpty() && Friends.Outgoing.Num() == 1));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseFriends(TEXT("{\"friends\":[],\"incomingRequests\":[]}"), Friends, Problem)));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseFriends(TEXT("{\"friends\":[{\"id\":\"x\",\"displayName\":\"DevTwo\"}],\"incomingRequests\":[],\"outgoingRequests\":[]}"),
+				Friends, Problem)));
+
+			TArray<VeyraBackendProtocol::FLobbyInvite> Invites;
+			const FString Invite = FString::Printf(TEXT("{\"invites\":[{\"id\":\"%s\",\"lobbyId\":\"%s\",\"inviter\":%s,\"expiresAt\":\"2026-09-29T12:02:00Z\"}]}"), FoundId,
+				LobbyId, *Friend);
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseLobbyInvites(Invite, Invites, Problem), Problem));
+			ASSERT_THAT(IsTrue(Invites.Num() == 1 && Invites[0].Id == FoundId && Invites[0].Inviter.Id == OtherAccountId));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseLobbyInvites(TEXT("{\"invites\":[{\"id\":\"x\"}]}"), Invites, Problem)));
+
+			VeyraBackendProtocol::FAccount Account;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseAccount(Friend, Account, Problem), Problem));
+			ASSERT_THAT(AreEqual(Account.Id, FString(OtherAccountId)));
+			FString Outcome;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseFriendRequestOutcome(TEXT("{\"outcome\":\"friends\"}"), Outcome, Problem), Problem));
+			ASSERT_THAT(AreEqual(Outcome, FString(TEXT("friends"))));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseFriendRequestOutcome(TEXT("{\"outcome\":\"maybe\"}"), Outcome, Problem)));
+		}
+
+		TEST_METHOD(WritesLobbyRequests)
+		{
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::LobbyBotPath(TEXT("B"), 3), FString(TEXT("/v1/lobby/seats/B/3/bot"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildSeatBody(TEXT("A"), 2), FString(TEXT("{\"side\":\"A\",\"index\":2}"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildBotBody(TEXT("oriel"), TEXT("beginner")), FString(TEXT("{\"vanguardId\":\"oriel\",\"difficulty\":\"beginner\"}"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildLobbySettingsBody(false, {}), FString(TEXT("{\"victoryEnabled\":false,\"startingGold\":null}"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildLobbySettingsBody(true, 5000.0), FString(TEXT("{\"victoryEnabled\":true,\"startingGold\":5000}"))));
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildAccountBody(OtherAccountId), FString::Printf(TEXT("{\"accountId\":\"%s\"}"), OtherAccountId)));
+			// A name goes in the query encoded.
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::AccountLookupPath(TEXT("Dev Two&x")), FString(TEXT("/v1/accounts?displayName=Dev%20Two%26x"))));
+		}
+
+		TEST_METHOD(ReadsACustomSelectsBots)
+		{
+			const FString Select = FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"custom\",\"mode\":\"custom_game\",\"state\":\"picking\",")
+													   TEXT("\"remainingSeconds\":60,\"pickSeconds\":60,\"seats\":[{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,")
+													   TEXT("\"hover\":null,\"locked\":null}],\"bots\":%s,\"matchId\":null,\"cancelReason\":null}}"),
+				LobbyId, TEXT("%s"));
+			TOptional<VeyraBackendProtocol::FSelect> Read;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseSelect(Select.Replace(TEXT("%s"), TEXT("[{\"side\":\"B\",\"vanguardId\":\"cairn\",\"difficulty\":\"beginner\"}]")), Read,
+				Problem), Problem));
+			ASSERT_THAT(IsTrue(Read->Bots.Num() == 1 && Read->Bots[0].Side == TEXT("B") && Read->Bots[0].VanguardId == TEXT("cairn")));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseSelect(Select.Replace(TEXT("%s"), TEXT("[{\"side\":\"C\",\"vanguardId\":\"cairn\",\"difficulty\":\"beginner\"}]")), Read,
+				Problem)));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseSelect(Select.Replace(TEXT("%s"), TEXT("\"none\"")), Read, Problem)));
+		}
+	};
 }
 
 #endif // WITH_AUTOMATION_WORKER

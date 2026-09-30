@@ -364,6 +364,21 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float DialogWidth = 0.0f;
 
+	/** The friends panel down the right of the shell and the lobby, as League's social panel is (Art Bible §7), in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float FriendsPanelWidth = 0.0f;
+
+	/** A seat of a custom lobby's two columns, in slate units (ADR-021). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float LobbySeatWidth = 0.0f;
+
+	/**
+	 * The starting Gold a lobby's host may choose from, besides the game's own (Custom Matches Bible §4).
+	 * Presentation only: the lobby's range decides what is allowed, and a choice outside it is not offered.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	TArray<float> LobbyStartingGoldChoices;
+
 	/** The Vanguard whose illustration fills Home until its scene is designed (Art Bible §6.1). */
 	UPROPERTY(Config, EditAnywhere, Category = "Design")
 	FString HomeVanguard;

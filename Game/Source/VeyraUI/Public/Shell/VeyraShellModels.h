@@ -20,6 +20,8 @@ enum class EVeyraShellScreen : uint8
 	StarterChoice,
 	/** Ordinary pre-game pages: Home and Play (UX §1), and the party panel. */
 	Shell,
+	/** A custom lobby (ADR-021): both sides' seats, its rules and the friends panel, until its host starts it. */
+	Lobby,
 	/**
 	 * Match Found: Accept or Decline, blocking everything else until answered (UX §5). The grey box
 	 * shows it in place of the page, which returns as it was when the match found is over.
@@ -205,6 +207,126 @@ struct FVeyraResultsModel
 	FVeyraMatchReport Report;
 };
 
+/** One seat of a custom lobby's screen, and what its host may do there (Custom Matches Bible §1–§3). */
+struct FVeyraLobbySeatModel
+{
+	/** "A" or "B". */
+	FString Side;
+	int32 Index = 0;
+	VeyraBackendProtocol::ELobbySeatKind Kind = VeyraBackendProtocol::ELobbySeatKind::Empty;
+	/** A human's name, a bot's Vanguard, or "Empty". */
+	FText Name;
+	/** "Host", "Beginner Bot" and the like; empty for an empty seat. */
+	FText Detail;
+	/** A human's account and name, as their buttons name them. */
+	FString AccountId;
+	FString PlayerName;
+	/** A bot's Vanguard, for its portrait, and its difficulty. */
+	FString VanguardId;
+	FString Difficulty;
+	bool bYou = false;
+	/** The host's actions here: seat or change a bot, remove it, remove a human, or move one to the other side. */
+	bool bCanSetBot = false;
+	bool bCanRemoveBot = false;
+	bool bCanKick = false;
+	bool bCanSwitchSide = false;
+	/** Where moving to the other side seats a human: its first empty seat. */
+	FString SwitchToSide;
+	int32 SwitchToIndex = INDEX_NONE;
+};
+
+/** A starting Gold the lobby's host may choose. */
+struct FVeyraGoldChoiceModel
+{
+	/** Unset for the game's own. */
+	TOptional<double> Gold;
+	FText Label;
+	bool bChosen = false;
+};
+
+/** A custom lobby as its screen shows it (ADR-021; laid out as League's custom lobby). */
+struct FVeyraLobbyModel
+{
+	/** "DevOne's Lobby". */
+	FText Title;
+	/** Each side's seats, in order. */
+	TArray<FVeyraLobbySeatModel> SideA;
+	TArray<FVeyraLobbySeatModel> SideB;
+	/** Whether the player hosts it, and so decides everything about it. */
+	bool bHost = false;
+	/** "Victory: on. Destroying a Prime Well wins." */
+	FText Victory;
+	bool bVictoryEnabled = false;
+	/** Victory needs a Vanguard on each side; the host may switch it only then. */
+	bool bCanToggleVictory = false;
+	/** "Starting Gold: the game's own." */
+	FText StartingGold;
+	TArray<FVeyraGoldChoiceModel> GoldChoices;
+	bool bCanSetGold = false;
+	/** What happens next: who starts it, or that champion select is opening. */
+	FText Status;
+	bool bCanStart = false;
+	bool bCanLeave = false;
+};
+
+/** One Vanguard a bot may play, in the bot picker. */
+struct FVeyraBotChoiceModel
+{
+	FString VanguardId;
+	FText Name;
+	/** Another bot on the same side already plays it. */
+	bool bTaken = false;
+	/** The seat's bot plays it now. */
+	bool bChosen = false;
+};
+
+/** The bot picker over the lobby: one seat's Vanguard and difficulty (§2–§3). */
+struct FVeyraBotPickerModel
+{
+	/** "Bot for Side B, Seat 2". */
+	FText Title;
+	TArray<FVeyraBotChoiceModel> Vanguards;
+	/** Each difficulty, easiest first: its ID and name. */
+	TArray<TPair<FString, FText>> Difficulties;
+};
+
+/** A friend in the friends panel. */
+struct FVeyraFriendModel
+{
+	FString AccountId;
+	FText Name;
+	/** In the lobby, the host may invite a friend who is not in it yet. */
+	bool bOffersInvite = false;
+	bool bCanInvite = false;
+};
+
+/** A friend request to the player, or an invitation into another player's lobby. */
+struct FVeyraSocialRequestModel
+{
+	/** The requester's account, or the invitation's ID. */
+	FString Id;
+	FText Name;
+	FText Line;
+};
+
+/** The friends panel down the right of the shell and the lobby (Parties & Social Bible §1; Art Bible §7). */
+struct FVeyraFriendsModel
+{
+	/** False until the lists have been read once. */
+	bool bLoaded = false;
+	/** What came of the player's last request, such as "Friend request sent to DevTwo."; empty for none. */
+	FText Feedback;
+	TArray<FVeyraSocialRequestModel> Invitations;
+	bool bCanAnswerInvitations = false;
+	bool bCanJoin = false;
+	TArray<FVeyraSocialRequestModel> Requests;
+	bool bCanAnswerRequests = false;
+	TArray<FVeyraFriendModel> Friends;
+	/** The players the player asked, who have not answered. */
+	TArray<FText> Pending;
+	bool bCanAdd = false;
+};
+
 /** A title and a line of detail. */
 struct FVeyraStatusModel
 {
@@ -259,6 +381,48 @@ namespace VeyraShellModels
 
 	/** A verified match's headline, lines and report, as the results screen and Match History show it. */
 	VEYRAUI_API FVeyraResultsModel DescribeOutcome(const VeyraBackendProtocol::FMatchOutcome& Outcome);
+
+	/**
+	 * The lobby's screen. bHosts says the coordinator lets the player change the lobby now, bCanStart and
+	 * bCanLeave whether it would start or leave it. With no lobby, an empty model.
+	 */
+	VEYRAUI_API FVeyraLobbyModel DescribeLobby(const FVeyraClientSnapshot& Snapshot, bool bHosts, bool bCanStart, bool bCanLeave);
+
+	/** The bot picker for the seat Index of Side. */
+	VEYRAUI_API FVeyraBotPickerModel DescribeBotPicker(const FVeyraClientSnapshot& Snapshot, const FString& Side, int32 Index);
+
+	/** The friends panel; the flags say which of its intents the coordinator allows now. */
+	VEYRAUI_API FVeyraFriendsModel DescribeFriends(const FVeyraClientSnapshot& Snapshot, bool bCanAdd, bool bCanAnswerRequests, bool bCanJoin,
+		bool bCanAnswerInvitations, bool bCanInvite);
+
+	/** What came of a social request, from the snapshot's feedback code and the name it was for; empty for none. */
+	VEYRAUI_API FText DescribeSocialFeedback(const FString& Code, const FString& Name);
+
+	/** "Side A". */
+	VEYRAUI_API FText SideName(const FString& Side);
+
+	/** A bot difficulty's name: "Beginner". */
+	VEYRAUI_API FText DifficultyName(const FString& Difficulty);
+
+	// The labels of the lobby's and the friends panel's buttons. Each names its seat or player, so every
+	// button on screen is told apart, as a script finding one by its label needs.
+
+	/** "Add Bot: Side B, Seat 2", on an empty seat, and "Change Bot: ..." on a bot's. */
+	VEYRAUI_API FText AddBotLabel(const FString& Side, int32 Index);
+	VEYRAUI_API FText ChangeBotLabel(const FString& Side, int32 Index);
+	VEYRAUI_API FText RemoveBotLabel(const FString& Side, int32 Index);
+	VEYRAUI_API FText KickLabel(const FString& Name);
+	/** "Move DevTwo to Side B". */
+	VEYRAUI_API FText SwitchSideLabel(const FString& Name, const FString& ToSide);
+	VEYRAUI_API FText InviteLabel(const FString& Name);
+	VEYRAUI_API FText AcceptRequestLabel(const FString& Name);
+	VEYRAUI_API FText DeclineRequestLabel(const FString& Name);
+	VEYRAUI_API FText JoinLobbyLabel(const FString& Name);
+	VEYRAUI_API FText DeclineInviteLabel(const FString& Name);
+	/** "Default Gold", or "1,500 Gold". */
+	VEYRAUI_API FText StartingGoldLabel(TOptional<double> Gold);
+	/** The bot picker's choice of a Vanguard: "Bot: Cairn". */
+	VEYRAUI_API FText BotChoiceLabel(const FString& VanguardId);
 
 	/**
 	 * Everything the screens show except the countdown, as text: the shell rebuilds its widgets only

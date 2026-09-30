@@ -39,6 +39,15 @@ UVeyraShellButton* UVeyraShellButton::MakeKind(UWidgetTree& Tree, EVeyraShellBut
 	return Button;
 }
 
+UVeyraShellButton* UVeyraShellButton::MakeKindNamed(UWidgetTree& Tree, EVeyraShellButtonKind Kind, const FText& Label, const FText& Shown, TFunction<void()> Action,
+	bool bEnabled, bool bSelected)
+{
+	UVeyraShellButton* Button = MakeKind(Tree, Kind, Shown, MoveTemp(Action), bEnabled, bSelected);
+	Button->Label = Label;
+	Button->SetToolTipText(Label);
+	return Button;
+}
+
 UVeyraShellButton* UVeyraShellButton::MakeWithContent(UWidgetTree& Tree, const FText& Label, UWidget& Content, TFunction<void()> Action, bool bEnabled, bool bSelected)
 {
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
