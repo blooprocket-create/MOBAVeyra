@@ -405,6 +405,13 @@ struct FVeyraResidualCurrentTuning
 	/** What Health Regeneration is multiplied by while Current is spent; 3 triples it. */
 	UPROPERTY()
 	double RegenerationAmplification = 0.0;
+
+	/**
+	 * How long a status it keeps on its holder lasts after each renewal. Renewed every regeneration tick
+	 * while it holds, it must outlast one (Combat.json regeneration.tickSeconds).
+	 */
+	UPROPERTY()
+	double HeldSeconds = 0.0;
 };
 
 /**
@@ -441,6 +448,13 @@ struct FVeyraQuietingChimeTuning
 
 	UPROPERTY()
 	double ReformSeconds = 0.0;
+
+	/**
+	 * How long a status it keeps on its holder lasts after each renewal. Renewed every regeneration tick
+	 * while it holds, it must outlast one (Combat.json regeneration.tickSeconds).
+	 */
+	UPROPERTY()
+	double HeldSeconds = 0.0;
 };
 
 /**
@@ -543,6 +557,13 @@ struct FVeyraHighTideTuning
 	/** How long its Temporary Health lasts after it was last added to. */
 	UPROPERTY()
 	double TemporaryHealthSeconds = 0.0;
+
+	/**
+	 * How long a status it keeps on its holder lasts after each renewal. Renewed every regeneration tick
+	 * while it holds, it must outlast one (Combat.json regeneration.tickSeconds).
+	 */
+	UPROPERTY()
+	double HeldSeconds = 0.0;
 };
 
 /** The Items domain's tuning, bound from Game/Tuning/Items.json (ADR-006 §6, ADR-012 §3). */

@@ -297,14 +297,15 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "currentPerLastHit", "currentCap", "quietSeconds", "currentPerSecond", "regenerationAmplification"],
+          "required": ["provenance", "currentPerLastHit", "currentCap", "quietSeconds", "currentPerSecond", "regenerationAmplification", "heldSeconds"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "currentPerLastHit": { "description": "Current each last hit stores.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "currentCap": { "description": "The most Current stored.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "quietSeconds": { "description": "How long without enemy-Vanguard damage before Current is spent.", "type": "number", "minimum": 0 },
             "currentPerSecond": { "description": "Current spent each second while it amplifies.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-            "regenerationAmplification": { "description": "What Health Regeneration is multiplied by while Current is spent; 3 triples it.", "type": "number", "minimum": 1, "exclusiveMinimum": true }
+            "regenerationAmplification": { "description": "What Health Regeneration is multiplied by while Current is spent; 3 triples it.", "type": "number", "minimum": 1, "exclusiveMinimum": true },
+            "heldSeconds": { "description": "How long a status it keeps on its holder lasts after each renewal; renewed every regeneration tick while it holds, it outlasts one.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
           }
         }
       }
@@ -334,10 +335,11 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "reformSeconds"],
+          "required": ["provenance", "reformSeconds", "heldSeconds"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
-            "reformSeconds": { "description": "How long it takes to form again.", "type": "number", "minimum": 0 }
+            "reformSeconds": { "description": "How long it takes to form again.", "type": "number", "minimum": 0 },
+            "heldSeconds": { "description": "How long a status it keeps on its holder lasts after each renewal; renewed every regeneration tick while it holds, it outlasts one.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
           }
         }
       }
@@ -388,7 +390,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "currentPerLastHit", "currentCap", "currentPerSecond", "regenerationAmplification", "reserveConversionAcceleration", "overflowToTemporaryHealth", "temporaryHealthCapMaxHealthFraction", "temporaryHealthSeconds"],
+          "required": ["provenance", "currentPerLastHit", "currentCap", "currentPerSecond", "regenerationAmplification", "reserveConversionAcceleration", "overflowToTemporaryHealth", "temporaryHealthCapMaxHealthFraction", "temporaryHealthSeconds", "heldSeconds"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "currentPerLastHit": { "description": "Current each last hit stores.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -398,7 +400,8 @@
             "reserveConversionAcceleration": { "description": "Added to Safe Harbor's conversion rate, as a share of it, while Current is spent; 1 doubles it.", "type": "number", "minimum": 0 },
             "overflowToTemporaryHealth": { "description": "The share of recovery past full Health that becomes Temporary Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
             "temporaryHealthCapMaxHealthFraction": { "description": "The most Temporary Health it holds, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-            "temporaryHealthSeconds": { "description": "How long its Temporary Health lasts after it was last added to.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+            "temporaryHealthSeconds": { "description": "How long its Temporary Health lasts after it was last added to.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "heldSeconds": { "description": "How long a status it keeps on its holder lasts after each renewal; renewed every regeneration tick while it holds, it outlasts one.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
           }
         }
       }

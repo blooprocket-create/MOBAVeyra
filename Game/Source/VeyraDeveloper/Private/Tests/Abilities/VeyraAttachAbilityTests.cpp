@@ -96,6 +96,20 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(QHolds(TEXT("test_throw")), TEXT("its recast is ready")));
 		}
 
+		TEST_METHOD(ASpellShieldBlocksTheWholeGrab)
+		{
+			FVeyraStatusSpec Ward;
+			Ward.Id = ArchetypeTestId(TEXT("test_ward"));
+			Ward.Kind = EVeyraStatusKind::SpellShield;
+			Ward.DurationSeconds = LongSeconds;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Host->GetAbilitySystemComponent(), *Host->GetAbilitySystemComponent(), Ward)));
+			ASSERT_THAT(IsTrue(Hugging() == EVeyraCastRejection::None));
+			ASSERT_THAT(IsFalse(Caster->GetVeyraMovement()->IsAttached(), TEXT("no hold (Combat Bible §19; ADR-025 §4)")));
+			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(*Host, TEXT("test_hugged")) || FArchetypeTestWorld::Has(*Host, TEXT("test_ward")), TEXT("no status, and the shield is spent")));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::HealthLost(*Host) == 0.0, TEXT("no hit")));
+			ASSERT_THAT(IsTrue(QHolds(TEXT("test_hug")), TEXT("nothing to throw")));
+		}
+
 		TEST_METHOD(TheRecastThrowsItOffAndTheHostTheOtherWay)
 		{
 			ASSERT_THAT(IsTrue(Hugging() == EVeyraCastRejection::None));

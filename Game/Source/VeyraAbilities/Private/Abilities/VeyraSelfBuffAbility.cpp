@@ -368,7 +368,9 @@ void UVeyraSelfBuffAbility::FirePayload()
 		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit) && VeyraTargeting::IsAlive(&Unit); });
 	for (AActor* Enemy : Enemies)
 	{
-		if (UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Enemy))
+		// A discrete hit on each, which a Spell Shield blocks (Combat Bible §19; ADR-025 §4).
+		UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Enemy);
+		if (Target && !VeyraCombat::BlockAbilityHit(*Target, *Caster))
 		{
 			VeyraCombat::ApplyStatus(*Caster, *Target, Status.GetValue());
 		}

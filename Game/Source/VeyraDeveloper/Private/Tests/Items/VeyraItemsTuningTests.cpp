@@ -3,6 +3,7 @@
 #include "CQTest.h"
 #include "Engine/Engine.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 
 #if WITH_AUTOMATION_WORKER
@@ -219,6 +220,31 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Base.Health > 0.0 && Base.HealthRegeneration > 0.0));
 			ASSERT_THAT(IsTrue(Evolved->Stats.Health > Base.Health && Evolved->Stats.HealthRegeneration > Base.HealthRegeneration));
 			ASSERT_THAT(IsTrue(Evolved->Attunement.Num() == 1 && Catalog.ResidualCurrent.Contains(Evolved->Attunement[0]), TEXT("Residual Current")));
+		}
+
+		TEST_METHOD(TheCommittedHeldStatusesOutlastARegenerationTick)
+		{
+			// Renewed every regeneration tick while they hold, they must outlast one, or they flicker (PR #47 review).
+			const FVeyraItemsTuning& Committed = UVeyraItemsTuningSubsystem::Get();
+			const double Tick = UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds;
+			TArray<double> Held;
+			for (const TPair<FVeyraContentId, FVeyraResidualCurrentTuning>& Entry : Committed.ResidualCurrent)
+			{
+				Held.Add(Entry.Value.HeldSeconds);
+			}
+			for (const TPair<FVeyraContentId, FVeyraHighTideTuning>& Entry : Committed.HighTide)
+			{
+				Held.Add(Entry.Value.HeldSeconds);
+			}
+			for (const TPair<FVeyraContentId, FVeyraQuietingChimeTuning>& Entry : Committed.QuietingChime)
+			{
+				Held.Add(Entry.Value.HeldSeconds);
+			}
+			ASSERT_THAT(IsFalse(Held.IsEmpty()));
+			for (const double Seconds : Held)
+			{
+				ASSERT_THAT(IsTrue(Seconds > Tick, *FString::Printf(TEXT("%g s against a %g s tick"), Seconds, Tick)));
+			}
 		}
 
 		TEST_METHOD(TheCommittedCatalogLoads)

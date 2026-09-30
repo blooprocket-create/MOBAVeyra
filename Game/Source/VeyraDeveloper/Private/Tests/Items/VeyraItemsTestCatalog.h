@@ -92,6 +92,7 @@ namespace VeyraItemsTests
 		Current.CurrentPerLastHit = 2.0;
 		Current.CurrentCap = 5.0;
 		Current.QuietSeconds = 1.0;
+		Current.HeldSeconds = 1.0;
 		Current.CurrentPerSecond = 1.0;
 		Current.RegenerationAmplification = 3.0;
 		FVeyraItemDefinition& Haven = Tuning.Items.Add(ItemId(TEXT("test_haven")));

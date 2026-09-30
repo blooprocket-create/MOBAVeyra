@@ -202,7 +202,9 @@ namespace VeyraItemsTests
 		{
 			// Fixture value: a short wait to form again.
 			constexpr double Reform = 2.0;
-			Tuning.QuietingChime.Add(ItemId(TEXT("test_chime"))).ReformSeconds = Reform;
+			FVeyraQuietingChimeTuning& Chime = Tuning.QuietingChime.Add(ItemId(TEXT("test_chime")));
+			Chime.ReformSeconds = Reform;
+			Chime.HeldSeconds = 1.0;
 			Hold(TEXT("test_chime"));
 			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
 			Attunements.UpdateHeld();
@@ -252,6 +254,50 @@ namespace VeyraItemsTests
 			FVeyraPreparedDamage Prepared = VeyraCombat::PrepareDamage(Holder(), Damage);
 			Prepared.bCritical = bCritical;
 			ASSERT_THAT(IsTrue(VeyraCombat::DealPreparedDamage(Prepared, *Enemy)));
+		}
+
+		void AttackFrom(UAbilitySystemComponent& Source, bool bCritical)
+		{
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Blow });
+			Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
+			FVeyraPreparedDamage Prepared = VeyraCombat::PrepareDamage(Source, Damage);
+			Prepared.bCritical = bCritical;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealPreparedDamage(Prepared, *Enemy)));
+		}
+
+		int32 DoomMarkStacks() const
+		{
+			const FVeyraStatusEntry* Mark = EnemyStatuses().GetLedger().Entries.FindByPredicate([](const FVeyraStatusEntry& Entry) { return Entry.Id == ItemId(TEXT("test_doom")); });
+			return Mark ? Mark->Stacks : 0;
+		}
+
+		TEST_METHOD(TwoHoldersDoomOnOneTargetNeitherHidesTheOther)
+		{
+			// Fixture values: 1 Doom a hit, 2 a crit, Doomed at 3; 5 s to lapse.
+			FVeyraMarkedForDoomTuning& Doom = Tuning.MarkedForDoom.Add(ItemId(TEXT("test_doom")));
+			Doom.DoomPerHit = 1.0;
+			Doom.DoomPerCrit = 2.0;
+			Doom.DoomedAt = 3.0;
+			Doom.ExpirySeconds = 5.0;
+			Doom.MissingHealthRatio = 0.2;
+			Hold(TEXT("test_doom"));
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			AVeyraPlayerState* Second = World.Spawn(EVeyraTeam::A, FVector(0.0, 200.0, 0.0)).GetPlayerState<AVeyraPlayerState>();
+			UVeyraShopSubsystem::InitializeInventory(*Second);
+			ASSERT_THAT(IsTrue(Second->FindComponentByClass<UVeyraGoldComponent>()->Grant(Purse, EVeyraGoldReason::Developer)));
+			Shop->SetAtFountain(*Second, true);
+			ASSERT_THAT(IsTrue(Shop->Buy(*Second, ItemId(TEXT("test_temper"))) == EVeyraShopRefusal::None));
+			UAbilitySystemComponent& Other = *Second->GetAbilitySystemComponent();
+			const UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+
+			AttackFrom(Holder(), true);
+			AttackFrom(Other, false);
+			ASSERT_THAT(AreEqual(2, DoomMarkStacks(), TEXT("another holder's hit keeps the most Doom on show")));
+			AttackFrom(Holder(), false);
+			AttackFrom(Holder(), false);
+			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 0.0 && Attunements.GetDoom(Other, *Enemy) == 1.0, TEXT("each holder's Doom is its own")));
+			ASSERT_THAT(AreEqual(1, DoomMarkStacks(), TEXT("one holder's payoff leaves the other's Doom marked")));
 		}
 
 		TEST_METHOD(MarkedForDoomBuildsOnAttacksThenTheNextAttackOnTheDoomedConsumesIt)
@@ -353,6 +399,7 @@ namespace VeyraItemsTests
 			Harbor.ConversionMaxHealthFractionPerSecond = Conversion;
 			FVeyraHighTideTuning& Tide = Tuning.HighTide.Add(ItemId(TEXT("test_tide")));
 			Tide.CurrentPerLastHit = 2.0;
+			Tide.HeldSeconds = 1.0;
 			Tide.CurrentCap = 5.0;
 			Tide.CurrentPerSecond = 1.0;
 			Tide.RegenerationAmplification = 3.0;
