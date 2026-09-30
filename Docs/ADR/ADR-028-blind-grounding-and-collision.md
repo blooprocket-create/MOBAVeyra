@@ -26,7 +26,7 @@ M20 released fifteen Vanguards. The 2026-09-30 survey ranked Silt and Torr next.
 
 ### 1. Blind
 
-Combat gains the status kind `Blind`. A blinded unit's basic attacks miss: each spends its windup and interval as usual, but lands nothing. There is no damage, no on-hit, no empowerment spent, no hit-chain step and no secondary impact. It is crowd control, and Tenacity shortens it. Structures' attacks are never blinded, since they are not basic attacks.
+Combat gains the status kind `Blind`. A blinded unit's basic attacks miss. Each still counts as an attack: it spends its windup and interval, fires the on-attack event and spends any empowerment. It lands nothing: no damage, no on-hit and no secondary impact. It is crowd control, and Tenacity shortens it. Structures' attacks are never blinded, since they are not basic attacks.
 
 ### 2. Grounded
 
@@ -85,7 +85,7 @@ Every number is provisional tuning.
 
 ## 9. League answers where canon is open (provisional)
 
-1. **Blind misses the whole attack**, and a missed attack spends nothing that rides it, as in League, where a blinded champion's empowered attack keeps its empowerment.
+1. **A blinded attack is still an attack**, as League's Blind: on-attack effects fire and an empowered attack is spent, while on-hit effects and damage are lost.
 2. **Anchor's "shortened/disrupted" movement abilities are grounding.** Enemies inside the field cannot start a dash, as League's Ground; a dash begun outside finishes.
 3. **Collision counts terrain, Vanguards and structures only**, as Poppy's Heroic Charge does; Fluxborn and wildlife do not stun.
 4. **Reclaim's timing rule is a per-target lockout on the heal**, not on the mark.

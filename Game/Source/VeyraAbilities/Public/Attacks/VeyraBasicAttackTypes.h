@@ -198,6 +198,9 @@ struct FVeyraAttackEvent
 	int32 Chain = 0;
 	bool bEmpowered = false;
 	bool bCritical = false;
+
+	/** A blinded attacker's attack (ADR-028 §1): it counts as an attack, and lands nothing. */
+	bool bMissed = false;
 };
 
 /** What presentation sees of an empowerment waiting for the next attack: which ability, and until when. */

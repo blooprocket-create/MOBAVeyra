@@ -259,24 +259,31 @@ void UVeyraBasicAttackComponent::Commit()
 
 	NextAttackAt = Running->StartedAt + Running->Timing.IntervalSeconds;
 	const FVeyraAttackPlan Plan = BuildPlan(*Attacker, *Target, Running->Timing, Running->bEmpowered);
-	const FLandingAttack Landing = Prepare(*Attacker, *Body, Plan);
+	FLandingAttack Landing = Prepare(*Attacker, *Body, Plan);
+	// A blinded attacker's attack misses: its on-attack effects fire and its empowerment is spent, but it
+	// lands nothing, as League's Blind (ADR-028 §1).
+	const UVeyraStatusComponent* Statuses = GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
+	Landing.Event.bMissed = Statuses && Statuses->Has(EVeyraStatusKind::Blind);
 	OnAttack.Broadcast(Landing.Event);
 
-	if (Profile.Projectile.IsEmpty())
+	if (!Landing.Event.bMissed && Profile.Projectile.IsEmpty())
 	{
 		Land(Landing);
 	}
-	else if (AVeyraProjectile* Projectile = GetWorld()->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(Body->GetActorLocation())))
+	else if (!Landing.Event.bMissed)
 	{
 		// Once launched it cannot be escaped by leaving range (§4); it lands even if the attacker has died.
 		const FVeyraAttackProjectileTuning& Flight = Profile.Projectile[0];
-		Projectile->LaunchHoming(*Attacker, *Target, Flight.Speed, Flight.Radius, FVeyraPreparedEffects(), FVeyraContentId(), 0,
-			[WeakThis = TWeakObjectPtr<UVeyraBasicAttackComponent>(this), Landing](AActor&) {
-				if (UVeyraBasicAttackComponent* Attacks = WeakThis.Get())
-				{
-					Attacks->Land(Landing);
-				}
-			});
+		if (AVeyraProjectile* Projectile = GetWorld()->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(Body->GetActorLocation())))
+		{
+			Projectile->LaunchHoming(*Attacker, *Target, Flight.Speed, Flight.Radius, FVeyraPreparedEffects(), FVeyraContentId(), 0,
+				[WeakThis = TWeakObjectPtr<UVeyraBasicAttackComponent>(this), Landing](AActor&) {
+					if (UVeyraBasicAttackComponent* Attacks = WeakThis.Get())
+					{
+						Attacks->Land(Landing);
+					}
+				});
+		}
 	}
 
 	const double Now = GetServerNow();

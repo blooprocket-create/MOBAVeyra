@@ -82,6 +82,18 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("root"), EVeyraStatusKind::Root, Half, LongSeconds)).IsEmpty(), TEXT("a root has no magnitude")));
 		}
 
+		TEST_METHOD(GroundingStopsMovingCastsAndBlindingIsCrowdControl)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("grounded"), EVeyraStatusKind::Grounded, 0.0, LongSeconds))));
+			const EVeyraActionBlocks Blocks = VeyraCombat::GetActionBlocks(*Unit);
+			ASSERT_THAT(IsTrue(Blocks == EVeyraActionBlocks::Dash, TEXT("no dashing, and walking, attacking and casting stay (ADR-028 §2)")));
+			for (const EVeyraStatusKind Kind : { EVeyraStatusKind::Grounded, EVeyraStatusKind::Blind })
+			{
+				ASSERT_THAT(IsTrue(VeyraStatuses::IsCrowdControl(Kind) && VeyraStatuses::IsTenacityReducible(Kind)));
+				ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("test_kind"), Kind, Half, LongSeconds)).IsEmpty(), TEXT("it has no magnitude")));
+			}
+		}
+
 		TEST_METHOD(AStatusLandsOnlyOnTheKindsOfUnitItNames)
 		{
 			// The unit is a Vanguard's participant.
