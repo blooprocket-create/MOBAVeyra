@@ -280,9 +280,32 @@ namespace
 			}
 		}
 
+		void CheckSecondaryImpact(const FString& Pointer, const FVeyraSecondaryImpactTuning& Impact)
+		{
+			for (const FString& ShapeProblem : VeyraShapes::Validate(Impact.Shape))
+			{
+				Problem(Pointer + TEXT("/shape"), ShapeProblem);
+			}
+			CheckDamage(Pointer + TEXT("/damage"), Impact.Damage);
+			CheckStatusIds(Pointer + TEXT("/statuses"), Impact.Statuses);
+		}
+
 		void CheckSelfBuff(const FString& Pointer, const FVeyraSelfBuffAbilityTuning& Buff)
 		{
 			CheckCast(Pointer + TEXT("/cast"), Buff.Cast);
+			if (Buff.AttackSecondaryImpact.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/attackSecondaryImpact"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Buff.AttackSecondaryImpact.Num(); ++Index)
+			{
+				const FString ImpactPointer = FString::Printf(TEXT("%s/attackSecondaryImpact/%d"), *Pointer, Index);
+				if (!(Buff.AttackSecondaryImpact[Index].Seconds > 0.0))
+				{
+					Problem(ImpactPointer + TEXT("/seconds"), TEXT("must be above 0"));
+				}
+				CheckSecondaryImpact(ImpactPointer + TEXT("/impact"), Buff.AttackSecondaryImpact[Index].Impact);
+			}
 			for (int32 Index = 0; Index < Buff.Variants.Num(); ++Index)
 			{
 				const FVeyraVariantTuning& Variant = Buff.Variants[Index];
@@ -536,6 +559,14 @@ namespace
 		void CheckEmpoweredAttack(const FString& Pointer, const FVeyraEmpoweredAttackAbilityTuning& Empowered)
 		{
 			CheckCast(Pointer + TEXT("/cast"), Empowered.Cast);
+			if (Empowered.Attacks < 1)
+			{
+				Problem(Pointer + TEXT("/attacks"), TEXT("must be at least 1"));
+			}
+			if (!(Empowered.WindupScale > 0.0) || Empowered.WindupScale > 1.0)
+			{
+				Problem(Pointer + TEXT("/windupScale"), TEXT("must be above 0 and at most 1: an empowerment may quicken a windup, never slow it"));
+			}
 			CheckDamage(Pointer + TEXT("/damage"), Empowered.Damage);
 			CheckStatusIds(Pointer + TEXT("/statuses"), Empowered.Statuses);
 			CheckByRank(Pointer + TEXT("/armorPenetrationByRank"), Empowered.ArmorPenetrationByRank);
@@ -549,14 +580,7 @@ namespace
 			}
 			for (int32 Index = 0; Index < Empowered.SecondaryImpact.Num(); ++Index)
 			{
-				const FVeyraSecondaryImpactTuning& Impact = Empowered.SecondaryImpact[Index];
-				const FString ImpactPointer = FString::Printf(TEXT("%s/secondaryImpact/%d"), *Pointer, Index);
-				for (const FString& ShapeProblem : VeyraShapes::Validate(Impact.Shape))
-				{
-					Problem(ImpactPointer + TEXT("/shape"), ShapeProblem);
-				}
-				CheckDamage(ImpactPointer + TEXT("/damage"), Impact.Damage);
-				CheckStatusIds(ImpactPointer + TEXT("/statuses"), Impact.Statuses);
+				CheckSecondaryImpact(FString::Printf(TEXT("%s/secondaryImpact/%d"), *Pointer, Index), Empowered.SecondaryImpact[Index]);
 			}
 		}
 

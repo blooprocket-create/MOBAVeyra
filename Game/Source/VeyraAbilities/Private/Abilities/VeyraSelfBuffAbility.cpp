@@ -4,6 +4,7 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/World.h"
@@ -178,6 +179,15 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 	if (!Buff->EndPayload.IsEmpty())
 	{
 		StartPayload(*Caster, Cast.Ability);
+	}
+	// Its caster's attacks offer an impact for a while, its damage from the caster's power now (ADR-027 §3).
+	UVeyraBasicAttackComponent* Attacks = Caster->GetOwner() ? Caster->GetOwner()->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
+	for (const FVeyraBuffAttackImpactTuning& Timed : Buff->AttackSecondaryImpact)
+	{
+		if (Attacks)
+		{
+			Attacks->OfferImpactWhileLasting(VeyraEffectDelivery::SecondaryImpact(*Caster, Timed.Impact, Cast.Rank), Timed.Seconds);
+		}
 	}
 	// While it lasts, its variants hold their slots (ADR-018 §1).
 	if (UVeyraAbilityLoadoutComponent* Loadout = Caster->GetOwner() ? Caster->GetOwner()->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr)

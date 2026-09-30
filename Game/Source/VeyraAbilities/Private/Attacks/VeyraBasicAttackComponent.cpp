@@ -210,7 +210,8 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::StartAttack(AActor& Target)
 	Attack.Target = &Target;
 	Attack.StartedAt = Now;
 	Attack.Timing = GetTiming();
-	const double WindupSeconds = Attack.Timing.IntervalSeconds * Profile.WindupFraction;
+	// An empowerment may shorten the windups it empowers, never the interval (ADR-027 §2).
+	const double WindupSeconds = Attack.Timing.IntervalSeconds * Profile.WindupFraction * (IsEmpowered() ? Empowerment->WindupScale : 1.0);
 
 	// The attacker turns to face its target.
 	if (AActor* Body = GetAbilitySystem()->GetAvatarActor())
@@ -338,8 +339,28 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 		{
 			Empowerment->Apply(Plan);
 		}
+		// Each attack spends one of the attacks it empowers; the last ends it (ADR-027 §2).
+		if (--Empowerment->Attacks > 0)
+		{
+			EmpowermentView.Attacks = Empowerment->Attacks;
+			MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraBasicAttackComponent, EmpowermentView, this);
+		}
+		else
+		{
+			ClearEmpowerment();
+		}
 	}
-	ClearEmpowerment();
+	else
+	{
+		ClearEmpowerment();
+	}
+	// A buff's impact, while it lasts (ADR-027 §3).
+	const double Now = GetServerNow();
+	TimedImpacts.RemoveAll([Now](const FTimedImpact& Each) { return Each.Until < Now; });
+	for (const FTimedImpact& Timed : TimedImpacts)
+	{
+		Plan.OfferSecondaryImpact(Timed.Impact);
+	}
 
 	const UVeyraStatusComponent* Statuses = GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
 	const double CleaveFraction = Statuses ? Statuses->GetStrongest(EVeyraStatusKind::AttackCleave) : 0.0;
@@ -467,8 +488,14 @@ void UVeyraBasicAttackComponent::Empower(FVeyraAttackEmpowerment InEmpowerment)
 	EmpowermentExpiresAt = GetServerNow() + InEmpowerment.DurationSeconds;
 	EmpowermentView.Ability = InEmpowerment.Ability;
 	EmpowermentView.ExpiresAt = EmpowermentExpiresAt;
+	EmpowermentView.Attacks = InEmpowerment.Attacks;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraBasicAttackComponent, EmpowermentView, this);
 	Empowerment = MoveTemp(InEmpowerment);
+}
+
+void UVeyraBasicAttackComponent::OfferImpactWhileLasting(FVeyraSecondaryImpact Impact, double Seconds)
+{
+	TimedImpacts.Add(FTimedImpact{ MoveTemp(Impact), GetServerNow() + Seconds });
 }
 
 void UVeyraBasicAttackComponent::ClearEmpowerment()
@@ -587,6 +614,7 @@ void UVeyraBasicAttackComponent::OnDeath(const FVeyraDeathEvent& Death)
 		CancelAttack();
 		ResetChain();
 		ClearEmpowerment();
+		TimedImpacts.Reset();
 	}
 }
 

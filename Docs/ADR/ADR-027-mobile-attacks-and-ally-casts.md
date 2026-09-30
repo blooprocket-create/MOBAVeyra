@@ -40,7 +40,7 @@ M20a released Moro, Korruk and Mavra. The 2026-09-30 survey ranked Celandrine an
 
 ### 3. Attack impacts while a buff lasts
 
-A self-buff gains `attackSecondaryImpact`, at most one. While the buff's statuses last, each of its caster's basic attacks offers that secondary impact, with its priority, as an empowerment does. It stays Proc damage: no Crit, On-Hit or item procs (ADR-009 §5).
+A self-buff gains `attackSecondaryImpact`, at most one: a secondary impact and its `seconds`, normally the buff's statuses' duration. For that long, each of its caster's basic attacks offers the impact, with its priority, as an empowerment does. Its damage is read from the caster's power at the cast. It stays Proc damage: no Crit, On-Hit or item procs (ADR-009 §5). Death ends it, as it ends a waiting empowerment.
 
 ### 4. Ally-targeted self-buffs
 

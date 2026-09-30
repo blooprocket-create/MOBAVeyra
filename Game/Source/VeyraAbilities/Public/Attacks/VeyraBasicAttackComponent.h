@@ -62,6 +62,9 @@ public:
 	/** Server: whether an empowerment waits for the next attack. */
 	bool IsEmpowered() const;
 
+	/** Server: for Seconds, each attack offers Impact, as a buff's piercing shots do (ADR-027 §3). */
+	void OfferImpactWhileLasting(FVeyraSecondaryImpact Impact, double Seconds);
+
 	/**
 	 * Server: the share of its speed the attacker keeps through a windup, set by a passive such as
 	 * Never Break Stride (ADR-027 §1); 0, the default, stands still.
@@ -171,6 +174,14 @@ private:
 	TOptional<FRunningAttack> Running;
 	double NextAttackAt = 0.0;
 	double BaseWindupShare = 0.0;
+
+	/** Server only: impacts buffs offer, until when. */
+	struct FTimedImpact
+	{
+		FVeyraSecondaryImpact Impact;
+		double Until = 0.0;
+	};
+	TArray<FTimedImpact> TimedImpacts;
 
 	TOptional<FVeyraAttackEmpowerment> Empowerment;
 	double EmpowermentExpiresAt = 0.0;

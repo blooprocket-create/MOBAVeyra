@@ -47,6 +47,8 @@ FVeyraChannelPlan UVeyraEmpoweredAttackAbility::Deliver(const FVeyraCast& Cast)
 	Empowerment.Ability = Cast.Ability;
 	Empowerment.CastId = Cast.CastId;
 	Empowerment.DurationSeconds = Tuning->DurationSeconds;
+	Empowerment.Attacks = Tuning->Attacks;
+	Empowerment.WindupScale = Tuning->WindupScale;
 	// Applied at the attack's Commit, so the attacker's power is read then (Combat Bible §50).
 	Empowerment.Apply = [Empowered = *Tuning, Rank = Cast.Rank, Source = TWeakObjectPtr<UAbilitySystemComponent>(Caster)](FVeyraAttackPlan& Plan) {
 		const UAbilitySystemComponent* Attacker = Source.Get();
