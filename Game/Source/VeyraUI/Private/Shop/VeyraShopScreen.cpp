@@ -32,13 +32,13 @@ namespace
 	using VeyraShellStyle::EVeyraShellSurface;
 	using VeyraShellStyle::EVeyraShellText;
 
-	const UVeyraShellStyleSettings& Style()
+	const UVeyraShellStyleSettings& ShopStyle()
 	{
 		return *GetDefault<UVeyraShellStyleSettings>();
 	}
 
 	/** Gold as the shop shows it: whole, rounded down, as everywhere in the UI (Economy & Progression Bible §1). */
-	FText GoldText(double Gold)
+	FText PriceText(double Gold)
 	{
 		return FText::AsNumber(FMath::FloorToInt64(Gold));
 	}
@@ -108,7 +108,7 @@ bool UVeyraShopScreen::Initialize()
 		// The shop floats over the match, which stays in view around it: the heading, then the quick-buy
 		// panels, the catalog and the selected item side by side, then the foot. Only their contents are
 		// rebuilt, so the catalog keeps its scroll.
-		const UVeyraShellStyleSettings& Settings = Style();
+		const UVeyraShellStyleSettings& Settings = ShopStyle();
 		const float Gap = Settings.Spacing * 2.0f;
 		USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
 		Size->SetWidthOverride(Settings.ShopWidth);
@@ -227,12 +227,12 @@ FText UVeyraShopScreen::SpellsTabLabel()
 
 FText UVeyraShopScreen::BuyLabel(const FVeyraContentId& Item, double Price)
 {
-	return FText::Format(LOCTEXT("Buy", "{0}   {1}"), VeyraContentText::ItemName(Item), GoldText(Price));
+	return FText::Format(LOCTEXT("Buy", "{0}   {1}"), VeyraContentText::ItemName(Item), PriceText(Price));
 }
 
 FText UVeyraShopScreen::SellLabel(int32 Index, double Value)
 {
-	return FText::Format(LOCTEXT("Sell", "Sell {0} for {1}"), FText::AsNumber(Index + 1), GoldText(Value));
+	return FText::Format(LOCTEXT("Sell", "Sell {0} for {1}"), FText::AsNumber(Index + 1), PriceText(Value));
 }
 
 FText UVeyraShopScreen::CancelLabel(int32 Index)
@@ -242,7 +242,7 @@ FText UVeyraShopScreen::CancelLabel(int32 Index)
 
 FText UVeyraShopScreen::BuybackLabel(double Cost)
 {
-	return FText::Format(LOCTEXT("Buyback", "Buy Back   {0}"), GoldText(Cost));
+	return FText::Format(LOCTEXT("Buyback", "Buy Back   {0}"), PriceText(Cost));
 }
 
 FText UVeyraShopScreen::VisionToolName(EVeyraVisionTool Tool)
@@ -342,7 +342,7 @@ void UVeyraShopScreen::BuildQuickBuy()
 {
 	// League's quick-buy panels: what is bought again and again, and the inventory, always to hand.
 	QuickBuy->ClearChildren();
-	const UVeyraShellStyleSettings& Settings = Style();
+	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	const float Tile = Settings.ShopMarkSize;
 	const auto AddCategory = [this, Tile](UWrapBox& Grid, EVeyraItemCategory Category) {
 		for (const FVeyraShopOffer& Offer : View.Offers)
@@ -369,7 +369,7 @@ void UVeyraShopScreen::BuildQuickBuy()
 			}
 			// A tool's tile swaps to it at once, as buying a trinket does; it waits for the fountain.
 			const bool bAllowed = Offer.Refusal == EVeyraShopRefusal::None;
-			AddTile(*Consumables, VisionToolName(Offer.Tool), VisionToolName(Offer.Tool), GoldText(View.VisionToolSwapCost), Tile, bAllowed, false,
+			AddTile(*Consumables, VisionToolName(Offer.Tool), VisionToolName(Offer.Tool), PriceText(View.VisionToolSwapCost), Tile, bAllowed, false,
 				[this, Tool = Offer.Tool] {
 					if (AVeyraPlayerController* Player = Controller.Get())
 					{
@@ -410,7 +410,7 @@ void UVeyraShopScreen::BuildCatalog()
 {
 	// Every item as a tile, a group per tier, each with its price now; the rules are the server's.
 	Catalog->ClearChildren();
-	const UVeyraShellStyleSettings& Settings = Style();
+	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	// What the panel's padding, the two gaps and the scroll bar leave between the side columns.
 	const float Width = Settings.ShopWidth - Settings.ShopQuickWidth - Settings.ShopDetailsWidth - Settings.Spacing * 9.0f;
 	UWrapBox* Grid = nullptr;
@@ -432,7 +432,7 @@ void UVeyraShopScreen::BuildSpells()
 {
 	// The Flux Spell slots: each swap costs Gold, at the fountain only (ADR-015 §6).
 	Catalog->ClearChildren();
-	AddEyebrow(*Catalog, FText::Format(LOCTEXT("FluxSpells", "Flux Spells (each swap {0})"), GoldText(View.SpellSwapCost)));
+	AddEyebrow(*Catalog, FText::Format(LOCTEXT("FluxSpells", "Flux Spells (each swap {0})"), PriceText(View.SpellSwapCost)));
 	for (int32 Index = 0; Index < View.SpellSlots.Num(); ++Index)
 	{
 		const FVeyraShopSpellSlot& Shown = View.SpellSlots[Index];
@@ -466,7 +466,7 @@ void UVeyraShopScreen::BuildDetails()
 	// The selected item, as League's right-hand pane shows it: what it builds into, its recipe, the one
 	// purchase button, and what it gives.
 	Details->ClearChildren();
-	const UVeyraShellStyleSettings& Settings = Style();
+	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	const float Width = Settings.ShopDetailsWidth - Settings.Spacing * 2.0f;
 	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
 	const FVeyraItemDefinition* Definition = SelectedItem.IsValid() ? Tuning.Items.Find(SelectedItem) : nullptr;
@@ -533,7 +533,7 @@ void UVeyraShopScreen::BuildDetails()
 
 	// What it is and gives: its name, its whole cost, its stats and its effect.
 	VeyraShellStyle::AddSpaced(*Details, *MakeLine(*WidgetTree, VeyraContentText::ItemName(SelectedItem), EVeyraShellText::Heading, Width));
-	UTextBlock* Cost = MakeLine(*WidgetTree, FText::Format(LOCTEXT("TotalCost", "Cost {0}"), GoldText(Offer->TotalCost)), EVeyraShellText::Body);
+	UTextBlock* Cost = MakeLine(*WidgetTree, FText::Format(LOCTEXT("TotalCost", "Cost {0}"), PriceText(Offer->TotalCost)), EVeyraShellText::Body);
 	Cost->SetColorAndOpacity(FSlateColor(Settings.PrimaryColor));
 	VeyraShellStyle::AddSpaced(*Details, *Cost);
 	if (const FText Stats = VeyraShopModel::DescribeStats(Definition->Stats); !Stats.IsEmpty())
@@ -558,7 +558,7 @@ void UVeyraShopScreen::BuildFoot()
 {
 	// Sale and undo, what waits for the fountain, why the server refused, and Gold.
 	Foot->ClearChildren();
-	const UVeyraShellStyleSettings& Settings = Style();
+	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	const FVeyraShopSlot* Chosen = View.Slots.IsValidIndex(SelectedSlot) && View.Slots[SelectedSlot].Item.IsValid() ? &View.Slots[SelectedSlot] : nullptr;
 	if (Chosen)
 	{
@@ -604,7 +604,7 @@ void UVeyraShopScreen::BuildFoot()
 	MessageSlot->SetHorizontalAlignment(HAlign_Right);
 	MessageSlot->SetPadding(FMargin(Settings.Spacing, 0.0f));
 
-	UTextBlock* Gold = MakeLine(*WidgetTree, FText::Format(LOCTEXT("Gold", "Gold {0}"), GoldText(View.Gold)), EVeyraShellText::Heading);
+	UTextBlock* Gold = MakeLine(*WidgetTree, FText::Format(LOCTEXT("Gold", "Gold {0}"), PriceText(View.Gold)), EVeyraShellText::Heading);
 	Gold->SetColorAndOpacity(FSlateColor(Settings.PrimaryColor));
 	Foot->AddChildToHorizontalBox(Gold)->SetVerticalAlignment(VAlign_Center);
 }
@@ -613,7 +613,7 @@ UVeyraShellButton* UVeyraShopScreen::AddItemTile(UPanelWidget& Parent, const FVe
 {
 	const FVeyraShopOffer* Offer = View.Offers.FindByPredicate([&Item](const FVeyraShopOffer& Each) { return Each.Item == Item; });
 	const bool bLit = Offer && Offer->Refusal == EVeyraShopRefusal::None;
-	const FText Price = Offer ? GoldText(Offer->Price) : FText::GetEmpty();
+	const FText Price = Offer ? PriceText(Offer->Price) : FText::GetEmpty();
 	// Outlined when chosen from the catalog; a slot chosen in the inventory is outlined there instead.
 	const bool bSelected = Item == SelectedItem && !View.Slots.IsValidIndex(SelectedSlot);
 	const FText Name = VeyraContentText::ItemName(Item);
@@ -630,7 +630,7 @@ UVeyraShellButton* UVeyraShopScreen::AddTile(UPanelWidget& Parent, const FText& 
 {
 	// League's tile: the icon framed thinly, the frame lit when chosen, the price beneath in Gold's colour
 	// while it can be bought and dimmed while it cannot.
-	const UVeyraShellStyleSettings& Settings = Style();
+	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	UVerticalBox* Stack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	Stack->AddChildToVerticalBox(&MakeMark(Name, Size, bLit, bSelected ? Settings.AccentColor : Settings.HairlineColor))->SetHorizontalAlignment(HAlign_Center);
 	UTextBlock* Line = MakeLine(*WidgetTree, Under, EVeyraShellText::Small);
@@ -660,7 +660,7 @@ UVeyraShellButton* UVeyraShopScreen::AddTile(UPanelWidget& Parent, const FText& 
 
 UWidget& UVeyraShopScreen::MakeMark(const FText& Name, float Size, bool bLit, const FLinearColor& Edge)
 {
-	const UVeyraShellStyleSettings& Settings = Style();
+	const UVeyraShellStyleSettings& Settings = ShopStyle();
 	UBorder* Mark = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
 	Mark->SetBrush(FSlateRoundedBoxBrush(Settings.SurfaceRaisedColor, Settings.ButtonCornerRadius, Edge, 1.0f));
 	Mark->SetPadding(FMargin(0.0f));
@@ -699,7 +699,7 @@ UVeyraShellButton* UVeyraShopScreen::AddNamedButton(UPanelWidget& Parent, EVeyra
 	Text->SetJustification(ETextJustify::Center);
 	if (!bEnabled)
 	{
-		Text->SetColorAndOpacity(FSlateColor(Style().MutedTextColor));
+		Text->SetColorAndOpacity(FSlateColor(ShopStyle().MutedTextColor));
 	}
 	UVeyraShellButton* Button = UVeyraShellButton::MakeWithContent(*WidgetTree, Label, *Text, MoveTemp(Action), bEnabled);
 	Button->SetStyle(VeyraShellStyle::ButtonStyleFor(Kind, false));

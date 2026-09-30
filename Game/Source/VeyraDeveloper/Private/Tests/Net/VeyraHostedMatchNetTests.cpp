@@ -48,7 +48,6 @@ namespace VeyraNetTests
 			ASSERT_THAT(IsTrue(VeyraGreybox::LoadLayout(Layout).IsEmpty()));
 			Tuning = MakeUnique<FScopedMatchTuning>();
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
-			Tuning->Tuning.Lifecycle.AbandonAfterSeconds = ShortAbandonSeconds;
 			Tickets = MakeUnique<FScopedTestTickets>();
 			// Both on Team A: joining the smaller side would split them, so the roster must decide. Their
 			// Vanguards differ from the developer order's, so the roster must decide those too.
@@ -212,6 +211,9 @@ namespace VeyraNetTests
 		{
 			ExpectRefusals(1);
 			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				// Only now, with everyone in: abandonment counts real time, and a slow start could otherwise
+				// abandon the match before its players connect.
+				.ThenServer(TEXT("Shorten the wait for abandonment"), [this](FState& /*State*/) { Tuning->Tuning.Lifecycle.AbandonAfterSeconds = ShortAbandonSeconds; })
 				.ThenClients(TEXT("Every client leaves"), [](FState& State) { LocalControllerOf(State.World)->ConsoleCommand(TEXT("disconnect")); })
 				.UntilServer(TEXT("The match ends as abandoned"), [this](FState& /*State*/) { return Result.IsSet(); })
 				.ThenServer(TEXT("Nobody was connected at the end, and nobody may join an ended match"), [this](FState& State) {
