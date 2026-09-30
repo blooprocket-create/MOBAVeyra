@@ -86,6 +86,28 @@ namespace
 		DrawHudRect(Canvas, TopLeft, FVector2D(Settings.BarWidth, Settings.BarHeight), Settings.BarBackgroundColor);
 		DrawHudRect(Canvas, TopLeft, FVector2D(HealthWidth, Settings.BarHeight), Greybox.SideColorOf(Unit));
 		DrawHudRect(Canvas, TopLeft + FVector2D(HealthWidth, 0.0f), FVector2D(Settings.BarWidth * Vitals->Shield / Total, Settings.BarHeight), Settings.ShieldColor);
+		// Ticks every HealthPerTick along a Vanguard's bar, a longer one every tenth, so its Health reads at
+		// a glance, as League's do; never so close that they blur.
+		constexpr double HealthPerTick = 100.0;
+		constexpr int32 TicksPerLongTick = 10;
+		constexpr float LeastTickGap = 3.0f;
+		const double TickGap = Settings.BarWidth * HealthPerTick / Total;
+		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
+		if (Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Vanguard && TickGap >= LeastTickGap)
+		{
+			for (int32 Tick = 1; Tick * HealthPerTick < Total; ++Tick)
+			{
+				const bool bLong = Tick % TicksPerLongTick == 0;
+				const float Height = bLong ? Settings.BarHeight : Settings.BarHeight * 0.55f;
+				DrawHudRect(Canvas, FVector2D(TopLeft.X + TickGap * Tick, TopLeft.Y), FVector2D(1.0f, Height), FLinearColor(0.0f, 0.0f, 0.0f, bLong ? 0.8f : 0.5f));
+			}
+		}
+		{
+			FCanvasBoxItem Edge(TopLeft, FVector2D(Settings.BarWidth, Settings.BarHeight));
+			Edge.SetColor(FLinearColor(0.0f, 0.0f, 0.0f, 0.85f));
+			Edge.BlendMode = SE_BLEND_Translucent;
+			Canvas.DrawItem(Edge);
+		}
 		if (Vitals->MaxResource > 0.0)
 		{
 			const FVector2D ResourceTopLeft = TopLeft + FVector2D(0.0f, Settings.BarHeight);

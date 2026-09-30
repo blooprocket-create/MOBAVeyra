@@ -1,6 +1,10 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Scoreboard/VeyraScoreboard.h"
+#include "Shell/VeyraShellArt.h"
+#include "Engine/Texture2D.h"
+#include "Components/Image.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
 
 #include "Blueprint/WidgetTree.h"
 #include "Components/Border.h"
@@ -109,13 +113,41 @@ void UVeyraScoreboard::Rebuild()
 		VeyraShellStyle::AddSpaced(*Column, *Heading);
 		for (const FVeyraScoreboardRow& Row : Side.Rows)
 		{
+			// A card for each player: the Vanguard's face, its line and its build; the viewer's own outlined.
+			UBorder* Card = VeyraShellStyle::MakeSurface(*WidgetTree, Row.bLocal ? VeyraShellStyle::EVeyraShellSurface::Raised : VeyraShellStyle::EVeyraShellSurface::Panel,
+				FMargin(Style.Spacing / 2.0f));
+			if (Row.bLocal)
+			{
+				Card->SetBrush(FSlateRoundedBoxBrush(Style.SurfaceRaisedColor, Style.PanelCornerRadius, Style.AccentColor.CopyWithNewOpacity(0.6f), 1.0f));
+			}
+			UHorizontalBox* Inside = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+			Card->SetContent(Inside);
+			const FString VanguardId = Row.Vanguard.ToString();
+			UTexture2D* Hero = VeyraShellArt::HeroOf(VanguardId);
+			const FVector2D FaceSize(Style.PortraitSize, Style.PortraitSize);
+			UImage* Face = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass());
+			const FBox2f Crop = Hero ? VeyraShellArt::Crop(VanguardId, Hero->GetSizeX(), Hero->GetSizeY(), 1.0f, true) : FBox2f(FVector2f::ZeroVector, FVector2f::UnitVector);
+			Face->SetBrush(VeyraShellArt::Brush(Hero, Crop, FaceSize, Style.ButtonCornerRadius, Style.SurfaceColor, Side.bAllies ? Style.AllyColor : Style.EnemyColor, 1.0f));
+			if (Row.bAway)
+			{
+				Face->SetColorAndOpacity(Style.MutedTextColor);
+			}
+			Inside->AddChildToHorizontalBox(Face)->SetVerticalAlignment(VAlign_Center);
+			UVerticalBox* Texts = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 			UTextBlock* Line = VeyraShellStyle::MakeText(*WidgetTree, RowLine(Row), VeyraShellStyle::EVeyraShellText::Body);
 			if (Row.bLocal)
 			{
 				Line->SetColorAndOpacity(Style.AccentColor);
 			}
-			Column->AddChild(Line);
-			VeyraShellStyle::AddSpaced(*Column, *VeyraShellStyle::MakeText(*WidgetTree, ItemsLine(Row), VeyraShellStyle::EVeyraShellText::Small));
+			Texts->AddChild(Line);
+			UTextBlock* Build = VeyraShellStyle::MakeText(*WidgetTree, ItemsLine(Row), VeyraShellStyle::EVeyraShellText::Small);
+			Build->SetColorAndOpacity(FSlateColor(Style.MutedTextColor));
+			Texts->AddChild(Build);
+			UHorizontalBoxSlot* TextSlot = Inside->AddChildToHorizontalBox(Texts);
+			TextSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+			TextSlot->SetVerticalAlignment(VAlign_Center);
+			TextSlot->SetPadding(FMargin(Style.Spacing, 0.0f, 0.0f, 0.0f));
+			VeyraShellStyle::AddSpaced(*Column, *Card);
 		}
 		if (UHorizontalBoxSlot* ColumnSlot = Columns->AddChildToHorizontalBox(Column))
 		{
