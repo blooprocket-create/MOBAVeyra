@@ -136,7 +136,7 @@ Every value here is Provisional data in `Settings.json`.
 2. **Edge zones** Narrow / Standard / Wide are 6 / 12 / 24 pixels. **Edge delays** Immediate / Short / Long are 0 / 0.15 / 0.3 s.
 3. **HUD scales** run 50–150% in steps of 5, with 100% as the default. Minimap scale and icon scale use the same range.
 4. **Frame caps** are 30 / 60 / 120 / 144 / 240 / Uncapped, with the foreground default Uncapped and the background default 30 (SET-109). Render scale runs 50–100%, default 100%.
-5. **The account document** is at most 64 KiB. The backend keeps the latest revision only.
+5. **The account document** is at most 32 KiB (`Backend/config settings.maxDocumentBytes`), under the backend's 64 KiB request body limit so a document that fits can always be sent. The backend keeps the latest revision only.
 6. **The conflict choice** is asked once after sign-in, before the shell shows, like League's settings conflict dialog.
 
 ## Consequences

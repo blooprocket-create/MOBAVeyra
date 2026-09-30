@@ -52,6 +52,9 @@
       {"side": "B", "vanguardId": "bryn", "difficulty": "beginner"}
     ]
   },
+  "settings": {
+    "maxDocumentBytes": 32768
+  },
   "customLobby": {
     "enabled": true,
     "mode": "custom_game",
