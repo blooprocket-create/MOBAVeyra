@@ -6,6 +6,7 @@
 #if ENABLE_PIE_NETWORK_TEST
 
 #include "AbilitySystemComponent.h"
+#include "Navigation/PathFollowingComponent.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "GameFramework/PlayerState.h"
@@ -176,6 +177,11 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(Controller->AttackUnit(*Target) == EVeyraOrderRejection::None && Attacks->GetState().Phase == EVeyraAttackPhase::Windup));
 					Controller->MoveToDestination(Step);
 					ASSERT_THAT(IsTrue(Attacks->GetState().Phase == EVeyraAttackPhase::Windup, TEXT("a mobile attacker's windup goes on (ADR-027 §1)")));
+					// An attack-move walks on through it too, from a standstill.
+					Controller->StopMovement();
+					Controller->AttackMoveTo(Step + FVector(0.0, Aside, 0.0));
+					ASSERT_THAT(IsTrue(Attacks->GetState().Phase == EVeyraAttackPhase::Windup
+						&& Controller->GetPathFollowingComponent()->GetStatus() == EPathFollowingStatus::Moving, TEXT("an attack-move walks during a mobile windup")));
 				})
 				.UntilServer(TEXT("Its attack lands as it walks"), [](FState& State) { return HealthLost(ParticipantOf(State, 1)) > 0.0; });
 		}

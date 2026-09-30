@@ -129,6 +129,12 @@ EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Desti
 	AttackTarget.Reset();
 	AttackMoveDestination = Walkable.GetValue();
 	AttackPath = EAttackPath::None;
+	// A mobile attacker walks on while its windup goes on, as it does for a move order (ADR-027 §1); the
+	// order takes up its next target once the attack commits.
+	if (Attacks->GetState().Phase == EVeyraAttackPhase::Windup && !IsMovementLocked())
+	{
+		FollowAttackMove();
+	}
 	UpdateAttackOrder();
 	return EVeyraOrderRejection::None;
 }
