@@ -137,7 +137,13 @@ namespace VeyraSettingsTests
 	// Veyra.Settings.SettingsStore.*: the player's values over the registry (ADR-024 §5; Settings Bible §6.1).
 	TEST_CLASS(SettingsStore, "Veyra.Settings")
 	{
-		const FVeyraSettingsRegistry Registry = FixtureRegistry();
+		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */
+		FVeyraSettingsRegistry Registry;
+
+		BEFORE_EACH()
+		{
+			Registry = FixtureRegistry();
+		}
 
 		TEST_METHOD(DefaultsHoldUntilChangedAndOnlyChangesAreKept)
 		{
@@ -231,7 +237,8 @@ namespace VeyraSettingsTests
 	// Veyra.Settings.SettingsPersistence.*: where each scope is kept (ADR-024 §1; Settings Bible §7).
 	TEST_CLASS(SettingsPersistence, "Veyra.Settings")
 	{
-		const FVeyraSettingsRegistry Registry = FixtureRegistry();
+		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */
+		FVeyraSettingsRegistry Registry;
 		FString CacheDirectory;
 		UVeyraUserSettings* Device = nullptr;
 
@@ -241,6 +248,7 @@ namespace VeyraSettingsTests
 
 		BEFORE_EACH()
 		{
+			Registry = FixtureRegistry();
 			CacheDirectory = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("Automation"), TEXT("VeyraSettings"), FGuid::NewGuid().ToString());
 			Device = NewObject<UVeyraUserSettings>();
 			UVeyraSettingsSubsystem::SetTestRegistry(&Registry);

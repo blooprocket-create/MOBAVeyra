@@ -23,8 +23,14 @@ namespace VeyraCameraPreferencesTests
 	// Veyra.Match.CameraPreferences.*: the player's camera settings over the developer's (ADR-024 §6, §9; Settings Bible §2, §12.3).
 	TEST_CLASS(CameraPreferences, "Veyra.Match")
 	{
-		const FVeyraSettingsRegistry Registry = CameraRegistry();
-		const UVeyraCameraSettings& View = *GetDefault<UVeyraCameraSettings>();
+		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */
+		FVeyraSettingsRegistry Registry;
+
+		BEFORE_EACH()
+		{
+			Registry = CameraRegistry();
+		}
+		static const UVeyraCameraSettings& ViewSettings() { return *GetDefault<UVeyraCameraSettings>(); }
 
 		TEST_METHOD(ASpeedSliderScalesTheDevelopersSpeedEvenlyInRatio)
 		{
@@ -32,18 +38,18 @@ namespace VeyraCameraPreferencesTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(SpeedScale(100.0, 0.0, 50.0, 100.0, 0.5, 2.0), 2.0)));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(SpeedScale(0.0, 0.0, 50.0, 100.0, 0.5, 2.0), 0.5)));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(SpeedScale(75.0, 0.0, 50.0, 100.0, 0.5, 2.0), FMath::Sqrt(2.0)), TEXT("halfway up is halfway in ratio")));
-			ASSERT_THAT(IsTrue(View.SpeedSettingSlowest > 0.0f && View.SpeedSettingSlowest <= 1.0f && View.SpeedSettingFastest >= 1.0f));
+			ASSERT_THAT(IsTrue(ViewSettings().SpeedSettingSlowest > 0.0f && ViewSettings().SpeedSettingSlowest <= 1.0f && ViewSettings().SpeedSettingFastest >= 1.0f));
 		}
 
 		TEST_METHOD(WithoutSettingsTheCameraIsTheDevelopers)
 		{
-			const FVeyraCameraPreferences Plain = Resolve(View, nullptr);
-			ASSERT_THAT(IsTrue(Plain.PanSpeed == View.PanSpeed && Plain.EdgeScrollPixels == View.EdgeScrollPixels && Plain.DefaultMode == View.DefaultMode));
+			const FVeyraCameraPreferences Plain = Resolve(ViewSettings(), nullptr);
+			ASSERT_THAT(IsTrue(Plain.PanSpeed == ViewSettings().PanSpeed && Plain.EdgeScrollPixels == ViewSettings().EdgeScrollPixels && Plain.DefaultMode == ViewSettings().DefaultMode));
 			ASSERT_THAT(IsTrue(Plain.EdgeDelaySeconds == 0.0 && Plain.bReturnOnRespawn && Plain.bFreeWhileDead));
 
 			const FVeyraSettingsStore Defaults(Registry);
-			const FVeyraCameraPreferences Untouched = Resolve(View, &Defaults);
-			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Untouched.PanSpeed, static_cast<double>(View.PanSpeed)) && Untouched.EdgeScrollPixels == View.EdgeScrollPixels,
+			const FVeyraCameraPreferences Untouched = Resolve(ViewSettings(), &Defaults);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Untouched.PanSpeed, static_cast<double>(ViewSettings().PanSpeed)) && Untouched.EdgeScrollPixels == ViewSettings().EdgeScrollPixels,
 				TEXT("the settings' defaults are the developer's camera")));
 		}
 
@@ -58,10 +64,10 @@ namespace VeyraCameraPreferencesTests
 			Store.Set(ReturnOnRespawn(), VeyraSettings::Off());
 			Store.Set(FreeWhileDead(), VeyraSettings::Off());
 			Store.Set(EdgeScroll(), VeyraSettings::Off());
-			const FVeyraCameraPreferences Preferences = Resolve(View, &Store);
-			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.PanSpeed, View.PanSpeed * static_cast<double>(View.SpeedSettingFastest))));
-			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.DragUnitsPerPixel, View.DragUnitsPerPixel * static_cast<double>(View.SpeedSettingSlowest))));
-			ASSERT_THAT(IsTrue(Preferences.EdgeScrollPixels == View.EdgeZonePixels.FindRef(TEXT("Wide")) && Preferences.EdgeDelaySeconds == View.EdgeDelaySeconds.FindRef(TEXT("Long"))));
+			const FVeyraCameraPreferences Preferences = Resolve(ViewSettings(), &Store);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.PanSpeed, ViewSettings().PanSpeed * static_cast<double>(ViewSettings().SpeedSettingFastest))));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.DragUnitsPerPixel, ViewSettings().DragUnitsPerPixel * static_cast<double>(ViewSettings().SpeedSettingSlowest))));
+			ASSERT_THAT(IsTrue(Preferences.EdgeScrollPixels == ViewSettings().EdgeZonePixels.FindRef(TEXT("Wide")) && Preferences.EdgeDelaySeconds == ViewSettings().EdgeDelaySeconds.FindRef(TEXT("Long"))));
 			ASSERT_THAT(IsTrue(Preferences.DefaultMode == EVeyraCameraMode::SemiLocked && !Preferences.bReturnOnRespawn && !Preferences.bFreeWhileDead && !Preferences.bEdgeScroll));
 		}
 
@@ -73,11 +79,11 @@ namespace VeyraCameraPreferencesTests
 			ASSERT_THAT(IsTrue(Zone.IsSet() && Zone->Choice && Delay.IsSet() && Delay->Choice && Mode.IsSet() && Mode->Choice));
 			for (const FString& Option : Zone->Choice->Options)
 			{
-				ASSERT_THAT(IsTrue(View.EdgeZonePixels.Contains(Option), FString::Printf(TEXT("EdgeZonePixels lacks %s"), *Option)));
+				ASSERT_THAT(IsTrue(ViewSettings().EdgeZonePixels.Contains(Option), FString::Printf(TEXT("EdgeZonePixels lacks %s"), *Option)));
 			}
 			for (const FString& Option : Delay->Choice->Options)
 			{
-				ASSERT_THAT(IsTrue(View.EdgeDelaySeconds.Contains(Option), FString::Printf(TEXT("EdgeDelaySeconds lacks %s"), *Option)));
+				ASSERT_THAT(IsTrue(ViewSettings().EdgeDelaySeconds.Contains(Option), FString::Printf(TEXT("EdgeDelaySeconds lacks %s"), *Option)));
 			}
 			for (const FString& Option : Mode->Choice->Options)
 			{

@@ -23,18 +23,24 @@ namespace VeyraInterfacePreferencesTests
 	// Veyra.UI.InterfacePreferences.*: the player's HUD, minimap and in-match controls (ADR-024 §6; Settings Bible §3, SET-56, SET-83).
 	TEST_CLASS(InterfacePreferences, "Veyra.UI")
 	{
-		const FVeyraSettingsRegistry Registry = InterfaceRegistry();
-		const UVeyraGreyboxSettings& Hud = *GetDefault<UVeyraGreyboxSettings>();
+		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */
+		FVeyraSettingsRegistry Registry;
+
+		BEFORE_EACH()
+		{
+			Registry = InterfaceRegistry();
+		}
+		static const UVeyraGreyboxSettings& HudSettings() { return *GetDefault<UVeyraGreyboxSettings>(); }
 
 		TEST_METHOD(TheDefaultsAreTheDevelopersInterface)
 		{
-			const FVeyraInterfacePreferences Plain = Resolve(Hud, nullptr);
+			const FVeyraInterfacePreferences Plain = Resolve(HudSettings(), nullptr);
 			const FVeyraSettingsStore Defaults(Registry);
-			const FVeyraInterfacePreferences Untouched = Resolve(Hud, &Defaults);
+			const FVeyraInterfacePreferences Untouched = Resolve(HudSettings(), &Defaults);
 			for (const FVeyraInterfacePreferences* Preferences : { &Plain, &Untouched })
 			{
-				ASSERT_THAT(IsTrue(Preferences->HudScale == 1.0f && Preferences->MinimapSize == Hud.MinimapSize && Preferences->MinimapUnitIcon == Hud.MinimapUnitIcon));
-				ASSERT_THAT(IsTrue(Preferences->PingSeconds == Hud.PingSeconds && Preferences->bMinimapClickMovesCamera && Preferences->bMinimapRightClickMoves));
+				ASSERT_THAT(IsTrue(Preferences->HudScale == 1.0f && Preferences->MinimapSize == HudSettings().MinimapSize && Preferences->MinimapUnitIcon == HudSettings().MinimapUnitIcon));
+				ASSERT_THAT(IsTrue(Preferences->PingSeconds == HudSettings().PingSeconds && Preferences->bMinimapClickMovesCamera && Preferences->bMinimapRightClickMoves));
 				ASSERT_THAT(IsTrue(!Preferences->bShowFps && !Preferences->bShowPing && !Preferences->bScoreboardToggles && Preferences->bConfineCursor));
 			}
 		}
@@ -50,9 +56,9 @@ namespace VeyraInterfacePreferencesTests
 			Store.Set(ScoreboardMode(), TEXT("Toggle"));
 			Store.Set(ConfineCursor(), VeyraSettings::Off());
 			Store.Set(ShowFps(), VeyraSettings::On());
-			const FVeyraInterfacePreferences Preferences = Resolve(Hud, &Store);
-			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.HudScale, 1.2f) && FMath::IsNearlyEqual(Preferences.MinimapSize, Hud.MinimapSize * 1.5f)));
-			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.MinimapVanguardIcon, Hud.MinimapVanguardIcon * 0.5f) && Preferences.PingSeconds == 6.0f));
+			const FVeyraInterfacePreferences Preferences = Resolve(HudSettings(), &Store);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.HudScale, 1.2f) && FMath::IsNearlyEqual(Preferences.MinimapSize, HudSettings().MinimapSize * 1.5f)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Preferences.MinimapVanguardIcon, HudSettings().MinimapVanguardIcon * 0.5f) && Preferences.PingSeconds == 6.0f));
 			ASSERT_THAT(IsTrue(!Preferences.bMinimapRightClickMoves && Preferences.bScoreboardToggles && !Preferences.bConfineCursor && Preferences.bShowFps));
 		}
 

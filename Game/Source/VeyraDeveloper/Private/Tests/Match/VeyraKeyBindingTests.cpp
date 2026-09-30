@@ -34,7 +34,13 @@ namespace VeyraKeyBindingTests
 	// Veyra.Match.KeyBindings.*: the player's keys over the developer's (Settings Bible §1.1; ADR-024 §6).
 	TEST_CLASS(KeyBindings, "Veyra.Match")
 	{
-		const FVeyraSettingsRegistry Registry = BindingRegistry();
+		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */
+		FVeyraSettingsRegistry Registry;
+
+		BEFORE_EACH()
+		{
+			Registry = BindingRegistry();
+		}
 
 		TEST_METHOD(ABindingTakesAKeyNoneOrTheDefault)
 		{

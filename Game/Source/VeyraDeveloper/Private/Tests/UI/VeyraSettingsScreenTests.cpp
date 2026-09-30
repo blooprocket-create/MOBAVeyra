@@ -76,7 +76,13 @@ namespace VeyraSettingsScreenTests
 	// Veyra.UI.SettingsModels.*: what the Settings screen shows (ADR-024 §5; Settings Bible §6, §13).
 	TEST_CLASS(SettingsModels, "Veyra.UI")
 	{
-		const FVeyraSettingsRegistry Registry = CommittedRegistry();
+		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */
+		FVeyraSettingsRegistry Registry;
+
+		BEFORE_EACH()
+		{
+			Registry = CommittedRegistry();
+		}
 
 		TEST_METHOD(OnlyCategoriesWithSettingsShowInTheLayoutsOrder)
 		{
@@ -144,13 +150,15 @@ namespace VeyraSettingsScreenTests
 	TEST_CLASS(SettingsScreen, "Veyra.UI")
 	{
 		FActorTestSpawner Spawner;
-		const FVeyraSettingsRegistry Registry = CommittedRegistry();
+		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */
+		FVeyraSettingsRegistry Registry;
 		TUniquePtr<FScopedTestSettings> Settings;
 		UVeyraSettingsScreen* Screen = nullptr;
 		int32 Closes = 0;
 
 		BEFORE_EACH()
 		{
+			Registry = CommittedRegistry();
 			Settings = MakeUnique<FScopedTestSettings>(Registry);
 			Screen = CreateWidget<UVeyraSettingsScreen>(&Spawner.GetWorld());
 			Screen->Show(*Settings->Settings, /*bInLiveMatch*/ false, [this] { ++Closes; });
@@ -241,12 +249,14 @@ namespace VeyraSettingsScreenTests
 	TEST_CLASS(SettingsBindings, "Veyra.UI")
 	{
 		FActorTestSpawner Spawner;
-		const FVeyraSettingsRegistry Registry = CommittedRegistry();
+		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */
+		FVeyraSettingsRegistry Registry;
 		TUniquePtr<FScopedTestSettings> Settings;
 		UVeyraSettingsScreen* Screen = nullptr;
 
 		BEFORE_EACH()
 		{
+			Registry = CommittedRegistry();
 			Settings = MakeUnique<FScopedTestSettings>(Registry);
 			Screen = CreateWidget<UVeyraSettingsScreen>(&Spawner.GetWorld());
 			Screen->Show(*Settings->Settings, /*bInLiveMatch*/ false, [] {});
@@ -329,7 +339,8 @@ namespace VeyraSettingsScreenTests
 	TEST_CLASS(SettingsEntryPoints, "Veyra.UI")
 	{
 		FActorTestSpawner Spawner;
-		const FVeyraSettingsRegistry Registry = CommittedRegistry();
+		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */
+		FVeyraSettingsRegistry Registry;
 		TUniquePtr<FScopedTestSettings> Settings;
 		/** Two players' clients, each outliving any screen bound to it. */
 		FClientFlowTestRig Rig;
@@ -338,6 +349,7 @@ namespace VeyraSettingsScreenTests
 
 		BEFORE_EACH()
 		{
+			Registry = CommittedRegistry();
 			Settings = MakeUnique<FScopedTestSettings>(Registry);
 		}
 

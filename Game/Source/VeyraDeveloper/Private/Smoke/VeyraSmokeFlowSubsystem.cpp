@@ -37,8 +37,12 @@
 #include "Shell/VeyraShellStyleSettings.h"
 #include "Shell/VeyraShellUISubsystem.h"
 #include "Shop/VeyraShopScreen.h"
+#include "Settings/VeyraSettingsModels.h"
+#include "Settings/VeyraSettingsScreen.h"
 #include "Text/VeyraContentText.h"
 #endif
+#include "VeyraSettingsStore.h"
+#include "VeyraSettingsSubsystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogVeyraSmokeFlow, Log, All);
 
@@ -146,13 +150,15 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{ TEXT("opponent"), EScript::Opponent },
 		{ TEXT("customhost"), EScript::CustomHost },
 		{ TEXT("customguest"), EScript::CustomGuest },
+		{ TEXT("settingschange"), EScript::SettingsChange },
+		{ TEXT("settingscheck"), EScript::SettingsCheck },
 	};
 	const TPair<const TCHAR*, EScript>* Known = Algo::FindByPredicate(Scripts, [&Mode](const TPair<const TCHAR*, EScript>& Candidate) {
 		return Mode.Equals(Candidate.Key, ESearchCase::CaseSensitive);
 	});
 	if (!Known)
 	{
-		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue, opponent, customhost or customguest, not \"%s\""), *Mode));
+		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue, opponent, customhost, customguest, settingschange or settingscheck, not \"%s\""), *Mode));
 		return;
 	}
 	Script = Known->Value;
@@ -268,7 +274,11 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		break;
 
 	case EVeyraClientState::Shell:
-		if (IsMatchmade())
+		if (IsSettings())
+		{
+			TickSettings();
+		}
+		else if (IsMatchmade())
 		{
 			TickMatchmadeShell(Flow);
 		}
@@ -1551,6 +1561,143 @@ bool UVeyraSmokeFlowSubsystem::TickHistory(const IVeyraClientIntents& Flow)
 	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: opened it from Match History, with its scoreboard of %d player(s)."), History.Opened->Players.Num());
 	bCheckedHistory = Click(TEXT("Back to Match History"));
 	return !bCheckedHistory;
+}
+
+void UVeyraSmokeFlowSubsystem::TickSettings()
+{
+#if WITH_VEYRA_UI
+	// What the scripts change: the match's Display Mode (the device's) and the first ability's key (the account's).
+	const FVeyraContentId DisplayMode = FVeyraContentId::FromText(TEXT("display_match_mode")).GetValue();
+	const FVeyraContentId FirstAbility = FVeyraContentId::FromText(TEXT("controls_bind_ability_q")).GetValue();
+	const FString Windowed = TEXT("Windowed");
+	const FKey NewKey = EKeys::T;
+
+	UVeyraSettingsSubsystem* Player = GetGameInstance()->GetSubsystem<UVeyraSettingsSubsystem>();
+	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
+	UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr;
+	if (!Player || !Player->IsReady())
+	{
+		Finish(false, TEXT("the game has no player settings"));
+		return;
+	}
+	if (!Screen)
+	{
+		return;
+	}
+	FVeyraSettingsStore& Store = Player->GetStore();
+	UVeyraSettingsScreen* Settings = Screen->GetSettingsScreen();
+	const auto FindRow = [Settings](const FVeyraContentId& Id) {
+		return Settings ? Settings->GetModel().Rows.FindByPredicate([&Id](const FVeyraSettingRowModel& Row) { return Row.Id == Id; }) : nullptr;
+	};
+	const auto Press = [this, Settings](const FText& Label) {
+		UVeyraShellButton* Button = Settings ? Settings->FindButton(Label) : nullptr;
+		if (!Button || !Button->GetIsEnabled())
+		{
+			Finish(false, FString::Printf(TEXT("the Settings screen shows no enabled \"%s\" button"), *Label.ToString()));
+			return false;
+		}
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: clicked \"%s\" in Settings."), *Label.ToString());
+		Button->Press();
+		return true;
+	};
+
+	switch (SettingsStep)
+	{
+	case 0:
+		if (Script == EScript::SettingsCheck && (Store.Get(DisplayMode) != Windowed || Store.Get(FirstAbility) != NewKey.GetFName().ToString()))
+		{
+			Finish(false, FString::Printf(TEXT("after a restart, Display Mode is %s and the first ability's key %s"), *Store.Get(DisplayMode), *Store.Get(FirstAbility)));
+			return;
+		}
+		if (!Capture(TEXT("SettingsHome")) && Click(UVeyraShellScreen::SettingsLabel().ToString()))
+		{
+			SettingsStep = 1;
+		}
+		return;
+	case 1:
+		if (!Settings)
+		{
+			Finish(false, TEXT("Settings did not open from the shell's top bar"));
+			return;
+		}
+		Settings->ShowCategory(EVeyraSettingCategory::GraphicsDisplay);
+		SettingsStep = 2;
+		return;
+	case 2:
+	{
+		if (Capture(TEXT("SettingsDisplay")))
+		{
+			return;
+		}
+		const FVeyraSettingRowModel* Row = FindRow(DisplayMode);
+		const FVeyraSettingOptionModel* Option = Row ? Row->Options.FindByPredicate([&Windowed](const FVeyraSettingOptionModel& Each) { return Each.Value == Windowed; }) : nullptr;
+		if (Script == EScript::SettingsChange && (!Option || !Press(UVeyraSettingsScreen::OptionLabel(*Row, *Option))))
+		{
+			return;
+		}
+		Settings->ShowCategory(EVeyraSettingCategory::Controls);
+		SettingsStep = 3;
+		return;
+	}
+	case 3:
+	{
+		if (Capture(TEXT("SettingsControls")))
+		{
+			return;
+		}
+		const FVeyraSettingRowModel* Row = FindRow(FirstAbility);
+		if (!Row)
+		{
+			Finish(false, TEXT("the Controls category lists no first ability"));
+			return;
+		}
+		if (Script == EScript::SettingsCheck)
+		{
+			if (Row->ValueText.ToString() != NewKey.GetDisplayName().ToString())
+			{
+				Finish(false, FString::Printf(TEXT("the Controls category shows the first ability on %s"), *Row->ValueText.ToString()));
+				return;
+			}
+			// Put back as they were, so the next run starts from the defaults.
+			Store.Reset(DisplayMode);
+			Store.Reset(FirstAbility);
+		}
+		else
+		{
+			if (!Press(UVeyraSettingsScreen::ChangeLabel(*Row)))
+			{
+				return;
+			}
+			Settings->CaptureKey(NewKey);
+		}
+		SettingsStep = 4;
+		return;
+	}
+	case 4:
+		if (Script == EScript::SettingsChange && (Store.Get(DisplayMode) != Windowed || Store.Get(FirstAbility) != NewKey.GetFName().ToString()))
+		{
+			Finish(false, FString::Printf(TEXT("Settings kept Display Mode %s and the first ability's key %s"), *Store.Get(DisplayMode), *Store.Get(FirstAbility)));
+			return;
+		}
+		if (Press(UVeyraSettingsScreen::CloseLabel()))
+		{
+			SettingsStep = 5;
+		}
+		return;
+	default:
+		// The account's settings go once they settle; the script waits for the backend to take them.
+		if (Player->HasUnsentAccountChanges())
+		{
+			return;
+		}
+		Finish(true, Script == EScript::SettingsChange
+				? TEXT("chose Windowed for the match's Display Mode and T for the first ability in Settings, and the account took the binding")
+				: TEXT("found the match's Display Mode Windowed and the first ability on T after a restart, and put both back"));
+		return;
+	}
+#else
+	Finish(false, TEXT("this build has no Settings screen"));
+#endif
 }
 
 bool UVeyraSmokeFlowSubsystem::Click(const FString& Label, int32 Occurrence)

@@ -23,7 +23,13 @@ namespace VeyraDisplayRulesTests
 	// Veyra.UI.SettingsDisplay.*: the Graphics & Display settings' rules (ADR-024 §6; Settings Bible §8, SET-92, SET-109).
 	TEST_CLASS(SettingsDisplay, "Veyra.UI")
 	{
-		const FVeyraSettingsRegistry Registry = LoadedRegistry();
+		/** Loaded before each test: CQTest builds its classes while registering them, which in a packaged client is before the engine starts. */
+		FVeyraSettingsRegistry Registry;
+
+		BEFORE_EACH()
+		{
+			Registry = LoadedRegistry();
+		}
 
 		TEST_METHOD(TheDefaultsAreWhatTheEngineShows)
 		{

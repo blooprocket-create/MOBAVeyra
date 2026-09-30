@@ -233,6 +233,11 @@ FReply UVeyraSettingsScreen::NativeOnKeyDown(const FGeometry& InGeometry, const 
 		CaptureKey(InKeyEvent.GetKey());
 		return FReply::Handled();
 	}
+	// Typing a search over a live match never casts: the letters stay in the field (Settings Bible §6.2).
+	if (SearchBox && SearchBox->HasKeyboardFocus() && InKeyEvent.GetKey() != EKeys::Escape)
+	{
+		return FReply::Handled();
+	}
 	return Super::NativeOnKeyDown(InGeometry, InKeyEvent);
 }
 
