@@ -96,7 +96,8 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	{
 		return EVeyraCastRejection::CasterDead;
 	}
-	if (EnumHasAnyFlags(VeyraCombat::GetActionBlocks(Caster), EVeyraActionBlocks::Cast))
+	const EVeyraActionBlocks Blocks = VeyraCombat::GetActionBlocks(Caster);
+	if (EnumHasAnyFlags(Blocks, EVeyraActionBlocks::Cast) || (EnumHasAnyFlags(Blocks, EVeyraActionBlocks::Dash) && MovesCaster(Ability)))
 	{
 		return EVeyraCastRejection::CrowdControlled;
 	}

@@ -72,6 +72,16 @@ namespace VeyraCombatTests
 			UVeyraCombatTuningSubsystem::SetTestOverride(nullptr);
 		}
 
+		TEST_METHOD(ARootStopsMovementAndMovingCastsButNotAttacksOrCasts)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("root"), EVeyraStatusKind::Root, 0.0, LongSeconds))));
+			const EVeyraActionBlocks Blocks = VeyraCombat::GetActionBlocks(*Unit);
+			ASSERT_THAT(IsTrue(EnumHasAllFlags(Blocks, EVeyraActionBlocks::Move | EVeyraActionBlocks::Dash), TEXT("no walking and no dashing (ADR-026 §3)")));
+			ASSERT_THAT(IsFalse(EnumHasAnyFlags(Blocks, EVeyraActionBlocks::Attack | EVeyraActionBlocks::Cast), TEXT("it may attack and cast in place")));
+			ASSERT_THAT(IsTrue(VeyraStatuses::IsCrowdControl(EVeyraStatusKind::Root) && VeyraStatuses::IsTenacityReducible(EVeyraStatusKind::Root)));
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("root"), EVeyraStatusKind::Root, Half, LongSeconds)).IsEmpty(), TEXT("a root has no magnitude")));
+		}
+
 		const FVeyraStatusEntry* Find(const TCHAR* Id) const
 		{
 			const FVeyraContentId StatusId = FVeyraContentId::FromText(Id).GetValue();

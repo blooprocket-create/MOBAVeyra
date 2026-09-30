@@ -92,6 +92,9 @@ protected:
 	 */
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const;
 
+	/** Whether Ability moves its caster, as a dash, leap or attach does: a Root refuses it (ADR-026 §3). */
+	virtual bool MovesCaster(const FVeyraContentId& Ability) const { return false; }
+
 	/** Whether casting Ability again now would end its lasting effect early instead (ADR-008 §9). */
 	virtual bool EndsEarlyOnRecast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
 

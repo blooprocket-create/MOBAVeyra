@@ -139,6 +139,11 @@ enum class EVeyraStatusKind : uint8
 	 * pass. Not crowd control. Magnitude: 0.
 	 */
 	SpellShield,
+	/**
+	 * Rooted (Combat Bible §8; ADR-026 §3): the unit cannot move, nor cast an ability that moves it, and
+	 * may attack and cast the rest. Crowd control: Tenacity shortens it. Magnitude: 0.
+	 */
+	Root,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */
@@ -162,6 +167,8 @@ enum class EVeyraActionBlocks : uint8
 	Move = 1 << 0,
 	Attack = 1 << 1,
 	Cast = 1 << 2,
+	/** Abilities that move their caster: dashes, leaps and attaching (ADR-026 §3). */
+	Dash = 1 << 3,
 };
 ENUM_CLASS_FLAGS(EVeyraActionBlocks);
 
