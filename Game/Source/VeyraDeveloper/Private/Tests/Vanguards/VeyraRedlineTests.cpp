@@ -134,6 +134,24 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsFalse(Passive->IsRoadhouseReady() || FArchetypeTestWorld::Has(*Raska, *Tuning().Roadhouse.ReachStatus.ToString())));
 		}
 
+		TEST_METHOD(RoadhouseStrikesWithoutItsLungeWhileGrounded)
+		{
+			// The lunge moves her by her own ability, which Grounded refuses (ADR-028 §2), as a Root's
+			// movement lock does; the strike still lands.
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			CastEvent(TEXT("raska_breakneck_redlined"));
+			ASSERT_THAT(IsTrue(Passive->IsRoadhouseReady()));
+			FVeyraStatusSpec Grounded;
+			Grounded.Id = FVeyraContentId::FromText(TEXT("test_grounded")).GetValue();
+			Grounded.Kind = EVeyraStatusKind::Grounded;
+			Grounded.DurationSeconds = 60.0;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy.GetAbilitySystemComponent(), *Raska->GetAbilitySystemComponent(), Grounded)));
+			ASSERT_THAT(IsTrue(StrikeAt(Enemy)));
+			ASSERT_THAT(IsFalse(Raska->GetVeyraMovement()->IsDashing(), TEXT("no lunge")));
+			ASSERT_THAT(IsFalse(Passive->IsRoadhouseReady(), TEXT("yet the strike spent Roadhouse")));
+		}
+
 		TEST_METHOD(DeathResetsIt)
 		{
 			FArchetypeTestWorld World{ Spawner };

@@ -258,12 +258,13 @@ void UVeyraBasicAttackComponent::Commit()
 	}
 
 	NextAttackAt = Running->StartedAt + Running->Timing.IntervalSeconds;
-	const FVeyraAttackPlan Plan = BuildPlan(*Attacker, *Target, Running->Timing, Running->bEmpowered);
-	FLandingAttack Landing = Prepare(*Attacker, *Body, Plan);
 	// A blinded attacker's attack misses: its on-attack effects fire and its empowerment is spent, but it
-	// lands nothing, as League's Blind (ADR-028 §1).
+	// lands nothing, as League's Blind (ADR-028 §1). Decided first, so no attack modifier acts on it.
 	const UVeyraStatusComponent* Statuses = GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
-	Landing.Event.bMissed = Statuses && Statuses->Has(EVeyraStatusKind::Blind);
+	const bool bMissed = Statuses && Statuses->Has(EVeyraStatusKind::Blind);
+	const FVeyraAttackPlan Plan = BuildPlan(*Attacker, *Target, Running->Timing, Running->bEmpowered, bMissed);
+	FLandingAttack Landing = Prepare(*Attacker, *Body, Plan);
+	Landing.Event.bMissed = bMissed;
 	OnAttack.Broadcast(Landing.Event);
 
 	if (!Landing.Event.bMissed && Profile.Projectile.IsEmpty())
@@ -299,7 +300,8 @@ void UVeyraBasicAttackComponent::Commit()
 	}
 }
 
-FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing, bool bEmpoweredAtStart)
+FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing, bool bEmpoweredAtStart,
+	bool bMissed)
 {
 	FVeyraAttackPlan Plan;
 	Plan.Target = &Target;
@@ -378,7 +380,10 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 	{
 		Plan.Cleave = FVeyraAttackCleave{ CleaveFraction, {} };
 	}
-	OnModifyAttack.Broadcast(Plan);
+	if (!bMissed)
+	{
+		OnModifyAttack.Broadcast(Plan);
+	}
 	// Amplified, against the target's kind when the status names one (ADR-018 §2).
 	if (Statuses)
 	{
@@ -436,6 +441,7 @@ void UVeyraBasicAttackComponent::Land(const FLandingAttack& Landing)
 	{
 		return;
 	}
+	OnLanding.Broadcast(Landing.Event);
 	if (Landing.Damage.IsValid())
 	{
 		VeyraCombat::DealPreparedDamage(Landing.Damage, *Struck);

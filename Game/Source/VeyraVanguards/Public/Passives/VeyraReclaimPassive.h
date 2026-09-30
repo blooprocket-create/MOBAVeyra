@@ -25,7 +25,8 @@ public:
 	virtual void Stop() override;
 
 private:
-	void OnHit(const FVeyraAttackEvent& Event);
+	/** As an attack of his lands, before its damage. */
+	void OnAttackLands(const FVeyraAttackEvent& Event);
 
 	TWeakObjectPtr<UVeyraBasicAttackComponent> Attacks;
 	FDelegateHandle HitHandle;

@@ -3,6 +3,7 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "CQTest.h"
 #include "Passives/VeyraReclaimPassive.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
@@ -107,6 +108,26 @@ namespace VeyraVanguardsTests
 			Wait(Tuning().LockoutSeconds);
 			ASSERT_THAT(IsTrue(AttackNow(Enemy) == EVeyraAttackRejection::None));
 			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(Enemy, *Mark), TEXT("after it, again")));
+		}
+
+		TEST_METHOD(AKillingAttackOnASandyEnemyStillHealsHim)
+		{
+			// Death clears the victim's statuses, so the attack must see Sandy before its damage lands.
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			FVeyraRawDamageEvent Hurt;
+			Hurt.Components.Add({ EVeyraDamageType::TrueDamage, Wound });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Enemy.GetAbilitySystemComponent(), *Silt->GetAbilitySystemComponent(), Hurt)));
+			// One Health left, so his attack kills.
+			const double Left = Enemy.GetAbilitySystemComponent()->GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute());
+			FVeyraRawDamageEvent Nearly;
+			Nearly.Components.Add({ EVeyraDamageType::TrueDamage, Left - 1.0 });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Silt->GetAbilitySystemComponent(), *Enemy.GetAbilitySystemComponent(), Nearly)));
+			Coat(Enemy);
+			ASSERT_THAT(IsTrue(AttackNow(Enemy) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsFalse(VeyraTargeting::IsAlive(&Enemy), TEXT("the attack killed")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(FArchetypeTestWorld::HealthLost(*Silt), Wound - Tuning().HealAmount, Tolerance),
+				*FString::Printf(TEXT("and still healed him: lost %g"), FArchetypeTestWorld::HealthLost(*Silt))));
 		}
 
 		TEST_METHOD(TheKitMatchesItsCanon)

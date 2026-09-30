@@ -269,7 +269,7 @@ namespace VeyraCombat
 
 	/**
 	 * Dashes Unit's body (Combat Bible §9). Refused, returning false, while the unit is dead, stunned,
-	 * displaced or already dashing, or for values out of range.
+	 * rooted, grounded, displaced or already dashing, or for values out of range.
 	 */
 	VEYRACOMBAT_API bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash);
 

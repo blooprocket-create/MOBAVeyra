@@ -888,6 +888,12 @@ bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash)
 	{
 		return false;
 	}
+	// Rooted or grounded, a unit cannot move by its own abilities, nor by a passive's lunge or an ability
+	// cast before the status arrived (ADR-026 §3; ADR-028 §2).
+	if (EnumHasAnyFlags(GetActionBlocks(Unit), EVeyraActionBlocks::Dash))
+	{
+		return false;
+	}
 	const bool bLocked = Movement->IsMovementLocked();
 	const bool bStarted = Movement->StartDash(Dash);
 	UE_CLOG(!bStarted && !bLocked, LogVeyraCombat, Error, TEXT("Refused a dash by %s of %g at %g: it needs a horizontal direction and a finite distance and speed above 0."),

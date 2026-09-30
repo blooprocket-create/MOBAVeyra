@@ -42,6 +42,12 @@ const FVeyraCastTuning* UVeyraSkillshotAbility::GetCastTuning(const FVeyraConten
 	return Skillshot ? &Skillshot->Cast : nullptr;
 }
 
+bool UVeyraSkillshotAbility::MovesCaster(const FVeyraContentId& Ability) const
+{
+	const FVeyraSkillshotAbilityTuning* Skillshot = UVeyraAbilitiesTuningSubsystem::FindSkillshot(Ability);
+	return Skillshot && !Skillshot->CasterDash.IsEmpty();
+}
+
 FVeyraChannelPlan UVeyraSkillshotAbility::Deliver(const FVeyraCast& Cast)
 {
 	const FVeyraSkillshotAbilityTuning* Skillshot = UVeyraAbilitiesTuningSubsystem::FindSkillshot(Cast.Ability);

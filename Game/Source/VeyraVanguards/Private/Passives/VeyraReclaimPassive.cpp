@@ -21,7 +21,8 @@ void UVeyraReclaimPassive::Start(UAbilitySystemComponent& Owner, const FVeyraCon
 	if (UVeyraBasicAttackComponent* Component = Participant ? Participant->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr)
 	{
 		Attacks = Component;
-		HitHandle = Component->OnHit.AddUObject(this, &UVeyraReclaimPassive::OnHit);
+		// As the attack lands, before its damage: a killing blow clears the victim's statuses (ADR-028 §4).
+		HitHandle = Component->OnLanding.AddUObject(this, &UVeyraReclaimPassive::OnAttackLands);
 	}
 }
 
@@ -29,7 +30,7 @@ void UVeyraReclaimPassive::Stop()
 {
 	if (UVeyraBasicAttackComponent* Component = Attacks.Get())
 	{
-		Component->OnHit.Remove(HitHandle);
+		Component->OnLanding.Remove(HitHandle);
 	}
 	Attacks.Reset();
 	HitHandle.Reset();
@@ -37,7 +38,7 @@ void UVeyraReclaimPassive::Stop()
 	Super::Stop();
 }
 
-void UVeyraReclaimPassive::OnHit(const FVeyraAttackEvent& Event)
+void UVeyraReclaimPassive::OnAttackLands(const FVeyraAttackEvent& Event)
 {
 	UAbilitySystemComponent* Owner = OwnerAbilitySystem.Get();
 	const FVeyraReclaimTuning* Tuning = UVeyraVanguardsTuningSubsystem::FindReclaim(PassiveId);

@@ -26,7 +26,7 @@ M20 released fifteen Vanguards. The 2026-09-30 survey ranked Silt and Torr next.
 
 ### 1. Blind
 
-Combat gains the status kind `Blind`. A blinded unit's basic attacks miss. Each still counts as an attack: it spends its windup and interval, fires the on-attack event and spends any empowerment. It lands nothing: no damage, no on-hit and no secondary impact. It is crowd control, and Tenacity shortens it. Structures' attacks are never blinded, since they are not basic attacks.
+Combat gains the status kind `Blind`. A blinded unit's basic attacks miss. Each still counts as an attack: it spends its windup and interval, fires the on-attack event and spends any empowerment. It lands nothing: no damage, no on-hit and no secondary impact. Since nothing it adds would land, no attack modifier acts on it; the miss is decided before them, as some act at once. It is crowd control, and Tenacity shortens it. Structures' attacks are never blinded, since they are not basic attacks.
 
 ### 2. Grounded
 
@@ -47,7 +47,7 @@ A `reclaim` passive map names:
 - a heal: an amount, an amount per Level and a Magic Power ratio;
 - `lockoutSeconds`.
 
-Each of its owner's basic attacks that lands on an enemy Vanguard holding the owner's mark consumes it and heals the owner. It heals once per `lockoutSeconds` per target: Silt's "internal timing rule". The mark itself may be reapplied at any time. A basic attack that misses (§1) consumes nothing.
+Each of its owner's basic attacks that lands on an enemy Vanguard holding the owner's mark consumes it and heals the owner. It heals once per `lockoutSeconds` per target: Silt's "internal timing rule". The mark itself may be reapplied at any time. A basic attack that misses (§1) consumes nothing. The passive reads the mark as the attack lands, before its damage, so a killing attack still consumes it and heals: death clears the victim's statuses.
 
 ### 5. Areas on the caster's lingering area
 
