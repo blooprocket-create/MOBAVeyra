@@ -99,6 +99,15 @@ namespace VeyraAbilitiesTests
 			Current.PulseSeconds = PulseSeconds;
 			Current.AllyStatuses.Add(ArchetypeTestId(TEXT("test_stride")));
 			Tuning.Area.Add(ArchetypeTestId(TEXT("test_updraft")), Updraft);
+
+			// A recast that rips up its caster's field where it stands, as Anchor's (ADR-028 §5).
+			FVeyraAreaAbilityTuning Rip;
+			Rip.Cast = InstantCast(0.0, 0.0, 0.0);
+			Rip.Origin = EVeyraAreaOrigin::CastersLingeringArea;
+			Rip.OriginAbility.Add(ArchetypeTestId(TEXT("test_field")));
+			Rip.Zones.AddDefaulted_GetRef().Shape = CircleOf(Width);
+			Rip.Zones[0].Effects.Damage.Add(FVeyraDamageTuning{ EVeyraDamageType::TrueDamage, { EndDamage }, 0.0, 0.0 });
+			Tuning.Area.Add(ArchetypeTestId(TEXT("test_rip")), Rip);
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
 
 			FArchetypeTestWorld World{ Spawner };
@@ -226,6 +235,28 @@ namespace VeyraAbilitiesTests
 			TActorIterator<AVeyraLingeringArea> Lingering(&Spawner.GetWorld());
 			ASSERT_THAT(IsTrue(static_cast<bool>(Lingering) && Lingering->GetAbility() == ArchetypeTestId(TEXT("test_updraft"))));
 			ASSERT_THAT(IsTrue(FVector::Dist2D(Lingering->GetActorLocation(), Point) < 1.0, TEXT("where it landed")));
+		}
+
+		TEST_METHOD(ARecastLandsOnItsCastersFieldAndEndsIt)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Anchorer = World.Spawn(EVeyraTeam::A, FVector(0.0, -Length, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(Anchorer, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_rip")))));
+			const FVector Anchor(Length, -Length, 0.0);
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(Anchorer, EVeyraAbilitySlot::E, FVector::ZeroVector) == EVeyraCastRejection::InvalidLocation,
+				TEXT("nothing to rip without its field")));
+			SpawnField(*Anchorer.GetAbilitySystemComponent(), Anchor, TEXT("test_field"));
+			AVeyraVanguardCharacter& AtAnchor = World.Spawn(EVeyraTeam::B, Anchor + FVector(Width / 2.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& AtCursor = World.Spawn(EVeyraTeam::B, FVector(Width / 2.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(Anchorer, EVeyraAbilitySlot::E, FVector::ZeroVector) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(AtAnchor), EndDamage, 1e-3) && World.HealthLost(AtCursor) == 0.0,
+				TEXT("it lands where the field stands, not at the cast's point")));
+			bool bFieldStands = false;
+			for (TActorIterator<AVeyraLingeringArea> It(&Spawner.GetWorld()); It; ++It)
+			{
+				bFieldStands |= !It->IsActorBeingDestroyed() && It->GetAbility() == ArchetypeTestId(TEXT("test_field"));
+			}
+			ASSERT_THAT(IsFalse(bFieldStands, TEXT("and the field ends")));
 		}
 
 		TEST_METHOD(ValidationKeepsPulsesEndsAndDelaysInShape)

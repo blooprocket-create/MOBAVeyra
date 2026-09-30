@@ -100,6 +100,7 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Abilities", "/ride/*/vehicle/*", "Abilities", ("/skillshot",)),
     # What a buff's end and its aura put on enemies are statuses (ADR-018 §6).
     ("Abilities", "/selfBuff/*/endPayload/*/status", "Abilities", ("/statuses",)),
+    ("Abilities", "/area/*/originAbility/*", "Abilities", ("/area",)),
     ("Abilities", "/selfBuff/*/shields/*/absorbedReward/*/statuses/*", "Abilities", ("/statuses",)),
     ("Abilities", "/selfBuff/*/aura/*/enemyStatuses/*", "Abilities", ("/statuses",)),
     # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).

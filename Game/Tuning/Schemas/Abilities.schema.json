@@ -378,14 +378,19 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "origin", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger", "consumesCasterStatuses", "channelMovement", "casterStatuses", "healOnHit", "delayWithin"],
+          "required": ["provenance", "cast", "origin", "originAbility", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger", "consumesCasterStatuses", "channelMovement", "casterStatuses", "healOnHit", "delayWithin"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
             "origin": {
-              "description": "Caster: on the caster, facing the cast's point. TargetPoint: on the point, facing away from the caster.",
+              "description": "Caster: on the caster, facing the cast's point. TargetPoint: on the point, facing away from the caster. CastersLingeringArea: on the caster's own lingering area of originAbility, which ends (ADR-028 §5).",
               "type": "string",
-              "enum": ["Caster", "TargetPoint"]
+              "enum": ["Caster", "TargetPoint", "CastersLingeringArea"]
+            },
+            "originAbility": {
+              "description": "For the CastersLingeringArea origin, exactly one: the area ability whose lingering area it lands on; else none.",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
             },
             "delaySeconds": { "description": "Seconds between Commit and the hit, with the area telegraphed; the caster is free meanwhile.", "type": "number", "minimum": 0 },
             "channelTicks": { "description": "How many times the area hits over channelSeconds, the caster held in place.", "type": "integer", "minimum": 1 },
@@ -535,7 +540,7 @@
               "type": "array", "minItems": 0, "maxItems": 1,
               "items": {
                 "type": "object", "additionalProperties": false,
-                "required": ["afterSeconds", "radius", "status", "baseSeconds", "secondsPerHit", "maxSeconds", "minHits"],
+                "required": ["afterSeconds", "radius", "status", "baseSeconds", "secondsPerHit", "maxSeconds", "minHits", "displacement"],
                 "properties": {
                   "afterSeconds": { "description": "When it comes, in seconds after the cast.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "radius": { "description": "Units from the caster's centre to an enemy's edge.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -543,7 +548,8 @@
                   "baseSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "secondsPerHit": { "type": "number", "minimum": 0 },
                   "maxSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
-                  "minHits": { "description": "The hits the caster must take for it to come at all; 0 for always.", "type": "integer", "minimum": 0 }
+                  "minHits": { "description": "The hits the caster must take for it to come at all; 0 for always.", "type": "integer", "minimum": 0 },
+                  "displacement": { "description": "At most one, AwayFromOrigin: each enemy it reaches is pushed away from the holder too (ADR-028 §6).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/displacement" } }
                 }
               }
             },

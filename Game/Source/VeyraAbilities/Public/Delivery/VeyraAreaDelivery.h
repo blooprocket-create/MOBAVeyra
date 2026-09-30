@@ -7,6 +7,7 @@
 #include "Tuning/VeyraAbilitiesTuning.h"
 
 class AActor;
+class AVeyraLingeringArea;
 class UAbilitySystemComponent;
 class UWorld;
 
@@ -75,6 +76,9 @@ namespace VeyraAreaDelivery
 	 * lingering area, Caster's own of the named ability, holds the point, else Area's own (ADR-026 §4).
 	 */
 	VEYRAABILITIES_API double DelayAt(const UWorld& World, const UAbilitySystemComponent& Caster, const FVeyraAreaAbilityTuning& Area, const FVector& Point);
+
+	/** Server only: Caster's own lingering area of Ability, if one stands (ADR-028 §5). */
+	VEYRAABILITIES_API AVeyraLingeringArea* FindCastersLingeringArea(const UWorld& World, const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
 
 	/** Zones for Caster at Rank. */
 	VEYRAABILITIES_API TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraAreaZoneTuning> Zones, int32 Rank);

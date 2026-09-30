@@ -29,6 +29,8 @@ namespace VeyraAbilitiesTests
 		static constexpr double Hit = 5.0;
 		static constexpr float WorldStep = 0.05f;
 		static constexpr double Tolerance = 1e-3;
+		static constexpr double PushDistance = 300.0;
+		static constexpr double PushSpeed = 1000.0;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -51,6 +53,12 @@ namespace VeyraAbilitiesTests
 			Payload.SecondsPerHit = PerHit;
 			Payload.MaxSeconds = MostSeconds;
 			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_play_dead")), Dead);
+
+			// A buff that vents as it ends, pushing the enemies near its holder away (ADR-028 §6).
+			FVeyraSelfBuffAbilityTuning Vent = Dead;
+			Vent.EndPayload[0].Status = ArchetypeTestId(TEXT("test_chill"));
+			Vent.EndPayload[0].Displacement.Add(FVeyraDisplacementTuning{ EVeyraDisplacementDirection::AwayFromOrigin, PushDistance, PushSpeed });
+			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_vent")), Vent);
 
 			FVeyraSelfBuffAbilityTuning Giant;
 			Giant.Cast = InstantCast(0.0, LongSeconds, 0.0);
@@ -132,6 +140,18 @@ namespace VeyraAbilitiesTests
 			AdvanceWorld(PayloadAfter + WorldStep);
 			const FVeyraStatusEntry* Fear = Find(Close, TEXT("test_fear"));
 			ASSERT_THAT(IsTrue(Fear != nullptr && FMath::IsNearlyEqual(Fear->EndsAt - Fear->StartedAt, MostSeconds, Tolerance)));
+		}
+
+		TEST_METHOD(AnEndPayloadThatVentsPushesTheEnemiesItReachesAway)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Close = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_vent")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector::ZeroVector) == EVeyraCastRejection::None));
+			AdvanceWorld(PayloadAfter + WorldStep);
+			const TOptional<FVector> Pushed = Close.GetVeyraMovement()->GetForcedMoveDestination();
+			ASSERT_THAT(IsTrue(Find(Close, TEXT("test_chill")) != nullptr && Pushed.IsSet() && Pushed->X > Near,
+				TEXT("its status, and a push away from the holder")));
 		}
 
 		TEST_METHOD(ASpellShieldBlocksAnEndPayload)
