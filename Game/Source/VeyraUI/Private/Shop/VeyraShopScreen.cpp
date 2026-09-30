@@ -3,18 +3,23 @@
 #include "Shop/VeyraShopScreen.h"
 
 #include "Blueprint/WidgetTree.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
 #include "Components/Border.h"
+#include "Components/ButtonSlot.h"
 #include "Components/HorizontalBox.h"
 #include "Components/HorizontalBoxSlot.h"
 #include "Components/ScrollBox.h"
 #include "Components/SizeBox.h"
+#include "Components/Spacer.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
+#include "Components/WrapBox.h"
 #include "GameFramework/PlayerState.h"
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
+#include "Styling/SlateTypes.h"
 #include "Text/VeyraContentText.h"
 #include "Tuning/VeyraItemsTuning.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
@@ -24,13 +29,21 @@
 
 namespace
 {
+	using VeyraShellStyle::EVeyraShellSurface;
+	using VeyraShellStyle::EVeyraShellText;
+
+	const UVeyraShellStyleSettings& Style()
+	{
+		return *GetDefault<UVeyraShellStyleSettings>();
+	}
+
 	/** Gold as the shop shows it: whole, rounded down, as everywhere in the UI (Economy & Progression Bible §1). */
 	FText GoldText(double Gold)
 	{
 		return FText::AsNumber(FMath::FloorToInt64(Gold));
 	}
 
-	/** A tier's column heading (Item Bible §2). */
+	/** A tier's heading (Item Bible §2). */
 	FText TierHeading(int32 Tier)
 	{
 		switch (Tier)
@@ -45,6 +58,46 @@ namespace
 			return FText::Format(LOCTEXT("Tier", "Tier {0}"), FText::AsNumber(Tier));
 		}
 	}
+
+	/** Two letters that stand for a name until it has an icon: its words' initials. */
+	FText Initials(const FText& Name)
+	{
+		TArray<FString> Words;
+		Name.ToString().ParseIntoArrayWS(Words);
+		FString Letters;
+		for (const FString& Word : Words)
+		{
+			if (Letters.Len() < 2 && !Word.IsEmpty() && FChar::IsAlpha(Word[0]))
+			{
+				Letters.AppendChar(FChar::ToUpper(Word[0]));
+			}
+		}
+		return FText::FromString(Letters);
+	}
+
+	/**
+	 * Text on one line, or wrapped at Width: never at the width the last layout left it, which a rebuilt
+	 * line would measure a frame late, overlapping what follows.
+	 */
+	UTextBlock* MakeLine(UWidgetTree& Tree, const FText& Text, EVeyraShellText Role, float Width = 0.0f)
+	{
+		UTextBlock* Line = VeyraShellStyle::MakeText(Tree, Text, Role);
+		Line->SetAutoWrapText(false);
+		if (Width > 0.0f)
+		{
+			Line->SetWrapTextAt(Width);
+		}
+		return Line;
+	}
+
+	/** A grid of tiles that wraps at Width, known before any layout. */
+	UWrapBox* MakeGrid(UWidgetTree& Tree, float Width)
+	{
+		UWrapBox* Grid = Tree.ConstructWidget<UWrapBox>(UWrapBox::StaticClass());
+		Grid->SetExplicitWrapSize(true);
+		Grid->SetWrapSize(Width);
+		return Grid;
+	}
 }
 
 bool UVeyraShopScreen::Initialize()
@@ -52,17 +105,53 @@ bool UVeyraShopScreen::Initialize()
 	const bool bFirst = Super::Initialize();
 	if (bFirst && WidgetTree && !WidgetTree->RootWidget)
 	{
-		// The shop floats over the match, which stays in view around it.
-		const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
+		// The shop floats over the match, which stays in view around it: the heading, then the quick-buy
+		// panels, the catalog and the selected item side by side, then the foot. Only their contents are
+		// rebuilt, so the catalog keeps its scroll.
+		const UVeyraShellStyleSettings& Settings = Style();
+		const float Gap = Settings.Spacing * 2.0f;
 		USizeBox* Size = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
-		Size->SetWidthOverride(Style.ShopWidth);
-		Size->SetHeightOverride(Style.ShopHeight);
-		UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, VeyraShellStyle::EVeyraShellSurface::Raised, FMargin(Style.Spacing * 2.0f));
-		UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
-		Content = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		Scroll->AddChild(Content);
-		Panel->SetContent(Scroll);
+		Size->SetWidthOverride(Settings.ShopWidth);
+		Size->SetHeightOverride(Settings.ShopHeight);
+		UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Gap));
+		UVerticalBox* Frame = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		Panel->SetContent(Frame);
 		Size->AddChild(Panel);
+
+		Heading = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		VeyraShellStyle::AddSpaced(*Frame, *Heading);
+		VeyraShellStyle::AddSpaced(*Frame, *VeyraShellStyle::MakeRule(*WidgetTree));
+
+		UHorizontalBox* Body = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		UVerticalBoxSlot* BodySlot = Frame->AddChildToVerticalBox(Body);
+		BodySlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		BodySlot->SetPadding(FMargin(0.0f, 0.0f, 0.0f, Settings.Spacing));
+
+		USizeBox* QuickWidth = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		QuickWidth->SetWidthOverride(Settings.ShopQuickWidth);
+		UScrollBox* QuickScroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+		QuickScroll->SetScrollBarVisibility(ESlateVisibility::Collapsed);
+		QuickBuy = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		QuickScroll->AddChild(QuickBuy);
+		QuickWidth->AddChild(QuickScroll);
+		Body->AddChildToHorizontalBox(QuickWidth)->SetPadding(FMargin(0.0f, 0.0f, Gap, 0.0f));
+
+		UScrollBox* Scroll = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+		Catalog = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		Scroll->AddChild(Catalog);
+		Body->AddChildToHorizontalBox(Scroll)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+
+		USizeBox* DetailsWidth = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+		DetailsWidth->SetWidthOverride(Settings.ShopDetailsWidth);
+		UBorder* DetailsPanel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Panel, FMargin(Settings.Spacing));
+		Details = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		DetailsPanel->SetContent(Details);
+		DetailsWidth->AddChild(DetailsPanel);
+		Body->AddChildToHorizontalBox(DetailsWidth)->SetPadding(FMargin(Gap, 0.0f, 0.0f, 0.0f));
+
+		VeyraShellStyle::AddSpaced(*Frame, *VeyraShellStyle::MakeRule(*WidgetTree));
+		Foot = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		Frame->AddChildToVerticalBox(Foot);
 		WidgetTree->RootWidget = Size;
 	}
 	return bFirst;
@@ -74,6 +163,7 @@ void UVeyraShopScreen::Show(AVeyraPlayerController& InController, TFunction<void
 	Close = MoveTemp(InClose);
 	// Refusals from before the shop opened are not news.
 	SeenRefusals = InController.GetShopRefusalCount();
+	SeenBuybackRefusals = InController.GetBuybackRefusalCount();
 	bBuilt = false;
 	Refresh();
 }
@@ -108,7 +198,31 @@ void UVeyraShopScreen::Refresh()
 FText UVeyraShopScreen::GetMessage() const
 {
 	const AVeyraPlayerController* Owner = Controller.Get();
+	if (Owner && Owner->GetBuybackRefusalCount() > SeenBuybackRefusals)
+	{
+		return VeyraShopModel::DescribeBuybackRefusal(Owner->GetLastBuybackRefusal());
+	}
 	return Owner && Owner->GetShopRefusalCount() > SeenRefusals ? VeyraShopModel::DescribeRefusal(Owner->GetLastShopRefusal()) : FText::GetEmpty();
+}
+
+FText UVeyraShopScreen::TileLabel(const FVeyraContentId& Item)
+{
+	return VeyraContentText::ItemName(Item);
+}
+
+FText UVeyraShopScreen::SlotLabel(int32 Index)
+{
+	return FText::Format(LOCTEXT("SlotTile", "Inventory {0}"), FText::AsNumber(Index + 1));
+}
+
+FText UVeyraShopScreen::ItemsTabLabel()
+{
+	return LOCTEXT("ItemsTab", "All Items");
+}
+
+FText UVeyraShopScreen::SpellsTabLabel()
+{
+	return LOCTEXT("SpellsTab", "Flux Spells");
 }
 
 FText UVeyraShopScreen::BuyLabel(const FVeyraContentId& Item, double Price)
@@ -124,6 +238,11 @@ FText UVeyraShopScreen::SellLabel(int32 Index, double Value)
 FText UVeyraShopScreen::CancelLabel(int32 Index)
 {
 	return FText::Format(LOCTEXT("Cancel", "Cancel {0}"), FText::AsNumber(Index + 1));
+}
+
+FText UVeyraShopScreen::BuybackLabel(double Cost)
+{
+	return FText::Format(LOCTEXT("Buyback", "Buy Back   {0}"), GoldText(Cost));
 }
 
 FText UVeyraShopScreen::VisionToolName(EVeyraVisionTool Tool)
@@ -145,210 +264,447 @@ FText UVeyraShopScreen::SwapLabel(int32 Slot, const FVeyraContentId& Spell)
 	return FText::Format(LOCTEXT("Swap", "Slot {0}: {1}"), FText::AsNumber(Slot + 1), VeyraContentText::AbilityName(Spell));
 }
 
+void UVeyraShopScreen::Select(const FVeyraContentId& Item, int32 FromSlot)
+{
+	SelectedItem = Item;
+	SelectedSlot = FromSlot;
+	Rebuild();
+}
+
 void UVeyraShopScreen::Rebuild()
 {
-	if (!Content)
+	if (!Heading)
 	{
 		return;
 	}
 	bBuilt = true;
-	Content->ClearChildren();
 	Buttons.Reset();
-	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
-	using VeyraShellStyle::EVeyraShellText;
+	// A chosen slot shows what it holds now.
+	if (View.Slots.IsValidIndex(SelectedSlot) && View.Slots[SelectedSlot].Item.IsValid())
+	{
+		SelectedItem = View.Slots[SelectedSlot].Item;
+	}
+	BuildHeading();
+	BuildQuickBuy();
+	if (Tab == ETab::Items)
+	{
+		BuildCatalog();
+	}
+	else
+	{
+		BuildSpells();
+	}
+	BuildDetails();
+	BuildFoot();
+}
 
-	// The heading: Gold, where purchases arrive, undo and close.
-	UHorizontalBox* Header = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	VeyraShellStyle::AddSpaced(*Header, *VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Title", "Shop"), EVeyraShellText::Title));
-	UTextBlock* GoldLine = VeyraShellStyle::MakeText(*WidgetTree, FText::Format(LOCTEXT("Gold", "Gold {0}"), GoldText(View.Gold)), EVeyraShellText::Heading);
-	GoldLine->SetAutoWrapText(false);
-	VeyraShellStyle::AddSpaced(*Header, *GoldLine);
+void UVeyraShopScreen::BuildHeading()
+{
+	Heading->ClearChildren();
+	for (const ETab Each : { ETab::Items, ETab::Spells })
+	{
+		const FText Label = Each == ETab::Items ? ItemsTabLabel() : SpellsTabLabel();
+		UVeyraShellButton* TabButton = UVeyraShellButton::MakeKind(*WidgetTree, EVeyraShellButtonKind::Tab, Label, [this, Each] {
+			Tab = Each;
+			Rebuild();
+		}, true, Tab == Each);
+		TabButton->KeepLabelOnOneLine();
+		Buttons.Add(TabButton);
+		VeyraShellStyle::AddSpaced(*Heading, *TabButton);
+	}
 	const FText Where = View.bAtShop ? LOCTEXT("AtShop", "Purchases arrive now.") : LOCTEXT("AwayFromShop", "Purchases wait for your fountain.");
-	VeyraShellStyle::AddSpaced(*Header, *VeyraShellStyle::MakeText(*WidgetTree, Where, EVeyraShellText::Muted));
-	UVerticalBox* HeaderButtons = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-	AddButton(*HeaderButtons, LOCTEXT("Undo", "Undo"), [this] {
-		if (AVeyraPlayerController* Player = Controller.Get())
+	VeyraShellStyle::AddSpaced(*Heading, *MakeLine(*WidgetTree, Where, EVeyraShellText::Muted));
+	Heading->AddChildToHorizontalBox(WidgetTree->ConstructWidget<USpacer>(USpacer::StaticClass()))->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	// While dead, the way back into the fight leads the heading: its price now, or why not yet (§15).
+	if (View.bBuybackShown)
+	{
+		const FText Why = VeyraShopModel::DescribeBuybackRefusal(View.Buyback.Refusal);
+		if (!Why.IsEmpty())
 		{
-			Player->RequestUndoPurchase();
+			VeyraShellStyle::AddSpaced(*Heading, *MakeLine(*WidgetTree, Why, EVeyraShellText::Muted));
 		}
-	}, View.UndoSteps > 0);
-	AddButton(*HeaderButtons, LOCTEXT("Close", "Close"), [this] {
+		AddKindButton(*Heading, EVeyraShellButtonKind::Primary, BuybackLabel(View.Buyback.Cost), [this] {
+			if (AVeyraPlayerController* Player = Controller.Get())
+			{
+				Player->RequestBuyback();
+			}
+		}, View.Buyback.Refusal == EVeyraBuybackRefusal::None);
+	}
+	AddKindButton(*Heading, EVeyraShellButtonKind::Quiet, LOCTEXT("Close", "Close"), [this] {
 		if (Close)
 		{
 			Close();
 		}
 	}, true);
-	VeyraShellStyle::AddSpaced(*Header, *HeaderButtons);
-	VeyraShellStyle::AddSpaced(*Content, *Header);
+}
 
-	Message = VeyraShellStyle::MakeText(*WidgetTree, GetMessage(), EVeyraShellText::Body);
-	Message->SetColorAndOpacity(FSlateColor(GetDefault<UVeyraShellStyleSettings>()->AccentColor));
-	VeyraShellStyle::AddSpaced(*Content, *Message);
+void UVeyraShopScreen::BuildQuickBuy()
+{
+	// League's quick-buy panels: what is bought again and again, and the inventory, always to hand.
+	QuickBuy->ClearChildren();
+	const UVeyraShellStyleSettings& Settings = Style();
+	const float Tile = Settings.ShopMarkSize;
+	const auto AddCategory = [this, Tile](UWrapBox& Grid, EVeyraItemCategory Category) {
+		for (const FVeyraShopOffer& Offer : View.Offers)
+		{
+			if (Offer.Category == Category)
+			{
+				AddItemTile(Grid, Offer.Item, Tile);
+			}
+		}
+	};
 
-	// The player's slots, each with its sale, and what waits for the fountain.
-	VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Inventory", "Inventory"), EVeyraShellText::Heading));
-	UHorizontalBox* SlotRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	// Consumables, with the vision tools beside them as League keeps its trinkets (Vision Bible §3).
+	AddEyebrow(*QuickBuy, LOCTEXT("Consumables", "Consumables"));
+	UWrapBox* Consumables = MakeGrid(*WidgetTree, Settings.ShopQuickWidth);
+	AddCategory(*Consumables, EVeyraItemCategory::Consumable);
+	if (View.bHasVisionTool)
+	{
+		for (const FVeyraShopVisionToolOffer& Offer : View.VisionToolOffers)
+		{
+			// The tool in the slot is not for sale again.
+			if (Offer.Tool == View.VisionTool)
+			{
+				continue;
+			}
+			// A tool's tile swaps to it at once, as buying a trinket does; it waits for the fountain.
+			const bool bAllowed = Offer.Refusal == EVeyraShopRefusal::None;
+			AddTile(*Consumables, VisionToolName(Offer.Tool), VisionToolName(Offer.Tool), GoldText(View.VisionToolSwapCost), Tile, bAllowed, false,
+				[this, Tool = Offer.Tool] {
+					if (AVeyraPlayerController* Player = Controller.Get())
+					{
+						Player->RequestSwapVisionTool(Tool);
+					}
+				})->SetIsEnabled(bAllowed);
+		}
+	}
+	VeyraShellStyle::AddSpaced(*QuickBuy, *Consumables);
+	if (View.bHasVisionTool)
+	{
+		UTextBlock* Held = MakeLine(*WidgetTree, FText::Format(LOCTEXT("VisionToolHeld", "In the slot: {0}"), VisionToolName(View.VisionTool)), EVeyraShellText::Small,
+			Settings.ShopQuickWidth);
+		Held->SetColorAndOpacity(FSlateColor(Settings.MutedTextColor));
+		VeyraShellStyle::AddSpaced(*QuickBuy, *Held);
+	}
+
+	AddEyebrow(*QuickBuy, LOCTEXT("Boots", "Boots"));
+	UWrapBox* Boots = MakeGrid(*WidgetTree, Settings.ShopQuickWidth);
+	AddCategory(*Boots, EVeyraItemCategory::Boots);
+	VeyraShellStyle::AddSpaced(*QuickBuy, *Boots);
+
+	// The inventory: choosing a slot shows its item, and the foot offers its sale.
+	AddEyebrow(*QuickBuy, LOCTEXT("Inventory", "Inventory"));
+	UWrapBox* Slots = MakeGrid(*WidgetTree, Settings.ShopQuickWidth);
 	for (int32 Index = 0; Index < View.Slots.Num(); ++Index)
 	{
 		const FVeyraShopSlot& Shown = View.Slots[Index];
-		UVerticalBox* Cell = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-		FText Held = LOCTEXT("EmptySlot", "Empty");
-		if (Shown.Item.IsValid())
+		const bool bHeld = Shown.Item.IsValid();
+		const FText Under = bHeld && Shown.Count > 1 ? FText::Format(LOCTEXT("Stack", "x{0}"), FText::AsNumber(Shown.Count)) : FText::GetEmpty();
+		AddTile(*Slots, SlotLabel(Index), bHeld ? VeyraContentText::ItemName(Shown.Item) : FText::GetEmpty(), Under, Tile, bHeld, SelectedSlot == Index,
+			[this, Index, Item = Shown.Item] { Select(Item.IsValid() ? Item : SelectedItem, Index); });
+	}
+	VeyraShellStyle::AddSpaced(*QuickBuy, *Slots);
+}
+
+void UVeyraShopScreen::BuildCatalog()
+{
+	// Every item as a tile, a group per tier, each with its price now; the rules are the server's.
+	Catalog->ClearChildren();
+	const UVeyraShellStyleSettings& Settings = Style();
+	// What the panel's padding, the two gaps and the scroll bar leave between the side columns.
+	const float Width = Settings.ShopWidth - Settings.ShopQuickWidth - Settings.ShopDetailsWidth - Settings.Spacing * 9.0f;
+	UWrapBox* Grid = nullptr;
+	int32 GridTier = INDEX_NONE;
+	for (const FVeyraShopOffer& Offer : View.Offers)
+	{
+		if (!Grid || Offer.Tier != GridTier)
 		{
-			Held = Shown.Count > 1 ? FText::Format(LOCTEXT("Stack", "{0} x{1}"), VeyraContentText::ItemName(Shown.Item), FText::AsNumber(Shown.Count))
-								   : VeyraContentText::ItemName(Shown.Item);
+			GridTier = Offer.Tier;
+			AddEyebrow(*Catalog, TierHeading(Offer.Tier));
+			Grid = MakeGrid(*WidgetTree, Width);
+			VeyraShellStyle::AddSpaced(*Catalog, *Grid);
 		}
-		VeyraShellStyle::AddSpaced(*Cell, *VeyraShellStyle::MakeText(*WidgetTree, FText::Format(LOCTEXT("SlotLine", "{0}: {1}"), FText::AsNumber(Index + 1), Held),
-			Shown.Item.IsValid() ? EVeyraShellText::Body : EVeyraShellText::Muted));
-		if (Shown.Item.IsValid())
+		AddItemTile(*Grid, Offer.Item, Settings.ShopTileSize);
+	}
+}
+
+void UVeyraShopScreen::BuildSpells()
+{
+	// The Flux Spell slots: each swap costs Gold, at the fountain only (ADR-015 §6).
+	Catalog->ClearChildren();
+	AddEyebrow(*Catalog, FText::Format(LOCTEXT("FluxSpells", "Flux Spells (each swap {0})"), GoldText(View.SpellSwapCost)));
+	for (int32 Index = 0; Index < View.SpellSlots.Num(); ++Index)
+	{
+		const FVeyraShopSpellSlot& Shown = View.SpellSlots[Index];
+		FText Held = Shown.Spell.IsValid() ? VeyraContentText::AbilityName(Shown.Spell) : LOCTEXT("NoSpell", "Empty");
+		if (Shown.bLocked)
 		{
-			AddButton(*Cell, SellLabel(Index, Shown.SaleValue), [this, Index] {
+			Held = FText::Format(LOCTEXT("LockedSpell", "{0} (locked)"), Held);
+		}
+		VeyraShellStyle::AddSpaced(*Catalog, *MakeLine(*WidgetTree, FText::Format(LOCTEXT("SpellSlotLine", "Spell {0}: {1}"), FText::AsNumber(Index + 1), Held),
+			EVeyraShellText::Heading));
+		UWrapBox* Swaps = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass());
+		for (const FVeyraShopSpellOffer& Offer : Shown.Offers)
+		{
+			if (Offer.Spell == Shown.Spell)
+			{
+				continue;
+			}
+			AddKindButton(*Swaps, EVeyraShellButtonKind::Secondary, SwapLabel(Index, Offer.Spell), [this, Index, Spell = Offer.Spell] {
 				if (AVeyraPlayerController* Player = Controller.Get())
 				{
-					Player->RequestSellItem(Index);
+					Player->RequestSwapFluxSpell(Index, Spell);
 				}
-			}, View.bAtShop);
+			}, Offer.Refusal == EVeyraShopRefusal::None);
 		}
-		SlotRow->AddChildToHorizontalBox(Cell)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+		VeyraShellStyle::AddSpaced(*Catalog, *Swaps);
 	}
-	VeyraShellStyle::AddSpaced(*Content, *SlotRow);
+}
+
+void UVeyraShopScreen::BuildDetails()
+{
+	// The selected item, as League's right-hand pane shows it: what it builds into, its recipe, the one
+	// purchase button, and what it gives.
+	Details->ClearChildren();
+	const UVeyraShellStyleSettings& Settings = Style();
+	const float Width = Settings.ShopDetailsWidth - Settings.Spacing * 2.0f;
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	const FVeyraItemDefinition* Definition = SelectedItem.IsValid() ? Tuning.Items.Find(SelectedItem) : nullptr;
+	const FVeyraShopOffer* Offer = SelectedItem.IsValid() ? View.Offers.FindByPredicate([this](const FVeyraShopOffer& Each) { return Each.Item == SelectedItem; }) : nullptr;
+	if (!Definition || !Offer)
+	{
+		UTextBlock* Hint = MakeLine(*WidgetTree, LOCTEXT("ChooseAnItem", "Choose an item to see its recipe, what it builds into and what it gives."),
+			EVeyraShellText::Body, Width);
+		Hint->SetColorAndOpacity(FSlateColor(Settings.MutedTextColor));
+		VeyraShellStyle::AddSpaced(*Details, *Hint);
+		return;
+	}
+
+	const TArray<FVeyraContentId> Upgrades = VeyraShopModel::BuildsInto(Tuning, SelectedItem);
+	if (!Upgrades.IsEmpty())
+	{
+		AddEyebrow(*Details, LOCTEXT("BuildsInto", "Builds into"));
+		UWrapBox* Into = MakeGrid(*WidgetTree, Width);
+		for (const FVeyraContentId& Upgrade : Upgrades)
+		{
+			AddItemTile(*Into, Upgrade, Settings.ShopMarkSize);
+		}
+		VeyraShellStyle::AddSpaced(*Details, *Into);
+		VeyraShellStyle::AddSpaced(*Details, *VeyraShellStyle::MakeRule(*WidgetTree));
+	}
+
+	// The recipe: the item, and beneath it what it is made from.
+	UHorizontalBox* Top = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	AddItemTile(*Top, SelectedItem, Settings.ShopTileSize);
+	Details->AddChildToVerticalBox(Top)->SetHorizontalAlignment(HAlign_Center);
+	if (!Definition->Components.IsEmpty())
+	{
+		UHorizontalBox* From = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		for (const FVeyraContentId& Component : Definition->Components)
+		{
+			AddItemTile(*From, Component, Settings.ShopMarkSize);
+		}
+		UVerticalBoxSlot* FromSlot = Details->AddChildToVerticalBox(From);
+		FromSlot->SetHorizontalAlignment(HAlign_Center);
+		FromSlot->SetPadding(FMargin(0.0f, Settings.Spacing / 2.0f, 0.0f, 0.0f));
+	}
+
+	// The one purchase button, named for the item and its price, saying what pressing it would do.
+	FText Shown = LOCTEXT("PurchaseItem", "Purchase Item");
+	if (Offer->Refusal == EVeyraShopRefusal::NotEnoughGold)
+	{
+		Shown = LOCTEXT("NotEnoughGold", "Not Enough Gold");
+	}
+	else if (Offer->Refusal != EVeyraShopRefusal::None)
+	{
+		Shown = LOCTEXT("ItemUnavailable", "Item Unavailable");
+	}
+	UVeyraShellButton* Purchase = AddNamedButton(*Details, EVeyraShellButtonKind::Primary, BuyLabel(Offer->Item, Offer->Price), Shown, [this, Item = Offer->Item] {
+		if (AVeyraPlayerController* Player = Controller.Get())
+		{
+			Player->RequestBuyItem(Item);
+		}
+	}, Offer->Refusal == EVeyraShopRefusal::None);
+	if (UVerticalBoxSlot* PurchaseSlot = Cast<UVerticalBoxSlot>(Purchase->Slot))
+	{
+		PurchaseSlot->SetHorizontalAlignment(HAlign_Fill);
+		PurchaseSlot->SetPadding(FMargin(0.0f, Settings.Spacing, 0.0f, Settings.Spacing));
+	}
+
+	// What it is and gives: its name, its whole cost, its stats and its effect.
+	VeyraShellStyle::AddSpaced(*Details, *MakeLine(*WidgetTree, VeyraContentText::ItemName(SelectedItem), EVeyraShellText::Heading, Width));
+	UTextBlock* Cost = MakeLine(*WidgetTree, FText::Format(LOCTEXT("TotalCost", "Cost {0}"), GoldText(Offer->TotalCost)), EVeyraShellText::Body);
+	Cost->SetColorAndOpacity(FSlateColor(Settings.PrimaryColor));
+	VeyraShellStyle::AddSpaced(*Details, *Cost);
+	if (const FText Stats = VeyraShopModel::DescribeStats(Definition->Stats); !Stats.IsEmpty())
+	{
+		VeyraShellStyle::AddSpaced(*Details, *MakeLine(*WidgetTree, Stats, EVeyraShellText::Body, Width));
+	}
+	if (const FText Effect = VeyraContentText::ItemDescription(SelectedItem); !Effect.IsEmpty())
+	{
+		UTextBlock* EffectLine = MakeLine(*WidgetTree, Effect, EVeyraShellText::Small, Width);
+		EffectLine->SetColorAndOpacity(FSlateColor(Settings.MutedTextColor));
+		VeyraShellStyle::AddSpaced(*Details, *EffectLine);
+	}
+	if (Offer->Refusal != EVeyraShopRefusal::None && Offer->Refusal != EVeyraShopRefusal::NotEnoughGold)
+	{
+		UTextBlock* Why = MakeLine(*WidgetTree, VeyraShopModel::DescribeRefusal(Offer->Refusal), EVeyraShellText::Small, Width);
+		Why->SetColorAndOpacity(FSlateColor(Settings.AccentColor));
+		VeyraShellStyle::AddSpaced(*Details, *Why);
+	}
+}
+
+void UVeyraShopScreen::BuildFoot()
+{
+	// Sale and undo, what waits for the fountain, why the server refused, and Gold.
+	Foot->ClearChildren();
+	const UVeyraShellStyleSettings& Settings = Style();
+	const FVeyraShopSlot* Chosen = View.Slots.IsValidIndex(SelectedSlot) && View.Slots[SelectedSlot].Item.IsValid() ? &View.Slots[SelectedSlot] : nullptr;
+	if (Chosen)
+	{
+		AddKindButton(*Foot, EVeyraShellButtonKind::Secondary, SellLabel(SelectedSlot, Chosen->SaleValue), [this, Index = SelectedSlot] {
+			if (AVeyraPlayerController* Player = Controller.Get())
+			{
+				Player->RequestSellItem(Index);
+			}
+		}, View.bAtShop);
+	}
+	else
+	{
+		AddKindButton(*Foot, EVeyraShellButtonKind::Secondary, LOCTEXT("SellNothing", "Sell"), [] {}, false);
+	}
+	AddKindButton(*Foot, EVeyraShellButtonKind::Secondary, LOCTEXT("Undo", "Undo"), [this] {
+		if (AVeyraPlayerController* Player = Controller.Get())
+		{
+			Player->RequestUndoPurchase();
+		}
+	}, View.UndoSteps > 0);
+
 	if (!View.Pending.IsEmpty())
 	{
-		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("Pending", "Waiting for your fountain"), EVeyraShellText::Heading));
-		UHorizontalBox* PendingRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		VeyraShellStyle::AddSpaced(*Foot, *MakeLine(*WidgetTree, LOCTEXT("Pending", "Waiting for your fountain"), EVeyraShellText::Eyebrow));
 		for (int32 Index = 0; Index < View.Pending.Num(); ++Index)
 		{
 			const FVeyraShopPending& Entry = View.Pending[Index];
-			UVerticalBox* Cell = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-			VeyraShellStyle::AddSpaced(*Cell, *VeyraShellStyle::MakeText(*WidgetTree,
-				FText::Format(LOCTEXT("PendingLine", "{0}: {1} ({2})"), FText::AsNumber(Index + 1), VeyraContentText::ItemName(Entry.Item), GoldText(Entry.Paid)),
-				EVeyraShellText::Body));
-			AddButton(*Cell, CancelLabel(Index), [this, Index] {
+			VeyraShellStyle::AddSpaced(*Foot, MakeMark(VeyraContentText::ItemName(Entry.Item), Settings.ShopMarkSize, true, Settings.HairlineColor));
+			AddKindButton(*Foot, EVeyraShellButtonKind::Quiet, CancelLabel(Index), [this, Index] {
 				if (AVeyraPlayerController* Player = Controller.Get())
 				{
 					Player->RequestCancelPurchase(Index);
 				}
 			}, true);
-			VeyraShellStyle::AddSpaced(*PendingRow, *Cell);
 		}
-		VeyraShellStyle::AddSpaced(*Content, *PendingRow);
 	}
 
-	// The Flux Spell slots: each swap costs Gold, at the fountain only (ADR-015 §6).
-	if (!View.SpellSlots.IsEmpty())
-	{
-		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
-			FText::Format(LOCTEXT("FluxSpells", "Flux Spells (each swap {0})"), GoldText(View.SpellSwapCost)), EVeyraShellText::Heading));
-		UHorizontalBox* SpellRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		for (int32 Index = 0; Index < View.SpellSlots.Num(); ++Index)
-		{
-			const FVeyraShopSpellSlot& Shown = View.SpellSlots[Index];
-			UVerticalBox* Cell = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-			FText Held = Shown.Spell.IsValid() ? VeyraContentText::AbilityName(Shown.Spell) : LOCTEXT("NoSpell", "Empty");
-			if (Shown.bLocked)
-			{
-				Held = FText::Format(LOCTEXT("LockedSpell", "{0} (locked)"), Held);
-			}
-			VeyraShellStyle::AddSpaced(*Cell, *VeyraShellStyle::MakeText(*WidgetTree, FText::Format(LOCTEXT("SpellSlotLine", "Spell {0}: {1}"),
-				FText::AsNumber(Index + 1), Held), EVeyraShellText::Body));
-			for (const FVeyraShopSpellOffer& Offer : Shown.Offers)
-			{
-				if (Offer.Spell == Shown.Spell)
-				{
-					continue;
-				}
-				AddButton(*Cell, SwapLabel(Index, Offer.Spell), [this, Index, Spell = Offer.Spell] {
-					if (AVeyraPlayerController* Player = Controller.Get())
-					{
-						Player->RequestSwapFluxSpell(Index, Spell);
-					}
-				}, Offer.Refusal == EVeyraShopRefusal::None);
-			}
-			SpellRow->AddChildToHorizontalBox(Cell)->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-		}
-		VeyraShellStyle::AddSpaced(*Content, *SpellRow);
-	}
+	Message = MakeLine(*WidgetTree, GetMessage(), EVeyraShellText::Body);
+	Message->SetColorAndOpacity(FSlateColor(Settings.AccentColor));
+	UHorizontalBoxSlot* MessageSlot = Foot->AddChildToHorizontalBox(Message);
+	MessageSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
+	MessageSlot->SetVerticalAlignment(VAlign_Center);
+	MessageSlot->SetHorizontalAlignment(HAlign_Right);
+	MessageSlot->SetPadding(FMargin(Settings.Spacing, 0.0f));
 
-	// The vision tool: each swap costs Gold, at the fountain only (ADR-016 §6).
-	if (View.bHasVisionTool)
-	{
-		VeyraShellStyle::AddSpaced(*Content, *VeyraShellStyle::MakeText(*WidgetTree,
-			FText::Format(LOCTEXT("VisionTools", "Vision tool (each swap {0})"), GoldText(View.VisionToolSwapCost)), EVeyraShellText::Heading));
-		UHorizontalBox* ToolRow = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-		VeyraShellStyle::AddSpaced(*ToolRow, *VeyraShellStyle::MakeText(*WidgetTree,
-			FText::Format(LOCTEXT("VisionToolHeld", "In the slot: {0}"), VisionToolName(View.VisionTool)), EVeyraShellText::Body));
-		for (const FVeyraShopVisionToolOffer& Offer : View.VisionToolOffers)
-		{
-			if (Offer.Tool == View.VisionTool)
-			{
-				continue;
-			}
-			UVerticalBox* Cell = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-			AddButton(*Cell, VisionToolName(Offer.Tool), [this, Tool = Offer.Tool] {
-				if (AVeyraPlayerController* Player = Controller.Get())
-				{
-					Player->RequestSwapVisionTool(Tool);
-				}
-			}, Offer.Refusal == EVeyraShopRefusal::None);
-			VeyraShellStyle::AddSpaced(*ToolRow, *Cell);
-		}
-		VeyraShellStyle::AddSpaced(*Content, *ToolRow);
-	}
-
-	// Every item, a column per tier, each with its price now and its stats.
-	UHorizontalBox* Columns = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	UVerticalBox* Column = nullptr;
-	int32 ColumnTier = INDEX_NONE;
-	for (const FVeyraShopOffer& Offer : View.Offers)
-	{
-		if (!Column || Offer.Tier != ColumnTier)
-		{
-			Column = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
-			ColumnTier = Offer.Tier;
-			VeyraShellStyle::AddSpaced(*Column, *VeyraShellStyle::MakeText(*WidgetTree, TierHeading(Offer.Tier), EVeyraShellText::Heading));
-			UHorizontalBoxSlot* ColumnSlot = Columns->AddChildToHorizontalBox(Column);
-			ColumnSlot->SetSize(FSlateChildSize(ESlateSizeRule::Fill));
-			ColumnSlot->SetPadding(FMargin(0.0f, 0.0f, GetDefault<UVeyraShellStyleSettings>()->Spacing, 0.0f));
-		}
-		AddButton(*Column, BuyLabel(Offer.Item, Offer.Price), [this, Item = Offer.Item] {
-			if (AVeyraPlayerController* Player = Controller.Get())
-			{
-				Player->RequestBuyItem(Item);
-			}
-		}, Offer.Refusal == EVeyraShopRefusal::None);
-		const FVeyraItemDefinition* Definition = Tuning.Items.Find(Offer.Item);
-		FText Detail = Definition ? VeyraShopModel::DescribeStats(Definition->Stats) : FText::GetEmpty();
-		if (const FText Effect = VeyraContentText::ItemDescription(Offer.Item); !Effect.IsEmpty())
-		{
-			Detail = Detail.IsEmpty() ? Effect : FText::Format(LOCTEXT("StatsAndEffect", "{0}. {1}"), Detail, Effect);
-		}
-		if (Offer.Refusal != EVeyraShopRefusal::None && Offer.Refusal != EVeyraShopRefusal::NotEnoughGold)
-		{
-			Detail = FText::Format(LOCTEXT("Refused", "{0} ({1})"), Detail, VeyraShopModel::DescribeRefusal(Offer.Refusal));
-		}
-		if (!Detail.IsEmpty())
-		{
-			VeyraShellStyle::AddSpaced(*Column, *VeyraShellStyle::MakeText(*WidgetTree, Detail, EVeyraShellText::Muted));
-		}
-	}
-	VeyraShellStyle::AddSpaced(*Content, *Columns);
+	UTextBlock* Gold = MakeLine(*WidgetTree, FText::Format(LOCTEXT("Gold", "Gold {0}"), GoldText(View.Gold)), EVeyraShellText::Heading);
+	Gold->SetColorAndOpacity(FSlateColor(Settings.PrimaryColor));
+	Foot->AddChildToHorizontalBox(Gold)->SetVerticalAlignment(VAlign_Center);
 }
 
-UVeyraShellButton* UVeyraShopScreen::AddButton(UVerticalBox& Parent, const FText& Label, TFunction<void()> Action, bool bEnabled)
+UVeyraShellButton* UVeyraShopScreen::AddItemTile(UPanelWidget& Parent, const FVeyraContentId& Item, float Size)
 {
-	UVeyraShellButton* Button = UVeyraShellButton::Make(*WidgetTree, Label, MoveTemp(Action), bEnabled);
+	const FVeyraShopOffer* Offer = View.Offers.FindByPredicate([&Item](const FVeyraShopOffer& Each) { return Each.Item == Item; });
+	const bool bLit = Offer && Offer->Refusal == EVeyraShopRefusal::None;
+	const FText Price = Offer ? GoldText(Offer->Price) : FText::GetEmpty();
+	// Outlined when chosen from the catalog; a slot chosen in the inventory is outlined there instead.
+	const bool bSelected = Item == SelectedItem && !View.Slots.IsValidIndex(SelectedSlot);
+	const FText Name = VeyraContentText::ItemName(Item);
+	UVeyraShellButton* Tile = AddTile(Parent, TileLabel(Item), Name, Price, Size, bLit, bSelected, [this, Item] { Select(Item, INDEX_NONE); });
+	// Hovering names the item and what it gives, as League's tooltips do: initials alone can be alike.
+	const FVeyraItemDefinition* Definition = UVeyraItemsTuningSubsystem::Get().Items.Find(Item);
+	const FText Stats = Definition ? VeyraShopModel::DescribeStats(Definition->Stats) : FText::GetEmpty();
+	Tile->SetToolTipText(Stats.IsEmpty() ? Name : FText::Format(LOCTEXT("TileTip", "{0}\n{1}"), Name, Stats));
+	return Tile;
+}
+
+UVeyraShellButton* UVeyraShopScreen::AddTile(UPanelWidget& Parent, const FText& Label, const FText& Name, const FText& Under, float Size, bool bLit,
+	bool bSelected, TFunction<void()> Action)
+{
+	// League's tile: the icon framed thinly, the frame lit when chosen, the price beneath in Gold's colour
+	// while it can be bought and dimmed while it cannot.
+	const UVeyraShellStyleSettings& Settings = Style();
+	UVerticalBox* Stack = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Stack->AddChildToVerticalBox(&MakeMark(Name, Size, bLit, bSelected ? Settings.AccentColor : Settings.HairlineColor))->SetHorizontalAlignment(HAlign_Center);
+	UTextBlock* Line = MakeLine(*WidgetTree, Under, EVeyraShellText::Small);
+	Line->SetJustification(ETextJustify::Center);
+	Line->SetColorAndOpacity(FSlateColor(bLit ? Settings.PrimaryColor : Settings.MutedTextColor));
+	Stack->AddChildToVerticalBox(Line)->SetHorizontalAlignment(HAlign_Center);
+
+	UVeyraShellButton* Button = UVeyraShellButton::MakeWithContent(*WidgetTree, Label, *Stack, MoveTemp(Action));
+	// The tile's own padding only: a button's slot pads its content by default, which would cost the grid a column.
+	if (UButtonSlot* ContentSlot = Cast<UButtonSlot>(Stack->Slot))
+	{
+		ContentSlot->SetPadding(FMargin(0.0f));
+	}
+	if (!Name.IsEmpty())
+	{
+		Button->SetToolTipText(Name);
+	}
+	FButtonStyle TileStyle = VeyraShellStyle::ButtonStyleFor(EVeyraShellButtonKind::Quiet, false);
+	const FMargin Pad(Settings.TilePadding);
+	TileStyle.SetNormalPadding(Pad);
+	TileStyle.SetPressedPadding(Pad);
+	Button->SetStyle(TileStyle);
 	Buttons.Add(Button);
 	VeyraShellStyle::AddSpaced(Parent, *Button);
-	// The shop's buttons fill their column, and an item's name and price keep to one line: wrapping
-	// measures a rebuilt label against the width it had before, and breaks it.
-	if (UVerticalBoxSlot* ButtonSlot = Cast<UVerticalBoxSlot>(Button->Slot))
+	return Button;
+}
+
+UWidget& UVeyraShopScreen::MakeMark(const FText& Name, float Size, bool bLit, const FLinearColor& Edge)
+{
+	const UVeyraShellStyleSettings& Settings = Style();
+	UBorder* Mark = WidgetTree->ConstructWidget<UBorder>(UBorder::StaticClass());
+	Mark->SetBrush(FSlateRoundedBoxBrush(Settings.SurfaceRaisedColor, Settings.ButtonCornerRadius, Edge, 1.0f));
+	Mark->SetPadding(FMargin(0.0f));
+	Mark->SetHorizontalAlignment(HAlign_Center);
+	Mark->SetVerticalAlignment(VAlign_Center);
+	UTextBlock* Letters = MakeLine(*WidgetTree, Initials(Name), EVeyraShellText::Heading);
+	Letters->SetColorAndOpacity(FSlateColor(bLit ? Settings.AccentColor : Settings.MutedTextColor));
+	Mark->SetContent(Letters);
+	USizeBox* Square = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	Square->SetWidthOverride(Size);
+	Square->SetHeightOverride(Size);
+	Square->AddChild(Mark);
+	return *Square;
+}
+
+UTextBlock& UVeyraShopScreen::AddEyebrow(UPanelWidget& Parent, const FText& Text)
+{
+	UTextBlock* Line = MakeLine(*WidgetTree, Text, EVeyraShellText::Eyebrow);
+	VeyraShellStyle::AddSpaced(Parent, *Line);
+	return *Line;
+}
+
+UVeyraShellButton* UVeyraShopScreen::AddKindButton(UPanelWidget& Parent, EVeyraShellButtonKind Kind, const FText& Label, TFunction<void()> Action, bool bEnabled)
+{
+	UVeyraShellButton* Button = UVeyraShellButton::MakeKind(*WidgetTree, Kind, Label, MoveTemp(Action), bEnabled);
+	Button->KeepLabelOnOneLine();
+	Buttons.Add(Button);
+	VeyraShellStyle::AddSpaced(Parent, *Button);
+	return Button;
+}
+
+UVeyraShellButton* UVeyraShopScreen::AddNamedButton(UPanelWidget& Parent, EVeyraShellButtonKind Kind, const FText& Label, const FText& Shown,
+	TFunction<void()> Action, bool bEnabled)
+{
+	UTextBlock* Text = MakeLine(*WidgetTree, Shown, VeyraShellStyle::LabelRoleFor(Kind));
+	Text->SetJustification(ETextJustify::Center);
+	if (!bEnabled)
 	{
-		ButtonSlot->SetHorizontalAlignment(HAlign_Fill);
+		Text->SetColorAndOpacity(FSlateColor(Style().MutedTextColor));
 	}
-	if (UTextBlock* LabelText = Cast<UTextBlock>(Button->GetChildAt(0)))
-	{
-		LabelText->SetAutoWrapText(false);
-	}
+	UVeyraShellButton* Button = UVeyraShellButton::MakeWithContent(*WidgetTree, Label, *Text, MoveTemp(Action), bEnabled);
+	Button->SetStyle(VeyraShellStyle::ButtonStyleFor(Kind, false));
+	Buttons.Add(Button);
+	VeyraShellStyle::AddSpaced(Parent, *Button);
 	return Button;
 }
 

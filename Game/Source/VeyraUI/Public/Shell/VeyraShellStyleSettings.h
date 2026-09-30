@@ -327,6 +327,23 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float ModeCardHeight = 0.0f;
 
+	/**
+	 * The shop, laid out as League's is (ADR-012 §11): a catalog tile, the smaller tiles of the quick-buy
+	 * panels, recipes and upgrades, and the widths of the quick-buy column and the selected item's pane,
+	 * in slate units.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ShopTileSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ShopMarkSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ShopQuickWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float ShopDetailsWidth = 0.0f;
+
 	/** Match Found's and the status screens' centred panel, in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float DialogWidth = 0.0f;

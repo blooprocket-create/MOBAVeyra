@@ -96,6 +96,10 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("ModeCardWidth"), ModeCardWidth },
 		{ TEXT("ModeCardHeight"), ModeCardHeight },
 		{ TEXT("DialogWidth"), DialogWidth },
+		{ TEXT("ShopTileSize"), ShopTileSize },
+		{ TEXT("ShopMarkSize"), ShopMarkSize },
+		{ TEXT("ShopQuickWidth"), ShopQuickWidth },
+		{ TEXT("ShopDetailsWidth"), ShopDetailsWidth },
 		{ TEXT("ReportLabelWidth"), ReportLabelWidth },
 		{ TEXT("ReportColumnWidth"), ReportColumnWidth },
 	};

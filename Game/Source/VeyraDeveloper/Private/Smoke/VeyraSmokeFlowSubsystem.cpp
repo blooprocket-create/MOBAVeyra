@@ -738,7 +738,7 @@ bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
 	if (BoughtItem.IsEmpty())
 	{
 		// The shop reads the owner's inventory: it arrives, and the shop learns it is at the fountain, a moment after the match goes live.
-		if (!View.bAtShop || Capture(TEXT("Shop")))
+		if (!View.bAtShop)
 		{
 			return true;
 		}
@@ -746,6 +746,17 @@ bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
 			const FVeyraItemDefinition* Definition = UVeyraItemsTuningSubsystem::FindItem(Candidate.Item);
 			return Candidate.Refusal == EVeyraShopRefusal::None && Definition && Definition->Category == EVeyraItemCategory::Equipment;
 		});
+		// As a player does: choose the item's tile, then buy it with the one purchase button.
+		UVeyraShellButton* Tile = Offer ? Shop.FindButton(UVeyraShopScreen::TileLabel(Offer->Item)) : nullptr;
+		if (Tile && Shop.GetSelectedItem() != Offer->Item)
+		{
+			Tile->Press();
+			return true;
+		}
+		if (Capture(TEXT("Shop")))
+		{
+			return true;
+		}
 		UVeyraShellButton* Buy = Offer ? Shop.FindButton(UVeyraShopScreen::BuyLabel(Offer->Item, Offer->Price)) : nullptr;
 		if (!Buy || !Buy->GetIsEnabled())
 		{
@@ -775,6 +786,12 @@ bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
 		const FVeyraShopSpellOffer* Offer = View.SpellSlots.IsEmpty() ? nullptr : Algo::FindByPredicate(View.SpellSlots[0].Offers, [](const FVeyraShopSpellOffer& Candidate) {
 			return Candidate.Refusal == EVeyraShopRefusal::None;
 		});
+		// The swaps have their own tab.
+		if (UVeyraShellButton* SpellsTab = Shop.FindButton(UVeyraShopScreen::SpellsTabLabel()); SpellsTab && Offer && !Shop.FindButton(UVeyraShopScreen::SwapLabel(0, Offer->Spell)))
+		{
+			SpellsTab->Press();
+			return true;
+		}
 		UVeyraShellButton* Swap = Offer ? Shop.FindButton(UVeyraShopScreen::SwapLabel(0, Offer->Spell)) : nullptr;
 		if (!Swap || !Swap->GetIsEnabled())
 		{

@@ -125,6 +125,8 @@ namespace VeyraItemsTests
 			UVeyraShopScreen* Screen = CreateWidget<UVeyraShopScreen>(&Spawner.GetWorld());
 			ASSERT_THAT(IsNotNull(Screen));
 			Screen->Show(Controller, [] {});
+			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShopScreen::SwapLabel(1, Roster[1])), TEXT("the swaps have their own tab")));
+			Screen->FindButton(UVeyraShopScreen::SpellsTabLabel())->Press();
 			const UVeyraShellButton* Swap = Screen->FindButton(UVeyraShopScreen::SwapLabel(1, Roster[1]));
 			ASSERT_THAT(IsTrue(Swap && Swap->GetIsEnabled()));
 			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShopScreen::SwapLabel(0, Roster[0]))));
@@ -234,12 +236,27 @@ namespace VeyraItemsTests
 			const FVeyraShopOffer* Harness = OfferFor(View, TEXT("test_harness"));
 			const FVeyraShopOffer* Temper = OfferFor(View, TEXT("test_temper"));
 			ASSERT_THAT(IsTrue(Harness && Temper));
+			// As in League, a tile chooses its item, and the one purchase button buys what is chosen.
+			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShopScreen::BuyLabel(Harness->Item, Harness->Price)), TEXT("nothing is chosen yet")));
+			Screen->FindButton(UVeyraShopScreen::TileLabel(Temper->Item))->Press();
+			ASSERT_THAT(IsTrue(Screen->GetSelectedItem() == Temper->Item));
+			const UVeyraShellButton* BuyTemper = Screen->FindButton(UVeyraShopScreen::BuyLabel(Temper->Item, Temper->Price));
+			ASSERT_THAT(IsTrue(BuyTemper && !BuyTemper->GetIsEnabled(), TEXT("a Masterwork costs more than is held")));
+			// The chosen item shows what it is made from: the harness is built on the grip.
+			Screen->FindButton(UVeyraShopScreen::TileLabel(ItemId(TEXT("test_grip"))))->Press();
+			ASSERT_THAT(IsNotNull(Screen->FindButton(UVeyraShopScreen::TileLabel(Harness->Item)), TEXT("what the grip builds into")));
+			Screen->FindButton(UVeyraShopScreen::TileLabel(Harness->Item))->Press();
 			UVeyraShellButton* BuyHarness = Screen->FindButton(UVeyraShopScreen::BuyLabel(Harness->Item, Harness->Price));
-			UVeyraShellButton* BuyTemper = Screen->FindButton(UVeyraShopScreen::BuyLabel(Temper->Item, Temper->Price));
-			UVeyraShellButton* SellGrip = Screen->FindButton(UVeyraShopScreen::SellLabel(0, View.Slots[0].SaleValue));
-			ASSERT_THAT(IsTrue(BuyHarness && BuyTemper && SellGrip));
-			ASSERT_THAT(IsTrue(BuyHarness->GetIsEnabled() && !BuyTemper->GetIsEnabled() && SellGrip->GetIsEnabled()));
+			ASSERT_THAT(IsTrue(BuyHarness && BuyHarness->GetIsEnabled()));
+			// A slot chosen in the inventory offers its sale at the foot.
+			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShopScreen::SellLabel(0, View.Slots[0].SaleValue))));
+			Screen->FindButton(UVeyraShopScreen::SlotLabel(0))->Press();
+			const UVeyraShellButton* SellGrip = Screen->FindButton(UVeyraShopScreen::SellLabel(0, View.Slots[0].SaleValue));
+			ASSERT_THAT(IsTrue(SellGrip && SellGrip->GetIsEnabled() && Screen->GetSelectedItem() == ItemId(TEXT("test_grip"))));
 			ASSERT_THAT(IsTrue(Screen->GetMessage().IsEmpty()));
+			Screen->FindButton(UVeyraShopScreen::TileLabel(Harness->Item))->Press();
+			BuyHarness = Screen->FindButton(UVeyraShopScreen::BuyLabel(Harness->Item, Harness->Price));
+			ASSERT_THAT(IsNotNull(BuyHarness));
 
 			// No match runs here, so the request is refused, and the screen says why.
 			BuyHarness->Press();

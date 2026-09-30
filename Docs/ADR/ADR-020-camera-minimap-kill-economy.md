@@ -90,7 +90,13 @@ This follows the layering (ADR-006 §3): UI registers, Match never calls UI.
   - its cooldown starts when bought;
   - it respawns the Vanguard at its fountain now, and reverses nothing;
   - it is an order from the shop panel, refused with the reason its rule gives;
-  - the record counts each buyback.
+  - the record counts each buyback (`buybacks`), and a claimed bounty counts as Gold from kills.
+- **The shop takes League's layout** (amending ADR-012 §11), since the shop panel is where buyback lives:
+  - on the left, quick-buy panels: consumables with the vision tools beside them, boots, and the inventory;
+  - in the middle, every item as a tile with its price now, grouped by tier, and a tab for the Flux Spell swaps;
+  - on the right, the chosen item: what it builds into, its recipe, the one purchase button, and what it gives;
+  - along the foot, sale of the chosen slot, undo, the purchases waiting for the fountain, and Gold;
+  - a tile chooses its item and the purchase button buys it; a vision tool's tile swaps at once, as a trinket does.
 
 ### 4. Values
 
@@ -114,6 +120,7 @@ This follows the layering (ADR-006 §3): UI registers, Match never calls UI.
   - +150 per earlier buyback;
   - a 240 s cooldown.
 - **Camera keys:** Y cycles the camera mode, and Space holds to centre, as League binds them.
+- **The shop's layout** is League's (§3), without its search, its class and stat filters, its Recommended and Item Sets tabs, or its item icons.
 
 ## Consequences
 
@@ -123,10 +130,13 @@ This follows the layering (ADR-006 §3): UI registers, Match never calls UI.
 ## Amendments to earlier records
 
 - **ADR-011:** kill Gold is adjusted by devaluation, and bounty is its own payout.
-- **ADR-017:** the record counts buybacks and the bounty paid.
+- **ADR-017:** the record counts buybacks (`buybacks`); a claimed bounty counts as Gold from kills.
+- **ADR-012 §11:** the shop screen takes League's layout (§3 above).
 
 ## Open items
 
 - The HUD art pass for the minimap.
 - A spectator camera (Replay Bible).
 - Buyback in practice matches, which the Custom Matches Bible leaves open. It is off here.
+- The rest of League's shop: search (typing must not reach the match's keys), class and stat filters, a Recommended tab, and item icons in place of initials.
+- AI Vanguards buying back.
