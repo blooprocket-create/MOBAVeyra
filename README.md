@@ -23,7 +23,7 @@ The project is currently in pre-production. The repository is being established 
 - [`CLAUDE.md`](CLAUDE.md) - Claude Code entrypoint and repository working rules.
 - [`Docs/ADR/`](Docs/ADR/) - Architecture Decision Records for major technical choices.
 - [`Backend/`](Backend/README.md) - the Go backend and local Docker stack (`docker compose up --build`): sign-in, parties, onboarding, champion select, Custom practice, and match servers and results.
-- [`Launcher/`](Launcher/README.md) - the Tauri launcher: it signs the player in, starts the game and hands it a launch code.
+- [`Launcher/`](Launcher/README.md) - the Tauri launcher: it installs, updates and repairs the game, signs the player in, starts the game and hands it a launch code. Veyra Setup, which installs the launcher, is built from it (`Launcher/Package.ps1`).
 - [`Docs/Pull_Request_Record_v0.1.md`](Docs/Pull_Request_Record_v0.1.md) - the review findings from every pull request, kept in the repository rather than only on the forge.
 
 ### Design bibles

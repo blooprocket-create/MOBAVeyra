@@ -1,0 +1,15 @@
+[package]
+name = "veyra-setup-art"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "veyra-setup-art"
+path = "art.rs"
+
+[dependencies]
+# Reads the WebP splash art and writes the bitmaps NSIS takes.
+image = { version = "0.25", default-features = false, features = ["webp", "bmp"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

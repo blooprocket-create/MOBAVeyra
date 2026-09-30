@@ -23,7 +23,7 @@ fn configure(test: &str, backend: &FakeBackend, await_sign_in_seconds: f64) -> P
     let folder = std::env::temp_dir().join(format!("veyra-launch-cli-{test}-{}", std::process::id()));
     fs::create_dir_all(&folder).unwrap();
     let config = serde_json::json!({
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "backend": { "baseUrl": backend.url },
         "http": { "timeoutSeconds": 5 },
         "launch": { "awaitReadySeconds": 10, "awaitSignInSeconds": await_sign_in_seconds },
