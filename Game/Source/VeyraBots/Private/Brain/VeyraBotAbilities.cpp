@@ -67,6 +67,21 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 		Profile.LeadSeconds = Dash->Cast.WindupSeconds;
 		Profile.bAwayFromPoint = Dash->Direction == EVeyraDashDirection::AwayFromPoint;
 		Profile.CostByRank = Dash->Cast.ResourceCostByRank;
+		// Through a unit it names, within its cast range (ADR-030 §6).
+		if (Dash->Direction == EVeyraDashDirection::ThroughTarget)
+		{
+			Profile.Targeting = EVeyraBotTargeting::Unit;
+			Profile.Reach = Dash->Cast.CastRange;
+		}
+		return Profile;
+	}
+	if (const FVeyraAmbushAbilityTuning* Ambush = UVeyraAbilitiesTuningSubsystem::FindAmbush(Ability))
+	{
+		// At an enemy Vanguard within its cast range; the cast itself refuses one its caster has not hurt lately.
+		Profile.Targeting = EVeyraBotTargeting::Unit;
+		Profile.Reach = Ambush->Cast.CastRange;
+		Profile.CostByRank = Ambush->Cast.ResourceCostByRank;
+		Profile.TargetKinds = { EVeyraUnitKind::Vanguard };
 		return Profile;
 	}
 	if (const FVeyraSelfBuffAbilityTuning* SelfBuff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability))

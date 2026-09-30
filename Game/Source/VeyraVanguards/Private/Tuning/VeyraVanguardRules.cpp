@@ -185,6 +185,32 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraQuarryTuning>& Entry : Tuning.Quarry)
+	{
+		RegisterPassive(Entry.Key, TEXT("quarry"));
+		const FString Pointer = TEXT("/quarry/") + Entry.Key.ToString();
+		const FVeyraQuarryTuning& Quarry = Entry.Value;
+		for (const TPair<const TCHAR*, const FVeyraContentId*> Named : { TPair<const TCHAR*, const FVeyraContentId*>(TEXT("/mark"), &Quarry.Mark),
+				 TPair<const TCHAR*, const FVeyraContentId*>(TEXT("/chaseStatus"), &Quarry.ChaseStatus) })
+		{
+			if (!Abilities.Statuses.Contains(*Named.Value))
+			{
+				Problem(Pointer + Named.Key, FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Named.Value->ToString()));
+			}
+		}
+		const FVeyraStatusTuning* Chase = Abilities.Statuses.Find(Quarry.ChaseStatus);
+		if (Chase && Chase->Kind != EVeyraStatusKind::MoveSpeed)
+		{
+			Problem(Pointer + TEXT("/chaseStatus"), TEXT("is a MoveSpeed status"));
+		}
+		if (!(Quarry.ChaseRange > 0.0) || !(Quarry.ChaseAngleDegrees > 0.0 && Quarry.ChaseAngleDegrees <= 180.0) || !(Quarry.SampleSeconds > 0.0)
+			|| Quarry.DamageAmount < 0.0 || Quarry.DamagePerLevel < 0.0 || Quarry.MagicPowerRatio < 0.0 || !(Quarry.CooldownRefund >= 0.0 && Quarry.CooldownRefund <= 1.0)
+			|| !(Quarry.JumpRadius > 0.0))
+		{
+			Problem(Pointer, TEXT("chaseRange, sampleSeconds and jumpRadius are above 0, chaseAngleDegrees above 0 and at most 180, the damage values at least 0, and cooldownRefund from 0 to 1"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraUnreturnedTuning>& Entry : Tuning.Unreturned)
 	{
 		RegisterPassive(Entry.Key, TEXT("unreturned"));

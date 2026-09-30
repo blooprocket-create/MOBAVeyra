@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -178,7 +178,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [13]
+      "enum": [14]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -447,6 +447,31 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "quarry": {
+      "description": "Passives that keep one enemy marked at a time (Tavi's You're It!, Roster Bible §6; ADR-030 §10): their owner moves faster while closing on the holder, its next basic attack on the holder spends the mark for bonus magic damage and a refund of its basic abilities' remaining cooldowns, and a kill of the holder sends the mark to the nearest enemy Vanguard in reach.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "mark", "chaseStatus", "chaseRange", "chaseAngleDegrees", "sampleSeconds", "damageAmount", "damagePerLevel", "magicPowerRatio", "cooldownRefund", "jumpRadius"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "mark": { "description": "From Abilities.json's statuses: the mark its owner's abilities apply.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "chaseStatus": { "description": "From Abilities.json's statuses: a MoveSpeed status its owner holds while closing on the holder.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "chaseRange": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "chaseAngleDegrees": { "description": "How far from straight at the holder its owner may be moving and still close on it.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 180 },
+            "sampleSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "damageAmount": { "description": "The spent mark's magic damage at Level 1.", "type": "number", "minimum": 0 },
+            "damagePerLevel": { "type": "number", "minimum": 0 },
+            "magicPowerRatio": { "type": "number", "minimum": 0 },
+            "cooldownRefund": { "description": "Of Q, W and E's remaining cooldowns, refunded as the mark is spent.", "type": "number", "minimum": 0, "maximum": 1 },
+            "jumpRadius": { "description": "How far from the fallen holder the mark jumps.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
           }
         }
       }

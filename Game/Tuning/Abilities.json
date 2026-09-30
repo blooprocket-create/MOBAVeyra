@@ -564,7 +564,119 @@
     "torr_rip_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
     "torr_overcapacity_size": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.4, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
     "torr_overcapacity_steady": { "provenance": "Provisional", "kind": "DisplacementImmunity", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
-    "torr_vent_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] }
+    "torr_vent_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "tavi_it": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 6,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": ["Vanguard"]
+    },
+    "tavi_chase": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.25,
+      "durationSeconds": 0.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
+    },
+    "tavi_hidden": {
+      "provenance": "Provisional",
+      "kind": "Invisible",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 1.25,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
+    },
+    "tavi_hide_haste": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.35,
+      "durationSeconds": 1.25,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
+    },
+    "tavi_hide_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.4,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
+    },
+    "tavi_gone": {
+      "provenance": "Provisional",
+      "kind": "Invisible",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 0.6,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
+    },
+    "tavi_out_of_reach": {
+      "provenance": "Provisional",
+      "kind": "Untargetable",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 0.6,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
+    }
   },
   "targetedDamage": {
     "test_bolt": {
@@ -2309,6 +2421,53 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": []
+    },
+    "tavi_hide": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [18, 17, 16, 15, 14],
+        "resourceCostByRank": [60],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": []
+      },
+      "statuses": ["tavi_hidden", "tavi_hide_haste"],
+      "shields": [],
+      "aura": [],
+      "heal": [],
+      "recast": "None",
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": [],
+      "attackSecondaryImpact": [],
+      "recipient": "Caster",
+      "recipientZones": [],
+      "marker": [
+        {
+          "lifetimeSeconds": 3,
+          "hitsToDestroy": 1,
+          "look": "AsOwner",
+          "burstZones": [
+            {
+              "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
+              "effects": {
+                "damage": [{ "type": "Magic", "amountByRank": [60, 90, 120, 150, 180], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }],
+                "statuses": ["tavi_hide_slow"],
+                "displacement": [],
+                "missingHealthDamage": [],
+                "unitKindMultipliers": [],
+                "displacementUnlessStatuses": [],
+                "reactions": []
+              },
+              "casterShieldPerVanguard": [],
+              "casterStatusesPerVanguard": []
+            }
+          ]
+        }
+      ]
     }
   },
   "skillshot": {
@@ -2565,6 +2724,48 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [],
       "returnIfHeld": []
+    },
+    "tavi_catch": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [9, 8.5, 8, 7.5, 7],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 900,
+        "windupSeconds": 0.2,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": []
+      },
+      "projectile": { "speed": 1500, "radius": 60, "range": 900 },
+      "collision": "FirstEnemy",
+      "effects": {
+        "damage": [
+          {
+            "type": "Magic",
+            "amountByRank": [70, 105, 140, 175, 210],
+            "physicalPowerRatio": 0,
+            "magicPowerRatio": 0.55
+          }
+        ],
+        "statuses": ["tavi_it"],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "casterDash": [],
+      "returnIfHeld": [{ "status": "tavi_it", "speed": 1800, "cooldownRefund": 0.4 }]
     }
   },
   "dash": {
@@ -2939,6 +3140,93 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
+    },
+    "tavi_tag": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [12, 11, 10, 9, 8],
+        "resourceCostByRank": [40],
+        "castRange": 500,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [
+          {
+            "ability": "tavi_tag_again",
+            "windowSeconds": 3,
+            "onExpiry": "Lapse",
+            "opensWhen": "TargetHeld",
+            "heldStatus": ["tavi_it"],
+            "fallsWithinSeconds": 0
+          }
+        ],
+        "targetMustHold": []
+      },
+      "direction": "ThroughTarget",
+      "distance": 225,
+      "speed": 1400,
+      "contact": "None",
+      "startZones": [],
+      "contactEffects": {
+        "damage": [{ "type": "Magic", "amountByRank": [60, 90, 120, 150, 180], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }],
+        "statuses": ["tavi_it"],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "contactSelfStatuses": [],
+      "hostEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "endZones": [],
+      "rideExit": "Stay"
+    },
+    "tavi_tag_again": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [1],
+        "resourceCostByRank": [0],
+        "castRange": 500,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": ["tavi_it"]
+      },
+      "direction": "ThroughTarget",
+      "distance": 225,
+      "speed": 1400,
+      "contact": "None",
+      "startZones": [],
+      "contactEffects": {
+        "damage": [{ "type": "Magic", "amountByRank": [60, 90, 120, 150, 180], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }],
+        "statuses": ["tavi_it"],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "contactSelfStatuses": [],
+      "hostEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "endZones": [],
+      "rideExit": "Stay"
     }
   },
   "empoweredAttack": {
@@ -3137,7 +3425,69 @@
       "vehicle": ["raska_hound_no_brakes"]
     }
   },
-  "ambush": {},
+  "ambush": {
+    "tavi_ready_or_not": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [100, 85, 70],
+        "resourceCostByRank": [100],
+        "castRange": 1500,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [
+          {
+            "ability": "tavi_ready_or_not_again",
+            "windowSeconds": 6,
+            "onExpiry": "Lapse",
+            "opensWhen": "TargetFalls",
+            "heldStatus": [],
+            "fallsWithinSeconds": 2
+          }
+        ],
+        "targetMustHold": []
+      },
+      "recentSeconds": 4,
+      "vanishSeconds": 0.6,
+      "vanishStatuses": ["tavi_gone", "tavi_out_of_reach"],
+      "besideDistance": 50,
+      "effects": {
+        "damage": [{ "type": "Magic", "amountByRank": [150, 250, 350], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }],
+        "statuses": ["tavi_it"],
+        "displacement": [],
+        "missingHealthDamage": [{ "type": "Magic", "missingHealthRatio": 0.2 }],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      }
+    },
+    "tavi_ready_or_not_again": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [1],
+        "resourceCostByRank": [0],
+        "castRange": 1500,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": []
+      },
+      "recentSeconds": 4,
+      "vanishSeconds": 0.6,
+      "vanishStatuses": ["tavi_gone", "tavi_out_of_reach"],
+      "besideDistance": 50,
+      "effects": {
+        "damage": [{ "type": "Magic", "amountByRank": [75, 125, 175], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }],
+        "statuses": ["tavi_it"],
+        "displacement": [],
+        "missingHealthDamage": [{ "type": "Magic", "missingHealthRatio": 0.1 }],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      }
+    }
+  },
   "fluxSpells": {
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]

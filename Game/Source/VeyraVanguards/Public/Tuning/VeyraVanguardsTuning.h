@@ -698,6 +698,56 @@ struct FVeyraReclaimTuning
 	double LockoutSeconds = 0.0;
 };
 
+/**
+ * Tavi's You're It! (Roster Bible §6; ADR-030 §10): one enemy at a time holds its owner's mark. Its owner
+ * moves faster while closing on the holder; its next basic attack on the holder spends the mark for bonus
+ * magic damage and refunds CooldownRefund of Q, W and E's remaining cooldowns; and a kill of the holder
+ * sends the mark to the nearest enemy Vanguard within JumpRadius. Its data is an entry in Vanguards.json's
+ * quarry map.
+ */
+USTRUCT()
+struct FVeyraQuarryTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: the mark its owner's abilities apply. */
+	UPROPERTY()
+	FVeyraContentId Mark;
+
+	/** From Abilities.json's statuses: a MoveSpeed status its owner holds while closing on the holder. */
+	UPROPERTY()
+	FVeyraContentId ChaseStatus;
+
+	UPROPERTY()
+	double ChaseRange = 0.0;
+
+	/** How far from straight at the holder its owner may be moving and still close on it. */
+	UPROPERTY()
+	double ChaseAngleDegrees = 0.0;
+
+	UPROPERTY()
+	double SampleSeconds = 0.0;
+
+	/** The spent mark's magic damage at Level 1, what each Level adds, and its Magic Power ratio. */
+	UPROPERTY()
+	double DamageAmount = 0.0;
+
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	UPROPERTY()
+	double CooldownRefund = 0.0;
+
+	UPROPERTY()
+	double JumpRadius = 0.0;
+};
+
 /** One of Unreturned's Health thresholds: below its fraction, its owner holds its statuses (ADR-028 §7). */
 USTRUCT()
 struct FVeyraUnreturnedThresholdTuning
@@ -744,7 +794,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 13;
+	static constexpr int32 SchemaVersion = 14;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -796,6 +846,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraUnreturnedTuning> Unreturned;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraQuarryTuning> Quarry;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 13,
+  "schemaVersion": 14,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -781,6 +781,48 @@
       },
       "abilities": { "q": ["torr_battering_mass"], "w": ["torr_fortify"], "e": ["torr_anchor"], "r": ["torr_overcapacity"] },
       "passive": ["torr_unreturned"]
+    },
+    "tavi": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 32, "capsuleHalfHeight": 66, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 575,
+        "healthRegen": 0.8,
+        "maxResource": 380,
+        "resourceRegen": 3.4,
+        "armor": 26,
+        "magicResist": 32,
+        "physicalPower": 58,
+        "magicPower": 0,
+        "attackSpeed": 0.66,
+        "moveSpeed": 340
+      },
+      "growth": {
+        "maxHealth": 92,
+        "healthRegen": 0.12,
+        "maxResource": 42,
+        "resourceRegen": 0.3,
+        "armor": 4.2,
+        "magicResist": 1.3,
+        "physicalPower": 2.8,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.022
+      },
+      "basicAttack": {
+        "range": 150,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.28,
+        "acquisitionRadius": 600,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": { "q": ["tavi_catch"], "w": ["tavi_hide"], "e": ["tavi_tag"], "r": ["tavi_ready_or_not"] },
+      "passive": ["tavi_youre_it"]
     }
   },
   "deepFoundation": {
@@ -976,6 +1018,21 @@
         { "healthFraction": 0.5, "statuses": ["torr_unreturned_stride"] },
         { "healthFraction": 0.3, "statuses": ["torr_unreturned_tenacity"] }
       ]
+    }
+  },
+  "quarry": {
+    "tavi_youre_it": {
+      "provenance": "Provisional",
+      "mark": "tavi_it",
+      "chaseStatus": "tavi_chase",
+      "chaseRange": 1200,
+      "chaseAngleDegrees": 45,
+      "sampleSeconds": 0.25,
+      "damageAmount": 20,
+      "damagePerLevel": 8,
+      "magicPowerRatio": 0.3,
+      "cooldownRefund": 0.25,
+      "jumpRadius": 1000
     }
   }
 }

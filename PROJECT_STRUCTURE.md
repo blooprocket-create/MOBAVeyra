@@ -122,6 +122,13 @@ M20b added ([ADR-027](Docs/ADR/ADR-027-mobile-attacks-and-ally-casts.md)):
 
 M22 added ([ADR-028](Docs/ADR/ADR-028-blind-grounding-and-collision.md)): blinded attacks that miss; areas that land on their caster's own lingering area and end it; end payloads that push. Combat's movement gives a displacement's collision statuses when terrain, a Vanguard or a structure stops it.
 
+M24a added ([ADR-030](Docs/ADR/ADR-030-stealth-markers-and-marked-follow-ups.md)), for Tavi:
+- Combat's Invisible and Untargetable statuses: Vision gates an Invisible unit as it gates a ward, and `VeyraTargeting::CanAcquire` and `CanHitEnemy` keep an Untargetable one from enemies' orders, casts, attacks, areas, skillshots and tethers;
+- `VeyraCombat::Blink`, and cooldown refunds (`VeyraCooldowns::Reduce`, `VeyraAbilities::RefundCooldown(s)`);
+- `Entities/AVeyraPlacedMarker` in Combat: ADR-003's placed marker, the first owned entity. It belongs to its owner's side and credits its owner, counts hits as a ward does, ends with a reason on `OnMarkerEnded`, and can present as its owner, which the HUD's bars and the minimap follow;
+- recast windows that open on a held mark or a takedown, casts that take only a marked target, dashes through a target, skillshots that return to their caster, self-buffs that leave a marker, and the ambush archetype (`UVeyraAmbushAbility`);
+- the quarry passive (`UVeyraQuarryPassive`).
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

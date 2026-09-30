@@ -125,6 +125,11 @@ const FVeyraReclaimTuning* UVeyraVanguardsTuningSubsystem::FindReclaim(const FVe
 	return Get().Reclaim.Find(Passive);
 }
 
+const FVeyraQuarryTuning* UVeyraVanguardsTuningSubsystem::FindQuarry(const FVeyraContentId& Passive)
+{
+	return Get().Quarry.Find(Passive);
+}
+
 const FVeyraUnreturnedTuning* UVeyraVanguardsTuningSubsystem::FindUnreturned(const FVeyraContentId& Passive)
 {
 	return Get().Unreturned.Find(Passive);

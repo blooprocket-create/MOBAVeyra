@@ -268,6 +268,19 @@
         "raska_bail_out": "Never",
         "raska_last_exit": "Damage"
       }
+    },
+    "tavi": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "tavi_catch": "Damage",
+        "tavi_hide": "Escape",
+        "tavi_tag": "Engage",
+        "tavi_tag_again": "Damage",
+        "tavi_ready_or_not": "Secure",
+        "tavi_ready_or_not_again": "Secure"
+      }
     }
   }
 }
