@@ -445,7 +445,7 @@ The initial shop still needs significant expansion. Likely future families inclu
 - universal damage-based sustain / omnivamp;
 - support/enchanter utility;
 - displacement actives;
-- vision tools;
+- optional ordinary-inventory vision interactions or counter-items; the actual Persistent Ward, Sweeper, and Quick Sight tools are already defined by the Vision & Reconnaissance Bible and occupy the dedicated vision-tool slot rather than ordinary inventory;
 - anti-Attack-Speed and anti-basic-attack defense;
 - additional crit/on-hit branches;
 - hybrid and niche counter-items.
