@@ -11,6 +11,9 @@
 
 #include "VeyraGameplayAbility.generated.h"
 
+class UVeyraAbilityLoadoutComponent;
+struct FVeyraOverrideSpec;
+
 class UAbilitySystemComponent;
 struct FVeyraCastTuning;
 
@@ -97,6 +100,13 @@ protected:
 	 * returns null activates on its own.
 	 */
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const;
+
+	/**
+	 * Opens FollowUp in Slot if Target dies, its kill credited to Caster, within WithinSeconds (ADR-030 §7):
+	 * a recast that a takedown earns.
+	 */
+	static void OpenOnFall(UWorld& World, UVeyraAbilityLoadoutComponent& Loadout, UAbilitySystemComponent& Caster, const AActor& Target,
+		EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& FollowUp, double WithinSeconds);
 
 	/** Whether Ability moves its caster, as a dash, leap or attach does: a Root refuses it (ADR-026 §3). */
 	virtual bool MovesCaster(const FVeyraContentId& Ability) const { return false; }

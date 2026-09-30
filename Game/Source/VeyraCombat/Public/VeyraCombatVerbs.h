@@ -231,6 +231,9 @@ namespace VeyraCombat
 	 */
 	VEYRACOMBAT_API void EndStealth(UAbilitySystemComponent& Unit);
 
+	/** Whether Unit, a body or a participant, holds the status Id that Source applied (ADR-030 §7): a caster's mark. */
+	VEYRACOMBAT_API bool HasStatusFrom(const AActor* Unit, const FVeyraContentId& Id, const UAbilitySystemComponent& Source);
+
 	/** The actions Unit's statuses stop it taking now (Combat Bible §8). None when it has no status ledger. */
 	VEYRACOMBAT_API EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit);
 

@@ -104,6 +104,10 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Abilities", "/area/*/originAbility/*", "Abilities", ("/area",)),
     ("Abilities", "/selfBuff/*/shields/*/absorbedReward/*/statuses/*", "Abilities", ("/statuses",)),
     ("Abilities", "/selfBuff/*/aura/*/enemyStatuses/*", "Abilities", ("/statuses",)),
+    # Marks a cast reads (ADR-030 §7, §8): the target it takes, the follow-up it opens, the shot that comes back.
+    ("Abilities", "/*/*/cast/targetMustHold/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/*/*/cast/recastWindow/*/heldStatus/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/skillshot/*/returnIfHeld/*/status", "Abilities", ("/statuses",)),
     # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).
     ("Abilities", "/fluxSpells/roster/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     # Every Fluxborn Economy pays for is one World defines, and every one World defines is paid for.

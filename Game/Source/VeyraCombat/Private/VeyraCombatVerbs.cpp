@@ -3,6 +3,7 @@
 #include "VeyraCombatVerbs.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "Attributes/VeyraAttributePolicy.h"
 #include "Attributes/VeyraDefenceSet.h"
@@ -768,6 +769,14 @@ void EndStealth(UAbilitySystemComponent& Unit)
 	{
 		RemoveStatus(Unit, Id);
 	}
+}
+
+bool HasStatusFrom(const AActor* Unit, const FVeyraContentId& Id, const UAbilitySystemComponent& Source)
+{
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit);
+	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->HasFrom(Id, Source);
 }
 
 EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)

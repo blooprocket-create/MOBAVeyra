@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 14,
+  "schemaVersion": 15,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -618,7 +618,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -655,7 +656,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -692,7 +694,8 @@
         "windupSeconds": 0.45,
         "windupMovement": "Locked",
         "recoverySeconds": 0.3,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -740,7 +743,8 @@
         "windupSeconds": 1.0,
         "windupMovement": "Locked",
         "recoverySeconds": 0.4,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -801,7 +805,8 @@
         "windupSeconds": 0.6,
         "windupMovement": "Locked",
         "recoverySeconds": 0.3,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -838,7 +843,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Locked",
         "recoverySeconds": 0.2,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -875,7 +881,8 @@
         "windupSeconds": 0.75,
         "windupMovement": "Locked",
         "recoverySeconds": 0.3,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -912,7 +919,8 @@
         "windupSeconds": 0.2,
         "windupMovement": "Free",
         "recoverySeconds": 0.2,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -949,7 +957,8 @@
         "windupSeconds": 1.25,
         "windupMovement": "Locked",
         "recoverySeconds": 0.4,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -997,7 +1006,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1041,7 +1051,8 @@
         "windupSeconds": 0.2,
         "windupMovement": "Locked",
         "recoverySeconds": 0.15,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1078,7 +1089,8 @@
         "windupSeconds": 0.2,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1115,7 +1127,8 @@
         "windupSeconds": 0.3,
         "windupMovement": "Free",
         "recoverySeconds": 0.2,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1152,7 +1165,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Locked",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1177,7 +1191,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1202,7 +1217,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1227,7 +1243,8 @@
         "windupSeconds": 0.35,
         "windupMovement": "Free",
         "recoverySeconds": 0.2,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1252,7 +1269,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Locked",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1277,7 +1295,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1302,7 +1321,8 @@
         "windupSeconds": 0.15,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1327,7 +1347,8 @@
         "windupSeconds": 0.3,
         "windupMovement": "Free",
         "recoverySeconds": 0.2,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1352,7 +1373,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1377,7 +1399,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1402,7 +1425,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1427,7 +1451,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1452,7 +1477,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1477,7 +1503,8 @@
         "windupSeconds": 0.2,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1502,7 +1529,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1527,7 +1555,8 @@
         "windupSeconds": 0.2,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1552,7 +1581,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1577,7 +1607,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1602,7 +1633,8 @@
         "windupSeconds": 0.3,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1627,7 +1659,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1652,7 +1685,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1677,7 +1711,8 @@
         "windupSeconds": 0.2,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": [{ "ability": "torr_anchor_rip", "windowSeconds": 5, "onExpiry": "Lapse" }]
+        "recastWindow": [{ "ability": "torr_anchor_rip", "windowSeconds": 5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1702,7 +1737,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "CastersLingeringArea",
       "originAbility": ["torr_anchor"],
@@ -1727,7 +1763,8 @@
         "windupSeconds": 0.2,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": [{ "ability": "torr_anchor_rip_over", "windowSeconds": 5, "onExpiry": "Lapse" }]
+        "recastWindow": [{ "ability": "torr_anchor_rip_over", "windowSeconds": 5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "targetMustHold": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1752,7 +1789,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "origin": "CastersLingeringArea",
       "originAbility": ["torr_anchor_over"],
@@ -1779,7 +1817,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
       "shields": [],
@@ -1802,7 +1841,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["qazharr_weather_it_tenacity"],
       "shields": [
@@ -1838,7 +1878,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["oriel_mirror_veil_haste"],
       "shields": [
@@ -1874,7 +1915,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": [],
       "shields": [],
@@ -1897,7 +1939,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["vera_dig_in_stance", "vera_dig_in_reach", "vera_dig_in_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
       "shields": [],
@@ -1920,7 +1963,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["vera_dig_in_stance", "vera_dig_in_volley_reach", "vera_dig_in_volley_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
       "shields": [],
@@ -1943,7 +1987,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["vera_last_volley"],
       "shields": [],
@@ -1966,7 +2011,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["mimzi_camouflage", "mimzi_scamper"],
       "shields": [],
@@ -1989,7 +2035,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["patch_dormant", "patch_play_dead_guard", "patch_play_dead_anchor"],
       "shields": [],
@@ -2012,7 +2059,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Locked",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["patch_inside_body", "patch_inside_footing"],
       "shields": [],
@@ -2035,7 +2083,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["gorraveth_frenzy_haste", "gorraveth_frenzy_hunt"],
       "shields": [],
@@ -2058,7 +2107,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["raska_countersteer_guard"],
       "shields": [],
@@ -2081,7 +2131,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["raska_countersteer_guard"],
       "shields": [],
@@ -2104,7 +2155,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["celandrine_open_road_haste", "celandrine_open_road_stride"],
       "shields": [],
@@ -2127,7 +2179,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["aurelisse_windward_haste"],
       "shields": [
@@ -2163,7 +2216,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["aurelisse_room_stride"],
       "shields": [
@@ -2199,7 +2253,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["torr_fortify_guard", "torr_fortify_brace"],
       "shields": [],
@@ -2222,7 +2277,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "statuses": ["torr_overcapacity_size", "torr_overcapacity_steady"],
       "shields": [],
@@ -2247,7 +2303,8 @@
         "windupSeconds": 0.35,
         "windupMovement": "Locked",
         "recoverySeconds": 0.25,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 1650, "radius": 55, "range": 1050 },
       "collision": "FirstEnemyVanguard",
@@ -2263,7 +2320,8 @@
         "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900, "collisionStatuses": [] }],
         "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
-      "casterDash": []
+      "casterDash": [],
+      "returnIfHeld": []
     },
     "oriel_splinter_lance": {
       "provenance": "Provisional",
@@ -2274,7 +2332,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Locked",
         "recoverySeconds": 0.2,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 1800, "radius": 40, "range": 1000 },
       "collision": "FirstEnemy",
@@ -2290,7 +2349,8 @@
         "displacement": [],
         "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
-      "casterDash": []
+      "casterDash": [],
+      "returnIfHeld": []
     },
     "kade_throughline": {
       "provenance": "Provisional",
@@ -2301,7 +2361,8 @@
         "windupSeconds": 0.4,
         "windupMovement": "Locked",
         "recoverySeconds": 0.2,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
       "collision": "Pierce",
@@ -2312,7 +2373,8 @@
         "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "casterDash": []
+      "casterDash": [],
+      "returnIfHeld": []
     },
     "kade_reposition": {
       "provenance": "Provisional",
@@ -2323,7 +2385,8 @@
         "windupSeconds": 0.15,
         "windupMovement": "Locked",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 1600, "radius": 60, "range": 750 },
       "collision": "FirstEnemy",
@@ -2334,7 +2397,8 @@
         "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "casterDash": [{ "distance": 400, "speed": 1000 }]
+      "casterDash": [{ "distance": 400, "speed": 1000 }],
+      "returnIfHeld": []
     },
     "kade_kill_corridor_shot": {
       "provenance": "Provisional",
@@ -2345,7 +2409,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Locked",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 5000, "radius": 60, "range": 3000 },
       "collision": "Pierce",
@@ -2356,7 +2421,8 @@
         "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "casterDash": []
+      "casterDash": [],
+      "returnIfHeld": []
     },
     "vera_range_found": {
       "provenance": "Provisional",
@@ -2367,7 +2433,8 @@
         "windupSeconds": 0.35,
         "windupMovement": "Locked",
         "recoverySeconds": 0.2,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
       "collision": "FirstEnemy",
@@ -2378,7 +2445,8 @@
         "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "casterDash": []
+      "casterDash": [],
+      "returnIfHeld": []
     },
     "moro_arc_bolt": {
       "provenance": "Provisional",
@@ -2389,13 +2457,15 @@
         "windupSeconds": 0.25,
         "windupMovement": "Locked",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 1600, "radius": 60, "range": 1100 },
       "collision": "FirstEnemy",
       "effects": { "damage": [{ "type": "Magic", "amountByRank": [80, 125, 170, 215, 260], "physicalPowerRatio": 0, "magicPowerRatio": 0.7 }], "statuses": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "casterDash": []
+      "casterDash": [],
+      "returnIfHeld": []
     },
     "mimzi_twinklebolt": {
       "provenance": "Provisional",
@@ -2406,7 +2476,8 @@
         "windupSeconds": 0.25,
         "windupMovement": "Locked",
         "recoverySeconds": 0.15,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 1900, "radius": 45, "range": 1000 },
       "collision": "FirstEnemy",
@@ -2417,7 +2488,8 @@
         "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "casterDash": []
+      "casterDash": [],
+      "returnIfHeld": []
     },
     "raska_hound": {
       "provenance": "Provisional",
@@ -2428,13 +2500,15 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 1400, "radius": 90, "range": 1000 },
       "collision": "Pierce",
       "effects": { "damage": [{ "type": "Physical", "amountByRank": [80, 120, 160, 200, 240], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 200, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "casterDash": []
+      "casterDash": [],
+      "returnIfHeld": []
     },
     "raska_hound_no_brakes": {
       "provenance": "Provisional",
@@ -2445,13 +2519,15 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 1500, "radius": 120, "range": 1100 },
       "collision": "Pierce",
       "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": ["raska_last_exit_knockup"], "reactions": [] },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "casterDash": []
+      "casterDash": [],
+      "returnIfHeld": []
     },
     "aurelisse_crosswind": {
       "provenance": "Provisional",
@@ -2462,13 +2538,15 @@
         "windupSeconds": 0.2,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "projectile": { "speed": 1400, "radius": 110, "range": 900 },
       "collision": "Pierce",
       "effects": { "damage": [{ "type": "Magic", "amountByRank": [50, 80, 110, 140, 170], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": [], "displacement": [{ "direction": "AsideFromPath", "distance": 225, "speed": 900, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "casterDash": []
+      "casterDash": [],
+      "returnIfHeld": []
     }
   },
   "dash": {
@@ -2481,7 +2559,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 450,
@@ -2508,7 +2587,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "AwayFromPoint",
       "distance": 350,
@@ -2547,7 +2627,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 400,
@@ -2574,7 +2655,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "AwayFromHost",
       "distance": 300,
@@ -2596,7 +2678,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 350,
@@ -2618,7 +2701,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 350,
@@ -2640,7 +2724,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 650,
@@ -2662,7 +2747,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 600,
@@ -2684,7 +2770,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": [{ "ability": "raska_breakneck_through", "windowSeconds": 3, "onExpiry": "Lapse" }]
+        "recastWindow": [{ "ability": "raska_breakneck_through", "windowSeconds": 3, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 400,
@@ -2706,7 +2793,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 350,
@@ -2728,7 +2816,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 400,
@@ -2750,7 +2839,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 300,
@@ -2772,7 +2862,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 250,
@@ -2794,7 +2885,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 400,
@@ -2816,7 +2908,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "direction": "TowardPoint",
       "distance": 325,
@@ -2840,7 +2933,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "durationSeconds": 5,
       "attacks": 1,
@@ -2860,7 +2954,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "durationSeconds": 6,
       "attacks": 1,
@@ -2887,7 +2982,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "durationSeconds": 5,
       "attacks": 3,
@@ -2909,7 +3005,8 @@
         "windupSeconds": 0.5,
         "windupMovement": "Locked",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "shot": "kade_kill_corridor_shot",
       "shots": 3,
@@ -2929,7 +3026,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "targetKinds": ["Vanguard"],
       "maxRange": 750,
@@ -2949,7 +3047,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 2.5, "onExpiry": "Lapse" }]
+        "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 2.5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "targetMustHold": []
       },
       "targetKinds": ["Vanguard"],
       "leapSpeed": 1200,
@@ -2967,7 +3066,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 3, "onExpiry": "Lapse" }]
+        "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 3, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "targetMustHold": []
       },
       "targetKinds": ["Vanguard"],
       "leapSpeed": 1200,
@@ -2987,7 +3087,8 @@
         "windupSeconds": 0.4,
         "windupMovement": "Locked",
         "recoverySeconds": 0,
-        "recastWindow": []
+        "recastWindow": [],
+        "targetMustHold": []
       },
       "setSpeed": 575,
       "turnRateDegreesPerSecond": 200,
@@ -3006,7 +3107,8 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": [{ "ability": "raska_last_exit", "windowSeconds": 6, "onExpiry": "Cast" }]
+        "recastWindow": [{ "ability": "raska_last_exit", "windowSeconds": 6, "onExpiry": "Cast", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "targetMustHold": []
       },
       "setSpeed": 750,
       "turnRateDegreesPerSecond": 160,

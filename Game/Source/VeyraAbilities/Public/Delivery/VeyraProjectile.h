@@ -45,10 +45,12 @@ public:
 	/**
 	 * Server only: sends it from the actor's location along Direction, stopped as Collision says.
 	 * Effects land on each unit it hits; PassThroughEffects on each unit a FirstEnemyVanguard
-	 * projectile passes through. Called once, after spawning.
+	 * projectile passes through. BeforeStrike, if given, runs on each unit it hits just before the hit
+	 * lands. Called once, after spawning.
 	 */
 	void LaunchLine(UAbilitySystemComponent& Caster, const FVector& Direction, const FVeyraProjectileTuning& Tuning, EVeyraSkillshotCollision Collision,
-		FVeyraPreparedEffects Effects, FVeyraPreparedEffects PassThroughEffects, const FVeyraContentId& Ability, int32 CastId);
+		FVeyraPreparedEffects Effects, FVeyraPreparedEffects PassThroughEffects, const FVeyraContentId& Ability, int32 CastId,
+		TFunction<void(AActor&)> BeforeStrike = nullptr);
 
 	/**
 	 * Server only: sends it from the actor's location after Target, at Speed. When it lands, Effects
@@ -136,6 +138,7 @@ private:
 	FVeyraPreparedEffects Effects;
 	FVeyraPreparedEffects PassThroughEffects;
 	TFunction<void(AActor&)> OnLanded;
+	TFunction<void(AActor&)> BeforeStrike;
 	EVeyraSkillshotCollision Collision = EVeyraSkillshotCollision::FirstEnemy;
 	double Travelled = 0.0;
 

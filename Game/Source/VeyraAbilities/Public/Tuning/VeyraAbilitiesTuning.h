@@ -76,6 +76,18 @@ enum class EVeyraRecastExpiry : uint8
 	Cast,
 };
 
+/** When a recast window opens (ADR-018 §1; ADR-030 §7). */
+UENUM()
+enum class EVeyraRecastCondition : uint8
+{
+	/** As every cast commits. */
+	Always,
+	/** As the cast commits, only if its target already held HeldStatus from the caster. */
+	TargetHeld,
+	/** Only if the cast's target dies, its kill credited to the caster, within FallsWithinSeconds. */
+	TargetFalls,
+};
+
 /** After a cast commits, its slot holds a follow-up for a while (ADR-018 §1). */
 USTRUCT()
 struct FVeyraRecastTuning
@@ -91,6 +103,17 @@ struct FVeyraRecastTuning
 
 	UPROPERTY()
 	EVeyraRecastExpiry OnExpiry = EVeyraRecastExpiry::Lapse;
+
+	UPROPERTY()
+	EVeyraRecastCondition OpensWhen = EVeyraRecastCondition::Always;
+
+	/** TargetHeld: one status ID. Empty otherwise. */
+	UPROPERTY()
+	TArray<FVeyraContentId> HeldStatus;
+
+	/** TargetFalls: how long after the cast the target's fall still opens it, in seconds. 0 otherwise. */
+	UPROPERTY()
+	double FallsWithinSeconds = 0.0;
 };
 
 USTRUCT()
@@ -124,6 +147,10 @@ struct FVeyraCastTuning
 	/** At most one: the follow-up its slot holds once this cast commits. */
 	UPROPERTY()
 	TArray<FVeyraRecastTuning> RecastWindow;
+
+	/** At most one status ID: the cast takes only a target holding it from the caster (ADR-030 §7). */
+	UPROPERTY()
+	TArray<FVeyraContentId> TargetMustHold;
 };
 
 /** One damage component, from the caster's rank and power at Commit (Combat Bible §25, §50). */
@@ -986,6 +1013,25 @@ struct FVeyraCasterDashTuning
 	double Speed = 0.0;
 };
 
+/**
+ * A shot that comes back (ADR-030 §8): striking a unit that already held Status from its caster, it flies
+ * back to the caster at Speed, and reaching them refunds CooldownRefund of the ability's remaining cooldown.
+ */
+USTRUCT()
+struct FVeyraReturnShotTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	UPROPERTY()
+	double Speed = 0.0;
+
+	UPROPERTY()
+	double CooldownRefund = 0.0;
+};
+
 /** An ability that fires a line projectile toward the cast's point (ADR-008 §3). Terrain stops it (ADR-008 §9). */
 USTRUCT()
 struct FVeyraSkillshotAbilityTuning
@@ -1015,6 +1061,10 @@ struct FVeyraSkillshotAbilityTuning
 	/** At most one: the caster recoils away from the aim as it fires, as Kade's Reposition does. */
 	UPROPERTY()
 	TArray<FVeyraCasterDashTuning> CasterDash;
+
+	/** At most one: the shot flies back to its caster from a unit that already held a status of theirs (ADR-030 §8). */
+	UPROPERTY()
+	TArray<FVeyraReturnShotTuning> ReturnIfHeld;
 };
 
 /** Which way a dash goes. */
@@ -1030,6 +1080,11 @@ enum class EVeyraDashDirection : uint8
 	 * Bear Hug throw. Refused unless the caster holds on to one; the cast's point does not matter.
 	 */
 	AwayFromHost,
+	/**
+	 * Through the enemy unit the cast names, to Distance beyond it (ADR-030 §6), as Tavi's Tag!. The unit
+	 * takes the contact effects as the dash sets off.
+	 */
+	ThroughTarget,
 };
 
 /** Whether a dash leaves its caster's ride first (Combat Bible §56, "Leaving"). */
@@ -1389,7 +1444,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 14;
+	static constexpr int32 SchemaVersion = 15;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

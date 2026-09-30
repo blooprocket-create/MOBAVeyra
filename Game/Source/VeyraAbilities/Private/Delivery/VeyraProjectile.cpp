@@ -46,8 +46,9 @@ void AVeyraProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void AVeyraProjectile::LaunchLine(UAbilitySystemComponent& InCaster, const FVector& InDirection, const FVeyraProjectileTuning& Tuning,
 	EVeyraSkillshotCollision InCollision, FVeyraPreparedEffects InEffects, FVeyraPreparedEffects InPassThroughEffects, const FVeyraContentId& InAbility,
-	int32 InCastId)
+	int32 InCastId, TFunction<void(AActor&)> InBeforeStrike)
 {
+	BeforeStrike = MoveTemp(InBeforeStrike);
 	Flight = EVeyraProjectileFlight::Line;
 	Direction = InDirection.GetSafeNormal2D();
 	if (Direction.IsNearlyZero())
@@ -174,6 +175,11 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 		{
 			VeyraEffectDelivery::Apply(Source, Unit, PassThroughEffects, PathFrame(), FVeyraAbilityHitSource{ Ability, CastId });
 			continue;
+		}
+		// Before the hit lands, so what it reads of the unit is as the shot found it (ADR-030 §8).
+		if (BeforeStrike)
+		{
+			BeforeStrike(Unit);
 		}
 		VeyraEffectDelivery::Apply(Source, Unit, Effects, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
 		if (Collision != EVeyraSkillshotCollision::Pierce)

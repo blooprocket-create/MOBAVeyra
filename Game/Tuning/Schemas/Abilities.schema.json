@@ -27,7 +27,7 @@
       "description": "How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow"],
+      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold"],
       "properties": {
         "cooldownSecondsByRank": { "description": "Cooldown in seconds, starting at Commit.", "$ref": "#/definitions/byRank" },
         "resourceCostByRank": { "description": "Resource paid at Commit.", "$ref": "#/definitions/byRank" },
@@ -57,6 +57,13 @@
           "minItems": 0,
           "maxItems": 1,
           "items": { "$ref": "#/definitions/recastWindow" }
+        },
+        "targetMustHold": {
+          "description": "At most one status ID: the cast takes only a target that holds it from the caster, as Tavi's second Tag! takes only It (ADR-030 §7).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
         }
       }
     },
@@ -64,7 +71,7 @@
       "description": "A recast window: the slot holds another ability until it is cast or its time runs out (ADR-018 §1).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["ability", "windowSeconds", "onExpiry"],
+      "required": ["ability", "windowSeconds", "onExpiry", "opensWhen", "heldStatus", "fallsWithinSeconds"],
       "properties": {
         "ability": { "description": "The follow-up: another ability's ID.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
         "windowSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -72,7 +79,20 @@
           "description": "Lapse loses the follow-up; Cast casts it where the caster faces.",
           "type": "string",
           "enum": ["Lapse", "Cast"]
-        }
+        },
+        "opensWhen": {
+          "description": "Always: as every cast commits. TargetHeld: only if the cast's target already held heldStatus from the caster. TargetFalls: only if the target dies, credited to the caster, within fallsWithinSeconds (ADR-030 §7).",
+          "type": "string",
+          "enum": ["Always", "TargetHeld", "TargetFalls"]
+        },
+        "heldStatus": {
+          "description": "TargetHeld: one status ID. Empty otherwise.",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+        },
+        "fallsWithinSeconds": { "description": "TargetFalls: above 0. 0 otherwise.", "type": "number", "minimum": 0 }
       }
     },
     "damage": {
@@ -127,7 +147,7 @@
             }
           }
         },
-        "unitKindMultipliers": { "description": "Damage multiplied against some kinds of unit, at least 1, once per kind, never structures (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "object", "additionalProperties": false, "required": ["kind", "multiplier"], "properties": { "kind": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }, "multiplier": { "type": "number", "minimum": 1 } } } },
+        "unitKindMultipliers": { "description": "Damage multiplied against some kinds of unit, at least 1, once per kind, never structures (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "object", "additionalProperties": false, "required": ["kind", "multiplier"], "properties": { "kind": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] }, "multiplier": { "type": "number", "minimum": 1 } } } },
         "displacementUnlessStatuses": { "description": "Statuses that spare a unit this displacement: one displacement per target per cast (Roster Bible §1).", "$ref": "#/definitions/statusIds" },
         "reactions": {
           "description": "What the hit adds when its target holds a status, read as the hit lands (ADR-026 §1): Rupture's burst on Splinters, Flash Cure's stun on an Unstable target.",
@@ -240,7 +260,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [14]
+      "enum": [15]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -314,9 +334,9 @@
               "type": "array",
               "minItems": 0,
               "maxItems": 6,
-              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }
+              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] }
             },
-            "landsOn": { "description": "The kinds of unit it lands on (EVeyraUnitKind), empty for every kind, as Splinters embed only in Vanguards (ADR-026 §2).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] } }
+            "landsOn": { "description": "The kinds of unit it lands on (EVeyraUnitKind), empty for every kind, as Splinters embed only in Vanguards (ADR-026 §2).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] } }
           }
         }
       }
@@ -364,7 +384,7 @@
               "type": "array",
               "minItems": 0,
               "maxItems": 6,
-              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }
+              "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] }
             }
           }
         }
@@ -440,7 +460,7 @@
             "consumesCasterStatuses": { "description": "Statuses the caster loses as it commits, whatever their stacks, as Break the Line spends Cadence (ADR-018 §6).", "$ref": "#/definitions/statusIds" },
             "channelMovement": { "description": "Locked holds the caster in place while it channels; Free lets it move, each tick placed where it stands (ADR-018 §6).", "type": "string", "enum": ["Free", "Locked"] },
             "casterStatuses": { "description": "Put on the caster as it commits.", "$ref": "#/definitions/statusIds" },
-            "healOnHit": { "description": "At most one: Health the caster restores from the units it hits, capped for the cast (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["unitKinds", "maxHealthRatioPerHit", "capMaxHealthRatio"], "properties": { "unitKinds": { "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] } }, "maxHealthRatioPerHit": { "type": "number", "minimum": 0, "exclusiveMinimum": true }, "capMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } },
+            "healOnHit": { "description": "At most one: Health the caster restores from the units it hits, capped for the cast (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["unitKinds", "maxHealthRatioPerHit", "capMaxHealthRatio"], "properties": { "unitKinds": { "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] } }, "maxHealthRatioPerHit": { "type": "number", "minimum": 0, "exclusiveMinimum": true }, "capMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } },
             "delayWithin": { "description": "For a delayed area: the first entry whose lingering area, its caster's own of the named ability, holds the area's point sets its delay instead (ADR-026 §4), as Flash Cure's inside CODE BLACK.", "type": "array", "minItems": 0, "items": { "type": "object", "additionalProperties": false, "required": ["ability", "delaySeconds"], "properties": { "ability": { "description": "An area ability that lingers.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }, "delaySeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } }
           }
         }
@@ -596,7 +616,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "projectile", "collision", "effects", "passThroughEffects", "casterDash"],
+          "required": ["provenance", "cast", "projectile", "collision", "effects", "passThroughEffects", "casterDash", "returnIfHeld"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -618,6 +638,22 @@
             },
             "effects": { "description": "On each unit it hits.", "$ref": "#/definitions/effects" },
             "passThroughEffects": { "description": "On each unit a FirstEnemyVanguard projectile passes through; empty lists otherwise.", "$ref": "#/definitions/effects" },
+            "returnIfHeld": {
+              "description": "At most one: striking a unit that already held status from its caster, the shot flies back to the caster at speed; reaching them refunds cooldownRefund of the ability's remaining cooldown (ADR-030 §8).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["status", "speed", "cooldownRefund"],
+                "properties": {
+                  "status": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "speed": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "cooldownRefund": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 }
+                }
+              }
+            },
             "casterDash": {
               "description": "At most one: the caster recoils away from the aim as the shot leaves (ADR-018 §6), as Kade's Reposition does.",
               "type": "array",
@@ -650,9 +686,9 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
             "direction": {
-              "description": "TowardPoint: toward the cast's point. AwayFromPoint: straight back from it, as a recoil. AwayFromHost: straight back from the unit the caster holds on to, letting go (ADR-018 §2).",
+              "description": "TowardPoint: toward the cast's point. AwayFromPoint: straight back from it, as a recoil. AwayFromHost: straight back from the unit the caster holds on to, letting go (ADR-018 §2). ThroughTarget: through the enemy unit the cast names, to distance beyond it, the unit taking the contact effects (ADR-030 §6).",
               "type": "string",
-              "enum": ["TowardPoint", "AwayFromPoint", "AwayFromHost"]
+              "enum": ["TowardPoint", "AwayFromPoint", "AwayFromHost", "ThroughTarget"]
             },
             "distance": { "description": "Units; terrain stops the dash sooner.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "speed": { "description": "Units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -784,7 +820,7 @@
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
-            "targetKinds": { "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] } },
+            "targetKinds": { "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] } },
             "maxRange": { "description": "Edge to edge, in units; beyond it the tether stretches. At least the cast's range.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "snapDistance": { "description": "Stretched, the pull toward the caster, in units before Displacement Resistance; 0 for none.", "type": "number", "minimum": 0 },
@@ -806,7 +842,7 @@
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
-            "targetKinds": { "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] } },
+            "targetKinds": { "description": "The kinds of unit it may target (EVeyraUnitKind); empty for any hostile unit. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] } },
             "leapSpeed": { "description": "The leap's units per second.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "reachOnArrival": { "description": "Edge to edge, in units, how near the target must be as the leap ends for the caster to take hold.", "type": "number", "minimum": 0 },
             "attachSeconds": { "description": "How long it holds on.", "type": "number", "minimum": 0, "exclusiveMinimum": true },

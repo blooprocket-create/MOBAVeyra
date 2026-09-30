@@ -64,7 +64,24 @@ namespace
 				{
 					Problem(RecastPointer + TEXT("/windowSeconds"), TEXT("must be above 0"));
 				}
+				// ADR-030 §7: a held status only for TargetHeld, a fall window only for TargetFalls.
+				const bool bHeld = Recast.OpensWhen == EVeyraRecastCondition::TargetHeld;
+				const bool bFalls = Recast.OpensWhen == EVeyraRecastCondition::TargetFalls;
+				if (Recast.HeldStatus.Num() != (bHeld ? 1 : 0))
+				{
+					Problem(RecastPointer + TEXT("/heldStatus"), TEXT("names one status for TargetHeld, and none otherwise"));
+				}
+				CheckStatusIds(RecastPointer + TEXT("/heldStatus"), Recast.HeldStatus);
+				if (bFalls ? !(Recast.FallsWithinSeconds > 0.0) : Recast.FallsWithinSeconds != 0.0)
+				{
+					Problem(RecastPointer + TEXT("/fallsWithinSeconds"), TEXT("is above 0 for TargetFalls, and 0 otherwise"));
+				}
 			}
+			if (Cast.TargetMustHold.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/targetMustHold"), TEXT("names at most one status"));
+			}
+			CheckStatusIds(Pointer + TEXT("/targetMustHold"), Cast.TargetMustHold);
 		}
 
 		void CheckDamage(const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList)
@@ -444,6 +461,20 @@ namespace
 
 		void CheckSkillshot(const FString& Pointer, const FVeyraSkillshotAbilityTuning& Skillshot)
 		{
+			if (Skillshot.ReturnIfHeld.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/returnIfHeld"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Skillshot.ReturnIfHeld.Num(); ++Index)
+			{
+				const FVeyraReturnShotTuning& Return = Skillshot.ReturnIfHeld[Index];
+				const FString ReturnPointer = FString::Printf(TEXT("%s/returnIfHeld/%d"), *Pointer, Index);
+				CheckStatusIds(ReturnPointer + TEXT("/status"), MakeArrayView(&Return.Status, 1));
+				if (!(Return.Speed > 0.0) || !(Return.CooldownRefund > 0.0 && Return.CooldownRefund <= 1.0))
+				{
+					Problem(ReturnPointer, TEXT("its speed is above 0, and its refund above 0 and at most 1"));
+				}
+			}
 			if (Skillshot.CasterDash.Num() > 1)
 			{
 				Problem(Pointer + TEXT("/casterDash"), TEXT("holds at most one"));
@@ -479,6 +510,11 @@ namespace
 			if (bHasHostEffects && Dash.Direction != EVeyraDashDirection::AwayFromHost)
 			{
 				Problem(Pointer + TEXT("/hostEffects"), TEXT("only an AwayFromHost dash has a host to affect; leave it empty"));
+			}
+			// Through a target (ADR-030 §6): it needs a reach for its target, and passes the unit rather than stopping at it.
+			if (Dash.Direction == EVeyraDashDirection::ThroughTarget && (!(Dash.Cast.CastRange > 0.0) || Dash.Contact != EVeyraDashContact::None))
+			{
+				Problem(Pointer + TEXT("/direction"), TEXT("a ThroughTarget dash has a cast range above 0 and no contact stop"));
 			}
 		}
 

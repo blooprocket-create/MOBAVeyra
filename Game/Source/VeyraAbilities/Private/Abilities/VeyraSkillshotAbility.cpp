@@ -8,6 +8,7 @@
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/World.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "VeyraAbilitiesVerbs.h"
 
 bool UVeyraSkillshotAbility::Defines(const FVeyraContentId& Ability) const
 {
@@ -48,6 +49,36 @@ bool UVeyraSkillshotAbility::MovesCaster(const FVeyraContentId& Ability) const
 	return Skillshot && !Skillshot->CasterDash.IsEmpty();
 }
 
+TFunction<void(AActor&)> UVeyraSkillshotAbility::ReturnIfHeld(UAbilitySystemComponent& Caster, const FVeyraSkillshotAbilityTuning& Skillshot, const FVeyraContentId& Ability)
+{
+	if (Skillshot.ReturnIfHeld.IsEmpty())
+	{
+		return nullptr;
+	}
+	const FVeyraReturnShotTuning Return = Skillshot.ReturnIfHeld[0];
+	const double Radius = Skillshot.Projectile.Radius;
+	// Striking a unit that already held the caster's mark, it flies back; reaching the caster refunds
+	// part of what remains of its cooldown (ADR-030 §8). It carries nothing on the way back.
+	return [WeakCaster = TWeakObjectPtr<UAbilitySystemComponent>(&Caster), Return, Radius, Ability](AActor& Struck) {
+		UAbilitySystemComponent* Source = WeakCaster.Get();
+		AActor* Home = Source ? Source->GetAvatarActor() : nullptr;
+		UWorld* World = Struck.GetWorld();
+		if (!Source || !Home || !World || !VeyraCombat::HasStatusFrom(&Struck, Return.Status, *Source))
+		{
+			return;
+		}
+		if (AVeyraProjectile* Back = World->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), FTransform(Struck.GetActorLocation())))
+		{
+			Back->LaunchHoming(*Source, *Home, Return.Speed, Radius, FVeyraPreparedEffects(), FVeyraContentId(), 0, [WeakCaster, Ability, Return](AActor&) {
+				if (UAbilitySystemComponent* Caught = WeakCaster.Get())
+				{
+					VeyraAbilities::RefundCooldown(*Caught, Ability, Return.CooldownRefund);
+				}
+			});
+		}
+	};
+}
+
 FVeyraChannelPlan UVeyraSkillshotAbility::Deliver(const FVeyraCast& Cast)
 {
 	const FVeyraSkillshotAbilityTuning* Skillshot = UVeyraAbilitiesTuningSubsystem::FindSkillshot(Cast.Ability);
@@ -69,7 +100,7 @@ FVeyraChannelPlan UVeyraSkillshotAbility::Deliver(const FVeyraCast& Cast)
 	{
 		Projectile->LaunchLine(*Caster, Direction, Skillshot->Projectile, Skillshot->Collision,
 			VeyraEffectDelivery::Prepare(*Caster, Skillshot->Effects, Cast.Rank), VeyraEffectDelivery::Prepare(*Caster, Skillshot->PassThroughEffects, Cast.Rank),
-			Cast.Ability, Cast.CastId);
+			Cast.Ability, Cast.CastId, ReturnIfHeld(*Caster, *Skillshot, Cast.Ability));
 	}
 	if (Volleys)
 	{

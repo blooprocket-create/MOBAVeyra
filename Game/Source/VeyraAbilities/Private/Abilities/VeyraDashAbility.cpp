@@ -35,6 +35,11 @@ EVeyraCastRejection UVeyraDashAbility::CheckTarget(const AActor& Caster, const F
 	{
 		return EVeyraCastRejection::UnknownAbility;
 	}
+	if (Dash->Direction == EVeyraDashDirection::ThroughTarget)
+	{
+		// It names the enemy unit it passes through, within its reach (ADR-030 §6).
+		return CheckEnemyUnit(Caster, Target.Actor.Get(), Dash->Cast.CastRange, {});
+	}
 	if (Dash->Direction == EVeyraDashDirection::AwayFromHost)
 	{
 		// It throws its caster off the unit it holds on to, which gives the dash its direction.
@@ -74,6 +79,25 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 	}
 
 	FVector Heading = VeyraAbilityRules::DashHeading(*Dash, Cast.Direction);
+	double Distance = Dash->Distance;
+	if (Dash->Direction == EVeyraDashDirection::ThroughTarget)
+	{
+		// Through the named unit to Distance beyond it; it takes the contact effects as the dash sets off.
+		AActor* Through = Cast.TargetActor.Get();
+		if (!Through || !VeyraTargeting::IsAlive(Through))
+		{
+			return FVeyraChannelPlan();
+		}
+		const FVector Between = (Through->GetActorLocation() - Body->GetActorLocation()) * FVector(1.0, 1.0, 0.0);
+		Heading = Between.IsNearlyZero() ? Body->GetActorForwardVector().GetSafeNormal2D() : Between.GetSafeNormal();
+		Distance = Between.Size() + Dash->Distance;
+		FVeyraEffectFrame Frame;
+		Frame.Origin = Body->GetActorLocation();
+		Frame.Direction = Heading;
+		Frame.bOriginIsCaster = true;
+		VeyraEffectDelivery::Apply(*Caster, *Through, VeyraEffectDelivery::Prepare(*Caster, Dash->ContactEffects, Cast.Rank), Frame,
+			FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
+	}
 	if (Dash->Direction == EVeyraDashDirection::AwayFromHost)
 	{
 		// Straight back from its host, letting go; the host takes the host effects, pushed from the caster.
@@ -126,7 +150,7 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 			Land(*Held, End);
 		});
 	}
-	if (!VeyraCombat::Dash(*Caster, FVeyraDash{ Heading, Dash->Distance, Dash->Speed, Dash->Contact }))
+	if (!VeyraCombat::Dash(*Caster, FVeyraDash{ Heading, Distance, Dash->Speed, Dash->Contact }))
 	{
 		UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s could not dash for %s (cast %d)."), *GetNameSafe(Body), *Cast.Ability.ToString(), Cast.CastId);
 		if (Pending.IsValid())

@@ -4,6 +4,7 @@
 
 #include "Units/VeyraUnit.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
@@ -125,7 +126,18 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	{
 		return EVeyraCastRejection::InsufficientResource;
 	}
-	return CheckTarget(*Avatar, Ability, Target);
+	const EVeyraCastRejection TargetRejection = CheckTarget(*Avatar, Ability, Target);
+	if (TargetRejection != EVeyraCastRejection::None)
+	{
+		return TargetRejection;
+	}
+	// A follow-up may take only a target that holds its caster's mark, as Tavi's second Tag! takes only It (ADR-030 §7).
+	const FVeyraCastTuning* CastTuning = GetCastTuning(Ability);
+	if (CastTuning && !CastTuning->TargetMustHold.IsEmpty() && !VeyraCombat::HasStatusFrom(Target.Actor.Get(), CastTuning->TargetMustHold[0], Caster))
+	{
+		return EVeyraCastRejection::InvalidTarget;
+	}
+	return EVeyraCastRejection::None;
 }
 
 EVeyraCastRejection UVeyraGameplayAbility::CheckTarget(const AActor& /*Caster*/, const FVeyraContentId& /*Ability*/, const FVeyraCastTarget& /*Target*/) const
@@ -195,8 +207,57 @@ void UVeyraGameplayAbility::NoteCastCommitted(UAbilitySystemComponent& Caster, c
 		FollowUp.DurationSeconds = Recast.WindowSeconds;
 		FollowUp.Use = EVeyraOverrideUse::Once;
 		FollowUp.bCastOnExpiry = Recast.OnExpiry == EVeyraRecastExpiry::Cast;
-		Loadout->Override(Caster, Slot.GetValue(), FollowUp);
+		switch (Recast.OpensWhen)
+		{
+		case EVeyraRecastCondition::Always:
+			Loadout->Override(Caster, Slot.GetValue(), FollowUp);
+			break;
+		case EVeyraRecastCondition::TargetHeld:
+			// Judged at Commit, before this cast lands anything of its own (ADR-030 §7).
+			if (!Recast.HeldStatus.IsEmpty() && VeyraCombat::HasStatusFrom(Target, Recast.HeldStatus[0], Caster))
+			{
+				Loadout->Override(Caster, Slot.GetValue(), FollowUp);
+			}
+			break;
+		case EVeyraRecastCondition::TargetFalls:
+			if (Target && GetWorld())
+			{
+				OpenOnFall(*GetWorld(), *Loadout, Caster, *Target, Slot.GetValue(), FollowUp, Recast.FallsWithinSeconds);
+			}
+			break;
+		}
 	}
+}
+
+void UVeyraGameplayAbility::OpenOnFall(UWorld& World, UVeyraAbilityLoadoutComponent& Loadout, UAbilitySystemComponent& Caster, const AActor& Target,
+	EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& FollowUp, double WithinSeconds)
+{
+	UVeyraCombatEventSubsystem* Events = World.GetSubsystem<UVeyraCombatEventSubsystem>();
+	UAbilitySystemComponent* Watched = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Target);
+	if (!Events || !Watched)
+	{
+		return;
+	}
+	// Until the target falls, credited to the caster, or the window passes: a death after it lets go too.
+	const double Until = World.GetTimeSeconds() + WithinSeconds;
+	const TSharedRef<FDelegateHandle> Handle = MakeShared<FDelegateHandle>();
+	*Handle = Events->OnDeath.AddWeakLambda(&Loadout,
+		[Handle, WeakEvents = TWeakObjectPtr<UVeyraCombatEventSubsystem>(Events), WeakLoadout = TWeakObjectPtr<UVeyraAbilityLoadoutComponent>(&Loadout),
+			WeakCaster = TWeakObjectPtr<UAbilitySystemComponent>(&Caster), WeakWatched = TWeakObjectPtr<UAbilitySystemComponent>(Watched), Slot, FollowUp,
+			Until](const FVeyraDeathEvent& Death) {
+			UVeyraCombatEventSubsystem* Announcer = WeakEvents.Get();
+			UAbilitySystemComponent* Credited = WeakCaster.Get();
+			const bool bLapsed = !Announcer || !Announcer->GetWorld() || Announcer->GetWorld()->GetTimeSeconds() > Until;
+			const bool bFell = Credited && Death.Victim.Get() == WeakWatched.Get() && Death.CreditedKiller.Get() == Credited;
+			if (bFell && !bLapsed && WeakLoadout.IsValid())
+			{
+				WeakLoadout->Override(*Credited, Slot, FollowUp);
+			}
+			if ((bFell || bLapsed) && Announcer)
+			{
+				Announcer->OnDeath.Remove(*Handle);
+			}
+		});
 }
 
 void UVeyraGameplayAbility::DeliverChannelTick(const FVeyraCast& /*Cast*/, int32 /*Tick*/)
