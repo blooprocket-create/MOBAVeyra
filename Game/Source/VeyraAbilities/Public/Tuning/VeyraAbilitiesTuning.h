@@ -395,6 +395,24 @@ struct FVeyraShieldCapGroupTuning
 	double TotalMaxHealthRatio = 0.0;
 };
 
+/**
+ * What a shield gives its holder once it has absorbed enough (ADR-027 §5), as Windward's second speed
+ * burst: the statuses, once, from the shield's provider.
+ */
+USTRUCT()
+struct FVeyraAbsorbedRewardTuning
+{
+	GENERATED_BODY()
+
+	/** Of what the grant gave, the share it must absorb; above 0, at most 1. */
+	UPROPERTY()
+	double Fraction = 0.0;
+
+	/** From Abilities.json's statuses. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
 /** A shield an ability or passive grants its caster (Combat Bible §7, §51; ADR-009 §3). */
 USTRUCT()
 struct FVeyraShieldTuning
@@ -431,6 +449,10 @@ struct FVeyraShieldTuning
 	/** At most one. */
 	UPROPERTY()
 	TArray<FVeyraShieldCapGroupTuning> CapGroup;
+
+	/** At most one: what its holder gains once it has absorbed enough (ADR-027 §5). */
+	UPROPERTY()
+	TArray<FVeyraAbsorbedRewardTuning> AbsorbedReward;
 };
 
 /** One zone of an area: its shape and what it does. */

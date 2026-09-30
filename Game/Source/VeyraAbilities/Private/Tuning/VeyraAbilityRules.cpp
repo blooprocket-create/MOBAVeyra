@@ -234,9 +234,10 @@ namespace
 			{
 				const FVeyraLingerTuning& Linger = Area.Linger[Index];
 				const FString LingerPointer = FString::Printf(TEXT("%s/linger/%d"), *Pointer, Index);
-				if (Area.DelaySeconds > 0.0 || Area.ChannelTicks > 1)
+				// A delayed area lingers where it lands, once it lands (ADR-027 §6); a channelled one never does.
+				if (Area.ChannelTicks > 1)
 				{
-					Problem(LingerPointer, TEXT("lingers after an area that hits at once, not a delayed or channelled one"));
+					Problem(LingerPointer, TEXT("lingers after an area that hits once, not a channelled one"));
 				}
 				if (!(Linger.DurationSeconds > 0.0) || !(Linger.PulseSeconds > 0.0) || Linger.PulseSeconds > Linger.DurationSeconds)
 				{
@@ -398,6 +399,20 @@ namespace
 		void CheckShield(const FString& Pointer, const FVeyraShieldTuning& Shield)
 		{
 			CheckByRank(Pointer + TEXT("/amountByRank"), Shield.AmountByRank);
+			if (Shield.AbsorbedReward.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/absorbedReward"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Shield.AbsorbedReward.Num(); ++Index)
+			{
+				const FVeyraAbsorbedRewardTuning& Reward = Shield.AbsorbedReward[Index];
+				const FString RewardPointer = FString::Printf(TEXT("%s/absorbedReward/%d"), *Pointer, Index);
+				if (!(Reward.Fraction > 0.0) || Reward.Fraction > 1.0 || Reward.Statuses.IsEmpty())
+				{
+					Problem(RewardPointer, TEXT("fraction is above 0 and at most 1, and it names a status"));
+				}
+				CheckStatusIds(RewardPointer + TEXT("/statuses"), Reward.Statuses);
+			}
 			for (const FVeyraShieldCapGroupTuning& Group : Shield.CapGroup)
 			{
 				if (Group.TotalMaxHealthRatio < Shield.MaxAmountMaxHealthRatio)

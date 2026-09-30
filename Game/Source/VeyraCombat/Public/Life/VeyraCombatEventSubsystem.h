@@ -63,6 +63,9 @@ struct FVeyraShieldShare
 {
 	TWeakObjectPtr<UAbilitySystemComponent> Provider;
 	double Absorbed = 0.0;
+
+	/** The shield's identity, so an ability can count what one grant of it absorbed (ADR-027 §5). */
+	FVeyraContentId Id;
 };
 
 /**

@@ -669,7 +669,8 @@
         "durationSeconds": 4,
         "reapply": "Merge",
         "maxAmountMaxHealthRatio": 0.12,
-        "capGroup": [{ "id": "cairn_shields", "totalMaxHealthRatio": 0.25 }]
+        "capGroup": [{ "id": "cairn_shields", "totalMaxHealthRatio": 0.25 }],
+        "absorbedReward": []
       },
       "lockoutSeconds": 8
     }

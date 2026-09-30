@@ -73,6 +73,12 @@ namespace VeyraEffectDelivery
 	VEYRAABILITIES_API FVeyraShieldGrant ShieldGrant(const UAbilitySystemComponent& Caster, const FVeyraShieldTuning& Shield, int32 Rank);
 
 	/**
+	 * Server only: grants Holder Shield from Caster at Rank, as ShieldGrant works it out, and has an
+	 * absorbed reward it names watched (ADR-027 §5). Returns whether the shield was granted.
+	 */
+	VEYRAABILITIES_API bool GrantShield(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Holder, const FVeyraShieldTuning& Shield, int32 Rank);
+
+	/**
 	 * Impact as a basic attack's secondary impact from Caster at Rank, its damage from the caster's
 	 * power now (ADR-009 §5): an empowered attack's, or a passive's.
 	 */

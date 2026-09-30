@@ -29,9 +29,12 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
-	/** Server only: arms the area, placed at the actor's location, to hit DelaySeconds from now. Called once, after spawning. */
+	/**
+	 * Server only: arms the area, placed at the actor's location, to hit DelaySeconds from now, then to
+	 * leave Linger there if it has one (ADR-027 §6). Called once, after spawning.
+	 */
 	void Arm(UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Placement, TArray<FVeyraPreparedZone> Zones, double DelaySeconds,
-		const FVeyraContentId& Ability, int32 CastId);
+		const FVeyraContentId& Ability, int32 CastId, TOptional<FVeyraPreparedLinger> Linger = {});
 
 	const TArray<FVeyraShape>& GetShapes() const { return Shapes; }
 	const FVector& GetDirection() const { return Direction; }
@@ -72,6 +75,7 @@ private:
 	/** Server only. */
 	TWeakObjectPtr<UAbilitySystemComponent> Caster;
 	TArray<FVeyraPreparedZone> Zones;
+	TOptional<FVeyraPreparedLinger> Linger;
 	bool bOriginIsCaster = false;
 	FTimerHandle ResolveTimer;
 };

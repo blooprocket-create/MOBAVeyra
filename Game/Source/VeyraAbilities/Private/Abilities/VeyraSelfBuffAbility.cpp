@@ -187,7 +187,7 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 	for (const FVeyraShieldTuning& Shield : Buff->Shields)
 	{
 		// §51: the amount is built from the rank and the caster's stats, then the shield is created.
-		VeyraCombat::GrantShield(*Caster, *Recipient, VeyraEffectDelivery::ShieldGrant(*Caster, Shield, Cast.Rank));
+		VeyraEffectDelivery::GrantShield(*Caster, *Recipient, Shield, Cast.Rank);
 	}
 	for (const FVeyraAuraTuning& Aura : Buff->Aura)
 	{

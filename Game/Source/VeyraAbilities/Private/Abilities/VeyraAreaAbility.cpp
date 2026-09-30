@@ -91,8 +91,10 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 		AVeyraDelayedArea* Delayed = World->SpawnActor<AVeyraDelayedArea>(AVeyraDelayedArea::StaticClass(), FTransform(Placement.Origin));
 		if (Delayed)
 		{
-			// Sooner inside the caster's own lingering area of another ability, if the tuning says (ADR-026 §4).
-			Delayed->Arm(*Caster, Placement, MoveTemp(Zones), VeyraAreaDelivery::DelayAt(*World, *Caster, *Area, Placement.Origin), Cast.Ability, Cast.CastId);
+			// Sooner inside the caster's own lingering area of another ability, if the tuning says (ADR-026 §4). Its
+			// lingering area, prepared now, lasts where it lands once it lands (ADR-027 §6).
+			Delayed->Arm(*Caster, Placement, MoveTemp(Zones), VeyraAreaDelivery::DelayAt(*World, *Caster, *Area, Placement.Origin), Cast.Ability, Cast.CastId,
+				VeyraAreaDelivery::PrepareLinger(*Caster, *Area, Cast.Rank, GetCasterLevel(*Caster), Cast.Ability, Cast.CastId));
 		}
 		return FVeyraChannelPlan();
 	}
@@ -106,55 +108,11 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 	}
 	const TArray<AActor*> Hit = VeyraAreaDelivery::Resolve(*World, *Caster, Placement, Zones, FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	HealFromHits(*Caster, *Area, Hit);
-	if (!Area->Linger.IsEmpty() && !Area->Zones.IsEmpty())
+	if (const TOptional<FVeyraPreparedLinger> Linger = VeyraAreaDelivery::PrepareLinger(*Caster, *Area, Cast.Rank, GetCasterLevel(*Caster), Cast.Ability, Cast.CastId))
 	{
-		Linger(*Caster, Placement, *Area, Cast);
+		VeyraAreaDelivery::ArmLinger(*World, *Caster, Placement, Linger.GetValue());
 	}
 	return FVeyraChannelPlan();
-}
-
-void UVeyraAreaAbility::Linger(UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Placement, const FVeyraAreaAbilityTuning& Area, const FVeyraCast& Cast) const
-{
-	UWorld* World = GetWorld();
-	const FVeyraLingerTuning& Tuning = Area.Linger[0];
-	// Its statuses from the caster's Level at Commit (Combat Bible §50).
-	const int32 Level = GetCasterLevel(Caster);
-	FVeyraLingerStatuses Statuses;
-	const auto Prepare = [Level](TConstArrayView<FVeyraContentId> Ids, TArray<FVeyraStatusSpec>& Out) {
-		for (const FVeyraContentId& Id : Ids)
-		{
-			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(Id, Level))
-			{
-				Out.Add(Status.GetValue());
-			}
-		}
-	};
-	Prepare(Tuning.CasterStatuses, Statuses.Caster);
-	Prepare(Tuning.AllyStatuses, Statuses.Allies);
-	Prepare(Tuning.EnemyStatuses, Statuses.Enemies);
-	// It lasts in its outermost zone's shape.
-	const FVeyraShape& Shape = Area.Zones.Last().Shape;
-	// What its pulses and its end do to the enemies inside, from the caster's power at Commit (ADR-026 §4).
-	FVeyraLingerEffects Effects;
-	Effects.EndWarningSeconds = Tuning.EndWarningSeconds;
-	Effects.CastId = Cast.CastId;
-	const auto PrepareZones = [&Caster, &Shape, &Cast](TConstArrayView<FVeyraEffectBundleTuning> Bundles, TArray<FVeyraPreparedZone>& Out) {
-		for (const FVeyraEffectBundleTuning& Bundle : Bundles)
-		{
-			Out.Add(FVeyraPreparedZone{ Shape, VeyraEffectDelivery::Prepare(Caster, Bundle, Cast.Rank) });
-		}
-	};
-	PrepareZones(Tuning.PulseEffects, Effects.Pulse);
-	PrepareZones(Tuning.EndEffects, Effects.End);
-	if (AVeyraLingeringArea* Lingering = World->SpawnActor<AVeyraLingeringArea>(AVeyraLingeringArea::StaticClass(), FTransform(Placement.Origin)))
-	{
-		Lingering->Arm(Caster, Placement, Shape, MoveTemp(Statuses), MoveTemp(Effects), Tuning.DurationSeconds, Tuning.PulseSeconds, Cast.Ability);
-	}
-	if (Tuning.Sight == EVeyraLingerSight::Ordinary)
-	{
-		VeyraVisibility::RevealShape(*World, VeyraTeams::TeamOf(Caster.GetOwner()), FVeyraPlacedShape{ Shape, Placement.Origin, Placement.Direction },
-			Tuning.DurationSeconds);
-	}
 }
 
 void UVeyraAreaAbility::DeliverChannelTick(const FVeyraCast& Cast, int32 /*Tick*/)
