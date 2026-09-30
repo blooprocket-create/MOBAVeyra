@@ -4,7 +4,7 @@
   "description": "The shop's catalog and rules, owned by the Items domain (Item Bible v0.3; Economy & Progression Bible §10–§12; ADR-012 §3). VeyraItems binds it to FVeyraItemsTuning and checks the tier rules the schema cannot express. Prices and stats are prototype data (Item Bible §3).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "shop", "items", "consumables", "quests", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict", "residualCurrent", "dragTheTempo", "quietingChime", "markedForDoom", "safeHarbor"],
+  "required": ["schemaVersion", "shop", "items", "consumables", "quests", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict", "residualCurrent", "dragTheTempo", "quietingChime", "markedForDoom", "safeHarbor", "highTide"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -376,6 +376,29 @@
             "reserveFraction": { "description": "The share of post-mitigation damage banked.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
             "capMaxHealthFraction": { "description": "The most Reserve, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "conversionMaxHealthFractionPerSecond": { "description": "Reserve converted each second, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "highTide": {
+      "description": "High Tide (The Last Harbor, Item Bible §11; ADR-025 §7): last hits on enemy lane Fluxborn store Current; out of Vanguard combat it is spent to amplify Health Regeneration and speed Safe Harbor, and what they recover past full Health becomes Temporary Health (Combat Bible §7), up to a cap.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "currentPerLastHit", "currentCap", "currentPerSecond", "regenerationAmplification", "reserveConversionAcceleration", "overflowToTemporaryHealth", "temporaryHealthCapMaxHealthFraction", "temporaryHealthSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "currentPerLastHit": { "description": "Current each last hit stores.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "currentCap": { "description": "The most Current stored.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "currentPerSecond": { "description": "Current spent each second while it acts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "regenerationAmplification": { "description": "What Health Regeneration is multiplied by while Current is spent; 3 triples it.", "type": "number", "minimum": 1, "exclusiveMinimum": true },
+            "reserveConversionAcceleration": { "description": "Added to Safe Harbor's conversion rate, as a share of it, while Current is spent; 1 doubles it.", "type": "number", "minimum": 0 },
+            "overflowToTemporaryHealth": { "description": "The share of recovery past full Health that becomes Temporary Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "temporaryHealthCapMaxHealthFraction": { "description": "The most Temporary Health it holds, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "temporaryHealthSeconds": { "description": "How long its Temporary Health lasts after it was last added to.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
           }
         }
       }

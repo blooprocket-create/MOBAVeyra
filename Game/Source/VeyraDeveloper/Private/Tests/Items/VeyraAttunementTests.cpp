@@ -331,6 +331,74 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Healed > 0.0 && FMath::IsNearlyEqual(StoredReserve(), MaxHealth * CapFraction - Healed, 1e-3), TEXT("what heals is spent")));
 		}
 
+		double HolderTemporaryHealth() const
+		{
+			return VeyraAbsorption::TotalTemporaryHealth(Participant->FindComponentByClass<UVeyraDamageAbsorptionComponent>()->GetLedger());
+		}
+
+		TEST_METHOD(HighTideSpeedsSafeHarborAndTurnsItsOverflowIntoTemporaryHealth)
+		{
+			// Fixture values: the Masterwork carries Safe Harbor and High Tide, as The Last Harbor does.
+			constexpr double Conversion = 0.05;
+			constexpr double Acceleration = 1.0;
+			constexpr double Overflow = 0.5;
+			constexpr double TemporaryCap = 0.02;
+			FVeyraSafeHarborTuning& Harbor = Tuning.SafeHarbor.Add(ItemId(TEXT("test_reserve")));
+			Harbor.ReserveFraction = 1.0;
+			Harbor.CapMaxHealthFraction = 0.5;
+			Harbor.ConversionMaxHealthFractionPerSecond = Conversion;
+			FVeyraHighTideTuning& Tide = Tuning.HighTide.Add(ItemId(TEXT("test_tide")));
+			Tide.CurrentPerLastHit = 2.0;
+			Tide.CurrentCap = 5.0;
+			Tide.CurrentPerSecond = 1.0;
+			Tide.RegenerationAmplification = 3.0;
+			Tide.ReserveConversionAcceleration = Acceleration;
+			Tide.OverflowToTemporaryHealth = Overflow;
+			Tide.TemporaryHealthCapMaxHealthFraction = TemporaryCap;
+			Tide.TemporaryHealthSeconds = 60.0;
+			Tuning.Items[ItemId(TEXT("test_temper"))].Attunement = { ItemId(TEXT("test_reserve")), ItemId(TEXT("test_tide")) };
+			Tuning.WeightOfWar.Reset();
+			Shop->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Shop->Buy(*Participant, ItemId(TEXT("test_temper"))) == EVeyraShopRefusal::None));
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+			const double MaxHealth = Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+			const double Tick = UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds;
+
+			// Reserve from a hit; Current from a last hit, as Residual Current stores it.
+			Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::BasicAttack);
+			KillEnemyFluxborn();
+			// A copy each time: the shop replaces the slots as it stores.
+			const auto Held = [this] {
+				return *Participant->FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().FindByPredicate(
+					[](const FVeyraInventorySlot& Each) { return Each.Item == ItemId(TEXT("test_temper")); });
+			};
+			ASSERT_THAT(IsTrue(Held().Reserve == Blow && Held().Current == Tide.CurrentPerLastHit));
+
+			// In Vanguard combat nothing moves.
+			UVeyraCombatStateComponent& CombatState = *Participant->FindComponentByClass<UVeyraCombatStateComponent>();
+			CombatState.NoteCombat();
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(Held().Reserve == Blow && Held().Current == Tide.CurrentPerLastHit && HolderTemporaryHealth() == 0.0));
+
+			// Out of it, at full Health, the tide doubles Safe Harbor's conversion and turns it into Temporary Health.
+			CombatState.Clear();
+			Attunements.UpdateHeld();
+			const double Converted = FMath::Min(Blow, Conversion * (1.0 + Acceleration) * MaxHealth * Tick);
+			const double Expected = FMath::Min(Converted * Overflow, TemporaryCap * MaxHealth);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HolderTemporaryHealth(), Expected, 1e-3), FString::Printf(TEXT("%g, expected %g"), HolderTemporaryHealth(), Expected)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Held().Reserve, Blow - Converted, 1e-3) && FMath::IsNearlyEqual(Held().Current, Tide.CurrentPerLastHit - Tide.CurrentPerSecond * Tick),
+				FString::Printf(TEXT("Reserve %g, Current %g"), Held().Reserve, Held().Current)));
+			ASSERT_THAT(IsTrue(Participant->FindComponentByClass<UVeyraStatusComponent>()->Has(EVeyraStatusKind::HealthRegeneration)));
+
+			// Its Temporary Health stops at the cap, one grant.
+			for (int32 Index = 0; Index < 4; ++Index)
+			{
+				Attunements.UpdateHeld();
+			}
+			ASSERT_THAT(IsTrue(HolderTemporaryHealth() <= TemporaryCap * MaxHealth + 1e-3));
+			ASSERT_THAT(IsTrue(Participant->FindComponentByClass<UVeyraDamageAbsorptionComponent>()->GetLedger().TemporaryHealth.Num() == 1));
+		}
+
 		TEST_METHOD(ReprisalGuardShieldsAShareOfTheHitThenWaits)
 		{
 			// Fixture values: a fifth of the hit, at most 15, for a long while; 5 s of cooldown.

@@ -198,6 +198,14 @@ namespace VeyraCombat
 		double Amount, double DurationSeconds);
 
 	/**
+	 * Grants Target Temporary Health named Id from Source (Combat Bible §7): the same name from the same
+	 * source is one grant, topped up by Amount to at most MaxAmount, its duration started again
+	 * (UVeyraDamageAbsorptionComponent::GrantTemporaryHealth). Invalid if refused or already at its most.
+	 */
+	VEYRACOMBAT_API FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target,
+		const FVeyraContentId& Id, double Amount, double MaxAmount, double DurationSeconds);
+
+	/**
 	 * Applies Status from Source to Target under its stacking policy (Combat Bible §8, §46;
 	 * UVeyraStatusComponent::Apply). A target whose death is final, or that has no status ledger,
 	 * refuses it, and a structure refuses statuses from its enemies (§33: crowd control and debuffs

@@ -197,6 +197,52 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(VeyraQuests::Advance(Quest, Slots, EVeyraQuestObjective::LaneFluxbornLastHits).IsEmpty(), TEXT("the evolution has no quest")));
 		}
 
+		TEST_METHOD(AnItemKeepsWhatItsPartsStoredWhenItStoresItToo)
+		{
+			// Fixture values: a Mythical made from the Masterwork, whose Safe Harbor stored Reserve, and the
+			// reservoir, whose Residual Current stored Current; it stores both (ADR-025 §7).
+			FVeyraItemsTuning Quest = WithQuest(Tuning);
+			const FVeyraContentId Temper = ItemId(TEXT("test_temper"));
+			const FVeyraContentId Reservoir = ItemId(TEXT("test_reservoir"));
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			Quest.SafeHarbor.Add(ItemId(TEXT("test_reserve")));
+			Quest.HighTide.Add(ItemId(TEXT("test_tide")));
+			Quest.Items[Temper].Attunement = { ItemId(TEXT("test_reserve")) };
+			FVeyraItemDefinition& Mythical = Quest.Items.Add(Harbor);
+			Mythical.Tier = 4;
+			Mythical.Cost = 500.0;
+			Mythical.StackLimit = 1;
+			Mythical.Components = { Temper, Reservoir };
+			Mythical.Attunement = { ItemId(TEXT("test_reserve")), ItemId(TEXT("test_tide")) };
+			const auto Build = [&Quest, this](const FVeyraContentId& Item) {
+				const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Item);
+				FVeyraPendingPurchase Entry;
+				Entry.Item = Item;
+				Entry.Paid = Quote.Price;
+				Entry.Needs = Quote.Needs;
+				return Quote.Refusal == EVeyraShopRefusal::None ? VeyraInventory::Apply(Quest, Slots, Entry) : Quote.Refusal;
+			};
+			const auto Holding = [this](const FVeyraContentId& Item) { return Slots.FindByPredicate([&Item](const FVeyraInventorySlot& Slot) { return Slot.Item == Item; }); };
+
+			Slots[0].Item = Temper;
+			Slots[0].Count = 1;
+			Slots[0].Reserve = 30.0;
+			Slots[1].Item = Reservoir;
+			Slots[1].Count = 1;
+			Slots[1].Current = 7.0;
+			ASSERT_THAT(IsTrue(Build(Harbor) == EVeyraShopRefusal::None));
+			const FVeyraInventorySlot* Made = Holding(Harbor);
+			ASSERT_THAT(IsTrue(Made && Made->Reserve == 30.0 && Made->Current == 7.0, TEXT("it keeps both")));
+
+			// The haven stores neither, so the reservoir's Current goes with it.
+			Slots.Init(FVeyraInventorySlot(), Quest.Shop.InventorySlots);
+			Slots[0].Item = Reservoir;
+			Slots[0].Count = 1;
+			Slots[0].Current = 7.0;
+			ASSERT_THAT(IsTrue(Build(ItemId(TEXT("test_haven"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Holding(ItemId(TEXT("test_haven"))) && Holding(ItemId(TEXT("test_haven")))->Current == 0.0));
+		}
+
 		TEST_METHOD(OnePairOfBootsWhichUpgrade)
 		{
 			BuyHere(TEXT("test_boots"));

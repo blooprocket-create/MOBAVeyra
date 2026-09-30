@@ -58,7 +58,10 @@ public:
 	 *   otherwise the amplification stops and the Current keeps.
 	 * - Quieting Chime: a formed Spell Shield is kept; a consumed one forms again once ReformSeconds
 	 *   have passed since both its consumption and the holder's last enemy-Vanguard damage.
-	 * - Safe Harbor: out of Vanguard combat and missing Health, a tick's Reserve converts into Health.
+	 * - High Tide: out of Vanguard combat, while it restores something, a tick's Current amplifies Health
+	 *   Regeneration and speeds Safe Harbor.
+	 * - Safe Harbor: out of Vanguard combat and missing Health, a tick's Reserve converts into Health;
+	 *   past full Health, while High Tide spends, the rest becomes Temporary Health, up to its cap.
 	 * A timer calls it on the server each regeneration tick.
 	 */
 	void UpdateHeld();

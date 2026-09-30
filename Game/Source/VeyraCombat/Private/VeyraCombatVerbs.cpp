@@ -648,6 +648,20 @@ FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source
 		TEXT("Temporary Health"));
 }
 
+FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraContentId& Id, double Amount,
+	double MaxAmount, double DurationSeconds)
+{
+	AActor* TargetOwner = Target.GetOwner();
+	UVeyraDamageAbsorptionComponent* Absorption = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraDamageAbsorptionComponent>() : nullptr;
+	if (!Absorption || IsDeadUnit(Target))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored Temporary Health %s on %s: it has no UVeyraDamageAbsorptionComponent, or its death is final."),
+			*Id.ToString(), *GetNameSafe(TargetOwner));
+		return FActiveGameplayEffectHandle();
+	}
+	return Absorption->GrantTemporaryHealth(Source, Id, Amount, MaxAmount, DurationSeconds);
+}
+
 bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraStatusSpec& Status)
 {
 	AActor* TargetOwner = Target.GetOwner();

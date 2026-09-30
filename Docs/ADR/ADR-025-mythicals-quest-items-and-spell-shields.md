@@ -112,9 +112,10 @@ Numbers are prototype tuning in `Items.json`, provisional per §8.
   - After `quietSeconds` without enemy-Vanguard damage taken, the holder spends `currentPerSecond`, while Current lasts, to multiply its Health Regeneration by `regenerationAmplification`.
   - Damage taken from an enemy Vanguard suspends this without clearing the stored Current.
 - **High Tide** (The Last Harbor's second Attunement):
-  - Current is gained as with Residual Current and spent while out of Vanguard combat.
+  - Current is gained as with Residual Current and spent while out of Vanguard combat, while it restores something: missing Health, or Reserve left to become Temporary Health.
   - While Current is being spent, regeneration is amplified and Safe Harbor's conversion speeds up by `reserveConversionAcceleration`.
-  - Recovery beyond full Health, while both have energy left, becomes Temporary Health at `overflowToTemporaryHealth`, up to `temporaryHealthCapMaxHealthFraction` of Max Health (Combat §7).
+  - Safe Harbor's conversion beyond full Health, while both have energy left, becomes Temporary Health at `overflowToTemporaryHealth`, up to `temporaryHealthCapMaxHealthFraction` of Max Health (Combat §7). It is one named grant, topped up and lasting `temporaryHealthSeconds` from its last top-up; Combat gains named Temporary Health grants for it, as named shields merge.
+- **Carried on.** An item made from parts that stored Current or Reserve keeps them when it stores them too, so The Last Harbor starts with its Harness's Reserve and its Reservoir's Current (Item Bible §11: a Mythical may preserve its prerequisites' mechanics).
 
 ### 8. League answers where canon is open (provisional)
 

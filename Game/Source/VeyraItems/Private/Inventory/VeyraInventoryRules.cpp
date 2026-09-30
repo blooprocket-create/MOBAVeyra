@@ -56,19 +56,19 @@ namespace VeyraInventory
 {
 namespace
 {
-	/** Removes one Item from Slots, returning the Gold its present form cost, or nothing if Slots hold none. */
-	TOptional<double> Take(TArray<FVeyraInventorySlot>& Slots, const FVeyraContentId& Item)
+	/** Removes one Item from Slots, returning its slot as it was, or nothing if Slots hold none. */
+	TOptional<FVeyraInventorySlot> Take(TArray<FVeyraInventorySlot>& Slots, const FVeyraContentId& Item)
 	{
 		for (FVeyraInventorySlot& Slot : Slots)
 		{
 			if (!Slot.IsEmpty() && Slot.Item == Item)
 			{
-				const double Paid = Slot.PaidEach;
+				const FVeyraInventorySlot Taken = Slot;
 				if (--Slot.Count == 0)
 				{
 					Slot = FVeyraInventorySlot();
 				}
-				return Paid;
+				return Taken;
 			}
 		}
 		return {};
@@ -146,7 +146,8 @@ namespace
 		return bRoomInStack || bFreeSlot ? EVeyraShopRefusal::None : EVeyraShopRefusal::InventoryFull;
 	}
 
-	void Place(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventorySlot>& Slots, const FVeyraContentId& Item, double PaidEach)
+	/** Puts one Item in Slots, on its stack or in a free slot; returns the slot it went to. */
+	FVeyraInventorySlot* Place(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventorySlot>& Slots, const FVeyraContentId& Item, double PaidEach)
 	{
 		const int32 StackLimit = Tuning.Items.FindChecked(Item).StackLimit;
 		for (FVeyraInventorySlot& Slot : Slots)
@@ -154,7 +155,7 @@ namespace
 			if (!Slot.IsEmpty() && Slot.Item == Item && Slot.Count < StackLimit)
 			{
 				++Slot.Count;
-				return;
+				return &Slot;
 			}
 		}
 		for (FVeyraInventorySlot& Slot : Slots)
@@ -168,9 +169,10 @@ namespace
 				// A refillable consumable arrives full.
 				const FVeyraConsumableTuning* Consumable = Tuning.Consumables.Find(Item);
 				Slot.Charges = Consumable ? Consumable->Charges : 0;
-				return;
+				return &Slot;
 			}
 		}
+		return nullptr;
 	}
 }
 
@@ -178,21 +180,34 @@ EVeyraShopRefusal Apply(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventoryS
 {
 	TArray<FVeyraInventorySlot> Working = Slots;
 	double ConsumedPaid = 0.0;
+	FVeyraInventorySlot Carried;
 	for (const FVeyraContentId& Need : Entry.Needs)
 	{
-		const TOptional<double> Paid = Take(Working, Need);
-		if (!Paid.IsSet())
+		const TOptional<FVeyraInventorySlot> Taken = Take(Working, Need);
+		if (!Taken.IsSet())
 		{
 			return EVeyraShopRefusal::MissingComponent;
 		}
-		ConsumedPaid += Paid.GetValue();
+		ConsumedPaid += Taken->PaidEach;
+		Carried.Current += Taken->Current;
+		Carried.Reserve += Taken->Reserve;
 	}
 	const EVeyraShopRefusal Refusal = RefusalToHold(Tuning, Working, Entry.Item);
 	if (Refusal != EVeyraShopRefusal::None)
 	{
 		return Refusal;
 	}
-	Place(Tuning, Working, Entry.Item, ConsumedPaid + Entry.Paid);
+	// A Mythical carries its parts' mechanics on (Item Bible §11): what they stored, it keeps (ADR-025 §7).
+	if (FVeyraInventorySlot* Placed = Place(Tuning, Working, Entry.Item, ConsumedPaid + Entry.Paid))
+	{
+		for (const EVeyraItemStore Store : { EVeyraItemStore::Current, EVeyraItemStore::Reserve })
+		{
+			if (Stores(Tuning, Entry.Item, Store))
+			{
+				Placed->Stored(Store) += Carried.Stored(Store);
+			}
+		}
+	}
 	Slots = MoveTemp(Working);
 	return EVeyraShopRefusal::None;
 }
@@ -234,6 +249,15 @@ FVeyraPurchaseQuote Quote(const FVeyraItemsTuning& Tuning, TConstArrayView<FVeyr
 		: bNotForSale              ? EVeyraShopRefusal::NotForSale
 								   : RefusalToHold(Tuning, After, Item);
 	return Result;
+}
+
+bool Stores(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item, EVeyraItemStore Store)
+{
+	const FVeyraItemDefinition* Definition = Tuning.Items.Find(Item);
+	return Definition && Definition->Attunement.ContainsByPredicate([&Tuning, Store](const FVeyraContentId& Attunement) {
+		return Store == EVeyraItemStore::Current ? Tuning.ResidualCurrent.Contains(Attunement) || Tuning.HighTide.Contains(Attunement)
+												 : Tuning.SafeHarbor.Contains(Attunement);
+	});
 }
 
 double ResaleValue(const FVeyraItemsTuning& Tuning, const FVeyraInventorySlot& Slot)

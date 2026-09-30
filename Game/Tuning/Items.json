@@ -68,6 +68,11 @@
       "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 25, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
+    "the_last_harbor": {
+      "provenance": "Provisional", "tier": 4, "category": "Equipment", "components": ["harborline_harness", "wayline_reservoir"], "cost": 750, "stackLimit": 1,
+      "stats": { "health": 550, "healthRegeneration": 8, "armor": 0, "magicResist": 0, "physicalPower": 45, "magicPower": 0, "attackSpeed": 0.3, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["safe_harbor", "high_tide"]
+    },
     "flux_reclaimer": {
       "provenance": "Provisional", "tier": 1, "category": "Quest", "components": [], "cost": 450, "stackLimit": 1,
       "stats": { "health": 100, "healthRegeneration": 1, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
@@ -338,5 +343,8 @@
   },
   "safeHarbor": {
     "safe_harbor": { "provenance": "Provisional", "reserveFraction": 0.15, "capMaxHealthFraction": 0.15, "conversionMaxHealthFractionPerSecond": 0.02 }
+  },
+  "highTide": {
+    "high_tide": { "provenance": "Provisional", "currentPerLastHit": 1, "currentCap": 40, "currentPerSecond": 1, "regenerationAmplification": 3, "reserveConversionAcceleration": 1, "overflowToTemporaryHealth": 0.5, "temporaryHealthCapMaxHealthFraction": 0.1, "temporaryHealthSeconds": 10 }
   }
 }

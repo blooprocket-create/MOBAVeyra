@@ -161,8 +161,9 @@ struct FVeyraPurchaseQuote
 namespace VeyraInventory
 {
 	/**
-	 * Delivers Entry into Slots: consumes its needs, then places its item. Returns why it cannot, and
-	 * then Slots are unchanged.
+	 * Delivers Entry into Slots: consumes its needs, then places its item, which keeps the Current and
+	 * Reserve its needs stored when it stores them too (ADR-025 §7). Returns why it cannot, and then
+	 * Slots are unchanged.
 	 */
 	VEYRAITEMS_API EVeyraShopRefusal Apply(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventorySlot>& Slots, const FVeyraPendingPurchase& Entry);
 
@@ -177,6 +178,9 @@ namespace VeyraInventory
 	 */
 	VEYRAITEMS_API FVeyraPurchaseQuote Quote(const FVeyraItemsTuning& Tuning, TConstArrayView<FVeyraInventorySlot> Slots,
 		TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Mythical, const FVeyraContentId& Item);
+
+	/** Whether Item's Attunements keep Store on its slot: Current for Residual Current and High Tide, Reserve for Safe Harbor. */
+	VEYRAITEMS_API bool Stores(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item, EVeyraItemStore Store);
 
 	/** What selling one of Slot's items returns (§12): its consumable's own fraction, else the shop's, of what it cost. */
 	VEYRAITEMS_API double ResaleValue(const FVeyraItemsTuning& Tuning, const FVeyraInventorySlot& Slot);

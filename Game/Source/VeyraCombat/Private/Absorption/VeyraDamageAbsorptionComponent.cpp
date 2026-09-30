@@ -130,6 +130,52 @@ FActiveGameplayEffectHandle UVeyraDamageAbsorptionComponent::GrantShield(UAbilit
 	return Effect;
 }
 
+FActiveGameplayEffectHandle UVeyraDamageAbsorptionComponent::GrantTemporaryHealth(UAbilitySystemComponent& Source, const FVeyraContentId& Id, double Amount,
+	double MaxAmount, double DurationSeconds)
+{
+	const AActor* Owner = GetOwner();
+	UAbilitySystemComponent* Target = BoundAbilitySystem.Get();
+	const bool bValid = Id.IsValid() && Amount > 0.0 && FMath::IsFinite(Amount) && MaxAmount >= Amount && FMath::IsFinite(MaxAmount)
+		&& DurationSeconds > 0.0 && FMath::IsFinite(DurationSeconds);
+	if (!Owner || !Owner->HasAuthority() || !Target || !bValid)
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Refused Temporary Health %s of %g for %g s on %s: it needs the server, a bound unit, a name, an amount and duration above 0, and a maximum of at least the amount."),
+			*Id.ToString(), Amount, DurationSeconds, *GetNameSafe(Owner));
+		return FActiveGameplayEffectHandle();
+	}
+	// The grant this one meets: the same name from the same source.
+	const FVeyraTemporaryHealthGrant* Existing = Ledger.TemporaryHealth.FindByPredicate([this, &Id, &Source](const FVeyraTemporaryHealthGrant& Entry) {
+		const FServerEntry* Server = ServerEntries.Find(Entry.Sequence);
+		return Server && Server->Id == Id && Server->Source.Get() == &Source;
+	});
+	const double Held = Existing ? Existing->Remaining : 0.0;
+	const double Total = FMath::Min(Held + Amount, MaxAmount);
+	if (Total <= Held)
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Temporary Health %s on %s granted nothing: it is at its most."), *Id.ToString(), *Owner->GetName());
+		return FActiveGameplayEffectHandle();
+	}
+	const FGameplayEffectSpecHandle Spec = Source.MakeOutgoingSpec(UVeyraTemporaryHealthEffect::StaticClass(), ShieldEffectLevel, Source.MakeEffectContext());
+	if (!Spec.IsValid())
+	{
+		UE_LOG(LogVeyraCombat, Error, TEXT("Could not create Temporary Health %s for %s."), *Id.ToString(), *Owner->GetName());
+		return FActiveGameplayEffectHandle();
+	}
+	Spec.Data->SetSetByCallerMagnitude(VeyraTags::TemporaryHealth, static_cast<float>(Total));
+	Spec.Data->SetDuration(static_cast<float>(DurationSeconds), /*bLockDuration*/ true);
+	// As a merged shield does, the new effect takes the old grant's entry, and the old effect then ends.
+	const int32 ReplacesSequence = Existing ? Existing->Sequence : INDEX_NONE;
+	const FActiveGameplayEffectHandle Replaced = Existing ? ServerEntries.FindChecked(ReplacesSequence).Effect : FActiveGameplayEffectHandle();
+	PendingGrant = FPendingGrant{ Id, &Source, FVeyraContentId(), ReplacesSequence };
+	const FActiveGameplayEffectHandle Effect = Source.ApplyGameplayEffectSpecToTarget(*Spec.Data, Target);
+	PendingGrant.Reset();
+	if (Effect.IsValid() && Replaced.IsValid())
+	{
+		Target->RemoveActiveGameplayEffect(Replaced);
+	}
+	return Effect;
+}
+
 FVeyraAbsorptionResult UVeyraDamageAbsorptionComponent::ApplyIncomingDamage(EVeyraDamageType Type, double Amount, bool bInvulnerable, double Health,
 	TArray<FVeyraShieldShare>* OutShieldShares)
 {
@@ -223,9 +269,23 @@ void UVeyraDamageAbsorptionComponent::OnEffectAdded(UAbilitySystemComponent* Abi
 			UE_LOG(LogVeyraCombat, Error, TEXT("A Temporary Health effect on %s needs a TemporaryHealth amount above 0; it grants nothing."), *Owner->GetName());
 			return;
 		}
-		FVeyraTemporaryHealthGrant& Grant = Ledger.TemporaryHealth.AddDefaulted_GetRef();
-		Grant.Sequence = NextSequence++;
-		Grant.Remaining = *Amount;
+		FVeyraTemporaryHealthGrant* Grant = nullptr;
+		if (PendingGrant.IsSet())
+		{
+			Server.Id = PendingGrant->Id;
+			Server.Source = PendingGrant->Source;
+			if (PendingGrant->ReplacesSequence != INDEX_NONE)
+			{
+				Sequence = PendingGrant->ReplacesSequence;
+				Grant = Ledger.TemporaryHealth.FindByPredicate([Sequence](const FVeyraTemporaryHealthGrant& Candidate) { return Candidate.Sequence == Sequence; });
+			}
+		}
+		if (!Grant)
+		{
+			Grant = &Ledger.TemporaryHealth.AddDefaulted_GetRef();
+			Grant->Sequence = NextSequence++;
+		}
+		Grant->Remaining = *Amount;
 	}
 	else
 	{

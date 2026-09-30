@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Absorption/VeyraAbsorptionLedger.h"
+#include "Absorption/VeyraDamageAbsorptionComponent.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
@@ -301,9 +302,13 @@ void UVeyraAttunementSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 		}
 		for (const FVeyraContentId& Attunement : Item->Attunement)
 		{
-			if (const FVeyraResidualCurrentTuning* Residual = Tuning.ResidualCurrent.Find(Attunement))
+			// Residual Current and High Tide store Current alike (Item Bible §10, §11).
+			const FVeyraResidualCurrentTuning* Residual = Tuning.ResidualCurrent.Find(Attunement);
+			const FVeyraHighTideTuning* Tide = Tuning.HighTide.Find(Attunement);
+			if (Residual || Tide)
 			{
-				Stored.Emplace(Attunement, FMath::Min(Slot.Current + Residual->CurrentPerLastHit, Residual->CurrentCap));
+				const double PerLastHit = Residual ? Residual->CurrentPerLastHit : Tide->CurrentPerLastHit;
+				Stored.Emplace(Attunement, FMath::Min(Slot.Current + PerLastHit, Residual ? Residual->CurrentCap : Tide->CurrentCap));
 			}
 		}
 	}
@@ -345,6 +350,7 @@ void UVeyraAttunementSubsystem::UpdateHeld()
 		}
 		TArray<TPair<FVeyraContentId, double>, TInlineAllocator<2>> Held;
 		TArray<TPair<FVeyraContentId, double>, TInlineAllocator<2>> Harbors;
+		TArray<TPair<FVeyraContentId, double>, TInlineAllocator<2>> Tides;
 		TArray<FVeyraContentId, TInlineAllocator<2>> Chimes;
 		for (const FVeyraInventorySlot& Slot : Inventory->GetSlots())
 		{
@@ -366,6 +372,10 @@ void UVeyraAttunementSubsystem::UpdateHeld()
 				else if (Tuning.SafeHarbor.Contains(Attunement))
 				{
 					Harbors.Emplace(Attunement, Slot.Reserve);
+				}
+				else if (Tuning.HighTide.Contains(Attunement))
+				{
+					Tides.Emplace(Attunement, Slot.Current);
 				}
 			}
 		}
@@ -393,19 +403,59 @@ void UVeyraAttunementSubsystem::UpdateHeld()
 				VeyraCombat::RemoveStatus(*Holder, Entry.Key);
 			}
 		}
-		// Safe Harbor: out of Vanguard combat, Reserve becomes Health, never more than is missing (ADR-025 §7).
 		const UVeyraCombatStateComponent* CombatState = Participant->FindComponentByClass<UVeyraCombatStateComponent>();
 		const bool bOutOfCombat = !CombatState || !CombatState->IsInCombat();
+		const bool bAlive = VeyraTargeting::IsAlive(Participant);
 		const double MaxHealth = Holder->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+		// High Tide: out of Vanguard combat, Current amplifies regeneration and speeds Safe Harbor (ADR-025 §7).
+		// It is spent while it restores something: missing Health, or Reserve left to become Temporary Health.
+		const UVeyraDamageAbsorptionComponent* Absorption = Participant->FindComponentByClass<UVeyraDamageAbsorptionComponent>();
+		const double TemporaryHealth = Absorption ? VeyraAbsorption::TotalTemporaryHealth(Absorption->GetLedger()) : 0.0;
+		const bool bReserveLeft = Harbors.ContainsByPredicate([](const TPair<FVeyraContentId, double>& Harbor) { return Harbor.Value > 0.0; });
+		const FVeyraHighTideTuning* ActiveTide = nullptr;
+		FVeyraContentId ActiveTideId;
+		for (const TPair<FVeyraContentId, double>& Entry : Tides)
+		{
+			const FVeyraHighTideTuning& Tide = Tuning.HighTide.FindChecked(Entry.Key);
+			const bool bRoomForMore = bReserveLeft && TemporaryHealth < Tide.TemporaryHealthCapMaxHealthFraction * MaxHealth;
+			if (bOutOfCombat && bAlive && Entry.Value > 0.0 && (bMissingHealth || bRoomForMore))
+			{
+				Shop->SetStored(*Participant, Entry.Key, EVeyraItemStore::Current, Entry.Value - FMath::Min(Entry.Value, Tide.CurrentPerSecond * TickSeconds));
+				FVeyraStatusSpec Amplified;
+				Amplified.Id = Entry.Key;
+				Amplified.Kind = EVeyraStatusKind::HealthRegeneration;
+				Amplified.Magnitude = Tide.RegenerationAmplification - 1.0;
+				Amplified.DurationSeconds = TickSeconds * StatusTicks;
+				VeyraCombat::ApplyStatus(*Holder, *Holder, Amplified);
+				ActiveTide = &Tide;
+				ActiveTideId = Entry.Key;
+			}
+			else
+			{
+				VeyraCombat::RemoveStatus(*Holder, Entry.Key);
+			}
+		}
+		// Safe Harbor: out of Vanguard combat, Reserve becomes Health, never more than is missing, faster
+		// while High Tide spends; past full Health, High Tide turns the rest into Temporary Health (ADR-025 §7).
 		for (const TPair<FVeyraContentId, double>& Entry : Harbors)
 		{
 			const FVeyraSafeHarborTuning& Harbor = Tuning.SafeHarbor.FindChecked(Entry.Key);
-			if (bOutOfCombat && bMissingHealth && Entry.Value > 0.0 && VeyraTargeting::IsAlive(Participant))
+			if (!bOutOfCombat || !bAlive || Entry.Value <= 0.0 || (!bMissingHealth && !ActiveTide))
 			{
-				const double Restored = VeyraCombat::RestoreHealthFrom(*Holder, *Holder,
-					FMath::Min(Entry.Value, Harbor.ConversionMaxHealthFractionPerSecond * MaxHealth * TickSeconds));
-				Shop->SetStored(*Participant, Entry.Key, EVeyraItemStore::Reserve, Entry.Value - Restored);
+				continue;
 			}
+			const double Rate = Harbor.ConversionMaxHealthFractionPerSecond * (ActiveTide ? 1.0 + ActiveTide->ReserveConversionAcceleration : 1.0);
+			const double Converted = FMath::Min(Entry.Value, Rate * MaxHealth * TickSeconds);
+			double Spent = bMissingHealth ? VeyraCombat::RestoreHealthFrom(*Holder, *Holder, Converted) : 0.0;
+			if (ActiveTide && Converted > Spent)
+			{
+				// One grant, topped up to the cap: a tick's overflow never asks for more than the cap holds.
+				const double Cap = ActiveTide->TemporaryHealthCapMaxHealthFraction * MaxHealth;
+				const FActiveGameplayEffectHandle Grant = VeyraCombat::GrantTemporaryHealth(*Holder, *Holder, ActiveTideId,
+					FMath::Min((Converted - Spent) * ActiveTide->OverflowToTemporaryHealth, Cap), Cap, ActiveTide->TemporaryHealthSeconds);
+				Spent = Grant.IsValid() ? Converted : Spent;
+			}
+			Shop->SetStored(*Participant, Entry.Key, EVeyraItemStore::Reserve, Entry.Value - Spent);
 		}
 		const UVeyraStatusComponent* Statuses = Participant->FindComponentByClass<UVeyraStatusComponent>();
 		const double* ConsumedAt = ChimeConsumedAt.Find(Holder);

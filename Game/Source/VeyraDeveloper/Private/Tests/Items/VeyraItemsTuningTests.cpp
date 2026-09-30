@@ -131,7 +131,7 @@ namespace VeyraItemsTests
 
 		TEST_METHOD(TheRevisionsItemsKeepTheBiblesRecipesAndStats)
 		{
-			// Item Bible §4, §6 and §8 (2026-09-30): each new item's recipe and the stats its identity names. Their
+			// Item Bible §4, §6, §8 and §11 (2026-09-30): each new item's recipe and the stats its identity names. Their
 			// amounts are provisional tuning (ADR-025 §8); which stats they are is canon.
 			struct FExpected
 			{
@@ -157,6 +157,8 @@ namespace VeyraItemsTests
 				{ TEXT("harborline_harness"), { TEXT("rescue_rig"), TEXT("warforged_grip"), TEXT("waymark_weave") },
 					{ TEXT("AttackSpeed"), TEXT("Health"), TEXT("HealthRegeneration"), TEXT("PhysicalPower") } },
 				{ TEXT("doombringer_bow"), { TEXT("killstring_assembly"), TEXT("titansteel_grip") }, { TEXT("AttackSpeed"), TEXT("CritChance"), TEXT("PhysicalPower") } },
+				{ TEXT("the_last_harbor"), { TEXT("harborline_harness"), TEXT("wayline_reservoir") },
+					{ TEXT("AttackSpeed"), TEXT("Health"), TEXT("HealthRegeneration"), TEXT("PhysicalPower") } },
 			};
 			for (const FExpected& Expected : Revision)
 			{
@@ -197,6 +199,11 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(Catalog.QuietingChime.Contains(UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("blackreef_bell")))->Attunement[0])));
 			ASSERT_THAT(IsTrue(Catalog.SafeHarbor.Contains(UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("harborline_harness")))->Attunement[0])));
 			ASSERT_THAT(IsTrue(Catalog.MarkedForDoom.Contains(UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("doombringer_bow")))->Attunement[0])));
+			// The Mythical carries the Harness's Safe Harbor on, beside High Tide (§11).
+			const FVeyraItemDefinition& Harbor = *UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("the_last_harbor")));
+			ASSERT_THAT(IsTrue(VeyraItems::IsMythical(Harbor) && Harbor.Attunement.Num() == 2));
+			ASSERT_THAT(IsTrue(Harbor.Attunement[0] == UVeyraItemsTuningSubsystem::FindItem(ItemId(TEXT("harborline_harness")))->Attunement[0]));
+			ASSERT_THAT(IsTrue(Catalog.HighTide.Contains(Harbor.Attunement[1])));
 		}
 
 		TEST_METHOD(TheCommittedQuestEvolvesFluxReclaimerIntoWaylineReservoir)

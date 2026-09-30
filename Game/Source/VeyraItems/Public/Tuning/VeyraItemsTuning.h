@@ -502,6 +502,49 @@ struct FVeyraSafeHarborTuning
 	double ConversionMaxHealthFractionPerSecond = 0.0;
 };
 
+/**
+ * High Tide (The Last Harbor, Item Bible §11; ADR-025 §7): last hits on enemy lane Fluxborn store
+ * Current; out of Vanguard combat it is spent to amplify Health Regeneration and speed Safe Harbor's
+ * conversion, and what they recover past full Health becomes Temporary Health, up to a cap.
+ */
+USTRUCT()
+struct FVeyraHighTideTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double CurrentPerLastHit = 0.0;
+
+	UPROPERTY()
+	double CurrentCap = 0.0;
+
+	UPROPERTY()
+	double CurrentPerSecond = 0.0;
+
+	/** What Health Regeneration is multiplied by while Current is spent; 3 triples it. */
+	UPROPERTY()
+	double RegenerationAmplification = 0.0;
+
+	/** Added to Safe Harbor's conversion rate, as a share of it, while Current is spent; 1 doubles it. */
+	UPROPERTY()
+	double ReserveConversionAcceleration = 0.0;
+
+	/** The share of recovery past full Health that becomes Temporary Health. */
+	UPROPERTY()
+	double OverflowToTemporaryHealth = 0.0;
+
+	/** The most Temporary Health it holds, as a share of Max Health. */
+	UPROPERTY()
+	double TemporaryHealthCapMaxHealthFraction = 0.0;
+
+	/** How long its Temporary Health lasts after it was last added to. */
+	UPROPERTY()
+	double TemporaryHealthSeconds = 0.0;
+};
+
 /** The Items domain's tuning, bound from Game/Tuning/Items.json (ADR-006 §6, ADR-012 §3). */
 USTRUCT()
 struct FVeyraItemsTuning
@@ -572,6 +615,9 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraSafeHarborTuning> SafeHarbor;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraHighTideTuning> HighTide;
 };
 
 /** The Items domain's checks that a schema cannot express (ADR-012 §3). */

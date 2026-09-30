@@ -56,18 +56,27 @@ public:
 
 	const FVeyraAbsorptionLedger& GetLedger() const { return Ledger; }
 
+	/**
+	 * Grants Temporary Health named Id from Source (Combat Bible §7): the same name from the same source
+	 * is one grant, topped up by Amount to at most MaxAmount, keeping its age, with its duration started
+	 * again. Returns its effect, or an invalid handle if refused or the grant is already at its most.
+	 * Server only.
+	 */
+	FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source, const FVeyraContentId& Id, double Amount, double MaxAmount,
+		double DurationSeconds);
+
 private:
 	/** What only the server keeps for each ledger entry. */
 	struct FServerEntry
 	{
 		FActiveGameplayEffectHandle Effect;
-		/** A shield's identity, source and cap group, when a grant gave it them. */
+		/** A shield's or Temporary Health's identity and source, and a shield's cap group, when a grant gave it them. */
 		FVeyraContentId Id;
 		TWeakObjectPtr<UAbilitySystemComponent> Source;
 		FVeyraContentId CapGroup;
 	};
 
-	/** The grant GrantShield is applying, which OnEffectAdded records its entry with. */
+	/** The grant GrantShield or GrantTemporaryHealth is applying, which OnEffectAdded records its entry with. */
 	struct FPendingGrant
 	{
 		FVeyraContentId Id;
