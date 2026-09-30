@@ -185,6 +185,35 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraUnreturnedTuning>& Entry : Tuning.Unreturned)
+	{
+		RegisterPassive(Entry.Key, TEXT("unreturned"));
+		const FString Pointer = TEXT("/unreturned/") + Entry.Key.ToString();
+		const FVeyraUnreturnedTuning& Unreturned = Entry.Value;
+		if (!(Unreturned.CheckSeconds > 0.0) || !(Unreturned.RestoreFractionPerSecond > 0.0) || Unreturned.RestoreFractionPerSecond > 1.0)
+		{
+			Problem(Pointer, TEXT("checkSeconds is above 0, and restoreFractionPerSecond above 0 and at most 1"));
+		}
+		for (int32 Index = 0; Index < Unreturned.Thresholds.Num(); ++Index)
+		{
+			const FVeyraUnreturnedThresholdTuning& Threshold = Unreturned.Thresholds[Index];
+			const FString ThresholdPointer = FString::Printf(TEXT("%s/thresholds/%d"), *Pointer, Index);
+			if (!(Threshold.HealthFraction > 0.0) || Threshold.HealthFraction > 1.0)
+			{
+				Problem(ThresholdPointer + TEXT("/healthFraction"), TEXT("must be above 0 and at most 1"));
+			}
+			// Each status outlasts a check, so it holds while its owner stays below the threshold.
+			for (const FVeyraContentId& Status : Threshold.Statuses)
+			{
+				const FVeyraStatusTuning* Given = Abilities.Statuses.Find(Status);
+				if (!Given || !(Given->DurationSeconds > Unreturned.CheckSeconds))
+				{
+					Problem(ThresholdPointer + TEXT("/statuses"), FString::Printf(TEXT("names status \"%s\", which Abilities.json must define lasting longer than a check"), *Status.ToString()));
+				}
+			}
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraHauntTuning>& Entry : Tuning.Haunt)
 	{
 		RegisterPassive(Entry.Key, TEXT("haunt"));

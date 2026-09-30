@@ -53,6 +53,7 @@ public:
 	static const FVeyraAttackStrideTuning* FindAttackStride(const FVeyraContentId& Passive);
 	static const FVeyraSlipstreamTuning* FindSlipstream(const FVeyraContentId& Passive);
 	static const FVeyraReclaimTuning* FindReclaim(const FVeyraContentId& Passive);
+	static const FVeyraUnreturnedTuning* FindUnreturned(const FVeyraContentId& Passive);
 
 	/** Reads and validates the file again, replacing the loaded tuning only when it is valid. */
 	VeyraTuning::FErrors Reload();

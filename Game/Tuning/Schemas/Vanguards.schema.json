@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -417,6 +417,34 @@
                 "missingHealthRatio": { "type": "number", "minimum": 0 },
                 "bonusHealthRatio": { "type": "number", "minimum": 0 },
                 "lungeSpeed": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+              }
+            }
+          }
+        }
+      }
+    },
+    "unreturned": {
+      "description": "Passives that restore a share of missing Health out of Vanguard combat and give statuses below Health thresholds (Torr's Unreturned, Roster Bible §9; ADR-028 §7).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "checkSeconds", "restoreFractionPerSecond", "thresholds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "checkSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "restoreFractionPerSecond": { "description": "Of missing Health, restored each second out of Vanguard combat.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "thresholds": {
+              "type": "array", "minItems": 0,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["healthFraction", "statuses"],
+                "properties": {
+                  "healthFraction": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+                  "statuses": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
+                }
               }
             }
           }

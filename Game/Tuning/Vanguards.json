@@ -739,6 +739,48 @@
       },
       "abilities": { "q": ["silt_scattershot"], "w": ["silt_sink"], "e": ["silt_sandstorm"], "r": ["silt_buried_alive"] },
       "passive": ["silt_reclaim"]
+    },
+    "torr": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 65, "capsuleHalfHeight": 120, "turnRateDegreesPerSecond": 480 },
+      "baseStats": {
+        "maxHealth": 680,
+        "healthRegen": 0.3,
+        "maxResource": 300,
+        "resourceRegen": 3,
+        "armor": 36,
+        "magicResist": 32,
+        "physicalPower": 64,
+        "magicPower": 0,
+        "attackSpeed": 0.6,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 110,
+        "healthRegen": 0.05,
+        "maxResource": 40,
+        "resourceRegen": 0.3,
+        "armor": 4.8,
+        "magicResist": 2,
+        "physicalPower": 3.5,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.015
+      },
+      "basicAttack": {
+        "range": 175,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 550,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": { "q": ["torr_battering_mass"], "w": ["torr_fortify"], "e": ["torr_anchor"], "r": ["torr_overcapacity"] },
+      "passive": ["torr_unreturned"]
     }
   },
   "deepFoundation": {
@@ -923,6 +965,17 @@
       "healPerLevel": 4,
       "magicPowerRatio": 0.15,
       "lockoutSeconds": 3
+    }
+  },
+  "unreturned": {
+    "torr_unreturned": {
+      "provenance": "Provisional",
+      "checkSeconds": 0.5,
+      "restoreFractionPerSecond": 0.025,
+      "thresholds": [
+        { "healthFraction": 0.5, "statuses": ["torr_unreturned_stride"] },
+        { "healthFraction": 0.3, "statuses": ["torr_unreturned_tenacity"] }
+      ]
     }
   }
 }

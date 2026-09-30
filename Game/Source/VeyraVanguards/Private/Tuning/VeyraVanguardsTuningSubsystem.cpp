@@ -125,6 +125,11 @@ const FVeyraReclaimTuning* UVeyraVanguardsTuningSubsystem::FindReclaim(const FVe
 	return Get().Reclaim.Find(Passive);
 }
 
+const FVeyraUnreturnedTuning* UVeyraVanguardsTuningSubsystem::FindUnreturned(const FVeyraContentId& Passive)
+{
+	return Get().Unreturned.Find(Passive);
+}
+
 VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 {
 	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.

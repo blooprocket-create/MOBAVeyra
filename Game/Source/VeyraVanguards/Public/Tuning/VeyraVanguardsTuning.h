@@ -698,6 +698,46 @@ struct FVeyraReclaimTuning
 	double LockoutSeconds = 0.0;
 };
 
+/** One of Unreturned's Health thresholds: below its fraction, its owner holds its statuses (ADR-028 §7). */
+USTRUCT()
+struct FVeyraUnreturnedThresholdTuning
+{
+	GENERATED_BODY()
+
+	/** Of Max Health; above 0, at most 1. */
+	UPROPERTY()
+	double HealthFraction = 0.0;
+
+	/** From Abilities.json's statuses; each outlasts a check. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
+/**
+ * Torr's Unreturned (Roster Bible §9; ADR-028 §7): out of Vanguard combat his core restores a share of
+ * his missing Health each second, and below each Health threshold he holds its statuses, given again at
+ * each check. Its data is an entry in Vanguards.json's unreturned map.
+ */
+USTRUCT()
+struct FVeyraUnreturnedTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Seconds between checks; above 0. */
+	UPROPERTY()
+	double CheckSeconds = 0.0;
+
+	/** Of missing Health, what it restores each second out of Vanguard combat; above 0, at most 1. */
+	UPROPERTY()
+	double RestoreFractionPerSecond = 0.0;
+
+	UPROPERTY()
+	TArray<FVeyraUnreturnedThresholdTuning> Thresholds;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
@@ -753,6 +793,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraReclaimTuning> Reclaim;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraUnreturnedTuning> Unreturned;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */
