@@ -126,7 +126,9 @@ float UVeyraMovementComponent::GetMaxSpeed() const
 			Inputs.SetSpeed = FMath::Max(Inputs.MoveSpeed, FMath::Lerp(RideDecay->FromSpeed, Inputs.MoveSpeed, Alpha));
 		}
 	}
-	return static_cast<float>(VeyraMovementRules::EffectiveSpeed(Inputs, UVeyraCombatTuningSubsystem::Get().Movement));
+	const double Speed = VeyraMovementRules::EffectiveSpeed(Inputs, UVeyraCombatTuningSubsystem::Get().Movement);
+	// A mobile attacker walks through its windup at its share of that speed (ADR-027 §1).
+	return static_cast<float>(WindupSpeedShare.IsSet() ? Speed * WindupSpeedShare.GetValue() : Speed);
 }
 
 bool UVeyraMovementComponent::IsMovingTowardEnemyVanguard() const

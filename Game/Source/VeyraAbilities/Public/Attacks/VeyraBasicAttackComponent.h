@@ -62,6 +62,15 @@ public:
 	/** Server: whether an empowerment waits for the next attack. */
 	bool IsEmpowered() const;
 
+	/**
+	 * Server: the share of its speed the attacker keeps through a windup, set by a passive such as
+	 * Never Break Stride (ADR-027 §1); 0, the default, stands still.
+	 */
+	void SetWindupMovement(double Share);
+
+	/** The share in force: the larger of the passive's and its strongest MobileAttack status. */
+	double GetWindupMovementShare() const;
+
 	/** On every machine: the empowerment waiting for the next attack, as presentation shows it. */
 	const FVeyraAttackEmpowermentView& GetEmpowermentView() const { return EmpowermentView; }
 
@@ -161,6 +170,7 @@ private:
 
 	TOptional<FRunningAttack> Running;
 	double NextAttackAt = 0.0;
+	double BaseWindupShare = 0.0;
 
 	TOptional<FVeyraAttackEmpowerment> Empowerment;
 	double EmpowermentExpiresAt = 0.0;

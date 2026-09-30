@@ -538,6 +538,25 @@ void UVeyraBasicAttackComponent::EnterPhase(EVeyraAttackPhase Phase, AActor* Tar
 	State.Target = Target;
 	State.PhaseEndsAt = EndsAt;
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraBasicAttackComponent, State, this);
+	// A mobile attacker walks through its windup at its share of speed, and only then (ADR-027 §1).
+	const UAbilitySystemComponent* Attacker = GetAbilitySystem();
+	const AActor* Body = Attacker ? Attacker->GetAvatarActor() : nullptr;
+	if (UVeyraMovementComponent* Movement = Body ? Body->FindComponentByClass<UVeyraMovementComponent>() : nullptr)
+	{
+		const double Share = Phase == EVeyraAttackPhase::Windup ? GetWindupMovementShare() : 0.0;
+		Movement->SetWindupSpeedShare(Share > 0.0 ? TOptional<double>(Share) : TOptional<double>());
+	}
+}
+
+void UVeyraBasicAttackComponent::SetWindupMovement(double Share)
+{
+	BaseWindupShare = Share;
+}
+
+double UVeyraBasicAttackComponent::GetWindupMovementShare() const
+{
+	const UVeyraStatusComponent* Statuses = GetOwner() ? GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return FMath::Max(BaseWindupShare, Statuses ? Statuses->GetStrongest(EVeyraStatusKind::MobileAttack) : 0.0);
 }
 
 void UVeyraBasicAttackComponent::ResetChain()

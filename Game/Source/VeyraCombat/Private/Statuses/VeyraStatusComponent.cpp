@@ -67,6 +67,7 @@ namespace
 		case EVeyraStatusKind::AttackDamageAmplification:
 		case EVeyraStatusKind::SpellShield:
 		case EVeyraStatusKind::Root:
+		case EVeyraStatusKind::MobileAttack:
 			break;
 		}
 		return NAME_None;

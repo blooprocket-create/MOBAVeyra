@@ -144,6 +144,12 @@ enum class EVeyraStatusKind : uint8
 	 * may attack and cast the rest. Crowd control: Tenacity shortens it. Magnitude: 0.
 	 */
 	Root,
+	/**
+	 * The unit may walk while its basic attack winds up, keeping this share of its Movement Speed, and a
+	 * move order does not cancel the windup (ADR-027 §1); the strongest applies. Not crowd control.
+	 * Magnitude: the share, above 0 and at most 1; one stack.
+	 */
+	MobileAttack,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

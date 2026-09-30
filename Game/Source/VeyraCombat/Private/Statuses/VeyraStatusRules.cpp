@@ -106,6 +106,9 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::Fear:
 		bMagnitudeValid &= Magnitude >= 0.0 && Magnitude < 1.0;
 		break;
+	case EVeyraStatusKind::MobileAttack:
+		bMagnitudeValid &= Magnitude > 0.0 && Magnitude <= 1.0 && Spec.MaxStacks == 1;
+		break;
 	case EVeyraStatusKind::BodyScale:
 		bMagnitudeValid &= Magnitude > 0.0 && Spec.MaxStacks == 1;
 		break;

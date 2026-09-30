@@ -85,6 +85,31 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Attacks && Attacks->SetProfile(Melee())));
 		}
 
+		TEST_METHOD(AMobileAttackerKeepsItsShareOfSpeedThroughItsWindupOnly)
+		{
+			// Fixture values: a passive's half, and a status's whole.
+			constexpr double Half = 0.5;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Range / 2.0, 0.0, 0.0));
+			const UVeyraMovementComponent& Movement = *Attacker->GetVeyraMovement();
+			const double Walking = Movement.GetMaxSpeed();
+			ASSERT_THAT(IsTrue(Attacks->StartAttack(Enemy) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Movement.GetMaxSpeed(), Walking, Tolerance), TEXT("a standing attacker is stopped by its orders, not its speed")));
+			Attacks->CancelAttack();
+			Attacks->SetWindupMovement(Half);
+			ASSERT_THAT(IsTrue(Attacks->StartAttack(Enemy) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Movement.GetMaxSpeed(), Walking * Half, Tolerance), TEXT("half its speed through the windup (ADR-027 §1)")));
+			Attacks->Commit();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Movement.GetMaxSpeed(), Walking, Tolerance), TEXT("its whole speed after Commit")));
+			FVeyraStatusSpec Road;
+			Road.Id = ArchetypeTestId(TEXT("test_open_road"));
+			Road.Kind = EVeyraStatusKind::MobileAttack;
+			Road.Magnitude = 1.0;
+			Road.DurationSeconds = LongSeconds;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Attacker->GetAbilitySystemComponent(), *Attacker->GetAbilitySystemComponent(), Road)));
+			ASSERT_THAT(IsTrue(Attacks->GetWindupMovementShare() == 1.0, TEXT("the strongest applies")));
+		}
+
 		AFTER_EACH()
 		{
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(nullptr);
