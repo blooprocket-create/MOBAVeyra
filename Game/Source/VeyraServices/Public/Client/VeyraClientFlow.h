@@ -7,7 +7,9 @@
 #include "Client/VeyraClientIntents.h"
 #include "Delegates/Delegate.h"
 #include "Handoff/VeyraPipeLineReader.h"
+#include "Settings/VeyraAccountSettingsSync.h"
 #include "Templates/SharedPointer.h"
+#include "Templates/UniquePtr.h"
 #include "VeyraMatchTypes.h"
 
 class UVeyraServicesSettings;
@@ -57,6 +59,8 @@ struct FVeyraClientFlowConfig
 	double SocialPollIntervalSeconds = 0.0;
 	/** How long the player stays in a match that ended, watching the end, before it leaves for the results (ADR-020 §1). */
 	double EndingShowSeconds = 0.0;
+	/** When the player's account settings are sent (ADR-024 §1). */
+	FVeyraAccountSettingsSyncConfig AccountSettings;
 
 	static VEYRASERVICES_API FVeyraClientFlowConfig FromSettings(const UVeyraServicesSettings& Settings, const FString& BuildVersion);
 };
@@ -104,6 +108,12 @@ public:
 	/** Reads the launch code and runs the waits that are due. The host calls it every frame. */
 	void Tick();
 
+	/**
+	 * Keeps the player's account settings in Cache and the backend's copy the same from sign-in on
+	 * (ADR-024 §1). Before Start; Cache must outlive the flow. Without it, account settings stay local.
+	 */
+	void SyncAccountSettings(IVeyraAccountSettingsCache& Cache);
+
 	// IVeyraClientIntents
 	virtual const FVeyraClientSnapshot& GetSnapshot() const override { return Snapshot; }
 	virtual FSimpleMulticastDelegate& OnChanged() override { return Changed; }
@@ -128,6 +138,7 @@ public:
 	virtual bool Reconnect() override;
 	virtual bool ContinueFromResults() override;
 	virtual bool Retry() override;
+	virtual bool ResolveSettingsConflict(bool bKeepThisDevice) override;
 	virtual bool Quit() override;
 	virtual bool LoadHistory(const VeyraBackendProtocol::FHistoryFilter& Filter) override;
 	virtual bool LoadMoreHistory() override;
@@ -319,6 +330,8 @@ private:
 	uint32 ShownLobbySequence = 0;
 	uint32 SocialSequence = 0;
 	uint32 ShownSocialSequence = 0;
+	/** Syncs the account settings, when the host gave the flow somewhere to keep them. */
+	TUniquePtr<FVeyraAccountSettingsSync> AccountSettings;
 	/** The shell's next read of the party says whether a match found that did not go ahead left the party queued. */
 	bool bExplainQueue = false;
 	double MatchDeadline = 0.0;

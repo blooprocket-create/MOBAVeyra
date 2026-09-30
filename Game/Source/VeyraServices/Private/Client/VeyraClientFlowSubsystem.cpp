@@ -19,6 +19,7 @@
 #include "VeyraGameState.h"
 #include "VeyraLocalPlayer.h"
 #include "VeyraServicesSettings.h"
+#include "VeyraSettingsSubsystem.h"
 
 bool UVeyraClientFlowSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 {
@@ -29,6 +30,8 @@ bool UVeyraClientFlowSubsystem::ShouldCreateSubsystem(UObject* Outer) const
 void UVeyraClientFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
 	Super::Initialize(Collection);
+	// The player's settings are ready before sign-in takes the account's.
+	Collection.InitializeDependency<UVeyraSettingsSubsystem>();
 	// Loaded before any world starts rather than on the first request.
 	FModuleManager::Get().LoadModuleChecked(TEXT("HTTP"));
 
@@ -42,6 +45,7 @@ void UVeyraClientFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	}
 	Backend = MakeUnique<FVeyraBackendClient>(Settings.BackendBaseUrl, Settings.RequestTimeoutSeconds);
 	Flow = MakeUnique<FVeyraClientFlow>(*Backend, *this, FVeyraClientFlowConfig::FromSettings(Settings, BuildVersion));
+	Flow->SyncAccountSettings(*this);
 
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraClientFlowSubsystem::Tick));
 	PostLoadMapHandle = FCoreUObjectDelegates::PostLoadMapWithWorld.AddUObject(this, &UVeyraClientFlowSubsystem::OnPostLoadMap);
@@ -204,4 +208,53 @@ void UVeyraClientFlowSubsystem::TravelToFrontEnd()
 void UVeyraClientFlowSubsystem::QuitGame()
 {
 	FPlatformMisc::RequestExit(/*bForce*/ false, TEXT("VeyraClientFlow"));
+}
+
+UVeyraSettingsSubsystem* UVeyraClientFlowSubsystem::FindSettings() const
+{
+	const UGameInstance* GameInstance = GetGameInstance();
+	UVeyraSettingsSubsystem* Found = GameInstance ? GameInstance->GetSubsystem<UVeyraSettingsSubsystem>() : nullptr;
+	return Found && Found->IsReady() ? Found : nullptr;
+}
+
+void UVeyraClientFlowSubsystem::UseAccount(const FString& AccountId)
+{
+	if (UVeyraSettingsSubsystem* Found = FindSettings())
+	{
+		Found->UseAccount(AccountId);
+	}
+}
+
+FVeyraAccountSettingsDocument UVeyraClientFlowSubsystem::GetDocument() const
+{
+	const UVeyraSettingsSubsystem* Found = FindSettings();
+	return Found ? Found->GetAccountDocument() : FVeyraAccountSettingsDocument();
+}
+
+void UVeyraClientFlowSubsystem::TakeDocument(const FVeyraAccountSettingsDocument& Document)
+{
+	if (UVeyraSettingsSubsystem* Found = FindSettings())
+	{
+		Found->TakeAccountDocument(Document);
+	}
+}
+
+void UVeyraClientFlowSubsystem::MarkSent(int64 Revision, uint32 SentChangeCount)
+{
+	if (UVeyraSettingsSubsystem* Found = FindSettings())
+	{
+		Found->MarkAccountSent(Revision, SentChangeCount);
+	}
+}
+
+bool UVeyraClientFlowSubsystem::HasUnsentChanges() const
+{
+	const UVeyraSettingsSubsystem* Found = FindSettings();
+	return Found && Found->HasUnsentAccountChanges();
+}
+
+uint32 UVeyraClientFlowSubsystem::GetChangeCount() const
+{
+	const UVeyraSettingsSubsystem* Found = FindSettings();
+	return Found ? Found->GetAccountChangeCount() : 0;
 }

@@ -160,10 +160,10 @@ void UVeyraSettingsSubsystem::TakeAccountDocument(const FVeyraAccountSettingsDoc
 	SaveAccountCache();
 }
 
-void UVeyraSettingsSubsystem::MarkAccountSent(int64 Revision)
+void UVeyraSettingsSubsystem::MarkAccountSent(int64 Revision, uint32 SentChangeCount)
 {
 	AccountRevision = Revision;
-	bAccountUnsent = false;
+	bAccountUnsent = SentChangeCount != AccountChangeCount;
 	SaveAccountCache();
 }
 
@@ -224,6 +224,7 @@ void UVeyraSettingsSubsystem::OnStoreChanged(const FVeyraContentId& Id)
 		return;
 	}
 	bAccountUnsent = true;
+	++AccountChangeCount;
 	SaveAccountCache();
 	OnAccountChanged.Broadcast();
 }

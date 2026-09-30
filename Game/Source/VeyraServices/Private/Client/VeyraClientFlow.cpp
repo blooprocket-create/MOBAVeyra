@@ -238,6 +238,8 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("AnswerFriendRequest");
 	case EVeyraClientIntent::RemoveFriend:
 		return TEXT("RemoveFriend");
+	case EVeyraClientIntent::ResolveSettingsConflict:
+		return TEXT("ResolveSettingsConflict");
 	}
 	return TEXT("Unknown");
 }
@@ -261,6 +263,8 @@ FVeyraClientFlowConfig FVeyraClientFlowConfig::FromSettings(const UVeyraServices
 	Config.SocialPollIntervalSeconds = Settings.SocialPollIntervalSeconds;
 	// Match data, so the client stays as long as the server does.
 	Config.EndingShowSeconds = UVeyraMatchTuningSubsystem::Get().Ending.ShowSeconds;
+	Config.AccountSettings.SendDelaySeconds = Settings.AccountSettingsSendDelaySeconds;
+	Config.AccountSettings.RetrySeconds = Settings.AccountSettingsRetrySeconds;
 	return Config;
 }
 
@@ -273,6 +277,18 @@ FVeyraClientFlow::FVeyraClientFlow(IVeyraBackendTransport& InBackend, IVeyraClie
 }
 
 FVeyraClientFlow::~FVeyraClientFlow() = default;
+
+void FVeyraClientFlow::SyncAccountSettings(IVeyraAccountSettingsCache& Cache)
+{
+	FVeyraAccountSettingsSync::FCallbacks Callbacks;
+	Callbacks.OnReady = [this] { Resume(); };
+	Callbacks.OnConflictChanged = [this] {
+		Snapshot.bSettingsConflict = AccountSettings->HasConflict();
+		Broadcast();
+	};
+	Callbacks.OnSessionRefused = [this] { EndSession(); };
+	AccountSettings = MakeUnique<FVeyraAccountSettingsSync>(Backend, Cache, Config.AccountSettings, MoveTemp(Callbacks));
+}
 
 void FVeyraClientFlow::Start(const FString& ConfigurationProblem)
 {
@@ -297,6 +313,10 @@ void FVeyraClientFlow::Tick()
 	}
 
 	const double Now = Host.Now();
+	if (AccountSettings)
+	{
+		AccountSettings->Tick(Now);
+	}
 	TArray<TFunction<void()>> Due;
 	TArray<FWait> Pending = MoveTemp(Waits);
 	Waits.Reset();
@@ -353,6 +373,7 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 		return State == EVeyraClientState::Results;
 	case EVeyraClientIntent::Retry:
 	case EVeyraClientIntent::Quit:
+	case EVeyraClientIntent::ResolveSettingsConflict:
 		return true;
 	// The ordinary client only: not through Match Found, a committed select or Reconnect-only (UX-51).
 	case EVeyraClientIntent::LoadHistory:
@@ -392,6 +413,11 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 	if (Intent == EVeyraClientIntent::Retry)
 	{
 		return !Snapshot.bBusy && Snapshot.Problem.IsSet() && Snapshot.Problem->bCanRetry;
+	}
+	if (Intent == EVeyraClientIntent::ResolveSettingsConflict)
+	{
+		// Settings are not the flow's step: the choice shows over whatever the player is doing.
+		return Snapshot.bSettingsConflict;
 	}
 	if (Snapshot.bBusy || !IsIntentAllowed(Snapshot.State, Intent))
 	{
@@ -563,7 +589,15 @@ void FVeyraClientFlow::OnRedeemed(const FVeyraBackendResponse& Response)
 	Snapshot.AccountId = Session.AccountId;
 	Host.WriteHandshake(VeyraLaunchHandshake::SignedIn);
 	Log(FString::Printf(TEXT("signed in as %s."), *Session.DisplayName));
-	Resume();
+	if (!AccountSettings)
+	{
+		Resume();
+		return;
+	}
+	// The player's settings, and their choice if they changed elsewhere too, come before the shell (ADR-024 §1).
+	Enter(EVeyraClientState::Loading);
+	Broadcast();
+	AccountSettings->SignIn(Snapshot.AccountId, GameSession, Host.Now());
 }
 
 void FVeyraClientFlow::FailSignIn(EFailure Failure, const FString& Reason)
@@ -2147,6 +2181,16 @@ bool FVeyraClientFlow::Retry()
 	return true;
 }
 
+bool FVeyraClientFlow::ResolveSettingsConflict(bool bKeepThisDevice)
+{
+	if (!CanIssue(EVeyraClientIntent::ResolveSettingsConflict) || !AccountSettings)
+	{
+		return false;
+	}
+	Log(bKeepThisDevice ? TEXT("keeping this device's settings.") : TEXT("taking the account's settings."));
+	return AccountSettings->Resolve(bKeepThisDevice);
+}
+
 bool FVeyraClientFlow::Quit()
 {
 	Log(TEXT("the player quits."));
@@ -2157,6 +2201,11 @@ bool FVeyraClientFlow::Quit()
 void FVeyraClientFlow::EndSession()
 {
 	GameSession.Reset();
+	if (AccountSettings)
+	{
+		AccountSettings->SignOut();
+		Snapshot.bSettingsConflict = false;
+	}
 	Enter(EVeyraClientState::SessionEnded);
 	Snapshot.Problem = FVeyraClientProblem{ TEXT("session_ended"), TEXT("the backend no longer accepts this game session; sign in again from the launcher"), false };
 	UE_LOG(LogVeyraServices, Warning, TEXT("VeyraClientFlow: the backend ended the game session."));

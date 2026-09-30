@@ -309,6 +309,38 @@ namespace VeyraClientFlowTests
 		}
 	};
 
+	/** The player's account settings on this client, as the settings subsystem keeps them, in memory. */
+	class FFakeAccountSettingsCache final : public IVeyraAccountSettingsCache
+	{
+	public:
+		FString Account;
+		FVeyraAccountSettingsDocument Document;
+		uint32 Changes = 0;
+
+		/** The player changes a setting here. */
+		void Change(const FString& Id, const FString& Value)
+		{
+			Document.Values.Add(Id, Value);
+			Document.bUnsent = true;
+			++Changes;
+		}
+
+		virtual void UseAccount(const FString& SignedIn) override { Account = SignedIn; }
+		virtual FVeyraAccountSettingsDocument GetDocument() const override { return Document; }
+		virtual void TakeDocument(const FVeyraAccountSettingsDocument& Taken) override
+		{
+			Document = Taken;
+			Document.bUnsent = false;
+		}
+		virtual void MarkSent(int64 Revision, uint32 SentChangeCount) override
+		{
+			Document.Revision = Revision;
+			Document.bUnsent = SentChangeCount != Changes;
+		}
+		virtual bool HasUnsentChanges() const override { return Document.bUnsent; }
+		virtual uint32 GetChangeCount() const override { return Changes; }
+	};
+
 	/** An engine that records what the flow asks of it. */
 	class FFlowTestHost final : public IVeyraClientFlowHost
 	{
@@ -382,6 +414,8 @@ namespace VeyraClientFlowTests
 			Config.LobbyPollIntervalSeconds = 1.0;
 			Config.SocialPollIntervalSeconds = 3.0;
 			Config.EndingShowSeconds = EndingShowSeconds;
+			Config.AccountSettings.SendDelaySeconds = 1.5;
+			Config.AccountSettings.RetrySeconds = 15.0;
 			Flow = MakeUnique<FVeyraClientFlow>(Backend, Host, Config);
 		}
 
@@ -393,13 +427,20 @@ namespace VeyraClientFlowTests
 			Flow->Tick();
 		}
 
-		/** Starts, reads a launch code and redeems it: the flow then asks for the player's match. */
+		/** With the flow syncing account settings, sign-in answers their read with this document. */
+		TOptional<FString> AccountSettingsAnswer;
+
+		/**
+		 * Starts, reads a launch code and redeems it: the flow then asks for the player's match, or, when
+		 * it syncs account settings and the rig has no answer for them, for those first.
+		 */
 		bool SignIn()
 		{
 			Flow->Start();
 			Host.Input.Add(ExampleCredential(TEXT("vlc_"), TEXT('A')));
 			Flow->Tick();
-			return Backend.Answer(TEXT("POST"), TEXT("/v1/game-sessions"), 200, SessionBody()) && State() == EVeyraClientState::Loading;
+			return Backend.Answer(TEXT("POST"), TEXT("/v1/game-sessions"), 200, SessionBody()) && State() == EVeyraClientState::Loading
+				&& (!AccountSettingsAnswer.IsSet() || Backend.Answer(TEXT("GET"), TEXT("/v1/account/settings"), 200, *AccountSettingsAnswer));
 		}
 
 		/** Signs in with no match and no select, and a profile whose tutorial is Completed or not. */

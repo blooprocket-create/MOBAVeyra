@@ -271,6 +271,7 @@ The trusted-services client (ADR-007 §12): the only module that talks to the ba
 - the client-state coordinator (`Client/`, [ADR-010](Docs/ADR/ADR-010-play-flow.md) §2): `FVeyraClientFlow` is plain C++ that owns the game session, the client's state (signing in, starter choice, shell with the party and its queue, Match Found, champion select, match, results, Reconnect-only and the rest) and the player's intents, and reaches the backend and the engine only through injected interfaces. `UVeyraClientFlowSubsystem` hosts it in a client's GameInstance. The UI observes its snapshot and asks through `IVeyraClientIntents`; the coordinator and the backend decide;
 - the game's side of the session handoff: it reads the launch code from standard input once it has said it is ready (the launch handshake, `Contracts/LaunchHandshake.json`), and redeems it;
 - the front end (`FrontEnd/`, ADR-010 §3): `AVeyraShellGameMode`, the pawnless game mode of the generated `L_FrontEnd` map where the shell runs;
+- the account settings sync (`Settings/`, [ADR-024](Docs/ADR/ADR-024-player-settings.md) §1): `FVeyraAccountSettingsSync` reads the player's account settings on sign-in, sends their changes once they settle, and raises the choice between this device's and the account's when both changed. The coordinator owns it, and `VeyraSettings` keeps the values behind `IVeyraAccountSettingsCache`;
 - the match server's side: it reads the assignment from standard input, hands the roster to `VeyraMatch`, and reports ready and the result;
 - the backend's address, waits and polling, as validated settings.
 
@@ -366,7 +367,7 @@ This is a guide, not a license for arbitrary sideways dependencies. Prefer contr
 
 ### Backend (outside Unreal)
 
-The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity, social, party, matchmaking with Match Found, the Vanguard catalog, accounts with onboarding and entitlements, champion select, and match allocation and results). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; only `VeyraServices` talks to it, over HTTP.
+The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-local-first-hosting.md) lives in [`Backend/`](Backend/README.md), with the local Docker stack in `compose.yaml` at the repository root. It is one service with one internal package per trusted domain (identity, social, party, matchmaking with Match Found, the Vanguard catalog, accounts with onboarding and entitlements, champion select, match allocation and results, and the account's settings document). Domain packages own their rules and depend on storage interfaces; storage and HTTP transport depend on domains, never the reverse. Unreal modules never link to backend code; only `VeyraServices` talks to it, over HTTP.
 
 ### Launcher (outside Unreal)
 

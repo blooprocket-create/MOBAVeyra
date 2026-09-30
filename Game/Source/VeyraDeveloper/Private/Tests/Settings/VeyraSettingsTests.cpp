@@ -274,8 +274,14 @@ namespace VeyraSettingsTests
 			FromBackend.Values = { { TEXT("test_range"), TEXT("20") } };
 			Later.TakeAccountDocument(FromBackend);
 			ASSERT_THAT(IsTrue(Later.GetStore().Get(Range) == TEXT("20") && !Later.HasUnsentAccountChanges() && Later.GetAccountDocument().Revision == 7));
-			Later.MarkAccountSent(8);
-			ASSERT_THAT(AreEqual(int64(8), Later.GetAccountDocument().Revision));
+			Later.MarkAccountSent(8, Later.GetAccountChangeCount());
+			ASSERT_THAT(IsTrue(Later.GetAccountDocument().Revision == 8 && !Later.HasUnsentAccountChanges()));
+
+			// A change made while a send was on its way waits for the next one, based on the new revision.
+			const uint32 Sending = Later.GetAccountChangeCount();
+			Later.GetStore().Set(Range, TEXT("30"));
+			Later.MarkAccountSent(9, Sending);
+			ASSERT_THAT(IsTrue(Later.GetAccountDocument().Revision == 9 && Later.HasUnsentAccountChanges()));
 		}
 	};
 }

@@ -50,6 +50,8 @@ public:
 	virtual bool Reconnect() = 0;
 	virtual bool ContinueFromResults() = 0;
 	virtual bool Retry() = 0;
+	/** Keeps this device's settings, sending them over the account's, or takes the account's (ADR-024 §1). */
+	virtual bool ResolveSettingsConflict(bool bKeepThisDevice) = 0;
 	virtual bool Quit() = 0;
 	/** Reads Match History's first page with Filter, replacing what was read. */
 	virtual bool LoadHistory(const VeyraBackendProtocol::FHistoryFilter& Filter) = 0;

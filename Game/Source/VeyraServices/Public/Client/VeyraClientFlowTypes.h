@@ -105,6 +105,8 @@ enum class EVeyraClientIntent : uint8
 	/** Accepts or declines a friend request to the player. */
 	AnswerFriendRequest,
 	RemoveFriend,
+	/** Keeps this device's settings or the account's, when both changed (ADR-024 §1). Whenever the choice shows. */
+	ResolveSettingsConflict,
 };
 
 /** Which kind of world the client just loaded. */
@@ -194,6 +196,11 @@ struct FVeyraClientSnapshot
 	FString Notice;
 	/** The signed-in player's account. */
 	FString AccountId;
+	/**
+	 * The player's settings changed here and on another machine since they last matched: they choose
+	 * which to keep, "This device" or "Your account" (ADR-024 §1). After sign-in, the flow waits for it.
+	 */
+	bool bSettingsConflict = false;
 	/** SignInFailed: what the launcher was told. */
 	TOptional<VeyraLaunchHandshake::EFailure> SignInFailure;
 	/** StarterChoice: the starters, in the catalog's order. */

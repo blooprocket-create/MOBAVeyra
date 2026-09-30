@@ -453,6 +453,8 @@ namespace VeyraShellTests
 	TEST_CLASS(ShellScreens, "Veyra.UI")
 	{
 		FActorTestSpawner Spawner;
+		/** Before the rig, which outlives none of what it was given. */
+		FFakeAccountSettingsCache SettingsCache;
 		FClientFlowTestRig Rig;
 		UVeyraShellScreen* Screen = nullptr;
 
@@ -670,6 +672,25 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Gold from Minions"))));
 			Button(TEXT("Back to Match History"))->Press();
 			ASSERT_THAT(IsTrue(Screen->GetPage() == EVeyraShellPage::History && Button(TEXT("Open")) != nullptr));
+		}
+
+		TEST_METHOD(ASettingsConflictAsksWhichToKeepOverTheScreen)
+		{
+			SettingsCache.Document.Revision = 3;
+			SettingsCache.Change(TEXT("camera_move_speed"), TEXT("70"));
+			Rig.Flow->SyncAccountSettings(SettingsCache);
+			ASSERT_THAT(IsTrue(Rig.SignIn()));
+			ShowScreen();
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/account/settings"), 200,
+				TEXT("{\"schemaVersion\":1,\"revision\":5,\"values\":{\"camera_move_speed\":\"20\"}}"))));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Your settings changed on another device"))));
+			UVeyraShellButton* ThisDevice = Screen->FindButton(UVeyraShellScreen::SettingsChoiceLabel(true));
+			ASSERT_THAT(IsTrue(ThisDevice && Screen->FindButton(UVeyraShellScreen::SettingsChoiceLabel(false))));
+
+			ThisDevice->Press();
+			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("PUT"), TEXT("/v1/account/settings")), TEXT("this device's settings go to the account")));
+			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShellScreen::SettingsChoiceLabel(true)), TEXT("the choice is gone")));
+			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("GET"), TEXT("/v1/me/match")), TEXT("and the sign-in goes on")));
 		}
 
 		TEST_METHOD(AProblemOffersRetry)

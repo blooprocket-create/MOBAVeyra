@@ -82,6 +82,14 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Client")
 	float SocialPollIntervalSeconds = 0.0f;
 
+	/** Client: seconds the player's account settings must stay unchanged before they are sent, so a slider's drag sends once (ADR-024 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float AccountSettingsSendDelaySeconds = 0.0f;
+
+	/** Client: seconds after a send of the account settings that got no answer before the next attempt. */
+	UPROPERTY(Config, EditAnywhere, Category = "Client")
+	float AccountSettingsRetrySeconds = 0.0f;
+
 	/**
 	 * Match server: seconds to wait for its assignment on standard input. The server waits before
 	 * its first map loads, because the map's game mode reads the roster.

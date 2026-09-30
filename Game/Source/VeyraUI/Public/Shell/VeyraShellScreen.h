@@ -87,6 +87,9 @@ public:
 	/** Champion select's toggle that lays the shown Vanguard's abilities over its art. */
 	static FText AbilitiesLabel(bool bShowing);
 
+	/** The settings choice's buttons: keep this device's settings, or the account's. */
+	static FText SettingsChoiceLabel(bool bThisDevice);
+
 	/** Every button on screen, in the order built. For tests and scripts. */
 	TArray<UVeyraShellButton*> GetButtons() const;
 
@@ -195,6 +198,8 @@ private:
 	void ShowReportView(EVeyraReportView NewView);
 	/** The problem on screen and its Retry, if any. */
 	void BuildProblem(const FVeyraClientSnapshot& Snapshot);
+	/** The choice between this device's settings and the account's, over everything, while it waits (ADR-024 §1). */
+	void BuildSettingsConflict(const FVeyraClientSnapshot& Snapshot);
 
 	UTextBlock* AddText(UPanelWidget& Parent, const FText& Text, uint8 Role);
 	UVeyraShellButton* AddButton(UPanelWidget& Parent, const FText& Label, TFunction<void()> Action, bool bEnabled = true, bool bSelected = false);

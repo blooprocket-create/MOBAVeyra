@@ -276,6 +276,7 @@ void UVeyraShellScreen::Rebuild(const FVeyraClientSnapshot& Snapshot)
 		break;
 	}
 	BuildProblem(Snapshot);
+	BuildSettingsConflict(Snapshot);
 }
 
 void UVeyraShellScreen::ShowShowcase(const FString& VanguardId)
@@ -900,6 +901,44 @@ void UVeyraShellScreen::BuildProblem(const FVeyraClientSnapshot& Snapshot)
 		AddButton(*Row, LOCTEXT("Retry", "Retry"), [this] { Client->Retry(); })->KeepLabelOnOneLine();
 	}
 	VeyraShellStyle::AddSpaced(*Content, *Banner);
+}
+
+void UVeyraShellScreen::BuildSettingsConflict(const FVeyraClientSnapshot& Snapshot)
+{
+	if (!Snapshot.bSettingsConflict)
+	{
+		return;
+	}
+	const UVeyraShellStyleSettings& Style = ShellStyle();
+	// Over everything, a picker included: neither copy is overwritten until the player says which (Settings & Accessibility §7).
+	UBorder* Scrim = VeyraShellStyle::MakeBorder(*WidgetTree, Style.MenuScrimColor, 0.0f);
+	Scrim->SetHorizontalAlignment(HAlign_Center);
+	Scrim->SetVerticalAlignment(VAlign_Center);
+	UOverlaySlot* ScrimSlot = Popup->AddChildToOverlay(Scrim);
+	ScrimSlot->SetHorizontalAlignment(HAlign_Fill);
+	ScrimSlot->SetVerticalAlignment(VAlign_Fill);
+	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, EVeyraShellSurface::Raised, FMargin(Style.Spacing * 2.0f));
+	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+	Panel->SetContent(Rows);
+	USizeBox* PanelBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	PanelBox->SetWidthOverride(Style.DialogWidth);
+	PanelBox->AddChild(Panel);
+	Scrim->SetContent(PanelBox);
+
+	AddText(*Rows, LOCTEXT("SettingsConflictTitle", "Your settings changed on another device"), RoleOf(EVeyraShellText::Heading));
+	AddText(*Rows,
+		LOCTEXT("SettingsConflictDetail", "Your account's settings were saved from another device after this one changed them too. Which settings do you want to keep?"),
+		RoleOf(EVeyraShellText::Body));
+	UHorizontalBox* Choices = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	AddKindButton(*Choices, EVeyraShellButtonKind::Primary, SettingsChoiceLabel(/*bThisDevice*/ true), [this] { Client->ResolveSettingsConflict(true); })
+		->KeepLabelOnOneLine();
+	AddButton(*Choices, SettingsChoiceLabel(/*bThisDevice*/ false), [this] { Client->ResolveSettingsConflict(false); })->KeepLabelOnOneLine();
+	Rows->AddChildToVerticalBox(Choices);
+}
+
+FText UVeyraShellScreen::SettingsChoiceLabel(bool bThisDevice)
+{
+	return bThisDevice ? LOCTEXT("KeepThisDevice", "This device") : LOCTEXT("KeepYourAccount", "Your account");
 }
 
 UTextBlock* UVeyraShellScreen::AddText(UPanelWidget& Parent, const FText& Text, uint8 Role)

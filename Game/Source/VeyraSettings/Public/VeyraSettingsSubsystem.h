@@ -50,10 +50,16 @@ public:
 	/** Takes the backend's document in place of the account settings here, with nothing left to send. */
 	void TakeAccountDocument(const FVeyraAccountSettingsDocument& Document);
 
-	/** The backend took the account settings as Revision. */
-	void MarkAccountSent(int64 Revision);
+	/**
+	 * The backend took the account settings as they were at SentChangeCount, as Revision. Changes the
+	 * player made while they were on their way stay unsent, based on Revision.
+	 */
+	void MarkAccountSent(int64 Revision, uint32 SentChangeCount);
 
 	bool HasUnsentAccountChanges() const { return bAccountUnsent; }
+
+	/** Counts the player's changes to account settings, so a sender knows whether more came while it waited. */
+	uint32 GetAccountChangeCount() const { return AccountChangeCount; }
 
 	/** The player changed an account setting here; it waits to be sent. */
 	FSimpleMulticastDelegate OnAccountChanged;
@@ -82,6 +88,7 @@ private:
 	FString AccountId;
 	int64 AccountRevision = 0;
 	bool bAccountUnsent = false;
+	uint32 AccountChangeCount = 0;
 
 	/** Set while values come from a file or the backend: they are not the player's new changes. */
 	bool bLoading = false;

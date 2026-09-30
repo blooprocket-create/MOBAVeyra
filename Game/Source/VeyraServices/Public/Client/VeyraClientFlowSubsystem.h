@@ -24,7 +24,7 @@ class UNetDriver;
  * whether each is allowed now is CanIssue's to say.
  */
 UCLASS()
-class VEYRASERVICES_API UVeyraClientFlowSubsystem : public UGameInstanceSubsystem, public IVeyraClientFlowHost
+class VEYRASERVICES_API UVeyraClientFlowSubsystem : public UGameInstanceSubsystem, public IVeyraClientFlowHost, public IVeyraAccountSettingsCache
 {
 	GENERATED_BODY()
 
@@ -50,6 +50,15 @@ private:
 	virtual bool TravelToMatch(const FString& Address, const FString& Ticket) override;
 	virtual void TravelToFrontEnd() override;
 	virtual void QuitGame() override;
+
+	// IVeyraAccountSettingsCache: the game instance's settings, looked up each time, so their end never leaves the flow a stale pointer.
+	virtual void UseAccount(const FString& AccountId) override;
+	virtual FVeyraAccountSettingsDocument GetDocument() const override;
+	virtual void TakeDocument(const FVeyraAccountSettingsDocument& Document) override;
+	virtual void MarkSent(int64 Revision, uint32 SentChangeCount) override;
+	virtual bool HasUnsentChanges() const override;
+	virtual uint32 GetChangeCount() const override;
+	class UVeyraSettingsSubsystem* FindSettings() const;
 
 	/** Why the game cannot sign in as configured; empty when it can. */
 	FString FindConfigurationProblem(FString& OutBuildVersion) const;
