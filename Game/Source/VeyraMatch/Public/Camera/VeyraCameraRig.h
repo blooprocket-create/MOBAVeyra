@@ -32,6 +32,12 @@ public:
 	/** Puts the focus on Point at once, as a minimap click or the end-of-match pan does. */
 	void LookAt(const FVector& Point);
 
+	/**
+	 * Centres the view on Point, a new body's place, and drops how far a Semi-Locked camera had been
+	 * pushed off the old one, so the view stays on the new body (ADR-020 §1).
+	 */
+	void CenterOn(const FVector& Point);
+
 	EVeyraCameraMode GetMode() const { return Mode; }
 	void SetMode(EVeyraCameraMode InMode) { Mode = InMode; }
 

@@ -5,6 +5,9 @@
 
 #if WITH_AUTOMATION_WORKER
 
+#include "Camera/VeyraCameraRig.h"
+#include "Components/ActorTestSpawner.h"
+
 namespace VeyraCameraTests
 {
 	// Veyra.Match.LocalCamera.*: the local camera's rules (Settings Bible §2; ADR-020 §1). Fixture values.
@@ -28,6 +31,7 @@ namespace VeyraCameraTests
 		BEFORE_EACH()
 		{
 			Limits.PanSpeed = 1000.0;
+			Limits.EdgeScrollSpeed = 400.0;
 			Limits.SemiLockedMaxOffset = 500.0;
 			Limits.HalfExtent = 5000.0;
 		}
@@ -69,6 +73,17 @@ namespace VeyraCameraTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(FVector::Dist2D(Followed, Input.Vanguard.GetValue()), Limits.SemiLockedMaxOffset)));
 		}
 
+		TEST_METHOD(TheKeysAndTheEdgesPanAtTheirOwnSpeeds)
+		{
+			// Camera Movement Speed and Edge-Scroll Speed are separate settings (Settings Bible §12.3).
+			FVeyraCameraInput Input;
+			Input.Pan = FVector2D(1.0, 0.0);
+			ASSERT_THAT(IsTrue(Step(FVector::ZeroVector, EVeyraCameraMode::Free, Input, 1.0).Equals(FVector(0.0, Limits.PanSpeed, 0.0)), TEXT("the keys at the camera speed")));
+			Input.Pan = FVector2D::ZeroVector;
+			Input.EdgePan = FVector2D(1.0, 0.0);
+			ASSERT_THAT(IsTrue(Step(FVector::ZeroVector, EVeyraCameraMode::Free, Input, 1.0).Equals(FVector(0.0, Limits.EdgeScrollSpeed, 0.0)), TEXT("the edges at the edge speed")));
+		}
+
 		TEST_METHOD(TheEndOfMatchPanEasesToTheFallenWell)
 		{
 			const FVector From(0.0, 0.0, 0.0);
@@ -89,6 +104,34 @@ namespace VeyraCameraTests
 			ASSERT_THAT(IsTrue(VeyraCamera::Next(EVeyraCameraMode::Free) == EVeyraCameraMode::Locked));
 			ASSERT_THAT(IsTrue(VeyraCamera::Next(EVeyraCameraMode::Locked) == EVeyraCameraMode::SemiLocked));
 			ASSERT_THAT(IsTrue(VeyraCamera::Next(EVeyraCameraMode::SemiLocked) == EVeyraCameraMode::Free));
+		}
+	};
+
+	// Veyra.Match.LocalCameraRig.*: the local camera's actor, which keeps the rules' state between frames.
+	TEST_CLASS(LocalCameraRig, "Veyra.Match")
+	{
+		FActorTestSpawner Spawner;
+
+		TEST_METHOD(CentringOnARespawnDropsTheSemiLockedOffset)
+		{
+			AVeyraCameraRig& Rig = Spawner.SpawnActor<AVeyraCameraRig>();
+			Rig.SetMode(EVeyraCameraMode::SemiLocked);
+			const FVector Before(1000.0, 1000.0, 0.0);
+			Rig.CenterOn(Before);
+			// The player looks off the Vanguard.
+			FVeyraCameraInput Input;
+			Input.Vanguard = Before;
+			Input.Pan = FVector2D(0.0, 1.0);
+			Rig.Step(Input, 1.0);
+			ASSERT_THAT(IsFalse(Rig.GetFocus().Equals(Before), TEXT("looked off")));
+
+			// A new body: the view starts from it, and stays there on the next frame (ADR-020 §1).
+			const FVector Respawned(-2000.0, -2000.0, 0.0);
+			Rig.CenterOn(Respawned);
+			Input.Vanguard = Respawned;
+			Input.Pan = FVector2D::ZeroVector;
+			Rig.Step(Input, 0.1);
+			ASSERT_THAT(IsTrue(Rig.GetFocus().Equals(Respawned), *Rig.GetFocus().ToString()));
 		}
 	};
 }

@@ -23,8 +23,11 @@ enum class EVeyraCameraMode : uint8
 /** What moves the camera this frame. */
 struct FVeyraCameraInput
 {
-	/** From the camera keys and screen edges, each axis -1 to 1: X to the screen's right, Y to its top. */
+	/** From the camera keys, each axis -1 to 1: X to the screen's right, Y to its top. */
 	FVector2D Pan = FVector2D::ZeroVector;
+
+	/** From the screen's edges, the same way; it moves at its own speed (Settings Bible §12.3). */
+	FVector2D EdgePan = FVector2D::ZeroVector;
 
 	/** World units dragged with the middle mouse button this frame, along the screen's right and top. */
 	FVector2D Drag = FVector2D::ZeroVector;
@@ -46,8 +49,9 @@ struct FVeyraCameraState
 /** The camera's presentation settings the rules read (UVeyraCameraSettings). */
 struct FVeyraCameraLimits
 {
-	/** Pan speed at full tilt, units per second. */
+	/** The camera keys' and the screen edges' pan speeds at full tilt, units per second. */
 	double PanSpeed = 0.0;
+	double EdgeScrollSpeed = 0.0;
 
 	/** How far off the Vanguard Semi-Locked may look, in units. */
 	double SemiLockedMaxOffset = 0.0;

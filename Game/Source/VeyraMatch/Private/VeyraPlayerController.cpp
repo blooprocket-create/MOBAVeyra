@@ -851,7 +851,7 @@ void AVeyraPlayerController::OnVanguardSet(APlayerState* /*Participant*/, APawn*
 	}
 	// The camera goes to each new body, the first and each respawn, as League's does; between them it
 	// goes where the player takes it.
-	CameraRig->LookAt(NewPawn->GetActorLocation());
+	CameraRig->CenterOn(NewPawn->GetActorLocation());
 	SetViewTarget(CameraRig);
 }
 
@@ -891,10 +891,8 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 	{
 		FVector2D Size;
 		Viewport->GetViewportSize(Size);
-		CameraInput.Pan += VeyraCamera::EdgePan(Mouse, Size, View.EdgeScrollPixels);
+		CameraInput.EdgePan = VeyraCamera::EdgePan(Mouse, Size, View.EdgeScrollPixels);
 	}
-	CameraInput.Pan.X = FMath::Clamp(CameraInput.Pan.X, -1.0, 1.0);
-	CameraInput.Pan.Y = FMath::Clamp(CameraInput.Pan.Y, -1.0, 1.0);
 	// Dragging moves the ground with the cursor, so the view moves against it.
 	if (bHasMouse && IsInputKeyDown(Keys.CameraDragKey))
 	{
