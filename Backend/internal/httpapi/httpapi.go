@@ -14,6 +14,7 @@ import (
 
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/account"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/lobby"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
@@ -41,6 +42,8 @@ type Deps struct {
 	Identity *identity.Service
 	Social   *social.Service
 	Party    *party.Service
+	// Lobby is optional; without it no custom-lobby routes are registered.
+	Lobby *lobby.Service
 	// Match is optional; without it no match routes are registered.
 	Match *match.Service
 	// Account is optional; without it no onboarding routes are registered.
@@ -86,6 +89,9 @@ func New(d Deps) http.Handler {
 	s.routeAccounts(mux)
 	s.routeSocial(mux)
 	s.routeParty(mux)
+	if d.Lobby != nil {
+		s.routeLobby(mux)
+	}
 	s.routeMatch(mux)
 	s.routeOnboarding(mux)
 	s.routeSelection(mux)
@@ -253,6 +259,28 @@ var errorStatus = []struct {
 	{party.ErrPartyNotFound, http.StatusNotFound, "party_not_found"},
 	{party.ErrModeUnavailable, http.StatusConflict, "mode_not_available"},
 	{party.ErrMemberBusy, http.StatusConflict, "member_busy"},
+	{lobby.ErrNotInLobby, http.StatusConflict, "not_in_lobby"},
+	{lobby.ErrAlreadyInLobby, http.StatusConflict, "already_in_lobby"},
+	{lobby.ErrLobbyNotFound, http.StatusNotFound, "lobby_not_found"},
+	{lobby.ErrNotHost, http.StatusForbidden, "not_host"},
+	{lobby.ErrNotMember, http.StatusNotFound, "not_a_member"},
+	{lobby.ErrLobbyFull, http.StatusConflict, "lobby_full"},
+	{lobby.ErrLobbyLocked, http.StatusConflict, "lobby_locked"},
+	{lobby.ErrNoSuchSlot, http.StatusBadRequest, "no_such_seat"},
+	{lobby.ErrSlotTaken, http.StatusConflict, "seat_taken"},
+	{lobby.ErrNotABot, http.StatusNotFound, "not_a_bot"},
+	{lobby.ErrUnknownVanguard, http.StatusBadRequest, "invalid_vanguard"},
+	{lobby.ErrUnknownDifficulty, http.StatusBadRequest, "invalid_difficulty"},
+	{lobby.ErrDuplicateVanguard, http.StatusConflict, "vanguard_taken"},
+	{lobby.ErrGoldOutOfRange, http.StatusBadRequest, "starting_gold_out_of_range"},
+	{lobby.ErrVictoryNeedsSides, http.StatusConflict, "victory_needs_both_sides"},
+	{lobby.ErrSelf, http.StatusBadRequest, "cannot_target_self"},
+	{lobby.ErrNotFriends, http.StatusForbidden, "not_friends"},
+	{lobby.ErrBlocked, http.StatusForbidden, "blocked"},
+	{lobby.ErrInviteNotFound, http.StatusNotFound, "invite_not_found"},
+	{lobby.ErrBusy, http.StatusConflict, "member_busy"},
+	{lobby.ErrNoHuman, http.StatusConflict, "no_human"},
+	{lobby.ErrLaunchUnavailable, http.StatusConflict, "launch_unavailable"},
 
 	{matchmaking.ErrFoundNotFound, http.StatusNotFound, "match_found_not_found"},
 	{matchmaking.ErrAlreadyDecided, http.StatusConflict, "already_answered"},

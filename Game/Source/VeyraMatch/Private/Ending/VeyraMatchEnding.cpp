@@ -12,7 +12,7 @@ namespace VeyraMatchEnding
 const AVeyraStructure* FindFallenPrimeWell(const UWorld& World)
 {
 	const AVeyraGameState* GameState = World.GetGameState<AVeyraGameState>();
-	if (!GameState || GameState->GetMatchRules() != EVeyraMatchRules::Standard)
+	if (!GameState || !GameState->HasVictory())
 	{
 		return nullptr;
 	}

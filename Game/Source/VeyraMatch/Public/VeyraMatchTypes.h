@@ -76,6 +76,11 @@ enum class EVeyraMatchRules : uint8
 	Standard,
 	/** Solo Custom practice: its host alone, open-ended, and ended by the host (Custom Matches Bible §1, §4). */
 	Practice,
+	/**
+	 * A custom lobby's match: its host, the humans and bots the host placed, and the session's own rules,
+	 * victory on or off and starting Gold (Custom Matches Bible §1–§4; ADR-021 §3).
+	 */
+	Custom,
 };
 
 /** Why the server refused to end a custom match. None means it ended. */

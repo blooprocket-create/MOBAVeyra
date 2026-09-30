@@ -15,6 +15,7 @@
 #include "HAL/IConsoleManager.h"
 #include "Hash/VeyraSha256.h"
 #include "Join/VeyraMatchHostSubsystem.h"
+#include "Rules/VeyraMatchRules.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
 #include "Tuning/VeyraVanguardsTuningSubsystem.h"
@@ -231,7 +232,7 @@ namespace VeyraNetTests
 
 		explicit FScopedMatchAssignment(TConstArrayView<EVeyraTeam> Sides, EVeyraMatchRules Rules = EVeyraMatchRules::Standard,
 			TConstArrayView<FVeyraContentId> Vanguards = {}, TConstArrayView<FVeyraAssignedBot> Bots = {},
-			TConstArrayView<TArray<FVeyraContentId>> FluxSpells = {})
+			TConstArrayView<TArray<FVeyraContentId>> FluxSpells = {}, TOptional<FVeyraCustomSettings> Custom = {})
 		{
 			Assignment.MatchId = TEXT("test-match");
 			Assignment.Mode = FVeyraContentId::FromText(TEXT("test_mode")).GetValue();
@@ -248,9 +249,14 @@ namespace VeyraNetTests
 					Assignment.Participants.Last().FluxSpells = FluxSpells[Index];
 				}
 			}
-			if (Rules == EVeyraMatchRules::Practice && !Assignment.Participants.IsEmpty())
+			if (VeyraMatchRules::HasHost(Rules) && !Assignment.Participants.IsEmpty())
 			{
 				Assignment.HostAccountId = Assignment.Participants[0].AccountId;
+			}
+			// A custom match carries its session's rules, open-ended unless a test says otherwise.
+			if (Rules == EVeyraMatchRules::Custom)
+			{
+				Assignment.Custom = Custom.IsSet() ? Custom : TOptional<FVeyraCustomSettings>(FVeyraCustomSettings());
 			}
 			Problems = UVeyraMatchHostSubsystem::Get()->SetAssignment(Assignment);
 		}

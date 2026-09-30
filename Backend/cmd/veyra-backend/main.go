@@ -21,6 +21,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/docker"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/httpapi"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/lobby"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/matchmaking"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/party"
@@ -127,12 +128,30 @@ func run(log *slog.Logger) error {
 			PickDuration:    cfg.CasualSelect.PickDuration,
 			PresenceTimeout: cfg.CasualSelect.PresenceTimeout,
 		},
+		Custom: selection.CustomSettings{
+			Mode:         cfg.CustomLobby.Mode,
+			PickDuration: cfg.CustomLobby.PickDuration,
+		},
 		StartingTimeout: cfg.Selection.StartingTimeout,
 		FluxSpells:      cfg.FluxSpells.Roster,
 	}, time.Now, log)
 	go selects.RunTicker(ctx, cfg.Selection.TickInterval)
 
-	busy := activity{matches: matches, selects: selects}
+	// A custom lobby's members are busy for queues and parties, and a lobby asks
+	// whether its members are in a match, a select or a queue (ADR-021 §1).
+	released := map[string]bool{}
+	for _, id := range cfg.Vanguards.Released {
+		released[id] = true
+	}
+	lobbies := lobby.NewService(store.Lobby(), soc, lobbyActivity{activity: activity{matches: matches, selects: selects}, queued: queued}, lobby.Limits{
+		PlayersPerSide:  cfg.CustomLobby.PlayersPerSide,
+		Released:        released,
+		StartingGoldMin: cfg.CustomLobby.StartingGold.Min,
+		StartingGoldMax: cfg.CustomLobby.StartingGold.Max,
+	}, cfg.CustomLobby.InviteLifetime, time.Now)
+	lobbies.SetLauncher(customSelects{selects})
+	selects.SetLobbies(lobbies)
+	busy := activity{matches: matches, selects: selects, lobbies: lobbies}
 	parties.SetActivity(busy)
 	mmSettings := matchmaking.Settings{AcceptDuration: cfg.MatchFound.AcceptDuration, SearchLimit: cfg.Matchmaking.SearchLimit}
 	for _, m := range cfg.Modes {
@@ -150,6 +169,7 @@ func run(log *slog.Logger) error {
 			Identity:       svc,
 			Social:         soc,
 			Party:          parties,
+			Lobby:          customLobbies(cfg, lobbies),
 			Match:          matches,
 			Account:        accounts,
 			Selection:      selects,
@@ -185,11 +205,13 @@ func run(log *slog.Logger) error {
 	return srv.Shutdown(shutdownCtx)
 }
 
-// activity says whether players are in a match or champion select, for the
-// party and matchmaking rules that keep them out of the queue meanwhile.
+// activity says whether players are in a match, a champion select or, when
+// lobbies is set, a custom lobby, for the party and matchmaking rules that
+// keep them out of the queue meanwhile.
 type activity struct {
 	matches *match.Service
 	selects *selection.Service
+	lobbies *lobby.Service
 }
 
 func (a activity) Busy(ctx context.Context, accounts []string) (bool, error) {
@@ -200,8 +222,71 @@ func (a activity) Busy(ctx context.Context, accounts []string) (bool, error) {
 		if _, selecting, err := a.selects.Current(ctx, id); err != nil || selecting {
 			return selecting, err
 		}
+		if a.lobbies == nil {
+			continue
+		}
+		if _, err := a.lobbies.Get(ctx, id); err == nil {
+			return true, nil
+		} else if !errors.Is(err, lobby.ErrNotInLobby) {
+			return false, err
+		}
 	}
 	return false, nil
+}
+
+// lobbyActivity is what keeps a player from a lobby's changes and launch: a
+// match, a champion select, or a party in matchmaking.
+type lobbyActivity struct {
+	activity
+	queued selection.PartiesFunc
+}
+
+func (a lobbyActivity) Busy(ctx context.Context, accounts []string) (bool, error) {
+	if busy, err := a.activity.Busy(ctx, accounts); err != nil || busy {
+		return busy, err
+	}
+	for _, id := range accounts {
+		if queued, err := a.queued(ctx, id); err != nil || queued {
+			return queued, err
+		}
+	}
+	return false, nil
+}
+
+// customLobbies is the lobby service the routes serve, or nil while custom
+// lobbies are disabled.
+func customLobbies(cfg config.Config, lobbies *lobby.Service) *lobby.Service {
+	if !cfg.CustomLobby.Enabled {
+		return nil
+	}
+	return lobbies
+}
+
+// customSelects opens a launched custom lobby's champion select.
+type customSelects struct{ selects *selection.Service }
+
+func (c customSelects) OpenCustom(ctx context.Context, launch lobby.Launch) error {
+	seats := make([]selection.CasualSeat, len(launch.Members))
+	for i, m := range launch.Members {
+		seats[i] = selection.CasualSeat{AccountID: m.AccountID, Side: match.Side(m.Seat.Side)}
+	}
+	bots := make([]match.Bot, len(launch.Bots))
+	for i, b := range launch.Bots {
+		bots[i] = match.Bot{Side: match.Side(b.Seat.Side), VanguardID: b.VanguardID, Difficulty: match.BotDifficulty(b.Difficulty)}
+	}
+	var gold *float64
+	if launch.Settings.StartingGold != nil {
+		g := *launch.Settings.StartingGold
+		gold = &g
+	}
+	_, err := c.selects.OpenCustom(ctx, selection.CustomLaunch{
+		LobbyID:       launch.LobbyID,
+		HostAccountID: launch.HostID,
+		Seats:         seats,
+		Bots:          bots,
+		Settings:      match.CustomSettings{VictoryEnabled: launch.Settings.VictoryEnabled, StartingGold: gold},
+	})
+	return err
 }
 
 // casualSelects opens the matchmaker's Casual Selects.
@@ -228,6 +313,13 @@ func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Ser
 			Enabled:  cfg.CustomPractice.Enabled,
 			Mode:     cfg.CustomPractice.Mode,
 			HostSide: match.Side(cfg.CustomPractice.HostSide),
+		},
+		Custom: match.CustomModeSettings{
+			Enabled:         cfg.CustomLobby.Enabled,
+			Mode:            cfg.CustomLobby.Mode,
+			PlayersPerSide:  cfg.CustomLobby.PlayersPerSide,
+			StartingGoldMin: cfg.CustomLobby.StartingGold.Min,
+			StartingGoldMax: cfg.CustomLobby.StartingGold.Max,
 		},
 		ReadyTimeout:      cfg.Matches.ReadyTimeout,
 		MaxDuration:       cfg.Matches.MaxDuration,

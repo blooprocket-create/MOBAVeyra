@@ -150,11 +150,14 @@ void UVeyraRewardSubsystem::Stop()
 	}
 }
 
-void UVeyraRewardSubsystem::GrantStartingGold(APlayerState& Participant)
+void UVeyraRewardSubsystem::GrantStartingGold(APlayerState& Participant, TOptional<double> SessionStartingGold)
 {
-	if (UVeyraGoldComponent* Gold = Participant.FindComponentByClass<UVeyraGoldComponent>())
+	UVeyraGoldComponent* Gold = Participant.FindComponentByClass<UVeyraGoldComponent>();
+	const double Amount = SessionStartingGold.Get(UVeyraEconomyTuningSubsystem::Get().Gold.Starting);
+	// Grant refuses nothing: a custom session may start its players with none.
+	if (Gold && Amount > 0.0)
 	{
-		Gold->Grant(UVeyraEconomyTuningSubsystem::Get().Gold.Starting, EVeyraGoldReason::Starting);
+		Gold->Grant(Amount, EVeyraGoldReason::Starting);
 	}
 }
 

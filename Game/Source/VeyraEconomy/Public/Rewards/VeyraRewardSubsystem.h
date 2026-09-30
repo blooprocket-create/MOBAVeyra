@@ -75,7 +75,7 @@ public:
 	void Stop();
 
 	/** Server: grants a participant its starting Gold (§1), once, as its match prepares. */
-	static void GrantStartingGold(APlayerState& Participant);
+	static void GrantStartingGold(APlayerState& Participant, TOptional<double> SessionStartingGold = {});
 
 private:
 	/** One participant as a reward sees it. */

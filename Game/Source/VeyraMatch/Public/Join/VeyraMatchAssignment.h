@@ -40,6 +40,15 @@ struct FVeyraAssignedBot
 	EVeyraBotDifficulty Difficulty = EVeyraBotDifficulty::Beginner;
 };
 
+/** A custom match's session rules, which its host set for this one match (Custom Matches Bible §4; ADR-021 §3). */
+struct FVeyraCustomSettings
+{
+	/** Whether a fallen Prime Well wins; only with a Vanguard on each side. */
+	bool bVictoryEnabled = false;
+	/** Each Vanguard's starting Gold; unset plays Economy.json's. */
+	TOptional<double> StartingGold;
+};
+
 /** The match a server hosts, as the backend assigned it. */
 struct FVeyraMatchAssignment
 {
@@ -47,11 +56,13 @@ struct FVeyraMatchAssignment
 	/** The mode the match records, such as casual_select or custom_practice. */
 	FVeyraContentId Mode;
 	EVeyraMatchRules Rules = EVeyraMatchRules::Standard;
-	/** The account that hosts a practice match; empty for standard rules. */
+	/** The account that hosts a practice or custom match; empty for standard rules. */
 	FString HostAccountId;
 	TArray<FVeyraAssignedParticipant> Participants;
-	/** Only a practice match has bots. */
+	/** Only practice and custom matches have bots; a custom match's in each side's seat order, which sets their lanes. */
 	TArray<FVeyraAssignedBot> Bots;
+	/** A custom match's session rules; set exactly for custom rules. */
+	TOptional<FVeyraCustomSettings> Custom;
 };
 
 /** Why a match ended (ADR-007 §7–8, ADR-010 §7, ADR-011 §13). */
@@ -61,7 +72,7 @@ enum class EVeyraMatchEndReason : uint8
 	DeveloperRequest,
 	/** No participant was connected for the tuned grace period. */
 	Abandoned,
-	/** The host ended a practice match (Custom Matches Bible §4). */
+	/** The host ended a practice or custom match (Custom Matches Bible §4; ADR-021 §3). */
 	HostEnded,
 	/** A side destroyed the other's Prime Well and won a standard match (Battleground Bible §18). */
 	PrimeWellDestroyed,

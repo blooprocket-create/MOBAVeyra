@@ -428,6 +428,8 @@ namespace VeyraServicesTests
 			Candidate->ReconnectPollIntervalSeconds = 0.0f;
 			Candidate->PartyPollIntervalSeconds = 0.0f;
 			Candidate->MatchFoundPollIntervalSeconds = 0.0f;
+			Candidate->LobbyPollIntervalSeconds = 0.0f;
+			Candidate->SocialPollIntervalSeconds = 0.0f;
 			Candidate->AssignmentReadTimeoutSeconds = 0.0f;
 			Candidate->AssignmentPollIntervalSeconds = 0.0f;
 			Candidate->ReportAttempts = 0;
@@ -437,7 +439,7 @@ namespace VeyraServicesTests
 					 TEXT("MatchPollIntervalSeconds"), TEXT("MatchWaitTimeoutSeconds"), TEXT("ClientRequestAttempts"), TEXT("ClientRetryIntervalSeconds"),
 					 TEXT("SelectPollIntervalSeconds"), TEXT("ResultPollIntervalSeconds"), TEXT("ResultWaitTimeoutSeconds"),
 					 TEXT("ReconnectPollIntervalSeconds"), TEXT("PartyPollIntervalSeconds"), TEXT("MatchFoundPollIntervalSeconds"),
-					 TEXT("AssignmentReadTimeoutSeconds"), TEXT("AssignmentPollIntervalSeconds"),
+					 TEXT("LobbyPollIntervalSeconds"), TEXT("SocialPollIntervalSeconds"), TEXT("AssignmentReadTimeoutSeconds"), TEXT("AssignmentPollIntervalSeconds"),
 					 TEXT("ReportAttempts"), TEXT("ReportRetryIntervalSeconds") })
 			{
 				ASSERT_THAT(IsTrue(Problems.Contains(Name), FString::Printf(TEXT("%s is not named in: %s"), Name, *Problems)));
@@ -641,11 +643,36 @@ namespace VeyraServicesTests
 				&& Parsed.Match.Bots[1].Difficulty == EVeyraBotDifficulty::Beginner));
 		}
 
+		TEST_METHOD(ReadsACustomAssignmentWithItsSettings)
+		{
+			const FString Custom = Example
+				.Replace(TEXT("\"rules\":\"Standard\",\"hostAccountId\":[]"), TEXT("\"rules\":\"Custom\",\"hostAccountId\":[\"aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee\"]"),
+					ESearchCase::CaseSensitive)
+				.Replace(TEXT("\"bots\":[]"), TEXT("\"bots\":[{\"side\":\"A\",\"vanguardId\":\"bryn\",\"difficulty\":\"Intermediate\"}]"), ESearchCase::CaseSensitive)
+				.Replace(TEXT("\"settings\":[]"), TEXT("\"settings\":[{\"victory\":\"Enabled\",\"startingGold\":[2500]}]"), ESearchCase::CaseSensitive);
+			ASSERT_THAT(IsTrue(Custom.Contains(TEXT("\"Custom\"")) && Custom.Contains(TEXT("2500"))));
+			FVeyraServerAssignment Parsed;
+			const TArray<FString> Problems = VeyraServerAssignment::Parse(Custom, SchemaText, Parsed);
+			ASSERT_THAT(IsTrue(Problems.IsEmpty(), Describe(Problems)));
+			ASSERT_THAT(IsTrue(Parsed.Match.Rules == EVeyraMatchRules::Custom && Parsed.Match.Bots.Num() == 1));
+			ASSERT_THAT(IsTrue(Parsed.Match.Custom.IsSet() && Parsed.Match.Custom->bVictoryEnabled && Parsed.Match.Custom->StartingGold.Get(0.0) == 2500.0));
+
+			const FString OpenEnded = Custom.Replace(TEXT("{\"victory\":\"Enabled\",\"startingGold\":[2500]}"), TEXT("{\"victory\":\"Disabled\",\"startingGold\":[]}"),
+				ESearchCase::CaseSensitive);
+			ASSERT_THAT(IsTrue(VeyraServerAssignment::Parse(OpenEnded, SchemaText, Parsed).IsEmpty()));
+			ASSERT_THAT(IsTrue(Parsed.Match.Custom.IsSet() && !Parsed.Match.Custom->bVictoryEnabled && !Parsed.Match.Custom->StartingGold.IsSet(),
+				TEXT("no starting Gold plays Economy.json's")));
+		}
+
 		TEST_METHOD(RefusesABrokenAssignment)
 		{
 			const TArray<TPair<const TCHAR*, const TCHAR*>> Breaks = {
-				// A version 3 assignment carries no Flux Spells; this build reads version 4 only.
-				{ TEXT("\"schemaVersion\":4"), TEXT("\"schemaVersion\":3") },
+				// A version 4 assignment carries no custom settings; this build reads version 5 only.
+				{ TEXT("\"schemaVersion\":5"), TEXT("\"schemaVersion\":4") },
+				{ TEXT(",\"settings\":[]"), TEXT("") },
+				{ TEXT("\"settings\":[]"), TEXT("\"settings\":[{\"victory\":\"Enabled\"}]") },
+				{ TEXT("\"settings\":[]"), TEXT("\"settings\":[{\"victory\":\"Enabled\",\"startingGold\":[-1]}]") },
+				{ TEXT("\"settings\":[]"), TEXT("\"settings\":[{\"victory\":\"Enabled\",\"startingGold\":[]},{\"victory\":\"Disabled\",\"startingGold\":[]}]") },
 				{ TEXT("\"fluxSpells\":[\"blink\",\"scorch\"]"), TEXT("\"fluxSpells\":[\"blink\"]") },
 				{ TEXT("\"fluxSpells\":[\"blink\",\"scorch\"]"), TEXT("\"fluxSpells\":[\"Blink\",\"\"]") },
 				{ TEXT("\"rules\":\"Standard\""), TEXT("\"rules\":\"Draft\"") },

@@ -56,6 +56,28 @@ struct FVeyraAssignmentBotDocument
 	EVeyraBotDifficulty Difficulty = EVeyraBotDifficulty::Beginner;
 };
 
+/** Whether a custom match can be won, as an assignment names it: its dialect has no booleans. */
+UENUM()
+enum class EVeyraAssignedVictory : uint8
+{
+	Enabled,
+	Disabled,
+};
+
+/** A custom match's session rules in the assignment document (ADR-021 §3). */
+USTRUCT()
+struct FVeyraAssignmentSettingsDocument
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraAssignedVictory Victory = EVeyraAssignedVictory::Disabled;
+
+	/** The session's starting Gold, or nothing for Economy.json's: at most one entry. */
+	UPROPERTY()
+	TArray<double> StartingGold;
+};
+
 /** The assignment document a match server reads on standard input (ADR-007 §5, ADR-010 §7, §9). */
 USTRUCT()
 struct FVeyraAssignmentDocument
@@ -77,7 +99,7 @@ struct FVeyraAssignmentDocument
 	UPROPERTY()
 	EVeyraMatchRules Rules = EVeyraMatchRules::Standard;
 
-	/** The practice host, or nothing: at most one entry. */
+	/** The host of a practice or custom match, or nothing: at most one entry. */
 	UPROPERTY()
 	TArray<FString> HostAccountId;
 
@@ -86,6 +108,10 @@ struct FVeyraAssignmentDocument
 
 	UPROPERTY()
 	TArray<FVeyraAssignmentBotDocument> Bots;
+
+	/** A custom match's session rules, or nothing: at most one entry. */
+	UPROPERTY()
+	TArray<FVeyraAssignmentSettingsDocument> Settings;
 };
 
 /** A match server's assignment, read and checked. */
@@ -101,7 +127,7 @@ struct FVeyraServerAssignment
 namespace VeyraServerAssignment
 {
 	/** The only assignment version this build reads (AssignmentSchemaVersion in Backend/internal/match). */
-	constexpr int32 SchemaVersion = 4;
+	constexpr int32 SchemaVersion = 5;
 
 	/** Where the assignment's schema is, in the project folder or the packaged build. */
 	VEYRASERVICES_API FString SchemaPath();

@@ -34,9 +34,56 @@ namespace
 	const TCHAR* const MatchFoundPath = TEXT("/v1/me/match-found");
 	const TCHAR* const AcceptMatchPath = TEXT("/v1/me/match-found/accept");
 	const TCHAR* const DeclineMatchPath = TEXT("/v1/me/match-found/decline");
+	// The custom lobby (ADR-021) and the social routes (Parties & Social Bible §1).
+	const TCHAR* const LobbyPath = TEXT("/v1/lobby");
+	const TCHAR* const LeaveLobbyPath = TEXT("/v1/lobby/leave");
+	const TCHAR* const LobbySettingsPath = TEXT("/v1/lobby/settings");
+	const TCHAR* const LaunchLobbyPath = TEXT("/v1/lobby/launch");
+	const TCHAR* const LobbyInvitesPath = TEXT("/v1/lobby/invites");
+	const TCHAR* const FriendsPath = TEXT("/v1/friends");
+	const TCHAR* const FriendRequestsPath = TEXT("/v1/friends/requests");
 
 	/** The kind of champion select matchmaking opens, which a player may leave. */
 	const TCHAR* const CasualSelectKind = TEXT("casual");
+	/** A custom lobby's champion select, which a player may leave too, and which returns to the lobby. */
+	const TCHAR* const CustomSelectKind = TEXT("custom");
+
+	// Why the player is back in the shell or the lobby: they left a custom select, ending it for
+	// everyone, or they are no longer in their lobby (the host removed them, or it closed).
+	const TCHAR* const YouLeftCustomNotice = TEXT("you_left_custom");
+	const TCHAR* const LobbyGoneNotice = TEXT("lobby_gone");
+
+	// What came of a social request, for the friends panel.
+	const TCHAR* const FriendRequestedFeedback = TEXT("friend_requested");
+	const TCHAR* const FriendAddedFeedback = TEXT("friend_added");
+	const TCHAR* const LobbyInvitedFeedback = TEXT("lobby_invited");
+	const TCHAR* const SelfFeedback = TEXT("cannot_target_self");
+	/** The backend's outcome of a friend request to a player who had already asked. */
+	const TCHAR* const BecameFriendsOutcome = TEXT("friends");
+
+	/** The HTTP status of a route the backend does not serve, as when custom lobbies are switched off. */
+	constexpr int32 NotFoundStatus = 404;
+
+	FString LobbyMemberPath(const FString& AccountId)
+	{
+		return TEXT("/v1/lobby/members/") + AccountId;
+	}
+
+	FString LobbyInvitePath(const FString& InviteId, const TCHAR* Answer)
+	{
+		return FString::Printf(TEXT("/v1/lobby/invites/%s/%s"), *InviteId, Answer);
+	}
+
+	FString FriendRequestPath(const FString& AccountId, const TCHAR* Answer)
+	{
+		return FString::Printf(TEXT("/v1/friends/requests/%s/%s"), *AccountId, Answer);
+	}
+
+	/** Whether the select is one a player may leave: a matchmade one, or a custom lobby's. */
+	bool IsLeavable(const VeyraBackendProtocol::FSelect& Select)
+	{
+		return Select.Kind == CasualSelectKind || Select.Kind == CustomSelectKind;
+	}
 	/** A match found's state while it waits for answers, and a player's answer before they give one. */
 	const TCHAR* const PendingAnswer = TEXT("pending");
 	const TCHAR* const AcceptedAnswer = TEXT("accepted");
@@ -93,6 +140,8 @@ const TCHAR* LexToString(EVeyraClientState State)
 		return TEXT("StarterChoice");
 	case EVeyraClientState::Shell:
 		return TEXT("Shell");
+	case EVeyraClientState::Lobby:
+		return TEXT("Lobby");
 	case EVeyraClientState::MatchFound:
 		return TEXT("MatchFound");
 	case EVeyraClientState::Selecting:
@@ -161,6 +210,34 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("OpenHistoryMatch");
 	case EVeyraClientIntent::CloseHistoryMatch:
 		return TEXT("CloseHistoryMatch");
+	case EVeyraClientIntent::CreateLobby:
+		return TEXT("CreateLobby");
+	case EVeyraClientIntent::AcceptLobbyInvite:
+		return TEXT("AcceptLobbyInvite");
+	case EVeyraClientIntent::DeclineLobbyInvite:
+		return TEXT("DeclineLobbyInvite");
+	case EVeyraClientIntent::InviteToLobby:
+		return TEXT("InviteToLobby");
+	case EVeyraClientIntent::LeaveLobby:
+		return TEXT("LeaveLobby");
+	case EVeyraClientIntent::KickFromLobby:
+		return TEXT("KickFromLobby");
+	case EVeyraClientIntent::MoveInLobby:
+		return TEXT("MoveInLobby");
+	case EVeyraClientIntent::SetLobbyBot:
+		return TEXT("SetLobbyBot");
+	case EVeyraClientIntent::RemoveLobbyBot:
+		return TEXT("RemoveLobbyBot");
+	case EVeyraClientIntent::SetLobbySettings:
+		return TEXT("SetLobbySettings");
+	case EVeyraClientIntent::LaunchLobby:
+		return TEXT("LaunchLobby");
+	case EVeyraClientIntent::SendFriendRequest:
+		return TEXT("SendFriendRequest");
+	case EVeyraClientIntent::AnswerFriendRequest:
+		return TEXT("AnswerFriendRequest");
+	case EVeyraClientIntent::RemoveFriend:
+		return TEXT("RemoveFriend");
 	}
 	return TEXT("Unknown");
 }
@@ -180,6 +257,8 @@ FVeyraClientFlowConfig FVeyraClientFlowConfig::FromSettings(const UVeyraServices
 	Config.ReconnectPollIntervalSeconds = Settings.ReconnectPollIntervalSeconds;
 	Config.PartyPollIntervalSeconds = Settings.PartyPollIntervalSeconds;
 	Config.MatchFoundPollIntervalSeconds = Settings.MatchFoundPollIntervalSeconds;
+	Config.LobbyPollIntervalSeconds = Settings.LobbyPollIntervalSeconds;
+	Config.SocialPollIntervalSeconds = Settings.SocialPollIntervalSeconds;
 	// Match data, so the client stays as long as the server does.
 	Config.EndingShowSeconds = UVeyraMatchTuningSubsystem::Get().Ending.ShowSeconds;
 	return Config;
@@ -281,6 +360,25 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::OpenHistoryMatch:
 	case EVeyraClientIntent::CloseHistoryMatch:
 		return State == EVeyraClientState::Shell;
+	// A player joins one lobby at a time, from the shell (ADR-021).
+	case EVeyraClientIntent::CreateLobby:
+	case EVeyraClientIntent::AcceptLobbyInvite:
+		return State == EVeyraClientState::Shell;
+	case EVeyraClientIntent::InviteToLobby:
+	case EVeyraClientIntent::LeaveLobby:
+	case EVeyraClientIntent::KickFromLobby:
+	case EVeyraClientIntent::MoveInLobby:
+	case EVeyraClientIntent::SetLobbyBot:
+	case EVeyraClientIntent::RemoveLobbyBot:
+	case EVeyraClientIntent::SetLobbySettings:
+	case EVeyraClientIntent::LaunchLobby:
+		return State == EVeyraClientState::Lobby;
+	// The friends panel shows in the shell and the lobby alike (Art Bible §7).
+	case EVeyraClientIntent::DeclineLobbyInvite:
+	case EVeyraClientIntent::SendFriendRequest:
+	case EVeyraClientIntent::AnswerFriendRequest:
+	case EVeyraClientIntent::RemoveFriend:
+		return State == EVeyraClientState::Shell || State == EVeyraClientState::Lobby;
 	}
 	return false;
 }
@@ -328,8 +426,8 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 		return Snapshot.Select.State == ESelectState::Picking && You && You->Locked.IsEmpty() && !Snapshot.AvailableVanguards.IsEmpty();
 	}
 	case EVeyraClientIntent::LeaveSelect:
-		// Practice has no one to dodge; only its timer ends it (ADR-010).
-		return Snapshot.Select.Kind == CasualSelectKind && Snapshot.Select.State == ESelectState::Picking;
+		// Practice has no one to dodge; only its timer ends it (ADR-010). A custom select returns to its lobby.
+		return IsLeavable(Snapshot.Select) && Snapshot.Select.State == ESelectState::Picking;
 	case EVeyraClientIntent::ChooseFluxSpell:
 		// Spells stay free to change after lock-in, until the match starts (Pre-Game Client UX Bible 36).
 		return Snapshot.Select.State == ESelectState::Picking && Snapshot.Select.FindYou() != nullptr;
@@ -339,6 +437,29 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 		return Snapshot.History.bLoaded && !Snapshot.History.Opened.IsSet();
 	case EVeyraClientIntent::CloseHistoryMatch:
 		return Snapshot.History.Opened.IsSet();
+	case EVeyraClientIntent::CreateLobby:
+		// A party in matchmaking cannot also host a custom match.
+		return !Party.IsSet() || Party->Status == EPartyStatus::Idle;
+	case EVeyraClientIntent::AcceptLobbyInvite:
+		return !Snapshot.Social.LobbyInvites.IsEmpty() && (!Party.IsSet() || Party->Status == EPartyStatus::Idle);
+	case EVeyraClientIntent::DeclineLobbyInvite:
+		return !Snapshot.Social.LobbyInvites.IsEmpty();
+	case EVeyraClientIntent::InviteToLobby:
+		return HostsOpenLobby() && !Snapshot.Social.Friends.Friends.IsEmpty();
+	case EVeyraClientIntent::KickFromLobby:
+	case EVeyraClientIntent::MoveInLobby:
+	case EVeyraClientIntent::SetLobbyBot:
+	case EVeyraClientIntent::RemoveLobbyBot:
+	case EVeyraClientIntent::SetLobbySettings:
+	case EVeyraClientIntent::LaunchLobby:
+		// The host decides everything about the lobby (Custom Matches Bible §1), until it starts.
+		return HostsOpenLobby();
+	case EVeyraClientIntent::LeaveLobby:
+		return Snapshot.Lobby.IsSet() && !Snapshot.Lobby->bSelecting;
+	case EVeyraClientIntent::AnswerFriendRequest:
+		return !Snapshot.Social.Friends.Incoming.IsEmpty();
+	case EVeyraClientIntent::RemoveFriend:
+		return !Snapshot.Social.Friends.Friends.IsEmpty();
 	default:
 		return true;
 	}
@@ -518,7 +639,7 @@ void FVeyraClientFlow::LoadProfile()
 		}
 		if (Profile.bTutorialCompleted)
 		{
-			EnterShell(Snapshot.Notice);
+			LoadLobby(Snapshot.Notice);
 			return;
 		}
 		Call(EVerb::Get, VanguardsPath, FString(), [this](const FVeyraBackendResponse& VanguardsResponse) {
@@ -607,6 +728,7 @@ void FVeyraClientFlow::EnterShell(const FString& Notice)
 {
 	Enter(EVeyraClientState::Shell, Notice);
 	bExplainQueue = Notice == MissedNotice || Notice == AbandonedNotice;
+	Snapshot.Lobby.Reset();
 	Broadcast();
 	if (Snapshot.Modes.IsEmpty())
 	{
@@ -614,6 +736,7 @@ void FVeyraClientFlow::EnterShell(const FString& Notice)
 	}
 	// There is no push channel yet: a queue's progress, and a match found, arrive through the party (ADR-010 §10).
 	PollParty();
+	PollSocial();
 }
 
 void FVeyraClientFlow::LoadModes()
@@ -823,6 +946,515 @@ bool FVeyraClientFlow::CancelQueue()
 	return true;
 }
 
+// The custom lobby -------------------------------------------------------------------------------
+
+void FVeyraClientFlow::LoadLobby(const FString& Notice)
+{
+	Call(EVerb::Get, LobbyPath, FString(), [this, Notice](const FVeyraBackendResponse& Response) {
+		if (Response.Status == NotFoundStatus)
+		{
+			// A backend with custom lobbies switched off serves no lobby routes.
+			EnterShell(Notice);
+			return;
+		}
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("the player's lobby"), [this] { Resume(); });
+			return;
+		}
+		TOptional<VeyraBackendProtocol::FLobby> Lobby;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseLobby(Response.Body, Lobby, Problem))
+		{
+			ShowBadAnswer(TEXT("the player's lobby"), Problem, [this] { Resume(); });
+			return;
+		}
+		if (Lobby.IsSet())
+		{
+			EnterLobby(MoveTemp(*Lobby), Notice);
+			return;
+		}
+		EnterShell(Notice);
+	});
+}
+
+void FVeyraClientFlow::EnterLobby(VeyraBackendProtocol::FLobby Lobby, const FString& Notice)
+{
+	Enter(EVeyraClientState::Lobby, Notice);
+	Log(FString::Printf(TEXT("in custom lobby %s%s."), *Lobby.Id, Lobby.HostAccountId == Snapshot.AccountId ? TEXT(", as its host") : TEXT("")));
+	ApplyLobby(++LobbySequence, MoveTemp(Lobby));
+	PollSocial();
+	if (Snapshot.Lobby->bSelecting)
+	{
+		FollowLobby();
+		return;
+	}
+	// There is no push channel yet: the lobby's changes, and its start, arrive by reading it.
+	After(Config.LobbyPollIntervalSeconds, [this] { PollLobby(); });
+}
+
+void FVeyraClientFlow::PollLobby()
+{
+	const uint32 Sequence = ++LobbySequence;
+	Call(EVerb::Get, LobbyPath, FString(), [this, Sequence](const FVeyraBackendResponse& Response) {
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("the player's lobby"), [this] { PollLobby(); });
+			return;
+		}
+		TOptional<VeyraBackendProtocol::FLobby> Lobby;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseLobby(Response.Body, Lobby, Problem))
+		{
+			ShowBadAnswer(TEXT("the player's lobby"), Problem, [this] { PollLobby(); });
+			return;
+		}
+		if (!Lobby.IsSet())
+		{
+			// The host removed the player, or the lobby closed.
+			Log(TEXT("the player is no longer in a lobby."));
+			EnterShell(LobbyGoneNotice);
+			return;
+		}
+		if (ApplyLobby(Sequence, MoveTemp(Lobby)) && Snapshot.Lobby->bSelecting)
+		{
+			FollowLobby();
+			return;
+		}
+		After(Config.LobbyPollIntervalSeconds, [this] { PollLobby(); });
+	});
+}
+
+void FVeyraClientFlow::CallLobby(EVerb Verb, const FString& Path, const FString& Body, const TCHAR* What)
+{
+	const uint32 Sequence = ++LobbySequence;
+	SetBusy(true);
+	Call(Verb, Path, Body, [this, Sequence, What](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		if (IsRefusal(Response, TEXT("lobby_locked")))
+		{
+			// Its champion select started first; the next read shows it.
+			return;
+		}
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, What, nullptr);
+			return;
+		}
+		TOptional<VeyraBackendProtocol::FLobby> Lobby;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseLobby(Response.Body, Lobby, Problem) || !Lobby.IsSet())
+		{
+			ShowBadAnswer(What, Problem.IsEmpty() ? FString(TEXT("the lobby is null")) : Problem, nullptr);
+			return;
+		}
+		if (ApplyLobby(Sequence, MoveTemp(Lobby)) && Snapshot.Lobby->bSelecting)
+		{
+			// The host's start: its select is open before the backend answers.
+			FollowLobby();
+		}
+	});
+}
+
+bool FVeyraClientFlow::ApplyLobby(uint32 Sequence, TOptional<VeyraBackendProtocol::FLobby> Lobby)
+{
+	if (Sequence < ShownLobbySequence)
+	{
+		return false;
+	}
+	ShownLobbySequence = Sequence;
+	Snapshot.Lobby = MoveTemp(Lobby);
+	Broadcast();
+	return true;
+}
+
+void FVeyraClientFlow::FollowLobby()
+{
+	Call(EVerb::Get, MySelectPath, FString(), [this](const FVeyraBackendResponse& Response) {
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("the lobby's champion select"), [this] { PollLobby(); });
+			return;
+		}
+		TOptional<VeyraBackendProtocol::FSelect> Select;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseSelect(Response.Body, Select, Problem))
+		{
+			ShowBadAnswer(TEXT("the lobby's champion select"), Problem, [this] { PollLobby(); });
+			return;
+		}
+		if (Select.IsSet())
+		{
+			EnterSelecting(*Select);
+			return;
+		}
+		// It ended before this read; the lobby shows what came of it.
+		After(Config.LobbyPollIntervalSeconds, [this] { PollLobby(); });
+	});
+}
+
+bool FVeyraClientFlow::HostsOpenLobby() const
+{
+	return Snapshot.Lobby.IsSet() && !Snapshot.Lobby->bSelecting && Snapshot.Lobby->HostAccountId == Snapshot.AccountId;
+}
+
+const VeyraBackendProtocol::FLobbySeat* FVeyraClientFlow::FindLobbySeat(const FString& Side, int32 Index) const
+{
+	return Snapshot.Lobby.IsSet()
+		? Snapshot.Lobby->Seats.FindByPredicate([&Side, Index](const VeyraBackendProtocol::FLobbySeat& Seat) { return Seat.Side == Side && Seat.Index == Index; })
+		: nullptr;
+}
+
+bool FVeyraClientFlow::CreateLobby()
+{
+	if (!CanIssue(EVeyraClientIntent::CreateLobby))
+	{
+		return false;
+	}
+	Log(TEXT("opening a custom lobby."));
+	SetBusy(true);
+	Call(EVerb::Post, LobbyPath, FString(), [this](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		if (IsRefusal(Response, TEXT("already_in_lobby")))
+		{
+			// The player is in a lobby this screen did not know of: find out where.
+			Resume();
+			return;
+		}
+		if (!Response.IsSuccess())
+		{
+			ShowRefusal(Response, TEXT("the custom lobby"), nullptr);
+			return;
+		}
+		TOptional<VeyraBackendProtocol::FLobby> Lobby;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseLobby(Response.Body, Lobby, Problem) || !Lobby.IsSet())
+		{
+			ShowBadAnswer(TEXT("the custom lobby"), Problem.IsEmpty() ? FString(TEXT("the lobby is null")) : Problem, [this] { Resume(); });
+			return;
+		}
+		EnterLobby(MoveTemp(*Lobby), FString());
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::AcceptLobbyInvite(const FString& InviteId)
+{
+	const VeyraBackendProtocol::FLobbyInvite* Invite =
+		Snapshot.Social.LobbyInvites.FindByPredicate([&InviteId](const VeyraBackendProtocol::FLobbyInvite& Candidate) { return Candidate.Id == InviteId; });
+	if (!CanIssue(EVeyraClientIntent::AcceptLobbyInvite) || !Invite)
+	{
+		return false;
+	}
+	const FString Inviter = Invite->Inviter.DisplayName;
+	Log(FString::Printf(TEXT("joining %s's lobby."), *Inviter));
+	SetBusy(true);
+	Call(EVerb::Post, LobbyInvitePath(InviteId, TEXT("accept")), FString(), [this, Inviter](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		if (IsRefusal(Response, TEXT("already_in_lobby")))
+		{
+			Resume();
+			return;
+		}
+		if (!Response.IsSuccess())
+		{
+			// An invitation that expired, or a lobby that filled or started: the panel says so.
+			ShowSocialFeedback(RefusalCode(Response), Inviter);
+			ReadSocial(/*bThenPoll*/ false);
+			return;
+		}
+		TOptional<VeyraBackendProtocol::FLobby> Lobby;
+		FString Problem;
+		if (!VeyraBackendProtocol::ParseLobby(Response.Body, Lobby, Problem) || !Lobby.IsSet())
+		{
+			ShowBadAnswer(TEXT("the invitation's lobby"), Problem.IsEmpty() ? FString(TEXT("the lobby is null")) : Problem, [this] { Resume(); });
+			return;
+		}
+		EnterLobby(MoveTemp(*Lobby), FString());
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::DeclineLobbyInvite(const FString& InviteId)
+{
+	const VeyraBackendProtocol::FLobbyInvite* Invite =
+		Snapshot.Social.LobbyInvites.FindByPredicate([&InviteId](const VeyraBackendProtocol::FLobbyInvite& Candidate) { return Candidate.Id == InviteId; });
+	if (!CanIssue(EVeyraClientIntent::DeclineLobbyInvite) || !Invite)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("declining %s's invitation."), *Invite->Inviter.DisplayName));
+	CallSocial(EVerb::Post, LobbyInvitePath(InviteId, TEXT("decline")), FString(), Invite->Inviter.DisplayName, nullptr);
+	return true;
+}
+
+bool FVeyraClientFlow::InviteToLobby(const FString& AccountId)
+{
+	const VeyraBackendProtocol::FAccount* Friend = Snapshot.Social.Friends.Friends.FindByPredicate(
+		[&AccountId](const VeyraBackendProtocol::FAccount& Candidate) { return Candidate.Id == AccountId; });
+	if (!CanIssue(EVeyraClientIntent::InviteToLobby) || !Friend || Snapshot.Lobby->FindMember(AccountId))
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("inviting %s into the lobby."), *Friend->DisplayName));
+	CallSocial(EVerb::Post, LobbyInvitesPath, VeyraBackendProtocol::BuildAccountBody(AccountId), Friend->DisplayName,
+		[this, Name = Friend->DisplayName](const FVeyraBackendResponse&) { ShowSocialFeedback(LobbyInvitedFeedback, Name); });
+	return true;
+}
+
+bool FVeyraClientFlow::LeaveLobby()
+{
+	if (!CanIssue(EVeyraClientIntent::LeaveLobby))
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("leaving custom lobby %s."), *Snapshot.Lobby->Id));
+	SetBusy(true);
+	Call(EVerb::Post, LeaveLobbyPath, FString(), [this](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		if (IsRefusal(Response, TEXT("lobby_locked")))
+		{
+			// Its champion select started first; the next read shows it.
+			return;
+		}
+		if (!Response.IsSuccess() && !IsRefusal(Response, TEXT("not_in_lobby")))
+		{
+			ShowRefusal(Response, TEXT("leaving the lobby"), nullptr);
+			return;
+		}
+		EnterShell(FString());
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::KickFromLobby(const FString& AccountId)
+{
+	if (!CanIssue(EVeyraClientIntent::KickFromLobby) || AccountId == Snapshot.AccountId || !Snapshot.Lobby->FindMember(AccountId))
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("removing %s from the lobby."), *Snapshot.Lobby->FindMember(AccountId)->DisplayName));
+	CallLobby(EVerb::Delete, LobbyMemberPath(AccountId), FString(), TEXT("removing a player from the lobby"));
+	return true;
+}
+
+bool FVeyraClientFlow::MoveInLobby(const FString& AccountId, const FString& Side, int32 Index)
+{
+	const VeyraBackendProtocol::FLobbySeat* Target = FindLobbySeat(Side, Index);
+	if (!CanIssue(EVeyraClientIntent::MoveInLobby) || !Snapshot.Lobby->FindMember(AccountId) || !Target
+		|| Target->Kind != VeyraBackendProtocol::ELobbySeatKind::Empty)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("moving %s to seat %d of side %s."), *Snapshot.Lobby->FindMember(AccountId)->DisplayName, Index + 1, *Side));
+	CallLobby(EVerb::Put, LobbyMemberPath(AccountId) + TEXT("/seat"), VeyraBackendProtocol::BuildSeatBody(Side, Index), TEXT("moving a player"));
+	return true;
+}
+
+bool FVeyraClientFlow::SetLobbyBot(const FString& Side, int32 Index, const FString& VanguardId, const FString& Difficulty)
+{
+	const VeyraBackendProtocol::FLobbySeat* Target = FindLobbySeat(Side, Index);
+	if (!CanIssue(EVeyraClientIntent::SetLobbyBot) || !Target || Target->Kind == VeyraBackendProtocol::ELobbySeatKind::Human
+		|| !Snapshot.Lobby->BotVanguards.Contains(VanguardId) || !Snapshot.Lobby->BotDifficulties.Contains(Difficulty))
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("seating a %s %s bot at seat %d of side %s."), *Difficulty, *VanguardId, Index + 1, *Side));
+	CallLobby(EVerb::Put, VeyraBackendProtocol::LobbyBotPath(Side, Index), VeyraBackendProtocol::BuildBotBody(VanguardId, Difficulty), TEXT("the bot"));
+	return true;
+}
+
+bool FVeyraClientFlow::RemoveLobbyBot(const FString& Side, int32 Index)
+{
+	const VeyraBackendProtocol::FLobbySeat* Target = FindLobbySeat(Side, Index);
+	if (!CanIssue(EVeyraClientIntent::RemoveLobbyBot) || !Target || Target->Kind != VeyraBackendProtocol::ELobbySeatKind::Bot)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("removing the bot at seat %d of side %s."), Index + 1, *Side));
+	CallLobby(EVerb::Delete, VeyraBackendProtocol::LobbyBotPath(Side, Index), FString(), TEXT("removing the bot"));
+	return true;
+}
+
+bool FVeyraClientFlow::SetLobbySettings(bool bVictoryEnabled, TOptional<double> StartingGold)
+{
+	if (!CanIssue(EVeyraClientIntent::SetLobbySettings)
+		|| (StartingGold.IsSet() && !(StartingGold.GetValue() >= Snapshot.Lobby->StartingGoldMin && StartingGold.GetValue() <= Snapshot.Lobby->StartingGoldMax)))
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("setting the lobby's rules: victory %s, starting Gold %s."), bVictoryEnabled ? TEXT("on") : TEXT("off"),
+		StartingGold.IsSet() ? *FString::SanitizeFloat(StartingGold.GetValue()) : TEXT("the game's own")));
+	CallLobby(EVerb::Put, LobbySettingsPath, VeyraBackendProtocol::BuildLobbySettingsBody(bVictoryEnabled, StartingGold), TEXT("the lobby's rules"));
+	return true;
+}
+
+bool FVeyraClientFlow::LaunchLobby()
+{
+	if (!CanIssue(EVeyraClientIntent::LaunchLobby))
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("starting custom lobby %s."), *Snapshot.Lobby->Id));
+	CallLobby(EVerb::Post, LaunchLobbyPath, FString(), TEXT("starting the custom match"));
+	return true;
+}
+
+// Friends and invitations -------------------------------------------------------------------------
+
+void FVeyraClientFlow::PollSocial()
+{
+	ReadSocial(/*bThenPoll*/ true);
+}
+
+void FVeyraClientFlow::ReadSocial(bool bThenPoll)
+{
+	const uint32 Sequence = ++SocialSequence;
+	const auto Next = [this, bThenPoll] {
+		if (bThenPoll)
+		{
+			After(Config.SocialPollIntervalSeconds, [this] { PollSocial(); });
+		}
+	};
+	Probe(EVerb::Get, FriendsPath, [this, Sequence, Next](const FVeyraBackendResponse& Response) {
+		VeyraBackendProtocol::FFriends Friends;
+		FString Problem;
+		if (!Response.IsSuccess() || !VeyraBackendProtocol::ParseFriends(Response.Body, Friends, Problem))
+		{
+			// The panel keeps what it last read; the next read may do better.
+			Log(FString::Printf(TEXT("could not read the friends: %s."), Response.IsSuccess() ? *Problem : *Response.Describe()));
+			Next();
+			return;
+		}
+		Probe(EVerb::Get, LobbyInvitesPath, [this, Sequence, Next, Friends = MoveTemp(Friends)](const FVeyraBackendResponse& InvitesResponse) mutable {
+			TArray<VeyraBackendProtocol::FLobbyInvite> Invites;
+			FString InvitesProblem;
+			// A backend with custom lobbies switched off has no invitations to offer.
+			if (InvitesResponse.Status != NotFoundStatus
+				&& (!InvitesResponse.IsSuccess() || !VeyraBackendProtocol::ParseLobbyInvites(InvitesResponse.Body, Invites, InvitesProblem)))
+			{
+				Log(FString::Printf(TEXT("could not read the lobby invitations: %s."), InvitesResponse.IsSuccess() ? *InvitesProblem : *InvitesResponse.Describe()));
+				Invites = Snapshot.Social.LobbyInvites;
+			}
+			if (Sequence >= ShownSocialSequence)
+			{
+				ShownSocialSequence = Sequence;
+				FVeyraSocial& Social = Snapshot.Social;
+				if (!Social.bLoaded || !(Social.Friends == Friends) || !(Social.LobbyInvites == Invites))
+				{
+					Social.bLoaded = true;
+					Social.Friends = MoveTemp(Friends);
+					Social.LobbyInvites = MoveTemp(Invites);
+					Broadcast();
+				}
+			}
+			Next();
+		});
+	});
+}
+
+void FVeyraClientFlow::CallSocial(EVerb Verb, const FString& Path, const FString& Body, const FString& Name, TFunction<void(const FVeyraBackendResponse&)> OnSuccess)
+{
+	SetBusy(true);
+	Call(Verb, Path, Body, [this, Name, OnSuccess = MoveTemp(OnSuccess)](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		if (!Response.IsSuccess())
+		{
+			ShowSocialFeedback(RefusalCode(Response), Name);
+		}
+		else if (OnSuccess)
+		{
+			OnSuccess(Response);
+		}
+		ReadSocial(/*bThenPoll*/ false);
+	});
+}
+
+void FVeyraClientFlow::ShowSocialFeedback(const FString& Code, const FString& Name)
+{
+	Log(FString::Printf(TEXT("friends panel: %s (%s)."), *Code, *Name));
+	Snapshot.Social.Feedback = Code;
+	Snapshot.Social.FeedbackName = Name;
+	Broadcast();
+}
+
+bool FVeyraClientFlow::SendFriendRequest(const FString& DisplayName)
+{
+	const FString Name = DisplayName.TrimStartAndEnd();
+	if (!CanIssue(EVeyraClientIntent::SendFriendRequest) || Name.IsEmpty())
+	{
+		return false;
+	}
+	if (Name == Snapshot.DisplayName)
+	{
+		ShowSocialFeedback(SelfFeedback, Name);
+		return true;
+	}
+	Log(FString::Printf(TEXT("asking %s to be friends."), *Name));
+	SetBusy(true);
+	// Players find each other by display name (Parties & Social Bible §1).
+	Call(EVerb::Get, VeyraBackendProtocol::AccountLookupPath(Name), FString(), [this, Name](const FVeyraBackendResponse& Response) {
+		VeyraBackendProtocol::FAccount Account;
+		FString Problem;
+		if (!Response.IsSuccess())
+		{
+			SetBusy(false);
+			ShowSocialFeedback(RefusalCode(Response), Name);
+			return;
+		}
+		if (!VeyraBackendProtocol::ParseAccount(Response.Body, Account, Problem))
+		{
+			SetBusy(false);
+			ShowBadAnswer(TEXT("the account"), Problem, nullptr);
+			return;
+		}
+		CallSocial(EVerb::Post, FriendRequestsPath, VeyraBackendProtocol::BuildAccountBody(Account.Id), Account.DisplayName,
+			[this, Name = Account.DisplayName](const FVeyraBackendResponse& RequestResponse) {
+				FString Outcome;
+				FString OutcomeProblem;
+				if (!VeyraBackendProtocol::ParseFriendRequestOutcome(RequestResponse.Body, Outcome, OutcomeProblem))
+				{
+					ShowBadAnswer(TEXT("the friend request"), OutcomeProblem, nullptr);
+					return;
+				}
+				ShowSocialFeedback(Outcome == BecameFriendsOutcome ? FriendAddedFeedback : FriendRequestedFeedback, Name);
+			});
+	});
+	return true;
+}
+
+bool FVeyraClientFlow::AnswerFriendRequest(const FString& AccountId, bool bAccept)
+{
+	const VeyraBackendProtocol::FAccount* From = Snapshot.Social.Friends.Incoming.FindByPredicate(
+		[&AccountId](const VeyraBackendProtocol::FAccount& Candidate) { return Candidate.Id == AccountId; });
+	if (!CanIssue(EVeyraClientIntent::AnswerFriendRequest) || !From)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("%s %s's friend request."), bAccept ? TEXT("accepting") : TEXT("declining"), *From->DisplayName));
+	CallSocial(EVerb::Post, FriendRequestPath(AccountId, bAccept ? TEXT("accept") : TEXT("decline")), FString(), From->DisplayName,
+		[this, bAccept, Name = From->DisplayName](const FVeyraBackendResponse&) {
+			if (bAccept)
+			{
+				ShowSocialFeedback(FriendAddedFeedback, Name);
+			}
+		});
+	return true;
+}
+
+bool FVeyraClientFlow::RemoveFriend(const FString& AccountId)
+{
+	const VeyraBackendProtocol::FAccount* Friend = Snapshot.Social.Friends.Friends.FindByPredicate(
+		[&AccountId](const VeyraBackendProtocol::FAccount& Candidate) { return Candidate.Id == AccountId; });
+	if (!CanIssue(EVeyraClientIntent::RemoveFriend) || !Friend)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("removing %s from the friends."), *Friend->DisplayName));
+	CallSocial(EVerb::Delete, FString(FriendsPath) + TEXT("/") + AccountId, FString(), Friend->DisplayName, nullptr);
+	return true;
+}
+
 // A match found ---------------------------------------------------------------------------------
 
 void FVeyraClientFlow::EnterMatchFound(const VeyraBackendProtocol::FMatchFound& Found)
@@ -967,6 +1599,12 @@ void FVeyraClientFlow::ApplySelect(const VeyraBackendProtocol::FSelect& Select)
 		return;
 	case ESelectState::Cancelled:
 		Log(FString::Printf(TEXT("champion select %s was cancelled (%s)."), *Select.Id, *Select.CancelReason));
+		if (Select.Kind == CustomSelectKind)
+		{
+			// Its lobby opens again (ADR-021 §3), which finding where the player is leads back to.
+			Resume(Select.CancelReason);
+			return;
+		}
 		EnterShell(Select.CancelReason);
 		return;
 	default:
@@ -1162,6 +1800,12 @@ bool FVeyraClientFlow::LeaveSelect()
 		FString Problem;
 		if (Response.IsSuccess() && VeyraBackendProtocol::ParseSelect(Response.Body, Select, Problem) && Select.IsSet() && Select->Id == SelectId)
 		{
+			if (Select->State == ESelectState::Cancelled && Select->Kind == CustomSelectKind)
+			{
+				// Everyone, the leaver too, goes back to the lobby.
+				Resume(YouLeftCustomNotice);
+				return;
+			}
 			if (Select->State == ESelectState::Cancelled)
 			{
 				// Everyone else sees it cancelled because a player left; the leaver's party left the queue.
@@ -1559,6 +2203,27 @@ void FVeyraClientFlow::Call(EVerb Verb, const FString& Path, const FString& Body
 		ShowProblem(TEXT("backend_unreachable"), FString::Printf(TEXT("the backend did not answer %s after %d attempt(s): %s"), *Path, Attempt, *Response.Describe()),
 			[this, Verb, Path, Body, OnAnswer = MoveTemp(OnAnswer)]() mutable { Call(Verb, Path, Body, MoveTemp(OnAnswer)); });
 	};
+	Send(Verb, Path, Body, MoveTemp(OnDone));
+}
+
+void FVeyraClientFlow::Probe(EVerb Verb, const FString& Path, FAnswer OnAnswer)
+{
+	Send(Verb, Path, FString(), [this, WeakAlive = TWeakPtr<bool>(Alive), CallEpoch = Epoch, OnAnswer = MoveTemp(OnAnswer)](const FVeyraBackendResponse& Response) {
+		if (!WeakAlive.IsValid() || CallEpoch != Epoch)
+		{
+			return;
+		}
+		if (Response.IsUnauthorized())
+		{
+			EndSession();
+			return;
+		}
+		OnAnswer(Response);
+	});
+}
+
+void FVeyraClientFlow::Send(EVerb Verb, const FString& Path, const FString& Body, FVeyraBackendCallback OnDone)
+{
 	switch (Verb)
 	{
 	case EVerb::Get:

@@ -44,6 +44,7 @@ func newFixture(t *testing.T) *fixture {
 		Modes:             map[string]Mode{"casual_select": fiveAll, "ranked": {ID: "ranked", HumanPlayersPerTeam: 5}},
 		Maps:              FakeMaps,
 		Practice:          fixturePractice,
+		Custom:            fixtureCustom,
 		ReadyTimeout:      fixtureReadyTimeout,
 		MaxDuration:       fixtureMaxDuration,
 		RemoveServerAfter: fixtureRemoveServerAfter,

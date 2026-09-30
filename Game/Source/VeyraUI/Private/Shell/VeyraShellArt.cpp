@@ -30,6 +30,61 @@ UTexture2D* HeroOf(const FString& VanguardId)
 	return Cast<UTexture2D>(Path.TryLoad());
 }
 
+FString ItemIconPackageName(const FString& ItemId)
+{
+	return FString::Printf(TEXT("%s/T_%s_Icon"), *GetDefault<UVeyraShellStyleSettings>()->ItemArtFolder, *ItemId);
+}
+
+namespace
+{
+	/**
+	 * The icon in PackageName, remembered by Key once found or known missing: the HUD asks every frame,
+	 * and a package lookup reads the disk.
+	 */
+	UTexture2D* CachedIcon(const FString& Key, const FString& PackageName)
+	{
+		static TMap<FString, TWeakObjectPtr<UTexture2D>> Found;
+		static TSet<FString> Missing;
+		if (const TWeakObjectPtr<UTexture2D>* Known = Found.Find(Key); Known && Known->IsValid())
+		{
+			return Known->Get();
+		}
+		if (Missing.Contains(Key))
+		{
+			return nullptr;
+		}
+		UTexture2D* Icon = nullptr;
+		if (FPackageName::DoesPackageExist(PackageName))
+		{
+			Icon = Cast<UTexture2D>(FSoftObjectPath(FString::Printf(TEXT("%s.%s"), *PackageName, *FPackageName::GetShortName(PackageName))).TryLoad());
+		}
+		if (Icon)
+		{
+			Found.Add(Key, Icon);
+		}
+		else
+		{
+			Missing.Add(Key);
+		}
+		return Icon;
+	}
+}
+
+UTexture2D* ItemIconOf(const FString& ItemId)
+{
+	return ItemId.IsEmpty() ? nullptr : CachedIcon(TEXT("item:") + ItemId, ItemIconPackageName(ItemId));
+}
+
+FString AbilityIconPackageName(const FString& AbilityId)
+{
+	return FString::Printf(TEXT("%s/T_%s_Icon"), *GetDefault<UVeyraShellStyleSettings>()->AbilityArtFolder, *AbilityId);
+}
+
+UTexture2D* AbilityIconOf(const FString& AbilityId)
+{
+	return AbilityId.IsEmpty() ? nullptr : CachedIcon(TEXT("ability:") + AbilityId, AbilityIconPackageName(AbilityId));
+}
+
 FBox2f Crop(const FString& VanguardId, int32 Width, int32 Height, float Aspect, bool bPortrait)
 {
 	if (Width <= 0 || Height <= 0 || Aspect <= 0.0f)

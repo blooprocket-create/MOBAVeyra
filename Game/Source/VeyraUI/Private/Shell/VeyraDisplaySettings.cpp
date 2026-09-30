@@ -34,6 +34,7 @@ bool TakesTheScreen(EVeyraClientState State)
 	case EVeyraClientState::Loading:
 	case EVeyraClientState::StarterChoice:
 	case EVeyraClientState::Shell:
+	case EVeyraClientState::Lobby:
 	case EVeyraClientState::MatchFound:
 	case EVeyraClientState::Selecting:
 	case EVeyraClientState::Returning:

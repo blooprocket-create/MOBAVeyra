@@ -23,6 +23,8 @@ TArray<FString> UVeyraServicesSettings::Validate() const
 		{ TEXT("ReconnectPollIntervalSeconds"), ReconnectPollIntervalSeconds },
 		{ TEXT("PartyPollIntervalSeconds"), PartyPollIntervalSeconds },
 		{ TEXT("MatchFoundPollIntervalSeconds"), MatchFoundPollIntervalSeconds },
+		{ TEXT("LobbyPollIntervalSeconds"), LobbyPollIntervalSeconds },
+		{ TEXT("SocialPollIntervalSeconds"), SocialPollIntervalSeconds },
 		{ TEXT("AssignmentReadTimeoutSeconds"), AssignmentReadTimeoutSeconds },
 		{ TEXT("AssignmentPollIntervalSeconds"), AssignmentPollIntervalSeconds },
 		{ TEXT("ReportRetryIntervalSeconds"), ReportRetryIntervalSeconds },

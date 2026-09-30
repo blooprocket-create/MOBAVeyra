@@ -235,6 +235,22 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	FString VanguardArtFolder;
 
+	/** Where the items' icons are imported, such as "/Game/Veyra/UI/Items" (VeyraShellArt). */
+	UPROPERTY(Config, EditAnywhere, Category = "Art")
+	FString ItemArtFolder;
+
+	/** Where the abilities' and Flux Spells' icons are imported, such as "/Game/Veyra/UI/Abilities" (VeyraShellArt). */
+	UPROPERTY(Config, EditAnywhere, Category = "Art")
+	FString AbilityArtFolder;
+
+	/** An ability's icon beside its name and description, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Art", meta = (ClampMin = "1"))
+	float AbilityIconSize = 0.0f;
+
+	/** How an item's icon is tinted while it cannot be bought, as League greys its unaffordable items. */
+	UPROPERTY(Config, EditAnywhere, Category = "Art")
+	FLinearColor ItemDimTint = FLinearColor::Transparent;
+
 	/** Where a Vanguard's face is when VanguardPortraits does not say. */
 	UPROPERTY(Config, EditAnywhere, Category = "Art")
 	FVeyraVanguardPortrait DefaultPortrait;
@@ -347,6 +363,21 @@ public:
 	/** Match Found's and the status screens' centred panel, in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
 	float DialogWidth = 0.0f;
+
+	/** The friends panel down the right of the shell and the lobby, as League's social panel is (Art Bible §7), in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float FriendsPanelWidth = 0.0f;
+
+	/** A seat of a custom lobby's two columns, in slate units (ADR-021). */
+	UPROPERTY(Config, EditAnywhere, Category = "Design", meta = (ClampMin = "1"))
+	float LobbySeatWidth = 0.0f;
+
+	/**
+	 * The starting Gold a lobby's host may choose from, besides the game's own (Custom Matches Bible §4).
+	 * Presentation only: the lobby's range decides what is allowed, and a choice outside it is not offered.
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Design")
+	TArray<float> LobbyStartingGoldChoices;
 
 	/** The Vanguard whose illustration fills Home until its scene is designed (Art Bible §6.1). */
 	UPROPERTY(Config, EditAnywhere, Category = "Design")

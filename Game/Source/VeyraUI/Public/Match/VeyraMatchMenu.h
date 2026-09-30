@@ -16,8 +16,8 @@ class UVeyraShellButton;
 namespace VeyraMatchMenuModel
 {
 	/**
-	 * Whether the menu offers End Custom Match: only in a practice match, and only to its host
-	 * (ADR-010 §4, §7). The server checks the same before it ends anything.
+	 * Whether the menu offers End Custom Match: only in a practice or custom match, and only to its host
+	 * (ADR-010 §4, §7; ADR-021 §3). The server checks the same before it ends anything.
 	 */
 	VEYRAUI_API bool CanEndCustomMatch(EVeyraMatchRules Rules, const APlayerState* Host, const APlayerState* Self);
 
@@ -28,8 +28,11 @@ namespace VeyraMatchMenuModel
 	 */
 	VEYRAUI_API bool OffersDeveloperEnd(EVeyraMatchRules Rules);
 
-	/** Whether the menu offers votes: a standard match's (ADR-019 §4); a practice match's host ends it. */
+	/** Whether the menu offers remake and pause votes: a standard match's (ADR-019 §4); a hosted match's host ends it. */
 	VEYRAUI_API bool OffersVotes(EVeyraMatchRules Rules);
+
+	/** Whether the menu offers a surrender vote: wherever the match can be won (ADR-019 §4; ADR-021 §3). */
+	VEYRAUI_API bool OffersSurrender(bool bHasVictory);
 }
 
 /**

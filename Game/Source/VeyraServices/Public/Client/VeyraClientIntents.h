@@ -58,4 +58,27 @@ public:
 	/** Opens MatchId, one of the listed matches, into its verified result. */
 	virtual bool OpenHistoryMatch(const FString& MatchId) = 0;
 	virtual bool CloseHistoryMatch() = 0;
+
+	/** Opens a custom lobby the player hosts, seated first on side A (ADR-021). */
+	virtual bool CreateLobby() = 0;
+	/** Joins the lobby of InviteId, one of the player's invitations. */
+	virtual bool AcceptLobbyInvite(const FString& InviteId) = 0;
+	virtual bool DeclineLobbyInvite(const FString& InviteId) = 0;
+	/** Invites AccountId, one of the player's friends, into the lobby. */
+	virtual bool InviteToLobby(const FString& AccountId) = 0;
+	virtual bool LeaveLobby() = 0;
+	virtual bool KickFromLobby(const FString& AccountId) = 0;
+	/** Puts AccountId, a human in the lobby, in the empty seat Index of Side ("A" or "B"). */
+	virtual bool MoveInLobby(const FString& AccountId, const FString& Side, int32 Index) = 0;
+	/** Puts a bot playing VanguardId at Difficulty in a seat: an empty one, or one a bot holds. */
+	virtual bool SetLobbyBot(const FString& Side, int32 Index, const FString& VanguardId, const FString& Difficulty) = 0;
+	virtual bool RemoveLobbyBot(const FString& Side, int32 Index) = 0;
+	/** Sets the session's rules; an unset StartingGold plays the game's own. */
+	virtual bool SetLobbySettings(bool bVictoryEnabled, TOptional<double> StartingGold) = 0;
+	virtual bool LaunchLobby() = 0;
+	/** Asks the player whose display name is exactly DisplayName to be friends. */
+	virtual bool SendFriendRequest(const FString& DisplayName) = 0;
+	/** Accepts or declines the friend request from AccountId. */
+	virtual bool AnswerFriendRequest(const FString& AccountId, bool bAccept) = 0;
+	virtual bool RemoveFriend(const FString& AccountId) = 0;
 };

@@ -90,6 +90,35 @@ Rules the code enforces, from the Parties & Social Bible:
 4. **Leader cancels the queue:** everyone's Ready resets, the same as other cancellations.
 5. **Invite lifetime** `2m` and **default privacy** `private` are provisional values in `config/local.json`.
 
+### Custom lobbies
+
+An invite-only lobby a host arranges, humans and bots on either side, before launching a custom match ([ADR-021](../Docs/ADR/ADR-021-custom-lobbies.md); Custom Matches Bible §1–§4). Every route needs `Authorization: Bearer <game session token>`.
+
+| Endpoint | Body | What it does |
+|---|---|---|
+| `GET /v1/lobby` | — | your lobby, or `{"lobby": null}` |
+| `POST /v1/lobby` | — | open a lobby you host, seated first on side A |
+| `POST /v1/lobby/leave` | — | leave; the longest-present human becomes host, and the last one out closes it |
+| `DELETE /v1/lobby/members/{accountId}` | — | host removes a human |
+| `PUT /v1/lobby/members/{accountId}/seat` | `{"side", "index"}` | host moves a human to an empty seat |
+| `PUT` / `DELETE /v1/lobby/seats/{side}/{index}/bot` | `{"vanguardId", "difficulty"}` | host places, changes or removes a bot: any released Vanguard, `beginner` or `intermediate` |
+| `PUT /v1/lobby/settings` | `{"victoryEnabled", "startingGold"}` | host sets the session's rules; `startingGold` is `null` for the game's own |
+| `POST /v1/lobby/launch` | — | host starts: every human enters a custom champion select, found at `GET /v1/me/select`, and the lobby is `selecting` until it ends |
+| `GET /v1/lobby/invites` · `POST /v1/lobby/invites` | `{"accountId"}` | your lobby invites; host invites a friend |
+| `POST /v1/lobby/invites/{inviteId}/accept` · `/decline` | — | answer an invite |
+
+A lobby is `id`, `hostAccountId`, `status` (`open`, or `selecting` while its champion select runs), `playersPerSide`, `settings` (`victoryEnabled`, `startingGold`), `startingGoldRange` (`min`, `max`) and `seats`: side A's, then side B's, each `side`, `index`, `kind` (`empty`, `human` or `bot`), and `accountId`, `displayName` and `host` for a human, `vanguardId` and `difficulty` for a bot.
+
+Rules the code enforces:
+
+- Only the host invites, moves and removes humans, places bots, sets the rules and launches. Invites go to friends no member blocks or is blocked by, and expire after `customLobby.inviteLifetime`.
+- An accepted invite seats the newcomer on the side with fewer humans, side A on a tie, at its first empty seat, or on the other side when that one is full.
+- A side holds `customLobby.playersPerSide` seats and each Vanguard once, bots included; the same Vanguard may play on both sides.
+- Victory needs a Vanguard on each side. Until the host chooses, it is on exactly when both sides have one. Starting Gold lies within `customLobby.startingGold`.
+- One lobby per account; a lobby's members are busy for parties and matchmaking, and someone in a match, a select or a queued party can neither open nor join one. A block removes the blocked player and withdraws invites between the two, like a party's.
+- Launching needs the host and at least one human, each finished with the tutorial and in no match, select or queue. The select is blind: the humans pick what they own or the rotation offers, each Vanguard once per side, the bots' included, while the same Vanguard may play on both sides. Leaving it, or its timer lapsing unfilled, returns everyone to the lobby; its match starting closes the lobby. The match is `custom`: the host may end it (`host_ended`), and it can be won (`prime_well_destroyed`, `surrender`) only with victory on.
+- Errors: `not_host`, `lobby_full`, `lobby_locked`, `seat_taken`, `no_such_seat`, `not_a_bot`, `vanguard_taken`, `invalid_vanguard`, `invalid_difficulty`, `starting_gold_out_of_range`, `victory_needs_both_sides`, `already_in_lobby`, `member_busy`, `not_friends`, `blocked`, `invite_not_found`, `no_human`, `tutorial_required`.
+
 ### Matchmaking and Match Found
 
 The matchmaker forms matches from queued parties every `matchmaking.interval`; every player must then accept before champion select opens ([ADR-010](../Docs/ADR/ADR-010-play-flow.md) §10; Parties & Social Bible §2–3, §6).
@@ -139,7 +168,7 @@ Solo Custom practice opens a champion select with no lobby; an accepted match fo
 | `PUT /v1/me/select/spells` | `Bearer <game token>` | `{"fluxSpells": ["blink", ""]}` | the select, with the player's own seat's `fluxSpells`: two starting Flux Spells in slot order, `""` for an empty slot, each on `fluxSpells.roster`, none twice (ADR-015 §5). Free while the select is picking, before or after lock-in; `invalid_flux_spells` otherwise |
 | `POST /v1/me/select/leave` | `Bearer <game token>` | — | the select, `cancelled` as `left`: a dodge. Casual Select only; practice is `cannot_leave` |
 
-A select is `id`, `kind`, `mode`, `state` (`picking`, `starting`, `started`, `cancelled`), `deadline`, `remainingSeconds` (by the server's clock), `pickSeconds` (the timer's full length, for a countdown bar), `seats` (`displayName`, `side`, `you`, `locked`, and `hover` for the player's own team only), `matchId` and `cancelReason` (`timed_out`, `allocation_failed`, `starting_timed_out`, `left`, `presence_lost`). Its `kind` is `practice` or `casual`. Errors: `not_available` (a Vanguard the player may not pick), `taken` (another player locked it), `already_locked`, `expired`, `invalid_state`, `cannot_leave`, `select_not_found`.
+A select is `id`, `kind`, `mode`, `state` (`picking`, `starting`, `started`, `cancelled`), `deadline`, `remainingSeconds` (by the server's clock), `pickSeconds` (the timer's full length, for a countdown bar), `seats` (`displayName`, `side`, `you`, `locked`, and `hover` for the player's own team only), `matchId` and `cancelReason` (`timed_out`, `allocation_failed`, `starting_timed_out`, `left`, `presence_lost`). Its `kind` is `practice`, `casual` or `custom`; a custom select also lists its `bots` (`side`, `vanguardId`, `difficulty`), in each side's seat order, which the players see as seats already locked. Errors: `not_available` (a Vanguard the player may not pick), `taken` (another player locked it), `already_locked`, `expired`, `invalid_state`, `cannot_leave`, `select_not_found`.
 
 Rules the code enforces: a player is in at most one active select (enforced by the database); a lock is permanent; a select creates at most one match (a unique `select_id` on the match). When the pick timer (`customPractice.pickDuration`) ends, a seat's hover is locked for it, and a seat with nothing to lock cancels the select. **Provisional** (ADR-010 §11), like the 30-second pick time. A select whose match creation never finishes is settled after `selection.startingTimeout`, which must exceed the allocator's request timeout.
 
@@ -215,7 +244,7 @@ A match created with `POST /v1/dev/matches` before the game starts waits behind 
 
 ## Configuration
 
-Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), solo Custom practice (`customPractice`: whether it is on, the mode ID its matches record, the host's side, the pick time, how many Vanguards a side may hold, and the practice bots, provisionally four enemies in the bots' seat order, Mid, Top, Jungle and Bottom: Oriel, Qazharr, Gorraveth and Bryn), the matchmaker (`matchmaking`: how often it runs and its search limit, and each mode's `matchmaking`), Match Found (`matchFound`), Casual Select (`casualSelect`), champion select's upkeep (`selection`), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
+Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), solo Custom practice (`customPractice`: whether it is on, the mode ID its matches record, the host's side, the pick time, how many Vanguards a side may hold, and the practice bots, provisionally four enemies in the bots' seat order, Mid, Top, Jungle and Bottom: Oriel, Qazharr, Gorraveth and Bryn), custom lobbies (`customLobby`: whether they are on, the mode ID their matches record, the seats a side holds, the pick and invite times, and the range a host may set starting Gold in), the matchmaker (`matchmaking`: how often it runs and its search limit, and each mode's `matchmaking`), Match Found (`matchFound`), Casual Select (`casualSelect`), champion select's upkeep (`selection`), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
 
 ## Layout
 
@@ -229,6 +258,7 @@ Backend/
     ├── identity/          accounts, sessions, launch codes (domain rules)
     ├── social/            friends, friend requests, blocks
     ├── party/             parties, invites, Ready, queue lock
+    ├── lobby/             custom lobbies: seats, bots, the session's rules, invites
     ├── catalog/           released Vanguards, starters and the rotation (configuration)
     ├── account/           onboarding (the stubbed tutorial) and Vanguard entitlements
     ├── matchmaking/       the matchmaker and Match Found; moves parties through the queue
@@ -240,7 +270,7 @@ Backend/
     └── httpapi/           HTTP/JSON transport
 ```
 
-Domain packages (`identity`, `social`, `party`, `account`, `matchmaking`, `selection`, `match`) own their rules and depend only on storage interfaces and on small interfaces to each other; `account` reads the catalog through one. `matchmaking` moves parties through the queue through `party`'s methods and never writes party state itself; it and `selection` each reach the other through an interface, joined in `cmd/veyra-backend`, and their changes to parties run in the same database transaction as their own. `party` reads the social graph through a small interface and never writes it; a block is applied by `social` first and then handed to `party`. `postgres` implements storage; `httpapi` only translates HTTP to domain calls.
+Domain packages (`identity`, `social`, `party`, `lobby`, `account`, `matchmaking`, `selection`, `match`) own their rules and depend only on storage interfaces and on small interfaces to each other; `account` reads the catalog through one. `matchmaking` moves parties through the queue through `party`'s methods and never writes party state itself; it and `selection` each reach the other through an interface, joined in `cmd/veyra-backend`, and their changes to parties run in the same database transaction as their own. `party` reads the social graph through a small interface and never writes it; a block is applied by `social` first and then handed to `party`. `postgres` implements storage; `httpapi` only translates HTTP to domain calls.
 
 ## Tests
 

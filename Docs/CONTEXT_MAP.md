@@ -63,7 +63,14 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
   - The kit primitives for Kade, Vera, Mimzi, Patch, Gorraveth and Raska (slot overrides, new status kinds, Camouflage, lingering areas, volleys, tethers, attach, ride states) are [ADR-018](ADR/ADR-018-kit-primitives.md); their canon is the Initial Roster Character Bible and the Combat Bible §8–§11, §43 and §56.
   - Reconnecting to the same Vanguard, disconnect autopilot, AFK and absence, personal loss, and remake, surrender and pause votes are [ADR-019](ADR/ADR-019-match-flow.md); their canon is the Match Flow Bible §3–§11.
   - The camera, the minimap, the kill-streak bounty, death-streak devaluation and buyback are [ADR-020](ADR/ADR-020-camera-minimap-kill-economy.md); their canon is the Settings & Accessibility Bible §2 and §3.2 and the Economy & Progression Bible §5.3, §5.4 and §15.
+  - Custom lobbies (the host, human and bot slots on either side, invites, launch through champion select), `custom` rules with victory and starting Gold per session, and friends in the client are [ADR-021](ADR/ADR-021-custom-lobbies.md); their canon is the Custom Matches Bible §1–§5 and the Parties & Social Bible. The code:
+  - backend: `Backend/internal/lobby`;
+  - the client flow: the `Lobby` state and the social reads, in `VeyraServices/Private/Client/VeyraClientFlow.cpp`;
+  - the lobby screen and friends panel: `VeyraUI/Private/Shell/VeyraShellLobby.cpp`;
+  - the smoke: `Smoke.ps1 -Flow Custom`.
 - **Vanguard editing:** one character's section of the Character Bible → `Docs/Design/Vanguards/<nn>-<name>.yaml` → [Vanguard validation instructions](Design/Vanguards/README.md) → specific base [hero art](../ConceptArt/Vanguards/README.md). Do **not** interpret YAML as engine balance data.
+- **Item icons:** [item icon art](../ConceptArt/Items/README.md), one per Item Bible item, imported by `Game/Scripts/BuildIconArt.ps1 -Kind Items` for the shop and the HUD; the item's rules stay the Item Bible's and `Game/Tuning/Items.json`'s.
+- **Ability icons:** [ability icon art](../ConceptArt/Skills/README.md), the Flux Spells' and Vanguard kits' by runtime ID, imported by `Game/Scripts/BuildIconArt.ps1 -Kind Abilities` for the HUD, champion select and the shop; what each ability does stays the Character Bible's and `Game/Tuning/Abilities.json`'s.
 - **Cosmetics:** [skin gallery](../ConceptArt/Vanguards/skins/README.md) and [asset index](../ConceptArt/Vanguards/skins/index.json) → the particular `ConceptArt/Vanguards/<id>/skins/<collection>/hero.webp`; use base character/art bible only for identity and silhouette.
 - **Art direction:** [Art Direction](Design/Art_Direction_v0.1.md) and [canon discrepancy register](Design/Sheet_Canon_Discrepancy_Register_v0.1.md). [Ride-state question history](Design/Ride_State_Open_Questions_v0.1.md) is *resolved history*, not an open-rules source.
 - **Historical comparison only:** [Design Archives](Design/Archives/README.md) and [Concept Art Archives](../ConceptArt/Archives/README.md). Do not use archived versions to override an active bible.
@@ -92,6 +99,7 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-018-kit-primitives.md](ADR/ADR-018-kit-primitives.md) — **Proposed** (accepted when the M13 pull requests merge): slot overrides; new status kinds, source-relative statuses and one-stack decay; cast, displacement and camp-cleared events; Camouflage; lingering areas and shaped reveals; volleys, tethers and attach; ride states; League's answers for six Vanguards' kits.
 - [ADR-019-match-flow.md](ADR/ADR-019-match-flow.md) — **Proposed** (accepted when the M14 pull requests merge): rejoin to the same Vanguard; autopilot; activity, AFK and absence; personal loss and forgiveness; remake, surrender and pause votes; surrender and remake results; League's answers for AI seats in votes.
 - [ADR-020-camera-minimap-kill-economy.md](ADR/ADR-020-camera-minimap-kill-economy.md) — **Proposed** (accepted when the M15 pull requests merge): the local camera's modes; the minimap; bounty, devaluation and buyback; League's answers for their values.
+- [ADR-021-custom-lobbies.md](ADR/ADR-021-custom-lobbies.md) — **Proposed** (accepted when the M16 pull requests merge): custom lobbies with bots, `custom` rules, assignment schema 5, friends in the client; League's answers where Custom Matches §7 is open.
 
 ## Keeping the maps current
 

@@ -63,6 +63,7 @@ namespace VeyraShellTests
 				{ EVeyraClientState::Loading, EVeyraShellScreen::Status },
 				{ EVeyraClientState::StarterChoice, EVeyraShellScreen::StarterChoice },
 				{ EVeyraClientState::Shell, EVeyraShellScreen::Shell },
+				{ EVeyraClientState::Lobby, EVeyraShellScreen::Lobby },
 				{ EVeyraClientState::MatchFound, EVeyraShellScreen::MatchFound },
 				{ EVeyraClientState::Selecting, EVeyraShellScreen::ChampionSelect },
 				{ EVeyraClientState::MatchStarting, EVeyraShellScreen::Status },
@@ -214,7 +215,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsFalse(VeyraShellModels::DescribeNotice(TEXT("match_found_requeued")).ToString().Contains(TEXT("player"))));
 			ASSERT_THAT(IsTrue(VeyraShellModels::DescribeNotice(TEXT("no_longer_matched")).ToString().Contains(TEXT("can no longer go ahead"))));
 			ASSERT_THAT(AreEqual(VeyraShellModels::DescribeProblem(FVeyraClientProblem{ TEXT("member_busy"), TEXT("raw"), false }).ToString(),
-				FString(TEXT("Someone in your party is still in a match or champion select."))));
+				FString(TEXT("Someone is still in a match, champion select or queue."))));
 		}
 
 		TEST_METHOD(PartyAndModeModels)
@@ -808,7 +809,8 @@ namespace VeyraShellTests
 			const APlayerState& Other = Spawner.SpawnActor<APlayerState>();
 			ASSERT_THAT(IsTrue(VeyraMatchMenuModel::CanEndCustomMatch(EVeyraMatchRules::Practice, &Host, &Host)));
 			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::CanEndCustomMatch(EVeyraMatchRules::Practice, &Host, &Other), TEXT("only the host")));
-			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::CanEndCustomMatch(EVeyraMatchRules::Standard, &Host, &Host), TEXT("only practice")));
+			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::CanEndCustomMatch(EVeyraMatchRules::Standard, &Host, &Host), TEXT("only a hosted match")));
+			ASSERT_THAT(IsTrue(VeyraMatchMenuModel::CanEndCustomMatch(EVeyraMatchRules::Custom, &Host, &Host), TEXT("a custom match's host too")));
 			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::CanEndCustomMatch(EVeyraMatchRules::Practice, nullptr, &Host), TEXT("before the host joins")));
 		}
 
@@ -835,6 +837,8 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(LabelsOf(Menu->GetButtons()) == TArray<FString>{ TEXT("Vote to Surrender"), TEXT("Cancel") }, TEXT("behind a confirmation")));
 			ASSERT_THAT(IsFalse(bClosed));
 			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::OffersVotes(EVeyraMatchRules::Practice), TEXT("a practice match's host ends it")));
+			ASSERT_THAT(IsFalse(VeyraMatchMenuModel::OffersVotes(EVeyraMatchRules::Custom), TEXT("remake and pause are matchmade")));
+			ASSERT_THAT(IsTrue(VeyraMatchMenuModel::OffersSurrender(true) && !VeyraMatchMenuModel::OffersSurrender(false), TEXT("surrender where it can be won")));
 		}
 
 		TEST_METHOD(OutsidePracticeTheMenuOffersResume)

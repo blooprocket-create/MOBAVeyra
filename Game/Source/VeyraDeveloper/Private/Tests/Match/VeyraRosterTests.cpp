@@ -214,7 +214,7 @@ namespace VeyraMatchTests
 
 			FVeyraMatchAssignment HostedStandard = TwoParticipantAssignment();
 			HostedStandard.HostAccountId = TEXT("account-1");
-			ASSERT_THAT(IsTrue(IsRefused(HostedStandard, TEXT("only a practice match has a host"))));
+			ASSERT_THAT(IsTrue(IsRefused(HostedStandard, TEXT("only a practice or custom match has a host"))));
 		}
 
 		TEST_METHOD(OnlyAPracticeMatchHasBotsAndTheyTakePlaces)
@@ -247,7 +247,32 @@ namespace VeyraMatchTests
 
 			FVeyraMatchAssignment StandardWithBots = TwoParticipantAssignment();
 			StandardWithBots.Bots = Practice.Bots;
-			ASSERT_THAT(IsTrue(IsRefused(StandardWithBots, TEXT("only a practice match has bots"))));
+			ASSERT_THAT(IsTrue(IsRefused(StandardWithBots, TEXT("only a practice or custom match has bots"))));
+		}
+
+		TEST_METHOD(ACustomMatchHasItsHostBotsOnEitherSideAndItsSettings)
+		{
+			FVeyraMatchAssignment Custom = TwoParticipantAssignment();
+			Custom.Rules = EVeyraMatchRules::Custom;
+			Custom.HostAccountId = TEXT("account-2");
+			Custom.Bots = { { EVeyraTeam::A, RosterContentId(TEXT("oriel")) }, { EVeyraTeam::B, RosterContentId(TEXT("bryn")) } };
+			FVeyraCustomSettings Settings;
+			Settings.bVictoryEnabled = true;
+			Settings.StartingGold = 2500.0;
+			Custom.Custom = Settings;
+			ASSERT_THAT(IsTrue(Host->SetAssignment(Custom).IsEmpty()));
+			ASSERT_THAT(IsTrue(Host->GetAssignment()->Custom.IsSet() && Host->GetAssignment()->Custom->StartingGold.Get(0.0) == 2500.0));
+			Host->ClearAssignment();
+
+			FVeyraMatchAssignment Unset = Custom;
+			Unset.Custom.Reset();
+			ASSERT_THAT(IsTrue(IsRefused(Unset, TEXT("session settings"))));
+			FVeyraMatchAssignment StandardWithSettings = TwoParticipantAssignment();
+			StandardWithSettings.Custom = Settings;
+			ASSERT_THAT(IsTrue(IsRefused(StandardWithSettings, TEXT("session settings"))));
+			FVeyraMatchAssignment Negative = Custom;
+			Negative.Custom->StartingGold = -1.0;
+			ASSERT_THAT(IsTrue(IsRefused(Negative, TEXT("starting Gold"))));
 		}
 	};
 
@@ -263,6 +288,8 @@ namespace VeyraMatchTests
 			ASSERT_THAT(IsTrue(CheckEndCustomMatch(EVeyraMatchRules::Practice, EVeyraMatchPhase::Live, false) == EVeyraEndCustomMatchRefusal::NotHost));
 			ASSERT_THAT(IsTrue(CheckEndCustomMatch(EVeyraMatchRules::Practice, EVeyraMatchPhase::Ended, true) == EVeyraEndCustomMatchRefusal::AlreadyEnded));
 			ASSERT_THAT(IsTrue(CheckEndCustomMatch(EVeyraMatchRules::Standard, EVeyraMatchPhase::Live, true) == EVeyraEndCustomMatchRefusal::NotCustomMatch));
+			ASSERT_THAT(IsTrue(CheckEndCustomMatch(EVeyraMatchRules::Custom, EVeyraMatchPhase::Live, true) == EVeyraEndCustomMatchRefusal::None, TEXT("a custom match's host too")));
+			ASSERT_THAT(IsTrue(CheckEndCustomMatch(EVeyraMatchRules::Custom, EVeyraMatchPhase::Live, false) == EVeyraEndCustomMatchRefusal::NotHost));
 		}
 
 		TEST_METHOD(ShippingHostsOnlyPlayableVanguards)
@@ -295,9 +322,15 @@ namespace VeyraMatchTests
 		TEST_METHOD(APrimeWellWinsOnlyALiveStandardMatch)
 		{
 			using namespace VeyraMatchRules;
-			ASSERT_THAT(IsTrue(DoesPrimeWellWin(EVeyraMatchRules::Standard, EVeyraMatchPhase::Live)));
-			ASSERT_THAT(IsFalse(DoesPrimeWellWin(EVeyraMatchRules::Practice, EVeyraMatchPhase::Live), TEXT("practice has no victory condition")));
-			ASSERT_THAT(IsFalse(DoesPrimeWellWin(EVeyraMatchRules::Standard, EVeyraMatchPhase::Ended), TEXT("an ended match stays ended")));
+			ASSERT_THAT(IsTrue(DoesPrimeWellWin(HasVictory(EVeyraMatchRules::Standard, {}), EVeyraMatchPhase::Live)));
+			ASSERT_THAT(IsFalse(DoesPrimeWellWin(HasVictory(EVeyraMatchRules::Practice, {}), EVeyraMatchPhase::Live), TEXT("practice has no victory condition")));
+			ASSERT_THAT(IsFalse(DoesPrimeWellWin(HasVictory(EVeyraMatchRules::Standard, {}), EVeyraMatchPhase::Ended), TEXT("an ended match stays ended")));
+			FVeyraCustomSettings Custom;
+			ASSERT_THAT(IsFalse(HasVictory(EVeyraMatchRules::Custom, Custom), TEXT("a custom match with victory off")));
+			Custom.bVictoryEnabled = true;
+			ASSERT_THAT(IsTrue(HasVictory(EVeyraMatchRules::Custom, Custom), TEXT("and with it on")));
+			ASSERT_THAT(IsTrue(HasHost(EVeyraMatchRules::Custom) && HasHost(EVeyraMatchRules::Practice) && !HasHost(EVeyraMatchRules::Standard)));
+			ASSERT_THAT(IsTrue(AllowsBuyback(EVeyraMatchRules::Custom) && AllowsBuyback(EVeyraMatchRules::Standard) && !AllowsBuyback(EVeyraMatchRules::Practice)));
 		}
 
 		TEST_METHOD(OnlyAWonMatchHasAWinner)

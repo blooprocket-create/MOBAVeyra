@@ -32,8 +32,14 @@ public:
 	/** The custom match's host, once they have joined; null for standard rules. */
 	const APlayerState* GetHost() const { return Host; }
 
-	/** Server only: the GameMode sets the assigned rules when the match starts. */
-	void SetMatchRules(EVeyraMatchRules Rules);
+	/** Whether the match can be won: a standard one, or a custom one with victory on (ADR-021 §3). */
+	bool HasVictory() const { return bVictoryEnabled; }
+
+	/**
+	 * Server only: the GameMode sets the assigned rules when the match starts, and whether the match can
+	 * be won; without it, as the rules alone say (standard: yes).
+	 */
+	void SetMatchRules(EVeyraMatchRules Rules, TOptional<bool> bInVictoryEnabled = {});
 
 	/** Server only: the GameMode names the custom match's host when they join. */
 	void SetHost(APlayerState* InHost);
@@ -78,6 +84,9 @@ private:
 
 	UPROPERTY(Replicated)
 	EVeyraMatchRules MatchRules = EVeyraMatchRules::Standard;
+
+	UPROPERTY(Replicated)
+	bool bVictoryEnabled = true;
 
 	UPROPERTY(Replicated)
 	TObjectPtr<APlayerState> Host;

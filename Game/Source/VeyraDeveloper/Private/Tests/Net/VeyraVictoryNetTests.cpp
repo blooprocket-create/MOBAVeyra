@@ -5,6 +5,7 @@
 
 #if ENABLE_PIE_NETWORK_TEST
 
+#include "Gold/VeyraGoldComponent.h"
 #include "Join/VeyraMatchHostSubsystem.h"
 #include "Tests/Net/VeyraBattlegroundNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
@@ -30,13 +31,14 @@ namespace VeyraNetTests
 			TOptional<FVeyraMatchResult> Result;
 			FDelegateHandle EndedHandle;
 
-			explicit FScopedVictoryMatch(EVeyraMatchRules Rules)
+			explicit FScopedVictoryMatch(EVeyraMatchRules Rules, TOptional<FVeyraCustomSettings> Custom = {})
 			{
 				VeyraGreybox::LoadLayout(Greybox);
 				Tuning = MakeUnique<FScopedMatchTuning>();
 				Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
 				Tickets = MakeUnique<FScopedTestTickets>();
-				Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::B }, Rules);
+				Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::B }, Rules, TConstArrayView<FVeyraContentId>(),
+					TConstArrayView<FVeyraAssignedBot>(), TConstArrayView<TArray<FVeyraContentId>>(), Custom);
 				EndedHandle = UVeyraMatchHostSubsystem::Get()->OnMatchEnded.AddLambda([this](const FVeyraMatchResult& Ended) { Result = Ended; });
 			}
 
@@ -162,6 +164,99 @@ namespace VeyraNetTests
 					ASSERT_THAT(IsTrue(Well && Well->IsDestroyed()));
 					ASSERT_THAT(IsTrue(GameStateOf(State.World)->GetPhase() == EVeyraMatchPhase::Live && !Match->Result.IsSet()));
 				})
+				.ThenClient(TEXT("The host ends it"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestEndCustomMatch(); })
+				.UntilServer(TEXT("The match ends"), [this](FState& /*State*/) { return Match->Result.IsSet(); })
+				.ThenServer(TEXT("It ended host-ended, with no winner"), [this](FState& /*State*/) {
+					ASSERT_THAT(IsTrue(Match->Result->EndReason == EVeyraMatchEndReason::HostEnded && Match->Result->Winner == EVeyraTeam::None));
+				});
+		}
+	};
+
+	// Veyra.Net.CustomVictory.*: a custom match whose host left victory on is won as a standard match
+	// is, and its players start with the Gold its host set (ADR-021 §3).
+	NETWORK_TEST_CLASS(CustomVictory, "Veyra.Net")
+	{
+		struct FState : public FBasePIENetworkComponentState
+		{
+		};
+
+		// Fixture value: starting Gold unlike Economy.json's.
+		static constexpr double SessionStartingGold = 1234.0;
+
+		FPIENetworkComponent<FState> Network{ TestRunner, TestCommandBuilder, bInitializing };
+		TUniquePtr<VictoryTests::FScopedVictoryMatch> Match;
+
+		BEFORE_EACH()
+		{
+			IgnoreKnownIrisWarnings(*TestRunner);
+			FVeyraCustomSettings Settings;
+			Settings.bVictoryEnabled = true;
+			Settings.StartingGold = SessionStartingGold;
+			Match = MakeUnique<VictoryTests::FScopedVictoryMatch>(EVeyraMatchRules::Custom, Settings);
+			ASSERT_THAT(IsTrue(Match->Assignment->Problems.IsEmpty(), FString::Join(Match->Assignment->Problems, TEXT(" | "))));
+			BuildMatchNetwork(Network);
+		}
+
+		AFTER_EACH()
+		{
+			Match.Reset();
+		}
+
+		TEST_METHOD(ACustomMatchWithVictoryOnStartsWithItsGoldAndIsWon)
+		{
+			StartBattleground(Network, Match->Greybox, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Everyone started with the session's Gold"), [this](FState& State) {
+					for (int32 Index = 0; Index < 2; ++Index)
+					{
+						const UVeyraGoldComponent* Gold = ServerControllerOf(State, Index)->PlayerState->FindComponentByClass<UVeyraGoldComponent>();
+						ASSERT_THAT(IsTrue(Gold && Gold->GetGold() >= SessionStartingGold, FString::Printf(TEXT("%.1f"), Gold ? Gold->GetGold() : -1.0)));
+					}
+				})
+				.UntilClients(TEXT("Every client knows the match can be won"), [](FState& State) {
+					return GameStateOf(State.World)->GetMatchRules() == EVeyraMatchRules::Custom && GameStateOf(State.World)->HasVictory();
+				})
+				.ThenServer(TEXT("Team A sieges team B down"), [](FState& State) { VictoryTests::SiegeAll(State); })
+				.UntilServer(TEXT("The match ends"), [this](FState& /*State*/) { return Match->Result.IsSet(); })
+				.ThenServer(TEXT("Team A won by the Prime Well"), [this](FState& /*State*/) {
+					ASSERT_THAT(IsTrue(Match->Result->EndReason == EVeyraMatchEndReason::PrimeWellDestroyed && Match->Result->Winner == EVeyraTeam::A));
+				});
+		}
+	};
+
+	// Veyra.Net.CustomNoVictory.*: with victory off, a custom match goes on after a Prime Well falls,
+	// until its host ends it (ADR-021 §3).
+	NETWORK_TEST_CLASS(CustomNoVictory, "Veyra.Net")
+	{
+		struct FState : public FBasePIENetworkComponentState
+		{
+		};
+
+		FPIENetworkComponent<FState> Network{ TestRunner, TestCommandBuilder, bInitializing };
+		TUniquePtr<VictoryTests::FScopedVictoryMatch> Match;
+
+		BEFORE_EACH()
+		{
+			IgnoreKnownIrisWarnings(*TestRunner);
+			Match = MakeUnique<VictoryTests::FScopedVictoryMatch>(EVeyraMatchRules::Custom, FVeyraCustomSettings());
+			ASSERT_THAT(IsTrue(Match->Assignment->Problems.IsEmpty(), FString::Join(Match->Assignment->Problems, TEXT(" | "))));
+			BuildMatchNetwork(Network);
+		}
+
+		AFTER_EACH()
+		{
+			Match.Reset();
+		}
+
+		TEST_METHOD(ACustomMatchWithVictoryOffGoesOnUntilItsHostEndsIt)
+		{
+			StartBattleground(Network, Match->Greybox, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("The host sieges the other side down, Prime Well and all"), [](FState& State) { VictoryTests::SiegeAll(State); })
+				.ThenServer(TEXT("The Well is down, and the match goes on"), [this](FState& State) {
+					const AVeyraStructure* Well = VictoryTests::PrimeWellOf(State.World, EVeyraTeam::B);
+					ASSERT_THAT(IsTrue(Well && Well->IsDestroyed()));
+					ASSERT_THAT(IsTrue(GameStateOf(State.World)->GetPhase() == EVeyraMatchPhase::Live && !Match->Result.IsSet()));
+				})
+				.ThenClient(TEXT("A player who is not the host cannot end it"), 1, [](FState& State) { LocalControllerOf(State.World)->RequestEndCustomMatch(); })
 				.ThenClient(TEXT("The host ends it"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestEndCustomMatch(); })
 				.UntilServer(TEXT("The match ends"), [this](FState& /*State*/) { return Match->Result.IsSet(); })
 				.ThenServer(TEXT("It ended host-ended, with no winner"), [this](FState& /*State*/) {

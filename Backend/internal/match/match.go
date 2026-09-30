@@ -47,7 +47,35 @@ const (
 	// RulesPractice is solo Custom practice: its host alone, open-ended, and
 	// ended by the host (Custom Matches Bible §1, §4).
 	RulesPractice Rules = "practice"
+	// RulesCustom is a custom lobby's match: its host, the humans and bots the
+	// host placed, and the session's own rules (ADR-021 §3).
+	RulesCustom Rules = "custom"
 )
+
+// HasHost reports whether matches under these rules have a host, who may end
+// them (ADR-021 §3).
+func (r Rules) HasHost() bool { return r == RulesPractice || r == RulesCustom }
+
+// CustomSettings are the rules a custom lobby's host set for its one match
+// (Custom Matches Bible §4; ADR-021 §1).
+type CustomSettings struct {
+	// VictoryEnabled is whether a fallen Prime Well wins; it needs a Vanguard
+	// on each side.
+	VictoryEnabled bool
+	// StartingGold is each Vanguard's starting Gold; nil plays the game's own.
+	StartingGold *float64
+}
+
+// CustomModeSettings configures custom matches: whether they may be created,
+// the mode ID they record, a side's size, and the starting Gold a host may
+// set.
+type CustomModeSettings struct {
+	Enabled         bool
+	Mode            string
+	PlayersPerSide  int
+	StartingGoldMin float64
+	StartingGoldMax float64
+}
 
 // MapKind names which map a match's server loads (ADR-011 §12). Configuration
 // gives each kind its map, so a request never names a map path itself.
@@ -237,8 +265,10 @@ type Match struct {
 	SelectID     string
 	State        State
 	Participants []Participant
-	// Bots are the match's AI participants; only practice matches have any.
-	Bots      []Bot
+	// Bots are the match's AI participants; only hosted matches have any.
+	Bots []Bot
+	// Custom is the session's rules, present exactly for custom matches.
+	Custom    *CustomSettings
 	CreatedAt time.Time
 	ReadyAt   time.Time
 	EndedAt   time.Time
@@ -314,6 +344,67 @@ func ValidatePractice(practice PracticeSettings, modeID, hostAccountID string, p
 	return nil
 }
 
+// ValidateCustom checks a requested custom match (ADR-021 §2–§3): custom
+// matches are enabled and the mode is theirs; the host plays; at least one
+// human; each account once; known sides no fuller than a side; every
+// Vanguard a content ID and each once on its side, bots included; known bot
+// difficulties; and the session's rules, with starting Gold in range and
+// victory only with a Vanguard on each side.
+func ValidateCustom(custom CustomModeSettings, modeID, hostAccountID string, participants []Participant, bots []Bot, settings *CustomSettings) error {
+	if !custom.Enabled || modeID != custom.Mode {
+		return ErrUnknownMode
+	}
+	if settings == nil || hostAccountID == "" || len(participants) == 0 {
+		return ErrInvalidRoster
+	}
+	seen := map[string]bool{}
+	perSide := map[Side]int{}
+	vanguards := map[Side]map[string]bool{SideA: {}, SideB: {}}
+	place := func(side Side, vanguardID string) error {
+		if side != SideA && side != SideB {
+			return ErrInvalidRoster
+		}
+		if !IsContentID(vanguardID) {
+			return ErrInvalidVanguard
+		}
+		perSide[side]++
+		if perSide[side] > custom.PlayersPerSide || vanguards[side][vanguardID] {
+			return ErrInvalidRoster
+		}
+		vanguards[side][vanguardID] = true
+		return nil
+	}
+	hostPlays := false
+	for _, p := range participants {
+		if p.AccountID == "" || seen[p.AccountID] {
+			return ErrInvalidRoster
+		}
+		seen[p.AccountID] = true
+		hostPlays = hostPlays || p.AccountID == hostAccountID
+		if err := place(p.Side, p.VanguardID); err != nil {
+			return err
+		}
+	}
+	if !hostPlays {
+		return ErrInvalidRoster
+	}
+	for _, b := range bots {
+		if !b.Difficulty.Valid() {
+			return ErrInvalidRoster
+		}
+		if err := place(b.Side, b.VanguardID); err != nil {
+			return err
+		}
+	}
+	if g := settings.StartingGold; g != nil && (math.IsNaN(*g) || *g < custom.StartingGoldMin || *g > custom.StartingGoldMax) {
+		return ErrInvalidRoster
+	}
+	if settings.VictoryEnabled && (perSide[SideA] == 0 || perSide[SideB] == 0) {
+		return ErrInvalidRoster
+	}
+	return nil
+}
+
 // MarkReady records that the match server accepts players. Reporting ready
 // again is harmless.
 func (m *Match) MarkReady(now time.Time) error {
@@ -373,13 +464,19 @@ func (m *Match) validateResult(r Result) error {
 	switch r.EndReason {
 	case EndDeveloperRequest, EndAbandoned:
 	case EndHostEnded:
-		// Only practice has a host to end it (ADR-010 §7).
-		if m.Rules != RulesPractice {
+		// Only a match with a host can be ended by it (ADR-010 §7; ADR-021 §3).
+		if !m.Rules.HasHost() {
 			return ErrInvalidResult
 		}
-	case EndPrimeWellDestroyed, EndSurrender, EndRemake:
-		// Practice has no victory condition (ADR-011 §14) and takes no votes
-		// (ADR-019 §9).
+	case EndPrimeWellDestroyed, EndSurrender:
+		// A win needs a victory condition: a standard match's, or a custom
+		// match's when its host left victory on (ADR-021 §3). Practice has
+		// none (ADR-011 §14).
+		if m.Rules != RulesStandard && (m.Rules != RulesCustom || m.Custom == nil || !m.Custom.VictoryEnabled) {
+			return ErrInvalidResult
+		}
+	case EndRemake:
+		// Remake votes are for matchmade matches (ADR-019 §9; ADR-021 §3).
 		if m.Rules != RulesStandard {
 			return ErrInvalidResult
 		}

@@ -36,6 +36,16 @@ int32 UVeyraVanguardArtCommandlet::Main(const FString& Params)
 		UE_LOG(LogVeyraVanguardArt, Error, TEXT("Pass -Source=<folder of <vanguard id>.png files>, as BuildVanguardArt.ps1 does."));
 		return 1;
 	}
+	// Vanguards' hero art, or with -Kind=Items the items' icons: the same kind of UI texture.
+	FString Kind;
+	FParse::Value(*Params, TEXT("Kind="), Kind);
+	const bool bItems = Kind == TEXT("Items");
+	const bool bAbilities = Kind == TEXT("Abilities");
+	if (!Kind.IsEmpty() && !bItems && !bAbilities && Kind != TEXT("Vanguards"))
+	{
+		UE_LOG(LogVeyraVanguardArt, Error, TEXT("-Kind is Vanguards, Items or Abilities, not %s."), *Kind);
+		return 1;
+	}
 	TArray<FString> Files;
 	IFileManager::Get().FindFiles(Files, *FPaths::Combine(Source, TEXT("*.png")), /*Files*/ true, /*Directories*/ false);
 	Files.Sort();
@@ -49,7 +59,7 @@ int32 UVeyraVanguardArtCommandlet::Main(const FString& Params)
 	int32 Failures = 0;
 	for (const FString& File : Files)
 	{
-		const FString Vanguard = FPaths::GetBaseFilename(File);
+		const FString Id = FPaths::GetBaseFilename(File);
 		TArray<uint8> Bytes;
 		FImage Image;
 		if (!FFileHelper::LoadFileToArray(Bytes, *FPaths::Combine(Source, File)) || !Images.DecompressImage(Bytes.GetData(), Bytes.Num(), Image))
@@ -60,7 +70,9 @@ int32 UVeyraVanguardArtCommandlet::Main(const FString& Params)
 		}
 		Image.ChangeFormat(ERawImageFormat::BGRA8, EGammaSpace::sRGB);
 
-		const FString PackageName = VeyraShellArt::HeroPackageName(Vanguard);
+		const FString PackageName = bItems ? VeyraShellArt::ItemIconPackageName(Id)
+			: bAbilities				   ? VeyraShellArt::AbilityIconPackageName(Id)
+										   : VeyraShellArt::HeroPackageName(Id);
 		// An existing texture is loaded whole and baked again in place; a package only partly loaded
 		// cannot be saved.
 		UPackage* Package = CreatePackage(*PackageName);

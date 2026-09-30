@@ -4,6 +4,8 @@ import (
 	"context"
 	"sort"
 	"sync"
+
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/match"
 )
 
 // MemStore is an in-memory Store for tests. It is not used in any deployed
@@ -18,6 +20,11 @@ func NewMemStore() *MemStore { return &MemStore{sessions: map[string]Session{}} 
 
 func copySession(s Session) Session {
 	s.Seats = append([]Seat(nil), s.Seats...)
+	s.Bots = append([]match.Bot(nil), s.Bots...)
+	if s.Custom != nil {
+		custom := *s.Custom
+		s.Custom = &custom
+	}
 	return s
 }
 

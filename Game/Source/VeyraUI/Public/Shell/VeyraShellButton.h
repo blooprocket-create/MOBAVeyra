@@ -40,6 +40,13 @@ public:
 		bool bSelected = false);
 
 	/**
+	 * A button of Kind that shows Shown, a short text, while Label names it for FindButton, scripts,
+	 * tests and its tooltip: as when several buttons read "Remove" and each names what it removes.
+	 */
+	static UVeyraShellButton* MakeKindNamed(UWidgetTree& Tree, EVeyraShellButtonKind Kind, const FText& Label, const FText& Shown, TFunction<void()> Action,
+		bool bEnabled = true, bool bSelected = false);
+
+	/**
 	 * A button in Tree showing Content, such as a portrait, instead of its label; Label still names it
 	 * for FindButton, scripts and tests.
 	 */

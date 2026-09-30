@@ -111,13 +111,16 @@ private:
 	 * beneath it; lit when it can be had, outlined when selected. Pressing it runs Action.
 	 */
 	UVeyraShellButton* AddTile(UPanelWidget& Parent, const FText& Label, const FText& Name, const FText& Under, float Size, bool bLit, bool bSelected,
-		TFunction<void()> Action);
+		TFunction<void()> Action, class UTexture2D* Icon = nullptr);
 
 	/** A tile for Item from the catalog, priced as the view prices it; pressing it selects the item. */
 	UVeyraShellButton* AddItemTile(UPanelWidget& Parent, const FVeyraContentId& Item, float Size);
 
-	/** A square of Size that stands for Name: its words' initials on a raised surface, outlined in Edge. */
-	UWidget& MakeMark(const FText& Name, float Size, bool bLit, const FLinearColor& Edge);
+	/**
+	 * A square of Size that stands for Name, outlined in Edge: its Icon, dimmed while it cannot be had,
+	 * or without one its words' initials on a raised surface.
+	 */
+	UWidget& MakeMark(const FText& Name, float Size, bool bLit, const FLinearColor& Edge, class UTexture2D* Icon = nullptr);
 
 	/** A button of Kind showing Label, on one line. */
 	UVeyraShellButton* AddKindButton(UPanelWidget& Parent, EVeyraShellButtonKind Kind, const FText& Label, TFunction<void()> Action, bool bEnabled);

@@ -13,7 +13,8 @@ class UTexture2D;
  * The Vanguards' art on the shell's screens: each playable Vanguard's hero illustration, imported as
  * a UI texture by UVeyraVanguardArtCommandlet (Game/Scripts/BuildVanguardArt.ps1) into the style's
  * VanguardArtFolder. Champion select shows it large and crops portraits from it around the face the
- * style's VanguardPortraits name.
+ * style's VanguardPortraits name. Each item's icon is imported the same way into the style's
+ * ItemArtFolder (Game/Scripts/BuildIconArt.ps1 -Kind Items), for the shop's tiles and the HUD's item bar.
  */
 namespace VeyraShellArt
 {
@@ -22,6 +23,21 @@ namespace VeyraShellArt
 
 	/** VanguardId's hero texture, loaded; null when there is no ID or its art has not been imported. */
 	VEYRAUI_API UTexture2D* HeroOf(const FString& VanguardId);
+
+	/** The package ItemId's icon is saved in: "<ItemArtFolder>/T_<id>_Icon". */
+	VEYRAUI_API FString ItemIconPackageName(const FString& ItemId);
+
+	/**
+	 * ItemId's icon, loaded; null when there is no ID or its icon has not been imported, which the UI
+	 * shows as the item's initials. Remembered, since the HUD asks every frame.
+	 */
+	VEYRAUI_API UTexture2D* ItemIconOf(const FString& ItemId);
+
+	/** The package AbilityId's icon is saved in: "<AbilityArtFolder>/T_<id>_Icon". Flux Spells are abilities. */
+	VEYRAUI_API FString AbilityIconPackageName(const FString& AbilityId);
+
+	/** AbilityId's icon, a passive's or a Flux Spell's too, loaded and remembered; null until one is imported. */
+	VEYRAUI_API UTexture2D* AbilityIconOf(const FString& AbilityId);
 
 	/**
 	 * The part of a Width x Height hero illustration to show at Aspect (width over height), as UVs.

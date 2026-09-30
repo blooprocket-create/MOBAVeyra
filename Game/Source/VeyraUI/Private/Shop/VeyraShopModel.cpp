@@ -12,6 +12,7 @@
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuning.h"
+#include "Rules/VeyraMatchRules.h"
 #include "Shell/VeyraShellModels.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "VeyraGameState.h"
@@ -38,7 +39,7 @@ FVeyraShopView Describe(const AActor& Participant)
 	const AVeyraGameState* Match = World ? World->GetGameState<AVeyraGameState>() : nullptr;
 	const UVeyraLifeComponent* Life = Participant.FindComponentByClass<UVeyraLifeComponent>();
 	const UVeyraBuybackComponent* Buyback = Participant.FindComponentByClass<UVeyraBuybackComponent>();
-	if (Match && Match->GetMatchRules() == EVeyraMatchRules::Standard && Life && !Life->IsAlive() && Buyback)
+	if (Match && VeyraMatchRules::AllowsBuyback(Match->GetMatchRules()) && Life && !Life->IsAlive() && Buyback)
 	{
 		View.bBuybackShown = true;
 		View.Buyback = Buyback->Quote(Match->GetMatchClockSeconds(), Match->GetServerWorldTimeSeconds(), /*bDead*/ true, *Gold);

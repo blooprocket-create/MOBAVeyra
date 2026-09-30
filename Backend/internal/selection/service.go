@@ -33,10 +33,19 @@ type CasualSettings struct {
 	PresenceTimeout time.Duration
 }
 
+// CustomSettings configures custom lobbies' selects (ADR-021 §2).
+type CustomSettings struct {
+	// Mode is the mode ID custom matches record.
+	Mode string
+	// PickDuration is how long the humans have to lock their Vanguards.
+	PickDuration time.Duration
+}
+
 // Settings are the validated settings the select service needs.
 type Settings struct {
 	Practice PracticeSettings
 	Casual   CasualSettings
+	Custom   CustomSettings
 	// StartingTimeout cancels a select whose match creation never finished.
 	// It must exceed how long creating a match can take.
 	StartingTimeout time.Duration
@@ -56,6 +65,24 @@ type Matchmaking interface {
 	// SelectEnded lets every party go when the match started; otherwise the
 	// leaving players' parties go and the others return to the queue.
 	SelectEnded(ctx context.Context, accounts, leaving []string, started bool) error
+}
+
+// Lobbies learns how a custom select ended, inside the select's transaction.
+// The lobby package implements it.
+type Lobbies interface {
+	// SelectEnded closes the lobby when its match started, and reopens it
+	// otherwise.
+	SelectEnded(ctx context.Context, lobbyID string, started bool) error
+}
+
+// CustomLaunch is what a custom lobby launches: its humans in their seats, in
+// each side's seat order, its bots, and the session's rules.
+type CustomLaunch struct {
+	LobbyID       string
+	HostAccountID string
+	Seats         []CasualSeat
+	Bots          []match.Bot
+	Settings      match.CustomSettings
 }
 
 // Accounts answers the account questions select rules need. The account
@@ -111,6 +138,7 @@ type Service struct {
 	parties     Parties
 	blocks      Blocks
 	matchmaking Matchmaking
+	lobbies     Lobbies
 	settings    Settings
 	now         func() time.Time
 	log         *slog.Logger
@@ -126,6 +154,9 @@ func NewService(store Store, accounts Accounts, names Names, matches Matches, pa
 // SetMatchmaking connects the matchmaker, which in turn opens Casual Selects;
 // matchmaking and select each need the other, so this is set after both exist.
 func (s *Service) SetMatchmaking(m Matchmaking) { s.matchmaking = m }
+
+// SetLobbies connects the custom lobbies, which in turn open custom selects.
+func (s *Service) SetLobbies(l Lobbies) { s.lobbies = l }
 
 // StartPractice opens a practice select for the account: its host alone,
 // with no lobby (ADR-010 §7). The account must have finished the tutorial,
@@ -201,6 +232,56 @@ func (s *Service) OpenCasual(ctx context.Context, mode string, seats []CasualSea
 	return session.ID, nil
 }
 
+// OpenCustom opens a custom lobby's select (ADR-021 §2): its humans pick at
+// once, each from what they own or the rotation offers, beside the lobby's
+// bots. Every human must have finished the tutorial and have no match, select
+// or queued party. The lobby calls it inside its own transaction, which this
+// joins.
+func (s *Service) OpenCustom(ctx context.Context, launch CustomLaunch) (Session, error) {
+	ids := make([]string, len(launch.Seats))
+	for i, seat := range launch.Seats {
+		ids[i] = seat.AccountID
+		profile, err := s.accounts.Profile(ctx, seat.AccountID)
+		if err != nil {
+			return Session{}, err
+		}
+		if !profile.TutorialCompleted {
+			return Session{}, ErrTutorialRequired
+		}
+		if err := s.checkFree(ctx, seat.AccountID); err != nil {
+			return Session{}, err
+		}
+	}
+	names, err := s.names.DisplayNames(ctx, ids)
+	if err != nil {
+		return Session{}, err
+	}
+	now := s.now()
+	settings := launch.Settings
+	session := Session{
+		ID:            newID(),
+		Kind:          KindCustom,
+		Mode:          s.settings.Custom.Mode,
+		HostAccountID: launch.HostAccountID,
+		LobbyID:       launch.LobbyID,
+		Bots:          append([]match.Bot(nil), launch.Bots...),
+		Custom:        &settings,
+		State:         Picking,
+		CreatedAt:     now,
+		Deadline:      now.Add(s.settings.Custom.PickDuration),
+	}
+	for _, seat := range launch.Seats {
+		session.Seats = append(session.Seats, Seat{AccountID: seat.AccountID, DisplayName: names[seat.AccountID], Side: seat.Side, LastSeen: now})
+	}
+	if err := s.store.InTx(ctx, func(_ context.Context, tx Tx) error { return tx.CreateSession(session) }); err != nil {
+		if errors.Is(err, ErrAlreadySelecting) {
+			return Session{}, ErrBusy
+		}
+		return Session{}, err
+	}
+	return session, nil
+}
+
 // Poll returns the account's active select, as Current does, and records its
 // client asking: its presence in a Casual Select (ADR-010 §10).
 func (s *Service) Poll(ctx context.Context, accountID string) (Session, bool, error) {
@@ -230,13 +311,17 @@ func (s *Service) Leave(ctx context.Context, accountID string) (Session, error) 
 	})
 }
 
-// ended tells matchmaking how a matchmade select ended; leaving are the
-// players it lets go, whose parties leave the queue.
+// ended tells matchmaking how a matchmade select ended, and a custom lobby
+// how its select did; leaving are the players matchmaking lets go, whose
+// parties leave the queue.
 func (s *Service) ended(ctx context.Context, session Session, leaving []string) error {
-	if session.Kind != KindCasual || s.matchmaking == nil {
-		return nil
+	switch {
+	case session.Kind == KindCasual && s.matchmaking != nil:
+		return s.matchmaking.SelectEnded(ctx, session.Accounts(), leaving, session.State == Started)
+	case session.Kind == KindCustom && s.lobbies != nil:
+		return s.lobbies.SelectEnded(ctx, session.LobbyID, session.State == Started)
 	}
-	return s.matchmaking.SelectEnded(ctx, session.Accounts(), leaving, session.State == Started)
+	return nil
 }
 
 // checkFree refuses an account that has an active match, select or queued party.
@@ -434,7 +519,8 @@ func (s *Service) beginStarting(ctx context.Context, session *Session, now time.
 // records how that went. The match service refuses a second match for one
 // select, so the select creates at most one.
 func (s *Service) startMatch(ctx context.Context, session Session) (Session, error) {
-	spec := match.Spec{Mode: session.Mode, Rules: rulesFor(session.Kind), HostAccountID: session.HostAccountID, SelectID: session.ID}
+	spec := match.Spec{Mode: session.Mode, Rules: rulesFor(session.Kind), HostAccountID: session.HostAccountID, SelectID: session.ID,
+		Bots: session.Bots, Custom: session.Custom}
 	for _, seat := range session.Seats {
 		spec.Seats = append(spec.Seats, match.Seat{AccountID: seat.AccountID, Side: seat.Side, VanguardID: seat.Locked, FluxSpells: seat.FluxSpells})
 	}
@@ -471,8 +557,11 @@ func (s *Service) startMatch(ctx context.Context, session Session) (Session, err
 }
 
 func rulesFor(kind Kind) match.Rules {
-	if kind == KindPractice {
+	switch kind {
+	case KindPractice:
 		return match.RulesPractice
+	case KindCustom:
+		return match.RulesCustom
 	}
 	return match.RulesStandard
 }

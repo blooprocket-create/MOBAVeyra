@@ -4,6 +4,7 @@
 
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
+#include "Rules/VeyraMatchRules.h"
 
 void AVeyraGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -13,6 +14,7 @@ void AVeyraGameState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, Phase, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, MatchRules, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, bVictoryEnabled, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, Host, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, LiveStartServerTime, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraGameState, MatchClockAtEnd, Params);
@@ -86,11 +88,13 @@ void AVeyraGameState::OnRep_Phase()
 	OnPhaseChanged.Broadcast(Phase);
 }
 
-void AVeyraGameState::SetMatchRules(EVeyraMatchRules Rules)
+void AVeyraGameState::SetMatchRules(EVeyraMatchRules Rules, TOptional<bool> bInVictoryEnabled)
 {
 	check(HasAuthority());
 	MatchRules = Rules;
+	bVictoryEnabled = bInVictoryEnabled.Get(VeyraMatchRules::HasVictory(Rules, {}));
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraGameState, MatchRules, this);
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraGameState, bVictoryEnabled, this);
 }
 
 void AVeyraGameState::SetHost(APlayerState* InHost)

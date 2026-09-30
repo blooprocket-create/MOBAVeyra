@@ -586,6 +586,29 @@ bool ParseSelect(const FString& Body, TOptional<FSelect>& OutSelect, FString& Ou
 		}
 		Select.Seats.Add(MoveTemp(Seat));
 	}
+	// A custom select's bots (ADR-021 §3). Every other kind has none, and the older selects left the field out.
+	const TArray<TSharedPtr<FJsonValue>>* Bots = nullptr;
+	if (Object->HasTypedField<EJson::Array>(TEXT("bots")) && Object->TryGetArrayField(TEXT("bots"), Bots))
+	{
+		for (const TSharedPtr<FJsonValue>& Value : *Bots)
+		{
+			const TSharedPtr<FJsonObject>* BotObject = nullptr;
+			FSelectBot Bot;
+			if (!Value.IsValid() || !Value->TryGetObject(BotObject) || !BotObject->IsValid() || !StringField(**BotObject, TEXT("side"), SidePattern, Bot.Side)
+				|| !StringField(**BotObject, TEXT("vanguardId"), ContentIdPattern, Bot.VanguardId)
+				|| !StringField(**BotObject, TEXT("difficulty"), WordPattern, Bot.Difficulty))
+			{
+				OutProblem = TEXT("a bot of the select is not in the expected format");
+				return false;
+			}
+			Select.Bots.Add(MoveTemp(Bot));
+		}
+	}
+	else if (Object->HasField(TEXT("bots")))
+	{
+		OutProblem = TEXT("the select's bots are not a list");
+		return false;
+	}
 	if (Select.Seats.FilterByPredicate([](const FSelectSeat& Seat) { return Seat.bYou; }).Num() != 1)
 	{
 		OutProblem = TEXT("the select does not hold exactly one seat for this player");
@@ -927,6 +950,281 @@ FString BuildVanguardBody(const FString& VanguardId)
 	Writer->WriteObjectEnd();
 	Writer->Close();
 	return Body;
+}
+
+namespace
+{
+	/** A JSON object writer's output, condensed, as every request body is written. */
+	template <typename FWriteFields>
+	FString WriteBody(FWriteFields&& WriteFields)
+	{
+		FString Body;
+		const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Body);
+		Writer->WriteObjectStart();
+		WriteFields(*Writer);
+		Writer->WriteObjectEnd();
+		Writer->Close();
+		return Body;
+	}
+
+	/** {"id", "displayName"}: an account as the social routes name it. */
+	bool ParseAccountObject(const FJsonObject& Object, FAccount& Out)
+	{
+		return StringField(Object, TEXT("id"), IdPattern, Out.Id) && StringField(Object, TEXT("displayName"), Out.DisplayName) && !Out.DisplayName.IsEmpty();
+	}
+
+	/** An array field of accounts. */
+	bool AccountArrayField(const FJsonObject& Object, FStringView Name, TArray<FAccount>& Out)
+	{
+		const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+		if (!Object.HasTypedField<EJson::Array>(Name) || !Object.TryGetArrayField(Name, Values))
+		{
+			return false;
+		}
+		Out.Reset();
+		for (const TSharedPtr<FJsonValue>& Value : *Values)
+		{
+			const TSharedPtr<FJsonObject>* Entry = nullptr;
+			FAccount Account;
+			if (!Value.IsValid() || !Value->TryGetObject(Entry) || !Entry->IsValid() || !ParseAccountObject(**Entry, Account))
+			{
+				return false;
+			}
+			Out.Add(MoveTemp(Account));
+		}
+		return true;
+	}
+
+	/** A number field that is a whole number, at least Min. */
+	bool WholeField(const FJsonObject& Object, FStringView Name, int32 Min, int32& Out)
+	{
+		double Value = 0.0;
+		if (!DurationField(Object, Name, Value) || Value != FMath::FloorToDouble(Value) || Value < Min || Value > MAX_int32)
+		{
+			return false;
+		}
+		Out = static_cast<int32>(Value);
+		return true;
+	}
+
+	/** A lobby seat; its fields fit its kind. */
+	bool ParseLobbySeat(const FJsonObject& Object, FLobbySeat& Out)
+	{
+		FString Kind;
+		if (!StringField(Object, TEXT("side"), SidePattern, Out.Side) || !WholeField(Object, TEXT("index"), 0, Out.Index) || !StringField(Object, TEXT("kind"), Kind)
+			|| !StringField(Object, TEXT("accountId"), Out.AccountId) || !StringField(Object, TEXT("displayName"), Out.DisplayName)
+			|| !BoolField(Object, TEXT("host"), Out.bHost) || !StringField(Object, TEXT("vanguardId"), Out.VanguardId)
+			|| !StringField(Object, TEXT("difficulty"), Out.Difficulty))
+		{
+			return false;
+		}
+		// The fields that do not apply to a seat's kind are empty.
+		if (Kind.Equals(TEXT("human"), ESearchCase::CaseSensitive))
+		{
+			Out.Kind = ELobbySeatKind::Human;
+			return MatchesWhole(IdPattern, Out.AccountId) && !Out.DisplayName.IsEmpty() && Out.VanguardId.IsEmpty() && Out.Difficulty.IsEmpty();
+		}
+		if (Kind.Equals(TEXT("bot"), ESearchCase::CaseSensitive))
+		{
+			Out.Kind = ELobbySeatKind::Bot;
+			return Out.AccountId.IsEmpty() && !Out.bHost && MatchesWhole(ContentIdPattern, Out.VanguardId) && MatchesWhole(WordPattern, Out.Difficulty);
+		}
+		Out.Kind = ELobbySeatKind::Empty;
+		return Kind.Equals(TEXT("empty"), ESearchCase::CaseSensitive) && Out.AccountId.IsEmpty() && Out.DisplayName.IsEmpty() && !Out.bHost
+			&& Out.VanguardId.IsEmpty() && Out.Difficulty.IsEmpty();
+	}
+}
+
+FString AccountLookupPath(const FString& DisplayName)
+{
+	return TEXT("/v1/accounts?displayName=") + FGenericPlatformHttp::UrlEncode(DisplayName);
+}
+
+bool ParseAccount(const FString& Body, FAccount& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	FAccount Account;
+	if (!Root.IsValid() || !ParseAccountObject(*Root, Account))
+	{
+		OutProblem = TEXT("the account's ID or name is missing or not in the expected format");
+		return false;
+	}
+	Out = MoveTemp(Account);
+	return true;
+}
+
+bool ParseFriends(const FString& Body, FFriends& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	FFriends Friends;
+	if (!Root.IsValid() || !AccountArrayField(*Root, TEXT("friends"), Friends.Friends) || !AccountArrayField(*Root, TEXT("incomingRequests"), Friends.Incoming)
+		|| !AccountArrayField(*Root, TEXT("outgoingRequests"), Friends.Outgoing))
+	{
+		OutProblem = TEXT("the friends, or the requests to or from the player, are missing or not in the expected format");
+		return false;
+	}
+	Out = MoveTemp(Friends);
+	return true;
+}
+
+bool ParseFriendRequestOutcome(const FString& Body, FString& OutOutcome, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	FString Outcome;
+	if (!Root.IsValid() || !StringField(*Root, TEXT("outcome"), Outcome)
+		|| !(Outcome.Equals(TEXT("requested"), ESearchCase::CaseSensitive) || Outcome.Equals(TEXT("friends"), ESearchCase::CaseSensitive)))
+	{
+		OutProblem = TEXT("the friend request's outcome is missing or not one the game knows");
+		return false;
+	}
+	OutOutcome = MoveTemp(Outcome);
+	return true;
+}
+
+FString BuildAccountBody(const FString& AccountId)
+{
+	return WriteBody([&AccountId](TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>& Writer) { Writer.WriteValue(TEXT("accountId"), AccountId); });
+}
+
+const FLobbySeat* FLobby::FindMember(const FString& AccountId) const
+{
+	return Seats.FindByPredicate([&AccountId](const FLobbySeat& Seat) { return Seat.Kind == ELobbySeatKind::Human && Seat.AccountId == AccountId; });
+}
+
+bool ParseLobby(const FString& Body, TOptional<FLobby>& OutLobby, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	if (!Root.IsValid() || !Root->HasField(TEXT("lobby")))
+	{
+		OutProblem = TEXT("the answer has no \"lobby\"");
+		return false;
+	}
+	if (Root->HasTypedField<EJson::Null>(TEXT("lobby")))
+	{
+		OutLobby.Reset();
+		return true;
+	}
+	const FJsonObject* Object = ObjectField(*Root, TEXT("lobby"));
+	const FJsonObject* Settings = Object ? ObjectField(*Object, TEXT("settings")) : nullptr;
+	const FJsonObject* GoldRange = Object ? ObjectField(*Object, TEXT("startingGoldRange")) : nullptr;
+	FLobby Lobby;
+	FString Status;
+	const TArray<TSharedPtr<FJsonValue>>* Seats = nullptr;
+	if (!Object || !Settings || !GoldRange || !StringField(*Object, TEXT("id"), IdPattern, Lobby.Id)
+		|| !StringField(*Object, TEXT("hostAccountId"), IdPattern, Lobby.HostAccountId) || !StringField(*Object, TEXT("status"), Status)
+		|| !(Status.Equals(TEXT("open"), ESearchCase::CaseSensitive) || Status.Equals(TEXT("selecting"), ESearchCase::CaseSensitive))
+		|| !WholeField(*Object, TEXT("playersPerSide"), 1, Lobby.PlayersPerSide) || !BoolField(*Settings, TEXT("victoryEnabled"), Lobby.bVictoryEnabled)
+		|| !DurationField(*GoldRange, TEXT("min"), Lobby.StartingGoldMin) || !DurationField(*GoldRange, TEXT("max"), Lobby.StartingGoldMax)
+		|| Lobby.StartingGoldMin > Lobby.StartingGoldMax || !Object->HasTypedField<EJson::Array>(TEXT("seats"))
+		|| !Object->TryGetArrayField(TEXT("seats"), Seats) || !StringArrayField(*Object, TEXT("botVanguards"), ContentIdPattern, Lobby.BotVanguards)
+		|| !StringArrayField(*Object, TEXT("botDifficulties"), WordPattern, Lobby.BotDifficulties))
+	{
+		OutProblem = TEXT("the lobby's ID, host, status, size, rules, seats or bot choices are missing or not in the expected format");
+		return false;
+	}
+	Lobby.bSelecting = Status.Equals(TEXT("selecting"), ESearchCase::CaseSensitive);
+	// Starting Gold is null for the game's own.
+	double Gold = 0.0;
+	if (DurationField(*Settings, TEXT("startingGold"), Gold))
+	{
+		Lobby.StartingGold = Gold;
+	}
+	else if (!Settings->HasTypedField<EJson::Null>(TEXT("startingGold")))
+	{
+		OutProblem = TEXT("the lobby's starting Gold is not a number or null");
+		return false;
+	}
+	for (const TSharedPtr<FJsonValue>& Value : *Seats)
+	{
+		const TSharedPtr<FJsonObject>* SeatObject = nullptr;
+		FLobbySeat Seat;
+		if (!Value.IsValid() || !Value->TryGetObject(SeatObject) || !SeatObject->IsValid() || !ParseLobbySeat(**SeatObject, Seat))
+		{
+			OutProblem = TEXT("a seat of the lobby is not in the expected format");
+			return false;
+		}
+		Lobby.Seats.Add(MoveTemp(Seat));
+	}
+	// Every seat of both sides, in order, and one host among the humans.
+	bool bInOrder = Lobby.Seats.Num() == 2 * Lobby.PlayersPerSide;
+	for (int32 Index = 0; bInOrder && Index < Lobby.Seats.Num(); ++Index)
+	{
+		const FLobbySeat& Seat = Lobby.Seats[Index];
+		bInOrder = Seat.Side == (Index < Lobby.PlayersPerSide ? TEXT("A") : TEXT("B")) && Seat.Index == Index % Lobby.PlayersPerSide;
+	}
+	const FLobbySeat* Host = Lobby.FindMember(Lobby.HostAccountId);
+	const int32 Hosts = Lobby.Seats.FilterByPredicate([](const FLobbySeat& Seat) { return Seat.bHost; }).Num();
+	if (!bInOrder || !Host || !Host->bHost || Hosts != 1)
+	{
+		OutProblem = TEXT("the lobby's seats are not both sides' in order, or it does not seat exactly one host");
+		return false;
+	}
+	OutLobby = MoveTemp(Lobby);
+	return true;
+}
+
+bool ParseLobbyInvites(const FString& Body, TArray<FLobbyInvite>& Out, FString& OutProblem)
+{
+	const TSharedPtr<FJsonObject> Root = ParseObject(Body);
+	const TArray<TSharedPtr<FJsonValue>>* Values = nullptr;
+	if (!Root.IsValid() || !Root->HasTypedField<EJson::Array>(TEXT("invites")) || !Root->TryGetArrayField(TEXT("invites"), Values))
+	{
+		OutProblem = TEXT("the answer has no list of invitations");
+		return false;
+	}
+	TArray<FLobbyInvite> Invites;
+	for (const TSharedPtr<FJsonValue>& Value : *Values)
+	{
+		const TSharedPtr<FJsonObject>* Entry = nullptr;
+		FLobbyInvite Invite;
+		const FJsonObject* Inviter = nullptr;
+		if (!Value.IsValid() || !Value->TryGetObject(Entry) || !Entry->IsValid() || !StringField(**Entry, TEXT("id"), IdPattern, Invite.Id)
+			|| !StringField(**Entry, TEXT("lobbyId"), IdPattern, Invite.LobbyId) || (Inviter = ObjectField(**Entry, TEXT("inviter"))) == nullptr
+			|| !ParseAccountObject(*Inviter, Invite.Inviter))
+		{
+			OutProblem = TEXT("an invitation is not in the expected format");
+			return false;
+		}
+		Invites.Add(MoveTemp(Invite));
+	}
+	Out = MoveTemp(Invites);
+	return true;
+}
+
+FString LobbyBotPath(const FString& Side, int32 Index)
+{
+	return FString::Printf(TEXT("/v1/lobby/seats/%s/%d/bot"), *Side, Index);
+}
+
+FString BuildSeatBody(const FString& Side, int32 Index)
+{
+	return WriteBody([&Side, Index](TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>& Writer) {
+		Writer.WriteValue(TEXT("side"), Side);
+		Writer.WriteValue(TEXT("index"), Index);
+	});
+}
+
+FString BuildBotBody(const FString& VanguardId, const FString& Difficulty)
+{
+	return WriteBody([&VanguardId, &Difficulty](TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>& Writer) {
+		Writer.WriteValue(TEXT("vanguardId"), VanguardId);
+		Writer.WriteValue(TEXT("difficulty"), Difficulty);
+	});
+}
+
+FString BuildLobbySettingsBody(bool bVictoryEnabled, TOptional<double> StartingGold)
+{
+	return WriteBody([bVictoryEnabled, &StartingGold](TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>& Writer) {
+		Writer.WriteValue(TEXT("victoryEnabled"), bVictoryEnabled);
+		if (StartingGold.IsSet())
+		{
+			Writer.WriteValue(TEXT("startingGold"), StartingGold.GetValue());
+		}
+		else
+		{
+			Writer.WriteNull(TEXT("startingGold"));
+		}
+	});
 }
 
 FString BuildResultBody(const FVeyraMatchResult& Result)

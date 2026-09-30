@@ -4,6 +4,7 @@
 
 #include "Content/VeyraContentId.h"
 #include "CoreMinimal.h"
+#include "Join/VeyraMatchAssignment.h"
 #include "VeyraMatchTypes.h"
 
 struct FVeyraRespawnTuning;
@@ -25,11 +26,23 @@ namespace VeyraMatchRules
 	 */
 	VEYRAMATCH_API EVeyraEndCustomMatchRefusal CheckEndCustomMatch(EVeyraMatchRules Rules, EVeyraMatchPhase Phase, bool bRequesterIsHost);
 
+	/** Whether matches under Rules have a host, who may end them: practice and custom (ADR-021 §3). */
+	VEYRAMATCH_API bool HasHost(EVeyraMatchRules Rules);
+
 	/**
-	 * Whether a destroyed Prime Well wins the match now (Battleground Bible §18; ADR-011 §13, §14):
-	 * in a standard match that is live. Practice has no victory condition, and an ended match stays ended.
+	 * Whether a match under Rules can be won: a standard match always, a custom match when its host left
+	 * victory on, practice never (ADR-011 §14; ADR-021 §3).
 	 */
-	VEYRAMATCH_API bool DoesPrimeWellWin(EVeyraMatchRules Rules, EVeyraMatchPhase Phase);
+	VEYRAMATCH_API bool HasVictory(EVeyraMatchRules Rules, const TOptional<FVeyraCustomSettings>& Custom);
+
+	/** Whether dead Vanguards may buy back: standard and custom matches, not practice (ADR-020; ADR-021 §3). */
+	VEYRAMATCH_API bool AllowsBuyback(EVeyraMatchRules Rules);
+
+	/**
+	 * Whether the Prime Well falling ends the match with a winner: in a match that can be won, while it
+	 * is live. An ended match stays ended.
+	 */
+	VEYRAMATCH_API bool DoesPrimeWellWin(bool bHasVictory, EVeyraMatchPhase Phase);
 
 	/**
 	 * Why a server may not host a participant as Vanguard; empty when it may. Definition is what

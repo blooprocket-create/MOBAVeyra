@@ -40,6 +40,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("SurfaceRaisedColor"), SurfaceRaisedColor },
 		{ TEXT("HairlineColor"), HairlineColor },
 		{ TEXT("PrimaryColor"), PrimaryColor },
+		{ TEXT("ItemDimTint"), ItemDimTint },
 		{ TEXT("PrimaryHoveredColor"), PrimaryHoveredColor },
 		{ TEXT("PrimaryTextColor"), PrimaryTextColor },
 		{ TEXT("ScrimColor"), ScrimColor },
@@ -88,6 +89,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("SplashHeight"), SplashHeight },
 		{ TEXT("SplashCornerRadius"), SplashCornerRadius },
 		{ TEXT("SpellTileSize"), SpellTileSize },
+		{ TEXT("AbilityIconSize"), AbilityIconSize },
 		{ TEXT("LockInWidth"), LockInWidth },
 		{ TEXT("PickerWidth"), PickerWidth },
 		{ TEXT("PickerTileWidth"), PickerTileWidth },
@@ -96,6 +98,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("ModeCardWidth"), ModeCardWidth },
 		{ TEXT("ModeCardHeight"), ModeCardHeight },
 		{ TEXT("DialogWidth"), DialogWidth },
+		{ TEXT("FriendsPanelWidth"), FriendsPanelWidth },
+		{ TEXT("LobbySeatWidth"), LobbySeatWidth },
 		{ TEXT("ShopTileSize"), ShopTileSize },
 		{ TEXT("ShopMarkSize"), ShopMarkSize },
 		{ TEXT("ShopQuickWidth"), ShopQuickWidth },
@@ -109,6 +113,10 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 	}
 	// The art is imported as packages under the game's content (VeyraShellArt).
 	Require(VanguardArtFolder.StartsWith(TEXT("/Game/")) && !VanguardArtFolder.EndsWith(TEXT("/")), TEXT("VanguardArtFolder"),
+		TEXT("must be a folder under /Game, without a trailing slash."));
+	Require(ItemArtFolder.StartsWith(TEXT("/Game/")) && !ItemArtFolder.EndsWith(TEXT("/")), TEXT("ItemArtFolder"),
+		TEXT("must be a folder under /Game, without a trailing slash."));
+	Require(AbilityArtFolder.StartsWith(TEXT("/Game/")) && !AbilityArtFolder.EndsWith(TEXT("/")), TEXT("AbilityArtFolder"),
 		TEXT("must be a folder under /Game, without a trailing slash."));
 	const auto CheckPortrait = [&Require](const FVeyraVanguardPortrait& Portrait, const TCHAR* Field) {
 		const bool bInside = Portrait.Focus.X >= 0.0 && Portrait.Focus.X <= 1.0 && Portrait.Focus.Y >= 0.0 && Portrait.Focus.Y <= 1.0;
@@ -125,6 +133,8 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		Require(!Portrait.Vanguard.IsEmpty() && !bAlreadySeen, TEXT("VanguardPortraits"), TEXT("each entry names a different Vanguard."));
 	}
 	Require(!HomeVanguard.IsEmpty(), TEXT("HomeVanguard"), TEXT("names the Vanguard whose art fills Home."));
+	Require(!LobbyStartingGoldChoices.IsEmpty() && !LobbyStartingGoldChoices.ContainsByPredicate([](float Gold) { return !(Gold >= 0.0f); }),
+		TEXT("LobbyStartingGoldChoices"), TEXT("lists at least one amount, none of them negative."));
 	TSet<FString> Modes;
 	for (const FVeyraModeArt& Art : ModeArt)
 	{

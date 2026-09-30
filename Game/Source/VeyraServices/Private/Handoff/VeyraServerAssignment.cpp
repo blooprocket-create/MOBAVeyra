@@ -63,6 +63,16 @@ TArray<FString> Parse(FStringView Line, FStringView SchemaText, FVeyraServerAssi
 	{
 		Assignment.Match.Bots.Add({ SideOf(Bot.Side), Bot.VanguardId, Bot.Difficulty });
 	}
+	if (!Document.Settings.IsEmpty())
+	{
+		const FVeyraAssignmentSettingsDocument& Settings = Document.Settings[0];
+		FVeyraCustomSettings& Custom = Assignment.Match.Custom.Emplace();
+		Custom.bVictoryEnabled = Settings.Victory == EVeyraAssignedVictory::Enabled;
+		if (!Settings.StartingGold.IsEmpty())
+		{
+			Custom.StartingGold = Settings.StartingGold[0];
+		}
+	}
 	Out = MoveTemp(Assignment);
 	return Problems;
 }

@@ -132,6 +132,11 @@ func (s *Server) block(w http.ResponseWriter, r *http.Request, actor string) {
 		if err := s.Social.Block(ctx, actor, target); err != nil {
 			return err
 		}
+		if s.Lobby != nil {
+			if err := s.Lobby.OnBlock(ctx, actor, target); err != nil {
+				return err
+			}
+		}
 		return s.Party.OnBlock(ctx, actor, target)
 	}))
 }

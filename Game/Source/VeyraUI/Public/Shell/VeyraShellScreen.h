@@ -4,11 +4,13 @@
 
 #include "Blueprint/UserWidget.h"
 #include "Shell/VeyraShellModels.h"
+#include "Types/SlateEnums.h"
 
 #include "VeyraShellScreen.generated.h"
 
 class IVeyraClientIntents;
 struct FVeyraHistoryOption;
+class UEditableTextBox;
 class UImage;
 class UOverlay;
 class UPanelWidget;
@@ -73,6 +75,12 @@ public:
 	/** Which view of a match report the screen shows. */
 	EVeyraReportView GetReportView() const { return ReportView; }
 
+	/** Whether the lobby's bot picker shows, for one of its seats. */
+	bool IsBotPickerOpen() const { return BotPickerIndex != INDEX_NONE; }
+
+	/** Types Name into the friends panel's name field, as the player would. For tests and scripts. */
+	void SetFriendNameDraft(const FString& Name);
+
 	/** The art behind the screen: the Vanguard champion select shows, or null. */
 	UTexture2D* GetBackdrop() const;
 
@@ -117,8 +125,33 @@ private:
 	 */
 	void BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
 
-	/** The shell's bar across the top: the name, the pages, the player and Quit. */
-	void BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** The shell's bar across the top: the name, the pages (unless bPages is false, as in a lobby), the player and Quit. */
+	void BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent, bool bPages = true);
+
+	/**
+	 * A custom lobby (ADR-021; VeyraShellLobby.cpp), laid out as League's: both sides' seats with their
+	 * humans and bots, the session's rules, Start and Leave, and the friends panel.
+	 */
+	void BuildLobby(const FVeyraClientSnapshot& Snapshot);
+	/** One side's column of seats. */
+	UWidget& MakeLobbySide(const FText& Title, const TArray<FVeyraLobbySeatModel>& Seats);
+	UWidget& MakeLobbySeat(const FVeyraLobbySeatModel& Seat);
+	/** Victory and starting Gold: the host's choices, or what the host chose. */
+	void BuildLobbyRules(const FVeyraLobbyModel& Model, UPanelWidget& Parent);
+	/** The bot picker over the lobby, for the seat it was opened on. */
+	void BuildBotPicker(const FVeyraClientSnapshot& Snapshot);
+	/** Opens the bot picker on a seat at Difficulty, or closes it when it is open there. */
+	void OpenBotPicker(const FString& Side, int32 Index, const FString& Difficulty);
+	/** The friends panel down the right (Parties & Social Bible §1; Art Bible §7): add by name, requests, invitations and friends. */
+	void BuildFriends(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+	/** Sends the friend request the name field holds. */
+	void SubmitFriendName();
+
+	UFUNCTION()
+	void HandleFriendNameChanged(const FText& Text);
+
+	UFUNCTION()
+	void HandleFriendNameCommitted(const FText& Text, ETextCommit::Type Method);
 
 	/**
 	 * A card showing VanguardId's illustration with a plate of text along its bottom, as a button named
@@ -172,6 +205,9 @@ private:
 	/** A button showing ButtonContent, named Label. */
 	UVeyraShellButton* AddContentButton(UPanelWidget& Parent, const FText& Label, UWidget& ButtonContent, TFunction<void()> Action, bool bEnabled,
 		bool bSelected);
+	/** A button of Kind showing ShownText on one line, named Label (UVeyraShellButton::MakeKindNamed). */
+	UVeyraShellButton* AddNamedButton(UPanelWidget& Parent, EVeyraShellButtonKind Kind, const FText& Label, const FText& ShownText, TFunction<void()> Action,
+		bool bEnabled = true, bool bSelected = false);
 	void ShowPage(EVeyraShellPage NewPage);
 
 	IVeyraClientIntents* Client = nullptr;
@@ -231,4 +267,15 @@ private:
 	int32 OpenSpellSlot = INDEX_NONE;
 	bool bShowAbilities = false;
 	EVeyraReportView ReportView = EVeyraReportView::Scoreboard;
+
+	/** The seat the lobby's bot picker shows for, and the difficulty chosen in it; INDEX_NONE while it is closed. */
+	FString BotPickerSide;
+	int32 BotPickerIndex = INDEX_NONE;
+	FString BotDifficulty;
+
+	/** The friends panel's name field, rebuilt with the screen; what it holds outlives it. */
+	UPROPERTY(Transient)
+	TObjectPtr<UEditableTextBox> FriendNameBox;
+
+	FString FriendNameDraft;
 };

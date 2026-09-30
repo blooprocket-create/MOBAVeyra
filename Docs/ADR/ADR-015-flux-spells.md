@@ -114,6 +114,7 @@ What the code has today (surveyed 2026-09-29):
 - **Champion select** (practice and Casual): two slot pickers show the roster with each spell's name and effect (string table), each slot's threshold (from `Flux.json`), and an empty choice. **Your Match Setup** summarises the locked Vanguard and both spells.
 - **HUD:** two spell rows beside the items, each showing its key and spell with one of three states: locked, with the permanent Flux it needs; ready; or cooling down.
 - **Shop screen:** a Flux Spell row with the two slots, the roster and the swap cost. Its buttons work only at the fountain.
+- **Icons (2026-09-29):** each spell, like each Vanguard's passive and Q W E R, shows its icon wherever it appears (`ConceptArt/Skills`, imported by `Game/Scripts/BuildIconArt.ps1 -Kind Abilities`), or its name or initials until it has one.
 
 ### 8. Bots
 
