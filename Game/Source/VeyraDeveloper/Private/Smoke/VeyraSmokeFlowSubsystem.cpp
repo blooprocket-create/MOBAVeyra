@@ -33,6 +33,7 @@
 #include "Shell/VeyraShellButton.h"
 #include "Shell/VeyraShellModels.h"
 #include "Shell/VeyraShellScreen.h"
+#include "Shell/VeyraShellStyleSettings.h"
 #include "Shell/VeyraShellUISubsystem.h"
 #include "Shop/VeyraShopScreen.h"
 #include "Text/VeyraContentText.h"
@@ -52,6 +53,11 @@ namespace
 	const TCHAR* const VictorySwitch = TEXT("VeyraSmokeFlowVictory");
 	const TCHAR* const ReconnectsSwitch = TEXT("VeyraSmokeFlowReconnects");
 	const TCHAR* const AwaitsReturnSwitch = TEXT("VeyraSmokeFlowAwaitsReturn");
+	const TCHAR* const FriendSwitch = TEXT("VeyraSmokeFlowFriend=");
+	const TCHAR* const BotsSwitch = TEXT("VeyraSmokeFlowBots=");
+	// Custom: how long the host waits for its friend to join before inviting them again, as after an
+	// invitation that expired or went unseen.
+	constexpr double InviteAgainRealSeconds = 30.0;
 	// Harness settings for the siege: how often it asks, leaving time for each fall to replicate, and
 	// how many asks mean something is wrong, well above the structures on the way to a Prime Well.
 	constexpr double SiegeIntervalRealSeconds = 1.0;
@@ -81,6 +87,7 @@ namespace
 	const TCHAR* const DeveloperEndReason = TEXT("developer_request");
 	const TCHAR* const VictoryEndReason = TEXT("prime_well_destroyed");
 	const TCHAR* const StandardRules = TEXT("standard");
+	const TCHAR* const CustomRules = TEXT("custom");
 	// How the coordinator explains a match found that did not go ahead.
 	const TCHAR* const DeclinedNotice = TEXT("match_found_declined");
 	const TCHAR* const RequeuedNotice = TEXT("match_found_requeued");
@@ -96,6 +103,13 @@ namespace
 	const TCHAR* const ContinueLabel = TEXT("Continue");
 	const TCHAR* const EndCustomMatchLabel = TEXT("End Custom Match");
 	const TCHAR* const DeveloperEndLabel = TEXT("End Match (Developer)");
+	const TCHAR* const CustomGameLabel = TEXT("Custom Game");
+	const TCHAR* const AddFriendLabel = TEXT("Add Friend");
+	const TCHAR* const StartGameLabel = TEXT("Start Game");
+	const TCHAR* const LeaveLobbyLabel = TEXT("Leave Lobby");
+	const TCHAR* const VictoryOnLabel = TEXT("Turn Victory On");
+	const TCHAR* const HostSide = TEXT("A");
+	const TCHAR* const GuestSide = TEXT("B");
 }
 
 bool UVeyraSmokeFlowSubsystem::ShouldCreateSubsystem(UObject* Outer) const
@@ -116,6 +130,11 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	bVictory = FParse::Param(FCommandLine::Get(), VictorySwitch);
 	bReconnects = FParse::Param(FCommandLine::Get(), ReconnectsSwitch);
 	bAwaitsReturn = FParse::Param(FCommandLine::Get(), AwaitsReturnSwitch);
+	FParse::Value(FCommandLine::Get(), FriendSwitch, FriendName);
+	FString Bots;
+	// A list: FParse stops at its first comma unless told not to.
+	FParse::Value(FCommandLine::Get(), BotsSwitch, Bots, /*bShouldStopOnSeparator*/ false);
+	Bots.ParseIntoArray(BotVanguards, TEXT(","));
 	StartRealTime = FPlatformTime::Seconds();
 	const TPair<const TCHAR*, EScript> Scripts[] = {
 		{ TEXT("join"), EScript::Join },
@@ -124,16 +143,24 @@ void UVeyraSmokeFlowSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 		{ TEXT("decline"), EScript::Decline },
 		{ TEXT("requeue"), EScript::Requeue },
 		{ TEXT("opponent"), EScript::Opponent },
+		{ TEXT("customhost"), EScript::CustomHost },
+		{ TEXT("customguest"), EScript::CustomGuest },
 	};
 	const TPair<const TCHAR*, EScript>* Known = Algo::FindByPredicate(Scripts, [&Mode](const TPair<const TCHAR*, EScript>& Candidate) {
 		return Mode.Equals(Candidate.Key, ESearchCase::CaseSensitive);
 	});
 	if (!Known)
 	{
-		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue or opponent, not \"%s\""), *Mode));
+		Finish(false, FString::Printf(TEXT("-VeyraSmokeFlow takes join, practice, casual, decline, requeue, opponent, customhost or customguest, not \"%s\""), *Mode));
 		return;
 	}
 	Script = Known->Value;
+	// The custom scripts play with a friend; the host also seats a bot on each side.
+	if (IsCustom() && (FriendName.IsEmpty() || (Script == EScript::CustomHost && BotVanguards.Num() != 2)))
+	{
+		Finish(false, TEXT("the custom scripts need -VeyraSmokeFlowFriend=<the other player>, and the host -VeyraSmokeFlowBots=<side A's>,<side B's>"));
+		return;
+	}
 	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: started the %s flow script%s%s."), *Mode, bEndsMatch ? TEXT(", which ends the match") : TEXT(""),
 		bSieges ? TEXT(", which sieges") : TEXT(""));
 	TickHandle = FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateUObject(this, &UVeyraSmokeFlowSubsystem::Tick));
@@ -226,10 +253,27 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		}
 		break;
 
+	case EVeyraClientState::Lobby:
+		if (IsCustom())
+		{
+			TickCustomLobby(Flow);
+		}
+		else if (Flow.CanIssue(EVeyraClientIntent::LeaveLobby))
+		{
+			// A lobby an earlier custom run left behind stands in the way of this script's path.
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: leaving a custom lobby from an earlier run."));
+			Click(LeaveLobbyLabel);
+		}
+		break;
+
 	case EVeyraClientState::Shell:
 		if (IsMatchmade())
 		{
 			TickMatchmadeShell(Flow);
+		}
+		else if (IsCustom())
+		{
+			TickCustomShell(Flow);
 		}
 		else if (bSawResults && !TickHistory(Flow))
 		{
@@ -469,6 +513,270 @@ void UVeyraSmokeFlowSubsystem::TickMatchFound(IVeyraClientIntents& Flow)
 	}
 }
 
+void UVeyraSmokeFlowSubsystem::TickCustomShell(IVeyraClientIntents& Flow)
+{
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	if (bSawResults)
+	{
+		Finish(true, FString::Printf(TEXT("%s, locked %s, %s, saw its verified custom result and returned to the shell"),
+			Script == EScript::CustomHost ? *FString::Printf(TEXT("was friends with %s, opened a Custom Game, invited them, seated a bot on each side, chose the starting Gold and started it"), *FriendName)
+										  : *FString::Printf(TEXT("was friends with %s and joined their custom lobby from its invitation"), *FriendName),
+			*LockedVanguard, bSieges ? TEXT("won the match by siege") : TEXT("waited for the match to end")));
+		return;
+	}
+	if (bInLobby && !Snapshot.Notice.IsEmpty())
+	{
+		Finish(false, FString::Printf(TEXT("the player is back in the shell from the lobby (%s)"), *Snapshot.Notice));
+		return;
+	}
+	if (!TickFriendship(Flow))
+	{
+		return;
+	}
+#if WITH_VEYRA_UI
+	if (Script == EScript::CustomHost)
+	{
+		// Play, then Custom Game, as a player opens a lobby (ADR-021).
+		if (!bOpenedPlay)
+		{
+			if (!Capture(TEXT("Home")) && Click(PlayLabel))
+			{
+				bOpenedPlay = true;
+			}
+		}
+		else if (!bOpenedCustom && Flow.CanIssue(EVeyraClientIntent::CreateLobby) && !Capture(TEXT("Play")) && Click(CustomGameLabel))
+		{
+			bOpenedCustom = true;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: Play, Custom Game."));
+		}
+		return;
+	}
+	// The guest joins from its friend's invitation, in the friends panel.
+	const bool bInvited = Snapshot.Social.LobbyInvites.ContainsByPredicate(
+		[this](const VeyraBackendProtocol::FLobbyInvite& Invite) { return Invite.Inviter.DisplayName == FriendName; });
+	if (bInvited && Flow.CanIssue(EVeyraClientIntent::AcceptLobbyInvite) && Click(VeyraShellModels::JoinLobbyLabel(FriendName).ToString()))
+	{
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: joining %s's lobby from the invitation."), *FriendName);
+	}
+#else
+	Finish(false, TEXT("this build has no shell to click"));
+#endif
+}
+
+bool UVeyraSmokeFlowSubsystem::TickFriendship(IVeyraClientIntents& Flow)
+{
+	const FVeyraSocial& Social = Flow.GetSnapshot().Social;
+	if (!Social.bLoaded)
+	{
+		return false;
+	}
+	const auto IsFriend = [this](const VeyraBackendProtocol::FAccount& Account) { return Account.DisplayName == FriendName; };
+	if (Social.Friends.Friends.ContainsByPredicate(IsFriend))
+	{
+		if (!bFriends)
+		{
+			bFriends = true;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: friends with %s."), *FriendName);
+		}
+		return true;
+	}
+#if WITH_VEYRA_UI
+	// Whoever asked first, the other accepts (Parties & Social Bible §1).
+	if (Social.Friends.Incoming.ContainsByPredicate(IsFriend))
+	{
+		if (Flow.CanIssue(EVeyraClientIntent::AnswerFriendRequest) && Click(VeyraShellModels::AcceptRequestLabel(FriendName).ToString()))
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: accepted %s's friend request."), *FriendName);
+		}
+		return false;
+	}
+	// The host asks by name; the guest waits for the request.
+	if (Script == EScript::CustomHost && !bAskedFriend && !Social.Friends.Outgoing.ContainsByPredicate(IsFriend)
+		&& Flow.CanIssue(EVeyraClientIntent::SendFriendRequest) && TypeFriendName(FriendName) && Click(AddFriendLabel))
+	{
+		bAskedFriend = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: asked %s to be friends."), *FriendName);
+	}
+#endif
+	return false;
+}
+
+void UVeyraSmokeFlowSubsystem::TickCustomLobby(IVeyraClientIntents& Flow)
+{
+#if WITH_VEYRA_UI
+	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
+	if (!Snapshot.Lobby.IsSet())
+	{
+		return;
+	}
+	const VeyraBackendProtocol::FLobby& Lobby = *Snapshot.Lobby;
+	// What the match will start with, for the results to check; a lobby read as it starts says so too.
+	LobbyStartingGold = Lobby.StartingGold;
+	if (Lobby.bSelecting || Snapshot.bBusy)
+	{
+		return;
+	}
+	const bool bHosts = Lobby.HostAccountId == Snapshot.AccountId;
+	const VeyraBackendProtocol::FLobbySeat* Friend = Lobby.Seats.FindByPredicate([this](const VeyraBackendProtocol::FLobbySeat& Seat) {
+		return Seat.Kind == VeyraBackendProtocol::ELobbySeatKind::Human && Seat.DisplayName == FriendName;
+	});
+	// Each script plays its own part: a lobby of an earlier run that is not that part's is left.
+	const bool bRightLobby = Script == EScript::CustomHost ? bHosts : (Friend && Friend->bHost);
+	if (!bRightLobby)
+	{
+		if (Flow.CanIssue(EVeyraClientIntent::LeaveLobby))
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: leaving a custom lobby from an earlier run."));
+			Click(LeaveLobbyLabel);
+		}
+		return;
+	}
+	if (!bInLobby)
+	{
+		bInLobby = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: in %s custom lobby %s."), bHosts ? TEXT("its own") : *FString::Printf(TEXT("%s's"), *FriendName), *Lobby.Id);
+	}
+	if (Script == EScript::CustomGuest)
+	{
+		// The host seats everyone and starts it (Custom Matches Bible §1).
+		return;
+	}
+	if (Capture(TEXT("Lobby")))
+	{
+		return;
+	}
+	// The friend, invited again if an invitation went unanswered.
+	if (!Friend)
+	{
+		if (FPlatformTime::Seconds() >= NextInviteAt && Flow.CanIssue(EVeyraClientIntent::InviteToLobby) && Click(VeyraShellModels::InviteLabel(FriendName).ToString()))
+		{
+			NextInviteAt = FPlatformTime::Seconds() + InviteAgainRealSeconds;
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: invited %s into the lobby."), *FriendName);
+		}
+		return;
+	}
+	// The host plays side A and its friend side B.
+	const VeyraBackendProtocol::FLobbySeat* You = Lobby.FindMember(Snapshot.AccountId);
+	if (Friend->Side != GuestSide)
+	{
+		Click(VeyraShellModels::SwitchSideLabel(FriendName, GuestSide).ToString());
+		return;
+	}
+	if (You && You->Side != HostSide)
+	{
+		Click(VeyraShellModels::SwitchSideLabel(Snapshot.DisplayName, HostSide).ToString());
+		return;
+	}
+	if (TickLobbyBots(Lobby))
+	{
+		return;
+	}
+	// A starting Gold the lobby offers besides the game's own: the first above none (§4).
+	TOptional<double> Wanted;
+	for (const float Choice : GetDefault<UVeyraShellStyleSettings>()->LobbyStartingGoldChoices)
+	{
+		if (!Wanted.IsSet() && Choice > 0.0f && Choice >= Lobby.StartingGoldMin && Choice <= Lobby.StartingGoldMax)
+		{
+			Wanted = static_cast<double>(Choice);
+		}
+	}
+	if (Wanted.IsSet() && !(Lobby.StartingGold.IsSet() && FMath::IsNearlyEqual(Lobby.StartingGold.GetValue(), Wanted.GetValue())))
+	{
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: choosing %.0f starting Gold."), Wanted.GetValue());
+		Click(VeyraShellModels::StartingGoldLabel(Wanted).ToString());
+		return;
+	}
+	// A Prime Well's fall wins (§4): on by itself once both sides hold a Vanguard, unless a host turned it off.
+	if (!Lobby.bVictoryEnabled)
+	{
+		Click(VictoryOnLabel);
+		return;
+	}
+	if (!bStartedLobby && Flow.CanIssue(EVeyraClientIntent::LaunchLobby) && !Capture(TEXT("LobbyReady")) && Click(StartGameLabel))
+	{
+		bStartedLobby = true;
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: started the custom game."));
+	}
+#else
+	Finish(false, TEXT("this build has no shell to click"));
+#endif
+}
+
+bool UVeyraSmokeFlowSubsystem::TickLobbyBots(const VeyraBackendProtocol::FLobby& Lobby)
+{
+#if WITH_VEYRA_UI
+	using VeyraBackendProtocol::ELobbySeatKind;
+	using VeyraBackendProtocol::FLobbySeat;
+	const TCHAR* const Sides[] = { HostSide, GuestSide };
+	for (int32 SideIndex = 0; SideIndex < static_cast<int32>(UE_ARRAY_COUNT(Sides)); ++SideIndex)
+	{
+		const FString Side = Sides[SideIndex];
+		const FString& Wanted = BotVanguards[SideIndex];
+		// A bot an earlier run seated, playing another Vanguard, goes.
+		if (const FLobbySeat* Stray = Lobby.Seats.FindByPredicate([&Side, &Wanted](const FLobbySeat& Seat) {
+				return Seat.Side == Side && Seat.Kind == ELobbySeatKind::Bot && Seat.VanguardId != Wanted;
+			}))
+		{
+			Click(VeyraShellModels::RemoveBotLabel(Side, Stray->Index).ToString());
+			return true;
+		}
+		const bool bSeated = Lobby.Seats.ContainsByPredicate([&Side, &Wanted](const FLobbySeat& Seat) {
+			return Seat.Side == Side && Seat.Kind == ELobbySeatKind::Bot && Seat.VanguardId == Wanted;
+		});
+		if (bSeated)
+		{
+			continue;
+		}
+		const FLobbySeat* Empty = Lobby.Seats.FindByPredicate([&Side](const FLobbySeat& Seat) { return Seat.Side == Side && Seat.Kind == ELobbySeatKind::Empty; });
+		if (!Empty)
+		{
+			Finish(false, FString::Printf(TEXT("side %s has no empty seat for its bot"), *Side));
+			return true;
+		}
+		// As the host does: Add Bot on the seat, then the Vanguard in the picker, at its first difficulty.
+		if (!IsBotPickerOpen())
+		{
+			Click(VeyraShellModels::AddBotLabel(Side, Empty->Index).ToString());
+		}
+		else
+		{
+			UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: seating a %s bot on side %s."), *Wanted, *Side);
+			Click(VeyraShellModels::BotChoiceLabel(Wanted).ToString());
+		}
+		return true;
+	}
+#endif
+	return false;
+}
+
+bool UVeyraSmokeFlowSubsystem::TypeFriendName(const FString& Name)
+{
+#if WITH_VEYRA_UI
+	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
+	UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr;
+	if (!Screen)
+	{
+		Finish(false, TEXT("the shell shows no screen to type a friend's name into"));
+		return false;
+	}
+	Screen->SetFriendNameDraft(Name);
+	return true;
+#else
+	return false;
+#endif
+}
+
+bool UVeyraSmokeFlowSubsystem::IsBotPickerOpen() const
+{
+#if WITH_VEYRA_UI
+	const UVeyraShellUISubsystem* Shell = GetGameInstance()->GetSubsystem<UVeyraShellUISubsystem>();
+	const UVeyraShellScreen* Screen = Shell ? Shell->GetScreen() : nullptr;
+	return Screen && Screen->IsBotPickerOpen();
+#else
+	return false;
+#endif
+}
+
 void UVeyraSmokeFlowSubsystem::TickOpponent(IVeyraClientIntents& Flow)
 {
 	const FVeyraClientSnapshot& Snapshot = Flow.GetSnapshot();
@@ -601,9 +909,9 @@ void UVeyraSmokeFlowSubsystem::TickInMatch()
 	{
 		return;
 	}
-	// The practice host ends its match; of a standard match's players, the one told to, or the one
-	// that sieges.
-	if (Script == EScript::Casual && !bEndsMatch && !bSieges)
+	// The practice host ends its match; of a standard or custom match's players, the one told to, or
+	// the one that sieges.
+	if ((Script == EScript::Casual || IsCustom()) && !bEndsMatch && !bSieges)
 	{
 		return;
 	}
@@ -1012,7 +1320,7 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 		*Result->VanguardId, Result->bJoined ? TEXT("joined") : TEXT("never joined"), Result->bConnectedAtEnd ? TEXT("connected") : TEXT("disconnected"));
 	const bool bPractice = Script == EScript::Practice;
 	const TCHAR* const ExpectedEndReason = bPractice ? PracticeEndReason : bVictory ? VictoryEndReason : DeveloperEndReason;
-	const TCHAR* const ExpectedRules = bPractice ? PracticeRules : StandardRules;
+	const TCHAR* const ExpectedRules = bPractice ? PracticeRules : IsCustom() ? CustomRules : StandardRules;
 	// Only a won match has a winner: the sieging player's side, which the other lost to.
 	const bool bWinnerRight = bVictory ? !Result->Winner.IsEmpty() && (Result->Winner == Result->Side) == bSieges : Result->Winner.IsEmpty();
 	// A player back within the grace has no personal loss (Match Flow Bible §5.2).
@@ -1028,9 +1336,15 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 	const VeyraBackendProtocol::FPlayerOutcome* You = Result->Players.FindByPredicate([](const VeyraBackendProtocol::FPlayerOutcome& Line) { return Line.bYou; });
 	const int32 Bots = Algo::CountIf(Result->Players, [](const VeyraBackendProtocol::FPlayerOutcome& Line) { return Line.Name.StartsWith(TEXT("Bot ")); });
 	if (!Result->bHasScoreboard || !You || You->VanguardId != LockedVanguard || !(You->Statistics.GoldBySource.Starting > 0.0) || You->Statistics.Level < 1
-		|| (bPractice && Bots == 0))
+		|| ((bPractice || IsCustom()) && Bots == 0))
 	{
-		Finish(false, TEXT("the verified result has no scoreboard with the player's own line, and in practice its bots"));
+		Finish(false, TEXT("the verified result has no scoreboard with the player's own line, and in practice or a custom match its bots"));
+		return;
+	}
+	// A custom match starts with the Gold its host chose in the lobby (ADR-021 §3).
+	if (IsCustom() && LobbyStartingGold.IsSet() && !FMath::IsNearlyEqual(You->Statistics.GoldBySource.Starting, LobbyStartingGold.GetValue()))
+	{
+		Finish(false, FString::Printf(TEXT("the player started with %.0f Gold, not the %.0f its lobby set"), You->Statistics.GoldBySource.Starting, LobbyStartingGold.GetValue()));
 		return;
 	}
 	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: the verified scoreboard lists %d player(s) (%d bot(s)) and %d Flux Well capture(s); this player went %d/%d/%d, earned %.0f Gold, dealt %.0f to towers."),

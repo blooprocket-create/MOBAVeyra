@@ -103,15 +103,21 @@ Custom results are recorded, with `rules=custom`, and appear in Match History wi
 
 ### 6. The client
 
-- **A friends panel** is a persistent shell surface (Art Bible §7). It lists friends, adds one by name, answers requests, and shows and answers invites to a party or a lobby.
-- **Play** gains a Custom Game card, which creates a lobby.
+- **A friends panel** is a persistent surface down the right of the shell and the lobby (Art Bible §7). It lists friends, adds one by exact display name (`GET /v1/accounts?displayName=`), answers friend requests, shows pending requests, and shows and answers lobby invitations. In the host's lobby each friend not yet in it has Invite.
+- **Play** gains a Custom Game card, which creates a lobby. The Practice card stays beside it.
 - **The lobby screen**, laid out as League's custom lobby:
-  - two columns of five slots, each with a portrait, name and difficulty;
-  - for the host, Add Bot on an empty slot, opening a Vanguard and difficulty picker, and moving a human by choosing a slot;
-  - the rules (victory, starting Gold);
-  - the host's friends to invite;
-  - Start (the host's) and Leave.
-- **The client flow** gains a `Lobby` state and lobby intents. It resumes into the lobby after a restart, as it does into select.
+  - two columns, Side A and Side B, of `playersPerSide` seats each. Each seat shows a portrait ringed in its side's colour, a name, and Host, Player or the bot's difficulty;
+  - for the host, Add Bot on an empty seat and Change on a bot's. Each opens a picker of the Vanguards the lobby offers bots, at a chosen difficulty; a Vanguard another bot on that side plays is not offered. Also Remove on a bot, and Switch Side and Remove on a human. Switch Side moves the human to the other side's first empty seat, the one-click form of the host placing humans (§1);
+  - the rules: Turn Victory On or Off, offered only when both sides hold a Vanguard, and starting Gold as Default Gold or one of the style's `LobbyStartingGoldChoices` that lies within the lobby's range. The choices are presentation; the backend's range decides;
+  - Start Game (the host's) and Leave Lobby; the page navigation is hidden while in a lobby.
+- **The lobby's answer names the bot choices.** `GET /v1/lobby` lists `botVanguards` (every released Vanguard, sorted) and `botDifficulties`, so the client offers exactly what the backend accepts.
+- **The client flow** gains a `Lobby` state and lobby intents. Its reads:
+  - After the profile, the flow reads `GET /v1/lobby`, so a restart resumes into the lobby. A backend with lobbies switched off answers 404, which reads as no lobby.
+  - The lobby is read every `LobbyPollIntervalSeconds`. When it is selecting, the flow follows into `GET /v1/me/select`. A null lobby returns the player to the shell with the notice `lobby_gone`.
+  - A cancelled or left custom select resumes, which finds the lobby open again. A custom select may be left, as a matchmade one may.
+  - Friends and invitations are read every `SocialPollIntervalSeconds` in the shell and the lobby. These reads never raise the screen's problem: a failed read waits for the next.
+  - Social refusals (`account_not_found`, `already_friends`, an expired invitation) show in the friends panel, never as the screen's problem. A block is never revealed.
+- **After the match** the lobby is gone (its match started), so the players return to the shell. League's post-game return to the lobby is deferred.
 
 ### 7. Deferred
 
@@ -121,6 +127,8 @@ Custom results are recorded, with `rules=custom`, and appear in Match History wi
 - Presence and Appear Offline.
 - Chat, and the push channel it and the lobby need.
 - Merging solo practice into lobbies.
+- Party invites in the client: the backend has them, but the one matchmade mode (`casual_select`) seats one human a side, so a party has nothing to queue for yet. They come with the first matchmade mode for several humans (Co-op vs AI, Draft).
+- Returning to the lobby after its match, as League's post-game does.
 
 ### 8. League answers where canon is silent (for the author to overturn)
 
@@ -131,6 +139,8 @@ Custom results are recorded, with `rules=custom`, and appear in Match History wi
 - **End Custom Match:** the host may end any custom session. League has no such command; canon's sandbox allows it.
 - **Surrender:** allowed in a custom match with victory on, as in League's custom games.
 - **The rules offered:** victory on or off, and starting Gold within the backend's range.
+- **Moving humans:** one click moves a human to the other side, as League's custom lobby's team switch does; the host does it for anyone (§1).
+- **Finding friends:** by exact display name, as League's add-friend box does; no search or suggestions.
 
 ## Consequences
 

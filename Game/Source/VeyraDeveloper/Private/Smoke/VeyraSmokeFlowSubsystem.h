@@ -13,6 +13,10 @@ class AVeyraGameState;
 class AVeyraPlayerController;
 class IVeyraClientIntents;
 struct FVeyraClientSnapshot;
+namespace VeyraBackendProtocol
+{
+	struct FLobby;
+}
 
 /**
  * A scripted player for the client-state coordinator (ADR-010 §2), started by -VeyraSmokeFlow= in a
@@ -42,6 +46,16 @@ struct FVeyraClientSnapshot;
  * - decline declines the match found, and passes once it is back in the shell out of the queue.
  * - requeue accepts; when another player declines, it must be back in the queue. It cancels the
  *   queue and passes.
+ *
+ * The custom lobby's scripts (Smoke.ps1 -Flow Custom, ADR-021) run in two games at once, each naming
+ * the other's player with -VeyraSmokeFlowFriend=. First they become friends: the host asks by name in
+ * the friends panel, and each accepts a request from the other. Then:
+ * - customhost opens a Custom Game from Play, invites its friend, keeps itself on side A and the friend
+ *   on side B, seats one bot a side playing the Vanguards -VeyraSmokeFlowBots= names (side A's, then
+ *   side B's), chooses a starting Gold the lobby offers, sees victory on and starts the game.
+ * - customguest joins from its friend's invitation and waits in the lobby for the start.
+ * Both then pick as the matchmade scripts do; with -VeyraSmokeFlowSieges the host wins by siege, and
+ * each checks the verified custom result, its bots and the starting Gold the host chose.
  *
  * -VeyraSmokeFlow=opponent is not a test but a sparring partner for a person playing the matchmade
  * path (Game/Scripts/Play.ps1 -Opponent). It queues for the first matchmade mode and accepts every
@@ -73,6 +87,8 @@ private:
 		Decline,
 		Requeue,
 		Opponent,
+		CustomHost,
+		CustomGuest,
 	};
 
 	bool Tick(float DeltaSeconds);
@@ -80,6 +96,19 @@ private:
 	/** The shell of a matchmade script: into the queue, and back from a match found that did not go ahead. */
 	void TickMatchmadeShell(IVeyraClientIntents& Flow);
 	void TickMatchFound(IVeyraClientIntents& Flow);
+	/** A custom lobby's scripts in the shell: friends with the other client, then into the lobby, the host from Play and the guest by its invitation. */
+	void TickCustomShell(IVeyraClientIntents& Flow);
+	/** A custom lobby's scripts in the lobby: the host invites, seats, sets the rules and starts; the guest waits. */
+	void TickCustomLobby(IVeyraClientIntents& Flow);
+	/** Friends with the other client: the host asks by name, and either accepts the other's request. True once they are friends. */
+	bool TickFriendship(IVeyraClientIntents& Flow);
+	/** The host's bots: removes a bot the script did not ask for, then seats the one each side lacks. True while it changes them. */
+	bool TickLobbyBots(const VeyraBackendProtocol::FLobby& Lobby);
+	/** Types Name into the friends panel's name field, as the player would. */
+	bool TypeFriendName(const FString& Name);
+	/** Whether the shell shows the lobby's bot picker. */
+	bool IsBotPickerOpen() const;
+	bool IsCustom() const { return Script == EScript::CustomHost || Script == EScript::CustomGuest; }
 	/** The sparring partner: every state, through the intents. */
 	void TickOpponent(IVeyraClientIntents& Flow);
 	void TickInMatch();
@@ -206,6 +235,18 @@ private:
 	bool bCheckedHistory = false;
 	/** The match whose verified result the script saw. */
 	FString PlayedMatchId;
+	/** Custom: the other client's player, the bots' Vanguards (side A's, then side B's), and what the script has done. */
+	FString FriendName;
+	TArray<FString> BotVanguards;
+	bool bAskedFriend = false;
+	bool bFriends = false;
+	bool bOpenedCustom = false;
+	bool bInLobby = false;
+	bool bStartedLobby = false;
+	/** Real time before which the host does not invite its friend again. */
+	double NextInviteAt = 0.0;
+	/** The starting Gold the lobby set for its match, which the verified scoreboard must show; unset for the game's own. */
+	TOptional<double> LobbyStartingGold;
 	/** Practice: whether the script asked to recall, saw the channel, and saw the Vanguard home. */
 	bool bAskedToRecall = false;
 	bool bSawRecall = false;
