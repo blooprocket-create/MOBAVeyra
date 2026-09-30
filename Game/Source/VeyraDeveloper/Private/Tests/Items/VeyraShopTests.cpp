@@ -1,5 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Attributes/VeyraMobilitySet.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Components/ActorTestSpawner.h"
@@ -242,6 +243,31 @@ namespace VeyraItemsTests
 
 			ASSERT_THAT(IsTrue(Subsystem->Sell(*Participant, 0) == EVeyraShopRefusal::None));
 			ASSERT_THAT(IsNull(Loadout->FindSlot(EVeyraAbilitySlot::Item1), TEXT("the Active leaves with its item")));
+		}
+
+		TEST_METHOD(SeizeMomentumSlowsWhatItHitsAndSpeedsTheUserForEachVanguard)
+		{
+			// The committed Abilities.json's Seize Momentum, on the test wheel, among two enemy Vanguards and a Fluxborn.
+			const FVeyraContentId Seize = ItemId(TEXT("seize_momentum"));
+			Tuning.Items[ItemId(TEXT("test_wheel"))].Active = { Seize };
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_wheel"))) == EVeyraShopRefusal::None));
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& First = World.Spawn(EVeyraTeam::B, FVector(200.0, 0.0, 0.0));
+			World.Spawn(EVeyraTeam::B, FVector(-200.0, 0.0, 0.0));
+			World.SpawnFluxborn(EVeyraTeam::B, FVector(0.0, 200.0, 0.0));
+			UAbilitySystemComponent& Abilities = *Participant->GetAbilitySystemComponent();
+			const double Speed = Abilities.GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
+
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(Abilities, EVeyraAbilitySlot::Item1, FVeyraCastTarget()) == EVeyraCastRejection::None));
+			const FVeyraAbilitiesTuning& AbilityTuning = UVeyraAbilitiesTuningSubsystem::Get();
+			const double Slow = AbilityTuning.Statuses.FindChecked(ItemId(TEXT("seize_momentum_slow"))).Magnitude;
+			const double Haste = AbilityTuning.Statuses.FindChecked(ItemId(TEXT("seize_momentum_haste"))).Magnitude;
+			const UVeyraStatusComponent* Struck = First.GetPlayerState()->FindComponentByClass<UVeyraStatusComponent>();
+			ASSERT_THAT(IsTrue(Struck && FMath::IsNearlyEqual(Struck->GetStrongestSlow(), Slow), TEXT("what it hits is slowed")));
+			const double Hasted = Abilities.GetNumericAttribute(UVeyraMobilitySet::GetMoveSpeedAttribute());
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Hasted, Speed * (1.0 + 2.0 * Haste), 1e-2),
+				FString::Printf(TEXT("a stack for each Vanguard, none for the Fluxborn: %g from %g"), Hasted, Speed)));
 		}
 
 		TEST_METHOD(ATonicRestoresHealthOverTimeOneAtATime)

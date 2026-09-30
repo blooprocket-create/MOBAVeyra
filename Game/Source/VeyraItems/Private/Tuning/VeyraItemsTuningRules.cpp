@@ -19,7 +19,8 @@ namespace
 			+ static_cast<int32>(Tuning.SpoolUp.Contains(Id)) + static_cast<int32>(Tuning.Overcycle.Contains(Id))
 			+ static_cast<int32>(Tuning.PerfectCut.Contains(Id)) + static_cast<int32>(Tuning.ReprisalGuard.Contains(Id))
 			+ static_cast<int32>(Tuning.Drag.Contains(Id)) + static_cast<int32>(Tuning.Convergence.Contains(Id))
-			+ static_cast<int32>(Tuning.Fracture.Contains(Id));
+			+ static_cast<int32>(Tuning.Fracture.Contains(Id)) + static_cast<int32>(Tuning.EndlessCleave.Contains(Id))
+			+ static_cast<int32>(Tuning.TemperedByConflict.Contains(Id));
 	}
 }
 

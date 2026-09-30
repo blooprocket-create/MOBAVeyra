@@ -72,18 +72,18 @@ Every value below is Provisional data in `Items.json` and its Attunement maps; �
   - A new status kind, Magic Resist Reduction, carries it. Validation refuses stacks that together would remove all of a Magic Resistance.
 - **Razorwheel Prime (T3):** Razorwheel + War Harness + Quickcoil.
   - Upgrading from Razorwheel removes Cleave, since an item's Active is its own (ADR-012 §3).
-  - Attunement **Endless Cleave** (`endlessCleave`): each basic attack also deals a fraction of its damage as Physical damage to other enemies around the primary target. A ranged holder's fraction is lower. It never hits structures.
-  - Active **Seize Momentum** (`seize_momentum` in `Abilities.json`, an area archetype):
+  - Attunement **Endless Cleave** (`endlessCleave`): each basic attack also deals a share of its base damage (the holder's Physical and Magic Power at the attack profile's ratios, before riders and crits) as Physical damage to the other enemies around the primary target, as League's Ravenous Hydra does. A ranged holder's share is lower. It never cleaves around a structure, nor hits one, and its damage is a proc, so it never cleaves again.
+  - Active **Seize Momentum** (`seize_momentum` in `Abilities.json`, an area archetype, all data):
     - it deals Physical damage around the user;
-    - enemy Vanguards hit are slowed;
-    - the user gains Movement Speed for each Vanguard hit, up to a cap, for the same time.
+    - every enemy hit is slowed, as League's Stridebreaker slows (the bible names Vanguards; the zone's statuses do not tell kinds apart);
+    - the user gains a stack of Movement Speed for each enemy Vanguard hit (`casterStatusesPerVanguard`), up to a cap, for the same time.
 - **Siegeheart Core (T3):** Reinforced Chassis + Siege Frame.
   - Attunement **Tempered by Conflict** (`temperedByConflict`):
-    - an enemy Vanguard that stays within a radius of the holder for a time becomes Tempered;
-    - the holder's next basic attack against it consumes Tempered, dealing bonus Physical damage (flat + a fraction of the holder's Max Health);
-    - the holder permanently gains Max Health equal to a fraction of that damage;
-    - each enemy has its own cooldown.
-  - The permanent Health belongs to that item in its slot: sold, it is gone.
+    - an enemy Vanguard that stays within a radius of the holder for a time becomes Tempered. The server looks every `checkSeconds`; an enemy that leaves the radius, or dies, loses its charge, as League's Heartsteel does;
+    - the holder's next basic attack against it consumes Tempered, dealing bonus Physical damage as a proc (flat + a fraction of the holder's Max Health);
+    - the holder permanently gains Max Health equal to a fraction of that bonus;
+    - each enemy has its own cooldown, which starts when it is consumed.
+  - The permanent Health belongs to that item in its slot (`FVeyraInventorySlot::GrownHealth`, which `StatsFor` adds): sold, it is gone.
 
 ### 4. The dealt-damage event (amends ADR-009)
 
@@ -130,7 +130,7 @@ The rule that a build never lists an item another consumes still holds.
 | Starfall Prism | + 800 recipe; Magic Power 90, Ability Haste 20; Convergence window 4 s, 50 + 0.15 Magic Power |
 | Nullglass Lens | + 750 recipe; Magic Power 80, Magic Penetration 15; Fracture 5% per stack, 5 stacks, 4 s |
 | Razorwheel Prime | + 800 recipe; Physical Power 45, Health 250, Attack Speed 0.2; Endless Cleave 0.4 melee, 0.2 ranged, radius 300; Seize Momentum radius 450, 1.0 Physical Power, 30% slow and 8% Movement Speed a Vanguard (cap 24%) for 3 s, cooldown 25 s |
-| Siegeheart Core | + 800 recipe; Health 650, Health Regeneration 3, Ability Haste 15; Tempered after 3 s within 700; 50 + 0.08 of Max Health; 0.1 of it as permanent Max Health; 30 s per enemy |
+| Siegeheart Core | + 800 recipe; Health 650, Health Regeneration 3, Ability Haste 15; Tempered after 3 s within 700, looked for every 0.25 s; 50 + 0.08 of Max Health; 0.1 of it as permanent Max Health; 30 s per enemy |
 | Crit | damage 1.75, cap 1.0, overflow 0.5 (Canon, Combat §5) |
 
 ### 9. League answers where canon is silent (for the author to overturn)

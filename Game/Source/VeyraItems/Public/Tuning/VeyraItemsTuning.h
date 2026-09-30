@@ -278,6 +278,65 @@ struct FVeyraConvergenceTuning
 	double MagicPowerRatio = 0.0;
 };
 
+/** Endless Cleave: basic attacks also strike the enemies around their target (Item Bible §8; ADR-022 §3). */
+USTRUCT()
+struct FVeyraEndlessCleaveTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The share of the attack's base damage each other enemy takes, as Physical damage, from a melee holder. */
+	UPROPERTY()
+	double MeleeFraction = 0.0;
+
+	/** The same, from a ranged holder. */
+	UPROPERTY()
+	double RangedFraction = 0.0;
+
+	/** Around the primary target, in units. */
+	UPROPERTY()
+	double Radius = 0.0;
+};
+
+/** Tempered by Conflict: staying near an enemy Vanguard charges the next basic attack on it (Item Bible §8; ADR-022 §3). */
+USTRUCT()
+struct FVeyraTemperedByConflictTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How near the enemy must stay, body to body, in units. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	/** How long it must stay near to become Tempered. */
+	UPROPERTY()
+	double ChargeSeconds = 0.0;
+
+	/** How often the server looks for enemies near a holder. */
+	UPROPERTY()
+	double CheckSeconds = 0.0;
+
+	/** The bonus Physical damage: this, plus MaxHealthFraction of the holder's Max Health. */
+	UPROPERTY()
+	double BaseDamage = 0.0;
+
+	UPROPERTY()
+	double MaxHealthFraction = 0.0;
+
+	/** The share of the bonus damage the holder keeps as Max Health, while it holds the item. */
+	UPROPERTY()
+	double HealthGainFraction = 0.0;
+
+	/** Each enemy's own wait after it is consumed. */
+	UPROPERTY()
+	double CooldownSeconds = 0.0;
+};
+
 /** The Items domain's tuning, bound from Game/Tuning/Items.json (ADR-006 §6, ADR-012 §3). */
 USTRUCT()
 struct FVeyraItemsTuning
@@ -323,6 +382,12 @@ struct FVeyraItemsTuning
 	/** Fracture: PerStack is the fraction of Magic Resistance each stack removes (Item Bible §9; ADR-022 §5). */
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraStackingAttunementTuning> Fracture;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraEndlessCleaveTuning> EndlessCleave;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraTemperedByConflictTuning> TemperedByConflict;
 };
 
 /** The Items domain's checks that a schema cannot express (ADR-012 §3). */

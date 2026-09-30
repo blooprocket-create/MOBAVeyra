@@ -1,8 +1,12 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Absorption/VeyraDamageAbsorptionComponent.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
+#include "Attunements/VeyraAttunementSubsystem.h"
+#include "Inventory/VeyraInventoryComponent.h"
 #include "Components/ActorTestSpawner.h"
 #include "CQTest.h"
 #include "Engine/World.h"
@@ -34,6 +38,7 @@ namespace VeyraItemsTests
 		FVeyraItemsTuning Tuning = TestCatalog();
 		UVeyraShopSubsystem* Shop = nullptr;
 		AVeyraPlayerState* Participant = nullptr;
+		AVeyraVanguardCharacter* HolderBody = nullptr;
 		UAbilitySystemComponent* Enemy = nullptr;
 		TArray<FVeyraDamageDealtEvent> Dealt;
 
@@ -42,7 +47,8 @@ namespace VeyraItemsTests
 			UVeyraItemsTuningSubsystem::SetTestOverride(&Tuning);
 			Shop = Spawner.GetWorld().GetSubsystem<UVeyraShopSubsystem>();
 			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
-			Participant = World.Spawn(EVeyraTeam::A, FVector::ZeroVector).GetPlayerState<AVeyraPlayerState>();
+			HolderBody = &World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			Participant = HolderBody->GetPlayerState<AVeyraPlayerState>();
 			Enemy = World.Spawn(EVeyraTeam::B, FVector(200.0, 0.0, 0.0)).GetAbilitySystemComponent();
 			ASSERT_THAT(IsTrue(Shop && Participant && Enemy));
 			UVeyraShopSubsystem::InitializeInventory(*Participant);
@@ -185,6 +191,111 @@ namespace VeyraItemsTests
 			ASSERT_THAT(AreEqual(1, Procs(), TEXT("the lapsed prime is gone; this one primes afresh")));
 			Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::Ability);
 			ASSERT_THAT(AreEqual(2, Procs()));
+		}
+
+		/** Proc damage the holder dealt Unit. */
+		double ProcDamageTo(const UAbilitySystemComponent& Unit, EVeyraDamageType Type) const
+		{
+			double Sum = 0.0;
+			for (const FVeyraDamageDealtEvent& Event : Dealt)
+			{
+				Sum += Event.Delivery == EVeyraDamageDelivery::Proc && Event.Target.Get() == &Unit ? Event.Of(Type) : 0.0;
+			}
+			return Sum;
+		}
+
+		TEST_METHOD(EndlessCleaveSplashesTheAttacksBaseDamageAroundItsTarget)
+		{
+			// Fixture values: 40% from melee, 20% from range, 300 around the target; an attack of all its
+			// Physical Power. The splashed have no Armor, so the share lands whole.
+			constexpr double Melee = 0.4;
+			constexpr double Ranged = 0.2;
+			FVeyraEndlessCleaveTuning& Cleave = Tuning.EndlessCleave.Add(ItemId(TEXT("test_endless")));
+			Cleave.MeleeFraction = Melee;
+			Cleave.RangedFraction = Ranged;
+			Cleave.Radius = 300.0;
+			Hold(TEXT("test_endless"));
+			FVeyraBasicAttackProfile Profile;
+			Profile.Range = 150.0;
+			Profile.PhysicalPowerRatio = 1.0;
+			Profile.WindupFraction = 0.3;
+			Profile.AcquisitionRadius = 400.0;
+			UVeyraBasicAttackComponent* Attacks = Participant->FindComponentByClass<UVeyraBasicAttackComponent>();
+			ASSERT_THAT(IsTrue(Attacks && Attacks->SetProfile(Profile)));
+
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			UAbilitySystemComponent& Near = *World.Spawn(EVeyraTeam::B, FVector(350.0, 0.0, 0.0)).GetAbilitySystemComponent();
+			UAbilitySystemComponent& Far = *World.Spawn(EVeyraTeam::B, FVector(900.0, 0.0, 0.0)).GetAbilitySystemComponent();
+			UAbilitySystemComponent& Ally = *World.Spawn(EVeyraTeam::A, FVector(250.0, 100.0, 0.0)).GetAbilitySystemComponent();
+			UAbilitySystemComponent& Tower = *World.SpawnStructure(EVeyraTeam::B, FVector(200.0, 200.0, 0.0)).GetAbilitySystemComponent();
+			Near.SetNumericAttributeBase(UVeyraDefenceSet::GetArmorAttribute(), 0.0f);
+			const double Power = Holder().GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute());
+
+			Hit(EVeyraDamageType::Physical, Blow, EVeyraDamageDelivery::Ability);
+			ASSERT_THAT(IsTrue(ProcDamageTo(Near, EVeyraDamageType::Physical) == 0.0, TEXT("an ability does not cleave")));
+			Hit(EVeyraDamageType::Physical, Blow, EVeyraDamageDelivery::BasicAttack);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(ProcDamageTo(Near, EVeyraDamageType::Physical), Melee * Power, 1e-3),
+				FString::SanitizeFloat(ProcDamageTo(Near, EVeyraDamageType::Physical))));
+			ASSERT_THAT(IsTrue(ProcDamageTo(*Enemy, EVeyraDamageType::Physical) == 0.0 && ProcDamageTo(Far, EVeyraDamageType::Physical) == 0.0,
+				TEXT("not the target itself, nor one beyond the radius")));
+			ASSERT_THAT(IsFalse(Dealt.ContainsByPredicate([&Ally, &Tower](const FVeyraDamageDealtEvent& Event) {
+				return Event.Target.Get() == &Ally || Event.Target.Get() == &Tower;
+			}), TEXT("never an ally, never a structure")));
+
+			// A ranged holder splashes its smaller share.
+			FVeyraAttackProjectileTuning& Projectile = Profile.Projectile.AddDefaulted_GetRef();
+			Projectile.Speed = 1200.0;
+			Projectile.Radius = 10.0;
+			ASSERT_THAT(IsTrue(Attacks->SetProfile(Profile)));
+			Hit(EVeyraDamageType::Physical, Blow, EVeyraDamageDelivery::BasicAttack);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(ProcDamageTo(Near, EVeyraDamageType::Physical), (Melee + Ranged) * Power, 1e-3)));
+		}
+
+		TEST_METHOD(TemperedByConflictChargesNearAnEnemyAndItsHitGrowsTheItem)
+		{
+			// Fixture values: 3 s within 700; 50 and a tenth of Max Health; a fifth of it kept; 30 s per enemy.
+			constexpr double Charge = 3.0;
+			constexpr double Base = 50.0;
+			constexpr double Share = 0.1;
+			constexpr double Kept = 0.2;
+			FVeyraTemperedByConflictTuning& Tempered = Tuning.TemperedByConflict.Add(ItemId(TEXT("test_tempered")));
+			Tempered.Radius = 700.0;
+			Tempered.ChargeSeconds = Charge;
+			Tempered.CheckSeconds = 0.25;
+			Tempered.BaseDamage = Base;
+			Tempered.MaxHealthFraction = Share;
+			Tempered.HealthGainFraction = Kept;
+			Tempered.CooldownSeconds = 30.0;
+			Hold(TEXT("test_tempered"));
+			Enemy->SetNumericAttributeBase(UVeyraDefenceSet::GetArmorAttribute(), 0.0f);
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+
+			Attunements.UpdateTempering();
+			ASSERT_THAT(IsFalse(Attunements.IsTempered(Holder(), *Enemy), TEXT("not yet")));
+			RunFor(Charge + WorldStep);
+			Attunements.UpdateTempering();
+			ASSERT_THAT(IsTrue(Attunements.IsTempered(Holder(), *Enemy), TEXT("after staying near")));
+
+			Hit(EVeyraDamageType::Physical, Blow, EVeyraDamageDelivery::Ability);
+			ASSERT_THAT(AreEqual(0, Procs(), TEXT("an ability does not consume it")));
+			const double MaxHealth = Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+			const double Bonus = Base + Share * MaxHealth;
+			Hit(EVeyraDamageType::Physical, Blow, EVeyraDamageDelivery::BasicAttack);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(ProcDamageTo(*Enemy, EVeyraDamageType::Physical), Bonus, 1e-3), TEXT("the basic attack does")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()), MaxHealth + Kept * Bonus, 1e-3),
+				TEXT("and a share becomes Max Health")));
+			ASSERT_THAT(IsFalse(Attunements.IsTempered(Holder(), *Enemy)));
+
+			// That enemy's cooldown holds the next charge back.
+			RunFor(Charge + WorldStep);
+			Attunements.UpdateTempering();
+			ASSERT_THAT(IsFalse(Attunements.IsTempered(Holder(), *Enemy), TEXT("its cooldown runs")));
+
+			// Sold, the grown Max Health leaves with the item.
+			const int32 Slot = Participant->FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().IndexOfByPredicate(
+				[](const FVeyraInventorySlot& Held) { return Held.Item == ItemId(TEXT("test_temper")); });
+			ASSERT_THAT(IsTrue(Shop->Sell(*Participant, Slot) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()), MaxHealth, 1e-3)));
 		}
 
 		TEST_METHOD(FractureStacksOnMagicDamageUpToItsCap)

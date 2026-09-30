@@ -201,6 +201,34 @@
       "arcDegrees": 0,
       "unitKinds": []
     },
+    "seize_momentum_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueReplaceStrongest",
+      "magnitude": 0.3,
+      "durationSeconds": 3,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
+    },
+    "seize_momentum_haste": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "Stacking",
+      "magnitude": 0.08,
+      "durationSeconds": 3,
+      "maxStacks": 3,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "arcDegrees": 0,
+      "unitKinds": []
+    },
     "qazharr_heavy_hand_slow": {
       "provenance": "Provisional",
       "kind": "Slow",
@@ -528,6 +556,41 @@
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
+        }
+      ],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": []
+    },
+    "seize_momentum": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [25],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [{ "type": "Physical", "amountByRank": [0], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }],
+            "statuses": ["seize_momentum_slow"],
+            "displacement": [],
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": ["seize_momentum_haste"]
         }
       ],
       "linger": [],

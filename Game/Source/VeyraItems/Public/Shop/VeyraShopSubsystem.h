@@ -83,6 +83,12 @@ public:
 	 */
 	void RefillCharges(AActor& Participant);
 
+	/**
+	 * Grows the Max Health of Participant's item that holds Attunement by Health, for as long as it
+	 * holds the item (Tempered by Conflict; ADR-022 §3). The Attunements call it.
+	 */
+	void GrowHealth(AActor& Participant, const FVeyraContentId& Attunement, double Health);
+
 	/** Sets Participant's slot count, empty, as its match prepares. */
 	static void InitializeInventory(AActor& Participant);
 

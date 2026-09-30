@@ -4,7 +4,7 @@
   "description": "The shop's catalog and rules, owned by the Items domain (Item Bible v0.3; Economy & Progression Bible §10–§12; ADR-012 §3). VeyraItems binds it to FVeyraItemsTuning and checks the tier rules the schema cannot express. Prices and stats are prototype data (Item Bible §3).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "shop", "items", "consumables", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture"],
+  "required": ["schemaVersion", "shop", "items", "consumables", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -228,6 +228,46 @@
       "type": "object",
       "additionalProperties": false,
       "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/stacking" } }
+    },
+    "endlessCleave": {
+      "description": "Endless Cleave (Razorwheel Prime, Item Bible §8; ADR-022 §3): each basic attack also deals a share of its base damage as Physical damage to the other enemies around its target, never structures.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "meleeFraction", "rangedFraction", "radius"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "meleeFraction": { "description": "The share of the attack's base damage from a melee holder.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "rangedFraction": { "description": "The share from a ranged holder.", "type": "number", "minimum": 0, "maximum": 1 },
+            "radius": { "description": "Around the primary target, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "temperedByConflict": {
+      "description": "Tempered by Conflict (Siegeheart Core, Item Bible §8; ADR-022 §3): an enemy Vanguard that stays near the holder becomes Tempered; the holder's next basic attack on it consumes it for bonus Physical damage, part of which the holder keeps as Max Health while it holds the item. Each enemy has its own cooldown.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "radius", "chargeSeconds", "checkSeconds", "baseDamage", "maxHealthFraction", "healthGainFraction", "cooldownSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "radius": { "description": "How near the enemy must stay, body to body, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "chargeSeconds": { "description": "How long it must stay near to become Tempered.", "type": "number", "minimum": 0 },
+            "checkSeconds": { "description": "How often the server looks for enemies near a holder.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "baseDamage": { "description": "The bonus Physical damage before Max Health.", "type": "number", "minimum": 0 },
+            "maxHealthFraction": { "description": "The bonus Physical damage per point of the holder's Max Health.", "type": "number", "minimum": 0 },
+            "healthGainFraction": { "description": "The share of the bonus damage kept as Max Health.", "type": "number", "minimum": 0 },
+            "cooldownSeconds": { "description": "Each enemy's own wait after it is consumed.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
     }
   }
 }

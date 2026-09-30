@@ -182,6 +182,16 @@
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["nullglass_shard", "grand_prism"], "cost": 750, "stackLimit": 1,
       "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 80, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 15, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["fracture"]
+    },
+    "razorwheel_prime": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["razorwheel", "war_harness", "quickcoil"], "cost": 800, "stackLimit": 1,
+      "stats": { "health": 250, "healthRegeneration": 0, "physicalPower": 45, "magicPower": 0, "attackSpeed": 0.2, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": ["seize_momentum"], "attunement": ["endless_cleave"]
+    },
+    "siegeheart_core": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["reinforced_chassis", "siege_frame"], "cost": 800, "stackLimit": 1,
+      "stats": { "health": 650, "healthRegeneration": 3, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["tempered_by_conflict"]
     }
   },
   "consumables": {
@@ -214,5 +224,11 @@
   },
   "fracture": {
     "fracture": { "provenance": "Provisional", "perStack": 0.05, "maxStacks": 5, "durationSeconds": 4 }
+  },
+  "endlessCleave": {
+    "endless_cleave": { "provenance": "Provisional", "meleeFraction": 0.4, "rangedFraction": 0.2, "radius": 300 }
+  },
+  "temperedByConflict": {
+    "tempered_by_conflict": { "provenance": "Provisional", "radius": 700, "chargeSeconds": 3, "checkSeconds": 0.25, "baseDamage": 50, "maxHealthFraction": 0.08, "healthGainFraction": 0.1, "cooldownSeconds": 30 }
   }
 }

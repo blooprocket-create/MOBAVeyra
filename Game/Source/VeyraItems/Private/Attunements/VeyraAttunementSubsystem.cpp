@@ -3,11 +3,18 @@
 #include "Attunements/VeyraAttunementSubsystem.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Absorption/VeyraAbsorptionLedger.h"
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
+#include "GameFramework/PlayerState.h"
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Life/VeyraCombatEventSubsystem.h"
+#include "Shapes/VeyraShapes.h"
+#include "Shop/VeyraShopSubsystem.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
@@ -24,10 +31,27 @@ void UVeyraAttunementSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 	}
 }
 
+void UVeyraAttunementSubsystem::OnWorldBeginPlay(UWorld& InWorld)
+{
+	Super::OnWorldBeginPlay(InWorld);
+	// Tempered by Conflict charges on the server, as often as its most frequent entry asks.
+	double CheckSeconds = 0.0;
+	for (const TPair<FVeyraContentId, FVeyraTemperedByConflictTuning>& Entry : UVeyraItemsTuningSubsystem::Get().TemperedByConflict)
+	{
+		CheckSeconds = CheckSeconds > 0.0 ? FMath::Min(CheckSeconds, Entry.Value.CheckSeconds) : Entry.Value.CheckSeconds;
+	}
+	if (InWorld.GetNetMode() != NM_Client && CheckSeconds > 0.0)
+	{
+		InWorld.GetTimerManager().SetTimer(TemperingTimer, FTimerDelegate::CreateUObject(this, &UVeyraAttunementSubsystem::UpdateTempering),
+			static_cast<float>(CheckSeconds), /*bLoop*/ true);
+	}
+}
+
 void UVeyraAttunementSubsystem::Deinitialize()
 {
 	if (UWorld* World = GetWorld())
 	{
+		World->GetTimerManager().ClearTimer(TemperingTimer);
 		if (UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>())
 		{
 			Events->OnDamageDealt.Remove(DamageDealtHandle);
@@ -42,11 +66,12 @@ void UVeyraAttunementSubsystem::OnDamageDealt(const FVeyraDamageDealtEvent& Even
 	UAbilitySystemComponent* Target = Event.Target.Get();
 	const AActor* Participant = Holder ? Holder->GetOwner() : nullptr;
 	const UVeyraInventoryComponent* Inventory = Participant ? Participant->FindComponentByClass<UVeyraInventoryComponent>() : nullptr;
-	// Each acts on damage that reached an enemy Vanguard (Item Bible §8–§9).
-	if (!Inventory || !Target || !Participant->HasAuthority() || !VeyraUnits::IsVanguard(Target->GetOwner()) || Event.Total() <= 0.0)
+	// Each acts on damage that reached an enemy; all but Endless Cleave only on an enemy Vanguard (Item Bible §8–§9).
+	if (!Inventory || !Target || !Participant->HasAuthority() || Event.Total() <= 0.0)
 	{
 		return;
 	}
+	const bool bVanguard = VeyraUnits::IsVanguard(Target->GetOwner());
 	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
 	TArray<FVeyraContentId, TInlineAllocator<6>> Held;
 	for (const FVeyraInventorySlot& Slot : Inventory->GetSlots())
@@ -66,7 +91,15 @@ void UVeyraAttunementSubsystem::OnDamageDealt(const FVeyraDamageDealtEvent& Even
 	// Held is this hit's own copy: a proc one of these deals sends an event of its own through here.
 	for (const FVeyraContentId& Attunement : Held)
 	{
-		if (Tuning.ReprisalGuard.Contains(Attunement))
+		if (Tuning.EndlessCleave.Contains(Attunement))
+		{
+			EndlessCleave(Attunement, Event, *Holder, *Target);
+		}
+		else if (!bVanguard)
+		{
+			continue;
+		}
+		else if (Tuning.ReprisalGuard.Contains(Attunement))
 		{
 			ReprisalGuard(Attunement, Event, *Holder, Now);
 		}
@@ -81,6 +114,10 @@ void UVeyraAttunementSubsystem::OnDamageDealt(const FVeyraDamageDealtEvent& Even
 		else if (Tuning.Fracture.Contains(Attunement))
 		{
 			Fracture(Attunement, Event, *Holder, *Target);
+		}
+		else if (Tuning.TemperedByConflict.Contains(Attunement))
+		{
+			TemperedByConflict(Attunement, Event, *Holder, *Target, Now);
 		}
 	}
 }
@@ -182,4 +219,160 @@ void UVeyraAttunementSubsystem::Fracture(const FVeyraContentId& Attunement, cons
 	Shred.MaxStacks = Tuning.MaxStacks;
 	Shred.DurationSeconds = Tuning.DurationSeconds;
 	VeyraCombat::ApplyStatus(Holder, Target, Shred);
+}
+
+void UVeyraAttunementSubsystem::EndlessCleave(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder,
+	UAbilitySystemComponent& Target)
+{
+	// Every basic attack, on its primary target: an attack's own cleaves and impacts are procs, and a
+	// structure is never cleaved around (Item Bible §8; Combat Bible §33).
+	const AActor* Struck = Target.GetAvatarActor();
+	// A participant's basic attack is its own, not its body's: it outlives the body.
+	const AActor* Attacker = Holder.GetOwner();
+	const UVeyraBasicAttackComponent* Attacks = Attacker ? Attacker->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
+	if (Event.Delivery != EVeyraDamageDelivery::BasicAttack || !Struck || !Attacks || VeyraUnits::IsStructure(Struck))
+	{
+		return;
+	}
+	// A share of the attack's base damage as Physical damage, a smaller share from a ranged holder (ADR-022 §3).
+	const FVeyraEndlessCleaveTuning& Tuning = UVeyraItemsTuningSubsystem::Get().EndlessCleave.FindChecked(Attunement);
+	const FVeyraBasicAttackProfile& Profile = Attacks->GetProfile();
+	const double Share = Profile.Projectile.IsEmpty() ? Tuning.MeleeFraction : Tuning.RangedFraction;
+	const double Base = Holder.GetNumericAttribute(UVeyraOffenceSet::GetPhysicalPowerAttribute()) * Profile.PhysicalPowerRatio
+		+ Holder.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Profile.MagicPowerRatio;
+	if (Base * Share <= 0.0)
+	{
+		return;
+	}
+	FVeyraRawDamageEvent Splash;
+	Splash.Components.Add({ EVeyraDamageType::Physical, Base * Share });
+	Splash.Delivery = EVeyraDamageDelivery::Proc;
+	const FVeyraPreparedDamage Prepared = VeyraCombat::PrepareDamage(Holder, Splash);
+	FVeyraShape Around;
+	Around.Kind = EVeyraShapeKind::Circle;
+	Around.Radius = Tuning.Radius;
+	// Sides belong to the participant, which outlives its body.
+	const AActor* Side = Holder.GetOwner();
+	const TArray<AActor*> Units = VeyraShapes::GatherUnits(*GetWorld(), FVeyraPlacedShape{ Around, Struck->GetActorLocation(), FVector::ForwardVector },
+		[Side, Struck](const AActor& Unit) { return &Unit != Struck && VeyraTargeting::AreHostile(Side, &Unit); });
+	for (AActor* Unit : Units)
+	{
+		if (UAbilitySystemComponent* Other = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit))
+		{
+			VeyraCombat::DealPreparedDamage(Prepared, *Other);
+		}
+	}
+}
+
+void UVeyraAttunementSubsystem::UpdateTempering()
+{
+	const UWorld* World = GetWorld();
+	if (!World)
+	{
+		return;
+	}
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	const double Now = World->GetTimeSeconds();
+	Tempering.RemoveAllSwap([](const FTempering& Entry) { return !Entry.Holder.IsValid() || !Entry.Target.IsValid(); });
+	TArray<APlayerState*, TInlineAllocator<10>> Participants;
+	for (TActorIterator<APlayerState> It(World); It; ++It)
+	{
+		Participants.Add(*It);
+	}
+	for (APlayerState* Participant : Participants)
+	{
+		const UVeyraInventoryComponent* Inventory = Participant->FindComponentByClass<UVeyraInventoryComponent>();
+		UAbilitySystemComponent* Holder = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Participant);
+		if (!Inventory || !Holder)
+		{
+			continue;
+		}
+		for (const FVeyraInventorySlot& Slot : Inventory->GetSlots())
+		{
+			const FVeyraItemDefinition* Item = Slot.IsEmpty() ? nullptr : Tuning.Items.Find(Slot.Item);
+			if (!Item)
+			{
+				continue;
+			}
+			for (const FVeyraContentId& Attunement : Item->Attunement)
+			{
+				const FVeyraTemperedByConflictTuning* Charge = Tuning.TemperedByConflict.Find(Attunement);
+				if (!Charge)
+				{
+					continue;
+				}
+				const AActor* Body = Holder->GetAvatarActor();
+				const bool bHolderStands = Body && VeyraTargeting::IsAlive(Participant);
+				for (APlayerState* Enemy : Participants)
+				{
+					UAbilitySystemComponent* Other = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Enemy);
+					if (!Other || !VeyraTargeting::AreHostile(Participant, Enemy))
+					{
+						continue;
+					}
+					FTempering* Entry = Tempering.FindByPredicate([Holder, Other, &Attunement](const FTempering& Each) {
+						return Each.Holder.Get() == Holder && Each.Target.Get() == Other && Each.Attunement == Attunement;
+					});
+					if (!Entry)
+					{
+						Entry = &Tempering.AddDefaulted_GetRef();
+						Entry->Holder = Holder;
+						Entry->Target = Other;
+						Entry->Attunement = Attunement;
+					}
+					// It charges while the enemy stays within the radius, and not while that enemy's cooldown runs.
+					const AActor* EnemyBody = Other->GetAvatarActor();
+					const bool bNear = bHolderStands && EnemyBody && VeyraTargeting::IsAlive(Enemy)
+						&& FVector::Dist2D(Body->GetActorLocation(), EnemyBody->GetActorLocation()) <= Charge->Radius;
+					if (!bNear || Now < Entry->ReadyAt)
+					{
+						Entry->NearSince = -1.0;
+						Entry->bTempered = false;
+						continue;
+					}
+					if (Entry->NearSince < 0.0)
+					{
+						Entry->NearSince = Now;
+					}
+					Entry->bTempered |= Now - Entry->NearSince >= Charge->ChargeSeconds;
+				}
+			}
+		}
+	}
+}
+
+bool UVeyraAttunementSubsystem::IsTempered(const UAbilitySystemComponent& Holder, const UAbilitySystemComponent& Target) const
+{
+	return Tempering.ContainsByPredicate([&Holder, &Target](const FTempering& Each) {
+		return Each.bTempered && Each.Holder.Get() == &Holder && Each.Target.Get() == &Target;
+	});
+}
+
+void UVeyraAttunementSubsystem::TemperedByConflict(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder,
+	UAbilitySystemComponent& Target, double Now)
+{
+	// The holder's next basic attack on a Tempered enemy consumes it (Item Bible §8).
+	FTempering* Entry = Tempering.FindByPredicate([&Holder, &Target, &Attunement](const FTempering& Each) {
+		return Each.bTempered && Each.Holder.Get() == &Holder && Each.Target.Get() == &Target && Each.Attunement == Attunement;
+	});
+	AActor* Participant = Holder.GetOwner();
+	if (Event.Delivery != EVeyraDamageDelivery::BasicAttack || !Entry || !Participant || !VeyraTargeting::IsAlive(Target.GetOwner()))
+	{
+		return;
+	}
+	const FVeyraTemperedByConflictTuning& Tuning = UVeyraItemsTuningSubsystem::Get().TemperedByConflict.FindChecked(Attunement);
+	Entry->bTempered = false;
+	Entry->NearSince = -1.0;
+	Entry->ReadyAt = Now + Tuning.CooldownSeconds;
+	// Bonus Physical damage, as a proc, from the holder's Max Health; a share of it becomes permanent Max
+	// Health on the item, which leaves with it (ADR-022 §3).
+	const double Bonus = Tuning.BaseDamage + Tuning.MaxHealthFraction * Holder.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+	FVeyraRawDamageEvent Damage;
+	Damage.Components.Add({ EVeyraDamageType::Physical, Bonus });
+	Damage.Delivery = EVeyraDamageDelivery::Proc;
+	VeyraCombat::DealDamage(Holder, Target, Damage);
+	if (UVeyraShopSubsystem* Shop = GetWorld()->GetSubsystem<UVeyraShopSubsystem>())
+	{
+		Shop->GrowHealth(*Participant, Attunement, Bonus * Tuning.HealthGainFraction);
+	}
 }

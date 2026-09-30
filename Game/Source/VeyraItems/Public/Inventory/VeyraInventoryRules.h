@@ -33,6 +33,13 @@ struct FVeyraInventorySlot
 	UPROPERTY()
 	int32 Charges = 0;
 
+	/**
+	 * Max Health an Attunement grew into this item, as Tempered by Conflict does (ADR-022 §3): part of
+	 * the item's stats, so it leaves with the item.
+	 */
+	UPROPERTY()
+	double GrownHealth = 0.0;
+
 	bool IsEmpty() const { return !Item.IsValid() || Count <= 0; }
 };
 

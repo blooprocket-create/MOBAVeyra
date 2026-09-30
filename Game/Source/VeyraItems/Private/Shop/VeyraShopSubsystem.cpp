@@ -531,6 +531,31 @@ void UVeyraShopSubsystem::RefillCharges(AActor& Participant)
 	}
 }
 
+void UVeyraShopSubsystem::GrowHealth(AActor& Participant, const FVeyraContentId& Attunement, double Health)
+{
+	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
+	if (!Inventory || !(Health > 0.0))
+	{
+		return;
+	}
+	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
+	TArray<FVeyraInventorySlot> Slots = Inventory->Slots;
+	FVeyraInventorySlot* Holding = Slots.FindByPredicate([&Tuning, &Attunement](const FVeyraInventorySlot& Slot) {
+		const FVeyraItemDefinition* Item = Slot.IsEmpty() ? nullptr : Tuning.Items.Find(Slot.Item);
+		return Item && Item->Attunement.Contains(Attunement);
+	});
+	if (!Holding)
+	{
+		return;
+	}
+	Holding->GrownHealth += Health;
+	// It has given benefit: no undo takes it back (§12).
+	Holding->bBenefited = true;
+	Inventory->SetSlots(MoveTemp(Slots));
+	ApplyItems(Participant);
+	UE_LOG(LogVeyraItems, Log, TEXT("%s's %s grew %g Max Health."), *GetNameSafe(&Participant), *Attunement.ToString(), Health);
+}
+
 void UVeyraShopSubsystem::NoteActiveUsed(AActor& Participant, int32 Index)
 {
 	UVeyraInventoryComponent* Inventory = Participant.FindComponentByClass<UVeyraInventoryComponent>();
