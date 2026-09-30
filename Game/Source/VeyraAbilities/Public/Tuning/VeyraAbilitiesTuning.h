@@ -1320,7 +1320,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 13;
+	static constexpr int32 SchemaVersion = 14;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

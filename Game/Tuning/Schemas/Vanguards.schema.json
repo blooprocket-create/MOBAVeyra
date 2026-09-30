@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -166,7 +166,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [12]
+      "enum": [13]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -407,6 +407,23 @@
                 "lungeSpeed": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
               }
             }
+          }
+        }
+      }
+    },
+    "attackStride": {
+      "description": "Passives that let their owner walk through a basic attack's windup at a share of its speed, and give it statuses for each primary basic attack that lands on an enemy Vanguard (Celandrine's Never Break Stride, Roster Bible §22; ADR-027 §1, §8).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "windupShare", "hitStatuses"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "windupShare": { "description": "The share of Movement Speed kept while a basic attack winds up.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "hitStatuses": { "description": "From Abilities.json's statuses: given the owner by each primary basic attack that lands on an enemy Vanguard.", "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
           }
         }
       }

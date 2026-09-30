@@ -609,13 +609,35 @@ struct FVeyraKitStatusesTuning
 	TArray<FVeyraContentId> Statuses;
 };
 
+/**
+ * Celandrine's Never Break Stride (Roster Bible §22; ADR-027 §1, §8): the share of her Movement Speed she
+ * keeps through a basic attack's windup, and the statuses each primary basic attack that lands on an
+ * enemy Vanguard gives her. Its data is an entry in Vanguards.json's attackStride map.
+ */
+USTRUCT()
+struct FVeyraAttackStrideTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The share of her Movement Speed she keeps while a basic attack winds up; above 0, at most 1. */
+	UPROPERTY()
+	double WindupShare = 0.0;
+
+	/** From Abilities.json's statuses: given her by each primary basic attack that lands on an enemy Vanguard. */
+	UPROPERTY()
+	TArray<FVeyraContentId> HitStatuses;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 12;
+	static constexpr int32 SchemaVersion = 13;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -655,6 +677,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraKitStatusesTuning> KitStatuses;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraAttackStrideTuning> AttackStride;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

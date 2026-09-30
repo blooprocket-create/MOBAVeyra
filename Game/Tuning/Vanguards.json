@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 12,
+  "schemaVersion": 13,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -613,6 +613,48 @@
       },
       "abilities": { "q": ["mavra_caustic_line"], "w": ["mavra_flash_cure"], "e": ["mavra_pressure_leak"], "r": ["mavra_code_black"] },
       "passive": ["mavra_hazard_exposure"]
+    },
+    "celandrine": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 34, "capsuleHalfHeight": 88, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 560,
+        "healthRegen": 0.7,
+        "maxResource": 300,
+        "resourceRegen": 3.3,
+        "armor": 24,
+        "magicResist": 30,
+        "physicalPower": 57,
+        "magicPower": 0,
+        "attackSpeed": 0.66,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 92,
+        "healthRegen": 0.1,
+        "maxResource": 42,
+        "resourceRegen": 0.3,
+        "armor": 4.2,
+        "magicResist": 1.3,
+        "physicalPower": 2.9,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.03
+      },
+      "basicAttack": {
+        "range": 525,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.25,
+        "acquisitionRadius": 675,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 2400, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["celandrine_doubletime"], "w": ["celandrine_briar_scatter"], "e": ["celandrine_sidebound"], "r": ["celandrine_open_road"] },
+      "passive": ["celandrine_never_break_stride"]
     }
   },
   "deepFoundation": {
@@ -769,6 +811,13 @@
       "statuses": ["moro_wild_dominion_power", "moro_wild_dominion_haste"],
       "checkSeconds": 0.25,
       "wildlifeHealFraction": 0.15
+    }
+  },
+  "attackStride": {
+    "celandrine_never_break_stride": {
+      "provenance": "Provisional",
+      "windupShare": 0.5,
+      "hitStatuses": ["celandrine_stride_haste"]
     }
   }
 }

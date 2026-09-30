@@ -132,6 +132,23 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraAttackStrideTuning>& Entry : Tuning.AttackStride)
+	{
+		RegisterPassive(Entry.Key, TEXT("attackStride"));
+		const FString Pointer = TEXT("/attackStride/") + Entry.Key.ToString();
+		if (!(Entry.Value.WindupShare > 0.0) || Entry.Value.WindupShare > 1.0)
+		{
+			Problem(Pointer + TEXT("/windupShare"), TEXT("must be above 0 and at most 1: a share of her speed"));
+		}
+		for (const FVeyraContentId& Status : Entry.Value.HitStatuses)
+		{
+			if (!Abilities.Statuses.Contains(Status))
+			{
+				Problem(Pointer + TEXT("/hitStatuses"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Status.ToString()));
+			}
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraHauntTuning>& Entry : Tuning.Haunt)
 	{
 		RegisterPassive(Entry.Key, TEXT("haunt"));

@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Passives/VeyraAttackStridePassive.h"
 #include "Passives/VeyraBreachPassive.h"
 #include "Passives/VeyraCampRewardPassive.h"
 #include "Passives/VeyraCadencePassive.h"
@@ -74,6 +75,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindKitStatuses(PassiveId))
 	{
 		return UVeyraKitStatusesPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindAttackStride(PassiveId))
+	{
+		return UVeyraAttackStridePassive::StaticClass();
 	}
 	return nullptr;
 }

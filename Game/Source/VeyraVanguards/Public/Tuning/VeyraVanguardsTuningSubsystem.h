@@ -50,6 +50,7 @@ public:
 	static const FVeyraMomentumTuning* FindMomentum(const FVeyraContentId& Passive);
 	static const FVeyraWildDominionTuning* FindWildDominion(const FVeyraContentId& Passive);
 	static const FVeyraKitStatusesTuning* FindKitStatuses(const FVeyraContentId& Passive);
+	static const FVeyraAttackStrideTuning* FindAttackStride(const FVeyraContentId& Passive);
 
 	/** Reads and validates the file again, replacing the loaded tuning only when it is valid. */
 	VeyraTuning::FErrors Reload();
