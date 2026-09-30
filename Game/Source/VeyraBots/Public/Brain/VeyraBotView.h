@@ -94,6 +94,9 @@ struct FVeyraBotSlot
 
 	/** Learned, off cooldown, affordable, and nothing else holds the caster. */
 	bool bReady = false;
+
+	/** What casting it costs now, at its slot's rank. */
+	double Cost = 0.0;
 };
 
 /** An enemy structure in the bot's lane, and how it threatens the bot. */
@@ -153,8 +156,9 @@ struct FVeyraBotView
 
 	FVeyraBotUnit Self;
 
-	/** Its resource as a share of its most; 1 for a unit without one. */
-	double ResourceFraction = 1.0;
+	/** Its resource and its most; both 0 for a unit without one. */
+	double Resource = 0.0;
+	double MaxResource = 0.0;
 
 	/** Its basic attack's reach, edge to edge, and what one does to a Fluxborn, before mitigation. */
 	double AttackRange = 0.0;

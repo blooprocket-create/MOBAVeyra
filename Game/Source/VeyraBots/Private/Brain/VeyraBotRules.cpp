@@ -254,14 +254,15 @@ namespace
 				}
 			}
 			Memory.FarmTarget = Chosen->Actor;
-			// It clears with its basic abilities too, as League's junglers do, while it holds more than its
-			// resource floor; never with its ultimate, and only with one that may hit wildlife.
-			if (View.ResourceFraction > Tuning.Jungle.AbilityResourceFloor)
+			// It clears with its basic abilities too, as League's junglers do, while what it holds after the
+			// cast stays above its resource floor; never with its ultimate, and only with one that may hit wildlife.
 			{
 				const double Distance = EdgeDistance(View.Self, *Chosen);
+				const double Floor = Tuning.Jungle.AbilityResourceFloor * View.MaxResource;
 				for (const FVeyraBotSlot* Slot : CastOrder(View))
 				{
-					if (!Slot->bReady || Slot->Slot == EVeyraAbilitySlot::R)
+					const bool bKeepsFloor = View.MaxResource <= 0.0 || View.Resource - Slot->Cost > Floor;
+					if (!Slot->bReady || Slot->Slot == EVeyraAbilitySlot::R || !bKeepsFloor)
 					{
 						continue;
 					}
@@ -493,7 +494,10 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 			if (Ally.HealthFraction() < Difficulty.RetreatHealthFraction && EdgeDistance(View.Self, Ally) <= Slot->Profile.AllyReach
 				&& Chaser && EdgeDistance(Ally, *Chaser) <= Tuning.Senses.SafeRadius && Random.FRand() < Difficulty.CastChance)
 			{
-				return CastOf(View, *Slot, Ally, EVeyraBotAim::AtTarget, TEXT("guarding an ally"));
+				// The guard is the ally's; no attack follows it.
+				FVeyraBotIntent Guard = CastOf(View, *Slot, Ally, EVeyraBotAim::AtTarget, TEXT("guarding an ally"));
+				Guard.Target = nullptr;
+				return Guard;
 			}
 		}
 	}
@@ -544,9 +548,12 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 			}
 			if (bUseful && Random.FRand() < Difficulty.CastChance)
 			{
-				// A guard goes to whoever the fight hurts most on its side, itself or an ally.
+				// A guard goes to whoever the fight hurts most on its side, itself or an ally; the foe stays the
+				// attack that follows.
 				const FVeyraBotUnit& Target = Slot->Use == EVeyraBotAbilityUse::Defend ? DefendTarget(View, *Slot) : *Foe;
-				return CastOf(View, *Slot, Target, Difficulty.Aim, TEXT("fighting: casting"));
+				FVeyraBotIntent Cast = CastOf(View, *Slot, Target, Difficulty.Aim, TEXT("fighting: casting"));
+				Cast.Target = Foe->Actor;
+				return Cast;
 			}
 		}
 		return AttackOf(*Foe, TEXT("fighting"));

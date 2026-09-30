@@ -396,6 +396,9 @@ namespace VeyraBotsTests
 
 		TEST_METHOD(AJunglerClearsWithItsAbilitiesAboveItsResourceFloor)
 		{
+			// Fixture values: its most resource, and what the ability costs.
+			constexpr double MostResource = 400.0;
+			constexpr double Cost = 70.0;
 			FVeyraBotView View = AliveAt(0.0);
 			View.bJungle = true;
 			FVeyraBotCamp Close;
@@ -407,13 +410,18 @@ namespace VeyraBotsTests
 			FVeyraBotSlot ForVanguards = Slot(EVeyraAbilitySlot::Q, EVeyraBotAbilityUse::Damage, EVeyraBotTargeting::Unit, Far);
 			ForVanguards.Profile.TargetKinds = { EVeyraUnitKind::Vanguard };
 			View.Slots.Add(ForVanguards);
-			View.Slots.Add(Slot(EVeyraAbilitySlot::W, EVeyraBotAbilityUse::Damage, EVeyraBotTargeting::Point, Far));
+			FVeyraBotSlot Sweep = Slot(EVeyraAbilitySlot::W, EVeyraBotAbilityUse::Damage, EVeyraBotTargeting::Point, Far);
+			Sweep.Cost = Cost;
+			View.Slots.Add(Sweep);
+			View.MaxResource = MostResource;
+			View.Resource = MostResource;
 			FVeyraBotIntent Intent = Decide(View);
 			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.Slot == EVeyraAbilitySlot::W,
 				TEXT("its basic ability that may hit wildlife, not its ultimate nor one only for Vanguards")));
-			View.ResourceFraction = Tuning.Jungle.AbilityResourceFloor;
+			// Above its floor now, but not once it pays: it keeps its resource.
+			View.Resource = MostResource * Tuning.Jungle.AbilityResourceFloor + Cost / 2.0;
 			Intent = Decide(View);
-			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Close.Creatures[0].Actor, TEXT("at its floor it keeps its resource")));
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Attack && Intent.Target == Close.Creatures[0].Actor, TEXT("the cast would take it below its floor")));
 		}
 
 		TEST_METHOD(AnAllyTargetedGuardGoesToTheAllyTheFightHurtsMost)
@@ -432,12 +440,14 @@ namespace VeyraBotsTests
 			FVeyraBotIntent Intent = Decide(View);
 			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.CastTarget.Actor == View.AllyVanguards[0].Actor.Get(),
 				TEXT("in a fight, the ally it hurts more than the bot")));
+			ASSERT_THAT(IsTrue(Intent.Target == View.EnemyVanguards[0].Actor, TEXT("and the foe stays the attack that follows")));
 
 			// Out of the fight: an ally below its retreat line, chased, is guarded.
 			View.EnemyVanguards[0] = Unit(-Near * 2.0, 1.0);
 			View.AllyVanguards[0].Health = View.AllyVanguards[0].MaxHealth * Hurt;
 			Intent = Decide(View);
 			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.CastTarget.Actor == View.AllyVanguards[0].Actor.Get(), TEXT("guarding a chased ally")));
+			ASSERT_THAT(IsFalse(Intent.Target.IsValid(), TEXT("no attack follows a guard")));
 
 			// Beyond its reach, no.
 			View.AllyVanguards[0].Location = FVector(-GuardReach * 3.0, 0.0, 0.0);

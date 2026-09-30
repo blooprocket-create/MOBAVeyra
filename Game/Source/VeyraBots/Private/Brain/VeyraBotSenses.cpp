@@ -114,8 +114,9 @@ namespace
 			Seen.Use = *Use;
 			Seen.Profile = Profile.GetValue();
 			const int32 Rank = Progression->IsInitialized() ? Progression->GetRank(Slot) : 0;
+			Seen.Cost = Rank >= 1 ? VeyraAbilityRules::ValueAtRank(Seen.Profile.CostByRank, Rank) : 0.0;
 			Seen.bReady = Rank >= 1 && !bBusy && Cooldowns->GetRemainingSeconds(Loadout->CooldownIdOf(Entry->Ability), View.Now) <= 0.0
-				&& VeyraCombat::CanAffordResource(*AbilitySystem, VeyraAbilityRules::ValueAtRank(Seen.Profile.CostByRank, Rank));
+				&& VeyraCombat::CanAffordResource(*AbilitySystem, Seen.Cost);
 		}
 		// Its Flux Spells: no ranks, what each is for from its seat's data.
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Spells)
@@ -133,8 +134,9 @@ namespace
 			Seen.Use = *Use;
 			Seen.Profile = Profile.GetValue();
 			constexpr int32 SpellRank = 1;
+			Seen.Cost = VeyraAbilityRules::ValueAtRank(Seen.Profile.CostByRank, SpellRank);
 			Seen.bReady = !Loadout->IsLocked(Slot) && !bBusy && Cooldowns->GetRemainingSeconds(Entry->Ability, View.Now) <= 0.0
-				&& VeyraCombat::CanAffordResource(*AbilitySystem, VeyraAbilityRules::ValueAtRank(Seen.Profile.CostByRank, SpellRank));
+				&& VeyraCombat::CanAffordResource(*AbilitySystem, Seen.Cost);
 		}
 	}
 }
@@ -181,8 +183,8 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWard
 
 	// Its basic attack: reach, and what one does before the target's resistance.
 	const UAbilitySystemComponent* AbilitySystem = Bot.GetAbilitySystemComponent();
-	const double MaxResource = AttributeOf(AbilitySystem, UVeyraResourceSet::GetMaxResourceAttribute());
-	View.ResourceFraction = MaxResource > 0.0 ? AttributeOf(AbilitySystem, UVeyraResourceSet::GetResourceAttribute()) / MaxResource : 1.0;
+	View.MaxResource = AttributeOf(AbilitySystem, UVeyraResourceSet::GetMaxResourceAttribute());
+	View.Resource = AttributeOf(AbilitySystem, UVeyraResourceSet::GetResourceAttribute());
 	const UVeyraBasicAttackComponent* Attacks = Bot.FindComponentByClass<UVeyraBasicAttackComponent>();
 	const bool bPhysicalAttack = !Attacks || Attacks->GetProfile().DamageType != EVeyraDamageType::Magic;
 	if (Attacks && Attacks->HasProfile())
