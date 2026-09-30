@@ -115,7 +115,7 @@ void FVeyraFogGate::SyncPlayer(const APlayerController& Controller, EVeyraTeam T
 		{
 			if (It.Key() != &Controller && It.Value().Connection == Connection)
 			{
-				System->DestroyGroup(It.Value().Group);
+				Replication->DestroyGroup(It.Value().Group);
 				It.RemoveCurrent();
 			}
 		}

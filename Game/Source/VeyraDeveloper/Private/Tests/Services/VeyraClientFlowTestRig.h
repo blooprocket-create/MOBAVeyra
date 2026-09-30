@@ -99,7 +99,7 @@ namespace VeyraClientFlowTests
 	inline FString ScoreboardLine(const TCHAR* Side, const TCHAR* Name, const TCHAR* Vanguard, bool bYou, int32 Kills, double StunSeconds)
 	{
 		return FString::Printf(TEXT("{\"side\":\"%s\",\"name\":\"%s\",\"vanguardId\":\"%s\",\"you\":%s,\"statistics\":{\"kills\":%d,\"deaths\":1,\"assists\":2,")
-								   TEXT("\"level\":9,\"minionKills\":80,\"jungleKills\":4,\"wellsSecured\":1,\"wellFinalHits\":0,\"wardsPlaced\":3,\"wardsDestroyed\":1,")
+								   TEXT("\"level\":9,\"minionKills\":80,\"jungleKills\":4,\"wellsSecured\":1,\"wellFinalHits\":0,\"wardsPlaced\":3,\"wardsDestroyed\":1,\"buybacks\":0,")
 								   TEXT("\"vanguardDamage\":4200.4,\"damageShielded\":0,\"selfHealing\":150,\"teammateHealing\":0,\"goldEarned\":5321.9,")
 								   TEXT("\"towerDamage\":1800,\"wellDamage\":600,\"damageDealt\":{\"physical\":9000,\"magic\":0,\"true\":45},")
 								   TEXT("\"damageTaken\":{\"physical\":3000,\"magic\":1000,\"true\":0},\"crowdControl\":{\"stun\":%g,\"slow\":0,\"total\":%g},")
@@ -286,6 +286,9 @@ namespace VeyraClientFlowTests
 		FFlowTestHost Host;
 		TUniquePtr<FVeyraClientFlow> Flow;
 
+		/** Fixture value: how long a player watches its match end. */
+		static constexpr double EndingShowSeconds = 6.0;
+
 		FClientFlowTestRig()
 		{
 			// Fixture values: short waits, and two attempts at an unanswered request.
@@ -302,6 +305,7 @@ namespace VeyraClientFlowTests
 			Config.ReconnectPollIntervalSeconds = 5.0;
 			Config.PartyPollIntervalSeconds = 1.0;
 			Config.MatchFoundPollIntervalSeconds = 0.5;
+			Config.EndingShowSeconds = EndingShowSeconds;
 			Flow = MakeUnique<FVeyraClientFlow>(Backend, Host, Config);
 		}
 
@@ -401,6 +405,7 @@ namespace VeyraClientFlowTests
 				return false;
 			}
 			Flow->NotifyMatchPhase(EVeyraMatchPhase::Ended);
+			Advance(EndingShowSeconds);
 			Flow->NotifyWorld(EVeyraClientWorld::FrontEnd);
 			return Backend.Answer(TEXT("GET"), MatchOutcomePath(), 200, Outcome) && State() == EVeyraClientState::Results;
 		}

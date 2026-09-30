@@ -9,10 +9,33 @@
 
 UVeyraShellButton* UVeyraShellButton::Make(UWidgetTree& Tree, const FText& Label, TFunction<void()> Action, bool bEnabled, bool bSelected)
 {
+	return MakeKind(Tree, EVeyraShellButtonKind::Secondary, Label, MoveTemp(Action), bEnabled, bSelected);
+}
+
+UVeyraShellButton* UVeyraShellButton::MakeKind(UWidgetTree& Tree, EVeyraShellButtonKind Kind, const FText& Label, TFunction<void()> Action, bool bEnabled,
+	bool bSelected)
+{
 	const UVeyraShellStyleSettings& Style = *GetDefault<UVeyraShellStyleSettings>();
 	UVeyraShellButton* Button = Create(Tree, Label, MoveTemp(Action), bEnabled);
-	Button->SetStyle(VeyraShellStyle::ButtonStyle(bSelected ? Style.SelectedColor : Style.ButtonColor, Style.ButtonPadding));
-	Button->AddChild(VeyraShellStyle::MakeText(Tree, Label, VeyraShellStyle::EVeyraShellText::Body));
+	Button->SetStyle(VeyraShellStyle::ButtonStyleFor(Kind, bSelected));
+	UTextBlock* Text = VeyraShellStyle::MakeText(Tree, Label, VeyraShellStyle::LabelRoleFor(Kind));
+	// A tab or a quiet action speaks up only when it is the one shown.
+	const bool bQuiet = Kind == EVeyraShellButtonKind::Tab || Kind == EVeyraShellButtonKind::Quiet;
+	if (bQuiet && !bSelected)
+	{
+		Text->SetColorAndOpacity(FSlateColor(Style.MutedTextColor));
+	}
+	if (!bEnabled && Kind != EVeyraShellButtonKind::Primary)
+	{
+		Text->SetColorAndOpacity(FSlateColor(Style.MutedTextColor.CopyWithNewOpacity(0.6f)));
+	}
+	// A primary action is never narrower than the least width that marks it the way forward.
+	if (Kind == EVeyraShellButtonKind::Primary)
+	{
+		Text->SetJustification(ETextJustify::Center);
+		Text->SetMinDesiredWidth(Style.PrimaryButtonWidth - Style.ButtonPadding * 4.0f);
+	}
+	Button->AddChild(Text);
 	return Button;
 }
 

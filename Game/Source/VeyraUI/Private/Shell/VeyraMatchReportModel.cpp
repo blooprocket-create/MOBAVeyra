@@ -173,6 +173,7 @@ FVeyraMatchReport Describe(const VeyraBackendProtocol::FMatchOutcome& Outcome)
 	AddRow(Economy, Ordered, LOCTEXT("GoldPassive", "Passive Gold"), [](const FVeyraPlayerStatistics& S) { return GoldText(S.GoldBySource.Passive); });
 	AddRow(Economy, Ordered, LOCTEXT("MinionKills", "Minion Last Hits"), [](const FVeyraPlayerStatistics& S) { return FText::AsNumber(S.MinionKills); });
 	AddRow(Economy, Ordered, LOCTEXT("JungleKills", "Jungle Last Hits"), [](const FVeyraPlayerStatistics& S) { return FText::AsNumber(S.JungleKills); });
+	AddRow(Economy, Ordered, LOCTEXT("Buybacks", "Buybacks"), [](const FVeyraPlayerStatistics& S) { return FText::AsNumber(S.Buybacks); });
 
 	FVeyraReportGroup& Vision = Report.Groups.AddDefaulted_GetRef();
 	Vision.Title = LOCTEXT("Vision", "Vision");

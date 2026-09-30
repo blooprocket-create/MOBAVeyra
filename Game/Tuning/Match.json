@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 7,
+  "schemaVersion": 8,
   "teams": {
     "maxTeamSize": 5
   },
@@ -51,6 +51,16 @@
     "remake": { "startBeforeSeconds": 300, "yesVotes": 3, "windowSeconds": 30, "cooldownSeconds": 60 },
     "surrender": { "startAfterSeconds": 900, "yesVotes": 3, "windowSeconds": 30, "cooldownSeconds": 180 },
     "pause": { "windowSeconds": 60, "cooldownSeconds": 180, "intermissionSeconds": 600 }
+  },
+  "pings": {
+    "provenance": "Provisional",
+    "maxPerWindow": 6,
+    "windowSeconds": 5,
+    "keepSeconds": 8
+  },
+  "ending": {
+    "provenance": "Provisional",
+    "showSeconds": 6
   },
   "orders": {
     "maxPerSecond": 20,

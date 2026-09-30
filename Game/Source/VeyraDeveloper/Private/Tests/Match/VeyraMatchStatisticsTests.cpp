@@ -2,6 +2,8 @@
 
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Buyback/VeyraBuybackComponent.h"
+#include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "CQTest.h"
 #include "Engine/World.h"
 #include "Gold/VeyraGoldComponent.h"
@@ -314,6 +316,21 @@ namespace VeyraMatchStatisticsTests
 			Statistics->Stop();
 			ASSERT_THAT(IsTrue(Gold.Grant(15.0, EVeyraGoldReason::Passive)));
 			ASSERT_THAT(IsTrue(Of(*Attacker).GoldEarned == 821.0));
+		}
+
+		TEST_METHOD(EachBuybackCountsAndABountyIsGoldFromKills)
+		{
+			const FVeyraBuybackTuning& Buyback = UVeyraEconomyTuningSubsystem::Get().Buyback;
+			UVeyraGoldComponent& Gold = *Attacker->FindComponentByClass<UVeyraGoldComponent>();
+			UVeyraBuybackComponent& Buybacks = *Attacker->FindComponentByClass<UVeyraBuybackComponent>();
+			ASSERT_THAT(IsTrue(Gold.Grant(VeyraBuyback::Cost(Buyback.AvailableFromSeconds, 0, Buyback), EVeyraGoldReason::Developer)));
+			ASSERT_THAT(IsTrue(Buybacks.Buy(Buyback.AvailableFromSeconds, 0.0, /*bDead*/ true, Gold) == EVeyraBuybackRefusal::None));
+			ASSERT_THAT(AreEqual(1, Of(*Attacker).Buybacks));
+			ASSERT_THAT(AreEqual(0, Of(*Helper).Buybacks));
+
+			// A claimed bounty is Gold from a kill (ADR-020 §3).
+			ASSERT_THAT(IsTrue(Gold.Grant(Hit, EVeyraGoldReason::Bounty)));
+			ASSERT_THAT(IsTrue(Of(*Attacker).GoldBySource.Kills == Hit));
 		}
 
 		TEST_METHOD(WardsComeFromVisionAndWellsFromWorld)

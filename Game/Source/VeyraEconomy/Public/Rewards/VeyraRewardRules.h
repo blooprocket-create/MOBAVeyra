@@ -5,7 +5,9 @@
 #include "Containers/Array.h"
 #include "Containers/UnrealString.h"
 
+struct FVeyraBountyTuning;
 struct FVeyraEconomyTuning;
+struct FVeyraKillGoldTuning;
 struct FVeyraExperienceRewardTuning;
 struct FVeyraFluxRewardBonusTuning;
 
@@ -16,7 +18,10 @@ struct FVeyraFluxRewardBonusTuning;
  */
 namespace VeyraRewards
 {
-	/** What the schema cannot check: every kind of Fluxborn with Gold has XP, and the reverse. */
+	/**
+	 * What the schema cannot check: every kind of Fluxborn with Gold has XP, and the reverse; the bounty
+	 * never falls as a streak grows; devaluation starts at 1 and only falls.
+	 */
 	VEYRAECONOMY_API TArray<FString> Validate(const FVeyraEconomyTuning& Tuning);
 
 	/**
@@ -42,4 +47,19 @@ namespace VeyraRewards
 
 	/** Each assister's share of the Assist Gold pool: AssistPoolFraction of the kill Gold, split evenly (§5.1). 0 for none. */
 	VEYRAECONOMY_API double AssistShare(double KillGold, int32 Assisters, double AssistPoolFraction);
+
+	/** A Vanguard's bounty for its KillStreak consecutive kills (§5.3); past the list, its last value. */
+	VEYRAECONOMY_API double Bounty(int32 KillStreak, const FVeyraBountyTuning& Bounty);
+
+	/** A Vanguard's base kill Gold, devalued by its DeathStreak (§5.4); past the list, the minimum. */
+	VEYRAECONOMY_API double DevaluedKillGold(double BaseKillGold, int32 DeathStreak, const FVeyraKillGoldTuning& KillGold);
+
+	/**
+	 * A death streak after one more enemy-credited death: one step lower, never past the minimum, so the
+	 * next takedown restores exactly one step (§5.4).
+	 */
+	VEYRAECONOMY_API int32 DeathStreakAfterDeath(int32 DeathStreak, const FVeyraKillGoldTuning& KillGold);
+
+	/** A death streak after a takedown, a kill or an assist: one step restored (§5.4). */
+	VEYRAECONOMY_API int32 DeathStreakAfterTakedown(int32 DeathStreak);
 }

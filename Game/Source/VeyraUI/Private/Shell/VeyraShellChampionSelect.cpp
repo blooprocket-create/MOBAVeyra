@@ -9,6 +9,7 @@
 
 #include "Blueprint/WidgetTree.h"
 #include "Brushes/SlateColorBrush.h"
+#include "Brushes/SlateRoundedBoxBrush.h"
 #include "Client/VeyraClientIntents.h"
 #include "Components/Border.h"
 #include "Components/HorizontalBox.h"
@@ -36,6 +37,7 @@
 namespace
 {
 	using VeyraShellStyle::EVeyraShellText;
+	using VeyraShellStyle::EVeyraShellSurface;
 
 	const UVeyraShellStyleSettings& Style()
 	{
@@ -156,7 +158,8 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 	// The roster as League's bench: a portrait for each Vanguard the player may pick, the taken ones
 	// disabled (UX 29).
 	UHorizontalBox* Bench = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	UTextBlock* BenchTitle = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("AvailableVanguards", "AVAILABLE VANGUARDS"), EVeyraShellText::Muted);
+	UTextBlock* BenchTitle = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("AvailableVanguards", "AVAILABLE VANGUARDS"), EVeyraShellText::Eyebrow);
+	BenchTitle->SetAutoWrapText(false);
 	Bench->AddChildToHorizontalBox(BenchTitle)->SetVerticalAlignment(VAlign_Center);
 	for (const FVeyraSelectCardModel& Card : Model.Cards)
 	{
@@ -229,7 +232,12 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 {
 	const UVeyraShellStyleSettings& Settings = Style();
 	// The teammates' names, hovers or locks and status (UX 28, 35); the enemy's locks only.
-	UBorder* Row = VeyraShellStyle::MakeBorder(*WidgetTree, Seat.bYou ? Settings.SelectedColor : Settings.PanelColor, Settings.Spacing / 2.0f);
+	// A smoked row; the player's own outlined in the frame's gold.
+	UBorder* Row = VeyraShellStyle::MakeSurface(*WidgetTree, Seat.bYou ? EVeyraShellSurface::Raised : EVeyraShellSurface::Panel, FMargin(Settings.Spacing / 2.0f));
+	if (Seat.bYou)
+	{
+		Row->SetBrush(FSlateRoundedBoxBrush(Settings.SurfaceRaisedColor, Settings.PanelCornerRadius, Settings.FrameColor.CopyWithNewOpacity(0.7f), 1.0f));
+	}
 	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	Row->SetContent(Line);
 
@@ -256,6 +264,7 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 		{
 			const FText Spell = Seat.Spells.IsValidIndex(SpellSlot) ? Seat.Spells[SpellSlot] : FText::GetEmpty();
 			UBorder* Tile = VeyraShellStyle::MakeBorder(*WidgetTree, Settings.ButtonColor, 0.0f);
+			Tile->SetBrush(FSlateRoundedBoxBrush(Settings.ButtonColor, Settings.ButtonCornerRadius, Settings.HairlineColor, 1.0f));
 			Tile->SetHorizontalAlignment(HAlign_Center);
 			Tile->SetVerticalAlignment(VAlign_Center);
 			Tile->SetContent(VeyraShellStyle::MakeText(*WidgetTree, Spell.IsEmpty() ? FText::GetEmpty() : FText::FromString(Spell.ToString().Left(1)), EVeyraShellText::Small));
@@ -401,7 +410,7 @@ void UVeyraShellScreen::BuildSpellPicker(const FVeyraSelectModel& Model)
 	ScrimSlot->SetHorizontalAlignment(HAlign_Fill);
 	ScrimSlot->SetVerticalAlignment(VAlign_Fill);
 
-	UBorder* Panel = VeyraShellStyle::MakeBorder(*WidgetTree, Settings.PanelColor, Settings.Spacing * 2.0f);
+	UBorder* Panel = VeyraShellStyle::MakeSurface(*WidgetTree, VeyraShellStyle::EVeyraShellSurface::Raised, FMargin(Settings.Spacing * 2.0f));
 	UVerticalBox* Rows = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	Panel->SetContent(Rows);
 	USizeBox* PanelBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());

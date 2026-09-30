@@ -18,6 +18,7 @@ class UTextBlock;
 class UTexture2D;
 class UVerticalBox;
 class UVeyraShellButton;
+enum class EVeyraShellButtonKind : uint8;
 class UWidget;
 
 /** A match report's two views (UX-50): the two-team Scoreboard, and Detailed Statistics by category. */
@@ -110,8 +111,30 @@ private:
 	/** A filter's choices as a row of buttons; choosing one reads the first page again with it. */
 	void AddHistoryFilter(UPanelWidget& Parent, const TArray<FVeyraHistoryOption>& Options,
 		TFunction<void(VeyraBackendProtocol::FHistoryFilter&, const FString&)> Apply);
-	/** The party panel, on every page of the shell while the player has a party (UX §3). */
+	/**
+	 * The party bar along the bottom of every page of the shell while the player has a party (UX §3;
+	 * Art Bible §7.1): its mode and members, and Ready, Find Match and the queue's time.
+	 */
 	void BuildParty(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+
+	/** The shell's bar across the top: the name, the pages, the player and Quit. */
+	void BuildTopBar(const FVeyraClientSnapshot& Snapshot, UPanelWidget& Parent);
+
+	/**
+	 * A card showing VanguardId's illustration with a plate of text along its bottom, as a button named
+	 * Label; dimmed when it cannot be chosen.
+	 */
+	UVeyraShellButton* AddArtCard(UPanelWidget& Parent, const FText& Label, const FString& VanguardId, const TArray<TPair<FText, uint8>>& Plate,
+		TFunction<void()> Action, bool bEnabled, bool bSelected);
+
+	/** Centres Child across the screen, DialogWidth wide, with space above and below. */
+	void AddCentred(UWidget& Child);
+
+	/** Shows VanguardId's illustration behind the screen as a showcase, with the scrims that let text read over it. */
+	void ShowShowcase(const FString& VanguardId);
+
+	/** A Vanguard with art, chosen at random once each time the game runs; HomeVanguard when none has art. */
+	static FString PickFeaturedVanguard();
 	void BuildMatchFound(const FVeyraClientSnapshot& Snapshot);
 	/** Champion select in League's layout (VeyraShellChampionSelect.cpp). */
 	void BuildChampionSelect(const FVeyraClientSnapshot& Snapshot);
@@ -142,6 +165,10 @@ private:
 
 	UTextBlock* AddText(UPanelWidget& Parent, const FText& Text, uint8 Role);
 	UVeyraShellButton* AddButton(UPanelWidget& Parent, const FText& Label, TFunction<void()> Action, bool bEnabled = true, bool bSelected = false);
+
+	/** A button of Kind; as AddButton otherwise. */
+	UVeyraShellButton* AddKindButton(UPanelWidget& Parent, EVeyraShellButtonKind Kind, const FText& Label, TFunction<void()> Action, bool bEnabled = true,
+		bool bSelected = false);
 	/** A button showing ButtonContent, named Label. */
 	UVeyraShellButton* AddContentButton(UPanelWidget& Parent, const FText& Label, UWidget& ButtonContent, TFunction<void()> Action, bool bEnabled,
 		bool bSelected);
@@ -159,6 +186,23 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UImage> Backdrop;
+
+	/** Over a showcase's art, so text reads on it: from the left edge, and from the bottom. */
+	UPROPERTY(Transient)
+	TObjectPtr<UImage> ScrimLeft;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UImage> ScrimBottom;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UImage> ScrimTop;
+
+	/** The Vanguard whose art the showcases show this time the game runs, chosen at random. */
+	FString FeaturedVanguard;
+
+	/** The scrims' gradients, kept for as long as the screen shows them. */
+	UPROPERTY(Transient)
+	TArray<TObjectPtr<UTexture2D>> Gradients;
 
 	/** Over everything: champion select's Flux Spell picker. */
 	UPROPERTY(Transient)

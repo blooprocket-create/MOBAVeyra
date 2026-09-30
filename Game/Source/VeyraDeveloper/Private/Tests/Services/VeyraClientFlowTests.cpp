@@ -229,14 +229,32 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::StartPractice)));
 		}
 
+		TEST_METHOD(AServerThatQuitsWhileThePlayerWatchesTheEndLeavesItForTheResults)
+		{
+			ASSERT_THAT(IsTrue(ReachMatch()));
+			Flow->NotifyMatchPhase(EVeyraMatchPhase::Ended);
+			Flow->NotifyConnectionFailed(TEXT("ConnectionLost: the server closed the connection"));
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Returning));
+			ASSERT_THAT(IsTrue(Flow->GetSnapshot().Notice.IsEmpty(), TEXT("an ended match, not a lost connection")));
+			Flow->NotifyWorld(EVeyraClientWorld::FrontEnd);
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::AwaitingResults));
+			Advance(FClientFlowTestRig::EndingShowSeconds);
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::AwaitingResults, TEXT("the wait it no longer needs does nothing")));
+		}
+
 		TEST_METHOD(MatchEndedToResults)
 		{
 			ASSERT_THAT(IsTrue(ReachMatch()));
 			Flow->NotifyMatchPhase(EVeyraMatchPhase::Live);
 			ASSERT_THAT(IsTrue(State() == EVeyraClientState::InMatch));
 
-			// The replicated end sends the game back to the front end to wait for the verified result.
+			// The replicated end sends the game back to the front end to wait for the verified result, once
+			// the player has watched the match end (ADR-020 §1).
 			Flow->NotifyMatchPhase(EVeyraMatchPhase::Ended);
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::InMatch));
+			Advance(FClientFlowTestRig::EndingShowSeconds - 1.0);
+			ASSERT_THAT(IsTrue(State() == EVeyraClientState::InMatch, TEXT("still watching")));
+			Advance(1.0);
 			ASSERT_THAT(IsTrue(State() == EVeyraClientState::Returning));
 			ASSERT_THAT(AreEqual(Host.Travels.Last(), FString(TEXT("front end"))));
 			ASSERT_THAT(IsTrue(Host.JoinTicket.IsEmpty()));

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/PlayerController.h"
+#include "Buyback/VeyraBuybackRules.h"
 #include "Content/VeyraContentId.h"
 #include "Input/VeyraInputSettings.h"
 #include "Inventory/VeyraInventoryRules.h"
@@ -11,6 +12,7 @@
 #include "Tools/VeyraVisionToolComponent.h"
 #include "VeyraAbilityTypes.h"
 #include "VeyraMatchTypes.h"
+#include "Pings/VeyraPingTypes.h"
 #include "Votes/VeyraVoteTypes.h"
 
 #include "VeyraPlayerController.generated.h"
@@ -163,6 +165,13 @@ public:
 	EVeyraShopRefusal GetLastShopRefusal() const { return LastShopRefusal; }
 	int32 GetShopRefusalCount() const { return ShopRefusalCount; }
 
+	/** Owning client: asks the server to buy the dead Vanguard back, from the shop (Economy & Progression Bible §15). */
+	void RequestBuyback();
+
+	/** Owning client: the reason the server gave for the last refused buyback, and how many it refused. */
+	EVeyraBuybackRefusal GetLastBuybackRefusal() const { return LastBuybackRefusal; }
+	int32 GetBuybackRefusalCount() const { return BuybackRefusalCount; }
+
 	/** This player's Vanguard, on the server and on every client, or null before it spawns. */
 	AVeyraVanguardCharacter* GetVanguard() const;
 
@@ -180,10 +189,50 @@ public:
 	 */
 	virtual void GetPlayerViewPoint(FVector& OutLocation, FRotator& OutRotation) const override;
 
+	/** What a click on the minimap is for (ADR-020 §2). */
+	enum class EMinimapClick : uint8
+	{
+		/** A left click or drag: the camera looks there. */
+		Camera,
+		/** A right click: the Vanguard moves there. */
+		Move,
+		/** A ping: always, when the cursor is on the minimap. */
+		Ping,
+	};
+
+	/**
+	 * Owning client: pings Point for its side (ADR-020 §2). A refusal arrives through GetLastPingRefusal.
+	 * With the ping key or the danger-ping key held, a click pings where the cursor points.
+	 */
+	void RequestPing(const FVector& Point, EVeyraPingKind Kind);
+
+	/** Server: tells this player of a ping from its side. */
+	void DeliverPing(const FVeyraPing& Ping) { ClientPinged(Ping); }
+
+	/** Owning client: its side's pings it holds, oldest first, each for at most pings.keepSeconds. */
+	const TArray<FVeyraReceivedPing>& GetPings() const { return Pings; }
+
+	/** Owning client: the reason the server gave for the last refused ping. */
+	EVeyraPingRefusal GetLastPingRefusal() const { return LastPingRefusal; }
+
+	/**
+	 * Owning client: the ground point a screen pixel on the minimap stands for, for a click of the given
+	 * purpose, or nothing if the click is not on the minimap or the player turned that click off. The
+	 * UI, which draws the minimap, sets it; the controller never calls the UI (ADR-006 §3).
+	 */
+	using FMinimapHitTest = TFunction<TOptional<FVector>(const FVector2D& /*Screen*/, EMinimapClick /*Purpose*/)>;
+	void SetMinimapHitTest(FMinimapHitTest InHitTest) { MinimapHitTest = MoveTemp(InHitTest); }
+	bool HasMinimapHitTest() const { return static_cast<bool>(MinimapHitTest); }
+
+	/** Owning client: the local camera, once the controller has made it (ADR-020 §1). */
+	class AVeyraCameraRig* GetCameraRig() const { return CameraRig; }
+
+	virtual void PlayerTick(float DeltaTime) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	virtual void SetupInputComponent() override;
 	virtual void OnRep_PlayerState() override;
 
@@ -240,6 +289,15 @@ private:
 	void ClientVoteRefused(EVeyraVoteRefusal Refusal);
 
 	UFUNCTION(Server, Reliable)
+	void ServerPing(FVector Point, EVeyraPingKind Kind);
+
+	UFUNCTION(Client, Reliable)
+	void ClientPinged(const FVeyraPing& Ping);
+
+	UFUNCTION(Client, Reliable)
+	void ClientPingRefused(EVeyraPingRefusal Refusal);
+
+	UFUNCTION(Server, Reliable)
 	void ServerRankUp(EVeyraAbilitySlot Slot);
 
 	UFUNCTION(Client, Unreliable)
@@ -266,6 +324,12 @@ private:
 	UFUNCTION(Client, Unreliable)
 	void ClientShopRefused(EVeyraShopRefusal Refusal);
 
+	UFUNCTION(Server, Reliable)
+	void ServerBuyback();
+
+	UFUNCTION(Client, Unreliable)
+	void ClientBuybackRefused(EVeyraBuybackRefusal Refusal);
+
 	/** Server: runs a shop request if the order allowance and the match allow it, and tells the client why it was refused. */
 	void RunShopRequest(TFunctionRef<EVeyraShopRefusal(class UVeyraShopSubsystem& Shop, APlayerState& Participant)> Request);
 
@@ -286,6 +350,38 @@ private:
 
 	UFUNCTION()
 	void OnVanguardSet(APlayerState* Participant, APawn* NewPawn, APawn* OldPawn);
+
+	/** Owning client: this frame's camera input from the keys, the screen's edges and the drag. */
+	void TickCamera(float DeltaTime);
+
+	/** Owning client: lets go of old pings, and pings where the player clicks with a ping key held. */
+	void TickPings();
+
+	/** Whether the player holds a ping key, so a click pings instead of steering the camera. */
+	bool IsPinging() const;
+
+	/** The end-of-match pan: from where the camera looked, to the fallen Prime Well once this client has it. */
+	struct FEndPan
+	{
+		FVector From = FVector::ZeroVector;
+		TOptional<FVector> To;
+		double StartedAt = 0.0;
+	};
+	TOptional<FEndPan> EndPan;
+
+	/** Owning client: once the match has ended, the camera pans to the fallen Prime Well; true while it does. */
+	bool TickEndPan(double DeltaSeconds);
+
+	UPROPERTY(Transient)
+	TObjectPtr<class AVeyraCameraRig> CameraRig;
+
+	/** Where the cursor was on the last frame of a middle-mouse drag. */
+	TOptional<FVector2D> LastDragMouse;
+
+	FMinimapHitTest MinimapHitTest;
+
+	/** The minimap's ground point under the cursor for Purpose, if the cursor is on it. */
+	TOptional<FVector> MinimapPointUnderCursor(EMinimapClick Purpose) const;
 
 	void RejectOrder(EVeyraOrderRejection Rejection);
 
@@ -333,6 +429,9 @@ private:
 	EVeyraVoteRefusal LastVoteRefusal = EVeyraVoteRefusal::None;
 	int32 VoteRefusalCount = 0;
 
+	TArray<FVeyraReceivedPing> Pings;
+	EVeyraPingRefusal LastPingRefusal = EVeyraPingRefusal::None;
+
 	/** Its team's open vote; a controller replicates to its own player only. */
 	UPROPERTY(Replicated)
 	FVeyraVoteState TeamVote;
@@ -341,4 +440,7 @@ private:
 
 	EVeyraShopRefusal LastShopRefusal = EVeyraShopRefusal::None;
 	int32 ShopRefusalCount = 0;
+
+	EVeyraBuybackRefusal LastBuybackRefusal = EVeyraBuybackRefusal::None;
+	int32 BuybackRefusalCount = 0;
 };

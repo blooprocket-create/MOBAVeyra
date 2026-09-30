@@ -3,6 +3,7 @@
 #include "Statistics/VeyraMatchStatisticsSubsystem.h"
 
 #include "AbilitySystemComponent.h"
+#include "Buyback/VeyraBuybackComponent.h"
 #include "Engine/World.h"
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Life/VeyraCombatEventSubsystem.h"
@@ -120,6 +121,10 @@ void UVeyraMatchStatisticsSubsystem::Stop()
 		{
 			Gold->OnGoldGranted.Remove(Record.GoldHandle);
 		}
+		if (UVeyraBuybackComponent* Buyback = Record.Participant.IsValid() ? Record.Participant->FindComponentByClass<UVeyraBuybackComponent>() : nullptr)
+		{
+			Buyback->OnBoughtBack.Remove(Record.BuybackHandle);
+		}
 		// Game/Scripts/Smoke.ps1 reads these lines.
 		const TOptional<FVeyraPlayerResult> Line = LineOf(Record);
 		if (!Line.IsSet())
@@ -147,6 +152,10 @@ void UVeyraMatchStatisticsSubsystem::AddParticipant(AVeyraPlayerState& Participa
 	if (UVeyraGoldComponent* Gold = Participant.FindComponentByClass<UVeyraGoldComponent>())
 	{
 		Record.GoldHandle = Gold->OnGoldGranted.AddUObject(this, &UVeyraMatchStatisticsSubsystem::OnGoldGranted, TWeakObjectPtr<AVeyraPlayerState>(&Participant));
+	}
+	if (UVeyraBuybackComponent* Buyback = Participant.FindComponentByClass<UVeyraBuybackComponent>())
+	{
+		Record.BuybackHandle = Buyback->OnBoughtBack.AddUObject(this, &UVeyraMatchStatisticsSubsystem::OnBoughtBack, TWeakObjectPtr<AVeyraPlayerState>(&Participant));
 	}
 }
 
@@ -456,6 +465,14 @@ void UVeyraMatchStatisticsSubsystem::OnGoldGranted(double Amount, EVeyraGoldReas
 	if (Record)
 	{
 		VeyraStatisticsRules::AddEarned(Record->Statistics.GoldBySource, Reason, Amount);
+	}
+}
+
+void UVeyraMatchStatisticsSubsystem::OnBoughtBack(double /*Cost*/, TWeakObjectPtr<AVeyraPlayerState> Participant)
+{
+	if (FRecord* Record = bRecording ? Find(Participant.Get()) : nullptr)
+	{
+		++Record->Statistics.Buybacks;
 	}
 }
 

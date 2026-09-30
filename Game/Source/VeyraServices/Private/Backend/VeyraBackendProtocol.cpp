@@ -153,6 +153,7 @@ namespace
 		{ TEXT("wellFinalHits"), [](FStats& S) -> int32& { return S.WellFinalHits; } },
 		{ TEXT("wardsPlaced"), [](FStats& S) -> int32& { return S.WardsPlaced; } },
 		{ TEXT("wardsDestroyed"), [](FStats& S) -> int32& { return S.WardsDestroyed; } },
+		{ TEXT("buybacks"), [](FStats& S) -> int32& { return S.Buybacks; } },
 	};
 
 	const FStatisticAmount StatisticAmounts[] = {

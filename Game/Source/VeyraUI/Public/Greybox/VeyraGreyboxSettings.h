@@ -92,6 +92,51 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor EmpoweredColor = FLinearColor::Transparent;
 
+	/** The minimap (Settings Bible §3.2; ADR-020 §2): its side, in pixels, bottom-right inside the HUD margin. */
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap", meta = (ClampMin = "1"))
+	float MinimapSize = 0.0f;
+
+	/** Its icons' sides, in pixels: Vanguards, structures and everything else. */
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap", meta = (ClampMin = "1"))
+	float MinimapVanguardIcon = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap", meta = (ClampMin = "1"))
+	float MinimapStructureIcon = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap", meta = (ClampMin = "1"))
+	float MinimapUnitIcon = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
+	FLinearColor MinimapBackgroundColor = FLinearColor::Transparent;
+
+	/** Whether a left click or drag on the minimap moves the camera, and a right click there moves the Vanguard. */
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
+	bool bMinimapClickMovesCamera = true;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Minimap")
+	bool bMinimapRightClickMoves = true;
+
+	/**
+	 * How long a teammate's ping shows on the minimap and the ground (Settings Bible §3.2, "within tested
+	 * bounds"; Match.json pings.keepSeconds is the most a client keeps one).
+	 */
+	UPROPERTY(Config, EditAnywhere, Category = "Pings", meta = (ClampMin = "1", ClampMax = "8"))
+	float PingSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	FLinearColor LookPingColor = FLinearColor::White;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	FLinearColor DangerPingColor = FLinearColor::Red;
+
+	/** A ping's marker on the ground, in pixels. */
+	UPROPERTY(Config, EditAnywhere, Category = "Pings", meta = (ClampMin = "1"))
+	float WorldPingSize = 0.0f;
+
+	/** Short type labels on pings (Settings Bible SET-68), off by default. */
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	bool bPingTextLabels = false;
+
 	/** A warning to the player, such as that the server counts it AFK. */
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor WarningColor = FLinearColor::Transparent;
@@ -188,4 +233,79 @@ public:
 	/** How far each layer of markings sits above the one below (river, lanes, pads, then fog), so none flickers through another. */
 	UPROPERTY(Config, EditAnywhere, Category = "Battleground", meta = (ClampMin = "0"))
 	float GroundMarkingLift = 0.0f;
+
+	// The HUD's deck and strips (VeyraHudDeck). The Art Bible leaves the in-game HUD open (v0.1 §9), so
+	// its layout follows League's, in the client's design language, as provisional presentation.
+
+	/** The screen height the HUD's sizes are given for; it scales with the real height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float HudReferenceHeight = 0.0f;
+
+	/** The deck's and strips' smoked surface, their outline, and the accent for ready, lit and chosen things. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor HudSurfaceColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor HudHairlineColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor HudAccentColor = FLinearColor::Transparent;
+
+	/** The player's own Health on the deck, and Gold. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor HealthColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor GoldColor = FLinearColor::Transparent;
+
+	/** Over a slot cooling down or not yet learned, and over the screen while the Vanguard is dead. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck")
+	FLinearColor ShadeColor = FLinearColor::Transparent;
+
+	/** An ability's tile, a small tile (passive, Flux Spells, the vision tool), an item's, and the portrait, at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float AbilityTileSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float SmallTileSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float ItemTileSize = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float PortraitSize = 0.0f;
+
+	/** Between tiles, and inside the deck's edge, at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float DeckGap = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "0"))
+	float DeckPadding = 0.0f;
+
+	/** The deck's Health and resource bars, at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float DeckHealthHeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float DeckResourceHeight = 0.0f;
+
+	/** The HUD's type, at the reference height: headings, body, small labels and key caps, the clock, and a headline. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 HudHeadingFontSize = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 HudBodyFontSize = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 HudSmallFontSize = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 HudClockFontSize = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	int32 HudHeadlineFontSize = 0;
+
+	/** A hovered slot's tooltip, at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
+	float TooltipWidth = 0.0f;
 };

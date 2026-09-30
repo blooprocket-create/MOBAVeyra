@@ -22,6 +22,9 @@ struct FVeyraScoreboardRow
 	/** Minions and monsters together, as League's creep score counts them. */
 	int32 CreepScore = 0;
 
+	/** Its visible kill-streak bounty in whole Gold; 0 for none (Economy & Progression Bible §5.3). */
+	int32 Bounty = 0;
+
 	/** Each inventory slot's item, in order; invalid for an empty slot. */
 	TArray<FVeyraContentId> Items;
 

@@ -33,6 +33,8 @@ bool AddEarned(FVeyraGoldBySource& Sources, EVeyraGoldReason Reason, double Amou
 		break;
 	case EVeyraGoldReason::Kill:
 	case EVeyraGoldReason::FirstBlood:
+	// A claimed bounty is Gold from a kill (ADR-020 §3).
+	case EVeyraGoldReason::Bounty:
 		Source = &Sources.Kills;
 		break;
 	case EVeyraGoldReason::Assist:

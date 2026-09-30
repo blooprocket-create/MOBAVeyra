@@ -10,6 +10,7 @@
 
 class AHUD;
 class AVeyraProjectile;
+class UFont;
 class ULineBatchComponent;
 class UMaterialInstanceDynamic;
 class UMaterialInterface;
@@ -85,6 +86,12 @@ public:
 
 	/** The server's gameplay time as this machine knows it; it stands still while the match is paused. */
 	double GetServerNow() const;
+
+	/**
+	 * The HUD's font: the engine's Roboto family, every weight of it, as a font asset, which canvas text
+	 * needs (a canvas draws no text from a font that is not an asset).
+	 */
+	UFont* GetHudFont() const { return HudFont; }
 
 	/** The side of this machine's player; None for a spectator or a world without one. */
 	EVeyraTeam GetViewerTeam() const;
@@ -177,6 +184,9 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<ULineBatchComponent> TelegraphLines;
+
+	UPROPERTY(Transient)
+	TObjectPtr<UFont> HudFont;
 
 	TMap<TWeakObjectPtr<const AActor>, FBody> Bodies;
 	TMap<TWeakObjectPtr<const AVeyraProjectile>, FProjectileVisual> Projectiles;

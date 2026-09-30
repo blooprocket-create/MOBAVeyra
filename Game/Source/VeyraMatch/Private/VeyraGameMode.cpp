@@ -9,10 +9,12 @@
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Battleground/VeyraBattlegroundLink.h"
+#include "Buyback/VeyraBuybackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Bots/VeyraMatchEvents.h"
 #include "EngineUtils.h"
 #include "GameFramework/GameSession.h"
+#include "Gold/VeyraGoldComponent.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformTime.h"
 #include "Join/VeyraMatchHostSubsystem.h"
@@ -1276,9 +1278,37 @@ void AVeyraGameMode::OnDeath(const FVeyraDeathEvent& Death)
 	}));
 	if (!bRespawnAtOnce)
 	{
-		FTimerHandle Timer;
-		GetWorldTimerManager().SetTimer(Timer, FTimerDelegate::CreateUObject(this, &AVeyraGameMode::Respawn, Participant), static_cast<float>(Delay), /*bLoop*/ false);
+		GetWorldTimerManager().SetTimer(RespawnTimers.FindOrAdd(PlayerState), FTimerDelegate::CreateUObject(this, &AVeyraGameMode::Respawn, Participant),
+			static_cast<float>(Delay), /*bLoop*/ false);
 	}
+}
+
+EVeyraBuybackRefusal AVeyraGameMode::HandleBuybackOrder(AVeyraPlayerState* PlayerState)
+{
+	const AVeyraGameState& State = GetVeyraGameState();
+	UVeyraBuybackComponent* Buyback = PlayerState ? PlayerState->FindComponentByClass<UVeyraBuybackComponent>() : nullptr;
+	UVeyraGoldComponent* Gold = PlayerState ? PlayerState->FindComponentByClass<UVeyraGoldComponent>() : nullptr;
+	// Practice has none (ADR-020, open items), and like the shop it waits out a pause (Match Flow Bible §10.2).
+	if (!Buyback || !Gold || State.GetMatchRules() != EVeyraMatchRules::Standard || State.GetPhase() != EVeyraMatchPhase::Live || GetWorld()->IsPaused())
+	{
+		return EVeyraBuybackRefusal::Unavailable;
+	}
+	const double Now = GetWorld()->GetTimeSeconds();
+	const EVeyraBuybackRefusal Refusal = Buyback->Buy(State.GetMatchClockSeconds(), Now, !VeyraTargeting::IsAlive(PlayerState), *Gold);
+	if (Refusal != EVeyraBuybackRefusal::None)
+	{
+		return Refusal;
+	}
+	// The waiting respawn is spent: it must never bring back a later death early.
+	if (FTimerHandle* Timer = RespawnTimers.Find(PlayerState))
+	{
+		GetWorldTimerManager().ClearTimer(*Timer);
+	}
+	PlayerState->SetRespawnAt(Now);
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s bought back."), *PlayerState->GetPlayerName());
+	NoteActivityIfTaken(PlayerState, EVeyraOrderRejection::None);
+	Respawn(PlayerState);
+	return EVeyraBuybackRefusal::None;
 }
 
 void AVeyraGameMode::RecoverAtFountains()

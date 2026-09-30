@@ -28,6 +28,25 @@ TArray<FString> Validate(const FVeyraEconomyTuning& Tuning)
 	};
 	CheckPaired(Tuning.Gold.Fluxborn, Tuning.Experience.Fluxborn, TEXT("fluxborn"));
 	CheckPaired(Tuning.Gold.Wildlife, Tuning.Experience.Wildlife, TEXT("wildlife"));
+	for (int32 Index = 1; Index < Tuning.Bounty.ByStreak.Num(); ++Index)
+	{
+		if (Tuning.Bounty.ByStreak[Index] < Tuning.Bounty.ByStreak[Index - 1])
+		{
+			Problems.Add(FString::Printf(TEXT("/bounty/byStreak/%d: a longer streak's bounty is less than a shorter one's"), Index));
+		}
+	}
+	const TArray<double>& Steps = Tuning.KillGold.DevaluationSteps;
+	if (!Steps.IsEmpty() && Steps[0] != 1.0)
+	{
+		Problems.Add(TEXT("/killGold/devaluationSteps/0: kill Gold starts whole, at 1"));
+	}
+	for (int32 Index = 1; Index < Steps.Num(); ++Index)
+	{
+		if (Steps[Index] > Steps[Index - 1])
+		{
+			Problems.Add(FString::Printf(TEXT("/killGold/devaluationSteps/%d: a longer death streak's step is worth more than a shorter one's"), Index));
+		}
+	}
 	return Problems;
 }
 
@@ -64,5 +83,27 @@ double KillExperiencePool(double Base, int32 Participants, bool bVictimOutlevels
 double AssistShare(double KillGold, int32 Assisters, double AssistPoolFraction)
 {
 	return Assisters > 0 ? KillGold * AssistPoolFraction / Assisters : 0.0;
+}
+
+double Bounty(int32 KillStreak, const FVeyraBountyTuning& Bounty)
+{
+	const TArray<double>& ByStreak = Bounty.ByStreak;
+	return ByStreak.IsEmpty() ? 0.0 : ByStreak[FMath::Clamp(KillStreak, 0, ByStreak.Num() - 1)];
+}
+
+double DevaluedKillGold(double BaseKillGold, int32 DeathStreak, const FVeyraKillGoldTuning& KillGold)
+{
+	const TArray<double>& Steps = KillGold.DevaluationSteps;
+	return Steps.IsEmpty() ? BaseKillGold : BaseKillGold * Steps[FMath::Clamp(DeathStreak, 0, Steps.Num() - 1)];
+}
+
+int32 DeathStreakAfterDeath(int32 DeathStreak, const FVeyraKillGoldTuning& KillGold)
+{
+	return FMath::Clamp(DeathStreak + 1, 0, FMath::Max(0, KillGold.DevaluationSteps.Num() - 1));
+}
+
+int32 DeathStreakAfterTakedown(int32 DeathStreak)
+{
+	return FMath::Max(0, DeathStreak - 1);
 }
 }

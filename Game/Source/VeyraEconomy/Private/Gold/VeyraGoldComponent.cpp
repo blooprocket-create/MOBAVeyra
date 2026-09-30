@@ -4,6 +4,8 @@
 
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
+#include "Rewards/VeyraEconomyTuningSubsystem.h"
+#include "Rewards/VeyraRewardRules.h"
 #include "VeyraEconomyLog.h"
 
 const TCHAR* LexToString(EVeyraGoldReason Reason)
@@ -40,6 +42,8 @@ const TCHAR* LexToString(EVeyraGoldReason Reason)
 		return TEXT("a share of a Flux Well");
 	case EVeyraGoldReason::WardDestroyed:
 		return TEXT("a ward destroyed");
+	case EVeyraGoldReason::Bounty:
+		return TEXT("a bounty");
 	}
 	return TEXT("unknown");
 }
@@ -59,6 +63,30 @@ void UVeyraGoldComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	Params.Condition = COND_OwnerOnly;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraGoldComponent, Gold, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraGoldComponent, Holds, Params);
+
+	FDoRepLifetimeParams Public;
+	Public.bIsPushBased = true;
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraGoldComponent, KillStreak, Public);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraGoldComponent, DeathStreak, Public);
+}
+
+double UVeyraGoldComponent::GetBounty() const
+{
+	return VeyraRewards::Bounty(KillStreak, UVeyraEconomyTuningSubsystem::Get().Bounty);
+}
+
+void UVeyraGoldComponent::SetStreaks(int32 NewKillStreak, int32 NewDeathStreak)
+{
+	if (NewKillStreak != KillStreak)
+	{
+		KillStreak = NewKillStreak;
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraGoldComponent, KillStreak, this);
+	}
+	if (NewDeathStreak != DeathStreak)
+	{
+		DeathStreak = NewDeathStreak;
+		MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraGoldComponent, DeathStreak, this);
+	}
 }
 
 bool UVeyraGoldComponent::Grant(double Amount, EVeyraGoldReason Reason)

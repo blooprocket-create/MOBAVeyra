@@ -8,6 +8,63 @@
 
 #include "VeyraEconomyTuning.generated.h"
 
+/** The visible kill-streak bounty (Economy & Progression Bible §5.3). */
+USTRUCT()
+struct FVeyraBountyTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** A Vanguard's bounty at each streak of consecutive kills, from none; past the list, its last value (the cap). */
+	UPROPERTY()
+	TArray<double> ByStreak;
+};
+
+/** Death-streak devaluation of base kill Gold (§5.4). */
+USTRUCT()
+struct FVeyraKillGoldTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Base kill Gold's multiplier at each death streak, from none: 1 first, then down to the minimum, the last. */
+	UPROPERTY()
+	TArray<double> DevaluationSteps;
+};
+
+/** Buyback (§15): its availability, its two-way rising cost, and its personal cooldown. */
+USTRUCT()
+struct FVeyraBuybackTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The match time from which a dead Vanguard may buy back (§15: 10:00, canon). */
+	UPROPERTY()
+	double AvailableFromSeconds = 0.0;
+
+	UPROPERTY()
+	double BaseCost = 0.0;
+
+	/** Added for each whole minute of match time past AvailableFromSeconds. */
+	UPROPERTY()
+	double CostPerMinute = 0.0;
+
+	/** Added for each buyback the same Vanguard has already bought this match. */
+	UPROPERTY()
+	double CostPerPurchase = 0.0;
+
+	/** From a purchase until the next may be bought, in match seconds; it runs alive or dead. */
+	UPROPERTY()
+	double CooldownSeconds = 0.0;
+};
+
 /** Individual Gold (Economy & Progression Bible §1, §3, §5, §8). */
 USTRUCT()
 struct FVeyraGoldTuning
@@ -203,10 +260,19 @@ struct FVeyraEconomyTuning
 	GENERATED_BODY()
 
 	/** The Economy.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 5;
+	static constexpr int32 SchemaVersion = 6;
 
 	UPROPERTY()
 	FVeyraGoldTuning Gold;
+
+	UPROPERTY()
+	FVeyraBountyTuning Bounty;
+
+	UPROPERTY()
+	FVeyraKillGoldTuning KillGold;
+
+	UPROPERTY()
+	FVeyraBuybackTuning Buyback;
 
 	UPROPERTY()
 	FVeyraPassiveGoldTuning PassiveGold;

@@ -13,6 +13,7 @@
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Buyback/VeyraBuybackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
@@ -53,6 +54,7 @@ AVeyraPlayerState::AVeyraPlayerState(const FObjectInitializer& ObjectInitializer
 	Regeneration = CreateDefaultSubobject<UVeyraRegenerationComponent>(TEXT("Regeneration"));
 	Progression = CreateDefaultSubobject<UVeyraProgressionComponent>(TEXT("Progression"));
 	Gold = CreateDefaultSubobject<UVeyraGoldComponent>(TEXT("Gold"));
+	Buyback = CreateDefaultSubobject<UVeyraBuybackComponent>(TEXT("Buyback"));
 	Inventory = CreateDefaultSubobject<UVeyraInventoryComponent>(TEXT("Inventory"));
 	Recall = CreateDefaultSubobject<UVeyraRecallComponent>(TEXT("Recall"));
 	VisionTool = CreateDefaultSubobject<UVeyraVisionToolComponent>(TEXT("VisionTool"));

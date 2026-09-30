@@ -289,6 +289,7 @@ namespace VeyraServicesTests
 				S.WellFinalHits = Seed + 8;
 				S.WardsPlaced = Seed + 9;
 				S.WardsDestroyed = Seed + 10;
+				S.Buybacks = Seed + 11;
 				S.VanguardDamage = Seed + 1100.5;
 				S.DamageDealt.Physical = Seed + 9000.25;
 				S.DamageDealt.Magic = Seed + 1200.5;

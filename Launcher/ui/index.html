@@ -8,11 +8,16 @@
 <script src="launcher.js" defer></script>
 </head>
 <body>
+<div class="art" aria-hidden="true"></div>
 <main>
-  <h1>VEYRA</h1>
+  <header>
+    <p class="eyebrow">The Meridian Crucible</p>
+    <h1>Veyra</h1>
+  </header>
 
   <section id="loading">
     <p class="status">Contacting Veyra's services…</p>
+    <div class="working" aria-hidden="true"></div>
   </section>
 
   <section id="sign-in" hidden>
@@ -25,6 +30,7 @@
 
   <section id="progress" hidden>
     <p class="status" id="stage"></p>
+    <div class="working" aria-hidden="true"></div>
     <p class="note">The launcher closes once Veyra has signed you in.</p>
   </section>
 

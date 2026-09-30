@@ -81,6 +81,43 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey RecallKey;
 
+	/** The camera (Settings Bible §2; ADR-020 §1): cycle its mode, hold it on the Vanguard, pan and drag it. */
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey CameraModeKey;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey HoldToCenterKey;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey CameraUpKey;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey CameraDownKey;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey CameraLeftKey;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey CameraRightKey;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey CameraDragKey;
+
+	/** Held on the minimap, moves the camera there (ADR-020 §2). */
+	UPROPERTY(Config, EditAnywhere, Category = "Camera")
+	FKey MinimapCameraKey;
+
+	/** Held with a click, pings "look here" or "danger" for the player's side (ADR-020 §2). */
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	FKey PingKey;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	FKey DangerPingKey;
+
+	/** The click that pings while a ping key is held. */
+	UPROPERTY(Config, EditAnywhere, Category = "Pings")
+	FKey PingClickKey;
+
 	/** Answer the open vote YES or NO (Match Flow Bible §7–§10; ADR-019 §7). */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey VoteYesKey;

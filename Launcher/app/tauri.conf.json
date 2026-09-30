@@ -10,8 +10,8 @@
     "windows": [
       {
         "title": "Veyra",
-        "width": 460,
-        "height": 560,
+        "width": 960,
+        "height": 600,
         "resizable": false,
         "center": true
       }

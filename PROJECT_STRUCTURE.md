@@ -119,6 +119,7 @@ Gold and the rewards arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runt
 
 - `Gold/`: `UVeyraGoldComponent` on the PlayerState, a fractional balance replicated to its owner, changed only by explained grants.
 - `Rewards/`: `UVeyraRewardSubsystem` decides who qualifies for each death's Gold and XP and pays through the Gold and progression components; the arithmetic is the pure `VeyraRewards` functions, and the values are `Game/Tuning/Economy.json`'s. It follows Combat's deaths for Vanguard kills; World reports Fluxborn deaths, with their team's active Flux, and fallen structures, so Economy never reads Flux or World.
+- `Buyback/`: `UVeyraBuybackComponent` on the PlayerState counts a participant's buybacks and holds its cooldown; the pure `VeyraBuyback` rules price and refuse the next one (Economy & Progression Bible §15; ADR-020 §3). Economy takes the Gold; Match respawns the Vanguard.
 
 ### VeyraItems
 
