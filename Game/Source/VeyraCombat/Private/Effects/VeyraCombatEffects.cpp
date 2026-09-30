@@ -21,6 +21,7 @@ const FName UVeyraStatusEffect::IncomingDamageMultiplierName(TEXT("IncomingDamag
 const FName UVeyraStatusEffect::DisplacementMultiplierName(TEXT("DisplacementMultiplier"));
 const FName UVeyraStatusEffect::HealthRegenMultiplierName(TEXT("HealthRegenMultiplier"));
 const FName UVeyraStatusEffect::OutgoingDamageMultiplierName(TEXT("OutgoingDamageMultiplier"));
+const FName UVeyraStatusEffect::MagicResistRetainedMultiplierName(TEXT("MagicResistRetainedMultiplier"));
 
 UVeyraStatusEffect::UVeyraStatusEffect()
 {
@@ -34,6 +35,7 @@ UVeyraStatusEffect::UVeyraStatusEffect()
 		{ UVeyraDefenceSet::GetDisplacementRetainedAttribute(), DisplacementMultiplierName },
 		{ UVeyraVitalsSet::GetHealthRegenAttribute(), HealthRegenMultiplierName },
 		{ UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute(), OutgoingDamageMultiplierName },
+		{ UVeyraDefenceSet::GetMagicResistReductionRetainedAttribute(), MagicResistRetainedMultiplierName },
 	};
 	for (const TPair<FGameplayAttribute, FName>& Line : Lines)
 	{

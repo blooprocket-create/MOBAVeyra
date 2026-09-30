@@ -232,6 +232,24 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(Burn(10.0, LongSeconds * 2.0, LongSeconds)).IsEmpty(), TEXT("and at least one in its duration")));
 		}
 
+		TEST_METHOD(MagicResistReductionCutsTheRetainedResistanceUpToItsStacks)
+		{
+			// Fixture values: 5% a stack, three at most (ADR-022 §5).
+			constexpr double PerStack = 0.05;
+			constexpr int32 MaxStacks = 3;
+			const FVeyraStatusSpec Shred = TestStatus(TEXT("shred"), EVeyraStatusKind::MagicResistReduction, PerStack, LongSeconds, EVeyraStackingPolicy::Stacking, MaxStacks);
+			for (int32 Applied = 0; Applied <= MaxStacks; ++Applied)
+			{
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Shred)));
+			}
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Value(UVeyraDefenceSet::GetMagicResistReductionRetainedAttribute()), 1.0 - PerStack * MaxStacks, 1e-5)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Value(UVeyraDefenceSet::GetArmorReductionRetainedAttribute()), 1.0), TEXT("Armor keeps all of itself")));
+			ASSERT_THAT(IsFalse(VeyraStatuses::IsCrowdControl(EVeyraStatusKind::MagicResistReduction)));
+			// Stacks that would remove all of it are refused.
+			const FVeyraStatusSpec Whole = TestStatus(TEXT("shred"), EVeyraStatusKind::MagicResistReduction, 0.5, LongSeconds, EVeyraStackingPolicy::Stacking, 2);
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(Whole).IsEmpty()));
+		}
+
 		TEST_METHOD(IndependentSourcesKeepOneInstanceEach)
 		{
 			constexpr double Reduction = 0.2;

@@ -60,16 +60,16 @@ Every value below is Provisional data in `Items.json` and its Attunement maps; �
 - **Arcane Boots (T2 Boots):** Basic Boots; Movement Speed and `magicPowerFraction` (§9.3).
 - **Flux Flask (consumable):** reusable. Its state and use are §6's.
 - **Impact Aegis (T3):** War Harness + Striker Assembly.
-  - Attunement **Reprisal Guard** (`reprisalGuard`): damaging an enemy Vanguard grants a shield of a fraction of the damage the triggering hit dealt. The fraction is taken after mitigation, and damage a shield absorbed counts, as Lifesteal counts it (§6).
-  - A cap bounds the shield. The Attunement then cools down.
+  - Attunement **Reprisal Guard** (`reprisalGuard`): a basic attack or ability that damages an enemy Vanguard grants a shield of a fraction of the damage it dealt (Item §8: "the triggering attack or ability"; a proc or a tick does not trigger it). The fraction is taken after mitigation, and damage a shield absorbed counts.
+  - A cap bounds the shield, which lasts `shieldSeconds`. The Attunement then cools down.
 - **Gravitic Seal (T3):** Spellguard Plate + Catalyst Coil.
-  - Attunement **Drag** (`drag`): ability damage to an enemy Vanguard slows it by a fraction for a short time.
+  - Attunement **Drag** (`drag`): ability damage to an enemy Vanguard slows it by a fraction for a short time, as a Slow status with the Attunement's ID.
 - **Starfall Prism (T3):** Grand Prism + Catalyst Coil + Arc Crystal.
   - Attunement **Convergence** (`convergence`): ability damage to an enemy Vanguard primes it for a window.
   - The next ability damage from the holder within the window consumes the prime, dealing bonus magic damage (flat + a Magic Power ratio) as Proc delivery, which neither primes nor consumes.
 - **Nullglass Lens (T3):** Nullglass Shard + Grand Prism.
-  - Attunement **Fracture** (`fracture`): each instance of magic damage the holder deals to an enemy Vanguard adds a stack reducing its Magic Resistance by a fraction, up to a cap. The stacks refresh together and expire together.
-  - A new status kind, Magic Resist Reduction, carries it.
+  - Attunement **Fracture** (`fracture`): each instance of magic damage the holder deals to an enemy Vanguard, of any delivery, adds a stack reducing its Magic Resistance by a fraction, up to a cap (Item §9: "repeated magic damage"). The stacks refresh together and expire together.
+  - A new status kind, Magic Resist Reduction, carries it. Validation refuses stacks that together would remove all of a Magic Resistance.
 - **Razorwheel Prime (T3):** Razorwheel + War Harness + Quickcoil.
   - Upgrading from Razorwheel removes Cleave, since an item's Active is its own (ADR-012 §3).
   - Attunement **Endless Cleave** (`endlessCleave`): each basic attack also deals a fraction of its damage as Physical damage to other enemies around the primary target. A ranged holder's fraction is lower. It never hits structures.
@@ -87,13 +87,13 @@ Every value below is Provisional data in `Items.json` and its Attunement maps; �
 
 ### 4. The dealt-damage event (amends ADR-009)
 
-`UVeyraCombatEventSubsystem` gains `OnDamageDealt(FVeyraDamageDealtEvent)`, broadcast on the server once per damage instance that reaches an enemy. It carries:
-- source, target and delivery (BasicAttack, Ability, StructureAttack, Proc, Developer);
-- damage type;
-- the amount dealt to Health and to shields after mitigation;
-- whether the damage was area or damage-over-time.
+`UVeyraCombatEventSubsystem` gains `OnDamageDealt(FVeyraDamageDealtEvent)`, broadcast on the server once per damage instance that reaches an enemy, after `OnHostileDamage`. It carries:
+- source, target and delivery. A damage-over-time tick is its own instance with the `Periodic` delivery, so no separate flag is needed;
+- what each damage type cost the target after mitigation: Health, Temporary Health and shields, never overkill.
 
-`OnHostileDamage` stays for the aggro router and recall interruption. Reprisal Guard, Drag, Convergence and Fracture subscribe to `OnDamageDealt` in the shop subsystem, beside Spool Up and Overcycle. Endless Cleave and Tempered by Conflict read the attack plan, as Vanguard passives do (`OnModifyAttack`).
+The damage pipeline opens an instance around its application, and the event subsystem sums each component's resolution into it (`ResolveDamage`, which also broadcasts `OnDamageResolved`). Instances nest, as when a hit's death deals damage of its own.
+
+`OnHostileDamage` stays for the aggro router and recall interruption. Reprisal Guard, Drag, Convergence and Fracture live in a new **`UVeyraAttunementSubsystem`** (VeyraItems), which subscribes to `OnDamageDealt` and acts through Combat's verbs. They are not in the shop subsystem, which already owns transactions, undo, consumables and the stacking buffs. Endless Cleave and Tempered by Conflict read the attack plan, as Vanguard passives do (`OnModifyAttack`).
 
 ### 5. Magic Resistance reduction as a status (amends ADR-009)
 
@@ -125,7 +125,7 @@ The rule that a build never lists an item another consumes still holds.
 | Sovereign Edge | + 700 recipe; Physical Power 60, Crit Chance 0.25; Perfect Cut +0.4 Crit Damage |
 | Arcane Boots | + 700 recipe; Movement Speed 45, Magic Power fraction 0.08 |
 | Flux Flask | 150 Gold; 2 charges; 90 Health over 12 s each; resale 0.4 |
-| Impact Aegis | + 800 recipe; Health 300, Physical Power 30, Ability Haste 15; Reprisal Guard 0.2 of the hit, cap 250, cooldown 8 s |
+| Impact Aegis | + 800 recipe; Health 300, Physical Power 30, Ability Haste 15; Reprisal Guard 0.2 of the hit, cap 250, lasting 3 s, cooldown 8 s |
 | Gravitic Seal | + 750 recipe; Magic Power 60, Health 250, Ability Haste 15; Drag 30% for 1 s |
 | Starfall Prism | + 800 recipe; Magic Power 90, Ability Haste 20; Convergence window 4 s, 50 + 0.15 Magic Power |
 | Nullglass Lens | + 750 recipe; Magic Power 80, Magic Penetration 15; Fracture 5% per stack, 5 stacks, 4 s |

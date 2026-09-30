@@ -12,9 +12,9 @@ namespace VeyraCombatEventTests
 {
 	using VeyraAbilitiesTests::FArchetypeTestWorld;
 
-	// Veyra.Combat.CombatEvents.*: what Combat reports for statistics (ADR-017 §1). A resolved hit says
-	// what it cost and whose shields took it; a heal what it restored and who gave it; a status when it
-	// began and ends.
+	// Veyra.Combat.CombatEvents.*: what Combat reports for statistics (ADR-017 §1) and Attunements
+	// (ADR-022 §4). A resolved hit says what it cost and whose shields took it; a dealt one what each
+	// type cost an enemy; a heal what it restored and who gave it; a status when it began and ends.
 	TEST_CLASS(CombatEvents, "Veyra.Combat")
 	{
 		// Fixture values, not tuning.
@@ -31,6 +31,7 @@ namespace VeyraCombatEventTests
 		TArray<FVeyraDamageResolution> Resolved;
 		TArray<FVeyraHealthRestored> Restored;
 		TArray<FVeyraStatusApplied> Applied;
+		TArray<FVeyraDamageDealtEvent> Dealt;
 
 		BEFORE_EACH()
 		{
@@ -43,6 +44,7 @@ namespace VeyraCombatEventTests
 			Events->OnDamageResolved.AddLambda([this](const FVeyraDamageResolution& Event) { Resolved.Add(Event); });
 			Events->OnHealthRestored.AddLambda([this](const FVeyraHealthRestored& Event) { Restored.Add(Event); });
 			Events->OnStatusApplied.AddLambda([this](const FVeyraStatusApplied& Event) { Applied.Add(Event); });
+			Events->OnDamageDealt.AddLambda([this](const FVeyraDamageDealtEvent& Event) { Dealt.Add(Event); });
 		}
 
 		static UAbilitySystemComponent& Abilities(AVeyraVanguardCharacter& Vanguard)
@@ -71,6 +73,37 @@ namespace VeyraCombatEventTests
 			ASSERT_THAT(AreEqual(Event.Shields.Num(), 2));
 			ASSERT_THAT(IsTrue(Event.Shields[0].Provider.Get() == &Abilities(*Ally) && FMath::IsNearlyEqual(Event.Shields[0].Absorbed, ProvidedShield)));
 			ASSERT_THAT(IsTrue(Event.Shields[1].Provider.Get() == &Abilities(*Target) && FMath::IsNearlyEqual(Event.Shields[1].Absorbed, OwnShield)));
+		}
+
+		TEST_METHOD(ADealtHitSaysWhatEachTypeCostShieldsIncluded)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::GrantShield(Abilities(*Target), Abilities(*Target), EVeyraShieldCategory::Universal, OwnShield, LongSeconds).IsValid()));
+			FVeyraRawDamageEvent Damage = TrueDamage(Hit);
+			Damage.Components.Add({ EVeyraDamageType::Magic, Hit });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(Abilities(*Attacker), Abilities(*Target), Damage)));
+
+			ASSERT_THAT(AreEqual(1, Dealt.Num(), TEXT("one event for the instance")));
+			const FVeyraDamageDealtEvent& Event = Dealt[0];
+			ASSERT_THAT(IsTrue(Event.Source.Get() == &Abilities(*Attacker) && Event.Target.Get() == &Abilities(*Target) && Event.Delivery == EVeyraDamageDelivery::Ability));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Event.Of(EVeyraDamageType::TrueDamage), Hit), TEXT("true damage costs all of itself, the shield's share included")));
+			double Cost = 0.0;
+			double MagicCost = 0.0;
+			for (const FVeyraDamageResolution& Resolution : Resolved)
+			{
+				double Each = Resolution.HealthLost + Resolution.TemporaryHealthSpent;
+				for (const FVeyraShieldShare& Share : Resolution.Shields)
+				{
+					Each += Share.Absorbed;
+				}
+				Cost += Each;
+				MagicCost += Resolution.Type == EVeyraDamageType::Magic ? Each : 0.0;
+			}
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Event.Of(EVeyraDamageType::Magic), MagicCost) && MagicCost > 0.0, TEXT("magic after Magic Resistance")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Event.Total(), Cost), TEXT("the whole instance, and nothing else")));
+
+			// Damage between allies is dealt to no enemy.
+			VeyraCombat::DealDamage(Abilities(*Ally), Abilities(*Target), TrueDamage(Hit));
+			ASSERT_THAT(AreEqual(1, Dealt.Num()));
 		}
 
 		TEST_METHOD(AHealSaysWhatItRestoredAndWhoGaveIt)

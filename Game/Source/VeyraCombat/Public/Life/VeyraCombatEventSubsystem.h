@@ -135,6 +135,36 @@ struct FVeyraHostileDamageEvent
 };
 
 /**
+ * One damage instance a unit dealt to an enemy, as it resolved (ADR-022 §4): what each of its types
+ * cost the target after mitigation, in Health, Temporary Health and shields, never overkill. A
+ * damage-over-time tick is its own instance, with the Periodic delivery.
+ */
+struct FVeyraDamageDealtEvent
+{
+	TWeakObjectPtr<UAbilitySystemComponent> Source;
+	TWeakObjectPtr<UAbilitySystemComponent> Target;
+	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
+	/** By type, each type at most once; a type that cost nothing is absent. */
+	FVeyraDamageComponents Dealt;
+
+	double Of(EVeyraDamageType Type) const
+	{
+		const FVeyraDamageComponent* Component = Dealt.FindByPredicate([Type](const FVeyraDamageComponent& Each) { return Each.Type == Type; });
+		return Component ? Component->Amount : 0.0;
+	}
+
+	double Total() const
+	{
+		double Sum = 0.0;
+		for (const FVeyraDamageComponent& Component : Dealt)
+		{
+			Sum += Component.Amount;
+		}
+		return Sum;
+	}
+};
+
+/**
  * Combat's outcomes, announced to the systems above it as events rather than through hard
  * references (ARCHITECTURE.md §1.7). Match listens for deaths to schedule respawns, Economy for
  * rewards, and the battleground for who is hurting whom. Server only: Combat decides outcomes only
@@ -148,6 +178,7 @@ class VEYRACOMBAT_API UVeyraCombatEventSubsystem : public UWorldSubsystem
 public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDeath, const FVeyraDeathEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnHostileDamage, const FVeyraHostileDamageEvent&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDamageDealt, const FVeyraDamageDealtEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDamageResolved, const FVeyraDamageResolution&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnHealthRestored, const FVeyraHealthRestored&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnStatusApplied, const FVeyraStatusApplied&);
@@ -158,6 +189,12 @@ public:
 
 	/** Hostile damage that was dealt, shields included (Battleground Bible §19: tower and Fluxborn aggro). */
 	FOnHostileDamage OnHostileDamage;
+
+	/**
+	 * Each damage instance dealt to an enemy, with what it cost by type (ADR-022 §4), after
+	 * OnHostileDamage: Attunements that act on a hit read it.
+	 */
+	FOnDamageDealt OnDamageDealt;
 
 	/**
 	 * Every damage component that cost a unit something, before any death it causes (ADR-017 §1):
@@ -179,4 +216,19 @@ public:
 
 	/** A unit forced another to move: a Knockback, Pull or Knockup's travel (Combat Bible §9). */
 	FOnDisplaced OnDisplaced;
+
+	/** Broadcasts OnDamageResolved, and counts what the component cost toward the instance being dealt. */
+	void ResolveDamage(const FVeyraDamageResolution& Resolution);
+
+	/**
+	 * The damage pipeline opens an instance around its application and closes it after: what each
+	 * component cost between the two is what the instance dealt. Instances nest, as when a hit's
+	 * death deals damage of its own.
+	 */
+	void BeginDealing(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, EVeyraDamageDelivery Delivery);
+	FVeyraDamageDealtEvent EndDealing();
+
+private:
+	/** The instances being dealt, innermost last. */
+	TArray<FVeyraDamageDealtEvent, TInlineAllocator<2>> Dealing;
 };

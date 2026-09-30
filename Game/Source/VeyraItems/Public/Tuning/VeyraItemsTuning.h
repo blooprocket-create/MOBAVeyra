@@ -193,7 +193,10 @@ struct FVeyraPerfectCutTuning
 	double CritDamageBonus = 0.0;
 };
 
-/** A buff that stacks on each qualifying hit and refreshes, up to a cap: Spool Up and Overcycle (Item Bible §8, §9). */
+/**
+ * An effect that stacks on each qualifying hit and refreshes, up to a cap (Item Bible §8, §9): the
+ * holder's buff for Spool Up and Overcycle, and the target's Magic Resist Reduction for Fracture.
+ */
 USTRUCT()
 struct FVeyraStackingAttunementTuning
 {
@@ -210,6 +213,69 @@ struct FVeyraStackingAttunementTuning
 
 	UPROPERTY()
 	double DurationSeconds = 0.0;
+};
+
+/** Reprisal Guard: damaging an enemy Vanguard shields the holder, then waits (Item Bible §8; ADR-022 §3). */
+USTRUCT()
+struct FVeyraReprisalGuardTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The shield, as a fraction of what the triggering hit dealt after mitigation, shields included. */
+	UPROPERTY()
+	double DamageFraction = 0.0;
+
+	/** The most one shield holds. */
+	UPROPERTY()
+	double MaxShield = 0.0;
+
+	UPROPERTY()
+	double ShieldSeconds = 0.0;
+
+	/** How long the Attunement waits after it shields. */
+	UPROPERTY()
+	double CooldownSeconds = 0.0;
+};
+
+/** Drag: damaging abilities briefly slow enemy Vanguards (Item Bible §9; ADR-022 §3). */
+USTRUCT()
+struct FVeyraDragTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The fraction of Movement Speed removed. */
+	UPROPERTY()
+	double Slow = 0.0;
+
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+};
+
+/** Convergence: one damaging ability primes an enemy Vanguard, and the next consumes it (Item Bible §9; ADR-022 §3). */
+USTRUCT()
+struct FVeyraConvergenceTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How long a prime waits for the holder's next damaging ability. */
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	/** The bonus magic damage: this, plus MagicPowerRatio of the holder's Magic Power. */
+	UPROPERTY()
+	double BaseDamage = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
 };
 
 /** The Items domain's tuning, bound from Game/Tuning/Items.json (ADR-006 §6, ADR-012 §3). */
@@ -244,6 +310,19 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraPerfectCutTuning> PerfectCut;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraReprisalGuardTuning> ReprisalGuard;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraDragTuning> Drag;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraConvergenceTuning> Convergence;
+
+	/** Fracture: PerStack is the fraction of Magic Resistance each stack removes (Item Bible §9; ADR-022 §5). */
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraStackingAttunementTuning> Fracture;
 };
 
 /** The Items domain's checks that a schema cannot express (ADR-012 §3). */
@@ -254,7 +333,8 @@ namespace VeyraItems
 	 * no recipe and no Attunement; Tier 2 has a recipe and no Attunement; Tier 3 has a recipe and
 	 * exactly one Attunement (Item Bible §2, §11); Boots stop at Tier 2 (§5); every component is a
 	 * lower tier than its recipe, so recipes never loop; a consumable is a Tier 1 item with its own
-	 * entry, and only a consumable stacks; every Attunement is defined in exactly one map.
+	 * entry, and only a consumable stacks; every Attunement is defined in exactly one map; Fracture's
+	 * stacks together never remove all of a Magic Resistance.
 	 */
 	VEYRAITEMS_API TArray<FString> Validate(const FVeyraItemsTuning& Tuning);
 

@@ -4,7 +4,7 @@
   "description": "The shop's catalog and rules, owned by the Items domain (Item Bible v0.3; Economy & Progression Bible §10–§12; ADR-012 §3). VeyraItems binds it to FVeyraItemsTuning and checks the tier rules the schema cannot express. Prices and stats are prototype data (Item Bible §3).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "shop", "items", "consumables", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut"],
+  "required": ["schemaVersion", "shop", "items", "consumables", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -168,6 +168,66 @@
           }
         }
       }
+    },
+    "reprisalGuard": {
+      "description": "Reprisal Guard (Impact Aegis, Item Bible §8; ADR-022 §3): a basic attack or ability that damages an enemy Vanguard shields the holder for a fraction of what it dealt, then the Attunement waits.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "damageFraction", "maxShield", "shieldSeconds", "cooldownSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "damageFraction": { "description": "The shield, as a fraction of what the triggering hit dealt after mitigation, shields included.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "maxShield": { "description": "The most one shield holds.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "shieldSeconds": { "description": "How long the shield lasts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "cooldownSeconds": { "description": "How long the Attunement waits after it shields.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "drag": {
+      "description": "Drag (Gravitic Seal, Item Bible §9; ADR-022 §3): ability damage to an enemy Vanguard slows it briefly.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "slow", "durationSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "slow": { "description": "The fraction of Movement Speed removed.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1, "exclusiveMaximum": true },
+            "durationSeconds": { "description": "How long the slow lasts.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "convergence": {
+      "description": "Convergence (Starfall Prism, Item Bible §9; ADR-022 §3): ability damage to an enemy Vanguard primes it; the holder's next damaging ability on it within the window consumes the prime for bonus magic damage.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "windowSeconds", "baseDamage", "magicPowerRatio"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "windowSeconds": { "description": "How long a prime waits for the holder's next damaging ability.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "baseDamage": { "description": "The bonus magic damage before Magic Power.", "type": "number", "minimum": 0 },
+            "magicPowerRatio": { "description": "The bonus magic damage per point of the holder's Magic Power.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "fracture": {
+      "description": "Fracture (Nullglass Lens, Item Bible §9; ADR-022 §3, §5): each instance of magic damage to an enemy Vanguard adds a stack of Magic Resist Reduction, perStack of its Magic Resistance each; the stacks refresh and end together.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": { "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": { "$ref": "#/definitions/stacking" } }
     }
   }
 }

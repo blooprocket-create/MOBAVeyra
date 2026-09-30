@@ -42,6 +42,8 @@ namespace
 		case EVeyraStatusKind::DamageAmplification:
 		case EVeyraStatusKind::Weaken:
 			return UVeyraStatusEffect::OutgoingDamageMultiplierName;
+		case EVeyraStatusKind::MagicResistReduction:
+			return UVeyraStatusEffect::MagicResistRetainedMultiplierName;
 		case EVeyraStatusKind::Stun:
 		case EVeyraStatusKind::Slow:
 		case EVeyraStatusKind::AttackCleave:
@@ -488,7 +490,8 @@ FActiveGameplayEffectHandle UVeyraStatusComponent::ApplyEffect(UAbilitySystemCom
 		constexpr float Unchanged = 1.0f;
 		for (const FName Name : { UVeyraStatusEffect::MoveSpeedMultiplierName, UVeyraStatusEffect::AttackSpeedMultiplierName,
 				 UVeyraStatusEffect::TenacityMultiplierName, UVeyraStatusEffect::IncomingDamageMultiplierName, UVeyraStatusEffect::DisplacementMultiplierName,
-				 UVeyraStatusEffect::HealthRegenMultiplierName, UVeyraStatusEffect::OutgoingDamageMultiplierName })
+				 UVeyraStatusEffect::HealthRegenMultiplierName, UVeyraStatusEffect::OutgoingDamageMultiplierName,
+				 UVeyraStatusEffect::MagicResistRetainedMultiplierName })
 		{
 			Spec.Data->SetSetByCallerMagnitude(Name, Unchanged);
 		}

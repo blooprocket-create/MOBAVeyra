@@ -72,6 +72,7 @@ public:
 	static const FName DisplacementMultiplierName;
 	static const FName HealthRegenMultiplierName;
 	static const FName OutgoingDamageMultiplierName;
+	static const FName MagicResistRetainedMultiplierName;
 };
 
 /**

@@ -17,13 +17,23 @@ namespace
 	{
 		return static_cast<int32>(Tuning.WeightOfWar.Contains(Id)) + static_cast<int32>(Tuning.Overcharge.Contains(Id))
 			+ static_cast<int32>(Tuning.SpoolUp.Contains(Id)) + static_cast<int32>(Tuning.Overcycle.Contains(Id))
-			+ static_cast<int32>(Tuning.PerfectCut.Contains(Id));
+			+ static_cast<int32>(Tuning.PerfectCut.Contains(Id)) + static_cast<int32>(Tuning.ReprisalGuard.Contains(Id))
+			+ static_cast<int32>(Tuning.Drag.Contains(Id)) + static_cast<int32>(Tuning.Convergence.Contains(Id))
+			+ static_cast<int32>(Tuning.Fracture.Contains(Id));
 	}
 }
 
 TArray<FString> Validate(const FVeyraItemsTuning& Tuning)
 {
 	TArray<FString> Problems;
+	// A Magic Resist Reduction always leaves some of the resistance (ADR-022 §5).
+	for (const TPair<FVeyraContentId, FVeyraStackingAttunementTuning>& Entry : Tuning.Fracture)
+	{
+		if (Entry.Value.PerStack * Entry.Value.MaxStacks >= 1.0)
+		{
+			Problems.Add(FString::Printf(TEXT("/fracture/%s/perStack: every stack together must remove less than all Magic Resistance"), *Entry.Key.ToString()));
+		}
+	}
 	for (const TPair<FVeyraContentId, FVeyraConsumableTuning>& Entry : Tuning.Consumables)
 	{
 		const FVeyraItemDefinition* Item = Tuning.Items.Find(Entry.Key);

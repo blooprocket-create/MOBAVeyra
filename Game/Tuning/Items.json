@@ -162,6 +162,26 @@
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["deadeye_edge", "iron_grip", "keensteel"], "cost": 700, "stackLimit": 1,
       "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 60, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.25, "magicPowerFraction": 0 },
       "active": [], "attunement": ["perfect_cut"]
+    },
+    "impact_aegis": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["war_harness", "striker_assembly"], "cost": 800, "stackLimit": 1,
+      "stats": { "health": 300, "healthRegeneration": 0, "physicalPower": 30, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["reprisal_guard"]
+    },
+    "gravitic_seal": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["spellguard_plate", "catalyst_coil"], "cost": 750, "stackLimit": 1,
+      "stats": { "health": 250, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 60, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["drag"]
+    },
+    "starfall_prism": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["grand_prism", "catalyst_coil", "arc_crystal"], "cost": 800, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 90, "attackSpeed": 0, "abilityHaste": 20, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["convergence"]
+    },
+    "nullglass_lens": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["nullglass_shard", "grand_prism"], "cost": 750, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 80, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 15, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["fracture"]
     }
   },
   "consumables": {
@@ -182,5 +202,17 @@
   },
   "perfectCut": {
     "perfect_cut": { "provenance": "Provisional", "critDamageBonus": 0.4 }
+  },
+  "reprisalGuard": {
+    "reprisal_guard": { "provenance": "Provisional", "damageFraction": 0.2, "maxShield": 250, "shieldSeconds": 3, "cooldownSeconds": 8 }
+  },
+  "drag": {
+    "drag": { "provenance": "Provisional", "slow": 0.3, "durationSeconds": 1 }
+  },
+  "convergence": {
+    "convergence": { "provenance": "Provisional", "windowSeconds": 4, "baseDamage": 50, "magicPowerRatio": 0.15 }
+  },
+  "fracture": {
+    "fracture": { "provenance": "Provisional", "perStack": 0.05, "maxStacks": 5, "durationSeconds": 4 }
   }
 }
