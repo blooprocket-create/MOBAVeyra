@@ -29,7 +29,7 @@ A survey of the code (2026-09-30) found:
 
 ### 1. Two stores, as SET §7 splits them
 
-- **Device-local** covers display mode, windowed size, monitor, frame-rate caps, VSync, graphics quality and render scale: the "hardware-dependent choices". `UVeyraUserSettings`, a `UGameUserSettings` subclass named in `DefaultEngine.ini`'s `GameUserSettingsClassName`, keeps them in the user's `GameUserSettings.ini`, as the engine keeps its own. It never leaves the machine, and two accounts on one machine share it (SET-121: hardware settings stay local).
+- **Device-local** covers display mode, windowed size, frame-rate caps, VSync, graphics quality and render scale: the "hardware-dependent choices". `UVeyraUserSettings`, a `UGameUserSettings` subclass named in `DefaultEngine.ini`'s `GameUserSettingsClassName`, keeps them in the user's `GameUserSettings.ini`, as the engine keeps its own. It never leaves the machine, and two accounts on one machine share it (SET-121: hardware settings stay local).
 - **Account-level** covers bindings, camera, HUD and minimap, and the accessibility, chat and language choices once they exist. It is one JSON document per account: `{ "schemaVersion", "revision", "values": { id: value } }`.
   - **The backend** keeps the document opaque, within a size limit, at `GET` and `PUT /v1/account/settings` (migration 0020, `account.settings`). A `PUT` names the revision it was based on. The backend refuses a stale one with `409 settings_conflict` and returns the current document.
   - **The client** caches the document per account under `Saved/VeyraSettings/<account>.json`, so it starts with the last values before the backend answers, and offline edits wait there.
@@ -38,17 +38,15 @@ A survey of the code (2026-09-30) found:
 ### 2. Settings are data: a registry
 
 `Game/Settings/Settings.json` (with `Settings.schema.json`) lists every setting. Each entry has:
-- `id`, and its `category` from §13;
+- its ID, a content ID, as the key of one of three maps: `toggles` (On or Off; the tuning dialect has no booleans), `ranges` and `choices`;
+- its `category` from §13;
 - `scope`: Device or Account;
-- `kind`, with its bounds:
-  - Toggle;
-  - Choice, with `choices`;
-  - Range, with `min`, `max` and `step`;
-  - Binding;
+- its bounds: a range's `minimum`, `maximum` and `step`, a choice's `options`;
 - `default`;
-- `inMatch`: whether it can change in a live match (§6.2);
-- `restart`: whether it applies only after a restart (§6.3);
-- a text key for its label and plain-language description (§6.3).
+- `availability`: Anywhere, or OutsideMatches (§6.2);
+- `applies`: AtOnce, or AfterRestart (§6.3).
+
+Its label and plain-language description (§6.3) are text rows keyed by its ID. Bindings join as a fourth map with the Controls gate. `scripts/check_tuning.py` validates the file against its schema, beside the other documents that use the tuning dialect.
 
 It is presentation data, not gameplay tuning. The server never reads it, and it is outside the tuning hash, so settings never decide a match (Settings Bible §9: "Settings never establish combat truth").
 
@@ -56,12 +54,14 @@ The developer defaults in `Default*.ini` remain the fallback for every system. A
 
 ### 3. Ownership
 
-- **VeyraCore `Settings/`** holds:
+- **A new module, VeyraSettings, in a new Preferences layer** between Foundation (VeyraCore) and Rules, holds:
   - the registry and its validation;
-  - `UVeyraSettingsSubsystem`, a GameInstance subsystem with typed reads, a change event and one-step Undo;
+  - `FVeyraSettingsStore`, plain C++ with typed reads, a change event and one-step Undo;
+  - the account document's reader and writer;
+  - `UVeyraSettingsSubsystem`, the GameInstance subsystem that owns the store and keeps each scope;
   - `UVeyraUserSettings`.
 
-  They sit low so that Match's controller, camera and HUD can read values without depending upward, the way they read their developer settings today.
+  They sit low so that Match's controller, camera and HUD can read values without depending upward, the way they read their developer settings today. VeyraCore itself stays free of the Engine module, which the subsystem and the user settings need, so the new layer amends ADR-006 §3's layer list.
 - **VeyraServices** syncs the account document on sign-in and after changes, debounced, and raises the conflict choice through the client flow.
 - **VeyraUI** owns the Settings screen and applies display settings, where `UVeyraMatchDisplaySubsystem` already lives.
 - **VeyraMatch** applies the camera, input and HUD values live when their settings change.
@@ -78,14 +78,14 @@ The developer defaults in `Default*.ini` remain the fallback for every system. A
 - **Resets** for one setting, one category, or everything. The last two ask for confirmation.
 - **One-step Undo** of the most recent change, in and out of a match (§6.1).
 - **Search** by name and related terms (§6.3). Each setting shows its description and a restart mark where one applies.
-- **Keep/Revert.** A change to resolution, display mode or monitor made *in Settings* applies at once and reverts after 15 seconds unless kept (SET-92, 166, 167). The automatic switch into and out of a match is not a settings change and has no countdown (SET-166 ruling).
+- **Keep/Revert.** A change to the window size or display mode made *in Settings* applies at once and reverts after 15 seconds unless kept (SET-92, 166, 167). The automatic switch into and out of a match is not a settings change and has no countdown (SET-166 ruling).
 - **Only categories with real effects appear.** In M18 these are Controls, Camera, Interface, and Graphics & Display. Accessibility, Audio, Communication, and Language & Account appear when their systems exist. SET-149 prefers options that change something, and SET-168 forbids presenting non-configurable behaviour as toggles.
 
 ### 6. What M18 offers
 
 - **Graphics & Display:**
   - Display Mode: Windowed / Borderless Fullscreen / Fullscreen. It is the match's (SET-166), with Borderless Fullscreen by default.
-  - The client's windowed size and the monitor (167).
+  - The client's windowed size.
   - Foreground frame-rate cap, background cap (30 by default, SET-109), VSync and render scale (165).
   - Quality presets Low / Medium / High / Custom through the engine's scalability groups (§8).
 - **Camera:**
@@ -109,6 +109,7 @@ The developer defaults in `Default*.ini` remain the fallback for every system. A
 
 ### 7. Deferred
 
+- The monitor selector (167): its options are the machine's monitors, not data, and the match already takes the monitor its window is on.
 - Vanguard-specific profiles and profile copy (§1.1, §12.2).
 - Normal Cast and Quick Cast with Indicator (§1.2), and attack-move target preference.
 - Manual zoom (155, 158): its limits are still "to test".

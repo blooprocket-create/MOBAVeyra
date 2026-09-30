@@ -16,6 +16,7 @@ A likely long-term shape is:
 ```text
 Source/
 ├── VeyraCore/
+├── VeyraSettings/
 ├── VeyraCombat/
 ├── VeyraAbilities/
 ├── VeyraEconomy/
@@ -46,6 +47,15 @@ Appropriate responsibilities:
 - shared serialization/version helpers where needed.
 
 Must not depend on higher gameplay modules.
+
+### VeyraSettings
+
+The player's settings ([ADR-024](Docs/ADR/ADR-024-player-settings.md)), in the Preferences layer directly above VeyraCore:
+- the registry of every setting the Settings screen offers (`Game/Settings/Settings.json`, outside the tuning hash);
+- `FVeyraSettingsStore` and the account document;
+- `UVeyraSettingsSubsystem`, which keeps device settings in `UVeyraUserSettings` (the engine's `GameUserSettings.ini`) and account settings in a per-account cache the services sync.
+
+Presentation only: it never decides a match. The systems that apply a setting read the store and listen to its change event; the developer defaults in `Default*.ini` stay the source of every default until a setting replaces one.
 
 ### VeyraCombat
 

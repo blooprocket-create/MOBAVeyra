@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "toggles": {
+    "display_vsync": { "provenance": "Provisional", "category": "GraphicsDisplay", "scope": "Device", "availability": "Anywhere", "applies": "AtOnce", "default": "Off" },
+    "camera_edge_scroll": { "provenance": "Canon", "category": "Camera", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "default": "On" },
+    "camera_return_on_respawn": { "provenance": "Canon", "category": "Camera", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "default": "On" },
+    "camera_free_while_dead": { "provenance": "Canon", "category": "Camera", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "default": "On" },
+    "interface_minimap_click_moves_camera": { "provenance": "Provisional", "category": "Interface", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "default": "On" },
+    "interface_minimap_right_click_moves": { "provenance": "Provisional", "category": "Interface", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "default": "On" },
+    "interface_show_fps": { "provenance": "Canon", "category": "Interface", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "default": "Off" },
+    "interface_show_ping": { "provenance": "Canon", "category": "Interface", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "default": "Off" },
+    "controls_confine_cursor": { "provenance": "Canon", "category": "Controls", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "default": "On" }
+  },
+  "ranges": {
+    "display_render_scale": { "provenance": "Provisional", "category": "GraphicsDisplay", "scope": "Device", "availability": "Anywhere", "applies": "AtOnce", "minimum": 50, "maximum": 100, "step": 5, "default": 100 },
+    "camera_move_speed": { "provenance": "Provisional", "category": "Camera", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "minimum": 0, "maximum": 100, "step": 1, "default": 50 },
+    "camera_edge_scroll_speed": { "provenance": "Provisional", "category": "Camera", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "minimum": 0, "maximum": 100, "step": 1, "default": 50 },
+    "camera_drag_sensitivity": { "provenance": "Provisional", "category": "Camera", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "minimum": 0, "maximum": 100, "step": 1, "default": 50 },
+    "interface_hud_scale": { "provenance": "Provisional", "category": "Interface", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "minimum": 50, "maximum": 150, "step": 5, "default": 100 },
+    "interface_minimap_scale": { "provenance": "Provisional", "category": "Interface", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "minimum": 50, "maximum": 150, "step": 5, "default": 100 },
+    "interface_minimap_icon_scale": { "provenance": "Provisional", "category": "Interface", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "minimum": 50, "maximum": 150, "step": 5, "default": 100 },
+    "interface_ping_seconds": { "provenance": "Provisional", "category": "Interface", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "minimum": 1, "maximum": 8, "step": 0.5, "default": 4 }
+  },
+  "choices": {
+    "display_match_mode": { "provenance": "Canon", "category": "GraphicsDisplay", "scope": "Device", "availability": "Anywhere", "applies": "AtOnce", "options": ["Windowed", "BorderlessFullscreen", "Fullscreen"], "default": "BorderlessFullscreen" },
+    "display_window_size": { "provenance": "Provisional", "category": "GraphicsDisplay", "scope": "Device", "availability": "Anywhere", "applies": "AtOnce", "options": ["1024x576", "1280x720", "1600x900"], "default": "1280x720" },
+    "display_frame_cap": { "provenance": "Provisional", "category": "GraphicsDisplay", "scope": "Device", "availability": "Anywhere", "applies": "AtOnce", "options": ["30", "60", "120", "144", "240", "Uncapped"], "default": "Uncapped" },
+    "display_background_frame_cap": { "provenance": "Canon", "category": "GraphicsDisplay", "scope": "Device", "availability": "Anywhere", "applies": "AtOnce", "options": ["15", "30", "60", "Uncapped"], "default": "30" },
+    "display_quality": { "provenance": "Provisional", "category": "GraphicsDisplay", "scope": "Device", "availability": "Anywhere", "applies": "AtOnce", "options": ["Low", "Medium", "High", "Custom"], "default": "High" },
+    "display_texture_quality": { "provenance": "Provisional", "category": "GraphicsDisplay", "scope": "Device", "availability": "Anywhere", "applies": "AtOnce", "options": ["Low", "Medium", "High"], "default": "High" },
+    "display_shadow_quality": { "provenance": "Provisional", "category": "GraphicsDisplay", "scope": "Device", "availability": "Anywhere", "applies": "AtOnce", "options": ["Low", "Medium", "High"], "default": "High" },
+    "display_effects_quality": { "provenance": "Provisional", "category": "GraphicsDisplay", "scope": "Device", "availability": "Anywhere", "applies": "AtOnce", "options": ["Low", "Medium", "High"], "default": "High" },
+    "camera_default_mode": { "provenance": "Canon", "category": "Camera", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "options": ["Free", "Locked", "SemiLocked"], "default": "Free" },
+    "camera_edge_zone": { "provenance": "Canon", "category": "Camera", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "options": ["Narrow", "Standard", "Wide"], "default": "Standard" },
+    "camera_edge_delay": { "provenance": "Canon", "category": "Camera", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "options": ["Immediate", "Short", "Long"], "default": "Immediate" },
+    "controls_scoreboard_mode": { "provenance": "Canon", "category": "Controls", "scope": "Account", "availability": "Anywhere", "applies": "AtOnce", "options": ["Hold", "Toggle"], "default": "Hold" }
+  }
+}

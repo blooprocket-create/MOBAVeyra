@@ -7,6 +7,11 @@
       "modules": ["VeyraCore"]
     },
     {
+      "name": "Preferences",
+      "description": "Player settings (ADR-024 §3, PROJECT_STRUCTURE.md \"VeyraSettings\"): the registry, the device and account stores and the change event. Presentation only, never gameplay truth. Above Foundation; below every module that applies a setting.",
+      "modules": ["VeyraSettings"]
+    },
+    {
       "name": "Rules",
       "description": "Reusable gameplay rules with one authoritative owner each (PROJECT_STRUCTURE.md §2, Combat / Economy).",
       "modules": ["VeyraCombat"]

@@ -129,6 +129,8 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
 CONTRACTS: list[tuple[str, str]] = [
     ("Source/VeyraServices/Schemas/MatchAssignment.schema.json",
      "Source/VeyraDeveloper/TestData/MatchAssignment.example.json"),
+    # The player settings registry (ADR-024 §2): presentation data the game loads, outside the tuning hash.
+    ("Settings/Settings.schema.json", "Settings/Settings.json"),
 ]
 
 

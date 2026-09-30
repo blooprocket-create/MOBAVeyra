@@ -26,6 +26,7 @@ public class VeyraDeveloper : ModuleRules
 			"Projects",
 			"CQTest",
 			"VeyraCore",
+			"VeyraSettings",
 			"VeyraCombat",
 			"VeyraEconomy",
 			"VeyraAbilities",
