@@ -56,8 +56,9 @@ public:
 	TOptional<FVeyraPlayerStatistics> Snapshot(const AVeyraPlayerState& Participant) const;
 
 	/**
-	 * Server: Participant leaves for good, as rejoining waits for reconnect: its record keeps who it
-	 * was and what it had as it left, so the scoreboard still has its line (ADR-017 §5).
+	 * Server: Participant disconnects: its record keeps who it was and what it had as it left, so the
+	 * scoreboard has its line even if its PlayerState goes (ADR-017 §5). If it returns, the record
+	 * follows its PlayerState again (ADR-019 §1).
 	 */
 	void NoteLeaving(const AVeyraPlayerState& Participant);
 

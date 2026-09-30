@@ -29,8 +29,8 @@ namespace VeyraJoinRules
 	/**
 	 * Why a client with these login options may not join the match Roster describes, or an empty
 	 * string when it may, with OutAccountId set to its rostered account. The ticket must hash to a
-	 * rostered participant who is not connected now and has not joined before: rejoining waits for
-	 * reconnect (Match Flow Bible §4). The message never contains the ticket.
+	 * rostered participant who is not connected now; one who left may return (Match Flow Bible §3;
+	 * ADR-019 §1). The message never contains the ticket.
 	 */
 	VEYRAMATCH_API FString CheckTicket(const FString& Options, const FVeyraMatchRoster& Roster, FString& OutAccountId);
 

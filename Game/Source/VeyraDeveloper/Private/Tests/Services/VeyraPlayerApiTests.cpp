@@ -169,7 +169,12 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(IsTrue(Read.Winner.IsEmpty()));
 			ASSERT_THAT(IsTrue(Read.DurationSeconds == 42.5));
 			ASSERT_THAT(IsTrue(Read.bJoined && !Read.bConnectedAtEnd));
+			ASSERT_THAT(IsFalse(Read.bPersonalLoss, TEXT("an older backend sends none")));
 			ASSERT_THAT(AreEqual(Read.Rules, FString(TEXT("practice"))));
+			const TCHAR* const Absent = TEXT("{\"endReason\":\"surrender\",\"winner\":\"A\",\"durationSeconds\":900,\"joined\":true,\"connectedAtEnd\":false,\"personalLoss\":true}");
+			VeyraBackendProtocol::FMatchOutcome AbsentRead;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseMatchOutcome(Outcome(TEXT("ended"), TEXT("\"oriel\""), TEXT("null"), Absent), AbsentRead, Problem), Problem));
+			ASSERT_THAT(IsTrue(AbsentRead.bPersonalLoss && AbsentRead.EndReason == TEXT("surrender")));
 			ASSERT_THAT(IsFalse(Read.bHasScoreboard, TEXT("an older backend's result has no scoreboard")));
 
 			// With a scoreboard (ADR-017 §5).

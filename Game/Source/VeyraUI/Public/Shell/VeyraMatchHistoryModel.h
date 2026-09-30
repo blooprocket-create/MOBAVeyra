@@ -38,8 +38,8 @@ struct FVeyraHistoryModel
 
 namespace VeyraMatchHistoryModel
 {
-	/** The player's outcome as history names it: Victory, Defeat or No Contest. */
-	VEYRAUI_API FText OutcomeText(const FString& Outcome);
+	/** The player's outcome as history names it: Victory, Defeat or No Contest, or a personal Defeat for absence (UX-51). */
+	VEYRAUI_API FText OutcomeText(const FString& Outcome, bool bPersonalLoss = false);
 
 	VEYRAUI_API FVeyraHistoryModel Describe(const FVeyraClientSnapshot& Snapshot, bool bCanLoadMore);
 }

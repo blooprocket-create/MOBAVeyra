@@ -19,8 +19,29 @@ func (f *fixture) endedFor(n int, mode string, side Side, vanguard string, winne
 }
 
 func TestOutcomeFor(t *testing.T) {
-	if OutcomeFor(SideA, SideA) != OutcomeWin || OutcomeFor(SideB, SideA) != OutcomeLoss || OutcomeFor(SideA, "") != OutcomeNoContest {
+	if OutcomeFor(SideA, SideA, false) != OutcomeWin || OutcomeFor(SideB, SideA, false) != OutcomeLoss || OutcomeFor(SideA, "", false) != OutcomeNoContest {
 		t.Fatal("a player wins with their side, loses to the other, and a match nobody won is no contest")
+	}
+	if OutcomeFor(SideA, SideA, true) != OutcomeLoss || OutcomeFor(SideA, "", true) != OutcomeLoss {
+		t.Fatal("a personal loss overrides a win and a no contest alike (Match Flow Bible §6–§7)")
+	}
+}
+
+func TestHistoryFiltersByThePersonalOutcome(t *testing.T) {
+	f := newFixture(t)
+	won := f.endedFor(1, "casual_select", SideA, "cairn", SideA, 10)
+	absent := f.endedFor(2, "casual_select", SideA, "cairn", SideA, 20)
+	m := f.store.matches[absent]
+	m.Result.Participants = []ParticipantResult{{AccountID: "acc-1", Joined: true, PersonalLoss: true, AbsentSeconds: 200}}
+	f.store.matches[absent] = m
+
+	wins, _, err := f.svc.History(ctx, "acc-1", HistoryFilter{Outcome: OutcomeWin}, "")
+	if err != nil || len(wins) != 1 || wins[0].MatchID != won {
+		t.Fatalf("wins: %+v %v", wins, err)
+	}
+	losses, _, err := f.svc.History(ctx, "acc-1", HistoryFilter{Outcome: OutcomeLoss}, "")
+	if err != nil || len(losses) != 1 || losses[0].MatchID != absent || !losses[0].PersonalLoss {
+		t.Fatalf("a personal loss is a loss, whatever the team did: %+v %v", losses, err)
 	}
 }
 

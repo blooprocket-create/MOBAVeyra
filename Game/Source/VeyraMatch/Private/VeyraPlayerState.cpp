@@ -97,6 +97,26 @@ void AVeyraPlayerState::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, Team, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, VanguardId, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, RespawnAt, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlayerState, bAway, Params);
+}
+
+void AVeyraPlayerState::SetAway(bool bNewAway)
+{
+	SetIsInactive(bNewAway);
+	if (bAway != bNewAway)
+	{
+		bAway = bNewAway;
+		MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlayerState, bAway, this);
+	}
+	// A player state replicates rarely; the others should learn at once.
+	ForceNetUpdate();
+}
+
+void AVeyraPlayerState::OnRep_Away()
+{
+	// As the engine does for its own flag: in or out of this client's list of players.
+	SetIsInactive(bAway);
+	OnRep_bIsInactive();
 }
 
 void AVeyraPlayerState::SetVeyraTeam(EVeyraTeam NewTeam)
@@ -128,6 +148,6 @@ void AVeyraPlayerState::OnRep_VanguardId()
 
 void AVeyraPlayerState::OnDeactivated()
 {
-	SetIsInactive(true);
+	SetAway(true);
 	UE_LOG(LogVeyraMatch, Log, TEXT("%s disconnected; the Vanguard stays in the match."), *GetPlayerName());
 }

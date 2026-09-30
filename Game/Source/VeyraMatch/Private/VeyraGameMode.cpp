@@ -2,6 +2,7 @@
 
 #include "VeyraGameMode.h"
 
+#include "Absence/VeyraAbsenceSubsystem.h"
 #include "AbilitySystemComponent.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraResourceSet.h"
@@ -10,6 +11,7 @@
 #include "Casting/VeyraCastStateComponent.h"
 #include "Bots/VeyraMatchEvents.h"
 #include "EngineUtils.h"
+#include "GameFramework/GameSession.h"
 #include "HAL/IConsoleManager.h"
 #include "HAL/PlatformTime.h"
 #include "Join/VeyraMatchHostSubsystem.h"
@@ -106,12 +108,15 @@ void AVeyraGameMode::PreLogin(const FString& Options, const FString& Address, co
 	{
 		ErrorMessage = VeyraJoinRules::CheckTuningHash(Options, VeyraTuning::GetCompositeHash());
 	}
+	bool bReturning = false;
 	if (ErrorMessage.IsEmpty() && Roster)
 	{
 		FString AccountId;
 		ErrorMessage = VeyraJoinRules::CheckTicket(Options, *Roster, AccountId);
+		bReturning = ErrorMessage.IsEmpty() && (Roster->HasJoined(AccountId) || FindKeptPlayerState(AccountId));
 	}
-	if (ErrorMessage.IsEmpty() && IsFull())
+	// A returning participant, or a late one whose seat the match kept, takes back its own seat.
+	if (ErrorMessage.IsEmpty() && !bReturning && IsFull())
 	{
 		ErrorMessage = TEXT("The match is full.");
 	}
@@ -153,6 +158,12 @@ FString AVeyraGameMode::InitNewPlayer(APlayerController* NewPlayerController, co
 		UE_LOG(LogVeyraMatch, Warning, TEXT("Refused a login: %s"), *ErrorMessage);
 		return ErrorMessage;
 	}
+	// One who left, or who never came before the match began without it, takes back its seat.
+	if (AVeyraPlayerState* Kept = FindKeptPlayerState(AccountId))
+	{
+		GiveBackPlayerState(*NewPlayerController, *Kept);
+		PlayerState = Kept;
+	}
 	PlayerState->SetAccountId(AccountId);
 	PlayerState->SetPlayerName(Roster->FindByAccount(AccountId)->DisplayName);
 	if (AccountId == Roster->GetAssignment().HostAccountId)
@@ -173,11 +184,16 @@ void AVeyraGameMode::Logout(AController* Exiting)
 		UE_LOG(LogVeyraMatch, Log, TEXT("%s left; %d rostered participant(s) connected."), *PlayerState->GetPlayerName(), Roster->NumConnected());
 		NoteConnectedParticipants();
 	}
-	// Its PlayerState goes with it, and rejoining waits for reconnect: the scoreboard keeps its line
-	// as it left (ADR-017 §5).
+	// Its PlayerState stays for its return (ADR-019 §1); the record also keeps its line as it left, in
+	// case the PlayerState goes (ADR-017 §5).
 	if (UVeyraMatchStatisticsSubsystem* Statistics = PlayerState ? GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>() : nullptr)
 	{
 		Statistics->NoteLeaving(*PlayerState);
+	}
+	// Its Vanguard is walked to safety until it returns (Match Flow Bible §4).
+	if (UVeyraAbsenceSubsystem* Absence = PlayerState ? GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>() : nullptr)
+	{
+		Absence->NoteDisconnected(*PlayerState);
 	}
 	Super::Logout(Exiting);
 }
@@ -251,6 +267,10 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	{
 		Battleground->Stop();
 	}
+	if (UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>())
+	{
+		Absence->Stop();
+	}
 	if (UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>())
 	{
 		Statistics->Stop();
@@ -270,6 +290,19 @@ void AVeyraGameMode::EndMatch(EVeyraMatchEndReason Reason, EVeyraTeam Winner)
 	{
 		Result.MatchId = Roster->GetAssignment().MatchId;
 		Result.Participants = Roster->BuildParticipantResults();
+		// Each one's own outcome besides its team's (Match Flow Bible §6; ADR-019 §3).
+		const UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>();
+		for (FVeyraParticipantResult& Participant : Result.Participants)
+		{
+			const AVeyraPlayerState* Player = FindParticipant(Participant.AccountId);
+			if (Absence && Player)
+			{
+				const UVeyraAbsenceSubsystem::FPersonalResult Personal = Absence->Adjudicate(*Player, Winner != EVeyraTeam::None && Winner == Player->GetVeyraTeam(),
+					Result.DurationSeconds);
+				Participant.bPersonalLoss = Personal.bPersonalLoss;
+				Participant.AbsentSeconds = Personal.AbsentSeconds;
+			}
+		}
 	}
 	Result.Players = BuildScoreboard();
 	if (const UVeyraMatchStatisticsSubsystem* Statistics = GetWorld()->GetSubsystem<UVeyraMatchStatisticsSubsystem>())
@@ -408,6 +441,21 @@ namespace
 		}
 		return Rejection;
 	}
+
+	/**
+	 * An order the Vanguard takes is meaningful activity, a move only if it goes somewhere new (Match
+	 * Flow Bible §5.1; ADR-019 §3). Returns Rejection.
+	 */
+	template <typename RejectionType>
+	RejectionType NoteActivityIfTaken(const AVeyraPlayerState* Participant, RejectionType Rejection, const TOptional<FVector>& MoveDestination = {})
+	{
+		UVeyraAbsenceSubsystem* Absence = Participant && Participant->GetWorld() ? Participant->GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>() : nullptr;
+		if (Rejection == RejectionType::None && Absence)
+		{
+			Absence->NoteActivity(*Participant, MoveDestination);
+		}
+		return Rejection;
+	}
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination)
@@ -422,7 +470,8 @@ EVeyraOrderRejection AVeyraGameMode::HandleMoveOrder(AVeyraPlayerState* Particip
 		return EVeyraOrderRejection::InvalidOrder;
 	}
 	AVeyraVanguardController* Controller = VanguardControllerOf(Participant);
-	return EndRecallIfTaken(Participant, Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard);
+	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->MoveToDestination(Destination) : EVeyraOrderRejection::NoVanguard),
+		TOptional<FVector>(Destination));
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerState* Participant, AActor* Target)
@@ -437,7 +486,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerState* Partic
 		return EVeyraOrderRejection::InvalidOrder;
 	}
 	AVeyraVanguardController* Controller = VanguardControllerOf(Participant);
-	return EndRecallIfTaken(Participant, Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard);
+	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard));
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination)
@@ -452,7 +501,8 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerState* Pa
 		return EVeyraOrderRejection::InvalidOrder;
 	}
 	AVeyraVanguardController* Controller = VanguardControllerOf(Participant);
-	return EndRecallIfTaken(Participant, Controller ? Controller->AttackMoveTo(Destination) : EVeyraOrderRejection::NoVanguard);
+	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->AttackMoveTo(Destination) : EVeyraOrderRejection::NoVanguard),
+		TOptional<FVector>(Destination));
 }
 
 EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerState* Participant, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target)
@@ -467,7 +517,7 @@ EVeyraCastRejection AVeyraGameMode::HandleCastOrder(AVeyraPlayerState* Participa
 		return EVeyraCastRejection::WrongPhase;
 	}
 	UAbilitySystemComponent* AbilitySystem = Participant ? Participant->GetAbilitySystemComponent() : nullptr;
-	return EndRecallIfTaken(Participant, AbilitySystem ? VeyraAbilities::TryCast(*AbilitySystem, Slot, Target) : EVeyraCastRejection::UnknownAbility);
+	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, AbilitySystem ? VeyraAbilities::TryCast(*AbilitySystem, Slot, Target) : EVeyraCastRejection::UnknownAbility));
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleRecallOrder(AVeyraPlayerState* PlayerState)
@@ -503,12 +553,12 @@ EVeyraOrderRejection AVeyraGameMode::HandleRecallOrder(AVeyraPlayerState* Player
 	}
 	if (Recall->IsRecalling())
 	{
-		return EVeyraOrderRejection::None;
+		return NoteActivityIfTaken(PlayerState, EVeyraOrderRejection::None);
 	}
 	Controller->StopOrders();
 	Recall->Start(UVeyraMatchTuningSubsystem::Get().Recall.ChannelSeconds,
 		FSimpleDelegate::CreateUObject(this, &AVeyraGameMode::CompleteRecall, TWeakObjectPtr<AVeyraPlayerState>(PlayerState)));
-	return EVeyraOrderRejection::None;
+	return NoteActivityIfTaken(PlayerState, EVeyraOrderRejection::None);
 }
 
 EVeyraOrderRejection AVeyraGameMode::HandleVisionToolOrder(AVeyraPlayerState* PlayerState, const FVector& Point)
@@ -526,7 +576,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleVisionToolOrder(AVeyraPlayerState* Pl
 	switch (Tool->Use(Point))
 	{
 	case EVeyraVisionToolRejection::None:
-		return EVeyraOrderRejection::None;
+		return NoteActivityIfTaken(PlayerState, EVeyraOrderRejection::None);
 	case EVeyraVisionToolRejection::NoVanguard:
 		return EVeyraOrderRejection::NoVanguard;
 	case EVeyraVisionToolRejection::CrowdControlled:
@@ -598,12 +648,75 @@ void AVeyraGameMode::HandleStartingNewPlayer_Implementation(APlayerController* N
 		UE_LOG(LogVeyraMatch, Error, TEXT("%s has no Veyra PlayerState and cannot join the match."), *GetNameSafe(NewPlayer));
 		return;
 	}
-	AssignTeam(*PlayerState);
-	AssignVanguard(*PlayerState);
-	if (GetVeyraGameState().GetPhase() != EVeyraMatchPhase::Loading)
+	// A participant with a side already is one returning, to the Vanguard it left (ADR-019 §1).
+	const bool bReturning = PlayerState->GetVeyraTeam() != EVeyraTeam::None;
+	UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>();
+	if (!bReturning)
+	{
+		AssignTeam(*PlayerState);
+		AssignVanguard(*PlayerState);
+		if (Absence)
+		{
+			Absence->Track(*PlayerState);
+		}
+	}
+	else if (Absence)
+	{
+		Absence->NoteReturned(*PlayerState);
+	}
+	const AVeyraVanguardController* Controller = PlayerState->GetVanguardController();
+	if (GetVeyraGameState().GetPhase() != EVeyraMatchPhase::Loading && !(Controller && Controller->GetPawn()))
 	{
 		SpawnVanguard(*PlayerState);
 	}
+}
+
+AVeyraPlayerState* AVeyraGameMode::FindParticipant(FStringView AccountId) const
+{
+	for (APlayerState* Member : GameState->PlayerArray)
+	{
+		AVeyraPlayerState* Candidate = Cast<AVeyraPlayerState>(Member);
+		if (Candidate && Candidate->GetAccountId() == AccountId)
+		{
+			return Candidate;
+		}
+	}
+	return nullptr;
+}
+
+AVeyraPlayerState* AVeyraGameMode::FindKeptPlayerState(FStringView AccountId) const
+{
+	for (APlayerState* Member : GameState->PlayerArray)
+	{
+		AVeyraPlayerState* Candidate = Cast<AVeyraPlayerState>(Member);
+		if (Candidate && Candidate->IsInactive() && Candidate->GetAccountId() == AccountId)
+		{
+			return Candidate;
+		}
+	}
+	return nullptr;
+}
+
+void AVeyraGameMode::GiveBackPlayerState(APlayerController& Controller, AVeyraPlayerState& Kept)
+{
+	APlayerState* Fresh = Controller.PlayerState;
+	if (Fresh)
+	{
+		Kept.SetUniqueId(Fresh->GetUniqueId());
+	}
+	Controller.SetPlayerState(&Kept);
+	Kept.SetOwner(&Controller);
+	Kept.SetAway(false);
+	// Its abilities act for the new controller, whose connection now owns what only its owner sees.
+	if (UAbilitySystemComponent* AbilitySystem = Kept.GetAbilitySystemComponent())
+	{
+		AbilitySystem->RefreshAbilityActorInfo();
+	}
+	if (Fresh)
+	{
+		Fresh->Destroy();
+	}
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s returned to the match, to the Vanguard it left."), *Kept.GetPlayerName());
 }
 
 bool AVeyraGameMode::PlayerCanRestart_Implementation(APlayerController* /*Player*/)
@@ -813,6 +926,46 @@ void AVeyraGameMode::OnLoadingTimedOut()
 	UE_CLOG(!IsMapReady(), LogVeyraMatch, Error, TEXT("Loading timed out, but the map is not ready: it needs a start for each side on built navigation."));
 }
 
+void AVeyraGameMode::SeatNoShows()
+{
+	if (!Roster)
+	{
+		return;
+	}
+	// A rostered player who never connected still has its Vanguard: it starts the match disconnected,
+	// follows the ordinary retreat and reconnect rules, and is there for its player to take late
+	// (Match Flow Bible §3; ADR-019 §1).
+	UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>();
+	for (const FVeyraAssignedParticipant& Participant : Roster->GetAssignment().Participants)
+	{
+		if (FindParticipant(Participant.AccountId))
+		{
+			continue;
+		}
+		FActorSpawnParameters Parameters;
+		Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Parameters.ObjectFlags |= RF_Transient;
+		AVeyraPlayerState* Seat = GetWorld()->SpawnActor<AVeyraPlayerState>(PlayerStateClass.Get(), Parameters);
+		if (!Seat)
+		{
+			UE_LOG(LogVeyraMatch, Error, TEXT("Could not keep a seat for %s, who never connected."), *Participant.DisplayName);
+			continue;
+		}
+		Seat->SetPlayerId(GameSession->GetNextPlayerID());
+		Seat->SetAccountId(Participant.AccountId);
+		Seat->SetPlayerName(Participant.DisplayName);
+		// Kept as a disconnected participant's PlayerState is (AVeyraPlayerState::OnDeactivated).
+		Seat->SetAway(true);
+		AssignTeam(*Seat);
+		AssignVanguard(*Seat);
+		if (Absence)
+		{
+			Absence->Track(*Seat);
+		}
+		UE_LOG(LogVeyraMatch, Log, TEXT("%s never connected; its Vanguard starts the match disconnected."), *Participant.DisplayName);
+	}
+}
+
 void AVeyraGameMode::AddAssignedBots()
 {
 	if (!Roster)
@@ -835,7 +988,8 @@ void AVeyraGameMode::BeginPreparation()
 {
 	SetActorTickEnabled(false);
 	GetWorldTimerManager().ClearTimer(LoadingTimeout);
-	// Before the phase changes, so each bot gets its Vanguard below with everyone else.
+	// Before the phase changes, so each no-show and each bot gets its Vanguard below with everyone else.
+	SeatNoShows();
 	AddAssignedBots();
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Preparation);
 	UE_LOG(LogVeyraMatch, Log, TEXT("Preparation begins with %d player(s)."), GetNumPlayers());
@@ -861,6 +1015,13 @@ void AVeyraGameMode::BeginLive()
 {
 	GetVeyraGameState().SetPhase(EVeyraMatchPhase::Live);
 	UE_LOG(LogVeyraMatch, Log, TEXT("The match is live."));
+	// Absence counts from 0:00 in a standard match (Match Flow Bible §3–§5); a practice match's host
+	// ends it instead (Custom Matches Bible §4).
+	UVeyraAbsenceSubsystem* Absence = GetWorld()->GetSubsystem<UVeyraAbsenceSubsystem>();
+	if (Absence && GetVeyraGameState().GetMatchRules() == EVeyraMatchRules::Standard)
+	{
+		Absence->Start();
+	}
 	// Passive Gold runs with the live match (author ruling, 2026-09-28); the battleground link stops
 	// it with every other reward when the match ends.
 	if (UVeyraRewardSubsystem* Rewards = GetWorld()->GetSubsystem<UVeyraRewardSubsystem>())

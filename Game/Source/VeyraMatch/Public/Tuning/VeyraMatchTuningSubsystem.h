@@ -33,6 +33,9 @@ public:
 
 	bool IsLoaded() const { return Tuning.IsSet(); }
 
+	/** What the schema cannot check: each team vote passes on a majority of a full team (ADR-019 §4). */
+	static VeyraTuning::FErrors ValidateRules(const FVeyraMatchTuning& Tuning);
+
 	/** BLAKE3 of Match.json's exact bytes, for comparing tuning between builds. */
 	const FBlake3Hash& GetDocumentHash() const { return DocumentHash; }
 

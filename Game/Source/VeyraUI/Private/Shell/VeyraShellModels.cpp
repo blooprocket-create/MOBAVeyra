@@ -64,6 +64,14 @@ namespace
 		{
 			return LOCTEXT("EndPrimeWellDestroyed", "A Prime Well was destroyed.");
 		}
+		if (EndReason == TEXT("surrender"))
+		{
+			return LOCTEXT("EndSurrender", "A team surrendered.");
+		}
+		if (EndReason == TEXT("remake"))
+		{
+			return LOCTEXT("EndRemake", "The match was remade: no contest.");
+		}
 		return FText::Format(LOCTEXT("EndOther", "The match ended ({0})."), FText::FromString(EndReason));
 	}
 
@@ -575,6 +583,15 @@ FVeyraResultsModel DescribeOutcome(const VeyraBackendProtocol::FMatchOutcome& In
 			Model.Headline = Outcome->Winner == Outcome->Side ? LOCTEXT("ResultVictory", "Victory") : LOCTEXT("ResultDefeat", "Defeat");
 		}
 		Model.Lines.Add(EndReasonText(Outcome->EndReason));
+		// A personal loss for absence is the player's own outcome, apart from its team's (Match Flow
+		// Bible §6; UX-51).
+		if (Outcome->bPersonalLoss)
+		{
+			const FText Team = Outcome->Winner.IsEmpty() ? LOCTEXT("TeamNoContest", "no contest")
+				: Outcome->Winner == Outcome->Side ? LOCTEXT("TeamWon", "won") : LOCTEXT("TeamLost", "lost");
+			Model.Lines.Insert(FText::Format(LOCTEXT("ResultPersonalLoss", "Personal loss: you were away too long. Your team {0}."), Team), 0);
+			Model.Headline = LOCTEXT("ResultPersonalDefeat", "Defeat");
+		}
 		Model.Lines.Add(FText::Format(LOCTEXT("ResultMode", "Mode: {0}"), NameOf(Outcome->Mode)));
 		if (!Outcome->VanguardId.IsEmpty())
 		{

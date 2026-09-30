@@ -60,7 +60,7 @@ namespace VeyraMatchTests
 			ASSERT_THAT(IsTrue(AccountId.IsEmpty()));
 		}
 
-		TEST_METHOD(RefusesAConnectedOrReturningParticipant)
+		TEST_METHOD(RefusesAConnectedParticipantAndAdmitsOneReturning)
 		{
 			FVeyraMatchRoster Roster(TwoParticipantAssignment());
 			FString AccountId;
@@ -68,8 +68,8 @@ namespace VeyraMatchTests
 			const FString WhileConnected = VeyraJoinRules::CheckTicket(OptionsWithTicket(TEXT("vjt_one")), Roster, AccountId);
 			ASSERT_THAT(IsTrue(WhileConnected.Contains(TEXT("already connected"))));
 			Roster.MarkDisconnected(TEXT("account-1"));
-			const FString AfterLeaving = VeyraJoinRules::CheckTicket(OptionsWithTicket(TEXT("vjt_one")), Roster, AccountId);
-			ASSERT_THAT(IsTrue(AfterLeaving.Contains(TEXT("rejoining waits for reconnect"))));
+			ASSERT_THAT(IsTrue(VeyraJoinRules::CheckTicket(OptionsWithTicket(TEXT("vjt_one")), Roster, AccountId).IsEmpty(), TEXT("one who left may return")));
+			ASSERT_THAT(AreEqual(AccountId, FString(TEXT("account-1"))));
 		}
 
 		TEST_METHOD(RefusalsNeverRepeatTheTicket)

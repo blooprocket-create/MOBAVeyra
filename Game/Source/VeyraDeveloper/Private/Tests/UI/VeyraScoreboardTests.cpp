@@ -97,6 +97,22 @@ namespace VeyraScoreboardTests
 			ASSERT_THAT(AreEqual(FString(TEXT("1 / 0 / 2")), VeyraScoreboardModel::KdaText(Row).ToString()));
 		}
 
+		TEST_METHOD(APlayerWhoLeftKeepsItsLineMarkedAway)
+		{
+			// A client's GameState drops a PlayerState that goes inactive; the screen still lists it.
+			Enemy->SetIsInactive(true);
+			Spawner.GetWorld().GetGameState()->RemovePlayerState(Enemy);
+			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();
+			Controller.PlayerState = Viewer;
+			UVeyraScoreboard* Screen = CreateWidget<UVeyraScoreboard>(&Spawner.GetWorld());
+			ASSERT_THAT(IsNotNull(Screen));
+			Screen->Show(Controller);
+			const FVeyraScoreboardSide& Theirs = Screen->GetView().Sides[1];
+			ASSERT_THAT(IsTrue(Theirs.Rows.Num() == 1 && Theirs.Rows[0].Name == Enemy->GetPlayerName() && Theirs.Rows[0].bAway));
+			ASSERT_THAT(IsTrue(UVeyraScoreboard::RowLine(Theirs.Rows[0]).ToString().Contains(TEXT("disconnected"))));
+			ASSERT_THAT(IsFalse(Screen->GetView().Sides[0].Rows[0].bAway));
+		}
+
 		TEST_METHOD(TheScreenShowsBothTeamsAndFollowsTheScore)
 		{
 			AVeyraPlayerController& Controller = Spawner.SpawnActor<AVeyraPlayerController>();

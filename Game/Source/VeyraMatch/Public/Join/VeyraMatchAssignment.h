@@ -81,6 +81,10 @@ struct FVeyraParticipantResult
 	FString AccountId;
 	bool bJoined = false;
 	bool bConnectedAtEnd = false;
+	/** A loss its own absence earned it, whatever its team's result (Match Flow Bible §6; ADR-019 §5). */
+	bool bPersonalLoss = false;
+	/** Its total absence, AFK and disconnected, in match seconds. */
+	double AbsentSeconds = 0.0;
 };
 
 /** One player's line on the result's scoreboard, a human's or a bot's (ADR-017 §5). */

@@ -193,6 +193,8 @@ namespace VeyraBackendProtocol
 		double DurationSeconds = 0.0;
 		bool bJoined = false;
 		bool bConnectedAtEnd = false;
+		/** A loss the player's own absence earned, whatever its team's result (Match Flow Bible §6; UX-51). */
+		bool bPersonalLoss = false;
 		/** Whether the result carries a scoreboard: a result from an older server, or one nobody played, has none. */
 		bool bHasScoreboard = false;
 		/** The scoreboard's lines, as the server reported them: side A first, in seat order. */
@@ -233,6 +235,8 @@ namespace VeyraBackendProtocol
 		FString VanguardId;
 		/** "win", "loss" or "no_contest": the player's own. */
 		FString Outcome;
+		/** Whether Outcome is the player's own loss for absence rather than its team's (UX-51). */
+		bool bPersonalLoss = false;
 	};
 
 	/** A page of Match History, newest first, and the cursor of the next; Next is empty on the last page. */

@@ -129,6 +129,142 @@ struct FVeyraMatchLifecycleTuning
 	double AbandonAfterSeconds = 0.0;
 };
 
+/**
+ * Absence from a live match (Match Flow Bible §4–§6; ADR-019 §3). Every clock runs on the match clock,
+ * so a pause stops it.
+ */
+USTRUCT()
+struct FVeyraAbsenceTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Seconds without meaningful activity before a connected player counts as AFK. */
+	UPROPERTY()
+	double AfkAfterSeconds = 0.0;
+
+	/** Seconds after the AFK warning, still inactive, before a personal loss. */
+	UPROPERTY()
+	double AfkPenaltyAfterSeconds = 0.0;
+
+	/** Seconds of continuous disconnection before a personal loss. */
+	UPROPERTY()
+	double DisconnectPenaltyAfterSeconds = 0.0;
+
+	/** The largest share of the active duration a player may have been absent for a win to forgive it. */
+	UPROPERTY()
+	double MaxForgivenAbsentFraction = 0.0;
+};
+
+/** What counts as meaningful activity (Match Flow Bible §5.1; ADR-019 §3). */
+USTRUCT()
+struct FVeyraActivityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** How far a move's destination must be from the last one counted for the move to count. */
+	UPROPERTY()
+	double MinimumMoveDistance = 0.0;
+};
+
+/** Where an absent Vanguard is walked (Match Flow Bible §4; ADR-019 §2). */
+USTRUCT()
+struct FVeyraAutopilotTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Match seconds after it starts before it turns for the fountain. */
+	UPROPERTY()
+	double FountainAfterSeconds = 0.0;
+
+	/** How far behind the tower, along its lane toward home, it stops. */
+	UPROPERTY()
+	double BehindTowerDistance = 0.0;
+};
+
+/** A team vote: remake before a time, surrender after one (Match Flow Bible §7–§8). */
+USTRUCT()
+struct FVeyraRemakeVoteTuning
+{
+	GENERATED_BODY()
+
+	/** Match seconds after which none may start. */
+	UPROPERTY()
+	double StartBeforeSeconds = 0.0;
+
+	UPROPERTY()
+	int32 YesVotes = 0;
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	UPROPERTY()
+	double CooldownSeconds = 0.0;
+};
+
+USTRUCT()
+struct FVeyraSurrenderVoteTuning
+{
+	GENERATED_BODY()
+
+	/** Match seconds before which none may start. */
+	UPROPERTY()
+	double StartAfterSeconds = 0.0;
+
+	UPROPERTY()
+	int32 YesVotes = 0;
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	UPROPERTY()
+	double CooldownSeconds = 0.0;
+};
+
+/** A unanimous pause vote and the intermission it opens (Match Flow Bible §10). */
+USTRUCT()
+struct FVeyraPauseVoteTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	UPROPERTY()
+	double CooldownSeconds = 0.0;
+
+	/** Real seconds a passed pause lasts before play resumes by itself. */
+	UPROPERTY()
+	double IntermissionSeconds = 0.0;
+};
+
+/** Votes (ADR-019 §4): windows, cooldowns and the intermission are real seconds. */
+USTRUCT()
+struct FVeyraVotesTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraRemakeVoteTuning Remake;
+
+	UPROPERTY()
+	FVeyraSurrenderVoteTuning Surrender;
+
+	UPROPERTY()
+	FVeyraPauseVoteTuning Pause;
+};
+
 /** How the server accepts a player's move orders (ADR-006 §7). */
 USTRUCT()
 struct FVeyraOrdersTuning
@@ -176,7 +312,7 @@ struct FVeyraMatchTuning
 	GENERATED_BODY()
 
 	/** The Match.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 6;
+	static constexpr int32 SchemaVersion = 7;
 
 	UPROPERTY()
 	FVeyraTeamsTuning Teams;
@@ -195,6 +331,18 @@ struct FVeyraMatchTuning
 
 	UPROPERTY()
 	FVeyraMatchLifecycleTuning Lifecycle;
+
+	UPROPERTY()
+	FVeyraAbsenceTuning Absence;
+
+	UPROPERTY()
+	FVeyraActivityTuning Activity;
+
+	UPROPERTY()
+	FVeyraAutopilotTuning Autopilot;
+
+	UPROPERTY()
+	FVeyraVotesTuning Votes;
 
 	UPROPERTY()
 	FVeyraOrdersTuning Orders;

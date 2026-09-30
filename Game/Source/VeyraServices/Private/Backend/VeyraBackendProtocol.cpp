@@ -623,6 +623,8 @@ bool ParseMatchOutcome(const FString& Body, FMatchOutcome& Out, FString& OutProb
 			return false;
 		}
 		Outcome.bHasResult = true;
+		// A personal loss for absence (ADR-019 §5); absent from an older backend.
+		Result->TryGetBoolField(TEXT("personalLoss"), Outcome.bPersonalLoss);
 		// The scoreboard: null, or absent from an older backend, when the server sent none (ADR-017 §5).
 		const TArray<TSharedPtr<FJsonValue>>* Players = nullptr;
 		if (Result->HasTypedField<EJson::Array>(TEXT("players")) && Result->TryGetArrayField(TEXT("players"), Players))
@@ -731,6 +733,8 @@ bool ParseHistoryPage(const FString& Body, FHistoryPage& Out, FString& OutProble
 			OutProblem = TEXT("a match in the history is not in the expected format");
 			return false;
 		}
+		// A personal loss for absence (UX-51); absent from an older backend.
+		(*Object)->TryGetBoolField(TEXT("personalLoss"), Entry.bPersonalLoss);
 	}
 	Out = MoveTemp(Page);
 	return true;
@@ -942,6 +946,8 @@ FString BuildResultBody(const FVeyraMatchResult& Result)
 		Writer->WriteValue(TEXT("accountId"), Participant.AccountId);
 		Writer->WriteValue(TEXT("joined"), Participant.bJoined);
 		Writer->WriteValue(TEXT("connectedAtEnd"), Participant.bConnectedAtEnd);
+		Writer->WriteValue(TEXT("personalLoss"), Participant.bPersonalLoss);
+		Writer->WriteValue(TEXT("absentSeconds"), Participant.AbsentSeconds);
 		Writer->WriteObjectEnd();
 	}
 	Writer->WriteArrayEnd();

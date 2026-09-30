@@ -36,6 +36,7 @@ FVeyraScoreboardView Describe(TConstArrayView<const APlayerState*> Participants,
 			FVeyraScoreboardRow& Row = Side.Rows.AddDefaulted_GetRef();
 			Row.Name = Participant->GetPlayerName();
 			Row.bLocal = Participant == Local;
+			Row.bAway = Participant->IsInactive();
 			if (const AVeyraPlayerState* Veyra = Cast<AVeyraPlayerState>(Participant))
 			{
 				Row.Vanguard = Veyra->GetVanguardId();
