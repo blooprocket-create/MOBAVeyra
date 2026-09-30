@@ -164,7 +164,7 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 	}
 
 	const TArray<FVeyraPathHit> Hits = VeyraShapes::GatherUnitsAlong(World, From, From + Direction * Step, Radius, [this](const AActor& Unit) {
-		return VeyraTargeting::AreHostile(this, &Unit) && !Met.ContainsByPredicate([&Unit](const TWeakObjectPtr<AActor>& Earlier) { return Earlier.Get() == &Unit; });
+		return VeyraTargeting::CanHitEnemy(this, Unit) && !Met.ContainsByPredicate([&Unit](const TWeakObjectPtr<AActor>& Earlier) { return Earlier.Get() == &Unit; });
 	});
 	for (const FVeyraPathHit& Hit : Hits)
 	{
@@ -212,6 +212,12 @@ void AVeyraProjectile::AdvanceHoming(UAbilitySystemComponent& Source, double Dis
 		return;
 	}
 	SetActorLocation(Here + Heading * Gap);
+	// A targeted shot at an enemy that is Untargetable as it would land fails (Combat Bible §10).
+	if (VeyraTargeting::AreHostile(this, Target) && VeyraTargeting::IsUntargetable(*Target))
+	{
+		End();
+		return;
+	}
 	Met.Add(Target);
 	VeyraEffectDelivery::Apply(Source, *Target, Effects, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
 	if (OnLanded)

@@ -138,6 +138,13 @@ public:
 	bool IsDisplaced() const;
 	bool IsDashing() const;
 
+	/**
+	 * Server: moves the body at once to the nearest walkable point at Destination, facing Facing unless it
+	 * is zero (Combat Bible §9; ADR-030 §4). A dash under way ends, and so does the body's move. False,
+	 * and no move, while displaced, fleeing or held on, or where no walkable point is near.
+	 */
+	bool Blink(const FVector& Destination, const FVector& Facing);
+
 	/** Where the displacement or dash under way ends. */
 	TOptional<FVector> GetForcedMoveDestination() const;
 

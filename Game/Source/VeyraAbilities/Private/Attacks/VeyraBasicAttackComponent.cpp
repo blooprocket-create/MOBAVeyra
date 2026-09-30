@@ -204,7 +204,7 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::StartAttack(AActor& Target)
 	// A backswing still running ends as the next attack begins.
 	GetWorld()->GetTimerManager().ClearTimer(PhaseTimer);
 	// Attacking ends Camouflage (Combat Bible §11; ADR-018 §4).
-	VeyraCombat::EndCamouflage(*GetAbilitySystem());
+	VeyraCombat::EndStealth(*GetAbilitySystem());
 
 	const double Now = GetServerNow();
 	FRunningAttack& Attack = Running.Emplace();
@@ -479,7 +479,7 @@ void UVeyraBasicAttackComponent::HitAround(const FVeyraAttackEvent& Event, const
 	// Sides belong to the participant, which outlives its body.
 	const AActor* Side = Attacker->GetOwner();
 	const TArray<AActor*> Units = VeyraShapes::GatherUnits(*GetWorld(), Placed, [Side, Target](const AActor& Unit) {
-		return &Unit != Target && VeyraTargeting::AreHostile(Side, &Unit);
+		return &Unit != Target && VeyraTargeting::CanHitEnemy(Side, Unit);
 	});
 	for (AActor* Unit : Units)
 	{

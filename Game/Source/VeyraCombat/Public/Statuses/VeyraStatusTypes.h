@@ -162,6 +162,18 @@ enum class EVeyraStatusKind : uint8
 	 * it. Magnitude: 0.
 	 */
 	Grounded,
+	/**
+	 * Invisible (Combat Bible §11; ADR-030 §1): hidden from enemies at any distance, and only True Sight
+	 * reveals it. Not crowd control; attacking or an offensive cast ends it, as it ends Camouflage.
+	 * Magnitude: 0.
+	 */
+	Invisible,
+	/**
+	 * Untargetable (Combat Bible §10; ADR-030 §2): enemies cannot acquire it, their skillshots, areas and
+	 * cleaves pass over it, and a targeted projectile flying at it fails on arrival. Not crowd control; it
+	 * cleanses nothing. Magnitude: 0.
+	 */
+	Untargetable,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

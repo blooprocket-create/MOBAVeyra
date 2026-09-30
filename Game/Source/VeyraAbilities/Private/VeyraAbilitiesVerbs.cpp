@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "Abilities/GameplayAbilityTargetTypes.h"
 #include "Abilities/VeyraGameplayAbility.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "VeyraAbilitiesLog.h"
 
@@ -54,5 +55,30 @@ EVeyraCastRejection TryCast(UAbilitySystemComponent& Caster, EVeyraAbilitySlot S
 	UE_CLOG(bActivated, LogVeyraAbilities, Verbose, TEXT("%s cast %s at %s."),
 		*GetNameSafe(Caster.GetAvatarActor()), *Cast.ToString(), *GetNameSafe(Target.Actor));
 	return bActivated ? EVeyraCastRejection::None : EVeyraCastRejection::ActivationFailed;
+}
+
+void RefundCooldown(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, double Fraction)
+{
+	const AActor* Owner = Caster.GetOwner();
+	const UVeyraAbilityLoadoutComponent* Loadout = Owner ? Owner->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	UVeyraCooldownComponent* Cooldowns = Owner ? Owner->FindComponentByClass<UVeyraCooldownComponent>() : nullptr;
+	if (Loadout && Cooldowns && Ability.IsValid())
+	{
+		// Keyed as its cooldown started: a variant shares its base ability's.
+		Cooldowns->ReduceCooldown(Loadout->CooldownIdOf(Ability), Fraction);
+	}
+}
+
+void RefundCooldowns(UAbilitySystemComponent& Caster, TConstArrayView<EVeyraAbilitySlot> Slots, double Fraction)
+{
+	const AActor* Owner = Caster.GetOwner();
+	const UVeyraAbilityLoadoutComponent* Loadout = Owner ? Owner->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	for (const EVeyraAbilitySlot Slot : Slots)
+	{
+		if (const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr)
+		{
+			RefundCooldown(Caster, Entry->Ability, Fraction);
+		}
+	}
 }
 }

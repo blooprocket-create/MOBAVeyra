@@ -481,6 +481,46 @@ FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, 
 	return End;
 }
 
+bool UVeyraMovementComponent::Blink(const FVector& Destination, const FVector& Facing)
+{
+	if (!CharacterOwner || !UpdatedComponent || IsDisplaced() || IsFleeing() || IsAttached())
+	{
+		return false;
+	}
+	// Terrain between does not stop a blink; its end must be ground the body may stand on (§9).
+	FVector End(Destination.X, Destination.Y, UpdatedComponent->GetComponentLocation().Z);
+	const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
+	const ANavigationData* NavData = Navigation ? Navigation->GetDefaultNavDataInstance() : nullptr;
+	if (NavData)
+	{
+		const UCapsuleComponent* Capsule = CharacterOwner->GetCapsuleComponent();
+		const FVector ToFeet(0.0, 0.0, Capsule ? Capsule->GetScaledCapsuleHalfHeight() : 0.0);
+		const double Extent = UVeyraCombatTuningSubsystem::Get().ForcedMovement.NavigationExtent;
+		FNavLocation Walkable;
+		if (!Navigation->ProjectPointToNavigation(End - ToFeet, Walkable, FVector(Extent), NavData))
+		{
+			return false;
+		}
+		End = FVector(Walkable.Location.X, Walkable.Location.Y, End.Z);
+	}
+	const FRotator Rotation = Facing.IsNearlyZero() ? CharacterOwner->GetActorRotation() : Facing.GetSafeNormal2D().Rotation();
+	if (!CharacterOwner->TeleportTo(End, Rotation))
+	{
+		return false;
+	}
+	if (IsDashing())
+	{
+		EndDash(EVeyraDashEndReason::Interrupted, nullptr);
+	}
+	// The move it was walking belongs to where it stood; its controller paths again from here.
+	if (AController* Controller = CharacterOwner->GetController())
+	{
+		Controller->StopMovement();
+	}
+	StopMovementImmediately();
+	return true;
+}
+
 bool UVeyraMovementComponent::IsDisplaced() const
 {
 	return ForcedMove.IsSet() && ForcedMove->Mode == EVeyraCustomMovementMode::Displaced;
@@ -656,7 +696,7 @@ AActor* UVeyraMovementComponent::FindEnemyContact(const FVector& From, const FVe
 	for (const FHitResult& Hit : Hits)
 	{
 		AActor* Unit = Hit.GetActor();
-		if (Unit && VeyraTargeting::IsAlive(Unit) && VeyraTargeting::AreHostile(CharacterOwner, Unit))
+		if (Unit && VeyraTargeting::IsAlive(Unit) && VeyraTargeting::CanHitEnemy(CharacterOwner, *Unit))
 		{
 			OutContactLocation = Hit.bStartPenetrating ? From : Hit.Location;
 			return Unit;

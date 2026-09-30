@@ -747,7 +747,7 @@ bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& S
 	return true;
 }
 
-void EndCamouflage(UAbilitySystemComponent& Unit)
+void EndStealth(UAbilitySystemComponent& Unit)
 {
 	const AActor* Owner = Unit.GetOwner();
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
@@ -755,15 +755,15 @@ void EndCamouflage(UAbilitySystemComponent& Unit)
 	{
 		return;
 	}
-	TArray<FVeyraContentId, TInlineAllocator<2>> Camouflage;
+	TArray<FVeyraContentId, TInlineAllocator<2>> Stealth;
 	for (const FVeyraStatusEntry& Entry : Statuses->GetLedger().Entries)
 	{
-		if (Entry.Kind == EVeyraStatusKind::Camouflage)
+		if (Entry.Kind == EVeyraStatusKind::Camouflage || Entry.Kind == EVeyraStatusKind::Invisible)
 		{
-			Camouflage.AddUnique(Entry.Id);
+			Stealth.AddUnique(Entry.Id);
 		}
 	}
-	for (const FVeyraContentId& Id : Camouflage)
+	for (const FVeyraContentId& Id : Stealth)
 	{
 		RemoveStatus(Unit, Id);
 	}
@@ -899,6 +899,17 @@ bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash)
 	UE_CLOG(!bStarted && !bLocked, LogVeyraCombat, Error, TEXT("Refused a dash by %s of %g at %g: it needs a horizontal direction and a finite distance and speed above 0."),
 		*GetNameSafe(Unit.GetOwner()), Dash.Distance, Dash.Speed);
 	return bStarted;
+}
+
+bool Blink(UAbilitySystemComponent& Unit, const FVector& Destination, const FVector& Facing)
+{
+	UVeyraMovementComponent* Movement = FindMovement(Unit);
+	// A blink is the unit's own movement: whatever stops a dash stops it too (ADR-028 §2).
+	if (!Movement || IsDeadUnit(Unit) || EnumHasAnyFlags(GetActionBlocks(Unit), EVeyraActionBlocks::Dash))
+	{
+		return false;
+	}
+	return Movement->Blink(Destination, Facing);
 }
 
 void SetCastLocksMovement(UAbilitySystemComponent& Unit, bool bLocks)

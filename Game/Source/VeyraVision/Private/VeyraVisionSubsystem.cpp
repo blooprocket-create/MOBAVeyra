@@ -164,8 +164,16 @@ bool UVeyraVisionSubsystem::IsGated(const AActor& Unit)
 
 bool UVeyraVisionSubsystem::IsInvisible(const AActor& Unit)
 {
-	// Only True Sight reveals an Invisible unit, and Sweeper alone grants it (Vision Bible §5).
-	return VeyraUnits::IsWard(&Unit);
+	// Only True Sight reveals an Invisible unit, and Sweeper alone grants it (Vision Bible §5): a ward,
+	// or a unit holding an Invisible status (ADR-030 §1).
+	if (VeyraUnits::IsWard(&Unit))
+	{
+		return true;
+	}
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->Has(EVeyraStatusKind::Invisible);
 }
 
 void UVeyraVisionSubsystem::Start()
@@ -514,8 +522,10 @@ void UVeyraVisionSubsystem::UpdateNow()
 			continue;
 		}
 		Fogged.Add(Unit, Volume);
-		// Camouflaged in the fog, it is seen only within its detection radius too (ADR-018 §4).
+		// Camouflaged in the fog, it is seen only within its detection radius too (ADR-018 §4); Invisible,
+		// only in True Sight (ADR-030 §1).
 		const TOptional<double> Detection = CamouflageRadiusOf(*Unit);
+		const bool bInvisible = IsInvisible(*Unit);
 		for (const TPair<const AActor*, double>& Lookout : Lookouts)
 		{
 			const EVeyraTeam LookoutSide = VeyraTeams::TeamOf(Lookout.Key);
@@ -523,7 +533,7 @@ void UVeyraVisionSubsystem::UpdateNow()
 			const bool bEnemy = LookoutSide != VeyraTeams::TeamOf(Unit);
 			const double Apart = FVector2D::DistSquared(FVector2D(Lookout.Key->GetActorLocation()), FVector2D(Unit->GetActorLocation()));
 			// Within its sight, and within the Camouflage's detection radius or its side's True Sight.
-			const bool bDetected = !Detection.IsSet() || Apart <= FMath::Square(Detection.GetValue()) || IsInTrueSight(LookoutSide, *Unit);
+			const bool bDetected = IsInTrueSight(LookoutSide, *Unit) || (!bInvisible && (!Detection.IsSet() || Apart <= FMath::Square(Detection.GetValue())));
 			if (bInside && bEnemy && Apart <= FMath::Square(Lookout.Value) && bDetected)
 			{
 				FogSightings.FindOrAdd(Lookout.Key).Add(Unit);

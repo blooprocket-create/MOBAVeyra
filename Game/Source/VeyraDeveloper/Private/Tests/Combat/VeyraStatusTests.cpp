@@ -82,6 +82,22 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("root"), EVeyraStatusKind::Root, Half, LongSeconds)).IsEmpty(), TEXT("a root has no magnitude")));
 		}
 
+		TEST_METHOD(InvisibleAndUntargetableAreNotCrowdControlAndAnAttackEndsOnlyTheFirst)
+		{
+			for (const EVeyraStatusKind Kind : { EVeyraStatusKind::Invisible, EVeyraStatusKind::Untargetable })
+			{
+				ASSERT_THAT(IsFalse(VeyraStatuses::IsCrowdControl(Kind)));
+				ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("test_kind"), Kind, Half, LongSeconds)).IsEmpty(), TEXT("it has no magnitude")));
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, TestStatus(Kind == EVeyraStatusKind::Invisible ? TEXT("invisible") : TEXT("untargetable"), Kind, 0.0, LongSeconds))));
+			}
+			ASSERT_THAT(IsTrue(VeyraCombat::GetActionBlocks(*Unit) == EVeyraActionBlocks::None, TEXT("neither stops its holder acting")));
+			// Attacking or an offensive cast ends stealth, of both grades (Combat Bible §11; ADR-030 §1).
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Unit, *Unit, TestStatus(TEXT("camouflage"), EVeyraStatusKind::Camouflage, Reach, LongSeconds))));
+			VeyraCombat::EndStealth(*Unit);
+			ASSERT_THAT(IsTrue(Find(TEXT("invisible")) == nullptr && Find(TEXT("camouflage")) == nullptr));
+			ASSERT_THAT(IsTrue(Find(TEXT("untargetable")) != nullptr, TEXT("an Untargetable state is not stealth")));
+		}
+
 		TEST_METHOD(GroundingStopsMovingCastsAndBlindingIsCrowdControl)
 		{
 			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("grounded"), EVeyraStatusKind::Grounded, 0.0, LongSeconds))));

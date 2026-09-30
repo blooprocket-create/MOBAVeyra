@@ -246,7 +246,7 @@ FLinearColor UVeyraGreyboxSubsystem::BodyColorOf(const AActor& Unit) const
 	{
 		return FLinearColor::LerpUsingHSV(Side, Settings.SlowColor, Settings.StatusTintStrength);
 	}
-	if (Has(EVeyraStatusKind::Camouflage))
+	if (Has(EVeyraStatusKind::Camouflage) || Has(EVeyraStatusKind::Invisible))
 	{
 		return FLinearColor::LerpUsingHSV(Side, Settings.CamouflageColor, Settings.StatusTintStrength);
 	}

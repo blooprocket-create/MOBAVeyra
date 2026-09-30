@@ -226,10 +226,10 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& Source);
 
 	/**
-	 * Server: ends every Camouflage on Unit, which attacked or cast something offensive (Combat Bible
-	 * §11; ADR-018 §4). Damage taken does not end it.
+	 * Server: ends every Camouflage and Invisibility on Unit, which attacked or cast something offensive
+	 * (Combat Bible §11; ADR-018 §4; ADR-030 §1). Damage taken does not end them.
 	 */
-	VEYRACOMBAT_API void EndCamouflage(UAbilitySystemComponent& Unit);
+	VEYRACOMBAT_API void EndStealth(UAbilitySystemComponent& Unit);
 
 	/** The actions Unit's statuses stop it taking now (Combat Bible §8). None when it has no status ledger. */
 	VEYRACOMBAT_API EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit);
@@ -272,6 +272,14 @@ namespace VeyraCombat
 	 * rooted, grounded, displaced or already dashing, or for values out of range.
 	 */
 	VEYRACOMBAT_API bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash);
+
+	/**
+	 * Blinks Unit's body to the nearest legal ground at Destination, facing Facing unless it is zero
+	 * (Combat Bible §9; ADR-030 §4): an instant move with no path, which terrain between does not stop.
+	 * It ends a dash under way and the body's move. Refused, returning false, while the unit is dead,
+	 * rooted, grounded, stunned, displaced or held on, or where no legal ground is near.
+	 */
+	VEYRACOMBAT_API bool Blink(UAbilitySystemComponent& Unit, const FVector& Destination, const FVector& Facing = FVector::ZeroVector);
 
 	/**
 	 * Holds Unit's body in place for its own cast, or lets it go (Combat Bible §48). Its orders wait

@@ -54,6 +54,12 @@ namespace VeyraCooldowns
 	VEYRAABILITIES_API bool Clear(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability);
 
 	/**
+	 * Shortens Ability's cooldown still running at time Now by Fraction of what remains, then by Seconds
+	 * more, never below ready (ADR-030 §3). False if it was ready.
+	 */
+	VEYRAABILITIES_API bool Reduce(TArray<FVeyraCooldownEntry>& Entries, const FVeyraContentId& Ability, double Now, double Fraction, double Seconds = 0.0);
+
+	/**
 	 * Scales every Ability-Haste cooldown still running at time Now by Factor, what remains and what it
 	 * started with alike, as when Ability Haste changes mid-cooldown (Combat Bible §21). Finished ones
 	 * stay finished; items' cooldowns are left alone.
@@ -88,6 +94,9 @@ public:
 
 	/** Server only: makes Ability ready now, forgetting any cooldown it still has. */
 	void ClearCooldown(const FVeyraContentId& Ability);
+
+	/** Server only: shortens Ability's running cooldown by Fraction of what remains, then by Seconds (ADR-030 §3). */
+	void ReduceCooldown(const FVeyraContentId& Ability, double Fraction, double Seconds = 0.0);
 
 	/** Server only: makes every ability ready now. Returns how many were still cooling down. */
 	int32 ClearAllCooldowns();

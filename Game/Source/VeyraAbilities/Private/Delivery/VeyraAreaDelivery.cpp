@@ -89,7 +89,7 @@ TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FV
 	{
 		const FVeyraPlacedShape Placed{ Zone.Shape, Frame.Origin, Frame.Direction };
 		const TArray<AActor*> Units = VeyraShapes::GatherUnits(World, Placed, [Side, &Hit](const AActor& Unit) {
-			return VeyraTargeting::AreHostile(Side, &Unit) && !Hit.ContainsByPredicate([&Unit](const AActor* Earlier) { return Earlier == &Unit; });
+			return VeyraTargeting::CanHitEnemy(Side, Unit) && !Hit.ContainsByPredicate([&Unit](const AActor* Earlier) { return Earlier == &Unit; });
 		});
 		for (AActor* Unit : Units)
 		{

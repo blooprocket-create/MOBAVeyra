@@ -70,6 +70,8 @@ namespace
 		case EVeyraStatusKind::MobileAttack:
 		case EVeyraStatusKind::Blind:
 		case EVeyraStatusKind::Grounded:
+		case EVeyraStatusKind::Invisible:
+		case EVeyraStatusKind::Untargetable:
 			break;
 		}
 		return NAME_None;

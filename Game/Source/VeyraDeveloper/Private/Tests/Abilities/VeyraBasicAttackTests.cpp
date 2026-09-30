@@ -461,6 +461,50 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Enemy), BaseDamage(), Tolerance)));
 		}
 
+		static FVeyraStatusSpec UntargetableSpec()
+		{
+			FVeyraStatusSpec Spec;
+			Spec.Id = ArchetypeTestId(TEXT("test_untargetable"));
+			Spec.Kind = EVeyraStatusKind::Untargetable;
+			Spec.DurationSeconds = LongSeconds;
+			return Spec;
+		}
+
+		TEST_METHOD(AShotAtAnEnemyThatTurnsUntargetableFailsAndACleavePassesOverOne)
+		{
+			// Fixture values: a ranged profile, and its projectile's flight.
+			constexpr double RangedRange = 600.0;
+			constexpr double ShotSpeed = 1000.0;
+			constexpr double ShotRadius = 10.0;
+			FVeyraBasicAttackProfile Ranged = Melee();
+			Ranged.Range = RangedRange;
+			Ranged.Projectile.Add(FVeyraAttackProjectileTuning{ ShotSpeed, ShotRadius });
+			ASSERT_THAT(IsTrue(Attacks->SetProfile(Ranged)));
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(RangedRange / 2.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(AttackNow(Enemy) == EVeyraAttackRejection::None));
+			TActorIterator<AVeyraProjectile> Shot(&Spawner.GetWorld());
+			ASSERT_THAT(IsTrue(static_cast<bool>(Shot)));
+			UAbilitySystemComponent& Struck = *Enemy.GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Struck, Struck, UntargetableSpec())));
+			Shot->AdvanceBy(RangedRange / ShotSpeed);
+			ASSERT_THAT(IsTrue(World.HealthLost(Enemy) == 0.0, TEXT("a targeted shot fails on an Untargetable arrival (Combat Bible §10)")));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(*Attacker, &Enemy, RangedRange) != EVeyraTargetValidity::Valid, TEXT("and no new attack takes it")));
+		}
+
+		TEST_METHOD(ACleavePassesOverAnUntargetableEnemy)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Primary = World.Spawn(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			AVeyraVanguardCharacter& Beside = World.Spawn(EVeyraTeam::B, FVector(CleaveRadius / 2.0, CleaveRadius / 4.0, 0.0));
+			UAbilitySystemComponent& Self = *Attacker->GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Self, Self, UVeyraAbilitiesTuningSubsystem::FindStatus(ArchetypeTestId(TEXT("test_cleave"))).GetValue())));
+			UAbilitySystemComponent& Hidden = *Beside.GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Hidden, Hidden, UntargetableSpec())));
+			ASSERT_THAT(IsTrue(AttackNow(Primary) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsTrue(World.HealthLost(Beside) == 0.0));
+		}
+
 		TEST_METHOD(ACleavingAttackHitsOtherEnemiesForPartOfItsDamage)
 		{
 			FArchetypeTestWorld World{ Spawner };

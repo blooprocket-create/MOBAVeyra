@@ -288,6 +288,38 @@ namespace VeyraCombatTests
 			ASSERT_THAT(AreEqual(1, Interruptions));
 		}
 
+		TEST_METHOD(ABlinkCrossesTerrainAtOnceAndEndsADash)
+		{
+			TArray<EVeyraDashEndReason> DashEnds;
+			Movement->OnDashEnded.AddLambda([&DashEnds](const FVeyraDashEnd& End) { DashEnds.Add(End.Reason); });
+			ASSERT_THAT(IsTrue(VeyraCombat::Dash(*Unit, FVeyraDash{ FVector::BackwardVector, Distance, Speed, EVeyraDashContact::None })));
+			// Beyond the wall a dash would stop at (Combat Bible §9).
+			const FVector Beyond(WallFaceX + WallThickness + Distance, 0.0, Start.Z);
+			ASSERT_THAT(IsTrue(VeyraCombat::Blink(*Unit, Beyond, FVector::BackwardVector)));
+			const AActor& Body = *Movement->GetOwner();
+			ASSERT_THAT(IsTrue(FVector::Dist2D(Body.GetActorLocation(), Beyond) <= Tolerance,
+				FString::Printf(TEXT("at once, past the wall: %s"), *Body.GetActorLocation().ToString())));
+			ASSERT_THAT(IsTrue(Body.GetActorForwardVector().Equals(FVector::BackwardVector, KINDA_SMALL_NUMBER), TEXT("facing as asked")));
+			ASSERT_THAT(IsTrue(!Movement->IsDashing() && DashEnds == TArray<EVeyraDashEndReason>{ EVeyraDashEndReason::Interrupted }));
+		}
+
+		TEST_METHOD(RootGroundedAndDisplacementRefuseABlink)
+		{
+			const FVector Aside(0.0, Distance, Start.Z);
+			for (const EVeyraStatusKind Kind : { EVeyraStatusKind::Root, EVeyraStatusKind::Grounded })
+			{
+				FVeyraStatusSpec Held;
+				Held.Id = FVeyraContentId::FromText(Kind == EVeyraStatusKind::Root ? TEXT("test_rooted") : TEXT("test_grounded")).GetValue();
+				Held.Kind = Kind;
+				Held.DurationSeconds = 60.0;
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Enemy, *Unit, Held)));
+				ASSERT_THAT(IsFalse(VeyraCombat::Blink(*Unit, Aside), *UEnum::GetValueAsString(Kind)));
+				VeyraCombat::RemoveStatus(*Unit, Held.Id);
+			}
+			ASSERT_THAT(IsTrue(VeyraCombat::Displace(*Enemy, *Unit, KnockbackAlong(FVector::BackwardVector))));
+			ASSERT_THAT(IsFalse(VeyraCombat::Blink(*Unit, Aside), TEXT("nor while displaced")));
+		}
+
 		TEST_METHOD(NoDashWhileDisplacedOrStunned)
 		{
 			const FVeyraDash Dash{ FVector::BackwardVector, Distance, Speed, EVeyraDashContact::None };

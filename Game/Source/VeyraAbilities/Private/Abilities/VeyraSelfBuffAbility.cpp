@@ -354,7 +354,7 @@ void UVeyraSelfBuffAbility::RefreshAura()
 	}
 	// The living enemy units in range take its enemy statuses; Combat refuses them for structures and wards.
 	const TArray<AActor*> Enemies = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Circle, Body->GetActorLocation(), Body->GetActorForwardVector() },
-		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit) && VeyraTargeting::IsAlive(&Unit); });
+		[Body](const AActor& Unit) { return VeyraTargeting::CanHitEnemy(Body, Unit) && VeyraTargeting::IsAlive(&Unit); });
 	for (AActor* Enemy : Enemies)
 	{
 		UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Enemy);
@@ -431,7 +431,7 @@ void UVeyraSelfBuffAbility::FirePayload()
 	Circle.Kind = EVeyraShapeKind::Circle;
 	Circle.Radius = Payload.Radius;
 	const TArray<AActor*> Enemies = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Circle, Body->GetActorLocation(), Body->GetActorForwardVector() },
-		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit) && VeyraTargeting::IsAlive(&Unit); });
+		[Body](const AActor& Unit) { return VeyraTargeting::CanHitEnemy(Body, Unit) && VeyraTargeting::IsAlive(&Unit); });
 	for (AActor* Enemy : Enemies)
 	{
 		// A discrete hit on each, which a Spell Shield blocks (Combat Bible §19; ADR-025 §4).

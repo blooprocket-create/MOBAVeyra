@@ -112,6 +112,11 @@ void AVeyraLingeringArea::GiveStatuses()
 			continue;
 		}
 		const bool bAlly = VeyraTeams::TeamOf(Unit) == Team;
+		// An Untargetable enemy takes nothing new from it (Combat Bible §10).
+		if (!bAlly && Inside != Source && VeyraTargeting::IsUntargetable(*Unit))
+		{
+			continue;
+		}
 		const TArray<FVeyraStatusSpec>* Given = Inside == Source ? &Statuses.Caster
 			: bAlly													  ? (VeyraUnits::IsVanguard(Unit) ? &Statuses.Allies : nullptr)
 																	  : &Statuses.Enemies;

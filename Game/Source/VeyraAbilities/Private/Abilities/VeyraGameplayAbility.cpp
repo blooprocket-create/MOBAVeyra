@@ -166,7 +166,7 @@ void UVeyraGameplayAbility::NoteCastStarted(UAbilitySystemComponent& Caster, con
 	}
 	if (bOffensive)
 	{
-		VeyraCombat::EndCamouflage(Caster);
+		VeyraCombat::EndStealth(Caster);
 	}
 }
 
