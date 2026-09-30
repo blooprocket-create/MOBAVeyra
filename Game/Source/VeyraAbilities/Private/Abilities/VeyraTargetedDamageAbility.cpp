@@ -64,7 +64,7 @@ void UVeyraTargetedDamageAbility::ActivateAbility(const FGameplayAbilitySpecHand
 		EndAbility(Handle, ActorInfo, ActivationInfo, /*bReplicateEndAbility*/ true, /*bWasCancelled*/ true);
 		return;
 	}
-	NoteCastCommitted(CasterAbilitySystem, Ability);
+	NoteCastCommitted(CasterAbilitySystem, Ability, Target.Actor);
 
 	UAbilitySystemComponent* TargetAbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target.Actor);
 	// A Spell Shield blocks the whole hit, and the cast stays spent (Combat Bible §19, §54).

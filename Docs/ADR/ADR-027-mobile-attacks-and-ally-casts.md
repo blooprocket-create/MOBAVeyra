@@ -40,13 +40,14 @@ M20a released Moro, Korruk and Mavra. The 2026-09-30 survey ranked Celandrine an
 
 ### 3. Attack impacts while a buff lasts
 
-A self-buff gains `attackSecondaryImpact`, at most one: a secondary impact and its `seconds`, normally the buff's statuses' duration. For that long, each of its caster's basic attacks offers the impact, with its priority, as an empowerment does. Its damage is read from the caster's power at the cast. It stays Proc damage: no Crit, On-Hit or item procs (ADR-009 §5). Death ends it, as it ends a waiting empowerment.
+A self-buff gains `attackSecondaryImpact`, at most one: a secondary impact and its `seconds`, normally the buff's statuses' duration. For that long, each of its recipient's basic attacks (§4) offers the impact, with its priority, as an empowerment does. Its damage is read from the caster's power at the cast. It stays Proc damage: no Crit, On-Hit or item procs (ADR-009 §5). Death ends it, as it ends a waiting empowerment.
 
 ### 4. Ally-targeted self-buffs
 
 - A self-buff gains `recipient`: `Caster`, the default, or `CasterOrAlly`.
-- With `CasterOrAlly`, a cast that names an allied, living Vanguard within cast range gives it the buff: statuses, shield, Temporary Health, heal and aura, the aura following it. A cast that names nothing, or the caster, gives the buff to the caster.
-- Targeting gains `CheckAllyTarget` and the rejection `NotAllied`.
+- With `CasterOrAlly`, a cast that names an allied, living Vanguard within cast range gives it the buff: statuses, shield, Temporary Health, heal, attack impact and aura, the aura following it. The buff stays the caster's, built from the caster's stats. A cast that names nothing, the caster, or any unit that is not an allied Vanguard gives the buff to the caster (§9.6). An allied Vanguard that is dead or out of range refuses the cast.
+- An ally's buff has a cast range, and no variants, end payload or early end: those stay with the caster.
+- Targeting gains `CheckAllyTarget` and the validity `NotAllied`.
 - `FVeyraCastEvent` gains the cast's target actor, so passives such as Slipstream can see whom a cast named.
 
 ### 5. Shields that reward what they absorbed
@@ -79,6 +80,7 @@ Every number is provisional tuning.
 3. **Windward's "meaningful amount" is half the shield**, as League's shields that reward absorption count a share of their value.
 4. **Currents are undirected speed** for now. League's movement zones, such as Janna's tailwind or Ivern's brush, buff whoever is inside; direction is left to a later presentation pass.
 5. **ROOM TO BREATHE pushes once** from the recipient and never again, as the bible says, and the field's shield is limited by the aura's refresh: a status-carried shield is not re-granted while one from it remains.
+6. **Smart self-cast.** An ally-targeted buff cast at an enemy, a Fluxborn or nothing buffs its caster, as League's self-cast fallback does. Quick Cast sends whatever unit is under the cursor, so refusing those casts would make the ability fail whenever an enemy is hovered.
 
 ## Consequences
 

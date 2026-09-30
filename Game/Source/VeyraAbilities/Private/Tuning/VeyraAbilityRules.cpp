@@ -297,6 +297,13 @@ namespace
 			{
 				Problem(Pointer + TEXT("/attackSecondaryImpact"), TEXT("holds at most one"));
 			}
+			// An ally's buff is cast at the ally; what stays with the caster (its slots, its end payload
+			// and its stance) belongs to a buff of its own (ADR-027 §4).
+			if (Buff.Recipient == EVeyraBuffRecipient::CasterOrAlly
+				&& (!(Buff.Cast.CastRange > 0.0) || !Buff.Variants.IsEmpty() || !Buff.EndPayload.IsEmpty() || Buff.Recast == EVeyraRecast::EndsEarly))
+			{
+				Problem(Pointer + TEXT("/recipient"), TEXT("an ally's buff has a cast range above 0, and no variants, end payload or early end"));
+			}
 			for (int32 Index = 0; Index < Buff.AttackSecondaryImpact.Num(); ++Index)
 			{
 				const FString ImpactPointer = FString::Printf(TEXT("%s/attackSecondaryImpact/%d"), *Pointer, Index);

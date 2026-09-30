@@ -9,12 +9,15 @@
 #include "VeyraSelfBuffAbility.generated.h"
 
 struct FVeyraHealTuning;
+struct FVeyraSelfBuffAbilityTuning;
 
 /**
  * The archetype for an ability that buffs its caster (ADR-008 §3): statuses and a shield on the
  * caster, optionally an aura of statuses for nearby allied Vanguards, refreshed on an interval
  * (ADR-008 §9), and optionally a heal for the caster and its most wounded ally (ADR-015 §3). A recast
- * may end it early. Each ability of this kind is an entry in Abilities.json's selfBuff map.
+ * may end it early. With the CasterOrAlly recipient it buffs the allied Vanguard the cast names
+ * instead, and its aura follows that ally (ADR-027 §4). Each ability of this kind is an entry in
+ * Abilities.json's selfBuff map.
  */
 struct FVeyraHostileDamageEvent;
 
@@ -28,6 +31,7 @@ protected:
 	virtual double GetResourceCost(const FVeyraContentId& Ability, int32 Rank) const override;
 	virtual double GetCooldownSeconds(const FVeyraContentId& Ability, int32 Rank) const override;
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const override;
+	virtual EVeyraCastRejection CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const override;
 	virtual bool EndsEarlyOnRecast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const override;
 	virtual void EndEarly(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) override;
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast) override;
@@ -48,15 +52,26 @@ private:
 	void RefreshAura();
 	void StopAura();
 
-	/** Restores Heal's Health to Caster and to its most wounded ally in range, and gives each Heal's statuses (ADR-015 §3). */
-	void DeliverHeal(UAbilitySystemComponent& Caster, const FVeyraHealTuning& Heal) const;
+	/**
+	 * Who takes Cast's buff: the allied Vanguard it names, for a CasterOrAlly buff, while that ally lives;
+	 * otherwise its caster (ADR-027 §4).
+	 */
+	static UAbilitySystemComponent* RecipientOf(const FVeyraCast& Cast, const FVeyraSelfBuffAbilityTuning& Buff, UAbilitySystemComponent& Caster);
 
-	/** The living allied Vanguard within Range of Caster that lacks the most of its Health; none if all are whole. */
-	UAbilitySystemComponent* FindMostWoundedAlly(const UAbilitySystemComponent& Caster, double Range) const;
+	/**
+	 * Restores Heal's Health to Recipient and to its most wounded ally in range, and gives each Heal's
+	 * statuses (ADR-015 §3); the healing and the statuses are Caster's.
+	 */
+	void DeliverHeal(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Recipient, const FVeyraHealTuning& Heal) const;
+
+	/** The living allied Vanguard within Range of Unit, not Unit, that lacks the most of its Health; none if all are whole. */
+	UAbilitySystemComponent* FindMostWoundedAlly(const UAbilitySystemComponent& Unit, double Range) const;
 	bool IsAuraRunning() const;
 
 	/** The aura under way: whose, for which ability, and until when in world time. */
 	TWeakObjectPtr<UAbilitySystemComponent> AuraCaster;
+	/** Whom the aura follows: its caster, or the ally it buffs (ADR-027 §4). */
+	TWeakObjectPtr<UAbilitySystemComponent> AuraHolder;
 	FVeyraContentId AuraAbility;
 	double AuraEndsAt = 0.0;
 	FTimerHandle AuraTimer;

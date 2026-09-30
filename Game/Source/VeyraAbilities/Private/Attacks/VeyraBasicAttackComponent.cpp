@@ -188,6 +188,7 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::CheckAttack(const AActor* Targ
 	case EVeyraTargetValidity::NotHostile:
 	case EVeyraTargetValidity::Structure:
 	case EVeyraTargetValidity::Ward:
+	case EVeyraTargetValidity::NotAllied:
 		return EVeyraAttackRejection::InvalidTarget;
 	}
 	return GetServerNow() < NextAttackAt ? EVeyraAttackRejection::OnCooldown : EVeyraAttackRejection::None;

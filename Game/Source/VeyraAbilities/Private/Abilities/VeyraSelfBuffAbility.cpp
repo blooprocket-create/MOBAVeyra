@@ -42,6 +42,44 @@ const FVeyraCastTuning* UVeyraSelfBuffAbility::GetCastTuning(const FVeyraContent
 	return Buff ? &Buff->Cast : nullptr;
 }
 
+EVeyraCastRejection UVeyraSelfBuffAbility::CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const
+{
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability);
+	if (!Buff)
+	{
+		return EVeyraCastRejection::UnknownAbility;
+	}
+	if (Buff->Recipient != EVeyraBuffRecipient::CasterOrAlly)
+	{
+		return EVeyraCastRejection::None;
+	}
+	// An allied Vanguard it names must be alive and within range; naming anything else, or nothing,
+	// buffs the caster, as League's smart self-cast does (ADR-027 §4, §9).
+	switch (VeyraTargeting::CheckAllyTarget(Caster, Target.Actor, Buff->Cast.CastRange))
+	{
+	case EVeyraTargetValidity::Dead:
+		return EVeyraCastRejection::TargetDead;
+	case EVeyraTargetValidity::OutOfRange:
+		return EVeyraCastRejection::OutOfRange;
+	default:
+		return EVeyraCastRejection::None;
+	}
+}
+
+UAbilitySystemComponent* UVeyraSelfBuffAbility::RecipientOf(const FVeyraCast& Cast, const FVeyraSelfBuffAbilityTuning& Buff, UAbilitySystemComponent& Caster)
+{
+	const AActor* Body = Caster.GetAvatarActor();
+	AActor* Named = Cast.TargetActor.Get();
+	if (Buff.Recipient != EVeyraBuffRecipient::CasterOrAlly || !Body || !Named)
+	{
+		return &Caster;
+	}
+	// Its range was checked as the cast began; an ally that stepped away since still takes it.
+	const EVeyraTargetValidity Validity = VeyraTargeting::CheckAllyTarget(*Body, Named, Buff.Cast.CastRange);
+	UAbilitySystemComponent* Ally = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Named);
+	return Ally && (Validity == EVeyraTargetValidity::Valid || Validity == EVeyraTargetValidity::OutOfRange) ? Ally : &Caster;
+}
+
 bool UVeyraSelfBuffAbility::EndsEarlyOnRecast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
 {
 	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability);
@@ -133,6 +171,8 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 	const FVeyraSlotOverride* Holding = Entry ? Slots->FindOverride(Entry->Slot) : nullptr;
 	const bool bHeldForAWhile = Holding && Holding->Entry.Ability == Cast.Ability && Holding->EndsAt > 0.0;
 	const double HeldFor = bHeldForAWhile ? FMath::Max(0.0, Holding->EndsAt - World->GetTimeSeconds()) : 0.0;
+	// The caster, or the ally the cast names (ADR-027 §4); the buff stays the caster's, built from its stats.
+	UAbilitySystemComponent* Recipient = RecipientOf(Cast, *Buff, *Caster);
 	for (const FVeyraContentId& StatusId : Buff->Statuses)
 	{
 		if (TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
@@ -141,17 +181,18 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 			{
 				Status->DurationSeconds = FMath::Min(Status->DurationSeconds, HeldFor);
 			}
-			VeyraCombat::ApplyStatus(*Caster, *Caster, Status.GetValue());
+			VeyraCombat::ApplyStatus(*Caster, *Recipient, Status.GetValue());
 		}
 	}
 	for (const FVeyraShieldTuning& Shield : Buff->Shields)
 	{
 		// §51: the amount is built from the rank and the caster's stats, then the shield is created.
-		VeyraCombat::GrantShield(*Caster, *Caster, VeyraEffectDelivery::ShieldGrant(*Caster, Shield, Cast.Rank));
+		VeyraCombat::GrantShield(*Caster, *Recipient, VeyraEffectDelivery::ShieldGrant(*Caster, Shield, Cast.Rank));
 	}
 	for (const FVeyraAuraTuning& Aura : Buff->Aura)
 	{
 		AuraCaster = Caster;
+		AuraHolder = Recipient;
 		AuraAbility = Cast.Ability;
 		AuraEndsAt = World->GetTimeSeconds() + Aura.DurationSeconds;
 		// Bound to the caster, not to this ability: GAS clears an ability's own timers as its cast ends,
@@ -167,21 +208,21 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 	}
 	for (const FVeyraHealTuning& Heal : Buff->Heal)
 	{
-		DeliverHeal(*Caster, Heal);
+		DeliverHeal(*Caster, *Recipient, Heal);
 	}
 	for (const FVeyraTemporaryHealthTuning& Temporary : Buff->TemporaryHealth)
 	{
 		// Its amount by rank and a share of the caster's Max Health (Combat Bible §7).
 		const double MaxHealth = Caster->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
-		VeyraCombat::GrantTemporaryHealth(*Caster, *Caster, VeyraAbilityRules::ValueAtRank(Temporary.AmountByRank, Cast.Rank) + MaxHealth * Temporary.MaxHealthRatio,
+		VeyraCombat::GrantTemporaryHealth(*Caster, *Recipient, VeyraAbilityRules::ValueAtRank(Temporary.AmountByRank, Cast.Rank) + MaxHealth * Temporary.MaxHealthRatio,
 			Temporary.DurationSeconds);
 	}
 	if (!Buff->EndPayload.IsEmpty())
 	{
 		StartPayload(*Caster, Cast.Ability);
 	}
-	// Its caster's attacks offer an impact for a while, its damage from the caster's power now (ADR-027 §3).
-	UVeyraBasicAttackComponent* Attacks = Caster->GetOwner() ? Caster->GetOwner()->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
+	// Its recipient's attacks offer an impact for a while, its damage from the caster's power now (ADR-027 §3).
+	UVeyraBasicAttackComponent* Attacks = Recipient->GetOwner() ? Recipient->GetOwner()->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
 	for (const FVeyraBuffAttackImpactTuning& Timed : Buff->AttackSecondaryImpact)
 	{
 		if (Attacks)
@@ -205,12 +246,12 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 	return FVeyraChannelPlan();
 }
 
-void UVeyraSelfBuffAbility::DeliverHeal(UAbilitySystemComponent& Caster, const FVeyraHealTuning& Heal) const
+void UVeyraSelfBuffAbility::DeliverHeal(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Recipient, const FVeyraHealTuning& Heal) const
 {
 	const int32 Level = GetCasterLevel(Caster);
 	const double Amount = VeyraAbilityRules::AtLevel(Heal.Amount, Heal.AmountPerLevel, Level);
-	TArray<UAbilitySystemComponent*, TInlineAllocator<2>> Healed = { &Caster };
-	if (UAbilitySystemComponent* Ally = FindMostWoundedAlly(Caster, Heal.AllyRange))
+	TArray<UAbilitySystemComponent*, TInlineAllocator<2>> Healed = { &Recipient };
+	if (UAbilitySystemComponent* Ally = FindMostWoundedAlly(Recipient, Heal.AllyRange))
 	{
 		Healed.Add(Ally);
 	}
@@ -228,11 +269,11 @@ void UVeyraSelfBuffAbility::DeliverHeal(UAbilitySystemComponent& Caster, const F
 	}
 }
 
-UAbilitySystemComponent* UVeyraSelfBuffAbility::FindMostWoundedAlly(const UAbilitySystemComponent& Caster, double Range) const
+UAbilitySystemComponent* UVeyraSelfBuffAbility::FindMostWoundedAlly(const UAbilitySystemComponent& Unit, double Range) const
 {
 	UWorld* World = GetWorld();
-	const AActor* Body = Caster.GetAvatarActor();
-	const EVeyraTeam Side = VeyraTeams::TeamOf(Caster.GetOwner());
+	const AActor* Body = Unit.GetAvatarActor();
+	const EVeyraTeam Side = VeyraTeams::TeamOf(Unit.GetOwner());
 	if (!World || !Body || !(Range > 0.0) || Side == EVeyraTeam::None)
 	{
 		return nullptr;
@@ -265,10 +306,12 @@ void UVeyraSelfBuffAbility::RefreshAura()
 {
 	UWorld* World = GetWorld();
 	UAbilitySystemComponent* Caster = AuraCaster.Get();
-	const AActor* Body = Caster ? Caster->GetAvatarActor() : nullptr;
+	// It follows its holder, the caster or the ally it buffs (ADR-027 §4); its statuses are the caster's.
+	const UAbilitySystemComponent* Holder = AuraHolder.Get();
+	const AActor* Body = Holder ? Holder->GetAvatarActor() : nullptr;
 	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(AuraAbility);
-	// The aura ends with its time, or with its caster.
-	if (!World || !Body || !Buff || Buff->Aura.IsEmpty() || World->GetTimeSeconds() >= AuraEndsAt || !VeyraTargeting::IsAlive(Body))
+	// The aura ends with its time, or with its holder.
+	if (!World || !Caster || !Body || !Buff || Buff->Aura.IsEmpty() || World->GetTimeSeconds() >= AuraEndsAt || !VeyraTargeting::IsAlive(Body))
 	{
 		StopAura();
 		return;
@@ -277,7 +320,7 @@ void UVeyraSelfBuffAbility::RefreshAura()
 	FVeyraShape Circle;
 	Circle.Kind = EVeyraShapeKind::Circle;
 	Circle.Radius = Aura.Radius;
-	const EVeyraTeam Side = VeyraTeams::TeamOf(Caster->GetOwner());
+	const EVeyraTeam Side = VeyraTeams::TeamOf(Holder->GetOwner());
 	const TArray<AActor*> Allies = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Circle, Body->GetActorLocation(), Body->GetActorForwardVector() },
 		[Body, Side](const AActor& Unit) { return &Unit != Body && Side != EVeyraTeam::None && VeyraTeams::TeamOf(&Unit) == Side && VeyraUnits::IsVanguard(&Unit); });
 	for (AActor* Ally : Allies)
@@ -411,6 +454,7 @@ void UVeyraSelfBuffAbility::StopAura()
 		World->GetTimerManager().ClearTimer(AuraTimer);
 	}
 	AuraCaster = nullptr;
+	AuraHolder = nullptr;
 	AuraAbility = FVeyraContentId();
 }
 
@@ -422,6 +466,6 @@ bool UVeyraSelfBuffAbility::IsAuraRunning() const
 
 bool UVeyraSelfBuffAbility::IsOffensive(const FVeyraContentId& /*Ability*/) const
 {
-	// It acts on its caster alone.
+	// It acts on its caster, or on an ally it names.
 	return false;
 }

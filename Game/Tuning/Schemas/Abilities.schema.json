@@ -436,7 +436,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact", "recipient"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -534,8 +534,12 @@
                 }
               }
             },
+            "recipient": {
+              "description": "Who takes the buff: its caster, or an allied Vanguard the cast names within its range, else its caster (ADR-027 §4).",
+              "type": "string", "enum": ["Caster", "CasterOrAlly"]
+            },
             "attackSecondaryImpact": {
-              "description": "At most one: for a while after the cast, its caster's basic attacks offer this secondary impact, as a piercing shot (ADR-027 §3).",
+              "description": "At most one: for a while after the cast, its recipient's basic attacks offer this secondary impact, as a piercing shot (ADR-027 §3).",
               "type": "array", "minItems": 0, "maxItems": 1,
               "items": {
                 "type": "object", "additionalProperties": false,

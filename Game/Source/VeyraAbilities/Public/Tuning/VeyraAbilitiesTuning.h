@@ -825,6 +825,16 @@ struct FVeyraBuffAttackImpactTuning
 	FVeyraSecondaryImpactTuning Impact;
 };
 
+/** Who a self-buff buffs (ADR-027 §4). */
+UENUM()
+enum class EVeyraBuffRecipient : uint8
+{
+	/** Its caster. */
+	Caster,
+	/** An allied Vanguard the cast names within its range, or else its caster. */
+	CasterOrAlly,
+};
+
 /** An ability that buffs its caster, and optionally nearby allies (ADR-008 §3). */
 USTRUCT()
 struct FVeyraSelfBuffAbilityTuning
@@ -868,9 +878,16 @@ struct FVeyraSelfBuffAbilityTuning
 	UPROPERTY()
 	TArray<FVeyraEndPayloadTuning> EndPayload;
 
-	/** At most one: a secondary impact its caster's basic attacks offer for a while (ADR-027 §3). */
+	/** At most one: a secondary impact its recipient's basic attacks offer for a while (ADR-027 §3). */
 	UPROPERTY()
 	TArray<FVeyraBuffAttackImpactTuning> AttackSecondaryImpact;
+
+	/**
+	 * Who takes the buff: its statuses, shields, Temporary Health, heal, aura and attack impact
+	 * (ADR-027 §4). An ally's buff has a cast range, and holds no variants, end payload or stance.
+	 */
+	UPROPERTY()
+	EVeyraBuffRecipient Recipient = EVeyraBuffRecipient::Caster;
 };
 
 /** How a projectile flies (Combat Bible §13). */

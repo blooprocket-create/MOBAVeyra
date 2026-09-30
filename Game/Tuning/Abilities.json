@@ -1460,7 +1460,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "qazharr_weather_it": {
       "provenance": "Provisional",
@@ -1493,7 +1494,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "oriel_mirror_veil": {
       "provenance": "Provisional",
@@ -1526,7 +1528,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "mend": {
       "provenance": "Provisional",
@@ -1547,7 +1550,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "vera_dig_in": {
       "provenance": "Provisional",
@@ -1568,7 +1572,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "vera_dig_in_volley": {
       "provenance": "Provisional",
@@ -1589,7 +1594,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "vera_the_last_volley": {
       "provenance": "Provisional",
@@ -1610,7 +1616,8 @@
       "variants": [{ "slot": "W", "ability": "vera_dig_in_volley", "cooldown": "Own", "durationSeconds": 8 }],
       "temporaryHealth": [],
       "endPayload": [],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "mimzi_now_you_see_me": {
       "provenance": "Provisional",
@@ -1631,7 +1638,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "patch_play_dead": {
       "provenance": "Provisional",
@@ -1652,7 +1660,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [{ "afterSeconds": 1.5, "radius": 350, "status": "patch_fear", "baseSeconds": 0.5, "secondsPerHit": 0.1, "maxSeconds": 1.25, "minHits": 0 }],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "patch_the_thing_inside": {
       "provenance": "Provisional",
@@ -1673,7 +1682,8 @@
       "variants": [{ "slot": "Q", "ability": "patch_bear_hug_inside", "cooldown": "Own", "durationSeconds": 8 }],
       "temporaryHealth": [{ "amountByRank": [200, 350, 500], "maxHealthRatio": 0.1, "durationSeconds": 8 }],
       "endPayload": [],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "gorraveth_tear_them_apart": {
       "provenance": "Provisional",
@@ -1694,7 +1704,8 @@
       "variants": [{ "slot": "Q", "ability": "gorraveth_rip_through_hunt", "cooldown": "Shared", "durationSeconds": 6 }, { "slot": "W", "ability": "gorraveth_furnace_rake_hunt", "cooldown": "Shared", "durationSeconds": 6 }],
       "temporaryHealth": [],
       "endPayload": [],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "raska_countersteer": {
       "provenance": "Provisional",
@@ -1715,7 +1726,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [{ "afterSeconds": 0.75, "radius": 350, "status": "raska_countersteer_slow", "baseSeconds": 1, "secondsPerHit": 0, "maxSeconds": 1, "minHits": 1 }],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "raska_countersteer_redlined": {
       "provenance": "Provisional",
@@ -1736,7 +1748,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [{ "afterSeconds": 0.75, "radius": 350, "status": "raska_countersteer_stun", "baseSeconds": 0.75, "secondsPerHit": 0, "maxSeconds": 0.75, "minHits": 1 }],
-      "attackSecondaryImpact": []
+      "attackSecondaryImpact": [],
+      "recipient": "Caster"
     },
     "celandrine_open_road": {
       "provenance": "Provisional",
@@ -1757,7 +1770,8 @@
       "variants": [],
       "temporaryHealth": [],
       "endPayload": [],
-      "attackSecondaryImpact": [{ "seconds": 6, "impact": { "priority": 1, "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 300, "width": 80 }, "damage": [{ "type": "Physical", "amountByRank": [20, 40, 60], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [] } }]
+      "attackSecondaryImpact": [{ "seconds": 6, "impact": { "priority": 1, "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 300, "width": 80 }, "damage": [{ "type": "Physical", "amountByRank": [20, 40, 60], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [] } }],
+      "recipient": "Caster"
     }
   },
   "skillshot": {

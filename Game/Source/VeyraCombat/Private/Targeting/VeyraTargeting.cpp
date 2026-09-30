@@ -101,4 +101,26 @@ EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target
 	}
 	return IsWithinCastRange(Caster, *Target, CastRange) ? EVeyraTargetValidity::Valid : EVeyraTargetValidity::OutOfRange;
 }
+
+EVeyraTargetValidity CheckAllyTarget(const AActor& Caster, const AActor* Target, double CastRange)
+{
+	if (!Target || !FindLife(Target))
+	{
+		return EVeyraTargetValidity::NotACombatant;
+	}
+	if (Target == &Caster)
+	{
+		return EVeyraTargetValidity::Caster;
+	}
+	const EVeyraTeam Side = VeyraTeams::TeamOf(&Caster);
+	if (Side == EVeyraTeam::None || VeyraTeams::TeamOf(Target) != Side || !VeyraUnits::IsVanguard(Target))
+	{
+		return EVeyraTargetValidity::NotAllied;
+	}
+	if (!IsAlive(Target))
+	{
+		return EVeyraTargetValidity::Dead;
+	}
+	return IsWithinCastRange(Caster, *Target, CastRange) ? EVeyraTargetValidity::Valid : EVeyraTargetValidity::OutOfRange;
+}
 }

@@ -30,6 +30,8 @@ enum class EVeyraTargetValidity : uint8
 	NotVisible,
 	/** A ward, for an ability: only basic attacks strike wards (ADR-016 §6). */
 	Ward,
+	/** Not a Vanguard on the caster's side, for an ability that targets allies (ADR-027 §4). */
+	NotAllied,
 };
 
 /** Whether a targeted action may pick a structure (Combat Bible §33). */
@@ -78,4 +80,10 @@ namespace VeyraTargeting
 	 */
 	VEYRACOMBAT_API EVeyraTargetValidity CheckEnemyTarget(const AActor& Caster, const AActor* Target, double CastRange,
 		EVeyraStructureTargeting Structures = EVeyraStructureTargeting::Refuse);
+
+	/**
+	 * Whether Caster may target Target with a targeted action for allies, at CastRange: a living Vanguard
+	 * on its side other than itself (ADR-027 §4). Allies are always seen, so vision does not enter it.
+	 */
+	VEYRACOMBAT_API EVeyraTargetValidity CheckAllyTarget(const AActor& Caster, const AActor* Target, double CastRange);
 }
