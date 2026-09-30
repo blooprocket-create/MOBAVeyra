@@ -14,6 +14,8 @@ Recipes should explain the finished item's stats and purpose.
 
 **Roster-synergy rule:** Items should be designed around mechanics and needs that recur across multiple current Vanguards and their kits. An item may naturally be especially attractive to some Vanguards, but it should not be designed as a disguised named item for one specific Vanguard. Synergy should emerge from shared mechanics such as shielding, sustained combat, crowd control, basic attacks, mobility, protection, Health scaling, or spell patterns.
 
+**Lore-naming principle:** Item names should draw from Veyra's established regions, peoples, materials, technologies, weapons, artifacts, events, and institutions where that connection feels natural. Some shop items may reference or derive from equipment used by Vanguards, provided the item remains a general systemic item rather than a mechanically exclusive item for that Vanguard. Functional names remain valid when a lore reference would be forced.
+
 Items do **not** auto-combine. Owning the components is not enough; the player must purchase the item's recipe/completion cost.
 
 ## 2. Tier architecture
