@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "fluxSpells"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "fluxSpells"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -474,7 +474,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact", "recipient", "recipientZones"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact", "recipient", "recipientZones", "marker"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -582,6 +582,20 @@
               "type": "array",
               "minItems": 0,
               "items": { "$ref": "#/definitions/zone" }
+            },
+            "marker": {
+              "description": "At most one: a placed marker the buff leaves where its caster stood (ADR-030 §5), as Tavi's illusion. Casting the buff again while it stands recalls it; recalled or destroyed, it bursts with its burst zones around it.",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["lifetimeSeconds", "hitsToDestroy", "look", "burstZones"],
+                "properties": {
+                  "lifetimeSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "hitsToDestroy": { "description": "The hits that destroy it; 0 for one no one can target.", "type": "integer", "minimum": 0 },
+                  "look": { "description": "Plain: as what it is. AsOwner: as its owner to its owner's enemies, a decoy.", "type": "string", "enum": ["Plain", "AsOwner"] },
+                  "burstZones": { "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } }
+                }
+              }
             },
             "attackSecondaryImpact": {
               "description": "At most one: for a while after the cast, its recipient's basic attacks offer this secondary impact, as a piercing shot (ADR-027 §3).",
@@ -872,6 +886,27 @@
             "mounted": { "description": "The mounted actions, one per basic ability's slot.", "type": "array", "minItems": 0, "maxItems": 3,
               "items": { "type": "object", "additionalProperties": false, "required": ["slot", "ability"], "properties": { "slot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] }, "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } } } },
             "vehicle": { "description": "At most one: the skillshot its vehicle goes on as along the rider's heading as the ride ends.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
+          }
+        }
+      }
+    },
+    "ambush": {
+      "description": "Abilities that vanish and strike (ADR-030 §9), as Tavi's Ready or Not!: cast on an enemy Vanguard the caster damaged, crowd-controlled or debuffed within recentSeconds, the caster holds its vanish statuses for vanishSeconds, then blinks besideDistance from its target, if it still lives, and lands its effects.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "recentSeconds", "vanishSeconds", "vanishStatuses", "besideDistance", "effects"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "recentSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "vanishSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "vanishStatuses": { "description": "Status IDs on the caster while it is gone, ended as it strikes.", "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+            "besideDistance": { "description": "How far from its target's edge it reappears.", "type": "number", "minimum": 0 },
+            "effects": { "description": "On the target as it strikes.", "$ref": "#/definitions/effects" }
           }
         }
       }

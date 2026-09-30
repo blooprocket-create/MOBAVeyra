@@ -907,6 +907,40 @@ enum class EVeyraBuffRecipient : uint8
 	CasterOrAlly,
 };
 
+/** How a placed marker looks to its owner's enemies (ADR-030 §5). */
+UENUM()
+enum class EVeyraMarkerLook : uint8
+{
+	/** As what it is. */
+	Plain,
+	/** As its owner: its owner's body, bars and minimap mark, a decoy. */
+	AsOwner,
+};
+
+/**
+ * A placed marker a self-buff leaves where its caster stood (ADR-030 §5), as Tavi's illusion. Casting
+ * the buff again while it stands recalls it; recalled or destroyed, it bursts with BurstZones around it.
+ */
+USTRUCT()
+struct FVeyraBuffMarkerTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double LifetimeSeconds = 0.0;
+
+	/** The hits that destroy it; 0 for one no one can target. */
+	UPROPERTY()
+	int32 HitsToDestroy = 0;
+
+	UPROPERTY()
+	EVeyraMarkerLook Look = EVeyraMarkerLook::Plain;
+
+	/** Innermost first: zones that land around it as it is recalled or destroyed. */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> BurstZones;
+};
+
 /** An ability that buffs its caster, and optionally nearby allies (ADR-008 §3). */
 USTRUCT()
 struct FVeyraSelfBuffAbilityTuning
@@ -967,6 +1001,10 @@ struct FVeyraSelfBuffAbilityTuning
 	 */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> RecipientZones;
+
+	/** At most one: a placed marker it leaves where its caster stood (ADR-030 §5). */
+	UPROPERTY()
+	TArray<FVeyraBuffMarkerTuning> Marker;
 };
 
 /** How a projectile flies (Combat Bible §13). */
@@ -1392,6 +1430,41 @@ struct FVeyraRideSlotTuning
 };
 
 /**
+ * An ambush (ADR-030 §9), as Tavi's Ready or Not!: cast on an enemy Vanguard its caster damaged,
+ * crowd-controlled or debuffed within RecentSeconds, the caster vanishes, Invisible and Untargetable,
+ * for VanishSeconds, then blinks BesideDistance from its target, if it still lives, and strikes.
+ */
+USTRUCT()
+struct FVeyraAmbushAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	UPROPERTY()
+	double RecentSeconds = 0.0;
+
+	UPROPERTY()
+	double VanishSeconds = 0.0;
+
+	/** On the caster while it is gone, ended as it strikes: its Invisible and Untargetable statuses. */
+	UPROPERTY()
+	TArray<FVeyraContentId> VanishStatuses;
+
+	/** How far from its target's edge it reappears. */
+	UPROPERTY()
+	double BesideDistance = 0.0;
+
+	/** On the target as it strikes. */
+	UPROPERTY()
+	FVeyraEffectBundleTuning Effects;
+};
+
+/**
  * An ability that puts its caster in a ride state (Combat Bible §56; ADR-018 §7), as Raska's Kickstart
  * and NO BRAKES: a set Movement Speed and a limited turn rate, passing through units and unable to
  * attack, its mounted actions in their slots with their own cooldowns, and statuses held meanwhile.
@@ -1481,6 +1554,9 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraRideAbilityTuning> Ride;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraAmbushAbilityTuning> Ambush;
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;

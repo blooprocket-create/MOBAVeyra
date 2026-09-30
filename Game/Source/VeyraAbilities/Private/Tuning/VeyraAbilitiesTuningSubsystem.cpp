@@ -93,6 +93,11 @@ const FVeyraRideAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindRide(const FV
 	return Get().Ride.Find(Ability);
 }
 
+const FVeyraAmbushAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindAmbush(const FVeyraContentId& Ability)
+{
+	return Get().Ambush.Find(Ability);
+}
+
 TOptional<FVeyraStatusSpec> UVeyraAbilitiesTuningSubsystem::FindStatus(const FVeyraContentId& Id, int32 SourceLevel)
 {
 	const FVeyraStatusTuning* Status = Get().Statuses.Find(Id);

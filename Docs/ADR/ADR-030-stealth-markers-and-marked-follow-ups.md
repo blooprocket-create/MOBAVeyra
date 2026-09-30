@@ -68,7 +68,7 @@ Allies' effects still reach it. It does not stop its holder from acting, and it 
 - **Appearance:** it can present itself as its owner. Enemies then see its owner's body, name, level and Health bar, and its minimap dot is its owner's. That is what makes a decoy deceive.
 - **Networking:** it replicates as a gated unit (ADR-016).
 
-Angeru's False Body will reuse it.
+A self-buff may leave one where its caster stood (`marker`: a lifetime, the hits that destroy it, a `look` of `Plain` or `AsOwner`, and `burstZones`). Casting the buff again while it stands recalls it; recalled or destroyed, it bursts with its zones around it; expired, it simply ends. Angeru's False Body will reuse the marker.
 
 ### 6. A dash through a target (Abilities)
 
@@ -78,11 +78,12 @@ Angeru's False Body will reuse it.
 
 ### 7. Follow-ups that depend on a mark (Abilities)
 
-A cast may name a **follow-up**: a recast that opens for a window only when a condition held.
-- `ifTargetHeld` opens it when the cast's target already held a status from the caster as the cast landed (Tavi's E against It).
-- `ifTargetFalls` opens it when the cast's target dies, with the caster credited, within a window (Tavi's R).
+A cast's recast window (ADR-018 §1) gains `opensWhen`, the condition that opens it:
+- `Always`: as every cast commits, as before.
+- `TargetHeld`: only when the cast's target already held `heldStatus` from the caster as the cast committed, before the cast lands anything of its own (Tavi's E against It).
+- `TargetFalls`: only when the cast's target dies, the kill credited to the caster, within `fallsWithinSeconds` (Tavi's R).
 
-A follow-up ability may require its target to hold a status from the caster (`targetMustHold`). The recast itself is the ADR-018 recast window, opened by the condition instead of by every cast.
+A cast may take only a target that holds a status from the caster (`targetMustHold`), as the follow-up against It does.
 
 ### 8. A returning shot (Abilities)
 
@@ -97,7 +98,7 @@ A new archetype, `ambush`:
 2. The caster turns Invisible and Untargetable for `vanishSeconds`.
 3. It then blinks beside the target, if the target still lives, and delivers its effects.
 
-Damage tuning gains `targetMissingHealthRatio`, a share of the target's missing Health, for any effect. Areas, skillshots and ambushes can all use it.
+Its strike scales with its target's missing Health through the effect bundles' existing `missingHealthDamage`.
 
 ### 10. The passive: a quarry mark
 

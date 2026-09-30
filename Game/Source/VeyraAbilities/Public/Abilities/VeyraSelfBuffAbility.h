@@ -8,6 +8,10 @@
 
 #include "VeyraSelfBuffAbility.generated.h"
 
+class AVeyraPlacedMarker;
+struct FVeyraBuffMarkerTuning;
+struct FVeyraMarkerEnd;
+
 struct FVeyraHealTuning;
 struct FVeyraSelfBuffAbilityTuning;
 
@@ -38,6 +42,19 @@ protected:
 	virtual bool IsOffensive(const FVeyraContentId& Ability) const override;
 
 private:
+	/** Leaves Tuning's marker where the caster stands, in place of any it left before (ADR-030 §5). */
+	void PlaceMarker(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraCast& Cast, const FVeyraBuffMarkerTuning& Tuning);
+
+	/** Its marker ended: recalled or destroyed, it bursts where it stood. */
+	void OnMarkerEnded(const FVeyraMarkerEnd& End);
+
+	/** The marker it left, while it stands; what it bursts with; and its watch on markers' ends. */
+	TWeakObjectPtr<AVeyraPlacedMarker> Marker;
+	FVeyraContentId MarkerAbility;
+	int32 MarkerRank = 0;
+	int32 MarkerCastId = 0;
+	FDelegateHandle MarkerEndHandle;
+
 	/**
 	 * The forms of Ability's stance: its slot's own ability and the override that holds the slot, each
 	 * a self-buff its recast ends early (ADR-018 §1), as Vera's Dig In and its volley form. They share

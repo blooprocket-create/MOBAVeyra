@@ -2,6 +2,9 @@
 
 #include "Abilities/VeyraSelfBuffAbility.h"
 
+#include "EngineUtils.h"
+#include "Entities/VeyraPlacedMarker.h"
+
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
@@ -81,9 +84,33 @@ UAbilitySystemComponent* UVeyraSelfBuffAbility::RecipientOf(const FVeyraCast& Ca
 	return Ally && (Validity == EVeyraTargetValidity::Valid || Validity == EVeyraTargetValidity::OutOfRange) ? Ally : &Caster;
 }
 
+namespace
+{
+	/**
+	 * The marker Ability left for Caster, while it stands. Found in the world: a cast is checked on the
+	 * ability's defaults, which hold no caster's state.
+	 */
+	AVeyraPlacedMarker* FindStandingMarker(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
+	{
+		for (TActorIterator<AVeyraPlacedMarker> It(Caster.GetWorld()); It; ++It)
+		{
+			if (!It->IsActorBeingDestroyed() && It->GetOwnerAbilities() == &Caster && It->GetMarkerId() == Ability)
+			{
+				return *It;
+			}
+		}
+		return nullptr;
+	}
+}
+
 bool UVeyraSelfBuffAbility::EndsEarlyOnRecast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
 {
 	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability);
+	// Cast again while its marker stands, it recalls the marker (ADR-030 §5).
+	if (Buff && !Buff->Marker.IsEmpty() && FindStandingMarker(Caster, Ability))
+	{
+		return true;
+	}
 	if (!Buff || Buff->Recast != EVeyraRecast::EndsEarly)
 	{
 		return false;
@@ -148,6 +175,12 @@ void UVeyraSelfBuffAbility::EndForms(UAbilitySystemComponent& Caster, TConstArra
 
 void UVeyraSelfBuffAbility::EndEarly(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
 {
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability);
+	if (AVeyraPlacedMarker* Standing = Buff && !Buff->Marker.IsEmpty() ? FindStandingMarker(Caster, Ability) : nullptr)
+	{
+		Standing->EndMarker(EVeyraMarkerEndReason::Recalled);
+		return;
+	}
 	// Every form of the stance ends with it.
 	EndForms(Caster, FormsOf(Caster, Ability));
 	StopAura();
@@ -184,6 +217,11 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 			}
 			VeyraCombat::ApplyStatus(*Caster, *Recipient, Status.GetValue());
 		}
+	}
+	// A marker where the caster stood, as Tavi's illusion (ADR-030 §5).
+	if (!Buff->Marker.IsEmpty())
+	{
+		PlaceMarker(*World, *Caster, Cast, Buff->Marker[0]);
 	}
 	// Its zones land once on its recipient, facing away from the caster, as ROOM TO BREATHE pushes enemies out (ADR-027 §8).
 	const AActor* Around = Recipient->GetAvatarActor();
@@ -400,6 +438,58 @@ void UVeyraSelfBuffAbility::OnHostileDamage(const FVeyraHostileDamageEvent& Even
 	{
 		++PayloadHits;
 	}
+}
+
+void UVeyraSelfBuffAbility::PlaceMarker(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraCast& Cast, const FVeyraBuffMarkerTuning& Tuning)
+{
+	const AActor* Body = Caster.GetAvatarActor();
+	if (!Body)
+	{
+		return;
+	}
+	// One at a time: the last goes quietly, as its time would have run out.
+	if (AVeyraPlacedMarker* Last = FindStandingMarker(Caster, Cast.Ability))
+	{
+		Last->EndMarker(EVeyraMarkerEndReason::Expired);
+	}
+	FVeyraMarkerSpec Spec;
+	Spec.Id = Cast.Ability;
+	Spec.LifetimeSeconds = Tuning.LifetimeSeconds;
+	Spec.HitsToDestroy = Tuning.HitsToDestroy;
+	Spec.bPresentsAsOwner = Tuning.Look == EVeyraMarkerLook::AsOwner;
+	MarkerAbility = Cast.Ability;
+	MarkerRank = Cast.Rank;
+	MarkerCastId = Cast.CastId;
+	Marker = AVeyraPlacedMarker::Place(World, Caster, Spec, Body->GetActorTransform());
+	UVeyraCombatEventSubsystem* Events = World.GetSubsystem<UVeyraCombatEventSubsystem>();
+	if (Events && !MarkerEndHandle.IsValid())
+	{
+		MarkerEndHandle = Events->OnMarkerEnded.AddUObject(this, &UVeyraSelfBuffAbility::OnMarkerEnded);
+	}
+}
+
+void UVeyraSelfBuffAbility::OnMarkerEnded(const FVeyraMarkerEnd& End)
+{
+	if (!End.Marker.IsValid() || End.Marker.Get() != Marker.Get())
+	{
+		return;
+	}
+	Marker.Reset();
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(MarkerAbility);
+	UAbilitySystemComponent* Caster = End.Owner.Get();
+	UWorld* World = GetWorld();
+	const bool bBursts = End.Reason == EVeyraMarkerEndReason::Destroyed || End.Reason == EVeyraMarkerEndReason::Recalled;
+	if (!Buff || Buff->Marker.IsEmpty() || !Caster || !World || !bBursts)
+	{
+		return;
+	}
+	// Recalled or destroyed, it bursts where it stood, facing as its owner faces.
+	const AActor* Body = Caster->GetAvatarActor();
+	FVeyraEffectFrame Frame;
+	Frame.Origin = End.Location;
+	Frame.Direction = Body ? Body->GetActorForwardVector().GetSafeNormal2D() : FVector::ForwardVector;
+	VeyraAreaDelivery::Resolve(*World, *Caster, Frame, VeyraAreaDelivery::PrepareZones(*Caster, Buff->Marker[0].BurstZones, MarkerRank),
+		FVeyraAbilityHitSource{ MarkerAbility, MarkerCastId });
 }
 
 void UVeyraSelfBuffAbility::FirePayload()

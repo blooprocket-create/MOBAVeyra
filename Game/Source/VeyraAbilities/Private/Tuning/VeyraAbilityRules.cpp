@@ -321,6 +321,20 @@ namespace
 
 		void CheckSelfBuff(const FString& Pointer, const FVeyraSelfBuffAbilityTuning& Buff)
 		{
+			if (Buff.Marker.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/marker"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Buff.Marker.Num(); ++Index)
+			{
+				const FVeyraBuffMarkerTuning& Marker = Buff.Marker[Index];
+				const FString MarkerPointer = FString::Printf(TEXT("%s/marker/%d"), *Pointer, Index);
+				if (!(Marker.LifetimeSeconds > 0.0) || Marker.HitsToDestroy < 0)
+				{
+					Problem(MarkerPointer, TEXT("a marker lasts above 0 seconds and takes 0 or more hits"));
+				}
+				CheckZones(MarkerPointer + TEXT("/burstZones"), Marker.BurstZones);
+			}
 			CheckCast(Pointer + TEXT("/cast"), Buff.Cast);
 			if (Buff.AttackSecondaryImpact.Num() > 1)
 			{
@@ -546,6 +560,17 @@ namespace
 			}
 		}
 
+		void CheckAmbush(const FString& Pointer, const FVeyraAmbushAbilityTuning& Ambush)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Ambush.Cast);
+			CheckStatusIds(Pointer + TEXT("/vanishStatuses"), Ambush.VanishStatuses);
+			CheckEffects(Pointer + TEXT("/effects"), Ambush.Effects);
+			if (!(Ambush.Cast.CastRange > 0.0) || !(Ambush.RecentSeconds > 0.0) || !(Ambush.VanishSeconds > 0.0) || !(Ambush.BesideDistance >= 0.0))
+			{
+				Problem(Pointer, TEXT("an ambush has a cast range, a recent window and a vanish above 0, and a distance beside its target of at least 0"));
+			}
+		}
+
 		void CheckRide(const FString& Pointer, const FVeyraRideAbilityTuning& Ride)
 		{
 			CheckCast(Pointer + TEXT("/cast"), Ride.Cast);
@@ -715,6 +740,10 @@ namespace
 			{
 				Note(Entry.Key, TEXT("ride"));
 			}
+			for (const TPair<FVeyraContentId, FVeyraAmbushAbilityTuning>& Entry : Tuning.Ambush)
+			{
+				Note(Entry.Key, TEXT("ambush"));
+			}
 		}
 	};
 }
@@ -802,6 +831,10 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	{
 		Checker.CheckRide(TEXT("/ride/") + Entry.Key.ToString(), Entry.Value);
 	}
+	for (const TPair<FVeyraContentId, FVeyraAmbushAbilityTuning>& Entry : Tuning.Ambush)
+	{
+		Checker.CheckAmbush(TEXT("/ambush/") + Entry.Key.ToString(), Entry.Value);
+	}
 	Checker.CheckEachIdInOneArchetype();
 	Checker.CheckFluxSpells();
 	return Checker.Problems;
@@ -816,7 +849,7 @@ bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability
 {
 	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)
 		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability)
-		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability) || Tuning.Ride.Contains(Ability);
+		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability) || Tuning.Ride.Contains(Ability) || Tuning.Ambush.Contains(Ability);
 }
 
 double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
@@ -862,6 +895,10 @@ double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentI
 	{
 		Cast = &Ride->Cast;
 	}
+	else if (const FVeyraAmbushAbilityTuning* Ambush = Tuning.Ambush.Find(Ability))
+	{
+		Cast = &Ambush->Cast;
+	}
 	return Cast ? ValueAtRank(Cast->CooldownSecondsByRank, Rank) : 0.0;
 }
 
@@ -905,6 +942,10 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	if (const FVeyraRideAbilityTuning* Ride = Tuning.Ride.Find(Ability))
 	{
 		Checker.CheckRide(TEXT("/ride/") + Key, *Ride);
+	}
+	if (const FVeyraAmbushAbilityTuning* Ambush = Tuning.Ambush.Find(Ability))
+	{
+		Checker.CheckAmbush(TEXT("/ambush/") + Key, *Ambush);
 	}
 	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;

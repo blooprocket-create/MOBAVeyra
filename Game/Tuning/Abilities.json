@@ -1830,7 +1830,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "qazharr_weather_it": {
       "provenance": "Provisional",
@@ -1867,7 +1868,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "oriel_mirror_veil": {
       "provenance": "Provisional",
@@ -1904,7 +1906,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "mend": {
       "provenance": "Provisional",
@@ -1928,7 +1931,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "vera_dig_in": {
       "provenance": "Provisional",
@@ -1952,7 +1956,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "vera_dig_in_volley": {
       "provenance": "Provisional",
@@ -1976,7 +1981,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "vera_the_last_volley": {
       "provenance": "Provisional",
@@ -2000,7 +2006,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "mimzi_now_you_see_me": {
       "provenance": "Provisional",
@@ -2024,7 +2031,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "patch_play_dead": {
       "provenance": "Provisional",
@@ -2048,7 +2056,8 @@
       "endPayload": [{ "afterSeconds": 1.5, "radius": 350, "status": "patch_fear", "baseSeconds": 0.5, "secondsPerHit": 0.1, "maxSeconds": 1.25, "minHits": 0, "displacement": [] }],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "patch_the_thing_inside": {
       "provenance": "Provisional",
@@ -2072,7 +2081,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "gorraveth_tear_them_apart": {
       "provenance": "Provisional",
@@ -2096,7 +2106,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "raska_countersteer": {
       "provenance": "Provisional",
@@ -2120,7 +2131,8 @@
       "endPayload": [{ "afterSeconds": 0.75, "radius": 350, "status": "raska_countersteer_slow", "baseSeconds": 1, "secondsPerHit": 0, "maxSeconds": 1, "minHits": 1, "displacement": [] }],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "raska_countersteer_redlined": {
       "provenance": "Provisional",
@@ -2144,7 +2156,8 @@
       "endPayload": [{ "afterSeconds": 0.75, "radius": 350, "status": "raska_countersteer_stun", "baseSeconds": 0.75, "secondsPerHit": 0, "maxSeconds": 0.75, "minHits": 1, "displacement": [] }],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "celandrine_open_road": {
       "provenance": "Provisional",
@@ -2168,7 +2181,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [{ "seconds": 6, "impact": { "priority": 1, "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 300, "width": 80 }, "damage": [{ "type": "Physical", "amountByRank": [20, 40, 60], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [] } }],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "aurelisse_windward": {
       "provenance": "Provisional",
@@ -2205,7 +2219,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "CasterOrAlly",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "aurelisse_room_to_breathe": {
       "provenance": "Provisional",
@@ -2242,7 +2257,8 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "CasterOrAlly",
-      "recipientZones": [{ "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }]
+      "recipientZones": [{ "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "marker": []
     },
     "torr_fortify": {
       "provenance": "Provisional",
@@ -2266,7 +2282,8 @@
       "endPayload": [{ "afterSeconds": 3, "radius": 300, "status": "torr_fortify_burst_slow", "baseSeconds": 1.5, "secondsPerHit": 0, "maxSeconds": 1.5, "minHits": 0, "displacement": [] }],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     },
     "torr_overcapacity": {
       "provenance": "Provisional",
@@ -2290,7 +2307,8 @@
       "endPayload": [{ "afterSeconds": 6, "radius": 450, "status": "torr_vent_slow", "baseSeconds": 1, "secondsPerHit": 0, "maxSeconds": 1, "minHits": 0, "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000, "collisionStatuses": [] }] }],
       "attackSecondaryImpact": [],
       "recipient": "Caster",
-      "recipientZones": []
+      "recipientZones": [],
+      "marker": []
     }
   },
   "skillshot": {
@@ -3119,6 +3137,7 @@
       "vehicle": ["raska_hound_no_brakes"]
     }
   },
+  "ambush": {},
   "fluxSpells": {
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]

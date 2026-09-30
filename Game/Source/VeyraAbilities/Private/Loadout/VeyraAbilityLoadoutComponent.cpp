@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Abilities/VeyraAreaAbility.h"
+#include "Abilities/VeyraAmbushAbility.h"
 #include "Abilities/VeyraAttachAbility.h"
 #include "Abilities/VeyraDashAbility.h"
 #include "Abilities/VeyraRideAbility.h"
@@ -69,6 +70,10 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindRide(Ability))
 		{
 			return UVeyraRideAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindAmbush(Ability))
+		{
+			return UVeyraAmbushAbility::StaticClass();
 		}
 		return nullptr;
 	}
