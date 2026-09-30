@@ -180,6 +180,17 @@
         "korruk_shatterfield": "Damage"
       }
     },
+    "aurelisse": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["E", "Q", "W"],
+      "abilities": {
+        "aurelisse_crosswind": "Damage",
+        "aurelisse_rising_current": "Damage",
+        "aurelisse_windward": "Defend",
+        "aurelisse_room_to_breathe": "Defend"
+      }
+    },
     "celandrine": {
       "provenance": "Provisional",
       "build": ["war_boots", "cycler_core", "doombringer_bow", "sovereign_edge", "razorwheel"],

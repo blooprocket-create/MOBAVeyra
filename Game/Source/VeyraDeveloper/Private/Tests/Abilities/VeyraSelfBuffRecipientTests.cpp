@@ -21,6 +21,7 @@ namespace VeyraAbilitiesTests
 		static constexpr double AuraRadius = 250.0;
 		static constexpr double LongSeconds = 60.0;
 		static constexpr double Lethal = 1.0e6;
+		static constexpr double GustDamage = 30.0;
 
 		FActorTestSpawner Spawner;
 		FVeyraAbilitiesTuning Tuning;
@@ -42,6 +43,15 @@ namespace VeyraAbilitiesTests
 			Shield.DurationSeconds = LongSeconds;
 			Windward.Aura.Add(FVeyraAuraTuning{ AuraRadius, LongSeconds, LongSeconds / 2.0, { ArchetypeTestId(TEXT("test_breeze")) } });
 			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_windward")), Windward);
+
+			// A buff whose zone lands on its recipient and hurts the enemies there, as ROOM TO BREATHE's push.
+			FVeyraSelfBuffAbilityTuning Breather;
+			Breather.Cast = InstantCast(CastRange, LongSeconds, 0.0);
+			Breather.Recipient = EVeyraBuffRecipient::CasterOrAlly;
+			FVeyraAreaZoneTuning& Gust = Breather.RecipientZones.AddDefaulted_GetRef();
+			Gust.Shape = CircleOf(AuraRadius);
+			Gust.Effects.Damage.Add(FVeyraDamageTuning{ EVeyraDamageType::TrueDamage, { GustDamage }, 0.0, 0.0 });
+			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_breather")), Breather);
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
 
 			FArchetypeTestWorld World{ Spawner };
@@ -123,6 +133,21 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(CastAt(&Ally) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(World.Has(BesideAlly, TEXT("test_breeze")), TEXT("around the ally")));
 			ASSERT_THAT(IsFalse(World.Has(BesideCaster, TEXT("test_breeze")), TEXT("not around the caster")));
+		}
+
+		TEST_METHOD(ItsZonesLandOnTheAllyItBuffs)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Breather = World.Spawn(EVeyraTeam::A, FVector(0.0, CastRange * 3.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(Breather, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_breather")))));
+			AVeyraVanguardCharacter& Ally = World.Spawn(EVeyraTeam::A, FVector(CastRange / 2.0, CastRange * 3.0, 0.0));
+			AVeyraVanguardCharacter& NearAlly = World.Spawn(EVeyraTeam::B, FVector(CastRange / 2.0 + AuraRadius / 2.0, CastRange * 3.0, 0.0));
+			AVeyraVanguardCharacter& NearCaster = World.Spawn(EVeyraTeam::B, FVector(-AuraRadius / 2.0, CastRange * 3.0, 0.0));
+			FVeyraCastTarget Target;
+			Target.Actor = &Ally;
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Breather.GetAbilitySystemComponent(), EVeyraAbilitySlot::W, Target) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(NearAlly), GustDamage, 1e-3), TEXT("the enemy beside the ally")));
+			ASSERT_THAT(IsTrue(World.HealthLost(NearCaster) == 0.0, TEXT("not the one beside the caster")));
 		}
 
 		TEST_METHOD(ValidationKeepsAnAllysBuffFromTheCastersOwnParts)

@@ -149,6 +149,27 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraSlipstreamTuning>& Entry : Tuning.Slipstream)
+	{
+		RegisterPassive(Entry.Key, TEXT("slipstream"));
+		const FString Pointer = TEXT("/slipstream/") + Entry.Key.ToString();
+		const FVeyraSlipstreamTuning& Slipstream = Entry.Value;
+		if (!(Slipstream.Width > 0.0) || !(Slipstream.MaxLength > 0.0) || !(Slipstream.DurationSeconds > 0.0) || !(Slipstream.PulseSeconds > 0.0)
+			|| Slipstream.PulseSeconds > Slipstream.DurationSeconds)
+		{
+			Problem(Pointer, TEXT("width, maxLength, durationSeconds and pulseSeconds are above 0, and a pulse is no longer than the current lasts"));
+		}
+		// Each status outlasts a pulse, so it holds while one stays inside.
+		for (const FVeyraContentId& Status : Slipstream.Statuses)
+		{
+			const FVeyraStatusTuning* Given = Abilities.Statuses.Find(Status);
+			if (!Given || !(Given->DurationSeconds > Slipstream.PulseSeconds))
+			{
+				Problem(Pointer + TEXT("/statuses"), FString::Printf(TEXT("names status \"%s\", which Abilities.json must define lasting longer than a pulse"), *Status.ToString()));
+			}
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraHauntTuning>& Entry : Tuning.Haunt)
 	{
 		RegisterPassive(Entry.Key, TEXT("haunt"));

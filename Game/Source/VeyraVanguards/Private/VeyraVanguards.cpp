@@ -15,6 +15,7 @@
 #include "Passives/VeyraKitStatusesPassive.h"
 #include "Passives/VeyraMomentumPassive.h"
 #include "Passives/VeyraMovingTargetPassive.h"
+#include "Passives/VeyraSlipstreamPassive.h"
 #include "Passives/VeyraWildDominionPassive.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Shared/VeyraHitChainPassive.h"
@@ -79,6 +80,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindAttackStride(PassiveId))
 	{
 		return UVeyraAttackStridePassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindSlipstream(PassiveId))
+	{
+		return UVeyraSlipstreamPassive::StaticClass();
 	}
 	return nullptr;
 }

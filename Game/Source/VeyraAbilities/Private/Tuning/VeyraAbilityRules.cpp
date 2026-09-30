@@ -305,6 +305,7 @@ namespace
 			{
 				Problem(Pointer + TEXT("/recipient"), TEXT("an ally's buff has a cast range above 0, and no variants, end payload or early end"));
 			}
+			CheckZones(Pointer + TEXT("/recipientZones"), Buff.RecipientZones);
 			for (int32 Index = 0; Index < Buff.AttackSecondaryImpact.Num(); ++Index)
 			{
 				const FString ImpactPointer = FString::Printf(TEXT("%s/attackSecondaryImpact/%d"), *Pointer, Index);

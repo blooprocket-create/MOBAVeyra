@@ -55,7 +55,7 @@ namespace VeyraVanguardsTests
 			// Only Playable Vanguards are released: the backend's catalog lists them, and a Shipping
 			// match server hosts nothing else (ADR-010 §6).
 			for (const TCHAR* Released : { TEXT("cairn"), TEXT("qazharr"), TEXT("oriel"), TEXT("bryn"), TEXT("kade"), TEXT("vera"), TEXT("mimzi"),
-					 TEXT("patch"), TEXT("gorraveth"), TEXT("raska"), TEXT("moro"), TEXT("korruk"), TEXT("mavra"), TEXT("celandrine") })
+					 TEXT("patch"), TEXT("gorraveth"), TEXT("raska"), TEXT("moro"), TEXT("korruk"), TEXT("mavra"), TEXT("celandrine"), TEXT("aurelisse") })
 			{
 				const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(VanguardTestId(Released));
 				ASSERT_THAT(IsTrue(Definition && Definition->Availability == EVeyraVanguardAvailability::Playable, Released));

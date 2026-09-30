@@ -6,6 +6,7 @@
 #include "AbilitySystemGlobals.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Delivery/VeyraAreaDelivery.h"
 #include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/World.h"
 #include "Life/VeyraCombatEventSubsystem.h"
@@ -183,6 +184,18 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 			}
 			VeyraCombat::ApplyStatus(*Caster, *Recipient, Status.GetValue());
 		}
+	}
+	// Its zones land once on its recipient, facing away from the caster, as ROOM TO BREATHE pushes enemies out (ADR-027 §8).
+	const AActor* Around = Recipient->GetAvatarActor();
+	if (!Buff->RecipientZones.IsEmpty() && Around)
+	{
+		const AActor* Body = Caster->GetAvatarActor();
+		FVeyraEffectFrame Frame;
+		Frame.Origin = Around->GetActorLocation();
+		const FVector Away = Body ? (Frame.Origin - Body->GetActorLocation()).GetSafeNormal2D() : FVector::ZeroVector;
+		Frame.Direction = Away.IsNearlyZero() ? Around->GetActorForwardVector().GetSafeNormal2D() : Away;
+		VeyraAreaDelivery::Resolve(*World, *Caster, Frame, VeyraAreaDelivery::PrepareZones(*Caster, Buff->RecipientZones, Cast.Rank),
+			FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
 	}
 	for (const FVeyraShieldTuning& Shield : Buff->Shields)
 	{
@@ -464,8 +477,9 @@ bool UVeyraSelfBuffAbility::IsAuraRunning() const
 	return World && World->GetTimerManager().IsTimerActive(AuraTimer);
 }
 
-bool UVeyraSelfBuffAbility::IsOffensive(const FVeyraContentId& /*Ability*/) const
+bool UVeyraSelfBuffAbility::IsOffensive(const FVeyraContentId& Ability) const
 {
-	// It acts on its caster, or on an ally it names.
-	return false;
+	// It acts on its caster, or on an ally it names, unless its zones hit the enemies around them.
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability);
+	return Buff && !Buff->RecipientZones.IsEmpty();
 }

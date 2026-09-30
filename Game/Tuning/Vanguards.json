@@ -655,6 +655,48 @@
       },
       "abilities": { "q": ["celandrine_doubletime"], "w": ["celandrine_briar_scatter"], "e": ["celandrine_sidebound"], "r": ["celandrine_open_road"] },
       "passive": ["celandrine_never_break_stride"]
+    },
+    "aurelisse": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 36, "capsuleHalfHeight": 92, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 520,
+        "healthRegen": 0.6,
+        "maxResource": 400,
+        "resourceRegen": 4.5,
+        "armor": 22,
+        "magicResist": 30,
+        "physicalPower": 48,
+        "magicPower": 0,
+        "attackSpeed": 0.625,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 84,
+        "healthRegen": 0.1,
+        "maxResource": 50,
+        "resourceRegen": 0.4,
+        "armor": 4,
+        "magicResist": 1.3,
+        "physicalPower": 2.5,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 550,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 1600, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["aurelisse_crosswind"], "w": ["aurelisse_rising_current"], "e": ["aurelisse_windward"], "r": ["aurelisse_room_to_breathe"] },
+      "passive": ["aurelisse_slipstream"]
     }
   },
   "deepFoundation": {
@@ -819,6 +861,16 @@
       "provenance": "Provisional",
       "windupShare": 0.5,
       "hitStatuses": ["celandrine_stride_haste"]
+    }
+  },
+  "slipstream": {
+    "aurelisse_slipstream": {
+      "provenance": "Provisional",
+      "width": 180,
+      "maxLength": 900,
+      "durationSeconds": 2,
+      "pulseSeconds": 0.25,
+      "statuses": ["aurelisse_slipstream_haste"]
     }
   }
 }

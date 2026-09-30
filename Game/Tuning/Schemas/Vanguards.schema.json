@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -419,6 +419,26 @@
                 "lungeSpeed": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
               }
             }
+          }
+        }
+      }
+    },
+    "slipstream": {
+      "description": "Passives that leave a short current from their owner toward each allied Vanguard its ally-targeted buffs name, speeding the allies inside (Aurelisse's Slipstream, Roster Bible §24; ADR-027 §7).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "width", "maxLength", "durationSeconds", "pulseSeconds", "statuses"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "width": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "maxLength": { "description": "The longest current, from the owner toward the ally.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "pulseSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "statuses": { "description": "From Abilities.json's statuses: given the owner and the allied Vanguards inside at each pulse; each outlasts a pulse.", "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
           }
         }
       }

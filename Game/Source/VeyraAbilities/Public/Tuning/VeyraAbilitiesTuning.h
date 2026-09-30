@@ -910,6 +910,13 @@ struct FVeyraSelfBuffAbilityTuning
 	 */
 	UPROPERTY()
 	EVeyraBuffRecipient Recipient = EVeyraBuffRecipient::Caster;
+
+	/**
+	 * Zones that land once on its recipient as it takes the buff, facing away from the caster, and hit
+	 * the enemies there, as ROOM TO BREATHE pushes them out (ADR-027 §8). Innermost first.
+	 */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> RecipientZones;
 };
 
 /** How a projectile flies (Combat Bible §13). */

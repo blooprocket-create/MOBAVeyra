@@ -631,6 +631,40 @@ struct FVeyraAttackStrideTuning
 	TArray<FVeyraContentId> HitStatuses;
 };
 
+/**
+ * Aurelisse's Slipstream (Roster Bible §24; ADR-027 §7): each ally-targeted buff she casts at an allied
+ * Vanguard leaves a short current from her toward that ally, a lingering rectangle whose statuses speed
+ * her and the allied Vanguards inside it. Its data is an entry in Vanguards.json's slipstream map.
+ */
+USTRUCT()
+struct FVeyraSlipstreamTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The current's width; above 0. */
+	UPROPERTY()
+	double Width = 0.0;
+
+	/** The longest current, from her toward the ally; above 0. */
+	UPROPERTY()
+	double MaxLength = 0.0;
+
+	/** How long the current lasts, in seconds; above 0. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+
+	/** Seconds between its gifts of its statuses; above 0, at most its duration. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/** From Abilities.json's statuses: given her and the allied Vanguards inside at each pulse; each outlasts a pulse. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
@@ -680,6 +714,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraAttackStrideTuning> AttackStride;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraSlipstreamTuning> Slipstream;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */
