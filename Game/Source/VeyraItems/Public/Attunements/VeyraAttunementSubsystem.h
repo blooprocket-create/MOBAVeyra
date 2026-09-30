@@ -10,6 +10,7 @@
 class UAbilitySystemComponent;
 struct FVeyraDamageDealtEvent;
 struct FVeyraDeathEvent;
+struct FVeyraMarkedForDoomTuning;
 struct FVeyraSpellShieldBlocked;
 
 /**
@@ -106,6 +107,9 @@ private:
 	void MarkedForDoom(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder, UAbilitySystemComponent& Target,
 		double Now);
 	void SafeHarbor(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder);
+
+	/** Marks Target with the most Doom any holder has on it, from Source, lasting while any Doom does. */
+	void ShowDoom(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraContentId& Attunement, const FVeyraMarkedForDoomTuning& Tuning, double Now);
 
 	/** One holder's Doom on one enemy Vanguard (ADR-025 §7). */
 	struct FDoom

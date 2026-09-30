@@ -73,7 +73,11 @@ A survey of the code (2026-09-30) found:
 - **Checked at impact.** Every site that lands a discrete hostile ability hit on a unit asks `VeyraCombat::BlockAbilityHit(Target, Source)` first:
   - effect delivery, which every area, skillshot, projectile, dash impact, grab and displacement goes through;
   - targeted damage;
-  - tethers.
+  - tethers;
+  - an attach, before it takes hold, so a blocked grab neither holds nor hits (its effects then skip the check);
+  - a buff's end payload, on each enemy it reaches.
+
+  One decision covers each impact: a site that asks before a side effect passes its answer on, rather than asking twice (PR #47 review).
 
   Effects that apply while a unit stays in them, a lingering area's ticks and an aura's statuses, pass through as damage over time does; League's spell shields ignore them too.
 

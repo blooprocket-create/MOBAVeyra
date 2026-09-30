@@ -218,7 +218,7 @@ void UVeyraAttunementSubsystem::MarkedForDoom(const FVeyraContentId& Attunement,
 	{
 		// A Doomed target's next basic attack consumes it for its missing Health after the hit, and adds none (ADR-025 §8.5).
 		Dooms.RemoveAtSwap(static_cast<int32>(Entry - Dooms.GetData()));
-		VeyraCombat::RemoveStatus(Target, Attunement);
+		ShowDoom(Holder, Target, Attunement, Tuning, Now);
 		FVeyraRawDamageEvent Doom;
 		Doom.Components.Add({ EVeyraDamageType::Physical, Tuning.MissingHealthRatio * VeyraCombat::GetMissingHealth(Target) });
 		Doom.Delivery = EVeyraDamageDelivery::Proc;
@@ -234,17 +234,34 @@ void UVeyraAttunementSubsystem::MarkedForDoom(const FVeyraContentId& Attunement,
 	}
 	Entry->Doom += Event.bCritical ? Tuning.DoomPerCrit : Tuning.DoomPerHit;
 	Entry->ExpiresAt = Now + Tuning.ExpirySeconds;
-	// Every machine sees it on the target as a mark of its whole Doom, lapsing with it (ADR-025 §7).
+	ShowDoom(Holder, Target, Attunement, Tuning, Now);
+}
+
+void UVeyraAttunementSubsystem::ShowDoom(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraContentId& Attunement,
+	const FVeyraMarkedForDoomTuning& Tuning, double Now)
+{
+	// Every machine sees one mark on the target for all its holders' Doom: the most any of them has,
+	// lasting while any Doom does, so one holder's hit or payoff never hides another's (ADR-025 §7).
+	double Most = 0.0;
+	double Latest = Now;
+	for (const FDoom& Each : Dooms)
+	{
+		if (Each.Target.Get() == &Target && Each.Attunement == Attunement && Each.ExpiresAt > Now)
+		{
+			Most = FMath::Max(Most, Each.Doom);
+			Latest = FMath::Max(Latest, Each.ExpiresAt);
+		}
+	}
+	VeyraCombat::RemoveStatus(Target, Attunement);
 	FVeyraStatusSpec Mark;
 	Mark.Id = Attunement;
 	Mark.Kind = EVeyraStatusKind::Counter;
 	Mark.Stacking = EVeyraStackingPolicy::Stacking;
 	Mark.MaxStacks = FMath::Max(1, FMath::CeilToInt32(Tuning.DoomedAt));
-	Mark.DurationSeconds = Tuning.ExpirySeconds;
-	VeyraCombat::RemoveStatus(Target, Attunement);
-	for (int32 Stack = 0; Stack < FMath::Min(FMath::FloorToInt32(Entry->Doom), Mark.MaxStacks); ++Stack)
+	Mark.DurationSeconds = Latest - Now;
+	for (int32 Stack = 0; Stack < FMath::Min(FMath::FloorToInt32(Most), Mark.MaxStacks); ++Stack)
 	{
-		VeyraCombat::ApplyStatus(Holder, Target, Mark);
+		VeyraCombat::ApplyStatus(Source, Target, Mark);
 	}
 }
 
@@ -345,9 +362,9 @@ void UVeyraAttunementSubsystem::UpdateHeld()
 	}
 	const FVeyraItemsTuning& Tuning = UVeyraItemsTuningSubsystem::Get();
 	const double Now = World->GetTimeSeconds();
-	// Each call pays for the tick to come, and the amplification outlasts it until the next call renews it.
+	// Each call pays for the tick to come; what it keeps on a holder lasts its tuned heldSeconds, which
+	// outlast a tick, until the next call renews it.
 	const double TickSeconds = UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds;
-	constexpr double StatusTicks = 2.0;
 	TArray<APlayerState*, TInlineAllocator<10>> Participants;
 	for (TActorIterator<APlayerState> It(World); It; ++It)
 	{
@@ -407,7 +424,7 @@ void UVeyraAttunementSubsystem::UpdateHeld()
 				Amplified.Id = Entry.Key;
 				Amplified.Kind = EVeyraStatusKind::HealthRegeneration;
 				Amplified.Magnitude = Residual.RegenerationAmplification - 1.0;
-				Amplified.DurationSeconds = TickSeconds * StatusTicks;
+				Amplified.DurationSeconds = Residual.HeldSeconds;
 				VeyraCombat::ApplyStatus(*Holder, *Holder, Amplified);
 			}
 			else
@@ -438,7 +455,7 @@ void UVeyraAttunementSubsystem::UpdateHeld()
 				Amplified.Id = Entry.Key;
 				Amplified.Kind = EVeyraStatusKind::HealthRegeneration;
 				Amplified.Magnitude = Tide.RegenerationAmplification - 1.0;
-				Amplified.DurationSeconds = TickSeconds * StatusTicks;
+				Amplified.DurationSeconds = Tide.HeldSeconds;
 				VeyraCombat::ApplyStatus(*Holder, *Holder, Amplified);
 				ActiveTide = &Tide;
 				ActiveTideId = Entry.Key;
@@ -482,7 +499,7 @@ void UVeyraAttunementSubsystem::UpdateHeld()
 				FVeyraStatusSpec Shield;
 				Shield.Id = Chime;
 				Shield.Kind = EVeyraStatusKind::SpellShield;
-				Shield.DurationSeconds = TickSeconds * StatusTicks;
+				Shield.DurationSeconds = Tuning.QuietingChime.FindChecked(Chime).HeldSeconds;
 				VeyraCombat::ApplyStatus(*Holder, *Holder, Shield);
 			}
 		}

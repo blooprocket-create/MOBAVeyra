@@ -330,13 +330,13 @@
     "tempered_by_conflict": { "provenance": "Provisional", "radius": 700, "chargeSeconds": 3, "checkSeconds": 0.25, "baseDamage": 50, "maxHealthFraction": 0.08, "healthGainFraction": 0.1, "cooldownSeconds": 30 }
   },
   "residualCurrent": {
-    "residual_current": { "provenance": "Provisional", "currentPerLastHit": 1, "currentCap": 30, "quietSeconds": 5, "currentPerSecond": 1, "regenerationAmplification": 3 }
+    "residual_current": { "provenance": "Provisional", "currentPerLastHit": 1, "currentCap": 30, "quietSeconds": 5, "currentPerSecond": 1, "regenerationAmplification": 3, "heldSeconds": 1 }
   },
   "dragTheTempo": {
     "drag_the_tempo": { "provenance": "Provisional", "attackSpeedReduction": 0.15, "seconds": 3 }
   },
   "quietingChime": {
-    "quieting_chime": { "provenance": "Provisional", "reformSeconds": 40 }
+    "quieting_chime": { "provenance": "Provisional", "reformSeconds": 40, "heldSeconds": 1 }
   },
   "markedForDoom": {
     "marked_for_doom": { "provenance": "Provisional", "doomPerHit": 1, "doomPerCrit": 2, "doomedAt": 3, "expirySeconds": 5, "missingHealthRatio": 0.12 }
@@ -345,6 +345,6 @@
     "safe_harbor": { "provenance": "Provisional", "reserveFraction": 0.15, "capMaxHealthFraction": 0.15, "conversionMaxHealthFractionPerSecond": 0.02 }
   },
   "highTide": {
-    "high_tide": { "provenance": "Provisional", "currentPerLastHit": 1, "currentCap": 40, "currentPerSecond": 1, "regenerationAmplification": 3, "reserveConversionAcceleration": 1, "overflowToTemporaryHealth": 0.5, "temporaryHealthCapMaxHealthFraction": 0.1, "temporaryHealthSeconds": 10 }
+    "high_tide": { "provenance": "Provisional", "currentPerLastHit": 1, "currentCap": 40, "currentPerSecond": 1, "regenerationAmplification": 3, "reserveConversionAcceleration": 1, "overflowToTemporaryHealth": 0.5, "temporaryHealthCapMaxHealthFraction": 0.1, "temporaryHealthSeconds": 10, "heldSeconds": 1 }
   }
 }

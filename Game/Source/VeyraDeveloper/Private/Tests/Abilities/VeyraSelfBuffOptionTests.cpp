@@ -134,6 +134,24 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Fear != nullptr && FMath::IsNearlyEqual(Fear->EndsAt - Fear->StartedAt, MostSeconds, Tolerance)));
 		}
 
+		TEST_METHOD(ASpellShieldBlocksAnEndPayload)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Shielded = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			AVeyraVanguardCharacter& Open = World.Spawn(EVeyraTeam::B, FVector(0.0, Near, 0.0));
+			FVeyraStatusSpec Ward;
+			Ward.Id = ArchetypeTestId(TEXT("test_ward"));
+			Ward.Kind = EVeyraStatusKind::SpellShield;
+			Ward.DurationSeconds = LongSeconds;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Shielded.GetAbilitySystemComponent(), *Shielded.GetAbilitySystemComponent(), Ward)));
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_play_dead")))));
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, FVector::ZeroVector) == EVeyraCastRejection::None));
+			AdvanceWorld(PayloadAfter + WorldStep);
+			ASSERT_THAT(IsTrue(Find(Shielded, TEXT("test_fear")) == nullptr && Find(Shielded, TEXT("test_ward")) == nullptr,
+				TEXT("the payload is a hit a Spell Shield blocks, and spends it (ADR-025 §4)")));
+			ASSERT_THAT(IsTrue(Find(Open, TEXT("test_fear")) != nullptr));
+		}
+
 		TEST_METHOD(TemporaryHealthIsItsAmountAndAShareOfMaxHealth)
 		{
 			FArchetypeTestWorld World{ Spawner };
