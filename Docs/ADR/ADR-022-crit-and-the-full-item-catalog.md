@@ -38,8 +38,8 @@ The author has since supplied icons for all 37, and three of the ten Vanguards a
   - The multiplier is `damage + DamageBonus + max(0, Chance − chanceCap) × overflowDamagePerChance`.
   - For example, 120% Crit Chance gives certain crits at 185%, and 200% gives 225%, as §5's examples do.
 - **What crits.** Only basic attacks, rolled once when the attack is planned, on the server. Clients never roll.
-  - The crit multiplies the attack's base damage only. On-hit riders and empowerments keep their own values (§5: "On-Hit effects are not automatically multiplied by Crit Damage"; §17).
-  - Crits apply to every target the attack can damage, structures included.
+  - A crit adds a bonus rider to the attack: the base damage × (multiplier − 1). On-hit riders and empowerments keep their own values (§5: "On-Hit effects are not automatically multiplied by Crit Damage"; §17).
+  - Crits apply to every target the attack can damage. A structure takes the bonus at Structure Effectiveness, as §33 lists the crit bonus among the riders.
   - `FVeyraAttackPlan` and `FVeyraAttackEvent` carry `bCritical`, which items read.
 - **The roll** comes from a per-match `FRandomStream` that Combat's event subsystem owns. It is seeded when the world begins play, and tests may set the seed. A roll is a uniform draw in [0, 1).
 
@@ -136,7 +136,7 @@ The rule that a build never lists an item another consumes still holds.
 ### 9. League answers where canon is silent (for the author to overturn)
 
 1. **Crit randomness:** a plain roll per attack from a per-match server stream. League's pseudo-random distribution, which evens out streaks, stays open.
-2. **Crit and structures:** crits apply to towers and the Prime Well, as League's do.
+2. **Crit and structures:** crits apply to towers and the Prime Well, as League's do, with their bonus at Structure Effectiveness (Combat §33, canon).
 3. **Arcane Boots' amplification** is a percentage of Magic Power, the model Item §5 leaves open. League's Sorcerer's Shoes give flat Magic Penetration instead. The percentage keeps the bible's words; playtest decides.
 4. **Flux Flask** as League's Refillable Potion: 2 charges, refilled at the fountain (respawn included) and, per canon, by a secured Flux Well.
 5. **Tempered by Conflict** as League's Heartsteel: proximity for 3 s, a charged hit, permanent Max Health lost on selling, 30 s per enemy.

@@ -169,6 +169,28 @@ struct FVeyraStructureCombatTuning
 	double Effectiveness = 0.0;
 };
 
+/** Critical strikes (Combat Bible §5; ADR-022 §1). */
+USTRUCT()
+struct FVeyraCritTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** What a crit multiplies the attack's base damage by before bonuses: Normal Crit Damage. */
+	UPROPERTY()
+	double Damage = 0.0;
+
+	/** The most effective Crit Chance, as a fraction. */
+	UPROPERTY()
+	double ChanceCap = 0.0;
+
+	/** The Crit Damage each 1 of Crit Chance above the cap adds. */
+	UPROPERTY()
+	double OverflowDamagePerChance = 0.0;
+};
+
 /** Attack Speed limits and overflow (Combat Bible §22, §39). */
 USTRUCT()
 struct FVeyraAttackSpeedTuning
@@ -237,7 +259,7 @@ struct FVeyraCombatTuning
 	GENERATED_BODY()
 
 	/** The Combat.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 5;
+	static constexpr int32 SchemaVersion = 6;
 
 	UPROPERTY()
 	FVeyraResistanceTuning Resistance;
@@ -271,6 +293,9 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraAttackSpeedTuning AttackSpeed;
+
+	UPROPERTY()
+	FVeyraCritTuning Crit;
 
 	UPROPERTY()
 	FVeyraPursuitTuning Pursuit;

@@ -40,6 +40,8 @@ namespace
 			{ UVeyraOffenceSet::GetMagicPowerAttribute(), EVeyraModifierRule::Stat },
 			{ UVeyraOffenceSet::GetAttackSpeedAttribute(), EVeyraModifierRule::Stat },
 			{ UVeyraOffenceSet::GetAbilityHasteAttribute(), EVeyraModifierRule::Stat },
+			{ UVeyraOffenceSet::GetCritChanceAttribute(), EVeyraModifierRule::Flat },
+			{ UVeyraOffenceSet::GetCritDamageBonusAttribute(), EVeyraModifierRule::Flat },
 			{ UVeyraDefenceSet::GetArmorAttribute(), EVeyraModifierRule::Stat },
 			{ UVeyraDefenceSet::GetMagicResistAttribute(), EVeyraModifierRule::Stat },
 			{ UVeyraDefenceSet::GetArmorReductionFlatAttribute(), EVeyraModifierRule::Flat },

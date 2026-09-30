@@ -29,6 +29,8 @@ public:
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, MagicPower)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, AttackSpeed)
 	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, AbilityHaste)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, CritChance)
+	ATTRIBUTE_ACCESSORS_BASIC(UVeyraOffenceSet, CritDamageBonus)
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PreAttributeBaseChange(const FGameplayAttribute& Attribute, float& NewValue) const override;
@@ -60,6 +62,12 @@ protected:
 
 	UFUNCTION()
 	void OnRep_AbilityHaste(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_CritChance(const FGameplayAttributeData& OldValue);
+
+	UFUNCTION()
+	void OnRep_CritDamageBonus(const FGameplayAttributeData& OldValue);
 
 private:
 	/** Generic Damage Amplification (§15): the product of every source's 1 + x. */
@@ -103,4 +111,15 @@ private:
 	 */
 	UPROPERTY(ReplicatedUsing = OnRep_AbilityHaste)
 	FGameplayAttributeData AbilityHaste;
+
+	/**
+	 * The chance, as a fraction, that a basic attack crits (Combat Bible §5); what lies above the cap
+	 * becomes Crit Damage (VeyraCrit). Items add it.
+	 */
+	UPROPERTY(ReplicatedUsing = OnRep_CritChance)
+	FGameplayAttributeData CritChance;
+
+	/** Added to Combat.json's crit damage, as a fraction of the attack's damage (ADR-022 §1). */
+	UPROPERTY(ReplicatedUsing = OnRep_CritDamageBonus)
+	FGameplayAttributeData CritDamageBonus;
 };

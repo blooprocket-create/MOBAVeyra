@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Attacks/VeyraBasicAttackComponent.h"
+#include "Attributes/VeyraOffenceSet.h"
 #include "CombatState/VeyraCombatStateComponent.h"
 #include "CQTest.h"
 #include "VeyraVisionSubsystem.h"
@@ -270,6 +271,49 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Spire), BaseDamage() + BonusDamage * Effectiveness, Tolerance),
 				FString::Printf(TEXT("lost %g"), World.HealthLost(Spire))));
 			ASSERT_THAT(IsFalse(World.Has(Spire, TEXT("test_slow")), TEXT("the empowerment's slow does not affect a structure")));
+		}
+
+		TEST_METHOD(ACertainCritMultipliesTheBaseDamageButNotTheRiders)
+		{
+			// Full Crit Chance crits on every roll in [0, 1) (Combat Bible §5).
+			Attacker->GetAbilitySystemComponent()->SetNumericAttributeBase(UVeyraOffenceSet::GetCritChanceAttribute(), 1.0f);
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(*Attacker, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_heavy")))));
+			ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Attacker->GetAbilitySystemComponent(), EVeyraAbilitySlot::W, FVeyraCastTarget()) == EVeyraCastRejection::None));
+			bool bCritical = false;
+			Attacks->OnHit.AddLambda([&bCritical](const FVeyraAttackEvent& Event) { bCritical = Event.bCritical; });
+
+			ASSERT_THAT(IsTrue(AttackNow(Enemy) == EVeyraAttackRejection::None));
+			// The empowerment's bonus damage is a rider (§17): it does not crit.
+			const double CritDamage = UVeyraCombatTuningSubsystem::Get().Crit.Damage;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Enemy), BaseDamage() * CritDamage + BonusDamage, Tolerance),
+				FString::Printf(TEXT("lost %g"), World.HealthLost(Enemy))));
+			ASSERT_THAT(IsTrue(bCritical, TEXT("the hit says it crit")));
+		}
+
+		TEST_METHOD(AStructureTakesACritsBonusAtStructureEffectiveness)
+		{
+			Attacker->GetAbilitySystemComponent()->SetNumericAttributeBase(UVeyraOffenceSet::GetCritChanceAttribute(), 1.0f);
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraTestStructure& Spire = World.SpawnStructure(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(AttackNow(Spire) == EVeyraAttackRejection::None));
+			// The crit bonus is a rider, which a structure takes at Structure Effectiveness (§33).
+			const double Bonus = BaseDamage() * (UVeyraCombatTuningSubsystem::Get().Crit.Damage - 1.0);
+			const double Effectiveness = UVeyraCombatTuningSubsystem::Get().Structures.Effectiveness;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Spire), BaseDamage() + Bonus * Effectiveness, Tolerance),
+				FString::Printf(TEXT("lost %g"), World.HealthLost(Spire))));
+		}
+
+		TEST_METHOD(WithoutCritChanceNothingCrits)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(100.0, 0.0, 0.0));
+			bool bCritical = true;
+			Attacks->OnAttack.AddLambda([&bCritical](const FVeyraAttackEvent& Event) { bCritical = Event.bCritical; });
+			ASSERT_THAT(IsTrue(AttackNow(Enemy) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsFalse(bCritical));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Enemy), BaseDamage(), Tolerance)));
 		}
 
 		TEST_METHOD(ACleavingAttackHitsOtherEnemiesForPartOfItsDamage)

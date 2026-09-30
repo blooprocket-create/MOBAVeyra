@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 5,
+  "schemaVersion": 6,
   "resistance": {
     "mitigationConstant": 100
   },
@@ -41,6 +41,12 @@
   "structures": {
     "provenance": "Canon",
     "effectiveness": 0.5
+  },
+  "crit": {
+    "provenance": "Canon",
+    "damage": 1.75,
+    "chanceCap": 1.0,
+    "overflowDamagePerChance": 0.5
   },
   "attackSpeed": {
     "provenance": "Canon",
