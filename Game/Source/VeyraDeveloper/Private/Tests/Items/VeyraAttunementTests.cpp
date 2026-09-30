@@ -144,9 +144,13 @@ namespace VeyraItemsTests
 			Hold(TEXT("test_drag"));
 
 			Hit(EVeyraDamageType::Physical, Blow, EVeyraDamageDelivery::BasicAttack);
-			ASSERT_THAT(IsTrue(EnemyStatuses().GetStrongestSlow() == 0.0, TEXT("a basic attack does not")));
+			Hit(EVeyraDamageType::Magic, Blow, EVeyraDamageDelivery::Proc);
+			ASSERT_THAT(IsTrue(EnemyStatuses().GetStrongestSlow() == 0.0, TEXT("a basic attack or a proc does not")));
+			Hit(EVeyraDamageType::Magic, Blow, EVeyraDamageDelivery::Periodic);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(EnemyStatuses().GetStrongestSlow(), Slow), TEXT("an ability's damage over time does")));
+			VeyraCombat::RemoveStatus(*Enemy, ItemId(TEXT("test_drag")));
 			Hit(EVeyraDamageType::Magic, Blow, EVeyraDamageDelivery::Ability);
-			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(EnemyStatuses().GetStrongestSlow(), Slow)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(EnemyStatuses().GetStrongestSlow(), Slow), TEXT("and so does its hit")));
 		}
 
 		TEST_METHOD(ConvergencePrimesAndTheNextAbilityHitConsumesIt)

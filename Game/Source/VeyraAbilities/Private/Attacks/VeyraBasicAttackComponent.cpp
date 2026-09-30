@@ -5,7 +5,6 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attacks/VeyraCrit.h"
-#include "Attacks/VeyraCombatRollSubsystem.h"
 #include "Attributes/VeyraOffenceSet.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "CombatState/VeyraCombatStateComponent.h"
@@ -318,12 +317,11 @@ FVeyraAttackPlan UVeyraBasicAttackComponent::BuildPlan(UAbilitySystemComponent& 
 	Plan.Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
 	Plan.BaseDamage = Plan.Damage.Components;
 
-	// A basic attack may crit, rolled once here on the server (Combat Bible §5; ADR-022 §1). Its bonus is a
-	// rider on the base damage, so an empowerment's and a modifier's riders never inherit it (§17) and a
-	// structure takes it at Structure Effectiveness (§33).
-	const FVeyraCritOutcome Crit = VeyraCrit::Resolve(Attacker.GetNumericAttribute(UVeyraOffenceSet::GetCritChanceAttribute()),
-		Attacker.GetNumericAttribute(UVeyraOffenceSet::GetCritDamageBonusAttribute()), UVeyraCombatTuningSubsystem::Get().Crit,
-		UVeyraCombatRollSubsystem::Roll(GetWorld()));
+	// A basic attack may crit, drawn once here on the server from the attacker's basic-attack bag (Combat
+	// Bible §5; ADR-022 §1, §10). Its bonus is a rider on the base damage, so an empowerment's and a
+	// modifier's riders never inherit it (§17) and a structure takes it at Structure Effectiveness (§33).
+	const FVeyraCritOutcome Crit = VeyraCrit::Check(GetWorld(), Attacker, VeyraCrit::BasicAttackChannel(),
+		Attacker.GetNumericAttribute(UVeyraOffenceSet::GetCritChanceAttribute()), Attacker.GetNumericAttribute(UVeyraOffenceSet::GetCritDamageBonusAttribute()));
 	if (Crit.bCritical)
 	{
 		Plan.bCritical = true;

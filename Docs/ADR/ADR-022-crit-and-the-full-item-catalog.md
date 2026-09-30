@@ -37,11 +37,11 @@ The author has since supplied icons for all 37, and three of the ten Vanguards a
   - The effective chance is `min(Chance, chanceCap)`, and the attack crits when `Roll < effective chance`.
   - The multiplier is `damage + DamageBonus + max(0, Chance − chanceCap) × overflowDamagePerChance`.
   - For example, 120% Crit Chance gives certain crits at 185%, and 200% gives 225%, as §5's examples do.
-- **What crits.** Only basic attacks, rolled once when the attack is planned, on the server. Clients never roll.
+- **What crits.** Basic attacks, each drawn once when the attack is planned, on the server; clients never draw. Any other crit-capable action draws on a channel of its own (§10).
   - A crit adds a bonus rider to the attack: the base damage × (multiplier − 1). On-hit riders and empowerments keep their own values (§5: "On-Hit effects are not automatically multiplied by Crit Damage"; §17).
   - Crits apply to every target the attack can damage. A structure takes the bonus at Structure Effectiveness, as §33 lists the crit bonus among the riders.
   - `FVeyraAttackPlan` and `FVeyraAttackEvent` carry `bCritical`, which items read.
-- **The roll** comes from a per-match `FRandomStream` that Combat's event subsystem owns. It is seeded when the world begins play, and tests may set the seed. A roll is a uniform draw in [0, 1).
+- **The roll** is a value in [0, 1) drawn from the attacker's crit bag (§10), not an independent roll. The bags are seeded from a per-match `FRandomStream`, seeded when the world begins play; tests may set the seed.
 
 ### 2. Stats items may grant
 
@@ -63,7 +63,7 @@ Every value below is Provisional data in `Items.json` and its Attunement maps; �
   - Attunement **Reprisal Guard** (`reprisalGuard`): a basic attack or ability that damages an enemy Vanguard grants a shield of a fraction of the damage it dealt (Item §8: "the triggering attack or ability"; a proc or a tick does not trigger it). The fraction is taken after mitigation, and damage a shield absorbed counts.
   - A cap bounds the shield, which lasts `shieldSeconds`. The Attunement then cools down.
 - **Gravitic Seal (T3):** Spellguard Plate + Catalyst Coil.
-  - Attunement **Drag** (`drag`): ability damage to an enemy Vanguard slows it by a fraction for a short time, as a Slow status with the Attunement's ID.
+  - Attunement **Drag** (`drag`): ability damage to an enemy Vanguard, its damage over time included (§9), slows it by a fraction for a short time, as a Slow status with the Attunement's ID.
 - **Starfall Prism (T3):** Grand Prism + Catalyst Coil + Arc Crystal.
   - Attunement **Convergence** (`convergence`): ability damage to an enemy Vanguard primes it for a window.
   - The next ability damage from the holder within the window consumes the prime, dealing bonus magic damage (flat + a Magic Power ratio) as Proc delivery, which neither primes nor consumes.
@@ -135,7 +135,7 @@ The rule that a build never lists an item another consumes still holds.
 
 ### 9. League answers where canon is silent (for the author to overturn)
 
-1. **Crit randomness:** a plain roll per attack from a per-match server stream. League's pseudo-random distribution, which evens out streaks, stays open.
+1. **Crit randomness:** decided by the author (2026-09-30): crits are drawn from bags, one per source of chance (§10). This had been a plain roll per attack, with League's pseudo-random distribution left open.
 2. **Crit and structures:** crits apply to towers and the Prime Well, as League's do, with their bonus at Structure Effectiveness (Combat §33, canon).
 3. **Arcane Boots' amplification** is a percentage of Magic Power, the model Item §5 leaves open. League's Sorcerer's Shoes give flat Magic Penetration instead. The percentage keeps the bible's words; playtest decides.
 4. **Flux Flask** as League's Refillable Potion: 2 charges, refilled at the fountain (respawn included) and, per canon, by a secured Flux Well.
@@ -147,10 +147,25 @@ The rule that a build never lists an item another consumes still holds.
 10. **Drag** as League's Rylai's Crystal Scepter: every damaging ability slows, damage over time and areas included.
 11. **Convergence** is primed and consumed only by direct ability damage, never by damage over time or Proc.
 
+### 10. Crit outcome bags (author ruling, 2026-09-30)
+
+The author ruled that crits use a bag-based pseudo-random system, not independent rolls. Each crit source keeps its own bag, sized to its own chance, and the system is reusable rather than specific to basic attacks. The aim: crits stay unpredictable in *when* they land, but each bag cycle gives close to the expected share, without long lucky or unlucky streaks.
+
+- **The bag** (`FVeyraOutcomeBag`, VeyraCombat `Random/`). A bag holds `draws` values, one uniform value from each equal slice of [0, 1), in shuffled order. A check takes the next value and succeeds when it is below the check's chance at that moment; an empty bag refills and reshuffles.
+  - A constant chance p succeeds `floor(p × draws)` or `ceil(p × draws)` times per bag, and exactly `p × draws` on average. At 70% with ten draws, every bag holds exactly seven crits in random places: the literal "7 Crit and 3 Normal" bag.
+  - Arbitrary chances (27%, 33.5%) need no rounding. Each value is uniform on its own, so a chance that changes between draws (buffs, debuffs, items) is honoured with no bias and no rebuilt bag. 0 never succeeds and 1 always does.
+  - Streaks are bounded. At 25% with bags of four, there are never more than six misses in a row.
+- **Size.** `Combat.json` `critBag.draws`, 10, Provisional. Smaller is steadier; 1 is an ordinary independent roll.
+- **Channels.** `UVeyraCombatRollSubsystem` keeps one bag per unit and channel. Each bag gets its own stream, seeded from the match stream when the bag is first used, so one channel's draws never change another's sequence.
+  - A unit's basic attacks share the `basic_attack` channel.
+  - Any other crit-capable action names its own channel and the chance that governs it: `VeyraCrit::Check(World, Unit, Channel, Chance, DamageBonus)`.
+  - A chance of 0 draws nothing, so units that cannot crit, such as Fluxborn, keep no bag. The bags of units that are gone are dropped when a new bag is made.
+- **Why values, not tokens.** A bag of literal Crit and Normal tokens fixes its chance when it is filled, so it cannot honour a chance that changes mid-bag, or one that is not a whole share of the bag, without rebuilding and bias. Stratified values are the same bag for a fixed whole share, and stay exact otherwise.
+
 ## Consequences
 
 - The Item Bible's catalog is complete (37 items), and marksmen have their crit identity.
-- **One random source in combat.** A replay reproduces crits only with the stream's seed, which the match records in its log line.
+- **One random source in combat.** Every bag is seeded from the match stream, so a replay reproduces crits with the stream's seed (which the match records in its log line) and the same order of first use.
 - `Items.json` grows two stats on every item, a `charges` field for the Flask, and six Attunement maps. `check_tuning.py` and the items rules learn the new maps.
 - The dealt-damage event gives later on-damage effects (Lifesteal, Omnivamp, healing reduction) the hook they need.
 
@@ -162,7 +177,7 @@ The rule that a build never lists an item another consumes still holds.
 
 ## Open items
 
-- A pseudo-random distribution for crits (League's).
+- Ability crits: the first ability that crits declares its channel and chance in its data (§10 gives the call).
 - Lifesteal, Omnivamp and healing reduction items: the Item Bible's §12 families.
 - Armor and Magic Resist items (§12).
 - Damage numbers and a crit statistic on the scoreboard.

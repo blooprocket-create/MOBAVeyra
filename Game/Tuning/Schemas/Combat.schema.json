@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Combat domain (Combat Bible). VeyraCombat binds it to FVeyraCombatTuning.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution", "killCredit", "structures", "crit", "attackSpeed", "pursuit", "tethers"],
+  "required": ["schemaVersion", "resistance", "targeting", "regeneration", "movement", "forcedMovement", "crowdControl", "combatState", "attribution", "killCredit", "structures", "crit", "critBag", "attackSpeed", "pursuit", "tethers"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
@@ -241,6 +241,24 @@
           "description": "The Crit Damage each 1 of Crit Chance above the cap adds.",
           "type": "number",
           "minimum": 0
+        }
+      }
+    },
+    "critBag": {
+      "description": "Crits are drawn, not rolled (ADR-022 §10): each unit's crit channel, such as its basic attacks, draws from a shuffled bag holding one value from each equal slice of [0, 1), and crits when the value is below its Crit Chance at that moment.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["provenance", "draws"],
+      "properties": {
+        "provenance": {
+          "description": "Where these values come from (ADR-008 §7).",
+          "type": "string",
+          "enum": ["Provisional", "Canon", "Reviewed"]
+        },
+        "draws": {
+          "description": "How many draws one bag holds before it refills: smaller is steadier, and 1 is an ordinary independent roll.",
+          "type": "integer",
+          "minimum": 1
         }
       }
     },

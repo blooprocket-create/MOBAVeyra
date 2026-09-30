@@ -2,6 +2,7 @@
 
 #include "Attacks/VeyraCombatRollSubsystem.h"
 
+#include "AbilitySystemComponent.h"
 #include "Engine/World.h"
 #include "VeyraCombatLog.h"
 
@@ -15,13 +16,32 @@ void UVeyraCombatRollSubsystem::OnWorldBeginPlay(UWorld& InWorld)
 	}
 }
 
-double UVeyraCombatRollSubsystem::Roll(const UWorld* World)
+double UVeyraCombatRollSubsystem::Draw(const UWorld* World, const UAbilitySystemComponent& Unit, const FVeyraContentId& Channel, int32 Draws)
 {
 	UVeyraCombatRollSubsystem* Rolls = World ? World->GetSubsystem<UVeyraCombatRollSubsystem>() : nullptr;
-	return Rolls ? static_cast<double>(Rolls->Stream.GetFraction()) : static_cast<double>(FMath::FRand());
+	if (!Rolls)
+	{
+		return static_cast<double>(FMath::FRand());
+	}
+	const TPair<FObjectKey, FVeyraContentId> Key(FObjectKey(&Unit), Channel);
+	FVeyraOutcomeBag* Bag = Rolls->Bags.Find(Key);
+	if (!Bag)
+	{
+		// A new bag is a moment to let go of the bags of units that are gone.
+		for (auto It = Rolls->Bags.CreateIterator(); It; ++It)
+		{
+			if (!It.Key().Key.ResolveObjectPtr())
+			{
+				It.RemoveCurrent();
+			}
+		}
+		Bag = &Rolls->Bags.Emplace(Key, FVeyraOutcomeBag(static_cast<int32>(Rolls->Stream.GetUnsignedInt())));
+	}
+	return Bag->Next(Draws);
 }
 
 void UVeyraCombatRollSubsystem::SetSeed(int32 Seed)
 {
 	Stream.Initialize(Seed);
+	Bags.Reset();
 }

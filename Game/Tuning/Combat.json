@@ -48,6 +48,10 @@
     "chanceCap": 1.0,
     "overflowDamagePerChance": 0.5
   },
+  "critBag": {
+    "provenance": "Provisional",
+    "draws": 10
+  },
   "attackSpeed": {
     "provenance": "Canon",
     "cap": 2.5,

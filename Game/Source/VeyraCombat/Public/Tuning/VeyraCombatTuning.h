@@ -191,6 +191,20 @@ struct FVeyraCritTuning
 	double OverflowDamagePerChance = 0.0;
 };
 
+/** An outcome bag's size (ADR-022 §10): how many draws one shuffled bag holds before it refills. */
+USTRUCT()
+struct FVeyraOutcomeBagTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Smaller is steadier; 1 is an ordinary independent roll. */
+	UPROPERTY()
+	int32 Draws = 0;
+};
+
 /** Attack Speed limits and overflow (Combat Bible §22, §39). */
 USTRUCT()
 struct FVeyraAttackSpeedTuning
@@ -296,6 +310,10 @@ struct FVeyraCombatTuning
 
 	UPROPERTY()
 	FVeyraCritTuning Crit;
+
+	/** The bag every crit channel draws from (ADR-022 §10). */
+	UPROPERTY()
+	FVeyraOutcomeBagTuning CritBag;
 
 	UPROPERTY()
 	FVeyraPursuitTuning Pursuit;
