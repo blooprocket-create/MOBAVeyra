@@ -108,6 +108,18 @@ The exact Magic Power amplification model remains open until playtesting; it is 
 
 Picket Plating takes its name from the heavy defensive construction associated with Eudora Blackbridge's Picket machine and the Iron March engineering tradition around it. It is a general defensive Assembly, not equipment exclusive to Eudora.
 
+### Canyonward
+**Recipe:** Vital Plate + Shatterdeep Crystal + recipe  
+**Stats:** Health + Magic Resistance.
+
+Canyonward takes its name from protective gear and traditions associated with Shatterdeep's dangerous canyon crossings. It is a general anti-magic defensive Assembly, not equipment exclusive to Aurelisse or any one Vanguard.
+
+### Breaker Aegis
+**Recipe:** Marchplate + Shatterdeep Crystal + Timing Coil + recipe  
+**Stats:** Armor + Magic Resistance + Ability Haste.
+
+Breaker Aegis draws its name from the Breaker Fluxborn tradition associated with Torr's origin. Its identity is mixed defense plus faster ability cycling; it has no Active or Attunement.
+
 ### Siege Frame
 **Recipe:** Vital Plate + Timing Coil + recipe  
 **Stats:** Health + Ability Haste.
