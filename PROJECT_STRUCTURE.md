@@ -307,6 +307,13 @@ Non-shipping or development-facing utilities.
 
 Developer tooling may depend on production systems. Production systems must never require developer tooling.
 
+The debug commands are the `Veyra.Dev.*` console commands in `DevCommands/`, one catalog of them; `Veyra.Dev.Help` lists it, and a test checks that no `Veyra.Dev.*` command lives anywhere else.
+
+- A **server command** is typed on a player's machine and runs on the server for that player's own participant. It travels through `AVeyraPlayerController::RequestDeveloperCommand`, and the reply prints in the player's console.
+- The match knows only `VeyraDeveloperCommandRoute`, the handler this module installs at startup, so no production module depends on this one.
+- Shipping servers refuse every command, and Shipping builds leave this module out.
+- Each command acts through its owner's verbs, never by writing that owner's state: Developer Gold through Economy, damage through Combat's pipeline, items through the shop's rules. Amounts come from the typed arguments or the tuning.
+
 Its scripted players drive the game from the command line for `Game/Scripts/Smoke.ps1`: one plays a match's script, one plays a Vanguard's whole kit, and since M6 one plays the play flow by clicking the same shell and menu buttons a player would. It plays practice alone (`-Flow Practice`), and a matchmade 1v1 in two games at once (`-Flow Casual`, `-Flow CasualDecline`). The same scripted player is also a sparring partner for a person playing the matchmade path (`Game/Scripts/Play.ps1 -Opponent`).
 
 ## 2. Dependency direction
