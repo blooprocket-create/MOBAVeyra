@@ -31,6 +31,20 @@ Items do **not** auto-combine. Owning the components is not enough; the player m
 
 Tier 3 recipes are not locked to one formula. A Masterwork can reasonably use two Tier 2s, three Tier 2s, Tier 2s plus Tier 1 components, or another logical combination.
 
+## 2.5 Quest Items
+
+Quest Items are purchased normally but evolve through match-specific gameplay objectives rather than by paying an upgrade recipe cost.
+
+- A Vanguard may own **only one copy of a given Quest Item** at a time.
+- Quest progress is bound to that Vanguard's owned item and cannot be duplicated by purchasing additional copies.
+- Completing the quest automatically evolves the item at no additional Gold cost.
+- Evolution is permanent for that owned item.
+- Exact quest thresholds, charge rules, Gold payouts, progress values, and similar numbers are prototype tuning data.
+- Quest Items must not enforce predefined lanes or roles; they should reward recognizable play patterns while remaining open purchases.
+- Evolved Quest Items may be used as ingredients in later item recipes.
+- Selling, rebuying, undoing, or otherwise manipulating shop state must not duplicate, reset, or farm completion rewards unless a future rule explicitly permits it.
+
+
 ## 3. Current stat language
 
 Working stat names include:
@@ -434,6 +448,7 @@ The Flask should be non-stackable. Its purpose is weaker reusable sustain that c
 - Tier 4 is future-facing and has no designed items yet.
 - If Tier 4 is introduced, one purchased Tier 4 permanently locks all other Tier 4s for that player during that match.
 - Work backward from useful completed items instead of inventing a giant component catalog in isolation.
+- A Vanguard may own only one copy of a given Quest Item at a time; Quest completion cannot be duplicated through multiple copies or shop manipulation.
 
 ## 12. Current gaps
 
