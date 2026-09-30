@@ -5,6 +5,7 @@
 
 #if ENABLE_PIE_NETWORK_TEST
 
+#include "DevCommands/VeyraDevCommands.h"
 #include "Engine/Engine.h"
 #include "GameFramework/PlayerState.h"
 #include "Progression/VeyraProgressionComponent.h"
@@ -85,7 +86,7 @@ namespace VeyraNetTests
 				.UntilClient(TEXT("The server refuses it"), 0, [](FState& State) {
 					return LocalControllerOf(State.World)->GetLastRankUpRefusal() == EVeyraRankRefusal::LevelTooLow;
 				})
-				.ThenClient(TEXT("Take levels"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestDeveloperLevels(LevelsToUltimate); })
+				.ThenClient(TEXT("Take levels"), 0, [](FState& State) { VeyraDevCommands::Request(*LocalControllerOf(State.World), TEXT("GrantLevels"), { FString::FromInt(LevelsToUltimate) }); })
 				.UntilServer(TEXT("The server grants them"), [](FState& State) { return ServerProgression(State)->GetLevel() == 1 + LevelsToUltimate; })
 				.ThenClient(TEXT("Try the ultimate again"), 0, [](FState& State) { LocalControllerOf(State.World)->RequestRankUp(EVeyraAbilitySlot::R); })
 				.UntilClients(TEXT("Every client sees its first rank"), [this](FState& State) {

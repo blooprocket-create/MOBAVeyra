@@ -67,6 +67,12 @@ public:
 	bool HandleDeveloperSiege(const APlayerController& Requester);
 
 	/**
+	 * Developer builds: Requester's dead Vanguard respawns at its fountain now, its waiting respawn
+	 * spent, as a buyback does but for no Gold and in any rules. Returns whether it respawned.
+	 */
+	bool HandleDeveloperRespawn(const APlayerController& Requester);
+
+	/**
 	 * A player asks to end the custom match as its host (Custom Matches Bible §4; ADR-010 §7). Only
 	 * the host of a practice match may; the match then ends host-ended, with no winner. Returns why it
 	 * was refused, or None.
@@ -220,6 +226,9 @@ private:
 	TArray<FVeyraPlayerResult> BuildScoreboard() const;
 
 	void Respawn(TWeakObjectPtr<AVeyraPlayerState> PlayerState);
+
+	/** Respawns the dead participant now, spending the respawn it was waiting for. */
+	void RespawnNow(AVeyraPlayerState& PlayerState);
 
 	/** The battleground reports a Prime Well destroyed: Winner destroyed the other side's (ADR-011 §13). */
 	void OnPrimeWellDestroyed(EVeyraTeam Winner);

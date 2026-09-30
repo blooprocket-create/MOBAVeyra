@@ -227,6 +227,9 @@ private:
 	/** Practice: the item the shop bought, the Flux Spell slot 1 swapped to, and whether both arrived and the shop closed. */
 	FString BoughtItem;
 	FString SwappedSpell;
+	/** Practice: the item with Crit Chance bought after them, and whether developer Gold was asked for it (ADR-023). */
+	FString CritItem;
+	bool bAskedCritGold = false;
 	bool bShopped = false;
 	/** Practice: whether the scoreboard was shown, checked and let go. */
 	bool bScoreboardChecked = false;

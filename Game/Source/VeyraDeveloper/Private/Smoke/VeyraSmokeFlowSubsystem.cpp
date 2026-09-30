@@ -5,6 +5,7 @@
 #include "Algo/Count.h"
 #include "Algo/Find.h"
 #include "Client/VeyraClientFlowSubsystem.h"
+#include "DevCommands/VeyraDevCommands.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -277,9 +278,9 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		}
 		else if (bSawResults && !TickHistory(Flow))
 		{
-			Finish(true, FString::Printf(TEXT("clicked through the starter choice, Play and Practice, locked %s, %sbought %s in the shop, recalled home, ")
+			Finish(true, FString::Printf(TEXT("clicked through the starter choice, Play and Practice, locked %s, %sbought %s and %s in the shop, recalled home, ")
 										 TEXT("ended the match from its menu as its host, saw its verified result, returned to the shell and found the match in Match History"),
-				*LockedVanguard, bSieges ? TEXT("sieged the enemy Prime Well down, played on, ") : TEXT(""), *BoughtItem));
+				*LockedVanguard, bSieges ? TEXT("sieged the enemy Prime Well down, played on, ") : TEXT(""), *BoughtItem, *CritItem));
 		}
 		else if (bStartedPractice && !Snapshot.Notice.IsEmpty())
 		{
@@ -1041,7 +1042,9 @@ bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
 		}
 		return true;
 	}
+	// The shop refreshes as it is painted, and a -nullrhi client paints nothing: read what it shows now.
 	UVeyraShopScreen& Shop = *Screens->GetShop();
+	Shop.Refresh();
 	const FVeyraShopView& View = Shop.GetView();
 	if (BoughtItem.IsEmpty())
 	{
@@ -1116,11 +1119,71 @@ bool UVeyraSmokeFlowSubsystem::TickShop(AVeyraPlayerController& Controller)
 	{
 		return true;
 	}
+	// Then an item with Crit Chance, so crits reach a real match (ADR-023): the starting Gold is spent,
+	// so the developer Gold command gives the shortfall.
+	if (CritItem.IsEmpty())
+	{
+		const FVeyraShopOffer* Offer = Algo::FindByPredicate(View.Offers, [](const FVeyraShopOffer& Candidate) {
+			const FVeyraItemDefinition* Definition = UVeyraItemsTuningSubsystem::FindItem(Candidate.Item);
+			return Definition && Definition->Category == EVeyraItemCategory::Equipment && Definition->Stats.CritChance > 0.0
+				&& (Candidate.Refusal == EVeyraShopRefusal::None || Candidate.Refusal == EVeyraShopRefusal::NotEnoughGold);
+		});
+		if (!Offer)
+		{
+			Finish(false, TEXT("the shop offers no item with Crit Chance it could sell"));
+			return true;
+		}
+		if (Offer->Refusal == EVeyraShopRefusal::NotEnoughGold)
+		{
+			if (!bAskedCritGold)
+			{
+				bAskedCritGold = true;
+				const int32 Shortfall = FMath::CeilToInt32(Offer->Price - View.Gold);
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: asking for %d developer Gold toward %s."), Shortfall, *Offer->Item.ToString());
+				Controller.RequestDeveloperCommand(TEXT("Gold"), { FString::FromInt(Shortfall) });
+			}
+			return true;
+		}
+		// As a player does: back to the items tab the swap left, choose the item's tile, then buy it with the
+		// one purchase button.
+		UVeyraShellButton* Tile = Shop.FindButton(UVeyraShopScreen::TileLabel(Offer->Item));
+		if (!Tile)
+		{
+			if (UVeyraShellButton* ItemsTab = Shop.FindButton(UVeyraShopScreen::ItemsTabLabel()))
+			{
+				ItemsTab->Press();
+				return true;
+			}
+			Finish(false, FString::Printf(TEXT("the shop shows no tile for %s"), *Offer->Item.ToString()));
+			return true;
+		}
+		if (Shop.GetSelectedItem() != Offer->Item)
+		{
+			Tile->Press();
+			return true;
+		}
+		UVeyraShellButton* Buy = Shop.FindButton(UVeyraShopScreen::BuyLabel(Offer->Item, Offer->Price));
+		if (!Buy || !Buy->GetIsEnabled())
+		{
+			return true;
+		}
+		CritItem = Offer->Item.ToString();
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: buying %s, with Crit Chance, for %.0f Gold."), *CritItem, Offer->Price);
+		Buy->Press();
+		return true;
+	}
+	const bool bCritArrived = Algo::FindByPredicate(Inventory->GetSlots(), [this](const FVeyraInventorySlot& Slot) {
+		return !Slot.IsEmpty() && Slot.Item.ToString() == CritItem;
+	}) != nullptr;
+	if (!bCritArrived)
+	{
+		return true;
+	}
 	const double GoldLeft = View.Gold;
 	Screens->ToggleShop();
 	bShopped = true;
-	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s arrived in the inventory and slot 1 holds %s, leaving %.0f Gold; closed the shop."), *BoughtItem,
-		*SwappedSpell, GoldLeft);
+	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: %s and %s arrived in the inventory and slot 1 holds %s, leaving %.0f Gold; closed the shop."), *BoughtItem,
+		*CritItem, *SwappedSpell, GoldLeft);
 	return false;
 #else
 	Finish(false, TEXT("this build has no shop"));
@@ -1147,8 +1210,11 @@ bool UVeyraSmokeFlowSubsystem::TickScoreboard(AVeyraPlayerController& /*Controll
 		Screens->ShowScoreboard();
 		return true;
 	}
-	// The players' scores, levels and Vanguards replicate a moment after the match goes live.
-	const FVeyraScoreboardView& View = Screens->GetScoreboard()->GetView();
+	// The players' scores, levels and Vanguards replicate a moment after the match goes live. The
+	// scoreboard refreshes as it is painted, and a -nullrhi client paints nothing: read what it shows now.
+	UVeyraScoreboard& Scoreboard = *Screens->GetScoreboard();
+	Scoreboard.Refresh();
+	const FVeyraScoreboardView& View = Scoreboard.GetView();
 	const bool bShowsThePlayer = View.Sides.Num() == 2 && View.Sides[0].bAllies
 		&& View.Sides[0].Rows.ContainsByPredicate([](const FVeyraScoreboardRow& Row) { return Row.bLocal && Row.Vanguard.IsValid() && Row.Level >= 1; });
 	if (!bShowsThePlayer || Capture(TEXT("Scoreboard")))
@@ -1246,7 +1312,7 @@ bool UVeyraSmokeFlowSubsystem::TickSiege(AVeyraPlayerController& Controller, con
 		NextSiegeAt = Now + SiegeIntervalRealSeconds;
 		++SiegeRequests;
 		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: asked for developer siege %d."), SiegeRequests);
-		Controller.RequestDeveloperSiege();
+		VeyraDevCommands::Request(Controller, TEXT("Siege"));
 	}
 	return true;
 }

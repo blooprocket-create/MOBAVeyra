@@ -1310,16 +1310,33 @@ EVeyraBuybackRefusal AVeyraGameMode::HandleBuybackOrder(AVeyraPlayerState* Playe
 	{
 		return Refusal;
 	}
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s bought back."), *PlayerState->GetPlayerName());
+	NoteActivityIfTaken(PlayerState, EVeyraOrderRejection::None);
+	RespawnNow(*PlayerState);
+	return EVeyraBuybackRefusal::None;
+}
+
+bool AVeyraGameMode::HandleDeveloperRespawn(const APlayerController& Requester)
+{
+	AVeyraPlayerState* PlayerState = Requester.GetPlayerState<AVeyraPlayerState>();
+	if (!PlayerState || VeyraTargeting::IsAlive(PlayerState) || CheckOrdersAllowed() != EVeyraOrderRejection::None)
+	{
+		return false;
+	}
+	UE_LOG(LogVeyraMatch, Log, TEXT("%s asked for a developer respawn."), *PlayerState->GetPlayerName());
+	RespawnNow(*PlayerState);
+	return VeyraTargeting::IsAlive(PlayerState);
+}
+
+void AVeyraGameMode::RespawnNow(AVeyraPlayerState& PlayerState)
+{
 	// The waiting respawn is spent: it must never bring back a later death early.
-	if (FTimerHandle* Timer = RespawnTimers.Find(PlayerState))
+	if (FTimerHandle* Timer = RespawnTimers.Find(&PlayerState))
 	{
 		GetWorldTimerManager().ClearTimer(*Timer);
 	}
-	PlayerState->SetRespawnAt(Now);
-	UE_LOG(LogVeyraMatch, Log, TEXT("%s bought back."), *PlayerState->GetPlayerName());
-	NoteActivityIfTaken(PlayerState, EVeyraOrderRejection::None);
-	Respawn(PlayerState);
-	return EVeyraBuybackRefusal::None;
+	PlayerState.SetRespawnAt(GetWorld()->GetTimeSeconds());
+	Respawn(&PlayerState);
 }
 
 void AVeyraGameMode::RecoverAtFountains()

@@ -89,6 +89,9 @@ public:
 	/** Server only: makes Ability ready now, forgetting any cooldown it still has. */
 	void ClearCooldown(const FVeyraContentId& Ability);
 
+	/** Server only: makes every ability ready now. Returns how many were still cooling down. */
+	int32 ClearAllCooldowns();
+
 	/**
 	 * Seconds until Ability is ready at server gameplay time Now. The server passes its world time;
 	 * a client passes the GameState's gameplay server time.
