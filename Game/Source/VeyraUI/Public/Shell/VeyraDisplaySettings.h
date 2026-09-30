@@ -9,6 +9,7 @@
 #include "VeyraDisplaySettings.generated.h"
 
 enum class EVeyraClientState : uint8;
+class FVeyraSettingsStore;
 
 /** The Display Mode setting's choices (Settings & Accessibility Bible 166). */
 UENUM()
@@ -23,7 +24,8 @@ enum class EVeyraDisplayMode : uint8
  * How the game uses the screen. The pre-game client keeps its window. A match takes the screen in
  * MatchDisplayMode from the loading after champion select until the match ends, and the client's
  * window comes back for the results, as League's client and game do. Presentation, stored in
- * Config/DefaultGame.ini; the player's own choice joins the Settings menu (Settings Bible 166).
+ * Config/DefaultGame.ini; the player's own choice, display_match_mode in the Settings screen
+ * (Settings Bible 166), takes its place.
  */
 UCLASS(Config = Game, DefaultConfig, meta = (DisplayName = "Veyra Display"))
 class VEYRAUI_API UVeyraDisplaySettings : public UDeveloperSettings
@@ -31,16 +33,20 @@ class VEYRAUI_API UVeyraDisplaySettings : public UDeveloperSettings
 	GENERATED_BODY()
 
 public:
-	/** How a match takes the screen. */
+	/** How a match takes the screen where the player has no settings (a game without them). */
 	UPROPERTY(Config, EditAnywhere, Category = "Display")
 	EVeyraDisplayMode MatchDisplayMode = EVeyraDisplayMode::BorderlessFullscreen;
 
+	/** Seconds a disruptive display change waits for Keep before it reverts (SET-92). */
+	UPROPERTY(Config, EditAnywhere, Category = "Display", meta = (ClampMin = "1"))
+	float KeepChangesSeconds = 0.0f;
+
 	/**
-	 * The mode this run's matches use: MatchDisplayMode, unless the command line says
-	 * -VeyraMatchDisplay=Windowed|BorderlessFullscreen|Fullscreen, as scripts that run several
-	 * clients on one screen do.
+	 * The mode this run's matches use: the command line's -VeyraMatchDisplay=Windowed|
+	 * BorderlessFullscreen|Fullscreen, as scripts that run several clients on one screen give it;
+	 * otherwise the player's choice in Store; otherwise MatchDisplayMode.
 	 */
-	EVeyraDisplayMode GetMatchDisplayMode() const;
+	EVeyraDisplayMode GetMatchDisplayMode(const FVeyraSettingsStore* Store) const;
 };
 
 /** When a match takes the screen, as plain rules. */

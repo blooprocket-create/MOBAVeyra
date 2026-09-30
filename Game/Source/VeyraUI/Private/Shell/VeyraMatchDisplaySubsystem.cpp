@@ -6,7 +6,9 @@
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
 #include "GameFramework/GameUserSettings.h"
+#include "Settings/VeyraDisplayApplier.h"
 #include "Shell/VeyraDisplaySettings.h"
+#include "VeyraSettingsSubsystem.h"
 #include "VeyraUILog.h"
 #include "Widgets/SWindow.h"
 
@@ -93,7 +95,8 @@ void UVeyraMatchDisplaySubsystem::TakeTheScreen()
 	}
 	const FVector2D Size = Window->GetClientSizeInScreen();
 	Saved = FSavedWindow{ Window->GetWindowMode(), FIntPoint(FMath::RoundToInt(Size.X), FMath::RoundToInt(Size.Y)), Window->GetPositionInScreen() };
-	const EVeyraDisplayMode Mode = GetDefault<UVeyraDisplaySettings>()->GetMatchDisplayMode();
+	const UVeyraSettingsSubsystem* Player = GetGameInstance()->GetSubsystem<UVeyraSettingsSubsystem>();
+	const EVeyraDisplayMode Mode = GetDefault<UVeyraDisplaySettings>()->GetMatchDisplayMode(Player && Player->IsReady() ? &Player->GetStore() : nullptr);
 	if (Mode == EVeyraDisplayMode::Windowed)
 	{
 		UE_LOG(LogVeyraUI, Log, TEXT("The match keeps the client's window (%dx%d)."), Saved->Size.X, Saved->Size.Y);
@@ -109,6 +112,17 @@ void UVeyraMatchDisplaySubsystem::TakeTheScreen()
 	UE_LOG(LogVeyraUI, Log, TEXT("The match takes the screen: %s at %dx%d."), *UEnum::GetValueAsString(Mode), Desktop.X, Desktop.Y);
 }
 
+void UVeyraMatchDisplaySubsystem::RetakeTheScreen()
+{
+	if (!Saved.IsSet())
+	{
+		// Not in a match: the next one takes the screen in the new mode.
+		return;
+	}
+	GiveTheScreenBack();
+	TakeTheScreen();
+}
+
 void UVeyraMatchDisplaySubsystem::GiveTheScreenBack()
 {
 	const FSavedWindow Window = Saved.GetValue();
@@ -118,7 +132,10 @@ void UVeyraMatchDisplaySubsystem::GiveTheScreenBack()
 	{
 		return;
 	}
-	Apply(*Settings, Window.Mode, Window.Size);
+	// The client's size, which the player may have changed during the match.
+	const UVeyraDisplayApplier* Applier = GetGameInstance()->GetSubsystem<UVeyraDisplayApplier>();
+	const FIntPoint Size = Applier && Window.Mode == EWindowMode::Windowed ? Applier->GetClientWindowSize() : Window.Size;
+	Apply(*Settings, Window.Mode, Size.X > 0 && Size.Y > 0 ? Size : Window.Size);
 	if (const TSharedPtr<SWindow> GameWindowNow = GameWindow(); GameWindowNow && Window.Mode == EWindowMode::Windowed)
 	{
 		GameWindowNow->MoveWindowTo(Window.Position);

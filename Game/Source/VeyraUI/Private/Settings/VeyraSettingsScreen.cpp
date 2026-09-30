@@ -15,6 +15,7 @@
 #include "Components/VerticalBox.h"
 #include "Components/VerticalBoxSlot.h"
 #include "Components/WrapBox.h"
+#include "Settings/VeyraDisplayApplier.h"
 #include "Shell/VeyraShellStyle.h"
 #include "Shell/VeyraShellStyleSettings.h"
 #include "VeyraSettingsStore.h"
@@ -145,6 +146,11 @@ void UVeyraSettingsScreen::Show(UVeyraSettingsSubsystem& InSettings, bool bInLiv
 		// A change from anywhere, Undo or the account's sync included, shows at once.
 		ChangedHandle = Store->OnChanged.AddWeakLambda(this, [this](const FVeyraContentId&) { Rebuild(); });
 	}
+	Display = UVeyraDisplayApplier::Get(this);
+	if (UVeyraDisplayApplier* Applier = Display.Get())
+	{
+		ConfirmationHandle = Applier->OnConfirmationChanged.AddWeakLambda(this, [this] { Rebuild(); });
+	}
 	Rebuild();
 }
 
@@ -191,6 +197,11 @@ void UVeyraSettingsScreen::StopListening()
 		Store->OnChanged.Remove(ChangedHandle);
 	}
 	ChangedHandle.Reset();
+	if (UVeyraDisplayApplier* Applier = Display.Get())
+	{
+		Applier->OnConfirmationChanged.Remove(ConfirmationHandle);
+	}
+	ConfirmationHandle.Reset();
 }
 
 void UVeyraSettingsScreen::NativeDestruct()
@@ -199,11 +210,31 @@ void UVeyraSettingsScreen::NativeDestruct()
 	Super::NativeDestruct();
 }
 
+void UVeyraSettingsScreen::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
+{
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	const UVeyraDisplayApplier* Applier = Display.Get();
+	if (RevertCountdown && Applier && Applier->IsAwaitingConfirmation())
+	{
+		RevertCountdown->SetText(FText::Format(LOCTEXT("RevertCountdown", "Keep these display settings? They revert in {0} s."),
+			FText::AsNumber(FMath::CeilToInt(Applier->GetSecondsToRevert()))));
+	}
+}
+
 void UVeyraSettingsScreen::Change(const FVeyraContentId& Id, const FString& Value)
 {
-	if (FVeyraSettingsStore* Store = GetStore())
+	FVeyraSettingsStore* Store = GetStore();
+	if (!Store)
 	{
-		Store->Set(Id, Value, bInMatch);
+		return;
+	}
+	const FString Previous = Store->Get(Id);
+	UVeyraDisplayApplier* Applier = Display.Get();
+	// A change that could leave the player unable to see waits for Keep (SET-92).
+	const bool bConfirm = Applier && Applier->NeedsConfirmation(Id);
+	if (Store->Set(Id, Value, bInMatch) == EVeyraSettingChange::Changed && bConfirm)
+	{
+		Applier->AwaitConfirmation(Id, Previous);
 	}
 }
 
@@ -332,6 +363,26 @@ void UVeyraSettingsScreen::BuildRow(const FVeyraSettingRowModel& Row)
 void UVeyraSettingsScreen::BuildFooter()
 {
 	Footer->ClearChildren();
+	RevertCountdown = nullptr;
+	if (UVeyraDisplayApplier* Applier = Display.Get(); Applier && Applier->IsAwaitingConfirmation())
+	{
+		// Before anything else: the display the player sees may not work for them (SET-92).
+		RevertCountdown = VeyraShellStyle::MakeText(*WidgetTree, FText::GetEmpty(), VeyraShellStyle::EVeyraShellText::Body);
+		VeyraSettingsLayout::AddFilling(*Footer, *RevertCountdown);
+		AddButton(*Footer, EVeyraShellButtonKind::Primary, KeepChangesLabel(), KeepChangesLabel(), [this] {
+			if (UVeyraDisplayApplier* Found = Display.Get())
+			{
+				Found->KeepChange();
+			}
+		});
+		AddButton(*Footer, EVeyraShellButtonKind::Secondary, RevertLabel(), RevertLabel(), [this] {
+			if (UVeyraDisplayApplier* Found = Display.Get())
+			{
+				Found->RevertChange();
+			}
+		});
+		return;
+	}
 	if (Confirming != EConfirming::None)
 	{
 		// Resetting a category or everything asks first (§6.1); Undo does not take them back.
@@ -456,6 +507,16 @@ FText UVeyraSettingsScreen::ConfirmResetLabel()
 FText UVeyraSettingsScreen::CancelLabel()
 {
 	return LOCTEXT("Cancel", "Cancel");
+}
+
+FText UVeyraSettingsScreen::KeepChangesLabel()
+{
+	return LOCTEXT("KeepChanges", "Keep Changes");
+}
+
+FText UVeyraSettingsScreen::RevertLabel()
+{
+	return LOCTEXT("Revert", "Revert");
 }
 
 #undef LOCTEXT_NAMESPACE

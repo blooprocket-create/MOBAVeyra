@@ -55,6 +55,26 @@ EVeyraSettingChange FVeyraSettingsStore::Set(const FVeyraContentId& Id, FStringV
 	return EVeyraSettingChange::Changed;
 }
 
+EVeyraSettingChange FVeyraSettingsStore::Follow(const FVeyraContentId& Id, FStringView Value)
+{
+	const TOptional<FVeyraSettingInfo> Setting = VeyraSettings::Find(*Registry, Id);
+	if (!Setting.IsSet())
+	{
+		return EVeyraSettingChange::UnknownSetting;
+	}
+	const TOptional<FString> Normal = VeyraSettings::Normalize(*Setting, Value);
+	if (!Normal.IsSet())
+	{
+		return EVeyraSettingChange::InvalidValue;
+	}
+	if (!Store(Id, *Normal == Setting->Default ? TOptional<FString>() : Normal))
+	{
+		return EVeyraSettingChange::Unchanged;
+	}
+	OnChanged.Broadcast(Id);
+	return EVeyraSettingChange::Changed;
+}
+
 EVeyraSettingChange FVeyraSettingsStore::Reset(const FVeyraContentId& Id, bool bInLiveMatch)
 {
 	const TOptional<FVeyraSettingInfo> Setting = VeyraSettings::Find(*Registry, Id);

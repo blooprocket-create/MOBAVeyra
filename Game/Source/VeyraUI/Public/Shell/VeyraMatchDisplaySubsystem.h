@@ -32,6 +32,9 @@ public:
 	/** Whether the match has the screen now: the client's window is remembered, to be put back. */
 	bool HasTheScreen() const { return Saved.IsSet(); }
 
+	/** The player changed the match's display mode during the match: it takes the screen again, in the new mode. */
+	void RetakeTheScreen();
+
 private:
 	/** The client's window as it was before the match took the screen. */
 	struct FSavedWindow

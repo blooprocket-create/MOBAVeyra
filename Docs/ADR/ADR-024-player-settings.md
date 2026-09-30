@@ -80,7 +80,7 @@ The developer defaults in `Default*.ini` remain the fallback for every system. A
 - **Resets** for one setting, one category, or everything. The last two ask for confirmation.
 - **One-step Undo** of the most recent change, in and out of a match (§6.1).
 - **Search** by name and related terms (§6.3). Each setting shows its description and a restart mark where one applies.
-- **Keep/Revert.** A change to the window size or display mode made *in Settings* applies at once and reverts after 15 seconds unless kept (SET-92, 166, 167). The automatic switch into and out of a match is not a settings change and has no countdown (SET-166 ruling).
+- **Keep/Revert.** A change to the window size or display mode made *in Settings* applies at once and reverts after 15 seconds unless kept (SET-92, 166, 167). The window size applies at once outside a match, and the display mode during one; otherwise each waits for its time and needs no countdown. The seconds are `UVeyraDisplaySettings::KeepChangesSeconds` in `DefaultGame.ini`. The automatic switch into and out of a match is not a settings change and has no countdown (SET-166 ruling).
 - **Only categories with real effects appear.** In M18 these are Controls, Camera, Interface, and Graphics & Display. Accessibility, Audio, Communication, and Language & Account appear when their systems exist. SET-149 prefers options that change something, and SET-168 forbids presenting non-configurable behaviour as toggles.
 
 ### 6. What M18 offers
@@ -89,7 +89,8 @@ The developer defaults in `Default*.ini` remain the fallback for every system. A
   - Display Mode: Windowed / Borderless Fullscreen / Fullscreen. It is the match's (SET-166), with Borderless Fullscreen by default.
   - The client's windowed size.
   - Foreground frame-rate cap, background cap (30 by default, SET-109), VSync and render scale (165).
-  - Quality presets Low / Medium / High / Custom through the engine's scalability groups (§8).
+  - Quality presets Low / Medium / High / Custom through the engine's scalability groups (§8): a preset sets the texture, shadow and effects groups, which follow without taking the Undo step; a group changed alone makes the preset the level all groups share, or Custom.
+  - A launch's `-ResX`/`-ResY` and `-VeyraMatchDisplay` still override the window size and the match's mode, for scripts that run several clients on one screen.
 - **Camera:**
   - Default camera mode, kept between matches.
   - Camera Movement Speed, Edge-Scroll Speed and Camera Drag Sensitivity (150).
@@ -127,7 +128,7 @@ The developer defaults in `Default*.ini` remain the fallback for every system. A
 - **Store round trips:** device values through `GameUserSettings.ini`, and the account document through the cache and the backend, including the conflict.
 - **Entry-point visibility** in every client state.
 - **Rebind conflicts** and live application to the controller.
-- **Keep/Revert** timing on world time.
+- **Keep/Revert** timing, on an injected clock.
 - **A smoke** (`-Flow Settings`): change the display mode and a binding, restart, and find both kept.
 
 ### 9. League answers where canon is open (Settings Bible §9, §14.6: "do not silently invent")

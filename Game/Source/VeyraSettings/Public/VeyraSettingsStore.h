@@ -45,6 +45,12 @@ public:
 	/** Sets Id to Value. bInLiveMatch refuses a setting that may change only outside one. */
 	EVeyraSettingChange Set(const FVeyraContentId& Id, FStringView Value, bool bInLiveMatch = false);
 
+	/**
+	 * Sets Id as another setting's change asks, such as a quality preset's groups: anywhere, and
+	 * without taking the Undo step, which stays with the player's own change.
+	 */
+	EVeyraSettingChange Follow(const FVeyraContentId& Id, FStringView Value);
+
 	/** Returns Id to its default, as a change Undo can take back. */
 	EVeyraSettingChange Reset(const FVeyraContentId& Id, bool bInLiveMatch = false);
 

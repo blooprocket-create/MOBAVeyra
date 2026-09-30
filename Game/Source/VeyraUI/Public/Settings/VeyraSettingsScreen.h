@@ -12,6 +12,8 @@ class FVeyraSettingsStore;
 class UEditableTextBox;
 class UHorizontalBox;
 class UVerticalBox;
+class UTextBlock;
+class UVeyraDisplayApplier;
 class UVeyraSettingsSubsystem;
 
 /**
@@ -65,8 +67,13 @@ public:
 	static FText ConfirmResetLabel();
 	static FText CancelLabel();
 
+	/** A disruptive display change's choice (SET-92). */
+	static FText KeepChangesLabel();
+	static FText RevertLabel();
+
 protected:
 	virtual void NativeDestruct() override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 private:
 	enum class EConfirming : uint8
@@ -90,6 +97,9 @@ private:
 
 	TWeakObjectPtr<UVeyraSettingsSubsystem> Settings;
 	FDelegateHandle ChangedHandle;
+	/** Applies display settings, and holds a change that waits for Keep; null where there is none (a test). */
+	TWeakObjectPtr<UVeyraDisplayApplier> Display;
+	FDelegateHandle ConfirmationHandle;
 	bool bInMatch = false;
 	TFunction<void()> Close;
 	EVeyraSettingCategory Category = EVeyraSettingCategory::Controls;
@@ -111,6 +121,10 @@ private:
 
 	UPROPERTY(Transient)
 	TObjectPtr<UEditableTextBox> SearchBox;
+
+	/** The countdown to a disruptive display change's revert, while one waits. */
+	UPROPERTY(Transient)
+	TObjectPtr<UTextBlock> RevertCountdown;
 
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UVeyraShellButton>> Buttons;
