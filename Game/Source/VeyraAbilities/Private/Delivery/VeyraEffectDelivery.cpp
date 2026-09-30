@@ -7,6 +7,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Abilities/VeyraGameplayAbility.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 
@@ -64,12 +65,12 @@ double DamageAmount(const UAbilitySystemComponent& Caster, const FVeyraDamageTun
 		+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Damage.MagicPowerRatio;
 }
 
-TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids)
+TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids, int32 SourceLevel)
 {
 	TArray<FVeyraStatusSpec> Specs;
 	for (const FVeyraContentId& StatusId : Ids)
 	{
-		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId, SourceLevel))
 		{
 			Specs.Add(Status.GetValue());
 		}
@@ -80,6 +81,8 @@ TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids)
 FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffectBundleTuning& Effects, int32 Rank)
 {
 	FVeyraPreparedEffects Prepared;
+	// Level-scaled statuses read the caster's Level at Commit, as the rest of the hit does (Combat Bible §50).
+	const int32 Level = UVeyraGameplayAbility::GetCasterLevel(Caster);
 	if (!Effects.Damage.IsEmpty())
 	{
 		FVeyraRawDamageEvent Raw;
@@ -92,7 +95,7 @@ FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffec
 	}
 	Prepared.UnitKindMultipliers = Effects.UnitKindMultipliers;
 	Prepared.DisplacementUnlessStatuses = Effects.DisplacementUnlessStatuses;
-	Prepared.Statuses = StatusSpecs(Effects.Statuses);
+	Prepared.Statuses = StatusSpecs(Effects.Statuses, Level);
 	if (!Effects.Displacement.IsEmpty())
 	{
 		Prepared.Displacement = Effects.Displacement[0];
@@ -111,8 +114,28 @@ FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffec
 		{
 			Ready.Damage.Add({ Damage.Type, DamageAmount(Caster, Damage, Rank) });
 		}
-		Ready.Statuses = StatusSpecs(Reaction.Statuses);
+		Ready.Statuses = StatusSpecs(Reaction.Statuses, Level);
 		Ready.Replaces = Reaction.Replaces;
+	}
+	// A bundle whose only damage is its reactions' prepares that damage now too, so it keeps the caster's
+	// offence at Commit (Combat Bible §50): each reaction type at 0, its amounts joining at impact.
+	if (!Prepared.Damage.IsValid())
+	{
+		FVeyraRawDamageEvent Raw;
+		for (const FVeyraPreparedReaction& Ready : Prepared.Reactions)
+		{
+			for (const FVeyraDamageComponent& Component : Ready.Damage)
+			{
+				if (!Raw.Components.ContainsByPredicate([&Component](const FVeyraDamageComponent& Each) { return Each.Type == Component.Type; }))
+				{
+					Raw.Components.Add({ Component.Type, 0.0 });
+				}
+			}
+		}
+		if (!Raw.Components.IsEmpty())
+		{
+			Prepared.ReactionDamage = VeyraCombat::PrepareDamage(Caster, Raw);
+		}
 	}
 	return Prepared;
 }
@@ -126,7 +149,7 @@ FVeyraSecondaryImpact SecondaryImpact(const UAbilitySystemComponent& Caster, con
 	{
 		Ready.Damage.Components.Add({ Damage.Type, DamageAmount(Caster, Damage, Rank) });
 	}
-	Ready.Statuses = StatusSpecs(Impact.Statuses);
+	Ready.Statuses = StatusSpecs(Impact.Statuses, UVeyraGameplayAbility::GetCasterLevel(Caster));
 	return Ready;
 }
 
@@ -209,9 +232,17 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 	Hit.bDamaging = Effects.Damage.IsValid() || !ReactionDamage.IsEmpty();
 	if (!Effects.Damage.IsValid() && !ReactionDamage.IsEmpty())
 	{
-		FVeyraRawDamageEvent Raw;
-		Raw.Components = ReactionDamage;
-		VeyraCombat::DealDamage(Caster, *Target, Raw);
+		if (Effects.ReactionDamage.IsValid())
+		{
+			VeyraCombat::DealPreparedDamage(Effects.ReactionDamage, *Target, ReactionDamage);
+		}
+		else
+		{
+			// Effects prepared by hand, without a bundle: the caster's offence now.
+			FVeyraRawDamageEvent Raw;
+			Raw.Components = ReactionDamage;
+			VeyraCombat::DealDamage(Caster, *Target, Raw);
+		}
 	}
 	if (Effects.Damage.IsValid())
 	{
