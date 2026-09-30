@@ -50,6 +50,8 @@ UVeyraStatusEffect::UVeyraStatusEffect()
 
 const FName UVeyraEquipmentEffect::MaxHealthName(TEXT("EquipmentMaxHealth"));
 const FName UVeyraEquipmentEffect::HealthRegenName(TEXT("EquipmentHealthRegen"));
+const FName UVeyraEquipmentEffect::ArmorName(TEXT("EquipmentArmor"));
+const FName UVeyraEquipmentEffect::MagicResistName(TEXT("EquipmentMagicResist"));
 const FName UVeyraEquipmentEffect::PhysicalPowerName(TEXT("EquipmentPhysicalPower"));
 const FName UVeyraEquipmentEffect::MagicPowerName(TEXT("EquipmentMagicPower"));
 const FName UVeyraEquipmentEffect::AttackSpeedName(TEXT("EquipmentAttackSpeed"));
@@ -73,6 +75,8 @@ UVeyraEquipmentEffect::UVeyraEquipmentEffect()
 	const FLine Lines[] = {
 		{ UVeyraVitalsSet::GetMaxHealthAttribute(), MaxHealthName, EGameplayModOp::AddBase },
 		{ UVeyraVitalsSet::GetHealthRegenAttribute(), HealthRegenName, EGameplayModOp::AddBase },
+		{ UVeyraDefenceSet::GetArmorAttribute(), ArmorName, EGameplayModOp::AddBase },
+		{ UVeyraDefenceSet::GetMagicResistAttribute(), MagicResistName, EGameplayModOp::AddBase },
 		{ UVeyraOffenceSet::GetPhysicalPowerAttribute(), PhysicalPowerName, EGameplayModOp::AddBase },
 		{ UVeyraOffenceSet::GetMagicPowerAttribute(), MagicPowerName, EGameplayModOp::AddBase },
 		{ UVeyraOffenceSet::GetAttackSpeedAttribute(), AttackSpeedName, EGameplayModOp::AddBase },

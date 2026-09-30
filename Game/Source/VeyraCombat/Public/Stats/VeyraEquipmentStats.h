@@ -13,6 +13,8 @@ struct FVeyraEquipmentStats
 {
 	double MaxHealth = 0.0;
 	double HealthRegen = 0.0;
+	double Armor = 0.0;
+	double MagicResist = 0.0;
 	double PhysicalPower = 0.0;
 	double MagicPower = 0.0;
 

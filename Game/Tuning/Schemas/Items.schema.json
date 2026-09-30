@@ -20,10 +20,12 @@
       "description": "What an item adds to its holder while it is delivered and the holder lives (Item Bible §3). Flat amounts, except attackSpeed, a fraction of the Vanguard's base Attack Speed added to its level growth (ADR-012 §6).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["health", "healthRegeneration", "physicalPower", "magicPower", "attackSpeed", "abilityHaste", "moveSpeed", "magicPenetrationFlat", "critChance", "magicPowerFraction"],
+      "required": ["health", "healthRegeneration", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeed", "abilityHaste", "moveSpeed", "magicPenetrationFlat", "critChance", "magicPowerFraction"],
       "properties": {
         "health": { "description": "Max Health.", "type": "number", "minimum": 0 },
         "healthRegeneration": { "description": "Health restored per second.", "type": "number", "minimum": 0 },
+        "armor": { "description": "Armor (Combat Bible §3; ADR-025 §1).", "type": "number", "minimum": 0 },
+        "magicResist": { "description": "Magic Resist (Combat Bible §3; ADR-025 §1).", "type": "number", "minimum": 0 },
         "physicalPower": { "description": "Physical Power.", "type": "number", "minimum": 0 },
         "magicPower": { "description": "Magic Power.", "type": "number", "minimum": 0 },
         "attackSpeed": { "description": "Bonus Attack Speed, as a fraction of base Attack Speed; 0.12 is 12%.", "type": "number", "minimum": 0 },
@@ -52,7 +54,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [2]
+      "enum": [3]
     },
     "shop": {
       "description": "The shop's own rules (Economy & Progression Bible §10, §12; ADR-012 §9).",

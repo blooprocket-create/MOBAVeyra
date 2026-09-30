@@ -305,6 +305,8 @@ bool SetEquipmentStats(UAbilitySystemComponent& AbilitySystem, const FVeyraEquip
 	const TPair<FName, double> Values[] = {
 		{ UVeyraEquipmentEffect::MaxHealthName, Stats.MaxHealth },
 		{ UVeyraEquipmentEffect::HealthRegenName, Stats.HealthRegen },
+		{ UVeyraEquipmentEffect::ArmorName, Stats.Armor },
+		{ UVeyraEquipmentEffect::MagicResistName, Stats.MagicResist },
 		{ UVeyraEquipmentEffect::PhysicalPowerName, Stats.PhysicalPower },
 		{ UVeyraEquipmentEffect::MagicPowerName, Stats.MagicPower },
 		{ UVeyraEquipmentEffect::AttackSpeedName, Stats.AttackSpeed },

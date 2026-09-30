@@ -219,6 +219,11 @@ namespace VeyraItemsTests
 			Crit.CritChance = 0.15;
 			Crit.MagicPowerFraction = 0.08;
 			ASSERT_THAT(AreEqual(FString(TEXT("+15% Crit Chance, +8% Magic Power")), VeyraShopModel::DescribeStats(Crit).ToString()));
+			FVeyraItemStatsTuning Defences;
+			Defences.Health = 200.0;
+			Defences.Armor = 20.0;
+			Defences.MagicResist = 25.0;
+			ASSERT_THAT(AreEqual(FString(TEXT("+200 Health, +20 Armor, +25 Magic Resist")), VeyraShopModel::DescribeStats(Defences).ToString()));
 		}
 
 		TEST_METHOD(TheHudShowsEachSpellSlotLockedUntilItsFluxThenReady)

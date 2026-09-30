@@ -221,6 +221,8 @@ namespace VeyraCombatTests
 			Equipment.MagicPenetrationFlat = 10.0;
 			Equipment.CritChance = 0.35;
 			Equipment.CritDamageBonus = 0.4;
+			Equipment.Armor = 15.0;
+			Equipment.MagicResist = 25.0;
 			ASSERT_THAT(IsTrue(VeyraCombat::SetEquipmentStats(*Unit, Equipment)));
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetCritChanceAttribute()), Equipment.CritChance), TEXT("crit adds (ADR-023 §2)")));
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetCritDamageBonusAttribute()), Equipment.CritDamageBonus)));
@@ -232,6 +234,8 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetAbilityHasteAttribute()), Equipment.AbilityHaste)));
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraMobilitySet::GetMoveSpeedAttribute()), Base.MoveSpeed + Equipment.MoveSpeed)));
 			ASSERT_THAT(IsTrue(Near(Value(UVeyraOffenceSet::GetMagicPenetrationFlatAttribute()), Equipment.MagicPenetrationFlat)));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraDefenceSet::GetArmorAttribute()), Base.Armor + Equipment.Armor), TEXT("items grant Armor (ADR-025 §1)")));
+			ASSERT_THAT(IsTrue(Near(Value(UVeyraDefenceSet::GetMagicResistAttribute()), Base.MagicResist + Equipment.MagicResist)));
 		}
 
 		TEST_METHOD(HealthKeepsItsPercentage)

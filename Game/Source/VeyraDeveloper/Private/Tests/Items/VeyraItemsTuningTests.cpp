@@ -89,6 +89,64 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(VeyraItems::TotalCost(Tuning, ItemId(TEXT("test_temper"))) == 600.0 + 1100.0 + 400.0));
 		}
 
+		TEST_METHOD(TheRevisionsItemsKeepTheBiblesRecipesAndStats)
+		{
+			// Item Bible §4 and §6 (2026-09-30): each new item's recipe and the stats its identity names. Their
+			// amounts are provisional tuning (ADR-025 §8); which stats they are is canon.
+			struct FExpected
+			{
+				const TCHAR* Item;
+				TArray<FString> Components;
+				TArray<FString> Stats;
+			};
+			const FExpected Revision[] = {
+				{ TEXT("warforged_grip"), {}, { TEXT("PhysicalPower") } },
+				{ TEXT("titansteel_grip"), {}, { TEXT("PhysicalPower") } },
+				{ TEXT("marchplate"), {}, { TEXT("Armor") } },
+				{ TEXT("shatterdeep_crystal"), {}, { TEXT("MagicResist") } },
+				{ TEXT("picket_plating"), { TEXT("marchplate"), TEXT("vital_plate") }, { TEXT("Armor"), TEXT("Health") } },
+				{ TEXT("canyonward"), { TEXT("shatterdeep_crystal"), TEXT("vital_plate") }, { TEXT("Health"), TEXT("MagicResist") } },
+				{ TEXT("breaker_aegis"), { TEXT("marchplate"), TEXT("shatterdeep_crystal"), TEXT("timing_coil") }, { TEXT("AbilityHaste"), TEXT("Armor"), TEXT("MagicResist") } },
+				{ TEXT("resonant_wardstone"), { TEXT("shatterdeep_crystal"), TEXT("shatterdeep_crystal") }, { TEXT("MagicResist") } },
+				{ TEXT("foundation_plate"), { TEXT("marchplate"), TEXT("marchplate") }, { TEXT("Armor") } },
+				{ TEXT("waymark_weave"), { TEXT("renewal_mesh"), TEXT("renewal_mesh") }, { TEXT("HealthRegeneration") } },
+				{ TEXT("rescue_rig"), { TEXT("quickcoil"), TEXT("vital_plate") }, { TEXT("AttackSpeed"), TEXT("Health") } },
+				{ TEXT("killstring_assembly"), { TEXT("keensteel"), TEXT("quickcoil") }, { TEXT("AttackSpeed"), TEXT("CritChance") } },
+			};
+			for (const FExpected& Expected : Revision)
+			{
+				const FVeyraItemDefinition* Item = UVeyraItemsTuningSubsystem::FindItem(ItemId(Expected.Item));
+				ASSERT_THAT(IsNotNull(Item, Expected.Item));
+				TArray<FString> Components;
+				for (const FVeyraContentId& Component : Item->Components)
+				{
+					Components.Add(Component.ToString());
+				}
+				Components.Sort();
+				ASSERT_THAT(AreEqual(FString::Join(Expected.Components, TEXT(" + ")), FString::Join(Components, TEXT(" + ")), Expected.Item));
+				// The stats it has are the ones the bible names, read by name from the tuning struct.
+				TArray<FString> Stats;
+				for (TFieldIterator<FDoubleProperty> Stat(FVeyraItemStatsTuning::StaticStruct()); Stat; ++Stat)
+				{
+					if (Stat->GetPropertyValue_InContainer(&Item->Stats) != 0.0)
+					{
+						Stats.Add(Stat->GetName());
+					}
+				}
+				Stats.Sort();
+				ASSERT_THAT(AreEqual(FString::Join(Expected.Stats, TEXT(", ")), FString::Join(Stats, TEXT(", ")), Expected.Item));
+			}
+
+			// The bible's comparisons: Warforged beats Iron Grip and Titansteel beats both (§4); the two-of-a-kind
+			// assemblies give at least what their two components do (§6).
+			const auto Stats = [](const TCHAR* Item) { return UVeyraItemsTuningSubsystem::FindItem(ItemId(Item))->Stats; };
+			ASSERT_THAT(IsTrue(Stats(TEXT("warforged_grip")).PhysicalPower > Stats(TEXT("iron_grip")).PhysicalPower));
+			ASSERT_THAT(IsTrue(Stats(TEXT("titansteel_grip")).PhysicalPower > Stats(TEXT("warforged_grip")).PhysicalPower));
+			ASSERT_THAT(IsTrue(Stats(TEXT("resonant_wardstone")).MagicResist >= 2 * Stats(TEXT("shatterdeep_crystal")).MagicResist));
+			ASSERT_THAT(IsTrue(Stats(TEXT("foundation_plate")).Armor >= 2 * Stats(TEXT("marchplate")).Armor));
+			ASSERT_THAT(IsTrue(Stats(TEXT("waymark_weave")).HealthRegeneration >= 2 * Stats(TEXT("renewal_mesh")).HealthRegeneration));
+		}
+
 		TEST_METHOD(TheCommittedCatalogLoads)
 		{
 			const UVeyraItemsTuningSubsystem* Subsystem = GEngine->GetEngineSubsystem<UVeyraItemsTuningSubsystem>();

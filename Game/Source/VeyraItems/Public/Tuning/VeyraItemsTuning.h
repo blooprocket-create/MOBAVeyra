@@ -33,6 +33,12 @@ struct FVeyraItemStatsTuning
 	double HealthRegeneration = 0.0;
 
 	UPROPERTY()
+	double Armor = 0.0;
+
+	UPROPERTY()
+	double MagicResist = 0.0;
+
+	UPROPERTY()
 	double PhysicalPower = 0.0;
 
 	UPROPERTY()
@@ -344,7 +350,7 @@ struct FVeyraItemsTuning
 	GENERATED_BODY()
 
 	/** The Items.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraShopTuning Shop;

@@ -172,6 +172,21 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Stats.AttackSpeed, BaseAttackSpeed * 0.24), TEXT("a fraction of the base, added (ADR-012 §6)")));
 		}
 
+		TEST_METHOD(ArmorAndMagicResistAddFromEachHeldItem)
+		{
+			// Fixture values: a plate with both defences and a grip with Armor, two grips held (ADR-025 §1).
+			constexpr double BaseAttackSpeed = 0.625;
+			FVeyraItemsTuning WithDefences = Tuning;
+			WithDefences.Items[ItemId(TEXT("test_plate"))].Stats.Armor = 15.0;
+			WithDefences.Items[ItemId(TEXT("test_plate"))].Stats.MagicResist = 25.0;
+			WithDefences.Items[ItemId(TEXT("test_grip"))].Stats.Armor = 5.0;
+			BuyHere(TEXT("test_plate"));
+			BuyHere(TEXT("test_grip"));
+			BuyHere(TEXT("test_grip"));
+			const FVeyraEquipmentStats Stats = VeyraEquipment::StatsFor(WithDefences, Slots, BaseAttackSpeed, {});
+			ASSERT_THAT(IsTrue(Stats.Armor == 25.0 && Stats.MagicResist == 25.0));
+		}
+
 		TEST_METHOD(EachAttunementAddsWhatItsDataSays)
 		{
 			// Fixture values: the Masterwork's Weight of War, and an Overcharge, a Spool Up and an

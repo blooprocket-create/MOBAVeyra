@@ -160,6 +160,8 @@ FText DescribeStats(const FVeyraItemStatsTuning& Stats)
 	};
 	Add(Stats.Health, LOCTEXT("Health", "+{0} Health"));
 	Add(Stats.HealthRegeneration, LOCTEXT("HealthRegeneration", "+{0} Health Regeneration"));
+	Add(Stats.Armor, LOCTEXT("Armor", "+{0} Armor"));
+	Add(Stats.MagicResist, LOCTEXT("MagicResist", "+{0} Magic Resist"));
 	Add(Stats.PhysicalPower, LOCTEXT("PhysicalPower", "+{0} Physical Power"));
 	Add(Stats.MagicPower, LOCTEXT("MagicPower", "+{0} Magic Power"));
 	Add(Stats.AttackSpeed * Percent, LOCTEXT("AttackSpeed", "+{0}% Attack Speed"));

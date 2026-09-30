@@ -24,6 +24,8 @@ FVeyraEquipmentStats StatsFor(const FVeyraItemsTuning& Tuning, TConstArrayView<F
 		}
 		Stats.MaxHealth += Item->Stats.Health * Slot.Count + Slot.GrownHealth;
 		Stats.HealthRegen += Item->Stats.HealthRegeneration * Slot.Count;
+		Stats.Armor += Item->Stats.Armor * Slot.Count;
+		Stats.MagicResist += Item->Stats.MagicResist * Slot.Count;
 		Stats.PhysicalPower += Item->Stats.PhysicalPower * Slot.Count;
 		Stats.MagicPower += Item->Stats.MagicPower * Slot.Count;
 		Stats.AbilityHaste += Item->Stats.AbilityHaste * Slot.Count;
