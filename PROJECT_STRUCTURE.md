@@ -344,7 +344,18 @@ The Go backend from [`ADR-005`](Docs/ADR/ADR-005-launcher-session-handoff-and-lo
 
 ### Launcher (outside Unreal)
 
-The launcher from ADR-005 L1–L4 and [ADR-010](Docs/ADR/ADR-010-play-flow.md) §5 lives in [`Launcher/`](Launcher/README.md): a Tauri v2 app built with plain `cargo`. `core/` holds everything it does (its configuration, the build manifest, the backend client and the launch handshake), so the window (`app/`, `ui/`) and the headless `veyra-launch-cli` (`cli/`) are thin. It signs the player in, starts the packaged game and hands it a launch code, then closes; it never links to the game. `Game/Scripts/Play.ps1` opens it.
+The launcher from ADR-005 L1–L5, [ADR-010](Docs/ADR/ADR-010-play-flow.md) §5 and [ADR-022](Docs/ADR/ADR-022-installer-and-game-patching.md) lives in [`Launcher/`](Launcher/README.md): a Tauri v2 app built with plain `cargo`. It installs, updates and repairs the game, signs the player in, starts the game and hands it a launch code, then closes; it never links to the game. `Game/Scripts/Play.ps1` opens it.
+
+`core/` holds everything it does, so the window and the headless tools are thin:
+- its configuration and the build manifest;
+- the backend client and the launch handshake;
+- the release format and the install engine.
+
+Around it:
+- **The window:** `app/` and `ui/`.
+- **Headless tools** (`cli/`): `veyra-launch-cli` launches and `veyra-install` installs.
+- **`publish/`:** `veyra-publish`, which turns a packaged client into a release (`Game/Scripts/Publish.ps1`).
+- **`setup/`:** Veyra Setup, the NSIS installer for the launcher, built by `Launcher/Package.ps1`.
 
 ## 3. Content directory
 

@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "chunks": {
+    "minBytes": 262144,
+    "averageBytes": 1048576,
+    "maxBytes": 4194304
+  },
+  "zstdLevel": 9
+}

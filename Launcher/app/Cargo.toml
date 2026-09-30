@@ -12,4 +12,6 @@ serde = { version = "1", features = ["derive"] }
 # custom-protocol embeds the UI and serves it from the binary; the Tauri CLI would turn it on for
 # release builds, and this launcher builds with plain cargo (ADR-010 §5).
 tauri = { version = "2", features = ["custom-protocol"] }
+# The native folder picker for the install location (ADR-022 §7), used from Rust only.
+tauri-plugin-dialog = "2"
 veyra-launcher-core = { path = "../core" }

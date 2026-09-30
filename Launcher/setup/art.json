@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "art": "../../ConceptArt/Vanguards/raska/hero.webp",
+  "welcome": {
+    "focus": { "across": 0.47, "down": 0.5 },
+    "anchor": { "across": 0.5, "down": 0.5 },
+    "zoom": 1.0
+  },
+  "header": {
+    "focus": { "across": 0.49, "down": 0.09 },
+    "anchor": { "across": 0.72, "down": 0.45 },
+    "zoom": 4.5
+  }
+}

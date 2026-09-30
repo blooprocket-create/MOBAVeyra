@@ -20,12 +20,36 @@
     <div class="working" aria-hidden="true"></div>
   </section>
 
+  <section id="install" hidden>
+    <h2 id="install-title">Install Veyra</h2>
+    <p class="note" id="install-note"></p>
+    <label for="folder">Install location</label>
+    <div class="folder">
+      <output id="folder"></output>
+      <button id="change-folder" type="button" class="quiet">Change</button>
+    </div>
+    <button id="install-button" type="button" class="primary">Install</button>
+  </section>
+
+  <section id="installing" hidden>
+    <h2 id="install-stage"></h2>
+    <div class="bar" role="progressbar" aria-labelledby="install-stage" aria-valuemin="0" aria-valuemax="100">
+      <div class="fill" id="install-fill"></div>
+    </div>
+    <div class="figures">
+      <span id="install-percent"></span>
+      <span id="install-bytes"></span>
+    </div>
+    <p class="note" id="install-speed"></p>
+  </section>
+
   <section id="sign-in" hidden>
     <h2>Sign In</h2>
     <p class="note">Development sign-in: choose an account. There is no password until Veyra's identity provider arrives.</p>
     <label for="account">Account</label>
     <select id="account"></select>
-    <button id="play" type="button">Play</button>
+    <button id="play" type="button" class="primary">Play</button>
+    <p class="note warning" id="game-note" hidden></p>
   </section>
 
   <section id="progress" hidden>
@@ -40,7 +64,10 @@
     <button id="retry" type="button">Try Again</button>
   </section>
 
-  <footer id="build"></footer>
+  <footer>
+    <button id="repair" type="button" class="link" hidden>Repair</button>
+    <span id="build"></span>
+  </footer>
 </main>
 </body>
 </html>

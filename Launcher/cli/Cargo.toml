@@ -8,6 +8,11 @@ publish.workspace = true
 name = "veyra-launch-cli"
 path = "src/main.rs"
 
+# The launcher's install, update, repair and uninstall without its window (ADR-022 §8).
+[[bin]]
+name = "veyra-install"
+path = "src/bin/install.rs"
+
 # A stand-in for the game that speaks the launch handshake, for this package's tests and for
 # scripts that check a launcher without the engine.
 [[bin]]
@@ -19,3 +24,5 @@ veyra-launcher-core = { path = "../core" }
 
 [dev-dependencies]
 serde_json = "1"
+# The install tests publish their releases.
+veyra-publish = { path = "../publish" }

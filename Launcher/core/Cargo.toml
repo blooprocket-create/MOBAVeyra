@@ -10,5 +10,9 @@ name = "veyra_launcher_core"
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+# Release chunks: SHA-256 names them and each is a zstd frame (ADR-022 §4). The decoder only; the
+# legacy formats stay out.
+sha2 = "0.10"
+zstd = { version = "0.14", default-features = false }
 # All of the launcher's HTTP, over rustls, so the web view makes no cross-origin calls (ADR-010 §5).
 ureq = { version = "3", features = ["json"] }

@@ -13,7 +13,7 @@
 
 use std::path::PathBuf;
 use std::process::ExitCode;
-use veyra_launcher_core::{backend::Backend, config, default_config_path, launch, manifest};
+use veyra_launcher_core::{backend::Backend, config, default_config_path, game, launch};
 
 const USAGE: &str =
     "usage: veyra-launch-cli [--config <file>] --account <name> [-- <more game arguments>]\n       veyra-launch-cli [--config <file>] --accounts";
@@ -81,10 +81,10 @@ fn main() -> ExitCode {
         };
     }
 
-    let build = match manifest::load(&loaded.manifest_path) {
+    let build = match game::build(&loaded) {
         Ok(build) => build,
-        Err(error) => {
-            eprintln!("veyra-launch: {error}");
+        Err(problem) => {
+            eprintln!("veyra-launch: {problem}");
             return ExitCode::from(2);
         }
     };

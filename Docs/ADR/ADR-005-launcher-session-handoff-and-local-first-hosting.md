@@ -44,6 +44,10 @@ Code-signing certificate, anti-cheat installation, the production identity provi
     - The game reads its launch code from standard input (`-VeyraLaunchCode=stdin`), redeems it with its build version (`ProjectVersion` in `Game/Config/DefaultGame.ini`) and joins the match the backend assigned it.
     - The backend starts one Linux server container per match and records its result.
     - `Game/Scripts/Smoke.ps1 -Handoff` plays a match this way end to end. `veyra-devlaunch` starts the game over the same channel.
+  - **Amendment (2026-09-30, M17, proposed): step 6 is implemented** under [ADR-022](ADR-022-installer-and-game-patching.md), which also chooses L5's chunking and compression: FastCDC chunks named by SHA-256, each a zstd frame.
+    - `Game/Scripts/Publish.ps1` publishes the packaged client to a local file server, `compose.yaml`'s `releases` service.
+    - The launcher installs, updates and repairs the game from that server.
+    - Veyra Setup installs the launcher.
 - Endpoints, timeouts, code lifetimes and retry policies are validated configuration, never literals.
 - Hosted vendors (identity, database host, match-server fleet, website host, CDN), anti-cheat and Perforce remain open decisions for a later ADR.
 - Tuning authored as binary Data Assets cannot be edited by agents; how tuning is authored (for example text imported into DataTables) is a scaffolding decision still to be made.
