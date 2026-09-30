@@ -210,6 +210,54 @@ struct FVeyraUnitKindMultiplierTuning
 	double Multiplier = 1.0;
 };
 
+/** Whether a reaction removes the status it reacted to (ADR-026 §1). */
+UENUM()
+enum class EVeyraReactionConsume : uint8
+{
+	Keep,
+	Consume,
+};
+
+/** Whether a reaction's damage counts once or once per stack the target held (ADR-026 §1). */
+UENUM()
+enum class EVeyraReactionScaling : uint8
+{
+	Once,
+	PerStack,
+};
+
+/**
+ * What a hit adds when its target holds a status (ADR-026 §1), as Rupture's burst on Splinters or
+ * Flash Cure's stun on an Unstable target. It reads the statuses the target held as the hit landed.
+ */
+USTRUCT()
+struct FVeyraReactionTuning
+{
+	GENERATED_BODY()
+
+	/** The status the target must hold, from any source. */
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	UPROPERTY()
+	EVeyraReactionConsume Consume = EVeyraReactionConsume::Keep;
+
+	/** At most one: extra damage, once or per stack held. */
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> Damage;
+
+	UPROPERTY()
+	EVeyraReactionScaling Scaling = EVeyraReactionScaling::Once;
+
+	/** Extra statuses for the target. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	/** Statuses of the bundle's own that this reaction takes the place of. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Replaces;
+};
+
 /** What happens to each unit an area hits (ADR-008 §3). */
 USTRUCT()
 struct FVeyraEffectBundleTuning
@@ -242,6 +290,10 @@ struct FVeyraEffectBundleTuning
 	 */
 	UPROPERTY()
 	TArray<FVeyraContentId> DisplacementUnlessStatuses;
+
+	/** What the hit adds against statuses its target holds (ADR-026 §1). */
+	UPROPERTY()
+	TArray<FVeyraReactionTuning> Reactions;
 };
 
 /** How a DamageOverTime status ticks (Combat Bible §14; ADR-015 §3). */
@@ -306,6 +358,13 @@ struct FVeyraStatusTuning
 	/** An AttackDamageAmplification's unit kinds, empty for all; empty for any other kind. */
 	UPROPERTY()
 	TArray<EVeyraUnitKind> UnitKinds;
+
+	/**
+	 * At most one: the status this becomes when an application brings it to its most stacks, from the
+	 * same source, as Splinters become Fractured (ADR-026 §2).
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> AtMaxStacks;
 };
 
 /** Where an area is placed. */

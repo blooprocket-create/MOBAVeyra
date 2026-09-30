@@ -106,7 +106,7 @@
       "description": "What happens to each unit hit.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["damage", "statuses", "displacement", "missingHealthDamage", "unitKindMultipliers", "displacementUnlessStatuses"],
+      "required": ["damage", "statuses", "displacement", "missingHealthDamage", "unitKindMultipliers", "displacementUnlessStatuses", "reactions"],
       "properties": {
         "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
         "statuses": { "$ref": "#/definitions/statusIds" },
@@ -127,7 +127,25 @@
           }
         },
         "unitKindMultipliers": { "description": "Damage multiplied against some kinds of unit, at least 1, once per kind, never structures (ADR-018 §6).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "object", "additionalProperties": false, "required": ["kind", "multiplier"], "properties": { "kind": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward"] }, "multiplier": { "type": "number", "minimum": 1 } } } },
-        "displacementUnlessStatuses": { "description": "Statuses that spare a unit this displacement: one displacement per target per cast (Roster Bible §1).", "$ref": "#/definitions/statusIds" }
+        "displacementUnlessStatuses": { "description": "Statuses that spare a unit this displacement: one displacement per target per cast (Roster Bible §1).", "$ref": "#/definitions/statusIds" },
+        "reactions": {
+          "description": "What the hit adds when its target holds a status, read as the hit lands (ADR-026 §1): Rupture's burst on Splinters, Flash Cure's stun on an Unstable target.",
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["status", "consume", "damage", "scaling", "statuses", "replaces"],
+            "properties": {
+              "status": { "description": "The status the target must hold, from any source.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+              "consume": { "description": "Consume removes the status once the reaction resolves.", "type": "string", "enum": ["Keep", "Consume"] },
+              "damage": { "description": "At most one: extra damage.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/damage" } },
+              "scaling": { "description": "Once, or PerStack: times the stacks the target held.", "type": "string", "enum": ["Once", "PerStack"] },
+              "statuses": { "description": "Extra statuses for the target.", "$ref": "#/definitions/statusIds" },
+              "replaces": { "description": "Statuses of the bundle's own this reaction takes the place of.", "$ref": "#/definitions/statusIds" }
+            }
+          }
+        }
       }
     },
     "zone": {
@@ -234,7 +252,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds", "arcDegrees", "unitKinds"],
+          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds", "arcDegrees", "unitKinds", "atMaxStacks"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
@@ -277,6 +295,7 @@
               "minimum": 0
             },
             "arcDegrees": { "description": "DirectionalDamageReduction: the arc of the unit's facing it guards, in degrees; 0 for any other kind.", "type": "number", "minimum": 0, "maximum": 360 },
+            "atMaxStacks": { "description": "At most one: the status this becomes when an application brings it to its most stacks, from the same source (ADR-026 §2).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
             "unitKinds": {
               "description": "AttackDamageAmplification: the unit kinds it amplifies attacks against (EVeyraUnitKind), empty for all; empty for any other kind.",
               "type": "array",

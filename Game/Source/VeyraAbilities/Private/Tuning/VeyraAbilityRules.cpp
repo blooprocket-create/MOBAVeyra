@@ -96,6 +96,26 @@ namespace
 			{
 				Problem(Pointer + TEXT("/missingHealthDamage"), TEXT("joins the hit's damage, so the effects need damage too"));
 			}
+			for (int32 Index = 0; Index < Effects.Reactions.Num(); ++Index)
+			{
+				const FVeyraReactionTuning& Reaction = Effects.Reactions[Index];
+				const FString ReactionPointer = FString::Printf(TEXT("%s/reactions/%d"), *Pointer, Index);
+				CheckStatusIds(ReactionPointer + TEXT("/status"), { Reaction.Status });
+				CheckDamage(ReactionPointer + TEXT("/damage"), Reaction.Damage);
+				CheckStatusIds(ReactionPointer + TEXT("/statuses"), Reaction.Statuses);
+				CheckStatusIds(ReactionPointer + TEXT("/replaces"), Reaction.Replaces);
+				if (Reaction.Damage.IsEmpty() && Reaction.Statuses.IsEmpty() && Reaction.Consume == EVeyraReactionConsume::Keep)
+				{
+					Problem(ReactionPointer, TEXT("does nothing: it needs damage, statuses or to consume what it reacts to"));
+				}
+				for (const FVeyraContentId& Replaced : Reaction.Replaces)
+				{
+					if (!Effects.Statuses.Contains(Replaced))
+					{
+						Problem(ReactionPointer + TEXT("/replaces"), FString::Printf(TEXT("replaces \"%s\", which the effects do not give"), *Replaced.ToString()));
+					}
+				}
+			}
 			TArray<EVeyraUnitKind> Kinds;
 			for (int32 Index = 0; Index < Effects.UnitKindMultipliers.Num(); ++Index)
 			{
@@ -124,6 +144,13 @@ namespace
 				for (const FString& StatusProblem : VeyraStatuses::Validate(ToStatusSpec(Status.Key, Status.Value)))
 				{
 					Problem(Pointer, StatusProblem);
+				}
+				// A status that turns into another at its most stacks has stacks to fill, and another to become (ADR-026 §2).
+				const TArray<FVeyraContentId>& Becomes = Status.Value.AtMaxStacks;
+				CheckStatusIds(Pointer + TEXT("/atMaxStacks"), Becomes);
+				if (Becomes.Num() > 1 || (!Becomes.IsEmpty() && (Status.Value.MaxStacks < 2 || Becomes[0] == Status.Key)))
+				{
+					Problem(Pointer + TEXT("/atMaxStacks"), TEXT("names at most one other status, for a status that stacks"));
 				}
 			}
 		}

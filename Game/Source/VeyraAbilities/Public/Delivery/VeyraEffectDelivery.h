@@ -12,6 +12,17 @@
 class AActor;
 class UAbilitySystemComponent;
 
+/** A reaction prepared at Commit: its damage worked out from the caster's power then (ADR-026 §1). */
+struct FVeyraPreparedReaction
+{
+	FVeyraContentId Status;
+	bool bConsume = false;
+	bool bPerStack = false;
+	FVeyraDamageComponents Damage;
+	TArray<FVeyraStatusSpec> Statuses;
+	TArray<FVeyraContentId> Replaces;
+};
+
 /** What an ability does to each unit it hits, prepared at Commit (Combat Bible §50). */
 struct FVeyraPreparedEffects
 {
@@ -30,6 +41,9 @@ struct FVeyraPreparedEffects
 
 	/** Statuses that spare a unit the displacement. */
 	TArray<FVeyraContentId> DisplacementUnlessStatuses;
+
+	/** What the hit adds against statuses its target holds, in order. */
+	TArray<FVeyraPreparedReaction> Reactions;
 };
 
 /** Where effects are applied from: the point displacements are measured from, and the way they face. */
