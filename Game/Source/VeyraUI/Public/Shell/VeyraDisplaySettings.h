@@ -23,7 +23,7 @@ enum class EVeyraDisplayMode : uint8
 /**
  * How the game uses the screen. The pre-game client keeps its window. A match takes the screen in
  * MatchDisplayMode from the loading after champion select until the match ends, and the client's
- * window comes back for the results, as League's client and game do. Presentation, stored in
+ * window comes back for the results. Presentation, stored in
  * Config/DefaultGame.ini; the player's own choice, display_match_mode in the Settings screen
  * (Settings Bible 166), takes its place.
  */

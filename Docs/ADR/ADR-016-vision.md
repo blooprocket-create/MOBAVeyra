@@ -1,12 +1,12 @@
 # ADR-016: Vision: team fog at the data boundary, Dense Fog, and the vision tools
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent; §11 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M11 pull requests that add it.  
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent; §11 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M11 pull requests that add it.  
 **Date:** 2026-09-29  
 **Related:** [ADR-003](ADR-003-owned-field-entities.md) (placed markers, world volumes), [ADR-006](ADR-006-unreal-project-scaffold.md) §5 (Iris and the fog gate), [ADR-009](ADR-009-runtime-combat-primitives.md) §7 (PlayerState data behind the gate), [ADR-011](ADR-011-battleground-runtime.md) (the Battleground layer, Match routing, the layout), [ADR-012](ADR-012-items-and-shop.md) (the fountain shop), [ADR-013](ADR-013-ai-vanguards.md) (bot senses), [ADR-015](ADR-015-flux-spells.md) (a slot beside the spells), [Vision Bible](../Design/Veyra_Vision_Bible_v0.1.md), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md) §11, [Combat Bible](../Design/Veyra_Combat_Bible_v0.5.md) §10–§12, [Initial Roster Character Bible](../Design/Veyra_Initial_Roster_Character_Bible_v0.6.md) §19 (Bryn's Sounding Flare), [Architecture Constitution](../../ARCHITECTURE.md) §1.3, §4.
 
 ## Context
 
-A match today has no fog: every client receives every unit, and every Vanguard can target anything in range. That is the largest gap between the game and League, whose laning, ganks and objectives all turn on what each side can see. Canon settles the rules; it leaves every number open:
+A match today has no fog: every client receives every unit, and every Vanguard can target anything in range. That is the game's largest gap: laning, ganks and objectives all turn on what each side can see. Canon settles the rules; it leaves every number open:
 - **Team fog of war** with shared ordinary vision (Vision §1). There is no brush; **Dense Fog** volumes conceal instead (§2; Battleground §11).
   - An observer outside a volume can neither see nor target an enemy Vanguard inside it, even when a teammate is inside.
   - An observer inside the same volume can.
@@ -65,10 +65,10 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 
 - **Gated classes:** Vanguards, Fluxborn, wildlife, projectiles, delayed areas and wards use the engine's filter-out filter. Their `DynamicFilterName=None` exemptions go.
 - **Groups:** one inclusion group per side holds that side's own units. One per observer holds the enemy and neutral units that player currently sees. Vision is their only writer.
-- **Always visible:** structures and Flux Wells, as League shows towers and objective state; the Team Flux state is public.
+- **Always visible:** structures and Flux Wells, since tower and objective state is map knowledge; the Team Flux state is public.
 - **PlayerState data:**
   - The attribute sets and the status, combat-state, cast-state, basic-attack, shield (absorption) and Recall components replicate with `COND_NetGroup`.
-  - What League's scoreboard shows stays public: whether a participant is alive, its level and its items. Cooldowns, the loadout and Gold are its owner's alone.
+  - What the scoreboard shows stays public: whether a participant is alive, its level and its items. Cooldowns, the loadout and Gold are its owner's alone.
   - An ability-system component subclass registers the sets before their first send.
   - Each participant's group holds its teammates and its current observers. An observer who loses sight keeps the last value it saw.
   - Gated subobjects also join the owner's group, so the participant always has its own data, and the replay group, since the replay driver ignores Iris filters.
@@ -76,7 +76,7 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 
 ### 4. Dense Fog volumes are layout data and a runtime API
 
-- **Authored volumes:** `World.json`'s layout gains `denseFog`: circles in Team A's half, with Team B's derived by the layout's mirror. Placement is Battleground §11's grey-box decision; §11 of this record lists the League-like spots.
+- **Authored volumes:** `World.json`'s layout gains `denseFog`: circles in Team A's half, with Team B's derived by the layout's mirror. Placement is Battleground §11's grey-box decision; §11 of this record lists the spots.
 - **Runtime volumes:** Vision owns an API, `AddFogVolume(centre, radius, lifetime)`, for abilities that make fog (Sylra, later; ADR-003).
 - **Connected volumes:** overlapping circles are one volume while they touch, recomputed when a volume comes or goes.
 - **Presentation:** the grey box draws each volume as a dark translucent disc. Fogged enemies vanish because they are no longer replicated; darkening unseen ground waits for real presentation.
@@ -93,7 +93,7 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 ### 6. The vision tools are Vision's actions, in a slot of their own
 
 - **The slot:** `EVeyraAbilitySlot::VisionTool`, on its own key.
-- **The keys:** League players use 4 for their trinket, so the item keys become 1 2 3 5 6 7 and the tool takes 4, all as input data.
+- **The keys:** the tool takes 4, so the item keys become 1 2 3 5 6 7, all as input data.
 - **Not GAS abilities.** Their charges refill at the fountain, their cooldowns persist across swaps, and their every effect is Vision's (wards, True Sight, sight areas). So they are Vision's actions:
   - `UVeyraVisionToolComponent` on the PlayerState holds the equipped tool, the ward charges and their recharge, and each tool's cooldown. It replicates to its owner.
   - A use order goes controller → GameMode → Vision, which checks that the Vanguard is alive and not action-blocked (Combat's blocks, as for item actives) before acting.
@@ -103,7 +103,7 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
   - its destroyer is paid through Economy's `RewardWardDestroyed`.
 - **A ward is a unit of its own kind** (`EVeyraUnitKind::Ward`), so Combat can hold its rules without naming it:
   - **It counts hits, not damage.** Only a basic attack from a Vanguard reaches it, and each lands as one point of its Health, whatever the attack's damage and modifiers. Its Max Health is the data's hit count, and its death is an ordinary death, so the credited killer is its destroyer.
-  - **Abilities pass it by.** Statuses ignore it, and area and skillshot gathering skip it, as League's wards stop no skillshot. Fluxborn and towers never choose it.
+  - **Abilities pass it by.** Statuses ignore it, and area and skillshot gathering skip it, so a ward stops no skillshot. Fluxborn and towers never choose it.
   - **It stops no one.** Its body is on its own collision object channel, which every other body ignores. It still blocks the cursor's unit trace, so a player can click a ward they see.
   - **Enemies see it only under True Sight** (§5, M11b G8). Its own side always receives it.
 - **Tools:**
@@ -116,8 +116,8 @@ A new module, **VeyraVision**, joins Flux and World in the Battleground layer. I
 ### 7. Bots see what their team sees
 
 - Bot senses read `IVeyraVisibility`, so a bot never reacts to what its team cannot see. The jungler's gank range still applies, but to seen enemies only.
-- A jungler still knows which of its own camps are up, as League players keep camp timers. It walks to a camp whose creatures it cannot see yet, and attacks only those its side sees.
-- The warding seats (`Bots.json` `warding.seats`: League's jungler and support) ward the Dense Fog patches they pass, League's bushes. A patch qualifies within `spotReach` of its centre, when no ward of their side stands within `spotSpacing`, with a charge in hand and no enemy Vanguard near.
+- A jungler still knows which of its own camps are up, as a player keeps their own camp timers. It walks to a camp whose creatures it cannot see yet, and attacks only those its side sees.
+- The warding seats (`Bots.json` `warding.seats`: the jungler and the support) ward the Dense Fog patches they pass. A patch qualifies within `spotReach` of its centre, when no ward of their side stands within `spotSpacing`, with a charge in hand and no enemy Vanguard near.
 
 ### 8. The HUD
 
@@ -141,23 +141,23 @@ Canon gives the three carried charges; every other value is Provisional.
 - **M11a, the fog:** the module, the contract, targeting, the gate, Dense Fog, Bryn's presence, and the PlayerState data.
 - **M11b, the tools:** the slot, wards, Sweeper, Quick Sight, pings, outlines, swaps, rewards, the HUD, and bots that ward.
 
-### 11. League answers where canon is silent (for the author to overturn)
+### 11. Provisional answers where canon is silent (for the author to overturn)
 
-1. **Sight radii (League's):** Vanguards and structures 1350, Fluxborn 1100, wards 900. Vision updates every 0.2 s.
-2. **Persistent Ward (League's Stealth Ward):**
+1. **Sight radii:** Vanguards and structures 1350, Fluxborn 1100, wards 900. Vision updates every 0.2 s.
+2. **Persistent Ward:**
    - 3 charges (canon), each recharging in 120 s;
    - each ward lasts 120 s;
    - placed within 600;
    - its fog sensor covers 500;
    - destroyed by 3 basic attacks from Vanguards.
-3. **Sweeper (Oracle Lens):** True Sight within 600 of its owner for 10 s; 90 s cooldown; outlines linger 1 s.
-4. **Quick Sight (Farsight Alteration, as temporary vision):** within 3500, a 500-radius area for 4 s; 120 s cooldown.
-5. **Economy:** a swap costs 50 Gold; destroying a ward pays 30 Gold (League's).
+3. **Sweeper:** True Sight within 600 of its owner for 10 s; 90 s cooldown; outlines linger 1 s.
+4. **Quick Sight (as temporary vision):** within 3500, a 500-radius area for 4 s; 120 s cooldown.
+5. **Economy:** a swap costs 50 Gold; destroying a ward pays 30 Gold.
 6. **Presence pings** every 2 s while an enemy Vanguard stays.
-7. **Keys:** the tool on 4, the items on 1 2 3 5 6 7 (League's).
-8. **Dense Fog spots, League's brush:** both river entrances on each side, the tri-brush spots beside top and bottom lanes, the brush where each of those lanes meets the river, and the two brushes flanking mid on each side. The author confirmed (2026-09-29) that Dense Fog is Veyra's replacement for League's bush.
-9. **Structures and Wells stay visible to both sides**, as League shows towers and the objective timers.
-10. **Only Vanguards hide in fog.** Canon's fog rules name enemy Vanguards (Vision Bible §2), so Fluxborn and wildlife inside fog stay under ordinary vision. League's bush hides minions too; the author may choose that instead.
+7. **Keys:** the tool on 4, the items on 1 2 3 5 6 7.
+8. **Dense Fog spots:** both river entrances on each side, the three-way spots beside top and bottom lanes, the spot where each of those lanes meets the river, and the two spots flanking mid on each side. The author confirmed (2026-09-29) that Dense Fog is Veyra's replacement for brush.
+9. **Structures and Wells stay visible to both sides**, since tower and objective state is map knowledge.
+10. **Only Vanguards hide in fog.** Canon's fog rules name enemy Vanguards (Vision Bible §2), so Fluxborn and wildlife inside fog stay under ordinary vision. Fog could hide them too; the author may choose that instead.
 
 ## Consequences
 

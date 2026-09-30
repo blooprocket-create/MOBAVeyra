@@ -58,7 +58,7 @@ EVeyraCastRejection UVeyraSelfBuffAbility::CheckTarget(const AActor& Caster, con
 		return EVeyraCastRejection::None;
 	}
 	// An allied Vanguard it names must be alive and within range; naming anything else, or nothing,
-	// buffs the caster, as League's smart self-cast does (ADR-027 §4, §9).
+	// buffs the caster, as Smart Self-Cast does (ADR-027 §4, §9).
 	switch (VeyraTargeting::CheckAllyTarget(Caster, Target.Actor, Buff->Cast.CastRange))
 	{
 	case EVeyraTargetValidity::Dead:
@@ -336,7 +336,7 @@ UAbilitySystemComponent* UVeyraSelfBuffAbility::FindMostWoundedAlly(const UAbili
 		[Body, Side](const AActor& Unit) {
 			return &Unit != Body && VeyraTeams::TeamOf(&Unit) == Side && VeyraUnits::IsVanguard(&Unit) && VeyraTargeting::IsAlive(&Unit);
 		});
-	// The ally that lacks the most of its Health; one at full Health needs none (League's Heal).
+	// The ally that lacks the most of its Health; one at full Health needs none.
 	UAbilitySystemComponent* MostWounded = nullptr;
 	double LowestFraction = 1.0;
 	for (AActor* Ally : Allies)

@@ -259,7 +259,7 @@ void UVeyraBasicAttackComponent::Commit()
 
 	NextAttackAt = Running->StartedAt + Running->Timing.IntervalSeconds;
 	// A blinded attacker's attack misses: its on-attack effects fire and its empowerment is spent, but it
-	// lands nothing, as League's Blind (ADR-028 §1). Decided first, so no attack modifier acts on it.
+	// lands nothing (ADR-028 §1). Decided first, so no attack modifier acts on it.
 	const UVeyraStatusComponent* Statuses = GetOwner()->FindComponentByClass<UVeyraStatusComponent>();
 	const bool bMissed = Statuses && Statuses->Has(EVeyraStatusKind::Blind);
 	const FVeyraAttackPlan Plan = BuildPlan(*Attacker, *Target, Running->Timing, Running->bEmpowered, bMissed);

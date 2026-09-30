@@ -239,7 +239,7 @@ public:
 	float GroundMarkingLift = 0.0f;
 
 	// The HUD's deck and strips (VeyraHudDeck). The Art Bible leaves the in-game HUD open (v0.1 §9), so
-	// its layout follows League's, in the client's design language, as provisional presentation.
+	// its layout is provisional presentation, in the client's design language.
 
 	/** The screen height the HUD's sizes are given for; it scales with the real height. */
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))

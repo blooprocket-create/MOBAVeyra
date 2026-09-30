@@ -47,7 +47,7 @@ public:
 	/**
 	 * Each uses the item in its inventory slot, 1 to 6 (author ruling 2026-09-28; ADR-012 §1): a
 	 * consumable is used up, and an Active is cast at the cursor, as Quick Cast casts. By default
-	 * they sit on League's keys, around the vision tool's (ADR-016 §6).
+	 * they sit on 1 2 3 5 6 7, around the vision tool's (ADR-016 §6).
 	 */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey Item1Key;

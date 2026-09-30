@@ -1533,7 +1533,7 @@ bool UVeyraSmokeFlowSubsystem::ChooseFluxSpells(const FVeyraClientSnapshot& Snap
 		{
 			if (Flow.CanIssue(EVeyraClientIntent::ChooseFluxSpell))
 			{
-				// As League's summoner spells: the slot's tile opens its picker, whose button of that name chooses it.
+				// The slot's tile opens its picker, whose button of that name chooses it.
 				if (OpenSpellSlot() != Slot)
 				{
 					Click(SpellSlotLabel(Slot));

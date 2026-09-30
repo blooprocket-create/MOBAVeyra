@@ -15,7 +15,7 @@ class UVeyraMovementComponent;
  * A creature's server-only controller (ADR-014 §2). On a world-time timer, so a pause holds it:
  * - it waits at its spot until its camp is attacked, then fights the latest Vanguard to hurt the camp;
  * - it gives up when it or its target leaves the camp's leash, or its target can no longer be fought,
- *   and walks home, where it heals to full (Battleground Bible §17; League's reset);
+ *   and walks home, where it heals to full (Battleground Bible §17; a reset);
  * - walking home it answers only an attacker within the leash;
  * - while crowd control locks its movement it holds, as a Fluxborn does.
  */

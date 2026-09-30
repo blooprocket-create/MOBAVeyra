@@ -395,7 +395,7 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(bMissed && Hits == 0 && World.HealthLost(Enemy) == 0.0, TEXT("it misses: nothing lands (ADR-028 §1)")));
 			ASSERT_THAT(IsTrue(Modified == 0, TEXT("and no attack modifier acts on it, since some act at once")));
 			ASSERT_THAT(IsFalse(World.Has(Enemy, TEXT("test_slow")), TEXT("nor the empowerment's status")));
-			ASSERT_THAT(IsFalse(Attacks->IsEmpowered(), TEXT("but the empowerment is spent, as in League")));
+			ASSERT_THAT(IsFalse(Attacks->IsEmpowered(), TEXT("but the empowerment is spent")));
 			ASSERT_THAT(IsTrue(Attacks->StartAttack(Enemy) == EVeyraAttackRejection::OnCooldown, TEXT("and so is the attack's time")));
 		}
 

@@ -22,7 +22,7 @@ Several facts in the code shape the design:
 1. **The planned layer for Flux and World cannot hold them.** `ModuleLayers.json` puts World and Flux beside VeyraAbilities in the Abilities layer. Fluxborn need `UVeyraBasicAttackComponent`, and tower shots need `AVeyraProjectile`, which both live in VeyraAbilities, and a module may not depend on a module in its own layer.
 2. **Combat records attribution only between Vanguards.** Kill credit for a death the environment finishes (Combat §18) is not implemented, and a Vanguard's takedown effects fire when it kills anything.
 3. **"Structure Attack" and "Structure Projectile"** (Combat §55) are on Combat §2's open descriptive-tag list, and Project Structure §5 forbids adding tags from an open list.
-4. **Canon's structure conversion did not fit the stat model.** Combat §33 gave every Vanguard a Primary Damage Type and had Magic-primary Vanguards hit structures with Magic Power, but no Vanguard declares one. Like League of Legends, every base Magic Power is 0: it is meant to come from items. The author ruled the conversion out (§5).
+4. **Canon's structure conversion did not fit the stat model.** Combat §33 gave every Vanguard a Primary Damage Type and had Magic-primary Vanguards hit structures with Magic Power, but no Vanguard declares one. Every base Magic Power is 0: it is meant to come from items. The author ruled the conversion out (§5).
 5. **Healing does not exist yet** (ADR-009 open item). The Prime Well's regeneration needs a minimal form of it.
 6. **In-process play sessions replicate no map-placed actor** (ADR-006 §8), so anything the network tests must see is spawned at runtime.
 
@@ -248,7 +248,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - `UVeyraGoldComponent` on the PlayerState holds a fractional balance, replicated to its owner only;
   - every grant carries a reason and is logged for audit;
   - starting Gold is granted when preparation begins;
-  - **passive Gold** (author ruling, 2026-09-28; Economy §1 amended, which had ruled it out): every participant on a side receives `Economy.json` `passiveGold.perPayment` (15) every `intervalSeconds` (10), 90 a minute, from `startSeconds` (30, Provisional: League starts it as the first minions spawn) after the match goes live, dead or alive. `UVeyraRewardSubsystem` pays it on a world-time timer, so a pause holds it; Match starts it at Live, and it stops with every other reward when the match ends. There is still no passive XP;
+  - **passive Gold** (author ruling, 2026-09-28; Economy §1 amended, which had ruled it out): every participant on a side receives `Economy.json` `passiveGold.perPayment` (15) every `intervalSeconds` (10), 90 a minute, from `startSeconds` (30, Provisional) after the match goes live, dead or alive. `UVeyraRewardSubsystem` pays it on a world-time timer, so a pause holds it; Match starts it at Live, and it stops with every other reward when the match ends. There is still no passive XP;
   - the UI rounds only for display.
 - **Rewards** follow Economy §3–§8:
   - **Fluxborn:**
@@ -286,7 +286,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
 
 ### 12. The battleground layout and map
 
-- **The macro shape looks like a familiar League-style battleground** (author ruling, 2026-09-28; Battleground §2):
+- **The macro shape is a familiar three-lane battleground** (author ruling, 2026-09-28; Battleground §2):
   - Team A's base is in the bottom-left corner and Team B's in the top-right;
   - top lane runs up the left side and across the top;
   - bot lane runs along the bottom and up the right side;
@@ -294,7 +294,7 @@ Lane Spires and base-defense towers share one attack component and one set of ru
   - the river crosses on the other diagonal;
   - inner jungle fills the four spaces between the lanes;
   - the river ends near the top and bot lane corners, where Battleground §6 places the two Flux Well sites.
-  - The author's reference is an overview of League of Legends' Summoner's Rift (2026-09-28). Each base is a quarter-disc plaza in its corner, with its three lanes fanning out.
+  - The author supplied a reference overview of this shape (2026-09-28). Each base is a quarter-disc plaza in its corner, with its three lanes fanning out.
   - The Veyra difference: top and bot are set in from the edge, with **outer jungle** beyond them (Battleground §7).
 - **What M7 builds of the jungle.** Jungle and river are marked as distinct grey-box floor regions, so the shape reads and the space is reserved. Their walls, camps and routes arrive with the jungle work and stay Veyra's own.
 - **One data file drives both the map and the server's spawning.** `Game/Tuning/World.json` `layout` holds:
@@ -360,8 +360,8 @@ Lane Spires and base-defense towers share one attack component and one set of ru
 - **Lane structures fall in order** (§9); recorded in Battleground §10.
 - **Every Vanguard regenerates Health** (§11).
 - **The results screen builds up as features land**; it shows the winner now (§13).
-- **Basic attacks hit structures with Physical Power** for every Vanguard; Primary Damage Type conversion is removed from Combat §33. The stat model follows League's AD/AP split (§5).
-- **The map looks like a familiar League-style battleground at the macro scale**, with outer jungle beyond top and bot (§12); recorded in Battleground §2.
+- **Basic attacks hit structures with Physical Power** for every Vanguard; Primary Damage Type conversion is removed from Combat §33. The stat model splits Physical Power from Magic Power (§5).
+- **The map is a familiar three-lane battleground at the macro scale**, with outer jungle beyond top and bot (§12); recorded in Battleground §2.
 
 **Provisional answers where canon is silent:**
 
@@ -384,7 +384,7 @@ Every value below is designer-editable data; none is a constant in code. Each re
 
 | Area | Owner | Values |
 |---|---|---|
-| Layout | `World.json` | Floor 18000 × 18000. Top and bot lanes run 2500 in from the edges, leaving an outer jungle band beyond them. Lanes are 700 wide; the river is 1000 wide on the anti-diagonal. Each base is a quarter-disc about 4200 across around its lane corner, with the fountain in the map corner. Between the inhibitors, side lanes are about 17 500 long and mid about 10 500, close to League's proportions |
+| Layout | `World.json` | Floor 18000 × 18000. Top and bot lanes run 2500 in from the edges, leaving an outer jungle band beyond them. Lanes are 700 wide; the river is 1000 wide on the anti-diagonal. Each base is a quarter-disc about 4200 across around its lane corner, with the fountain in the map corner. Between the inhibitors, side lanes are about 17 500 long and mid about 10 500 |
 | Spire positions | `World.json` | Distance from the owning inhibitor: side lanes 1200 / 3200 / 5500 (the outer Spire before the lane's corner); mid 1000 / 2200 / 3400. Three per lane (Canon) |
 | Lane Spire and base tower | `World.json` | Health 3500 / 3000; Armor 60, Magic Resist 60; 150 Physical damage every 1.0 s; range 750; projectile speed 1200; reconsiders its target every 0.25 s; ramp +20% per shot, five stacks (Canon illustration) |
 | Inhibitor | `World.json` | Health 3000; rebuild 180 s (Canon); +1 Breaker per new wave in its lane while down |

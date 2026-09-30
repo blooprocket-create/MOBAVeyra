@@ -101,7 +101,7 @@ void AVeyraPlayerController::BeginPlay()
 		Parameters.Owner = this;
 		Parameters.ObjectFlags |= RF_Transient;
 		CameraRig = GetWorld()->SpawnActor<AVeyraCameraRig>(Parameters);
-		// The mode the player left the camera in last match (SET-5; League keeps its camera lock too).
+		// The mode the player left the camera in last match (SET-5).
 		CameraRig->SetMode(CameraPreferences().DefaultMode);
 		if (APawn* Vanguard = GetVanguard())
 		{
@@ -972,7 +972,7 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 	if (WasInputKeyJustPressed(Keys.CameraModeKey))
 	{
 		CameraRig->SetMode(VeyraCamera::Next(CameraRig->GetMode()));
-		// Kept for the next match, as League keeps its camera lock.
+		// Kept for the next match.
 		if (UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this))
 		{
 			Settings->GetStore().Set(VeyraCameraPreferences::DefaultMode(), VeyraCameraPreferences::ModeName(CameraRig->GetMode()), /*bInLiveMatch*/ true);
@@ -984,7 +984,7 @@ void AVeyraPlayerController::TickCamera(float DeltaTime)
 	FVector2D Mouse;
 	const bool bHasMouse = GetMousePosition(Mouse.X, Mouse.Y);
 	const UGameViewportClient* Viewport = GetLocalPlayer() ? GetLocalPlayer()->ViewportClient : nullptr;
-	// The edges pan only while the game's window has focus, as League's do.
+	// The edges pan only while the game's window has focus.
 	if (bHasMouse && View.bEdgeScroll && Viewport && Viewport->Viewport && Viewport->Viewport->HasFocus())
 	{
 		FVector2D Size;

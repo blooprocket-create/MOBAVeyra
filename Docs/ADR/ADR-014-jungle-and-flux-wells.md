@@ -1,12 +1,12 @@
 # ADR-014: The jungle and Flux Wells: neutral units, camps, traits and the Well objective
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent; §9 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M10a pull request that adds it.  
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent; §9 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M10a pull request that adds it.  
 **Date:** 2026-09-28  
 **Related:** [ADR-009](ADR-009-runtime-combat-primitives.md) (targeting, statuses, kill credit), [ADR-011](ADR-011-battleground-runtime.md) (World, Flux, rewards, the layout, Match routing), [ADR-013](ADR-013-ai-vanguards.md) (bots), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md) §6–§9, §17, [Economy & Progression Bible](../Design/Veyra_Economy_Progression_Bible_v0.1.md) §7, §8.2, [Combat Bible](../Design/Veyra_Combat_Bible_v0.5.md) §29, §44, [Architecture Constitution](../../ARCHITECTURE.md) §1.3, §1.7.
 
 ## Context
 
-After M9 the battleground has lanes, structures, waves, items and bots that play a whole match. Two of the Battleground Bible's defining systems are still missing, and League players would miss them first:
+After M9 the battleground has lanes, structures, waves, items and bots that play a whole match. Two of the Battleground Bible's defining systems are still missing, and players would miss them first:
 - **Jungle wildlife** (§7, §8, §17; Economy §7): native fauna in the inner and outer jungle.
   - Camps have fixed identities, and each creature pays at its death: Gold to its credited killer only, and XP shared by that team's nearby living Vanguards.
   - A cleared camp grants a temporary species trait and respawns on its own timer.
@@ -43,8 +43,8 @@ Through the existing paths, kill credit, attribution, `OnHostileDamage` (so a cr
 - **`AVeyraWildlife`** follows the Fluxborn pattern: an `ACharacter` on `UVeyraMovementComponent`, its own Minimal ASC, the combat components and a basic attack. It is kind `Wildlife`, on no side, and replicated with push model at World's unit rate.
 - **`AVeyraWildlifeController`** is a server AI on a world-time think timer:
   - it waits at its spot;
-  - hit by anyone, its whole camp turns on the attacker (League's camp aggro), and each creature keeps to the latest Vanguard that hurt the camp;
-  - a creature that would chase beyond its camp's leash radius, or loses every target, walks home and is restored to full Health (League's reset);
+  - hit by anyone, its whole camp turns on the attacker (camp aggro), and each creature keeps to the latest Vanguard that hurt the camp;
+  - a creature that would chase beyond its camp's leash radius, or loses every target, walks home and is restored to full Health (a reset);
   - it never leaves its camp's area.
 - **`UVeyraJungleSubsystem`** (a World subsystem beside the battleground's, so the latter does not grow):
   - spawns each camp at its spawn time on the match clock, which Match starts at Live as it starts the waves;
@@ -98,7 +98,7 @@ No victory rule changes: neither kind of neutral unit is a structure.
 
 ### 7. Bots (amends ADR-013)
 
-- The fifth seat plays jungle, as League's jungler does.
+- The fifth seat plays jungle.
   - It clears its side's camps nearest first, backs and recalls when hurt, and ganks a lane when an enemy Vanguard there is hurt and near.
   - Its camps, route and thresholds are data in `Bots.json`.
 - A laner whose lane is quiet joins an open Well within its reach.
@@ -109,12 +109,12 @@ Every number above is in `World.json`, `Flux.json`, `Economy.json`, `Abilities.j
 - the spawn groups (0:55, 1:07);
 - a Well's opening time (6:00), grant (+50 temporary for 3 minutes) and cycle (5 minutes).
 
-### 9. League answers where canon is silent (for the author to overturn)
+### 9. Provisional answers where canon is silent (for the author to overturn)
 
 1. **Camps:**
    - Six per side, one of each working species (§8): Ashfang (movement speed), Stonehorn (damage reduction), Skittermaw pack (three creatures, attack speed), Miremother (Health Regeneration), Razorback (damage amplification), Gloomwing (no trait until Vision gives it tracking).
    - Four sit in the inner jungle and two in the outer, mirrored.
-2. **Traits:** the Vanguard that lands the camp's last kill takes the trait, for 90 s, as League's buffs go to the killer.
+2. **Traits:** the Vanguard that lands the camp's last kill takes the trait, for 90 s.
 3. **Camp aggro and reset:** a camp answers together. A creature beyond its leash, or without a target, walks home and heals to full.
 4. **The Well:**
    - Health 4000, which one Vanguard takes in roughly 45 s by presence and attacks, and three in roughly 25 s.

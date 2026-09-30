@@ -1,6 +1,6 @@
 # ADR-017: Match statistics, the scoreboard, results and Match History
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent; §9 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M12 pull requests that add it.  
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent; §9 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M12 pull requests that add it.  
 **Date:** 2026-09-29  
 **Related:** [ADR-007](ADR-007-match-join-contract.md) (match results), [ADR-009](ADR-009-runtime-combat-primitives.md) (the combat pipeline, attribution), [ADR-010](ADR-010-play-flow.md) (results in the shell), [ADR-011](ADR-011-battleground-runtime.md) (rewards, structures), [ADR-012](ADR-012-items-and-shop.md) (inventory), [ADR-014](ADR-014-jungle-and-flux-wells.md) (wildlife, Wells), [ADR-015](ADR-015-flux-spells.md) (spell slots), [ADR-016](ADR-016-vision.md) (wards), [Match Statistics Bible](../Design/Veyra_Match_Statistics_Bible_v0.1.md), [Pre-Game Client UX Bible](../Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) §6–§7, [Settings Bible](../Design/Veyra_Settings_Accessibility_Bible_v0.1.md) #56, [Architecture Constitution](../../ARCHITECTURE.md) §1.3.
 
@@ -42,7 +42,7 @@ New server-only events on `UVeyraCombatEventSubsystem`, beside `OnDeath` and `On
 - **Vision:** wards placed and destroyed.
 - **Final equipment** as the match ends: the inventory's slots and both spell slots.
 
-What League's in-match scoreboard shows is public: `UVeyraScoreComponent` on the PlayerState replicates K/D/A and last hits to everyone, while the rest stays on the server until the result.
+What the in-match scoreboard shows is public: `UVeyraScoreComponent` on the PlayerState replicates K/D/A and last hits to everyone, while the rest stays on the server until the result.
 
 ### 4. The in-match scoreboard
 
@@ -66,9 +66,9 @@ Statistics are recorded facts, not tuning. The in-match scoreboard's key is inpu
 - **M12a:** the events, the service, the public score and the in-match scoreboard.
 - **M12b:** the result's scoreboard end to end, results, and Match History.
 
-### 9. League answers where canon is silent (for the author to overturn)
+### 9. Provisional answers where canon is silent (for the author to overturn)
 
-1. **Gold earned** counts starting Gold, as League's does, and every reward; sales, undone purchases and developer grants are not earned.
+1. **Gold earned** counts starting Gold and every reward; sales, undone purchases and developer grants are not earned.
 2. **Healing done** counts heals from abilities and items (Mend, a Field Tonic; lifesteal when it exists). Regeneration and the fountain are not a player's healing.
 3. **Crowd control** counts the kinds that exist, Stun and Slow, by duration on enemy Vanguards.
 4. **The in-match scoreboard** shows each player's Vanguard, level, K/D/A, last hits (minions and monsters) and items. Enemy Flux Spells stay hidden for now: they replicate to their owner.

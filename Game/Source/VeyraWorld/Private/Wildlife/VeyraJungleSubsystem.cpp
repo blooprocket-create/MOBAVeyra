@@ -190,7 +190,7 @@ void UVeyraJungleSubsystem::OnHostileDamage(const FVeyraHostileDamageEvent& Even
 	{
 		Camps[Hurt->GetCamp()].Contributors.AddUnique(Event.Source);
 	}
-	// The whole camp answers, as League's camps do.
+	// The whole camp answers.
 	for (AVeyraWildlife* Creature : GetCreatures(Hurt->GetCamp()))
 	{
 		if (AVeyraWildlifeController* Controller = Cast<AVeyraWildlifeController>(Creature->GetController()))

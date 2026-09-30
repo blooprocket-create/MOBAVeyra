@@ -45,7 +45,7 @@ namespace VeyraBotRules
 	VEYRABOTS_API double EdgeDistance(const FVeyraBotUnit& A, const FVeyraBotUnit& B);
 
 	/**
-	 * The decision, in League's priority order: stay dead, recalling or healing; retreat and recall
+	 * The decision, in priority order: stay dead, recalling or healing; retreat and recall
 	 * when hurt; step out of a tower shooting it; fight the weakest enemy Vanguard it has watched long
 	 * enough when the trade favours it and no enemy tower covers it; last-hit a Fluxborn; siege with
 	 * its wave; else hold its place in lane.

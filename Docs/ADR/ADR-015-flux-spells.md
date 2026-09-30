@@ -1,12 +1,12 @@
 # ADR-015: Flux Spells: two locked slots, permanent-Flux unlocks, free preselection and fountain swaps
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent; §10 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M10b pull request that adds it.  
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent; §10 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M10b pull request that adds it.  
 **Date:** 2026-09-29  
 **Related:** [ADR-002](ADR-002-gameplay-ability-system.md) (GAS), [ADR-008](ADR-008-vanguard-definitions-and-ability-composition.md) (ability archetypes), [ADR-009](ADR-009-runtime-combat-primitives.md) (statuses, delivery), [ADR-010](ADR-010-play-flow.md) (selection, the assignment), [ADR-011](ADR-011-battleground-runtime.md) (Team Flux, Match routing), [ADR-012](ADR-012-items-and-shop.md) (the fountain shop), [ADR-013](ADR-013-ai-vanguards.md) (bots), [Battleground Bible](../Design/Veyra_Battleground_Bible_v0.9.md) §12, §14, [Economy & Progression Bible](../Design/Veyra_Economy_Progression_Bible_v0.1.md) §13.2, [Combat Bible](../Design/Veyra_Combat_Bible_v0.5.md) §14, §15, §21, [Pre-Game Client UX Bible](../Design/Veyra_Pre_Game_Client_UX_Bible_v0.1.md) 36–40, [Match Flow Bible](../Design/Veyra_Match_Flow_Bible_v0.1.md) §1, [Architecture Constitution](../../ARCHITECTURE.md) §1.3, §1.11.
 
 ## Context
 
-Flux Spells are the last Battleground Bible system that a League player would look for first: League's summoner spells, on D and F. Canon fixes their rules but names no spell:
+Flux Spells are the last Battleground Bible system a player would look for first: two loadout spells, on D and F. Canon fixes their rules but names no spell:
 - **Two dedicated slots** (Battleground §14; Economy §13.2), separate from the six item slots and the vision-tool slot.
 - **Free preselection:** each player picks up to two before the match, in champion select, at no Gold cost. Either slot may stay empty (Pre-Game UX 36).
 - **Locked slots:** the picks start equipped but locked.
@@ -27,7 +27,7 @@ What the code has today (surveyed 2026-09-29):
    - One cast path serves them all: `ServerIssueCastOrder` → `AVeyraGameMode::HandleCastOrder` → `VeyraAbilities::TryCast`.
    - The slot enum's own comment reserves room for Flux Spells.
 2. **Cooldowns already have a haste category.** `UVeyraCooldownComponent` starts each cooldown with an `EVeyraCooldownHaste` chosen by the slot. `Item` applies no haste yet; it waits for Item Haste.
-3. **Archetypes are data.** An ability is an entry in one archetype map (`targetedDamage`, `area`, `selfBuff`, `skillshot`, `dash`, `empoweredAttack`); no ability is named in C++. What the League roster needs that the archetypes lack:
+3. **Archetypes are data.** An ability is an entry in one archetype map (`targetedDamage`, `area`, `selfBuff`, `skillshot`, `dash`, `empoweredAttack`); no ability is named in C++. What the spell roster (§10) needs that the archetypes lack:
    - a heal, and a way to reach an ally;
    - a damage-over-time status (Combat §14);
    - a status that reduces the damage a unit deals;
@@ -47,7 +47,7 @@ What the code has today (surveyed 2026-09-29):
 - **`EVeyraAbilitySlot` gains `Spell1` and `Spell2`,** with `VeyraAbilitySlots::Spells` and `IsSpellSlot`.
 - **Spells are granted and cast as items' Actives are:** through the loadout, `TryCast` and the same cast order.
 - **Rank:** a spell slot reads rank 1, as an item slot does.
-- **Input:** keys D and F by default (League's), in `UVeyraInputSettings` beside the item keys, with the same Quick Cast.
+- **Input:** keys D and F by default, in `UVeyraInputSettings` beside the item keys, with the same Quick Cast.
 - **No new component owns the slots.** The loadout already owns what each slot holds, and replicates it to its owner.
 
 ### 2. Fixed cooldowns
@@ -135,29 +135,29 @@ What the code has today (surveyed 2026-09-29):
 
 Canon gives the two thresholds; every other value is Provisional.
 
-### 10. League answers where canon is silent (for the author to overturn)
+### 10. Provisional answers where canon is silent (for the author to overturn)
 
-1. **The roster, League's five most common summoner spells:**
+1. **The roster, five spells (an escape, sustain, kill pressure, disruption and a jungle finisher):**
 
-   | Spell | League | What it does | Cooldown |
-   |---|---|---|---|
-   | **Blink** | Flash | an instant dash of 400 units toward the cursor | 300 s |
-   | **Mend** | Heal | heals the caster and the most-wounded ally within 850 units for 80 (+14 per Level), each gaining 30% movement speed for 1 s | 240 s |
-   | **Scorch** | Ignite | True damage over 5 s to one enemy Vanguard, 18 per second (+4 per Level) | 180 s |
-   | **Enfeeble** | Exhaust | one enemy Vanguard is slowed 30% and deals 35% less damage for 2.5 s | 240 s |
-   | **Wildstrike** | Smite | 600 True damage to wildlife, a Flux Well or a Fluxborn, never a Vanguard or structure; it can steal a Well | 90 s |
+   | Spell | What it does | Cooldown |
+   |---|---|---|
+   | **Blink** | an instant dash of 400 units toward the cursor | 300 s |
+   | **Mend** | heals the caster and the most-wounded ally within 850 units for 80 (+14 per Level), each gaining 30% movement speed for 1 s | 240 s |
+   | **Scorch** | True damage over 5 s to one enemy Vanguard, 18 per second (+4 per Level) | 180 s |
+   | **Enfeeble** | one enemy Vanguard is slowed 30% and deals 35% less damage for 2.5 s | 240 s |
+   | **Wildstrike** | 600 True damage to wildlife, a Flux Well or a Fluxborn, never a Vanguard or structure; it can steal a Well | 90 s |
 
-   Ghost, Barrier, Cleanse and Teleport can follow as more roster entries.
-2. **Blink stops at terrain,** as every dash does; Flash crosses thin walls. Wildstrike has one charge, not Smite's two.
-3. **Swap cost:** 150 Gold. League has no fountain swap to borrow from; 150 is a little under one basic component.
-4. **Which spells a slot may hold:** any, in either slot, but not the same spell twice (League's rule).
-5. **Bots take League's standard picks:**
+   A speed boost, a shield, a cleanse and a teleport can follow as more roster entries.
+2. **Blink stops at terrain,** as every dash does, and never crosses a wall. Wildstrike has one charge.
+3. **Swap cost:** 150 Gold, a little under one basic component.
+4. **Which spells a slot may hold:** any, in either slot, but not the same spell twice.
+5. **Bots take a standard pick per seat:**
    - Top and Mid: Blink and Scorch.
    - Jungle: Blink and Wildstrike.
    - The first Bottom: Blink and Mend.
    - The second (support): Blink and Enfeeble.
 
-**What differs from League by canon:** League's spells are ready at 0:00. Here the first slot waits for the team's first Spire or base tower (25 permanent Flux), so an early jungler has no Wildstrike.
+**What canon changes:** the spells are not ready at 0:00. The first slot waits for the team's first Spire or base tower (25 permanent Flux), so an early jungler has no Wildstrike.
 
 ## Consequences
 
@@ -190,7 +190,7 @@ Canon gives the two thresholds; every other value is Provisional.
 ## Open items
 
 - Playtest every value above.
-- Healing Reduction (Combat §6) and Ignite's anti-heal wait for the healing categories.
+- Healing Reduction (Combat §6) and Scorch's anti-heal wait for the healing categories.
 - Results 49's final-build snapshot of the two spells waits for match statistics.
 - Teammates' spells in champion select: only your own are shown for now.
-- Ghost, Barrier, Cleanse and Teleport.
+- A speed boost, a shield, a cleanse and a teleport.

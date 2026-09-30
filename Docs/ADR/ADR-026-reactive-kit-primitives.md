@@ -1,6 +1,6 @@
 # ADR-026: Reactive kit primitives for Moro, Korruk and Mavra
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent. §7 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M20 pull request that adds it.
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §7 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M20 pull request that adds it.
 **Date:** 2026-09-30
 **Related:**
 - [ADR-008](ADR-008-vanguard-kits-and-abilities.md): Vanguard kits, abilities as data, passives as classes.
@@ -43,7 +43,7 @@ A status in `Abilities.json` gains `atMaxStacks`: at most one status. When an ap
 
 ### 3. Root
 
-Combat gains `EVeyraStatusKind::Root`: the unit cannot move, nor cast an ability that moves it (a dash, a leap or an attach), and may attack and cast the rest. It is crowd control: Tenacity shortens it, and Unstoppable refuses it (Combat Bible §8). A dash or leap already under way is not stopped: as in League, only a displacement interrupts a dash (Combat Bible §9), and the Root holds the unit where the dash ends.
+Combat gains `EVeyraStatusKind::Root`: the unit cannot move, nor cast an ability that moves it (a dash, a leap or an attach), and may attack and cast the rest. It is crowd control: Tenacity shortens it, and Unstoppable refuses it (Combat Bible §8). A dash or leap already under way is not stopped: only a displacement interrupts a dash (Combat Bible §9), and the Root holds the unit where the dash ends.
 
 ### 4. Lingering areas that act
 
@@ -81,15 +81,15 @@ An area also gains `delayWithin`: while its point lies inside the caster's linge
 
 Every number is provisional tuning in `Abilities.json` and `Vanguards.json`.
 
-## 7. League answers where canon is open (provisional)
+## 7. Provisional answers where canon is open
 
 1. **A consumed Unstable** starts Exposure again; Contaminated goes on (Roster Bible §17 says only that Contaminated stays).
 2. **Rupture takes every Splinter it consumes as damage**, and Fractured as a larger burst. Only Rupture, Pressure Mine and Shatterfield's end consume; Q adds.
 3. **Pressure Mine erupts after its delay only.** A proximity trigger needs a placed object (ADR-003), not built yet.
-4. **Root stops dashes and leaps** as League's roots do; it does not stop attacks or other casts.
-5. **Wild Dominion heals a share of the damage** dealt to wildlife, as League's jungle sustain does.
-6. **Jungle terrain** is everything between the lanes that is not river or base, as League's jungle is.
-7. **Splinters and Exposure land only on enemy Vanguards**, as the bible's passives say. Contaminated, a damage over time, lands on every unit, as League's damage over time does.
+4. **Root stops dashes and leaps**; it does not stop attacks or other casts.
+5. **Wild Dominion heals a share of the damage** dealt to wildlife, sustaining the jungler between camps.
+6. **Jungle terrain** is everything between the lanes that is not river or base.
+7. **Splinters and Exposure land only on enemy Vanguards**, as the bible's passives say. Contaminated, a damage over time, lands on every unit.
 8. **A refreshed damage over time keeps its cadence**: its next tick comes when it would have, and only its duration starts again (Combat Bible §14 renews the duration and says nothing of the ticks). Before, a refresh restarted the ticks, so Contaminated, refreshed by residue and clouds, could stop ticking altogether.
 
 ## Consequences

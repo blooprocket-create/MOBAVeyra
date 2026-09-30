@@ -29,7 +29,7 @@ namespace VeyraWardCombatTests
 
 	// Veyra.Combat.WardHits.*: a ward counts hits, not damage. Only a Vanguard's basic attack reaches
 	// it, one point of Health each; abilities, procs, other units, statuses and areas pass it by
-	// (ADR-016 §6, League's wards).
+	// (ADR-016 §6).
 	TEST_CLASS(WardHits, "Veyra.Combat")
 	{
 		// Fixture values, not tuning.

@@ -343,7 +343,7 @@ namespace VeyraItemsTests
 			const FVeyraShopOffer* Harness = OfferFor(View, TEXT("test_harness"));
 			const FVeyraShopOffer* Temper = OfferFor(View, TEXT("test_temper"));
 			ASSERT_THAT(IsTrue(Harness && Temper));
-			// As in League, a tile chooses its item, and the one purchase button buys what is chosen.
+			// A tile chooses its item, and the one purchase button buys what is chosen.
 			ASSERT_THAT(IsNull(Screen->FindButton(UVeyraShopScreen::BuyLabel(Harness->Item, Harness->Price)), TEXT("nothing is chosen yet")));
 			Screen->FindButton(UVeyraShopScreen::TileLabel(Temper->Item))->Press();
 			ASSERT_THAT(IsTrue(Screen->GetSelectedItem() == Temper->Item));

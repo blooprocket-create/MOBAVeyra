@@ -270,7 +270,7 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckEnemyUnit(const AActor& Caster, 
 	{
 	case EVeyraTargetValidity::Valid:
 	{
-		// It may be for some kinds of unit only, as a Smite is for monsters (ADR-015 §3).
+		// It may be for some kinds of unit only, as Wildstrike is for monsters (ADR-015 §3).
 		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Target);
 		const bool bKindAllowed = Kinds.IsEmpty() || (Kind.IsSet() && Kinds.Contains(Kind.GetValue()));
 		return bKindAllowed ? EVeyraCastRejection::None : EVeyraCastRejection::InvalidTarget;

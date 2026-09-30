@@ -310,18 +310,18 @@ Every configuration is parsed strictly: each field is required, and an unknown f
 - **Party answers are numbered**, so a poll overtaken by an intent's answer is not shown.
 - **`Package.ps1` stages the client binary last built**, so a client change needs `Build.ps1 -Target VeyraClient` first.
 
-## Amendment (2026-09-28): champion select in League's layout
+## Amendment (2026-09-28): champion select's arrangement
 
-The author asked for champion select to look like League's. §4 still holds: the screen is UMG built in C++, with no widget Blueprint. What changed:
+The author ruled champion select's arrangement (2026-09-28). §4 still holds: the screen is UMG built in C++, with no widget Blueprint. What changed:
 
-- **The layout, League's:**
+- **The layout:**
   - The roster runs across the top as a bench of portraits.
   - The countdown sits between two bars that drain toward it; the backend's select now carries `pickSeconds`, the timer's full length (`Deadline − CreatedAt`).
   - The player's team runs down the left: each seat shows a round portrait, the Vanguard, the player and the status, with your own starting Flux Spells beside your portrait.
   - The enemy team runs down the right, showing only its locks, as the backend already rules.
   - The shown Vanguard (your lock, else your hover) is large in the middle, framed. It also fills the screen behind everything, dimmed (UX 27). Its name and title sit under it, with **View Abilities**, which lays the passive and Q, W, E and R over the art.
-  - Along the bottom: Your Match Setup (UX 38) where League keeps its chat, the two Flux Spell tiles and Lock In in the middle, and the mode in the corner.
-  - Each spell tile opens a picker over everything, as League's summoner spells do. It lists None and each roster spell with its description, and the slot's threshold (UX 36).
+  - Along the bottom: Your Match Setup (UX 38) on the left, the two Flux Spell tiles and Lock In in the middle, and the mode in the corner.
+  - Each spell tile opens a picker over everything. It lists None and each roster spell with its description, and the slot's threshold (UX 36).
 - **The art is imported, not hand-made:**
   - `Game/Scripts/BuildVanguardArt.ps1` converts each Playable Vanguard's `ConceptArt/Vanguards/<id>/hero.webp` to PNG, since the engine decodes no WebP.
   - It then runs `UVeyraVanguardArtCommandlet`, which saves `/Game/Veyra/UI/Vanguards/T_<id>_Hero`: a UI texture with no mips and no streaming, BC7.
@@ -335,7 +335,7 @@ The author asked for champion select to look like League's. §4 still holds: the
 
 ## Amendment (2026-09-28): a match takes the screen
 
-The author asked for the game to go fullscreen for a match and come back to its window for the results, as League's client and game do. Canon has only the Display Mode setting (Settings & Accessibility Bible 166: Windowed, Borderless Fullscreen, Fullscreen), so:
+The author asked for the game to go fullscreen for a match and come back to its window for the results. Canon has only the Display Mode setting (Settings & Accessibility Bible 166: Windowed, Borderless Fullscreen, Fullscreen), so:
 - **The pre-game client keeps its window**, which the launcher opens with `-windowed`.
 - **A match takes the screen** from the loading after champion select (Match Starting) through Connecting and the match itself. It uses `UVeyraDisplaySettings`' `MatchDisplayMode` (Borderless Fullscreen by default) at the resolution of the monitor its window is on, ignoring the launch's `-windowed`.
 - **The window comes back** when the match is over (Returning, then the results), at the size, mode and position it had.
