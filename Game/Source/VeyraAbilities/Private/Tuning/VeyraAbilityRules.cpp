@@ -245,6 +245,38 @@ namespace
 				CheckStatusIds(LingerPointer + TEXT("/casterStatuses"), Linger.CasterStatuses);
 				CheckStatusIds(LingerPointer + TEXT("/allyStatuses"), Linger.AllyStatuses);
 				CheckStatusIds(LingerPointer + TEXT("/enemyStatuses"), Linger.EnemyStatuses);
+				// What it does at each pulse and as it ends, and a warning for the end (ADR-026 §4).
+				if (Linger.PulseEffects.Num() > 1 || Linger.EndEffects.Num() > 1)
+				{
+					Problem(LingerPointer, TEXT("pulseEffects and endEffects hold at most one bundle each"));
+				}
+				for (int32 Bundle = 0; Bundle < Linger.PulseEffects.Num(); ++Bundle)
+				{
+					CheckEffects(FString::Printf(TEXT("%s/pulseEffects/%d"), *LingerPointer, Bundle), Linger.PulseEffects[Bundle]);
+				}
+				for (int32 Bundle = 0; Bundle < Linger.EndEffects.Num(); ++Bundle)
+				{
+					CheckEffects(FString::Printf(TEXT("%s/endEffects/%d"), *LingerPointer, Bundle), Linger.EndEffects[Bundle]);
+				}
+				if ((Linger.EndWarningSeconds > 0.0) == Linger.EndEffects.IsEmpty() || Linger.EndWarningSeconds > Linger.DurationSeconds)
+				{
+					Problem(LingerPointer + TEXT("/endWarningSeconds"), TEXT("above 0 exactly when the area has endEffects, and no longer than it lasts"));
+				}
+			}
+			// A delayed area may land sooner inside its caster's lingering area of another ability (ADR-026 §4).
+			for (int32 Index = 0; Index < Area.DelayWithin.Num(); ++Index)
+			{
+				const FVeyraAreaDelayWithinTuning& Within = Area.DelayWithin[Index];
+				const FString WithinPointer = FString::Printf(TEXT("%s/delayWithin/%d"), *Pointer, Index);
+				const FVeyraAreaAbilityTuning* Lingering = Tuning.Area.Find(Within.Ability);
+				if (!Lingering || Lingering->Linger.IsEmpty())
+				{
+					Problem(WithinPointer + TEXT("/ability"), FString::Printf(TEXT("names \"%s\", which is no area ability that lingers"), *Within.Ability.ToString()));
+				}
+				if (!(Area.DelaySeconds > 0.0) || !(Within.DelaySeconds > 0.0))
+				{
+					Problem(WithinPointer + TEXT("/delaySeconds"), TEXT("must be above 0, for an area that is delayed"));
+				}
 			}
 		}
 

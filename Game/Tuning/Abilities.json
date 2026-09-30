@@ -593,7 +593,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "seize_momentum": {
       "provenance": "Provisional",
@@ -628,7 +629,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "cairn_crushing_hold": {
       "provenance": "Provisional",
@@ -674,7 +676,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "cairn_burden_of_the_depths": {
       "provenance": "Provisional",
@@ -732,7 +735,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "qazharr_no_quarter": {
       "provenance": "Provisional",
@@ -767,7 +771,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "oriel_shattered_sky": {
       "provenance": "Provisional",
@@ -802,7 +807,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "oriel_final_radiance": {
       "provenance": "Provisional",
@@ -837,7 +843,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "bryn_sounding_flare": {
       "provenance": "Provisional",
@@ -872,7 +879,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "bryn_last_broadside": {
       "provenance": "Provisional",
@@ -918,7 +926,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "kade_sightline": {
       "provenance": "Provisional",
@@ -951,13 +960,17 @@
           "casterStatuses": ["kade_sightline_fervor"],
           "allyStatuses": ["kade_sightline_stride"],
           "enemyStatuses": [],
-          "sight": "Ordinary"
+          "sight": "Ordinary",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0
         }
       ],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "vera_break_the_line": {
       "provenance": "Provisional",
@@ -992,7 +1005,8 @@
       "consumesCasterStatuses": ["vera_cadence"],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "mimzi_winkbomb": {
       "provenance": "Provisional",
@@ -1027,7 +1041,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "mimzi_grand_prank": {
       "provenance": "Provisional",
@@ -1062,7 +1077,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "gorraveth_furnace_rake": {
       "provenance": "Provisional",
@@ -1085,7 +1101,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Free",
       "casterStatuses": ["gorraveth_rake_drag"],
-      "healOnHit": [{ "unitKinds": ["Wildlife"], "maxHealthRatioPerHit": 0.04, "capMaxHealthRatio": 0.12 }]
+      "healOnHit": [{ "unitKinds": ["Wildlife"], "maxHealthRatioPerHit": 0.04, "capMaxHealthRatio": 0.12 }],
+      "delayWithin": []
     },
     "gorraveth_furnace_rake_hunt": {
       "provenance": "Provisional",
@@ -1108,7 +1125,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Free",
       "casterStatuses": ["gorraveth_rake_drag"],
-      "healOnHit": [{ "unitKinds": ["Wildlife"], "maxHealthRatioPerHit": 0.04, "capMaxHealthRatio": 0.12 }]
+      "healOnHit": [{ "unitKinds": ["Wildlife"], "maxHealthRatioPerHit": 0.04, "capMaxHealthRatio": 0.12 }],
+      "delayWithin": []
     },
     "raska_powerslide": {
       "provenance": "Provisional",
@@ -1131,7 +1149,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     }
   },
   "selfBuff": {

@@ -509,6 +509,24 @@ struct FVeyraLingerTuning
 
 	UPROPERTY()
 	EVeyraLingerSight Sight = EVeyraLingerSight::None;
+
+	/**
+	 * At most one: what each pulse after it lands does to the enemy units inside, reactions included
+	 * (ADR-026 §4). Its zones are what it does as it lands.
+	 */
+	UPROPERTY()
+	TArray<FVeyraEffectBundleTuning> PulseEffects;
+
+	/** At most one: what it does to the enemy units inside as it ends, measured from its centre (ADR-026 §4). */
+	UPROPERTY()
+	TArray<FVeyraEffectBundleTuning> EndEffects;
+
+	/**
+	 * How long before its end the presentation marks it, so a rupture is readable (Roster Bible §17):
+	 * above 0 exactly when it has EndEffects, and no longer than it lasts.
+	 */
+	UPROPERTY()
+	double EndWarningSeconds = 0.0;
 };
 
 /**
@@ -531,6 +549,24 @@ struct FVeyraHealOnHitTuning
 	/** Of the caster's Max Health, the most one cast restores; at least MaxHealthRatioPerHit. */
 	UPROPERTY()
 	double CapMaxHealthRatio = 0.0;
+};
+
+/**
+ * A delay a delayed area takes instead while its point lies inside its caster's lingering area of
+ * another ability (ADR-026 §4), as Flash Cure's inside CODE BLACK.
+ */
+USTRUCT()
+struct FVeyraAreaDelayWithinTuning
+{
+	GENERATED_BODY()
+
+	/** An area ability that lingers. */
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	/** Above 0. */
+	UPROPERTY()
+	double DelaySeconds = 0.0;
 };
 
 /** An ability that hits the enemies in shapes at the caster or a ground point (ADR-008 §3). */
@@ -588,6 +624,10 @@ struct FVeyraAreaAbilityTuning
 	/** At most one: Health the caster restores from the units it hits, capped for the cast. */
 	UPROPERTY()
 	TArray<FVeyraHealOnHitTuning> HealOnHit;
+
+	/** For a delayed area: the first entry whose lingering area holds the area's point sets its delay instead. */
+	UPROPERTY()
+	TArray<FVeyraAreaDelayWithinTuning> DelayWithin;
 };
 
 /**

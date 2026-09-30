@@ -516,8 +516,8 @@ void UVeyraGreyboxSubsystem::RefreshTelegraphs()
 	for (TActorIterator<AVeyraLingeringArea> It(GetWorld()); It; ++It)
 	{
 		const AVeyraLingeringArea& Area = **It;
-		Telegraphs.Add(FVeyraTelegraph{ Area.GetPlacedShape(), EVeyraTelegraphSource::LingeringArea, Area.GetVeyraTeam(),
-			FMath::Max(0.0, Area.GetEndsAt() - Now) });
+		Telegraphs.Add(FVeyraTelegraph{ Area.GetPlacedShape(), Area.IsEndNear(Now) ? EVeyraTelegraphSource::LingeringAreaEnding : EVeyraTelegraphSource::LingeringArea,
+			Area.GetVeyraTeam(), FMath::Max(0.0, Area.GetEndsAt() - Now) });
 	}
 }
 
@@ -580,7 +580,8 @@ void UVeyraGreyboxSubsystem::DrawTelegraphs()
 	{
 		FVeyraPlacedShape OnGround = Telegraph.Placed;
 		OnGround.Origin = GroundUnder(Telegraph.Placed.Origin);
-		const FLinearColor Color = ColorOfSide(Telegraph.Team);
+		// An end about to land is marked in one colour for every side, so it reads as a warning (ADR-026 §4).
+		const FLinearColor Color = Telegraph.Source == EVeyraTelegraphSource::LingeringAreaEnding ? Settings.EndingColor : ColorOfSide(Telegraph.Team);
 		for (const FVeyraOutlineSegment& Segment : VeyraGreyboxOutline::Of(OnGround, Settings.CircleSegments))
 		{
 			// A lifetime of 0 keeps the line until the next refresh flushes it.

@@ -50,6 +50,7 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("DenseFogColor"), DenseFogColor },
 		{ TEXT("PresencePingColor"), PresencePingColor },
 		{ TEXT("OutlineColor"), OutlineColor },
+		{ TEXT("EndingColor"), EndingColor },
 	};
 	for (const FNamedColor& Named : Colors)
 	{

@@ -181,6 +181,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "3"))
 	int32 CircleSegments = 0;
 
+	/** A lingering area in its end warning, whichever side's: its end is about to land (ADR-026 §4). */
+	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs")
+	FLinearColor EndingColor = FLinearColor::Transparent;
+
 	/** How far above the ground telegraphs are drawn, in units, so the floor does not hide them. */
 	UPROPERTY(Config, EditAnywhere, Category = "Telegraphs", meta = (ClampMin = "0"))
 	float TelegraphLift = 0.0f;

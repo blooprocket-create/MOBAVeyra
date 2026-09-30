@@ -3,7 +3,9 @@
 #include "Delivery/VeyraAreaDelivery.h"
 
 #include "AbilitySystemComponent.h"
+#include "Delivery/VeyraLingeringArea.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -18,6 +20,21 @@ FVeyraEffectFrame Place(const FVeyraAreaAbilityTuning& Area, const FVector& Cast
 	Placement.Origin = Placement.bOriginIsCaster ? CasterLocation : Point;
 	Placement.Direction = Direction;
 	return Placement;
+}
+
+double DelayAt(const UWorld& World, const UAbilitySystemComponent& Caster, const FVeyraAreaAbilityTuning& Area, const FVector& Point)
+{
+	for (const FVeyraAreaDelayWithinTuning& Within : Area.DelayWithin)
+	{
+		for (TActorIterator<AVeyraLingeringArea> It(&World); It; ++It)
+		{
+			if (It->GetCaster() == &Caster && It->GetAbility() == Within.Ability && VeyraShapes::Touches(It->GetPlacedShape(), Point, 0.0))
+			{
+				return Within.DelaySeconds;
+			}
+		}
+	}
+	return Area.DelaySeconds;
 }
 
 TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraAreaZoneTuning> Zones, int32 Rank)

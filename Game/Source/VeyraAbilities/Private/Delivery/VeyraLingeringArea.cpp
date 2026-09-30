@@ -29,29 +29,34 @@ void AVeyraLingeringArea::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& 
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraLingeringArea, Shape, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraLingeringArea, Direction, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraLingeringArea, EndsAt, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraLingeringArea, EndWarningSeconds, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraLingeringArea, Team, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraLingeringArea, Ability, Params);
 }
 
 void AVeyraLingeringArea::Arm(UAbilitySystemComponent& InCaster, const FVeyraEffectFrame& Placement, const FVeyraShape& InShape,
-	FVeyraLingerStatuses InStatuses, double DurationSeconds, double PulseSeconds, const FVeyraContentId& InAbility)
+	FVeyraLingerStatuses InStatuses, FVeyraLingerEffects InEffects, double DurationSeconds, double PulseSeconds, const FVeyraContentId& InAbility)
 {
 	Caster = &InCaster;
 	Statuses = MoveTemp(InStatuses);
+	Effects = MoveTemp(InEffects);
 	Shape = InShape;
 	Direction = Placement.Direction;
 	EndsAt = GetWorld()->GetTimeSeconds() + DurationSeconds;
+	EndWarningSeconds = Effects.End.IsEmpty() ? 0.0 : Effects.EndWarningSeconds;
 	Team = VeyraTeams::TeamOf(InCaster.GetOwner());
 	Ability = InAbility;
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraLingeringArea, Shape, this);
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraLingeringArea, Direction, this);
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraLingeringArea, EndsAt, this);
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraLingeringArea, EndWarningSeconds, this);
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraLingeringArea, Team, this);
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraLingeringArea, Ability, this);
 	FTimerManager& Timers = GetWorldTimerManager();
 	Timers.SetTimer(PulseTimer, FTimerDelegate::CreateUObject(this, &AVeyraLingeringArea::Pulse), static_cast<float>(PulseSeconds), /*bLoop*/ true);
-	Timers.SetTimer(EndTimer, FTimerDelegate::CreateWeakLambda(this, [this] { Destroy(); }), static_cast<float>(DurationSeconds), /*bLoop*/ false);
-	Pulse();
+	Timers.SetTimer(EndTimer, FTimerDelegate::CreateUObject(this, &AVeyraLingeringArea::End), static_cast<float>(DurationSeconds), /*bLoop*/ false);
+	// As it lands it gives its statuses; its zones have done the rest.
+	GiveStatuses();
 }
 
 void AVeyraLingeringArea::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -62,6 +67,33 @@ void AVeyraLingeringArea::EndPlay(const EEndPlayReason::Type EndPlayReason)
 }
 
 void AVeyraLingeringArea::Pulse()
+{
+	GiveStatuses();
+	Deal(Effects.Pulse);
+}
+
+void AVeyraLingeringArea::End()
+{
+	Deal(Effects.End);
+	Destroy();
+}
+
+void AVeyraLingeringArea::Deal(TConstArrayView<FVeyraPreparedZone> Zones)
+{
+	UAbilitySystemComponent* Source = Caster.Get();
+	UWorld* World = GetWorld();
+	if (Zones.IsEmpty() || !Source || !World)
+	{
+		return;
+	}
+	// Measured from its centre, so a displacement toward the origin draws the units in.
+	FVeyraEffectFrame Frame;
+	Frame.Origin = GetActorLocation();
+	Frame.Direction = Direction;
+	VeyraAreaDelivery::Resolve(*World, *Source, Frame, Zones, FVeyraAbilityHitSource{ Ability, Effects.CastId });
+}
+
+void AVeyraLingeringArea::GiveStatuses()
 {
 	UAbilitySystemComponent* Source = Caster.Get();
 	const UWorld* World = GetWorld();
