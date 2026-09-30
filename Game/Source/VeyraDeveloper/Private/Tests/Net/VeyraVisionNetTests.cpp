@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "CQTest.h"
+#include "Entities/VeyraPlacedMarker.h"
 #include "Components/PIENetworkComponent.h"
 
 #if ENABLE_PIE_NETWORK_TEST
@@ -262,6 +263,63 @@ namespace VeyraNetTests
 				.ThenServer(TEXT("It walks within its detection radius of the observer"), [this, Close](FState& State) { Place(State, EnemyIndex, Close); })
 				.UntilClients(TEXT("It reaches the observer's whole side again"), [this](FState& State) {
 					return Algo::AllOf(Participants, [&State](const FParticipant& Other) { return HasVanguard(State.World, Other.PlayerId); });
+				});
+		}
+
+		/** The participant PlayerId's decoy, as this machine has it, or null. */
+		static const AVeyraPlacedMarker* FindDecoyOf(const UWorld* World, int32 PlayerId)
+		{
+			for (TActorIterator<AVeyraPlacedMarker> It(World); It; ++It)
+			{
+				const APlayerState* Shown = It->GetPresentedAs();
+				if (Shown && Shown->GetPlayerId() == PlayerId)
+				{
+					return *It;
+				}
+			}
+			return nullptr;
+		}
+
+		TEST_METHOD(AnInvisibleEnemyLeavesTheOtherSideWhileItsDecoyReachesIt)
+		{
+			const FVector2D Observer(-SightRadius(), 0.0);
+			const FVector2D Bystander(-SightRadius(), SightRadius() / 3.0);
+			// Well within the observer's sight: no nearness shows an Invisible unit (Combat Bible §11).
+			const FVector2D Close(-SightRadius() * 0.8, 0.0);
+			IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("The enemy stands close to the observer"), [this, Observer, Bystander, Close](FState& State) {
+					Place(State, ObserverIndex, Observer);
+					Place(State, BystanderIndex, Bystander);
+					Place(State, EnemyIndex, Close);
+				})
+				.UntilClients(TEXT("Every client has every Vanguard"), [this](FState& State) {
+					return Algo::AllOf(Participants, [&State](const FParticipant& Other) { return HasVanguard(State.World, Other.PlayerId); });
+				})
+				.ThenServer(TEXT("The enemy turns Invisible and leaves a decoy where it stands"), [this](FState& State) {
+					AVeyraPlayerState* Enemy = ServerControllerOf(State, EnemyIndex)->GetPlayerState<AVeyraPlayerState>();
+					ASSERT_THAT(IsNotNull(Enemy));
+					UAbilitySystemComponent& Own = *Enemy->GetAbilitySystemComponent();
+					FVeyraStatusSpec Hidden;
+					Hidden.Id = FVeyraContentId::FromText(TEXT("test_invisible")).GetValue();
+					Hidden.Kind = EVeyraStatusKind::Invisible;
+					Hidden.DurationSeconds = 60.0;
+					ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Own, Own, Hidden)));
+					FVeyraMarkerSpec Decoy;
+					Decoy.Id = FVeyraContentId::FromText(TEXT("test_decoy")).GetValue();
+					Decoy.LifetimeSeconds = 60.0;
+					Decoy.HitsToDestroy = 1;
+					Decoy.bPresentsAsOwner = true;
+					const AVeyraVanguardCharacter* Body = FindVanguard(State.World, Participants[EnemyIndex].PlayerId);
+					ASSERT_THAT(IsTrue(Body && AVeyraPlacedMarker::Place(*State.World, Own, Decoy, Body->GetActorTransform()) != nullptr));
+				})
+				.UntilClients(TEXT("The other side has only the decoy, as the enemy; the enemy's side has both"), [this](FState& State) {
+					const FParticipant& Enemy = Participants[EnemyIndex];
+					const AVeyraPlacedMarker* Decoy = FindDecoyOf(State.World, Enemy.PlayerId);
+					if (Participants[State.ClientIndex].Team != Enemy.Team)
+					{
+						return !HasVanguard(State.World, Enemy.PlayerId) && Decoy != nullptr;
+					}
+					return HasVanguard(State.World, Enemy.PlayerId) && Decoy != nullptr;
 				});
 		}
 
