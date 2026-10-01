@@ -28,6 +28,9 @@ struct FVeyraAbilityHitSource
 	 * tick, which a Spell Shield lets pass.
 	 */
 	bool bSkipSpellShield = false;
+
+	/** Whether a projectile carries the hit, a skillshot's or a targeted ability's, which cover may shelter its target from (ADR-037 §4). */
+	bool bProjectile = false;
 };
 
 /** One ability connecting with a unit (Combat Bible §16, On Ability Hit), and the control it applied there. */

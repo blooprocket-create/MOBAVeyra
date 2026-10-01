@@ -98,6 +98,9 @@ struct FVeyraRawDamageEvent
 
 	/** How the event is delivered; an ability's by default. */
 	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
+
+	/** Whether a projectile carries it, as a ranged attack's or a skillshot's, which cover may shelter its target from (ADR-037 §4). */
+	bool bProjectile = false;
 };
 
 /** Resistance reduction applied to one of a target's resistances (Combat Bible §3). */

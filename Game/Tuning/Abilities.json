@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 23,
+  "schemaVersion": 24,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -19,7 +19,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "stonehorn_trait": {
       "provenance": "Provisional",
@@ -35,7 +36,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "skittermaw_trait": {
       "provenance": "Provisional",
@@ -51,7 +53,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "miremother_trait": {
       "provenance": "Provisional",
@@ -67,7 +70,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "razorback_trait": {
       "provenance": "Provisional",
@@ -83,7 +87,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "cairn_crushing_hold_stun": {
       "provenance": "Provisional",
@@ -99,7 +104,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "cairn_crushing_hold_slow": {
       "provenance": "Provisional",
@@ -115,7 +121,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "cairn_immovable_guard": {
       "provenance": "Provisional",
@@ -131,7 +138,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "cairn_immovable_anchor": {
       "provenance": "Provisional",
@@ -147,7 +155,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "cairn_immovable_burden": {
       "provenance": "Provisional",
@@ -163,7 +172,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "cairn_immovable_cover": {
       "provenance": "Provisional",
@@ -179,7 +189,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "cairn_burden_stun": {
       "provenance": "Provisional",
@@ -195,7 +206,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "cairn_burden_slow": {
       "provenance": "Provisional",
@@ -211,7 +223,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "qazharr_sea_dog": {
       "provenance": "Provisional",
@@ -227,7 +240,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "seize_momentum_slow": {
       "provenance": "Provisional",
@@ -243,7 +257,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "seize_momentum_haste": {
       "provenance": "Provisional",
@@ -259,7 +274,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "qazharr_heavy_hand_slow": {
       "provenance": "Provisional",
@@ -275,7 +291,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "qazharr_weather_it_tenacity": {
       "provenance": "Provisional",
@@ -291,7 +308,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "qazharr_boarding_rush_haste": {
       "provenance": "Provisional",
@@ -307,7 +325,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "qazharr_no_quarter_frenzy": {
       "provenance": "Provisional",
@@ -323,7 +342,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "qazharr_no_quarter_pursuit": {
       "provenance": "Provisional",
@@ -339,7 +359,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "qazharr_no_quarter_tenacity": {
       "provenance": "Provisional",
@@ -355,7 +376,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "qazharr_no_quarter_cleave": {
       "provenance": "Provisional",
@@ -371,7 +393,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "oriel_shattered_sky_slow": {
       "provenance": "Provisional",
@@ -387,7 +410,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "oriel_mirror_veil_haste": {
       "provenance": "Provisional",
@@ -403,7 +427,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     }
 ,
     "bryn_flare_slow": {
@@ -420,7 +445,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "bryn_kickback_slow": {
       "provenance": "Provisional",
@@ -436,7 +462,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     }
 ,
     "mend_haste": {
@@ -453,7 +480,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "scorch_burn": {
       "provenance": "Provisional",
@@ -469,7 +497,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "enfeeble_slow": {
       "provenance": "Provisional",
@@ -485,7 +514,8 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "enfeeble_weaken": {
       "provenance": "Provisional",
@@ -501,101 +531,102 @@
       "atMaxStacks": [],
       "arcDegrees": 0,
       "unitKinds": [], "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
-    "kade_tracked": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 200, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "kade_sightline_fervor": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "kade_sightline_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "kade_kill_corridor_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 10, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "vera_cadence": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "Stacking", "magnitude": 0.07, "durationSeconds": 2.5, "maxStacks": 8, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0.5, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "vera_ranged": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 125, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "vera_dig_in_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "vera_dig_in_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 150, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "vera_dig_in_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "vera_dig_in_footing": { "provenance": "Provisional", "kind": "SlowResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "vera_dig_in_anchor": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "vera_dig_in_volley_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 225, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "vera_dig_in_volley_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "vera_last_volley": { "provenance": "Provisional", "kind": "AttackSpeedCap", "stacking": "UniqueRefresh", "magnitude": 3.0, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mimzi_hex": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 4, "maxStacks": 2, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mimzi_camouflage": { "provenance": "Provisional", "kind": "Camouflage", "stacking": "UniqueRefresh", "magnitude": 400, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mimzi_scamper": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mimzi_winkbomb_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_haunted": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_haunt_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_hugged": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 2.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_hugged_inside": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_dormant": { "provenance": "Provisional", "kind": "Dormant", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_play_dead_guard": { "provenance": "Provisional", "kind": "DamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_play_dead_anchor": { "provenance": "Provisional", "kind": "DisplacementImmunity", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_fear": { "provenance": "Provisional", "kind": "Fear", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_threaded": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_inside_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.8, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_inside_footing": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "patch_inside_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mavra_contaminated": { "provenance": "Provisional", "kind": "DamageOverTime", "stacking": "UniqueRefresh", "magnitude": 8, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [{ "damageType": "Magic", "tickSeconds": 0.5, "damagePerLevel": 1.2 }], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mavra_exposure": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 6, "maxStacks": 3, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": ["mavra_unstable"], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0 },
-    "mavra_unstable": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0 },
-    "mavra_flash_cure_root": { "provenance": "Provisional", "kind": "Root", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mavra_flash_cure_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mavra_leak_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mavra_leak_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mavra_code_black_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mavra_code_black_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "mavra_code_black_knockdown": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "korruk_splinter": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 6, "maxStacks": 4, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": ["korruk_fractured"], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0 },
-    "korruk_fractured": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0 },
-    "korruk_mine_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "korruk_mine_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "moro_wild_dominion_power": { "provenance": "Provisional", "kind": "DamageAmplification", "stacking": "UniqueRefresh", "magnitude": 0.1, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "moro_wild_dominion_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "moro_bursting_ground_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "moro_pounce_rush": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "moro_wildstorm_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "gorraveth_rush": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 2, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "gorraveth_rake_drag": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "gorraveth_frenzy_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 2, "takedownExtensionMaxSeconds": 6, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "gorraveth_frenzy_hunt": { "provenance": "Provisional", "kind": "AttackDamageAmplification", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 2, "takedownExtensionMaxSeconds": 6, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": ["Vanguard"], "landsOn": [], "attackCharges": 0 },
-    "gorraveth_hunted": { "provenance": "Provisional", "kind": "MoveSpeedTowardEnemyVanguards", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 2, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "raska_momentum": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 3600, "maxStacks": 100, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "raska_roadhouse_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 250, "durationSeconds": 3600, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "raska_countersteer_guard": { "provenance": "Provisional", "kind": "DirectionalDamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 120, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "raska_countersteer_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "raska_countersteer_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "raska_ride_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.6, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "raska_no_brakes": { "provenance": "Provisional", "kind": "Unstoppable", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "raska_powerslide_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "raska_last_exit_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "celandrine_stride_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.15, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "celandrine_briar_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "celandrine_open_road_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "celandrine_open_road_stride": { "provenance": "Provisional", "kind": "MobileAttack", "stacking": "UniqueRefresh", "magnitude": 1, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "aurelisse_slipstream_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.15, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "aurelisse_updraft_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "aurelisse_updraft_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "aurelisse_windward_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "aurelisse_second_wind": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "aurelisse_room_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "aurelisse_room_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "silt_sandy": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0 },
-    "silt_sink_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "silt_sink_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "silt_blind": { "provenance": "Provisional", "kind": "Blind", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "silt_mire_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "silt_mire_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_unreturned_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.1, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_unreturned_tenacity": { "provenance": "Provisional", "kind": "Tenacity", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_mass_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_fortify_guard": { "provenance": "Provisional", "kind": "DirectionalDamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 120, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_fortify_brace": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": -0.4, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_fortify_burst_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_anchor_hold": { "provenance": "Provisional", "kind": "DisplacementImmunity", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_anchor_brace": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_anchor_grounded": { "provenance": "Provisional", "kind": "Grounded", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_rip_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_overcapacity_size": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.4, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_overcapacity_steady": { "provenance": "Provisional", "kind": "DisplacementImmunity", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
-    "torr_vent_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0 },
+    "kade_tracked": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 200, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "kade_sightline_fervor": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "kade_sightline_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "kade_kill_corridor_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 10, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "vera_cadence": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "Stacking", "magnitude": 0.07, "durationSeconds": 2.5, "maxStacks": 8, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0.5, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "vera_ranged": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 125, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "vera_dig_in_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "vera_dig_in_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 150, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "vera_dig_in_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "vera_dig_in_footing": { "provenance": "Provisional", "kind": "SlowResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "vera_dig_in_anchor": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "vera_dig_in_volley_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 225, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "vera_dig_in_volley_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "vera_last_volley": { "provenance": "Provisional", "kind": "AttackSpeedCap", "stacking": "UniqueRefresh", "magnitude": 3.0, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mimzi_hex": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 4, "maxStacks": 2, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mimzi_camouflage": { "provenance": "Provisional", "kind": "Camouflage", "stacking": "UniqueRefresh", "magnitude": 400, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mimzi_scamper": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mimzi_winkbomb_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_haunted": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_haunt_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_hugged": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 2.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_hugged_inside": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_dormant": { "provenance": "Provisional", "kind": "Dormant", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_play_dead_guard": { "provenance": "Provisional", "kind": "DamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_play_dead_anchor": { "provenance": "Provisional", "kind": "DisplacementImmunity", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_fear": { "provenance": "Provisional", "kind": "Fear", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_threaded": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_inside_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.8, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_inside_footing": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "patch_inside_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mavra_contaminated": { "provenance": "Provisional", "kind": "DamageOverTime", "stacking": "UniqueRefresh", "magnitude": 8, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [{ "damageType": "Magic", "tickSeconds": 0.5, "damagePerLevel": 1.2 }], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mavra_exposure": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 6, "maxStacks": 3, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": ["mavra_unstable"], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0, "cover": [] },
+    "mavra_unstable": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0, "cover": [] },
+    "mavra_flash_cure_root": { "provenance": "Provisional", "kind": "Root", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mavra_flash_cure_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mavra_leak_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mavra_leak_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mavra_code_black_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mavra_code_black_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "mavra_code_black_knockdown": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "korruk_splinter": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 6, "maxStacks": 4, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": ["korruk_fractured"], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0, "cover": [] },
+    "korruk_fractured": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0, "cover": [] },
+    "korruk_mine_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "korruk_mine_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "moro_wild_dominion_power": { "provenance": "Provisional", "kind": "DamageAmplification", "stacking": "UniqueRefresh", "magnitude": 0.1, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "moro_wild_dominion_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "moro_bursting_ground_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "moro_pounce_rush": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "moro_wildstorm_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "gorraveth_rush": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 2, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "gorraveth_rake_drag": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "gorraveth_frenzy_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 2, "takedownExtensionMaxSeconds": 6, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "gorraveth_frenzy_hunt": { "provenance": "Provisional", "kind": "AttackDamageAmplification", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 2, "takedownExtensionMaxSeconds": 6, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": ["Vanguard"], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "gorraveth_hunted": { "provenance": "Provisional", "kind": "MoveSpeedTowardEnemyVanguards", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 2, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "raska_momentum": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 3600, "maxStacks": 100, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "raska_roadhouse_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 250, "durationSeconds": 3600, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "raska_countersteer_guard": { "provenance": "Provisional", "kind": "DirectionalDamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 120, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "raska_countersteer_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "raska_countersteer_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "raska_ride_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.6, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "raska_no_brakes": { "provenance": "Provisional", "kind": "Unstoppable", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "raska_powerslide_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "raska_last_exit_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "celandrine_stride_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.15, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "celandrine_briar_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "celandrine_open_road_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "celandrine_open_road_stride": { "provenance": "Provisional", "kind": "MobileAttack", "stacking": "UniqueRefresh", "magnitude": 1, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "aurelisse_slipstream_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.15, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "aurelisse_updraft_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "aurelisse_updraft_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "aurelisse_windward_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "aurelisse_second_wind": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "aurelisse_room_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "aurelisse_room_haste": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "silt_sandy": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"], "attackCharges": 0, "cover": [] },
+    "silt_sink_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "silt_sink_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "silt_blind": { "provenance": "Provisional", "kind": "Blind", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "silt_mire_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "silt_mire_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_unreturned_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.1, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_unreturned_tenacity": { "provenance": "Provisional", "kind": "Tenacity", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_mass_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_fortify_guard": { "provenance": "Provisional", "kind": "DirectionalDamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 120, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_fortify_brace": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": -0.4, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_fortify_burst_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_anchor_hold": { "provenance": "Provisional", "kind": "DisplacementImmunity", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_anchor_brace": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_anchor_grounded": { "provenance": "Provisional", "kind": "Grounded", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_rip_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_overcapacity_size": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.4, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_overcapacity_steady": { "provenance": "Provisional", "kind": "DisplacementImmunity", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
+    "torr_vent_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [], "attackCharges": 0, "cover": [] },
     "tavi_it": {
       "provenance": "Provisional",
       "kind": "Counter",
@@ -611,7 +642,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": ["Vanguard"],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "tavi_chase": {
       "provenance": "Provisional",
@@ -628,7 +660,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "tavi_hidden": {
       "provenance": "Provisional",
@@ -645,7 +678,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "tavi_hide_haste": {
       "provenance": "Provisional",
@@ -662,7 +696,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "tavi_hide_slow": {
       "provenance": "Provisional",
@@ -679,7 +714,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "tavi_gone": {
       "provenance": "Provisional",
@@ -696,7 +732,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "tavi_out_of_reach": {
       "provenance": "Provisional",
@@ -713,7 +750,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "angeru_veiled": {
       "provenance": "Provisional",
@@ -730,7 +768,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": ["Vanguard"],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "angeru_drawn": {
       "provenance": "Provisional",
@@ -747,7 +786,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": ["Vanguard"],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "angeru_passed": {
       "provenance": "Provisional",
@@ -764,7 +804,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "angeru_vanish": {
       "provenance": "Provisional",
@@ -781,7 +822,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "varkesh_heated_metal": {
       "provenance": "Provisional",
@@ -798,7 +840,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "varkesh_seized": {
       "provenance": "Provisional",
@@ -815,7 +858,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "varkesh_cooled": {
       "provenance": "Provisional",
@@ -832,7 +876,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "varkesh_shell_tenacity": {
       "provenance": "Provisional",
@@ -849,7 +894,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "varkesh_shell_footing": {
       "provenance": "Provisional",
@@ -866,7 +912,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "varkesh_molten_slow": {
       "provenance": "Provisional",
@@ -883,7 +930,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "varkesh_shatter_slow": {
       "provenance": "Provisional",
@@ -900,7 +948,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "relay_overcharged": {
       "provenance": "Provisional",
@@ -917,7 +966,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "relay_overclocked": {
       "provenance": "Provisional",
@@ -934,7 +984,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 4
+      "attackCharges": 4,
+      "cover": []
     },
     "relay_field_footing": {
       "provenance": "Provisional",
@@ -951,7 +1002,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "relay_grid_planted": {
       "provenance": "Provisional",
@@ -968,7 +1020,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "relay_grid_discount": {
       "provenance": "Provisional",
@@ -985,7 +1038,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "relay_grid_link": {
       "provenance": "Provisional",
@@ -1002,7 +1056,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "relay_fluxborn_overclock": {
       "provenance": "Provisional",
@@ -1019,7 +1074,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "relay_fluxborn_haste": {
       "provenance": "Provisional",
@@ -1036,7 +1092,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "marek_bitten": {
       "provenance": "Provisional",
@@ -1053,7 +1110,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "marek_leashed": {
       "provenance": "Provisional",
@@ -1070,7 +1128,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "marek_hunt_slow": {
       "provenance": "Provisional",
@@ -1087,7 +1146,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "nix_true_form_health": {
       "provenance": "Provisional",
@@ -1104,7 +1164,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "nix_true_form_speed": {
       "provenance": "Provisional",
@@ -1121,7 +1182,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "nix_true_form_size": {
       "provenance": "Provisional",
@@ -1138,7 +1200,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "neris_wave_body": {
       "provenance": "Provisional",
@@ -1155,7 +1218,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "neris_tidebreaker_body": {
       "provenance": "Provisional",
@@ -1172,7 +1236,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "neris_tidebreaker_lock": {
       "provenance": "Provisional",
@@ -1189,7 +1254,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "neris_current_swell": {
       "provenance": "Provisional",
@@ -1206,7 +1272,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "neris_current_drag": {
       "provenance": "Provisional",
@@ -1223,7 +1290,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "neris_wake_stride": {
       "provenance": "Provisional",
@@ -1240,7 +1308,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "neris_wake_mend": {
       "provenance": "Provisional",
@@ -1257,7 +1326,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "neris_riptide_drag": {
       "provenance": "Provisional",
@@ -1274,7 +1344,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "sylra_sounded": {
       "provenance": "Provisional",
@@ -1291,7 +1362,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "sylra_bell_stride": {
       "provenance": "Provisional",
@@ -1308,7 +1380,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     },
     "sylra_followed_the_bell": {
       "provenance": "Provisional",
@@ -1325,7 +1398,8 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": [],
-      "attackCharges": 0
+      "attackCharges": 0,
+      "cover": []
     }
   },
   "targetedDamage": {

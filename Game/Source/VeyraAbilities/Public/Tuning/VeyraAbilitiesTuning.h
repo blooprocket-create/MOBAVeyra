@@ -444,6 +444,24 @@ struct FVeyraDamageOverTimeTuning
 	double DamagePerLevel = 0.0;
 };
 
+/** A Cover status's shelter (ADR-037 §4): how far behind its holder it reaches, how much it prevents, and its holder's share. */
+USTRUCT()
+struct FVeyraStatusCoverTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double Reach = 0.0;
+
+	/** What it prevents in all, before mitigation, each time it is given. */
+	UPROPERTY()
+	double Capacity = 0.0;
+
+	/** The share of what it prevents that its holder takes. */
+	UPROPERTY()
+	double TransferShare = 0.0;
+};
+
 /** One status an ability applies, keyed by its ID (Combat Bible §8, §46; FVeyraStatusSpec). */
 USTRUCT()
 struct FVeyraStatusTuning
@@ -482,11 +500,11 @@ struct FVeyraStatusTuning
 	UPROPERTY()
 	double StackDecaySeconds = 0.0;
 
-	/** A DirectionalDamageReduction's guarded arc, in degrees; 0 for any other kind. */
+	/** A DirectionalDamageReduction's or a Cover's guarded arc, in degrees; 0 for any other kind. */
 	UPROPERTY()
 	double ArcDegrees = 0.0;
 
-	/** An AttackDamageAmplification's unit kinds, empty for all; empty for any other kind. */
+	/** An AttackDamageAmplification's unit kinds, or the kinds of ally a Cover shelters; empty for all, and for any other kind. */
 	UPROPERTY()
 	TArray<EVeyraUnitKind> UnitKinds;
 
@@ -504,6 +522,10 @@ struct FVeyraStatusTuning
 	/** How many of its holder's basic attacks it lasts, each that commits spending one (ADR-033 §4); 0 for a status attacks do not spend. */
 	UPROPERTY()
 	int32 AttackCharges = 0;
+
+	/** Exactly one for a Cover status, and none for any other kind (ADR-037 §4). */
+	UPROPERTY()
+	TArray<FVeyraStatusCoverTuning> Cover;
 };
 
 /** Where an area is placed. */
@@ -2247,7 +2269,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 23;
+	static constexpr int32 SchemaVersion = 24;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

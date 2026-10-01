@@ -384,7 +384,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [23]
+      "enum": [24]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -409,12 +409,12 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds", "arcDegrees", "unitKinds", "atMaxStacks", "landsOn", "attackCharges"],
+          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds", "arcDegrees", "unitKinds", "atMaxStacks", "landsOn", "attackCharges", "cover"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack", "Blind", "Grounded", "Invisible", "Untargetable", "ResourceCostReduction", "AttackShortensCooldown", "MaxHealth", "Sounded"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack", "Blind", "Grounded", "Invisible", "Untargetable", "ResourceCostReduction", "AttackShortensCooldown", "MaxHealth", "Sounded", "Cover", "Designated"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -451,17 +451,33 @@
               "type": "number",
               "minimum": 0
             },
-            "arcDegrees": { "description": "DirectionalDamageReduction: the arc of the unit's facing it guards, in degrees; 0 for any other kind.", "type": "number", "minimum": 0, "maximum": 360 },
+            "arcDegrees": { "description": "DirectionalDamageReduction and Cover: the arc of the unit's facing it guards, in degrees; 0 for any other kind.", "type": "number", "minimum": 0, "maximum": 360 },
             "atMaxStacks": { "description": "At most one: the status this becomes when an application brings it to its most stacks, from the same source (ADR-026 §2).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
             "unitKinds": {
-              "description": "AttackDamageAmplification: the unit kinds it amplifies attacks against (EVeyraUnitKind), empty for all; empty for any other kind.",
+              "description": "AttackDamageAmplification: the unit kinds it amplifies attacks against; Cover: the kinds of ally it shelters (EVeyraUnitKind). Empty for all, and for any other kind.",
               "type": "array",
               "minItems": 0,
               "maxItems": 6,
               "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] }
             },
             "landsOn": { "description": "The kinds of unit it lands on (EVeyraUnitKind), empty for every kind, as Splinters embed only in Vanguards (ADR-026 §2).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] } },
-            "attackCharges": { "description": "How many of its holder's basic attacks it lasts, each that commits spending one (ADR-033 §4); 0 for a status attacks do not spend.", "type": "integer", "minimum": 0 }
+            "attackCharges": { "description": "How many of its holder's basic attacks it lasts, each that commits spending one (ADR-033 §4); 0 for a status attacks do not spend.", "type": "integer", "minimum": 0 },
+            "cover": {
+              "description": "Cover (ADR-037 §4): one entry for that kind, none for any other. Its holder shelters the allies behind it, within its reach, from projectiles whose source lies within its arc, preventing its magnitude's share of their damage before mitigation out of its capacity, which refills each time it is given; its holder takes transferShare of what it prevents.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["reach", "capacity", "transferShare"],
+                "properties": {
+                  "reach": { "description": "How far behind its holder it shelters.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "capacity": { "description": "What it prevents in all, before mitigation, each time it is given.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "transferShare": { "description": "The share of what it prevents that its holder takes, as a proc from the projectile's source.", "type": "number", "minimum": 0, "maximum": 1 }
+                }
+              }
+            }
           }
         }
       }

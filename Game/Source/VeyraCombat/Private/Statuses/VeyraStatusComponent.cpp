@@ -78,6 +78,8 @@ namespace
 		case EVeyraStatusKind::ResourceCostReduction:
 		case EVeyraStatusKind::AttackShortensCooldown:
 		case EVeyraStatusKind::Sounded:
+		case EVeyraStatusKind::Cover:
+		case EVeyraStatusKind::Designated:
 			break;
 		}
 		return NAME_None;
@@ -203,6 +205,10 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 	Server.StackDecaySeconds = Spec.StackDecaySeconds;
 	Server.ArcDegrees = Spec.ArcDegrees;
 	Server.UnitKinds = Spec.UnitKinds;
+	// Each application gives a cover its capacity afresh (ADR-037 §4).
+	Server.CoverReach = Spec.CoverReach;
+	Server.CoverLeft = Spec.CoverCapacity;
+	Server.CoverTransferShare = Spec.CoverTransferShare;
 	if (Spec.Kind == EVeyraStatusKind::DamageOverTime)
 	{
 		Server.TickDamageType = Spec.DamageType;
@@ -406,6 +412,32 @@ int32 UVeyraStatusComponent::GetStacksFrom(const FVeyraContentId& Id, const UAbi
 bool UVeyraStatusComponent::Has(EVeyraStatusKind Kind) const
 {
 	return Ledger.Entries.ContainsByPredicate([Kind](const FVeyraStatusEntry& Entry) { return Entry.Kind == Kind; });
+}
+
+TOptional<FVeyraCoverHold> UVeyraStatusComponent::GetCover() const
+{
+	TOptional<FVeyraCoverHold> Strongest;
+	for (const FVeyraStatusEntry& Entry : Ledger.Entries)
+	{
+		const FServerEntry* Server = Entry.Kind == EVeyraStatusKind::Cover ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		if (Server && Server->CoverLeft > 0.0 && (!Strongest.IsSet() || Entry.Magnitude > Strongest->Share))
+		{
+			Strongest = FVeyraCoverHold{ Entry.Sequence, Entry.Magnitude, Server->ArcDegrees, Server->CoverReach, Server->CoverLeft, Server->CoverTransferShare, Server->UnitKinds };
+		}
+	}
+	return Strongest;
+}
+
+double UVeyraStatusComponent::SpendCover(int32 Sequence, double Amount)
+{
+	FServerEntry* Server = ServerEntries.Find(Sequence);
+	if (!Server || !(Amount > 0.0))
+	{
+		return 0.0;
+	}
+	const double Spent = FMath::Min(Amount, Server->CoverLeft);
+	Server->CoverLeft -= Spent;
+	return Spent;
 }
 
 double UVeyraStatusComponent::GetDirectionalRetained(const FVector& Facing, const FVector& ToSource) const

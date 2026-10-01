@@ -73,13 +73,14 @@ The survey for this ADR found that:
 - **A status kind, `Cover`:**
   - magnitude: the share of eligible damage it prevents;
   - its `arcDegrees`: the arc it faces;
-  - a new status field, `cover`: its `reach` behind it, its `capacity`, and its `transferShare`.
+  - a new status field, `cover`: its `reach` behind it, its `capacity`, and its `transferShare`;
+  - its `unitKinds`: the kinds of ally it shelters, every kind when it names none (Picket's are Vanguards and Fluxborn).
 - **The cover rule:** a projectile's damage on a unit is reduced when an allied unit holding Cover, other than the unit itself, stands between them:
   - the unit is behind the cover, within its reach, against its facing;
   - the projectile's source lies within its arc, in front.
 
   Projectiles are a basic attack's projectile, a skillshot's and a targeted ability's.
-- **What it prevents** comes out of its capacity, which refills each time the status is given.
+- **What it prevents** is its share of the hit's damage before mitigation. It comes out of its capacity, which refills each time the status is given.
 - **`transferShare` of what it prevents** is dealt to the cover's holder, as a proc from the source.
 - **What passes:** melee attacks, areas, effects over time and anything outside the arc.
 - **One cover:** the strongest cover that applies answers for a hit.

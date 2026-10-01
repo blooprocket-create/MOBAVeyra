@@ -14,6 +14,17 @@
 #include "Units/VeyraUnit.h"
 #include "VeyraAbilitiesLog.h"
 
+namespace
+{
+	/** The ability hit a projectile carries to the unit it strikes. */
+	FVeyraAbilityHitSource ProjectileHit(const FVeyraContentId& Ability, int32 CastId)
+	{
+		FVeyraAbilityHitSource Hit{ Ability, CastId };
+		Hit.bProjectile = true;
+		return Hit;
+	}
+}
+
 AVeyraProjectile::AVeyraProjectile()
 {
 	// Only the server flies it, from its launch on. Clients get its launch data, not its movement.
@@ -174,7 +185,7 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 		Met.Add(&Unit);
 		if (Collision == EVeyraSkillshotCollision::FirstEnemyVanguard && !VeyraUnits::IsVanguard(&Unit))
 		{
-			VeyraEffectDelivery::Apply(Source, Unit, PassThroughEffects, PathFrame(), FVeyraAbilityHitSource{ Ability, CastId });
+			VeyraEffectDelivery::Apply(Source, Unit, PassThroughEffects, PathFrame(), ProjectileHit(Ability, CastId));
 			continue;
 		}
 		// Before the hit lands, so what it reads of the unit is as the shot found it (ADR-030 §8).
@@ -195,7 +206,7 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 				Shared->Struck.Add(&Unit);
 			}
 		}
-		VeyraEffectDelivery::Apply(Source, Unit, *Landing, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
+		VeyraEffectDelivery::Apply(Source, Unit, *Landing, CasterFrame(), ProjectileHit(Ability, CastId));
 		if (Collision != EVeyraSkillshotCollision::Pierce)
 		{
 			Travelled += Hit.Distance;
@@ -239,7 +250,7 @@ void AVeyraProjectile::AdvanceHoming(UAbilitySystemComponent& Source, double Dis
 		return;
 	}
 	Met.Add(Target);
-	VeyraEffectDelivery::Apply(Source, *Target, Effects, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
+	VeyraEffectDelivery::Apply(Source, *Target, Effects, CasterFrame(), ProjectileHit(Ability, CastId));
 	if (OnLanded)
 	{
 		OnLanded(*Target);

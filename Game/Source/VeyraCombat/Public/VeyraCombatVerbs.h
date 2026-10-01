@@ -30,6 +30,9 @@ struct FVeyraPreparedDamage
 	/** Whether it is a basic attack that crit (Combat Bible §5), which its dealt-damage event carries (ADR-025 §6). */
 	bool bCritical = false;
 
+	/** Whether a projectile carries it, which cover may shelter its target from (ADR-037 §4). */
+	bool bProjectile = false;
+
 	bool IsValid() const { return Spec.IsValid(); }
 };
 

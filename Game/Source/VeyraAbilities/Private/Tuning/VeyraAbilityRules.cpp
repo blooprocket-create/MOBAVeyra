@@ -231,6 +231,11 @@ namespace
 					Problem(Pointer + TEXT("/damageOverTime"), TEXT("holds one entry for a DamageOverTime status, and none for any other kind"));
 					continue;
 				}
+				if (Status.Value.Cover.Num() != (Status.Value.Kind == EVeyraStatusKind::Cover ? 1 : 0))
+				{
+					Problem(Pointer + TEXT("/cover"), TEXT("holds one entry for a Cover status, and none for any other kind (ADR-037 §4)"));
+					continue;
+				}
 				for (const FString& StatusProblem : VeyraStatuses::Validate(ToStatusSpec(Status.Key, Status.Value)))
 				{
 					Problem(Pointer, StatusProblem);
@@ -1207,6 +1212,12 @@ FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTunin
 	Spec.TakedownExtensionSeconds = Status.TakedownExtensionSeconds;
 	Spec.TakedownExtensionMaxSeconds = Status.TakedownExtensionMaxSeconds;
 	Spec.AttackCharges = Status.AttackCharges;
+	if (!Status.Cover.IsEmpty())
+	{
+		Spec.CoverReach = Status.Cover[0].Reach;
+		Spec.CoverCapacity = Status.Cover[0].Capacity;
+		Spec.CoverTransferShare = Status.Cover[0].TransferShare;
+	}
 	if (!Status.DamageOverTime.IsEmpty())
 	{
 		const FVeyraDamageOverTimeTuning& Ticks = Status.DamageOverTime[0];
