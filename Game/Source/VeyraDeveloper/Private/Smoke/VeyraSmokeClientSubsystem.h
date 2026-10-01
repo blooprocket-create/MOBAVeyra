@@ -120,6 +120,10 @@ private:
 	/** The order refusals before the pending cast, and when the next try may go after a refusal. */
 	int32 KitOrderRejectionsBefore = 0;
 	double KitNextTryAt = 0.0;
+	/** When the pending cast's order went, to try again should neither a Commit nor a refusal ever come. */
+	double KitPendingSince = 0.0;
+	/** When the pending cast's cooldown was due before its order: a Commit starts a new one, due later. */
+	double KitReadyAtBefore = 0.0;
 	int32 KitCastAttempts = 0;
 	/** The ability the pending cast asked for: once it commits, its slot may hold a follow-up instead. */
 	FVeyraContentId KitCastAbility;

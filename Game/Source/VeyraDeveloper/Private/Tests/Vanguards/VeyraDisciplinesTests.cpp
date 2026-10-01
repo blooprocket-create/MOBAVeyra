@@ -132,6 +132,19 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsTrue(In(EVeyraAbilitySlot::W) == Id(TEXT("angeru_false_body_swap")), TEXT("back in Veil Stance, the swap returns while the shadow stands")));
 		}
 
+		TEST_METHOD(HeChangesStanceRightAfterABlackStep)
+		{
+			RankTheBasics();
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(CastOn(EVeyraAbilitySlot::E, Enemy) == EVeyraCastRejection::None));
+			const EVeyraCastRejection Switch = CastOn(EVeyraAbilitySlot::R, Enemy);
+			ASSERT_THAT(IsTrue(Switch == EVeyraCastRejection::None, FString::Printf(TEXT("refused: %s"), LexToString(Switch))));
+			Wait(Landed);
+			ASSERT_THAT(IsTrue(Cooldowns->GetRemainingSecondsNow(Id(TEXT("angeru_forsake_the_schools"))) > 0.0, TEXT("it committed")));
+			ASSERT_THAT(IsTrue(In(EVeyraAbilitySlot::Q) == Id(TEXT("angeru_flowing_cut")), TEXT("and he is in Blade Stance")));
+		}
+
 		TEST_METHOD(ABladeHitOnAVeiledEnemySpendsItForExecution)
 		{
 			RankTheBasics();

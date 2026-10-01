@@ -49,6 +49,8 @@ namespace
 	constexpr double KitCastPatienceRealSeconds = 10.0;
 	// Between tries after a refusal: the server turns away orders that come too often.
 	constexpr double KitRetryRealSeconds = 0.25;
+	// How long a cast may go unanswered, neither committed nor refused, with its caster free again.
+	constexpr double KitUnansweredRealSeconds = 3.0;
 
 	/** -VeyraSmokeKit: whether a refused cast may succeed if tried again a moment later. */
 	bool IsPassingKitRejection(EVeyraCastRejection Rejection)
@@ -441,8 +443,10 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 	if (bKitCastPending)
 	{
 		// A cast counts once the server starts its cooldown, at Commit (ADR-008 §4). Its slot may hold a
-		// follow-up by then (ADR-030 §7), so it is the ability asked for that counts.
-		if (Cooldowns->GetRemainingSecondsNow(Loadout->CooldownIdOf(KitCastAbility)) > 0.0)
+		// follow-up by then (ADR-030 §7), so it is the ability asked for that counts. The cooldown is
+		// read by when it is due, not by what remains: a client's estimate of the server's clock can
+		// run seconds ahead, as a render-less client's does.
+		if (Cooldowns->GetReadyAt(Loadout->CooldownIdOf(KitCastAbility)) > KitReadyAtBefore)
 		{
 			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s committed after %d attempt(s)."), *KitCastAbility.ToString(), KitCastAttempts);
 			bKitCastPending = false;
@@ -481,6 +485,17 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 			bKitCastPending = false;
 			KitNextTryAt = FPlatformTime::Seconds() + KitRetryRealSeconds;
 		}
+		else if (!CastState->IsBusy() && FPlatformTime::Seconds() - KitPendingSince >= KitUnansweredRealSeconds)
+		{
+			// Neither committed nor refused, and nothing holds the Vanguard: the server ended it unpaid. Try again.
+			// What this client knows of the cooldown: an entry with a duration came; the server time places it.
+			const FVeyraContentId CooldownId = Loadout->CooldownIdOf(KitCastAbility);
+			const AGameStateBase* Clock = GetWorld() ? GetWorld()->GetGameState() : nullptr;
+			UE_LOG(LogVeyraSmoke, Warning, TEXT("VeyraSmoke: %s went unanswered for %g s (cooldown %s: duration %.2f s, remaining %.2f s; server time %.2f, world time %.2f); trying again."),
+				*KitCastAbility.ToString(), KitUnansweredRealSeconds, *CooldownId.ToString(), Cooldowns->GetDurationSeconds(CooldownId), Cooldowns->GetRemainingSecondsNow(CooldownId),
+				Clock ? Clock->GetServerWorldTimeSeconds() : -1.0, GetWorld() ? GetWorld()->GetTimeSeconds() : -1.0);
+			bKitCastPending = false;
+		}
 		return;
 	}
 	if (FPlatformTime::Seconds() < KitNextTryAt)
@@ -498,6 +513,8 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 	CastTarget.Location = Target->GetActorLocation();
 	KitRejectionsBefore = Controller.GetCastRejectionCount();
 	KitOrderRejectionsBefore = Controller.GetOrderRejectionCount();
+	KitPendingSince = FPlatformTime::Seconds();
+	KitReadyAtBefore = Cooldowns->GetReadyAt(Loadout->CooldownIdOf(Entry->Ability));
 	++KitCastAttempts;
 	bKitCastPending = true;
 	KitCastAbility = Entry->Ability;

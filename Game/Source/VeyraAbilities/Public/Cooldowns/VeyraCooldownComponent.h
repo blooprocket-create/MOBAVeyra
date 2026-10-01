@@ -113,6 +113,9 @@ public:
 	/** The duration Ability's current cooldown started with, or 0 if it has none. */
 	double GetDurationSeconds(const FVeyraContentId& Ability) const;
 
+	/** When Ability's latest cooldown runs out, in server world time, or 0 if it has none; a new cooldown always moves it later. */
+	double GetReadyAt(const FVeyraContentId& Ability) const;
+
 private:
 	/**
 	 * Server world time, which the ledger counts in. On the server that is its own world clock. A

@@ -439,8 +439,11 @@ void UVeyraGameplayAbility::OnWindupEnded()
 		VeyraCombat::SetCastLocksMovement(*Caster, false);
 	}
 	// A caster that died or lost its body during the windup casts nothing.
-	if (!Caster || !Avatar || !VeyraTargeting::IsAlive(Avatar) || !CommitAbility(Run.Handle, Run.ActorInfo, Run.ActivationInfo))
+	const bool bCasterStands = Caster && Avatar && VeyraTargeting::IsAlive(Avatar);
+	if (!bCasterStands || !CommitAbility(Run.Handle, Run.ActorInfo, Run.ActivationInfo))
 	{
+		UE_LOG(LogVeyraAbilities, Warning, TEXT("%s's %s (cast %d) ends at its windup without Commit: %s."), *GetNameSafe(Avatar), *Run.Cast.Ability.ToString(),
+			Run.Cast.CastId, bCasterStands ? TEXT("the commit check failed") : TEXT("its caster is gone or dead"));
 		FinishCast(/*bCancelled*/ true);
 		return;
 	}
@@ -501,6 +504,7 @@ void UVeyraGameplayAbility::OnCasterInterrupted()
 	{
 		// Before Commit nothing is paid, and part of the cooldown starts (Combat Bible §26).
 		const FVeyraCast& Cast = Running->Cast;
+		UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s (cast %d) is interrupted in its windup."), *Cast.Ability.ToString(), Cast.CastId);
 		UAbilitySystemComponent* Caster = Cast.Caster.Get();
 		UVeyraCooldownComponent* Cooldowns = Caster ? FindBesideAbilitySystem<UVeyraCooldownComponent>(*Caster) : nullptr;
 		if (Cooldowns)

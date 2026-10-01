@@ -176,3 +176,9 @@ double UVeyraCooldownComponent::GetDurationSeconds(const FVeyraContentId& Abilit
 	const FVeyraCooldownEntry* Entry = Entries.FindByPredicate([&Ability](const FVeyraCooldownEntry& Candidate) { return Candidate.Ability == Ability; });
 	return Entry ? Entry->DurationSeconds : 0.0;
 }
+
+double UVeyraCooldownComponent::GetReadyAt(const FVeyraContentId& Ability) const
+{
+	const FVeyraCooldownEntry* Entry = Entries.FindByPredicate([&Ability](const FVeyraCooldownEntry& Candidate) { return Candidate.Ability == Ability; });
+	return Entry ? Entry->ReadyAt : 0.0;
+}
