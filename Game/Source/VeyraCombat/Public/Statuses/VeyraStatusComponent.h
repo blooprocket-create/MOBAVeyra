@@ -91,6 +91,9 @@ public:
 	/** Server: whether the unit has a status of Kind from a source on Side, as Sounded is read (ADR-036 §2). */
 	bool HasFromSide(EVeyraStatusKind Kind, EVeyraTeam Side) const;
 
+	/** Server: whether the unit holds a status of Kind that Source gave it. */
+	bool HasKindFrom(EVeyraStatusKind Kind, const UAbilitySystemComponent& Source) const;
+
 	/** Server: the stacks of status Id the unit has from Source; 0 for none. */
 	int32 GetStacksFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
 

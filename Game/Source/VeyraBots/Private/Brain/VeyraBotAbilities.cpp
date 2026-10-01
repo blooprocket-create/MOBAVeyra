@@ -127,6 +127,14 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 			Profile.CostByRank = Command->Cast.ResourceCostByRank;
 			return Profile;
 		}
+		// A deployment sets the companion down between its caster and the fight (ADR-037 §1).
+		if (Command->Order == EVeyraCompanionOrder::Deploy)
+		{
+			Profile.Targeting = EVeyraBotTargeting::Point;
+			Profile.Reach = Command->Cast.CastRange;
+			Profile.CostByRank = Command->Cast.ResourceCostByRank;
+			return Profile;
+		}
 		// A hold sends the companion at an enemy its landing reaches; a recall or a redirect is left to the player (ADR-034 §5).
 		if (Command->Order != EVeyraCompanionOrder::Hold)
 		{

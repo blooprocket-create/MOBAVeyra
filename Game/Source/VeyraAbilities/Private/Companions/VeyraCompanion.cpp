@@ -257,6 +257,28 @@ void AVeyraCompanion::Bind(EVeyraCompanionMode InMode, AActor& Unit)
 	BoundTo = &Unit;
 }
 
+void AVeyraCompanion::Anchor(const FVector& Where, const FVector& Facing)
+{
+	check(HasAuthority());
+	EndHold();
+	BoundTo.Reset();
+	Mode = EVeyraCompanionMode::Anchored;
+	HoldPoint = Where;
+	const FVector Flat = Facing.GetSafeNormal2D();
+	AnchorFacing = Flat.IsNearlyZero() ? GetActorForwardVector().GetSafeNormal2D() : Flat;
+	// Whatever it was doing ends where it stood: a windup, a path.
+	BasicAttack->CancelAttack();
+	if (AController* Brain = GetController())
+	{
+		Brain->StopMovement();
+	}
+	const FRotator Turned(0.0, AnchorFacing.Rotation().Yaw, 0.0);
+	if (!TeleportTo(Where, Turned, /*bIsATest*/ false, /*bNoCheck*/ false))
+	{
+		TeleportTo(Where, Turned, /*bIsATest*/ false, /*bNoCheck*/ true);
+	}
+}
+
 void AVeyraCompanion::SetChained(bool bInChained)
 {
 	if (bChained != bInChained)

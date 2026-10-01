@@ -1273,7 +1273,7 @@
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
-            "order": { "description": "Hold and Recall command a companion kept for good (ADR-034 §5); Summon forms one for a while, bound to a unit, and Redirect binds it anew (ADR-035 §5).", "type": "string", "enum": ["Hold", "Recall", "Summon", "Redirect"] },
+            "order": { "description": "Hold and Recall command a companion kept for good (ADR-034 §5); Summon forms one for a while, bound to a unit, and Redirect binds it anew (ADR-035 §5); Deploy forms one at the cast's point, anchored, for a while, and moves the one living (ADR-037 §1).", "type": "string", "enum": ["Hold", "Recall", "Summon", "Redirect", "Deploy"] },
             "leapSpeed": { "description": "Hold: units per second of the companion's leap; 0 for a recall.", "type": "number", "minimum": 0 },
             "holdSeconds": { "description": "Hold: how long it holds the point once it lands; 0 for a recall.", "type": "number", "minimum": 0 },
             "landingZones": { "description": "Hold, innermost first: zones where it lands, its own hit from its own power.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } },

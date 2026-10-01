@@ -22,7 +22,9 @@ struct FVeyraDeathEvent;
  * - it banishes the companion as its owner dies, and as the companion itself is killed;
  * - it reforms the companion beside its living owner, at full Health, once its reform time has passed
  *   since it was killed: as its owner revives, or later;
- * - it keeps the companion's stats grown to its owner's Level, and its share of its owner's Magic Power.
+ * - it keeps the companion's stats grown to its owner's Level, and its share of its owner's Magic Power;
+ * - a deployed companion stands at its point, through its owner's death, until its time runs out or it is destroyed
+ *   (ADR-037 §1).
  */
 UCLASS()
 class VEYRAABILITIES_API UVeyraCompanionSubsystem : public UWorldSubsystem
@@ -48,6 +50,13 @@ public:
 	 * that keeps a companion for good.
 	 */
 	bool SummonFor(UAbilitySystemComponent& Owner, const FVeyraContentId& Id, EVeyraCompanionMode Mode, AActor& Unit, double LifetimeSeconds);
+
+	/**
+	 * Server: Owner's companion of Id deployed at Where, the nearest ground there, anchored and facing Facing, for
+	 * LifetimeSeconds (ADR-037 §1). One already deployed and living moves there instead, keeping its Health, and its
+	 * time starts again. False for an unknown companion, a time of none, or an owner that keeps a companion for good.
+	 */
+	bool Deploy(UAbilitySystemComponent& Owner, const FVeyraContentId& Id, const FVector& Where, const FVector& Facing, double LifetimeSeconds);
 
 	/** Server: binds Owner's living summoned companion to Unit as Mode says, keeping its time. False without one. */
 	bool Redirect(const UAbilitySystemComponent& Owner, EVeyraCompanionMode Mode, AActor& Unit);
@@ -76,6 +85,8 @@ private:
 		double EndsAt = 0.0;
 		/** When an escort next helps its ally, in world time. */
 		double NextPulseAt = 0.0;
+		/** Whether it was deployed at a point, where it stands through its owner's death (ADR-037 §1). */
+		bool bDeployed = false;
 		FTimerHandle Timer;
 	};
 
@@ -84,6 +95,7 @@ private:
 	/** Thinks for Entry on a world-time timer, so a pause holds it. */
 	void StartKeeping(FKept& Entry, const FVeyraCompanionTuning& Tuning);
 	void Form(FKept& Entry, const AActor& OwnerBody);
+	void FormAt(FKept& Entry, const FTransform& Where);
 	void Banish(FKept& Entry);
 	/** A summoned companion goes for good: banished, destroyed and no longer kept (ADR-035 §5). */
 	void Dismiss(const UAbilitySystemComponent& Owner);

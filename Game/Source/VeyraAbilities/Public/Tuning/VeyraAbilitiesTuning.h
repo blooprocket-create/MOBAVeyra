@@ -2117,6 +2117,11 @@ enum class EVeyraCompanionOrder : uint8
 	Summon,
 	/** Bind the caster's living summoned companion to the unit the cast names, keeping its time (ADR-035 §5). */
 	Redirect,
+	/**
+	 * Deploy the caster's companion at the cast's point, anchored and facing away from its caster, for a while
+	 * (ADR-037 §1). Cast while it lives, it moves there instead, keeping its Health, its time starting again.
+	 */
+	Deploy,
 };
 
 /** Which unit a summon or redirect binds the companion to (ADR-035 §5); None for the other orders. */
@@ -2158,11 +2163,11 @@ struct FVeyraCommandAbilityTuning
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> LandingZones;
 
-	/** Summon: the one companion definition it forms (ADR-035 §5); none for the other orders. */
+	/** Summon and Deploy: the one companion definition it forms (ADR-035 §5; ADR-037 §1); none for the other orders. */
 	UPROPERTY()
 	TArray<FVeyraContentId> Companion;
 
-	/** Summon: how long the companion stays, in seconds; 0 for the other orders. */
+	/** Summon and Deploy: how long the companion stays, in seconds; 0 for the other orders. */
 	UPROPERTY()
 	double LifetimeSeconds = 0.0;
 

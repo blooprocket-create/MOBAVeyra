@@ -38,6 +38,11 @@ enum class EVeyraCompanionMode : uint8
 	Escort,
 	/** Summoned to hunt one enemy while it stays within its leash of its owner (ADR-035 §5). */
 	Hunt,
+	/**
+	 * Deployed at a point (ADR-037 §1): it never walks, fights the enemies within its basic attack's reach without
+	 * chasing, and stands whatever its owner's distance.
+	 */
+	Anchored,
 };
 
 /**
@@ -101,6 +106,15 @@ public:
 	/** Server: a summoned companion escorts the ally or hunts the enemy Unit, as Mode says (ADR-035 §5). */
 	void Bind(EVeyraCompanionMode InMode, AActor& Unit);
 
+	/**
+	 * Server: it stands deployed at Where, facing Facing, from now on (ADR-037 §1): it goes there at once, keeping its
+	 * Health, and gives up whatever it did before.
+	 */
+	void Anchor(const FVector& Where, const FVector& Facing);
+
+	/** Server: the way it faced as it was last anchored. */
+	const FVector& GetAnchorFacing() const { return AnchorFacing; }
+
 	/** Server: the ally it escorts or the enemy it hunts, if it was summoned for one. */
 	AActor* GetBoundTo() const { return BoundTo.Get(); }
 
@@ -161,7 +175,9 @@ private:
 	TWeakObjectPtr<UAbilitySystemComponent> OwnerAbilities;
 	EVeyraCompanionMode Mode = EVeyraCompanionMode::Follow;
 	TWeakObjectPtr<AActor> BoundTo;
+	/** Where it holds, or stands anchored. */
 	FVector HoldPoint = FVector::ZeroVector;
+	FVector AnchorFacing = FVector::ForwardVector;
 	double HoldsUntil = 0.0;
 	FVeyraContentId HoldOpenedBy;
 	int32 GrownLevel = 1;

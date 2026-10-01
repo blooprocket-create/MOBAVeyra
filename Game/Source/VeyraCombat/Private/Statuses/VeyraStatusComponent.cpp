@@ -395,6 +395,14 @@ bool UVeyraStatusComponent::HasFromSide(EVeyraStatusKind Kind, EVeyraTeam Side) 
 	});
 }
 
+bool UVeyraStatusComponent::HasKindFrom(EVeyraStatusKind Kind, const UAbilitySystemComponent& Source) const
+{
+	return Ledger.Entries.ContainsByPredicate([this, Kind, &Source](const FVeyraStatusEntry& Entry) {
+		const FServerEntry* Server = Entry.Kind == Kind ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		return Server && Server->Source.Get() == &Source;
+	});
+}
+
 int32 UVeyraStatusComponent::GetStacksFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const
 {
 	int32 Stacks = 0;

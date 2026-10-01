@@ -50,7 +50,9 @@ The survey for this ADR found that:
 - **The companion mode `Anchored`:**
   - it never walks;
   - it attacks the legal enemies within its basic attack's range, never chasing;
-  - its owner's distance does not end it.
+  - its owner's distance does not end it, nor does its owner's death: it stands until its time runs out or it is destroyed;
+  - it faces away from its caster, the way the cast pointed.
+- **Its target:** a legal enemy its owner Designated (§5), else one its owner fought lately, else the nearest.
 
 ### 2. Postures (Abilities)
 
@@ -119,7 +121,8 @@ The survey for this ADR found that:
 4. **Redeploying** moves Picket, keeps its Health, and starts its lifetime again.
 5. **A Designation** lasts a few seconds and only sways Picket's choice among targets it may attack anyway.
 6. **All Hands counts damage dealt**, by any delivery, from each allied Vanguard at most once per its cooldown.
-7. **The values** in Abilities.json and Vanguards.json are Provisional playtest settings.
+7. **A deployed companion outlives its owner's death**, as equipment left standing does, until its time runs out or it is destroyed.
+8. **The values** in Abilities.json and Vanguards.json are Provisional playtest settings.
 
 ## Consequences
 

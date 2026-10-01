@@ -79,6 +79,11 @@ EVeyraCastRejection UVeyraCommandAbility::CheckTarget(const AActor& Caster, cons
 			return EVeyraCastRejection::InvalidTarget;
 		}
 	}
+	// A deployment needs only a usable point: it forms its companion there, or moves the one living (ADR-037 §1).
+	if (Command->Order == EVeyraCompanionOrder::Deploy)
+	{
+		return HasUsablePoint(Target) ? EVeyraCastRejection::None : EVeyraCastRejection::InvalidLocation;
+	}
 	if (!LivingCompanionOf(*Abilities))
 	{
 		return EVeyraCastRejection::NoCompanion;
@@ -122,6 +127,15 @@ FVeyraChannelPlan UVeyraCommandAbility::Deliver(const FVeyraCast& Cast)
 		else if (Keeper && Unit)
 		{
 			Keeper->Redirect(*Caster, Mode, *Unit);
+		}
+		return FVeyraChannelPlan();
+	}
+	// Deployed at the point, facing away from its caster (ADR-037 §1).
+	if (Command && World && Command->Order == EVeyraCompanionOrder::Deploy)
+	{
+		if (UVeyraCompanionSubsystem* Keeper = World->GetSubsystem<UVeyraCompanionSubsystem>())
+		{
+			Keeper->Deploy(*Caster, Command->Companion[0], Cast.Point, Cast.Point - Cast.CasterLocation, Command->LifetimeSeconds);
 		}
 		return FVeyraChannelPlan();
 	}

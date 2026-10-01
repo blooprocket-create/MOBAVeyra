@@ -14,15 +14,24 @@ namespace
 		{
 			return {};
 		}
-		if (Candidate.bOwnersTarget)
+		// Its owner's mark first, among the enemies it may attack anyway (ADR-037 §5).
+		if (Candidate.bDesignated)
 		{
 			return 0;
+		}
+		if (Candidate.bOwnersTarget)
+		{
+			return 1;
 		}
 		if (Mode == EVeyraCompanionMode::Follow)
 		{
 			return {};
 		}
-		return Candidate.bVanguard ? 1 : 2;
+		if (Mode == EVeyraCompanionMode::Anchored)
+		{
+			return 2;
+		}
+		return Candidate.bVanguard ? 2 : 3;
 	}
 
 	bool IsNearer(const FVeyraCompanionCandidate& Candidate, const FVeyraCompanionCandidate& Best)

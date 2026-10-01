@@ -610,6 +610,12 @@ namespace
 			{
 				Problem(Pointer, TEXT("a redirect names no companion or lifetime, but the unit it binds and a cast range above 0"));
 			}
+			// A deployment forms one companion at its point for a while, bound to nobody (ADR-037 §1).
+			if (Command.Order == EVeyraCompanionOrder::Deploy
+				&& (Command.Companion.Num() != 1 || !(Command.LifetimeSeconds > 0.0) || Command.BindTo != EVeyraCompanionBind::None || !(Command.Cast.CastRange > 0.0)))
+			{
+				Problem(Pointer, TEXT("a deployment names one companion, a lifetime above 0 and a cast range above 0, and binds no unit"));
+			}
 			for (const FVeyraContentId& Companion : Command.Companion)
 			{
 				if (!Tuning.Companions.Contains(Companion))
