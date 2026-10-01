@@ -183,7 +183,7 @@ M29a added ([ADR-037](Docs/ADR/ADR-037-deployables-postures-cover-and-designatio
 
 M29b added Eudora Blackbridge, The Fieldwright, and Picket: Drive Rivet, Set the Picket, Raise the Bulwark, MOVE THE LINE! and All Hands, all data.
 
-M30 added ([ADR-038](Docs/ADR/ADR-038-weekly-rotation-and-co-op-vs-ai.md)), Co-op vs AI and the weekly free rotation:
+M30 added ([ADR-039](Docs/ADR/ADR-039-weekly-rotation-and-co-op-vs-ai.md)), Co-op vs AI and the weekly free rotation:
 - in the backend, the catalog's seeded weekly rotation; the `coop` matchmaking kind, which fills one side with humans; a co-op select that seats its enemy AI team; and Standard matches that carry it;
 - in Bots, role preferences per Vanguard, by which a team deals its seats' places (`VeyraBotRoles::Deal`);
 - in Match, the host's acceptance of a co-op match's enemy team;

@@ -46,7 +46,7 @@ void UVeyraBotSubsystem::OnBotAdded(AVeyraPlayerState& Bot, const FVeyraBotSeat&
 	// Its own seat's place first, so even a bot seated in play has one; later seats than the list wrap around it.
 	Place(Entry, Seat.Seat % Seats.Num());
 	Brain->RegisterComponent();
-	// Then its team deals its places again, by the roles their Vanguards play (ADR-038 §5).
+	// Then its team deals its places again, by the roles their Vanguards play (ADR-039 §5).
 	Deal(Seat.Side);
 }
 

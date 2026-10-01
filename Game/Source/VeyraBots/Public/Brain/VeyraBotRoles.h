@@ -5,7 +5,7 @@
 #include "Containers/ArrayView.h"
 #include "Tuning/VeyraBotsTuning.h"
 
-/** How a team of bots shares its places (ADR-038 §5). No world: the bot subsystem gathers the facts. */
+/** How a team of bots shares its places (ADR-039 §5). No world: the bot subsystem gathers the facts. */
 namespace VeyraBotRoles
 {
 	/**

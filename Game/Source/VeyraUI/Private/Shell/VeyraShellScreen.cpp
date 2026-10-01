@@ -642,12 +642,36 @@ void UVeyraShellScreen::BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWi
 	AddText(Parent, LOCTEXT("PlayEyebrow", "Choose your mode"), RoleOf(EVeyraShellText::Eyebrow));
 	AddText(Parent, LOCTEXT("PlayTitle", "Play"), RoleOf(EVeyraShellText::Display));
 
+	// The modes in their categories, in the author's order: Ranked, Casual, AI, then Customs (ADR-039 §6).
+	// Each is a heading over its cards, side by side.
+	UHorizontalBox* Sections = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	const auto AddSection = [this, Sections](const FText& Title) {
+		UVerticalBox* Section = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
+		AddText(*Section, Title, RoleOf(EVeyraShellText::Eyebrow));
+		UHorizontalBox* Row = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		VeyraShellStyle::AddSpaced(*Section, *Row);
+		VeyraShellStyle::AddSpaced(*Sections, *Section);
+		return Row;
+	};
+	const TArray<FVeyraModeCardModel> ModeCards = VeyraShellModels::DescribeModes(Snapshot);
+	TMap<VeyraBackendProtocol::EModeCategory, UHorizontalBox*> Rows;
+	for (const TPair<VeyraBackendProtocol::EModeCategory, FText>& Category : {
+			 TPair<VeyraBackendProtocol::EModeCategory, FText>{ VeyraBackendProtocol::EModeCategory::Ranked, LOCTEXT("CategoryRanked", "Ranked") },
+			 TPair<VeyraBackendProtocol::EModeCategory, FText>{ VeyraBackendProtocol::EModeCategory::Casual, LOCTEXT("CategoryCasual", "Casual") },
+			 TPair<VeyraBackendProtocol::EModeCategory, FText>{ VeyraBackendProtocol::EModeCategory::AI, LOCTEXT("CategoryAI", "AI") } })
+	{
+		if (ModeCards.ContainsByPredicate([&Category](const FVeyraModeCardModel& Card) { return Card.Category == Category.Key; }))
+		{
+			Rows.Add(Category.Key, AddSection(Category.Value));
+		}
+	}
+
 	// A mode card: its art, name, team format and whether it is available (UX-12). Choosing one makes
 	// the player a party of one, or changes the mode of the party they lead (UX-6).
 	const bool bCanSelectMode = Client->CanIssue(EVeyraClientIntent::SelectMode);
-	UHorizontalBox* Cards = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	for (const FVeyraModeCardModel& ModeCard : VeyraShellModels::DescribeModes(Snapshot))
+	for (const FVeyraModeCardModel& ModeCard : ModeCards)
 	{
+		UHorizontalBox* Cards = Rows.FindChecked(ModeCard.Category);
 		TArray<TPair<FText, uint8>> Plate = {
 			{ ModeCard.Format, RoleOf(EVeyraShellText::Eyebrow) },
 			{ ModeCard.Name, RoleOf(EVeyraShellText::Heading) },
@@ -660,7 +684,8 @@ void UVeyraShellScreen::BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWi
 		AddArtCard(*Cards, ModeCard.Name, ShellStyle().ModeArtOf(ModeId), Plate, [this, ModeId] { Client->SelectMode(ModeId); },
 			bCanSelectMode && ModeCard.bAvailable, ModeCard.bSelected);
 	}
-	// Custom practice is not a matchmade mode: it starts at once, with no party or queue (ADR-010 §7).
+	// Customs: custom practice starts at once, with no party or queue (ADR-010 §7); a custom game is a lobby.
+	UHorizontalBox* Cards = AddSection(LOCTEXT("CategoryCustoms", "Customs"));
 	const TArray<TPair<FText, uint8>> Custom = {
 		{ LOCTEXT("CustomPlayers", "1 player"), RoleOf(EVeyraShellText::Eyebrow) },
 		{ LOCTEXT("CustomTitle", "Practice"), RoleOf(EVeyraShellText::Heading) },
@@ -677,7 +702,7 @@ void UVeyraShellScreen::BuildPlay(const FVeyraClientSnapshot& Snapshot, UPanelWi
 	};
 	AddArtCard(*Cards, LOCTEXT("CustomGame", "Custom Game"), ShellStyle().ModeArtOf(TEXT("custom_game")), CustomGame, [this] { Client->CreateLobby(); },
 		Client->CanIssue(EVeyraClientIntent::CreateLobby), false);
-	VeyraShellStyle::AddSpaced(Parent, *Cards);
+	VeyraShellStyle::AddSpaced(Parent, *Sections);
 }
 
 UVeyraShellButton* UVeyraShellScreen::AddArtCard(UPanelWidget& Parent, const FText& Label, const FString& VanguardId, const TArray<TPair<FText, uint8>>& Plate,

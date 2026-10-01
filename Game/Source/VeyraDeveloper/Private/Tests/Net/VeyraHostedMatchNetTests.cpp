@@ -262,7 +262,7 @@ namespace VeyraNetTests
 			Tuning->Tuning.Phases.PreparationSeconds = ShortPreparationSeconds;
 			Tickets = MakeUnique<FScopedTestTickets>();
 			// Seated before the match goes live, the side deals its places by the roles of their Vanguards: Eudora,
-			// seated second, takes the first seat's Mid, which she plays before Top, and Varkesh her Top (ADR-038 §5).
+			// seated second, takes the first seat's Mid, which she plays before Top, and Varkesh her Top (ADR-039 §5).
 			PracticeBots = { { EVeyraTeam::B, ContentId(TEXT("varkesh")), EVeyraBotDifficulty::Beginner },
 				{ EVeyraTeam::B, ContentId(TEXT("eudora")), EVeyraBotDifficulty::Intermediate } };
 			Assignment = MakeUnique<FScopedMatchAssignment>(TArray<EVeyraTeam>{ EVeyraTeam::A, EVeyraTeam::B }, EVeyraMatchRules::Practice,
@@ -344,7 +344,7 @@ namespace VeyraNetTests
 					const TArray<const AVeyraPlayerState*> Bots = BotsOf(State.World);
 					const FVeyraBotsTuning& BotTuning = UVeyraBotsTuningSubsystem::Get();
 					const TArray<FVeyraBotSeatTuning>& Seats = BotTuning.Seats;
-					// Both bots sit on one side, in seats 0 and 1: the side deals those places by the roles their Vanguards play (ADR-038 §5).
+					// Both bots sit on one side, in seats 0 and 1: the side deals those places by the roles their Vanguards play (ADR-039 §5).
 					TArray<EVeyraBotRole> Places;
 					TArray<TArray<EVeyraBotRole>> Preferences;
 					for (int32 Index = 0; Index < PracticeBots.Num(); ++Index)

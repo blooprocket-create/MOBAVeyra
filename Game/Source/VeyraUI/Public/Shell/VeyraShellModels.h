@@ -149,6 +149,8 @@ struct FVeyraSelectModel
 struct FVeyraModeCardModel
 {
 	FString ModeId;
+	/** The Play page's group it shows in (ADR-039 §6). */
+	VeyraBackendProtocol::EModeCategory Category = VeyraBackendProtocol::EModeCategory::Casual;
 	FText Name;
 	/** Such as "1v1": the human players on each team. */
 	FText Format;

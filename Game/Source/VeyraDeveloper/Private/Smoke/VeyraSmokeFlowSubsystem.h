@@ -229,7 +229,7 @@ private:
 	int32 MostOthers = 0;
 	FString WantedVanguard;
 	FString LockedVanguard;
-	/** A matchmade script: the mode it was asked to queue for, and whether that mode is against AI (ADR-038 §6). */
+	/** A matchmade script: the mode it was asked to queue for, and whether that mode is against AI (ADR-039 §6). */
 	FString WantedMode;
 	bool bVersusAI = false;
 	FString ScreenshotFolder;

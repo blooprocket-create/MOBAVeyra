@@ -13,7 +13,7 @@ namespace VeyraBotRolesTests
 	using EVeyraBotRole::Mid;
 	using EVeyraBotRole::Top;
 
-	// Veyra.Bots.BotRoles.*: a team's bots share its places by the roles their Vanguards play (ADR-038 §5).
+	// Veyra.Bots.BotRoles.*: a team's bots share its places by the roles their Vanguards play (ADR-039 §5).
 	TEST_CLASS(BotRoles, "Veyra.Bots")
 	{
 		TEST_METHOD(TheJungleGoesToTheBotThatPlaysItBest)

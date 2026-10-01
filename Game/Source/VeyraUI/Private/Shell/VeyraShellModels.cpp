@@ -415,7 +415,7 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 {
 	const VeyraBackendProtocol::FSelect& Select = Snapshot.Select;
 	FVeyraSelectModel Model;
-	Model.Title = FText::Format(LOCTEXT("SelectTitle", "{0}: Champion Select"), NameOf(Select.Mode));
+	Model.Title = FText::Format(LOCTEXT("SelectTitle", "{0}: Champion Select"), ModeNameOf(Select.Mode));
 	Model.Countdown = FormatCountdown(RemainingSeconds);
 	const FSelectSeat* You = Select.FindYou();
 	if (Select.State == ESelectState::Starting)
@@ -502,7 +502,7 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 		Model.ShownTitle = ChosenId.IsSet() ? VeyraContentText::VanguardTitle(ChosenId.GetValue()) : FText::GetEmpty();
 		Model.Abilities = DescribeAbilities(Chosen);
 	}
-	Model.ModeLabel = NameOf(Select.Mode).ToUpper();
+	Model.ModeLabel = ModeNameOf(Select.Mode).ToUpper();
 	Model.PickSeconds = Select.PickSeconds;
 	return Model;
 }
@@ -519,8 +519,9 @@ TArray<FVeyraModeCardModel> DescribeModes(const FVeyraClientSnapshot& Snapshot)
 		}
 		FVeyraModeCardModel Card;
 		Card.ModeId = Mode.Id;
+		Card.Category = Mode.Category;
 		Card.Name = ModeNameOf(Mode.Id);
-		// Against an enemy AI team, its humans alone (ADR-038 §2).
+		// Against an enemy AI team, its humans alone (ADR-039 §2).
 		Card.Format = Mode.bVersusAI ? FText::Format(LOCTEXT("ModeFormatVersusAI", "{0} vs AI"), FText::AsNumber(Mode.HumanPlayersPerTeam))
 									 : FText::Format(LOCTEXT("ModeFormat", "{0}v{0}"), FText::AsNumber(Mode.HumanPlayersPerTeam));
 		Card.bAvailable = Mode.bMatchmade;
@@ -546,7 +547,7 @@ FVeyraPartyModel DescribeParty(const FVeyraClientSnapshot& Snapshot, bool bCanRe
 	const bool bLeader = You && You->bLeader;
 	Model.bShown = true;
 	Model.Mode = Party.Mode.IsEmpty() ? LOCTEXT("PartyNoMode", "No mode chosen yet: the leader chooses one in Play.")
-									  : FText::Format(LOCTEXT("PartyMode", "Mode: {0}"), NameOf(Party.Mode));
+									  : FText::Format(LOCTEXT("PartyMode", "Mode: {0}"), ModeNameOf(Party.Mode));
 	for (const VeyraBackendProtocol::FPartyMember& Member : Party.Members)
 	{
 		const FText Name = FText::FromString(Member.DisplayName);
@@ -591,7 +592,7 @@ FVeyraMatchFoundModel DescribeMatchFound(const FVeyraClientSnapshot& Snapshot, d
 	const VeyraBackendProtocol::FMatchFound& Found = Snapshot.MatchFound;
 	FVeyraMatchFoundModel Model;
 	Model.Title = LOCTEXT("MatchFoundTitle", "Match Found");
-	Model.Mode = NameOf(Found.Mode);
+	Model.Mode = ModeNameOf(Found.Mode);
 	Model.Countdown = FormatCountdown(RemainingSeconds);
 	Model.Progress = FText::Format(LOCTEXT("MatchFoundProgress", "{0} of {1} accepted"), FText::AsNumber(Found.Accepted), FText::AsNumber(Found.Total));
 	if (Found.You == AcceptedAnswer)
@@ -666,7 +667,7 @@ FVeyraResultsModel DescribeOutcome(const VeyraBackendProtocol::FMatchOutcome& In
 			Model.Lines.Insert(FText::Format(LOCTEXT("ResultPersonalLoss", "Personal loss: you were away too long. Your team {0}."), Team), 0);
 			Model.Headline = LOCTEXT("ResultPersonalDefeat", "Defeat");
 		}
-		Model.Lines.Add(FText::Format(LOCTEXT("ResultMode", "Mode: {0}"), NameOf(Outcome->Mode)));
+		Model.Lines.Add(FText::Format(LOCTEXT("ResultMode", "Mode: {0}"), ModeNameOf(Outcome->Mode)));
 		if (!Outcome->VanguardId.IsEmpty())
 		{
 			Model.Lines.Add(FText::Format(LOCTEXT("ResultVanguard", "Your Vanguard: {0}"), VanguardNameOf(Outcome->VanguardId)));

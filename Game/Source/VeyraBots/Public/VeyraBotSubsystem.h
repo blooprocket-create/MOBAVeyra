@@ -17,7 +17,7 @@ struct FVeyraBotSeat;
  * Gives each bot the match announces a brain (ADR-013 §2): it listens to UVeyraMatchEvents and puts a
  * UVeyraBotBrainComponent on the bot's Vanguard controller, with its difficulty. A team's seats set the places it
  * fills (a role, its Flux Spells, whether it wards); as each bot is seated, the team deals those places afresh among
- * its bots not yet in play, by the roles their Vanguards play (ADR-038 §5). Server only.
+ * its bots not yet in play, by the roles their Vanguards play (ADR-039 §5). Server only.
  */
 UCLASS()
 class VEYRABOTS_API UVeyraBotSubsystem : public UWorldSubsystem

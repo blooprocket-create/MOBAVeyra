@@ -249,7 +249,7 @@ namespace VeyraMatchTests
 			StandardWithBots.Bots = Practice.Bots;
 			ASSERT_THAT(IsTrue(IsRefused(StandardWithBots, TEXT("only a practice or custom match has bots beside humans"))));
 
-			// A co-op match: its humans on one side, its enemy team on the other (ADR-038 §4).
+			// A co-op match: its humans on one side, its enemy team on the other (ADR-039 §4).
 			FVeyraMatchAssignment Coop = TwoParticipantAssignment();
 			Coop.Participants.SetNum(1);
 			Coop.Bots = Practice.Bots;

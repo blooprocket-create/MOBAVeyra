@@ -783,12 +783,30 @@ bool ParseModes(const FString& Body, TArray<FModeInfo>& Out, FString& OutProblem
 		const TSharedPtr<FJsonObject>* Object = nullptr;
 		FModeInfo Mode;
 		FString Matchmaking;
+		FString Category;
 		double Team = 0.0;
 		if (!Value.IsValid() || !Value->TryGetObject(Object) || !Object->IsValid() || !StringField(**Object, TEXT("id"), ContentIdPattern, Mode.Id)
 			|| !BoolField(**Object, TEXT("enabled"), Mode.bEnabled) || !DurationField(**Object, TEXT("humanPlayersPerTeam"), Team) || Team < 1.0
-			|| !StringField(**Object, TEXT("matchmaking"), Matchmaking))
+			|| !StringField(**Object, TEXT("matchmaking"), Matchmaking) || !StringField(**Object, TEXT("category"), Category))
 		{
 			OutProblem = TEXT("a mode is not in the expected format");
+			return false;
+		}
+		if (Category.Equals(TEXT("ranked"), ESearchCase::CaseSensitive))
+		{
+			Mode.Category = EModeCategory::Ranked;
+		}
+		else if (Category.Equals(TEXT("casual"), ESearchCase::CaseSensitive))
+		{
+			Mode.Category = EModeCategory::Casual;
+		}
+		else if (Category.Equals(TEXT("ai"), ESearchCase::CaseSensitive))
+		{
+			Mode.Category = EModeCategory::AI;
+		}
+		else
+		{
+			OutProblem = FString::Printf(TEXT("mode %s has no category the client knows"), *Mode.Id);
 			return false;
 		}
 		Mode.HumanPlayersPerTeam = FMath::FloorToInt32(Team);

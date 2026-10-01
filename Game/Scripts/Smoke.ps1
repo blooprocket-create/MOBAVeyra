@@ -90,7 +90,7 @@
     Veyra.Dev.Siege until the other side's Prime Well falls. The backend must record a custom match
     won by the first client's side, and its scoreboard the starting Gold the host chose.
 
-    -Flow Coop plays Co-op vs AI to a win (ADR-038 §6) with one packaged client, against the local
+    -Flow Coop plays Co-op vs AI to a win (ADR-039 §6) with one packaged client, against the local
     co-op mode of one human player: it queues, accepts, locks its Vanguard beside the enemy AI team
     the backend seated, and sieges with Veyra.Dev.Siege until the other side's Prime Well falls. The
     backend must record a standard match won by the player's side; the server must add the mode's
@@ -473,7 +473,7 @@ if ($Handoff -or $Flow) {
     $isMatchmade = $Flow -in 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline'
     # -Flow Custom: a custom lobby the first client hosts and the second joins (ADR-021), won by siege.
     $isCustom = $Flow -eq 'Custom'
-    # -Flow Coop: one player queues for co-op, accepts, picks and sieges to victory against the enemy AI team (ADR-038 §6).
+    # -Flow Coop: one player queues for co-op, accepts, picks and sieges to victory against the enemy AI team (ADR-039 §6).
     $isCoop = $Flow -eq 'Coop'
     $isVictory = $Flow -in 'CasualVictory', 'Custom', 'Coop'
     # -Flow Settings: one player, two starts, no match.
@@ -497,13 +497,14 @@ if ($Handoff -or $Flow) {
         $smokeModeSize = 1
     }
     if ($isCoop) {
-        # One player makes one co-op match only with a co-op mode of one human player (ADR-038 §2, provisional).
-        $coopMode = $backendConfig.modes | Where-Object { $_.enabled -and $_.matchmaking -eq 'coop' -and $_.humanPlayersPerTeam -eq 1 } | Select-Object -First 1
+        # Its one client fills the co-op queue, sized to it (ADR-039 §6).
+        $coopMode = $backendConfig.modes | Where-Object { $_.enabled -and $_.matchmaking -eq 'coop' } | Select-Object -First 1
         if (-not $coopMode) {
-            Write-Host '-Flow Coop needs an enabled coop mode of one human player in Backend/config/local.json.'
+            Write-Host '-Flow Coop needs an enabled coop mode in Backend/config/local.json.'
             exit $ExitInfrastructure
         }
         $mode = $coopMode.id
+        $smokeModeSize = 1
     }
     if ($isCustom) {
         if (-not $backendConfig.customLobby.enabled) {
@@ -902,7 +903,7 @@ if ($Handoff -or $Flow) {
         if ($isPractice -and $practiceBots.Count -gt 0) {
             $expectedServerLines += "Added $($practiceBots.Count) of the assignment's $($practiceBots.Count) bot(s)."
         }
-        # A co-op match adds its whole enemy AI team (ADR-038 §4).
+        # A co-op match adds its whole enemy AI team (ADR-039 §4).
         if ($isCoop) {
             $expectedServerLines += "Added $($coopMode.aiPerTeam) of the assignment's $($coopMode.aiPerTeam) bot(s)."
         }

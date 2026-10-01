@@ -209,7 +209,7 @@ struct FVeyraBotVanguardTuning
 	UPROPERTY()
 	TMap<FVeyraContentId, EVeyraBotAbilityUse> Abilities;
 
-	/** The roles its bot plays, best first: a team deals its places by them, the Jungle first (ADR-038 §5). */
+	/** The roles its bot plays, best first: a team deals its places by them, the Jungle first (ADR-039 §5). */
 	UPROPERTY()
 	TArray<EVeyraBotRole> Roles;
 };

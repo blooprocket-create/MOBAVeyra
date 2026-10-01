@@ -118,7 +118,7 @@ TArray<FString> UVeyraMatchHostSubsystem::SetAssignment(FVeyraMatchAssignment In
 		}
 	}
 	// Bots play in hosted matches (ADR-010 §7; ADR-021 §2), and as a co-op match's enemy team, on a side no human
-	// plays (ADR-038 §4); they take places on their sides like anyone.
+	// plays (ADR-039 §4); they take places on their sides like anyone.
 	const bool bEnemyTeam = !InAssignment.Bots.ContainsByPredicate([&InAssignment](const FVeyraAssignedBot& Bot) {
 		return InAssignment.Participants.ContainsByPredicate([&Bot](const FVeyraAssignedParticipant& Participant) { return Participant.Side == Bot.Side; });
 	});

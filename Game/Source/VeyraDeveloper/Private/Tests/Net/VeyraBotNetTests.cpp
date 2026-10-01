@@ -96,7 +96,7 @@ namespace VeyraNetTests
 		TEST_METHOD(BotsSeatedInPreparationAreDealtTheirPlacesTogether)
 		{
 			// Each spawns as it is seated in preparation; its side still deals the places of all it seated before the
-			// match goes live (ADR-038 §5). Varkesh plays Top before Mid, Eudora Mid before Top: seated in that order
+			// match goes live (ADR-039 §5). Varkesh plays Top before Mid, Eudora Mid before Top: seated in that order
 			// in the Mid and Top seats, they swap.
 			StartMatch(Network, Layout, EVeyraMatchPhase::Preparation)
 				.ThenServer(TEXT("Seat Varkesh, then Eudora, on one side"), [this](FState& State) {

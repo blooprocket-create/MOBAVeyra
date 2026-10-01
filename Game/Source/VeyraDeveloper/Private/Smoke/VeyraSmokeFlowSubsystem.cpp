@@ -436,7 +436,7 @@ void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
 	{
 		return;
 	}
-	// The queue it was asked for, or the first matchmade one (ADR-038 §6).
+	// The queue it was asked for, or the first matchmade one (ADR-039 §6).
 	const VeyraBackendProtocol::FModeInfo* Mode = Snapshot.Modes.FindByPredicate([this](const VeyraBackendProtocol::FModeInfo& Candidate) {
 		return Candidate.bEnabled && Candidate.bMatchmade && (WantedMode.IsEmpty() || Candidate.Id == WantedMode);
 	});
@@ -1531,7 +1531,7 @@ FString UVeyraSmokeFlowSubsystem::VanguardLabel(const FString& VanguardId)
 FString UVeyraSmokeFlowSubsystem::ModeLabel(const FString& ModeId)
 {
 #if WITH_VEYRA_UI
-	// A mode's card shows the text table's name, such as "Co-op vs AI: Beginner" (ADR-038 §6).
+	// A mode's card shows the text table's name, such as "Co-op vs AI: Beginner" (ADR-039 §6).
 	return VeyraShellModels::ModeNameOf(ModeId).ToString();
 #else
 	return ModeId;

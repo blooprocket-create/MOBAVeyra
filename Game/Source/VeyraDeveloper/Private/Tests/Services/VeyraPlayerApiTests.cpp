@@ -294,8 +294,8 @@ namespace VeyraPlayerApiTests
 		{
 			TArray<VeyraBackendProtocol::FModeInfo> Modes;
 			FString Problem;
-			const TCHAR* const Body = TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"},")
-									  TEXT("{\"id\":\"ranked\",\"enabled\":false,\"humanPlayersPerTeam\":5,\"matchmaking\":\"notImplemented\"}]}");
+			const TCHAR* const Body = TEXT("{\"modes\":[{\"id\":\"casual_select\",\"category\":\"casual\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"},")
+									  TEXT("{\"id\":\"ranked\",\"category\":\"ranked\",\"enabled\":false,\"humanPlayersPerTeam\":5,\"matchmaking\":\"notImplemented\"}]}");
 			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseModes(Body, Modes, Problem), Problem));
 			ASSERT_THAT(AreEqual(Modes.Num(), 2));
 			ASSERT_THAT(AreEqual(Modes[0].Id, FString(TEXT("casual_select"))));
@@ -303,17 +303,21 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(AreEqual(Modes[0].HumanPlayersPerTeam, 1));
 			ASSERT_THAT(IsFalse(Modes[1].bEnabled || Modes[1].bMatchmade));
 			ASSERT_THAT(IsFalse(Modes[0].bVersusAI));
+			// Each in its Play-page category (ADR-039 §6).
+			ASSERT_THAT(IsTrue(Modes[0].Category == VeyraBackendProtocol::EModeCategory::Casual && Modes[1].Category == VeyraBackendProtocol::EModeCategory::Ranked));
 
-			// A co-op queue is matchmade, against AI (ADR-038 §6).
-			const TCHAR* const Coop = TEXT("{\"modes\":[{\"id\":\"coop_beginner\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"coop\"}]}");
+			// A co-op queue is matchmade, against AI (ADR-039 §6).
+			const TCHAR* const Coop = TEXT("{\"modes\":[{\"id\":\"coop_beginner\",\"category\":\"ai\",\"enabled\":true,\"humanPlayersPerTeam\":5,\"matchmaking\":\"coop\"}]}");
 			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseModes(Coop, Modes, Problem), Problem));
-			ASSERT_THAT(IsTrue(Modes.Num() == 1 && Modes[0].bMatchmade && Modes[0].bVersusAI));
+			ASSERT_THAT(IsTrue(Modes.Num() == 1 && Modes[0].bMatchmade && Modes[0].bVersusAI && Modes[0].Category == VeyraBackendProtocol::EModeCategory::AI));
 
 			for (const TCHAR* Bad : { TEXT("{}"), TEXT("{\"modes\":null}"),
 					 TEXT("{\"modes\":[{\"id\":\"Casual\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"}]}"),
 					 TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":true,\"humanPlayersPerTeam\":0,\"matchmaking\":\"casualSelect\"}]}"),
 					 TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":\"yes\",\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"}]}"),
-					 TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":true,\"humanPlayersPerTeam\":1}]}") })
+					 TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":true,\"humanPlayersPerTeam\":1}]}"),
+					 TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"}]}"),
+					 TEXT("{\"modes\":[{\"id\":\"casual_select\",\"category\":\"arcade\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"}]}") })
 			{
 				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseModes(Bad, Modes, Problem), Bad));
 				ASSERT_THAT(IsFalse(Problem.IsEmpty()));
