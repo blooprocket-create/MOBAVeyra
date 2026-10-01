@@ -406,7 +406,7 @@ void UVeyraSelfBuffAbility::PulseChain()
 	Frame.Origin = From;
 	Frame.Direction = Along;
 	for (AActor* Unit : VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Line, From, Along },
-			 [Body](const AActor& Other) { return VeyraTargeting::AreHostile(Body, &Other) && VeyraTargeting::CanAcquire(Body, Other); }))
+			 [Body](const AActor& Other) { return VeyraTargeting::CanHitEnemy(Body, Other) && VeyraTargeting::IsAlive(&Other); }))
 	{
 		const double* NextAt = ChainNextAt.Find(Unit);
 		if (NextAt && Now < *NextAt)

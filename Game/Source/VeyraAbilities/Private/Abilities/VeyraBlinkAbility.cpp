@@ -58,6 +58,11 @@ EVeyraCastRejection UVeyraBlinkAbility::CheckTarget(const AActor& Caster, const 
 		{
 			return EVeyraCastRejection::NoCompanion;
 		}
+		// A swap moves the companion too: it waits while the companion cannot move by its own abilities.
+		if (Blink->Swap == EVeyraBlinkSwap::Swap && EnumHasAnyFlags(VeyraCombat::GetActionBlocks(*Companion->GetAbilitySystemComponent()), EVeyraActionBlocks::Dash))
+		{
+			return EVeyraCastRejection::CrowdControlled;
+		}
 		const bool bNear = !(Blink->Cast.CastRange > 0.0) || FVector::Dist2D(Caster.GetActorLocation(), Companion->GetActorLocation()) <= Blink->Cast.CastRange;
 		return bNear ? EVeyraCastRejection::None : EVeyraCastRejection::OutOfRange;
 	}
@@ -124,7 +129,12 @@ FVeyraChannelPlan UVeyraBlinkAbility::Deliver(const FVeyraCast& Cast)
 		}
 		if (Blink->Swap == EVeyraBlinkSwap::Swap)
 		{
-			VeyraCombat::Blink(Its, From, Companion->GetActorForwardVector());
+			// Both move or neither does: a companion refused its blink puts its owner back.
+			if (!VeyraCombat::Blink(Its, From, Companion->GetActorForwardVector()))
+			{
+				VeyraCombat::Blink(*Caster, From, Body->GetActorForwardVector());
+				return FVeyraChannelPlan();
+			}
 			Erupt(Its, CompanionFrom, CompanionDeparture, Source);
 		}
 		Erupt(*Caster, From, Departure, Source);

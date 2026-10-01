@@ -6,14 +6,35 @@
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "CQTest.h"
 #include "Life/VeyraCombatEventSubsystem.h"
+#include "Targeting/VeyraVisibility.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "TimerManager.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 
 #if WITH_AUTOMATION_WORKER
 
+#include <limits>
+
 namespace VeyraAbilitiesTests
 {
+	/** A world's vision that hides one unit from everyone, as fog or stealth would. */
+	class FKitHidingVisibility final : public IVeyraVisibility
+	{
+	public:
+		explicit FKitHidingVisibility(const AActor& InHidden)
+			: Hidden(&InHidden)
+		{
+		}
+
+		virtual bool CanSee(const UObject& /*Observer*/, const AActor& Target) const override { return &Target != Hidden; }
+		virtual bool IsVisibleToTeam(EVeyraTeam /*Team*/, const AActor& Target) const override { return &Target != Hidden; }
+		virtual void RevealArea(EVeyraTeam /*Team*/, const FVector& /*Centre*/, double /*Radius*/, double /*DurationSeconds*/) override {}
+		virtual void RevealShape(EVeyraTeam /*Team*/, const FVeyraPlacedShape& /*Placed*/, double /*DurationSeconds*/) override {}
+
+	private:
+		const AActor* Hidden;
+	};
+
 	/** Fixture values for a companion's kit: a hold, a swap, a burst and a chain. */
 	namespace CompanionKitFixture
 	{
@@ -96,6 +117,8 @@ namespace VeyraAbilitiesTests
 			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_leashed")), StatusOf(EVeyraStatusKind::Counter, 0.0, Lasting));
 			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_true_form")), StatusOf(EVeyraStatusKind::MaxHealth, Growth, Lasting));
 			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_bitten")), StatusOf(EVeyraStatusKind::Counter, 0.0, Lasting));
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_rooted")), StatusOf(EVeyraStatusKind::Root, 0.0, Lasting));
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_spell_shield")), StatusOf(EVeyraStatusKind::SpellShield, 0.0, Lasting));
 			// A bolt whose hit on a marked target bursts around it.
 			FVeyraAreaAbilityTuning Bolt;
 			Bolt.Cast = InstantCast(Range, 0.0, 0.0);
@@ -270,6 +293,105 @@ namespace VeyraAbilitiesTests
 			Wait(Step * 2.0);
 			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Owner, EVeyraAbilitySlot::Q, Marked.GetActorLocation()) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyZero(TakenFrom(Beside, Own, EVeyraDamageDelivery::Ability))));
+		}
+
+		TEST_METHOD(AHoldRefusesAPointThatIsNoPlace)
+		{
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Owner, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_hunt")))));
+			for (const double Nowhere : { std::numeric_limits<double>::quiet_NaN(), std::numeric_limits<double>::infinity() })
+			{
+				FVeyraCastTarget Target;
+				Target.bHasLocation = true;
+				Target.Location = FVector(Nowhere, 0.0, 0.0);
+				ASSERT_THAT(IsTrue(VeyraAbilities::TryCast(*Owner->GetAbilitySystemComponent(), EVeyraAbilitySlot::W, Target) == EVeyraCastRejection::InvalidLocation));
+			}
+			ASSERT_THAT(IsTrue(Pet().GetMode() == EVeyraCompanionMode::Follow, TEXT("and it stays at its owner's side")));
+		}
+
+		/** An enemy roots the companion: it cannot move by walking or by its own abilities. */
+		bool RootThePet()
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(CompanionKitFixture::Point * 3.0, 0.0, 0.0));
+			const TOptional<FVeyraStatusSpec> Rooted = UVeyraAbilitiesTuningSubsystem::FindStatus(ArchetypeTestId(TEXT("test_rooted")));
+			return VeyraCombat::ApplyStatus(*Enemy.GetAbilitySystemComponent(), *PetAbilities(), Rooted.GetValue())
+				&& EnumHasAnyFlags(VeyraCombat::GetActionBlocks(*PetAbilities()), EVeyraActionBlocks::Dash);
+		}
+
+		TEST_METHOD(ItsLeapWaitsWhileItCannotMove)
+		{
+			using namespace CompanionKitFixture;
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Owner, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_hunt")))));
+			ASSERT_THAT(IsTrue(RootThePet()));
+			const FVector PetAt = Pet().GetActorLocation();
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Owner, EVeyraAbilitySlot::W, FVector(Point, 0.0, 0.0)) == EVeyraCastRejection::CrowdControlled,
+				TEXT("a rooted companion cannot leap")));
+			Wait(Point / Leap + 3.0 * Step);
+			ASSERT_THAT(IsTrue(Pet().GetMode() == EVeyraCompanionMode::Follow && Pet().GetActorLocation().Equals(PetAt), TEXT("so it holds nothing and stays")));
+		}
+
+		TEST_METHOD(ItsSwapWaitsWhileItCannotMove)
+		{
+			using namespace CompanionKitFixture;
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Owner, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_cross")))));
+			Pet().SetActorLocation(FVector(Point, 0.0, Pet().GetActorLocation().Z), false, nullptr, ETeleportType::TeleportPhysics);
+			ASSERT_THAT(IsTrue(RootThePet()));
+			const FVector OwnerAt = Owner->GetActorLocation();
+			const FVector PetAt = Pet().GetActorLocation();
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Owner, EVeyraAbilitySlot::E, OwnerAt) == EVeyraCastRejection::CrowdControlled,
+				TEXT("a rooted companion cannot swap places")));
+			ASSERT_THAT(IsTrue(Owner->GetActorLocation().Equals(OwnerAt) && Pet().GetActorLocation().Equals(PetAt), TEXT("so nobody moves")));
+		}
+
+		TEST_METHOD(ABurstStrikesAnEnemyTheCasterCannotSee)
+		{
+			using namespace CompanionKitFixture;
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Owner, EVeyraAbilitySlot::Q, ArchetypeTestId(TEXT("test_bolt")))));
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraTestFluxborn& Marked = World.SpawnFluxborn(EVeyraTeam::B, FVector(Point, 0.0, 0.0));
+			AVeyraTestFluxborn& Unseen = World.SpawnFluxborn(EVeyraTeam::B, FVector(Point, Aside, 0.0));
+			UVeyraVisibilityRegistry* Registry = Spawner.GetWorld().GetSubsystem<UVeyraVisibilityRegistry>();
+			FKitHidingVisibility Vision(Unseen);
+			Registry->Register(Vision);
+			const TOptional<FVeyraStatusSpec> Bitten = UVeyraAbilitiesTuningSubsystem::FindStatus(ArchetypeTestId(TEXT("test_bitten")));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*PetAbilities(), *Marked.GetAbilitySystemComponent(), Bitten.GetValue())));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Owner, EVeyraAbilitySlot::Q, Marked.GetActorLocation()) == EVeyraCastRejection::None));
+			const double Burst = TakenFrom(Unseen, Owner->GetAbilitySystemComponent(), EVeyraDamageDelivery::Ability);
+			Registry->Unregister(Vision);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Burst, Hit, Tolerance), TEXT("a burst is no target: it strikes what it reaches, seen or not")));
+		}
+
+		TEST_METHOD(AChainStrikesAnEnemyTheCasterCannotSee)
+		{
+			using namespace CompanionKitFixture;
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Owner, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_leash")))));
+			Pet().SetActorLocation(FVector(Point, 0.0, Pet().GetActorLocation().Z), false, nullptr, ETeleportType::TeleportPhysics);
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraTestFluxborn& Crossing = World.SpawnFluxborn(EVeyraTeam::B, FVector(Point / 2.0, 0.0, 0.0));
+			UVeyraVisibilityRegistry* Registry = Spawner.GetWorld().GetSubsystem<UVeyraVisibilityRegistry>();
+			FKitHidingVisibility Vision(Crossing);
+			Registry->Register(Vision);
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Owner, EVeyraAbilitySlot::E, Owner->GetActorLocation()) == EVeyraCastRejection::None));
+			const double Chained = TakenFrom(Crossing, Owner->GetAbilitySystemComponent(), EVeyraDamageDelivery::Ability);
+			Registry->Unregister(Vision);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Chained, Hit, Tolerance), TEXT("the chain strikes what crosses it, seen or not")));
+		}
+
+		TEST_METHOD(ASpellShieldBlocksABurstOnce)
+		{
+			using namespace CompanionKitFixture;
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Owner, EVeyraAbilitySlot::Q, ArchetypeTestId(TEXT("test_bolt")))));
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraTestFluxborn& Marked = World.SpawnFluxborn(EVeyraTeam::B, FVector(Point, 0.0, 0.0));
+			AVeyraTestFluxborn& Shielded = World.SpawnFluxborn(EVeyraTeam::B, FVector(Point, Aside, 0.0));
+			UAbilitySystemComponent& Guard = *Shielded.GetAbilitySystemComponent();
+			const TOptional<FVeyraStatusSpec> Shield = UVeyraAbilitiesTuningSubsystem::FindStatus(ArchetypeTestId(TEXT("test_spell_shield")));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Guard, Guard, Shield.GetValue())));
+			const TOptional<FVeyraStatusSpec> Bitten = UVeyraAbilitiesTuningSubsystem::FindStatus(ArchetypeTestId(TEXT("test_bitten")));
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*PetAbilities(), *Marked.GetAbilitySystemComponent(), Bitten.GetValue())));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Owner, EVeyraAbilitySlot::Q, Marked.GetActorLocation()) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyZero(TakenFrom(Shielded, Owner->GetAbilitySystemComponent(), EVeyraDamageDelivery::Ability)), TEXT("the shield takes the burst")));
+			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(Shielded, TEXT("test_spell_shield")), TEXT("and is spent")));
 		}
 
 		TEST_METHOD(ABuffEmpowersItChainsItAndEndsWithIt)
