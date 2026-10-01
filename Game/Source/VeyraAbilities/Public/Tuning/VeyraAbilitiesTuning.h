@@ -1970,6 +1970,24 @@ enum class EVeyraCompanionOrder : uint8
 	Hold,
 	/** Give up its hold and follow its owner again. */
 	Recall,
+	/**
+	 * Form the caster's summoned companion for a while, bound to the unit the cast names: escorting an ally or
+	 * hunting an enemy (ADR-035 §5). Cast while it lives, it is redirected instead.
+	 */
+	Summon,
+	/** Bind the caster's living summoned companion to the unit the cast names, keeping its time (ADR-035 §5). */
+	Redirect,
+};
+
+/** Which unit a summon or redirect binds the companion to (ADR-035 §5); None for the other orders. */
+UENUM()
+enum class EVeyraCompanionBind : uint8
+{
+	None,
+	/** An allied Vanguard, its caster among them, whom it escorts. */
+	Ally,
+	/** An enemy unit, which it hunts. */
+	Enemy,
 };
 
 /** An ability that commands its caster's companion (ADR-034 §5), as Marek's Hunt and its recall. */
@@ -1999,6 +2017,44 @@ struct FVeyraCommandAbilityTuning
 	/** Hold, innermost first: zones that land where it lands, as its own hit, from its own power; none for a recall. */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> LandingZones;
+
+	/** Summon: the one companion definition it forms (ADR-035 §5); none for the other orders. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Companion;
+
+	/** Summon: how long the companion stays, in seconds; 0 for the other orders. */
+	UPROPERTY()
+	double LifetimeSeconds = 0.0;
+
+	/** Summon and Redirect: which unit the cast names; None for the other orders. */
+	UPROPERTY()
+	EVeyraCompanionBind BindTo = EVeyraCompanionBind::None;
+};
+
+/**
+ * What a summoned companion does now and then for the ally it escorts (ADR-035 §5), as the Waterling in Calm:
+ * a heal of its own, from its Magic Power, and statuses such as a little Movement Speed.
+ */
+USTRUCT()
+struct FVeyraEscortTuning
+{
+	GENERATED_BODY()
+
+	/** Seconds between its pulses, the first as it binds; above 0. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/** Health the ally regains each pulse, before Magic Power; at least 0. */
+	UPROPERTY()
+	double HealAmount = 0.0;
+
+	/** Added to each heal for each point of the companion's own Magic Power; at least 0. */
+	UPROPERTY()
+	double HealMagicPowerRatio = 0.0;
+
+	/** Status IDs the ally takes each pulse. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
 };
 
 /**
@@ -2057,6 +2113,14 @@ struct FVeyraCompanionTuning
 	/** How often it and its keeper think, in seconds of world time. */
 	UPROPERTY()
 	double ThinkSeconds = 0.0;
+
+	/** At most one: what it does now and then for the ally it escorts (ADR-035 §5). */
+	UPROPERTY()
+	TArray<FVeyraEscortTuning> Escort;
+
+	/** Status IDs its basic attack's hit gives, as the Waterling's slow (ADR-035 §5). */
+	UPROPERTY()
+	TArray<FVeyraContentId> AttackStatuses;
 };
 
 USTRUCT()
@@ -2065,7 +2129,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 21;
+	static constexpr int32 SchemaVersion = 22;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

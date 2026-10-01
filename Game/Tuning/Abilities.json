@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 21,
+  "schemaVersion": 22,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -6167,7 +6167,10 @@
           "casterStatusesPerVanguard": [],
           "allyEffects": []
         }
-      ]
+      ],
+      "companion": [],
+      "lifetimeSeconds": 0,
+      "bindTo": "None"
     },
     "marek_hunt_recall": {
       "provenance": "Provisional",
@@ -6192,7 +6195,10 @@
       "order": "Recall",
       "leapSpeed": 0,
       "holdSeconds": 0,
-      "landingZones": []
+      "landingZones": [],
+      "companion": [],
+      "lifetimeSeconds": 0,
+      "bindTo": "None"
     }
   },
   "companions": {
@@ -6241,7 +6247,9 @@
       "acquireRange": 450,
       "ownerTargetSeconds": 4,
       "reformSeconds": 30,
-      "thinkSeconds": 0.25
+      "thinkSeconds": 0.25,
+      "escort": [],
+      "attackStatuses": []
     }
   }
 }

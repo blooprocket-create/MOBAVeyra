@@ -553,9 +553,32 @@ namespace
 			{
 				Problem(Pointer, TEXT("a hold has a cast range, a leap speed and hold seconds above 0"));
 			}
-			if (Command.Order == EVeyraCompanionOrder::Recall && (Command.LeapSpeed != 0.0 || Command.HoldSeconds != 0.0 || !Command.LandingZones.IsEmpty()))
+			const bool bHoldOrRecall = Command.Order == EVeyraCompanionOrder::Hold || Command.Order == EVeyraCompanionOrder::Recall;
+			if (Command.Order != EVeyraCompanionOrder::Hold && (Command.LeapSpeed != 0.0 || Command.HoldSeconds != 0.0 || !Command.LandingZones.IsEmpty()))
 			{
-				Problem(Pointer, TEXT("a recall leaps nowhere, holds nothing and lands nothing"));
+				Problem(Pointer, TEXT("only a hold leaps, holds and lands"));
+			}
+			// A summon forms one companion for a while, bound to the unit it names; a redirect binds it anew (ADR-035 §5).
+			if (bHoldOrRecall && (!Command.Companion.IsEmpty() || Command.LifetimeSeconds != 0.0 || Command.BindTo != EVeyraCompanionBind::None))
+			{
+				Problem(Pointer, TEXT("a hold or a recall names no companion, lifetime or unit to bind"));
+			}
+			if (Command.Order == EVeyraCompanionOrder::Summon
+				&& (Command.Companion.Num() != 1 || !(Command.LifetimeSeconds > 0.0) || Command.BindTo == EVeyraCompanionBind::None || !(Command.Cast.CastRange > 0.0)))
+			{
+				Problem(Pointer, TEXT("a summon names one companion, a lifetime above 0, the unit it binds and a cast range above 0"));
+			}
+			if (Command.Order == EVeyraCompanionOrder::Redirect
+				&& (!Command.Companion.IsEmpty() || Command.LifetimeSeconds != 0.0 || Command.BindTo == EVeyraCompanionBind::None || !(Command.Cast.CastRange > 0.0)))
+			{
+				Problem(Pointer, TEXT("a redirect names no companion or lifetime, but the unit it binds and a cast range above 0"));
+			}
+			for (const FVeyraContentId& Companion : Command.Companion)
+			{
+				if (!Tuning.Companions.Contains(Companion))
+				{
+					Problem(Pointer + TEXT("/companion"), FString::Printf(TEXT("names \"%s\", which /companions does not define"), *Companion.ToString()));
+				}
 			}
 		}
 
@@ -869,6 +892,22 @@ namespace
 			{
 				Problem(Pointer + TEXT("/stats/maxResource"), TEXT("a companion has no resource"));
 			}
+			// An escort's pulse and an attack's statuses (ADR-035 §5).
+			if (Companion.Escort.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/escort"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Companion.Escort.Num(); ++Index)
+			{
+				const FVeyraEscortTuning& Escort = Companion.Escort[Index];
+				const FString EscortPointer = FString::Printf(TEXT("%s/escort/%d"), *Pointer, Index);
+				if (!(Escort.PulseSeconds > 0.0) || Escort.HealAmount < 0.0 || Escort.HealMagicPowerRatio < 0.0)
+				{
+					Problem(EscortPointer, TEXT("pulseSeconds is above 0, and healAmount and healMagicPowerRatio at least 0"));
+				}
+				CheckStatusIds(EscortPointer + TEXT("/statuses"), Escort.Statuses);
+			}
+			CheckStatusIds(Pointer + TEXT("/attackStatuses"), Companion.AttackStatuses);
 		}
 
 		void CheckRide(const FString& Pointer, const FVeyraRideAbilityTuning& Ride)

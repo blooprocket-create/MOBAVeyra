@@ -134,6 +134,9 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Abilities", "/*/*/cast/cooldownWhile/*/status", "Abilities", ("/statuses",)),
     ("Abilities", "/*/*/cast/cooldownOf/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
     ("Abilities", "/*/*/cast/refusedWhile/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/command/*/companion/*", "Abilities", ("/companions",)),
+    ("Abilities", "/companions/*/escort/*/statuses/*", "Abilities", ("/statuses",)),
+    ("Abilities", "/companions/*/attackStatuses/*", "Abilities", ("/statuses",)),
     ("Abilities", "/skillshot/*/mimic/*/repeatEffects/statuses/*", "Abilities", ("/statuses",)),
     # Each Flux Spell is an ordinary ability of one archetype (ADR-015 §3).
     ("Abilities", "/fluxSpells/roster/*", "Abilities", ABILITY_ARCHETYPE_MAPS),

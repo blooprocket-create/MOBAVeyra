@@ -102,6 +102,32 @@ void AVeyraCompanionController::Think()
 		Body->EndHold();
 	}
 
+	// Summoned, it escorts its ally, whom its keeper helps now and then, falling back on its owner once the ally
+	// is gone; or it hunts its enemy while that enemy stays within its leash of its owner (ADR-035 §5).
+	if (Body->GetMode() == EVeyraCompanionMode::Escort)
+	{
+		Target.Reset();
+		AActor* Ally = Body->GetBoundTo();
+		Follow(Ally && VeyraTargeting::IsAlive(Ally) ? *Ally : static_cast<AActor&>(*OwnerBody), Tuning->FollowDistance);
+		return;
+	}
+	if (Body->GetMode() == EVeyraCompanionMode::Hunt)
+	{
+		AActor* Prey = Body->GetBoundTo();
+		if (Prey && VeyraTargeting::IsAlive(Prey) && VeyraTargeting::AreHostile(Body, Prey) && VeyraTargeting::CanAcquire(Body, *Prey)
+			&& FVector::Dist2D(Prey->GetActorLocation(), OwnerBody->GetActorLocation()) <= Tuning->LeashRange)
+		{
+			Target = Prey;
+			Engage(*Prey, *Attacks);
+		}
+		else
+		{
+			Target.Reset();
+			Follow(*OwnerBody, Tuning->FollowDistance);
+		}
+		return;
+	}
+
 	Target = const_cast<AActor*>(VeyraCompanionRules::Choose(Body->GetMode(), Target.Get(), GatherCandidates(*Body, *OwnerBody, *Tuning)));
 	if (AActor* Enemy = Target.Get())
 	{

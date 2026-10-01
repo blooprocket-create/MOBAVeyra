@@ -382,7 +382,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [21]
+      "enum": [22]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -1200,14 +1200,17 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "order", "leapSpeed", "holdSeconds", "landingZones"],
+          "required": ["provenance", "cast", "order", "leapSpeed", "holdSeconds", "landingZones", "companion", "lifetimeSeconds", "bindTo"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
-            "order": { "type": "string", "enum": ["Hold", "Recall"] },
+            "order": { "description": "Hold and Recall command a companion kept for good (ADR-034 §5); Summon forms one for a while, bound to a unit, and Redirect binds it anew (ADR-035 §5).", "type": "string", "enum": ["Hold", "Recall", "Summon", "Redirect"] },
             "leapSpeed": { "description": "Hold: units per second of the companion's leap; 0 for a recall.", "type": "number", "minimum": 0 },
             "holdSeconds": { "description": "Hold: how long it holds the point once it lands; 0 for a recall.", "type": "number", "minimum": 0 },
-            "landingZones": { "description": "Hold, innermost first: zones where it lands, its own hit from its own power.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } }
+            "landingZones": { "description": "Hold, innermost first: zones where it lands, its own hit from its own power.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } },
+            "companion": { "description": "Summon: the one companion it forms; none for the other orders.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+            "lifetimeSeconds": { "description": "Summon: how long the companion stays; 0 for the other orders.", "type": "number", "minimum": 0 },
+            "bindTo": { "description": "Summon and Redirect: Ally (an allied Vanguard, its caster among them, whom it escorts) or Enemy (an enemy unit, which it hunts); None for the other orders.", "type": "string", "enum": ["None", "Ally", "Enemy"] }
           }
         }
       }
@@ -1250,7 +1253,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "capsuleRadius", "capsuleHalfHeight", "stats", "growth", "ownerMagicPowerShare", "basicAttack", "followDistance", "leashRange", "acquireRange", "ownerTargetSeconds", "reformSeconds", "thinkSeconds"],
+          "required": ["provenance", "capsuleRadius", "capsuleHalfHeight", "stats", "growth", "ownerMagicPowerShare", "basicAttack", "followDistance", "leashRange", "acquireRange", "ownerTargetSeconds", "reformSeconds", "thinkSeconds", "escort", "attackStatuses"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "capsuleRadius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -1264,7 +1267,25 @@
             "acquireRange": { "description": "How far from itself, or its held point, it looks for an enemy; at least its attack's range.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "ownerTargetSeconds": { "description": "How lately its owner must have fought an enemy for it to prefer that enemy.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "reformSeconds": { "description": "How long after it is killed it reforms beside its living owner.", "type": "number", "minimum": 0 },
-            "thinkSeconds": { "description": "How often it and its keeper think, in world time.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+            "thinkSeconds": { "description": "How often it and its keeper think, in world time.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "escort": {
+              "description": "At most one: what it does now and then for the ally it escorts, when summoned to (ADR-035 §5): a heal of its own, from its Magic Power, and statuses.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["pulseSeconds", "healAmount", "healMagicPowerRatio", "statuses"],
+                "properties": {
+                  "pulseSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "healAmount": { "type": "number", "minimum": 0 },
+                  "healMagicPowerRatio": { "type": "number", "minimum": 0 },
+                  "statuses": { "$ref": "#/definitions/statusIds" }
+                }
+              }
+            },
+            "attackStatuses": { "description": "Statuses its basic attack's hit gives, as the Waterling's slow (ADR-035 §5).", "$ref": "#/definitions/statusIds" }
           }
         }
       }

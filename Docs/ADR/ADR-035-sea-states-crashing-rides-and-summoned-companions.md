@@ -110,7 +110,7 @@ The survey for this ADR found that:
 1. **The Sea State passive** is the variants' values; there is no separate passive effect.
 2. **Change the Weather** shares cooldowns between the states and has a cooldown of its own.
 3. **The Waterling** lasts a fixed time and does not reform.
-4. **A redirect** keeps the Waterling's remaining time.
+4. **A redirect** keeps the Waterling's remaining time. **An escort** may be its caster, so Neris alone in a lane can keep the Waterling herself.
 5. **Breaking Wave's crash** happens on every end but death.
 6. **Tidebreaker's impact** strikes each unit once per cast; the knock aside pushes a Vanguard off the wave's line.
 7. **The lock** lasts as long as the Tidebreaker ride.

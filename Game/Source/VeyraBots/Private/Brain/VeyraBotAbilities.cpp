@@ -117,7 +117,17 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 	}
 	if (const FVeyraCommandAbilityTuning* Command = UVeyraAbilitiesTuningSubsystem::FindCommand(Ability))
 	{
-		// A hold sends the companion at an enemy its landing reaches; a recall is left to the player (ADR-034 §5).
+		// A summon escorts an ally, the one it guards, or hunts an enemy within its cast range (ADR-035 §5).
+		if (Command->Order == EVeyraCompanionOrder::Summon)
+		{
+			const bool bHunts = Command->BindTo == EVeyraCompanionBind::Enemy;
+			Profile.Targeting = bHunts ? EVeyraBotTargeting::Unit : EVeyraBotTargeting::Self;
+			Profile.Reach = bHunts ? Command->Cast.CastRange : 0.0;
+			Profile.AllyReach = bHunts ? 0.0 : Command->Cast.CastRange;
+			Profile.CostByRank = Command->Cast.ResourceCostByRank;
+			return Profile;
+		}
+		// A hold sends the companion at an enemy its landing reaches; a recall or a redirect is left to the player (ADR-034 §5).
 		if (Command->Order != EVeyraCompanionOrder::Hold)
 		{
 			return {};
