@@ -150,6 +150,24 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(AreEqual(static_cast<int32>(ApproachLength / Spacing) + 2, CountTrail()));
 		}
 
+		TEST_METHOD(ItsTrailKeepsItsSpacingAtAnyPace)
+		{
+			// Strides shorter than its spacing and no divisor of it: an area falls every spacing all the same.
+			using namespace MistTrailFixture;
+			for (const double X : { -FogRadius * 2.5, -FogRadius * 2.0, -FogRadius * 1.5, -FogRadius * 1.25, -FogRadius * 0.75 })
+			{
+				GuideTo(X);
+			}
+			const int32 Approach = CountTrail();
+			const double Stride = Spacing * 2.0 / 3.0;
+			const int32 Strides = 6;
+			for (int32 Index = 1; Index <= Strides; ++Index)
+			{
+				GuideTo(-FogRadius * 0.75 + Stride * Index);
+			}
+			ASSERT_THAT(AreEqual(Approach + FMath::FloorToInt32(Stride * Strides / Spacing + UE_KINDA_SMALL_NUMBER), CountTrail()));
+		}
+
 		TEST_METHOD(WalkingOutsideFogLeavesNothing)
 		{
 			using namespace MistTrailFixture;
