@@ -7,6 +7,7 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Passives/VeyraAttackStridePassive.h"
 #include "Passives/VeyraBreachPassive.h"
+#include "Passives/VeyraChargerPassive.h"
 #include "Passives/VeyraCampRewardPassive.h"
 #include "Passives/VeyraCadencePassive.h"
 #include "Passives/VeyraDeepFoundationPassive.h"
@@ -16,8 +17,11 @@
 #include "Passives/VeyraKitStatusesPassive.h"
 #include "Passives/VeyraMomentumPassive.h"
 #include "Passives/VeyraMovingTargetPassive.h"
+#include "Passives/VeyraAccordPassive.h"
+#include "Passives/VeyraMistTrailPassive.h"
 #include "Passives/VeyraQuarryPassive.h"
 #include "Passives/VeyraReclaimPassive.h"
+#include "Passives/VeyraStressTemperPassive.h"
 #include "Passives/VeyraSlipstreamPassive.h"
 #include "Passives/VeyraUnreturnedPassive.h"
 #include "Passives/VeyraWildDominionPassive.h"
@@ -106,6 +110,22 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	{
 		return UVeyraUnreturnedPassive::StaticClass();
 	}
+	if (UVeyraVanguardsTuningSubsystem::FindStressTemper(PassiveId))
+	{
+		return UVeyraStressTemperPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindCharger(PassiveId))
+	{
+		return UVeyraChargerPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindAccord(PassiveId))
+	{
+		return UVeyraAccordPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindMistTrail(PassiveId))
+	{
+		return UVeyraMistTrailPassive::StaticClass();
+	}
 	return nullptr;
 }
 
@@ -126,6 +146,11 @@ FVeyraPreparedVanguard PrepareCombatant(UAbilitySystemComponent& AbilitySystem, 
 	if (!VeyraCombat::InitializeStats(AbilitySystem, Definition->BaseStats) || !Attacks->SetProfile(Definition->BasicAttack))
 	{
 		return FVeyraPreparedVanguard();
+	}
+	// Charge starts empty and is kept (ADR-033 §1).
+	if (Definition->Resource == EVeyraResourceFamily::Charge)
+	{
+		VeyraCombat::KeepResource(AbilitySystem);
 	}
 	const TPair<EVeyraAbilitySlot, const TArray<FVeyraContentId>*> Kit[] = { { EVeyraAbilitySlot::Q, &Definition->Abilities.Q },
 		{ EVeyraAbilitySlot::W, &Definition->Abilities.W }, { EVeyraAbilitySlot::E, &Definition->Abilities.E }, { EVeyraAbilitySlot::R, &Definition->Abilities.R } };

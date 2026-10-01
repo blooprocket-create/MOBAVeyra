@@ -2,7 +2,9 @@
 
 #pragma once
 
+#include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
+#include "Entities/VeyraOwnedUnit.h"
 #include "GameFramework/Character.h"
 #include "Teams/VeyraTeam.h"
 #include "Units/VeyraUnit.h"
@@ -126,4 +128,23 @@ public:
 	AVeyraTestObjective(const FObjectInitializer& ObjectInitializer);
 
 	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Objective; }
+};
+
+// An owned unit for Combat's attribution tests (ADR-034 §1): the test unit, reporting itself a companion,
+// belonging to whichever unit a test names its owner.
+UCLASS(NotBlueprintable, NotPlaceable, Transient)
+class AVeyraTestOwnedUnit : public AVeyraTestFluxborn, public IVeyraOwnedUnit
+{
+	GENERATED_BODY()
+
+public:
+	AVeyraTestOwnedUnit(const FObjectInitializer& ObjectInitializer);
+
+	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Companion; }
+	virtual UAbilitySystemComponent* GetOwnerAbilities() const override { return OwnerAbilities.Get(); }
+
+	void SetOwnerAbilities(UAbilitySystemComponent* InOwner) { OwnerAbilities = InOwner; }
+
+private:
+	TWeakObjectPtr<UAbilitySystemComponent> OwnerAbilities;
 };

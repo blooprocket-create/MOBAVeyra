@@ -38,6 +38,11 @@ enum class EVeyraUnitKind : uint8
 	 * hits as a ward does, but anything of its enemies' may hit it; no status affects it.
 	 */
 	Marker,
+	/**
+	 * A Vanguard's companion (ADR-003's combat entity; ADR-034 §1), such as Nix: an owned unit with its
+	 * own Health and behaviour, on its owner's side. What it causes is its owner's (Combat Bible §32).
+	 */
+	Companion,
 };
 
 UINTERFACE(MinimalAPI, NotBlueprintable)

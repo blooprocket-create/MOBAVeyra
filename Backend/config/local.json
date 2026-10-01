@@ -32,7 +32,7 @@
     {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
   ],
   "vanguards": {
-    "released": ["cairn", "qazharr", "oriel", "bryn", "kade", "vera", "mimzi", "patch", "gorraveth", "raska", "moro", "korruk", "mavra", "celandrine", "aurelisse", "silt", "torr", "tavi", "angeru"],
+    "released": ["cairn", "qazharr", "oriel", "bryn", "kade", "vera", "mimzi", "patch", "gorraveth", "raska", "moro", "korruk", "mavra", "celandrine", "aurelisse", "silt", "torr", "tavi", "angeru", "varkesh", "relay", "marek", "neris", "sylra"],
     "starters": ["cairn", "qazharr", "oriel", "bryn"],
     "rotation": {"slots": 12, "standIn": "allReleased"}
   },

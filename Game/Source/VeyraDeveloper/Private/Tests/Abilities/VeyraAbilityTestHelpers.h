@@ -54,6 +54,63 @@ namespace VeyraAbilitiesTests
 		return Cast;
 	}
 
+	/** Fixture values for a test companion (ADR-034 §3) and the tests about it, not tuning. */
+	namespace CompanionFixture
+	{
+		constexpr double Radius = 40.0;
+		constexpr double HalfHeight = 60.0;
+		constexpr double Health = 400.0;
+		constexpr double HealthGrowth = 50.0;
+		constexpr double Power = 20.0;
+		constexpr double PowerGrowth = 5.0;
+		constexpr double Share = 0.5;
+		constexpr double OwnerPower = 100.0;
+		constexpr double Follow = 200.0;
+		constexpr double Leash = 1000.0;
+		constexpr double Acquire = 400.0;
+		constexpr double OwnerTarget = 3.0;
+		constexpr double Reform = 5.0;
+		constexpr double Think = 0.25;
+		constexpr double Reach = 125.0;
+		constexpr double Windup = 0.3;
+		constexpr double Near = 150.0;
+		constexpr double Far = 3000.0;
+		constexpr double Graze = 10.0;
+		constexpr double Lethal = 100000.0;
+		constexpr double ManyLevels = 5000.0;
+		constexpr double Tolerance = 1e-3;
+		constexpr float Step = 0.1f;
+	}
+
+	/** A melee companion with the example stats and no resource, its own values from CompanionFixture. */
+	inline FVeyraCompanionTuning ExampleCompanion()
+	{
+		using namespace CompanionFixture;
+		FVeyraCompanionTuning Companion;
+		Companion.CapsuleRadius = Radius;
+		Companion.CapsuleHalfHeight = HalfHeight;
+		Companion.Stats = VeyraCombatTests::ExampleStats();
+		Companion.Stats.MaxHealth = Health;
+		Companion.Stats.MaxResource = 0.0;
+		Companion.Stats.ResourceRegen = 0.0;
+		Companion.Stats.MagicPower = Power;
+		Companion.Growth.MaxHealth = HealthGrowth;
+		Companion.Growth.MagicPower = PowerGrowth;
+		Companion.OwnerMagicPowerShare = Share;
+		Companion.BasicAttack.Range = Reach;
+		Companion.BasicAttack.DamageType = EVeyraDamageType::Magic;
+		Companion.BasicAttack.MagicPowerRatio = 1.0;
+		Companion.BasicAttack.WindupFraction = Windup;
+		Companion.BasicAttack.AcquisitionRadius = Acquire;
+		Companion.FollowDistance = Follow;
+		Companion.LeashRange = Leash;
+		Companion.AcquireRange = Acquire;
+		Companion.OwnerTargetSeconds = OwnerTarget;
+		Companion.ReformSeconds = Reform;
+		Companion.ThinkSeconds = Think;
+		return Companion;
+	}
+
 	/** Units in a test world, each with the example stats, on a side, at a place. */
 	struct FArchetypeTestWorld
 	{

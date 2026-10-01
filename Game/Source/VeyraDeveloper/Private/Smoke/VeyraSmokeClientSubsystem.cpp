@@ -6,6 +6,7 @@
 #include "Algo/AllOf.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Brain/VeyraBotAbilities.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "DevCommands/VeyraDevCommands.h"
@@ -17,8 +18,10 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Movement/VeyraMovementComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
@@ -51,6 +54,8 @@ namespace
 	constexpr double KitRetryRealSeconds = 0.25;
 	// How long a cast may go unanswered, neither committed nor refused, with its caster free again.
 	constexpr double KitUnansweredRealSeconds = 3.0;
+	// Between the kit's attack orders until one commits: no faster than the server allows orders.
+	constexpr double KitAttackRetryRealSeconds = 1.0;
 
 	/** -VeyraSmokeKit: whether a refused cast may succeed if tried again a moment later. */
 	bool IsPassingKitRejection(EVeyraCastRejection Rejection)
@@ -64,6 +69,10 @@ namespace
 		case EVeyraCastRejection::TargetDead:
 		case EVeyraCastRejection::OutOfRange:
 		case EVeyraCastRejection::Paused:
+		// A companion forms or reforms beside its owner a moment later (ADR-034 §3).
+		case EVeyraCastRejection::NoCompanion:
+		// The status that holds the cast back ends with its time, as a ride's lock does (ADR-035 §2).
+		case EVeyraCastRejection::HeldBack:
 			return true;
 		default:
 			return false;
@@ -150,6 +159,26 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 				Where += FString::Printf(TEXT("; the nearest enemy is %.0f away at %s"), FVector::Dist2D(Vanguard->GetActorLocation(), Nearest->GetActorLocation()),
 					*Nearest->GetActorLocation().ToCompactString());
 			}
+			else
+			{
+				Where += TEXT("; it sees no enemy Vanguard");
+			}
+			// What this client knows of why it is held: refused orders, its attack and cast, its movement and its statuses.
+			const APlayerState* Own = Controller->PlayerState;
+			const UVeyraBasicAttackComponent* Attacks = Own ? Own->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
+			const UVeyraCastStateComponent* CastState = Own ? Own->FindComponentByClass<UVeyraCastStateComponent>() : nullptr;
+			const UVeyraStatusComponent* Statuses = Own ? Own->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+			const UVeyraMovementComponent* Movement = Vanguard->FindComponentByClass<UVeyraMovementComponent>();
+			TArray<FString> Held;
+			for (const FVeyraStatusEntry& Entry : Statuses ? Statuses->GetLedger().Entries : TArray<FVeyraStatusEntry>())
+			{
+				Held.Add(Entry.Id.ToString());
+			}
+			Where += FString::Printf(TEXT("; %d order(s) refused (last: %s), %d cast(s) refused (last: %s); attack phase %d, cast phase %d, movement %s; statuses: %s"),
+				Controller->GetOrderRejectionCount(), LexToString(Controller->GetLastOrderRejection()), Controller->GetCastRejectionCount(),
+				LexToString(Controller->GetLastCastRejection()), Attacks ? static_cast<int32>(Attacks->GetState().Phase) : -1,
+				CastState ? static_cast<int32>(CastState->GetState().Phase) : -1, Movement && Movement->IsMovementLocked() ? TEXT("locked") : TEXT("free"),
+				Held.IsEmpty() ? TEXT("none") : *FString::Join(Held, TEXT(", ")));
 		}
 		Finish(false, FString::Printf(TEXT("timed out waiting at step %d%s"), static_cast<int32>(Step), *Where));
 		return false;
@@ -280,11 +309,21 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 		{
 			Advance(EStep::KitDamage, TEXT("a basic attack committed"));
 		}
-		else if (Controller->GetOrderRejectionCount() > KitRejectionsBefore)
+		else if (FPlatformTime::Seconds() >= KitAttackRetryAt)
 		{
-			// The order was refused, perhaps while crowd controlled: order it again at whoever is nearest.
-			KitRejectionsBefore = Controller->GetOrderRejectionCount();
-			Controller->IssueAttackOrder(FindNearestEnemyBody(*Controller, *GameState, Vanguard->GetActorLocation()));
+			// Until an attack commits, the order goes again now and then, at whoever is nearest, as a player
+			// clicks again: one refused while crowd controlled, or one the server let go without a word, as it
+			// lets go of an order whose target slips into fog (Vision Bible §1). The same target again changes
+			// nothing under way.
+			if (AActor* Nearest = FindNearestEnemyBody(*Controller, *GameState, Vanguard->GetActorLocation()))
+			{
+				Controller->IssueAttackOrder(Nearest);
+			}
+			else
+			{
+				WalkBackToTheFight(*Controller);
+			}
+			KitAttackRetryAt = FPlatformTime::Seconds() + KitAttackRetryRealSeconds;
 		}
 		break;
 	}
@@ -394,6 +433,16 @@ void UVeyraSmokeClientSubsystem::StartMove(AVeyraPlayerController& Controller, c
 	Controller.IssueMoveOrder(MoveDestination);
 }
 
+void UVeyraSmokeClientSubsystem::WalkBackToTheFight(AVeyraPlayerController& Controller)
+{
+	// Where the first move went: the fight is there. The order goes again no faster than the server allows orders.
+	if (FPlatformTime::Seconds() >= KitWalkBackAt)
+	{
+		Controller.IssueMoveOrder(MoveDestination);
+		KitWalkBackAt = FPlatformTime::Seconds() + KitAttackRetryRealSeconds;
+	}
+}
+
 AActor* UVeyraSmokeClientSubsystem::FindNearestEnemyBody(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState, const FVector& From) const
 {
 	const AVeyraPlayerState* Self = Controller.GetPlayerState<AVeyraPlayerState>();
@@ -452,10 +501,11 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 			bKitCastPending = false;
 			KitCastAttempts = 0;
 			KitFirstRefusedAt.Reset();
+			bKitAskedForResource = false;
 			if (++KitSlotIndex == UE_ARRAY_COUNT(VeyraAbilitySlots::All))
 			{
-				KitRejectionsBefore = Controller.GetOrderRejectionCount();
 				Controller.IssueAttackOrder(FindNearestEnemyBody(Controller, GameState, Vanguard.GetActorLocation()));
+				KitAttackRetryAt = FPlatformTime::Seconds() + KitAttackRetryRealSeconds;
 				Advance(EStep::KitAttack, TEXT("cast Q, W, E and R; ordered a basic attack"));
 			}
 		}
@@ -471,6 +521,13 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 			{
 				Finish(false, FString::Printf(TEXT("the server refused %s %d time(s), last: %s"), *Entry->Ability.ToString(), KitCastAttempts, LexToString(Rejection)));
 				return;
+			}
+			// A resource only effects restore, as Charge, may hold nothing yet in a duel with no Fluxborn: the
+			// developer heal fills it, once for the slot (ADR-033 §1).
+			if (Rejection == EVeyraCastRejection::InsufficientResource && !bKitAskedForResource)
+			{
+				VeyraDevCommands::Request(Controller, TEXT("Heal"), {});
+				bKitAskedForResource = true;
 			}
 			// Refused while something passing held the Vanguard, such as another cast or crowd control: try again.
 			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s refused (%s); trying again."), *Entry->Ability.ToString(), LexToString(Rejection));
@@ -502,15 +559,27 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 	{
 		return;
 	}
+	// A cast for an ally, as an escort's summon, goes to the caster itself, the one ally a kit smoke has
+	// (ADR-035 §9); the bots choose it so too. Any other is aimed at the nearest enemy, and with none in
+	// sight, as after a death, the Vanguard walks back toward the fight.
+	const TOptional<FVeyraBotAbilityProfile> Profile = VeyraBotAbilities::ProfileOf(Entry->Ability, 0.0);
+	const bool bForAlly = Profile.IsSet() && Profile->Targeting == EVeyraBotTargeting::Self && Profile->AllyReach > 0.0;
 	AActor* Target = FindNearestEnemyBody(Controller, GameState, Vanguard.GetActorLocation());
-	if (!Target || CastState->IsBusy())
+	if (!Target && !bForAlly)
+	{
+		WalkBackToTheFight(Controller);
+		return;
+	}
+	// The player's controller only orders its Vanguard; the body is its PlayerState's pawn.
+	AActor* Aim = bForAlly ? Controller.GetVanguard() : Target;
+	if (!Aim || CastState->IsBusy())
 	{
 		return;
 	}
 	FVeyraCastTarget CastTarget;
-	CastTarget.Actor = Target;
+	CastTarget.Actor = Aim;
 	CastTarget.bHasLocation = true;
-	CastTarget.Location = Target->GetActorLocation();
+	CastTarget.Location = Aim->GetActorLocation();
 	KitRejectionsBefore = Controller.GetCastRejectionCount();
 	KitOrderRejectionsBefore = Controller.GetOrderRejectionCount();
 	KitPendingSince = FPlatformTime::Seconds();

@@ -102,6 +102,52 @@ double ResourceCostOf(const UAbilitySystemComponent& Caster, const FVeyraContent
 	return VeyraAbilityRules::ResourceCost(UVeyraAbilitiesTuningSubsystem::Get(), Ability, RankOf(Caster, Ability));
 }
 
+void ShortenSoonestCooldown(UAbilitySystemComponent& Caster, TConstArrayView<EVeyraAbilitySlot> Slots, double Seconds)
+{
+	const AActor* Owner = Caster.GetOwner();
+	const UVeyraAbilityLoadoutComponent* Loadout = Owner ? Owner->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	const UVeyraCooldownComponent* Cooldowns = Owner ? Owner->FindComponentByClass<UVeyraCooldownComponent>() : nullptr;
+	if (!Loadout || !Cooldowns || !(Seconds > 0.0))
+	{
+		return;
+	}
+	TOptional<EVeyraAbilitySlot> Soonest;
+	double SoonestLeft = 0.0;
+	for (const EVeyraAbilitySlot Slot : Slots)
+	{
+		const FVeyraLoadoutEntry* Entry = Loadout->FindSlot(Slot);
+		const double Left = Entry ? Cooldowns->GetRemainingSecondsNow(Loadout->CooldownIdOf(Entry->Ability)) : 0.0;
+		if (Left > 0.0 && (!Soonest.IsSet() || Left < SoonestLeft))
+		{
+			Soonest = Slot;
+			SoonestLeft = Left;
+		}
+	}
+	if (Soonest.IsSet())
+	{
+		ShortenCooldown(Caster, Soonest.GetValue(), Seconds);
+	}
+}
+
+void EndFollowUp(UAbilitySystemComponent& Caster, const FVeyraContentId& OpenedBy)
+{
+	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(UVeyraAbilitiesTuningSubsystem::Get(), OpenedBy);
+	const AActor* Owner = Caster.GetOwner();
+	UVeyraAbilityLoadoutComponent* Loadout = Owner ? Owner->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	if (!Cast || Cast->RecastWindow.IsEmpty() || !Loadout)
+	{
+		return;
+	}
+	const FVeyraContentId& FollowUp = Cast->RecastWindow[0].Ability;
+	const FVeyraLoadoutEntry* Entry = Loadout->FindAbility(FollowUp);
+	// Whether it shows now or waits in another stance.
+	const FVeyraSlotOverride* Current = Entry ? Loadout->FindOverride(Entry->Slot) : nullptr;
+	if (Current && Current->Entry.Ability == FollowUp)
+	{
+		Loadout->EndOverride(Caster, Entry->Slot);
+	}
+}
+
 void RefundCooldowns(UAbilitySystemComponent& Caster, TConstArrayView<EVeyraAbilitySlot> Slots, double Fraction)
 {
 	const AActor* Owner = Caster.GetOwner();

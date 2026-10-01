@@ -14,7 +14,9 @@
 #include "Effects/VeyraCombatEffects.h"
 #include "Effects/VeyraResourceSpendExecution.h"
 #include "Engine/World.h"
+#include "Entities/VeyraOwnedUnit.h"
 #include "Life/VeyraCombatEventSubsystem.h"
+#include "Life/VeyraDeath.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Movement/VeyraMovementComponent.h"
 #include "NavigationSystem.h"
@@ -226,7 +228,10 @@ bool InitializeStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlo
 		AbilitySystem.SetNumericAttributeBase(Entry.Attribute, static_cast<float>(Entry.Value));
 	}
 	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), AbilitySystem.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()));
-	AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
+	if (!IsResourceKept(AbilitySystem))
+	{
+		AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
+	}
 	return true;
 }
 
@@ -264,7 +269,11 @@ bool GrowBaseStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock
 	{
 		AbilitySystem.SetNumericAttributeBase(Health, AbilitySystem.GetNumericAttribute(MaxHealth) - MissingHealth);
 	}
-	AbilitySystem.SetNumericAttributeBase(Resource, AbilitySystem.GetNumericAttribute(MaxResource) - MissingResource);
+	// A kept resource, as Charge, keeps what it holds as its most grows; any other keeps what it lacks (ADR-033 §1).
+	if (!IsResourceKept(AbilitySystem))
+	{
+		AbilitySystem.SetNumericAttributeBase(Resource, AbilitySystem.GetNumericAttribute(MaxResource) - MissingResource);
+	}
 	return true;
 }
 
@@ -476,11 +485,77 @@ bool Revive(UAbilitySystemComponent& AbilitySystem)
 		return false;
 	}
 	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), AbilitySystem.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()));
-	if (AbilitySystem.GetSet<UVeyraResourceSet>())
+	if (AbilitySystem.GetSet<UVeyraResourceSet>() && !IsResourceKept(AbilitySystem))
 	{
 		AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
 	}
 	return true;
+}
+
+bool Withdraw(UAbilitySystemComponent& AbilitySystem)
+{
+	if (!VeyraDeath::Withdraw(AbilitySystem))
+	{
+		return false;
+	}
+	// The dead hold no Health, however they died.
+	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), 0.0f);
+	return true;
+}
+
+bool KeepResource(UAbilitySystemComponent& AbilitySystem)
+{
+	for (UAttributeSet* Set : AbilitySystem.GetSpawnedAttributes())
+	{
+		if (UVeyraResourceSet* Resource = Cast<UVeyraResourceSet>(Set))
+		{
+			Resource->SetKept(true);
+			AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), 0.0f);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool IsResourceKept(const UAbilitySystemComponent& AbilitySystem)
+{
+	const UVeyraResourceSet* Resource = AbilitySystem.GetSet<UVeyraResourceSet>();
+	return Resource && Resource->IsKept();
+}
+
+void NoteAttackCommitted(UAbilitySystemComponent& Attacker)
+{
+	const AActor* Owner = Attacker.GetOwner();
+	if (UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr)
+	{
+		Statuses->NoteAttackCommitted();
+	}
+}
+
+double GetCostShare(const UAbilitySystemComponent& Unit)
+{
+	const AActor* Owner = Unit.GetOwner();
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses ? Statuses->GetRetained(EVeyraStatusKind::ResourceCostReduction) : 1.0;
+}
+
+UAbilitySystemComponent* ResponsibleFor(UAbilitySystemComponent* Source)
+{
+	// Owners are followed to the first unit owned by none; one already passed ends a cycle where it began.
+	TArray<const UAbilitySystemComponent*, TInlineAllocator<4>> Passed;
+	UAbilitySystemComponent* Responsible = Source;
+	while (Responsible && !Passed.Contains(Responsible))
+	{
+		Passed.Add(Responsible);
+		const IVeyraOwnedUnit* Owned = Cast<IVeyraOwnedUnit>(Responsible->GetOwner());
+		UAbilitySystemComponent* Owner = Owned ? Owned->GetOwnerAbilities() : nullptr;
+		if (!Owner)
+		{
+			break;
+		}
+		Responsible = Owner;
+	}
+	return Responsible;
 }
 
 FVeyraPreparedDamage PrepareDamage(UAbilitySystemComponent& Source, const FVeyraRawDamageEvent& Damage)
@@ -572,7 +647,7 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	// to what a hit dealt (ADR-023 §4).
 	if (Events && VeyraTargeting::AreHostile(Source->GetOwner(), Target.GetOwner()))
 	{
-		Events->OnHostileDamage.Broadcast(FVeyraHostileDamageEvent{ Source, &Target, Damage.Delivery });
+		Events->OnHostileDamage.Broadcast(FVeyraHostileDamageEvent{ Source, &Target, Damage.Delivery, ResponsibleFor(Source) });
 		Events->OnDamageDealt.Broadcast(Dealt);
 	}
 	return true;
@@ -727,6 +802,13 @@ bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id)
 	return Statuses && Statuses->Remove(Id);
 }
 
+bool RemoveStatusFrom(UAbilitySystemComponent& Target, const FVeyraContentId& Id, const UAbilitySystemComponent& Source)
+{
+	AActor* TargetOwner = Target.GetOwner();
+	UVeyraStatusComponent* Statuses = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->RemoveFrom(Id, Source);
+}
+
 bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& Source)
 {
 	AActor* TargetOwner = Target.GetOwner();
@@ -779,6 +861,14 @@ bool HasStatusFrom(const AActor* Unit, const FVeyraContentId& Id, const UAbility
 	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
 	return Statuses && Statuses->HasFrom(Id, Source);
+}
+
+bool HasStatusKindFromSide(const AActor* Unit, EVeyraStatusKind Kind, EVeyraTeam Side)
+{
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit);
+	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->HasFromSide(Kind, Side);
 }
 
 EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)

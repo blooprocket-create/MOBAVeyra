@@ -5,7 +5,6 @@
 #include "AbilitySystemComponent.h"
 #include "Engine/World.h"
 #include "Entities/VeyraPlacedMarker.h"
-#include "Life/VeyraCombatEventSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesLog.h"
 #include "VeyraCombatVerbs.h"
@@ -62,28 +61,12 @@ FVeyraChannelPlan UVeyraPlacementAbility::Deliver(const FVeyraCast& Cast)
 	Spec.LifetimeSeconds = Placement->Marker.LifetimeSeconds;
 	Spec.HitsToDestroy = Placement->Marker.HitsToDestroy;
 	Spec.bPresentsAsOwner = Placement->Marker.Look == EVeyraMarkerLook::AsOwner;
+	// Whatever its follow-up offers, as a swap, ends with it (ADR-032 §5).
 	if (!AVeyraPlacedMarker::Place(*World, *Caster, Spec, Where))
 	{
 		UE_LOG(LogVeyraAbilities, Warning, TEXT("%s could not place its %s (cast %d)."), *GetNameSafe(Body), *Cast.Ability.ToString(), Cast.CastId);
-		return FVeyraChannelPlan();
-	}
-	Placer = Caster;
-	UVeyraCombatEventSubsystem* Events = World->GetSubsystem<UVeyraCombatEventSubsystem>();
-	if (Events && !MarkerEndHandle.IsValid())
-	{
-		MarkerEndHandle = Events->OnMarkerEnded.AddUObject(this, &UVeyraPlacementAbility::OnMarkerEnded);
 	}
 	return FVeyraChannelPlan();
-}
-
-void UVeyraPlacementAbility::OnMarkerEnded(const FVeyraMarkerEnd& End)
-{
-	UAbilitySystemComponent* Caster = Placer.Get();
-	if (Caster && End.Owner.Get() == Caster && Defines(End.Id) && End.Reason != EVeyraMarkerEndReason::Replaced)
-	{
-		// Whatever it offered, as a swap, has nothing left to offer (ADR-031 §4).
-		EndRecastWindow(*Caster, End.Id);
-	}
 }
 
 bool UVeyraPlacementAbility::IsOffensive(const FVeyraContentId& /*Ability*/) const

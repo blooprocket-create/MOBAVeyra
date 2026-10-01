@@ -71,7 +71,7 @@ TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit, EVeyraTeam Vie
 		Vitals.MaxResource = AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute());
 		const AVeyraPlayerState* Participant = Cast<AVeyraPlayerState>(AbilitySystem->GetOwner());
 		const FVeyraVanguardDefinition* Definition = Participant ? UVeyraVanguardsTuningSubsystem::FindVanguard(Participant->GetVanguardId()) : nullptr;
-		Vitals.bFocus = Definition && Definition->Resource == EVeyraResourceFamily::Focus;
+		Vitals.Family = Definition ? Definition->Resource : EVeyraResourceFamily::Mana;
 	}
 	if (const UVeyraDamageAbsorptionComponent* Absorption = FindBesideHudAbilitySystem<UVeyraDamageAbsorptionComponent>(Shown))
 	{

@@ -19,13 +19,15 @@
 /**
  * What a Vanguard spends to cast (Combat Bible §27; ADR-008 §2). Every family is spent, regenerated and
  * refunded through the same Resource attributes; Focus has no growth per level and its own colour on
- * the HUD (ADR-031 §1).
+ * the HUD (ADR-031 §1). Charge starts empty, never regenerates, is kept through death and only effects
+ * restore it (ADR-033 §1).
  */
 UENUM()
 enum class EVeyraResourceFamily : uint8
 {
 	Mana,
 	Focus,
+	Charge,
 };
 
 /** Who may play a Vanguard (ADR-010 §6). */
@@ -797,6 +799,194 @@ struct FVeyraDisciplinesTuning
 };
 
 /**
+ * Varkesh's Stress Temper (Roster Bible §14; ADR-032 §2): its owner's damaging abilities coat the enemy
+ * Vanguards they hit; a coated unit that dashes or blinks on its own, and holds no lockout from the owner,
+ * is struck where it lands. The coating goes, the strike's damage and statuses land, and the unit takes the
+ * lockout. Its data is an entry in Vanguards.json's stressTemper map.
+ */
+USTRUCT()
+struct FVeyraStressTemperTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: the coating, put by the owner on each enemy Vanguard its damaging abilities hit. */
+	UPROPERTY()
+	FVeyraContentId Coating;
+
+	/** The strike: its type, Physical or Magic, its amount at Level 1, what each Level adds, and its Magic Power ratio. */
+	UPROPERTY()
+	EVeyraDamageType DamageType = EVeyraDamageType::Magic;
+
+	UPROPERTY()
+	double DamageAmount = 0.0;
+
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	/** From Abilities.json's statuses: put on the struck unit, such as a brief Root. */
+	UPROPERTY()
+	TArray<FVeyraContentId> StrikeStatuses;
+
+	/** From Abilities.json's statuses: put on the struck unit by the owner; while it holds, no strike lands on it. */
+	UPROPERTY()
+	FVeyraContentId Lockout;
+};
+
+/**
+ * Relay's Charger (Roster Bible §4; ADR-033 §2): each Fluxborn that dies within Radius of its living owner,
+ * of either side, gives ChargePerDeath of its owner's resource, BoostMultiplier times as much while its
+ * owner holds BoostStatus. Its data is an entry in Vanguards.json's charger map.
+ */
+USTRUCT()
+struct FVeyraChargerTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Units from its owner's centre to where the Fluxborn fell. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	UPROPERTY()
+	double ChargePerDeath = 0.0;
+
+	/** From Abilities.json's statuses: while its owner holds it, as Overcharge gives it, each death gives BoostMultiplier times as much. */
+	UPROPERTY()
+	FVeyraContentId BoostStatus;
+
+	/** At least 1. */
+	UPROPERTY()
+	double BoostMultiplier = 1.0;
+};
+
+/** The shield an ally earns by following a Mist Trail into its fog (ADR-036 §5): one grant, replaced by the next. */
+USTRUCT()
+struct FVeyraMistShieldTuning
+{
+	GENERATED_BODY()
+
+	/** At Level 1, what each Level adds, and its Magic Power ratio; together above 0. */
+	UPROPERTY()
+	double Amount = 0.0;
+
+	UPROPERTY()
+	double AmountPerLevel = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+};
+
+/**
+ * Sylra's Follow the Bell (Roster Bible §16; ADR-036 §5). Each LookSeconds it looks where its owner stands. As
+ * she steps from no fog into Dense Fog she leaves a Mist Trail: Area, laid every Spacing along the last
+ * ApproachLength of the way she came, and on along her path for LaySeconds, as hers. The trail's area gives
+ * allies FollowStatus; an allied Vanguard holding it from her in the volume she entered gains FollowShield from
+ * her, once per trail. It grants no vision. Its data is an entry in Vanguards.json's mistTrail map.
+ */
+USTRUCT()
+struct FVeyraMistTrailTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's areas: one that lingers, giving allies FollowStatus. */
+	UPROPERTY()
+	FVeyraContentId Area;
+
+	/** Above 0. */
+	UPROPERTY()
+	double Spacing = 0.0;
+
+	/** How much of the way she came it marks; at least 0. */
+	UPROPERTY()
+	double ApproachLength = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double LaySeconds = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double LookSeconds = 0.0;
+
+	/** From Abilities.json's statuses. */
+	UPROPERTY()
+	FVeyraContentId FollowStatus;
+
+	UPROPERTY()
+	FVeyraMistShieldTuning FollowShield;
+};
+
+/**
+ * Marek's Bound Together (Roster Bible §10; ADR-034 §9). It summons its owner's companion as it starts. When
+ * its owner and the companion have each damaged one enemy within WindowSeconds, Accord deals that enemy magic
+ * damage from its owner, at most once per PerTargetSeconds on it, BoostMultiplier times as much while its
+ * owner holds BoostStatus, and shortens RefundSlot's remaining cooldown by RefundSeconds. Each of the
+ * companion's hits leaves Mark on the enemy, which its owner's abilities may react to. Its data is an entry
+ * in Vanguards.json's accord map.
+ */
+USTRUCT()
+struct FVeyraAccordTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's companions. */
+	UPROPERTY()
+	FVeyraContentId Companion;
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	UPROPERTY()
+	double PerTargetSeconds = 0.0;
+
+	/** Accord's magic damage at Level 1, what each Level adds, and its Magic Power ratio. */
+	UPROPERTY()
+	double DamageAmount = 0.0;
+
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	/** From Abilities.json's statuses: what each of the companion's hits leaves on the enemy. */
+	UPROPERTY()
+	FVeyraContentId Mark;
+
+	UPROPERTY()
+	EVeyraAbilitySlot RefundSlot = EVeyraAbilitySlot::E;
+
+	UPROPERTY()
+	double RefundSeconds = 0.0;
+
+	/** From Abilities.json's statuses: while its owner holds it, as Hell on a Leash gives it, Accord deals BoostMultiplier times as much. */
+	UPROPERTY()
+	FVeyraContentId BoostStatus;
+
+	/** At least 1. */
+	UPROPERTY()
+	double BoostMultiplier = 1.0;
+};
+
+/**
  * Tavi's You're It! (Roster Bible §6; ADR-030 §10): one enemy at a time holds its owner's mark. Its owner
  * moves faster while closing on the holder; its next basic attack on the holder spends the mark for bonus
  * magic damage and refunds CooldownRefund of Q, W and E's remaining cooldowns; and a kill of the holder
@@ -892,7 +1082,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 15;
+	static constexpr int32 SchemaVersion = 19;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -950,6 +1140,18 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraDisciplinesTuning> Disciplines;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraStressTemperTuning> StressTemper;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraChargerTuning> Charger;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraAccordTuning> Accord;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraMistTrailTuning> MistTrail;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

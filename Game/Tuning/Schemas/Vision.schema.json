@@ -20,7 +20,7 @@
       "type": "integer",
       "minimum": 1,
       "enum": [
-        3
+        4
       ]
     },
     "update": {
@@ -58,7 +58,8 @@
         "vanguard",
         "fluxborn",
         "structure",
-        "ward"
+        "ward",
+        "companion"
       ],
       "properties": {
         "provenance": {
@@ -90,6 +91,12 @@
         },
         "ward": {
           "description": "A placed ward's sight radius (Vision Bible §4). Inside Dense Fog it sees no enemy Vanguard; it senses presence instead.",
+          "type": "number",
+          "minimum": 0,
+          "exclusiveMinimum": true
+        },
+        "companion": {
+          "description": "A Vanguard's companion's sight radius (ADR-034 §4); a banished one sees nothing.",
           "type": "number",
           "minimum": 0,
           "exclusiveMinimum": true

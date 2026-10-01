@@ -4,6 +4,7 @@
 
 #include "AbilitySystemInterface.h"
 #include "Entities/VeyraMarkerTypes.h"
+#include "Entities/VeyraOwnedUnit.h"
 #include "GameFramework/Pawn.h"
 #include "Teams/VeyraTeam.h"
 #include "TimerManager.h"
@@ -31,7 +32,7 @@ struct FVeyraDeathEvent;
  * marker that takes no hits is Untargetable. Vision gates it as a unit.
  */
 UCLASS(NotBlueprintable, NotPlaceable)
-class VEYRACOMBAT_API AVeyraPlacedMarker : public APawn, public IAbilitySystemInterface, public IVeyraTeamMember, public IVeyraUnit
+class VEYRACOMBAT_API AVeyraPlacedMarker : public APawn, public IAbilitySystemInterface, public IVeyraTeamMember, public IVeyraUnit, public IVeyraOwnedUnit
 {
 	GENERATED_BODY()
 
@@ -63,7 +64,7 @@ public:
 	void Relocate(const FVector& Where);
 
 	/** Server: its owner's Ability System Component. */
-	UAbilitySystemComponent* GetOwnerAbilities() const { return OwnerAbilities.Get(); }
+	virtual UAbilitySystemComponent* GetOwnerAbilities() const override { return OwnerAbilities.Get(); }
 
 	const FVeyraContentId& GetMarkerId() const { return Spec.Id; }
 
@@ -72,6 +73,12 @@ public:
 
 	/** The participant it presents itself as to enemies, or null: its owner's PlayerState, on every machine. */
 	APlayerState* GetPresentedAs() const { return PresentedAs; }
+
+	/** Whether it holds a wall of runtime terrain, which the battleground raises for it (ADR-032 §4), on every machine. */
+	bool IsWall() const { return WallSize.X > 0.0f && WallSize.Y > 0.0f; }
+
+	/** A wall's length, across the way it faces, and its thickness; zero for a marker that is no wall. */
+	FVector2f GetWallSize() const { return WallSize; }
 
 private:
 	/** Server, as it is placed: its Health, its lifetime and its watch on deaths. */
@@ -84,6 +91,7 @@ private:
 	/** Puts it where Spot says, on a client. */
 	UFUNCTION()
 	void ApplySpot();
+
 
 	void OnDeath(const FVeyraDeathEvent& Death);
 
@@ -104,8 +112,13 @@ private:
 	UPROPERTY(ReplicatedUsing = ApplySpot)
 	FVector_NetQuantize Spot = FVector::ZeroVector;
 
+	/** A wall's length and thickness; zero for no wall. Presentation draws the terrain, not the marker. */
+	UPROPERTY(Replicated)
+	FVector2f WallSize = FVector2f::ZeroVector;
+
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> Body;
+
 
 	/** Replicated in Minimal mode: a marker has no effects of its own to show. */
 	UPROPERTY()
@@ -134,6 +147,8 @@ private:
 	TWeakObjectPtr<UAbilitySystemComponent> OwnerAbilities;
 	FVeyraMarkerSpec Spec;
 	FTimerHandle LifetimeTimer;
+	/** Server: the runtime terrain's handle for its wall; 0 for none. */
+	int32 WallHandle = 0;
 	FDelegateHandle DeathHandle;
 	bool bEnded = false;
 };

@@ -16,6 +16,8 @@
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "Statuses/VeyraStatusComponent.h"
+#include "Targeting/VeyraTargeting.h"
+#include "Terrain/VeyraRuntimeTerrain.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatVerbs.h"
 
@@ -60,6 +62,13 @@ AVeyraPlacedMarker* AVeyraPlacedMarker::Place(UWorld& World, UAbilitySystemCompo
 		UE_LOG(LogVeyraCombat, Error, TEXT("Refused a marker %s: only the server places one, for a participant, with a lifetime above 0."), *InSpec.Id.ToString());
 		return nullptr;
 	}
+	// A marker ends with its owner's death, so one whose owner has fallen, as a wall at the end of a
+	// shot that outlived its caster, is never placed (ADR-030 §5).
+	if (!VeyraTargeting::IsAlive(Owner.GetAvatarActor()))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("No marker %s: its owner %s has fallen."), *InSpec.Id.ToString(), *GetNameSafe(Participant));
+		return nullptr;
+	}
 	AVeyraPlacedMarker* Marker = World.SpawnActorDeferred<AVeyraPlacedMarker>(AVeyraPlacedMarker::StaticClass(), Where, nullptr, nullptr,
 		ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 	if (!Marker)
@@ -82,6 +91,7 @@ AVeyraPlacedMarker* AVeyraPlacedMarker::Place(UWorld& World, UAbilitySystemCompo
 		OwnerBody->GetSimpleCollisionCylinder(Radius, HalfHeight);
 	}
 	Marker->BodySize = FVector2f(Radius, HalfHeight);
+	Marker->WallSize = FVector2f(InSpec.Wall);
 	Marker->FinishSpawning(Where);
 	Marker->Start();
 	return Marker;
@@ -107,6 +117,7 @@ void AVeyraPlacedMarker::ApplyBody()
 		Body->SetCapsuleSize(BodySize.X, BodySize.Y);
 	}
 }
+
 
 AVeyraPlacedMarker* AVeyraPlacedMarker::FindStanding(const UAbilitySystemComponent& Owner, const FVeyraContentId& Id)
 {
@@ -136,6 +147,18 @@ void AVeyraPlacedMarker::ApplySpot()
 void AVeyraPlacedMarker::Start()
 {
 	ApplyBody();
+	// Its wall is runtime terrain, which the battleground owns: the marker asks for it and keeps the
+	// handle, ownership and lifetime (Battleground Bible §2; ADR-032 §4).
+	if (IsWall())
+	{
+		FVeyraWallRequest Wall;
+		Wall.Centre = GetActorLocation();
+		Wall.Facing = GetActorForwardVector();
+		Wall.Length = WallSize.X;
+		Wall.Thickness = WallSize.Y;
+		Wall.HalfHeight = Body->GetUnscaledCapsuleHalfHeight();
+		WallHandle = VeyraRuntimeTerrain::RaiseWall(*GetWorld(), Wall);
+	}
 	Spot = GetActorLocation();
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlacedMarker, Spot, this);
 	// A point of Health a hit, as a ward counts them (ADR-016 §6); one no one can target has none.
@@ -159,6 +182,11 @@ void AVeyraPlacedMarker::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		Events->OnDeath.Remove(DeathHandle);
 	}
 	GetWorldTimerManager().ClearTimer(LifetimeTimer);
+	if (WallHandle != 0 && GetWorld())
+	{
+		VeyraRuntimeTerrain::LowerWall(*GetWorld(), WallHandle);
+		WallHandle = 0;
+	}
 	Super::EndPlay(EndPlayReason);
 }
 
@@ -172,6 +200,7 @@ void AVeyraPlacedMarker::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, PresentedAs, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, BodySize, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, Spot, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, WallSize, Params);
 }
 
 void AVeyraPlacedMarker::OnDeath(const FVeyraDeathEvent& Death)
@@ -196,6 +225,12 @@ void AVeyraPlacedMarker::EndMarker(EVeyraMarkerEndReason Reason, UAbilitySystemC
 	}
 	bEnded = true;
 	GetWorldTimerManager().ClearTimer(LifetimeTimer);
+	// Pathing is restored at once.
+	if (WallHandle != 0)
+	{
+		VeyraRuntimeTerrain::LowerWall(*GetWorld(), WallHandle);
+		WallHandle = 0;
+	}
 	if (UVeyraCombatEventSubsystem* Events = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
 	{
 		Events->OnMarkerEnded.Broadcast(FVeyraMarkerEnd{ this, OwnerAbilities, Spec.Id, Reason, GetActorLocation(), Destroyer });
