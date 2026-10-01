@@ -598,6 +598,43 @@ namespace VeyraShellTests
 			ASSERT_THAT(AreEqual(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/select/lock"))->Body, FString(TEXT("{\"vanguardId\":\"oriel\"}"))));
 		}
 
+		TEST_METHOD(ADraftBansFromTheBenchInThePlayersTurn)
+		{
+			// The screen shows from Match Found on, as in a game, while the draft opens on the player's ban turn.
+			ASSERT_THAT(IsTrue(Rig.ReachMatchFound()));
+			ShowScreen();
+			const TCHAR* const ABan = TEXT("{\"ban\":true,\"side\":\"A\",\"count\":1,\"done\":0}");
+			const TCHAR* const Teammate = TEXT("\"hover\":null,\"locked\":null,\"acting\":false");
+			ASSERT_THAT(IsTrue(Rig.Flow->AcceptMatch()));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200,
+				MatchFoundBody(TEXT("accepted"), TEXT("accepted"), 2, SelectId))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch)));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200,
+				DraftSelectBody(TEXT("banning"), ABan, TEXT("[]"), TEXT("\"hover\":null,\"locked\":null,\"acting\":true"), Teammate))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody)));
+			ASSERT_THAT(IsTrue(Rig.Flow->CanIssue(EVeyraClientIntent::BanVanguard)));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Your turn to ban.")), Screen->DescribeText()));
+			// Every released Vanguard is on the bench, Silt too, which the player does not own.
+			UVeyraShellButton* Silt = Button(TEXT("Silt"));
+			ASSERT_THAT(IsTrue(Silt && Silt->GetIsEnabled(), FString::Join(LabelsOf(Screen->GetButtons()), TEXT(", "))));
+			ASSERT_THAT(IsFalse(Button(TEXT("Ban"))->GetIsEnabled(), TEXT("nothing is hovered yet")));
+			Silt->Press();
+			ASSERT_THAT(AreEqual(Rig.Backend.Find(TEXT("PUT"), TEXT("/v1/me/select/ban/hover"))->Body, FString(TEXT("{\"vanguardId\":\"silt\"}"))));
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/me/select/ban/hover"), 200,
+				DraftSelectBody(TEXT("banning"), ABan, TEXT("[]"), TEXT("\"hover\":null,\"locked\":null,\"banHover\":\"silt\",\"acting\":true"), Teammate))));
+			ASSERT_THAT(IsTrue(Button(TEXT("Ban"))->GetIsEnabled(), TEXT("the hovered ban can be banned")));
+			Button(TEXT("Ban"))->Press();
+			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/select/ban"))));
+
+			// The next turn is the enemy's: a poll that changes only the turn and the bans rebuilds the screen.
+			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("POST"), TEXT("/v1/me/select/ban"), 200,
+				DraftSelectBody(TEXT("banning"), TEXT("{\"ban\":true,\"side\":\"B\",\"count\":1,\"done\":0}"), TEXT("[{\"side\":\"A\",\"vanguardId\":\"silt\"}]"),
+					TEXT("\"hover\":null,\"locked\":null,\"acting\":false"), Teammate))));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("The enemy team is banning.")) && Screen->DescribeText().Contains(TEXT("Bans: Silt")),
+				Screen->DescribeText()));
+			ASSERT_THAT(IsNull(Button(TEXT("Silt")), TEXT("the bench is the player's own again")));
+		}
+
 		TEST_METHOD(APollThatChangesNothingKeepsTheButtons)
 		{
 			ASSERT_THAT(IsTrue(Rig.ReachSelect()));

@@ -1067,13 +1067,26 @@ FString Signature(const FVeyraClientSnapshot& Snapshot)
 	{
 		Text << TEXT("|settings conflict");
 	}
-	Text << TEXT("|starters:") << FString::Join(Snapshot.Starters, TEXT(",")) << TEXT("|available:") << FString::Join(Snapshot.AvailableVanguards, TEXT(","));
+	Text << TEXT("|starters:") << FString::Join(Snapshot.Starters, TEXT(",")) << TEXT("|available:") << FString::Join(Snapshot.AvailableVanguards, TEXT(","))
+		 << TEXT("|released:") << FString::Join(Snapshot.ReleasedVanguards, TEXT(","));
 	if (Snapshot.State == EVeyraClientState::Selecting)
 	{
-		Text << TEXT("|select:") << Snapshot.Select.Id << TEXT(":") << static_cast<int32>(Snapshot.Select.State);
-		for (const FSelectSeat& Seat : Snapshot.Select.Seats)
+		const VeyraBackendProtocol::FSelect& Select = Snapshot.Select;
+		Text << TEXT("|select:") << Select.Id << TEXT(":") << static_cast<int32>(Select.State) << TEXT(":") << static_cast<int32>(Select.Phase);
+		// A draft's turn and bans (ADR-041 §1): a turn passes without any seat's pick changing.
+		if (Select.Turn.IsSet())
 		{
-			Text << TEXT(";") << Seat.DisplayName << TEXT(":") << Seat.Hover << TEXT(":") << Seat.Locked << TEXT(":") << FString::Join(Seat.FluxSpells, TEXT(","));
+			Text << TEXT(":turn ") << (Select.Turn->bBan ? TEXT("ban ") : TEXT("pick ")) << Select.Turn->Side << Select.Turn->Count << TEXT("/") << Select.Turn->Done;
+		}
+		for (const VeyraBackendProtocol::FSelectBan& Ban : Select.Bans)
+		{
+			Text << TEXT(":ban ") << Ban.Side << Ban.VanguardId;
+		}
+		for (const FSelectSeat& Seat : Select.Seats)
+		{
+			Text << TEXT(";") << Seat.DisplayName << TEXT(":") << Seat.Hover << TEXT(":") << Seat.Locked << TEXT(":") << FString::Join(Seat.FluxSpells, TEXT(","))
+				 << TEXT(":") << Seat.BanHover << (Seat.bActing ? TEXT(":acting") : TEXT("")) << (Seat.bOffersYou ? TEXT(":offers") : TEXT(""))
+				 << (Seat.bOfferedByYou ? TEXT(":offered") : TEXT(""));
 		}
 	}
 	Text << TEXT("|modes:");

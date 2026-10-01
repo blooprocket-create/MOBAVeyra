@@ -19,6 +19,7 @@
 #include "Components/Overlay.h"
 #include "Components/OverlaySlot.h"
 #include "Components/ProgressBar.h"
+#include "Components/ScrollBox.h"
 #include "Components/ScaleBox.h"
 #include "Components/SizeBox.h"
 #include "Components/SizeBoxSlot.h"
@@ -180,6 +181,18 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 		Model.bBanning ? LOCTEXT("BanAVanguard", "BAN A VANGUARD") : LOCTEXT("AvailableVanguards", "AVAILABLE VANGUARDS"), EVeyraShellText::Eyebrow);
 	BenchTitle->SetAutoWrapText(false);
 	Bench->AddChildToHorizontalBox(BenchTitle)->SetVerticalAlignment(VAlign_Center);
+	// One row of portraits that scrolls once it is wider than the bench, as a ban turn's whole released
+	// roster is; the screen's height never grows with the roster.
+	UHorizontalBox* Tiles = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+	UScrollBox* Strip = WidgetTree->ConstructWidget<UScrollBox>(UScrollBox::StaticClass());
+	Strip->SetOrientation(Orient_Horizontal);
+	Strip->AddChild(Tiles);
+	USizeBox* StripBox = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass());
+	StripBox->SetMaxDesiredWidth(Settings.RosterBenchWidth);
+	StripBox->AddChild(Strip);
+	UHorizontalBoxSlot* StripSlot = Bench->AddChildToHorizontalBox(StripBox);
+	StripSlot->SetVerticalAlignment(VAlign_Center);
+	StripSlot->SetPadding(FMargin(Settings.Spacing, 0.0f, 0.0f, 0.0f));
 	for (const FVeyraSelectCardModel& Card : Model.Cards)
 	{
 		UVerticalBox* Tile = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
@@ -194,13 +207,12 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 		AddLine(*WidgetTree, *Tile, Card.Name, EVeyraShellText::Small, HAlign_Center);
 		const FString Id = Card.VanguardId;
 		const bool bBan = Model.bBanning;
-		UVeyraShellButton* Button = AddContentButton(*Bench, Card.Name, *Tile, [this, Id, bBan] { bBan ? Client->HoverBan(Id) : Client->HoverVanguard(Id); },
+		UVeyraShellButton* Button = AddContentButton(*Tiles, Card.Name, *Tile, [this, Id, bBan] { bBan ? Client->HoverBan(Id) : Client->HoverVanguard(Id); },
 			Model.bCanChoose && !Card.bTaken, Card.bChosen);
 		if (Card.bBanned)
 		{
 			Button->SetToolTipText(FText::Format(LOCTEXT("BannedTip", "{0} is banned."), Card.Name));
 		}
-		Cast<UHorizontalBoxSlot>(Button->Slot)->SetPadding(FMargin(Settings.Spacing, 0.0f, 0.0f, 0.0f));
 	}
 	Header->AddChildToVerticalBox(Bench)->SetHorizontalAlignment(HAlign_Center);
 

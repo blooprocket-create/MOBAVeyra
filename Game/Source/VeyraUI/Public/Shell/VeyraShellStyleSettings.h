@@ -181,6 +181,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
 	float RosterTileSize = 0.0f;
 
+	/** The widest champion select's row of portraits grows before it scrolls, in slate units. */
+	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
+	float RosterBenchWidth = 0.0f;
+
 	/** Each of the countdown's two draining bars, in slate units. */
 	UPROPERTY(Config, EditAnywhere, Category = "Layout", meta = (ClampMin = "1"))
 	float PickBarWidth = 0.0f;

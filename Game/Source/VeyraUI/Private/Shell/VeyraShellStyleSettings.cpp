@@ -80,6 +80,7 @@ TArray<FString> UVeyraShellStyleSettings::Validate() const
 		{ TEXT("TileCornerRadius"), TileCornerRadius },
 		{ TEXT("FrameWidth"), FrameWidth },
 		{ TEXT("RosterTileSize"), RosterTileSize },
+		{ TEXT("RosterBenchWidth"), RosterBenchWidth },
 		{ TEXT("PickBarWidth"), PickBarWidth },
 		{ TEXT("PickBarHeight"), PickBarHeight },
 		{ TEXT("SeatColumnWidth"), SeatColumnWidth },

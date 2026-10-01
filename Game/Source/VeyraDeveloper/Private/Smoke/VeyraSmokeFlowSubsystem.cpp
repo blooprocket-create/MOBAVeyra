@@ -301,6 +301,15 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 		{
 			Finish(false, FString::Printf(TEXT("the practice select was cancelled (%s)"), *Snapshot.Notice));
 		}
+		else if (!bStartedPractice && Snapshot.Party.IsSet() && Snapshot.Party->Status == EPartyStatus::Queued)
+		{
+			// An earlier run that failed left the party queued, and a queued party cannot practise.
+			if (Flow.CanIssue(EVeyraClientIntent::CancelQueue))
+			{
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: leaving an earlier run's queue for %s."), *Snapshot.Party->Mode);
+				Flow.CancelQueue();
+			}
+		}
 		else if (!bStartedPractice && Flow.CanIssue(EVeyraClientIntent::StartPractice))
 		{
 			if (!bOpenedPlay)
@@ -473,6 +482,15 @@ void UVeyraSmokeFlowSubsystem::TickMatchmadeShell(IVeyraClientIntents& Flow)
 		{
 			// A party of an earlier run still has the mode.
 			ChosenMode = Mode->Id;
+		}
+		else if (Party.IsSet() && Party->Status == EPartyStatus::Queued)
+		{
+			// An earlier run that failed left the party queued for another mode: out of that queue first.
+			if (Flow.CanIssue(EVeyraClientIntent::CancelQueue))
+			{
+				UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: leaving an earlier run's queue for %s."), *Party->Mode);
+				Flow.CancelQueue();
+			}
 		}
 		else if (Flow.CanIssue(EVeyraClientIntent::SelectMode) && Click(ModeLabel(Mode->Id)))
 		{
@@ -1531,8 +1549,8 @@ void UVeyraSmokeFlowSubsystem::CheckResults(const FVeyraClientSnapshot& Snapshot
 FString UVeyraSmokeFlowSubsystem::VanguardLabel(const FString& VanguardId)
 {
 #if WITH_VEYRA_UI
-	// A Vanguard's button shows its name, not its content ID.
-	return VeyraShellModels::NameOf(VanguardId).ToString();
+	// A Vanguard's button shows its name, not its content ID: "Eudora Blackbridge" for eudora.
+	return VeyraShellModels::VanguardNameOf(VanguardId).ToString();
 #else
 	return VanguardId;
 #endif
