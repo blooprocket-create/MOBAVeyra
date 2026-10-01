@@ -379,6 +379,25 @@ Self-generated shields do not qualify. Through the Guard does not reduce all shi
 
 Exact brand duration, recorded-damage percentage, Breach conversion, and stat values are prototype tuning values.
 
+### Witnessless Edge
+
+**Recipe:** Veil Needle + Striker Assembly + Quickcoil + Tier 3 recipe  
+**Stat identity:** Physical Power + flat Physical Penetration + Ability Haste + modest Attack Speed.
+
+**Attunement — No One Coming**
+
+Damaging an enemy Vanguard who has no allied Vanguard within a data-driven protection radius marks that target as **Abandoned** for a short duration.
+
+While moving toward the Abandoned Vanguard, the holder gains Movement Speed.
+
+If the holder deals a required amount of damage to that target before an allied Vanguard enters the protection radius, the mark briefly **locks in**. The holder's next damaging hit against that Vanguard consumes the lock and deals bonus physical damage.
+
+Before the mark locks in, an allied Vanguard entering the protection radius breaks Abandoned and denies the payoff. Once locked in, the short finishing window remains even if an ally arrives.
+
+Witnessless Edge rewards recognizing and committing onto isolated targets while giving the opposing team direct positional counterplay: collapse toward the threatened ally before the assassination condition is secured.
+
+Exact protection radius, mark duration, required damage threshold, Movement Speed amount, lock duration, bonus-damage ratio, and stat values are prototype tuning values.
+
 ### Harborline Harness
 
 **Recipe:** Rescue Rig + Waymark Weave + Warforged Grip + Tier 3 recipe  
