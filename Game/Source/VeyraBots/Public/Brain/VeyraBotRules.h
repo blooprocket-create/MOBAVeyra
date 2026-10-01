@@ -21,10 +21,13 @@ namespace VeyraBotRules
 	 * What to buy next toward Build (ADR-013 §8.3): the first item it does not hold or await, when
 	 * Gold affords it; otherwise the dearest affordable part of that item's recipe, at any depth.
 	 * Nothing when it can afford neither: it saves for it. An item it may never hold (unique, a second
-	 * pair of Boots, no free slot) is passed over.
+	 * pair of Boots, no free slot, a Mythical other than its own, a second item of a quest line) is passed
+	 * over, and so is a Quest Item once what it became is held. A recipe waiting for a quest's evolution
+	 * buys its other parts, and then the bot moves on. Mythical is the bot's Mythical this match, invalid
+	 * until it buys one.
 	 */
 	VEYRABOTS_API TOptional<FVeyraContentId> NextPurchase(const FVeyraItemsTuning& Items, TConstArrayView<FVeyraContentId> Build,
-		TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue, double Gold);
+		TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue, const FVeyraContentId& Mythical, double Gold);
 
 	/**
 	 * Which slot to rank next: R whenever it may, then the first of Priority that may. CanRank says

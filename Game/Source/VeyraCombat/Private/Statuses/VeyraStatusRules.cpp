@@ -99,6 +99,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::DisplacementImmunity:
 	case EVeyraStatusKind::Knockup:
 	case EVeyraStatusKind::Ghosted:
+	case EVeyraStatusKind::SpellShield:
 		bMagnitudeValid &= Magnitude == 0.0;
 		break;
 	case EVeyraStatusKind::Fear:

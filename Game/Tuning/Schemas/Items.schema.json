@@ -4,7 +4,7 @@
   "description": "The shop's catalog and rules, owned by the Items domain (Item Bible v0.3; Economy & Progression Bible §10–§12; ADR-012 §3). VeyraItems binds it to FVeyraItemsTuning and checks the tier rules the schema cannot express. Prices and stats are prototype data (Item Bible §3).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "shop", "items", "consumables", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict"],
+  "required": ["schemaVersion", "shop", "items", "consumables", "quests", "weightOfWar", "overcharge", "spoolUp", "overcycle", "perfectCut", "reprisalGuard", "drag", "convergence", "fracture", "endlessCleave", "temperedByConflict", "residualCurrent", "dragTheTempo", "quietingChime", "markedForDoom", "safeHarbor", "highTide"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -20,10 +20,12 @@
       "description": "What an item adds to its holder while it is delivered and the holder lives (Item Bible §3). Flat amounts, except attackSpeed, a fraction of the Vanguard's base Attack Speed added to its level growth (ADR-012 §6).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["health", "healthRegeneration", "physicalPower", "magicPower", "attackSpeed", "abilityHaste", "moveSpeed", "magicPenetrationFlat", "critChance", "magicPowerFraction"],
+      "required": ["health", "healthRegeneration", "armor", "magicResist", "physicalPower", "magicPower", "attackSpeed", "abilityHaste", "moveSpeed", "magicPenetrationFlat", "critChance", "magicPowerFraction"],
       "properties": {
         "health": { "description": "Max Health.", "type": "number", "minimum": 0 },
         "healthRegeneration": { "description": "Health restored per second.", "type": "number", "minimum": 0 },
+        "armor": { "description": "Armor (Combat Bible §3; ADR-025 §1).", "type": "number", "minimum": 0 },
+        "magicResist": { "description": "Magic Resist (Combat Bible §3; ADR-025 §1).", "type": "number", "minimum": 0 },
         "physicalPower": { "description": "Physical Power.", "type": "number", "minimum": 0 },
         "magicPower": { "description": "Magic Power.", "type": "number", "minimum": 0 },
         "attackSpeed": { "description": "Bonus Attack Speed, as a fraction of base Attack Speed; 0.12 is 12%.", "type": "number", "minimum": 0 },
@@ -52,7 +54,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [2]
+      "enum": [3]
     },
     "shop": {
       "description": "The shop's own rules (Economy & Progression Bible §10, §12; ADR-012 §9).",
@@ -78,20 +80,38 @@
           "required": ["provenance", "tier", "category", "components", "cost", "stackLimit", "stats", "active", "attunement"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
-            "tier": { "description": "1 components, 2 assemblies, 3 Masterworks (Item Bible §2).", "type": "integer", "minimum": 1, "maximum": 3 },
-            "category": { "description": "Boots are limited per Vanguard; a consumable is used up.", "type": "string", "enum": ["Equipment", "Boots", "Consumable"] },
-            "components": { "description": "The items its recipe consumes, in any order; empty for a component. Each is an item this file defines.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/contentId" } },
-            "cost": { "description": "A component's price, or a recipe's completion cost beyond its components (items never auto-combine, Item Bible §1).", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "tier": { "description": "1 components, 2 assemblies, 3 Masterworks, 4 Mythicals (Item Bible §2, §11; ADR-025 §2).", "type": "integer", "minimum": 1, "maximum": 4 },
+            "category": { "description": "Boots are limited per Vanguard; a consumable is used up; a Quest Item evolves by play (Item Bible §2.5; ADR-025 §3).", "type": "string", "enum": ["Equipment", "Boots", "Consumable", "Quest"] },
+            "components": { "description": "The items its recipe consumes, in any order; empty for a component and for an item a quest evolves into. Each is an item this file defines.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/contentId" } },
+            "cost": { "description": "A component's price, or a recipe's completion cost beyond its components (items never auto-combine, Item Bible §1). Above 0, except 0 for an item a quest evolves into, whose Gold is its base form's (ADR-025 §3).", "type": "number", "minimum": 0 },
             "stackLimit": { "description": "How many share one slot; 1 for equipment.", "type": "integer", "minimum": 1 },
             "stats": { "$ref": "#/definitions/stats" },
             "active": { "description": "The Active it grants, an ability Abilities.json defines; [] for none (Item Bible §2).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/contentId" } },
-            "attunement": { "description": "Its Attunement, which one of this file's Attunement maps defines; exactly one on a Masterwork, none below (Item Bible §2).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/contentId" } }
+            "attunement": { "description": "Its Attunements, which this file's Attunement maps define: exactly one on a Masterwork, two on a Mythical, none below (Item Bible §2, §11); a Quest Item's passive, at most one, sits here too (ADR-025 §3).", "type": "array", "minItems": 0, "maxItems": 2, "items": { "$ref": "#/definitions/contentId" } }
+          }
+        }
+      }
+    },
+    "quests": {
+      "description": "Each Quest Item's quest, by its item's ID (Item Bible §2.5, §10; ADR-025 §3): what advances it, how far, and the Quest Item it becomes, which the shop never sells.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "objective", "threshold", "evolvesInto"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "objective": { "description": "What advances it: LaneFluxbornLastHits, the holder's credited last hits on enemy lane Fluxborn.", "type": "string", "enum": ["LaneFluxbornLastHits"] },
+            "threshold": { "description": "The progress at which it evolves.", "type": "integer", "minimum": 1 },
+            "evolvesInto": { "description": "The Quest Item it becomes, at no cost.", "$ref": "#/definitions/contentId" }
           }
         }
       }
     },
     "consumables": {
-      "description": "What each consumable does when used, by its item's ID (Item Bible §10).",
+      "description": "What each consumable does when used, by its item's ID (Item Bible §12).",
       "type": "object",
       "additionalProperties": false,
       "patternProperties": {
@@ -104,7 +124,7 @@
             "healthRestored": { "description": "Health restored over the duration, in equal parts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "durationSeconds": { "description": "How long the restoration lasts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "resaleFraction": { "description": "What selling an unused one returns, as a fraction of its cost (Economy §12: a consumable defines its own).", "type": "number", "minimum": 0, "maximum": 1 },
-            "charges": { "description": "0 for one that is used up; above 0, a refillable one: bought with this many charges, it spends one a use, refills at the fountain and from a secured Flux Well, and is held once (Item Bible §10; ADR-023 §6).", "type": "integer", "minimum": 0 }
+            "charges": { "description": "0 for one that is used up; above 0, a refillable one: bought with this many charges, it spends one a use, refills at the fountain and from a secured Flux Well, and is held once (Item Bible §12; ADR-023 §6).", "type": "integer", "minimum": 0 }
           }
         }
       }
@@ -265,6 +285,123 @@
             "maxHealthFraction": { "description": "The bonus Physical damage per point of the holder's Max Health.", "type": "number", "minimum": 0 },
             "healthGainFraction": { "description": "The share of the bonus damage kept as Max Health.", "type": "number", "minimum": 0 },
             "cooldownSeconds": { "description": "Each enemy's own wait after it is consumed.", "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "residualCurrent": {
+      "description": "Residual Current (Wayline Reservoir, Item Bible §10; ADR-025 §7): the holder's last hits on enemy lane Fluxborn store Current; once it has gone a while without enemy-Vanguard damage, it spends Current to amplify its Health Regeneration. That damage suspends the spending and keeps the Current.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "currentPerLastHit", "currentCap", "quietSeconds", "currentPerSecond", "regenerationAmplification", "heldSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "currentPerLastHit": { "description": "Current each last hit stores.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "currentCap": { "description": "The most Current stored.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "quietSeconds": { "description": "How long without enemy-Vanguard damage before Current is spent.", "type": "number", "minimum": 0 },
+            "currentPerSecond": { "description": "Current spent each second while it amplifies.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "regenerationAmplification": { "description": "What Health Regeneration is multiplied by while Current is spent; 3 triples it.", "type": "number", "minimum": 1, "exclusiveMinimum": true },
+            "heldSeconds": { "description": "How long a status it keeps on its holder lasts after each renewal; renewed every regeneration tick while it holds, it outlasts one.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "dragTheTempo": {
+      "description": "Drag the Tempo (Riverhold Bastion, Item Bible §8; ADR-025 §7): an enemy Vanguard's basic attack that damages the holder slows the attacker's Attack Speed, refreshed and never stacked.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "attackSpeedReduction", "seconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "attackSpeedReduction": { "description": "The fraction of the attacker's Attack Speed removed.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1, "exclusiveMaximum": true },
+            "seconds": { "description": "How long the slow lasts after the latest such attack.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "quietingChime": {
+      "description": "Quieting Chime (Blackreef Bell, Item Bible §8; ADR-025 §7): the holder holds a Spell Shield (Combat Bible §19), which forms again once reformSeconds pass after both its consumption and the holder's last enemy-Vanguard damage.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "reformSeconds", "heldSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "reformSeconds": { "description": "How long it takes to form again.", "type": "number", "minimum": 0 },
+            "heldSeconds": { "description": "How long a status it keeps on its holder lasts after each renewal; renewed every regeneration tick while it holds, it outlasts one.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "markedForDoom": {
+      "description": "Marked for Doom (Doombringer Bow, Item Bible §8; ADR-025 §7): the holder's basic attacks on an enemy Vanguard build Doom on it; once Doomed, its next basic attack on it consumes the Doom for a share of its missing Health, as a Physical Proc.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "doomPerHit", "doomPerCrit", "doomedAt", "expirySeconds", "missingHealthRatio"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "doomPerHit": { "description": "Doom a basic attack adds.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "doomPerCrit": { "description": "Doom a crit adds in its place.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "doomedAt": { "description": "The Doom at which the target is Doomed.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "expirySeconds": { "description": "How long Doom lasts after it was last added.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "missingHealthRatio": { "description": "The Proc's Physical damage per point of the target's missing Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "safeHarbor": {
+      "description": "Safe Harbor (Harborline Harness, Item Bible §8; ADR-025 §7): a share of the damage the holder's attacks and abilities deal enemy Vanguards banks as Reserve, up to a share of Max Health; out of Vanguard combat it converts into Health.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "reserveFraction", "capMaxHealthFraction", "conversionMaxHealthFractionPerSecond"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "reserveFraction": { "description": "The share of post-mitigation damage banked.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "capMaxHealthFraction": { "description": "The most Reserve, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "conversionMaxHealthFractionPerSecond": { "description": "Reserve converted each second, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+          }
+        }
+      }
+    },
+    "highTide": {
+      "description": "High Tide (The Last Harbor, Item Bible §11; ADR-025 §7): last hits on enemy lane Fluxborn store Current; out of Vanguard combat it is spent to amplify Health Regeneration and speed Safe Harbor, and what they recover past full Health becomes Temporary Health (Combat Bible §7), up to a cap.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "currentPerLastHit", "currentCap", "currentPerSecond", "regenerationAmplification", "reserveConversionAcceleration", "overflowToTemporaryHealth", "temporaryHealthCapMaxHealthFraction", "temporaryHealthSeconds", "heldSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "currentPerLastHit": { "description": "Current each last hit stores.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "currentCap": { "description": "The most Current stored.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "currentPerSecond": { "description": "Current spent each second while it acts.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "regenerationAmplification": { "description": "What Health Regeneration is multiplied by while Current is spent; 3 triples it.", "type": "number", "minimum": 1, "exclusiveMinimum": true },
+            "reserveConversionAcceleration": { "description": "Added to Safe Harbor's conversion rate, as a share of it, while Current is spent; 1 doubles it.", "type": "number", "minimum": 0 },
+            "overflowToTemporaryHealth": { "description": "The share of recovery past full Health that becomes Temporary Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "temporaryHealthCapMaxHealthFraction": { "description": "The most Temporary Health it holds, as a share of Max Health.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "temporaryHealthSeconds": { "description": "How long its Temporary Health lasts after it was last added to.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "heldSeconds": { "description": "How long a status it keeps on its holder lasts after each renewal; renewed every regeneration tick while it holds, it outlasts one.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
           }
         }
       }

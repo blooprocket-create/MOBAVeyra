@@ -84,7 +84,7 @@ public:
 	void DeliverOnDeath(AActor& Participant);
 
 	/**
-	 * Fills Participant's refillable consumables to their charges (Item Bible §10; ADR-023 §6): its
+	 * Fills Participant's refillable consumables to their charges (Item Bible §12; ADR-023 §6): its
 	 * arrival at its fountain does, and Match calls it for each of a side's participants when the
 	 * side secures a Flux Well.
 	 */
@@ -95,6 +95,19 @@ public:
 	 * holds the item (Tempered by Conflict; ADR-023 §3). The Attunements call it.
 	 */
 	void GrowHealth(AActor& Participant, const FVeyraContentId& Attunement, double Health);
+
+	/**
+	 * Sets what Participant's item holding Attunement stores, its Current or its Reserve (ADR-025 §7),
+	 * at least 0. Spending it is benefit, which ends undo. The Attunements call it.
+	 */
+	void SetStored(AActor& Participant, const FVeyraContentId& Attunement, EVeyraItemStore Store, double Amount);
+
+	/**
+	 * A unit died: a last hit on an enemy lane Fluxborn advances the last hitter's quests, which evolve
+	 * at their thresholds (Item Bible §10; ADR-025 §3). Server only. Public for tests; Combat's event
+	 * calls it in a match.
+	 */
+	void OnDeath(const struct FVeyraDeathEvent& Death);
 
 	/** Sets Participant's slot count, empty, as its match prepares. */
 	static void InitializeInventory(AActor& Participant);
@@ -109,7 +122,7 @@ public:
 	static EVeyraItemUse GetUse(const AActor& Participant, int32 Index);
 
 	/**
-	 * Uses one of the consumable in inventory slot Index (Item Bible §10): Field Tonic restores its
+	 * Uses one of the consumable in inventory slot Index (Item Bible §12): Field Tonic restores its
 	 * Health over its duration. Refused while dead, or while one is still restoring.
 	 */
 	EVeyraShopRefusal UseConsumable(AActor& Participant, int32 Index);
@@ -148,6 +161,7 @@ private:
 	TArray<TWeakObjectPtr<AActor>> Stacked;
 	FTimerHandle StackTimer;
 	FDelegateHandle HostileDamageHandle;
+	FDelegateHandle DeathHandle;
 
 	/** Whether Participant may receive, sell and undo now: at its fountain, or dead (ADR-012 §9). */
 	static bool IsAtShop(const AActor& Participant, const UVeyraInventoryComponent& Inventory);

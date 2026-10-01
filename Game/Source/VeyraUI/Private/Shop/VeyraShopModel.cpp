@@ -67,7 +67,7 @@ FVeyraShopView Describe(const AActor& Participant)
 		Offer.Category = Pair.Value.Category;
 		Offer.TotalCost = VeyraItems::TotalCost(Tuning, Pair.Key);
 		// The rules the server prices a purchase by, from the same slots and queue.
-		const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->GetSlots(), Inventory->GetQueue(), Pair.Key);
+		const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Inventory->GetSlots(), Inventory->GetQueue(), Inventory->GetMythical(), Pair.Key);
 		Offer.Price = Quote.Price;
 		Offer.Refusal = Quote.Refusal;
 		if (Offer.Refusal == EVeyraShopRefusal::None && Offer.Price > View.Gold)
@@ -160,6 +160,8 @@ FText DescribeStats(const FVeyraItemStatsTuning& Stats)
 	};
 	Add(Stats.Health, LOCTEXT("Health", "+{0} Health"));
 	Add(Stats.HealthRegeneration, LOCTEXT("HealthRegeneration", "+{0} Health Regeneration"));
+	Add(Stats.Armor, LOCTEXT("Armor", "+{0} Armor"));
+	Add(Stats.MagicResist, LOCTEXT("MagicResist", "+{0} Magic Resist"));
 	Add(Stats.PhysicalPower, LOCTEXT("PhysicalPower", "+{0} Physical Power"));
 	Add(Stats.MagicPower, LOCTEXT("MagicPower", "+{0} Magic Power"));
 	Add(Stats.AttackSpeed * Percent, LOCTEXT("AttackSpeed", "+{0}% Attack Speed"));
@@ -254,6 +256,12 @@ FText DescribeRefusal(EVeyraShopRefusal Refusal)
 		return LOCTEXT("AlreadyEquipped", "That Flux Spell is equipped already.");
 	case EVeyraShopRefusal::NoCharges:
 		return LOCTEXT("NoCharges", "It is empty: it refills at your fountain, and when your side secures a Flux Well.");
+	case EVeyraShopRefusal::MythicalTaken:
+		return LOCTEXT("MythicalTaken", "You have chosen another Mythical this match: one Mythical per match.");
+	case EVeyraShopRefusal::NotForSale:
+		return LOCTEXT("NotForSale", "Only a quest makes it, or a part it needs: complete the quest, then buy it.");
+	case EVeyraShopRefusal::QuestLineHeld:
+		return LOCTEXT("QuestLineHeld", "You hold an item of its quest already: one at a time.");
 	}
 	return FText::GetEmpty();
 }

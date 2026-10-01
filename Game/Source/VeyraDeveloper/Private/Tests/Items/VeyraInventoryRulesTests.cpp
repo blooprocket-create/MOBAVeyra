@@ -3,6 +3,7 @@
 #include "CQTest.h"
 #include "Inventory/VeyraEquipmentRules.h"
 #include "Inventory/VeyraInventoryRules.h"
+#include "Quests/VeyraQuestRules.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
 #include "Tuning/VeyraItemsTuning.h"
 
@@ -26,7 +27,7 @@ namespace VeyraItemsTests
 		/** Buys Item into the slots at once, as at the fountain. */
 		FVeyraPurchaseQuote BuyHere(const TCHAR* Item)
 		{
-			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Slots, Queue, ItemId(Item));
+			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Slots, Queue, FVeyraContentId(), ItemId(Item));
 			if (Quote.Refusal == EVeyraShopRefusal::None)
 			{
 				FVeyraPendingPurchase Entry;
@@ -41,7 +42,7 @@ namespace VeyraItemsTests
 		/** Buys Item into the queue, as away from the fountain. */
 		FVeyraPurchaseQuote BuyAway(const TCHAR* Item)
 		{
-			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Slots, Queue, ItemId(Item));
+			const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Tuning, Slots, Queue, FVeyraContentId(), ItemId(Item));
 			if (Quote.Refusal == EVeyraShopRefusal::None)
 			{
 				FVeyraPendingPurchase& Entry = Queue.AddDefaulted_GetRef();
@@ -138,6 +139,110 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(BuyHere(TEXT("test_wheel")).Refusal == EVeyraShopRefusal::None));
 		}
 
+		TEST_METHOD(OneMythicalPerMatchAndOnlyThatOneAgain)
+		{
+			const FVeyraItemsTuning Mythicals = WithMythicals(Tuning);
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			const FVeyraContentId Rival = ItemId(TEXT("test_rival"));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Mythicals, Slots, Queue, FVeyraContentId(), Rival).Refusal == EVeyraShopRefusal::None, TEXT("none chosen yet")));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Mythicals, Slots, Queue, Harbor, Rival).Refusal == EVeyraShopRefusal::MythicalTaken));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Mythicals, Slots, Queue, Harbor, Harbor).Refusal == EVeyraShopRefusal::None, TEXT("its own, again")));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Mythicals, Slots, Queue, Harbor, ItemId(TEXT("test_temper"))).Refusal == EVeyraShopRefusal::None,
+				TEXT("the choice binds only Mythicals")));
+		}
+
+		TEST_METHOD(AnEvolvedQuestItemIsNeverSoldNorBoughtForARecipe)
+		{
+			const FVeyraItemsTuning Quest = WithQuest(Tuning);
+			const FVeyraContentId Reservoir = ItemId(TEXT("test_reservoir"));
+			const FVeyraContentId Haven = ItemId(TEXT("test_haven"));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Reservoir).Refusal == EVeyraShopRefusal::NotForSale));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Haven).Refusal == EVeyraShopRefusal::NotForSale,
+				TEXT("a recipe that needs it waits for it (ADR-025 §3)")));
+			Slots[0].Item = Reservoir;
+			Slots[0].Count = 1;
+			const FVeyraPurchaseQuote Built = VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Haven);
+			ASSERT_THAT(IsTrue(Built.Refusal == EVeyraShopRefusal::None && Built.Needs.Contains(Reservoir)));
+			ASSERT_THAT(IsTrue(Built.Price == Quest.Items[ItemId(TEXT("test_plate"))].Cost + Quest.Items[Haven].Cost, TEXT("held, it is consumed")));
+		}
+
+		TEST_METHOD(OneItemOfAQuestLineAtATime)
+		{
+			const FVeyraItemsTuning Quest = WithQuest(Tuning);
+			const FVeyraContentId Reclaimer = ItemId(TEXT("test_reclaimer"));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Reclaimer).Refusal == EVeyraShopRefusal::None));
+			FVeyraPendingPurchase& Waiting = Queue.AddDefaulted_GetRef();
+			Waiting.Item = Reclaimer;
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Reclaimer).Refusal == EVeyraShopRefusal::QuestLineHeld,
+				TEXT("one waiting counts (Item Bible §2.5)")));
+			Queue.Reset();
+			Slots[0].Item = ItemId(TEXT("test_reservoir"));
+			Slots[0].Count = 1;
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Reclaimer).Refusal == EVeyraShopRefusal::QuestLineHeld,
+				TEXT("and so does its evolution")));
+		}
+
+		TEST_METHOD(EachLastHitAdvancesTheQuestThenItEvolvesInPlace)
+		{
+			const FVeyraItemsTuning Quest = WithQuest(Tuning);
+			Slots[1].Item = ItemId(TEXT("test_reclaimer"));
+			Slots[1].Count = 1;
+			Slots[1].PaidEach = 450.0;
+			ASSERT_THAT(IsTrue(VeyraQuests::Advance(Quest, Slots, EVeyraQuestObjective::LaneFluxbornLastHits).IsEmpty() && Slots[1].QuestProgress == 1));
+			ASSERT_THAT(IsFalse(Slots[1].bBenefited, TEXT("progress alone is no benefit")));
+			const TArray<FVeyraContentId> Evolved = VeyraQuests::Advance(Quest, Slots, EVeyraQuestObjective::LaneFluxbornLastHits);
+			ASSERT_THAT(IsTrue(Evolved.Num() == 1 && Slots[1].Item == ItemId(TEXT("test_reservoir")) && Slots[1].QuestProgress == 0));
+			ASSERT_THAT(IsTrue(Slots[1].PaidEach == 450.0 && Slots[1].bBenefited, TEXT("it keeps its Gold, and undo cannot take it back")));
+			ASSERT_THAT(IsTrue(VeyraInventory::ResaleValue(Quest, Slots[1]) == 450.0 * Quest.Shop.ResaleFraction, TEXT("it resells as its base form")));
+			ASSERT_THAT(IsTrue(VeyraQuests::Advance(Quest, Slots, EVeyraQuestObjective::LaneFluxbornLastHits).IsEmpty(), TEXT("the evolution has no quest")));
+		}
+
+		TEST_METHOD(AnItemKeepsWhatItsPartsStoredWhenItStoresItToo)
+		{
+			// Fixture values: a Mythical made from the Masterwork, whose Safe Harbor stored Reserve, and the
+			// reservoir, whose Residual Current stored Current; it stores both (ADR-025 §7).
+			FVeyraItemsTuning Quest = WithQuest(Tuning);
+			const FVeyraContentId Temper = ItemId(TEXT("test_temper"));
+			const FVeyraContentId Reservoir = ItemId(TEXT("test_reservoir"));
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			Quest.SafeHarbor.Add(ItemId(TEXT("test_reserve")));
+			Quest.HighTide.Add(ItemId(TEXT("test_tide")));
+			Quest.Items[Temper].Attunement = { ItemId(TEXT("test_reserve")) };
+			FVeyraItemDefinition& Mythical = Quest.Items.Add(Harbor);
+			Mythical.Tier = 4;
+			Mythical.Cost = 500.0;
+			Mythical.StackLimit = 1;
+			Mythical.Components = { Temper, Reservoir };
+			Mythical.Attunement = { ItemId(TEXT("test_reserve")), ItemId(TEXT("test_tide")) };
+			const auto Build = [&Quest, this](const FVeyraContentId& Item) {
+				const FVeyraPurchaseQuote Quote = VeyraInventory::Quote(Quest, Slots, Queue, FVeyraContentId(), Item);
+				FVeyraPendingPurchase Entry;
+				Entry.Item = Item;
+				Entry.Paid = Quote.Price;
+				Entry.Needs = Quote.Needs;
+				return Quote.Refusal == EVeyraShopRefusal::None ? VeyraInventory::Apply(Quest, Slots, Entry) : Quote.Refusal;
+			};
+			const auto Holding = [this](const FVeyraContentId& Item) { return Slots.FindByPredicate([&Item](const FVeyraInventorySlot& Slot) { return Slot.Item == Item; }); };
+
+			Slots[0].Item = Temper;
+			Slots[0].Count = 1;
+			Slots[0].Reserve = 30.0;
+			Slots[1].Item = Reservoir;
+			Slots[1].Count = 1;
+			Slots[1].Current = 7.0;
+			ASSERT_THAT(IsTrue(Build(Harbor) == EVeyraShopRefusal::None));
+			const FVeyraInventorySlot* Made = Holding(Harbor);
+			ASSERT_THAT(IsTrue(Made && Made->Reserve == 30.0 && Made->Current == 7.0, TEXT("it keeps both")));
+
+			// The haven stores neither, so the reservoir's Current goes with it.
+			Slots.Init(FVeyraInventorySlot(), Quest.Shop.InventorySlots);
+			Slots[0].Item = Reservoir;
+			Slots[0].Count = 1;
+			Slots[0].Current = 7.0;
+			ASSERT_THAT(IsTrue(Build(ItemId(TEXT("test_haven"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Holding(ItemId(TEXT("test_haven"))) && Holding(ItemId(TEXT("test_haven")))->Current == 0.0));
+		}
+
 		TEST_METHOD(OnePairOfBootsWhichUpgrade)
 		{
 			BuyHere(TEXT("test_boots"));
@@ -170,6 +275,21 @@ namespace VeyraItemsTests
 			const FVeyraEquipmentStats Stats = VeyraEquipment::StatsFor(WithStats, Slots, BaseAttackSpeed, {});
 			ASSERT_THAT(IsTrue(Stats.PhysicalPower == 20.0 && Stats.MaxHealth == 150.0));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Stats.AttackSpeed, BaseAttackSpeed * 0.24), TEXT("a fraction of the base, added (ADR-012 §6)")));
+		}
+
+		TEST_METHOD(ArmorAndMagicResistAddFromEachHeldItem)
+		{
+			// Fixture values: a plate with both defences and a grip with Armor, two grips held (ADR-025 §1).
+			constexpr double BaseAttackSpeed = 0.625;
+			FVeyraItemsTuning WithDefences = Tuning;
+			WithDefences.Items[ItemId(TEXT("test_plate"))].Stats.Armor = 15.0;
+			WithDefences.Items[ItemId(TEXT("test_plate"))].Stats.MagicResist = 25.0;
+			WithDefences.Items[ItemId(TEXT("test_grip"))].Stats.Armor = 5.0;
+			BuyHere(TEXT("test_plate"));
+			BuyHere(TEXT("test_grip"));
+			BuyHere(TEXT("test_grip"));
+			const FVeyraEquipmentStats Stats = VeyraEquipment::StatsFor(WithDefences, Slots, BaseAttackSpeed, {});
+			ASSERT_THAT(IsTrue(Stats.Armor == 25.0 && Stats.MagicResist == 25.0));
 		}
 
 		TEST_METHOD(EachAttunementAddsWhatItsDataSays)
@@ -237,7 +357,7 @@ namespace VeyraItemsTests
 
 		TEST_METHOD(ARefillableConsumableIsHeldOnceAndArrivesFull)
 		{
-			// Fixture values: the tonic made refillable, with two charges (Item Bible §10; ADR-023 §6).
+			// Fixture values: the tonic made refillable, with two charges (Item Bible §12; ADR-023 §6).
 			constexpr int32 Charges = 2;
 			const FVeyraContentId Flask = ItemId(TEXT("test_tonic"));
 			FVeyraItemsTuning Refillable = Tuning;
@@ -246,18 +366,18 @@ namespace VeyraItemsTests
 
 			FVeyraPendingPurchase Entry;
 			Entry.Item = Flask;
-			Entry.Paid = VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Price;
+			Entry.Paid = VeyraInventory::Quote(Refillable, Slots, Queue, FVeyraContentId(), Flask).Price;
 			ASSERT_THAT(IsTrue(VeyraInventory::Apply(Refillable, Slots, Entry) == EVeyraShopRefusal::None));
 			const FVeyraInventorySlot* Held = Slots.FindByPredicate([&Flask](const FVeyraInventorySlot& Slot) { return Slot.Item == Flask; });
 			ASSERT_THAT(IsTrue(Held && Held->Count == 1 && Held->Charges == Charges, TEXT("it arrives full")));
-			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::Unique, TEXT("held once")));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, FVeyraContentId(), Flask).Refusal == EVeyraShopRefusal::Unique, TEXT("held once")));
 
 			// One waiting in the queue is held too.
 			Slots.Reset();
 			Slots.SetNum(Tuning.Shop.InventorySlots);
 			Queue.Add(Entry);
-			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::Unique));
-			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Tuning, Slots, Queue, Flask).Refusal == EVeyraShopRefusal::None, TEXT("one used up stacks as before")));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Refillable, Slots, Queue, FVeyraContentId(), Flask).Refusal == EVeyraShopRefusal::Unique));
+			ASSERT_THAT(IsTrue(VeyraInventory::Quote(Tuning, Slots, Queue, FVeyraContentId(), Flask).Refusal == EVeyraShopRefusal::None, TEXT("one used up stacks as before")));
 		}
 
 		TEST_METHOD(ResaleIsTheShopsFractionOrTheConsumablesOwn)

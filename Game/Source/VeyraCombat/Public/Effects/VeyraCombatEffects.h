@@ -103,6 +103,8 @@ public:
 
 	static const FName MaxHealthName;
 	static const FName HealthRegenName;
+	static const FName ArmorName;
+	static const FName MagicResistName;
 	static const FName PhysicalPowerName;
 	static const FName MagicPowerName;
 	static const FName AttackSpeedName;

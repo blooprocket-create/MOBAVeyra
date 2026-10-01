@@ -18,6 +18,19 @@ enum class EVeyraItemCategory : uint8
 	Boots,
 	/** Used up; it may stack in one slot. */
 	Consumable,
+	/**
+	 * A Quest Item (Item Bible §2.5; ADR-025 §3): bought, or evolved from one, and evolved by play at
+	 * no cost. A participant holds one item of a quest line at a time.
+	 */
+	Quest,
+};
+
+/** What advances a quest (ADR-025 §3). */
+UENUM()
+enum class EVeyraQuestObjective : uint8
+{
+	/** The holder's credited last hits on enemy lane Fluxborn (Item Bible §10, Reclamation). */
+	LaneFluxbornLastHits,
 };
 
 /** What an item adds to its holder while delivered (Item Bible §3). */
@@ -31,6 +44,12 @@ struct FVeyraItemStatsTuning
 
 	UPROPERTY()
 	double HealthRegeneration = 0.0;
+
+	UPROPERTY()
+	double Armor = 0.0;
+
+	UPROPERTY()
+	double MagicResist = 0.0;
 
 	UPROPERTY()
 	double PhysicalPower = 0.0;
@@ -69,7 +88,7 @@ struct FVeyraItemDefinition
 	UPROPERTY()
 	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
 
-	/** 1 components, 2 assemblies, 3 Masterworks. */
+	/** 1 components, 2 assemblies, 3 Masterworks, 4 Mythicals (Item Bible §2, §11). */
 	UPROPERTY()
 	int32 Tier = 0;
 
@@ -95,7 +114,7 @@ struct FVeyraItemDefinition
 	UPROPERTY()
 	TArray<FVeyraContentId> Active;
 
-	/** Exactly one on a Masterwork, none below: an ID one of the Attunement maps defines. */
+	/** Exactly one on a Masterwork, two on a Mythical, none below: IDs the Attunement maps define. */
 	UPROPERTY()
 	TArray<FVeyraContentId> Attunement;
 };
@@ -124,7 +143,7 @@ struct FVeyraShopTuning
 	int32 MaxBoots = 0;
 };
 
-/** What a consumable does when used (Item Bible §10). */
+/** What a consumable does when used (Item Bible §12). */
 USTRUCT()
 struct FVeyraConsumableTuning
 {
@@ -145,7 +164,7 @@ struct FVeyraConsumableTuning
 	double ResaleFraction = 0.0;
 
 	/**
-	 * 0 for one that is used up. Above 0, it is refillable (Item Bible §10; ADR-023 §6): bought with
+	 * 0 for one that is used up. Above 0, it is refillable (Item Bible §12; ADR-023 §6): bought with
 	 * this many charges, it spends one on each use and never goes, refills at its holder's fountain
 	 * and when its holder's side secures a Flux Well, and is held once.
 	 */
@@ -337,6 +356,216 @@ struct FVeyraTemperedByConflictTuning
 	double CooldownSeconds = 0.0;
 };
 
+/** A Quest Item's quest (Item Bible §2.5, §10; ADR-025 §3). */
+USTRUCT()
+struct FVeyraQuestTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	EVeyraQuestObjective Objective = EVeyraQuestObjective::LaneFluxbornLastHits;
+
+	/** The progress at which it evolves. */
+	UPROPERTY()
+	int32 Threshold = 0;
+
+	/** The Quest Item it becomes, at no cost; the shop never sells it. */
+	UPROPERTY()
+	FVeyraContentId EvolvesInto;
+};
+
+/**
+ * Residual Current (Wayline Reservoir, Item Bible §10; ADR-025 §7): last hits on enemy lane Fluxborn
+ * store Current, which a quiet holder missing Health spends to amplify its Health Regeneration.
+ */
+USTRUCT()
+struct FVeyraResidualCurrentTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double CurrentPerLastHit = 0.0;
+
+	UPROPERTY()
+	double CurrentCap = 0.0;
+
+	/** How long without enemy-Vanguard damage before Current is spent. */
+	UPROPERTY()
+	double QuietSeconds = 0.0;
+
+	UPROPERTY()
+	double CurrentPerSecond = 0.0;
+
+	/** What Health Regeneration is multiplied by while Current is spent; 3 triples it. */
+	UPROPERTY()
+	double RegenerationAmplification = 0.0;
+
+	/**
+	 * How long a status it keeps on its holder lasts after each renewal. Renewed every regeneration tick
+	 * while it holds, it must outlast one (Combat.json regeneration.tickSeconds).
+	 */
+	UPROPERTY()
+	double HeldSeconds = 0.0;
+};
+
+/**
+ * Drag the Tempo (Riverhold Bastion, Item Bible §8; ADR-025 §7): an enemy Vanguard's basic attack that
+ * damages the holder slows the attacker's Attack Speed, refreshed and never stacked.
+ */
+USTRUCT()
+struct FVeyraDragTheTempoTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The fraction of the attacker's Attack Speed removed. */
+	UPROPERTY()
+	double AttackSpeedReduction = 0.0;
+
+	UPROPERTY()
+	double Seconds = 0.0;
+};
+
+/**
+ * Quieting Chime (Blackreef Bell, Item Bible §8; ADR-025 §7): the holder holds a Spell Shield, which
+ * forms again once ReformSeconds pass after its last consumption and its last enemy-Vanguard damage.
+ */
+USTRUCT()
+struct FVeyraQuietingChimeTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double ReformSeconds = 0.0;
+
+	/**
+	 * How long a status it keeps on its holder lasts after each renewal. Renewed every regeneration tick
+	 * while it holds, it must outlast one (Combat.json regeneration.tickSeconds).
+	 */
+	UPROPERTY()
+	double HeldSeconds = 0.0;
+};
+
+/**
+ * Marked for Doom (Doombringer Bow, Item Bible §8; ADR-025 §7): the holder's basic attacks on an
+ * enemy Vanguard build Doom on it; once Doomed, the holder's next basic attack on it consumes the
+ * Doom for a share of its missing Health as a Physical Proc.
+ */
+USTRUCT()
+struct FVeyraMarkedForDoomTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double DoomPerHit = 0.0;
+
+	/** Doom a crit adds in place of DoomPerHit. */
+	UPROPERTY()
+	double DoomPerCrit = 0.0;
+
+	/** The Doom at which the target is Doomed. */
+	UPROPERTY()
+	double DoomedAt = 0.0;
+
+	/** How long Doom lasts after it was last added. */
+	UPROPERTY()
+	double ExpirySeconds = 0.0;
+
+	/** The Proc's Physical damage per point of the target's missing Health, after the consuming hit. */
+	UPROPERTY()
+	double MissingHealthRatio = 0.0;
+};
+
+/**
+ * Safe Harbor (Harborline Harness, Item Bible §8; ADR-025 §7): a share of the damage the holder deals
+ * enemy Vanguards banks as Reserve, which converts into Health while the holder is out of Vanguard
+ * combat.
+ */
+USTRUCT()
+struct FVeyraSafeHarborTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** The share of post-mitigation damage banked. */
+	UPROPERTY()
+	double ReserveFraction = 0.0;
+
+	/** The most Reserve, as a share of the holder's Max Health. */
+	UPROPERTY()
+	double CapMaxHealthFraction = 0.0;
+
+	/** Reserve converted each second, as a share of the holder's Max Health. */
+	UPROPERTY()
+	double ConversionMaxHealthFractionPerSecond = 0.0;
+};
+
+/**
+ * High Tide (The Last Harbor, Item Bible §11; ADR-025 §7): last hits on enemy lane Fluxborn store
+ * Current; out of Vanguard combat it is spent to amplify Health Regeneration and speed Safe Harbor's
+ * conversion, and what they recover past full Health becomes Temporary Health, up to a cap.
+ */
+USTRUCT()
+struct FVeyraHighTideTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double CurrentPerLastHit = 0.0;
+
+	UPROPERTY()
+	double CurrentCap = 0.0;
+
+	UPROPERTY()
+	double CurrentPerSecond = 0.0;
+
+	/** What Health Regeneration is multiplied by while Current is spent; 3 triples it. */
+	UPROPERTY()
+	double RegenerationAmplification = 0.0;
+
+	/** Added to Safe Harbor's conversion rate, as a share of it, while Current is spent; 1 doubles it. */
+	UPROPERTY()
+	double ReserveConversionAcceleration = 0.0;
+
+	/** The share of recovery past full Health that becomes Temporary Health. */
+	UPROPERTY()
+	double OverflowToTemporaryHealth = 0.0;
+
+	/** The most Temporary Health it holds, as a share of Max Health. */
+	UPROPERTY()
+	double TemporaryHealthCapMaxHealthFraction = 0.0;
+
+	/** How long its Temporary Health lasts after it was last added to. */
+	UPROPERTY()
+	double TemporaryHealthSeconds = 0.0;
+
+	/**
+	 * How long a status it keeps on its holder lasts after each renewal. Renewed every regeneration tick
+	 * while it holds, it must outlast one (Combat.json regeneration.tickSeconds).
+	 */
+	UPROPERTY()
+	double HeldSeconds = 0.0;
+};
+
 /** The Items domain's tuning, bound from Game/Tuning/Items.json (ADR-006 §6, ADR-012 §3). */
 USTRUCT()
 struct FVeyraItemsTuning
@@ -344,7 +573,7 @@ struct FVeyraItemsTuning
 	GENERATED_BODY()
 
 	/** The Items.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 2;
+	static constexpr int32 SchemaVersion = 3;
 
 	UPROPERTY()
 	FVeyraShopTuning Shop;
@@ -354,6 +583,10 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraConsumableTuning> Consumables;
+
+	/** Each Quest Item's quest, by the item's ID. */
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraQuestTuning> Quests;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraWeightOfWarTuning> WeightOfWar;
@@ -388,6 +621,24 @@ struct FVeyraItemsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraTemperedByConflictTuning> TemperedByConflict;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraResidualCurrentTuning> ResidualCurrent;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraDragTheTempoTuning> DragTheTempo;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraQuietingChimeTuning> QuietingChime;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraMarkedForDoomTuning> MarkedForDoom;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraSafeHarborTuning> SafeHarbor;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraHighTideTuning> HighTide;
 };
 
 /** The Items domain's checks that a schema cannot express (ADR-012 §3). */
@@ -396,8 +647,11 @@ namespace VeyraItems
 	/**
 	 * Problems with Tuning, each a JSON pointer and a message; empty when it is consistent. Tier 1 has
 	 * no recipe and no Attunement; Tier 2 has a recipe and no Attunement; Tier 3 has a recipe and
-	 * exactly one Attunement (Item Bible §2, §11); Boots stop at Tier 2 (§5); every component is a
-	 * lower tier than its recipe, so recipes never loop; a consumable is a Tier 1 item with its own
+	 * exactly one Attunement; Tier 4 has a recipe and exactly two (Item Bible §2, §11; ADR-025 §2);
+	 * Boots stop at Tier 2 (§5); every component is a
+	 * lower tier than its recipe, so recipes never loop; an item a quest evolves into is a Quest Item
+	 * with no recipe that costs 0, and every Quest Item has a quest or is one's evolution, with at most
+	 * one passive (ADR-025 §3); a consumable is a Tier 1 item with its own
 	 * entry, and only a consumable stacks; every Attunement is defined in exactly one map; Fracture's
 	 * stacks together never remove all of a Magic Resistance.
 	 */
@@ -405,4 +659,25 @@ namespace VeyraItems
 
 	/** The Gold an item costs from nothing: its cost and every component's, all the way down (Economy §12's "present form"). */
 	VEYRAITEMS_API double TotalCost(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item);
+
+	/** The Mythicals' tier (Item Bible §11): its meaning, not tuning. */
+	inline constexpr int32 MythicalTier = 4;
+
+	/** Whether Item is a Tier 4 Mythical, of which a participant buys one per match (ADR-025 §2). */
+	inline bool IsMythical(const FVeyraItemDefinition& Item)
+	{
+		return Item.Tier == MythicalTier;
+	}
+
+	/** The Quest Item whose quest evolves into Item, or null: then the shop sells Item, if it sells it at all (ADR-025 §3). */
+	VEYRAITEMS_API const FVeyraContentId* EvolvesFrom(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item);
+
+	/** Whether the shop never sells Item: a quest evolves into it. */
+	VEYRAITEMS_API bool IsEvolutionOnly(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item);
+
+	/**
+	 * The quest line Item belongs to, named by its first form, or invalid for an item not a Quest Item.
+	 * A participant holds one item of a line at a time (Item Bible §2.5).
+	 */
+	VEYRAITEMS_API FVeyraContentId QuestLine(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item);
 }

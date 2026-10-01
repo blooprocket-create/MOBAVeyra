@@ -6,6 +6,7 @@
 #include "Attributes/VeyraOffenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Attunements/VeyraAttunementSubsystem.h"
+#include "CombatState/VeyraCombatStateComponent.h"
 #include "Inventory/VeyraInventoryComponent.h"
 #include "Components/ActorTestSpawner.h"
 #include "CQTest.h"
@@ -15,6 +16,9 @@
 #include "Shop/VeyraShopSubsystem.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
+#include "Tests/Abilities/VeyraTestFluxborn.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
@@ -111,6 +115,339 @@ namespace VeyraItemsTests
 			{
 				World.Tick(LEVELTICK_TimeOnly, WorldStep);
 			}
+		}
+
+		void KillEnemyFluxborn()
+		{
+			constexpr double Lethal = 1.0e6;
+			AVeyraTestFluxborn& Minion = Spawner.SpawnActorAt<AVeyraTestFluxborn>(FVector(300.0, 0.0, 0.0), FRotator::ZeroRotator);
+			Minion.SetVeyraTeam(EVeyraTeam::B);
+			ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(*Minion.GetAbilitySystemComponent(), VeyraCombatTests::ExampleStats())));
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Lethal });
+			Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(Holder(), *Minion.GetAbilitySystemComponent(), Damage)));
+		}
+
+		double StoredCurrent() const
+		{
+			const FVeyraInventorySlot* Slot = Participant->FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().FindByPredicate(
+				[](const FVeyraInventorySlot& Each) { return Each.Item == ItemId(TEXT("test_reservoir")); });
+			return Slot ? Slot->Current : -1.0;
+		}
+
+		bool Amplified() const
+		{
+			return Participant->FindComponentByClass<UVeyraStatusComponent>()->Has(EVeyraStatusKind::HealthRegeneration);
+		}
+
+		TEST_METHOD(ResidualCurrentStoresLastHitsAndAmplifiesRegenerationOnceQuiet)
+		{
+			Tuning = WithQuest(Tuning);
+			const FVeyraResidualCurrentTuning& Residual = Tuning.ResidualCurrent[ItemId(TEXT("test_current"))];
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+			ASSERT_THAT(IsTrue(Shop->GrantItem(*Participant, ItemId(TEXT("test_reservoir"))) == EVeyraShopRefusal::None));
+
+			// Each last hit stores Current, up to the cap (Item Bible §10).
+			KillEnemyFluxborn();
+			ASSERT_THAT(IsTrue(StoredCurrent() == Residual.CurrentPerLastHit));
+			KillEnemyFluxborn();
+			KillEnemyFluxborn();
+			ASSERT_THAT(IsTrue(StoredCurrent() == Residual.CurrentCap, FString::SanitizeFloat(StoredCurrent())));
+
+			// At full Health it keeps its Current (ADR-025 §8).
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(StoredCurrent() == Residual.CurrentCap && !Amplified()));
+
+			// Missing Health and clear of enemy Vanguards, it spends a tick's Current to amplify regeneration.
+			const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
+			Holder().SetNumericAttributeBase(Health, Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) / 2.0f);
+			Attunements.UpdateHeld();
+			const double Tick = UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds;
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StoredCurrent(), Residual.CurrentCap - Residual.CurrentPerSecond * Tick), FString::SanitizeFloat(StoredCurrent())));
+			ASSERT_THAT(IsTrue(Amplified()));
+
+			// An enemy Vanguard's damage suspends it and keeps the Current.
+			FVeyraRawDamageEvent Poke;
+			Poke.Components.Add({ EVeyraDamageType::TrueDamage, 1.0 });
+			Poke.Delivery = EVeyraDamageDelivery::BasicAttack;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Enemy, Holder(), Poke)));
+			ASSERT_THAT(IsTrue(Attunements.GetVanguardDamageTakenAt(Holder()).IsSet()));
+			const double Kept = StoredCurrent();
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(StoredCurrent() == Kept && !Amplified()));
+
+			// After its quiet time it spends again.
+			RunFor(Residual.QuietSeconds + WorldStep);
+			Holder().SetNumericAttributeBase(Health, Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) / 2.0f);
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(StoredCurrent() < Kept && Amplified()));
+		}
+
+		/** An enemy Vanguard's hit on the holder. */
+		void StrikeHolder(EVeyraDamageDelivery Delivery)
+		{
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, 1.0 });
+			Damage.Delivery = Delivery;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Enemy, Holder(), Damage)));
+		}
+
+		bool HolderShielded() const
+		{
+			return Participant->FindComponentByClass<UVeyraStatusComponent>()->Has(EVeyraStatusKind::SpellShield);
+		}
+
+		TEST_METHOD(QuietingChimeFormsBlocksAnAbilityAndFormsAgainOnceQuiet)
+		{
+			// Fixture value: a short wait to form again.
+			constexpr double Reform = 2.0;
+			FVeyraQuietingChimeTuning& Chime = Tuning.QuietingChime.Add(ItemId(TEXT("test_chime")));
+			Chime.ReformSeconds = Reform;
+			Chime.HeldSeconds = 1.0;
+			Hold(TEXT("test_chime"));
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(HolderShielded(), TEXT("it forms at once when nothing has hurt the holder")));
+			StrikeHolder(EVeyraDamageDelivery::BasicAttack);
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(HolderShielded(), TEXT("a formed shield keeps through damage")));
+
+			ASSERT_THAT(IsTrue(VeyraCombat::BlockAbilityHit(Holder(), *Enemy)));
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsFalse(HolderShielded(), TEXT("consumed, it waits")));
+			RunFor(Reform * 0.6);
+			StrikeHolder(EVeyraDamageDelivery::Ability);
+			RunFor(Reform * 0.6);
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsFalse(HolderShielded(), TEXT("enemy-Vanguard damage starts the wait again (ADR-025 §7)")));
+			RunFor(Reform * 0.6);
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(HolderShielded()));
+		}
+
+		TEST_METHOD(DragTheTempoSlowsAnEnemyVanguardsAttacksOnTheHolder)
+		{
+			// Fixture values: a fifth of the attacker's Attack Speed for 3 s.
+			constexpr double Reduction = 0.2;
+			constexpr double Seconds = 3.0;
+			FVeyraDragTheTempoTuning& Tempo = Tuning.DragTheTempo.Add(ItemId(TEXT("test_tempo")));
+			Tempo.AttackSpeedReduction = Reduction;
+			Tempo.Seconds = Seconds;
+			Hold(TEXT("test_tempo"));
+			StrikeHolder(EVeyraDamageDelivery::Ability);
+			ASSERT_THAT(IsFalse(EnemyStatuses().Has(EVeyraStatusKind::AttackSpeed), TEXT("only a basic attack")));
+			StrikeHolder(EVeyraDamageDelivery::BasicAttack);
+			StrikeHolder(EVeyraDamageDelivery::BasicAttack);
+			const TArray<FVeyraStatusEntry> Slows = EnemyStatuses().GetLedger().Entries.FilterByPredicate(
+				[](const FVeyraStatusEntry& Entry) { return Entry.Id == ItemId(TEXT("test_tempo")); });
+			ASSERT_THAT(IsTrue(Slows.Num() == 1 && Slows[0].Stacks == 1 && FMath::IsNearlyEqual(Slows[0].Magnitude, -Reduction),
+				TEXT("refreshed, never stacked (ADR-025 §7)")));
+		}
+
+		/** The holder's basic attack on the enemy, a crit or not. */
+		void Attack(bool bCritical)
+		{
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Blow });
+			Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
+			FVeyraPreparedDamage Prepared = VeyraCombat::PrepareDamage(Holder(), Damage);
+			Prepared.bCritical = bCritical;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealPreparedDamage(Prepared, *Enemy)));
+		}
+
+		void AttackFrom(UAbilitySystemComponent& Source, bool bCritical)
+		{
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Blow });
+			Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
+			FVeyraPreparedDamage Prepared = VeyraCombat::PrepareDamage(Source, Damage);
+			Prepared.bCritical = bCritical;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealPreparedDamage(Prepared, *Enemy)));
+		}
+
+		int32 DoomMarkStacks() const
+		{
+			const FVeyraStatusEntry* Mark = EnemyStatuses().GetLedger().Entries.FindByPredicate([](const FVeyraStatusEntry& Entry) { return Entry.Id == ItemId(TEXT("test_doom")); });
+			return Mark ? Mark->Stacks : 0;
+		}
+
+		TEST_METHOD(TwoHoldersDoomOnOneTargetNeitherHidesTheOther)
+		{
+			// Fixture values: 1 Doom a hit, 2 a crit, Doomed at 3; 5 s to lapse.
+			FVeyraMarkedForDoomTuning& Doom = Tuning.MarkedForDoom.Add(ItemId(TEXT("test_doom")));
+			Doom.DoomPerHit = 1.0;
+			Doom.DoomPerCrit = 2.0;
+			Doom.DoomedAt = 3.0;
+			Doom.ExpirySeconds = 5.0;
+			Doom.MissingHealthRatio = 0.2;
+			Hold(TEXT("test_doom"));
+			VeyraAbilitiesTests::FArchetypeTestWorld World{ Spawner };
+			AVeyraPlayerState* Second = World.Spawn(EVeyraTeam::A, FVector(0.0, 200.0, 0.0)).GetPlayerState<AVeyraPlayerState>();
+			UVeyraShopSubsystem::InitializeInventory(*Second);
+			ASSERT_THAT(IsTrue(Second->FindComponentByClass<UVeyraGoldComponent>()->Grant(Purse, EVeyraGoldReason::Developer)));
+			Shop->SetAtFountain(*Second, true);
+			ASSERT_THAT(IsTrue(Shop->Buy(*Second, ItemId(TEXT("test_temper"))) == EVeyraShopRefusal::None));
+			UAbilitySystemComponent& Other = *Second->GetAbilitySystemComponent();
+			const UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+
+			AttackFrom(Holder(), true);
+			AttackFrom(Other, false);
+			ASSERT_THAT(AreEqual(2, DoomMarkStacks(), TEXT("another holder's hit keeps the most Doom on show")));
+			AttackFrom(Holder(), false);
+			AttackFrom(Holder(), false);
+			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 0.0 && Attunements.GetDoom(Other, *Enemy) == 1.0, TEXT("each holder's Doom is its own")));
+			ASSERT_THAT(AreEqual(1, DoomMarkStacks(), TEXT("one holder's payoff leaves the other's Doom marked")));
+		}
+
+		TEST_METHOD(MarkedForDoomBuildsOnAttacksThenTheNextAttackOnTheDoomedConsumesIt)
+		{
+			// Fixture values: 1 Doom a hit, 2 a crit, Doomed at 3; a fifth of missing Health; 5 s to lapse.
+			constexpr double Ratio = 0.2;
+			constexpr double Expiry = 5.0;
+			FVeyraMarkedForDoomTuning& Doom = Tuning.MarkedForDoom.Add(ItemId(TEXT("test_doom")));
+			Doom.DoomPerHit = 1.0;
+			Doom.DoomPerCrit = 2.0;
+			Doom.DoomedAt = 3.0;
+			Doom.ExpirySeconds = Expiry;
+			Doom.MissingHealthRatio = Ratio;
+			Hold(TEXT("test_doom"));
+			// No Armor, so the Physical Proc lands whole.
+			Enemy->SetNumericAttributeBase(UVeyraDefenceSet::GetArmorAttribute(), 0.0f);
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+
+			Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::Ability);
+			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 0.0, TEXT("only basic attacks build it")));
+			Attack(false);
+			Attack(true);
+			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 3.0 && Procs() == 0, TEXT("a hit and a crit: Doomed, nothing dealt yet")));
+			const FVeyraStatusEntry* Mark = EnemyStatuses().GetLedger().Entries.FindByPredicate([](const FVeyraStatusEntry& Entry) { return Entry.Id == ItemId(TEXT("test_doom")); });
+			ASSERT_THAT(IsTrue(Mark && Mark->Kind == EVeyraStatusKind::Counter && Mark->Stacks == 3, TEXT("every machine sees the Doom as a mark")));
+			const double MissingBefore = VeyraCombat::GetMissingHealth(*Enemy);
+			Attack(false);
+			ASSERT_THAT(AreEqual(1, Procs(), TEXT("the next attack consumes it")));
+			const double Expected = MissingBefore + Blow + Ratio * (MissingBefore + Blow);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(VeyraCombat::GetMissingHealth(*Enemy), Expected, 1e-3),
+				FString::Printf(TEXT("missing %g, expected %g: the share of the missing Health after the hit"), VeyraCombat::GetMissingHealth(*Enemy), Expected)));
+			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 0.0, TEXT("the consuming hit adds none (ADR-025 §8.5)")));
+			ASSERT_THAT(IsFalse(EnemyStatuses().GetLedger().Entries.ContainsByPredicate([](const FVeyraStatusEntry& Entry) { return Entry.Id == ItemId(TEXT("test_doom")); }),
+				TEXT("and the mark goes with it")));
+
+			Attack(true);
+			RunFor(Expiry + WorldStep);
+			ASSERT_THAT(IsTrue(Attunements.GetDoom(Holder(), *Enemy) == 0.0, TEXT("it lapses")));
+		}
+
+		double StoredReserve() const
+		{
+			const FVeyraInventorySlot* Slot = Participant->FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().FindByPredicate(
+				[](const FVeyraInventorySlot& Each) { return Each.Item == ItemId(TEXT("test_temper")); });
+			return Slot ? Slot->Reserve : -1.0;
+		}
+
+		TEST_METHOD(SafeHarborBanksReserveFromHitsAndHealsWithItOutOfCombat)
+		{
+			// Fixture values: half of each hit banks, up to a tenth of Max Health; 5% of Max Health a second.
+			constexpr double Fraction = 0.5;
+			constexpr double CapFraction = 0.1;
+			FVeyraSafeHarborTuning& Harbor = Tuning.SafeHarbor.Add(ItemId(TEXT("test_reserve")));
+			Harbor.ReserveFraction = Fraction;
+			Harbor.CapMaxHealthFraction = CapFraction;
+			Harbor.ConversionMaxHealthFractionPerSecond = 0.05;
+			Hold(TEXT("test_reserve"));
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+			const double MaxHealth = Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+
+			Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::Proc);
+			ASSERT_THAT(IsTrue(StoredReserve() == 0.0, TEXT("item damage banks nothing (ADR-025 §8.7)")));
+			Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::BasicAttack);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StoredReserve(), Blow * Fraction), FString::SanitizeFloat(StoredReserve())));
+			for (int32 Index = 0; Index < 3; ++Index)
+			{
+				Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::Ability);
+			}
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StoredReserve(), MaxHealth * CapFraction), TEXT("up to its cap")));
+
+			// In Vanguard combat it keeps; out of it, it heals what is missing.
+			const FGameplayAttribute Health = UVeyraVitalsSet::GetHealthAttribute();
+			Holder().SetNumericAttributeBase(Health, static_cast<float>(MaxHealth / 2.0));
+			UVeyraCombatStateComponent& CombatState = *Participant->FindComponentByClass<UVeyraCombatStateComponent>();
+			CombatState.NoteCombat();
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(StoredReserve(), MaxHealth * CapFraction), TEXT("none in combat")));
+			CombatState.Clear();
+			Attunements.UpdateHeld();
+			const double Healed = Holder().GetNumericAttribute(Health) - MaxHealth / 2.0;
+			ASSERT_THAT(IsTrue(Healed > 0.0 && FMath::IsNearlyEqual(StoredReserve(), MaxHealth * CapFraction - Healed, 1e-3), TEXT("what heals is spent")));
+		}
+
+		double HolderTemporaryHealth() const
+		{
+			return VeyraAbsorption::TotalTemporaryHealth(Participant->FindComponentByClass<UVeyraDamageAbsorptionComponent>()->GetLedger());
+		}
+
+		TEST_METHOD(HighTideSpeedsSafeHarborAndTurnsItsOverflowIntoTemporaryHealth)
+		{
+			// Fixture values: the Masterwork carries Safe Harbor and High Tide, as The Last Harbor does.
+			constexpr double Conversion = 0.05;
+			constexpr double Acceleration = 1.0;
+			constexpr double Overflow = 0.5;
+			constexpr double TemporaryCap = 0.02;
+			FVeyraSafeHarborTuning& Harbor = Tuning.SafeHarbor.Add(ItemId(TEXT("test_reserve")));
+			Harbor.ReserveFraction = 1.0;
+			Harbor.CapMaxHealthFraction = 0.5;
+			Harbor.ConversionMaxHealthFractionPerSecond = Conversion;
+			FVeyraHighTideTuning& Tide = Tuning.HighTide.Add(ItemId(TEXT("test_tide")));
+			Tide.CurrentPerLastHit = 2.0;
+			Tide.HeldSeconds = 1.0;
+			Tide.CurrentCap = 5.0;
+			Tide.CurrentPerSecond = 1.0;
+			Tide.RegenerationAmplification = 3.0;
+			Tide.ReserveConversionAcceleration = Acceleration;
+			Tide.OverflowToTemporaryHealth = Overflow;
+			Tide.TemporaryHealthCapMaxHealthFraction = TemporaryCap;
+			Tide.TemporaryHealthSeconds = 60.0;
+			Tuning.Items[ItemId(TEXT("test_temper"))].Attunement = { ItemId(TEXT("test_reserve")), ItemId(TEXT("test_tide")) };
+			Tuning.WeightOfWar.Reset();
+			Shop->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Shop->Buy(*Participant, ItemId(TEXT("test_temper"))) == EVeyraShopRefusal::None));
+			UVeyraAttunementSubsystem& Attunements = *Spawner.GetWorld().GetSubsystem<UVeyraAttunementSubsystem>();
+			const double MaxHealth = Holder().GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+			const double Tick = UVeyraCombatTuningSubsystem::Get().Regeneration.TickSeconds;
+
+			// Reserve from a hit; Current from a last hit, as Residual Current stores it.
+			Hit(EVeyraDamageType::TrueDamage, Blow, EVeyraDamageDelivery::BasicAttack);
+			KillEnemyFluxborn();
+			// A copy each time: the shop replaces the slots as it stores.
+			const auto Held = [this] {
+				return *Participant->FindComponentByClass<UVeyraInventoryComponent>()->GetSlots().FindByPredicate(
+					[](const FVeyraInventorySlot& Each) { return Each.Item == ItemId(TEXT("test_temper")); });
+			};
+			ASSERT_THAT(IsTrue(Held().Reserve == Blow && Held().Current == Tide.CurrentPerLastHit));
+
+			// In Vanguard combat nothing moves.
+			UVeyraCombatStateComponent& CombatState = *Participant->FindComponentByClass<UVeyraCombatStateComponent>();
+			CombatState.NoteCombat();
+			Attunements.UpdateHeld();
+			ASSERT_THAT(IsTrue(Held().Reserve == Blow && Held().Current == Tide.CurrentPerLastHit && HolderTemporaryHealth() == 0.0));
+
+			// Out of it, at full Health, the tide doubles Safe Harbor's conversion and turns it into Temporary Health.
+			CombatState.Clear();
+			Attunements.UpdateHeld();
+			const double Converted = FMath::Min(Blow, Conversion * (1.0 + Acceleration) * MaxHealth * Tick);
+			const double Expected = FMath::Min(Converted * Overflow, TemporaryCap * MaxHealth);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HolderTemporaryHealth(), Expected, 1e-3), FString::Printf(TEXT("%g, expected %g"), HolderTemporaryHealth(), Expected)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Held().Reserve, Blow - Converted, 1e-3) && FMath::IsNearlyEqual(Held().Current, Tide.CurrentPerLastHit - Tide.CurrentPerSecond * Tick),
+				FString::Printf(TEXT("Reserve %g, Current %g"), Held().Reserve, Held().Current)));
+			ASSERT_THAT(IsTrue(Participant->FindComponentByClass<UVeyraStatusComponent>()->Has(EVeyraStatusKind::HealthRegeneration)));
+
+			// Its Temporary Health stops at the cap, one grant.
+			for (int32 Index = 0; Index < 4; ++Index)
+			{
+				Attunements.UpdateHeld();
+			}
+			ASSERT_THAT(IsTrue(HolderTemporaryHealth() <= TemporaryCap * MaxHealth + 1e-3));
+			ASSERT_THAT(IsTrue(Participant->FindComponentByClass<UVeyraDamageAbsorptionComponent>()->GetLedger().TemporaryHealth.Num() == 1));
 		}
 
 		TEST_METHOD(ReprisalGuardShieldsAShareOfTheHitThenWaits)

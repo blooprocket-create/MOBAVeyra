@@ -190,7 +190,7 @@ void FVeyraBattlegroundLink::OnFluxWellSecured(const FVeyraFluxWellSecuredEvent&
 	{
 		TeamFlux->Grant(Event.Team, EVeyraFluxSource::FluxWell);
 	}
-	// And refills each of its participants' Flux Flasks (Item Bible §10; ADR-023 §6).
+	// And refills each of its participants' Flux Flasks (Item Bible §12; ADR-023 §6).
 	UWorld* World = MatchWorld.Get();
 	UVeyraShopSubsystem* Shop = World ? World->GetSubsystem<UVeyraShopSubsystem>() : nullptr;
 	const AGameStateBase* GameState = World ? World->GetGameState() : nullptr;

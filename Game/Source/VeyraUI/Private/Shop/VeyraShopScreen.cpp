@@ -56,6 +56,8 @@ namespace
 			return LOCTEXT("Assemblies", "Assemblies");
 		case 3:
 			return LOCTEXT("Masterworks", "Masterworks");
+		case 4:
+			return LOCTEXT("Mythicals", "Mythicals");
 		default:
 			return FText::Format(LOCTEXT("Tier", "Tier {0}"), FText::AsNumber(Tier));
 		}
@@ -529,6 +531,10 @@ void UVeyraShopScreen::BuildDetails()
 	{
 		Shown = LOCTEXT("NotEnoughGold", "Not Enough Gold");
 	}
+	else if (Offer->Refusal == EVeyraShopRefusal::MythicalTaken)
+	{
+		Shown = LOCTEXT("MythicalLocked", "Mythical Locked");
+	}
 	else if (Offer->Refusal != EVeyraShopRefusal::None)
 	{
 		Shown = LOCTEXT("ItemUnavailable", "Item Unavailable");
@@ -628,7 +634,9 @@ UVeyraShellButton* UVeyraShopScreen::AddItemTile(UPanelWidget& Parent, const FVe
 {
 	const FVeyraShopOffer* Offer = View.Offers.FindByPredicate([&Item](const FVeyraShopOffer& Each) { return Each.Item == Item; });
 	const bool bLit = Offer && Offer->Refusal == EVeyraShopRefusal::None;
-	const FText Price = Offer ? PriceText(Offer->Price) : FText::GetEmpty();
+	// A Mythical other than the participant's shows as locked for the match, not as a price (ADR-025 §2).
+	const bool bLocked = Offer && Offer->Refusal == EVeyraShopRefusal::MythicalTaken;
+	const FText Price = bLocked ? LOCTEXT("MythicalLockedTile", "Locked") : Offer ? PriceText(Offer->Price) : FText::GetEmpty();
 	// Outlined when chosen from the catalog; a slot chosen in the inventory is outlined there instead.
 	const bool bSelected = Item == SelectedItem && !View.Slots.IsValidIndex(SelectedSlot);
 	const FText Name = VeyraContentText::ItemName(Item);

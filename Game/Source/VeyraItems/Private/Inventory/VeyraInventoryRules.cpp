@@ -42,6 +42,12 @@ const TCHAR* LexToString(EVeyraShopRefusal Refusal)
 		return TEXT("already equipped");
 	case EVeyraShopRefusal::NoCharges:
 		return TEXT("no charges left");
+	case EVeyraShopRefusal::MythicalTaken:
+		return TEXT("another Mythical is chosen");
+	case EVeyraShopRefusal::NotForSale:
+		return TEXT("only a quest makes it");
+	case EVeyraShopRefusal::QuestLineHeld:
+		return TEXT("an item of its quest line is held");
 	}
 	return TEXT("unknown");
 }
@@ -50,19 +56,19 @@ namespace VeyraInventory
 {
 namespace
 {
-	/** Removes one Item from Slots, returning the Gold its present form cost, or nothing if Slots hold none. */
-	TOptional<double> Take(TArray<FVeyraInventorySlot>& Slots, const FVeyraContentId& Item)
+	/** Removes one Item from Slots, returning its slot as it was, or nothing if Slots hold none. */
+	TOptional<FVeyraInventorySlot> Take(TArray<FVeyraInventorySlot>& Slots, const FVeyraContentId& Item)
 	{
 		for (FVeyraInventorySlot& Slot : Slots)
 		{
 			if (!Slot.IsEmpty() && Slot.Item == Item)
 			{
-				const double Paid = Slot.PaidEach;
+				const FVeyraInventorySlot Taken = Slot;
 				if (--Slot.Count == 0)
 				{
 					Slot = FVeyraInventorySlot();
 				}
-				return Paid;
+				return Taken;
 			}
 		}
 		return {};
@@ -70,9 +76,11 @@ namespace
 
 	/**
 	 * Gold to obtain Item from Slots, consuming owned items where it can, recursively as League does,
-	 * and recording each one consumed in Needs. Item itself is never taken: it is being bought.
+	 * and recording each one consumed in Needs. Item itself is never taken: it is being bought. A
+	 * missing part the shop never sells sets bNeedsUnsold, and is not bought (ADR-025 §3).
 	 */
-	double Resolve(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventorySlot>& Slots, const FVeyraItemDefinition& Definition, TArray<FVeyraContentId>& Needs)
+	double Resolve(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventorySlot>& Slots, const FVeyraItemDefinition& Definition, TArray<FVeyraContentId>& Needs,
+		bool& bNeedsUnsold)
 	{
 		double Price = Definition.Cost;
 		for (const FVeyraContentId& Component : Definition.Components)
@@ -81,9 +89,13 @@ namespace
 			{
 				Needs.Add(Component);
 			}
+			else if (VeyraItems::IsEvolutionOnly(Tuning, Component))
+			{
+				bNeedsUnsold = true;
+			}
 			else if (const FVeyraItemDefinition* ComponentDefinition = Tuning.Items.Find(Component))
 			{
-				Price += Resolve(Tuning, Slots, *ComponentDefinition, Needs);
+				Price += Resolve(Tuning, Slots, *ComponentDefinition, Needs, bNeedsUnsold);
 			}
 		}
 		return Price;
@@ -101,6 +113,8 @@ namespace
 		bool bHeld = false;
 		bool bRoomInStack = false;
 		bool bFreeSlot = false;
+		bool bLineHeld = false;
+		const FVeyraContentId Line = VeyraItems::QuestLine(Tuning, Item);
 		for (const FVeyraInventorySlot& Slot : Slots)
 		{
 			if (Slot.IsEmpty())
@@ -112,8 +126,14 @@ namespace
 			Boots += Held && Held->Category == EVeyraItemCategory::Boots ? Slot.Count : 0;
 			bHeld |= Slot.Item == Item;
 			bRoomInStack |= Slot.Item == Item && Slot.Count < Definition->StackLimit;
+			bLineHeld |= Line.IsValid() && VeyraItems::QuestLine(Tuning, Slot.Item) == Line;
 		}
-		// A Masterwork is held once (ADR-012 §9), and so is a refillable consumable (Item Bible §10).
+		// One item of a quest line at a time, so its progress is never duplicated (Item Bible §2.5).
+		if (bLineHeld)
+		{
+			return EVeyraShopRefusal::QuestLineHeld;
+		}
+		// A Masterwork is held once (ADR-012 §9), and so is a refillable consumable (Item Bible §12).
 		const FVeyraConsumableTuning* Consumable = Tuning.Consumables.Find(Item);
 		if (bHeld && (Definition->Tier >= Tuning.Shop.UniqueFromTier || (Consumable && Consumable->Charges > 0)))
 		{
@@ -126,7 +146,8 @@ namespace
 		return bRoomInStack || bFreeSlot ? EVeyraShopRefusal::None : EVeyraShopRefusal::InventoryFull;
 	}
 
-	void Place(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventorySlot>& Slots, const FVeyraContentId& Item, double PaidEach)
+	/** Puts one Item in Slots, on its stack or in a free slot; returns the slot it went to. */
+	FVeyraInventorySlot* Place(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventorySlot>& Slots, const FVeyraContentId& Item, double PaidEach)
 	{
 		const int32 StackLimit = Tuning.Items.FindChecked(Item).StackLimit;
 		for (FVeyraInventorySlot& Slot : Slots)
@@ -134,7 +155,7 @@ namespace
 			if (!Slot.IsEmpty() && Slot.Item == Item && Slot.Count < StackLimit)
 			{
 				++Slot.Count;
-				return;
+				return &Slot;
 			}
 		}
 		for (FVeyraInventorySlot& Slot : Slots)
@@ -148,9 +169,10 @@ namespace
 				// A refillable consumable arrives full.
 				const FVeyraConsumableTuning* Consumable = Tuning.Consumables.Find(Item);
 				Slot.Charges = Consumable ? Consumable->Charges : 0;
-				return;
+				return &Slot;
 			}
 		}
+		return nullptr;
 	}
 }
 
@@ -158,21 +180,34 @@ EVeyraShopRefusal Apply(const FVeyraItemsTuning& Tuning, TArray<FVeyraInventoryS
 {
 	TArray<FVeyraInventorySlot> Working = Slots;
 	double ConsumedPaid = 0.0;
+	FVeyraInventorySlot Carried;
 	for (const FVeyraContentId& Need : Entry.Needs)
 	{
-		const TOptional<double> Paid = Take(Working, Need);
-		if (!Paid.IsSet())
+		const TOptional<FVeyraInventorySlot> Taken = Take(Working, Need);
+		if (!Taken.IsSet())
 		{
 			return EVeyraShopRefusal::MissingComponent;
 		}
-		ConsumedPaid += Paid.GetValue();
+		ConsumedPaid += Taken->PaidEach;
+		Carried.Current += Taken->Current;
+		Carried.Reserve += Taken->Reserve;
 	}
 	const EVeyraShopRefusal Refusal = RefusalToHold(Tuning, Working, Entry.Item);
 	if (Refusal != EVeyraShopRefusal::None)
 	{
 		return Refusal;
 	}
-	Place(Tuning, Working, Entry.Item, ConsumedPaid + Entry.Paid);
+	// A Mythical carries its parts' mechanics on (Item Bible §11): what they stored, it keeps (ADR-025 §7).
+	if (FVeyraInventorySlot* Placed = Place(Tuning, Working, Entry.Item, ConsumedPaid + Entry.Paid))
+	{
+		for (const EVeyraItemStore Store : { EVeyraItemStore::Current, EVeyraItemStore::Reserve })
+		{
+			if (Stores(Tuning, Entry.Item, Store))
+			{
+				Placed->Stored(Store) += Carried.Stored(Store);
+			}
+		}
+	}
 	Slots = MoveTemp(Working);
 	return EVeyraShopRefusal::None;
 }
@@ -193,7 +228,7 @@ TArray<int32> Simulate(const FVeyraItemsTuning& Tuning, TConstArrayView<FVeyraIn
 }
 
 FVeyraPurchaseQuote Quote(const FVeyraItemsTuning& Tuning, TConstArrayView<FVeyraInventorySlot> Slots, TConstArrayView<FVeyraPendingPurchase> Queue,
-	const FVeyraContentId& Item)
+	const FVeyraContentId& Mythical, const FVeyraContentId& Item)
 {
 	FVeyraPurchaseQuote Result;
 	const FVeyraItemDefinition* Definition = Tuning.Items.Find(Item);
@@ -204,9 +239,25 @@ FVeyraPurchaseQuote Quote(const FVeyraItemsTuning& Tuning, TConstArrayView<FVeyr
 	}
 	TArray<FVeyraInventorySlot> After;
 	Simulate(Tuning, Slots, Queue, After);
-	Result.Price = Resolve(Tuning, After, *Definition, Result.Needs);
-	Result.Refusal = RefusalToHold(Tuning, After, Item);
+	bool bNeedsUnsold = false;
+	Result.Price = Resolve(Tuning, After, *Definition, Result.Needs, bNeedsUnsold);
+	// One Mythical per participant per match: the first bought stays theirs, even once sold (ADR-025 §2).
+	const bool bMythicalTaken = VeyraItems::IsMythical(*Definition) && Mythical.IsValid() && Mythical != Item;
+	// An evolved Quest Item comes only from its quest, and a recipe that needs one waits for it (ADR-025 §3).
+	const bool bNotForSale = bNeedsUnsold || VeyraItems::IsEvolutionOnly(Tuning, Item);
+	Result.Refusal = bMythicalTaken ? EVeyraShopRefusal::MythicalTaken
+		: bNotForSale              ? EVeyraShopRefusal::NotForSale
+								   : RefusalToHold(Tuning, After, Item);
 	return Result;
+}
+
+bool Stores(const FVeyraItemsTuning& Tuning, const FVeyraContentId& Item, EVeyraItemStore Store)
+{
+	const FVeyraItemDefinition* Definition = Tuning.Items.Find(Item);
+	return Definition && Definition->Attunement.ContainsByPredicate([&Tuning, Store](const FVeyraContentId& Attunement) {
+		return Store == EVeyraItemStore::Current ? Tuning.ResidualCurrent.Contains(Attunement) || Tuning.HighTide.Contains(Attunement)
+												 : Tuning.SafeHarbor.Contains(Attunement);
+	});
 }
 
 double ResaleValue(const FVeyraItemsTuning& Tuning, const FVeyraInventorySlot& Slot)

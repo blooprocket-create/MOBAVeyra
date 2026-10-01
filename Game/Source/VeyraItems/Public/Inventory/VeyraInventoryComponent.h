@@ -24,6 +24,9 @@ struct FVeyraUndoStep
 
 	/** The slots before it. */
 	TArray<FVeyraInventorySlot> SlotsBefore;
+
+	/** The participant's Mythical before it: undoing the purchase that chose one releases it (ADR-025 §2). */
+	FVeyraContentId MythicalBefore;
 };
 
 /**
@@ -61,12 +64,20 @@ public:
 	/** Server only: the stacks each stacking Attunement holds now, by Attunement. */
 	TMap<FVeyraContentId, int32> GetStackCounts() const;
 
+	/**
+	 * The participant's Tier 4 Mythical this match, invalid until it buys one (Item Bible §11; ADR-025
+	 * §2). Buying or queuing one chooses it, and no other can be bought; only undoing or cancelling that
+	 * purchase releases it. Selling it does not, and the same Mythical may be bought again.
+	 */
+	const FVeyraContentId& GetMythical() const { return Mythical; }
+
 private:
 	friend class UVeyraShopSubsystem;
 
 	void SetSlots(TArray<FVeyraInventorySlot> NewSlots);
 	void SetQueue(TArray<FVeyraPendingPurchase> NewQueue);
 	void SetAtFountainState(bool bNewAtFountain);
+	void SetMythical(const FVeyraContentId& NewMythical);
 
 	// The undo steps change only through these, which keep their replicated count.
 	void AddUndoStep(FVeyraUndoStep Step);
@@ -85,6 +96,9 @@ private:
 
 	UPROPERTY(Replicated)
 	int32 UndoStepCount = 0;
+
+	UPROPERTY(Replicated)
+	FVeyraContentId Mythical;
 
 	TArray<FVeyraUndoStep> UndoSteps;
 	TMap<FVeyraContentId, FVeyraAttunementStacks> Stacks;

@@ -133,6 +133,12 @@ enum class EVeyraStatusKind : uint8
 	 * crowd control. Magnitude: the fraction removed per stack, above 0, every stack together below 1.
 	 */
 	MagicResistReduction,
+	/**
+	 * A Spell Shield (Combat Bible §19; ADR-025 §4): the next hostile ability hit on the unit is blocked
+	 * whole and consumes it (VeyraCombat::BlockAbilityHit). Basic attacks, Procs and effects over time
+	 * pass. Not crowd control. Magnitude: 0.
+	 */
+	SpellShield,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

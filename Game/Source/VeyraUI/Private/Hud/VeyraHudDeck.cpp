@@ -616,6 +616,23 @@ namespace
 					Paint.Text(At + FVector2D(Item - Paint.S(14.0f), Item - Paint.S(16.0f)), FString::FromInt(Held.Charges.Get(Held.Count)),
 						Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor, true);
 				}
+				// A Quest Item shows how far its quest has come (ADR-025 §3); an item that keeps Current or
+				// Reserve shows them, Current above and Reserve below (ADR-025 §7).
+				if (Held.Quest.IsSet())
+				{
+					Paint.Text(At + FVector2D(Paint.S(2.0f), Paint.S(1.0f)), FString::Printf(TEXT("%d/%d"), Held.Quest->X, Held.Quest->Y),
+						Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor, true);
+				}
+				else if (Held.Current.IsSet())
+				{
+					Paint.Text(At + FVector2D(Paint.S(2.0f), Paint.S(1.0f)), FString::Printf(TEXT("C%d"), Held.Current.GetValue()),
+						Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor, true);
+				}
+				if (Held.Reserve.IsSet())
+				{
+					Paint.Text(At + FVector2D(Paint.S(2.0f), Item - Paint.S(16.0f)), FString::Printf(TEXT("R%d"), Held.Reserve.GetValue()),
+						Paint.Font(TEXT("Bold"), Settings.HudSmallFontSize), Settings.TextColor, true);
+				}
 				DrawCooldown(Paint, At, Item, Held.CooldownSeconds);
 				if (Contains(At, FVector2D(Item), Mouse))
 				{

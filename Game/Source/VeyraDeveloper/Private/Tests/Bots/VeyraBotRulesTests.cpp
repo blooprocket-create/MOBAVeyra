@@ -13,6 +13,8 @@ namespace VeyraBotsTests
 {
 	using VeyraItemsTests::ItemId;
 	using VeyraItemsTests::TestCatalog;
+	using VeyraItemsTests::WithMythicals;
+	using VeyraItemsTests::WithQuest;
 
 	// Veyra.Bots.BotRules.*: how a bot decides, one priority at a time (ADR-013 §4, §8), as pure rules.
 	TEST_CLASS(BotRules, "Veyra.Bots")
@@ -507,14 +509,14 @@ namespace VeyraBotsTests
 			Slots.SetNum(Items.Shop.InventorySlots);
 			const TArray<FVeyraContentId> Build = { ItemId(TEXT("test_temper")), ItemId(TEXT("test_wheel")) };
 			// Temper wants a harness (plate and grip) and a plate; 400 buys a plate, the dearest part.
-			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 400.0) == ItemId(TEXT("test_plate"))));
-			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 360.0) == ItemId(TEXT("test_grip"))));
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 400.0) == ItemId(TEXT("test_plate"))));
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 360.0) == ItemId(TEXT("test_grip"))));
 			// Too poor for any part: it saves, rather than skip to the wheel.
-			ASSERT_THAT(IsFalse(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 100.0).IsSet()));
+			ASSERT_THAT(IsFalse(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 100.0).IsSet()));
 			// Holding the temper, it moves on.
 			Slots[0].Item = ItemId(TEXT("test_temper"));
 			Slots[0].Count = 1;
-			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 5000.0) == ItemId(TEXT("test_wheel"))));
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_wheel"))));
 		}
 
 		TEST_METHOD(ARecipesSecondCopyOfAPartIsStillWanted)
@@ -526,11 +528,47 @@ namespace VeyraBotsTests
 			Slots[0].Item = ItemId(TEXT("test_grip"));
 			Slots[0].Count = 1;
 			const TArray<FVeyraContentId> Build = { ItemId(TEXT("test_wheel")) };
-			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 360.0) == ItemId(TEXT("test_grip"))));
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 360.0) == ItemId(TEXT("test_grip"))));
 			// Holding both, only the wheel's own cost remains.
 			Slots[1] = Slots[0];
-			ASSERT_THAT(IsFalse(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 360.0).IsSet()));
-			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, 400.0) == ItemId(TEXT("test_wheel"))));
+			ASSERT_THAT(IsFalse(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 360.0).IsSet()));
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 400.0) == ItemId(TEXT("test_wheel"))));
+		}
+
+		TEST_METHOD(AnotherMythicalIsPassedOver)
+		{
+			// Having chosen the harbor, a build naming the rival moves on to the grip (ADR-025 §2).
+			const FVeyraItemsTuning Items = WithMythicals(TestCatalog());
+			TArray<FVeyraInventorySlot> Slots;
+			Slots.SetNum(Items.Shop.InventorySlots);
+			const TArray<FVeyraContentId> Build = { ItemId(TEXT("test_rival")), ItemId(TEXT("test_grip")) };
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, ItemId(TEXT("test_harbor")), 400.0) == ItemId(TEXT("test_grip"))));
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 400.0) == ItemId(TEXT("test_plate")),
+				TEXT("before any choice, the rival's dearest affordable part")));
+		}
+
+		TEST_METHOD(AQuestItemIsBoughtOnceAndARecipeWaitingForItsEvolutionMovesOn)
+		{
+			// The build: the reclaimer, the haven built on its evolution, then a grip (ADR-025 §3).
+			const FVeyraItemsTuning Items = WithQuest(TestCatalog());
+			TArray<FVeyraInventorySlot> Slots;
+			Slots.SetNum(Items.Shop.InventorySlots);
+			const TArray<FVeyraContentId> Build = { ItemId(TEXT("test_reclaimer")), ItemId(TEXT("test_haven")), ItemId(TEXT("test_grip")) };
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_reclaimer"))));
+			Slots[0].Item = ItemId(TEXT("test_reclaimer"));
+			Slots[0].Count = 1;
+			// The haven waits for the reservoir: its plate is bought, and with the plate held, the grip.
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_plate"))));
+			Slots[1].Item = ItemId(TEXT("test_plate"));
+			Slots[1].Count = 1;
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_grip")), TEXT("it moves on, not saving")));
+			// Evolved, the reservoir counts as the reclaimer, and the haven is bought.
+			Slots[0].Item = ItemId(TEXT("test_reservoir"));
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_haven"))));
+			// Built into the haven, it still does: no second reclaimer.
+			Slots[0].Item = ItemId(TEXT("test_haven"));
+			Slots[1] = FVeyraInventorySlot();
+			ASSERT_THAT(IsTrue(VeyraBotRules::NextPurchase(Items, Build, Slots, {}, FVeyraContentId(), 5000.0) == ItemId(TEXT("test_grip"))));
 		}
 
 		TEST_METHOD(TheLaneMeasuresDistanceAlongItsPath)

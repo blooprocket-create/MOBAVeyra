@@ -8,6 +8,7 @@
 #include "Tethers/VeyraTetherSubsystem.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraAbilitiesLog.h"
+#include "VeyraCombatVerbs.h"
 
 bool UVeyraTetherAbility::Defines(const FVeyraContentId& Ability) const
 {
@@ -61,6 +62,11 @@ FVeyraChannelPlan UVeyraTetherAbility::Deliver(const FVeyraCast& Cast)
 		{
 			Spec.TargetStatuses.Add(Status.GetValue());
 		}
+	}
+	// A Spell Shield blocks the tether and its statuses (Combat Bible §19).
+	if (VeyraCombat::BlockAbilityHit(*Target, *Caster))
+	{
+		return FVeyraChannelPlan();
 	}
 	if (!Tethers->Tether(*Caster, *Target, Spec))
 	{

@@ -140,15 +140,16 @@ Gold and the rewards arrived in M7 ([ADR-011](Docs/ADR/ADR-011-battleground-runt
 - inventory ownership;
 - item definitions;
 - recipes and combination rules;
-- Tier 1/2/3/4 rules;
+- Tier 1/2/3/4 rules, and the one-Mythical lock;
 - item actives;
-- Tier 3 Attunement attachment/configuration;
+- Tier 3 and Tier 4 Attunements, and what they keep on the slot (Current, Reserve);
+- Quest Items: quests, progress and evolution (`Quests/`);
 - consumable state;
 - shop-facing item queries.
 
 Depends on combat/abilities/economy through approved contracts. It does not own the underlying damage or gold formulas.
 
-VeyraItems arrived in M8 ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §2) in its own **Items** layer, above Abilities, whose archetypes run item Actives, and below Battleground. Its catalog is `Game/Tuning/Items.json`; `VeyraItems::Validate` holds the tier rules the schema cannot (Item Bible §2, §11). It spends and refunds Gold through Economy and applies equipment through `VeyraCombat::SetEquipmentStats`; Match routes the fountain and the player's shop requests to it.
+VeyraItems arrived in M8 ([ADR-012](Docs/ADR/ADR-012-items-and-shop.md) §2) in its own **Items** layer, above Abilities, whose archetypes run item Actives, and below Battleground. Its catalog is `Game/Tuning/Items.json`; `VeyraItems::Validate` holds the tier rules the schema cannot (Item Bible §2, §11). It spends and refunds Gold through Economy and applies equipment through `VeyraCombat::SetEquipmentStats`; Match routes the fountain and the player's shop requests to it. Since M19 ([ADR-025](Docs/ADR/ADR-025-mythicals-quest-items-and-spell-shields.md)) it also listens to Combat's deaths, for quests and Current, and to the damage its holders take; Spell Shields are Combat's.
 
 Where the Attunements live ([ADR-023](Docs/ADR/ADR-023-crit-and-the-full-item-catalog.md) §3–§4):
 - Static ones fold into `VeyraEquipment::StatsFor`.

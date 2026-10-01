@@ -17,6 +17,8 @@
 #include "Rewards/VeyraEconomyTuningSubsystem.h"
 #include "Shop/VeyraShopSubsystem.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
+#include "Tests/Abilities/VeyraTestFluxborn.h"
+#include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Tests/Items/VeyraItemsTestCatalog.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraItemsTuningSubsystem.h"
@@ -185,6 +187,129 @@ namespace VeyraItemsTests
 			ASSERT_THAT(IsTrue(CountOf(TEXT("test_plate")) == 1 && Inventory->GetQueue().IsEmpty()));
 		}
 
+		int32 SlotOf(const TCHAR* Item) const
+		{
+			return Inventory->GetSlots().IndexOfByPredicate([Id = ItemId(Item)](const FVeyraInventorySlot& Slot) { return !Slot.IsEmpty() && Slot.Item == Id; });
+		}
+
+		TEST_METHOD(BuyingAMythicalChoosesItUntilThatPurchaseIsUndone)
+		{
+			Tuning = WithMythicals(Tuning);
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			const FVeyraContentId Rival = ItemId(TEXT("test_rival"));
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid()));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetMythical() == Harbor));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Rival) == EVeyraShopRefusal::MythicalTaken, TEXT("one per match (Item Bible §11)")));
+			// Undo takes the purchase back whole, the choice with it (ADR-025 §2).
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid()));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Rival) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetMythical() == Rival));
+		}
+
+		TEST_METHOD(SellingAMythicalKeepsTheChoiceAndItMayBeBoughtAgain)
+		{
+			Tuning = WithMythicals(Tuning);
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Sell(*Participant, SlotOf(TEXT("test_harbor"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetMythical() == Harbor, TEXT("selling does not release it (ADR-025 §8.1)")));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_rival"))) == EVeyraShopRefusal::MythicalTaken));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None, TEXT("the same one, again")));
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetMythical() == Harbor, TEXT("undoing the purchase again leaves the choice that selling kept")));
+		}
+
+		TEST_METHOD(AQueuedMythicalChoosesItAndCancellingReleasesIt)
+		{
+			Tuning = WithMythicals(Tuning);
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetQueue().Num() == 1 && Inventory->GetMythical() == Harbor, TEXT("queuing chooses it")));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_rival"))) == EVeyraShopRefusal::MythicalTaken));
+			ASSERT_THAT(IsTrue(Subsystem->Cancel(*Participant, 0) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid()));
+
+			// A queued Mythical dropped because a part it needed went away releases the choice too.
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_temper"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Cancel(*Participant, 0) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Inventory->GetQueue().IsEmpty() && !Inventory->GetMythical().IsValid()));
+		}
+
+		TEST_METHOD(UndoingDeliveredPurchasesReleasesTheMythicalOnlyWithItsOwn)
+		{
+			Tuning = WithMythicals(Tuning);
+			const FVeyraContentId Harbor = ItemId(TEXT("test_harbor"));
+			// Away, a plate and then the Mythical wait; the fountain delivers both as two undo steps.
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, ItemId(TEXT("test_plate"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Harbor) == EVeyraShopRefusal::None));
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(CountOf(TEXT("test_harbor")) == 1 && Inventory->GetUndoStepCount() == 2));
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid()));
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsFalse(Inventory->GetMythical().IsValid(), TEXT("the plate's step came before the choice")));
+			ASSERT_THAT(IsTrue(Gold->GetGold() == Purse));
+		}
+
+		/** Kills a fixture unit of Team with a lethal hit from the participant. */
+		template <typename TUnit>
+		void KillOne(EVeyraTeam Team)
+		{
+			constexpr double Lethal = 1.0e6;
+			TUnit& Unit = Spawner.SpawnActorAt<TUnit>(FVector(300.0, 0.0, 0.0), FRotator::ZeroRotator);
+			if constexpr (std::is_same_v<TUnit, AVeyraTestFluxborn>)
+			{
+				Unit.SetVeyraTeam(Team);
+			}
+			UAbilitySystemComponent& Target = *Unit.GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::InitializeStats(Target, VeyraCombatTests::ExampleStats())));
+			FVeyraRawDamageEvent Damage;
+			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Lethal });
+			Damage.Delivery = EVeyraDamageDelivery::BasicAttack;
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Participant->GetAbilitySystemComponent(), Target, Damage)));
+		}
+
+		int32 ProgressOf(const TCHAR* Item) const
+		{
+			const int32 Slot = SlotOf(Item);
+			return Slot == INDEX_NONE ? INDEX_NONE : Inventory->GetSlots()[Slot].QuestProgress;
+		}
+
+		TEST_METHOD(LastHitsOnEnemyLaneFluxbornAdvanceTheQuestUntilItEvolves)
+		{
+			Tuning = WithQuest(Tuning);
+			// Fixture value: the evolution's stats show it arrived.
+			constexpr double ReservoirHealth = 250.0;
+			Tuning.Items[ItemId(TEXT("test_reservoir"))].Stats.Health = ReservoirHealth;
+			const FVeyraContentId Reclaimer = ItemId(TEXT("test_reclaimer"));
+			Subsystem->SetAtFountain(*Participant, true);
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Reclaimer) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Reclaimer) == EVeyraShopRefusal::QuestLineHeld));
+			const double MaxHealth = Participant->GetAbilitySystemComponent()->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
+
+			// Only a last hit on an enemy lane Fluxborn counts (Item Bible §10).
+			KillOne<AVeyraTestFluxborn>(EVeyraTeam::A);
+			KillOne<AVeyraTestWildlife>(EVeyraTeam::None);
+			ASSERT_THAT(AreEqual(0, ProgressOf(TEXT("test_reclaimer")), TEXT("not an ally, nor wildlife")));
+			KillOne<AVeyraTestFluxborn>(EVeyraTeam::B);
+			ASSERT_THAT(AreEqual(1, ProgressOf(TEXT("test_reclaimer"))));
+			KillOne<AVeyraTestFluxborn>(EVeyraTeam::B);
+			ASSERT_THAT(IsTrue(CountOf(TEXT("test_reclaimer")) == 0 && CountOf(TEXT("test_reservoir")) == 1, TEXT("it evolved in place")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Participant->GetAbilitySystemComponent()->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()),
+				MaxHealth + ReservoirHealth), TEXT("with its stats")));
+
+			ASSERT_THAT(IsTrue(Subsystem->Undo(*Participant) == EVeyraShopRefusal::AlreadyUsed, TEXT("the evolution was benefit")));
+			ASSERT_THAT(IsTrue(Subsystem->Buy(*Participant, Reclaimer) == EVeyraShopRefusal::QuestLineHeld, TEXT("the line is held")));
+			const double Before = Gold->GetGold();
+			ASSERT_THAT(IsTrue(Subsystem->Sell(*Participant, SlotOf(TEXT("test_reservoir"))) == EVeyraShopRefusal::None));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Gold->GetGold() - Before, 450.0 * Tuning.Shop.ResaleFraction), TEXT("it sells as its base form did")));
+		}
+
 		TEST_METHOD(SellingHappensAtTheFountainForTheResaleValue)
 		{
 			Subsystem->SetAtFountain(*Participant, true);
@@ -326,7 +451,7 @@ namespace VeyraItemsTests
 		TEST_METHOD(ARefillableConsumableSpendsChargesAndRefills)
 		{
 			// Fixture values: the tonic made refillable, with two charges of 10 Health over 1 second
-			// (Item Bible §10; ADR-023 §6).
+			// (Item Bible §12; ADR-023 §6).
 			constexpr int32 Charges = 2;
 			constexpr double Duration = 1.0;
 			const TCHAR* Flask = TEXT("test_tonic");

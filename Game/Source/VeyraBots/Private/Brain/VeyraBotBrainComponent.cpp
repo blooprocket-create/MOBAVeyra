@@ -89,7 +89,7 @@ void UVeyraBotBrainComponent::Shop(const FVeyraBotView& View, AVeyraGameMode& Ga
 		return;
 	}
 	const TOptional<FVeyraContentId> Next =
-		VeyraBotRules::NextPurchase(UVeyraItemsTuningSubsystem::Get(), Behaviour->Build, Inventory->GetSlots(), Inventory->GetQueue(), Gold->GetGold());
+		VeyraBotRules::NextPurchase(UVeyraItemsTuningSubsystem::Get(), Behaviour->Build, Inventory->GetSlots(), Inventory->GetQueue(), Inventory->GetMythical(), Gold->GetGold());
 	if (Next.IsSet())
 	{
 		const EVeyraShopRefusal Refusal = ShopSubsystem->Buy(*Participant, Next.GetValue());

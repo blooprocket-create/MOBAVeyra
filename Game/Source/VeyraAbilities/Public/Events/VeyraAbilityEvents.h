@@ -21,6 +21,12 @@ struct FVeyraAbilityHitSource
 
 	/** Whether the ability itself gave its caster a shield for the unit it hits, as an area's per-Vanguard shield does. */
 	bool bCasterShielded = false;
+
+	/**
+	 * Whether the impact skips the Spell Shield check (ADR-025 §4): a grab asked already, before it took
+	 * hold, so one decision covers the hold, the hit and the statuses.
+	 */
+	bool bSkipSpellShield = false;
 };
 
 /** One ability connecting with a unit (Combat Bible §16, On Ability Hit), and the control it applied there. */

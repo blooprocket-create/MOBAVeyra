@@ -26,6 +26,9 @@ struct FVeyraPreparedDamage
 	/** How it is delivered, which decides whether it can damage a structure (Combat Bible §33). */
 	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
 
+	/** Whether it is a basic attack that crit (Combat Bible §5), which its dealt-damage event carries (ADR-025 §6). */
+	bool bCritical = false;
+
 	bool IsValid() const { return Spec.IsValid(); }
 };
 
@@ -195,6 +198,14 @@ namespace VeyraCombat
 		double Amount, double DurationSeconds);
 
 	/**
+	 * Grants Target Temporary Health named Id from Source (Combat Bible §7): the same name from the same
+	 * source is one grant, topped up by Amount to at most MaxAmount, its duration started again
+	 * (UVeyraDamageAbsorptionComponent::GrantTemporaryHealth). Invalid if refused or already at its most.
+	 */
+	VEYRACOMBAT_API FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target,
+		const FVeyraContentId& Id, double Amount, double MaxAmount, double DurationSeconds);
+
+	/**
 	 * Applies Status from Source to Target under its stacking policy (Combat Bible §8, §46;
 	 * UVeyraStatusComponent::Apply). A target whose death is final, or that has no status ledger,
 	 * refuses it, and a structure refuses statuses from its enemies (§33: crowd control and debuffs
@@ -204,6 +215,15 @@ namespace VeyraCombat
 
 	/** Ends Target's status Id early, from every source, as when a recast ends a buff. Returns whether it had one. */
 	VEYRACOMBAT_API bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id);
+
+	/**
+	 * Whether a Spell Shield Target holds blocks a hostile ability hit from Source (Combat Bible §19;
+	 * ADR-025 §4). If so, the shield is consumed and announced, and the hit must deal no damage, apply
+	 * no status or displacement, and count as no hit. Every site that lands a discrete hostile ability
+	 * hit asks first: effect delivery, targeted damage and tethers. Basic attacks, Procs and effects
+	 * that apply over time do not. False for an ally's hit, and on a machine without authority.
+	 */
+	VEYRACOMBAT_API bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& Source);
 
 	/**
 	 * Server: ends every Camouflage on Unit, which attacked or cast something offensive (Combat Bible

@@ -126,6 +126,17 @@ struct FVeyraDisplacementEvent
 	double Distance = 0.0;
 };
 
+/** A Spell Shield that blocked a hostile ability hit and was consumed (Combat Bible §19). */
+struct FVeyraSpellShieldBlocked
+{
+	/** The unit whose Spell Shield it was. */
+	TWeakObjectPtr<UAbilitySystemComponent> Target;
+	/** The unit whose ability hit was blocked. */
+	TWeakObjectPtr<UAbilitySystemComponent> Source;
+	/** The Spell Shield status consumed. */
+	FVeyraContentId Shield;
+};
+
 /** Damage dealt by a unit to a unit on the opposing side, as it lands. */
 struct FVeyraHostileDamageEvent
 {
@@ -144,6 +155,8 @@ struct FVeyraDamageDealtEvent
 	TWeakObjectPtr<UAbilitySystemComponent> Source;
 	TWeakObjectPtr<UAbilitySystemComponent> Target;
 	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
+	/** Whether a basic attack that crit dealt it (ADR-025 §6). */
+	bool bCritical = false;
 	/** By type, each type at most once; a type that cost nothing is absent. */
 	FVeyraDamageComponents Dealt;
 
@@ -184,8 +197,12 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnStatusApplied, const FVeyraStatusApplied&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCast, const FVeyraCastEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDisplaced, const FVeyraDisplacementEvent&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSpellShieldBlocked, const FVeyraSpellShieldBlocked&);
 
 	FOnDeath OnDeath;
+
+	/** A Spell Shield blocked a hostile ability hit and was consumed (Combat Bible §19; ADR-025 §4). */
+	FOnSpellShieldBlocked OnSpellShieldBlocked;
 
 	/** Hostile damage that was dealt, shields included (Battleground Bible §19: tower and Fluxborn aggro). */
 	FOnHostileDamage OnHostileDamage;

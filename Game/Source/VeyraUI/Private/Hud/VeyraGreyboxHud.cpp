@@ -161,7 +161,9 @@ namespace
 		{
 			Y -= HudLineHeight();
 			const FString Count = Status.Stacks > 1 ? FString::Printf(TEXT(" x%d"), Status.Stacks) : FString();
-			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("%s%s %.1f s"), *HudEnumName(Status.Kind), *Count, Status.RemainingSeconds), Settings.TextColor);
+			// A mark has no effect of its own, so its name says what it is, as Doom's or a Hex's.
+			const FString Name = Status.Kind == EVeyraStatusKind::Counter ? Status.Id.ToString() : HudEnumName(Status.Kind);
+			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), FString::Printf(TEXT("%s%s %.1f s"), *Name, *Count, Status.RemainingSeconds), Settings.TextColor);
 		}
 	}
 

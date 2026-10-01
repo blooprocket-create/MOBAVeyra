@@ -7,7 +7,7 @@
 - [ADR-012](ADR-012-items-and-shop.md): items and the shop. This ADR carries out ADR-012 §1's deferred list.
 - [ADR-014](ADR-014-jungle-and-flux-wells.md): Flux Wells.
 - [ADR-015](ADR-015-flux-spells.md): item and spell slots.
-- [Item Bible](../Design/Veyra_Item_Bible_v0.3.md): §3–§10.
+- [Item Bible](../Design/Veyra_Item_Bible_v0.3.md): §3–§12 (as renumbered 2026-09-30).
 - [Combat Bible](../Design/Veyra_Combat_Bible_v0.5.md): §5 (critical strikes), §7 (shields), §17 (riders), §33 (structures), §41 (percentage stacking).
 - [Architecture Constitution](../../ARCHITECTURE.md): §1.1, §1.3 and §1.5.
 
@@ -101,7 +101,7 @@ The damage pipeline opens an instance around its application, and the event subs
 
 ### 6. Flux Flask
 
-- **State.** A slot's `FVeyraInventorySlot` gains `Charges`. The rule is generic: a consumable whose `charges` is above 0 is refillable, and nothing names the Flask. It is bought full and never stacks, at most one per inventory, queued ones included (Item §10: "non-stackable"). Validation refuses a refillable consumable whose `stackLimit` is not 1.
+- **State.** A slot's `FVeyraInventorySlot` gains `Charges`. The rule is generic: a consumable whose `charges` is above 0 is refillable, and nothing names the Flask. It is bought full and never stacks, at most one per inventory, queued ones included (Item Bible §12: "non-stackable"). Validation refuses a refillable consumable whose `stackLimit` is not 1.
 - **Use.** Using it spends a charge and restores Health over time through the same restoration as Field Tonic. One restoration runs at a time (ADR-012 §9.3): while one runs, the key does nothing and spends nothing. An empty one keeps its slot and refuses with `NoCharges`; the HUD shows its charges, even none.
 - **Refill to full** (`UVeyraShopSubsystem::RefillCharges(Participant)`):
   - on arrival at the side's fountain, respawn and death included (the dead shop as at the fountain), through the shop's `SetAtFountain`. Standing there does not refill again; arriving does;
@@ -179,6 +179,6 @@ The author ruled that crits use a bag-based pseudo-random system, not independen
 ## Open items
 
 - Ability crits: the first ability that crits declares its channel and chance in its data (§10 gives the call).
-- Lifesteal, Omnivamp and healing reduction items: the Item Bible's §12 families.
-- Armor and Magic Resist items (§12).
+- Lifesteal, Omnivamp and healing reduction items: the Item Bible's §14 families.
+- Armor and Magic Resist items (Item Bible §14; since added by ADR-025).
 - Damage numbers and a crit statistic on the scoreboard.

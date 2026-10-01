@@ -66,6 +66,23 @@ namespace VeyraCombatTests
 			return VeyraCombat::DealDamage(*Caster, *Unit, Damage);
 		}
 
+		TEST_METHOD(ANamedTemporaryHealthGrantTopsUpToItsMostAsOneGrant)
+		{
+			// Fixture values: 30 at a time, at most 50 (Combat Bible §7).
+			const FVeyraContentId Tide = FVeyraContentId::FromText(TEXT("tide")).GetValue();
+			const TArray<FVeyraTemporaryHealthGrant>& Grants = Absorption->GetLedger().TemporaryHealth;
+			ASSERT_THAT(IsTrue(VeyraCombat::GrantTemporaryHealth(*Caster, *Unit, Tide, 30.0, 50.0, LongSeconds).IsValid()));
+			ASSERT_THAT(IsTrue(VeyraCombat::GrantTemporaryHealth(*Caster, *Unit, Tide, 30.0, 50.0, LongSeconds).IsValid()));
+			ASSERT_THAT(IsTrue(Grants.Num() == 1 && Grants[0].Remaining == 50.0, TEXT("one grant, topped up to its most")));
+			ASSERT_THAT(IsFalse(VeyraCombat::GrantTemporaryHealth(*Caster, *Unit, Tide, 10.0, 50.0, LongSeconds).IsValid(), TEXT("full, it grants nothing")));
+			ASSERT_THAT(IsTrue(HitFor(20.0)));
+			ASSERT_THAT(IsTrue(Grants.Num() == 1 && Grants[0].Remaining == 30.0));
+			ASSERT_THAT(IsTrue(VeyraCombat::GrantTemporaryHealth(*Caster, *Unit, Tide, 10.0, 50.0, LongSeconds).IsValid()));
+			ASSERT_THAT(IsTrue(Grants.Num() == 1 && Grants[0].Remaining == 40.0, TEXT("spent, it tops up again")));
+			ASSERT_THAT(IsTrue(VeyraCombat::GrantTemporaryHealth(*Unit, *Unit, Tide, 10.0, 50.0, LongSeconds).IsValid() && Grants.Num() == 2,
+				TEXT("another source's is its own")));
+		}
+
 		TEST_METHOD(AReplacedShieldStartsAgain)
 		{
 			const FActiveGameplayEffectHandle First = VeyraCombat::GrantShield(*Caster, *Unit, Grant(TEXT("veil"), 100.0, 100.0, EVeyraShieldReapply::Replace));

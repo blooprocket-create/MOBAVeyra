@@ -305,6 +305,8 @@ bool SetEquipmentStats(UAbilitySystemComponent& AbilitySystem, const FVeyraEquip
 	const TPair<FName, double> Values[] = {
 		{ UVeyraEquipmentEffect::MaxHealthName, Stats.MaxHealth },
 		{ UVeyraEquipmentEffect::HealthRegenName, Stats.HealthRegen },
+		{ UVeyraEquipmentEffect::ArmorName, Stats.Armor },
+		{ UVeyraEquipmentEffect::MagicResistName, Stats.MagicResist },
 		{ UVeyraEquipmentEffect::PhysicalPowerName, Stats.PhysicalPower },
 		{ UVeyraEquipmentEffect::MagicPowerName, Stats.MagicPower },
 		{ UVeyraEquipmentEffect::AttackSpeedName, Stats.AttackSpeed },
@@ -557,7 +559,8 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 		Events->BeginDealing(*Source, Target, Damage.Delivery);
 	}
 	const bool bApplied = Source->ApplyGameplayEffectSpecToTarget(*Damage.Spec.Data, &Target).WasSuccessfullyApplied();
-	const FVeyraDamageDealtEvent Dealt = Events ? Events->EndDealing() : FVeyraDamageDealtEvent();
+	FVeyraDamageDealtEvent Dealt = Events ? Events->EndDealing() : FVeyraDamageDealtEvent();
+	Dealt.bCritical = Damage.bCritical;
 	if (!bApplied)
 	{
 		return false;
@@ -589,6 +592,7 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	// A copy, so the preparation stays the same for every other target it reaches.
 	FVeyraPreparedDamage Landing;
 	Landing.Delivery = Damage.Delivery;
+	Landing.bCritical = Damage.bCritical;
 	Landing.Spec = FGameplayEffectSpecHandle(new FGameplayEffectSpec(*Damage.Spec.Data));
 	for (const FVeyraDamageComponent& Added : AddedAtImpact)
 	{
@@ -642,6 +646,20 @@ FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source
 {
 	return GrantAbsorption(Source, Target, UVeyraTemporaryHealthEffect::StaticClass(), VeyraTags::TemporaryHealth, Amount, DurationSeconds,
 		TEXT("Temporary Health"));
+}
+
+FActiveGameplayEffectHandle GrantTemporaryHealth(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraContentId& Id, double Amount,
+	double MaxAmount, double DurationSeconds)
+{
+	AActor* TargetOwner = Target.GetOwner();
+	UVeyraDamageAbsorptionComponent* Absorption = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraDamageAbsorptionComponent>() : nullptr;
+	if (!Absorption || IsDeadUnit(Target))
+	{
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("Ignored Temporary Health %s on %s: it has no UVeyraDamageAbsorptionComponent, or its death is final."),
+			*Id.ToString(), *GetNameSafe(TargetOwner));
+		return FActiveGameplayEffectHandle();
+	}
+	return Absorption->GrantTemporaryHealth(Source, Id, Amount, MaxAmount, DurationSeconds);
 }
 
 bool ApplyStatus(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, const FVeyraStatusSpec& Status)
@@ -698,6 +716,30 @@ bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id)
 	AActor* TargetOwner = Target.GetOwner();
 	UVeyraStatusComponent* Statuses = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
 	return Statuses && Statuses->Remove(Id);
+}
+
+bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& Source)
+{
+	AActor* TargetOwner = Target.GetOwner();
+	const UVeyraStatusComponent* Statuses = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (!Statuses || !TargetOwner->HasAuthority() || !VeyraTargeting::AreHostile(Source.GetOwner(), TargetOwner))
+	{
+		return false;
+	}
+	const FVeyraStatusEntry* Shield = Statuses->GetLedger().Entries.FindByPredicate([](const FVeyraStatusEntry& Entry) { return Entry.Kind == EVeyraStatusKind::SpellShield; });
+	if (!Shield)
+	{
+		return false;
+	}
+	const FVeyraContentId Consumed = Shield->Id;
+	RemoveStatus(Target, Consumed);
+	UE_LOG(LogVeyraCombat, Log, TEXT("%s's %s blocked an ability hit from %s."), *GetNameSafe(Target.GetAvatarActor()), *Consumed.ToString(), *GetNameSafe(Source.GetAvatarActor()));
+	UWorld* World = TargetOwner->GetWorld();
+	if (UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
+	{
+		Events->OnSpellShieldBlocked.Broadcast(FVeyraSpellShieldBlocked{ &Target, &Source, Consumed });
+	}
+	return true;
 }
 
 void EndCamouflage(UAbilitySystemComponent& Unit)

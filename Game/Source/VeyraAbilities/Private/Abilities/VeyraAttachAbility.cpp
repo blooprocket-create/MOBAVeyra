@@ -113,7 +113,8 @@ void UVeyraAttachAbility::TakeHold()
 	UVeyraMovementComponent* Movement = Watched.Get();
 	const bool bInReach = Body && Target && Tuning && VeyraTargeting::IsAlive(Target) && VeyraTargeting::AreHostile(Body, Target)
 		&& VeyraTargeting::EdgeToEdgeDistance(*Body, *Target) <= Tuning->ReachOnArrival;
-	if (!bInReach || !Host || !Movement || !VeyraCombat::Attach(*Caster, *Target, Tuning->AttachSeconds))
+	// A Spell Shield blocks the whole grab before it takes hold: no hold, hit or status (Combat Bible §19; ADR-025 §4).
+	if (!bInReach || !Host || !Movement || VeyraCombat::BlockAbilityHit(*Host, *Caster) || !VeyraCombat::Attach(*Caster, *Target, Tuning->AttachSeconds))
 	{
 		Miss();
 		return;
@@ -124,7 +125,9 @@ void UVeyraAttachAbility::TakeHold()
 	Frame.Origin = Body->GetActorLocation();
 	Frame.Direction = (Target->GetActorLocation() - Body->GetActorLocation()).GetSafeNormal2D();
 	Frame.bOriginIsCaster = true;
-	VeyraEffectDelivery::Apply(*Caster, *Target, Grab->Effects, Frame, Grab->Source);
+	FVeyraAbilityHitSource Source = Grab->Source;
+	Source.bSkipSpellShield = true;
+	VeyraEffectDelivery::Apply(*Caster, *Target, Grab->Effects, Frame, Source);
 	for (const FVeyraStatusSpec& Status : Grab->HostStatuses)
 	{
 		VeyraCombat::ApplyStatus(*Caster, *Host, Status);

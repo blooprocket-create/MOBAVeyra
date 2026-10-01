@@ -167,7 +167,7 @@ FVeyraBotView Sense(const AVeyraPlayerState& Bot, EVeyraBotRole Role, bool bWard
 	{
 		View.Gold = Gold->GetGold();
 		View.bPurchaseWaiting =
-			VeyraBotRules::NextPurchase(UVeyraItemsTuningSubsystem::Get(), Behaviour->Build, Inventory->GetSlots(), Inventory->GetQueue(), View.Gold).IsSet();
+			VeyraBotRules::NextPurchase(UVeyraItemsTuningSubsystem::Get(), Behaviour->Build, Inventory->GetSlots(), Inventory->GetQueue(), Inventory->GetMythical(), View.Gold).IsSet();
 	}
 	const EVeyraTeam Team = Bot.GetVeyraTeam();
 	const AActor* Start = FindStart(*World, Team);

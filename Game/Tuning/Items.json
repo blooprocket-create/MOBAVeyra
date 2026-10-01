@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
   "shop": {
     "provenance": "Provisional",
     "inventorySlots": 6,
@@ -10,189 +10,287 @@
   "items": {
     "basic_boots": {
       "provenance": "Provisional", "tier": 1, "category": "Boots", "components": [], "cost": 300, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 25, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 25, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "vital_plate": {
       "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 400, "stackLimit": 1,
-      "stats": { "health": 150, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 150, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "renewal_mesh": {
       "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 300, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 1.5, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 1.5, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "timing_coil": {
       "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 250, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 5, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 5, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "iron_grip": {
       "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 350, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 10, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 10, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "quickcoil": {
       "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 300, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0.12, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0.12, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "arc_crystal": {
       "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 435, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 20, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 20, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "keensteel": {
       "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 400, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.15, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.15, "magicPowerFraction": 0 },
       "active": [], "attunement": []
+    },
+    "warforged_grip": {
+      "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 875, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 25, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "titansteel_grip": {
+      "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 1300, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 40, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "marchplate": {
+      "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 300, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 15, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "shatterdeep_crystal": {
+      "provenance": "Provisional", "tier": 1, "category": "Equipment", "components": [], "cost": 450, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 25, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "the_last_harbor": {
+      "provenance": "Provisional", "tier": 4, "category": "Equipment", "components": ["harborline_harness", "wayline_reservoir"], "cost": 750, "stackLimit": 1,
+      "stats": { "health": 550, "healthRegeneration": 8, "armor": 0, "magicResist": 0, "physicalPower": 45, "magicPower": 0, "attackSpeed": 0.3, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["safe_harbor", "high_tide"]
+    },
+    "flux_reclaimer": {
+      "provenance": "Provisional", "tier": 1, "category": "Quest", "components": [], "cost": 450, "stackLimit": 1,
+      "stats": { "health": 100, "healthRegeneration": 1, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "wayline_reservoir": {
+      "provenance": "Provisional", "tier": 2, "category": "Quest", "components": [], "cost": 0, "stackLimit": 1,
+      "stats": { "health": 250, "healthRegeneration": 3, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["residual_current"]
     },
     "field_tonic": {
       "provenance": "Provisional", "tier": 1, "category": "Consumable", "components": [], "cost": 50, "stackLimit": 5,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "flux_flask": {
       "provenance": "Provisional", "tier": 1, "category": "Consumable", "components": [], "cost": 150, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "swift_boots": {
       "provenance": "Provisional", "tier": 2, "category": "Boots", "components": ["basic_boots"], "cost": 700, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 60, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 60, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "war_boots": {
       "provenance": "Provisional", "tier": 2, "category": "Boots", "components": ["basic_boots"], "cost": 800, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0.25, "abilityHaste": 0, "moveSpeed": 45, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0.25, "abilityHaste": 0, "moveSpeed": 45, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "arcane_boots": {
       "provenance": "Provisional", "tier": 2, "category": "Boots", "components": ["basic_boots"], "cost": 700, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 45, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0.08 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 45, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0.08 },
       "active": [], "attunement": []
     },
     "reinforced_chassis": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["vital_plate", "renewal_mesh"], "cost": 250, "stackLimit": 1,
-      "stats": { "health": 250, "healthRegeneration": 3, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 250, "healthRegeneration": 3, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "siege_frame": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["vital_plate", "timing_coil"], "cost": 150, "stackLimit": 1,
-      "stats": { "health": 200, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 10, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 200, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 10, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "war_harness": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["vital_plate", "iron_grip"], "cost": 350, "stackLimit": 1,
-      "stats": { "health": 200, "healthRegeneration": 0, "physicalPower": 15, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 200, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 15, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "bloodforged_bracer": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["renewal_mesh", "iron_grip"], "cost": 350, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 3, "physicalPower": 15, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 3, "armor": 0, "magicResist": 0, "physicalPower": 15, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "accelerant_gear": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["quickcoil", "timing_coil"], "cost": 400, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0.2, "abilityHaste": 10, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0.2, "abilityHaste": 10, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "war_mechanism": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["quickcoil", "iron_grip"], "cost": 350, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 15, "magicPower": 0, "attackSpeed": 0.2, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 15, "magicPower": 0, "attackSpeed": 0.2, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "striker_assembly": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["iron_grip", "timing_coil"], "cost": 500, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 20, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 10, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 20, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 10, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "razorwheel": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["iron_grip", "iron_grip"], "cost": 400, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 30, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 30, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": ["razorwheel_cleave"], "attunement": []
     },
     "deadeye_edge": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["iron_grip", "keensteel"], "cost": 350, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 20, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.2, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 20, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.2, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "grand_prism": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["arc_crystal", "arc_crystal"], "cost": 380, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 60, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 60, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "catalyst_coil": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["arc_crystal", "timing_coil"], "cost": 215, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 35, "attackSpeed": 0, "abilityHaste": 10, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 35, "attackSpeed": 0, "abilityHaste": 10, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "nullglass_shard": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["arc_crystal"], "cost": 565, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 25, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 10, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 25, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 10, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
     },
     "spellguard_plate": {
       "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["arc_crystal", "vital_plate"], "cost": 365, "stackLimit": 1,
-      "stats": { "health": 200, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 30, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 200, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 30, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": []
+    },
+    "picket_plating": {
+      "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["vital_plate", "marchplate"], "cost": 300, "stackLimit": 1,
+      "stats": { "health": 200, "healthRegeneration": 0, "armor": 20, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "canyonward": {
+      "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["vital_plate", "shatterdeep_crystal"], "cost": 400, "stackLimit": 1,
+      "stats": { "health": 250, "healthRegeneration": 0, "armor": 0, "magicResist": 25, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "breaker_aegis": {
+      "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["marchplate", "shatterdeep_crystal", "timing_coil"], "cost": 300, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 20, "magicResist": 20, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 10, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "resonant_wardstone": {
+      "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["shatterdeep_crystal", "shatterdeep_crystal"], "cost": 50, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 50, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "foundation_plate": {
+      "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["marchplate", "marchplate"], "cost": 200, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 40, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "waymark_weave": {
+      "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["renewal_mesh", "renewal_mesh"], "cost": 200, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 4, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "rescue_rig": {
+      "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["vital_plate", "quickcoil"], "cost": 300, "stackLimit": 1,
+      "stats": { "health": 200, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0.18, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "killstring_assembly": {
+      "provenance": "Provisional", "tier": 2, "category": "Equipment", "components": ["quickcoil", "keensteel"], "cost": 350, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0.18, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.15, "magicPowerFraction": 0 },
+      "active": [], "attunement": []
+    },
+    "riverhold_bastion": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["picket_plating", "foundation_plate", "marchplate"], "cost": 800, "stackLimit": 1,
+      "stats": { "health": 350, "healthRegeneration": 0, "armor": 75, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["drag_the_tempo"]
+    },
+    "blackreef_bell": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["canyonward", "resonant_wardstone"], "cost": 700, "stackLimit": 1,
+      "stats": { "health": 350, "healthRegeneration": 0, "armor": 0, "magicResist": 70, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["quieting_chime"]
+    },
+    "harborline_harness": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["rescue_rig", "waymark_weave", "warforged_grip"], "cost": 425, "stackLimit": 1,
+      "stats": { "health": 300, "healthRegeneration": 5, "armor": 0, "magicResist": 0, "physicalPower": 30, "magicPower": 0, "attackSpeed": 0.25, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["safe_harbor"]
+    },
+    "doombringer_bow": {
+      "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["killstring_assembly", "titansteel_grip"], "cost": 800, "stackLimit": 1,
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 55, "magicPower": 0, "attackSpeed": 0.25, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.25, "magicPowerFraction": 0 },
+      "active": [], "attunement": ["marked_for_doom"]
     },
     "colossus_temper": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["war_harness", "bloodforged_bracer", "vital_plate"], "cost": 600, "stackLimit": 1,
-      "stats": { "health": 400, "healthRegeneration": 4, "physicalPower": 35, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 400, "healthRegeneration": 4, "armor": 0, "magicResist": 0, "physicalPower": 35, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["weight_of_war"]
     },
     "cycler_core": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["accelerant_gear", "war_mechanism"], "cost": 900, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 30, "magicPower": 0, "attackSpeed": 0.35, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 30, "magicPower": 0, "attackSpeed": 0.35, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["spool_up"]
     },
     "arc_reactor": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["catalyst_coil", "catalyst_coil", "timing_coil"], "cost": 600, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 80, "attackSpeed": 0, "abilityHaste": 30, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 80, "attackSpeed": 0, "abilityHaste": 30, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["overcycle"]
     },
     "crown_of_the_crucible": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["grand_prism", "grand_prism", "arc_crystal"], "cost": 665, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 130, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 130, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["overcharge"]
     },
     "sovereign_edge": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["deadeye_edge", "iron_grip", "keensteel"], "cost": 700, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 60, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.25, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 60, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0.25, "magicPowerFraction": 0 },
       "active": [], "attunement": ["perfect_cut"]
     },
     "impact_aegis": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["war_harness", "striker_assembly"], "cost": 800, "stackLimit": 1,
-      "stats": { "health": 300, "healthRegeneration": 0, "physicalPower": 30, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 300, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 30, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["reprisal_guard"]
     },
     "gravitic_seal": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["spellguard_plate", "catalyst_coil"], "cost": 750, "stackLimit": 1,
-      "stats": { "health": 250, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 60, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 250, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 60, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["drag"]
     },
     "starfall_prism": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["grand_prism", "catalyst_coil", "arc_crystal"], "cost": 800, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 90, "attackSpeed": 0, "abilityHaste": 20, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 90, "attackSpeed": 0, "abilityHaste": 20, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["convergence"]
     },
     "nullglass_lens": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["nullglass_shard", "grand_prism"], "cost": 750, "stackLimit": 1,
-      "stats": { "health": 0, "healthRegeneration": 0, "physicalPower": 0, "magicPower": 80, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 15, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 0, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 80, "attackSpeed": 0, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 15, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["fracture"]
     },
     "razorwheel_prime": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["razorwheel", "war_harness", "quickcoil"], "cost": 800, "stackLimit": 1,
-      "stats": { "health": 250, "healthRegeneration": 0, "physicalPower": 45, "magicPower": 0, "attackSpeed": 0.2, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 250, "healthRegeneration": 0, "armor": 0, "magicResist": 0, "physicalPower": 45, "magicPower": 0, "attackSpeed": 0.2, "abilityHaste": 0, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": ["seize_momentum"], "attunement": ["endless_cleave"]
     },
     "siegeheart_core": {
       "provenance": "Provisional", "tier": 3, "category": "Equipment", "components": ["reinforced_chassis", "siege_frame"], "cost": 800, "stackLimit": 1,
-      "stats": { "health": 650, "healthRegeneration": 3, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
+      "stats": { "health": 650, "healthRegeneration": 3, "armor": 0, "magicResist": 0, "physicalPower": 0, "magicPower": 0, "attackSpeed": 0, "abilityHaste": 15, "moveSpeed": 0, "magicPenetrationFlat": 0, "critChance": 0, "magicPowerFraction": 0 },
       "active": [], "attunement": ["tempered_by_conflict"]
     }
+  },
+  "quests": {
+    "flux_reclaimer": { "provenance": "Provisional", "objective": "LaneFluxbornLastHits", "threshold": 40, "evolvesInto": "wayline_reservoir" }
   },
   "consumables": {
     "field_tonic": { "provenance": "Provisional", "healthRestored": 120, "durationSeconds": 15, "resaleFraction": 0.4, "charges": 0 },
@@ -230,5 +328,23 @@
   },
   "temperedByConflict": {
     "tempered_by_conflict": { "provenance": "Provisional", "radius": 700, "chargeSeconds": 3, "checkSeconds": 0.25, "baseDamage": 50, "maxHealthFraction": 0.08, "healthGainFraction": 0.1, "cooldownSeconds": 30 }
+  },
+  "residualCurrent": {
+    "residual_current": { "provenance": "Provisional", "currentPerLastHit": 1, "currentCap": 30, "quietSeconds": 5, "currentPerSecond": 1, "regenerationAmplification": 3, "heldSeconds": 1 }
+  },
+  "dragTheTempo": {
+    "drag_the_tempo": { "provenance": "Provisional", "attackSpeedReduction": 0.15, "seconds": 3 }
+  },
+  "quietingChime": {
+    "quieting_chime": { "provenance": "Provisional", "reformSeconds": 40, "heldSeconds": 1 }
+  },
+  "markedForDoom": {
+    "marked_for_doom": { "provenance": "Provisional", "doomPerHit": 1, "doomPerCrit": 2, "doomedAt": 3, "expirySeconds": 5, "missingHealthRatio": 0.12 }
+  },
+  "safeHarbor": {
+    "safe_harbor": { "provenance": "Provisional", "reserveFraction": 0.15, "capMaxHealthFraction": 0.15, "conversionMaxHealthFractionPerSecond": 0.02 }
+  },
+  "highTide": {
+    "high_tide": { "provenance": "Provisional", "currentPerLastHit": 1, "currentCap": 40, "currentPerSecond": 1, "regenerationAmplification": 3, "reserveConversionAcceleration": 1, "overflowToTemporaryHealth": 0.5, "temporaryHealthCapMaxHealthFraction": 0.1, "temporaryHealthSeconds": 10, "heldSeconds": 1 }
   }
 }
