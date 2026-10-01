@@ -267,7 +267,11 @@ bool GrowBaseStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlock
 	{
 		AbilitySystem.SetNumericAttributeBase(Health, AbilitySystem.GetNumericAttribute(MaxHealth) - MissingHealth);
 	}
-	AbilitySystem.SetNumericAttributeBase(Resource, AbilitySystem.GetNumericAttribute(MaxResource) - MissingResource);
+	// A kept resource, as Charge, keeps what it holds as its most grows; any other keeps what it lacks (ADR-033 §1).
+	if (!IsResourceKept(AbilitySystem))
+	{
+		AbilitySystem.SetNumericAttributeBase(Resource, AbilitySystem.GetNumericAttribute(MaxResource) - MissingResource);
+	}
 	return true;
 }
 

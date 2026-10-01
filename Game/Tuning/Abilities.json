@@ -918,6 +918,125 @@
       "unitKinds": [],
       "landsOn": [],
       "attackCharges": 0
+    },
+    "relay_overclocked": {
+      "provenance": "Provisional",
+      "kind": "AttackSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.5,
+      "durationSeconds": 6,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 4
+    },
+    "relay_field_footing": {
+      "provenance": "Provisional",
+      "kind": "SlowResistance",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.35,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "relay_grid_planted": {
+      "provenance": "Provisional",
+      "kind": "Planted",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 8,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "relay_grid_discount": {
+      "provenance": "Provisional",
+      "kind": "ResourceCostReduction",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.5,
+      "durationSeconds": 8,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "relay_grid_link": {
+      "provenance": "Provisional",
+      "kind": "AttackShortensCooldown",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.75,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "relay_fluxborn_overclock": {
+      "provenance": "Provisional",
+      "kind": "AttackSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "relay_fluxborn_haste": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.15,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
     }
   },
   "targetedDamage": {
@@ -2557,6 +2676,66 @@
       "casterStatuses": [],
       "healOnHit": [],
       "delayWithin": []
+    },
+    "relay_magnetic_field": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [0],
+        "castRange": 700,
+        "windupSeconds": 0.2,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.1,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "minimumResource": []
+      },
+      "origin": "TargetPoint",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 4,
+          "pulseSeconds": 0.5,
+          "casterStatuses": ["relay_field_footing"],
+          "allyStatuses": ["relay_field_footing"],
+          "enemyStatuses": [],
+          "sight": "None",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": [
+            { "pull": 150 }
+          ]
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
     }
   },
   "selfBuff": {
@@ -3308,6 +3487,113 @@
           "casterStatusesPerVanguard": []
         }
       ]
+    },
+    "relay_rapid_discharge": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [12, 11, 10, 9, 8],
+        "resourceCostByRank": [0],
+        "castRange": 650,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [0.5],
+        "minimumResource": [20]
+      },
+      "statuses": ["relay_overclocked"],
+      "shields": [],
+      "aura": [],
+      "heal": [],
+      "recast": "None",
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": [],
+      "attackSecondaryImpact": [],
+      "recipient": "CasterOrAlly",
+      "recipientZones": [],
+      "marker": [],
+      "drain": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
+    },
+    "relay_overcharge": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [20, 18, 16, 14, 12],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "minimumResource": []
+      },
+      "statuses": ["relay_overcharged"],
+      "shields": [],
+      "aura": [],
+      "heal": [],
+      "recast": "None",
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": [],
+      "attackSecondaryImpact": [],
+      "recipient": "Caster",
+      "recipientZones": [],
+      "marker": [],
+      "drain": [],
+      "shieldHolds": [],
+      "shieldEndZones": []
+    },
+    "relay_full_grid": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [110, 95, 80],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "minimumResource": [20]
+      },
+      "statuses": ["relay_grid_planted", "relay_grid_discount"],
+      "shields": [],
+      "aura": [
+        {
+          "radius": 800,
+          "durationSeconds": 8,
+          "refreshSeconds": 0.5,
+          "allyStatuses": ["relay_grid_link"],
+          "enemyStatuses": [],
+          "allyFluxbornStatuses": ["relay_fluxborn_overclock", "relay_fluxborn_haste"]
+        }
+      ],
+      "heal": [],
+      "recast": "None",
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": [],
+      "attackSecondaryImpact": [],
+      "recipient": "Caster",
+      "recipientZones": [],
+      "marker": [],
+      "drain": [
+        { "perSecond": 12, "intervalSeconds": 0.5, "maxSeconds": 8 }
+      ],
+      "shieldHolds": [],
+      "shieldEndZones": []
     }
   },
   "skillshot": {

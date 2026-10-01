@@ -142,6 +142,12 @@ M25a added ([ADR-032](Docs/ADR/ADR-032-movement-punishment-shield-holds-and-wall
 - walls: runtime terrain is the battleground's (`Terrain/UVeyraTerrainSubsystem` and `AVeyraTerrainWall` in World), reached through Combat's `IVeyraRuntimeTerrain` contract and registry; a wall blocks units, forced moves and line projectiles, cuts the navigation mesh and moves out the units it would trap; a placed marker holds one as its ownership and lifetime link, a skillshot leaves one where its flight ends (`endWall`), and the grey-box draws the terrain as a block;
 - follow-ups that arm after their cast and end with their opening ability's marker, both in `Loadout/VeyraFollowUpSubsystem` (the placement archetype's own watch moved there), and areas at the caster's marker (`CastersMarker`).
 
+M25b added ([ADR-033](Docs/ADR/ADR-033-charge-attack-spent-statuses-movement-fields-and-grids.md)), for Relay:
+- Charge, a kept resource (`VeyraCombat::KeepResource`: it starts empty, and initialization, revival and the fountain leave it be), and the charger passive (`UVeyraChargerPassive`) fed by nearby Fluxborn deaths;
+- casts that cost a share of the current resource and need a least of it, priced by `UVeyraGameplayAbility::CostFor` with the ResourceCostReduction status kind; statuses spent by attacks (`attackCharges`), which the basic attack component reports to Combat;
+- Combat's movement fields (`Movement/UVeyraMovementFieldSubsystem`), which bend enemy dashes and displacements toward their centre, held by lingering areas that name one;
+- auras on allied Fluxborn, the AttackShortensCooldown status kind (`VeyraAbilities::ShortenSoonestCooldown`), and self-buffs that drain their caster's resource and end as it runs out.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

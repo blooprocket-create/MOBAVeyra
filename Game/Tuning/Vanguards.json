@@ -940,6 +940,56 @@
       },
       "rankShape": [],
       "passive": ["varkesh_stress_temper"]
+    },
+    "relay": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Charge",
+      "body": { "capsuleRadius": 46, "capsuleHalfHeight": 105, "turnRateDegreesPerSecond": 540 },
+      "baseStats": {
+        "maxHealth": 560,
+        "healthRegen": 0.9,
+        "maxResource": 100,
+        "resourceRegen": 0,
+        "armor": 28,
+        "magicResist": 30,
+        "physicalPower": 50,
+        "magicPower": 0,
+        "attackSpeed": 0.625,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 92,
+        "healthRegen": 0.1,
+        "maxResource": 10,
+        "resourceRegen": 0,
+        "armor": 4.2,
+        "magicResist": 1.3,
+        "physicalPower": 2.5,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 525,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1600, "radius": 20 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["relay_rapid_discharge"],
+        "w": ["relay_overcharge"],
+        "e": ["relay_magnetic_field"],
+        "r": ["relay_full_grid"]
+      },
+      "rankShape": [],
+      "passive": ["relay_charger"]
     }
   },
   "deepFoundation": {

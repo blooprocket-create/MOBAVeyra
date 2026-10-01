@@ -306,6 +306,17 @@
         "varkesh_molten_ground": "Damage",
         "varkesh_forge_divide": "Engage"
       }
+    },
+    "relay": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "relay_rapid_discharge": "Empower",
+        "relay_overcharge": "Defend",
+        "relay_magnetic_field": "Damage",
+        "relay_full_grid": "Engage"
+      }
     }
   }
 }

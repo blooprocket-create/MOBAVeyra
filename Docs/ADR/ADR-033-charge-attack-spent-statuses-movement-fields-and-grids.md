@@ -109,14 +109,14 @@ Any Fluxborn's death within the radius of its living owner gives Charge, whateve
    - kept through death.
 2. **Rapid Discharge:**
    - costs 50% of current Charge, and needs at least 20;
-   - gives 4 Overclocked Attacks of 40/50/60/70/80% Attack Speed, for at most 6 s.
+   - gives 4 Overclocked Attacks of 50% Attack Speed, for at most 6 s. A status's magnitude does not grow with rank, so its rank lowers its cooldown instead.
 3. **Overcharge:** triples Charge from deaths for 8 s.
 4. **Magnetic Field:**
    - a 350-radius field for 4 s;
    - allies inside gain 35% Slow Resistance;
    - enemy forced moves bend up to 150 toward its centre.
 5. **Full Grid:**
-   - drains 12 Charge a second, for at most 8 s, with Relay Planted;
-   - allied Vanguards within 800: each basic attack takes 0.5/0.75/1 s off their next basic ability;
+   - needs 20 Charge to cast, and drains 12 Charge a second, for at most 8 s, with Relay Planted;
+   - allied Vanguards within 800: each basic attack takes 0.75 s off their next basic ability;
    - allied Fluxborn: 30% Attack Speed and 15% Move Speed;
    - Relay's costs fall by 50%.

@@ -76,6 +76,16 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsFalse(VeyraCombat::IsResourceKept(*Enemy.GetAbilitySystemComponent()), TEXT("an ordinary resource is not kept")));
 		}
 
+		TEST_METHOD(GrowingLeavesAKeptResourceAsItIs)
+		{
+			UAbilitySystemComponent& Abilities = *Relay->GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::RestoreResource(Abilities, Some)));
+			FVeyraStatBlock Growth;
+			Growth.MaxResource = Some;
+			ASSERT_THAT(IsTrue(VeyraCombat::GrowBaseStats(Abilities, Growth)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Charge(), Some, Tolerance), TEXT("its most grows, and what it holds does not")));
+		}
+
 		TEST_METHOD(ANearbyFluxbornDeathOfEitherSideGivesCharge)
 		{
 			FArchetypeTestWorld World{ Spawner };
