@@ -168,6 +168,12 @@ M27b added ([ADR-035](Docs/ADR/ADR-035-sea-states-crashing-rides-and-summoned-co
 - stances that may hold R, never the slot they sit in;
 - Neris, The Tidebound, and her Waterling: Calm and Storm variants of Breaking Wave, Little Current and Tidebreaker that share cooldowns, and Change the Weather.
 
+M28a added ([ADR-036](Docs/ADR/ADR-036-runtime-dense-fog-sounded-waymarks-and-the-mist-trail.md)), for Sylra:
+- in Combat, the visibility contract's `AddDenseFog` (a circle or a corridor, for a while) and `FogVolumeAt`, and the Sounded status kind, read through `VeyraCombat::HasStatusKindFromSide`;
+- in Vision, Dense Fog that abilities lay: each cast's `Fog/AVeyraDenseFogBank`, replicated to every player and joined to the map's fog into volumes while it lasts, and presence pings for a Sounded enemy in fog to the side that sounded it;
+- in Abilities, areas' `fog` and lingering areas' `shieldTopUp` (a merging shield built on the caster and allies who stay, held back a while after damage), and `VeyraAreaDelivery::LayAt`, which the ride trail and the Mist Trail share;
+- in Vanguards, the Mist Trail passive (`UVeyraMistTrailPassive`).
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy
