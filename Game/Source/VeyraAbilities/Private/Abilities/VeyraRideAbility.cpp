@@ -316,6 +316,14 @@ void UVeyraRideAbility::OnRideEnded(const FVeyraRideEnd& End)
 	UWorld* World = GetWorld();
 	if (End.Reason != EVeyraRideEndReason::Died && !Crash.IsEmpty() && World)
 	{
+		// A crash that strikes is an attack, whatever set it off: its rider is seen (Combat Bible §11).
+		const bool bStrikes = Tuning->CrashZones.ContainsByPredicate([](const FVeyraAreaZoneTuning& Zone) {
+			return !Zone.Effects.Damage.IsEmpty() || !Zone.Effects.Statuses.IsEmpty() || !Zone.Effects.Displacement.IsEmpty() || !Zone.Effects.Reactions.IsEmpty();
+		});
+		if (bStrikes)
+		{
+			VeyraCombat::EndStealth(*Caster);
+		}
 		FVeyraEffectFrame Frame;
 		Frame.Origin = End.Location;
 		Frame.Direction = End.Heading;
