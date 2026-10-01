@@ -62,10 +62,11 @@ FVeyraChannelPlan UVeyraRideAbility::Deliver(const FVeyraCast& Cast)
 	{
 		return FVeyraChannelPlan();
 	}
-	// A newer ride replaces the older: the older's statuses and mounted actions go first.
-	if (Rider.IsValid())
+	// A newer ride replaces the older, whichever ability began it: the older ends as any ride ends, its crash, its
+	// statuses, its mounted actions and its time with it, so nothing of it outlasts the change.
+	if (VeyraCombat::IsRiding(*Caster))
 	{
-		VeyraCombat::EndRide(*Caster, EVeyraRideEndReason::Dismounted);
+		VeyraCombat::EndRide(*Caster, EVeyraRideEndReason::Replaced);
 	}
 	if (!VeyraCombat::StartRide(*Caster, FVeyraRide{ Tuning->SetSpeed, Tuning->TurnRateDegreesPerSecond, Tuning->DecaySeconds }))
 	{
@@ -203,24 +204,31 @@ void UVeyraRideAbility::PulseTrail()
 	}
 	const FVeyraRideTrailTuning& Trail = Tuning->Trail[0];
 	const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(Trail.Area);
+	const FVector From = TrailFrom;
 	const FVector Here = Body->GetActorLocation();
-	TrailTravelled += FVector::Dist2D(Here, TrailFrom);
+	const double Stride = FVector::Dist2D(Here, From);
 	TrailFrom = Here;
-	if (!Area || TrailTravelled < Trail.Spacing)
+	if (!Area)
 	{
 		return;
 	}
-	// Validation holds its looks to at least one per spacing at its rider's speed, so one area a look keeps pace.
-	TrailTravelled = 0.0;
+	// An area every spacing along the way it went, where that spacing falls, what is left over carried into the
+	// next look: its spacing holds at any speed and pulse.
 	const UVeyraMovementComponent* Movement = Watched.Get();
-	FVeyraEffectFrame Placement;
-	Placement.Origin = Here;
-	Placement.Direction = Movement ? Movement->GetRideHeading() : Body->GetActorForwardVector().GetSafeNormal2D();
-	const TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, Area->Zones, RideRank);
-	VeyraAreaDelivery::Resolve(*World, *Caster, Placement, Zones, FVeyraAbilityHitSource{ Trail.Area, RideCastId });
-	if (const TOptional<FVeyraPreparedLinger> Linger = VeyraAreaDelivery::PrepareLinger(*Caster, *Area, RideRank, GetCasterLevel(*Caster), Trail.Area, RideCastId))
+	const FVector Heading = Movement ? Movement->GetRideHeading() : Body->GetActorForwardVector().GetSafeNormal2D();
+	double Along = Trail.Spacing - TrailTravelled;
+	TrailTravelled += Stride;
+	for (; TrailTravelled >= Trail.Spacing; TrailTravelled -= Trail.Spacing, Along += Trail.Spacing)
 	{
-		VeyraAreaDelivery::ArmLinger(*World, *Caster, Placement, Linger.GetValue());
+		FVeyraEffectFrame Placement;
+		Placement.Origin = Stride > 0.0 ? FMath::Lerp(From, Here, FMath::Clamp(Along / Stride, 0.0, 1.0)) : Here;
+		Placement.Direction = Heading;
+		const TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, Area->Zones, RideRank);
+		VeyraAreaDelivery::Resolve(*World, *Caster, Placement, Zones, FVeyraAbilityHitSource{ Trail.Area, RideCastId });
+		if (const TOptional<FVeyraPreparedLinger> Linger = VeyraAreaDelivery::PrepareLinger(*Caster, *Area, RideRank, GetCasterLevel(*Caster), Trail.Area, RideCastId))
+		{
+			VeyraAreaDelivery::ArmLinger(*World, *Caster, Placement, Linger.GetValue());
+		}
 	}
 }
 
