@@ -191,6 +191,8 @@ void AVeyraCompanion::Banish()
 	{
 		VeyraCombat::Withdraw(*AbilitySystem);
 	}
+	// A windup under way leaves with it: a banished companion strikes nothing.
+	BasicAttack->CancelAttack();
 	if (AController* Brain = GetController())
 	{
 		Brain->StopMovement();
