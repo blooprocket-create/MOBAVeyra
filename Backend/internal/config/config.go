@@ -53,7 +53,7 @@ const (
 	// MatchmakingCasualSelect: a matchmaker, then Match Found and Casual Select.
 	MatchmakingCasualSelect = "casualSelect"
 	// MatchmakingCoop: a matchmaker for one side of humans against an enemy AI
-	// team, then Match Found and a Casual Select with the bots seated (ADR-038 §2).
+	// team, then Match Found and a Casual Select with the bots seated (ADR-039 §2).
 	MatchmakingCoop = "coop"
 	// MatchmakingNotImplemented: the mode may be selected but not queued yet.
 	MatchmakingNotImplemented = "notImplemented"
@@ -103,7 +103,7 @@ type Vanguards struct {
 	// RotationSlots is how many Vanguards the weekly rotation offers.
 	RotationSlots int
 	// RotationEpoch begins the first rotation week, and each week lasts
-	// RotationWeek (ADR-038 §1).
+	// RotationWeek (ADR-039 §1).
 	RotationEpoch time.Time
 	RotationWeek  time.Duration
 	// RotationSeed makes every week's draw reproducible.
@@ -639,7 +639,7 @@ func Parse(raw []byte) (Config, error) {
 			problems = append(problems, field+".matchmaking must be \""+MatchmakingCasualSelect+"\", \""+MatchmakingCoop+"\" or \""+MatchmakingNotImplemented+"\"")
 		}
 		mode := Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam, Matchmaking: *m.Matchmaking}
-		// A co-op mode's enemy AI team, and only a co-op mode's (ADR-038 §2).
+		// A co-op mode's enemy AI team, and only a co-op mode's (ADR-039 §2).
 		if *m.Matchmaking == MatchmakingCoop {
 			switch {
 			case m.AIPerTeam == nil:

@@ -17,7 +17,7 @@ type Grouping struct {
 // order, oldest first (Parties & Social Bible §2, §6):
 //   - each side holds exactly its size in players: sides[0] on side A and
 //     sides[1] on side B, which is 0 for a co-op mode, whose other side is AI
-//     (ADR-038 §2);
+//     (ADR-039 §2);
 //   - a party is never split, and a party larger than a side never matches;
 //   - two accounts where either blocks the other are never in one match, on
 //     either team, even if that means a longer wait.

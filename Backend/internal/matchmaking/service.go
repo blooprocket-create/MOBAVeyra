@@ -19,7 +19,7 @@ type Mode struct {
 	// mode's other side is its enemy AI team.
 	TeamSize int
 	// VersusAI says the mode's matches put one side of humans against AI, so
-	// its matchmaker fills side A alone (ADR-038 §2).
+	// its matchmaker fills side A alone (ADR-039 §2).
 	VersusAI bool
 }
 

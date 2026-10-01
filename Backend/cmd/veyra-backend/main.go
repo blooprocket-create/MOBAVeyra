@@ -316,7 +316,7 @@ func (c customSelects) OpenCustom(ctx context.Context, launch lobby.Launch) erro
 }
 
 // casualSelects opens the matchmaker's Casual Selects, and a co-op mode's
-// select with its enemy AI team seated (ADR-038 §3).
+// select with its enemy AI team seated (ADR-039 §3).
 type casualSelects struct {
 	selects   *selection.Service
 	vanguards *catalog.Catalog
@@ -337,7 +337,7 @@ func (c casualSelects) OpenCasual(ctx context.Context, mode string, seats []matc
 	if !ok {
 		return c.selects.OpenCasual(ctx, mode, casual)
 	}
-	// Drawn from this week's rotation; from every released Vanguard while it offers none (ADR-038 §8).
+	// Drawn from this week's rotation; from every released Vanguard while it offers none (ADR-039 §8).
 	pool := c.vanguards.Rotation()
 	if len(pool) < coop.AIPerTeam {
 		pool = c.vanguards.Released()

@@ -1,4 +1,4 @@
-# ADR-038: The weekly free rotation, and Co-op vs AI
+# ADR-039: The weekly free rotation, and Co-op vs AI
 
 **Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §8 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the pull request that adds it.
 **Date:** 2026-10-01
@@ -63,7 +63,7 @@
 ### 5. Bot roles that suit their kits (Game: bots; ADR-013)
 
 - **Bots.json gives each Vanguard `roles`:** the roles its bot plays, in order of preference.
-- **Seats still decide which roles a team fills.** Once a team's bots are all seated, its roles are dealt to them by preference, the jungle first: the bot that most prefers a role takes it, ties by seat.
+- **Seats still decide which roles a team fills.** As each bot is seated, its team deals those roles again among its bots not yet in play, by preference, the jungle first: the bot that most prefers a role takes it, ties by seat. Until the match goes live none is in play, though each spawns at the fountain as it is seated in preparation; after, a bot whose Vanguard has spawned keeps its place and its Flux Spells.
 - **A Vanguard that plays no role still on offer** takes the first remaining one.
 
 ### 6. The client
