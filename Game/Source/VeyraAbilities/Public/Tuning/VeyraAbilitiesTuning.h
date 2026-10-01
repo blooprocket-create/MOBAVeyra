@@ -177,6 +177,13 @@ struct FVeyraDisplacementTuning
 	/** Units per second. */
 	UPROPERTY()
 	double Speed = 0.0;
+
+	/**
+	 * From Abilities.json's statuses: given a unit whose displacement collides with terrain, a Vanguard
+	 * or a structure, where it stops (ADR-028 §3), as Battering Mass stuns.
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> CollisionStatuses;
 };
 
 /**
@@ -379,6 +386,11 @@ enum class EVeyraAreaOrigin : uint8
 	Caster,
 	/** On the cast's ground point, facing away from the caster. */
 	TargetPoint,
+	/**
+	 * On the caster's own lingering area of the ability originAbility names, facing as it does; that area
+	 * ends at once, without its end effects (ADR-028 §5), as Anchor's recast rips it up.
+	 */
+	CastersLingeringArea,
 };
 
 /** A group whose shields from one caster together hold at most a share of its Max Health on a unit (ADR-009 §3). */
@@ -610,6 +622,10 @@ struct FVeyraAreaAbilityTuning
 	UPROPERTY()
 	EVeyraAreaOrigin Origin = EVeyraAreaOrigin::Caster;
 
+	/** For the CastersLingeringArea origin, exactly one: the ability whose lingering area it lands on; else none. */
+	UPROPERTY()
+	TArray<FVeyraContentId> OriginAbility;
+
 	/** Seconds between Commit and the hit, with the area telegraphed; the caster is free meanwhile. */
 	UPROPERTY()
 	double DelaySeconds = 0.0;
@@ -791,6 +807,13 @@ struct FVeyraEndPayloadTuning
 	/** A status ID from the statuses map. */
 	UPROPERTY()
 	FVeyraContentId Status;
+
+	/**
+	 * At most one, AwayFromOrigin: each enemy the payload reaches is also pushed away from the buff's
+	 * holder (ADR-028 §6), as Overcapacity vents.
+	 */
+	UPROPERTY()
+	TArray<FVeyraDisplacementTuning> Displacement;
 
 	/** How long the status lasts with no hit taken; above 0. */
 	UPROPERTY()

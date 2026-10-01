@@ -853,7 +853,10 @@ bool Displace(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, 
 	const double Retained = Target.GetSet<UVeyraDefenceSet>() ? Target.GetNumericAttribute(UVeyraDefenceSet::GetDisplacementRetainedAttribute()) : 1.0;
 	const AActor* Body = Movement->GetOwner();
 	const FVector From = Body ? Body->GetActorLocation() : FVector::ZeroVector;
-	if (!Movement->StartDisplacement(Displacement.Direction, Displacement.Distance * Retained, Displacement.Speed))
+	const bool bStarted = Displacement.CollisionStatuses.IsEmpty()
+		? Movement->StartDisplacement(Displacement.Direction, Displacement.Distance * Retained, Displacement.Speed)
+		: Movement->StartDisplacement(Displacement.Direction, Displacement.Distance * Retained, Displacement.Speed, Source, Displacement.CollisionStatuses);
+	if (!bStarted)
 	{
 		UE_LOG(LogVeyraCombat, Error, TEXT("Refused a displacement of %s by %g at %g: it needs a horizontal direction and a finite distance and speed above 0."),
 			*GetNameSafe(Target.GetOwner()), Displacement.Distance, Displacement.Speed);
@@ -882,6 +885,12 @@ bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash)
 {
 	UVeyraMovementComponent* Movement = FindMovement(Unit);
 	if (!Movement || IsDeadUnit(Unit))
+	{
+		return false;
+	}
+	// Rooted or grounded, a unit cannot move by its own abilities, nor by a passive's lunge or an ability
+	// cast before the status arrived (ADR-026 §3; ADR-028 §2).
+	if (EnumHasAnyFlags(GetActionBlocks(Unit), EVeyraActionBlocks::Dash))
 	{
 		return false;
 	}

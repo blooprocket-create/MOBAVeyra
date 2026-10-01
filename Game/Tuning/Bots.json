@@ -181,6 +181,32 @@
         "korruk_shatterfield": "Damage"
       }
     },
+    "torr": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "spellguard_plate", "cycler_core", "sovereign_edge", "striker_assembly"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "torr_battering_mass": "Engage",
+        "torr_battering_mass_over": "Engage",
+        "torr_fortify": "Defend",
+        "torr_anchor": "Engage",
+        "torr_anchor_over": "Engage",
+        "torr_anchor_rip": "Never",
+        "torr_anchor_rip_over": "Never",
+        "torr_overcapacity": "Empower"
+      }
+    },
+    "silt": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "silt_scattershot": "Damage",
+        "silt_sink": "Damage",
+        "silt_sandstorm": "Damage",
+        "silt_buried_alive": "Damage"
+      }
+    },
     "aurelisse": {
       "provenance": "Provisional",
       "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],

@@ -95,11 +95,20 @@ public:
 	AActor* GetChainTarget() const { return ChainTarget.Get(); }
 	int32 GetChain() const { return Chain; }
 
-	/** Server: at Commit, before its damage is prepared, so attack modifiers can add to the attack. */
+	/**
+	 * Server: at Commit, before its damage is prepared, so attack modifiers can add to the attack. Never
+	 * for a missed attack (ADR-028 §1): nothing a modifier adds would land, and some act at once.
+	 */
 	TMulticastDelegate<void(FVeyraAttackPlan&)> OnModifyAttack;
 
 	/** Server: On Attack, when an attack commits (Combat Bible §16). */
 	TMulticastDelegate<void(const FVeyraAttackEvent&)> OnAttack;
+
+	/**
+	 * Server: as an attack connects, before its damage and statuses: what the attack consumes from its
+	 * target is still there, even when the attack kills it.
+	 */
+	TMulticastDelegate<void(const FVeyraAttackEvent&)> OnLanding;
 
 	/** Server: On Hit, when an attack connects with its target. */
 	TMulticastDelegate<void(const FVeyraAttackEvent&)> OnHit;
@@ -148,7 +157,8 @@ private:
 		TArray<FVeyraStatusSpec> ImpactStatuses;
 	};
 
-	FVeyraAttackPlan BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing, bool bEmpoweredAtStart);
+	/** The attack's plan; a missed one spends its empowerment as any attack does, but no modifier acts on it. */
+	FVeyraAttackPlan BuildPlan(UAbilitySystemComponent& Attacker, AActor& Target, const FVeyraAttackTiming& Timing, bool bEmpoweredAtStart, bool bMissed);
 	FLandingAttack Prepare(UAbilitySystemComponent& Attacker, const AActor& Body, const FVeyraAttackPlan& Plan) const;
 	void Land(const FLandingAttack& Landing);
 

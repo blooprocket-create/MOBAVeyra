@@ -22,5 +22,7 @@ protected:
 	virtual double GetCooldownSeconds(const FVeyraContentId& Ability, int32 Rank) const override;
 	virtual EVeyraCastRejection CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const override;
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const override;
+	/** One that recoils its caster moves it, as Kade's Reposition does. */
+	virtual bool MovesCaster(const FVeyraContentId& Ability) const override;
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast) override;
 };

@@ -19,13 +19,15 @@ namespace VeyraEffectDelivery
 namespace
 {
 	/** The displacement Tuning gives Unit, measured from Frame. */
-	TOptional<FVeyraDisplacement> DisplacementFor(const FVeyraDisplacementTuning& Tuning, const AActor& Unit, const FVeyraEffectFrame& Frame, double CasterRadius)
+	TOptional<FVeyraDisplacement> DisplacementFor(const FVeyraDisplacementTuning& Tuning, const AActor& Unit, const FVeyraEffectFrame& Frame, double CasterRadius,
+		int32 SourceLevel)
 	{
 		const FVector FromOrigin = (Unit.GetActorLocation() - Frame.Origin).GetSafeNormal2D();
 		const FVector Facing = Frame.Direction.GetSafeNormal2D();
 		// On the ground, with X forward and Y to the right, the right of (x, y) is (-y, x).
 		const FVector Right(-Facing.Y, Facing.X, 0.0);
 		FVeyraDisplacement Displacement{ FVector::ZeroVector, Tuning.Distance, Tuning.Speed };
+		Displacement.CollisionStatuses = StatusSpecs(Tuning.CollisionStatuses, SourceLevel);
 		switch (Tuning.Direction)
 		{
 		case EVeyraDisplacementDirection::TowardOrigin:
@@ -312,7 +314,8 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 	{
 		const AActor* CasterBody = Caster.GetAvatarActor();
 		const double CasterRadius = CasterBody ? CasterBody->GetSimpleCollisionRadius() : 0.0;
-		if (const TOptional<FVeyraDisplacement> Displacement = DisplacementFor(Effects.Displacement.GetValue(), Unit, Frame, CasterRadius))
+		if (const TOptional<FVeyraDisplacement> Displacement = DisplacementFor(Effects.Displacement.GetValue(), Unit, Frame, CasterRadius,
+				UVeyraGameplayAbility::GetCasterLevel(Caster)))
 		{
 			Hit.bDisplaced = VeyraCombat::Displace(Caster, *Target, Displacement.GetValue());
 		}

@@ -439,6 +439,16 @@ void UVeyraSelfBuffAbility::FirePayload()
 		if (Target && !VeyraCombat::BlockAbilityHit(*Target, *Caster))
 		{
 			VeyraCombat::ApplyStatus(*Caster, *Target, Status.GetValue());
+			// Pushed away from the holder too, if the payload vents (ADR-028 §6).
+			for (const FVeyraDisplacementTuning& Push : Payload.Displacement)
+			{
+				FVeyraDisplacement Away{ (Enemy->GetActorLocation() - Body->GetActorLocation()).GetSafeNormal2D(), Push.Distance, Push.Speed };
+				Away.CollisionStatuses = VeyraEffectDelivery::StatusSpecs(Push.CollisionStatuses, GetCasterLevel(*Caster));
+				if (!Away.Direction.IsNearlyZero())
+				{
+					VeyraCombat::Displace(*Caster, *Target, Away);
+				}
+			}
 		}
 	}
 }

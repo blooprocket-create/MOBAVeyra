@@ -101,6 +101,8 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::Ghosted:
 	case EVeyraStatusKind::SpellShield:
 	case EVeyraStatusKind::Root:
+	case EVeyraStatusKind::Blind:
+	case EVeyraStatusKind::Grounded:
 		bMagnitudeValid &= Magnitude == 0.0;
 		break;
 	case EVeyraStatusKind::Fear:
@@ -159,7 +161,8 @@ int32 TickCount(double DurationSeconds, double TickSeconds)
 bool IsTenacityReducible(EVeyraStatusKind Kind)
 {
 	// A Knockup is crowd control Tenacity does not shorten, as League's airborne (§8).
-	return Kind == EVeyraStatusKind::Stun || Kind == EVeyraStatusKind::Slow || Kind == EVeyraStatusKind::Fear || Kind == EVeyraStatusKind::Root;
+	return Kind == EVeyraStatusKind::Stun || Kind == EVeyraStatusKind::Slow || Kind == EVeyraStatusKind::Fear || Kind == EVeyraStatusKind::Root
+		|| Kind == EVeyraStatusKind::Blind || Kind == EVeyraStatusKind::Grounded;
 }
 
 bool IsCrowdControl(EVeyraStatusKind Kind)
@@ -262,6 +265,11 @@ EVeyraActionBlocks ActionBlocks(TConstArrayView<FVeyraStatusEntry> Entries)
 		{
 			// Rooted, it cannot move by walking or by its own abilities; it may attack and cast (ADR-026 §3).
 			Blocks |= EVeyraActionBlocks::Move | EVeyraActionBlocks::Dash;
+		}
+		else if (Entry.Kind == EVeyraStatusKind::Grounded)
+		{
+			// Grounded, it cannot move by its own abilities; it may walk, attack and cast (ADR-028 §2).
+			Blocks |= EVeyraActionBlocks::Dash;
 		}
 	}
 	return Blocks;

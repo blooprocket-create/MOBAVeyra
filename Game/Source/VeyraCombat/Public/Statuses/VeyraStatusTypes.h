@@ -150,6 +150,18 @@ enum class EVeyraStatusKind : uint8
 	 * Magnitude: the share, above 0 and at most 1; one stack.
 	 */
 	MobileAttack,
+	/**
+	 * Blinded (ADR-028 §1): the unit's basic attacks miss. Each still counts as an attack, spending its
+	 * time and any empowerment, but lands nothing: no damage, no on-hit, no secondary impact. Crowd
+	 * control: Tenacity shortens it. Magnitude: 0.
+	 */
+	Blind,
+	/**
+	 * Grounded (ADR-028 §2): the unit cannot cast an ability that moves it (a dash, a leap or an attach),
+	 * and may walk, attack and cast the rest; a dash under way finishes. Crowd control: Tenacity shortens
+	 * it. Magnitude: 0.
+	 */
+	Grounded,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

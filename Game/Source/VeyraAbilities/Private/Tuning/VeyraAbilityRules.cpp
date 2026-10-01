@@ -88,6 +88,10 @@ namespace
 			CheckDamage(Pointer + TEXT("/damage"), Effects.Damage);
 			CheckStatusIds(Pointer + TEXT("/statuses"), Effects.Statuses);
 			CheckStatusIds(Pointer + TEXT("/displacementUnlessStatuses"), Effects.DisplacementUnlessStatuses);
+			for (int32 Index = 0; Index < Effects.Displacement.Num(); ++Index)
+			{
+				CheckStatusIds(FString::Printf(TEXT("%s/displacement/%d/collisionStatuses"), *Pointer, Index), Effects.Displacement[Index].CollisionStatuses);
+			}
 			if (!Effects.DisplacementUnlessStatuses.IsEmpty() && Effects.Displacement.IsEmpty())
 			{
 				Problem(Pointer + TEXT("/displacementUnlessStatuses"), TEXT("spares units a displacement, so the effects need one"));
@@ -208,6 +212,13 @@ namespace
 				Problem(Pointer + TEXT("/reveal"), TEXT("radius and durationSeconds are both above 0, or both 0 for no reveal"));
 			}
 			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
+			// Landing on its caster's lingering area names one ability that leaves one; no other origin names any.
+			const bool bOnLingering = Area.Origin == EVeyraAreaOrigin::CastersLingeringArea;
+			const FVeyraAreaAbilityTuning* Named = Area.OriginAbility.Num() == 1 ? Tuning.Area.Find(Area.OriginAbility[0]) : nullptr;
+			if (bOnLingering ? !(Named && !Named->Linger.IsEmpty()) : !Area.OriginAbility.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/originAbility"), TEXT("names exactly one area that lingers for the CastersLingeringArea origin, and none for any other"));
+			}
 			CheckStatusIds(Pointer + TEXT("/consumesCasterStatuses"), Area.ConsumesCasterStatuses);
 			CheckStatusIds(Pointer + TEXT("/casterStatuses"), Area.CasterStatuses);
 			if (Area.ChannelMovement == EVeyraCastMovement::Free && Area.ChannelTicks < 2)
@@ -371,6 +382,14 @@ namespace
 					|| Payload.MaxSeconds < Payload.BaseSeconds || Payload.MinHits < 0)
 				{
 					Problem(PayloadPointer, TEXT("afterSeconds, radius and baseSeconds are above 0, secondsPerHit at least 0, and maxSeconds at least baseSeconds"));
+				}
+				if (Payload.Displacement.Num() > 1 || Payload.Displacement.ContainsByPredicate([](const FVeyraDisplacementTuning& Push) { return Push.Direction != EVeyraDisplacementDirection::AwayFromOrigin; }))
+				{
+					Problem(PayloadPointer + TEXT("/displacement"), TEXT("holds at most one, AwayFromOrigin: it pushes away from the holder"));
+				}
+				for (const FVeyraDisplacementTuning& Push : Payload.Displacement)
+				{
+					CheckStatusIds(PayloadPointer + TEXT("/displacement/0/collisionStatuses"), Push.CollisionStatuses);
 				}
 			}
 			for (int32 Index = 0; Index < Buff.Heal.Num(); ++Index)

@@ -3,6 +3,7 @@
 #include "Movement/VeyraMovementComponent.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraMobilitySet.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
@@ -14,6 +15,7 @@
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
+#include "VeyraCombatVerbs.h"
 
 namespace
 {
@@ -171,6 +173,24 @@ bool UVeyraMovementComponent::StartDisplacement(const FVector& Direction, double
 	if (bInterruptsDash)
 	{
 		OnDashEnded.Broadcast(FVeyraDashEnd{ EVeyraDashEndReason::Interrupted, nullptr });
+	}
+	return true;
+}
+
+bool UVeyraMovementComponent::StartDisplacement(const FVector& Direction, double Distance, double Speed, UAbilitySystemComponent& Source,
+	TArray<FVeyraStatusSpec> CollisionStatuses)
+{
+	bool bStopped = false;
+	ResolveForcedMoveEnd(Direction, Distance, &bStopped);
+	if (!StartDisplacement(Direction, Distance, Speed))
+	{
+		return false;
+	}
+	if (!CollisionStatuses.IsEmpty())
+	{
+		ForcedMove->CollisionSource = &Source;
+		ForcedMove->CollisionStatuses = MoveTemp(CollisionStatuses);
+		ForcedMove->bMeetsTerrain = bStopped;
 	}
 	return true;
 }
@@ -399,8 +419,12 @@ bool UVeyraMovementComponent::StartDash(const FVeyraDash& Dash)
 	return true;
 }
 
-FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, double Distance) const
+FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, double Distance, bool* bOutStopped) const
 {
+	if (bOutStopped)
+	{
+		*bOutStopped = false;
+	}
 	const FVector Start = UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector::ZeroVector;
 	const FVector Heading = Direction.GetSafeNormal2D();
 	const UWorld* World = GetWorld();
@@ -424,6 +448,10 @@ FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, 
 		FCollisionShape::MakeCapsule(Radius, HalfHeight - Lift / 2.0f), Params))
 	{
 		End = Terrain.bStartPenetrating ? Start : Terrain.Location - Raise;
+		if (bOutStopped)
+		{
+			*bOutStopped = true;
+		}
 	}
 
 	// Where the world has navigation, the path also stops where walkable ground does, as at a map's
@@ -437,6 +465,10 @@ FVector UVeyraMovementComponent::ResolveForcedMoveEnd(const FVector& Direction, 
 		if (UNavigationSystemV1::NavigationRaycast(GetWorld(), Start - ToFeet, End - ToFeet, LastWalkable))
 		{
 			End = FVector(LastWalkable.X, LastWalkable.Y, End.Z);
+			if (bOutStopped)
+			{
+				*bOutStopped = true;
+			}
 		}
 		const double Extent = UVeyraCombatTuningSubsystem::Get().ForcedMovement.NavigationExtent;
 		FNavLocation Walkable;
@@ -486,7 +518,15 @@ void UVeyraMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 		PhysAttached(DeltaTime);
 		return;
 	}
+	AdvanceForcedMove(DeltaTime);
+}
 
+void UVeyraMovementComponent::AdvanceForcedMove(float DeltaTime)
+{
+	if (!ForcedMove.IsSet() || !UpdatedComponent || ForcedMove->Mode == EVeyraCustomMovementMode::Attached)
+	{
+		return;
+	}
 	// The path was cleared of terrain when it was planned, and forced movement passes through units,
 	// so the body moves along it without sweeping.
 	const FVector Current = UpdatedComponent->GetComponentLocation();
@@ -500,10 +540,22 @@ void UVeyraMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 	{
 		Contact = FindEnemyContact(Current, Next, Next);
 	}
+	// A displacement that collides stops at the first Vanguard or structure it meets (ADR-028 §3).
+	bool bCollides = false;
+	if (ForcedMove->Mode == EVeyraCustomMovementMode::Displaced && !ForcedMove->CollisionStatuses.IsEmpty())
+	{
+		const UAbilitySystemComponent* Source = ForcedMove->CollisionSource.Get();
+		bCollides = FindCollision(Current, Next, Source ? Source->GetAvatarActor() : nullptr, Next) != nullptr
+			|| (bArrives && ForcedMove->bMeetsTerrain);
+	}
 	MoveUpdatedComponent(Next - Current, UpdatedComponent->GetComponentQuat(), /*bSweep*/ false);
 	Velocity = (Next - Current) / DeltaTime;
 
-	if (Contact)
+	if (bCollides)
+	{
+		Collide();
+	}
+	else if (Contact)
 	{
 		EndDash(EVeyraDashEndReason::EnemyContact, Contact);
 	}
@@ -545,6 +597,47 @@ void UVeyraMovementComponent::EndDash(EVeyraDashEndReason Reason, AActor* Contac
 {
 	EndForcedMove();
 	OnDashEnded.Broadcast(FVeyraDashEnd{ Reason, Contact });
+}
+
+AActor* UVeyraMovementComponent::FindCollision(const FVector& From, const FVector& To, const AActor* Ignored, FVector& OutContactLocation) const
+{
+	const UWorld* World = GetWorld();
+	const UCapsuleComponent* Capsule = CharacterOwner ? CharacterOwner->GetCapsuleComponent() : nullptr;
+	if (!World || !Capsule)
+	{
+		return nullptr;
+	}
+	TArray<FHitResult> Hits;
+	const FCollisionQueryParams Params(SCENE_QUERY_STAT(VeyraDisplacementCollision), /*bTraceComplex*/ false, CharacterOwner);
+	World->SweepMultiByObjectType(Hits, From, To, FQuat::Identity, FCollisionObjectQueryParams(ECC_Pawn),
+		FCollisionShape::MakeCapsule(Capsule->GetScaledCapsuleRadius(), Capsule->GetScaledCapsuleHalfHeight()), Params);
+	Hits.Sort([](const FHitResult& A, const FHitResult& B) { return A.Time < B.Time; });
+	for (const FHitResult& Hit : Hits)
+	{
+		AActor* Unit = Hit.GetActor();
+		if (Unit && Unit != Ignored && !Hit.bStartPenetrating && VeyraTargeting::IsAlive(Unit) && (VeyraUnits::IsVanguard(Unit) || VeyraUnits::IsStructure(Unit)))
+		{
+			OutContactLocation = Hit.Location;
+			return Unit;
+		}
+	}
+	return nullptr;
+}
+
+void UVeyraMovementComponent::Collide()
+{
+	UAbilitySystemComponent* Source = ForcedMove.IsSet() ? ForcedMove->CollisionSource.Get() : nullptr;
+	const TArray<FVeyraStatusSpec> Statuses = ForcedMove.IsSet() ? ForcedMove->CollisionStatuses : TArray<FVeyraStatusSpec>();
+	EndForcedMove();
+	UAbilitySystemComponent* Unit = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(CharacterOwner);
+	if (!Source || !Unit)
+	{
+		return;
+	}
+	for (const FVeyraStatusSpec& Status : Statuses)
+	{
+		VeyraCombat::ApplyStatus(*Source, *Unit, Status);
+	}
 }
 
 AActor* UVeyraMovementComponent::FindEnemyContact(const FVector& From, const FVector& To, FVector& OutContactLocation) const

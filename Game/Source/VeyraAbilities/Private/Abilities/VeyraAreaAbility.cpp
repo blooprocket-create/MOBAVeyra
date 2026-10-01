@@ -6,6 +6,7 @@
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatVerbs.h"
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraLingeringArea.h"
 #include "Engine/World.h"
@@ -30,12 +31,22 @@ double UVeyraAreaAbility::GetCooldownSeconds(const FVeyraContentId& Ability, int
 	return Area ? VeyraAbilityRules::ValueAtRank(Area->Cast.CooldownSecondsByRank, Rank) : 0.0;
 }
 
-EVeyraCastRejection UVeyraAreaAbility::CheckTarget(const AActor& /*Caster*/, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const
+EVeyraCastRejection UVeyraAreaAbility::CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const
 {
 	const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(Ability);
 	if (!Area)
 	{
 		return EVeyraCastRejection::UnknownAbility;
+	}
+	// One that lands on its caster's lingering area needs that area standing (ADR-028 §5).
+	if (Area->Origin == EVeyraAreaOrigin::CastersLingeringArea)
+	{
+		// The validator may run on the archetype's default object, so the world is the caster's.
+		const UAbilitySystemComponent* Own = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Caster);
+		const UWorld* World = Caster.GetWorld();
+		return Own && World && !Area->OriginAbility.IsEmpty() && VeyraAreaDelivery::FindCastersLingeringArea(*World, *Own, Area->OriginAbility[0])
+			? EVeyraCastRejection::None
+			: EVeyraCastRejection::InvalidLocation;
 	}
 	// An area on the caster may be aimed; one at a ground point needs the point.
 	if ((Area->Origin == EVeyraAreaOrigin::TargetPoint || Target.bHasLocation) && !HasUsablePoint(Target))
@@ -63,7 +74,20 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 
 	// An area on the caster lands where the caster is at Commit, which a free windup may have moved.
 	const AActor* Body = Caster->GetAvatarActor();
-	const FVeyraEffectFrame Placement = VeyraAreaDelivery::Place(*Area, Body ? Body->GetActorLocation() : Cast.CasterLocation, Cast.Point, Cast.Direction);
+	FVeyraEffectFrame Placement = VeyraAreaDelivery::Place(*Area, Body ? Body->GetActorLocation() : Cast.CasterLocation, Cast.Point, Cast.Direction);
+	// On its caster's lingering area, which ends at once without its end effects (ADR-028 §5).
+	if (Area->Origin == EVeyraAreaOrigin::CastersLingeringArea)
+	{
+		AVeyraLingeringArea* Lingering = Area->OriginAbility.IsEmpty() ? nullptr : VeyraAreaDelivery::FindCastersLingeringArea(*World, *Caster, Area->OriginAbility[0]);
+		if (!Lingering)
+		{
+			return FVeyraChannelPlan();
+		}
+		Placement.Origin = Lingering->GetActorLocation();
+		Placement.Direction = Lingering->GetPlacedShape().Direction;
+		Placement.bOriginIsCaster = false;
+		Lingering->Destroy();
+	}
 	TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, Area->Zones, Cast.Rank);
 	// What it spends of its caster's own, as it commits (ADR-018 §6).
 	for (const FVeyraContentId& Spent : Area->ConsumesCasterStatuses)

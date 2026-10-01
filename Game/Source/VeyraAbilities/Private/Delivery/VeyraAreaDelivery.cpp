@@ -24,6 +24,18 @@ FVeyraEffectFrame Place(const FVeyraAreaAbilityTuning& Area, const FVector& Cast
 	return Placement;
 }
 
+AVeyraLingeringArea* FindCastersLingeringArea(const UWorld& World, const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
+{
+	for (TActorIterator<AVeyraLingeringArea> It(&World); It; ++It)
+	{
+		if (It->GetCaster() == &Caster && It->GetAbility() == Ability && !It->IsActorBeingDestroyed())
+		{
+			return *It;
+		}
+	}
+	return nullptr;
+}
+
 double DelayAt(const UWorld& World, const UAbilitySystemComponent& Caster, const FVeyraAreaAbilityTuning& Area, const FVector& Point)
 {
 	for (const FVeyraAreaDelayWithinTuning& Within : Area.DelayWithin)

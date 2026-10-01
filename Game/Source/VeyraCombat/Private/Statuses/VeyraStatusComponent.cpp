@@ -68,6 +68,8 @@ namespace
 		case EVeyraStatusKind::SpellShield:
 		case EVeyraStatusKind::Root:
 		case EVeyraStatusKind::MobileAttack:
+		case EVeyraStatusKind::Blind:
+		case EVeyraStatusKind::Grounded:
 			break;
 		}
 		return NAME_None;
