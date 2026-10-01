@@ -291,11 +291,22 @@ void UVeyraStatusComponent::ExtendForTakedown()
 
 bool UVeyraStatusComponent::Remove(const FVeyraContentId& Id)
 {
+	return RemoveWhere(Id, nullptr);
+}
+
+bool UVeyraStatusComponent::RemoveFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source)
+{
+	return RemoveWhere(Id, &Source);
+}
+
+bool UVeyraStatusComponent::RemoveWhere(const FVeyraContentId& Id, const UAbilitySystemComponent* Source)
+{
 	UAbilitySystemComponent* Target = BoundAbilitySystem.Get();
 	TArray<FActiveGameplayEffectHandle, TInlineAllocator<2>> Ended;
 	for (int32 Index = Ledger.Entries.Num() - 1; Index >= 0; --Index)
 	{
-		if (Ledger.Entries[Index].Id == Id)
+		const FServerEntry* Held = ServerEntries.Find(Ledger.Entries[Index].Sequence);
+		if (Ledger.Entries[Index].Id == Id && (!Source || (Held && Held->Source.Get() == Source)))
 		{
 			FServerEntry Server;
 			if (ServerEntries.RemoveAndCopyValue(Ledger.Entries[Index].Sequence, Server))
