@@ -174,6 +174,8 @@ M28a added ([ADR-036](Docs/ADR/ADR-036-runtime-dense-fog-sounded-waymarks-and-th
 - in Abilities, areas' `fog` and lingering areas' `shieldTopUp` (a merging shield built on the caster and allies who stay, held back a while after damage), and `VeyraAreaDelivery::LayAt`, which the ride trail and the Mist Trail share;
 - in Vanguards, the Mist Trail passive (`UVeyraMistTrailPassive`).
 
+M28b added Sylra, The Mistwarden: Harbor Bell, Lay the Mist, Waymark, Through the White and Follow the Bell, all data.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

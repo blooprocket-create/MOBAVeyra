@@ -1275,6 +1275,57 @@
       "unitKinds": [],
       "landsOn": [],
       "attackCharges": 0
+    },
+    "sylra_sounded": {
+      "provenance": "Provisional",
+      "kind": "Sounded",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 4.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "sylra_bell_stride": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.15,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "sylra_followed_the_bell": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 4,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
     }
   },
   "targetedDamage": {
@@ -3311,6 +3362,258 @@
       "casterStatuses": [],
       "healOnHit": [],
       "delayWithin": []
+    },
+    "sylra_mist_trail": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "fog": [],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 140, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 3,
+          "pulseSeconds": 0.5,
+          "casterStatuses": [],
+          "allyStatuses": ["sylra_bell_stride", "sylra_followed_the_bell"],
+          "enemyStatuses": [],
+          "sight": "None",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": [],
+          "shieldTopUp": []
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_lay_the_mist": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [18, 17, 16, 15, 14],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 900,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "TargetPoint",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "fog": [
+        { "shape": "Circle", "radius": 350, "length": 0, "width": 0, "durationSeconds": 5 }
+      ],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_waymark": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [60],
+        "castRange": 650,
+        "windupSeconds": 0.2,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "TargetPoint",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 500, "durationSeconds": 8 },
+      "fog": [],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 8,
+          "pulseSeconds": 1,
+          "casterStatuses": [],
+          "allyStatuses": [],
+          "enemyStatuses": [],
+          "sight": "None",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": [],
+          "shieldTopUp": [
+            {
+              "shield": {
+                "id": "sylra_waymark_shield",
+                "category": "Universal",
+                "amountByRank": [14, 18, 22, 26, 30],
+                "maxHealthRatio": 0,
+                "magicPowerRatio": 0.04,
+                "durationSeconds": 2,
+                "reapply": "Merge",
+                "maxAmountMaxHealthRatio": 0.12,
+                "capGroup": [],
+                "absorbedReward": []
+              },
+              "delayAfterDamageSeconds": 2.5
+            }
+          ]
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_through_the_white": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [130, 115, 100],
+        "resourceCostByRank": [100],
+        "castRange": 1500,
+        "windupSeconds": 0.3,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "fog": [
+        { "shape": "Corridor", "radius": 0, "length": 2200, "width": 700, "durationSeconds": 6 }
+      ],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
     }
   },
   "selfBuff": {
@@ -5022,6 +5325,58 @@
             ]
           }
         ]
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "casterDash": [],
+      "returnIfHeld": [],
+      "mimic": [],
+      "endWall": []
+    },
+    "sylra_harbor_bell": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [8, 7.5, 7, 6.5, 6],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 1000,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "projectile": { "speed": 1500, "radius": 60, "range": 1000 },
+      "collision": "FirstEnemyVanguard",
+      "effects": {
+        "damage": [
+          {
+            "type": "Magic",
+            "amountByRank": [70, 110, 150, 190, 230],
+            "physicalPowerRatio": 0,
+            "magicPowerRatio": 0.6
+          }
+        ],
+        "statuses": ["sylra_sounded"],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
       },
       "passThroughEffects": {
         "damage": [],
