@@ -48,6 +48,10 @@ Code-signing certificate, anti-cheat installation, the production identity provi
     - `Game/Scripts/Publish.ps1` publishes the packaged client to a local file server, `compose.yaml`'s `releases` service.
     - The launcher installs, updates and repairs the game from that server.
     - Veyra Setup installs the launcher.
+  - **Amendment (2026-10-01): the identity provider is chosen** under [ADR-038](ADR-038-player-accounts-with-firebase-authentication.md).
+    - Players register and sign in with Firebase Authentication from the launcher.
+    - The backend verifies Firebase's ID token and issues Veyra's own launcher session, as H3 requires.
+    - The handoff to the game is unchanged.
 - Endpoints, timeouts, code lifetimes and retry policies are validated configuration, never literals.
 - Hosted vendors (identity, database host, match-server fleet, website host, CDN), anti-cheat and Perforce remain open decisions for a later ADR.
 - Tuning authored as binary Data Assets cannot be edited by agents; how tuning is authored (for example text imported into DataTables) is a scaffolding decision still to be made.

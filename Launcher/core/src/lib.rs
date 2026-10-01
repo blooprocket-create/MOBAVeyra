@@ -1,5 +1,5 @@
 //! The Veyra launcher's core (ADR-005 L1–L5, ADR-010 §5, ADR-022): its configuration, the backend
-//! conversation, the game build it launches, the launch handshake, and installing, updating,
+//! conversation, players' accounts (Firebase sign-in and registration, ADR-038), the game build it launches, the launch handshake, and installing, updating,
 //! repairing and uninstalling the game from a release store. The Tauri app and the headless
 //! `veyra-launch-cli` and `veyra-install` are thin shells over it, so they all behave the same.
 //!
@@ -7,11 +7,13 @@
 
 pub mod backend;
 pub mod config;
+pub mod firebase;
 pub mod game;
 pub mod handshake;
 pub mod install;
 pub mod launch;
 pub mod manifest;
+pub mod player;
 pub mod release;
 pub mod releases;
 pub mod secret;

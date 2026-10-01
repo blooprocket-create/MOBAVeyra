@@ -32,6 +32,8 @@ To play through all of it, `Game/Scripts/Play.ps1` starts this stack and opens t
 
 | Endpoint | Auth | Body | Returns |
 |---|---|---|---|
+| `POST /v1/register` | — | `{"providerToken", "displayName"}` | `201`, launcher session token + account. Creates the Veyra account for a Firebase ID token ([ADR-038](../Docs/ADR/ADR-038-player-accounts-with-firebase-authentication.md)) |
+| `POST /v1/login` | — | `{"providerToken"}` | launcher session token + account; `404 not_registered` when the Firebase user has no Veyra account yet |
 | `POST /v1/dev/login` | — | `{"accountName"}` | launcher session token. **Local only**; the route does not exist unless dev login is enabled |
 | `POST /v1/launch-codes` | `Bearer <launcher token>` | `{"buildVersion"}` | single-use launch code |
 | `POST /v1/game-sessions` | — | `{"launchCode", "buildVersion"}` | game session token + account |
@@ -45,6 +47,8 @@ Rules the code enforces:
 - Dev login only works for accounts created by dev seeding. If a seeded name belongs to an ordinary account, the backend refuses to start.
 - Launcher and game sessions are not interchangeable.
 - Every auth failure returns the same `401 invalid_credentials`.
+- Players register and sign in with Firebase Authentication, in the launcher (ADR-038). The backend verifies the Firebase ID token itself (Google's published keys, the project ID as audience and issuer, expiry), links the Firebase user ID to a Veyra account in `identity.provider_links`, and from then on issues only Veyra's own sessions. Firebase never reaches the game. With `playerLogin.provider` set to `none`, `/v1/login` and `/v1/register` answer `404 not_found`.
+- A display name is 3–16 ASCII letters, digits and underscores, and unique regardless of letter case (provisional, ADR-038 §4). Taking a name and linking the Firebase user happen in one transaction: `409 display_name_taken` or `409 already_registered` leave nothing behind.
 
 ### Social and party
 
@@ -257,7 +261,7 @@ A match created with `POST /v1/dev/matches` before the game starts waits behind 
 
 ## Configuration
 
-Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), solo Custom practice (`customPractice`: whether it is on, the mode ID its matches record, the host's side, the pick time, how many Vanguards a side may hold, and the practice bots, provisionally four enemies in the bots' seat order, Mid, Top, Jungle and Bottom: Oriel, Qazharr, Gorraveth and Bryn), custom lobbies (`customLobby`: whether they are on, the mode ID their matches record, the seats a side holds, the pick and invite times, and the range a host may set starting Gold in), the matchmaker (`matchmaking`: how often it runs and its search limit, and each mode's `matchmaking`), Match Found (`matchFound`), Casual Select (`casualSelect`), champion select's upkeep (`selection`), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
+Everything tunable lives in [`config/local.json`](config/local.json): session and launch-code lifetimes, HTTP timeouts, the request size limit, the seeded dev accounts (`DevOne` … `DevTen`), player login (`playerLogin`: the identity provider, `firebase` or `none`, and for Firebase the project ID, the URL of Google's token-signing keys, the timeout for fetching them and the clock skew allowed on a token's times), party size, invite lifetime and default privacy, the mode list (Ranked is present but disabled, per the Modes & Access Bible), solo Custom practice (`customPractice`: whether it is on, the mode ID its matches record, the host's side, the pick time, how many Vanguards a side may hold, and the practice bots, provisionally four enemies in the bots' seat order, Mid, Top, Jungle and Bottom: Oriel, Qazharr, Gorraveth and Bryn), custom lobbies (`customLobby`: whether they are on, the mode ID their matches record, the seats a side holds, the pick and invite times, and the range a host may set starting Gold in), the matchmaker (`matchmaking`: how often it runs and its search limit, and each mode's `matchmaking`), Match Found (`matchFound`), Casual Select (`casualSelect`), champion select's upkeep (`selection`), match lifetimes and the allocator (the Docker endpoint, the match-server image and network, the host ports players connect to and the server's arguments). The file is validated at startup; a missing or unknown field stops the backend with an error instead of falling back to a default. Dev login is refused unless `environment` is `local`. The database URL comes from the `VEYRA_DATABASE_URL` environment variable, never from the file.
 
 ## Layout
 
@@ -269,6 +273,7 @@ Backend/
 └── internal/
     ├── config/            config loading and validation
     ├── identity/          accounts, sessions, launch codes (domain rules)
+    ├── firebaseauth/      Firebase ID token verification (the identity provider)
     ├── social/            friends, friend requests, blocks
     ├── party/             parties, invites, Ready, queue lock
     ├── lobby/             custom lobbies: seats, bots, the session's rules, invites
