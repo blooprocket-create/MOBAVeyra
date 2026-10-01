@@ -7,7 +7,7 @@
 #include "VeyraPingTypes.generated.h"
 
 /**
- * What a team ping says (ADR-020 §2). Provisional: League's two basic pings stand in until the ping
+ * What a team ping says (ADR-020 §2). Provisional: two basic pings stand in until the ping
  * system is designed (Chat & Communication Bible, open items).
  */
 UENUM()

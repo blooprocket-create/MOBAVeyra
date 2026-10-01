@@ -1,6 +1,6 @@
 # ADR-023: Critical strikes and the rest of the Item Bible's catalog
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent. §9 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M17 pull request that adds it.
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §9 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the M17 pull request that adds it.
 **Date:** 2026-09-30
 **Related:**
 - [ADR-009](ADR-009-runtime-combat-primitives.md): statuses, shields and the hostile-damage event.
@@ -72,14 +72,14 @@ Every value below is Provisional data in `Items.json` and its Attunement maps; �
   - A new status kind, Magic Resist Reduction, carries it. Validation refuses stacks that together would remove all of a Magic Resistance.
 - **Razorwheel Prime (T3):** Razorwheel + War Harness + Quickcoil.
   - Upgrading from Razorwheel removes Cleave, since an item's Active is its own (ADR-012 §3).
-  - Attunement **Endless Cleave** (`endlessCleave`): each basic attack also deals a share of its base damage (the holder's Physical and Magic Power at the attack profile's ratios, before riders and crits) as Physical damage to the other enemies around the primary target, as League's Ravenous Hydra does. A ranged holder's share is lower. It never cleaves around a structure, nor hits one, and its damage is a proc, so it never cleaves again.
+  - Attunement **Endless Cleave** (`endlessCleave`): each basic attack also deals a share of its base damage (the holder's Physical and Magic Power at the attack profile's ratios, before riders and crits) as Physical damage to the other enemies around the primary target. A ranged holder's share is lower. It never cleaves around a structure, nor hits one, and its damage is a proc, so it never cleaves again.
   - Active **Seize Momentum** (`seize_momentum` in `Abilities.json`, an area archetype, all data):
     - it deals Physical damage around the user;
-    - every enemy hit is slowed, as League's Stridebreaker slows (the bible names Vanguards; the zone's statuses do not tell kinds apart);
+    - every enemy hit is slowed (the bible names Vanguards; the zone's statuses do not tell kinds apart);
     - the user gains a stack of Movement Speed for each enemy Vanguard hit (`casterStatusesPerVanguard`), up to a cap, for the same time.
 - **Siegeheart Core (T3):** Reinforced Chassis + Siege Frame.
   - Attunement **Tempered by Conflict** (`temperedByConflict`):
-    - an enemy Vanguard that stays within a radius of the holder for a time becomes Tempered. The server looks every `checkSeconds`; an enemy that leaves the radius, or dies, loses its charge, as League's Heartsteel does;
+    - an enemy Vanguard that stays within a radius of the holder for a time becomes Tempered. The server looks every `checkSeconds`; an enemy that leaves the radius, or dies, loses its charge;
     - the holder's next basic attack against it consumes Tempered, dealing bonus Physical damage as a proc (flat + a fraction of the holder's Max Health);
     - the holder permanently gains Max Health equal to a fraction of that bonus;
     - each enemy has its own cooldown, which starts when it is consumed.
@@ -134,18 +134,18 @@ The rule that a build never lists an item another consumes still holds.
 | Siegeheart Core | + 800 recipe; Health 650, Health Regeneration 3, Ability Haste 15; Tempered after 3 s within 700, looked for every 0.25 s; 50 + 0.08 of Max Health; 0.1 of it as permanent Max Health; 30 s per enemy |
 | Crit | damage 1.75, cap 1.0, overflow 0.5 (Canon, Combat §5) |
 
-### 9. League answers where canon is silent (for the author to overturn)
+### 9. Provisional answers where canon is silent (for the author to overturn)
 
-1. **Crit randomness:** decided by the author (2026-09-30): crits are drawn from bags, one per source of chance (§10). This had been a plain roll per attack, with League's pseudo-random distribution left open.
-2. **Crit and structures:** crits apply to towers and the Prime Well, as League's do, with their bonus at Structure Effectiveness (Combat §33, canon).
-3. **Arcane Boots' amplification** is a percentage of Magic Power, the model Item §5 leaves open. League's Sorcerer's Shoes give flat Magic Penetration instead. The percentage keeps the bible's words; playtest decides.
-4. **Flux Flask** as League's Refillable Potion: 2 charges, refilled at the fountain (respawn included) and, per canon, by a secured Flux Well.
-5. **Tempered by Conflict** as League's Heartsteel: proximity for 3 s, a charged hit, permanent Max Health lost on selling, 30 s per enemy.
-6. **Endless Cleave** as League's Hydra: centred on the target, reduced for ranged holders, never on structures.
-7. **Seize Momentum** as League's Stridebreaker: only Vanguards are slowed, and minions take its damage.
+1. **Crit randomness:** decided by the author (2026-09-30): crits are drawn from bags, one per source of chance (§10). This had been a plain roll per attack, with a pseudo-random distribution left open.
+2. **Crit and structures:** crits apply to towers and the Prime Well, with their bonus at Structure Effectiveness (Combat §33, canon).
+3. **Arcane Boots' amplification** is a percentage of Magic Power, the model Item §5 leaves open; flat Magic Penetration would be the alternative. The percentage keeps the bible's words; playtest decides.
+4. **Flux Flask** as a refillable consumable: 2 charges, refilled at the fountain (respawn included) and, per canon, by a secured Flux Well.
+5. **Tempered by Conflict:** proximity for 3 s, a charged hit, permanent Max Health lost on selling, 30 s per enemy.
+6. **Endless Cleave:** centred on the target, reduced for ranged holders, never on structures.
+7. **Seize Momentum:** only Vanguards are slowed, and minions take its damage.
 8. **Reprisal Guard** counts damage absorbed by shields and never counts structures; its cooldown is global.
-9. **Fracture** as League's Abyssal Mask: percentage stacks refreshing together.
-10. **Drag** as League's Rylai's Crystal Scepter: every damaging ability slows, damage over time and areas included.
+9. **Fracture:** percentage stacks refreshing together.
+10. **Drag:** every damaging ability slows, damage over time and areas included.
 11. **Convergence** is primed and consumed only by direct ability damage, never by damage over time or Proc.
 
 ### 10. Crit outcome bags (author ruling, 2026-09-30)

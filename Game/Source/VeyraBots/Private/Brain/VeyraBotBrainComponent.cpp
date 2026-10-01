@@ -106,12 +106,11 @@ void UVeyraBotBrainComponent::RankUp(AVeyraGameMode& GameMode)
 	{
 		return;
 	}
-	const FVeyraProgressionTuning& Tuning = UVeyraProgressionTuningSubsystem::Get();
 	while (Progression->GetUnspentSkillPoints() > 0)
 	{
-		const TOptional<EVeyraAbilitySlot> Slot = VeyraBotRules::NextRank(Behaviour->SkillPriority, [Progression, &Tuning](EVeyraAbilitySlot Candidate) {
-			return VeyraProgression::CheckRankUp(Candidate, Progression->GetRank(Candidate), Progression->GetLevel(), Progression->GetUnspentSkillPoints(), Tuning)
-				== EVeyraRankRefusal::None;
+		// Through the unit's own rank shape, which may rank Q, W and E further or learn R from the start (ADR-031 §2).
+		const TOptional<EVeyraAbilitySlot> Slot = VeyraBotRules::NextRank(Behaviour->SkillPriority, [Progression](EVeyraAbilitySlot Candidate) {
+			return Progression->CheckRankUp(Candidate) == EVeyraRankRefusal::None;
 		});
 		if (!Slot.IsSet() || Progression->AllocateRank(Slot.GetValue()) != EVeyraRankRefusal::None)
 		{

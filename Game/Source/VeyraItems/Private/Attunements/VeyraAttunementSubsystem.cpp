@@ -538,8 +538,8 @@ void UVeyraAttunementSubsystem::ReprisalGuard(const FVeyraContentId& Attunement,
 void UVeyraAttunementSubsystem::Drag(const FVeyraContentId& Attunement, const FVeyraDamageDealtEvent& Event, UAbilitySystemComponent& Holder,
 	UAbilitySystemComponent& Target)
 {
-	// Damaging abilities briefly slow (Item Bible §9), their damage over time too, as League's Rylai's
-	// Crystal Scepter (ADR-023 §9).
+	// Damaging abilities briefly slow (Item Bible §9), their damage over time too
+	// (ADR-023 §9).
 	const bool bAbilityDamage = Event.Delivery == EVeyraDamageDelivery::Ability || Event.Delivery == EVeyraDamageDelivery::Periodic;
 	if (!bAbilityDamage || !VeyraTargeting::IsAlive(Target.GetOwner()))
 	{
@@ -638,7 +638,7 @@ void UVeyraAttunementSubsystem::EndlessCleave(const FVeyraContentId& Attunement,
 	// Sides belong to the participant, which outlives its body.
 	const AActor* Side = Holder.GetOwner();
 	const TArray<AActor*> Units = VeyraShapes::GatherUnits(*GetWorld(), FVeyraPlacedShape{ Around, Struck->GetActorLocation(), FVector::ForwardVector },
-		[Side, Struck](const AActor& Unit) { return &Unit != Struck && VeyraTargeting::AreHostile(Side, &Unit); });
+		[Side, Struck](const AActor& Unit) { return &Unit != Struck && VeyraTargeting::CanHitEnemy(Side, Unit); });
 	for (AActor* Unit : Units)
 	{
 		if (UAbilitySystemComponent* Other = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit))

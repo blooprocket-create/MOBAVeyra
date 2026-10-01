@@ -153,6 +153,27 @@ namespace VeyraNetTests
 				});
 		}
 
+		TEST_METHOD(AChaseALockStopsGoesOnOnceItEnds)
+		{
+			// Fixture value: a stun shorter than the chase.
+			static constexpr double BriefSeconds = 0.3;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Prepare the duel"), [this](FState& State) { PrepareDuel(State); })
+				.ThenServer(TEXT("Chase, and be stunned on the way"), [this](FState& State) {
+					AVeyraPlayerState* Attacker = ParticipantOf(State, 0);
+					AVeyraVanguardController* Controller = Attacker->GetVanguardController();
+					ASSERT_THAT(IsTrue(Controller->AttackUnit(*ParticipantOf(State, 1)->GetPawn()) == EVeyraOrderRejection::None));
+					ASSERT_THAT(IsTrue(Controller->GetPathFollowingComponent()->GetStatus() == EPathFollowingStatus::Moving, TEXT("it chases")));
+					FVeyraStatusSpec Stun;
+					Stun.Id = FVeyraContentId::FromText(TEXT("test_brief_stun")).GetValue();
+					Stun.Kind = EVeyraStatusKind::Stun;
+					Stun.DurationSeconds = BriefSeconds;
+					ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*ParticipantOf(State, 1)->GetAbilitySystemComponent(), *Attacker->GetAbilitySystemComponent(), Stun)));
+					ASSERT_THAT(IsTrue(Controller->GetPathFollowingComponent()->GetStatus() == EPathFollowingStatus::Idle, TEXT("the stun stops its path")));
+				})
+				.UntilServer(TEXT("Free again, it chases on and hits"), [](FState& State) { return HealthLost(ParticipantOf(State, 1)) > 0.0; });
+		}
+
 		TEST_METHOD(AMoveOrderEndsAWindupUnlessTheAttackerIsMobile)
 		{
 			// Fixture values: the target within reach, a step aside, and a passive's half of the speed.

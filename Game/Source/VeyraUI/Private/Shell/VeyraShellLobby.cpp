@@ -26,7 +26,7 @@
 
 #define LOCTEXT_NAMESPACE "VeyraShell"
 
-// The custom lobby (ADR-021) and the friends panel, laid out as League's custom lobby and social panel.
+// The custom lobby (ADR-021) and the friends panel.
 namespace
 {
 	using VeyraShellStyle::EVeyraShellSurface;
@@ -103,7 +103,7 @@ void UVeyraShellScreen::BuildLobby(const FVeyraClientSnapshot& Snapshot)
 	AddText(*Main, LOCTEXT("LobbyEyebrow", "Custom Game"), LobbyRole(EVeyraShellText::Eyebrow));
 	AddText(*Main, Model.Title, LobbyRole(EVeyraShellText::Title));
 
-	// Both sides, as League's custom lobby shows its two teams side by side.
+	// Both sides, side by side.
 	UHorizontalBox* Sides = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	Sides->AddChildToHorizontalBox(&MakeLobbySide(VeyraShellModels::SideName(TEXT("A")), Model.SideA))->SetVerticalAlignment(VAlign_Top);
 	AddLobbyGap(*WidgetTree, *Sides, Style.Spacing * 2.0f);

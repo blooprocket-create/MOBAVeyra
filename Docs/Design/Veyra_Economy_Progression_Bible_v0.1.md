@@ -12,7 +12,7 @@
 
 - Each Vanguard has **individual Gold and XP**. These resources are not pooled, transferred, or traded between players.
 - **Team Flux is a separate shared team resource**, not currency and not individual XP. It primarily strengthens allied lane Fluxborn and, through *permanent* Flux thresholds, unlocks Flux Spell slots. It does not grant automatic escalating Vanguard stats.
-- **Passive Gold (ruled 2026-09-28):** every Vanguard earns a steady passive Gold income while the match is live, dead or alive, as in League of Legends. Prototype setting: 15 Gold every 10 seconds (90 a minute), beginning shortly after the match goes live. There is no **passive XP**. Players earn XP, and all other Gold, through explicitly specified sources. Fixed equal **starting Gold** is the one guaranteed initial Gold grant, sized for an opening Tier 1 item or item plus consumable.
+- **Passive Gold (ruled 2026-09-28):** every Vanguard earns a steady passive Gold income while the match is live, dead or alive. Prototype setting: 15 Gold every 10 seconds (90 a minute), beginning shortly after the match goes live. There is no **passive XP**. Players earn XP, and all other Gold, through explicitly specified sources. Fixed equal **starting Gold** is the one guaranteed initial Gold grant, sized for an opening Tier 1 item or item plus consumable.
 - Gold, XP, item and progression calculations use full fractional internal precision. UI may round amounts for display; rounding never changes affordability, XP thresholds, splits, or stored balances.
 - Everyone starts at Vanguard **Level 1**. The level cap is **18**.
 - Map structure permits free lane and role assignments. Reward sharing and opportunity costs, not forced role locks, shape play.

@@ -314,7 +314,7 @@ namespace VeyraMatchTests
 			ASSERT_THAT(IsTrue(CheckAssignedFluxSpells({ RosterContentId(TEXT("blink")), RosterContentId(TEXT("mend")) }, Roster).IsEmpty()));
 			ASSERT_THAT(IsTrue(CheckAssignedFluxSpells({ FVeyraContentId(), RosterContentId(TEXT("mend")) }, Roster).IsEmpty(), TEXT("an empty slot")));
 			ASSERT_THAT(IsTrue(CheckAssignedFluxSpells({}, Roster).IsEmpty(), TEXT("none at all")));
-			ASSERT_THAT(IsTrue(CheckAssignedFluxSpells({ RosterContentId(TEXT("ignite")) }, Roster).Contains(TEXT("roster"))));
+			ASSERT_THAT(IsTrue(CheckAssignedFluxSpells({ RosterContentId(TEXT("scorch")) }, Roster).Contains(TEXT("roster"))));
 			ASSERT_THAT(IsTrue(CheckAssignedFluxSpells({ RosterContentId(TEXT("mend")), RosterContentId(TEXT("mend")) }, Roster).Contains(TEXT("two slots"))));
 			ASSERT_THAT(IsFalse(CheckAssignedFluxSpells({ FVeyraContentId(), FVeyraContentId(), FVeyraContentId() }, Roster).IsEmpty(), TEXT("more than two slots")));
 		}

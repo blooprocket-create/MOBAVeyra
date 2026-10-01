@@ -162,7 +162,7 @@ void AVeyraWildlifeController::WalkHome(AVeyraWildlife& Body)
 	}
 	if (bHome)
 	{
-		// Home, it is whole again: a reset, as League's camps reset.
+		// Home, it is whole again: a reset.
 		bReturning = false;
 		Halt();
 		UAbilitySystemComponent& AbilitySystem = *Body.GetAbilitySystemComponent();

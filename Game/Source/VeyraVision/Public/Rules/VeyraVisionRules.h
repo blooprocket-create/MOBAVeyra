@@ -4,6 +4,7 @@
 
 #include "Shapes/VeyraShapes.h"
 #include "Math/Vector2D.h"
+#include "Targeting/VeyraVisibility.h"
 #include "Teams/VeyraTeam.h"
 
 /** Something that gives its team vision around it (Vision Bible §1). */
@@ -52,4 +53,10 @@ namespace VeyraVisionRules
 
 	/** The first of Circles holding Point, or INDEX_NONE: the circle a presence ping names (ADR-016 §5). */
 	VEYRAVISION_API int32 CircleAt(TConstArrayView<FVeyraFogCircle> Circles, const FVector2D& Point);
+
+	/**
+	 * The circles Dense Fog of Shape is made of (ADR-036 §1): a circle is itself; a corridor is circles of
+	 * half its width, the first and last within its ends, each the next's radius apart so they overlap.
+	 */
+	VEYRAVISION_API TArray<FVeyraFogCircle> CirclesOf(const FVeyraFogShape& Shape);
 }

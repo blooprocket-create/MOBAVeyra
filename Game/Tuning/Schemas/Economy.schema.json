@@ -93,7 +93,7 @@
       }
     },
     "passiveGold": {
-      "description": "Passive Gold (author ruling 2026-09-28, amending §1): every participant earns a steady income while the match is live, dead or alive, as in League of Legends. There is still no passive XP.",
+      "description": "Passive Gold (author ruling 2026-09-28, amending §1): every participant earns a steady income while the match is live, dead or alive. There is still no passive XP.",
       "type": "object",
       "additionalProperties": false,
       "required": ["provenance", "perPayment", "intervalSeconds", "startSeconds"],
@@ -101,7 +101,7 @@
         "provenance": { "$ref": "#/definitions/provenance" },
         "perPayment": { "description": "The Gold each participant receives at each payment (the author's ruling: 15 every 10 seconds, 90 a minute).", "type": "number", "minimum": 0 },
         "intervalSeconds": { "description": "How often it is paid, in seconds of live match.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
-        "startSeconds": { "description": "How long after the match goes live the income begins, in seconds (League starts it as the first minions spawn).", "type": "number", "minimum": 0 }
+        "startSeconds": { "description": "How long after the match goes live the income begins, in seconds.", "type": "number", "minimum": 0 }
       }
     },
     "experience": {

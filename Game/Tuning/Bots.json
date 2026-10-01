@@ -268,6 +268,91 @@
         "raska_bail_out": "Never",
         "raska_last_exit": "Damage"
       }
+    },
+    "tavi": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "tavi_catch": "Damage",
+        "tavi_hide": "Escape",
+        "tavi_tag": "Engage",
+        "tavi_tag_again": "Damage",
+        "tavi_ready_or_not": "Secure",
+        "tavi_ready_or_not_again": "Secure"
+      }
+    },
+    "angeru": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "cycler_core", "sovereign_edge", "razorwheel", "striker_assembly"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "angeru_shadow_needle": "Damage",
+        "angeru_false_body": "Engage",
+        "angeru_black_step": "Engage",
+        "angeru_forsake_the_schools": "Damage",
+        "angeru_flowing_cut": "Damage",
+        "angeru_severing_arc": "Damage",
+        "angeru_passing_step": "Engage"
+      }
+    },
+    "varkesh": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "varkesh_slagshot": "Damage",
+        "varkesh_tempered_shell": "Defend",
+        "varkesh_molten_ground": "Damage",
+        "varkesh_forge_divide": "Engage"
+      }
+    },
+    "relay": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "relay_rapid_discharge": "Empower",
+        "relay_overcharge": "Defend",
+        "relay_magnetic_field": "Damage",
+        "relay_full_grid": "Engage"
+      }
+    },
+    "marek": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "starfall_prism", "nullglass_shard", "spellguard_plate"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "marek_witchfire": "Damage",
+        "marek_hunt": "Damage",
+        "marek_cross_the_chain": "Damage",
+        "marek_hell_on_a_leash": "Engage"
+      }
+    },
+    "neris": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "neris_breaking_wave": "Engage",
+        "neris_breaking_wave_storm": "Engage",
+        "neris_little_current": "Defend",
+        "neris_little_current_storm": "Damage",
+        "neris_change_the_weather": "Damage",
+        "neris_tidebreaker": "Engage",
+        "neris_tidebreaker_storm": "Engage"
+      }
+    },
+    "sylra": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "sylra_harbor_bell": "Damage",
+        "sylra_lay_the_mist": "Escape",
+        "sylra_waymark": "Defend",
+        "sylra_through_the_white": "Engage"
+      }
     }
   }
 }

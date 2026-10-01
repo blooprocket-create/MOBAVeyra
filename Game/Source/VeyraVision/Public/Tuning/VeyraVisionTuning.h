@@ -43,6 +43,10 @@ struct FVeyraSightTuning
 	/** A placed ward. Inside Dense Fog it sees no enemy Vanguard (Vision Bible §4). */
 	UPROPERTY()
 	double Ward = 0.0;
+
+	/** A Vanguard's companion (ADR-034 §4); a banished one sees nothing. */
+	UPROPERTY()
+	double Companion = 0.0;
 };
 
 /** The Persistent Ward's carried charges (Vision Bible §4). */
@@ -165,7 +169,7 @@ struct FVeyraVisionTuning
 	GENERATED_BODY()
 
 	/** The Vision.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 3;
+	static constexpr int32 SchemaVersion = 4;
 
 	UPROPERTY()
 	FVeyraVisionUpdateTuning Update;

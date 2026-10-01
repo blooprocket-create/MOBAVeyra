@@ -131,7 +131,7 @@ struct FVeyraBattlegroundLayout
 	UPROPERTY()
 	FVeyraBaseLayout Base;
 
-	/** Team A's Dense Fog, where League's map has its brush (ADR-016 §4, §11); Team B's is its mirror. */
+	/** Team A's Dense Fog (ADR-016 §4, §11); Team B's is its mirror. */
 	UPROPERTY()
 	TArray<FVeyraFogLayout> DenseFog;
 };

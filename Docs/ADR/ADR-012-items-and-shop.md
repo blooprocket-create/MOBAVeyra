@@ -1,6 +1,6 @@
 # ADR-012: Items and the shop: inventory, the purchase queue, equipment stats and Recall
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent; §9 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M8 pull request that adds it.  
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent; §9 lists every such answer for the author to overturn. It becomes Accepted when the author merges the M8 pull request that adds it.  
 **Date:** 2026-09-28  
 **Related:** [ADR-006](ADR-006-unreal-project-scaffold.md) (§3 modules and layers, §4 GAS placement), [ADR-008](ADR-008-vanguard-definitions-and-ability-composition.md) (content as data, archetype maps, provenance; open item "Ability Haste as a stat, and item-driven modifiers"), [ADR-009](ADR-009-runtime-combat-primitives.md) (statuses, cooldowns), [ADR-011](ADR-011-battleground-runtime.md) (§11 Gold, fountain recovery; open item "Recall, the shop and buyback"), [Item Bible](../Design/Veyra_Item_Bible_v0.3.md), [Economy & Progression Bible](../Design/Veyra_Economy_Progression_Bible_v0.1.md) §10–§12, §16, [Combat Bible](../Design/Veyra_Combat_Bible_v0.5.md) §5, §6, §21, §33, §41, [Architecture Constitution](../../ARCHITECTURE.md) §1.1, §1.3, §1.5, [Project Structure](../../PROJECT_STRUCTURE.md) §2 (VeyraItems, VeyraEconomy).
 
@@ -12,7 +12,7 @@ Several facts in the code shape the design:
 
 1. **Items have no layer they can live in.** `ModuleLayers.json` notes "Items later" in the Abilities layer, but an item Active runs as an ability archetype, and a module may not depend on its own layer — the problem ADR-011 §2 solved for World and Flux.
 2. **Ability Haste does not exist.** The cooldown component keeps each cooldown's starting duration so Ability Haste can rescale it later; nothing grants it.
-3. **Percentage modifiers multiply** (Combat §41, `VeyraAttributePolicy.h`). Stacked Attack Speed items would compound, not add as League's do.
+3. **Percentage modifiers multiply** (Combat §41, `VeyraAttributePolicy.h`). Stacked Attack Speed items would compound rather than add.
 4. **Economy cannot see items**, yet validating the pending queue needs recipe and slot simulation.
 5. **The fountain is Match's.** Match owns the side's start and the fountain-recovery radius (`Match.json`); Items sits below Match.
 
@@ -22,8 +22,8 @@ Several facts in the code shape the design:
 
 - The shop and inventory: six slots; the Item Bible's T1 components (not Keensteel), Swift and War Boots, twelve T2 assemblies, four T3 Masterworks whose Attunements need no new combat hook (Weight of War, Overcharge, Spool Up, Overcycle), and Field Tonic.
 - Buying, the remote queue, cancellation and revalidation, delivery at the fountain and on death, selling and undo.
-- Item use by inventory slot (author ruling, 2026-09-28): keys 1–6 use the item in slots 1–6, as in League. A consumable is used up (Field Tonic); an item with an Active casts it (Razorwheel's Cleave) through Abilities by the ability's ID, not through the Q/W/E/R slots. An item Active's cooldown belongs to the item and uses Item Haste, never Ability Haste (Combat §21).
-  - **Amendment (2026-09-29, M11; ADR-016 §6):** the default keys become League's 1 2 3 5 6 7, as the vision tool takes 4. The slots are unchanged, and every key stays rebindable. ADR-016 §11 lists this among the League answers for the author to overturn.
+- Item use by inventory slot (author ruling, 2026-09-28): keys 1–6 use the item in slots 1–6. A consumable is used up (Field Tonic); an item with an Active casts it (Razorwheel's Cleave) through Abilities by the ability's ID, not through the Q/W/E/R slots. An item Active's cooldown belongs to the item and uses Item Haste, never Ability Haste (Combat §21).
+  - **Amendment (2026-09-29, M11; ADR-016 §6):** the default keys become 1 2 3 5 6 7, as the vision tool takes 4. The slots are unchanged, and every key stays rebindable. ADR-016 §11 lists this among the provisional answers for the author to overturn.
 - Recall.
 - **Deferred:** crit and its items; Arcane Boots (its amplification model is open); Flux Flask (needs Flux Wells); the remaining Attunements; Tier 4; buyback; vision-tool and Flux Spell swaps; Item Haste; Lifesteal and Omnivamp (they need Combat §6's healing categories).
 
@@ -43,14 +43,14 @@ A new **Items** layer holds **VeyraItems**, directly above Abilities and below B
 
 ### 5. The inventory and queue rules are Items' pure functions
 
-`VeyraInventoryRules` simulates the six slots plus the pending results (§11.1): recipe consumption with reservation, no component consumed twice, uniqueness (§9.2), stack limits, cancellation with dependents, revalidation after any change, resale at the data's fraction of the present form's total cost, and undo while at the fountain and unused (§12). `UVeyraInventoryComponent` (on the PlayerState, so it survives death) holds the slots, replicated to everyone as League's scoreboard shows them, and the pending queue, replicated to its owner. `UVeyraShopSubsystem` is the server's transaction owner: it applies each outcome atomically — Gold through Economy, slots through the component.
+`VeyraInventoryRules` simulates the six slots plus the pending results (§11.1): recipe consumption with reservation, no component consumed twice, uniqueness (§9.2), stack limits, cancellation with dependents, revalidation after any change, resale at the data's fraction of the present form's total cost, and undo while at the fountain and unused (§12). `UVeyraInventoryComponent` (on the PlayerState, so it survives death) holds the slots, replicated to everyone since a player's items are public, and the pending queue, replicated to its owner. `UVeyraShopSubsystem` is the server's transaction owner: it applies each outcome atomically — Gold through Economy, slots through the component.
 
 ### 6. Equipment stats through one Combat verb
 
 `VeyraCombat::SetEquipmentStats(ASC, FVeyraEquipmentStats)` replaces one infinite native effect with the inventory's summed flat stats and percentage factors on every change, as `SetUnitScaling` does (ADR-011 §10); Max Health keeps its percentage (§41). Combat gains:
 
 - **Ability Haste** (a new attribute, floored at 0, Combat §39): a cooldown lasts base × 100 / (100 + Ability Haste) (§21); gaining or losing Haste while a cooldown runs rescales its remaining time proportionally (§21), so the cooldown ledger rescales its running entries whenever the attribute changes.
-- **Bonus Attack Speed** adds to level growth rather than compounding: an item's fraction becomes a flat Attack Speed modifier worth the Vanguard's base Attack Speed times that fraction, so base × (1 + growth) + base × bonus = base × (1 + growth + bonus). Statuses still multiply on top. This is §41's "unless explicitly stated otherwise", stated here, and matches League.
+- **Bonus Attack Speed** adds to level growth rather than compounding: an item's fraction becomes a flat Attack Speed modifier worth the Vanguard's base Attack Speed times that fraction, so base × (1 + growth) + base × bonus = base × (1 + growth + bonus). Statuses still multiply on top. This is §41's "unless explicitly stated otherwise", stated here.
 
 ### 7. Match routes the fountain and forwards requests
 
@@ -60,7 +60,7 @@ Match's fountain check tracks each participant entering and leaving their own fo
 
 A channel on a world-time timer (`Match.json` `recall`), interrupted by a new move, attack or cast order (item Actives included), by hostile damage (Combat's hostile-damage event), by an interruption (a Stun or a displacement, Combat §9) or by death; on completion the living Vanguard is moved to its side's start. It is refused while dead, paused or ended, under crowd control that stops casting, and while another cast holds the Vanguard (its windup, channel or recovery), as a cast is. A channel sits in `UVeyraRecallComponent` on the PlayerState, which replicates its start and end for the HUD and watches Combat's events itself while it runs; the game mode starts it, ends it on each order the Vanguard takes, and moves the Vanguard home.
 
-### 9. League answers where canon is silent (for the author to overturn)
+### 9. Provisional answers where canon is silent (for the author to overturn)
 
 1. "At the fountain" is the fountain-recovery zone; a purchase there is delivered at once.
 2. Each T3 is unique per player; a player owns at most one pair of Boots; T1 and T2 may repeat.
@@ -73,13 +73,13 @@ A channel on a world-time timer (`Match.json` `recall`), interrupted by a new mo
 9. A dead Vanguard shops as if at its fountain: purchases are delivered at once and give nothing until respawn, and selling and undo work (Economy §10: equipment bought while dead "is assigned at the fountain").
 10. A recipe buys its missing components as part of the purchase, and uses owned ones (recursively) where it can: the completion cost is always paid, as Item §1 requires.
 11. Using a consumable does not interrupt Recall; every other order does.
-12. P opens the shop and B recalls, League's default keys; Escape closes an open shop before it opens the menu.
+12. P opens the shop and B recalls by default; Escape closes an open shop before it opens the menu.
 
 ### 10. Values are data
 
 | Area | Owner | Values (all Provisional) |
 |---|---|---|
-| Catalog | `Items.json` | League-like: T1 250–450 Gold; T2 total 700–1300; T3 total 2600–3200; Field Tonic 50 for 120 Health over 15 s, stack 5 |
+| Catalog | `Items.json` | T1 250–450 Gold; T2 total 700–1300; T3 total 2600–3200; Field Tonic 50 for 120 Health over 15 s, stack 5 |
 | Resale | `Items.json` | 70% of the present form's total cost (Economy §12 prototype) |
 | Recall | `Match.json` | Channel 8 s |
 | Starting Gold | `Economy.json` | 500 (M7), sized for a T1 item or a component and Tonics (Economy §10) |
@@ -88,11 +88,11 @@ A channel on a world-time timer (`Match.json` `recall`), interrupted by a new mo
 
 The shop is a UMG screen built in C++ in VeyraUI, beside the in-match menu (ADR-010 §4), and decides nothing. Its model reads the owner's replicated Gold and inventory and prices every item with `VeyraInventory::Quote`, the rule the server prices by, so it shows what the server will charge. So that it can offer selling and undo only when they work, the inventory replicates to its owner whether the shop is open to it (at the fountain, or dead) and how many purchases undo can take back. Each button asks through the player controller; the server checks the request again and the screen shows its refusal. The greybox HUD gains an item bar (keys 1–6, each slot's item, stack and Active cooldown, and the purchases waiting) and Recall's channel bar. Item names and descriptions live in the string table `Game/Text/VeyraText.csv`, and a test holds the catalog to it.
 
-**Amendment (2026-09-29, M15; ADR-020 §3):** the screen takes League's layout: quick-buy panels, a tile grid by tier, the chosen item's pane with its recipe, what it builds into and the one purchase button, and a foot with sale, undo, the waiting purchases and Gold. A tile chooses; the button buys. Each tile, and each slot of the HUD's item bar, shows the item's icon (ConceptArt/Items, imported by `Game/Scripts/BuildIconArt.ps1 -Kind Items` as `/Game/Veyra/UI/Items/T_<id>_Icon`), or its initials until it has one.
+**Amendment (2026-09-29, M15; ADR-020 §3):** the screen takes a new layout: quick-buy panels, a tile grid by tier, the chosen item's pane with its recipe, what it builds into and the one purchase button, and a foot with sale, undo, the waiting purchases and Gold. A tile chooses; the button buys. Each tile, and each slot of the HUD's item bar, shows the item's icon (ConceptArt/Items, imported by `Game/Scripts/BuildIconArt.ps1 -Kind Items` as `/Game/Veyra/UI/Items/T_<id>_Icon`), or its initials until it has one.
 
 ## Consequences
 
-- Gold has a use, and Vanguards diverge by build as in League.
+- Gold has a use, and Vanguards diverge by build.
 - One new module and layer; Combat gains two stats and a verb; Economy gains transactions; Match gains Recall and routing, not item logic.
 - The queue rules are the riskiest part and are tested as pure functions, one test per canon sentence.
 
@@ -112,4 +112,4 @@ The shop is a UMG screen built in C++ in VeyraUI, beside the in-match menu (ADR-
 
 - **VeyraItems in the Abilities layer**, with Actives as Items-owned code: duplicates the archetypes Abilities already runs.
 - **The pending queue in Economy**: Economy would need recipes and slots, which are Items' by §16.
-- **Percentage Attack Speed compounding** (§41 default): diverges from League and makes Attack Speed stacking snowball.
+- **Percentage Attack Speed compounding** (§41 default): makes Attack Speed stacking snowball.

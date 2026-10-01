@@ -18,4 +18,10 @@ namespace VeyraKillCredit
 	 */
 	VEYRACOMBAT_API UAbilitySystemComponent* Resolve(UAbilitySystemComponent* LethalSource, bool bLethalSourceIsEnemyVanguard,
 		TConstArrayView<FVeyraContribution> Contributions, double Now, double WindowSeconds);
+
+	/**
+	 * A takedown's participants (§18; ADR-011 §6): for an enemy Vanguard's death, its credited killer and
+	 * its assisters. None for any other victim: killing a Fluxborn or a structure is no takedown.
+	 */
+	VEYRACOMBAT_API TArray<UAbilitySystemComponent*, TInlineAllocator<5>> TakedownParticipants(const FVeyraDeathEvent& Death);
 }

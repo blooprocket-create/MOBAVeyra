@@ -48,6 +48,8 @@ enum class EVeyraTetherEndReason : uint8
 	Released,
 	/** A newer tether of its ID from its source took its place. */
 	Replaced,
+	/** Its target, an enemy of its source, turned Untargetable (Combat Bible §43). */
+	Untargetable,
 };
 
 struct FVeyraTetherEnd

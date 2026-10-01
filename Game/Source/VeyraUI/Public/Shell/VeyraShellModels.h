@@ -139,7 +139,7 @@ struct FVeyraSelectModel
 	FText ShownTitle;
 	/** The shown Vanguard's passive, then Q, W, E and R. */
 	TArray<FVeyraAbilityLineModel> Abilities;
-	/** The mode, in capitals, as League names it in the corner. */
+	/** The mode, in capitals, as the corner names it. */
 	FText ModeLabel;
 	/** The pick timer's full length, for its bars; 0 when the backend does not say. */
 	double PickSeconds = 0.0;
@@ -244,7 +244,7 @@ struct FVeyraGoldChoiceModel
 	bool bChosen = false;
 };
 
-/** A custom lobby as its screen shows it (ADR-021; laid out as League's custom lobby). */
+/** A custom lobby as its screen shows it (ADR-021). */
 struct FVeyraLobbyModel
 {
 	/** "DevOne's Lobby". */

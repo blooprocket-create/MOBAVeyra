@@ -46,8 +46,10 @@ void AVeyraProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void AVeyraProjectile::LaunchLine(UAbilitySystemComponent& InCaster, const FVector& InDirection, const FVeyraProjectileTuning& Tuning,
 	EVeyraSkillshotCollision InCollision, FVeyraPreparedEffects InEffects, FVeyraPreparedEffects InPassThroughEffects, const FVeyraContentId& InAbility,
-	int32 InCastId)
+	int32 InCastId, TFunction<void(AActor&)> InBeforeStrike, TSharedPtr<FVeyraSharedStrikes> InShared)
 {
+	BeforeStrike = MoveTemp(InBeforeStrike);
+	Shared = MoveTemp(InShared);
 	Flight = EVeyraProjectileFlight::Line;
 	Direction = InDirection.GetSafeNormal2D();
 	if (Direction.IsNearlyZero())
@@ -164,7 +166,7 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 	}
 
 	const TArray<FVeyraPathHit> Hits = VeyraShapes::GatherUnitsAlong(World, From, From + Direction * Step, Radius, [this](const AActor& Unit) {
-		return VeyraTargeting::AreHostile(this, &Unit) && !Met.ContainsByPredicate([&Unit](const TWeakObjectPtr<AActor>& Earlier) { return Earlier.Get() == &Unit; });
+		return VeyraTargeting::CanHitEnemy(this, Unit) && !Met.ContainsByPredicate([&Unit](const TWeakObjectPtr<AActor>& Earlier) { return Earlier.Get() == &Unit; });
 	});
 	for (const FVeyraPathHit& Hit : Hits)
 	{
@@ -175,7 +177,25 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 			VeyraEffectDelivery::Apply(Source, Unit, PassThroughEffects, PathFrame(), FVeyraAbilityHitSource{ Ability, CastId });
 			continue;
 		}
-		VeyraEffectDelivery::Apply(Source, Unit, Effects, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
+		// Before the hit lands, so what it reads of the unit is as the shot found it (ADR-030 §8).
+		if (BeforeStrike)
+		{
+			BeforeStrike(Unit);
+		}
+		// Another projectile of the cast struck it already: it takes the repeat instead (ADR-031 §6).
+		const FVeyraPreparedEffects* Landing = &Effects;
+		if (Shared.IsValid())
+		{
+			if (Shared->Struck.ContainsByPredicate([&Unit](const TWeakObjectPtr<AActor>& Earlier) { return Earlier.Get() == &Unit; }))
+			{
+				Landing = &Shared->RepeatEffects;
+			}
+			else
+			{
+				Shared->Struck.Add(&Unit);
+			}
+		}
+		VeyraEffectDelivery::Apply(Source, Unit, *Landing, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
 		if (Collision != EVeyraSkillshotCollision::Pierce)
 		{
 			Travelled += Hit.Distance;
@@ -212,6 +232,12 @@ void AVeyraProjectile::AdvanceHoming(UAbilitySystemComponent& Source, double Dis
 		return;
 	}
 	SetActorLocation(Here + Heading * Gap);
+	// A targeted shot at an enemy that is Untargetable as it would land fails (Combat Bible §10).
+	if (VeyraTargeting::AreHostile(this, Target) && VeyraTargeting::IsUntargetable(*Target))
+	{
+		End();
+		return;
+	}
 	Met.Add(Target);
 	VeyraEffectDelivery::Apply(Source, *Target, Effects, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
 	if (OnLanded)
@@ -252,6 +278,12 @@ FVeyraEffectFrame AVeyraProjectile::PathFrame() const
 void AVeyraProjectile::End()
 {
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("A projectile of %s (cast %d) ended after meeting %d unit(s)."), *Ability.ToString(), CastId, Met.Num());
+	if (Flight == EVeyraProjectileFlight::Line && OnLineEnded && Caster.IsValid())
+	{
+		const TFunction<void(const FVector&)> Ended = MoveTemp(OnLineEnded);
+		OnLineEnded = nullptr;
+		Ended(GetActorLocation());
+	}
 	SetActorTickEnabled(false);
 	Destroy();
 }

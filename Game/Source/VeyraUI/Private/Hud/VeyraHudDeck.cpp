@@ -12,6 +12,7 @@
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
 #include "Greybox/VeyraGreyboxSettings.h"
+#include "Hud/VeyraChatLogModel.h"
 #include "Hud/VeyraHudModel.h"
 #include "Input/VeyraInputSettings.h"
 #include "Rendering/SlateRenderer.h"
@@ -321,7 +322,7 @@ namespace
 		const AVeyraPlayerController* Player = Cast<AVeyraPlayerController>(Viewer);
 		const AVeyraPlayerState* Own = Viewer ? Viewer->GetPlayerState<AVeyraPlayerState>() : nullptr;
 		const FVeyraVoteState& Vote = Player ? Player->GetOpenVote() : GameState.GetVote();
-		// A team's vote reaches only that team, as League shows a surrender.
+		// A team's vote reaches only that team.
 		if (Vote.bOpen && Own)
 		{
 			const UVeyraInputSettings& Input = Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>();
@@ -348,6 +349,110 @@ namespace
 	}
 
 	/** The hovered slot's name, state and what it does, above the deck. */
+	/** Text in rows no wider than Width, the first FirstWidth, breaking between words. */
+	TArray<FString> WrapAfter(const FPainter& Paint, const FString& Text, const FSlateFontInfo& Font, float FirstWidth, float Width)
+	{
+		TArray<FString> Words;
+		Text.ParseIntoArrayWS(Words);
+		TArray<FString> Rows;
+		FString Row;
+		for (const FString& Word : Words)
+		{
+			const FString Tried = Row.IsEmpty() ? Word : Row + TEXT(" ") + Word;
+			const float Room = Rows.IsEmpty() ? FirstWidth : Width;
+			if (Paint.Measure(Tried, Font).X > Room && (!Row.IsEmpty() || !Rows.IsEmpty() || FirstWidth < Width))
+			{
+				// Row is full; a first row too narrow for even one word stays empty, and the word starts the next.
+				Rows.Add(Row);
+				Row = Word;
+			}
+			else
+			{
+				Row = Tried;
+			}
+		}
+		Rows.Add(Row);
+		return Rows;
+	}
+
+	/** The chat log at the bottom left, above the composer (ADR-029 §5): each line's channel and sender in their side's colour. */
+	void DrawChat(const FPainter& Paint, const FVeyraInterfacePreferences& Preferences, const AVeyraPlayerController& Player, const AGameStateBase& Match, EVeyraTeam Side,
+		bool bComposing)
+	{
+		const UVeyraGreyboxSettings& Settings = Paint.Settings;
+		FVeyraChatLogPreferences Log;
+		Log.Lines = Settings.ChatLines;
+		Log.FadeSeconds = Preferences.ChatFadeSeconds;
+		Log.FadeOutSeconds = Settings.ChatFadeOutSeconds;
+		Log.bTimestamps = Preferences.bChatTimestamps;
+		const TArray<FVeyraChatLine> Lines = VeyraChatLog::Describe(Player.GetChat(), FPlatformTime::Seconds(), bComposing, Log, Side, [&Match](int32 PlayerId) {
+			for (const APlayerState* Each : Match.PlayerArray)
+			{
+				const AVeyraPlayerState* Participant = Cast<AVeyraPlayerState>(Each);
+				if (Participant && Participant->GetPlayerId() == PlayerId && Participant->GetVanguardId().IsValid())
+				{
+					return VeyraContentText::VanguardName(Participant->GetVanguardId()).ToString();
+				}
+			}
+			return FString();
+		});
+		if (Lines.IsEmpty())
+		{
+			return;
+		}
+		const FVeyraChatFrame Frame = VeyraChatLog::FrameFor(FVector2D(Paint.Canvas.ClipX, Paint.Canvas.ClipY), Settings, Preferences.HudScale);
+		const FSlateFontInfo Body = Paint.Font(TEXT("Regular"), Preferences.ChatFontSize);
+		const FSlateFontInfo Head = Paint.Font(TEXT("Bold"), Preferences.ChatFontSize);
+		// Before Slate measures (a server, a test), a row is its type's size and a little.
+		constexpr float RowOverType = 1.35f;
+		const float RowHeight = FMath::Max(static_cast<float>(Paint.Measure(TEXT("Ag"), Body).Y), Body.Size * RowOverType);
+		const float Inset = Paint.S(Settings.DeckGap) / 2.0f;
+		const float TextWidth = Frame.Width - Inset * 2.0f;
+
+		// Each line's rows, top to bottom, then all of them upward from the log's bottom.
+		struct FRow
+		{
+			FString Head;
+			FString Text;
+			FLinearColor HeadColor;
+			FLinearColor TextColor;
+			double Opacity = 1.0;
+		};
+		TArray<FRow> Rows;
+		for (const FVeyraChatLine& Line : Lines)
+		{
+			const FLinearColor SideColor = Line.Side == EVeyraChatLineSide::Ally ? Settings.AllyColor
+				: Line.Side == EVeyraChatLineSide::Enemy						 ? Settings.EnemyColor
+																				 : Settings.DescriptionColor;
+			const FString LineHead = Line.Prefix + Line.Sender;
+			const float HeadWidth = static_cast<float>(Paint.Measure(LineHead, Head).X);
+			const TArray<FString> Wrapped = WrapAfter(Paint, Line.Text, Body, TextWidth - HeadWidth, TextWidth);
+			for (int32 Index = 0; Index < Wrapped.Num(); ++Index)
+			{
+				Rows.Add({ Index == 0 ? LineHead : FString(), Wrapped[Index], SideColor,
+					Line.Side == EVeyraChatLineSide::Notice ? Settings.DescriptionColor : Settings.TextColor, Line.Opacity });
+			}
+		}
+		float Y = Frame.LogBottomLeft.Y - Rows.Num() * RowHeight - Inset;
+		for (const FRow& Row : Rows)
+		{
+			const auto Faded = [&Row](const FLinearColor& Color) { return Color.CopyWithNewOpacity(Color.A * Row.Opacity); };
+			if (Preferences.ChatBackdrop.A > 0.0f)
+			{
+				Paint.Rect(FVector2D(Frame.LogBottomLeft.X, Y), FVector2D(Frame.Width, RowHeight), Faded(Preferences.ChatBackdrop));
+			}
+			const float X = Frame.LogBottomLeft.X + Inset;
+			float HeadWidth = 0.0f;
+			if (!Row.Head.IsEmpty())
+			{
+				Paint.Text(FVector2D(X, Y), Row.Head, Head, Faded(Row.HeadColor), true);
+				HeadWidth = static_cast<float>(Paint.Measure(Row.Head, Head).X);
+			}
+			Paint.Text(FVector2D(X + HeadWidth, Y), Row.Text, Body, Faded(Row.TextColor), true);
+			Y += RowHeight;
+		}
+	}
+
 	void DrawTooltip(const FPainter& Paint, const FHover& Hover, float DeckTop)
 	{
 		const UVeyraGreyboxSettings& Settings = Paint.Settings;
@@ -551,7 +656,7 @@ namespace
 		if (Player.Vitals.MaxResource > 0.0)
 		{
 			DrawBar(Paint, BarsAt + FVector2D(0.0f, HealthHeight + Paint.S(3.0f)), FVector2D(BarsWidth, ResourceHeight), Player.Vitals.Resource / Player.Vitals.MaxResource,
-				Settings.ResourceColor, FString());
+				Settings.ResourceColorOf(Player.Vitals.Family), FString());
 		}
 
 		// The Flux Spells and the vision tool.
@@ -700,6 +805,10 @@ void Draw(UCanvas& Canvas, const UVeyraGreyboxSettings& Settings, const FVeyraIn
 	const UVeyraMatchMenuSubsystem* Screens = World.GetGameInstance() ? World.GetGameInstance()->GetSubsystem<UVeyraMatchMenuSubsystem>() : nullptr;
 	const FString ShopKey = KeyName(Screens ? Screens->GetKeys().ShopKey : GetDefault<UVeyraUIInputSettings>()->ShopKey);
 	const float DeckTop = DrawDeck(Paint, *Own, Player ? Player->GetKeys() : *GetDefault<UVeyraInputSettings>(), ShopKey, Mouse, ServerNow, Hover);
+	if (Player)
+	{
+		DrawChat(Paint, Preferences, *Player, GameState, Side, Screens && Screens->IsChatOpen());
+	}
 	if (Hover.IsSet())
 	{
 		DrawTooltip(Paint, Hover.GetValue(), DeckTop);

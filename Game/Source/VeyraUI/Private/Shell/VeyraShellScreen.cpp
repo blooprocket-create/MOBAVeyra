@@ -433,7 +433,7 @@ void UVeyraShellScreen::BuildShell(const FVeyraClientSnapshot& Snapshot)
 		Banner->SetContent(VeyraShellStyle::MakeText(*WidgetTree, Notice, EVeyraShellText::Body));
 		VeyraShellStyle::AddSpaced(*Content, *Banner);
 	}
-	// The page, and the friends panel down the right, as League's social panel is (Art Bible §7).
+	// The page, and the friends panel down the right (Art Bible §7).
 	UHorizontalBox* Split = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	AddFilling(*Content, *Split);
 	UVerticalBox* Body = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());

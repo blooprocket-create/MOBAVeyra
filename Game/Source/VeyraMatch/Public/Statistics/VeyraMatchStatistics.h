@@ -32,7 +32,7 @@ struct VEYRAMATCH_API FVeyraGoldBySource
 {
 	GENERATED_BODY()
 
-	/** The Gold every player starts with, as League counts it (ADR-017 §9). */
+	/** The Gold every player starts with, counted as earned (ADR-017 §9). */
 	UPROPERTY()
 	double Starting = 0.0;
 

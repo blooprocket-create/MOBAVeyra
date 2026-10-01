@@ -9,6 +9,7 @@
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Fog/VeyraDenseFogBank.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
@@ -24,6 +25,7 @@
 #include "Tethers/VeyraTetherSubsystem.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
+#include "VeyraCombatVerbs.h"
 #include "VeyraVisionLog.h"
 #include "Wards/VeyraWard.h"
 
@@ -73,6 +75,13 @@ namespace
 	{
 		constexpr uint64 AreaKeys = 1ull << 32;
 		return AreaKeys | static_cast<uint32>(AreaId);
+	}
+
+	/** A Sounded unit is its own sensor, for the side that sounded it (ADR-036 §2). */
+	uint64 SoundedSensorKey(const AActor& Marked)
+	{
+		constexpr uint64 SoundedKeys = 2ull << 32;
+		return SoundedKeys | Marked.GetUniqueID();
 	}
 
 	/**
@@ -137,8 +146,11 @@ namespace
 			return Sight.Structure;
 		case EVeyraUnitKind::Ward:
 			return Sight.Ward;
+		case EVeyraUnitKind::Companion:
+			return Sight.Companion;
 		case EVeyraUnitKind::Wildlife:
 		case EVeyraUnitKind::Objective:
+		case EVeyraUnitKind::Marker:
 			return 0.0;
 		}
 		return 0.0;
@@ -159,13 +171,21 @@ bool UVeyraVisionSubsystem::IsGated(const AActor& Unit)
 	const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
 	return Kind.IsSet() && Unit.IsA<APawn>()
 		&& (Kind.GetValue() == EVeyraUnitKind::Vanguard || Kind.GetValue() == EVeyraUnitKind::Fluxborn || Kind.GetValue() == EVeyraUnitKind::Wildlife
-			|| Kind.GetValue() == EVeyraUnitKind::Ward);
+			|| Kind.GetValue() == EVeyraUnitKind::Ward || Kind.GetValue() == EVeyraUnitKind::Marker || Kind.GetValue() == EVeyraUnitKind::Companion);
 }
 
 bool UVeyraVisionSubsystem::IsInvisible(const AActor& Unit)
 {
-	// Only True Sight reveals an Invisible unit, and Sweeper alone grants it (Vision Bible §5).
-	return VeyraUnits::IsWard(&Unit);
+	// Only True Sight reveals an Invisible unit, and Sweeper alone grants it (Vision Bible §5): a ward,
+	// or a unit holding an Invisible status (ADR-030 §1).
+	if (VeyraUnits::IsWard(&Unit))
+	{
+		return true;
+	}
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->Has(EVeyraStatusKind::Invisible);
 }
 
 void UVeyraVisionSubsystem::Start()
@@ -200,6 +220,7 @@ void UVeyraVisionSubsystem::Stop()
 		return;
 	}
 	bStarted = false;
+	EndAllFogBanks();
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(Timer);
@@ -342,6 +363,11 @@ void UVeyraVisionSubsystem::UpdateSensors(const TArray<const AActor*>& Gated, do
 					Ping(AreaSensorKey(Area.Id), *Enemy);
 				}
 			}
+			// Sounded by this side (ADR-036 §2): its fog tells this side it is in there, never where.
+			if (VeyraCombat::HasStatusKindFromSide(Enemy, EVeyraStatusKind::Sounded, Side))
+			{
+				Ping(SoundedSensorKey(*Enemy), *Enemy);
+			}
 			// Sweeper's outline (§5): where it stands while True Sight covers it, then where it was last
 			// covered until the outline fades. No tracking after that.
 			if (IsInTrueSight(Side, *Enemy))
@@ -440,10 +466,101 @@ void UVeyraVisionSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 
 void UVeyraVisionSubsystem::SetDenseFog(TArray<FVeyraFogCircle> Circles)
 {
-	Fog = MoveTemp(Circles);
-	FogVolumes = VeyraVisionRules::ConnectVolumes(Fog);
-	UE_LOG(LogVeyraVision, Log, TEXT("Dense Fog: %d circle(s) in %d volume(s)."), Fog.Num(), FogVolumes.IsEmpty() ? 0 : FMath::Max(FogVolumes) + 1);
+	AuthoredFog = MoveTemp(Circles);
+	RebuildFog();
 	UpdateNow();
+}
+
+void UVeyraVisionSubsystem::RebuildFog()
+{
+	const TArray<FVeyraFogCircle> Before = MoveTemp(Fog);
+	Fog = AuthoredFog;
+	for (const FFogBank& Bank : FogBanks)
+	{
+		Fog.Append(Bank.Circles);
+	}
+	FogVolumes = VeyraVisionRules::ConnectVolumes(Fog);
+	// A ping's cadence is kept per circle: a circle that stays keeps its cadence at its new place, and only
+	// one that went forgets it, so fog laid or lifted elsewhere pings nobody early.
+	TMap<TPair<uint64, int32>, double> Kept;
+	for (const TPair<TPair<uint64, int32>, double>& Each : LastPings)
+	{
+		const FVeyraFogCircle* Was = Before.IsValidIndex(Each.Key.Value) ? &Before[Each.Key.Value] : nullptr;
+		const int32 Now = Was ? Fog.IndexOfByPredicate([Was](const FVeyraFogCircle& Circle) { return Circle.Center == Was->Center && Circle.Radius == Was->Radius; })
+							  : INDEX_NONE;
+		if (Now != INDEX_NONE)
+		{
+			Kept.Add(TPair<uint64, int32>(Each.Key.Key, Now), Each.Value);
+		}
+	}
+	LastPings = MoveTemp(Kept);
+	UE_LOG(LogVeyraVision, Log, TEXT("Dense Fog: %d circle(s) in %d volume(s), %d laid by abilities."), Fog.Num(),
+		FogVolumes.IsEmpty() ? 0 : FMath::Max(FogVolumes) + 1, FogBanks.Num());
+}
+
+void UVeyraVisionSubsystem::AddDenseFog(const FVeyraFogShape& Shape, double DurationSeconds)
+{
+	UWorld* World = GetWorld();
+	TArray<FVeyraFogCircle> Circles = VeyraVisionRules::CirclesOf(Shape);
+	if (!bStarted || !World || !(DurationSeconds > 0.0) || Circles.IsEmpty() || !(Circles[0].Radius > 0.0))
+	{
+		return;
+	}
+	FFogBank& Bank = FogBanks.AddDefaulted_GetRef();
+	Bank.Id = NextFogBankId++;
+	Bank.Circles = MoveTemp(Circles);
+	FActorSpawnParameters Parameters;
+	Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	if (AVeyraDenseFogBank* Actor = World->SpawnActor<AVeyraDenseFogBank>(Parameters))
+	{
+		Actor->SetCircles(Bank.Circles);
+		Bank.Actor = Actor;
+	}
+	// It ends on the world's clock, as everything timed does, so a pause holds it.
+	World->GetTimerManager().SetTimer(Bank.Ending, FTimerDelegate::CreateUObject(this, &UVeyraVisionSubsystem::EndFogBank, Bank.Id),
+		static_cast<float>(DurationSeconds), /*bLoop*/ false);
+	RebuildFog();
+	UpdateNow();
+}
+
+void UVeyraVisionSubsystem::EndFogBank(int32 Id)
+{
+	const int32 Index = FogBanks.IndexOfByPredicate([Id](const FFogBank& Bank) { return Bank.Id == Id; });
+	if (Index == INDEX_NONE)
+	{
+		return;
+	}
+	if (AVeyraDenseFogBank* Actor = FogBanks[Index].Actor.Get())
+	{
+		Actor->Destroy();
+	}
+	FogBanks.RemoveAt(Index);
+	RebuildFog();
+	UpdateNow();
+}
+
+void UVeyraVisionSubsystem::EndAllFogBanks()
+{
+	UWorld* World = GetWorld();
+	for (FFogBank& Bank : FogBanks)
+	{
+		if (World)
+		{
+			World->GetTimerManager().ClearTimer(Bank.Ending);
+		}
+		// A world tearing down takes its actors with it.
+		if (AVeyraDenseFogBank* Actor = Bank.Actor.Get(); Actor && World && !World->bIsTearingDown)
+		{
+			Actor->Destroy();
+		}
+	}
+	FogBanks.Reset();
+	RebuildFog();
+}
+
+int32 UVeyraVisionSubsystem::FogVolumeAt(const FVector& Point) const
+{
+	return VeyraVisionRules::VolumeAt(Fog, FogVolumes, FVector2D(Point));
 }
 
 void UVeyraVisionSubsystem::UpdateNow()
@@ -514,8 +631,10 @@ void UVeyraVisionSubsystem::UpdateNow()
 			continue;
 		}
 		Fogged.Add(Unit, Volume);
-		// Camouflaged in the fog, it is seen only within its detection radius too (ADR-018 §4).
+		// Camouflaged in the fog, it is seen only within its detection radius too (ADR-018 §4); Invisible,
+		// only in True Sight (ADR-030 §1).
 		const TOptional<double> Detection = CamouflageRadiusOf(*Unit);
+		const bool bInvisible = IsInvisible(*Unit);
 		for (const TPair<const AActor*, double>& Lookout : Lookouts)
 		{
 			const EVeyraTeam LookoutSide = VeyraTeams::TeamOf(Lookout.Key);
@@ -523,7 +642,7 @@ void UVeyraVisionSubsystem::UpdateNow()
 			const bool bEnemy = LookoutSide != VeyraTeams::TeamOf(Unit);
 			const double Apart = FVector2D::DistSquared(FVector2D(Lookout.Key->GetActorLocation()), FVector2D(Unit->GetActorLocation()));
 			// Within its sight, and within the Camouflage's detection radius or its side's True Sight.
-			const bool bDetected = !Detection.IsSet() || Apart <= FMath::Square(Detection.GetValue()) || IsInTrueSight(LookoutSide, *Unit);
+			const bool bDetected = IsInTrueSight(LookoutSide, *Unit) || (!bInvisible && (!Detection.IsSet() || Apart <= FMath::Square(Detection.GetValue())));
 			if (bInside && bEnemy && Apart <= FMath::Square(Lookout.Value) && bDetected)
 			{
 				FogSightings.FindOrAdd(Lookout.Key).Add(Unit);

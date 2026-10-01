@@ -17,7 +17,7 @@ namespace
 	bool IsChangeKind(EVeyraStatusKind Kind)
 	{
 		return Kind == EVeyraStatusKind::MoveSpeed || Kind == EVeyraStatusKind::AttackSpeed || Kind == EVeyraStatusKind::HealthRegeneration
-			|| Kind == EVeyraStatusKind::DamageAmplification;
+			|| Kind == EVeyraStatusKind::DamageAmplification || Kind == EVeyraStatusKind::MaxHealth;
 	}
 }
 
@@ -64,6 +64,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::MoveSpeed:
 	case EVeyraStatusKind::AttackSpeed:
 	case EVeyraStatusKind::HealthRegeneration:
+	case EVeyraStatusKind::MaxHealth:
 		bMagnitudeValid &= Magnitude != 0.0 && AllStacks > -1.0;
 		break;
 	case EVeyraStatusKind::DamageAmplification:
@@ -90,6 +91,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 		bMagnitudeValid &= Magnitude > 0.0 && Spec.MaxStacks == 1;
 		break;
 	case EVeyraStatusKind::SlowResistance:
+	case EVeyraStatusKind::ResourceCostReduction:
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
 		break;
 	case EVeyraStatusKind::Planted:
@@ -103,6 +105,9 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::Root:
 	case EVeyraStatusKind::Blind:
 	case EVeyraStatusKind::Grounded:
+	case EVeyraStatusKind::Invisible:
+	case EVeyraStatusKind::Untargetable:
+	case EVeyraStatusKind::Sounded:
 		bMagnitudeValid &= Magnitude == 0.0;
 		break;
 	case EVeyraStatusKind::Fear:
@@ -118,6 +123,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
 		break;
 	case EVeyraStatusKind::AttackDamageAmplification:
+	case EVeyraStatusKind::AttackShortensCooldown:
 		bMagnitudeValid &= Magnitude > 0.0;
 		break;
 	}
@@ -160,7 +166,7 @@ int32 TickCount(double DurationSeconds, double TickSeconds)
 
 bool IsTenacityReducible(EVeyraStatusKind Kind)
 {
-	// A Knockup is crowd control Tenacity does not shorten, as League's airborne (§8).
+	// A Knockup is crowd control Tenacity does not shorten (§8).
 	return Kind == EVeyraStatusKind::Stun || Kind == EVeyraStatusKind::Slow || Kind == EVeyraStatusKind::Fear || Kind == EVeyraStatusKind::Root
 		|| Kind == EVeyraStatusKind::Blind || Kind == EVeyraStatusKind::Grounded;
 }

@@ -1,6 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
-// Champion select's screen, in League's layout: the roster as a bench of portraits across the top
+// Champion select's screen: the roster as a bench of portraits across the top
 // with the countdown between two draining bars; the player's team down the left and the enemy team
 // down the right; the shown Vanguard's art large in the middle; the Flux Spell slots, Lock In, the
 // match setup and the mode along the bottom (Pre-Game Client UX Bible §5, 23–40).
@@ -168,7 +168,7 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 	const UVeyraShellStyleSettings& Settings = Style();
 	UVerticalBox* Header = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 
-	// The roster as League's bench: a portrait for each Vanguard the player may pick, the taken ones
+	// The roster as a bench: a portrait for each Vanguard the player may pick, the taken ones
 	// disabled (UX 29).
 	UHorizontalBox* Bench = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	UTextBlock* BenchTitle = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("AvailableVanguards", "AVAILABLE VANGUARDS"), EVeyraShellText::Eyebrow);
@@ -270,7 +270,7 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 		Seat.bAlly ? Settings.AllyColor : Settings.EnemyColor);
 	if (Seat.bAlly)
 	{
-		// The player's own starting spells beside the portrait, as League shows summoner spells, by
+		// The player's own starting spells beside the portrait, by
 		// initial; a teammate's are not shared (ADR-015 §5), so theirs stay blank.
 		UVerticalBox* Spells = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 		for (int32 SpellSlot = 0; SpellSlot < static_cast<int32>(UE_ARRAY_COUNT(VeyraAbilitySlots::Spells)); ++SpellSlot)
@@ -321,7 +321,7 @@ UWidget& UVeyraShellScreen::MakeCentre(const FVeyraSelectModel& Model)
 		Kit->SetContent(Lines);
 		for (const FVeyraAbilityLineModel& Ability : Model.Abilities)
 		{
-			// Each ability's icon beside its name and what it does, as League's ability list reads.
+			// Each ability's icon beside its name and what it does.
 			UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 			if (UImage* Icon = MakeIcon(*WidgetTree, VeyraShellArt::AbilityIconOf(Ability.AbilityId), Settings.AbilityIconSize))
 			{
@@ -361,7 +361,7 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 	const UVeyraShellStyleSettings& Settings = Style();
 	UHorizontalBox* Footer = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 
-	// Your Match Setup once locked in (UX 38), where League keeps its chat.
+	// Your Match Setup once locked in (UX 38), at the bottom left.
 	UVerticalBox* Setup = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 	if (!Model.Setup.IsEmpty())
 	{
@@ -380,7 +380,7 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 	UHorizontalBox* Loadout = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	for (const FVeyraSpellSlotModel& SlotModel : Model.SpellSlots)
 	{
-		// The chosen spell's icon fills its tile, as League shows summoner spells; its name until it has one.
+		// The chosen spell's icon fills its tile; its name until it has one.
 		UWidget* TileContent = MakeIcon(*WidgetTree, VeyraShellArt::AbilityIconOf(SlotModel.ChosenId), Settings.SpellTileSize);
 		if (!TileContent)
 		{
@@ -400,7 +400,7 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 	LockInText->SetJustification(ETextJustify::Center);
 	if (Model.bCanLockIn)
 	{
-		// Dark on the gold it is filled with while it can be pressed, as League's reads.
+		// Dark on the gold it is filled with while it can be pressed.
 		LockInText->SetColorAndOpacity(FSlateColor(Settings.BackgroundColor));
 	}
 	USizeBox* LockInBox = Sized(*WidgetTree, *LockInText, FVector2D(Settings.LockInWidth, Settings.SpellTileSize));
@@ -432,7 +432,7 @@ void UVeyraShellScreen::BuildSpellPicker(const FVeyraSelectModel& Model)
 	}
 	const UVeyraShellStyleSettings& Settings = Style();
 	const FVeyraSpellSlotModel& SlotModel = Model.SpellSlots[OpenSpellSlot];
-	// League's summoner spell picker: over everything, until a choice or Close.
+	// The spell picker: over everything, until a choice or Close.
 	UBorder* Scrim = VeyraShellStyle::MakeBorder(*WidgetTree, Settings.MenuScrimColor, 0.0f);
 	Scrim->SetHorizontalAlignment(HAlign_Center);
 	Scrim->SetVerticalAlignment(VAlign_Center);

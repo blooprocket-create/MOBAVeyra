@@ -16,7 +16,7 @@ struct FVeyraInterfacePreferences;
 
 /**
  * The in-match HUD's deck and strips, drawn on the canvas (ADR-008 §1). The Art Bible leaves the
- * in-game HUD open (v0.1 §9), so the layout follows League's, in the client's design language:
+ * in-game HUD open (v0.1 §9), so the layout is provisional, in the client's design language:
  * smoked surfaces with thin outlines and one accent.
  * - Along the bottom, the deck: the portrait with its level and XP, the passive, Q W E R with their
  *   key caps, ranks and cooldowns, Health and the resource, the Flux Spells, the vision tool, the

@@ -1,6 +1,6 @@
 # ADR-028: Blind, grounding, collision stuns and restoring passives, for Silt and Torr
 
-**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, taking League of Legends' answer where canon is silent. §9 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the pull request that adds it.
+**Status:** Proposed. The author's standing instruction (2026-09-28) is to keep working unreviewed toward a viable game, choosing a provisional answer where canon is silent. §9 lists every such answer for the author to overturn. This ADR becomes Accepted when the author merges the pull request that adds it.
 **Date:** 2026-09-30
 **Related:**
 - [ADR-008](ADR-008-vanguard-definitions-and-ability-composition.md): kits as data, passives as classes.
@@ -83,11 +83,11 @@ Torr's poor ordinary regeneration is plain data: his Health Regeneration stat.
 
 Every number is provisional tuning.
 
-## 9. League answers where canon is open (provisional)
+## 9. Provisional answers where canon is open
 
-1. **A blinded attack is still an attack**, as League's Blind: on-attack effects fire and an empowered attack is spent, while on-hit effects and damage are lost.
-2. **Anchor's "shortened/disrupted" movement abilities are grounding.** Enemies inside the field cannot start a dash, as League's Ground; a dash begun outside finishes.
-3. **Collision counts terrain, Vanguards and structures only**, as Poppy's Heroic Charge does; Fluxborn and wildlife do not stun.
+1. **A blinded attack is still an attack**: on-attack effects fire and an empowered attack is spent, while on-hit effects and damage are lost.
+2. **Anchor's "shortened/disrupted" movement abilities are grounding.** Enemies inside the field cannot start a dash; a dash begun outside finishes.
+3. **Collision counts terrain, Vanguards and structures only**; being pushed into Fluxborn or wildlife does not stun.
 4. **Reclaim's timing rule is a per-target lockout on the heal**, not on the mark.
 5. **Overcapacity's Temporary Health does not drain** during the state; it lasts until the state ends. A steady drain waits on a Combat primitive for decaying Temporary Health.
 6. **Overcapacity's larger Q and E are variants** held while it lasts (ADR-018 §1), with larger shapes.

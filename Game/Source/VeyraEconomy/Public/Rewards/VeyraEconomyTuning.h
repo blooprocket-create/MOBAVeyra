@@ -117,7 +117,7 @@ struct FVeyraGoldTuning
 
 /**
  * Passive Gold (author ruling, 2026-09-28, amending §1): every participant earns a steady income while
- * the match is live, dead or alive, as in League of Legends. There is still no passive XP.
+ * the match is live, dead or alive. There is still no passive XP.
  */
 USTRUCT()
 struct FVeyraPassiveGoldTuning

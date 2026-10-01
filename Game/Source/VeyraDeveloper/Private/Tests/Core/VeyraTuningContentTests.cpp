@@ -30,6 +30,17 @@ namespace VeyraCoreTests
 			}
 		}
 
+		TEST_METHOD(ReadsBackLowercaseWhateverSpellingItsNameWasMetWithFirst)
+		{
+			// A cooked build keeps one spelling per name, the first registered: a type or property
+			// called Blink spells the ID blink as Blink. Imported with that spelling, it still reads back
+			// as the format writes it.
+			FVeyraContentId Id;
+			FVeyraContentId::StaticStruct()->ImportText(TEXT("(Name=\"Blink\")"), &Id, nullptr, PPF_None, GLog, FVeyraContentId::StaticStruct()->GetName());
+			ASSERT_THAT(IsTrue(Id == FVeyraContentId::FromText(TEXT("blink")).GetValue()));
+			ASSERT_THAT(AreEqual(FString(TEXT("blink")), Id.ToString()));
+		}
+
 		TEST_METHOD(EqualIdsHashAlike)
 		{
 			const FVeyraContentId First = FVeyraContentId::FromText(TEXT("test_bolt")).GetValue();

@@ -207,6 +207,49 @@ namespace VeyraVisionTests
 			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("a standing structure does")));
 		}
 
+		TEST_METHOD(AnInvisibleEnemyIsHiddenEvenBesideAVanguardAndTrueSightShowsIt)
+		{
+			AVeyraVanguardCharacter& Caster = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, FVector(DetectionRadius() / 4.0, 0.0, 0.0));
+			FVeyraStatusSpec Invisible;
+			Invisible.Id = FVeyraContentId::FromText(TEXT("test_invisible")).GetValue();
+			Invisible.Kind = EVeyraStatusKind::Invisible;
+			// Fixture value: longer than the test.
+			Invisible.DurationSeconds = 60.0;
+			UAbilitySystemComponent& Hidden = *Enemy.GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Hidden, Hidden, Invisible)));
+			Vision().Start();
+			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("no nearness shows it (Combat Bible §11)")));
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::B, Enemy), TEXT("its own side sees it")));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Enemy, SightRadius()) == EVeyraTargetValidity::NotVisible));
+			constexpr double TrueSightSeconds = 60.0;
+			Vision().AddTrueSight(EVeyraTeam::A, Caster, SightRadius(), TrueSightSeconds);
+			Vision().UpdateNow();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("True Sight does")));
+		}
+
+		TEST_METHOD(AnUntargetableEnemyCannotBeTargetedButAnUntargetableAllyCan)
+		{
+			AVeyraVanguardCharacter& Caster = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Ally = SpawnVanguard(EVeyraTeam::A, FVector(0.0, SightRadius() / 4.0, 0.0));
+			AVeyraVanguardCharacter& Enemy = SpawnVanguard(EVeyraTeam::B, FVector(SightRadius() / 4.0, 0.0, 0.0));
+			FVeyraStatusSpec Vanish;
+			Vanish.Id = FVeyraContentId::FromText(TEXT("test_untargetable")).GetValue();
+			Vanish.Kind = EVeyraStatusKind::Untargetable;
+			Vanish.DurationSeconds = 60.0;
+			for (AVeyraVanguardCharacter* Held : { &Ally, &Enemy })
+			{
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Held->GetAbilitySystemComponent(), *Held->GetAbilitySystemComponent(), Vanish)));
+			}
+			Vision().Start();
+			ASSERT_THAT(IsTrue(Vision().IsVisibleToTeam(EVeyraTeam::A, Enemy), TEXT("it is still seen (Combat Bible §10)")));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Enemy, SightRadius()) != EVeyraTargetValidity::Valid));
+			ASSERT_THAT(IsFalse(VeyraTargeting::CanHitEnemy(&Caster, Enemy), TEXT("nor hit by areas or skillshots")));
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckAllyTarget(Caster, &Ally, SightRadius()) == EVeyraTargetValidity::Valid, TEXT("allies' effects still reach it")));
+			VeyraCombat::RemoveStatus(*Enemy.GetAbilitySystemComponent(), Vanish.Id);
+			ASSERT_THAT(IsTrue(VeyraTargeting::CheckEnemyTarget(Caster, &Enemy, SightRadius()) == EVeyraTargetValidity::Valid));
+		}
+
 		TEST_METHOD(TrueSightShowsACamouflagedEnemy)
 		{
 			AVeyraVanguardCharacter& Caster = SpawnVanguard(EVeyraTeam::A, FVector::ZeroVector);

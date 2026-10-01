@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/DeveloperSettings.h"
+#include "Tuning/VeyraVanguardsTuning.h"
 
 #include "VeyraGreyboxSettings.generated.h"
 
@@ -76,6 +77,20 @@ public:
 
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor ResourceColor = FLinearColor::Transparent;
+
+	/** The resource bar of a Vanguard that spends Focus (ADR-031 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor FocusColor = FLinearColor::Transparent;
+
+	/** The resource bar of a Vanguard that runs on Charge (ADR-033 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bars")
+	FLinearColor ChargeColor = FLinearColor::Transparent;
+
+	/** The colour of a resource bar of Family. */
+	FLinearColor ResourceColorOf(EVeyraResourceFamily Family) const
+	{
+		return Family == EVeyraResourceFamily::Focus ? FocusColor : Family == EVeyraResourceFamily::Charge ? ChargeColor : ResourceColor;
+	}
 
 	UPROPERTY(Config, EditAnywhere, Category = "Bars")
 	FLinearColor BarBackgroundColor = FLinearColor::Transparent;
@@ -239,7 +254,7 @@ public:
 	float GroundMarkingLift = 0.0f;
 
 	// The HUD's deck and strips (VeyraHudDeck). The Art Bible leaves the in-game HUD open (v0.1 §9), so
-	// its layout follows League's, in the client's design language, as provisional presentation.
+	// its layout is provisional presentation, in the client's design language.
 
 	/** The screen height the HUD's sizes are given for; it scales with the real height. */
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
@@ -312,4 +327,44 @@ public:
 	/** A hovered slot's tooltip, at the reference height. */
 	UPROPERTY(Config, EditAnywhere, Category = "Deck", meta = (ClampMin = "1"))
 	float TooltipWidth = 0.0f;
+
+	// The chat log and its composer at the bottom left (VeyraChatLogModel; ADR-029 §5).
+
+	/** The log's and the composer's width, the composer's height, and how far the composer sits above the screen's bottom, at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Chat", meta = (ClampMin = "1"))
+	float ChatWidth = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Chat", meta = (ClampMin = "1"))
+	float ChatInputHeight = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Chat", meta = (ClampMin = "0"))
+	float ChatBottomOffset = 0.0f;
+
+	/** How many of the newest lines show at once. */
+	UPROPERTY(Config, EditAnywhere, Category = "Chat", meta = (ClampMin = "1"))
+	int32 ChatLines = 0;
+
+	/** The chat's type at each of the player's text sizes (SET-66), at the reference height. */
+	UPROPERTY(Config, EditAnywhere, Category = "Chat", meta = (ClampMin = "1"))
+	int32 ChatFontSize = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Chat", meta = (ClampMin = "1"))
+	int32 ChatLargeFontSize = 0;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Chat", meta = (ClampMin = "1"))
+	int32 ChatExtraLargeFontSize = 0;
+
+	/** How long a line stays whole without the player's setting, then how long it takes to fade, in seconds. */
+	UPROPERTY(Config, EditAnywhere, Category = "Chat", meta = (ClampMin = "0"))
+	float ChatFadeSeconds = 0.0f;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Chat", meta = (ClampMin = "0"))
+	float ChatFadeOutSeconds = 0.0f;
+
+	/** Behind the log's lines: the Standard backdrop and the High Contrast one (SET-67); Transparent draws none. */
+	UPROPERTY(Config, EditAnywhere, Category = "Chat")
+	FLinearColor ChatBackdropColor = FLinearColor::Transparent;
+
+	UPROPERTY(Config, EditAnywhere, Category = "Chat")
+	FLinearColor ChatHighContrastBackdropColor = FLinearColor::Transparent;
 };

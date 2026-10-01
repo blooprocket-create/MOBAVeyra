@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Content/VeyraContentId.h"
 #include "Tuning/VeyraTuningProvenance.h"
 #include "UObject/ObjectMacros.h"
 
@@ -25,6 +26,33 @@ struct FVeyraExperienceTuning
 	TArray<int32> ToNextLevel;
 };
 
+/** How a rank shape's R takes ranks (ADR-031 §2). */
+UENUM()
+enum class EVeyraUltimateRanks : uint8
+{
+	/** As standard: a point a rank, each rank opening at its level. */
+	Ranked,
+	/** Learnt from the start at rank 1: it takes no point and never ranks. */
+	Innate,
+};
+
+/**
+ * A documented exception to how a kit takes ranks (Economy & Progression Bible §1; ADR-031 §2). It
+ * spends the standard total of skill points.
+ */
+USTRUCT()
+struct FVeyraRankShapeTuning
+{
+	GENERATED_BODY()
+
+	/** The top rank of Q, W and E. */
+	UPROPERTY()
+	int32 BasicAbilityMaxRank = 0;
+
+	UPROPERTY()
+	EVeyraUltimateRanks Ultimate = EVeyraUltimateRanks::Ranked;
+};
+
 /** The Progression domain's tuning, bound from Game/Tuning/Progression.json (ADR-006 §6). */
 USTRUCT()
 struct FVeyraProgressionTuning
@@ -32,7 +60,7 @@ struct FVeyraProgressionTuning
 	GENERATED_BODY()
 
 	/** The Progression.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 1;
+	static constexpr int32 SchemaVersion = 2;
 
 	/** The level cap (Economy & Progression §9: 18). */
 	UPROPERTY()
@@ -56,4 +84,8 @@ struct FVeyraProgressionTuning
 
 	UPROPERTY()
 	FVeyraExperienceTuning Experience;
+
+	/** Documented exceptions to the standard ranks, by ID; a Vanguard record names at most one (ADR-031 §2). */
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraRankShapeTuning> RankShapes;
 };

@@ -53,7 +53,7 @@ A Vanguard who attunes to one of the Crucible's Prime Wells can project a tempor
 - The jungle encompasses the lanes. Top and bot are roads inside the wilderness, not the outer edge of playable space.
 - There is jungle both inside and outside top and bot, enabling outer-wrap ganks and double-roamer strategies.
 - Two spawned neutral Flux Well sites sit near the north/top and south/bot macro spaces.
-- Competitive distances should be balanced, but the final visual geometry does not need to be a literal mirrored Summoner's Rift shape.
+- Competitive distances should be balanced, but the final visual geometry does not need to be a literal mirror of the reference battleground's shape.
 
 **DESIGN INTENT**
 
@@ -61,7 +61,7 @@ A veteran MOBA player should understand the macro map quickly, but should not be
 
 ### Macro shape (ruled 2026-09-28)
 
-- At the macro scale the map should **look like a familiar League of Legends-style battleground**:
+- At the macro scale the map should **look like a familiar three-lane battleground**:
   - the two Prime Wells in opposite corners;
   - top lane running up one side and across the top;
   - bot lane running along the bottom and up the other side;

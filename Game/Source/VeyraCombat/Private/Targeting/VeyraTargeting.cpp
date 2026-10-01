@@ -5,7 +5,9 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "GameFramework/Actor.h"
+#include "Entities/VeyraPlacedMarker.h"
 #include "Life/VeyraLifeComponent.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Teams/VeyraTeam.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
@@ -54,7 +56,28 @@ bool AreHostile(const UObject* A, const UObject* B)
 
 bool CanAcquire(const UObject* Acquirer, const AActor& Target)
 {
-	return !Acquirer || VeyraVisibility::CanSee(*Acquirer, Target);
+	if (!Acquirer)
+	{
+		return true;
+	}
+	return VeyraVisibility::CanSee(*Acquirer, Target) && !(AreHostile(Acquirer, &Target) && IsUntargetable(Target));
+}
+
+bool IsUntargetable(const AActor& Unit)
+{
+	if (const AVeyraPlacedMarker* Marker = Cast<AVeyraPlacedMarker>(&Unit); Marker && !Marker->IsTargetable())
+	{
+		return true;
+	}
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
+	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->Has(EVeyraStatusKind::Untargetable);
+}
+
+bool CanHitEnemy(const UObject* Source, const AActor& Unit)
+{
+	return AreHostile(Source, &Unit) && !IsUntargetable(Unit);
 }
 
 double EdgeToEdgeDistance(const AActor& A, const AActor& B)

@@ -31,6 +31,11 @@ struct FVeyraInterfacePreferences
 	bool bScoreboardToggles = false;
 	/** The cursor stays inside the game's window during a match (SET-83). */
 	bool bConfineCursor = true;
+	/** The chat's type size (SET-66), its backdrop, clear for Transparent (SET-67), how long a line stays whole, and its timestamps (Settings Bible §5.2). */
+	int32 ChatFontSize = 0;
+	FLinearColor ChatBackdrop = FLinearColor::Transparent;
+	float ChatFadeSeconds = 0.0f;
+	bool bChatTimestamps = false;
 };
 
 /** The player's interface settings over the developer's (UVeyraGreyboxSettings), apart from the engine. */
@@ -47,6 +52,10 @@ namespace VeyraInterfacePreferences
 	VEYRAUI_API const FVeyraContentId& ShowPing();
 	VEYRAUI_API const FVeyraContentId& ScoreboardMode();
 	VEYRAUI_API const FVeyraContentId& ConfineCursor();
+	VEYRAUI_API const FVeyraContentId& ChatTextSize();
+	VEYRAUI_API const FVeyraContentId& ChatBackdrop();
+	VEYRAUI_API const FVeyraContentId& ChatFadeSeconds();
+	VEYRAUI_API const FVeyraContentId& ChatTimestamps();
 
 	/** The interface: Hud's, with the player's settings in Store in their place; Hud's alone without a store. */
 	VEYRAUI_API FVeyraInterfacePreferences Resolve(const UVeyraGreyboxSettings& Hud, const FVeyraSettingsStore* Store);

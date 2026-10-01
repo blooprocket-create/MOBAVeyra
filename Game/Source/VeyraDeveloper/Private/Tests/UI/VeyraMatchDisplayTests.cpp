@@ -10,7 +10,7 @@
 namespace VeyraMatchDisplayTests
 {
 	// Veyra.UI.MatchDisplay.*: a match takes the screen from the loading after champion select to its
-	// end, and the client's window comes back for the results, as League's client and game do.
+	// end, and the client's window comes back for the results.
 	TEST_CLASS(MatchDisplay, "Veyra.UI")
 	{
 		TEST_METHOD(AMatchHasTheScreenFromItsLoadingToItsEnd)
