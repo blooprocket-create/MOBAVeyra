@@ -168,3 +168,42 @@ func TestAPlayerWhoStopsPollingCancelsTheSelect(t *testing.T) {
 		t.Fatalf("the silent player's party leaves the queue: %+v", f.ends.calls)
 	}
 }
+
+func TestDrawOpponentsDrawsADistinctTeamOnOneSide(t *testing.T) {
+	keep := func(int, func(i, j int)) {}
+	bots, err := DrawOpponents([]string{"cairn", "oriel", "cairn", "bryn"}, 3, match.SideB, match.BotIntermediate, keep)
+	if err != nil || len(bots) != 3 {
+		t.Fatalf("three of three distinct: %+v %v", bots, err)
+	}
+	for i, id := range []string{"cairn", "oriel", "bryn"} {
+		if bots[i] != (match.Bot{Side: match.SideB, VanguardID: id, Difficulty: match.BotIntermediate}) {
+			t.Fatalf("bot %d: %+v", i, bots[i])
+		}
+	}
+	if _, err := DrawOpponents([]string{"cairn", "oriel"}, 3, match.SideB, match.BotBeginner, keep); !errors.Is(err, ErrNoOpponents) {
+		t.Fatalf("too few: %v", err)
+	}
+	if _, err := DrawOpponents([]string{"cairn"}, 1, match.SideB, "expert", keep); !errors.Is(err, ErrNoOpponents) {
+		t.Fatalf("an unknown difficulty: %v", err)
+	}
+}
+
+func TestACoopSelectSeatsItsBotsAndAllowsTheirMirror(t *testing.T) {
+	f := newFixture(t)
+	f.onboard(t, "acc-1", "cairn")
+	bots := []match.Bot{{Side: match.SideB, VanguardID: "cairn", Difficulty: match.BotBeginner}, {Side: match.SideB, VanguardID: "oriel", Difficulty: match.BotBeginner}}
+	id, err := f.svc.OpenCoop(ctx, casualMode, []CasualSeat{{AccountID: "acc-1", Side: match.SideA}}, bots)
+	if err != nil {
+		t.Fatalf("OpenCoop: %v", err)
+	}
+	session, err := f.svc.ForParticipant(ctx, "acc-1", id)
+	if err != nil || session.ID != id || session.Kind != KindCasual || len(session.Bots) != 2 {
+		t.Fatalf("the co-op select: %+v %v", session, err)
+	}
+	if session.Taken("cairn", "acc-1") {
+		t.Fatal("a human may play what an enemy bot plays")
+	}
+	if _, err := f.svc.OpenCoop(ctx, casualMode, []CasualSeat{{AccountID: "acc-2", Side: match.SideA}}, nil); !errors.Is(err, ErrNoOpponents) {
+		t.Fatalf("a co-op select without its enemy team: %v", err)
+	}
+}

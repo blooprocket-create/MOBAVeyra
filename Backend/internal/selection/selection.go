@@ -204,7 +204,9 @@ func (s *Session) checkPicking(accountID string, now time.Time) (*Seat, error) {
 // Taken reports whether a player other than accountID has locked the
 // Vanguard. Picks are unique across both teams in PvP (Battleground Bible §15);
 // in a custom select, within the picker's side, where its bots count too
-// (ADR-021 §2).
+// (ADR-021 §2). A bot holds its Vanguard on its own side only: a co-op
+// select's human may play what an enemy bot plays, the sole cross-team mirror
+// (Modes & Access Bible §4; ADR-038 §3).
 func (s *Session) Taken(vanguardID, accountID string) bool {
 	own, _ := s.seat(accountID)
 	perSide := s.Kind == KindCustom && own != nil
@@ -214,7 +216,7 @@ func (s *Session) Taken(vanguardID, accountID string) bool {
 		}
 	}
 	for _, bot := range s.Bots {
-		if bot.VanguardID == vanguardID && (!perSide || bot.Side == own.Side) {
+		if bot.VanguardID == vanguardID && (own == nil || bot.Side == own.Side) {
 			return true
 		}
 	}

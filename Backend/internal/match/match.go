@@ -213,6 +213,10 @@ type Mode struct {
 	ID                  string
 	Enabled             bool
 	HumanPlayersPerTeam int
+	// AIPerTeam and AIDifficulty are a co-op mode's enemy AI team; zero and
+	// empty for any other mode (ADR-038 §2).
+	AIPerTeam    int
+	AIDifficulty BotDifficulty
 }
 
 // PracticeSettings configures solo Custom practice (ADR-010 §7).
@@ -265,7 +269,8 @@ type Match struct {
 	SelectID     string
 	State        State
 	Participants []Participant
-	// Bots are the match's AI participants; only hosted matches have any.
+	// Bots are the match's AI participants: a hosted match's, or a co-op
+	// match's enemy AI team (ADR-038 §4).
 	Bots []Bot
 	// Custom is the session's rules, present exactly for custom matches.
 	Custom    *CustomSettings
@@ -319,6 +324,38 @@ func ValidateRoster(mode Mode, participants []Participant) error {
 		}
 		if !IsContentID(p.VanguardID) {
 			return ErrInvalidVanguard
+		}
+	}
+	return nil
+}
+
+// ValidateOpponents checks a standard match's bots against its mode (ADR-038
+// §4): none unless the mode is co-op; a co-op mode's are its whole enemy AI
+// team, at its difficulty, distinct, and on one side with no human.
+func ValidateOpponents(mode Mode, participants []Participant, bots []Bot) error {
+	if mode.AIPerTeam == 0 {
+		if len(bots) > 0 {
+			return ErrInvalidRoster
+		}
+		return nil
+	}
+	if len(bots) != mode.AIPerTeam {
+		return ErrInvalidRoster
+	}
+	side := bots[0].Side
+	seen := map[string]bool{}
+	for _, b := range bots {
+		if b.Side != side || (side != SideA && side != SideB) || b.Difficulty != mode.AIDifficulty || seen[b.VanguardID] {
+			return ErrInvalidRoster
+		}
+		if !IsContentID(b.VanguardID) {
+			return ErrInvalidVanguard
+		}
+		seen[b.VanguardID] = true
+	}
+	for _, p := range participants {
+		if p.Side == side {
+			return ErrInvalidRoster
 		}
 	}
 	return nil

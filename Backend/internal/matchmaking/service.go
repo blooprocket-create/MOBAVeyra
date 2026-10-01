@@ -15,8 +15,20 @@ import (
 // Mode is one matchmade mode's matchmaking settings.
 type Mode struct {
 	ID string
-	// TeamSize is how many players each side of its matches holds.
+	// TeamSize is how many players each side of its matches holds; a co-op
+	// mode's other side is its enemy AI team.
 	TeamSize int
+	// VersusAI says the mode's matches put one side of humans against AI, so
+	// its matchmaker fills side A alone (ADR-038 §2).
+	VersusAI bool
+}
+
+// sides returns how many humans each side of the mode's matches holds.
+func (m Mode) sides() [2]int {
+	if m.VersusAI {
+		return [2]int{m.TeamSize, 0}
+	}
+	return [2]int{m.TeamSize, m.TeamSize}
 }
 
 // Settings are the validated settings matchmaking needs.
@@ -301,11 +313,16 @@ func (s *Service) matchMode(ctx context.Context, mode Mode) error {
 				return err
 			}
 		}
-		if len(candidates) < 2 {
+		// Two sides of humans need two parties at least; one side, one.
+		needed := 2
+		if mode.VersusAI {
+			needed = 1
+		}
+		if len(candidates) < needed {
 			return nil
 		}
 		blocks := &blockCache{ctx: ctx, blocks: s.blocks, known: map[[2]string]bool{}}
-		groupings := Group(candidates, mode.TeamSize, s.settings.SearchLimit, blocks.blocked)
+		groupings := Group(candidates, mode.sides(), s.settings.SearchLimit, blocks.blocked)
 		if blocks.err != nil {
 			return blocks.err
 		}

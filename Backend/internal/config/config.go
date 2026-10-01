@@ -52,6 +52,9 @@ const DatabaseURLEnv = "VEYRA_DATABASE_URL"
 const (
 	// MatchmakingCasualSelect: a matchmaker, then Match Found and Casual Select.
 	MatchmakingCasualSelect = "casualSelect"
+	// MatchmakingCoop: a matchmaker for one side of humans against an enemy AI
+	// team, then Match Found and a Casual Select with the bots seated (ADR-038 §2).
+	MatchmakingCoop = "coop"
 	// MatchmakingNotImplemented: the mode may be selected but not queued yet.
 	MatchmakingNotImplemented = "notImplemented"
 )
@@ -280,8 +283,14 @@ type Mode struct {
 	ID                  string
 	Enabled             bool
 	HumanPlayersPerTeam int
-	// Matchmaking is MatchmakingCasualSelect or MatchmakingNotImplemented.
+	// Matchmaking is MatchmakingCasualSelect, MatchmakingCoop or
+	// MatchmakingNotImplemented.
 	Matchmaking string
+	// AIPerTeam and AIDifficulty are a co-op mode's enemy AI team: how many
+	// bots, and how they play ("beginner" or "intermediate"). Zero and empty for
+	// any other mode.
+	AIPerTeam    int
+	AIDifficulty string
 }
 
 // Party privacy values accepted in config.
@@ -359,6 +368,8 @@ type fileConfig struct {
 		Enabled             *bool   `json:"enabled"`
 		HumanPlayersPerTeam *int    `json:"humanPlayersPerTeam"`
 		Matchmaking         *string `json:"matchmaking"`
+		AIPerTeam           *int    `json:"aiPerTeam"`
+		AIDifficulty        *string `json:"aiDifficulty"`
 	} `json:"modes"`
 	Vanguards *struct {
 		Released []string `json:"released"`
@@ -624,10 +635,32 @@ func Parse(raw []byte) (Config, error) {
 			missing(field + ".matchmaking")
 			continue
 		}
-		if *m.Matchmaking != MatchmakingCasualSelect && *m.Matchmaking != MatchmakingNotImplemented {
-			problems = append(problems, field+".matchmaking must be \""+MatchmakingCasualSelect+"\" or \""+MatchmakingNotImplemented+"\"")
+		if *m.Matchmaking != MatchmakingCasualSelect && *m.Matchmaking != MatchmakingCoop && *m.Matchmaking != MatchmakingNotImplemented {
+			problems = append(problems, field+".matchmaking must be \""+MatchmakingCasualSelect+"\", \""+MatchmakingCoop+"\" or \""+MatchmakingNotImplemented+"\"")
 		}
-		c.Modes = append(c.Modes, Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam, Matchmaking: *m.Matchmaking})
+		mode := Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam, Matchmaking: *m.Matchmaking}
+		// A co-op mode's enemy AI team, and only a co-op mode's (ADR-038 §2).
+		if *m.Matchmaking == MatchmakingCoop {
+			switch {
+			case m.AIPerTeam == nil:
+				missing(field + ".aiPerTeam")
+			case *m.AIPerTeam < 1:
+				problems = append(problems, field+".aiPerTeam must be at least 1")
+			default:
+				mode.AIPerTeam = *m.AIPerTeam
+			}
+			switch {
+			case m.AIDifficulty == nil:
+				missing(field + ".aiDifficulty")
+			case *m.AIDifficulty != "beginner" && *m.AIDifficulty != "intermediate":
+				problems = append(problems, field+".aiDifficulty must be \"beginner\" or \"intermediate\"")
+			default:
+				mode.AIDifficulty = *m.AIDifficulty
+			}
+		} else if m.AIPerTeam != nil || m.AIDifficulty != nil {
+			problems = append(problems, field+" has an AI team, which only a co-op mode has")
+		}
+		c.Modes = append(c.Modes, mode)
 	}
 
 	if f.Vanguards == nil {

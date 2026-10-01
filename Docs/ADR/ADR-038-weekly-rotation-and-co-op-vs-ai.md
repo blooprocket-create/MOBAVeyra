@@ -47,11 +47,11 @@
 
 ### 3. Co-op select (Backend: selection)
 
-- **A co-op select session opens with its bots already seated:**
+- **A co-op select is a Casual Select that opens with its bots already seated:**
   - `aiPerTeam` distinct Vanguards drawn at random from the current rotation;
   - at the mode's difficulty, on the side with no humans.
 
-  While the rotation is empty, they are drawn from every released Vanguard (provisional).
+  While the rotation offers too few, they are drawn from every released Vanguard (provisional). No new select kind is needed: a bot holds its Vanguard only on its own side, which Casual Select's PvP matches, having no bots, never notice.
 - **Humans pick** as in Casual Select: owned or rotation Vanguards, unique among the humans. A human may pick a Vanguard an enemy bot plays, the sole cross-team mirror exception.
 - **The bots' picks show** as locked enemy seats.
 

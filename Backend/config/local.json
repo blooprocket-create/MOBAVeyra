@@ -27,8 +27,8 @@
   "modes": [
     {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 1, "matchmaking": "casualSelect"},
     {"id": "draft_pick", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"},
-    {"id": "coop_beginner", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"},
-    {"id": "coop_intermediate", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"},
+    {"id": "coop_beginner", "enabled": true, "humanPlayersPerTeam": 1, "matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "beginner"},
+    {"id": "coop_intermediate", "enabled": true, "humanPlayersPerTeam": 1, "matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "intermediate"},
     {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
   ],
   "vanguards": {

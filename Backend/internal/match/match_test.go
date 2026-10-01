@@ -238,3 +238,36 @@ func TestFail(t *testing.T) {
 		t.Fatal("failing a finished match must change nothing")
 	}
 }
+
+func TestOnlyACoopModesStandardMatchesCarryTheirEnemyTeam(t *testing.T) {
+	coop := Mode{ID: "coop_beginner", Enabled: true, HumanPlayersPerTeam: 1, AIPerTeam: 2, AIDifficulty: BotBeginner}
+	human := []Participant{{AccountID: "acc-1", Side: SideA, VanguardID: "cairn"}}
+	team := func(side Side, difficulty BotDifficulty, ids ...string) []Bot {
+		out := make([]Bot, len(ids))
+		for i, id := range ids {
+			out[i] = Bot{Side: side, VanguardID: id, Difficulty: difficulty}
+		}
+		return out
+	}
+	if err := ValidateOpponents(coop, human, team(SideB, BotBeginner, "cairn", "oriel")); err != nil {
+		t.Fatalf("a co-op match's enemy team, mirroring its human: %v", err)
+	}
+	for name, bots := range map[string][]Bot{
+		"too few":             team(SideB, BotBeginner, "cairn"),
+		"on the human's side": team(SideA, BotBeginner, "cairn", "oriel"),
+		"another difficulty":  team(SideB, BotIntermediate, "cairn", "oriel"),
+		"a Vanguard twice":    team(SideB, BotBeginner, "oriel", "oriel"),
+		"split across sides":  {{Side: SideA, VanguardID: "cairn", Difficulty: BotBeginner}, {Side: SideB, VanguardID: "oriel", Difficulty: BotBeginner}},
+	} {
+		if err := ValidateOpponents(coop, human, bots); !errors.Is(err, ErrInvalidRoster) {
+			t.Fatalf("%s: %v", name, err)
+		}
+	}
+	casual := Mode{ID: "casual_select", Enabled: true, HumanPlayersPerTeam: 1}
+	if err := ValidateOpponents(casual, human, team(SideB, BotBeginner, "cairn")); !errors.Is(err, ErrInvalidRoster) {
+		t.Fatalf("a PvP match never carries bots: %v", err)
+	}
+	if err := ValidateOpponents(casual, human, nil); err != nil {
+		t.Fatalf("a PvP match without bots: %v", err)
+	}
+}

@@ -15,7 +15,9 @@ type Grouping struct {
 
 // Group forms as many matches as it can from candidates, which are in queue
 // order, oldest first (Parties & Social Bible §2, §6):
-//   - each side holds exactly teamSize players;
+//   - each side holds exactly its size in players: sides[0] on side A and
+//     sides[1] on side B, which is 0 for a co-op mode, whose other side is AI
+//     (ADR-038 §2);
 //   - a party is never split, and a party larger than a side never matches;
 //   - two accounts where either blocks the other are never in one match, on
 //     either team, even if that means a longer wait.
@@ -32,16 +34,15 @@ type Grouping struct {
 // PROVISIONAL (ADR-010 §11): canon leaves the algorithm open (§10: skill,
 // latency, region, party-size pairing). This is the simplest rule that keeps
 // the locked constraints.
-func Group(candidates []Candidate, teamSize, searchLimit int, blocked func(a, b string) bool) []Grouping {
+func Group(candidates []Candidate, sides [2]int, searchLimit int, blocked func(a, b string) bool) []Grouping {
 	used := make([]bool, len(candidates))
-	fits := fillable(candidates, used, teamSize)
+	fits := fillable(candidates, used, sides)
 	var out []Grouping
 	for anchor := range candidates {
 		if used[anchor] {
 			continue
 		}
-		s := search{candidates: candidates, used: used, fits: fits, teamSize: teamSize, limit: searchLimit, blocked: blocked,
-			room: [2]int{teamSize, teamSize}}
+		s := search{candidates: candidates, used: used, fits: fits, limit: searchLimit, blocked: blocked, room: sides}
 		if !s.around(anchor) {
 			continue
 		}
@@ -50,20 +51,20 @@ func Group(candidates []Candidate, teamSize, searchLimit int, blocked func(a, b 
 			used[i] = true
 		}
 		out = append(out, grouping)
-		fits = fillable(candidates, used, teamSize)
+		fits = fillable(candidates, used, sides)
 	}
 	return out
 }
 
 // fillable returns fits, where fits[i][a][b] says whether the unused parties
-// from index i on can make up exactly a players on one side and b on the
-// other, ignoring blocks.
-func fillable(candidates []Candidate, used []bool, teamSize int) [][][]bool {
+// from index i on can make up exactly a players on side A and b on side B, up
+// to each side's size, ignoring blocks.
+func fillable(candidates []Candidate, used []bool, sides [2]int) [][][]bool {
 	fits := make([][][]bool, len(candidates)+1)
 	for i := len(candidates); i >= 0; i-- {
-		fits[i] = make([][]bool, teamSize+1)
+		fits[i] = make([][]bool, sides[0]+1)
 		for a := range fits[i] {
-			fits[i][a] = make([]bool, teamSize+1)
+			fits[i][a] = make([]bool, sides[1]+1)
 			for b := range fits[i][a] {
 				if i == len(candidates) {
 					fits[i][a][b] = a == 0 && b == 0
@@ -85,7 +86,6 @@ type search struct {
 	candidates []Candidate
 	used       []bool
 	fits       [][][]bool
-	teamSize   int
 	blocked    func(a, b string) bool
 	// steps counts the search's steps, up to limit.
 	steps, limit int
@@ -100,7 +100,7 @@ type search struct {
 // after it. False if it cannot within the step limit.
 func (s *search) around(anchor int) bool {
 	size := len(s.candidates[anchor].Accounts)
-	if size == 0 || size > s.teamSize {
+	if size == 0 || size > s.room[0] {
 		return false
 	}
 	s.place(anchor, 0)
