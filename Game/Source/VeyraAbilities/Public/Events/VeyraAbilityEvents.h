@@ -29,8 +29,8 @@ struct FVeyraAbilityHitSource
 	 */
 	bool bSkipSpellShield = false;
 
-	/** Whether a projectile carries the hit, a skillshot's or a targeted ability's, which cover may shelter its target from (ADR-037 §4). */
-	bool bProjectile = false;
+	/** Where the projectile that carries the hit was launched, a skillshot's or a targeted ability's, which cover judges it from (ADR-037 §4); unset for none. */
+	TOptional<FVector> ProjectileFrom;
 };
 
 /** One ability connecting with a unit (Combat Bible §16, On Ability Hit), and the control it applied there. */

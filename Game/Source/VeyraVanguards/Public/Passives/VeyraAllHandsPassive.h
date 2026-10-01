@@ -6,6 +6,7 @@
 
 #include "VeyraAllHandsPassive.generated.h"
 
+class AVeyraCompanion;
 struct FVeyraDamageDealtEvent;
 
 /**
@@ -36,6 +37,8 @@ private:
 	/** When each contributor may earn Work again, in world time. */
 	TMap<TWeakObjectPtr<const UAbilitySystemComponent>, double> ReadyAt;
 	FDelegateHandle DealtHandle;
+	/** The Work it holds, and the companion it holds it for: a new one starts afresh. */
 	double Work = 0.0;
+	TWeakObjectPtr<const AVeyraCompanion> WorkFor;
 	int32 RepairCount = 0;
 };
