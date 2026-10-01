@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "stance", "placement", "blink", "command", "fluxSpells", "companions"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "stance", "placement", "blink", "command", "dismount", "fluxSpells", "companions"],
   "definitions": {
     "statBlock": {
       "description": "Base stats or their growth (FVeyraStatBlock), each at least 0.",
@@ -76,7 +76,7 @@
       "description": "How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold", "targetMustNotHold", "takedownRefund", "currentResourceFraction", "minimumResource", "needsCompanion", "cooldownWhile"],
+      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold", "targetMustNotHold", "takedownRefund", "currentResourceFraction", "minimumResource", "needsCompanion", "cooldownWhile", "cooldownOf", "refusedWhile"],
       "properties": {
         "cooldownSecondsByRank": { "description": "Cooldown in seconds, starting at Commit.", "$ref": "#/definitions/byRank" },
         "resourceCostByRank": { "description": "Resource paid at Commit.", "$ref": "#/definitions/byRank" },
@@ -131,6 +131,19 @@
         "currentResourceFraction": { "description": "At most one: the share of the caster's current resource it also costs, above 0 and at most 1, paid at Commit with the cost by rank (Combat Bible §27; ADR-033 §3).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 } },
         "minimumResource": { "description": "At most one: the resource, above 0, the caster must hold to cast it at all (ADR-033 §3).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true } },
         "needsCompanion": { "description": "Living: refused, as NoCompanion, while its caster has no living companion (ADR-034 §8).", "type": "string", "enum": ["None", "Living"] },
+        "cooldownOf": {
+          "description": "At most one: another ability with a cast whose cooldown this one shares, held under that ability's ID; that one shares none itself (ADR-035 §1).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+        },
+        "refusedWhile": {
+          "description": "Status IDs whose holding refuses the cast, as HeldBack (ADR-035 §2).",
+          "type": "array",
+          "minItems": 0,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+        },
         "cooldownWhile": {
           "description": "Each status its caster holds from itself as it starts its cooldown scales the cooldown by its multiplier (ADR-034 §8).",
           "type": "array", "minItems": 0,
@@ -265,7 +278,7 @@
       "description": "One zone of an area: its shape and what it does to each enemy in it.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["shape", "effects", "casterShieldPerVanguard", "casterStatusesPerVanguard"],
+      "required": ["shape", "effects", "casterShieldPerVanguard", "casterStatusesPerVanguard", "allyEffects"],
       "properties": {
         "shape": { "$ref": "#/definitions/shape" },
         "effects": { "$ref": "#/definitions/effects" },
@@ -279,7 +292,26 @@
         "casterStatusesPerVanguard": {
           "$ref": "#/definitions/statusIds",
           "description": "Statuses the caster gains for each enemy Vanguard the zone catches, such as the state an ultimate enters when it lands on a Vanguard (No Quarter; ADR-008 §9)."
+        },
+        "allyEffects": {
+          "description": "At most one: what it does for its caster's allied Vanguards in its shape, each once: its caster's heal by rank plus Magic Power, and statuses (ADR-035 §4).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "$ref": "#/definitions/allyEffects" }
         }
+      }
+    },
+    "allyEffects": {
+      "description": "What a zone or a ride's contact does for its caster's allied Vanguards, each once: its caster's heal by rank plus Magic Power, and statuses (ADR-035 §4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["healByRank", "healMagicPowerRatio", "statuses", "reach"],
+      "properties": {
+        "healByRank": { "description": "Health each ally regains, by rank, before Magic Power; 0 with no ratio for no heal.", "$ref": "#/definitions/byRank" },
+        "healMagicPowerRatio": { "description": "Added to the heal for each point of the caster's Magic Power at Commit.", "type": "number", "minimum": 0 },
+        "statuses": { "$ref": "#/definitions/statusIds" },
+        "reach": { "description": "OthersOnly: allied Vanguards, the caster apart. CasterToo: the caster among them.", "type": "string", "enum": ["OthersOnly", "CasterToo"] }
       }
     },
     "shield": {
@@ -352,7 +384,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [20]
+      "enum": [23]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -382,7 +414,7 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack", "Blind", "Grounded", "Invisible", "Untargetable", "ResourceCostReduction", "AttackShortensCooldown", "MaxHealth"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack", "Blind", "Grounded", "Invisible", "Untargetable", "ResourceCostReduction", "AttackShortensCooldown", "MaxHealth", "Sounded"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -491,7 +523,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "origin", "originAbility", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "zones", "linger", "consumesCasterStatuses", "channelMovement", "casterStatuses", "healOnHit", "delayWithin"],
+          "required": ["provenance", "cast", "origin", "originAbility", "delaySeconds", "channelTicks", "channelSeconds", "reveal", "fog", "zones", "linger", "consumesCasterStatuses", "channelMovement", "casterStatuses", "healOnHit", "delayWithin"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -518,6 +550,22 @@
                 "durationSeconds": { "type": "number", "minimum": 0 }
               }
             },
+            "fog": {
+              "description": "At most one: Dense Fog the area lays as it commits, the same construct as the map's (ADR-036 §3), as Lay the Mist's. A Circle has a radius and no length or width; a Corridor runs from where the area lands along the cast's direction, a length and a width and no radius.",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["shape", "radius", "length", "width", "durationSeconds"],
+                "properties": {
+                  "shape": { "type": "string", "enum": ["Circle", "Corridor"] },
+                  "radius": { "type": "number", "minimum": 0 },
+                  "length": { "type": "number", "minimum": 0 },
+                  "width": { "type": "number", "minimum": 0 },
+                  "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                }
+              }
+            },
             "zones": {
               "description": "Innermost first: a unit takes the first zone that touches it, and no other.",
               "type": "array",
@@ -532,7 +580,7 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["durationSeconds", "pulseSeconds", "casterStatuses", "allyStatuses", "enemyStatuses", "sight", "pulseEffects", "endEffects", "endWarningSeconds", "movementField"],
+                "required": ["durationSeconds", "pulseSeconds", "casterStatuses", "allyStatuses", "enemyStatuses", "sight", "pulseEffects", "endEffects", "endWarningSeconds", "movementField", "shieldTopUp"],
                 "properties": {
                   "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "pulseSeconds": { "description": "Seconds between the statuses it gives; it gives them first as it lands.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -547,7 +595,8 @@
                   "pulseEffects": { "description": "At most one: what each pulse after it lands does to the enemy units inside, reactions included (ADR-026 §4). Its zones are what it does as it lands.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/effects" } },
                   "endEffects": { "description": "At most one: what it does to the enemy units inside as it ends, measured from its centre, so a displacement toward the origin draws them in (ADR-026 §4).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/effects" } },
                   "endWarningSeconds": { "description": "How long before its end the presentation marks it: above 0 exactly when it has endEffects, and no longer than it lasts.", "type": "number", "minimum": 0 },
-                  "movementField": { "description": "At most one: a field it holds while it stands, bending its caster's enemies' dashes and displacements toward its centre by up to pull units; its area's outermost zone is then a circle (ADR-033 §5).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["pull"], "properties": { "pull": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } }
+                  "movementField": { "description": "At most one: a field it holds while it stands, bending its caster's enemies' dashes and displacements toward its centre by up to pull units; its area's outermost zone is then a circle (ADR-033 §5).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["pull"], "properties": { "pull": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } },
+                  "shieldTopUp": { "description": "At most one: a shield it builds on its caster and the allied Vanguards inside, granted again at each pulse and merging up to its maximum, but not for one damaged within delayAfterDamageSeconds (ADR-036 §4), as Waymark's.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["shield", "delayAfterDamageSeconds"], "properties": { "shield": { "$ref": "#/definitions/shield" }, "delayAfterDamageSeconds": { "type": "number", "minimum": 0 } } } }
                 }
               }
             },
@@ -1038,7 +1087,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "setSpeed", "turnRateDegreesPerSecond", "durationSeconds", "decaySeconds", "riderStatuses", "mounted", "vehicle"],
+          "required": ["provenance", "cast", "setSpeed", "turnRateDegreesPerSecond", "durationSeconds", "decaySeconds", "riderStatuses", "mounted", "vehicle", "crashZones", "contact", "trail"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -1049,7 +1098,42 @@
             "riderStatuses": { "description": "Held on the rider while it rides.", "$ref": "#/definitions/statusIds" },
             "mounted": { "description": "The mounted actions, one per basic ability's slot.", "type": "array", "minItems": 0, "maxItems": 3,
               "items": { "type": "object", "additionalProperties": false, "required": ["slot", "ability"], "properties": { "slot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] }, "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } } } },
-            "vehicle": { "description": "At most one: the skillshot its vehicle goes on as along the rider's heading as the ride ends.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
+            "vehicle": { "description": "At most one: the skillshot its vehicle goes on as along the rider's heading as the ride ends.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+            "crashZones": { "description": "Innermost first: zones that erupt where the rider is as the ride ends, on every end but death, as the rider's hit (ADR-035 §3).", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } },
+            "contact": {
+              "description": "At most one: what its rider's body does to the units it meets, each once a ride (ADR-035 §6).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["reach", "pulseSeconds", "enemyEffects", "enemyKinds", "allyEffects"],
+                "properties": {
+                  "reach": { "description": "How far past the rider's edge it meets a unit's edge.", "type": "number", "minimum": 0 },
+                  "pulseSeconds": { "description": "Seconds between its looks for what it meets.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "enemyEffects": { "description": "On each enemy it meets, as its rider's hit; a knock aside is AsideFromPath, off the ride's line.", "$ref": "#/definitions/effects" },
+                  "enemyKinds": { "description": "The kinds of enemy unit it strikes; any when empty.", "type": "array", "minItems": 0, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] } },
+                  "allyEffects": { "description": "At most one: what it does for each allied Vanguard it meets.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/allyEffects" } }
+                }
+              }
+            },
+            "trail": {
+              "description": "At most one: an area ability laid along its path every spacing units, the first as it sets off, at its rider as its rider's hit (ADR-035 §6).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["spacing", "pulseSeconds", "area"],
+                "properties": {
+                  "spacing": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "pulseSeconds": { "description": "Seconds between its looks at how far its rider has come; at its set speed a pulse covers no more than its spacing.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "area": { "description": "An area ability that lands at once and lingers.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+                }
+              }
+            }
           }
         }
       }
@@ -1088,7 +1172,7 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
             "slots": {
-              "description": "Q, W or E, each once, with the ability it holds while the stance lasts. Each takes its slot's rank.",
+              "description": "Q, W, E or R, each once and never the slot the stance itself sits in (ADR-035 §1), with the ability it holds while the stance lasts. Each takes its slot's rank.",
               "type": "array",
               "minItems": 1,
               "items": {
@@ -1169,14 +1253,33 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "order", "leapSpeed", "holdSeconds", "landingZones"],
+          "required": ["provenance", "cast", "order", "leapSpeed", "holdSeconds", "landingZones", "companion", "lifetimeSeconds", "bindTo"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
-            "order": { "type": "string", "enum": ["Hold", "Recall"] },
+            "order": { "description": "Hold and Recall command a companion kept for good (ADR-034 §5); Summon forms one for a while, bound to a unit, and Redirect binds it anew (ADR-035 §5).", "type": "string", "enum": ["Hold", "Recall", "Summon", "Redirect"] },
             "leapSpeed": { "description": "Hold: units per second of the companion's leap; 0 for a recall.", "type": "number", "minimum": 0 },
             "holdSeconds": { "description": "Hold: how long it holds the point once it lands; 0 for a recall.", "type": "number", "minimum": 0 },
-            "landingZones": { "description": "Hold, innermost first: zones where it lands, its own hit from its own power.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } }
+            "landingZones": { "description": "Hold, innermost first: zones where it lands, its own hit from its own power.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } },
+            "companion": { "description": "Summon: the one companion it forms; none for the other orders.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+            "lifetimeSeconds": { "description": "Summon: how long the companion stays; 0 for the other orders.", "type": "number", "minimum": 0 },
+            "bindTo": { "description": "Summon and Redirect: Ally (an allied Vanguard, its caster among them, whom it escorts) or Enemy (an enemy unit, which it hunts); None for the other orders.", "type": "string", "enum": ["None", "Ally", "Enemy"] }
+          }
+        }
+      }
+    },
+    "dismount": {
+      "description": "Abilities that end their caster's ride at once (ADR-035 §3), as Breaking Wave's recast: a ride holds one as a mounted action, and the ride's end crashes it.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" }
           }
         }
       }
@@ -1203,7 +1306,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "capsuleRadius", "capsuleHalfHeight", "stats", "growth", "ownerMagicPowerShare", "basicAttack", "followDistance", "leashRange", "acquireRange", "ownerTargetSeconds", "reformSeconds", "thinkSeconds"],
+          "required": ["provenance", "capsuleRadius", "capsuleHalfHeight", "stats", "growth", "ownerMagicPowerShare", "basicAttack", "followDistance", "leashRange", "acquireRange", "ownerTargetSeconds", "reformSeconds", "thinkSeconds", "escort", "attackStatuses"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "capsuleRadius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -1217,7 +1320,25 @@
             "acquireRange": { "description": "How far from itself, or its held point, it looks for an enemy; at least its attack's range.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "ownerTargetSeconds": { "description": "How lately its owner must have fought an enemy for it to prefer that enemy.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "reformSeconds": { "description": "How long after it is killed it reforms beside its living owner.", "type": "number", "minimum": 0 },
-            "thinkSeconds": { "description": "How often it and its keeper think, in world time.", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+            "thinkSeconds": { "description": "How often it and its keeper think, in world time.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "escort": {
+              "description": "At most one: what it does now and then for the ally it escorts, when summoned to (ADR-035 §5): a heal of its own, from its Magic Power, and statuses.",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["pulseSeconds", "healAmount", "healMagicPowerRatio", "statuses"],
+                "properties": {
+                  "pulseSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "healAmount": { "type": "number", "minimum": 0 },
+                  "healMagicPowerRatio": { "type": "number", "minimum": 0 },
+                  "statuses": { "$ref": "#/definitions/statusIds" }
+                }
+              }
+            },
+            "attackStatuses": { "description": "Statuses its basic attack's hit gives, as the Waterling's slow (ADR-035 §5).", "$ref": "#/definitions/statusIds" }
           }
         }
       }

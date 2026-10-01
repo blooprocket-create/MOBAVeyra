@@ -131,6 +131,19 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 	{
 		VeyraVisibility::RevealArea(*World, VeyraTeams::TeamOf(Caster->GetOwner()), Placement.Origin, Area->Reveal.Radius, Area->Reveal.DurationSeconds);
 	}
+	// And lays its Dense Fog, which Vision owns from then on (ADR-036 §3).
+	if (!Area->Fog.IsEmpty())
+	{
+		const FVeyraAreaFogTuning& Fog = Area->Fog[0];
+		FVeyraFogShape Shape;
+		Shape.Kind = Fog.Shape == EVeyraAreaFogShape::Corridor ? EVeyraFogShapeKind::Corridor : EVeyraFogShapeKind::Circle;
+		Shape.Origin = Placement.Origin;
+		Shape.Direction = Placement.Direction;
+		Shape.Radius = Fog.Radius;
+		Shape.Length = Fog.Length;
+		Shape.Width = Fog.Width;
+		VeyraVisibility::AddDenseFog(*World, Shape, Fog.DurationSeconds);
+	}
 
 	if (Area->DelaySeconds > 0.0)
 	{

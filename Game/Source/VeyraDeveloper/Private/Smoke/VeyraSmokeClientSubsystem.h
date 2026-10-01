@@ -122,6 +122,11 @@ private:
 	double KitNextTryAt = 0.0;
 	/** Real time when the kit's attack order is given again, until an attack commits. */
 	double KitAttackRetryAt = 0.0;
+	/** Real time when the move back toward the fight is ordered again, while no enemy is in sight. */
+	double KitWalkBackAt = 0.0;
+
+	/** Walks back toward the fight, as after a death, now and then while no enemy is in sight. */
+	void WalkBackToTheFight(AVeyraPlayerController& Controller);
 	/** When the pending cast's order went, to try again should neither a Commit nor a refusal ever come. */
 	double KitPendingSince = 0.0;
 	/** When the pending cast's cooldown was due before its order: a Commit starts a new one, due later. */

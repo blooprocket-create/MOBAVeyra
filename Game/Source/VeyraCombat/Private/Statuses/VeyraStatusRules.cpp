@@ -107,6 +107,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::Grounded:
 	case EVeyraStatusKind::Invisible:
 	case EVeyraStatusKind::Untargetable:
+	case EVeyraStatusKind::Sounded:
 		bMagnitudeValid &= Magnitude == 0.0;
 		break;
 	case EVeyraStatusKind::Fear:

@@ -150,11 +150,11 @@ namespace VeyraAbilitiesTests
 			FVeyraAbilitiesTuning Broken = Tuning;
 			FVeyraStanceAbilityTuning& Switch = Broken.Stance.FindChecked(ArchetypeTestId(TEXT("test_switch")));
 			Switch.Slots.Add(StanceFixture::Held(EVeyraAbilitySlot::Q, TEXT("test_veil_w_again")));
-			Switch.Slots.Add(StanceFixture::Held(EVeyraAbilitySlot::R, TEXT("test_switch")));
+			Switch.Slots.Add(StanceFixture::Held(EVeyraAbilitySlot::Item1, TEXT("test_switch")));
 			const TArray<FString> Problems = VeyraAbilityRules::Validate(Broken, { 5, 3, 1 });
 			const FString All = FString::Join(Problems, TEXT(" | "));
 			ASSERT_THAT(IsTrue(All.Contains(TEXT("/stance/test_switch/slots/2/slot: is already held")), All));
-			ASSERT_THAT(IsTrue(All.Contains(TEXT("/stance/test_switch/slots/3/slot: must be Q, W or E")), All));
+			ASSERT_THAT(IsTrue(All.Contains(TEXT("/stance/test_switch/slots/3/slot: must be Q, W, E or R")), All));
 			ASSERT_THAT(IsTrue(All.Contains(TEXT("/stance/test_switch/slots/3/ability")), All));
 		}
 	};

@@ -30,6 +30,8 @@ namespace VeyraAbilitiesTests
 		virtual bool IsVisibleToTeam(EVeyraTeam /*Team*/, const AActor& Target) const override { return &Target != Hidden; }
 		virtual void RevealArea(EVeyraTeam /*Team*/, const FVector& /*Centre*/, double /*Radius*/, double /*DurationSeconds*/) override {}
 		virtual void RevealShape(EVeyraTeam /*Team*/, const FVeyraPlacedShape& /*Placed*/, double /*DurationSeconds*/) override {}
+		virtual void AddDenseFog(const FVeyraFogShape& /*Shape*/, double /*DurationSeconds*/) override {}
+		virtual int32 FogVolumeAt(const FVector& /*Point*/) const override { return INDEX_NONE; }
 
 	private:
 		const AActor* Hidden;

@@ -56,4 +56,19 @@ void RevealShape(const UWorld& World, EVeyraTeam Team, const FVeyraPlacedShape& 
 		Visibility->RevealShape(Team, Placed, DurationSeconds);
 	}
 }
+
+void AddDenseFog(const UWorld& World, const FVeyraFogShape& Shape, double DurationSeconds)
+{
+	const UVeyraVisibilityRegistry* Registry = World.GetSubsystem<UVeyraVisibilityRegistry>();
+	if (IVeyraVisibility* Visibility = Registry ? Registry->GetMutable() : nullptr)
+	{
+		Visibility->AddDenseFog(Shape, DurationSeconds);
+	}
+}
+
+int32 FogVolumeAt(const UWorld* World, const FVector& Point)
+{
+	const IVeyraVisibility* Visibility = Find(World);
+	return Visibility ? Visibility->FogVolumeAt(Point) : INDEX_NONE;
+}
 }

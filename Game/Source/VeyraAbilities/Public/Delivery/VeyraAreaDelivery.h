@@ -11,6 +11,15 @@ class AVeyraLingeringArea;
 class UAbilitySystemComponent;
 class UWorld;
 
+/** What a zone does for its caster's allied Vanguards, prepared at Commit (ADR-035 §4). */
+struct FVeyraPreparedAllyEffects
+{
+	/** The Health each regains from its caster; 0 for none. */
+	double Heal = 0.0;
+	TArray<FVeyraStatusSpec> Statuses;
+	EVeyraAllyReach Reach = EVeyraAllyReach::OthersOnly;
+};
+
 /** One zone of an area, with its effects prepared at Commit (Combat Bible §50). */
 struct FVeyraPreparedZone
 {
@@ -22,6 +31,9 @@ struct FVeyraPreparedZone
 
 	/** The statuses the caster gains for each enemy Vanguard the zone catches. */
 	TArray<FVeyraStatusSpec> CasterStatusesPerVanguard;
+
+	/** What it does for its caster's allies in its shape, prepared at Commit, if anything (ADR-035 §4). */
+	TOptional<FVeyraPreparedAllyEffects> AllyEffects;
 };
 
 /** The statuses a lingering area gives each side inside it, from its caster's Level at Commit (ADR-018 §5). */
@@ -62,6 +74,10 @@ struct FVeyraPreparedLinger
 
 	/** The pull of the movement field it holds; 0 for none (ADR-033 §5). */
 	double FieldPull = 0.0;
+
+	/** A shield it builds on its caster and allies inside, at the cast's rank (ADR-036 §4). */
+	TOptional<FVeyraShieldTopUpTuning> ShieldTopUp;
+	int32 Rank = 1;
 };
 
 /** How areas hit (ADR-008 §3, ADR-009 §4). Server only, except Place. */
@@ -83,8 +99,25 @@ namespace VeyraAreaDelivery
 	/** Server only: Caster's own lingering area of Ability, if one stands (ADR-028 §5). */
 	VEYRAABILITIES_API AVeyraLingeringArea* FindCastersLingeringArea(const UWorld& World, const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
 
+	/**
+	 * Server only: lays the area ability AreaId at Placement as Caster's hit at Rank: its zones at once, then its
+	 * lingering area, from Caster's power and Level now, as a ride's trail or the Mist Trail lays one (ADR-035 §6,
+	 * ADR-036 §5). An ID no area defines lays nothing.
+	 */
+	VEYRAABILITIES_API void LayAt(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraContentId& AreaId, const FVeyraEffectFrame& Placement, int32 Rank,
+		int32 Level, int32 CastId);
+
 	/** Zones for Caster at Rank. */
 	VEYRAABILITIES_API TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraAreaZoneTuning> Zones, int32 Rank);
+
+	/** What Caster does for its allies at Rank, from its power now (ADR-035 §4). */
+	VEYRAABILITIES_API FVeyraPreparedAllyEffects PrepareAllyEffects(const UAbilitySystemComponent& Caster, const FVeyraZoneAllyEffectsTuning& Allies, int32 Rank);
+
+	/** Whether Unit is an allied Vanguard of Caster's that Help reaches: living, on its side, and Caster's own body only for CasterToo. */
+	VEYRAABILITIES_API bool Reaches(const UAbilitySystemComponent& Caster, const AActor& Unit, const FVeyraPreparedAllyEffects& Help);
+
+	/** Server: Caster's heal and statuses for Ally, the heal through every rule of restoration (Combat Bible §6). */
+	VEYRAABILITIES_API void HelpAlly(UAbilitySystemComponent& Caster, AActor& Ally, const FVeyraPreparedAllyEffects& Help);
 
 	/**
 	 * Hits Caster's living enemies in the zones, placed at Frame's origin and facing, innermost first:

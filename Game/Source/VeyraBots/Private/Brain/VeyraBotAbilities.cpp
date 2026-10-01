@@ -42,9 +42,16 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 	}
 	if (const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(Ability))
 	{
-		// A point-placed area reaches its cast range and then its shape; one at the caster, its shape.
+		// A point-placed area reaches its cast range and then its shape; one at the caster, its shape. Its fog, a
+		// circle or a corridor, is part of its shape (ADR-036 §3).
+		double Extent = LargestZone(Area->Zones);
+		for (const FVeyraAreaFogTuning& Fog : Area->Fog)
+		{
+			Extent = FMath::Max(Extent, Fog.Shape == EVeyraAreaFogShape::Corridor ? Fog.Length : Fog.Radius);
+		}
 		Profile.Targeting = EVeyraBotTargeting::Point;
-		Profile.Reach = (Area->Origin == EVeyraAreaOrigin::TargetPoint ? Area->Cast.CastRange : 0.0) + LargestZone(Area->Zones);
+		Profile.bAreaAtPoint = Area->Origin == EVeyraAreaOrigin::TargetPoint;
+		Profile.Reach = (Profile.bAreaAtPoint ? Area->Cast.CastRange : 0.0) + Extent;
 		Profile.LeadSeconds = Area->Cast.WindupSeconds + Area->DelaySeconds;
 		Profile.CostByRank = Area->Cast.ResourceCostByRank;
 		return Profile;
@@ -117,7 +124,17 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 	}
 	if (const FVeyraCommandAbilityTuning* Command = UVeyraAbilitiesTuningSubsystem::FindCommand(Ability))
 	{
-		// A hold sends the companion at an enemy its landing reaches; a recall is left to the player (ADR-034 §5).
+		// A summon escorts an ally, the one it guards, or hunts an enemy within its cast range (ADR-035 §5).
+		if (Command->Order == EVeyraCompanionOrder::Summon)
+		{
+			const bool bHunts = Command->BindTo == EVeyraCompanionBind::Enemy;
+			Profile.Targeting = bHunts ? EVeyraBotTargeting::Unit : EVeyraBotTargeting::Self;
+			Profile.Reach = bHunts ? Command->Cast.CastRange : 0.0;
+			Profile.AllyReach = bHunts ? 0.0 : Command->Cast.CastRange;
+			Profile.CostByRank = Command->Cast.ResourceCostByRank;
+			return Profile;
+		}
+		// A hold sends the companion at an enemy its landing reaches; a recall or a redirect is left to the player (ADR-034 §5).
 		if (Command->Order != EVeyraCompanionOrder::Hold)
 		{
 			return {};

@@ -161,6 +161,12 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	{
 		return EVeyraCastRejection::NoCompanion;
 	}
+	// A status its caster holds may hold it back, as a ride's lock holds back a change of stance (ADR-035 §2).
+	const UVeyraStatusComponent* Statuses = FindBesideAbilitySystem<UVeyraStatusComponent>(Caster);
+	if (Costs && Statuses && Statuses->GetLedger().Entries.ContainsByPredicate([Costs](const FVeyraStatusEntry& Entry) { return Costs->RefusedWhile.Contains(Entry.Id); }))
+	{
+		return EVeyraCastRejection::HeldBack;
+	}
 	const EVeyraCastRejection TargetRejection = CheckTarget(*Avatar, Ability, Target);
 	if (TargetRejection != EVeyraCastRejection::None)
 	{

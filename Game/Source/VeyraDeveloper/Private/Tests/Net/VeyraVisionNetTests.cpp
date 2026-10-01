@@ -14,6 +14,7 @@
 #include "Companions/VeyraCompanion.h"
 #include "Companions/VeyraCompanionSubsystem.h"
 #include "EngineUtils.h"
+#include "Fog/VeyraDenseFogBank.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "State/VeyraVisionTeamState.h"
 #include "Targeting/VeyraVisibility.h"
@@ -446,6 +447,52 @@ namespace VeyraNetTests
 					{
 						ASSERT_THAT(IsFalse(HasVanguard(State.World, Participants[EnemyIndex].PlayerId)));
 					}
+				});
+		}
+
+		/** The circles of the fog banks this machine has (ADR-036 §1). */
+		static TArray<FVeyraFogCircle> SeenLaidFog(const UWorld* World)
+		{
+			TArray<FVeyraFogCircle> Circles;
+			for (TActorIterator<AVeyraDenseFogBank> It(World); It; ++It)
+			{
+				Circles.Append(It->GetCircles());
+			}
+			return Circles;
+		}
+
+		TEST_METHOD(FogAnAbilityLaysReachesEveryoneHidesAndEnds)
+		{
+			// Lay the Mist's fog (ADR-036 §1): every player receives where it lies, it hides the enemy from the
+			// teammate outside it as the map's fog does, and as it ends the teammate sees the enemy again.
+			const FVector2D Bush(-SightRadius(), 0.0);
+			const double BushRadius = 300.0;
+			const double LastsSeconds = 6.0;
+			IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("Lay fog; the observer and the enemy stand in it, the bystander outside"), [this, Bush, BushRadius, LastsSeconds](FState& State) {
+					FVeyraFogShape Shape;
+					Shape.Origin = FVector(Bush, 0.0);
+					Shape.Radius = BushRadius;
+					VeyraVisibility::AddDenseFog(*State.World, Shape, LastsSeconds);
+					Place(State, ObserverIndex, Bush - FVector2D(100.0, 0.0));
+					Place(State, EnemyIndex, Bush + FVector2D(100.0, 0.0));
+					Place(State, BystanderIndex, Bush - FVector2D(BushRadius * 2.0, 0.0));
+				})
+				.UntilClients(TEXT("Every client has the fog, and the observer the enemy in it"), [this, Bush, BushRadius](FState& State) {
+					const TArray<FVeyraFogCircle> Fog = SeenLaidFog(State.World);
+					const bool bHasFog = Fog.Num() == 1 && Fog[0].Center.Equals(Bush, 1.0) && FMath::IsNearlyEqual(Fog[0].Radius, BushRadius, 1.0);
+					return bHasFog && (State.ClientIndex != ObserverIndex || HasVanguard(State.World, Participants[EnemyIndex].PlayerId));
+				})
+				.ThenServer([this](FState& State) { HoldStartRealTime = State.World->GetRealTimeSeconds(); })
+				.UntilServer(TEXT("Give the sighting time to leak"), [this](FState& State) { return State.World->GetRealTimeSeconds() - HoldStartRealTime >= NegativeCheckRealSeconds; })
+				.ThenClients(TEXT("Its teammate outside the fog never has it"), [this](FState& State) {
+					if (State.ClientIndex == BystanderIndex)
+					{
+						ASSERT_THAT(IsFalse(HasVanguard(State.World, Participants[EnemyIndex].PlayerId)));
+					}
+				})
+				.UntilClients(TEXT("The fog ends: it leaves every client, and the teammate sees the enemy again"), [this](FState& State) {
+					return SeenLaidFog(State.World).IsEmpty() && (State.ClientIndex != BystanderIndex || HasVanguard(State.World, Participants[EnemyIndex].PlayerId));
 				});
 		}
 

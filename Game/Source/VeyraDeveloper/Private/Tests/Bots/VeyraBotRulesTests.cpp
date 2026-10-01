@@ -138,6 +138,20 @@ namespace VeyraBotsTests
 			ASSERT_THAT(IsTrue(Intent.CastTarget.bHasLocation && Intent.CastTarget.Location == View.EnemyVanguards[0].Location));
 		}
 
+		TEST_METHOD(AnEscapeAreaPlacedAtItsPointIsLaidOnTheBotItself)
+		{
+			// Fixture value: an area's cast range and size, as a fog laid to hide in.
+			constexpr double AreaReach = 1200.0;
+			FVeyraBotView View = AliveAt(0.0, 0.2);
+			View.EnemyVanguards.Add(Unit(Near));
+			FVeyraBotSlot Mist = Slot(EVeyraAbilitySlot::W, EVeyraBotAbilityUse::Escape, EVeyraBotTargeting::Point, AreaReach);
+			Mist.Profile.bAreaAtPoint = true;
+			View.Slots.Add(Mist);
+			const FVeyraBotIntent Intent = Decide(View);
+			ASSERT_THAT(IsTrue(Intent.Action == EVeyraBotAction::Cast && Intent.Slot == EVeyraAbilitySlot::W));
+			ASSERT_THAT(IsTrue(Intent.CastTarget.bHasLocation && Intent.CastTarget.Location.Equals(View.Self.Location), Intent.CastTarget.Location.ToString()));
+		}
+
 		TEST_METHOD(ABlinkEscapesHomewardAndAHealIsCastWhileRetreating)
 		{
 			// Fixture value: a Blink's distance.

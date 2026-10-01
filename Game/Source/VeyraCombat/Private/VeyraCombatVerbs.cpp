@@ -863,6 +863,14 @@ bool HasStatusFrom(const AActor* Unit, const FVeyraContentId& Id, const UAbility
 	return Statuses && Statuses->HasFrom(Id, Source);
 }
 
+bool HasStatusKindFromSide(const AActor* Unit, EVeyraStatusKind Kind, EVeyraTeam Side)
+{
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit);
+	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->HasFromSide(Kind, Side);
+}
+
 EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)
 {
 	const AActor* Owner = Unit.GetOwner();

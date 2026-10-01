@@ -34,6 +34,10 @@ enum class EVeyraCompanionMode : uint8
 	Follow,
 	/** Standing at a point an ability sent it to, fighting what comes near. */
 	Hold,
+	/** Summoned to keep near an ally it helps now and then, fighting nothing (ADR-035 §5). */
+	Escort,
+	/** Summoned to hunt one enemy while it stays within its leash of its owner (ADR-035 §5). */
+	Hunt,
 };
 
 /**
@@ -94,6 +98,12 @@ public:
 	/** Server: it gives up its hold and follows its owner again; the follow-up of the ability that sent it closes. */
 	void EndHold();
 
+	/** Server: a summoned companion escorts the ally or hunts the enemy Unit, as Mode says (ADR-035 §5). */
+	void Bind(EVeyraCompanionMode InMode, AActor& Unit);
+
+	/** Server: the ally it escorts or the enemy it hunts, if it was summoned for one. */
+	AActor* GetBoundTo() const { return BoundTo.Get(); }
+
 	EVeyraCompanionMode GetMode() const { return Mode; }
 	const FVector& GetHoldPoint() const { return HoldPoint; }
 	double GetHoldsUntil() const { return HoldsUntil; }
@@ -150,6 +160,7 @@ private:
 	/** Server only. */
 	TWeakObjectPtr<UAbilitySystemComponent> OwnerAbilities;
 	EVeyraCompanionMode Mode = EVeyraCompanionMode::Follow;
+	TWeakObjectPtr<AActor> BoundTo;
 	FVector HoldPoint = FVector::ZeroVector;
 	double HoldsUntil = 0.0;
 	FVeyraContentId HoldOpenedBy;

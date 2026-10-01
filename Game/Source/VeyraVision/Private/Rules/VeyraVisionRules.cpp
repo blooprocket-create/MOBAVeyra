@@ -95,4 +95,29 @@ int32 VolumeAt(TConstArrayView<FVeyraFogCircle> Circles, TConstArrayView<int32> 
 	}
 	return INDEX_NONE;
 }
+
+TArray<FVeyraFogCircle> CirclesOf(const FVeyraFogShape& Shape)
+{
+	const FVector2D Origin(Shape.Origin);
+	if (Shape.Kind == EVeyraFogShapeKind::Circle)
+	{
+		return { FVeyraFogCircle{ Origin, Shape.Radius } };
+	}
+	// Circles of half the width, from one radius in from its start to one radius in from its end, spaced by
+	// at most a radius so each overlaps the next; a corridor no longer than its width is one circle at its middle.
+	const double Radius = Shape.Width / 2.0;
+	const FVector2D Along = FVector2D(Shape.Direction).GetSafeNormal();
+	const double Span = Shape.Length - 2.0 * Radius;
+	if (!(Span > 0.0) || Along.IsNearlyZero())
+	{
+		return { FVeyraFogCircle{ Origin + Along * (Shape.Length / 2.0), Radius } };
+	}
+	const int32 Gaps = FMath::CeilToInt32(Span / Radius);
+	TArray<FVeyraFogCircle> Circles;
+	for (int32 Index = 0; Index <= Gaps; ++Index)
+	{
+		Circles.Add(FVeyraFogCircle{ Origin + Along * (Radius + Span * Index / Gaps), Radius });
+	}
+	return Circles;
+}
 }
