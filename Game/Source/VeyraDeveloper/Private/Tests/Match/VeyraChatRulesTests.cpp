@@ -48,6 +48,22 @@ namespace VeyraChatRulesTests
 			ASSERT_THAT(IsFalse(Receives(EVeyraChatChannel::Team, EVeyraTeam::A, EVeyraTeam::A, true, true), TEXT("nor one who muted the sender")));
 		}
 
+		TEST_METHOD(AReaderWithNoSideReceivesNothing)
+		{
+			using namespace VeyraChat;
+			ASSERT_THAT(IsFalse(Receives(EVeyraChatChannel::All, EVeyraTeam::A, EVeyraTeam::None, true, false), TEXT("a replay's recorder hears no All Chat")));
+			ASSERT_THAT(IsFalse(Receives(EVeyraChatChannel::Team, EVeyraTeam::None, EVeyraTeam::None, true, false), TEXT("nor any Team Chat")));
+		}
+
+		TEST_METHOD(OnlyTeamAndAllAreChannels)
+		{
+			using namespace VeyraChat;
+			const EVeyraChatChannel Unknown = static_cast<EVeyraChatChannel>(static_cast<uint8>(EVeyraChatChannel::All) + 1);
+			ASSERT_THAT(IsTrue(IsChannel(EVeyraChatChannel::Team) && IsChannel(EVeyraChatChannel::All)));
+			ASSERT_THAT(IsFalse(IsChannel(Unknown), TEXT("a value a modified client might send")));
+			ASSERT_THAT(IsFalse(Receives(Unknown, EVeyraTeam::A, EVeyraTeam::B, true, false), TEXT("and it reaches no one")));
+		}
+
 		TEST_METHOD(AClientKeepsItsNewestMessages)
 		{
 			TArray<FVeyraReceivedChat> Held;
