@@ -19,6 +19,7 @@ import (
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/catalog"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/config"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/docker"
+	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/firebaseauth"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/httpapi"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/identity"
 	"github.com/blooprocket-create/MOBAVeyra/Backend/internal/lobby"
@@ -73,11 +74,19 @@ func run(log *slog.Logger) error {
 			"environment", cfg.Environment, "accounts", len(cfg.DevLogin.Accounts))
 	}
 
+	playerLogin, err := newPlayerLogin(cfg.PlayerLogin)
+	if err != nil {
+		return err
+	}
+	if playerLogin != nil {
+		log.Info("player login enabled", "provider", cfg.PlayerLogin.Provider, "project", cfg.PlayerLogin.Firebase.ProjectID)
+	}
 	svc := identity.NewService(store, identity.Settings{
 		LauncherSessionLifetime: cfg.Sessions.Launcher,
 		GameSessionLifetime:     cfg.Sessions.Game,
 		LaunchCodeLifetime:      cfg.LaunchCodeLifetime,
 		DevLoginEnabled:         cfg.DevLogin.Enabled,
+		PlayerLogin:             playerLogin,
 	}, time.Now)
 
 	soc := social.NewService(store.Social())
@@ -362,6 +371,22 @@ func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Ser
 		settings.PublicHost, settings.BackendURL = d.PublicHost, d.BackendURL
 	}
 	return match.NewService(store.Match(), displayNames(ids), allocator, settings, time.Now), nil
+}
+
+// newPlayerLogin builds the identity provider's token verifier (ADR-038), or
+// nil when player login is off.
+func newPlayerLogin(cfg config.PlayerLogin) (identity.Verifier, error) {
+	if cfg.Provider != config.PlayerLoginFirebase {
+		return nil, nil
+	}
+	fb := cfg.Firebase
+	return firebaseauth.New(firebaseauth.Config{
+		ProjectID: fb.ProjectID,
+		KeysURL:   fb.KeysURL,
+		ClockSkew: fb.ClockSkew,
+		Client:    &http.Client{Timeout: fb.KeysFetchTimeout},
+		Now:       time.Now,
+	})
 }
 
 // displayNames resolves accounts' display names through identity.

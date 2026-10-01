@@ -45,11 +45,67 @@
 
   <section id="sign-in" hidden>
     <h2>Sign In</h2>
-    <p class="note">Development sign-in: choose an account. There is no password until Veyra's identity provider arrives.</p>
-    <label for="account">Account</label>
-    <select id="account"></select>
-    <button id="play" type="button" class="primary">Play</button>
+    <form id="sign-in-form" class="form" novalidate>
+      <label for="sign-in-email">Email</label>
+      <input id="sign-in-email" type="email" autocomplete="username" spellcheck="false" required>
+      <label for="sign-in-password">Password</label>
+      <input id="sign-in-password" type="password" autocomplete="current-password" required>
+      <p class="note warning" id="sign-in-note" role="alert" hidden></p>
+      <button id="sign-in-button" type="submit" class="primary">Sign In</button>
+    </form>
+    <div class="links">
+      <button id="show-register" type="button" class="link">Create an account</button>
+      <button id="forgot-password" type="button" class="link">Forgot password?</button>
+    </div>
+    <details id="dev-sign-in" hidden>
+      <summary>Development accounts</summary>
+      <div class="dev-row">
+        <select id="account" aria-label="Development account"></select>
+        <button id="dev-play" type="button" class="quiet">Play</button>
+      </div>
+    </details>
     <p class="note warning" id="game-note" hidden></p>
+  </section>
+
+  <section id="register" hidden>
+    <h2>Create an Account</h2>
+    <form id="register-form" class="form" novalidate>
+      <label for="register-name">Display name</label>
+      <input id="register-name" type="text" autocomplete="nickname" spellcheck="false" maxlength="16" placeholder="3–16 letters, digits or _" required>
+      <label for="register-email">Email</label>
+      <input id="register-email" type="email" autocomplete="email" spellcheck="false" required>
+      <label for="register-password">Password</label>
+      <input id="register-password" type="password" autocomplete="new-password" minlength="6" required>
+      <p class="note warning" id="register-note" role="alert" hidden></p>
+      <button id="register-button" type="submit" class="primary">Create Account</button>
+    </form>
+    <div class="links">
+      <button id="show-sign-in" type="button" class="link">I already have an account</button>
+    </div>
+  </section>
+
+  <section id="choose-name" hidden>
+    <h2>Choose Your Name</h2>
+    <p class="note">Your account has no display name yet. Choose one to finish it: 3 to 16 letters, digits or underscores.</p>
+    <form id="choose-name-form" class="form" novalidate>
+      <label for="choose-name-input">Display name</label>
+      <input id="choose-name-input" type="text" autocomplete="nickname" spellcheck="false" maxlength="16" placeholder="3–16 letters, digits or _" required>
+      <p class="note warning" id="choose-name-note" role="alert" hidden></p>
+      <button id="choose-name-button" type="submit" class="primary">Continue</button>
+    </form>
+    <div class="links">
+      <button id="choose-name-back" type="button" class="link">Back to sign in</button>
+    </div>
+  </section>
+
+  <section id="ready" hidden>
+    <h2>Welcome</h2>
+    <p class="status" id="signed-in-as"></p>
+    <button id="play" type="button" class="primary">Play</button>
+    <p class="note warning" id="ready-note" hidden></p>
+    <div class="links">
+      <button id="sign-out" type="button" class="link">Sign out</button>
+    </div>
   </section>
 
   <section id="progress" hidden>

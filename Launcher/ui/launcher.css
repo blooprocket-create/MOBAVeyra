@@ -153,6 +153,7 @@ label {
 }
 
 select,
+input,
 button {
   height: 44px;
   padding: 0 14px;
@@ -168,6 +169,12 @@ select {
   cursor: pointer;
 }
 
+input {
+  background: var(--field);
+  user-select: text;
+}
+
+input:focus,
 select:focus-visible,
 button:focus-visible,
 .link:focus-visible {
@@ -271,6 +278,61 @@ button:hover {
   color: var(--primary);
 }
 
+/* A sign-in or registration form: the section's rhythm, inside a form. */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+
+.form label {
+  margin-top: 4px;
+  margin-bottom: -2px;
+}
+
+.form input {
+  height: 38px;
+}
+
+input::placeholder {
+  color: rgba(142, 151, 166, 0.6);
+}
+
+/* Quieter ways on from a form: create an account, forgot password, sign out. */
+.links {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* The development accounts, folded away beneath a player's sign-in (a local backend only). */
+details {
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+}
+
+.dev-row {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.dev-row select {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+}
+
+summary {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
 /* Something is under way: a thin line of Flux running along the card, quiet as the Art Bible asks (§4.4). */
 .working {
   position: relative;
@@ -314,7 +376,7 @@ footer {
   text-align: right;
 }
 
-/* Repair: there when it may be needed, never in the way. */
+/* Repair, and the links beneath a form: there when they may be needed, never in the way. */
 .link {
   height: auto;
   padding: 0;

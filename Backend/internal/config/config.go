@@ -56,6 +56,12 @@ const (
 	MatchmakingNotImplemented = "notImplemented"
 )
 
+// Player-login providers (ADR-038).
+const (
+	PlayerLoginFirebase = "firebase"
+	PlayerLoginNone     = "none"
+)
+
 // Allocator kinds (ADR-007 §11).
 const (
 	AllocatorDocker = "docker"
@@ -75,6 +81,7 @@ type Config struct {
 	Sessions              SessionLifetimes
 	LaunchCodeLifetime    time.Duration
 	DevLogin              DevLogin
+	PlayerLogin           PlayerLogin
 	Party                 Party
 	Modes                 []Mode
 	Vanguards             Vanguards
@@ -304,6 +311,30 @@ type DevLogin struct {
 	Accounts []string
 }
 
+// PlayerLogin configures registration and sign-in through an external
+// identity provider (ADR-038). Firebase is nil when Provider is "none".
+type PlayerLogin struct {
+	Provider string
+	Firebase *FirebaseLogin
+}
+
+// FirebaseLogin configures verification of Firebase ID tokens.
+type FirebaseLogin struct {
+	// ProjectID is the Firebase project whose tokens are accepted.
+	ProjectID string
+	// KeysURL serves Google's certificates that sign ID tokens.
+	KeysURL string
+	// KeysFetchTimeout bounds one fetch of KeysURL.
+	KeysFetchTimeout time.Duration
+	// ClockSkew is the leeway on a token's expiry and issue times.
+	ClockSkew time.Duration
+}
+
+// MaxClockSkew bounds firebase.clockSkew: more would accept long-expired tokens.
+const MaxClockSkew = 5 * time.Minute
+
+var firebaseProjectIDPattern = regexp.MustCompile(`^[a-z][a-z0-9-]{4,28}[a-z0-9]$`)
+
 // Duration is a JSON string such as "30s" or "24h".
 type Duration time.Duration
 
@@ -343,6 +374,15 @@ type fileConfig struct {
 		Enabled  *bool    `json:"enabled"`
 		Accounts []string `json:"accounts"`
 	} `json:"devLogin"`
+	PlayerLogin *struct {
+		Provider *string `json:"provider"`
+		Firebase *struct {
+			ProjectID        *string   `json:"projectId"`
+			KeysURL          *string   `json:"keysUrl"`
+			KeysFetchTimeout *Duration `json:"keysFetchTimeout"`
+			ClockSkew        *Duration `json:"clockSkew"`
+		} `json:"firebase"`
+	} `json:"playerLogin"`
 	Party *struct {
 		MaxSize        *int      `json:"maxSize"`
 		InviteLifetime *Duration `json:"inviteLifetime"`
@@ -561,6 +601,51 @@ func Parse(raw []byte) (Config, error) {
 		}
 		if c.DevLogin.Enabled && len(c.DevLogin.Accounts) == 0 {
 			problems = append(problems, "devLogin.accounts must list at least one account when dev login is enabled")
+		}
+	}
+
+	if f.PlayerLogin == nil || f.PlayerLogin.Provider == nil {
+		missing("playerLogin.provider")
+	} else {
+		c.PlayerLogin.Provider = *f.PlayerLogin.Provider
+		fb := f.PlayerLogin.Firebase
+		switch c.PlayerLogin.Provider {
+		case PlayerLoginNone:
+			if fb != nil {
+				problems = append(problems, "playerLogin.firebase must be absent when playerLogin.provider is \""+PlayerLoginNone+"\"")
+			}
+		case PlayerLoginFirebase:
+			if fb == nil {
+				missing("playerLogin.firebase")
+				break
+			}
+			login := &FirebaseLogin{}
+			switch {
+			case fb.ProjectID == nil:
+				missing("playerLogin.firebase.projectId")
+			case !firebaseProjectIDPattern.MatchString(*fb.ProjectID):
+				problems = append(problems, "playerLogin.firebase.projectId must be a Firebase project ID such as veyra-58ea4")
+			default:
+				login.ProjectID = *fb.ProjectID
+			}
+			if fb.KeysURL == nil {
+				missing("playerLogin.firebase.keysUrl")
+			} else if u, err := url.Parse(*fb.KeysURL); err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil {
+				problems = append(problems, "playerLogin.firebase.keysUrl must be an https URL")
+			} else {
+				login.KeysURL = *fb.KeysURL
+			}
+			login.KeysFetchTimeout = positive("playerLogin.firebase.keysFetchTimeout", fb.KeysFetchTimeout)
+			if fb.ClockSkew == nil {
+				missing("playerLogin.firebase.clockSkew")
+			} else if d := time.Duration(*fb.ClockSkew); d < 0 || d > MaxClockSkew {
+				problems = append(problems, fmt.Sprintf("playerLogin.firebase.clockSkew must be from 0s to %s", MaxClockSkew))
+			} else {
+				login.ClockSkew = d
+			}
+			c.PlayerLogin.Firebase = login
+		default:
+			problems = append(problems, "playerLogin.provider must be \""+PlayerLoginFirebase+"\" or \""+PlayerLoginNone+"\"")
 		}
 	}
 

@@ -87,6 +87,9 @@ func New(d Deps) http.Handler {
 	if d.DevLogin {
 		mux.HandleFunc("POST /v1/dev/login", s.devLoginHandler)
 	}
+	// Player sign-in and registration through the identity provider (ADR-038).
+	mux.HandleFunc("POST /v1/login", s.playerLogin)
+	mux.HandleFunc("POST /v1/register", s.register)
 	mux.HandleFunc("POST /v1/launch-codes", s.issueLaunchCode)
 	mux.HandleFunc("POST /v1/game-sessions", s.redeemLaunchCode)
 	mux.HandleFunc("GET /v1/me", s.me)
@@ -158,6 +161,40 @@ func (s *Server) devLoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, tokenJSON{Token: tok.Token, ExpiresAt: tok.ExpiresAt, Account: toAccountJSON(acct)})
+}
+
+// playerLogin exchanges an identity-provider token for a launcher session.
+func (s *Server) playerLogin(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ProviderToken string `json:"providerToken"`
+	}
+	if !s.decode(w, r, &req) {
+		return
+	}
+	tok, acct, err := s.Identity.PlayerLogin(r.Context(), req.ProviderToken)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, tokenJSON{Token: tok.Token, ExpiresAt: tok.ExpiresAt, Account: toAccountJSON(acct)})
+}
+
+// register creates the Veyra account for an identity-provider token, with the
+// display name the player chose, and returns a launcher session for it.
+func (s *Server) register(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		ProviderToken string `json:"providerToken"`
+		DisplayName   string `json:"displayName"`
+	}
+	if !s.decode(w, r, &req) {
+		return
+	}
+	tok, acct, err := s.Identity.Register(r.Context(), req.ProviderToken, req.DisplayName)
+	if err != nil {
+		s.fail(w, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, tokenJSON{Token: tok.Token, ExpiresAt: tok.ExpiresAt, Account: toAccountJSON(acct)})
 }
 
 func (s *Server) issueLaunchCode(w http.ResponseWriter, r *http.Request) {
@@ -237,6 +274,11 @@ var errorStatus = []struct {
 	{identity.ErrInvalidBuildVersion, http.StatusBadRequest, "invalid_build_version"},
 	{identity.ErrDevLoginDisabled, http.StatusNotFound, "not_found"},
 	{identity.ErrNotFound, http.StatusNotFound, "account_not_found"},
+	{identity.ErrPlayerLoginDisabled, http.StatusNotFound, "not_found"},
+	{identity.ErrNotRegistered, http.StatusNotFound, "not_registered"},
+	{identity.ErrAlreadyRegistered, http.StatusConflict, "already_registered"},
+	{identity.ErrDisplayNameTaken, http.StatusConflict, "display_name_taken"},
+	{identity.ErrInvalidDisplayName, http.StatusBadRequest, "invalid_display_name"},
 
 	{social.ErrSelf, http.StatusBadRequest, "cannot_target_self"},
 	{social.ErrAccountNotFound, http.StatusNotFound, "account_not_found"},
