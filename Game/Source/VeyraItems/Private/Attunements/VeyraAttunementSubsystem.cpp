@@ -638,7 +638,7 @@ void UVeyraAttunementSubsystem::EndlessCleave(const FVeyraContentId& Attunement,
 	// Sides belong to the participant, which outlives its body.
 	const AActor* Side = Holder.GetOwner();
 	const TArray<AActor*> Units = VeyraShapes::GatherUnits(*GetWorld(), FVeyraPlacedShape{ Around, Struck->GetActorLocation(), FVector::ForwardVector },
-		[Side, Struck](const AActor& Unit) { return &Unit != Struck && VeyraTargeting::AreHostile(Side, &Unit); });
+		[Side, Struck](const AActor& Unit) { return &Unit != Struck && VeyraTargeting::CanHitEnemy(Side, Unit); });
 	for (AActor* Unit : Units)
 	{
 		if (UAbilitySystemComponent* Other = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit))

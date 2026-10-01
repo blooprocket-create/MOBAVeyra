@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "CQTest.h"
+#include "Entities/VeyraPlacedMarker.h"
 #include "Components/PIENetworkComponent.h"
 
 #if ENABLE_PIE_NETWORK_TEST
@@ -10,7 +11,10 @@
 #include "Algo/AllOf.h"
 #include "Algo/Count.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Companions/VeyraCompanion.h"
+#include "Companions/VeyraCompanionSubsystem.h"
 #include "EngineUtils.h"
+#include "Fog/VeyraDenseFogBank.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "State/VeyraVisionTeamState.h"
 #include "Targeting/VeyraVisibility.h"
@@ -24,6 +28,7 @@
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
 #include "VeyraVisionSubsystem.h"
+#include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Wards/VeyraWard.h"
 
@@ -41,6 +46,7 @@ namespace VeyraNetTests
 		FPIENetworkComponent<FState> Network{ TestRunner, TestCommandBuilder, bInitializing };
 		TUniquePtr<FScopedExpectedPlayers> ExpectedPlayers;
 		TUniquePtr<FScopedMatchTuning> Tuning;
+		TUniquePtr<FScopedAbilitiesTuning> AbilitiesTuning;
 		FVeyraGreyboxLayout Layout;
 
 		static constexpr int32 PlayerCount = 3;
@@ -73,6 +79,7 @@ namespace VeyraNetTests
 
 		AFTER_EACH()
 		{
+			AbilitiesTuning.Reset();
 			Tuning.Reset();
 			ExpectedPlayers.Reset();
 		}
@@ -265,6 +272,121 @@ namespace VeyraNetTests
 				});
 		}
 
+		/** Whether this machine has the companion of the participant with PlayerId. */
+		static bool HasCompanionOf(const UWorld* World, int32 PlayerId)
+		{
+			for (TActorIterator<AVeyraCompanion> It(World); It; ++It)
+			{
+				const APlayerState* Whose = It->GetOwnerState();
+				if (Whose && Whose->GetPlayerId() == PlayerId)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/** The enemy's companion on the server, or null. */
+		AVeyraCompanion* EnemyCompanion(const FState& State) const
+		{
+			const AVeyraPlayerState* Enemy = ServerControllerOf(State, EnemyIndex)->GetPlayerState<AVeyraPlayerState>();
+			const UVeyraCompanionSubsystem* Keeper = State.World->GetSubsystem<UVeyraCompanionSubsystem>();
+			return Enemy && Keeper ? Keeper->Find(*Enemy->GetAbilitySystemComponent()) : nullptr;
+		}
+
+		TEST_METHOD(AnEnemyCompanionReachesOnlyTheSideThatSeesIt)
+		{
+			// A test companion beside the committed abilities, which the match's Vanguards hold.
+			const FVeyraContentId Pet = FVeyraContentId::FromText(TEXT("test_pet")).GetValue();
+			FVeyraAbilitiesTuning WithPet = UVeyraAbilitiesTuningSubsystem::Get();
+			WithPet.Companions.Add(Pet, VeyraAbilitiesTests::ExampleCompanion());
+			AbilitiesTuning = MakeUnique<FScopedAbilitiesTuning>();
+			AbilitiesTuning->Tuning = MoveTemp(WithPet);
+			const FVector2D Observer(-SightRadius(), 0.0);
+			const FVector2D Bystander(-SightRadius(), SightRadius() / 3.0);
+			const FVector2D Far(SightRadius() * 1.5, 0.0);
+			IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("Part the sides; the enemy keeps a companion"), [this, Observer, Bystander, Far, Pet](FState& State) {
+					Place(State, ObserverIndex, Observer);
+					Place(State, BystanderIndex, Bystander);
+					Place(State, EnemyIndex, Far);
+					AVeyraPlayerState* Enemy = ServerControllerOf(State, EnemyIndex)->GetPlayerState<AVeyraPlayerState>();
+					ASSERT_THAT(IsTrue(Enemy && State.World->GetSubsystem<UVeyraCompanionSubsystem>()->Summon(*Enemy->GetAbilitySystemComponent(), Pet)));
+				})
+				.UntilClients(TEXT("Only the enemy's side has its companion"), [this](FState& State) {
+					const bool bHas = HasCompanionOf(State.World, Participants[EnemyIndex].PlayerId);
+					return Participants[State.ClientIndex].Team == Participants[EnemyIndex].Team ? bHas : !bHas;
+				})
+				.ThenServer(TEXT("The companion steps into the observer's sight, its owner far off"), [this, Observer](FState& State) {
+					AVeyraCompanion* Companion = EnemyCompanion(State);
+					ASSERT_THAT(IsNotNull(Companion));
+					const FVector Seen(Observer.X + SightRadius() / 2.0, Observer.Y, Companion->GetActorLocation().Z);
+					Companion->SetActorLocation(Seen, /*bSweep*/ false, nullptr, ETeleportType::TeleportPhysics);
+				})
+				.UntilClients(TEXT("The observer's side has the companion, and still not its owner"), [this](FState& State) {
+					const FParticipant& Enemy = Participants[EnemyIndex];
+					const bool bOwnSide = Participants[State.ClientIndex].Team == Enemy.Team;
+					return HasCompanionOf(State.World, Enemy.PlayerId) && (bOwnSide || !HasVanguard(State.World, Enemy.PlayerId));
+				});
+		}
+
+		/** The participant PlayerId's decoy, as this machine has it, or null. */
+		static const AVeyraPlacedMarker* FindDecoyOf(const UWorld* World, int32 PlayerId)
+		{
+			for (TActorIterator<AVeyraPlacedMarker> It(World); It; ++It)
+			{
+				const APlayerState* Shown = It->GetPresentedAs();
+				if (Shown && Shown->GetPlayerId() == PlayerId)
+				{
+					return *It;
+				}
+			}
+			return nullptr;
+		}
+
+		TEST_METHOD(AnInvisibleEnemyLeavesTheOtherSideWhileItsDecoyReachesIt)
+		{
+			const FVector2D Observer(-SightRadius(), 0.0);
+			const FVector2D Bystander(-SightRadius(), SightRadius() / 3.0);
+			// Well within the observer's sight: no nearness shows an Invisible unit (Combat Bible §11).
+			const FVector2D Close(-SightRadius() * 0.8, 0.0);
+			IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("The enemy stands close to the observer"), [this, Observer, Bystander, Close](FState& State) {
+					Place(State, ObserverIndex, Observer);
+					Place(State, BystanderIndex, Bystander);
+					Place(State, EnemyIndex, Close);
+				})
+				.UntilClients(TEXT("Every client has every Vanguard"), [this](FState& State) {
+					return Algo::AllOf(Participants, [&State](const FParticipant& Other) { return HasVanguard(State.World, Other.PlayerId); });
+				})
+				.ThenServer(TEXT("The enemy turns Invisible and leaves a decoy where it stands"), [this](FState& State) {
+					AVeyraPlayerState* Enemy = ServerControllerOf(State, EnemyIndex)->GetPlayerState<AVeyraPlayerState>();
+					ASSERT_THAT(IsNotNull(Enemy));
+					UAbilitySystemComponent& Own = *Enemy->GetAbilitySystemComponent();
+					FVeyraStatusSpec Hidden;
+					Hidden.Id = FVeyraContentId::FromText(TEXT("test_invisible")).GetValue();
+					Hidden.Kind = EVeyraStatusKind::Invisible;
+					Hidden.DurationSeconds = 60.0;
+					ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Own, Own, Hidden)));
+					FVeyraMarkerSpec Decoy;
+					Decoy.Id = FVeyraContentId::FromText(TEXT("test_decoy")).GetValue();
+					Decoy.LifetimeSeconds = 60.0;
+					Decoy.HitsToDestroy = 1;
+					Decoy.bPresentsAsOwner = true;
+					const AVeyraVanguardCharacter* Body = FindVanguard(State.World, Participants[EnemyIndex].PlayerId);
+					ASSERT_THAT(IsTrue(Body && AVeyraPlacedMarker::Place(*State.World, Own, Decoy, Body->GetActorTransform()) != nullptr));
+				})
+				.UntilClients(TEXT("The other side has only the decoy, as the enemy; the enemy's side has both"), [this](FState& State) {
+					const FParticipant& Enemy = Participants[EnemyIndex];
+					const AVeyraPlacedMarker* Decoy = FindDecoyOf(State.World, Enemy.PlayerId);
+					if (Participants[State.ClientIndex].Team != Enemy.Team)
+					{
+						return !HasVanguard(State.World, Enemy.PlayerId) && Decoy != nullptr;
+					}
+					return HasVanguard(State.World, Enemy.PlayerId) && Decoy != nullptr;
+				});
+		}
+
 		TEST_METHOD(AnEnemyNobodySeesCannotBeOrderedAttacked)
 		{
 			const FVector2D Observer(-SightRadius(), 0.0);
@@ -325,6 +447,52 @@ namespace VeyraNetTests
 					{
 						ASSERT_THAT(IsFalse(HasVanguard(State.World, Participants[EnemyIndex].PlayerId)));
 					}
+				});
+		}
+
+		/** The circles of the fog banks this machine has (ADR-036 §1). */
+		static TArray<FVeyraFogCircle> SeenLaidFog(const UWorld* World)
+		{
+			TArray<FVeyraFogCircle> Circles;
+			for (TActorIterator<AVeyraDenseFogBank> It(World); It; ++It)
+			{
+				Circles.Append(It->GetCircles());
+			}
+			return Circles;
+		}
+
+		TEST_METHOD(FogAnAbilityLaysReachesEveryoneHidesAndEnds)
+		{
+			// Lay the Mist's fog (ADR-036 §1): every player receives where it lies, it hides the enemy from the
+			// teammate outside it as the map's fog does, and as it ends the teammate sees the enemy again.
+			const FVector2D Bush(-SightRadius(), 0.0);
+			const double BushRadius = 300.0;
+			const double LastsSeconds = 6.0;
+			IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("Lay fog; the observer and the enemy stand in it, the bystander outside"), [this, Bush, BushRadius, LastsSeconds](FState& State) {
+					FVeyraFogShape Shape;
+					Shape.Origin = FVector(Bush, 0.0);
+					Shape.Radius = BushRadius;
+					VeyraVisibility::AddDenseFog(*State.World, Shape, LastsSeconds);
+					Place(State, ObserverIndex, Bush - FVector2D(100.0, 0.0));
+					Place(State, EnemyIndex, Bush + FVector2D(100.0, 0.0));
+					Place(State, BystanderIndex, Bush - FVector2D(BushRadius * 2.0, 0.0));
+				})
+				.UntilClients(TEXT("Every client has the fog, and the observer the enemy in it"), [this, Bush, BushRadius](FState& State) {
+					const TArray<FVeyraFogCircle> Fog = SeenLaidFog(State.World);
+					const bool bHasFog = Fog.Num() == 1 && Fog[0].Center.Equals(Bush, 1.0) && FMath::IsNearlyEqual(Fog[0].Radius, BushRadius, 1.0);
+					return bHasFog && (State.ClientIndex != ObserverIndex || HasVanguard(State.World, Participants[EnemyIndex].PlayerId));
+				})
+				.ThenServer([this](FState& State) { HoldStartRealTime = State.World->GetRealTimeSeconds(); })
+				.UntilServer(TEXT("Give the sighting time to leak"), [this](FState& State) { return State.World->GetRealTimeSeconds() - HoldStartRealTime >= NegativeCheckRealSeconds; })
+				.ThenClients(TEXT("Its teammate outside the fog never has it"), [this](FState& State) {
+					if (State.ClientIndex == BystanderIndex)
+					{
+						ASSERT_THAT(IsFalse(HasVanguard(State.World, Participants[EnemyIndex].PlayerId)));
+					}
+				})
+				.UntilClients(TEXT("The fog ends: it leaves every client, and the teammate sees the enemy again"), [this](FState& State) {
+					return SeenLaidFog(State.World).IsEmpty() && (State.ClientIndex != BystanderIndex || HasVanguard(State.World, Participants[EnemyIndex].PlayerId));
 				});
 		}
 

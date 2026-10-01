@@ -32,6 +32,8 @@ TArray<FString> UVeyraGreyboxSettings::Validate() const
 		{ TEXT("SlowColor"), SlowColor },
 		{ TEXT("ShieldColor"), ShieldColor },
 		{ TEXT("ResourceColor"), ResourceColor },
+		{ TEXT("FocusColor"), FocusColor },
+		{ TEXT("ChargeColor"), ChargeColor },
 		{ TEXT("BarBackgroundColor"), BarBackgroundColor },
 		{ TEXT("TextColor"), TextColor },
 		{ TEXT("DescriptionColor"), DescriptionColor },

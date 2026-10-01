@@ -162,6 +162,40 @@ enum class EVeyraStatusKind : uint8
 	 * it. Magnitude: 0.
 	 */
 	Grounded,
+	/**
+	 * Invisible (Combat Bible §11; ADR-030 §1): hidden from enemies at any distance, and only True Sight
+	 * reveals it. Not crowd control; attacking or an offensive cast ends it, as it ends Camouflage.
+	 * Magnitude: 0.
+	 */
+	Invisible,
+	/**
+	 * Untargetable (Combat Bible §10; ADR-030 §2): enemies cannot acquire it, their skillshots, areas and
+	 * cleaves pass over it, and a targeted projectile flying at it fails on arrival. Not crowd control; it
+	 * cleanses nothing. Magnitude: 0.
+	 */
+	Untargetable,
+	/**
+	 * ResourceCostReduction (ADR-033 §3): the unit's abilities cost less, each reduction leaving its share
+	 * of the cost. Magnitude: the share taken off, above 0 and below 1 with every stack.
+	 */
+	ResourceCostReduction,
+	/**
+	 * AttackShortensCooldown (ADR-033 §6): each of its holder's committed basic attacks shortens the remaining
+	 * cooldown of whichever of its Q, W and E comes off cooldown soonest. Magnitude: the seconds, above 0.
+	 */
+	AttackShortensCooldown,
+	/**
+	 * MaxHealth (ADR-034 §2): the unit's Max Health is multiplied by one plus its magnitude while it holds,
+	 * Health keeping its share of the maximum, as a companion's true form. Magnitude: a signed change per
+	 * stack, every stack together above -1.
+	 */
+	MaxHealth,
+	/**
+	 * Sounded (ADR-036 §2): while its holder stands in Dense Fog, the fog pings its presence to its source's
+	 * side, at the presence cadence. It reveals nothing, outlines nothing and grants no targeting; outside
+	 * fog it does nothing. Not crowd control. Magnitude: 0.
+	 */
+	Sounded,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */
@@ -257,6 +291,10 @@ struct VEYRACOMBAT_API FVeyraStatusSpec
 	/** The kinds of unit it lands on, as Korruk's Splinters embed only in Vanguards (ADR-026 §2); empty for every kind. */
 	UPROPERTY()
 	TArray<EVeyraUnitKind> LandsOn;
+
+	/** How many of its holder's basic attacks it lasts, each that commits spending one (ADR-033 §4); 0 for a status attacks do not spend. */
+	UPROPERTY()
+	int32 AttackCharges = 0;
 };
 
 /** One active status as every machine sees it. Replicated for presentation. */
@@ -288,6 +326,10 @@ struct FVeyraStatusEntry
 
 	UPROPERTY()
 	double EndsAt = 0.0;
+
+	/** The basic attacks it has left before it ends (ADR-033 §4); 0 for one attacks do not spend. */
+	UPROPERTY()
+	int32 AttackCharges = 0;
 };
 
 /** A unit's active statuses. */

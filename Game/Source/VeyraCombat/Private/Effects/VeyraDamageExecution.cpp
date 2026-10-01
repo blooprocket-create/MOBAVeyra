@@ -178,8 +178,9 @@ void UVeyraDamageExecution::Execute_Implementation(const FGameplayEffectCustomEx
 	}
 
 	// A ward counts hits, not damage: every blow that reaches it takes one point of its Health, whatever
-	// its amount and modifiers (ADR-016 §6). Only a Vanguard's basic attack gets this far.
-	if (VeyraUnits::IsWard(Defender->GetOwner()))
+	// its amount and modifiers (ADR-016 §6). Only a Vanguard's basic attack gets this far. A placed
+	// marker counts them the same way, from anything of its enemies' (ADR-030 §5).
+	if (VeyraUnits::IsWard(Defender->GetOwner()) || VeyraUnits::IsMarker(Defender->GetOwner()))
 	{
 		constexpr float OneHit = 1.0f;
 		OutExecutionOutput.AddOutputModifier(FGameplayModifierEvaluatedData(UVeyraVitalsSet::GetIncomingDamageAttribute(EVeyraDamageType::TrueDamage),

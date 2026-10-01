@@ -1,16 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "Progression tuning",
-  "description": "In-match progression owned by the Economy domain (Economy & Progression Bible §1, §9, §16). VeyraEconomy binds it to FVeyraProgressionTuning, and also checks that the XP curve has one entry per level below the cap and that each ultimate rank has one rising opening level.",
+  "description": "In-match progression owned by the Economy domain (Economy & Progression Bible §1, §9, §16). VeyraEconomy binds it to FVeyraProgressionTuning, and also checks that the XP curve has one entry per level below the cap, that each ultimate rank has one rising opening level, and that each rank shape spends the standard total of skill points.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "maxLevel", "skillPointsPerLevel", "basicAbilityMaxRank", "ultimateMaxRank", "ultimateRankLevels", "experience"],
+  "required": ["schemaVersion", "maxLevel", "skillPointsPerLevel", "basicAbilityMaxRank", "ultimateMaxRank", "ultimateRankLevels", "experience", "rankShapes"],
   "properties": {
     "schemaVersion": {
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [1]
+      "enum": [2]
     },
     "maxLevel": {
       "description": "The level cap. Canon (Economy & Progression §9): 18.",
@@ -54,6 +54,26 @@
           "type": "array",
           "minItems": 1,
           "items": { "type": "integer", "minimum": 1 }
+        }
+      }
+    },
+    "rankShapes": {
+      "description": "Documented exceptions to the standard ranks (§1; ADR-031 §2), by ID; a Vanguard record names at most one. Each spends the standard total of skill points: 3 × basicAbilityMaxRank, plus ultimateMaxRank unless R is innate.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["basicAbilityMaxRank", "ultimate"],
+          "properties": {
+            "basicAbilityMaxRank": { "description": "The top rank of Q, W and E.", "type": "integer", "minimum": 1 },
+            "ultimate": {
+              "description": "Ranked: R ranks as standard. Innate: R is learnt from the start at rank 1, takes no point and never ranks.",
+              "type": "string",
+              "enum": ["Ranked", "Innate"]
+            }
+          }
         }
       }
     }

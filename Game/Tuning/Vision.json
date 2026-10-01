@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 3,
+  "schemaVersion": 4,
   "update": {
     "provenance": "Provisional",
     "updateSeconds": 0.2
@@ -9,7 +9,8 @@
     "vanguard": 1350,
     "fluxborn": 1100,
     "structure": 1350,
-    "ward": 900
+    "ward": 900,
+    "companion": 800
   },
   "wardCharges": {
     "provenance": "Canon",

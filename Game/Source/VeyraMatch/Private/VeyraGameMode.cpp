@@ -1370,7 +1370,8 @@ void AVeyraGameMode::RecoverAtFountains()
 		// The restore verbs refuse the dead and never overfill.
 		VeyraCombat::RestoreHealth(*AbilitySystem,
 			AbilitySystem->GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()) * Fountain.HealthFractionPerSecond * Fountain.IntervalSeconds);
-		if (AbilitySystem->HasAttributeSetForAttribute(UVeyraResourceSet::GetMaxResourceAttribute()))
+		// A kept resource, as Charge, only effects fill (ADR-033 §1).
+		if (AbilitySystem->HasAttributeSetForAttribute(UVeyraResourceSet::GetMaxResourceAttribute()) && !VeyraCombat::IsResourceKept(*AbilitySystem))
 		{
 			VeyraCombat::RestoreResource(*AbilitySystem,
 				AbilitySystem->GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()) * Fountain.ResourceFractionPerSecond * Fountain.IntervalSeconds);

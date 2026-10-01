@@ -22,6 +22,8 @@
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraAbilitiesLog.h"
+#include "VeyraAbilitiesVerbs.h"
+#include "VeyraCombatVerbs.h"
 #include "Targeting/VeyraParticipantData.h"
 
 namespace
@@ -204,7 +206,7 @@ EVeyraAttackRejection UVeyraBasicAttackComponent::StartAttack(AActor& Target)
 	// A backswing still running ends as the next attack begins.
 	GetWorld()->GetTimerManager().ClearTimer(PhaseTimer);
 	// Attacking ends Camouflage (Combat Bible §11; ADR-018 §4).
-	VeyraCombat::EndCamouflage(*GetAbilitySystem());
+	VeyraCombat::EndStealth(*GetAbilitySystem());
 
 	const double Now = GetServerNow();
 	FRunningAttack& Attack = Running.Emplace();
@@ -266,6 +268,14 @@ void UVeyraBasicAttackComponent::Commit()
 	FLandingAttack Landing = Prepare(*Attacker, *Body, Plan);
 	Landing.Event.bMissed = bMissed;
 	OnAttack.Broadcast(Landing.Event);
+	// Each status its attacks spend loses one, a miss's as much as a hit's (ADR-033 §4).
+	VeyraCombat::NoteAttackCommitted(*Attacker);
+	// And each attack may cut the next basic ability's cooldown (ADR-033 §6).
+	if (const double Cut = Statuses ? Statuses->GetTotal(EVeyraStatusKind::AttackShortensCooldown) : 0.0; Cut > 0.0)
+	{
+		const EVeyraAbilitySlot Basics[] = { EVeyraAbilitySlot::Q, EVeyraAbilitySlot::W, EVeyraAbilitySlot::E };
+		VeyraAbilities::ShortenSoonestCooldown(*Attacker, Basics, Cut);
+	}
 
 	if (!Landing.Event.bMissed && Profile.Projectile.IsEmpty())
 	{
@@ -479,7 +489,7 @@ void UVeyraBasicAttackComponent::HitAround(const FVeyraAttackEvent& Event, const
 	// Sides belong to the participant, which outlives its body.
 	const AActor* Side = Attacker->GetOwner();
 	const TArray<AActor*> Units = VeyraShapes::GatherUnits(*GetWorld(), Placed, [Side, Target](const AActor& Unit) {
-		return &Unit != Target && VeyraTargeting::AreHostile(Side, &Unit);
+		return &Unit != Target && VeyraTargeting::CanHitEnemy(Side, Unit);
 	});
 	for (AActor* Unit : Units)
 	{

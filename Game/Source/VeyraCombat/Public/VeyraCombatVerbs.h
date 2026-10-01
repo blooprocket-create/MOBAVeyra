@@ -10,6 +10,7 @@
 #include "Stats/VeyraEquipmentStats.h"
 #include "Stats/VeyraStatBlock.h"
 #include "Statuses/VeyraStatusTypes.h"
+#include "Teams/VeyraTeam.h"
 
 class UAbilitySystemComponent;
 class UVeyraDamageAbsorptionComponent;
@@ -149,9 +150,39 @@ namespace VeyraCombat
 
 	/**
 	 * Brings a dead unit back for its respawn: alive, with full Health and Resource (Combat Bible
-	 * §18). Returns false if the unit was not dead.
+	 * §18), or the resource it kept (ADR-033 §1). Returns false if the unit was not dead.
 	 */
 	VEYRACOMBAT_API bool Revive(UAbilitySystemComponent& AbilitySystem);
+
+	/**
+	 * Server: a living unit leaves the battleground dead at nobody's hand, as a companion banished with its
+	 * owner (ADR-034 §3): its temporary effects and records end as at a death, and no death is announced,
+	 * so nothing is credited or rewarded. Revive brings it back. Returns false if it was not alive.
+	 */
+	VEYRACOMBAT_API bool Withdraw(UAbilitySystemComponent& AbilitySystem);
+
+	/**
+	 * Server: the unit's resource empties and is kept from then on, as Charge (ADR-033 §1): initializing
+	 * its stats, reviving it and the fountain leave it be, and only effects restore it. False for a unit
+	 * with no resource.
+	 */
+	VEYRACOMBAT_API bool KeepResource(UAbilitySystemComponent& AbilitySystem);
+
+	/** Whether the unit keeps its resource rather than having it refilled (ADR-033 §1). */
+	VEYRACOMBAT_API bool IsResourceKept(const UAbilitySystemComponent& AbilitySystem);
+
+	/** Server: Attacker's basic attack committed, spending one of each status attacks spend (ADR-033 §4). */
+	VEYRACOMBAT_API void NoteAttackCommitted(UAbilitySystemComponent& Attacker);
+
+	/** What share of an ability's cost Unit pays now, after its ResourceCostReduction statuses (ADR-033 §3): 1 with none. */
+	VEYRACOMBAT_API double GetCostShare(const UAbilitySystemComponent& Unit);
+
+	/**
+	 * The unit Source answers to (Combat Bible §32; ADR-034 §1): an owned unit's owner, followed to a unit
+	 * that is owned by none, so a summon's summon makes no new root; Source itself for any other unit.
+	 * Null only for null.
+	 */
+	VEYRACOMBAT_API UAbilitySystemComponent* ResponsibleFor(UAbilitySystemComponent* Source);
 
 	/**
 	 * Prepares one damage event from Source (Combat Bible §50): the source's offence, its Damage
@@ -216,6 +247,9 @@ namespace VeyraCombat
 	/** Ends Target's status Id early, from every source, as when a recast ends a buff. Returns whether it had one. */
 	VEYRACOMBAT_API bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id);
 
+	/** Ends Target's status Id early where Source gave it, as an aura's grants end with the aura. Returns whether it had one from Source. */
+	VEYRACOMBAT_API bool RemoveStatusFrom(UAbilitySystemComponent& Target, const FVeyraContentId& Id, const UAbilitySystemComponent& Source);
+
 	/**
 	 * Whether a Spell Shield Target holds blocks a hostile ability hit from Source (Combat Bible §19;
 	 * ADR-025 §4). If so, the shield is consumed and announced, and the hit must deal no damage, apply
@@ -226,10 +260,16 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& Source);
 
 	/**
-	 * Server: ends every Camouflage on Unit, which attacked or cast something offensive (Combat Bible
-	 * §11; ADR-018 §4). Damage taken does not end it.
+	 * Server: ends every Camouflage and Invisibility on Unit, which attacked or cast something offensive
+	 * (Combat Bible §11; ADR-018 §4; ADR-030 §1). Damage taken does not end them.
 	 */
-	VEYRACOMBAT_API void EndCamouflage(UAbilitySystemComponent& Unit);
+	VEYRACOMBAT_API void EndStealth(UAbilitySystemComponent& Unit);
+
+	/** Whether Unit, a body or a participant, holds the status Id that Source applied (ADR-030 §7): a caster's mark. */
+	VEYRACOMBAT_API bool HasStatusFrom(const AActor* Unit, const FVeyraContentId& Id, const UAbilitySystemComponent& Source);
+
+	/** Server: whether Unit has a status of Kind from a source on Side, as Vision reads Sounded (ADR-036 §2). */
+	VEYRACOMBAT_API bool HasStatusKindFromSide(const AActor* Unit, EVeyraStatusKind Kind, EVeyraTeam Side);
 
 	/** The actions Unit's statuses stop it taking now (Combat Bible §8). None when it has no status ledger. */
 	VEYRACOMBAT_API EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit);
@@ -272,6 +312,27 @@ namespace VeyraCombat
 	 * rooted, grounded, displaced or already dashing, or for values out of range.
 	 */
 	VEYRACOMBAT_API bool Dash(UAbilitySystemComponent& Unit, const FVeyraDash& Dash);
+
+	/**
+	 * Blinks Unit's body to the nearest legal ground at Destination, facing Facing unless it is zero
+	 * (Combat Bible §9; ADR-030 §4): an instant move with no path, which terrain between does not stop.
+	 * It ends a dash under way and the body's move. Refused, returning false, while the unit is dead,
+	 * rooted, grounded, stunned, displaced or held on, or where no legal ground is near.
+	 */
+	VEYRACOMBAT_API bool Blink(UAbilitySystemComponent& Unit, const FVector& Destination, const FVector& Facing = FVector::ZeroVector);
+
+	/**
+	 * Blinks Unit's body beside Target, Distance from its edge on Unit's side of it, facing it (ADR-030
+	 * §9; ADR-031 §5). OutLanding and OutFacing say where it landed and which way it faces. False if it
+	 * could not blink.
+	 */
+	VEYRACOMBAT_API bool BlinkBeside(UAbilitySystemComponent& Unit, const AActor& Target, double Distance, FVector& OutLanding, FVector& OutFacing);
+
+	/**
+	 * The navigable ground nearest Point within Combat's reach for forced movement, in X and Y, at Point's
+	 * height; Point itself where there is none (ADR-031 §4).
+	 */
+	VEYRACOMBAT_API FVector NearestGround(const UWorld& World, const FVector& Point);
 
 	/**
 	 * Holds Unit's body in place for its own cast, or lets it go (Combat Bible §48). Its orders wait

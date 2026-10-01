@@ -3,6 +3,7 @@
 #include "Life/VeyraKillCredit.h"
 
 #include "AbilitySystemComponent.h"
+#include "Units/VeyraUnit.h"
 
 namespace VeyraKillCredit
 {
@@ -31,5 +32,27 @@ UAbilitySystemComponent* Resolve(UAbilitySystemComponent* LethalSource, bool bLe
 		}
 	}
 	return Credited;
+}
+
+TArray<UAbilitySystemComponent*, TInlineAllocator<5>> TakedownParticipants(const FVeyraDeathEvent& Death)
+{
+	TArray<UAbilitySystemComponent*, TInlineAllocator<5>> Participants;
+	const UAbilitySystemComponent* Victim = Death.Victim.Get();
+	if (!Victim || !VeyraUnits::IsVanguard(Victim->GetOwner()))
+	{
+		return Participants;
+	}
+	if (UAbilitySystemComponent* Credited = Death.CreditedKiller.Get())
+	{
+		Participants.Add(Credited);
+	}
+	for (const TWeakObjectPtr<UAbilitySystemComponent>& Assister : Death.Assisters)
+	{
+		if (UAbilitySystemComponent* Present = Assister.Get())
+		{
+			Participants.AddUnique(Present);
+		}
+	}
+	return Participants;
 }
 }

@@ -2,6 +2,8 @@
 
 #include "Hud/VeyraMinimapModel.h"
 
+#include "Entities/VeyraPlacedMarker.h"
+
 #include "EngineUtils.h"
 #include "GameFramework/Pawn.h"
 #include "Hud/VeyraHudModel.h"
@@ -101,6 +103,8 @@ FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame,
 			Dot.Kind = EVeyraMinimapDot::Vanguard;
 			break;
 		case EVeyraUnitKind::Fluxborn:
+		// A companion is a unit's dot, as a Fluxborn's (ADR-034 §4).
+		case EVeyraUnitKind::Companion:
 			Dot.Kind = EVeyraMinimapDot::Fluxborn;
 			break;
 		case EVeyraUnitKind::Structure:
@@ -113,6 +117,14 @@ FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame,
 		case EVeyraUnitKind::Ward:
 			Dot.Kind = EVeyraMinimapDot::Ward;
 			break;
+		case EVeyraUnitKind::Marker:
+		{
+			const AVeyraPlacedMarker* Marker = Cast<AVeyraPlacedMarker>(Unit);
+			// A decoy is a Vanguard to its owner's enemies, and the illusion it is to its owner's side (ADR-030 §5).
+			const bool bDeceives = Marker && Marker->GetPresentedAs() && Viewer != EVeyraTeam::None && Viewer != Marker->GetVeyraTeam();
+			Dot.Kind = bDeceives ? EVeyraMinimapDot::Vanguard : EVeyraMinimapDot::Ward;
+			break;
+		}
 		}
 		View.Dots.Add(Dot);
 	}

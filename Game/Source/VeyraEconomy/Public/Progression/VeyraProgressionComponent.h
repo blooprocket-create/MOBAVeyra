@@ -27,9 +27,10 @@ public:
 	/**
 	 * Server only: starts the unit at level 1 with that level's skill points and no ranks. Growth is
 	 * what each later level adds to its base stats; BaseAttackSpeed is its level-1 Attack Speed, which
-	 * Attack Speed growth is a fraction of. Call once per match.
+	 * Attack Speed growth is a fraction of. Shape is how its kit takes ranks, the standard one if null;
+	 * an innate R starts at rank 1 (ADR-031 §2). Call once per match.
 	 */
-	void Initialize(const FVeyraStatGrowth& Growth, double BaseAttackSpeed);
+	void Initialize(const FVeyraStatGrowth& Growth, double BaseAttackSpeed, const FVeyraRankShape* Shape = nullptr);
 
 	/**
 	 * Server only: adds Amount XP (Economy & Progression §9). Each level gained raises the base stats
@@ -39,6 +40,14 @@ public:
 
 	/** Server only: spends one skill point raising Slot by one rank (§1, §9). Points are never refunded. */
 	EVeyraRankRefusal AllocateRank(EVeyraAbilitySlot Slot);
+
+	/** Server and owner: whether AllocateRank(Slot) would be accepted now, and why not. */
+	EVeyraRankRefusal CheckRankUp(EVeyraAbilitySlot Slot) const;
+
+	/** The top rank Slot can ever reach in this unit's rank shape. */
+	int32 GetMaxRank(EVeyraAbilitySlot Slot) const;
+
+	const FVeyraRankShape& GetRankShape() const { return RankShape; }
 
 	bool IsInitialized() const { return Level > 0; }
 	int32 GetLevel() const { return Level; }
@@ -71,6 +80,10 @@ private:
 	/** One rank per slot, in EVeyraAbilitySlot order. */
 	UPROPERTY(Replicated)
 	TArray<int32> Ranks;
+
+	/** How its kit takes ranks (ADR-031 §2). */
+	UPROPERTY(Replicated)
+	FVeyraRankShape RankShape;
 
 	UPROPERTY(Replicated)
 	double Experience = 0.0;

@@ -12,6 +12,17 @@
 class AActor;
 class UAbilitySystemComponent;
 
+/** A reaction's burst prepared at Commit, its damage from the caster's offence then (ADR-034 §6). */
+struct FVeyraPreparedBurst
+{
+	FVeyraShape Shape;
+
+	/** Invalid when the burst deals no damage. */
+	FVeyraPreparedDamage Damage;
+
+	TArray<FVeyraStatusSpec> Statuses;
+};
+
 /** A reaction prepared at Commit: its damage worked out from the caster's power then (ADR-026 §1). */
 struct FVeyraPreparedReaction
 {
@@ -21,6 +32,9 @@ struct FVeyraPreparedReaction
 	FVeyraDamageComponents Damage;
 	TArray<FVeyraStatusSpec> Statuses;
 	TArray<FVeyraContentId> Replaces;
+
+	/** Around the target as it reacts, sparing it; at most one. */
+	TArray<FVeyraPreparedBurst> Burst;
 };
 
 /** What an ability does to each unit it hits, prepared at Commit (Combat Bible §50). */
@@ -83,9 +97,9 @@ namespace VeyraEffectDelivery
 
 	/**
 	 * Server only: grants Holder Shield from Caster at Rank, as ShieldGrant works it out, and has an
-	 * absorbed reward it names watched (ADR-027 §5). Returns whether the shield was granted.
+	 * absorbed reward it names watched (ADR-027 §5). Returns the shield's effect, invalid if none was granted.
 	 */
-	VEYRAABILITIES_API bool GrantShield(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Holder, const FVeyraShieldTuning& Shield, int32 Rank);
+	VEYRAABILITIES_API FActiveGameplayEffectHandle GrantShield(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Holder, const FVeyraShieldTuning& Shield, int32 Rank);
 
 	/**
 	 * Impact as a basic attack's secondary impact from Caster at Rank, its damage from the caster's

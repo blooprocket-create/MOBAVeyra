@@ -22,6 +22,9 @@ public class VeyraAbilities : ModuleRules
 			"VeyraEconomy",
 		});
 
+		// A companion's server controller follows paths, as Fluxborn and wildlife do (ADR-034 §4).
+		PublicDependencyModuleNames.Add("AIModule");
+
 		// Push-model replication for the cooldown ledger and the loadout.
 		PrivateDependencyModuleNames.Add("NetCore");
 

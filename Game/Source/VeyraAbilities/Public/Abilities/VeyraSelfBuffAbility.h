@@ -3,10 +3,16 @@
 #pragma once
 
 #include "Abilities/VeyraGameplayAbility.h"
+#include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/TimerHandle.h"
 #include "Delegates/IDelegateInstance.h"
 
 #include "VeyraSelfBuffAbility.generated.h"
+
+class AVeyraCompanion;
+class AVeyraPlacedMarker;
+struct FVeyraBuffMarkerTuning;
+struct FVeyraMarkerEnd;
 
 struct FVeyraHealTuning;
 struct FVeyraSelfBuffAbilityTuning;
@@ -38,6 +44,19 @@ protected:
 	virtual bool IsOffensive(const FVeyraContentId& Ability) const override;
 
 private:
+	/** Leaves Tuning's marker where the caster stands, in place of any it left before (ADR-030 §5). */
+	void PlaceMarker(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraCast& Cast, const FVeyraBuffMarkerTuning& Tuning);
+
+	/** Its marker ended: recalled or destroyed, it bursts where it stood. */
+	void OnMarkerEnded(const FVeyraMarkerEnd& End);
+
+	/** The marker it left, while it stands; what it bursts with; and its watch on markers' ends. */
+	TWeakObjectPtr<AVeyraPlacedMarker> Marker;
+	FVeyraContentId MarkerAbility;
+	int32 MarkerRank = 0;
+	int32 MarkerCastId = 0;
+	FDelegateHandle MarkerEndHandle;
+
 	/**
 	 * The forms of Ability's stance: its slot's own ability and the override that holds the slot, each
 	 * a self-buff its recast ends early (ADR-018 §1), as Vera's Dig In and its volley form. They share
@@ -50,6 +69,14 @@ private:
 	static void EndForms(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraContentId> Forms);
 
 	void RefreshAura();
+
+	/** One interval of its drain: the resource it takes, or the buff's end once the resource or its time runs out (ADR-033 §6). */
+	void Drain();
+
+	TWeakObjectPtr<UAbilitySystemComponent> DrainCaster;
+	FVeyraContentId DrainAbility;
+	double DrainEndsAt = 0.0;
+	FTimerHandle DrainTimer;
 	void StopAura();
 
 	/**
@@ -75,6 +102,8 @@ private:
 	FVeyraContentId AuraAbility;
 	double AuraEndsAt = 0.0;
 	FTimerHandle AuraTimer;
+	/** The units the aura under way gave its statuses, whose grants StopAura ends. */
+	TArray<TWeakObjectPtr<UAbilitySystemComponent>> AuraGranted;
 
 	/** An end payload under way (ADR-018 §6): counts the hostile hits its caster takes until it comes. */
 	void StartPayload(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
@@ -87,4 +116,31 @@ private:
 	int32 PayloadHits = 0;
 	FTimerHandle PayloadTimer;
 	FDelegateHandle HostileDamageHandle;
+
+	/**
+	 * Its caster's companion's part (ADR-034 §7): the statuses the companion holds while the buff lasts, a
+	 * chain between the two, and an end with the companion. A later cast's part takes over.
+	 */
+	void StartCompanionPart(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraCast& Cast, const FVeyraSelfBuffAbilityTuning& Buff);
+
+	/** One pulse of the chain: the enemies on the line take its effects, each no more often than its rate. */
+	void PulseChain();
+
+	/** Ends the companion's part: its statuses, the chain and the watch on the companion. */
+	void StopCompanionPart();
+
+	void OnCompanionBanished(AVeyraCompanion& Companion);
+
+	/** Whether Buff still lasts on Caster: its first status, its own, still holds. */
+	static bool LastsFor(const UAbilitySystemComponent& Caster, const FVeyraSelfBuffAbilityTuning& Buff);
+
+	TWeakObjectPtr<UAbilitySystemComponent> PartCaster;
+	TWeakObjectPtr<AVeyraCompanion> PartCompanion;
+	FVeyraContentId PartAbility;
+	FVeyraPreparedEffects ChainEffects;
+	FVeyraAbilityHitSource ChainSource;
+	/** When each enemy on the chain may take it again, in world time. */
+	TMap<TWeakObjectPtr<AActor>, double> ChainNextAt;
+	FTimerHandle ChainTimer;
+	FDelegateHandle BanishHandle;
 };
