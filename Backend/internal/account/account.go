@@ -146,6 +146,10 @@ func (s *Service) Vanguards(ctx context.Context, accountID string) (Availability
 	return out, nil
 }
 
+// IsReleased reports whether a Vanguard is released: one a draft may ban
+// (ADR-041 §1).
+func (s *Service) IsReleased(vanguardID string) bool { return s.catalog.IsReleased(vanguardID) }
+
 // MayPick reports whether the account may pick a Vanguard now: it has
 // finished onboarding, and owns the Vanguard or the rotation offers it.
 func (s *Service) MayPick(ctx context.Context, accountID, vanguardID string) (bool, error) {

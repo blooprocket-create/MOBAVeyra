@@ -44,7 +44,14 @@ const (
 	// once, blind, beside the bots the host placed; each Vanguard once per
 	// side, bots included. It ends back in the lobby unless it starts a match.
 	KindCustom Kind = "custom"
+	// KindDraft is Draft Pick (Battleground Bible; ADR-041 §1): bans, then
+	// picks, in turns, each turn's side's next seats acting.
+	KindDraft Kind = "draft"
 )
+
+// Matchmade reports whether the select is a matchmade one, whose players came
+// from a queue: Casual Select and Draft Pick.
+func (k Kind) Matchmade() bool { return k == KindCasual || k == KindDraft }
 
 // CancelReason says why a select ended without a match.
 type CancelReason string
@@ -80,6 +87,8 @@ var (
 	ErrAlreadySelecting = errors.New("an account is already in a champion select")
 	ErrTaken            = errors.New("another player has locked that Vanguard")
 	ErrCannotLeave      = errors.New("this champion select cannot be left")
+	ErrNotYourTurn      = errors.New("it is not the player's turn")
+	ErrCannotTrade      = errors.New("those players cannot trade now")
 )
 
 // SetFluxSpells records the starting Flux Spells a seated player chose, while
@@ -120,9 +129,13 @@ type Seat struct {
 	// Hover is the Vanguard the player is considering; visible only to their
 	// team (Battleground Bible §15).
 	Hover string
-	// Locked is the Vanguard the player locked in; permanent once set.
+	// Locked is the Vanguard the player locked in; permanent once set, though a
+	// trade may swap it with a teammate's.
 	Locked   string
 	LockedAt time.Time
+	// BanHover is the Vanguard a banning player is considering, which only
+	// their team sees (ADR-041 §1).
+	BanHover string
 	// FluxSpells are the starting Flux Spells the player takes into the
 	// match, in slot order, empty for an empty slot (ADR-015 §5). Free to
 	// change until the match starts, before or after lock-in.
@@ -155,7 +168,20 @@ type Session struct {
 	State     State
 	Seats     []Seat
 	CreatedAt time.Time
-	// Deadline is when the pick timer ends, in server time.
+	// Phase is where a picking select is: a draft's ban or pick turn, or the
+	// final window (ADR-041 §1–§2).
+	Phase Phase
+	// Turn is a draft's current turn, an index into Timing.Turns, and TurnDone
+	// the bans or picks it has had.
+	Turn     int
+	TurnDone int
+	// Timing is the select's turns and phase lengths, fixed when it opens.
+	Timing Timing
+	// Bans are a draft's bans, in order.
+	Bans []Ban
+	// Trades are the trade offers standing between teammates.
+	Trades []Trade
+	// Deadline is when the current phase or turn ends, in server time.
 	Deadline   time.Time
 	StartingAt time.Time
 	EndedAt    time.Time
@@ -198,6 +224,9 @@ func (s *Session) checkPicking(accountID string, now time.Time) (*Seat, error) {
 	if seat.Locked != "" {
 		return nil, ErrAlreadyLocked
 	}
+	if s.Phase == PhaseFinal {
+		return nil, ErrInvalidState
+	}
 	return seat, nil
 }
 
@@ -208,6 +237,10 @@ func (s *Session) checkPicking(accountID string, now time.Time) (*Seat, error) {
 // select's human may play what an enemy bot plays, the sole cross-team mirror
 // (Modes & Access Bible §4; ADR-039 §3).
 func (s *Session) Taken(vanguardID, accountID string) bool {
+	// A draft's ban takes a Vanguard from both teams.
+	if s.Banned(vanguardID) {
+		return true
+	}
 	own, _ := s.seat(accountID)
 	perSide := s.Kind == KindCustom && own != nil
 	for _, seat := range s.Seats {
@@ -238,16 +271,25 @@ func (s *Session) Hover(accountID, vanguardID string, now time.Time) error {
 }
 
 // Lock locks a player's Vanguard, permanently. The caller has checked that
-// they may pick it.
+// they may pick it. In a draft only the pick turn's players lock (ADR-041 §1).
+// Once every seat has locked, the select's final window opens.
 func (s *Session) Lock(accountID, vanguardID string, now time.Time) error {
 	seat, err := s.checkPicking(accountID, now)
 	if err != nil {
 		return err
 	}
+	if turn, ok := s.CurrentTurn(); s.Kind == KindDraft && (!ok || turn.Ban || !s.Acts(accountID)) {
+		return ErrNotYourTurn
+	}
 	if s.Taken(vanguardID, accountID) {
 		return ErrTaken
 	}
 	seat.Hover, seat.Locked, seat.LockedAt = vanguardID, vanguardID, now
+	if s.Kind == KindDraft {
+		s.acted(now)
+	} else if s.AllLocked() {
+		s.enterFinal(now)
+	}
 	return nil
 }
 
@@ -298,7 +340,7 @@ func (s *Session) Leave(accountID string, now time.Time) error {
 	if _, ok := s.seat(accountID); !ok {
 		return ErrSelectNotFound
 	}
-	if s.Kind != KindCasual && s.Kind != KindCustom {
+	if !s.Kind.Matchmade() && s.Kind != KindCustom {
 		return ErrCannotLeave
 	}
 	if s.State != Picking {
@@ -319,10 +361,19 @@ func (s *Session) AllLocked() bool {
 	return true
 }
 
-// Expire ends the pick timer (provisional, ADR-010 §11): a seat with a hover
-// locks it, unless someone locked it first, and a seat with nothing to lock
-// cancels the select. It reports whether every seat is now locked.
+// Expire ends the current phase's time (provisional, ADR-010 §11; ADR-041
+// §7.2). A draft's turn ends as its rules say and the next begins. A
+// single-phase select's seats with a hover lock it, unless someone locked it
+// first, and a seat with nothing to lock cancels the select. The final window
+// ends. It reports whether the select may now start its match; otherwise it
+// was cancelled, or it goes on to its next turn or window.
 func (s *Session) Expire(now time.Time) bool {
+	if s.Phase == PhaseFinal {
+		return true
+	}
+	if turn, ok := s.CurrentTurn(); ok {
+		return s.expireTurn(turn, now) && s.ReadyToStart(now)
+	}
 	for i := range s.Seats {
 		if seat := &s.Seats[i]; seat.Locked == "" && seat.Hover != "" && !s.Taken(seat.Hover, seat.AccountID) {
 			seat.Locked, seat.LockedAt = seat.Hover, now
@@ -332,7 +383,8 @@ func (s *Session) Expire(now time.Time) bool {
 		s.Cancel(CancelTimedOut, now)
 		return false
 	}
-	return true
+	s.enterFinal(now)
+	return s.ReadyToStart(now)
 }
 
 // BeginStarting moves a fully locked select on to creating its match.

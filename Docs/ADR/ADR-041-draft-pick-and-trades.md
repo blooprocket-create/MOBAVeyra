@@ -21,7 +21,7 @@ A new select kind, `draft`, runs the Battleground Bible's two phases in turns:
 - **Ban phase, 1-2-2-1:** side A bans one, B two, A two, B one, three bans a side.
 - **Pick phase, 1-2-2-2-2-1:** A picks one, B two, A two, B two, A two, B one.
 
-The sequence is data (`draft.turns`), so a test can run a shorter one; the committed configuration holds the bible's.
+The sequence is data (`draftPick.turns`), so a test can run a shorter one; the committed configuration holds the bible's.
 
 - **Who acts in a turn:** the turn's side's next seats, in seat order. A ban turn of two goes to the side's next two banners; a pick turn of two to its next two unpicked seats. With fewer seats than a turn's count, as in a script's 1v1, the side's seats act again in order.
 - **What an acting seat does:**
@@ -41,18 +41,18 @@ The sequence is data (`draft.turns`), so a test can run a shorter one; the commi
   - An offer lapses when either player's assignment changes, another trade completes, or the select leaves its trading window.
 - **A trade must keep each assignment legal:** each player must own the other's Vanguard or have it in the week's rotation, as for a pick (Modes Bible §1). A trade the service refuses changes nothing.
 - **Flux Spells stay with their player.**
-- **The trading window:** from a seat's lock until the select starts. After the last lock, the select waits `finalSeconds` before it starts, so a team can still trade (§7.3).
+- **The trading window:** from a seat's lock until the select starts. After the last lock, the select waits `finalDuration` before it starts, so a team can still trade (§7.3).
 
 ### 3. Matchmaking and configuration
 
 - **A mode's `matchmaking` may be `draftPick`:** humans on both sides, five a side, opening a draft select.
 - **The configuration's `draftPick` block** holds:
   - the turn sequence;
-  - `banSeconds` and `pickSeconds` per turn;
-  - `finalSeconds`;
+  - `banDuration` and `pickDuration` per turn;
+  - `finalDuration`;
   - the presence timeout.
 
-  `casualSelect` gains its own `finalSeconds`.
+  `casualSelect` gains its own `finalDuration`.
 - **Draft Pick's card becomes playable.** Ranked Draft Pick stays not yet available: Ranked is deferred (Modes Bible §2).
 
 ### 4. API and client
@@ -62,7 +62,7 @@ The sequence is data (`draft.turns`), so a test can run a shorter one; the commi
   - the turn's side, its acting seats and its deadline;
   - the bans by side;
   - each seat's pending trade offers to and from the player.
-- **Routes:** `POST /v1/me/select/ban` (a ban turn's lock), `POST /v1/me/select/trade` (an offer to a teammate), `POST /v1/me/select/trade/accept` and `POST /v1/me/select/trade/decline`.
+- **Routes:** `PUT /v1/me/select/ban/hover` and `POST /v1/me/select/ban` (a ban turn's hover and lock, apart from a pick's so a late request never turns a ban into a pick), `POST /v1/me/select/trade` (an offer to a teammate), `POST /v1/me/select/trade/accept` and `POST /v1/me/select/trade/decline`.
 - **The select screen shows:**
   - a ban row for each side;
   - a turn banner, such as "Your turn to ban" with its timer;
@@ -85,7 +85,7 @@ Ranked uses this structure and adds its owned-only rule and entry gates when it 
 
 1. **Who acts in a turn:** the side's next seats in seat order.
 2. **A missed ban bans nothing;** a missed pick locks the hover if it may, or cancels the select as timed out, as Casual Select does.
-3. **The trading window** lasts from a seat's lock until the select starts. `finalSeconds` follows the last lock, in both kinds.
+3. **The trading window** lasts from a seat's lock until the select starts. `finalDuration` follows the last lock, in both kinds.
 4. **Turn and final times** are configuration (Provisional): ban 30 s, pick 30 s, final 10 s.
 5. **One trade offer at a time** per player.
 

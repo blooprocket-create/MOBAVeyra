@@ -31,6 +31,16 @@ type CasualSettings struct {
 	// PresenceTimeout cancels a select one of whose players' clients has not
 	// asked about it for this long: a disconnect (Match Flow Bible §2).
 	PresenceTimeout time.Duration
+	// FinalDuration is the window after the last lock, in which teammates may
+	// still trade (ADR-041 §2); zero starts the match at once.
+	FinalDuration time.Duration
+}
+
+// DraftSettings configures Draft Pick (ADR-041 §1): its turns, how long each
+// ban and pick turn and the final window last, and its presence timeout.
+type DraftSettings struct {
+	Timing          Timing
+	PresenceTimeout time.Duration
 }
 
 // CustomSettings configures custom lobbies' selects (ADR-021 §2).
@@ -45,6 +55,7 @@ type CustomSettings struct {
 type Settings struct {
 	Practice PracticeSettings
 	Casual   CasualSettings
+	Draft    DraftSettings
 	Custom   CustomSettings
 	// StartingTimeout cancels a select whose match creation never finished.
 	// It must exceed how long creating a match can take.
@@ -90,6 +101,9 @@ type CustomLaunch struct {
 type Accounts interface {
 	Profile(ctx context.Context, accountID string) (account.Profile, error)
 	MayPick(ctx context.Context, accountID, vanguardID string) (bool, error)
+	// IsReleased reports whether a Vanguard is released, which is what a ban
+	// may name: a player bans what they do not own as well (ADR-041 §1).
+	IsReleased(vanguardID string) bool
 }
 
 // Names resolves display names; match.AccountsFunc implements it.
@@ -189,6 +203,8 @@ func (s *Service) StartPractice(ctx context.Context, accountID string) (Session,
 		State:         Picking,
 		Seats:         []Seat{{AccountID: accountID, DisplayName: names[accountID], Side: practice.HostSide, LastSeen: now}},
 		CreatedAt:     now,
+		Phase:         PhasePicking,
+		Timing:        Timing{Pick: practice.PickDuration},
 		Deadline:      now.Add(practice.PickDuration),
 	}
 	if err := s.store.InTx(ctx, func(_ context.Context, tx Tx) error { return tx.CreateSession(session) }); err != nil {
@@ -205,7 +221,14 @@ func (s *Service) StartPractice(ctx context.Context, accountID string) (Session,
 // available Vanguards, with picks unique across both teams. Matchmaking calls
 // it inside its own transaction, which this joins.
 func (s *Service) OpenCasual(ctx context.Context, mode string, seats []CasualSeat) (string, error) {
-	return s.openCasual(ctx, mode, seats, nil)
+	return s.openMatchmade(ctx, KindCasual, mode, seats, nil)
+}
+
+// OpenDraft opens the Draft Pick select of a match everyone accepted
+// (ADR-041 §1): bans, then picks, in turns. Matchmaking calls it inside its
+// own transaction, which this joins.
+func (s *Service) OpenDraft(ctx context.Context, mode string, seats []CasualSeat) (string, error) {
+	return s.openMatchmade(ctx, KindDraft, mode, seats, nil)
 }
 
 // OpenCoop opens the select of a co-op match everyone accepted (ADR-039 §3): a
@@ -216,10 +239,10 @@ func (s *Service) OpenCoop(ctx context.Context, mode string, seats []CasualSeat,
 	if len(bots) == 0 {
 		return "", ErrNoOpponents
 	}
-	return s.openCasual(ctx, mode, seats, bots)
+	return s.openMatchmade(ctx, KindCasual, mode, seats, bots)
 }
 
-func (s *Service) openCasual(ctx context.Context, mode string, seats []CasualSeat, bots []match.Bot) (string, error) {
+func (s *Service) openMatchmade(ctx context.Context, kind Kind, mode string, seats []CasualSeat, bots []match.Bot) (string, error) {
 	ids := make([]string, len(seats))
 	for i, seat := range seats {
 		ids[i] = seat.AccountID
@@ -237,10 +260,17 @@ func (s *Service) openCasual(ctx context.Context, mode string, seats []CasualSea
 		return "", err
 	}
 	now := s.now()
-	session := Session{ID: newID(), Kind: KindCasual, Mode: mode, State: Picking, CreatedAt: now, Deadline: now.Add(s.settings.Casual.PickDuration),
-		Bots: append([]match.Bot(nil), bots...)}
+	session := Session{ID: newID(), Kind: kind, Mode: mode, State: Picking, CreatedAt: now, Phase: PhasePicking,
+		Timing:   Timing{Pick: s.settings.Casual.PickDuration, Final: s.settings.Casual.FinalDuration},
+		Deadline: now.Add(s.settings.Casual.PickDuration), Bots: append([]match.Bot(nil), bots...)}
 	for _, seat := range seats {
 		session.Seats = append(session.Seats, Seat{AccountID: seat.AccountID, DisplayName: names[seat.AccountID], Side: seat.Side, LastSeen: now})
+	}
+	if kind == KindDraft {
+		// Its first turn, with someone to act (ADR-041 §1).
+		session.Timing = s.settings.Draft.Timing
+		session.Timing.Turns = append([]Turn(nil), s.settings.Draft.Timing.Turns...)
+		session.beginTurn(now)
 	}
 	if err := s.store.InTx(ctx, func(_ context.Context, tx Tx) error { return tx.CreateSession(session) }); err != nil {
 		return "", err
@@ -284,6 +314,8 @@ func (s *Service) OpenCustom(ctx context.Context, launch CustomLaunch) (Session,
 		Custom:        &settings,
 		State:         Picking,
 		CreatedAt:     now,
+		Phase:         PhasePicking,
+		Timing:        Timing{Pick: s.settings.Custom.PickDuration},
 		Deadline:      now.Add(s.settings.Custom.PickDuration),
 	}
 	for _, seat := range launch.Seats {
@@ -332,7 +364,7 @@ func (s *Service) Leave(ctx context.Context, accountID string) (Session, error) 
 // parties leave the queue.
 func (s *Service) ended(ctx context.Context, session Session, leaving []string) error {
 	switch {
-	case session.Kind == KindCasual && s.matchmaking != nil:
+	case session.Kind.Matchmade() && s.matchmaking != nil:
 		return s.matchmaking.SelectEnded(ctx, session.Accounts(), leaving, session.State == Started)
 	case session.Kind == KindCustom && s.lobbies != nil:
 		return s.lobbies.SelectEnded(ctx, session.LobbyID, session.State == Started)
@@ -399,9 +431,12 @@ func (s *Service) ForParticipant(ctx context.Context, accountID, id string) (Ses
 	return session, nil
 }
 
-// Hover records the Vanguard the account is considering in its active select.
+// Hover records the Vanguard the account is considering picking in its active
+// select. In a draft a player may hover their intended pick before their turn,
+// which their team sees.
 func (s *Service) Hover(ctx context.Context, accountID, vanguardID string) (Session, error) {
-	if err := s.checkPick(ctx, accountID, vanguardID); err != nil {
+	may, err := s.accounts.MayPick(ctx, accountID, vanguardID)
+	if err != nil {
 		return Session{}, err
 	}
 	saved, err := s.savedFluxSpells(ctx, accountID, vanguardID)
@@ -411,11 +446,39 @@ func (s *Service) Hover(ctx context.Context, accountID, vanguardID string) (Sess
 	return s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
 		now := s.now()
 		session.Seen(accountID, now)
+		if !may {
+			return ErrNotAvailable
+		}
 		if err := session.Hover(accountID, vanguardID, now); err != nil {
 			return err
 		}
 		session.FollowSavedFluxSpells(accountID, saved)
 		return nil
+	})
+}
+
+// HoverBan records the Vanguard the account is considering banning, while a
+// draft's ban turn names the player (ADR-041 §1). Any released Vanguard may be
+// banned, owned or not.
+func (s *Service) HoverBan(ctx context.Context, accountID, vanguardID string) (Session, error) {
+	if !s.accounts.IsReleased(vanguardID) {
+		return Session{}, ErrNotAvailable
+	}
+	return s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
+		now := s.now()
+		session.Seen(accountID, now)
+		return session.HoverBan(accountID, vanguardID, now)
+	})
+}
+
+// Ban bans a Vanguard for the account's side, while a draft's ban turn names
+// the player (ADR-041 §1).
+func (s *Service) Ban(ctx context.Context, accountID, vanguardID string) (Session, error) {
+	if !s.accounts.IsReleased(vanguardID) {
+		return Session{}, ErrNotAvailable
+	}
+	return s.lockAndStart(ctx, accountID, func(session *Session, now time.Time) error {
+		return session.LockBan(accountID, vanguardID, now)
 	})
 }
 
@@ -449,24 +512,40 @@ func (s *Service) savedFluxSpells(ctx context.Context, accountID, vanguardID str
 	return saved, nil
 }
 
-// Lock locks the account's Vanguard in its active select. When every seat has
-// locked, the select creates its match before returning.
+// Lock locks the account's Vanguard in its active select; in a draft, in the
+// player's pick turn. When the select's last pick leaves no final window, it
+// creates its match before returning.
 func (s *Service) Lock(ctx context.Context, accountID, vanguardID string) (Session, error) {
-	if err := s.checkPick(ctx, accountID, vanguardID); err != nil {
+	may, err := s.accounts.MayPick(ctx, accountID, vanguardID)
+	if err != nil {
 		return Session{}, err
 	}
 	saved, err := s.savedFluxSpells(ctx, accountID, vanguardID)
 	if err != nil {
 		return Session{}, err
 	}
-	session, err := s.changeActive(ctx, accountID, func(ctx context.Context, session *Session) error {
-		now := s.now()
-		session.Seen(accountID, now)
+	return s.lockAndStart(ctx, accountID, func(session *Session, now time.Time) error {
+		if !may {
+			return ErrNotAvailable
+		}
 		if err := session.Lock(accountID, vanguardID, now); err != nil {
 			return err
 		}
 		session.FollowSavedFluxSpells(accountID, saved)
-		if session.AllLocked() {
+		return nil
+	})
+}
+
+// lockAndStart makes a lock or ban in the account's active select, and when
+// that leaves it ready to start, creates its match before returning.
+func (s *Service) lockAndStart(ctx context.Context, accountID string, lock func(*Session, time.Time) error) (Session, error) {
+	session, err := s.changeActive(ctx, accountID, func(ctx context.Context, session *Session) error {
+		now := s.now()
+		session.Seen(accountID, now)
+		if err := lock(session, now); err != nil {
+			return err
+		}
+		if session.ReadyToStart(now) {
 			return s.beginStarting(ctx, session, now)
 		}
 		return nil
@@ -477,16 +556,65 @@ func (s *Service) Lock(ctx context.Context, accountID, vanguardID string) (Sessi
 	return s.startMatch(ctx, session)
 }
 
-// checkPick checks that the account may pick the Vanguard (ADR-010 §6).
-func (s *Service) checkPick(ctx context.Context, accountID, vanguardID string) error {
-	may, err := s.accounts.MayPick(ctx, accountID, vanguardID)
+// OfferTrade offers a locked teammate, by their seat, the account's locked
+// Vanguard for theirs (ADR-041 §2).
+func (s *Service) OfferTrade(ctx context.Context, accountID string, seat int) (Session, error) {
+	return s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
+		now := s.now()
+		session.Seen(accountID, now)
+		to, ok := session.SeatAt(seat)
+		if !ok {
+			return ErrCannotTrade
+		}
+		return session.OfferTrade(accountID, to, now)
+	})
+}
+
+// AcceptTrade accepts the trade the teammate in a seat offered the account.
+// Each must be allowed to play the other's Vanguard, as a pick must (Modes
+// Bible §1); a trade that would break that changes nothing.
+func (s *Service) AcceptTrade(ctx context.Context, accountID string, seat int) (Session, error) {
+	current, err := s.store.ActiveFor(ctx, accountID)
 	if err != nil {
-		return err
+		return Session{}, err
 	}
-	if !may {
-		return ErrNotAvailable
+	from, ok := current.SeatAt(seat)
+	if !ok || !current.Offered(from, accountID) {
+		return Session{}, ErrCannotTrade
 	}
-	return nil
+	theirs, mine := current.Seats[seat].Locked, ""
+	if own, ok := current.seat(accountID); ok {
+		mine = own.Locked
+	}
+	if theirs == "" || mine == "" {
+		return Session{}, ErrCannotTrade
+	}
+	for _, check := range []struct{ account, vanguard string }{{accountID, theirs}, {from, mine}} {
+		may, err := s.accounts.MayPick(ctx, check.account, check.vanguard)
+		if err != nil {
+			return Session{}, err
+		}
+		if !may {
+			return Session{}, ErrNotAvailable
+		}
+	}
+	return s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
+		now := s.now()
+		session.Seen(accountID, now)
+		return session.AcceptTrade(accountID, from, theirs, mine, now)
+	})
+}
+
+// DeclineTrade turns down the trade the teammate in a seat offered the account.
+func (s *Service) DeclineTrade(ctx context.Context, accountID string, seat int) (Session, error) {
+	return s.changeActive(ctx, accountID, func(_ context.Context, session *Session) error {
+		session.Seen(accountID, s.now())
+		from, ok := session.SeatAt(seat)
+		if !ok {
+			return ErrCannotTrade
+		}
+		return session.DeclineTrade(accountID, from)
+	})
 }
 
 // changeActive changes the account's active select under its lock.
@@ -516,7 +644,7 @@ func (s *Service) changeActive(ctx context.Context, accountID string, change fun
 // Social Bible §6), so the select is cancelled, nobody at fault, and everyone
 // returns to the queue. Once starting, the match goes ahead.
 func (s *Service) beginStarting(ctx context.Context, session *Session, now time.Time) error {
-	if session.Kind == KindCasual {
+	if session.Kind.Matchmade() {
 		blocked, err := s.blocks.BlockedAmong(ctx, session.Accounts())
 		if err != nil {
 			return err
@@ -572,6 +700,14 @@ func (s *Service) startMatch(ctx context.Context, session Session) (Session, err
 	return out, err
 }
 
+// presenceTimeout is how long a matchmade select waits on a silent player.
+func (s *Service) presenceTimeout(kind Kind) time.Duration {
+	if kind == KindDraft {
+		return s.settings.Draft.PresenceTimeout
+	}
+	return s.settings.Casual.PresenceTimeout
+}
+
 func rulesFor(kind Kind) match.Rules {
 	switch kind {
 	case KindPractice:
@@ -624,13 +760,21 @@ func (s *Service) tickOne(ctx context.Context, listed Session) error {
 			if err != nil || session.State != Picking {
 				return err
 			}
+			// In a draft only the pick turn's players owe a pick; whoever else has
+			// not locked was still waiting for a turn.
+			owing := session.Unlocked()
+			if turn, ok := session.CurrentTurn(); ok && !turn.Ban {
+				owing = session.Acting()
+			}
 			if session.Expire(now) {
 				if err := s.beginStarting(ctx, &session, now); err != nil {
 					return err
 				}
 				starting = session
-			} else if err := s.ended(ctx, session, session.Unlocked()); err != nil {
-				return err
+			} else if session.State == Cancelled {
+				if err := s.ended(ctx, session, owing); err != nil {
+					return err
+				}
 			}
 			return tx.SaveSession(session)
 		})
@@ -639,7 +783,7 @@ func (s *Service) tickOne(ctx context.Context, listed Session) error {
 		}
 		_, err = s.startMatch(ctx, starting)
 		return err
-	case listed.State == Picking && listed.Kind == KindCasual && len(listed.Absent(now, s.settings.Casual.PresenceTimeout)) > 0:
+	case listed.State == Picking && listed.Kind.Matchmade() && len(listed.Absent(now, s.presenceTimeout(listed.Kind))) > 0:
 		// A player stopped answering: a disconnect cancels the select, and
 		// the others return to the queue (Match Flow Bible §2).
 		return s.store.InTx(ctx, func(ctx context.Context, tx Tx) error {
@@ -647,7 +791,7 @@ func (s *Service) tickOne(ctx context.Context, listed Session) error {
 			if err != nil || session.State != Picking {
 				return err
 			}
-			absent := session.Absent(now, s.settings.Casual.PresenceTimeout)
+			absent := session.Absent(now, s.presenceTimeout(session.Kind))
 			if len(absent) == 0 {
 				return nil
 			}

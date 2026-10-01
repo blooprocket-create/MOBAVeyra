@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -33,7 +34,7 @@ const validJSON = `{
   "customLobby": {"enabled": true, "mode": "custom_game", "playersPerSide": 5, "pickDuration": "60s", "inviteLifetime": "2m", "startingGold": {"min": 0, "max": 20000}},
   "matchmaking": {"interval": "1s", "searchLimit": 10000},
   "matchFound": {"acceptDuration": "15s"},
-  "casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},
+  "casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s", "finalDuration": "0s"},
   "selection": {"tickInterval": "1s", "startingTimeout": "60s"},
   "matches": {"devCreate": {"enabled": true}, "readyTimeout": "120s", "maxDuration": "4h", "reapInterval": "5s", "removeServerAfter": "2m", "historyPageSize": 20,
     "maps": {"play": "/Game/Maps/L_Play", "development": "/Game/Maps/L_Dev"}},
@@ -91,6 +92,29 @@ func TestParseAllocatorNone(t *testing.T) {
 	}
 }
 
+// A draft mode's turns must give each side picks for its whole team, or a
+// seat would wait for a turn that never comes (ADR-041 §1).
+func TestDraftPickTurnsCoverTheTeams(t *testing.T) {
+	draft := strings.Replace(validJSON, `"category": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"`,
+		`"category": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "draftPick"`, 1)
+	block := func(picksB int) string {
+		return fmt.Sprintf(`"draftPick": {"turns": [{"phase": "ban", "side": "A", "count": 1}, {"phase": "pick", "side": "A", "count": 5},
+			{"phase": "pick", "side": "B", "count": %d}], "banDuration": "30s", "pickDuration": "30s", "finalDuration": "10s", "presenceTimeout": "10s"},
+  "casualSelect": {`, picksB)
+	}
+	c, err := Parse([]byte(strings.Replace(draft, `"casualSelect": {`, block(5), 1)))
+	if err != nil {
+		t.Fatalf("Parse: %v", err)
+	}
+	if len(c.DraftPick.Turns) != 3 || !c.DraftPick.Turns[0].Ban || c.DraftPick.Turns[2].Side != "B" || c.DraftPick.FinalDuration != 10*time.Second {
+		t.Fatalf("draft pick: %+v", c.DraftPick)
+	}
+	_, err = Parse([]byte(strings.Replace(draft, `"casualSelect": {`, block(4), 1)))
+	if err == nil || !strings.Contains(err.Error(), "side B 4 pick(s), fewer than its team of 5") {
+		t.Fatalf("a side short of picks: %v", err)
+	}
+}
+
 func TestParsePlayerLogin(t *testing.T) {
 	c, err := Parse([]byte(validJSON))
 	if err != nil {
@@ -145,7 +169,11 @@ func TestParseRejects(t *testing.T) {
 		"zero search limit":         {`"searchLimit": 10000`, `"searchLimit": 0`, "matchmaking.searchLimit must be at least 1"},
 		"no match found":            {`"matchFound": {"acceptDuration": "15s"},`, ``, "matchFound is required"},
 		"no accept duration":        {`{"acceptDuration": "15s"}`, `{}`, "matchFound.acceptDuration is required"},
-		"no casual select":          {`"casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},`, ``, "casualSelect is required"},
+		"no casual select":          {`"casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s", "finalDuration": "0s"},`, ``, "casualSelect is required"},
+		"no final window":           {`, "finalDuration": "0s"`, ``, "casualSelect.finalDuration is required"},
+		"negative final window":     {`"finalDuration": "0s"`, `"finalDuration": "-1s"`, "casualSelect.finalDuration must not be negative"},
+		"draft without its turns": {`"category": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"`,
+			`"category": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "draftPick"`, "draftPick is required"},
 		"no presence timeout":       {`, "presenceTimeout": "10s"`, ``, "casualSelect.presenceTimeout is required"},
 		"no vanguards":              {`"vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "epoch": "2026-09-28T00:00:00Z", "weekSeconds": 604800, "seed": "test", "releases": {}}},`, ``, "vanguards is required"},
 		"no flux spells":            {`"fluxSpells": {"roster": ["blink", "mend"]},`, ``, "fluxSpells is required"},
