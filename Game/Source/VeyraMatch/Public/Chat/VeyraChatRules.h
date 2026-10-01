@@ -22,10 +22,14 @@ namespace VeyraChat
 	 */
 	VEYRAMATCH_API bool Allow(TArray<double>& SentAt, double Now, const FVeyraChatTuning& Tuning);
 
+	/** Whether Channel is one a player may send on: Team or All. */
+	VEYRAMATCH_API bool IsChannel(EVeyraChatChannel Channel);
+
 	/**
 	 * Whether a reader receives a message on Channel from a sender on SenderSide (Chat Bible §2): Team
 	 * reaches the sender's side, All every reader whose All Chat is on; a reader who muted the sender
-	 * receives neither.
+	 * receives neither. Only a seated reader on side A or B receives any: a spectator or a replay's
+	 * recorder has no side, and chat is not theirs (ADR-029 §2).
 	 */
 	VEYRAMATCH_API bool Receives(EVeyraChatChannel Channel, EVeyraTeam SenderSide, EVeyraTeam ReaderSide, bool bReaderAllChat, bool bReaderMutedSender);
 

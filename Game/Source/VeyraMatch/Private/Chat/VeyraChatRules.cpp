@@ -39,13 +39,26 @@ bool Allow(TArray<double>& SentAt, double Now, const FVeyraChatTuning& Tuning)
 	return true;
 }
 
+bool IsChannel(EVeyraChatChannel Channel)
+{
+	return Channel == EVeyraChatChannel::Team || Channel == EVeyraChatChannel::All;
+}
+
 bool Receives(EVeyraChatChannel Channel, EVeyraTeam SenderSide, EVeyraTeam ReaderSide, bool bReaderAllChat, bool bReaderMutedSender)
 {
-	if (bReaderMutedSender)
+	const bool bSeated = ReaderSide == EVeyraTeam::A || ReaderSide == EVeyraTeam::B;
+	if (bReaderMutedSender || !bSeated)
 	{
 		return false;
 	}
-	return Channel == EVeyraChatChannel::Team ? ReaderSide == SenderSide : bReaderAllChat;
+	switch (Channel)
+	{
+	case EVeyraChatChannel::Team:
+		return ReaderSide == SenderSide;
+	case EVeyraChatChannel::All:
+		return bReaderAllChat;
+	}
+	return false;
 }
 
 void Forget(TArray<FVeyraReceivedChat>& Held, const FVeyraChatTuning& Tuning)
