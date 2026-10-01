@@ -90,19 +90,7 @@ void FinalizeDeath(UAbilitySystemComponent& Victim, UAbilitySystemComponent* Kil
 
 	// A takedown is a kill or an assist on an enemy Vanguard (§18; ADR-011 §6). It extends the
 	// statuses that say so (ADR-009 §1); killing a Fluxborn or a structure is no takedown.
-	TArray<UAbilitySystemComponent*, TInlineAllocator<5>> Takedown;
-	if (VeyraUnits::IsVanguard(Owner))
-	{
-		if (UAbilitySystemComponent* Credited = Death.CreditedKiller.Get())
-		{
-			Takedown.Add(Credited);
-		}
-		for (const TWeakObjectPtr<UAbilitySystemComponent>& Assister : Death.Assisters)
-		{
-			Takedown.Add(Assister.Get());
-		}
-	}
-	for (UAbilitySystemComponent* Participant : Takedown)
+	for (UAbilitySystemComponent* Participant : VeyraKillCredit::TakedownParticipants(Death))
 	{
 		const AActor* ParticipantUnit = Participant ? Participant->GetOwner() : nullptr;
 		if (UVeyraStatusComponent* Statuses = ParticipantUnit ? ParticipantUnit->FindComponentByClass<UVeyraStatusComponent>() : nullptr)

@@ -94,8 +94,8 @@ void UVeyraAttachAbility::OnLeapEnded(const FVeyraDashEnd& End)
 		Movement->OnDashEnded.Remove(LeapEndedHandle);
 	}
 	LeapEndedHandle.Reset();
-	// A displacement that cut the leap short leaves it nothing to hold.
-	if (End.Reason == EVeyraDashEndReason::Interrupted)
+	// A displacement that cut the leap short, or another move that took over, leaves it nothing to hold.
+	if (End.Reason == EVeyraDashEndReason::Interrupted || End.Reason == EVeyraDashEndReason::Replaced)
 	{
 		Miss();
 		return;

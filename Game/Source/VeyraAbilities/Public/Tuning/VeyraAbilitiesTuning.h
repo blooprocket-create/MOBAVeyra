@@ -151,6 +151,20 @@ struct FVeyraCastTuning
 	/** At most one status ID: the cast takes only a target holding it from the caster (ADR-030 §7). */
 	UPROPERTY()
 	TArray<FVeyraContentId> TargetMustHold;
+
+	/**
+	 * At most one status ID: the cast refuses a target that holds it from the caster, the inverse of
+	 * TargetMustHold, as Passing Step's lockout on a unit it just passed through (ADR-031 §8).
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> TargetMustNotHold;
+
+	/**
+	 * At most one: the fraction of its remaining cooldown a takedown its caster takes part in refunds; 1
+	 * resets it, as Black Step's (ADR-031 §9).
+	 */
+	UPROPERTY()
+	TArray<double> TakedownRefund;
 };
 
 /** One damage component, from the caster's rank and power at Commit (Combat Bible §25, §50). */
@@ -1147,6 +1161,16 @@ enum class EVeyraDashDirection : uint8
 	ThroughTarget,
 };
 
+/** What a dash cast during one of its caster's own dashes does (ADR-031 §7). */
+UENUM()
+enum class EVeyraDuringDash : uint8
+{
+	/** It is refused until the dash under way ends. */
+	Refused,
+	/** It takes over: the dash under way ends where the caster is, and this one begins. */
+	TakesOver,
+};
+
 /** Whether a dash leaves its caster's ride first (Combat Bible §56, "Leaving"). */
 UENUM()
 enum class EVeyraRideExit : uint8
@@ -1205,6 +1229,10 @@ struct FVeyraDashAbilityTuning
 	/** Areas where the dash lands, facing its way, as Ravine Bound's; innermost first. None when a displacement cuts it short. */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> EndZones;
+
+	/** Cast during one of its caster's own dashes, as Flowing Cut during Passing Step (ADR-031 §7). */
+	UPROPERTY()
+	EVeyraDuringDash DuringDash = EVeyraDuringDash::Refused;
 
 	UPROPERTY()
 	EVeyraRideExit RideExit = EVeyraRideExit::Stay;
@@ -1732,6 +1760,9 @@ namespace VeyraAbilityRules
 
 	/** Ability's cooldown at Rank before any Haste, from whichever archetype map defines it; 0 for none. */
 	VEYRAABILITIES_API double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank);
+
+	/** Ability's cast tuning, from whichever archetype map defines it; null for none or a targeted-damage ability, which has its own. */
+	VEYRAABILITIES_API const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability);
 
 	/**
 	 * Problems with Ability as the ability of a slot with RankCount ranks: each of its rank lists must

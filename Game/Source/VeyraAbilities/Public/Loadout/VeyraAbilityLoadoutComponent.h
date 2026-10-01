@@ -132,6 +132,9 @@ public:
 	/** Server only: what Slot stowed, if anything (ADR-031 §3). */
 	const FVeyraLoadoutEntry* FindStowed(EVeyraAbilitySlot Slot) const;
 
+	/** Server: visits every ability it holds, its own, its stowed ones and its overrides', once each. */
+	void ForEachAbility(TFunctionRef<void(const FVeyraLoadoutEntry&)> Visit) const;
+
 	/** What Slot holds now: its override while one lasts and belongs to its own ability, else its own ability. */
 	const FVeyraLoadoutEntry* FindSlot(EVeyraAbilitySlot Slot) const;
 

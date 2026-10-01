@@ -226,6 +226,22 @@ const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindStowed(EVeyraAbilit
 	return Stowed.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; });
 }
 
+void UVeyraAbilityLoadoutComponent::ForEachAbility(TFunctionRef<void(const FVeyraLoadoutEntry&)> Visit) const
+{
+	for (const FVeyraLoadoutEntry& Entry : Entries)
+	{
+		Visit(Entry);
+	}
+	for (const FVeyraLoadoutEntry& Entry : Stowed)
+	{
+		Visit(Entry);
+	}
+	for (const FVeyraSlotOverride& Override : Overrides)
+	{
+		Visit(Override.Entry);
+	}
+}
+
 bool UVeyraAbilityLoadoutComponent::IsShown(const FVeyraSlotOverride& Override) const
 {
 	if (!Override.Over.IsValid())

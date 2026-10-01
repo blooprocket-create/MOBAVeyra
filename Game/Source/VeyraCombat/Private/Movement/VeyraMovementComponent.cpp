@@ -406,6 +406,11 @@ FVector UVeyraMovementComponent::AttachSeat(const AActor& Host) const
 
 bool UVeyraMovementComponent::StartDash(const FVeyraDash& Dash)
 {
+	// One that takes over ends the dash under way first, where the unit is (ADR-031 §7).
+	if (Dash.bTakesOver && IsDashing() && IsForcedMoveValid(Dash.Direction, Dash.Distance, Dash.Speed))
+	{
+		EndDash(EVeyraDashEndReason::Replaced, nullptr);
+	}
 	if (!IsForcedMoveValid(Dash.Direction, Dash.Distance, Dash.Speed) || !UpdatedComponent || IsMovementLocked())
 	{
 		return false;
@@ -508,9 +513,10 @@ bool UVeyraMovementComponent::Blink(const FVector& Destination, const FVector& F
 	{
 		return false;
 	}
+	// A blink takes over a dash under way, which lands nothing (ADR-031 §7).
 	if (IsDashing())
 	{
-		EndDash(EVeyraDashEndReason::Interrupted, nullptr);
+		EndDash(EVeyraDashEndReason::Replaced, nullptr);
 	}
 	// The move it was walking belongs to where it stood; its controller paths again from here.
 	if (AController* Controller = CharacterOwner->GetController())

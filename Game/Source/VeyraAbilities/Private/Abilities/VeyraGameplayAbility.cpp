@@ -2,6 +2,7 @@
 
 #include "Abilities/VeyraGameplayAbility.h"
 
+#include "Movement/VeyraMovementComponent.h"
 #include "Units/VeyraUnit.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
@@ -107,6 +108,12 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	{
 		return EVeyraCastRejection::None;
 	}
+	// A dash of its own under way holds back another move, unless that one takes over (ADR-031 §7).
+	const UVeyraMovementComponent* Movement = Avatar->FindComponentByClass<UVeyraMovementComponent>();
+	if (Movement && Movement->IsDashing() && MovesCaster(Ability) && !TakesOverDash(Ability))
+	{
+		return EVeyraCastRejection::Busy;
+	}
 	const int32 Rank = GetRank(Caster, Ability);
 	if (Rank < 1)
 	{
@@ -134,6 +141,11 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	// A follow-up may take only a target that holds its caster's mark, as Tavi's second Tag! takes only It (ADR-030 §7).
 	const FVeyraCastTuning* CastTuning = GetCastTuning(Ability);
 	if (CastTuning && !CastTuning->TargetMustHold.IsEmpty() && !VeyraCombat::HasStatusFrom(Target.Actor.Get(), CastTuning->TargetMustHold[0], Caster))
+	{
+		return EVeyraCastRejection::InvalidTarget;
+	}
+	// Nor one locked out by an earlier cast, as Passing Step's lockout keeps it off a unit for a while (ADR-031 §8).
+	if (CastTuning && !CastTuning->TargetMustNotHold.IsEmpty() && VeyraCombat::HasStatusFrom(Target.Actor.Get(), CastTuning->TargetMustNotHold[0], Caster))
 	{
 		return EVeyraCastRejection::InvalidTarget;
 	}

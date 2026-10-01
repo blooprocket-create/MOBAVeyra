@@ -731,7 +731,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -769,7 +771,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -807,7 +811,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.3,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -856,7 +862,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.4,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -918,7 +926,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.3,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -956,7 +966,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.2,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -994,7 +1006,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.3,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1032,7 +1046,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.2,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1070,7 +1086,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.4,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1119,7 +1137,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1164,7 +1184,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.15,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1202,7 +1224,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1240,7 +1264,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.2,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1278,7 +1304,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1304,7 +1332,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1330,7 +1360,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1356,7 +1388,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.2,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1382,7 +1416,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1408,7 +1444,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1434,7 +1472,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1460,7 +1500,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.2,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1486,7 +1528,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1512,7 +1556,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1538,7 +1584,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1564,7 +1612,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1590,7 +1640,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1616,7 +1668,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1642,7 +1696,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1668,7 +1724,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1694,7 +1752,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1720,7 +1780,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1746,7 +1808,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1772,7 +1836,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1798,7 +1864,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "Caster",
       "originAbility": [],
@@ -1824,7 +1892,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [{ "ability": "torr_anchor_rip", "windowSeconds": 5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1850,7 +1920,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "CastersLingeringArea",
       "originAbility": ["torr_anchor"],
@@ -1876,7 +1948,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [{ "ability": "torr_anchor_rip_over", "windowSeconds": 5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "TargetPoint",
       "originAbility": [],
@@ -1902,7 +1976,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "origin": "CastersLingeringArea",
       "originAbility": ["torr_anchor_over"],
@@ -1930,7 +2006,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
       "shields": [],
@@ -1955,7 +2033,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["qazharr_weather_it_tenacity"],
       "shields": [
@@ -1993,7 +2073,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["oriel_mirror_veil_haste"],
       "shields": [
@@ -2031,7 +2113,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": [],
       "shields": [],
@@ -2056,7 +2140,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["vera_dig_in_stance", "vera_dig_in_reach", "vera_dig_in_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
       "shields": [],
@@ -2081,7 +2167,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["vera_dig_in_stance", "vera_dig_in_volley_reach", "vera_dig_in_volley_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
       "shields": [],
@@ -2106,7 +2194,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["vera_last_volley"],
       "shields": [],
@@ -2131,7 +2221,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["mimzi_camouflage", "mimzi_scamper"],
       "shields": [],
@@ -2156,7 +2248,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["patch_dormant", "patch_play_dead_guard", "patch_play_dead_anchor"],
       "shields": [],
@@ -2181,7 +2275,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["patch_inside_body", "patch_inside_footing"],
       "shields": [],
@@ -2206,7 +2302,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["gorraveth_frenzy_haste", "gorraveth_frenzy_hunt"],
       "shields": [],
@@ -2231,7 +2329,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["raska_countersteer_guard"],
       "shields": [],
@@ -2256,7 +2356,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["raska_countersteer_guard"],
       "shields": [],
@@ -2281,7 +2383,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["celandrine_open_road_haste", "celandrine_open_road_stride"],
       "shields": [],
@@ -2306,7 +2410,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["aurelisse_windward_haste"],
       "shields": [
@@ -2344,7 +2450,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["aurelisse_room_stride"],
       "shields": [
@@ -2382,7 +2490,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["torr_fortify_guard", "torr_fortify_brace"],
       "shields": [],
@@ -2407,7 +2517,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["torr_overcapacity_size", "torr_overcapacity_steady"],
       "shields": [],
@@ -2432,7 +2544,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "statuses": ["tavi_hidden", "tavi_hide_haste"],
       "shields": [],
@@ -2481,7 +2595,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.25,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 1650, "radius": 55, "range": 1050 },
       "collision": "FirstEnemyVanguard",
@@ -2511,7 +2627,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.2,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 1800, "radius": 40, "range": 1000 },
       "collision": "FirstEnemy",
@@ -2541,7 +2659,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.2,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
       "collision": "Pierce",
@@ -2566,7 +2686,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 1600, "radius": 60, "range": 750 },
       "collision": "FirstEnemy",
@@ -2591,7 +2713,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 5000, "radius": 60, "range": 3000 },
       "collision": "Pierce",
@@ -2616,7 +2740,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.2,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
       "collision": "FirstEnemy",
@@ -2641,7 +2767,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 1600, "radius": 60, "range": 1100 },
       "collision": "FirstEnemy",
@@ -2661,7 +2789,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0.15,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 1900, "radius": 45, "range": 1000 },
       "collision": "FirstEnemy",
@@ -2686,7 +2816,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 1400, "radius": 90, "range": 1000 },
       "collision": "Pierce",
@@ -2706,7 +2838,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 1500, "radius": 120, "range": 1100 },
       "collision": "Pierce",
@@ -2726,7 +2860,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 1400, "radius": 110, "range": 900 },
       "collision": "Pierce",
@@ -2746,7 +2882,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "projectile": { "speed": 1500, "radius": 60, "range": 900 },
       "collision": "FirstEnemy",
@@ -2791,7 +2929,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 450,
@@ -2807,7 +2947,8 @@
       "contactSelfStatuses": ["qazharr_boarding_rush_haste"],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "bryn_kickback": {
       "provenance": "Provisional",
@@ -2819,7 +2960,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "AwayFromPoint",
       "distance": 350,
@@ -2847,7 +2990,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "blink": {
       "provenance": "Provisional",
@@ -2859,7 +3003,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 400,
@@ -2875,7 +3021,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "patch_bear_hug_throw": {
       "provenance": "Provisional",
@@ -2887,7 +3034,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "AwayFromHost",
       "distance": 300,
@@ -2898,7 +3047,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 75, "speed": 600, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "gorraveth_rip_through": {
       "provenance": "Provisional",
@@ -2910,7 +3060,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 350,
@@ -2921,7 +3073,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "gorraveth_rip_through_hunt": {
       "provenance": "Provisional",
@@ -2933,7 +3086,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 350,
@@ -2944,7 +3099,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "moro_pounce": {
       "provenance": "Provisional",
@@ -2956,7 +3112,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 650,
@@ -2967,7 +3125,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["moro_pounce_rush"] }],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "gorraveth_ravine_bound": {
       "provenance": "Provisional",
@@ -2979,7 +3138,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 600,
@@ -2990,7 +3151,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [{ "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "raska_breakneck": {
       "provenance": "Provisional",
@@ -3002,7 +3164,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [{ "ability": "raska_breakneck_through", "windowSeconds": 3, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 400,
@@ -3013,7 +3177,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "raska_breakneck_through": {
       "provenance": "Provisional",
@@ -3025,7 +3190,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 350,
@@ -3036,7 +3203,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "raska_breakneck_redlined": {
       "provenance": "Provisional",
@@ -3048,7 +3216,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 400,
@@ -3059,7 +3229,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "raska_sideswipe": {
       "provenance": "Provisional",
@@ -3071,7 +3242,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 300,
@@ -3082,7 +3255,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "raska_bail_out": {
       "provenance": "Provisional",
@@ -3094,7 +3268,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 250,
@@ -3105,7 +3281,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Leave"
+      "rideExit": "Leave",
+      "duringDash": "Refused"
     },
     "raska_last_exit": {
       "provenance": "Provisional",
@@ -3117,7 +3294,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 400,
@@ -3128,7 +3307,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 250, 350], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }], "statuses": ["raska_last_exit_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "rideExit": "Leave"
+      "rideExit": "Leave",
+      "duringDash": "Refused"
     },
     "celandrine_sidebound": {
       "provenance": "Provisional",
@@ -3140,7 +3320,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "TowardPoint",
       "distance": 325,
@@ -3151,7 +3333,8 @@
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "tavi_tag": {
       "provenance": "Provisional",
@@ -3172,7 +3355,9 @@
             "fallsWithinSeconds": 0
           }
         ],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "ThroughTarget",
       "distance": 225,
@@ -3199,7 +3384,8 @@
         "reactions": []
       },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     },
     "tavi_tag_again": {
       "provenance": "Provisional",
@@ -3211,7 +3397,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": ["tavi_it"]
+        "targetMustHold": ["tavi_it"],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "direction": "ThroughTarget",
       "distance": 225,
@@ -3238,7 +3426,8 @@
         "reactions": []
       },
       "endZones": [],
-      "rideExit": "Stay"
+      "rideExit": "Stay",
+      "duringDash": "Refused"
     }
   },
   "empoweredAttack": {
@@ -3252,7 +3441,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "durationSeconds": 5,
       "attacks": 1,
@@ -3273,7 +3464,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "durationSeconds": 6,
       "attacks": 1,
@@ -3301,7 +3494,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "durationSeconds": 5,
       "attacks": 3,
@@ -3324,7 +3519,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "shot": "kade_kill_corridor_shot",
       "shots": 3,
@@ -3345,7 +3542,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "targetKinds": ["Vanguard"],
       "maxRange": 750,
@@ -3366,7 +3565,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 2.5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "targetKinds": ["Vanguard"],
       "leapSpeed": 1200,
@@ -3385,7 +3586,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 3, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "targetKinds": ["Vanguard"],
       "leapSpeed": 1200,
@@ -3406,7 +3609,9 @@
         "windupMovement": "Locked",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "setSpeed": 575,
       "turnRateDegreesPerSecond": 200,
@@ -3426,7 +3631,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [{ "ability": "raska_last_exit", "windowSeconds": 6, "onExpiry": "Cast", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "setSpeed": 750,
       "turnRateDegreesPerSecond": 160,
@@ -3457,7 +3664,9 @@
             "fallsWithinSeconds": 2
           }
         ],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "recentSeconds": 4,
       "vanishSeconds": 0.6,
@@ -3483,7 +3692,9 @@
         "windupMovement": "Free",
         "recoverySeconds": 0,
         "recastWindow": [],
-        "targetMustHold": []
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
       },
       "recentSeconds": 4,
       "vanishSeconds": 0.6,

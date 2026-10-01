@@ -27,7 +27,7 @@
       "description": "How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold"],
+      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold", "targetMustNotHold", "takedownRefund"],
       "properties": {
         "cooldownSecondsByRank": { "description": "Cooldown in seconds, starting at Commit.", "$ref": "#/definitions/byRank" },
         "resourceCostByRank": { "description": "Resource paid at Commit.", "$ref": "#/definitions/byRank" },
@@ -64,6 +64,20 @@
           "minItems": 0,
           "maxItems": 1,
           "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+        },
+        "targetMustNotHold": {
+          "description": "At most one status ID: the cast refuses a target that holds it from the caster, as Passing Step's lockout keeps it off a unit it just passed through (ADR-031 §8).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+        },
+        "takedownRefund": {
+          "description": "At most one fraction: the share of its remaining cooldown a takedown its caster takes part in refunds; 1 resets it, as Black Step's (ADR-031 §9).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 }
         }
       }
     },
@@ -710,7 +724,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses", "hostEffects", "endZones", "rideExit"],
+          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses", "hostEffects", "endZones", "rideExit", "duringDash"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -736,7 +750,8 @@
             "contactSelfStatuses": { "description": "Put on the caster when it stops at an enemy.", "$ref": "#/definitions/statusIds" },
             "hostEffects": { "description": "On the unit an AwayFromHost dash lets go of, as the throw's stumble; no effects for any other dash.", "$ref": "#/definitions/effects" },
             "endZones": {"description": "Areas at the caster, facing the cast's point, as the dash sets off; innermost first.", "type": "array", "minItems": 0, "items": {"$ref": "#/definitions/zone"}},
-            "rideExit": { "description": "Stay: it rides on, if it rides. Leave: it separates rider and vehicle first, as Bail Out and Last Exit do (Combat Bible §56).", "type": "string", "enum": ["Stay", "Leave"] }
+            "rideExit": { "description": "Stay: it rides on, if it rides. Leave: it separates rider and vehicle first, as Bail Out and Last Exit do (Combat Bible §56).", "type": "string", "enum": ["Stay", "Leave"] },
+            "duringDash": { "description": "Cast during one of its caster's own dashes: Refused until that dash ends, or TakesOver, ending it where the caster is and dashing from there (ADR-031 §7).", "type": "string", "enum": ["Refused", "TakesOver"] }
           }
         }
       }

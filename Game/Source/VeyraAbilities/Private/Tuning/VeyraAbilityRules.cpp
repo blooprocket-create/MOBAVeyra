@@ -82,6 +82,15 @@ namespace
 				Problem(Pointer + TEXT("/targetMustHold"), TEXT("names at most one status"));
 			}
 			CheckStatusIds(Pointer + TEXT("/targetMustHold"), Cast.TargetMustHold);
+			if (Cast.TargetMustNotHold.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/targetMustNotHold"), TEXT("names at most one status"));
+			}
+			CheckStatusIds(Pointer + TEXT("/targetMustNotHold"), Cast.TargetMustNotHold);
+			if (Cast.TakedownRefund.Num() > 1 || Cast.TakedownRefund.ContainsByPredicate([](double Fraction) { return !(Fraction > 0.0 && Fraction <= 1.0); }))
+			{
+				Problem(Pointer + TEXT("/takedownRefund"), TEXT("holds at most one fraction, above 0 and at most 1"));
+			}
 		}
 
 		void CheckDamage(const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList)
@@ -972,12 +981,8 @@ bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability
 		|| Tuning.Stance.Contains(Ability) || Tuning.Placement.Contains(Ability) || Tuning.Blink.Contains(Ability);
 }
 
-double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
+const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
 {
-	if (const FVeyraTargetedDamageAbilityTuning* Targeted = Tuning.TargetedDamage.Find(Ability))
-	{
-		return Targeted->CooldownSeconds;
-	}
 	const FVeyraCastTuning* Cast = nullptr;
 	if (const FVeyraAreaAbilityTuning* Area = Tuning.Area.Find(Ability))
 	{
@@ -1031,6 +1036,16 @@ double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentI
 	{
 		Cast = &Blink->Cast;
 	}
+	return Cast;
+}
+
+double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
+{
+	if (const FVeyraTargetedDamageAbilityTuning* Targeted = Tuning.TargetedDamage.Find(Ability))
+	{
+		return Targeted->CooldownSeconds;
+	}
+	const FVeyraCastTuning* Cast = FindCast(Tuning, Ability);
 	return Cast ? ValueAtRank(Cast->CooldownSecondsByRank, Rank) : 0.0;
 }
 

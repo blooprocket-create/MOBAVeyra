@@ -51,6 +51,9 @@ struct FVeyraDash
 	double Distance = 0.0;
 	double Speed = 0.0;
 	EVeyraDashContact Contact = EVeyraDashContact::None;
+
+	/** Whether it takes over one of the unit's dashes under way, which ends Replaced where it is (ADR-031 §7). */
+	bool bTakesOver = false;
 };
 
 /** Why a dash ended. */
@@ -62,6 +65,8 @@ enum class EVeyraDashEndReason : uint8
 	EnemyContact,
 	/** A displacement took over the unit's movement (§9). */
 	Interrupted,
+	/** Another of the unit's own dashes, or a blink, took over before it landed (ADR-031 §7). */
+	Replaced,
 };
 
 struct FVeyraDashEnd
