@@ -1400,6 +1400,118 @@
       "landsOn": [],
       "attackCharges": 0,
       "cover": []
+    },
+    "eudora_designated": {
+      "provenance": "Provisional",
+      "kind": "Designated",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 4,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": ["Vanguard"],
+      "attackCharges": 0,
+      "cover": []
+    },
+    "picket_gun_platform": {
+      "provenance": "Provisional",
+      "kind": "AttackDamageAmplification",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.35,
+      "durationSeconds": 90,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": ["Fluxborn"],
+      "landsOn": [],
+      "attackCharges": 0,
+      "cover": []
+    },
+    "picket_bulwark": {
+      "provenance": "Provisional",
+      "kind": "Cover",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.45,
+      "durationSeconds": 90,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 120,
+      "unitKinds": ["Vanguard", "Fluxborn"],
+      "landsOn": [],
+      "attackCharges": 0,
+      "cover": [
+        { "reach": 450, "capacity": 420, "transferShare": 0.3 }
+      ]
+    },
+    "picket_on_the_move": {
+      "provenance": "Provisional",
+      "kind": "Cover",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.25,
+      "durationSeconds": 90,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 120,
+      "unitKinds": ["Vanguard", "Fluxborn"],
+      "landsOn": [],
+      "attackCharges": 0,
+      "cover": [
+        { "reach": 350, "capacity": 220, "transferShare": 0.3 }
+      ]
+    },
+    "picket_hauling": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": -0.2,
+      "durationSeconds": 90,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0,
+      "cover": []
+    },
+    "picket_rattled": {
+      "provenance": "Provisional",
+      "kind": "AttackSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": -0.4,
+      "durationSeconds": 90,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0,
+      "cover": []
     }
   },
   "targetedDamage": {
@@ -5465,6 +5577,58 @@
       "returnIfHeld": [],
       "mimic": [],
       "endWall": []
+    },
+    "eudora_drive_rivet": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [9, 8.5, 8, 7.5, 7],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 1050,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "projectile": { "speed": 1700, "radius": 55, "range": 1050 },
+      "collision": "FirstEnemy",
+      "effects": {
+        "damage": [
+          {
+            "type": "Physical",
+            "amountByRank": [70, 110, 150, 190, 230],
+            "physicalPowerRatio": 0.8,
+            "magicPowerRatio": 0
+          }
+        ],
+        "statuses": ["eudora_designated"],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "casterDash": [],
+      "returnIfHeld": [],
+      "mimic": [],
+      "endWall": []
     }
   },
   "dash": {
@@ -7357,6 +7521,90 @@
       "companion": [],
       "lifetimeSeconds": 0,
       "bindTo": "Enemy"
+    },
+    "eudora_set_the_picket": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [20, 18.5, 17, 15.5, 14],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 600,
+        "windupSeconds": 0.6,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Deploy",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": ["eudora_picket"],
+      "lifetimeSeconds": 45,
+      "bindTo": "None"
+    },
+    "eudora_raise_the_bulwark": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [6],
+        "resourceCostByRank": [30],
+        "castRange": 1000,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "Living",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "ChangePosture",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": [],
+      "lifetimeSeconds": 0,
+      "bindTo": "None"
+    },
+    "eudora_move_the_line": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 105, 90],
+        "resourceCostByRank": [100],
+        "castRange": 900,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "Living",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Unanchor",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": [],
+      "lifetimeSeconds": 6,
+      "bindTo": "Ally"
     }
   },
   "companions": {
@@ -7470,6 +7718,90 @@
       "postures": [],
       "movingStatuses": [],
       "movingAura": []
+    },
+    "eudora_picket": {
+      "provenance": "Provisional",
+      "capsuleRadius": 55,
+      "capsuleHalfHeight": 70,
+      "stats": {
+        "maxHealth": 620,
+        "healthRegen": 0,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 40,
+        "magicResist": 40,
+        "physicalPower": 38,
+        "magicPower": 0,
+        "attackSpeed": 0.55,
+        "moveSpeed": 280
+      },
+      "growth": {
+        "maxHealth": 62,
+        "healthRegen": 0,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 2,
+        "magicResist": 1.5,
+        "physicalPower": 3.5,
+        "magicPower": 0,
+        "attackSpeed": 0,
+        "moveSpeed": 0
+      },
+      "ownerMagicPowerShare": 0,
+      "basicAttack": {
+        "range": 650,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.25,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1400, "radius": 20 }
+        ],
+        "cleave": []
+      },
+      "followDistance": 150,
+      "leashRange": 1200,
+      "acquireRange": 700,
+      "ownerTargetSeconds": 3,
+      "reformSeconds": 0,
+      "thinkSeconds": 0.25,
+      "escort": [],
+      "attackStatuses": [],
+      "postures": [
+        {
+          "attacks": "Attacks",
+          "statuses": ["picket_gun_platform"]
+        },
+        {
+          "attacks": "Holds",
+          "statuses": ["picket_bulwark"]
+        }
+      ],
+      "movingStatuses": ["picket_on_the_move", "picket_hauling", "picket_rattled"],
+      "movingAura": [
+        {
+          "radius": 500,
+          "pulseSeconds": 1,
+          "unitKinds": ["Fluxborn"],
+          "statuses": [],
+          "shield": [
+            {
+              "id": "picket_line_shield",
+              "category": "Universal",
+              "amountByRank": [40, 60, 80],
+              "maxHealthRatio": 0,
+              "magicPowerRatio": 0,
+              "durationSeconds": 1.5,
+              "reapply": "Replace",
+              "maxAmountMaxHealthRatio": 0,
+              "capGroup": [],
+              "absorbedReward": []
+            }
+          ]
+        }
+      ]
     }
   }
 }
