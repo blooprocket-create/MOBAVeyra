@@ -294,6 +294,42 @@ func TestTeamSizesFitTheGamesMatchJSON(t *testing.T) {
 	}
 }
 
+// A matchmade mode fills the game's whole team: five a side, and a co-op
+// mode's enemy AI team as many (Modes Bible §1, §4). Scripts shrink a queue
+// for their clients in a config of their own, never in the committed one.
+func TestMatchmadeModesFillTheGamesTeams(t *testing.T) {
+	_, file, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(file), "..", "..", "..")
+	cfg, err := Load(filepath.Join(root, "Backend", "config", "local.json"))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	raw, err := os.ReadFile(filepath.Join(root, "Game", "Tuning", "Match.json"))
+	if err != nil {
+		t.Fatalf("read the game's Match.json: %v", err)
+	}
+	var tuning struct {
+		Teams struct {
+			MaxTeamSize int `json:"maxTeamSize"`
+		} `json:"teams"`
+	}
+	if err := json.Unmarshal(raw, &tuning); err != nil || tuning.Teams.MaxTeamSize < 1 {
+		t.Fatalf("Match.json teams.maxTeamSize: %d %v", tuning.Teams.MaxTeamSize, err)
+	}
+	team := tuning.Teams.MaxTeamSize
+	for _, m := range cfg.Modes {
+		if m.Matchmaking == MatchmakingNotImplemented {
+			continue
+		}
+		if m.HumanPlayersPerTeam != team {
+			t.Errorf("mode %s queues %d humans a side, not the game's team of %d", m.ID, m.HumanPlayersPerTeam, team)
+		}
+		if m.Matchmaking == MatchmakingCoop && m.AIPerTeam != team {
+			t.Errorf("co-op mode %s fields %d enemy AI, not the game's team of %d", m.ID, m.AIPerTeam, team)
+		}
+	}
+}
+
 // The Flux Spells champion select offers are exactly the game's roster,
 // Game/Tuning/Abilities.json fluxSpells.roster, in the same order: the match
 // server refuses a spell off it (ADR-015 §5). Both files are data, so they are
