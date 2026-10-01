@@ -9,6 +9,11 @@ namespace
 	/** Lower is fought first; none for a candidate the mode never fights. */
 	TOptional<int32> RankOf(EVeyraCompanionMode Mode, const FVeyraCompanionCandidate& Candidate)
 	{
+		// A summoned companion fights the unit it was bound to, or nothing: never a choice (ADR-035 §5).
+		if (Mode == EVeyraCompanionMode::Escort || Mode == EVeyraCompanionMode::Hunt)
+		{
+			return {};
+		}
 		if (Candidate.bOwnersTarget)
 		{
 			return 0;

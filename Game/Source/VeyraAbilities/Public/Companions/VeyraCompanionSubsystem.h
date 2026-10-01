@@ -11,6 +11,9 @@
 class AActor;
 class AVeyraCompanion;
 class UAbilitySystemComponent;
+enum class EVeyraCompanionMode : uint8;
+struct FVeyraCompanionTuning;
+struct FVeyraDamageDealtEvent;
 struct FVeyraDeathEvent;
 
 /**
@@ -38,6 +41,17 @@ public:
 	 */
 	bool Summon(UAbilitySystemComponent& Owner, const FVeyraContentId& Id);
 
+	/**
+	 * Server: Owner's summoned companion of Id, bound to Unit as Mode says (Escort or Hunt), for LifetimeSeconds
+	 * (ADR-035 §5). It forms beside its owner's living body now. One of its summons already living is
+	 * redirected instead, keeping its time. False for an unknown companion, an owner with no body, or an owner
+	 * that keeps a companion for good.
+	 */
+	bool SummonFor(UAbilitySystemComponent& Owner, const FVeyraContentId& Id, EVeyraCompanionMode Mode, AActor& Unit, double LifetimeSeconds);
+
+	/** Server: binds Owner's living summoned companion to Unit as Mode says, keeping its time. False without one. */
+	bool Redirect(const UAbilitySystemComponent& Owner, EVeyraCompanionMode Mode, AActor& Unit);
+
 	/** Server: Owner's companion, living or banished, or null before it forms. */
 	AVeyraCompanion* Find(const UAbilitySystemComponent& Owner) const;
 
@@ -58,18 +72,30 @@ private:
 		TWeakObjectPtr<AVeyraCompanion> Companion;
 		/** When a killed companion may reform, in world time. */
 		double ReformsAt = 0.0;
+		/** When a summoned companion goes for good, in world time; 0 for one kept for good (ADR-035 §5). */
+		double EndsAt = 0.0;
+		/** When an escort next helps its ally, in world time. */
+		double NextPulseAt = 0.0;
 		FTimerHandle Timer;
 	};
 
 	FKept* FindKept(const UAbilitySystemComponent& Owner);
 	const FKept* FindKept(const UAbilitySystemComponent& Owner) const;
+	/** Thinks for Entry on a world-time timer, so a pause holds it. */
+	void StartKeeping(FKept& Entry, const FVeyraCompanionTuning& Tuning);
 	void Form(FKept& Entry, const AActor& OwnerBody);
 	void Banish(FKept& Entry);
+	/** A summoned companion goes for good: banished, destroyed and no longer kept (ADR-035 §5). */
+	void Dismiss(const UAbilitySystemComponent& Owner);
+	/** An escort's heal and statuses for its ally, if near enough (ADR-035 §5). */
+	void Pulse(FKept& Entry, AVeyraCompanion& Companion);
 	void OnDeath(const FVeyraDeathEvent& Death);
+	void OnDamageDealt(const FVeyraDamageDealtEvent& Dealt);
 
 	/** Where a companion of Radius forms or reforms beside its owner's body. */
 	FVector BesideOwner(const AActor& OwnerBody, double Radius) const;
 
 	TArray<FKept> Kept;
 	FDelegateHandle DeathHandle;
+	FDelegateHandle DealtHandle;
 };

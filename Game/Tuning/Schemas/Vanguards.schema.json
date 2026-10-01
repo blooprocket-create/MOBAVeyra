@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry", "disciplines", "stressTemper", "charger"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry", "disciplines", "stressTemper", "charger", "accord", "mistTrail"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -178,7 +178,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [17]
+      "enum": [19]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -730,6 +730,65 @@
             "chargePerDeath": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
             "boostStatus": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
             "boostMultiplier": { "type": "number", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "accord": {
+      "description": "Passives that bind their owner to a companion (Marek's Bound Together, Roster Bible §10; ADR-034 §9). It summons the companion as it starts. When the owner and the companion have each damaged one enemy within windowSeconds, Accord deals it magic damage from the owner, at most once per perTargetSeconds on it, boostMultiplier times as much while the owner holds boostStatus, and shortens refundSlot's cooldown by refundSeconds. The companion's hits leave mark on the enemy.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "companion", "windowSeconds", "perTargetSeconds", "damageAmount", "damagePerLevel", "magicPowerRatio", "mark", "refundSlot", "refundSeconds", "boostStatus", "boostMultiplier"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "companion": { "description": "From Abilities.json's companions.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "windowSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "perTargetSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "damageAmount": { "type": "number", "minimum": 0 },
+            "damagePerLevel": { "type": "number", "minimum": 0 },
+            "magicPowerRatio": { "type": "number", "minimum": 0 },
+            "mark": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "refundSlot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] },
+            "refundSeconds": { "type": "number", "minimum": 0 },
+            "boostStatus": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "boostMultiplier": { "type": "number", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "mistTrail": {
+      "description": "Passives that leave a Mist Trail as their owner steps into Dense Fog (Sylra's Follow the Bell, Roster Bible §16; ADR-036 §5). Each lookSeconds it looks where its owner stands; stepping from no fog into fog, it lays area every spacing along the last approachLength of the way she came and on along her path for laySeconds. An allied Vanguard holding followStatus from her in the volume she entered gains followShield, once per trail. It grants no vision.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "area", "spacing", "approachLength", "laySeconds", "lookSeconds", "followStatus", "followShield"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "area": { "description": "From Abilities.json's areas: one that lingers, giving allies followStatus.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "spacing": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "approachLength": { "type": "number", "minimum": 0 },
+            "laySeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "lookSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "followStatus": { "description": "From Abilities.json's statuses.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "followShield": {
+              "description": "One grant, replaced by the next: at Level 1, what each Level adds, and its Magic Power ratio, together above 0.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["amount", "amountPerLevel", "magicPowerRatio", "durationSeconds"],
+              "properties": {
+                "amount": { "type": "number", "minimum": 0 },
+                "amountPerLevel": { "type": "number", "minimum": 0 },
+                "magicPowerRatio": { "type": "number", "minimum": 0 },
+                "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+              }
+            }
           }
         }
       }

@@ -19,6 +19,7 @@
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Fog/VeyraDenseFogBank.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerController.h"
@@ -39,6 +40,9 @@
 
 namespace
 {
+	/** Dense Fog lies on top of the ground's other markings, the map's and an ability's alike. */
+	constexpr int32 FogMarkingLayer = 4;
+
 	/** The cast state beside Unit's Ability System Component: on a Vanguard, its participant's. */
 	const UVeyraCastStateComponent* FindGreyboxCastState(const AActor& Unit)
 	{
@@ -150,6 +154,7 @@ void UVeyraGreyboxSubsystem::Refresh()
 	RefreshTelegraphs();
 	DrawTelegraphs();
 	DrawVisionMarks();
+	DrawChains();
 	AttachHudOverlay();
 }
 
@@ -341,6 +346,28 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		}
 		Bodies.Add(&Wall, FBody{ Mesh, Material, Settings.NeutralColor });
 	}
+	// Fog an ability laid lies on the ground as the map's does, once its circles have arrived (ADR-036 §1).
+	for (TActorIterator<AVeyraDenseFogBank> It(GetWorld()); It; ++It)
+	{
+		AVeyraDenseFogBank& Bank = **It;
+		const TArray<FVeyraFogCircle> Circles = Bank.GetCircles();
+		if (Circles.IsEmpty() || DrawnFogBanks.Contains(&Bank))
+		{
+			continue;
+		}
+		for (const FVeyraFogCircle& Circle : Circles)
+		{
+			AddGroundMarking(Bank, *PadMesh, Settings.DenseFogColor, Circle.Center, 0.0, FVector2D(Circle.Radius), FogMarkingLayer);
+		}
+		DrawnFogBanks.Add(&Bank);
+	}
+	for (auto It = DrawnFogBanks.CreateIterator(); It; ++It)
+	{
+		if (!It->IsValid())
+		{
+			It.RemoveCurrent();
+		}
+	}
 	for (auto It = Bodies.CreateIterator(); It; ++It)
 	{
 		if (!It.Key().IsValid())
@@ -421,7 +448,7 @@ void UVeyraGreyboxSubsystem::RefreshBattleground()
 	// The Dense Fog, the battleground's bush, on top: a player sees where it lies, not who is in it.
 	for (const FVeyraFogPlacement& Fog : VeyraLayout::DenseFog(Layout))
 	{
-		AddGroundMarking(*Owner, *PadMesh, Settings.DenseFogColor, Fog.Center, 0.0, FVector2D(Fog.Radius), 4);
+		AddGroundMarking(*Owner, *PadMesh, Settings.DenseFogColor, Fog.Center, 0.0, FVector2D(Fog.Radius), FogMarkingLayer);
 	}
 }
 
@@ -597,6 +624,28 @@ void UVeyraGreyboxSubsystem::DrawVisionMarks()
 	for (const FVector& Outline : Vision.Outlines)
 	{
 		DrawRing(Outline, Settings.OutlineMarkerRadius, Settings.OutlineColor);
+	}
+}
+
+void UVeyraGreyboxSubsystem::DrawChains()
+{
+	// A chain joins a companion to its owner while it lasts, in its side's colour (ADR-034 §7).
+	if (!TelegraphLines)
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	for (TActorIterator<AVeyraCompanion> It(GetWorld()); It; ++It)
+	{
+		const AVeyraCompanion& Companion = **It;
+		const APlayerState* Whose = Companion.GetOwnerState();
+		const APawn* OwnerBody = Whose ? Whose->GetPawn() : nullptr;
+		if (!Companion.IsChained() || Companion.IsHidden() || !OwnerBody)
+		{
+			continue;
+		}
+		TelegraphLines->DrawLine(GroundUnder(Companion.GetActorLocation()), GroundUnder(OwnerBody->GetActorLocation()), ColorOfSide(Companion.GetVeyraTeam()),
+			SDPG_World, Settings.TelegraphThickness, 0.0f);
 	}
 }
 

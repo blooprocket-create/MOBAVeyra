@@ -421,7 +421,12 @@ FVeyraBotIntent Decide(const FVeyraBotView& View, const FVeyraBotDifficultyTunin
 				{
 					// Cast at the threat, to be carried away from it; no attack follows.
 					FVeyraBotIntent Escape = CastOf(View, *Slot, *Threat, EVeyraBotAim::AtTarget, TEXT("escaping"));
-					if (Slot->Profile.Targeting == EVeyraBotTargeting::Point && !Slot->Profile.bAwayFromPoint)
+					if (Slot->Profile.Targeting == EVeyraBotTargeting::Point && Slot->Profile.bAreaAtPoint)
+					{
+						// An area laid at its point covers the bot itself, as a fog to hide in.
+						Escape.CastTarget.Location = View.Self.Location;
+					}
+					else if (Slot->Profile.Targeting == EVeyraBotTargeting::Point && !Slot->Profile.bAwayFromPoint)
 					{
 						// A dash toward its point, as a Blink is: aimed home, away from the threat.
 						const FVector Homeward = (View.Home - View.Self.Location).GetSafeNormal2D();
