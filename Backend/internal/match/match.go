@@ -214,7 +214,7 @@ type Mode struct {
 	Enabled             bool
 	HumanPlayersPerTeam int
 	// AIPerTeam and AIDifficulty are a co-op mode's enemy AI team; zero and
-	// empty for any other mode (ADR-038 §2).
+	// empty for any other mode (ADR-039 §2).
 	AIPerTeam    int
 	AIDifficulty BotDifficulty
 }
@@ -270,7 +270,7 @@ type Match struct {
 	State        State
 	Participants []Participant
 	// Bots are the match's AI participants: a hosted match's, or a co-op
-	// match's enemy AI team (ADR-038 §4).
+	// match's enemy AI team (ADR-039 §4).
 	Bots []Bot
 	// Custom is the session's rules, present exactly for custom matches.
 	Custom    *CustomSettings
@@ -329,7 +329,7 @@ func ValidateRoster(mode Mode, participants []Participant) error {
 	return nil
 }
 
-// ValidateOpponents checks a standard match's bots against its mode (ADR-038
+// ValidateOpponents checks a standard match's bots against its mode (ADR-039
 // §4): none unless the mode is co-op; a co-op mode's are its whole enemy AI
 // team, at its difficulty, distinct, and on one side with no human.
 func ValidateOpponents(mode Mode, participants []Participant, bots []Bot) error {

@@ -1,6 +1,6 @@
 // Package catalog lists the Vanguards players may own and pick: which are
 // released, which a new player may choose as a starter, and which the weekly
-// free rotation offers (ADR-010 §6; ADR-038 §1; Modes & Access Bible §3). It is
+// free rotation offers (ADR-010 §6; ADR-039 §1; Modes & Access Bible §3). It is
 // configuration, read-only while the backend runs. Game/Tuning/Vanguards.json
 // defines the Vanguards themselves, and a contract test keeps the released list
 // equal to its Playable ones.
@@ -15,7 +15,7 @@ import (
 )
 
 // RotationSettings configure the weekly free rotation (Modes & Access Bible
-// §3; ADR-038 §1).
+// §3; ADR-039 §1).
 type RotationSettings struct {
 	// Slots is how many distinct Vanguards each week offers.
 	Slots int
@@ -121,7 +121,7 @@ func (c *Catalog) week(w int64) []string {
 
 // draw picks week w's Vanguards: Slots distinct eligible ones, none of last
 // week's unless too few others remain, by a shuffle seeded with the seed and
-// the week (ADR-038 §1).
+// the week (ADR-039 §1).
 func (c *Catalog) draw(w int64, previous []string) []string {
 	r := c.settings.Rotation
 	start := r.Epoch.Add(time.Duration(w) * r.Week)

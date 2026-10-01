@@ -164,7 +164,7 @@ func (s *Service) Create(ctx context.Context, spec Spec) (Match, error) {
 		if err := ValidateRoster(mode, participants); err != nil {
 			return Match{}, err
 		}
-		// A co-op match brings its enemy AI team; any other standard match, none (ADR-038 §4).
+		// A co-op match brings its enemy AI team; any other standard match, none (ADR-039 §4).
 		if err := ValidateOpponents(mode, participants, spec.Bots); err != nil {
 			return Match{}, err
 		}

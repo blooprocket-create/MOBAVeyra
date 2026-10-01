@@ -206,7 +206,7 @@ func (s *Session) checkPicking(accountID string, now time.Time) (*Seat, error) {
 // in a custom select, within the picker's side, where its bots count too
 // (ADR-021 §2). A bot holds its Vanguard on its own side only: a co-op
 // select's human may play what an enemy bot plays, the sole cross-team mirror
-// (Modes & Access Bible §4; ADR-038 §3).
+// (Modes & Access Bible §4; ADR-039 §3).
 func (s *Session) Taken(vanguardID, accountID string) bool {
 	own, _ := s.seat(accountID)
 	perSide := s.Kind == KindCustom && own != nil

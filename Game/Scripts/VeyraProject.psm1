@@ -191,5 +191,35 @@ function Step-VeyraHandshake {
     return $Client.State
 }
 
+<#
+.SYNOPSIS
+    Chooses the config the local backend starts with, through VEYRA_BACKEND_CONFIG, which compose.yaml reads.
+.DESCRIPTION
+    Without -Mode, the committed Backend/config/local.json. With it, Backend/config/scripted.json: that config
+    with Mode's queue sized to -HumansPerTeam, so a script's few clients fill a queue whose canon is five
+    humans a side (Modes Bible §1, §4; ADR-039 §6). Run it before docker compose up.
+#>
+function Set-VeyraBackendConfig {
+    param(
+        [Parameter(Mandatory)][string]$RepositoryDir,
+        [string]$Mode,
+        [int]$HumansPerTeam
+    )
+    $configDir = Join-Path $RepositoryDir 'Backend\config'
+    if (-not $Mode) {
+        $env:VEYRA_BACKEND_CONFIG = 'local.json'
+        return
+    }
+    $config = Get-Content -LiteralPath (Join-Path $configDir 'local.json') -Raw | ConvertFrom-Json
+    $entry = $config.modes | Where-Object { $_.id -eq $Mode }
+    if (-not $entry) {
+        throw "Backend/config/local.json has no mode $Mode."
+    }
+    $entry.humanPlayersPerTeam = $HumansPerTeam
+    $config | ConvertTo-Json -Depth 32 | Set-Content -LiteralPath (Join-Path $configDir 'scripted.json') -Encoding utf8NoBOM
+    $env:VEYRA_BACKEND_CONFIG = 'scripted.json'
+    Write-Host "The backend runs $Mode with $HumansPerTeam human(s) a side (Backend/config/scripted.json)."
+}
+
 Export-ModuleMember -Function Get-VeyraProjectFile, Resolve-VeyraEngineRoot, Initialize-VeyraPlatformToolchain, Get-VeyraLaunchHandshake,
-    Start-VeyraHandshakeClient, Step-VeyraHandshake
+    Start-VeyraHandshakeClient, Step-VeyraHandshake, Set-VeyraBackendConfig

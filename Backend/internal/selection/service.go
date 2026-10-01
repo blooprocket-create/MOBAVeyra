@@ -208,7 +208,7 @@ func (s *Service) OpenCasual(ctx context.Context, mode string, seats []CasualSea
 	return s.openCasual(ctx, mode, seats, nil)
 }
 
-// OpenCoop opens the select of a co-op match everyone accepted (ADR-038 §3): a
+// OpenCoop opens the select of a co-op match everyone accepted (ADR-039 §3): a
 // Casual Select whose bots, the enemy AI team, are seated from the start. The
 // humans pick as in Casual Select, and may play what an enemy bot plays.
 // Matchmaking calls it inside its own transaction, which this joins.

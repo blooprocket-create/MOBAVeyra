@@ -11,7 +11,7 @@ import (
 var ErrNoOpponents = errors.New("selection: too few Vanguards for the enemy AI team")
 
 // DrawOpponents draws a co-op match's enemy AI team (Modes & Access Bible §4;
-// ADR-038 §3): count distinct Vanguards from pool, each a bot of difficulty on
+// ADR-039 §3): count distinct Vanguards from pool, each a bot of difficulty on
 // side, in pool order shuffled by shuffle (rand.Shuffle in production, a fixed
 // order in tests).
 func DrawOpponents(pool []string, count int, side match.Side, difficulty match.BotDifficulty, shuffle func(n int, swap func(i, j int))) ([]match.Bot, error) {

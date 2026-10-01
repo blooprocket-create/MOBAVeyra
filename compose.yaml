@@ -47,6 +47,9 @@ services:
 
   backend:
     build: ./Backend
+    # Backend/config/local.json, or the file VEYRA_BACKEND_CONFIG names there: Smoke.ps1 and
+    # Play.ps1 -Opponent size a scripted match's queue to their clients with scripted.json.
+    command: ["-config", "/config/${VEYRA_BACKEND_CONFIG:-local.json}"]
     # The backend starts match servers through the Docker socket (ADR-007 §11).
     # Access to the socket controls the whole Docker host, so this is for a
     # developer machine only; the backend runs as root in its container to

@@ -174,6 +174,7 @@ VeyraServices is the only module that talks to the backend (ADR-007 §12), so th
 
 - **The matchmaker** is a backend loop. It forms matches from queued parties, oldest first, and never splits a party.
 - **Team size.** Canon's team size is 5. A local, provisional configuration sets Casual Select to one human per team, so two clients can test the flow.
+  - **Amended (2026-10-01, ADR-039 §6):** the committed configuration now holds canon's five a side. Scripts that test the flow with two clients size the queue to them in a generated `Backend/config/scripted.json`.
 - **Match Found** (Parties §3):
   - every player must accept before a deadline from configuration;
   - a decline or timeout removes the decliner's party from the queue with Ready reset;
