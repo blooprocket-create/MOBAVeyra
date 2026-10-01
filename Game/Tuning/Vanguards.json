@@ -1090,6 +1090,56 @@
       },
       "rankShape": [],
       "passive": []
+    },
+    "sylra": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 36, "capsuleHalfHeight": 88, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 540,
+        "healthRegen": 1,
+        "maxResource": 430,
+        "resourceRegen": 8,
+        "armor": 20,
+        "magicResist": 30,
+        "physicalPower": 48,
+        "magicPower": 0,
+        "attackSpeed": 0.63,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 90,
+        "healthRegen": 0.12,
+        "maxResource": 38,
+        "resourceRegen": 0.5,
+        "armor": 4.1,
+        "magicResist": 1.3,
+        "physicalPower": 2.5,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 525,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1600, "radius": 15 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["sylra_harbor_bell"],
+        "w": ["sylra_lay_the_mist"],
+        "e": ["sylra_waymark"],
+        "r": ["sylra_through_the_white"]
+      },
+      "rankShape": [],
+      "passive": ["sylra_follow_the_bell"]
     }
   },
   "deepFoundation": {
@@ -1374,5 +1424,16 @@
       "boostMultiplier": 1.5
     }
   },
-  "mistTrail": {}
+  "mistTrail": {
+    "sylra_follow_the_bell": {
+      "provenance": "Provisional",
+      "area": "sylra_mist_trail",
+      "spacing": 180,
+      "approachLength": 540,
+      "laySeconds": 2.5,
+      "lookSeconds": 0.2,
+      "followStatus": "sylra_followed_the_bell",
+      "followShield": { "amount": 50, "amountPerLevel": 8, "magicPowerRatio": 0.2, "durationSeconds": 3 }
+    }
+  }
 }
