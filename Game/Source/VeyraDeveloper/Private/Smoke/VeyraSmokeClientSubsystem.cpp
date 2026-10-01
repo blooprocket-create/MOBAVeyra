@@ -6,6 +6,7 @@
 #include "Algo/AllOf.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Brain/VeyraBotAbilities.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "DevCommands/VeyraDevCommands.h"
@@ -318,6 +319,10 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 			{
 				Controller->IssueAttackOrder(Nearest);
 			}
+			else
+			{
+				WalkBackToTheFight(*Controller);
+			}
 			KitAttackRetryAt = FPlatformTime::Seconds() + KitAttackRetryRealSeconds;
 		}
 		break;
@@ -426,6 +431,16 @@ void UVeyraSmokeClientSubsystem::StartMove(AVeyraPlayerController& Controller, c
 	const double StopFromCentre = FMath::Min(MoveStart.Size2D(), StopDistance * StopFromCentreFractionOfCastRange);
 	MoveDestination = MoveStart.GetSafeNormal2D() * StopFromCentre;
 	Controller.IssueMoveOrder(MoveDestination);
+}
+
+void UVeyraSmokeClientSubsystem::WalkBackToTheFight(AVeyraPlayerController& Controller)
+{
+	// Where the first move went: the fight is there. The order goes again no faster than the server allows orders.
+	if (FPlatformTime::Seconds() >= KitWalkBackAt)
+	{
+		Controller.IssueMoveOrder(MoveDestination);
+		KitWalkBackAt = FPlatformTime::Seconds() + KitAttackRetryRealSeconds;
+	}
 }
 
 AActor* UVeyraSmokeClientSubsystem::FindNearestEnemyBody(const AVeyraPlayerController& Controller, const AVeyraGameState& GameState, const FVector& From) const
@@ -544,15 +559,27 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 	{
 		return;
 	}
+	// A cast for an ally, as an escort's summon, goes to the caster itself, the one ally a kit smoke has
+	// (ADR-035 §9); the bots choose it so too. Any other is aimed at the nearest enemy, and with none in
+	// sight, as after a death, the Vanguard walks back toward the fight.
+	const TOptional<FVeyraBotAbilityProfile> Profile = VeyraBotAbilities::ProfileOf(Entry->Ability, 0.0);
+	const bool bForAlly = Profile.IsSet() && Profile->Targeting == EVeyraBotTargeting::Self && Profile->AllyReach > 0.0;
 	AActor* Target = FindNearestEnemyBody(Controller, GameState, Vanguard.GetActorLocation());
-	if (!Target || CastState->IsBusy())
+	if (!Target && !bForAlly)
+	{
+		WalkBackToTheFight(Controller);
+		return;
+	}
+	// The player's controller only orders its Vanguard; the body is its PlayerState's pawn.
+	AActor* Aim = bForAlly ? Controller.GetVanguard() : Target;
+	if (!Aim || CastState->IsBusy())
 	{
 		return;
 	}
 	FVeyraCastTarget CastTarget;
-	CastTarget.Actor = Target;
+	CastTarget.Actor = Aim;
 	CastTarget.bHasLocation = true;
-	CastTarget.Location = Target->GetActorLocation();
+	CastTarget.Location = Aim->GetActorLocation();
 	KitRejectionsBefore = Controller.GetCastRejectionCount();
 	KitOrderRejectionsBefore = Controller.GetOrderRejectionCount();
 	KitPendingSince = FPlatformTime::Seconds();
