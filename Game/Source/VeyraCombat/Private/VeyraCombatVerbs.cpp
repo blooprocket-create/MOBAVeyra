@@ -17,11 +17,13 @@
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Movement/VeyraMovementComponent.h"
+#include "NavigationSystem.h"
 #include "Records/VeyraCombatRecords.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Tags/VeyraHealthTags.h"
 #include "Tags/VeyraStatusTags.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatLog.h"
 #include "VeyraCombatTagMapping.h"
@@ -920,6 +922,37 @@ bool Blink(UAbilitySystemComponent& Unit, const FVector& Destination, const FVec
 		return false;
 	}
 	return Movement->Blink(Destination, Facing);
+}
+
+bool BlinkBeside(UAbilitySystemComponent& Unit, const AActor& Target, double Distance, FVector& OutLanding, FVector& OutFacing)
+{
+	const AActor* Body = Unit.GetAvatarActor();
+	if (!Body)
+	{
+		return false;
+	}
+	FVector Away = (Body->GetActorLocation() - Target.GetActorLocation()).GetSafeNormal2D();
+	if (Away.IsNearlyZero())
+	{
+		Away = -Target.GetActorForwardVector().GetSafeNormal2D();
+	}
+	const double Gap = Target.GetSimpleCollisionRadius() + Body->GetSimpleCollisionRadius() + Distance;
+	OutLanding = Target.GetActorLocation() + Away * Gap;
+	OutFacing = -Away;
+	return Blink(Unit, OutLanding, OutFacing);
+}
+
+FVector NearestGround(const UWorld& World, const FVector& Point)
+{
+	const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(&World);
+	const ANavigationData* NavData = Navigation ? Navigation->GetDefaultNavDataInstance() : nullptr;
+	FNavLocation Walkable;
+	const double Extent = UVeyraCombatTuningSubsystem::Get().ForcedMovement.NavigationExtent;
+	if (!NavData || !Navigation->ProjectPointToNavigation(Point, Walkable, FVector(Extent), NavData))
+	{
+		return Point;
+	}
+	return FVector(Walkable.Location.X, Walkable.Location.Y, Point.Z);
 }
 
 void SetCastLocksMovement(UAbilitySystemComponent& Unit, bool bLocks)

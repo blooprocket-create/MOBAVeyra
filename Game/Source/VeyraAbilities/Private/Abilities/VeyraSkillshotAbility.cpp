@@ -3,6 +3,7 @@
 #include "Abilities/VeyraSkillshotAbility.h"
 
 #include "VeyraCombatVerbs.h"
+#include "Entities/VeyraPlacedMarker.h"
 #include "Delivery/VeyraVolleySubsystem.h"
 #include "AbilitySystemComponent.h"
 #include "Delivery/VeyraProjectile.h"
@@ -94,13 +95,32 @@ FVeyraChannelPlan UVeyraSkillshotAbility::Deliver(const FVeyraCast& Cast)
 	UVeyraVolleySubsystem* Volleys = World->GetSubsystem<UVeyraVolleySubsystem>();
 	const FVector Direction = Volleys ? Volleys->AimWithin(*Caster, Cast.Ability, Cast.Direction) : Cast.Direction;
 
+	// Its caster's marker throws it too, toward the same point; the two share what they strike (ADR-031 §6).
+	const AVeyraPlacedMarker* Mimic = Skillshot->Mimic.IsEmpty() ? nullptr : AVeyraPlacedMarker::FindStanding(*Caster, Skillshot->Mimic[0].MarkerAbility);
+	TSharedPtr<FVeyraSharedStrikes> Shared;
+	if (Mimic)
+	{
+		Shared = MakeShared<FVeyraSharedStrikes>();
+		Shared->RepeatEffects = VeyraEffectDelivery::Prepare(*Caster, Skillshot->Mimic[0].RepeatEffects, Cast.Rank);
+	}
 	// It sets off from where the caster is at Commit, which a free windup may have moved.
 	const FTransform Launch(Direction.Rotation(), Body->GetActorLocation());
 	if (AVeyraProjectile* Projectile = World->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), Launch))
 	{
 		Projectile->LaunchLine(*Caster, Direction, Skillshot->Projectile, Skillshot->Collision,
 			VeyraEffectDelivery::Prepare(*Caster, Skillshot->Effects, Cast.Rank), VeyraEffectDelivery::Prepare(*Caster, Skillshot->PassThroughEffects, Cast.Rank),
-			Cast.Ability, Cast.CastId, ReturnIfHeld(*Caster, *Skillshot, Cast.Ability));
+			Cast.Ability, Cast.CastId, ReturnIfHeld(*Caster, *Skillshot, Cast.Ability), Shared);
+	}
+	if (Mimic)
+	{
+		const FVector Toward = (Cast.Point - Mimic->GetActorLocation()).GetSafeNormal2D();
+		const FVector Aim = Toward.IsNearlyZero() ? Direction : Toward;
+		const FTransform From(Aim.Rotation(), Mimic->GetActorLocation());
+		if (AVeyraProjectile* Echo = World->SpawnActor<AVeyraProjectile>(AVeyraProjectile::StaticClass(), From))
+		{
+			Echo->LaunchLine(*Caster, Aim, Skillshot->Projectile, Skillshot->Collision, VeyraEffectDelivery::Prepare(*Caster, Skillshot->Effects, Cast.Rank),
+				VeyraEffectDelivery::Prepare(*Caster, Skillshot->PassThroughEffects, Cast.Rank), Cast.Ability, Cast.CastId, nullptr, Shared);
+		}
 	}
 	if (Volleys)
 	{

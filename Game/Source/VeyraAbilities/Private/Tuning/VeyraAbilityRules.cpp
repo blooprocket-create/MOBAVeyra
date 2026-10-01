@@ -503,6 +503,19 @@ namespace
 			CheckCast(Pointer + TEXT("/cast"), Skillshot.Cast);
 			CheckEffects(Pointer + TEXT("/effects"), Skillshot.Effects);
 			CheckEffects(Pointer + TEXT("/passThroughEffects"), Skillshot.PassThroughEffects);
+			if (Skillshot.Mimic.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/mimic"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Skillshot.Mimic.Num(); ++Index)
+			{
+				const FString MimicPointer = FString::Printf(TEXT("%s/mimic/%d"), *Pointer, Index);
+				CheckEffects(MimicPointer + TEXT("/repeatEffects"), Skillshot.Mimic[Index].RepeatEffects);
+				if (!LeavesMarker(Skillshot.Mimic[Index].MarkerAbility))
+				{
+					Problem(MimicPointer + TEXT("/markerAbility"), TEXT("names an ability that leaves a marker: a placement, or a self-buff with one"));
+				}
+			}
 			const FVeyraEffectBundleTuning& PassThrough = Skillshot.PassThroughEffects;
 			const bool bPassesThrough = !PassThrough.Damage.IsEmpty() || !PassThrough.Statuses.IsEmpty() || !PassThrough.Displacement.IsEmpty();
 			if (bPassesThrough && Skillshot.Collision != EVeyraSkillshotCollision::FirstEnemyVanguard)
@@ -598,6 +611,58 @@ namespace
 					Problem(SlotPointer + TEXT("/ability"), FString::Printf(TEXT("names ability \"%s\", which is the stance itself or no archetype defines"),
 						*Slot.Ability.ToString()));
 				}
+			}
+		}
+
+		/** Whether Ability leaves a marker of its caster's: a placement, or a self-buff with one (ADR-031 §4). */
+		bool LeavesMarker(const FVeyraContentId& Ability) const
+		{
+			const FVeyraSelfBuffAbilityTuning* Buff = Tuning.SelfBuff.Find(Ability);
+			return Tuning.Placement.Contains(Ability) || (Buff && !Buff->Marker.IsEmpty());
+		}
+
+		void CheckPlacement(const FString& Pointer, const FVeyraPlacementAbilityTuning& Placement)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Placement.Cast);
+			if (!(Placement.Cast.CastRange > 0.0) || !(Placement.Marker.LifetimeSeconds > 0.0) || Placement.Marker.HitsToDestroy < 0)
+			{
+				Problem(Pointer, TEXT("a placement has a cast range and a marker lifetime above 0, and hits to destroy of at least 0"));
+			}
+			if (!Placement.Marker.BurstZones.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/marker/burstZones"), TEXT("must be empty: a placed marker bursts with nothing"));
+			}
+		}
+
+		void CheckBlink(const FString& Pointer, const FVeyraBlinkAbilityTuning& Blink)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Blink.Cast);
+			CheckEffects(Pointer + TEXT("/effects"), Blink.Effects);
+			const bool bToEnemy = Blink.To != EVeyraBlinkTo::OwnMarker;
+			const bool bToMarker = Blink.To != EVeyraBlinkTo::EnemyUnit;
+			if (bToMarker && (Blink.MarkerAbility.IsEmpty() || !LeavesMarker(Blink.MarkerAbility[0])))
+			{
+				Problem(Pointer + TEXT("/markerAbility"), TEXT("names one ability that leaves a marker, a placement or a self-buff with one, for a blink to it"));
+			}
+			if (!bToMarker && !Blink.MarkerAbility.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/markerAbility"), TEXT("must be empty for a blink only to an enemy"));
+			}
+			if (bToEnemy && !(Blink.Cast.CastRange > 0.0))
+			{
+				Problem(Pointer + TEXT("/cast/castRange"), TEXT("must be above 0 for a blink that may name an enemy"));
+			}
+			if (!bToEnemy && (!Blink.TargetKinds.IsEmpty() || !Blink.Effects.Damage.IsEmpty() || !Blink.Effects.Statuses.IsEmpty()))
+			{
+				Problem(Pointer, TEXT("a blink only to its own marker names no target kinds and lands no effects"));
+			}
+			if (Blink.Swap == EVeyraBlinkSwap::Swap && !bToMarker)
+			{
+				Problem(Pointer + TEXT("/swap"), TEXT("must be None for a blink only to an enemy: there is no marker to swap with"));
+			}
+			if (!(Blink.BesideDistance >= 0.0))
+			{
+				Problem(Pointer + TEXT("/besideDistance"), TEXT("must be at least 0"));
 			}
 		}
 
@@ -778,6 +843,14 @@ namespace
 			{
 				Note(Entry.Key, TEXT("stance"));
 			}
+			for (const TPair<FVeyraContentId, FVeyraPlacementAbilityTuning>& Entry : Tuning.Placement)
+			{
+				Note(Entry.Key, TEXT("placement"));
+			}
+			for (const TPair<FVeyraContentId, FVeyraBlinkAbilityTuning>& Entry : Tuning.Blink)
+			{
+				Note(Entry.Key, TEXT("blink"));
+			}
 		}
 	};
 }
@@ -873,6 +946,14 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	{
 		Checker.CheckStance(TEXT("/stance/") + Entry.Key.ToString(), Entry.Key, Entry.Value);
 	}
+	for (const TPair<FVeyraContentId, FVeyraPlacementAbilityTuning>& Entry : Tuning.Placement)
+	{
+		Checker.CheckPlacement(TEXT("/placement/") + Entry.Key.ToString(), Entry.Value);
+	}
+	for (const TPair<FVeyraContentId, FVeyraBlinkAbilityTuning>& Entry : Tuning.Blink)
+	{
+		Checker.CheckBlink(TEXT("/blink/") + Entry.Key.ToString(), Entry.Value);
+	}
 	Checker.CheckEachIdInOneArchetype();
 	Checker.CheckFluxSpells();
 	return Checker.Problems;
@@ -888,7 +969,7 @@ bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability
 	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)
 		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability)
 		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability) || Tuning.Ride.Contains(Ability) || Tuning.Ambush.Contains(Ability)
-		|| Tuning.Stance.Contains(Ability);
+		|| Tuning.Stance.Contains(Ability) || Tuning.Placement.Contains(Ability) || Tuning.Blink.Contains(Ability);
 }
 
 double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability, int32 Rank)
@@ -942,6 +1023,14 @@ double CooldownSeconds(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentI
 	{
 		Cast = &Stance->Cast;
 	}
+	else if (const FVeyraPlacementAbilityTuning* Placement = Tuning.Placement.Find(Ability))
+	{
+		Cast = &Placement->Cast;
+	}
+	else if (const FVeyraBlinkAbilityTuning* Blink = Tuning.Blink.Find(Ability))
+	{
+		Cast = &Blink->Cast;
+	}
 	return Cast ? ValueAtRank(Cast->CooldownSecondsByRank, Rank) : 0.0;
 }
 
@@ -993,6 +1082,14 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	if (const FVeyraStanceAbilityTuning* Stance = Tuning.Stance.Find(Ability))
 	{
 		Checker.CheckStance(TEXT("/stance/") + Key, Ability, *Stance);
+	}
+	if (const FVeyraPlacementAbilityTuning* Placement = Tuning.Placement.Find(Ability))
+	{
+		Checker.CheckPlacement(TEXT("/placement/") + Key, *Placement);
+	}
+	if (const FVeyraBlinkAbilityTuning* Blink = Tuning.Blink.Find(Ability))
+	{
+		Checker.CheckBlink(TEXT("/blink/") + Key, *Blink);
 	}
 	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;

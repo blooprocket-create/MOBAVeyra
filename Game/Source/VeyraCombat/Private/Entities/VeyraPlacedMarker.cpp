@@ -9,6 +9,7 @@
 #include "Attribution/VeyraAttributionComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "GameFramework/PlayerState.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Life/VeyraLifeComponent.h"
@@ -107,9 +108,36 @@ void AVeyraPlacedMarker::ApplyBody()
 	}
 }
 
+AVeyraPlacedMarker* AVeyraPlacedMarker::FindStanding(const UAbilitySystemComponent& Owner, const FVeyraContentId& Id)
+{
+	for (TActorIterator<AVeyraPlacedMarker> It(Owner.GetWorld()); It; ++It)
+	{
+		if (!It->IsActorBeingDestroyed() && !It->bEnded && It->GetOwnerAbilities() == &Owner && It->GetMarkerId() == Id)
+		{
+			return *It;
+		}
+	}
+	return nullptr;
+}
+
+void AVeyraPlacedMarker::Relocate(const FVector& Where)
+{
+	check(HasAuthority());
+	SetActorLocation(Where);
+	Spot = GetActorLocation();
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlacedMarker, Spot, this);
+}
+
+void AVeyraPlacedMarker::ApplySpot()
+{
+	SetActorLocation(FVector(Spot));
+}
+
 void AVeyraPlacedMarker::Start()
 {
 	ApplyBody();
+	Spot = GetActorLocation();
+	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlacedMarker, Spot, this);
 	// A point of Health a hit, as a ward counts them (ADR-016 §6); one no one can target has none.
 	if (bTargetable)
 	{
@@ -143,6 +171,7 @@ void AVeyraPlacedMarker::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, bTargetable, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, PresentedAs, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, BodySize, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, Spot, Params);
 }
 
 void AVeyraPlacedMarker::OnDeath(const FVeyraDeathEvent& Death)

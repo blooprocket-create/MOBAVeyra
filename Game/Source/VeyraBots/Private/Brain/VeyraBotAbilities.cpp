@@ -84,6 +84,28 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 		Profile.TargetKinds = { EVeyraUnitKind::Vanguard };
 		return Profile;
 	}
+	if (const FVeyraPlacementAbilityTuning* Placement = UVeyraAbilitiesTuningSubsystem::FindPlacement(Ability))
+	{
+		// Placed toward an enemy, within its cast range.
+		Profile.Targeting = EVeyraBotTargeting::Point;
+		Profile.Reach = Placement->Cast.CastRange;
+		Profile.LeadSeconds = Placement->Cast.WindupSeconds;
+		Profile.CostByRank = Placement->Cast.ResourceCostByRank;
+		return Profile;
+	}
+	if (const FVeyraBlinkAbilityTuning* Blink = UVeyraAbilitiesTuningSubsystem::FindBlink(Ability))
+	{
+		// At an enemy unit within its reach; a blink only to its own marker is left to the player.
+		if (Blink->To == EVeyraBlinkTo::OwnMarker)
+		{
+			return {};
+		}
+		Profile.Targeting = EVeyraBotTargeting::Unit;
+		Profile.Reach = Blink->Cast.CastRange;
+		Profile.CostByRank = Blink->Cast.ResourceCostByRank;
+		Profile.TargetKinds = Blink->TargetKinds;
+		return Profile;
+	}
 	if (const FVeyraStanceAbilityTuning* Stance = UVeyraAbilitiesTuningSubsystem::FindStance(Ability))
 	{
 		// Changed in a fight, as its caster closes to its basic attack's reach, so both sets get their turn.

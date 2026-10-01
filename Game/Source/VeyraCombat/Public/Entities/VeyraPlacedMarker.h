@@ -56,6 +56,12 @@ public:
 	/** Server: ends it now, for Reason, and announces it. */
 	void EndMarker(EVeyraMarkerEndReason Reason, UAbilitySystemComponent* Destroyer = nullptr);
 
+	/** Server: Owner's marker of Id that still stands, if any; an owner has at most one of each. */
+	static AVeyraPlacedMarker* FindStanding(const UAbilitySystemComponent& Owner, const FVeyraContentId& Id);
+
+	/** Server: moves it to Where on every machine, as its owner's swap does (ADR-031 §5). */
+	void Relocate(const FVector& Where);
+
 	/** Server: its owner's Ability System Component. */
 	UAbilitySystemComponent* GetOwnerAbilities() const { return OwnerAbilities.Get(); }
 
@@ -75,6 +81,10 @@ private:
 	UFUNCTION()
 	void ApplyBody();
 
+	/** Puts it where Spot says, on a client. */
+	UFUNCTION()
+	void ApplySpot();
+
 	void OnDeath(const FVeyraDeathEvent& Death);
 
 	UPROPERTY(Replicated)
@@ -89,6 +99,10 @@ private:
 	/** Its body's size, its owner's when it presents as its owner. */
 	UPROPERTY(ReplicatedUsing = ApplyBody)
 	FVector2f BodySize = FVector2f::ZeroVector;
+
+	/** Where it stands: it does not move but by Relocate, so this replicates instead of its movement. */
+	UPROPERTY(ReplicatedUsing = ApplySpot)
+	FVector_NetQuantize Spot = FVector::ZeroVector;
 
 	UPROPERTY()
 	TObjectPtr<UCapsuleComponent> Body;

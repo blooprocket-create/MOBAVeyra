@@ -285,6 +285,19 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool Blink(UAbilitySystemComponent& Unit, const FVector& Destination, const FVector& Facing = FVector::ZeroVector);
 
 	/**
+	 * Blinks Unit's body beside Target, Distance from its edge on Unit's side of it, facing it (ADR-030
+	 * §9; ADR-031 §5). OutLanding and OutFacing say where it landed and which way it faces. False if it
+	 * could not blink.
+	 */
+	VEYRACOMBAT_API bool BlinkBeside(UAbilitySystemComponent& Unit, const AActor& Target, double Distance, FVector& OutLanding, FVector& OutFacing);
+
+	/**
+	 * The navigable ground nearest Point within Combat's reach for forced movement, in X and Y, at Point's
+	 * height; Point itself where there is none (ADR-031 §4).
+	 */
+	VEYRACOMBAT_API FVector NearestGround(const UWorld& World, const FVector& Point);
+
+	/**
 	 * Holds Unit's body in place for its own cast, or lets it go (Combat Bible §48). Its orders wait
 	 * meanwhile. Does nothing for a unit with no body.
 	 */

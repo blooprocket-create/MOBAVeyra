@@ -1070,6 +1070,24 @@ struct FVeyraReturnShotTuning
 	double CooldownRefund = 0.0;
 };
 
+/**
+ * A skillshot its caster's standing marker throws too, from where it stands toward the same point
+ * (ADR-031 §6), as False Body's Shadow Needle.
+ */
+USTRUCT()
+struct FVeyraSkillshotMimicTuning
+{
+	GENERATED_BODY()
+
+	/** The ability whose marker throws. */
+	UPROPERTY()
+	FVeyraContentId MarkerAbility;
+
+	/** What a unit both shots strike takes from the second, instead of the full effects. */
+	UPROPERTY()
+	FVeyraEffectBundleTuning RepeatEffects;
+};
+
 /** An ability that fires a line projectile toward the cast's point (ADR-008 §3). Terrain stops it (ADR-008 §9). */
 USTRUCT()
 struct FVeyraSkillshotAbilityTuning
@@ -1103,6 +1121,10 @@ struct FVeyraSkillshotAbilityTuning
 	/** At most one: the shot flies back to its caster from a unit that already held a status of theirs (ADR-030 §8). */
 	UPROPERTY()
 	TArray<FVeyraReturnShotTuning> ReturnIfHeld;
+
+	/** At most one: its caster's marker throws it too (ADR-031 §6). */
+	UPROPERTY()
+	TArray<FVeyraSkillshotMimicTuning> Mimic;
 };
 
 /** Which way a dash goes. */
@@ -1511,6 +1533,81 @@ struct FVeyraRideAbilityTuning
 	TArray<FVeyraContentId> Vehicle;
 };
 
+/** An ability that places one of its caster's markers at a point (ADR-031 §4), as Angeru's False Body. */
+USTRUCT()
+struct FVeyraPlacementAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	/** The marker it places: its lifetime, the hits that destroy it and how it looks. It bursts with nothing. */
+	UPROPERTY()
+	FVeyraBuffMarkerTuning Marker;
+};
+
+/** Where a blink takes its caster (ADR-031 §5). */
+UENUM()
+enum class EVeyraBlinkTo : uint8
+{
+	/** Beside an enemy unit of its target kinds, which takes its effects. */
+	EnemyUnit,
+	/** To its caster's standing marker from its marker ability. */
+	OwnMarker,
+	/** Either, as the cast names the enemy or the marker. */
+	EnemyUnitOrOwnMarker,
+};
+
+/** What becomes of the marker a blink goes to (ADR-031 §5). */
+UENUM()
+enum class EVeyraBlinkSwap : uint8
+{
+	/** It stays where it stands. */
+	None,
+	/** It takes the caster's old place: the two exchange positions, as False Body's swap. */
+	Swap,
+};
+
+/** An ability that blinks its caster beside an enemy unit or to its own marker (ADR-031 §5), as Black Step. */
+USTRUCT()
+struct FVeyraBlinkAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Its range reaches the unit or marker it names; 0 lets a blink to its own marker reach it anywhere. */
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	UPROPERTY()
+	EVeyraBlinkTo To = EVeyraBlinkTo::EnemyUnit;
+
+	/** At most one: the ability whose marker it may go to. */
+	UPROPERTY()
+	TArray<FVeyraContentId> MarkerAbility;
+
+	/** The kinds of enemy unit it may name; any when empty. */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> TargetKinds;
+
+	/** How far from an enemy's edge it lands, on the caster's side of it. */
+	UPROPERTY()
+	double BesideDistance = 0.0;
+
+	UPROPERTY()
+	EVeyraBlinkSwap Swap = EVeyraBlinkSwap::None;
+
+	/** On the enemy it blinks beside. */
+	UPROPERTY()
+	FVeyraEffectBundleTuning Effects;
+};
+
 /** One slot a stance holds, and the ability it holds there (ADR-031 §3). */
 USTRUCT()
 struct FVeyraStanceSlotTuning
@@ -1594,6 +1691,12 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraStanceAbilityTuning> Stance;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraPlacementAbilityTuning> Placement;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraBlinkAbilityTuning> Blink;
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;

@@ -46,9 +46,10 @@ void AVeyraProjectile::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void AVeyraProjectile::LaunchLine(UAbilitySystemComponent& InCaster, const FVector& InDirection, const FVeyraProjectileTuning& Tuning,
 	EVeyraSkillshotCollision InCollision, FVeyraPreparedEffects InEffects, FVeyraPreparedEffects InPassThroughEffects, const FVeyraContentId& InAbility,
-	int32 InCastId, TFunction<void(AActor&)> InBeforeStrike)
+	int32 InCastId, TFunction<void(AActor&)> InBeforeStrike, TSharedPtr<FVeyraSharedStrikes> InShared)
 {
 	BeforeStrike = MoveTemp(InBeforeStrike);
+	Shared = MoveTemp(InShared);
 	Flight = EVeyraProjectileFlight::Line;
 	Direction = InDirection.GetSafeNormal2D();
 	if (Direction.IsNearlyZero())
@@ -181,7 +182,20 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 		{
 			BeforeStrike(Unit);
 		}
-		VeyraEffectDelivery::Apply(Source, Unit, Effects, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
+		// Another projectile of the cast struck it already: it takes the repeat instead (ADR-031 §6).
+		const FVeyraPreparedEffects* Landing = &Effects;
+		if (Shared.IsValid())
+		{
+			if (Shared->Struck.ContainsByPredicate([&Unit](const TWeakObjectPtr<AActor>& Earlier) { return Earlier.Get() == &Unit; }))
+			{
+				Landing = &Shared->RepeatEffects;
+			}
+			else
+			{
+				Shared->Struck.Add(&Unit);
+			}
+		}
+		VeyraEffectDelivery::Apply(Source, Unit, *Landing, CasterFrame(), FVeyraAbilityHitSource{ Ability, CastId });
 		if (Collision != EVeyraSkillshotCollision::Pierce)
 		{
 			Travelled += Hit.Distance;

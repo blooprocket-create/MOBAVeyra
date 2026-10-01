@@ -92,14 +92,7 @@ namespace
 	 */
 	AVeyraPlacedMarker* FindStandingMarker(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
 	{
-		for (TActorIterator<AVeyraPlacedMarker> It(Caster.GetWorld()); It; ++It)
-		{
-			if (!It->IsActorBeingDestroyed() && It->GetOwnerAbilities() == &Caster && It->GetMarkerId() == Ability)
-			{
-				return *It;
-			}
-		}
-		return nullptr;
+		return AVeyraPlacedMarker::FindStanding(Caster, Ability);
 	}
 }
 

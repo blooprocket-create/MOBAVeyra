@@ -7,9 +7,11 @@
 #include "Abilities/VeyraAreaAbility.h"
 #include "Abilities/VeyraAmbushAbility.h"
 #include "Abilities/VeyraAttachAbility.h"
+#include "Abilities/VeyraBlinkAbility.h"
 #include "Abilities/VeyraDashAbility.h"
 #include "Abilities/VeyraRideAbility.h"
 #include "Abilities/VeyraEmpoweredAttackAbility.h"
+#include "Abilities/VeyraPlacementAbility.h"
 #include "Abilities/VeyraSelfBuffAbility.h"
 #include "Abilities/VeyraSkillshotAbility.h"
 #include "Abilities/VeyraStanceAbility.h"
@@ -79,6 +81,14 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindStance(Ability))
 		{
 			return UVeyraStanceAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindPlacement(Ability))
+		{
+			return UVeyraPlacementAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindBlink(Ability))
+		{
+			return UVeyraBlinkAbility::StaticClass();
 		}
 		return nullptr;
 	}

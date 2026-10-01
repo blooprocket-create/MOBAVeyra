@@ -30,6 +30,16 @@ enum class EVeyraProjectileFlight : uint8
  * server's clock, which a pause also stops. It still hits if its caster has died (§9, Guaranteed
  * Resolution).
  */
+/**
+ * What the line projectiles of one cast share (ADR-031 §6): the units any of them struck, and what a
+ * unit struck again takes instead of the full effects.
+ */
+struct FVeyraSharedStrikes
+{
+	TArray<TWeakObjectPtr<AActor>> Struck;
+	FVeyraPreparedEffects RepeatEffects;
+};
+
 UCLASS(NotPlaceable)
 class VEYRAABILITIES_API AVeyraProjectile : public AActor, public IVeyraTeamMember
 {
@@ -46,11 +56,12 @@ public:
 	 * Server only: sends it from the actor's location along Direction, stopped as Collision says.
 	 * Effects land on each unit it hits; PassThroughEffects on each unit a FirstEnemyVanguard
 	 * projectile passes through. BeforeStrike, if given, runs on each unit it hits just before the hit
-	 * lands. Called once, after spawning.
+	 * lands. With Shared, a unit another projectile of the cast struck already takes Shared's repeat
+	 * effects instead (ADR-031 §6). Called once, after spawning.
 	 */
 	void LaunchLine(UAbilitySystemComponent& Caster, const FVector& Direction, const FVeyraProjectileTuning& Tuning, EVeyraSkillshotCollision Collision,
 		FVeyraPreparedEffects Effects, FVeyraPreparedEffects PassThroughEffects, const FVeyraContentId& Ability, int32 CastId,
-		TFunction<void(AActor&)> BeforeStrike = nullptr);
+		TFunction<void(AActor&)> BeforeStrike = nullptr, TSharedPtr<FVeyraSharedStrikes> Shared = nullptr);
 
 	/**
 	 * Server only: sends it from the actor's location after Target, at Speed. When it lands, Effects
@@ -139,6 +150,7 @@ private:
 	FVeyraPreparedEffects PassThroughEffects;
 	TFunction<void(AActor&)> OnLanded;
 	TFunction<void(AActor&)> BeforeStrike;
+	TSharedPtr<FVeyraSharedStrikes> Shared;
 	EVeyraSkillshotCollision Collision = EVeyraSkillshotCollision::FirstEnemy;
 	double Travelled = 0.0;
 
