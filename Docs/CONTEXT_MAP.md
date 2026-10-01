@@ -82,6 +82,7 @@ Open the relevant row only. Every current `Veyra_*_Bible_v*.md` at the top level
   - The weekly free rotation, Co-op vs AI matchmaking and selection, Standard matches with enemy bots, and bot roles that suit their kits are [ADR-039](ADR/ADR-039-weekly-rotation-and-co-op-vs-ai.md); their canon is the Modes Bible §1, §3 and §4.
   - Casting modes, indicators, Show Cast Range, self-cast, Target Vanguards Only and attack-move target preference are [ADR-040](ADR/ADR-040-casting-modes-and-targeting-aids.md); their canon is the Settings & Accessibility Bible §1.2–§1.7 and §3.3.
   - Draft Pick's bans and turns, and trades between locked teammates, are [ADR-041](ADR/ADR-041-draft-pick-and-trades.md); their canon is the Battleground Bible's shared lock-in rules and Draft Pick, and the Modes Bible §1.
+  - The battleground's walls and terrain line of sight are [ADR-042](ADR/ADR-042-map-walls-and-terrain-sight.md); their canon is the Battleground Bible §2 and §7, and the Vision Bible.
   - Reconnecting to the same Vanguard, disconnect autopilot, AFK and absence, personal loss, and remake, surrender and pause votes are [ADR-019](ADR/ADR-019-match-flow.md); their canon is the Match Flow Bible §3–§11.
   - The camera, the minimap, the kill-streak bounty, death-streak devaluation and buyback are [ADR-020](ADR/ADR-020-camera-minimap-kill-economy.md); their canon is the Settings & Accessibility Bible §2 and §3.2 and the Economy & Progression Bible §5.3, §5.4 and §15.
   - Custom lobbies (the host, human and bot slots on either side, invites, launch through champion select), `custom` rules with victory and starting Gold per session, and friends in the client are [ADR-021](ADR/ADR-021-custom-lobbies.md); their canon is the Custom Matches Bible §1–§5 and the Parties & Social Bible. The code:
@@ -141,6 +142,7 @@ Every ADR number is unique, and every record, accepted or proposed, is routed he
 - [ADR-039-weekly-rotation-and-co-op-vs-ai.md](ADR/ADR-039-weekly-rotation-and-co-op-vs-ai.md) — **Proposed** (accepted when the M30 pull requests merge): the weekly free rotation and Co-op vs AI.
 - [ADR-040-casting-modes-and-targeting-aids.md](ADR/ADR-040-casting-modes-and-targeting-aids.md) — **Proposed** (accepted when the M31 pull request merges): casting modes, indicators and targeting aids.
 - [ADR-041-draft-pick-and-trades.md](ADR/ADR-041-draft-pick-and-trades.md) — **Proposed** (accepted when the M32 pull request merges): Draft Pick's bans and turns, and trades.
+- [ADR-042-map-walls-and-terrain-sight.md](ADR/ADR-042-map-walls-and-terrain-sight.md) — **Proposed** (accepted when the M33 pull request merges): map walls as layout terrain, and walls that block sight.
 
 ## Keeping the maps current
 
