@@ -48,11 +48,10 @@ namespace VeyraCoverTests
 			return Spec;
 		}
 
-		static FVeyraRawDamageEvent Shot(bool bProjectile = true)
+		static FVeyraRawDamageEvent Shot()
 		{
 			FVeyraRawDamageEvent Damage;
 			Damage.Components.Add({ EVeyraDamageType::TrueDamage, Hit });
-			Damage.bProjectile = bProjectile;
 			return Damage;
 		}
 
@@ -62,9 +61,15 @@ namespace VeyraCoverTests
 			return VeyraCombat::ApplyStatus(Self, Self, Spec);
 		}
 
+		/** A projectile's hit from Shooter as it stands, or a blow that no projectile carries. */
 		static bool ShootAt(AVeyraVanguardCharacter& Shooter, AActor& Target, bool bProjectile = true)
 		{
-			return VeyraCombat::DealDamage(*Shooter.GetAbilitySystemComponent(), *UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Target), Shot(bProjectile));
+			FVeyraRawDamageEvent Damage = Shot();
+			if (bProjectile)
+			{
+				Damage.ProjectileFrom = Shooter.GetActorLocation();
+			}
+			return VeyraCombat::DealDamage(*Shooter.GetAbilitySystemComponent(), *UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Target), Damage);
 		}
 
 		TEST_METHOD(AShotFromAheadLosesItsShareAndItsHolderTakesSomeOfIt)
@@ -203,13 +208,52 @@ namespace VeyraCoverTests
 			ASSERT_THAT(IsTrue(Hold(Holder, CoverSpec())));
 			UAbilitySystemComponent& Source = *Caster.GetAbilitySystemComponent();
 			FVeyraPreparedEffects Effects;
-			const FVeyraRawDamageEvent Raw = Shot(/*bProjectile*/ false);
+			const FVeyraRawDamageEvent Raw = Shot();
 			Effects.Damage = VeyraCombat::PrepareDamage(Source, Raw);
 			Effects.RawDamage = Raw.Components;
 			AVeyraProjectile& Bolt = Spawner.SpawnActorAt<AVeyraProjectile>(Caster.GetActorLocation(), FRotator::ZeroRotator);
 			Bolt.LaunchHoming(Source, Sheltered, ShotSpeed, ShotRadius, Effects, ArchetypeTestId(TEXT("test_rivet")), 1);
 			Bolt.AdvanceBy((Ahead + Behind) * 2.0 / ShotSpeed);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Sheltered), Hit * (1.0 - Share), Tolerance), FString::Printf(TEXT("lost %g"), World.HealthLost(Sheltered))));
+		}
+
+		TEST_METHOD(AShotKeepsTheWayItCameThoughItsShooterMoves)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Holder = World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Sheltered = World.Spawn(EVeyraTeam::A, FVector(-Behind, 0.0, 0.0));
+			AVeyraVanguardCharacter& Caster = World.Spawn(EVeyraTeam::B, FVector(Ahead, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(Hold(Holder, CoverSpec())));
+			UAbilitySystemComponent& Source = *Caster.GetAbilitySystemComponent();
+			FVeyraPreparedEffects Effects;
+			FVeyraRawDamageEvent Raw;
+			Raw.Components.Add({ EVeyraDamageType::TrueDamage, Hit });
+			Effects.Damage = VeyraCombat::PrepareDamage(Source, Raw);
+			Effects.RawDamage = Raw.Components;
+			AVeyraProjectile& Bolt = Spawner.SpawnActorAt<AVeyraProjectile>(Caster.GetActorLocation(), FRotator::ZeroRotator);
+			Bolt.LaunchHoming(Source, Sheltered, ShotSpeed, ShotRadius, Effects, ArchetypeTestId(TEXT("test_rivet")), 1);
+			// Its shooter steps out of the cover's arc while it flies: it still came from in front.
+			Caster.SetActorLocation(FVector(0.0, Ahead, 0.0));
+			Bolt.AdvanceBy((Ahead + Behind) * 2.0 / ShotSpeed);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Sheltered), Hit * (1.0 - Share), Tolerance), FString::Printf(TEXT("lost %g"), World.HealthLost(Sheltered))));
+		}
+
+		TEST_METHOD(AHolderSheltersWithItsStrongestCoverThatApplies)
+		{
+			// Fixture value: a stronger cover that shelters only Fluxborn.
+			constexpr double Stronger = 0.8;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Holder = World.Spawn(EVeyraTeam::A, FVector::ZeroVector);
+			AVeyraVanguardCharacter& Sheltered = World.Spawn(EVeyraTeam::A, FVector(-Behind, 0.0, 0.0));
+			AVeyraVanguardCharacter& Shooter = World.Spawn(EVeyraTeam::B, FVector(Ahead, 0.0, 0.0));
+			FVeyraStatusSpec ForFluxborn = CoverSpec(Stronger);
+			ForFluxborn.Id = ArchetypeTestId(TEXT("test_fluxborn_bulwark"));
+			ForFluxborn.UnitKinds = { EVeyraUnitKind::Fluxborn };
+			ASSERT_THAT(IsTrue(Hold(Holder, ForFluxborn)));
+			ASSERT_THAT(IsTrue(Hold(Holder, CoverSpec())));
+			ASSERT_THAT(IsTrue(ShootAt(Shooter, Sheltered)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(World.HealthLost(Sheltered), Hit * (1.0 - Share), Tolerance),
+				FString::Printf(TEXT("the weaker cover that shelters a Vanguard answers: lost %g"), World.HealthLost(Sheltered))));
 		}
 
 		TEST_METHOD(ItsRulesRefuseAMalformedCoverAndDesignation)

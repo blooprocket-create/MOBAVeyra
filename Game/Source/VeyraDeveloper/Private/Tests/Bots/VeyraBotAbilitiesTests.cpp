@@ -70,6 +70,16 @@ namespace VeyraBotAbilitiesTests
 			ASSERT_THAT(IsTrue(Lays->Reach >= Mist->Cast.CastRange + Mist->Fog[0].Radius));
 		}
 
+		TEST_METHOD(ASelfBuffReachesAsFarAsItsCastersBasicAttack)
+		{
+			// Fixture value: any basic attack's reach.
+			constexpr double AttackRange = 425.0;
+			const TOptional<FVeyraBotAbilityProfile> Profile = VeyraBotAbilities::ProfileOf(ProfileId(TEXT("relay_full_grid")), AttackRange);
+			ASSERT_THAT(IsTrue(Profile.IsSet()));
+			ASSERT_THAT(IsTrue(Profile->Targeting == EVeyraBotTargeting::Self));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Profile->Reach, AttackRange), FString::Printf(TEXT("reach %g"), Profile->Reach)));
+		}
+
 		TEST_METHOD(ADashReachesAsFarAsItsLandingsAreasReach)
 		{
 			const FVeyraContentId DashId = ProfileId(TEXT("raska_last_exit"));

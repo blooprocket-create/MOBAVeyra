@@ -422,18 +422,18 @@ bool UVeyraStatusComponent::Has(EVeyraStatusKind Kind) const
 	return Ledger.Entries.ContainsByPredicate([Kind](const FVeyraStatusEntry& Entry) { return Entry.Kind == Kind; });
 }
 
-TOptional<FVeyraCoverHold> UVeyraStatusComponent::GetCover() const
+TArray<FVeyraCoverHold> UVeyraStatusComponent::GetCovers() const
 {
-	TOptional<FVeyraCoverHold> Strongest;
+	TArray<FVeyraCoverHold> Covers;
 	for (const FVeyraStatusEntry& Entry : Ledger.Entries)
 	{
 		const FServerEntry* Server = Entry.Kind == EVeyraStatusKind::Cover ? ServerEntries.Find(Entry.Sequence) : nullptr;
-		if (Server && Server->CoverLeft > 0.0 && (!Strongest.IsSet() || Entry.Magnitude > Strongest->Share))
+		if (Server && Server->CoverLeft > 0.0)
 		{
-			Strongest = FVeyraCoverHold{ Entry.Sequence, Entry.Magnitude, Server->ArcDegrees, Server->CoverReach, Server->CoverLeft, Server->CoverTransferShare, Server->UnitKinds };
+			Covers.Add(FVeyraCoverHold{ Entry.Sequence, Entry.Magnitude, Server->ArcDegrees, Server->CoverReach, Server->CoverLeft, Server->CoverTransferShare, Server->UnitKinds });
 		}
 	}
-	return Strongest;
+	return Covers;
 }
 
 double UVeyraStatusComponent::SpendCover(int32 Sequence, double Amount)

@@ -169,6 +169,28 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsTrue(Passive->GetWork() == 0.0, TEXT("what it held went with its companion")));
 		}
 
+		TEST_METHOD(AHitThatDealsNothingEarnsNoWork)
+		{
+			ASSERT_THAT(IsTrue(Deploy()));
+			Hit(*Owner, *Enemy, 0.0);
+			ASSERT_THAT(IsTrue(Passive->GetWork() == 0.0, TEXT("only damage dealt earns Work")));
+		}
+
+		TEST_METHOD(ARedeployedCompanionStartsWithoutTheOldWork)
+		{
+			using namespace AllHandsFixture;
+			ASSERT_THAT(IsTrue(Deploy()));
+			ASSERT_THAT(IsTrue(Hit(*Owner, *Enemy, Graze)));
+			ASSERT_THAT(IsTrue(Hit(*Ally, *Enemy, Graze)));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Passive->GetWork(), Work * 2.0)));
+			ASSERT_THAT(IsTrue(Hit(*Enemy, *Picket(), Lethal)));
+			ASSERT_THAT(IsTrue(Deploy()));
+			Wait(Cooldown);
+			ASSERT_THAT(IsTrue(Hit(*Owner, *Enemy, Graze)));
+			ASSERT_THAT(AreEqual(0, Passive->GetRepairCount(), TEXT("the new companion's Work starts afresh")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Passive->GetWork(), Work)));
+		}
+
 		TEST_METHOD(ItRepairsNoFurtherThanFull)
 		{
 			using namespace AllHandsFixture;

@@ -109,8 +109,8 @@ public:
 	 */
 	double GetDirectionalRetained(const FVector& Facing, const FVector& ToSource) const;
 
-	/** Server: the strongest Cover the unit holds with capacity left, if any (ADR-037 §4). */
-	TOptional<FVeyraCoverHold> GetCover() const;
+	/** Server: every Cover the unit holds with capacity left (ADR-037 §4). */
+	TArray<FVeyraCoverHold> GetCovers() const;
 
 	/** Server: spends up to Amount of cover Sequence's capacity; returns what it spent. */
 	double SpendCover(int32 Sequence, double Amount);

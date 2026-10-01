@@ -178,7 +178,10 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 	}
 	if (const FVeyraSelfBuffAbilityTuning* SelfBuff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability))
 	{
+		// Cast to open a fight, or to slip one, as a foe closes to its caster's basic attack reach, as a
+		// stance is.
 		Profile.Targeting = EVeyraBotTargeting::Self;
+		Profile.Reach = AttackRange;
 		Profile.CostByRank = SelfBuff->Cast.ResourceCostByRank;
 		Profile.AllyReach = SelfBuff->Recipient == EVeyraBuffRecipient::CasterOrAlly ? SelfBuff->Cast.CastRange : 0.0;
 		return Profile;
