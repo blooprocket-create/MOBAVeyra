@@ -196,6 +196,12 @@ Razorwheel is the explicit example proving that Tier 2 may contain a simple Acti
 **Recipe:** Iron Grip + Keensteel + recipe  
 **Stats:** Physical Power + Critical Strike Chance.
 
+### Veil Needle
+**Recipe:** Iron Grip + recipe  
+**Stats:** Physical Power + flat Physical Penetration.
+
+Veil Needle draws its name from the thin throwing needles used by the Veil House tradition of the Reed Provinces. It is a general physical burst/assassin Assembly rather than equipment exclusive to Angeru. It has no Active or Attunement.
+
 ### Killstring Assembly
 **Recipe:** Quickcoil + Keensteel + recipe  
 **Stats:** Attack Speed + Critical Strike Chance.
