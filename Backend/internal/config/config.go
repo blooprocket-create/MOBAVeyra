@@ -39,10 +39,10 @@ const (
 	MaxStarters = 5
 )
 
-// Rotation stand-ins the catalog accepts (ADR-010 §6).
+// RotationWeekSeconds is the length of a rotation week the catalog accepts
+// at least: one second, so a week always moves on.
 const (
-	StandInAllReleased = "allReleased"
-	StandInNone        = "none"
+	MinRotationWeekSeconds = 1
 )
 
 // DatabaseURLEnv names the environment variable holding the Postgres URL.
@@ -52,6 +52,14 @@ const DatabaseURLEnv = "VEYRA_DATABASE_URL"
 const (
 	// MatchmakingCasualSelect: a matchmaker, then Match Found and Casual Select.
 	MatchmakingCasualSelect = "casualSelect"
+	// The Play page's categories a mode is listed under (ADR-039 §6).
+	CategoryRanked = "ranked"
+	CategoryCasual = "casual"
+	CategoryAI     = "ai"
+
+	// MatchmakingCoop: a matchmaker for one side of humans against an enemy AI
+	// team, then Match Found and a Casual Select with the bots seated (ADR-039 §2).
+	MatchmakingCoop = "coop"
 	// MatchmakingNotImplemented: the mode may be selected but not queued yet.
 	MatchmakingNotImplemented = "notImplemented"
 )
@@ -106,9 +114,15 @@ type Vanguards struct {
 	Starters []string
 	// RotationSlots is how many Vanguards the weekly rotation offers.
 	RotationSlots int
-	// RotationStandIn is what the rotation offers until the weekly rotation
-	// exists: StandInAllReleased or StandInNone.
-	RotationStandIn string
+	// RotationEpoch begins the first rotation week, and each week lasts
+	// RotationWeek (ADR-039 §1).
+	RotationEpoch time.Time
+	RotationWeek  time.Duration
+	// RotationSeed makes every week's draw reproducible.
+	RotationSeed string
+	// RotationReleases maps a Vanguard to its release time; one absent was
+	// released before the epoch.
+	RotationReleases map[string]time.Time
 }
 
 // FluxSpells configures the Flux Spells a player may choose in champion select
@@ -278,11 +292,20 @@ type Party struct {
 
 // Mode is one matchmade mode's validated settings (Modes & Access Bible §1).
 type Mode struct {
-	ID                  string
-	Enabled             bool
+	ID      string
+	Enabled bool
+	// Category is the Play page's group for the mode: CategoryRanked,
+	// CategoryCasual or CategoryAI. A co-op mode is always CategoryAI.
+	Category            string
 	HumanPlayersPerTeam int
-	// Matchmaking is MatchmakingCasualSelect or MatchmakingNotImplemented.
+	// Matchmaking is MatchmakingCasualSelect, MatchmakingCoop or
+	// MatchmakingNotImplemented.
 	Matchmaking string
+	// AIPerTeam and AIDifficulty are a co-op mode's enemy AI team: how many
+	// bots, and how they play ("beginner" or "intermediate"). Zero and empty for
+	// any other mode.
+	AIPerTeam    int
+	AIDifficulty string
 }
 
 // Party privacy values accepted in config.
@@ -390,16 +413,22 @@ type fileConfig struct {
 	} `json:"party"`
 	Modes []struct {
 		ID                  *string `json:"id"`
+		Category            *string `json:"category"`
 		Enabled             *bool   `json:"enabled"`
 		HumanPlayersPerTeam *int    `json:"humanPlayersPerTeam"`
 		Matchmaking         *string `json:"matchmaking"`
+		AIPerTeam           *int    `json:"aiPerTeam"`
+		AIDifficulty        *string `json:"aiDifficulty"`
 	} `json:"modes"`
 	Vanguards *struct {
 		Released []string `json:"released"`
 		Starters []string `json:"starters"`
 		Rotation *struct {
-			Slots   *int    `json:"slots"`
-			StandIn *string `json:"standIn"`
+			Slots       *int              `json:"slots"`
+			Epoch       *string           `json:"epoch"`
+			WeekSeconds *int64            `json:"weekSeconds"`
+			Seed        *string           `json:"seed"`
+			Releases    map[string]string `json:"releases"`
 		} `json:"rotation"`
 	} `json:"vanguards"`
 	FluxSpells *struct {
@@ -700,10 +729,44 @@ func Parse(raw []byte) (Config, error) {
 			missing(field + ".matchmaking")
 			continue
 		}
-		if *m.Matchmaking != MatchmakingCasualSelect && *m.Matchmaking != MatchmakingNotImplemented {
-			problems = append(problems, field+".matchmaking must be \""+MatchmakingCasualSelect+"\" or \""+MatchmakingNotImplemented+"\"")
+		if *m.Matchmaking != MatchmakingCasualSelect && *m.Matchmaking != MatchmakingCoop && *m.Matchmaking != MatchmakingNotImplemented {
+			problems = append(problems, field+".matchmaking must be \""+MatchmakingCasualSelect+"\", \""+MatchmakingCoop+"\" or \""+MatchmakingNotImplemented+"\"")
 		}
-		c.Modes = append(c.Modes, Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam, Matchmaking: *m.Matchmaking})
+		switch {
+		case m.Category == nil:
+			missing(field + ".category")
+		case *m.Category != CategoryRanked && *m.Category != CategoryCasual && *m.Category != CategoryAI:
+			problems = append(problems, field+".category must be \""+CategoryRanked+"\", \""+CategoryCasual+"\" or \""+CategoryAI+"\"")
+		case (*m.Matchmaking == MatchmakingCoop) != (*m.Category == CategoryAI) && *m.Matchmaking != MatchmakingNotImplemented:
+			// Humans against an enemy AI team are the AI category, and only they are.
+			problems = append(problems, field+".category must be \""+CategoryAI+"\" exactly when its matchmaking is \""+MatchmakingCoop+"\"")
+		}
+		mode := Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam, Matchmaking: *m.Matchmaking}
+		if m.Category != nil {
+			mode.Category = *m.Category
+		}
+		// A co-op mode's enemy AI team, and only a co-op mode's (ADR-039 §2).
+		if *m.Matchmaking == MatchmakingCoop {
+			switch {
+			case m.AIPerTeam == nil:
+				missing(field + ".aiPerTeam")
+			case *m.AIPerTeam < 1:
+				problems = append(problems, field+".aiPerTeam must be at least 1")
+			default:
+				mode.AIPerTeam = *m.AIPerTeam
+			}
+			switch {
+			case m.AIDifficulty == nil:
+				missing(field + ".aiDifficulty")
+			case *m.AIDifficulty != "beginner" && *m.AIDifficulty != "intermediate":
+				problems = append(problems, field+".aiDifficulty must be \"beginner\" or \"intermediate\"")
+			default:
+				mode.AIDifficulty = *m.AIDifficulty
+			}
+		} else if m.AIPerTeam != nil || m.AIDifficulty != nil {
+			problems = append(problems, field+" has an AI team, which only a co-op mode has")
+		}
+		c.Modes = append(c.Modes, mode)
 	}
 
 	if f.Vanguards == nil {
@@ -746,13 +809,45 @@ func Parse(raw []byte) (Config, error) {
 			default:
 				c.Vanguards.RotationSlots = *f.Vanguards.Rotation.Slots
 			}
+			r := f.Vanguards.Rotation
 			switch {
-			case f.Vanguards.Rotation.StandIn == nil:
-				missing("vanguards.rotation.standIn")
-			case *f.Vanguards.Rotation.StandIn != StandInAllReleased && *f.Vanguards.Rotation.StandIn != StandInNone:
-				problems = append(problems, "vanguards.rotation.standIn must be \""+StandInAllReleased+"\" or \""+StandInNone+"\"")
+			case r.Epoch == nil:
+				missing("vanguards.rotation.epoch")
 			default:
-				c.Vanguards.RotationStandIn = *f.Vanguards.Rotation.StandIn
+				epoch, err := time.Parse(time.RFC3339, *r.Epoch)
+				if err != nil {
+					problems = append(problems, "vanguards.rotation.epoch must be an RFC 3339 time")
+				}
+				c.Vanguards.RotationEpoch = epoch
+			}
+			switch {
+			case r.WeekSeconds == nil:
+				missing("vanguards.rotation.weekSeconds")
+			case *r.WeekSeconds < MinRotationWeekSeconds:
+				problems = append(problems, fmt.Sprintf("vanguards.rotation.weekSeconds must be at least %d", MinRotationWeekSeconds))
+			default:
+				c.Vanguards.RotationWeek = time.Duration(*r.WeekSeconds) * time.Second
+			}
+			switch {
+			case r.Seed == nil || *r.Seed == "":
+				missing("vanguards.rotation.seed")
+			default:
+				c.Vanguards.RotationSeed = *r.Seed
+			}
+			if r.Releases == nil {
+				missing("vanguards.rotation.releases")
+			}
+			c.Vanguards.RotationReleases = map[string]time.Time{}
+			for id, at := range r.Releases {
+				released, err := time.Parse(time.RFC3339, at)
+				switch {
+				case !slices.Contains(c.Vanguards.Released, id):
+					problems = append(problems, "vanguards.rotation.releases names "+id+", which is not in vanguards.released")
+				case err != nil:
+					problems = append(problems, "vanguards.rotation.releases."+id+" must be an RFC 3339 time")
+				default:
+					c.Vanguards.RotationReleases[id] = released
+				}
 			}
 		}
 	}

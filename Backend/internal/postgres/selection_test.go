@@ -23,7 +23,7 @@ func newSelectionFixture(t *testing.T) (*selection.Service, *matchFixture, strin
 	f := newMatchFixture(t, "DevOne")
 	ctx := context.Background()
 	c := catalog.New(catalog.Settings{Released: []string{"cairn", "qazharr", "oriel", "bryn"}, Starters: []string{"cairn", "qazharr", "oriel"},
-		RotationSlots: 12, StandIn: catalog.StandInNone})
+		Rotation: catalog.RotationSettings{Slots: 12, Epoch: time.Date(2026, 9, 28, 0, 0, 0, 0, time.UTC), Week: 7 * 24 * time.Hour, Seed: "test"}}, time.Now)
 	accounts := account.NewService(f.store.Account(), c, func() time.Time { return f.now })
 	if _, err := accounts.ChooseStarter(ctx, f.ids["DevOne"], "oriel"); err != nil {
 		t.Fatal(err)

@@ -149,8 +149,8 @@ namespace VeyraClientFlowTests
 			SelectId, State, *Quoted(CancelReason));
 	}
 
-	inline const TCHAR* const ModesBody = TEXT("{\"modes\":[{\"id\":\"casual_select\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"},")
-										  TEXT("{\"id\":\"draft_pick\",\"enabled\":true,\"humanPlayersPerTeam\":5,\"matchmaking\":\"notImplemented\"}]}");
+	inline const TCHAR* const ModesBody = TEXT("{\"modes\":[{\"id\":\"casual_select\",\"category\":\"casual\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"},")
+										  TEXT("{\"id\":\"draft_pick\",\"category\":\"casual\",\"enabled\":true,\"humanPlayersPerTeam\":5,\"matchmaking\":\"notImplemented\"}]}");
 
 	inline const TCHAR* const NoParty = TEXT("{\"party\":null}");
 

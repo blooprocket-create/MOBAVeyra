@@ -104,7 +104,7 @@ func newFixture(t *testing.T) *fixture {
 		BackendURL:        "http://backend:8080",
 	}, clock)
 	vanguards := catalog.New(catalog.Settings{Released: []string{"cairn", "qazharr", "oriel", "bryn"}, Starters: []string{"cairn", "qazharr", "oriel"},
-		RotationSlots: 12, StandIn: catalog.StandInNone})
+		Rotation: catalog.RotationSettings{Slots: 12, Epoch: time.Date(2026, 9, 28, 0, 0, 0, 0, time.UTC), Week: 7 * 24 * time.Hour, Seed: "test"}}, time.Now)
 	f.accounts = account.NewService(account.NewMemStore(), vanguards, clock)
 	parties := PartiesFunc(func(_ context.Context, id string) (bool, error) { return f.queued[id], nil })
 	f.svc = NewService(f.store, f.accounts, names, f.matches, parties, f.blocks,

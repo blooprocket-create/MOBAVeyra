@@ -196,7 +196,7 @@ namespace VeyraShellTests
 			Snapshot.MatchFound.Total = 2;
 			FVeyraMatchFoundModel Model = VeyraShellModels::DescribeMatchFound(Snapshot, 14.2, true);
 			ASSERT_THAT(AreEqual(Model.Title.ToString(), FString(TEXT("Match Found"))));
-			ASSERT_THAT(AreEqual(Model.Mode.ToString(), FString(TEXT("Casual Select"))));
+			ASSERT_THAT(AreEqual(Model.Mode.ToString(), FString(TEXT("Blind Pick"))));
 			ASSERT_THAT(AreEqual(Model.Countdown.ToString(), FString(TEXT("0:15"))));
 			ASSERT_THAT(AreEqual(Model.Progress.ToString(), FString(TEXT("1 of 2 accepted"))));
 			ASSERT_THAT(IsTrue(Model.Phase.ToString().StartsWith(TEXT("Accept to play")) && Model.bCanAnswer));
@@ -239,10 +239,19 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(!Cards[1].bAvailable && !Cards[1].bSelected));
 			ASSERT_THAT(AreEqual(Cards[1].Availability.ToString(), FString(TEXT("Not yet available"))));
 
+			// A co-op queue plays its humans against AI, and takes its name from the text table (ADR-039 §6).
+			Snapshot.Modes.Add(VeyraBackendProtocol::FModeInfo{ TEXT("coop_beginner"), true, 1, true, true });
+			const TArray<FVeyraModeCardModel> WithCoop = VeyraShellModels::DescribeModes(Snapshot);
+			ASSERT_THAT(AreEqual(WithCoop.Num(), 3));
+			ASSERT_THAT(IsTrue(WithCoop[2].bAvailable && WithCoop[2].Availability.IsEmpty()));
+			ASSERT_THAT(AreEqual(WithCoop[2].Format.ToString(), FString(TEXT("1 vs AI"))));
+			ASSERT_THAT(AreEqual(WithCoop[2].Name.ToString(), FString(TEXT("Co-op vs AI: Beginner"))));
+			Snapshot.Modes.Pop();
+
 			// The leader of a party that is not Ready yet.
 			FVeyraPartyModel Model = VeyraShellModels::DescribeParty(Snapshot, true, false, false);
 			ASSERT_THAT(IsTrue(Model.bShown && !Model.bQueued));
-			ASSERT_THAT(AreEqual(Model.Mode.ToString(), FString(TEXT("Mode: Casual Select"))));
+			ASSERT_THAT(AreEqual(Model.Mode.ToString(), FString(TEXT("Mode: Blind Pick"))));
 			ASSERT_THAT(AreEqual(Model.Members[0].ToString(), FString(TEXT("DevOne (you, leader): Not Ready"))));
 			ASSERT_THAT(AreEqual(Model.Status.ToString(), FString(TEXT("Find Match opens once everyone is Ready."))));
 			ASSERT_THAT(IsTrue(Model.bReadyTarget && Model.bCanReady));
@@ -651,7 +660,7 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/me/matches"), 200,
 				HistoryBody({ HistoryEntry(MatchId, TEXT("win")), HistoryEntry(OlderMatchId, TEXT("no_contest")) }, TEXT("\"more\"")))));
 			FString Text = Screen->DescribeText();
-			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Casual Select")) && Text.Contains(TEXT("Victory")) && Text.Contains(TEXT("No Contest")) && Text.Contains(TEXT("25:11")), Text));
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Blind Pick")) && Text.Contains(TEXT("Victory")) && Text.Contains(TEXT("No Contest")) && Text.Contains(TEXT("25:11")), Text));
 			ASSERT_THAT(IsNotNull(Button(TEXT("Load More"))));
 			ASSERT_THAT(IsTrue(Button(TEXT("All Vanguards")) && Button(TEXT("Oriel")) && Button(TEXT("All Modes")) && Button(TEXT("Defeat")), TEXT("each filter's choices")));
 			ASSERT_THAT(IsNotNull(Button(TEXT("Custom Practice")), TEXT("a mode with saved matches, though none is on the pages read")));
@@ -715,13 +724,18 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("GET"), TEXT("/v1/party"), 200, NoParty)));
 			ShowScreen();
 			Button(TEXT("Play"))->Press();
-			// Mode cards: one to choose, one not yet available; no party panel before a mode is chosen.
-			ASSERT_THAT(IsTrue(Button(TEXT("Casual Select"))->GetIsEnabled()));
+			// Mode cards: one to choose, one not yet available; no party panel before a mode is chosen. They show
+			// in their categories, and Customs holds Practice and Custom Game (ADR-039 §6).
+			ASSERT_THAT(IsTrue(Button(TEXT("Blind Pick"))->GetIsEnabled()));
+			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Casual")) && Screen->DescribeText().Contains(TEXT("Customs")), Screen->DescribeText()));
+			ASSERT_THAT(IsFalse(Screen->DescribeText().Contains(TEXT("Ranked")), TEXT("no ranked mode, no Ranked heading")));
+			ASSERT_THAT(IsNotNull(Button(TEXT("Practice"))));
+			ASSERT_THAT(IsNotNull(Button(TEXT("Custom Game"))));
 			ASSERT_THAT(IsFalse(Button(TEXT("Draft Pick"))->GetIsEnabled()));
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("Not yet available"))));
 			ASSERT_THAT(IsNull(Button(TEXT("Ready"))));
 
-			Button(TEXT("Casual Select"))->Press();
+			Button(TEXT("Blind Pick"))->Press();
 			ASSERT_THAT(IsTrue(Rig.Backend.Answer(TEXT("PUT"), TEXT("/v1/party/mode"), 200, PartyBody(TEXT("idle"), false))));
 			ASSERT_THAT(IsTrue(Screen->DescribeText().Contains(TEXT("DevOne (you, leader): Not Ready")), Screen->DescribeText()));
 			ASSERT_THAT(IsFalse(Button(TEXT("Find Match"))->GetIsEnabled(), TEXT("everyone must be Ready")));
@@ -759,7 +773,7 @@ namespace VeyraShellTests
 			ShowScreen();
 			const FString Text = Screen->DescribeText();
 			ASSERT_THAT(IsTrue(Text.Contains(TEXT("Your Team")) && Text.Contains(TEXT("Enemy Team")) && Text.Contains(TEXT("DevTwo")), Text));
-			ASSERT_THAT(IsTrue(Text.Contains(TEXT("CASUAL")), TEXT("the mode, in the corner")));
+			ASSERT_THAT(IsTrue(Text.Contains(TEXT("BLIND PICK")), TEXT("the mode, in the corner, by its text-table name")));
 			ASSERT_THAT(IsTrue(Button(TEXT("Leave"))->GetIsEnabled()));
 			Button(TEXT("Leave"))->Press();
 			ASSERT_THAT(IsNotNull(Rig.Backend.Find(TEXT("POST"), TEXT("/v1/me/select/leave"))));

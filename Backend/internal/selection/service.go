@@ -205,6 +205,21 @@ func (s *Service) StartPractice(ctx context.Context, accountID string) (Session,
 // available Vanguards, with picks unique across both teams. Matchmaking calls
 // it inside its own transaction, which this joins.
 func (s *Service) OpenCasual(ctx context.Context, mode string, seats []CasualSeat) (string, error) {
+	return s.openCasual(ctx, mode, seats, nil)
+}
+
+// OpenCoop opens the select of a co-op match everyone accepted (ADR-039 §3): a
+// Casual Select whose bots, the enemy AI team, are seated from the start. The
+// humans pick as in Casual Select, and may play what an enemy bot plays.
+// Matchmaking calls it inside its own transaction, which this joins.
+func (s *Service) OpenCoop(ctx context.Context, mode string, seats []CasualSeat, bots []match.Bot) (string, error) {
+	if len(bots) == 0 {
+		return "", ErrNoOpponents
+	}
+	return s.openCasual(ctx, mode, seats, bots)
+}
+
+func (s *Service) openCasual(ctx context.Context, mode string, seats []CasualSeat, bots []match.Bot) (string, error) {
 	ids := make([]string, len(seats))
 	for i, seat := range seats {
 		ids[i] = seat.AccountID
@@ -222,7 +237,8 @@ func (s *Service) OpenCasual(ctx context.Context, mode string, seats []CasualSea
 		return "", err
 	}
 	now := s.now()
-	session := Session{ID: newID(), Kind: KindCasual, Mode: mode, State: Picking, CreatedAt: now, Deadline: now.Add(s.settings.Casual.PickDuration)}
+	session := Session{ID: newID(), Kind: KindCasual, Mode: mode, State: Picking, CreatedAt: now, Deadline: now.Add(s.settings.Casual.PickDuration),
+		Bots: append([]match.Bot(nil), bots...)}
 	for _, seat := range seats {
 		session.Seats = append(session.Seats, Seat{AccountID: seat.AccountID, DisplayName: names[seat.AccountID], Side: seat.Side, LastSeen: now})
 	}

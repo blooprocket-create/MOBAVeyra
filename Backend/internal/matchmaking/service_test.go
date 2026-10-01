@@ -18,7 +18,8 @@ var ctx = context.Background()
 const (
 	oneVsOne    = "casual_select"
 	twoVsTwo    = "draft_pick"
-	unmatched   = "coop_beginner"
+	unmatched   = "ranked"
+	versusAI    = "coop_beginner"
 	acceptFor   = 15 * time.Second
 	partyLimit  = 5
 	inviteLimit = time.Minute
@@ -93,11 +94,12 @@ func newFixture(t *testing.T) *fixture {
 		oneVsOne:  {ID: oneVsOne, Enabled: true, HumanPlayersPerTeam: 1, Matchmade: true},
 		twoVsTwo:  {ID: twoVsTwo, Enabled: true, HumanPlayersPerTeam: 2, Matchmade: true},
 		unmatched: {ID: unmatched, Enabled: true, HumanPlayersPerTeam: 5},
+		versusAI:  {ID: versusAI, Enabled: true, HumanPlayersPerTeam: 2, Matchmade: true},
 	}}
 	f.parties = party.NewService(party.NewMemStore(), f.social, party.Settings{Rules: rules, InviteLifetime: inviteLimit, DefaultPrivacy: party.Private}, clock)
 	f.parties.SetActivity(f.playing)
 	f.svc = NewService(f.store, f.parties, f.social, f.playing, f.selects, Settings{
-		Modes:          []Mode{{ID: oneVsOne, TeamSize: 1}, {ID: twoVsTwo, TeamSize: 2}},
+		Modes:          []Mode{{ID: oneVsOne, TeamSize: 1}, {ID: twoVsTwo, TeamSize: 2}, {ID: versusAI, TeamSize: 2, VersusAI: true}},
 		AcceptDuration: acceptFor,
 		SearchLimit:    searchSteps,
 	}, clock, slog.New(slog.NewTextHandler(io.Discard, nil)))
@@ -446,5 +448,28 @@ func TestOnlyMatchmadeModesQueue(t *testing.T) {
 	}
 	if _, err := f.parties.StartQueue(ctx, "a"); !errors.Is(err, party.ErrModeUnavailable) {
 		t.Fatalf("a mode without a matchmaker cannot queue: %v", err)
+	}
+}
+
+func TestAgainstAITheHumansFillOneSideAndOnlyTheyAccept(t *testing.T) {
+	f := newFixture(t)
+	f.queue(versusAI, "a")
+	if err := f.svc.MatchOnce(ctx); err != nil {
+		t.Fatalf("MatchOnce: %v", err)
+	}
+	if _, ok, _ := f.svc.Current(ctx, "a"); ok {
+		t.Fatal("one human of two waits: matchmaking never fills a human side with AI")
+	}
+	f.queue(versusAI, "b")
+	found := f.match()
+	if len(found.Seats) != 2 || found.Seats[0].Side != match.SideA || found.Seats[1].Side != match.SideA {
+		t.Fatalf("both humans on side A: %+v", found.Seats)
+	}
+	if _, err := f.svc.Accept(ctx, "a"); err != nil {
+		t.Fatalf("Accept a: %v", err)
+	}
+	found, err := f.svc.Accept(ctx, "b")
+	if err != nil || found.State != Accepted || len(f.selects.opened) != 1 || len(f.selects.opened[0]) != 2 {
+		t.Fatalf("both humans accepted, and the select opened for them alone: %+v %v %+v", found, err, f.selects.opened)
 	}
 }

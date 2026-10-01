@@ -20,7 +20,7 @@ func TestACustomSelectAndItsMatchInPostgres(t *testing.T) {
 	f := newMatchFixture(t, "DevOne", "DevTwo")
 	ctx := context.Background()
 	c := catalog.New(catalog.Settings{Released: []string{"cairn", "qazharr", "oriel", "bryn"}, Starters: []string{"cairn", "qazharr", "oriel"},
-		RotationSlots: 12, StandIn: catalog.StandInNone})
+		Rotation: catalog.RotationSettings{Slots: 12, Epoch: time.Date(2026, 9, 28, 0, 0, 0, 0, time.UTC), Week: 7 * 24 * time.Hour, Seed: "test"}}, time.Now)
 	accounts := account.NewService(f.store.Account(), c, func() time.Time { return f.now })
 	one, two := f.ids["DevOne"], f.ids["DevTwo"]
 	for id, starter := range map[string]string{one: "oriel", two: "oriel"} {

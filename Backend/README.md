@@ -62,7 +62,7 @@ Every route below needs `Authorization: Bearer <game session token>`. Accounts a
 | `DELETE /v1/friends/requests/{accountId}` | — | withdraw your request |
 | `DELETE /v1/friends/{accountId}` | — | unfriend |
 | `GET /v1/blocks` · `PUT` / `DELETE /v1/blocks/{accountId}` | — | list, block, unblock |
-| `GET /v1/modes` | — | modes: whether each is enabled, its `humanPlayersPerTeam`, and its `matchmaking`, `casualSelect` or `notImplemented` (not yet available) |
+| `GET /v1/modes` | — | modes: whether each is enabled, its Play-page `category` (`ranked`, `casual` or `ai`; ADR-039 §6), its `humanPlayersPerTeam`, and its `matchmaking`, `casualSelect`, `coop` (humans against an enemy AI team) or `notImplemented` (not yet available) |
 | `GET /v1/party` | — | your party, or `{"party": null}`; its `status` is `idle`, `queued`, `found` (Match Found) or `selecting`, and `queuedSeconds` how long it has been in matchmaking |
 | `PUT /v1/party/mode` | `{"mode"}` | leader picks a mode; creates a one-person party if you have none |
 | `PUT /v1/party/privacy` | `{"privacy": "public"\|"private"}` | leader only |
@@ -81,7 +81,7 @@ Rules the code enforces, from the Parties & Social Bible:
 - Parties hold one to `party.maxSize` players (config refuses more than five); capacity is checked when an invite is **accepted**, not when it's sent, and an invite never reserves a slot.
 - Any member can invite a friend. Only the leader picks the mode, privacy, removes members, transfers leadership and starts or cancels the queue.
 - Adding a member or changing the mode resets everyone's Ready. Find Match needs a mode, everyone Ready, and a party no bigger than the mode's team.
-- Find Match locks the party: nobody can join, accept an invite into it, send an invite from it, change Ready or mode, or take over as leader, until matchmaking lets it go. Anyone leaving, being removed or blocked out takes the party out of matchmaking and resets Ready; a match found or champion select it was in is abandoned or cancelled. Only a mode whose `matchmaking` is `casualSelect` can be queued.
+- Find Match locks the party: nobody can join, accept an invite into it, send an invite from it, change Ready or mode, or take over as leader, until matchmaking lets it go. Anyone leaving, being removed or blocked out takes the party out of matchmaking and resets Ready; a match found or champion select it was in is abandoned or cancelled. Only a mode whose `matchmaking` is `casualSelect` or `coop` can be queued.
 - Accepting an invite while in another party moves you, unless your current party is queued.
 - Blocks work in both directions: no friend requests, invites or shared party. Blocking ends the friendship and withdraws pending requests and every invite that would put the two players in one party, whoever sent it. The block and its party clean-up commit in one transaction.
 - Every change to a party runs in a database transaction with the party row locked, and each account can be in only one party (enforced by the database).
@@ -153,7 +153,7 @@ Rules the code enforces:
 - Everyone must accept within `matchFound.acceptDuration`. A decline, or the timer ending, abandons the match: a party with a player who declined, or had not accepted in time, leaves the queue Not Ready; the others return to it in their places. There is no decline penalty (§3).
 - When everyone accepts, a Casual Select opens with each player on their side.
 
-**Provisional** (ADR-010 §11): the grouping rule (oldest first, parties never split) where canon leaves the algorithm open; accepters keeping their queue time; `matchFound.acceptDuration` `15s`; and a local Casual Select of **one a side** (`humanPlayersPerTeam: 1`) so two clients can play it; canon's team is five.
+**Provisional** (ADR-010 §11): the grouping rule (oldest first, parties never split) where canon leaves the algorithm open; accepters keeping their queue time; `matchFound.acceptDuration` `15s`; The committed configuration holds canon's five a side. `Smoke.ps1` and `Play.ps1 -Opponent` size their mode to their two clients in a generated `config/scripted.json`, which `compose.yaml` runs through `VEYRA_BACKEND_CONFIG` (ADR-039 §6).
 
 ### Onboarding and Vanguards
 
@@ -167,7 +167,7 @@ Which Vanguards a player may pick, and the stubbed first-time tutorial ([ADR-010
 | `GET /v1/dev/accounts` | — | — | `accounts` (`displayName`), the seeded dev accounts for the launcher's picker. **Local only**, with dev login |
 | `POST /v1/dev/accounts/{name}/reset-onboarding` | — | — | `204`; the dev account is back before its starter choice, for repeatable test runs. **Local only**, with dev login |
 
-The catalog is `vanguards` in `config/local.json`: the released Vanguards, which must equal the Playable ones in `Game/Tuning/Vanguards.json` (`internal/catalog`'s contract test checks it), the starters (3 to 5, Account, Collection & Mastery Bible §1) and the rotation. **Provisional:** every released Vanguard is a starter, and until the weekly rotation exists a stand-in rotation offers every released Vanguard while fewer than `rotation.slots` (12, canon) are released.
+The catalog is `vanguards` in `config/local.json`: the released Vanguards, which must equal the Playable ones in `Game/Tuning/Vanguards.json` (`internal/catalog`'s contract test checks it), the starters (3 to 5, Account, Collection & Mastery Bible §1) and the rotation. The weekly free rotation offers `rotation.slots` (12, canon) distinct released Vanguards a week, from `rotation.epoch` in weeks of `rotation.weekSeconds`, drawn by a shuffle seeded with `rotation.seed` and the week. Last week's sit out unless too few others remain, and a Vanguard in `rotation.releases` waits a week after its release ([ADR-039](../Docs/ADR/ADR-039-weekly-rotation-and-co-op-vs-ai.md) §1). **Provisional:** weeks begin Monday 00:00 UTC.
 
 ### Custom practice and champion select
 
@@ -188,6 +188,8 @@ A select is `id`, `kind`, `mode`, `state` (`picking`, `starting`, `started`, `ca
 Rules the code enforces: a player is in at most one active select (enforced by the database); a lock is permanent; a select creates at most one match (a unique `select_id` on the match). When the pick timer (`customPractice.pickDuration`) ends, a seat's hover is locked for it, and a seat with nothing to lock cancels the select. **Provisional** (ADR-010 §11), like the 30-second pick time. A select whose match creation never finishes is settled after `selection.startingTimeout`, which must exceed the allocator's request timeout.
 
 Casual Select (Battleground Bible §15) adds: everyone picks at once within `casualSelect.pickDuration`; a locked Vanguard is taken for everyone, on both teams, while a hover reserves nothing; a player whose client stops polling for `casualSelect.presenceTimeout` cancels it (`presence_lost`, a disconnect); leaving cancels it (`left`, a dodge, recorded as `leftBy` with no penalty, since Match Flow §2 sets no schedule). When it starts its match, every party is let go, Not Ready (UX-15); when it is cancelled, the parties of the players who left, disconnected or never locked leave the queue Not Ready, and the others return to it. **Provisional:** `60s` to pick and `10s` of presence; select trades wait for their protocol.
+
+Co-op vs AI ([ADR-039](../Docs/ADR/ADR-039-weekly-rotation-and-co-op-vs-ai.md) §2–§4) matches one side of a `coop` mode's `humanPlayersPerTeam` humans, never friendly AI, against its `aiPerTeam` bots of its `aiDifficulty`. Only the humans accept. Its select is a Casual Select that opens with the enemy team seated: distinct Vanguards drawn at random from this week's rotation (from every released Vanguard while the rotation offers too few). A human may pick what an enemy bot plays, the sole cross-team mirror. The match keeps Standard rules and carries its bots; no other Standard match may. **Provisional:** one human locally, as Casual's, so one player can play against five bots; canon is five.
 
 ### Matches
 

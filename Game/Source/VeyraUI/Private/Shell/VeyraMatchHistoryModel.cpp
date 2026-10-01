@@ -69,7 +69,7 @@ FVeyraHistoryModel Describe(const FVeyraClientSnapshot& Snapshot, bool bCanLoadM
 	Model.Modes.Add({ FString(), LOCTEXT("AllModes", "All Modes"), History.Filter.Mode.IsEmpty() });
 	for (const FString& Mode : Modes)
 	{
-		Model.Modes.Add({ Mode, VeyraShellModels::NameOf(Mode), History.Filter.Mode == Mode });
+		Model.Modes.Add({ Mode, VeyraShellModels::ModeNameOf(Mode), History.Filter.Mode == Mode });
 	}
 
 	Model.Outcomes.Add({ FString(), LOCTEXT("AllOutcomes", "All Outcomes"), History.Filter.Outcome.IsEmpty() });
@@ -83,7 +83,7 @@ FVeyraHistoryModel Describe(const FVeyraClientSnapshot& Snapshot, bool bCanLoadM
 		FVeyraHistoryRow& Row = Model.Rows.AddDefaulted_GetRef();
 		Row.MatchId = Entry.MatchId;
 		Row.Summary = FText::Format(LOCTEXT("Row", "{0}   {1}   {2}   {3}   {4}"), FText::AsDateTime(Entry.EndedAt, EDateTimeStyle::Medium, EDateTimeStyle::Short),
-			VeyraShellModels::NameOf(Entry.Mode), VeyraShellModels::FormatCountdown(Entry.DurationSeconds),
+			VeyraShellModels::ModeNameOf(Entry.Mode), VeyraShellModels::FormatCountdown(Entry.DurationSeconds),
 			Entry.VanguardId.IsEmpty() ? LOCTEXT("UnknownVanguard", "Unknown Vanguard") : VeyraShellModels::VanguardNameOf(Entry.VanguardId),
 			OutcomeText(Entry.Outcome, Entry.bPersonalLoss));
 	}

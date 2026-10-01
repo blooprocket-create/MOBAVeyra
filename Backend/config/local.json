@@ -34,16 +34,16 @@
     "defaultPrivacy": "private"
   },
   "modes": [
-    {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 1, "matchmaking": "casualSelect"},
-    {"id": "draft_pick", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"},
-    {"id": "coop_beginner", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"},
-    {"id": "coop_intermediate", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"},
-    {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
+    {"id": "casual_select", "category": "casual", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "casualSelect"},
+    {"id": "draft_pick", "category": "casual", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"},
+    {"id": "coop_beginner", "category": "ai", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "beginner"},
+    {"id": "coop_intermediate", "category": "ai", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "intermediate"},
+    {"id": "ranked", "category": "ranked", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
   ],
   "vanguards": {
     "released": ["cairn", "qazharr", "oriel", "bryn", "kade", "vera", "mimzi", "patch", "gorraveth", "raska", "moro", "korruk", "mavra", "celandrine", "aurelisse", "silt", "torr", "tavi", "angeru", "varkesh", "relay", "marek", "neris", "sylra", "eudora"],
     "starters": ["cairn", "qazharr", "oriel", "bryn"],
-    "rotation": {"slots": 12, "standIn": "allReleased"}
+    "rotation": {"slots": 12, "epoch": "2026-09-28T00:00:00Z", "weekSeconds": 604800, "seed": "veyra-rotation-1", "releases": {}}
   },
   "fluxSpells": {
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]

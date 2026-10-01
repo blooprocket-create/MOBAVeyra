@@ -267,6 +267,14 @@ namespace VeyraBackendProtocol
 	VEYRASERVICES_API bool ParseHistoryPage(const FString& Body, FHistoryPage& Out, FString& OutProblem);
 
 	/** A mode the Play screen offers, as GET /v1/modes reports it (ADR-010 §10). */
+	/** The Play page's group for a mode (ADR-039 §6); Customs are the client's own entries, no queue's. */
+	enum class EModeCategory : uint8
+	{
+		Ranked,
+		Casual,
+		AI,
+	};
+
 	struct FModeInfo
 	{
 		FString Id;
@@ -274,6 +282,9 @@ namespace VeyraBackendProtocol
 		int32 HumanPlayersPerTeam = 0;
 		/** Whether it has a matchmaker; a mode without one is shown as not yet available. */
 		bool bMatchmade = false;
+		/** Whether its matches put its humans against an enemy AI team (ADR-039 §2). */
+		bool bVersusAI = false;
+		EModeCategory Category = EModeCategory::Casual;
 	};
 
 	/** Reads the answer to GET /v1/modes. False, with the problem, if it is not one. */

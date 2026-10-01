@@ -30,8 +30,10 @@ type Pinger interface {
 
 // ModeInfo describes a matchmade mode to clients.
 type ModeInfo struct {
-	ID                  string `json:"id"`
-	Enabled             bool   `json:"enabled"`
+	ID      string `json:"id"`
+	Enabled bool   `json:"enabled"`
+	// Category is the Play page's group: ranked, casual or ai.
+	Category            string `json:"category"`
 	HumanPlayersPerTeam int    `json:"humanPlayersPerTeam"`
 	// Matchmaking is casualSelect, or notImplemented for a mode that cannot be
 	// queued yet, which clients show as not yet available.

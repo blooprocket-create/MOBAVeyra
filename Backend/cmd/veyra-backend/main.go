@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"math/rand/v2"
 	"net/http"
 	"os"
 	"os/signal"
@@ -93,9 +94,9 @@ func run(log *slog.Logger) error {
 	rules := party.Rules{MaxSize: cfg.Party.MaxSize, Modes: map[string]party.Mode{}}
 	var modes []httpapi.ModeInfo
 	for _, m := range cfg.Modes {
-		matchmade := m.Matchmaking == config.MatchmakingCasualSelect
+		matchmade := m.Matchmaking == config.MatchmakingCasualSelect || m.Matchmaking == config.MatchmakingCoop
 		rules.Modes[m.ID] = party.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam, Matchmade: matchmade}
-		modes = append(modes, httpapi.ModeInfo{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam, Matchmaking: m.Matchmaking})
+		modes = append(modes, httpapi.ModeInfo{ID: m.ID, Enabled: m.Enabled, Category: m.Category, HumanPlayersPerTeam: m.HumanPlayersPerTeam, Matchmaking: m.Matchmaking})
 	}
 	parties := party.NewService(store.Party(), soc, party.Settings{
 		Rules:          rules,
@@ -104,11 +105,20 @@ func run(log *slog.Logger) error {
 	}, time.Now)
 
 	vanguards := catalog.New(catalog.Settings{
-		Released:      cfg.Vanguards.Released,
-		Starters:      cfg.Vanguards.Starters,
-		RotationSlots: cfg.Vanguards.RotationSlots,
-		StandIn:       catalog.StandIn(cfg.Vanguards.RotationStandIn),
-	})
+		Released: cfg.Vanguards.Released,
+		Starters: cfg.Vanguards.Starters,
+		Rotation: catalog.RotationSettings{
+			Slots:    cfg.Vanguards.RotationSlots,
+			Epoch:    cfg.Vanguards.RotationEpoch,
+			Week:     cfg.Vanguards.RotationWeek,
+			Seed:     cfg.Vanguards.RotationSeed,
+			Releases: cfg.Vanguards.RotationReleases,
+		},
+	}, time.Now)
+	// A week with too few eligible Vanguards has no rotation, a launch precondition (Modes & Access Bible §3).
+	if week, ok := vanguards.WeekAt(time.Now()); ok && len(vanguards.Rotation()) == 0 {
+		log.Warn("the rotation offers nothing: fewer eligible Vanguards than its slots", "week", week, "slots", cfg.Vanguards.RotationSlots)
+	}
 	accounts := account.NewService(store.Account(), vanguards, time.Now)
 
 	matches, err := newMatchService(cfg, store, svc)
@@ -165,11 +175,18 @@ func run(log *slog.Logger) error {
 	parties.SetActivity(busy)
 	mmSettings := matchmaking.Settings{AcceptDuration: cfg.MatchFound.AcceptDuration, SearchLimit: cfg.Matchmaking.SearchLimit}
 	for _, m := range cfg.Modes {
-		if m.Enabled && m.Matchmaking == config.MatchmakingCasualSelect {
-			mmSettings.Modes = append(mmSettings.Modes, matchmaking.Mode{ID: m.ID, TeamSize: m.HumanPlayersPerTeam})
+		if m.Enabled && (m.Matchmaking == config.MatchmakingCasualSelect || m.Matchmaking == config.MatchmakingCoop) {
+			mmSettings.Modes = append(mmSettings.Modes, matchmaking.Mode{ID: m.ID, TeamSize: m.HumanPlayersPerTeam, VersusAI: m.Matchmaking == config.MatchmakingCoop})
 		}
 	}
-	matchmaker := matchmaking.NewService(store.Matchmaking(), parties, soc, busy, casualSelects{selects}, mmSettings, time.Now, log)
+	coop := map[string]config.Mode{}
+	for _, m := range cfg.Modes {
+		if m.Matchmaking == config.MatchmakingCoop {
+			coop[m.ID] = m
+		}
+	}
+	matchmaker := matchmaking.NewService(store.Matchmaking(), parties, soc, busy, casualSelects{selects: selects, vanguards: vanguards, coop: coop},
+		mmSettings, time.Now, log)
 	selects.SetMatchmaking(matchmaker)
 	go matchmaker.Run(ctx, cfg.Matchmaking.Interval)
 
@@ -307,15 +324,38 @@ func (c customSelects) OpenCustom(ctx context.Context, launch lobby.Launch) erro
 	return err
 }
 
-// casualSelects opens the matchmaker's Casual Selects.
-type casualSelects struct{ selects *selection.Service }
+// casualSelects opens the matchmaker's Casual Selects, and a co-op mode's
+// select with its enemy AI team seated (ADR-039 §3).
+type casualSelects struct {
+	selects   *selection.Service
+	vanguards *catalog.Catalog
+	// coop holds each co-op mode's enemy AI team.
+	coop map[string]config.Mode
+}
 
 func (c casualSelects) OpenCasual(ctx context.Context, mode string, seats []matchmaking.SelectSeat) (string, error) {
 	casual := make([]selection.CasualSeat, len(seats))
+	opponents := match.SideB
 	for i, seat := range seats {
 		casual[i] = selection.CasualSeat{AccountID: seat.AccountID, Side: seat.Side}
+		if seat.Side == match.SideB {
+			opponents = match.SideA
+		}
 	}
-	return c.selects.OpenCasual(ctx, mode, casual)
+	coop, ok := c.coop[mode]
+	if !ok {
+		return c.selects.OpenCasual(ctx, mode, casual)
+	}
+	// Drawn from this week's rotation; from every released Vanguard while it offers none (ADR-039 §8).
+	pool := c.vanguards.Rotation()
+	if len(pool) < coop.AIPerTeam {
+		pool = c.vanguards.Released()
+	}
+	bots, err := selection.DrawOpponents(pool, coop.AIPerTeam, opponents, match.BotDifficulty(coop.AIDifficulty), rand.Shuffle)
+	if err != nil {
+		return "", err
+	}
+	return c.selects.OpenCoop(ctx, mode, casual, bots)
 }
 
 // newMatchService builds the match service with the configured allocator.
@@ -345,7 +385,8 @@ func newMatchService(cfg config.Config, store *postgres.Store, ids *identity.Ser
 		HistoryPageSize:   cfg.Matches.HistoryPageSize,
 	}
 	for _, m := range cfg.Modes {
-		settings.Modes[m.ID] = match.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam}
+		settings.Modes[m.ID] = match.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam, AIPerTeam: m.AIPerTeam,
+			AIDifficulty: match.BotDifficulty(m.AIDifficulty)}
 	}
 	for _, b := range cfg.CustomPractice.Bots {
 		settings.Practice.Bots = append(settings.Practice.Bots, match.Bot{Side: match.Side(b.Side), VanguardID: b.VanguardID, Difficulty: match.BotDifficulty(b.Difficulty)})

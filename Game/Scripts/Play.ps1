@@ -182,13 +182,15 @@ if (-not $Direct) {
         exit $ExitInfrastructure
     }
 
-    # -Opponent: the second development account spars in the local 1v1 casual mode (ADR-010 §10).
+    # -Opponent: the second development account spars in the casual mode, its queue sized to one human a
+    # side for the two of them (ADR-010 §10; ADR-039 §6).
     $backendConfig = Get-Content -LiteralPath (Join-Path $repositoryDir 'Backend\config\local.json') -Raw | ConvertFrom-Json
     $devAccounts = @($backendConfig.devLogin.accounts)
+    $casualMode = $null
     if ($Opponent) {
         $casualMode = $backendConfig.modes | Where-Object { $_.enabled -and $_.matchmaking -eq 'casualSelect' } | Select-Object -First 1
-        if (-not $casualMode -or $casualMode.humanPlayersPerTeam -ne 1 -or $devAccounts.Count -lt 2) {
-            Write-Host '-Opponent needs an enabled casualSelect mode of one human player per team, and two development accounts, in Backend/config/local.json.'
+        if (-not $casualMode -or $devAccounts.Count -lt 2) {
+            Write-Host '-Opponent needs an enabled casualSelect mode, and two development accounts, in Backend/config/local.json.'
             exit $ExitInfrastructure
         }
         $opponentAccount = $devAccounts[1]
@@ -209,6 +211,12 @@ if (-not $Direct) {
     if ((Invoke-Compose -Arguments @('--profile', 'match-server', 'build', 'match-server')) -ne 0) {
         Write-Host 'The match server image did not build. Check that Docker is running, and package the server: Build.ps1 -Target VeyraServer -Platform Linux, then Package.ps1 -Target VeyraServer -Platform Linux.'
         exit $ExitInfrastructure
+    }
+    if ($casualMode) {
+        Set-VeyraBackendConfig -RepositoryDir $repositoryDir -Mode $casualMode.id -HumansPerTeam 1
+    }
+    else {
+        Set-VeyraBackendConfig -RepositoryDir $repositoryDir
     }
     Write-Host 'Starting the backend.'
     if ((Invoke-Compose -Arguments @('up', '--build', '--detach', '--wait', 'postgres', 'backend')) -ne 0) {

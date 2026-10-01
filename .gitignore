@@ -27,3 +27,6 @@ Game/Build/*/FileOpenOrder/
 Launcher/target/
 Launcher/app/icons/
 Launcher/app/gen/
+
+# The config Smoke.ps1 and Play.ps1 -Opponent write for a scripted match's backend.
+Backend/config/scripted.json

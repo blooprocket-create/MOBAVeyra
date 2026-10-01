@@ -22,10 +22,10 @@ const validJSON = `{
   "playerLogin": {"provider": "firebase", "firebase": {"projectId": "veyra-test1", "keysUrl": "https://keys.example.com/certs", "keysFetchTimeout": "10s", "clockSkew": "30s"}},
   "party": {"maxSize": 5, "inviteLifetime": "2m", "defaultPrivacy": "private"},
   "modes": [
-    {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "casualSelect"},
-    {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
+    {"id": "casual_select", "category": "casual", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "casualSelect"},
+    {"id": "ranked", "category": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
   ],
-  "vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},
+  "vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "epoch": "2026-09-28T00:00:00Z", "weekSeconds": 604800, "seed": "test", "releases": {}}},
   "fluxSpells": {"roster": ["blink", "mend"]},
   "customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A", "pickDuration": "30s", "playersPerSide": 5,
     "bots": [{"side": "B", "vanguardId": "cairn", "difficulty": "beginner"}, {"side": "B", "vanguardId": "bryn", "difficulty": "intermediate"}]},
@@ -116,20 +116,29 @@ func TestParseRejects(t *testing.T) {
 	cases := map[string]struct {
 		from, to, want string
 	}{
-		"unknown field":             {`"listenAddress"`, `"listenAddres"`, "unknown field"},
-		"missing lifetime":          {`"launchCodes": {"lifetime": "20s"}`, `"launchCodes": {}`, "launchCodes.lifetime is required"},
-		"launch code too long":      {`"lifetime": "20s"`, `"lifetime": "5m"`, "must not exceed"},
-		"negative session":          {`"gameLifetime": "24h"`, `"gameLifetime": "-1h"`, "must be positive"},
-		"dev login outside local":   {`"environment": "local"`, `"environment": "staging"`, "only allowed when environment"},
-		"duplicate dev account":     {`["DevOne", "DevTwo"]`, `["DevOne", "DevOne"]`, "duplicate"},
-		"no dev accounts":           {`["DevOne", "DevTwo"]`, `[]`, "at least one account"},
-		"party size zero":           {`"maxSize": 5`, `"maxSize": 0`, "party.maxSize must be between 1 and 5"},
-		"party size six":            {`"maxSize": 5`, `"maxSize": 6`, "party.maxSize must be between 1 and 5"},
-		"bad privacy":               {`"defaultPrivacy": "private"`, `"defaultPrivacy": "open"`, "party.defaultPrivacy must be"},
-		"duplicate mode":            {`"id": "ranked"`, `"id": "casual_select"`, "duplicate id casual_select"},
-		"mode missing team size":    {`"enabled": false, "humanPlayersPerTeam": 5`, `"enabled": false`, "humanPlayersPerTeam is required"},
-		"mode missing matchmaking":  {`, "matchmaking": "notImplemented"}`, `}`, "modes[1].matchmaking is required"},
-		"mode bad matchmaking":      {`"matchmaking": "casualSelect"`, `"matchmaking": "draft"`, "modes[0].matchmaking must be"},
+		"unknown field":            {`"listenAddress"`, `"listenAddres"`, "unknown field"},
+		"missing lifetime":         {`"launchCodes": {"lifetime": "20s"}`, `"launchCodes": {}`, "launchCodes.lifetime is required"},
+		"launch code too long":     {`"lifetime": "20s"`, `"lifetime": "5m"`, "must not exceed"},
+		"negative session":         {`"gameLifetime": "24h"`, `"gameLifetime": "-1h"`, "must be positive"},
+		"dev login outside local":  {`"environment": "local"`, `"environment": "staging"`, "only allowed when environment"},
+		"duplicate dev account":    {`["DevOne", "DevTwo"]`, `["DevOne", "DevOne"]`, "duplicate"},
+		"no dev accounts":          {`["DevOne", "DevTwo"]`, `[]`, "at least one account"},
+		"party size zero":          {`"maxSize": 5`, `"maxSize": 0`, "party.maxSize must be between 1 and 5"},
+		"party size six":           {`"maxSize": 5`, `"maxSize": 6`, "party.maxSize must be between 1 and 5"},
+		"bad privacy":              {`"defaultPrivacy": "private"`, `"defaultPrivacy": "open"`, "party.defaultPrivacy must be"},
+		"duplicate mode":           {`"id": "ranked"`, `"id": "casual_select"`, "duplicate id casual_select"},
+		"mode missing team size":   {`"enabled": false, "humanPlayersPerTeam": 5`, `"enabled": false`, "humanPlayersPerTeam is required"},
+		"mode missing matchmaking": {`, "matchmaking": "notImplemented"}`, `}`, "modes[1].matchmaking is required"},
+		"mode bad matchmaking":     {`"matchmaking": "casualSelect"`, `"matchmaking": "draft"`, "modes[0].matchmaking must be"},
+		"mode missing category":    {`"id": "ranked", "category": "ranked"`, `"id": "ranked"`, "modes[1].category is required"},
+		"mode bad category":        {`"category": "casual"`, `"category": "arcade"`, "modes[0].category must be"},
+		"coop outside the AI category": {`"matchmaking": "casualSelect"}`, `"matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "beginner"}`,
+			"modes[0].category must be \"ai\" exactly when"},
+		"PvP in the AI category":   {`"category": "casual"`, `"category": "ai"`, "modes[0].category must be \"ai\" exactly when"},
+		"coop without its AI team": {`"matchmaking": "casualSelect"`, `"matchmaking": "coop"`, "modes[0].aiPerTeam is required"},
+		"coop bad difficulty": {`"matchmaking": "casualSelect"}`, `"matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "expert"}`,
+			"modes[0].aiDifficulty must be"},
+		"AI team on a PvP mode":     {`"matchmaking": "casualSelect"}`, `"matchmaking": "casualSelect", "aiPerTeam": 5}`, "modes[0] has an AI team"},
 		"no matchmaking":            {`"matchmaking": {"interval": "1s", "searchLimit": 10000},`, ``, "matchmaking is required"},
 		"zero matchmaking interval": {`"interval": "1s"`, `"interval": "0s"`, "matchmaking.interval must be positive"},
 		"no search limit":           {`, "searchLimit": 10000`, ``, "matchmaking.searchLimit is required"},
@@ -138,7 +147,7 @@ func TestParseRejects(t *testing.T) {
 		"no accept duration":        {`{"acceptDuration": "15s"}`, `{}`, "matchFound.acceptDuration is required"},
 		"no casual select":          {`"casualSelect": {"pickDuration": "60s", "presenceTimeout": "10s"},`, ``, "casualSelect is required"},
 		"no presence timeout":       {`, "presenceTimeout": "10s"`, ``, "casualSelect.presenceTimeout is required"},
-		"no vanguards":              {`"vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "standIn": "allReleased"}},`, ``, "vanguards is required"},
+		"no vanguards":              {`"vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "epoch": "2026-09-28T00:00:00Z", "weekSeconds": 604800, "seed": "test", "releases": {}}},`, ``, "vanguards is required"},
 		"no flux spells":            {`"fluxSpells": {"roster": ["blink", "mend"]},`, ``, "fluxSpells is required"},
 		"empty spell roster":        {`"roster": ["blink", "mend"]`, `"roster": []`, "fluxSpells.roster is required"},
 		"duplicate spell":           {`"roster": ["blink", "mend"]`, `"roster": ["blink", "blink"]`, "fluxSpells.roster contains duplicate blink"},
@@ -148,7 +157,10 @@ func TestParseRejects(t *testing.T) {
 		"unreleased starter":        {`"starters": ["cairn", "qazharr", "oriel"]`, `"starters": ["cairn", "qazharr", "raska"]`, "raska is not in vanguards.released"},
 		"too few starters":          {`"starters": ["cairn", "qazharr", "oriel"]`, `"starters": ["cairn", "qazharr"]`, "must list 3 to 5"},
 		"no rotation slots":         {`"slots": 12`, `"slots": 0`, "vanguards.rotation.slots must be at least 1"},
-		"bad stand-in":              {`"standIn": "allReleased"`, `"standIn": "everything"`, "vanguards.rotation.standIn must be"},
+		"bad rotation epoch":        {`"epoch": "2026-09-28T00:00:00Z"`, `"epoch": "Monday"`, "vanguards.rotation.epoch must be an RFC 3339 time"},
+		"no rotation week":          {`"weekSeconds": 604800`, `"weekSeconds": 0`, "vanguards.rotation.weekSeconds must be at least 1"},
+		"no rotation seed":          {`"seed": "test"`, `"seed": ""`, "vanguards.rotation.seed is required"},
+		"unreleased rotation entry": {`"releases": {}`, `"releases": {"test_vanguard": "2026-10-01T00:00:00Z"}`, "vanguards.rotation.releases names test_vanguard"},
 		"no custom practice": {`"customPractice": {"enabled": true, "mode": "custom_practice", "hostSide": "A", "pickDuration": "30s", "playersPerSide": 5,
     "bots": [{"side": "B", "vanguardId": "cairn", "difficulty": "beginner"}, {"side": "B", "vanguardId": "bryn", "difficulty": "intermediate"}]},`, ``, "customPractice is required"},
 		"practice missing side":   {`"hostSide": "A", `, ``, "customPractice.hostSide is required"},
@@ -278,6 +290,42 @@ func TestTeamSizesFitTheGamesMatchJSON(t *testing.T) {
 	for _, m := range cfg.Modes {
 		if m.HumanPlayersPerTeam > limit {
 			t.Fatalf("mode %s has %d players a side, but the match server holds at most %d (Match.json teams.maxTeamSize)", m.ID, m.HumanPlayersPerTeam, limit)
+		}
+	}
+}
+
+// A matchmade mode fills the game's whole team: five a side, and a co-op
+// mode's enemy AI team as many (Modes Bible §1, §4). Scripts shrink a queue
+// for their clients in a config of their own, never in the committed one.
+func TestMatchmadeModesFillTheGamesTeams(t *testing.T) {
+	_, file, _, _ := runtime.Caller(0)
+	root := filepath.Join(filepath.Dir(file), "..", "..", "..")
+	cfg, err := Load(filepath.Join(root, "Backend", "config", "local.json"))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	raw, err := os.ReadFile(filepath.Join(root, "Game", "Tuning", "Match.json"))
+	if err != nil {
+		t.Fatalf("read the game's Match.json: %v", err)
+	}
+	var tuning struct {
+		Teams struct {
+			MaxTeamSize int `json:"maxTeamSize"`
+		} `json:"teams"`
+	}
+	if err := json.Unmarshal(raw, &tuning); err != nil || tuning.Teams.MaxTeamSize < 1 {
+		t.Fatalf("Match.json teams.maxTeamSize: %d %v", tuning.Teams.MaxTeamSize, err)
+	}
+	team := tuning.Teams.MaxTeamSize
+	for _, m := range cfg.Modes {
+		if m.Matchmaking == MatchmakingNotImplemented {
+			continue
+		}
+		if m.HumanPlayersPerTeam != team {
+			t.Errorf("mode %s queues %d humans a side, not the game's team of %d", m.ID, m.HumanPlayersPerTeam, team)
+		}
+		if m.Matchmaking == MatchmakingCoop && m.AIPerTeam != team {
+			t.Errorf("co-op mode %s fields %d enemy AI, not the game's team of %d", m.ID, m.AIPerTeam, team)
 		}
 	}
 }

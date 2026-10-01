@@ -117,10 +117,14 @@ TArray<FString> UVeyraMatchHostSubsystem::SetAssignment(FVeyraMatchAssignment In
 			Problems.Add(Where + TEXT(": ") + SpellsProblem);
 		}
 	}
-	// Bots play in hosted matches only (ADR-010 §7; ADR-021 §2); they take places on their sides like anyone.
-	if (!bHosted && !InAssignment.Bots.IsEmpty())
+	// Bots play in hosted matches (ADR-010 §7; ADR-021 §2), and as a co-op match's enemy team, on a side no human
+	// plays (ADR-039 §4); they take places on their sides like anyone.
+	const bool bEnemyTeam = !InAssignment.Bots.ContainsByPredicate([&InAssignment](const FVeyraAssignedBot& Bot) {
+		return InAssignment.Participants.ContainsByPredicate([&Bot](const FVeyraAssignedParticipant& Participant) { return Participant.Side == Bot.Side; });
+	});
+	if (!bHosted && !InAssignment.Bots.IsEmpty() && !bEnemyTeam)
 	{
-		Problems.Add(TEXT("only a practice or custom match has bots"));
+		Problems.Add(TEXT("only a practice or custom match has bots beside humans; a co-op match's sit on a side no human plays"));
 	}
 	for (int32 Index = 0; Index < InAssignment.Bots.Num(); ++Index)
 	{
