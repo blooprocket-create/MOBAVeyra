@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "AbilitySystemComponent.h"
 #include "AbilitySystemInterface.h"
 #include "Entities/VeyraOwnedUnit.h"
 #include "GameFramework/Character.h"

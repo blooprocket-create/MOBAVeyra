@@ -53,7 +53,7 @@ The survey for this ADR found that:
   - Each cast's circles are one **fog bank**, a replicated actor every player receives. The fog itself is always seen (Vision Bible §2), so the fog gate lets it through.
   - Vision's fog is the authored circles plus every live bank's. Volumes are reconnected as a bank comes and as it goes. Overlapping fog is one volume, and an expiry splits it at once.
   - Concealment, the same-volume rule, wards and sensors apply to it unchanged: it is the same construct (Vision Bible §2).
-- **The grey box and the minimap** draw a live bank as they draw authored fog.
+- **The grey box** draws a live bank as it draws authored fog.
 
 ### 2. Sounded (Combat; Vision)
 

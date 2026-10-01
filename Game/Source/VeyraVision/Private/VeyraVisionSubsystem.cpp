@@ -9,6 +9,7 @@
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
+#include "Fog/VeyraDenseFogBank.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/PlayerController.h"
 #include "GameFramework/PlayerState.h"
@@ -211,6 +212,7 @@ void UVeyraVisionSubsystem::Stop()
 		return;
 	}
 	bStarted = false;
+	EndAllFogBanks();
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(Timer);
@@ -451,10 +453,88 @@ void UVeyraVisionSubsystem::OnDeath(const FVeyraDeathEvent& Death)
 
 void UVeyraVisionSubsystem::SetDenseFog(TArray<FVeyraFogCircle> Circles)
 {
-	Fog = MoveTemp(Circles);
-	FogVolumes = VeyraVisionRules::ConnectVolumes(Fog);
-	UE_LOG(LogVeyraVision, Log, TEXT("Dense Fog: %d circle(s) in %d volume(s)."), Fog.Num(), FogVolumes.IsEmpty() ? 0 : FMath::Max(FogVolumes) + 1);
+	AuthoredFog = MoveTemp(Circles);
+	RebuildFog();
 	UpdateNow();
+}
+
+void UVeyraVisionSubsystem::RebuildFog()
+{
+	Fog = AuthoredFog;
+	for (const FFogBank& Bank : FogBanks)
+	{
+		Fog.Append(Bank.Circles);
+	}
+	FogVolumes = VeyraVisionRules::ConnectVolumes(Fog);
+	// A ping's cadence is kept per circle, and the circles have moved: each sensor starts afresh.
+	LastPings.Reset();
+	UE_LOG(LogVeyraVision, Log, TEXT("Dense Fog: %d circle(s) in %d volume(s), %d laid by abilities."), Fog.Num(),
+		FogVolumes.IsEmpty() ? 0 : FMath::Max(FogVolumes) + 1, FogBanks.Num());
+}
+
+void UVeyraVisionSubsystem::AddDenseFog(const FVeyraFogShape& Shape, double DurationSeconds)
+{
+	UWorld* World = GetWorld();
+	TArray<FVeyraFogCircle> Circles = VeyraVisionRules::CirclesOf(Shape);
+	if (!bStarted || !World || !(DurationSeconds > 0.0) || Circles.IsEmpty() || !(Circles[0].Radius > 0.0))
+	{
+		return;
+	}
+	FFogBank& Bank = FogBanks.AddDefaulted_GetRef();
+	Bank.Id = NextFogBankId++;
+	Bank.Circles = MoveTemp(Circles);
+	FActorSpawnParameters Parameters;
+	Parameters.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	if (AVeyraDenseFogBank* Actor = World->SpawnActor<AVeyraDenseFogBank>(Parameters))
+	{
+		Actor->SetCircles(Bank.Circles);
+		Bank.Actor = Actor;
+	}
+	// It ends on the world's clock, as everything timed does, so a pause holds it.
+	World->GetTimerManager().SetTimer(Bank.Ending, FTimerDelegate::CreateUObject(this, &UVeyraVisionSubsystem::EndFogBank, Bank.Id),
+		static_cast<float>(DurationSeconds), /*bLoop*/ false);
+	RebuildFog();
+	UpdateNow();
+}
+
+void UVeyraVisionSubsystem::EndFogBank(int32 Id)
+{
+	const int32 Index = FogBanks.IndexOfByPredicate([Id](const FFogBank& Bank) { return Bank.Id == Id; });
+	if (Index == INDEX_NONE)
+	{
+		return;
+	}
+	if (AVeyraDenseFogBank* Actor = FogBanks[Index].Actor.Get())
+	{
+		Actor->Destroy();
+	}
+	FogBanks.RemoveAt(Index);
+	RebuildFog();
+	UpdateNow();
+}
+
+void UVeyraVisionSubsystem::EndAllFogBanks()
+{
+	UWorld* World = GetWorld();
+	for (FFogBank& Bank : FogBanks)
+	{
+		if (World)
+		{
+			World->GetTimerManager().ClearTimer(Bank.Ending);
+		}
+		// A world tearing down takes its actors with it.
+		if (AVeyraDenseFogBank* Actor = Bank.Actor.Get(); Actor && World && !World->bIsTearingDown)
+		{
+			Actor->Destroy();
+		}
+	}
+	FogBanks.Reset();
+	RebuildFog();
+}
+
+int32 UVeyraVisionSubsystem::FogVolumeAt(const FVector& Point) const
+{
+	return VeyraVisionRules::VolumeAt(Fog, FogVolumes, FVector2D(Point));
 }
 
 void UVeyraVisionSubsystem::UpdateNow()
