@@ -7,6 +7,7 @@
 #include "State/VeyraVisionTeamState.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
+#include "TimerManager.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
 #include "VeyraPlayerState.h"
@@ -94,6 +95,35 @@ namespace VeyraVisionTests
 			ASSERT_THAT(IsTrue(StateOf(EVeyraTeam::A).GetPings()[0].Centre.Equals(Bush), TEXT("its fog's circle, never where it stands")));
 			ASSERT_THAT(IsFalse(Vision().IsVisibleToTeam(EVeyraTeam::A, *Enemy), TEXT("it reveals nothing")));
 			ASSERT_THAT(IsTrue(StateOf(EVeyraTeam::B).GetPings().IsEmpty(), TEXT("its own side hears nothing")));
+		}
+
+		TEST_METHOD(FogLaidAndLiftedElsewhereKeepsItsPingCadence)
+		{
+			// A cast's fog far away, as it comes and goes, rebuilds every circle: the bush's cadence holds.
+			using namespace SoundedFixture;
+			const FVector2D Bush(Enemy->GetActorLocation());
+			Vision().SetDenseFog({ FVeyraFogCircle{ Bush, BushRadius } });
+			ASSERT_THAT(IsTrue(Sound(*Sounder)));
+			Vision().UpdateNow();
+			ASSERT_THAT(AreEqual(StateOf(EVeyraTeam::A).GetPings().Num(), 1));
+			FVeyraFogShape Elsewhere;
+			Elsewhere.Origin = FVector(Far(), Far(), 0.0);
+			Elsewhere.Radius = BushRadius;
+			// Briefer than a ping's cadence, which it lifts within.
+			const double Brief = UVeyraVisionTuningSubsystem::Get().Presence.PingEverySeconds / 4.0;
+			Vision().AddDenseFog(Elsewhere, Brief);
+			ASSERT_THAT(AreEqual(StateOf(EVeyraTeam::A).GetPings().Num(), 1, TEXT("no second ping within its cadence as fog is laid")));
+			UWorld& World = Spawner.GetWorld();
+			const double Until = World.GetTimeSeconds() + Brief * 2.0;
+			while (World.GetTimeSeconds() < Until)
+			{
+				constexpr float Step = 0.05f;
+				World.Tick(LEVELTICK_TimeOnly, Step);
+				++GFrameCounter;
+				World.GetTimerManager().Tick(Step);
+			}
+			ASSERT_THAT(IsTrue(Vision().FogVolumeAt(FVector(Far(), Far(), 0.0)) == INDEX_NONE, TEXT("the far fog lifted")));
+			ASSERT_THAT(AreEqual(StateOf(EVeyraTeam::A).GetPings().Num(), 1, TEXT("nor as it lifts")));
 		}
 
 		TEST_METHOD(OutOfFogItPingsNothing)
