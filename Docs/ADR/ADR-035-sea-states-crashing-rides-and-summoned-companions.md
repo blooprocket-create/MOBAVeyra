@@ -83,7 +83,7 @@ The survey for this ADR found that:
   - `enemyEffects`: damage, statuses and a displacement. A knock aside is `AsideFromPath`, out of the rider's line.
   - `allyEffects`, as §4's.
   - `reach`: how far past the rider's edge it touches.
-- **A ride gains `trail`:** lingering areas laid along its path every `spacing` units, each with its shape and its lingering statuses by side (ADR-018 §5).
+- **A ride gains `trail`:** an area ability laid along its path every `spacing` units, the first as it sets off. Each is delivered at the rider as the rider's hit, at the ride's rank: its zones, then its lingering area with its statuses by side (ADR-018 §5). Any area ability that lands at once and lingers will do.
 - **Tidebreaker** is a ride with a larger body, contact and a trail. Calm's lays Healing Wake (allies' Movement Speed and regeneration) and Storm's lays Riptide (enemies' damage over time and a slow).
 
 ### 7. Neris (Vanguards)

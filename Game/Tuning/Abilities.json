@@ -5758,7 +5758,9 @@
       "riderStatuses": ["raska_ride_body"],
       "mounted": [{ "slot": "Q", "ability": "raska_sideswipe" }, { "slot": "W", "ability": "raska_powerslide" }, { "slot": "E", "ability": "raska_bail_out" }],
       "vehicle": ["raska_hound"],
-      "crashZones": []
+      "crashZones": [],
+      "contact": [],
+      "trail": []
     },
     "raska_no_brakes": {
       "provenance": "Provisional",
@@ -5787,7 +5789,9 @@
       "riderStatuses": ["raska_ride_body", "raska_no_brakes"],
       "mounted": [{ "slot": "Q", "ability": "raska_sideswipe" }, { "slot": "W", "ability": "raska_powerslide" }],
       "vehicle": ["raska_hound_no_brakes"],
-      "crashZones": []
+      "crashZones": [],
+      "contact": [],
+      "trail": []
     }
   },
   "ambush": {

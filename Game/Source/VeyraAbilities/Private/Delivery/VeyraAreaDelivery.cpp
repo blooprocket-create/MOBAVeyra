@@ -73,21 +73,50 @@ TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstA
 		// Its heal from the caster's rank and power at Commit, as its damage is (ADR-035 §4).
 		if (!Zone.AllyEffects.IsEmpty())
 		{
-			const FVeyraZoneAllyEffectsTuning& Allies = Zone.AllyEffects[0];
-			FVeyraPreparedAllyEffects& Help = Ready.AllyEffects.Emplace();
-			Help.Heal = VeyraAbilityRules::ValueAtRank(Allies.HealByRank, Rank)
-				+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Allies.HealMagicPowerRatio;
-			Help.Reach = Allies.Reach;
-			for (const FVeyraContentId& StatusId : Allies.Statuses)
-			{
-				if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
-				{
-					Help.Statuses.Add(Status.GetValue());
-				}
-			}
+			Ready.AllyEffects = PrepareAllyEffects(Caster, Zone.AllyEffects[0], Rank);
 		}
 	}
 	return Prepared;
+}
+
+FVeyraPreparedAllyEffects PrepareAllyEffects(const UAbilitySystemComponent& Caster, const FVeyraZoneAllyEffectsTuning& Allies, int32 Rank)
+{
+	FVeyraPreparedAllyEffects Help;
+	Help.Heal = VeyraAbilityRules::ValueAtRank(Allies.HealByRank, Rank) + Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Allies.HealMagicPowerRatio;
+	Help.Reach = Allies.Reach;
+	for (const FVeyraContentId& StatusId : Allies.Statuses)
+	{
+		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+		{
+			Help.Statuses.Add(Status.GetValue());
+		}
+	}
+	return Help;
+}
+
+bool Reaches(const UAbilitySystemComponent& Caster, const AActor& Unit, const FVeyraPreparedAllyEffects& Help)
+{
+	// Sides belong to the participant, which outlives its body.
+	const EVeyraTeam Side = VeyraTeams::TeamOf(Caster.GetOwner());
+	return Side != EVeyraTeam::None && VeyraUnits::IsVanguard(&Unit) && VeyraTargeting::IsAlive(&Unit) && VeyraTeams::TeamOf(&Unit) == Side
+		&& (Help.Reach == EVeyraAllyReach::CasterToo || &Unit != Caster.GetAvatarActor());
+}
+
+void HelpAlly(UAbilitySystemComponent& Caster, AActor& Ally, const FVeyraPreparedAllyEffects& Help)
+{
+	UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Ally);
+	if (!Target)
+	{
+		return;
+	}
+	if (Help.Heal > 0.0)
+	{
+		VeyraCombat::RestoreHealthFrom(Caster, *Target, Help.Heal);
+	}
+	for (const FVeyraStatusSpec& Status : Help.Statuses)
+	{
+		VeyraCombat::ApplyStatus(Caster, *Target, Status);
+	}
 }
 
 TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Frame, TConstArrayView<FVeyraPreparedZone> Zones,
@@ -140,37 +169,22 @@ TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FV
 
 	// Its caster's allied Vanguards, each once, take what the innermost zone that reaches them does for them
 	// (ADR-035 §4). The heal is the caster's, so every rule of restoration applies (Combat Bible §6).
-	const EVeyraTeam SideTeam = VeyraTeams::TeamOf(Side);
-	const AActor* CasterBody = Caster.GetAvatarActor();
 	TArray<AActor*> Helped;
 	for (const FVeyraPreparedZone& Zone : Zones)
 	{
-		if (!Zone.AllyEffects.IsSet() || SideTeam == EVeyraTeam::None)
+		if (!Zone.AllyEffects.IsSet())
 		{
 			continue;
 		}
 		const FVeyraPreparedAllyEffects& Help = Zone.AllyEffects.GetValue();
 		const FVeyraPlacedShape Placed{ Zone.Shape, Frame.Origin, Frame.Direction };
-		const TArray<AActor*> Allies = VeyraShapes::GatherUnits(World, Placed, [SideTeam, CasterBody, &Help, &Helped](const AActor& Unit) {
-			return VeyraUnits::IsVanguard(&Unit) && VeyraTargeting::IsAlive(&Unit) && VeyraTeams::TeamOf(&Unit) == SideTeam
-				&& (Help.Reach == EVeyraAllyReach::CasterToo || &Unit != CasterBody) && !Helped.Contains(&Unit);
+		const TArray<AActor*> Allies = VeyraShapes::GatherUnits(World, Placed, [&Caster, &Help, &Helped](const AActor& Unit) {
+			return Reaches(Caster, Unit, Help) && !Helped.Contains(&Unit);
 		});
 		for (AActor* Ally : Allies)
 		{
 			Helped.Add(Ally);
-			UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Ally);
-			if (!Target)
-			{
-				continue;
-			}
-			if (Help.Heal > 0.0)
-			{
-				VeyraCombat::RestoreHealthFrom(Caster, *Target, Help.Heal);
-			}
-			for (const FVeyraStatusSpec& Status : Help.Statuses)
-			{
-				VeyraCombat::ApplyStatus(Caster, *Target, Status);
-			}
+			HelpAlly(Caster, *Ally, Help);
 		}
 	}
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("An area of %s hit %d unit(s) and helped %d ally(ies)."), *GetNameSafe(Side), Hit.Num(), Helped.Num());

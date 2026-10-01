@@ -98,6 +98,15 @@ namespace VeyraAreaDelivery
 	/** Zones for Caster at Rank. */
 	VEYRAABILITIES_API TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraAreaZoneTuning> Zones, int32 Rank);
 
+	/** What Caster does for its allies at Rank, from its power now (ADR-035 §4). */
+	VEYRAABILITIES_API FVeyraPreparedAllyEffects PrepareAllyEffects(const UAbilitySystemComponent& Caster, const FVeyraZoneAllyEffectsTuning& Allies, int32 Rank);
+
+	/** Whether Unit is an allied Vanguard of Caster's that Help reaches: living, on its side, and Caster's own body only for CasterToo. */
+	VEYRAABILITIES_API bool Reaches(const UAbilitySystemComponent& Caster, const AActor& Unit, const FVeyraPreparedAllyEffects& Help);
+
+	/** Server: Caster's heal and statuses for Ally, the heal through every rule of restoration (Combat Bible §6). */
+	VEYRAABILITIES_API void HelpAlly(UAbilitySystemComponent& Caster, AActor& Ally, const FVeyraPreparedAllyEffects& Help);
+
 	/**
 	 * Hits Caster's living enemies in the zones, placed at Frame's origin and facing, innermost first:
 	 * each unit takes the first zone that touches it, and no other. A zone with a per-Vanguard caster

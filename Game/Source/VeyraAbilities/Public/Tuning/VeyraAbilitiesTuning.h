@@ -1741,6 +1741,55 @@ struct FVeyraRideSlotTuning
 	FVeyraContentId Ability;
 };
 
+/** What a ride's body does to the units it meets, each once a ride (ADR-035 §6), as Tidebreaker's impact. */
+USTRUCT()
+struct FVeyraRideContactTuning
+{
+	GENERATED_BODY()
+
+	/** How far past its rider's edge it meets a unit's edge; at least 0. */
+	UPROPERTY()
+	double Reach = 0.0;
+
+	/** Seconds between its looks for what it meets; above 0. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/** On each enemy it meets, as its rider's hit: a knock aside is AsideFromPath, off the ride's line. */
+	UPROPERTY()
+	FVeyraEffectBundleTuning EnemyEffects;
+
+	/** The kinds of enemy unit it strikes; any when empty. */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> EnemyKinds;
+
+	/** At most one: what it does for each allied Vanguard it meets (ADR-035 §4). */
+	UPROPERTY()
+	TArray<FVeyraZoneAllyEffectsTuning> AllyEffects;
+};
+
+/** Areas a ride lays along its path (ADR-035 §6), as Tidebreaker's wake and riptide. */
+USTRUCT()
+struct FVeyraRideTrailTuning
+{
+	GENERATED_BODY()
+
+	/** Units of its rider's path between areas, the first as it sets off; above 0. */
+	UPROPERTY()
+	double Spacing = 0.0;
+
+	/** Seconds between its looks at how far its rider has come; above 0. */
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	/**
+	 * The area ability each one is, laid at its rider as its rider's hit at the ride's rank: its zones, then its
+	 * lingering area (ADR-018 §5). It lands at once and lingers.
+	 */
+	UPROPERTY()
+	FVeyraContentId Area;
+};
+
 /**
  * An ambush (ADR-030 §9), as Tavi's Ready or Not!: cast on an enemy Vanguard its caster damaged,
  * crowd-controlled or debuffed within RecentSeconds, the caster vanishes, Invisible and Untargetable,
@@ -1825,6 +1874,14 @@ struct FVeyraRideAbilityTuning
 	/** Innermost first: zones that erupt where the rider is as the ride ends, on every end but death, as the rider's hit (ADR-035 §3). */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> CrashZones;
+
+	/** At most one: what its body does to the units it meets (ADR-035 §6). */
+	UPROPERTY()
+	TArray<FVeyraRideContactTuning> Contact;
+
+	/** At most one: the areas it lays along its path (ADR-035 §6). */
+	UPROPERTY()
+	TArray<FVeyraRideTrailTuning> Trail;
 };
 
 /** An ability that ends its caster's ride at once (ADR-035 §3), as Breaking Wave's recast, which crashes it. */

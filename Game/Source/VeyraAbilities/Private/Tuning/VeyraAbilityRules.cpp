@@ -597,23 +597,27 @@ namespace
 					CheckShield(FString::Printf(TEXT("%s/casterShieldPerVanguard/%d"), *ZonePointer, ShieldIndex), Zones[Index].CasterShieldPerVanguard[ShieldIndex]);
 				}
 				CheckStatusIds(ZonePointer + TEXT("/casterStatusesPerVanguard"), Zones[Index].CasterStatusesPerVanguard);
-				// What it does for its caster's allies: a heal, statuses, or both (ADR-035 §4).
-				const TArray<FVeyraZoneAllyEffectsTuning>& AllyEffects = Zones[Index].AllyEffects;
-				if (AllyEffects.Num() > 1)
+				CheckAllyEffects(ZonePointer + TEXT("/allyEffects"), Zones[Index].AllyEffects);
+			}
+		}
+
+		/** What a zone or a ride's contact does for its caster's allies: a heal, statuses, or both (ADR-035 §4). */
+		void CheckAllyEffects(const FString& Pointer, TConstArrayView<FVeyraZoneAllyEffectsTuning> AllyEffects)
+		{
+			if (AllyEffects.Num() > 1)
+			{
+				Problem(Pointer, TEXT("holds at most one"));
+			}
+			for (int32 AllyIndex = 0; AllyIndex < AllyEffects.Num(); ++AllyIndex)
+			{
+				const FVeyraZoneAllyEffectsTuning& Allies = AllyEffects[AllyIndex];
+				const FString AllyPointer = FString::Printf(TEXT("%s/%d"), *Pointer, AllyIndex);
+				CheckByRank(AllyPointer + TEXT("/healByRank"), Allies.HealByRank);
+				CheckStatusIds(AllyPointer + TEXT("/statuses"), Allies.Statuses);
+				const bool bHeals = Allies.HealMagicPowerRatio > 0.0 || Allies.HealByRank.ContainsByPredicate([](double Amount) { return Amount > 0.0; });
+				if (Allies.HealMagicPowerRatio < 0.0 || Allies.HealByRank.ContainsByPredicate([](double Amount) { return Amount < 0.0; }) || (!bHeals && Allies.Statuses.IsEmpty()))
 				{
-					Problem(ZonePointer + TEXT("/allyEffects"), TEXT("holds at most one"));
-				}
-				for (int32 AllyIndex = 0; AllyIndex < AllyEffects.Num(); ++AllyIndex)
-				{
-					const FVeyraZoneAllyEffectsTuning& Allies = AllyEffects[AllyIndex];
-					const FString AllyPointer = FString::Printf(TEXT("%s/allyEffects/%d"), *ZonePointer, AllyIndex);
-					CheckByRank(AllyPointer + TEXT("/healByRank"), Allies.HealByRank);
-					CheckStatusIds(AllyPointer + TEXT("/statuses"), Allies.Statuses);
-					const bool bHeals = Allies.HealMagicPowerRatio > 0.0 || Allies.HealByRank.ContainsByPredicate([](double Amount) { return Amount > 0.0; });
-					if (Allies.HealMagicPowerRatio < 0.0 || Allies.HealByRank.ContainsByPredicate([](double Amount) { return Amount < 0.0; }) || (!bHeals && Allies.Statuses.IsEmpty()))
-					{
-						Problem(AllyPointer, TEXT("heals by at least 0 and a ratio of at least 0, and heals or gives a status"));
-					}
+					Problem(AllyPointer, TEXT("heals by at least 0 and a ratio of at least 0, and heals or gives a status"));
 				}
 			}
 		}
@@ -955,6 +959,38 @@ namespace
 				}
 			}
 			CheckZones(Pointer + TEXT("/crashZones"), Ride.CrashZones);
+			// What its body meets, and what it lays along its path (ADR-035 §6).
+			if (Ride.Contact.Num() > 1 || Ride.Trail.Num() > 1)
+			{
+				Problem(Pointer, TEXT("holds at most one contact and one trail"));
+			}
+			for (int32 Index = 0; Index < Ride.Contact.Num(); ++Index)
+			{
+				const FVeyraRideContactTuning& Contact = Ride.Contact[Index];
+				const FString ContactPointer = FString::Printf(TEXT("%s/contact/%d"), *Pointer, Index);
+				if (Contact.Reach < 0.0 || !(Contact.PulseSeconds > 0.0))
+				{
+					Problem(ContactPointer, TEXT("reach is at least 0 and pulseSeconds above 0"));
+				}
+				CheckEffects(ContactPointer + TEXT("/enemyEffects"), Contact.EnemyEffects);
+				CheckTargetKinds(ContactPointer + TEXT("/enemyKinds"), Contact.EnemyKinds);
+				CheckAllyEffects(ContactPointer + TEXT("/allyEffects"), Contact.AllyEffects);
+			}
+			for (int32 Index = 0; Index < Ride.Trail.Num(); ++Index)
+			{
+				const FVeyraRideTrailTuning& Trail = Ride.Trail[Index];
+				const FString TrailPointer = FString::Printf(TEXT("%s/trail/%d"), *Pointer, Index);
+				// It looks at least once per spacing at its rider's set speed, so one area a look keeps pace.
+				if (!(Trail.Spacing > 0.0) || !(Trail.PulseSeconds > 0.0) || Trail.PulseSeconds * Ride.SetSpeed > Trail.Spacing)
+				{
+					Problem(TrailPointer, TEXT("spacing and pulseSeconds are above 0, and a pulse at the ride's set speed covers no more than its spacing"));
+				}
+				const FVeyraAreaAbilityTuning* Area = Tuning.Area.Find(Trail.Area);
+				if (!Area || Area->Linger.IsEmpty() || Area->DelaySeconds > 0.0 || Area->ChannelTicks > 1)
+				{
+					Problem(TrailPointer + TEXT("/area"), FString::Printf(TEXT("names \"%s\": an area ability that lands at once and lingers"), *Trail.Area.ToString()));
+				}
+			}
 		}
 
 		void CheckAttach(const FString& Pointer, const FVeyraAttachAbilityTuning& Attach)

@@ -298,18 +298,20 @@
           "type": "array",
           "minItems": 0,
           "maxItems": 1,
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "required": ["healByRank", "healMagicPowerRatio", "statuses", "reach"],
-            "properties": {
-              "healByRank": { "description": "Health each ally regains, by rank, before Magic Power; 0 with no ratio for no heal.", "$ref": "#/definitions/byRank" },
-              "healMagicPowerRatio": { "description": "Added to the heal for each point of the caster's Magic Power at Commit.", "type": "number", "minimum": 0 },
-              "statuses": { "$ref": "#/definitions/statusIds" },
-              "reach": { "description": "OthersOnly: allied Vanguards, the caster apart. CasterToo: the caster among them.", "type": "string", "enum": ["OthersOnly", "CasterToo"] }
-            }
-          }
+          "items": { "$ref": "#/definitions/allyEffects" }
         }
+      }
+    },
+    "allyEffects": {
+      "description": "What a zone or a ride's contact does for its caster's allied Vanguards, each once: its caster's heal by rank plus Magic Power, and statuses (ADR-035 §4).",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["healByRank", "healMagicPowerRatio", "statuses", "reach"],
+      "properties": {
+        "healByRank": { "description": "Health each ally regains, by rank, before Magic Power; 0 with no ratio for no heal.", "$ref": "#/definitions/byRank" },
+        "healMagicPowerRatio": { "description": "Added to the heal for each point of the caster's Magic Power at Commit.", "type": "number", "minimum": 0 },
+        "statuses": { "$ref": "#/definitions/statusIds" },
+        "reach": { "description": "OthersOnly: allied Vanguards, the caster apart. CasterToo: the caster among them.", "type": "string", "enum": ["OthersOnly", "CasterToo"] }
       }
     },
     "shield": {
@@ -1068,7 +1070,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "setSpeed", "turnRateDegreesPerSecond", "durationSeconds", "decaySeconds", "riderStatuses", "mounted", "vehicle", "crashZones"],
+          "required": ["provenance", "cast", "setSpeed", "turnRateDegreesPerSecond", "durationSeconds", "decaySeconds", "riderStatuses", "mounted", "vehicle", "crashZones", "contact", "trail"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -1080,7 +1082,41 @@
             "mounted": { "description": "The mounted actions, one per basic ability's slot.", "type": "array", "minItems": 0, "maxItems": 3,
               "items": { "type": "object", "additionalProperties": false, "required": ["slot", "ability"], "properties": { "slot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] }, "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } } } },
             "vehicle": { "description": "At most one: the skillshot its vehicle goes on as along the rider's heading as the ride ends.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
-            "crashZones": { "description": "Innermost first: zones that erupt where the rider is as the ride ends, on every end but death, as the rider's hit (ADR-035 §3).", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } }
+            "crashZones": { "description": "Innermost first: zones that erupt where the rider is as the ride ends, on every end but death, as the rider's hit (ADR-035 §3).", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } },
+            "contact": {
+              "description": "At most one: what its rider's body does to the units it meets, each once a ride (ADR-035 §6).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["reach", "pulseSeconds", "enemyEffects", "enemyKinds", "allyEffects"],
+                "properties": {
+                  "reach": { "description": "How far past the rider's edge it meets a unit's edge.", "type": "number", "minimum": 0 },
+                  "pulseSeconds": { "description": "Seconds between its looks for what it meets.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "enemyEffects": { "description": "On each enemy it meets, as its rider's hit; a knock aside is AsideFromPath, off the ride's line.", "$ref": "#/definitions/effects" },
+                  "enemyKinds": { "description": "The kinds of enemy unit it strikes; any when empty.", "type": "array", "minItems": 0, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker", "Companion"] } },
+                  "allyEffects": { "description": "At most one: what it does for each allied Vanguard it meets.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/allyEffects" } }
+                }
+              }
+            },
+            "trail": {
+              "description": "At most one: an area ability laid along its path every spacing units, the first as it sets off, at its rider as its rider's hit (ADR-035 §6).",
+              "type": "array",
+              "minItems": 0,
+              "maxItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["spacing", "pulseSeconds", "area"],
+                "properties": {
+                  "spacing": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "pulseSeconds": { "description": "Seconds between its looks at how far its rider has come; at its set speed a pulse covers no more than its spacing.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "area": { "description": "An area ability that lands at once and lingers.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+                }
+              }
+            }
           }
         }
       }
