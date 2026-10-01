@@ -1,5 +1,6 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Companions/VeyraCompanion.h"
 #include "Companions/VeyraCompanionSubsystem.h"
@@ -293,6 +294,26 @@ namespace VeyraVanguardsTests
 			AVeyraVanguardCharacter& Hunter = World.Spawn(EVeyraTeam::B, FVector(MarekFixture::Near * 10.0, 0.0, 0.0));
 			ASSERT_THAT(IsTrue(FMarekTestRig::Hit(*Hunter.GetAbilitySystemComponent(), Nix, MarekFixture::Lethal)));
 			ASSERT_THAT(IsFalse(VeyraCombat::HasStatusFrom(Rig->Marek, Rig->Tuning().BoostStatus, Rig->Abilities()), TEXT("Hell on a Leash ends")));
+		}
+
+		TEST_METHOD(AfterHisWholeKitHeStillAttacks)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(MarekFixture::Near, 0.0, 0.0));
+			const TPair<EVeyraAbilitySlot, const TCHAR*> Kit[] = { { EVeyraAbilitySlot::Q, TEXT("marek_witchfire") }, { EVeyraAbilitySlot::W, TEXT("marek_hunt") },
+				{ EVeyraAbilitySlot::E, TEXT("marek_cross_the_chain") }, { EVeyraAbilitySlot::R, TEXT("marek_hell_on_a_leash") } };
+			for (const TPair<EVeyraAbilitySlot, const TCHAR*>& Each : Kit)
+			{
+				const EVeyraCastRejection Cast = FArchetypeTestWorld::CastAt(*Rig->Marek, Each.Key, Enemy.GetActorLocation());
+				ASSERT_THAT(IsTrue(Cast == EVeyraCastRejection::None, *FString::Printf(TEXT("%s: %s"), Each.Value, LexToString(Cast))));
+				const FVeyraCastTuning* Tuning = VeyraAbilityRules::FindCast(UVeyraAbilitiesTuningSubsystem::Get(), FMarekTestRig::Id(Each.Value));
+				Rig->Wait((Tuning ? Tuning->WindupSeconds + Tuning->RecoverySeconds : 0.0) + 3.0 * MarekFixture::Step);
+			}
+			const UVeyraBasicAttackComponent* Attacks = Rig->Marek->GetPlayerState()->FindComponentByClass<UVeyraBasicAttackComponent>();
+			ASSERT_THAT(IsNotNull(Attacks));
+			const EVeyraAttackRejection Attack = Attacks->CheckAttack(&Enemy);
+			ASSERT_THAT(IsTrue(Attack == EVeyraAttackRejection::None || Attack == EVeyraAttackRejection::OnCooldown,
+				*FString::Printf(TEXT("his attack is refused: %d"), static_cast<int32>(Attack))));
 		}
 	};
 }

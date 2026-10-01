@@ -17,8 +17,10 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Misc/CommandLine.h"
 #include "Misc/Parse.h"
+#include "Movement/VeyraMovementComponent.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Progression/VeyraProgressionTuningSubsystem.h"
+#include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Tuning/VeyraMatchTuningSubsystem.h"
@@ -51,6 +53,8 @@ namespace
 	constexpr double KitRetryRealSeconds = 0.25;
 	// How long a cast may go unanswered, neither committed nor refused, with its caster free again.
 	constexpr double KitUnansweredRealSeconds = 3.0;
+	// Between the kit's attack orders until one commits: no faster than the server allows orders.
+	constexpr double KitAttackRetryRealSeconds = 1.0;
 
 	/** -VeyraSmokeKit: whether a refused cast may succeed if tried again a moment later. */
 	bool IsPassingKitRejection(EVeyraCastRejection Rejection)
@@ -152,6 +156,26 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 				Where += FString::Printf(TEXT("; the nearest enemy is %.0f away at %s"), FVector::Dist2D(Vanguard->GetActorLocation(), Nearest->GetActorLocation()),
 					*Nearest->GetActorLocation().ToCompactString());
 			}
+			else
+			{
+				Where += TEXT("; it sees no enemy Vanguard");
+			}
+			// What this client knows of why it is held: refused orders, its attack and cast, its movement and its statuses.
+			const APlayerState* Own = Controller->PlayerState;
+			const UVeyraBasicAttackComponent* Attacks = Own ? Own->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
+			const UVeyraCastStateComponent* CastState = Own ? Own->FindComponentByClass<UVeyraCastStateComponent>() : nullptr;
+			const UVeyraStatusComponent* Statuses = Own ? Own->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+			const UVeyraMovementComponent* Movement = Vanguard->FindComponentByClass<UVeyraMovementComponent>();
+			TArray<FString> Held;
+			for (const FVeyraStatusEntry& Entry : Statuses ? Statuses->GetLedger().Entries : TArray<FVeyraStatusEntry>())
+			{
+				Held.Add(Entry.Id.ToString());
+			}
+			Where += FString::Printf(TEXT("; %d order(s) refused (last: %s), %d cast(s) refused (last: %s); attack phase %d, cast phase %d, movement %s; statuses: %s"),
+				Controller->GetOrderRejectionCount(), LexToString(Controller->GetLastOrderRejection()), Controller->GetCastRejectionCount(),
+				LexToString(Controller->GetLastCastRejection()), Attacks ? static_cast<int32>(Attacks->GetState().Phase) : -1,
+				CastState ? static_cast<int32>(CastState->GetState().Phase) : -1, Movement && Movement->IsMovementLocked() ? TEXT("locked") : TEXT("free"),
+				Held.IsEmpty() ? TEXT("none") : *FString::Join(Held, TEXT(", ")));
 		}
 		Finish(false, FString::Printf(TEXT("timed out waiting at step %d%s"), static_cast<int32>(Step), *Where));
 		return false;
@@ -282,11 +306,17 @@ bool UVeyraSmokeClientSubsystem::Tick(float /*DeltaSeconds*/)
 		{
 			Advance(EStep::KitDamage, TEXT("a basic attack committed"));
 		}
-		else if (Controller->GetOrderRejectionCount() > KitRejectionsBefore)
+		else if (FPlatformTime::Seconds() >= KitAttackRetryAt)
 		{
-			// The order was refused, perhaps while crowd controlled: order it again at whoever is nearest.
-			KitRejectionsBefore = Controller->GetOrderRejectionCount();
-			Controller->IssueAttackOrder(FindNearestEnemyBody(*Controller, *GameState, Vanguard->GetActorLocation()));
+			// Until an attack commits, the order goes again now and then, at whoever is nearest, as a player
+			// clicks again: one refused while crowd controlled, or one the server let go without a word, as it
+			// lets go of an order whose target slips into fog (Vision Bible §1). The same target again changes
+			// nothing under way.
+			if (AActor* Nearest = FindNearestEnemyBody(*Controller, *GameState, Vanguard->GetActorLocation()))
+			{
+				Controller->IssueAttackOrder(Nearest);
+			}
+			KitAttackRetryAt = FPlatformTime::Seconds() + KitAttackRetryRealSeconds;
 		}
 		break;
 	}
@@ -457,8 +487,8 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 			bKitAskedForResource = false;
 			if (++KitSlotIndex == UE_ARRAY_COUNT(VeyraAbilitySlots::All))
 			{
-				KitRejectionsBefore = Controller.GetOrderRejectionCount();
 				Controller.IssueAttackOrder(FindNearestEnemyBody(Controller, GameState, Vanguard.GetActorLocation()));
+				KitAttackRetryAt = FPlatformTime::Seconds() + KitAttackRetryRealSeconds;
 				Advance(EStep::KitAttack, TEXT("cast Q, W, E and R; ordered a basic attack"));
 			}
 		}

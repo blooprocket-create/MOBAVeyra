@@ -5,8 +5,10 @@
 
 #if ENABLE_PIE_NETWORK_TEST
 
+#include "Attacks/VeyraBasicAttackComponent.h"
 #include "Companions/VeyraCompanion.h"
 #include "Companions/VeyraCompanionSubsystem.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tests/Net/VeyraMatchNetTestHelpers.h"
 #include "Tests/Net/VeyraNetTestHelpers.h"
@@ -31,12 +33,17 @@ namespace VeyraNetTests
 		int32 MoverId = INDEX_NONE;
 		FVector Start = FVector::ZeroVector;
 		FVector Ahead = FVector::ZeroVector;
+		FVanguardDuel Duel;
 
 		// Fixture values: a short preparation, how far Marek walks toward the lane's centre before he turns
-		// back, and a comparison allowance for float positions.
+		// back, a comparison allowance for float positions, the level that opens the first ultimate rank, and
+		// how far apart the duel's Vanguards stand: beyond his attack's range but within his sight, so his
+		// attack order chases first.
 		static constexpr double ShortPreparationSeconds = 0.1;
 		static constexpr double WalkDistance = 900.0;
 		static constexpr double PositionSlack = 1.0;
+		static constexpr int32 UltimateLevel = 6;
+		static constexpr double ChaseDistance = 900.0;
 
 		BEFORE_EACH()
 		{
@@ -103,6 +110,46 @@ namespace VeyraNetTests
 				.UntilServer(TEXT("He arrives"), [this](FState& State) { return IsNear2D(FindVanguard(State.World, MoverId), Ahead); })
 				.ThenClient(TEXT("He turns back, where Nix followed him"), 0, [this](FState& State) { LocalControllerOf(State.World)->IssueMoveOrder(Start); })
 				.UntilServer(TEXT("And arrives again"), [this](FState& State) { return IsNear2D(FindVanguard(State.World, MoverId), Start); });
+		}
+
+		/** Server: whether the first participant's Ability has committed, its cooldown under way. */
+		static bool HasCommitted(const FState& State, const TCHAR* Ability)
+		{
+			const UVeyraCooldownComponent* Cooldowns = ParticipantOf(State, 0)->FindComponentByClass<UVeyraCooldownComponent>();
+			return Cooldowns && Cooldowns->GetRemainingSecondsNow(ContentId(Ability)) > 0.0;
+		}
+
+		/** Whether the attack component on Participant's state is in its backswing: an attack has committed. */
+		static bool IsInBackswing(const APlayerState* Participant)
+		{
+			const UVeyraBasicAttackComponent* Attacks = Participant ? Participant->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
+			return Attacks && Attacks->GetState().Phase == EVeyraAttackPhase::Backswing;
+		}
+
+		/** As the kit smoke plays him: each cast the moment the one before commits, then a basic attack his client sees commit. */
+		void PlayTheKitThenAttack(double Distance)
+		{
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.UntilServer(TEXT("Nix forms for the caster"), [](FState& State) { return NixOf(State, 0) != nullptr; })
+				.ThenServer(TEXT("Prepare the duel"), [this, Distance](FState& State) { ASSERT_THAT(IsTrue(Duel.Prepare(State, ContentId(TEXT("marek")), UltimateLevel, Distance))); })
+				.ThenClient(TEXT("Witchfire"), 0, [this](FState& State) { Duel.CastAtTheTarget(State.World, EVeyraAbilitySlot::Q); })
+				.UntilServer(TEXT("Witchfire commits"), [](FState& State) { return HasCommitted(State, TEXT("marek_witchfire")); })
+				.ThenClient(TEXT("Hunt"), 0, [this](FState& State) { Duel.CastAtTheTarget(State.World, EVeyraAbilitySlot::W); })
+				.UntilServer(TEXT("Hunt commits"), [](FState& State) { return HasCommitted(State, TEXT("marek_hunt")); })
+				.ThenClient(TEXT("Cross the Chain"), 0, [this](FState& State) { Duel.CastAtTheTarget(State.World, EVeyraAbilitySlot::E); })
+				.UntilServer(TEXT("Cross the Chain commits"), [](FState& State) { return HasCommitted(State, TEXT("marek_cross_the_chain")); })
+				.ThenClient(TEXT("Hell on a Leash"), 0, [this](FState& State) { Duel.CastAtTheTarget(State.World, EVeyraAbilitySlot::R); })
+				.UntilServer(TEXT("Hell on a Leash commits"), [](FState& State) { return HasCommitted(State, TEXT("marek_hell_on_a_leash")); })
+				.ThenClient(TEXT("Attack the enemy"), 0, [this](FState& State) { LocalControllerOf(State.World)->IssueAttackOrder(FindVanguard(State.World, Duel.TargetId)); })
+				.UntilServer(TEXT("His attack commits"), [](FState& State) { return IsInBackswing(ParticipantOf(State, 0)); })
+				.UntilClient(TEXT("And his client sees it"), 0, [](FState& State) { return IsInBackswing(LocalControllerOf(State.World)->PlayerState); });
+		}
+
+		TEST_METHOD(AfterHisWholeKitHeChasesAndAttacks)
+		{
+			// The committed sight radii, so the fog gate decides what each side receives (ADR-016).
+			Tuning->Vision.Tuning = Tuning->Vision.Committed;
+			PlayTheKitThenAttack(ChaseDistance);
 		}
 	};
 }
