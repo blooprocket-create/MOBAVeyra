@@ -54,6 +54,9 @@ public:
 	static const FVeyraPlacementAbilityTuning* FindPlacement(const FVeyraContentId& Ability);
 	static const FVeyraBlinkAbilityTuning* FindBlink(const FVeyraContentId& Ability);
 
+	/** The companion Id defines (ADR-034 §3), or null. */
+	static const FVeyraCompanionTuning* FindCompanion(const FVeyraContentId& Id);
+
 	/**
 	 * Status Id as Combat applies it from a source at SourceLevel, or nothing if the statuses map has
 	 * no such status. Only a damage-over-time status's ticks read the Level.

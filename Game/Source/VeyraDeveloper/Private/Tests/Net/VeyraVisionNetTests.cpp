@@ -11,6 +11,8 @@
 #include "Algo/AllOf.h"
 #include "Algo/Count.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Companions/VeyraCompanion.h"
+#include "Companions/VeyraCompanionSubsystem.h"
 #include "EngineUtils.h"
 #include "Recall/VeyraRecallComponent.h"
 #include "State/VeyraVisionTeamState.h"
@@ -25,6 +27,7 @@
 #include "VeyraPlayerState.h"
 #include "VeyraVanguardCharacter.h"
 #include "VeyraVisionSubsystem.h"
+#include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tests/Combat/VeyraCombatTestHelpers.h"
 #include "Wards/VeyraWard.h"
 
@@ -42,6 +45,7 @@ namespace VeyraNetTests
 		FPIENetworkComponent<FState> Network{ TestRunner, TestCommandBuilder, bInitializing };
 		TUniquePtr<FScopedExpectedPlayers> ExpectedPlayers;
 		TUniquePtr<FScopedMatchTuning> Tuning;
+		TUniquePtr<FScopedAbilitiesTuning> AbilitiesTuning;
 		FVeyraGreyboxLayout Layout;
 
 		static constexpr int32 PlayerCount = 3;
@@ -74,6 +78,7 @@ namespace VeyraNetTests
 
 		AFTER_EACH()
 		{
+			AbilitiesTuning.Reset();
 			Tuning.Reset();
 			ExpectedPlayers.Reset();
 		}
@@ -263,6 +268,64 @@ namespace VeyraNetTests
 				.ThenServer(TEXT("It walks within its detection radius of the observer"), [this, Close](FState& State) { Place(State, EnemyIndex, Close); })
 				.UntilClients(TEXT("It reaches the observer's whole side again"), [this](FState& State) {
 					return Algo::AllOf(Participants, [&State](const FParticipant& Other) { return HasVanguard(State.World, Other.PlayerId); });
+				});
+		}
+
+		/** Whether this machine has the companion of the participant with PlayerId. */
+		static bool HasCompanionOf(const UWorld* World, int32 PlayerId)
+		{
+			for (TActorIterator<AVeyraCompanion> It(World); It; ++It)
+			{
+				const APlayerState* Whose = It->GetOwnerState();
+				if (Whose && Whose->GetPlayerId() == PlayerId)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		/** The enemy's companion on the server, or null. */
+		AVeyraCompanion* EnemyCompanion(const FState& State) const
+		{
+			const AVeyraPlayerState* Enemy = ServerControllerOf(State, EnemyIndex)->GetPlayerState<AVeyraPlayerState>();
+			const UVeyraCompanionSubsystem* Keeper = State.World->GetSubsystem<UVeyraCompanionSubsystem>();
+			return Enemy && Keeper ? Keeper->Find(*Enemy->GetAbilitySystemComponent()) : nullptr;
+		}
+
+		TEST_METHOD(AnEnemyCompanionReachesOnlyTheSideThatSeesIt)
+		{
+			// A test companion beside the committed abilities, which the match's Vanguards hold.
+			const FVeyraContentId Pet = FVeyraContentId::FromText(TEXT("test_pet")).GetValue();
+			FVeyraAbilitiesTuning WithPet = UVeyraAbilitiesTuningSubsystem::Get();
+			WithPet.Companions.Add(Pet, VeyraAbilitiesTests::ExampleCompanion());
+			AbilitiesTuning = MakeUnique<FScopedAbilitiesTuning>();
+			AbilitiesTuning->Tuning = MoveTemp(WithPet);
+			const FVector2D Observer(-SightRadius(), 0.0);
+			const FVector2D Bystander(-SightRadius(), SightRadius() / 3.0);
+			const FVector2D Far(SightRadius() * 1.5, 0.0);
+			IdentifyPlayers(StartMatch(Network, Layout, EVeyraMatchPhase::Live))
+				.ThenServer(TEXT("Part the sides; the enemy keeps a companion"), [this, Observer, Bystander, Far, Pet](FState& State) {
+					Place(State, ObserverIndex, Observer);
+					Place(State, BystanderIndex, Bystander);
+					Place(State, EnemyIndex, Far);
+					AVeyraPlayerState* Enemy = ServerControllerOf(State, EnemyIndex)->GetPlayerState<AVeyraPlayerState>();
+					ASSERT_THAT(IsTrue(Enemy && State.World->GetSubsystem<UVeyraCompanionSubsystem>()->Summon(*Enemy->GetAbilitySystemComponent(), Pet)));
+				})
+				.UntilClients(TEXT("Only the enemy's side has its companion"), [this](FState& State) {
+					const bool bHas = HasCompanionOf(State.World, Participants[EnemyIndex].PlayerId);
+					return Participants[State.ClientIndex].Team == Participants[EnemyIndex].Team ? bHas : !bHas;
+				})
+				.ThenServer(TEXT("The companion steps into the observer's sight, its owner far off"), [this, Observer](FState& State) {
+					AVeyraCompanion* Companion = EnemyCompanion(State);
+					ASSERT_THAT(IsNotNull(Companion));
+					const FVector Seen(Observer.X + SightRadius() / 2.0, Observer.Y, Companion->GetActorLocation().Z);
+					Companion->SetActorLocation(Seen, /*bSweep*/ false, nullptr, ETeleportType::TeleportPhysics);
+				})
+				.UntilClients(TEXT("The observer's side has the companion, and still not its owner"), [this](FState& State) {
+					const FParticipant& Enemy = Participants[EnemyIndex];
+					const bool bOwnSide = Participants[State.ClientIndex].Team == Enemy.Team;
+					return HasCompanionOf(State.World, Enemy.PlayerId) && (bOwnSide || !HasVanguard(State.World, Enemy.PlayerId));
 				});
 		}
 

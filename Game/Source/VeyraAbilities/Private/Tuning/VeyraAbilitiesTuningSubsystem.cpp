@@ -114,6 +114,11 @@ const FVeyraBlinkAbilityTuning* UVeyraAbilitiesTuningSubsystem::FindBlink(const 
 	return Get().Blink.Find(Ability);
 }
 
+const FVeyraCompanionTuning* UVeyraAbilitiesTuningSubsystem::FindCompanion(const FVeyraContentId& Id)
+{
+	return Get().Companions.Find(Id);
+}
+
 TOptional<FVeyraStatusSpec> UVeyraAbilitiesTuningSubsystem::FindStatus(const FVeyraContentId& Id, int32 SourceLevel)
 {
 	const FVeyraStatusTuning* Status = Get().Statuses.Find(Id);

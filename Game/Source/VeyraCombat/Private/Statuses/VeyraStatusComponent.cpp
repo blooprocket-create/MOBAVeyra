@@ -39,6 +39,8 @@ namespace
 			return UVeyraStatusEffect::DisplacementMultiplierName;
 		case EVeyraStatusKind::HealthRegeneration:
 			return UVeyraStatusEffect::HealthRegenMultiplierName;
+		case EVeyraStatusKind::MaxHealth:
+			return UVeyraStatusEffect::MaxHealthMultiplierName;
 		case EVeyraStatusKind::DamageAmplification:
 		case EVeyraStatusKind::Weaken:
 			return UVeyraStatusEffect::OutgoingDamageMultiplierName;
@@ -538,7 +540,7 @@ FActiveGameplayEffectHandle UVeyraStatusComponent::ApplyEffect(UAbilitySystemCom
 		for (const FName Name : { UVeyraStatusEffect::MoveSpeedMultiplierName, UVeyraStatusEffect::AttackSpeedMultiplierName,
 				 UVeyraStatusEffect::TenacityMultiplierName, UVeyraStatusEffect::IncomingDamageMultiplierName, UVeyraStatusEffect::DisplacementMultiplierName,
 				 UVeyraStatusEffect::HealthRegenMultiplierName, UVeyraStatusEffect::OutgoingDamageMultiplierName,
-				 UVeyraStatusEffect::MagicResistRetainedMultiplierName })
+				 UVeyraStatusEffect::MagicResistRetainedMultiplierName, UVeyraStatusEffect::MaxHealthMultiplierName })
 		{
 			Spec.Data->SetSetByCallerMagnitude(Name, Unchanged);
 		}

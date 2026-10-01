@@ -725,6 +725,27 @@ namespace
 			}
 		}
 
+		void CheckCompanion(const FString& Pointer, const FVeyraCompanionTuning& Companion)
+		{
+			for (const FString& Each : VeyraBasicAttacks::Validate(Companion.BasicAttack))
+			{
+				Problem(Pointer + TEXT("/basicAttack"), Each);
+			}
+			// It fights, follows and holds within its leash, so the leash reaches past where it keeps.
+			if (!(Companion.LeashRange > Companion.FollowDistance))
+			{
+				Problem(Pointer + TEXT("/leashRange"), TEXT("must be beyond followDistance"));
+			}
+			if (!(Companion.AcquireRange >= Companion.BasicAttack.Range))
+			{
+				Problem(Pointer + TEXT("/acquireRange"), TEXT("must reach at least as far as its basic attack"));
+			}
+			if (Companion.Stats.MaxResource != 0.0 || Companion.Growth.MaxResource != 0.0)
+			{
+				Problem(Pointer + TEXT("/stats/maxResource"), TEXT("a companion has no resource"));
+			}
+		}
+
 		void CheckRide(const FString& Pointer, const FVeyraRideAbilityTuning& Ride)
 		{
 			CheckCast(Pointer + TEXT("/cast"), Ride.Cast);
@@ -1013,6 +1034,10 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	for (const TPair<FVeyraContentId, FVeyraBlinkAbilityTuning>& Entry : Tuning.Blink)
 	{
 		Checker.CheckBlink(TEXT("/blink/") + Entry.Key.ToString(), Entry.Value);
+	}
+	for (const TPair<FVeyraContentId, FVeyraCompanionTuning>& Entry : Tuning.Companions)
+	{
+		Checker.CheckCompanion(TEXT("/companions/") + Entry.Key.ToString(), Entry.Value);
 	}
 	Checker.CheckEachIdInOneArchetype();
 	Checker.CheckFluxSpells();

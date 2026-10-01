@@ -50,6 +50,11 @@ Combat applies it wherever it attributes:
 
 Killing an owned unit is no kill of its owner and no takedown (§32). Its death is announced like any death, and every reward and statistic reads its kind and ignores it.
 
+**`VeyraCombat::Withdraw`** ends a living unit's life at nobody's hand, as a companion banished with its owner:
+- its temporary effects and records end, as at a death;
+- no death is announced, so nothing is credited or rewarded;
+- `Revive` brings it back.
+
 ### 2. A status that raises Max Health (Combat)
 
 **The MaxHealth status kind** multiplies its holder's Max Health by one plus its magnitude while it holds. Health keeps its share of the maximum as it changes, as for every Max Health change.
@@ -69,7 +74,7 @@ Killing an owned unit is no kill of its owner and no takedown (§32). Its death 
 - it owns its Ability System Component (Minimal replication), the combat components a unit needs and a basic attack component;
 - it stands on its owner's side and is an owned unit.
 
-It inherits nothing else. Items, critical strikes, on-hit effects, lifesteal and its owner's buffs stay its owner's (§32).
+It inherits nothing else. Items, critical strikes, on-hit effects, lifesteal and its owner's buffs stay its owner's (§32). A companion carries no items, so the line Combat keeps for what a unit carries holds its share of its owner's Magic Power.
 
 **`UVeyraCompanionSubsystem`** (a world subsystem) keeps each owner's companion:
 - `Summon(Owner, Id)` asks for one. The subsystem forms it beside its owner once the owner has a living body.
@@ -77,7 +82,7 @@ It inherits nothing else. Items, critical strikes, on-hit effects, lifesteal and
   - banishes the companion when its owner dies;
   - reforms it beside its owner, at full Health, `reformSeconds` after it is killed, or as its owner revives, whichever is later;
   - keeps its grown stats and inherited Magic Power current.
-- A banished companion keeps its actor: dead, hidden, without collision, as Vision and every gatherer then pass it by.
+- A banished companion keeps its actor: dead (withdrawn, when it was not killed), hidden, without collision, as Vision and every gatherer then pass it by. The subsystem announces each banishment, so what ends with a companion can end.
 
 ### 4. A companion's behaviour (Abilities)
 
@@ -93,6 +98,7 @@ It inherits nothing else. Items, critical strikes, on-hit effects, lifesteal and
     3. the nearest other enemy unit.
   - It returns to the point between fights.
   - The hold ends when its time runs out, when it is recalled, when its owner moves beyond `leashRange`, or when it is banished.
+- **Structures:** it leaves them be, whatever its mode.
 - **Crowd control:** while crowd control locks its movement it holds, as a Fluxborn does.
 
 **Others' view of it:**
@@ -167,7 +173,7 @@ Marek joins the roster with Bound Together, Witchfire, Hunt, Cross the Chain and
 4. **Nix reforms** a fixed time after it is killed, or when Marek revives.
 5. **When Marek dies,** Nix is banished until he revives.
 6. **Killing Nix** pays nothing and is no takedown.
-7. **Towers and Fluxborn** treat Nix as they treat Fluxborn.
+7. **Towers and Fluxborn** treat Nix as they treat Fluxborn, and Nix leaves structures be.
 8. **Nix's last hits** pay Marek, and its damage counts in his statistics.
 9. **Bots ignore companions** for now; Marek's bot plays his kit.
 10. **Hell on a Leash** leaves out the second Cross the Chain charge, one of the bible's optional benefits.

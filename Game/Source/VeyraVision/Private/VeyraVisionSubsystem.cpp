@@ -137,6 +137,8 @@ namespace
 			return Sight.Structure;
 		case EVeyraUnitKind::Ward:
 			return Sight.Ward;
+		case EVeyraUnitKind::Companion:
+			return Sight.Companion;
 		case EVeyraUnitKind::Wildlife:
 		case EVeyraUnitKind::Objective:
 		case EVeyraUnitKind::Marker:
@@ -160,7 +162,7 @@ bool UVeyraVisionSubsystem::IsGated(const AActor& Unit)
 	const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
 	return Kind.IsSet() && Unit.IsA<APawn>()
 		&& (Kind.GetValue() == EVeyraUnitKind::Vanguard || Kind.GetValue() == EVeyraUnitKind::Fluxborn || Kind.GetValue() == EVeyraUnitKind::Wildlife
-			|| Kind.GetValue() == EVeyraUnitKind::Ward || Kind.GetValue() == EVeyraUnitKind::Marker);
+			|| Kind.GetValue() == EVeyraUnitKind::Ward || Kind.GetValue() == EVeyraUnitKind::Marker || Kind.GetValue() == EVeyraUnitKind::Companion);
 }
 
 bool UVeyraVisionSubsystem::IsInvisible(const AActor& Unit)

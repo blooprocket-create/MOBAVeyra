@@ -3,11 +3,13 @@
 #pragma once
 
 #include "Absorption/VeyraAbsorptionLedger.h"
+#include "Attacks/VeyraBasicAttackTypes.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Content/VeyraContentId.h"
 #include "Damage/VeyraDamageTypes.h"
 #include "Movement/VeyraForcedMovementTypes.h"
 #include "Shapes/VeyraShapes.h"
+#include "Stats/VeyraStatBlock.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Tuning/VeyraTuningProvenance.h"
 #include "UObject/ObjectMacros.h"
@@ -1781,13 +1783,71 @@ struct FVeyraStanceAbilityTuning
 	TArray<FVeyraStanceSlotTuning> Slots;
 };
 
+/**
+ * A Vanguard's companion (ADR-003's combat entity; ADR-034 §3), as Nix: its body, its stats and how they
+ * grow with its owner, what it holds of its owner's, its basic attack and its behaviour.
+ */
+USTRUCT()
+struct FVeyraCompanionTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	double CapsuleRadius = 0.0;
+
+	UPROPERTY()
+	double CapsuleHalfHeight = 0.0;
+
+	/** Its base stats at its owner's first level. It has no resource. */
+	UPROPERTY()
+	FVeyraStatBlock Stats;
+
+	/** What its base stats gain for each level its owner gains. */
+	UPROPERTY()
+	FVeyraStatBlock Growth;
+
+	/** The share of its owner's Magic Power it holds as its own, at least 0: all it inherits (Combat Bible §32). */
+	UPROPERTY()
+	double OwnerMagicPowerShare = 0.0;
+
+	UPROPERTY()
+	FVeyraBasicAttackProfile BasicAttack;
+
+	/** Following, how near its owner it keeps, edge to edge. */
+	UPROPERTY()
+	double FollowDistance = 0.0;
+
+	/** How far from its owner it fights, follows a target or holds a point. */
+	UPROPERTY()
+	double LeashRange = 0.0;
+
+	/** How far from itself, or from the point it holds, it looks for an enemy, edge to edge. */
+	UPROPERTY()
+	double AcquireRange = 0.0;
+
+	/** How lately its owner must have fought an enemy for it to prefer that enemy, in seconds. */
+	UPROPERTY()
+	double OwnerTargetSeconds = 0.0;
+
+	/** How long after it is killed it reforms beside its living owner, in seconds. */
+	UPROPERTY()
+	double ReformSeconds = 0.0;
+
+	/** How often it and its keeper think, in seconds of world time. */
+	UPROPERTY()
+	double ThinkSeconds = 0.0;
+};
+
 USTRUCT()
 struct FVeyraAbilitiesTuning
 {
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 18;
+	static constexpr int32 SchemaVersion = 19;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;
@@ -1839,6 +1899,10 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;
+
+	/** Companions, by ID (ADR-034 §3): no ability, so no archetype map. */
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraCompanionTuning> Companions;
 };
 
 /** The Abilities domain's rules for its tuning (ADR-008 §3, §7). */

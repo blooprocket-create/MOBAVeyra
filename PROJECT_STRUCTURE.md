@@ -148,6 +148,11 @@ M25b added ([ADR-033](Docs/ADR/ADR-033-charge-attack-spent-statuses-movement-fie
 - Combat's movement fields (`Movement/UVeyraMovementFieldSubsystem`), which bend enemy dashes and displacements toward their centre, held by lingering areas that name one;
 - auras on allied Fluxborn, the AttackShortensCooldown status kind (`VeyraAbilities::ShortenSoonestCooldown`), and self-buffs that drain their caster's resource and end as it runs out.
 
+M26a added ([ADR-034](Docs/ADR/ADR-034-companions-for-marek-and-nix.md)), ADR-003's combat entity:
+- in Combat, owned units (`Entities/IVeyraOwnedUnit`, which the placed marker implements) and `VeyraCombat::ResponsibleFor`: an owned unit's hostile actions, contributions and kills are its owner's (the death event's `Killer`, with the striking unit as `LethalUnit`, and hostile damage's `Responsible`), while dealt damage keeps the unit that hit, so item effects never fire from it; `VeyraCombat::Withdraw`, a death at nobody's hand with nothing announced; and the MaxHealth status kind;
+- the Companion unit kind, ranked with Fluxborn by Fluxborn, drawn as a unit on the minimap and seen through Vision's `sight.companion`;
+- in Abilities, `Companions/`: `AVeyraCompanion` (a character with its own Health and basic attack, on its owner's side, inheriting only `ownerMagicPowerShare`), its server controller (follow its owner and fight what the owner fought lately, or hold a point and fight what comes near), the pure `VeyraCompanionRules`, and `UVeyraCompanionSubsystem`, which forms a companion beside its owner, banishes it with its owner or when it is killed, reforms it, and keeps it grown to its owner's Level; Abilities.json's `companions` map.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

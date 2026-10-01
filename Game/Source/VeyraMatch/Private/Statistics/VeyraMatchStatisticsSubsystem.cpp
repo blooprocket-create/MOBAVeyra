@@ -14,6 +14,7 @@
 #include "Structures/VeyraStructure.h"
 #include "Teams/VeyraTeam.h"
 #include "Units/VeyraUnit.h"
+#include "VeyraCombatVerbs.h"
 #include "VeyraGameState.h"
 #include "VeyraMatchLog.h"
 #include "VeyraPlayerState.h"
@@ -374,8 +375,10 @@ void UVeyraMatchStatisticsSubsystem::OnDamageResolved(const FVeyraDamageResoluti
 	{
 		VeyraStatisticsService::AddByType(Taker->Statistics.DamageTaken, Event.Type, Removed);
 	}
-	FRecord* Dealer = Find(Event.Source.Get());
-	if (!Dealer || Event.Source.Get() == Target)
+	// A companion's damage counts as its owner's (ADR-034 §1).
+	const UAbilitySystemComponent* Responsible = VeyraCombat::ResponsibleFor(Event.Source.Get());
+	FRecord* Dealer = Find(Responsible);
+	if (!Dealer || Responsible == Target)
 	{
 		return;
 	}

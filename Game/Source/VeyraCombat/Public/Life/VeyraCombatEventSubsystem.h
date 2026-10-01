@@ -26,8 +26,14 @@ struct FVeyraDeathEvent
 {
 	TWeakObjectPtr<UAbilitySystemComponent> Victim;
 
-	/** Whoever dealt the lethal damage: a Vanguard, a Fluxborn or a structure. Null for damage with no source. */
+	/**
+	 * Whoever answers for the lethal damage (ADR-034 §1): a Vanguard, a Fluxborn or a structure; for an
+	 * owned unit's hit, its owner, so a companion's last hit is its owner's. Null for damage with no source.
+	 */
 	TWeakObjectPtr<UAbilitySystemComponent> Killer;
+
+	/** The unit whose hit was lethal: the Killer, or the owned unit that struck for it. */
+	TWeakObjectPtr<UAbilitySystemComponent> LethalUnit;
 
 	/**
 	 * The enemy Vanguard credited with the kill (Combat Bible §18): the Killer when it is one;
@@ -168,9 +174,16 @@ struct FVeyraSpellShieldBlocked
 /** Damage dealt by a unit to a unit on the opposing side, as it lands. */
 struct FVeyraHostileDamageEvent
 {
+	/** The unit whose hit it was, as a companion. */
 	TWeakObjectPtr<UAbilitySystemComponent> Source;
 	TWeakObjectPtr<UAbilitySystemComponent> Target;
 	EVeyraDamageDelivery Delivery = EVeyraDamageDelivery::Ability;
+
+	/**
+	 * The unit Source answers to (ADR-034 §1): its owner for an owned unit, else Source. Towers and
+	 * Fluxborn answer it, so an owned unit's damage draws their aggression to its owner (Combat Bible §33).
+	 */
+	TWeakObjectPtr<UAbilitySystemComponent> Responsible;
 };
 
 /**

@@ -89,3 +89,8 @@ AVeyraTestObjective::AVeyraTestObjective(const FObjectInitializer& ObjectInitial
 	: Super(ObjectInitializer)
 {
 }
+
+AVeyraTestOwnedUnit::AVeyraTestOwnedUnit(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+}

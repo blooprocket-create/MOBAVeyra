@@ -17,7 +17,7 @@ namespace
 	bool IsChangeKind(EVeyraStatusKind Kind)
 	{
 		return Kind == EVeyraStatusKind::MoveSpeed || Kind == EVeyraStatusKind::AttackSpeed || Kind == EVeyraStatusKind::HealthRegeneration
-			|| Kind == EVeyraStatusKind::DamageAmplification;
+			|| Kind == EVeyraStatusKind::DamageAmplification || Kind == EVeyraStatusKind::MaxHealth;
 	}
 }
 
@@ -64,6 +64,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 	case EVeyraStatusKind::MoveSpeed:
 	case EVeyraStatusKind::AttackSpeed:
 	case EVeyraStatusKind::HealthRegeneration:
+	case EVeyraStatusKind::MaxHealth:
 		bMagnitudeValid &= Magnitude != 0.0 && AllStacks > -1.0;
 		break;
 	case EVeyraStatusKind::DamageAmplification:

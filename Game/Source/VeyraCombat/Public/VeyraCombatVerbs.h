@@ -154,6 +154,13 @@ namespace VeyraCombat
 	VEYRACOMBAT_API bool Revive(UAbilitySystemComponent& AbilitySystem);
 
 	/**
+	 * Server: a living unit leaves the battleground dead at nobody's hand, as a companion banished with its
+	 * owner (ADR-034 §3): its temporary effects and records end as at a death, and no death is announced,
+	 * so nothing is credited or rewarded. Revive brings it back. Returns false if it was not alive.
+	 */
+	VEYRACOMBAT_API bool Withdraw(UAbilitySystemComponent& AbilitySystem);
+
+	/**
 	 * Server: the unit's resource empties and is kept from then on, as Charge (ADR-033 §1): initializing
 	 * its stats, reviving it and the fountain leave it be, and only effects restore it. False for a unit
 	 * with no resource.
@@ -168,6 +175,13 @@ namespace VeyraCombat
 
 	/** What share of an ability's cost Unit pays now, after its ResourceCostReduction statuses (ADR-033 §3): 1 with none. */
 	VEYRACOMBAT_API double GetCostShare(const UAbilitySystemComponent& Unit);
+
+	/**
+	 * The unit Source answers to (Combat Bible §32; ADR-034 §1): an owned unit's owner, followed to a unit
+	 * that is owned by none, so a summon's summon makes no new root; Source itself for any other unit.
+	 * Null only for null.
+	 */
+	VEYRACOMBAT_API UAbilitySystemComponent* ResponsibleFor(UAbilitySystemComponent* Source);
 
 	/**
 	 * Prepares one damage event from Source (Combat Bible §50): the source's offence, its Damage

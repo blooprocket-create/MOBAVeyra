@@ -184,6 +184,12 @@ enum class EVeyraStatusKind : uint8
 	 * cooldown of whichever of its Q, W and E comes off cooldown soonest. Magnitude: the seconds, above 0.
 	 */
 	AttackShortensCooldown,
+	/**
+	 * MaxHealth (ADR-034 §2): the unit's Max Health is multiplied by one plus its magnitude while it holds,
+	 * Health keeping its share of the maximum, as a companion's true form. Magnitude: a signed change per
+	 * stack, every stack together above -1.
+	 */
+	MaxHealth,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

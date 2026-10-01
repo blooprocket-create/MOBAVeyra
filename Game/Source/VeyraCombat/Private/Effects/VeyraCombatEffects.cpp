@@ -20,6 +20,7 @@ const FName UVeyraStatusEffect::TenacityMultiplierName(TEXT("TenacityMultiplier"
 const FName UVeyraStatusEffect::IncomingDamageMultiplierName(TEXT("IncomingDamageMultiplier"));
 const FName UVeyraStatusEffect::DisplacementMultiplierName(TEXT("DisplacementMultiplier"));
 const FName UVeyraStatusEffect::HealthRegenMultiplierName(TEXT("HealthRegenMultiplier"));
+const FName UVeyraStatusEffect::MaxHealthMultiplierName(TEXT("MaxHealthMultiplier"));
 const FName UVeyraStatusEffect::OutgoingDamageMultiplierName(TEXT("OutgoingDamageMultiplier"));
 const FName UVeyraStatusEffect::MagicResistRetainedMultiplierName(TEXT("MagicResistRetainedMultiplier"));
 
@@ -34,6 +35,7 @@ UVeyraStatusEffect::UVeyraStatusEffect()
 		{ UVeyraDefenceSet::GetIncomingDamageMultiplierAttribute(), IncomingDamageMultiplierName },
 		{ UVeyraDefenceSet::GetDisplacementRetainedAttribute(), DisplacementMultiplierName },
 		{ UVeyraVitalsSet::GetHealthRegenAttribute(), HealthRegenMultiplierName },
+		{ UVeyraVitalsSet::GetMaxHealthAttribute(), MaxHealthMultiplierName },
 		{ UVeyraOffenceSet::GetOutgoingDamageMultiplierAttribute(), OutgoingDamageMultiplierName },
 		{ UVeyraDefenceSet::GetMagicResistReductionRetainedAttribute(), MagicResistRetainedMultiplierName },
 	};
