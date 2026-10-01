@@ -179,6 +179,11 @@ enum class EVeyraStatusKind : uint8
 	 * of the cost. Magnitude: the share taken off, above 0 and below 1 with every stack.
 	 */
 	ResourceCostReduction,
+	/**
+	 * AttackShortensCooldown (ADR-033 §6): each of its holder's committed basic attacks shortens the remaining
+	 * cooldown of whichever of its Q, W and E comes off cooldown soonest. Magnitude: the seconds, above 0.
+	 */
+	AttackShortensCooldown,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */

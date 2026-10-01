@@ -121,6 +121,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
 		break;
 	case EVeyraStatusKind::AttackDamageAmplification:
+	case EVeyraStatusKind::AttackShortensCooldown:
 		bMagnitudeValid &= Magnitude > 0.0;
 		break;
 	}

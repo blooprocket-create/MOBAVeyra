@@ -307,7 +307,7 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack", "Blind", "Grounded", "Invisible", "Untargetable", "ResourceCostReduction"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack", "Blind", "Grounded", "Invisible", "Untargetable", "ResourceCostReduction", "AttackShortensCooldown"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -493,7 +493,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact", "recipient", "recipientZones", "marker", "shieldHolds", "shieldEndZones"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact", "recipient", "recipientZones", "marker", "shieldHolds", "shieldEndZones", "drain"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -513,13 +513,14 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["radius", "durationSeconds", "refreshSeconds", "allyStatuses", "enemyStatuses"],
+                "required": ["radius", "durationSeconds", "refreshSeconds", "allyStatuses", "enemyStatuses", "allyFluxbornStatuses"],
                 "properties": {
                   "radius": { "description": "Units from the caster's centre to an ally's edge.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "refreshSeconds": { "description": "How often allies in range get the statuses again; the statuses should outlast it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "allyStatuses": { "$ref": "#/definitions/statusIds" },
-                  "enemyStatuses": { "description": "Put on each living enemy unit in range at every refresh, never a structure or a ward (ADR-018 §6).", "$ref": "#/definitions/statusIds" }
+                  "enemyStatuses": { "description": "Put on each living enemy unit in range at every refresh, never a structure or a ward (ADR-018 §6).", "$ref": "#/definitions/statusIds" },
+                  "allyFluxbornStatuses": { "description": "Put on each allied Fluxborn in range at every refresh, as Full Grid overclocks them (ADR-033 §6).", "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
                 }
               }
             },
@@ -620,6 +621,19 @@
               "description": "Status IDs the recipient holds while the buff's shield holds, lasting no longer than the shield, removed as it breaks or runs out (ADR-032 §3). They need a shield.",
               "type": "array", "minItems": 0,
               "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+            },
+            "drain": {
+              "description": "At most one: what the buff drains of its caster's resource while it lasts: perSecond, taken every intervalSeconds, for at most maxSeconds; it ends early as the resource runs out (ADR-033 §6). Only on the caster's own buff.",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["perSecond", "intervalSeconds", "maxSeconds"],
+                "properties": {
+                  "perSecond": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "intervalSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "maxSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                }
+              }
             },
             "shieldEndZones": {
               "description": "Innermost first: zones that land around the recipient as the buff's shield breaks or runs out, the caster's (ADR-032 §3). They need a shield.",

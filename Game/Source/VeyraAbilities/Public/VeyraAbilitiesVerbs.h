@@ -32,6 +32,12 @@ namespace VeyraAbilities
 	VEYRAABILITIES_API void ShortenCooldown(UAbilitySystemComponent& Caster, EVeyraAbilitySlot Slot, double Seconds);
 
 	/**
+	 * Server: of the abilities Caster holds in Slots now, the one whose cooldown ends soonest shortens by
+	 * Seconds (ADR-033 §6); none that is ready.
+	 */
+	VEYRAABILITIES_API void ShortenSoonestCooldown(UAbilitySystemComponent& Caster, TConstArrayView<EVeyraAbilitySlot> Slots, double Seconds);
+
+	/**
 	 * Ability's rank for Caster: its slot's rank from Progression, an override or stowed ability sharing
 	 * its slot's (ADR-018 §1; ADR-031 §3); 1 in a slot that takes no ranks; 0 for one Caster does not hold.
 	 */

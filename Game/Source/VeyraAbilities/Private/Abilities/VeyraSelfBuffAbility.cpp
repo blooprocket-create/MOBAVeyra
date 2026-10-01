@@ -8,6 +8,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attacks/VeyraBasicAttackComponent.h"
+#include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Delivery/VeyraAreaDelivery.h"
 #include "Delivery/VeyraEffectDelivery.h"
@@ -284,6 +285,22 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 	{
 		StartPayload(*Caster, Cast.Ability);
 	}
+	// It drains its caster's resource while it lasts, and ends as the resource runs out (ADR-033 §6).
+	if (!Buff->Drain.IsEmpty())
+	{
+		const FVeyraDrainTuning& Drained = Buff->Drain[0];
+		DrainCaster = Caster;
+		DrainAbility = Cast.Ability;
+		DrainEndsAt = World->GetTimeSeconds() + Drained.MaxSeconds;
+		// Bound to the caster, as the aura is: GAS clears an ability's own timers as its cast ends.
+		TWeakObjectPtr<UVeyraSelfBuffAbility> Self(this);
+		World->GetTimerManager().SetTimer(DrainTimer, FTimerDelegate::CreateWeakLambda(Caster, [Self]() {
+			if (UVeyraSelfBuffAbility* Ability = Self.Get())
+			{
+				Ability->Drain();
+			}
+		}), static_cast<float>(Drained.IntervalSeconds), /*bLoop*/ true);
+	}
 	// Its recipient's attacks offer an impact for a while, its damage from the caster's power now (ADR-027 §3).
 	UVeyraBasicAttackComponent* Attacks = Recipient->GetOwner() ? Recipient->GetOwner()->FindComponentByClass<UVeyraBasicAttackComponent>() : nullptr;
 	for (const FVeyraBuffAttackImpactTuning& Timed : Buff->AttackSecondaryImpact)
@@ -307,6 +324,38 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 		}
 	}
 	return FVeyraChannelPlan();
+}
+
+void UVeyraSelfBuffAbility::Drain()
+{
+	UAbilitySystemComponent* Caster = DrainCaster.Get();
+	UWorld* World = GetWorld();
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(DrainAbility);
+	const AActor* Body = Caster ? Caster->GetAvatarActor() : nullptr;
+	const auto Stop = [this, World]() {
+		if (World)
+		{
+			World->GetTimerManager().ClearTimer(DrainTimer);
+		}
+	};
+	if (!Caster || !World || !Buff || Buff->Drain.IsEmpty() || !VeyraTargeting::IsAlive(Body))
+	{
+		Stop();
+		return;
+	}
+	const FVeyraDrainTuning& Drained = Buff->Drain[0];
+	const double Held = Caster->GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
+	const double Take = FMath::Min(Held, Drained.PerSecond * Drained.IntervalSeconds);
+	if (Take > 0.0)
+	{
+		VeyraCombat::SpendResource(*Caster, Take);
+	}
+	// Run dry, or out of time: the buff ends, its statuses and its aura with it.
+	if (Take >= Held || World->GetTimeSeconds() >= DrainEndsAt)
+	{
+		Stop();
+		EndEarly(*Caster, DrainAbility);
+	}
 }
 
 void UVeyraSelfBuffAbility::DeliverHeal(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Recipient, const FVeyraHealTuning& Heal) const
@@ -395,6 +444,26 @@ void UVeyraSelfBuffAbility::RefreshAura()
 			if (Target && Status.IsSet())
 			{
 				VeyraCombat::ApplyStatus(*Caster, *Target, Status.GetValue());
+			}
+		}
+	}
+	// Allied Fluxborn in range take theirs, as Full Grid overclocks them (ADR-033 §6).
+	if (!Aura.AllyFluxbornStatuses.IsEmpty())
+	{
+		const TArray<AActor*> Fluxborn = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Circle, Body->GetActorLocation(), Body->GetActorForwardVector() },
+			[Side](const AActor& Unit) {
+				return Side != EVeyraTeam::None && VeyraTeams::TeamOf(&Unit) == Side && VeyraUnits::KindOf(&Unit) == EVeyraUnitKind::Fluxborn && VeyraTargeting::IsAlive(&Unit);
+			});
+		for (AActor* Unit : Fluxborn)
+		{
+			UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit);
+			for (const FVeyraContentId& StatusId : Aura.AllyFluxbornStatuses)
+			{
+				const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId);
+				if (Target && Status.IsSet())
+				{
+					VeyraCombat::ApplyStatus(*Caster, *Target, Status.GetValue());
+				}
 			}
 		}
 	}

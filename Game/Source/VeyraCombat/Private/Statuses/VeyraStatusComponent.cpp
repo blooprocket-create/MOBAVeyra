@@ -73,6 +73,7 @@ namespace
 		case EVeyraStatusKind::Invisible:
 		case EVeyraStatusKind::Untargetable:
 		case EVeyraStatusKind::ResourceCostReduction:
+		case EVeyraStatusKind::AttackShortensCooldown:
 			break;
 		}
 		return NAME_None;

@@ -67,6 +67,14 @@ private:
 	static void EndForms(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraContentId> Forms);
 
 	void RefreshAura();
+
+	/** One interval of its drain: the resource it takes, or the buff's end once the resource or its time runs out (ADR-033 §6). */
+	void Drain();
+
+	TWeakObjectPtr<UAbilitySystemComponent> DrainCaster;
+	FVeyraContentId DrainAbility;
+	double DrainEndsAt = 0.0;
+	FTimerHandle DrainTimer;
 	void StopAura();
 
 	/**

@@ -102,6 +102,33 @@ double ResourceCostOf(const UAbilitySystemComponent& Caster, const FVeyraContent
 	return VeyraAbilityRules::ResourceCost(UVeyraAbilitiesTuningSubsystem::Get(), Ability, RankOf(Caster, Ability));
 }
 
+void ShortenSoonestCooldown(UAbilitySystemComponent& Caster, TConstArrayView<EVeyraAbilitySlot> Slots, double Seconds)
+{
+	const AActor* Owner = Caster.GetOwner();
+	const UVeyraAbilityLoadoutComponent* Loadout = Owner ? Owner->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	const UVeyraCooldownComponent* Cooldowns = Owner ? Owner->FindComponentByClass<UVeyraCooldownComponent>() : nullptr;
+	if (!Loadout || !Cooldowns || !(Seconds > 0.0))
+	{
+		return;
+	}
+	TOptional<EVeyraAbilitySlot> Soonest;
+	double SoonestLeft = 0.0;
+	for (const EVeyraAbilitySlot Slot : Slots)
+	{
+		const FVeyraLoadoutEntry* Entry = Loadout->FindSlot(Slot);
+		const double Left = Entry ? Cooldowns->GetRemainingSecondsNow(Loadout->CooldownIdOf(Entry->Ability)) : 0.0;
+		if (Left > 0.0 && (!Soonest.IsSet() || Left < SoonestLeft))
+		{
+			Soonest = Slot;
+			SoonestLeft = Left;
+		}
+	}
+	if (Soonest.IsSet())
+	{
+		ShortenCooldown(Caster, Soonest.GetValue(), Seconds);
+	}
+}
+
 void EndFollowUp(UAbilitySystemComponent& Caster, const FVeyraContentId& OpenedBy)
 {
 	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(UVeyraAbilitiesTuningSubsystem::Get(), OpenedBy);

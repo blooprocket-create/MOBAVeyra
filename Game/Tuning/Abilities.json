@@ -2578,7 +2578,7 @@
       },
       "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
       "shields": [],
-      "aura": [{ "radius": 600, "durationSeconds": 4, "refreshSeconds": 0.5, "enemyStatuses": [], "allyStatuses": ["cairn_immovable_cover"] }],
+      "aura": [{ "radius": 600, "durationSeconds": 4, "refreshSeconds": 0.5, "enemyStatuses": [], "allyStatuses": ["cairn_immovable_cover"], "allyFluxbornStatuses": [] }],
       "heal": [],
       "recast": "EndsEarly",
       "variants": [],
@@ -2588,6 +2588,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2632,6 +2633,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2676,6 +2678,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2707,6 +2710,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2738,6 +2742,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2769,6 +2774,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2800,6 +2806,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2831,6 +2838,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2862,6 +2870,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2883,7 +2892,7 @@
       },
       "statuses": ["patch_inside_body", "patch_inside_footing"],
       "shields": [],
-      "aura": [{ "radius": 350, "durationSeconds": 8, "refreshSeconds": 0.25, "enemyStatuses": ["patch_inside_chill"], "allyStatuses": [] }],
+      "aura": [{ "radius": 350, "durationSeconds": 8, "refreshSeconds": 0.25, "enemyStatuses": ["patch_inside_chill"], "allyStatuses": [], "allyFluxbornStatuses": [] }],
       "heal": [],
       "recast": "None",
       "variants": [{ "slot": "Q", "ability": "patch_bear_hug_inside", "cooldown": "Own", "durationSeconds": 8 }],
@@ -2893,6 +2902,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2924,6 +2934,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2955,6 +2966,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -2986,6 +2998,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -3017,6 +3030,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -3061,6 +3075,7 @@
       "recipient": "CasterOrAlly",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -3095,7 +3110,7 @@
           "absorbedReward": []
         }
       ],
-      "aura": [{ "radius": 400, "durationSeconds": 4, "refreshSeconds": 0.5, "allyStatuses": ["aurelisse_room_haste"], "enemyStatuses": [] }],
+      "aura": [{ "radius": 400, "durationSeconds": 4, "refreshSeconds": 0.5, "allyStatuses": ["aurelisse_room_haste"], "enemyStatuses": [], "allyFluxbornStatuses": [] }],
       "heal": [],
       "recast": "None",
       "variants": [],
@@ -3105,6 +3120,7 @@
       "recipient": "CasterOrAlly",
       "recipientZones": [{ "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -3136,6 +3152,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -3167,6 +3184,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -3220,6 +3238,7 @@
           ]
         }
       ],
+      "drain": [],
       "shieldHolds": [],
       "shieldEndZones": []
     },
@@ -3264,6 +3283,7 @@
       "recipient": "Caster",
       "recipientZones": [],
       "marker": [],
+      "drain": [],
       "shieldHolds": ["varkesh_shell_tenacity", "varkesh_shell_footing"],
       "shieldEndZones": [
         {

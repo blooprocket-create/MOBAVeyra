@@ -22,6 +22,8 @@
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraAbilitiesLog.h"
+#include "VeyraAbilitiesVerbs.h"
+#include "VeyraCombatVerbs.h"
 #include "Targeting/VeyraParticipantData.h"
 
 namespace
@@ -268,6 +270,12 @@ void UVeyraBasicAttackComponent::Commit()
 	OnAttack.Broadcast(Landing.Event);
 	// Each status its attacks spend loses one, a miss's as much as a hit's (ADR-033 §4).
 	VeyraCombat::NoteAttackCommitted(*Attacker);
+	// And each attack may cut the next basic ability's cooldown (ADR-033 §6).
+	if (const double Cut = Statuses ? Statuses->GetTotal(EVeyraStatusKind::AttackShortensCooldown) : 0.0; Cut > 0.0)
+	{
+		const EVeyraAbilitySlot Basics[] = { EVeyraAbilitySlot::Q, EVeyraAbilitySlot::W, EVeyraAbilitySlot::E };
+		VeyraAbilities::ShortenSoonestCooldown(*Attacker, Basics, Cut);
+	}
 
 	if (!Landing.Event.bMissed && Profile.Projectile.IsEmpty())
 	{

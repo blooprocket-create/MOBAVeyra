@@ -782,6 +782,30 @@ struct FVeyraAuraTuning
 	/** Put on each living enemy unit in range at every refresh, never a structure or a ward. */
 	UPROPERTY()
 	TArray<FVeyraContentId> EnemyStatuses;
+
+	/** Put on each allied Fluxborn in range at every refresh, as Full Grid overclocks them (ADR-033 §6). */
+	UPROPERTY()
+	TArray<FVeyraContentId> AllyFluxbornStatuses;
+};
+
+/**
+ * What a buff drains of its caster's resource while it lasts (ADR-033 §6), as Full Grid's Charge: so much a
+ * second, taken every interval, for at most so long; it ends early when the resource runs out.
+ */
+USTRUCT()
+struct FVeyraDrainTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	double PerSecond = 0.0;
+
+	UPROPERTY()
+	double IntervalSeconds = 0.0;
+
+	/** The longest the buff lasts, drained or not. */
+	UPROPERTY()
+	double MaxSeconds = 0.0;
 };
 
 /**
@@ -1061,6 +1085,10 @@ struct FVeyraSelfBuffAbilityTuning
 	/** At most one: a placed marker it leaves where its caster stood (ADR-030 §5). */
 	UPROPERTY()
 	TArray<FVeyraBuffMarkerTuning> Marker;
+
+	/** At most one: what it drains of its caster's resource while it lasts; it ends as the resource runs out (ADR-033 §6). */
+	UPROPERTY()
+	TArray<FVeyraDrainTuning> Drain;
 
 	/**
 	 * Status IDs its recipient holds while the buff's shield holds, lasting no longer than the shield, and

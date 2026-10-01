@@ -381,6 +381,13 @@ namespace
 				Problem(Pointer + TEXT("/recipient"), TEXT("an ally's buff has a cast range above 0, and no variants, end payload or early end"));
 			}
 			CheckZones(Pointer + TEXT("/recipientZones"), Buff.RecipientZones);
+			// A drain ends the buff early, so the buff is its caster's own (ADR-033 §6).
+			if (Buff.Drain.Num() > 1 || Buff.Drain.ContainsByPredicate([](const FVeyraDrainTuning& Each) {
+					return !(Each.PerSecond > 0.0) || !(Each.IntervalSeconds > 0.0) || !(Each.MaxSeconds >= Each.IntervalSeconds);
+				}) || (!Buff.Drain.IsEmpty() && Buff.Recipient != EVeyraBuffRecipient::Caster))
+			{
+				Problem(Pointer + TEXT("/drain"), TEXT("holds at most one, on its caster's own buff, perSecond and intervalSeconds above 0 and maxSeconds at least the interval"));
+			}
 			// What its shield holds, and its burst, follow the shield (ADR-032 §3).
 			if ((!Buff.ShieldHolds.IsEmpty() || !Buff.ShieldEndZones.IsEmpty()) && Buff.Shields.IsEmpty())
 			{
@@ -429,6 +436,7 @@ namespace
 				}
 				CheckStatusIds(AuraPointer + TEXT("/allyStatuses"), Aura.AllyStatuses);
 				CheckStatusIds(AuraPointer + TEXT("/enemyStatuses"), Aura.EnemyStatuses);
+				CheckStatusIds(AuraPointer + TEXT("/allyFluxbornStatuses"), Aura.AllyFluxbornStatuses);
 			}
 			if (Buff.TemporaryHealth.Num() > 1 || Buff.EndPayload.Num() > 1)
 			{
