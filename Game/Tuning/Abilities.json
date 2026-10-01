@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 22,
+  "schemaVersion": 23,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -1275,6 +1275,57 @@
       "unitKinds": [],
       "landsOn": [],
       "attackCharges": 0
+    },
+    "sylra_sounded": {
+      "provenance": "Provisional",
+      "kind": "Sounded",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 4.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "sylra_bell_stride": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.15,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "sylra_followed_the_bell": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 4,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
     }
   },
   "targetedDamage": {
@@ -1345,7 +1396,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1392,7 +1443,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1439,7 +1490,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Sector", "radius": 225, "arcDegrees": 100, "length": 0, "width": 0 },
@@ -1498,7 +1549,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 275, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1570,7 +1621,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Sector", "radius": 400, "arcDegrees": 160, "length": 0, "width": 0 },
@@ -1617,7 +1668,7 @@
       "delaySeconds": 0.9,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1664,7 +1715,7 @@
       "delaySeconds": 0,
       "channelTicks": 5,
       "channelSeconds": 2.0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 1300, "width": 180 },
@@ -1711,7 +1762,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 400, "durationSeconds": 3 },
+      "reveal": { "radius": 400, "durationSeconds": 3 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1758,7 +1809,7 @@
       "delaySeconds": 1.2,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1817,7 +1868,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 1400, "width": 220 },
@@ -1838,7 +1889,7 @@
           "pulseEffects": [],
           "endEffects": [],
           "endWarningSeconds": 0,
-          "movementField": []
+          "movementField": [], "shieldTopUp": []
         }
       ],
       "consumesCasterStatuses": [],
@@ -1872,7 +1923,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Sector", "radius": 400, "arcDegrees": 70, "length": 0, "width": 0 },
@@ -1919,7 +1970,7 @@
       "delaySeconds": 0.75,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1966,7 +2017,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -2013,9 +2064,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 900, "width": 110 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 105, 140, 175, 210], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
-      "linger": [{ "durationSeconds": 2.5, "pulseSeconds": 0.5, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_contaminated"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [10, 15, 20, 25, 30], "physicalPowerRatio": 0, "magicPowerRatio": 0.08 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "linger": [{ "durationSeconds": 2.5, "pulseSeconds": 0.5, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_contaminated"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [10, 15, 20, 25, 30], "physicalPowerRatio": 0, "magicPowerRatio": 0.08 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2047,7 +2098,7 @@
       "delaySeconds": 0.9,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 100, 140, 180, 220], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_flash_cure_root", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_flash_cure_stun"], "burst": [], "replaces": ["mavra_flash_cure_root"] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2081,9 +2132,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
-      "linger": [{ "durationSeconds": 2.75, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [12, 18, 24, 30, 36], "physicalPowerRatio": 0, "magicPowerRatio": 0.1 }], "statuses": ["mavra_leak_slow", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["mavra_leak_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75, "movementField": [] }],
+      "linger": [{ "durationSeconds": 2.75, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [12, 18, 24, 30, 36], "physicalPowerRatio": 0, "magicPowerRatio": 0.1 }], "statuses": ["mavra_leak_slow", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["mavra_leak_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2115,9 +2166,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 650, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
-      "linger": [{ "durationSeconds": 4.5, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_code_black_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_code_black_stun"], "burst": [], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_code_black_knockdown"], "displacement": [{ "direction": "TowardOrigin", "distance": 200, "speed": 800, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 1, "movementField": [] }],
+      "linger": [{ "durationSeconds": 4.5, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_code_black_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_code_black_stun"], "burst": [], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_code_black_knockdown"], "displacement": [{ "direction": "TowardOrigin", "distance": 200, "speed": 800, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 1, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2149,7 +2200,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 700, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [75, 110, 145, 180, 215], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter", "korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }, { "shape": { "kind": "Sector", "radius": 700, "arcDegrees": 50, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [75, 110, 145, 180, 215], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2183,7 +2234,7 @@
       "delaySeconds": 1.25,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": ["korruk_mine_slow", "korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [90, 130, 170, 210, 250], "physicalPowerRatio": 0.7, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": ["korruk_mine_knockup"], "burst": [], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2217,7 +2268,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 500, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_splinter", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [35, 50, 65, 80, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "scaling": "PerStack", "statuses": [], "burst": [], "replaces": [] }, { "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [160, 220, 280, 340, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2251,9 +2302,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [70, 105, 140], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
-      "linger": [{ "durationSeconds": 2.6, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Physical", "amountByRank": [45, 70, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [200, 300, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }], "endWarningSeconds": 0.75, "movementField": [] }],
+      "linger": [{ "durationSeconds": 2.6, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Physical", "amountByRank": [45, 70, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [200, 300, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }], "endWarningSeconds": 0.75, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2285,7 +2336,7 @@
       "delaySeconds": 0.75,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 260, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["moro_bursting_ground_slow"], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2319,7 +2370,7 @@
       "delaySeconds": 0,
       "channelTicks": 8,
       "channelSeconds": 4,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 400, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [35, 55, 75], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2353,7 +2404,7 @@
       "delaySeconds": 0,
       "channelTicks": 2,
       "channelSeconds": 0.8,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 325, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [35, 55, 75, 95, 115], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2387,7 +2438,7 @@
       "delaySeconds": 0,
       "channelTicks": 2,
       "channelSeconds": 0.8,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 325, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [35, 55, 75, 95, 115], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["gorraveth_hunted"], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2421,7 +2472,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Sector", "radius": 350, "arcDegrees": 100, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["raska_powerslide_slow"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2455,9 +2506,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [40, 65, 90, 115, 140], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["celandrine_briar_slow"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
-      "linger": [{ "durationSeconds": 2.5, "pulseSeconds": 0.25, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["celandrine_briar_slow"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "linger": [{ "durationSeconds": 2.5, "pulseSeconds": 0.25, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["celandrine_briar_slow"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2489,9 +2540,9 @@
       "delaySeconds": 0.9,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 65, 90, 115, 140], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["aurelisse_updraft_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
-      "linger": [{ "durationSeconds": 2, "pulseSeconds": 0.25, "casterStatuses": ["aurelisse_updraft_haste"], "allyStatuses": ["aurelisse_updraft_haste"], "enemyStatuses": [], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "linger": [{ "durationSeconds": 2, "pulseSeconds": 0.25, "casterStatuses": ["aurelisse_updraft_haste"], "allyStatuses": ["aurelisse_updraft_haste"], "enemyStatuses": [], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2523,7 +2574,7 @@
       "delaySeconds": 0.35,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 220, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2557,7 +2608,7 @@
       "delaySeconds": 1,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 110, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["silt_sink_stun", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }, { "shape": { "kind": "Circle", "radius": 280, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["silt_sink_slow", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2591,9 +2642,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["silt_blind", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
-      "linger": [{ "durationSeconds": 3, "pulseSeconds": 0.5, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["silt_blind", "silt_sandy"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "linger": [{ "durationSeconds": 3, "pulseSeconds": 0.5, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["silt_blind", "silt_sandy"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2625,9 +2676,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
-      "linger": [{ "durationSeconds": 4, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["silt_mire_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [30, 45, 60], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "silt_sandy", "consume": "Consume", "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["silt_mire_knockup", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75, "movementField": [] }],
+      "linger": [{ "durationSeconds": 4, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["silt_mire_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [30, 45, 60], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "silt_sandy", "consume": "Consume", "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["silt_mire_knockup", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2659,7 +2710,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Sector", "radius": 300, "arcDegrees": 90, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 250, "speed": 1000, "collisionStatuses": ["torr_mass_stun"] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2693,7 +2744,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Sector", "radius": 420, "arcDegrees": 90, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 250, "speed": 1000, "collisionStatuses": ["torr_mass_stun"] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2727,9 +2778,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": ["torr_anchor_grounded"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
-      "linger": [{ "durationSeconds": 5, "pulseSeconds": 0.5, "casterStatuses": ["torr_anchor_hold"], "allyStatuses": ["torr_anchor_brace"], "enemyStatuses": ["torr_anchor_grounded"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "linger": [{ "durationSeconds": 5, "pulseSeconds": 0.5, "casterStatuses": ["torr_anchor_hold"], "allyStatuses": ["torr_anchor_brace"], "enemyStatuses": ["torr_anchor_grounded"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2761,7 +2812,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["torr_rip_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2795,9 +2846,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 420, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": ["torr_anchor_grounded"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
-      "linger": [{ "durationSeconds": 5, "pulseSeconds": 0.5, "casterStatuses": ["torr_anchor_hold"], "allyStatuses": ["torr_anchor_brace"], "enemyStatuses": ["torr_anchor_grounded"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "linger": [{ "durationSeconds": 5, "pulseSeconds": 0.5, "casterStatuses": ["torr_anchor_hold"], "allyStatuses": ["torr_anchor_brace"], "enemyStatuses": ["torr_anchor_grounded"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2829,7 +2880,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [{ "shape": { "kind": "Circle", "radius": 420, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["torr_rip_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
@@ -2863,7 +2914,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Sector", "radius": 325, "arcDegrees": 140, "length": 0, "width": 0 },
@@ -2942,7 +2993,7 @@
       "delaySeconds": 0.4,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -2999,7 +3050,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 650, "width": 220 },
@@ -3038,7 +3089,7 @@
           ],
           "endEffects": [],
           "endWarningSeconds": 0,
-          "movementField": []
+          "movementField": [], "shieldTopUp": []
         }
       ],
       "consumesCasterStatuses": [],
@@ -3072,7 +3123,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 400, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -3129,7 +3180,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -3160,7 +3211,7 @@
           "endWarningSeconds": 0,
           "movementField": [
             { "pull": 150 }
-          ]
+          ], "shieldTopUp": []
         }
       ],
       "consumesCasterStatuses": [],
@@ -3194,7 +3245,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -3223,7 +3274,7 @@
           "pulseEffects": [],
           "endEffects": [],
           "endWarningSeconds": 0,
-          "movementField": []
+          "movementField": [], "shieldTopUp": []
         }
       ],
       "consumesCasterStatuses": [],
@@ -3257,7 +3308,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -3303,9 +3354,261 @@
           ],
           "endEffects": [],
           "endWarningSeconds": 0,
-          "movementField": []
+          "movementField": [], "shieldTopUp": []
         }
       ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_mist_trail": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "fog": [],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 140, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 3,
+          "pulseSeconds": 0.5,
+          "casterStatuses": [],
+          "allyStatuses": ["sylra_bell_stride", "sylra_followed_the_bell"],
+          "enemyStatuses": [],
+          "sight": "None",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": [],
+          "shieldTopUp": []
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_lay_the_mist": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [18, 17, 16, 15, 14],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 900,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "TargetPoint",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "fog": [
+        { "shape": "Circle", "radius": 350, "length": 0, "width": 0, "durationSeconds": 5 }
+      ],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_waymark": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [60],
+        "castRange": 650,
+        "windupSeconds": 0.2,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "TargetPoint",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 500, "durationSeconds": 8 },
+      "fog": [],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 8,
+          "pulseSeconds": 1,
+          "casterStatuses": [],
+          "allyStatuses": [],
+          "enemyStatuses": [],
+          "sight": "None",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": [],
+          "shieldTopUp": [
+            {
+              "shield": {
+                "id": "sylra_waymark_shield",
+                "category": "Universal",
+                "amountByRank": [14, 18, 22, 26, 30],
+                "maxHealthRatio": 0,
+                "magicPowerRatio": 0.04,
+                "durationSeconds": 2,
+                "reapply": "Merge",
+                "maxAmountMaxHealthRatio": 0.12,
+                "capGroup": [],
+                "absorbedReward": []
+              },
+              "delayAfterDamageSeconds": 2.5
+            }
+          ]
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_through_the_white": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [130, 115, 100],
+        "resourceCostByRank": [100],
+        "castRange": 1500,
+        "windupSeconds": 0.3,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "fog": [
+        { "shape": "Corridor", "radius": 0, "length": 2200, "width": 700, "durationSeconds": 6 }
+      ],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -5022,6 +5325,58 @@
             ]
           }
         ]
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "casterDash": [],
+      "returnIfHeld": [],
+      "mimic": [],
+      "endWall": []
+    },
+    "sylra_harbor_bell": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [8, 7.5, 7, 6.5, 6],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 1000,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "projectile": { "speed": 1500, "radius": 60, "range": 1000 },
+      "collision": "FirstEnemyVanguard",
+      "effects": {
+        "damage": [
+          {
+            "type": "Magic",
+            "amountByRank": [70, 110, 150, 190, 230],
+            "physicalPowerRatio": 0,
+            "magicPowerRatio": 0.6
+          }
+        ],
+        "statuses": ["sylra_sounded"],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
       },
       "passThroughEffects": {
         "damage": [],

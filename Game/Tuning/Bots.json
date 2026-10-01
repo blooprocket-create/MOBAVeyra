@@ -342,6 +342,17 @@
         "neris_tidebreaker": "Engage",
         "neris_tidebreaker_storm": "Engage"
       }
+    },
+    "sylra": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "sylra_harbor_bell": "Damage",
+        "sylra_lay_the_mist": "Escape",
+        "sylra_waymark": "Defend",
+        "sylra_through_the_white": "Engage"
+      }
     }
   }
 }

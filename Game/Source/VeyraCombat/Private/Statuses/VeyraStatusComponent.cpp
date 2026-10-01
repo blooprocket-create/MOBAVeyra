@@ -16,6 +16,7 @@
 #include "VeyraCombatLog.h"
 #include "VeyraCombatVerbs.h"
 #include "Targeting/VeyraParticipantData.h"
+#include "Teams/VeyraTeam.h"
 
 namespace
 {
@@ -76,6 +77,7 @@ namespace
 		case EVeyraStatusKind::Untargetable:
 		case EVeyraStatusKind::ResourceCostReduction:
 		case EVeyraStatusKind::AttackShortensCooldown:
+		case EVeyraStatusKind::Sounded:
 			break;
 		}
 		return NAME_None;
@@ -375,6 +377,15 @@ bool UVeyraStatusComponent::HasFrom(const FVeyraContentId& Id, const UAbilitySys
 	return Ledger.Entries.ContainsByPredicate([this, &Id, &Source](const FVeyraStatusEntry& Entry) {
 		const FServerEntry* Server = Entry.Id == Id ? ServerEntries.Find(Entry.Sequence) : nullptr;
 		return Server && Server->Source.Get() == &Source;
+	});
+}
+
+bool UVeyraStatusComponent::HasFromSide(EVeyraStatusKind Kind, EVeyraTeam Side) const
+{
+	return Ledger.Entries.ContainsByPredicate([this, Kind, Side](const FVeyraStatusEntry& Entry) {
+		const FServerEntry* Server = Entry.Kind == Kind ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		const UAbilitySystemComponent* Source = Server ? Server->Source.Get() : nullptr;
+		return Source && VeyraTeams::TeamOf(Source->GetOwner()) == Side;
 	});
 }
 

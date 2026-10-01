@@ -679,6 +679,41 @@ struct FVeyraAreaRevealTuning
 	double DurationSeconds = 0.0;
 };
 
+/** The shape of the Dense Fog an area lays (ADR-036 §3). */
+UENUM()
+enum class EVeyraAreaFogShape : uint8
+{
+	/** A circle of its radius where the area lands. */
+	Circle,
+	/** A band of its width from where the area lands, along the cast's direction, for its length. */
+	Corridor,
+};
+
+/** Dense Fog an area lays as it commits, the same construct as the map's (ADR-036 §3), as Lay the Mist's. */
+USTRUCT()
+struct FVeyraAreaFogTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraAreaFogShape Shape = EVeyraAreaFogShape::Circle;
+
+	/** A circle's; above 0, and 0 for a corridor. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	/** A corridor's; above 0, and 0 for a circle. */
+	UPROPERTY()
+	double Length = 0.0;
+
+	UPROPERTY()
+	double Width = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double DurationSeconds = 0.0;
+};
+
 /** What a lingering area shows its caster's side (ADR-018 §5). */
 UENUM()
 enum class EVeyraLingerSight : uint8
@@ -698,6 +733,24 @@ struct FVeyraMovementFieldTuning
 	/** How far, at most, it moves an enemy forced move's end toward its centre; above 0. */
 	UPROPERTY()
 	double Pull = 0.0;
+};
+
+/**
+ * A shield a lingering area builds on its caster and the allied Vanguards who stay inside it (ADR-036 §4), as
+ * Waymark's: each pulse grants it again, merging into what it gave before up to its maximum.
+ */
+USTRUCT()
+struct FVeyraShieldTopUpTuning
+{
+	GENERATED_BODY()
+
+	/** Its reapply is Merge, and its maximum above 0: that is the cap it builds to. */
+	UPROPERTY()
+	FVeyraShieldTuning Shield;
+
+	/** An ally damaged within this many seconds gets nothing from a pulse; at least 0. */
+	UPROPERTY()
+	double DelayAfterDamageSeconds = 0.0;
 };
 
 /** A delivered area that lasts, giving those inside it statuses by side (ADR-018 §5). */
@@ -752,6 +805,10 @@ struct FVeyraLingerTuning
 	 */
 	UPROPERTY()
 	TArray<FVeyraMovementFieldTuning> MovementField;
+
+	/** At most one: a shield it builds on its caster and the allied Vanguards inside, pulse by pulse (ADR-036 §4). */
+	UPROPERTY()
+	TArray<FVeyraShieldTopUpTuning> ShieldTopUp;
 };
 
 /**
@@ -826,6 +883,10 @@ struct FVeyraAreaAbilityTuning
 
 	UPROPERTY()
 	FVeyraAreaRevealTuning Reveal;
+
+	/** At most one: Dense Fog it lays as it commits (ADR-036 §3). */
+	UPROPERTY()
+	TArray<FVeyraAreaFogTuning> Fog;
 
 	/** Innermost first: a unit takes the first zone that touches it, and no other. */
 	UPROPERTY()
@@ -2186,7 +2247,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 22;
+	static constexpr int32 SchemaVersion = 23;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

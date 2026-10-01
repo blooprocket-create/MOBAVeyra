@@ -223,12 +223,7 @@ void UVeyraRideAbility::PulseTrail()
 		FVeyraEffectFrame Placement;
 		Placement.Origin = Stride > 0.0 ? FMath::Lerp(From, Here, FMath::Clamp(Along / Stride, 0.0, 1.0)) : Here;
 		Placement.Direction = Heading;
-		const TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, Area->Zones, RideRank);
-		VeyraAreaDelivery::Resolve(*World, *Caster, Placement, Zones, FVeyraAbilityHitSource{ Trail.Area, RideCastId });
-		if (const TOptional<FVeyraPreparedLinger> Linger = VeyraAreaDelivery::PrepareLinger(*Caster, *Area, RideRank, GetCasterLevel(*Caster), Trail.Area, RideCastId))
-		{
-			VeyraAreaDelivery::ArmLinger(*World, *Caster, Placement, Linger.GetValue());
-		}
+		VeyraAreaDelivery::LayAt(*World, *Caster, Trail.Area, Placement, RideRank, GetCasterLevel(*Caster), RideCastId);
 	}
 }
 

@@ -297,6 +297,23 @@ namespace
 			{
 				Problem(Pointer + TEXT("/reveal"), TEXT("radius and durationSeconds are both above 0, or both 0 for no reveal"));
 			}
+			// Dense Fog it lays: a circle has a radius, a corridor a length and a width (ADR-036 §3).
+			if (Area.Fog.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/fog"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Area.Fog.Num(); ++Index)
+			{
+				const FVeyraAreaFogTuning& Fog = Area.Fog[Index];
+				const bool bCircle = Fog.Shape == EVeyraAreaFogShape::Circle;
+				const bool bShaped = bCircle ? Fog.Radius > 0.0 && Fog.Length == 0.0 && Fog.Width == 0.0
+					: Fog.Radius == 0.0 && Fog.Length > 0.0 && Fog.Width > 0.0;
+				if (!bShaped || !(Fog.DurationSeconds > 0.0))
+				{
+					Problem(FString::Printf(TEXT("%s/fog/%d"), *Pointer, Index),
+						TEXT("a Circle has a radius above 0 and no length or width, a Corridor a length and width above 0 and no radius; durationSeconds is above 0"));
+				}
+			}
 			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
 			// Landing on its caster's lingering area or marker names one ability that leaves one; no other origin names any.
 			const bool bOnLingering = Area.Origin == EVeyraAreaOrigin::CastersLingeringArea;
@@ -365,6 +382,21 @@ namespace
 				for (int32 Bundle = 0; Bundle < Linger.EndEffects.Num(); ++Bundle)
 				{
 					CheckEffects(FString::Printf(TEXT("%s/endEffects/%d"), *LingerPointer, Bundle), Linger.EndEffects[Bundle]);
+				}
+				// A shield it builds pulse by pulse merges into itself, up to its maximum (ADR-036 §4).
+				if (Linger.ShieldTopUp.Num() > 1)
+				{
+					Problem(LingerPointer + TEXT("/shieldTopUp"), TEXT("holds at most one"));
+				}
+				for (int32 TopUp = 0; TopUp < Linger.ShieldTopUp.Num(); ++TopUp)
+				{
+					const FVeyraShieldTopUpTuning& Built = Linger.ShieldTopUp[TopUp];
+					const FString TopUpPointer = FString::Printf(TEXT("%s/shieldTopUp/%d"), *LingerPointer, TopUp);
+					CheckShield(TopUpPointer + TEXT("/shield"), Built.Shield);
+					if (Built.Shield.Reapply != EVeyraShieldReapply::Merge || !(Built.Shield.MaxAmountMaxHealthRatio > 0.0) || Built.DelayAfterDamageSeconds < 0.0)
+					{
+						Problem(TopUpPointer, TEXT("its shield merges, with a maximum above 0, and delayAfterDamageSeconds is at least 0"));
+					}
 				}
 				if ((Linger.EndWarningSeconds > 0.0) == Linger.EndEffects.IsEmpty() || Linger.EndWarningSeconds > Linger.DurationSeconds)
 				{

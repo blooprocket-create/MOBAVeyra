@@ -183,6 +183,9 @@ private:
 	/** The actor holding the battleground's ground markings, once drawn. */
 	TWeakObjectPtr<AActor> GroundMarkings;
 
+	/** The fog banks drawn on the ground already: each carries its markings, and takes them as it goes (ADR-036 §1). */
+	TSet<TWeakObjectPtr<const AActor>> DrawnFogBanks;
+
 	/** Each base's pad, and the viewer's side they were coloured for. */
 	TMap<EVeyraTeam, TWeakObjectPtr<UMaterialInstanceDynamic>> PadMaterials;
 	EVeyraTeam PadsDrawnFor = EVeyraTeam::None;
