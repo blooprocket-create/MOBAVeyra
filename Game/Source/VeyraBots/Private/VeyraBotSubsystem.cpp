@@ -41,9 +41,29 @@ void UVeyraBotSubsystem::OnBotAdded(AVeyraPlayerState& Bot, const FVeyraBotSeat&
 		return;
 	}
 	UVeyraBotBrainComponent* Brain = NewObject<UVeyraBotBrainComponent>(Controller);
+	FSeated& Entry = Seated.FindOrAdd(Seat.Side).Add_GetRef(FSeated{ &Bot, Brain, Seat.Vanguard, Seat.Difficulty, Seat.Seat });
+	// Its own seat's place first, so even a bot seated in play has one; later seats than the list wrap around it.
+	Place(Entry, Seat.Seat % Seats.Num());
 	Brain->RegisterComponent();
-	Seated.FindOrAdd(Seat.Side).Add(FSeated{ &Bot, Brain, Seat.Vanguard, Seat.Difficulty, Seat.Seat });
+	// Then its team deals its places again, by the roles their Vanguards play (ADR-038 §5).
 	Deal(Seat.Side);
+}
+
+void UVeyraBotSubsystem::Place(FSeated& Each, int32 PlaceSeat)
+{
+	const FVeyraBotsTuning& Tuning = UVeyraBotsTuningSubsystem::Get();
+	const FVeyraBotSeatTuning& Spot = Tuning.Seats[PlaceSeat];
+	AVeyraPlayerState& Bot = *Each.Bot;
+	// It takes its place's Flux Spells, as a player takes theirs from champion select (ADR-015 §8).
+	if (AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>())
+	{
+		GameMode->EquipStartingFluxSpells(Bot, Spot.FluxSpells);
+	}
+	const bool bWards = Tuning.Warding.Seats.Contains(PlaceSeat);
+	Each.Brain->Configure(Bot, Spot.Role, Each.Difficulty, bWards, static_cast<int32>(HashCombine(GetTypeHash(Bot.GetPlayerId()), GetTypeHash(Each.Seat))));
+	Each.PlaceSeat = PlaceSeat;
+	UE_LOG(LogVeyraBots, Log, TEXT("%s plays %s as a %s bot."), *Bot.GetPlayerName(), *StaticEnum<EVeyraBotRole>()->GetNameStringByValue(static_cast<int64>(Spot.Role)),
+		LexToString(Each.Difficulty));
 }
 
 void UVeyraBotSubsystem::Deal(EVeyraTeam Side)
@@ -57,15 +77,14 @@ void UVeyraBotSubsystem::Deal(EVeyraTeam Side)
 	}
 	// Only those not yet in play: a bot whose Vanguard has spawned keeps its Flux Spells and its place.
 	Team->RemoveAll([](const FSeated& Each) { return !Each.Bot.IsValid() || !Each.Brain.IsValid(); });
-	TArray<const FSeated*> Waiting;
-	for (const FSeated& Each : *Team)
+	TArray<FSeated*> Waiting;
+	for (FSeated& Each : *Team)
 	{
 		if (!Each.Bot->GetPawn())
 		{
 			Waiting.Add(&Each);
 		}
 	}
-	// Later seats than the list wrap around it.
 	TArray<EVeyraBotRole> Places;
 	TArray<TArray<EVeyraBotRole>> Preferences;
 	for (const FSeated* Each : Waiting)
@@ -75,21 +94,14 @@ void UVeyraBotSubsystem::Deal(EVeyraTeam Side)
 		Preferences.Add(Vanguard ? Vanguard->Roles : TArray<EVeyraBotRole>());
 	}
 	const TArray<int32> PlaceOf = VeyraBotRoles::Deal(Places, Preferences);
-	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
 	for (int32 Index = 0; Index < Waiting.Num(); ++Index)
 	{
-		const FSeated& Each = *Waiting[Index];
-		const int32 PlaceSeat = Waiting[PlaceOf.IsValidIndex(Index) && PlaceOf[Index] != INDEX_NONE ? PlaceOf[Index] : Index]->Seat % Seats.Num();
-		const FVeyraBotSeatTuning& Place = Seats[PlaceSeat];
-		AVeyraPlayerState& Bot = *Each.Bot;
-		// It takes its place's Flux Spells, as a player takes theirs from champion select (ADR-015 §8).
-		if (GameMode)
+		FSeated& Each = *Waiting[Index];
+		const int32 Dealt = PlaceOf.IsValidIndex(Index) && PlaceOf[Index] != INDEX_NONE ? PlaceOf[Index] : Index;
+		const int32 PlaceSeat = Waiting[Dealt]->Seat % Seats.Num();
+		if (PlaceSeat != Each.PlaceSeat)
 		{
-			GameMode->EquipStartingFluxSpells(Bot, Place.FluxSpells);
+			Place(Each, PlaceSeat);
 		}
-		const bool bWards = Tuning.Warding.Seats.Contains(PlaceSeat);
-		Each.Brain->Configure(Bot, Place.Role, Each.Difficulty, bWards, static_cast<int32>(HashCombine(GetTypeHash(Bot.GetPlayerId()), GetTypeHash(Each.Seat))));
-		UE_LOG(LogVeyraBots, Log, TEXT("%s plays %s as a %s bot."), *Bot.GetPlayerName(), *StaticEnum<EVeyraBotRole>()->GetNameStringByValue(static_cast<int64>(Place.Role)),
-			LexToString(Each.Difficulty));
 	}
 }

@@ -31,10 +31,7 @@ public:
 private:
 	void OnBotAdded(AVeyraPlayerState& Bot, const FVeyraBotSeat& Seat);
 
-	/** Deals Side's places among its bots not yet in play, and gives each its place. */
-	void Deal(EVeyraTeam Side);
-
-	/** One bot of a side, as it was seated. */
+	/** One bot of a side, as it was seated, and the seat whose place it holds. */
 	struct FSeated
 	{
 		TWeakObjectPtr<AVeyraPlayerState> Bot;
@@ -42,7 +39,14 @@ private:
 		FVeyraContentId Vanguard;
 		EVeyraBotDifficulty Difficulty = EVeyraBotDifficulty::Beginner;
 		int32 Seat = 0;
+		int32 PlaceSeat = INDEX_NONE;
 	};
+
+	/** Gives Each the place of seat PlaceSeat: its role, its Flux Spells, whether it wards. */
+	void Place(FSeated& Each, int32 PlaceSeat);
+
+	/** Deals Side's places afresh among its bots not yet in play, moving each whose place changes. */
+	void Deal(EVeyraTeam Side);
 	TMap<EVeyraTeam, TArray<FSeated>> Seated;
 
 	FDelegateHandle BotAddedHandle;
