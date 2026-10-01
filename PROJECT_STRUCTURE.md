@@ -157,6 +157,11 @@ M26b added ([ADR-034](Docs/ADR/ADR-034-companions-for-marek-and-nix.md)), for Ma
 - the command archetype (`Abilities/UVeyraCommandAbility`: a companion leaps to hold a point, its landing its own hit; a recall follow-up), blinks to the caster's own companion with departure zones for each, reaction bursts, self-buffs' companion statuses, chains and an end with the companion, and casts' `needsCompanion` and `cooldownWhile`;
 - the Accord passive (`UVeyraAccordPassive`), which summons Marek's companion, marks what it bites and strikes an enemy both of them hurt.
 
+M27a added ([ADR-035](Docs/ADR/ADR-035-sea-states-crashing-rides-and-summoned-companions.md)), for Neris:
+- casts' `cooldownOf`, which holds a cooldown under another ability's ID (read through `UVeyraAbilityLoadoutComponent::CooldownIdOf`), and `refusedWhile`, which refuses a cast as `HeldBack` while its caster holds a status;
+- rides' crash zones, which erupt where the rider is on every end but death, and the dismount archetype (`Abilities/UVeyraDismountAbility`), a mounted action that ends its ride;
+- zones' ally effects: the caster's heal and statuses for the allied Vanguards in a zone, each once (`VeyraAreaDelivery::Resolve`).
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

@@ -53,7 +53,7 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # name content too. An ID is valid when any of the maps defines it (ADR-008 §7). The game checks
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
-ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride", "/ambush", "/stance", "/placement", "/blink", "/command")
+ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride", "/ambush", "/stance", "/placement", "/blink", "/command", "/dismount")
 PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum", "/wildDominion", "/kitStatuses", "/attackStride", "/slipstream", "/reclaim", "/unreturned", "/quarry", "/disciplines", "/stressTemper", "/charger", "/accord")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),

@@ -74,6 +74,8 @@ FVeyraChannelPlan UVeyraRideAbility::Deliver(const FVeyraCast& Cast)
 	RideAbility = Cast.Ability;
 	RideRank = Cast.Rank;
 	RideCastId = Cast.CastId;
+	// After any older ride's end, which crashed with its own.
+	CrashZones = VeyraAreaDelivery::PrepareZones(*Caster, Tuning->CrashZones, Cast.Rank);
 	const int32 Level = GetCasterLevel(*Caster);
 	for (const FVeyraContentId& StatusId : Tuning->RiderStatuses)
 	{
@@ -178,7 +180,10 @@ void UVeyraRideAbility::OnRideEnded(const FVeyraRideEnd& End)
 {
 	UAbilitySystemComponent* Caster = Rider.Get();
 	const FVeyraContentId Ability = RideAbility;
+	const int32 CastId = RideCastId;
 	const FName Group = MountedGroup();
+	const TArray<FVeyraPreparedZone> Crash = MoveTemp(CrashZones);
+	CrashZones.Reset();
 	StopWatching();
 	const FVeyraRideAbilityTuning* Tuning = UVeyraAbilitiesTuningSubsystem::FindRide(Ability);
 	if (!Caster || !Tuning)
@@ -197,6 +202,15 @@ void UVeyraRideAbility::OnRideEnded(const FVeyraRideEnd& End)
 	if (!Tuning->Vehicle.IsEmpty())
 	{
 		LaunchVehicle(*Caster, Tuning->Vehicle[0], End);
+	}
+	// Its crash erupts where its rider is, as the rider's hit, on every end but death (ADR-035 §3).
+	UWorld* World = GetWorld();
+	if (End.Reason != EVeyraRideEndReason::Died && !Crash.IsEmpty() && World)
+	{
+		FVeyraEffectFrame Frame;
+		Frame.Origin = End.Location;
+		Frame.Direction = End.Heading;
+		VeyraAreaDelivery::Resolve(*World, *Caster, Frame, Crash, FVeyraAbilityHitSource{ Ability, CastId });
 	}
 	// A recast that separates rider and vehicle is under way; any other end leaves it nothing to do.
 	if (End.Reason != EVeyraRideEndReason::Dismounted)

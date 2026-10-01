@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "stance", "placement", "blink", "command", "fluxSpells", "companions"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "stance", "placement", "blink", "command", "dismount", "fluxSpells", "companions"],
   "definitions": {
     "statBlock": {
       "description": "Base stats or their growth (FVeyraStatBlock), each at least 0.",
@@ -278,7 +278,7 @@
       "description": "One zone of an area: its shape and what it does to each enemy in it.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["shape", "effects", "casterShieldPerVanguard", "casterStatusesPerVanguard"],
+      "required": ["shape", "effects", "casterShieldPerVanguard", "casterStatusesPerVanguard", "allyEffects"],
       "properties": {
         "shape": { "$ref": "#/definitions/shape" },
         "effects": { "$ref": "#/definitions/effects" },
@@ -292,6 +292,23 @@
         "casterStatusesPerVanguard": {
           "$ref": "#/definitions/statusIds",
           "description": "Statuses the caster gains for each enemy Vanguard the zone catches, such as the state an ultimate enters when it lands on a Vanguard (No Quarter; ADR-008 §9)."
+        },
+        "allyEffects": {
+          "description": "At most one: what it does for its caster's allied Vanguards in its shape, each once: its caster's heal by rank plus Magic Power, and statuses (ADR-035 §4).",
+          "type": "array",
+          "minItems": 0,
+          "maxItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["healByRank", "healMagicPowerRatio", "statuses", "reach"],
+            "properties": {
+              "healByRank": { "description": "Health each ally regains, by rank, before Magic Power; 0 with no ratio for no heal.", "$ref": "#/definitions/byRank" },
+              "healMagicPowerRatio": { "description": "Added to the heal for each point of the caster's Magic Power at Commit.", "type": "number", "minimum": 0 },
+              "statuses": { "$ref": "#/definitions/statusIds" },
+              "reach": { "description": "OthersOnly: allied Vanguards, the caster apart. CasterToo: the caster among them.", "type": "string", "enum": ["OthersOnly", "CasterToo"] }
+            }
+          }
         }
       }
     },
@@ -1051,7 +1068,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "setSpeed", "turnRateDegreesPerSecond", "durationSeconds", "decaySeconds", "riderStatuses", "mounted", "vehicle"],
+          "required": ["provenance", "cast", "setSpeed", "turnRateDegreesPerSecond", "durationSeconds", "decaySeconds", "riderStatuses", "mounted", "vehicle", "crashZones"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -1062,7 +1079,8 @@
             "riderStatuses": { "description": "Held on the rider while it rides.", "$ref": "#/definitions/statusIds" },
             "mounted": { "description": "The mounted actions, one per basic ability's slot.", "type": "array", "minItems": 0, "maxItems": 3,
               "items": { "type": "object", "additionalProperties": false, "required": ["slot", "ability"], "properties": { "slot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] }, "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } } } },
-            "vehicle": { "description": "At most one: the skillshot its vehicle goes on as along the rider's heading as the ride ends.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
+            "vehicle": { "description": "At most one: the skillshot its vehicle goes on as along the rider's heading as the ride ends.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+            "crashZones": { "description": "Innermost first: zones that erupt where the rider is as the ride ends, on every end but death, as the rider's hit (ADR-035 §3).", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } }
           }
         }
       }
@@ -1190,6 +1208,22 @@
             "leapSpeed": { "description": "Hold: units per second of the companion's leap; 0 for a recall.", "type": "number", "minimum": 0 },
             "holdSeconds": { "description": "Hold: how long it holds the point once it lands; 0 for a recall.", "type": "number", "minimum": 0 },
             "landingZones": { "description": "Hold, innermost first: zones where it lands, its own hit from its own power.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } }
+          }
+        }
+      }
+    },
+    "dismount": {
+      "description": "Abilities that end their caster's ride at once (ADR-035 §3), as Breaking Wave's recast: a ride holds one as a mounted action, and the ride's end crashes it.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" }
           }
         }
       }

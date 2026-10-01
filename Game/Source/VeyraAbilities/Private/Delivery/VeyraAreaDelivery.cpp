@@ -3,6 +3,8 @@
 #include "Delivery/VeyraAreaDelivery.h"
 
 #include "AbilitySystemComponent.h"
+#include "AbilitySystemGlobals.h"
+#include "Attributes/VeyraOffenceSet.h"
 #include "Delivery/VeyraLingeringArea.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -68,6 +70,22 @@ TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstA
 				Ready.CasterStatusesPerVanguard.Add(Status.GetValue());
 			}
 		}
+		// Its heal from the caster's rank and power at Commit, as its damage is (ADR-035 §4).
+		if (!Zone.AllyEffects.IsEmpty())
+		{
+			const FVeyraZoneAllyEffectsTuning& Allies = Zone.AllyEffects[0];
+			FVeyraPreparedAllyEffects& Help = Ready.AllyEffects.Emplace();
+			Help.Heal = VeyraAbilityRules::ValueAtRank(Allies.HealByRank, Rank)
+				+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Allies.HealMagicPowerRatio;
+			Help.Reach = Allies.Reach;
+			for (const FVeyraContentId& StatusId : Allies.Statuses)
+			{
+				if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+				{
+					Help.Statuses.Add(Status.GetValue());
+				}
+			}
+		}
 	}
 	return Prepared;
 }
@@ -119,7 +137,43 @@ TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FV
 	{
 		VeyraEffectDelivery::Apply(Caster, *ZoneHit.Unit, ZoneHit.Zone->Effects, Frame, ZoneHit.Source);
 	}
-	UE_LOG(LogVeyraAbilities, Verbose, TEXT("An area of %s hit %d unit(s)."), *GetNameSafe(Side), Hit.Num());
+
+	// Its caster's allied Vanguards, each once, take what the innermost zone that reaches them does for them
+	// (ADR-035 §4). The heal is the caster's, so every rule of restoration applies (Combat Bible §6).
+	const EVeyraTeam SideTeam = VeyraTeams::TeamOf(Side);
+	const AActor* CasterBody = Caster.GetAvatarActor();
+	TArray<AActor*> Helped;
+	for (const FVeyraPreparedZone& Zone : Zones)
+	{
+		if (!Zone.AllyEffects.IsSet() || SideTeam == EVeyraTeam::None)
+		{
+			continue;
+		}
+		const FVeyraPreparedAllyEffects& Help = Zone.AllyEffects.GetValue();
+		const FVeyraPlacedShape Placed{ Zone.Shape, Frame.Origin, Frame.Direction };
+		const TArray<AActor*> Allies = VeyraShapes::GatherUnits(World, Placed, [SideTeam, CasterBody, &Help, &Helped](const AActor& Unit) {
+			return VeyraUnits::IsVanguard(&Unit) && VeyraTargeting::IsAlive(&Unit) && VeyraTeams::TeamOf(&Unit) == SideTeam
+				&& (Help.Reach == EVeyraAllyReach::CasterToo || &Unit != CasterBody) && !Helped.Contains(&Unit);
+		});
+		for (AActor* Ally : Allies)
+		{
+			Helped.Add(Ally);
+			UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Ally);
+			if (!Target)
+			{
+				continue;
+			}
+			if (Help.Heal > 0.0)
+			{
+				VeyraCombat::RestoreHealthFrom(Caster, *Target, Help.Heal);
+			}
+			for (const FVeyraStatusSpec& Status : Help.Statuses)
+			{
+				VeyraCombat::ApplyStatus(Caster, *Target, Status);
+			}
+		}
+	}
+	UE_LOG(LogVeyraAbilities, Verbose, TEXT("An area of %s hit %d unit(s) and helped %d ally(ies)."), *GetNameSafe(Side), Hit.Num(), Helped.Num());
 	return Hit;
 }
 

@@ -11,6 +11,15 @@ class AVeyraLingeringArea;
 class UAbilitySystemComponent;
 class UWorld;
 
+/** What a zone does for its caster's allied Vanguards, prepared at Commit (ADR-035 §4). */
+struct FVeyraPreparedAllyEffects
+{
+	/** The Health each regains from its caster; 0 for none. */
+	double Heal = 0.0;
+	TArray<FVeyraStatusSpec> Statuses;
+	EVeyraAllyReach Reach = EVeyraAllyReach::OthersOnly;
+};
+
 /** One zone of an area, with its effects prepared at Commit (Combat Bible §50). */
 struct FVeyraPreparedZone
 {
@@ -22,6 +31,9 @@ struct FVeyraPreparedZone
 
 	/** The statuses the caster gains for each enemy Vanguard the zone catches. */
 	TArray<FVeyraStatusSpec> CasterStatusesPerVanguard;
+
+	/** What it does for its caster's allies in its shape, prepared at Commit, if anything (ADR-035 §4). */
+	TOptional<FVeyraPreparedAllyEffects> AllyEffects;
 };
 
 /** The statuses a lingering area gives each side inside it, from its caster's Level at Commit (ADR-018 §5). */

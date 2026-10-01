@@ -600,6 +600,38 @@ struct FVeyraShieldTuning
 	TArray<FVeyraAbsorbedRewardTuning> AbsorbedReward;
 };
 
+/** Whom among its caster's side a zone's ally effects reach (ADR-035 §4). */
+UENUM()
+enum class EVeyraAllyReach : uint8
+{
+	/** The allied Vanguards in its shape, its caster apart. */
+	OthersOnly,
+	/** The allied Vanguards in its shape, its caster among them. */
+	CasterToo,
+};
+
+/** What a zone does for the allied Vanguards in its shape (ADR-035 §4): its caster's heal, and statuses. */
+USTRUCT()
+struct FVeyraZoneAllyEffectsTuning
+{
+	GENERATED_BODY()
+
+	/** Health each ally regains, by rank, before Magic Power; 0 with no ratio for no heal. */
+	UPROPERTY()
+	TArray<double> HealByRank;
+
+	/** Added to the heal for each point of its caster's Magic Power at Commit; at least 0. */
+	UPROPERTY()
+	double HealMagicPowerRatio = 0.0;
+
+	/** Status IDs from the statuses map. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	UPROPERTY()
+	EVeyraAllyReach Reach = EVeyraAllyReach::OthersOnly;
+};
+
 /** One zone of an area: its shape and what it does. */
 USTRUCT()
 struct FVeyraAreaZoneTuning
@@ -611,6 +643,10 @@ struct FVeyraAreaZoneTuning
 
 	UPROPERTY()
 	FVeyraEffectBundleTuning Effects;
+
+	/** At most one: what it does for its caster's allies in its shape (ADR-035 §4). */
+	UPROPERTY()
+	TArray<FVeyraZoneAllyEffectsTuning> AllyEffects;
 
 	/**
 	 * At most one: a shield the caster gains once for each enemy Vanguard the zone catches, such as an
@@ -1785,6 +1821,23 @@ struct FVeyraRideAbilityTuning
 	/** At most one: the skillshot its vehicle goes on as, along the rider's heading, as the ride ends. */
 	UPROPERTY()
 	TArray<FVeyraContentId> Vehicle;
+
+	/** Innermost first: zones that erupt where the rider is as the ride ends, on every end but death, as the rider's hit (ADR-035 §3). */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> CrashZones;
+};
+
+/** An ability that ends its caster's ride at once (ADR-035 §3), as Breaking Wave's recast, which crashes it. */
+USTRUCT()
+struct FVeyraDismountAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	UPROPERTY()
+	FVeyraCastTuning Cast;
 };
 
 /** An ability that places one of its caster's markers at a point (ADR-031 §4), as Angeru's False Body. */
@@ -2064,6 +2117,9 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraCommandAbilityTuning> Command;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraDismountAbilityTuning> Dismount;
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;

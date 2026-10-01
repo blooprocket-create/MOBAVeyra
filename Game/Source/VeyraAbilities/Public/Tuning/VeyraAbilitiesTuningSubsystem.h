@@ -55,6 +55,7 @@ public:
 	static const FVeyraBlinkAbilityTuning* FindBlink(const FVeyraContentId& Ability);
 
 	static const FVeyraCommandAbilityTuning* FindCommand(const FVeyraContentId& Ability);
+	static const FVeyraDismountAbilityTuning* FindDismount(const FVeyraContentId& Ability);
 
 	/** The companion Id defines (ADR-034 §3), or null. */
 	static const FVeyraCompanionTuning* FindCompanion(const FVeyraContentId& Id);

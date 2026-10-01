@@ -574,7 +574,30 @@ namespace
 					CheckShield(FString::Printf(TEXT("%s/casterShieldPerVanguard/%d"), *ZonePointer, ShieldIndex), Zones[Index].CasterShieldPerVanguard[ShieldIndex]);
 				}
 				CheckStatusIds(ZonePointer + TEXT("/casterStatusesPerVanguard"), Zones[Index].CasterStatusesPerVanguard);
+				// What it does for its caster's allies: a heal, statuses, or both (ADR-035 §4).
+				const TArray<FVeyraZoneAllyEffectsTuning>& AllyEffects = Zones[Index].AllyEffects;
+				if (AllyEffects.Num() > 1)
+				{
+					Problem(ZonePointer + TEXT("/allyEffects"), TEXT("holds at most one"));
+				}
+				for (int32 AllyIndex = 0; AllyIndex < AllyEffects.Num(); ++AllyIndex)
+				{
+					const FVeyraZoneAllyEffectsTuning& Allies = AllyEffects[AllyIndex];
+					const FString AllyPointer = FString::Printf(TEXT("%s/allyEffects/%d"), *ZonePointer, AllyIndex);
+					CheckByRank(AllyPointer + TEXT("/healByRank"), Allies.HealByRank);
+					CheckStatusIds(AllyPointer + TEXT("/statuses"), Allies.Statuses);
+					const bool bHeals = Allies.HealMagicPowerRatio > 0.0 || Allies.HealByRank.ContainsByPredicate([](double Amount) { return Amount > 0.0; });
+					if (Allies.HealMagicPowerRatio < 0.0 || Allies.HealByRank.ContainsByPredicate([](double Amount) { return Amount < 0.0; }) || (!bHeals && Allies.Statuses.IsEmpty()))
+					{
+						Problem(AllyPointer, TEXT("heals by at least 0 and a ratio of at least 0, and heals or gives a status"));
+					}
+				}
 			}
+		}
+
+		void CheckDismount(const FString& Pointer, const FVeyraDismountAbilityTuning& Dismount)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Dismount.Cast);
 		}
 
 		void CheckShield(const FString& Pointer, const FVeyraShieldTuning& Shield)
@@ -892,6 +915,7 @@ namespace
 					Problem(Pointer + TEXT("/vehicle"), FString::Printf(TEXT("names \"%s\", which /skillshot does not define"), *Vehicle.ToString()));
 				}
 			}
+			CheckZones(Pointer + TEXT("/crashZones"), Ride.CrashZones);
 		}
 
 		void CheckAttach(const FString& Pointer, const FVeyraAttachAbilityTuning& Attach)
@@ -1037,6 +1061,10 @@ namespace
 			{
 				Note(Entry.Key, TEXT("command"));
 			}
+			for (const TPair<FVeyraContentId, FVeyraDismountAbilityTuning>& Entry : Tuning.Dismount)
+			{
+				Note(Entry.Key, TEXT("dismount"));
+			}
 		}
 	};
 }
@@ -1145,6 +1173,10 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	{
 		Checker.CheckCommand(TEXT("/command/") + Entry.Key.ToString(), Entry.Value);
 	}
+	for (const TPair<FVeyraContentId, FVeyraDismountAbilityTuning>& Entry : Tuning.Dismount)
+	{
+		Checker.CheckDismount(TEXT("/dismount/") + Entry.Key.ToString(), Entry.Value);
+	}
 	for (const TPair<FVeyraContentId, FVeyraCompanionTuning>& Entry : Tuning.Companions)
 	{
 		Checker.CheckCompanion(TEXT("/companions/") + Entry.Key.ToString(), Entry.Value);
@@ -1164,7 +1196,8 @@ bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability
 	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)
 		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability)
 		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability) || Tuning.Ride.Contains(Ability) || Tuning.Ambush.Contains(Ability)
-		|| Tuning.Stance.Contains(Ability) || Tuning.Placement.Contains(Ability) || Tuning.Blink.Contains(Ability) || Tuning.Command.Contains(Ability);
+		|| Tuning.Stance.Contains(Ability) || Tuning.Placement.Contains(Ability) || Tuning.Blink.Contains(Ability) || Tuning.Command.Contains(Ability)
+		|| Tuning.Dismount.Contains(Ability);
 }
 
 const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
@@ -1225,6 +1258,10 @@ const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVey
 	else if (const FVeyraCommandAbilityTuning* Command = Tuning.Command.Find(Ability))
 	{
 		Cast = &Command->Cast;
+	}
+	else if (const FVeyraDismountAbilityTuning* Dismount = Tuning.Dismount.Find(Ability))
+	{
+		Cast = &Dismount->Cast;
 	}
 	return Cast;
 }
@@ -1309,6 +1346,10 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	if (const FVeyraCommandAbilityTuning* Command = Tuning.Command.Find(Ability))
 	{
 		Checker.CheckCommand(TEXT("/command/") + Key, *Command);
+	}
+	if (const FVeyraDismountAbilityTuning* Dismount = Tuning.Dismount.Find(Ability))
+	{
+		Checker.CheckDismount(TEXT("/dismount/") + Key, *Dismount);
 	}
 	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;
