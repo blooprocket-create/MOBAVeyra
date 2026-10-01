@@ -724,7 +724,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses", "hostEffects", "endZones", "rideExit", "duringDash"],
+          "required": ["provenance", "cast", "direction", "distance", "speed", "contact", "startZones", "contactEffects", "contactSelfStatuses", "hostEffects", "endZones", "rideExit", "duringDash", "targetKinds"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -751,7 +751,8 @@
             "hostEffects": { "description": "On the unit an AwayFromHost dash lets go of, as the throw's stumble; no effects for any other dash.", "$ref": "#/definitions/effects" },
             "endZones": {"description": "Areas at the caster, facing the cast's point, as the dash sets off; innermost first.", "type": "array", "minItems": 0, "items": {"$ref": "#/definitions/zone"}},
             "rideExit": { "description": "Stay: it rides on, if it rides. Leave: it separates rider and vehicle first, as Bail Out and Last Exit do (Combat Bible §56).", "type": "string", "enum": ["Stay", "Leave"] },
-            "duringDash": { "description": "Cast during one of its caster's own dashes: Refused until that dash ends, or TakesOver, ending it where the caster is and dashing from there (ADR-031 §7).", "type": "string", "enum": ["Refused", "TakesOver"] }
+            "duringDash": { "description": "Cast during one of its caster's own dashes: Refused until that dash ends, or TakesOver, ending it where the caster is and dashing from there (ADR-031 §7).", "type": "string", "enum": ["Refused", "TakesOver"] },
+            "targetKinds": { "description": "ThroughTarget: the kinds of unit it may pass through (EVeyraUnitKind); empty for any enemy unit, and empty for any other dash. Never Structure (Combat Bible §33).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] } }
           }
         }
       }

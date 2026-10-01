@@ -1,6 +1,7 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "CQTest.h"
+#include "Cooldowns/VeyraCooldownComponent.h"
 #include "Delivery/VeyraProjectile.h"
 #include "EngineUtils.h"
 #include "Entities/VeyraPlacedMarker.h"
@@ -143,6 +144,17 @@ namespace VeyraAbilitiesTests
 			ShadowFixture::Wait(Spawner, ShadowFixture::Lifetime + 0.5);
 			ASSERT_THAT(IsNull(StandingShadow()));
 			ASSERT_THAT(IsTrue(Loadout->FindSlot(EVeyraAbilitySlot::W)->Ability == ArchetypeTestId(TEXT("test_shadow")), TEXT("with its marker gone, so is the swap")));
+		}
+
+		TEST_METHOD(PlacingAgainWhileTheLastStandsKeepsTheNewSwap)
+		{
+			PlaceAt(FVector(0.0, ShadowFixture::PlaceRange / 2.0, 0.0));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Caster, EVeyraAbilitySlot::W, Caster->GetActorLocation()) == EVeyraCastRejection::None, TEXT("the swap")));
+			ASSERT_THAT(IsNotNull(StandingShadow(), TEXT("the shadow still stands")));
+			Caster->GetPlayerState()->FindComponentByClass<UVeyraCooldownComponent>()->ClearCooldown(ArchetypeTestId(TEXT("test_shadow")));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Caster, EVeyraAbilitySlot::W, FVector(ShadowFixture::PlaceRange / 2.0, 0.0, 0.0)) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsNotNull(StandingShadow(), TEXT("a new shadow stands")));
+			ASSERT_THAT(IsTrue(Loadout->FindSlot(EVeyraAbilitySlot::W)->Ability == ArchetypeTestId(TEXT("test_swap")), TEXT("and offers its swap")));
 		}
 
 		TEST_METHOD(TheSwapExchangesPlacesWithTheMarker)

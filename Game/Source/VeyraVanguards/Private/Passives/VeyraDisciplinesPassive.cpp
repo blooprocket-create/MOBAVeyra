@@ -58,7 +58,8 @@ void UVeyraDisciplinesPassive::OnAbilityHit(const FVeyraAbilityHit& Hit)
 	}
 	for (const FVeyraDisciplineMarkTuning& Mark : Tuning->Marks)
 	{
-		if (!Mark.ConsumedBy.Contains(Hit.Ability) || !VeyraCombat::HasStatusFrom(Target, Mark.Status, *Owner))
+		// What the target held as the hit landed: a lethal hit's death has cleared its statuses since.
+		if (!Mark.ConsumedBy.Contains(Hit.Ability) || !Hit.HeldFromCaster.Contains(Mark.Status))
 		{
 			continue;
 		}

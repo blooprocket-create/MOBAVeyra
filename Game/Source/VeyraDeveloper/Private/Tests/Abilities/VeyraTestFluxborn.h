@@ -114,3 +114,16 @@ public:
 
 	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Ward; }
 };
+
+// A neutral objective for the tests of what a cast may name, as a Flux Well is: the test unit, reporting
+// itself an objective, on no side.
+UCLASS(NotBlueprintable, NotPlaceable, Transient)
+class AVeyraTestObjective : public AVeyraTestFluxborn
+{
+	GENERATED_BODY()
+
+public:
+	AVeyraTestObjective(const FObjectInitializer& ObjectInitializer);
+
+	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Objective; }
+};

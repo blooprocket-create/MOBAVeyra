@@ -49,10 +49,10 @@ FVeyraChannelPlan UVeyraPlacementAbility::Deliver(const FVeyraCast& Cast)
 	{
 		return FVeyraChannelPlan();
 	}
-	// One at a time: the last goes quietly, as its time would have run out.
+	// One at a time: the last goes quietly, and the follow-up this cast opened stays with the new one.
 	if (AVeyraPlacedMarker* Last = AVeyraPlacedMarker::FindStanding(*Caster, Cast.Ability))
 	{
-		Last->EndMarker(EVeyraMarkerEndReason::Expired);
+		Last->EndMarker(EVeyraMarkerEndReason::Replaced);
 	}
 	// On the ground nearest its point, standing as its caster stands (ADR-031 §4).
 	const FVector Ground = VeyraCombat::NearestGround(*World, Cast.Point);
@@ -79,7 +79,7 @@ FVeyraChannelPlan UVeyraPlacementAbility::Deliver(const FVeyraCast& Cast)
 void UVeyraPlacementAbility::OnMarkerEnded(const FVeyraMarkerEnd& End)
 {
 	UAbilitySystemComponent* Caster = Placer.Get();
-	if (Caster && End.Owner.Get() == Caster && Defines(End.Id))
+	if (Caster && End.Owner.Get() == Caster && Defines(End.Id) && End.Reason != EVeyraMarkerEndReason::Replaced)
 	{
 		// Whatever it offered, as a swap, has nothing left to offer (ADR-031 §4).
 		EndRecastWindow(*Caster, End.Id);

@@ -38,7 +38,7 @@ EVeyraCastRejection UVeyraDashAbility::CheckTarget(const AActor& Caster, const F
 	if (Dash->Direction == EVeyraDashDirection::ThroughTarget)
 	{
 		// It names the enemy unit it passes through, within its reach (ADR-030 §6).
-		return CheckEnemyUnit(Caster, Target.Actor.Get(), Dash->Cast.CastRange, {});
+		return CheckEnemyUnit(Caster, Target.Actor.Get(), Dash->Cast.CastRange, Dash->TargetKinds);
 	}
 	if (Dash->Direction == EVeyraDashDirection::AwayFromHost)
 	{

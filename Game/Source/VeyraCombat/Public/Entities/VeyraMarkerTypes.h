@@ -22,6 +22,8 @@ enum class EVeyraMarkerEndReason : uint8
 	Recalled,
 	/** Its owner died. */
 	OwnerDied,
+	/** Its owner's ability placed another in its place, whose follow-up is the one that stands. */
+	Replaced,
 };
 
 /** What a placed marker is, as its owner's ability places it (ADR-030 §5). */

@@ -1,6 +1,8 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
 #include "Attributes/VeyraResourceSet.h"
+#include "Attributes/VeyraVitalsSet.h"
+#include "Targeting/VeyraTargeting.h"
 #include "CQTest.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Passives/VeyraDisciplinesPassive.h"
@@ -27,6 +29,7 @@ namespace VeyraVanguardsTests
 		static constexpr double Landed = 0.5;
 		static constexpr double Spent = 100.0;
 		static constexpr double ManyLevels = 50000.0;
+		static constexpr double Sliver = 1.0;
 		static constexpr float Step = 0.05f;
 
 		FActorTestSpawner Spawner;
@@ -162,6 +165,40 @@ namespace VeyraVanguardsTests
 			ASSERT_THAT(IsTrue(Holds(Veiled, TEXT("angeru_drawn")) && Holds(Plain, TEXT("angeru_drawn")), TEXT("Severing Arc marks both Drawn")));
 			ASSERT_THAT(IsTrue(FArchetypeTestWorld::HealthLost(Veiled) > FArchetypeTestWorld::HealthLost(Plain), TEXT("Execution adds to the strike")));
 			ASSERT_THAT(IsTrue(Cooldowns->GetRemainingSecondsNow(Forsake) < Before - Landed - 0.5, TEXT("and shortens the stance's cooldown")));
+		}
+
+		TEST_METHOD(ALethalBladeHitStillSpendsVeiled)
+		{
+			RankTheBasics();
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Veiled = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			Mark(Veiled, TEXT("angeru_veiled"));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Angeru, EVeyraAbilitySlot::R, Angeru->GetActorLocation()) == EVeyraCastRejection::None));
+			Wait(Landed);
+			const FVeyraContentId Forsake = Id(TEXT("angeru_forsake_the_schools"));
+			const double Before = Cooldowns->GetRemainingSecondsNow(Forsake);
+			// A sliver of Health left, so Severing Arc's strike finishes it.
+			UAbilitySystemComponent& Target = *Veiled.GetAbilitySystemComponent();
+			FVeyraRawDamageEvent Wound;
+			Wound.Components.Add({ EVeyraDamageType::TrueDamage, Target.GetNumericAttribute(UVeyraVitalsSet::GetHealthAttribute()) - Sliver });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Angeru->GetAbilitySystemComponent(), Target, Wound)));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Angeru, EVeyraAbilitySlot::W, FVector(Near, 0.0, 0.0)) == EVeyraCastRejection::None));
+			Wait(Landed);
+			ASSERT_THAT(IsFalse(VeyraTargeting::IsAlive(&Veiled), TEXT("the strike was lethal")));
+			ASSERT_THAT(IsTrue(Cooldowns->GetRemainingSecondsNow(Forsake) < Before - Landed - 0.5, TEXT("and still spent Veiled, shortening the stance's cooldown")));
+		}
+
+		TEST_METHOD(PassingStepNamesVanguardsFluxbornAndWildlifeOnly)
+		{
+			RankTheBasics();
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Angeru, EVeyraAbilitySlot::R, Angeru->GetActorLocation()) == EVeyraCastRejection::None));
+			Wait(Landed);
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraTestObjective& Well = Spawner.SpawnActorAt<AVeyraTestObjective>(FVector(Near, Aside, 0.0), FRotator::ZeroRotator);
+			VeyraCombat::InitializeStats(*Well.GetAbilitySystemComponent(), VeyraCombatTests::ExampleStats());
+			ASSERT_THAT(IsTrue(CastOn(EVeyraAbilitySlot::E, Well) == EVeyraCastRejection::InvalidTarget, TEXT("not an objective")));
+			AVeyraTestFluxborn& Fluxborn = World.SpawnFluxborn(EVeyraTeam::B, FVector(Near, -Aside, 0.0));
+			ASSERT_THAT(IsTrue(CastOn(EVeyraAbilitySlot::E, Fluxborn) == EVeyraCastRejection::None, TEXT("a Fluxborn, as canon says")));
 		}
 
 		TEST_METHOD(AVeilHitOnADrawnEnemySpendsItForVanish)

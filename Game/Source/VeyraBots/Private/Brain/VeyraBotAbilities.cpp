@@ -72,6 +72,7 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 		{
 			Profile.Targeting = EVeyraBotTargeting::Unit;
 			Profile.Reach = Dash->Cast.CastRange;
+			Profile.TargetKinds = Dash->TargetKinds;
 		}
 		return Profile;
 	}
