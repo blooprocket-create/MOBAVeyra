@@ -133,6 +133,27 @@ struct FVeyraDisplacementEvent
 	double Distance = 0.0;
 };
 
+/** Which of a unit's own moves ended (ADR-032 §1). */
+enum class EVeyraOwnMove : uint8
+{
+	Dash,
+	Blink,
+};
+
+/**
+ * A unit's own move as it ends (ADR-032 §1): a dash that arrived, stopped at an enemy or was taken over,
+ * or a blink. A displacement is not the unit's own move, and a dash one interrupted never ends as its own.
+ */
+struct FVeyraUnitMovedEvent
+{
+	TWeakObjectPtr<UAbilitySystemComponent> Unit;
+	EVeyraOwnMove Move = EVeyraOwnMove::Dash;
+
+	/** Where the move began and where the unit stands as it ends. */
+	FVector From = FVector::ZeroVector;
+	FVector To = FVector::ZeroVector;
+};
+
 /** A Spell Shield that blocked a hostile ability hit and was consumed (Combat Bible §19). */
 struct FVeyraSpellShieldBlocked
 {
@@ -204,6 +225,7 @@ public:
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnStatusApplied, const FVeyraStatusApplied&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnCast, const FVeyraCastEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnDisplaced, const FVeyraDisplacementEvent&);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnUnitMoved, const FVeyraUnitMovedEvent&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnSpellShieldBlocked, const FVeyraSpellShieldBlocked&);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnMarkerEnded, const FVeyraMarkerEnd&);
 
@@ -241,6 +263,9 @@ public:
 
 	/** A unit forced another to move: a Knockback, Pull or Knockup's travel (Combat Bible §9). */
 	FOnDisplaced OnDisplaced;
+
+	/** A unit's own dash or blink ended (ADR-032 §1): a passive may punish the move where it landed. */
+	FOnUnitMoved OnUnitMoved;
 
 	/** A placed marker ended: expired, destroyed, recalled, or its owner died (ADR-030 §5). */
 	FOnMarkerEnded OnMarkerEnded;

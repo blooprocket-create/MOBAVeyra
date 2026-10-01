@@ -135,6 +135,11 @@ const FVeyraDisciplinesTuning* UVeyraVanguardsTuningSubsystem::FindDisciplines(c
 	return Get().Disciplines.Find(Passive);
 }
 
+const FVeyraStressTemperTuning* UVeyraVanguardsTuningSubsystem::FindStressTemper(const FVeyraContentId& Passive)
+{
+	return Get().StressTemper.Find(Passive);
+}
+
 const FVeyraUnreturnedTuning* UVeyraVanguardsTuningSubsystem::FindUnreturned(const FVeyraContentId& Passive)
 {
 	return Get().Unreturned.Find(Passive);

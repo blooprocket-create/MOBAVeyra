@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry", "disciplines"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry", "disciplines", "stressTemper"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -178,7 +178,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [15]
+      "enum": [16]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -689,6 +689,28 @@
             },
             "refundSlot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] },
             "refundSeconds": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "stressTemper": {
+      "description": "Passives that punish movement (Varkesh's Stress Temper, Roster Bible §14; ADR-032 §2). Each hit of the owner's damaging abilities on an enemy Vanguard puts coating on it, from the owner. When a unit holding the owner's coating ends its own dash or blink, and holds no lockout from the owner, the coating goes, the unit takes lockout and strikeStatuses from the owner, and it takes damageAmount + damagePerLevel per Level after the first + magicPowerRatio of the owner's Magic Power, as damageType.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "coating", "damageType", "damageAmount", "damagePerLevel", "magicPowerRatio", "strikeStatuses", "lockout"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "coating": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "damageType": { "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+            "damageAmount": { "type": "number", "minimum": 0 },
+            "damagePerLevel": { "type": "number", "minimum": 0 },
+            "magicPowerRatio": { "type": "number", "minimum": 0 },
+            "strikeStatuses": { "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+            "lockout": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
           }
         }
       }

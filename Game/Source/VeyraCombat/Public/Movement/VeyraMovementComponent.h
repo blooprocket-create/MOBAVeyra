@@ -12,6 +12,7 @@
 
 class UAbilitySystemComponent;
 class UVeyraStatusComponent;
+enum class EVeyraOwnMove : uint8;
 
 /** The custom movement modes of a combatant's body (MOVE_Custom's sub-mode). */
 UENUM()
@@ -186,6 +187,8 @@ private:
 		FVector Destination = FVector::ZeroVector;
 		double Speed = 0.0;
 		EVeyraDashContact Contact = EVeyraDashContact::None;
+		/** Where a dash began, for the unit's own move as it ends (ADR-032 §1). */
+		FVector Origin = FVector::ZeroVector;
 		/** An attach's host, and when it lets go (world seconds). */
 		TWeakObjectPtr<AActor> Host;
 		double EndsAt = 0.0;
@@ -202,6 +205,9 @@ private:
 	FVector AttachSeat(const AActor& Host) const;
 	void EndForcedMove();
 	void EndDash(EVeyraDashEndReason Reason, AActor* Contact);
+
+	/** Announces the unit's own move, from From to where it stands now (ADR-032 §1). */
+	void AnnounceOwnMove(EVeyraOwnMove Move, const FVector& From) const;
 
 	/** The first living enemy unit the body touches moving from From to To, and where it touches. */
 	AActor* FindEnemyContact(const FVector& From, const FVector& To, FVector& OutContactLocation) const;

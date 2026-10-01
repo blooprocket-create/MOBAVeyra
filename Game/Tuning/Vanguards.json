@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 15,
+  "schemaVersion": 16,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -1135,6 +1135,18 @@
       ],
       "refundSlot": "R",
       "refundSeconds": 1
+    }
+  },
+  "stressTemper": {
+    "varkesh_stress_temper": {
+      "provenance": "Provisional",
+      "coating": "varkesh_heated_metal",
+      "damageType": "Magic",
+      "damageAmount": 40,
+      "damagePerLevel": 12,
+      "magicPowerRatio": 0.3,
+      "strikeStatuses": ["varkesh_seized"],
+      "lockout": "varkesh_cooled"
     }
   }
 }

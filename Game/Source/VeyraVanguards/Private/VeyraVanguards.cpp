@@ -18,6 +18,7 @@
 #include "Passives/VeyraMovingTargetPassive.h"
 #include "Passives/VeyraQuarryPassive.h"
 #include "Passives/VeyraReclaimPassive.h"
+#include "Passives/VeyraStressTemperPassive.h"
 #include "Passives/VeyraSlipstreamPassive.h"
 #include "Passives/VeyraUnreturnedPassive.h"
 #include "Passives/VeyraWildDominionPassive.h"
@@ -105,6 +106,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	if (UVeyraVanguardsTuningSubsystem::FindUnreturned(PassiveId))
 	{
 		return UVeyraUnreturnedPassive::StaticClass();
+	}
+	if (UVeyraVanguardsTuningSubsystem::FindStressTemper(PassiveId))
+	{
+		return UVeyraStressTemperPassive::StaticClass();
 	}
 	return nullptr;
 }

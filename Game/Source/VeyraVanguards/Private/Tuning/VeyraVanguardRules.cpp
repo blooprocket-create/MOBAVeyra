@@ -277,6 +277,35 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraStressTemperTuning>& Entry : Tuning.StressTemper)
+	{
+		RegisterPassive(Entry.Key, TEXT("stressTemper"));
+		const FString Pointer = TEXT("/stressTemper/") + Entry.Key.ToString();
+		const FVeyraStressTemperTuning& Temper = Entry.Value;
+		TArray<TPair<FString, FVeyraContentId>> Named = { { TEXT("/coating"), Temper.Coating }, { TEXT("/lockout"), Temper.Lockout } };
+		for (const FVeyraContentId& Status : Temper.StrikeStatuses)
+		{
+			Named.Add({ TEXT("/strikeStatuses"), Status });
+		}
+		for (const TPair<FString, FVeyraContentId>& Each : Named)
+		{
+			if (!Abilities.Statuses.Contains(Each.Value))
+			{
+				Problem(Pointer + Each.Key, FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Each.Value.ToString()));
+			}
+		}
+		// The lockout outlasts the strike, and is not the coating it spares.
+		const FVeyraStatusTuning* Lockout = Abilities.Statuses.Find(Temper.Lockout);
+		if (Temper.Lockout == Temper.Coating || (Lockout && !(Lockout->DurationSeconds > 0.0)))
+		{
+			Problem(Pointer + TEXT("/lockout"), TEXT("names a status other than the coating, lasting above 0 seconds"));
+		}
+		if (Temper.DamageAmount < 0.0 || Temper.DamagePerLevel < 0.0 || Temper.MagicPowerRatio < 0.0 || Temper.DamageType == EVeyraDamageType::TrueDamage)
+		{
+			Problem(Pointer, TEXT("its damage values are at least 0, and its type Physical or Magic"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraUnreturnedTuning>& Entry : Tuning.Unreturned)
 	{
 		RegisterPassive(Entry.Key, TEXT("unreturned"));

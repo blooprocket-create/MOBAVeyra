@@ -797,6 +797,46 @@ struct FVeyraDisciplinesTuning
 };
 
 /**
+ * Varkesh's Stress Temper (Roster Bible §14; ADR-032 §2): its owner's damaging abilities coat the enemy
+ * Vanguards they hit; a coated unit that dashes or blinks on its own, and holds no lockout from the owner,
+ * is struck where it lands. The coating goes, the strike's damage and statuses land, and the unit takes the
+ * lockout. Its data is an entry in Vanguards.json's stressTemper map.
+ */
+USTRUCT()
+struct FVeyraStressTemperTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses: the coating, put by the owner on each enemy Vanguard its damaging abilities hit. */
+	UPROPERTY()
+	FVeyraContentId Coating;
+
+	/** The strike: its type, Physical or Magic, its amount at Level 1, what each Level adds, and its Magic Power ratio. */
+	UPROPERTY()
+	EVeyraDamageType DamageType = EVeyraDamageType::Magic;
+
+	UPROPERTY()
+	double DamageAmount = 0.0;
+
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	/** From Abilities.json's statuses: put on the struck unit, such as a brief Root. */
+	UPROPERTY()
+	TArray<FVeyraContentId> StrikeStatuses;
+
+	/** From Abilities.json's statuses: put on the struck unit by the owner; while it holds, no strike lands on it. */
+	UPROPERTY()
+	FVeyraContentId Lockout;
+};
+
+/**
  * Tavi's You're It! (Roster Bible §6; ADR-030 §10): one enemy at a time holds its owner's mark. Its owner
  * moves faster while closing on the holder; its next basic attack on the holder spends the mark for bonus
  * magic damage and refunds CooldownRefund of Q, W and E's remaining cooldowns; and a kill of the holder
@@ -892,7 +932,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 15;
+	static constexpr int32 SchemaVersion = 16;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -950,6 +990,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraDisciplinesTuning> Disciplines;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraStressTemperTuning> StressTemper;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

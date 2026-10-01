@@ -8,6 +8,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
+#include "Life/VeyraCombatEventSubsystem.h"
 #include "Movement/VeyraMovementRules.h"
 #include "NavigationSystem.h"
 #include "Shapes/VeyraShapes.h"
@@ -417,6 +418,7 @@ bool UVeyraMovementComponent::StartDash(const FVeyraDash& Dash)
 	}
 	FForcedMove Move;
 	Move.Mode = EVeyraCustomMovementMode::Dashing;
+	Move.Origin = UpdatedComponent->GetComponentLocation();
 	Move.Destination = ResolveForcedMoveEnd(Dash.Direction, Dash.Distance);
 	Move.Speed = Dash.Speed;
 	Move.Contact = Dash.Contact;
@@ -492,6 +494,7 @@ bool UVeyraMovementComponent::Blink(const FVector& Destination, const FVector& F
 	{
 		return false;
 	}
+	const FVector From = UpdatedComponent->GetComponentLocation();
 	// Terrain between does not stop a blink; its end must be ground the body may stand on (§9).
 	FVector End(Destination.X, Destination.Y, UpdatedComponent->GetComponentLocation().Z);
 	const UNavigationSystemV1* Navigation = FNavigationSystem::GetCurrent<UNavigationSystemV1>(GetWorld());
@@ -524,6 +527,7 @@ bool UVeyraMovementComponent::Blink(const FVector& Destination, const FVector& F
 		Controller->StopMovement();
 	}
 	StopMovementImmediately();
+	AnnounceOwnMove(EVeyraOwnMove::Blink, From);
 	return true;
 }
 
@@ -641,8 +645,22 @@ void UVeyraMovementComponent::EndForcedMove()
 
 void UVeyraMovementComponent::EndDash(EVeyraDashEndReason Reason, AActor* Contact)
 {
+	const FVector From = ForcedMove.IsSet() ? ForcedMove->Origin : FVector::ZeroVector;
 	EndForcedMove();
 	OnDashEnded.Broadcast(FVeyraDashEnd{ Reason, Contact });
+	// A dash a displacement interrupts never ends as the unit's own; it does not reach here (ADR-032 §1).
+	AnnounceOwnMove(EVeyraOwnMove::Dash, From);
+}
+
+void UVeyraMovementComponent::AnnounceOwnMove(EVeyraOwnMove Move, const FVector& From) const
+{
+	UWorld* World = GetWorld();
+	UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
+	UAbilitySystemComponent* Unit = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(CharacterOwner);
+	if (Events && Unit && UpdatedComponent)
+	{
+		Events->OnUnitMoved.Broadcast(FVeyraUnitMovedEvent{ Unit, Move, From, UpdatedComponent->GetComponentLocation() });
+	}
 }
 
 AActor* UVeyraMovementComponent::FindCollision(const FVector& From, const FVector& To, const AActor* Ignored, FVector& OutContactLocation) const
