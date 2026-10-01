@@ -16,11 +16,11 @@
 
 namespace
 {
-	/** The ability hit a projectile carries to the unit it strikes. */
-	FVeyraAbilityHitSource ProjectileHit(const FVeyraContentId& Ability, int32 CastId)
+	/** The ability hit a projectile launched at From carries to the unit it strikes. */
+	FVeyraAbilityHitSource ProjectileHit(const FVeyraContentId& Ability, int32 CastId, const FVector& From)
 	{
 		FVeyraAbilityHitSource Hit{ Ability, CastId };
-		Hit.bProjectile = true;
+		Hit.ProjectileFrom = From;
 		return Hit;
 	}
 }
@@ -185,7 +185,7 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 		Met.Add(&Unit);
 		if (Collision == EVeyraSkillshotCollision::FirstEnemyVanguard && !VeyraUnits::IsVanguard(&Unit))
 		{
-			VeyraEffectDelivery::Apply(Source, Unit, PassThroughEffects, PathFrame(), ProjectileHit(Ability, CastId));
+			VeyraEffectDelivery::Apply(Source, Unit, PassThroughEffects, PathFrame(), ProjectileHit(Ability, CastId, LaunchedFrom));
 			continue;
 		}
 		// Before the hit lands, so what it reads of the unit is as the shot found it (ADR-030 §8).
@@ -206,7 +206,7 @@ void AVeyraProjectile::AdvanceLine(UAbilitySystemComponent& Source, double Dista
 				Shared->Struck.Add(&Unit);
 			}
 		}
-		VeyraEffectDelivery::Apply(Source, Unit, *Landing, CasterFrame(), ProjectileHit(Ability, CastId));
+		VeyraEffectDelivery::Apply(Source, Unit, *Landing, CasterFrame(), ProjectileHit(Ability, CastId, LaunchedFrom));
 		if (Collision != EVeyraSkillshotCollision::Pierce)
 		{
 			Travelled += Hit.Distance;
@@ -250,7 +250,7 @@ void AVeyraProjectile::AdvanceHoming(UAbilitySystemComponent& Source, double Dis
 		return;
 	}
 	Met.Add(Target);
-	VeyraEffectDelivery::Apply(Source, *Target, Effects, CasterFrame(), ProjectileHit(Ability, CastId));
+	VeyraEffectDelivery::Apply(Source, *Target, Effects, CasterFrame(), ProjectileHit(Ability, CastId, LaunchedFrom));
 	if (OnLanded)
 	{
 		OnLanded(*Target);

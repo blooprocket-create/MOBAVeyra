@@ -33,6 +33,7 @@ void UVeyraAllHandsPassive::Stop()
 	DealtHandle.Reset();
 	ReadyAt.Reset();
 	Work = 0.0;
+	WorkFor.Reset();
 	Super::Stop();
 }
 
@@ -43,7 +44,8 @@ void UVeyraAllHandsPassive::OnDamageDealt(const FVeyraDamageDealtEvent& Event)
 	const UAbilitySystemComponent* Target = Event.Target.Get();
 	const FVeyraAllHandsTuning* Tuning = UVeyraVanguardsTuningSubsystem::FindAllHands(PassiveId);
 	UWorld* World = GetWorld();
-	if (!Owner || !Source || !Target || !Tuning || !World)
+	// Damage dealt, not merely a hostile hit that dealt nothing.
+	if (!Owner || !Source || !Target || !Tuning || !World || !(Event.Total() > 0.0))
 	{
 		return;
 	}
@@ -61,7 +63,14 @@ void UVeyraAllHandsPassive::OnDamageDealt(const FVeyraDamageDealtEvent& Event)
 	if (!Companion)
 	{
 		Work = 0.0;
+		WorkFor.Reset();
 		return;
+	}
+	// Work belongs to one companion: a new one, deployed after the last was destroyed, starts afresh (ADR-037 §6).
+	if (WorkFor.Get() != Companion)
+	{
+		Work = 0.0;
+		WorkFor = Companion;
 	}
 	if (FVector::Dist2D(Struck->GetActorLocation(), Companion->GetActorLocation()) > Tuning->Radius)
 	{
