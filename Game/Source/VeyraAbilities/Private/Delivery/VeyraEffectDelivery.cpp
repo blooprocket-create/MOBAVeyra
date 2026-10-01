@@ -11,6 +11,7 @@
 #include "Attributes/VeyraVitalsSet.h"
 #include "Delivery/VeyraShieldRewardSubsystem.h"
 #include "Engine/World.h"
+#include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "VeyraCombatVerbs.h"
 
@@ -121,6 +122,21 @@ FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffec
 		}
 		Ready.Statuses = StatusSpecs(Reaction.Statuses, Level);
 		Ready.Replaces = Reaction.Replaces;
+		for (const FVeyraReactionBurstTuning& Burst : Reaction.Burst)
+		{
+			FVeyraPreparedBurst& Around = Ready.Burst.AddDefaulted_GetRef();
+			Around.Shape = Burst.Shape;
+			Around.Statuses = StatusSpecs(Burst.Statuses, Level);
+			if (!Burst.Damage.IsEmpty())
+			{
+				FVeyraRawDamageEvent Raw;
+				for (const FVeyraDamageTuning& Damage : Burst.Damage)
+				{
+					Raw.Components.Add({ Damage.Type, DamageAmount(Caster, Damage, Rank) });
+				}
+				Around.Damage = VeyraCombat::PrepareDamage(Caster, Raw);
+			}
+		}
 	}
 	// A bundle whose only damage is its reactions' prepares that damage now too, so it keeps the caster's
 	// offence at Commit (Combat Bible §50): each reaction type at 0, its amounts joining at impact.
@@ -236,6 +252,7 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 	FVeyraDamageComponents ReactionDamage;
 	TArray<FVeyraStatusSpec> ReactionStatuses;
 	TArray<FVeyraContentId> Replaced;
+	TArray<const FVeyraPreparedBurst*, TInlineAllocator<1>> Bursts;
 	const UVeyraStatusComponent* Ledger = Target->GetOwner() ? Target->GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
 	if (Ledger)
 	{
@@ -267,6 +284,10 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 			}
 			ReactionStatuses.Append(Reaction.Statuses);
 			Replaced.Append(Reaction.Replaces);
+			for (const FVeyraPreparedBurst& Burst : Reaction.Burst)
+			{
+				Bursts.Add(&Burst);
+			}
 			if (Reaction.bConsume)
 			{
 				Consumed.AddUnique(Reaction.Status);
@@ -342,6 +363,36 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 				UVeyraGameplayAbility::GetCasterLevel(Caster)))
 		{
 			Hit.bDisplaced = VeyraCombat::Displace(Caster, *Target, Displacement.GetValue());
+		}
+	}
+	// A reaction's burst reaches the caster's other enemies around the target, as a secondary impact does,
+	// never re-entering the hit pipeline (ADR-034 §6).
+	const AActor* CasterBody = Caster.GetAvatarActor();
+	UWorld* World = Unit.GetWorld();
+	for (const FVeyraPreparedBurst* Burst : Bursts)
+	{
+		if (!CasterBody || !World)
+		{
+			break;
+		}
+		const FVector Away = (Unit.GetActorLocation() - CasterBody->GetActorLocation()).GetSafeNormal2D();
+		const TArray<AActor*> Around = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Burst->Shape, Unit.GetActorLocation(), Away.IsNearlyZero() ? FVector::ForwardVector : Away },
+			[CasterBody, &Unit](const AActor& Other) { return &Other != &Unit && VeyraTargeting::AreHostile(CasterBody, &Other) && VeyraTargeting::CanAcquire(CasterBody, Other); });
+		for (AActor* Other : Around)
+		{
+			UAbilitySystemComponent* OtherAbilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Other);
+			if (!OtherAbilities)
+			{
+				continue;
+			}
+			if (Burst->Damage.IsValid())
+			{
+				VeyraCombat::DealPreparedDamage(Burst->Damage, *OtherAbilities);
+			}
+			for (const FVeyraStatusSpec& Status : Burst->Statuses)
+			{
+				VeyraCombat::ApplyStatus(Caster, *OtherAbilities, Status);
+			}
 		}
 	}
 	if (Source.Ability.IsValid())

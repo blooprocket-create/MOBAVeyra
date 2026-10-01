@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Abilities domain: the statuses abilities apply and each ability's numbers, keyed by content ID and grouped by archetype (ADR-008 §3). VeyraAbilities binds it to FVeyraAbilitiesTuning. A list whose name ends \"ByRank\" holds one value for every rank, or one value per rank.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "stance", "placement", "blink", "fluxSpells", "companions"],
+  "required": ["schemaVersion", "casting", "statuses", "targetedDamage", "area", "selfBuff", "skillshot", "dash", "empoweredAttack", "volley", "tether", "attach", "ride", "ambush", "stance", "placement", "blink", "command", "fluxSpells", "companions"],
   "definitions": {
     "statBlock": {
       "description": "Base stats or their growth (FVeyraStatBlock), each at least 0.",
@@ -76,7 +76,7 @@
       "description": "How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold", "targetMustNotHold", "takedownRefund", "currentResourceFraction", "minimumResource"],
+      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold", "targetMustNotHold", "takedownRefund", "currentResourceFraction", "minimumResource", "needsCompanion", "cooldownWhile"],
       "properties": {
         "cooldownSecondsByRank": { "description": "Cooldown in seconds, starting at Commit.", "$ref": "#/definitions/byRank" },
         "resourceCostByRank": { "description": "Resource paid at Commit.", "$ref": "#/definitions/byRank" },
@@ -129,7 +129,20 @@
           "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 }
         },
         "currentResourceFraction": { "description": "At most one: the share of the caster's current resource it also costs, above 0 and at most 1, paid at Commit with the cost by rank (Combat Bible §27; ADR-033 §3).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 } },
-        "minimumResource": { "description": "At most one: the resource, above 0, the caster must hold to cast it at all (ADR-033 §3).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true } }
+        "minimumResource": { "description": "At most one: the resource, above 0, the caster must hold to cast it at all (ADR-033 §3).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true } },
+        "needsCompanion": { "description": "Living: refused, as NoCompanion, while its caster has no living companion (ADR-034 §8).", "type": "string", "enum": ["None", "Living"] },
+        "cooldownWhile": {
+          "description": "Each status its caster holds from itself as it starts its cooldown scales the cooldown by its multiplier (ADR-034 §8).",
+          "type": "array", "minItems": 0,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["status", "multiplier"],
+            "properties": {
+              "status": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+              "multiplier": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 }
+            }
+          }
+        }
       }
     },
     "recastWindow": {
@@ -222,14 +235,27 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["status", "consume", "damage", "scaling", "statuses", "replaces"],
+            "required": ["status", "consume", "damage", "scaling", "statuses", "replaces", "burst"],
             "properties": {
               "status": { "description": "The status the target must hold, from any source.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
               "consume": { "description": "Consume removes the status once the reaction resolves.", "type": "string", "enum": ["Keep", "Consume"] },
               "damage": { "description": "At most one: extra damage.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/damage" } },
               "scaling": { "description": "Once, or PerStack: times the stacks the target held.", "type": "string", "enum": ["Once", "PerStack"] },
               "statuses": { "description": "Extra statuses for the target.", "$ref": "#/definitions/statusIds" },
-              "replaces": { "description": "Statuses of the bundle's own this reaction takes the place of.", "$ref": "#/definitions/statusIds" }
+              "replaces": { "description": "Statuses of the bundle's own this reaction takes the place of.", "$ref": "#/definitions/statusIds" },
+              "burst": {
+                "description": "At most one: a burst around the target as it reacts, for the caster's other enemies in its shape (ADR-034 §6).",
+                "type": "array", "minItems": 0, "maxItems": 1,
+                "items": {
+                  "type": "object", "additionalProperties": false,
+                  "required": ["shape", "damage", "statuses"],
+                  "properties": {
+                    "shape": { "$ref": "#/definitions/shape" },
+                    "damage": { "description": "One component per damage type at most.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/damage" } },
+                    "statuses": { "$ref": "#/definitions/statusIds" }
+                  }
+                }
+              }
             }
           }
         }
@@ -326,7 +352,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [19]
+      "enum": [20]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -542,7 +568,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact", "recipient", "recipientZones", "marker", "shieldHolds", "shieldEndZones", "drain"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact", "recipient", "recipientZones", "marker", "shieldHolds", "shieldEndZones", "drain", "companionStatuses", "companionDeath", "chain"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -688,6 +714,22 @@
               "description": "Innermost first: zones that land around the recipient as the buff's shield breaks or runs out, the caster's (ADR-032 §3). They need a shield.",
               "type": "array", "minItems": 0,
               "items": { "$ref": "#/definitions/zone" }
+            },
+            "companionStatuses": { "description": "Statuses its caster's companion holds while the buff lasts, as Nix's true form (ADR-034 §7).", "$ref": "#/definitions/statusIds" },
+            "companionDeath": { "description": "Ends: the buff ends as its caster's companion is banished (ADR-034 §7).", "type": "string", "enum": ["Stays", "Ends"] },
+            "chain": {
+              "description": "At most one: a chain between its caster and its companion while it lasts; enemies on the line take its effects at each pulse, each no more often than perEnemySeconds (ADR-034 §7).",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["width", "pulseSeconds", "perEnemySeconds", "effects"],
+                "properties": {
+                  "width": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "pulseSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "perEnemySeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "effects": { "$ref": "#/definitions/effects" }
+                }
+              }
             },
             "attackSecondaryImpact": {
               "description": "At most one: for a while after the cast, its recipient's basic attacks offer this secondary impact, as a piercing shot (ADR-027 §3).",
@@ -1097,11 +1139,11 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "to", "markerAbility", "targetKinds", "besideDistance", "swap", "effects"],
+          "required": ["provenance", "cast", "to", "markerAbility", "targetKinds", "besideDistance", "swap", "effects", "departureZones", "companionDepartureZones"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
-            "to": { "description": "EnemyUnit, OwnMarker, or EnemyUnitOrOwnMarker as the cast names one.", "type": "string", "enum": ["EnemyUnit", "OwnMarker", "EnemyUnitOrOwnMarker"] },
+            "to": { "description": "EnemyUnit, OwnMarker, or EnemyUnitOrOwnMarker as the cast names one; OwnCompanion for its caster's companion (ADR-034 §5).", "type": "string", "enum": ["EnemyUnit", "OwnMarker", "EnemyUnitOrOwnMarker", "OwnCompanion"] },
             "markerAbility": { "description": "At most one: the ability whose marker it may go to.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
             "targetKinds": {
               "description": "The kinds of enemy unit it may name (EVeyraUnitKind); empty for any.",
@@ -1112,7 +1154,29 @@
             },
             "besideDistance": { "description": "How far from an enemy's edge it lands, on the caster's side.", "type": "number", "minimum": 0 },
             "swap": { "description": "None: its marker stays. Swap: its marker takes the caster's old place.", "type": "string", "enum": ["None", "Swap"] },
-            "effects": { "description": "On the enemy it blinks beside.", "$ref": "#/definitions/effects" }
+            "effects": { "description": "On the enemy it blinks beside.", "$ref": "#/definitions/effects" },
+            "departureZones": { "description": "Innermost first: zones that erupt where its caster departed, its caster's hit (ADR-034 §5).", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } },
+            "companionDepartureZones": { "description": "Innermost first: for a swap with its caster's companion, zones that erupt where the companion departed, the companion's hit from its own power (ADR-034 §5).", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } }
+          }
+        }
+      }
+    },
+    "command": {
+      "description": "Abilities that command their caster's companion (ADR-034 §5), as Marek's Hunt: Hold sends it leaping to the cast's point, where its landing zones hit as its own and it holds the point; Recall, a hold's follow-up, brings it back.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "cast", "order", "leapSpeed", "holdSeconds", "landingZones"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "cast": { "$ref": "#/definitions/cast" },
+            "order": { "type": "string", "enum": ["Hold", "Recall"] },
+            "leapSpeed": { "description": "Hold: units per second of the companion's leap; 0 for a recall.", "type": "number", "minimum": 0 },
+            "holdSeconds": { "description": "Hold: how long it holds the point once it lands; 0 for a recall.", "type": "number", "minimum": 0 },
+            "landingZones": { "description": "Hold, innermost first: zones where it lands, its own hit from its own power.", "type": "array", "minItems": 0, "items": { "$ref": "#/definitions/zone" } }
           }
         }
       }

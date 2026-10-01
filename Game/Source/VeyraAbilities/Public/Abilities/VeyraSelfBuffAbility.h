@@ -3,11 +3,13 @@
 #pragma once
 
 #include "Abilities/VeyraGameplayAbility.h"
+#include "Delivery/VeyraEffectDelivery.h"
 #include "Engine/TimerHandle.h"
 #include "Delegates/IDelegateInstance.h"
 
 #include "VeyraSelfBuffAbility.generated.h"
 
+class AVeyraCompanion;
 class AVeyraPlacedMarker;
 struct FVeyraBuffMarkerTuning;
 struct FVeyraMarkerEnd;
@@ -112,4 +114,31 @@ private:
 	int32 PayloadHits = 0;
 	FTimerHandle PayloadTimer;
 	FDelegateHandle HostileDamageHandle;
+
+	/**
+	 * Its caster's companion's part (ADR-034 §7): the statuses the companion holds while the buff lasts, a
+	 * chain between the two, and an end with the companion. A later cast's part takes over.
+	 */
+	void StartCompanionPart(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraCast& Cast, const FVeyraSelfBuffAbilityTuning& Buff);
+
+	/** One pulse of the chain: the enemies on the line take its effects, each no more often than its rate. */
+	void PulseChain();
+
+	/** Ends the companion's part: its statuses, the chain and the watch on the companion. */
+	void StopCompanionPart();
+
+	void OnCompanionBanished(AVeyraCompanion& Companion);
+
+	/** Whether Buff still lasts on Caster: its first status, its own, still holds. */
+	static bool LastsFor(const UAbilitySystemComponent& Caster, const FVeyraSelfBuffAbilityTuning& Buff);
+
+	TWeakObjectPtr<UAbilitySystemComponent> PartCaster;
+	TWeakObjectPtr<AVeyraCompanion> PartCompanion;
+	FVeyraContentId PartAbility;
+	FVeyraPreparedEffects ChainEffects;
+	FVeyraAbilityHitSource ChainSource;
+	/** When each enemy on the chain may take it again, in world time. */
+	TMap<TWeakObjectPtr<AActor>, double> ChainNextAt;
+	FTimerHandle ChainTimer;
+	FDelegateHandle BanishHandle;
 };

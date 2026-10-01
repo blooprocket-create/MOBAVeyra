@@ -8,6 +8,7 @@
 #include "Abilities/VeyraAmbushAbility.h"
 #include "Abilities/VeyraAttachAbility.h"
 #include "Abilities/VeyraBlinkAbility.h"
+#include "Abilities/VeyraCommandAbility.h"
 #include "Abilities/VeyraDashAbility.h"
 #include "Abilities/VeyraRideAbility.h"
 #include "Abilities/VeyraEmpoweredAttackAbility.h"
@@ -89,6 +90,10 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindBlink(Ability))
 		{
 			return UVeyraBlinkAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindCommand(Ability))
+		{
+			return UVeyraCommandAbility::StaticClass();
 		}
 		return nullptr;
 	}

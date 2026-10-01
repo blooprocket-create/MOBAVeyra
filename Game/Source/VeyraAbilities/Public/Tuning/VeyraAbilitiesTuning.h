@@ -122,6 +122,30 @@ struct FVeyraRecastTuning
 	double ArmingSeconds = 0.0;
 };
 
+/** Whether a cast needs its caster's companion on the battleground (ADR-034 §8). */
+UENUM()
+enum class EVeyraCompanionNeed : uint8
+{
+	None,
+	/** Refused, as NoCompanion, while its caster has no living companion. */
+	Living,
+};
+
+/** A cooldown a cast starts while its caster holds a status is scaled (ADR-034 §8), as Hell on a Leash shortens Hunt's. */
+USTRUCT()
+struct FVeyraCooldownWhileTuning
+{
+	GENERATED_BODY()
+
+	/** A status ID from the statuses map, held from the caster itself. */
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	/** Above 0, at most 1. */
+	UPROPERTY()
+	double Multiplier = 1.0;
+};
+
 USTRUCT()
 struct FVeyraCastTuning
 {
@@ -182,6 +206,13 @@ struct FVeyraCastTuning
 	/** At most one: the resource, above 0, its caster must hold to cast it at all (ADR-033 §3). */
 	UPROPERTY()
 	TArray<double> MinimumResource;
+
+	UPROPERTY()
+	EVeyraCompanionNeed NeedsCompanion = EVeyraCompanionNeed::None;
+
+	/** Each status its caster holds as it starts its cooldown scales the cooldown (ADR-034 §8). */
+	UPROPERTY()
+	TArray<FVeyraCooldownWhileTuning> CooldownWhile;
 };
 
 /** One damage component, from the caster's rank and power at Commit (Combat Bible §25, §50). */
@@ -292,6 +323,26 @@ enum class EVeyraReactionScaling : uint8
 };
 
 /**
+ * A burst a reaction sets off around its target (ADR-034 §6), as Witchfire's explosion: damage and
+ * statuses for the caster's other enemies within its shape, centred on the target, which it spares.
+ */
+USTRUCT()
+struct FVeyraReactionBurstTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FVeyraShape Shape;
+
+	/** One component per damage type at most. */
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> Damage;
+
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
+/**
  * What a hit adds when its target holds a status (ADR-026 §1), as Rupture's burst on Splinters or
  * Flash Cure's stun on an Unstable target. It reads the statuses the target held as the hit landed.
  */
@@ -321,6 +372,10 @@ struct FVeyraReactionTuning
 	/** Statuses of the bundle's own that this reaction takes the place of. */
 	UPROPERTY()
 	TArray<FVeyraContentId> Replaces;
+
+	/** At most one: a burst around the target as it reacts (ADR-034 §6). */
+	UPROPERTY()
+	TArray<FVeyraReactionBurstTuning> Burst;
 };
 
 /** What happens to each unit an area hits (ADR-008 §3). */
@@ -1023,6 +1078,39 @@ struct FVeyraBuffMarkerTuning
 	TArray<FVeyraAreaZoneTuning> BurstZones;
 };
 
+/** Whether a self-buff outlives its caster's companion (ADR-034 §7). */
+UENUM()
+enum class EVeyraCompanionDeath : uint8
+{
+	Stays,
+	/** It ends as its caster's companion is banished, as Hell on a Leash ends if Nix is killed. */
+	Ends,
+};
+
+/**
+ * A chain between a self-buff's caster and its companion while the buff lasts (ADR-034 §7), as Hell on a
+ * Leash's: enemies on the line take its effects at each pulse, each no more often than perEnemySeconds.
+ */
+USTRUCT()
+struct FVeyraChainTuning
+{
+	GENERATED_BODY()
+
+	/** How wide the line is, across it, in units. */
+	UPROPERTY()
+	double Width = 0.0;
+
+	UPROPERTY()
+	double PulseSeconds = 0.0;
+
+	UPROPERTY()
+	double PerEnemySeconds = 0.0;
+
+	/** The caster's hit, from its rank and power at the cast. */
+	UPROPERTY()
+	FVeyraEffectBundleTuning Effects;
+};
+
 /** An ability that buffs its caster, and optionally nearby allies (ADR-008 §3). */
 USTRUCT()
 struct FVeyraSelfBuffAbilityTuning
@@ -1102,6 +1190,20 @@ struct FVeyraSelfBuffAbilityTuning
 	/** Innermost first: zones that land around its recipient as the buff's shield breaks or runs out (ADR-032 §3). They need a shield. */
 	UPROPERTY()
 	TArray<FVeyraAreaZoneTuning> ShieldEndZones;
+
+	/**
+	 * Status IDs its caster's companion holds while the buff lasts (ADR-034 §7), as Nix's true form. They
+	 * need the buff's own statuses, whose first marks how long the buff lasts.
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> CompanionStatuses;
+
+	UPROPERTY()
+	EVeyraCompanionDeath CompanionDeath = EVeyraCompanionDeath::Stays;
+
+	/** At most one: a chain between its caster and its companion while it lasts (ADR-034 §7). */
+	UPROPERTY()
+	TArray<FVeyraChainTuning> Chain;
 };
 
 /** How a projectile flies (Combat Bible §13). */
@@ -1701,6 +1803,8 @@ enum class EVeyraBlinkTo : uint8
 	OwnMarker,
 	/** Either, as the cast names the enemy or the marker. */
 	EnemyUnitOrOwnMarker,
+	/** To its caster's living companion (ADR-034 §5), within its cast range when it has one. */
+	OwnCompanion,
 };
 
 /** What becomes of the marker a blink goes to (ADR-031 §5). */
@@ -1709,7 +1813,7 @@ enum class EVeyraBlinkSwap : uint8
 {
 	/** It stays where it stands. */
 	None,
-	/** It takes the caster's old place: the two exchange positions, as False Body's swap. */
+	/** It takes the caster's old place: the two exchange positions, as False Body's swap or Cross the Chain. */
 	Swap,
 };
 
@@ -1747,6 +1851,17 @@ struct FVeyraBlinkAbilityTuning
 	/** On the enemy it blinks beside. */
 	UPROPERTY()
 	FVeyraEffectBundleTuning Effects;
+
+	/** Innermost first: zones that erupt where its caster departed, as its caster's hit (ADR-034 §5). */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> DepartureZones;
+
+	/**
+	 * Innermost first: zones that erupt where its caster's companion departed, as the companion's hit, from
+	 * the companion's power (ADR-034 §5). Only for a swap with the companion.
+	 */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> CompanionDepartureZones;
 };
 
 /** One slot a stance holds, and the ability it holds there (ADR-031 §3). */
@@ -1781,6 +1896,45 @@ struct FVeyraStanceAbilityTuning
 	/** The slots it holds, each once, with what it holds there. */
 	UPROPERTY()
 	TArray<FVeyraStanceSlotTuning> Slots;
+};
+
+/** What a command has its caster's companion do (ADR-034 §5). */
+UENUM()
+enum class EVeyraCompanionOrder : uint8
+{
+	/** Leap to the cast's point, land its zones there as its own hit, and hold the point. */
+	Hold,
+	/** Give up its hold and follow its owner again. */
+	Recall,
+};
+
+/** An ability that commands its caster's companion (ADR-034 §5), as Marek's Hunt and its recall. */
+USTRUCT()
+struct FVeyraCommandAbilityTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** A hold's cast range reaches its point; its recast window offers the recall. */
+	UPROPERTY()
+	FVeyraCastTuning Cast;
+
+	UPROPERTY()
+	EVeyraCompanionOrder Order = EVeyraCompanionOrder::Hold;
+
+	/** Hold: how fast the companion leaps to the point, in units per second; 0 for a recall. */
+	UPROPERTY()
+	double LeapSpeed = 0.0;
+
+	/** Hold: how long it holds the point once it lands, in seconds; 0 for a recall. */
+	UPROPERTY()
+	double HoldSeconds = 0.0;
+
+	/** Hold, innermost first: zones that land where it lands, as its own hit, from its own power; none for a recall. */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> LandingZones;
 };
 
 /**
@@ -1847,7 +2001,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 19;
+	static constexpr int32 SchemaVersion = 20;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;
@@ -1896,6 +2050,9 @@ struct FVeyraAbilitiesTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraBlinkAbilityTuning> Blink;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraCommandAbilityTuning> Command;
 
 	UPROPERTY()
 	FVeyraFluxSpellsTuning FluxSpells;

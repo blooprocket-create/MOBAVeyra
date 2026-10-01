@@ -42,6 +42,8 @@ const TCHAR* LexToString(EVeyraCastRejection Rejection)
 		return TEXT("Locked");
 	case EVeyraCastRejection::NotVisible:
 		return TEXT("NotVisible");
+	case EVeyraCastRejection::NoCompanion:
+		return TEXT("NoCompanion");
 	}
 	return TEXT("Unknown");
 }

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 19,
+  "schemaVersion": 20,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -1096,6 +1096,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1138,6 +1140,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1180,6 +1184,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1233,6 +1239,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1299,6 +1307,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1341,6 +1351,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1383,6 +1395,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1425,6 +1439,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1467,6 +1483,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1520,6 +1538,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1570,6 +1590,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1612,6 +1634,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1654,6 +1678,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1696,6 +1722,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1726,6 +1754,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1734,7 +1764,7 @@
       "channelTicks": 1,
       "channelSeconds": 0,
       "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 100, 140, 180, 220], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_flash_cure_root", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_flash_cure_stun"], "replaces": ["mavra_flash_cure_root"] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 100, 140, 180, 220], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_flash_cure_root", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_flash_cure_stun"], "burst": [], "replaces": ["mavra_flash_cure_root"] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -1756,6 +1786,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1786,6 +1818,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1795,7 +1829,7 @@
       "channelSeconds": 0,
       "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [{ "shape": { "kind": "Circle", "radius": 650, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 4.5, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_code_black_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_code_black_stun"], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_code_black_knockdown"], "displacement": [{ "direction": "TowardOrigin", "distance": 200, "speed": 800, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 1, "movementField": [] }],
+      "linger": [{ "durationSeconds": 4.5, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_code_black_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_code_black_stun"], "burst": [], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_code_black_knockdown"], "displacement": [{ "direction": "TowardOrigin", "distance": 200, "speed": 800, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 1, "movementField": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -1816,6 +1850,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1846,6 +1882,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1854,7 +1892,7 @@
       "channelTicks": 1,
       "channelSeconds": 0,
       "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": ["korruk_mine_slow", "korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [90, 130, 170, 210, 250], "physicalPowerRatio": 0.7, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": ["korruk_mine_knockup"], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": ["korruk_mine_slow", "korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [90, 130, 170, 210, 250], "physicalPowerRatio": 0.7, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": ["korruk_mine_knockup"], "burst": [], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -1876,6 +1914,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1884,7 +1924,7 @@
       "channelTicks": 1,
       "channelSeconds": 0,
       "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 500, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_splinter", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [35, 50, 65, 80, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "scaling": "PerStack", "statuses": [], "replaces": [] }, { "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [160, 220, 280, 340, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 500, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_splinter", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [35, 50, 65, 80, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "scaling": "PerStack", "statuses": [], "burst": [], "replaces": [] }, { "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [160, 220, 280, 340, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -1906,6 +1946,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1915,7 +1957,7 @@
       "channelSeconds": 0,
       "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [{ "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [70, 105, 140], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 2.6, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Physical", "amountByRank": [45, 70, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [200, 300, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "replaces": [] }] }], "endWarningSeconds": 0.75, "movementField": [] }],
+      "linger": [{ "durationSeconds": 2.6, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Physical", "amountByRank": [45, 70, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [200, 300, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }], "endWarningSeconds": 0.75, "movementField": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -1936,6 +1978,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1966,6 +2010,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1996,6 +2042,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2026,6 +2074,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2056,6 +2106,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2086,6 +2138,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2116,6 +2170,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2146,6 +2202,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2176,6 +2234,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2206,6 +2266,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2236,6 +2298,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2245,7 +2309,7 @@
       "channelSeconds": 0,
       "reveal": { "radius": 0, "durationSeconds": 0 },
       "zones": [{ "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 4, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["silt_mire_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [30, 45, 60], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "silt_sandy", "consume": "Consume", "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "scaling": "Once", "statuses": [], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["silt_mire_knockup", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75, "movementField": [] }],
+      "linger": [{ "durationSeconds": 4, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["silt_mire_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [30, 45, 60], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "silt_sandy", "consume": "Consume", "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["silt_mire_knockup", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75, "movementField": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2266,6 +2330,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2296,6 +2362,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2326,6 +2394,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2356,6 +2426,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "CastersLingeringArea",
@@ -2386,6 +2458,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2416,6 +2490,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "CastersLingeringArea",
@@ -2446,6 +2522,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2519,6 +2597,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2571,6 +2651,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2639,6 +2721,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "CastersMarker",
@@ -2691,6 +2775,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2753,6 +2839,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
@@ -2769,6 +2857,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "qazharr_weather_it": {
@@ -2785,6 +2876,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["qazharr_weather_it_tenacity"],
@@ -2814,6 +2907,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "oriel_mirror_veil": {
@@ -2830,6 +2926,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["oriel_mirror_veil_haste"],
@@ -2859,6 +2957,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "mend": {
@@ -2875,6 +2976,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": [],
@@ -2891,6 +2994,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "vera_dig_in": {
@@ -2907,6 +3013,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["vera_dig_in_stance", "vera_dig_in_reach", "vera_dig_in_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
@@ -2923,6 +3031,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "vera_dig_in_volley": {
@@ -2939,6 +3050,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["vera_dig_in_stance", "vera_dig_in_volley_reach", "vera_dig_in_volley_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
@@ -2955,6 +3068,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "vera_the_last_volley": {
@@ -2971,6 +3087,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["vera_last_volley"],
@@ -2987,6 +3105,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "mimzi_now_you_see_me": {
@@ -3003,6 +3124,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["mimzi_camouflage", "mimzi_scamper"],
@@ -3019,6 +3142,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "patch_play_dead": {
@@ -3035,6 +3161,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["patch_dormant", "patch_play_dead_guard", "patch_play_dead_anchor"],
@@ -3051,6 +3179,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "patch_the_thing_inside": {
@@ -3067,6 +3198,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["patch_inside_body", "patch_inside_footing"],
@@ -3083,6 +3216,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "gorraveth_tear_them_apart": {
@@ -3099,6 +3235,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["gorraveth_frenzy_haste", "gorraveth_frenzy_hunt"],
@@ -3115,6 +3253,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "raska_countersteer": {
@@ -3131,6 +3272,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["raska_countersteer_guard"],
@@ -3147,6 +3290,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "raska_countersteer_redlined": {
@@ -3163,6 +3309,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["raska_countersteer_guard"],
@@ -3179,6 +3327,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "celandrine_open_road": {
@@ -3195,6 +3346,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["celandrine_open_road_haste", "celandrine_open_road_stride"],
@@ -3211,6 +3364,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "aurelisse_windward": {
@@ -3227,6 +3383,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["aurelisse_windward_haste"],
@@ -3256,6 +3414,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "aurelisse_room_to_breathe": {
@@ -3272,6 +3433,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["aurelisse_room_stride"],
@@ -3301,6 +3464,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "torr_fortify": {
@@ -3317,6 +3483,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["torr_fortify_guard", "torr_fortify_brace"],
@@ -3333,6 +3501,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "torr_overcapacity": {
@@ -3349,6 +3520,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["torr_overcapacity_size", "torr_overcapacity_steady"],
@@ -3365,6 +3538,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "tavi_hide": {
@@ -3381,6 +3557,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["tavi_hidden", "tavi_hide_haste"],
@@ -3419,6 +3597,9 @@
       ],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "varkesh_tempered_shell": {
@@ -3435,6 +3616,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": [],
@@ -3464,6 +3647,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": ["varkesh_shell_tenacity", "varkesh_shell_footing"],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": [
         {
           "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -3502,6 +3688,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [0.5],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": [20]
       },
       "statuses": ["relay_overclocked"],
@@ -3518,6 +3706,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "relay_overcharge": {
@@ -3534,6 +3725,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "statuses": ["relay_overcharged"],
@@ -3550,6 +3743,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "relay_full_grid": {
@@ -3566,6 +3762,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": [20]
       },
       "statuses": ["relay_grid_planted", "relay_grid_discount"],
@@ -3593,6 +3791,9 @@
         { "perSecond": 12, "intervalSeconds": 0.5, "maxSeconds": 8 }
       ],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     }
   },
@@ -3611,6 +3812,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1650, "radius": 55, "range": 1050 },
@@ -3646,6 +3849,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1800, "radius": 40, "range": 1000 },
@@ -3681,6 +3886,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
@@ -3711,6 +3918,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1600, "radius": 60, "range": 750 },
@@ -3741,6 +3950,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 5000, "radius": 60, "range": 3000 },
@@ -3771,6 +3982,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
@@ -3801,6 +4014,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1600, "radius": 60, "range": 1100 },
@@ -3826,6 +4041,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1900, "radius": 45, "range": 1000 },
@@ -3856,6 +4073,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1400, "radius": 90, "range": 1000 },
@@ -3881,6 +4100,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1500, "radius": 120, "range": 1100 },
@@ -3906,6 +4127,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1400, "radius": 110, "range": 900 },
@@ -3931,6 +4154,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1500, "radius": 60, "range": 900 },
@@ -3979,6 +4204,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1700, "radius": 50, "range": 925 },
@@ -4057,6 +4284,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1200, "radius": 150, "range": 1000 },
@@ -4116,6 +4345,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4150,6 +4381,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "AwayFromPoint",
@@ -4196,6 +4429,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4230,6 +4465,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "AwayFromHost",
@@ -4259,6 +4496,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4288,6 +4527,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4317,6 +4558,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4346,6 +4589,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4375,6 +4620,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4404,6 +4651,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4433,6 +4682,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4462,6 +4713,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4491,6 +4744,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4520,6 +4775,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4549,6 +4806,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4588,6 +4847,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "ThroughTarget",
@@ -4633,6 +4894,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "ThroughTarget",
@@ -4678,6 +4941,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4745,6 +5010,8 @@
         "targetMustNotHold": ["angeru_passed"],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "direction": "ThroughTarget",
@@ -4799,6 +5066,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "durationSeconds": 5,
@@ -4824,6 +5093,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "durationSeconds": 6,
@@ -4856,6 +5127,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "durationSeconds": 5,
@@ -4883,6 +5156,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "shot": "kade_kill_corridor_shot",
@@ -4908,6 +5183,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "targetKinds": ["Vanguard"],
@@ -4933,6 +5210,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "targetKinds": ["Vanguard"],
@@ -4956,6 +5235,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "targetKinds": ["Vanguard"],
@@ -4981,6 +5262,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "setSpeed": 575,
@@ -5005,6 +5288,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "setSpeed": 750,
@@ -5041,6 +5326,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "recentSeconds": 4,
@@ -5071,6 +5358,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "recentSeconds": 4,
@@ -5103,6 +5392,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "slots": [
@@ -5137,6 +5428,8 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "marker": {
@@ -5162,12 +5455,16 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "to": "OwnMarker",
       "markerAbility": ["angeru_false_body"],
       "targetKinds": [],
       "besideDistance": 0,
+      "departureZones": [],
+      "companionDepartureZones": [],
       "swap": "Swap",
       "effects": {
         "damage": [],
@@ -5193,12 +5490,16 @@
         "targetMustNotHold": [],
         "takedownRefund": [1],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
         "minimumResource": []
       },
       "to": "EnemyUnitOrOwnMarker",
       "markerAbility": ["angeru_false_body"],
       "targetKinds": ["Vanguard", "Fluxborn", "Wildlife"],
       "besideDistance": 50,
+      "departureZones": [],
+      "companionDepartureZones": [],
       "swap": "None",
       "effects": {
         "damage": [
@@ -5222,5 +5523,6 @@
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]
   },
+  "command": {},
   "companions": {}
 }

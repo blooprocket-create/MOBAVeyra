@@ -150,6 +150,7 @@ void UVeyraGreyboxSubsystem::Refresh()
 	RefreshTelegraphs();
 	DrawTelegraphs();
 	DrawVisionMarks();
+	DrawChains();
 	AttachHudOverlay();
 }
 
@@ -597,6 +598,28 @@ void UVeyraGreyboxSubsystem::DrawVisionMarks()
 	for (const FVector& Outline : Vision.Outlines)
 	{
 		DrawRing(Outline, Settings.OutlineMarkerRadius, Settings.OutlineColor);
+	}
+}
+
+void UVeyraGreyboxSubsystem::DrawChains()
+{
+	// A chain joins a companion to its owner while it lasts, in its side's colour (ADR-034 §7).
+	if (!TelegraphLines)
+	{
+		return;
+	}
+	const UVeyraGreyboxSettings& Settings = *GetDefault<UVeyraGreyboxSettings>();
+	for (TActorIterator<AVeyraCompanion> It(GetWorld()); It; ++It)
+	{
+		const AVeyraCompanion& Companion = **It;
+		const APlayerState* Whose = Companion.GetOwnerState();
+		const APawn* OwnerBody = Whose ? Whose->GetPawn() : nullptr;
+		if (!Companion.IsChained() || Companion.IsHidden() || !OwnerBody)
+		{
+			continue;
+		}
+		TelegraphLines->DrawLine(GroundUnder(Companion.GetActorLocation()), GroundUnder(OwnerBody->GetActorLocation()), ColorOfSide(Companion.GetVeyraTeam()),
+			SDPG_World, Settings.TelegraphThickness, 0.0f);
 	}
 }
 

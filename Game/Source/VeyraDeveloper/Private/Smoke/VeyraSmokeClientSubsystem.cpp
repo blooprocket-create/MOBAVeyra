@@ -64,6 +64,8 @@ namespace
 		case EVeyraCastRejection::TargetDead:
 		case EVeyraCastRejection::OutOfRange:
 		case EVeyraCastRejection::Paused:
+		// A companion forms or reforms beside its owner a moment later (ADR-034 §3).
+		case EVeyraCastRejection::NoCompanion:
 			return true;
 		default:
 			return false;

@@ -4,7 +4,11 @@
 
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
+#include "Companions/VeyraCompanion.h"
+#include "Companions/VeyraCompanionSubsystem.h"
+#include "Delivery/VeyraAreaDelivery.h"
 #include "Delivery/VeyraEffectDelivery.h"
+#include "Engine/World.h"
 #include "Entities/VeyraPlacedMarker.h"
 #include "Targeting/VeyraTargeting.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -46,6 +50,17 @@ EVeyraCastRejection UVeyraBlinkAbility::CheckTarget(const AActor& Caster, const 
 	const bool bInReach = Marker && (!(Blink->Cast.CastRange > 0.0) || FVector::Dist2D(Caster.GetActorLocation(), Marker->GetActorLocation()) <= Blink->Cast.CastRange);
 	switch (Blink->To)
 	{
+	case EVeyraBlinkTo::OwnCompanion:
+	{
+		// Its own companion, within reach as its marker would be (ADR-034 §5).
+		const AVeyraCompanion* Companion = CompanionOf(*Abilities);
+		if (!Companion)
+		{
+			return EVeyraCastRejection::NoCompanion;
+		}
+		const bool bNear = !(Blink->Cast.CastRange > 0.0) || FVector::Dist2D(Caster.GetActorLocation(), Companion->GetActorLocation()) <= Blink->Cast.CastRange;
+		return bNear ? EVeyraCastRejection::None : EVeyraCastRejection::OutOfRange;
+	}
 	case EVeyraBlinkTo::OwnMarker:
 		return bInReach ? EVeyraCastRejection::None : (Marker ? EVeyraCastRejection::OutOfRange : EVeyraCastRejection::InvalidTarget);
 	case EVeyraBlinkTo::EnemyUnitOrOwnMarker:
@@ -77,6 +92,44 @@ FVeyraChannelPlan UVeyraBlinkAbility::Deliver(const FVeyraCast& Cast)
 	}
 	AVeyraPlacedMarker* Marker = OwnMarkerOf(*Caster, *Blink);
 	AActor* Target = Cast.TargetActor.Get();
+	const FVector From = Body->GetActorLocation();
+	const FVeyraAbilityHitSource Source{ Cast.Ability, Cast.CastId };
+	// Where its caster left erupts once it has gone, as its caster's hit, from its power at the cast (ADR-034 §5).
+	const TArray<FVeyraPreparedZone> Departure = VeyraAreaDelivery::PrepareZones(*Caster, Blink->DepartureZones, Cast.Rank);
+	const auto Erupt = [&Cast](UAbilitySystemComponent& Who, const FVector& Where, TConstArrayView<FVeyraPreparedZone> Zones, const FVeyraAbilityHitSource& HitSource) {
+		UWorld* World = Who.GetWorld();
+		if (World && !Zones.IsEmpty())
+		{
+			FVeyraEffectFrame Frame;
+			Frame.Origin = Where;
+			Frame.Direction = Cast.Direction;
+			VeyraAreaDelivery::Resolve(*World, Who, Frame, Zones, HitSource);
+		}
+	};
+	if (Blink->To == EVeyraBlinkTo::OwnCompanion)
+	{
+		// To its companion; with a swap, the companion takes its old place, and each departure erupts as its
+		// own hit, the companion's from its own power (ADR-034 §5).
+		AVeyraCompanion* Companion = CompanionOf(*Caster);
+		if (!Companion)
+		{
+			return FVeyraChannelPlan();
+		}
+		UAbilitySystemComponent& Its = *Companion->GetAbilitySystemComponent();
+		const FVector CompanionFrom = Companion->GetActorLocation();
+		const TArray<FVeyraPreparedZone> CompanionDeparture = VeyraAreaDelivery::PrepareZones(Its, Blink->CompanionDepartureZones, Cast.Rank);
+		if (!VeyraCombat::Blink(*Caster, CompanionFrom, Body->GetActorForwardVector()))
+		{
+			return FVeyraChannelPlan();
+		}
+		if (Blink->Swap == EVeyraBlinkSwap::Swap)
+		{
+			VeyraCombat::Blink(Its, From, Companion->GetActorForwardVector());
+			Erupt(Its, CompanionFrom, CompanionDeparture, Source);
+		}
+		Erupt(*Caster, From, Departure, Source);
+		return FVeyraChannelPlan();
+	}
 	const bool bToMarker = Blink->To == EVeyraBlinkTo::OwnMarker || (Blink->To == EVeyraBlinkTo::EnemyUnitOrOwnMarker && Marker && Target == Marker);
 	if (bToMarker)
 	{
@@ -85,10 +138,13 @@ FVeyraChannelPlan UVeyraBlinkAbility::Deliver(const FVeyraCast& Cast)
 		{
 			return FVeyraChannelPlan();
 		}
-		const FVector From = Body->GetActorLocation();
-		if (VeyraCombat::Blink(*Caster, Marker->GetActorLocation(), Body->GetActorForwardVector()) && Blink->Swap == EVeyraBlinkSwap::Swap)
+		if (VeyraCombat::Blink(*Caster, Marker->GetActorLocation(), Body->GetActorForwardVector()))
 		{
-			Marker->Relocate(From);
+			if (Blink->Swap == EVeyraBlinkSwap::Swap)
+			{
+				Marker->Relocate(From);
+			}
+			Erupt(*Caster, From, Departure, Source);
 		}
 		return FVeyraChannelPlan();
 	}
@@ -109,14 +165,26 @@ FVeyraChannelPlan UVeyraBlinkAbility::Deliver(const FVeyraCast& Cast)
 	Frame.Origin = Landing;
 	Frame.Direction = Facing;
 	Frame.bOriginIsCaster = true;
-	VeyraEffectDelivery::Apply(*Caster, *Target, VeyraEffectDelivery::Prepare(*Caster, Blink->Effects, Cast.Rank), Frame,
-		FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId });
+	VeyraEffectDelivery::Apply(*Caster, *Target, VeyraEffectDelivery::Prepare(*Caster, Blink->Effects, Cast.Rank), Frame, Source);
+	Erupt(*Caster, From, Departure, Source);
 	return FVeyraChannelPlan();
 }
 
 bool UVeyraBlinkAbility::IsOffensive(const FVeyraContentId& Ability) const
 {
-	// One that may name an enemy threatens; one only to its own marker does not (ADR-031 §5).
+	// One that may name an enemy threatens; one only to its own marker or companion does only by erupting (ADR-031 §5; ADR-034 §5).
 	const FVeyraBlinkAbilityTuning* Blink = UVeyraAbilitiesTuningSubsystem::FindBlink(Ability);
-	return Blink && Blink->To != EVeyraBlinkTo::OwnMarker;
+	if (!Blink)
+	{
+		return false;
+	}
+	const bool bErupts = !Blink->DepartureZones.IsEmpty() || !Blink->CompanionDepartureZones.IsEmpty();
+	return bErupts || (Blink->To != EVeyraBlinkTo::OwnMarker && Blink->To != EVeyraBlinkTo::OwnCompanion);
+}
+
+AVeyraCompanion* UVeyraBlinkAbility::CompanionOf(const UAbilitySystemComponent& Caster)
+{
+	const UWorld* World = Caster.GetWorld();
+	const UVeyraCompanionSubsystem* Keeper = World ? World->GetSubsystem<UVeyraCompanionSubsystem>() : nullptr;
+	return Keeper ? Keeper->FindLiving(Caster) : nullptr;
 }

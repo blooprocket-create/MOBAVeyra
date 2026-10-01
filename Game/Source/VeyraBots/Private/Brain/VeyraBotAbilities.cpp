@@ -96,6 +96,14 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 	}
 	if (const FVeyraBlinkAbilityTuning* Blink = UVeyraAbilitiesTuningSubsystem::FindBlink(Ability))
 	{
+		// To its own companion: cast on itself in a fight its departures' eruptions reach (ADR-034 §5).
+		if (Blink->To == EVeyraBlinkTo::OwnCompanion)
+		{
+			Profile.Targeting = EVeyraBotTargeting::Self;
+			Profile.Reach = FMath::Max(LargestZone(Blink->DepartureZones), LargestZone(Blink->CompanionDepartureZones));
+			Profile.CostByRank = Blink->Cast.ResourceCostByRank;
+			return Profile;
+		}
 		// At an enemy unit within its reach; a blink only to its own marker is left to the player.
 		if (Blink->To == EVeyraBlinkTo::OwnMarker)
 		{
@@ -105,6 +113,19 @@ TOptional<FVeyraBotAbilityProfile> ProfileOf(const FVeyraContentId& Ability, dou
 		Profile.Reach = Blink->Cast.CastRange;
 		Profile.CostByRank = Blink->Cast.ResourceCostByRank;
 		Profile.TargetKinds = Blink->TargetKinds;
+		return Profile;
+	}
+	if (const FVeyraCommandAbilityTuning* Command = UVeyraAbilitiesTuningSubsystem::FindCommand(Ability))
+	{
+		// A hold sends the companion at an enemy its landing reaches; a recall is left to the player (ADR-034 §5).
+		if (Command->Order != EVeyraCompanionOrder::Hold)
+		{
+			return {};
+		}
+		Profile.Targeting = EVeyraBotTargeting::Point;
+		Profile.Reach = Command->Cast.CastRange + LargestZone(Command->LandingZones);
+		Profile.LeadSeconds = Command->Cast.WindupSeconds;
+		Profile.CostByRank = Command->Cast.ResourceCostByRank;
 		return Profile;
 	}
 	if (const FVeyraStanceAbilityTuning* Stance = UVeyraAbilitiesTuningSubsystem::FindStance(Ability))

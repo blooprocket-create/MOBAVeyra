@@ -150,6 +150,9 @@ private:
 	/** The viewer's side's presence pings and outlines, drawn on the ground with the telegraphs (ADR-016 §8). */
 	void DrawVisionMarks();
 
+	/** The chains between companions and their owners, joining the telegraphs' lines (ADR-034 §7). */
+	void DrawChains();
+
 	/**
 	 * Has the local player's HUD draw the grey-box HUD, through an overlay actor it renders for
 	 * (AVeyraHudOverlay), once per HUD. That puts the HUD on the HUD's own canvas, under the menus.

@@ -105,6 +105,17 @@ namespace
 			{
 				Problem(Pointer + TEXT("/takedownRefund"), TEXT("holds at most one fraction, above 0 and at most 1"));
 			}
+			// Cooldowns scaled while a status holds (ADR-034 §8).
+			for (int32 Index = 0; Index < Cast.CooldownWhile.Num(); ++Index)
+			{
+				const FVeyraCooldownWhileTuning& While = Cast.CooldownWhile[Index];
+				const FString WhilePointer = FString::Printf(TEXT("%s/cooldownWhile/%d"), *Pointer, Index);
+				CheckStatusIds(WhilePointer + TEXT("/status"), { While.Status });
+				if (!(While.Multiplier > 0.0 && While.Multiplier <= 1.0))
+				{
+					Problem(WhilePointer + TEXT("/multiplier"), TEXT("must be above 0 and at most 1"));
+				}
+			}
 		}
 
 		void CheckDamage(const FString& Pointer, TConstArrayView<FVeyraDamageTuning> DamageList)
@@ -157,6 +168,26 @@ namespace
 					if (!Effects.Statuses.Contains(Replaced))
 					{
 						Problem(ReactionPointer + TEXT("/replaces"), FString::Printf(TEXT("replaces \"%s\", which the effects do not give"), *Replaced.ToString()));
+					}
+				}
+				// A burst around the reacting target (ADR-034 §6).
+				if (Reaction.Burst.Num() > 1)
+				{
+					Problem(ReactionPointer + TEXT("/burst"), TEXT("holds at most one burst"));
+				}
+				for (int32 BurstIndex = 0; BurstIndex < Reaction.Burst.Num(); ++BurstIndex)
+				{
+					const FVeyraReactionBurstTuning& Burst = Reaction.Burst[BurstIndex];
+					const FString BurstPointer = FString::Printf(TEXT("%s/burst/%d"), *ReactionPointer, BurstIndex);
+					for (const FString& ShapeProblem : VeyraShapes::Validate(Burst.Shape))
+					{
+						Problem(BurstPointer + TEXT("/shape"), ShapeProblem);
+					}
+					CheckDamage(BurstPointer + TEXT("/damage"), Burst.Damage);
+					CheckStatusIds(BurstPointer + TEXT("/statuses"), Burst.Statuses);
+					if (Burst.Damage.IsEmpty() && Burst.Statuses.IsEmpty())
+					{
+						Problem(BurstPointer, TEXT("does nothing: it needs damage or statuses"));
 					}
 				}
 			}
@@ -475,6 +506,42 @@ namespace
 			{
 				CheckStatusIds(FString::Printf(TEXT("%s/heal/%d/statuses"), *Pointer, Index), Buff.Heal[Index].Statuses);
 			}
+			// Its companion's part lasts while its caster's own statuses do, and needs the companion (ADR-034 §7).
+			CheckStatusIds(Pointer + TEXT("/companionStatuses"), Buff.CompanionStatuses);
+			const bool bCompanionPart = !Buff.CompanionStatuses.IsEmpty() || !Buff.Chain.IsEmpty() || Buff.CompanionDeath == EVeyraCompanionDeath::Ends;
+			if (bCompanionPart && (Buff.Statuses.IsEmpty() || Buff.Recipient != EVeyraBuffRecipient::Caster || Buff.Cast.NeedsCompanion != EVeyraCompanionNeed::Living))
+			{
+				Problem(Pointer, TEXT("companionStatuses, a chain and companionDeath Ends need the caster's own statuses and a cast that needs its living companion"));
+			}
+			if (Buff.Chain.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/chain"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Buff.Chain.Num(); ++Index)
+			{
+				const FVeyraChainTuning& Chain = Buff.Chain[Index];
+				const FString ChainPointer = FString::Printf(TEXT("%s/chain/%d"), *Pointer, Index);
+				if (!(Chain.Width > 0.0) || !(Chain.PulseSeconds > 0.0) || !(Chain.PerEnemySeconds >= Chain.PulseSeconds))
+				{
+					Problem(ChainPointer, TEXT("width and pulseSeconds are above 0, and perEnemySeconds at least pulseSeconds"));
+				}
+				CheckEffects(ChainPointer + TEXT("/effects"), Chain.Effects);
+			}
+		}
+
+		void CheckCommand(const FString& Pointer, const FVeyraCommandAbilityTuning& Command)
+		{
+			CheckCast(Pointer + TEXT("/cast"), Command.Cast);
+			CheckZones(Pointer + TEXT("/landingZones"), Command.LandingZones);
+			if (Command.Order == EVeyraCompanionOrder::Hold
+				&& (!(Command.Cast.CastRange > 0.0) || !(Command.LeapSpeed > 0.0) || !(Command.HoldSeconds > 0.0)))
+			{
+				Problem(Pointer, TEXT("a hold has a cast range, a leap speed and hold seconds above 0"));
+			}
+			if (Command.Order == EVeyraCompanionOrder::Recall && (Command.LeapSpeed != 0.0 || Command.HoldSeconds != 0.0 || !Command.LandingZones.IsEmpty()))
+			{
+				Problem(Pointer, TEXT("a recall leaps nowhere, holds nothing and lands nothing"));
+			}
 		}
 
 		void CheckZones(const FString& Pointer, TConstArrayView<FVeyraAreaZoneTuning> Zones)
@@ -697,6 +764,26 @@ namespace
 		{
 			CheckCast(Pointer + TEXT("/cast"), Blink.Cast);
 			CheckEffects(Pointer + TEXT("/effects"), Blink.Effects);
+			CheckZones(Pointer + TEXT("/departureZones"), Blink.DepartureZones);
+			CheckZones(Pointer + TEXT("/companionDepartureZones"), Blink.CompanionDepartureZones);
+			// To its own companion: no enemy, no marker; a swap with it may erupt where the companion left (ADR-034 §5).
+			if (Blink.To == EVeyraBlinkTo::OwnCompanion)
+			{
+				if (!Blink.MarkerAbility.IsEmpty() || !Blink.TargetKinds.IsEmpty() || !Blink.Effects.Damage.IsEmpty() || !Blink.Effects.Statuses.IsEmpty()
+					|| Blink.Cast.NeedsCompanion != EVeyraCompanionNeed::Living)
+				{
+					Problem(Pointer, TEXT("a blink to its own companion names no marker or target kinds, lands no effects, and needs its living companion"));
+				}
+				if (!Blink.CompanionDepartureZones.IsEmpty() && Blink.Swap != EVeyraBlinkSwap::Swap)
+				{
+					Problem(Pointer + TEXT("/companionDepartureZones"), TEXT("erupt where the companion left, so the blink swaps with it"));
+				}
+				return;
+			}
+			if (!Blink.CompanionDepartureZones.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/companionDepartureZones"), TEXT("only a swap with the caster's companion has them"));
+			}
 			const bool bToEnemy = Blink.To != EVeyraBlinkTo::OwnMarker;
 			const bool bToMarker = Blink.To != EVeyraBlinkTo::EnemyUnit;
 			if (bToMarker && (Blink.MarkerAbility.IsEmpty() || !LeavesMarker(Blink.MarkerAbility[0])))
@@ -931,6 +1018,10 @@ namespace
 			{
 				Note(Entry.Key, TEXT("blink"));
 			}
+			for (const TPair<FVeyraContentId, FVeyraCommandAbilityTuning>& Entry : Tuning.Command)
+			{
+				Note(Entry.Key, TEXT("command"));
+			}
 		}
 	};
 }
@@ -1035,6 +1126,10 @@ TArray<FString> Validate(const FVeyraAbilitiesTuning& Tuning, TConstArrayView<in
 	{
 		Checker.CheckBlink(TEXT("/blink/") + Entry.Key.ToString(), Entry.Value);
 	}
+	for (const TPair<FVeyraContentId, FVeyraCommandAbilityTuning>& Entry : Tuning.Command)
+	{
+		Checker.CheckCommand(TEXT("/command/") + Entry.Key.ToString(), Entry.Value);
+	}
 	for (const TPair<FVeyraContentId, FVeyraCompanionTuning>& Entry : Tuning.Companions)
 	{
 		Checker.CheckCompanion(TEXT("/companions/") + Entry.Key.ToString(), Entry.Value);
@@ -1054,7 +1149,7 @@ bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability
 	return Tuning.TargetedDamage.Contains(Ability) || Tuning.Area.Contains(Ability) || Tuning.SelfBuff.Contains(Ability) || Tuning.Skillshot.Contains(Ability)
 		|| Tuning.Dash.Contains(Ability) || Tuning.EmpoweredAttack.Contains(Ability) || Tuning.Volley.Contains(Ability)
 		|| Tuning.Tether.Contains(Ability) || Tuning.Attach.Contains(Ability) || Tuning.Ride.Contains(Ability) || Tuning.Ambush.Contains(Ability)
-		|| Tuning.Stance.Contains(Ability) || Tuning.Placement.Contains(Ability) || Tuning.Blink.Contains(Ability);
+		|| Tuning.Stance.Contains(Ability) || Tuning.Placement.Contains(Ability) || Tuning.Blink.Contains(Ability) || Tuning.Command.Contains(Ability);
 }
 
 const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
@@ -1111,6 +1206,10 @@ const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVey
 	else if (const FVeyraBlinkAbilityTuning* Blink = Tuning.Blink.Find(Ability))
 	{
 		Cast = &Blink->Cast;
+	}
+	else if (const FVeyraCommandAbilityTuning* Command = Tuning.Command.Find(Ability))
+	{
+		Cast = &Command->Cast;
 	}
 	return Cast;
 }
@@ -1191,6 +1290,10 @@ TArray<FString> ValidateRanks(const FVeyraAbilitiesTuning& Tuning, const FVeyraC
 	if (const FVeyraBlinkAbilityTuning* Blink = Tuning.Blink.Find(Ability))
 	{
 		Checker.CheckBlink(TEXT("/blink/") + Key, *Blink);
+	}
+	if (const FVeyraCommandAbilityTuning* Command = Tuning.Command.Find(Ability))
+	{
+		Checker.CheckCommand(TEXT("/command/") + Key, *Command);
 	}
 	// Targeted damage abilities keep one value for every rank.
 	return Checker.Problems;
