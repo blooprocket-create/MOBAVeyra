@@ -79,6 +79,7 @@ namespace VeyraNetTests
 			Tuning.Sight.Vanguard = AcrossAnyTestMap;
 			Tuning.Sight.Fluxborn = AcrossAnyTestMap;
 			Tuning.Sight.Structure = AcrossAnyTestMap;
+			Tuning.Sight.Companion = AcrossAnyTestMap;
 		}
 
 		UE_NONCOPYABLE(FScopedVisionTuning);

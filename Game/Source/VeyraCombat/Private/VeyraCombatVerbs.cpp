@@ -14,7 +14,9 @@
 #include "Effects/VeyraCombatEffects.h"
 #include "Effects/VeyraResourceSpendExecution.h"
 #include "Engine/World.h"
+#include "Entities/VeyraOwnedUnit.h"
 #include "Life/VeyraCombatEventSubsystem.h"
+#include "Life/VeyraDeath.h"
 #include "Life/VeyraLifeComponent.h"
 #include "Movement/VeyraMovementComponent.h"
 #include "NavigationSystem.h"
@@ -490,6 +492,17 @@ bool Revive(UAbilitySystemComponent& AbilitySystem)
 	return true;
 }
 
+bool Withdraw(UAbilitySystemComponent& AbilitySystem)
+{
+	if (!VeyraDeath::Withdraw(AbilitySystem))
+	{
+		return false;
+	}
+	// The dead hold no Health, however they died.
+	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), 0.0f);
+	return true;
+}
+
 bool KeepResource(UAbilitySystemComponent& AbilitySystem)
 {
 	for (UAttributeSet* Set : AbilitySystem.GetSpawnedAttributes())
@@ -524,6 +537,25 @@ double GetCostShare(const UAbilitySystemComponent& Unit)
 	const AActor* Owner = Unit.GetOwner();
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
 	return Statuses ? Statuses->GetRetained(EVeyraStatusKind::ResourceCostReduction) : 1.0;
+}
+
+UAbilitySystemComponent* ResponsibleFor(UAbilitySystemComponent* Source)
+{
+	// Owners are followed to the first unit owned by none; one already passed ends a cycle where it began.
+	TArray<const UAbilitySystemComponent*, TInlineAllocator<4>> Passed;
+	UAbilitySystemComponent* Responsible = Source;
+	while (Responsible && !Passed.Contains(Responsible))
+	{
+		Passed.Add(Responsible);
+		const IVeyraOwnedUnit* Owned = Cast<IVeyraOwnedUnit>(Responsible->GetOwner());
+		UAbilitySystemComponent* Owner = Owned ? Owned->GetOwnerAbilities() : nullptr;
+		if (!Owner)
+		{
+			break;
+		}
+		Responsible = Owner;
+	}
+	return Responsible;
 }
 
 FVeyraPreparedDamage PrepareDamage(UAbilitySystemComponent& Source, const FVeyraRawDamageEvent& Damage)
@@ -615,7 +647,7 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	// to what a hit dealt (ADR-023 §4).
 	if (Events && VeyraTargeting::AreHostile(Source->GetOwner(), Target.GetOwner()))
 	{
-		Events->OnHostileDamage.Broadcast(FVeyraHostileDamageEvent{ Source, &Target, Damage.Delivery });
+		Events->OnHostileDamage.Broadcast(FVeyraHostileDamageEvent{ Source, &Target, Damage.Delivery, ResponsibleFor(Source) });
 		Events->OnDamageDealt.Broadcast(Dealt);
 	}
 	return true;
@@ -829,6 +861,14 @@ bool HasStatusFrom(const AActor* Unit, const FVeyraContentId& Id, const UAbility
 	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
 	return Statuses && Statuses->HasFrom(Id, Source);
+}
+
+bool HasStatusKindFromSide(const AActor* Unit, EVeyraStatusKind Kind, EVeyraTeam Side)
+{
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit);
+	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->HasFromSide(Kind, Side);
 }
 
 EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)

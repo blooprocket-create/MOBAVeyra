@@ -11,6 +11,7 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Casting/VeyraCastStateComponent.h"
 #include "Casting/VeyraCastSubsystem.h"
+#include "Companions/VeyraCompanionSubsystem.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
 #include "Engine/World.h"
 #include "Life/VeyraCombatEventSubsystem.h"
@@ -54,6 +55,21 @@ namespace
 			return EVeyraCooldownHaste::Fixed;
 		}
 		return Entry && VeyraAbilitySlots::IsItemSlot(Entry->Slot) ? EVeyraCooldownHaste::Item : EVeyraCooldownHaste::Ability;
+	}
+
+	/** What Ability's cooldown is scaled by now, for each status it names that its caster holds from itself (ADR-034 §8). */
+	double CooldownScaleOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability)
+	{
+		const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(UVeyraAbilitiesTuningSubsystem::Get(), Ability);
+		double Scale = 1.0;
+		for (const FVeyraCooldownWhileTuning& While : Cast ? Cast->CooldownWhile : TArray<FVeyraCooldownWhileTuning>())
+		{
+			if (VeyraCombat::HasStatusFrom(Caster.GetAvatarActor(), While.Status, Caster))
+			{
+				Scale *= While.Multiplier;
+			}
+		}
+		return Scale;
 	}
 
 	/** The ID Ability cools down under: its slot's own ability's, for a variant that shares it (ADR-018 §1). */
@@ -138,6 +154,18 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	if (!VeyraCombat::CanAffordResource(Caster, CostFor(Caster, Ability, Rank)) || (Costs && !Costs->MinimumResource.IsEmpty() && Held < Costs->MinimumResource[0]))
 	{
 		return EVeyraCastRejection::InsufficientResource;
+	}
+	// It may need its caster's companion on the battleground (ADR-034 §8).
+	const UVeyraCompanionSubsystem* Companions = Caster.GetWorld() ? Caster.GetWorld()->GetSubsystem<UVeyraCompanionSubsystem>() : nullptr;
+	if (Costs && Costs->NeedsCompanion == EVeyraCompanionNeed::Living && !(Companions && Companions->FindLiving(Caster)))
+	{
+		return EVeyraCastRejection::NoCompanion;
+	}
+	// A status its caster holds may hold it back, as a ride's lock holds back a change of stance (ADR-035 §2).
+	const UVeyraStatusComponent* Statuses = FindBesideAbilitySystem<UVeyraStatusComponent>(Caster);
+	if (Costs && Statuses && Statuses->GetLedger().Entries.ContainsByPredicate([Costs](const FVeyraStatusEntry& Entry) { return Costs->RefusedWhile.Contains(Entry.Id); }))
+	{
+		return EVeyraCastRejection::HeldBack;
 	}
 	const EVeyraCastRejection TargetRejection = CheckTarget(*Avatar, Ability, Target);
 	if (TargetRejection != EVeyraCastRejection::None)
@@ -520,8 +548,8 @@ void UVeyraGameplayAbility::OnCasterInterrupted()
 		UVeyraCooldownComponent* Cooldowns = Caster ? FindBesideAbilitySystem<UVeyraCooldownComponent>(*Caster) : nullptr;
 		if (Cooldowns)
 		{
-			Cooldowns->StartCooldown(CooldownIdOf(*Caster, Cast.Ability), GetCooldownSeconds(Cast.Ability, Cast.Rank) * UVeyraAbilitiesTuningSubsystem::Get().Casting.InterruptedCooldownFraction,
-				HasteOf(*Caster, Cast.Ability));
+			Cooldowns->StartCooldown(CooldownIdOf(*Caster, Cast.Ability), GetCooldownSeconds(Cast.Ability, Cast.Rank) * CooldownScaleOf(*Caster, Cast.Ability)
+				* UVeyraAbilitiesTuningSubsystem::Get().Casting.InterruptedCooldownFraction, HasteOf(*Caster, Cast.Ability));
 		}
 		FinishCast(/*bCancelled*/ true);
 		break;
@@ -605,7 +633,8 @@ void UVeyraGameplayAbility::ApplyCooldown(const FGameplayAbilitySpecHandle Handl
 	const FVeyraContentId Ability = GetContentId(Handle, ActorInfo);
 	if (Cooldowns && Caster && Ability.IsValid())
 	{
-		Cooldowns->StartCooldown(CooldownIdOf(*Caster, Ability), GetCooldownSeconds(Ability, GetCommitRank(*Caster, Ability)), HasteOf(*Caster, Ability));
+		Cooldowns->StartCooldown(CooldownIdOf(*Caster, Ability), GetCooldownSeconds(Ability, GetCommitRank(*Caster, Ability)) * CooldownScaleOf(*Caster, Ability),
+			HasteOf(*Caster, Ability));
 	}
 }
 

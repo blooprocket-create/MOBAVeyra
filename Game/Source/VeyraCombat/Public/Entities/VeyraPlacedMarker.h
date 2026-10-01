@@ -4,6 +4,7 @@
 
 #include "AbilitySystemInterface.h"
 #include "Entities/VeyraMarkerTypes.h"
+#include "Entities/VeyraOwnedUnit.h"
 #include "GameFramework/Pawn.h"
 #include "Teams/VeyraTeam.h"
 #include "TimerManager.h"
@@ -31,7 +32,7 @@ struct FVeyraDeathEvent;
  * marker that takes no hits is Untargetable. Vision gates it as a unit.
  */
 UCLASS(NotBlueprintable, NotPlaceable)
-class VEYRACOMBAT_API AVeyraPlacedMarker : public APawn, public IAbilitySystemInterface, public IVeyraTeamMember, public IVeyraUnit
+class VEYRACOMBAT_API AVeyraPlacedMarker : public APawn, public IAbilitySystemInterface, public IVeyraTeamMember, public IVeyraUnit, public IVeyraOwnedUnit
 {
 	GENERATED_BODY()
 
@@ -63,7 +64,7 @@ public:
 	void Relocate(const FVector& Where);
 
 	/** Server: its owner's Ability System Component. */
-	UAbilitySystemComponent* GetOwnerAbilities() const { return OwnerAbilities.Get(); }
+	virtual UAbilitySystemComponent* GetOwnerAbilities() const override { return OwnerAbilities.Get(); }
 
 	const FVeyraContentId& GetMarkerId() const { return Spec.Id; }
 

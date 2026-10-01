@@ -10,6 +10,8 @@
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "Attributes/VeyraResourceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Companions/VeyraCompanion.h"
+#include "Companions/VeyraCompanionSubsystem.h"
 #include "Delivery/VeyraAreaDelivery.h"
 #include "Delivery/VeyraEffectDelivery.h"
 #include "Delivery/VeyraShieldHoldSubsystem.h"
@@ -179,6 +181,10 @@ void UVeyraSelfBuffAbility::EndEarly(UAbilitySystemComponent& Caster, const FVey
 	// Every form of the stance ends with it.
 	EndForms(Caster, FormsOf(Caster, Ability));
 	StopAura();
+	if (PartAbility == Ability)
+	{
+		StopCompanionPart();
+	}
 }
 
 FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
@@ -323,7 +329,147 @@ FVeyraChannelPlan UVeyraSelfBuffAbility::Deliver(const FVeyraCast& Cast)
 			Loadout->Override(*Caster, Variant.Slot, Spec);
 		}
 	}
+	// Its caster's companion's part: statuses, a chain, and an end with the companion (ADR-034 §7).
+	if (!Buff->CompanionStatuses.IsEmpty() || !Buff->Chain.IsEmpty() || Buff->CompanionDeath == EVeyraCompanionDeath::Ends)
+	{
+		StartCompanionPart(*World, *Caster, Cast, *Buff);
+	}
 	return FVeyraChannelPlan();
+}
+
+void UVeyraSelfBuffAbility::StartCompanionPart(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraCast& Cast, const FVeyraSelfBuffAbilityTuning& Buff)
+{
+	UVeyraCompanionSubsystem* Keeper = World.GetSubsystem<UVeyraCompanionSubsystem>();
+	AVeyraCompanion* Companion = Keeper ? Keeper->FindLiving(Caster) : nullptr;
+	if (!Companion)
+	{
+		return;
+	}
+	StopCompanionPart();
+	PartCaster = &Caster;
+	PartCompanion = Companion;
+	PartAbility = Cast.Ability;
+	for (const FVeyraStatusSpec& Status : VeyraEffectDelivery::StatusSpecs(Buff.CompanionStatuses, GetCasterLevel(Caster)))
+	{
+		VeyraCombat::ApplyStatus(Caster, *Companion->GetAbilitySystemComponent(), Status);
+	}
+	if (Buff.CompanionDeath == EVeyraCompanionDeath::Ends)
+	{
+		BanishHandle = Keeper->OnBanished.AddUObject(this, &UVeyraSelfBuffAbility::OnCompanionBanished);
+	}
+	if (Buff.Chain.IsEmpty())
+	{
+		return;
+	}
+	// The chain is its caster's hit, from its rank and power at the cast (Combat Bible §50).
+	ChainEffects = VeyraEffectDelivery::Prepare(Caster, Buff.Chain[0].Effects, Cast.Rank);
+	ChainSource = FVeyraAbilityHitSource{ Cast.Ability, Cast.CastId };
+	Companion->SetChained(true);
+	// Bound to the caster, as the aura is: GAS clears an ability's own timers as its cast ends.
+	TWeakObjectPtr<UVeyraSelfBuffAbility> Self(this);
+	World.GetTimerManager().SetTimer(ChainTimer, FTimerDelegate::CreateWeakLambda(&Caster, [Self]() {
+		if (UVeyraSelfBuffAbility* Ability = Self.Get())
+		{
+			Ability->PulseChain();
+		}
+	}), static_cast<float>(Buff.Chain[0].PulseSeconds), /*bLoop*/ true);
+	PulseChain();
+}
+
+void UVeyraSelfBuffAbility::PulseChain()
+{
+	UAbilitySystemComponent* Caster = PartCaster.Get();
+	AVeyraCompanion* Companion = PartCompanion.Get();
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(PartAbility);
+	const AActor* Body = Caster ? Caster->GetAvatarActor() : nullptr;
+	UWorld* World = GetWorld();
+	if (!World || !Buff || Buff->Chain.IsEmpty() || !VeyraTargeting::IsAlive(Body) || !Companion || !Companion->IsAlive() || Companion->IsBanished()
+		|| !LastsFor(*Caster, *Buff))
+	{
+		StopCompanionPart();
+		return;
+	}
+	// The line from the caster to its companion, as wide as the chain.
+	const FVeyraChainTuning& Chain = Buff->Chain[0];
+	const FVector From = Body->GetActorLocation();
+	const FVector Along = (Companion->GetActorLocation() - From).GetSafeNormal2D();
+	FVeyraShape Line;
+	Line.Kind = EVeyraShapeKind::Rectangle;
+	Line.Length = FVector::Dist2D(From, Companion->GetActorLocation());
+	Line.Width = Chain.Width;
+	if (!(Line.Length > 0.0) || Along.IsNearlyZero())
+	{
+		return;
+	}
+	const double Now = World->GetTimeSeconds();
+	FVeyraEffectFrame Frame;
+	Frame.Origin = From;
+	Frame.Direction = Along;
+	for (AActor* Unit : VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Line, From, Along },
+			 [Body](const AActor& Other) { return VeyraTargeting::CanHitEnemy(Body, Other) && VeyraTargeting::IsAlive(&Other); }))
+	{
+		const double* NextAt = ChainNextAt.Find(Unit);
+		if (NextAt && Now < *NextAt)
+		{
+			continue;
+		}
+		ChainNextAt.Add(Unit, Now + Chain.PerEnemySeconds);
+		VeyraEffectDelivery::Apply(*Caster, *Unit, ChainEffects, Frame, ChainSource);
+	}
+}
+
+void UVeyraSelfBuffAbility::StopCompanionPart()
+{
+	UWorld* World = GetWorld();
+	if (World)
+	{
+		World->GetTimerManager().ClearTimer(ChainTimer);
+	}
+	if (BanishHandle.IsValid())
+	{
+		if (UVeyraCompanionSubsystem* Keeper = World ? World->GetSubsystem<UVeyraCompanionSubsystem>() : nullptr)
+		{
+			Keeper->OnBanished.Remove(BanishHandle);
+		}
+		BanishHandle.Reset();
+	}
+	// What it gave the companion goes with it.
+	AVeyraCompanion* Companion = PartCompanion.Get();
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(PartAbility);
+	if (Companion && Buff)
+	{
+		Companion->SetChained(false);
+		for (const FVeyraContentId& Status : Buff->CompanionStatuses)
+		{
+			VeyraCombat::RemoveStatus(*Companion->GetAbilitySystemComponent(), Status);
+		}
+	}
+	ChainNextAt.Reset();
+	PartCompanion.Reset();
+	PartCaster.Reset();
+	PartAbility = FVeyraContentId();
+}
+
+void UVeyraSelfBuffAbility::OnCompanionBanished(AVeyraCompanion& Companion)
+{
+	if (&Companion != PartCompanion.Get())
+	{
+		return;
+	}
+	UAbilitySystemComponent* Caster = PartCaster.Get();
+	const FVeyraContentId Ability = PartAbility;
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(Ability);
+	StopCompanionPart();
+	// A buff that ends with its companion ends now, its statuses with it (ADR-034 §7).
+	if (Caster && Buff && Buff->CompanionDeath == EVeyraCompanionDeath::Ends && LastsFor(*Caster, *Buff))
+	{
+		EndEarly(*Caster, Ability);
+	}
+}
+
+bool UVeyraSelfBuffAbility::LastsFor(const UAbilitySystemComponent& Caster, const FVeyraSelfBuffAbilityTuning& Buff)
+{
+	return !Buff.Statuses.IsEmpty() && VeyraCombat::HasStatusFrom(Caster.GetAvatarActor(), Buff.Statuses[0], Caster);
 }
 
 void UVeyraSelfBuffAbility::Drain()

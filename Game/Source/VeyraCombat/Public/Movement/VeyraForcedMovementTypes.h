@@ -99,6 +99,8 @@ enum class EVeyraRideEndReason : uint8
 	Expired,
 	/** Its rider died. */
 	Died,
+	/** A newer ride took its place. */
+	Replaced,
 };
 
 struct FVeyraRideEnd

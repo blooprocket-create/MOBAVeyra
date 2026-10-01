@@ -8,7 +8,9 @@
 #include "Abilities/VeyraAmbushAbility.h"
 #include "Abilities/VeyraAttachAbility.h"
 #include "Abilities/VeyraBlinkAbility.h"
+#include "Abilities/VeyraCommandAbility.h"
 #include "Abilities/VeyraDashAbility.h"
+#include "Abilities/VeyraDismountAbility.h"
 #include "Abilities/VeyraRideAbility.h"
 #include "Abilities/VeyraEmpoweredAttackAbility.h"
 #include "Abilities/VeyraPlacementAbility.h"
@@ -89,6 +91,14 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindBlink(Ability))
 		{
 			return UVeyraBlinkAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindCommand(Ability))
+		{
+			return UVeyraCommandAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindDismount(Ability))
+		{
+			return UVeyraDismountAbility::StaticClass();
 		}
 		return nullptr;
 	}
@@ -314,21 +324,24 @@ bool UVeyraAbilityLoadoutComponent::IsOverridden(EVeyraAbilitySlot Slot) const
 
 FVeyraContentId UVeyraAbilityLoadoutComponent::CooldownIdOf(const FVeyraContentId& Ability) const
 {
+	FVeyraContentId Held = Ability;
 	const FVeyraSlotOverride* Override = Overrides.FindByPredicate([&Ability](const FVeyraSlotOverride& Candidate) { return Candidate.Entry.Ability == Ability; });
 	if (Override && Override->bSharesCooldown)
 	{
 		// The own ability it belongs to, whichever the slot holds now (ADR-031 §3).
+		const EVeyraAbilitySlot Slot = Override->Entry.Slot;
 		if (Override->Over.IsValid())
 		{
-			return Override->Over;
+			Held = Override->Over;
 		}
-		const EVeyraAbilitySlot Slot = Override->Entry.Slot;
-		if (const FVeyraLoadoutEntry* Own = Entries.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; }))
+		else if (const FVeyraLoadoutEntry* Own = Entries.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; }))
 		{
-			return Own->Ability;
+			Held = Own->Ability;
 		}
 	}
-	return Ability;
+	// An ability that shares another's cooldown holds it under that one's ID (ADR-035 §1).
+	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(UVeyraAbilitiesTuningSubsystem::Get(), Held);
+	return Cast && !Cast->CooldownOf.IsEmpty() ? Cast->CooldownOf[0] : Held;
 }
 
 bool UVeyraAbilityLoadoutComponent::Override(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& Spec)

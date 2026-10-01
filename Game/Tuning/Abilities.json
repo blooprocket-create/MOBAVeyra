@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 18,
+  "schemaVersion": 23,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -1037,6 +1037,295 @@
       "unitKinds": [],
       "landsOn": [],
       "attackCharges": 0
+    },
+    "marek_bitten": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 3,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "marek_leashed": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 10,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "marek_hunt_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "nix_true_form_health": {
+      "provenance": "Provisional",
+      "kind": "MaxHealth",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.5,
+      "durationSeconds": 10,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "nix_true_form_speed": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.2,
+      "durationSeconds": 10,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "nix_true_form_size": {
+      "provenance": "Provisional",
+      "kind": "BodyScale",
+      "stacking": "UniqueRefresh",
+      "magnitude": 1.4,
+      "durationSeconds": 10,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_wave_body": {
+      "provenance": "Provisional",
+      "kind": "BodyScale",
+      "stacking": "UniqueRefresh",
+      "magnitude": 1.2,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_tidebreaker_body": {
+      "provenance": "Provisional",
+      "kind": "BodyScale",
+      "stacking": "UniqueRefresh",
+      "magnitude": 1.8,
+      "durationSeconds": 2.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_tidebreaker_lock": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 2.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_current_swell": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.08,
+      "durationSeconds": 1.75,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_current_drag": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.25,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_wake_stride": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.15,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_wake_mend": {
+      "provenance": "Provisional",
+      "kind": "HealthRegeneration",
+      "stacking": "UniqueRefresh",
+      "magnitude": 2,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_riptide_drag": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "sylra_sounded": {
+      "provenance": "Provisional",
+      "kind": "Sounded",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 4.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "sylra_bell_stride": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.15,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "sylra_followed_the_bell": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 4,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
     }
   },
   "targetedDamage": {
@@ -1096,6 +1385,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1103,7 +1396,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1114,7 +1407,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1138,6 +1432,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1145,7 +1443,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1156,7 +1454,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": ["seize_momentum_haste"]
+          "casterStatusesPerVanguard": ["seize_momentum_haste"],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1180,6 +1479,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1187,7 +1490,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Sector", "radius": 225, "arcDegrees": 100, "length": 0, "width": 0 },
@@ -1198,7 +1501,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         },
         {
           "shape": { "kind": "Sector", "radius": 425, "arcDegrees": 100, "length": 0, "width": 0 },
@@ -1209,7 +1513,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1233,6 +1538,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1240,7 +1549,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 275, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1264,7 +1573,8 @@
               "absorbedReward": []
             }
           ],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         },
         {
           "shape": { "kind": "Circle", "radius": 550, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1275,7 +1585,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1299,6 +1610,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1306,7 +1621,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Sector", "radius": 400, "arcDegrees": 160, "length": 0, "width": 0 },
@@ -1317,7 +1632,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": ["qazharr_no_quarter_frenzy", "qazharr_no_quarter_pursuit", "qazharr_no_quarter_tenacity", "qazharr_no_quarter_cleave"]
+          "casterStatusesPerVanguard": ["qazharr_no_quarter_frenzy", "qazharr_no_quarter_pursuit", "qazharr_no_quarter_tenacity", "qazharr_no_quarter_cleave"],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1341,6 +1657,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1348,7 +1668,7 @@
       "delaySeconds": 0.9,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1359,7 +1679,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1383,6 +1704,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1390,7 +1715,7 @@
       "delaySeconds": 0,
       "channelTicks": 5,
       "channelSeconds": 2.0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 1300, "width": 180 },
@@ -1401,7 +1726,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1425,6 +1751,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1432,7 +1762,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 400, "durationSeconds": 3 },
+      "reveal": { "radius": 400, "durationSeconds": 3 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1443,7 +1773,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1467,6 +1798,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1474,7 +1809,7 @@
       "delaySeconds": 1.2,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1485,7 +1820,8 @@
             "missingHealthDamage": [{ "type": "Physical", "missingHealthRatio": 0.15 }], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         },
         {
           "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1496,7 +1832,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1520,6 +1857,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1527,13 +1868,14 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 1400, "width": 220 },
           "effects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [
@@ -1547,7 +1889,7 @@
           "pulseEffects": [],
           "endEffects": [],
           "endWarningSeconds": 0,
-          "movementField": []
+          "movementField": [], "shieldTopUp": []
         }
       ],
       "consumesCasterStatuses": [],
@@ -1570,6 +1912,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1577,7 +1923,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Sector", "radius": 400, "arcDegrees": 70, "length": 0, "width": 0 },
@@ -1588,7 +1934,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1612,6 +1959,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1619,7 +1970,7 @@
       "delaySeconds": 0.75,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1630,7 +1981,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1654,6 +2006,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1661,7 +2017,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -1672,7 +2028,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -1696,6 +2053,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1703,9 +2064,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 900, "width": 110 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 105, 140, 175, 210], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 2.5, "pulseSeconds": 0.5, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_contaminated"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [10, 15, 20, 25, 30], "physicalPowerRatio": 0, "magicPowerRatio": 0.08 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 900, "width": 110 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 105, 140, 175, 210], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
+      "linger": [{ "durationSeconds": 2.5, "pulseSeconds": 0.5, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_contaminated"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [10, 15, 20, 25, 30], "physicalPowerRatio": 0, "magicPowerRatio": 0.08 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -1726,6 +2087,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1733,8 +2098,8 @@
       "delaySeconds": 0.9,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 100, 140, 180, 220], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_flash_cure_root", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_flash_cure_stun"], "replaces": ["mavra_flash_cure_root"] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 100, 140, 180, 220], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_flash_cure_root", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_flash_cure_stun"], "burst": [], "replaces": ["mavra_flash_cure_root"] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -1756,6 +2121,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1763,9 +2132,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 2.75, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [12, 18, 24, 30, 36], "physicalPowerRatio": 0, "magicPowerRatio": 0.1 }], "statuses": ["mavra_leak_slow", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["mavra_leak_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75, "movementField": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
+      "linger": [{ "durationSeconds": 2.75, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [12, 18, 24, 30, 36], "physicalPowerRatio": 0, "magicPowerRatio": 0.1 }], "statuses": ["mavra_leak_slow", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["mavra_leak_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -1786,6 +2155,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1793,9 +2166,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 650, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 4.5, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_code_black_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_code_black_stun"], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_code_black_knockdown"], "displacement": [{ "direction": "TowardOrigin", "distance": 200, "speed": 800, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 1, "movementField": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 650, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
+      "linger": [{ "durationSeconds": 4.5, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_code_black_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_code_black_stun"], "burst": [], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_code_black_knockdown"], "displacement": [{ "direction": "TowardOrigin", "distance": 200, "speed": 800, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 1, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -1816,6 +2189,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1823,8 +2200,8 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 700, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [75, 110, 145, 180, 215], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter", "korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }, { "shape": { "kind": "Sector", "radius": 700, "arcDegrees": 50, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [75, 110, 145, 180, 215], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 700, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [75, 110, 145, 180, 215], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter", "korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }, { "shape": { "kind": "Sector", "radius": 700, "arcDegrees": 50, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [75, 110, 145, 180, 215], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -1846,6 +2223,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1853,8 +2234,8 @@
       "delaySeconds": 1.25,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": ["korruk_mine_slow", "korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [90, 130, 170, 210, 250], "physicalPowerRatio": 0.7, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": ["korruk_mine_knockup"], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": ["korruk_mine_slow", "korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [90, 130, 170, 210, 250], "physicalPowerRatio": 0.7, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": ["korruk_mine_knockup"], "burst": [], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -1876,6 +2257,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1883,8 +2268,8 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 500, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_splinter", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [35, 50, 65, 80, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "scaling": "PerStack", "statuses": [], "replaces": [] }, { "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [160, 220, 280, 340, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 500, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_splinter", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [35, 50, 65, 80, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "scaling": "PerStack", "statuses": [], "burst": [], "replaces": [] }, { "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [160, 220, 280, 340, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -1906,6 +2291,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1913,9 +2302,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [70, 105, 140], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 2.6, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Physical", "amountByRank": [45, 70, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [200, 300, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "replaces": [] }] }], "endWarningSeconds": 0.75, "movementField": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [70, 105, 140], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
+      "linger": [{ "durationSeconds": 2.6, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Physical", "amountByRank": [45, 70, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [200, 300, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }], "endWarningSeconds": 0.75, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -1936,6 +2325,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -1943,8 +2336,8 @@
       "delaySeconds": 0.75,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 260, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["moro_bursting_ground_slow"], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 260, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["moro_bursting_ground_slow"], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -1966,6 +2359,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -1973,8 +2370,8 @@
       "delaySeconds": 0,
       "channelTicks": 8,
       "channelSeconds": 4,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 400, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [35, 55, 75], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 400, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [35, 55, 75], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Free",
@@ -1996,6 +2393,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2003,8 +2404,8 @@
       "delaySeconds": 0,
       "channelTicks": 2,
       "channelSeconds": 0.8,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 325, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [35, 55, 75, 95, 115], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 325, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [35, 55, 75, 95, 115], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Free",
@@ -2026,6 +2427,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2033,8 +2438,8 @@
       "delaySeconds": 0,
       "channelTicks": 2,
       "channelSeconds": 0.8,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 325, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [35, 55, 75, 95, 115], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["gorraveth_hunted"] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 325, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [35, 55, 75, 95, 115], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["gorraveth_hunted"], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Free",
@@ -2056,6 +2461,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2063,8 +2472,8 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Sector", "radius": 350, "arcDegrees": 100, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["raska_powerslide_slow"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Sector", "radius": 350, "arcDegrees": 100, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["raska_powerslide_slow"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -2086,6 +2495,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2093,9 +2506,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [40, 65, 90, 115, 140], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["celandrine_briar_slow"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 2.5, "pulseSeconds": 0.25, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["celandrine_briar_slow"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [40, 65, 90, 115, 140], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["celandrine_briar_slow"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
+      "linger": [{ "durationSeconds": 2.5, "pulseSeconds": 0.25, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["celandrine_briar_slow"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2116,6 +2529,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2123,9 +2540,9 @@
       "delaySeconds": 0.9,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 65, 90, 115, 140], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["aurelisse_updraft_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 2, "pulseSeconds": 0.25, "casterStatuses": ["aurelisse_updraft_haste"], "allyStatuses": ["aurelisse_updraft_haste"], "enemyStatuses": [], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 65, 90, 115, 140], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["aurelisse_updraft_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
+      "linger": [{ "durationSeconds": 2, "pulseSeconds": 0.25, "casterStatuses": ["aurelisse_updraft_haste"], "allyStatuses": ["aurelisse_updraft_haste"], "enemyStatuses": [], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2146,6 +2563,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2153,8 +2574,8 @@
       "delaySeconds": 0.35,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 220, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 220, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -2176,6 +2597,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2183,8 +2608,8 @@
       "delaySeconds": 1,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 110, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["silt_sink_stun", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }, { "shape": { "kind": "Circle", "radius": 280, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["silt_sink_slow", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 110, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["silt_sink_stun", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }, { "shape": { "kind": "Circle", "radius": 280, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["silt_sink_slow", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -2206,6 +2631,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2213,9 +2642,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["silt_blind", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 3, "pulseSeconds": 0.5, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["silt_blind", "silt_sandy"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["silt_blind", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
+      "linger": [{ "durationSeconds": 3, "pulseSeconds": 0.5, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["silt_blind", "silt_sandy"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2236,6 +2665,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2243,9 +2676,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 4, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["silt_mire_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [30, 45, 60], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "silt_sandy", "consume": "Consume", "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "scaling": "Once", "statuses": [], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["silt_mire_knockup", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75, "movementField": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
+      "linger": [{ "durationSeconds": 4, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["silt_mire_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [30, 45, 60], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": ["silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "silt_sandy", "consume": "Consume", "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "scaling": "Once", "statuses": [], "burst": [], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["silt_mire_knockup", "silt_sandy"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2266,6 +2699,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2273,8 +2710,8 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Sector", "radius": 300, "arcDegrees": 90, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 250, "speed": 1000, "collisionStatuses": ["torr_mass_stun"] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Sector", "radius": 300, "arcDegrees": 90, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 250, "speed": 1000, "collisionStatuses": ["torr_mass_stun"] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -2296,6 +2733,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2303,8 +2744,8 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Sector", "radius": 420, "arcDegrees": 90, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 250, "speed": 1000, "collisionStatuses": ["torr_mass_stun"] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Sector", "radius": 420, "arcDegrees": 90, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 250, "speed": 1000, "collisionStatuses": ["torr_mass_stun"] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -2326,6 +2767,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2333,9 +2778,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": ["torr_anchor_grounded"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 5, "pulseSeconds": 0.5, "casterStatuses": ["torr_anchor_hold"], "allyStatuses": ["torr_anchor_brace"], "enemyStatuses": ["torr_anchor_grounded"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": ["torr_anchor_grounded"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
+      "linger": [{ "durationSeconds": 5, "pulseSeconds": 0.5, "casterStatuses": ["torr_anchor_hold"], "allyStatuses": ["torr_anchor_brace"], "enemyStatuses": ["torr_anchor_grounded"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2356,6 +2801,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "CastersLingeringArea",
@@ -2363,8 +2812,8 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["torr_rip_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["torr_rip_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -2386,6 +2835,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2393,9 +2846,9 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 420, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": ["torr_anchor_grounded"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "linger": [{ "durationSeconds": 5, "pulseSeconds": 0.5, "casterStatuses": ["torr_anchor_hold"], "allyStatuses": ["torr_anchor_brace"], "enemyStatuses": ["torr_anchor_grounded"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 420, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": ["torr_anchor_grounded"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
+      "linger": [{ "durationSeconds": 5, "pulseSeconds": 0.5, "casterStatuses": ["torr_anchor_hold"], "allyStatuses": ["torr_anchor_brace"], "enemyStatuses": ["torr_anchor_grounded"], "sight": "None", "pulseEffects": [], "endEffects": [], "endWarningSeconds": 0, "movementField": [], "shieldTopUp": [] }],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2416,6 +2869,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "CastersLingeringArea",
@@ -2423,8 +2880,8 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 420, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["torr_rip_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 420, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["torr_rip_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
@@ -2446,6 +2903,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "Caster",
@@ -2453,7 +2914,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Sector", "radius": 325, "arcDegrees": 140, "length": 0, "width": 0 },
@@ -2474,7 +2935,8 @@
             "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         },
         {
           "shape": { "kind": "Sector", "radius": 500, "arcDegrees": 140, "length": 0, "width": 0 },
@@ -2495,7 +2957,8 @@
             "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -2519,6 +2982,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2526,7 +2993,7 @@
       "delaySeconds": 0.4,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -2547,7 +3014,8 @@
             "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -2571,6 +3039,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2578,7 +3050,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 650, "width": 220 },
@@ -2592,7 +3064,8 @@
             "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [
@@ -2616,7 +3089,7 @@
           ],
           "endEffects": [],
           "endWarningSeconds": 0,
-          "movementField": []
+          "movementField": [], "shieldTopUp": []
         }
       ],
       "consumesCasterStatuses": [],
@@ -2639,6 +3112,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "CastersMarker",
@@ -2646,7 +3123,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 400, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -2667,7 +3144,8 @@
             "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [],
@@ -2691,6 +3169,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "origin": "TargetPoint",
@@ -2698,7 +3180,7 @@
       "delaySeconds": 0,
       "channelTicks": 1,
       "channelSeconds": 0,
-      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
       "zones": [
         {
           "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -2712,7 +3194,8 @@
             "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "linger": [
@@ -2728,9 +3211,404 @@
           "endWarningSeconds": 0,
           "movementField": [
             { "pull": 150 }
+          ], "shieldTopUp": []
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "neris_healing_wake": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 3,
+          "pulseSeconds": 0.5,
+          "casterStatuses": ["neris_wake_stride", "neris_wake_mend"],
+          "allyStatuses": ["neris_wake_stride", "neris_wake_mend"],
+          "enemyStatuses": [],
+          "sight": "None",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": [], "shieldTopUp": []
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "neris_riptide": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 }, "fog": [],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 3,
+          "pulseSeconds": 0.5,
+          "casterStatuses": [],
+          "allyStatuses": [],
+          "enemyStatuses": ["neris_riptide_drag"],
+          "sight": "None",
+          "pulseEffects": [
+            {
+              "damage": [
+                {
+                  "type": "Magic",
+                  "amountByRank": [20, 30, 40],
+                  "physicalPowerRatio": 0,
+                  "magicPowerRatio": 0.1
+                }
+              ],
+              "statuses": [],
+              "displacement": [],
+              "missingHealthDamage": [],
+              "unitKindMultipliers": [],
+              "displacementUnlessStatuses": [],
+              "reactions": []
+            }
+          ],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": [], "shieldTopUp": []
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_mist_trail": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "fog": [],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 140, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 3,
+          "pulseSeconds": 0.5,
+          "casterStatuses": [],
+          "allyStatuses": ["sylra_bell_stride", "sylra_followed_the_bell"],
+          "enemyStatuses": [],
+          "sight": "None",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": [],
+          "shieldTopUp": []
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_lay_the_mist": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [18, 17, 16, 15, 14],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 900,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "TargetPoint",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "fog": [
+        { "shape": "Circle", "radius": 350, "length": 0, "width": 0, "durationSeconds": 5 }
+      ],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_waymark": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [60],
+        "castRange": 650,
+        "windupSeconds": 0.2,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "TargetPoint",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 500, "durationSeconds": 8 },
+      "fog": [],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 8,
+          "pulseSeconds": 1,
+          "casterStatuses": [],
+          "allyStatuses": [],
+          "enemyStatuses": [],
+          "sight": "None",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": [],
+          "shieldTopUp": [
+            {
+              "shield": {
+                "id": "sylra_waymark_shield",
+                "category": "Universal",
+                "amountByRank": [14, 18, 22, 26, 30],
+                "maxHealthRatio": 0,
+                "magicPowerRatio": 0.04,
+                "durationSeconds": 2,
+                "reapply": "Merge",
+                "maxAmountMaxHealthRatio": 0.12,
+                "capGroup": [],
+                "absorbedReward": []
+              },
+              "delayAfterDamageSeconds": 2.5
+            }
           ]
         }
       ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "sylra_through_the_white": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [130, 115, 100],
+        "resourceCostByRank": [100],
+        "castRange": 1500,
+        "windupSeconds": 0.3,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "fog": [
+        { "shape": "Corridor", "radius": 0, "length": 2200, "width": 700, "durationSeconds": 6 }
+      ],
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
@@ -2753,6 +3631,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["cairn_immovable_guard", "cairn_immovable_anchor", "cairn_immovable_burden"],
@@ -2769,6 +3651,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "qazharr_weather_it": {
@@ -2785,6 +3670,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["qazharr_weather_it_tenacity"],
@@ -2814,6 +3703,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "oriel_mirror_veil": {
@@ -2830,6 +3722,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["oriel_mirror_veil_haste"],
@@ -2859,6 +3755,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "mend": {
@@ -2875,6 +3774,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": [],
@@ -2891,6 +3794,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "vera_dig_in": {
@@ -2907,6 +3813,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["vera_dig_in_stance", "vera_dig_in_reach", "vera_dig_in_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
@@ -2923,6 +3833,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "vera_dig_in_volley": {
@@ -2939,6 +3852,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["vera_dig_in_stance", "vera_dig_in_volley_reach", "vera_dig_in_volley_haste", "vera_dig_in_footing", "vera_dig_in_anchor"],
@@ -2955,6 +3872,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "vera_the_last_volley": {
@@ -2971,6 +3891,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["vera_last_volley"],
@@ -2987,6 +3911,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "mimzi_now_you_see_me": {
@@ -3003,6 +3930,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["mimzi_camouflage", "mimzi_scamper"],
@@ -3019,6 +3950,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "patch_play_dead": {
@@ -3035,6 +3969,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["patch_dormant", "patch_play_dead_guard", "patch_play_dead_anchor"],
@@ -3051,6 +3989,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "patch_the_thing_inside": {
@@ -3067,6 +4008,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["patch_inside_body", "patch_inside_footing"],
@@ -3083,6 +4028,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "gorraveth_tear_them_apart": {
@@ -3099,6 +4047,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["gorraveth_frenzy_haste", "gorraveth_frenzy_hunt"],
@@ -3115,6 +4067,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "raska_countersteer": {
@@ -3131,6 +4086,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["raska_countersteer_guard"],
@@ -3147,6 +4106,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "raska_countersteer_redlined": {
@@ -3163,6 +4125,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["raska_countersteer_guard"],
@@ -3179,6 +4145,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "celandrine_open_road": {
@@ -3195,6 +4164,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["celandrine_open_road_haste", "celandrine_open_road_stride"],
@@ -3211,6 +4184,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "aurelisse_windward": {
@@ -3227,6 +4203,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["aurelisse_windward_haste"],
@@ -3256,6 +4236,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "aurelisse_room_to_breathe": {
@@ -3272,6 +4255,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["aurelisse_room_stride"],
@@ -3297,10 +4284,13 @@
       "endPayload": [],
       "attackSecondaryImpact": [],
       "recipient": "CasterOrAlly",
-      "recipientZones": [{ "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "recipientZones": [{ "shape": { "kind": "Circle", "radius": 350, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "torr_fortify": {
@@ -3317,6 +4307,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["torr_fortify_guard", "torr_fortify_brace"],
@@ -3333,6 +4327,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "torr_overcapacity": {
@@ -3349,6 +4346,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["torr_overcapacity_size", "torr_overcapacity_steady"],
@@ -3365,6 +4366,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "tavi_hide": {
@@ -3381,6 +4385,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["tavi_hidden", "tavi_hide_haste"],
@@ -3412,13 +4420,17 @@
                 "reactions": []
               },
               "casterShieldPerVanguard": [],
-              "casterStatusesPerVanguard": []
+              "casterStatusesPerVanguard": [],
+              "allyEffects": []
             }
           ]
         }
       ],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "varkesh_tempered_shell": {
@@ -3435,6 +4447,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": [],
@@ -3464,6 +4480,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": ["varkesh_shell_tenacity", "varkesh_shell_footing"],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": [
         {
           "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
@@ -3484,7 +4503,8 @@
             "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ]
     },
@@ -3502,6 +4522,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [0.5],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": [20]
       },
       "statuses": ["relay_overclocked"],
@@ -3518,6 +4542,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "relay_overcharge": {
@@ -3534,6 +4561,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "statuses": ["relay_overcharged"],
@@ -3550,6 +4581,9 @@
       "marker": [],
       "drain": [],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
       "shieldEndZones": []
     },
     "relay_full_grid": {
@@ -3566,6 +4600,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": [20]
       },
       "statuses": ["relay_grid_planted", "relay_grid_discount"],
@@ -3593,6 +4631,70 @@
         { "perSecond": 12, "intervalSeconds": 0.5, "maxSeconds": 8 }
       ],
       "shieldHolds": [],
+      "companionStatuses": [],
+      "companionDeath": "Stays",
+      "chain": [],
+      "shieldEndZones": []
+    },
+    "marek_hell_on_a_leash": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [110, 95, 80],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "Living",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "statuses": ["marek_leashed"],
+      "shields": [],
+      "aura": [],
+      "heal": [],
+      "recast": "None",
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": [],
+      "attackSecondaryImpact": [],
+      "recipient": "Caster",
+      "recipientZones": [],
+      "marker": [],
+      "drain": [],
+      "shieldHolds": [],
+      "companionStatuses": ["nix_true_form_health", "nix_true_form_speed", "nix_true_form_size"],
+      "companionDeath": "Ends",
+      "chain": [
+        {
+          "width": 80,
+          "pulseSeconds": 0.25,
+          "perEnemySeconds": 1,
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [40, 60, 80],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.15
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          }
+        }
+      ],
       "shieldEndZones": []
     }
   },
@@ -3611,6 +4713,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1650, "radius": 55, "range": 1050 },
@@ -3646,6 +4752,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1800, "radius": 40, "range": 1000 },
@@ -3681,6 +4791,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
@@ -3711,6 +4825,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1600, "radius": 60, "range": 750 },
@@ -3741,6 +4859,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 5000, "radius": 60, "range": 3000 },
@@ -3771,6 +4893,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 2000, "radius": 50, "range": 1300 },
@@ -3801,6 +4927,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1600, "radius": 60, "range": 1100 },
@@ -3826,6 +4956,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1900, "radius": 45, "range": 1000 },
@@ -3856,6 +4990,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1400, "radius": 90, "range": 1000 },
@@ -3881,6 +5019,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1500, "radius": 120, "range": 1100 },
@@ -3906,6 +5048,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1400, "radius": 110, "range": 900 },
@@ -3931,6 +5077,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1500, "radius": 60, "range": 900 },
@@ -3979,6 +5129,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1700, "radius": 50, "range": 925 },
@@ -4057,6 +5211,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "projectile": { "speed": 1200, "radius": 150, "range": 1000 },
@@ -4099,6 +5257,140 @@
       "endWall": [
         { "length": 600, "thickness": 80, "lifetimeSeconds": 4 }
       ]
+    },
+    "marek_witchfire": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [7, 6.5, 6, 5.5, 5],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 950,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "projectile": { "speed": 1600, "radius": 45, "range": 950 },
+      "collision": "FirstEnemy",
+      "effects": {
+        "damage": [
+          {
+            "type": "Magic",
+            "amountByRank": [80, 120, 160, 200, 240],
+            "physicalPowerRatio": 0,
+            "magicPowerRatio": 0.6
+          }
+        ],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": [
+          {
+            "status": "marek_bitten",
+            "consume": "Consume",
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [40, 60, 80, 100, 120],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.3
+              }
+            ],
+            "scaling": "Once",
+            "statuses": [],
+            "replaces": [],
+            "burst": [
+              {
+                "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 },
+                "damage": [
+                  {
+                    "type": "Magic",
+                    "amountByRank": [60, 90, 120, 150, 180],
+                    "physicalPowerRatio": 0,
+                    "magicPowerRatio": 0.3
+                  }
+                ],
+                "statuses": []
+              }
+            ]
+          }
+        ]
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "casterDash": [],
+      "returnIfHeld": [],
+      "mimic": [],
+      "endWall": []
+    },
+    "sylra_harbor_bell": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [8, 7.5, 7, 6.5, 6],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 1000,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "projectile": { "speed": 1500, "radius": 60, "range": 1000 },
+      "collision": "FirstEnemyVanguard",
+      "effects": {
+        "damage": [
+          {
+            "type": "Magic",
+            "amountByRank": [70, 110, 150, 190, 230],
+            "physicalPowerRatio": 0,
+            "magicPowerRatio": 0.6
+          }
+        ],
+        "statuses": ["sylra_sounded"],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "casterDash": [],
+      "returnIfHeld": [],
+      "mimic": [],
+      "endWall": []
     }
   },
   "dash": {
@@ -4116,6 +5408,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4150,6 +5446,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "AwayFromPoint",
@@ -4166,7 +5466,8 @@
             "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "contactEffects": {
@@ -4196,6 +5497,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4230,6 +5535,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "AwayFromHost",
@@ -4259,13 +5568,17 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
       "distance": 350,
       "speed": 1400,
       "contact": "None",
-      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
@@ -4288,13 +5601,17 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
       "distance": 350,
       "speed": 1400,
       "contact": "None",
-      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["gorraveth_hunted"] }],
+      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["gorraveth_hunted"], "allyEffects": [] }],
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
@@ -4317,6 +5634,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4327,7 +5648,7 @@
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "endZones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["moro_pounce_rush"] }],
+      "endZones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["moro_pounce_rush"], "allyEffects": [] }],
       "rideExit": "Stay",
       "duringDash": "Refused",
       "targetKinds": []
@@ -4346,6 +5667,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4356,7 +5681,7 @@
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "endZones": [{ "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "endZones": [{ "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "rideExit": "Stay",
       "duringDash": "Refused",
       "targetKinds": []
@@ -4375,6 +5700,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4404,13 +5733,17 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
       "distance": 350,
       "speed": 1600,
       "contact": "None",
-      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 140 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 140 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
@@ -4433,6 +5766,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4462,13 +5799,17 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
       "distance": 300,
       "speed": 1800,
       "contact": "None",
-      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 300, "width": 160 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 300, "width": 160 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
@@ -4491,6 +5832,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4520,6 +5865,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4530,7 +5879,7 @@
       "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
-      "endZones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 250, 350], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }], "statuses": ["raska_last_exit_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "endZones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 250, 350], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }], "statuses": ["raska_last_exit_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [], "allyEffects": [] }],
       "rideExit": "Leave",
       "duringDash": "Refused",
       "targetKinds": []
@@ -4549,6 +5898,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4588,6 +5941,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "ThroughTarget",
@@ -4633,6 +5990,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "ThroughTarget",
@@ -4678,6 +6039,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "TowardPoint",
@@ -4724,7 +6089,8 @@
             "reactions": []
           },
           "casterShieldPerVanguard": [],
-          "casterStatusesPerVanguard": []
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
         }
       ],
       "rideExit": "Stay",
@@ -4745,6 +6111,10 @@
         "targetMustNotHold": ["angeru_passed"],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "direction": "ThroughTarget",
@@ -4799,6 +6169,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "durationSeconds": 5,
@@ -4824,6 +6198,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "durationSeconds": 6,
@@ -4856,6 +6234,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "durationSeconds": 5,
@@ -4883,6 +6265,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "shot": "kade_kill_corridor_shot",
@@ -4908,6 +6294,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "targetKinds": ["Vanguard"],
@@ -4933,6 +6323,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "targetKinds": ["Vanguard"],
@@ -4956,6 +6350,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "targetKinds": ["Vanguard"],
@@ -4981,6 +6379,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "setSpeed": 575,
@@ -4989,7 +6391,10 @@
       "decaySeconds": 1.5,
       "riderStatuses": ["raska_ride_body"],
       "mounted": [{ "slot": "Q", "ability": "raska_sideswipe" }, { "slot": "W", "ability": "raska_powerslide" }, { "slot": "E", "ability": "raska_bail_out" }],
-      "vehicle": ["raska_hound"]
+      "vehicle": ["raska_hound"],
+      "crashZones": [],
+      "contact": [],
+      "trail": []
     },
     "raska_no_brakes": {
       "provenance": "Provisional",
@@ -5005,6 +6410,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "setSpeed": 750,
@@ -5013,7 +6422,276 @@
       "decaySeconds": 2,
       "riderStatuses": ["raska_ride_body", "raska_no_brakes"],
       "mounted": [{ "slot": "Q", "ability": "raska_sideswipe" }, { "slot": "W", "ability": "raska_powerslide" }],
-      "vehicle": ["raska_hound_no_brakes"]
+      "vehicle": ["raska_hound_no_brakes"],
+      "crashZones": [],
+      "contact": [],
+      "trail": []
+    },
+    "neris_breaking_wave": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [12, 11, 10, 9, 8],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "setSpeed": 650,
+      "turnRateDegreesPerSecond": 90,
+      "durationSeconds": 1.5,
+      "decaySeconds": 0.5,
+      "riderStatuses": ["neris_wave_body"],
+      "mounted": [
+        { "slot": "Q", "ability": "neris_wave_crash" }
+      ],
+      "vehicle": [],
+      "crashZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 275, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [40, 60, 80, 100, 120],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.3
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": [
+            {
+              "healByRank": [60, 85, 110, 135, 160],
+              "healMagicPowerRatio": 0.35,
+              "statuses": [],
+              "reach": "CasterToo"
+            }
+          ]
+        }
+      ],
+      "contact": [],
+      "trail": []
+    },
+    "neris_breaking_wave_storm": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [12, 11, 10, 9, 8],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": ["neris_breaking_wave"],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "setSpeed": 650,
+      "turnRateDegreesPerSecond": 90,
+      "durationSeconds": 1.5,
+      "decaySeconds": 0.5,
+      "riderStatuses": ["neris_wave_body"],
+      "mounted": [
+        { "slot": "Q", "ability": "neris_wave_crash" }
+      ],
+      "vehicle": [],
+      "crashZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 275, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [70, 100, 130, 160, 190],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.5
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": [
+            {
+              "healByRank": [25, 35, 45, 55, 65],
+              "healMagicPowerRatio": 0.15,
+              "statuses": [],
+              "reach": "CasterToo"
+            }
+          ]
+        }
+      ],
+      "contact": [],
+      "trail": []
+    },
+    "neris_tidebreaker": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 105, 90],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "setSpeed": 850,
+      "turnRateDegreesPerSecond": 60,
+      "durationSeconds": 2.5,
+      "decaySeconds": 0.5,
+      "riderStatuses": ["neris_tidebreaker_body", "neris_tidebreaker_lock"],
+      "mounted": [],
+      "vehicle": [],
+      "crashZones": [],
+      "contact": [
+        {
+          "reach": 60,
+          "pulseSeconds": 0.1,
+          "enemyEffects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [120, 180, 240],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.5
+              }
+            ],
+            "statuses": [],
+            "displacement": [
+              {
+                "direction": "AsideFromPath",
+                "distance": 250,
+                "speed": 1100,
+                "collisionStatuses": []
+              }
+            ],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "enemyKinds": ["Vanguard"],
+          "allyEffects": [
+            {
+              "healByRank": [140, 200, 260],
+              "healMagicPowerRatio": 0.5,
+              "statuses": [],
+              "reach": "OthersOnly"
+            }
+          ]
+        }
+      ],
+      "trail": [
+        { "spacing": 250, "pulseSeconds": 0.2, "area": "neris_healing_wake" }
+      ]
+    },
+    "neris_tidebreaker_storm": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 105, 90],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": ["neris_tidebreaker"],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "setSpeed": 850,
+      "turnRateDegreesPerSecond": 60,
+      "durationSeconds": 2.5,
+      "decaySeconds": 0.5,
+      "riderStatuses": ["neris_tidebreaker_body", "neris_tidebreaker_lock"],
+      "mounted": [],
+      "vehicle": [],
+      "crashZones": [],
+      "contact": [
+        {
+          "reach": 60,
+          "pulseSeconds": 0.1,
+          "enemyEffects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [190, 280, 370],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.7
+              }
+            ],
+            "statuses": [],
+            "displacement": [
+              {
+                "direction": "AsideFromPath",
+                "distance": 250,
+                "speed": 1100,
+                "collisionStatuses": []
+              }
+            ],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "enemyKinds": ["Vanguard"],
+          "allyEffects": [
+            {
+              "healByRank": [60, 90, 120],
+              "healMagicPowerRatio": 0.25,
+              "statuses": [],
+              "reach": "OthersOnly"
+            }
+          ]
+        }
+      ],
+      "trail": [
+        { "spacing": 250, "pulseSeconds": 0.2, "area": "neris_riptide" }
+      ]
     }
   },
   "ambush": {
@@ -5041,6 +6719,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "recentSeconds": 4,
@@ -5071,6 +6753,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "recentSeconds": 4,
@@ -5103,12 +6789,42 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "slots": [
         { "slot": "Q", "ability": "angeru_flowing_cut" },
         { "slot": "W", "ability": "angeru_severing_arc" },
         { "slot": "E", "ability": "angeru_passing_step" }
+      ]
+    },
+    "neris_change_the_weather": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [8, 7.5, 7, 6.5, 6],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": ["neris_tidebreaker_lock"],
+        "minimumResource": []
+      },
+      "slots": [
+        { "slot": "Q", "ability": "neris_breaking_wave_storm" },
+        { "slot": "W", "ability": "neris_little_current_storm" },
+        { "slot": "R", "ability": "neris_tidebreaker_storm" }
       ]
     }
   },
@@ -5137,6 +6853,10 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "marker": {
@@ -5162,12 +6882,18 @@
         "targetMustNotHold": [],
         "takedownRefund": [],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "to": "OwnMarker",
       "markerAbility": ["angeru_false_body"],
       "targetKinds": [],
       "besideDistance": 0,
+      "departureZones": [],
+      "companionDepartureZones": [],
       "swap": "Swap",
       "effects": {
         "damage": [],
@@ -5193,12 +6919,18 @@
         "targetMustNotHold": [],
         "takedownRefund": [1],
         "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
         "minimumResource": []
       },
       "to": "EnemyUnitOrOwnMarker",
       "markerAbility": ["angeru_false_body"],
       "targetKinds": ["Vanguard", "Fluxborn", "Wildlife"],
       "besideDistance": 50,
+      "departureZones": [],
+      "companionDepartureZones": [],
       "swap": "None",
       "effects": {
         "damage": [
@@ -5216,10 +6948,448 @@
         "displacementUnlessStatuses": [],
         "reactions": []
       }
+    },
+    "marek_cross_the_chain": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [80],
+        "castRange": 1200,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "Living",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "to": "OwnCompanion",
+      "markerAbility": [],
+      "targetKinds": [],
+      "besideDistance": 0,
+      "departureZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [50, 80, 110, 140, 170],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.35
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "companionDepartureZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [50, 80, 110, 140, 170],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.7
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "swap": "Swap",
+      "effects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      }
+    }
+  },
+  "dismount": {
+    "neris_wave_crash": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      }
     }
   },
   "fluxSpells": {
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]
+  },
+  "command": {
+    "marek_hunt": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 700,
+        "windupSeconds": 0.15,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [
+          {
+            "ability": "marek_hunt_recall",
+            "windowSeconds": 9,
+            "onExpiry": "Lapse",
+            "opensWhen": "Always",
+            "heldStatus": [],
+            "fallsWithinSeconds": 0,
+            "armingSeconds": 0
+          }
+        ],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "Living",
+        "cooldownWhile": [
+          { "status": "marek_leashed", "multiplier": 0.5 }
+        ],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Hold",
+      "leapSpeed": 1400,
+      "holdSeconds": 8,
+      "landingZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 220, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [60, 95, 130, 165, 200],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.8
+              }
+            ],
+            "statuses": ["marek_hunt_slow"],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "companion": [],
+      "lifetimeSeconds": 0,
+      "bindTo": "None"
+    },
+    "marek_hunt_recall": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "Living",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Recall",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": [],
+      "lifetimeSeconds": 0,
+      "bindTo": "None"
+    },
+    "neris_little_current": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 800,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [
+          {
+            "ability": "neris_little_current_redirect",
+            "windowSeconds": 8,
+            "onExpiry": "Lapse",
+            "opensWhen": "Always",
+            "heldStatus": [],
+            "fallsWithinSeconds": 0,
+            "armingSeconds": 0
+          }
+        ],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Summon",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": ["neris_waterling"],
+      "lifetimeSeconds": 8,
+      "bindTo": "Ally"
+    },
+    "neris_little_current_redirect": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 800,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Redirect",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": [],
+      "lifetimeSeconds": 0,
+      "bindTo": "Ally"
+    },
+    "neris_little_current_storm": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 800,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [
+          {
+            "ability": "neris_little_current_storm_redirect",
+            "windowSeconds": 8,
+            "onExpiry": "Lapse",
+            "opensWhen": "Always",
+            "heldStatus": [],
+            "fallsWithinSeconds": 0,
+            "armingSeconds": 0
+          }
+        ],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": ["neris_little_current"],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Summon",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": ["neris_waterling"],
+      "lifetimeSeconds": 8,
+      "bindTo": "Enemy"
+    },
+    "neris_little_current_storm_redirect": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 800,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Redirect",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": [],
+      "lifetimeSeconds": 0,
+      "bindTo": "Enemy"
+    }
+  },
+  "companions": {
+    "marek_nix": {
+      "provenance": "Provisional",
+      "capsuleRadius": 45,
+      "capsuleHalfHeight": 60,
+      "stats": {
+        "maxHealth": 420,
+        "healthRegen": 2,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 20,
+        "magicResist": 25,
+        "physicalPower": 0,
+        "magicPower": 25,
+        "attackSpeed": 0.9,
+        "moveSpeed": 335
+      },
+      "growth": {
+        "maxHealth": 70,
+        "healthRegen": 0.15,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 3,
+        "magicResist": 1.5,
+        "physicalPower": 0,
+        "magicPower": 5,
+        "attackSpeed": 0,
+        "moveSpeed": 0
+      },
+      "ownerMagicPowerShare": 0.5,
+      "basicAttack": {
+        "range": 150,
+        "damageType": "Magic",
+        "physicalPowerRatio": 0,
+        "magicPowerRatio": 1,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 450,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "followDistance": 200,
+      "leashRange": 1200,
+      "acquireRange": 450,
+      "ownerTargetSeconds": 4,
+      "reformSeconds": 30,
+      "thinkSeconds": 0.25,
+      "escort": [],
+      "attackStatuses": []
+    },
+    "neris_waterling": {
+      "provenance": "Provisional",
+      "capsuleRadius": 30,
+      "capsuleHalfHeight": 45,
+      "stats": {
+        "maxHealth": 280,
+        "healthRegen": 0,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 15,
+        "magicResist": 20,
+        "physicalPower": 0,
+        "magicPower": 20,
+        "attackSpeed": 0.8,
+        "moveSpeed": 360
+      },
+      "growth": {
+        "maxHealth": 25,
+        "healthRegen": 0,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 2,
+        "magicResist": 1,
+        "physicalPower": 0,
+        "magicPower": 4,
+        "attackSpeed": 0,
+        "moveSpeed": 0
+      },
+      "ownerMagicPowerShare": 0.3,
+      "basicAttack": {
+        "range": 150,
+        "damageType": "Magic",
+        "physicalPowerRatio": 0,
+        "magicPowerRatio": 1,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 500,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "followDistance": 120,
+      "leashRange": 1400,
+      "acquireRange": 500,
+      "ownerTargetSeconds": 3,
+      "reformSeconds": 0,
+      "thinkSeconds": 0.25,
+      "escort": [
+        {
+          "pulseSeconds": 1.5,
+          "healAmount": 12,
+          "healMagicPowerRatio": 0.6,
+          "statuses": ["neris_current_swell"]
+        }
+      ],
+      "attackStatuses": ["neris_current_drag"]
+    }
   }
 }

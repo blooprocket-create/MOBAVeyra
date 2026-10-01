@@ -16,6 +16,7 @@
 #include "VeyraCombatLog.h"
 #include "VeyraCombatVerbs.h"
 #include "Targeting/VeyraParticipantData.h"
+#include "Teams/VeyraTeam.h"
 
 namespace
 {
@@ -39,6 +40,8 @@ namespace
 			return UVeyraStatusEffect::DisplacementMultiplierName;
 		case EVeyraStatusKind::HealthRegeneration:
 			return UVeyraStatusEffect::HealthRegenMultiplierName;
+		case EVeyraStatusKind::MaxHealth:
+			return UVeyraStatusEffect::MaxHealthMultiplierName;
 		case EVeyraStatusKind::DamageAmplification:
 		case EVeyraStatusKind::Weaken:
 			return UVeyraStatusEffect::OutgoingDamageMultiplierName;
@@ -74,6 +77,7 @@ namespace
 		case EVeyraStatusKind::Untargetable:
 		case EVeyraStatusKind::ResourceCostReduction:
 		case EVeyraStatusKind::AttackShortensCooldown:
+		case EVeyraStatusKind::Sounded:
 			break;
 		}
 		return NAME_None;
@@ -376,6 +380,15 @@ bool UVeyraStatusComponent::HasFrom(const FVeyraContentId& Id, const UAbilitySys
 	});
 }
 
+bool UVeyraStatusComponent::HasFromSide(EVeyraStatusKind Kind, EVeyraTeam Side) const
+{
+	return Ledger.Entries.ContainsByPredicate([this, Kind, Side](const FVeyraStatusEntry& Entry) {
+		const FServerEntry* Server = Entry.Kind == Kind ? ServerEntries.Find(Entry.Sequence) : nullptr;
+		const UAbilitySystemComponent* Source = Server ? Server->Source.Get() : nullptr;
+		return Source && VeyraTeams::TeamOf(Source->GetOwner()) == Side;
+	});
+}
+
 int32 UVeyraStatusComponent::GetStacksFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const
 {
 	int32 Stacks = 0;
@@ -549,7 +562,7 @@ FActiveGameplayEffectHandle UVeyraStatusComponent::ApplyEffect(UAbilitySystemCom
 		for (const FName Name : { UVeyraStatusEffect::MoveSpeedMultiplierName, UVeyraStatusEffect::AttackSpeedMultiplierName,
 				 UVeyraStatusEffect::TenacityMultiplierName, UVeyraStatusEffect::IncomingDamageMultiplierName, UVeyraStatusEffect::DisplacementMultiplierName,
 				 UVeyraStatusEffect::HealthRegenMultiplierName, UVeyraStatusEffect::OutgoingDamageMultiplierName,
-				 UVeyraStatusEffect::MagicResistRetainedMultiplierName })
+				 UVeyraStatusEffect::MagicResistRetainedMultiplierName, UVeyraStatusEffect::MaxHealthMultiplierName })
 		{
 			Spec.Data->SetSetByCallerMagnitude(Name, Unchanged);
 		}
