@@ -63,7 +63,14 @@ void AVeyraPlayerController::IssueAttackOrder(AActor* Target)
 
 void AVeyraPlayerController::IssueAttackMoveOrder(const FVector& Destination)
 {
-	ServerIssueAttackMoveOrder(Destination);
+	ServerIssueAttackMoveOrder(Destination, ControlPreferences().AttackMoveTarget);
+}
+
+bool AVeyraPlayerController::CancelPendingCast()
+{
+	const bool bWasWaiting = bAttackMoveWaiting;
+	bAttackMoveWaiting = false;
+	return CastInput.Cancel().Step != EVeyraCastStep::Nothing || bWasWaiting;
 }
 
 void AVeyraPlayerController::RequestRecall()
@@ -219,8 +226,9 @@ void AVeyraPlayerController::SetupInputComponent()
 
 void AVeyraPlayerController::OnMoveOrderStarted()
 {
-	// It cancels a waiting cast, and still gives its order (ADR-040 §1).
+	// It cancels a waiting cast or attack-move, and still gives its order (ADR-040 §1, §4).
 	CastInput.Cancel();
+	bAttackMoveWaiting = false;
 	// On an enemy the button attacks it; anywhere else it moves (Settings Bible §1).
 	AActor* Enemy = FindEnemyUnderCursor();
 	bMoveOrderPressAttacked = Enemy != nullptr;
@@ -244,6 +252,19 @@ void AVeyraPlayerController::OnMoveOrderHeld()
 
 void AVeyraPlayerController::OnAttackMovePressed()
 {
+	// Attack Move: its key, then a click (Settings Bible §1.3). Whatever cast waited gives way.
+	CastInput.Cancel();
+	bAttackMoveWaiting = true;
+}
+
+void AVeyraPlayerController::AttackMoveToCursor()
+{
+	// A point on the minimap is where the order goes (Settings Bible §3.2), as a right click there moves.
+	if (const TOptional<FVector> OnMap = MinimapPointUnderCursor(EMinimapClick::Ping))
+	{
+		IssueAttackMoveOrder(OnMap.GetValue());
+		return;
+	}
 	FHitResult Ground;
 	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
 	{
@@ -360,6 +381,7 @@ void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 		return;
 	}
 	const bool bPreview = IsInputKeyDown(GetKeys().ShowCastRangeKey);
+	bAttackMoveWaiting = false;
 	ApplyCastStep(CastInput.Press(Slot, ControlPreferences().CastModeOf(Slot), bPreview));
 }
 
@@ -374,6 +396,19 @@ void AVeyraPlayerController::TickCastInput()
 	{
 		// Read only while its mode is Toggle.
 		bTargetVanguardsToggled = !bTargetVanguardsToggled;
+	}
+	// Attack Move Click: one press toward the cursor (Settings Bible §1.3).
+	if (WasInputKeyJustPressed(GetKeys().AttackMoveClickKey))
+	{
+		bAttackMoveWaiting = false;
+		AttackMoveToCursor();
+	}
+	// A waiting Attack Move takes the Select Click; a ping's click stays the ping's.
+	if (bAttackMoveWaiting && WasInputKeyJustPressed(GetKeys().SelectKey) && !IsPinging())
+	{
+		bAttackMoveWaiting = false;
+		AttackMoveToCursor();
+		return;
 	}
 	const TOptional<FVeyraCastIndicator>& Shown = CastInput.GetIndicator();
 	if (!Shown)
@@ -1149,7 +1184,7 @@ void AVeyraPlayerController::ServerIssueAttackOrder_Implementation(AActor* Targe
 	}
 }
 
-void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector Destination)
+void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector Destination, EVeyraAttackMoveTarget Preference)
 {
 	if (!TakeOrderAllowance())
 	{
@@ -1157,7 +1192,7 @@ void AVeyraPlayerController::ServerIssueAttackMoveOrder_Implementation(FVector D
 		return;
 	}
 	AVeyraGameMode* GameMode = GetWorld()->GetAuthGameMode<AVeyraGameMode>();
-	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackMoveOrder(GetPlayerState<AVeyraPlayerState>(), Destination) : EVeyraOrderRejection::WrongPhase;
+	const EVeyraOrderRejection Rejection = GameMode ? GameMode->HandleAttackMoveOrder(GetPlayerState<AVeyraPlayerState>(), Destination, Preference) : EVeyraOrderRejection::WrongPhase;
 	if (Rejection != EVeyraOrderRejection::None)
 	{
 		RejectOrder(Rejection);

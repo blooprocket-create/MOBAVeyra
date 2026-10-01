@@ -70,6 +70,12 @@ const FVeyraContentId* SmartSelfCast(EVeyraAbilitySlot Slot)
 	}
 }
 
+const FVeyraContentId& AttackMoveTarget()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("controls_attack_move_target"));
+	return Id;
+}
+
 const FVeyraContentId& TargetVanguardsMode()
 {
 	static const FVeyraContentId Id = IdOf(TEXT("controls_target_vanguards_mode"));
@@ -104,6 +110,8 @@ FVeyraControlPreferences Resolve(const FVeyraSettingsStore* Store)
 		}
 	}
 	Preferences.bTargetVanguardsToggles = Store->Get(TargetVanguardsMode()) == TEXT("Toggle");
+	Preferences.AttackMoveTarget = Store->Get(AttackMoveTarget()) == TEXT("ClosestToCursor") ? EVeyraAttackMoveTarget::ClosestToCursor
+																							  : EVeyraAttackMoveTarget::ClosestToVanguard;
 	return Preferences;
 }
 }

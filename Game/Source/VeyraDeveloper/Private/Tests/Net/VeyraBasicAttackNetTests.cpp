@@ -45,6 +45,8 @@ namespace VeyraNetTests
 
 		int32 AttackerId = INDEX_NONE;
 		int32 TargetId = INDEX_NONE;
+		/** A second enemy, for the attack-move preference. */
+		AVeyraPlayerState* Decoy = nullptr;
 
 		BEFORE_EACH()
 		{
@@ -205,6 +207,41 @@ namespace VeyraNetTests
 						&& Controller->GetPathFollowingComponent()->GetStatus() == EPathFollowingStatus::Moving, TEXT("an attack-move walks during a mobile windup")));
 				})
 				.UntilServer(TEXT("Its attack lands as it walks"), [](FState& State) { return HealthLost(ParticipantOf(State, 1)) > 0.0; });
+		}
+
+		TEST_METHOD(AttackMoveTakesTheEnemyItsPreferenceNames)
+		{
+			// Fixture value: a decoy enemy nearer the attacker than the target, off to one side.
+			constexpr double DecoyAside = 400.0;
+			StartMatch(Network, Layout, EVeyraMatchPhase::Live)
+				.ThenServer(TEXT("Prepare the duel and a decoy nearer the attacker"), [this, DecoyAside](FState& State) {
+					PrepareDuel(State);
+					AVeyraPlayerState* Attacker = ParticipantOf(State, 0);
+					Decoy = GameModeOf(State.World)->AddBotParticipant(TEXT("Decoy"), ParticipantOf(State, 1)->GetVeyraTeam());
+					ASSERT_THAT(IsTrue(Decoy && Decoy->GetPawn()));
+					Decoy->GetPawn()->SetActorLocation(Attacker->GetPawn()->GetActorLocation() + FVector(0.0, DecoyAside, 0.0));
+				})
+				.UntilServer(TEXT("The attacker can take on both"), [this](FState& State) {
+					const APawn* Body = ParticipantOf(State, 0)->GetPawn();
+					return VeyraTargeting::CanAcquire(Body, *Decoy->GetPawn()) && VeyraTargeting::CanAcquire(Body, *ParticipantOf(State, 1)->GetPawn());
+				})
+				.ThenServer(TEXT("Attack-move onto the target, closest to the Vanguard"), [this](FState& State) {
+					// The click is on the target; the decoy stands nearer the attacker.
+					ASSERT_THAT(IsTrue(ParticipantOf(State, 0)->GetVanguardController()->AttackMoveTo(ParticipantOf(State, 1)->GetPawn()->GetActorLocation(),
+						EVeyraAttackMoveTarget::ClosestToVanguard) == EVeyraOrderRejection::None));
+				})
+				.UntilServer(TEXT("It takes the decoy first"), [this](FState& State) {
+					return ParticipantOf(State, 0)->GetVanguardController()->GetAttackTarget() == Decoy->GetPawn();
+				})
+				.ThenServer(TEXT("The same order, closest to the cursor"), [this](FState& State) {
+					AVeyraVanguardController* Controller = ParticipantOf(State, 0)->GetVanguardController();
+					Controller->StopOrders();
+					ASSERT_THAT(IsTrue(Controller->AttackMoveTo(ParticipantOf(State, 1)->GetPawn()->GetActorLocation(), EVeyraAttackMoveTarget::ClosestToCursor)
+						== EVeyraOrderRejection::None));
+				})
+				.UntilServer(TEXT("It takes the one clicked on first"), [this](FState& State) {
+					return ParticipantOf(State, 0)->GetVanguardController()->GetAttackTarget() == ParticipantOf(State, 1)->GetPawn();
+				});
 		}
 
 		TEST_METHOD(AttackMoveTakesOnAnEnemyItMeets)

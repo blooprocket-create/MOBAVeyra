@@ -509,7 +509,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackOrder(AVeyraPlayerState* Partic
 	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->AttackUnit(*Target) : EVeyraOrderRejection::NoVanguard));
 }
 
-EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination)
+EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination, EVeyraAttackMoveTarget Preference)
 {
 	const EVeyraOrderRejection Allowed = CheckOrdersAllowed();
 	if (Allowed != EVeyraOrderRejection::None)
@@ -521,7 +521,7 @@ EVeyraOrderRejection AVeyraGameMode::HandleAttackMoveOrder(AVeyraPlayerState* Pa
 		return EVeyraOrderRejection::InvalidOrder;
 	}
 	AVeyraVanguardController* Controller = VanguardControllerOf(Participant);
-	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->AttackMoveTo(Destination) : EVeyraOrderRejection::NoVanguard),
+	return NoteActivityIfTaken(Participant, EndRecallIfTaken(Participant, Controller ? Controller->AttackMoveTo(Destination, Preference) : EVeyraOrderRejection::NoVanguard),
 		TOptional<FVector>(Destination));
 }
 

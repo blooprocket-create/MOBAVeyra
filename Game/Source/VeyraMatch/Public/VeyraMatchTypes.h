@@ -68,6 +68,16 @@ enum class EVeyraBotDifficulty : uint8
 
 VEYRAMATCH_API const TCHAR* LexToString(EVeyraBotDifficulty Difficulty);
 
+/** Which enemy an attack-move takes first (Settings Bible §1.3; ADR-040 §4). */
+UENUM()
+enum class EVeyraAttackMoveTarget : uint8
+{
+	/** The eligible enemy nearest the Vanguard. */
+	ClosestToVanguard,
+	/** The eligible enemy nearest the point the order was given at; later ones, nearest the Vanguard. */
+	ClosestToCursor,
+};
+
 /** Which rules a match plays by (ADR-010 §7, §9). */
 UENUM()
 enum class EVeyraMatchRules : uint8

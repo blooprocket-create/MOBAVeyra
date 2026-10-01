@@ -2,6 +2,8 @@
 
 #include "VeyraVanguardController.h"
 
+#include "Algo/MinElement.h"
+
 #include "Attacks/VeyraBasicAttackComponent.h"
 #include "GameFramework/Pawn.h"
 #include "GameFramework/PlayerState.h"
@@ -94,6 +96,7 @@ EVeyraOrderRejection AVeyraVanguardController::AttackUnit(AActor& Target)
 	}
 	MoveOrder.Reset();
 	AttackMoveDestination.Reset();
+	AttackMoveAim.Reset();
 	AttackTarget = &Target;
 	AttackPath = EAttackPath::None;
 	TracedAnswer.Reset();
@@ -102,7 +105,7 @@ EVeyraOrderRejection AVeyraVanguardController::AttackUnit(AActor& Target)
 	return EVeyraOrderRejection::None;
 }
 
-EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Destination)
+EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Destination, EVeyraAttackMoveTarget Preference)
 {
 	if (!GetPawn())
 	{
@@ -131,6 +134,11 @@ EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Desti
 	MoveOrder.Reset();
 	AttackTarget.Reset();
 	AttackMoveDestination = Walkable.GetValue();
+	AttackMoveAim.Reset();
+	if (Preference == EVeyraAttackMoveTarget::ClosestToCursor)
+	{
+		AttackMoveAim = Destination;
+	}
 	AttackPath = EAttackPath::None;
 	// A mobile attacker walks on while its windup goes on, as it does for a move order (ADR-027 §1); the
 	// order takes up its next target once the attack commits.
@@ -226,6 +234,11 @@ void AVeyraVanguardController::UpdateAttackOrder()
 		{
 			Target = FindAttackMoveTarget(*Attacks);
 			AttackTarget = Target;
+			if (Target)
+			{
+				// Closest to Cursor chooses the order's first enemy only (ADR-040 §8.5).
+				AttackMoveAim.Reset();
+			}
 		}
 		if (!Target)
 		{
@@ -318,6 +331,7 @@ void AVeyraVanguardController::ClearAttackOrder()
 {
 	AttackTarget.Reset();
 	AttackMoveDestination.Reset();
+	AttackMoveAim.Reset();
 	AttackPath = EAttackPath::None;
 	TracedAnswer.Reset();
 }
@@ -355,7 +369,19 @@ AActor* AVeyraVanguardController::FindAttackMoveTarget(const UVeyraBasicAttackCo
 	// Like any basic attack, an attack-move may pick a structure (Combat Bible §33).
 	const TArray<AActor*> Enemies = VeyraShapes::GatherUnits(*GetWorld(), FVeyraPlacedShape{ Reach, Body->GetActorLocation(), Body->GetActorForwardVector() },
 		[Body](const AActor& Unit) { return VeyraTargeting::AreHostile(Body, &Unit) && VeyraTargeting::CanAcquire(Body, Unit); }, EVeyraStructureTargeting::Allow);
-	return Enemies.IsEmpty() ? nullptr : Enemies[0];
+	if (Enemies.IsEmpty())
+	{
+		return nullptr;
+	}
+	if (!AttackMoveAim.IsSet())
+	{
+		// Nearest the Vanguard: GatherUnits gives them nearest first.
+		return Enemies[0];
+	}
+	// Closest to Cursor: of those in reach, the one nearest the point the order was given at.
+	const FVector Aim = AttackMoveAim.GetValue();
+	AActor* const* Nearest = Algo::MinElementBy(Enemies, [&Aim](const AActor* Unit) { return FVector::DistSquared2D(Unit->GetActorLocation(), Aim); });
+	return Nearest ? *Nearest : nullptr;
 }
 
 void AVeyraVanguardController::PawnPendingDestroy(APawn* DestroyedPawn)

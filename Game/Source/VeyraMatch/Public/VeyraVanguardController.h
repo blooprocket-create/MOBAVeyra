@@ -54,7 +54,7 @@ public:
 	 * basic attack's acquisition radius on the way and then carrying on. It ends at the destination:
 	 * there is no idle acquisition (ADR-008 §9).
 	 */
-	EVeyraOrderRejection AttackMoveTo(const FVector& Destination);
+	EVeyraOrderRejection AttackMoveTo(const FVector& Destination, EVeyraAttackMoveTarget Preference = EVeyraAttackMoveTarget::ClosestToVanguard);
 
 	/**
 	 * Stops the Vanguard where it stands: every order ends, and an attack still winding up is
@@ -126,6 +126,8 @@ private:
 
 	TWeakObjectPtr<AActor> AttackTarget;
 	TOptional<FVector> AttackMoveDestination;
+	/** Closest to Cursor: the point the order was given at, until the order's first enemy is taken. */
+	TOptional<FVector> AttackMoveAim;
 	EAttackPath AttackPath = EAttackPath::None;
 	/** The attack's last answer the trace logged, for this order. */
 	TOptional<EVeyraAttackRejection> TracedAnswer;

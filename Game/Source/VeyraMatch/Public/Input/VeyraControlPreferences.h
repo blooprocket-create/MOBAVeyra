@@ -4,6 +4,7 @@
 
 #include "Content/VeyraContentId.h"
 #include "Input/VeyraCastInput.h"
+#include "VeyraMatchTypes.h"
 
 class FVeyraSettingsStore;
 
@@ -21,6 +22,9 @@ struct FVeyraControlPreferences
 
 	/** Target Vanguards Only's key switches it with each press, instead of holding it while held (Settings Bible §1.4). */
 	bool bTargetVanguardsToggles = false;
+
+	/** Which enemy an attack-move takes first (Settings Bible §1.3). */
+	EVeyraAttackMoveTarget AttackMoveTarget = EVeyraAttackMoveTarget::ClosestToVanguard;
 };
 
 /** The player's control settings, apart from the engine. */
@@ -40,6 +44,9 @@ namespace VeyraControlPreferences
 
 	/** Target Vanguards Only's Hold or Toggle. */
 	VEYRAMATCH_API const FVeyraContentId& TargetVanguardsMode();
+
+	/** Attack-move's target preference: ClosestToVanguard or ClosestToCursor. */
+	VEYRAMATCH_API const FVeyraContentId& AttackMoveTarget();
 
 	/** The player's controls in Store; every slot Quick without a store (a server, a test, a game without settings). */
 	VEYRAMATCH_API FVeyraControlPreferences Resolve(const FVeyraSettingsStore* Store);

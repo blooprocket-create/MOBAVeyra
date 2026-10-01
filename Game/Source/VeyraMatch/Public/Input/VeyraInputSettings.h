@@ -130,6 +130,10 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey RankUpModifierKey;
 
+	/** One press attack-moves toward the cursor: Attack Move Click (Settings Bible §1.3; ADR-040 §4). Unbound by default. */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey AttackMoveClickKey;
+
 	/** Held with an ability's key, shows its indicator without casting it (Settings Bible §1.7; ADR-040 §1). */
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey ShowCastRangeKey;

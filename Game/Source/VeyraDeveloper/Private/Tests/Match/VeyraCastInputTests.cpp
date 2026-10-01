@@ -141,7 +141,10 @@ namespace VeyraCastInputTests
 			FVeyraSettingsStore Store(Registry);
 			Store.Set(*VeyraControlPreferences::SmartSelfCast(EVeyraAbilitySlot::E), VeyraSettings::On());
 			Store.Set(VeyraControlPreferences::TargetVanguardsMode(), TEXT("Toggle"));
+			ASSERT_THAT(IsTrue(Untouched.AttackMoveTarget == EVeyraAttackMoveTarget::ClosestToVanguard));
+			Store.Set(VeyraControlPreferences::AttackMoveTarget(), TEXT("ClosestToCursor"));
 			const FVeyraControlPreferences Set = VeyraControlPreferences::Resolve(&Store);
+			ASSERT_THAT(IsTrue(Set.AttackMoveTarget == EVeyraAttackMoveTarget::ClosestToCursor));
 			ASSERT_THAT(IsTrue(Set.SmartSelfCast.Num() == 1 && Set.SmartSelfCast.Contains(EVeyraAbilitySlot::E) && Set.bTargetVanguardsToggles));
 			ASSERT_THAT(IsNull(VeyraControlPreferences::SmartSelfCast(EVeyraAbilitySlot::Spell1), TEXT("a kit slot's alone")));
 		}

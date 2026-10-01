@@ -49,7 +49,7 @@ public:
 	/** Owning client: asks the server to attack Target with this player's Vanguard (ADR-009 §5). */
 	void IssueAttackOrder(AActor* Target);
 
-	/** Owning client: asks the server to attack-move this player's Vanguard to Destination. */
+	/** Owning client: asks the server to attack-move this player's Vanguard to Destination, with the player's target preference. */
 	void IssueAttackMoveOrder(const FVector& Destination);
 
 	/** Owning client: asks the server to cast the ability in Slot at Target. */
@@ -253,7 +253,10 @@ public:
 	const TOptional<FVeyraCastIndicator>& GetCastIndicator() const { return CastInput.GetIndicator(); }
 
 	/** Owning client: hides a waiting cast or a preview, and whether one showed. Escape asks this before the menu opens. */
-	bool CancelPendingCast() { return CastInput.Cancel().Step != EVeyraCastStep::Nothing; }
+	bool CancelPendingCast();
+
+	/** Owning client: Attack Move's key was pressed and its click is awaited (ADR-040 §4). */
+	bool IsAttackMoveWaiting() const { return bAttackMoveWaiting; }
 
 	/** Owning client: the local camera, once the controller has made it (ADR-020 §1). */
 	class AVeyraCameraRig* GetCameraRig() const { return CameraRig; }
@@ -281,7 +284,7 @@ private:
 	void ServerIssueAttackOrder(AActor* Target);
 
 	UFUNCTION(Server, Reliable)
-	void ServerIssueAttackMoveOrder(FVector Destination);
+	void ServerIssueAttackMoveOrder(FVector Destination, EVeyraAttackMoveTarget Preference);
 
 	UFUNCTION(Client, Unreliable)
 	void ClientOrderRejected(EVeyraOrderRejection Rejection);
@@ -461,6 +464,12 @@ private:
 
 	/** Owning client: the select click casts a waiting cast; letting go of Show Cast Range hides its preview. */
 	void TickCastInput();
+
+	/** Attack-moves toward the ground, or the minimap's point, under the cursor. */
+	void AttackMoveToCursor();
+
+	/** Attack Move's key was pressed: its click, the Select Click, gives the order. */
+	bool bAttackMoveWaiting = false;
 
 	/** Does what the cast input decided: a cast goes toward the cursor; an indicator is the UI's to draw. */
 	void ApplyCastStep(const FVeyraCastOutcome& Outcome);

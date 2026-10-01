@@ -95,7 +95,8 @@ public:
 	EVeyraOrderRejection HandleAttackOrder(AVeyraPlayerState* Participant, AActor* Target);
 
 	/** Validates an attack-move order and hands it to the participant's Vanguard controller. */
-	EVeyraOrderRejection HandleAttackMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination);
+	EVeyraOrderRejection HandleAttackMoveOrder(AVeyraPlayerState* Participant, const FVector& Destination,
+		EVeyraAttackMoveTarget Preference = EVeyraAttackMoveTarget::ClosestToVanguard);
 
 	/** Checks the match allows casting, then casts the participant's ability in Slot through VeyraAbilities. */
 	EVeyraCastRejection HandleCastOrder(AVeyraPlayerState* Participant, EVeyraAbilitySlot Slot, const FVeyraCastTarget& Target);
