@@ -182,6 +182,19 @@ bool IsEmpty(const FVeyraPreparedEffects& Effects)
 	return !Effects.Damage.IsValid() && Effects.Statuses.IsEmpty() && !Effects.Displacement.IsSet() && Effects.Reactions.IsEmpty();
 }
 
+bool WouldLandOn(const FVeyraPreparedEffects& Effects, const UAbilitySystemComponent& Target)
+{
+	if (Effects.Damage.IsValid() || !Effects.Statuses.IsEmpty() || Effects.Displacement.IsSet())
+	{
+		return true;
+	}
+	// Reactions only: something lands only where the unit holds a status one of them reacts to (ADR-026 §1).
+	const UVeyraStatusComponent* Ledger = Target.GetOwner() ? Target.GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Ledger && Effects.Reactions.ContainsByPredicate([Ledger](const FVeyraPreparedReaction& Reaction) {
+		return Ledger->GetLedger().Entries.ContainsByPredicate([&Reaction](const FVeyraStatusEntry& Entry) { return Entry.Id == Reaction.Status; });
+	});
+}
+
 FVeyraShieldGrant ShieldGrant(const UAbilitySystemComponent& Caster, const FVeyraShieldTuning& Shield, int32 Rank)
 {
 	const double MaxHealth = Caster.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute());
@@ -206,8 +219,8 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 {
 	UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
 	// A Spell Shield blocks the whole hit: no damage, status or displacement, and no hit (Combat Bible §19).
-	// A hit that does nothing leaves it be.
-	if (!Target || (!Source.bSkipSpellShield && !IsEmpty(Effects) && VeyraCombat::BlockAbilityHit(*Target, Caster)))
+	// A hit that would do nothing to this unit leaves it be, as reactions to statuses it does not hold.
+	if (!Target || (!Source.bSkipSpellShield && WouldLandOn(Effects, *Target) && VeyraCombat::BlockAbilityHit(*Target, Caster)))
 	{
 		return;
 	}

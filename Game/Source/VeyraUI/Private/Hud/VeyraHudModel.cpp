@@ -45,16 +45,19 @@ namespace
 	}
 }
 
-const AActor& VeyraHud::PresentedUnitOf(const AActor& Unit)
+const AActor& VeyraHud::PresentedUnitOf(const AActor& Unit, EVeyraTeam Viewer)
 {
 	const AVeyraPlacedMarker* Marker = Cast<AVeyraPlacedMarker>(&Unit);
 	const APlayerState* Owner = Marker ? Marker->GetPresentedAs() : nullptr;
-	return Owner ? static_cast<const AActor&>(*Owner) : Unit;
+	// Only its owner's enemies are deceived; its owner's side sees its owner's illusion (ADR-030 §5).
+	const bool bDeceives = Owner && Viewer != EVeyraTeam::None && Viewer != Marker->GetVeyraTeam();
+	return bDeceives ? static_cast<const AActor&>(*Owner) : Unit;
 }
 
-TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit)
+TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit, EVeyraTeam Viewer)
 {
-	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&PresentedUnitOf(Unit));
+	const AActor& Shown = PresentedUnitOf(Unit, Viewer);
+	const UAbilitySystemComponent* AbilitySystem = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Shown);
 	if (!AbilitySystem || !AbilitySystem->HasAttributeSetForAttribute(UVeyraVitalsSet::GetHealthAttribute()))
 	{
 		return {};
@@ -70,7 +73,7 @@ TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit)
 		const FVeyraVanguardDefinition* Definition = Participant ? UVeyraVanguardsTuningSubsystem::FindVanguard(Participant->GetVanguardId()) : nullptr;
 		Vitals.bFocus = Definition && Definition->Resource == EVeyraResourceFamily::Focus;
 	}
-	if (const UVeyraDamageAbsorptionComponent* Absorption = FindBesideHudAbilitySystem<UVeyraDamageAbsorptionComponent>(PresentedUnitOf(Unit)))
+	if (const UVeyraDamageAbsorptionComponent* Absorption = FindBesideHudAbilitySystem<UVeyraDamageAbsorptionComponent>(Shown))
 	{
 		for (const FVeyraShieldEntry& Shield : Absorption->GetLedger().Shields)
 		{
@@ -80,11 +83,11 @@ TOptional<FVeyraHudVitals> VeyraHud::VitalsOf(const AActor& Unit)
 	return Vitals;
 }
 
-TArray<FVeyraHudStatus> VeyraHud::StatusesOf(const AActor& Unit, double ServerNow)
+TArray<FVeyraHudStatus> VeyraHud::StatusesOf(const AActor& Unit, double ServerNow, EVeyraTeam Viewer)
 {
 	TArray<FVeyraHudStatus> Statuses;
-	// A decoy shows its owner's statuses, but never the stealth its owner hides in.
-	const AActor& Shown = PresentedUnitOf(Unit);
+	// A decoy shows its owner's statuses to its owner's enemies, but never the stealth its owner hides in.
+	const AActor& Shown = PresentedUnitOf(Unit, Viewer);
 	const bool bDecoy = &Shown != &Unit;
 	if (const UVeyraStatusComponent* Ledger = FindBesideHudAbilitySystem<UVeyraStatusComponent>(Shown))
 	{
@@ -145,7 +148,7 @@ FVeyraHudPlayer VeyraHud::DescribePlayer(const AVeyraPlayerState& Participant, d
 	Player.Vanguard = Participant.GetVanguardId();
 	if (const APawn* Vanguard = Participant.GetPawn())
 	{
-		Player.Vitals = VitalsOf(*Vanguard).Get(FVeyraHudVitals());
+		Player.Vitals = VitalsOf(*Vanguard, VeyraTeams::TeamOf(&Participant)).Get(FVeyraHudVitals());
 	}
 
 	const FVeyraProgressionTuning& Tuning = UVeyraProgressionTuningSubsystem::Get();

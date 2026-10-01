@@ -11,6 +11,7 @@
 #include "Tools/VeyraVisionToolComponent.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Teams/VeyraTeam.h"
+#include "Teams/VeyraTeam.h"
 
 class AActor;
 class AVeyraPlayerState;
@@ -227,16 +228,23 @@ struct FVeyraHudVision
 namespace VeyraHud
 {
 	/**
-	 * What a unit's bars and statuses show: a placed marker that presents as its owner shows its owner's
-	 * participant (ADR-030 §5); anything else shows itself.
+	 * What a unit's bars and statuses show to a viewer on Viewer's side: a placed marker that presents as
+	 * its owner shows its owner's participant to its owner's enemies (ADR-030 §5); its owner's side, and
+	 * a viewer on no side, see it for what it is; anything else shows itself.
 	 */
-	VEYRAUI_API const AActor& PresentedUnitOf(const AActor& Unit);
+	VEYRAUI_API const AActor& PresentedUnitOf(const AActor& Unit, EVeyraTeam Viewer);
 
-	/** Unit's bars, from its Ability System Component and shields; nothing when it has neither Health nor an Ability System Component. */
-	VEYRAUI_API TOptional<FVeyraHudVitals> VitalsOf(const AActor& Unit);
+	/**
+	 * Unit's bars as Viewer's side sees them, from its Ability System Component and shields; nothing when it
+	 * has neither Health nor an Ability System Component.
+	 */
+	VEYRAUI_API TOptional<FVeyraHudVitals> VitalsOf(const AActor& Unit, EVeyraTeam Viewer);
 
-	/** Unit's statuses in the order they were applied, each with its time left at ServerNow, in server gameplay time. */
-	VEYRAUI_API TArray<FVeyraHudStatus> StatusesOf(const AActor& Unit, double ServerNow);
+	/**
+	 * Unit's statuses as Viewer's side sees them, in the order they were applied, each with its time left at
+	 * ServerNow, in server gameplay time.
+	 */
+	VEYRAUI_API TArray<FVeyraHudStatus> StatusesOf(const AActor& Unit, double ServerNow, EVeyraTeam Viewer);
 
 	/** What Unit's bar says about it as a structure at ServerNow; nothing when it is not one. */
 	VEYRAUI_API TOptional<FVeyraHudStructure> StructureOf(const AActor& Unit, double ServerNow);

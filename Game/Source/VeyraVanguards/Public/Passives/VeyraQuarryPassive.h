@@ -46,6 +46,12 @@ private:
 	TWeakObjectPtr<UVeyraBasicAttackComponent> Attacks;
 	/** The holder of its mark: a participant's or a unit's Ability System Component. */
 	TWeakObjectPtr<UAbilitySystemComponent> Quarry;
+
+	/**
+	 * Until when, in world time, its quarry counts as It should it fall: as long as its mark lasts, and
+	 * after a spending attack only for that attack's own damage, so a lethal spend still sends the mark on.
+	 */
+	double MarkedUntil = 0.0;
 	FDelegateHandle ModifyHandle;
 	FDelegateHandle LandingHandle;
 	FDelegateHandle StatusHandle;
