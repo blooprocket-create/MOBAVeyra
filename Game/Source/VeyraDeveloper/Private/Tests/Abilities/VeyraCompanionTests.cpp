@@ -238,6 +238,31 @@ namespace VeyraAbilitiesTests
 			const TArray<FString> Problems = VeyraAbilityRules::Validate(Bad, Ranks);
 			ASSERT_THAT(AreEqual(3, Problems.Num()));
 		}
+
+		TEST_METHOD(ValidationWantsABodyThatLivesAttacksAndMoves)
+		{
+			const int32 Ranks[] = { 5, 3 };
+			for (double FVeyraStatBlock::* Stat : { &FVeyraStatBlock::MaxHealth, &FVeyraStatBlock::AttackSpeed, &FVeyraStatBlock::MoveSpeed })
+			{
+				FVeyraAbilitiesTuning Bad = Tuning;
+				Bad.Companions.FindChecked(ArchetypeTestId(TEXT("test_pet"))).Stats.*Stat = 0.0;
+				ASSERT_THAT(IsFalse(VeyraAbilityRules::Validate(Bad, Ranks).IsEmpty(), TEXT("a companion that could not form")));
+			}
+		}
+
+		TEST_METHOD(BanishedItsAttackUnderWayNeverLands)
+		{
+			using namespace CompanionFixture;
+			AVeyraCompanion& Companion = *Pet();
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, Companion.GetActorLocation() + FVector(Reach / 2.0, 0.0, 0.0));
+			const double Before = Stat(Enemy, UVeyraVitalsSet::GetHealthAttribute());
+			ASSERT_THAT(IsTrue(Companion.GetBasicAttack()->StartAttack(Enemy) == EVeyraAttackRejection::None, TEXT("it winds up")));
+			ASSERT_THAT(IsTrue(Hit(Enemy, *Owner, Lethal)));
+			ASSERT_THAT(IsTrue(Companion.IsBanished(), TEXT("it leaves with its owner")));
+			Wait(Reform);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Stat(Enemy, UVeyraVitalsSet::GetHealthAttribute()), Before, Tolerance), TEXT("and its windup never lands")));
+		}
 	};
 }
 
