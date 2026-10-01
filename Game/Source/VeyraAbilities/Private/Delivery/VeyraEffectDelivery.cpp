@@ -377,11 +377,12 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 		}
 		const FVector Away = (Unit.GetActorLocation() - CasterBody->GetActorLocation()).GetSafeNormal2D();
 		const TArray<AActor*> Around = VeyraShapes::GatherUnits(*World, FVeyraPlacedShape{ Burst->Shape, Unit.GetActorLocation(), Away.IsNearlyZero() ? FVector::ForwardVector : Away },
-			[CasterBody, &Unit](const AActor& Other) { return &Other != &Unit && VeyraTargeting::AreHostile(CasterBody, &Other) && VeyraTargeting::CanAcquire(CasterBody, Other); });
+			[CasterBody, &Unit](const AActor& Other) { return &Other != &Unit && VeyraTargeting::CanHitEnemy(CasterBody, Other) && VeyraTargeting::IsAlive(&Other); });
 		for (AActor* Other : Around)
 		{
 			UAbilitySystemComponent* OtherAbilities = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Other);
-			if (!OtherAbilities)
+			// A burst is an ability's hit on each unit it reaches: a Spell Shield blocks it whole, once.
+			if (!OtherAbilities || VeyraCombat::BlockAbilityHit(*OtherAbilities, Caster))
 			{
 				continue;
 			}

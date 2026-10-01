@@ -53,8 +53,19 @@ EVeyraCastRejection UVeyraCommandAbility::CheckTarget(const AActor& Caster, cons
 	{
 		return EVeyraCastRejection::NoCompanion;
 	}
-	// A hold needs its point; a recall needs nothing.
-	return Command->Order == EVeyraCompanionOrder::Hold && !Target.bHasLocation ? EVeyraCastRejection::InvalidTarget : EVeyraCastRejection::None;
+	if (Command->Order != EVeyraCompanionOrder::Hold)
+	{
+		// A recall needs nothing.
+		return EVeyraCastRejection::None;
+	}
+	// A hold needs a usable point, and a companion free to leap there.
+	if (!HasUsablePoint(Target))
+	{
+		return EVeyraCastRejection::InvalidLocation;
+	}
+	const AVeyraCompanion* Leaper = LivingCompanionOf(*Abilities);
+	return EnumHasAnyFlags(VeyraCombat::GetActionBlocks(*Leaper->GetAbilitySystemComponent()), EVeyraActionBlocks::Dash) ? EVeyraCastRejection::CrowdControlled
+		: EVeyraCastRejection::None;
 }
 
 const FVeyraCastTuning* UVeyraCommandAbility::GetCastTuning(const FVeyraContentId& Ability) const
@@ -89,6 +100,11 @@ FVeyraChannelPlan UVeyraCommandAbility::Deliver(const FVeyraCast& Cast)
 	Leap.Distance = Distance;
 	Leap.Speed = Command->LeapSpeed;
 	const bool bLeapt = Distance > 0.0 && VeyraCombat::Dash(Leaper, Leap);
+	// A leap refused after all lands nowhere and holds nothing.
+	if (Distance > 0.0 && !bLeapt)
+	{
+		return FVeyraChannelPlan();
+	}
 	const double LeapSeconds = bLeapt ? Distance / Command->LeapSpeed : 0.0;
 	Companion->HoldAt(Ground, World->GetTimeSeconds() + LeapSeconds + Command->HoldSeconds, Cast.Ability);
 
