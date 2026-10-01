@@ -39,4 +39,7 @@ namespace VeyraAbilities
 
 	/** What Ability costs Caster at its rank now, before any reduction (Combat Bible §27). */
 	VEYRAABILITIES_API double ResourceCostOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
+
+	/** Server: the follow-up OpenedBy's cast opens in Caster's slot ends, if it is open there or waits in another stance (ADR-032 §5). */
+	VEYRAABILITIES_API void EndFollowUp(UAbilitySystemComponent& Caster, const FVeyraContentId& OpenedBy);
 }

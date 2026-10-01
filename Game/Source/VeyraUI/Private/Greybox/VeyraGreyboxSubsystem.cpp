@@ -14,6 +14,7 @@
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
+#include "Entities/VeyraPlacedMarker.h"
 #include "Engine/StaticMesh.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -283,22 +284,32 @@ void UVeyraGreyboxSubsystem::RefreshBodies()
 		{
 			continue;
 		}
+		// A wall stands as a block across the way it faces (ADR-032 §4); every other unit as its capsule.
+		const AVeyraPlacedMarker* Marker = Cast<AVeyraPlacedMarker>(&Unit);
+		const bool bWall = Marker && Marker->IsWall();
 		FBody* Body = Bodies.Find(&Unit);
+		if (Body && Body->Mesh.IsValid() && Body->bWall != bWall)
+		{
+			// Its size arrived after its body was first drawn.
+			Body->Mesh->DestroyComponent();
+			Body = nullptr;
+		}
 		if (!Body || !Body->Mesh.IsValid())
 		{
 			UMaterialInstanceDynamic* Material = nullptr;
-			UStaticMeshComponent* Mesh = AddShape(Unit, *BodyMesh, Material);
+			UStaticMeshComponent* Mesh = AddShape(Unit, bWall ? *GroundMesh : *BodyMesh, Material);
 			if (!Mesh)
 			{
 				continue;
 			}
-			Body = &Bodies.Add(&Unit, FBody{ Mesh, Material });
+			Body = &Bodies.Add(&Unit, FBody{ Mesh, Material, FLinearColor::Transparent, bWall });
 		}
-		// Its capsule, which its Vanguard's definition shapes (ADR-008 §2).
+		// Its capsule, which its Vanguard's definition shapes (ADR-008 §2); a wall stands as tall as its capsule.
 		float Radius = 0.0f;
 		float HalfHeight = 0.0f;
 		Unit.GetSimpleCollisionCylinder(Radius, HalfHeight);
-		FitGreyboxShape(*Body->Mesh, FVector(Radius, Radius, HalfHeight));
+		const FVector2f Wall = bWall ? Marker->GetWallSize() : FVector2f::ZeroVector;
+		FitGreyboxShape(*Body->Mesh, bWall ? FVector(Wall.Y / 2.0, Wall.X / 2.0, HalfHeight) : FVector(Radius, Radius, HalfHeight));
 
 		const FLinearColor Color = BodyColorOf(Unit);
 		if (UMaterialInstanceDynamic* Material = Body->Material.Get(); Material && !Color.Equals(Body->Shown))

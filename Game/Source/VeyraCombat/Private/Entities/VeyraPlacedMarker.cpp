@@ -7,6 +7,7 @@
 #include "Attributes/VeyraDefenceSet.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Attribution/VeyraAttributionComponent.h"
+#include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Engine/World.h"
 #include "EngineUtils.h"
@@ -40,6 +41,20 @@ AVeyraPlacedMarker::AVeyraPlacedMarker(const FObjectInitializer& ObjectInitializ
 	Body->SetCanEverAffectNavigation(false);
 	Body->SetGenerateOverlapEvents(false);
 	RootComponent = Body;
+
+	// A wall's body blocks as terrain does once ApplyWall shapes it (ADR-032 §4): world-static, so
+	// movement, forced moves and line projectiles meet it, but never the cursor's trace or the camera.
+	WallBody = CreateDefaultSubobject<UBoxComponent>(TEXT("WallBody"));
+	WallBody->SetupAttachment(Body);
+	WallBody->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	WallBody->SetCollisionObjectType(ECC_WorldStatic);
+	WallBody->SetCollisionResponseToAllChannels(ECR_Block);
+	WallBody->SetCollisionResponseToChannel(ECC_Visibility, ECR_Ignore);
+	WallBody->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
+	WallBody->SetCollisionResponseToChannel(ECC_GameTraceChannel1, ECR_Ignore);
+	WallBody->SetGenerateOverlapEvents(false);
+	WallBody->SetCanEverAffectNavigation(false);
+	WallBody->bDynamicObstacle = true;
 
 	AbilitySystem = CreateDefaultSubobject<UAbilitySystemComponent>(TEXT("AbilitySystem"));
 	AbilitySystem->SetIsReplicated(true);
@@ -82,6 +97,7 @@ AVeyraPlacedMarker* AVeyraPlacedMarker::Place(UWorld& World, UAbilitySystemCompo
 		OwnerBody->GetSimpleCollisionCylinder(Radius, HalfHeight);
 	}
 	Marker->BodySize = FVector2f(Radius, HalfHeight);
+	Marker->WallSize = FVector2f(InSpec.Wall);
 	Marker->FinishSpawning(Where);
 	Marker->Start();
 	return Marker;
@@ -98,6 +114,7 @@ void AVeyraPlacedMarker::BeginPlay()
 {
 	Super::BeginPlay();
 	ApplyBody();
+	ApplyWall();
 }
 
 void AVeyraPlacedMarker::ApplyBody()
@@ -105,6 +122,22 @@ void AVeyraPlacedMarker::ApplyBody()
 	if (BodySize.X > 0.0f && BodySize.Y > 0.0f)
 	{
 		Body->SetCapsuleSize(BodySize.X, BodySize.Y);
+	}
+}
+
+void AVeyraPlacedMarker::ApplyWall()
+{
+	if (!IsWall() || WallBody->GetCollisionEnabled() != ECollisionEnabled::NoCollision)
+	{
+		return;
+	}
+	// Its thickness along the way it faces, its length across it, as tall as its owner stands.
+	WallBody->SetBoxExtent(FVector(WallSize.Y / 2.0f, WallSize.X / 2.0f, Body->GetUnscaledCapsuleHalfHeight()), /*bUpdateOverlaps*/ false);
+	WallBody->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	// Paths go round it: the server's navigation takes it as an obstacle.
+	if (HasAuthority())
+	{
+		WallBody->SetCanEverAffectNavigation(true);
 	}
 }
 
@@ -136,6 +169,7 @@ void AVeyraPlacedMarker::ApplySpot()
 void AVeyraPlacedMarker::Start()
 {
 	ApplyBody();
+	ApplyWall();
 	Spot = GetActorLocation();
 	MARK_PROPERTY_DIRTY_FROM_NAME(AVeyraPlacedMarker, Spot, this);
 	// A point of Health a hit, as a ward counts them (ADR-016 §6); one no one can target has none.
@@ -172,6 +206,7 @@ void AVeyraPlacedMarker::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& O
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, PresentedAs, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, BodySize, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, Spot, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraPlacedMarker, WallSize, Params);
 }
 
 void AVeyraPlacedMarker::OnDeath(const FVeyraDeathEvent& Death)

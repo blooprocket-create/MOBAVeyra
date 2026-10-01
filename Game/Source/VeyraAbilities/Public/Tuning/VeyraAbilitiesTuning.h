@@ -114,6 +114,10 @@ struct FVeyraRecastTuning
 	/** TargetFalls: how long after the cast the target's fall still opens it, in seconds. 0 otherwise. */
 	UPROPERTY()
 	double FallsWithinSeconds = 0.0;
+
+	/** Always: how long after the cast commits it opens, in seconds, as a wall cools before it can be detonated (ADR-032 §5); 0 for at once. */
+	UPROPERTY()
+	double ArmingSeconds = 0.0;
 };
 
 USTRUCT()
@@ -432,6 +436,11 @@ enum class EVeyraAreaOrigin : uint8
 	 * ends at once, without its end effects (ADR-028 §5), as Anchor's recast rips it up.
 	 */
 	CastersLingeringArea,
+	/**
+	 * On the caster's own standing marker of the ability originAbility names, facing as it does; that
+	 * marker ends at once (ADR-032 §6), as Shatterforge detonates its wall.
+	 */
+	CastersMarker,
 };
 
 /** A group whose shields from one caster together hold at most a share of its Max Health on a unit (ADR-009 §3). */
@@ -663,7 +672,7 @@ struct FVeyraAreaAbilityTuning
 	UPROPERTY()
 	EVeyraAreaOrigin Origin = EVeyraAreaOrigin::Caster;
 
-	/** For the CastersLingeringArea origin, exactly one: the ability whose lingering area it lands on; else none. */
+	/** For the CastersLingeringArea and CastersMarker origins, exactly one: the ability whose lingering area or marker it lands on; else none. */
 	UPROPERTY()
 	TArray<FVeyraContentId> OriginAbility;
 
@@ -1113,6 +1122,28 @@ struct FVeyraSkillshotMimicTuning
 	FVeyraEffectBundleTuning RepeatEffects;
 };
 
+/**
+ * A wall a skillshot leaves where its flight ends (ADR-032 §4), across its path: a placed marker of its
+ * caster's, of the skillshot's own ID, that blocks units of both teams, dashes and line projectiles as
+ * terrain does. One stands at a time.
+ */
+USTRUCT()
+struct FVeyraWallTuning
+{
+	GENERATED_BODY()
+
+	/** Across the path, in units. */
+	UPROPERTY()
+	double Length = 0.0;
+
+	/** Along the path, in units. */
+	UPROPERTY()
+	double Thickness = 0.0;
+
+	UPROPERTY()
+	double LifetimeSeconds = 0.0;
+};
+
 /** An ability that fires a line projectile toward the cast's point (ADR-008 §3). Terrain stops it (ADR-008 §9). */
 USTRUCT()
 struct FVeyraSkillshotAbilityTuning
@@ -1150,6 +1181,10 @@ struct FVeyraSkillshotAbilityTuning
 	/** At most one: its caster's marker throws it too (ADR-031 §6). */
 	UPROPERTY()
 	TArray<FVeyraSkillshotMimicTuning> Mimic;
+
+	/** At most one: the wall it leaves where its flight ends (ADR-032 §4). */
+	UPROPERTY()
+	TArray<FVeyraWallTuning> EndWall;
 };
 
 /** Which way a dash goes. */

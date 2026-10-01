@@ -9,6 +9,7 @@
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/World.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "VeyraAbilitiesLog.h"
 #include "VeyraAbilitiesVerbs.h"
 
 bool UVeyraSkillshotAbility::Defines(const FVeyraContentId& Ability) const
@@ -48,6 +49,32 @@ bool UVeyraSkillshotAbility::MovesCaster(const FVeyraContentId& Ability) const
 {
 	const FVeyraSkillshotAbilityTuning* Skillshot = UVeyraAbilitiesTuningSubsystem::FindSkillshot(Ability);
 	return Skillshot && !Skillshot->CasterDash.IsEmpty();
+}
+
+TFunction<void(const FVector&)> UVeyraSkillshotAbility::WallAtEnd(UAbilitySystemComponent& Caster, const FVeyraWallTuning& Wall, const FVeyraContentId& Ability,
+	const FVector& Direction)
+{
+	return [WeakCaster = TWeakObjectPtr<UAbilitySystemComponent>(&Caster), Wall, Ability, Facing = Direction.GetSafeNormal2D()](const FVector& Where) {
+		UAbilitySystemComponent* Owner = WeakCaster.Get();
+		UWorld* World = Owner ? Owner->GetWorld() : nullptr;
+		if (!World)
+		{
+			return;
+		}
+		// One at a time: the last goes quietly, as its time would have run out.
+		if (AVeyraPlacedMarker* Last = AVeyraPlacedMarker::FindStanding(*Owner, Ability))
+		{
+			Last->EndMarker(EVeyraMarkerEndReason::Expired);
+		}
+		FVeyraMarkerSpec Spec;
+		Spec.Id = Ability;
+		Spec.LifetimeSeconds = Wall.LifetimeSeconds;
+		Spec.Wall = FVector2D(Wall.Length, Wall.Thickness);
+		if (!AVeyraPlacedMarker::Place(*World, *Owner, Spec, FTransform(Facing.Rotation(), Where)))
+		{
+			UE_LOG(LogVeyraAbilities, Warning, TEXT("%s could not raise the wall of %s."), *GetNameSafe(Owner->GetOwner()), *Ability.ToString());
+		}
+	};
 }
 
 TFunction<void(AActor&)> UVeyraSkillshotAbility::ReturnIfHeld(UAbilitySystemComponent& Caster, const FVeyraSkillshotAbilityTuning& Skillshot, const FVeyraContentId& Ability)
@@ -110,6 +137,11 @@ FVeyraChannelPlan UVeyraSkillshotAbility::Deliver(const FVeyraCast& Cast)
 		Projectile->LaunchLine(*Caster, Direction, Skillshot->Projectile, Skillshot->Collision,
 			VeyraEffectDelivery::Prepare(*Caster, Skillshot->Effects, Cast.Rank), VeyraEffectDelivery::Prepare(*Caster, Skillshot->PassThroughEffects, Cast.Rank),
 			Cast.Ability, Cast.CastId, ReturnIfHeld(*Caster, *Skillshot, Cast.Ability), Shared);
+		// Where its flight ends it leaves its wall, across its path (ADR-032 §4).
+		if (!Skillshot->EndWall.IsEmpty())
+		{
+			Projectile->SetOnLineEnded(WallAtEnd(*Caster, Skillshot->EndWall[0], Cast.Ability, Direction));
+		}
 	}
 	if (Mimic)
 	{

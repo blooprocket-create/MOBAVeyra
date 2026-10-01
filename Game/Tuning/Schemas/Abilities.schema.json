@@ -85,7 +85,7 @@
       "description": "A recast window: the slot holds another ability until it is cast or its time runs out (ADR-018 §1).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["ability", "windowSeconds", "onExpiry", "opensWhen", "heldStatus", "fallsWithinSeconds"],
+      "required": ["ability", "windowSeconds", "onExpiry", "opensWhen", "heldStatus", "fallsWithinSeconds", "armingSeconds"],
       "properties": {
         "ability": { "description": "The follow-up: another ability's ID.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
         "windowSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -106,7 +106,8 @@
           "maxItems": 1,
           "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
         },
-        "fallsWithinSeconds": { "description": "TargetFalls: above 0. 0 otherwise.", "type": "number", "minimum": 0 }
+        "fallsWithinSeconds": { "description": "TargetFalls: above 0. 0 otherwise.", "type": "number", "minimum": 0 },
+        "armingSeconds": { "description": "Always: how long after the cast commits the follow-up opens, as a wall cools before it can be detonated (ADR-032 §5); 0 for at once, and always 0 otherwise.", "type": "number", "minimum": 0 }
       }
     },
     "damage": {
@@ -417,12 +418,12 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
             "origin": {
-              "description": "Caster: on the caster, facing the cast's point. TargetPoint: on the point, facing away from the caster. CastersLingeringArea: on the caster's own lingering area of originAbility, which ends (ADR-028 §5).",
+              "description": "Caster: on the caster, facing the cast's point. TargetPoint: on the point, facing away from the caster. CastersLingeringArea: on the caster's own lingering area of originAbility, which ends (ADR-028 §5). CastersMarker: on the caster's own standing marker or wall of originAbility, facing as it does, which ends (ADR-032 §6).",
               "type": "string",
-              "enum": ["Caster", "TargetPoint", "CastersLingeringArea"]
+              "enum": ["Caster", "TargetPoint", "CastersLingeringArea", "CastersMarker"]
             },
             "originAbility": {
-              "description": "For the CastersLingeringArea origin, exactly one: the area ability whose lingering area it lands on; else none.",
+              "description": "For the CastersLingeringArea origin, exactly one: the area ability whose lingering area it lands on. For CastersMarker, exactly one: the ability whose marker or wall it lands on. Else none.",
               "type": "array", "minItems": 0, "maxItems": 1,
               "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
             },
@@ -654,7 +655,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "projectile", "collision", "effects", "passThroughEffects", "casterDash", "returnIfHeld", "mimic"],
+          "required": ["provenance", "cast", "projectile", "collision", "effects", "passThroughEffects", "casterDash", "returnIfHeld", "mimic", "endWall"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -688,6 +689,19 @@
                 "properties": {
                   "markerAbility": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
                   "repeatEffects": { "$ref": "#/definitions/effects" }
+                }
+              }
+            },
+            "endWall": {
+              "description": "At most one: where the projectile's flight ends, at its range, terrain or a unit it stops at, it leaves a wall across its path: a marker of its caster's, of this ability's ID, that blocks units of both teams, dashes and line projectiles as terrain does, and that paths go round, for lifetimeSeconds. One stands at a time (ADR-032 §4).",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["length", "thickness", "lifetimeSeconds"],
+                "properties": {
+                  "length": { "description": "Across the path, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "thickness": { "description": "Along the path, in units.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "lifetimeSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
                 }
               }
             },

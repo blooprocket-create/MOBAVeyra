@@ -278,6 +278,12 @@ FVeyraEffectFrame AVeyraProjectile::PathFrame() const
 void AVeyraProjectile::End()
 {
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("A projectile of %s (cast %d) ended after meeting %d unit(s)."), *Ability.ToString(), CastId, Met.Num());
+	if (Flight == EVeyraProjectileFlight::Line && OnLineEnded && Caster.IsValid())
+	{
+		const TFunction<void(const FVector&)> Ended = MoveTemp(OnLineEnded);
+		OnLineEnded = nullptr;
+		Ended(GetActorLocation());
+	}
 	SetActorTickEnabled(false);
 	Destroy();
 }

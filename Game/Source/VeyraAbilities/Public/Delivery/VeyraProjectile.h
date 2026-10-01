@@ -77,6 +77,9 @@ public:
 	 */
 	void AdvanceBy(double Seconds);
 
+	/** Server only: OnEnded runs once, where a line projectile's flight ends while its caster's participant remains (ADR-032 §4). */
+	void SetOnLineEnded(TFunction<void(const FVector&)> OnEnded) { OnLineEnded = MoveTemp(OnEnded); }
+
 	/**
 	 * Where a line projectile is at ServerTime, in the server's world time, from its launch data alone,
 	 * for presentation on any machine; a homing one's launch point. It may already have ended sooner.
@@ -149,6 +152,9 @@ private:
 	FVeyraPreparedEffects Effects;
 	FVeyraPreparedEffects PassThroughEffects;
 	TFunction<void(AActor&)> OnLanded;
+
+	/** Runs where a line flight ends (SetOnLineEnded). */
+	TFunction<void(const FVector&)> OnLineEnded;
 	TFunction<void(AActor&)> BeforeStrike;
 	TSharedPtr<FVeyraSharedStrikes> Shared;
 	EVeyraSkillshotCollision Collision = EVeyraSkillshotCollision::FirstEnemy;

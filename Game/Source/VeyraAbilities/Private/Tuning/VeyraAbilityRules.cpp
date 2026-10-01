@@ -76,6 +76,11 @@ namespace
 				{
 					Problem(RecastPointer + TEXT("/fallsWithinSeconds"), TEXT("is above 0 for TargetFalls, and 0 otherwise"));
 				}
+				// ADR-032 §5: only a follow-up that always opens may arm.
+				if (Recast.ArmingSeconds < 0.0 || (Recast.ArmingSeconds > 0.0 && Recast.OpensWhen != EVeyraRecastCondition::Always))
+				{
+					Problem(RecastPointer + TEXT("/armingSeconds"), TEXT("is at least 0, and above 0 only for Always"));
+				}
 			}
 			if (Cast.TargetMustHold.Num() > 1)
 			{
@@ -238,12 +243,15 @@ namespace
 				Problem(Pointer + TEXT("/reveal"), TEXT("radius and durationSeconds are both above 0, or both 0 for no reveal"));
 			}
 			CheckZones(Pointer + TEXT("/zones"), Area.Zones);
-			// Landing on its caster's lingering area names one ability that leaves one; no other origin names any.
+			// Landing on its caster's lingering area or marker names one ability that leaves one; no other origin names any.
 			const bool bOnLingering = Area.Origin == EVeyraAreaOrigin::CastersLingeringArea;
+			const bool bOnMarker = Area.Origin == EVeyraAreaOrigin::CastersMarker;
 			const FVeyraAreaAbilityTuning* Named = Area.OriginAbility.Num() == 1 ? Tuning.Area.Find(Area.OriginAbility[0]) : nullptr;
-			if (bOnLingering ? !(Named && !Named->Linger.IsEmpty()) : !Area.OriginAbility.IsEmpty())
+			const FVeyraSkillshotAbilityTuning* Walling = Area.OriginAbility.Num() == 1 ? Tuning.Skillshot.Find(Area.OriginAbility[0]) : nullptr;
+			const bool bNamesMarker = Area.OriginAbility.Num() == 1 && (LeavesMarker(Area.OriginAbility[0]) || (Walling && !Walling->EndWall.IsEmpty()));
+			if (bOnLingering ? !(Named && !Named->Linger.IsEmpty()) : bOnMarker ? !bNamesMarker : !Area.OriginAbility.IsEmpty())
 			{
-				Problem(Pointer + TEXT("/originAbility"), TEXT("names exactly one area that lingers for the CastersLingeringArea origin, and none for any other"));
+				Problem(Pointer + TEXT("/originAbility"), TEXT("names exactly one area that lingers for the CastersLingeringArea origin, one ability that leaves a marker or a wall for CastersMarker, and none for any other"));
 			}
 			CheckStatusIds(Pointer + TEXT("/consumesCasterStatuses"), Area.ConsumesCasterStatuses);
 			CheckStatusIds(Pointer + TEXT("/casterStatuses"), Area.CasterStatuses);
@@ -522,6 +530,12 @@ namespace
 			if (Skillshot.Mimic.Num() > 1)
 			{
 				Problem(Pointer + TEXT("/mimic"), TEXT("holds at most one"));
+			}
+			if (Skillshot.EndWall.Num() > 1 || Skillshot.EndWall.ContainsByPredicate([](const FVeyraWallTuning& Wall) {
+					return !(Wall.Length > 0.0) || !(Wall.Thickness > 0.0) || !(Wall.LifetimeSeconds > 0.0);
+				}))
+			{
+				Problem(Pointer + TEXT("/endWall"), TEXT("holds at most one, its length, thickness and lifetime above 0"));
 			}
 			for (int32 Index = 0; Index < Skillshot.Mimic.Num(); ++Index)
 			{

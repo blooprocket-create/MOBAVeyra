@@ -14,6 +14,7 @@
 #include "Engine/World.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Loadout/VeyraFollowUpSubsystem.h"
 #include "Progression/VeyraProgressionComponent.h"
 #include "Statuses/VeyraStatusComponent.h"
 #include "Targeting/VeyraTargeting.h"
@@ -228,7 +229,15 @@ void UVeyraGameplayAbility::NoteCastCommitted(UAbilitySystemComponent& Caster, c
 		switch (Recast.OpensWhen)
 		{
 		case EVeyraRecastCondition::Always:
-			Loadout->Override(Caster, Slot.GetValue(), FollowUp);
+			// One that arms opens a while after this Commit (ADR-032 §5).
+			if (UVeyraFollowUpSubsystem* FollowUps = Recast.ArmingSeconds > 0.0 && GetWorld() ? GetWorld()->GetSubsystem<UVeyraFollowUpSubsystem>() : nullptr)
+			{
+				FollowUps->OpenAfter(Caster, Slot.GetValue(), FollowUp, Recast.ArmingSeconds);
+			}
+			else
+			{
+				Loadout->Override(Caster, Slot.GetValue(), FollowUp);
+			}
 			break;
 		case EVeyraRecastCondition::TargetHeld:
 			// Judged at Commit, before this cast lands anything of its own (ADR-030 §7).
@@ -313,20 +322,7 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckEnemyUnit(const AActor& Caster, 
 
 void UVeyraGameplayAbility::EndRecastWindow(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
 {
-	const FVeyraCastTuning* CastTuning = GetCastTuning(Ability);
-	UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
-	if (!CastTuning || CastTuning->RecastWindow.IsEmpty() || !Loadout)
-	{
-		return;
-	}
-	const FVeyraContentId& FollowUp = CastTuning->RecastWindow[0].Ability;
-	const FVeyraLoadoutEntry* Entry = Loadout->FindAbility(FollowUp);
-	// Whether it shows now or waits in another stance.
-	const FVeyraSlotOverride* Current = Entry ? Loadout->FindOverride(Entry->Slot) : nullptr;
-	if (Current && Current->Entry.Ability == FollowUp)
-	{
-		Loadout->EndOverride(Caster, Entry->Slot);
-	}
+	VeyraAbilities::EndFollowUp(Caster, Ability);
 }
 
 bool UVeyraGameplayAbility::HasUsablePoint(const FVeyraCastTarget& Target)

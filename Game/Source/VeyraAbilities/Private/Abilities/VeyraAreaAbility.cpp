@@ -10,6 +10,7 @@
 #include "Delivery/VeyraDelayedArea.h"
 #include "Delivery/VeyraLingeringArea.h"
 #include "Engine/World.h"
+#include "Entities/VeyraPlacedMarker.h"
 #include "Targeting/VeyraVisibility.h"
 #include "Teams/VeyraTeam.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
@@ -45,6 +46,14 @@ EVeyraCastRejection UVeyraAreaAbility::CheckTarget(const AActor& Caster, const F
 		const UAbilitySystemComponent* Own = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Caster);
 		const UWorld* World = Caster.GetWorld();
 		return Own && World && !Area->OriginAbility.IsEmpty() && VeyraAreaDelivery::FindCastersLingeringArea(*World, *Own, Area->OriginAbility[0])
+			? EVeyraCastRejection::None
+			: EVeyraCastRejection::InvalidLocation;
+	}
+	// One that lands on its caster's marker needs that marker standing (ADR-032 §6).
+	if (Area->Origin == EVeyraAreaOrigin::CastersMarker)
+	{
+		const UAbilitySystemComponent* Own = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Caster);
+		return Own && !Area->OriginAbility.IsEmpty() && AVeyraPlacedMarker::FindStanding(*Own, Area->OriginAbility[0])
 			? EVeyraCastRejection::None
 			: EVeyraCastRejection::InvalidLocation;
 	}
@@ -87,6 +96,19 @@ FVeyraChannelPlan UVeyraAreaAbility::Deliver(const FVeyraCast& Cast)
 		Placement.Direction = Lingering->GetPlacedShape().Direction;
 		Placement.bOriginIsCaster = false;
 		Lingering->Destroy();
+	}
+	// On its caster's marker, facing as it does, which its caster's ability ends (ADR-032 §6).
+	if (Area->Origin == EVeyraAreaOrigin::CastersMarker)
+	{
+		AVeyraPlacedMarker* Marker = Area->OriginAbility.IsEmpty() ? nullptr : AVeyraPlacedMarker::FindStanding(*Caster, Area->OriginAbility[0]);
+		if (!Marker)
+		{
+			return FVeyraChannelPlan();
+		}
+		Placement.Origin = Marker->GetActorLocation();
+		Placement.Direction = Marker->GetActorForwardVector().GetSafeNormal2D();
+		Placement.bOriginIsCaster = false;
+		Marker->EndMarker(EVeyraMarkerEndReason::Recalled);
 	}
 	TArray<FVeyraPreparedZone> Zones = VeyraAreaDelivery::PrepareZones(*Caster, Area->Zones, Cast.Rank);
 	// What it spends of its caster's own, as it commits (ADR-018 §6).

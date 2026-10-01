@@ -102,6 +102,25 @@ double ResourceCostOf(const UAbilitySystemComponent& Caster, const FVeyraContent
 	return VeyraAbilityRules::ResourceCost(UVeyraAbilitiesTuningSubsystem::Get(), Ability, RankOf(Caster, Ability));
 }
 
+void EndFollowUp(UAbilitySystemComponent& Caster, const FVeyraContentId& OpenedBy)
+{
+	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(UVeyraAbilitiesTuningSubsystem::Get(), OpenedBy);
+	const AActor* Owner = Caster.GetOwner();
+	UVeyraAbilityLoadoutComponent* Loadout = Owner ? Owner->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	if (!Cast || Cast->RecastWindow.IsEmpty() || !Loadout)
+	{
+		return;
+	}
+	const FVeyraContentId& FollowUp = Cast->RecastWindow[0].Ability;
+	const FVeyraLoadoutEntry* Entry = Loadout->FindAbility(FollowUp);
+	// Whether it shows now or waits in another stance.
+	const FVeyraSlotOverride* Current = Entry ? Loadout->FindOverride(Entry->Slot) : nullptr;
+	if (Current && Current->Entry.Ability == FollowUp)
+	{
+		Loadout->EndOverride(Caster, Entry->Slot);
+	}
+}
+
 void RefundCooldowns(UAbilitySystemComponent& Caster, TConstArrayView<EVeyraAbilitySlot> Slots, double Fraction)
 {
 	const AActor* Owner = Caster.GetOwner();

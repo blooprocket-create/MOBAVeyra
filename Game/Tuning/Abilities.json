@@ -2003,7 +2003,7 @@
         "windupSeconds": 0.2,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": [{ "ability": "torr_anchor_rip", "windowSeconds": 5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "recastWindow": [{ "ability": "torr_anchor_rip", "windowSeconds": 5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0, "armingSeconds": 0 }],
         "targetMustHold": [],
         "targetMustNotHold": [],
         "takedownRefund": []
@@ -2059,7 +2059,7 @@
         "windupSeconds": 0.2,
         "windupMovement": "Free",
         "recoverySeconds": 0.1,
-        "recastWindow": [{ "ability": "torr_anchor_rip_over", "windowSeconds": 5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "recastWindow": [{ "ability": "torr_anchor_rip_over", "windowSeconds": 5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0, "armingSeconds": 0 }],
         "targetMustHold": [],
         "targetMustNotHold": [],
         "takedownRefund": []
@@ -2836,7 +2836,8 @@
       },
       "casterDash": [],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "oriel_splinter_lance": {
       "provenance": "Provisional",
@@ -2868,7 +2869,8 @@
       },
       "casterDash": [],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "kade_throughline": {
       "provenance": "Provisional",
@@ -2895,7 +2897,8 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "kade_reposition": {
       "provenance": "Provisional",
@@ -2922,7 +2925,8 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [{ "distance": 400, "speed": 1000 }],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "kade_kill_corridor_shot": {
       "provenance": "Provisional",
@@ -2949,7 +2953,8 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "vera_range_found": {
       "provenance": "Provisional",
@@ -2976,7 +2981,8 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "moro_arc_bolt": {
       "provenance": "Provisional",
@@ -2998,7 +3004,8 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "mimzi_twinklebolt": {
       "provenance": "Provisional",
@@ -3025,7 +3032,8 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "raska_hound": {
       "provenance": "Provisional",
@@ -3047,7 +3055,8 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "raska_hound_no_brakes": {
       "provenance": "Provisional",
@@ -3069,7 +3078,8 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "aurelisse_crosswind": {
       "provenance": "Provisional",
@@ -3091,7 +3101,8 @@
       "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [],
       "returnIfHeld": [],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "tavi_catch": {
       "provenance": "Provisional",
@@ -3136,7 +3147,8 @@
       },
       "casterDash": [],
       "returnIfHeld": [{ "status": "tavi_it", "speed": 1800, "cooldownRefund": 0.4 }],
-      "mimic": []
+      "mimic": [],
+      "endWall": []
     },
     "angeru_shadow_needle": {
       "provenance": "Provisional",
@@ -3201,7 +3213,8 @@
             "reactions": []
           }
         }
-      ]
+      ],
+      "endWall": []
     }
   },
   "dash": {
@@ -3449,7 +3462,7 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": [{ "ability": "raska_breakneck_through", "windowSeconds": 3, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "recastWindow": [{ "ability": "raska_breakneck_through", "windowSeconds": 3, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0, "armingSeconds": 0 }],
         "targetMustHold": [],
         "targetMustNotHold": [],
         "takedownRefund": []
@@ -3638,7 +3651,8 @@
             "onExpiry": "Lapse",
             "opensWhen": "TargetHeld",
             "heldStatus": ["tavi_it"],
-            "fallsWithinSeconds": 0
+            "fallsWithinSeconds": 0,
+            "armingSeconds": 0
           }
         ],
         "targetMustHold": [],
@@ -3963,7 +3977,7 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 2.5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 2.5, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0, "armingSeconds": 0 }],
         "targetMustHold": [],
         "targetMustNotHold": [],
         "takedownRefund": []
@@ -3984,7 +3998,7 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 3, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "recastWindow": [{ "ability": "patch_bear_hug_throw", "windowSeconds": 3, "onExpiry": "Lapse", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0, "armingSeconds": 0 }],
         "targetMustHold": [],
         "targetMustNotHold": [],
         "takedownRefund": []
@@ -4029,7 +4043,7 @@
         "windupSeconds": 0,
         "windupMovement": "Free",
         "recoverySeconds": 0,
-        "recastWindow": [{ "ability": "raska_last_exit", "windowSeconds": 6, "onExpiry": "Cast", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0 }],
+        "recastWindow": [{ "ability": "raska_last_exit", "windowSeconds": 6, "onExpiry": "Cast", "opensWhen": "Always", "heldStatus": [], "fallsWithinSeconds": 0, "armingSeconds": 0 }],
         "targetMustHold": [],
         "targetMustNotHold": [],
         "takedownRefund": []
@@ -4060,7 +4074,8 @@
             "onExpiry": "Lapse",
             "opensWhen": "TargetFalls",
             "heldStatus": [],
-            "fallsWithinSeconds": 2
+            "fallsWithinSeconds": 2,
+            "armingSeconds": 0
           }
         ],
         "targetMustHold": [],
@@ -4149,7 +4164,8 @@
             "onExpiry": "Lapse",
             "opensWhen": "Always",
             "heldStatus": [],
-            "fallsWithinSeconds": 0
+            "fallsWithinSeconds": 0,
+            "armingSeconds": 0
           }
         ],
         "targetMustHold": [],
