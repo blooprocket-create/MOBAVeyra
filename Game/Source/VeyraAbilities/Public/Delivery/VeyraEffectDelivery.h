@@ -100,6 +100,12 @@ namespace VeyraEffectDelivery
 	VEYRAABILITIES_API bool IsEmpty(const FVeyraPreparedEffects& Effects);
 
 	/**
+	 * Whether Effects would do anything to Target as they land: damage, a status or a displacement of
+	 * their own, or a reaction to a status it holds. A Spell Shield is spent only by such a hit (ADR-025 §4).
+	 */
+	VEYRAABILITIES_API bool WouldLandOn(const FVeyraPreparedEffects& Effects, const UAbilitySystemComponent& Target);
+
+	/**
 	 * Applies Effects from Caster to Unit, measuring any displacement from Frame, and announces the hit
 	 * with the control that landed (On Ability Hit) when Source names an ability.
 	 */

@@ -251,6 +251,37 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(World.HealthLost(Shielded) > 0.0 && World.Has(Shielded, TEXT("test_stun")), TEXT("the next hit lands")));
 		}
 
+		TEST_METHOD(AHitWithOnlyReactionsSparesASpellShieldUnlessItWouldReact)
+		{
+			FVeyraAreaAbilityTuning Echo = Tuning.Area.FindChecked(ArchetypeTestId(TEXT("test_slam")));
+			Echo.Zones.SetNum(1);
+			Echo.Zones[0].Shape = CircleOf(OuterRadius);
+			Echo.Zones[0].Effects = FVeyraEffectBundleTuning();
+			FVeyraReactionTuning& React = Echo.Zones[0].Effects.Reactions.AddDefaulted_GetRef();
+			React.Status = ArchetypeTestId(TEXT("test_slow"));
+			React.Statuses = { ArchetypeTestId(TEXT("test_stun")) };
+			Tuning.Area.Add(ArchetypeTestId(TEXT("test_echo")), Echo);
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_echo")))));
+			AVeyraVanguardCharacter& Second = World.Spawn(EVeyraTeam::A, FVector(0.0, -InnerRadius, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(Second, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_echo")))));
+			AVeyraVanguardCharacter& Shielded = World.Spawn(EVeyraTeam::B, FVector(InnerRadius / 2.0, 0.0, 0.0));
+			FVeyraStatusSpec Ward;
+			Ward.Id = ArchetypeTestId(TEXT("test_ward"));
+			Ward.Kind = EVeyraStatusKind::SpellShield;
+			Ward.DurationSeconds = LongSeconds;
+			UAbilitySystemComponent& Target = *Shielded.GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Target, Target, Ward)));
+
+			ASSERT_THAT(IsTrue(World.CastAt(*Caster, EVeyraAbilitySlot::W, Shielded.GetActorLocation()) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(World.Has(Shielded, TEXT("test_ward")), TEXT("a hit that would do nothing to it leaves the shield")));
+			const TOptional<FVeyraStatusSpec> Slow = UVeyraAbilitiesTuningSubsystem::FindStatus(ArchetypeTestId(TEXT("test_slow")));
+			ASSERT_THAT(IsTrue(Slow.IsSet() && VeyraCombat::ApplyStatus(*Caster->GetAbilitySystemComponent(), Target, Slow.GetValue())));
+			ASSERT_THAT(IsTrue(World.CastAt(Second, EVeyraAbilitySlot::W, Shielded.GetActorLocation()) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsFalse(World.Has(Shielded, TEXT("test_ward")), TEXT("one that would react spends it")));
+			ASSERT_THAT(IsFalse(World.Has(Shielded, TEXT("test_stun")), TEXT("and is blocked whole")));
+		}
+
 		TEST_METHOD(APointBeyondRangeIsBroughtWithinIt)
 		{
 			FArchetypeTestWorld World{ Spawner };
