@@ -306,6 +306,21 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraChargerTuning>& Entry : Tuning.Charger)
+	{
+		RegisterPassive(Entry.Key, TEXT("charger"));
+		const FString Pointer = TEXT("/charger/") + Entry.Key.ToString();
+		const FVeyraChargerTuning& Charger = Entry.Value;
+		if (!Abilities.Statuses.Contains(Charger.BoostStatus))
+		{
+			Problem(Pointer + TEXT("/boostStatus"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Charger.BoostStatus.ToString()));
+		}
+		if (!(Charger.Radius > 0.0) || !(Charger.ChargePerDeath > 0.0) || Charger.BoostMultiplier < 1.0)
+		{
+			Problem(Pointer, TEXT("radius and chargePerDeath are above 0, and boostMultiplier at least 1"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraUnreturnedTuning>& Entry : Tuning.Unreturned)
 	{
 		RegisterPassive(Entry.Key, TEXT("unreturned"));
@@ -460,6 +475,11 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		if (Vanguard.Body.CapsuleHalfHeight < Vanguard.Body.CapsuleRadius)
 		{
 			Problem(Pointer + TEXT("/body/capsuleHalfHeight"), TEXT("must be at least capsuleRadius"));
+		}
+		// Charge never regenerates: only effects restore it (ADR-033 §1).
+		if (Vanguard.Resource == EVeyraResourceFamily::Charge && (Vanguard.BaseStats.ResourceRegen != 0.0 || Vanguard.Growth.ResourceRegen != 0.0))
+		{
+			Problem(Pointer + TEXT("/resource"), TEXT("Charge never regenerates: its baseStats and growth resourceRegen are 0"));
 		}
 		for (const FString& AttackProblem : VeyraBasicAttacks::Validate(Vanguard.BasicAttack))
 		{

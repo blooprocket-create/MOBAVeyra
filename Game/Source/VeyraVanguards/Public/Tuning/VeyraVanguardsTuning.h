@@ -19,13 +19,15 @@
 /**
  * What a Vanguard spends to cast (Combat Bible §27; ADR-008 §2). Every family is spent, regenerated and
  * refunded through the same Resource attributes; Focus has no growth per level and its own colour on
- * the HUD (ADR-031 §1).
+ * the HUD (ADR-031 §1). Charge starts empty, never regenerates, is kept through death and only effects
+ * restore it (ADR-033 §1).
  */
 UENUM()
 enum class EVeyraResourceFamily : uint8
 {
 	Mana,
 	Focus,
+	Charge,
 };
 
 /** Who may play a Vanguard (ADR-010 §6). */
@@ -837,6 +839,35 @@ struct FVeyraStressTemperTuning
 };
 
 /**
+ * Relay's Charger (Roster Bible §4; ADR-033 §2): each Fluxborn that dies within Radius of its living owner,
+ * of either side, gives ChargePerDeath of its owner's resource, BoostMultiplier times as much while its
+ * owner holds BoostStatus. Its data is an entry in Vanguards.json's charger map.
+ */
+USTRUCT()
+struct FVeyraChargerTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** Units from its owner's centre to where the Fluxborn fell. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	UPROPERTY()
+	double ChargePerDeath = 0.0;
+
+	/** From Abilities.json's statuses: while its owner holds it, as Overcharge gives it, each death gives BoostMultiplier times as much. */
+	UPROPERTY()
+	FVeyraContentId BoostStatus;
+
+	/** At least 1. */
+	UPROPERTY()
+	double BoostMultiplier = 1.0;
+};
+
+/**
  * Tavi's You're It! (Roster Bible §6; ADR-030 §10): one enemy at a time holds its owner's mark. Its owner
  * moves faster while closing on the holder; its next basic attack on the holder spends the mark for bonus
  * magic damage and refunds CooldownRefund of Q, W and E's remaining cooldowns; and a kill of the holder
@@ -932,7 +963,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 16;
+	static constexpr int32 SchemaVersion = 17;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -993,6 +1024,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraStressTemperTuning> StressTemper;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraChargerTuning> Charger;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 16,
+  "schemaVersion": 17,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -1197,6 +1197,15 @@
       "magicPowerRatio": 0.3,
       "strikeStatuses": ["varkesh_seized"],
       "lockout": "varkesh_cooled"
+    }
+  },
+  "charger": {
+    "relay_charger": {
+      "provenance": "Provisional",
+      "radius": 1100,
+      "chargePerDeath": 6,
+      "boostStatus": "relay_overcharged",
+      "boostMultiplier": 3
     }
   }
 }

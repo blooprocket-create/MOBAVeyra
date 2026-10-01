@@ -226,7 +226,10 @@ bool InitializeStats(UAbilitySystemComponent& AbilitySystem, const FVeyraStatBlo
 		AbilitySystem.SetNumericAttributeBase(Entry.Attribute, static_cast<float>(Entry.Value));
 	}
 	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), AbilitySystem.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()));
-	AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
+	if (!IsResourceKept(AbilitySystem))
+	{
+		AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
+	}
 	return true;
 }
 
@@ -476,11 +479,31 @@ bool Revive(UAbilitySystemComponent& AbilitySystem)
 		return false;
 	}
 	AbilitySystem.SetNumericAttributeBase(UVeyraVitalsSet::GetHealthAttribute(), AbilitySystem.GetNumericAttribute(UVeyraVitalsSet::GetMaxHealthAttribute()));
-	if (AbilitySystem.GetSet<UVeyraResourceSet>())
+	if (AbilitySystem.GetSet<UVeyraResourceSet>() && !IsResourceKept(AbilitySystem))
 	{
 		AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), AbilitySystem.GetNumericAttribute(UVeyraResourceSet::GetMaxResourceAttribute()));
 	}
 	return true;
+}
+
+bool KeepResource(UAbilitySystemComponent& AbilitySystem)
+{
+	for (UAttributeSet* Set : AbilitySystem.GetSpawnedAttributes())
+	{
+		if (UVeyraResourceSet* Resource = Cast<UVeyraResourceSet>(Set))
+		{
+			Resource->SetKept(true);
+			AbilitySystem.SetNumericAttributeBase(UVeyraResourceSet::GetResourceAttribute(), 0.0f);
+			return true;
+		}
+	}
+	return false;
+}
+
+bool IsResourceKept(const UAbilitySystemComponent& AbilitySystem)
+{
+	const UVeyraResourceSet* Resource = AbilitySystem.GetSet<UVeyraResourceSet>();
+	return Resource && Resource->IsKept();
 }
 
 FVeyraPreparedDamage PrepareDamage(UAbilitySystemComponent& Source, const FVeyraRawDamageEvent& Damage)

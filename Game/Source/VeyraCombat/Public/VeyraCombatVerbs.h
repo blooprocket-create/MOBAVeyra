@@ -149,9 +149,19 @@ namespace VeyraCombat
 
 	/**
 	 * Brings a dead unit back for its respawn: alive, with full Health and Resource (Combat Bible
-	 * §18). Returns false if the unit was not dead.
+	 * §18), or the resource it kept (ADR-033 §1). Returns false if the unit was not dead.
 	 */
 	VEYRACOMBAT_API bool Revive(UAbilitySystemComponent& AbilitySystem);
+
+	/**
+	 * Server: the unit's resource empties and is kept from then on, as Charge (ADR-033 §1): initializing
+	 * its stats, reviving it and the fountain leave it be, and only effects restore it. False for a unit
+	 * with no resource.
+	 */
+	VEYRACOMBAT_API bool KeepResource(UAbilitySystemComponent& AbilitySystem);
+
+	/** Whether the unit keeps its resource rather than having it refilled (ADR-033 §1). */
+	VEYRACOMBAT_API bool IsResourceKept(const UAbilitySystemComponent& AbilitySystem);
 
 	/**
 	 * Prepares one damage event from Source (Combat Bible §50): the source's offence, its Damage

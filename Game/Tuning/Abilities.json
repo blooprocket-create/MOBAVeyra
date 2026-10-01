@@ -852,6 +852,22 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": []
+    },
+    "relay_overcharged": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 8,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
     }
   },
   "targetedDamage": {

@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry", "disciplines", "stressTemper"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry", "disciplines", "stressTemper", "charger"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -178,7 +178,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [16]
+      "enum": [17]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -197,9 +197,9 @@
               "enum": ["Playable", "Developer"]
             },
             "resource": {
-              "description": "What the Vanguard spends to cast (Combat Bible §27). Every family is spent, regenerated and refunded alike; Focus has no growth per level and its own colour on the HUD (ADR-031 §1).",
+              "description": "What the Vanguard spends to cast (Combat Bible §27). Every family is spent, regenerated and refunded alike; Focus has no growth per level and its own colour on the HUD (ADR-031 §1). Charge starts empty, never regenerates (its resourceRegen is 0), is kept through death and only effects restore it (ADR-033 §1).",
               "type": "string",
-              "enum": ["Mana", "Focus"]
+              "enum": ["Mana", "Focus", "Charge"]
             },
             "body": {
               "type": "object",
@@ -711,6 +711,25 @@
             "magicPowerRatio": { "type": "number", "minimum": 0 },
             "strikeStatuses": { "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
             "lockout": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+          }
+        }
+      }
+    },
+    "charger": {
+      "description": "Passives that gather Charge from nearby battles (Relay's Charger, Roster Bible §4; ADR-033 §2). Each Fluxborn that dies within radius of the living owner, of either side, gives chargePerDeath of the owner's resource, boostMultiplier times as much while the owner holds boostStatus. Wildlife, Vanguards and structures give none.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "radius", "chargePerDeath", "boostStatus", "boostMultiplier"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "radius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "chargePerDeath": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "boostStatus": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "boostMultiplier": { "type": "number", "minimum": 1 }
           }
         }
       }

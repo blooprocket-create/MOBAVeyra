@@ -51,7 +51,7 @@ Not yet possible:
 **The `charger` map** names:
 - a radius;
 - Charge per Fluxborn death;
-- a boost status, whose magnitude multiplies the Charge given while its owner holds it (Overcharge).
+- a boost status (Overcharge's) and the multiplier the Charge given takes while its owner holds it.
 
 Any Fluxborn's death within the radius of its living owner gives Charge, whatever its side. A death of wildlife, a Vanguard or a structure gives none.
 

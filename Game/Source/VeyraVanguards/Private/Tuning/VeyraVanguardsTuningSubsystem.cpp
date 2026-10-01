@@ -140,6 +140,11 @@ const FVeyraStressTemperTuning* UVeyraVanguardsTuningSubsystem::FindStressTemper
 	return Get().StressTemper.Find(Passive);
 }
 
+const FVeyraChargerTuning* UVeyraVanguardsTuningSubsystem::FindCharger(const FVeyraContentId& Passive)
+{
+	return Get().Charger.Find(Passive);
+}
+
 const FVeyraUnreturnedTuning* UVeyraVanguardsTuningSubsystem::FindUnreturned(const FVeyraContentId& Passive)
 {
 	return Get().Unreturned.Find(Passive);

@@ -54,7 +54,7 @@ CONTENT_ID_PATTERN = "^[a-z][a-z0-9]*(_[a-z0-9]+)*$"
 # the same references in the loading domain, or, when that domain's layer cannot see the other, in
 # a test of the committed tuning.
 ABILITY_ARCHETYPE_MAPS = ("/targetedDamage", "/area", "/selfBuff", "/skillshot", "/dash", "/empoweredAttack", "/volley", "/tether", "/attach", "/ride", "/ambush", "/stance", "/placement", "/blink")
-PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum", "/wildDominion", "/kitStatuses", "/attackStride", "/slipstream", "/reclaim", "/unreturned", "/quarry", "/disciplines", "/stressTemper")
+PASSIVE_MAPS = ("/deepFoundation", "/hitChain", "/gatheringLight", "/breach", "/movingTarget", "/cadence", "/markProc", "/haunt", "/campReward", "/momentum", "/wildDominion", "/kitStatuses", "/attackStride", "/slipstream", "/reclaim", "/unreturned", "/quarry", "/disciplines", "/stressTemper", "/charger")
 REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Match", "/developerMatch/vanguards/*", "Vanguards", ("/vanguards",)),
     ("Vanguards", "/vanguards/*/abilities/q/*", "Abilities", ABILITY_ARCHETYPE_MAPS),
@@ -70,6 +70,7 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Vanguards", "/stressTemper/*/coating", "Abilities", ("/statuses",)),
     ("Vanguards", "/stressTemper/*/strikeStatuses/*", "Abilities", ("/statuses",)),
     ("Vanguards", "/stressTemper/*/lockout", "Abilities", ("/statuses",)),
+    ("Vanguards", "/charger/*/boostStatus", "Abilities", ("/statuses",)),
     ("Vanguards", "/hitChain/*/status", "Abilities", ("/statuses",)),
     ("Vanguards", "/breach/*/impact/statuses/*", "Abilities", ("/statuses",)),
     ("Vanguards", "/movingTarget/*/trackedStatus", "Abilities", ("/statuses",)),

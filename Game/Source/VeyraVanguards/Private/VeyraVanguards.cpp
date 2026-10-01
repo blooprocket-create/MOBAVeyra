@@ -7,6 +7,7 @@
 #include "Loadout/VeyraAbilityLoadoutComponent.h"
 #include "Passives/VeyraAttackStridePassive.h"
 #include "Passives/VeyraBreachPassive.h"
+#include "Passives/VeyraChargerPassive.h"
 #include "Passives/VeyraCampRewardPassive.h"
 #include "Passives/VeyraCadencePassive.h"
 #include "Passives/VeyraDeepFoundationPassive.h"
@@ -111,6 +112,10 @@ TSubclassOf<UVeyraPassive> PassiveClassFor(const FVeyraContentId& PassiveId)
 	{
 		return UVeyraStressTemperPassive::StaticClass();
 	}
+	if (UVeyraVanguardsTuningSubsystem::FindCharger(PassiveId))
+	{
+		return UVeyraChargerPassive::StaticClass();
+	}
 	return nullptr;
 }
 
@@ -131,6 +136,11 @@ FVeyraPreparedVanguard PrepareCombatant(UAbilitySystemComponent& AbilitySystem, 
 	if (!VeyraCombat::InitializeStats(AbilitySystem, Definition->BaseStats) || !Attacks->SetProfile(Definition->BasicAttack))
 	{
 		return FVeyraPreparedVanguard();
+	}
+	// Charge starts empty and is kept (ADR-033 §1).
+	if (Definition->Resource == EVeyraResourceFamily::Charge)
+	{
+		VeyraCombat::KeepResource(AbilitySystem);
 	}
 	const TPair<EVeyraAbilitySlot, const TArray<FVeyraContentId>*> Kit[] = { { EVeyraAbilitySlot::Q, &Definition->Abilities.Q },
 		{ EVeyraAbilitySlot::W, &Definition->Abilities.W }, { EVeyraAbilitySlot::E, &Definition->Abilities.E }, { EVeyraAbilitySlot::R, &Definition->Abilities.R } };
