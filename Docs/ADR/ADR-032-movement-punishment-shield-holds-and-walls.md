@@ -74,6 +74,7 @@ Both follow the shield's own effect, which Combat removes when it empties or exp
 
 - **Arming:** a recast window may name `armingSeconds`. The follow-up then opens that long after the cast commits, rather than at once.
 - **Ending with the marker:** a follow-up ends when the marker of the ability that opened it ends. The rule now lives in one place, a follow-up subsystem, instead of in the placement archetype (ADR-031 §4). It covers placements, walls and self-buff markers alike.
+  - A marker that its own ability's new cast replaces ends `Replaced`, which leaves the new cast's follow-up be.
 
 ### 6. An area at the caster's marker (Abilities)
 

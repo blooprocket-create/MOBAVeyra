@@ -788,6 +788,70 @@
       "arcDegrees": 0,
       "unitKinds": [],
       "landsOn": []
+    },
+    "varkesh_shell_tenacity": {
+      "provenance": "Provisional",
+      "kind": "Tenacity",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 3,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
+    },
+    "varkesh_shell_footing": {
+      "provenance": "Provisional",
+      "kind": "SlowResistance",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.4,
+      "durationSeconds": 3,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
+    },
+    "varkesh_molten_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.25,
+      "durationSeconds": 0.75,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
+    },
+    "varkesh_shatter_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.4,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": []
     }
   },
   "targetedDamage": {
@@ -2176,6 +2240,171 @@
       "casterStatuses": [],
       "healOnHit": [],
       "delayWithin": []
+    },
+    "varkesh_slagshot": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [7, 6.5, 6, 5.5, 5],
+        "resourceCostByRank": [55, 60, 65, 70, 75],
+        "castRange": 850,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.1,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "origin": "TargetPoint",
+      "originAbility": [],
+      "delaySeconds": 0.4,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [70, 110, 150, 190, 230],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.55
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "varkesh_molten_ground": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [80],
+        "castRange": 750,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.1,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "origin": "TargetPoint",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [
+        {
+          "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 650, "width": 220 },
+          "effects": {
+            "damage": [],
+            "statuses": ["varkesh_molten_slow", "varkesh_heated_metal"],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 4,
+          "pulseSeconds": 0.5,
+          "casterStatuses": [],
+          "allyStatuses": [],
+          "enemyStatuses": [],
+          "sight": "None",
+          "pulseEffects": [
+            {
+              "damage": [],
+              "statuses": ["varkesh_molten_slow", "varkesh_heated_metal"],
+              "displacement": [],
+              "missingHealthDamage": [],
+              "unitKindMultipliers": [],
+              "displacementUnlessStatuses": [],
+              "reactions": []
+            }
+          ],
+          "endEffects": [],
+          "endWarningSeconds": 0
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "varkesh_shatterforge": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "origin": "CastersMarker",
+      "originAbility": ["varkesh_forge_divide"],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 400, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [150, 225, 300],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.5
+              }
+            ],
+            "statuses": ["varkesh_shatter_slow"],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
     }
   },
   "selfBuff": {
@@ -2803,6 +3032,70 @@
       ],
       "shieldHolds": [],
       "shieldEndZones": []
+    },
+    "varkesh_tempered_shell": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [70],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "statuses": [],
+      "shields": [
+        {
+          "id": "varkesh_tempered_shell",
+          "category": "Universal",
+          "amountByRank": [70, 105, 140, 175, 210],
+          "maxHealthRatio": 0.06,
+          "magicPowerRatio": 0.4,
+          "durationSeconds": 3,
+          "reapply": "Replace",
+          "maxAmountMaxHealthRatio": 0,
+          "capGroup": [],
+          "absorbedReward": []
+        }
+      ],
+      "aura": [],
+      "heal": [],
+      "recast": "None",
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": [],
+      "attackSecondaryImpact": [],
+      "recipient": "Caster",
+      "recipientZones": [],
+      "marker": [],
+      "shieldHolds": ["varkesh_shell_tenacity", "varkesh_shell_footing"],
+      "shieldEndZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [40, 60, 80, 100, 120],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.2
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
     }
   },
   "skillshot": {
@@ -3215,6 +3508,71 @@
         }
       ],
       "endWall": []
+    },
+    "varkesh_forge_divide": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [130, 110, 90],
+        "resourceCostByRank": [100],
+        "castRange": 1000,
+        "windupSeconds": 0.35,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.2,
+        "recastWindow": [
+          {
+            "ability": "varkesh_shatterforge",
+            "windowSeconds": 3,
+            "onExpiry": "Lapse",
+            "opensWhen": "Always",
+            "heldStatus": [],
+            "fallsWithinSeconds": 0,
+            "armingSeconds": 1
+          }
+        ],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": []
+      },
+      "projectile": { "speed": 1200, "radius": 150, "range": 1000 },
+      "collision": "Pierce",
+      "effects": {
+        "damage": [
+          {
+            "type": "Magic",
+            "amountByRank": [150, 225, 300],
+            "physicalPowerRatio": 0,
+            "magicPowerRatio": 0.5
+          }
+        ],
+        "statuses": [],
+        "displacement": [
+          {
+            "direction": "AsideFromPath",
+            "distance": 100,
+            "speed": 600,
+            "collisionStatuses": []
+          }
+        ],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "casterDash": [],
+      "returnIfHeld": [],
+      "mimic": [],
+      "endWall": [
+        { "length": 600, "thickness": 80, "lifetimeSeconds": 4 }
+      ]
     }
   },
   "dash": {

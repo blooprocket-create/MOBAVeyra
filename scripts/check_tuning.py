@@ -111,7 +111,8 @@ REFERENCES: list[tuple[str, str, str, str | tuple[str, ...]]] = [
     ("Abilities", "/ride/*/vehicle/*", "Abilities", ("/skillshot",)),
     # What a buff's end and its aura put on enemies are statuses (ADR-018 §6).
     ("Abilities", "/selfBuff/*/endPayload/*/status", "Abilities", ("/statuses",)),
-    ("Abilities", "/area/*/originAbility/*", "Abilities", ("/area",)),
+    # A lingering area for CastersLingeringArea; for CastersMarker, whatever leaves the marker (ADR-032 §6).
+    ("Abilities", "/area/*/originAbility/*", "Abilities", ("/area", "/skillshot", "/placement", "/selfBuff")),
     ("Abilities", "/selfBuff/*/shields/*/absorbedReward/*/statuses/*", "Abilities", ("/statuses",)),
     ("Abilities", "/selfBuff/*/shieldHolds/*", "Abilities", ("/statuses",)),
     ("Abilities", "/selfBuff/*/aura/*/enemyStatuses/*", "Abilities", ("/statuses",)),

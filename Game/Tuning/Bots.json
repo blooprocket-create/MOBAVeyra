@@ -295,6 +295,17 @@
         "angeru_severing_arc": "Damage",
         "angeru_passing_step": "Engage"
       }
+    },
+    "varkesh": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "varkesh_slagshot": "Damage",
+        "varkesh_tempered_shell": "Defend",
+        "varkesh_molten_ground": "Damage",
+        "varkesh_forge_divide": "Engage"
+      }
     }
   }
 }

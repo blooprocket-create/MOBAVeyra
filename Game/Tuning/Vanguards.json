@@ -890,6 +890,56 @@
       },
       "rankShape": ["dual_stance"],
       "passive": ["angeru_no_master"]
+    },
+    "varkesh": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 44, "capsuleHalfHeight": 100, "turnRateDegreesPerSecond": 540 },
+      "baseStats": {
+        "maxHealth": 610,
+        "healthRegen": 1.0,
+        "maxResource": 340,
+        "resourceRegen": 3.2,
+        "armor": 30,
+        "magicResist": 32,
+        "physicalPower": 52,
+        "magicPower": 0,
+        "attackSpeed": 0.625,
+        "moveSpeed": 335
+      },
+      "growth": {
+        "maxHealth": 100,
+        "healthRegen": 0.12,
+        "maxResource": 45,
+        "resourceRegen": 0.3,
+        "armor": 4.5,
+        "magicResist": 1.5,
+        "physicalPower": 3,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.015
+      },
+      "basicAttack": {
+        "range": 425,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1500, "radius": 20 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["varkesh_slagshot"],
+        "w": ["varkesh_tempered_shell"],
+        "e": ["varkesh_molten_ground"],
+        "r": ["varkesh_forge_divide"]
+      },
+      "rankShape": [],
+      "passive": ["varkesh_stress_temper"]
     }
   },
   "deepFoundation": {
