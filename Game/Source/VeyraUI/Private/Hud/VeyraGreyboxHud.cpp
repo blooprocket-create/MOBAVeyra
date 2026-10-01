@@ -66,7 +66,7 @@ namespace
 	/** Health with shields after it, the resource under them, and the unit's statuses above. */
 	void DrawOverheadBars(UCanvas& Canvas, const UVeyraGreyboxSubsystem& Greybox, const UVeyraGreyboxSettings& Settings, const APawn& Unit, double Now)
 	{
-		const TOptional<FVeyraHudVitals> Vitals = VeyraHud::VitalsOf(Unit);
+		const TOptional<FVeyraHudVitals> Vitals = VeyraHud::VitalsOf(Unit, Greybox.GetViewerTeam());
 		if (!Vitals || Vitals->MaxHealth <= 0.0 || Unit.IsHidden())
 		{
 			return;
@@ -94,7 +94,7 @@ namespace
 		constexpr float LeastTickGap = 3.0f;
 		const double TickGap = Settings.BarWidth * HealthPerTick / Total;
 		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(&Unit);
-		const bool bVanguardBar = (Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Vanguard) || &VeyraHud::PresentedUnitOf(Unit) != &Unit;
+		const bool bVanguardBar = (Kind.IsSet() && Kind.GetValue() == EVeyraUnitKind::Vanguard) || &VeyraHud::PresentedUnitOf(Unit, Greybox.GetViewerTeam()) != &Unit;
 		if (bVanguardBar && TickGap >= LeastTickGap)
 		{
 			for (int32 Tick = 1; Tick * HealthPerTick < Total; ++Tick)
@@ -158,7 +158,7 @@ namespace
 			Y -= HudLineHeight();
 			DrawHudText(Canvas, FVector2D(TopLeft.X, Y), Species->ToString(), Settings.TextColor);
 		}
-		for (const FVeyraHudStatus& Status : VeyraHud::StatusesOf(Unit, Now))
+		for (const FVeyraHudStatus& Status : VeyraHud::StatusesOf(Unit, Now, Greybox.GetViewerTeam()))
 		{
 			Y -= HudLineHeight();
 			const FString Count = Status.Stacks > 1 ? FString::Printf(TEXT(" x%d"), Status.Stacks) : FString();

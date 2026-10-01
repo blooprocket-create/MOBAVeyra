@@ -96,6 +96,8 @@ void UVeyraQuarryPassive::OnStatusApplied(const FVeyraStatusApplied& Event)
 		VeyraCombat::RemoveStatus(*Last, Tuning->Mark);
 	}
 	Quarry = Marked;
+	const UWorld* World = GetWorld();
+	MarkedUntil = (World ? World->GetTimeSeconds() : 0.0) + (Event.EndsAt - Event.StartsAt);
 }
 
 void UVeyraQuarryPassive::Sample()
@@ -153,9 +155,13 @@ void UVeyraQuarryPassive::OnAttackLands(const FVeyraAttackEvent& Event)
 	{
 		return;
 	}
-	// Spent: the mark goes, and her basic abilities come back sooner.
+	// Spent: the mark goes, and her basic abilities come back sooner. It stays her quarry for this attack's
+	// own damage, which lands next: a lethal spend still sends the mark on.
 	VeyraCombat::RemoveStatus(*Held, Tuning->Mark);
-	Quarry.Reset();
+	if (const UWorld* World = GetWorld())
+	{
+		MarkedUntil = World->GetTimeSeconds();
+	}
 	const EVeyraAbilitySlot Basic[] = { EVeyraAbilitySlot::Q, EVeyraAbilitySlot::W, EVeyraAbilitySlot::E };
 	VeyraAbilities::RefundCooldowns(*Owner, Basic, Tuning->CooldownRefund);
 }
@@ -170,7 +176,13 @@ void UVeyraQuarryPassive::OnDeath(const FVeyraDeathEvent& Death)
 	{
 		return;
 	}
+	// Only while it was It: a mark that ran out, or was spent before this death, sends nothing on.
+	const bool bWasIt = World->GetTimeSeconds() <= MarkedUntil;
 	Quarry.Reset();
+	if (!bWasIt)
+	{
+		return;
+	}
 	const AActor* Where = Fallen->GetAvatarActor();
 	const AActor* Body = Owner->GetAvatarActor();
 	if (Death.CreditedKiller.Get() != Owner || !Where || !Body)

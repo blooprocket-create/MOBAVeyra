@@ -93,6 +93,35 @@ namespace VeyraVanguardsTests
 			return Rejection;
 		}
 
+		TEST_METHOD(ALethalSpendingAttackStillSendsTheMarkOn)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			AVeyraVanguardCharacter& Next = World.Spawn(EVeyraTeam::B, FVector(Near, Near, 0.0));
+			MarkIt(Enemy);
+			// Left with a single point of Health, so the attack that spends the mark is the last.
+			FVeyraRawDamageEvent Wound;
+			Wound.Components.Add({ EVeyraDamageType::TrueDamage, VeyraCombatTests::ExampleStats().MaxHealth - 1.0 });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Tavi->GetAbilitySystemComponent(), *Enemy.GetAbilitySystemComponent(), Wound)));
+			ASSERT_THAT(IsTrue(AttackNow(Enemy) == EVeyraAttackRejection::None));
+			ASSERT_THAT(IsFalse(VeyraTargeting::IsAlive(&Enemy)));
+			ASSERT_THAT(IsTrue(IsIt(Next), TEXT("It fell to her as the mark was spent, so the mark jumps")));
+		}
+
+		TEST_METHOD(AMarkThatRanOutSendsNothingOnWhenItsHolderFalls)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Enemy = World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			AVeyraVanguardCharacter& Next = World.Spawn(EVeyraTeam::B, FVector(Near, Near, 0.0));
+			MarkIt(Enemy);
+			Wait(UVeyraAbilitiesTuningSubsystem::FindStatus(Tuning().Mark)->DurationSeconds + Step * 2.0);
+			ASSERT_THAT(IsFalse(IsIt(Enemy), TEXT("the mark ran out")));
+			FVeyraRawDamageEvent Lethal;
+			Lethal.Components.Add({ EVeyraDamageType::TrueDamage, VeyraCombatTests::ExampleStats().MaxHealth * 2.0 });
+			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Tavi->GetAbilitySystemComponent(), *Enemy.GetAbilitySystemComponent(), Lethal)));
+			ASSERT_THAT(IsFalse(IsIt(Next), TEXT("no longer It, its fall sends nothing on")));
+		}
+
 		TEST_METHOD(OnlyOneEnemyIsItAtATime)
 		{
 			FArchetypeTestWorld World{ Spawner };

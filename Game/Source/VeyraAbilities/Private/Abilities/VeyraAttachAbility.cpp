@@ -111,7 +111,8 @@ void UVeyraAttachAbility::TakeHold()
 	const AActor* Body = Caster ? Caster->GetAvatarActor() : nullptr;
 	UAbilitySystemComponent* Host = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Target);
 	UVeyraMovementComponent* Movement = Watched.Get();
-	const bool bInReach = Body && Target && Tuning && VeyraTargeting::IsAlive(Target) && VeyraTargeting::AreHostile(Body, Target)
+	// What became Untargetable during the leap or the windup is passed over, as any enemy effect passes it (ADR-030 §2).
+	const bool bInReach = Body && Target && Tuning && VeyraTargeting::IsAlive(Target) && VeyraTargeting::CanHitEnemy(Caster->GetOwner(), *Target)
 		&& VeyraTargeting::EdgeToEdgeDistance(*Body, *Target) <= Tuning->ReachOnArrival;
 	// A Spell Shield blocks the whole grab before it takes hold: no hold, hit or status (Combat Bible §19; ADR-025 §4).
 	if (!bInReach || !Host || !Movement || VeyraCombat::BlockAbilityHit(*Host, *Caster) || !VeyraCombat::Attach(*Caster, *Target, Tuning->AttachSeconds))

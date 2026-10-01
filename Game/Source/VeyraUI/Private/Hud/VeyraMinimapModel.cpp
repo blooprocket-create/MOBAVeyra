@@ -118,7 +118,9 @@ FVeyraMinimapView Describe(const UWorld& World, const FVeyraMinimapFrame& Frame,
 		case EVeyraUnitKind::Marker:
 		{
 			const AVeyraPlacedMarker* Marker = Cast<AVeyraPlacedMarker>(Unit);
-			Dot.Kind = Marker && Marker->GetPresentedAs() ? EVeyraMinimapDot::Vanguard : EVeyraMinimapDot::Ward;
+			// A decoy is a Vanguard to its owner's enemies, and the illusion it is to its owner's side (ADR-030 §5).
+			const bool bDeceives = Marker && Marker->GetPresentedAs() && Viewer != EVeyraTeam::None && Viewer != Marker->GetVeyraTeam();
+			Dot.Kind = bDeceives ? EVeyraMinimapDot::Vanguard : EVeyraMinimapDot::Ward;
 			break;
 		}
 		}
