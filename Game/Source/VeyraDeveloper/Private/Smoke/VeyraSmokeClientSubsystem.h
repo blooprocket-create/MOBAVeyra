@@ -129,6 +129,8 @@ private:
 	FVeyraContentId KitCastAbility;
 	/** -VeyraSmokeKit: when the slot being cast was first refused, in real seconds. */
 	TOptional<double> KitFirstRefusedAt;
+	/** -VeyraSmokeKit: whether this slot's cast has asked for the developer heal, which fills a resource (ADR-033 §1). */
+	bool bKitAskedForResource = false;
 	FDelegateHandle NetworkFailureHandle;
 	FDelegateHandle TravelFailureHandle;
 	double StartRealTime = 0.0;

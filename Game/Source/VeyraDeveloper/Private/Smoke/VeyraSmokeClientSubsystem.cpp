@@ -452,6 +452,7 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 			bKitCastPending = false;
 			KitCastAttempts = 0;
 			KitFirstRefusedAt.Reset();
+			bKitAskedForResource = false;
 			if (++KitSlotIndex == UE_ARRAY_COUNT(VeyraAbilitySlots::All))
 			{
 				KitRejectionsBefore = Controller.GetOrderRejectionCount();
@@ -471,6 +472,13 @@ void UVeyraSmokeClientSubsystem::TickKitCast(AVeyraPlayerController& Controller,
 			{
 				Finish(false, FString::Printf(TEXT("the server refused %s %d time(s), last: %s"), *Entry->Ability.ToString(), KitCastAttempts, LexToString(Rejection)));
 				return;
+			}
+			// A resource only effects restore, as Charge, may hold nothing yet in a duel with no Fluxborn: the
+			// developer heal fills it, once for the slot (ADR-033 §1).
+			if (Rejection == EVeyraCastRejection::InsufficientResource && !bKitAskedForResource)
+			{
+				VeyraDevCommands::Request(Controller, TEXT("Heal"), {});
+				bKitAskedForResource = true;
 			}
 			// Refused while something passing held the Vanguard, such as another cast or crowd control: try again.
 			UE_LOG(LogVeyraSmoke, Display, TEXT("VeyraSmoke: %s refused (%s); trying again."), *Entry->Ability.ToString(), LexToString(Rejection));
