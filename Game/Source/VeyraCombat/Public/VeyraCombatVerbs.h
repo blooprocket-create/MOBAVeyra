@@ -163,6 +163,12 @@ namespace VeyraCombat
 	/** Whether the unit keeps its resource rather than having it refilled (ADR-033 §1). */
 	VEYRACOMBAT_API bool IsResourceKept(const UAbilitySystemComponent& AbilitySystem);
 
+	/** Server: Attacker's basic attack committed, spending one of each status attacks spend (ADR-033 §4). */
+	VEYRACOMBAT_API void NoteAttackCommitted(UAbilitySystemComponent& Attacker);
+
+	/** What share of an ability's cost Unit pays now, after its ResourceCostReduction statuses (ADR-033 §3): 1 with none. */
+	VEYRACOMBAT_API double GetCostShare(const UAbilitySystemComponent& Unit);
+
 	/**
 	 * Prepares one damage event from Source (Combat Bible §50): the source's offence, its Damage
 	 * Amplification and penetration, is fixed now, while each target's defences are read when it is

@@ -174,6 +174,11 @@ enum class EVeyraStatusKind : uint8
 	 * cleanses nothing. Magnitude: 0.
 	 */
 	Untargetable,
+	/**
+	 * ResourceCostReduction (ADR-033 §3): the unit's abilities cost less, each reduction leaving its share
+	 * of the cost. Magnitude: the share taken off, above 0 and below 1 with every stack.
+	 */
+	ResourceCostReduction,
 };
 
 /** How a new application meets an active status with the same ID (Combat Bible §46). */
@@ -269,6 +274,10 @@ struct VEYRACOMBAT_API FVeyraStatusSpec
 	/** The kinds of unit it lands on, as Korruk's Splinters embed only in Vanguards (ADR-026 §2); empty for every kind. */
 	UPROPERTY()
 	TArray<EVeyraUnitKind> LandsOn;
+
+	/** How many of its holder's basic attacks it lasts, each that commits spending one (ADR-033 §4); 0 for a status attacks do not spend. */
+	UPROPERTY()
+	int32 AttackCharges = 0;
 };
 
 /** One active status as every machine sees it. Replicated for presentation. */
@@ -300,6 +309,10 @@ struct FVeyraStatusEntry
 
 	UPROPERTY()
 	double EndsAt = 0.0;
+
+	/** The basic attacks it has left before it ends (ADR-033 §4); 0 for one attacks do not spend. */
+	UPROPERTY()
+	int32 AttackCharges = 0;
 };
 
 /** A unit's active statuses. */

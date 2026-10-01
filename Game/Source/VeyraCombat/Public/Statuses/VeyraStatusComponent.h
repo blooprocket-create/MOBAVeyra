@@ -99,6 +99,9 @@ public:
 	 */
 	void NotifyInterrupted();
 
+	/** Server: its holder's basic attack committed; each status attacks spend loses one, and ends with its last (ADR-033 §4). */
+	void NoteAttackCommitted();
+
 	/** Server only: raised by NotifyInterrupted and whenever a Stun lands. */
 	TMulticastDelegate<void()> OnInterrupted;
 

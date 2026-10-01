@@ -72,6 +72,7 @@ namespace
 		case EVeyraStatusKind::Grounded:
 		case EVeyraStatusKind::Invisible:
 		case EVeyraStatusKind::Untargetable:
+		case EVeyraStatusKind::ResourceCostReduction:
 			break;
 		}
 		return NAME_None;
@@ -210,6 +211,8 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 	Entry->Stacks = Stacks;
 	Entry->StartedAt = Now;
 	Entry->EndsAt = EndsAt;
+	// A new application gives its attacks afresh (ADR-033 §4).
+	Entry->AttackCharges = Spec.AttackCharges;
 	// The entry points at its new effect already, so removing the old one leaves the entry in place.
 	if (Replaced.IsValid())
 	{
@@ -233,6 +236,32 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 void UVeyraStatusComponent::NotifyInterrupted()
 {
 	OnInterrupted.Broadcast();
+}
+
+void UVeyraStatusComponent::NoteAttackCommitted()
+{
+	TArray<FVeyraContentId, TInlineAllocator<2>> Spent;
+	bool bChanged = false;
+	for (FVeyraStatusEntry& Entry : Ledger.Entries)
+	{
+		if (Entry.AttackCharges > 0)
+		{
+			bChanged = true;
+			if (--Entry.AttackCharges == 0)
+			{
+				Spent.AddUnique(Entry.Id);
+			}
+		}
+	}
+	// The last attack it lasted ends it.
+	for (const FVeyraContentId& Id : Spent)
+	{
+		Remove(Id);
+	}
+	if (bChanged && Spent.IsEmpty())
+	{
+		MarkLedgerChanged();
+	}
 }
 
 void UVeyraStatusComponent::ExtendForTakedown()

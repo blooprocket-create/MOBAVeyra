@@ -266,6 +266,8 @@ void UVeyraBasicAttackComponent::Commit()
 	FLandingAttack Landing = Prepare(*Attacker, *Body, Plan);
 	Landing.Event.bMissed = bMissed;
 	OnAttack.Broadcast(Landing.Event);
+	// Each status its attacks spend loses one, a miss's as much as a hit's (ADR-033 §4).
+	VeyraCombat::NoteAttackCommitted(*Attacker);
 
 	if (!Landing.Event.bMissed && Profile.Projectile.IsEmpty())
 	{

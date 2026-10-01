@@ -90,6 +90,7 @@ TArray<FString> Validate(const FVeyraStatusSpec& Spec)
 		bMagnitudeValid &= Magnitude > 0.0 && Spec.MaxStacks == 1;
 		break;
 	case EVeyraStatusKind::SlowResistance:
+	case EVeyraStatusKind::ResourceCostReduction:
 		bMagnitudeValid &= Magnitude > 0.0 && AllStacks < 1.0;
 		break;
 	case EVeyraStatusKind::Planted:

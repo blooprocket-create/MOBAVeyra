@@ -3,6 +3,7 @@
 #include "Abilities/VeyraGameplayAbility.h"
 
 #include "Movement/VeyraMovementComponent.h"
+#include "Attributes/VeyraResourceSet.h"
 #include "Units/VeyraUnit.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
@@ -131,7 +132,10 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckCast(const UAbilitySystemCompone
 	{
 		return EVeyraCastRejection::OnCooldown;
 	}
-	if (!VeyraCombat::CanAffordResource(Caster, GetResourceCost(Ability, Rank)))
+	// It may need a least of the resource held, as well as its cost (ADR-033 §3).
+	const FVeyraCastTuning* Costs = GetCastTuning(Ability);
+	const double Held = Caster.GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
+	if (!VeyraCombat::CanAffordResource(Caster, CostFor(Caster, Ability, Rank)) || (Costs && !Costs->MinimumResource.IsEmpty() && Held < Costs->MinimumResource[0]))
 	{
 		return EVeyraCastRejection::InsufficientResource;
 	}
@@ -318,6 +322,17 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckEnemyUnit(const AActor& Caster, 
 		return EVeyraCastRejection::InvalidTarget;
 	}
 	return EVeyraCastRejection::InvalidTarget;
+}
+
+double UVeyraGameplayAbility::CostFor(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, int32 Rank) const
+{
+	double Cost = GetResourceCost(Ability, Rank);
+	const FVeyraCastTuning* Costs = GetCastTuning(Ability);
+	if (Costs && !Costs->CurrentResourceFraction.IsEmpty())
+	{
+		Cost += Costs->CurrentResourceFraction[0] * Caster.GetNumericAttribute(UVeyraResourceSet::GetResourceAttribute());
+	}
+	return Cost * VeyraCombat::GetCostShare(Caster);
 }
 
 void UVeyraGameplayAbility::EndRecastWindow(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
@@ -613,7 +628,7 @@ bool UVeyraGameplayAbility::CheckCost(const FGameplayAbilitySpecHandle Handle, c
 	{
 		return false;
 	}
-	return EndsEarlyOnRecast(*AbilitySystem, Ability) || VeyraCombat::CanAffordResource(*AbilitySystem, GetResourceCost(Ability, GetCommitRank(*AbilitySystem, Ability)));
+	return EndsEarlyOnRecast(*AbilitySystem, Ability) || VeyraCombat::CanAffordResource(*AbilitySystem, CostFor(*AbilitySystem, Ability, GetCommitRank(*AbilitySystem, Ability)));
 }
 
 void UVeyraGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo,
@@ -621,7 +636,7 @@ void UVeyraGameplayAbility::ApplyCost(const FGameplayAbilitySpecHandle Handle, c
 {
 	UAbilitySystemComponent* AbilitySystem = ActorInfo ? ActorInfo->AbilitySystemComponent.Get() : nullptr;
 	const FVeyraContentId Ability = GetContentId(Handle, ActorInfo);
-	if (AbilitySystem && !VeyraCombat::SpendResource(*AbilitySystem, GetResourceCost(Ability, GetCommitRank(*AbilitySystem, Ability))))
+	if (AbilitySystem && !VeyraCombat::SpendResource(*AbilitySystem, CostFor(*AbilitySystem, Ability, GetCommitRank(*AbilitySystem, Ability))))
 	{
 		// CommitAbility checked the cost a moment ago, so this means the rules changed underneath it.
 		UE_LOG(LogVeyraAbilities, Error, TEXT("%s committed but could not pay its cost."), *GetNameSafe(this));

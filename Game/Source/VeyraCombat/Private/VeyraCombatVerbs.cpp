@@ -506,6 +506,22 @@ bool IsResourceKept(const UAbilitySystemComponent& AbilitySystem)
 	return Resource && Resource->IsKept();
 }
 
+void NoteAttackCommitted(UAbilitySystemComponent& Attacker)
+{
+	const AActor* Owner = Attacker.GetOwner();
+	if (UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr)
+	{
+		Statuses->NoteAttackCommitted();
+	}
+}
+
+double GetCostShare(const UAbilitySystemComponent& Unit)
+{
+	const AActor* Owner = Unit.GetOwner();
+	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses ? Statuses->GetRetained(EVeyraStatusKind::ResourceCostReduction) : 1.0;
+}
+
 FVeyraPreparedDamage PrepareDamage(UAbilitySystemComponent& Source, const FVeyraRawDamageEvent& Damage)
 {
 	TArray<EVeyraDamageType, TInlineAllocator<3>> Types;

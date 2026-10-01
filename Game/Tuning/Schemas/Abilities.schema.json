@@ -27,7 +27,7 @@
       "description": "How a cast is timed and paid for (Combat Bible §26, §27, §48; ADR-008 §4).",
       "type": "object",
       "additionalProperties": false,
-      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold", "targetMustNotHold", "takedownRefund"],
+      "required": ["cooldownSecondsByRank", "resourceCostByRank", "castRange", "windupSeconds", "windupMovement", "recoverySeconds", "recastWindow", "targetMustHold", "targetMustNotHold", "takedownRefund", "currentResourceFraction", "minimumResource"],
       "properties": {
         "cooldownSecondsByRank": { "description": "Cooldown in seconds, starting at Commit.", "$ref": "#/definitions/byRank" },
         "resourceCostByRank": { "description": "Resource paid at Commit.", "$ref": "#/definitions/byRank" },
@@ -78,7 +78,9 @@
           "minItems": 0,
           "maxItems": 1,
           "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 }
-        }
+        },
+        "currentResourceFraction": { "description": "At most one: the share of the caster's current resource it also costs, above 0 and at most 1, paid at Commit with the cost by rank (Combat Bible §27; ADR-033 §3).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 } },
+        "minimumResource": { "description": "At most one: the resource, above 0, the caster must hold to cast it at all (ADR-033 §3).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "number", "minimum": 0, "exclusiveMinimum": true } }
       }
     },
     "recastWindow": {
@@ -275,7 +277,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [17]
+      "enum": [18]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -300,12 +302,12 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds", "arcDegrees", "unitKinds", "atMaxStacks", "landsOn"],
+          "required": ["provenance", "kind", "stacking", "magnitude", "durationSeconds", "maxStacks", "takedownExtensionSeconds", "takedownExtensionMaxSeconds", "damageOverTime", "stackDecaySeconds", "arcDegrees", "unitKinds", "atMaxStacks", "landsOn", "attackCharges"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack", "Blind", "Grounded", "Invisible", "Untargetable"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack", "Blind", "Grounded", "Invisible", "Untargetable", "ResourceCostReduction"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -351,7 +353,8 @@
               "maxItems": 6,
               "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] }
             },
-            "landsOn": { "description": "The kinds of unit it lands on (EVeyraUnitKind), empty for every kind, as Splinters embed only in Vanguards (ADR-026 §2).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] } }
+            "landsOn": { "description": "The kinds of unit it lands on (EVeyraUnitKind), empty for every kind, as Splinters embed only in Vanguards (ADR-026 §2).", "type": "array", "minItems": 0, "maxItems": 6, "items": { "type": "string", "enum": ["Vanguard", "Fluxborn", "Structure", "Wildlife", "Objective", "Ward", "Marker"] } },
+            "attackCharges": { "description": "How many of its holder's basic attacks it lasts, each that commits spending one (ADR-033 §4); 0 for a status attacks do not spend.", "type": "integer", "minimum": 0 }
           }
         }
       }

@@ -169,6 +169,17 @@ struct FVeyraCastTuning
 	 */
 	UPROPERTY()
 	TArray<double> TakedownRefund;
+
+	/**
+	 * At most one: the share of its caster's current resource it also costs, above 0 and at most 1, paid at
+	 * Commit with the cost by rank (Combat Bible §27; ADR-033 §3), as Rapid Discharge's share of Charge.
+	 */
+	UPROPERTY()
+	TArray<double> CurrentResourceFraction;
+
+	/** At most one: the resource, above 0, its caster must hold to cast it at all (ADR-033 §3). */
+	UPROPERTY()
+	TArray<double> MinimumResource;
 };
 
 /** One damage component, from the caster's rank and power at Commit (Combat Bible §25, §50). */
@@ -421,6 +432,10 @@ struct FVeyraStatusTuning
 	/** The kinds of unit it lands on, empty for every kind (ADR-026 §2). */
 	UPROPERTY()
 	TArray<EVeyraUnitKind> LandsOn;
+
+	/** How many of its holder's basic attacks it lasts, each that commits spending one (ADR-033 §4); 0 for a status attacks do not spend. */
+	UPROPERTY()
+	int32 AttackCharges = 0;
 };
 
 /** Where an area is placed. */
@@ -1726,7 +1741,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 17;
+	static constexpr int32 SchemaVersion = 18;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

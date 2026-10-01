@@ -91,6 +91,15 @@ namespace
 			{
 				Problem(Pointer + TEXT("/targetMustNotHold"), TEXT("names at most one status"));
 			}
+			// A share of the current resource, and a least the caster must hold (ADR-033 §3).
+			if (Cast.CurrentResourceFraction.Num() > 1 || Cast.CurrentResourceFraction.ContainsByPredicate([](double Share) { return !(Share > 0.0 && Share <= 1.0); }))
+			{
+				Problem(Pointer + TEXT("/currentResourceFraction"), TEXT("holds at most one share, above 0 and at most 1"));
+			}
+			if (Cast.MinimumResource.Num() > 1 || Cast.MinimumResource.ContainsByPredicate([](double Least) { return !(Least > 0.0); }))
+			{
+				Problem(Pointer + TEXT("/minimumResource"), TEXT("holds at most one amount, above 0"));
+			}
 			CheckStatusIds(Pointer + TEXT("/targetMustNotHold"), Cast.TargetMustNotHold);
 			if (Cast.TakedownRefund.Num() > 1 || Cast.TakedownRefund.ContainsByPredicate([](double Fraction) { return !(Fraction > 0.0 && Fraction <= 1.0); }))
 			{
@@ -914,6 +923,7 @@ FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTunin
 	Spec.LandsOn = Status.LandsOn;
 	Spec.TakedownExtensionSeconds = Status.TakedownExtensionSeconds;
 	Spec.TakedownExtensionMaxSeconds = Status.TakedownExtensionMaxSeconds;
+	Spec.AttackCharges = Status.AttackCharges;
 	if (!Status.DamageOverTime.IsEmpty())
 	{
 		const FVeyraDamageOverTimeTuning& Ticks = Status.DamageOverTime[0];
