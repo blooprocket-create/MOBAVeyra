@@ -408,6 +408,25 @@ The Doom amounts, threshold, bonus-damage ratio, and item stat values are protot
 
 Damaging an enemy Vanguard with one ability primes them. The next damaging ability against that target within a short window consumes the prime and deals bonus magic damage.
 
+### Memoryglass Reliquary
+
+**Recipe:** Nullglass Shard + Catalyst Coil + Arc Crystal + Tier 3 recipe  
+**Stat identity:** High Magic Power + flat Magic Penetration + Ability Haste.
+
+**Attunement — Reenactment**
+
+After going a short period without damaging an enemy Vanguard, the first damaging ability the holder lands on an enemy Vanguard is **Remembered**.
+
+The Reliquary records the target, the actual post-mitigation damage dealt by that hit, and the holder's position when the ability was cast.
+
+For a short window, if the holder damages that same Vanguard again after meaningfully repositioning away from the recorded cast position, the memory shatters and a spectral reenactment of the original wound deals a percentage of the recorded damage again as magic damage. The memory is then consumed.
+
+Reenactment copies only the recorded wound. It does not reproduce crowd control, marks, on-hit effects, item effects, secondary spell effects, or other attached properties from the remembered ability.
+
+The reposition requirement is deliberate: Memoryglass Reliquary rewards mobile burst sequences and changing attack angles rather than stationary repeated casting. Exact out-of-combat timing, memory window, required displacement, replay percentage, and stat values are prototype tuning values.
+
+Its visual identity draws from Merrin's relationship with repeated memory: a faint memory-image of the caster remains at the original casting location, then performs the remembered strike when Reenactment triggers before fracturing away like glass.
+
 ### Arc Reactor
 
 **Recipe:** Catalyst Coil + Catalyst Coil + Timing Coil + Tier 3 recipe  
