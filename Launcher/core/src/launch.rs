@@ -1,9 +1,9 @@
-//! Signing in and launching the game (ADR-005 L3–L4, ADR-010 §5): the development sign-in, the game
+//! Launching the game for a signed-in player (ADR-005 L3–L4, ADR-010 §5, ADR-038): the game
 //! started with pipes for its standard input and output, and the launch handshake. On success the
 //! game keeps running and the launcher's work is done; on failure the game is stopped, so a retry
 //! starts afresh.
 
-use crate::backend::{Backend, BackendError};
+use crate::backend::{Backend, BackendError, LauncherSession};
 use crate::config::{LoadedConfig, LAUNCH_CODE_SWITCH};
 use crate::handshake::{self, GameOutput, HandshakeError, Stage, Timing};
 use crate::manifest::GameBuild;
@@ -160,10 +160,22 @@ pub fn sign_in_and_launch(
     extra_arguments: &[String],
     progress: &mut dyn FnMut(LaunchStage),
 ) -> Result<Launched, LaunchError> {
-    let backend = Backend::new(&config.config.backend.base_url, config.http_timeout());
     progress(LaunchStage::SigningIn);
+    let backend = Backend::new(&config.config.backend.base_url, config.http_timeout());
     let session = backend.dev_login(account).map_err(LaunchError::SignIn)?;
+    launch(config, build, &session, extra_arguments, progress)
+}
 
+/// Starts `build` for the player signed in as `session` and hands it a launch code. The
+/// configuration's game arguments come first, then `extra_arguments`.
+pub fn launch(
+    config: &LoadedConfig,
+    build: &GameBuild,
+    session: &LauncherSession,
+    extra_arguments: &[String],
+    progress: &mut dyn FnMut(LaunchStage),
+) -> Result<Launched, LaunchError> {
+    let backend = Backend::new(&config.config.backend.base_url, config.http_timeout());
     progress(LaunchStage::StartingGame);
     let mut arguments = config.config.game.arguments.clone();
     arguments.extend_from_slice(extra_arguments);
@@ -173,7 +185,7 @@ pub fn sign_in_and_launch(
         await_ready: config.await_ready(),
         await_sign_in: config.await_sign_in(),
     };
-    let mut issue = || backend.issue_launch_code(&session, &build.version);
+    let mut issue = || backend.issue_launch_code(session, &build.version);
     let mut on_stage = |stage: Stage| {
         progress(match stage {
             Stage::WaitingForGame => LaunchStage::WaitingForGame,
@@ -184,7 +196,7 @@ pub fn sign_in_and_launch(
     match handshake::run(&game.output, Box::new(input), timing, &mut issue, &mut on_stage) {
         Ok(()) => Ok(Launched {
             process_id: game.id(),
-            display_name: session.display_name,
+            display_name: session.display_name.clone(),
         }),
         Err(error) => {
             // A game that did not sign in cannot: its code works once. A retry starts a new one.

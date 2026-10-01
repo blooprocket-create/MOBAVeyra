@@ -19,6 +19,15 @@
     "enabled": true,
     "accounts": ["DevOne", "DevTwo", "DevThree", "DevFour", "DevFive", "DevSix", "DevSeven", "DevEight", "DevNine", "DevTen"]
   },
+  "playerLogin": {
+    "provider": "firebase",
+    "firebase": {
+      "projectId": "veyra-58ea4",
+      "keysUrl": "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
+      "keysFetchTimeout": "10s",
+      "clockSkew": "30s"
+    }
+  },
   "party": {
     "maxSize": 5,
     "inviteLifetime": "2m",
