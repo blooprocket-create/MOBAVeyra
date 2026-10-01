@@ -673,12 +673,14 @@ void UVeyraMovementComponent::BendThroughFields(FVector& Direction, double& Dist
 	const FVector Start = UpdatedComponent->GetComponentLocation();
 	const FVector Bent = Fields->Bend(VeyraTeams::TeamOf(CharacterOwner), Start, Start + Direction.GetSafeNormal2D() * Distance);
 	const FVector Offset(Bent.X - Start.X, Bent.Y - Start.Y, 0.0);
-	// A move bent onto its own start keeps its way, going nowhere far.
-	if (!Offset.IsNearlyZero())
+	// A move bent onto its own start goes nowhere: it ends where it began.
+	if (Offset.IsNearlyZero())
 	{
-		Direction = Offset.GetSafeNormal();
-		Distance = Offset.Size();
+		Distance = 0.0;
+		return;
 	}
+	Direction = Offset.GetSafeNormal();
+	Distance = Offset.Size();
 }
 
 void UVeyraMovementComponent::AnnounceOwnMove(EVeyraOwnMove Move, const FVector& From) const

@@ -102,6 +102,8 @@ private:
 	FVeyraContentId AuraAbility;
 	double AuraEndsAt = 0.0;
 	FTimerHandle AuraTimer;
+	/** The units the aura under way gave its statuses, whose grants StopAura ends. */
+	TArray<TWeakObjectPtr<UAbilitySystemComponent>> AuraGranted;
 
 	/** An end payload under way (ADR-018 §6): counts the hostile hits its caster takes until it comes. */
 	void StartPayload(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);

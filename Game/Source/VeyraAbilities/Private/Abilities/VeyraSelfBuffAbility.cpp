@@ -590,6 +590,7 @@ void UVeyraSelfBuffAbility::RefreshAura()
 			if (Target && Status.IsSet())
 			{
 				VeyraCombat::ApplyStatus(*Caster, *Target, Status.GetValue());
+				AuraGranted.AddUnique(Target);
 			}
 		}
 	}
@@ -609,6 +610,7 @@ void UVeyraSelfBuffAbility::RefreshAura()
 				if (Target && Status.IsSet())
 				{
 					VeyraCombat::ApplyStatus(*Caster, *Target, Status.GetValue());
+					AuraGranted.AddUnique(Target);
 				}
 			}
 		}
@@ -629,6 +631,7 @@ void UVeyraSelfBuffAbility::RefreshAura()
 			if (Target && Status.IsSet())
 			{
 				VeyraCombat::ApplyStatus(*Caster, *Target, Status.GetValue());
+				AuraGranted.AddUnique(Target);
 			}
 		}
 	}
@@ -793,6 +796,29 @@ void UVeyraSelfBuffAbility::StopAura()
 	{
 		World->GetTimerManager().ClearTimer(AuraTimer);
 	}
+	// What the aura gave lasts no longer than the aura, however it ends: its time, its holder, a recast or
+	// a drain (ADR-033 §6). Only the caster's grants go; another's of the same status stay.
+	const UAbilitySystemComponent* Caster = AuraCaster.Get();
+	const FVeyraSelfBuffAbilityTuning* Buff = UVeyraAbilitiesTuningSubsystem::FindSelfBuff(AuraAbility);
+	if (Caster && Buff && !Buff->Aura.IsEmpty())
+	{
+		const FVeyraAuraTuning& Aura = Buff->Aura[0];
+		for (const TWeakObjectPtr<UAbilitySystemComponent>& Granted : AuraGranted)
+		{
+			UAbilitySystemComponent* Unit = Granted.Get();
+			for (const TArray<FVeyraContentId>* Given : { &Aura.AllyStatuses, &Aura.AllyFluxbornStatuses, &Aura.EnemyStatuses })
+			{
+				for (const FVeyraContentId& StatusId : *Given)
+				{
+					if (Unit)
+					{
+						VeyraCombat::RemoveStatusFrom(*Unit, StatusId, *Caster);
+					}
+				}
+			}
+		}
+	}
+	AuraGranted.Reset();
 	AuraCaster = nullptr;
 	AuraHolder = nullptr;
 	AuraAbility = FVeyraContentId();

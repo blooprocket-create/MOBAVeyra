@@ -246,6 +246,9 @@ namespace VeyraCombat
 	/** Ends Target's status Id early, from every source, as when a recast ends a buff. Returns whether it had one. */
 	VEYRACOMBAT_API bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id);
 
+	/** Ends Target's status Id early where Source gave it, as an aura's grants end with the aura. Returns whether it had one from Source. */
+	VEYRACOMBAT_API bool RemoveStatusFrom(UAbilitySystemComponent& Target, const FVeyraContentId& Id, const UAbilitySystemComponent& Source);
+
 	/**
 	 * Whether a Spell Shield Target holds blocks a hostile ability hit from Source (Combat Bible §19;
 	 * ADR-025 §4). If so, the shield is consumed and announced, and the hit must deal no damage, apply

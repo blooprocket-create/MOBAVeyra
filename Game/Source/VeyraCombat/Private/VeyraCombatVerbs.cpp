@@ -802,6 +802,13 @@ bool RemoveStatus(UAbilitySystemComponent& Target, const FVeyraContentId& Id)
 	return Statuses && Statuses->Remove(Id);
 }
 
+bool RemoveStatusFrom(UAbilitySystemComponent& Target, const FVeyraContentId& Id, const UAbilitySystemComponent& Source)
+{
+	AActor* TargetOwner = Target.GetOwner();
+	UVeyraStatusComponent* Statuses = TargetOwner ? TargetOwner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->RemoveFrom(Id, Source);
+}
+
 bool BlockAbilityHit(UAbilitySystemComponent& Target, UAbilitySystemComponent& Source)
 {
 	AActor* TargetOwner = Target.GetOwner();

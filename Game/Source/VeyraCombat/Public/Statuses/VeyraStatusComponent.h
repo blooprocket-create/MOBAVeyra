@@ -46,6 +46,9 @@ public:
 	/** Server only: ends status Id early, from every source. Returns whether the unit had it. */
 	bool Remove(const FVeyraContentId& Id);
 
+	/** Server only: ends status Id early where Source gave it, and leaves others' be. Returns whether the unit had it from Source. */
+	bool RemoveFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source);
+
 	/**
 	 * Server only: the unit took part in a takedown (Combat Bible §18). Each status that takedowns
 	 * extend gains its extension, up to its maximum in all (ADR-009 §1).
@@ -135,6 +138,8 @@ private:
 	void OnRep_Ledger();
 
 	void OnEffectRemoved(const FActiveGameplayEffect& Effect);
+	/** Ends status Id early: from Source only, or from every source when it is null. */
+	bool RemoveWhere(const FVeyraContentId& Id, const UAbilitySystemComponent* Source);
 	FActiveGameplayEffectHandle ApplyEffect(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, EVeyraStatusKind Kind,
 		double Magnitude, int32 Stacks, double DurationSeconds) const;
 	int32 FindActive(const FVeyraStatusSpec& Spec, const UAbilitySystemComponent& Source) const;
