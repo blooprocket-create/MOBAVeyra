@@ -59,7 +59,7 @@ The survey for this ADR found that:
 ### 4. Zones that reach allies (Abilities)
 
 - An area zone gains **`allyEffects`**:
-  - a heal: `amount` and `amountPerLevel`, plus `magicPowerRatio` of the caster's Magic Power;
+  - a heal: `healByRank`, by the ability's rank as its damage is, plus `healMagicPowerRatio` of the caster's Magic Power;
   - statuses;
   - `includesCaster`: whether the caster is among the allies it reaches.
 - The heal is the caster's: it passes through `VeyraCombat::RestoreHealthFrom`, so every restoration rule and modifier applies (Combat Bible §6). It reaches allied Vanguards in the zone's shape.

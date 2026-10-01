@@ -78,11 +78,14 @@ void UVeyraMistTrailPassive::Look()
 	}
 	else if (Now < LayingUntil)
 	{
-		Travelled += FVector::Dist2D(Here, LastSeen);
-		if (Travelled >= Tuning->Spacing)
+		// Every spacing along the way she went since the last look, the leftover carried on: its spacing holds at any pace.
+		const double Stride = FVector::Dist2D(Here, LastSeen);
+		const FVector Facing = (Here - LastSeen).GetSafeNormal2D();
+		double Along = Tuning->Spacing - Travelled;
+		Travelled += Stride;
+		for (; Travelled >= Tuning->Spacing; Travelled -= Tuning->Spacing, Along += Tuning->Spacing)
 		{
-			Lay(*Owner, *Tuning, Here, (Here - LastSeen).GetSafeNormal2D());
-			Travelled = 0.0;
+			Lay(*Owner, *Tuning, Stride > 0.0 ? FMath::Lerp(LastSeen, Here, FMath::Clamp(Along / Stride, 0.0, 1.0)) : Here, Facing);
 		}
 	}
 	bWasInFog = bInFog;

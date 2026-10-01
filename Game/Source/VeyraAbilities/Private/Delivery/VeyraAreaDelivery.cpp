@@ -2,6 +2,7 @@
 
 #include "Delivery/VeyraAreaDelivery.h"
 
+#include "Abilities/VeyraGameplayAbility.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraOffenceSet.h"
@@ -56,6 +57,8 @@ double DelayAt(const UWorld& World, const UAbilitySystemComponent& Caster, const
 TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstArrayView<FVeyraAreaZoneTuning> Zones, int32 Rank)
 {
 	TArray<FVeyraPreparedZone> Prepared;
+	// Its statuses from the caster's Level at Commit, as its effects' are (Combat Bible §50).
+	const int32 Level = UVeyraGameplayAbility::GetCasterLevel(Caster);
 	for (const FVeyraAreaZoneTuning& Zone : Zones)
 	{
 		FVeyraPreparedZone& Ready = Prepared.Add_GetRef(FVeyraPreparedZone{ Zone.Shape, VeyraEffectDelivery::Prepare(Caster, Zone.Effects, Rank) });
@@ -65,7 +68,7 @@ TArray<FVeyraPreparedZone> PrepareZones(UAbilitySystemComponent& Caster, TConstA
 		}
 		for (const FVeyraContentId& StatusId : Zone.CasterStatusesPerVanguard)
 		{
-			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId, Level))
 			{
 				Ready.CasterStatusesPerVanguard.Add(Status.GetValue());
 			}
@@ -84,9 +87,11 @@ FVeyraPreparedAllyEffects PrepareAllyEffects(const UAbilitySystemComponent& Cast
 	FVeyraPreparedAllyEffects Help;
 	Help.Heal = VeyraAbilityRules::ValueAtRank(Allies.HealByRank, Rank) + Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Allies.HealMagicPowerRatio;
 	Help.Reach = Allies.Reach;
+	// Its statuses from the caster's Level now, at Commit, as its effects' are (Combat Bible §50).
+	const int32 Level = UVeyraGameplayAbility::GetCasterLevel(Caster);
 	for (const FVeyraContentId& StatusId : Allies.Statuses)
 	{
-		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId, Level))
 		{
 			Help.Statuses.Add(Status.GetValue());
 		}

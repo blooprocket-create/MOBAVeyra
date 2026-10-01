@@ -179,6 +179,34 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(AreEqual(2, Areas(), TEXT("and none before")));
 		}
 
+		TEST_METHOD(ItsSpacingHoldsWhateverItsPulse)
+		{
+			// Steps shorter than its spacing and no divisor of it: an area falls every spacing all the same, the first
+			// as it sets off, so the leftover of each step carries on into the next.
+			using namespace ContactFixture;
+			ASSERT_THAT(IsTrue(Ride()));
+			const double Z = Rider->GetActorLocation().Z;
+			const double Stride = Spacing * 2.0 / 3.0;
+			const int32 Strides = 6;
+			for (int32 Index = 1; Index <= Strides; ++Index)
+			{
+				Rider->SetActorLocation(FVector(Stride * Index, 0.0, Z), false, nullptr, ETeleportType::TeleportPhysics);
+				Wait(Pulse * 2.0);
+			}
+			const int32 Expected = 1 + FMath::FloorToInt32(Stride * Strides / Spacing + UE_KINDA_SMALL_NUMBER);
+			ASSERT_THAT(AreEqual(Expected, Areas()));
+			TArray<double> Laid;
+			for (TActorIterator<AVeyraLingeringArea> It(&Spawner.GetWorld()); It; ++It)
+			{
+				Laid.Add(It->GetActorLocation().X);
+			}
+			Laid.Sort();
+			for (int32 Index = 0; Index < Laid.Num(); ++Index)
+			{
+				ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Laid[Index], Spacing * Index, 1.0), *FString::Printf(TEXT("area %d at %g"), Index, Laid[Index])));
+			}
+		}
+
 		TEST_METHOD(ValidationKeepsTheTrailInPaceAndLingering)
 		{
 			const int32 Ranks[] = { 5, 3 };
