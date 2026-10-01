@@ -74,6 +74,10 @@ struct FVeyraPreparedLinger
 
 	/** The pull of the movement field it holds; 0 for none (ADR-033 §5). */
 	double FieldPull = 0.0;
+
+	/** A shield it builds on its caster and allies inside, at the cast's rank (ADR-036 §4). */
+	TOptional<FVeyraShieldTopUpTuning> ShieldTopUp;
+	int32 Rank = 1;
 };
 
 /** How areas hit (ADR-008 §3, ADR-009 §4). Server only, except Place. */

@@ -207,6 +207,11 @@ TOptional<FVeyraPreparedLinger> PrepareLinger(UAbilitySystemComponent& Caster, c
 	Linger.Sight = Tuning.Sight;
 	Linger.Ability = Ability;
 	Linger.FieldPull = Tuning.MovementField.IsEmpty() ? 0.0 : Tuning.MovementField[0].Pull;
+	if (!Tuning.ShieldTopUp.IsEmpty())
+	{
+		Linger.ShieldTopUp = Tuning.ShieldTopUp[0];
+	}
+	Linger.Rank = Rank;
 	// Its statuses from the caster's Level at Commit (Combat Bible §50).
 	const auto PrepareStatuses = [Level](TConstArrayView<FVeyraContentId> Ids, TArray<FVeyraStatusSpec>& Out) {
 		for (const FVeyraContentId& Id : Ids)
@@ -242,6 +247,10 @@ void ArmLinger(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraEffec
 		if (Linger.FieldPull > 0.0)
 		{
 			Lingering->HoldField(Linger.FieldPull);
+		}
+		if (Linger.ShieldTopUp.IsSet())
+		{
+			Lingering->BuildShields(Linger.ShieldTopUp->Shield, Linger.Rank, Linger.ShieldTopUp->DelayAfterDamageSeconds);
 		}
 	}
 	if (Linger.Sight == EVeyraLingerSight::Ordinary)
