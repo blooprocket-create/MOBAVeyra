@@ -744,6 +744,11 @@ namespace
 			{
 				Problem(Pointer + TEXT("/stats/maxResource"), TEXT("a companion has no resource"));
 			}
+			// Its body forms only with these, so a definition without them could never form.
+			if (!(Companion.Stats.MaxHealth > 0.0) || !(Companion.Stats.AttackSpeed > 0.0) || !(Companion.Stats.MoveSpeed > 0.0))
+			{
+				Problem(Pointer + TEXT("/stats"), TEXT("maxHealth, attackSpeed and moveSpeed are above 0"));
+			}
 		}
 
 		void CheckRide(const FString& Pointer, const FVeyraRideAbilityTuning& Ride)
