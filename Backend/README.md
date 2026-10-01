@@ -163,7 +163,7 @@ Which Vanguards a player may pick, and the stubbed first-time tutorial ([ADR-010
 | `GET /v1/dev/accounts` | — | — | `accounts` (`displayName`), the seeded dev accounts for the launcher's picker. **Local only**, with dev login |
 | `POST /v1/dev/accounts/{name}/reset-onboarding` | — | — | `204`; the dev account is back before its starter choice, for repeatable test runs. **Local only**, with dev login |
 
-The catalog is `vanguards` in `config/local.json`: the released Vanguards, which must equal the Playable ones in `Game/Tuning/Vanguards.json` (`internal/catalog`'s contract test checks it), the starters (3 to 5, Account, Collection & Mastery Bible §1) and the rotation. **Provisional:** every released Vanguard is a starter, and until the weekly rotation exists a stand-in rotation offers every released Vanguard while fewer than `rotation.slots` (12, canon) are released.
+The catalog is `vanguards` in `config/local.json`: the released Vanguards, which must equal the Playable ones in `Game/Tuning/Vanguards.json` (`internal/catalog`'s contract test checks it), the starters (3 to 5, Account, Collection & Mastery Bible §1) and the rotation. The weekly free rotation offers `rotation.slots` (12, canon) distinct released Vanguards a week, from `rotation.epoch` in weeks of `rotation.weekSeconds`, drawn by a shuffle seeded with `rotation.seed` and the week. Last week's sit out unless too few others remain, and a Vanguard in `rotation.releases` waits a week after its release ([ADR-038](../Docs/ADR/ADR-038-weekly-rotation-and-co-op-vs-ai.md) §1). **Provisional:** weeks begin Monday 00:00 UTC.
 
 ### Custom practice and champion select
 

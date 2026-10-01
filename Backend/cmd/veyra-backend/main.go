@@ -95,11 +95,20 @@ func run(log *slog.Logger) error {
 	}, time.Now)
 
 	vanguards := catalog.New(catalog.Settings{
-		Released:      cfg.Vanguards.Released,
-		Starters:      cfg.Vanguards.Starters,
-		RotationSlots: cfg.Vanguards.RotationSlots,
-		StandIn:       catalog.StandIn(cfg.Vanguards.RotationStandIn),
-	})
+		Released: cfg.Vanguards.Released,
+		Starters: cfg.Vanguards.Starters,
+		Rotation: catalog.RotationSettings{
+			Slots:    cfg.Vanguards.RotationSlots,
+			Epoch:    cfg.Vanguards.RotationEpoch,
+			Week:     cfg.Vanguards.RotationWeek,
+			Seed:     cfg.Vanguards.RotationSeed,
+			Releases: cfg.Vanguards.RotationReleases,
+		},
+	}, time.Now)
+	// A week with too few eligible Vanguards has no rotation, a launch precondition (Modes & Access Bible §3).
+	if week, ok := vanguards.WeekAt(time.Now()); ok && len(vanguards.Rotation()) == 0 {
+		log.Warn("the rotation offers nothing: fewer eligible Vanguards than its slots", "week", week, "slots", cfg.Vanguards.RotationSlots)
+	}
 	accounts := account.NewService(store.Account(), vanguards, time.Now)
 
 	matches, err := newMatchService(cfg, store, svc)

@@ -39,10 +39,10 @@ const (
 	MaxStarters = 5
 )
 
-// Rotation stand-ins the catalog accepts (ADR-010 §6).
+// RotationWeekSeconds is the length of a rotation week the catalog accepts
+// at least: one second, so a week always moves on.
 const (
-	StandInAllReleased = "allReleased"
-	StandInNone        = "none"
+	MinRotationWeekSeconds = 1
 )
 
 // DatabaseURLEnv names the environment variable holding the Postgres URL.
@@ -99,9 +99,15 @@ type Vanguards struct {
 	Starters []string
 	// RotationSlots is how many Vanguards the weekly rotation offers.
 	RotationSlots int
-	// RotationStandIn is what the rotation offers until the weekly rotation
-	// exists: StandInAllReleased or StandInNone.
-	RotationStandIn string
+	// RotationEpoch begins the first rotation week, and each week lasts
+	// RotationWeek (ADR-038 §1).
+	RotationEpoch time.Time
+	RotationWeek  time.Duration
+	// RotationSeed makes every week's draw reproducible.
+	RotationSeed string
+	// RotationReleases maps a Vanguard to its release time; one absent was
+	// released before the epoch.
+	RotationReleases map[string]time.Time
 }
 
 // FluxSpells configures the Flux Spells a player may choose in champion select
@@ -358,8 +364,11 @@ type fileConfig struct {
 		Released []string `json:"released"`
 		Starters []string `json:"starters"`
 		Rotation *struct {
-			Slots   *int    `json:"slots"`
-			StandIn *string `json:"standIn"`
+			Slots       *int              `json:"slots"`
+			Epoch       *string           `json:"epoch"`
+			WeekSeconds *int64            `json:"weekSeconds"`
+			Seed        *string           `json:"seed"`
+			Releases    map[string]string `json:"releases"`
 		} `json:"rotation"`
 	} `json:"vanguards"`
 	FluxSpells *struct {
@@ -661,13 +670,45 @@ func Parse(raw []byte) (Config, error) {
 			default:
 				c.Vanguards.RotationSlots = *f.Vanguards.Rotation.Slots
 			}
+			r := f.Vanguards.Rotation
 			switch {
-			case f.Vanguards.Rotation.StandIn == nil:
-				missing("vanguards.rotation.standIn")
-			case *f.Vanguards.Rotation.StandIn != StandInAllReleased && *f.Vanguards.Rotation.StandIn != StandInNone:
-				problems = append(problems, "vanguards.rotation.standIn must be \""+StandInAllReleased+"\" or \""+StandInNone+"\"")
+			case r.Epoch == nil:
+				missing("vanguards.rotation.epoch")
 			default:
-				c.Vanguards.RotationStandIn = *f.Vanguards.Rotation.StandIn
+				epoch, err := time.Parse(time.RFC3339, *r.Epoch)
+				if err != nil {
+					problems = append(problems, "vanguards.rotation.epoch must be an RFC 3339 time")
+				}
+				c.Vanguards.RotationEpoch = epoch
+			}
+			switch {
+			case r.WeekSeconds == nil:
+				missing("vanguards.rotation.weekSeconds")
+			case *r.WeekSeconds < MinRotationWeekSeconds:
+				problems = append(problems, fmt.Sprintf("vanguards.rotation.weekSeconds must be at least %d", MinRotationWeekSeconds))
+			default:
+				c.Vanguards.RotationWeek = time.Duration(*r.WeekSeconds) * time.Second
+			}
+			switch {
+			case r.Seed == nil || *r.Seed == "":
+				missing("vanguards.rotation.seed")
+			default:
+				c.Vanguards.RotationSeed = *r.Seed
+			}
+			if r.Releases == nil {
+				missing("vanguards.rotation.releases")
+			}
+			c.Vanguards.RotationReleases = map[string]time.Time{}
+			for id, at := range r.Releases {
+				released, err := time.Parse(time.RFC3339, at)
+				switch {
+				case !slices.Contains(c.Vanguards.Released, id):
+					problems = append(problems, "vanguards.rotation.releases names "+id+", which is not in vanguards.released")
+				case err != nil:
+					problems = append(problems, "vanguards.rotation.releases."+id+" must be an RFC 3339 time")
+				default:
+					c.Vanguards.RotationReleases[id] = released
+				}
 			}
 		}
 	}

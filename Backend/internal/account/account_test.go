@@ -15,20 +15,25 @@ var (
 	t0  = time.Date(2026, 9, 27, 12, 0, 0, 0, time.UTC)
 )
 
+// Fixture rotations: four slots offer all four released; twelve offer none.
+const (
+	rotationOfAll  = 4
+	rotationOfNone = 12
+)
+
 // A fixture catalog, independent of the committed config: four released,
-// three starters, and a stand-in rotation of everything released.
-func newService(standIn catalog.StandIn) *Service {
+// three starters, and a weekly rotation of slots.
+func newService(slots int) *Service {
 	c := catalog.New(catalog.Settings{
-		Released:      []string{"cairn", "qazharr", "oriel", "bryn"},
-		Starters:      []string{"cairn", "qazharr", "oriel"},
-		RotationSlots: 12,
-		StandIn:       standIn,
-	})
+		Released: []string{"cairn", "qazharr", "oriel", "bryn"},
+		Starters: []string{"cairn", "qazharr", "oriel"},
+		Rotation: catalog.RotationSettings{Slots: slots, Epoch: t0.Add(-7 * 24 * time.Hour), Week: 7 * 24 * time.Hour, Seed: "test"},
+	}, func() time.Time { return t0 })
 	return NewService(NewMemStore(), c, func() time.Time { return t0 })
 }
 
 func TestANewAccountHasNotFinishedOnboarding(t *testing.T) {
-	s := newService(catalog.StandInAllReleased)
+	s := newService(rotationOfAll)
 	p, err := s.Profile(ctx, "acc-1")
 	if err != nil || p.TutorialCompleted || p.StarterVanguardID != "" || p.AccountID != "acc-1" {
 		t.Fatalf("new profile: %+v %v", p, err)
@@ -36,7 +41,7 @@ func TestANewAccountHasNotFinishedOnboarding(t *testing.T) {
 }
 
 func TestChoosingAStarterOwnsItAndFinishesOnboardingOnce(t *testing.T) {
-	s := newService(catalog.StandInNone)
+	s := newService(rotationOfNone)
 	p, err := s.ChooseStarter(ctx, "acc-1", "oriel")
 	if err != nil || !p.TutorialCompleted || p.StarterVanguardID != "oriel" || !p.CompletedAt.Equal(t0) {
 		t.Fatalf("ChooseStarter: %+v %v", p, err)
@@ -57,7 +62,7 @@ func TestChoosingAStarterOwnsItAndFinishesOnboardingOnce(t *testing.T) {
 }
 
 func TestOnlyAStarterCanBeChosen(t *testing.T) {
-	s := newService(catalog.StandInNone)
+	s := newService(rotationOfNone)
 	for _, id := range []string{"bryn", "test_vanguard", ""} {
 		if _, err := s.ChooseStarter(ctx, "acc-1", id); !errors.Is(err, ErrNotAStarter) {
 			t.Fatalf("%q: want ErrNotAStarter, got %v", id, err)
@@ -68,8 +73,8 @@ func TestOnlyAStarterCanBeChosen(t *testing.T) {
 	}
 }
 
-func TestAvailableIsOwnedAndTheStandInRotation(t *testing.T) {
-	s := newService(catalog.StandInAllReleased)
+func TestAvailableIsOwnedAndTheRotation(t *testing.T) {
+	s := newService(rotationOfAll)
 	if _, err := s.ChooseStarter(ctx, "acc-1", "qazharr"); err != nil {
 		t.Fatal(err)
 	}
@@ -90,7 +95,7 @@ func TestAvailableIsOwnedAndTheStandInRotation(t *testing.T) {
 }
 
 func TestResettingOnboardingForgetsTheStarter(t *testing.T) {
-	s := newService(catalog.StandInNone)
+	s := newService(rotationOfNone)
 	if _, err := s.ChooseStarter(ctx, "acc-1", "cairn"); err != nil {
 		t.Fatal(err)
 	}

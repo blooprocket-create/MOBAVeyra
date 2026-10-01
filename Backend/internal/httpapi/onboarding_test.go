@@ -16,7 +16,7 @@ func newOnboardingTestServer(t *testing.T, devLogin bool) *httptest.Server {
 	t.Helper()
 	d := newTestDeps(t, devLogin)
 	c := catalog.New(catalog.Settings{Released: []string{"cairn", "qazharr", "oriel", "bryn"}, Starters: []string{"cairn", "qazharr", "oriel"},
-		RotationSlots: 12, StandIn: catalog.StandInAllReleased})
+		Rotation: catalog.RotationSettings{Slots: 4, Epoch: time.Date(2026, 9, 28, 0, 0, 0, 0, time.UTC), Week: 7 * 24 * time.Hour, Seed: "test"}}, time.Now)
 	d.Account = account.NewService(account.NewMemStore(), c, time.Now)
 	d.DevAccounts = testAccounts
 	return serve(t, d)

@@ -44,7 +44,7 @@ func newPracticeTestServer(t *testing.T) *httptest.Server {
 		BackendURL:        "http://backend:8080",
 	}, time.Now)
 	c := catalog.New(catalog.Settings{Released: []string{"cairn", "qazharr", "oriel", "bryn"}, Starters: []string{"cairn", "qazharr", "oriel"},
-		RotationSlots: 12, StandIn: catalog.StandInAllReleased})
+		Rotation: catalog.RotationSettings{Slots: 4, Epoch: time.Date(2026, 9, 28, 0, 0, 0, 0, time.UTC), Week: 7 * 24 * time.Hour, Seed: "test"}}, time.Now)
 	d.Account = account.NewService(account.NewMemStore(), c, time.Now)
 	notQueued := selection.PartiesFunc(func(context.Context, string) (bool, error) { return false, nil })
 	d.Selection = selection.NewService(selection.NewMemStore(), d.Account, names, d.Match, notQueued, d.Social, selection.Settings{

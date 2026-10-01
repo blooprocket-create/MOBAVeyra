@@ -34,7 +34,7 @@
   "vanguards": {
     "released": ["cairn", "qazharr", "oriel", "bryn", "kade", "vera", "mimzi", "patch", "gorraveth", "raska", "moro", "korruk", "mavra", "celandrine", "aurelisse", "silt", "torr", "tavi", "angeru", "varkesh", "relay", "marek", "neris", "sylra", "eudora"],
     "starters": ["cairn", "qazharr", "oriel", "bryn"],
-    "rotation": {"slots": 12, "standIn": "allReleased"}
+    "rotation": {"slots": 12, "epoch": "2026-09-28T00:00:00Z", "weekSeconds": 604800, "seed": "veyra-rotation-1", "releases": {}}
   },
   "fluxSpells": {
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]
