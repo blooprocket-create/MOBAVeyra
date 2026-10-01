@@ -274,6 +274,8 @@ namespace VeyraBackendProtocol
 		int32 HumanPlayersPerTeam = 0;
 		/** Whether it has a matchmaker; a mode without one is shown as not yet available. */
 		bool bMatchmade = false;
+		/** Whether its matches put its humans against an enemy AI team (ADR-038 §2). */
+		bool bVersusAI = false;
 	};
 
 	/** Reads the answer to GET /v1/modes. False, with the problem, if it is not one. */

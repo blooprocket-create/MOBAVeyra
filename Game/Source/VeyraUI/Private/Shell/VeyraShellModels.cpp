@@ -513,8 +513,11 @@ TArray<FVeyraModeCardModel> DescribeModes(const FVeyraClientSnapshot& Snapshot)
 		}
 		FVeyraModeCardModel Card;
 		Card.ModeId = Mode.Id;
-		Card.Name = NameOf(Mode.Id);
-		Card.Format = FText::Format(LOCTEXT("ModeFormat", "{0}v{0}"), FText::AsNumber(Mode.HumanPlayersPerTeam));
+		const TOptional<FVeyraContentId> Id = FVeyraContentId::FromText(Mode.Id);
+		Card.Name = Id.IsSet() ? VeyraContentText::ModeName(Id.GetValue(), NameOf(Mode.Id).ToString()) : NameOf(Mode.Id);
+		// Against an enemy AI team, its humans alone (ADR-038 §2).
+		Card.Format = Mode.bVersusAI ? FText::Format(LOCTEXT("ModeFormatVersusAI", "{0} vs AI"), FText::AsNumber(Mode.HumanPlayersPerTeam))
+									 : FText::Format(LOCTEXT("ModeFormat", "{0}v{0}"), FText::AsNumber(Mode.HumanPlayersPerTeam));
 		Card.bAvailable = Mode.bMatchmade;
 		if (!Mode.bMatchmade)
 		{

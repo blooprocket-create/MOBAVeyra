@@ -239,6 +239,15 @@ namespace VeyraShellTests
 			ASSERT_THAT(IsTrue(!Cards[1].bAvailable && !Cards[1].bSelected));
 			ASSERT_THAT(AreEqual(Cards[1].Availability.ToString(), FString(TEXT("Not yet available"))));
 
+			// A co-op queue plays its humans against AI, and takes its name from the text table (ADR-038 §6).
+			Snapshot.Modes.Add(VeyraBackendProtocol::FModeInfo{ TEXT("coop_beginner"), true, 1, true, true });
+			const TArray<FVeyraModeCardModel> WithCoop = VeyraShellModels::DescribeModes(Snapshot);
+			ASSERT_THAT(AreEqual(WithCoop.Num(), 3));
+			ASSERT_THAT(IsTrue(WithCoop[2].bAvailable && WithCoop[2].Availability.IsEmpty()));
+			ASSERT_THAT(AreEqual(WithCoop[2].Format.ToString(), FString(TEXT("1 vs AI"))));
+			ASSERT_THAT(AreEqual(WithCoop[2].Name.ToString(), FString(TEXT("Co-op vs AI: Beginner"))));
+			Snapshot.Modes.Pop();
+
 			// The leader of a party that is not Ready yet.
 			FVeyraPartyModel Model = VeyraShellModels::DescribeParty(Snapshot, true, false, false);
 			ASSERT_THAT(IsTrue(Model.bShown && !Model.bQueued));

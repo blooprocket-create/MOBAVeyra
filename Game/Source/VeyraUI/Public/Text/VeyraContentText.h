@@ -35,6 +35,9 @@ namespace VeyraContentText
 	VEYRAUI_API FText PassiveName(const FVeyraContentId& Passive);
 	VEYRAUI_API FText PassiveDescription(const FVeyraContentId& Passive);
 
+	/** A mode's name, as mode.<id>.name gives it, or Fallback when the table has none. */
+	VEYRAUI_API FText ModeName(const FVeyraContentId& Mode, const FString& Fallback);
+
 	/** An item's name, and what its Active, Attunement or use does; empty for a plain item. */
 	VEYRAUI_API FText ItemName(const FVeyraContentId& Item);
 	VEYRAUI_API FText ItemDescription(const FVeyraContentId& Item);

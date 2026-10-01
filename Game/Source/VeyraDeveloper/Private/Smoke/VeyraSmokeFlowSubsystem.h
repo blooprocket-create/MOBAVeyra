@@ -226,6 +226,9 @@ private:
 	int32 MostOthers = 0;
 	FString WantedVanguard;
 	FString LockedVanguard;
+	/** A matchmade script: the mode it was asked to queue for, and whether that mode is against AI (ADR-038 §6). */
+	FString WantedMode;
+	bool bVersusAI = false;
 	FString ScreenshotFolder;
 	TSet<FString> Captured;
 	/** Real time until which the script waits, for a screenshot to be saved. */

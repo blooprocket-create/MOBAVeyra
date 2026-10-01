@@ -90,6 +90,12 @@
     Veyra.Dev.Siege until the other side's Prime Well falls. The backend must record a custom match
     won by the first client's side, and its scoreboard the starting Gold the host chose.
 
+    -Flow Coop plays Co-op vs AI to a win (ADR-038 §6) with one packaged client, against the local
+    co-op mode of one human player: it queues, accepts, locks its Vanguard beside the enemy AI team
+    the backend seated, and sieges with Veyra.Dev.Siege until the other side's Prime Well falls. The
+    backend must record a standard match won by the player's side; the server must add the mode's
+    whole enemy team, and the verified scoreboard must list its bots.
+
     -Flow Settings starts one packaged client twice (ADR-024 §8). The first time it opens Settings from
     the shell's top bar, chooses Windowed for the match's Display Mode (kept on this machine) and T for
     the first ability (kept with the account), and waits for the backend to take the binding. The
@@ -220,7 +226,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Settings')]
+    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Coop', 'Settings')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -467,14 +473,16 @@ if ($Handoff -or $Flow) {
     $isMatchmade = $Flow -in 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline'
     # -Flow Custom: a custom lobby the first client hosts and the second joins (ADR-021), won by siege.
     $isCustom = $Flow -eq 'Custom'
-    $isVictory = $Flow -in 'CasualVictory', 'Custom'
+    # -Flow Coop: one player queues for co-op, accepts, picks and sieges to victory against the enemy AI team (ADR-038 §6).
+    $isCoop = $Flow -eq 'Coop'
+    $isVictory = $Flow -in 'CasualVictory', 'Custom', 'Coop'
     # -Flow Settings: one player, two starts, no match.
     $isSettings = $Flow -eq 'Settings'
     # Its bots, one on each side: side A's, then side B's. Neither is a Vanguard a player locks.
     $CustomBots = @('bryn', 'qazharr')
     # Every run but a declined match found plays a match.
     $expectsMatch = $Flow -notin 'CasualDecline', 'Settings'
-    $playerCount = $(if ($isPractice -or $isSettings) { 1 } else { 2 })
+    $playerCount = $(if ($isPractice -or $isSettings -or $isCoop) { 1 } else { 2 })
     $mode = $(if ($isPractice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
     if ($isMatchmade) {
         # Two players make one match only with the local 1v1 team size (ADR-010, provisional).
@@ -484,6 +492,15 @@ if ($Handoff -or $Flow) {
             exit $ExitInfrastructure
         }
         $mode = $casualMode.id
+    }
+    if ($isCoop) {
+        # One player makes one co-op match only with a co-op mode of one human player (ADR-038 §2, provisional).
+        $coopMode = $backendConfig.modes | Where-Object { $_.enabled -and $_.matchmaking -eq 'coop' -and $_.humanPlayersPerTeam -eq 1 } | Select-Object -First 1
+        if (-not $coopMode) {
+            Write-Host '-Flow Coop needs an enabled coop mode of one human player in Backend/config/local.json.'
+            exit $ExitInfrastructure
+        }
+        $mode = $coopMode.id
     }
     if ($isCustom) {
         if (-not $backendConfig.customLobby.enabled) {
@@ -517,7 +534,7 @@ if ($Handoff -or $Flow) {
         }
         [pscustomobject]@{ Name = $accounts[$index]; AccountId = $login.Body.account.id; LauncherSession = $login.Body.token
             Side = $(if ($isPractice) { $backendConfig.customPractice.hostSide } else { @('A', 'B')[$index] })
-            Vanguard = $(if ($isPractice) { $PracticeVanguard } elseif ($isMatchmade -or $isCustom) { $CasualVanguards[$index] } else { $SmokeVanguard }) }
+            Vanguard = $(if ($isPractice) { $PracticeVanguard } elseif ($isMatchmade -or $isCustom -or $isCoop) { $CasualVanguards[$index] } else { $SmokeVanguard }) }
     }
     if (($isMatchmade -or $isCustom) -and @($participants).Count -lt 2) {
         Write-Host "-Flow $Flow needs two dev accounts in Backend/config/local.json devLogin.accounts."
@@ -624,6 +641,7 @@ if ($Handoff -or $Flow) {
                         $friend = $participants[1 - $index].Name
                         @($(if ($index -eq 0) { '-VeyraSmokeFlow=customhost' } else { '-VeyraSmokeFlow=customguest' }), "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)",
                             "-VeyraSmokeFlowFriend=$friend", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges', "-VeyraSmokeFlowBots=$($CustomBots -join ',')") } else { @() }) }
+                    elseif ($isCoop) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory', '-VeyraSmokeFlowSieges', "-VeyraSmokeFlowMode=$mode") }
                     elseif ($isVictory) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", '-VeyraSmokeFlowVictory') + $(if ($index -eq 0) { @('-VeyraSmokeFlowSieges') } else { @() }) }
                     elseif ($Flow -eq 'CasualDecline') { @($(if ($index -eq 0) { '-VeyraSmokeFlow=requeue' } else { '-VeyraSmokeFlow=decline' })) }
                     elseif ($isPractice) { @('-VeyraSmokeFlow=join', '-VeyraSmoke', '-VeyraSmokeEndCustomMatch') }
@@ -828,7 +846,7 @@ if ($Handoff -or $Flow) {
                 Write-Host 'The backend did not keep the requested rules, host or Vanguards.'
                 $failed = $true
             }
-            if (($isMatchmade -or $isCustom) -and $match.mode -ne $mode) {
+            if (($isMatchmade -or $isCustom -or $isCoop) -and $match.mode -ne $mode) {
                 Write-Host "The match's mode is $($match.mode), not $mode."
                 $failed = $true
             }
@@ -862,7 +880,7 @@ if ($Handoff -or $Flow) {
         }
         # Each scripted player chooses the roster's first Flux Spells in champion select and takes them
         # into the match (ADR-015 §5).
-        if ($Flow -in @('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'Custom')) {
+        if ($Flow -in @('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'Custom', 'Coop')) {
             $spellRoster = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Abilities.json') -Raw | ConvertFrom-Json).fluxSpells.roster)
             $expectedServerLines += @($participants | ForEach-Object { "$($_.Name) takes Flux Spells $($spellRoster[0]), $($spellRoster[1]) into the match." })
             # The practice player then swaps slot 1 at the fountain, for Gold, to the first spell neither slot holds (ADR-015 §7).
@@ -874,6 +892,10 @@ if ($Handoff -or $Flow) {
         $practiceBots = @($backendConfig.customPractice.bots)
         if ($isPractice -and $practiceBots.Count -gt 0) {
             $expectedServerLines += "Added $($practiceBots.Count) of the assignment's $($practiceBots.Count) bot(s)."
+        }
+        # A co-op match adds its whole enemy AI team (ADR-038 §4).
+        if ($isCoop) {
+            $expectedServerLines += "Added $($coopMode.aiPerTeam) of the assignment's $($coopMode.aiPerTeam) bot(s)."
         }
         # A custom match adds the bots its host seated in the lobby (ADR-021 §3).
         if ($isCustom) {

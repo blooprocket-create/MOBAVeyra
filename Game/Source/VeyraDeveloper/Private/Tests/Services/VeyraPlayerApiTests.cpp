@@ -302,6 +302,12 @@ namespace VeyraPlayerApiTests
 			ASSERT_THAT(IsTrue(Modes[0].bEnabled && Modes[0].bMatchmade));
 			ASSERT_THAT(AreEqual(Modes[0].HumanPlayersPerTeam, 1));
 			ASSERT_THAT(IsFalse(Modes[1].bEnabled || Modes[1].bMatchmade));
+			ASSERT_THAT(IsFalse(Modes[0].bVersusAI));
+
+			// A co-op queue is matchmade, against AI (ADR-038 §6).
+			const TCHAR* const Coop = TEXT("{\"modes\":[{\"id\":\"coop_beginner\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"coop\"}]}");
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseModes(Coop, Modes, Problem), Problem));
+			ASSERT_THAT(IsTrue(Modes.Num() == 1 && Modes[0].bMatchmade && Modes[0].bVersusAI));
 
 			for (const TCHAR* Bad : { TEXT("{}"), TEXT("{\"modes\":null}"),
 					 TEXT("{\"modes\":[{\"id\":\"Casual\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"}]}"),

@@ -792,7 +792,8 @@ bool ParseModes(const FString& Body, TArray<FModeInfo>& Out, FString& OutProblem
 			return false;
 		}
 		Mode.HumanPlayersPerTeam = FMath::FloorToInt32(Team);
-		Mode.bMatchmade = Matchmaking.Equals(TEXT("casualSelect"), ESearchCase::CaseSensitive);
+		Mode.bVersusAI = Matchmaking.Equals(TEXT("coop"), ESearchCase::CaseSensitive);
+		Mode.bMatchmade = Mode.bVersusAI || Matchmaking.Equals(TEXT("casualSelect"), ESearchCase::CaseSensitive);
 		Modes.Add(MoveTemp(Mode));
 	}
 	Out = MoveTemp(Modes);

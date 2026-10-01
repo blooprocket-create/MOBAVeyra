@@ -19,6 +19,7 @@ namespace
 	const TCHAR* const AbilityKind = TEXT("ability");
 	const TCHAR* const PassiveKind = TEXT("passive");
 	const TCHAR* const ItemKind = TEXT("item");
+	const TCHAR* const ModeKind = TEXT("mode");
 	const TCHAR* const NameField = TEXT("name");
 	const TCHAR* const TitleField = TEXT("title");
 	const TCHAR* const DescriptionField = TEXT("description");
@@ -66,6 +67,11 @@ void Register()
 FText VanguardName(const FVeyraContentId& Vanguard)
 {
 	return TextOr(VanguardKind, Vanguard, NameField, Vanguard.ToString());
+}
+
+FText ModeName(const FVeyraContentId& Mode, const FString& Fallback)
+{
+	return TextOr(ModeKind, Mode, NameField, Fallback);
 }
 
 FText VanguardTitle(const FVeyraContentId& Vanguard)
