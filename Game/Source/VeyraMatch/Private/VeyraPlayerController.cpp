@@ -3,6 +3,7 @@
 #include "VeyraPlayerController.h"
 
 #include "Camera/VeyraCameraPreferences.h"
+#include "Input/VeyraControlPreferences.h"
 #include "Camera/VeyraCameraRig.h"
 #include "Developer/VeyraDeveloperCommandRoute.h"
 #include "Engine/Console.h"
@@ -193,24 +194,31 @@ void AVeyraPlayerController::SetupInputComponent()
 		Enhanced->BindAction(Input.Recall, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnRecallPressed);
 		Enhanced->BindAction(Input.VoteYes, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteYesPressed);
 		Enhanced->BindAction(Input.VoteNo, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnVoteNoPressed);
+		// Each ability's key reports its press and its release, which its casting mode reads (ADR-040 §1).
+		const auto BindAbility = [this, Enhanced](EVeyraAbilitySlot Slot) {
+			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Started, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Completed, this, &AVeyraPlayerController::OnAbilityReleased, Slot);
+		};
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 		{
-			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+			BindAbility(Slot);
 		}
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Items)
 		{
-			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+			BindAbility(Slot);
 		}
 		for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::Spells)
 		{
-			Enhanced->BindAction(Input.GetAbilityAction(Slot), ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, Slot);
+			BindAbility(Slot);
 		}
-		Enhanced->BindAction(Input.VisionTool, ETriggerEvent::Triggered, this, &AVeyraPlayerController::OnAbilityPressed, EVeyraAbilitySlot::VisionTool);
+		BindAbility(EVeyraAbilitySlot::VisionTool);
 	}
 }
 
 void AVeyraPlayerController::OnMoveOrderStarted()
 {
+	// It cancels a waiting cast, and still gives its order (ADR-040 §1).
+	CastInput.Cancel();
 	// On an enemy the button attacks it; anywhere else it moves (Settings Bible §1).
 	AActor* Enemy = FindEnemyUnderCursor();
 	bMoveOrderPressAttacked = Enemy != nullptr;
@@ -312,9 +320,50 @@ void AVeyraPlayerController::OnAbilityPressed(EVeyraAbilitySlot Slot)
 		RequestRankUp(Slot);
 		return;
 	}
+	const bool bPreview = IsInputKeyDown(GetKeys().ShowCastRangeKey);
+	ApplyCastStep(CastInput.Press(Slot, ControlPreferences().CastModeOf(Slot), bPreview));
+}
 
-	// Quick Cast (Settings Bible §1.2): cast now, at the unit and the ground under the cursor. Each
-	// ability uses what it needs, and the server decides whether it is valid.
+void AVeyraPlayerController::OnAbilityReleased(EVeyraAbilitySlot Slot)
+{
+	ApplyCastStep(CastInput.Release(Slot));
+}
+
+void AVeyraPlayerController::TickCastInput()
+{
+	const TOptional<FVeyraCastIndicator>& Shown = CastInput.GetIndicator();
+	if (!Shown)
+	{
+		return;
+	}
+	const UVeyraInputSettings& Keys = GetKeys();
+	if (Shown->bPreviewOnly)
+	{
+		if (!IsInputKeyDown(Keys.ShowCastRangeKey))
+		{
+			ApplyCastStep(CastInput.EndPreview());
+		}
+		return;
+	}
+	// A click that pings, or lands on the minimap, is theirs and leaves the cast waiting.
+	if (WasInputKeyJustPressed(Keys.SelectKey) && !IsPinging() && !MinimapPointUnderCursor(EMinimapClick::Ping))
+	{
+		ApplyCastStep(CastInput.Confirm());
+	}
+}
+
+void AVeyraPlayerController::ApplyCastStep(const FVeyraCastOutcome& Outcome)
+{
+	if (Outcome.Step == EVeyraCastStep::CastNow)
+	{
+		CastAtCursor(Outcome.Slot);
+	}
+}
+
+void AVeyraPlayerController::CastAtCursor(EVeyraAbilitySlot Slot)
+{
+	// Each ability uses what it needs of the unit and the ground under the cursor, and the server decides
+	// whether it is valid.
 	FVeyraCastTarget Target;
 	FHitResult Unit;
 	GetHitResultUnderCursor(ECC_Pawn, /*bTraceComplex*/ false, Unit);
@@ -948,12 +997,19 @@ FVeyraCameraPreferences AVeyraPlayerController::CameraPreferences() const
 	return VeyraCameraPreferences::Resolve(*GetDefault<UVeyraCameraSettings>(), Settings ? &Settings->GetStore() : nullptr);
 }
 
+FVeyraControlPreferences AVeyraPlayerController::ControlPreferences() const
+{
+	const UVeyraSettingsSubsystem* Settings = UVeyraSettingsSubsystem::Get(this);
+	return VeyraControlPreferences::Resolve(Settings ? &Settings->GetStore() : nullptr);
+}
+
 void AVeyraPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 	if (IsLocalController())
 	{
 		TickPings();
+		TickCastInput();
 	}
 	if (IsLocalController() && CameraRig)
 	{

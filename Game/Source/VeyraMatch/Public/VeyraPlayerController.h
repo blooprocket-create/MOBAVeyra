@@ -5,6 +5,7 @@
 #include "GameFramework/PlayerController.h"
 #include "Buyback/VeyraBuybackRules.h"
 #include "Content/VeyraContentId.h"
+#include "Input/VeyraCastInput.h"
 #include "Input/VeyraInputSettings.h"
 #include "Inventory/VeyraInventoryRules.h"
 #include "Progression/VeyraProgressionTypes.h"
@@ -247,6 +248,12 @@ public:
 	void SetMinimapHitTest(FMinimapHitTest InHitTest) { MinimapHitTest = MoveTemp(InHitTest); }
 	bool HasMinimapHitTest() const { return static_cast<bool>(MinimapHitTest); }
 
+	/** Owning client: the indicator the player sees, while a cast waits or Show Cast Range previews one (ADR-040 §1). */
+	const TOptional<FVeyraCastIndicator>& GetCastIndicator() const { return CastInput.GetIndicator(); }
+
+	/** Owning client: hides a waiting cast or a preview, and whether one showed. Escape asks this before the menu opens. */
+	bool CancelPendingCast() { return CastInput.Cancel().Step != EVeyraCastStep::Nothing; }
+
 	/** Owning client: the local camera, once the controller has made it (ADR-020 §1). */
 	class AVeyraCameraRig* GetCameraRig() const { return CameraRig; }
 
@@ -419,6 +426,9 @@ private:
 	/** The player's camera settings over the developer's (ADR-024 §6). */
 	FVeyraCameraPreferences CameraPreferences() const;
 
+	/** The player's control settings (ADR-040 §5). */
+	struct FVeyraControlPreferences ControlPreferences() const;
+
 	/** Makes PlayerKeys the developer's keys with the player's bindings, and maps the actions to them anew. */
 	void RefreshKeys();
 	void OnPlayerSettingChanged(const FVeyraContentId& Id);
@@ -436,8 +446,8 @@ private:
 
 	void RejectOrder(EVeyraOrderRejection Rejection);
 
-	// Local input (Settings Bible §1): right-click to move or attack, attack-move, and Quick Cast on
-	// each ability slot.
+	// Local input (Settings Bible §1): right-click to move or attack, attack-move, and each ability
+	// slot cast in the player's casting mode.
 	void OnMoveOrderStarted();
 	void OnMoveOrderHeld();
 	void OnAttackMovePressed();
@@ -445,7 +455,20 @@ private:
 	void OnVoteYesPressed();
 	void OnVoteNoPressed();
 	void OnAbilityPressed(EVeyraAbilitySlot Slot);
+	void OnAbilityReleased(EVeyraAbilitySlot Slot);
 	void MoveToCursor(bool bSteer);
+
+	/** Owning client: the select click casts a waiting cast; letting go of Show Cast Range hides its preview. */
+	void TickCastInput();
+
+	/** Does what the cast input decided: a cast goes toward the cursor; an indicator is the UI's to draw. */
+	void ApplyCastStep(const FVeyraCastOutcome& Outcome);
+
+	/** Casts Slot now, at the unit and the ground under the cursor. */
+	void CastAtCursor(EVeyraAbilitySlot Slot);
+
+	/** Which indicator shows, and when a key, its release or a click casts (ADR-040 §1). */
+	FVeyraCastInput CastInput;
 
 	/** Owning client: the enemy unit under the cursor, if any. */
 	AActor* FindEnemyUnderCursor() const;

@@ -73,6 +73,19 @@ namespace VeyraMatchTests
 			}
 		}
 
+		TEST_METHOD(AnAbilitysKeyReportsItsRelease)
+		{
+			// No press-only trigger, so the action completes when the key comes up (ADR-040 §1).
+			const FVeyraInputObjects Objects = VeyraInput::Build(*GetDefault<UVeyraInputSettings>(), *GetTransientPackage());
+			for (const EVeyraAbilitySlot Slot : { EVeyraAbilitySlot::Q, EVeyraAbilitySlot::R, EVeyraAbilitySlot::Item1, EVeyraAbilitySlot::Spell2, EVeyraAbilitySlot::VisionTool })
+			{
+				const UInputAction* Action = Objects.GetAbilityAction(Slot);
+				ASSERT_THAT(IsTrue(Action && Action->Triggers.IsEmpty()));
+			}
+			ASSERT_THAT(IsFalse(Objects.Recall->Triggers.IsEmpty(), TEXT("an order still fires once per press")));
+			ASSERT_THAT(IsTrue(GetDefault<UVeyraInputSettings>()->SelectKey.IsValid()));
+		}
+
 		TEST_METHOD(BuildingTwiceUnderOneOuterGivesSeparateObjects)
 		{
 			const UVeyraInputSettings& Settings = *GetDefault<UVeyraInputSettings>();
@@ -87,7 +100,7 @@ namespace VeyraMatchTests
 		TEST_METHOD(TheShippedDefaultsAreUsable)
 		{
 			const UVeyraInputSettings& Settings = *GetDefault<UVeyraInputSettings>();
-			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey, Settings.RecallKey, Settings.RankUpModifierKey, Settings.VisionToolKey };
+			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey, Settings.RecallKey, Settings.RankUpModifierKey, Settings.ShowCastRangeKey, Settings.VisionToolKey };
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 			{
 				Keys.Add(Settings.GetAbilityKey(Slot));

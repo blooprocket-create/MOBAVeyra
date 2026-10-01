@@ -130,6 +130,14 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey RankUpModifierKey;
 
+	/** Held with an ability's key, shows its indicator without casting it (Settings Bible §1.7; ADR-040 §1). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey ShowCastRangeKey;
+
+	/** The click that casts an ability waiting for one, a Normal Cast's (Settings Bible §1.2, §1.8). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey SelectKey;
+
 	/** The key bound to Slot. */
 	const FKey& GetAbilityKey(EVeyraAbilitySlot Slot) const;
 
