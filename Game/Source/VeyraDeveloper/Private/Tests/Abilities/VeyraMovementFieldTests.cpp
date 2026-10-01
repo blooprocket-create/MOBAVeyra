@@ -68,11 +68,11 @@ namespace VeyraAbilitiesTests
 		}
 
 		/** Where a dash ahead would end, from where the mover stands; it then goes back. */
-		FVector DashAhead() const
+		FVector DashAhead(double Distance = FieldFixture::DashDistance) const
 		{
 			FVeyraDash Dash;
 			Dash.Direction = FVector::ForwardVector;
-			Dash.Distance = FieldFixture::DashDistance;
+			Dash.Distance = Distance;
 			Dash.Speed = FieldFixture::DashSpeed;
 			const FVector Stood = Mover->GetActorLocation();
 			if (!VeyraCombat::Dash(*Mover->GetAbilitySystemComponent(), Dash))
@@ -97,6 +97,15 @@ namespace VeyraAbilitiesTests
 			Fields().Remove(Handle);
 			const FVector Straight = DashAhead();
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Straight.Y, Mover->GetActorLocation().Y, 1.0), TEXT("and with the field gone it goes straight")));
+		}
+
+		TEST_METHOD(AMoveBentOntoItsOwnStartGoesNowhere)
+		{
+			// Centred where the mover stands, the field pulls the end of a dash shorter than its pull all the way back.
+			const FVector Stood = Mover->GetActorLocation();
+			Fields().Add(FVeyraMovementField{ Stood, FieldFixture::Radius, EVeyraTeam::B, FieldFixture::Pull });
+			const FVector Lands = DashAhead(FieldFixture::Pull / 2.0);
+			ASSERT_THAT(IsTrue(FVector::Dist2D(Lands, Stood) < 1.0, *FString::Printf(TEXT("it lands where it began: %s"), *Lands.ToString())));
 		}
 
 		TEST_METHOD(AnAlliedOrFarFieldLeavesItBe)

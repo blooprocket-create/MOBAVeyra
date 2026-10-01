@@ -70,10 +70,22 @@ namespace VeyraAbilitiesTests
 			FVeyraSelfBuffAbilityTuning Brief = Drained;
 			Brief.Drain[0].MaxSeconds = BriefMax;
 			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_brief")), Brief);
+			// A drained buff with an aura whose grants outlast a refresh, so only the aura's end can take them.
+			FVeyraSelfBuffAbilityTuning DrainedGrid = Drained;
+			FVeyraAuraTuning& Charged = DrainedGrid.Aura.AddDefaulted_GetRef();
+			Charged.Radius = Radius;
+			Charged.DurationSeconds = MaxSeconds;
+			Charged.RefreshSeconds = Refresh;
+			Charged.AllyStatuses = { ArchetypeTestId(TEXT("test_grid_haste")) };
+			Charged.AllyFluxbornStatuses = { ArchetypeTestId(TEXT("test_grid_haste")) };
+			Charged.EnemyStatuses = { ArchetypeTestId(TEXT("test_grid_slow")) };
+			Tuning.SelfBuff.Add(ArchetypeTestId(TEXT("test_drained_grid")), DrainedGrid);
 
 			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_fluxborn_overclock")), StatusOf(EVeyraStatusKind::AttackSpeed, Overclock, Refresh * 2.0));
 			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_link")), StatusOf(EVeyraStatusKind::AttackShortensCooldown, Cut, LongCooldown));
 			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_anchored")), StatusOf(EVeyraStatusKind::Planted, 0.0, LongCooldown));
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_grid_haste")), StatusOf(EVeyraStatusKind::AttackSpeed, Overclock, LongCooldown));
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_grid_slow")), StatusOf(EVeyraStatusKind::Slow, Overclock, LongCooldown));
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
 			const int32 Ranks[] = { 5, 3 };
 			ASSERT_THAT(IsTrue(VeyraAbilityRules::Validate(Tuning, Ranks).IsEmpty(), FString::Join(VeyraAbilityRules::Validate(Tuning, Ranks), TEXT(" | "))));
@@ -184,6 +196,26 @@ namespace VeyraAbilitiesTests
 			Wait(BriefMax + Interval);
 			ASSERT_THAT(IsTrue(Held() > 0.0, TEXT("resource left")));
 			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(*Caster, TEXT("test_anchored")), TEXT("but its time is up")));
+		}
+
+		TEST_METHOD(ADrainedBuffsAuraTakesWhatItGaveWithIt)
+		{
+			using namespace GridFixture;
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Friend = World.Spawn(EVeyraTeam::A, FVector(0.0, Near, 0.0));
+			AVeyraTestFluxborn& Minion = World.SpawnFluxborn(EVeyraTeam::A, FVector(Near, 0.0, 0.0));
+			AVeyraTestFluxborn& Foe = World.SpawnFluxborn(EVeyraTeam::B, FVector(-Near, 0.0, 0.0));
+			LearnAll({ { EVeyraAbilitySlot::R, TEXT("test_drained_grid") } });
+			UAbilitySystemComponent& Abilities = *Caster->GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::KeepResource(Abilities) && VeyraCombat::RestoreResource(Abilities, Little)));
+			ASSERT_THAT(IsTrue(CastIn(EVeyraAbilitySlot::R) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Has(Friend, TEXT("test_grid_haste")) && FArchetypeTestWorld::Has(Minion, TEXT("test_grid_haste"))
+				&& FArchetypeTestWorld::Has(Foe, TEXT("test_grid_slow")), TEXT("its aura reaches an ally, an allied Fluxborn and an enemy")));
+			Wait(Little / PerSecond + Interval);
+			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(*Caster, TEXT("test_anchored")), TEXT("drained, the buff ends")));
+			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(Friend, TEXT("test_grid_haste")), TEXT("and the ally's grant with it")));
+			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(Minion, TEXT("test_grid_haste")), TEXT("and the Fluxborn's")));
+			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(Foe, TEXT("test_grid_slow")), TEXT("and the enemy's")));
 		}
 	};
 }
