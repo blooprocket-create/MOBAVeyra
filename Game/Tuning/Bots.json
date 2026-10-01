@@ -317,6 +317,17 @@
         "relay_magnetic_field": "Damage",
         "relay_full_grid": "Engage"
       }
+    },
+    "marek": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "starfall_prism", "nullglass_shard", "spellguard_plate"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "marek_witchfire": "Damage",
+        "marek_hunt": "Damage",
+        "marek_cross_the_chain": "Damage",
+        "marek_hell_on_a_leash": "Engage"
+      }
     }
   }
 }

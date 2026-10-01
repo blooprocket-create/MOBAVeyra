@@ -1037,6 +1037,108 @@
       "unitKinds": [],
       "landsOn": [],
       "attackCharges": 0
+    },
+    "marek_bitten": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 3,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "marek_leashed": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 10,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "marek_hunt_slow": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "nix_true_form_health": {
+      "provenance": "Provisional",
+      "kind": "MaxHealth",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.5,
+      "durationSeconds": 10,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "nix_true_form_speed": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.2,
+      "durationSeconds": 10,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "nix_true_form_size": {
+      "provenance": "Provisional",
+      "kind": "BodyScale",
+      "stacking": "UniqueRefresh",
+      "magnitude": 1.4,
+      "durationSeconds": 10,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
     }
   },
   "targetedDamage": {
@@ -3795,6 +3897,65 @@
       "companionDeath": "Stays",
       "chain": [],
       "shieldEndZones": []
+    },
+    "marek_hell_on_a_leash": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [110, 95, 80],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "Living",
+        "cooldownWhile": [],
+        "minimumResource": []
+      },
+      "statuses": ["marek_leashed"],
+      "shields": [],
+      "aura": [],
+      "heal": [],
+      "recast": "None",
+      "variants": [],
+      "temporaryHealth": [],
+      "endPayload": [],
+      "attackSecondaryImpact": [],
+      "recipient": "Caster",
+      "recipientZones": [],
+      "marker": [],
+      "drain": [],
+      "shieldHolds": [],
+      "companionStatuses": ["nix_true_form_health", "nix_true_form_speed", "nix_true_form_size"],
+      "companionDeath": "Ends",
+      "chain": [
+        {
+          "width": 80,
+          "pulseSeconds": 0.25,
+          "perEnemySeconds": 1,
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [40, 60, 80],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.15
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          }
+        }
+      ],
+      "shieldEndZones": []
     }
   },
   "skillshot": {
@@ -4328,6 +4489,86 @@
       "endWall": [
         { "length": 600, "thickness": 80, "lifetimeSeconds": 4 }
       ]
+    },
+    "marek_witchfire": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [7, 6.5, 6, 5.5, 5],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 950,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "minimumResource": []
+      },
+      "projectile": { "speed": 1600, "radius": 45, "range": 950 },
+      "collision": "FirstEnemy",
+      "effects": {
+        "damage": [
+          {
+            "type": "Magic",
+            "amountByRank": [80, 120, 160, 200, 240],
+            "physicalPowerRatio": 0,
+            "magicPowerRatio": 0.6
+          }
+        ],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": [
+          {
+            "status": "marek_bitten",
+            "consume": "Consume",
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [40, 60, 80, 100, 120],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.3
+              }
+            ],
+            "scaling": "Once",
+            "statuses": [],
+            "replaces": [],
+            "burst": [
+              {
+                "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 },
+                "damage": [
+                  {
+                    "type": "Magic",
+                    "amountByRank": [60, 90, 120, 150, 180],
+                    "physicalPowerRatio": 0,
+                    "magicPowerRatio": 0.3
+                  }
+                ],
+                "statuses": []
+              }
+            ]
+          }
+        ]
+      },
+      "passThroughEffects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      },
+      "casterDash": [],
+      "returnIfHeld": [],
+      "mimic": [],
+      "endWall": []
     }
   },
   "dash": {
@@ -5517,12 +5758,220 @@
         "displacementUnlessStatuses": [],
         "reactions": []
       }
+    },
+    "marek_cross_the_chain": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [80],
+        "castRange": 1200,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "Living",
+        "cooldownWhile": [],
+        "minimumResource": []
+      },
+      "to": "OwnCompanion",
+      "markerAbility": [],
+      "targetKinds": [],
+      "besideDistance": 0,
+      "departureZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [50, 80, 110, 140, 170],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.35
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "companionDepartureZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [50, 80, 110, 140, 170],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.7
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ],
+      "swap": "Swap",
+      "effects": {
+        "damage": [],
+        "statuses": [],
+        "displacement": [],
+        "missingHealthDamage": [],
+        "unitKindMultipliers": [],
+        "displacementUnlessStatuses": [],
+        "reactions": []
+      }
     }
   },
   "fluxSpells": {
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]
   },
-  "command": {},
-  "companions": {}
+  "command": {
+    "marek_hunt": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 700,
+        "windupSeconds": 0.15,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [
+          {
+            "ability": "marek_hunt_recall",
+            "windowSeconds": 9,
+            "onExpiry": "Lapse",
+            "opensWhen": "Always",
+            "heldStatus": [],
+            "fallsWithinSeconds": 0,
+            "armingSeconds": 0
+          }
+        ],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "Living",
+        "cooldownWhile": [
+          { "status": "marek_leashed", "multiplier": 0.5 }
+        ],
+        "minimumResource": []
+      },
+      "order": "Hold",
+      "leapSpeed": 1400,
+      "holdSeconds": 8,
+      "landingZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 220, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [60, 95, 130, 165, 200],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.8
+              }
+            ],
+            "statuses": ["marek_hunt_slow"],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": []
+        }
+      ]
+    },
+    "marek_hunt_recall": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "Living",
+        "cooldownWhile": [],
+        "minimumResource": []
+      },
+      "order": "Recall",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": []
+    }
+  },
+  "companions": {
+    "marek_nix": {
+      "provenance": "Provisional",
+      "capsuleRadius": 45,
+      "capsuleHalfHeight": 60,
+      "stats": {
+        "maxHealth": 420,
+        "healthRegen": 2,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 20,
+        "magicResist": 25,
+        "physicalPower": 0,
+        "magicPower": 25,
+        "attackSpeed": 0.9,
+        "moveSpeed": 335
+      },
+      "growth": {
+        "maxHealth": 70,
+        "healthRegen": 0.15,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 3,
+        "magicResist": 1.5,
+        "physicalPower": 0,
+        "magicPower": 5,
+        "attackSpeed": 0,
+        "moveSpeed": 0
+      },
+      "ownerMagicPowerShare": 0.5,
+      "basicAttack": {
+        "range": 150,
+        "damageType": "Magic",
+        "physicalPowerRatio": 0,
+        "magicPowerRatio": 1,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 450,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "followDistance": 200,
+      "leashRange": 1200,
+      "acquireRange": 450,
+      "ownerTargetSeconds": 4,
+      "reformSeconds": 30,
+      "thinkSeconds": 0.25
+    }
+  }
 }

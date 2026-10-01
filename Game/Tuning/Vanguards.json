@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 17,
+  "schemaVersion": 18,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -990,6 +990,56 @@
       },
       "rankShape": [],
       "passive": ["relay_charger"]
+    },
+    "marek": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 560,
+        "healthRegen": 1.2,
+        "maxResource": 400,
+        "resourceRegen": 6,
+        "armor": 22,
+        "magicResist": 30,
+        "physicalPower": 52,
+        "magicPower": 0,
+        "attackSpeed": 0.64,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 92,
+        "healthRegen": 0.12,
+        "maxResource": 45,
+        "resourceRegen": 0.45,
+        "armor": 4,
+        "magicResist": 1.3,
+        "physicalPower": 3,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.017
+      },
+      "basicAttack": {
+        "range": 550,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.25,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1600, "radius": 15 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["marek_witchfire"],
+        "w": ["marek_hunt"],
+        "e": ["marek_cross_the_chain"],
+        "r": ["marek_hell_on_a_leash"]
+      },
+      "rankShape": [],
+      "passive": ["marek_bound_together"]
     }
   },
   "deepFoundation": {
@@ -1256,6 +1306,22 @@
       "chargePerDeath": 6,
       "boostStatus": "relay_overcharged",
       "boostMultiplier": 3
+    }
+  },
+  "accord": {
+    "marek_bound_together": {
+      "provenance": "Provisional",
+      "companion": "marek_nix",
+      "windowSeconds": 3,
+      "perTargetSeconds": 6,
+      "damageAmount": 20,
+      "damagePerLevel": 10,
+      "magicPowerRatio": 0.2,
+      "mark": "marek_bitten",
+      "refundSlot": "E",
+      "refundSeconds": 1.5,
+      "boostStatus": "marek_leashed",
+      "boostMultiplier": 1.5
     }
   }
 }

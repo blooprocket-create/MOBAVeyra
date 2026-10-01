@@ -321,6 +321,30 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraAccordTuning>& Entry : Tuning.Accord)
+	{
+		RegisterPassive(Entry.Key, TEXT("accord"));
+		const FString Pointer = TEXT("/accord/") + Entry.Key.ToString();
+		const FVeyraAccordTuning& Accord = Entry.Value;
+		if (!Abilities.Companions.Contains(Accord.Companion))
+		{
+			Problem(Pointer + TEXT("/companion"), FString::Printf(TEXT("names companion \"%s\", which Abilities.json does not define"), *Accord.Companion.ToString()));
+		}
+		for (const TPair<FString, FVeyraContentId>& Each : { TPair<FString, FVeyraContentId>(TEXT("/mark"), Accord.Mark),
+				 TPair<FString, FVeyraContentId>(TEXT("/boostStatus"), Accord.BoostStatus) })
+		{
+			if (!Abilities.Statuses.Contains(Each.Value))
+			{
+				Problem(Pointer + Each.Key, FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Each.Value.ToString()));
+			}
+		}
+		if (!(Accord.WindowSeconds > 0.0) || !(Accord.PerTargetSeconds > 0.0) || Accord.DamageAmount < 0.0 || Accord.DamagePerLevel < 0.0
+			|| Accord.MagicPowerRatio < 0.0 || Accord.RefundSeconds < 0.0 || Accord.BoostMultiplier < 1.0)
+		{
+			Problem(Pointer, TEXT("windowSeconds and perTargetSeconds are above 0, its damage and refund at least 0, and boostMultiplier at least 1"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraUnreturnedTuning>& Entry : Tuning.Unreturned)
 	{
 		RegisterPassive(Entry.Key, TEXT("unreturned"));

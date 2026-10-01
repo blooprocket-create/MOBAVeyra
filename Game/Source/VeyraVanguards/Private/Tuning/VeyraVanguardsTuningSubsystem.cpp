@@ -145,6 +145,11 @@ const FVeyraChargerTuning* UVeyraVanguardsTuningSubsystem::FindCharger(const FVe
 	return Get().Charger.Find(Passive);
 }
 
+const FVeyraAccordTuning* UVeyraVanguardsTuningSubsystem::FindAccord(const FVeyraContentId& Passive)
+{
+	return Get().Accord.Find(Passive);
+}
+
 const FVeyraUnreturnedTuning* UVeyraVanguardsTuningSubsystem::FindUnreturned(const FVeyraContentId& Passive)
 {
 	return Get().Unreturned.Find(Passive);

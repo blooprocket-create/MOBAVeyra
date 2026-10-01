@@ -868,6 +868,61 @@ struct FVeyraChargerTuning
 };
 
 /**
+ * Marek's Bound Together (Roster Bible §10; ADR-034 §9). It summons its owner's companion as it starts. When
+ * its owner and the companion have each damaged one enemy within WindowSeconds, Accord deals that enemy magic
+ * damage from its owner, at most once per PerTargetSeconds on it, BoostMultiplier times as much while its
+ * owner holds BoostStatus, and shortens RefundSlot's remaining cooldown by RefundSeconds. Each of the
+ * companion's hits leaves Mark on the enemy, which its owner's abilities may react to. Its data is an entry
+ * in Vanguards.json's accord map.
+ */
+USTRUCT()
+struct FVeyraAccordTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's companions. */
+	UPROPERTY()
+	FVeyraContentId Companion;
+
+	UPROPERTY()
+	double WindowSeconds = 0.0;
+
+	UPROPERTY()
+	double PerTargetSeconds = 0.0;
+
+	/** Accord's magic damage at Level 1, what each Level adds, and its Magic Power ratio. */
+	UPROPERTY()
+	double DamageAmount = 0.0;
+
+	UPROPERTY()
+	double DamagePerLevel = 0.0;
+
+	UPROPERTY()
+	double MagicPowerRatio = 0.0;
+
+	/** From Abilities.json's statuses: what each of the companion's hits leaves on the enemy. */
+	UPROPERTY()
+	FVeyraContentId Mark;
+
+	UPROPERTY()
+	EVeyraAbilitySlot RefundSlot = EVeyraAbilitySlot::E;
+
+	UPROPERTY()
+	double RefundSeconds = 0.0;
+
+	/** From Abilities.json's statuses: while its owner holds it, as Hell on a Leash gives it, Accord deals BoostMultiplier times as much. */
+	UPROPERTY()
+	FVeyraContentId BoostStatus;
+
+	/** At least 1. */
+	UPROPERTY()
+	double BoostMultiplier = 1.0;
+};
+
+/**
  * Tavi's You're It! (Roster Bible §6; ADR-030 §10): one enemy at a time holds its owner's mark. Its owner
  * moves faster while closing on the holder; its next basic attack on the holder spends the mark for bonus
  * magic damage and refunds CooldownRefund of Q, W and E's remaining cooldowns; and a kill of the holder
@@ -963,7 +1018,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 17;
+	static constexpr int32 SchemaVersion = 18;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -1027,6 +1082,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraChargerTuning> Charger;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraAccordTuning> Accord;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

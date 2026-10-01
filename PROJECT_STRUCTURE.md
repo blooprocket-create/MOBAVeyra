@@ -153,6 +153,10 @@ M26a added ([ADR-034](Docs/ADR/ADR-034-companions-for-marek-and-nix.md)), ADR-00
 - the Companion unit kind, ranked with Fluxborn by Fluxborn, drawn as a unit on the minimap and seen through Vision's `sight.companion`;
 - in Abilities, `Companions/`: `AVeyraCompanion` (a character with its own Health and basic attack, on its owner's side, inheriting only `ownerMagicPowerShare`), its server controller (follow its owner and fight what the owner fought lately, or hold a point and fight what comes near), the pure `VeyraCompanionRules`, and `UVeyraCompanionSubsystem`, which forms a companion beside its owner, banishes it with its owner or when it is killed, reforms it, and keeps it grown to its owner's Level; Abilities.json's `companions` map.
 
+M26b added ([ADR-034](Docs/ADR/ADR-034-companions-for-marek-and-nix.md)), for Marek:
+- the command archetype (`Abilities/UVeyraCommandAbility`: a companion leaps to hold a point, its landing its own hit; a recall follow-up), blinks to the caster's own companion with departure zones for each, reaction bursts, self-buffs' companion statuses, chains and an end with the companion, and casts' `needsCompanion` and `cooldownWhile`;
+- the Accord passive (`UVeyraAccordPassive`), which summons Marek's companion, marks what it bites and strikes an enemy both of them hurt.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy
