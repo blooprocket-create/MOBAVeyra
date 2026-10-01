@@ -79,7 +79,7 @@ void AVeyraCompanionController::Think()
 	AVeyraCompanion* Body = GetCompanion();
 	const FVeyraCompanionTuning* Tuning = Body ? Body->GetDefinition() : nullptr;
 	UAbilitySystemComponent* Keeper = Body ? Body->GetOwnerAbilities() : nullptr;
-	AActor* OwnerBody = Keeper ? Keeper->GetAvatarActor() : nullptr;
+	APawn* OwnerBody = Keeper ? AVeyraCompanion::BodyOf(*Keeper) : nullptr;
 	// Banished, or with its owner fallen, it waits for its keeper to bring it back.
 	if (!Tuning || !Body->IsAlive() || Body->IsBanished() || !VeyraTargeting::IsAlive(OwnerBody))
 	{
