@@ -69,8 +69,10 @@ void UVeyraFollowUpSubsystem::Open(int32 Key)
 
 void UVeyraFollowUpSubsystem::OnMarkerEnded(const FVeyraMarkerEnd& End)
 {
-	// The follow-up its marker's ability opened has nothing left to act on (ADR-032 §5).
-	if (UAbilitySystemComponent* Owner = End.Owner.Get())
+	// The follow-up its marker's ability opened has nothing left to act on (ADR-032 §5); one its own
+	// ability's new cast replaced leaves that cast's follow-up be.
+	UAbilitySystemComponent* Owner = End.Owner.Get();
+	if (Owner && End.Reason != EVeyraMarkerEndReason::Replaced)
 	{
 		VeyraAbilities::EndFollowUp(*Owner, End.Id);
 	}

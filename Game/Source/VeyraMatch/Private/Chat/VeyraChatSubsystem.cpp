@@ -17,6 +17,11 @@ EVeyraChatRefusal UVeyraChatSubsystem::Send(const AVeyraPlayerState& Sender, EVe
 	{
 		return EVeyraChatRefusal::NotAPlayer;
 	}
+	// The channel comes from the client: only Team and All exist.
+	if (!VeyraChat::IsChannel(Channel))
+	{
+		return EVeyraChatRefusal::UnknownChannel;
+	}
 	const AVeyraGameState* GameState = GetWorld()->GetGameState<AVeyraGameState>();
 	const EVeyraMatchPhase Phase = GameState ? GameState->GetPhase() : EVeyraMatchPhase::Loading;
 	// A pause stops play, not talk (Match Flow Bible §10.2); after the match, post-match chat is another space (§5).

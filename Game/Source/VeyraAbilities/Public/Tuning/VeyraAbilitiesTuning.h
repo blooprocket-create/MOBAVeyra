@@ -1282,6 +1282,10 @@ struct FVeyraDashAbilityTuning
 
 	UPROPERTY()
 	EVeyraRideExit RideExit = EVeyraRideExit::Stay;
+
+	/** ThroughTarget: the kinds of unit it may pass through, as Passing Step's (Roster Bible §15); empty for any enemy unit, and empty for any other dash. */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> TargetKinds;
 };
 
 /** The other enemies an empowered attack hits, in the attacker's cleave shape (ADR-009 §5). */

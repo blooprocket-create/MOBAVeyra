@@ -237,6 +237,16 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 	TArray<FVeyraStatusSpec> ReactionStatuses;
 	TArray<FVeyraContentId> Replaced;
 	const UVeyraStatusComponent* Ledger = Target->GetOwner() ? Target->GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (Ledger)
+	{
+		for (const FVeyraStatusEntry& Entry : Ledger->GetLedger().Entries)
+		{
+			if (!Hit.HeldFromCaster.Contains(Entry.Id) && Ledger->HasFrom(Entry.Id, Caster))
+			{
+				Hit.HeldFromCaster.Add(Entry.Id);
+			}
+		}
+	}
 	if (Ledger && !Effects.Reactions.IsEmpty())
 	{
 		TArray<FVeyraContentId, TInlineAllocator<2>> Consumed;

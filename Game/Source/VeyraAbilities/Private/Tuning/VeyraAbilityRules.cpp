@@ -573,6 +573,11 @@ namespace
 			{
 				Problem(Pointer + TEXT("/direction"), TEXT("a ThroughTarget dash has a cast range above 0 and no contact stop"));
 			}
+			if (Dash.Direction != EVeyraDashDirection::ThroughTarget && !Dash.TargetKinds.IsEmpty())
+			{
+				Problem(Pointer + TEXT("/targetKinds"), TEXT("only a ThroughTarget dash names the kinds it passes through"));
+			}
+			CheckTargetKinds(Pointer + TEXT("/targetKinds"), Dash.TargetKinds);
 		}
 
 		/** The kinds a targeted ability names: never a structure (Combat Bible §33). */

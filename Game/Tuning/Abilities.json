@@ -3247,7 +3247,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "bryn_kickback": {
       "provenance": "Provisional",
@@ -3290,7 +3291,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "blink": {
       "provenance": "Provisional",
@@ -3321,7 +3323,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "patch_bear_hug_throw": {
       "provenance": "Provisional",
@@ -3347,7 +3350,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 75, "speed": 600, "collisionStatuses": [] }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "gorraveth_rip_through": {
       "provenance": "Provisional",
@@ -3373,7 +3377,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "gorraveth_rip_through_hunt": {
       "provenance": "Provisional",
@@ -3399,7 +3404,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "moro_pounce": {
       "provenance": "Provisional",
@@ -3425,7 +3431,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["moro_pounce_rush"] }],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "gorraveth_ravine_bound": {
       "provenance": "Provisional",
@@ -3451,7 +3458,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [{ "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "raska_breakneck": {
       "provenance": "Provisional",
@@ -3477,7 +3485,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "raska_breakneck_through": {
       "provenance": "Provisional",
@@ -3503,7 +3512,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "raska_breakneck_redlined": {
       "provenance": "Provisional",
@@ -3529,7 +3539,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "raska_sideswipe": {
       "provenance": "Provisional",
@@ -3555,7 +3566,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "raska_bail_out": {
       "provenance": "Provisional",
@@ -3581,7 +3593,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Leave",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "raska_last_exit": {
       "provenance": "Provisional",
@@ -3607,7 +3620,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 250, 350], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }], "statuses": ["raska_last_exit_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
       "rideExit": "Leave",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "celandrine_sidebound": {
       "provenance": "Provisional",
@@ -3633,7 +3647,8 @@
       "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "tavi_tag": {
       "provenance": "Provisional",
@@ -3685,7 +3700,8 @@
       },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "tavi_tag_again": {
       "provenance": "Provisional",
@@ -3727,7 +3743,8 @@
       },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": []
     },
     "angeru_flowing_cut": {
       "provenance": "Provisional",
@@ -3791,7 +3808,8 @@
         }
       ],
       "rideExit": "Stay",
-      "duringDash": "TakesOver"
+      "duringDash": "TakesOver",
+      "targetKinds": []
     },
     "angeru_passing_step": {
       "provenance": "Provisional",
@@ -3840,7 +3858,8 @@
       },
       "endZones": [],
       "rideExit": "Stay",
-      "duringDash": "Refused"
+      "duringDash": "Refused",
+      "targetKinds": ["Vanguard", "Fluxborn", "Wildlife"]
     }
   },
   "empoweredAttack": {

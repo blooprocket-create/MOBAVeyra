@@ -61,10 +61,10 @@ TFunction<void(const FVector&)> UVeyraSkillshotAbility::WallAtEnd(UAbilitySystem
 		{
 			return;
 		}
-		// One at a time: the last goes quietly, as its time would have run out.
+		// One at a time: the last goes quietly, and the follow-up this cast opened stays with the new one.
 		if (AVeyraPlacedMarker* Last = AVeyraPlacedMarker::FindStanding(*Owner, Ability))
 		{
-			Last->EndMarker(EVeyraMarkerEndReason::Expired);
+			Last->EndMarker(EVeyraMarkerEndReason::Replaced);
 		}
 		FVeyraMarkerSpec Spec;
 		Spec.Id = Ability;
