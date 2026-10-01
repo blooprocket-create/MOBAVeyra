@@ -6,6 +6,7 @@
 #include "Buyback/VeyraBuybackRules.h"
 #include "Content/VeyraContentId.h"
 #include "Input/VeyraCastInput.h"
+#include "Input/VeyraCursorPicks.h"
 #include "Input/VeyraInputSettings.h"
 #include "Inventory/VeyraInventoryRules.h"
 #include "Progression/VeyraProgressionTypes.h"
@@ -470,8 +471,23 @@ private:
 	/** Which indicator shows, and when a key, its release or a click casts (ADR-040 §1). */
 	FVeyraCastInput CastInput;
 
-	/** Owning client: the enemy unit under the cursor, if any. */
+	/** Owning client: the enemy unit under the cursor, if any; only a Vanguard while Target Vanguards Only holds. */
 	AActor* FindEnemyUnderCursor() const;
+
+	/** Owning client: the units under the cursor, nearest the camera first, until something else blocks the view. */
+	TArray<FVeyraCursorUnit> UnitsUnderCursor() const;
+
+	/** Owning client: whether attacks and casts name only Vanguards now (Settings Bible §1.4). */
+	bool IsTargetingVanguardsOnly() const;
+
+	/**
+	 * Owning client: whether Slot's cast names the player's own Vanguard: its ability may name an ally, and the
+	 * Self-Cast Modifier is held or Smart Self-Cast finds no allied Vanguard under the cursor (Settings Bible §1.5).
+	 */
+	bool ShouldSelfCast(EVeyraAbilitySlot Slot, TConstArrayView<FVeyraCursorUnit> Under) const;
+
+	/** Target Vanguards Only, switched by its key while its mode is Toggle. */
+	bool bTargetVanguardsToggled = false;
 
 	/** Whether the move button's current press ordered an attack, which holding it does not steer. */
 	bool bMoveOrderPressAttacked = false;

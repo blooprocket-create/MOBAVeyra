@@ -133,6 +133,19 @@ namespace VeyraCastInputTests
 			}
 		}
 
+		TEST_METHOD(SmartSelfCastAndTargetVanguardsOnlyFollowTheirSettings)
+		{
+			const FVeyraSettingsStore Defaults(Registry);
+			const FVeyraControlPreferences Untouched = VeyraControlPreferences::Resolve(&Defaults);
+			ASSERT_THAT(IsTrue(Untouched.SmartSelfCast.IsEmpty() && !Untouched.bTargetVanguardsToggles, TEXT("Off and Hold by default")));
+			FVeyraSettingsStore Store(Registry);
+			Store.Set(*VeyraControlPreferences::SmartSelfCast(EVeyraAbilitySlot::E), VeyraSettings::On());
+			Store.Set(VeyraControlPreferences::TargetVanguardsMode(), TEXT("Toggle"));
+			const FVeyraControlPreferences Set = VeyraControlPreferences::Resolve(&Store);
+			ASSERT_THAT(IsTrue(Set.SmartSelfCast.Num() == 1 && Set.SmartSelfCast.Contains(EVeyraAbilitySlot::E) && Set.bTargetVanguardsToggles));
+			ASSERT_THAT(IsNull(VeyraControlPreferences::SmartSelfCast(EVeyraAbilitySlot::Spell1), TEXT("a kit slot's alone")));
+		}
+
 		TEST_METHOD(EachSlotFollowsItsOwnSetting)
 		{
 			FVeyraSettingsStore Store(Registry);

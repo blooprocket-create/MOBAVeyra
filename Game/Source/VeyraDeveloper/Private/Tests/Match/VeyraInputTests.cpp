@@ -100,7 +100,7 @@ namespace VeyraMatchTests
 		TEST_METHOD(TheShippedDefaultsAreUsable)
 		{
 			const UVeyraInputSettings& Settings = *GetDefault<UVeyraInputSettings>();
-			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey, Settings.RecallKey, Settings.RankUpModifierKey, Settings.ShowCastRangeKey, Settings.VisionToolKey };
+			TArray<FKey> Keys = { Settings.MoveOrderKey, Settings.AttackMoveKey, Settings.RecallKey, Settings.RankUpModifierKey, Settings.ShowCastRangeKey, Settings.SelfCastKey, Settings.TargetVanguardsOnlyKey, Settings.VisionToolKey };
 			for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
 			{
 				Keys.Add(Settings.GetAbilityKey(Slot));

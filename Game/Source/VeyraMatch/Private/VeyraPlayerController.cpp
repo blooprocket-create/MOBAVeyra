@@ -4,6 +4,8 @@
 
 #include "Camera/VeyraCameraPreferences.h"
 #include "Input/VeyraControlPreferences.h"
+#include "Loadout/VeyraAbilityLoadoutComponent.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Camera/VeyraCameraRig.h"
 #include "Developer/VeyraDeveloperCommandRoute.h"
 #include "Engine/Console.h"
@@ -272,13 +274,50 @@ void AVeyraPlayerController::ClientAbsenceWarning_Implementation(bool bAfk)
 
 AActor* AVeyraPlayerController::FindEnemyUnderCursor() const
 {
-	FHitResult Unit;
-	if (!GetHitResultUnderCursor(ECC_Pawn, /*bTraceComplex*/ false, Unit))
+	return VeyraCursorPicks::Enemy(UnitsUnderCursor(), IsTargetingVanguardsOnly());
+}
+
+TArray<FVeyraCursorUnit> AVeyraPlayerController::UnitsUnderCursor() const
+{
+	TArray<FVeyraCursorUnit> Under;
+	FVector Origin;
+	FVector Direction;
+	if (!DeprojectMousePositionToWorld(Origin, Direction))
 	{
-		return nullptr;
+		return Under;
 	}
-	AActor* Candidate = Unit.GetActor();
-	return VeyraUnits::KindOf(Candidate).IsSet() && VeyraTargeting::AreHostile(PlayerState, Candidate) ? Candidate : nullptr;
+	// As the cursor's own trace would, but past each unit it meets, until the ground or a wall stops it.
+	FCollisionQueryParams Query(SCENE_QUERY_STAT(VeyraCursorUnits), /*bTraceComplex*/ false);
+	const FVector End = Origin + Direction * HitResultTraceDistance;
+	FHitResult Hit;
+	while (GetWorld()->LineTraceSingleByChannel(Hit, Origin, End, ECC_Pawn, Query))
+	{
+		AActor* Actor = Hit.GetActor();
+		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Actor);
+		if (!Kind)
+		{
+			break;
+		}
+		Under.Add(FVeyraCursorUnit{ Actor, Kind.GetValue(), VeyraTargeting::AreHostile(PlayerState, Actor) });
+		Query.AddIgnoredActor(Actor);
+	}
+	return Under;
+}
+
+bool AVeyraPlayerController::IsTargetingVanguardsOnly() const
+{
+	return ControlPreferences().bTargetVanguardsToggles ? bTargetVanguardsToggled : IsInputKeyDown(GetKeys().TargetVanguardsOnlyKey);
+}
+
+bool AVeyraPlayerController::ShouldSelfCast(EVeyraAbilitySlot Slot, TConstArrayView<FVeyraCursorUnit> Under) const
+{
+	const UVeyraAbilityLoadoutComponent* Loadout = PlayerState ? PlayerState->FindComponentByClass<UVeyraAbilityLoadoutComponent>() : nullptr;
+	const FVeyraLoadoutEntry* Entry = Loadout ? Loadout->FindSlot(Slot) : nullptr;
+	if (!Entry || !VeyraAbilityRules::AcceptsAllyTarget(UVeyraAbilitiesTuningSubsystem::Get(), Entry->Ability))
+	{
+		return false;
+	}
+	return IsInputKeyDown(GetKeys().SelfCastKey) || (ControlPreferences().SmartSelfCast.Contains(Slot) && !VeyraCursorPicks::HasAlliedVanguard(Under));
 }
 
 TOptional<FVector> AVeyraPlayerController::MinimapPointUnderCursor(EMinimapClick Purpose) const
@@ -331,6 +370,11 @@ void AVeyraPlayerController::OnAbilityReleased(EVeyraAbilitySlot Slot)
 
 void AVeyraPlayerController::TickCastInput()
 {
+	if (WasInputKeyJustPressed(GetKeys().TargetVanguardsOnlyKey))
+	{
+		// Read only while its mode is Toggle.
+		bTargetVanguardsToggled = !bTargetVanguardsToggled;
+	}
 	const TOptional<FVeyraCastIndicator>& Shown = CastInput.GetIndicator();
 	if (!Shown)
 	{
@@ -365,9 +409,8 @@ void AVeyraPlayerController::CastAtCursor(EVeyraAbilitySlot Slot)
 	// Each ability uses what it needs of the unit and the ground under the cursor, and the server decides
 	// whether it is valid.
 	FVeyraCastTarget Target;
-	FHitResult Unit;
-	GetHitResultUnderCursor(ECC_Pawn, /*bTraceComplex*/ false, Unit);
-	Target.Actor = Unit.GetActor();
+	const TArray<FVeyraCursorUnit> Under = UnitsUnderCursor();
+	Target.Actor = ShouldSelfCast(Slot, Under) ? GetVanguard() : VeyraCursorPicks::ForCast(Under, IsTargetingVanguardsOnly());
 	FHitResult Ground;
 	if (GetHitResultUnderCursor(ECC_Visibility, /*bTraceComplex*/ false, Ground))
 	{

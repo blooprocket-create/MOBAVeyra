@@ -49,6 +49,33 @@ const FVeyraContentId& CastMode(EVeyraAbilitySlot Slot)
 	}
 }
 
+const FVeyraContentId* SmartSelfCast(EVeyraAbilitySlot Slot)
+{
+	static const FVeyraContentId Q = IdOf(TEXT("controls_smart_self_cast_q"));
+	static const FVeyraContentId W = IdOf(TEXT("controls_smart_self_cast_w"));
+	static const FVeyraContentId E = IdOf(TEXT("controls_smart_self_cast_e"));
+	static const FVeyraContentId R = IdOf(TEXT("controls_smart_self_cast_r"));
+	switch (Slot)
+	{
+	case EVeyraAbilitySlot::Q:
+		return &Q;
+	case EVeyraAbilitySlot::W:
+		return &W;
+	case EVeyraAbilitySlot::E:
+		return &E;
+	case EVeyraAbilitySlot::R:
+		return &R;
+	default:
+		return nullptr;
+	}
+}
+
+const FVeyraContentId& TargetVanguardsMode()
+{
+	static const FVeyraContentId Id = IdOf(TEXT("controls_target_vanguards_mode"));
+	return Id;
+}
+
 TArray<FVeyraContentId> CastModeSettings()
 {
 	return { CastMode(EVeyraAbilitySlot::Q), CastMode(EVeyraAbilitySlot::W), CastMode(EVeyraAbilitySlot::E), CastMode(EVeyraAbilitySlot::R),
@@ -69,6 +96,14 @@ FVeyraControlPreferences Resolve(const FVeyraSettingsStore* Store)
 			Preferences.CastModes.Add(Id, Mode.GetValue());
 		}
 	}
+	for (const EVeyraAbilitySlot Slot : VeyraAbilitySlots::All)
+	{
+		if (Store->IsOn(*SmartSelfCast(Slot)))
+		{
+			Preferences.SmartSelfCast.Add(Slot);
+		}
+	}
+	Preferences.bTargetVanguardsToggles = Store->Get(TargetVanguardsMode()) == TEXT("Toggle");
 	return Preferences;
 }
 }

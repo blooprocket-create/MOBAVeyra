@@ -15,6 +15,12 @@ struct FVeyraControlPreferences
 
 	/** How Slot's key casts. */
 	VEYRAMATCH_API EVeyraCastMode CastModeOf(EVeyraAbilitySlot Slot) const;
+
+	/** The kit slots whose ability names its caster when no allied Vanguard is under the cursor (Settings Bible §1.5). */
+	TSet<EVeyraAbilitySlot> SmartSelfCast;
+
+	/** Target Vanguards Only's key switches it with each press, instead of holding it while held (Settings Bible §1.4). */
+	bool bTargetVanguardsToggles = false;
 };
 
 /** The player's control settings, apart from the engine. */
@@ -28,6 +34,12 @@ namespace VeyraControlPreferences
 
 	/** Every casting-mode setting, as the registry names them. */
 	VEYRAMATCH_API TArray<FVeyraContentId> CastModeSettings();
+
+	/** The Smart Self-Cast setting of a kit slot; null for any other slot. */
+	VEYRAMATCH_API const FVeyraContentId* SmartSelfCast(EVeyraAbilitySlot Slot);
+
+	/** Target Vanguards Only's Hold or Toggle. */
+	VEYRAMATCH_API const FVeyraContentId& TargetVanguardsMode();
 
 	/** The player's controls in Store; every slot Quick without a store (a server, a test, a game without settings). */
 	VEYRAMATCH_API FVeyraControlPreferences Resolve(const FVeyraSettingsStore* Store);

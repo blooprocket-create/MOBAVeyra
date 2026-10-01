@@ -1369,6 +1369,19 @@ bool Defines(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability
 		|| Tuning.Dismount.Contains(Ability);
 }
 
+bool AcceptsAllyTarget(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
+{
+	if (const FVeyraSelfBuffAbilityTuning* Buff = Tuning.SelfBuff.Find(Ability))
+	{
+		return Buff->Recipient == EVeyraBuffRecipient::CasterOrAlly;
+	}
+	if (const FVeyraCommandAbilityTuning* Command = Tuning.Command.Find(Ability))
+	{
+		return Command->BindTo == EVeyraCompanionBind::Ally;
+	}
+	return false;
+}
+
 const FVeyraCastTuning* FindCast(const FVeyraAbilitiesTuning& Tuning, const FVeyraContentId& Ability)
 {
 	const FVeyraCastTuning* Cast = nullptr;

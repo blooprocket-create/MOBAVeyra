@@ -1,0 +1,96 @@
+// Copyright © 2026 Wayfinder Studios. All rights reserved.
+
+#include "CQTest.h"
+
+#if WITH_AUTOMATION_WORKER
+
+#include "GameFramework/Character.h"
+#include "GameFramework/Info.h"
+#include "Input/VeyraCursorPicks.h"
+#include "Tuning/VeyraAbilitiesTuning.h"
+#include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+
+namespace VeyraCursorPickTests
+{
+	// Veyra.Match.CursorPicks.*: which unit under the cursor an order or a cast names, with Target Vanguards Only and
+	// for Smart Self-Cast (Settings Bible §1.4, §1.5; ADR-040 §3).
+	TEST_CLASS(CursorPicks, "Veyra.Match")
+	{
+		/** Four distinct stand-ins for the units under the cursor; the picks only pass them on, so no world is needed. */
+		AActor* Minion = nullptr;
+		AActor* Foe = nullptr;
+		AActor* Friend = nullptr;
+		AActor* Tower = nullptr;
+
+		BEFORE_EACH()
+		{
+			Minion = GetMutableDefault<AActor>();
+			Foe = GetMutableDefault<APawn>();
+			Friend = GetMutableDefault<ACharacter>();
+			Tower = GetMutableDefault<AInfo>();
+		}
+
+		TEST_METHOD(AnAttackTakesTheFirstEnemyUnderTheCursor)
+		{
+			const TArray<FVeyraCursorUnit> Under = { { Friend, EVeyraUnitKind::Vanguard, false }, { Minion, EVeyraUnitKind::Fluxborn, true },
+				{ Foe, EVeyraUnitKind::Vanguard, true } };
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::Enemy(Under, false) == Minion));
+		}
+
+		TEST_METHOD(TargetVanguardsOnlyLooksPastEveryOtherUnit)
+		{
+			const TArray<FVeyraCursorUnit> Under = { { Tower, EVeyraUnitKind::Structure, true }, { Minion, EVeyraUnitKind::Fluxborn, true },
+				{ Foe, EVeyraUnitKind::Vanguard, true } };
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::Enemy(Under, true) == Foe));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, true) == Foe));
+			const TArray<FVeyraCursorUnit> NoVanguard = { { Minion, EVeyraUnitKind::Fluxborn, true } };
+			ASSERT_THAT(IsNull(VeyraCursorPicks::Enemy(NoVanguard, true), TEXT("no attack on the minion instead")));
+		}
+
+		TEST_METHOD(ACastNamesTheFirstUnitOfEitherSide)
+		{
+			const TArray<FVeyraCursorUnit> Under = { { Friend, EVeyraUnitKind::Vanguard, false }, { Foe, EVeyraUnitKind::Vanguard, true } };
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, false) == Friend));
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::ForCast(Under, true) == Friend, TEXT("an ally stays a Vanguard to name")));
+			ASSERT_THAT(IsNull(VeyraCursorPicks::ForCast({}, false)));
+		}
+
+		TEST_METHOD(SmartSelfCastLeavesACastOnAnAllyToIt)
+		{
+			ASSERT_THAT(IsTrue(VeyraCursorPicks::HasAlliedVanguard({ { Minion, EVeyraUnitKind::Fluxborn, true }, { Friend, EVeyraUnitKind::Vanguard, false } })));
+			ASSERT_THAT(IsFalse(VeyraCursorPicks::HasAlliedVanguard({ { Foe, EVeyraUnitKind::Vanguard, true } })));
+		}
+	};
+
+	// Veyra.Abilities.AllyTargets.*: which abilities may name an allied unit, and so take the Self-Cast Modifier (ADR-040 §3).
+	TEST_CLASS(AllyTargets, "Veyra.Abilities")
+	{
+		static bool Accepts(const TCHAR* Ability)
+		{
+			return VeyraAbilityRules::AcceptsAllyTarget(UVeyraAbilitiesTuningSubsystem::Get(), FVeyraContentId::FromText(Ability).GetValue());
+		}
+
+		TEST_METHOD(ABuffThatMayLandOnAnAllyAcceptsOne)
+		{
+			ASSERT_THAT(IsTrue(Accepts(TEXT("aurelisse_windward"))));
+			ASSERT_THAT(IsFalse(Accepts(TEXT("mend")), TEXT("its caster's alone")));
+		}
+
+		TEST_METHOD(ACompanionCommandBoundToAnAllyAcceptsOne)
+		{
+			ASSERT_THAT(IsTrue(Accepts(TEXT("neris_little_current"))));
+			ASSERT_THAT(IsTrue(Accepts(TEXT("eudora_move_the_line"))));
+			ASSERT_THAT(IsFalse(Accepts(TEXT("neris_little_current_storm")), TEXT("bound to an enemy")));
+			ASSERT_THAT(IsFalse(Accepts(TEXT("eudora_set_the_picket"))));
+		}
+
+		TEST_METHOD(AnAbilityAimedAtFoesOrGroundAcceptsNoAlly)
+		{
+			ASSERT_THAT(IsFalse(Accepts(TEXT("scorch"))));
+			ASSERT_THAT(IsFalse(Accepts(TEXT("blink"))));
+			ASSERT_THAT(IsFalse(Accepts(TEXT("eudora_drive_rivet"))));
+		}
+	};
+}
+
+#endif

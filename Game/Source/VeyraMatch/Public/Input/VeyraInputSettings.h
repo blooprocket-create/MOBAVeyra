@@ -138,6 +138,14 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
 	FKey SelectKey;
 
+	/** Held with an ability's key, names the player's own Vanguard when the ability may name an ally (Settings Bible §1.5). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey SelfCastKey;
+
+	/** Held, or pressed to switch, so attacks and casts name only Vanguards under the cursor (Settings Bible §1.4). */
+	UPROPERTY(Config, EditAnywhere, Category = "Bindings")
+	FKey TargetVanguardsOnlyKey;
+
 	/** The key bound to Slot. */
 	const FKey& GetAbilityKey(EVeyraAbilitySlot Slot) const;
 
