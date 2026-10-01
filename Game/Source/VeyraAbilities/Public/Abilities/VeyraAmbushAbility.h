@@ -28,5 +28,7 @@ protected:
 	virtual EVeyraCastRejection CheckTarget(const AActor& Caster, const FVeyraContentId& Ability, const FVeyraCastTarget& Target) const override;
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const override;
 	virtual bool MovesCaster(const FVeyraContentId& Ability) const override { return Defines(Ability); }
+	/** Its blink ends a dash under way (ADR-031 §7). */
+	virtual bool TakesOverDash(const FVeyraContentId& Ability) const override { return Defines(Ability); }
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast) override;
 };

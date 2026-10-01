@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 14,
+  "schemaVersion": 19,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -46,6 +46,7 @@
         "e": ["cairn_immovable"],
         "r": ["cairn_burden_of_the_depths"]
       },
+      "rankShape": [],
       "passive": ["cairn_deep_foundation"]
     },
     "qazharr": {
@@ -93,6 +94,7 @@
         "e": ["qazharr_boarding_rush"],
         "r": ["qazharr_no_quarter"]
       },
+      "rankShape": [],
       "passive": ["qazharr_sea_dog"]
     },
     "oriel": {
@@ -140,6 +142,7 @@
         "e": ["oriel_mirror_veil"],
         "r": ["oriel_final_radiance"]
       },
+      "rankShape": [],
       "passive": ["oriel_gathering_light"]
     },
     "bryn": {
@@ -187,6 +190,7 @@
         "e": ["bryn_kickback"],
         "r": ["bryn_last_broadside"]
       },
+      "rankShape": [],
       "passive": ["bryn_breach"]
     },
     "test_vanguard": {
@@ -234,6 +238,7 @@
         "e": [],
         "r": []
       },
+      "rankShape": [],
       "passive": []
     },
     "kade": {
@@ -276,6 +281,7 @@
         "cleave": []
       },
       "abilities": { "q": ["kade_throughline"], "w": ["kade_sightline"], "e": ["kade_reposition"], "r": ["kade_kill_corridor"] },
+      "rankShape": [],
       "passive": ["kade_moving_target"]
     },
     "vera": {
@@ -318,6 +324,7 @@
         "cleave": []
       },
       "abilities": { "q": ["vera_range_found"], "w": ["vera_dig_in"], "e": ["vera_break_the_line"], "r": ["vera_the_last_volley"] },
+      "rankShape": [],
       "passive": ["vera_cadence"]
     },
     "mimzi": {
@@ -360,6 +367,7 @@
         "cleave": []
       },
       "abilities": { "q": ["mimzi_twinklebolt"], "w": ["mimzi_winkbomb"], "e": ["mimzi_now_you_see_me"], "r": ["mimzi_grand_prank"] },
+      "rankShape": [],
       "passive": ["mimzi_pocket_hex"]
     },
     "patch": {
@@ -402,6 +410,7 @@
         "cleave": []
       },
       "abilities": { "q": ["patch_bear_hug"], "w": ["patch_play_dead"], "e": ["patch_dont_leave_me"], "r": ["patch_the_thing_inside"] },
+      "rankShape": [],
       "passive": ["patch_haunted_attachment"]
     },
     "gorraveth": {
@@ -444,6 +453,7 @@
         "cleave": []
       },
       "abilities": { "q": ["gorraveth_rip_through"], "w": ["gorraveth_furnace_rake"], "e": ["gorraveth_ravine_bound"], "r": ["gorraveth_tear_them_apart"] },
+      "rankShape": [],
       "passive": ["gorraveth_no_time_to_bleed"]
     },
     "raska": {
@@ -486,6 +496,7 @@
         "cleave": []
       },
       "abilities": { "q": ["raska_breakneck"], "w": ["raska_countersteer"], "e": ["raska_kickstart"], "r": ["raska_no_brakes"] },
+      "rankShape": [],
       "passive": ["raska_redline"]
     },
     "moro": {
@@ -528,6 +539,7 @@
         "cleave": []
       },
       "abilities": { "q": ["moro_arc_bolt"], "w": ["moro_bursting_ground"], "e": ["moro_pounce"], "r": ["moro_wildstorm"] },
+      "rankShape": [],
       "passive": ["moro_wild_dominion"]
     },
     "korruk": {
@@ -570,6 +582,7 @@
         "cleave": []
       },
       "abilities": { "q": ["korruk_spineburst"], "w": ["korruk_pressure_mine"], "e": ["korruk_rupture"], "r": ["korruk_shatterfield"] },
+      "rankShape": [],
       "passive": ["korruk_embedded"]
     },
     "mavra": {
@@ -612,6 +625,7 @@
         "cleave": []
       },
       "abilities": { "q": ["mavra_caustic_line"], "w": ["mavra_flash_cure"], "e": ["mavra_pressure_leak"], "r": ["mavra_code_black"] },
+      "rankShape": [],
       "passive": ["mavra_hazard_exposure"]
     },
     "celandrine": {
@@ -654,6 +668,7 @@
         "cleave": []
       },
       "abilities": { "q": ["celandrine_doubletime"], "w": ["celandrine_briar_scatter"], "e": ["celandrine_sidebound"], "r": ["celandrine_open_road"] },
+      "rankShape": [],
       "passive": ["celandrine_never_break_stride"]
     },
     "aurelisse": {
@@ -696,6 +711,7 @@
         "cleave": []
       },
       "abilities": { "q": ["aurelisse_crosswind"], "w": ["aurelisse_rising_current"], "e": ["aurelisse_windward"], "r": ["aurelisse_room_to_breathe"] },
+      "rankShape": [],
       "passive": ["aurelisse_slipstream"]
     },
     "silt": {
@@ -738,6 +754,7 @@
         "cleave": []
       },
       "abilities": { "q": ["silt_scattershot"], "w": ["silt_sink"], "e": ["silt_sandstorm"], "r": ["silt_buried_alive"] },
+      "rankShape": [],
       "passive": ["silt_reclaim"]
     },
     "torr": {
@@ -780,6 +797,7 @@
         "cleave": []
       },
       "abilities": { "q": ["torr_battering_mass"], "w": ["torr_fortify"], "e": ["torr_anchor"], "r": ["torr_overcapacity"] },
+      "rankShape": [],
       "passive": ["torr_unreturned"]
     },
     "tavi": {
@@ -822,7 +840,306 @@
         "cleave": []
       },
       "abilities": { "q": ["tavi_catch"], "w": ["tavi_hide"], "e": ["tavi_tag"], "r": ["tavi_ready_or_not"] },
+      "rankShape": [],
       "passive": ["tavi_youre_it"]
+    },
+    "angeru": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Focus",
+      "body": { "capsuleRadius": 32, "capsuleHalfHeight": 66, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 590,
+        "healthRegen": 0.85,
+        "maxResource": 200,
+        "resourceRegen": 10,
+        "armor": 30,
+        "magicResist": 32,
+        "physicalPower": 63,
+        "magicPower": 0,
+        "attackSpeed": 0.651,
+        "moveSpeed": 345
+      },
+      "growth": {
+        "maxHealth": 95,
+        "healthRegen": 0.14,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 4.5,
+        "magicResist": 2.05,
+        "physicalPower": 3.4,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.033
+      },
+      "basicAttack": {
+        "range": 125,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.27,
+        "acquisitionRadius": 600,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["angeru_shadow_needle"],
+        "w": ["angeru_false_body"],
+        "e": ["angeru_black_step"],
+        "r": ["angeru_forsake_the_schools"]
+      },
+      "rankShape": ["dual_stance"],
+      "passive": ["angeru_no_master"]
+    },
+    "varkesh": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 44, "capsuleHalfHeight": 100, "turnRateDegreesPerSecond": 540 },
+      "baseStats": {
+        "maxHealth": 610,
+        "healthRegen": 1.0,
+        "maxResource": 340,
+        "resourceRegen": 3.2,
+        "armor": 30,
+        "magicResist": 32,
+        "physicalPower": 52,
+        "magicPower": 0,
+        "attackSpeed": 0.625,
+        "moveSpeed": 335
+      },
+      "growth": {
+        "maxHealth": 100,
+        "healthRegen": 0.12,
+        "maxResource": 45,
+        "resourceRegen": 0.3,
+        "armor": 4.5,
+        "magicResist": 1.5,
+        "physicalPower": 3,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.015
+      },
+      "basicAttack": {
+        "range": 425,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1500, "radius": 20 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["varkesh_slagshot"],
+        "w": ["varkesh_tempered_shell"],
+        "e": ["varkesh_molten_ground"],
+        "r": ["varkesh_forge_divide"]
+      },
+      "rankShape": [],
+      "passive": ["varkesh_stress_temper"]
+    },
+    "relay": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Charge",
+      "body": { "capsuleRadius": 46, "capsuleHalfHeight": 105, "turnRateDegreesPerSecond": 540 },
+      "baseStats": {
+        "maxHealth": 560,
+        "healthRegen": 0.9,
+        "maxResource": 100,
+        "resourceRegen": 0,
+        "armor": 28,
+        "magicResist": 30,
+        "physicalPower": 50,
+        "magicPower": 0,
+        "attackSpeed": 0.625,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 92,
+        "healthRegen": 0.1,
+        "maxResource": 10,
+        "resourceRegen": 0,
+        "armor": 4.2,
+        "magicResist": 1.3,
+        "physicalPower": 2.5,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 525,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1600, "radius": 20 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["relay_rapid_discharge"],
+        "w": ["relay_overcharge"],
+        "e": ["relay_magnetic_field"],
+        "r": ["relay_full_grid"]
+      },
+      "rankShape": [],
+      "passive": ["relay_charger"]
+    },
+    "marek": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 40, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 560,
+        "healthRegen": 1.2,
+        "maxResource": 400,
+        "resourceRegen": 6,
+        "armor": 22,
+        "magicResist": 30,
+        "physicalPower": 52,
+        "magicPower": 0,
+        "attackSpeed": 0.64,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 92,
+        "healthRegen": 0.12,
+        "maxResource": 45,
+        "resourceRegen": 0.45,
+        "armor": 4,
+        "magicResist": 1.3,
+        "physicalPower": 3,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.017
+      },
+      "basicAttack": {
+        "range": 550,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.25,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1600, "radius": 15 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["marek_witchfire"],
+        "w": ["marek_hunt"],
+        "e": ["marek_cross_the_chain"],
+        "r": ["marek_hell_on_a_leash"]
+      },
+      "rankShape": [],
+      "passive": ["marek_bound_together"]
+    },
+    "neris": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 38, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 535,
+        "healthRegen": 0.9,
+        "maxResource": 420,
+        "resourceRegen": 7.5,
+        "armor": 21,
+        "magicResist": 30,
+        "physicalPower": 50,
+        "magicPower": 0,
+        "attackSpeed": 0.64,
+        "moveSpeed": 335
+      },
+      "growth": {
+        "maxHealth": 88,
+        "healthRegen": 0.11,
+        "maxResource": 40,
+        "resourceRegen": 0.5,
+        "armor": 4.2,
+        "magicResist": 1.3,
+        "physicalPower": 2.8,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.022
+      },
+      "basicAttack": {
+        "range": 550,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1500, "radius": 15 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["neris_breaking_wave"],
+        "w": ["neris_little_current"],
+        "e": ["neris_change_the_weather"],
+        "r": ["neris_tidebreaker"]
+      },
+      "rankShape": [],
+      "passive": []
+    },
+    "sylra": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 36, "capsuleHalfHeight": 88, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 540,
+        "healthRegen": 1,
+        "maxResource": 430,
+        "resourceRegen": 8,
+        "armor": 20,
+        "magicResist": 30,
+        "physicalPower": 48,
+        "magicPower": 0,
+        "attackSpeed": 0.63,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 90,
+        "healthRegen": 0.12,
+        "maxResource": 38,
+        "resourceRegen": 0.5,
+        "armor": 4.1,
+        "magicResist": 1.3,
+        "physicalPower": 2.5,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 525,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1600, "radius": 15 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["sylra_harbor_bell"],
+        "w": ["sylra_lay_the_mist"],
+        "e": ["sylra_waymark"],
+        "r": ["sylra_through_the_white"]
+      },
+      "rankShape": [],
+      "passive": ["sylra_follow_the_bell"]
     }
   },
   "deepFoundation": {
@@ -1033,6 +1350,90 @@
       "magicPowerRatio": 0.3,
       "cooldownRefund": 0.25,
       "jumpRadius": 1000
+    }
+  },
+  "disciplines": {
+    "angeru_no_master": {
+      "provenance": "Provisional",
+      "marks": [
+        {
+          "status": "angeru_veiled",
+          "consumedBy": ["angeru_flowing_cut", "angeru_severing_arc", "angeru_passing_step"],
+          "damageType": "Physical",
+          "damageAmount": 30,
+          "damagePerLevel": 8,
+          "physicalPowerRatio": 0.25,
+          "penetration": 0.3,
+          "resourceRefund": 0,
+          "casterStatuses": []
+        },
+        {
+          "status": "angeru_drawn",
+          "consumedBy": ["angeru_shadow_needle", "angeru_black_step"],
+          "damageType": "Physical",
+          "damageAmount": 0,
+          "damagePerLevel": 0,
+          "physicalPowerRatio": 0,
+          "penetration": 0,
+          "resourceRefund": 0.5,
+          "casterStatuses": ["angeru_vanish"]
+        }
+      ],
+      "bonuses": [
+        { "ability": "angeru_severing_arc", "damageMultiplier": 2, "cooldownRefund": 0 },
+        { "ability": "angeru_black_step", "damageMultiplier": 1, "cooldownRefund": 0.5 }
+      ],
+      "refundSlot": "R",
+      "refundSeconds": 1
+    }
+  },
+  "stressTemper": {
+    "varkesh_stress_temper": {
+      "provenance": "Provisional",
+      "coating": "varkesh_heated_metal",
+      "damageType": "Magic",
+      "damageAmount": 40,
+      "damagePerLevel": 12,
+      "magicPowerRatio": 0.3,
+      "strikeStatuses": ["varkesh_seized"],
+      "lockout": "varkesh_cooled"
+    }
+  },
+  "charger": {
+    "relay_charger": {
+      "provenance": "Provisional",
+      "radius": 1100,
+      "chargePerDeath": 6,
+      "boostStatus": "relay_overcharged",
+      "boostMultiplier": 3
+    }
+  },
+  "accord": {
+    "marek_bound_together": {
+      "provenance": "Provisional",
+      "companion": "marek_nix",
+      "windowSeconds": 3,
+      "perTargetSeconds": 6,
+      "damageAmount": 20,
+      "damagePerLevel": 10,
+      "magicPowerRatio": 0.2,
+      "mark": "marek_bitten",
+      "refundSlot": "E",
+      "refundSeconds": 1.5,
+      "boostStatus": "marek_leashed",
+      "boostMultiplier": 1.5
+    }
+  },
+  "mistTrail": {
+    "sylra_follow_the_bell": {
+      "provenance": "Provisional",
+      "area": "sylra_mist_trail",
+      "spacing": 180,
+      "approachLength": 540,
+      "laySeconds": 2.5,
+      "lookSeconds": 0.2,
+      "followStatus": "sylra_followed_the_bell",
+      "followShield": { "amount": 50, "amountPerLevel": 8, "magicPowerRatio": 0.2, "durationSeconds": 3 }
     }
   }
 }

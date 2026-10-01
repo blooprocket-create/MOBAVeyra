@@ -7,11 +7,16 @@
 #include "Abilities/VeyraAreaAbility.h"
 #include "Abilities/VeyraAmbushAbility.h"
 #include "Abilities/VeyraAttachAbility.h"
+#include "Abilities/VeyraBlinkAbility.h"
+#include "Abilities/VeyraCommandAbility.h"
 #include "Abilities/VeyraDashAbility.h"
+#include "Abilities/VeyraDismountAbility.h"
 #include "Abilities/VeyraRideAbility.h"
 #include "Abilities/VeyraEmpoweredAttackAbility.h"
+#include "Abilities/VeyraPlacementAbility.h"
 #include "Abilities/VeyraSelfBuffAbility.h"
 #include "Abilities/VeyraSkillshotAbility.h"
+#include "Abilities/VeyraStanceAbility.h"
 #include "Abilities/VeyraTargetedDamageAbility.h"
 #include "Abilities/VeyraTetherAbility.h"
 #include "Abilities/VeyraVolleyAbility.h"
@@ -74,6 +79,26 @@ namespace
 		if (UVeyraAbilitiesTuningSubsystem::FindAmbush(Ability))
 		{
 			return UVeyraAmbushAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindStance(Ability))
+		{
+			return UVeyraStanceAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindPlacement(Ability))
+		{
+			return UVeyraPlacementAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindBlink(Ability))
+		{
+			return UVeyraBlinkAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindCommand(Ability))
+		{
+			return UVeyraCommandAbility::StaticClass();
+		}
+		if (UVeyraAbilitiesTuningSubsystem::FindDismount(Ability))
+		{
+			return UVeyraDismountAbility::StaticClass();
 		}
 		return nullptr;
 	}
@@ -152,11 +177,96 @@ void UVeyraAbilityLoadoutComponent::Clear(UAbilitySystemComponent& AbilitySystem
 	AbilitySystem.ClearAbility(Entries[Index].Handle);
 	Entries.RemoveAt(Index);
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraAbilityLoadoutComponent, Entries, this);
+	for (int32 StowedIndex = Stowed.Num() - 1; StowedIndex >= 0; --StowedIndex)
+	{
+		if (Stowed[StowedIndex].Slot == Slot)
+		{
+			AbilitySystem.ClearAbility(Stowed[StowedIndex].Handle);
+			Stowed.RemoveAt(StowedIndex);
+		}
+	}
+}
+
+bool UVeyraAbilityLoadoutComponent::SwapOwn(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot, const FVeyraContentId& Ability)
+{
+	check(GetOwner() && GetOwner()->HasAuthority());
+	FVeyraLoadoutEntry* Own = Entries.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; });
+	if (!Own)
+	{
+		return false;
+	}
+	if (Own->Ability == Ability)
+	{
+		return true;
+	}
+	FVeyraLoadoutEntry Incoming;
+	const int32 StowedIndex = Stowed.IndexOfByPredicate([Slot, &Ability](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot && Candidate.Ability == Ability; });
+	if (StowedIndex != INDEX_NONE)
+	{
+		// It comes back with the grant it kept; its cooldown never left (ADR-031 §3).
+		Incoming = Stowed[StowedIndex];
+		Stowed.RemoveAt(StowedIndex);
+	}
+	else
+	{
+		const TSubclassOf<UVeyraGameplayAbility> Archetype = ArchetypeFor(Ability);
+		if (!Archetype)
+		{
+			UE_LOG(LogVeyraAbilities, Error, TEXT("Cannot put %s in %s's slot: the Abilities tuning defines no ability with that ID."), *Ability.ToString(),
+				*GetNameSafe(GetOwner()));
+			return false;
+		}
+		Incoming.Slot = Slot;
+		Incoming.Ability = Ability;
+		Incoming.Handle = AbilitySystem.GiveAbility(FGameplayAbilitySpec(Archetype, DefaultAbilityLevel));
+	}
+	// Stowed with its grant, not taken back: a cast of it still running finishes.
+	Stowed.Add(*Own);
+	*Own = Incoming;
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraAbilityLoadoutComponent, Entries, this);
+	// An override that belongs to one own ability shows or waits with it.
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraAbilityLoadoutComponent, Overrides, this);
+	UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s's slot holds %s as its own, %s stowed."), *GetNameSafe(GetOwner()), *Ability.ToString(),
+		*Stowed.Last().Ability.ToString());
+	return Own->Handle.IsValid();
+}
+
+const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindStowed(EVeyraAbilitySlot Slot) const
+{
+	return Stowed.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; });
+}
+
+void UVeyraAbilityLoadoutComponent::ForEachAbility(TFunctionRef<void(const FVeyraLoadoutEntry&)> Visit) const
+{
+	for (const FVeyraLoadoutEntry& Entry : Entries)
+	{
+		Visit(Entry);
+	}
+	for (const FVeyraLoadoutEntry& Entry : Stowed)
+	{
+		Visit(Entry);
+	}
+	for (const FVeyraSlotOverride& Override : Overrides)
+	{
+		Visit(Override.Entry);
+	}
+}
+
+bool UVeyraAbilityLoadoutComponent::IsShown(const FVeyraSlotOverride& Override) const
+{
+	if (!Override.Over.IsValid())
+	{
+		return true;
+	}
+	const EVeyraAbilitySlot Slot = Override.Entry.Slot;
+	const FVeyraLoadoutEntry* Own = Entries.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; });
+	return Own && Own->Ability == Override.Over;
 }
 
 const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindSlot(EVeyraAbilitySlot Slot) const
 {
-	if (const FVeyraSlotOverride* Override = Overrides.FindByPredicate([Slot](const FVeyraSlotOverride& Candidate) { return Candidate.Entry.Slot == Slot; }))
+	const FVeyraSlotOverride* Override = Overrides.FindByPredicate([Slot](const FVeyraSlotOverride& Candidate) { return Candidate.Entry.Slot == Slot; });
+	if (Override && IsShown(*Override))
 	{
 		return &Override->Entry;
 	}
@@ -183,6 +293,10 @@ const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindAbility(const FVeyr
 	{
 		return &Override->Entry;
 	}
+	if (const FVeyraLoadoutEntry* Put = Stowed.FindByPredicate([&Ability](const FVeyraLoadoutEntry& Candidate) { return Candidate.Ability == Ability; }))
+	{
+		return Put;
+	}
 	return Retired.FindByPredicate([&Ability](const FVeyraLoadoutEntry& Candidate) { return Candidate.Ability == Ability; });
 }
 
@@ -196,26 +310,38 @@ const FVeyraLoadoutEntry* UVeyraAbilityLoadoutComponent::FindHandle(FGameplayAbi
 	{
 		return &Override->Entry;
 	}
+	if (const FVeyraLoadoutEntry* Put = Stowed.FindByPredicate([Handle](const FVeyraLoadoutEntry& Candidate) { return Candidate.Handle == Handle; }))
+	{
+		return Put;
+	}
 	return Retired.FindByPredicate([Handle](const FVeyraLoadoutEntry& Candidate) { return Candidate.Handle == Handle; });
 }
 
 bool UVeyraAbilityLoadoutComponent::IsOverridden(EVeyraAbilitySlot Slot) const
 {
-	return Overrides.ContainsByPredicate([Slot](const FVeyraSlotOverride& Candidate) { return Candidate.Entry.Slot == Slot; });
+	return Overrides.ContainsByPredicate([this, Slot](const FVeyraSlotOverride& Candidate) { return Candidate.Entry.Slot == Slot && IsShown(Candidate); });
 }
 
 FVeyraContentId UVeyraAbilityLoadoutComponent::CooldownIdOf(const FVeyraContentId& Ability) const
 {
+	FVeyraContentId Held = Ability;
 	const FVeyraSlotOverride* Override = Overrides.FindByPredicate([&Ability](const FVeyraSlotOverride& Candidate) { return Candidate.Entry.Ability == Ability; });
 	if (Override && Override->bSharesCooldown)
 	{
+		// The own ability it belongs to, whichever the slot holds now (ADR-031 §3).
 		const EVeyraAbilitySlot Slot = Override->Entry.Slot;
-		if (const FVeyraLoadoutEntry* Own = Entries.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; }))
+		if (Override->Over.IsValid())
 		{
-			return Own->Ability;
+			Held = Override->Over;
+		}
+		else if (const FVeyraLoadoutEntry* Own = Entries.FindByPredicate([Slot](const FVeyraLoadoutEntry& Candidate) { return Candidate.Slot == Slot; }))
+		{
+			Held = Own->Ability;
 		}
 	}
-	return Ability;
+	// An ability that shares another's cooldown holds it under that one's ID (ADR-035 §1).
+	const FVeyraCastTuning* Cast = VeyraAbilityRules::FindCast(UVeyraAbilitiesTuningSubsystem::Get(), Held);
+	return Cast && !Cast->CooldownOf.IsEmpty() ? Cast->CooldownOf[0] : Held;
 }
 
 bool UVeyraAbilityLoadoutComponent::Override(UAbilitySystemComponent& AbilitySystem, EVeyraAbilitySlot Slot, const FVeyraOverrideSpec& Spec)
@@ -237,6 +363,7 @@ bool UVeyraAbilityLoadoutComponent::Override(UAbilitySystemComponent& AbilitySys
 	Override.Group = Spec.Group;
 	Override.bCastOnExpiry = Spec.bCastOnExpiry;
 	Override.bSharesCooldown = Spec.bSharesCooldown;
+	Override.Over = Spec.Over;
 	UWorld* World = GetWorld();
 	if (World && Spec.DurationSeconds > 0.0)
 	{

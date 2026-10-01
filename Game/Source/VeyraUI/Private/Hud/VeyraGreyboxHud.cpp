@@ -115,7 +115,7 @@ namespace
 			const FVector2D ResourceTopLeft = TopLeft + FVector2D(0.0f, Settings.BarHeight);
 			DrawHudRect(Canvas, ResourceTopLeft, FVector2D(Settings.BarWidth, Settings.ResourceBarHeight), Settings.BarBackgroundColor);
 			DrawHudRect(Canvas, ResourceTopLeft, FVector2D(Settings.BarWidth * Vitals->Resource / Vitals->MaxResource, Settings.ResourceBarHeight),
-				Settings.ResourceColor);
+				Settings.ResourceColorOf(Vitals->Family));
 		}
 
 		float Y = TopLeft.Y;

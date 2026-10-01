@@ -26,6 +26,7 @@ void UVeyraProgressionComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 	Params.bIsPushBased = true;
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraProgressionComponent, Level, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraProgressionComponent, Ranks, Params);
+	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraProgressionComponent, RankShape, Params);
 
 	FDoRepLifetimeParams OwnerParams = Params;
 	OwnerParams.Condition = COND_OwnerOnly;
@@ -33,13 +34,20 @@ void UVeyraProgressionComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProp
 	DOREPLIFETIME_WITH_PARAMS_FAST(UVeyraProgressionComponent, UnspentSkillPoints, OwnerParams);
 }
 
-void UVeyraProgressionComponent::Initialize(const FVeyraStatGrowth& InGrowth, double InBaseAttackSpeed)
+void UVeyraProgressionComponent::Initialize(const FVeyraStatGrowth& InGrowth, double InBaseAttackSpeed, const FVeyraRankShape* Shape)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
 	const FVeyraProgressionTuning& Tuning = UVeyraProgressionTuningSubsystem::Get();
 	Growth = InGrowth;
 	BaseAttackSpeed = InBaseAttackSpeed;
+	RankShape = Shape ? *Shape : VeyraProgression::StandardShape(Tuning);
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraProgressionComponent, RankShape, this);
 	Ranks.Init(0, UE_ARRAY_COUNT(VeyraAbilitySlots::All));
+	// An innate R is learnt from the start (ADR-031 §2).
+	for (int32 Index = 0; Index < Ranks.Num(); ++Index)
+	{
+		Ranks[Index] = VeyraProgression::StartingRank(static_cast<EVeyraAbilitySlot>(Index), RankShape);
+	}
 	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraProgressionComponent, Ranks, this);
 	SetLevel(1);
 	SetExperience(0.0);
@@ -89,6 +97,20 @@ int32 UVeyraProgressionComponent::AddExperience(double Amount)
 EVeyraRankRefusal UVeyraProgressionComponent::AllocateRank(EVeyraAbilitySlot Slot)
 {
 	check(GetOwner() && GetOwner()->HasAuthority());
+	const EVeyraRankRefusal Refusal = CheckRankUp(Slot);
+	if (Refusal != EVeyraRankRefusal::None)
+	{
+		return Refusal;
+	}
+	const int32 Index = static_cast<int32>(Slot);
+	++Ranks[Index];
+	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraProgressionComponent, Ranks, this);
+	SetUnspentSkillPoints(UnspentSkillPoints - 1);
+	return EVeyraRankRefusal::None;
+}
+
+EVeyraRankRefusal UVeyraProgressionComponent::CheckRankUp(EVeyraAbilitySlot Slot) const
+{
 	if (!IsInitialized())
 	{
 		return EVeyraRankRefusal::NotInitialized;
@@ -99,15 +121,13 @@ EVeyraRankRefusal UVeyraProgressionComponent::AllocateRank(EVeyraAbilitySlot Slo
 		// Only the kit's slots take ranks: an item's Active has none (ADR-012 §1).
 		return EVeyraRankRefusal::MaxRank;
 	}
-	const EVeyraRankRefusal Refusal = VeyraProgression::CheckRankUp(Slot, Ranks[Index], Level, UnspentSkillPoints, UVeyraProgressionTuningSubsystem::Get());
-	if (Refusal != EVeyraRankRefusal::None)
-	{
-		return Refusal;
-	}
-	++Ranks[Index];
-	MARK_PROPERTY_DIRTY_FROM_NAME(UVeyraProgressionComponent, Ranks, this);
-	SetUnspentSkillPoints(UnspentSkillPoints - 1);
-	return EVeyraRankRefusal::None;
+	return VeyraProgression::CheckRankUp(Slot, Ranks[Index], Level, UnspentSkillPoints, UVeyraProgressionTuningSubsystem::Get(), RankShape);
+}
+
+int32 UVeyraProgressionComponent::GetMaxRank(EVeyraAbilitySlot Slot) const
+{
+	const int32 Index = static_cast<int32>(Slot);
+	return Ranks.IsValidIndex(Index) ? VeyraProgression::MaxRank(Slot, UVeyraProgressionTuningSubsystem::Get(), RankShape) : 0;
 }
 
 int32 UVeyraProgressionComponent::GetRank(EVeyraAbilitySlot Slot) const

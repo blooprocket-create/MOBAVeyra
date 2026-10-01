@@ -38,7 +38,7 @@ EVeyraCastRejection UVeyraDashAbility::CheckTarget(const AActor& Caster, const F
 	if (Dash->Direction == EVeyraDashDirection::ThroughTarget)
 	{
 		// It names the enemy unit it passes through, within its reach (ADR-030 §6).
-		return CheckEnemyUnit(Caster, Target.Actor.Get(), Dash->Cast.CastRange, {});
+		return CheckEnemyUnit(Caster, Target.Actor.Get(), Dash->Cast.CastRange, Dash->TargetKinds);
 	}
 	if (Dash->Direction == EVeyraDashDirection::AwayFromHost)
 	{
@@ -48,6 +48,12 @@ EVeyraCastRejection UVeyraDashAbility::CheckTarget(const AActor& Caster, const F
 	}
 	// The point gives the dash its direction.
 	return HasUsablePoint(Target) ? EVeyraCastRejection::None : EVeyraCastRejection::InvalidLocation;
+}
+
+bool UVeyraDashAbility::TakesOverDash(const FVeyraContentId& Ability) const
+{
+	const FVeyraDashAbilityTuning* Dash = UVeyraAbilitiesTuningSubsystem::FindDash(Ability);
+	return Dash && Dash->DuringDash == EVeyraDuringDash::TakesOver;
 }
 
 const FVeyraCastTuning* UVeyraDashAbility::GetCastTuning(const FVeyraContentId& Ability) const
@@ -150,7 +156,7 @@ FVeyraChannelPlan UVeyraDashAbility::Deliver(const FVeyraCast& Cast)
 			Land(*Held, End);
 		});
 	}
-	if (!VeyraCombat::Dash(*Caster, FVeyraDash{ Heading, Distance, Dash->Speed, Dash->Contact }))
+	if (!VeyraCombat::Dash(*Caster, FVeyraDash{ Heading, Distance, Dash->Speed, Dash->Contact, Dash->DuringDash == EVeyraDuringDash::TakesOver }))
 	{
 		UE_LOG(LogVeyraAbilities, Verbose, TEXT("%s could not dash for %s (cast %d)."), *GetNameSafe(Body), *Cast.Ability.ToString(), Cast.CastId);
 		if (Pending.IsValid())
@@ -171,8 +177,8 @@ void UVeyraDashAbility::Land(const FPendingContact& Pending, const FVeyraDashEnd
 	UAbilitySystemComponent* Caster = Pending.Caster.Get();
 	const AActor* Body = Caster ? Caster->GetAvatarActor() : nullptr;
 	UWorld* World = Body ? Body->GetWorld() : nullptr;
-	// Where it lands, unless a displacement cut it short (ADR-018 §6).
-	if (World && End.Reason != EVeyraDashEndReason::Interrupted && !Pending.EndZones.IsEmpty())
+	// Where it lands, unless a displacement cut it short (ADR-018 §6) or another move took over (ADR-031 §7).
+	if (World && End.Reason != EVeyraDashEndReason::Interrupted && End.Reason != EVeyraDashEndReason::Replaced && !Pending.EndZones.IsEmpty())
 	{
 		FVeyraEffectFrame Landing;
 		Landing.Origin = Body->GetActorLocation();

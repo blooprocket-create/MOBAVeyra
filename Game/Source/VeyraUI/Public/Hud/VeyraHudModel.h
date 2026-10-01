@@ -9,6 +9,7 @@
 #include "Misc/Optional.h"
 #include "Slots/VeyraAbilitySlot.h"
 #include "Tools/VeyraVisionToolComponent.h"
+#include "Tuning/VeyraVanguardsTuning.h"
 #include "Statuses/VeyraStatusTypes.h"
 #include "Teams/VeyraTeam.h"
 #include "Teams/VeyraTeam.h"
@@ -28,6 +29,9 @@ struct FVeyraHudVitals
 
 	double Resource = 0.0;
 	double MaxResource = 0.0;
+
+	/** Which resource it is: Focus and Charge have their own colours (ADR-031 §1; ADR-033 §1). */
+	EVeyraResourceFamily Family = EVeyraResourceFamily::Mana;
 };
 
 /** A status on a unit, with the time it has left. */

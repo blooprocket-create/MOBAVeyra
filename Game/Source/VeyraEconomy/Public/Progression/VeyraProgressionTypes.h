@@ -45,6 +45,24 @@ struct VEYRAECONOMY_API FVeyraStatGrowth
 	double AttackSpeedFraction = 0.0;
 };
 
+/**
+ * How a unit's kit takes ranks (Economy & Progression Bible §1; ADR-031 §2): the standard shape, or a
+ * documented exception, as Angeru's Q, W and E to 6 with an R learnt from the start.
+ */
+USTRUCT()
+struct VEYRAECONOMY_API FVeyraRankShape
+{
+	GENERATED_BODY()
+
+	/** The top rank of Q, W and E. */
+	UPROPERTY()
+	int32 BasicAbilityMaxRank = 0;
+
+	/** Whether R is learnt from the start, at rank 1, and never ranks. */
+	UPROPERTY()
+	bool bUltimateInnate = false;
+};
+
 /** Why a rank-up was refused. None means it was accepted. */
 UENUM()
 enum class EVeyraRankRefusal : uint8

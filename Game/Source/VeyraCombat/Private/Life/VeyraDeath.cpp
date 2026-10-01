@@ -16,11 +16,60 @@
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatLog.h"
+#include "VeyraCombatVerbs.h"
 
 namespace VeyraDeath
 {
-void FinalizeDeath(UAbilitySystemComponent& Victim, UAbilitySystemComponent* Killer)
+namespace
 {
+	/**
+	 * §44: temporary effects end at death. Effects with a duration are temporary; infinite ones are
+	 * permanent progression and stay.
+	 */
+	void EndTemporaryEffects(UAbilitySystemComponent& Unit)
+	{
+		TArray<FActiveGameplayEffectHandle> Temporary;
+		for (const FActiveGameplayEffectHandle& Handle : Unit.GetActiveEffects(FGameplayEffectQuery()))
+		{
+			const FActiveGameplayEffect* Active = Unit.GetActiveGameplayEffect(Handle);
+			if (Active && Active->Spec.Def && Active->Spec.Def->DurationPolicy == EGameplayEffectDurationType::HasDuration)
+			{
+				Temporary.Add(Handle);
+			}
+		}
+		for (const FActiveGameplayEffectHandle& Handle : Temporary)
+		{
+			Unit.RemoveActiveGameplayEffect(Handle);
+		}
+	}
+}
+
+bool Withdraw(UAbilitySystemComponent& Unit)
+{
+	AActor* Owner = Unit.GetOwner();
+	UVeyraLifeComponent* Life = Owner ? Owner->FindComponentByClass<UVeyraLifeComponent>() : nullptr;
+	if (!Life || !Life->SetState(EVeyraLifeState::Dead))
+	{
+		return false;
+	}
+	// Nobody killed it: no death is announced, so nothing is credited or rewarded (ADR-034 §3).
+	if (UVeyraAttributionComponent* Attribution = Owner->FindComponentByClass<UVeyraAttributionComponent>())
+	{
+		Attribution->Clear();
+	}
+	if (UVeyraCombatStateComponent* CombatState = Owner->FindComponentByClass<UVeyraCombatStateComponent>())
+	{
+		CombatState->Clear();
+	}
+	EndTemporaryEffects(Unit);
+	UE_LOG(LogVeyraCombat, Log, TEXT("%s withdrew from the battleground."), *GetNameSafe(Owner));
+	return true;
+}
+
+void FinalizeDeath(UAbilitySystemComponent& Victim, UAbilitySystemComponent* LethalUnit)
+{
+	// An owned unit's kill is its owner's (Combat Bible §32; ADR-034 §1).
+	UAbilitySystemComponent* Killer = VeyraCombat::ResponsibleFor(LethalUnit);
 	AActor* Owner = Victim.GetOwner();
 	UVeyraLifeComponent* Life = Owner ? Owner->FindComponentByClass<UVeyraLifeComponent>() : nullptr;
 	if (!Life)
@@ -38,6 +87,7 @@ void FinalizeDeath(UAbilitySystemComponent& Victim, UAbilitySystemComponent* Kil
 	FVeyraDeathEvent Death;
 	Death.Victim = &Victim;
 	Death.Killer = Killer;
+	Death.LethalUnit = LethalUnit;
 	Death.DiedAtSeconds = Now;
 	// A unit's body is a pawn; a participant without one has none.
 	if (const APawn* Body = Cast<APawn>(Victim.GetAvatarActor()))
@@ -72,37 +122,11 @@ void FinalizeDeath(UAbilitySystemComponent& Victim, UAbilitySystemComponent* Kil
 		CombatState->Clear();
 	}
 
-	// §44: temporary effects end at death. Effects with a duration are temporary; infinite ones are
-	// permanent progression and stay.
-	TArray<FActiveGameplayEffectHandle> Temporary;
-	for (const FActiveGameplayEffectHandle& Handle : Victim.GetActiveEffects(FGameplayEffectQuery()))
-	{
-		const FActiveGameplayEffect* Active = Victim.GetActiveGameplayEffect(Handle);
-		if (Active && Active->Spec.Def && Active->Spec.Def->DurationPolicy == EGameplayEffectDurationType::HasDuration)
-		{
-			Temporary.Add(Handle);
-		}
-	}
-	for (const FActiveGameplayEffectHandle& Handle : Temporary)
-	{
-		Victim.RemoveActiveGameplayEffect(Handle);
-	}
+	EndTemporaryEffects(Victim);
 
 	// A takedown is a kill or an assist on an enemy Vanguard (§18; ADR-011 §6). It extends the
 	// statuses that say so (ADR-009 §1); killing a Fluxborn or a structure is no takedown.
-	TArray<UAbilitySystemComponent*, TInlineAllocator<5>> Takedown;
-	if (VeyraUnits::IsVanguard(Owner))
-	{
-		if (UAbilitySystemComponent* Credited = Death.CreditedKiller.Get())
-		{
-			Takedown.Add(Credited);
-		}
-		for (const TWeakObjectPtr<UAbilitySystemComponent>& Assister : Death.Assisters)
-		{
-			Takedown.Add(Assister.Get());
-		}
-	}
-	for (UAbilitySystemComponent* Participant : Takedown)
+	for (UAbilitySystemComponent* Participant : VeyraKillCredit::TakedownParticipants(Death))
 	{
 		const AActor* ParticipantUnit = Participant ? Participant->GetOwner() : nullptr;
 		if (UVeyraStatusComponent* Statuses = ParticipantUnit ? ParticipantUnit->FindComponentByClass<UVeyraStatusComponent>() : nullptr)
@@ -112,7 +136,8 @@ void FinalizeDeath(UAbilitySystemComponent& Victim, UAbilitySystemComponent* Kil
 	}
 
 	const UAbilitySystemComponent* CreditedKiller = Death.CreditedKiller.Get();
-	UE_LOG(LogVeyraCombat, Log, TEXT("%s died (killed by %s, credited to %s, %d assist(s))."), *GetNameSafe(Owner), *GetNameSafe(KillerUnit),
+	UE_LOG(LogVeyraCombat, Log, TEXT("%s died (killed by %s, credited to %s, %d assist(s))."), *GetNameSafe(Owner),
+		*GetNameSafe(LethalUnit ? LethalUnit->GetOwner() : nullptr),
 		*GetNameSafe(CreditedKiller ? CreditedKiller->GetOwner() : nullptr), Death.Assisters.Num());
 	if (UVeyraCombatEventSubsystem* Events = Owner->GetWorld() ? Owner->GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
 	{

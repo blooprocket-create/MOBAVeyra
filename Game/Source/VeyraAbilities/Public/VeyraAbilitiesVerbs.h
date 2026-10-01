@@ -27,4 +27,25 @@ namespace VeyraAbilities
 
 	/** Server: the same for the abilities Caster holds in Slots now. */
 	VEYRAABILITIES_API void RefundCooldowns(UAbilitySystemComponent& Caster, TConstArrayView<EVeyraAbilitySlot> Slots, double Fraction);
+
+	/** Server: the remaining cooldown of the ability Caster holds in Slot now shortens by Seconds (ADR-031 §10). */
+	VEYRAABILITIES_API void ShortenCooldown(UAbilitySystemComponent& Caster, EVeyraAbilitySlot Slot, double Seconds);
+
+	/**
+	 * Server: of the abilities Caster holds in Slots now, the one whose cooldown ends soonest shortens by
+	 * Seconds (ADR-033 §6); none that is ready.
+	 */
+	VEYRAABILITIES_API void ShortenSoonestCooldown(UAbilitySystemComponent& Caster, TConstArrayView<EVeyraAbilitySlot> Slots, double Seconds);
+
+	/**
+	 * Ability's rank for Caster: its slot's rank from Progression, an override or stowed ability sharing
+	 * its slot's (ADR-018 §1; ADR-031 §3); 1 in a slot that takes no ranks; 0 for one Caster does not hold.
+	 */
+	VEYRAABILITIES_API int32 RankOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
+
+	/** What Ability costs Caster at its rank now, before any reduction (Combat Bible §27). */
+	VEYRAABILITIES_API double ResourceCostOf(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability);
+
+	/** Server: the follow-up OpenedBy's cast opens in Caster's slot ends, if it is open there or waits in another stance (ADR-032 §5). */
+	VEYRAABILITIES_API void EndFollowUp(UAbilitySystemComponent& Caster, const FVeyraContentId& OpenedBy);
 }

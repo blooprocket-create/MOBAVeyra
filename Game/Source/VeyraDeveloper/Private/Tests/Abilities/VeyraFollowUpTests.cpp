@@ -134,7 +134,8 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Holds(EVeyraAbilitySlot::E) == Id(TEXT("test_tag_again")), TEXT("the target held the mark as the cast committed")));
 			FArchetypeTestWorld World{ Spawner };
 			AVeyraVanguardCharacter& Other = World.Spawn(EVeyraTeam::B, FVector(0.0, Reach / 2.0, 0.0));
-			Caster->GetVeyraMovement()->StopMovementImmediately();
+			// Landed where it is: a dash under way holds back another (ADR-031 §7).
+			ASSERT_THAT(IsTrue(VeyraCombat::Blink(*Caster->GetAbilitySystemComponent(), Caster->GetActorLocation())));
 			ASSERT_THAT(IsTrue(CastOn(EVeyraAbilitySlot::E, Other) == EVeyraCastRejection::InvalidTarget, TEXT("the follow-up takes only a marked target")));
 		}
 
@@ -156,7 +157,8 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Holds(EVeyraAbilitySlot::E) == Id(TEXT("test_tag")), TEXT("an ally's kill opens nothing")));
 
 			Caster->GetPlayerState()->FindComponentByClass<UVeyraCooldownComponent>()->ClearCooldown(Id(TEXT("test_tag")));
-			Caster->GetVeyraMovement()->StopMovementImmediately();
+			// Landed where it is: a dash under way holds back another (ADR-031 §7).
+			ASSERT_THAT(IsTrue(VeyraCombat::Blink(*Caster->GetAbilitySystemComponent(), Caster->GetActorLocation())));
 			ASSERT_THAT(IsTrue(CastOn(EVeyraAbilitySlot::E, *Enemy) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(Holds(EVeyraAbilitySlot::E) == Id(TEXT("test_tag")), TEXT("not while the target stands")));
 			ASSERT_THAT(IsTrue(VeyraCombat::DealDamage(*Caster->GetAbilitySystemComponent(), *Enemy->GetAbilitySystemComponent(), Lethal)));

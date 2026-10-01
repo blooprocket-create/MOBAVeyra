@@ -58,16 +58,51 @@ int32 SkillPointsEarned(int32 Level, const FVeyraProgressionTuning& Tuning)
 	return FMath::Clamp(Level, 0, Tuning.MaxLevel) * Tuning.SkillPointsPerLevel;
 }
 
-int32 MaxRank(EVeyraAbilitySlot Slot, const FVeyraProgressionTuning& Tuning)
+FVeyraRankShape StandardShape(const FVeyraProgressionTuning& Tuning)
 {
-	return VeyraAbilitySlots::IsUltimate(Slot) ? Tuning.UltimateMaxRank : Tuning.BasicAbilityMaxRank;
+	FVeyraRankShape Shape;
+	Shape.BasicAbilityMaxRank = Tuning.BasicAbilityMaxRank;
+	Shape.bUltimateInnate = false;
+	return Shape;
 }
 
-int32 MaxRankAtLevel(EVeyraAbilitySlot Slot, int32 Level, const FVeyraProgressionTuning& Tuning)
+TOptional<FVeyraRankShape> FindShape(const FVeyraProgressionTuning& Tuning, const FVeyraContentId& Id)
+{
+	const FVeyraRankShapeTuning* Found = Tuning.RankShapes.Find(Id);
+	if (!Found)
+	{
+		return TOptional<FVeyraRankShape>();
+	}
+	FVeyraRankShape Shape;
+	Shape.BasicAbilityMaxRank = Found->BasicAbilityMaxRank;
+	Shape.bUltimateInnate = Found->Ultimate == EVeyraUltimateRanks::Innate;
+	return Shape;
+}
+
+int32 MaxRank(EVeyraAbilitySlot Slot, const FVeyraProgressionTuning& Tuning, const FVeyraRankShape& Shape)
 {
 	if (!VeyraAbilitySlots::IsUltimate(Slot))
 	{
-		return Tuning.BasicAbilityMaxRank;
+		return Shape.BasicAbilityMaxRank;
+	}
+	// An innate R holds the one rank it starts with (ADR-031 §2).
+	return Shape.bUltimateInnate ? 1 : Tuning.UltimateMaxRank;
+}
+
+int32 MaxRank(EVeyraAbilitySlot Slot, const FVeyraProgressionTuning& Tuning)
+{
+	return MaxRank(Slot, Tuning, StandardShape(Tuning));
+}
+
+int32 MaxRankAtLevel(EVeyraAbilitySlot Slot, int32 Level, const FVeyraProgressionTuning& Tuning, const FVeyraRankShape& Shape)
+{
+	if (!VeyraAbilitySlots::IsUltimate(Slot))
+	{
+		return Shape.BasicAbilityMaxRank;
+	}
+	if (Shape.bUltimateInnate)
+	{
+		return 1;
 	}
 	int32 Open = 0;
 	for (const int32 OpensAt : Tuning.UltimateRankLevels)
@@ -77,13 +112,24 @@ int32 MaxRankAtLevel(EVeyraAbilitySlot Slot, int32 Level, const FVeyraProgressio
 	return FMath::Min(Open, Tuning.UltimateMaxRank);
 }
 
-EVeyraRankRefusal CheckRankUp(EVeyraAbilitySlot Slot, int32 CurrentRank, int32 Level, int32 UnspentPoints, const FVeyraProgressionTuning& Tuning)
+int32 MaxRankAtLevel(EVeyraAbilitySlot Slot, int32 Level, const FVeyraProgressionTuning& Tuning)
 {
-	if (CurrentRank >= MaxRank(Slot, Tuning))
+	return MaxRankAtLevel(Slot, Level, Tuning, StandardShape(Tuning));
+}
+
+int32 StartingRank(EVeyraAbilitySlot Slot, const FVeyraRankShape& Shape)
+{
+	return VeyraAbilitySlots::IsUltimate(Slot) && Shape.bUltimateInnate ? 1 : 0;
+}
+
+EVeyraRankRefusal CheckRankUp(EVeyraAbilitySlot Slot, int32 CurrentRank, int32 Level, int32 UnspentPoints, const FVeyraProgressionTuning& Tuning,
+	const FVeyraRankShape& Shape)
+{
+	if (CurrentRank >= MaxRank(Slot, Tuning, Shape))
 	{
 		return EVeyraRankRefusal::MaxRank;
 	}
-	if (CurrentRank >= MaxRankAtLevel(Slot, Level, Tuning))
+	if (CurrentRank >= MaxRankAtLevel(Slot, Level, Tuning, Shape))
 	{
 		return EVeyraRankRefusal::LevelTooLow;
 	}
@@ -92,6 +138,25 @@ EVeyraRankRefusal CheckRankUp(EVeyraAbilitySlot Slot, int32 CurrentRank, int32 L
 		return EVeyraRankRefusal::NoSkillPoint;
 	}
 	return EVeyraRankRefusal::None;
+}
+
+EVeyraRankRefusal CheckRankUp(EVeyraAbilitySlot Slot, int32 CurrentRank, int32 Level, int32 UnspentPoints, const FVeyraProgressionTuning& Tuning)
+{
+	return CheckRankUp(Slot, CurrentRank, Level, UnspentPoints, Tuning, StandardShape(Tuning));
+}
+
+TArray<int32> RankCounts(const FVeyraProgressionTuning& Tuning)
+{
+	TArray<int32> Counts = { Tuning.BasicAbilityMaxRank, Tuning.UltimateMaxRank };
+	for (const TPair<FVeyraContentId, FVeyraRankShapeTuning>& Shape : Tuning.RankShapes)
+	{
+		Counts.AddUnique(Shape.Value.BasicAbilityMaxRank);
+		if (Shape.Value.Ultimate == EVeyraUltimateRanks::Innate)
+		{
+			Counts.AddUnique(1);
+		}
+	}
+	return Counts;
 }
 
 TArray<FString> Validate(const FVeyraProgressionTuning& Tuning)
@@ -122,6 +187,17 @@ TArray<FString> Validate(const FVeyraProgressionTuning& Tuning)
 			Problems.Add(FString::Printf(TEXT("/ultimateRankLevels/%d: must be above the previous entry and at most maxLevel"), Index));
 		}
 		Previous = OpensAt;
+	}
+	// A documented exception moves points between slots; it never changes how many a kit spends (ADR-031 §2).
+	const int32 StandardTotal = 3 * Tuning.BasicAbilityMaxRank + Tuning.UltimateMaxRank;
+	for (const TPair<FVeyraContentId, FVeyraRankShapeTuning>& Shape : Tuning.RankShapes)
+	{
+		const int32 Total = 3 * Shape.Value.BasicAbilityMaxRank + (Shape.Value.Ultimate == EVeyraUltimateRanks::Innate ? 0 : Tuning.UltimateMaxRank);
+		if (Total != StandardTotal)
+		{
+			Problems.Add(FString::Printf(TEXT("/rankShapes/%s: spends %d skill points; a rank shape spends the standard %d"), *Shape.Key.ToString(), Total,
+				StandardTotal));
+		}
 	}
 	return Problems;
 }

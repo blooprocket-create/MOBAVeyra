@@ -43,20 +43,15 @@ namespace
 		{
 			return;
 		}
-		FVector Away = (Body->GetActorLocation() - Target->GetActorLocation()).GetSafeNormal2D();
-		if (Away.IsNearlyZero())
-		{
-			Away = -Target->GetActorForwardVector().GetSafeNormal2D();
-		}
-		const double Gap = Target->GetSimpleCollisionRadius() + Body->GetSimpleCollisionRadius() + Pending.BesideDistance;
-		const FVector Beside = Target->GetActorLocation() + Away * Gap;
-		if (!VeyraCombat::Blink(*Caster, Beside, -Away))
+		FVector Beside;
+		FVector Facing;
+		if (!VeyraCombat::BlinkBeside(*Caster, *Target, Pending.BesideDistance, Beside, Facing))
 		{
 			return;
 		}
 		FVeyraEffectFrame Frame;
 		Frame.Origin = Beside;
-		Frame.Direction = -Away;
+		Frame.Direction = Facing;
 		Frame.bOriginIsCaster = true;
 		VeyraEffectDelivery::Apply(*Caster, *Target, Pending.Effects, Frame, Pending.Source);
 	}

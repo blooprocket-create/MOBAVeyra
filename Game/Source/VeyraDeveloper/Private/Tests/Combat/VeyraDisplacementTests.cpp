@@ -300,7 +300,8 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(FVector::Dist2D(Body.GetActorLocation(), Beyond) <= Tolerance,
 				FString::Printf(TEXT("at once, past the wall: %s"), *Body.GetActorLocation().ToString())));
 			ASSERT_THAT(IsTrue(Body.GetActorForwardVector().Equals(FVector::BackwardVector, KINDA_SMALL_NUMBER), TEXT("facing as asked")));
-			ASSERT_THAT(IsTrue(!Movement->IsDashing() && DashEnds == TArray<EVeyraDashEndReason>{ EVeyraDashEndReason::Interrupted }));
+			// The blink takes over the dash, which lands nothing (ADR-031 §7).
+			ASSERT_THAT(IsTrue(!Movement->IsDashing() && DashEnds == TArray<EVeyraDashEndReason>{ EVeyraDashEndReason::Replaced }));
 		}
 
 		TEST_METHOD(RootGroundedAndDisplacementRefuseABlink)

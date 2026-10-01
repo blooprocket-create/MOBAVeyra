@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry", "disciplines", "stressTemper", "charger", "accord", "mistTrail"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -178,7 +178,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [14]
+      "enum": [19]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -188,7 +188,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "availability", "resource", "body", "baseStats", "growth", "basicAttack", "abilities", "passive"],
+          "required": ["provenance", "availability", "resource", "body", "baseStats", "growth", "basicAttack", "abilities", "rankShape", "passive"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "availability": {
@@ -196,7 +196,11 @@
               "type": "string",
               "enum": ["Playable", "Developer"]
             },
-            "resource": { "description": "What the Vanguard spends to cast (Combat Bible §27).", "type": "string", "enum": ["Mana"] },
+            "resource": {
+              "description": "What the Vanguard spends to cast (Combat Bible §27). Every family is spent, regenerated and refunded alike; Focus has no growth per level and its own colour on the HUD (ADR-031 §1). Charge starts empty, never regenerates (its resourceRegen is 0), is kept through death and only effects restore it (ADR-033 §1).",
+              "type": "string",
+              "enum": ["Mana", "Focus", "Charge"]
+            },
             "body": {
               "type": "object",
               "additionalProperties": false,
@@ -222,6 +226,7 @@
                 "r": { "$ref": "#/definitions/contentIds" }
               }
             },
+            "rankShape": { "description": "At most one: a rank shape from Progression.json's rankShapes, a documented exception to the standard ranks (ADR-031 §2). None ranks as standard.", "$ref": "#/definitions/contentIds" },
             "passive": { "description": "The passive, from one of the passive maps.", "$ref": "#/definitions/contentIds" }
           }
         }
@@ -631,6 +636,157 @@
                 "damage": { "$ref": "#/definitions/damage" },
                 "physicalPowerRatioPerStep": { "description": "Physical Power ratio added for each stepUnits banked.", "type": "number", "minimum": 0 },
                 "stepUnits": { "description": "The units each step of the ratio counts (Roster Bible §2: per 100 units).", "type": "number", "minimum": 0, "exclusiveMinimum": true }
+              }
+            }
+          }
+        }
+      }
+    },
+    "disciplines": {
+      "description": "Passives of two disciplines whose abilities mark enemy Vanguards for the other to spend (Angeru's No Master, Roster Bible §15; ADR-031 §10). When an ability in a mark's consumedBy hits an enemy Vanguard holding the mark from the owner, the mark goes; an extra strike lands (damageAmount + damagePerLevel per Level after the first + physicalPowerRatio of Physical Power, ignoring penetration of the resistance its type meets), scaled by the ability's bonus damageMultiplier; resourceRefund of the ability's cost comes back; the owner takes casterStatuses; the bonus cooldownRefund of the ability's own remaining cooldown is refunded; and the ability in refundSlot has refundSeconds taken off its remaining cooldown.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "marks", "bonuses", "refundSlot", "refundSeconds"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "marks": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["status", "consumedBy", "damageType", "damageAmount", "damagePerLevel", "physicalPowerRatio", "penetration", "resourceRefund", "casterStatuses"],
+                "properties": {
+                  "status": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "consumedBy": { "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+                  "damageType": { "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+                  "damageAmount": { "type": "number", "minimum": 0 },
+                  "damagePerLevel": { "type": "number", "minimum": 0 },
+                  "physicalPowerRatio": { "type": "number", "minimum": 0 },
+                  "penetration": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "resourceRefund": { "type": "number", "minimum": 0, "maximum": 1 },
+                  "casterStatuses": { "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
+                }
+              }
+            },
+            "bonuses": {
+              "type": "array",
+              "minItems": 0,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["ability", "damageMultiplier", "cooldownRefund"],
+                "properties": {
+                  "ability": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+                  "damageMultiplier": { "type": "number", "minimum": 0 },
+                  "cooldownRefund": { "type": "number", "minimum": 0, "maximum": 1 }
+                }
+              }
+            },
+            "refundSlot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] },
+            "refundSeconds": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "stressTemper": {
+      "description": "Passives that punish movement (Varkesh's Stress Temper, Roster Bible §14; ADR-032 §2). Each hit of the owner's damaging abilities on an enemy Vanguard puts coating on it, from the owner. When a unit holding the owner's coating ends its own dash or blink, and holds no lockout from the owner, the coating goes, the unit takes lockout and strikeStatuses from the owner, and it takes damageAmount + damagePerLevel per Level after the first + magicPowerRatio of the owner's Magic Power, as damageType.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "coating", "damageType", "damageAmount", "damagePerLevel", "magicPowerRatio", "strikeStatuses", "lockout"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "coating": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "damageType": { "type": "string", "enum": ["Physical", "Magic", "TrueDamage"] },
+            "damageAmount": { "type": "number", "minimum": 0 },
+            "damagePerLevel": { "type": "number", "minimum": 0 },
+            "magicPowerRatio": { "type": "number", "minimum": 0 },
+            "strikeStatuses": { "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } },
+            "lockout": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" }
+          }
+        }
+      }
+    },
+    "charger": {
+      "description": "Passives that gather Charge from nearby battles (Relay's Charger, Roster Bible §4; ADR-033 §2). Each Fluxborn that dies within radius of the living owner, of either side, gives chargePerDeath of the owner's resource, boostMultiplier times as much while the owner holds boostStatus. Wildlife, Vanguards and structures give none.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "radius", "chargePerDeath", "boostStatus", "boostMultiplier"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "radius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "chargePerDeath": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "boostStatus": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "boostMultiplier": { "type": "number", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "accord": {
+      "description": "Passives that bind their owner to a companion (Marek's Bound Together, Roster Bible §10; ADR-034 §9). It summons the companion as it starts. When the owner and the companion have each damaged one enemy within windowSeconds, Accord deals it magic damage from the owner, at most once per perTargetSeconds on it, boostMultiplier times as much while the owner holds boostStatus, and shortens refundSlot's cooldown by refundSeconds. The companion's hits leave mark on the enemy.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "companion", "windowSeconds", "perTargetSeconds", "damageAmount", "damagePerLevel", "magicPowerRatio", "mark", "refundSlot", "refundSeconds", "boostStatus", "boostMultiplier"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "companion": { "description": "From Abilities.json's companions.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "windowSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "perTargetSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "damageAmount": { "type": "number", "minimum": 0 },
+            "damagePerLevel": { "type": "number", "minimum": 0 },
+            "magicPowerRatio": { "type": "number", "minimum": 0 },
+            "mark": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "refundSlot": { "type": "string", "enum": ["Q", "W", "E", "R", "Item1", "Item2", "Item3", "Item4", "Item5", "Item6", "Spell1", "Spell2", "VisionTool"] },
+            "refundSeconds": { "type": "number", "minimum": 0 },
+            "boostStatus": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "boostMultiplier": { "type": "number", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "mistTrail": {
+      "description": "Passives that leave a Mist Trail as their owner steps into Dense Fog (Sylra's Follow the Bell, Roster Bible §16; ADR-036 §5). Each lookSeconds it looks where its owner stands; stepping from no fog into fog, it lays area every spacing along the last approachLength of the way she came and on along her path for laySeconds. An allied Vanguard holding followStatus from her in the volume she entered gains followShield, once per trail. It grants no vision.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "area", "spacing", "approachLength", "laySeconds", "lookSeconds", "followStatus", "followShield"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "area": { "description": "From Abilities.json's areas: one that lingers, giving allies followStatus.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "spacing": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "approachLength": { "type": "number", "minimum": 0 },
+            "laySeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "lookSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "followStatus": { "description": "From Abilities.json's statuses.", "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
+            "followShield": {
+              "description": "One grant, replaced by the next: at Level 1, what each Level adds, and its Magic Power ratio, together above 0.",
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["amount", "amountPerLevel", "magicPowerRatio", "durationSeconds"],
+              "properties": {
+                "amount": { "type": "number", "minimum": 0 },
+                "amountPerLevel": { "type": "number", "minimum": 0 },
+                "magicPowerRatio": { "type": "number", "minimum": 0 },
+                "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
               }
             }
           }

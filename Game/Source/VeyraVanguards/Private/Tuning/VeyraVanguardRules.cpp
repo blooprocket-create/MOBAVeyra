@@ -2,6 +2,8 @@
 
 #include "Tuning/VeyraVanguardsTuning.h"
 
+#include "Progression/VeyraProgressionRules.h"
+
 namespace VeyraVanguardRules
 {
 double DeadReckoningRatio(const FVeyraDeadReckoningTuning& Reckoning, double Banked)
@@ -9,7 +11,13 @@ double DeadReckoningRatio(const FVeyraDeadReckoningTuning& Reckoning, double Ban
 	return Reckoning.StepUnits > 0.0 ? Reckoning.PhysicalPowerRatioPerStep * (Banked / Reckoning.StepUnits) : 0.0;
 }
 
-TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, int32 BasicAbilityMaxRank, int32 UltimateMaxRank)
+FVeyraRankShape RankShapeOf(const FVeyraVanguardDefinition& Vanguard, const FVeyraProgressionTuning& Progression)
+{
+	const TOptional<FVeyraRankShape> Shape = Vanguard.RankShape.IsEmpty() ? TOptional<FVeyraRankShape>() : VeyraProgression::FindShape(Progression, Vanguard.RankShape[0]);
+	return Shape.IsSet() ? Shape.GetValue() : VeyraProgression::StandardShape(Progression);
+}
+
+TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilitiesTuning& Abilities, const FVeyraProgressionTuning& Progression)
 {
 	TArray<FString> Problems;
 	const auto Problem = [&Problems](const FString& Pointer, const FString& Message) { Problems.Add(FString::Printf(TEXT("%s: %s"), *Pointer, *Message)); };
@@ -211,6 +219,156 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraDisciplinesTuning>& Entry : Tuning.Disciplines)
+	{
+		RegisterPassive(Entry.Key, TEXT("disciplines"));
+		const FString Pointer = TEXT("/disciplines/") + Entry.Key.ToString();
+		const FVeyraDisciplinesTuning& Disciplines = Entry.Value;
+		const auto IsFraction = [](double Value) { return Value >= 0.0 && Value <= 1.0; };
+		if (Disciplines.Marks.IsEmpty() || Disciplines.RefundSeconds < 0.0)
+		{
+			Problem(Pointer, TEXT("names at least one mark, and refundSeconds is at least 0"));
+		}
+		for (int32 Index = 0; Index < Disciplines.Marks.Num(); ++Index)
+		{
+			const FVeyraDisciplineMarkTuning& Mark = Disciplines.Marks[Index];
+			const FString MarkPointer = FString::Printf(TEXT("%s/marks/%d"), *Pointer, Index);
+			if (!Abilities.Statuses.Contains(Mark.Status))
+			{
+				Problem(MarkPointer + TEXT("/status"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Mark.Status.ToString()));
+			}
+			for (const FVeyraContentId& Status : Mark.CasterStatuses)
+			{
+				if (!Abilities.Statuses.Contains(Status))
+				{
+					Problem(MarkPointer + TEXT("/casterStatuses"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Status.ToString()));
+				}
+			}
+			if (Mark.ConsumedBy.IsEmpty())
+			{
+				Problem(MarkPointer + TEXT("/consumedBy"), TEXT("names at least one ability"));
+			}
+			for (const FVeyraContentId& Ability : Mark.ConsumedBy)
+			{
+				if (!VeyraAbilityRules::Defines(Abilities, Ability))
+				{
+					Problem(MarkPointer + TEXT("/consumedBy"), FString::Printf(TEXT("names ability \"%s\", which Abilities.json does not define"), *Ability.ToString()));
+				}
+			}
+			if (Mark.DamageAmount < 0.0 || Mark.DamagePerLevel < 0.0 || Mark.PhysicalPowerRatio < 0.0 || !IsFraction(Mark.Penetration) || !IsFraction(Mark.ResourceRefund)
+				|| Mark.DamageType == EVeyraDamageType::TrueDamage)
+			{
+				Problem(MarkPointer, TEXT("its damage values are at least 0 and its type Physical or Magic; penetration and resourceRefund are from 0 to 1"));
+			}
+		}
+		for (int32 Index = 0; Index < Disciplines.Bonuses.Num(); ++Index)
+		{
+			const FVeyraDisciplineBonusTuning& Bonus = Disciplines.Bonuses[Index];
+			const FString BonusPointer = FString::Printf(TEXT("%s/bonuses/%d"), *Pointer, Index);
+			const bool bSpends = Disciplines.Marks.ContainsByPredicate([&Bonus](const FVeyraDisciplineMarkTuning& Mark) { return Mark.ConsumedBy.Contains(Bonus.Ability); });
+			if (!bSpends)
+			{
+				Problem(BonusPointer + TEXT("/ability"), FString::Printf(TEXT("names %s, which spends no mark"), *Bonus.Ability.ToString()));
+			}
+			if (Bonus.DamageMultiplier < 0.0 || !IsFraction(Bonus.CooldownRefund))
+			{
+				Problem(BonusPointer, TEXT("damageMultiplier is at least 0, and cooldownRefund from 0 to 1"));
+			}
+		}
+	}
+
+	for (const TPair<FVeyraContentId, FVeyraStressTemperTuning>& Entry : Tuning.StressTemper)
+	{
+		RegisterPassive(Entry.Key, TEXT("stressTemper"));
+		const FString Pointer = TEXT("/stressTemper/") + Entry.Key.ToString();
+		const FVeyraStressTemperTuning& Temper = Entry.Value;
+		TArray<TPair<FString, FVeyraContentId>> Named = { { TEXT("/coating"), Temper.Coating }, { TEXT("/lockout"), Temper.Lockout } };
+		for (const FVeyraContentId& Status : Temper.StrikeStatuses)
+		{
+			Named.Add({ TEXT("/strikeStatuses"), Status });
+		}
+		for (const TPair<FString, FVeyraContentId>& Each : Named)
+		{
+			if (!Abilities.Statuses.Contains(Each.Value))
+			{
+				Problem(Pointer + Each.Key, FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Each.Value.ToString()));
+			}
+		}
+		// The lockout outlasts the strike, and is not the coating it spares.
+		const FVeyraStatusTuning* Lockout = Abilities.Statuses.Find(Temper.Lockout);
+		if (Temper.Lockout == Temper.Coating || (Lockout && !(Lockout->DurationSeconds > 0.0)))
+		{
+			Problem(Pointer + TEXT("/lockout"), TEXT("names a status other than the coating, lasting above 0 seconds"));
+		}
+		if (Temper.DamageAmount < 0.0 || Temper.DamagePerLevel < 0.0 || Temper.MagicPowerRatio < 0.0 || Temper.DamageType == EVeyraDamageType::TrueDamage)
+		{
+			Problem(Pointer, TEXT("its damage values are at least 0, and its type Physical or Magic"));
+		}
+	}
+
+	for (const TPair<FVeyraContentId, FVeyraChargerTuning>& Entry : Tuning.Charger)
+	{
+		RegisterPassive(Entry.Key, TEXT("charger"));
+		const FString Pointer = TEXT("/charger/") + Entry.Key.ToString();
+		const FVeyraChargerTuning& Charger = Entry.Value;
+		if (!Abilities.Statuses.Contains(Charger.BoostStatus))
+		{
+			Problem(Pointer + TEXT("/boostStatus"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Charger.BoostStatus.ToString()));
+		}
+		if (!(Charger.Radius > 0.0) || !(Charger.ChargePerDeath > 0.0) || Charger.BoostMultiplier < 1.0)
+		{
+			Problem(Pointer, TEXT("radius and chargePerDeath are above 0, and boostMultiplier at least 1"));
+		}
+	}
+
+	for (const TPair<FVeyraContentId, FVeyraAccordTuning>& Entry : Tuning.Accord)
+	{
+		RegisterPassive(Entry.Key, TEXT("accord"));
+		const FString Pointer = TEXT("/accord/") + Entry.Key.ToString();
+		const FVeyraAccordTuning& Accord = Entry.Value;
+		if (!Abilities.Companions.Contains(Accord.Companion))
+		{
+			Problem(Pointer + TEXT("/companion"), FString::Printf(TEXT("names companion \"%s\", which Abilities.json does not define"), *Accord.Companion.ToString()));
+		}
+		for (const TPair<FString, FVeyraContentId>& Each : { TPair<FString, FVeyraContentId>(TEXT("/mark"), Accord.Mark),
+				 TPair<FString, FVeyraContentId>(TEXT("/boostStatus"), Accord.BoostStatus) })
+		{
+			if (!Abilities.Statuses.Contains(Each.Value))
+			{
+				Problem(Pointer + Each.Key, FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Each.Value.ToString()));
+			}
+		}
+		if (!(Accord.WindowSeconds > 0.0) || !(Accord.PerTargetSeconds > 0.0) || Accord.DamageAmount < 0.0 || Accord.DamagePerLevel < 0.0
+			|| Accord.MagicPowerRatio < 0.0 || Accord.RefundSeconds < 0.0 || Accord.BoostMultiplier < 1.0)
+		{
+			Problem(Pointer, TEXT("windowSeconds and perTargetSeconds are above 0, its damage and refund at least 0, and boostMultiplier at least 1"));
+		}
+	}
+
+	for (const TPair<FVeyraContentId, FVeyraMistTrailTuning>& Entry : Tuning.MistTrail)
+	{
+		RegisterPassive(Entry.Key, TEXT("mistTrail"));
+		const FString Pointer = TEXT("/mistTrail/") + Entry.Key.ToString();
+		const FVeyraMistTrailTuning& Trail = Entry.Value;
+		// Its area lingers, giving allies the mark a follower carries into the fog (ADR-036 §5).
+		const FVeyraAreaAbilityTuning* Area = Abilities.Area.Find(Trail.Area);
+		if (!Area || Area->Linger.IsEmpty() || !Area->Linger[0].AllyStatuses.Contains(Trail.FollowStatus))
+		{
+			Problem(Pointer + TEXT("/area"), TEXT("names an area Abilities.json defines that lingers, giving allies followStatus"));
+		}
+		if (!Abilities.Statuses.Contains(Trail.FollowStatus))
+		{
+			Problem(Pointer + TEXT("/followStatus"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Trail.FollowStatus.ToString()));
+		}
+		const FVeyraMistShieldTuning& Shield = Trail.FollowShield;
+		if (!(Trail.Spacing > 0.0) || Trail.ApproachLength < 0.0 || !(Trail.LaySeconds > 0.0) || !(Trail.LookSeconds > 0.0) || Shield.Amount < 0.0
+			|| Shield.AmountPerLevel < 0.0 || Shield.MagicPowerRatio < 0.0 || !(Shield.Amount + Shield.AmountPerLevel + Shield.MagicPowerRatio > 0.0)
+			|| !(Shield.DurationSeconds > 0.0))
+		{
+			Problem(Pointer, TEXT("spacing, laySeconds and lookSeconds are above 0, approachLength at least 0, and followShield gives something for above 0 seconds"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraUnreturnedTuning>& Entry : Tuning.Unreturned)
 	{
 		RegisterPassive(Entry.Key, TEXT("unreturned"));
@@ -366,6 +524,11 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		{
 			Problem(Pointer + TEXT("/body/capsuleHalfHeight"), TEXT("must be at least capsuleRadius"));
 		}
+		// Charge never regenerates: only effects restore it (ADR-033 §1).
+		if (Vanguard.Resource == EVeyraResourceFamily::Charge && (Vanguard.BaseStats.ResourceRegen != 0.0 || Vanguard.Growth.ResourceRegen != 0.0))
+		{
+			Problem(Pointer + TEXT("/resource"), TEXT("Charge never regenerates: its baseStats and growth resourceRegen are 0"));
+		}
 		for (const FString& AttackProblem : VeyraBasicAttacks::Validate(Vanguard.BasicAttack))
 		{
 			Problem(Pointer + TEXT("/basicAttack"), AttackProblem);
@@ -377,8 +540,16 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 			const TArray<FVeyraContentId>* Ids;
 			int32 RankCount;
 		};
-		const FSlot Slots[] = { { TEXT("q"), &Vanguard.Abilities.Q, BasicAbilityMaxRank }, { TEXT("w"), &Vanguard.Abilities.W, BasicAbilityMaxRank },
-			{ TEXT("e"), &Vanguard.Abilities.E, BasicAbilityMaxRank }, { TEXT("r"), &Vanguard.Abilities.R, UltimateMaxRank } };
+		if (!Vanguard.RankShape.IsEmpty() && !Progression.RankShapes.Contains(Vanguard.RankShape[0]))
+		{
+			Problem(Pointer + TEXT("/rankShape/0"), FString::Printf(TEXT("names rank shape \"%s\", which Progression.json does not define"), *Vanguard.RankShape[0].ToString()));
+		}
+		// Each slot's abilities rank as the Vanguard's rank shape says (ADR-031 §2).
+		const FVeyraRankShape Shape = RankShapeOf(Vanguard, Progression);
+		const int32 BasicRanks = VeyraProgression::MaxRank(EVeyraAbilitySlot::Q, Progression, Shape);
+		const int32 UltimateRanks = VeyraProgression::MaxRank(EVeyraAbilitySlot::R, Progression, Shape);
+		const FSlot Slots[] = { { TEXT("q"), &Vanguard.Abilities.Q, BasicRanks }, { TEXT("w"), &Vanguard.Abilities.W, BasicRanks },
+			{ TEXT("e"), &Vanguard.Abilities.E, BasicRanks }, { TEXT("r"), &Vanguard.Abilities.R, UltimateRanks } };
 		TArray<FVeyraContentId, TInlineAllocator<4>> Kit;
 		for (const FSlot& Slot : Slots)
 		{
@@ -401,6 +572,35 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 					Problem(SlotPointer, TEXT("is already in another slot; each slot has its own ability"));
 				}
 				Kit.Add(Ability);
+			}
+		}
+		// A stance's abilities rank with the slots they hold, and are the kit's own as much (ADR-031 §3). It never
+		// holds the slot it sits in itself, which keeps it (ADR-035 §1).
+		const TPair<EVeyraAbilitySlot, const TArray<FVeyraContentId>*> OwnSlots[] = { { EVeyraAbilitySlot::Q, &Vanguard.Abilities.Q },
+			{ EVeyraAbilitySlot::W, &Vanguard.Abilities.W }, { EVeyraAbilitySlot::E, &Vanguard.Abilities.E }, { EVeyraAbilitySlot::R, &Vanguard.Abilities.R } };
+		for (const TPair<EVeyraAbilitySlot, const TArray<FVeyraContentId>*>& Own : OwnSlots)
+		{
+			for (const FVeyraContentId& Ability : *Own.Value)
+			{
+				const FVeyraStanceAbilityTuning* Stance = Abilities.Stance.Find(Ability);
+				for (int32 Index = 0; Stance && Index < Stance->Slots.Num(); ++Index)
+				{
+					const FVeyraStanceSlotTuning& Held = Stance->Slots[Index];
+					const FString HeldPointer = FString::Printf(TEXT("%s/abilities (stance %s, slot %d)"), *Pointer, *Ability.ToString(), Index);
+					if (Held.Slot == Own.Key)
+					{
+						Problem(HeldPointer, TEXT("holds the slot the stance sits in; a stance keeps its own slot"));
+					}
+					for (const FString& RankProblem : VeyraAbilityRules::ValidateRanks(Abilities, Held.Ability, VeyraProgression::MaxRank(Held.Slot, Progression, Shape)))
+					{
+						Problem(HeldPointer, TEXT("in its slot, ") + RankProblem);
+					}
+					if (Kit.Contains(Held.Ability))
+					{
+						Problem(HeldPointer, FString::Printf(TEXT("names %s, already in the kit; each slot has its own ability"), *Held.Ability.ToString()));
+					}
+					Kit.Add(Held.Ability);
+				}
 			}
 		}
 

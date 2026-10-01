@@ -33,7 +33,12 @@ struct VEYRACORE_API FVeyraContentId
 	/** False only for a default-constructed identifier. */
 	bool IsValid() const { return !Name.IsNone(); }
 
-	FString ToString() const { return Name.ToString(); }
+	/**
+	 * Lowercase, as the format is. An FName keeps the first spelling registered for it, and a build
+	 * without case-preserving names may have met the same name as a type or property first: the ID
+	 * blink would read back as Blink once a property called Blink exists.
+	 */
+	FString ToString() const { return Name.ToString().ToLower(); }
 
 	bool operator==(const FVeyraContentId& Other) const { return Name == Other.Name; }
 

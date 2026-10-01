@@ -22,6 +22,8 @@ enum class EVeyraMarkerEndReason : uint8
 	Recalled,
 	/** Its owner died. */
 	OwnerDied,
+	/** Its owner's ability placed another in its place, whose follow-up is the one that stands. */
+	Replaced,
 };
 
 /** What a placed marker is, as its owner's ability places it (ADR-030 §5). */
@@ -35,6 +37,12 @@ struct FVeyraMarkerSpec
 	int32 HitsToDestroy = 0;
 	/** Enemies see it as its owner: its owner's body, bars and minimap mark (a decoy). */
 	bool bPresentsAsOwner = false;
+	/**
+	 * A wall's length, across the way it faces, and its thickness, along it, in units (ADR-032 §4); zero
+	 * for a marker that is no wall. A wall blocks units of both teams, dashes and line projectiles as
+	 * terrain does, and paths go round it.
+	 */
+	FVector2D Wall = FVector2D::ZeroVector;
 };
 
 /** A placed marker's end, announced on the server. */
