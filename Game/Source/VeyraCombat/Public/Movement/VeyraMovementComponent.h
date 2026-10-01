@@ -209,6 +209,9 @@ private:
 	/** Announces the unit's own move, from From to where it stands now (ADR-032 §1). */
 	void AnnounceOwnMove(EVeyraOwnMove Move, const FVector& From) const;
 
+	/** Bends a forced move of Distance along Direction through the movement fields of the unit's enemies (ADR-033 §5). */
+	void BendThroughFields(FVector& Direction, double& Distance) const;
+
 	/** The first living enemy unit the body touches moving from From to To, and where it touches. */
 	AActor* FindEnemyContact(const FVector& From, const FVector& To, FVector& OutContactLocation) const;
 

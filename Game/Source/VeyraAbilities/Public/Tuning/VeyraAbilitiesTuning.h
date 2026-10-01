@@ -585,6 +585,17 @@ enum class EVeyraLingerSight : uint8
 	Ordinary,
 };
 
+/** A movement field a lingering area holds while it stands (ADR-033 §5), as Magnetic Field's. */
+USTRUCT()
+struct FVeyraMovementFieldTuning
+{
+	GENERATED_BODY()
+
+	/** How far, at most, it moves an enemy forced move's end toward its centre; above 0. */
+	UPROPERTY()
+	double Pull = 0.0;
+};
+
 /** A delivered area that lasts, giving those inside it statuses by side (ADR-018 §5). */
 USTRUCT()
 struct FVeyraLingerTuning
@@ -630,6 +641,13 @@ struct FVeyraLingerTuning
 	 */
 	UPROPERTY()
 	double EndWarningSeconds = 0.0;
+
+	/**
+	 * At most one: a field it holds while it stands, bending its caster's enemies' dashes and displacements
+	 * toward its centre (ADR-033 §5). Its area's outermost zone is then a circle, the field's extent.
+	 */
+	UPROPERTY()
+	TArray<FVeyraMovementFieldTuning> MovementField;
 };
 
 /**

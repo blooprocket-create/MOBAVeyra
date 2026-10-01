@@ -9,6 +9,7 @@
 #include "Engine/World.h"
 #include "GameFramework/Character.h"
 #include "Life/VeyraCombatEventSubsystem.h"
+#include "Movement/VeyraMovementFields.h"
 #include "Movement/VeyraMovementRules.h"
 #include "NavigationSystem.h"
 #include "Shapes/VeyraShapes.h"
@@ -166,9 +167,12 @@ bool UVeyraMovementComponent::StartDisplacement(const FVector& Direction, double
 		return false;
 	}
 	const bool bInterruptsDash = IsDashing();
+	FVector Heading = Direction;
+	double Reach = Distance;
+	BendThroughFields(Heading, Reach);
 	FForcedMove Move;
 	Move.Mode = EVeyraCustomMovementMode::Displaced;
-	Move.Destination = ResolveForcedMoveEnd(Direction, Distance);
+	Move.Destination = ResolveForcedMoveEnd(Heading, Reach);
 	Move.Speed = Speed;
 	BeginForcedMove(Move);
 	if (bInterruptsDash)
@@ -182,7 +186,10 @@ bool UVeyraMovementComponent::StartDisplacement(const FVector& Direction, double
 	TArray<FVeyraStatusSpec> CollisionStatuses)
 {
 	bool bStopped = false;
-	ResolveForcedMoveEnd(Direction, Distance, &bStopped);
+	FVector Heading = Direction;
+	double Reach = Distance;
+	BendThroughFields(Heading, Reach);
+	ResolveForcedMoveEnd(Heading, Reach, &bStopped);
 	if (!StartDisplacement(Direction, Distance, Speed))
 	{
 		return false;
@@ -416,10 +423,13 @@ bool UVeyraMovementComponent::StartDash(const FVeyraDash& Dash)
 	{
 		return false;
 	}
+	FVector Heading = Dash.Direction;
+	double Reach = Dash.Distance;
+	BendThroughFields(Heading, Reach);
 	FForcedMove Move;
 	Move.Mode = EVeyraCustomMovementMode::Dashing;
 	Move.Origin = UpdatedComponent->GetComponentLocation();
-	Move.Destination = ResolveForcedMoveEnd(Dash.Direction, Dash.Distance);
+	Move.Destination = ResolveForcedMoveEnd(Heading, Reach);
 	Move.Speed = Dash.Speed;
 	Move.Contact = Dash.Contact;
 	BeginForcedMove(Move);
@@ -650,6 +660,25 @@ void UVeyraMovementComponent::EndDash(EVeyraDashEndReason Reason, AActor* Contac
 	OnDashEnded.Broadcast(FVeyraDashEnd{ Reason, Contact });
 	// A dash a displacement interrupts never ends as the unit's own; it does not reach here (ADR-032 §1).
 	AnnounceOwnMove(EVeyraOwnMove::Dash, From);
+}
+
+void UVeyraMovementComponent::BendThroughFields(FVector& Direction, double& Distance) const
+{
+	const UWorld* World = GetWorld();
+	const UVeyraMovementFieldSubsystem* Fields = World ? World->GetSubsystem<UVeyraMovementFieldSubsystem>() : nullptr;
+	if (!Fields || Fields->GetFieldCount() == 0 || !UpdatedComponent)
+	{
+		return;
+	}
+	const FVector Start = UpdatedComponent->GetComponentLocation();
+	const FVector Bent = Fields->Bend(VeyraTeams::TeamOf(CharacterOwner), Start, Start + Direction.GetSafeNormal2D() * Distance);
+	const FVector Offset(Bent.X - Start.X, Bent.Y - Start.Y, 0.0);
+	// A move bent onto its own start keeps its way, going nowhere far.
+	if (!Offset.IsNearlyZero())
+	{
+		Direction = Offset.GetSafeNormal();
+		Distance = Offset.Size();
+	}
 }
 
 void UVeyraMovementComponent::AnnounceOwnMove(EVeyraOwnMove Move, const FVector& From) const

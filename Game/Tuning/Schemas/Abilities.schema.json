@@ -457,7 +457,7 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": ["durationSeconds", "pulseSeconds", "casterStatuses", "allyStatuses", "enemyStatuses", "sight", "pulseEffects", "endEffects", "endWarningSeconds"],
+                "required": ["durationSeconds", "pulseSeconds", "casterStatuses", "allyStatuses", "enemyStatuses", "sight", "pulseEffects", "endEffects", "endWarningSeconds", "movementField"],
                 "properties": {
                   "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "pulseSeconds": { "description": "Seconds between the statuses it gives; it gives them first as it lands.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
@@ -471,7 +471,8 @@
                   },
                   "pulseEffects": { "description": "At most one: what each pulse after it lands does to the enemy units inside, reactions included (ADR-026 §4). Its zones are what it does as it lands.", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/effects" } },
                   "endEffects": { "description": "At most one: what it does to the enemy units inside as it ends, measured from its centre, so a displacement toward the origin draws them in (ADR-026 §4).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "$ref": "#/definitions/effects" } },
-                  "endWarningSeconds": { "description": "How long before its end the presentation marks it: above 0 exactly when it has endEffects, and no longer than it lasts.", "type": "number", "minimum": 0 }
+                  "endWarningSeconds": { "description": "How long before its end the presentation marks it: above 0 exactly when it has endEffects, and no longer than it lasts.", "type": "number", "minimum": 0 },
+                  "movementField": { "description": "At most one: a field it holds while it stands, bending its caster's enemies' dashes and displacements toward its centre by up to pull units; its area's outermost zone is then a circle (ADR-033 §5).", "type": "array", "minItems": 0, "maxItems": 1, "items": { "type": "object", "additionalProperties": false, "required": ["pull"], "properties": { "pull": { "type": "number", "minimum": 0, "exclusiveMinimum": true } } } }
                 }
               }
             },

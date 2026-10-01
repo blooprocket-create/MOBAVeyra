@@ -59,8 +59,12 @@ public:
 
 	const FVeyraContentId& GetAbility() const { return Ability; }
 
+	/** Server only: while it stands it holds a movement field over its circle, of its caster's side, pulling up to Pull (ADR-033 §5). */
+	void HoldField(double Pull);
+
 protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	virtual void Destroyed() override;
 
 private:
 	/** Gives the units inside it their side's statuses. */
@@ -99,4 +103,6 @@ private:
 	FVeyraLingerEffects Effects;
 	FTimerHandle PulseTimer;
 	FTimerHandle EndTimer;
+	/** Its movement field's handle; 0 for none. */
+	int32 FieldHandle = 0;
 };

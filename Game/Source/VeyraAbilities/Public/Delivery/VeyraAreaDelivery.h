@@ -59,6 +59,9 @@ struct FVeyraPreparedLinger
 	double PulseSeconds = 0.0;
 	EVeyraLingerSight Sight = EVeyraLingerSight::None;
 	FVeyraContentId Ability;
+
+	/** The pull of the movement field it holds; 0 for none (ADR-033 §5). */
+	double FieldPull = 0.0;
 };
 
 /** How areas hit (ADR-008 §3, ADR-009 §4). Server only, except Place. */

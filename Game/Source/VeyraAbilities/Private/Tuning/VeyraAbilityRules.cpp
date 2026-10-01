@@ -286,6 +286,13 @@ namespace
 			}
 			for (int32 Index = 0; Index < Area.Linger.Num(); ++Index)
 			{
+				// A field's extent is its area's circle (ADR-033 §5).
+				const TArray<FVeyraMovementFieldTuning>& Field = Area.Linger[Index].MovementField;
+				if (Field.Num() > 1 || Field.ContainsByPredicate([](const FVeyraMovementFieldTuning& Each) { return !(Each.Pull > 0.0); })
+					|| (!Field.IsEmpty() && (Area.Zones.IsEmpty() || Area.Zones.Last().Shape.Kind != EVeyraShapeKind::Circle)))
+				{
+					Problem(FString::Printf(TEXT("%s/linger/%d/movementField"), *Pointer, Index), TEXT("holds at most one, its pull above 0, on an area whose outermost zone is a circle"));
+				}
 				const FVeyraLingerTuning& Linger = Area.Linger[Index];
 				const FString LingerPointer = FString::Printf(TEXT("%s/linger/%d"), *Pointer, Index);
 				// A delayed area lingers where it lands, once it lands (ADR-027 §6); a channelled one never does.

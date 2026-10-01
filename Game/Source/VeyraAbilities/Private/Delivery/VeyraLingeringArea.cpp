@@ -5,6 +5,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Engine/World.h"
+#include "Movement/VeyraMovementFields.h"
 #include "Net/Core/PushModel/PushModel.h"
 #include "Net/UnrealNetwork.h"
 #include "TimerManager.h"
@@ -59,11 +60,31 @@ void AVeyraLingeringArea::Arm(UAbilitySystemComponent& InCaster, const FVeyraEff
 	GiveStatuses();
 }
 
+void AVeyraLingeringArea::HoldField(double Pull)
+{
+	UVeyraMovementFieldSubsystem* Fields = GetWorld() ? GetWorld()->GetSubsystem<UVeyraMovementFieldSubsystem>() : nullptr;
+	if (Fields && FieldHandle == 0)
+	{
+		FieldHandle = Fields->Add(FVeyraMovementField{ GetActorLocation(), Shape.Radius, Team, Pull });
+	}
+}
+
 void AVeyraLingeringArea::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	GetWorldTimerManager().ClearTimer(PulseTimer);
 	GetWorldTimerManager().ClearTimer(EndTimer);
 	Super::EndPlay(EndPlayReason);
+}
+
+void AVeyraLingeringArea::Destroyed()
+{
+	// Its field goes with it, however it ends: its time, or a recast that rips it up.
+	if (UVeyraMovementFieldSubsystem* Fields = FieldHandle != 0 && GetWorld() ? GetWorld()->GetSubsystem<UVeyraMovementFieldSubsystem>() : nullptr)
+	{
+		Fields->Remove(FieldHandle);
+		FieldHandle = 0;
+	}
+	Super::Destroyed();
 }
 
 void AVeyraLingeringArea::Pulse()
