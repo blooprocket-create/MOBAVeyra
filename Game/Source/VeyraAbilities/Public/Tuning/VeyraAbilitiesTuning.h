@@ -210,6 +210,54 @@ struct FVeyraUnitKindMultiplierTuning
 	double Multiplier = 1.0;
 };
 
+/** Whether a reaction removes the status it reacted to (ADR-026 §1). */
+UENUM()
+enum class EVeyraReactionConsume : uint8
+{
+	Keep,
+	Consume,
+};
+
+/** Whether a reaction's damage counts once or once per stack the target held (ADR-026 §1). */
+UENUM()
+enum class EVeyraReactionScaling : uint8
+{
+	Once,
+	PerStack,
+};
+
+/**
+ * What a hit adds when its target holds a status (ADR-026 §1), as Rupture's burst on Splinters or
+ * Flash Cure's stun on an Unstable target. It reads the statuses the target held as the hit landed.
+ */
+USTRUCT()
+struct FVeyraReactionTuning
+{
+	GENERATED_BODY()
+
+	/** The status the target must hold, from any source. */
+	UPROPERTY()
+	FVeyraContentId Status;
+
+	UPROPERTY()
+	EVeyraReactionConsume Consume = EVeyraReactionConsume::Keep;
+
+	/** At most one: extra damage, once or per stack held. */
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> Damage;
+
+	UPROPERTY()
+	EVeyraReactionScaling Scaling = EVeyraReactionScaling::Once;
+
+	/** Extra statuses for the target. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	/** Statuses of the bundle's own that this reaction takes the place of. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Replaces;
+};
+
 /** What happens to each unit an area hits (ADR-008 §3). */
 USTRUCT()
 struct FVeyraEffectBundleTuning
@@ -242,6 +290,10 @@ struct FVeyraEffectBundleTuning
 	 */
 	UPROPERTY()
 	TArray<FVeyraContentId> DisplacementUnlessStatuses;
+
+	/** What the hit adds against statuses its target holds (ADR-026 §1). */
+	UPROPERTY()
+	TArray<FVeyraReactionTuning> Reactions;
 };
 
 /** How a DamageOverTime status ticks (Combat Bible §14; ADR-015 §3). */
@@ -306,6 +358,17 @@ struct FVeyraStatusTuning
 	/** An AttackDamageAmplification's unit kinds, empty for all; empty for any other kind. */
 	UPROPERTY()
 	TArray<EVeyraUnitKind> UnitKinds;
+
+	/**
+	 * At most one: the status this becomes when an application brings it to its most stacks, from the
+	 * same source, as Splinters become Fractured (ADR-026 §2).
+	 */
+	UPROPERTY()
+	TArray<FVeyraContentId> AtMaxStacks;
+
+	/** The kinds of unit it lands on, empty for every kind (ADR-026 §2). */
+	UPROPERTY()
+	TArray<EVeyraUnitKind> LandsOn;
 };
 
 /** Where an area is placed. */
@@ -450,6 +513,24 @@ struct FVeyraLingerTuning
 
 	UPROPERTY()
 	EVeyraLingerSight Sight = EVeyraLingerSight::None;
+
+	/**
+	 * At most one: what each pulse after it lands does to the enemy units inside, reactions included
+	 * (ADR-026 §4). Its zones are what it does as it lands.
+	 */
+	UPROPERTY()
+	TArray<FVeyraEffectBundleTuning> PulseEffects;
+
+	/** At most one: what it does to the enemy units inside as it ends, measured from its centre (ADR-026 §4). */
+	UPROPERTY()
+	TArray<FVeyraEffectBundleTuning> EndEffects;
+
+	/**
+	 * How long before its end the presentation marks it, so a rupture is readable (Roster Bible §17):
+	 * above 0 exactly when it has EndEffects, and no longer than it lasts.
+	 */
+	UPROPERTY()
+	double EndWarningSeconds = 0.0;
 };
 
 /**
@@ -472,6 +553,24 @@ struct FVeyraHealOnHitTuning
 	/** Of the caster's Max Health, the most one cast restores; at least MaxHealthRatioPerHit. */
 	UPROPERTY()
 	double CapMaxHealthRatio = 0.0;
+};
+
+/**
+ * A delay a delayed area takes instead while its point lies inside its caster's lingering area of
+ * another ability (ADR-026 §4), as Flash Cure's inside CODE BLACK.
+ */
+USTRUCT()
+struct FVeyraAreaDelayWithinTuning
+{
+	GENERATED_BODY()
+
+	/** An area ability that lingers. */
+	UPROPERTY()
+	FVeyraContentId Ability;
+
+	/** Above 0. */
+	UPROPERTY()
+	double DelaySeconds = 0.0;
 };
 
 /** An ability that hits the enemies in shapes at the caster or a ground point (ADR-008 §3). */
@@ -529,6 +628,10 @@ struct FVeyraAreaAbilityTuning
 	/** At most one: Health the caster restores from the units it hits, capped for the cast. */
 	UPROPERTY()
 	TArray<FVeyraHealOnHitTuning> HealOnHit;
+
+	/** For a delayed area: the first entry whose lingering area holds the area's point sets its delay instead. */
+	UPROPERTY()
+	TArray<FVeyraAreaDelayWithinTuning> DelayWithin;
 };
 
 /**
@@ -1188,7 +1291,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 12;
+	static constexpr int32 SchemaVersion = 13;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

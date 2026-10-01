@@ -169,6 +169,39 @@
         "gorraveth_tear_them_apart": "Empower"
       }
     },
+    "korruk": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "sovereign_edge", "striker_assembly", "cycler_core", "razorwheel"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "korruk_spineburst": "Damage",
+        "korruk_pressure_mine": "Damage",
+        "korruk_rupture": "Damage",
+        "korruk_shatterfield": "Damage"
+      }
+    },
+    "mavra": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "E", "W"],
+      "abilities": {
+        "mavra_caustic_line": "Damage",
+        "mavra_flash_cure": "Damage",
+        "mavra_pressure_leak": "Damage",
+        "mavra_code_black": "Damage"
+      }
+    },
+    "moro": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "arc_reactor", "nullglass_lens", "spellguard_plate"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "moro_arc_bolt": "Damage",
+        "moro_bursting_ground": "Damage",
+        "moro_pounce": "Engage",
+        "moro_wildstorm": "Damage"
+      }
+    },
     "raska": {
       "provenance": "Provisional",
       "build": ["war_boots", "colossus_temper", "razorwheel_prime", "cycler_core", "reinforced_chassis"],

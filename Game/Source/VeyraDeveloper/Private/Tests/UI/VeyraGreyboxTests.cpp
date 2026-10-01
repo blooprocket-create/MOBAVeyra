@@ -7,6 +7,7 @@
 #include "Casting/VeyraCastStateComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "Cooldowns/VeyraCooldownComponent.h"
+#include "Delivery/VeyraLingeringArea.h"
 #include "Delivery/VeyraProjectile.h"
 #include "Engine/StaticMesh.h"
 #include "EngineUtils.h"
@@ -316,6 +317,30 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(SameShape(Telegraph.Placed.Shape, Tuning.Area[ArchetypeTestId(TEXT("test_mortar"))].Zones[0].Shape)));
 			ASSERT_THAT(IsTrue(FVector::Dist2D(Telegraph.Placed.Origin, Point) < Tolerance));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Telegraph.RemainingSeconds, LongSeconds, Tolerance)));
+		}
+
+		TEST_METHOD(ALingeringAreaIsMarkedAsItsEndDrawsNear)
+		{
+			UAbilitySystemComponent& Self = *Caster->GetAbilitySystemComponent();
+			const auto Linger = [this, &Self](const FVector& At, FVeyraLingerEffects Effects) {
+				AVeyraLingeringArea& Area = Spawner.SpawnActorAt<AVeyraLingeringArea>(At, FRotator::ZeroRotator);
+				FVeyraEffectFrame Placement;
+				Placement.Origin = At;
+				Area.Arm(Self, Placement, CircleOf(InnerRadius), FVeyraLingerStatuses(), MoveTemp(Effects), LongSeconds, LongSeconds, ArchetypeTestId(TEXT("test_field")));
+			};
+			// One whose end hits and is warned of for its whole life, and one whose end does nothing.
+			FVeyraLingerEffects Rupture;
+			Rupture.End.Add(FVeyraPreparedZone{ CircleOf(InnerRadius), FVeyraPreparedEffects() });
+			Rupture.EndWarningSeconds = LongSeconds;
+			const FVector Ending(CastRange, 0.0, 0.0);
+			Linger(Ending, MoveTemp(Rupture));
+			Linger(FVector(0.0, CastRange, 0.0), FVeyraLingerEffects());
+
+			const TArray<FVeyraTelegraph>& Telegraphs = RefreshedGreybox().GetTelegraphs();
+			ASSERT_THAT(AreEqual(2, Telegraphs.Num()));
+			const FVeyraTelegraph* Warned = Telegraphs.FindByPredicate([](const FVeyraTelegraph& Each) { return Each.Source == EVeyraTelegraphSource::LingeringAreaEnding; });
+			ASSERT_THAT(IsTrue(Warned != nullptr && FVector::Dist2D(Warned->Placed.Origin, Ending) < Tolerance, TEXT("its end is marked (ADR-026 §4)")));
+			ASSERT_THAT(AreEqual(1, Telegraphs.FilterByPredicate([](const FVeyraTelegraph& Each) { return Each.Source == EVeyraTelegraphSource::LingeringArea; }).Num()));
 		}
 
 		TEST_METHOD(ALineProjectileIsDrawnFromItsLaunchData)

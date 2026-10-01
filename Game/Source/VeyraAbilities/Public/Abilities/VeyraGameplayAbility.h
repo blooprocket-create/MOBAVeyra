@@ -68,6 +68,12 @@ public:
 	UVeyraGameplayAbility();
 
 	/**
+	 * Caster's Level in Progression, which Level-scaled amounts read (ADR-015 §3); 1 for a unit without
+	 * one. Effect preparation reads it too, for Level-scaled statuses.
+	 */
+	static int32 GetCasterLevel(const UAbilitySystemComponent& Caster);
+
+	/**
 	 * Why Caster may not cast this archetype, as content Ability, at Target now; None if it may. The
 	 * one validator: VeyraAbilities::TryCast asks it before activating.
 	 */
@@ -91,6 +97,9 @@ protected:
 	 * returns null activates on its own.
 	 */
 	virtual const FVeyraCastTuning* GetCastTuning(const FVeyraContentId& Ability) const;
+
+	/** Whether Ability moves its caster, as a dash, leap or attach does: a Root refuses it (ADR-026 §3). */
+	virtual bool MovesCaster(const FVeyraContentId& Ability) const { return false; }
 
 	/** Whether casting Ability again now would end its lasting effect early instead (ADR-008 §9). */
 	virtual bool EndsEarlyOnRecast(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
@@ -133,9 +142,6 @@ protected:
 
 	/** Ability's rank for Caster: its slot's rank in Progression, 0 when not learned. */
 	int32 GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
-
-	/** Caster's Level in Progression, which Level-scaled amounts read (ADR-015 §3); 1 for a unit without one. */
-	static int32 GetCasterLevel(const UAbilitySystemComponent& Caster);
 
 	/** The content this spec runs, from the combatant's loadout. */
 	FVeyraContentId GetContentId(FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const;

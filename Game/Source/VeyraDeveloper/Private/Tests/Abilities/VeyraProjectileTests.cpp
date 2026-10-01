@@ -11,6 +11,7 @@
 #include "Life/VeyraLifeComponent.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "VeyraCombatVerbs.h"
 
 #if WITH_AUTOMATION_WORKER
 
@@ -335,6 +336,22 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(Movement->IsDashing()));
 			ASSERT_THAT(IsTrue(FVector::Dist(Movement->GetForcedMoveDestination().GetValue(), Start - FVector(DashDistance, 0.0, 0.0)) <= Tolerance,
 				TEXT("the recoil goes straight back from the point")));
+		}
+
+		TEST_METHOD(ARootedCasterCannotDash)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::Learn(*Caster, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_charge")))));
+			FVeyraStatusSpec Root;
+			Root.Id = ArchetypeTestId(TEXT("test_root"));
+			Root.Kind = EVeyraStatusKind::Root;
+			Root.DurationSeconds = 60.0;
+			UAbilitySystemComponent& Self = *Caster->GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Self, Self, Root)));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Caster, EVeyraAbilitySlot::W, FVector(ShotRange, 0.0, 0.0)) == EVeyraCastRejection::CrowdControlled,
+				TEXT("rooted, it cannot dash (ADR-026 §3)")));
+			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(Self, Root.Id)));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Caster, EVeyraAbilitySlot::W, FVector(ShotRange, 0.0, 0.0)) == EVeyraCastRejection::None));
 		}
 
 		TEST_METHOD(AChargeThatStopsAtAnEnemyHitsIt)

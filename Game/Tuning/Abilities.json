@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 12,
+  "schemaVersion": 13,
   "casting": {
     "provenance": "Canon",
     "interruptedCooldownFraction": 0.2
@@ -16,8 +16,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "stonehorn_trait": {
       "provenance": "Provisional",
@@ -30,8 +31,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "skittermaw_trait": {
       "provenance": "Provisional",
@@ -44,8 +46,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "miremother_trait": {
       "provenance": "Provisional",
@@ -58,8 +61,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "razorback_trait": {
       "provenance": "Provisional",
@@ -72,8 +76,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "cairn_crushing_hold_stun": {
       "provenance": "Provisional",
@@ -86,8 +91,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "cairn_crushing_hold_slow": {
       "provenance": "Provisional",
@@ -100,8 +106,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "cairn_immovable_guard": {
       "provenance": "Provisional",
@@ -114,8 +121,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "cairn_immovable_anchor": {
       "provenance": "Provisional",
@@ -128,8 +136,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "cairn_immovable_burden": {
       "provenance": "Provisional",
@@ -142,8 +151,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "cairn_immovable_cover": {
       "provenance": "Provisional",
@@ -156,8 +166,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "cairn_burden_stun": {
       "provenance": "Provisional",
@@ -170,8 +181,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "cairn_burden_slow": {
       "provenance": "Provisional",
@@ -184,8 +196,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "qazharr_sea_dog": {
       "provenance": "Provisional",
@@ -198,8 +211,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "seize_momentum_slow": {
       "provenance": "Provisional",
@@ -212,8 +226,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "seize_momentum_haste": {
       "provenance": "Provisional",
@@ -226,8 +241,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "qazharr_heavy_hand_slow": {
       "provenance": "Provisional",
@@ -240,8 +256,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "qazharr_weather_it_tenacity": {
       "provenance": "Provisional",
@@ -254,8 +271,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "qazharr_boarding_rush_haste": {
       "provenance": "Provisional",
@@ -268,8 +286,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "qazharr_no_quarter_frenzy": {
       "provenance": "Provisional",
@@ -282,8 +301,9 @@
       "takedownExtensionMaxSeconds": 3,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "qazharr_no_quarter_pursuit": {
       "provenance": "Provisional",
@@ -296,8 +316,9 @@
       "takedownExtensionMaxSeconds": 3,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "qazharr_no_quarter_tenacity": {
       "provenance": "Provisional",
@@ -310,8 +331,9 @@
       "takedownExtensionMaxSeconds": 3,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "qazharr_no_quarter_cleave": {
       "provenance": "Provisional",
@@ -324,8 +346,9 @@
       "takedownExtensionMaxSeconds": 3,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "oriel_shattered_sky_slow": {
       "provenance": "Provisional",
@@ -338,8 +361,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "oriel_mirror_veil_haste": {
       "provenance": "Provisional",
@@ -352,8 +376,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     }
 ,
     "bryn_flare_slow": {
@@ -367,8 +392,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "bryn_kickback_slow": {
       "provenance": "Provisional",
@@ -381,8 +407,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     }
 ,
     "mend_haste": {
@@ -396,8 +423,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "scorch_burn": {
       "provenance": "Provisional",
@@ -410,8 +438,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [{ "damageType": "TrueDamage", "tickSeconds": 1, "damagePerLevel": 4 }],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "enfeeble_slow": {
       "provenance": "Provisional",
@@ -424,8 +453,9 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
     "enfeeble_weaken": {
       "provenance": "Provisional",
@@ -438,53 +468,73 @@
       "takedownExtensionMaxSeconds": 0,
       "damageOverTime": [],
       "stackDecaySeconds": 0,
+      "atMaxStacks": [],
       "arcDegrees": 0,
-      "unitKinds": []
+      "unitKinds": [], "landsOn": []
     },
-    "kade_tracked": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 200, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "kade_sightline_fervor": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "kade_sightline_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "kade_kill_corridor_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 10, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "vera_cadence": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "Stacking", "magnitude": 0.07, "durationSeconds": 2.5, "maxStacks": 8, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0.5, "arcDegrees": 0, "unitKinds": [] },
-    "vera_ranged": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 125, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "vera_dig_in_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "vera_dig_in_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 150, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "vera_dig_in_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "vera_dig_in_footing": { "provenance": "Provisional", "kind": "SlowResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "vera_dig_in_anchor": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "vera_dig_in_volley_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 225, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "vera_dig_in_volley_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "vera_last_volley": { "provenance": "Provisional", "kind": "AttackSpeedCap", "stacking": "UniqueRefresh", "magnitude": 3.0, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "mimzi_hex": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 4, "maxStacks": 2, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "mimzi_camouflage": { "provenance": "Provisional", "kind": "Camouflage", "stacking": "UniqueRefresh", "magnitude": 400, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "mimzi_scamper": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "mimzi_winkbomb_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_haunted": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_haunt_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_hugged": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 2.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_hugged_inside": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_dormant": { "provenance": "Provisional", "kind": "Dormant", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_play_dead_guard": { "provenance": "Provisional", "kind": "DamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_play_dead_anchor": { "provenance": "Provisional", "kind": "DisplacementImmunity", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_fear": { "provenance": "Provisional", "kind": "Fear", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_threaded": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_inside_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.8, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_inside_footing": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "patch_inside_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "gorraveth_rush": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 2, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "gorraveth_rake_drag": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "gorraveth_frenzy_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 2, "takedownExtensionMaxSeconds": 6, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "gorraveth_frenzy_hunt": { "provenance": "Provisional", "kind": "AttackDamageAmplification", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 2, "takedownExtensionMaxSeconds": 6, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": ["Vanguard"] },
-    "gorraveth_hunted": { "provenance": "Provisional", "kind": "MoveSpeedTowardEnemyVanguards", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 2, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "raska_momentum": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 3600, "maxStacks": 100, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "raska_roadhouse_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 250, "durationSeconds": 3600, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "raska_countersteer_guard": { "provenance": "Provisional", "kind": "DirectionalDamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 120, "unitKinds": [] },
-    "raska_countersteer_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "raska_countersteer_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "raska_ride_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.6, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "raska_no_brakes": { "provenance": "Provisional", "kind": "Unstoppable", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "raska_powerslide_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] },
-    "raska_last_exit_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "arcDegrees": 0, "unitKinds": [] }
+    "kade_tracked": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 200, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "kade_sightline_fervor": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "kade_sightline_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "kade_kill_corridor_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 10, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "vera_cadence": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "Stacking", "magnitude": 0.07, "durationSeconds": 2.5, "maxStacks": 8, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0.5, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "vera_ranged": { "provenance": "Provisional", "kind": "SourceAttackRange", "stacking": "UniqueRefresh", "magnitude": 125, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "vera_dig_in_stance": { "provenance": "Provisional", "kind": "Planted", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "vera_dig_in_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 150, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "vera_dig_in_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "vera_dig_in_footing": { "provenance": "Provisional", "kind": "SlowResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "vera_dig_in_anchor": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.5, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "vera_dig_in_volley_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 225, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "vera_dig_in_volley_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 30, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "vera_last_volley": { "provenance": "Provisional", "kind": "AttackSpeedCap", "stacking": "UniqueRefresh", "magnitude": 3.0, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mimzi_hex": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 4, "maxStacks": 2, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mimzi_camouflage": { "provenance": "Provisional", "kind": "Camouflage", "stacking": "UniqueRefresh", "magnitude": 400, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mimzi_scamper": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 3.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mimzi_winkbomb_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_haunted": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_haunt_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_hugged": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 2.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_hugged_inside": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_dormant": { "provenance": "Provisional", "kind": "Dormant", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_play_dead_guard": { "provenance": "Provisional", "kind": "DamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_play_dead_anchor": { "provenance": "Provisional", "kind": "DisplacementImmunity", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_fear": { "provenance": "Provisional", "kind": "Fear", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_threaded": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 3, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_inside_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.8, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_inside_footing": { "provenance": "Provisional", "kind": "DisplacementResistance", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "patch_inside_chill": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mavra_contaminated": { "provenance": "Provisional", "kind": "DamageOverTime", "stacking": "UniqueRefresh", "magnitude": 8, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [{ "damageType": "Magic", "tickSeconds": 0.5, "damagePerLevel": 1.2 }], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mavra_exposure": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 6, "maxStacks": 3, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": ["mavra_unstable"], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"] },
+    "mavra_unstable": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"] },
+    "mavra_flash_cure_root": { "provenance": "Provisional", "kind": "Root", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mavra_flash_cure_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mavra_leak_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mavra_leak_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mavra_code_black_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.45, "durationSeconds": 1.25, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mavra_code_black_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "mavra_code_black_knockdown": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "korruk_splinter": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 6, "maxStacks": 4, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": ["korruk_fractured"], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"] },
+    "korruk_fractured": { "provenance": "Provisional", "kind": "Counter", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": ["Vanguard"] },
+    "korruk_mine_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "korruk_mine_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "moro_wild_dominion_power": { "provenance": "Provisional", "kind": "DamageAmplification", "stacking": "UniqueRefresh", "magnitude": 0.1, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "moro_wild_dominion_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "moro_bursting_ground_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "moro_pounce_rush": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "moro_wildstorm_stride": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 4, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "gorraveth_rush": { "provenance": "Provisional", "kind": "MoveSpeed", "stacking": "UniqueRefresh", "magnitude": 0.25, "durationSeconds": 2, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "gorraveth_rake_drag": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 0.8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "gorraveth_frenzy_haste": { "provenance": "Provisional", "kind": "AttackSpeed", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 2, "takedownExtensionMaxSeconds": 6, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "gorraveth_frenzy_hunt": { "provenance": "Provisional", "kind": "AttackDamageAmplification", "stacking": "UniqueRefresh", "magnitude": 0.2, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 2, "takedownExtensionMaxSeconds": 6, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": ["Vanguard"], "landsOn": [] },
+    "gorraveth_hunted": { "provenance": "Provisional", "kind": "MoveSpeedTowardEnemyVanguards", "stacking": "UniqueRefresh", "magnitude": 0.3, "durationSeconds": 2, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "raska_momentum": { "provenance": "Provisional", "kind": "Counter", "stacking": "Stacking", "magnitude": 0, "durationSeconds": 3600, "maxStacks": 100, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "raska_roadhouse_reach": { "provenance": "Provisional", "kind": "AttackRange", "stacking": "UniqueRefresh", "magnitude": 250, "durationSeconds": 3600, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "raska_countersteer_guard": { "provenance": "Provisional", "kind": "DirectionalDamageReduction", "stacking": "UniqueRefresh", "magnitude": 0.6, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 120, "unitKinds": [], "landsOn": [] },
+    "raska_countersteer_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.4, "durationSeconds": 1, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "raska_countersteer_stun": { "provenance": "Provisional", "kind": "Stun", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "raska_ride_body": { "provenance": "Provisional", "kind": "BodyScale", "stacking": "UniqueRefresh", "magnitude": 1.6, "durationSeconds": 8, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "raska_no_brakes": { "provenance": "Provisional", "kind": "Unstoppable", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 6, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "raska_powerslide_slow": { "provenance": "Provisional", "kind": "Slow", "stacking": "UniqueRefresh", "magnitude": 0.35, "durationSeconds": 1.5, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] },
+    "raska_last_exit_knockup": { "provenance": "Provisional", "kind": "Knockup", "stacking": "UniqueRefresh", "magnitude": 0, "durationSeconds": 0.75, "maxStacks": 1, "takedownExtensionSeconds": 0, "takedownExtensionMaxSeconds": 0, "damageOverTime": [], "stackDecaySeconds": 0, "atMaxStacks": [], "arcDegrees": 0, "unitKinds": [], "landsOn": [] }
   },
   "targetedDamage": {
     "test_bolt": {
@@ -552,7 +602,7 @@
             "damage": [{ "type": "Physical", "amountByRank": [0], "physicalPowerRatio": 0.75, "magicPowerRatio": 0 }],
             "statuses": [],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -562,7 +612,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "seize_momentum": {
       "provenance": "Provisional",
@@ -587,7 +638,7 @@
             "damage": [{ "type": "Physical", "amountByRank": [0], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }],
             "statuses": ["seize_momentum_slow"],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": ["seize_momentum_haste"]
@@ -597,7 +648,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "cairn_crushing_hold": {
       "provenance": "Provisional",
@@ -622,7 +674,7 @@
             "damage": [{ "type": "Physical", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }],
             "statuses": ["cairn_crushing_hold_stun"],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -633,7 +685,7 @@
             "damage": [],
             "statuses": ["cairn_crushing_hold_slow"],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -643,7 +695,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "cairn_burden_of_the_depths": {
       "provenance": "Provisional",
@@ -668,7 +721,7 @@
             "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],
             "statuses": ["cairn_burden_stun"],
             "displacement": [{ "direction": "TowardOrigin", "distance": 150, "speed": 900 }],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [
             {
@@ -691,7 +744,7 @@
             "damage": [],
             "statuses": ["cairn_burden_slow"],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -701,7 +754,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "qazharr_no_quarter": {
       "provenance": "Provisional",
@@ -726,7 +780,7 @@
             "damage": [{ "type": "Physical", "amountByRank": [150, 250, 350], "physicalPowerRatio": 0.9, "magicPowerRatio": 0 }],
             "statuses": [],
             "displacement": [{ "direction": "AcrossCastLeft", "distance": 250, "speed": 1200 }],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": ["qazharr_no_quarter_frenzy", "qazharr_no_quarter_pursuit", "qazharr_no_quarter_tenacity", "qazharr_no_quarter_cleave"]
@@ -736,7 +790,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "oriel_shattered_sky": {
       "provenance": "Provisional",
@@ -761,7 +816,7 @@
             "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }],
             "statuses": ["oriel_shattered_sky_slow"],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -771,7 +826,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "oriel_final_radiance": {
       "provenance": "Provisional",
@@ -796,7 +852,7 @@
             "damage": [{ "type": "Magic", "amountByRank": [60, 90, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }],
             "statuses": [],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -806,7 +862,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "bryn_sounding_flare": {
       "provenance": "Provisional",
@@ -831,7 +888,7 @@
             "damage": [],
             "statuses": ["bryn_flare_slow"],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -841,7 +898,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "bryn_last_broadside": {
       "provenance": "Provisional",
@@ -866,7 +924,7 @@
             "damage": [{ "type": "Physical", "amountByRank": [300, 450, 600], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }],
             "statuses": [],
             "displacement": [],
-            "missingHealthDamage": [{ "type": "Physical", "missingHealthRatio": 0.15 }], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [{ "type": "Physical", "missingHealthRatio": 0.15 }], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -877,7 +935,7 @@
             "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }],
             "statuses": [],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -887,7 +945,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "kade_sightline": {
       "provenance": "Provisional",
@@ -908,7 +967,7 @@
       "zones": [
         {
           "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 1400, "width": 220 },
-          "effects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+          "effects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
         }
@@ -920,13 +979,17 @@
           "casterStatuses": ["kade_sightline_fervor"],
           "allyStatuses": ["kade_sightline_stride"],
           "enemyStatuses": [],
-          "sight": "Ordinary"
+          "sight": "Ordinary",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0
         }
       ],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "vera_break_the_line": {
       "provenance": "Provisional",
@@ -951,7 +1014,7 @@
             "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }],
             "statuses": [],
             "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1200 }],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -961,7 +1024,8 @@
       "consumesCasterStatuses": ["vera_cadence"],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "mimzi_winkbomb": {
       "provenance": "Provisional",
@@ -986,7 +1050,7 @@
             "damage": [{ "type": "Magic", "amountByRank": [60, 100, 140, 180, 220], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }],
             "statuses": ["mimzi_winkbomb_slow", "mimzi_hex", "mimzi_hex"],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -996,7 +1060,8 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     },
     "mimzi_grand_prank": {
       "provenance": "Provisional",
@@ -1021,7 +1086,7 @@
             "damage": [{ "type": "Magic", "amountByRank": [150, 250, 350], "physicalPowerRatio": 0, "magicPowerRatio": 0.7 }],
             "statuses": ["mimzi_hex", "mimzi_hex"],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -1031,7 +1096,248 @@
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "mavra_caustic_line": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [9, 8.5, 8, 7.5, 7],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 900,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 900, "width": 110 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 105, 140, 175, 210], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [{ "durationSeconds": 2.5, "pulseSeconds": 0.5, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_contaminated"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [10, 15, 20, 25, 30], "physicalPowerRatio": 0, "magicPowerRatio": 0.08 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [], "endWarningSeconds": 0 }],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "mavra_flash_cure": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 850,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 0.9,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 100, 140, 180, 220], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_flash_cure_root", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_flash_cure_stun"], "replaces": ["mavra_flash_cure_root"] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": [{ "ability": "mavra_code_black", "delaySeconds": 0.3 }]
+    },
+    "mavra_pressure_leak": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [80],
+        "castRange": 850,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Circle", "radius": 300, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [{ "durationSeconds": 2.75, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [12, 18, 24, 30, 36], "physicalPowerRatio": 0, "magicPowerRatio": 0.1 }], "statuses": ["mavra_leak_slow", "mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0, "magicPowerRatio": 0.3 }], "statuses": ["mavra_leak_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 0.75 }],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "mavra_code_black": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 100, 80],
+        "resourceCostByRank": [100],
+        "castRange": 900,
+        "windupSeconds": 0.35,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.2,
+        "recastWindow": []
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Circle", "radius": 650, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [80, 120, 160], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": ["mavra_contaminated", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [{ "durationSeconds": 4.5, "pulseSeconds": 1, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": ["mavra_code_black_slow"], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [40, 60, 80], "physicalPowerRatio": 0, "magicPowerRatio": 0.2 }], "statuses": ["mavra_contaminated", "mavra_exposure", "mavra_exposure"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "mavra_unstable", "consume": "Consume", "damage": [], "scaling": "Once", "statuses": ["mavra_code_black_stun"], "replaces": [] }] }], "endEffects": [{ "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["mavra_code_black_knockdown"], "displacement": [{ "direction": "TowardOrigin", "distance": 200, "speed": 800 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endWarningSeconds": 1 }],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "korruk_spineburst": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [8, 7.5, 7, 6.5, 6],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 700,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 700, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [75, 110, 145, 180, 215], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter", "korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }, { "shape": { "kind": "Sector", "radius": 700, "arcDegrees": 50, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [75, 110, 145, 180, 215], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "korruk_pressure_mine": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [14, 13, 12, 11, 10],
+        "resourceCostByRank": [70],
+        "castRange": 850,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 1.25,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": ["korruk_mine_slow", "korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [90, 130, 170, 210, 250], "physicalPowerRatio": 0.7, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": ["korruk_mine_knockup"], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "korruk_rupture": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [12, 11, 10, 9, 8],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 0,
+        "windupSeconds": 0.15,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Circle", "radius": 500, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_splinter", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [35, 50, 65, 80, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "scaling": "PerStack", "statuses": [], "replaces": [] }, { "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [160, 220, 280, 340, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "replaces": [] }] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "korruk_shatterfield": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 100, 80],
+        "resourceCostByRank": [100],
+        "castRange": 900,
+        "windupSeconds": 0.3,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.2,
+        "recastWindow": []
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Circle", "radius": 450, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [70, 105, 140], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [{ "durationSeconds": 2.6, "pulseSeconds": 0.75, "casterStatuses": [], "allyStatuses": [], "enemyStatuses": [], "sight": "None", "pulseEffects": [{ "damage": [{ "type": "Physical", "amountByRank": [45, 70, 95], "physicalPowerRatio": 0.25, "magicPowerRatio": 0 }], "statuses": ["korruk_splinter"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }], "endEffects": [{ "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [{ "status": "korruk_fractured", "consume": "Consume", "damage": [{ "type": "Physical", "amountByRank": [200, 300, 400], "physicalPowerRatio": 1, "magicPowerRatio": 0 }], "scaling": "Once", "statuses": [], "replaces": [] }] }], "endWarningSeconds": 0.75 }],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "moro_bursting_ground": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [11, 10, 9, 8, 7],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 900,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "origin": "TargetPoint",
+      "delaySeconds": 0.75,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Circle", "radius": 260, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": ["moro_bursting_ground_slow"], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "moro_wildstorm": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 100, 80],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0.25,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "origin": "Caster",
+      "delaySeconds": 0,
+      "channelTicks": 8,
+      "channelSeconds": 4,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [{ "shape": { "kind": "Circle", "radius": 400, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [35, 55, 75], "physicalPowerRatio": 0, "magicPowerRatio": 0.15 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "linger": [],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Free",
+      "casterStatuses": ["moro_wildstorm_stride"],
+      "healOnHit": [],
+      "delayWithin": []
     },
     "gorraveth_furnace_rake": {
       "provenance": "Provisional",
@@ -1049,12 +1355,13 @@
       "channelTicks": 2,
       "channelSeconds": 0.8,
       "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 325, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [35, 55, 75, 95, 115], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 325, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [35, 55, 75, 95, 115], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Free",
       "casterStatuses": ["gorraveth_rake_drag"],
-      "healOnHit": [{ "unitKinds": ["Wildlife"], "maxHealthRatioPerHit": 0.04, "capMaxHealthRatio": 0.12 }]
+      "healOnHit": [{ "unitKinds": ["Wildlife"], "maxHealthRatioPerHit": 0.04, "capMaxHealthRatio": 0.12 }],
+      "delayWithin": []
     },
     "gorraveth_furnace_rake_hunt": {
       "provenance": "Provisional",
@@ -1072,12 +1379,13 @@
       "channelTicks": 2,
       "channelSeconds": 0.8,
       "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Circle", "radius": 325, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [35, 55, 75, 95, 115], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["gorraveth_hunted"] }],
+      "zones": [{ "shape": { "kind": "Circle", "radius": 325, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [35, 55, 75, 95, 115], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["gorraveth_hunted"] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Free",
       "casterStatuses": ["gorraveth_rake_drag"],
-      "healOnHit": [{ "unitKinds": ["Wildlife"], "maxHealthRatioPerHit": 0.04, "capMaxHealthRatio": 0.12 }]
+      "healOnHit": [{ "unitKinds": ["Wildlife"], "maxHealthRatioPerHit": 0.04, "capMaxHealthRatio": 0.12 }],
+      "delayWithin": []
     },
     "raska_powerslide": {
       "provenance": "Provisional",
@@ -1095,12 +1403,13 @@
       "channelTicks": 1,
       "channelSeconds": 0,
       "reveal": { "radius": 0, "durationSeconds": 0 },
-      "zones": [{ "shape": { "kind": "Sector", "radius": 350, "arcDegrees": 100, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["raska_powerslide_slow"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "zones": [{ "shape": { "kind": "Sector", "radius": 350, "arcDegrees": 100, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": ["raska_powerslide_slow"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
       "linger": [],
       "consumesCasterStatuses": [],
       "channelMovement": "Locked",
       "casterStatuses": [],
-      "healOnHit": []
+      "healOnHit": [],
+      "delayWithin": []
     }
   },
   "selfBuff": {
@@ -1407,13 +1716,13 @@
         "damage": [{ "type": "Physical", "amountByRank": [50, 80, 110, 140, 170], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }],
         "statuses": [],
         "displacement": [{ "direction": "TowardOrigin", "distance": 1050, "speed": 1800 }],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "passThroughEffects": {
         "damage": [],
         "statuses": [],
         "displacement": [{ "direction": "AsideFromPath", "distance": 125, "speed": 900 }],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "casterDash": []
     },
@@ -1434,13 +1743,13 @@
         "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.7 }],
         "statuses": [],
         "displacement": [],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "passThroughEffects": {
         "damage": [],
         "statuses": [],
         "displacement": [],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "casterDash": []
     },
@@ -1461,9 +1770,9 @@
         "damage": [{ "type": "Physical", "amountByRank": [60, 100, 140, 180, 220], "physicalPowerRatio": 0.9, "magicPowerRatio": 0 }],
         "statuses": [],
         "displacement": [],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
-      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": []
     },
     "kade_reposition": {
@@ -1483,9 +1792,9 @@
         "damage": [{ "type": "Physical", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }],
         "statuses": [],
         "displacement": [{ "direction": "AwayFromOrigin", "distance": 100, "speed": 800 }],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
-      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": [{ "distance": 400, "speed": 1000 }]
     },
     "kade_kill_corridor_shot": {
@@ -1505,9 +1814,9 @@
         "damage": [{ "type": "Physical", "amountByRank": [200, 325, 450], "physicalPowerRatio": 1, "magicPowerRatio": 0 }],
         "statuses": [],
         "displacement": [],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
-      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": []
     },
     "vera_range_found": {
@@ -1527,9 +1836,26 @@
         "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }],
         "statuses": ["vera_ranged"],
         "displacement": [],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
-      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "casterDash": []
+    },
+    "moro_arc_bolt": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [7, 6.5, 6, 5.5, 5],
+        "resourceCostByRank": [50, 55, 60, 65, 70],
+        "castRange": 1100,
+        "windupSeconds": 0.25,
+        "windupMovement": "Locked",
+        "recoverySeconds": 0.1,
+        "recastWindow": []
+      },
+      "projectile": { "speed": 1600, "radius": 60, "range": 1100 },
+      "collision": "FirstEnemy",
+      "effects": { "damage": [{ "type": "Magic", "amountByRank": [80, 125, 170, 215, 260], "physicalPowerRatio": 0, "magicPowerRatio": 0.7 }], "statuses": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": []
     },
     "mimzi_twinklebolt": {
@@ -1549,9 +1875,9 @@
         "damage": [{ "type": "Magic", "amountByRank": [70, 110, 150, 190, 230], "physicalPowerRatio": 0, "magicPowerRatio": 0.6 }],
         "statuses": ["mimzi_hex", "mimzi_hex"],
         "displacement": [],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
-      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": []
     },
     "raska_hound": {
@@ -1567,8 +1893,8 @@
       },
       "projectile": { "speed": 1400, "radius": 90, "range": 1000 },
       "collision": "Pierce",
-      "effects": { "damage": [{ "type": "Physical", "amountByRank": [80, 120, 160, 200, 240], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 200, "speed": 1000 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
-      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "effects": { "damage": [{ "type": "Physical", "amountByRank": [80, 120, 160, 200, 240], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 200, "speed": 1000 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": []
     },
     "raska_hound_no_brakes": {
@@ -1584,8 +1910,8 @@
       },
       "projectile": { "speed": 1500, "radius": 120, "range": 1100 },
       "collision": "Pierce",
-      "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": ["raska_last_exit_knockup"] },
-      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 225, 300], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 300, "speed": 1000 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": ["raska_last_exit_knockup"], "reactions": [] },
+      "passThroughEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "casterDash": []
     }
   },
@@ -1610,10 +1936,10 @@
         "damage": [{ "type": "Physical", "amountByRank": [30, 45, 60, 75, 90], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }],
         "statuses": [],
         "displacement": [],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "contactSelfStatuses": ["qazharr_boarding_rush_haste"],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
     },
@@ -1639,7 +1965,7 @@
             "damage": [{ "type": "Physical", "amountByRank": [40, 55, 70, 85, 100], "physicalPowerRatio": 0.2, "magicPowerRatio": 0 }],
             "statuses": ["bryn_kickback_slow"],
             "displacement": [],
-            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+            "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
           },
           "casterShieldPerVanguard": [],
           "casterStatusesPerVanguard": []
@@ -1649,10 +1975,10 @@
         "damage": [],
         "statuses": [],
         "displacement": [],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
     },
@@ -1676,10 +2002,10 @@
         "damage": [],
         "statuses": [],
         "displacement": [],
-        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": []
+        "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": []
       },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
     },
@@ -1699,9 +2025,9 @@
       "speed": 1200,
       "contact": "None",
       "startZones": [],
-      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 75, "speed": 600 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 75, "speed": 600 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
     },
@@ -1720,10 +2046,10 @@
       "distance": 350,
       "speed": 1400,
       "contact": "None",
-      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
     },
@@ -1742,11 +2068,33 @@
       "distance": 350,
       "speed": 1400,
       "contact": "None",
-      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["gorraveth_hunted"] }],
-      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 150 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [{ "kind": "Wildlife", "multiplier": 1.5 }], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["gorraveth_hunted"] }],
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
+      "rideExit": "Stay"
+    },
+    "moro_pounce": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [60],
+        "castRange": 650,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": []
+      },
+      "direction": "TowardPoint",
+      "distance": 650,
+      "speed": 1500,
+      "contact": "None",
+      "startZones": [],
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "contactSelfStatuses": [],
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "endZones": [{ "shape": { "kind": "Circle", "radius": 225, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.4 }], "statuses": [], "unitKindMultipliers": [], "displacement": [], "missingHealthDamage": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": ["moro_pounce_rush"] }],
       "rideExit": "Stay"
     },
     "gorraveth_ravine_bound": {
@@ -1765,10 +2113,10 @@
       "speed": 1600,
       "contact": "None",
       "startZones": [],
-      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
-      "endZones": [{ "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "endZones": [{ "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.3, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
       "rideExit": "Stay"
     },
     "raska_breakneck": {
@@ -1787,9 +2135,9 @@
       "speed": 1400,
       "contact": "StopAtFirstEnemy",
       "startZones": [],
-      "contactEffects": { "damage": [{ "type": "Physical", "amountByRank": [60, 90, 120, 150, 180], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "contactEffects": { "damage": [{ "type": "Physical", "amountByRank": [60, 90, 120, 150, 180], "physicalPowerRatio": 0.6, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
     },
@@ -1808,10 +2156,10 @@
       "distance": 350,
       "speed": 1600,
       "contact": "None",
-      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 140 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 350, "width": 140 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [40, 60, 80, 100, 120], "physicalPowerRatio": 0.4, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
     },
@@ -1831,9 +2179,9 @@
       "speed": 1600,
       "contact": "StopAtFirstEnemy",
       "startZones": [],
-      "contactEffects": { "damage": [{ "type": "Physical", "amountByRank": [100, 140, 180, 220, 260], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 250, "speed": 1000 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "contactEffects": { "damage": [{ "type": "Physical", "amountByRank": [100, 140, 180, 220, 260], "physicalPowerRatio": 0.8, "magicPowerRatio": 0 }], "statuses": [], "displacement": [{ "direction": "AwayFromOrigin", "distance": 250, "speed": 1000 }], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
     },
@@ -1852,10 +2200,10 @@
       "distance": 300,
       "speed": 1800,
       "contact": "None",
-      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 300, "width": 160 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
-      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "startZones": [{ "shape": { "kind": "Rectangle", "radius": 0, "arcDegrees": 0, "length": 300, "width": 160 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [50, 75, 100, 125, 150], "physicalPowerRatio": 0.5, "magicPowerRatio": 0 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Stay"
     },
@@ -1875,9 +2223,9 @@
       "speed": 1400,
       "contact": "None",
       "startZones": [],
-      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "endZones": [],
       "rideExit": "Leave"
     },
@@ -1897,10 +2245,10 @@
       "speed": 1400,
       "contact": "None",
       "startZones": [],
-      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
+      "contactEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
       "contactSelfStatuses": [],
-      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] },
-      "endZones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 250, 350], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }], "statuses": ["raska_last_exit_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
+      "hostEffects": { "damage": [], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] },
+      "endZones": [{ "shape": { "kind": "Circle", "radius": 250, "arcDegrees": 0, "length": 0, "width": 0 }, "effects": { "damage": [{ "type": "Physical", "amountByRank": [150, 250, 350], "physicalPowerRatio": 1.0, "magicPowerRatio": 0 }], "statuses": ["raska_last_exit_knockup"], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }, "casterShieldPerVanguard": [], "casterStatusesPerVanguard": [] }],
       "rideExit": "Leave"
     }
   },
@@ -2006,7 +2354,7 @@
       "reachOnArrival": 75,
       "attachSeconds": 2.5,
       "hostStatuses": ["patch_hugged"],
-      "hostEffects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] }
+      "hostEffects": { "damage": [{ "type": "Magic", "amountByRank": [60, 95, 130, 165, 200], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }
     },
     "patch_bear_hug_inside": {
       "provenance": "Provisional",
@@ -2024,7 +2372,7 @@
       "reachOnArrival": 75,
       "attachSeconds": 3,
       "hostStatuses": ["patch_hugged_inside"],
-      "hostEffects": { "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200, 250, 300], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [] }
+      "hostEffects": { "damage": [{ "type": "Magic", "amountByRank": [100, 150, 200, 250, 300], "physicalPowerRatio": 0, "magicPowerRatio": 0.5 }], "statuses": [], "displacement": [], "missingHealthDamage": [], "unitKindMultipliers": [], "displacementUnlessStatuses": [], "reactions": [] }
     }
   },
   "ride": {

@@ -7,6 +7,7 @@
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemGlobals.h"
 #include "Attributes/VeyraOffenceSet.h"
+#include "Abilities/VeyraGameplayAbility.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 
@@ -64,12 +65,12 @@ double DamageAmount(const UAbilitySystemComponent& Caster, const FVeyraDamageTun
 		+ Caster.GetNumericAttribute(UVeyraOffenceSet::GetMagicPowerAttribute()) * Damage.MagicPowerRatio;
 }
 
-TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids)
+TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids, int32 SourceLevel)
 {
 	TArray<FVeyraStatusSpec> Specs;
 	for (const FVeyraContentId& StatusId : Ids)
 	{
-		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId))
+		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(StatusId, SourceLevel))
 		{
 			Specs.Add(Status.GetValue());
 		}
@@ -80,6 +81,8 @@ TArray<FVeyraStatusSpec> StatusSpecs(TConstArrayView<FVeyraContentId> Ids)
 FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffectBundleTuning& Effects, int32 Rank)
 {
 	FVeyraPreparedEffects Prepared;
+	// Level-scaled statuses read the caster's Level at Commit, as the rest of the hit does (Combat Bible §50).
+	const int32 Level = UVeyraGameplayAbility::GetCasterLevel(Caster);
 	if (!Effects.Damage.IsEmpty())
 	{
 		FVeyraRawDamageEvent Raw;
@@ -92,7 +95,7 @@ FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffec
 	}
 	Prepared.UnitKindMultipliers = Effects.UnitKindMultipliers;
 	Prepared.DisplacementUnlessStatuses = Effects.DisplacementUnlessStatuses;
-	Prepared.Statuses = StatusSpecs(Effects.Statuses);
+	Prepared.Statuses = StatusSpecs(Effects.Statuses, Level);
 	if (!Effects.Displacement.IsEmpty())
 	{
 		Prepared.Displacement = Effects.Displacement[0];
@@ -100,6 +103,39 @@ FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffec
 	if (!Effects.MissingHealthDamage.IsEmpty())
 	{
 		Prepared.MissingHealthDamage = Effects.MissingHealthDamage[0];
+	}
+	for (const FVeyraReactionTuning& Reaction : Effects.Reactions)
+	{
+		FVeyraPreparedReaction& Ready = Prepared.Reactions.AddDefaulted_GetRef();
+		Ready.Status = Reaction.Status;
+		Ready.bConsume = Reaction.Consume == EVeyraReactionConsume::Consume;
+		Ready.bPerStack = Reaction.Scaling == EVeyraReactionScaling::PerStack;
+		for (const FVeyraDamageTuning& Damage : Reaction.Damage)
+		{
+			Ready.Damage.Add({ Damage.Type, DamageAmount(Caster, Damage, Rank) });
+		}
+		Ready.Statuses = StatusSpecs(Reaction.Statuses, Level);
+		Ready.Replaces = Reaction.Replaces;
+	}
+	// A bundle whose only damage is its reactions' prepares that damage now too, so it keeps the caster's
+	// offence at Commit (Combat Bible §50): each reaction type at 0, its amounts joining at impact.
+	if (!Prepared.Damage.IsValid())
+	{
+		FVeyraRawDamageEvent Raw;
+		for (const FVeyraPreparedReaction& Ready : Prepared.Reactions)
+		{
+			for (const FVeyraDamageComponent& Component : Ready.Damage)
+			{
+				if (!Raw.Components.ContainsByPredicate([&Component](const FVeyraDamageComponent& Each) { return Each.Type == Component.Type; }))
+				{
+					Raw.Components.Add({ Component.Type, 0.0 });
+				}
+			}
+		}
+		if (!Raw.Components.IsEmpty())
+		{
+			Prepared.ReactionDamage = VeyraCombat::PrepareDamage(Caster, Raw);
+		}
 	}
 	return Prepared;
 }
@@ -113,13 +149,13 @@ FVeyraSecondaryImpact SecondaryImpact(const UAbilitySystemComponent& Caster, con
 	{
 		Ready.Damage.Components.Add({ Damage.Type, DamageAmount(Caster, Damage, Rank) });
 	}
-	Ready.Statuses = StatusSpecs(Impact.Statuses);
+	Ready.Statuses = StatusSpecs(Impact.Statuses, UVeyraGameplayAbility::GetCasterLevel(Caster));
 	return Ready;
 }
 
 bool IsEmpty(const FVeyraPreparedEffects& Effects)
 {
-	return !Effects.Damage.IsValid() && Effects.Statuses.IsEmpty() && !Effects.Displacement.IsSet();
+	return !Effects.Damage.IsValid() && Effects.Statuses.IsEmpty() && !Effects.Displacement.IsSet() && Effects.Reactions.IsEmpty();
 }
 
 FVeyraShieldGrant ShieldGrant(const UAbilitySystemComponent& Caster, const FVeyraShieldTuning& Shield, int32 Rank)
@@ -146,7 +182,8 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 {
 	UAbilitySystemComponent* Target = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Unit);
 	// A Spell Shield blocks the whole hit: no damage, status or displacement, and no hit (Combat Bible §19).
-	if (!Target || (!Source.bSkipSpellShield && VeyraCombat::BlockAbilityHit(*Target, Caster)))
+	// A hit that does nothing leaves it be.
+	if (!Target || (!Source.bSkipSpellShield && !IsEmpty(Effects) && VeyraCombat::BlockAbilityHit(*Target, Caster)))
 	{
 		return;
 	}
@@ -156,11 +193,61 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 	Hit.Ability = Source.Ability;
 	Hit.CastId = Source.CastId;
 	Hit.bCasterShielded = Source.bCasterShielded;
-	Hit.bDamaging = Effects.Damage.IsValid();
+	// Reactions read the statuses the target held as the hit landed; what they consume goes first, so
+	// the hit's own statuses land afresh (ADR-026 §1).
+	FVeyraDamageComponents ReactionDamage;
+	TArray<FVeyraStatusSpec> ReactionStatuses;
+	TArray<FVeyraContentId> Replaced;
+	const UVeyraStatusComponent* Ledger = Target->GetOwner() ? Target->GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	if (Ledger && !Effects.Reactions.IsEmpty())
+	{
+		TArray<FVeyraContentId, TInlineAllocator<2>> Consumed;
+		for (const FVeyraPreparedReaction& Reaction : Effects.Reactions)
+		{
+			int32 Stacks = 0;
+			for (const FVeyraStatusEntry& Entry : Ledger->GetLedger().Entries)
+			{
+				Stacks += Entry.Id == Reaction.Status ? Entry.Stacks : 0;
+			}
+			if (Stacks == 0)
+			{
+				continue;
+			}
+			for (const FVeyraDamageComponent& Component : Reaction.Damage)
+			{
+				ReactionDamage.Add({ Component.Type, Component.Amount * (Reaction.bPerStack ? Stacks : 1) });
+			}
+			ReactionStatuses.Append(Reaction.Statuses);
+			Replaced.Append(Reaction.Replaces);
+			if (Reaction.bConsume)
+			{
+				Consumed.AddUnique(Reaction.Status);
+			}
+		}
+		for (const FVeyraContentId& Status : Consumed)
+		{
+			VeyraCombat::RemoveStatus(*Target, Status);
+		}
+	}
+	Hit.bDamaging = Effects.Damage.IsValid() || !ReactionDamage.IsEmpty();
+	if (!Effects.Damage.IsValid() && !ReactionDamage.IsEmpty())
+	{
+		if (Effects.ReactionDamage.IsValid())
+		{
+			VeyraCombat::DealPreparedDamage(Effects.ReactionDamage, *Target, ReactionDamage);
+		}
+		else
+		{
+			// Effects prepared by hand, without a bundle: the caster's offence now.
+			FVeyraRawDamageEvent Raw;
+			Raw.Components = ReactionDamage;
+			VeyraCombat::DealDamage(Caster, *Target, Raw);
+		}
+	}
 	if (Effects.Damage.IsValid())
 	{
-		// The target's own values join the hit as it lands (Combat Bible §50).
-		TArray<FVeyraDamageComponent, TInlineAllocator<1>> AddedAtImpact;
+		// The target's own values join the hit as it lands (Combat Bible §50), and its reactions' damage.
+		TArray<FVeyraDamageComponent, TInlineAllocator<1>> AddedAtImpact(ReactionDamage);
 		if (Effects.MissingHealthDamage.IsSet())
 		{
 			const FVeyraMissingHealthDamageTuning& Missing = Effects.MissingHealthDamage.GetValue();
@@ -181,6 +268,15 @@ void Apply(UAbilitySystemComponent& Caster, AActor& Unit, const FVeyraPreparedEf
 		VeyraCombat::DealPreparedDamage(Effects.Damage, *Target, AddedAtImpact);
 	}
 	for (const FVeyraStatusSpec& Status : Effects.Statuses)
+	{
+		if (Replaced.Contains(Status.Id))
+		{
+			continue;
+		}
+		const bool bApplied = VeyraCombat::ApplyStatus(Caster, *Target, Status);
+		Hit.bStunned |= bApplied && Status.Kind == EVeyraStatusKind::Stun;
+	}
+	for (const FVeyraStatusSpec& Status : ReactionStatuses)
 	{
 		const bool bApplied = VeyraCombat::ApplyStatus(Caster, *Target, Status);
 		Hit.bStunned |= bApplied && Status.Kind == EVeyraStatusKind::Stun;

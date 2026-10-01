@@ -133,6 +133,35 @@ TArray<FVeyraStructurePlacement> Structures(const FVeyraBattlegroundLayout& Layo
 	return Placements;
 }
 
+bool IsJungle(const FVeyraBattlegroundLayout& Layout, const FVector2D& Point)
+{
+	if (FMath::Abs(Point.X) > Layout.HalfExtent || FMath::Abs(Point.Y) > Layout.HalfExtent)
+	{
+		return false;
+	}
+	// The river runs along the diagonal Y = -X.
+	if (FMath::Abs(Point.X + Point.Y) / UE_SQRT_2 <= Layout.RiverWidth / 2.0)
+	{
+		return false;
+	}
+	// Each lane is its own mirror, so its one path is both teams' road.
+	for (const FVeyraLaneLayout& Lane : Layout.Lanes)
+	{
+		if (DistanceToPath(Lane.Points, Point) <= Lane.Width / 2.0)
+		{
+			return false;
+		}
+	}
+	for (const EVeyraTeam Team : { EVeyraTeam::A, EVeyraTeam::B })
+	{
+		if (FVector2D::Distance(Point, ForTeam(ToVector(Layout.Base.PrimeWell), Team)) <= Layout.Base.PadRadius)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+
 bool MirrorsOntoItself(const FVeyraLaneLayout& Lane)
 {
 	const int32 Count = Lane.Points.Num();

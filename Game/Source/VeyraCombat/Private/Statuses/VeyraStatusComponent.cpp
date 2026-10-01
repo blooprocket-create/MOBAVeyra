@@ -66,6 +66,7 @@ namespace
 		case EVeyraStatusKind::DirectionalDamageReduction:
 		case EVeyraStatusKind::AttackDamageAmplification:
 		case EVeyraStatusKind::SpellShield:
+		case EVeyraStatusKind::Root:
 			break;
 		}
 		return NAME_None;
@@ -173,9 +174,18 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 		Entry->Id = Spec.Id;
 		Entry->Kind = Spec.Kind;
 	}
-	// A new application starts its takedown extensions, and its ticks, afresh (§14: a refresh restarts the duration).
+	// A new application starts its takedown extensions afresh (§14: a refresh restarts the duration). A
+	// damage over time keeps its cadence (ADR-026 §7): its next tick comes when it would have, so one its
+	// source keeps refreshing still ticks.
+	double FirstTickSeconds = Spec.TickSeconds;
 	if (FServerEntry* Earlier = ServerEntries.Find(Entry->Sequence))
 	{
+		const UWorld* World = GetWorld();
+		const float Due = World && Earlier->TicksLeft > 0 ? World->GetTimerManager().GetTimerRemaining(Earlier->TickTimer) : -1.0f;
+		if (Due > 0.0f && Due <= Spec.TickSeconds)
+		{
+			FirstTickSeconds = Due;
+		}
 		StopTicking(*Earlier, /*bDealDueTick*/ false);
 	}
 	FServerEntry& Server = ServerEntries.Add(Entry->Sequence, FServerEntry{ Effect, &Source, Spec.TakedownExtensionSeconds, Spec.TakedownExtensionMaxSeconds });
@@ -187,8 +197,9 @@ bool UVeyraStatusComponent::Apply(UAbilitySystemComponent& Source, const FVeyraS
 		Server.TickDamageType = Spec.DamageType;
 		Server.TickDamage = Spec.Magnitude * Stacks;
 		Server.TickSeconds = Spec.TickSeconds;
-		Server.TicksLeft = VeyraStatuses::TickCount(DurationSeconds, Spec.TickSeconds);
-		StartTicking(Entry->Sequence, Server);
+		// Whole ticks from the first, none past the end.
+		Server.TicksLeft = FirstTickSeconds <= DurationSeconds ? VeyraStatuses::TickCount(DurationSeconds - FirstTickSeconds, Spec.TickSeconds) + 1 : 0;
+		StartTicking(Entry->Sequence, Server, FirstTickSeconds);
 	}
 	Entry->Magnitude = Spec.Magnitude;
 	Entry->Stacks = Stacks;
@@ -413,7 +424,7 @@ void UVeyraStatusComponent::OnEffectRemoved(const FActiveGameplayEffect& Effect)
 	StopTicking(Server, /*bDealDueTick*/ true);
 }
 
-void UVeyraStatusComponent::StartTicking(int32 Sequence, FServerEntry& Server)
+void UVeyraStatusComponent::StartTicking(int32 Sequence, FServerEntry& Server, double FirstTickSeconds)
 {
 	UWorld* World = GetWorld();
 	if (!World || Server.TicksLeft <= 0)
@@ -422,7 +433,7 @@ void UVeyraStatusComponent::StartTicking(int32 Sequence, FServerEntry& Server)
 	}
 	// World time, so a pause holds the ticks as it holds the status's effect (ADR-006 §8).
 	World->GetTimerManager().SetTimer(Server.TickTimer, FTimerDelegate::CreateUObject(this, &UVeyraStatusComponent::DealTick, Sequence),
-		static_cast<float>(Server.TickSeconds), /*bLoop*/ true);
+		static_cast<float>(Server.TickSeconds), /*bLoop*/ true, static_cast<float>(FirstTickSeconds));
 }
 
 void UVeyraStatusComponent::DealTick(int32 Sequence)

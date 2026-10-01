@@ -96,6 +96,26 @@ namespace
 			{
 				Problem(Pointer + TEXT("/missingHealthDamage"), TEXT("joins the hit's damage, so the effects need damage too"));
 			}
+			for (int32 Index = 0; Index < Effects.Reactions.Num(); ++Index)
+			{
+				const FVeyraReactionTuning& Reaction = Effects.Reactions[Index];
+				const FString ReactionPointer = FString::Printf(TEXT("%s/reactions/%d"), *Pointer, Index);
+				CheckStatusIds(ReactionPointer + TEXT("/status"), { Reaction.Status });
+				CheckDamage(ReactionPointer + TEXT("/damage"), Reaction.Damage);
+				CheckStatusIds(ReactionPointer + TEXT("/statuses"), Reaction.Statuses);
+				CheckStatusIds(ReactionPointer + TEXT("/replaces"), Reaction.Replaces);
+				if (Reaction.Damage.IsEmpty() && Reaction.Statuses.IsEmpty() && Reaction.Consume == EVeyraReactionConsume::Keep)
+				{
+					Problem(ReactionPointer, TEXT("does nothing: it needs damage, statuses or to consume what it reacts to"));
+				}
+				for (const FVeyraContentId& Replaced : Reaction.Replaces)
+				{
+					if (!Effects.Statuses.Contains(Replaced))
+					{
+						Problem(ReactionPointer + TEXT("/replaces"), FString::Printf(TEXT("replaces \"%s\", which the effects do not give"), *Replaced.ToString()));
+					}
+				}
+			}
 			TArray<EVeyraUnitKind> Kinds;
 			for (int32 Index = 0; Index < Effects.UnitKindMultipliers.Num(); ++Index)
 			{
@@ -124,6 +144,13 @@ namespace
 				for (const FString& StatusProblem : VeyraStatuses::Validate(ToStatusSpec(Status.Key, Status.Value)))
 				{
 					Problem(Pointer, StatusProblem);
+				}
+				// A status that turns into another at its most stacks has stacks to fill, and another to become (ADR-026 §2).
+				const TArray<FVeyraContentId>& Becomes = Status.Value.AtMaxStacks;
+				CheckStatusIds(Pointer + TEXT("/atMaxStacks"), Becomes);
+				if (Becomes.Num() > 1 || (!Becomes.IsEmpty() && (Status.Value.MaxStacks < 2 || Becomes[0] == Status.Key)))
+				{
+					Problem(Pointer + TEXT("/atMaxStacks"), TEXT("names at most one other status, for a status that stacks"));
 				}
 			}
 		}
@@ -218,6 +245,38 @@ namespace
 				CheckStatusIds(LingerPointer + TEXT("/casterStatuses"), Linger.CasterStatuses);
 				CheckStatusIds(LingerPointer + TEXT("/allyStatuses"), Linger.AllyStatuses);
 				CheckStatusIds(LingerPointer + TEXT("/enemyStatuses"), Linger.EnemyStatuses);
+				// What it does at each pulse and as it ends, and a warning for the end (ADR-026 §4).
+				if (Linger.PulseEffects.Num() > 1 || Linger.EndEffects.Num() > 1)
+				{
+					Problem(LingerPointer, TEXT("pulseEffects and endEffects hold at most one bundle each"));
+				}
+				for (int32 Bundle = 0; Bundle < Linger.PulseEffects.Num(); ++Bundle)
+				{
+					CheckEffects(FString::Printf(TEXT("%s/pulseEffects/%d"), *LingerPointer, Bundle), Linger.PulseEffects[Bundle]);
+				}
+				for (int32 Bundle = 0; Bundle < Linger.EndEffects.Num(); ++Bundle)
+				{
+					CheckEffects(FString::Printf(TEXT("%s/endEffects/%d"), *LingerPointer, Bundle), Linger.EndEffects[Bundle]);
+				}
+				if ((Linger.EndWarningSeconds > 0.0) == Linger.EndEffects.IsEmpty() || Linger.EndWarningSeconds > Linger.DurationSeconds)
+				{
+					Problem(LingerPointer + TEXT("/endWarningSeconds"), TEXT("above 0 exactly when the area has endEffects, and no longer than it lasts"));
+				}
+			}
+			// A delayed area may land sooner inside its caster's lingering area of another ability (ADR-026 §4).
+			for (int32 Index = 0; Index < Area.DelayWithin.Num(); ++Index)
+			{
+				const FVeyraAreaDelayWithinTuning& Within = Area.DelayWithin[Index];
+				const FString WithinPointer = FString::Printf(TEXT("%s/delayWithin/%d"), *Pointer, Index);
+				const FVeyraAreaAbilityTuning* Lingering = Tuning.Area.Find(Within.Ability);
+				if (!Lingering || Lingering->Linger.IsEmpty())
+				{
+					Problem(WithinPointer + TEXT("/ability"), FString::Printf(TEXT("names \"%s\", which is no area ability that lingers"), *Within.Ability.ToString()));
+				}
+				if (!(Area.DelaySeconds > 0.0) || !(Within.DelaySeconds > 0.0))
+				{
+					Problem(WithinPointer + TEXT("/delaySeconds"), TEXT("must be above 0, for an area that is delayed"));
+				}
 			}
 		}
 
@@ -579,6 +638,7 @@ FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTunin
 	Spec.StackDecaySeconds = Status.StackDecaySeconds;
 	Spec.ArcDegrees = Status.ArcDegrees;
 	Spec.UnitKinds = Status.UnitKinds;
+	Spec.LandsOn = Status.LandsOn;
 	Spec.TakedownExtensionSeconds = Status.TakedownExtensionSeconds;
 	Spec.TakedownExtensionMaxSeconds = Status.TakedownExtensionMaxSeconds;
 	if (!Status.DamageOverTime.IsEmpty())

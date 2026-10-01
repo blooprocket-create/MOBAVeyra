@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 11,
+  "schemaVersion": 12,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -487,6 +487,132 @@
       },
       "abilities": { "q": ["raska_breakneck"], "w": ["raska_countersteer"], "e": ["raska_kickstart"], "r": ["raska_no_brakes"] },
       "passive": ["raska_redline"]
+    },
+    "moro": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 55, "capsuleHalfHeight": 95, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 600,
+        "healthRegen": 1.4,
+        "maxResource": 330,
+        "resourceRegen": 3.2,
+        "armor": 30,
+        "magicResist": 30,
+        "physicalPower": 58,
+        "magicPower": 0,
+        "attackSpeed": 0.66,
+        "moveSpeed": 340
+      },
+      "growth": {
+        "maxHealth": 98,
+        "healthRegen": 0.12,
+        "maxResource": 42,
+        "resourceRegen": 0.25,
+        "armor": 4,
+        "magicResist": 1.8,
+        "physicalPower": 3,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.022
+      },
+      "basicAttack": {
+        "range": 175,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "abilities": { "q": ["moro_arc_bolt"], "w": ["moro_bursting_ground"], "e": ["moro_pounce"], "r": ["moro_wildstorm"] },
+      "passive": ["moro_wild_dominion"]
+    },
+    "korruk": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 55, "capsuleHalfHeight": 70, "turnRateDegreesPerSecond": 540 },
+      "baseStats": {
+        "maxHealth": 570,
+        "healthRegen": 1.1,
+        "maxResource": 320,
+        "resourceRegen": 3,
+        "armor": 26,
+        "magicResist": 30,
+        "physicalPower": 58,
+        "magicPower": 0,
+        "attackSpeed": 0.64,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 90,
+        "healthRegen": 0.1,
+        "maxResource": 40,
+        "resourceRegen": 0.25,
+        "armor": 4,
+        "magicResist": 1.3,
+        "physicalPower": 3.2,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 525,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 1800, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["korruk_spineburst"], "w": ["korruk_pressure_mine"], "e": ["korruk_rupture"], "r": ["korruk_shatterfield"] },
+      "passive": ["korruk_embedded"]
+    },
+    "mavra": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 34, "capsuleHalfHeight": 88, "turnRateDegreesPerSecond": 600 },
+      "baseStats": {
+        "maxHealth": 550,
+        "healthRegen": 0.8,
+        "maxResource": 360,
+        "resourceRegen": 3.4,
+        "armor": 22,
+        "magicResist": 30,
+        "physicalPower": 50,
+        "magicPower": 0,
+        "attackSpeed": 0.64,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 88,
+        "healthRegen": 0.1,
+        "maxResource": 45,
+        "resourceRegen": 0.3,
+        "armor": 4,
+        "magicResist": 1.3,
+        "physicalPower": 2.5,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.02
+      },
+      "basicAttack": {
+        "range": 550,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [{ "speed": 1700, "radius": 20 }],
+        "cleave": []
+      },
+      "abilities": { "q": ["mavra_caustic_line"], "w": ["mavra_flash_cure"], "e": ["mavra_pressure_leak"], "r": ["mavra_code_black"] },
+      "passive": ["mavra_hazard_exposure"]
     }
   },
   "deepFoundation": {
@@ -625,6 +751,24 @@
         "bonusHealthRatio": 0.03,
         "lungeSpeed": 1400
       }
+    }
+  },
+  "kitStatuses": {
+    "korruk_embedded": {
+      "provenance": "Provisional",
+      "statuses": ["korruk_splinter", "korruk_fractured"]
+    },
+    "mavra_hazard_exposure": {
+      "provenance": "Provisional",
+      "statuses": ["mavra_contaminated", "mavra_exposure", "mavra_unstable"]
+    }
+  },
+  "wildDominion": {
+    "moro_wild_dominion": {
+      "provenance": "Provisional",
+      "statuses": ["moro_wild_dominion_power", "moro_wild_dominion_haste"],
+      "checkSeconds": 0.25,
+      "wildlifeHealFraction": 0.15
     }
   }
 }

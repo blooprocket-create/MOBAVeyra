@@ -100,6 +100,16 @@ const FVeyraMomentumTuning* UVeyraVanguardsTuningSubsystem::FindMomentum(const F
 	return Get().Momentum.Find(Passive);
 }
 
+const FVeyraWildDominionTuning* UVeyraVanguardsTuningSubsystem::FindWildDominion(const FVeyraContentId& Passive)
+{
+	return Get().WildDominion.Find(Passive);
+}
+
+const FVeyraKitStatusesTuning* UVeyraVanguardsTuningSubsystem::FindKitStatuses(const FVeyraContentId& Passive)
+{
+	return Get().KitStatuses.Find(Passive);
+}
+
 VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 {
 	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.

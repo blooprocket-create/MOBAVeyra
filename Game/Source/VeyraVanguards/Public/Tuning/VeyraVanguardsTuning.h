@@ -563,13 +563,59 @@ struct FVeyraMarkProcTuning
 	TArray<FVeyraProcBoltTuning> ProcBolts;
 };
 
+/**
+ * Moro's Wild Dominion (Roster Bible §12; ADR-026 §5): while its owner stands on jungle terrain it holds
+ * the passive's statuses, given again at each check; damage it deals to wildlife restores a share of
+ * that damage as Health. No stacks and no jungle state. Its data is an entry in Vanguards.json's
+ * wildDominion map.
+ */
+USTRUCT()
+struct FVeyraWildDominionTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses, put on the owner at each check it stands in the jungle; each outlasts a check. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+
+	/** Seconds between checks; above 0. */
+	UPROPERTY()
+	double CheckSeconds = 0.0;
+
+	/** Of the Health its damage takes from wildlife, the share it restores to the owner; from 0 to 1. */
+	UPROPERTY()
+	double WildlifeHealFraction = 0.0;
+};
+
+/**
+ * A passive made wholly of the statuses its kit applies and the reactions to them (ADR-026 §1–§2), as
+ * Korruk's Embedded: Splinters build to Fractured, which his abilities detonate. It names those
+ * statuses, which must exist, for its description and checks, and runs nothing of its own. Its data
+ * is an entry in Vanguards.json's kitStatuses map.
+ */
+USTRUCT()
+struct FVeyraKitStatusesTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From Abilities.json's statuses; at least one. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
 USTRUCT()
 struct FVeyraVanguardsTuning
 {
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 11;
+	static constexpr int32 SchemaVersion = 12;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -603,6 +649,12 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraMomentumTuning> Momentum;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraWildDominionTuning> WildDominion;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraKitStatusesTuning> KitStatuses;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

@@ -72,6 +72,27 @@ namespace VeyraCombatTests
 			UVeyraCombatTuningSubsystem::SetTestOverride(nullptr);
 		}
 
+		TEST_METHOD(ARootStopsMovementAndMovingCastsButNotAttacksOrCasts)
+		{
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, TestStatus(TEXT("root"), EVeyraStatusKind::Root, 0.0, LongSeconds))));
+			const EVeyraActionBlocks Blocks = VeyraCombat::GetActionBlocks(*Unit);
+			ASSERT_THAT(IsTrue(EnumHasAllFlags(Blocks, EVeyraActionBlocks::Move | EVeyraActionBlocks::Dash), TEXT("no walking and no dashing (ADR-026 §3)")));
+			ASSERT_THAT(IsFalse(EnumHasAnyFlags(Blocks, EVeyraActionBlocks::Attack | EVeyraActionBlocks::Cast), TEXT("it may attack and cast in place")));
+			ASSERT_THAT(IsTrue(VeyraStatuses::IsCrowdControl(EVeyraStatusKind::Root) && VeyraStatuses::IsTenacityReducible(EVeyraStatusKind::Root)));
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("root"), EVeyraStatusKind::Root, Half, LongSeconds)).IsEmpty(), TEXT("a root has no magnitude")));
+		}
+
+		TEST_METHOD(AStatusLandsOnlyOnTheKindsOfUnitItNames)
+		{
+			// The unit is a Vanguard's participant.
+			FVeyraStatusSpec Splinter = TestStatus(TEXT("splinter"), EVeyraStatusKind::Counter, 0.0, LongSeconds);
+			Splinter.LandsOn = { EVeyraUnitKind::Fluxborn };
+			ASSERT_THAT(IsFalse(VeyraCombat::ApplyStatus(*Caster, *Unit, Splinter), TEXT("not on a Vanguard (ADR-026 §2)")));
+			ASSERT_THAT(IsTrue(Find(TEXT("splinter")) == nullptr));
+			Splinter.LandsOn = { EVeyraUnitKind::Vanguard };
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Splinter)));
+		}
+
 		const FVeyraStatusEntry* Find(const TCHAR* Id) const
 		{
 			const FVeyraContentId StatusId = FVeyraContentId::FromText(Id).GetValue();
@@ -188,7 +209,7 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick * Lasts / TickSeconds, 1e-3), TEXT("and no more")));
 		}
 
-		TEST_METHOD(ARefreshRestartsTheTicksAndRemovalStopsThem)
+		TEST_METHOD(ARefreshRenewsTheDurationAndRemovalStopsTheTicks)
 		{
 			constexpr double PerTick = 10.0;
 			constexpr double TickSeconds = 1.0;
@@ -197,13 +218,34 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
 			AdvanceTimers(TickSeconds + Margin);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3)));
-			// Reapplied from the same source: its duration and its ticks start again (§14).
+			// Reapplied from the same source: its duration starts again (§14), its next tick still a second after the last.
 			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
 			AdvanceTimers(TickSeconds / 2.0);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3), TEXT("no tick half a second into the new application")));
 			ASSERT_THAT(IsTrue(VeyraCombat::RemoveStatus(*Unit, FVeyraContentId::FromText(TEXT("burn")).GetValue())));
 			AdvanceTimers(Lasts + Margin);
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3), TEXT("removed early, it ticks no more")));
+		}
+
+		TEST_METHOD(ARefreshKeepsTheTickCadence)
+		{
+			constexpr double PerTick = 10.0;
+			constexpr double TickSeconds = 1.0;
+			constexpr double Lasts = 3.0;
+			constexpr double Early = 0.6;
+			constexpr double Margin = 0.1;
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
+			AdvanceTimers(Early);
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
+			AdvanceTimers(TickSeconds - Early + Margin);
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), PerTick, 1e-3), TEXT("the tick came when it would have (ADR-026 §7)")));
+			// Refreshed before every tick is due, it still ticks once a second.
+			for (int32 Refresh = 0; Refresh < 4; ++Refresh)
+			{
+				AdvanceTimers(Early);
+				ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Burn(PerTick, TickSeconds, Lasts))));
+			}
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(HealthLost(), 3.0 * PerTick, 1e-3), FString::SanitizeFloat(HealthLost())));
 		}
 
 		TEST_METHOD(ALethalTickKillsInItsSourcesName)

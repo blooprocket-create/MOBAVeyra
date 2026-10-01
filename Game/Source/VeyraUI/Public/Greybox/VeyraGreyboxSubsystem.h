@@ -29,6 +29,8 @@ enum class EVeyraTelegraphSource : uint8
 	DelayedArea,
 	/** A lingering area, until it ends (ADR-018 §5). */
 	LingeringArea,
+	/** A lingering area whose end is near and hits (ADR-026 §4). */
+	LingeringAreaEnding,
 };
 
 /** One telegraphed shape, as this machine draws it. */
