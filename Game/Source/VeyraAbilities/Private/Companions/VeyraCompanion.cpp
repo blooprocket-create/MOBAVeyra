@@ -56,6 +56,11 @@ AVeyraCompanion::AVeyraCompanion(const FObjectInitializer& ObjectInitializer)
 	AIControllerClass = AVeyraCompanionController::StaticClass();
 	bUseControllerRotationYaw = false;
 
+	// It follows in its owner's footsteps, so a solid body would stand in the way of every turn back:
+	// ghosted, it passes through units and never traps an ally (Combat Bible §24; ADR-034 §4). Terrain
+	// still stops it, and it is gathered and hit as any unit is.
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
+
 	UCharacterMovementComponent* Movement = GetCharacterMovement();
 	Movement->bOrientRotationToMovement = true;
 	// Crowd control that displaces it runs even between its controller's orders.
@@ -105,6 +110,11 @@ void AVeyraCompanion::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraCompanion, OwnerState, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraCompanion, bBanished, Params);
 	DOREPLIFETIME_WITH_PARAMS_FAST(AVeyraCompanion, bChained, Params);
+}
+
+APawn* AVeyraCompanion::BodyOf(const UAbilitySystemComponent& Owner)
+{
+	return Cast<APawn>(Owner.GetAvatarActor());
 }
 
 void AVeyraCompanion::Configure(const FVeyraContentId& InDefinition, UAbilitySystemComponent& InOwner)

@@ -77,7 +77,7 @@ Killing an owned unit is no kill of its owner and no takedown (§32). Its death 
 It inherits nothing else. Items, critical strikes, on-hit effects, lifesteal and its owner's buffs stay its owner's (§32). A companion carries no items, so the line Combat keeps for what a unit carries holds its share of its owner's Magic Power.
 
 **`UVeyraCompanionSubsystem`** (a world subsystem) keeps each owner's companion:
-- `Summon(Owner, Id)` asks for one. The subsystem forms it beside its owner once the owner has a living body.
+- `Summon(Owner, Id)` asks for one. The subsystem forms it beside its owner once the owner has a living body: its avatar, once that is a pawn. A participant's abilities answer for its PlayerState until its Vanguard spawns, and a passive that summons at the start of a match runs then; a PlayerState is no body.
 - On a world-time timer, so a pause holds it, the subsystem:
   - banishes the companion when its owner dies;
   - reforms it beside its owner, at full Health, `reformSeconds` after it is killed, or as its owner revives, whichever is later;
@@ -100,6 +100,7 @@ It inherits nothing else. Items, critical strikes, on-hit effects, lifesteal and
   - The hold ends when its time runs out, when it is recalled, when its owner moves beyond `leashRange`, or when it is banished.
 - **Structures:** it leaves them be, whatever its mode.
 - **Crowd control:** while crowd control locks its movement it holds, as a Fluxborn does.
+- **Its body is ghosted** (Combat Bible §24): it passes through units, and they through it; terrain still stops it. Following in its owner's footsteps, a solid body would stand in the way of every turn back. It is gathered and hit as any unit is.
 
 **Others' view of it:**
 - **Towers and Fluxborn** rank a companion with the Fluxborn: before structures and Vanguards.
@@ -177,7 +178,8 @@ Marek joins the roster with Bound Together, Witchfire, Hunt, Cross the Chain and
 8. **Nix's last hits** pay Marek, and its damage counts in his statistics.
 9. **Bots ignore companions** for now; Marek's bot plays his kit.
 10. **Hell on a Leash** leaves out the second Cross the Chain charge, one of the bible's optional benefits.
-11. **The values** in Abilities.json and Vanguards.json are Provisional playtest settings.
+11. **Nix is ghosted:** it neither body-blocks nor is body-blocked, so it never traps Marek or his allies.
+12. **The values** in Abilities.json and Vanguards.json are Provisional playtest settings.
 
 ## Consequences
 

@@ -61,6 +61,12 @@ public:
 	virtual EVeyraUnitKind GetVeyraUnitKind() const override { return EVeyraUnitKind::Companion; }
 	virtual UAbilitySystemComponent* GetOwnerAbilities() const override { return OwnerAbilities.Get(); }
 
+	/**
+	 * The body a companion of Owner stands beside and follows: Owner's avatar once it is a pawn. A
+	 * participant's abilities answer for its PlayerState until its Vanguard spawns; that has no body.
+	 */
+	static APawn* BodyOf(const UAbilitySystemComponent& Owner);
+
 	/** Server, before FinishSpawning: its definition and its owner, a participant's Ability System Component, whose side it takes. */
 	void Configure(const FVeyraContentId& InDefinition, UAbilitySystemComponent& InOwner);
 

@@ -100,8 +100,9 @@ void UVeyraCompanionSubsystem::Keep(const UAbilitySystemComponent& Owner)
 	{
 		return;
 	}
-	const AActor* OwnerBody = Keeper->GetAvatarActor();
-	const bool bOwnerAlive = VeyraTargeting::IsAlive(OwnerBody);
+	// It stands beside a body: before its owner has one, nothing forms, and without one it is banished.
+	const APawn* OwnerBody = AVeyraCompanion::BodyOf(*Keeper);
+	const bool bOwnerAlive = OwnerBody && VeyraTargeting::IsAlive(OwnerBody);
 	AVeyraCompanion* Companion = Entry->Companion.Get();
 	if (!Companion)
 	{

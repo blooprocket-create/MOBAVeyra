@@ -7,6 +7,7 @@
 #include "Companions/VeyraCompanionController.h"
 #include "Companions/VeyraCompanionRules.h"
 #include "Companions/VeyraCompanionSubsystem.h"
+#include "Components/CapsuleComponent.h"
 #include "CQTest.h"
 #include "Stats/VeyraEquipmentStats.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
@@ -95,7 +96,28 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(VeyraCombat::ResponsibleFor(Companion.GetAbilitySystemComponent()) == &OwnerAbilities()));
 			ASSERT_THAT(IsTrue(VeyraTargeting::EdgeToEdgeDistance(Companion, *Owner) <= CompanionFixture::Follow, TEXT("beside its owner")));
 			ASSERT_THAT(IsTrue(Companion.IsAlive() && !Companion.IsBanished()));
+			ASSERT_THAT(IsTrue(Companion.GetCapsuleComponent()->GetCollisionResponseToChannel(ECC_Pawn) == ECR_Ignore, TEXT("ghosted: it never traps its owner")));
 			ASSERT_THAT(IsFalse(Keeper().Summon(OwnerAbilities(), ArchetypeTestId(TEXT("test_pet"))), TEXT("one at most")));
+		}
+
+		TEST_METHOD(ItWaitsForItsOwnersBodyBeforeItForms)
+		{
+			// A participant's abilities answer for its PlayerState until its Vanguard spawns, as a passive
+			// that summons at the start of a match finds them.
+			AVeyraPlayerState& Participant = Spawner.SpawnActor<AVeyraPlayerState>();
+			Participant.SetVeyraTeam(EVeyraTeam::A);
+			UAbilitySystemComponent& Abilities = *Participant.GetAbilitySystemComponent();
+			VeyraCombat::InitializeStats(Abilities, VeyraCombatTests::ExampleStats());
+			ASSERT_THAT(IsTrue(Abilities.GetAvatarActor() == &Participant));
+			ASSERT_THAT(IsTrue(Keeper().Summon(Abilities, ArchetypeTestId(TEXT("test_pet")))));
+			ASSERT_THAT(IsNull(Keeper().Find(Abilities), TEXT("nothing forms beside a participant with no body")));
+
+			AVeyraVanguardCharacter& Body = Spawner.SpawnActorAt<AVeyraVanguardCharacter>(FVector(CompanionFixture::Far, 0.0, 0.0), FRotator::ZeroRotator);
+			Body.SetPlayerState(&Participant);
+			Keeper().Keep(Abilities);
+			const AVeyraCompanion* Companion = Keeper().Find(Abilities);
+			ASSERT_THAT(IsNotNull(Companion, TEXT("it forms once its owner has a body")));
+			ASSERT_THAT(IsTrue(VeyraTargeting::EdgeToEdgeDistance(*Companion, Body) <= CompanionFixture::Follow, TEXT("beside that body")));
 		}
 
 		TEST_METHOD(ItGrowsWithItsOwnerAndHoldsItsShareOfItsOwnersMagicPower)
