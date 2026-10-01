@@ -25,6 +25,7 @@
 #include "Tethers/VeyraTetherSubsystem.h"
 #include "Tuning/VeyraVisionTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
+#include "VeyraCombatVerbs.h"
 #include "VeyraVisionLog.h"
 #include "Wards/VeyraWard.h"
 
@@ -74,6 +75,13 @@ namespace
 	{
 		constexpr uint64 AreaKeys = 1ull << 32;
 		return AreaKeys | static_cast<uint32>(AreaId);
+	}
+
+	/** A Sounded unit is its own sensor, for the side that sounded it (ADR-036 §2). */
+	uint64 SoundedSensorKey(const AActor& Marked)
+	{
+		constexpr uint64 SoundedKeys = 2ull << 32;
+		return SoundedKeys | Marked.GetUniqueID();
 	}
 
 	/**
@@ -354,6 +362,11 @@ void UVeyraVisionSubsystem::UpdateSensors(const TArray<const AActor*>& Gated, do
 				{
 					Ping(AreaSensorKey(Area.Id), *Enemy);
 				}
+			}
+			// Sounded by this side (ADR-036 §2): its fog tells this side it is in there, never where.
+			if (VeyraCombat::HasStatusKindFromSide(Enemy, EVeyraStatusKind::Sounded, Side))
+			{
+				Ping(SoundedSensorKey(*Enemy), *Enemy);
 			}
 			// Sweeper's outline (§5): where it stands while True Sight covers it, then where it was last
 			// covered until the outline fades. No tracking after that.

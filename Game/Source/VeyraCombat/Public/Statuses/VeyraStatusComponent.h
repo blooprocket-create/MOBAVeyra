@@ -7,6 +7,7 @@
 #include "Containers/Map.h"
 #include "Engine/TimerHandle.h"
 #include "Statuses/VeyraStatusTypes.h"
+#include "Teams/VeyraTeam.h"
 #include "UObject/WeakObjectPtr.h"
 
 #include "VeyraStatusComponent.generated.h"
@@ -74,6 +75,9 @@ public:
 
 	/** Server: whether the unit has status Id from Source, as a mark only its applier reads (ADR-018 §2). */
 	bool HasFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
+
+	/** Server: whether the unit has a status of Kind from a source on Side, as Sounded is read (ADR-036 §2). */
+	bool HasFromSide(EVeyraStatusKind Kind, EVeyraTeam Side) const;
 
 	/** Server: the stacks of status Id the unit has from Source; 0 for none. */
 	int32 GetStacksFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
