@@ -239,6 +239,22 @@ TOptional<FVeyraPreparedLinger> PrepareLinger(UAbilitySystemComponent& Caster, c
 	return Linger;
 }
 
+void LayAt(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraContentId& AreaId, const FVeyraEffectFrame& Placement, int32 Rank, int32 Level,
+	int32 CastId)
+{
+	const FVeyraAreaAbilityTuning* Area = UVeyraAbilitiesTuningSubsystem::FindArea(AreaId);
+	if (!Area)
+	{
+		return;
+	}
+	const TArray<FVeyraPreparedZone> Zones = PrepareZones(Caster, Area->Zones, Rank);
+	Resolve(World, Caster, Placement, Zones, FVeyraAbilityHitSource{ AreaId, CastId });
+	if (const TOptional<FVeyraPreparedLinger> Linger = PrepareLinger(Caster, *Area, Rank, Level, AreaId, CastId))
+	{
+		ArmLinger(World, Caster, Placement, Linger.GetValue());
+	}
+}
+
 void ArmLinger(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Placement, const FVeyraPreparedLinger& Linger)
 {
 	if (AVeyraLingeringArea* Lingering = World.SpawnActor<AVeyraLingeringArea>(AVeyraLingeringArea::StaticClass(), FTransform(Placement.Origin)))

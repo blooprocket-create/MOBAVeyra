@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 18,
+  "schemaVersion": 19,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -1373,5 +1373,6 @@
       "boostStatus": "marek_leashed",
       "boostMultiplier": 1.5
     }
-  }
+  },
+  "mistTrail": {}
 }

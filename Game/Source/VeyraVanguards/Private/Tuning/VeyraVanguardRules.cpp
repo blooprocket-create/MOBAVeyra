@@ -345,6 +345,30 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 		}
 	}
 
+	for (const TPair<FVeyraContentId, FVeyraMistTrailTuning>& Entry : Tuning.MistTrail)
+	{
+		RegisterPassive(Entry.Key, TEXT("mistTrail"));
+		const FString Pointer = TEXT("/mistTrail/") + Entry.Key.ToString();
+		const FVeyraMistTrailTuning& Trail = Entry.Value;
+		// Its area lingers, giving allies the mark a follower carries into the fog (ADR-036 §5).
+		const FVeyraAreaAbilityTuning* Area = Abilities.Area.Find(Trail.Area);
+		if (!Area || Area->Linger.IsEmpty() || !Area->Linger[0].AllyStatuses.Contains(Trail.FollowStatus))
+		{
+			Problem(Pointer + TEXT("/area"), TEXT("names an area Abilities.json defines that lingers, giving allies followStatus"));
+		}
+		if (!Abilities.Statuses.Contains(Trail.FollowStatus))
+		{
+			Problem(Pointer + TEXT("/followStatus"), FString::Printf(TEXT("names status \"%s\", which Abilities.json does not define"), *Trail.FollowStatus.ToString()));
+		}
+		const FVeyraMistShieldTuning& Shield = Trail.FollowShield;
+		if (!(Trail.Spacing > 0.0) || Trail.ApproachLength < 0.0 || !(Trail.LaySeconds > 0.0) || !(Trail.LookSeconds > 0.0) || Shield.Amount < 0.0
+			|| Shield.AmountPerLevel < 0.0 || Shield.MagicPowerRatio < 0.0 || !(Shield.Amount + Shield.AmountPerLevel + Shield.MagicPowerRatio > 0.0)
+			|| !(Shield.DurationSeconds > 0.0))
+		{
+			Problem(Pointer, TEXT("spacing, laySeconds and lookSeconds are above 0, approachLength at least 0, and followShield gives something for above 0 seconds"));
+		}
+	}
+
 	for (const TPair<FVeyraContentId, FVeyraUnreturnedTuning>& Entry : Tuning.Unreturned)
 	{
 		RegisterPassive(Entry.Key, TEXT("unreturned"));
