@@ -6,13 +6,15 @@
 
 #include "VeyraBlinkAbility.generated.h"
 
+class AVeyraCompanion;
 class AVeyraPlacedMarker;
 struct FVeyraBlinkAbilityTuning;
 
 /**
  * The blink archetype (ADR-031 §5), as Angeru's Black Step and False Body's swap: it moves its caster at
- * once, beside an enemy unit it then strikes, or to its caster's own standing marker, which may take
- * the caster's old place. Each ability of this kind is an entry in Abilities.json's blink map. It moves
+ * once, beside an enemy unit it then strikes, or to its caster's own standing marker or companion, which
+ * may take the caster's old place, as Marek's Cross the Chain (ADR-034 §5); where each departed may erupt.
+ * Each ability of this kind is an entry in Abilities.json's blink map. It moves
  * its caster, so Root and Grounded refuse it; during its caster's dash it takes over.
  */
 UCLASS()
@@ -35,4 +37,7 @@ protected:
 private:
 	/** Caster's standing marker that Blink may go to, if it names one. */
 	static AVeyraPlacedMarker* OwnMarkerOf(const UAbilitySystemComponent& Caster, const FVeyraBlinkAbilityTuning& Blink);
+
+	/** Caster's companion while it is on the battleground (ADR-034 §5), or null. */
+	static AVeyraCompanion* CompanionOf(const UAbilitySystemComponent& Caster);
 };

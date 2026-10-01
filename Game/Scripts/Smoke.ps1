@@ -1112,11 +1112,16 @@ if ($crash) {
 }
 # Each client's casts, as the server resolved them (VeyraAbilities logs them at Verbose).
 if ($kitMode) {
+    # A stance in the kit may hold a slot by the time the script casts it, as Neris's Sea State holds her R
+    # (ADR-035 §1): its ability for that slot counts as the slot's cast.
+    $stances = (Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Abilities.json') -Raw | ConvertFrom-Json).stance
     foreach ($vanguard in $Vanguards) {
+        $kit = @($SlotKeys | ForEach-Object { @($vanguardDefinitions.$vanguard.abilities.$_) } | Where-Object { $_ })
         foreach ($slot in $SlotKeys) {
             $ability = @($vanguardDefinitions.$vanguard.abilities.$slot)[0]
-            if (-not (Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $ability at " -Quiet)) {
-                Write-Host "The server log shows no cast of $ability ($vanguard's $($slot.ToUpper()))."
+            $accepted = @(@($ability) + @($kit | Where-Object { $stances.$_ } | ForEach-Object { @($stances.$_.slots | Where-Object slot -eq $slot.ToUpper()).ability }) | Where-Object { $_ })
+            if (-not @($accepted | Where-Object { Select-String -LiteralPath $serverLogPath -SimpleMatch " cast $_ at " -Quiet })) {
+                Write-Host "The server log shows no cast of $($accepted -join ' or ') ($vanguard's $($slot.ToUpper()))."
                 $failed = $true
             }
         }

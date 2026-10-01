@@ -142,6 +142,40 @@ M25a added ([ADR-032](Docs/ADR/ADR-032-movement-punishment-shield-holds-and-wall
 - walls: runtime terrain is the battleground's (`Terrain/UVeyraTerrainSubsystem` and `AVeyraTerrainWall` in World), reached through Combat's `IVeyraRuntimeTerrain` contract and registry; a wall blocks units, forced moves and line projectiles, cuts the navigation mesh and moves out the units it would trap; a placed marker holds one as its ownership and lifetime link, a skillshot leaves one where its flight ends (`endWall`), and the grey-box draws the terrain as a block;
 - follow-ups that arm after their cast and end with their opening ability's marker, both in `Loadout/VeyraFollowUpSubsystem` (the placement archetype's own watch moved there), and areas at the caster's marker (`CastersMarker`).
 
+M25b added ([ADR-033](Docs/ADR/ADR-033-charge-attack-spent-statuses-movement-fields-and-grids.md)), for Relay:
+- Charge, a kept resource (`VeyraCombat::KeepResource`: it starts empty, and initialization, revival and the fountain leave it be), and the charger passive (`UVeyraChargerPassive`) fed by nearby Fluxborn deaths;
+- casts that cost a share of the current resource and need a least of it, priced by `UVeyraGameplayAbility::CostFor` with the ResourceCostReduction status kind; statuses spent by attacks (`attackCharges`), which the basic attack component reports to Combat;
+- Combat's movement fields (`Movement/UVeyraMovementFieldSubsystem`), which bend enemy dashes and displacements toward their centre, held by lingering areas that name one;
+- auras on allied Fluxborn, the AttackShortensCooldown status kind (`VeyraAbilities::ShortenSoonestCooldown`), and self-buffs that drain their caster's resource and end as it runs out.
+
+M26a added ([ADR-034](Docs/ADR/ADR-034-companions-for-marek-and-nix.md)), ADR-003's combat entity:
+- in Combat, owned units (`Entities/IVeyraOwnedUnit`, which the placed marker implements) and `VeyraCombat::ResponsibleFor`: an owned unit's hostile actions, contributions and kills are its owner's (the death event's `Killer`, with the striking unit as `LethalUnit`, and hostile damage's `Responsible`), while dealt damage keeps the unit that hit, so item effects never fire from it; `VeyraCombat::Withdraw`, a death at nobody's hand with nothing announced; and the MaxHealth status kind;
+- the Companion unit kind, ranked with Fluxborn by Fluxborn, drawn as a unit on the minimap and seen through Vision's `sight.companion`;
+- in Abilities, `Companions/`: `AVeyraCompanion` (a character with its own Health and basic attack, on its owner's side, inheriting only `ownerMagicPowerShare`), its server controller (follow its owner and fight what the owner fought lately, or hold a point and fight what comes near), the pure `VeyraCompanionRules`, and `UVeyraCompanionSubsystem`, which forms a companion beside its owner, banishes it with its owner or when it is killed, reforms it, and keeps it grown to its owner's Level; Abilities.json's `companions` map.
+
+M26b added ([ADR-034](Docs/ADR/ADR-034-companions-for-marek-and-nix.md)), for Marek:
+- the command archetype (`Abilities/UVeyraCommandAbility`: a companion leaps to hold a point, its landing its own hit; a recall follow-up), blinks to the caster's own companion with departure zones for each, reaction bursts, self-buffs' companion statuses, chains and an end with the companion, and casts' `needsCompanion` and `cooldownWhile`;
+- the Accord passive (`UVeyraAccordPassive`), which summons Marek's companion, marks what it bites and strikes an enemy both of them hurt.
+
+M27a added ([ADR-035](Docs/ADR/ADR-035-sea-states-crashing-rides-and-summoned-companions.md)), for Neris:
+- casts' `cooldownOf`, which holds a cooldown under another ability's ID (read through `UVeyraAbilityLoadoutComponent::CooldownIdOf`), and `refusedWhile`, which refuses a cast as `HeldBack` while its caster holds a status;
+- rides' crash zones, which erupt where the rider is on every end but death, and the dismount archetype (`Abilities/UVeyraDismountAbility`), a mounted action that ends its ride;
+- zones' ally effects: the caster's heal and statuses for the allied Vanguards in a zone, each once (`VeyraAreaDelivery::Resolve`).
+
+M27b added ([ADR-035](Docs/ADR/ADR-035-sea-states-crashing-rides-and-summoned-companions.md)), for Neris:
+- summoned companions: the command orders Summon and Redirect, `UVeyraCompanionSubsystem::SummonFor` and `Redirect` (a companion for a while, bound to an ally it escorts or an enemy it hunts, gone for good when its time runs out or it is killed), the Escort and Hunt modes, and companions' escort pulse and attack statuses;
+- rides' contact (the rider's body strikes each enemy and helps each ally it meets once a ride) and trail (an area ability laid along its path), with `VeyraAreaDelivery::PrepareAllyEffects`, `Reaches` and `HelpAlly` shared with zones;
+- stances that may hold R, never the slot they sit in;
+- Neris, The Tidebound, and her Waterling: Calm and Storm variants of Breaking Wave, Little Current and Tidebreaker that share cooldowns, and Change the Weather.
+
+M28a added ([ADR-036](Docs/ADR/ADR-036-runtime-dense-fog-sounded-waymarks-and-the-mist-trail.md)), for Sylra:
+- in Combat, the visibility contract's `AddDenseFog` (a circle or a corridor, for a while) and `FogVolumeAt`, and the Sounded status kind, read through `VeyraCombat::HasStatusKindFromSide`;
+- in Vision, Dense Fog that abilities lay: each cast's `Fog/AVeyraDenseFogBank`, replicated to every player and joined to the map's fog into volumes while it lasts, and presence pings for a Sounded enemy in fog to the side that sounded it;
+- in Abilities, areas' `fog` and lingering areas' `shieldTopUp` (a merging shield built on the caster and allies who stay, held back a while after damage), and `VeyraAreaDelivery::LayAt`, which the ride trail and the Mist Trail share;
+- in Vanguards, the Mist Trail passive (`UVeyraMistTrailPassive`).
+
+M28b added Sylra, The Mistwarden: Harbor Bell, Lay the Mist, Waymark, Through the White and Follow the Bell, all data.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

@@ -12,6 +12,17 @@
 class AActor;
 class UAbilitySystemComponent;
 
+/** A reaction's burst prepared at Commit, its damage from the caster's offence then (ADR-034 §6). */
+struct FVeyraPreparedBurst
+{
+	FVeyraShape Shape;
+
+	/** Invalid when the burst deals no damage. */
+	FVeyraPreparedDamage Damage;
+
+	TArray<FVeyraStatusSpec> Statuses;
+};
+
 /** A reaction prepared at Commit: its damage worked out from the caster's power then (ADR-026 §1). */
 struct FVeyraPreparedReaction
 {
@@ -21,6 +32,9 @@ struct FVeyraPreparedReaction
 	FVeyraDamageComponents Damage;
 	TArray<FVeyraStatusSpec> Statuses;
 	TArray<FVeyraContentId> Replaces;
+
+	/** Around the target as it reacts, sparing it; at most one. */
+	TArray<FVeyraPreparedBurst> Burst;
 };
 
 /** What an ability does to each unit it hits, prepared at Commit (Combat Bible §50). */

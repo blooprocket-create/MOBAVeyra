@@ -156,6 +156,12 @@ protected:
 	 */
 	void EndRecastWindow(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
 
+	/**
+	 * What Ability costs Caster at Rank now (Combat Bible §27; ADR-033 §3): its cost by rank, plus its share
+	 * of the caster's current resource, times the share its cost reductions leave.
+	 */
+	double CostFor(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, int32 Rank) const;
+
 	/** Ability's rank for Caster: its slot's rank in Progression, 0 when not learned. */
 	int32 GetRank(const UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
 

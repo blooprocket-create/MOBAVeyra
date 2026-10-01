@@ -656,7 +656,7 @@ namespace
 		if (Player.Vitals.MaxResource > 0.0)
 		{
 			DrawBar(Paint, BarsAt + FVector2D(0.0f, HealthHeight + Paint.S(3.0f)), FVector2D(BarsWidth, ResourceHeight), Player.Vitals.Resource / Player.Vitals.MaxResource,
-				Player.Vitals.bFocus ? Settings.FocusColor : Settings.ResourceColor, FString());
+				Settings.ResourceColorOf(Player.Vitals.Family), FString());
 		}
 
 		// The Flux Spells and the vision tool.

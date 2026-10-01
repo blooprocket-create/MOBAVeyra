@@ -8,9 +8,10 @@ class UAbilitySystemComponent;
 namespace VeyraCombatRecords
 {
 	/**
-	 * Source damaged Target, or put a status on it. If Source is a Vanguard and Target an enemy, Target
-	 * credits Source toward its death, whatever Target is; if both are Vanguards, both also enter
-	 * Combat State. Anything else records nothing. Server only.
+	 * Dealer damaged Target, or put a status on it; the unit it answers to acts (ADR-034 §1), so an owned
+	 * unit's action is its owner's. If that is a Vanguard and Target an enemy, Target credits it toward its
+	 * death, whatever Target is; if both are Vanguards, both also enter Combat State. Anything else records
+	 * nothing. Server only.
 	 */
-	void NoteHostileAction(UAbilitySystemComponent* Source, UAbilitySystemComponent& Target);
+	void NoteHostileAction(UAbilitySystemComponent* Dealer, UAbilitySystemComponent& Target);
 }

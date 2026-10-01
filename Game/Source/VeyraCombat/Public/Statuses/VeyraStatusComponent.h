@@ -7,6 +7,7 @@
 #include "Containers/Map.h"
 #include "Engine/TimerHandle.h"
 #include "Statuses/VeyraStatusTypes.h"
+#include "Teams/VeyraTeam.h"
 #include "UObject/WeakObjectPtr.h"
 
 #include "VeyraStatusComponent.generated.h"
@@ -46,6 +47,9 @@ public:
 	/** Server only: ends status Id early, from every source. Returns whether the unit had it. */
 	bool Remove(const FVeyraContentId& Id);
 
+	/** Server only: ends status Id early where Source gave it, and leaves others' be. Returns whether the unit had it from Source. */
+	bool RemoveFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source);
+
 	/**
 	 * Server only: the unit took part in a takedown (Combat Bible §18). Each status that takedowns
 	 * extend gains its extension, up to its maximum in all (ADR-009 §1).
@@ -71,6 +75,9 @@ public:
 
 	/** Server: whether the unit has status Id from Source, as a mark only its applier reads (ADR-018 §2). */
 	bool HasFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
+
+	/** Server: whether the unit has a status of Kind from a source on Side, as Sounded is read (ADR-036 §2). */
+	bool HasFromSide(EVeyraStatusKind Kind, EVeyraTeam Side) const;
 
 	/** Server: the stacks of status Id the unit has from Source; 0 for none. */
 	int32 GetStacksFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
@@ -98,6 +105,9 @@ public:
 	 * Bible §9, §26). The unit's interruptions are announced here, beside its crowd control.
 	 */
 	void NotifyInterrupted();
+
+	/** Server: its holder's basic attack committed; each status attacks spend loses one, and ends with its last (ADR-033 §4). */
+	void NoteAttackCommitted();
 
 	/** Server only: raised by NotifyInterrupted and whenever a Stun lands. */
 	TMulticastDelegate<void()> OnInterrupted;
@@ -132,6 +142,8 @@ private:
 	void OnRep_Ledger();
 
 	void OnEffectRemoved(const FActiveGameplayEffect& Effect);
+	/** Ends status Id early: from Source only, or from every source when it is null. */
+	bool RemoveWhere(const FVeyraContentId& Id, const UAbilitySystemComponent* Source);
 	FActiveGameplayEffectHandle ApplyEffect(UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, EVeyraStatusKind Kind,
 		double Magnitude, int32 Stacks, double DurationSeconds) const;
 	int32 FindActive(const FVeyraStatusSpec& Spec, const UAbilitySystemComponent& Source) const;
