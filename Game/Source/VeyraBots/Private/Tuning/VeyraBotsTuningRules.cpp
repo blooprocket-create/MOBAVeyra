@@ -59,12 +59,20 @@ TArray<FString> Validate(const FVeyraBotsTuning& Tuning)
 			}
 		}
 		// Each ability it names is one a bot knows how to aim: one that no archetype defines would
-		// never be cast.
+		// never be cast. One cast at a foe, to damage, engage, escape or secure, must reach one: an
+		// ability that reaches only allies is cast to defend.
+		const FVeyraVanguardDefinition* Definition = UVeyraVanguardsTuningSubsystem::FindVanguard(Pair.Key);
 		for (const TPair<FVeyraContentId, EVeyraBotAbilityUse>& Use : Vanguard.Abilities)
 		{
-			if (!VeyraBotAbilities::ProfileOf(Use.Key, 0.0).IsSet())
+			const TOptional<FVeyraBotAbilityProfile> Profile = VeyraBotAbilities::ProfileOf(Use.Key, Definition ? Definition->BasicAttack.Range : 0.0);
+			if (!Profile.IsSet())
 			{
 				Problems.Add(FString::Printf(TEXT("%s/abilities: %s is not an ability a bot can aim"), *Pointer, *Use.Key.ToString()));
+			}
+			else if (Definition && Use.Value != EVeyraBotAbilityUse::Defend && Use.Value != EVeyraBotAbilityUse::Empower && Use.Value != EVeyraBotAbilityUse::Never
+				&& !(Profile->Reach > 0.0))
+			{
+				Problems.Add(FString::Printf(TEXT("%s/abilities: %s reaches no enemy, so it would never be cast at one"), *Pointer, *Use.Key.ToString()));
 			}
 		}
 		for (const EVeyraBotSkill Skill : { EVeyraBotSkill::Q, EVeyraBotSkill::W, EVeyraBotSkill::E })

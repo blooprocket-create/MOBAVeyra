@@ -104,7 +104,7 @@ namespace VeyraVanguardsTests
 		{
 			FVeyraRawDamageEvent Damage;
 			Damage.Components.Add({ EVeyraDamageType::TrueDamage, EudoraFixture::Shot });
-			Damage.bProjectile = true;
+			Damage.ProjectileFrom = Source.GetActorLocation();
 			return VeyraCombat::DealDamage(*UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Source),
 				*UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(&Target), Damage);
 		}
