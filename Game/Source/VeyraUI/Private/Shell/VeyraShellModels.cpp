@@ -22,6 +22,8 @@ namespace
 	constexpr int32 SecondsPerMinute = 60;
 	/** The kind of champion select matchmaking opens, which a player may leave. */
 	const TCHAR* const MatchmadeSelectKind = TEXT("casual");
+	/** A matchmade Draft Pick select (ADR-041). */
+	const TCHAR* const DraftSelectKind = TEXT("draft");
 	/** A custom lobby's champion select, which a player may leave too, back to the lobby. */
 	const TCHAR* const CustomSelectKind = TEXT("custom");
 	/** A player's answer to a match found, once given. */
@@ -410,37 +412,87 @@ namespace
 	}
 }
 
+namespace
+{
+	/**
+	 * What happens now, as the banner under the timer says it: whose turn it is in a draft (ADR-041 §1),
+	 * the final window, or the single phase's picking.
+	 */
+	FText DescribeSelectPhase(const VeyraBackendProtocol::FSelect& Select, const FSelectSeat* You)
+	{
+		const bool bLocked = You && !You->Locked.IsEmpty();
+		if (Select.State == ESelectState::Starting)
+		{
+			return LOCTEXT("SelectStarting", "Everyone is locked in. The match is being created.");
+		}
+		if (Select.Phase == VeyraBackendProtocol::ESelectPhase::Final)
+		{
+			return LOCTEXT("SelectFinal", "Everyone is locked in. Locked teammates may trade until the match starts.");
+		}
+		if (Select.Turn.IsSet() && You)
+		{
+			const bool bYourSide = Select.Turn->Side == You->Side;
+			if (Select.Turn->bBan)
+			{
+				return You->bActing ? LOCTEXT("SelectYourBan", "Your turn to ban.")
+									: (bYourSide ? LOCTEXT("SelectTeamBans", "Your team is banning.") : LOCTEXT("SelectEnemyBans", "The enemy team is banning."));
+			}
+			if (You->bActing)
+			{
+				return LOCTEXT("SelectYourPick", "Your turn to pick: lock in your Vanguard.");
+			}
+			if (!bLocked)
+			{
+				return bYourSide ? LOCTEXT("SelectTeamPicks", "Your team is picking. Hover your Vanguard to show them.")
+								 : LOCTEXT("SelectEnemyPicks", "The enemy team is picking. Hover your Vanguard to show your team.");
+			}
+		}
+		if (bLocked)
+		{
+			return LOCTEXT("SelectLockedIn", "Locked in. Waiting for the others.");
+		}
+		return LOCTEXT("SelectPicking", "Choose your Vanguard and lock it in.");
+	}
+}
+
 FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock, bool bCanLeave,
-	bool bCanChooseSpells)
+	bool bCanChooseSpells, const FVeyraSelectDraftPermissions& Draft)
 {
 	const VeyraBackendProtocol::FSelect& Select = Snapshot.Select;
 	FVeyraSelectModel Model;
 	Model.Title = FText::Format(LOCTEXT("SelectTitle", "{0}: Champion Select"), ModeNameOf(Select.Mode));
 	Model.Countdown = FormatCountdown(RemainingSeconds);
 	const FSelectSeat* You = Select.FindYou();
-	if (Select.State == ESelectState::Starting)
+	Model.Phase = DescribeSelectPhase(Select, You);
+	Model.bDraft = Select.Kind == DraftSelectKind;
+	Model.bBanning = Select.YouBan();
+	for (const VeyraBackendProtocol::FSelectBan& Ban : Select.Bans)
 	{
-		Model.Phase = LOCTEXT("SelectStarting", "Everyone is locked in. The match is being created.");
-	}
-	else if (You && !You->Locked.IsEmpty())
-	{
-		Model.Phase = LOCTEXT("SelectLockedIn", "Locked in. Waiting for the others.");
-	}
-	else
-	{
-		Model.Phase = LOCTEXT("SelectPicking", "Choose your Vanguard and lock it in.");
+		Model.Bans.Add(FVeyraSelectBanModel{ Ban.VanguardId, VanguardNameOf(Ban.VanguardId), !You || Ban.Side == You->Side });
 	}
 
-	for (const FSelectSeat& Seat : Select.Seats)
+	for (int32 Index = 0; Index < Select.Seats.Num(); ++Index)
 	{
+		const FSelectSeat& Seat = Select.Seats[Index];
 		FVeyraSelectSeatModel SeatModel;
 		SeatModel.bYou = Seat.bYou;
+		SeatModel.SeatIndex = Index;
 		// The backend never shows the enemy team's hovers, only its locks.
 		SeatModel.bAlly = !You || Seat.Side == You->Side;
 		Model.bTeams |= !SeatModel.bAlly;
 		SeatModel.Name = Seat.bYou ? FText::Format(LOCTEXT("SeatYou", "{0} (you)"), FText::FromString(Seat.DisplayName)) : FText::FromString(Seat.DisplayName);
 		SeatModel.Status = !Seat.Locked.IsEmpty() ? EVeyraSeatStatus::LockedIn : (!Seat.Hover.IsEmpty() ? EVeyraSeatStatus::NotLockedIn : EVeyraSeatStatus::Waiting);
 		SeatModel.StatusText = SeatStatusText(SeatModel.Status);
+		SeatModel.bActing = Seat.bActing;
+		if (!Seat.BanHover.IsEmpty())
+		{
+			SeatModel.BanHover = FText::Format(LOCTEXT("SeatBanHover", "Banning {0}"), VanguardNameOf(Seat.BanHover));
+		}
+		// Trades are between locked teammates, offered by seat (ADR-041 §2).
+		SeatModel.bOfferedByYou = Seat.bOfferedByYou;
+		SeatModel.bOffersYou = Seat.bOffersYou;
+		SeatModel.bCanOfferTrade = Draft.bCanOfferTrade && !Seat.bYou && SeatModel.bAlly && !Seat.Locked.IsEmpty() && !Seat.bOfferedByYou;
+		SeatModel.bCanAnswerTrade = Draft.bCanAnswerTrade && Seat.bOffersYou;
 		const FString& Shown = !Seat.Locked.IsEmpty() ? Seat.Locked : Seat.Hover;
 		SeatModel.Vanguard = Shown.IsEmpty() ? FText::GetEmpty() : VanguardNameOf(Shown);
 		SeatModel.VanguardId = Shown;
@@ -466,7 +518,7 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 
 	const FString Chosen = You ? (!You->Locked.IsEmpty() ? You->Locked : You->Hover) : FString();
 	// A matchmade select's Vanguards are unique across both teams; a custom select's on each side, bots too,
-	// so both sides may play the same one (ADR-021 §8).
+	// so both sides may play the same one (ADR-021 §8). A draft's bans take theirs from both teams.
 	const bool bPerSide = Select.Kind == CustomSelectKind;
 	const auto IsTaken = [&Select, You, bPerSide](const FString& Id) {
 		const bool bBySeat = Select.Seats.ContainsByPredicate([&Id, You, bPerSide](const FSelectSeat& Seat) {
@@ -475,19 +527,36 @@ FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double Re
 		const bool bByBot = Select.Bots.ContainsByPredicate([&Id, You](const VeyraBackendProtocol::FSelectBot& Bot) {
 			return Bot.VanguardId == Id && You && Bot.Side == You->Side;
 		});
-		return bBySeat || bByBot;
+		return bBySeat || bByBot || Select.IsBanned(Id);
 	};
-	for (const FString& Id : Snapshot.AvailableVanguards)
+	if (Model.bBanning)
 	{
-		Model.Cards.Add(FVeyraSelectCardModel{ Id, VanguardNameOf(Id), Id == Chosen, IsTaken(Id) });
+		// The player's ban turn: any released Vanguard may be banned, owned or not, once (ADR-041 §1).
+		const FString BanHover = You ? You->BanHover : FString();
+		for (const FString& Id : Snapshot.ReleasedVanguards)
+		{
+			const bool bBanned = Select.IsBanned(Id);
+			Model.Cards.Add(FVeyraSelectCardModel{ Id, VanguardNameOf(Id), Id == BanHover, bBanned, bBanned });
+		}
+		Model.bCanChoose = Draft.bCanBan;
+		Model.BanVanguardId = BanHover;
+		Model.bCanBan = Draft.bCanBan && !BanHover.IsEmpty() && !Select.IsBanned(BanHover);
 	}
-	Model.bCanChoose = bCanHover;
+	else
+	{
+		for (const FString& Id : Snapshot.AvailableVanguards)
+		{
+			Model.Cards.Add(FVeyraSelectCardModel{ Id, VanguardNameOf(Id), Id == Chosen, IsTaken(Id), Select.IsBanned(Id) });
+		}
+		Model.bCanChoose = bCanHover;
+	}
 	if (You && You->Locked.IsEmpty() && !You->Hover.IsEmpty())
 	{
 		Model.LockInVanguardId = You->Hover;
 	}
 	Model.bCanLockIn = bCanLock && !Model.LockInVanguardId.IsEmpty() && !IsTaken(Model.LockInVanguardId);
-	Model.bOffersLeave = (Select.Kind == MatchmadeSelectKind || Select.Kind == CustomSelectKind) && Select.State == ESelectState::Picking;
+	Model.bOffersLeave = (Select.Kind == MatchmadeSelectKind || Select.Kind == DraftSelectKind || Select.Kind == CustomSelectKind)
+		&& Select.State == ESelectState::Picking;
 	Model.bCanLeave = bCanLeave;
 	if (You)
 	{

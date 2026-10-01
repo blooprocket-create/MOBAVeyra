@@ -519,6 +519,83 @@ namespace VeyraClientFlowTests
 			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::StartPractice)));
 		}
 
+		TEST_METHOD(ADraftBansAndPicksInTurn)
+		{
+			// The player's ban turn: they ban any released Vanguard, owned or not, and cannot lock a pick.
+			const TCHAR* const ABan = TEXT("{\"ban\":true,\"side\":\"A\",\"count\":1,\"done\":0}");
+			const TCHAR* const Idle = TEXT("\"hover\":null,\"locked\":null,\"acting\":false");
+			ASSERT_THAT(IsTrue(Rig.ReachDraftSelect(DraftSelectBody(TEXT("banning"), ABan, TEXT("[]"), TEXT("\"hover\":\"oriel\",\"locked\":null,\"acting\":true"), Idle))));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::LeaveSelect), TEXT("a draft may be left, as a dodge")));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::BanVanguard) && Flow->CanIssue(EVeyraClientIntent::HoverVanguard)));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::LockVanguard), TEXT("no pick in a ban turn")));
+			ASSERT_THAT(IsFalse(Flow->BanVanguard(TEXT("nobody")), TEXT("only a released Vanguard")));
+			ASSERT_THAT(IsTrue(Flow->HoverBan(TEXT("silt"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("PUT"), TEXT("/v1/me/select/ban/hover"), 200,
+				DraftSelectBody(TEXT("banning"), ABan, TEXT("[]"), TEXT("\"hover\":\"oriel\",\"locked\":null,\"banHover\":\"silt\",\"acting\":true"), Idle))));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Select.FindYou()->BanHover, FString(TEXT("silt"))));
+			ASSERT_THAT(IsTrue(Flow->BanVanguard(TEXT("silt"))));
+			const auto* Ban = Backend.Find(TEXT("POST"), TEXT("/v1/me/select/ban"));
+			ASSERT_THAT(IsTrue(Ban && Ban->Body.Contains(TEXT("\"vanguardId\":\"silt\""))));
+
+			// Side B's ban turn: nobody on side A bans, and a banned Vanguard cannot be banned again.
+			const TCHAR* const BBan = TEXT("{\"ban\":true,\"side\":\"B\",\"count\":1,\"done\":0}");
+			const TCHAR* const Silt = TEXT("[{\"side\":\"A\",\"vanguardId\":\"silt\"}]");
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/select/ban"), 200,
+				DraftSelectBody(TEXT("banning"), BBan, Silt, TEXT("\"hover\":\"oriel\",\"locked\":null,\"acting\":false"), Idle))));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::BanVanguard)));
+			ASSERT_THAT(IsTrue(Flow->GetSnapshot().Select.IsBanned(TEXT("silt"))));
+
+			// The team's pick turn names the player: they lock their hover; their teammate waits.
+			const TCHAR* const APick = TEXT("{\"ban\":false,\"side\":\"A\",\"count\":1,\"done\":0}");
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200,
+				DraftSelectBody(TEXT("picking"), APick, Silt, TEXT("\"hover\":\"oriel\",\"locked\":null,\"acting\":true"), Idle))));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::LockVanguard) && !Flow->CanIssue(EVeyraClientIntent::BanVanguard)));
+			ASSERT_THAT(IsTrue(Flow->LockVanguard(TEXT("oriel"))));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/select/lock"), 200,
+				DraftSelectBody(TEXT("picking"), TEXT("{\"ban\":false,\"side\":\"B\",\"count\":1,\"done\":0}"), Silt,
+					TEXT("\"hover\":\"oriel\",\"locked\":\"oriel\",\"acting\":false"), TEXT("\"hover\":null,\"locked\":null,\"acting\":false")))));
+			ASSERT_THAT(IsFalse(Flow->CanIssue(EVeyraClientIntent::LockVanguard), TEXT("a lock is permanent")));
+		}
+
+		TEST_METHOD(LockedTeammatesTrade)
+		{
+			// The final window: the player and DevThree are locked; DevTwo is on the other team.
+			const TCHAR* const Locked = TEXT("\"hover\":\"oriel\",\"locked\":\"oriel\",\"acting\":false");
+			const TCHAR* const TeammateLocked = TEXT("\"hover\":\"cairn\",\"locked\":\"cairn\",\"acting\":false");
+			ASSERT_THAT(IsTrue(Rig.ReachDraftSelect(DraftSelectBody(TEXT("final"), TEXT("null"), TEXT("[]"), Locked, TeammateLocked))));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::OfferTrade) && !Flow->CanIssue(EVeyraClientIntent::AnswerTrade)));
+			ASSERT_THAT(IsFalse(Flow->OfferTrade(0), TEXT("not with themselves")));
+			ASSERT_THAT(IsFalse(Flow->OfferTrade(2), TEXT("not with an enemy")));
+			ASSERT_THAT(IsTrue(Flow->OfferTrade(1)));
+			const auto* Offer = Backend.Find(TEXT("POST"), TEXT("/v1/me/select/trade"));
+			ASSERT_THAT(IsTrue(Offer && Offer->Body == TEXT("{\"seat\":1}")));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/select/trade"), 200, DraftSelectBody(TEXT("final"), TEXT("null"), TEXT("[]"),
+				TEXT("\"hover\":\"oriel\",\"locked\":\"oriel\",\"acting\":false,\"offeredByYou\":false"),
+				TEXT("\"hover\":\"cairn\",\"locked\":\"cairn\",\"acting\":false,\"offeredByYou\":true")))));
+
+			// DevThree offers one back, which the player accepts.
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, DraftSelectBody(TEXT("final"), TEXT("null"), TEXT("[]"), Locked,
+				TEXT("\"hover\":\"cairn\",\"locked\":\"cairn\",\"acting\":false,\"offersYou\":true")))));
+			ASSERT_THAT(IsTrue(Flow->CanIssue(EVeyraClientIntent::AnswerTrade)));
+			ASSERT_THAT(IsFalse(Flow->AnswerTrade(2, true), TEXT("only a standing offer")));
+			ASSERT_THAT(IsTrue(Flow->AnswerTrade(1, true)));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/select/trade/accept"), 200, DraftSelectBody(TEXT("final"), TEXT("null"), TEXT("[]"),
+				TEXT("\"hover\":\"cairn\",\"locked\":\"cairn\",\"acting\":false"), TEXT("\"hover\":\"oriel\",\"locked\":\"oriel\",\"acting\":false")))));
+			ASSERT_THAT(AreEqual(Flow->GetSnapshot().Select.FindYou()->Locked, FString(TEXT("cairn"))));
+
+			// A trade the backend refuses as illegal shows why.
+			TestRunner->AddExpectedMessagePlain(TEXT("VeyraClientFlow: problem in Selecting"), ELogVerbosity::Warning, EAutomationExpectedMessageFlags::Contains, 1);
+			Advance(0.5);
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, DraftSelectBody(TEXT("final"), TEXT("null"), TEXT("[]"),
+				TEXT("\"hover\":\"cairn\",\"locked\":\"cairn\",\"acting\":false"),
+				TEXT("\"hover\":\"oriel\",\"locked\":\"oriel\",\"acting\":false,\"offersYou\":true")))));
+			ASSERT_THAT(IsTrue(Flow->AnswerTrade(1, true)));
+			ASSERT_THAT(IsTrue(Backend.Answer(TEXT("POST"), TEXT("/v1/me/select/trade/accept"), 400, TEXT("{\"error\":\"not_available\"}"))));
+			ASSERT_THAT(IsTrue(Flow->GetSnapshot().Problem.IsSet()));
+		}
+
 		TEST_METHOD(AnOpponentLeavingRequeues)
 		{
 			ASSERT_THAT(IsTrue(Rig.ReachCasualSelect()));

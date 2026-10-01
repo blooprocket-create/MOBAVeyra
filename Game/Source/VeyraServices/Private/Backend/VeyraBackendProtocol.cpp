@@ -87,6 +87,12 @@ namespace
 		return Object.HasTypedField<EJson::Boolean>(Name) && Object.TryGetBoolField(Name, Out);
 	}
 
+	/** A boolean field that may be absent, which leaves Out as it was. */
+	bool OptionalBoolField(const FJsonObject& Object, FStringView Name, bool& Out)
+	{
+		return !Object.HasField(Name) || BoolField(Object, Name, Out);
+	}
+
 	/** A number field that is finite and not negative. */
 	bool DurationField(const FJsonObject& Object, FStringView Name, double& Out)
 	{
@@ -316,6 +322,75 @@ namespace
 		return bParsed;
 	}
 
+	bool ParseSelectPhase(const FString& Text, ESelectPhase& Out)
+	{
+		static const TPair<const TCHAR*, ESelectPhase> Phases[] = {
+			{ TEXT("banning"), ESelectPhase::Banning },
+			{ TEXT("picking"), ESelectPhase::Picking },
+			{ TEXT("final"), ESelectPhase::Final },
+		};
+		for (const TPair<const TCHAR*, ESelectPhase>& Phase : Phases)
+		{
+			if (Text.Equals(Phase.Key, ESearchCase::CaseSensitive))
+			{
+				Out = Phase.Value;
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** A draft's phase, turn and bans (ADR-041 §1). Older selects left them out: one picking phase, no turns, no bans. */
+	bool ParseDraft(const FJsonObject& Object, FSelect& Select, FString& OutProblem)
+	{
+		FString Phase;
+		if (Object.HasField(TEXT("phase")) && (!StringField(Object, TEXT("phase"), Phase) || !ParseSelectPhase(Phase, Select.Phase)))
+		{
+			OutProblem = TEXT("the select's phase is not one the game knows");
+			return false;
+		}
+		if (Object.HasField(TEXT("turn")) && !Object.HasTypedField<EJson::Null>(TEXT("turn")))
+		{
+			const FJsonObject* TurnObject = ObjectField(Object, TEXT("turn"));
+			FSelectTurn Turn;
+			if (!TurnObject || !BoolField(*TurnObject, TEXT("ban"), Turn.bBan) || !StringField(*TurnObject, TEXT("side"), SidePattern, Turn.Side)
+				|| !CountField(*TurnObject, TEXT("count"), Turn.Count) || !CountField(*TurnObject, TEXT("done"), Turn.Done) || Turn.Count < 1
+				|| Turn.Done >= Turn.Count)
+			{
+				OutProblem = TEXT("the select's turn is not in the expected format");
+				return false;
+			}
+			Select.Turn = MoveTemp(Turn);
+		}
+		if ((Select.Phase == ESelectPhase::Banning) != (Select.Turn.IsSet() && Select.Turn->bBan) || (Select.Phase == ESelectPhase::Final && Select.Turn.IsSet()))
+		{
+			OutProblem = TEXT("the select's turn does not fit its phase");
+			return false;
+		}
+		const TArray<TSharedPtr<FJsonValue>>* Bans = nullptr;
+		if (Object.HasTypedField<EJson::Array>(TEXT("bans")) && Object.TryGetArrayField(TEXT("bans"), Bans))
+		{
+			for (const TSharedPtr<FJsonValue>& Value : *Bans)
+			{
+				const TSharedPtr<FJsonObject>* BanObject = nullptr;
+				FSelectBan Ban;
+				if (!Value.IsValid() || !Value->TryGetObject(BanObject) || !BanObject->IsValid() || !StringField(**BanObject, TEXT("side"), SidePattern, Ban.Side)
+					|| !StringField(**BanObject, TEXT("vanguardId"), ContentIdPattern, Ban.VanguardId))
+				{
+					OutProblem = TEXT("a ban of the select is not in the expected format");
+					return false;
+				}
+				Select.Bans.Add(MoveTemp(Ban));
+			}
+		}
+		else if (Object.HasField(TEXT("bans")))
+		{
+			OutProblem = TEXT("the select's bans are not a list");
+			return false;
+		}
+		return true;
+	}
+
 	bool ParseSelectState(const FString& Text, ESelectState& Out)
 	{
 		static const TPair<const TCHAR*, ESelectState> States[] = {
@@ -514,9 +589,11 @@ bool ParseVanguardAccess(const FString& Body, FVanguardAccess& Out, FString& Out
 	if (!Root.IsValid() || !StringArrayField(*Root, TEXT("owned"), ContentIdPattern, Access.Owned)
 		|| !StringArrayField(*Root, TEXT("rotation"), ContentIdPattern, Access.Rotation)
 		|| !StringArrayField(*Root, TEXT("available"), ContentIdPattern, Access.Available)
-		|| !StringArrayField(*Root, TEXT("starters"), ContentIdPattern, Access.Starters))
+		|| !StringArrayField(*Root, TEXT("starters"), ContentIdPattern, Access.Starters)
+		// Older backends did not list the released Vanguards.
+		|| (Root->HasField(TEXT("released")) && !StringArrayField(*Root, TEXT("released"), ContentIdPattern, Access.Released)))
 	{
-		OutProblem = TEXT("the answer does not list owned, rotation, available and starter Vanguards by their IDs");
+		OutProblem = TEXT("the answer does not list owned, rotation, available, starter and released Vanguards by their IDs");
 		return false;
 	}
 	Out = MoveTemp(Access);
@@ -526,6 +603,28 @@ bool ParseVanguardAccess(const FString& Body, FVanguardAccess& Out, FString& Out
 const FSelectSeat* FSelect::FindYou() const
 {
 	return Seats.FindByPredicate([](const FSelectSeat& Seat) { return Seat.bYou; });
+}
+
+bool FSelect::YouBan() const
+{
+	const FSelectSeat* You = FindYou();
+	return State == ESelectState::Picking && Turn.IsSet() && Turn->bBan && You && You->bActing;
+}
+
+bool FSelect::YouMayLock() const
+{
+	const FSelectSeat* You = FindYou();
+	if (State != ESelectState::Picking || !You || !You->Locked.IsEmpty() || Phase == ESelectPhase::Final)
+	{
+		return false;
+	}
+	// Outside a draft every seat picks at once.
+	return !Turn.IsSet() || (!Turn->bBan && You->bActing);
+}
+
+bool FSelect::IsBanned(const FString& VanguardId) const
+{
+	return Bans.ContainsByPredicate([&VanguardId](const FSelectBan& Ban) { return Ban.VanguardId == VanguardId; });
 }
 
 bool ParseSelect(const FString& Body, TOptional<FSelect>& OutSelect, FString& OutProblem)
@@ -564,7 +663,11 @@ bool ParseSelect(const FString& Body, TOptional<FSelect>& OutSelect, FString& Ou
 		if (!Value.IsValid() || !Value->TryGetObject(SeatObject) || !SeatObject->IsValid() || !StringField(**SeatObject, TEXT("displayName"), Seat.DisplayName)
 			|| Seat.DisplayName.IsEmpty() || !StringField(**SeatObject, TEXT("side"), SidePattern, Seat.Side) || !BoolField(**SeatObject, TEXT("you"), Seat.bYou)
 			|| !NullableStringField(**SeatObject, TEXT("hover"), ContentIdPattern, Seat.Hover)
-			|| !NullableStringField(**SeatObject, TEXT("locked"), ContentIdPattern, Seat.Locked))
+			|| !NullableStringField(**SeatObject, TEXT("locked"), ContentIdPattern, Seat.Locked)
+			// A draft's and a trade's details (ADR-041), which older selects left out.
+			|| ((*SeatObject)->HasField(TEXT("banHover")) && !NullableStringField(**SeatObject, TEXT("banHover"), ContentIdPattern, Seat.BanHover))
+			|| !OptionalBoolField(**SeatObject, TEXT("acting"), Seat.bActing) || !OptionalBoolField(**SeatObject, TEXT("offersYou"), Seat.bOffersYou)
+			|| !OptionalBoolField(**SeatObject, TEXT("offeredByYou"), Seat.bOfferedByYou))
 		{
 			OutProblem = TEXT("a seat of the select is not in the expected format");
 			return false;
@@ -607,6 +710,10 @@ bool ParseSelect(const FString& Body, TOptional<FSelect>& OutSelect, FString& Ou
 	else if (Object->HasField(TEXT("bots")))
 	{
 		OutProblem = TEXT("the select's bots are not a list");
+		return false;
+	}
+	if (!ParseDraft(*Object, Select, OutProblem))
+	{
 		return false;
 	}
 	if (Select.Seats.FilterByPredicate([](const FSelectSeat& Seat) { return Seat.bYou; }).Num() != 1)
@@ -811,7 +918,8 @@ bool ParseModes(const FString& Body, TArray<FModeInfo>& Out, FString& OutProblem
 		}
 		Mode.HumanPlayersPerTeam = FMath::FloorToInt32(Team);
 		Mode.bVersusAI = Matchmaking.Equals(TEXT("coop"), ESearchCase::CaseSensitive);
-		Mode.bMatchmade = Mode.bVersusAI || Matchmaking.Equals(TEXT("casualSelect"), ESearchCase::CaseSensitive);
+		Mode.bMatchmade = Mode.bVersusAI || Matchmaking.Equals(TEXT("casualSelect"), ESearchCase::CaseSensitive)
+			|| Matchmaking.Equals(TEXT("draftPick"), ESearchCase::CaseSensitive);
 		Modes.Add(MoveTemp(Mode));
 	}
 	Out = MoveTemp(Modes);
@@ -955,6 +1063,17 @@ FString BuildFluxSpellsBody(TConstArrayView<FString> Spells)
 		Writer->WriteValue(Spell);
 	}
 	Writer->WriteArrayEnd();
+	Writer->WriteObjectEnd();
+	Writer->Close();
+	return Body;
+}
+
+FString BuildTradeBody(int32 Seat)
+{
+	FString Body;
+	const TSharedRef<TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>> Writer = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR>>::Create(&Body);
+	Writer->WriteObjectStart();
+	Writer->WriteValue(TEXT("seat"), Seat);
 	Writer->WriteObjectEnd();
 	Writer->Close();
 	return Body;

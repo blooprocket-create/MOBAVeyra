@@ -2,8 +2,9 @@
 
 // Champion select's screen: the roster as a bench of portraits across the top
 // with the countdown between two draining bars; the player's team down the left and the enemy team
-// down the right; the shown Vanguard's art large in the middle; the Flux Spell slots, Lock In, the
-// match setup and the mode along the bottom (Pre-Game Client UX Bible §5, 23–40).
+// down the right, each with its bans in a draft; the shown Vanguard's art large in the middle; the
+// Flux Spell slots, Lock In (Ban in the player's ban turn), the match setup and the mode along the
+// bottom (Pre-Game Client UX Bible §5, 23–40; ADR-041).
 
 #include "Shell/VeyraShellScreen.h"
 
@@ -141,9 +142,13 @@ FText UVeyraShellScreen::AbilitiesLabel(bool bShowing)
 
 void UVeyraShellScreen::BuildChampionSelect(const FVeyraClientSnapshot& Snapshot)
 {
+	FVeyraSelectDraftPermissions Draft;
+	Draft.bCanBan = Client->CanIssue(EVeyraClientIntent::BanVanguard);
+	Draft.bCanOfferTrade = Client->CanIssue(EVeyraClientIntent::OfferTrade);
+	Draft.bCanAnswerTrade = Client->CanIssue(EVeyraClientIntent::AnswerTrade);
 	const FVeyraSelectModel Model = VeyraShellModels::DescribeSelect(Snapshot, Client->GetRemainingPickSeconds(),
 		Client->CanIssue(EVeyraClientIntent::HoverVanguard), Client->CanIssue(EVeyraClientIntent::LockVanguard), Client->CanIssue(EVeyraClientIntent::LeaveSelect),
-		Client->CanIssue(EVeyraClientIntent::ChooseFluxSpell));
+		Client->CanIssue(EVeyraClientIntent::ChooseFluxSpell), Draft);
 	// Browsing changes the large art (UX 27): the shown Vanguard fills the screen behind everything.
 	ShowBackdrop(VeyraShellArt::HeroOf(Model.ShownVanguardId));
 	PickSeconds = Model.PickSeconds;
@@ -168,10 +173,11 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 	const UVeyraShellStyleSettings& Settings = Style();
 	UVerticalBox* Header = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass());
 
-	// The roster as a bench: a portrait for each Vanguard the player may pick, the taken ones
-	// disabled (UX 29).
+	// The roster as a bench: a portrait for each Vanguard the player may pick, the taken and banned
+	// ones disabled (UX 29). In the player's ban turn, every released Vanguard, to ban (ADR-041 §1).
 	UHorizontalBox* Bench = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
-	UTextBlock* BenchTitle = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("AvailableVanguards", "AVAILABLE VANGUARDS"), EVeyraShellText::Eyebrow);
+	UTextBlock* BenchTitle = VeyraShellStyle::MakeText(*WidgetTree,
+		Model.bBanning ? LOCTEXT("BanAVanguard", "BAN A VANGUARD") : LOCTEXT("AvailableVanguards", "AVAILABLE VANGUARDS"), EVeyraShellText::Eyebrow);
 	BenchTitle->SetAutoWrapText(false);
 	Bench->AddChildToHorizontalBox(BenchTitle)->SetVerticalAlignment(VAlign_Center);
 	for (const FVeyraSelectCardModel& Card : Model.Cards)
@@ -187,7 +193,13 @@ UWidget& UVeyraShellScreen::MakeSelectHeader(const FVeyraSelectModel& Model)
 		Tile->AddChildToVerticalBox(Portrait)->SetHorizontalAlignment(HAlign_Center);
 		AddLine(*WidgetTree, *Tile, Card.Name, EVeyraShellText::Small, HAlign_Center);
 		const FString Id = Card.VanguardId;
-		UVeyraShellButton* Button = AddContentButton(*Bench, Card.Name, *Tile, [this, Id] { Client->HoverVanguard(Id); }, Model.bCanChoose && !Card.bTaken, Card.bChosen);
+		const bool bBan = Model.bBanning;
+		UVeyraShellButton* Button = AddContentButton(*Bench, Card.Name, *Tile, [this, Id, bBan] { bBan ? Client->HoverBan(Id) : Client->HoverVanguard(Id); },
+			Model.bCanChoose && !Card.bTaken, Card.bChosen);
+		if (Card.bBanned)
+		{
+			Button->SetToolTipText(FText::Format(LOCTEXT("BannedTip", "{0} is banned."), Card.Name));
+		}
 		Cast<UHorizontalBoxSlot>(Button->Slot)->SetPadding(FMargin(Settings.Spacing, 0.0f, 0.0f, 0.0f));
 	}
 	Header->AddChildToVerticalBox(Bench)->SetHorizontalAlignment(HAlign_Center);
@@ -227,6 +239,21 @@ UWidget& UVeyraShellScreen::MakeSeatColumn(const FVeyraSelectModel& Model, bool 
 	{
 		AddLine(*WidgetTree, *Column, bAllies ? LOCTEXT("YourTeam", "Your Team") : LOCTEXT("EnemyTeam", "Enemy Team"), EVeyraShellText::Heading,
 			bAllies ? HAlign_Left : HAlign_Right);
+		if (Model.bDraft)
+		{
+			// The team's bans, which both teams see (ADR-041 §1).
+			TArray<FText> Names;
+			for (const FVeyraSelectBanModel& Ban : Model.Bans)
+			{
+				if (Ban.bAlly == bAllies)
+				{
+					Names.Add(Ban.Name);
+				}
+			}
+			const FText Bans = Names.IsEmpty() ? LOCTEXT("NoBansYet", "Bans: none yet")
+											   : FText::Format(LOCTEXT("TeamBans", "Bans: {0}"), FText::Join(FText::FromString(TEXT(", ")), Names));
+			AddLine(*WidgetTree, *Column, Bans, EVeyraShellText::Muted, bAllies ? HAlign_Left : HAlign_Right);
+		}
 		for (const FVeyraSelectSeatModel& Seat : Model.Seats)
 		{
 			if (Seat.bAlly == bAllies)
@@ -251,6 +278,11 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 	{
 		Row->SetBrush(FSlateRoundedBoxBrush(Settings.SurfaceRaisedColor, Settings.PanelCornerRadius, Settings.FrameColor.CopyWithNewOpacity(0.7f), 1.0f));
 	}
+	else if (Seat.bActing)
+	{
+		// Whoever bans or picks now, outlined in the accent (ADR-041 §1).
+		Row->SetBrush(FSlateRoundedBoxBrush(Settings.PanelColor, Settings.PanelCornerRadius, Settings.AccentColor, 1.0f));
+	}
 	UHorizontalBox* Line = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
 	Row->SetContent(Line);
 
@@ -264,6 +296,32 @@ UWidget& UVeyraShellScreen::MakeSeatRow(const FVeyraSelectSeatModel& Seat)
 	}
 	AddLine(*WidgetTree, *Texts, Seat.Name, EVeyraShellText::Body, Align);
 	AddLine(*WidgetTree, *Texts, Seat.StatusText, EVeyraShellText::Small, Align);
+	if (!Seat.BanHover.IsEmpty())
+	{
+		AddLine(*WidgetTree, *Texts, Seat.BanHover, EVeyraShellText::Small, Align);
+	}
+	// Trades between locked teammates (ADR-041 §2): an offer to make, one made, or one to answer.
+	const int32 SeatIndex = Seat.SeatIndex;
+	if (Seat.bOffersYou)
+	{
+		AddLine(*WidgetTree, *Texts, LOCTEXT("OffersYouATrade", "Offers you a trade"), EVeyraShellText::Small, Align);
+		UHorizontalBox* Answers = WidgetTree->ConstructWidget<UHorizontalBox>(UHorizontalBox::StaticClass());
+		AddButton(*Answers, LOCTEXT("AcceptTrade", "Accept"), [this, SeatIndex] { Client->AnswerTrade(SeatIndex, /*bAccept*/ true); }, Seat.bCanAnswerTrade)
+			->KeepLabelOnOneLine();
+		AddButton(*Answers, LOCTEXT("DeclineTrade", "Decline"), [this, SeatIndex] { Client->AnswerTrade(SeatIndex, /*bAccept*/ false); }, Seat.bCanAnswerTrade)
+			->KeepLabelOnOneLine();
+		Texts->AddChildToVerticalBox(Answers)->SetHorizontalAlignment(Align);
+	}
+	else if (Seat.bOfferedByYou)
+	{
+		AddLine(*WidgetTree, *Texts, LOCTEXT("TradeOffered", "Trade offered"), EVeyraShellText::Small, Align);
+	}
+	else if (Seat.bCanOfferTrade)
+	{
+		UVeyraShellButton* Trade = AddButton(*Texts, LOCTEXT("OfferTrade", "Trade"), [this, SeatIndex] { Client->OfferTrade(SeatIndex); });
+		Cast<UVerticalBoxSlot>(Trade->Slot)->SetHorizontalAlignment(Align);
+		Trade->KeepLabelOnOneLine();
+	}
 
 	const FVector2D PortraitSize(Settings.PortraitSize, Settings.PortraitSize);
 	UImage* Portrait = MakeArt(*WidgetTree, Seat.VanguardId, PortraitSize, /*a circle*/ -1.0f, /*bPortrait*/ true,
@@ -395,17 +453,21 @@ UWidget& UVeyraShellScreen::MakeSelectFooter(const FVeyraSelectModel& Model)
 			Model.bCanChooseSpells, OpenSpellSlot == SpellSlot);
 		SpellButton->SetToolTipText(FText::Format(LOCTEXT("SpellTileTip", "{0}: {1}"), SlotModel.Title, SlotModel.Chosen));
 	}
-	const FString LockInId = Model.LockInVanguardId;
-	UTextBlock* LockInText = VeyraShellStyle::MakeText(*WidgetTree, LOCTEXT("LockInTile", "LOCK IN"), EVeyraShellText::Heading);
+	// In the player's ban turn the tile bans their ban hover instead (ADR-041 §1).
+	const bool bBan = Model.bBanning;
+	const bool bCanPress = bBan ? Model.bCanBan : Model.bCanLockIn;
+	const FString LockInId = bBan ? Model.BanVanguardId : Model.LockInVanguardId;
+	UTextBlock* LockInText = VeyraShellStyle::MakeText(*WidgetTree, bBan ? LOCTEXT("BanTile", "BAN") : LOCTEXT("LockInTile", "LOCK IN"), EVeyraShellText::Heading);
 	LockInText->SetJustification(ETextJustify::Center);
-	if (Model.bCanLockIn)
+	if (bCanPress)
 	{
 		// Dark on the gold it is filled with while it can be pressed.
 		LockInText->SetColorAndOpacity(FSlateColor(Settings.BackgroundColor));
 	}
 	USizeBox* LockInBox = Sized(*WidgetTree, *LockInText, FVector2D(Settings.LockInWidth, Settings.SpellTileSize));
 	Cast<USizeBoxSlot>(LockInText->Slot)->SetVerticalAlignment(VAlign_Center);
-	AddContentButton(*Loadout, LOCTEXT("LockIn", "Lock In"), *LockInBox, [this, LockInId] { Client->LockVanguard(LockInId); }, Model.bCanLockIn, Model.bCanLockIn);
+	AddContentButton(*Loadout, bBan ? LOCTEXT("Ban", "Ban") : LOCTEXT("LockIn", "Lock In"), *LockInBox,
+		[this, LockInId, bBan] { bBan ? Client->BanVanguard(LockInId) : Client->LockVanguard(LockInId); }, bCanPress, bCanPress);
 	UHorizontalBoxSlot* LoadoutSlot = Footer->AddChildToHorizontalBox(Loadout);
 	LoadoutSlot->SetVerticalAlignment(VAlign_Bottom);
 

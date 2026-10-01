@@ -58,6 +58,28 @@ struct FVeyraSelectSeatModel
 	bool bYou = false;
 	/** On the player's side. */
 	bool bAlly = true;
+	/** The seat's place in the select's seats, which a trade names it by; INDEX_NONE for a bot. */
+	int32 SeatIndex = INDEX_NONE;
+	/** Bans or picks in the draft's current turn (ADR-041 §1). */
+	bool bActing = false;
+	/** A teammate's ban hover in their ban turn, as "Banning Cairn"; empty otherwise. */
+	FText BanHover;
+	/** A locked teammate the player may offer a trade (ADR-041 §2). */
+	bool bCanOfferTrade = false;
+	/** The player's standing offer to this teammate. */
+	bool bOfferedByYou = false;
+	/** This teammate's standing offer to the player, which they may accept or decline. */
+	bool bOffersYou = false;
+	bool bCanAnswerTrade = false;
+};
+
+/** A draft's ban, as the bans row shows it (ADR-041 §1). */
+struct FVeyraSelectBanModel
+{
+	FString VanguardId;
+	FText Name;
+	/** Banned by the player's team. */
+	bool bAlly = true;
 };
 
 struct FVeyraSelectCardModel
@@ -66,8 +88,10 @@ struct FVeyraSelectCardModel
 	FText Name;
 	/** The player's own hover or lock. */
 	bool bChosen = false;
-	/** Locked by another player: picks are unique in a matchmade select. */
+	/** Locked by another player: picks are unique in a matchmade select. Banned ones are taken too. */
 	bool bTaken = false;
+	/** Banned in the draft: neither team may pick it (UX 29). */
+	bool bBanned = false;
 };
 
 /** One Flux Spell a slot may take, or none (Pre-Game Client UX Bible 36; ADR-015 §5). */
@@ -143,6 +167,24 @@ struct FVeyraSelectModel
 	FText ModeLabel;
 	/** The pick timer's full length, for its bars; 0 when the backend does not say. */
 	double PickSeconds = 0.0;
+	/** A Draft Pick select: it has bans, and turns (ADR-041 §1). */
+	bool bDraft = false;
+	/** The draft's ban turn names the player: the cards are every released Vanguard, choosing one hovers a ban, and Ban bans it. */
+	bool bBanning = false;
+	/** The Vanguard Ban would ban: the player's ban hover. Empty for none. */
+	FString BanVanguardId;
+	bool bCanBan = false;
+	/** The draft's bans, in order. */
+	TArray<FVeyraSelectBanModel> Bans;
+};
+
+/** Which of champion select's draft and trade intents the coordinator allows now (ADR-041). */
+struct FVeyraSelectDraftPermissions
+{
+	/** HoverBan and BanVanguard. */
+	bool bCanBan = false;
+	bool bCanOfferTrade = false;
+	bool bCanAnswerTrade = false;
 };
 
 /** A mode card on the Play page (UX-12). */
@@ -369,7 +411,7 @@ namespace VeyraShellModels
 	VEYRAUI_API FText SpellSlotTitle(int32 Slot);
 
 	VEYRAUI_API FVeyraSelectModel DescribeSelect(const FVeyraClientSnapshot& Snapshot, double RemainingSeconds, bool bCanHover, bool bCanLock, bool bCanLeave,
-		bool bCanChooseSpells = false);
+		bool bCanChooseSpells = false, const FVeyraSelectDraftPermissions& Draft = FVeyraSelectDraftPermissions());
 
 	/** The enabled modes, in the backend's order. A mode is shown even when it has no matchmaker yet, as not yet available. */
 	VEYRAUI_API TArray<FVeyraModeCardModel> DescribeModes(const FVeyraClientSnapshot& Snapshot);

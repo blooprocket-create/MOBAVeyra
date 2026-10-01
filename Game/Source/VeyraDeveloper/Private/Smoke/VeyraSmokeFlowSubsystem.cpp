@@ -108,6 +108,7 @@ namespace
 	const TCHAR* const AcceptLabel = TEXT("Accept");
 	const TCHAR* const DeclineLabel = TEXT("Decline");
 	const TCHAR* const LockInLabel = TEXT("Lock In");
+	const TCHAR* const BanLabel = TEXT("Ban");
 	const TCHAR* const ContinueLabel = TEXT("Continue");
 	const TCHAR* const EndCustomMatchLabel = TEXT("End Custom Match");
 	const TCHAR* const DeveloperEndLabel = TEXT("End Match (Developer)");
@@ -327,6 +328,11 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 			Finish(false, TEXT("the match found went ahead, but this script expected a player to decline it"));
 			break;
 		}
+		if (Flow.CanIssue(EVeyraClientIntent::BanVanguard))
+		{
+			TickBan(Snapshot);
+			break;
+		}
 		if (Flow.CanIssue(EVeyraClientIntent::HoverVanguard))
 		{
 			const FString Pick = ChooseFrom(Snapshot.AvailableVanguards);
@@ -343,6 +349,10 @@ void UVeyraSmokeFlowSubsystem::TickScript(IVeyraClientIntents& Flow)
 			else if (!ChooseFluxSpells(Snapshot, Flow))
 			{
 				// One choice a tick: each waits for the backend's answer.
+			}
+			else if (!Flow.CanIssue(EVeyraClientIntent::LockVanguard))
+			{
+				// A draft's pick waits for the player's turn (ADR-041 §1).
 			}
 			else if (!Capture(TEXT("ChampionSelect")))
 			{
@@ -1815,6 +1825,37 @@ bool UVeyraSmokeFlowSubsystem::Capture(const TCHAR* Name)
 	HoldUntil = FPlatformTime::Seconds() + ScreenshotHoldRealSeconds;
 	UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: asked for a screenshot at %s."), *Path);
 	return true;
+}
+
+void UVeyraSmokeFlowSubsystem::TickBan(const FVeyraClientSnapshot& Snapshot)
+{
+	// From the roster's end: both players' Vanguards come from its start, so neither is banned.
+	const VeyraBackendProtocol::FSelect& Select = Snapshot.Select;
+	FString Ban;
+	for (int32 Index = Snapshot.ReleasedVanguards.Num() - 1; Index >= 0 && Ban.IsEmpty(); --Index)
+	{
+		const FString& Id = Snapshot.ReleasedVanguards[Index];
+		if (!Select.IsBanned(Id) && Id != WantedVanguard)
+		{
+			Ban = Id;
+		}
+	}
+	const VeyraBackendProtocol::FSelectSeat* You = Select.FindYou();
+	if (Ban.IsEmpty() || !You)
+	{
+		Finish(false, TEXT("nothing is left to ban"));
+		return;
+	}
+	if (You->BanHover != Ban)
+	{
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: considering a ban of %s."), *Ban);
+		Click(VanguardLabel(Ban));
+	}
+	else if (!Capture(TEXT("Ban")))
+	{
+		UE_LOG(LogVeyraSmokeFlow, Display, TEXT("VeyraSmoke: banning %s."), *Ban);
+		Click(BanLabel);
+	}
 }
 
 FString UVeyraSmokeFlowSubsystem::ChooseFrom(const TArray<FString>& Offered) const

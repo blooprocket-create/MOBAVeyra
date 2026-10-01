@@ -26,6 +26,12 @@ namespace
 	const TCHAR* const LockPath = TEXT("/v1/me/select/lock");
 	const TCHAR* const FluxSpellsPath = TEXT("/v1/me/select/spells");
 	const TCHAR* const LeaveSelectPath = TEXT("/v1/me/select/leave");
+	// A draft's bans and the trades between locked teammates (ADR-041).
+	const TCHAR* const BanHoverPath = TEXT("/v1/me/select/ban/hover");
+	const TCHAR* const BanPath = TEXT("/v1/me/select/ban");
+	const TCHAR* const TradePath = TEXT("/v1/me/select/trade");
+	const TCHAR* const AcceptTradePath = TEXT("/v1/me/select/trade/accept");
+	const TCHAR* const DeclineTradePath = TEXT("/v1/me/select/trade/decline");
 	const TCHAR* const ModesPath = TEXT("/v1/modes");
 	const TCHAR* const PartyPath = TEXT("/v1/party");
 	const TCHAR* const PartyModePath = TEXT("/v1/party/mode");
@@ -43,8 +49,9 @@ namespace
 	const TCHAR* const FriendsPath = TEXT("/v1/friends");
 	const TCHAR* const FriendRequestsPath = TEXT("/v1/friends/requests");
 
-	/** The kind of champion select matchmaking opens, which a player may leave. */
+	/** The kinds of champion select matchmaking opens, which a player may leave, and in which locked teammates may trade. */
 	const TCHAR* const CasualSelectKind = TEXT("casual");
+	const TCHAR* const DraftSelectKind = TEXT("draft");
 	/** A custom lobby's champion select, which a player may leave too, and which returns to the lobby. */
 	const TCHAR* const CustomSelectKind = TEXT("custom");
 
@@ -79,10 +86,23 @@ namespace
 		return FString::Printf(TEXT("/v1/friends/requests/%s/%s"), *AccountId, Answer);
 	}
 
+	/** Whether the select is matchmade: Casual Select or Draft Pick. */
+	bool IsMatchmade(const VeyraBackendProtocol::FSelect& Select)
+	{
+		return Select.Kind == CasualSelectKind || Select.Kind == DraftSelectKind;
+	}
+
 	/** Whether the select is one a player may leave: a matchmade one, or a custom lobby's. */
 	bool IsLeavable(const VeyraBackendProtocol::FSelect& Select)
 	{
-		return Select.Kind == CasualSelectKind || Select.Kind == CustomSelectKind;
+		return IsMatchmade(Select) || Select.Kind == CustomSelectKind;
+	}
+
+	/** Whether the player has locked, in a matchmade select still picking: what a trade needs on each side (ADR-041 §2). */
+	const VeyraBackendProtocol::FSelectSeat* LockedTrader(const VeyraBackendProtocol::FSelect& Select)
+	{
+		const VeyraBackendProtocol::FSelectSeat* You = Select.FindYou();
+		return IsMatchmade(Select) && Select.State == VeyraBackendProtocol::ESelectState::Picking && You && !You->Locked.IsEmpty() ? You : nullptr;
 	}
 	/** A match found's state while it waits for answers, and a player's answer before they give one. */
 	const TCHAR* const PendingAnswer = TEXT("pending");
@@ -194,6 +214,14 @@ const TCHAR* LexToString(EVeyraClientIntent Intent)
 		return TEXT("LeaveSelect");
 	case EVeyraClientIntent::ChooseFluxSpell:
 		return TEXT("ChooseFluxSpell");
+	case EVeyraClientIntent::HoverBan:
+		return TEXT("HoverBan");
+	case EVeyraClientIntent::BanVanguard:
+		return TEXT("BanVanguard");
+	case EVeyraClientIntent::OfferTrade:
+		return TEXT("OfferTrade");
+	case EVeyraClientIntent::AnswerTrade:
+		return TEXT("AnswerTrade");
 	case EVeyraClientIntent::Reconnect:
 		return TEXT("Reconnect");
 	case EVeyraClientIntent::ContinueFromResults:
@@ -366,6 +394,10 @@ bool FVeyraClientFlow::IsIntentAllowed(EVeyraClientState State, EVeyraClientInte
 	case EVeyraClientIntent::LockVanguard:
 	case EVeyraClientIntent::LeaveSelect:
 	case EVeyraClientIntent::ChooseFluxSpell:
+	case EVeyraClientIntent::HoverBan:
+	case EVeyraClientIntent::BanVanguard:
+	case EVeyraClientIntent::OfferTrade:
+	case EVeyraClientIntent::AnswerTrade:
 		return State == EVeyraClientState::Selecting;
 	case EVeyraClientIntent::Reconnect:
 		return State == EVeyraClientState::ReconnectOnly;
@@ -450,12 +482,29 @@ bool FVeyraClientFlow::CanIssue(EVeyraClientIntent Intent) const
 	case EVeyraClientIntent::DeclineMatch:
 		return Snapshot.MatchFound.State == PendingAnswer && Snapshot.MatchFound.You == PendingAnswer;
 	case EVeyraClientIntent::HoverVanguard:
-	case EVeyraClientIntent::LockVanguard:
 	{
-		// A lock is permanent (Battleground Bible §15).
+		// A lock is permanent (Battleground Bible §15). In a draft a pick may be hovered before its turn,
+		// as the player's intent (ADR-041 §1).
 		const VeyraBackendProtocol::FSelectSeat* You = Snapshot.Select.FindYou();
-		return Snapshot.Select.State == ESelectState::Picking && You && You->Locked.IsEmpty() && !Snapshot.AvailableVanguards.IsEmpty();
+		return Snapshot.Select.State == ESelectState::Picking && Snapshot.Select.Phase != VeyraBackendProtocol::ESelectPhase::Final && You
+			&& You->Locked.IsEmpty() && !Snapshot.AvailableVanguards.IsEmpty();
 	}
+	case EVeyraClientIntent::LockVanguard:
+		// In a draft only in the player's pick turn.
+		return Snapshot.Select.YouMayLock() && !Snapshot.AvailableVanguards.IsEmpty();
+	case EVeyraClientIntent::HoverBan:
+	case EVeyraClientIntent::BanVanguard:
+		return Snapshot.Select.YouBan() && !Snapshot.ReleasedVanguards.IsEmpty();
+	case EVeyraClientIntent::OfferTrade:
+	{
+		const VeyraBackendProtocol::FSelectSeat* You = LockedTrader(Snapshot.Select);
+		return You && Snapshot.Select.Seats.ContainsByPredicate([You](const VeyraBackendProtocol::FSelectSeat& Seat) {
+			return !Seat.bYou && Seat.Side == You->Side && !Seat.Locked.IsEmpty();
+		});
+	}
+	case EVeyraClientIntent::AnswerTrade:
+		return LockedTrader(Snapshot.Select)
+			&& Snapshot.Select.Seats.ContainsByPredicate([](const VeyraBackendProtocol::FSelectSeat& Seat) { return Seat.bOffersYou; });
 	case EVeyraClientIntent::LeaveSelect:
 		// Practice has no one to dodge; only its timer ends it (ADR-010). A custom select returns to its lobby.
 		return IsLeavable(Snapshot.Select) && Snapshot.Select.State == ESelectState::Picking;
@@ -1620,6 +1669,7 @@ void FVeyraClientFlow::EnterSelecting(const VeyraBackendProtocol::FSelect& Selec
 	Enter(EVeyraClientState::Selecting);
 	SelectId = Select.Id;
 	Snapshot.AvailableVanguards.Reset();
+	Snapshot.ReleasedVanguards.Reset();
 	Log(FString::Printf(TEXT("in champion select %s (%s)."), *Select.Id, *Select.Mode));
 	ApplySelect(Select);
 	if (Snapshot.State != EVeyraClientState::Selecting)
@@ -1671,6 +1721,7 @@ void FVeyraClientFlow::LoadAvailableVanguards()
 			return;
 		}
 		Snapshot.AvailableVanguards = MoveTemp(Access.Available);
+		Snapshot.ReleasedVanguards = MoveTemp(Access.Released);
 		Broadcast();
 	});
 }
@@ -1865,6 +1916,83 @@ bool FVeyraClientFlow::LeaveSelect()
 		// Otherwise the select moved on, and the next read shows where.
 	});
 	return true;
+}
+
+bool FVeyraClientFlow::HoverBan(const FString& VanguardId)
+{
+	if (!CanIssue(EVeyraClientIntent::HoverBan) || !Snapshot.ReleasedVanguards.Contains(VanguardId) || Snapshot.Select.IsBanned(VanguardId))
+	{
+		return false;
+	}
+	SendSelectAction(EVerb::Put, BanHoverPath, VeyraBackendProtocol::BuildVanguardBody(VanguardId), TEXT("the ban hover"),
+		{ TEXT("not_available"), TEXT("taken") });
+	return true;
+}
+
+bool FVeyraClientFlow::BanVanguard(const FString& VanguardId)
+{
+	if (!CanIssue(EVeyraClientIntent::BanVanguard) || !Snapshot.ReleasedVanguards.Contains(VanguardId) || Snapshot.Select.IsBanned(VanguardId))
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("banning %s."), *VanguardId));
+	// Another ban may have taken it first; a turn that ran out shows on the next read.
+	SendSelectAction(EVerb::Post, BanPath, VeyraBackendProtocol::BuildVanguardBody(VanguardId), TEXT("the ban"), { TEXT("not_available"), TEXT("taken") });
+	return true;
+}
+
+bool FVeyraClientFlow::OfferTrade(int32 Seat)
+{
+	const VeyraBackendProtocol::FSelectSeat* You = LockedTrader(Snapshot.Select);
+	if (!CanIssue(EVeyraClientIntent::OfferTrade) || !You || !Snapshot.Select.Seats.IsValidIndex(Seat))
+	{
+		return false;
+	}
+	const VeyraBackendProtocol::FSelectSeat& Teammate = Snapshot.Select.Seats[Seat];
+	if (Teammate.bYou || Teammate.Side != You->Side || Teammate.Locked.IsEmpty())
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("offering %s a trade: %s for %s."), *Teammate.DisplayName, *You->Locked, *Teammate.Locked));
+	SendSelectAction(EVerb::Post, TradePath, VeyraBackendProtocol::BuildTradeBody(Seat), TEXT("the trade offer"), { TEXT("cannot_trade") });
+	return true;
+}
+
+bool FVeyraClientFlow::AnswerTrade(int32 Seat, bool bAccept)
+{
+	if (!CanIssue(EVeyraClientIntent::AnswerTrade) || !Snapshot.Select.Seats.IsValidIndex(Seat) || !Snapshot.Select.Seats[Seat].bOffersYou)
+	{
+		return false;
+	}
+	Log(FString::Printf(TEXT("%s %s's trade."), bAccept ? TEXT("accepting") : TEXT("declining"), *Snapshot.Select.Seats[Seat].DisplayName));
+	// A trade that would leave either player a Vanguard they may not play is refused; an offer that
+	// lapsed meanwhile shows on the next read.
+	SendSelectAction(EVerb::Post, bAccept ? AcceptTradePath : DeclineTradePath, VeyraBackendProtocol::BuildTradeBody(Seat),
+		bAccept ? TEXT("accepting the trade") : TEXT("declining the trade"), { TEXT("not_available") });
+	return true;
+}
+
+void FVeyraClientFlow::SendSelectAction(EVerb Verb, const TCHAR* Path, const FString& Body, const TCHAR* What, TArray<const TCHAR*> ShownRefusals)
+{
+	SetBusy(true);
+	Call(Verb, Path, Body, [this, What, ShownRefusals = MoveTemp(ShownRefusals)](const FVeyraBackendResponse& Response) {
+		SetBusy(false);
+		TOptional<VeyraBackendProtocol::FSelect> Select;
+		FString Problem;
+		if (Response.IsSuccess() && VeyraBackendProtocol::ParseSelect(Response.Body, Select, Problem) && Select.IsSet() && Select->Id == SelectId)
+		{
+			ApplySelect(*Select);
+		}
+		else if (Response.IsSuccess())
+		{
+			ShowBadAnswer(What, Problem.IsEmpty() ? FString(TEXT("it is not the player's select")) : Problem, nullptr);
+		}
+		else if (ShownRefusals.ContainsByPredicate([&Response](const TCHAR* Code) { return IsRefusal(Response, Code); }))
+		{
+			ShowRefusal(Response, What, nullptr);
+		}
+		// Otherwise the select moved on, and the next read shows where.
+	});
 }
 
 // The match -------------------------------------------------------------------------------------

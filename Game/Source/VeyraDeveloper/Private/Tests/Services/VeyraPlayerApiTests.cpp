@@ -536,6 +536,68 @@ namespace VeyraPlayerApiTests
 				Problem)));
 			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseSelect(Select.Replace(TEXT("%s"), TEXT("\"none\"")), Read, Problem)));
 		}
+
+		TEST_METHOD(ReadsADraftsTurnBansAndTrades)
+		{
+			// A draft select with its phase, turn, bans and seats (ADR-041).
+			const auto Draft = [](const TCHAR* Phase, const TCHAR* Turn, const TCHAR* Bans, const TCHAR* Seats) {
+				return FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"draft\",\"mode\":\"draft_pick\",\"state\":\"picking\",\"phase\":\"%s\",\"turn\":%s,")
+										   TEXT("\"bans\":%s,\"remainingSeconds\":20,\"pickSeconds\":30,\"seats\":[%s],\"matchId\":null,\"cancelReason\":null}}"),
+					LobbyId, Phase, Turn, Bans, Seats);
+			};
+			const TCHAR* const Banning = TEXT("{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,\"hover\":\"oriel\",\"locked\":null,\"banHover\":\"bryn\",")
+										 TEXT("\"acting\":true,\"offersYou\":false,\"offeredByYou\":false},")
+										 TEXT("{\"displayName\":\"DevThree\",\"side\":\"A\",\"you\":false,\"hover\":null,\"locked\":null,\"banHover\":null,")
+										 TEXT("\"acting\":false,\"offersYou\":false,\"offeredByYou\":false}");
+			const TCHAR* const ATurn = TEXT("{\"ban\":true,\"side\":\"A\",\"count\":2,\"done\":1}");
+			const TCHAR* const OneBan = TEXT("[{\"side\":\"B\",\"vanguardId\":\"qazharr\"}]");
+			TOptional<VeyraBackendProtocol::FSelect> Read;
+			FString Problem;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseSelect(Draft(TEXT("banning"), ATurn, OneBan, Banning), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read->Phase == VeyraBackendProtocol::ESelectPhase::Banning && Read->Turn.IsSet() && Read->Turn->bBan && Read->Turn->Side == TEXT("A")
+				&& Read->Turn->Count == 2 && Read->Turn->Done == 1));
+			ASSERT_THAT(IsTrue(Read->Bans.Num() == 1 && Read->Bans[0].Side == TEXT("B") && Read->IsBanned(TEXT("qazharr")) && !Read->IsBanned(TEXT("cairn"))));
+			ASSERT_THAT(IsTrue(Read->Seats[0].BanHover == TEXT("bryn") && Read->Seats[0].bActing && !Read->Seats[1].bActing));
+			ASSERT_THAT(IsTrue(Read->YouBan() && !Read->YouMayLock(), TEXT("the player bans now, and picks later")));
+
+			// The final window: no turn, locks in, trades offered either way.
+			const TCHAR* const Locked = TEXT("{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,\"hover\":\"cairn\",\"locked\":\"cairn\",\"banHover\":null,")
+										TEXT("\"acting\":false,\"offersYou\":false,\"offeredByYou\":true},")
+										TEXT("{\"displayName\":\"DevThree\",\"side\":\"A\",\"you\":false,\"hover\":\"oriel\",\"locked\":\"oriel\",\"banHover\":null,")
+										TEXT("\"acting\":false,\"offersYou\":true,\"offeredByYou\":false}");
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseSelect(Draft(TEXT("final"), TEXT("null"), OneBan, Locked), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read->Phase == VeyraBackendProtocol::ESelectPhase::Final && !Read->Turn.IsSet() && !Read->YouBan() && !Read->YouMayLock()));
+			ASSERT_THAT(IsTrue(Read->Seats[0].bOfferedByYou && Read->Seats[1].bOffersYou && !Read->Seats[1].bOfferedByYou));
+
+			// A select from before drafts: one picking phase, in which the player may lock.
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseSelect(Select(TEXT("picking"), Seat(TEXT("DevOne"), TEXT("A"), true, TEXT("null"), TEXT("null")), TEXT("null"),
+				TEXT("null")), Read, Problem), Problem));
+			ASSERT_THAT(IsTrue(Read->Phase == VeyraBackendProtocol::ESelectPhase::Picking && Read->Bans.IsEmpty() && Read->YouMayLock()));
+
+			const TArray<FString> Bad = {
+				Draft(TEXT("thinking"), TEXT("null"), TEXT("[]"), Banning),
+				Draft(TEXT("banning"), TEXT("null"), TEXT("[]"), Banning),
+				Draft(TEXT("final"), ATurn, TEXT("[]"), Locked),
+				Draft(TEXT("banning"), TEXT("{\"ban\":true,\"side\":\"A\",\"count\":2,\"done\":2}"), TEXT("[]"), Banning),
+				Draft(TEXT("banning"), ATurn, TEXT("\"none\""), Banning),
+				Draft(TEXT("banning"), ATurn, TEXT("[{\"side\":\"C\",\"vanguardId\":\"qazharr\"}]"), Banning),
+				Draft(TEXT("banning"), ATurn, TEXT("[]"), *FString(Banning).Replace(TEXT("\"acting\":true"), TEXT("\"acting\":\"yes\""))),
+			};
+			for (const FString& Body : Bad)
+			{
+				ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseSelect(Body, Read, Problem), Body));
+			}
+
+			// The released Vanguards, which a ban may name.
+			VeyraBackendProtocol::FVanguardAccess Access;
+			ASSERT_THAT(IsTrue(VeyraBackendProtocol::ParseVanguardAccess(TEXT("{\"owned\":[],\"rotation\":[],\"available\":[],\"starters\":[],\"released\":[\"cairn\",\"bryn\"]}"),
+				Access, Problem), Problem));
+			ASSERT_THAT(IsTrue(Access.Released == (TArray<FString>{ TEXT("cairn"), TEXT("bryn") })));
+			ASSERT_THAT(IsFalse(VeyraBackendProtocol::ParseVanguardAccess(TEXT("{\"owned\":[],\"rotation\":[],\"available\":[],\"starters\":[],\"released\":[\"Cairn\"]}"),
+				Access, Problem)));
+			// The trade body names the teammate's seat.
+			ASSERT_THAT(AreEqual(VeyraBackendProtocol::BuildTradeBody(2), FString(TEXT("{\"seat\":2}"))));
+		}
 	};
 }
 

@@ -86,6 +86,8 @@ namespace VeyraBackendProtocol
 		TArray<FString> Available;
 		/** What a new player chooses a starter from. */
 		TArray<FString> Starters;
+		/** Every released Vanguard, owned or not: what a draft's bans may name (ADR-041 §1). */
+		TArray<FString> Released;
 	};
 
 	/** Reads the Vanguards a player may pick. False, with the problem, if it is not that. */
@@ -99,6 +101,36 @@ namespace VeyraBackendProtocol
 		Starting,
 		Started,
 		Cancelled,
+	};
+
+	/**
+	 * Where a picking select is (ADR-041 §1–§2): a draft's ban turn, picking (a draft's pick turn, or
+	 * any other select's whole time), or the final window after the last lock, in which locked
+	 * teammates may still trade before the match starts.
+	 */
+	enum class ESelectPhase : uint8
+	{
+		Banning,
+		Picking,
+		Final,
+	};
+
+	/** A draft's turn: Count bans or picks by Side, Done of them made (ADR-041 §1). */
+	struct FSelectTurn
+	{
+		bool bBan = false;
+		/** "A" or "B". */
+		FString Side;
+		int32 Count = 0;
+		int32 Done = 0;
+	};
+
+	/** A Vanguard a draft's side banned: neither team may pick it. */
+	struct FSelectBan
+	{
+		/** "A" or "B". */
+		FString Side;
+		FString VanguardId;
 	};
 
 	/** One seat of a select, as its player sees it. */
@@ -118,6 +150,14 @@ namespace VeyraBackendProtocol
 		 * only the reading player's own seat carries them.
 		 */
 		TArray<FString> FluxSpells;
+		/** The ban the seat is considering in its draft's ban turn; always empty for the enemy team's seats. */
+		FString BanHover;
+		/** Whether the seat bans or picks in the draft's current turn. */
+		bool bActing = false;
+		/** Whether the seat offers the reading player a trade of locked Vanguards (ADR-041 §2). */
+		bool bOffersYou = false;
+		/** Whether the reading player offers the seat one. */
+		bool bOfferedByYou = false;
 	};
 
 	/** A bot a custom lobby put in its select: a seat locked from the start (ADR-021 §3). */
@@ -134,13 +174,18 @@ namespace VeyraBackendProtocol
 	struct FSelect
 	{
 		FString Id;
-		/** "practice", "casual" (matchmade) or "custom" (a custom lobby's). */
+		/** "practice", "casual" (matchmade), "draft" (matchmade Draft Pick) or "custom" (a custom lobby's). */
 		FString Kind;
 		FString Mode;
 		ESelectState State = ESelectState::Picking;
-		/** What was left of the pick timer when the backend answered, by the backend's clock. */
+		ESelectPhase Phase = ESelectPhase::Picking;
+		/** A draft's current turn; unset outside one. */
+		TOptional<FSelectTurn> Turn;
+		/** A draft's bans, in order, which both teams see. */
+		TArray<FSelectBan> Bans;
+		/** What was left of the current phase or turn when the backend answered, by the backend's clock. */
 		double RemainingSeconds = 0.0;
-		/** The pick timer's full length, for a countdown bar. */
+		/** The current phase or turn's full length, for a countdown bar. */
 		double PickSeconds = 0.0;
 		TArray<FSelectSeat> Seats;
 		/** A custom select's bots, in each side's seat order; empty for the other kinds. */
@@ -152,6 +197,15 @@ namespace VeyraBackendProtocol
 
 		/** The reading player's seat; null if they have none. */
 		VEYRASERVICES_API const FSelectSeat* FindYou() const;
+
+		/** Whether the reading player bans now: the draft's ban turn names them. */
+		VEYRASERVICES_API bool YouBan() const;
+
+		/** Whether the reading player may lock a pick now: they have not, and a draft's pick turn names them. */
+		VEYRASERVICES_API bool YouMayLock() const;
+
+		/** Whether a side banned the Vanguard. */
+		VEYRASERVICES_API bool IsBanned(const FString& VanguardId) const;
 	};
 
 	/**
@@ -478,8 +532,11 @@ namespace VeyraBackendProtocol
 	/** The body of PUT /v1/party/ready. */
 	VEYRASERVICES_API FString BuildReadyBody(bool bReady);
 
-	/** The body of POST /v1/me/starter, PUT /v1/me/select/hover and POST /v1/me/select/lock. */
+	/** The body of POST /v1/me/starter, the select's hover and lock, and its ban hover and ban. */
 	VEYRASERVICES_API FString BuildVanguardBody(const FString& VanguardId);
+
+	/** The body of POST /v1/me/select/trade and its accept and decline: the teammate's seat, by its place in the select's seats. */
+	VEYRASERVICES_API FString BuildTradeBody(int32 Seat);
 
 	/** The body of PUT /v1/me/select/spells: the starting Flux Spells in slot order, "" for an empty slot. */
 	VEYRASERVICES_API FString BuildFluxSpellsBody(TConstArrayView<FString> Spells);

@@ -96,6 +96,11 @@
     backend must record a standard match won by the player's side; the server must add the mode's
     whole enemy team, and the verified scoreboard must list its bots.
 
+    -Flow Draft plays Draft Pick (ADR-041) as -Flow Casual does, against the local Draft Pick mode of
+    one human a side: each client bans in its side's ban turns, from the roster's end so neither
+    player's Vanguard is banned, and locks its Vanguard in its pick turn. The first ends the match
+    from its menu. Each client must have banned, and the backend must record the draft's match.
+
     -Flow Settings starts one packaged client twice (ADR-024 §8). The first time it opens Settings from
     the shell's top bar, chooses Windowed for the match's Display Mode (kept on this machine) and T for
     the first ability (kept with the account), and waits for the backend to take the binding. The
@@ -226,7 +231,7 @@ param(
 
     [switch]$Practice,
 
-    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Coop', 'Settings')]
+    [ValidateSet('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Custom', 'Coop', 'Draft', 'Settings')]
     [string]$Flow,
 
     [ValidateSet('Script', 'Cli')]
@@ -470,7 +475,7 @@ if ($Handoff -or $Flow) {
     # -Flow Casual: picks are unique in a matchmade select, so each player locks its own.
     $CasualVanguards = @('cairn', 'oriel')
     $isPractice = $Practice -or $Flow -eq 'Practice'
-    $isMatchmade = $Flow -in 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline'
+    $isMatchmade = $Flow -in 'Casual', 'CasualVictory', 'CasualReconnect', 'CasualDecline', 'Draft'
     # -Flow Custom: a custom lobby the first client hosts and the second joins (ADR-021), won by siege.
     $isCustom = $Flow -eq 'Custom'
     # -Flow Coop: one player queues for co-op, accepts, picks and sieges to victory against the enemy AI team (ADR-039 §6).
@@ -487,10 +492,13 @@ if ($Handoff -or $Flow) {
     # The committed config's queues hold five humans a side (Modes Bible §1, §4). A smoke has one client a
     # side, so its backend runs the committed config with the smoke's mode sized to it (ADR-039 §6).
     $smokeModeSize = $null
+    # -Flow Draft: as -Flow Casual, in a Draft Pick select of bans and picks in turns (ADR-041).
+    $isDraft = $Flow -eq 'Draft'
     if ($isMatchmade) {
-        $casualMode = $backendConfig.modes | Where-Object { $_.enabled -and $_.matchmaking -eq 'casualSelect' } | Select-Object -First 1
+        $matchmaking = $(if ($isDraft) { 'draftPick' } else { 'casualSelect' })
+        $casualMode = $backendConfig.modes | Where-Object { $_.enabled -and $_.matchmaking -eq $matchmaking } | Select-Object -First 1
         if (-not $casualMode) {
-            Write-Host "-Flow $Flow needs an enabled casualSelect mode in Backend/config/local.json."
+            Write-Host "-Flow $Flow needs an enabled $matchmaking mode in Backend/config/local.json."
             exit $ExitInfrastructure
         }
         $mode = $casualMode.id
@@ -646,6 +654,7 @@ if ($Handoff -or $Flow) {
                 $clientArguments += $(if ($Flow -eq 'Practice') { @('-VeyraSmokeFlow=practice', "-VeyraSmokeFlowVanguard=$PracticeVanguard", '-VeyraSmokeFlowSieges') }
                     elseif ($isSettings) { @("-VeyraSmokeFlow=$run") }
                     elseif ($Flow -eq 'Casual') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch') } else { @() }) }
+                    elseif ($isDraft) { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)", "-VeyraSmokeFlowMode=$mode") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch') } else { @() }) }
                     elseif ($Flow -eq 'CasualReconnect') { @('-VeyraSmokeFlow=casual', "-VeyraSmokeFlowVanguard=$($participants[$index].Vanguard)") + $(if ($index -eq 0) { @('-VeyraSmokeFlowEndsMatch', '-VeyraSmokeFlowAwaitsReturn') } else { @('-VeyraSmokeFlowReconnects') }) }
                     elseif ($isCustom) {
                         $friend = $participants[1 - $index].Name
@@ -784,6 +793,11 @@ if ($Handoff -or $Flow) {
                     Write-Host "  Presentation error: $($uiError.Matches[0].Value)"
                     $failed = $true
                 }
+                # In a draft each side bans in its turns (ADR-041 §1).
+                if ($isDraft -and -not (Select-String -LiteralPath $client.Log -SimpleMatch 'VeyraClientFlow: banning ' -Quiet)) {
+                    Write-Host '  It never banned in its draft.'
+                    $failed = $true
+                }
                 # The client must also close cleanly: a crash after its verdict still fails. A client the
                 # launcher CLI started is not this script's child, so its log is where a crash shows.
                 $crash = Get-LogCrash -Path $client.Log
@@ -799,6 +813,7 @@ if ($Handoff -or $Flow) {
             $screens = switch ($Flow) {
                 'Practice' { 'StarterChoice', 'Home', 'Play', 'ChampionSelect', 'MatchMenu', 'Results' }
                 'Casual' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'MatchMenu', 'Results' }
+                'Draft' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'Ban', 'ChampionSelect', 'MatchMenu', 'Results' }
                 'CasualReconnect' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'MatchMenu', 'Results' }
                 'CasualVictory' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'ChampionSelect', 'Results' }
                 'CasualDecline' { 'Home', 'Play', 'Party', 'Queue', 'MatchFound', 'Requeued' }
@@ -890,7 +905,7 @@ if ($Handoff -or $Flow) {
         }
         # Each scripted player chooses the roster's first Flux Spells in champion select and takes them
         # into the match (ADR-015 §5).
-        if ($Flow -in @('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'Custom', 'Coop')) {
+        if ($Flow -in @('Practice', 'Casual', 'CasualVictory', 'CasualReconnect', 'Custom', 'Coop', 'Draft')) {
             $spellRoster = @((Get-Content -LiteralPath (Join-Path $gameDir 'Tuning\Abilities.json') -Raw | ConvertFrom-Json).fluxSpells.roster)
             $expectedServerLines += @($participants | ForEach-Object { "$($_.Name) takes Flux Spells $($spellRoster[0]), $($spellRoster[1]) into the match." })
             # The practice player then swaps slot 1 at the fountain, for Gold, to the first spell neither slot holds (ADR-015 §7).

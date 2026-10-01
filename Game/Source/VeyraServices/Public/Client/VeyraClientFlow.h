@@ -135,6 +135,13 @@ public:
 	virtual bool LockVanguard(const FString& VanguardId) override;
 	virtual bool LeaveSelect() override;
 	virtual bool ChooseFluxSpell(int32 Slot, const FString& SpellId) override;
+	/** Only a released Vanguard not yet banned is on offer. */
+	virtual bool HoverBan(const FString& VanguardId) override;
+	virtual bool BanVanguard(const FString& VanguardId) override;
+	/** Only a locked teammate is on offer. */
+	virtual bool OfferTrade(int32 Seat) override;
+	/** Only a teammate whose offer stands is on offer. */
+	virtual bool AnswerTrade(int32 Seat, bool bAccept) override;
 	virtual bool Reconnect() override;
 	virtual bool ContinueFromResults() override;
 	virtual bool Retry() override;
@@ -266,6 +273,11 @@ private:
 	void LoadAvailableVanguards();
 	void PollSelect();
 	void LearnHowSelectEnded();
+	/**
+	 * Sends a select action whose answer is the select. A refusal whose code is in ShownRefusals is
+	 * shown; any other means the select moved on, which the next read shows.
+	 */
+	void SendSelectAction(EVerb Verb, const TCHAR* Path, const FString& Body, const TCHAR* What, TArray<const TCHAR*> ShownRefusals);
 	void EnterMatchStarting(const FString& MatchId);
 	void PollMatch();
 	void Connect(const VeyraBackendProtocol::FMyMatch& Match);

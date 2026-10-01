@@ -21,7 +21,7 @@ namespace VeyraClientFlowTests
 	inline const TCHAR* const Server = TEXT("127.0.0.1:7780");
 	/** The matchmade mode, and one that has no matchmaker yet, as the local backend offers them. */
 	inline const TCHAR* const CasualMode = TEXT("casual_select");
-	inline const TCHAR* const UnmatchedMode = TEXT("draft_pick");
+	inline const TCHAR* const UnmatchedMode = TEXT("ranked");
 
 	/** A value in a credential's format: its prefix and 43 base64url characters. It is not a credential. */
 	inline FString ExampleCredential(const TCHAR* Prefix, TCHAR Fill)
@@ -83,7 +83,8 @@ namespace VeyraClientFlowTests
 	}
 
 	inline const TCHAR* const VanguardsBody = TEXT("{\"owned\":[],\"rotation\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"],")
-											  TEXT("\"available\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"],\"starters\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"]}");
+											  TEXT("\"available\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"],\"starters\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\"],")
+										  TEXT("\"released\":[\"cairn\",\"qazharr\",\"oriel\",\"bryn\",\"silt\"]}");
 
 	inline FString OutcomeBody(const TCHAR* State, bool bWithResult)
 	{
@@ -150,7 +151,7 @@ namespace VeyraClientFlowTests
 	}
 
 	inline const TCHAR* const ModesBody = TEXT("{\"modes\":[{\"id\":\"casual_select\",\"category\":\"casual\",\"enabled\":true,\"humanPlayersPerTeam\":1,\"matchmaking\":\"casualSelect\"},")
-										  TEXT("{\"id\":\"draft_pick\",\"category\":\"casual\",\"enabled\":true,\"humanPlayersPerTeam\":5,\"matchmaking\":\"notImplemented\"}]}");
+										  TEXT("{\"id\":\"ranked\",\"category\":\"ranked\",\"enabled\":true,\"humanPlayersPerTeam\":5,\"matchmaking\":\"notImplemented\"}]}");
 
 	inline const TCHAR* const NoParty = TEXT("{\"party\":null}");
 
@@ -234,6 +235,22 @@ namespace VeyraClientFlowTests
 		const FString Invite = FString::Printf(TEXT("{\"id\":\"%s\",\"lobbyId\":\"%s\",\"inviter\":%s,\"expiresAt\":\"2026-09-29T12:02:00Z\"}"), InviteId, LobbyId,
 			*AccountJson(FriendId, TEXT("DevTwo")));
 		return FString::Printf(TEXT("{\"invites\":[%s]}"), bInvited ? *Invite : TEXT(""));
+	}
+
+	/**
+	 * A Draft Pick select (ADR-041): the player and DevThree on side A, DevTwo on side B, in Phase with
+	 * Turn (JSON, or null) and Bans (JSON). YouSeat and TeammateSeat are the two side A seats' details
+	 * after their names and sides, such as "\"hover\":null,\"locked\":null,\"acting\":true".
+	 */
+	inline FString DraftSelectBody(const TCHAR* Phase, const TCHAR* Turn, const TCHAR* Bans, const TCHAR* YouSeat, const TCHAR* TeammateSeat)
+	{
+		return FString::Printf(TEXT("{\"select\":{\"id\":\"%s\",\"kind\":\"draft\",\"mode\":\"draft_pick\",\"state\":\"picking\",\"phase\":\"%s\",")
+							   TEXT("\"turn\":%s,\"bans\":%s,\"deadline\":\"2026-09-27T12:00:30Z\",\"remainingSeconds\":30,\"pickSeconds\":30,")
+							   TEXT("\"seats\":[{\"displayName\":\"DevOne\",\"side\":\"A\",\"you\":true,%s},")
+							   TEXT("{\"displayName\":\"DevThree\",\"side\":\"A\",\"you\":false,%s},")
+							   TEXT("{\"displayName\":\"DevTwo\",\"side\":\"B\",\"you\":false,\"hover\":null,\"locked\":null}],")
+							   TEXT("\"matchId\":null,\"cancelReason\":null}}"),
+			SelectId, Phase, Turn, Bans, YouSeat, TeammateSeat);
 	}
 
 	/** A custom lobby's select: the player on side A, DevTwo on side B beside a Beginner Cairn bot. */
@@ -505,6 +522,15 @@ namespace VeyraClientFlowTests
 				&& Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200, MatchFoundBody(TEXT("accepted"), TEXT("accepted"), 2, SelectId))
 				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch)
 				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, CasualSelectBody(TEXT("picking")))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody) && State() == EVeyraClientState::Selecting;
+		}
+
+		/** Everyone accepts the match found: its draft opens as Body says, with the available and released Vanguards read. */
+		bool ReachDraftSelect(const FString& Body)
+		{
+			return ReachMatchFound() && Flow->AcceptMatch()
+				&& Backend.Answer(TEXT("POST"), TEXT("/v1/me/match-found/accept"), 200, MatchFoundBody(TEXT("accepted"), TEXT("accepted"), 2, SelectId))
+				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/match"), 200, NoMatch) && Backend.Answer(TEXT("GET"), TEXT("/v1/me/select"), 200, Body)
 				&& Backend.Answer(TEXT("GET"), TEXT("/v1/me/vanguards"), 200, VanguardsBody) && State() == EVeyraClientState::Selecting;
 		}
 
