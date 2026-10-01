@@ -347,6 +347,19 @@ The different-action requirement is deliberate: Blank Sigil rewards a setup → 
 
 Blank Sigil draws its name from the cut-out insignia patches associated with Angeru's rejection of both Reed Provinces martial houses. It is a general assassin/burst Masterwork and is not mechanically exclusive to Angeru.
 
+### Cutline Mantle
+
+**Recipe:** Veil Needle + War Harness + Timing Coil + Tier 3 recipe  
+**Stat identity:** Physical Power + flat Physical Penetration + Health + Ability Haste.
+
+**Attunement — Clean Break**
+
+When an enemy Vanguard dies shortly after the holder damaged them, the holder gains a brief burst of decaying Movement Speed and a temporary shield based partly on the damage the holder personally dealt to that Vanguard during the recent combat window.
+
+Additional qualifying takedowns refresh the Movement Speed and replace or refresh the shield rather than stacking multiple shields.
+
+Clean Break is an escape/reposition window, not a full reset: it does not grant Invisibility, Untargetability, Unstoppable, or complete ability resets. Exact participation window, Movement Speed amount/duration, shield ratio/cap, and stat values are prototype tuning values.
+
 ### Harborline Harness
 
 **Recipe:** Rescue Rig + Waymark Weave + Warforged Grip + Tier 3 recipe  
