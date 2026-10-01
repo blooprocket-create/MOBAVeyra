@@ -52,6 +52,11 @@ const DatabaseURLEnv = "VEYRA_DATABASE_URL"
 const (
 	// MatchmakingCasualSelect: a matchmaker, then Match Found and Casual Select.
 	MatchmakingCasualSelect = "casualSelect"
+	// The Play page's categories a mode is listed under (ADR-039 §6).
+	CategoryRanked = "ranked"
+	CategoryCasual = "casual"
+	CategoryAI     = "ai"
+
 	// MatchmakingCoop: a matchmaker for one side of humans against an enemy AI
 	// team, then Match Found and a Casual Select with the bots seated (ADR-039 §2).
 	MatchmakingCoop = "coop"
@@ -280,8 +285,11 @@ type Party struct {
 
 // Mode is one matchmade mode's validated settings (Modes & Access Bible §1).
 type Mode struct {
-	ID                  string
-	Enabled             bool
+	ID      string
+	Enabled bool
+	// Category is the Play page's group for the mode: CategoryRanked,
+	// CategoryCasual or CategoryAI. A co-op mode is always CategoryAI.
+	Category            string
 	HumanPlayersPerTeam int
 	// Matchmaking is MatchmakingCasualSelect, MatchmakingCoop or
 	// MatchmakingNotImplemented.
@@ -365,6 +373,7 @@ type fileConfig struct {
 	} `json:"party"`
 	Modes []struct {
 		ID                  *string `json:"id"`
+		Category            *string `json:"category"`
 		Enabled             *bool   `json:"enabled"`
 		HumanPlayersPerTeam *int    `json:"humanPlayersPerTeam"`
 		Matchmaking         *string `json:"matchmaking"`
@@ -638,7 +647,19 @@ func Parse(raw []byte) (Config, error) {
 		if *m.Matchmaking != MatchmakingCasualSelect && *m.Matchmaking != MatchmakingCoop && *m.Matchmaking != MatchmakingNotImplemented {
 			problems = append(problems, field+".matchmaking must be \""+MatchmakingCasualSelect+"\", \""+MatchmakingCoop+"\" or \""+MatchmakingNotImplemented+"\"")
 		}
+		switch {
+		case m.Category == nil:
+			missing(field + ".category")
+		case *m.Category != CategoryRanked && *m.Category != CategoryCasual && *m.Category != CategoryAI:
+			problems = append(problems, field+".category must be \""+CategoryRanked+"\", \""+CategoryCasual+"\" or \""+CategoryAI+"\"")
+		case (*m.Matchmaking == MatchmakingCoop) != (*m.Category == CategoryAI) && *m.Matchmaking != MatchmakingNotImplemented:
+			// Humans against an enemy AI team are the AI category, and only they are.
+			problems = append(problems, field+".category must be \""+CategoryAI+"\" exactly when its matchmaking is \""+MatchmakingCoop+"\"")
+		}
 		mode := Mode{ID: *m.ID, Enabled: *m.Enabled, HumanPlayersPerTeam: *m.HumanPlayersPerTeam, Matchmaking: *m.Matchmaking}
+		if m.Category != nil {
+			mode.Category = *m.Category
+		}
 		// A co-op mode's enemy AI team, and only a co-op mode's (ADR-039 §2).
 		if *m.Matchmaking == MatchmakingCoop {
 			switch {

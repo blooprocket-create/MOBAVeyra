@@ -87,7 +87,7 @@ func run(log *slog.Logger) error {
 	for _, m := range cfg.Modes {
 		matchmade := m.Matchmaking == config.MatchmakingCasualSelect || m.Matchmaking == config.MatchmakingCoop
 		rules.Modes[m.ID] = party.Mode{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam, Matchmade: matchmade}
-		modes = append(modes, httpapi.ModeInfo{ID: m.ID, Enabled: m.Enabled, HumanPlayersPerTeam: m.HumanPlayersPerTeam, Matchmaking: m.Matchmaking})
+		modes = append(modes, httpapi.ModeInfo{ID: m.ID, Enabled: m.Enabled, Category: m.Category, HumanPlayersPerTeam: m.HumanPlayersPerTeam, Matchmaking: m.Matchmaking})
 	}
 	parties := party.NewService(store.Party(), soc, party.Settings{
 		Rules:          rules,

@@ -21,8 +21,8 @@ const validJSON = `{
   "devLogin": {"enabled": true, "accounts": ["DevOne", "DevTwo"]},
   "party": {"maxSize": 5, "inviteLifetime": "2m", "defaultPrivacy": "private"},
   "modes": [
-    {"id": "casual_select", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "casualSelect"},
-    {"id": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
+    {"id": "casual_select", "category": "casual", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "casualSelect"},
+    {"id": "ranked", "category": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
   ],
   "vanguards": {"released": ["cairn", "qazharr", "oriel", "bryn"], "starters": ["cairn", "qazharr", "oriel"], "rotation": {"slots": 12, "epoch": "2026-09-28T00:00:00Z", "weekSeconds": 604800, "seed": "test", "releases": {}}},
   "fluxSpells": {"roster": ["blink", "mend"]},
@@ -108,6 +108,11 @@ func TestParseRejects(t *testing.T) {
 		"mode missing team size":   {`"enabled": false, "humanPlayersPerTeam": 5`, `"enabled": false`, "humanPlayersPerTeam is required"},
 		"mode missing matchmaking": {`, "matchmaking": "notImplemented"}`, `}`, "modes[1].matchmaking is required"},
 		"mode bad matchmaking":     {`"matchmaking": "casualSelect"`, `"matchmaking": "draft"`, "modes[0].matchmaking must be"},
+		"mode missing category":    {`"id": "ranked", "category": "ranked"`, `"id": "ranked"`, "modes[1].category is required"},
+		"mode bad category":        {`"category": "casual"`, `"category": "arcade"`, "modes[0].category must be"},
+		"coop outside the AI category": {`"matchmaking": "casualSelect"}`, `"matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "beginner"}`,
+			"modes[0].category must be \"ai\" exactly when"},
+		"PvP in the AI category":   {`"category": "casual"`, `"category": "ai"`, "modes[0].category must be \"ai\" exactly when"},
 		"coop without its AI team": {`"matchmaking": "casualSelect"`, `"matchmaking": "coop"`, "modes[0].aiPerTeam is required"},
 		"coop bad difficulty": {`"matchmaking": "casualSelect"}`, `"matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "expert"}`,
 			"modes[0].aiDifficulty must be"},

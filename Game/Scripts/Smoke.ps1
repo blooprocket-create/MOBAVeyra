@@ -476,14 +476,17 @@ if ($Handoff -or $Flow) {
     $expectsMatch = $Flow -notin 'CasualDecline', 'Settings'
     $playerCount = $(if ($isPractice -or $isSettings) { 1 } else { 2 })
     $mode = $(if ($isPractice) { $backendConfig.customPractice.mode } else { ($backendConfig.modes | Where-Object { $_.enabled } | Select-Object -First 1).id })
+    # The committed config's queues hold five humans a side (Modes Bible §1, §4). A smoke has one client a
+    # side, so its backend runs the committed config with the smoke's mode sized to it (ADR-039 §6).
+    $smokeModeSize = $null
     if ($isMatchmade) {
-        # Two players make one match only with the local 1v1 team size (ADR-010, provisional).
         $casualMode = $backendConfig.modes | Where-Object { $_.enabled -and $_.matchmaking -eq 'casualSelect' } | Select-Object -First 1
-        if (-not $casualMode -or $casualMode.humanPlayersPerTeam -ne 1) {
-            Write-Host "-Flow $Flow needs an enabled casualSelect mode of one human player per team in Backend/config/local.json."
+        if (-not $casualMode) {
+            Write-Host "-Flow $Flow needs an enabled casualSelect mode in Backend/config/local.json."
             exit $ExitInfrastructure
         }
         $mode = $casualMode.id
+        $smokeModeSize = 1
     }
     if ($isCustom) {
         if (-not $backendConfig.customLobby.enabled) {
@@ -503,6 +506,12 @@ if ($Handoff -or $Flow) {
         exit $ExitInfrastructure
     }
     $backendWasRunning = @(& docker compose --project-directory $repositoryDir ps --status running --services 2>$null) -contains 'backend'
+    if ($smokeModeSize) {
+        Set-VeyraBackendConfig -RepositoryDir $repositoryDir -Mode $mode -HumansPerTeam $smokeModeSize
+    }
+    else {
+        Set-VeyraBackendConfig -RepositoryDir $repositoryDir
+    }
     Write-Host 'Starting the backend.'
     if ((Invoke-Compose -Arguments @('up', '--build', '--detach', '--wait', 'postgres', 'backend')) -ne 0) {
         Write-Host 'The backend did not start.'

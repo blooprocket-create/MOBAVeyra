@@ -58,7 +58,7 @@ Every route below needs `Authorization: Bearer <game session token>`. Accounts a
 | `DELETE /v1/friends/requests/{accountId}` | — | withdraw your request |
 | `DELETE /v1/friends/{accountId}` | — | unfriend |
 | `GET /v1/blocks` · `PUT` / `DELETE /v1/blocks/{accountId}` | — | list, block, unblock |
-| `GET /v1/modes` | — | modes: whether each is enabled, its `humanPlayersPerTeam`, and its `matchmaking`, `casualSelect`, `coop` (humans against an enemy AI team) or `notImplemented` (not yet available) |
+| `GET /v1/modes` | — | modes: whether each is enabled, its Play-page `category` (`ranked`, `casual` or `ai`; ADR-039 §6), its `humanPlayersPerTeam`, and its `matchmaking`, `casualSelect`, `coop` (humans against an enemy AI team) or `notImplemented` (not yet available) |
 | `GET /v1/party` | — | your party, or `{"party": null}`; its `status` is `idle`, `queued`, `found` (Match Found) or `selecting`, and `queuedSeconds` how long it has been in matchmaking |
 | `PUT /v1/party/mode` | `{"mode"}` | leader picks a mode; creates a one-person party if you have none |
 | `PUT /v1/party/privacy` | `{"privacy": "public"\|"private"}` | leader only |
@@ -149,7 +149,7 @@ Rules the code enforces:
 - Everyone must accept within `matchFound.acceptDuration`. A decline, or the timer ending, abandons the match: a party with a player who declined, or had not accepted in time, leaves the queue Not Ready; the others return to it in their places. There is no decline penalty (§3).
 - When everyone accepts, a Casual Select opens with each player on their side.
 
-**Provisional** (ADR-010 §11): the grouping rule (oldest first, parties never split) where canon leaves the algorithm open; accepters keeping their queue time; `matchFound.acceptDuration` `15s`; and a local Casual Select of **one a side** (`humanPlayersPerTeam: 1`) so two clients can play it; canon's team is five.
+**Provisional** (ADR-010 §11): the grouping rule (oldest first, parties never split) where canon leaves the algorithm open; accepters keeping their queue time; `matchFound.acceptDuration` `15s`; The committed configuration holds canon's five a side. `Smoke.ps1` and `Play.ps1 -Opponent` size their mode to their two clients in a generated `config/scripted.json`, which `compose.yaml` runs through `VEYRA_BACKEND_CONFIG` (ADR-039 §6).
 
 ### Onboarding and Vanguards
 

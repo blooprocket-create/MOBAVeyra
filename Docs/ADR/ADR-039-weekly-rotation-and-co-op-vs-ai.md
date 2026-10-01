@@ -43,7 +43,7 @@
   - `aiPerTeam`: how many enemy AI Vanguards, five.
 - **A co-op match** groups `humanPlayersPerTeam` humans on one side (parties of 1 to that size, never friendly AI) against `aiPerTeam` bots on the other. Matchmaking waits for enough humans rather than adding bots to their side.
 - **Only the humans accept** a co-op match found.
-- **Locally, `humanPlayersPerTeam` is 1,** as Casual's is, so one player can play co-op against five bots. Canon is five.
+- **Five humans a side, as canon says** (author, 2026-10-01): both co-op queues, like Casual Select, hold `humanPlayersPerTeam` 5 in the committed configuration. A script with fewer clients sizes its mode's queue to them (§6).
 
 ### 3. Co-op select (Backend: selection)
 
@@ -69,6 +69,14 @@
 ### 6. The client
 
 - **Co-op modes are matchmade:** they show as playable cards, queue, accept and select as Casual does, with their bots in the enemy seats.
+- **The Play page groups its modes in four categories** (author, 2026-10-01), in this order:
+  - **Ranked:** Ranked Draft Pick;
+  - **Casual:** Blind Pick (Casual Select's card) and Draft Pick, five a side;
+  - **AI:** Co-op vs AI Beginner and Intermediate;
+  - **Customs:** Practice and Custom Game.
+
+  Each backend mode names its category (`ranked`, `casual` or `ai`). Validation keeps co-op modes in the AI category, and only them. Customs are the client's own entries, which no queue serves. Modes not yet built (Ranked, Draft Pick) show in their categories as not yet available.
+- **Scripts with fewer clients than a queue holds** (`Smoke.ps1` for a matchmade flow, `Play.ps1 -Opponent`) start the backend with `Backend/config/scripted.json`: the committed configuration with their mode's queue sized to their clients. `compose.yaml` takes it through `VEYRA_BACKEND_CONFIG`, and the file is never committed.
 - **`Smoke.ps1 -Flow Coop`** queues one packaged client for co-op, accepts, picks, and sieges to victory against five bots.
 
 ### 7. Rewards
@@ -89,5 +97,5 @@
 ## Consequences
 
 - Matchmade players gain twelve playable Vanguards each week, and the rotation stops depending on how many are released.
-- One player can play a full match locally against five AI Vanguards.
+- Five players play a full co-op match against five AI Vanguards; locally, a script plays one against five through `scripted.json`.
 - Bot teams fill their roles sensibly, in co-op and in every other match with bots.
