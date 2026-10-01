@@ -1040,6 +1040,56 @@
       },
       "rankShape": [],
       "passive": ["marek_bound_together"]
+    },
+    "neris": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 38, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 535,
+        "healthRegen": 0.9,
+        "maxResource": 420,
+        "resourceRegen": 7.5,
+        "armor": 21,
+        "magicResist": 30,
+        "physicalPower": 50,
+        "magicPower": 0,
+        "attackSpeed": 0.64,
+        "moveSpeed": 335
+      },
+      "growth": {
+        "maxHealth": 88,
+        "healthRegen": 0.11,
+        "maxResource": 40,
+        "resourceRegen": 0.5,
+        "armor": 4.2,
+        "magicResist": 1.3,
+        "physicalPower": 2.8,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.022
+      },
+      "basicAttack": {
+        "range": 550,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1500, "radius": 15 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["neris_breaking_wave"],
+        "w": ["neris_little_current"],
+        "e": ["neris_change_the_weather"],
+        "r": ["neris_tidebreaker"]
+      },
+      "rankShape": [],
+      "passive": []
     }
   },
   "deepFoundation": {

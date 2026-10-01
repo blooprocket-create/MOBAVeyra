@@ -328,6 +328,20 @@
         "marek_cross_the_chain": "Damage",
         "marek_hell_on_a_leash": "Engage"
       }
+    },
+    "neris": {
+      "provenance": "Provisional",
+      "build": ["arcane_boots", "crown_of_the_crucible", "nullglass_lens", "arc_reactor", "spellguard_plate"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "neris_breaking_wave": "Engage",
+        "neris_breaking_wave_storm": "Engage",
+        "neris_little_current": "Defend",
+        "neris_little_current_storm": "Damage",
+        "neris_change_the_weather": "Damage",
+        "neris_tidebreaker": "Engage",
+        "neris_tidebreaker_storm": "Engage"
+      }
     }
   }
 }

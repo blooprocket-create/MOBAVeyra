@@ -550,16 +550,23 @@ TArray<FString> Validate(const FVeyraVanguardsTuning& Tuning, const FVeyraAbilit
 				Kit.Add(Ability);
 			}
 		}
-		// A stance's abilities rank with the slots they hold, and are the kit's own as much (ADR-031 §3).
-		for (const TArray<FVeyraContentId>* Ids : { &Vanguard.Abilities.Q, &Vanguard.Abilities.W, &Vanguard.Abilities.E, &Vanguard.Abilities.R })
+		// A stance's abilities rank with the slots they hold, and are the kit's own as much (ADR-031 §3). It never
+		// holds the slot it sits in itself, which keeps it (ADR-035 §1).
+		const TPair<EVeyraAbilitySlot, const TArray<FVeyraContentId>*> OwnSlots[] = { { EVeyraAbilitySlot::Q, &Vanguard.Abilities.Q },
+			{ EVeyraAbilitySlot::W, &Vanguard.Abilities.W }, { EVeyraAbilitySlot::E, &Vanguard.Abilities.E }, { EVeyraAbilitySlot::R, &Vanguard.Abilities.R } };
+		for (const TPair<EVeyraAbilitySlot, const TArray<FVeyraContentId>*>& Own : OwnSlots)
 		{
-			for (const FVeyraContentId& Ability : *Ids)
+			for (const FVeyraContentId& Ability : *Own.Value)
 			{
 				const FVeyraStanceAbilityTuning* Stance = Abilities.Stance.Find(Ability);
 				for (int32 Index = 0; Stance && Index < Stance->Slots.Num(); ++Index)
 				{
 					const FVeyraStanceSlotTuning& Held = Stance->Slots[Index];
 					const FString HeldPointer = FString::Printf(TEXT("%s/abilities (stance %s, slot %d)"), *Pointer, *Ability.ToString(), Index);
+					if (Held.Slot == Own.Key)
+					{
+						Problem(HeldPointer, TEXT("holds the slot the stance sits in; a stance keeps its own slot"));
+					}
 					for (const FString& RankProblem : VeyraAbilityRules::ValidateRanks(Abilities, Held.Ability, VeyraProgression::MaxRank(Held.Slot, Progression, Shape)))
 					{
 						Problem(HeldPointer, TEXT("in its slot, ") + RankProblem);

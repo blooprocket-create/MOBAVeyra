@@ -782,15 +782,16 @@ namespace
 			{
 				Problem(Pointer + TEXT("/slots"), TEXT("holds at least one slot"));
 			}
-			TArray<EVeyraAbilitySlot, TInlineAllocator<3>> Held;
+			TArray<EVeyraAbilitySlot, TInlineAllocator<4>> Held;
 			for (int32 Index = 0; Index < Stance.Slots.Num(); ++Index)
 			{
 				const FVeyraStanceSlotTuning& Slot = Stance.Slots[Index];
 				const FString SlotPointer = FString::Printf(TEXT("%s/slots/%d"), *Pointer, Index);
-				// It takes the place of a basic ability; the stance itself keeps its own slot.
-				if (Slot.Slot != EVeyraAbilitySlot::Q && Slot.Slot != EVeyraAbilitySlot::W && Slot.Slot != EVeyraAbilitySlot::E)
+				// It takes the place of an ability of the kit's, its ultimate too (ADR-035 §1); the Vanguard's rules keep
+				// the stance's own slot its own.
+				if (Slot.Slot != EVeyraAbilitySlot::Q && Slot.Slot != EVeyraAbilitySlot::W && Slot.Slot != EVeyraAbilitySlot::E && Slot.Slot != EVeyraAbilitySlot::R)
 				{
-					Problem(SlotPointer + TEXT("/slot"), TEXT("must be Q, W or E: a stance holds basic abilities' slots"));
+					Problem(SlotPointer + TEXT("/slot"), TEXT("must be Q, W, E or R: a stance holds the slots of its kit's abilities"));
 				}
 				if (Held.Contains(Slot.Slot))
 				{

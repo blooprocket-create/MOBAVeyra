@@ -1155,7 +1155,7 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
             "slots": {
-              "description": "Q, W or E, each once, with the ability it holds while the stance lasts. Each takes its slot's rank.",
+              "description": "Q, W, E or R, each once and never the slot the stance itself sits in (ADR-035 §1), with the ability it holds while the stance lasts. Each takes its slot's rank.",
               "type": "array",
               "minItems": 1,
               "items": {

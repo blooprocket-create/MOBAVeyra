@@ -1139,6 +1139,142 @@
       "unitKinds": [],
       "landsOn": [],
       "attackCharges": 0
+    },
+    "neris_wave_body": {
+      "provenance": "Provisional",
+      "kind": "BodyScale",
+      "stacking": "UniqueRefresh",
+      "magnitude": 1.2,
+      "durationSeconds": 1.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_tidebreaker_body": {
+      "provenance": "Provisional",
+      "kind": "BodyScale",
+      "stacking": "UniqueRefresh",
+      "magnitude": 1.8,
+      "durationSeconds": 2.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_tidebreaker_lock": {
+      "provenance": "Provisional",
+      "kind": "Counter",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0,
+      "durationSeconds": 2.5,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_current_swell": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.08,
+      "durationSeconds": 1.75,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_current_drag": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.25,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_wake_stride": {
+      "provenance": "Provisional",
+      "kind": "MoveSpeed",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.15,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_wake_mend": {
+      "provenance": "Provisional",
+      "kind": "HealthRegeneration",
+      "stacking": "UniqueRefresh",
+      "magnitude": 2,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
+    },
+    "neris_riptide_drag": {
+      "provenance": "Provisional",
+      "kind": "Slow",
+      "stacking": "UniqueRefresh",
+      "magnitude": 0.3,
+      "durationSeconds": 1,
+      "maxStacks": 1,
+      "takedownExtensionSeconds": 0,
+      "takedownExtensionMaxSeconds": 0,
+      "damageOverTime": [],
+      "stackDecaySeconds": 0,
+      "atMaxStacks": [],
+      "arcDegrees": 0,
+      "unitKinds": [],
+      "landsOn": [],
+      "attackCharges": 0
     }
   },
   "targetedDamage": {
@@ -3025,6 +3161,149 @@
           "movementField": [
             { "pull": 150 }
           ]
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "neris_healing_wake": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 3,
+          "pulseSeconds": 0.5,
+          "casterStatuses": ["neris_wake_stride", "neris_wake_mend"],
+          "allyStatuses": ["neris_wake_stride", "neris_wake_mend"],
+          "enemyStatuses": [],
+          "sight": "None",
+          "pulseEffects": [],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": []
+        }
+      ],
+      "consumesCasterStatuses": [],
+      "channelMovement": "Locked",
+      "casterStatuses": [],
+      "healOnHit": [],
+      "delayWithin": []
+    },
+    "neris_riptide": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "origin": "Caster",
+      "originAbility": [],
+      "delaySeconds": 0,
+      "channelTicks": 1,
+      "channelSeconds": 0,
+      "reveal": { "radius": 0, "durationSeconds": 0 },
+      "zones": [
+        {
+          "shape": { "kind": "Circle", "radius": 200, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": []
+        }
+      ],
+      "linger": [
+        {
+          "durationSeconds": 3,
+          "pulseSeconds": 0.5,
+          "casterStatuses": [],
+          "allyStatuses": [],
+          "enemyStatuses": ["neris_riptide_drag"],
+          "sight": "None",
+          "pulseEffects": [
+            {
+              "damage": [
+                {
+                  "type": "Magic",
+                  "amountByRank": [20, 30, 40],
+                  "physicalPowerRatio": 0,
+                  "magicPowerRatio": 0.1
+                }
+              ],
+              "statuses": [],
+              "displacement": [],
+              "missingHealthDamage": [],
+              "unitKindMultipliers": [],
+              "displacementUnlessStatuses": [],
+              "reactions": []
+            }
+          ],
+          "endEffects": [],
+          "endWarningSeconds": 0,
+          "movementField": []
         }
       ],
       "consumesCasterStatuses": [],
@@ -5792,6 +6071,272 @@
       "crashZones": [],
       "contact": [],
       "trail": []
+    },
+    "neris_breaking_wave": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [12, 11, 10, 9, 8],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "setSpeed": 650,
+      "turnRateDegreesPerSecond": 90,
+      "durationSeconds": 1.5,
+      "decaySeconds": 0.5,
+      "riderStatuses": ["neris_wave_body"],
+      "mounted": [
+        { "slot": "Q", "ability": "neris_wave_crash" }
+      ],
+      "vehicle": [],
+      "crashZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 275, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [40, 60, 80, 100, 120],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.3
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": [
+            {
+              "healByRank": [60, 85, 110, 135, 160],
+              "healMagicPowerRatio": 0.35,
+              "statuses": [],
+              "reach": "CasterToo"
+            }
+          ]
+        }
+      ],
+      "contact": [],
+      "trail": []
+    },
+    "neris_breaking_wave_storm": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [12, 11, 10, 9, 8],
+        "resourceCostByRank": [60, 65, 70, 75, 80],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": ["neris_breaking_wave"],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "setSpeed": 650,
+      "turnRateDegreesPerSecond": 90,
+      "durationSeconds": 1.5,
+      "decaySeconds": 0.5,
+      "riderStatuses": ["neris_wave_body"],
+      "mounted": [
+        { "slot": "Q", "ability": "neris_wave_crash" }
+      ],
+      "vehicle": [],
+      "crashZones": [
+        {
+          "shape": { "kind": "Circle", "radius": 275, "arcDegrees": 0, "length": 0, "width": 0 },
+          "effects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [70, 100, 130, 160, 190],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.5
+              }
+            ],
+            "statuses": [],
+            "displacement": [],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "casterShieldPerVanguard": [],
+          "casterStatusesPerVanguard": [],
+          "allyEffects": [
+            {
+              "healByRank": [25, 35, 45, 55, 65],
+              "healMagicPowerRatio": 0.15,
+              "statuses": [],
+              "reach": "CasterToo"
+            }
+          ]
+        }
+      ],
+      "contact": [],
+      "trail": []
+    },
+    "neris_tidebreaker": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 105, 90],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "setSpeed": 850,
+      "turnRateDegreesPerSecond": 60,
+      "durationSeconds": 2.5,
+      "decaySeconds": 0.5,
+      "riderStatuses": ["neris_tidebreaker_body", "neris_tidebreaker_lock"],
+      "mounted": [],
+      "vehicle": [],
+      "crashZones": [],
+      "contact": [
+        {
+          "reach": 60,
+          "pulseSeconds": 0.1,
+          "enemyEffects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [120, 180, 240],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.5
+              }
+            ],
+            "statuses": [],
+            "displacement": [
+              {
+                "direction": "AsideFromPath",
+                "distance": 250,
+                "speed": 1100,
+                "collisionStatuses": []
+              }
+            ],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "enemyKinds": ["Vanguard"],
+          "allyEffects": [
+            {
+              "healByRank": [140, 200, 260],
+              "healMagicPowerRatio": 0.5,
+              "statuses": [],
+              "reach": "OthersOnly"
+            }
+          ]
+        }
+      ],
+      "trail": [
+        { "spacing": 250, "pulseSeconds": 0.2, "area": "neris_healing_wake" }
+      ]
+    },
+    "neris_tidebreaker_storm": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [120, 105, 90],
+        "resourceCostByRank": [100],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": ["neris_tidebreaker"],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "setSpeed": 850,
+      "turnRateDegreesPerSecond": 60,
+      "durationSeconds": 2.5,
+      "decaySeconds": 0.5,
+      "riderStatuses": ["neris_tidebreaker_body", "neris_tidebreaker_lock"],
+      "mounted": [],
+      "vehicle": [],
+      "crashZones": [],
+      "contact": [
+        {
+          "reach": 60,
+          "pulseSeconds": 0.1,
+          "enemyEffects": {
+            "damage": [
+              {
+                "type": "Magic",
+                "amountByRank": [190, 280, 370],
+                "physicalPowerRatio": 0,
+                "magicPowerRatio": 0.7
+              }
+            ],
+            "statuses": [],
+            "displacement": [
+              {
+                "direction": "AsideFromPath",
+                "distance": 250,
+                "speed": 1100,
+                "collisionStatuses": []
+              }
+            ],
+            "missingHealthDamage": [],
+            "unitKindMultipliers": [],
+            "displacementUnlessStatuses": [],
+            "reactions": []
+          },
+          "enemyKinds": ["Vanguard"],
+          "allyEffects": [
+            {
+              "healByRank": [60, 90, 120],
+              "healMagicPowerRatio": 0.25,
+              "statuses": [],
+              "reach": "OthersOnly"
+            }
+          ]
+        }
+      ],
+      "trail": [
+        { "spacing": 250, "pulseSeconds": 0.2, "area": "neris_riptide" }
+      ]
     }
   },
   "ambush": {
@@ -5899,6 +6444,32 @@
         { "slot": "Q", "ability": "angeru_flowing_cut" },
         { "slot": "W", "ability": "angeru_severing_arc" },
         { "slot": "E", "ability": "angeru_passing_step" }
+      ]
+    },
+    "neris_change_the_weather": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [8, 7.5, 7, 6.5, 6],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": ["neris_tidebreaker_lock"],
+        "minimumResource": []
+      },
+      "slots": [
+        { "slot": "Q", "ability": "neris_breaking_wave_storm" },
+        { "slot": "W", "ability": "neris_little_current_storm" },
+        { "slot": "R", "ability": "neris_tidebreaker_storm" }
       ]
     }
   },
@@ -6107,7 +6678,29 @@
       }
     }
   },
-  "dismount": {},
+  "dismount": {
+    "neris_wave_crash": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 0,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      }
+    }
+  },
   "fluxSpells": {
     "provenance": "Provisional",
     "roster": ["blink", "mend", "scorch", "enfeeble", "wildstrike"]
@@ -6203,6 +6796,138 @@
       "companion": [],
       "lifetimeSeconds": 0,
       "bindTo": "None"
+    },
+    "neris_little_current": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 800,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [
+          {
+            "ability": "neris_little_current_redirect",
+            "windowSeconds": 8,
+            "onExpiry": "Lapse",
+            "opensWhen": "Always",
+            "heldStatus": [],
+            "fallsWithinSeconds": 0,
+            "armingSeconds": 0
+          }
+        ],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Summon",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": ["neris_waterling"],
+      "lifetimeSeconds": 8,
+      "bindTo": "Ally"
+    },
+    "neris_little_current_redirect": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 800,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Redirect",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": [],
+      "lifetimeSeconds": 0,
+      "bindTo": "Ally"
+    },
+    "neris_little_current_storm": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [16, 15, 14, 13, 12],
+        "resourceCostByRank": [70, 75, 80, 85, 90],
+        "castRange": 800,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [
+          {
+            "ability": "neris_little_current_storm_redirect",
+            "windowSeconds": 8,
+            "onExpiry": "Lapse",
+            "opensWhen": "Always",
+            "heldStatus": [],
+            "fallsWithinSeconds": 0,
+            "armingSeconds": 0
+          }
+        ],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": ["neris_little_current"],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Summon",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": ["neris_waterling"],
+      "lifetimeSeconds": 8,
+      "bindTo": "Enemy"
+    },
+    "neris_little_current_storm_redirect": {
+      "provenance": "Provisional",
+      "cast": {
+        "cooldownSecondsByRank": [0],
+        "resourceCostByRank": [0],
+        "castRange": 800,
+        "windupSeconds": 0,
+        "windupMovement": "Free",
+        "recoverySeconds": 0,
+        "recastWindow": [],
+        "targetMustHold": [],
+        "targetMustNotHold": [],
+        "takedownRefund": [],
+        "currentResourceFraction": [],
+        "needsCompanion": "None",
+        "cooldownWhile": [],
+        "cooldownOf": [],
+        "refusedWhile": [],
+        "minimumResource": []
+      },
+      "order": "Redirect",
+      "leapSpeed": 0,
+      "holdSeconds": 0,
+      "landingZones": [],
+      "companion": [],
+      "lifetimeSeconds": 0,
+      "bindTo": "Enemy"
     }
   },
   "companions": {
@@ -6254,6 +6979,62 @@
       "thinkSeconds": 0.25,
       "escort": [],
       "attackStatuses": []
+    },
+    "neris_waterling": {
+      "provenance": "Provisional",
+      "capsuleRadius": 30,
+      "capsuleHalfHeight": 45,
+      "stats": {
+        "maxHealth": 280,
+        "healthRegen": 0,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 15,
+        "magicResist": 20,
+        "physicalPower": 0,
+        "magicPower": 20,
+        "attackSpeed": 0.8,
+        "moveSpeed": 360
+      },
+      "growth": {
+        "maxHealth": 25,
+        "healthRegen": 0,
+        "maxResource": 0,
+        "resourceRegen": 0,
+        "armor": 2,
+        "magicResist": 1,
+        "physicalPower": 0,
+        "magicPower": 4,
+        "attackSpeed": 0,
+        "moveSpeed": 0
+      },
+      "ownerMagicPowerShare": 0.3,
+      "basicAttack": {
+        "range": 150,
+        "damageType": "Magic",
+        "physicalPowerRatio": 0,
+        "magicPowerRatio": 1,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 500,
+        "minimumIntervalSeconds": 0,
+        "projectile": [],
+        "cleave": []
+      },
+      "followDistance": 120,
+      "leashRange": 1400,
+      "acquireRange": 500,
+      "ownerTargetSeconds": 3,
+      "reformSeconds": 0,
+      "thinkSeconds": 0.25,
+      "escort": [
+        {
+          "pulseSeconds": 1.5,
+          "healAmount": 12,
+          "healMagicPowerRatio": 0.6,
+          "statuses": ["neris_current_swell"]
+        }
+      ],
+      "attackStatuses": ["neris_current_drag"]
     }
   }
 }

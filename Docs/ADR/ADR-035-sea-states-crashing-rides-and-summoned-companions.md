@@ -43,6 +43,7 @@ The survey for this ADR found that:
 - A cast gains **`cooldownOf`**: at most one other ability whose cooldown it shares. Its cooldown is held under that ability's ID, so casting either starts the one cooldown, at the length of the ability cast.
 - The named ability must be defined and must name none itself.
 - Neris's Storm abilities share their Calm counterparts' cooldowns, so switching never resets a slot. Change the Weather's own cooldown stops it being a free toggle.
+- **A stance may hold R** as well as Q, W and E (amends ADR-031 §3), so the Sea State reaches Tidebreaker. It never holds the slot it sits in, which the Vanguard's rules check.
 
 ### 2. Casts refused while a status holds (Abilities)
 
