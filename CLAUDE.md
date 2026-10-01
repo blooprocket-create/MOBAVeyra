@@ -13,6 +13,7 @@ Always begin substantial gameplay tasks by reading:
 - `ARCHITECTURE.md`
 - `PROJECT_STRUCTURE.md`
 - the relevant owning sections in `Docs/Design/` selected by the context map
+- for world/environment/Blender/asset/material/PCG/water/lighting/VFX tasks: `Docs/Production/README.md` and the relevant production guide
 - relevant records in `Docs/ADR/`
 
 `ARCHITECTURE.md` is the source of truth for technical boundaries. Do not duplicate or reinterpret its rules here.
@@ -24,6 +25,22 @@ The intended workflow is:
 > inspect → identify authoritative owner → implement through reusable systems → build → test → architecture check → report
 
 Do not optimize for the fewest edited files if doing so creates the wrong ownership or dependency. Prefer a small clean primitive over a local hack that future features will duplicate.
+
+## World, environment, asset, and VFX tasks
+
+Use the production loop in `Docs/Production/`: identify the authoritative gameplay source and visual source, edit the source/generator, regenerate only the affected scope, validate in Unreal, capture repeatable gameplay/debug views, and iterate from the actual in-engine result.
+
+Do not:
+
+- duplicate `Game/Tuning/World.json` gameplay layout inside Blender, PCG, Blueprints, or hand-authored map actors;
+- let decorative generation alter protected competitive topology;
+- hand-fix generated output when its generator/source is the real owner;
+- treat Blender particle/simulation behavior as shipped runtime gameplay;
+- put gameplay authority in Niagara, materials, lighting, water rendering, or presentation Blueprints;
+- enable Experimental engine features as shipping dependencies without the decision required by ADR-001;
+- inspect/transform third-party visual content with an agent unless its provenance and AI-use rights permit it.
+
+For reusable visual families, prefer deterministic generators with explicit seeds and metadata over unrelated one-off meshes.
 
 ## No hardcoded tuning — mandatory project rule
 
@@ -69,4 +86,4 @@ Then wait for the decision or, if explicitly authorized, add an ADR before imple
 
 ## Completion
 
-A substantial change is complete only when it builds, relevant tests pass, architecture boundaries remain intact, and the summary names any intentionally deferred work.
+A substantial change is complete only when it builds, relevant tests pass, architecture boundaries remain intact, and the summary names any intentionally deferred work. Visual/world changes must also satisfy the applicable `Docs/Production/VEYRA_WORLD_VALIDATION_STANDARD.md` gates and report source/generator, seed/profile, affected region, gameplay-geometry impact, screenshots, and performance/cook checks where relevant.
