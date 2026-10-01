@@ -332,6 +332,21 @@ Exact reform timing and stat values are prototype tuning values.
 
 Blackreef Bell draws from the Drowned Cantons' black reefs, tuned bells, sea-glass, resonance, and fog-guiding traditions. It is a general anti-magic defensive Masterwork rather than equipment exclusive to any one Vanguard.
 
+### Blank Sigil
+
+**Recipe:** Veil Needle + Striker Assembly + Warforged Grip + Tier 3 recipe  
+**Stat identity:** High Physical Power + flat Physical Penetration + Ability Haste.
+
+**Attunement — No Allegiance**
+
+After going a short period without damaging an enemy Vanguard, the holder's next damaging attack or ability against an enemy Vanguard creates a brief **Opening** on that target.
+
+The holder's next **different** damaging attack or ability against the same Vanguard consumes Opening, gains additional Physical Penetration for that hit, and deals bonus physical damage.
+
+The different-action requirement is deliberate: Blank Sigil rewards a setup → commit → payoff sequence rather than repetitive poke with one attack or spell. Exact out-of-combat timing, Opening duration, penetration amount, bonus-damage ratio, and stat values are prototype tuning values.
+
+Blank Sigil draws its name from the cut-out insignia patches associated with Angeru's rejection of both Reed Provinces martial houses. It is a general assassin/burst Masterwork and is not mechanically exclusive to Angeru.
+
 ### Harborline Harness
 
 **Recipe:** Rescue Rig + Waymark Weave + Warforged Grip + Tier 3 recipe  
