@@ -181,6 +181,8 @@ M29a added ([ADR-037](Docs/ADR/ADR-037-deployables-postures-cover-and-designatio
 - in Abilities, the command orders Deploy, ChangePosture and Unanchor; the Anchored mode (`AVeyraCompanion::Anchor`), which never walks and stands through its owner's death; companions' postures, moving statuses and moving aura (`UVeyraCompanionSubsystem::Deploy` and `Move`); and companions' preference for their owner's Designated enemy;
 - in Vanguards, the All Hands passive (`UVeyraAllHandsPassive`).
 
+M29b added Eudora Blackbridge, The Fieldwright, and Picket: Drive Rivet, Set the Picket, Raise the Bulwark, MOVE THE LINE! and All Hands, all data.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy
