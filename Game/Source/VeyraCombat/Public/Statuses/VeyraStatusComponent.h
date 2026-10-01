@@ -15,6 +15,18 @@
 class UAbilitySystemComponent;
 struct FActiveGameplayEffect;
 
+/** A cover its holder holds now (ADR-037 §4): its share, arc, reach, capacity left, transfer share, and the kinds it shelters (empty for all). */
+struct FVeyraCoverHold
+{
+	int32 Sequence = 0;
+	double Share = 0.0;
+	double ArcDegrees = 0.0;
+	double Reach = 0.0;
+	double Left = 0.0;
+	double TransferShare = 0.0;
+	TArray<EVeyraUnitKind> UnitKinds;
+};
+
 /**
  * A unit's statuses (ADR-009 §1): the truth for each one's identity, source, kind, magnitude,
  * stacks and timing. The server applies each under its stacking policy (Combat Bible §46) and backs
@@ -79,6 +91,9 @@ public:
 	/** Server: whether the unit has a status of Kind from a source on Side, as Sounded is read (ADR-036 §2). */
 	bool HasFromSide(EVeyraStatusKind Kind, EVeyraTeam Side) const;
 
+	/** Server: whether the unit holds a status of Kind that Source gave it. */
+	bool HasKindFrom(EVeyraStatusKind Kind, const UAbilitySystemComponent& Source) const;
+
 	/** Server: the stacks of status Id the unit has from Source; 0 for none. */
 	int32 GetStacksFrom(const FVeyraContentId& Id, const UAbilitySystemComponent& Source) const;
 
@@ -93,6 +108,12 @@ public:
 	 * it, the unit facing Facing (ADR-018 §2); 1 when none guards that way.
 	 */
 	double GetDirectionalRetained(const FVector& Facing, const FVector& ToSource) const;
+
+	/** Server: every Cover the unit holds with capacity left (ADR-037 §4). */
+	TArray<FVeyraCoverHold> GetCovers() const;
+
+	/** Server: spends up to Amount of cover Sequence's capacity; returns what it spent. */
+	double SpendCover(int32 Sequence, double Amount);
 
 	/** Server: what the unit's basic attacks against a unit of TargetKind add, as a fraction (ADR-018 §2); 0 for none. */
 	double GetAttackAmplification(TOptional<EVeyraUnitKind> TargetKind) const;
@@ -130,9 +151,13 @@ private:
 		int32 TicksLeft = 0;
 		/** A status that loses one stack at a time: how long each remaining stack lasts; 0 for none. */
 		double StackDecaySeconds = 0.0;
-		/** A DirectionalDamageReduction's arc, and an AttackDamageAmplification's unit kinds. */
+		/** A DirectionalDamageReduction's or a Cover's arc, and an AttackDamageAmplification's unit kinds. */
 		double ArcDegrees = 0.0;
 		TArray<EVeyraUnitKind> UnitKinds;
+		/** A Cover's reach behind its holder, its capacity left, and the share of what it prevents its holder takes. */
+		double CoverReach = 0.0;
+		double CoverLeft = 0.0;
+		double CoverTransferShare = 0.0;
 	};
 
 	/** Entry Sequence's effect Ended ran out: loses one stack and runs again if it decays so. Returns whether it did. */

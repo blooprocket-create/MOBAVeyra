@@ -231,6 +231,11 @@ namespace
 					Problem(Pointer + TEXT("/damageOverTime"), TEXT("holds one entry for a DamageOverTime status, and none for any other kind"));
 					continue;
 				}
+				if (Status.Value.Cover.Num() != (Status.Value.Kind == EVeyraStatusKind::Cover ? 1 : 0))
+				{
+					Problem(Pointer + TEXT("/cover"), TEXT("holds one entry for a Cover status, and none for any other kind (ADR-037 §4)"));
+					continue;
+				}
 				for (const FString& StatusProblem : VeyraStatuses::Validate(ToStatusSpec(Status.Key, Status.Value)))
 				{
 					Problem(Pointer, StatusProblem);
@@ -605,6 +610,23 @@ namespace
 			{
 				Problem(Pointer, TEXT("a redirect names no companion or lifetime, but the unit it binds and a cast range above 0"));
 			}
+			// A posture change names nothing; a move walks the deployed companion with an ally for a while (ADR-037 §2, §3).
+			if (Command.Order == EVeyraCompanionOrder::ChangePosture
+				&& (!Command.Companion.IsEmpty() || Command.LifetimeSeconds != 0.0 || Command.BindTo != EVeyraCompanionBind::None))
+			{
+				Problem(Pointer, TEXT("a posture change names no companion, lifetime or unit to bind"));
+			}
+			if (Command.Order == EVeyraCompanionOrder::Unanchor
+				&& (!Command.Companion.IsEmpty() || !(Command.LifetimeSeconds > 0.0) || Command.BindTo != EVeyraCompanionBind::Ally || !(Command.Cast.CastRange > 0.0)))
+			{
+				Problem(Pointer, TEXT("a move names no companion, but a lifetime above 0, an ally to walk with and a cast range above 0"));
+			}
+			// A deployment forms one companion at its point for a while, bound to nobody (ADR-037 §1).
+			if (Command.Order == EVeyraCompanionOrder::Deploy
+				&& (Command.Companion.Num() != 1 || !(Command.LifetimeSeconds > 0.0) || Command.BindTo != EVeyraCompanionBind::None || !(Command.Cast.CastRange > 0.0)))
+			{
+				Problem(Pointer, TEXT("a deployment names one companion, a lifetime above 0 and a cast range above 0, and binds no unit"));
+			}
 			for (const FVeyraContentId& Companion : Command.Companion)
 			{
 				if (!Tuning.Companions.Contains(Companion))
@@ -950,6 +972,34 @@ namespace
 				CheckStatusIds(EscortPointer + TEXT("/statuses"), Escort.Statuses);
 			}
 			CheckStatusIds(Pointer + TEXT("/attackStatuses"), Companion.AttackStatuses);
+			// Its postures, what it holds while moved, and the aura it moves with (ADR-037 §2, §3).
+			if (Companion.Postures.Num() == 1)
+			{
+				Problem(Pointer + TEXT("/postures"), TEXT("holds none, or at least two to change between"));
+			}
+			for (int32 Index = 0; Index < Companion.Postures.Num(); ++Index)
+			{
+				CheckStatusIds(FString::Printf(TEXT("%s/postures/%d/statuses"), *Pointer, Index), Companion.Postures[Index].Statuses);
+			}
+			CheckStatusIds(Pointer + TEXT("/movingStatuses"), Companion.MovingStatuses);
+			if (Companion.MovingAura.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/movingAura"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Companion.MovingAura.Num(); ++Index)
+			{
+				const FVeyraMovingAuraTuning& Aura = Companion.MovingAura[Index];
+				const FString AuraPointer = FString::Printf(TEXT("%s/movingAura/%d"), *Pointer, Index);
+				if (!(Aura.Radius > 0.0) || !(Aura.PulseSeconds > 0.0) || Aura.Shield.Num() > 1)
+				{
+					Problem(AuraPointer, TEXT("radius and pulseSeconds are above 0, and it gives at most one shield"));
+				}
+				CheckStatusIds(AuraPointer + TEXT("/statuses"), Aura.Statuses);
+				for (int32 ShieldIndex = 0; ShieldIndex < Aura.Shield.Num(); ++ShieldIndex)
+				{
+					CheckShield(FString::Printf(TEXT("%s/shield/%d"), *AuraPointer, ShieldIndex), Aura.Shield[ShieldIndex]);
+				}
+			}
 		}
 
 		void CheckRide(const FString& Pointer, const FVeyraRideAbilityTuning& Ride)
@@ -1207,6 +1257,12 @@ FVeyraStatusSpec ToStatusSpec(const FVeyraContentId& Id, const FVeyraStatusTunin
 	Spec.TakedownExtensionSeconds = Status.TakedownExtensionSeconds;
 	Spec.TakedownExtensionMaxSeconds = Status.TakedownExtensionMaxSeconds;
 	Spec.AttackCharges = Status.AttackCharges;
+	if (!Status.Cover.IsEmpty())
+	{
+		Spec.CoverReach = Status.Cover[0].Reach;
+		Spec.CoverCapacity = Status.Cover[0].Capacity;
+		Spec.CoverTransferShare = Status.Cover[0].TransferShare;
+	}
 	if (!Status.DamageOverTime.IsEmpty())
 	{
 		const FVeyraDamageOverTimeTuning& Ticks = Status.DamageOverTime[0];

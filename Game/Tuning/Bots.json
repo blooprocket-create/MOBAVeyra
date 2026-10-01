@@ -353,6 +353,17 @@
         "sylra_waymark": "Defend",
         "sylra_through_the_white": "Engage"
       }
+    },
+    "eudora": {
+      "provenance": "Provisional",
+      "build": ["war_boots", "cycler_core", "sovereign_edge", "siege_frame", "striker_assembly"],
+      "skillPriority": ["Q", "W", "E"],
+      "abilities": {
+        "eudora_drive_rivet": "Damage",
+        "eudora_set_the_picket": "Engage",
+        "eudora_raise_the_bulwark": "Damage",
+        "eudora_move_the_line": "Defend"
+      }
     }
   }
 }

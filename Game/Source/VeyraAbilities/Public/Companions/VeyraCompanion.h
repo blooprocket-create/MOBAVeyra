@@ -38,6 +38,11 @@ enum class EVeyraCompanionMode : uint8
 	Escort,
 	/** Summoned to hunt one enemy while it stays within its leash of its owner (ADR-035 §5). */
 	Hunt,
+	/**
+	 * Deployed at a point (ADR-037 §1): it never walks, fights the enemies within its basic attack's reach without
+	 * chasing, and stands whatever its owner's distance.
+	 */
+	Anchored,
 };
 
 /**
@@ -101,6 +106,42 @@ public:
 	/** Server: a summoned companion escorts the ally or hunts the enemy Unit, as Mode says (ADR-035 §5). */
 	void Bind(EVeyraCompanionMode InMode, AActor& Unit);
 
+	/**
+	 * Server: it stands deployed at Where, facing Facing, from now on (ADR-037 §1): it goes there at once, keeping its
+	 * Health, and gives up whatever it did before.
+	 */
+	void Anchor(const FVector& Where, const FVector& Facing);
+
+	/** Server: the way it faced as it was last anchored, sent moving, or turned by a posture change. */
+	const FVector& GetAnchorFacing() const { return AnchorFacing; }
+
+	/** Server: the posture it stands in, by its definition's order; 0 for a companion with none (ADR-037 §2). */
+	int32 GetPosture() const { return Posture; }
+
+	/**
+	 * Server: it takes its next posture, the first after the last, its statuses replacing the last one's; standing,
+	 * it turns to Facing if that names a way. False for a companion with fewer than two postures.
+	 */
+	bool NextPosture(const FVector& Facing);
+
+	/** Server: whether its posture holds its fire (ADR-037 §2). Moving, it fires. */
+	bool HoldsFire() const;
+
+	/**
+	 * Server: it walks with Ally, facing Facing whichever way it walks, holding its moving statuses instead of its
+	 * posture's (ADR-037 §3), until Anchor sets it down again.
+	 */
+	void StartMoving(AActor& Ally, const FVector& Facing);
+
+	/** Server: whether an order moves it now. */
+	bool IsMoving() const { return bMoving; }
+
+	/** Server: it gives itself any of the statuses it holds now that it lacks: its moving ones, or its posture's. */
+	void KeepHeldStatuses();
+
+	/** Server: it turns to face its anchor facing. */
+	void FaceAnchor();
+
 	/** Server: the ally it escorts or the enemy it hunts, if it was summoned for one. */
 	AActor* GetBoundTo() const { return BoundTo.Get(); }
 
@@ -136,6 +177,12 @@ private:
 	/** Hides it and its collision while banished, on every machine. */
 	void ApplyBanished();
 
+	/** The status IDs it holds now: its moving ones, or its posture's. */
+	TConstArrayView<FVeyraContentId> HeldStatuses() const;
+
+	/** Server: it gives up the statuses it holds now, those it gave itself. */
+	void DropHeldStatuses();
+
 	UFUNCTION()
 	void OnRep_Definition();
 
@@ -161,7 +208,11 @@ private:
 	TWeakObjectPtr<UAbilitySystemComponent> OwnerAbilities;
 	EVeyraCompanionMode Mode = EVeyraCompanionMode::Follow;
 	TWeakObjectPtr<AActor> BoundTo;
+	/** Where it holds, or stands anchored. */
 	FVector HoldPoint = FVector::ZeroVector;
+	FVector AnchorFacing = FVector::ForwardVector;
+	int32 Posture = 0;
+	bool bMoving = false;
 	double HoldsUntil = 0.0;
 	FVeyraContentId HoldOpenedBy;
 	int32 GrownLevel = 1;

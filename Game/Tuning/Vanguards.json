@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 19,
+  "schemaVersion": 20,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -1140,6 +1140,56 @@
       },
       "rankShape": [],
       "passive": ["sylra_follow_the_bell"]
+    },
+    "eudora": {
+      "provenance": "Provisional",
+      "availability": "Playable",
+      "resource": "Mana",
+      "body": { "capsuleRadius": 38, "capsuleHalfHeight": 90, "turnRateDegreesPerSecond": 720 },
+      "baseStats": {
+        "maxHealth": 590,
+        "healthRegen": 1.2,
+        "maxResource": 380,
+        "resourceRegen": 7.5,
+        "armor": 26,
+        "magicResist": 30,
+        "physicalPower": 54,
+        "magicPower": 0,
+        "attackSpeed": 0.64,
+        "moveSpeed": 330
+      },
+      "growth": {
+        "maxHealth": 98,
+        "healthRegen": 0.13,
+        "maxResource": 35,
+        "resourceRegen": 0.5,
+        "armor": 4.4,
+        "magicResist": 1.3,
+        "physicalPower": 3,
+        "magicPower": 0,
+        "attackSpeedFraction": 0.022
+      },
+      "basicAttack": {
+        "range": 500,
+        "damageType": "Physical",
+        "physicalPowerRatio": 1,
+        "magicPowerRatio": 0,
+        "windupFraction": 0.3,
+        "acquisitionRadius": 700,
+        "minimumIntervalSeconds": 0,
+        "projectile": [
+          { "speed": 1700, "radius": 15 }
+        ],
+        "cleave": []
+      },
+      "abilities": {
+        "q": ["eudora_drive_rivet"],
+        "w": ["eudora_set_the_picket"],
+        "e": ["eudora_raise_the_bulwark"],
+        "r": ["eudora_move_the_line"]
+      },
+      "rankShape": [],
+      "passive": ["eudora_all_hands"]
     }
   },
   "deepFoundation": {
@@ -1434,6 +1484,17 @@
       "lookSeconds": 0.2,
       "followStatus": "sylra_followed_the_bell",
       "followShield": { "amount": 50, "amountPerLevel": 8, "magicPowerRatio": 0.2, "durationSeconds": 3 }
+    }
+  },
+  "allHands": {
+    "eudora_all_hands": {
+      "provenance": "Provisional",
+      "radius": 800,
+      "work": 1,
+      "perContributorSeconds": 4,
+      "threshold": 3,
+      "repair": 0,
+      "repairMaxHealthRatio": 0.12
     }
   }
 }

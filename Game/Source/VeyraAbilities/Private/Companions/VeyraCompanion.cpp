@@ -257,6 +257,135 @@ void AVeyraCompanion::Bind(EVeyraCompanionMode InMode, AActor& Unit)
 	BoundTo = &Unit;
 }
 
+void AVeyraCompanion::Anchor(const FVector& Where, const FVector& Facing)
+{
+	check(HasAuthority());
+	EndHold();
+	BoundTo.Reset();
+	// Set down from a move, it holds its posture's statuses again (ADR-037 §3).
+	if (bMoving)
+	{
+		DropHeldStatuses();
+		bMoving = false;
+	}
+	Mode = EVeyraCompanionMode::Anchored;
+	// It keeps the way it was set facing, whatever way it walked.
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	HoldPoint = Where;
+	const FVector Flat = Facing.GetSafeNormal2D();
+	AnchorFacing = Flat.IsNearlyZero() ? GetActorForwardVector().GetSafeNormal2D() : Flat;
+	// Whatever it was doing ends where it stood: a windup, a path.
+	BasicAttack->CancelAttack();
+	if (AController* Brain = GetController())
+	{
+		Brain->StopMovement();
+	}
+	const FRotator Turned(0.0, AnchorFacing.Rotation().Yaw, 0.0);
+	if (!TeleportTo(Where, Turned, /*bIsATest*/ false, /*bNoCheck*/ false))
+	{
+		TeleportTo(Where, Turned, /*bIsATest*/ false, /*bNoCheck*/ true);
+	}
+	KeepHeldStatuses();
+}
+
+bool AVeyraCompanion::NextPosture(const FVector& Facing)
+{
+	check(HasAuthority());
+	const FVeyraCompanionTuning* Tuning = GetDefinition();
+	if (!Tuning || Tuning->Postures.Num() < 2)
+	{
+		return false;
+	}
+	// Moving, it holds its moving statuses still: only the posture it returns to changes.
+	if (!bMoving)
+	{
+		DropHeldStatuses();
+		const FVector Flat = Facing.GetSafeNormal2D();
+		if (!Flat.IsNearlyZero())
+		{
+			AnchorFacing = Flat;
+			FaceAnchor();
+		}
+	}
+	Posture = (Posture + 1) % Tuning->Postures.Num();
+	if (HoldsFire())
+	{
+		BasicAttack->CancelAttack();
+	}
+	KeepHeldStatuses();
+	return true;
+}
+
+bool AVeyraCompanion::HoldsFire() const
+{
+	const FVeyraCompanionTuning* Tuning = GetDefinition();
+	return !bMoving && Tuning && Tuning->Postures.IsValidIndex(Posture) && Tuning->Postures[Posture].Attacks == EVeyraPostureAttacks::Holds;
+}
+
+void AVeyraCompanion::StartMoving(AActor& Ally, const FVector& Facing)
+{
+	check(HasAuthority());
+	// Its posture's statuses give way to its moving ones; sent again while moving, its moving ones are given afresh.
+	DropHeldStatuses();
+	bMoving = true;
+	Mode = EVeyraCompanionMode::Escort;
+	BoundTo = &Ally;
+	const FVector Flat = Facing.GetSafeNormal2D();
+	if (!Flat.IsNearlyZero())
+	{
+		AnchorFacing = Flat;
+	}
+	GetCharacterMovement()->bOrientRotationToMovement = false;
+	FaceAnchor();
+	KeepHeldStatuses();
+}
+
+TConstArrayView<FVeyraContentId> AVeyraCompanion::HeldStatuses() const
+{
+	const FVeyraCompanionTuning* Tuning = GetDefinition();
+	if (!Tuning)
+	{
+		return {};
+	}
+	if (bMoving)
+	{
+		return Tuning->MovingStatuses;
+	}
+	return Tuning->Postures.IsValidIndex(Posture) ? TConstArrayView<FVeyraContentId>(Tuning->Postures[Posture].Statuses) : TConstArrayView<FVeyraContentId>();
+}
+
+void AVeyraCompanion::KeepHeldStatuses()
+{
+	if (!HasAuthority() || !IsAlive() || bBanished)
+	{
+		return;
+	}
+	for (const FVeyraContentId& Id : HeldStatuses())
+	{
+		if (VeyraCombat::HasStatusFrom(this, Id, *AbilitySystem))
+		{
+			continue;
+		}
+		if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(Id))
+		{
+			VeyraCombat::ApplyStatus(*AbilitySystem, *AbilitySystem, Status.GetValue());
+		}
+	}
+}
+
+void AVeyraCompanion::DropHeldStatuses()
+{
+	for (const FVeyraContentId& Id : HeldStatuses())
+	{
+		VeyraCombat::RemoveStatusFrom(*AbilitySystem, Id, *AbilitySystem);
+	}
+}
+
+void AVeyraCompanion::FaceAnchor()
+{
+	SetActorRotation(FRotator(0.0, AnchorFacing.Rotation().Yaw, 0.0));
+}
+
 void AVeyraCompanion::SetChained(bool bInChained)
 {
 	if (bChained != bInChained)

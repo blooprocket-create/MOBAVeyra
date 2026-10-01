@@ -932,6 +932,44 @@ struct FVeyraMistTrailTuning
 };
 
 /**
+ * Eudora's All Hands (Roster Bible §25; ADR-037 §6). When an allied Vanguard, its owner among them, damages an
+ * enemy Vanguard within Radius of its owner's living companion, it earns Work, at most once per
+ * PerContributorSeconds for each contributor, and never more than Threshold. At Threshold it spends that much,
+ * restoring Repair plus RepairMaxHealthRatio of the companion's Max Health to it, never past its maximum. No
+ * living companion, no Work. Its data is an entry in Vanguards.json's allHands map.
+ */
+USTRUCT()
+struct FVeyraAllHandsTuning
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	EVeyraTuningProvenance Provenance = EVeyraTuningProvenance::Provisional;
+
+	/** From the companion to the damaged enemy, centre to centre; above 0. */
+	UPROPERTY()
+	double Radius = 0.0;
+
+	/** Earned for each contribution; above 0 and at most Threshold. */
+	UPROPERTY()
+	double Work = 0.0;
+
+	/** Above 0. */
+	UPROPERTY()
+	double PerContributorSeconds = 0.0;
+
+	UPROPERTY()
+	double Threshold = 0.0;
+
+	/** Each at least 0, together above 0. */
+	UPROPERTY()
+	double Repair = 0.0;
+
+	UPROPERTY()
+	double RepairMaxHealthRatio = 0.0;
+};
+
+/**
  * Marek's Bound Together (Roster Bible §10; ADR-034 §9). It summons its owner's companion as it starts. When
  * its owner and the companion have each damaged one enemy within WindowSeconds, Accord deals that enemy magic
  * damage from its owner, at most once per PerTargetSeconds on it, BoostMultiplier times as much while its
@@ -1082,7 +1120,7 @@ struct FVeyraVanguardsTuning
 	GENERATED_BODY()
 
 	/** The Vanguards.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 19;
+	static constexpr int32 SchemaVersion = 20;
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraVanguardDefinition> Vanguards;
@@ -1152,6 +1190,9 @@ struct FVeyraVanguardsTuning
 
 	UPROPERTY()
 	TMap<FVeyraContentId, FVeyraMistTrailTuning> MistTrail;
+
+	UPROPERTY()
+	TMap<FVeyraContentId, FVeyraAllHandsTuning> AllHands;
 };
 
 /** The Vanguards domain's rules for its tuning (ADR-008 §2, §5). */

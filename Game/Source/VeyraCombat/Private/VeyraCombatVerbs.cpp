@@ -14,7 +14,9 @@
 #include "Effects/VeyraCombatEffects.h"
 #include "Effects/VeyraResourceSpendExecution.h"
 #include "Engine/World.h"
+#include "EngineUtils.h"
 #include "Entities/VeyraOwnedUnit.h"
+#include "GameFramework/Pawn.h"
 #include "Life/VeyraCombatEventSubsystem.h"
 #include "Life/VeyraDeath.h"
 #include "Life/VeyraLifeComponent.h"
@@ -25,6 +27,7 @@
 #include "Tags/VeyraHealthTags.h"
 #include "Tags/VeyraStatusTags.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Teams/VeyraTeam.h"
 #include "Tuning/VeyraCombatTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraCombatLog.h"
@@ -149,6 +152,95 @@ namespace
 		Spec.Data->SetSetByCallerMagnitude(AmountTag, static_cast<float>(Amount));
 		Spec.Data->SetDuration(static_cast<float>(DurationSeconds), /*bLockDuration*/ true);
 		return Source.ApplyGameplayEffectSpecToTarget(*Spec.Data, &Target);
+	}
+
+	constexpr EVeyraDamageType EveryDamageType[] = { EVeyraDamageType::Physical, EVeyraDamageType::Magic, EVeyraDamageType::TrueDamage };
+
+	/** The damage a prepared instance carries before any mitigation, every type together. */
+	double RawDamage(const FGameplayEffectSpec& Spec)
+	{
+		double Total = 0.0;
+		for (const EVeyraDamageType Type : EveryDamageType)
+		{
+			Total += Spec.GetSetByCallerMagnitude(VeyraCombatTagMapping::DamageTypeTag(Type), /*WarnIfNotFound*/ false, 0.0f);
+		}
+		return Total;
+	}
+
+	/**
+	 * Cover against a projectile (Combat Bible §20; ADR-037 §4). The strongest cover that an ally of the target, other
+	 * than the target, holds and that shelters the target from where the projectile was launched prevents its share of
+	 * the hit's damage before mitigation, out of the capacity it has left; its holder takes its transfer share of what
+	 * it prevented, from the source, as a proc. OutSheltered is what still lands, no longer a projectile's. False when
+	 * no cover shelters the target.
+	 */
+	bool TakeCover(const FVeyraPreparedDamage& Damage, UAbilitySystemComponent& Source, UAbilitySystemComponent& Target, FVeyraPreparedDamage& OutSheltered)
+	{
+		const AActor* Body = Target.GetAvatarActor();
+		UWorld* World = Target.GetWorld();
+		const EVeyraTeam Side = VeyraTeams::TeamOf(Body);
+		const TOptional<EVeyraUnitKind> Kind = VeyraUnits::KindOf(Target.GetOwner());
+		if (!Body || !World || Side == EVeyraTeam::None || !Damage.ProjectileFrom.IsSet())
+		{
+			return false;
+		}
+		const FVector From = Damage.ProjectileFrom.GetValue();
+		UAbilitySystemComponent* Holder = nullptr;
+		UVeyraStatusComponent* HolderStatuses = nullptr;
+		FVeyraCoverHold Cover;
+		for (TActorIterator<APawn> It(World); It; ++It)
+		{
+			const APawn* Ally = *It;
+			UAbilitySystemComponent* Candidate = Ally != Body ? UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Ally) : nullptr;
+			if (!Candidate || Candidate == &Target || Candidate->GetAvatarActor() != Ally || VeyraTeams::TeamOf(Ally) != Side || IsDeadUnit(*Candidate))
+			{
+				continue;
+			}
+			UVeyraStatusComponent* Statuses = Candidate->GetOwner() ? Candidate->GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+			// Of each holder's covers, those that shelter this unit from this shot; the strongest of all answers.
+			for (const FVeyraCoverHold& Held : Statuses ? Statuses->GetCovers() : TArray<FVeyraCoverHold>())
+			{
+				const bool bShelters = (Held.UnitKinds.IsEmpty() || (Kind.IsSet() && Held.UnitKinds.Contains(Kind.GetValue())))
+					&& VeyraStatuses::Shelters(Ally->GetActorLocation(), Ally->GetActorForwardVector(), Held.ArcDegrees, Held.Reach, Body->GetActorLocation(), From);
+				if (bShelters && (!Holder || Held.Share > Cover.Share))
+				{
+					Holder = Candidate;
+					HolderStatuses = Statuses;
+					Cover = Held;
+				}
+			}
+		}
+		const double Raw = Holder ? RawDamage(*Damage.Spec.Data) : 0.0;
+		const double Prevented = Raw > 0.0 ? HolderStatuses->SpendCover(Cover.Sequence, Raw * Cover.Share) : 0.0;
+		if (!(Prevented > 0.0))
+		{
+			return false;
+		}
+		// A copy, so the preparation stays the same for every other target it reaches.
+		OutSheltered = Damage;
+		OutSheltered.ProjectileFrom.Reset();
+		OutSheltered.Spec = FGameplayEffectSpecHandle(new FGameplayEffectSpec(*Damage.Spec.Data));
+		const double Retained = 1.0 - Prevented / Raw;
+		for (const EVeyraDamageType Type : EveryDamageType)
+		{
+			const FGameplayTag Tag = VeyraCombatTagMapping::DamageTypeTag(Type);
+			const float Amount = Damage.Spec.Data->GetSetByCallerMagnitude(Tag, /*WarnIfNotFound*/ false, -1.0f);
+			if (Amount >= 0.0f)
+			{
+				OutSheltered.Spec.Data->SetSetByCallerMagnitude(Tag, static_cast<float>(Amount * Retained));
+			}
+		}
+		const double Passed = Prevented * Cover.TransferShare;
+		if (Passed > 0.0)
+		{
+			FVeyraRawDamageEvent Transfer;
+			Transfer.Components.Add({ EVeyraDamageType::TrueDamage, Passed });
+			Transfer.Delivery = EVeyraDamageDelivery::Proc;
+			DealDamage(Source, *Holder, Transfer);
+		}
+		UE_LOG(LogVeyraCombat, Verbose, TEXT("%s's cover took %g of a projectile's %g from %s to %s; %g passed to it."),
+			*GetNameSafe(Holder->GetAvatarActor()), Prevented, Raw, *GetNameSafe(Source.GetAvatarActor()), *GetNameSafe(Body), Passed);
+		return true;
 	}
 }
 
@@ -581,6 +673,7 @@ FVeyraPreparedDamage PrepareDamage(UAbilitySystemComponent& Source, const FVeyra
 	// Making the spec captures the source's offence now (UVeyraDamageExecution snapshots it).
 	FVeyraPreparedDamage Prepared;
 	Prepared.Delivery = Damage.Delivery;
+	Prepared.ProjectileFrom = Damage.ProjectileFrom;
 	Prepared.Spec = Source.MakeOutgoingSpec(UVeyraDamageEffect::StaticClass(), UnscaledEffectLevel, Source.MakeEffectContext());
 	if (!Prepared.IsValid())
 	{
@@ -629,6 +722,15 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 			*GetNameSafe(Target.GetOwner()));
 		return false;
 	}
+	// A cover between the shot and its target takes its share first (Combat Bible §20; ADR-037 §4).
+	if (Damage.ProjectileFrom.IsSet())
+	{
+		FVeyraPreparedDamage Sheltered;
+		if (TakeCover(Damage, *Source, Target, Sheltered))
+		{
+			return DealPreparedDamage(Sheltered, Target);
+		}
+	}
 	// What each component costs the target while the instance applies is what it dealt (ADR-023 §4).
 	UWorld* World = Target.GetWorld();
 	UVeyraCombatEventSubsystem* Events = World ? World->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr;
@@ -671,6 +773,7 @@ bool DealPreparedDamage(const FVeyraPreparedDamage& Damage, UAbilitySystemCompon
 	FVeyraPreparedDamage Landing;
 	Landing.Delivery = Damage.Delivery;
 	Landing.bCritical = Damage.bCritical;
+	Landing.ProjectileFrom = Damage.ProjectileFrom;
 	Landing.Spec = FGameplayEffectSpecHandle(new FGameplayEffectSpec(*Damage.Spec.Data));
 	for (const FVeyraDamageComponent& Added : AddedAtImpact)
 	{
@@ -869,6 +972,13 @@ bool HasStatusKindFromSide(const AActor* Unit, EVeyraStatusKind Kind, EVeyraTeam
 	const AActor* Owner = AbilitySystem ? AbilitySystem->GetOwner() : nullptr;
 	const UVeyraStatusComponent* Statuses = Owner ? Owner->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
 	return Statuses && Statuses->HasFromSide(Kind, Side);
+}
+
+bool HasStatusKindFrom(const AActor* Unit, EVeyraStatusKind Kind, const UAbilitySystemComponent& Source)
+{
+	const UAbilitySystemComponent* Abilities = Unit ? UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(Unit) : nullptr;
+	const UVeyraStatusComponent* Statuses = Abilities && Abilities->GetOwner() ? Abilities->GetOwner()->FindComponentByClass<UVeyraStatusComponent>() : nullptr;
+	return Statuses && Statuses->HasKindFrom(Kind, Source);
 }
 
 EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit)

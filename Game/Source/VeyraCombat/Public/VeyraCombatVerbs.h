@@ -30,6 +30,9 @@ struct FVeyraPreparedDamage
 	/** Whether it is a basic attack that crit (Combat Bible §5), which its dealt-damage event carries (ADR-025 §6). */
 	bool bCritical = false;
 
+	/** Where the projectile that carries it was launched, which cover judges it from (ADR-037 §4); unset for none. */
+	TOptional<FVector> ProjectileFrom;
+
 	bool IsValid() const { return Spec.IsValid(); }
 };
 
@@ -270,6 +273,9 @@ namespace VeyraCombat
 
 	/** Server: whether Unit has a status of Kind from a source on Side, as Vision reads Sounded (ADR-036 §2). */
 	VEYRACOMBAT_API bool HasStatusKindFromSide(const AActor* Unit, EVeyraStatusKind Kind, EVeyraTeam Side);
+
+	/** Server: whether Unit holds a status of Kind that Source gave it, as a Designation its source's companion prefers (ADR-037 §5). */
+	VEYRACOMBAT_API bool HasStatusKindFrom(const AActor* Unit, EVeyraStatusKind Kind, const UAbilitySystemComponent& Source);
 
 	/** The actions Unit's statuses stop it taking now (Combat Bible §8). None when it has no status ledger. */
 	VEYRACOMBAT_API EVeyraActionBlocks GetActionBlocks(const UAbilitySystemComponent& Unit);
