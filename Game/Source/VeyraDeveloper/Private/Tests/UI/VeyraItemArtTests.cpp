@@ -40,9 +40,8 @@ namespace VeyraUITests
 		}
 	};
 
-	// Veyra.UI.AbilityArt.*: every Flux Spell on the roster has its icon (ConceptArt/Skills,
-	// Game/Scripts/BuildIconArt.ps1 -Kind Abilities), and a Vanguard's kit has all of its icons or none:
-	// a kit half drawn is an import that went wrong.
+	// Veyra.UI.AbilityArt.*: every Flux Spell on the roster and every ability of a playable Vanguard's kit has
+	// its icon (ConceptArt/Skills, Game/Scripts/BuildIconArt.ps1 -Kind Abilities).
 	TEST_CLASS(AbilityArt, "Veyra.UI")
 	{
 		TEST_METHOD(EveryFluxSpellHasItsIcon)
@@ -58,11 +57,15 @@ namespace VeyraUITests
 			ASSERT_THAT(IsTrue(Missing.IsEmpty(), FString::Printf(TEXT("no icon for %s; run Game/Scripts/BuildIconArt.ps1 -Kind Abilities"), *FString::Join(Missing, TEXT(", ")))));
 		}
 
-		TEST_METHOD(AKitHasAllItsIconsOrNone)
+		TEST_METHOD(EveryPlayableKitHasItsIcons)
 		{
-			int32 Drawn = 0;
 			for (const TPair<FVeyraContentId, FVeyraVanguardDefinition>& Vanguard : UVeyraVanguardsTuningSubsystem::Get().Vanguards)
 			{
+				// A developer Vanguard, such as the tests' own, needs none.
+				if (Vanguard.Value.Availability != EVeyraVanguardAvailability::Playable)
+				{
+					continue;
+				}
 				TArray<FVeyraContentId> Kit = Vanguard.Value.Passive;
 				for (const TArray<FVeyraContentId>* Slot : { &Vanguard.Value.Abilities.Q, &Vanguard.Value.Abilities.W, &Vanguard.Value.Abilities.E, &Vanguard.Value.Abilities.R })
 				{
@@ -76,11 +79,9 @@ namespace VeyraUITests
 						Missing.Add(Ability.ToString());
 					}
 				}
-				ASSERT_THAT(IsTrue(Missing.IsEmpty() || Missing.Num() == Kit.Num(),
-					FString::Printf(TEXT("%s has some icons but none for %s"), *Vanguard.Key.ToString(), *FString::Join(Missing, TEXT(", ")))));
-				Drawn += Missing.IsEmpty() && !Kit.IsEmpty() ? 1 : 0;
+				ASSERT_THAT(IsTrue(Missing.IsEmpty(), FString::Printf(TEXT("%s has no icon for %s; run Game/Scripts/BuildIconArt.ps1 -Kind Abilities"),
+					*Vanguard.Key.ToString(), *FString::Join(Missing, TEXT(", ")))));
 			}
-			ASSERT_THAT(IsTrue(Drawn > 0, TEXT("some Vanguard's kit has its icons")));
 		}
 
 		TEST_METHOD(AnUnknownAbilityHasNoIcon)
