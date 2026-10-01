@@ -176,6 +176,11 @@ M28a added ([ADR-036](Docs/ADR/ADR-036-runtime-dense-fog-sounded-waymarks-and-th
 
 M28b added Sylra, The Mistwarden: Harbor Bell, Lay the Mist, Waymark, Through the White and Follow the Bell, all data.
 
+M29a added ([ADR-037](Docs/ADR/ADR-037-deployables-postures-cover-and-designation.md)), for Eudora:
+- in Combat, the Cover status kind and the cover rule in `VeyraCombat::DealPreparedDamage` (an ally's frontal cover takes a share of a projectile's damage out of its capacity, passing some to its holder; damage carries `bProjectile` from where it is prepared), and the Designated status kind, read through `VeyraCombat::HasStatusKindFrom`;
+- in Abilities, the command orders Deploy, ChangePosture and Unanchor; the Anchored mode (`AVeyraCompanion::Anchor`), which never walks and stands through its owner's death; companions' postures, moving statuses and moving aura (`UVeyraCompanionSubsystem::Deploy` and `Move`); and companions' preference for their owner's Designated enemy;
+- in Vanguards, the All Hands passive (`UVeyraAllHandsPassive`).
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy

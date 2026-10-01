@@ -155,6 +155,11 @@ const FVeyraMistTrailTuning* UVeyraVanguardsTuningSubsystem::FindMistTrail(const
 	return Get().MistTrail.Find(Passive);
 }
 
+const FVeyraAllHandsTuning* UVeyraVanguardsTuningSubsystem::FindAllHands(const FVeyraContentId& Passive)
+{
+	return Get().AllHands.Find(Passive);
+}
+
 const FVeyraUnreturnedTuning* UVeyraVanguardsTuningSubsystem::FindUnreturned(const FVeyraContentId& Passive)
 {
 	return Get().Unreturned.Find(Passive);

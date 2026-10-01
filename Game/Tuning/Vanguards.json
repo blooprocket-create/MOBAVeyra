@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 19,
+  "schemaVersion": 20,
   "vanguards": {
     "cairn": {
       "provenance": "Provisional",
@@ -1435,5 +1435,6 @@
       "followStatus": "sylra_followed_the_bell",
       "followShield": { "amount": 50, "amountPerLevel": 8, "magicPowerRatio": 0.2, "durationSeconds": 3 }
     }
-  }
+  },
+  "allHands": {}
 }

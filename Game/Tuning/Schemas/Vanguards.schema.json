@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry", "disciplines", "stressTemper", "charger", "accord", "mistTrail"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream", "reclaim", "unreturned", "quarry", "disciplines", "stressTemper", "charger", "accord", "mistTrail", "allHands"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -178,7 +178,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [19]
+      "enum": [20]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -789,6 +789,27 @@
                 "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
               }
             }
+          }
+        }
+      }
+    },
+    "allHands": {
+      "description": "Passives that repair their owner's companion as allies fight beside it (Eudora's All Hands, Roster Bible §25; ADR-037 §6). When an allied Vanguard, its owner among them, damages an enemy Vanguard within radius of its owner's living companion, it earns work, at most once per perContributorSeconds for each contributor and never more than threshold; at threshold it spends that much on repair plus repairMaxHealthRatio of the companion's Max Health. No living companion, no Work.",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "radius", "work", "perContributorSeconds", "threshold", "repair", "repairMaxHealthRatio"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "radius": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "work": { "description": "At most threshold.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "perContributorSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "threshold": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "repair": { "type": "number", "minimum": 0 },
+            "repairMaxHealthRatio": { "description": "Together with repair, above 0.", "type": "number", "minimum": 0 }
           }
         }
       }
