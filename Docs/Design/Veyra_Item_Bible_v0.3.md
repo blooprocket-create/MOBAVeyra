@@ -360,6 +360,25 @@ Additional qualifying takedowns refresh the Movement Speed and replace or refres
 
 Clean Break is an escape/reposition window, not a full reset: it does not grant Invisibility, Untargetability, Unstoppable, or complete ability resets. Exact participation window, Movement Speed amount/duration, shield ratio/cap, and stat values are prototype tuning values.
 
+### Oathpiercer
+
+**Recipe:** Veil Needle + War Harness + Titansteel Grip + Tier 3 recipe  
+**Stat identity:** Very high Physical Power + flat Physical Penetration + Health.
+
+**Attunement — Through the Guard**
+
+When the holder damages an enemy Vanguard who currently has a shield granted by another Vanguard, the first qualifying hit brands that shield for a short window.
+
+While branded, a percentage of the damage the holder personally deals to that shield is recorded as **Breach**.
+
+If the holder personally breaks the branded shield before the window expires, the stored Breach detonates against that Vanguard as bonus physical damage.
+
+If the shield expires naturally, another source breaks it, or the holder fails to break it before the brand expires, the Breach payoff is lost.
+
+Self-generated shields do not qualify. Through the Guard does not reduce all shielding, prevent new shields, or globally amplify damage against shields; it specifically rewards committing through ally-granted protection and personally breaking it.
+
+Exact brand duration, recorded-damage percentage, Breach conversion, and stat values are prototype tuning values.
+
 ### Harborline Harness
 
 **Recipe:** Rescue Rig + Waymark Weave + Warforged Grip + Tier 3 recipe  
