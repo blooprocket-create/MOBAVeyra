@@ -1,7 +1,10 @@
 // Copyright © 2026 Wayfinder Studios. All rights reserved.
 
+#include "Abilities/VeyraGameplayAbility.h"
 #include "Attributes/VeyraVitalsSet.h"
 #include "CQTest.h"
+#include "Delivery/VeyraAreaDelivery.h"
+#include "Progression/VeyraProgressionComponent.h"
 #include "Engine/World.h"
 #include "Tests/Abilities/VeyraAbilityTestHelpers.h"
 #include "TimerManager.h"
@@ -26,6 +29,9 @@ namespace VeyraAbilitiesTests
 		constexpr double Injury = 100.0;
 		constexpr double Tolerance = 1e-3;
 		constexpr float Step = 0.1f;
+		constexpr double ManyLevels = 50000.0;
+		constexpr double Scorch = 5.0;
+		constexpr double ScorchPerLevel = 2.0;
 	}
 
 	// Veyra.Abilities.RideCrashes.*: rides that crash where they end, a dismount that ends them, and zones that
@@ -54,6 +60,13 @@ namespace VeyraAbilitiesTests
 		{
 			using namespace CrashFixture;
 			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_wake")), StatusOf(EVeyraStatusKind::MoveSpeed, 0.1, LongSeconds));
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_hidden")), StatusOf(EVeyraStatusKind::Invisible, 0.0, LongSeconds));
+			FVeyraStatusTuning Burning = StatusOf(EVeyraStatusKind::DamageOverTime, Scorch, LongSeconds);
+			FVeyraDamageOverTimeTuning& Ticks = Burning.DamageOverTime.AddDefaulted_GetRef();
+			Ticks.DamageType = EVeyraDamageType::Magic;
+			Ticks.TickSeconds = 1.0;
+			Ticks.DamagePerLevel = ScorchPerLevel;
+			Tuning.Statuses.Add(ArchetypeTestId(TEXT("test_scorch")), Burning);
 			FVeyraDismountAbilityTuning Leave;
 			Leave.Cast = InstantCast(0.0, 0.0, 0.0);
 			Tuning.Dismount.Add(ArchetypeTestId(TEXT("test_crash")), Leave);
@@ -171,6 +184,39 @@ namespace VeyraAbilitiesTests
 			ASSERT_THAT(IsTrue(World.Learn(*Rider, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_tide")))));
 			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Rider, EVeyraAbilitySlot::E, FVector::ZeroVector) == EVeyraCastRejection::None));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Lost(*Rider), Injury - Heal, Tolerance) && FArchetypeTestWorld::Has(*Rider, TEXT("test_wake"))));
+		}
+
+		TEST_METHOD(ACrashThatStrikesEndsItsRidersStealth)
+		{
+			using namespace CrashFixture;
+			FArchetypeTestWorld World{ Spawner };
+			World.Spawn(EVeyraTeam::B, FVector(Near, 0.0, 0.0));
+			ASSERT_THAT(IsTrue(Ride()));
+			const TOptional<FVeyraStatusSpec> Hidden = UVeyraAbilitiesTuningSubsystem::FindStatus(ArchetypeTestId(TEXT("test_hidden")));
+			UAbilitySystemComponent& Own = *Rider->GetAbilitySystemComponent();
+			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(Own, Own, Hidden.GetValue())));
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(*Rider, EVeyraAbilitySlot::Q, FVector::ZeroVector) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsFalse(FArchetypeTestWorld::Has(*Rider, TEXT("test_hidden")), TEXT("its crash strikes, so its rider is seen")));
+		}
+
+		TEST_METHOD(AZonesStatusesComeFromItsCastersLevel)
+		{
+			using namespace CrashFixture;
+			FArchetypeTestWorld World{ Spawner };
+			ASSERT_THAT(IsTrue(World.Learn(*Rider, EVeyraAbilitySlot::E, ArchetypeTestId(TEXT("test_tide")))));
+			Rider->GetPlayerState()->FindComponentByClass<UVeyraProgressionComponent>()->AddExperience(ManyLevels);
+			UAbilitySystemComponent& Own = *Rider->GetAbilitySystemComponent();
+			const int32 Level = UVeyraGameplayAbility::GetCasterLevel(Own);
+			ASSERT_THAT(IsTrue(Level > 1));
+			FVeyraAreaZoneTuning Zone = CrashZone(EVeyraAllyReach::CasterToo);
+			Zone.AllyEffects[0].Statuses = { ArchetypeTestId(TEXT("test_scorch")) };
+			Zone.CasterStatusesPerVanguard = { ArchetypeTestId(TEXT("test_scorch")) };
+			const TArray<FVeyraAreaZoneTuning> Zones = { Zone };
+			const TArray<FVeyraPreparedZone> Ready = VeyraAreaDelivery::PrepareZones(Own, Zones, 1);
+			const double Expected = VeyraAbilityRules::AtLevel(Scorch, ScorchPerLevel, Level);
+			ASSERT_THAT(IsTrue(Ready.Num() == 1 && Ready[0].AllyEffects.IsSet() && !Ready[0].AllyEffects->Statuses.IsEmpty()));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Ready[0].AllyEffects->Statuses[0].Magnitude, Expected, Tolerance), TEXT("an ally's status from its caster's level")));
+			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Ready[0].CasterStatusesPerVanguard[0].Magnitude, Expected, Tolerance), TEXT("and its caster's own")));
 		}
 
 		TEST_METHOD(ValidationWantsAZoneToDoSomethingForItsAllies)
