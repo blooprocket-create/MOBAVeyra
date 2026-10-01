@@ -29,7 +29,7 @@
     {"id": "draft_pick", "category": "casual", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"},
     {"id": "coop_beginner", "category": "ai", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "beginner"},
     {"id": "coop_intermediate", "category": "ai", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "coop", "aiPerTeam": 5, "aiDifficulty": "intermediate"},
-    {"id": "ranked", "category": "ranked", "enabled": false, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
+    {"id": "ranked", "category": "ranked", "enabled": true, "humanPlayersPerTeam": 5, "matchmaking": "notImplemented"}
   ],
   "vanguards": {
     "released": ["cairn", "qazharr", "oriel", "bryn", "kade", "vera", "mimzi", "patch", "gorraveth", "raska", "moro", "korruk", "mavra", "celandrine", "aurelisse", "silt", "torr", "tavi", "angeru", "varkesh", "relay", "marek", "neris", "sylra", "eudora"],
