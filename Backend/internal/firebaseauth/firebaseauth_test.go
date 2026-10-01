@@ -224,6 +224,21 @@ func TestKeysAreRefetchedWhenTheyExpire(t *testing.T) {
 	}
 }
 
+// Google asking for immediate revalidation, as in an emergency key
+// revocation, leaves no key cached: the next token fetches them again.
+func TestAZeroMaxAgeKeepsNoKey(t *testing.T) {
+	h := newHarness(t)
+	h.google.maxAge = "public, max-age=0, must-revalidate"
+	for range 2 {
+		if _, err := h.v.Verify(context.Background(), h.token("k1", nil)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if n := h.google.fetches.Load(); n != 2 {
+		t.Fatalf("keys fetched %d times, want 2", n)
+	}
+}
+
 func TestAKeyOutageIsNotABadPassword(t *testing.T) {
 	h := newHarness(t)
 	h.google.status = http.StatusServiceUnavailable
@@ -236,10 +251,12 @@ func TestAKeyOutageIsNotABadPassword(t *testing.T) {
 func TestCacheLifetime(t *testing.T) {
 	cases := map[string]time.Duration{
 		"public, max-age=19800, must-revalidate, no-transform": 5*time.Hour + 30*time.Minute,
-		"max-age=999999": maxKeyCache,
-		"no-cache":       minKeyRefetch,
-		"max-age=abc":    minKeyRefetch,
-		"":               minKeyRefetch,
+		"max-age=999999":                     maxKeyCache,
+		"public, max-age=0, must-revalidate": 0,
+		"no-cache":                           minKeyRefetch,
+		"max-age=abc":                        minKeyRefetch,
+		"max-age=-5":                         minKeyRefetch,
+		"":                                   minKeyRefetch,
 	}
 	for header, want := range cases {
 		if got := cacheLifetime(header); got != want {

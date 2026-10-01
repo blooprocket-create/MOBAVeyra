@@ -242,7 +242,9 @@ func parseKeys(body []byte) (map[string]*rsa.PublicKey, error) {
 }
 
 // cacheLifetime reads max-age from a Cache-Control header, bounded by
-// maxKeyCache. Without one, keys are refetched after minKeyRefetch.
+// maxKeyCache. max-age=0 keeps nothing: Google asks for every key to be
+// revalidated, as it may when it revokes one. Without a valid max-age, keys
+// are refetched after minKeyRefetch.
 func cacheLifetime(cacheControl string) time.Duration {
 	for _, directive := range strings.Split(cacheControl, ",") {
 		name, value, ok := strings.Cut(strings.TrimSpace(directive), "=")
@@ -250,7 +252,7 @@ func cacheLifetime(cacheControl string) time.Duration {
 			continue
 		}
 		seconds, err := strconv.Atoi(value)
-		if err != nil || seconds <= 0 {
+		if err != nil || seconds < 0 {
 			break
 		}
 		return min(time.Duration(seconds)*time.Second, maxKeyCache)

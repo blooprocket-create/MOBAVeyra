@@ -173,15 +173,32 @@ function say(id, text) {
   element(id).hidden = !text;
 }
 
-// Disables a form's controls while the core works on it, so a click cannot send it twice.
+// Whether a sign-in, registration or name choice is in flight. The core keeps one session and one
+// pending proof, so a second request started beside the first could race it: a late registration
+// could even create an account after the player signed into another. One runs at a time.
+let authenticating = false;
+
+// Every control outside the account forms that starts an account request or moves between them.
+const ACCOUNT_NAVIGATION = ["show-register", "show-sign-in", "choose-name-back", "forgot-password", "sign-out", "dev-play"];
+
+// Disables a form's controls, and every way to another account form, while the core works on it,
+// so a click can neither send it twice nor start another request beside it.
 async function busy(form, work) {
-  const controls = element(form).querySelectorAll("input, button");
+  const controls = [...element(form).querySelectorAll("input, button"), ...ACCOUNT_NAVIGATION.map(element)];
+  const wasDisabled = controls.map((control) => control.disabled);
   controls.forEach((control) => (control.disabled = true));
+  authenticating = true;
   try {
     return await work();
   } finally {
-    controls.forEach((control) => (control.disabled = false));
+    authenticating = false;
+    controls.forEach((control, index) => (control.disabled = wasDisabled[index]));
   }
+}
+
+// A click handler that does nothing while an account request is in flight.
+function whenIdle(handler) {
+  return (...args) => (authenticating ? undefined : handler(...args));
 }
 
 async function signIn(game) {
@@ -264,6 +281,9 @@ function settle(result) {
 
 async function submitSignIn(event) {
   event.preventDefault();
+  if (authenticating) {
+    return;
+  }
   const email = element("sign-in-email").value.trim();
   const password = element("sign-in-password").value;
   if (!email || !password) {
@@ -283,6 +303,9 @@ async function submitSignIn(event) {
 
 async function submitRegister(event) {
   event.preventDefault();
+  if (authenticating) {
+    return;
+  }
   const displayName = element("register-name").value.trim();
   const email = element("register-email").value.trim();
   const password = element("register-password").value;
@@ -317,6 +340,9 @@ async function submitRegister(event) {
 
 async function submitChooseName(event) {
   event.preventDefault();
+  if (authenticating) {
+    return;
+  }
   const displayName = element("choose-name-input").value.trim();
   if (!/^[A-Za-z0-9_]{3,16}$/.test(displayName)) {
     say("choose-name-note", "A name is 3 to 16 letters, digits or underscores.");
@@ -383,11 +409,11 @@ element("dev-play").addEventListener("click", () => play(element("account").valu
 element("sign-in-form").addEventListener("submit", submitSignIn);
 element("register-form").addEventListener("submit", submitRegister);
 element("choose-name-form").addEventListener("submit", submitChooseName);
-element("show-register").addEventListener("click", showRegister);
-element("show-sign-in").addEventListener("click", showSignIn);
-element("choose-name-back").addEventListener("click", signOut);
-element("forgot-password").addEventListener("click", forgotPassword);
-element("sign-out").addEventListener("click", signOut);
+element("show-register").addEventListener("click", whenIdle(showRegister));
+element("show-sign-in").addEventListener("click", whenIdle(showSignIn));
+element("choose-name-back").addEventListener("click", whenIdle(signOut));
+element("forgot-password").addEventListener("click", whenIdle(forgotPassword));
+element("sign-out").addEventListener("click", whenIdle(signOut));
 element("change-folder").addEventListener("click", changeFolder);
 element("repair").addEventListener("click", () => {
   element("repair").hidden = true;
