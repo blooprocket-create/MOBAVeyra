@@ -358,8 +358,8 @@ The author asked for the game to go fullscreen for a match and come back to its 
 
 - Custom lobbies with invites, team slots and host-chosen AI, whose screen falls under the UX-93 pause (Custom §7); bots that fight back.
 - The real tutorial, starter trials and the weekly rotation.
-- Draft Pick bans and turn order; Co-op AI.
-- Queue-dodge penalties; the select trade protocol.
+- Draft Pick bans and turn order; Co-op AI. *Decided: [ADR-041](ADR-041-draft-pick-and-trades.md) and [ADR-039](ADR-039-weekly-rotation-and-co-op-vs-ai.md).*
+- Queue-dodge penalties; the select trade protocol. *The trade protocol: [ADR-041](ADR-041-draft-pick-and-trades.md) §2.*
 - Rejoining a running match.
 - Surrender (Match Flow §8). The Prime Well's victory arrived with [ADR-011](ADR-011-battleground-runtime.md) §13.
 - Remembered launcher login, and install and patching.
