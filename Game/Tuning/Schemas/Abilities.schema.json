@@ -173,7 +173,7 @@
       "description": "A shield granted to the caster (Combat Bible §7, §51; ADR-009 §3): the rank's amount plus the caster's Max Health and Magic Power times the ratios.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "category", "amountByRank", "maxHealthRatio", "magicPowerRatio", "durationSeconds", "reapply", "maxAmountMaxHealthRatio", "capGroup"],
+      "required": ["id", "category", "amountByRank", "maxHealthRatio", "magicPowerRatio", "durationSeconds", "reapply", "maxAmountMaxHealthRatio", "capGroup", "absorbedReward"],
       "properties": {
         "id": {
           "description": "The shield's identity: a new grant meets an active shield with it from the same caster as reapply says.",
@@ -205,6 +205,18 @@
               "totalMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
             }
           }
+        },
+        "absorbedReward": {
+          "description": "At most one: once a grant of this shield has absorbed this fraction of its amount, its holder gains the statuses once, from its provider (ADR-027 §5).",
+          "type": "array", "minItems": 0, "maxItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["fraction", "statuses"],
+            "properties": {
+              "fraction": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+              "statuses": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
+            }
+          }
         }
       }
     },
@@ -227,7 +239,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [13]
+      "enum": [14]
     },
     "casting": {
       "description": "Rules every cast shares (Combat Bible §26).",
@@ -257,7 +269,7 @@
             "provenance": { "$ref": "#/definitions/provenance" },
             "kind": {
               "type": "string",
-              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root"]
+              "enum": ["Stun", "Slow", "MoveSpeed", "AttackSpeed", "Tenacity", "DamageReduction", "DisplacementResistance", "AttackCleave", "MoveSpeedTowardEnemyVanguards", "HealthRegeneration", "DamageAmplification", "DamageOverTime", "Weaken", "AttackRange", "AttackSpeedCap", "SlowResistance", "Planted", "Camouflage", "SourceAttackRange", "Counter", "Dormant", "Unstoppable", "DisplacementImmunity", "Fear", "Knockup", "Ghosted", "BodyScale", "DirectionalDamageReduction", "AttackDamageAmplification", "MagicResistReduction", "SpellShield", "Root", "MobileAttack"]
             },
             "stacking": {
               "description": "Combat Bible §46.",
@@ -436,7 +448,7 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload"],
+          "required": ["provenance", "cast", "statuses", "shields", "aura", "heal", "recast", "variants", "temporaryHealth", "endPayload", "attackSecondaryImpact", "recipient", "recipientZones"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
@@ -531,6 +543,37 @@
                   "secondsPerHit": { "type": "number", "minimum": 0 },
                   "maxSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
                   "minHits": { "description": "The hits the caster must take for it to come at all; 0 for always.", "type": "integer", "minimum": 0 }
+                }
+              }
+            },
+            "recipient": {
+              "description": "Who takes the buff: its caster, or an allied Vanguard the cast names within its range, else its caster (ADR-027 §4).",
+              "type": "string", "enum": ["Caster", "CasterOrAlly"]
+            },
+            "recipientZones": {
+              "description": "Innermost first: zones that land once on the recipient as it takes the buff, facing away from the caster, and hit the enemies there (ADR-027 §8).",
+              "type": "array",
+              "minItems": 0,
+              "items": { "$ref": "#/definitions/zone" }
+            },
+            "attackSecondaryImpact": {
+              "description": "At most one: for a while after the cast, its recipient's basic attacks offer this secondary impact, as a piercing shot (ADR-027 §3).",
+              "type": "array", "minItems": 0, "maxItems": 1,
+              "items": {
+                "type": "object", "additionalProperties": false,
+                "required": ["seconds", "impact"],
+                "properties": {
+                  "seconds": { "description": "How long its attacks offer it.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+                  "impact": {
+                    "type": "object", "additionalProperties": false,
+                    "required": ["priority", "shape", "damage", "statuses"],
+                    "properties": {
+                      "priority": { "type": "integer", "minimum": 0 },
+                      "shape": { "$ref": "#/definitions/shape" },
+                      "damage": { "type": "array", "minItems": 0, "maxItems": 3, "items": { "$ref": "#/definitions/damage" } },
+                      "statuses": { "$ref": "#/definitions/statusIds" }
+                    }
+                  }
                 }
               }
             }
@@ -634,11 +677,13 @@
         "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["provenance", "cast", "durationSeconds", "damage", "statuses", "armorPenetrationByRank", "cleave", "secondaryImpact"],
+          "required": ["provenance", "cast", "durationSeconds", "attacks", "windupScale", "damage", "statuses", "armorPenetrationByRank", "cleave", "secondaryImpact"],
           "properties": {
             "provenance": { "$ref": "#/definitions/provenance" },
             "cast": { "$ref": "#/definitions/cast" },
             "durationSeconds": { "description": "How long the empowerment waits for an attack.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "attacks": { "description": "How many basic attacks it empowers; each spends one (ADR-027 §2).", "type": "integer", "minimum": 1 },
+            "windupScale": { "description": "What the empowered attacks' windups are multiplied by; their interval is unchanged.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
             "damage": {
               "description": "Joins the attack's own damage event, so the empowered attack is still one hit.",
               "type": "array",

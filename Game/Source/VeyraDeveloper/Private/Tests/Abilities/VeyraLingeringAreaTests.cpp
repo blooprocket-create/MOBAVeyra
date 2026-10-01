@@ -87,6 +87,18 @@ namespace VeyraAbilitiesTests
 			Cure.Zones.AddDefaulted_GetRef().Shape = CircleOf(Width / 2.0);
 			Cure.DelayWithin.Add(FVeyraAreaDelayWithinTuning{ ArchetypeTestId(TEXT("test_field")), QuickDelay });
 			Tuning.Area.Add(ArchetypeTestId(TEXT("test_cure")), Cure);
+
+			// A delayed area that lingers where it lands, as Rising Current's updraft (ADR-027 §6).
+			FVeyraAreaAbilityTuning Updraft;
+			Updraft.Cast = InstantCast(Length, 0.0, 0.0);
+			Updraft.Origin = EVeyraAreaOrigin::TargetPoint;
+			Updraft.DelaySeconds = QuickDelay;
+			Updraft.Zones.AddDefaulted_GetRef().Shape = CircleOf(Width / 2.0);
+			FVeyraLingerTuning& Current = Updraft.Linger.AddDefaulted_GetRef();
+			Current.DurationSeconds = LingerSeconds;
+			Current.PulseSeconds = PulseSeconds;
+			Current.AllyStatuses.Add(ArchetypeTestId(TEXT("test_stride")));
+			Tuning.Area.Add(ArchetypeTestId(TEXT("test_updraft")), Updraft);
 			UVeyraAbilitiesTuningSubsystem::SetTestOverride(&Tuning);
 
 			FArchetypeTestWorld World{ Spawner };
@@ -200,6 +212,20 @@ namespace VeyraAbilitiesTests
 			TActorIterator<AVeyraDelayedArea> Delayed(&Spawner.GetWorld());
 			ASSERT_THAT(IsTrue(static_cast<bool>(Delayed)));
 			ASSERT_THAT(IsTrue(FMath::IsNearlyEqual(Delayed->GetResolvesAt() - Now, QuickDelay), TEXT("a cast there waits the shorter delay")));
+		}
+
+		TEST_METHOD(ADelayedAreaLingersWhereItLandsOnceItLands)
+		{
+			FArchetypeTestWorld World{ Spawner };
+			AVeyraVanguardCharacter& Aerialist = World.Spawn(EVeyraTeam::A, FVector(0.0, -Length, 0.0));
+			ASSERT_THAT(IsTrue(World.Learn(Aerialist, EVeyraAbilitySlot::W, ArchetypeTestId(TEXT("test_updraft")))));
+			const FVector Point(Width, -Length, 0.0);
+			ASSERT_THAT(IsTrue(FArchetypeTestWorld::CastAt(Aerialist, EVeyraAbilitySlot::W, Point) == EVeyraCastRejection::None));
+			ASSERT_THAT(IsFalse(Lasts(), TEXT("nothing lingers before it lands")));
+			AdvanceWorld(QuickDelay + WorldStep);
+			TActorIterator<AVeyraLingeringArea> Lingering(&Spawner.GetWorld());
+			ASSERT_THAT(IsTrue(static_cast<bool>(Lingering) && Lingering->GetAbility() == ArchetypeTestId(TEXT("test_updraft"))));
+			ASSERT_THAT(IsTrue(FVector::Dist2D(Lingering->GetActorLocation(), Point) < 1.0, TEXT("where it landed")));
 		}
 
 		TEST_METHOD(ValidationKeepsPulsesEndsAndDelaysInShape)

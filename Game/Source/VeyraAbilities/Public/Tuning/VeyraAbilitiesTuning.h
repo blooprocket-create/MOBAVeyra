@@ -395,6 +395,24 @@ struct FVeyraShieldCapGroupTuning
 	double TotalMaxHealthRatio = 0.0;
 };
 
+/**
+ * What a shield gives its holder once it has absorbed enough (ADR-027 §5), as Windward's second speed
+ * burst: the statuses, once, from the shield's provider.
+ */
+USTRUCT()
+struct FVeyraAbsorbedRewardTuning
+{
+	GENERATED_BODY()
+
+	/** Of what the grant gave, the share it must absorb; above 0, at most 1. */
+	UPROPERTY()
+	double Fraction = 0.0;
+
+	/** From Abilities.json's statuses. */
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
 /** A shield an ability or passive grants its caster (Combat Bible §7, §51; ADR-009 §3). */
 USTRUCT()
 struct FVeyraShieldTuning
@@ -431,6 +449,10 @@ struct FVeyraShieldTuning
 	/** At most one. */
 	UPROPERTY()
 	TArray<FVeyraShieldCapGroupTuning> CapGroup;
+
+	/** At most one: what its holder gains once it has absorbed enough (ADR-027 §5). */
+	UPROPERTY()
+	TArray<FVeyraAbsorbedRewardTuning> AbsorbedReward;
 };
 
 /** One zone of an area: its shape and what it does. */
@@ -787,6 +809,54 @@ struct FVeyraEndPayloadTuning
 	int32 MinHits = 0;
 };
 
+/** An empowered attack's secondary impact behind its target: proc damage (ADR-009 §5). */
+USTRUCT()
+struct FVeyraSecondaryImpactTuning
+{
+	GENERATED_BODY()
+
+	/** A higher priority replaces a lower one, such as a passive's impact; an attack has at most one. */
+	UPROPERTY()
+	int32 Priority = 0;
+
+	/** Placed at the target, facing away from the attacker; the target itself is never hit by it. */
+	UPROPERTY()
+	FVeyraShape Shape;
+
+	UPROPERTY()
+	TArray<FVeyraDamageTuning> Damage;
+
+	UPROPERTY()
+	TArray<FVeyraContentId> Statuses;
+};
+
+/**
+ * A secondary impact a buff's caster's basic attacks offer while it lasts (ADR-027 §3), as OPEN ROAD!'s
+ * shots pierce behind their target.
+ */
+USTRUCT()
+struct FVeyraBuffAttackImpactTuning
+{
+	GENERATED_BODY()
+
+	/** How long its attacks offer the impact, in seconds; above 0. */
+	UPROPERTY()
+	double Seconds = 0.0;
+
+	UPROPERTY()
+	FVeyraSecondaryImpactTuning Impact;
+};
+
+/** Who a self-buff buffs (ADR-027 §4). */
+UENUM()
+enum class EVeyraBuffRecipient : uint8
+{
+	/** Its caster. */
+	Caster,
+	/** An allied Vanguard the cast names within its range, or else its caster. */
+	CasterOrAlly,
+};
+
 /** An ability that buffs its caster, and optionally nearby allies (ADR-008 §3). */
 USTRUCT()
 struct FVeyraSelfBuffAbilityTuning
@@ -829,6 +899,24 @@ struct FVeyraSelfBuffAbilityTuning
 	/** At most one. */
 	UPROPERTY()
 	TArray<FVeyraEndPayloadTuning> EndPayload;
+
+	/** At most one: a secondary impact its recipient's basic attacks offer for a while (ADR-027 §3). */
+	UPROPERTY()
+	TArray<FVeyraBuffAttackImpactTuning> AttackSecondaryImpact;
+
+	/**
+	 * Who takes the buff: its statuses, shields, Temporary Health, heal, aura and attack impact
+	 * (ADR-027 §4). An ally's buff has a cast range, and holds no variants, end payload or stance.
+	 */
+	UPROPERTY()
+	EVeyraBuffRecipient Recipient = EVeyraBuffRecipient::Caster;
+
+	/**
+	 * Zones that land once on its recipient as it takes the buff, facing away from the caster, and hit
+	 * the enemies there, as ROOM TO BREATHE pushes them out (ADR-027 §8). Innermost first.
+	 */
+	UPROPERTY()
+	TArray<FVeyraAreaZoneTuning> RecipientZones;
 };
 
 /** How a projectile flies (Combat Bible §13). */
@@ -999,27 +1087,6 @@ struct FVeyraAttackCleaveTuning
 	TArray<FVeyraContentId> Statuses;
 };
 
-/** An empowered attack's secondary impact behind its target: proc damage (ADR-009 §5). */
-USTRUCT()
-struct FVeyraSecondaryImpactTuning
-{
-	GENERATED_BODY()
-
-	/** A higher priority replaces a lower one, such as a passive's impact; an attack has at most one. */
-	UPROPERTY()
-	int32 Priority = 0;
-
-	/** Placed at the target, facing away from the attacker; the target itself is never hit by it. */
-	UPROPERTY()
-	FVeyraShape Shape;
-
-	UPROPERTY()
-	TArray<FVeyraDamageTuning> Damage;
-
-	UPROPERTY()
-	TArray<FVeyraContentId> Statuses;
-};
-
 /** An ability that empowers its caster's next basic attack, which stays a basic attack (ADR-008 §3; Combat Bible §17). */
 USTRUCT()
 struct FVeyraEmpoweredAttackAbilityTuning
@@ -1035,6 +1102,14 @@ struct FVeyraEmpoweredAttackAbilityTuning
 	/** How long the empowerment waits for an attack, in seconds. */
 	UPROPERTY()
 	double DurationSeconds = 0.0;
+
+	/** How many basic attacks it empowers, at least 1; each spends one (ADR-027 §2). */
+	UPROPERTY()
+	int32 Attacks = 1;
+
+	/** What the empowered attacks' windups are multiplied by, in (0, 1]; their interval is unchanged. */
+	UPROPERTY()
+	double WindupScale = 1.0;
 
 	/** Joins the attack's own damage event, so the empowered attack is still one hit (Combat Bible §25). */
 	UPROPERTY()
@@ -1291,7 +1366,7 @@ struct FVeyraAbilitiesTuning
 	GENERATED_BODY()
 
 	/** The Abilities.json format this build reads (a schema version marker, not tuning). */
-	static constexpr int32 SchemaVersion = 13;
+	static constexpr int32 SchemaVersion = 14;
 
 	UPROPERTY()
 	FVeyraCastingTuning Casting;

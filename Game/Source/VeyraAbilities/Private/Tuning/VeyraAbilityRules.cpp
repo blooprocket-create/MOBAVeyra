@@ -234,9 +234,10 @@ namespace
 			{
 				const FVeyraLingerTuning& Linger = Area.Linger[Index];
 				const FString LingerPointer = FString::Printf(TEXT("%s/linger/%d"), *Pointer, Index);
-				if (Area.DelaySeconds > 0.0 || Area.ChannelTicks > 1)
+				// A delayed area lingers where it lands, once it lands (ADR-027 §6); a channelled one never does.
+				if (Area.ChannelTicks > 1)
 				{
-					Problem(LingerPointer, TEXT("lingers after an area that hits at once, not a delayed or channelled one"));
+					Problem(LingerPointer, TEXT("lingers after an area that hits once, not a channelled one"));
 				}
 				if (!(Linger.DurationSeconds > 0.0) || !(Linger.PulseSeconds > 0.0) || Linger.PulseSeconds > Linger.DurationSeconds)
 				{
@@ -280,9 +281,40 @@ namespace
 			}
 		}
 
+		void CheckSecondaryImpact(const FString& Pointer, const FVeyraSecondaryImpactTuning& Impact)
+		{
+			for (const FString& ShapeProblem : VeyraShapes::Validate(Impact.Shape))
+			{
+				Problem(Pointer + TEXT("/shape"), ShapeProblem);
+			}
+			CheckDamage(Pointer + TEXT("/damage"), Impact.Damage);
+			CheckStatusIds(Pointer + TEXT("/statuses"), Impact.Statuses);
+		}
+
 		void CheckSelfBuff(const FString& Pointer, const FVeyraSelfBuffAbilityTuning& Buff)
 		{
 			CheckCast(Pointer + TEXT("/cast"), Buff.Cast);
+			if (Buff.AttackSecondaryImpact.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/attackSecondaryImpact"), TEXT("holds at most one"));
+			}
+			// An ally's buff is cast at the ally; what stays with the caster (its slots, its end payload
+			// and its stance) belongs to a buff of its own (ADR-027 §4).
+			if (Buff.Recipient == EVeyraBuffRecipient::CasterOrAlly
+				&& (!(Buff.Cast.CastRange > 0.0) || !Buff.Variants.IsEmpty() || !Buff.EndPayload.IsEmpty() || Buff.Recast == EVeyraRecast::EndsEarly))
+			{
+				Problem(Pointer + TEXT("/recipient"), TEXT("an ally's buff has a cast range above 0, and no variants, end payload or early end"));
+			}
+			CheckZones(Pointer + TEXT("/recipientZones"), Buff.RecipientZones);
+			for (int32 Index = 0; Index < Buff.AttackSecondaryImpact.Num(); ++Index)
+			{
+				const FString ImpactPointer = FString::Printf(TEXT("%s/attackSecondaryImpact/%d"), *Pointer, Index);
+				if (!(Buff.AttackSecondaryImpact[Index].Seconds > 0.0))
+				{
+					Problem(ImpactPointer + TEXT("/seconds"), TEXT("must be above 0"));
+				}
+				CheckSecondaryImpact(ImpactPointer + TEXT("/impact"), Buff.AttackSecondaryImpact[Index].Impact);
+			}
 			for (int32 Index = 0; Index < Buff.Variants.Num(); ++Index)
 			{
 				const FVeyraVariantTuning& Variant = Buff.Variants[Index];
@@ -368,6 +400,20 @@ namespace
 		void CheckShield(const FString& Pointer, const FVeyraShieldTuning& Shield)
 		{
 			CheckByRank(Pointer + TEXT("/amountByRank"), Shield.AmountByRank);
+			if (Shield.AbsorbedReward.Num() > 1)
+			{
+				Problem(Pointer + TEXT("/absorbedReward"), TEXT("holds at most one"));
+			}
+			for (int32 Index = 0; Index < Shield.AbsorbedReward.Num(); ++Index)
+			{
+				const FVeyraAbsorbedRewardTuning& Reward = Shield.AbsorbedReward[Index];
+				const FString RewardPointer = FString::Printf(TEXT("%s/absorbedReward/%d"), *Pointer, Index);
+				if (!(Reward.Fraction > 0.0) || Reward.Fraction > 1.0 || Reward.Statuses.IsEmpty())
+				{
+					Problem(RewardPointer, TEXT("fraction is above 0 and at most 1, and it names a status"));
+				}
+				CheckStatusIds(RewardPointer + TEXT("/statuses"), Reward.Statuses);
+			}
 			for (const FVeyraShieldCapGroupTuning& Group : Shield.CapGroup)
 			{
 				if (Group.TotalMaxHealthRatio < Shield.MaxAmountMaxHealthRatio)
@@ -536,6 +582,14 @@ namespace
 		void CheckEmpoweredAttack(const FString& Pointer, const FVeyraEmpoweredAttackAbilityTuning& Empowered)
 		{
 			CheckCast(Pointer + TEXT("/cast"), Empowered.Cast);
+			if (Empowered.Attacks < 1)
+			{
+				Problem(Pointer + TEXT("/attacks"), TEXT("must be at least 1"));
+			}
+			if (!(Empowered.WindupScale > 0.0) || Empowered.WindupScale > 1.0)
+			{
+				Problem(Pointer + TEXT("/windupScale"), TEXT("must be above 0 and at most 1: an empowerment may quicken a windup, never slow it"));
+			}
 			CheckDamage(Pointer + TEXT("/damage"), Empowered.Damage);
 			CheckStatusIds(Pointer + TEXT("/statuses"), Empowered.Statuses);
 			CheckByRank(Pointer + TEXT("/armorPenetrationByRank"), Empowered.ArmorPenetrationByRank);
@@ -549,14 +603,7 @@ namespace
 			}
 			for (int32 Index = 0; Index < Empowered.SecondaryImpact.Num(); ++Index)
 			{
-				const FVeyraSecondaryImpactTuning& Impact = Empowered.SecondaryImpact[Index];
-				const FString ImpactPointer = FString::Printf(TEXT("%s/secondaryImpact/%d"), *Pointer, Index);
-				for (const FString& ShapeProblem : VeyraShapes::Validate(Impact.Shape))
-				{
-					Problem(ImpactPointer + TEXT("/shape"), ShapeProblem);
-				}
-				CheckDamage(ImpactPointer + TEXT("/damage"), Impact.Damage);
-				CheckStatusIds(ImpactPointer + TEXT("/statuses"), Impact.Statuses);
+				CheckSecondaryImpact(FString::Printf(TEXT("%s/secondaryImpact/%d"), *Pointer, Index), Empowered.SecondaryImpact[Index]);
 			}
 		}
 

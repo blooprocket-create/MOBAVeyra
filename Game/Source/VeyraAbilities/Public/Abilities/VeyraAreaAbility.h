@@ -26,7 +26,6 @@ protected:
 	virtual FVeyraChannelPlan Deliver(const FVeyraCast& Cast) override;
 
 	/** Leaves the area lasting where it hit, for its linger data (ADR-018 §5). */
-	void Linger(UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Placement, const FVeyraAreaAbilityTuning& Area, const FVeyraCast& Cast) const;
 	virtual void DeliverChannelTick(const FVeyraCast& Cast, int32 Tick) override;
 
 private:

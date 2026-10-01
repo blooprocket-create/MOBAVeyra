@@ -93,6 +93,14 @@ namespace VeyraCombatTests
 			ASSERT_THAT(IsTrue(VeyraCombat::ApplyStatus(*Caster, *Unit, Splinter)));
 		}
 
+		TEST_METHOD(AMobileAttackKeepsAShareOfSpeedAboveNoneUpToAll)
+		{
+			ASSERT_THAT(IsTrue(VeyraStatuses::Validate(TestStatus(TEXT("stride"), EVeyraStatusKind::MobileAttack, 1.0, LongSeconds)).IsEmpty()));
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("stride"), EVeyraStatusKind::MobileAttack, 0.0, LongSeconds)).IsEmpty()));
+			ASSERT_THAT(IsFalse(VeyraStatuses::Validate(TestStatus(TEXT("stride"), EVeyraStatusKind::MobileAttack, 1.5, LongSeconds)).IsEmpty()));
+			ASSERT_THAT(IsFalse(VeyraStatuses::IsCrowdControl(EVeyraStatusKind::MobileAttack)));
+		}
+
 		const FVeyraStatusEntry* Find(const TCHAR* Id) const
 		{
 			const FVeyraContentId StatusId = FVeyraContentId::FromText(Id).GetValue();

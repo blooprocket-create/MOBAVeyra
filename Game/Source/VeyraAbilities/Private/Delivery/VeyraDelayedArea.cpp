@@ -32,10 +32,11 @@ void AVeyraDelayedArea::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 }
 
 void AVeyraDelayedArea::Arm(UAbilitySystemComponent& InCaster, const FVeyraEffectFrame& Placement, TArray<FVeyraPreparedZone> InZones,
-	double DelaySeconds, const FVeyraContentId& InAbility, int32 InCastId)
+	double DelaySeconds, const FVeyraContentId& InAbility, int32 InCastId, TOptional<FVeyraPreparedLinger> InLinger)
 {
 	Caster = &InCaster;
 	Zones = MoveTemp(InZones);
+	Linger = MoveTemp(InLinger);
 	bOriginIsCaster = Placement.bOriginIsCaster;
 	Shapes.Reset();
 	for (const FVeyraPreparedZone& Zone : Zones)
@@ -71,6 +72,10 @@ void AVeyraDelayedArea::Resolve()
 		Placement.Direction = Direction;
 		Placement.bOriginIsCaster = bOriginIsCaster;
 		VeyraAreaDelivery::Resolve(*GetWorld(), *Source, Placement, Zones, FVeyraAbilityHitSource{ Ability, CastId });
+		if (Linger.IsSet())
+		{
+			VeyraAreaDelivery::ArmLinger(*GetWorld(), *Source, Placement, Linger.GetValue());
+		}
 	}
 	Destroy();
 }

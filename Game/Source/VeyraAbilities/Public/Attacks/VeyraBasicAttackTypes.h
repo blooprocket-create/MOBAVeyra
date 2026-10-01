@@ -213,6 +213,10 @@ struct FVeyraAttackEmpowermentView
 	/** When it lapses unused, in the server's world time. */
 	UPROPERTY()
 	double ExpiresAt = 0.0;
+
+	/** How many attacks it still empowers (ADR-027 §2). */
+	UPROPERTY()
+	int32 Attacks = 0;
 };
 
 /** An empowerment the next basic attack consumes at its Commit (Combat Bible §17). */
@@ -223,6 +227,12 @@ struct FVeyraAttackEmpowerment
 
 	/** How long it waits for an attack, in seconds. */
 	double DurationSeconds = 0.0;
+
+	/** How many attacks it empowers, at least 1; each spends one (ADR-027 §2). */
+	int32 Attacks = 1;
+
+	/** What the empowered attacks' windups are multiplied by, in (0, 1]. */
+	double WindupScale = 1.0;
 
 	/** Adds the empowerment to the attack. */
 	TFunction<void(FVeyraAttackPlan&)> Apply;

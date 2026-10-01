@@ -63,6 +63,9 @@ struct FVeyraShieldShare
 {
 	TWeakObjectPtr<UAbilitySystemComponent> Provider;
 	double Absorbed = 0.0;
+
+	/** The shield's identity, so an ability can count what one grant of it absorbed (ADR-027 §5). */
+	FVeyraContentId Id;
 };
 
 /**
@@ -116,6 +119,9 @@ struct FVeyraCastEvent
 
 	/** Whether it has an effect on enemies: offensive casts end stealth (Combat Bible §11). */
 	bool bOffensive = false;
+
+	/** The unit the cast named, if any, such as the ally an ally-targeted cast buffs (ADR-027 §4). */
+	TWeakObjectPtr<AActor> Target;
 };
 
 /** A forced displacement as it starts (ADR-018 §3): who moved whom, and how far after resistance. */

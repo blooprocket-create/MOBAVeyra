@@ -120,7 +120,7 @@ protected:
 	 * Server: Caster's cast of Ability committed. It is announced; a used-once override of it ends, and
 	 * its recast window, if it has one, opens in its slot (ADR-018 §1, §3).
 	 */
-	void NoteCastCommitted(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const;
+	void NoteCastCommitted(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, AActor* Target = nullptr) const;
 
 	/** Delivers one tick of a channel; Tick counts from 1. */
 	virtual void DeliverChannelTick(const FVeyraCast& Cast, int32 Tick);

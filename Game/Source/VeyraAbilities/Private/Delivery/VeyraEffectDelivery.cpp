@@ -9,7 +9,10 @@
 #include "Attributes/VeyraOffenceSet.h"
 #include "Abilities/VeyraGameplayAbility.h"
 #include "Attributes/VeyraVitalsSet.h"
+#include "Delivery/VeyraShieldRewardSubsystem.h"
+#include "Engine/World.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
+#include "VeyraCombatVerbs.h"
 
 namespace VeyraEffectDelivery
 {
@@ -138,6 +141,25 @@ FVeyraPreparedEffects Prepare(UAbilitySystemComponent& Caster, const FVeyraEffec
 		}
 	}
 	return Prepared;
+}
+
+bool GrantShield(UAbilitySystemComponent& Caster, UAbilitySystemComponent& Holder, const FVeyraShieldTuning& Shield, int32 Rank)
+{
+	const FVeyraShieldGrant Grant = ShieldGrant(Caster, Shield, Rank);
+	if (!VeyraCombat::GrantShield(Caster, Holder, Grant).IsValid())
+	{
+		return false;
+	}
+	UWorld* World = Holder.GetWorld();
+	UVeyraShieldRewardSubsystem* Rewards = World ? World->GetSubsystem<UVeyraShieldRewardSubsystem>() : nullptr;
+	for (const FVeyraAbsorbedRewardTuning& Reward : Shield.AbsorbedReward)
+	{
+		if (Rewards)
+		{
+			Rewards->Watch(Caster, Holder, Grant, Reward);
+		}
+	}
+	return true;
 }
 
 FVeyraSecondaryImpact SecondaryImpact(const UAbilitySystemComponent& Caster, const FVeyraSecondaryImpactTuning& Impact, int32 Rank)

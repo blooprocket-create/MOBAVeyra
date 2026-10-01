@@ -110,6 +110,16 @@ const FVeyraKitStatusesTuning* UVeyraVanguardsTuningSubsystem::FindKitStatuses(c
 	return Get().KitStatuses.Find(Passive);
 }
 
+const FVeyraAttackStrideTuning* UVeyraVanguardsTuningSubsystem::FindAttackStride(const FVeyraContentId& Passive)
+{
+	return Get().AttackStride.Find(Passive);
+}
+
+const FVeyraSlipstreamTuning* UVeyraVanguardsTuningSubsystem::FindSlipstream(const FVeyraContentId& Passive)
+{
+	return Get().Slipstream.Find(Passive);
+}
+
 VeyraTuning::FErrors UVeyraVanguardsTuningSubsystem::Reload()
 {
 	// As VeyraTuning::LoadDomain, with the domain's own checks before the hash is recorded.

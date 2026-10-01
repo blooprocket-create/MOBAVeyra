@@ -107,6 +107,9 @@ private:
 	/** The nearest a rider has come to its destination since it came within its turning circle. */
 	TOptional<double> RideClosest;
 	void StopForAttack();
+
+	/** Whether Attacks winds up while its attacker may walk, so a move order lets it go on (ADR-027 §1). */
+	static bool IsMobileWindup(const UVeyraBasicAttackComponent& Attacks);
 	void ClearAttackOrder();
 	UVeyraBasicAttackComponent* GetBasicAttack() const;
 

@@ -4,7 +4,7 @@
   "description": "Gameplay tuning owned by the Vanguards domain (ADR-008 §2, §5): each Vanguard's body, stats, growth, basic attack, kit and passive, keyed by content ID, and each passive archetype's records. VeyraVanguards binds it to FVeyraVanguardsTuning. test_vanguard is the developer test Vanguard, the successor of the M3 developer loadout.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses"],
+  "required": ["schemaVersion", "vanguards", "deepFoundation", "hitChain", "gatheringLight", "breach", "movingTarget", "cadence", "markProc", "haunt", "campReward", "momentum", "wildDominion", "kitStatuses", "attackStride", "slipstream"],
   "definitions": {
     "provenance": {
       "description": "Where these values come from (ADR-008 §7).",
@@ -134,7 +134,7 @@
       "description": "A shield granted to the Vanguard (Combat Bible §7, §51; ADR-009 §3): the amount plus Max Health and Magic Power times the ratios.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["id", "category", "amountByRank", "maxHealthRatio", "magicPowerRatio", "durationSeconds", "reapply", "maxAmountMaxHealthRatio", "capGroup"],
+      "required": ["id", "category", "amountByRank", "maxHealthRatio", "magicPowerRatio", "durationSeconds", "reapply", "maxAmountMaxHealthRatio", "capGroup", "absorbedReward"],
       "properties": {
         "id": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" },
         "category": { "type": "string", "enum": ["Physical", "Magic", "Universal"] },
@@ -157,6 +157,18 @@
               "totalMaxHealthRatio": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
             }
           }
+        },
+        "absorbedReward": {
+          "description": "At most one: once a grant of this shield has absorbed this fraction of its amount, its holder gains the statuses once, from its provider (ADR-027 §5).",
+          "type": "array", "minItems": 0, "maxItems": 1,
+          "items": {
+            "type": "object", "additionalProperties": false,
+            "required": ["fraction", "statuses"],
+            "properties": {
+              "fraction": { "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+              "statuses": { "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
+            }
+          }
         }
       }
     }
@@ -166,7 +178,7 @@
       "description": "Version of this file's format. A build reads exactly one version.",
       "type": "integer",
       "minimum": 1,
-      "enum": [12]
+      "enum": [13]
     },
     "vanguards": {
       "description": "Every Vanguard, keyed by its stable ID (ADR-008 §2).",
@@ -407,6 +419,43 @@
                 "lungeSpeed": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
               }
             }
+          }
+        }
+      }
+    },
+    "slipstream": {
+      "description": "Passives that leave a short current from their owner toward each allied Vanguard its ally-targeted buffs name, speeding the allies inside (Aurelisse's Slipstream, Roster Bible §24; ADR-027 §7).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "width", "maxLength", "durationSeconds", "pulseSeconds", "statuses"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "width": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "maxLength": { "description": "The longest current, from the owner toward the ally.", "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "durationSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "pulseSeconds": { "type": "number", "minimum": 0, "exclusiveMinimum": true },
+            "statuses": { "description": "From Abilities.json's statuses: given the owner and the allied Vanguards inside at each pulse; each outlasts a pulse.", "type": "array", "minItems": 1, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
+          }
+        }
+      }
+    },
+    "attackStride": {
+      "description": "Passives that let their owner walk through a basic attack's windup at a share of its speed, and give it statuses for each primary basic attack that lands on an enemy Vanguard (Celandrine's Never Break Stride, Roster Bible §22; ADR-027 §1, §8).",
+      "type": "object",
+      "additionalProperties": false,
+      "patternProperties": {
+        "^[a-z][a-z0-9]*(_[a-z0-9]+)*$": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["provenance", "windupShare", "hitStatuses"],
+          "properties": {
+            "provenance": { "$ref": "#/definitions/provenance" },
+            "windupShare": { "description": "The share of Movement Speed kept while a basic attack winds up.", "type": "number", "minimum": 0, "exclusiveMinimum": true, "maximum": 1 },
+            "hitStatuses": { "description": "From Abilities.json's statuses: given the owner by each primary basic attack that lands on an enemy Vanguard.", "type": "array", "minItems": 0, "items": { "type": "string", "pattern": "^[a-z][a-z0-9]*(_[a-z0-9]+)*$" } }
           }
         }
       }

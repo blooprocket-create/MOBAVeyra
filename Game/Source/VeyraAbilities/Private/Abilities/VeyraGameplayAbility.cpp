@@ -170,11 +170,11 @@ void UVeyraGameplayAbility::NoteCastStarted(UAbilitySystemComponent& Caster, con
 	}
 }
 
-void UVeyraGameplayAbility::NoteCastCommitted(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability) const
+void UVeyraGameplayAbility::NoteCastCommitted(UAbilitySystemComponent& Caster, const FVeyraContentId& Ability, AActor* Target) const
 {
 	if (UVeyraCombatEventSubsystem* Events = GetWorld() ? GetWorld()->GetSubsystem<UVeyraCombatEventSubsystem>() : nullptr)
 	{
-		Events->OnCastCommitted.Broadcast(FVeyraCastEvent{ &Caster, Ability, IsOffensive(Ability) });
+		Events->OnCastCommitted.Broadcast(FVeyraCastEvent{ &Caster, Ability, IsOffensive(Ability), Target });
 	}
 	UVeyraAbilityLoadoutComponent* Loadout = FindBesideAbilitySystem<UVeyraAbilityLoadoutComponent>(Caster);
 	if (!Loadout)
@@ -226,6 +226,7 @@ EVeyraCastRejection UVeyraGameplayAbility::CheckEnemyUnit(const AActor& Caster, 
 	case EVeyraTargetValidity::Caster:
 	case EVeyraTargetValidity::Structure:
 	case EVeyraTargetValidity::Ward:
+	case EVeyraTargetValidity::NotAllied:
 		return EVeyraCastRejection::InvalidTarget;
 	}
 	return EVeyraCastRejection::InvalidTarget;
@@ -372,7 +373,7 @@ void UVeyraGameplayAbility::OnWindupEnded()
 		return;
 	}
 
-	NoteCastCommitted(*Caster, Run.Cast.Ability);
+	NoteCastCommitted(*Caster, Run.Cast.Ability, Run.Cast.TargetActor.Get());
 
 	Run.Channel = Deliver(Run.Cast);
 	if (Run.Channel.Ticks > 0 && Run.Channel.Seconds > 0.0)

@@ -50,9 +50,10 @@ EVeyraOrderRejection AVeyraVanguardController::MoveToDestination(const FVector& 
 		return EVeyraOrderRejection::Unreachable;
 	}
 
-	// Moving replaces an attack order, cancels an attack before its Commit and cuts a backswing short (§48).
+	// Moving replaces an attack order, cancels an attack before its Commit and cuts a backswing short
+	// (§48); a mobile attacker's windup goes on while it walks (ADR-027 §1).
 	ClearAttackOrder();
-	if (UVeyraBasicAttackComponent* Attacks = GetBasicAttack())
+	if (UVeyraBasicAttackComponent* Attacks = GetBasicAttack(); Attacks && !IsMobileWindup(*Attacks))
 	{
 		Attacks->CancelAttack();
 	}
@@ -120,7 +121,7 @@ EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Desti
 		return EVeyraOrderRejection::Unreachable;
 	}
 
-	if (Attacks->GetState().Phase == EVeyraAttackPhase::Windup)
+	if (Attacks->GetState().Phase == EVeyraAttackPhase::Windup && !IsMobileWindup(*Attacks))
 	{
 		Attacks->CancelAttack();
 	}
@@ -128,6 +129,12 @@ EVeyraOrderRejection AVeyraVanguardController::AttackMoveTo(const FVector& Desti
 	AttackTarget.Reset();
 	AttackMoveDestination = Walkable.GetValue();
 	AttackPath = EAttackPath::None;
+	// A mobile attacker walks on while its windup goes on, as it does for a move order (ADR-027 §1); the
+	// order takes up its next target once the attack commits.
+	if (Attacks->GetState().Phase == EVeyraAttackPhase::Windup && !IsMovementLocked())
+	{
+		FollowAttackMove();
+	}
 	UpdateAttackOrder();
 	return EVeyraOrderRejection::None;
 }
@@ -286,6 +293,11 @@ void AVeyraVanguardController::FollowAttackMove()
 		// Already there, or no path: the attack-move is finished.
 		ClearAttackOrder();
 	}
+}
+
+bool AVeyraVanguardController::IsMobileWindup(const UVeyraBasicAttackComponent& Attacks)
+{
+	return Attacks.GetState().Phase == EVeyraAttackPhase::Windup && Attacks.GetWindupMovementShare() > 0.0;
 }
 
 void AVeyraVanguardController::StopForAttack()

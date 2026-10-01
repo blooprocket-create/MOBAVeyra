@@ -113,6 +113,13 @@ M5 added ([ADR-008](Docs/ADR/ADR-008-vanguard-definitions-and-ability-compositio
 
 M20 added ([ADR-026](Docs/ADR/ADR-026-reactive-kit-primitives.md)): reactions, which let an effect depend on the statuses its target holds; lingering areas that hit at their pulses and as they end, and delayed areas that land sooner inside one; and `Statuses/`, whose `UVeyraStackConversionSubsystem` turns a status at its most stacks into the one its tuning names.
 
+M20b added ([ADR-027](Docs/ADR/ADR-027-mobile-attacks-and-ally-casts.md)):
+
+- basic attacks whose windup the attacker walks through, and empowerments that span several attacks;
+- a self-buff's timed attack impact, its ally recipient and the zones that land on that recipient;
+- delayed areas that linger where they land, their lingering area prepared in `VeyraAreaDelivery`;
+- `Delivery/VeyraShieldRewardSubsystem`, which rewards a shield's holder once the shield has absorbed its share.
+
 Abilities are server-only, with no client prediction (ADR-006 §4 and §7, M3 amendments; ADR-009 §6).
 
 ### VeyraEconomy
@@ -260,8 +267,9 @@ A kit is data: `Game/Tuning/Vanguards.json` defines each Vanguard, and its abili
 
 ```text
 VeyraVanguards/
-├── Passives/   one class per unique passive (Deep Foundation, Gathering Light, Breach, Wild Dominion),
-│               and the kit-statuses passive, which runs nothing (Embedded, Hazard Exposure)
+├── Passives/   one class per unique passive (Deep Foundation, Gathering Light, Breach, Wild Dominion,
+│               Never Break Stride, Slipstream), and the kit-statuses passive, which runs nothing
+│               (Embedded, Hazard Exposure)
 ├── Shared/     generic passives any Vanguard's data can use (the hit chain)
 └── Tuning/     the Vanguards.json binding and its rules
 ```

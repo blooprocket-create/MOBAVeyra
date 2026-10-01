@@ -47,6 +47,12 @@ public:
 	virtual float GetMaxSpeed() const override;
 
 	/**
+	 * Server: the share of its speed the unit keeps while its basic attack winds up, as a mobile
+	 * attacker does (ADR-027 §1); unset while it winds up standing, or does not attack.
+	 */
+	void SetWindupSpeedShare(TOptional<double> Share) { WindupSpeedShare = Share; }
+
+	/**
 	 * Server only: displaces the unit Distance units along Direction at Speed. The caller has applied
 	 * Displacement Resistance. A newer displacement replaces what is left of an older one, and
 	 * interrupts a dash (Combat Bible §9). Returns false if refused.
@@ -202,6 +208,8 @@ private:
 		double Seconds = 0.0;
 	};
 	TOptional<FRideDecay> RideDecay;
+
+	TOptional<double> WindupSpeedShare;
 
 	/** How far it has moved itself since TakeTravelled last read it. */
 	double Travelled = 0.0;

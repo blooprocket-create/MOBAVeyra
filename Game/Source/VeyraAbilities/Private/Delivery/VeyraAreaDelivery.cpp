@@ -7,6 +7,8 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "Targeting/VeyraTargeting.h"
+#include "Targeting/VeyraVisibility.h"
+#include "Teams/VeyraTeam.h"
 #include "Tuning/VeyraAbilitiesTuningSubsystem.h"
 #include "Units/VeyraUnit.h"
 #include "VeyraAbilitiesLog.h"
@@ -107,5 +109,60 @@ TArray<AActor*> Resolve(UWorld& World, UAbilitySystemComponent& Caster, const FV
 	}
 	UE_LOG(LogVeyraAbilities, Verbose, TEXT("An area of %s hit %d unit(s)."), *GetNameSafe(Side), Hit.Num());
 	return Hit;
+}
+
+TOptional<FVeyraPreparedLinger> PrepareLinger(UAbilitySystemComponent& Caster, const FVeyraAreaAbilityTuning& Area, int32 Rank, int32 Level,
+	const FVeyraContentId& Ability, int32 CastId)
+{
+	if (Area.Linger.IsEmpty() || Area.Zones.IsEmpty())
+	{
+		return {};
+	}
+	const FVeyraLingerTuning& Tuning = Area.Linger[0];
+	FVeyraPreparedLinger Linger;
+	// It lasts in its outermost zone's shape.
+	Linger.Shape = Area.Zones.Last().Shape;
+	Linger.DurationSeconds = Tuning.DurationSeconds;
+	Linger.PulseSeconds = Tuning.PulseSeconds;
+	Linger.Sight = Tuning.Sight;
+	Linger.Ability = Ability;
+	// Its statuses from the caster's Level at Commit (Combat Bible §50).
+	const auto PrepareStatuses = [Level](TConstArrayView<FVeyraContentId> Ids, TArray<FVeyraStatusSpec>& Out) {
+		for (const FVeyraContentId& Id : Ids)
+		{
+			if (const TOptional<FVeyraStatusSpec> Status = UVeyraAbilitiesTuningSubsystem::FindStatus(Id, Level))
+			{
+				Out.Add(Status.GetValue());
+			}
+		}
+	};
+	PrepareStatuses(Tuning.CasterStatuses, Linger.Statuses.Caster);
+	PrepareStatuses(Tuning.AllyStatuses, Linger.Statuses.Allies);
+	PrepareStatuses(Tuning.EnemyStatuses, Linger.Statuses.Enemies);
+	// What its pulses and its end do to the enemies inside, from the caster's power at Commit (ADR-026 §4).
+	Linger.Effects.EndWarningSeconds = Tuning.EndWarningSeconds;
+	Linger.Effects.CastId = CastId;
+	const auto PrepareBundles = [&Caster, &Linger, Rank](TConstArrayView<FVeyraEffectBundleTuning> Bundles, TArray<FVeyraPreparedZone>& Out) {
+		for (const FVeyraEffectBundleTuning& Bundle : Bundles)
+		{
+			Out.Add(FVeyraPreparedZone{ Linger.Shape, VeyraEffectDelivery::Prepare(Caster, Bundle, Rank) });
+		}
+	};
+	PrepareBundles(Tuning.PulseEffects, Linger.Effects.Pulse);
+	PrepareBundles(Tuning.EndEffects, Linger.Effects.End);
+	return Linger;
+}
+
+void ArmLinger(UWorld& World, UAbilitySystemComponent& Caster, const FVeyraEffectFrame& Placement, const FVeyraPreparedLinger& Linger)
+{
+	if (AVeyraLingeringArea* Lingering = World.SpawnActor<AVeyraLingeringArea>(AVeyraLingeringArea::StaticClass(), FTransform(Placement.Origin)))
+	{
+		Lingering->Arm(Caster, Placement, Linger.Shape, Linger.Statuses, Linger.Effects, Linger.DurationSeconds, Linger.PulseSeconds, Linger.Ability);
+	}
+	if (Linger.Sight == EVeyraLingerSight::Ordinary)
+	{
+		VeyraVisibility::RevealShape(World, VeyraTeams::TeamOf(Caster.GetOwner()), FVeyraPlacedShape{ Linger.Shape, Placement.Origin, Placement.Direction },
+			Linger.DurationSeconds);
+	}
 }
 }

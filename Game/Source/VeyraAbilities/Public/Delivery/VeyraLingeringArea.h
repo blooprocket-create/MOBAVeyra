@@ -14,30 +14,6 @@
 
 class UAbilitySystemComponent;
 
-/** The statuses a lingering area gives each side inside it, from its caster's Level at Commit (ADR-018 §5). */
-struct FVeyraLingerStatuses
-{
-	TArray<FVeyraStatusSpec> Caster;
-	TArray<FVeyraStatusSpec> Allies;
-	TArray<FVeyraStatusSpec> Enemies;
-};
-
-/** What a lingering area does to the enemy units inside it beside its statuses, prepared at Commit (ADR-026 §4). */
-struct FVeyraLingerEffects
-{
-	/** Dealt at each pulse after it lands; empty when its pulses give statuses only. */
-	TArray<FVeyraPreparedZone> Pulse;
-
-	/** Dealt as it ends, measured from its centre; empty when its end does nothing. */
-	TArray<FVeyraPreparedZone> End;
-
-	/** How long before its end the presentation marks it. */
-	double EndWarningSeconds = 0.0;
-
-	/** The cast they belong to, for the hits' announcements. */
-	int32 CastId = 0;
-};
-
 /**
  * A delivered area that lasts (ADR-018 §5), the smallest of ADR-003's world volumes. As it lands and
  * at every pulse after, it gives the units inside it their side's statuses: its caster, the allied

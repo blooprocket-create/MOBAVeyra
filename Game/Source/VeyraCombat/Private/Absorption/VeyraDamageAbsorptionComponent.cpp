@@ -190,7 +190,7 @@ FVeyraAbsorptionResult UVeyraDamageAbsorptionComponent::ApplyIncomingDamage(EVey
 		for (const FVeyraAbsorbedShare& Share : Result.ShieldShares)
 		{
 			const FServerEntry* Server = ServerEntries.Find(Share.Sequence);
-			OutShieldShares->Add(FVeyraShieldShare{ Server ? Server->Source : nullptr, Share.Amount });
+			OutShieldShares->Add(FVeyraShieldShare{ Server ? Server->Source : nullptr, Share.Amount, Server ? Server->Id : FVeyraContentId() });
 		}
 	}
 
